@@ -29,7 +29,7 @@ export type {
 import { collectLisaUsageChildArtifacts } from "./usage-accounting-rollup.js";
 import { sumNullableDecimals } from "./decimal-sum.js";
 import { renderEffectivenessToken } from "./effectiveness.js";
-import { assertCanonicalArtifactRef } from "./usage-artifact-ref.js";
+import { assertCanonicalArtifactRef } from "../../all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs";
 
 export { assertCanonicalArtifactRef };
 

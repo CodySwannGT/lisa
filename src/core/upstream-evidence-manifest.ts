@@ -45,17 +45,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "0b323e9c53b6909eca61fa84bf2c85683a686e380760e2fe2fb52b09c6611026",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
-      "364ca523509a506c8d92f3592b5e3041f6050a68ab90002e9fae7201a67044fb",
+      "98b1901e0912d72a639028f22837a8abecaeeef6fba0654990bca2285239ea08",
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
-      "fae8daa7ae960995bac49be351c23db9bc597047e3a221510f4d756a07cf61b8",
+      "5b11a58ac677a2f165678a5255060aa998cda6d7081b64e7c2114195eee997d0",
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
       "8ff9efc772463c3fccf5d6e5a42c73df324babd2e02e66228f2d9a0b1896cbf4",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
-      "51f7246943b20e970a185d3e2d9a9255929f510b25261502154e909d3b109436",
+      "5745309b07bd12dda8f72a2f29681441c2ac4a404b87acb03ee29c1a7a724d05",
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
-      "6f3c25bd35b2309c26b39ec90a7e6eab7487921cad9d9e285366b5bc2d3efc25",
+      "9554fff85ed510f75058614c9ad8535806d52293e1de012900bae7e14db61eb1",
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
@@ -73,7 +73,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/evidence-prune.mjs":
       "ae141d9a3e8d438365192f3c05de86002ebf36cd53ed63c639474317b9c007a4",
     "all/copy-overwrite/scripts/lib/evidence-release-capacity.mjs":
-      "7e1fffe6cb74e345410dff76497d656b261e8da47b5b7a90c0af53626ab5e51e",
+      "3426aeee6aed4ab7673c69a2812a4761f3bc5b5cf142af9050da77f182a93c76",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
@@ -153,7 +153,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "7100aa6554d59c6a8f6fafefb983c12359b8cf727b8e4657362eba045051dd4e",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "edb3e61929dd2c1333eee5a8e41755a0e93dfb96c5add4b408656fdaab9a6a4f",
+      "b34d0291028124507c38a44769eb019214cd5053045fb1ba7e644e856c6dded6",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -256,16 +256,20 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "318a262a0976f1e3559252c78f55a64e2ef32b11833a66d2d39d22161c813e90",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
       "32e9968d27b7edead16c232bb93bebb8118dd24d175a837f61c2e1ff324dc223",
+    "all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts":
+      "e093245f67362bd1dfefe328e9354f5465279f534ce569efee5d3cdadd00598b",
+    "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs":
+      "1f71d1e885b929ab8c6e80ec4ce8a3648b6debd0d1b6ff51679655a5e117d413",
     "all/copy-overwrite/scripts/lib/usage-effectiveness.d.mts":
       "55929b47ce26b7abfe0ac9c369f974b5fd3c2a8edd6e79f4d474ba7ac26792e9",
     "all/copy-overwrite/scripts/lib/usage-effectiveness.mjs":
       "b4fb652293bf2c15f9a07b3f9f15cee75ddbfc17a5aa7fee30290629b77ba705",
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.d.mts":
-      "75c8204833c1f390d585e9e12a0bbbae423c6982ef296dc4318e875b21c96e99",
+      "a4bdc5da82e9e38057409112aa034f52f173453c95f0e0d223333e6d0d15ed1d",
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs":
-      "b2b928d323817867591e23c53aede3ee91830c4bd37658082c7dd61266b0c0d9",
+      "d0d63c989bbb92a38b9b6db6dcc51131be30129fe50ca76563f27ffd7fba9678",
     "all/copy-overwrite/scripts/lib/usage-ledger.d.mts":
-      "ea55e6bf7354f92353666b145c9d352c2a2e7d8c914f98f4e1421d0528cab657",
+      "605a7c5fc65a66413606489f8bf1b97ef4ce5e582de4dcca10466c8793c7c3bc",
     "all/copy-overwrite/scripts/lib/usage-ledger.mjs":
       "fce4aebf272d4170083abf492781f20f6d726f5352d7dd9823714c1e1f2ccaf6",
     "all/copy-overwrite/scripts/lib/windows-process-job.cs":
@@ -361,7 +365,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "b5643bb8b2659860fde47aa4fdeade8e4fb473f87416660c32f9bb862e26f368",
+      "c4db1ebcf54e3177213639199b81acf301dc68bf796d291d23ad86ef00127a71",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1297,7 +1301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "e98974e4f48af05f788323c92badae6a97a2feec1ca8e8a9c05ddc3e3c948492",
     "plugins/src/base/rules/reference/usage-accounting.md":
-      "2c3decf40d02ec10c5d4c57a64cd6c99b0cca5b388502baf0a2b594e445bbf71",
+      "53dec94f4cba696d4b4f6e990565173c6aa0c9972432b8b127517fc3617ca7cc",
     "plugins/src/base/rules/reference/verification.md":
       "fd1dfe40b098b8c772785cec3d3e89a2e32d086bd13e44489536241a8c393ee9",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
@@ -2949,7 +2953,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "81a753102505d1cf6669f83801869c1166a42c9d13093f983cd4930e3f881546",
+      "531c452c034c420ebd77c290f0f68214a26983b064609312dc1b65f6f3f90c2d",
     "scripts/update-node-version.ts":
       "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
@@ -3017,7 +3021,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "5abd2a94a7ad25115cdef63ebc5bec9745119f14573ee8c31670e5cc8cf87246",
+      "52d45279ac12b96308f852ba220d92acfeda4692599a5c1de2b15a96132a97a3",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3420,6 +3424,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.mjs": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.d.mts": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": true,
+    "all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts": true,
+    "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs": true,
     "all/copy-overwrite/scripts/lib/usage-effectiveness.d.mts": true,
     "all/copy-overwrite/scripts/lib/usage-effectiveness.mjs": true,
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.d.mts": true,
@@ -3908,6 +3914,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4809/step3-status-inside-tmux-other-cycler-reported.txt": true,
     "evidence/4809/step4a-cycle-inside-tmux-after-window.txt": true,
     "evidence/4809/step4b-status-inside-tmux-no-other-cycler.txt": true,
+    "evidence/4846/completion-control.txt": true,
+    "evidence/4846/control-ac1-origin-main.txt": true,
+    "evidence/4846/control-ac4-pre-scoping.txt": true,
+    "evidence/4846/integrity-tests.txt": true,
+    "evidence/4846/legacy-row-does-not-block.txt": true,
+    "evidence/4846/qualified-ref-accepted.txt": true,
+    "evidence/4846/shared-grammar.txt": true,
+    "evidence/4846/short-ref-refused.txt": true,
     "evidence/CodySwannGT-lisa-4496/01-outside-no-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/02-inside-manager-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/03-outside-while-running.txt": true,
@@ -11548,7 +11562,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/utils/postinstall-trampoline.ts": true,
     "src/utils/usage-accounting-rollup.ts": true,
     "src/utils/usage-accounting.ts": true,
-    "src/utils/usage-artifact-ref.ts": true,
     "src/utils/yaml.ts": true,
     "state/demo-project/README.md": true,
     "state/demo-project/state/inventory.json": true,
@@ -13047,6 +13060,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/completion-proof-indented-markers-and-ac-heading.test.ts": true,
     "tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts": true,
     "tests/unit/scripts/completion-proof-linear-usage-normalization.test.ts": true,
+    "tests/unit/scripts/completion-proof-read-retry.test.ts": true,
     "tests/unit/scripts/completion-proof-types.test.ts": true,
     "tests/unit/scripts/conflict-prover-markers-and-index.test.ts": true,
     "tests/unit/scripts/cross-pollinate.test.ts": true,
@@ -13411,6 +13425,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-proof-freshness-review.test.ts": true,
     "tests/unit/scripts/work-item-proof-gh-versions.test.ts": true,
     "tests/unit/scripts/work-item-proof-late-read.test.ts": true,
+    "tests/unit/scripts/work-item-proof-publish-retry.test.ts": true,
     "tests/unit/scripts/work-item-proof-scope.test.ts": true,
     "tests/unit/scripts/work-item-proof-trust.test.ts": true,
     "tests/unit/scripts/work-item-proof-write-errors.test.ts": true,
@@ -13924,6 +13939,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/usage-accounting-token-serialization.test.ts": true,
     "tests/unit/utils/usage-accounting.test.ts": true,
     "tests/unit/utils/usage-empty-run-id.test.ts": true,
+    "tests/unit/utils/usage-ledger-artifact-ref-integrity.test.ts": true,
     "tests/unit/utils/usage-section-trailing-content.test.ts": true,
     "tests/unit/utils/yaml-interop.test.ts": true,
     "tests/unit/workstation/fixtures.ts": true,

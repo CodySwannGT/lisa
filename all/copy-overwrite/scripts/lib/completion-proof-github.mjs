@@ -218,6 +218,19 @@ const ESCAPE_FLAG = "--allow-escape-sequences";
 /** How gh < 2.97, which has no escape check, rejects that flag. */
 const UNKNOWN_ESCAPE_FLAG = /unknown flag:? --allow-escape-sequences/;
 const OCTET_STREAM = "Accept: application/octet-stream";
+/**
+ * Backoff before each retry of a transient read: three retries, four attempts
+ * in all (CodySwannGT/lisa#4733). A publish makes about a hundred reads, and a
+ * replay of one caller repo's read set lost roughly 1% of them at random.
+ */
+const READ_RETRY_DELAYS_MS = Object.freeze([250, 1000, 3000]);
+/**
+ * Diagnostics of a network fault that a later identical read can outlive: a
+ * connect or dial timeout, a TLS handshake timeout, a reset connection, a cut
+ * stream, an i/o timeout, or GitHub's own 500/502/503/504.
+ */
+const TRANSIENT_STDERR =
+  /(?:connect|dial)[^\n]*(?:timed out|timeout)|TLS handshake timeout|connection reset|ECONNRESET|unexpected EOF|i\/o timeout|HTTP 50[0234]\b/i;
 /** The longest stderr excerpt a read failure quotes. */
 const STDERR_EXCERPT = 200;
 const ESC = 0x1b;
@@ -324,6 +337,91 @@ function readFailure(result, maxBuffer) {
 }
 
 /**
+ * Whether a failed `gh` run may succeed if repeated unchanged. A spawn timeout
+ * and the network faults above are; a 4xx, a byte ceiling, a missing gh or an
+ * unknown flag would fail the same way again, so they are reported at once.
+ * @param {object} result - The canonical runner's spawn result.
+ * @returns {boolean} True when the read is worth repeating.
+ */
+function transientRun(result) {
+  if (result.error) return result.error.code === "ETIMEDOUT";
+  return result.status !== 0 && TRANSIENT_STDERR.test(result.stderr ?? "");
+}
+
+/** `gh api` flags that send a request body, which makes the call a write. */
+const BODY_FLAGS = new Set(["-f", "-F", "--field", "--raw-field", "--input"]);
+/** `gh api` flags that pick the HTTP method. */
+const METHOD_FLAGS = new Set(["-X", "--method"]);
+
+/**
+ * The HTTP method one `gh api` argument names, or null when it names none:
+ * `-X POST`, `--method POST`, `--method=POST` and `-XPOST` all count.
+ * @param {string[]} args - Exact `gh` argument vector.
+ * @param {number} index - Position of the argument to read.
+ * @returns {string|null} The upper-cased method, or null.
+ */
+function methodAt(args, index) {
+  const value = args[index];
+  if (METHOD_FLAGS.has(value)) return String(args[index + 1]).toUpperCase();
+  const joined = /^(?:--method=|-X)(.+)$/.exec(value);
+  return joined ? joined[1].toUpperCase() : null;
+}
+
+/**
+ * Whether a `gh` call can change GitHub state. Such a call is never repeated:
+ * a write that timed out may still have landed, and a retry would apply it
+ * twice (CodySwannGT/lisa#4733).
+ * @param {string[]} args - Exact `gh` argument vector.
+ * @returns {boolean} True for any body flag or a non-GET method.
+ */
+function writes(args) {
+  return args.some((value, index) => {
+    if (BODY_FLAGS.has(value) || /^--(?:raw-)?field=|^--input=/.test(value))
+      return true;
+    const method = methodAt(args, index);
+    return method !== null && method !== "GET";
+  });
+}
+
+/**
+ * Block the thread for a retry backoff. The transport is synchronous end to
+ * end (its runner is spawnSync-based), so the wait is too.
+ * @param {number} ms - Milliseconds to wait.
+ */
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/** How many attempts a read took, when it took more than one. */
+function attemptsNote(attempts) {
+  return attempts > 1 ? `; after ${attempts} attempts` : "";
+}
+
+/** The refusal for a read that did not complete. */
+function incompleteRead(detail) {
+  return new CompletionProofError(
+    READ_ERROR,
+    `A required GitHub completion-proof read did not complete (${detail}); restore repository access and retry canonical Verify/evidence.`
+  );
+}
+
+/** The refusal for a read whose body never parsed. */
+function unparseableRead(detail) {
+  return new CompletionProofError(
+    READ_ERROR,
+    `A required GitHub proof response is not complete JSON (${detail}).`
+  );
+}
+
+/** The refusal for an asset whose download never matched its metadata. */
+function incompleteDownload(detail) {
+  return new CompletionProofError(
+    "invalid-proof",
+    `The proof attachment download is incomplete (${detail}).`
+  );
+}
+
+/**
  * Which read an endpoint is, for the operator.
  * @param {string} target - Repository-relative endpoint ("" for the repository).
  * @param {boolean} raw - Whether the read downloads raw asset bytes.
@@ -367,8 +465,21 @@ function describeRead({ kind, args, root, failure, stderr }) {
 /** `/<owner>/<repo>/releases/download/<tag>/<asset>`, and nothing nested. */
 const DOWNLOAD_PATH = /^\/([^/]+\/[^/]+)\/releases\/download\/([^/]+)\/[^/]+$/;
 
-/** The transport reuses the canonical CLI's deadline and failure boundary. */
-export function githubProofTransport(run, repository, policy = {}) {
+/**
+ * The transport reuses the canonical CLI's deadline and failure boundary.
+ * @param {Function} run - The canonical spawnSync-based runner.
+ * @param {string} repository - `<owner>/<repo>` every read is confined to.
+ * @param {object} [policy] - `verification.completion` from the Lisa config.
+ * @param {object} [retry] - Read retry pacing; tests replace the wait.
+ * @param {readonly number[]} [retry.delays] - Backoff before each retry.
+ * @param {Function} [retry.sleep] - Synchronous wait, given milliseconds.
+ */
+export function githubProofTransport(
+  run,
+  repository,
+  policy = {},
+  { delays = READ_RETRY_DELAYS_MS, sleep = sleepSync } = {}
+) {
   requireProof(
     /^[\w.-]+\/[\w.-]+$/.test(repository),
     "The implementation repository is not canonical."
@@ -378,8 +489,9 @@ export function githubProofTransport(run, repository, policy = {}) {
    * Run one bounded `gh` read and report, rather than throw, how it ended.
    * @param {string[]} args - Exact `gh` argument vector.
    * @param {object} [options] - Runner options plus an optional `kind`.
-   * @returns {{result: object, failure: string|null}} The run and, when it
-   *   failed, a description naming the read.
+   * @returns {object} The run, its bytes as `value` and, when it failed, a
+   *   `failure` naming the read, whether it is `transient`, and how to
+   *   `refuse` it.
    */
   function attempt(args, options = {}) {
     const { kind, ...runOptions } = options;
@@ -392,19 +504,60 @@ export function githubProofTransport(run, repository, policy = {}) {
     const failure = readFailure(result, maxBuffer);
     return {
       result,
+      value: result.stdout,
       failure:
         failure &&
         describeRead({ kind, args, root, failure, stderr: result.stderr }),
+      transient: failure !== null && transientRun(result),
+      refuse: incompleteRead,
     };
   }
-  /** The bytes of a completed read; a failed one names itself (#4773). */
-  function settle({ result, failure }) {
-    if (failure)
-      throw new CompletionProofError(
-        READ_ERROR,
-        `A required GitHub completion-proof read did not complete (${failure}); restore repository access and retry canonical Verify/evidence.`
-      );
-    return result.stdout;
+  /**
+   * Repeat a whole read unit while it fails transiently, within the bound.
+   * A unit is the read plus whatever proves it whole (a parse, a size check),
+   * so a truncated body is retried exactly like a dropped connection.
+   * @param {Function} unit - One read attempt, returning an attempt outcome.
+   * @returns {object} The final outcome, with how many attempts it took.
+   */
+  function retried(unit) {
+    let outcome = unit();
+    let attempts = 1;
+    while (outcome.failure && outcome.transient && attempts <= delays.length) {
+      sleep(delays[attempts - 1]);
+      outcome = unit();
+      attempts += 1;
+    }
+    return { ...outcome, attempts };
+  }
+  /** The failure detail of an outcome, with its attempt count. */
+  function detail(outcome) {
+    return `${outcome.failure}${attemptsNote(outcome.attempts)}`;
+  }
+  /** The value of a completed read; a failed one names itself (#4773). */
+  function settle(outcome) {
+    if (outcome.failure) throw outcome.refuse(detail(outcome));
+    return outcome.value;
+  }
+  /**
+   * One read whose body must be complete JSON. A body that does not parse is
+   * transient, since a cut stream is how that usually happens.
+   * @param {string[]} args - Exact `gh` argument vector.
+   * @returns {object} One attempt outcome holding the parsed body.
+   */
+  function parsedAttempt(args) {
+    const read = attempt(args);
+    if (read.failure) return read;
+    try {
+      return { ...read, value: JSON.parse(read.value) };
+    } catch {
+      return {
+        ...read,
+        failure: describeRead({ args, root, failure: "unparseable response" }),
+        transient: true,
+        unparseable: true,
+        refuse: unparseableRead,
+      };
+    }
   }
   /**
    * One bounded `gh` read.
@@ -414,7 +567,8 @@ export function githubProofTransport(run, repository, policy = {}) {
    * @returns {string|Buffer} The complete response.
    */
   function call(args, options = {}) {
-    return settle(attempt(args, options));
+    if (writes(args)) return settle({ ...attempt(args, options), attempts: 1 });
+    return settle(retried(() => attempt(args, options)));
   }
   // gh >= 2.97 needs the flag and gh < 2.97 rejects it. Assumed supported
   // until gh rejects it once; remembered for this transport's later downloads.
@@ -426,12 +580,13 @@ export function githubProofTransport(run, repository, policy = {}) {
    * without `--allow-escape-sequences`, so an ANSI-coloured test log failed
    * every terminal transition on CI's gh while an older local gh, which
    * rejects the flag, read it fine (CodySwannGT/lisa#4773). The bytes go to a
-   * Buffer and are hashed, never to a terminal, so allowing them is safe.
+   * Buffer and are hashed, never to a terminal, so allowing them is safe. A
+   * rejected flag is a probe, not an attempt, so it never counts as one.
    * @param {number} id - Native asset identifier.
    * @param {number} max - Byte ceiling for this attachment.
-   * @returns {Buffer} The raw asset bytes.
+   * @returns {object} One attempt outcome holding the raw bytes.
    */
-  function downloadAsset(id, max) {
+  function downloadAttempt(id, max) {
     const args = [
       "api",
       `${root}/releases/assets/${id}`,
@@ -444,35 +599,73 @@ export function githubProofTransport(run, repository, policy = {}) {
       const rejected =
         flagged.result.status !== 0 &&
         UNKNOWN_ESCAPE_FLAG.test(flagged.result.stderr ?? "");
-      if (!rejected) return settle(flagged);
+      if (!rejected) return flagged;
       escapeFlagSupported = false;
     }
-    return call(args, options);
+    return attempt(args, options);
+  }
+  /**
+   * One download checked against its metadata: a body of any other length
+   * is a cut transfer, so it is transient like a dropped connection.
+   * @param {number} id - Native asset identifier.
+   * @param {number} max - Byte ceiling for this attachment.
+   * @param {number} size - The byte size native metadata declares.
+   * @returns {object} One attempt outcome holding the raw bytes.
+   */
+  function wholeDownload(id, max, size) {
+    const read = downloadAttempt(id, max);
+    if (read.failure) return read;
+    if (Buffer.isBuffer(read.value) && read.value.length === size) return read;
+    return {
+      ...read,
+      failure: `asset-download releases/assets/${id}: ${Buffer.byteLength(read.value ?? "")} of ${size} bytes`,
+      transient: true,
+      refuse: incompleteDownload,
+    };
   }
   function json(path, paginated = false) {
     requireProof(
       path.startsWith(`${root}/`) || path === root,
       "A completion read selected another repository."
     );
-    const bytes = call(
-      paginated ? ["api", "--paginate", "--slurp", path] : ["api", path]
-    );
-    try {
-      const parsed = JSON.parse(bytes);
-      if (paginated) {
-        requireProof(
-          Array.isArray(parsed) && parsed.length <= 100,
-          "The required GitHub pagination is incomplete or exceeds its bound."
-        );
-      }
-      return parsed;
-    } catch (error) {
-      if (error instanceof CompletionProofError) throw error;
-      throw new CompletionProofError(
-        READ_ERROR,
-        `A required GitHub proof response is not complete JSON (${describeRead({ args: ["api", path], root, failure: "unparseable response" })}).`
+    const args = paginated
+      ? ["api", "--paginate", "--slurp", path]
+      : ["api", path];
+    const parsed = settle(retried(() => parsedAttempt(args)));
+    if (paginated)
+      requireProof(
+        Array.isArray(parsed) && parsed.length <= 100,
+        "The required GitHub pagination is incomplete or exceeds its bound."
       );
-    }
+    return parsed;
+  }
+  /**
+   * A JSON read GitHub may answer with an explicit 404. Only that 404 is an
+   * answer; every other failure is retried when transient and then refused.
+   * @param {string} path - Repository-confined endpoint.
+   * @returns {object} The final outcome; `absent` is true for the 404.
+   */
+  function optionalRead(path) {
+    requireProof(
+      path.startsWith(`${root}/`),
+      "A completion read selected another repository."
+    );
+    const read = retried(() => parsedAttempt(["api", path]));
+    const absent =
+      Boolean(read.failure) &&
+      !read.unparseable &&
+      read.result.status !== 0 &&
+      /HTTP 404/.test(read.result.stderr ?? "");
+    return { ...read, absent };
+  }
+  /**
+   * Read JSON that may not exist, such as a release looked up by tag.
+   * @param {string} path - Repository-confined endpoint.
+   * @returns {object|null} The parsed body, or null for GitHub's explicit 404.
+   */
+  function optionalJson(path) {
+    const read = optionalRead(path);
+    return read.absent ? null : settle(read);
   }
   function trustedPublisher(
     asset,
@@ -564,31 +757,21 @@ export function githubProofTransport(run, repository, policy = {}) {
           row.type === "Bot" &&
           row.repository_id === repositoryId
       );
-    const read = attempt([
-      "api",
-      `${root}/collaborators/${encodeURIComponent(user.login)}/permission`,
-    ]);
-    const { result } = read;
-    if (read.failure) {
-      if (result.status !== 0 && /HTTP 404/.test(result.stderr ?? ""))
-        return false;
+    const read = optionalRead(
+      `${root}/collaborators/${encodeURIComponent(user.login)}/permission`
+    );
+    if (read.absent) return false;
+    if (read.failure)
       throw new CompletionProofError(
         READ_ERROR,
-        `The native proof publisher's repository authority could not be read (${read.failure}).`
+        read.unparseable
+          ? `Native publisher permissions are unreadable (${detail(read)}).`
+          : `The native proof publisher's repository authority could not be read (${detail(read)}).`
       );
-    }
-    let permission;
-    try {
-      permission = JSON.parse(result.stdout);
-    } catch {
-      throw new CompletionProofError(
-        READ_ERROR,
-        "Native publisher permissions are unreadable."
-      );
-    }
+    const permission = read.value;
     return (
-      permission.user?.id === user.id &&
-      ["write", "maintain", "admin"].includes(permission.permission)
+      permission?.user?.id === user.id &&
+      ["write", "maintain", "admin"].includes(permission?.permission)
     );
   }
   function asset(id, max = MAX_ATTACHMENT_BYTES) {
@@ -624,16 +807,13 @@ export function githubProofTransport(run, repository, policy = {}) {
         isAcceptedEvidenceRelease(policy, download[2]),
       `The proof attachment is outside the implementation repository's accepted evidence releases (${acceptedEvidenceReleases(policy).join(", ")}).`
     );
-    const bytes = downloadAsset(id, max);
-    requireProof(
-      Buffer.isBuffer(bytes) && bytes.length === metadata.size,
-      "The proof attachment download is incomplete."
-    );
+    const bytes = settle(retried(() => wholeDownload(id, max, metadata.size)));
     return { metadata, bytes };
   }
   return {
     call,
     json,
+    optionalJson,
     asset,
     trustedPublisher,
     eligibleCommentAuthor,
