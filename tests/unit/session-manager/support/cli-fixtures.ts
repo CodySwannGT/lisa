@@ -9,6 +9,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import type { Sandbox, StubCall } from "./cli-harness.js";
+import { claudeProjectDirName } from "./claude-project-dir.js";
 
 /**
  * An active `claude agents --json` row.
@@ -101,11 +102,7 @@ export function plantTranscript(
     configDir = path.join(sandbox.home, ".claude"),
   }: { cwd?: string; configDir?: string } = {}
 ): void {
-  const dir = path.join(
-    configDir,
-    "projects",
-    cwd.replace(/[^A-Za-z0-9]/g, "-")
-  );
+  const dir = path.join(configDir, "projects", claudeProjectDirName(cwd));
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     path.join(dir, `${STUB_FULL_SESSION_ID}.jsonl`),
