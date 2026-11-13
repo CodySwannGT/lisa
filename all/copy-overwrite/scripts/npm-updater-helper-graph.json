@@ -33,7 +33,7 @@
       "children": []
     },
     "lib/automation-provenance-contract.mjs": {
-      "sha256": "c790e3c3124f1f62fcd23716ad6588b285fdb2c11e08bb57d2598f79c18e634f",
+      "sha256": "02014b710abfb8d6a3cb3e58708c98b7d60dd6cfe1c59d4ec8f117e3d012ef73",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "node:path"
@@ -406,7 +406,7 @@
       "children": []
     },
     "lib/npm-update-cancel-origin.mjs": {
-      "sha256": "8b89f5b1066f70d9ff1d932c384ec588f34e09d7953f62cdec145b764078c8ea",
+      "sha256": "57bf06a580f5c0433690dabf3bcbd36dd2bd5e6de4fa77e04806ca0042152214",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-provider.mjs",
@@ -938,7 +938,7 @@
       "children": []
     },
     "lib/npm-update-prepare.mjs": {
-      "sha256": "577e5083bd847742243c910a59bb3eb02bf706c224f06f5918455c9ae4949c68",
+      "sha256": "f3a73f543898f7946e28e4ec8788eddb88b736a22d7bfdeed67dbb2456fd9796",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",

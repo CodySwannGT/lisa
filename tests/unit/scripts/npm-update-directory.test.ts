@@ -36,6 +36,8 @@ import {
   npmProposal,
   proposalFileNames,
   signedProposalFields,
+  policyEntry,
+  proposalPolicy,
   validDirectory,
 } from "../../../all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs";
 import { baseline } from "../../../all/copy-overwrite/scripts/lib/npm-update-prepare.mjs";
@@ -45,12 +47,15 @@ import { buildDraft } from "../../../all/copy-overwrite/scripts/lib/npm-update-l
 import { main } from "../../../all/copy-overwrite/scripts/lisa-npm-updater.mjs";
 import { sha256 } from "../../../all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs";
 import {
+  effectiveEngineStrict,
   runProcess,
   withPrivateRoot,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 
 useIoLatencyBudget();
 const EXTERNALS = "externals";
+const GIT_NAME = "user.name=Fixture";
+const GIT_EMAIL = "user.email=fixture@example.test";
 const MANIFEST_FILE = "package.json";
 const LOCK_FILE = "package-lock.json";
 const EXTERNALS_MANIFEST = "externals/package.json";
@@ -151,6 +156,18 @@ describe("committed directory selection", () => {
     expect(() => selectPolicy(config, EXTERNALS)).toThrow(NOT_SELECTED);
   });
 
+  it("accepts exactly eight distinct directories", () => {
+    const npmUpdater = [
+      ROOT,
+      ...Array.from({ length: 7 }, (_, index) => ({
+        ...SUB,
+        directory: `d${index}`,
+      })),
+    ];
+    expect(selectPolicy({ ...CONFIG, npmUpdater }, "d6").directory).toBe("d6");
+    expect(selectPolicy({ ...CONFIG, npmUpdater }, ".")).toEqual(ROOT);
+  });
+
   it("selects exactly one entry of a directory list", () => {
     const config = { ...CONFIG, npmUpdater: [ROOT, SUB] };
     expect(selectPolicy(config, ".")).toEqual(ROOT);
@@ -160,14 +177,36 @@ describe("committed directory selection", () => {
   });
 
   it.each([
-    ["an empty list", []],
-    ["more than eight entries", Array.from({ length: 9 }, () => ROOT)],
-    ["a nested list", [[ROOT]]],
-    ["a duplicate directory", [ROOT, { ...ROOT, maintainer: "Other" }]],
-    ["an invalid sibling entry", [ROOT, { ...SUB, repository: "foreign/x" }]],
-    ["an escaping sibling entry", [ROOT, { ...SUB, directory: "../x" }]],
-  ])("refuses %s even when the root is selected", (_name, npmUpdater) =>
-    expect(() => selectPolicy({ ...CONFIG, npmUpdater }, ".")).toThrow()
+    ["an empty list", [], /directory list/],
+    [
+      "nine distinct valid directories",
+      [
+        ROOT,
+        ...Array.from({ length: 8 }, (_, index) => ({
+          ...SUB,
+          directory: `d${index}`,
+        })),
+      ],
+      /directory list/,
+    ],
+    ["a nested list", [[ROOT]], /directory list/],
+    [
+      "a duplicate directory",
+      [ROOT, { ...ROOT, maintainer: "Other" }],
+      /duplicate/,
+    ],
+    [
+      "an invalid sibling entry",
+      [ROOT, { ...SUB, repository: "foreign/x" }],
+      /repository\/tracker/,
+    ],
+    [
+      "an escaping sibling entry",
+      [ROOT, { ...SUB, directory: "../x" }],
+      /committed npm directory/,
+    ],
+  ])("refuses %s even when the root is selected", (_name, npmUpdater, reason) =>
+    expect(() => selectPolicy({ ...CONFIG, npmUpdater }, ".")).toThrow(reason)
   );
 
   it("keeps a subdirectory npm-only: no Lisa owner and no runtime profile", () => {
@@ -266,6 +305,16 @@ describe("signed descriptor directory field", () => {
     expect(() => exact({ ...descriptor, directory: EXTERNALS })).not.toThrow();
     expect(() => exact({ ...descriptor, directory: "." })).toThrow(
       /descriptor fields differ/
+    );
+  });
+
+  it("refuses a duplicated directory on the hook side, as selectPolicy does", () => {
+    const config = { npmUpdater: [ROOT, SUB, { ...SUB, maintainer: "Other" }] };
+    expect(() => policyEntry(config, EXTERNALS)).toThrow(/duplicate/);
+    expect(() => proposalPolicy(config, subProposal())).toThrow(/duplicate/);
+    expect(policyEntry(config, ".")).toEqual(ROOT);
+    expect(() => selectPolicy({ ...CONFIG, ...config }, EXTERNALS)).toThrow(
+      /duplicate/
     );
   });
 
@@ -385,9 +434,9 @@ async function committed(
   await git(["add", "."]);
   await git([
     "-c",
-    "user.name=Fixture",
+    GIT_NAME,
     "-c",
-    "user.email=fixture@example.test",
+    GIT_EMAIL,
     "commit",
     "-m",
     "Root and externals npm projects",
@@ -498,6 +547,64 @@ function stagedReadback(
   );
 }
 
+describe("subdirectory engine-strict policy", () => {
+  /**
+   * Commit externals/.npmrc with engine-strict=true and none at the root.
+   * @param root - Positively owned fixture root.
+   * @param env - Sanitized fixture environment.
+   * @returns Checkout, isolated npm source environment and git runner.
+   */
+  async function strictHost(root: string, env: NodeJS.ProcessEnv) {
+    const cwd = await committed(root, env, {
+      [MANIFEST_FILE]: JSON.stringify(BEFORE),
+      [LOCK_FILE]: "{}\n",
+      ".npmrc": "engine-strict=true\n",
+    });
+    const home = join(root, "home");
+    mkdirSync(home, { mode: 0o700 });
+    // An empty HOME keeps the operator's own ~/.npmrc out of the measurement.
+    const source = { PATH: process.env.PATH, HOME: home };
+    return { cwd, source };
+  }
+
+  it("reads engine-strict from the selected directory, not the root", async () => {
+    await withPrivateRoot(async (root, env) => {
+      const { cwd, source } = await strictHost(root, env);
+      expect(await effectiveEngineStrict(join(cwd, EXTERNALS), source)).toBe(
+        true
+      );
+      expect(await effectiveEngineStrict(cwd, source)).toBe(false);
+    });
+  });
+
+  it.each([
+    ["modified", "engine-strict=false\n", /differs from HEAD/],
+    ["uncommitted", undefined, /not committed/],
+  ])("refuses a %s externals .npmrc", async (_name, bytes, reason) => {
+    await withPrivateRoot(async (root, env) => {
+      const { cwd, source } = await strictHost(root, env);
+      const npmrc = join(cwd, EXTERNALS, ".npmrc");
+      if (bytes === undefined) {
+        // Remove it from the index and HEAD while keeping the working file.
+        const git = (args: string[]) => runProcess("git", args, { cwd, env });
+        await git(["rm", "--cached", "--", `${EXTERNALS}/.npmrc`]);
+        await git([
+          "-c",
+          GIT_NAME,
+          "-c",
+          GIT_EMAIL,
+          "commit",
+          "-m",
+          "Untrack externals npmrc",
+        ]);
+      } else writeFileSync(npmrc, bytes);
+      await expect(
+        effectiveEngineStrict(join(cwd, EXTERNALS), source)
+      ).rejects.toThrow(reason);
+    });
+  });
+});
+
 describe("hook-side subdirectory staged cohort", () => {
   it("verifies the staged externals commit and refuses a foreign root file", async () => {
     await withPrivateRoot(async (root, env) => {
@@ -536,10 +643,34 @@ describe("hook-side subdirectory staged cohort", () => {
       expect(
         originalDescriptor(checkpoint, proposal, ALLOCATION, AUTOMATION)
       ).toEqual(preview.descriptor);
+      // Recovery refuses a descriptor whose signed directory was stripped or
+      // changed, even when its checkpoint digest is recomputed to match.
+      const { directory: _signed, ...stripped } = preview.descriptor;
+      for (const [descriptor, reason] of [
+        [stripped, /unknown or missing fields/],
+        [{ ...preview.descriptor, directory: "other" }, /descriptor differs/],
+      ] as const) {
+        const forged = {
+          digest: sha256(`${canonicalJson(descriptor)}\n`),
+          payload: { preview: { ...preview, descriptor } },
+        };
+        expect(() =>
+          originalDescriptor(forged, proposal, ALLOCATION, AUTOMATION)
+        ).toThrow(reason);
+      }
+      // Stage a foreign root file and re-point the descriptor's tree at the
+      // new staged tree, so only the foreign-path check can refuse it.
       writeFileSync(join(cwd, MANIFEST_FILE), JSON.stringify(AFTER));
       await git(["add", "--", MANIFEST_FILE]);
-      const foreign = await stagedReadback(cwd, env, preview);
+      const tree = (await git(["write-tree"])).stdout.toString().trim();
+      const foreign = await stagedReadback(cwd, env, {
+        ...preview,
+        descriptor: { ...preview.descriptor, tree },
+      });
       expect(foreign.code).toBe(1);
+      expect(foreign.stderr.toString()).toContain(
+        "proposal changes foreign files"
+      );
     });
   });
 });
@@ -560,9 +691,9 @@ describe("CLI directory selection", () => {
       await git(["add", ".lisa.config.json"]);
       await git([
         "-c",
-        "user.name=Fixture",
+        GIT_NAME,
         "-c",
-        "user.email=fixture@example.test",
+        GIT_EMAIL,
         "commit",
         "-m",
         "Committed directory list",
@@ -609,7 +740,11 @@ describe("reusable workflow directory selection", () => {
         },
         allowed: [0, 1],
       });
-      return { code: result.code, exported: readFileSync(githubEnv, "utf8") };
+      return {
+        code: result.code,
+        exported: readFileSync(githubEnv, "utf8"),
+        root,
+      };
     });
   }
 
@@ -620,8 +755,9 @@ describe("reusable workflow directory selection", () => {
       required: false,
     });
     expect(workflow.env.LISA_NPM_DIRECTORY).toBe("${{ inputs.directory }}");
+    // The root keeps its historical group; only a subdirectory appends -<dir>.
     expect(workflow.concurrency.group).toBe(
-      "lisa-npm-${{ github.repository }}-${{ inputs.directory }}"
+      "lisa-npm-${{ github.repository }}${{ inputs.directory != '.' && format('-{0}', inputs.directory) || '' }}"
     );
   });
 
@@ -642,27 +778,62 @@ describe("reusable workflow directory selection", () => {
   it.each([
     [".", "root"],
     [EXTERNALS, "dir-externals"],
-    ["services/lambda", "dir-services__lambda"],
+    ["services/lambda", "dir-services+lambda"],
+    // Formerly colliding pair: "/" now maps to "+", which the grammar forbids.
+    ["a/b", "dir-a+b"],
+    ["a__b", "dir-a__b"],
+    ["a_/b", "dir-a_+b"],
+    ["a/_b", "dir-a+_b"],
   ])("exports the artifact suffix for %s", async (directory, suffix) => {
     const result = await phase(directory);
     expect(result.code).toBe(0);
-    expect(result.exported).toContain(`NPM_ARTIFACT_SUFFIX=${suffix}\n`);
+    expect(result.exported).toBe(
+      `PHASE=${result.root}/lisa-npm-phase\nNPM_ARTIFACT_SUFFIX=${suffix}\n`
+    );
   });
 
+  /** One table judged by both the CLI grammar and the bash step, which must agree. */
   it.each([
-    "",
-    "../x",
-    "./x",
-    "x/",
-    "a//b",
-    "node_modules",
-    "a/node_modules",
-    "a b",
+    [".", true],
+    [EXTERNALS, true],
+    ["a__b", true],
+    [Array.from({ length: 8 }, () => "a").join("/"), true],
+    ["x".repeat(64), true],
+    ["", false],
+    ["../x", false],
+    ["./x", false],
+    ["x/", false],
+    ["/x", false],
+    ["a//b", false],
+    [".hidden", false],
+    ["node_modules", false],
+    ["a/node_modules", false],
+    ["a b", false],
+    ["a+b", false],
+    [Array.from({ length: 9 }, () => "a").join("/"), false],
+    ["x".repeat(65), false],
+    [`${`${"a".repeat(60)}/`.repeat(4)}a`, false],
     // A newline must not smuggle an extra GITHUB_ENV assignment.
-    "a\nB=1",
-  ])("refuses %s before exporting anything", async directory => {
-    const result = await phase(directory);
-    expect(result.code).toBe(1);
-    expect(result.exported).toBe("");
+    ["a\nB=1", false],
+  ])(
+    "judges %j identically in the CLI and the workflow",
+    async (directory, valid) => {
+      expect(validDirectory(directory)).toBe(valid);
+      const result = await phase(directory);
+      expect(result.code).toBe(valid ? 0 : 1);
+      if (!valid) expect(result.exported).toBe("");
+    }
+  );
+
+  it("never maps two accepted directories to one artifact suffix", async () => {
+    const directories = [".", "root", "a/b", "a+b", "a__b", "a_/b", "a/_b"];
+    const suffixes = new Map<string, string>();
+    for (const directory of directories.filter(validDirectory)) {
+      const { exported } = await phase(directory);
+      const suffix = /NPM_ARTIFACT_SUFFIX=(.*)\n/.exec(exported)![1]!;
+      expect(suffixes.get(suffix), suffix).toBeUndefined();
+      suffixes.set(suffix, directory);
+    }
+    expect(suffixes.size).toBe(6);
   });
 });

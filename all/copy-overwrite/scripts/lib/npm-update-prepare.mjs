@@ -227,11 +227,9 @@ async function preparedProposal({
   };
 }
 
-/** The private resource lifecycle remains outside the prepared proposal's npm checks. */
+/** The private resource lifecycle remains outside the prepared proposal's npm checks; the baseline proves the directory before npm reads its config. */
 export async function prepareUpdate({ cwd, policy: input, config }) {
   const policy = validatePolicy(input, config);
-  const engineStrict = await effectiveEngineStrict(join(cwd, policy.directory));
-  const npmFlags = [...NPM_FLAGS, ...(engineStrict ? ["--engine-strict"] : [])];
   let privatePath;
   const result = await withPrivateRoot(async (root, env) => {
     privatePath = root;
@@ -246,6 +244,8 @@ export async function prepareUpdate({ cwd, policy: input, config }) {
       "supported npm10.9.9 or11.21.0 is required"
     );
     const original = await baseline(cwd, env, undefined, policy.directory);
+    const strict = await effectiveEngineStrict(join(cwd, policy.directory));
+    const npmFlags = [...NPM_FLAGS, ...(strict ? ["--engine-strict"] : [])];
     const before = JSON.parse(original.files["package.json"]);
     validateHost(before);
     required(
@@ -253,7 +253,7 @@ export async function prepareUpdate({ cwd, policy: input, config }) {
         (!before.packageManager || before.packageManager === `npm@${version}`),
       "unsupported workspace or npm declaration"
     );
-    await qualifyLisaOwner(cwd, before, policy, config, engineStrict);
+    await qualifyLisaOwner(cwd, before, policy, config, strict);
     validateLock(JSON.parse(original.files["package-lock.json"]), before, []);
     for (const file of Object.keys(original.files))
       writeFileSync(join(app, file), original.files[file], { mode: 0o600 });

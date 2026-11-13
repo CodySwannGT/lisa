@@ -78,14 +78,19 @@ export function npmPath(value, file) {
   return directory === "." ? file : `${directory}/${file}`;
 }
 
-/** Raw committed entry for one directory; the legacy single object is a one-entry list. */
+/**
+ * Raw committed entry for one directory; the legacy single object is a one-entry list.
+ * More than one match is refused, so the hook never disagrees with selectPolicy.
+ */
 export function policyEntry(config, directory) {
   const raw = config?.npmUpdater;
   const list = Array.isArray(raw) ? raw : raw === undefined ? [] : [raw];
-  return list.find(entry => entry?.directory === directory);
+  const matches = list.filter(entry => entry?.directory === directory);
+  requireProof(matches.length <= 1, "duplicate npm updater directory");
+  return matches[0];
 }
 
-/** The already-validated committed entry that a proposal or descriptor belongs to. */
+/** Caller must pass a config already validated by selectPolicy. */
 export function proposalPolicy(config, value) {
   const entry = policyEntry(config, directoryOf(value));
   requireProof(

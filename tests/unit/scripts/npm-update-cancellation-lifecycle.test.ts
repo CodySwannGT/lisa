@@ -63,6 +63,9 @@ vi.mock(
   () => ({ assertHostedGate: vi.fn() })
 );
 
+// The real supersession module, imported past its mock where a test needs genuine behavior.
+const SUPERSESSION_MODULE =
+  "../../../all/copy-overwrite/scripts/lib/npm-update-supersession.mjs";
 const hash = (digit: string, length = 64) => digit.repeat(length);
 const authority = {
   repository: "acme/widgets",
@@ -477,7 +480,7 @@ describe("manual cancellation lifecycle", () => {
       // Only native transport is under test; origin/proposal/signature fixtures are deliberately synthetic.
       const actual = await vi.importActual<{
         recordedCancellation: (context: object) => Promise<unknown>;
-      }>("../../../all/copy-overwrite/scripts/lib/npm-update-supersession.mjs");
+      }>(SUPERSESSION_MODULE);
       const result = actual.recordedCancellation({
         api,
         cwd: directory,
@@ -499,4 +502,103 @@ describe("manual cancellation lifecycle", () => {
       expect(writes).toEqual([]);
     }
   );
+});
+
+describe("subdirectory cancellation and supersession", () => {
+  const EXTERNALS = "externals";
+  // The root entry's maintainer can never authorize this run, so any lookup
+  // that falls back to the root (or the first entry) is refused.
+  const rootEntry = { maintainer: "root-owner", directory: "." };
+  const externalsEntry = {
+    maintainer: policy.maintainer,
+    directory: EXTERNALS,
+  };
+  const twoEntry = { ...config, npmUpdater: [rootEntry, externalsEntry] };
+  const externals = {
+    ...proposal,
+    directory: EXTERNALS,
+    hashes: {
+      "externals/package.json": hash("a"),
+      "externals/package-lock.json": hash("b"),
+    },
+  };
+
+  /**
+   * Prepare a real externals cancellation record and its genuine transport.
+   * @param historical - The committed config the record's parent reads back.
+   * @returns The real supersession result promise.
+   */
+  async function recorded(historical: object) {
+    const api = provider();
+    await prepareCancellation({
+      api,
+      cwd: directory,
+      output: directory,
+      proposal: externals,
+      config: twoEntry,
+      request,
+    });
+    const record = JSON.parse(
+      readFileSync(join(directory, cancellationSubjectName), "utf8")
+    );
+    expect(
+      Object.keys(record.proposalHashes).sort((a, b) => a.localeCompare(b))
+    ).toEqual(["externals/package-lock.json", "externals/package.json"]);
+    const digest = sha256(`${canonicalJson(record)}\n`);
+    const payload = {
+      version: 1,
+      proposal: externals,
+      allocation: origin.allocation,
+      preview: { cancellation: record },
+      bundle: "{}",
+    };
+    issue.comments = checkpointComments(payload, digest).map(
+      (body: string, index: number) => ({
+        id: 300 + index,
+        body,
+        user: { type: "Bot", id: 99 },
+        created_at: run.updated_at,
+        updated_at: run.updated_at,
+      })
+    );
+    controlled.config.mockResolvedValue(historical);
+    const actual = await vi.importActual<{
+      recordedCancellation: (context: object) => Promise<unknown>;
+    }>(SUPERSESSION_MODULE);
+    return {
+      digest,
+      record,
+      result: actual.recordedCancellation({
+        api,
+        cwd: directory,
+        issue,
+        proposal: externals,
+        config: twoEntry,
+        origin,
+      }),
+    };
+  }
+
+  it("resolves the externals entry at every authority read", async () => {
+    const { digest, record, result } = await recorded(twoEntry);
+    expect(await result).toHaveProperty("digest", digest);
+    expect(record.maintainer).toBe(policy.maintainer);
+    expect(controlled.config).toHaveBeenCalledWith(
+      directory,
+      record.parent,
+      EXTERNALS
+    );
+    expect(controlled.proposal).toHaveBeenCalledWith(externals, externalsEntry);
+    expect(writes).toEqual([]);
+  });
+
+  it("refuses when only the historical externals maintainer changed", async () => {
+    const { result } = await recorded({
+      ...twoEntry,
+      npmUpdater: [rootEntry, { ...externalsEntry, maintainer: "someone" }],
+    });
+    await expect(result).rejects.toThrow(
+      /recorded cancellation authority differs/
+    );
+  });
 });

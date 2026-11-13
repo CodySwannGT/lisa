@@ -40,7 +40,8 @@ on:
 
 permissions: {}
 concurrency:
-  group: lisa-npm-${{ github.repository }}-${{ inputs.directory }}
+  # The root keeps its historical group name; a subdirectory appends -<directory>.
+  group: lisa-npm-${{ github.repository }}${{ inputs.directory != '.' && format('-{0}', inputs.directory) || '' }}
   cancel-in-progress: false
 
 env:
@@ -131,7 +132,8 @@ jobs:
           elif [ "${#LISA_NPM_DIRECTORY}" -le 200 ] &&
             [[ "$LISA_NPM_DIRECTORY" =~ ^${segment}(/${segment}){0,7}$ ]] &&
             [[ "/$LISA_NPM_DIRECTORY/" != */node_modules/* ]]; then
-            suffix="dir-${LISA_NPM_DIRECTORY//\//__}"
+            # "+" is outside the directory grammar, so this "/" mapping is injective.
+            suffix="dir-${LISA_NPM_DIRECTORY//\//+}"
           else
             echo "::error title=Invalid npm directory::directory must be '.' or a committed relative npm project path"
             exit 1

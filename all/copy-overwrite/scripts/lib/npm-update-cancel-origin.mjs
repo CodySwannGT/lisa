@@ -132,9 +132,9 @@ export function assertOriginTransport(
   }
 }
 
-/** Original claim, body, policy and proposal are checked separately from current authority. */
-async function inspectOrigin(api, issue, payload, oldConfig, currentConfig) {
-  const policy = selectPolicy(oldConfig, payload.proposal.directory);
+/** Original claim, body, policy and proposal are checked separately from current authority; the authenticated current directory selects the old entry. */
+async function inspectOrigin(api, issue, payload, oldConfig, current) {
+  const policy = selectPolicy(oldConfig, current.directory);
   const proposal = validateProposal(payload.proposal, policy);
   const allocation = payload.allocation;
   keys(allocation, [
@@ -158,7 +158,7 @@ async function inspectOrigin(api, issue, payload, oldConfig, currentConfig) {
   // The current qualified classifier checks present holds; historical config only supplies the original draft.
   const state = await (
     issue.state === "open" ? inspectLeaf : inspectCancelledLeaf
-  )(issue, draft, policy, currentConfig);
+  )(issue, draft, policy, current.config);
   required(
     state.claimed &&
       !state.unassigned &&
@@ -278,7 +278,7 @@ export async function authenticateStaleOrigin({
     issue,
     checkpoint.payload,
     oldConfig,
-    config
+    { config, directory: proposal.directory }
   );
   const manifest = await runProcess(
     "git",
