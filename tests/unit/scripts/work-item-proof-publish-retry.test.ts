@@ -190,6 +190,46 @@ describe("publish-completion-proof after a stranded upload", () => {
     expectFreshUpload(fixture, stranded);
   });
 
+  it("adopts a stranded record from a release its own upload filled, instead of uploading to the overflow release", () => {
+    const fixture = proofFixture();
+    const stranded = strandedRecord(fixture);
+    const metadata = assets(fixture).find(asset => asset.id === stranded.id);
+    // The stranded upload was the 950th file, so this run's capacity check
+    // passes `pr-assets` over and picks `pr-assets-2` (#4838).
+    setApi(fixture, LISTING, {
+      json: [
+        [
+          ...Array.from({ length: 949 }, (_, index) => ({
+            id: 5000 + index,
+            name: `old-${index}.json`,
+          })),
+          metadata,
+        ],
+      ],
+    });
+    setApi(fixture, ["api", "repos/acme/code/releases/tags/pr-assets-2"], {
+      json: { id: 20 },
+    });
+    setApi(
+      fixture,
+      [
+        "api",
+        "--paginate",
+        "--slurp",
+        "repos/acme/code/releases/20/assets?per_page=100",
+      ],
+      { json: [[]] }
+    );
+    const result = publish(fixture);
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    const publication = JSON.parse(result.stdout);
+    expect(publication.asset_id).toBe(stranded.id);
+    expect(publication.revision).toBe(1);
+    expect(uploads(fixture)).toHaveLength(1);
+    expect(locators(fixture)[0].asset_id).toBe(stranded.id);
+  });
+
   it("does not adopt an identical record another account uploaded", () => {
     const fixture = proofFixture();
     const stranded = strandedRecord(fixture);

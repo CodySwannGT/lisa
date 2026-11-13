@@ -18,113 +18,48 @@ import {
   isId,
 } from "./completion-proof-shape.mjs";
 import {
-  EVIDENCE_RELEASE_ASSET_LIMIT,
-  EVIDENCE_RELEASE_NEAR_FULL,
   githubProofTransport,
-  resolveEvidenceRelease,
+  targetEvidenceRelease,
 } from "./completion-proof-github.mjs";
+import {
+  ensureEvidenceRelease,
+  excerpt,
+  fullReleaseMessage,
+  releaseAssets,
+  uploadHitLimit,
+} from "./evidence-release-capacity.mjs";
 import { completionRecordId } from "./completion-proof-reader.mjs";
 import { evaluateAcceptedRecord } from "./completion-authorization.mjs";
 
 const READ_ERROR = "read-error";
 const WRITE_ERROR = "write-error";
 
-/** The operator-readable refusal for a release GitHub will not take more files in. */
-function fullReleaseMessage(tag, repository, count) {
-  const held =
-    count === undefined
-      ? `is at GitHub's ${EVIDENCE_RELEASE_ASSET_LIMIT}-file limit`
-      : `holds ${count} of GitHub's ${EVIDENCE_RELEASE_ASSET_LIMIT}-file limit`;
-  return `The evidence release \`${tag}\` in ${repository} ${held}, so new proof can't be uploaded. Set \`verification.completion.evidenceRelease\` in .lisa.config.json to a rotating name such as \`pr-assets-{YYYY-MM}\` (older proof keeps validating), or prune old evidence (CodySwannGT/lisa#4720).`;
-}
-
-/** The last few lines of a native CLI's diagnostics, bounded for a message. */
-function excerpt(stderr) {
-  const text = String(stderr ?? "").trim();
-  return text.length > 400 ? `…${text.slice(-400)}` : text;
-}
-
-/**
- * Read a release by tag; `null` only for GitHub's explicit 404. Any other
- * failure is retried when transient and then reported as a read error naming
- * the release endpoint, instead of guessing the release is absent and
- * creating it (CodySwannGT/lisa#4733).
- */
-function readRelease(transport, tag) {
-  return transport.optionalJson(`${transport.root}/releases/tags/${tag}`);
-}
-
-/**
- * Whether a failed upload means the release is full. GitHub's 422 also covers
- * an asset name that already exists, so a bare 422 is not enough: the error
- * has to name the limit, or a fresh count has to show the release at it.
- */
-function uploadHitLimit(stderr, transport, release) {
-  if (/asset[^\n]*limit|limit[^\n]*asset/i.test(stderr)) return null;
-  if (!/HTTP 422/.test(stderr)) return false;
-  const count = releaseAssets(transport, release).length;
-  return count + 1 >= EVIDENCE_RELEASE_ASSET_LIMIT ? count : false;
-}
-
-/**
- * Resolve the configured evidence release, create it when absent, and refuse
- * before uploading when it is nearly full.
- *
- * GitHub caps a release at 1000 assets and then answers every upload with a
- * raw HTTP 422. A single hardcoded `pr-assets` release filled in days on a busy
- * host and stopped every completion (CodySwannGT/lisa#4692); the refusal here
- * tells the operator what to change instead.
- * @param {Function} run - The canonical child-process runner.
- * @param {object} transport - The bounded GitHub proof transport.
- * @param {object} [policy] - `verification.completion` from the Lisa config.
- * @param {object} [options] - Optional resolution inputs.
- * @param {Date} [options.now] - Resolution time for a `{YYYY-MM}` template.
- * @param {string} [options.tag] - An already-validated concrete tag to use.
- * @returns {{tag: string, release: object, count: number, assets: object[]}}
- *   The usable release and the assets it held when checked.
- */
-export function ensureEvidenceRelease(run, transport, policy, options = {}) {
-  const tag =
-    options.tag ?? resolveEvidenceRelease(policy, options.now ?? new Date());
-  let release = readRelease(transport, tag);
-  if (!release) {
-    // A concurrent creator may win; the re-read below decides either way.
-    const created = run(
-      "gh",
-      [
-        "release",
-        "create",
-        tag,
-        "--repo",
-        transport.repository,
-        "--title",
-        `Lisa evidence ${tag}`,
-        "--notes",
-        "Evidence storage only — not a product release. Completion-proof and verification evidence assets, managed by Lisa.",
-        "--latest=false",
-      ],
-      { allowFailure: true }
-    );
-    release = readRelease(transport, tag);
-    const reason = excerpt(created.stderr);
-    requireProof(
-      release,
-      `The evidence release \`${tag}\` does not exist in ${transport.repository} and could not be created; check that the publisher can create releases there.${reason ? ` GitHub said: ${reason}` : ""}`,
-      WRITE_ERROR
-    );
-  }
-  const assets = releaseAssets(transport, release);
-  if (assets.length >= EVIDENCE_RELEASE_NEAR_FULL)
-    throw new CompletionProofError(
-      WRITE_ERROR,
-      fullReleaseMessage(tag, transport.repository, assets.length)
-    );
-  return { tag, release, count: assets.length, assets };
-}
+export { ensureEvidenceRelease };
 
 /** The exact bytes a record is published as; one serializer, everywhere. */
 function recordBytes(record) {
   return Buffer.from(`${JSON.stringify(record, null, 2)}\n`);
+}
+
+/**
+ * This record, stamped with a stored asset's `captured_at`, when that makes
+ * it byte-identical to the stored bytes and a well-formed record; else null.
+ * @param {object} record - The record this publish built.
+ * @param {Buffer} stored - A candidate asset's bytes.
+ * @returns {{record: object, bytes: Buffer}|null} The adoptable record.
+ */
+function identicalRecord(record, stored) {
+  let adopted;
+  try {
+    adopted = { ...record, captured_at: JSON.parse(stored).captured_at };
+    // A missing or malformed captured_at is not a record this publisher
+    // could have written; never adopt it.
+    validateRecordShape(adopted);
+  } catch {
+    return null;
+  }
+  const bytes = recordBytes(adopted);
+  return bytes.equals(stored) ? { record: adopted, bytes } : null;
 }
 
 /**
@@ -136,96 +71,105 @@ function recordBytes(record) {
  * digest and so a different asset name, and it used to upload a second copy
  * (CodySwannGT/lisa#4733). Each same-revision asset this publisher uploaded is
  * read back; if this record, stamped with that asset's `captured_at`, has the
- * exact same bytes, that asset is adopted. A candidate read that fails (after
- * the transport's retries) refuses, rather than uploading a duplicate. The
- * caller's post-upload readback and trust checks still run on the adopted
- * asset.
+ * exact same bytes, that asset is adopted.
+ *
+ * Every release the capacity check opened is searched, not only the one the
+ * upload would go to: the stranded upload may itself have filled a release
+ * and pushed this run on to its overflow release (CodySwannGT/lisa#4838). A
+ * candidate read that fails (after the transport's retries) refuses, rather
+ * than uploading a duplicate. The caller's readback and trust checks still
+ * run on the adopted asset, in the release that holds it.
  * @param {object} transport - The bounded GitHub proof transport.
- * @param {object[]} assets - The release's assets.
+ * @param {object[]} releases - Opened releases, each with its `assets`.
  * @param {object} record - The record this publish built.
  * @param {number} publisher - The native publisher identity.
- * @returns {{record: object, bytes: Buffer}|null} The adopted record, or null.
+ * @returns {{record: object, bytes: Buffer, evidence: object}|null} The
+ *   adopted record and the release holding it, or null.
  */
-function strandedRecord(transport, assets, record, publisher) {
+function strandedRecord(transport, releases, record, publisher) {
   const prefix = `${record.record_id}-r${record.revision}-`;
-  for (const candidate of assets) {
-    if (
-      !candidate.name?.startsWith(prefix) ||
-      candidate.uploader?.id !== publisher
-    )
-      continue;
-    const stored = transport.asset(candidate.id, MAX_RECORD_BYTES).bytes;
-    let capturedAt;
-    try {
-      capturedAt = JSON.parse(stored.toString("utf8")).captured_at;
-    } catch {
-      continue;
+  for (const evidence of releases) {
+    for (const candidate of evidence.assets ?? []) {
+      if (
+        !candidate.name?.startsWith(prefix) ||
+        candidate.uploader?.id !== publisher
+      )
+        continue;
+      const stored = transport.asset(candidate.id, MAX_RECORD_BYTES).bytes;
+      const adopted = identicalRecord(record, stored);
+      if (adopted) return { ...adopted, evidence };
     }
-    const adopted = { ...record, captured_at: capturedAt };
-    // A stored record whose captured_at is missing or not a time is not a
-    // record this publisher could have written; never adopt it.
-    try {
-      validateRecordShape(adopted);
-    } catch {
-      continue;
-    }
-    const bytes = recordBytes(adopted);
-    if (bytes.equals(stored)) return { record: adopted, bytes };
   }
   return null;
 }
 
+/** Upload one file to a release; the failure's diagnostics, or null on success. */
+function attemptUpload(context, transport, evidence, file) {
+  const uploaded = context.run(
+    "gh",
+    ["release", "upload", evidence.tag, file, "--repo", context.repository],
+    { allowFailure: true }
+  );
+  // probe-direction: fail-closed — null means only a zero exit with no spawn
+  // error; every other outcome returns the failure and the caller refuses.
+  if (uploaded.status === 0 && !uploaded.error) return null;
+  const stderr = uploaded.stderr ?? "";
+  return { stderr, full: uploadHitLimit(stderr, transport, evidence.release) };
+}
+
 /**
- * Upload a record's bytes as one immutable release asset, naming GitHub's
- * reason (or a full release) when it refuses.
+ * Upload the record to the checked release, rolling over once to the next
+ * overflow release when GitHub reports the release full mid-upload (another
+ * publisher filled it after the capacity check). A pinned release is refused
+ * instead, as it is before the upload (CodySwannGT/lisa#4838).
  * @param {object} context - The canonical publish context.
  * @param {object} transport - The bounded GitHub proof transport.
- * @param {object} evidence - The usable release from ensureEvidenceRelease.
- * @param {string} name - The asset name.
- * @param {Buffer} bytes - The record bytes.
+ * @param {{tag: string, pinned: boolean}} target - The resolved release.
+ * @param {object} checked - The release the capacity check chose.
+ * @param {string} file - The record file to upload.
+ * @returns {object} The release the record now lives in.
  */
-function uploadRecord(context, transport, evidence, name, bytes) {
+function uploadProof(context, transport, target, checked, file) {
+  let evidence = checked;
+  let failure = attemptUpload(context, transport, evidence, file);
+  if (failure && failure.full !== false && !target.pinned) {
+    evidence = ensureEvidenceRelease(context.run, transport, context.policy, {
+      tag: target.tag,
+      pinned: target.pinned,
+      from: evidence.index + 1,
+    });
+    failure = attemptUpload(context, transport, evidence, file);
+  }
+  if (!failure) return evidence;
+  const reason = excerpt(failure.stderr);
+  throw new CompletionProofError(
+    WRITE_ERROR,
+    failure.full === false
+      ? `Immutable completion-proof upload failed; no acceptance locator was published.${reason ? ` GitHub said: ${reason}` : ""}`
+      : fullReleaseMessage(
+          evidence.tag,
+          context.repository,
+          failure.full ?? undefined,
+          { pinned: target.pinned, policy: context.policy }
+        )
+  );
+}
+
+/**
+ * Write the record's bytes to a temporary file named for its asset and upload
+ * it; the temporary file is always removed.
+ * @returns {object} The release the record now lives in.
+ */
+function uploadRecord(context, transport, target, checked, name, bytes) {
   const temporary = mkdtempSync(join(tmpdir(), "lisa-completion-proof-"));
   try {
     mkdirSync(temporary, { recursive: true });
     const file = join(temporary, name);
     writeFileSync(file, bytes);
-    const uploaded = context.run(
-      "gh",
-      ["release", "upload", evidence.tag, file, "--repo", context.repository],
-      { allowFailure: true }
-    );
-    if (uploaded.status === 0 && !uploaded.error) return;
-    const stderr = uploaded.stderr ?? "";
-    const full = uploadHitLimit(stderr, transport, evidence.release);
-    const reason = excerpt(stderr);
-    throw new CompletionProofError(
-      WRITE_ERROR,
-      full === false
-        ? `Immutable completion-proof upload failed; no acceptance locator was published.${reason ? ` GitHub said: ${reason}` : ""}`
-        : fullReleaseMessage(
-            evidence.tag,
-            context.repository,
-            full ?? undefined
-          )
-    );
+    return uploadProof(context, transport, target, checked, file);
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }
-}
-
-/** Every asset on a release, from the complete paginated native listing. */
-function releaseAssets(transport, release) {
-  const pages = transport.json(
-    `${transport.root}/releases/${release.id}/assets?per_page=100`,
-    true
-  );
-  requireProof(
-    pages.every(Array.isArray),
-    "The native completion-asset listing is incomplete.",
-    READ_ERROR
-  );
-  return pages.flat();
 }
 
 /** Recover the monotonic native index without treating old malformed proof as valid. */
@@ -294,6 +238,10 @@ function publisherIdentity(context, input, transport, repository) {
 
 /** Strict immutable publication, followed by exact native readback and locator. */
 export function publishCompletionProof(context, input) {
+  // Resolved first, so an invalid LISA_EVIDENCE_RELEASE is refused before any
+  // read or write, exactly as `evidence-release` refuses it (#4838).
+  const target =
+    context.evidenceTarget ?? targetEvidenceRelease(context.policy);
   const transport = githubProofTransport(
     context.run,
     context.repository,
@@ -352,19 +300,27 @@ export function publishCompletionProof(context, input) {
     recordBytes(record).length <= MAX_RECORD_BYTES,
     "The completion record exceeds its bounded publication size."
   );
-  const evidence = ensureEvidenceRelease(
+  const checked = ensureEvidenceRelease(
     context.run,
     transport,
-    context.policy
+    context.policy,
+    { tag: target.tag, pinned: target.pinned }
   );
-  const adopted = strandedRecord(transport, evidence.assets, record, publisher);
+  const adopted = strandedRecord(
+    transport,
+    [checked, ...(checked.passed ?? [])],
+    record,
+    publisher
+  );
   const published = adopted ?? { record, bytes: recordBytes(record) };
   const digest = sha256(published.bytes);
   const name = `${recordId}-r${record.revision}-${digest}.json`;
-  if (!adopted)
-    uploadRecord(context, transport, evidence, name, published.bytes);
+  const evidence =
+    adopted?.evidence ??
+    uploadRecord(context, transport, target, checked, name, published.bytes);
   return locateRecord(context, transport, {
-    ...published,
+    record: published.record,
+    bytes: published.bytes,
     evidence,
     name,
     digest,

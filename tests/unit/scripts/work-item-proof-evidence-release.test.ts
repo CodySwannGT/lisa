@@ -5,8 +5,7 @@
  * controlled local provider; no real tracker or GitHub write happens.
  * @module tests/unit/scripts/work-item-proof-evidence-release
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
@@ -16,13 +15,22 @@ import {
   cleanupTemplates,
 } from "../../support/work-item-cli.js";
 import {
+  absentRelease,
+  configure,
+  fillRelease,
+  publish,
+  REPO,
+  uploadedTags,
+  writes,
+  type ProofFixture,
+} from "../../support/work-item-proof-evidence-release.js";
+import {
   proofFixture,
   proofCli,
   PROOF_REF,
   setApi,
 } from "../../support/work-item-proof-fixture.js";
 
-const REPO = "repos/acme/code";
 const PAGINATE = "--paginate";
 const ROTATING = "pr-assets-{YYYY-MM}";
 const COMMAND = "evidence-release";
@@ -30,16 +38,13 @@ const NOT_FOUND = "gh: Not Found (HTTP 404)\n";
 const FULL_MESSAGE = "GitHub's 1000-file limit";
 const CONFIG_HINT = "verification.completion.evidenceRelease";
 const UPLOAD_FAILED = "Immutable completion-proof upload failed";
+const OVERFLOW = "pr-assets-2";
 
 useIoLatencyBudget();
 afterEach(cleanupFixtures);
 afterAll(cleanupTemplates);
 
-type ProofFixture = ReturnType<typeof proofFixture>;
-
 const MONTHLY_TAG = /^pr-assets-\d{4}-(?:0[1-9]|1[0-2])$/;
-const NOTES =
-  "Evidence storage only — not a product release. Completion-proof and verification evidence assets, managed by Lisa.";
 const OVERRIDE = "LISA_EVIDENCE_RELEASE";
 const PINNED = "pr-assets-2026-10";
 const INVALID_CONFIG = "invalid-config";
@@ -57,96 +62,12 @@ function rotatedTag(fixture: ProofFixture): string {
 }
 
 /**
- * Set evidence-release keys under `verification.completion` in the host config.
- * @param fixture - Owned disposable repository.
- * @param keys - Keys merged into `verification.completion`.
- */
-function configure(fixture: ProofFixture, keys: Record<string, unknown>) {
-  const file = path.join(fixture.root, ".lisa.config.json");
-  const config = JSON.parse(readFileSync(file, "utf8"));
-  Object.assign(config.verification.completion, keys);
-  writeFileSync(file, JSON.stringify(config));
-}
-
-/**
- * Every provider write the CLI attempted, in order.
- * @param fixture - Owned disposable repository and controlled provider.
- * @returns Parsed write argument vectors.
- */
-function writes(fixture: ProofFixture): string[][] {
-  return readFileSync(fixture.env.FAKE_GH_WRITES_FILE!, "utf8")
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .map(line => JSON.parse(line));
-}
-
-/**
- * Publish the fixture's coherent accepted record through the actual CLI.
- * @param fixture - Owned disposable repository and controlled provider.
- * @returns The actual spawn result.
- */
-function publish(fixture: ProofFixture) {
-  const file = path.join(fixture.root, "record-input.json");
-  writeFileSync(file, JSON.stringify(fixture.record));
-  return proofCli(fixture, [
-    "publish-completion-proof",
-    "--ref",
-    PROOF_REF,
-    "--record",
-    file,
-  ]);
-}
-
-/**
- * Serve a rotated release that does not exist until `gh release create` runs.
- * @param fixture - Owned disposable repository and controlled provider.
- * @param tag - The resolved rotated tag.
- * @returns The exact create argument vector the publisher must issue.
- */
-function absentRelease(fixture: ProofFixture, tag: string): string[] {
-  setApi(fixture, ["api", `${REPO}/releases/tags/${tag}`], {
-    sequence: [{ failure: NOT_FOUND }, { json: { id: 27 } }],
-  });
-  const create = [
-    "release",
-    "create",
-    tag,
-    "--repo",
-    "acme/code",
-    "--title",
-    `Lisa evidence ${tag}`,
-    "--notes",
-    NOTES,
-    "--latest=false",
-  ];
-  setApi(fixture, create, { json: {} });
-  setApi(
-    fixture,
-    ["api", PAGINATE, "--slurp", `${REPO}/releases/27/assets?per_page=100`],
-    { kind: "assets" }
-  );
-  return create;
-}
-
-/**
  * Make the legacy release report `count` existing assets.
  * @param fixture - Owned disposable repository and controlled provider.
  * @param count - Number of assets already stored.
  */
 function fillLegacyRelease(fixture: ProofFixture, count: number) {
-  setApi(
-    fixture,
-    ["api", PAGINATE, "--slurp", `${REPO}/releases/19/assets?per_page=100`],
-    {
-      json: [
-        Array.from({ length: count }, (_, index) => ({
-          id: 5000 + index,
-          name: `old-${index}.json`,
-        })),
-      ],
-    }
-  );
+  fillRelease(fixture, 19, count);
 }
 
 describe("completion-proof publication to the configured evidence release", () => {
@@ -161,10 +82,7 @@ describe("completion-proof publication to the configured evidence release", () =
     expect(JSON.parse(result.stdout).category).toBe("published");
     const attempted = writes(fixture);
     expect(attempted[0]).toEqual(create);
-    const upload = attempted.find(
-      args => args[0] === "release" && args[1] === "upload"
-    );
-    expect(upload?.[2]).toBe(tag);
+    expect(uploadedTags(fixture)).toEqual([tag]);
     const stored = JSON.parse(
       readFileSync(fixture.env.FAKE_GH_ASSET_INDEX!, "utf8")
     ).find((asset: { id: number }) => asset.id === 101);
@@ -175,21 +93,18 @@ describe("completion-proof publication to the configured evidence release", () =
     expect(readFileSync(fixture.env.FAKE_GH_UNHANDLED_FILE!, "utf8")).toBe("");
   });
 
-  it("refuses a nearly full release with a plain message and uploads nothing", () => {
+  it("rolls a nearly full release over to its first overflow release, and the proof completes", () => {
     const fixture = proofFixture();
     fillLegacyRelease(fixture, 950);
+    const create = absentRelease(fixture, OVERFLOW);
     const result = publish(fixture);
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("write-error");
-    expect(result.stderr).toContain("`pr-assets`");
-    expect(result.stderr).toContain(`holds 950 of ${FULL_MESSAGE}`);
-    expect(result.stderr).toContain(CONFIG_HINT);
-    expect(result.stderr).toContain(ROTATING);
-    expect(
-      writes(fixture).some(
-        args => args[0] === "release" && args[1] === "upload"
-      )
-    ).toBe(false);
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(writes(fixture)[0]).toEqual(create);
+    expect(uploadedTags(fixture)).toEqual([OVERFLOW]);
+    const completed = proofCli(fixture, ["complete", "--ref", PROOF_REF]);
+    expect(completed.stderr).toBe("");
+    expect(completed.stdout).toContain("work-item completed:");
   });
 
   it("still uploads below the near-full threshold", () => {
@@ -197,23 +112,19 @@ describe("completion-proof publication to the configured evidence release", () =
     fillLegacyRelease(fixture, 949);
     const result = publish(fixture);
     expect(result.stderr).not.toContain(FULL_MESSAGE);
-    expect(
-      writes(fixture).some(
-        args =>
-          args[0] === "release" &&
-          args[1] === "upload" &&
-          args[2] === "pr-assets"
-      )
-    ).toBe(true);
+    expect(uploadedTags(fixture)).toEqual(["pr-assets"]);
   });
 
-  it("maps GitHub's raw 422 asset-limit upload failure to the same plain message", () => {
+  it("rolls over once when GitHub's raw 422 names the asset limit, then gives the plain message", () => {
     const fixture = proofFixture();
+    absentRelease(fixture, OVERFLOW);
     fixture.env.FAKE_GH_UPLOAD_FAILURE =
       "HTTP 422: Validation Failed (https://uploads.github.com/...)\nrelease_asset limit reached\n";
     const result = publish(fixture);
     expect(result.status).toBe(1);
+    expect(uploadedTags(fixture)).toEqual(["pr-assets", OVERFLOW]);
     expect(result.stderr).toContain("write-error");
+    expect(result.stderr).toContain(`\`${OVERFLOW}\``);
     expect(result.stderr).toContain(FULL_MESSAGE);
     expect(result.stderr).toContain(CONFIG_HINT);
   });
@@ -239,7 +150,7 @@ describe("completion-proof publication to the configured evidence release", () =
     expect(result.stderr).not.toContain(FULL_MESSAGE);
   });
 
-  it("calls an unexplained 422 full when the release filled up meanwhile", () => {
+  it("rolls over when an unexplained 422 comes from a release that filled up meanwhile", () => {
     const fixture = proofFixture();
     const assets = (count: number) => [
       Array.from({ length: count }, (_, index) => ({
@@ -252,10 +163,25 @@ describe("completion-proof publication to the configured evidence release", () =
       ["api", PAGINATE, "--slurp", `${REPO}/releases/19/assets?per_page=100`],
       { sequence: [{ json: assets(10) }, { json: assets(999) }] }
     );
+    absentRelease(fixture, OVERFLOW);
     fixture.env.FAKE_GH_UPLOAD_FAILURE = "HTTP 422: Validation Failed\n";
     const result = publish(fixture);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(`holds 999 of ${FULL_MESSAGE}`);
+    expect(uploadedTags(fixture)).toEqual(["pr-assets", OVERFLOW]);
+    // The overflow release has room, so its 422 is not a full release.
+    expect(result.stderr).toContain(UPLOAD_FAILED);
+  });
+
+  it("does not roll a pinned release over when its upload hits the limit", () => {
+    const fixture = proofFixture();
+    fixture.env[OVERRIDE] = "pr-assets";
+    fixture.env.FAKE_GH_UPLOAD_FAILURE =
+      "HTTP 422: Validation Failed\nrelease_asset limit reached\n";
+    const result = publish(fixture);
+    expect(result.status).toBe(1);
+    expect(uploadedTags(fixture)).toEqual(["pr-assets"]);
+    expect(result.stderr).toContain(FULL_MESSAGE);
+    expect(result.stderr).toContain(OVERRIDE);
   });
 
   it("uses a release a concurrent publisher created first", () => {
@@ -269,7 +195,7 @@ describe("completion-proof publication to the configured evidence release", () =
     const result = publish(fixture);
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
-    expect(writes(fixture).find(args => args[1] === "upload")?.[2]).toBe(tag);
+    expect(uploadedTags(fixture)).toEqual([tag]);
   });
 
   it("names GitHub's reason when the release cannot be created", () => {
@@ -287,7 +213,7 @@ describe("completion-proof publication to the configured evidence release", () =
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("could not be created");
     expect(result.stderr).toContain("Resource not accessible by integration");
-    expect(writes(fixture).some(args => args[1] === "upload")).toBe(false);
+    expect(uploadedTags(fixture)).toEqual([]);
   });
 
   it("refuses a release lookup that fails for a reason other than 404, without creating", () => {
@@ -346,14 +272,15 @@ describe("lisa-work-item.mjs evidence-release", () => {
     expect(writes(fixture)).toEqual([create]);
   });
 
-  it("--ensure fails clearly when the release is nearly full", () => {
+  it("--ensure rolls a nearly full release over and prints the overflow release", () => {
     const fixture = proofFixture();
     fillLegacyRelease(fixture, 999);
+    const create = absentRelease(fixture, OVERFLOW);
     const result = proofCli(fixture, [COMMAND, "--ensure"]);
-    expect(result.status).toBe(1);
-    expect(result.stdout).toBe("");
-    expect(result.stderr).toContain(`holds 999 of ${FULL_MESSAGE}`);
-    expect(result.stderr).toContain(CONFIG_HINT);
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe(OVERFLOW);
+    expect(writes(fixture)).toEqual([create]);
   });
 
   it("honours LISA_EVIDENCE_RELEASE when it names an accepted release", () => {
@@ -376,13 +303,16 @@ describe("lisa-work-item.mjs evidence-release", () => {
     expect(writes(fixture)).toEqual([create]);
   });
 
-  it("--ensure refuses a full LISA_EVIDENCE_RELEASE override", () => {
+  it("--ensure refuses a full LISA_EVIDENCE_RELEASE override and never rolls it over", () => {
     const fixture = proofFixture();
     fixture.env[OVERRIDE] = "pr-assets";
     fillLegacyRelease(fixture, 960);
     const result = proofCli(fixture, [COMMAND, "--ensure"]);
     expect(result.status).toBe(1);
+    expect(result.stdout).toBe("");
     expect(result.stderr).toContain(`holds 960 of ${FULL_MESSAGE}`);
+    expect(result.stderr).toContain(OVERRIDE);
+    expect(writes(fixture)).toEqual([]);
   });
 
   it.each(["v1.0.0", "bad/name", "pr-assets-{YYYY-MM}"])(
