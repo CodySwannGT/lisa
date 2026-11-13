@@ -799,9 +799,8 @@ jobs:
           persist-credentials: false
 
       - name: 🧹 Assert the RSpec shard tooling is installed
-        # The same two-channel window the scratch supervisor's assertion
-        # describes: this workflow is live at `@main` before `lisa apply` has
-        # delivered the scripts it runs. Sharding without them would run the
+        # The two-channel window: this workflow is live at `@main` before
+        # `lisa apply` has delivered the scripts it runs. Sharding without them would run the
         # whole suite in every leg, or not merge coverage, so their absence is
         # a failure with a named remedy.
         env:
@@ -850,9 +849,8 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # One leg per shard. It prepares its own database outside the supervisor,
-  # as the unsharded route does, and runs only its planned files through
-  # scripts/lisa-scratch-run.sh under a suite label unique to the leg.
+  # One leg per shard. It prepares its own database and sweeps as the
+  # unsharded route does, and runs only its planned files.
   # lisa_rspec_shard_recorder.rb tells SimpleCov to store this leg's
   # resultset without checking the project's minimums against a slice of the
   # suite, and records which files RSpec loaded; the aggregate does the rest.
@@ -896,28 +894,21 @@ jobs:
           bundler-cache: true
 
       - name: 🗄️ Prepare database
-        # Kept OUTSIDE the supervisor on purpose: a database-preparation
-        # failure must stay a database-preparation failure, not be relabelled
-        # as a test failure or a cleanup failure.
+        # A step of its own: a database-preparation failure must stay a
+        # database-preparation failure, not be relabelled as a test failure.
         run: bin/rails db:prepare
 
-      - name: 🧹 Assert the scratch supervisor is installed
-        # Every Rails test and mutation route enters the supervisor, and it is
-        # the only boundary on that route.
-        #
-        # This workflow is consumed at `@main`, so it goes live in a caller the
-        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
-        # `lisa apply` channel — the two halves land in that order, and there is
-        # a window where a caller has this step and not that file. The window
-        # closes on the caller's next apply, and the same argument the threshold
-        # ratchet gate makes above applies here: a gate that passes because it
-        # found nothing is worse than no gate. Running the payload unsupervised
-        # is exactly the abandoned-scratch behavior this step exists to end, so
-        # the absence is a failure with a named remedy.
+      - name: 🧹 Sweep stale Lisa temp entries
+        # One start-of-run sweep (stale Lisa temp entries, orphaned test
+        # processes of dead runs) replaces the retired scratch supervisor
+        # (CodySwannGT/lisa#4603). It never fails the job. This workflow is
+        # consumed at `@main`, so it can reach a caller before `lisa apply`
+        # delivers the sweep; until then the step says so and moves on.
         run: |
-          if [ ! -f scripts/lisa-scratch-run.sh ]; then
-            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
-            exit 1
+          if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then
+            node scripts/lib/lisa-cleanup-sweep.mjs
+          else
+            echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
 
       - name: 📥 Download the RSpec shard plan
@@ -947,7 +938,6 @@ jobs:
         env:
           LISA_RSPEC_SHARD: ${{ matrix.shard }}/${{ inputs.test_shards }}
           LISA_RSPEC_SHARD_RECORD: ${{ runner.temp }}/lisa-rspec-shard/record.json
-          SUITE: rspec-postgres-shard-${{ matrix.shard }}-of-${{ inputs.test_shards }}
         run: |
           set -euo pipefail
           SPEC_FILES=()
@@ -960,7 +950,8 @@ jobs:
             exit 1
           fi
           echo "Running ${#SPEC_FILES[@]} spec files as shard $LISA_RSPEC_SHARD."
-          bash scripts/lisa-scratch-run.sh --suite "$SUITE" -- bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
+          export LISA_TEST_RUN_OWNER="$$:0"
+          bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
 
       - name: 📦 Stage this shard's coverage
         if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
@@ -1043,34 +1034,29 @@ jobs:
 
       - name: 🗄️ Prepare database
         if: inputs.test_shards == 1
-        # Kept OUTSIDE the supervisor on purpose: a database-preparation
-        # failure must stay a database-preparation failure, not be relabelled
-        # as a test failure or a cleanup failure.
+        # A step of its own: a database-preparation failure must stay a
+        # database-preparation failure, not be relabelled as a test failure.
         run: bin/rails db:prepare
 
-      - name: 🧹 Assert the scratch supervisor is installed
-        # Every Rails test and mutation route enters the supervisor, and it is
-        # the only boundary on that route.
-        #
-        # This workflow is consumed at `@main`, so it goes live in a caller the
-        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
-        # `lisa apply` channel — the two halves land in that order, and there is
-        # a window where a caller has this step and not that file. The window
-        # closes on the caller's next apply, and the same argument the threshold
-        # ratchet gate makes above applies here: a gate that passes because it
-        # found nothing is worse than no gate. Running the payload unsupervised
-        # is exactly the abandoned-scratch behavior this step exists to end, so
-        # the absence is a failure with a named remedy.
+      - name: 🧹 Sweep stale Lisa temp entries
+        # One start-of-run sweep (stale Lisa temp entries, orphaned test
+        # processes of dead runs) replaces the retired scratch supervisor
+        # (CodySwannGT/lisa#4603). It never fails the job. This workflow is
+        # consumed at `@main`, so it can reach a caller before `lisa apply`
+        # delivers the sweep; until then the step says so and moves on.
         if: inputs.test_shards == 1
         run: |
-          if [ ! -f scripts/lisa-scratch-run.sh ]; then
-            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
-            exit 1
+          if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then
+            node scripts/lib/lisa-cleanup-sweep.mjs
+          else
+            echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
 
       - name: 🧪 Run tests
         if: inputs.test_shards == 1
-        run: bash scripts/lisa-scratch-run.sh --suite rspec-postgres -- bundle exec rspec
+        run: |
+          export LISA_TEST_RUN_OWNER="$$:0"
+          bundle exec rspec
 
       - name: 📥 Download the RSpec shard plan
         if: inputs.test_shards != 1
@@ -1126,9 +1112,8 @@ jobs:
           fi
           bundle exec ruby scripts/lisa_simplecov_collate.rb "${RESULTSETS[@]}"
 
-  # One leg per shard. It prepares its own database outside the supervisor,
-  # as the unsharded route does, and runs only its planned files through
-  # scripts/lisa-scratch-run.sh under a suite label unique to the leg.
+  # One leg per shard. It prepares its own database and sweeps as the
+  # unsharded route does, and runs only its planned files.
   # lisa_rspec_shard_recorder.rb tells SimpleCov to store this leg's
   # resultset without checking the project's minimums against a slice of the
   # suite, and records which files RSpec loaded; the aggregate does the rest.
@@ -1175,26 +1160,20 @@ jobs:
           bundler-cache: true
 
       - name: 🗄️ Prepare database
-        # Outside the supervisor for the same reason as the PostgreSQL route.
+        # A step of its own for the same reason as the PostgreSQL route.
         run: bin/rails db:prepare
 
-      - name: 🧹 Assert the scratch supervisor is installed
-        # Every Rails test and mutation route enters the supervisor, and it is
-        # the only boundary on that route.
-        #
-        # This workflow is consumed at `@main`, so it goes live in a caller the
-        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
-        # `lisa apply` channel — the two halves land in that order, and there is
-        # a window where a caller has this step and not that file. The window
-        # closes on the caller's next apply, and the same argument the threshold
-        # ratchet gate makes above applies here: a gate that passes because it
-        # found nothing is worse than no gate. Running the payload unsupervised
-        # is exactly the abandoned-scratch behavior this step exists to end, so
-        # the absence is a failure with a named remedy.
+      - name: 🧹 Sweep stale Lisa temp entries
+        # One start-of-run sweep (stale Lisa temp entries, orphaned test
+        # processes of dead runs) replaces the retired scratch supervisor
+        # (CodySwannGT/lisa#4603). It never fails the job. This workflow is
+        # consumed at `@main`, so it can reach a caller before `lisa apply`
+        # delivers the sweep; until then the step says so and moves on.
         run: |
-          if [ ! -f scripts/lisa-scratch-run.sh ]; then
-            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
-            exit 1
+          if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then
+            node scripts/lib/lisa-cleanup-sweep.mjs
+          else
+            echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
 
       - name: 📥 Download the RSpec shard plan
@@ -1224,7 +1203,6 @@ jobs:
         env:
           LISA_RSPEC_SHARD: ${{ matrix.shard }}/${{ inputs.test_shards }}
           LISA_RSPEC_SHARD_RECORD: ${{ runner.temp }}/lisa-rspec-shard/record.json
-          SUITE: rspec-mysql-shard-${{ matrix.shard }}-of-${{ inputs.test_shards }}
         run: |
           set -euo pipefail
           SPEC_FILES=()
@@ -1237,7 +1215,8 @@ jobs:
             exit 1
           fi
           echo "Running ${#SPEC_FILES[@]} spec files as shard $LISA_RSPEC_SHARD."
-          bash scripts/lisa-scratch-run.sh --suite "$SUITE" -- bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
+          export LISA_TEST_RUN_OWNER="$$:0"
+          bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
 
       - name: 📦 Stage this shard's coverage
         if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
@@ -1323,32 +1302,28 @@ jobs:
 
       - name: 🗄️ Prepare database
         if: inputs.test_shards == 1
-        # Outside the supervisor for the same reason as the PostgreSQL route.
+        # A step of its own for the same reason as the PostgreSQL route.
         run: bin/rails db:prepare
 
-      - name: 🧹 Assert the scratch supervisor is installed
-        # Every Rails test and mutation route enters the supervisor, and it is
-        # the only boundary on that route.
-        #
-        # This workflow is consumed at `@main`, so it goes live in a caller the
-        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
-        # `lisa apply` channel — the two halves land in that order, and there is
-        # a window where a caller has this step and not that file. The window
-        # closes on the caller's next apply, and the same argument the threshold
-        # ratchet gate makes above applies here: a gate that passes because it
-        # found nothing is worse than no gate. Running the payload unsupervised
-        # is exactly the abandoned-scratch behavior this step exists to end, so
-        # the absence is a failure with a named remedy.
+      - name: 🧹 Sweep stale Lisa temp entries
+        # One start-of-run sweep (stale Lisa temp entries, orphaned test
+        # processes of dead runs) replaces the retired scratch supervisor
+        # (CodySwannGT/lisa#4603). It never fails the job. This workflow is
+        # consumed at `@main`, so it can reach a caller before `lisa apply`
+        # delivers the sweep; until then the step says so and moves on.
         if: inputs.test_shards == 1
         run: |
-          if [ ! -f scripts/lisa-scratch-run.sh ]; then
-            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
-            exit 1
+          if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then
+            node scripts/lib/lisa-cleanup-sweep.mjs
+          else
+            echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
 
       - name: 🧪 Run tests
         if: inputs.test_shards == 1
-        run: bash scripts/lisa-scratch-run.sh --suite rspec-mysql -- bundle exec rspec
+        run: |
+          export LISA_TEST_RUN_OWNER="$$:0"
+          bundle exec rspec
 
       - name: 📥 Download the RSpec shard plan
         if: inputs.test_shards != 1
@@ -1452,24 +1427,22 @@ jobs:
         run: bin/rails db:prepare
 
       - name: 🧬 Run mutation-testing gate (diff-only, self-skips when disabled)
-        # The supervisor boundary is HERE, not inside lisa-mutation.sh, so the
-        # pre-push route and this one each cross exactly one boundary and the
-        # gate's enabled/disabled and changed-file behaviour is unchanged.
-        #
-        # The supervisor assertion sits INSIDE the existing absent-gate branch:
-        # a project that does not ship the mutation gate at all has no payload
-        # to supervise, and must not start failing because of a file it has no
-        # use for.
+        # The same start-of-run sweep as the RSpec routes runs before the gate
+        # script (CodySwannGT/lisa#4603), inside the absent-gate branch, so a
+        # project without the gate does no work at all. The sweep never fails
+        # the job and is skipped, with a line, until `lisa apply` delivers it.
         run: |
           if [ ! -f scripts/lisa-mutation.sh ]; then
             echo "Skipping mutation gate - scripts/lisa-mutation.sh not found"
             exit 0
           fi
-          if [ ! -f scripts/lisa-scratch-run.sh ]; then
-            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so the mutation gate has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'mutation' to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
-            exit 1
+          if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then
+            node scripts/lib/lisa-cleanup-sweep.mjs
+          else
+            echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
-          bash scripts/lisa-scratch-run.sh --suite mutant-postgres -- bash scripts/lisa-mutation.sh
+          export LISA_TEST_RUN_OWNER="$$:0"
+          bash scripts/lisa-mutation.sh
 
   code-quality:
     permissions:

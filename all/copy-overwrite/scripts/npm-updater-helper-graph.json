@@ -713,7 +713,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "af43ef9af09dd323e64de6b25c7a6df7d4140c763217960f5f7275311677218a",
+      "sha256": "0cc8fe5292e2c53ffd79924e3dbb0e209149676337ebc2825d0f68c55b2fd08e",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1433,7 +1433,7 @@
       "children": []
     },
     "lisa-mutation.sh": {
-      "sha256": "dfe6e7a208fe72d02355548d9aba8484748b7d95eca0bf989043008311af29c4",
+      "sha256": "dd62950d6f13b9eae7e879b9de24ec1d19dc985634a2d921e003ede5a6f56a81",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1501,12 +1501,6 @@
         "lib/process-tree-runner.mjs",
         "lisa-gates.mjs"
       ]
-    },
-    "lisa-scratch-run.sh": {
-      "sha256": "76ccf8ca6f98b214361f02ebf6ad58041129b76ed29128455e810095db6c292f",
-      "staticImports": [],
-      "dynamicImports": [],
-      "children": []
     },
     "lisa-test-node.mjs": {
       "sha256": "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",

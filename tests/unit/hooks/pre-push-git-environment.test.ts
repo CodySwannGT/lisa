@@ -105,16 +105,13 @@ describe("pre-push Git environment isolation", () => {
     const source = await readFile(RAILS_LEFTHOOK, "utf8");
     const wrapper = "sh scripts/lisa-clean-git-env.sh";
     // The git-environment wrapper stays OUTERMOST on every command. The two
-    // commands that create scratch — RSpec and the Mutant gate — additionally
-    // pass through the scratch supervisor, which sits INSIDE this wrapper: the
-    // supervisor and everything it launches must see the cleaned environment
-    // too, and a supervisor placed outside would hand its payload the
-    // repository-local GIT_* variables this wrapper exists to remove.
-    const supervised = "sh scripts/lisa-scratch-run.sh --suite";
+    // test commands — RSpec and the Mutant gate — run the start-of-run sweep
+    // and then their payload INSIDE this wrapper, so both see the cleaned
+    // environment rather than the repository-local GIT_* variables this
+    // wrapper exists to remove (CodySwannGT/lisa#4603).
+    const swept = "sh -c 'if command -v node";
     expect(source.indexOf("validate-push {1}")).toBeLessThan(
-      source.indexOf(
-        `${wrapper} ${supervised} prepush-rspec -- bundle exec rspec`
-      )
+      source.indexOf(`${wrapper} ${swept}`)
     );
     for (const command of [
       "bundle exec bundler-audit check --update",
@@ -125,14 +122,14 @@ describe("pre-push Git environment isolation", () => {
     ]) {
       expect(source).toContain(`${wrapper} ${command}`);
     }
-    for (const [suite, payload] of [
-      ["prepush-rspec", "bundle exec rspec"],
-      ["prepush-mutant", "bash scripts/lisa-mutation.sh"],
+    for (const payload of [
+      "bundle exec rspec",
+      "bash scripts/lisa-mutation.sh",
     ]) {
-      expect(source).toContain(
-        `${wrapper} ${supervised} ${suite} -- ${payload}`
-      );
+      expect(source).toContain(`exec ${payload}'`);
     }
+    expect(source.split(`${wrapper} ${swept}`)).toHaveLength(3);
+    expect(source).not.toContain("lisa-scratch-run.sh");
   });
 
   it("cleans Rails command environments and preserves foreign-repo discovery", async () => {

@@ -57,7 +57,6 @@ const COMMON = [
   "lib/automation-provenance-files.mjs",
   "lib/automation-provenance-local.mjs",
   "lisa-clean-git-env.sh",
-  "lisa-scratch-run.sh",
   "check-threshold-ratchet.mjs",
   "threshold-ratchet-families.mjs",
   "threshold-ratchet-compare.mjs",

@@ -165,8 +165,11 @@ describe("mutation gate wiring", () => {
   });
 
   it.each(MUTATION_STACKS)(
-    "registers nested mutation workers for the %s stack",
+    "ships a %s mutation script with no scratch-prefix registry",
     stack => {
+      // The per-test scratch policing that read LISA_TEST_SCRATCH_PREFIXES is
+      // retired; the start-of-run sweep in lisa-test-run replaces it
+      // (CodySwannGT/lisa#4603), so the shipped script carries no registry.
       const stackManifest = JSON.parse(
         fs.readFileSync(
           path.join(ROOT, stack, "package-lisa", "package.lisa.json"),
@@ -175,7 +178,6 @@ describe("mutation gate wiring", () => {
       ) as { readonly force: { readonly scripts: Record<string, string> } };
       expect(stackManifest.force.scripts["test:mutation"]).toBe(
         "node scripts/lib/worktree-dependencies.mjs && " +
-          `LISA_TEST_SCRATCH_PREFIXES='["lisa-mutation-","worker-"]' ` +
           `lisa-test-run --profile ${stack} --adapter direct -- ` +
           `node scripts/lisa-mutation.mjs`
       );

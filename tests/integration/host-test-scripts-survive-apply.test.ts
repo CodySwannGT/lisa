@@ -19,6 +19,11 @@
  *
  * Both live in the script value because `test:cov` is the name the gate invokes,
  * so it is the only composition point the host has.
+ *
+ * The scratch-leak guard that read `LISA_TEST_SCRATCH_PREFIXES` is retired in
+ * favour of a start-of-run sweep (CodySwannGT/lisa#4603), so a host's
+ * assignment is now inert. It is still the host's own text, and an apply still
+ * must not rewrite it: hosts may delete it at their leisure.
  * @module tests/integration/host-test-scripts-survive-apply
  */
 import * as fs from "fs-extra";
@@ -181,12 +186,21 @@ describe("a host's test-script composition survives the shipped apply", () => {
     expect(scripts["test:cov:lisa"]).toBe(shippedBase("test:cov"));
   });
 
+  it("ships reserved bases that no longer register scratch prefixes", async () => {
+    const scripts = await applyShippedTemplates({});
+
+    const registering = Object.entries(scripts)
+      .filter(([key]) => key.endsWith(":lisa") || key === "test:mutation")
+      .filter(([, value]) => value.includes("LISA_TEST_SCRATCH_PREFIXES"))
+      .map(([key]) => key);
+    expect(registering).toEqual([]);
+  });
+
   it("migrates an untouched test:node while preserving its reserved base", async () => {
+    // The value earlier releases shipped, which upgrading hosts still carry:
+    // it registered a scratch prefix the retired policing read.
     const scripts = await applyShippedTemplates({
-      "test:node": shippedBase("test:node").replace(
-        "node scripts/lib/worktree-dependencies.mjs && ",
-        ""
-      ),
+      "test:node": `LISA_TEST_SCRATCH_PREFIXES='["node-"]' lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-test-node.mjs`,
     });
 
     expect(scripts["test:node"]).toBe("$npm_execpath run test:node:lisa");

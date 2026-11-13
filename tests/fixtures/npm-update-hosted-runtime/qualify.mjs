@@ -25,10 +25,7 @@ import { normalizeQualificationPackages } from "./packages.mjs";
 
 const GIT = "/usr/bin/git";
 const SOURCES = [
-  "all/copy-overwrite/scripts/lisa-scratch-run.sh",
   "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs",
-  "tests/fixtures/npm-update-hosted-runtime/support/socket-hook.mjs",
-  "tests/fixtures/npm-update-hosted-runtime/socket-witness.mjs",
   "tests/fixtures/npm-update-hosted-runtime/components.mjs",
   "all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs",
   "all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs",

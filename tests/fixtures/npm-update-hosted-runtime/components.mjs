@@ -6,10 +6,8 @@ import { readBytes } from "../../../all/copy-overwrite/scripts/lib/npm-update-pr
 import { prepareRailsTools } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs";
 import { openRailsMysqlRuntime } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-mysql.mjs";
 import { runtimeBinding } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-runtime-contract.mjs";
-import { originalHookEnvironment } from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs";
 import { prepareApplication } from "./application.mjs";
 import { failureMetadata, hookWitness } from "./observations.mjs";
-import { hookSocketWitness } from "./socket-witness.mjs";
 import {
   browserDriverControl,
   browserDriverQualification,
@@ -223,7 +221,6 @@ async function closeRuntime(runtime, summary, primary) {
 
 /**
  * Frozen fixture installation precedes the same owned production runtime API and original hooks.
- * @param {string} source Original checkout containing the real supervisor.
  * @param {string} root Owned root.
  * @param {object} tools Qualified tools.
  * @param {function(string, string, object, string, Array<string>): Promise<object>} native Original recorder.
@@ -231,7 +228,7 @@ async function closeRuntime(runtime, summary, primary) {
  * @param {number} deadline Original absolute phase expiry.
  * @returns {Promise<object | undefined>} Checked component observation or earlier refusal.
  */
-async function runtimeExercise(source, root, tools, native, summary, deadline) {
+async function runtimeExercise(root, tools, native, summary, deadline) {
   const application = await prepareApplication(root, tools, native);
   summary.fixtureLockSha256 = application.lockSha256;
   const closed = Object.fromEntries(
@@ -259,25 +256,6 @@ async function runtimeExercise(source, root, tools, native, summary, deadline) {
       application,
       native
     );
-    const scratch = await native(
-      "original-push",
-      application.cwd,
-      originalHookEnvironment(application.env, PROFILE),
-      "/bin/sh",
-      [
-        join(source, "all/copy-overwrite/scripts/lisa-scratch-run.sh"),
-        "--suite",
-        "runtime-socket",
-        "--",
-        process.execPath,
-        join(
-          source,
-          "tests/fixtures/npm-update-hosted-runtime/support/socket-hook.mjs"
-        ),
-      ]
-    );
-    const witness = JSON.parse(scratch.stdout.toString());
-    summary.nestedHookScratch = hookSocketWitness(witness);
   } catch (error) {
     state.primary = error;
     if (summary.native.at(-1)?.stage === "browser-driver-qualification") {
@@ -352,7 +330,7 @@ export async function qualifyComponents(
     nodeVersion: process.versions.node,
   };
   try {
-    await runtimeExercise(source, root, tools, native, summary, deadline);
+    await runtimeExercise(root, tools, native, summary, deadline);
   } catch (error) {
     state.primary = error;
   } finally {
