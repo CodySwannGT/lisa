@@ -282,7 +282,7 @@ jobs:
 
           # BRANCH moved past the gated commit: stand down, publishing nothing.
           superseded() {
-            echo "::error title=Release superseded::$BRANCH moved on to $1 while this run was releasing $TRIGGER_SHA. This run's checks only covered $TRIGGER_SHA, so releasing the newer commits would ship changes nothing checked. Nothing was published: no release commit and no tag, so later releases are not blocked. The run started for the newer commit checks it and releases it; no action is needed unless that run fails."
+            echo "::error title=Release superseded::$BRANCH moved on to $1 while this run was releasing $TRIGGER_SHA. This run's checks only covered $TRIGGER_SHA, so releasing the newer commits would ship changes nothing checked. Nothing was published: no release commit and no tag, so later releases are not blocked. The run started for the newer commit ($1) checks it and releases this one with it. But if that run is skipped, because $1 is a promotion merge or a release commit, nothing will release it until the next ordinary merge: in that case, start this workflow by hand (workflow_dispatch) on $BRANCH to release it."
             exit 1
           }
 

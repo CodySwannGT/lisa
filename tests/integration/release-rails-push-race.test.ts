@@ -160,6 +160,12 @@ function expectSuperseded(
   expect(run.status, run.output).not.toBe(0);
   expect(run.output).toContain("::error title=Release superseded::");
   expect(run.output).toContain(tip);
+  // The newer commit's run may be one the skip step skips (a promotion
+  // merge or a release commit), so the message must say how to recover.
+  expect(run.output).toContain(
+    `start this workflow by hand (workflow_dispatch) on ${fixture.branch}`
+  );
+  expect(run.output).not.toContain("no action is needed");
   expect(tags(fixture.remote)).toEqual([]);
   expect(git(fixture.remote, "rev-parse", fixture.branch)).toBe(tip);
   expect(run.createsGithubRelease).toBe(false);
