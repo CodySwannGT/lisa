@@ -1219,7 +1219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/factory-model.md":
       "b9a73efb67db48f0e7b868bd963e4c02e0a2ccc9ca74f9f9fdef8f89dfa17d05",
     "plugins/src/base/rules/reference/falsifiable-checks.md":
-      "617801aa581d26be172a53a3c785fd580430b740a8d0736982fd522146609594",
+      "961f912b79155350458e7474ac7d5dd2a840898bff0676dbb9f9174d54ede3ab",
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
@@ -1285,7 +1285,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/usage-accounting.md":
       "53dec94f4cba696d4b4f6e990565173c6aa0c9972432b8b127517fc3617ca7cc",
     "plugins/src/base/rules/reference/verification.md":
-      "a2652d7fd813ac285f50e3b9fd1860d36ef9742078b79179341f5fd2fabe41bd",
+      "cb8d03601dcc4ed4fb8e2bfd0aa9d7879dfa00be3401d6a33864a8c34cde38ef",
     "plugins/src/base/rules/reference/when-to-stop.md":
       "327f6f6f24dd03eb93a484b64a7bc7de4f1fa4e6f9314a4dc280fe06d0d70f2e",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":

@@ -62,6 +62,13 @@ const SURFACES: readonly Surface[] = [
     ],
   },
   {
+    rel: "rules/reference/verification.md",
+    shippedAs: [
+      "/rules/reference/verification.md",
+      "/rules/verification-reference.mdc",
+    ],
+  },
+  {
     rel: "skills/lisa-codify-verification/SKILL.md",
     shippedAs: ["/skills/lisa-codify-verification/SKILL.md"],
   },
@@ -172,6 +179,11 @@ describe("falsification runs on a scratch copy", () => {
       expect(text).toContain("EnterWorktree");
       expect(text).not.toMatch(/Revert, and confirm green again/);
       expect(text).not.toMatch(/Restore, and confirm green again/);
+      // No unscoped in-place break may survive anywhere in the reference body.
+      expect(text).not.toMatch(/Break the thing being guarded, confirm/);
+      expect(text).not.toMatch(
+        /Neuter the protection \*\*in production code\*\*, run/
+      );
     }
   );
 
