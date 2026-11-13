@@ -1295,7 +1295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "e98974e4f48af05f788323c92badae6a97a2feec1ca8e8a9c05ddc3e3c948492",
     "plugins/src/base/rules/reference/usage-accounting.md":
-      "64ee616bdad7c16d5cc4b9eb44384de261b0616ec3343d4c05a88ddede3d89ea",
+      "16c27af9777277c8757c771abae09d36d066214efbfcc61b3b50b1d94bb9b77e",
     "plugins/src/base/rules/reference/verification.md":
       "8a57ab38f2d86e9879cdcf265ebba2a6d63a6f821ffd7a2cb4749e59861c518f",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
@@ -1899,7 +1899,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-write/SKILL.md":
       "cc7ab2c5eebf100236728eda01a3709488324fb358b37b2a6305c8a3af7cd4cb",
     "plugins/src/base/skills/lisa-usage-accounting/SKILL.md":
-      "436e3d802fa0ec518103ef5ce4ca1c677bc6458fcaac9153d56cf752e03a593f",
+      "053abcdb411bf0d03ae788385e2bfa7c30c123cfde396a0d042fd90c4a11a8d2",
     "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md":
       "d34e7b4951bc26caf15625e081e8273a11ee8ca1bde6137750f4b687fca7e8bf",
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
@@ -11463,6 +11463,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/utils/postinstall-trampoline.ts": true,
     "src/utils/usage-accounting-rollup.ts": true,
     "src/utils/usage-accounting.ts": true,
+    "src/utils/usage-artifact-ref.ts": true,
     "src/utils/yaml.ts": true,
     "state/demo-project/README.md": true,
     "state/demo-project/state/inventory.json": true,
@@ -13803,6 +13804,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/linked-worktree.test.ts": true,
     "tests/unit/utils/path-utils.test.ts": true,
     "tests/unit/utils/postinstall-trampoline.test.ts": true,
+    "tests/unit/utils/usage-accounting-artifact-ref.test.ts": true,
     "tests/unit/utils/usage-accounting-backward-compatibility.test.ts": true,
     "tests/unit/utils/usage-accounting-integrity.test.ts": true,
     "tests/unit/utils/usage-accounting-rollup.test.ts": true,

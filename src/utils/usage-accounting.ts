@@ -29,6 +29,9 @@ export type {
 import { collectLisaUsageChildArtifacts } from "./usage-accounting-rollup.js";
 import { sumNullableDecimals } from "./decimal-sum.js";
 import { renderEffectivenessToken } from "./effectiveness.js";
+import { assertCanonicalArtifactRef } from "./usage-artifact-ref.js";
+
+export { assertCanonicalArtifactRef };
 
 const MIXED_CURRENCY = "mixed";
 
@@ -384,15 +387,39 @@ export function createLisaUsageRollup(
 }
 
 /**
- * Render the machine-readable token for a single direct usage row.
+ * Refuse every entry whose `artifact_ref` the completion-proof reader would
+ * not recognise (CodySwannGT/lisa#4699).
+ *
+ * @param entries Entries about to be written.
+ */
+function assertEntriesCanonical(entries: readonly LisaUsageEntry[]): void {
+  entries.forEach(entry => assertCanonicalArtifactRef(entry.artifactRef));
+}
+
+/**
+ * Render the machine-readable token for a single direct usage row without the
+ * grammar check, so already-stored legacy rows can be re-serialized.
  *
  * @param entry Direct usage entry to serialize.
  * @returns The legacy-readable primary token plus its measured-subset extension.
  */
-export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
+function renderEntryToken(entry: LisaUsageEntry): string {
   const primaryToken = `<!-- lisa:usage-entry entry_id=${encodeTokenValue(entry.entryId)} flow=${encodeTokenValue(entry.flow)} run_id=${encodeTokenValue(entry.runId)} provider=${encodeTokenValue(entry.provider)} model=${encodeTokenValue(entry.model)} source=${encodeTokenValue(entry.source)} input_tokens=${renderNullable(entry.inputTokens)} cached_input_tokens=${renderNullable(entry.cachedInputTokens)} output_tokens=${renderNullable(entry.outputTokens)} reasoning_tokens=${renderNullable(entry.reasoningTokens)} total_tokens=${renderNullable(entry.totalTokens)} cost=${renderNullable(entry.cost)} currency=${renderNullable(entry.currency)} pricing_status=${encodeTokenValue(entry.pricingStatus)} pricing_source=${renderNullable(entry.pricingSource)} artifact_ref=${encodeTokenValue(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeTokenValue(entry.parentArtifactRef)} -->`;
   const measuredSubsetToken = `<!-- lisa:usage-entry-measured-subset entry_id=${encodeTokenValue(entry.entryId)} measured_subset_tokens=${renderNullable(entry.measuredSubsetTokens ?? null)} -->`;
   return `${primaryToken} ${measuredSubsetToken}${renderEffectivenessToken(entry.entryId, entry.effectiveness)}`;
+}
+
+/**
+ * Render the machine-readable token for a single direct usage row.
+ *
+ * @param entry Direct usage entry to serialize.
+ * @returns The legacy-readable primary token plus its measured-subset extension.
+ * @throws {Error} When `entry.artifactRef` is a short `linear:<KEY-N>` or
+ *   otherwise not `linear:<workspace>/<KEY-N>` (see `assertCanonicalArtifactRef`).
+ */
+export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
+  assertCanonicalArtifactRef(entry.artifactRef);
+  return renderEntryToken(entry);
 }
 
 /**
@@ -426,8 +453,28 @@ export function renderLisaUsageRollupToken(rollup: LisaUsageRollup): string {
  * @param input.entries Direct entries to render in document order.
  * @param input.rollup Rollup token to end the section with.
  * @returns The managed section text, terminated with a trailing newline.
+ * @throws {Error} When an entry's `artifactRef` is not canonical (see
+ *   `assertCanonicalArtifactRef`).
  */
 export function renderLisaUsageSection(input: {
+  entries: readonly LisaUsageEntry[];
+  rollup: LisaUsageRollup;
+}): string {
+  assertEntriesCanonical(input.entries);
+  return renderSection(input);
+}
+
+/**
+ * Render the managed section body without the `artifact_ref` grammar check.
+ * Only the upsert path calls it, after checking the NEW entries, so
+ * a legacy row already stored in the document never blocks a rewrite.
+ *
+ * @param input Section payload containing direct entries and rollup totals.
+ * @param input.entries Direct entries to render in document order.
+ * @param input.rollup Rollup token to end the section with.
+ * @returns The managed section text, terminated with a trailing newline.
+ */
+function renderSection(input: {
   entries: readonly LisaUsageEntry[];
   rollup: LisaUsageRollup;
 }): string {
@@ -440,7 +487,7 @@ export function renderLisaUsageSection(input: {
             `| ${entry.flow} | ${entry.source} | ${entry.provider}/${entry.model} | ${formatEntryTokens(entry)} | ${formatCost(entry.cost, entry.currency)} |`
         );
   const entryTokenLines =
-    entries.length === 0 ? [] : [...entries.map(renderLisaUsageEntryToken), ""];
+    entries.length === 0 ? [] : [...entries.map(renderEntryToken), ""];
   const lines = [
     LISA_USAGE_HEADING,
     "",
@@ -467,8 +514,34 @@ export function renderLisaUsageSection(input: {
  * @param input.entries Newly observed direct usage entries.
  * @param input.rollup Optional explicit rollup payload to serialize.
  * @returns The updated artifact markdown with exactly one managed usage block.
+ * @throws {Error} When a NEW entry's `artifactRef` is not canonical (see
+ *   `assertCanonicalArtifactRef`); entries already stored are preserved as-is.
  */
 export function upsertLisaUsageSection(
+  document: string,
+  input: {
+    childArtifacts?: readonly LisaUsageChildArtifact[];
+    entries: readonly LisaUsageEntry[];
+    rollup?: LisaUsageRollup | null;
+  }
+): string {
+  assertEntriesCanonical(input.entries);
+  return mergeUsageSection(document, input);
+}
+
+/**
+ * Merge new entries into the managed section once they passed the grammar
+ * check. Stored rows are re-serialized unchecked so a legacy row never blocks
+ * a rewrite.
+ *
+ * @param document Existing artifact markdown or comment body.
+ * @param input New usage content to merge into the managed section.
+ * @param input.childArtifacts Optional child ledgers to recompute descendant totals from current work.
+ * @param input.entries Newly observed direct usage entries, already checked.
+ * @param input.rollup Optional explicit rollup payload to serialize.
+ * @returns The updated artifact markdown with exactly one managed usage block.
+ */
+function mergeUsageSection(
   document: string,
   input: {
     childArtifacts?: readonly LisaUsageChildArtifact[];
@@ -494,7 +567,7 @@ export function upsertLisaUsageSection(
           previousRollup,
           input.childArtifacts
         );
-  const usageSection = renderLisaUsageSection({
+  const usageSection = renderSection({
     entries: mergedEntries,
     rollup,
   }).trimEnd();
