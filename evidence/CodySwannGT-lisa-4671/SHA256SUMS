@@ -10,10 +10,3 @@ dceba169e4280fe7c828c25d3f20967630d5db8bd8ed53c99b658aa8e5edd284  ./controls/qua
 738d2f015e903d2eed8f1f3986a8d30a05a3deac44003fe6ebbc80acb3a757ae  ./controls/quality-rails.mutation-reverted.yml
 1623811fadd44b2437a1570d0c0b3ea7d48d64d374545eb44f66c6ffd12e4533  ./controls/quality-rails.mysql-leak.yml
 a200e473392e0f878c9bd420cce916667c87f10d2e090af45091e4055ab4879d  ./controls/quality-rails.typo-input.yml
-2d9d75fe7926237a30f2623f08c3a075e85a5c16f5476b08242c10a13d01e405  ./probes/01-parse-workflow.cjs
-0e73243097b01f40147d4e8789a8048e2ef31b7aec1c8362f70a3f0ae20d3960  ./probes/02-actionlint.sh
-39debc2694cc2eb7e61beb885f5352544da21b4b4a5f1ae352974d1147334fda  ./probes/03-act-exprparser.sh
-e2028bb78e9294c9f84b24487c1de4f79839fd3e8d01117c21b676663cc00a97  ./probes/04-model-evaluator.cjs
-4aec8a8d62ce964a500bd1b3304e1308dc6a83e26a534965ac90a7443c8bff87  ./probes/04-model-evaluator.sh
-f479238640f28ddfd0c73b6dfc9c45a5ca40dfc03f66aea79f280c02963fc62b  ./probes/05b-vitest-bite.sh
-807c24fa52d76f933918a02e70c6764c172b2b3f704541ab9b4838ce0b5a68d1  ./probes/make-controls.cjs
