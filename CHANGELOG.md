@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.1.2](https://github.com/CodySwannGT/lisa/compare/v5.1.1...v5.1.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* **agents:** make the scratch-copy falsification recipe runnable ([3db6cee](https://github.com/CodySwannGT/lisa/commit/3db6ceecd53ede8e087dff6a9cc99697c48391fc)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **agents:** run falsification breaks on a scratch copy, never in a shared worktree ([7aa81f2](https://github.com/CodySwannGT/lisa/commit/7aa81f2852ae42a924640aa202d4305a1706252b)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **rules:** install deps in the scratch copy for workspace monorepos ([6f90eed](https://github.com/CodySwannGT/lisa/commit/6f90eed1c0b91f3ef83c056efd20b83c3de42378)), closes [#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **rules:** make scratch copies with git worktree add, never a cwd-switching tool ([d900be2](https://github.com/CodySwannGT/lisa/commit/d900be224e53f77c2784fb903e8782868b1a8ab4)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **rules:** scope the break/restore steps main moved into reference rules ([3b2a6da](https://github.com/CodySwannGT/lisa/commit/3b2a6da8db5bc8a53d6d3479e2738647bb504445)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+
 ### [5.1.1](https://github.com/CodySwannGT/lisa/compare/v5.1.0...v5.1.1) (2026-11-13)
 
 
