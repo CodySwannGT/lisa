@@ -308,12 +308,18 @@ export function runLoadTest(testCase: LoadTestCase): LoadTestOutcome {
       fs.readFileSync(files.GITHUB_OUTPUT, "utf-8")
     );
     fs.writeFileSync(files.GITHUB_OUTPUT, "");
-    execStep(
+    const summary = execStep(
       dir,
       loadTestStep("generate_summary", file),
       { ...context, steps: { run_test: { outputs } } },
       runnerEnv
     );
+    // The summary step runs `if: always()` and must never fail the job itself;
+    // a broken one would otherwise hide behind the Run step's status.
+    if (summary.status !== 0)
+      throw new Error(
+        `generate_summary exited ${summary.status}:\n${summary.log}`
+      );
 
     return {
       preparedEnv,
