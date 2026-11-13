@@ -1727,7 +1727,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
       "410ef4e6d2041fb10438ac802587de90b175e8de6f39e76c9a86888fce3c81f5",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
-      "0544e4aabca56399322d63cfd22563d8122ced4fa4b8419de9f4db97412d3c56",
+      "2afb248cbb0e6a53bd2dcc4d9ea63efaa3344557a5ad03e43dfd37be0bced2f1",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":

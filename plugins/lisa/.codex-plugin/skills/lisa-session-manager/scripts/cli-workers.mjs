@@ -442,17 +442,28 @@ function transcriptFailure(ctx, config, entry) {
  * transcript would otherwise undo the clear every cycle). A worker whose
  * first prompt failed after spawn's window never went through spawn's exit 2,
  * so without this its repo would still be dispatched to (lisa#4820).
+ *
+ * probe-direction: fail-open — a failed write is warned about and must not
+ * abort classifying the remaining items; the next cycle retries it.
  * @param {object} ctx - CLI context
  * @param {{repo?: string|null, startedAt?: string|null}} entry - Ledger item
  * @param {{kind: string, detail: string}} failure - From the transcript
  * @returns {Promise<void>}
  */
 async function rememberClassifiedGap(ctx, entry, failure) {
-  await recordSetupGap(ctx.root, {
-    repo: entry.repo ?? ".",
-    ...failure,
-    startedAt: entry.startedAt ?? null,
-  });
+  const repo = entry.repo ?? ".";
+  try {
+    await recordSetupGap(ctx.root, {
+      repo,
+      ...failure,
+      startedAt: entry.startedAt ?? null,
+    });
+  } catch (error) {
+    ctx.warn(
+      `Could not record the setup gap for repo ${repo} in the ledger ` +
+        `(${error.message}); the next cycle will try again.`
+    );
+  }
 }
 
 /**
