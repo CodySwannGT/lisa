@@ -2657,7 +2657,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-workflow-package-paths.mjs":
       "07ebf3f8a4504f6231c5ae492ecda7f95a80a0fa5f0424b9d3368544b1b612dd",
     "scripts/classify-markdown-assertions.mjs":
-      "571d4f022f1a1540b99426cf628fbfacaee8c082c5997e9d9afe99bdfb3821ff",
+      "4b5ec8747ade3767b7d4f5b8bccf3e5a46f8cc296ad4397dabd89e4768ac68cd",
     "scripts/classify-phrase-tests.mjs":
       "11553629a6c167d9ed0851c6bc4cf9a818df2693d5a30afb2c30fb23a7b14eea",
     "scripts/claude-remote-setup.sh":
@@ -2762,6 +2762,16 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c8e29611188f9bfccc3644c2d30affd9944100724cacf5bd1216f763a217e278",
     "scripts/lib/markdown-assertions/manifest-cull.mjs":
       "9610443a08f4e3084736bf87171e902974995da0c387b65418a69f5a25a78559",
+    "scripts/lib/markdown-assertions/record-setup.mjs":
+      "363ec7928ac389452196174aa099664edd017a00918e3363590c451314be089c",
+    "scripts/lib/markdown-assertions/record.mjs":
+      "097a8b8bcf7c9b48dfcafb792c2800ae426215bc81836b2fac621a1f07fb37d6",
+    "scripts/lib/markdown-assertions/record.vitest.config.mjs":
+      "2433b27edbcd9976d6c7a3d5f34eec566594f463bac8ed0f3e26322122015e38",
+    "scripts/lib/markdown-assertions/sites.mjs":
+      "3cd2d520cbf84e8f66807262882b2074dcd94f97670bd56e360fd32fc781c589",
+    "scripts/lib/markdown-assertions/test-cull.mjs":
+      "c0cb4a609434ef938866d339d7ab0c3001d52eb9d4db4b2969ffe4a44337346f",
     "scripts/lib/markdown-assertions/tokens.mjs":
       "2eb445fc02047bf0b54900042dbdbd15afeee077dd832c9b43a7458a20e17112",
     "scripts/lib/mutation-performance-reporter.mjs":
@@ -10689,6 +10699,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/markdown-assertions/context.mjs": true,
     "scripts/lib/markdown-assertions/corpus.mjs": true,
     "scripts/lib/markdown-assertions/manifest-cull.mjs": true,
+    "scripts/lib/markdown-assertions/record-setup.mjs": true,
+    "scripts/lib/markdown-assertions/record.mjs": true,
+    "scripts/lib/markdown-assertions/record.vitest.config.mjs": true,
+    "scripts/lib/markdown-assertions/sites.mjs": true,
+    "scripts/lib/markdown-assertions/test-cull.mjs": true,
     "scripts/lib/markdown-assertions/tokens.mjs": true,
     "scripts/lib/mutation-performance-reporter.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
@@ -12985,6 +13000,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/maestro-flake-helpers.ts": true,
     "tests/unit/scripts/maestro-intermittent-registry.test.ts": true,
     "tests/unit/scripts/markdown-assertions-classify.test.ts": true,
+    "tests/unit/scripts/markdown-assertions-test-cull.test.ts": true,
     "tests/unit/scripts/measure-scripts-profile-gap.test.ts": true,
     "tests/unit/scripts/measure-tmpdir-growth-performance.test.ts": true,
     "tests/unit/scripts/measure-tmpdir-growth.test.ts": true,

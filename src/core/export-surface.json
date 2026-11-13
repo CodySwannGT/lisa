@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 288,
-  "$names": 2037,
+  "$modules": 291,
+  "$names": 2044,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1914,6 +1914,19 @@
     "scripts/lib/markdown-assertions/manifest-cull.mjs": [
       "CULLED_COMMENT",
       "cullManifest"
+    ],
+    "scripts/lib/markdown-assertions/record.mjs": [
+      "candidateTestFiles",
+      "recordAssertions"
+    ],
+    "scripts/lib/markdown-assertions/sites.mjs": [
+      "classifySites",
+      "evidenceSites",
+      "exercisesCode",
+      "siteCounts"
+    ],
+    "scripts/lib/markdown-assertions/test-cull.mjs": [
+      "cullTestFiles"
     ],
     "scripts/lib/markdown-assertions/tokens.mjs": [
       "MIN_TOKEN_LENGTH",
