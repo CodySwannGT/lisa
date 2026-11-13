@@ -1295,7 +1295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "e98974e4f48af05f788323c92badae6a97a2feec1ca8e8a9c05ddc3e3c948492",
     "plugins/src/base/rules/reference/usage-accounting.md":
-      "16c27af9777277c8757c771abae09d36d066214efbfcc61b3b50b1d94bb9b77e",
+      "2c3decf40d02ec10c5d4c57a64cd6c99b0cca5b388502baf0a2b594e445bbf71",
     "plugins/src/base/rules/reference/verification.md":
       "8a57ab38f2d86e9879cdcf265ebba2a6d63a6f821ffd7a2cb4749e59861c518f",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":

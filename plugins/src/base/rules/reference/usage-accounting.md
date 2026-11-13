@@ -79,8 +79,8 @@ Each direct usage entry records one logical Lisa run or sub-run on one artifact.
 
 ### `artifact_ref` grammar
 
-The completion proof recognises a work item's Verify entry only by its `artifact_ref`, so writers
-use exactly one form per provider:
+The completion proof finds a work item's Verify entry by its `artifact_ref`. Writers are required
+to produce exactly one form per provider:
 
 | Provider | Form | Example |
 |---|---|---|
@@ -88,12 +88,19 @@ use exactly one form per provider:
 | Linear | `linear:<workspace>/<KEY-N>` | `linear:acme/ENG-11` |
 | Jira | bare `<KEY-N>` | `ENG-11` |
 
-The Linear `<workspace>` is the `linear.workspace` key in `.lisa.config.json`. The writer
-(`renderLisaUsageEntryToken`, `renderLisaUsageSection`, `upsertLisaUsageSection`) refuses a short
-`linear:<KEY-N>` or any other `linear:` ref that is not `linear:<workspace>/<KEY-N>` with an error
-naming the required form: the reader would otherwise reject that entry later as absent. Refs for
-other providers are written unchanged. A legacy short-form row already stored in a section is
-preserved on rewrite; only new entries are checked.
+The reader is a little more tolerant than the writer: it also accepts a bare `<KEY-N>` for Linear
+(and `<owner>/<repo>#<N>` or the issue URL for GitHub). It never accepts a short `linear:<KEY-N>`,
+and it compares case-sensitively against the uppercase issue identifier.
+
+The Linear `<workspace>` must equal the `linear.workspace` key in `.lisa.config.json` exactly,
+including case. The writer checks only the shape, not the value: it cannot see the config. The
+writer (`renderLisaUsageEntryToken`, `renderLisaUsageSection`, `upsertLisaUsageSection`) refuses a
+short `linear:<KEY-N>`, a lowercase key, a workspace containing `/` or whitespace, or any other
+`linear:` ref that is not `linear:<workspace>/<KEY-N>`, with an error naming the required form: the
+reader would otherwise reject that entry later as absent. Refs for other providers are written
+unchanged. `renderLisaUsageSection` validates every entry it is given; `upsertLisaUsageSection`
+validates only new entries, so a legacy short-form row already stored in a section is preserved on
+rewrite, and upserting the qualified entry with the same `entry_id` repairs it.
 
 `entry_id` must be stable across rewrites of the same logical run. Rewriting an existing entry with the same `entry_id` updates it in place. A different run gets a different `entry_id` and is appended as a new direct entry.
 

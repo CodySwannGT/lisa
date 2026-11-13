@@ -89,6 +89,9 @@ describe("assertCanonicalArtifactRef (#4699)", () => {
     ["an extra path segment", "linear:acme/ENG-11/extra"],
     ["a key starting with a digit", "linear:acme/1ENG-11"],
     ["nothing after the prefix", "linear:"],
+    ["a lowercase key", "linear:acme/eng-11"],
+    ["a lowercase key with underscores", "linear:acme-labs/eng_core-7"],
+    ["whitespace in the workspace", "linear:acme /ENG-11"],
   ])("refuses a linear ref with %s", (_label, ref) => {
     expect(refusalOf(() => assertCanonicalArtifactRef(ref))).toContain(
       REQUIRED_FORM
@@ -97,7 +100,7 @@ describe("assertCanonicalArtifactRef (#4699)", () => {
 
   it.each([
     QUALIFIED,
-    "linear:acme-labs/eng_core-7",
+    "linear:acme-labs/ENG-7",
     GITHUB_REF,
     "github:issue:869",
     "https://github.com/acme/code/issues/42",
@@ -170,6 +173,27 @@ describe("usage writer refuses a short Linear artifact_ref (#4699)", () => {
 });
 
 describe("writer and completion-proof reader agree on the Linear grammar (#4699)", () => {
+  it("repairs a stored short-form Verify row by upserting the qualified entry", () => {
+    const stored = upsertLisaUsageSection("Spec body\n", {
+      entries: [makeEntry(QUALIFIED)],
+    }).replace(
+      `artifact_ref=${encodeURIComponent(QUALIFIED)}`,
+      `artifact_ref=${encodeURIComponent(SHORT)}`
+    );
+    expect(parseLisaUsageSection(stored).entries[0]?.artifactRef).toBe(SHORT);
+
+    const repaired = upsertLisaUsageSection(stored, {
+      entries: [makeEntry(QUALIFIED)],
+    });
+    expect(
+      parseLisaUsageSection(repaired).entries.map(entry => entry.artifactRef)
+    ).toEqual([QUALIFIED]);
+    expect(repaired).not.toContain(`artifact_ref=${encodeURIComponent(SHORT)}`);
+    expect(() =>
+      validateVerifyUsage([repaired], "ENG-11", [VERIFY_ID], LINEAR_CONTEXT)
+    ).not.toThrow();
+  });
+
   it("a Verify entry written with the qualified ref passes validateVerifyUsage", () => {
     const document = upsertLisaUsageSection("Spec body\n", {
       entries: [makeEntry(QUALIFIED)],

@@ -449,11 +449,16 @@ export function renderLisaUsageRollupToken(rollup: LisaUsageRollup): string {
  * Parsing has always been position-agnostic, so sections written in the old
  * layout still enumerate and migrate to this layout on their next rewrite.
  *
+ * Validates EVERY entry it is given, so it refuses a section that would carry
+ * a non-canonical `artifact_ref` even from a row already stored elsewhere.
+ * Callers holding a document with stored rows should use
+ * `upsertLisaUsageSection`, which validates only the new entries.
+ *
  * @param input Section payload containing direct entries and rollup totals.
  * @param input.entries Direct entries to render in document order.
  * @param input.rollup Rollup token to end the section with.
  * @returns The managed section text, terminated with a trailing newline.
- * @throws {Error} When an entry's `artifactRef` is not canonical (see
+ * @throws {Error} When any entry's `artifactRef` is not canonical (see
  *   `assertCanonicalArtifactRef`).
  */
 export function renderLisaUsageSection(input: {
