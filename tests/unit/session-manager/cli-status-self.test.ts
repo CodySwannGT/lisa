@@ -43,6 +43,7 @@ describe("status manager.self", () => {
       name: MANAGER,
       running: true,
       self: true,
+      otherCyclers: [],
     });
     expect(
       callsOf(result.calls, "tmux", DISPLAY).map(call => call.argv)
@@ -58,6 +59,7 @@ describe("status manager.self", () => {
       name: MANAGER,
       running: true,
       self: false,
+      otherCyclers: [],
     });
     expect(callsOf(result.calls, "tmux", DISPLAY)).toEqual([]);
   });

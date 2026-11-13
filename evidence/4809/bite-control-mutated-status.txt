@@ -1,0 +1,3 @@
+# BITE CONTROL (mutated cyclers.mjs: .filter((by)=>by!==self) -> .filter(()=>true)); session=sm4809verify
+{"manager":{"name":"sm4809verify","running":true,"self":true,"otherCyclers":[{"by":"tmux:sm4809verify","at":"2026-11-12T23:01:26.205Z"}]},"notify":"none","control":{"paused":false,"maxWorkers":null,"me":null},"workers":[],"untracked":["wk-lisa-4502-1112-1416","wk-lisa-4503-1112-1612","wk-lisa-4504-1112-1711","wk-lisa-4634-1112-0926","wk-lisa-4636-1112-1001","wk-lisa-4809-1112-1747"],"pendingQuestions":[]}
+# exit=0
