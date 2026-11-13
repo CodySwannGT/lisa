@@ -1633,7 +1633,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
       "eb5ed341caccf01b3ae7da403bd2877ab2f77501bb0a64e4e275c36317297871",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
-      "49dee0ea4d444a6df050d85fd57566497df288490f64b467d0505b1863fc1039",
+      "37a1ba9919bafa2499bd3d426c3bbe3991fac60390fa0f0c00814ecd9c4c1b14",
     "plugins/src/base/skills/lisa-research/SKILL.md":
       "d2850e4fe0f4bbfb820faad2523f8b339725280fa9c6bd5627705aef2bc8684a",
     "plugins/src/base/skills/lisa-review-implementation/SKILL.md":
@@ -1643,7 +1643,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-rework-triage/SKILL.md":
       "a70ccc7c79a6cc3a695d173b7b8bfbe8334af2cdace368fe1520d0b86254fb6f",
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
-      "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
+      "72e13a433912f4743896cdfb8af220b44a1c9d61ede2ee981bdd1acefae5f5dc",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
       "d6eb1c0c2ee829bce40b2a3cdf73ce6fdca26e6db3f09422a3ccdc83e560030e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
@@ -1695,7 +1695,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "f176775fe89d7edfe1b7b2aefecd41dd58d2093ecfcbd6f9ce16b0a4f61cb2e0",
+      "a453614c7b5e0576e92f5c24c1b48737a87d70d8aa499b419c8bf4bc07316be3",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "62942a381e7dfb66d44d53e82df4121333ce88b4212acc53be9df9becaa6e100",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1705,7 +1705,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-answer-record.mjs":
       "cd195249f028231358071f541a0f64599b545f2c87d30118c92aebd44c0a8498",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
-      "944e904ca209f788dd82575d99761dbdd140f73758d9d75b64ae57d1ae9c25dd",
+      "080d201e14da1cb6ac8395b1cd8cffe004be975d58b598655dc08ec105ca1017",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
       "de444688db2579750d2c312f854389d4019ec40a6ce59684026fa8fed7ff1aff",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs":
@@ -1723,15 +1723,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "9e4ff0dbbe302b55615240b2a1e71f4b7e988ae482a029efe8eef59032284b83",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "48c62d7eb94a3072b6bd2ee0d77e21afc5fca6fed4fdbe7cde3d3566cac5e3ff",
+      "8bbfcf53bd9d82a298783dbe20223add3d22a64c1bda9a91433fc60409ff9f23",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
-      "59a00278ab701a7830437597923379bad78ccd43857d574f333f6265efc4dcc7",
+      "ab45d993c25566a5a6ad737c0c77414edeaf1fce2ed32de178e497dc66fb7875",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
       "8108924a69f53c877334a7e8118d7a3fb30ec652e1668834cc2a2e43538bb984",
     "plugins/src/base/skills/lisa-session-manager/scripts/escalation-overruled.mjs":
       "42dc128249005547c2ebe405194e8c5d3798354e32b00697b8c45c1693cc65c4",
+    "plugins/src/base/skills/lisa-session-manager/scripts/first-prompt.mjs":
+      "3ce32aaf71acca6d39b415c9f1427766eb32a74d1f96d10413614da37199496c",
     "plugins/src/base/skills/lisa-session-manager/scripts/human-answer.mjs":
       "cd3a049ddefd96e067683ec8d1b4f5a3c38800fcd328af1d560c578280de2b2c",
     "plugins/src/base/skills/lisa-session-manager/scripts/human-needed.mjs":
@@ -1747,7 +1749,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-questions.mjs":
       "eb7f845b2c0ebe3ebbd233957329833cc77d3dfce5f3e5df505e336704fb7eae",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
-      "6b43ff117a1a7aada67a1370309ed801085cfe9c9e04a72859f0bdff1b8324fc",
+      "a14e885fc4bf0e83656974d8e572b154b68756d85be4fe584f535ace0b621834",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
       "9af014661873a2971fbc29946739088fc3e089deb8d94e78af651647450f2999",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
@@ -1755,7 +1757,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
       "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
-      "015fe366d9ce78168adde548b8e80351f4821251c9fa55ff682c553c7e4632ed",
+      "8bd809393c9546f8025f20efa5a4c0a7f64eb07632aac2930d5daeca4dd10197",
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
@@ -1773,9 +1775,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/token.mjs":
       "ff62512a701d90234095ac0345b91185a24cd43d773d4e12eb06fef063e76359",
     "plugins/src/base/skills/lisa-session-manager/scripts/worker-launch.mjs":
-      "5d17eed33302f8e22858f4c69d8323e60411fe7b089a11414d93613923287b0c",
+      "64046c863b85ba4109bd8d4e719e844c9bfcd6d2e029770464007ef980a66e32",
     "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs":
-      "62416ee15eced2da1dc52eeac46da798965d323bb31f9c73ff0df6b80ece1c89",
+      "c0872bbfa06b17e4b304e7bad6dff34bb1ab5b05d1ebc7685c2e002a1a5befe3",
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "d1945a471afa5454ef4f6dffa52decf7df0ec3f411dadaf5d4bc95aeeb8ca6e2",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
@@ -2667,7 +2669,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-self-dependency-pin.mjs":
       "f517c44a1058a87051b6bb9520e8596a37521f475ca67e0d47159163999ff692",
     "scripts/check-shell-guard-refusal-coverage.mjs":
-      "ba778c3d234a86e52c5d15cf382e1274a36501aae4a0fdc6c38402d746a22e47",
+      "297a531935824c5861d73c1ce1af78ba70b0147e616250113e246c1de1b3de54",
     "scripts/check-shipped-surface-removals.mjs":
       "2ff9e161d101cc55ffe099f0a7b4fc83e023e79215ff09e53c5d0c889a9594bb",
     "scripts/check-state-classification.mjs":
@@ -2831,9 +2833,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/shell-guard-refusal-coverage.mjs":
       "47991f4473bd3bc13f9e1e9fb0f801580088492f9857c340965a7107dd5f8be7",
     "scripts/lib/shell-guard-shard-runner.mjs":
-      "976e297e5b9ebeff787274ac4cffb5a898d8274253798a719ccedac932f60d7b",
+      "f1253f6e6cdc4a5cb5129411c16f0ab67c909b1c7e70fe690cc9f988b8712c81",
     "scripts/lib/shell-guard-shards.mjs":
-      "a5724f75bea3469aae76c9eb8ff13e0ba446c73a0466c43d9a670b3b7628dce1",
+      "1022fa8e447d272da6ae4421f8c9798224a5239734ef977340baa861e64332d3",
     "scripts/lib/shell-guard-terminal-reporter.mjs":
       "5af1615782b5c0608c5218fd88149def957a6856000c699662356bba1f2cab93",
     "scripts/lib/shell-guard-trace.mjs":
@@ -3802,6 +3804,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4629/absent-codes-source-search.txt": true,
     "evidence/4629/deep-root-doctor-checks-before.txt": true,
     "evidence/4629/deep-root-doctor-checks.txt": true,
+    "evidence/4634/shard-rerun-merge-green.txt": true,
+    "evidence/4634/shard-rerun-merge-red.txt": true,
+    "evidence/4634/single-shard-rerun-merge.txt": true,
     "evidence/4636/fs-probe-paired-samples.txt": true,
     "evidence/4636/hosted-run-43251544381-at-bff0162039.txt": true,
     "evidence/4636/hosted-run-43260674356-at-0712585024.txt": true,
@@ -4882,6 +4887,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/first-prompt.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -5427,6 +5433,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/first-prompt.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -5956,6 +5963,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/first-prompt.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -6417,6 +6425,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/first-prompt.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -8846,6 +8855,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/first-prompt.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -9556,6 +9566,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/first-prompt.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -10141,6 +10152,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/first-prompt.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -11348,6 +11360,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/skills-installer.ts": true,
     "src/opencode/support-file-resolver.ts": true,
     "src/sonar/sonar-installer.ts": true,
+    "src/sonar/sonar-shim-fs.ts": true,
+    "src/sonar/sonar-shim-repoint.ts": true,
     "src/standards/capture.ts": true,
     "src/standards/contract.ts": true,
     "src/standards/git-state.ts": true,
@@ -11568,6 +11582,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/session-manager/stub-bin/tmux": true,
     "tests/fixtures/session-manager/stub-bin/vm_stat": true,
     "tests/fixtures/session-manager/support/stub-record.mjs": true,
+    "tests/fixtures/session-manager/transcripts/README.md": true,
+    "tests/fixtures/session-manager/transcripts/healthy.jsonl": true,
+    "tests/fixtures/session-manager/transcripts/prompt-blocked.jsonl": true,
+    "tests/fixtures/session-manager/transcripts/unknown-command.jsonl": true,
     "tests/fixtures/session-manager/vm_stat.txt": true,
     "tests/fixtures/shared-runtime-hosts/actions.ts": true,
     "tests/fixtures/shared-runtime-hosts/artifact.ts": true,
@@ -12498,6 +12516,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/lisa-plugin-selection.test.ts": true,
     "tests/unit/core/lisa-release-pin.test.ts": true,
     "tests/unit/core/lisa-skill-sources.test.ts": true,
+    "tests/unit/core/lisa-sonar-shim-repoint.test.ts": true,
     "tests/unit/core/managed-lintstaged-adoption.test.ts": true,
     "tests/unit/core/managed-nvmrc-adoption.test.ts": true,
     "tests/unit/core/nightly-e2e-pull-request-triggers.test.ts": true,
@@ -13365,6 +13384,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli-classify.test.ts": true,
     "tests/unit/session-manager/cli-cycle-human-needed.test.ts": true,
     "tests/unit/session-manager/cli-cycle.test.ts": true,
+    "tests/unit/session-manager/cli-first-prompt.test.ts": true,
     "tests/unit/session-manager/cli-human-answer-not-marked.test.ts": true,
     "tests/unit/session-manager/cli-human-answer-question-id.test.ts": true,
     "tests/unit/session-manager/cli-human-answer.test.ts": true,
@@ -13389,6 +13409,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/config-repos.test.ts": true,
     "tests/unit/session-manager/config.test.ts": true,
     "tests/unit/session-manager/escalation-overruled.test.ts": true,
+    "tests/unit/session-manager/first-prompt.test.ts": true,
     "tests/unit/session-manager/human-answer-id-kinds.test.ts": true,
     "tests/unit/session-manager/human-answer-ids-and-refusals.test.ts": true,
     "tests/unit/session-manager/human-answer.test.ts": true,
@@ -13418,9 +13439,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/workers-fixtures.ts": true,
     "tests/unit/session-manager/workers-liveness.test.ts": true,
     "tests/unit/session-manager/workers-name-roundtrip.test.ts": true,
+    "tests/unit/session-manager/workers-setup-gap.test.ts": true,
     "tests/unit/session-manager/workers.test.ts": true,
     "tests/unit/skills/secrets-provider-timeout-message.test.ts": true,
     "tests/unit/sonar/sonar-installer.test.ts": true,
+    "tests/unit/sonar/sonar-shim-repoint-safety.test.ts": true,
+    "tests/unit/sonar/sonar-shim-repoint.test.ts": true,
+    "tests/unit/sonar/support/sonar-shim-fixtures.ts": true,
     "tests/unit/standards/capture.test.ts": true,
     "tests/unit/standards/contract.test.ts": true,
     "tests/unit/standards/git-state.test.ts": true,
@@ -13463,6 +13488,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/blocker-edge-resolution.test.ts": true,
     "tests/unit/strategies/build-ready-control.test.ts": true,
     "tests/unit/strategies/build-verification-credential-blocking.test.ts": true,
+    "tests/unit/strategies/cited-line-reachability-contract.test.ts": true,
     "tests/unit/strategies/claim-archaeology-rule.test.ts": true,
     "tests/unit/strategies/claim-evidence-mapping-contract.test.ts": true,
     "tests/unit/strategies/control-reachability-contract.test.ts": true,
@@ -13657,6 +13683,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/session-manager-failed-requeue-contract.test.ts": true,
     "tests/unit/strategies/session-manager-gitignore.test.ts": true,
     "tests/unit/strategies/session-manager-human-needed-contract.test.ts": true,
+    "tests/unit/strategies/session-manager-setup-gap-contract.test.ts": true,
     "tests/unit/strategies/session-manager-setup-trust-contract.test.ts": true,
     "tests/unit/strategies/session-manager-skill-contract.test.ts": true,
     "tests/unit/strategies/session-manager-skill-helpers.ts": true,

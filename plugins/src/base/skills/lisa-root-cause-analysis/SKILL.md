@@ -11,6 +11,31 @@ Produce a proof, not an explanation. Every link in the chain rests on something 
 
 The characteristic failure of this work is a fluent wrong answer: a plausible story assembled from reading code and delivered with confidence. Reading is how a hypothesis is formed. Running something is how it is confirmed. **Do not report a cause you have not executed against.**
 
+## A cited line is a hypothesis, not a location
+
+When the work item names a file, symbol or line as the cause, treat that as
+hypothesis zero. Its kill condition is: **no production entry point reaches it.**
+Check that before editing anything.
+
+- Trace importers of the module, including barrel re-exports and default exports,
+  up to a route, screen, endpoint or command the user actually hits.
+- A module with no importers can still be an entry point itself: a script or
+  command launched directly, a `bin`/`main` in the package manifest, a
+  file-based route, or a handler, job or plugin registered through
+  configuration. Check that before reading zero importers as dead code.
+  Zero production importers kills the hypothesis only when the module is not
+  itself an entry point: then the code is dead or superseded, and fixing it
+  changes nothing the user sees.
+- When the trace is ambiguous, prove it by execution: a temporary
+  `throw new Error("[DEBUG:<issue>] reached")` (or a `[DEBUG:<issue>]` log line)
+  in the cited block while driving the real entry point,
+  or coverage scoped to that route. If it never fires, the line is not on the path.
+- A test that renders or calls the cited symbol directly does not establish
+  reachability. It goes red-to-green on dead code too.
+
+Record the result in the evidence trail:
+`Reachability: <entry point> → … → <cited symbol> (static | throw | scoped coverage)`.
+
 ## Surviving a disproof is not proof
 
 A candidate that no observation has killed is **still standing**, not confirmed. Elimination narrows the field; it does not establish a cause. Closing requires a **positive confirmation**: an execution whose output is what the cause predicts and would not be what it produces if the cause were something else.
@@ -120,6 +145,8 @@ Stopping is a legitimate outcome and not a silent one. Record the verdict as **u
 | Step | Location | Observed | Proves |
 |---|---|---|---|
 | 1 | file:line | log output, value, exit code | what this establishes |
+
+Reachability: <entry point> → … → <cited symbol> (static | throw | scoped coverage)
 
 ### Cause — confirmed verdicts only
 **Proximate:** file:line — the line that directly produces the symptom.

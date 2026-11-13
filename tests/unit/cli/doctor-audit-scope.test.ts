@@ -21,6 +21,22 @@ import {
 } from "../../../src/cli/doctor-readiness-audit-allowlist.js";
 import * as lockfile from "../../../src/core/audit-lockfile.js";
 
+// Doctor stays offline (#4509): wrap every process launcher so a test can
+// prove no `npm audit`-style subprocess runs while doctor assesses scope.
+vi.mock("node:child_process", async importOriginal => {
+  const actual = await importOriginal<typeof import("node:child_process")>();
+  return {
+    ...actual,
+    spawn: vi.fn(actual.spawn),
+    spawnSync: vi.fn(actual.spawnSync),
+    exec: vi.fn(actual.exec),
+    execSync: vi.fn(actual.execSync),
+    execFile: vi.fn(actual.execFile),
+    execFileSync: vi.fn(actual.execFileSync),
+  };
+});
+const childProcess = await import("node:child_process");
+
 const GHSA = "GHSA-aaaa-bbbb-cccc";
 const DEV_PATH = "lint-plugin/zod";
 const SCOPED = {
@@ -55,6 +71,7 @@ function tree(files: Record<string, unknown[]>, withLock = true): string {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   for (const root of roots.splice(0))
     rmSync(root, { recursive: true, force: true });
 });
@@ -98,6 +115,45 @@ describe("doctor audit scope", () => {
     expect((await auditExceptionObservations(root)).join("\n")).toContain(
       "every copy of `zod`"
     );
+  });
+
+  it("warns, without blocking, that an ID-only entry is unscoped (#4509)", async () => {
+    const root = tree({
+      "audit.ignore.local.json": [{ id: GHSA, reason: "legacy" }],
+    });
+    expect(await auditExceptionViolations(root)).toEqual([]);
+    const text = (await auditExceptionObservations(root)).join("\n");
+    expect(text).toContain(`the entry for \`${GHSA}\` names no package`);
+    expect(text).toContain("hides this advisory for every copy");
+  });
+
+  it("raises no unscoped warning for a package+versions entry without paths (#4509)", async () => {
+    const { paths: _paths, ...versionsOnly } = SCOPED;
+    const root = tree({ "audit.ignore.local.json": [versionsOnly] });
+    expect(await auditExceptionViolations(root)).toEqual([]);
+    expect(await auditExceptionObservations(root)).toEqual([]);
+  });
+
+  it("assesses scope offline: no audit subprocess and no network call (#4509)", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const launchers = [
+      childProcess.spawn,
+      childProcess.spawnSync,
+      childProcess.exec,
+      childProcess.execSync,
+      childProcess.execFile,
+      childProcess.execFileSync,
+    ].map(launcher => vi.mocked(launcher));
+    for (const launcher of launchers) launcher.mockClear();
+    const root = tree({
+      "audit.ignore.config.json": [{ id: GHSA, reason: "legacy" }],
+      "audit.ignore.local.json": [SCOPED],
+    });
+    await auditExceptionViolations(root);
+    await auditExceptionObservations(root);
+    for (const launcher of launchers) expect(launcher).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("explains a wide entry set aside by a narrower one in the other file", async () => {

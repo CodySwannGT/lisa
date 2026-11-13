@@ -391,11 +391,17 @@ jobs:
       - name: Require every native shard to complete successfully
         env:
           TRACE_SHARDS_RESULT: ${{ needs.guard-trace.result }}
-        run: node -e 'if (process.env.TRACE_SHARDS_RESULT !== "success") throw Error("Native trace shard failed, cancelled, skipped or incomplete")'
+        run: node -e 'if (process.env.TRACE_SHARDS_RESULT !== "success") throw Error("Native trace shard failed, cancelled, skipped or incomplete. Re-run failed jobs - re-running only the failed shard is enough, because the merge reuses the other shards from the earlier attempt.")'
+      # #4634: download the shard bundles of EVERY attempt of this run. A
+      # "Re-run failed jobs" attempt rebuilds only the failed shard, so the
+      # merge takes the newest attempt per shard; that bundle must be complete
+      # (an older attempt is never used in its place) and match this run's
+      # source, PR head, workflow, runtime and roster. merge-multiple stays
+      # false so each bundle keeps its own run/attempt/shard directory name.
       - name: Download current workflow shard receipts
         uses: actions/download-artifact@v8 # existing repository first-party version; no new third-party action
         with:
-          pattern: lisa-shell-guard-${{ github.run_id }}-${{ github.run_attempt }}-shard-*
+          pattern: lisa-shell-guard-${{ github.run_id }}-*-shard-*
           path: ${{ runner.temp }}/lisa-shell-guard-download
           merge-multiple: false
       - name: Build current prepared Lisa wrapper once
