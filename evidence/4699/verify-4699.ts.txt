@@ -1,0 +1,59 @@
+const WT = process.env.WT ?? "/Users/codysai/workspace/lisa/.claude/worktrees/4699-linear-short-ref";
+const ua = await import(`${WT}/src/utils/usage-accounting.ts`);
+const cp = await import(`${WT}/all/copy-overwrite/scripts/lib/completion-proof-content.mjs`);
+const { renderLisaUsageEntryToken, renderLisaUsageSection, upsertLisaUsageSection, createLisaUsageRollup } = ua;
+const { validateVerifyUsage } = cp;
+
+const entry = (artifactRef: string) => ({
+  artifactRef, cachedInputTokens: null, cost: null, currency: null, entryId: "verify-42",
+  flow: "lisa-verify", inputTokens: null, model: "m", outputTokens: null, parentArtifactRef: null,
+  pricingSource: null, pricingStatus: "unavailable", provider: "fixture", reasoningTokens: null,
+  runId: "run-1", source: "unavailable", totalTokens: null,
+});
+const attempt = (label: string, fn: () => unknown) => {
+  try { const r = fn(); console.log(`${label}: OK`); return r; }
+  catch (e) { console.log(`${label}: THREW -> ${(e as Error).message}`); return undefined; }
+};
+
+console.log("=== (a) short linear:ENG-11 ===");
+const s = entry("linear:ENG-11");
+attempt("a.renderLisaUsageEntryToken", () => renderLisaUsageEntryToken(s));
+attempt("a.renderLisaUsageSection", () => renderLisaUsageSection({ entries: [s], rollup: createLisaUsageRollup([s]) }));
+const shortDoc = attempt("a.upsertLisaUsageSection", () => upsertLisaUsageSection("# Doc\n", { entries: [s] })) as string | undefined;
+if (shortDoc) attempt("a.consumer validateVerifyUsage(short-ref doc, ENG-11, linear acme/ENG)", () => validateVerifyUsage([shortDoc], "ENG-11", ["verify-42"], { provider: "linear", scope: "acme/ENG" }));
+
+console.log("=== (b) qualified linear:acme/ENG-11 ===");
+const q = entry("linear:acme/ENG-11");
+const section = attempt("b.renderLisaUsageSection", () => renderLisaUsageSection({ entries: [q], rollup: createLisaUsageRollup([q]) })) as string;
+console.log("b.section contains encoded artifact_ref=linear%3Aacme%2FENG-11:", /artifact_ref=linear%3Aacme%2FENG-11 /.test(section ?? ""));
+const ctx = { provider: "linear", scope: "acme/ENG" };
+attempt("b.validateVerifyUsage(ref ENG-11, linear acme/ENG)", () => validateVerifyUsage(["Spec body\n\n" + section], "ENG-11", ["verify-42"], ctx));
+attempt("b.control validateVerifyUsage(ref ENG-12) [must THROW]", () => validateVerifyUsage(["Spec body\n\n" + section], "ENG-12", ["verify-42"], ctx));
+attempt("b.control validateVerifyUsage(scope other/ENG) [must THROW]", () => validateVerifyUsage(["Spec body\n\n" + section], "ENG-11", ["verify-42"], { provider: "linear", scope: "other/ENG" }));
+
+console.log("=== (c) github ref unchanged ===");
+const g = entry("github:CodySwannGT/lisa#4699");
+const tok = attempt("c.renderLisaUsageEntryToken", () => renderLisaUsageEntryToken(g)) as string;
+console.log("c.primary token:", tok?.split(" <!-- lisa:usage-entry-measured")[0]);
+const gsec = attempt("c.renderLisaUsageSection", () => renderLisaUsageSection({ entries: [g], rollup: createLisaUsageRollup([g]) })) as string;
+attempt("c.validateVerifyUsage(github ctx)", () => validateVerifyUsage(["Spec\n\n" + gsec], "CodySwannGT/lisa#4699", ["verify-42"], { provider: "github", scope: "CodySwannGT/lisa" }));
+attempt("c.upsertLisaUsageSection", () => upsertLisaUsageSection("# Doc\n", { entries: [g] }));
+
+console.log("=== (d) lowercase key / whitespace workspace ===");
+for (const ref of ["linear:acme/eng-11", "linear:acme /ENG-11"]) {
+  const d = entry(ref);
+  attempt(`d[${ref}].renderLisaUsageEntryToken`, () => renderLisaUsageEntryToken(d));
+  attempt(`d[${ref}].renderLisaUsageSection`, () => renderLisaUsageSection({ entries: [d], rollup: createLisaUsageRollup([d]) }));
+  attempt(`d[${ref}].upsertLisaUsageSection`, () => upsertLisaUsageSection("# Doc\n", { entries: [d] }));
+}
+
+console.log("=== (e) repair: short-form stored row replaced by qualified upsert ===");
+// The legacy short-form row is written by the PRE-FIX writer (commit 66abd80b9a), as a real stored row would have been.
+const PRE = process.env.PRE ?? "/Users/codysai/.claude/jobs/dea13552/tmp/pre";
+const preUa = await import(`${PRE}/src/utils/usage-accounting.ts`);
+const legacyDoc = preUa.upsertLisaUsageSection("# Spec\n", { entries: [entry("linear:ENG-11")] }) as string;
+console.log("e.legacy doc stores linear%3AENG-11:", /artifact_ref=linear%3AENG-11 /.test(legacyDoc));
+attempt("e.before-repair validateVerifyUsage [must THROW]", () => validateVerifyUsage([legacyDoc], "ENG-11", ["verify-42"], ctx));
+const repaired = attempt("e.upsertLisaUsageSection(legacyDoc, qualified same entry_id)", () => upsertLisaUsageSection(legacyDoc, { entries: [q] })) as string;
+console.log("e.repaired doc: short-form row remains:", /artifact_ref=linear%3AENG-11 /.test(repaired ?? ""), "| qualified row present:", /artifact_ref=linear%3Aacme%2FENG-11 /.test(repaired ?? ""), "| verify-42 primary tokens:", (repaired ?? "").match(/<!-- lisa:usage-entry entry_id=verify-42 /g)?.length ?? 0);
+attempt("e.after-repair validateVerifyUsage(ENG-11, linear acme/ENG)", () => validateVerifyUsage([repaired], "ENG-11", ["verify-42"], ctx));

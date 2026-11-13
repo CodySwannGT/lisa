@@ -1,0 +1,38 @@
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4699-linear-short-ref
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses the short linear:<KEY-N> form with an operator-readable message 1ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses a linear ref with an empty workspace 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses a linear ref with no key 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses a linear ref with a key without a number 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses a linear ref with a key that is not KEY-N 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses a linear ref with an extra path segment 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses a linear ref with a key starting with a digit 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses a linear ref with nothing after the prefix 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses a linear ref with a lowercase key 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses a linear ref with a lowercase key with underscores 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses a linear ref with whitespace in the workspace 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > accepts linear:acme/ENG-11 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > accepts linear:acme-labs/ENG-7 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > accepts github:acme/code#42 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > accepts github:issue:869 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > accepts https://github.com/acme/code/issues/42 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > accepts ENG-11 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > accepts notion:page-abc 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > accepts markdown:docs/plan.md 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > usage writer refuses a short Linear artifact_ref (#4699) > renderLisaUsageEntryToken refuses the short form 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > usage writer refuses a short Linear artifact_ref (#4699) > renderLisaUsageEntryToken renders the qualified form unchanged 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > usage writer refuses a short Linear artifact_ref (#4699) > renderLisaUsageSection refuses the short form 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > usage writer refuses a short Linear artifact_ref (#4699) > upsertLisaUsageSection refuses a new short-form entry 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > usage writer refuses a short Linear artifact_ref (#4699) > leaves github refs unaffected 1ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > usage writer refuses a short Linear artifact_ref (#4699) > still rewrites a document that already carries a legacy short-form entry 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > writer and completion-proof reader agree on the Linear grammar (#4699) > repairs a stored short-form Verify row by upserting the qualified entry 1ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > writer and completion-proof reader agree on the Linear grammar (#4699) > a Verify entry written with the qualified ref passes validateVerifyUsage 0ms
+ ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > writer and completion-proof reader agree on the Linear grammar (#4699) > the reader refuses the short form the writer now refuses 0ms
+
+ Test Files  1 passed (1)
+      Tests  28 passed (28)
+   Start at  04:30:07
+   Duration  330ms (transform 95ms, setup 119ms, import 41ms, tests 7ms, environment 0ms)
+
