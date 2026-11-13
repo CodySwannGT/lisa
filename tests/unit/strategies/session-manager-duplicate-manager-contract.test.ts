@@ -145,7 +145,11 @@ describe("status usage text", () => {
   it("documents the cycle subcommand and manager.otherCyclers", () => {
     const usage = flat(USAGE);
     expect(usage).toContain("cycle Records that this session ran a cycle now");
-    expect(usage).toContain("else pid:<parent pid>");
+    expect(usage).toContain("pid:<parent pid> outside tmux");
+    expect(usage).toContain(
+      "tmux-unknown:pid:<parent pid> when tmux cannot name it"
+    );
+    expect(usage).toContain("leaving out tmux-unknown entries");
     expect(usage).toContain("Prunes entries older than twice the interval");
     expect(usage).toContain(
       "manager.otherCyclers lists, newest first, every cycle recorded within twice the interval by a session other than tmux:<manager name>"

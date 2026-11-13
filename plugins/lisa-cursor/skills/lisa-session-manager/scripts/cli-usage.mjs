@@ -59,7 +59,8 @@ Workers and capacity
   cycle
       Records that this session ran a cycle now: cyclers[<by>] = <at> in
       the ledger, by tmux:<session> when tmux names the caller's session,
-      else pid:<parent pid>. Prunes entries older than twice the interval.
+      pid:<parent pid> outside tmux, tmux-unknown:pid:<parent pid> when tmux
+      cannot name it. Prunes entries older than twice the interval.
       Run at the start of every cycle. stdout {by,at}.
   status
       stdout {manager:{name,running,self,otherCyclers:[{by,at}]},notify,
@@ -71,8 +72,9 @@ Workers and capacity
       tmux cannot say which session the caller is in or $TMUX_PANE is not
       a pane id.
       manager.otherCyclers lists, newest first, every cycle recorded within
-      twice the interval by a session other than tmux:<manager name>;
-      empty when only the manager cycles. notify is the configured
+      twice the interval by a session other than tmux:<manager name>,
+      leaving out tmux-unknown entries; empty when only the manager
+      cycles. notify is the configured
       channel: "telegram" or "none". pendingQuestions lists every item
       waiting on a human, oldest first; answerCommand is the answer line to
       run at this machine.

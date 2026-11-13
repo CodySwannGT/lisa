@@ -11,7 +11,8 @@
  * tmux session, so the manager's cycle can warn too.
  *
  * Identity is `tmux:<session name>` when tmux names the caller's session
- * (the same probe `manager.self` uses), else `pid:<parent pid>`. Nothing from
+ * (the same probe `manager.self` uses), `pid:<parent pid>` outside tmux, and
+ * `tmux-unknown:pid:<parent pid>` when that probe fails inside tmux. Nothing from
  * the environment and no credential is ever recorded. "Recent" is within
  * twice `sessionManager.interval`; older entries are pruned on every write so
  * the map stays small.
@@ -42,17 +43,23 @@ export function callerSessionName(ctx) {
   return current === "" ? null : current;
 }
 
+/** Prefix for an in-tmux cycle whose session tmux could not name. */
+const UNRESOLVED_PREFIX = "tmux-unknown:";
+
 /**
  * The identity a cycle records: `tmux:<session>` when tmux names the
- * caller's session, `pid:<parent pid>` otherwise.
+ * caller's session, `pid:<parent pid>` outside tmux, and
+ * `tmux-unknown:pid:<parent pid>` inside tmux when the probe fails. The last
+ * may be the manager itself on a transient probe failure, so `otherCyclers`
+ * never counts it as another session.
  * @param {{ env: Record<string, string | undefined> }} ctx - CLI context
  * @returns {string} Identity
  */
 function cyclerIdentity(ctx) {
   const session = callerSessionName(ctx);
-  return typeof session === "string"
-    ? `tmux:${session}`
-    : `pid:${process.ppid}`;
+  if (typeof session === "string") return `tmux:${session}`;
+  const pid = `pid:${process.ppid}`;
+  return session === null ? `${UNRESOLVED_PREFIX}${pid}` : pid;
 }
 
 /**
@@ -83,7 +90,8 @@ function recentEntries(cyclers, nowMs, window) {
 
 /**
  * Every recent cycler that is not the manager's own tmux session, newest
- * first, for `status` `manager.otherCyclers`.
+ * first, for `status` `manager.otherCyclers`. An unresolved in-tmux cycle is
+ * left out: it may be the manager's own cycle on a failed probe.
  * @param {{ cyclers?: Record<string, string> }} ledger - Ledger
  * @param {{ name: string, interval?: string }} config - sessionManager block
  * @param {Date} now - Current time
@@ -92,7 +100,7 @@ function recentEntries(cyclers, nowMs, window) {
 export function otherCyclers(ledger, config, now) {
   const self = `tmux:${config.name}`;
   return recentEntries(ledger.cyclers, now.getTime(), windowMs(config))
-    .filter(([by]) => by !== self)
+    .filter(([by]) => by !== self && !by.startsWith(UNRESOLVED_PREFIX))
     .map(([by, at]) => ({ by, at }))
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 }

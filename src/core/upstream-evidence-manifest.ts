@@ -1723,7 +1723,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "a31bd23b7716586f7a00a99860e2c3029307c0929675adfd6f185694fdccae85",
+      "caf71382e565313d7cdf27acacce97f2d37fd365032ee923037bd1eff661f2f3",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "ab45d993c25566a5a6ad737c0c77414edeaf1fce2ed32de178e497dc66fb7875",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1731,7 +1731,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
       "8108924a69f53c877334a7e8118d7a3fb30ec652e1668834cc2a2e43538bb984",
     "plugins/src/base/skills/lisa-session-manager/scripts/cyclers.mjs":
-      "ea5a848f2ec884fba8f506c1ade8aa4fba13c3ef706026b8e712f79b500c54b5",
+      "b2cc3c6eb940d8a880db179390de22c58df1131f5876b606a12ed694d9b6e18d",
     "plugins/src/base/skills/lisa-session-manager/scripts/escalation-overruled.mjs":
       "42dc128249005547c2ebe405194e8c5d3798354e32b00697b8c45c1693cc65c4",
     "plugins/src/base/skills/lisa-session-manager/scripts/first-prompt.mjs":

@@ -99,13 +99,13 @@ describe("cycle records who ran it", () => {
     expect(Object.keys(cyclersOf(sandbox))).toEqual([result.json.by]);
   });
 
-  it("falls back to the parent process id when tmux cannot name the session", () => {
+  it("marks the identity unresolved when tmux cannot name the session", () => {
     const sandbox = makeSandbox();
     const result = runCli(sandbox, ["cycle"], {
       env: { ...OUTSIDE, TMUX: TMUX_ENV, TMUX_PANE: PANE },
     });
     expect(result.status).toBe(0);
-    expect(result.json.by).toMatch(/^pid:\d+$/);
+    expect(result.json.by).toMatch(/^tmux-unknown:pid:\d+$/);
   });
 
   it("records no environment value or credential", () => {
@@ -149,6 +149,16 @@ describe("status manager.otherCyclers", () => {
       { by: "pid:777", at: newer },
       { by: "tmux:operator-shell", at: older },
     ]);
+  });
+
+  it("leaves out an in-tmux cycle whose session tmux could not name", () => {
+    const sandbox = makeSandbox();
+    seedCyclers(sandbox, {
+      [`tmux:${MANAGER}`]: ago(1),
+      "tmux-unknown:pid:4242": ago(2),
+    });
+    const result = runCli(sandbox, ["status"], { env: IN_MANAGER });
+    expect(result.json.manager).toMatchObject({ self: true, otherCyclers: [] });
   });
 
   it("is empty when only the manager cycles", () => {
