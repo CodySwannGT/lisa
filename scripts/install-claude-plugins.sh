@@ -9,7 +9,10 @@ PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 # Older host postinstall commands are also handled by the CLI bootstrap guard.
 if [[ "${npm_lifecycle_event:-}" = "postinstall" ||
       ( -z "${npm_lifecycle_event:-}" && "${npm_config_user_agent:-}" = bun/* ) ]]; then
-  echo 'lisa: installation leaves unrelated project templates unchanged. Run `lisa apply .` to apply updates, or `lisa doctor` to check freshness.'
+  # Say plainly that no Claude Code plugin was registered (#4504): install is
+  # hands-off by design (#4135), so a fresh clone has no Lisa commands until
+  # an explicit `lisa apply .` registers them for this folder.
+  echo 'lisa: installation leaves unrelated project templates unchanged, and Claude Code plugins are not registered by dependency install. Run `lisa apply .` in this project to register them and apply updates, or `lisa doctor` to check freshness.'
   exit 0
 fi
 

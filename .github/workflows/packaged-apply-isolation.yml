@@ -50,6 +50,9 @@ jobs:
           name: packaged-apply-isolation
           path: |
             ${{ runner.temp }}/lisa-packaged-proof/summary.json
+            ${{ runner.temp }}/lisa-packaged-proof/**/native-proof.json
+            ${{ runner.temp }}/lisa-packaged-proof/**/failure.json
+            ${{ runner.temp }}/lisa-packaged-proof/**/container.stdout.log
             ${{ runner.temp }}/lisa-published-reference/identity.json
           if-no-files-found: error
           retention-days: 7

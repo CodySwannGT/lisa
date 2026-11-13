@@ -48,6 +48,11 @@ const PLUGIN_SYNC_MARKER_FILE = ".lisa-plugins-synced";
 const FAKE_LISA_VERSION = "9.9.9";
 const SENTRY_PLUGIN = "sentry@claude-plugins-official";
 const SETTINGS_FILE_NAME = "settings.json";
+/** Plain-English pointer an operator sees when install registers no plugins (#4504). */
+const PLUGIN_REGISTRATION_NOTICE =
+  "Claude Code plugins are not registered by dependency install";
+const PLUGIN_REGISTRATION_REMEDY =
+  "Run `lisa apply .` in this project to register them";
 
 let tempRoots: string[] = [];
 
@@ -414,6 +419,8 @@ describe("install-claude-plugins self postinstall path", () => {
         "installation leaves unrelated project templates unchanged"
       );
       expect(result.stdout).toContain("lisa apply");
+      expect(result.stdout).toContain(PLUGIN_REGISTRATION_NOTICE);
+      expect(result.stdout).toContain(PLUGIN_REGISTRATION_REMEDY);
     }
   );
 
@@ -463,6 +470,8 @@ describe("install-claude-plugins self postinstall path", () => {
         originalPackage
       );
       expect(result.stdout).toContain("lisa apply");
+      expect(result.stdout).toContain(PLUGIN_REGISTRATION_NOTICE);
+      expect(result.stdout).toContain(PLUGIN_REGISTRATION_REMEDY);
     }
   );
 

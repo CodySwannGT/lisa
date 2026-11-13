@@ -1,0 +1,15 @@
+### doctor, harness=claude, fake list mode=sibling  $ node dist/index.js doctor .
+exit=0
+WARN Claude Code plugins registered here?: Plugin drift: lisa@lisa. Run `lisa apply .` in this project to register Lisa's Claude Code plugins for this folder.
+claude calls: claude plugin list --json (cwd=/Users/codysai/.claude/jobs/c4baefa1/tmp/verify-4504/health/proj);
+### doctor, harness=claude, fake list mode=here  $ node dist/index.js doctor .
+exit=0
+OK Claude Code plugins registered here?: Lisa plugins are enabled, installed, and version-current.
+claude calls: claude plugin list --json (cwd=/Users/codysai/.claude/jobs/c4baefa1/tmp/verify-4504/health/proj);
+### doctor, harness=claude, NO claude on PATH (CI-like)
+exit=0
+OK Claude Code plugins registered here?: Claude Code CLI unavailable; plugin registration not checked
+### doctor, harness=codex, sibling-only fake list on PATH
+exit=0
+OK Claude Code plugins registered here?: Claude Code is not in this project's harness; not checked
+claude calls: 

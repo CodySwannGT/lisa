@@ -1,11 +1,12 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
-import { AGENTS_MD_FILENAME } from "../codex/agents-md-installer.js";
-import { CLAUDE_MD_FILENAME } from "../claude/claude-md-installer.js";
-import { migrateInstructionFiles } from "../core/instruction-files-migration.js";
 import { probeKaneReadiness } from "../core/kane-cli.js";
 import { probeSonarReadiness } from "../core/sonar-integration.js";
+import {
+  readInstalledClaudePlugins,
+  type InstalledPluginReader,
+} from "../health/plugin-inspection.js";
 import {
   checkApplyFreshness,
   checkYamlRuntime,
@@ -30,6 +31,8 @@ import { checkReusableWorkflowRefs } from "./doctor-reusable-workflow-refs.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js";
 import { checkApplyFailure } from "./doctor-apply-failure.js";
+import { checkInstructionFiles } from "./doctor-instruction-files.js";
+import { checkPluginRegistration } from "./doctor-plugin-registration.js";
 import { checkApplyDeletions } from "./doctor-apply-deletions.js";
 import { checkSeededArtifacts } from "./doctor-seeded-artifacts.js";
 import { checkOverrideFloorConflicts } from "./doctor-override-floor-conflicts.js";
@@ -56,7 +59,6 @@ type DoctorStatus = "ok" | "warn" | "fail";
 const VERSION_CHECK_NAME = "Lisa version current?";
 const STARTER_HEALTH_NAME = "Starter health";
 const PROJECT_CONFIG_CHECK_NAME = "Project Lisa config present?";
-const INSTRUCTION_FILES_CHECK_NAME = "Instruction files canonical?";
 
 /** One Lisa doctor check result. */
 export interface DoctorCheck {
@@ -106,6 +108,8 @@ export interface DoctorDependencies {
   probeKaneReadiness: typeof probeKaneReadiness;
   probeSonarReadiness: typeof probeSonarReadiness;
   probeCodeRabbitReadiness: typeof probeCodeRabbitReadiness;
+  /** Reads plugins registered for the project (`claude plugin list --json`). */
+  readInstalledClaudePlugins: InstalledPluginReader;
 }
 
 /**
@@ -129,6 +133,7 @@ const DEFAULT_DEPENDENCIES: DoctorDependencies = {
   probeKaneReadiness,
   probeSonarReadiness,
   probeCodeRabbitReadiness,
+  readInstalledClaudePlugins,
 };
 
 /**
@@ -272,60 +277,6 @@ async function checkStarterHealth(
 }
 
 /**
- * Determine whether a path looks like an agent-governed project, i.e. one that
- * should carry the canonical `AGENTS.md` / `CLAUDE.md` pointer pattern. True
- * when a Lisa config or either instruction file already exists — this keeps the
- * mutating migration from touching unrelated, non-Lisa directories.
- * @param targetPath - Project path to inspect
- * @returns True when the path is an agent/Lisa project
- */
-function looksLikeAgentProject(targetPath: string): boolean {
-  return [
-    ".lisa.config.json",
-    ".lisa.config.local.json",
-    AGENTS_MD_FILENAME,
-    CLAUDE_MD_FILENAME,
-  ].some(fileName => existsSync(path.join(targetPath, fileName)));
-}
-
-/**
- * Ensure the project's agent instruction files follow Lisa's canonical pattern
- * (canonical `AGENTS.md` + a thin `CLAUDE.md` that `@AGENTS.md`-imports it) and
- * carry no legacy agy baked-rules block. This check is mutating: it repairs
- * existing projects in place, non-destructively (host content is preserved).
- * @param targetPath - Project path to inspect and repair
- * @returns Doctor check result describing what, if anything, was changed
- */
-async function checkInstructionFiles(targetPath: string): Promise<DoctorCheck> {
-  if (!looksLikeAgentProject(targetPath)) {
-    return {
-      name: INSTRUCTION_FILES_CHECK_NAME,
-      status: "ok",
-      detail: "Not a Lisa/agent project; skipped",
-    };
-  }
-
-  try {
-    const result = await migrateInstructionFiles(targetPath);
-    return {
-      name: INSTRUCTION_FILES_CHECK_NAME,
-      status: "ok",
-      detail: result.changed
-        ? `Repaired: ${result.actions.join("; ")}`
-        : "Already canonical (AGENTS.md source of truth, CLAUDE.md imports it)",
-    };
-  } catch (error) {
-    return {
-      name: INSTRUCTION_FILES_CHECK_NAME,
-      status: "fail",
-      detail: `Could not reconcile instruction files: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    };
-  }
-}
-
-/**
  * Run Lisa doctor checks.
  * @param targetPath - Optional project path
  * @param options - Parsed command options
@@ -428,6 +379,14 @@ export async function runDoctor(
     // downwards is refused, and until now nothing said so in advance
     // (CodySwannGT/lisa#2754).
     await checkOverrideFloorConflicts(resolvedTarget),
+    // Dependency install never registers Claude Code plugins, and its notice
+    // sends the operator here — so say whether this folder's @lisa plugins are
+    // registered, with health's own finding and remedy (CodySwannGT/lisa#4504).
+    // After the apply-failure group so that group's adjacency comments hold.
+    await checkPluginRegistration(
+      resolvedTarget,
+      deps.readInstalledClaudePlugins
+    ),
     ...(await checkProjectTypeAndHooks(resolvedTarget)),
     await checkInstructionFiles(resolvedTarget),
     // Runs AFTER the instruction-files check because that check performs the

@@ -22,9 +22,13 @@ export const APPLY_FAILURE_MARKER = join(
  * @returns {void}
  */
 export function runPostinstall(_cwd = process.cwd(), _env = process.env) {
+  // Name the missing plugin registration outright (#4504): nothing here runs
+  // `claude plugin install`, so a fresh clone has no Lisa commands until the
+  // operator runs `lisa apply .` in it.
   console.log(
-    "lisa: installation leaves unrelated project templates unchanged. Run `lisa apply .` " +
-      "to apply updates, or `lisa doctor` to check freshness."
+    "lisa: installation leaves unrelated project templates unchanged, and Claude Code " +
+      "plugins are not registered by dependency install. Run `lisa apply .` in this " +
+      "project to register them and apply updates, or `lisa doctor` to check freshness."
   );
 }
 
