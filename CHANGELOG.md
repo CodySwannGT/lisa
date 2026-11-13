@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.8](https://github.com/CodySwannGT/lisa/compare/v4.107.7...v4.107.8) (2026-11-13)
+
+
+### Bug Fixes
+
+* **test-run:** settle DISARMED wait on close so an ack-then-exit is not a false failure ([59dd412](https://github.com/CodySwannGT/lisa/commit/59dd412de44eda240ff449f7c692e1670d214a02)), closes [CodySwannGT/lisa#4824](https://github.com/CodySwannGT/lisa/issues/4824) [CodySwannGT/lisa#4824](https://github.com/CodySwannGT/lisa/issues/4824)
+
 ### [4.107.7](https://github.com/CodySwannGT/lisa/compare/v4.107.6...v4.107.7) (2026-11-13)
 
 
