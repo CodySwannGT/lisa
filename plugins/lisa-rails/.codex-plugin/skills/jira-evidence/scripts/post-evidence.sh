@@ -216,7 +216,7 @@ while IFS= read -r LINK; do
   LINK_TAG="${LINK_TAG%%/*}"
   [[ "$LINK_TAG" != "$RELEASE_TAG" ]] || continue
   [[ "${LINK##*/}" == "pr-${PR_NUMBER}-"* ]] || continue
-  echo "ERROR: $COMMENT_MD links $LINK in release '$LINK_TAG', but this run uploads to release '$RELEASE_TAG'. Regenerate the templates with LISA_EVIDENCE_RELEASE=$RELEASE_TAG and re-run this script with the same LISA_EVIDENCE_RELEASE=$RELEASE_TAG." >&2
+  echo "ERROR: $COMMENT_MD links $LINK in release '$LINK_TAG', but this run uploads to release '$RELEASE_TAG'. Regenerate the templates with LISA_EVIDENCE_RELEASE=$RELEASE_TAG and re-run this script with the same LISA_EVIDENCE_RELEASE=$RELEASE_TAG. If this link was written by hand, remove it or re-upload the asset to '$RELEASE_TAG'." >&2
   CROSS_RELEASE_LINKS=1
 done < <(comment_links)
 if [[ $CROSS_RELEASE_LINKS -ne 0 ]]; then
@@ -274,7 +274,9 @@ echo "  ✓ GitHub release assets uploaded"
 THIS_RUN_ASSETS=$(printf '%s\n' "${UPLOADED_ASSETS[@]}")
 BAD_LINKS=0
 while IFS= read -r LINK; do
-  [[ "$LINK" == *"releases/download/${RELEASE_TAG}/"* ]] || continue
+  # Only this repository's release counts: another repository's release of the
+  # same name holds assets this run never uploaded.
+  [[ "$LINK" == *"${RELEASE_PREFIX}${RELEASE_TAG}/"* ]] || continue
   LINK_NAME="${LINK##*/}"
   if [[ "$LINK_NAME" != "pr-${PR_NUMBER}-"* ]]; then
     echo "ERROR: $COMMENT_MD links $LINK, which is not scoped to PR #$PR_NUMBER (expected pr-${PR_NUMBER}-<file>)" >&2
