@@ -32,6 +32,7 @@ const SKILL_PATHS = [
   "plugins/lisa-cursor/skills/lisa-learnings-audit/SKILL.md",
   "plugins/lisa-agy/skills/lisa-learnings-audit/SKILL.md",
   "plugins/lisa-copilot/skills/lisa-learnings-audit/SKILL.md",
+  "plugins/lisa-devin/skills/lisa-learnings-audit/SKILL.md",
 ] as const;
 
 const COMMAND_PATHS = [
@@ -132,6 +133,10 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     const template = extractBatchTemplate(skill);
 
     expect(template).toContain("confirmLearningEntry");
+    // RETIRE names its executable tool (CodySwannGT/lisa#4536): a deletion
+    // with no supported writer behind it is a hand-edit of the ledger.
+    expect(template).toContain("retireLearningEntry");
+    expect(template).toContain("bunx @codyswann/lisa learnings-retire");
     expect(template).toMatch(/proof-citing deletion PR/i);
     expect(template).toMatch(/reverse-atomicity/i);
     expect(template).toMatch(/never hand-edit the ledger/i);

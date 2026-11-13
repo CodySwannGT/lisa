@@ -274,6 +274,13 @@ implementing run receives its instructions inside the work item:
 - Implement each surviving RETIRE row as a proof-citing deletion PR per the
   `promotion-contract` rule's reverse-atomicity clause: the deleting PR must
   cite the row's mechanical owner or staleness proof.
+- Perform each RETIRE deletion via `retireLearningEntry` from
+  `@codyswann/lisa/learnings`, or
+  `bunx @codyswann/lisa learnings-retire --id <id> --fingerprint <fingerprint> --reason "<proof>"`
+  — never hand-edit the ledger. It removes only the entry whose fingerprint
+  still matches, works on an over-cap ledger, and on a `stale` or `not-found`
+  result writes nothing (exit 1): re-read the ledger and re-verify the row
+  rather than forcing the deletion.
 - Struck/deleted rows are human rejections — skip them; they are not re-filed
   without new postdating evidence.
 <!-- gardener-batch-ticket-template:end -->
