@@ -169,6 +169,7 @@ const LEDGER_SPECS = {
   },
   "validation-failed": { options: { "updated-at": text }, positionals: 1 },
   "validation-cleared": { options: {}, positionals: 1 },
+  "clear-setup-gap": { options: {}, positionals: 1 },
   control: {
     options: { paused: text, "max-workers": text, me: text },
     positionals: 0,

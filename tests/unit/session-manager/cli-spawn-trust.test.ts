@@ -5,7 +5,8 @@
  * Claude Code 2.1.296 refuses `claude --bg` there with "Workspace not trusted.
  * Run `claude` in <dir> once and accept the trust prompt, then retry." on
  * stderr and exit 1. That is a one-time setup step, not a worker failure, so
- * the CLI exits 2 (setup) with the exact action, and records nothing.
+ * the CLI exits 2 (setup) with the exact action, and records no item — only
+ * the repo's setup gap, so the next cycle stops dispatching there (lisa#4820).
  * @module tests/unit/session-manager/cli-spawn-trust
  */
 import path from "node:path";
@@ -33,7 +34,7 @@ const untrusted = (dir: string) =>
   `Workspace not trusted. Run \`claude\` in ${dir} once and accept the trust prompt, then retry.\n`;
 
 describe("spawn in an untrusted workspace", () => {
-  it("exits 2 naming the dir and the one-time trust step, recording nothing", () => {
+  it("exits 2 naming the dir and the one-time trust step, recording only the repo's setup gap", () => {
     const sandbox = makeSandbox();
     const result = runCli(sandbox, ["spawn", REF, ...MEM], {
       env: { STUB_BG_EXIT: "1", STUB_BG_STDERR: untrusted(sandbox.root) },
@@ -42,7 +43,12 @@ describe("spawn in an untrusted workspace", () => {
     expect(result.stderr).toContain(sandbox.root);
     expect(result.stderr).toMatch(/run `claude` once in/i);
     expect(result.stderr).toMatch(/accept the trust prompt/i);
-    expect(() => readLedgerFile(sandbox)).toThrow();
+    const ledger = readLedgerFile(sandbox);
+    expect(ledger.items).toEqual({});
+    expect(ledger.control.setupGaps["."]).toMatchObject({
+      kind: "untrusted-workspace",
+      detail: sandbox.root,
+    });
   });
 
   it("names the routed child repo dir, where the worker would start", () => {

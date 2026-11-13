@@ -14,6 +14,11 @@
  * (open leaves in no lifecycle role) as `backlogOrdered`, under the same
  * paging rule. The manager walks it only after the whole Ready queue.
  *
+ * Both tiers leave out items routed to a repo with a recorded setup gap
+ * (#4820) and list every gap once as `setupGaps`, with the command that
+ * clears it, so the manager reports it in plain language instead of
+ * re-dispatching there every cycle.
+ *
  * The GitHub fetches live in queue-github.mjs and JSON input in
  * json-input.mjs (re-exported here), to keep each module under the line
  * budget.
@@ -35,6 +40,7 @@ import {
 } from "./cli-runtime.mjs";
 import { readJsonFile } from "./json-input.mjs";
 import { readLedger } from "./ledger.mjs";
+import { blockingGapRepo, listSetupGaps } from "./ledger-setup-gaps.mjs";
 import { fetchGithubBacklog, fetchGithubQueue } from "./queue-github.mjs";
 
 export { parseJson, readJsonFile } from "./json-input.mjs";
@@ -125,6 +131,32 @@ function withoutPending(order, waiting) {
 }
 
 /**
+ * Move items routed to a repo with a recorded setup gap out of `ordered` into
+ * `excluded` with reason `setup-gap:<repo>` (#4820). Retrying cannot fix a
+ * setup gap, so dispatching there would only fail the same way every cycle.
+ * @param {{ordered: {ref: string, repoLabels?: string[]}[], excluded: {ref: string, reason: string}[]}} order - Ordered tier
+ * @param {Record<string, object>} gaps - `control.setupGaps`
+ * @param {boolean} multiRepo - Whether `sessionManager.repos` is set
+ * @returns {{ordered: {ref: string}[], excluded: {ref: string, reason: string}[]}} Filtered tier
+ */
+function withoutSetupGaps(order, gaps, multiRepo) {
+  const blocked = order.ordered.map(item => ({
+    item,
+    repo: blockingGapRepo(item, gaps, multiRepo),
+  }));
+  return {
+    ...order,
+    ordered: blocked.filter(row => row.repo === null).map(row => row.item),
+    excluded: [
+      ...order.excluded,
+      ...blocked
+        .filter(row => row.repo !== null)
+        .map(row => ({ ref: row.item.ref, reason: `setup-gap:${row.repo}` })),
+    ],
+  };
+}
+
+/**
  * `queue --tracker <github|jira|linear>`: the Ready queue, the operator's
  * items first (`sessionManager.operatorIds`), then mine, then unassigned.
  * @param {object} ctx - CLI context
@@ -132,7 +164,7 @@ function withoutPending(order, waiting) {
  * ordered the same way and always dispatched after every Ready item.
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>}
- *   `{tracker,me,operators,total,pages,ordered,excluded,backlogPickup[,
+ *   `{tracker,me,operators,total,pages,ordered,excluded,setupGaps,backlogPickup[,
  *   backlogTotal,backlogPages,backlogOrdered,backlogExcluded]}`
  */
 export async function queue(ctx) {
@@ -160,7 +192,13 @@ export async function queue(ctx) {
     humanNeededLabel: humanNeededLabel(project, tracker),
   };
   const waiting = pendingRefs(ledger);
-  const order = withoutPending(orderReadyQueue(items, policy), waiting);
+  const gaps = ledger.control.setupGaps;
+  const multiRepo = Boolean(config?.repos);
+  const order = withoutSetupGaps(
+    withoutPending(orderReadyQueue(items, policy), waiting),
+    gaps,
+    multiRepo
+  );
   const json = {
     tracker,
     me,
@@ -168,18 +206,23 @@ export async function queue(ctx) {
     total: items.length,
     pages,
     ...order,
+    setupGaps: listSetupGaps(ledger),
     backlogPickup,
   };
   if (!backlog) return { json };
   // An item both Ready and in the backlog fetch is Ready work; never twice.
   const readyRefs = new Set(items.map(item => item.ref));
   const backlogItems = backlog.items.filter(item => !readyRefs.has(item.ref));
-  const tier = withoutPending(
-    orderBacklogQueue(backlogItems, {
-      ...policy,
-      validationFailures: ledger.validationFailures,
-    }),
-    waiting
+  const tier = withoutSetupGaps(
+    withoutPending(
+      orderBacklogQueue(backlogItems, {
+        ...policy,
+        validationFailures: ledger.validationFailures,
+      }),
+      waiting
+    ),
+    gaps,
+    multiRepo
   );
   return {
     json: {

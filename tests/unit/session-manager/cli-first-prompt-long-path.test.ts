@@ -29,6 +29,7 @@ import {
 afterEach(removeSandboxes);
 
 const REF = "DEMO-12";
+const IMPLEMENT = "/lisa:implement";
 const WORKER = "wk-DEMO-12-1023-1417";
 /** The stub's `claude --bg` prints short id 1a2b3c4d; this is its full id. */
 const FULL_ID = "1a2b3c4d-0000-4000-8000-000000000001";
@@ -81,10 +82,17 @@ describe("first-prompt failure in a deep checkout", () => {
     const sandbox = longSandbox();
     const result = runCli(sandbox, SPAWN);
     expect(result.status).toBe(2);
-    expect(result.stderr).toContain("/lisa:implement");
+    expect(result.stderr).toContain(IMPLEMENT);
     expect(result.stderr).toContain(repoDir(sandbox));
     expect(result.stderr).toMatch(/no attempt was counted/i);
-    expect(() => readLedgerFile(sandbox)).toThrow();
+    const ledger = readLedgerFile(sandbox);
+    expect(ledger.items).toEqual({});
+    expect(Object.values(ledger.control.setupGaps)).toEqual([
+      expect.objectContaining({
+        kind: "unknown-command",
+        detail: IMPLEMENT,
+      }),
+    ]);
   });
 
   it("classify reports setup-gap", () => {
@@ -117,7 +125,7 @@ describe("first-prompt failure in a deep checkout", () => {
       expect.objectContaining({
         ref: REF,
         classification: "setup-gap",
-        setupGap: { kind: "unknown-command", detail: "/lisa:implement" },
+        setupGap: { kind: "unknown-command", detail: IMPLEMENT },
       }),
     ]);
   });

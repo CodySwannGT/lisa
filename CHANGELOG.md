@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.6](https://github.com/CodySwannGT/lisa/compare/v4.107.5...v4.107.6) (2026-11-13)
+
+
+### Bug Fixes
+
+* **session-manager:** keep classify going when a setup-gap write fails ([bf02f9e](https://github.com/CodySwannGT/lisa/commit/bf02f9eda36505c712def0f27d2b8f6b2992fc9a)), closes [CodySwannGT/lisa#4820](https://github.com/CodySwannGT/lisa/issues/4820) [CodySwannGT/lisa#4820](https://github.com/CodySwannGT/lisa/issues/4820)
+* **session-manager:** persist a per-repo setup gap so dispatch to that repo stops across cycles ([1b83a4e](https://github.com/CodySwannGT/lisa/commit/1b83a4ee89da263e8f523f9bf389b99bd2527016)), closes [CodySwannGT/lisa#4820](https://github.com/CodySwannGT/lisa/issues/4820) [CodySwannGT/lisa#4820](https://github.com/CodySwannGT/lisa/issues/4820)
+
+### [4.107.5](https://github.com/CodySwannGT/lisa/compare/v4.107.4...v4.107.5) (2026-11-13)
+
+
+### Bug Fixes
+
+* align template Node versions with .nvmrc and scope the managed-file guard to the host's stacks ([9654ce4](https://github.com/CodySwannGT/lisa/commit/9654ce40404f704aae6ed266299ea8ff14d34687)), closes [CodySwannGT/lisa#4511](https://github.com/CodySwannGT/lisa/issues/4511) [CodySwannGT/lisa#4511](https://github.com/CodySwannGT/lisa/issues/4511)
+
 ### [4.107.4](https://github.com/CodySwannGT/lisa/compare/v4.107.3...v4.107.4) (2026-11-13)
 
 
