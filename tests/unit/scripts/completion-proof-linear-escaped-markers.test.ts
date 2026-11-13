@@ -370,6 +370,28 @@ describe("inline code spans never claim evidence (#4689)", () => {
     ).toThrow(MALFORMED);
   });
 
+  it("closes a single-backtick span on a lone backtick, not inside a longer run", () => {
+    expect(localMarkers(`\`a\`\` ${PLAIN} \``)).toEqual([]);
+  });
+
+  it("does not close a double-backtick span on the start of a longer run", () => {
+    expect(localMarkers(`\`\` a \`\`\` ${PLAIN} \``)).toEqual(X);
+  });
+
+  it("resumes scanning after a closed span, so its closing run never reopens", () => {
+    expect(localMarkers(`\`a\` ${PLAIN} \`b\``)).toEqual(X);
+  });
+
+  it.each([
+    ["autolinks", `<https://x/\`> ${PLAIN} <https://y/\`>`],
+    ["raw HTML tags", `<span title='\`'>x</span> ${PLAIN} <b title='\`'>`],
+  ])(
+    "lets %s outrank code spans so a real marker is never dropped",
+    (_label, line) => {
+      expect(localMarkers(line)).toEqual(X);
+    }
+  );
+
   it("still reads the #4670 escaped top-level marker as the plain form", () => {
     expect(localMarkers(`Body\n${ESCAPED}`)).toEqual(X);
     expect(localMarkers(`Body\n${PLAIN}`)).toEqual(X);

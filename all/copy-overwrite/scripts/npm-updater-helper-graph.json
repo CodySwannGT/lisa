@@ -175,7 +175,7 @@
       "children": []
     },
     "lib/completion-proof-shape.mjs": {
-      "sha256": "72acaa6ae5b3206b717c4a893ff107134620d4a8fecb9f5fdb2d48f66067c483",
+      "sha256": "8f18374764896a09f4fac99f0a4dff0f54905d6e00dcfc7218f0286f6c2c4927",
       "staticImports": [
         "lib/completion-proof-errors.mjs",
         "lib/completion-proof-markdown.mjs",
