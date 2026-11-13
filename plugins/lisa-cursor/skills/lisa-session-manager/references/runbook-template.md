@@ -9,6 +9,9 @@ the project: edit the prose to match how you run it. The loop follows the
 
 Keeps Ready work moving on this machine: each Ready item gets its own fresh coding session, and the
 operator answers that session's questions, from their phone when the project has a Telegram bot.
+Each cycle it also sweeps items left claimed with no live worker (finishing, returning or
+re-dispatching them) and re-judges human holds: it lifts the ones an agent may decide and sends the
+operator one list of the rest, only when that list changes.
 
 ## Sources of truth
 

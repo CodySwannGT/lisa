@@ -208,6 +208,7 @@ describe("the skills use only real CLI subcommands and flags", () => {
       "queue",
       "route",
       "blocked-plan",
+      "orphan-plan",
       "record-cycle",
       "repo-dir",
       "validate",

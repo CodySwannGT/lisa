@@ -1707,13 +1707,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-answer-record.mjs":
       "cd195249f028231358071f541a0f64599b545f2c87d30118c92aebd44c0a8498",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
-      "ba34837cdf9b3dbfd51355f661558af86087eff476ecf183728fd9acac4b121a",
+      "03002b46c3b92a7efb6172f728a34b4c5e5f436bf7113079a0f4f84d50dea72d",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
       "de444688db2579750d2c312f854389d4019ec40a6ce59684026fa8fed7ff1aff",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs":
       "7478baf8cdb72029aa04d31f0951f262d086004e1dfc5ad3e422b3a2eea326c6",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs":
       "eef29221c8343f978c7189365e2e8941e98980e7c3a2e13dcc5703710f7bd090",
+    "plugins/src/base/skills/lisa-session-manager/scripts/cli-orphans.mjs":
+      "6b3877071ef088776fcb25fbc370dca0cc240a84fec925ae968b2bc28290da0f",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs":
       "cab60f2dfee7f33a8a5f16ec94cb1b2ab17cf384886ee5eb738fb015535d6567",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
@@ -4942,6 +4944,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -5496,6 +5499,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -6034,6 +6038,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -6504,6 +6509,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -8943,6 +8949,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -9662,6 +9669,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -10256,6 +10264,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -13474,6 +13483,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli-messages.test.ts": true,
     "tests/unit/session-manager/cli-notify-none.test.ts": true,
     "tests/unit/session-manager/cli-operator-id-kinds.test.ts": true,
+    "tests/unit/session-manager/cli-orphans.test.ts": true,
     "tests/unit/session-manager/cli-overruled.test.ts": true,
     "tests/unit/session-manager/cli-queue-backlog.test.ts": true,
     "tests/unit/session-manager/cli-queue-operators.test.ts": true,

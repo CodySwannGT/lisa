@@ -257,6 +257,10 @@ Per cycle
       control.setupGapsClearedAt, so classify never re-records the gap from
       a worker that started before the clear. stdout {repo,cleared}.
   ledger control [--paused true|false] [--max-workers <n>|none] [--me <id>|none]
+                 [--hold-digest <fingerprint>|none]
+      --hold-digest records the orphan-plan holds.digest.fingerprint the
+      operator was last sent (a sha256, else exit 2), so the same hold list
+      is sent once; orphan-plan reports holds.digest.changed against it.
   route [--reply-to <telegram message id>] [--owner <name>] STDIN: message
       stdout {kind:"answer",ref,body[,message]} | {kind:"command",name,...}
       | {kind:"invalid-command",reason} | {kind:"ambiguous",candidates}.
@@ -307,6 +311,29 @@ Per cycle
       wrongly-escalated, hold and release evidence, a draft
       Planning (filing) rule); comment is the marker to post afterwards.
       --max caps captures per cycle (default 3); the rest are deferred.
+  orphan-plan [--input <file>] [--max <n>] [--stale-hours <n>]
+                                                STDIN (without --input): JSON
+      {complete:true,items:[{ref,role,labels,body,comments,assignees,
+      updatedAt,pr}],holds:[{ref,labels,body,comments}]}. Plans the
+      "Orphans and holds" sweep; writes nothing. items are the claimed (and
+      review) role; pr is omitted when not looked up, null when none was
+      found, else {url,state:open|merged|closed}. holds carry the
+      human-needed label or a [lisa-human-gate] marker. Live refs (ledger
+      status running or question), me (ledger control.me), operatorIds,
+      trustedAuthorIds and the hold labels come from the ledger and config;
+      the same keys in the input are ignored. Skips live, foreign (assigned
+      to neither me nor an operator), fresh (updated within --stale-hours,
+      default 6) and undated items. stdout {doneReady:[{ref,prUrl,reason}],
+      return:[{ref,reason,comment}],redispatch:[{ref,prUrl,reason}],
+      parked:[{ref,reason,reasonOnItem[,comment]}],lookup:[{ref,reason}],
+      skipped:[{ref,reason}],holds:{lift:[{ref,reason,comments,actions,
+      decision}],keep:[{ref,reason}],digest:{fingerprint,text,changed}},
+      deferred:[{ref,bucket}]}. --max (default 10) caps the writes, spent in
+      order doneReady, return, redispatch, parked, holds.lift (a parked item
+      that already says why costs none; every kept hold is listed), and caps
+      lookup separately; the rest are deferred. Every comment starts with
+      [lisa-session-manager]. Exit 2 when complete is not true, the input
+      is not JSON, or a flag is bad.
   answer <ref>                                  STDIN: the answer
       Queues an operator's answer (source "cli") for the next cycle to
       deliver to the worker, or record on the item when the worker has
