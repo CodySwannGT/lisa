@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 279,
-  "$names": 2012,
+  "$modules": 283,
+  "$names": 2036,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -303,6 +303,7 @@
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": [
       "verifyAssignable",
       "verifyCurrentProvider",
+      "verifyCurrentRun",
       "verifyHistoricalProvider",
       "verifyRecoveryProvider",
       "verifyStaleOriginProvider"
@@ -619,6 +620,7 @@
       "UpdaterError",
       "inheritProvenanceFailure",
       "keys",
+      "operatorRefusal",
       "provenanceFailure",
       "publicFailure",
       "recordNativeFailure",
@@ -820,6 +822,35 @@
       "launcherContext",
       "literalArguments",
       "toolInvocation"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-jira.mjs": [
+      "JiraTracker"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-linear.mjs": [
+      "LinearTracker"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-wire.mjs": [
+      "adfCodeBlock",
+      "adfText",
+      "fence",
+      "jsonCall",
+      "lifecycleName",
+      "trackerCredentials",
+      "unfence",
+      "vocabularyRefusal",
+      "withinJiraLimit"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker.mjs": [
+      "FOLLOWUP_SENTENCE",
+      "createTracker",
+      "expectedWorkItem",
+      "githubTracker",
+      "proveTrackerProvider",
+      "refuseUnlessGithub",
+      "trackerFor",
+      "trackerOf",
+      "trustedHumanActorIds",
+      "verifySignedWorkItem"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs": [
       "assertRubyEnvironment",
@@ -1148,6 +1179,7 @@
       "githubFailureReason",
       "githubHierarchyArgs",
       "githubIssueViewArgs",
+      "jiraServerOrigin",
       "judgeLane",
       "labelNamesOf",
       "mergeOnlyRange",

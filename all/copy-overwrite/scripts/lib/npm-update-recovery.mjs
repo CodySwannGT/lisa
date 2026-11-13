@@ -21,6 +21,12 @@ import {
 } from "./github-attestation-recovery.mjs";
 import { persistCheckpoint } from "./npm-update-checkpoint.mjs";
 import { required, validateProposal } from "./npm-update-contract.mjs";
+import {
+  trackerOf,
+  refuseUnlessGithub,
+  verifySignedWorkItem,
+  proveTrackerProvider,
+} from "./npm-update-tracker.mjs";
 
 import {
   decodeCheckpoint,
@@ -172,11 +178,17 @@ export async function finalizeAuthorization({
   );
   const mode = readJson(join(output, "authorization.json")).mode;
   if (mode === "recovery") {
+    refuseUnlessGithub(config, "signed-origin recovery");
     verifyRenewal({ api, preview, paths, digest, proposal, issue, policy });
   } else {
     required(mode === "origin", "unknown authorization role");
     verifyDescriptorAttestation(api.policy, preview.descriptor, paths, digest);
-    verifyCurrentProvider(api.policy, preview.descriptor);
+    if (config.tracker === "github")
+      verifyCurrentProvider(api.policy, preview.descriptor);
+    else {
+      verifySignedWorkItem(config, allocation, preview);
+      await proveTrackerProvider(api, preview.descriptor);
+    }
     await persistCheckpoint(
       api,
       allocation.number,
@@ -192,7 +204,7 @@ export async function finalizeAuthorization({
     );
   }
   const checkpoint = locateCheckpoint(
-    (await api.issue(allocation.number)).comments,
+    (await trackerOf(api).issue(allocation.number)).comments,
     proposal,
     policy
   );

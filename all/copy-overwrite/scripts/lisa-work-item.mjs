@@ -2092,7 +2092,7 @@ function jiraStatusCategory(issue) {
  * @param {string} server Configured Jira server.
  * @returns {string} Canonical HTTPS origin.
  */
-function jiraServerOrigin(server) {
+export function jiraServerOrigin(server) {
   const invalid = () => {
     // Never echo the supplied value: userinfo may itself contain a credential.
     throw new TrackingError(

@@ -77,7 +77,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
-      "98dbe0326546a1d10e148ed9036d5696159dee38068beddff321f1b2d47fcdc7",
+      "bc4a6b0df674432de686099f323b9226634052ca05abffa45e2323faf95458d6",
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
       "aa97fbc52f58aba1cc93e105a9ee7a32a0ae184259c10ab55e23589b593207f9",
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs":
@@ -105,9 +105,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs":
       "08450444d7f03d5a0e560f023a4e30db74821209ea45df41959b46636f6191bd",
     "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs":
-      "de04b6972a507c6a7629c2b3d9aec993f62139234550c75d0d0245c4bacb4d71",
+      "8b467ad473794c5b9b979a2045bf0b41ba2e6b7f3ce0ed2001317ad3e01e569d",
     "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs":
-      "d383f76f31b4d65ff8e385e957410d594ac9381b12fbd82a76c572bd639fa80c",
+      "7f11baf96575f7bee95e10cf6233208552f48fe47075502d36eeb82aa12b15f1",
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs":
       "bb785fc64de1dfeb09241d228c11eaf7aaf3821bafa96da4bc37f2bac28cd8d0",
     "all/copy-overwrite/scripts/lib/npm-update-bun.mjs":
@@ -121,7 +121,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-checkpoint-codec.mjs":
       "2d263bc8aedb3af38671debca9a77577aee44e4912152d0dbb174505480f8f95",
     "all/copy-overwrite/scripts/lib/npm-update-checkpoint.mjs":
-      "af9b451d85f44752190f12e00e35be0cfab27c80e27d0efdde959bfdbf86a6f2",
+      "80dc033bbebe881a86a3cecb50ac92ab8b838f73bac6b62cf885d36fa2c9cf76",
     "all/copy-overwrite/scripts/lib/npm-update-classifier-cache.mjs":
       "92272e40617ca9d620ff47e3ffe07a0e5bc1a3949d139752aa2675398ab49f9b",
     "all/copy-overwrite/scripts/lib/npm-update-contract.mjs":
@@ -151,9 +151,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-github.mjs":
       "adef012960dc0c64dd68d687c2db9a66104780e0e68942f8ce27f11a0cf6262e",
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
-      "7100aa6554d59c6a8f6fafefb983c12359b8cf727b8e4657362eba045051dd4e",
+      "4bfa589aaeda81f29c800409e5e66fab6e6d735135c1a075213ee6d2e007773b",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "b34d0291028124507c38a44769eb019214cd5053045fb1ba7e644e856c6dded6",
+      "2e06ba18e3de4b3c46c22cfc21c4739970e584d098925d7c11b0baf7cb27b6ce",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -171,13 +171,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-hosted-scope.mjs":
       "bf046814b607f5449f80b18081b3a42a97a9a96d54fae302661471e166797459",
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs":
-      "4d60f2528e013b65837e8d60eef8728a34b2005fcabaec20d59fd5f759890810",
+      "531e7bc8b8893127a7e6b643b1dacc25b7a0ef5c767c4febe6f02cedf9a2e4ad",
     "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs":
       "66ec5390a0af0e016880c781eae47b8c60d6fca0c79ef500e1926e42eae043bf",
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs":
-      "a62ff918f24217958cd4b3bd45e28dbaa745e8b733ebb6fd48b4ab1dd1794823",
+      "9f7257d23f98f22bcb44432742d2384e2fcaf44fc5b78406e1862e0709675ded",
     "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs":
-      "6638fa03bb9bb44bd84fc9b4a91d8a334030c108e2759a2a673000dcbfbfe637",
+      "8999ae7c274ab3f1728c6bc67f8ecb6b89e5413abda58fa72a8e0c28851cb5f4",
     "all/copy-overwrite/scripts/lib/npm-update-native-process.mjs":
       "ab8dea4348ce670814fe446755876331cef0f5769b6d9140e726081641f04326",
     "all/copy-overwrite/scripts/lib/npm-update-npm.mjs":
@@ -189,7 +189,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-owner.mjs":
       "d2a0e25442f35f55a5d308c8e072398bcd5580ad6f6624c91340a907b5c97ca5",
     "all/copy-overwrite/scripts/lib/npm-update-policy.mjs":
-      "290544f8b9e04592ae7ac9d4977d7f4fb4d0d512203375592926988242a7511c",
+      "59638ff33a53b08779358a76e9bd9f0496f9afecf5e7089e888d02421f0e62de",
     "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs":
       "f3a73f543898f7946e28e4ec8788eddb88b736a22d7bfdeed67dbb2456fd9796",
     "all/copy-overwrite/scripts/lib/npm-update-process-core.mjs":
@@ -219,7 +219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs":
       "c6670b72d0d9bfdb93f96cbb499d0361669e0367ab90e276cf24eb141dfc4a57",
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs":
-      "3dcb1826fb92c37ecbd6e46863b48b7ebae8826117ed876ae0c0749444b1c4ff",
+      "f5d1c68651579b0ba74cd3c643bfe5bfc9d14d94a097074130d522450d44327d",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs":
       "27fb9639965681f0a9b8282ade6b6c45554ea03d5a192c54b13ce51cb03b254e",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-graph.mjs":
@@ -232,6 +232,14 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c03d8282e3a3b9102937b1b4214c8189d6f166ae54c12a1bff0e2c03acbe18a5",
     "all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs":
       "03e58c15ceee04a80a2c2a597454132ab742fc13c878eb1cb742a6ee0e045045",
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-jira.mjs":
+      "20ee8431cd8b3210cb954514053a6041fe3ce9b85405dece25d3f2f0eedf2d7f",
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-linear.mjs":
+      "d685ee2358c222853f443ba2fb03e2b0f0a10942d47c2413cce1e26414dfbc61",
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-wire.mjs":
+      "ff46fff73c12c5553b91b5468216a5567af95e0b782cb658d21105d5ad56977c",
+    "all/copy-overwrite/scripts/lib/npm-update-tracker.mjs":
+      "d334a9e71ff0c4e51853974e08a1210369cb86bbefb9c71c9e5fd48fec403e1f",
     "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs":
       "ef4170f4f7810a59b5e72cb59465e120b724a7324919d608eca387ae89df2ebb",
     "all/copy-overwrite/scripts/lib/npm-update-worker-inspection.mjs":
@@ -337,7 +345,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "2379d4fc5174ae4727997a0d88d43a0212941d91bdebaf790caadd20a8c59810",
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs":
-      "47615b9af49392489c33bd4983a7454b488e651d46c6a85b2e15caf47c327214",
+      "968d7e31383369fa9e77ee5a7e850028d1d585755bce18afe1ee2c1a5b7480c9",
     "all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs":
       "7d88002ba9ecc501612f3fa6de0931fe65f4c8a961f51f767be0c8f2f42eec54",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
@@ -355,7 +363,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "e609434324bfaef27047268b59cd4e0b037f2b25a17b5f3ba4e9d7da9997da4c",
+      "70a2e04018d6353498b49ee52c9fade01a477c17ffd5c1f1806a57f1512d4891",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -365,7 +373,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "9fd0930e93674df5d1dbb464bf85b6838b9781aadbd68a0e2eca5b48f00381a6",
+      "c89a55dbe03455e4ebbe71f9137225fa1cebd700295a55b17f45c95743e4fc85",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2889,7 +2897,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "531c452c034c420ebd77c290f0f68214a26983b064609312dc1b65f6f3f90c2d",
+      "a834600a49220e306628d83f9591995532d3665a0aa024a5b9115dca4c4aa46e",
     "scripts/update-node-version.ts":
       "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
@@ -2957,7 +2965,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "52d45279ac12b96308f852ba220d92acfeda4692599a5c1de2b15a96132a97a3",
+      "b27a2a7514da0cc5962813200d602835a88b692aa571f538accfefe26ff4ef4c",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3348,6 +3356,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/npm-update-runtime.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-supersession.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-jira.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-linear.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-wire.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-tracker.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-worker-inspection.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-worker-lifecycle.mjs": true,
@@ -11946,6 +11958,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/evidence-prune-harness.ts": true,
     "tests/support/git-executable.ts": true,
     "tests/support/host-name-guard-fixture.ts": true,
+    "tests/support/npm-update-jira-fake.ts": true,
+    "tests/support/npm-update-linear-fake.ts": true,
+    "tests/support/npm-update-tracker-host.ts": true,
+    "tests/support/npm-update-tracker-transport.ts": true,
     "tests/support/prune-fixtures.ts": true,
     "tests/support/qualified-host-bun.ts": true,
     "tests/support/qualified-updater-node.ts": true,
@@ -13039,6 +13055,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-runtime-preservation.test.ts": true,
     "tests/unit/scripts/npm-update-runtime-qualification.test.ts": true,
     "tests/unit/scripts/npm-update-socket-witness.test.ts": true,
+    "tests/unit/scripts/npm-update-tracker-credentials.test.ts": true,
+    "tests/unit/scripts/npm-update-tracker-github.test.ts": true,
+    "tests/unit/scripts/npm-update-tracker-jira.test.ts": true,
+    "tests/unit/scripts/npm-update-tracker-linear.test.ts": true,
+    "tests/unit/scripts/npm-update-tracker-policy.test.ts": true,
+    "tests/unit/scripts/npm-update-tracker-provider.test.ts": true,
+    "tests/unit/scripts/npm-update-tracker-workflow.test.ts": true,
+    "tests/unit/scripts/npm-update-tracker-workitem.test.ts": true,
     "tests/unit/scripts/npm-update-tracker.test.ts": true,
     "tests/unit/scripts/operator-id-kinds.test.ts": true,
     "tests/unit/scripts/orphaned-branch-bindings.test.ts": true,
