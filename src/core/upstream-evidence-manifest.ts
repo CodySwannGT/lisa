@@ -433,7 +433,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "b19ec995cee8b74966c0cadaa790967bc7da8862f6a4a071a9e805736abe4758",
+      "e96cba59932c3b9657dd2237950acbb5351844bff672b77f82c203d82a3b5246",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -637,7 +637,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "e5bb649e5d3716885cc01c7142288494bb1f0d1881200228eef6ed62c9f34b7a",
+      "a95b300cb85d9f484991c4d77c6d7c0cf9277975b061e6f8f7a1073c68a874b1",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -677,7 +677,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
-      "0890cc091a2b7c9b410092eb1f34b3e5cebdfc7f148c707e3aedb3cbe3d0be45",
+      "d52a8c3c8559d790625366c874b5080ad386c6745b65aae5b5666dbca013da4b",
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
@@ -765,7 +765,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "b0ba7a415dfbf5dcfa6d067d13f6b38e71d131daf0571b89aa33b1b9a8ce9514",
+      "5c9b9aface34c7cdf78ecea988e536c5e451b01281032f34ceee9da59d8cc512",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "cfffe18dfa58c3bf22f35173c0223fe458097e1c4e51e3effe1d068957c09a76",
     "npm-package/package-lisa/package.lisa.json":
@@ -825,7 +825,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "2862ccf524bbdc34fd191a677c674be80f254c097b98ba259950f5698dc161db",
+      "ffec148f1f82bed81c5803946d958603ffdfdb5a8727666e2b4b4c85359ce667",
     "plugins/src/base/agents/architecture-specialist.md":
       "2346c37ddce2b1ff059938d71be05f5f23acfe28066bcba4f9a1070ed6727a93",
     "plugins/src/base/agents/bug-fixer.md":
@@ -3115,7 +3115,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "f04017ecfcbb7ab4956d59fed9e429ef2ec885047e98a691606bff84c9e7b5dc",
+      "114958633686a9feeff5e73bf5e37500cf58b3ad5d752cc34dcff3477d836c09",
     "ui/README.md":
       "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
     "ui/index.html":
@@ -12405,6 +12405,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-typescript-worktree-scope.test.ts": true,
     "tests/unit/config/expo-design-value-arming.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
+    "tests/unit/config/expo-jsx-a11y-restore.test.ts": true,
     "tests/unit/config/expo-slow-react-rules.test.ts": true,
     "tests/unit/config/expo-view-purity-gate.test.ts": true,
     "tests/unit/config/fast-uri-audit-suppression.test.ts": true,
