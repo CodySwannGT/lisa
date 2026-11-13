@@ -51,7 +51,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
       "82ef0da12fc5c31fc48237808f94cbfd73f0d2128ae1da18ceedcea90284d467",
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
-      "3f560959b0d4b07069ea82b43acdaf4eb88f1e7fa2b25f15799a6c553244b186",
+      "e8b9d57be84b73b5e66253ae0bce33e9426548d8c495dd162019257ae0093bc8",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
       "51f7246943b20e970a185d3e2d9a9255929f510b25261502154e909d3b109436",
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
@@ -59,7 +59,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
-      "1eecc25fa223736f327f201177d6f54638470ce90f731c745b40b9ea8cee8ef6",
+      "d44e9cb4b7f47c327ca9922b5b8694e9bc120380e9833833642f0737167d97f8",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
       "7aa9673c7de21fa64e572043e7e76774e7cb57210a54f4603a72e88be97510a3",
     "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs":
@@ -359,7 +359,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "a0e9794aaeb6030c5243d5e8fd835ce6113f82650f2cbc914d62d2d15c81913c",
+      "25abffb933c806b7da90731d226d39d34e3a3c25cc15c96d03c70b1e63dc4198",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1883,7 +1883,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
       "1322a10b79ef6a9b020a17d1454bbfcd62f71af549a2fe02e5a75ef346d1abe6",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
-      "ec1d7f51ba8f943a3681a83fb6b290ca516c6b99951a7e649fd404a83d673b9e",
+      "4a010f7dac227912642b43ae9b65802778b5a48f52d711f6987cae8134233520",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "65fe727adfdbcc22141ad009e89cd7d91195600377c5357d552d50ed98ecf66b",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":

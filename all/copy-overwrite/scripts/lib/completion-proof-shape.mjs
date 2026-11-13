@@ -219,7 +219,11 @@ function claimingBlock(line, state) {
     return true;
   }
   if (!state.paragraph) closeItemsBefore(state, columns);
-  const relative = Math.max(0, columns - (state.items.at(-1) ?? 0));
+  // Measure from the deepest item the line reaches: a line short of an item's
+  // content column can only be a lazy continuation of it or a block that
+  // closes it, and either way it is code only past the enclosing container.
+  const base = state.items.findLast(content => content <= columns) ?? 0;
+  const relative = columns - base;
   if (relative >= 4) return state.paragraph;
   return claimingShallowBlock(columns, rest, relative, state);
 }
@@ -246,7 +250,15 @@ function breaksParagraph(rest, paragraph) {
 
 /**
  * Read a line that starts less than four columns past its container: it may
- * open a fence, end the paragraph, or open a list item at `columns`.
+ * open a fence, a heading, a thematic break, an HTML comment block or a list
+ * item at `columns`, or continue the open paragraph.
+ *
+ * Any of those block starts, unlike a lazy paragraph line, never continues a
+ * list item's paragraph, so it first closes every item whose content column
+ * the line falls short of. A fence at the margin under `- a` is therefore a
+ * top-level fence that ends with its own closing marker, not one the item's
+ * end would cut short (#4700 review). None of them is a paragraph, so a line
+ * indented after one is code again.
  * @param {number} columns - Column of the line's first non-whitespace character
  * @param {string} rest - Line text from that character
  * @param {number} relative - Columns past the container's content column
@@ -256,24 +268,17 @@ function breaksParagraph(rest, paragraph) {
  */
 function claimingShallowBlock(columns, rest, relative, state) {
   const fence = openingFence(relative, rest);
-  if (fence) {
-    state.fence = { ...fence, base: state.items.at(-1) ?? 0 };
-    state.paragraph = false;
-    return false;
-  }
-  if (breaksParagraph(rest, state.paragraph)) {
-    state.paragraph = false;
-    return true;
-  }
-  const content = listContentColumn(columns, rest);
-  if (content !== null) {
-    closeItemsBefore(state, columns);
-    state.items.push(content);
-  }
-  // A heading or an HTML comment block is not a paragraph, so an indented
-  // line after one is code again.
-  state.paragraph = !/^(?:#{1,6}(?:[ \t]|$)|<!--)/.test(rest);
-  return true;
+  const blockStart = Boolean(
+    fence ||
+    breaksParagraph(rest, state.paragraph) ||
+    /^(?:#{1,6}(?:[ \t]|$)|<!--)/.test(rest)
+  );
+  const content = blockStart ? null : listContentColumn(columns, rest);
+  if (blockStart || content !== null) closeItemsBefore(state, columns);
+  if (content !== null) state.items.push(content);
+  if (fence) state.fence = { ...fence, base: state.items.at(-1) ?? 0 };
+  state.paragraph = !blockStart;
+  return !fence;
 }
 
 /** A fence closes on a bare marker no deeper than its container allows. */

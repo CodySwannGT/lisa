@@ -73,10 +73,11 @@ function headingKey(text) {
 /**
  * Find a visible line that names a section but is not its readable H2
  * heading: another heading level, a bold line, or the name with extra text
- * such as `## Acceptance Criteria:`. A caller that would otherwise read a
- * missing section as empty refuses on it instead of passing trivially
- * (CodySwannGT/lisa#4700). Fenced, indented and commented examples are not
- * visible lines, so they never match.
+ * such as `## Acceptance Criteria:`, or a setext heading (the name underlined
+ * by `---` or `===`), which renders as a heading but is no section boundary
+ * here. A caller that would otherwise read a missing section as empty refuses
+ * on it instead of passing trivially (CodySwannGT/lisa#4700). Fenced, indented
+ * and commented examples are not visible lines, so they never match.
  * @param {string} body - Markdown document
  * @param {string} heading - Heading text without the `## ` prefix
  * @returns {string | null} The first near-miss line, or null when none exists
@@ -87,14 +88,29 @@ export function nearMissHeading(body, heading) {
     .split(/\s+/)
     .map(word => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
     .join("\\s+");
-  const named = new RegExp(`^(?:#{1,6}[ \\t]*|\\*\\*|__)${words}\\b`, "i");
+  // `\b` would never end `__Acceptance criteria__`, since `_` is a word character.
+  const name = `${words}(?![A-Za-z0-9])`;
+  const marked = new RegExp(`^(?:#{1,6}[ \\t]*|\\*\\*|__)${name}`, "i");
+  const plain = new RegExp(`^${name}`, "i");
   const wanted = headingKey(`## ${heading}`);
-  const row = topLevelLines(body).find(
-    line =>
-      named.test(line.text) &&
+  const rows = topLevelLines(body);
+  const row = rows.find(
+    (line, index) =>
+      (marked.test(line.text) || setextNamed(rows, index, plain)) &&
       !(line.heading && headingKey(line.text) === wanted)
   );
   return row ? row.text : null;
+}
+
+/** A visible line naming the section, directly underlined as a setext heading. */
+function setextNamed(rows, index, named) {
+  const next = rows[index + 1];
+  return Boolean(
+    next &&
+    next.start === rows[index].end &&
+    named.test(rows[index].text) &&
+    /^(?:=+|-+)$/.test(next.text)
+  );
 }
 
 /**

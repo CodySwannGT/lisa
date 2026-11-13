@@ -191,6 +191,44 @@ describe("a list item's fence and thematic breaks do not hide or invent markers 
   });
 });
 
+describe("a block that interrupts a list item's paragraph closes the item (#4700 review 2)", () => {
+  const EXAMPLE = "[EVIDENCE: cli-output: example]";
+
+  it.each([
+    {
+      name: "a backtick fence at the margin",
+      body: [STEP, "```", EXAMPLE, "```", LOGIN_MARKER],
+    },
+    {
+      name: "a tilde fence at the margin",
+      body: [STEP, "~~~", EXAMPLE, "~~~", LOGIN_MARKER],
+    },
+    {
+      name: "a fence at the margin after a lazy line",
+      body: [STEP, "lazy", "```", EXAMPLE, "```", LOGIN_MARKER],
+    },
+    {
+      name: "a fence at a nested item's parent content column",
+      body: [STEP, "  - b", "  ```", `  ${EXAMPLE}`, "  ```", LOGIN_MARKER],
+    },
+  ])("claims only the visible marker after $name", ({ body }) => {
+    const text = [...body, ""].join("\n");
+    expect(localMarkers(text)).toEqual(LOGIN);
+  });
+
+  it.each([
+    { name: "an ATX heading", block: "## Heading" },
+    { name: "a thematic break", block: "***" },
+    { name: "a dashed thematic break", block: "- - -" },
+  ])(
+    "treats a line indented after $name at the margin as code",
+    ({ block }) => {
+      const text = [STEP, block, `    ${EXAMPLE_MARKER}`, ""].join("\n");
+      expect(localMarkers(text)).toEqual([]);
+    }
+  );
+});
+
 /** Run the real conformance reader against a full work-item body. */
 function conforms(body: string, scenarioNames: string[]): void {
   const requirements = [
@@ -273,6 +311,9 @@ describe("conformance finds the acceptance criteria heading in any case (#4700)"
     H3_CRITERIA,
     "## Acceptance criteria (Gherkin)",
     "**Acceptance Criteria**",
+    "__Acceptance criteria__",
+    "Acceptance Criteria\n---",
+    "Acceptance criteria\n===",
   ])("refuses loudly instead of reading no scenarios under %j", heading => {
     expect(() => conforms(withCriteria(heading), [])).toThrow(UNREADABLE);
   });

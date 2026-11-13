@@ -136,7 +136,7 @@
       "children": []
     },
     "lib/completion-proof-markdown.mjs": {
-      "sha256": "3f560959b0d4b07069ea82b43acdaf4eb88f1e7fa2b25f15799a6c553244b186",
+      "sha256": "e8b9d57be84b73b5e66253ae0bce33e9426548d8c495dd162019257ae0093bc8",
       "staticImports": [
         "lib/completion-proof-errors.mjs"
       ],
@@ -176,7 +176,7 @@
       "children": []
     },
     "lib/completion-proof-shape.mjs": {
-      "sha256": "1eecc25fa223736f327f201177d6f54638470ce90f731c745b40b9ea8cee8ef6",
+      "sha256": "d44e9cb4b7f47c327ca9922b5b8694e9bc120380e9833833642f0737167d97f8",
       "staticImports": [
         "lib/completion-proof-errors.mjs",
         "lib/completion-proof-markdown.mjs",

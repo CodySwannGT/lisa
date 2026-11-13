@@ -132,7 +132,8 @@ more columns past that, outside a paragraph, is an indented example. The
 conformance check reads `## Acceptance Criteria` in any case, with any internal
 spacing and optional closing `#`s. When no such heading exists but a visible
 line names the criteria some other way (`### Acceptance Criteria`, a bold
-`**Acceptance Criteria**`, or `## Acceptance Criteria:`), the check refuses and
+`**Acceptance Criteria**`, `## Acceptance Criteria:`, or the name underlined
+with `---` or `===`), the check refuses and
 asks for the heading to be renamed rather than reading zero scenarios.
 
 An ordinary pending result from `finish` or the applying sweep exits zero
