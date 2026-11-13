@@ -1,0 +1,21 @@
+# CONTROL origin/main 24d0d26b348446c2439035aaa96f3edc6a82ae93 (pre-fix)
+# node v22.22.0
+$ node repro.mjs <scratch>/main-tree/all/copy-overwrite/scripts/lib/completion-proof-shape.mjs
+PASS | L1 escaped top-level (#4670) | "Body\n\\[EVIDENCE: cli-output: x\\]" -> [{"kind":"cli-output","name":"x"}]
+PASS | L2 plain top-level | "Body\n[EVIDENCE: cli-output: x]" -> [{"kind":"cli-output","name":"x"}]
+FAIL | L3 escaped in inline code | "Body mentions `\\[EVIDENCE: cli-output: x\\]`" -> REFUSED A local evidence declaration is malformed; repair its type and name.
+FAIL | L4 plain in inline code | "Body mentions `[EVIDENCE: cli-output: x]`" -> [{"kind":"cli-output","name":"x"}]
+FAIL | L5 placeholder in inline code | "Body mentions `\\[EVIDENCE: …\\]`" -> REFUSED A local evidence declaration is malformed; repair its type and name.
+FAIL | L6 double-backtick span | "Body mentions ``[EVIDENCE: cli-output: x]``" -> [{"kind":"cli-output","name":"x"}]
+FAIL | AC2 top-level + inline quote | "Body\n[EVIDENCE: cli-output: x]\nquoted `[EVIDENCE: cli-output: x]`" -> REFUSED Local evidence declarations must have unique names.
+FAIL | AC2b escaped top-level + escaped inline quote | "Body\n\\[EVIDENCE: cli-output: x\\]\nquoted `\\[EVIDENCE: cli-output: x\\]`" -> REFUSED A local evidence declaration is malformed; repair its type and name.
+PASS | C1 malformed top-level refused | "Body\n[EVIDENCE: x]" -> REFUSED A local evidence declaration is malformed; repair its type and name.
+PASS | C2 fenced code non-claiming | "Body\n```\n[EVIDENCE: x]\n[EVIDENCE: cli-output: y]\n```" -> []
+PASS | C3 HTML comment non-claiming | "Body\n<!-- [EVIDENCE: x] [EVIDENCE: cli-output: y] -->" -> []
+PASS | C4 unclosed backtick stays prose | "Body ` stray\n[EVIDENCE: cli-output: x]" -> [{"kind":"cli-output","name":"x"}]
+PASS | A1 autolinks with backticks outrank code span | "<https://x/`> [EVIDENCE: cli-output: x] <https://y/`>" -> [{"kind":"cli-output","name":"x"}]
+PASS | A2 HTML tag attribute backticks outrank code span | "<a title=\"`\"> [EVIDENCE: cli-output: x] <a title=\"`\">" -> [{"kind":"cli-output","name":"x"}]
+FAIL | P1 prose comparison around inline code, plain | "a < b `[EVIDENCE: cli-output: x]` c > d" -> [{"kind":"cli-output","name":"x"}]
+FAIL | P2 prose comparison around inline code, escaped | "a < b `\\[EVIDENCE: cli-output: x\\]` c > d" -> REFUSED A local evidence declaration is malformed; repair its type and name.
+SUMMARY: 8/16 match expected
+exit=1

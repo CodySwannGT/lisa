@@ -59,7 +59,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
-      "b0ac2109d1e17cdc83d42b842ccbd43ca10f3d34d1b2d03067c434e05b19b9e3",
+      "4626a90f8e7258dc90d51c6abbec967dcf16d8d8ed12d5af34838617bc01b06c",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
       "7aa9673c7de21fa64e572043e7e76774e7cb57210a54f4603a72e88be97510a3",
     "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs":
@@ -359,7 +359,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "748e40364b55387fefcf61c5689fafd9f7bd09d452527c02f6214b06ba93530c",
+      "985fbb040eef3c9843f20c300d01ea11a4c578db116c04658e450deafeeef4e4",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1469,7 +1469,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "f4bc19312455f8b76465597c345645c643ffdffd1baa530559478be89cdbd0cc",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
-      "baa9a5d1907100ae548c144e2548388c0b643eb28a0d6ff7d3bfc0b7b04c8e4e",
+      "610f422bb27972c59f859d9dd15228be83afa333a575352f93d053c6c88a58ef",
     "plugins/src/base/skills/lisa-github-verify/SKILL.md":
       "c53cd2deb36b4191e77651da4a95df2ee022e3b8b12d1dd248e7466746b74578",
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md":
@@ -1525,7 +1525,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
       "943a89c2fd70b7cd1f13badc8ce0018f9f5ff18a0a7443440ba68a309bf4685f",
     "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md":
-      "9c59a342346039d91b5cd83d7448dbc0843863deeca4aee8b616ead8d9959651",
+      "25a9335ec0a405ba08d3f0ae04af99610191cb3b3da11731b06bab738903d338",
     "plugins/src/base/skills/lisa-jira-verify/SKILL.md":
       "55484ce81b43a167db9bbeed62edf8b204676827b7ef7bf1892c17453027c7b6",
     "plugins/src/base/skills/lisa-jira-write-ticket/SKILL.md":
@@ -1559,7 +1559,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "16859e1828212bf053b252b7c03bd1fb3b7352da4fb9273b5ef063228080e601",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
-      "a0291ad42da4dc76d13314d4f312caef8345941ab2e28a957fa8bd80f6d6450a",
+      "59f503fca655b3a18614afaba41537e46caee628659c630fabb93b8e1779190d",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
@@ -1881,7 +1881,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "fecd0c3cc930b0f87578bc0bee14009509883cb21b33e94e3e7a42792dcd888e",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "23b8a45e9f5307563e68b05f7c4cff677431ea013402e47a89f622b44155602d",
+      "65f4b7cd7c18a4b381333139fde88968a602f30f9b2fa80ac7fbc24237672b5d",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "fc1720bbf2dbba095ca8adb3305ab501d71f0c6fe2d9b90581d97becaf159216",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
@@ -3834,6 +3834,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4644/parity-red.txt": true,
     "evidence/4644/paths-and-parity.txt": true,
     "evidence/4644/red.txt": true,
+    "evidence/4689/control-85154ab05c.txt": true,
+    "evidence/4689/control-b0fc716a01.txt": true,
+    "evidence/4689/control-origin-main.txt": true,
+    "evidence/4689/falsify-tests-on-85154ab05c-source.txt": true,
+    "evidence/4689/falsify-tests-on-b0fc716a01-source.txt": true,
+    "evidence/4689/falsify-tests-on-origin-main-source.txt": true,
+    "evidence/4689/manifest-control-origin-main.txt": true,
+    "evidence/4689/manifest-fix-head.txt": true,
+    "evidence/4689/repro-fix-head.txt": true,
+    "evidence/4689/test-run.txt": true,
     "evidence/4692/c1-near-full-refusal.txt": true,
     "evidence/4692/c2-rotation.txt": true,
     "evidence/4692/c3-legacy-validates.txt": true,
