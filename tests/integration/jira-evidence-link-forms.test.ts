@@ -72,7 +72,7 @@ describe.each(SOURCES)("Markdown link forms are validated: %s", script => {
   });
 
   it("accepts a link into another repository's release alongside this run's upload", () => {
-    const foreign = `https://github.com/other/repo/releases/download/v1.0.0/notes.txt`;
+    const foreign = `https://github.com/org/other/releases/download/v1.0.0/notes.txt`;
     const result = runWith(script, `![Shot](${OWN})\n[notes](${foreign})\n`);
 
     expect(result.status, result.stderr).toBe(0);

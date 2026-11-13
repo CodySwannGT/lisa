@@ -43,6 +43,8 @@ function attemptUpload(context, transport, evidence, file) {
     ["release", "upload", evidence.tag, file, "--repo", context.repository],
     { allowFailure: true }
   );
+  // probe-direction: fail-closed — null means only a zero exit with no spawn
+  // error; every other outcome returns the failure and the caller refuses.
   if (uploaded.status === 0 && !uploaded.error) return null;
   const stderr = uploaded.stderr ?? "";
   return { stderr, full: uploadHitLimit(stderr, transport, evidence.release) };

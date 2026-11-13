@@ -127,7 +127,7 @@
       "children": []
     },
     "lib/completion-proof-github.mjs": {
-      "sha256": "82ef0da12fc5c31fc48237808f94cbfd73f0d2128ae1da18ceedcea90284d467",
+      "sha256": "b2f42db4858a96cff75b17419cb98a6c9998430bc1dc22070b322a62dd77bab2",
       "staticImports": [
         "lib/completion-proof-shape.mjs"
       ],
@@ -153,12 +153,13 @@
       "children": []
     },
     "lib/completion-proof-publisher.mjs": {
-      "sha256": "cf37b6b1e09b22eeeab8d64086409a4345489f17cf11eb8ddc3e4c31d6772009",
+      "sha256": "6f3c25bd35b2309c26b39ec90a7e6eab7487921cad9d9e285366b5bc2d3efc25",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-github.mjs",
         "lib/completion-proof-reader.mjs",
         "lib/completion-proof-shape.mjs",
+        "lib/evidence-release-capacity.mjs",
         "node:fs",
         "node:os",
         "node:path"
@@ -189,6 +190,15 @@
       "sha256": "7aa9673c7de21fa64e572043e7e76774e7cb57210a54f4603a72e88be97510a3",
       "staticImports": [
         "lib/completion-proof-codepipeline.mjs",
+        "lib/completion-proof-shape.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/evidence-release-capacity.mjs": {
+      "sha256": "7e1fffe6cb74e345410dff76497d656b261e8da47b5b7a90c0af53626ab5e51e",
+      "staticImports": [
+        "lib/completion-proof-github.mjs",
         "lib/completion-proof-shape.mjs"
       ],
       "dynamicImports": [],
@@ -667,7 +677,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "1a34f7da808aa6f669d3f9e2f467552b240920ddd463556a105e7d294fb1bf66",
+      "sha256": "edb3e61929dd2c1333eee5a8e41755a0e93dfb96c5add4b408656fdaab9a6a4f",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1441,7 +1451,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "8dc7cf96bfd13b6ca0250172c0b4de91c0ab4969a057ad04ce2d022518e73f33",
+      "sha256": "e609434324bfaef27047268b59cd4e0b037f2b25a17b5f3ba4e9d7da9997da4c",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-adapters.mjs",
