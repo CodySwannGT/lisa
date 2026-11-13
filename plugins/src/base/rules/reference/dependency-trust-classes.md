@@ -30,17 +30,21 @@ The six classes, from most to least self-evidently trustworthy:
 Each class fixes five review inputs: capability owner, update cadence, detection
 evidence, replacement-cost threshold, and whether product/human ratification is
 required. Higher exposure and lower trust buy stronger evidence and mandatory
-ratification, not weaker: runtime-critical service clients always need human
+ratification, not weaker. When sign-off is on (`dependencies.humanSignOff:
+"default"` or `humanGate.mode: "strict"`), runtime-critical service clients always need human
 ratification to add or major-upgrade; temporary dependencies need it to live
 past their expiry date; thin wrappers need it to be kept rather than in-housed.
+By default those same ratifications are the agent's, recorded in the entry.
 
-**Unless the project turns sign-off off.** When `.lisa.config.json` sets
-`dependencies.humanSignOff` to `"none"`, no ratification requirement or
-human-review trigger in this rule applies — see
+**By default the agent ratifies.** `dependencies.humanSignOff` resolves to
+`"none"` unless the project sets it, so no requirement below waits on a person:
+the agent makes each ratification and human-review call itself and records its
+reasoning in the dependency's entry, where a person can reverse it — see
 [When `dependencies.humanSignOff` is `"none"`](#when-dependencieshumansignoff-is-none).
 The effective value is printed in the session's `lisa-resolved-config` block.
-The default (`"default"`, or the key omitted) keeps every requirement below
-exactly as written.
+A person ratifies, exactly as written below, only when the project sets
+`dependencies.humanSignOff` to `"default"` or `humanGate.mode` to `"strict"`
+(which makes `"default"` the fallback).
 
 Every class also names one **human-review trigger** — the observable event that
 takes the decision away from the agent. A class definition that cannot say what
@@ -173,7 +177,8 @@ that reaches users, their data, or money in production — payment SDKs, auth
 libraries, database drivers, service clients on the request path. Even a mature,
 well-run project lands in this class if a bad update reaches production, because
 maturity does not shrink blast radius. Trust here is bought with our own
-evidence and a human's signature, not the vendor's reputation.
+evidence and a recorded ratification — the agent's by default, a human's
+signature when sign-off is on — not the vendor's reputation.
 
 - **Capability owner:** a named accountable person, not a team.
 - **Update cadence:** re-judged at every version change. Versions are pinned
@@ -242,8 +247,10 @@ starts running in production or touching user data — whichever happens first.
 
 ## Ratification, summarized
 
-Ratification is not a formality; it is the point where a human owns the residual
-risk. Required for:
+Ratification is not a formality; it is the point where someone owns the residual
+risk — the agent by default, recording why in the entry, or a human when sign-off
+is on (`dependencies.humanSignOff: "default"` or `humanGate.mode: "strict"`).
+Required for:
 
 - **Runtime-critical service client** — to add, and for every major upgrade.
 - **Temporary/experimental dependency** — to extend past expiry or to promote.
@@ -258,9 +265,9 @@ radius do the work a human would otherwise have to do.
 
 ### When `dependencies.humanSignOff` is `"none"`
 
-A project whose owner has decided that no dependency should ever wait on a
-person's approval sets `"dependencies": { "humanSignOff": "none" }` in
-`.lisa.config.json`. Read the effective value from the
+`"none"` is the default: a project gets it when it sets
+`"dependencies": { "humanSignOff": "none" }` or leaves the key out under the
+default `humanGate.mode` (`"access-only"`). Read the effective value from the
 `dependencies.humanSignOff` line of the session's `lisa-resolved-config` block.
 Under `"none"`:
 
@@ -278,12 +285,14 @@ Under `"none"`:
   replacement-cost requirements, and update the record entry in the same change.
   Turning sign-off off removes the human, not the evidence.
 - **Credential, paid-account, and license approvals are not covered.** A
-  dependency that needs a new secret, a paid vendor account, or a license
-  decision still raises that as its own human-needed reason; this setting does
-  not waive it.
+  dependency that needs a new secret the agent cannot create or reach, a paid
+  vendor account, or a license signature still raises that as its own
+  human-needed reason, naming that access; this setting does not waive it.
 
-`"default"` — or no key at all — keeps every ratification requirement exactly as
-written above. Any other value is reported as invalid and treated as `"default"`.
+`"default"` — set explicitly, or reached by leaving the key out under
+`humanGate.mode: "strict"` — keeps every ratification requirement exactly as
+written above. Any other value is reported as invalid and treated as the mode's default
+(`"none"` under `"access-only"`, `"default"` under `"strict"`).
 
 ## Naming a class at planning time
 
@@ -295,7 +304,7 @@ unit proposing a material dependency with no named class.
 
 The class is what makes the rest of the ticket reviewable: it tells the reviewer
 which evidence to demand and whether a human has to ratify before the work
-starts (never, when `dependencies.humanSignOff` is `"none"`), rather than
+starts (never, when `dependencies.humanSignOff` is `"none"`, the default), rather than
 discovering both at the end.
 
 Naming a class is not a formality either. If nobody can pick one, that is the

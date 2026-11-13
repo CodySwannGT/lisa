@@ -58,7 +58,7 @@ describe("project-config learnings", () => {
       expect(resolveLearningsSettings(config)).toEqual({
         learningsFile: DEFAULT_LEARNINGS_FILE,
         mergeDriverEnabled,
-        lowConfidence: HUMAN_TRIAGE,
+        lowConfidence: AUTO_MERGE,
       });
     }
   );
@@ -80,7 +80,7 @@ describe("project-config learnings", () => {
     expect(resolveLearningsSettings(config)).toEqual({
       learningsFile: RELOCATED_LEARNINGS_FILE,
       mergeDriverEnabled: false,
-      lowConfidence: HUMAN_TRIAGE,
+      lowConfidence: AUTO_MERGE,
     });
   });
 
@@ -102,14 +102,18 @@ describe("project-config learnings", () => {
   });
 
   it.each([
-    [undefined, HUMAN_TRIAGE],
-    [HUMAN_TRIAGE, HUMAN_TRIAGE],
-    [AUTO_MERGE, AUTO_MERGE],
+    [undefined, undefined, AUTO_MERGE],
+    [HUMAN_TRIAGE, undefined, HUMAN_TRIAGE],
+    [AUTO_MERGE, undefined, AUTO_MERGE],
+    [undefined, "strict", HUMAN_TRIAGE],
+    [AUTO_MERGE, "strict", AUTO_MERGE],
+    [HUMAN_TRIAGE, "strict", HUMAN_TRIAGE],
   ] as const)(
-    "resolves learnings.lowConfidence %j to %s (default unchanged)",
-    async (lowConfidence, expected) => {
+    "resolves learnings.lowConfidence %j under humanGate.mode %j to %s",
+    async (lowConfidence, mode, expected) => {
       await writeConfig({
         learnings: lowConfidence === undefined ? {} : { lowConfidence },
+        ...(mode === undefined ? {} : { humanGate: { mode } }),
       });
       const config = await readProjectConfig(tempDir);
       expect(resolveLearningsSettings(config).lowConfidence).toBe(expected);

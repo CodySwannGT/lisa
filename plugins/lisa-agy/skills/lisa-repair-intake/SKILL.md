@@ -408,8 +408,12 @@ the vendor build-intake runs**, skipping the claim transition (the item is alrea
    standing in for the scanner that never got to finish it.
 3. **On a surfaced blocker** (agent reports it cannot proceed), leave/move the item to `blocked`
    with a `[lisa-repair-intake]` note (see Loop prevention). When the surfaced blocker is something
-   **only a human can supply** (credentials, access/permissions, a product or scoping decision), the
-   item also carries the `human_needed` marker — the vendor agent's pre-flight gate applies it; if
+   **only a human can supply** (credentials or access/permissions the agent cannot obtain — an
+   interactive login, a secret store it cannot reach, spending money, a legal signature, an account
+   only a person holds — or a hold the operator explicitly asked for), the item also carries the
+   `human_needed` marker. A product or scoping decision is not on that list: the agent makes it from
+   the evidence, records the reasoning on the item, and continues (under `humanGate.mode: "strict"`
+   it is human-needed as before). The vendor agent's pre-flight gate applies the marker; if
    repair-intake makes the block transition itself for such a reason, it adds the marker too. (A
    block that another tracked ticket or retry will clear is *not* human-needed — that is the
    auto-recoverable fix-ticket path above.)
@@ -1086,7 +1090,7 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    `intake_mode=build`, every non-PRD issue is normalized as a build ticket. If `intake_mode=both`,
    classify PRDs first and normalize all remaining issues as build tickets.
 2a. **Ask whether a person is holding it, before anything else.** Call
-   `planLabelNormalization({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, lifecycleLabels, readyLabel })` from
+   `planLabelNormalization({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, lifecycleLabels, readyLabel })` from
    `scripts/intake-blocker-reprobe.mjs` for every candidate and apply exactly the verdict it
    returns. Do **not** re-implement the test here and do **not** decide held-ness from labels
    alone: the vendor writers stamp the `[lisa-human-gate]` marker into the body of a deliberate
@@ -1115,8 +1119,8 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    should never have to comment to release one.
 
    Enumerate open items carrying a `[lisa-human-gate]` marker in the body and, for each, call
-   `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })`
-   from `scripts/human-gate-lift.mjs`, with `humanOnly` read from `humanGate.humanOnly` in config.
+   `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, readyLabel, lifecycleLabels })`
+   from `scripts/human-gate-lift.mjs`, with `humanOnly` read from `humanGate.humanOnly` and `humanGateMode` from `humanGate.mode` in config (one call: `node scripts/human-gate-act.mjs policy` prints both; a reader that omits the mode judges under access-only, so a strict project must pass it).
    The planner lifts only when it is sure: a topic-only slug, no act on any hold-related line, and
    no secret or act token anywhere in the hold text (`ready-role-filing`, "Existing invalid holds
    are lifted"). Any doubt keeps the hold. Apply exactly what it returns: post each string in `comments` once (each begins
@@ -1128,9 +1132,12 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    `human_needed` marker this skill did not apply": a lift records that the hold was invalid under
    the contract, so there is nothing for a person to authorize. A lift's authority comes from
    re-classifying the hold, not from who wrote the comment, so a lift naming a valid hold discharges
-   nothing. **Valid holds plan nothing** (credential, spend, external account, legal/compliance
-   sign-off, accountable person, unreachable system, Lisa's own human-only gates, and any
-   project-declared class). **Label-only holds plan nothing** — an access block or blocked verdict
+   nothing. **Valid holds plan nothing.** In both modes those are the access acts (`credential`,
+   `spend`, `external-account`, `legal-signoff`, `person-only-account`, `unreachable-system`,
+   `operator-hold`), `human-authored-surface`, and any project-declared `humanGate.humanOnly`
+   class. Under `humanGate.mode: "strict"` the strict-only acts (`compliance-signoff`,
+   `accountable-person`, `lisa-policy`) are valid too; under the default access-only mode a hold
+   that names only one of them is invalid and is lifted. **Label-only holds plan nothing** — an access block or blocked verdict
    declares no reason to judge. A mixed item lifts its invalid reasons and stays held for the valid
    one. Never edit the description. Count these under `lifted_invalid_hold` and name them in the
    cycle summary via `summarizeHumanGateLifts([...])`, printed even when it is zero.
@@ -1144,7 +1151,7 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
 
    Enumerate items carrying the configured `human_needed` marker **or** a `[lisa-human-gate]` marker
    in the body, and for each call
-   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
+   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, readyLabel, lifecycleLabels, alreadyNotified })`
    from `scripts/intake-blocker-reprobe.mjs`. Apply exactly the actions it returns: remove the
    human-needed marker, add the configured build `ready` label back, and post
    `formatHumanGateReleaseNote()` once. Do **not** re-implement the discharge test, and do **not**

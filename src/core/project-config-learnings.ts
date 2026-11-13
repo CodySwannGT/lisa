@@ -9,6 +9,11 @@
  */
 import { DEFAULT_PROJECT_LEARNINGS_FILE } from "./learnings-location.js";
 import { validateConfiguredLearningsFile } from "./configured-learnings-path.js";
+import {
+  type ConfigWithHumanGate,
+  type HumanGateMode,
+  resolveHumanGateMode,
+} from "./project-config-human-gate.js";
 
 const LEARNINGS_FIELDS = ["file", "mergeDriver", "lowConfidence"] as const;
 
@@ -18,21 +23,43 @@ const AUTO_MERGE = "auto-merge";
 /**
  * How `lisa-persist-learning` submits a low-confidence learning PR.
  *
- * `human-triage` (the default) keeps auto-merge off and waits for a human at
- * the `learning:needs-triage` gate. `auto-merge` submits it like a
- * high-confidence PR — through the project's normal gates — for operators who
- * involve humans only when an agent is genuinely stuck; the gardener
+ * `human-triage` keeps auto-merge off and waits for a human at the
+ * `learning:needs-triage` gate. `auto-merge` submits it like a high-confidence
+ * PR — through the project's normal gates — and the gardener
  * (`lisa-learnings-audit`) re-reviews those entries first
  * (CodySwannGT/lisa#4659).
+ *
+ * The default follows `humanGate.mode` (CodySwannGT/lisa#4687): an agent
+ * performs every act it has access to, so under the default `"access-only"`
+ * mode an undeclared value is `auto-merge`; under `"strict"` it is
+ * `human-triage`. A declared value always wins over the mode.
  */
 export const LOW_CONFIDENCE_ROUTINGS = [HUMAN_TRIAGE, AUTO_MERGE] as const;
 
 /** One closed value of `learnings.lowConfidence`. */
 export type LowConfidenceRouting = (typeof LOW_CONFIDENCE_ROUTINGS)[number];
 
-/** Routing used when `learnings.lowConfidence` is absent. */
-export const DEFAULT_LOW_CONFIDENCE_ROUTING: LowConfidenceRouting =
-  HUMAN_TRIAGE;
+/**
+ * Routing used when `learnings.lowConfidence` is absent under the default
+ * `humanGate.mode: "access-only"`.
+ */
+export const DEFAULT_LOW_CONFIDENCE_ROUTING: LowConfidenceRouting = AUTO_MERGE;
+
+/** Routing used when `learnings.lowConfidence` is absent under `"strict"`. */
+export const STRICT_LOW_CONFIDENCE_ROUTING: LowConfidenceRouting = HUMAN_TRIAGE;
+
+/**
+ * The routing an undeclared `learnings.lowConfidence` resolves to under a mode.
+ * @param mode - The `humanGate.mode` in force
+ * @returns The mode's default routing
+ */
+export function defaultLowConfidenceRouting(
+  mode: HumanGateMode
+): LowConfidenceRouting {
+  return mode === "strict"
+    ? STRICT_LOW_CONFIDENCE_ROUTING
+    : DEFAULT_LOW_CONFIDENCE_ROUTING;
+}
 
 /** Optional `learnings` configuration block in `.lisa.config.json`. */
 export interface LearningsConfig {
@@ -40,12 +67,15 @@ export interface LearningsConfig {
   readonly file?: string;
   /** Explicit false declines local merge-driver installation. */
   readonly mergeDriver?: boolean;
-  /** How low-confidence learning PRs are submitted; default `human-triage`. */
+  /**
+   * How low-confidence learning PRs are submitted; when absent, `auto-merge`
+   * under `humanGate.mode: "access-only"` and `human-triage` under `"strict"`.
+   */
   readonly lowConfidence?: LowConfidenceRouting;
 }
 
 /** Minimum project-config shape consumed by the pure settings resolver. */
-interface ConfigWithLearnings {
+interface ConfigWithLearnings extends ConfigWithHumanGate {
   readonly learnings?: LearningsConfig;
 }
 
@@ -110,8 +140,8 @@ export function validateLearningsConfig(
  * The driver is strictly opt-out: only literal false disables it. Runtime
  * config reads validate the boolean before this resolver runs; keeping the
  * comparison here as `!== false` preserves the safe default for typed callers.
- * Low-confidence routing is opt-in the same way: only an exact `auto-merge`
- * leaves the human-triage default.
+ * Low-confidence routing honours a declared value and otherwise follows the
+ * `humanGate.mode` default ({@link defaultLowConfidenceRouting}).
  * @param config - Validated project config snapshot
  * @returns Resolved ledger path, merge-driver enablement, and low-confidence routing
  */
@@ -121,10 +151,13 @@ export function resolveLearningsSettings(
   return Object.freeze({
     learningsFile: resolveProjectLearningsFile(config),
     mergeDriverEnabled: config.learnings?.mergeDriver !== false,
-    lowConfidence:
-      config.learnings?.lowConfidence === AUTO_MERGE
-        ? AUTO_MERGE
-        : DEFAULT_LOW_CONFIDENCE_ROUTING,
+    // Membership, not `??`: a typed caller that skipped validation must not
+    // smuggle an unknown routing through.
+    lowConfidence: (LOW_CONFIDENCE_ROUTINGS as readonly unknown[]).includes(
+      config.learnings?.lowConfidence
+    )
+      ? (config.learnings?.lowConfidence as LowConfidenceRouting)
+      : defaultLowConfidenceRouting(resolveHumanGateMode(config)),
   });
 }
 

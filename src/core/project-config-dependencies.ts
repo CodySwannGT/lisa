@@ -7,32 +7,44 @@
  * wrapper to be kept, a temporary dependency to be extended. A project whose
  * owner has decided no dependency should ever need a person's approval had no
  * way to say so, and an autonomous build loop stopped for sign-off at every new
- * vendor SDK. `humanSignOff: "none"` is that switch; omitting it keeps today's
- * behavior, so no existing project changes.
+ * vendor SDK. `humanSignOff: "none"` is that switch.
+ *
+ * ## The default follows `humanGate.mode` (CodySwannGT/lisa#4687)
+ *
+ * An agent performs every act it has access to perform, and ratifying a
+ * dependency is such an act. So under the default `humanGate.mode:
+ * "access-only"` an undeclared `humanSignOff` resolves to `"none"`: the agent
+ * ratifies and records its reasoning. Under `"strict"` it resolves to
+ * `"default"`, today's ratification requirements. A value the project declares
+ * always wins over the mode.
  *
  * ## Why an invalid value degrades instead of throwing
  *
  * Every other closed config value in Lisa is rejected outright. This one is
  * not, because it changes only what governed prose asks an agent to do —
  * nothing Lisa writes depends on it — so a typo must not stop `lisa apply`.
- * Degrading to `"default"` is the safe direction: the project keeps asking for
- * sign-off it may not have wanted, rather than skipping sign-off it did. It is
- * still REPORTED ({@link dependencySettingsWarning}, and an `INVALID` note in
+ * It degrades to the mode's default, the same value an undeclared key gets, so
+ * a typo behaves exactly like not having typed anything. It is still REPORTED ({@link dependencySettingsWarning}, and an `INVALID` note in
  * the session's resolved-config block), because a project that meant `"none"`
- * and silently got `"default"` would otherwise see no symptom at all.
+ * and silently got the other value would otherwise see no symptom at all.
  *
  * The same holds for the block's SHAPE. A `dependencies` value that is not an
- * object degrades to `"default"` and is reported too, rather than throwing like
+ * object degrades to the mode's default and is reported too, rather than throwing like
  * other config blocks do: a project that already carried any-shaped
  * `dependencies` key before this setting existed must not find `lisa apply`
  * broken by an upgrade, and the session hook already reports that shape as
- * "treated as default" — the CLI must not disagree with it.
+ * the same fallback — the CLI must not disagree with it.
  *
  * The resolved-config session hook keeps its own copy of the vocabulary — it
  * ships inside a plugin payload and cannot import this module — and its
  * wiring test pins that copy against {@link DEPENDENCY_HUMAN_SIGN_OFF_VALUES}.
  * @module core/project-config-dependencies
  */
+import {
+  type ConfigWithHumanGate,
+  type HumanGateMode,
+  resolveHumanGateMode,
+} from "./project-config-human-gate.js";
 
 /** The closed vocabulary of `dependencies.humanSignOff`. */
 export const DEPENDENCY_HUMAN_SIGN_OFF_VALUES = ["default", "none"] as const;
@@ -41,9 +53,28 @@ export const DEPENDENCY_HUMAN_SIGN_OFF_VALUES = ["default", "none"] as const;
 export type DependencyHumanSignOff =
   (typeof DEPENDENCY_HUMAN_SIGN_OFF_VALUES)[number];
 
-/** Value in force when the key is absent or invalid: today's behavior. */
-export const DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF: DependencyHumanSignOff =
+/**
+ * Value in force when the key is absent or invalid under the default
+ * `humanGate.mode: "access-only"`: the agent ratifies.
+ */
+export const DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF: DependencyHumanSignOff = "none";
+
+/** Value in force when the key is absent or invalid under `"strict"`. */
+export const STRICT_DEPENDENCY_HUMAN_SIGN_OFF: DependencyHumanSignOff =
   "default";
+
+/**
+ * The `humanSignOff` an undeclared or invalid key resolves to under a mode.
+ * @param mode - The `humanGate.mode` in force
+ * @returns The mode's default
+ */
+export function defaultDependencyHumanSignOff(
+  mode: HumanGateMode
+): DependencyHumanSignOff {
+  return mode === "strict"
+    ? STRICT_DEPENDENCY_HUMAN_SIGN_OFF
+    : DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF;
+}
 
 /**
  * The optional `dependencies` block, as declared.
@@ -64,7 +95,7 @@ export interface DependenciesConfig {
 }
 
 /** Minimum project-config shape the resolver reads. */
-interface ConfigWithDependencies {
+interface ConfigWithDependencies extends ConfigWithHumanGate {
   readonly dependencies?: DependenciesConfig;
 }
 
@@ -127,10 +158,11 @@ function isHumanSignOff(value: unknown): value is DependencyHumanSignOff {
 export function resolveDependencySettings(
   config: ConfigWithDependencies
 ): ResolvedDependencySettings {
+  const fallback = defaultDependencyHumanSignOff(resolveHumanGateMode(config));
   const block = config.dependencies;
   if (block !== undefined && "rejectedBlock" in block) {
     return Object.freeze({
-      humanSignOff: DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
+      humanSignOff: fallback,
       declared: true,
       rejected: JSON.stringify(block.rejectedBlock),
       rejectedAt: "dependencies",
@@ -139,7 +171,7 @@ export function resolveDependencySettings(
   const declared = block?.humanSignOff;
   if (declared === undefined) {
     return Object.freeze({
-      humanSignOff: DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
+      humanSignOff: fallback,
       declared: false,
     });
   }
@@ -147,7 +179,7 @@ export function resolveDependencySettings(
     return Object.freeze({ humanSignOff: declared, declared: true });
   }
   return Object.freeze({
-    humanSignOff: DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
+    humanSignOff: fallback,
     declared: true,
     rejected: JSON.stringify(declared),
   });
@@ -162,11 +194,16 @@ export function resolveDependencySettings(
 export function dependencySettingsWarning(
   config: ConfigWithDependencies
 ): string | undefined {
-  const { rejected, rejectedAt } = resolveDependencySettings(config);
+  const { humanSignOff, rejected, rejectedAt } =
+    resolveDependencySettings(config);
   if (rejected === undefined) {
     return undefined;
   }
-  const consequence = `treated as "${DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF}", so dependency sign-off stays required where the trust-class rule asks for it.`;
+  const effect =
+    humanSignOff === "none"
+      ? "so the agent ratifies dependency decisions and records its reasoning."
+      : "so dependency sign-off stays required where the trust-class rule asks for it.";
+  const consequence = `treated as "${humanSignOff}" (the humanGate.mode default), ${effect}`;
   if (rejectedAt === "dependencies") {
     return `Invalid dependencies in .lisa.config.json: ${rejected} is not an object; humanSignOff is ${consequence}`;
   }

@@ -52,6 +52,8 @@ export const BLOCKED_RELEASE_ACTIONS = Object.freeze([
  *   comments?: unknown,
  *   trustedHumanActorIds?: unknown,
  *   humanNeededLabel?: unknown,
+ *   humanOnly?: unknown,
+ *   humanGateMode?: unknown,
  *   edges?: readonly object[] | null | undefined,
  *   pendingQuestion?: unknown,
  * }} [input] The item's hold surfaces, its judged edges, and the ledger question.
@@ -69,6 +71,13 @@ export function planBlockedRelease(input = {}) {
     comments: input.comments,
     trustedHumanActorIds: input.trustedHumanActorIds,
     humanNeededLabel: input.humanNeededLabel,
+    // The project's human-gate policy (CodySwannGT/lisa#4687): whether a hold
+    // is valid, and so whether a lift comment may discharge it, depends on
+    // `humanGate.mode` and `humanGate.humanOnly`. Omitted, a strict project's
+    // hold would be judged under access-only. The caller resolves both from
+    // config, never from the item.
+    humanOnly: input.humanOnly,
+    humanGateMode: input.humanGateMode,
   });
 
   if (gate.held) {

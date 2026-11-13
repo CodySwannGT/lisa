@@ -1,6 +1,8 @@
 /**
  * `dependencies.humanSignOff` is an optional closed-vocabulary setting whose
- * absence keeps today's behavior and whose invalid values degrade to it.
+ * absence and invalid values resolve to the `humanGate.mode` default:
+ * `"none"` under the default `"access-only"` mode (CodySwannGT/lisa#4687),
+ * `"default"` under `"strict"`.
  *
  * The degrade-not-throw contract is deliberate: the setting only changes what
  * the governed prose asks an agent to do, so a typo must never stop `lisa
@@ -21,6 +23,8 @@ import {
 import {
   DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
   DEPENDENCY_HUMAN_SIGN_OFF_VALUES,
+  STRICT_DEPENDENCY_HUMAN_SIGN_OFF,
+  defaultDependencyHumanSignOff,
   dependencySettingsWarning,
   resolveDependencySettings,
   validateDependenciesConfig,
@@ -30,25 +34,34 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 const SOURCE = ".lisa.config.json";
 
 describe("dependencies.humanSignOff vocabulary", () => {
-  it("is the closed pair default | none, defaulting to default", () => {
+  it("is the closed pair default | none, defaulting by humanGate.mode", () => {
     expect(DEPENDENCY_HUMAN_SIGN_OFF_VALUES).toEqual(["default", "none"]);
-    expect(DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF).toBe("default");
+    expect(DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF).toBe("none");
+    expect(STRICT_DEPENDENCY_HUMAN_SIGN_OFF).toBe("default");
+    expect(defaultDependencyHumanSignOff("access-only")).toBe("none");
+    expect(defaultDependencyHumanSignOff("strict")).toBe("default");
   });
 });
 
 describe("resolveDependencySettings", () => {
-  it("resolves an absent block to the default, undeclared and valid", () => {
+  it("resolves an absent block to the access-only default, undeclared and valid", () => {
     expect(resolveDependencySettings({})).toEqual({
-      humanSignOff: "default",
+      humanSignOff: "none",
       declared: false,
     });
   });
 
   it("resolves an absent key inside a present block to the default", () => {
     expect(resolveDependencySettings({ dependencies: {} })).toEqual({
-      humanSignOff: "default",
+      humanSignOff: "none",
       declared: false,
     });
+  });
+
+  it("resolves an absent key to default under humanGate.mode strict", () => {
+    expect(
+      resolveDependencySettings(configOf({ humanGate: { mode: "strict" } }))
+    ).toEqual({ humanSignOff: "default", declared: false });
   });
 
   it.each(["default", "none"] as const)(
@@ -61,12 +74,12 @@ describe("resolveDependencySettings", () => {
   );
 
   it.each([["sometimes"], ["NONE"], [""], [false], [0], [null], [["none"]]])(
-    "treats the invalid value %j as default and reports what it rejected",
+    "treats the invalid value %j as the mode default and reports what it rejected",
     value => {
       expect(
         resolveDependencySettings({ dependencies: { humanSignOff: value } })
       ).toEqual({
-        humanSignOff: "default",
+        humanSignOff: "none",
         declared: true,
         rejected: JSON.stringify(value),
       });
@@ -90,7 +103,19 @@ describe("dependencySettingsWarning", () => {
     expect(warning).toContain("dependencies.humanSignOff");
     expect(warning).toContain('"sometimes"');
     expect(warning).toContain('"default" | "none"');
+    expect(warning).toContain('treated as "none"');
+  });
+
+  it("names the strict fallback under humanGate.mode strict", () => {
+    const warning = dependencySettingsWarning(
+      configOf({
+        humanGate: { mode: "strict" },
+        dependencies: { humanSignOff: "sometimes" },
+      })
+    );
+
     expect(warning).toContain('treated as "default"');
+    expect(warning).toContain("sign-off stays required");
   });
 
   it("names a dependencies block that is not an object, and the fallback", () => {
@@ -100,7 +125,7 @@ describe("dependencySettingsWarning", () => {
 
     expect(warning).toContain("Invalid dependencies in .lisa.config.json");
     expect(warning).toContain('"none" is not an object');
-    expect(warning).toContain('treated as "default"');
+    expect(warning).toContain('treated as "none"');
   });
 });
 
@@ -126,11 +151,11 @@ describe("validateDependenciesConfig", () => {
 });
 
 describe("resolveDependencySettings with a non-object block", () => {
-  it("resolves to default and records the block as what was rejected", () => {
+  it("resolves to the mode default and records the block as what was rejected", () => {
     expect(
       resolveDependencySettings(configOf({ dependencies: "none" }))
     ).toEqual({
-      humanSignOff: "default",
+      humanSignOff: "none",
       declared: true,
       rejected: '"none"',
       rejectedAt: "dependencies",
@@ -162,7 +187,7 @@ describe("readProjectConfig carries the dependencies block", () => {
     });
     const config = await readProjectConfig(tempDir);
     expect(resolveDependencySettings(config)).toEqual({
-      humanSignOff: "default",
+      humanSignOff: "none",
       declared: true,
       rejected: '"sometimes"',
     });
@@ -175,7 +200,7 @@ describe("readProjectConfig carries the dependencies block", () => {
 
     const config = await readProjectConfig(tempDir);
 
-    expect(resolveDependencySettings(config).humanSignOff).toBe("default");
+    expect(resolveDependencySettings(config).humanSignOff).toBe("none");
     expect(dependencySettingsWarning(config)).toContain("is not an object");
   });
 });

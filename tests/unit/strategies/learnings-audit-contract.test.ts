@@ -6,8 +6,9 @@
  * classifies via the ladder router (skill-evaluator, advisory), and
  * communicates exclusively through the tracker — per-item tickets for
  * PROMOTE/DEMOTE, one batch ticket per run for CONFIRM/RETIRE, upstream
- * issues for upstream-scoped recommendations. Everything is human-gated at
- * v1; the skill only files tickets. Recommendations are fingerprint-marked
+ * issues for upstream-scoped recommendations. The skill only files tickets:
+ * build-ready under the default `humanGate.mode: "access-only"` (except a
+ * change to a human-authored surface), human-gated under `"strict"` (#4687). Recommendations are fingerprint-marked
  * and deduped against open AND closed issues, and the gardener's own output
  * is never a candidate (no learning loops about learning).
  *
@@ -75,12 +76,36 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     expect(skill).toContain("`policy-obsolete`");
   });
 
-  it("is human-gated everything at v1 — the skill only files tickets", () => {
+  it("only files tickets — never edits knowledge surfaces itself", () => {
     expect(skill).toMatch(/only files tickets/i);
-    expect(skill).toMatch(/human-gated/i);
     expect(skill).toMatch(/status:ready/);
-    // It never edits knowledge surfaces itself.
     expect(skill).toMatch(/never (edits?|writes?|deletes?|modif)/i);
+  });
+
+  it("files build-ready under access-only, with a human gate only for a human-authored surface", () => {
+    const emission = skill.slice(
+      skill.indexOf("## Ticket emission"),
+      skill.indexOf("**Per-item tickets")
+    );
+    expect(emission).toMatch(
+      /\*\*`access-only` \(default\)\*\* — file every PROMOTE \/ DEMOTE \/ RETIRE \/\s+CONFIRM ticket \*\*build-ready\*\* \(`status:ready`\), with no `human_gate`/
+    );
+    expect(emission).toMatch(/\*\*human-authored surface\*\*/);
+    expect(emission).toMatch(
+      /authorship\s+rule, not an access gate, and it holds in both modes/
+    );
+  });
+
+  it("keeps everything human-gated under strict, with the declared hold reason", () => {
+    expect(skill).toMatch(/under `strict` everything is human-gated/i);
+    expect(skill).toContain(
+      'ticket passes `human_gate: "a human decides whether this knowledge is\n  promoted, demoted, or retired"`'
+    );
+  });
+
+  it("makes close-out decisions itself, never by deleting tickets", () => {
+    expect(skill).toMatch(/Close-out decisions are the agent's/);
+    expect(skill).not.toMatch(/close-out decisions belong to humans/i);
   });
 
   it("inventories every knowledge surface through the proper access paths", () => {

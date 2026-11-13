@@ -24,7 +24,7 @@ const CONTRACT =
 
 /** The contract line that names the outcome for holding an item for a human. */
 const CONTRACT_LINE =
-  "A healthy cycle that routes a work item to `Blocked` with clarifying questions is\n`candidate-proposed`";
+  "A healthy cycle that routes a work item to `Blocked` naming the access it lacks is\n`candidate-proposed`";
 
 describe("the automation-runbook contract the runbook cites", () => {
   it("assigns candidate-proposed to routing an item to a hold with questions", () => {
@@ -47,6 +47,21 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
     for (const { label, kind } of cases) {
       expect(mark).toContain(`| ${label} | \`${kind}\` |`);
     }
+  });
+
+  it("decides decision and repo-route questions itself when the evidence supports a call (#4687)", () => {
+    expect(mark).toContain("**Decide before you mark.**");
+    expect(mark).toMatch(
+      /the\s+manager \(or the worker\) makes it, posts the choice and its reasoning on the item/
+    );
+    // Relay only for missing access or an operator hold (the closed list).
+    expect(mark).toMatch(/an access\s+gap the agent cannot close/);
+    expect(mark).toMatch(/a hold the operator\s+explicitly asked for/);
+    expect(mark).not.toMatch(/a fact no available evidence can settle/);
+    // Strict restores the old relay.
+    expect(mark).toMatch(
+      /Under `humanGate\.mode: "strict"` a design\s+or\s+product\s+decision\s+and\s+an\s+ambiguous\s+repo\s+route\s+are\s+relayed\s+to\s+the\s+operator\s+as\s+before/
+    );
   });
 
   it("marks in order: plan, ledger first, tracker, read back, record, planning signal, continue", () => {

@@ -30,6 +30,21 @@ describe("repair-intake contract", () => {
       );
     });
 
+    it("reserves human_needed for access and operator holds, not product or scoping calls (#4687)", () => {
+      expect(skill).toMatch(
+        /\*\*only a human can supply\*\* \(credentials or access\/permissions the agent cannot obtain/
+      );
+      expect(skill).toMatch(
+        /A product or scoping decision is not on that list: the agent makes it from\s+the evidence, records the reasoning on the item, and continues/
+      );
+      expect(skill).toMatch(
+        /under `humanGate\.mode: "strict"`\s+it is human-needed as before/
+      );
+      expect(skill).not.toMatch(
+        /access\/permissions, a product or scoping decision\)/
+      );
+    });
+
     it("defaults dual GitHub repair queues to both lifecycles", () => {
       expect(skill).toMatch(/Absent .*`both` when both namespaces exist/is);
       expect(skill).toMatch(/Default GitHub `intake_mode` is `both`/);

@@ -1,6 +1,6 @@
 ---
 name: lisa-debrief-apply
-description: "Apply human-marked dispositions from a Debrief triage document. Reads the triage doc produced by lisa-debrief, parses each row's disposition (Accept / Reject / Defer), and routes Accepted items to their persistence destination. Deterministic and idempotent — safe to re-run if dispositions are added incrementally."
+description: "Apply the dispositions marked in a Debrief triage document (by a human, or by the agent itself when none are marked under humanGate.mode access-only). Reads the triage doc produced by lisa-debrief, parses each row's disposition (Accept / Reject / Defer), and routes Accepted items to their persistence destination. Deterministic and idempotent — safe to re-run if dispositions are added incrementally."
 allowed-tools: ["Skill", "Bash", "Read", "Edit", "Write", "Glob", "Grep"]
 ---
 
@@ -17,7 +17,7 @@ A path or URL to a Debrief triage document produced by `lisa-debrief`. The docum
 ## Pre-flight
 
 1. **Verify the doc exists and parses.** If the file cannot be read or the expected sections are missing, stop and report — do not guess.
-2. **Confirm dispositions exist.** If every row is unmarked, stop and ask the human to triage first. A pristine doc is a no-op, not an error to silently swallow.
+2. **Confirm dispositions exist.** If every row is unmarked, triage it yourself under the default `humanGate.mode: "access-only"`: mark each row **Accept**, **Reject** or **Defer** with a one-line reason drawn from the row's evidence, write the marks into the doc so a person can change them, and proceed. A row you marked is not human corroboration, so its ledger entry takes `confidence: low` (not `high`) and routes through `lisa-persist-learning`'s `learnings.lowConfidence` routing. Under `humanGate.mode: "strict"`, stop and ask the human to triage first: a pristine doc is then a no-op, not an error to silently swallow.
 3. **Identify the destination map.** Read the project's `.lisa.config.json` (or stack defaults) for: edge-case checklist file (default: `plugins/src/base/rules/intent-routing.md`'s Edge Case Brainstorm sub-flow), the committed learnings ledger path (resolve it — never hardcode — via `resolveProjectLearningsFile` from `@codyswann/lisa/learnings`: the `learnings.file` override, else the default `.lisa/PROJECT_LEARNINGS.md`), tracker for new tickets. The three knowledge categories (recurring gotcha, process friction, convention drift) all land in the ledger now; machine-local auto-memory and host rules (`.agents/rules/`) / `AGENTS.md` are no longer knowledge destinations (see [Ledger persistence](#ledger-persistence-knowledge-categories)).
 
 ## Routing rules
@@ -62,7 +62,7 @@ Use the branch, PR deduplication, commit, submission and confidence-routing sequ
    - `rule` / `why` — from the row's `Summary` and the category-specific guidance in the routing table above (≤240 chars, ≤2 lines).
    - `provenance` — **the triage-doc row's evidence links**. Evidence supports a rule; it is not the rule's identity, and one event may support several distinct lessons.
    - `first_learned` = `last_confirmed` = today (ISO date; on consolidation keep the superseded entry's earliest `first_learned`).
-   - `confidence` = **`high`**. A human marking the row **Accept** is corroboration — an independent human judgement that the learning is real — so a debrief-accepted entry starts higher than the learner's single-occurrence auto-capture (which defaults to `low`). A duplicate fingerprint fails before mutation. The writer re-asserts the entry and token budgets; an over-budget failure means consolidate harder or drop, never truncate by hand.
+   - `confidence` = **`high`**. A human marking the row **Accept** is corroboration — an independent human judgement that the learning is real — so a debrief-accepted entry starts higher than the learner's single-occurrence auto-capture (which defaults to `low`). A row the agent marked itself (Pre-flight step 2) is not that corroboration: it takes **`low`**. A duplicate fingerprint fails before mutation. The writer re-asserts the entry and token budgets; an over-budget failure means consolidate harder or drop, never truncate by hand.
 
 **Machine-local memory is no longer a knowledge destination.** Auto-memory (`project_*.md`, `MEMORY.md`) remains available only for the assistant's *personal* collaboration notes — it is invisible to cloud runs and to teammates, so it can never hold shared project knowledge. **`AGENTS.md` is human-authored** agent operating instruction — it is the source of truth, and `CLAUDE.md` is only a one-line `@AGENTS.md` pointer — and the host-rules directory `.agents/rules/` is durable human-authored guidance; `apply` never writes to any of the three for these categories.
 

@@ -464,11 +464,16 @@ FILE IT THE SANCTIONED WAY — one of these three, always explicit:
    write, and claims it. Complete means the \`work-item-definition-of-ready\`
    bar — reproduction, observed-versus-expected, Gherkin acceptance criteria.
 
-2. A person must perform an act an agent cannot: supply a credential only
-   they hold, approve spend, open an external account, give a legal or
-   compliance sign-off, or act in a system the agent cannot reach. A choice
-   with a reasonable default is NOT that: decide it, record the decision on
-   the item, and use 1. Otherwise route the same way but pass
+2. A person must perform an act the agent lacks access to: complete an
+   interactive login or supply a credential only they hold, approve spend,
+   open an external account, sign a legal agreement (contract, BAA, DPA,
+   license), act from an account only a person holds (such as a protected
+   deployment approval), act in a system the agent cannot reach, release a
+   hold the operator explicitly asked for, or edit a file the project says
+   only people write. A choice with a reasonable default is NOT that, and
+   neither is a compliance judgement or naming an owner (unless
+   humanGate.mode is "strict"): decide it, record the decision on the item,
+   and use 1. Otherwise route the same way but pass
    \`human_gate: "<the act a person must perform>"\` in place of
    \`build_ready: true\` — the two are mutually exclusive. The leaf is filed
    into the default backlog role, outside the lane build-intake claims from,

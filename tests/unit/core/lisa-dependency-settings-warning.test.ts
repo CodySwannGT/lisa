@@ -1,7 +1,8 @@
 /**
- * `lisa apply` tells the operator when `dependencies.humanSignOff` is invalid.
+ * `lisa apply` tells the operator when `dependencies.humanSignOff` or
+ * `humanGate.mode` is invalid.
  *
- * The value degrades to `"default"` rather than failing the apply, so the
+ * Each value degrades to its default rather than failing the apply, so the
  * apply-time warning is the only place the CLI says the project did not get the
  * setting it typed. This drives the real `Lisa.apply` far enough to reach that
  * step, then stops it at the next one, so the assertion is about the call the
@@ -118,7 +119,28 @@ describe("Lisa.apply reports an invalid dependencies.humanSignOff", () => {
     );
     expect(matching).toHaveLength(1);
     expect(matching[0]).toContain('"sometimes"');
-    expect(matching[0]).toContain('treated as "default"');
+    // CodySwannGT/lisa#4687: the fallback is the humanGate.mode default,
+    // "none" under the default access-only mode.
+    expect(matching[0]).toContain('treated as "none"');
+  });
+
+  it('warns with the rejected value for humanGate.mode "lenient"', async () => {
+    await applyWith({ humanGate: { mode: "lenient" } });
+
+    const matching = logger.warnings.filter(warning =>
+      warning.includes("humanGate.mode")
+    );
+    expect(matching).toHaveLength(1);
+    expect(matching[0]).toContain('"lenient"');
+    expect(matching[0]).toContain('treated as "access-only"');
+  });
+
+  it("says nothing about humanGate when it is valid", async () => {
+    await applyWith({ humanGate: { mode: "strict" } });
+
+    expect(
+      logger.warnings.filter(warning => warning.includes("humanGate"))
+    ).toEqual([]);
   });
 
   it("says nothing about the setting when it is valid", async () => {

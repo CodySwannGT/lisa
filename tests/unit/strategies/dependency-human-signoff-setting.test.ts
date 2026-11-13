@@ -1,13 +1,14 @@
 /**
- * Every surface that asks for dependency sign-off names the switch that turns
- * it off, and the default still asks.
+ * Every surface that asks for dependency sign-off names the switch that
+ * controls it, and the default has the agent ratify (CodySwannGT/lisa#4687).
  *
- * `dependencies.humanSignOff: "none"` is only real if NO surface an agent reads
+ * `dependencies.humanSignOff: "none"` — the default under the default
+ * `humanGate.mode: "access-only"` — is only real if NO surface an agent reads
  * still directs it to stop for a person: a worker holding a ticket for approval
  * because one file kept the old sentence is exactly the failure the setting
- * exists to remove. Equally, the default must keep the class-4 ratification
- * requirement word for word, because projects that set nothing must see no
- * change.
+ * exists to remove. Equally, the class-4 ratification requirement stays word
+ * for word for projects that choose `"default"` or `humanGate.mode: "strict"`,
+ * because those projects asked for a person to sign off.
  * @module tests/unit/strategies/dependency-human-signoff-setting
  */
 import { readFileSync } from "node:fs";
@@ -40,7 +41,7 @@ const KEY = "`dependencies.humanSignOff`";
 const flat = (file: string): string =>
   readFileSync(file, "utf8").replace(/\s+/gu, " ");
 
-describe("default behavior is unchanged (AC1)", () => {
+describe("the human-ratification requirements stay for projects that opt in (AC1)", () => {
   const rule = flat(RULE);
 
   it("still requires class-4 ratification to add and to major-upgrade", () => {
@@ -52,9 +53,9 @@ describe("default behavior is unchanged (AC1)", () => {
     );
   });
 
-  it("says the default keeps every requirement exactly as written", () => {
+  it('says only an explicit "default" or strict mode keeps every requirement exactly as written', () => {
     expect(rule).toContain(
-      'The default (`"default"`, or the key omitted) keeps every requirement below exactly as written.'
+      'A person ratifies, exactly as written below, only when the project sets `dependencies.humanSignOff` to `"default"` or `humanGate.mode` to `"strict"`'
     );
   });
 });
@@ -64,8 +65,9 @@ describe('"none" drops every ratification requirement (AC2)', () => {
 
   it("states the override in the head of the rule, where it is read first", () => {
     const head = rule.slice(0, rule.indexOf("## The five review inputs"));
+    expect(head).toContain("**By default the agent ratifies.**");
     expect(head).toContain(
-      `When \`.lisa.config.json\` sets ${KEY} to \`"none"\`, no ratification requirement or human-review trigger in this rule applies`
+      `${KEY} resolves to \`"none"\` unless the project sets it, so no requirement below waits on a person`
     );
   });
 
@@ -88,9 +90,12 @@ describe('"none" drops every ratification requirement (AC2)', () => {
     );
   });
 
-  it("reports an invalid value and falls back to default", () => {
+  it("reports an invalid value and falls back to the mode's default", () => {
     expect(rule).toContain(
-      'Any other value is reported as invalid and treated as `"default"`.'
+      "Any other value is reported as invalid and treated as the mode's default"
+    );
+    expect(flat(CONFIG_RULE)).toContain(
+      "is reported as invalid (in `lisa apply` output and the session's `lisa-resolved-config` block) and treated as the mode's default."
     );
   });
 
@@ -127,14 +132,20 @@ describe('"none" drops every ratification requirement (AC2)', () => {
   });
 
   it("tells the seeded record's reader the class and evidence still stand", () => {
-    expect(flat(SCAFFOLD)).toContain(
-      'sets `"dependencies": { "humanSignOff": "none" }` in `.lisa.config.json`; every sign-off above is then dropped, while the trust class and its evidence are still required.'
+    const scaffold = flat(SCAFFOLD);
+    expect(scaffold).toContain(
+      "**By default your coding agent gives that sign-off itself**"
+    );
+    expect(scaffold).toContain(
+      "In every setting the trust class and its evidence are still required."
     );
   });
 });
 
 describe("the key is documented in the config reference", () => {
   it("has a top-level-fields row with its default and closed vocabulary", () => {
-    expect(flat(CONFIG_RULE)).toContain(`| ${KEY} | no | \`"default"\` |`);
+    expect(flat(CONFIG_RULE)).toContain(
+      `| ${KEY} | no | \`"none"\` (\`"default"\` when \`humanGate.mode\` is \`"strict"\`) |`
+    );
   });
 });

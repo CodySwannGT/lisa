@@ -278,30 +278,95 @@ export function humanGateHolds(body) {
 
 /**
  * What a `human_gate` must name: an ACT an agent cannot perform
- * (CodySwannGT/lisa#4658). A reason is legitimate only when it names one of
- * the acts below, or a decision class the project declared human-only
- * (`humanGate.humanOnly`). Anything else is a decision the agent makes and
- * records. The writer-side CLI is `human-gate-act.mjs`; the sweep is
- * `human-gate-lift.mjs`. It lives here so the hold verdict can judge a lift
- * without a new dependency edge (the npm updater pins this file's dependency graph).
+ * (CodySwannGT/lisa#4658). An agent performs every act it has access to
+ * perform (CodySwannGT/lisa#4687), so a reason is legitimate only when it
+ * names one of the access acts below, or a decision class the project
+ * declared human-only (`humanGate.humanOnly`). Anything else is a decision the
+ * agent makes and records. The writer-side CLI is `human-gate-act.mjs`; the
+ * sweep is `human-gate-lift.mjs`. It lives here so the hold verdict can judge
+ * a lift without a new dependency edge (the npm updater pins this file's
+ * dependency graph).
  */
 
 /**
- * The acts an agent cannot perform. Each `label` is phrased so it completes
+ * The closed vocabulary of `humanGate.mode` (CodySwannGT/lisa#4687).
+ *
+ * `access-only` (the default): a person is needed only for an act the agent
+ * genuinely lacks access to. `strict`: the pre-#4687 gates come back, so a
+ * compliance judgement, naming an accountable person and Lisa's own policy
+ * calls (learnings promotion, harness interventions, automation retirement,
+ * exploratory-QA significance, operator prioritization) are held again. The
+ * TypeScript config reader keeps the same vocabulary in
+ * `src/core/project-config-human-gate.ts`; a test pins the two together.
+ */
+export const HUMAN_GATE_MODES = Object.freeze(["access-only", "strict"]);
+
+/** The mode in force when `humanGate.mode` is absent or invalid. */
+export const DEFAULT_HUMAN_GATE_MODE = "access-only";
+
+/**
+ * The comparable form of a `humanGate.mode` value: trimmed and lower-cased, so
+ * a project that typed `"Strict"` gets strict rather than a silent downgrade
+ * (CodySwannGT/lisa#4687 review). A non-string is returned unchanged and so
+ * never matches a mode.
+ * @param {unknown} mode - A raw `humanGate.mode` value
+ * @returns {unknown} The normalized value
+ */
+export function normalizeHumanGateMode(mode) {
+  return typeof mode === "string" ? mode.trim().toLowerCase() : mode;
+}
+
+/**
+ * Whether a mode value selects the strict gate, after normalization. An
+ * unknown value is not strict; readers report it rather than guess.
+ * @param {unknown} mode - A `humanGate.mode` value
+ * @returns {boolean} True only for a value that normalizes to `"strict"`
+ */
+function isStrictMode(mode) {
+  return normalizeHumanGateMode(mode) === "strict";
+}
+
+/**
+ * The acts a person must perform. Each `label` is phrased so it completes
  * "Held for a person to …", which is how the writers render the visible line.
+ *
+ * An entry with `strictOnly: true` is a human gate only under
+ * `humanGate.mode: "strict"`; under the default `access-only` mode it is a
+ * decision the agent makes and records. Every other entry is an act the agent
+ * genuinely lacks access to: a login or credential only a person holds,
+ * spending money, opening an account in a person's or the company's name, a
+ * legal signature, an account only a person holds, a system the agent cannot
+ * reach, and a hold the operator explicitly asked for. One more entry is valid
+ * in both modes without being an access gate: a change to a surface the
+ * project declared human-authored, which the authorship rule keeps free of
+ * automated writes.
  *
  * The patterns run over a normalized reason (lower case, hyphens and
  * underscores read as spaces) so a slug and its prose spelling match alike.
  * They are intentionally narrow: a word that is also an everyday topic
  * ("token", "login", "billing page") is left out, because a pattern that
- * matches a topic re-opens the gate this module closes.
+ * matches a topic re-opens the gate this module closes. Order matters: the
+ * first match wins, so the access acts come before the strict-only ones and a
+ * BAA reads as a legal signature, not as a compliance judgement.
  */
 export const HUMAN_GATE_ACTS = Object.freeze([
   Object.freeze({
     act: "credential",
-    label: "supply a credential only a person holds",
+    label: "complete a login or supply a credential only a person holds",
+    // A secret is never a topic: this entry is exempt from the topic veto.
+    secret: true,
     pattern:
-      /\b(credentials?|secrets?|passwords?|passphrases?|api keys?|access keys?|private keys?|deploy keys?|ssh keys?|signing keys?|auth tokens?|oauth|2fa|mfa|otp|one time codes?)\b/u,
+      /\b(credentials?|secrets?|passwords?|passphrases?|api keys?|access keys?|private keys?|deploy keys?|ssh keys?|signing keys?|auth tokens?|2fa|mfa|otp|one time codes?)\b/u,
+  }),
+  Object.freeze({
+    act: "credential",
+    label: "complete a login or supply a credential only a person holds",
+    // A login provider IS a topic as often as an act ("sso-provider-choice",
+    // "sso login button design"), so these words get the topic veto in prose
+    // as well as in a slug: a topic word with no act verb beside it refuses.
+    proseVeto: true,
+    pattern:
+      /\b(oauth|sso|single sign on|interactive ([a-z]+ ){0,4}(login|log in|sign in)|console (login|log in|sign in)|(log|sign)(ging)? in(to)?( to)?( the)?( [a-z]+){0,4} (console|portal|app store connect)|app store connect (login|log in|sign in))\b/u,
   }),
   Object.freeze({
     act: "spend",
@@ -317,15 +382,20 @@ export const HUMAN_GATE_ACTS = Object.freeze([
   }),
   Object.freeze({
     act: "legal-signoff",
-    label: "give a legal or compliance sign-off",
+    // A legal SIGNATURE only: a contract, BAA, DPA or license accepted on the
+    // company's behalf. A compliance judgement is not a signature; it is the
+    // strict-only `compliance-signoff` below (CodySwannGT/lisa#4687).
+    label: "sign a legal agreement on the company's behalf",
     pattern:
-      /\b(baa|business associate agreement|sign (a|an|the) [a-z ]{0,30}(agreement|contract|baa|dpa)|legal|lawyer|counsel|compliance|regulatory|hipaa|gdpr|soc ?2|contracts?|terms of service|licen[cs]e agreements?|protected (deploy|deployment|environment)s?)\b/u,
+      /\b(baa|business associate agreement|dpa|data processing (agreement|addendum)|master services agreement|non disclosure agreement|(sign|signs|signed|signing|countersign\w*|execute\w*) ((a|an|the|our|this) )?([a-z]+ ){0,4}(agreement|contract|baa|dpa|nda|msa|license|licence|terms)|accept\w* ((a|an|the|our|this) )?([a-z]+ ){0,4}(licen[cs]e|terms|agreement)|legal signature|contract signature|licen[cs]e acceptance|(sign|accept|agree|execut|countersign)\w*( [a-z]+){0,6} on behalf of the company)\b/u,
   }),
   Object.freeze({
-    act: "accountable-person",
-    label: "name an accountable person",
+    act: "person-only-account",
+    label: "act from an account only a person holds",
+    // A protected-deployment required reviewer or a ruleset approval that must
+    // come from a person: the agent has no such account, so it cannot act.
     pattern:
-      /\b(accountable (person|owner|party)|name (an|the) (owner|approver|accountable)|(owner|approver) who answers|answers for)\b/u,
+      /\b((approv\w*|sign\w* off on|act as) (the |a |this )?([a-z]+ ){0,3}(deploy|deployment|release|environment)s?|(deploy|deployment|release|production) approvals?|required reviewers? (must |to |should |has to )?(approv\w*|sign\w* off)|ruleset approvals?|accounts? only (a|the) (person|human|founder|owner|operator) (holds|has)|person only accounts?)\b/u,
   }),
   Object.freeze({
     act: "unreachable-system",
@@ -334,14 +404,50 @@ export const HUMAN_GATE_ACTS = Object.freeze([
       /\b(admin (rights|access|permissions?|role)|grant admin|physically|invite ([a-z]+ ){0,4}to (the |a |our )?([a-z]+ )?(workspace|org|organization|team|repo|repository|project)|add (the |a |our )?(bot|app|agent|integration) to|workspace admin|physical|hardware|on site|in person|unreachable|cannot reach|can ?not reach|cant reach|no access|outside (the )?agent|grant(s|ed|ing)? ([a-z]+ ){0,3}(access|permissions?|roles?)|give (the )?agent ([a-z]+ ){0,3}access|access (the )?agent (lacks|does not have|doesnt have|cannot get)|agent (lacks|does not have|doesnt have) ([a-z]+ ){0,4}access|tool access|missing access|access grant|provision(ing)? access|phone call)\b/u,
   }),
   Object.freeze({
+    act: "operator-hold",
+    label: "release a hold the operator explicitly asked for",
+    // The operator's own hold: an existing behaviour, valid in every mode.
+    // It must name a HOLD: "the customer explicitly asked for dark mode" is
+    // a request to build something, not a request to stop (review finding).
+    pattern:
+      /\b(operator( [a-z]+){0,10} (hold|held|paused?|parked?)|(hold|held|paused?|parked?)( [a-z]+){0,4} (by|for) (the )?operator|(hold|held)( [a-z]+){0,4} (the )?operator (explicitly )?(asked|requested)|explicitly (held|paused|parked))\b/u,
+  }),
+  Object.freeze({
+    act: "human-authored-surface",
+    // Not missing access: the authorship rule. A surface declared
+    // human-authored (a host's `.agents/rules/`, `PROJECT_RULES.md`,
+    // `AGENTS.md`) receives no automated writes in either mode, so a change
+    // to one waits on the person who authors it (CodySwannGT/lisa#4687).
+    // Plain words for a non-technical operator; the reason is the authorship
+    // rule, not missing access.
+    label: "edit a file the project says only people write",
+    pattern:
+      /\b(declared human authored|human authored (surfaces?|files?|rules?)|project rules( md)?|agents md|agents rules|claude rules)\b/u,
+  }),
+  Object.freeze({
+    act: "compliance-signoff",
+    label: "give a compliance sign-off",
+    strictOnly: true,
+    pattern:
+      /\b(legal|lawyer|counsel|compliance|regulatory|hipaa|gdpr|soc ?2|contracts?|terms of service|licen[cs]e agreements?)\b/u,
+  }),
+  Object.freeze({
+    act: "accountable-person",
+    label: "name an accountable person",
+    strictOnly: true,
+    pattern:
+      /\b(accountable (person|owner|party)|name (an|the) (owner|approver|accountable)|(owner|approver) who answers|answers for)\b/u,
+  }),
+  Object.freeze({
     act: "lisa-policy",
     label: "make a call Lisa's own policy reserves for a person",
-    // Lisa's own human-only gates: exploratory-QA findings (the named exception
-    // in `ready-role-filing`), learnings promotion/demotion, harness
-    // interventions, automation retirement, and a hold the operator explicitly
-    // asked for. Each is a gate the factory model places outside the factory.
+    strictOnly: true,
+    // Lisa's pre-#4687 human-only calls: exploratory-QA findings, learnings
+    // promotion/demotion, harness interventions, automation retirement and
+    // operator prioritization. Under `access-only` the agent makes each one
+    // and records why; the operator's explicit hold is `operator-hold` above.
     pattern:
-      /\b(exploratory (finding|qa)|harness intervention|(promot|demot|retir)\w*\b.{0,80}?\b(knowledge|learnings?)|(knowledge|learnings?)\b.{0,80}?\b(promot|demot|retir)\w*|automation retirement|retire (an |the )?automations?|operator (prioriti[sz]ation|requested)|operator (explicitly )?(asked|requested)|explicitly asked for|requested by (the )?operator)\b/u,
+      /\b(exploratory (finding|qa)|harness intervention|(promot|demot|retir)\w*\b.{0,80}?\b(knowledge|learnings?)|(knowledge|learnings?)\b.{0,80}?\b(promot|demot|retir)\w*|automation retirement|retire (an |the )?([a-z]+ )?automations?|operator prioriti[sz]ation)\b/u,
   }),
 ]);
 
@@ -349,14 +455,18 @@ export const HUMAN_GATE_ACTS = Object.freeze([
  * Acts whose keyword alone could be a topic. A slug such as
  * `compliance-dashboard-triage` or `oauth-provider-choice` carries an act
  * keyword but names a decision about a topic, so for these acts a topic word
- * with no act verb beside it is refused. Lisa's own policy gates and
- * project-declared classes are exempt: they are already named decisions.
+ * with no act verb beside it is refused. Lisa's own policy gates, the
+ * operator's hold and project-declared classes are exempt: they are already
+ * named decisions.
  */
 const KEYWORD_ACTS = new Set([
   "credential",
   "spend",
   "external-account",
   "legal-signoff",
+  "person-only-account",
+  "human-authored-surface",
+  "compliance-signoff",
   "accountable-person",
   "unreachable-system",
 ]);
@@ -404,8 +514,10 @@ function normalizeClasses(classes) {
 /**
  * Classify a `human_gate` reason.
  * @param {unknown} reason - The reason (slug or prose) a filing gives
- * @param {{ humanOnly?: unknown }} [options] - `humanOnly`: project-declared
- *   human-only decision classes (`humanGate.humanOnly`)
+ * @param {{ humanOnly?: unknown, mode?: unknown }} [options] - `humanOnly`:
+ *   project-declared human-only decision classes (`humanGate.humanOnly`),
+ *   which widen the gate in either mode; `mode`: `humanGate.mode`, where only
+ *   `"strict"` admits the strict-only acts
  * @returns {{ valid: boolean, act: string | null, label: string | null, matched: string | null, remedy: string | null }} Verdict
  */
 export function classifyHumanGateReason(reason, options = {}) {
@@ -418,11 +530,17 @@ export function classifyHumanGateReason(reason, options = {}) {
     // hold rather than lifting one.
     const slug = !/\s/u.test(String(reason ?? "").trim());
     const topicOnly = slug && TOPIC_WORDS.test(text) && !ACT_VERBS.test(text);
+    const strict = isStrictMode(options.mode);
     for (const entry of HUMAN_GATE_ACTS) {
+      if (entry.strictOnly && !strict) continue;
       const match = entry.pattern.exec(text);
-      // A secret is never a topic: a credential match always wins.
-      const vetoed =
-        topicOnly && entry.act !== "credential" && KEYWORD_ACTS.has(entry.act);
+      // A secret is never a topic: the secret entry always wins. A login
+      // word is a topic unless an act verb says otherwise, in prose too.
+      const vetoed = entry.secret
+        ? false
+        : entry.proseVeto
+          ? TOPIC_WORDS.test(text) && !ACT_VERBS.test(text)
+          : topicOnly && KEYWORD_ACTS.has(entry.act);
       if (match && !vetoed) {
         return {
           valid: true,
@@ -486,7 +604,20 @@ const HOLD_TEXT_CAP = 2000;
  * deliberately broader than the act patterns.
  */
 const HOLD_SAFETY_TOKENS =
-  /\b(credentials?|passwords?|passphrases?|passcodes?|mfa|2fa|otp|one time codes?|api keys?|keys?|tokens?|secrets?|oauth|sign|signs|signed|signing|signatures?|signoff|sign off|baa|contracts?|agreements?|admin|administrator|access|accounts?|spend\w*|budgets?|payments?|pay|paid|money|purchase|buy|billing|invoice|legal|lawyer|counsel|compliance|regulatory|hipaa|gdpr|soc ?2|physical|hardware|device)\b/u;
+  /\b(project rules|agents md|agents rules|claude rules|human authored|credentials?|passwords?|passphrases?|passcodes?|mfa|2fa|otp|one time codes?|api keys?|keys?|tokens?|secrets?|oauth|sign|signs|signed|signing|signatures?|signoff|sign off|baa|contracts?|agreements?|admin|administrator|access|accounts?|spend\w*|budgets?|payments?|pay|paid|money|purchase|buy|billing|invoice|legal|lawyer|counsel|compliance|regulatory|hipaa|gdpr|soc ?2|physical|hardware|device)\b/u;
+
+/**
+ * A human-authored destination named anywhere in an item's body, spelled as a
+ * path. The authorship rule keeps these surfaces free of automated writes in
+ * both modes, so an item that targets one keeps every hold, however its hold
+ * is worded: a gardener hold filed under the old "a human decides whether
+ * this knowledge is promoted" wording names the policy, not the file, and was
+ * lifted under access-only while its body pointed at `PROJECT_RULES.md`
+ * (CodySwannGT/lisa#4687 review). Matched on the raw body, so it is linear and
+ * reads the whole item rather than the lines beside the marker.
+ */
+const HUMAN_AUTHORED_PATH =
+  /(?:^|[^a-z0-9_-])(?:project_rules\.md|agents\.md|\.agents\/rules\b|\.claude\/rules\b)/iu;
 
 /**
  * Every line of a body that belongs to a hold: each declaring marker line and
@@ -542,19 +673,29 @@ function holdRelatedLines(body) {
  * the intended trade.
  * @param {unknown} body - The item body
  * @param {unknown} humanOnly - Project-declared human-only decision classes
+ * @param {unknown} [mode] - `humanGate.mode`; under `"strict"` a strict-only
+ *   act (a compliance sign-off, an accountable person, a Lisa policy call)
+ *   is a valid hold and is never lifted. Omitted, the default `access-only`
+ *   mode applies, so a reader in a strict project must pass it.
  * @returns {string[]} Reason keys whose hold may be lifted
  */
-export function invalidHumanGateHolds(body, humanOnly) {
+export function invalidHumanGateHolds(body, humanOnly, mode) {
   const holds = humanGateHolds(body);
   if (holds.length === 0) return [];
   const lines = holdRelatedLines(body);
   const anyLineValid = lines.some(
-    line => classifyHumanGateReason(line, { humanOnly }).valid
+    line => classifyHumanGateReason(line, { humanOnly, mode }).valid
   );
   const everything = normalizeGateText([...holds, ...lines].join(" "));
-  if (anyLineValid || HOLD_SAFETY_TOKENS.test(everything)) return [];
+  if (
+    anyLineValid ||
+    HOLD_SAFETY_TOKENS.test(everything) ||
+    HUMAN_AUTHORED_PATH.test(String(body ?? ""))
+  ) {
+    return [];
+  }
   return holds.filter(
-    reason => !classifyHumanGateReason(reason, { humanOnly }).valid
+    reason => !classifyHumanGateReason(reason, { humanOnly, mode }).valid
   );
 }
 
@@ -563,10 +704,11 @@ export function invalidHumanGateHolds(body, humanOnly) {
  * @param {unknown} comments - Comments, structured or raw, any author
  * @param {unknown} body - The item body
  * @param {unknown} humanOnly - Project-declared human-only decision classes
+ * @param {unknown} [mode] - `humanGate.mode` (see {@link invalidHumanGateHolds})
  * @returns {string[]} Reason keys lifted
  */
-export function humanGateLifts(comments, body, humanOnly) {
-  const invalid = new Set(invalidHumanGateHolds(body, humanOnly));
+export function humanGateLifts(comments, body, humanOnly, mode) {
+  const invalid = new Set(invalidHumanGateHolds(body, humanOnly, mode));
   const named = (Array.isArray(comments) ? comments : [])
     .map(entry => (typeof entry === "string" ? entry : (entry?.body ?? "")))
     .flatMap(text =>
@@ -700,7 +842,7 @@ export function humanGateDischarged(input = {}) {
  * no releases, so a held item stays held. Holding a gate that may be stale
  * beats releasing one that is not, and every caller that never passes comments
  * keeps its current behaviour by construction.
- * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown, humanOnly?: unknown }} input - Candidate surfaces
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown, humanOnly?: unknown, humanGateMode?: unknown }} input - Candidate surfaces
  * @returns {{ held: boolean, reason: string, declared: number, outstanding: string[], released: string[], lifted: string[], labelPresent: boolean }} Held-ness verdict
  */
 export function humanGateVerdict(input = {}) {
@@ -720,7 +862,12 @@ export function humanGateVerdict(input = {}) {
   // A lift discharges only a declared body hold that is still invalid; it can
   // never discharge a label-only hold (access blocks, blocked verdicts), which
   // is why it is applied here and not in the label-only branch below.
-  const lifted = humanGateLifts(input.comments, input.body, input.humanOnly);
+  const lifted = humanGateLifts(
+    input.comments,
+    input.body,
+    input.humanOnly,
+    input.humanGateMode
+  );
   const liftedSet = new Set(lifted);
   const outstanding = holds.filter(
     reason => !releasedSet.has(reason) && !liftedSet.has(reason)
@@ -764,7 +911,7 @@ export function humanGateVerdict(input = {}) {
  * its discharge is how the gate became one-way in the first place. Pass the
  * item's structured comments and trustedHumanActorIds to honor an authorized
  * release; omit either and the item stays held.
- * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown, humanOnly?: unknown }} input - Candidate surfaces
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown, humanOnly?: unknown, humanGateMode?: unknown }} input - Candidate surfaces
  * @returns {boolean} True when a person is holding this item
  */
 export function isHumanGated(input) {
@@ -818,6 +965,7 @@ function judgeProbe(probe) {
  *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   humanOnly?: unknown
+ *   humanGateMode?: unknown
  *   statedBlocker?: unknown
  *   probe?: { discharged?: unknown, evidence?: unknown } | null
  * }} input
@@ -929,7 +1077,7 @@ export const HUMAN_GATE_NOTE_MARKER = "<!-- [lisa-human-gate-reconciled] -->";
  * a parser keyed on the structured field would miss those while appearing to
  * work on every item that happens to have one — reproducing this defect one
  * layer down.
- * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown, humanOnly?: unknown }} input - Candidate surfaces
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown, humanOnly?: unknown, humanGateMode?: unknown }} input - Candidate surfaces
  * @returns {{ claimable: boolean, reason: string, humanGated: boolean }} Claim verdict
  */
 export function classifyReadyCandidate(input = {}) {
@@ -961,6 +1109,7 @@ export function classifyReadyCandidate(input = {}) {
  *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   humanOnly?: unknown
+ *   humanGateMode?: unknown
  *   readyLabel?: unknown
  *   alreadyNotified?: unknown
  * }} input - Candidate surfaces plus the configured lane and marker labels
@@ -1069,6 +1218,7 @@ const RESUME_INSTRUCTION = [
  *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   humanOnly?: unknown
+ *   humanGateMode?: unknown
  *   readyLabel?: unknown
  *   lifecycleLabels?: unknown
  *   alreadyNotified?: unknown
@@ -1232,6 +1382,7 @@ export const NORMALIZATION_HOLD_NOTE_MARKER =
  *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   humanOnly?: unknown
+ *   humanGateMode?: unknown
  *   lifecycleLabels?: unknown
  *   readyLabel?: unknown
  * }} input - Candidate surfaces plus the configured lifecycle vocabulary
