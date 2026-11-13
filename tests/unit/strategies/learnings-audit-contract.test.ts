@@ -133,6 +133,11 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     const template = extractBatchTemplate(skill);
 
     expect(template).toContain("confirmLearningEntry");
+    // RETIRE names its shell tool and says it works over the cap
+    // (CodySwannGT/lisa#4536): an over-budget ledger is exactly the state a
+    // retire most often exists to repair.
+    expect(template).toContain("bunx @codyswann/lisa learnings-retire");
+    expect(template).toMatch(/works on a ledger\s+that is over its cap/);
     expect(template).toMatch(/proof-citing deletion PR/i);
     expect(template).toMatch(/reverse-atomicity/i);
     expect(template).toMatch(/never hand-edit the ledger/i);

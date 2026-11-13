@@ -113,7 +113,7 @@ This ensures each screenshot is captured at the correct viewport dimensions with
 
 ### Step 4: Generate Evidence Templates
 
-The GitHub links point at the evidence release. Resolve it once, before generating templates, so the links and the uploads in Step 5 name the same release even across a month boundary. `--ensure` creates the release when it is missing. If the release cannot be used (for example, it is nearly full), the step prints `Evidence release not usable; stop.` and fails: stop there and report it instead of continuing.
+The GitHub links point at the evidence release. Resolve it once, before generating templates, so the links and the uploads in Step 5 name the same release even across a month boundary. `--ensure` creates the release when it is missing. If the release cannot be used (for example, a pinned release is full, every overflow release is full, the release name is too long to roll over, or the publisher cannot create releases), the step prints `Evidence release not usable; stop.` and fails: stop there and report it instead of continuing.
 
 ```bash
 unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; } &&
