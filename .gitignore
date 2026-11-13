@@ -276,6 +276,11 @@ expo-env.d.ts
 # identity and live process ownership, so it is runtime evidence, not source.
 .lisa/tmpdir-growth.json
 
+# Per-run push gate timing reports (CodySwannGT/lisa#4591). Machine-local
+# measurements of one push on one host; summarise with
+# `node scripts/lisa-push-timing-report.mjs`.
+.lisa/push-timing/
+
 # Built Claude Code plugins are committed so the GitHub marketplace works.
 # Regenerate with: bun run build:plugins
 

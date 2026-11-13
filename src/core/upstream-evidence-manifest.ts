@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/.gitattributes":
       "e5e115d084d4c7ff855ab9b39285c725f39700af54f73ef2e90845f1b8d72c36",
     "all/copy-contents/gitignore":
-      "90f6701914924e24d66cff9c04eb88bb7d9b9361e6e51596501b49da99080368",
+      "52b6d0fc0bec0fe0765cce43b69a2989ca4d33520902531cb1c69190138e7c94",
     "all/copy-contents/scripts/lisa-mutation.sh":
       "dfe6e7a208fe72d02355548d9aba8484748b7d95eca0bf989043008311af29c4",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
@@ -153,7 +153,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "7100aa6554d59c6a8f6fafefb983c12359b8cf727b8e4657362eba045051dd4e",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "b34d0291028124507c38a44769eb019214cd5053045fb1ba7e644e856c6dded6",
+      "5d32fd2e3cd11f06738a57b6e252fcbda8e6e682b501657c3efcc8615bd0c91f",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -244,6 +244,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
       "7034adad8d8348eeb669ead52cb7eaffa11b592c1f1b06bcd8474b6348360eae",
+    "all/copy-overwrite/scripts/lib/push-timing.mjs":
+      "b2ff671d4b46de3b94518771850ff4f4b54c38f196e2f40cbf7b34ab02e40f19",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -342,12 +344,14 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "7d88002ba9ecc501612f3fa6de0931fe65f4c8a961f51f767be0c8f2f42eec54",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "1b949b5687b2352eb5e712c055ab2fd4648380e7ab4da0c9457eac9b2be17a71",
+    "all/copy-overwrite/scripts/lisa-push-timing-report.mjs":
+      "96aed02d22f93cc15ea83182c6fcf05a994ee45c7e38807dc34cf31d38ebbb70",
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs":
       "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "263860fba7fadae3c1096973eaf4f25dca1683ef2ce64279dea6845ac90faf6a",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "62f3b3b78419a53ca3d9c0ed2e2ce2d8952a54674ab11bfe77cdf02b61115e74",
+      "c6efd75fd15c17b9d7cc94d5b894b5d0a6ca087e213de7bcaa2c689cebaaeb51",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-scratch-run.sh":
@@ -365,7 +369,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "c4db1ebcf54e3177213639199b81acf301dc68bf796d291d23ad86ef00127a71",
+      "0079d8841f4897150530903b8a39a1ff9b18f16f1cb0a78a34095082ae6be05a",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2889,7 +2893,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "531c452c034c420ebd77c290f0f68214a26983b064609312dc1b65f6f3f90c2d",
+      "3d92ec9fa85a4720e44e47bda0def270497d75887100eacf25c829931b7dd0b5",
     "scripts/update-node-version.ts":
       "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
@@ -3354,6 +3358,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/npm-update-worker-policy.mjs": true,
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs": true,
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs": true,
+    "all/copy-overwrite/scripts/lib/push-timing.mjs": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.d.mts": true,
@@ -3403,6 +3408,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs": true,
     "all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs": true,
     "all/copy-overwrite/scripts/lisa-postinstall.mjs": true,
+    "all/copy-overwrite/scripts/lisa-push-timing-report.mjs": true,
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs": true,
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs": true,
     "all/copy-overwrite/scripts/lisa-run-gates.mjs": true,
@@ -12903,6 +12909,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-owned-hash-ledger.test.ts": true,
     "tests/unit/scripts/lisa-plugin-registration-notice.test.ts": true,
     "tests/unit/scripts/lisa-postinstall.test.ts": true,
+    "tests/unit/scripts/lisa-push-timing-report.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-awaited-scope.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-declarative.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-fixtures.ts": true,
@@ -12927,6 +12934,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-shared-prover.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shipped-as.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-supervisor-verdict.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-timing.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-type-errors.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-unproved.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-worktree-dependencies.test.ts": true,
@@ -13053,6 +13061,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/process-tree-runner-interrupt.test.ts": true,
     "tests/unit/scripts/process-tree-runner-verdict-transport.test.ts": true,
     "tests/unit/scripts/process-tree-runner.test.ts": true,
+    "tests/unit/scripts/push-timing.test.ts": true,
     "tests/unit/scripts/ready-queue-order-backlog.test.ts": true,
     "tests/unit/scripts/ready-queue-order-human-gate-policy.test.ts": true,
     "tests/unit/scripts/ready-queue-order-id-kinds.test.ts": true,

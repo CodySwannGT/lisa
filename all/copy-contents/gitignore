@@ -287,6 +287,11 @@ expo-env.d.ts
 # dispatch while telling a teammate nothing they can act on.
 .lisa/remote-dispatch.json
 
+# Per-run push gate timing reports (CodySwannGT/lisa#4591). Machine-local
+# measurements of one push on one host; summarise with
+# `node scripts/lisa-push-timing-report.mjs`.
+.lisa/push-timing/
+
 # Lisa-generated project Codex overlay. Keep host-owned config.toml and
 # hooks.json visible so projects can commit their own merged configuration.
 .codex/.lisa-managed.json

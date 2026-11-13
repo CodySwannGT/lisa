@@ -102,7 +102,8 @@
     "check:merge-coverage": "node scripts/check-generated-artifact-merge-coverage.mjs",
     "check:eager-rule-budget": "node scripts/check-eager-rule-budget.mjs",
     "security:audit": "$npm_execpath run security:audit:lisa",
-    "security:audit:lisa": "node scripts/lisa-audit.mjs"
+    "security:audit:lisa": "node scripts/lisa-audit.mjs",
+    "push:timing": "node all/copy-overwrite/scripts/lisa-push-timing-report.mjs"
   },
   "engines": {
     "npm": "please-use-bun",
