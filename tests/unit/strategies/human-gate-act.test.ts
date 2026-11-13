@@ -5,7 +5,8 @@
  * almost any open choice reads as one — so plain decisions were held for a
  * person who then answered "you decide". These suites pin the narrowed
  * definition at the writer end: the check that refuses a topic-only reason.
- * The sweep that lifts old invalid holds is covered in `human-gate-lift`.
+ * The sweep that lifts old invalid holds is covered in `human-gate-lift`;
+ * the `humanGate.mode` split (CodySwannGT/lisa#4687) in `human-gate-act-mode`.
  * @module tests/unit/strategies/human-gate-act
  */
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -23,12 +24,14 @@ import {
 } from "../../../plugins/src/base/scripts/human-gate-act.mjs";
 
 const CREDENTIAL = "credential";
-const LISA_POLICY = "lisa-policy";
 const UNREACHABLE = "unreachable-system";
 const EXTERNAL_ACCOUNT = "external-account";
 const LEGAL = "legal-signoff";
 const SPEND = "spend";
 const AWS_ROOT = "aws-root-credential";
+const PERSON_ONLY = "person-only-account";
+const OPERATOR_HOLD = "operator-hold";
+const STRICT = { mode: "strict" } as const;
 
 describe("classifyHumanGateReason", () => {
   it.each([
@@ -70,26 +73,12 @@ describe("classifyHumanGateReason", () => {
     [AWS_ROOT, CREDENTIAL],
     ["approve spending $200/month on a paid plan", SPEND],
     ["open a vendor account with the SMS provider", EXTERNAL_ACCOUNT],
-    ["HIPAA compliance sign-off", LEGAL],
-    ["name an accountable person for the data processor", "accountable-person"],
     ["flash firmware on the physical device", UNREACHABLE],
-    [
-      "exploratory finding — product significance is a human product call",
-      LISA_POLICY,
-    ],
-    ["a human approves the proposed harness intervention", LISA_POLICY],
-    [
-      "a human decides whether this knowledge is promoted, demoted, or retired",
-      LISA_POLICY,
-    ],
     ["a vendor or provider account in the company's name", EXTERNAL_ACCOUNT],
-    ["an owner or approver who answers for the result", "accountable-person"],
     ["granting an access the agent lacks", UNREACHABLE],
     ["CloudWatch read access the agent does not have", UNREACHABLE],
     ["a person must give the agent Sentry access", UNREACHABLE],
     ["CloudWatch tool access", UNREACHABLE],
-    ["a hold the operator explicitly asked for", LISA_POLICY],
-    ["Coverage work explicitly held for operator prioritization", LISA_POLICY],
     ["the Stripe API key for the payments dashboard", CREDENTIAL],
     ["the production database password for the migration", CREDENTIAL],
     ["plug in the physical test device for the UI run", UNREACHABLE],
@@ -98,11 +87,31 @@ describe("classifyHumanGateReason", () => {
       UNREACHABLE,
     ],
     ["the client must sign the BAA", LEGAL],
+    ["sign the BAA", LEGAL],
+    ["sign the DPA with the analytics vendor", LEGAL],
+    ["accept the license agreement on behalf of the company", LEGAL],
+    ["interactive OAuth login", CREDENTIAL],
+    ["complete the interactive SSO login for the vendor portal", CREDENTIAL],
+    ["create an API key in the vendor console", CREDENTIAL],
+    ["spend money", SPEND],
+    ["approve the protected deployment to production", PERSON_ONLY],
+    [
+      "the required reviewer must approve the production environment",
+      PERSON_ONLY,
+    ],
+    ["an account only a person holds", PERSON_ONLY],
+    ["a hold the operator explicitly asked for", OPERATOR_HOLD],
+    [
+      "Coverage work explicitly held for operator prioritization",
+      OPERATOR_HOLD,
+    ],
   ])("accepts %j as the act %s", (reason, act) => {
-    const verdict = classifyHumanGateReason(reason);
-    expect(verdict.valid).toBe(true);
-    expect(verdict.act).toBe(act);
-    expect(verdict.remedy).toBeNull();
+    for (const options of [{}, STRICT]) {
+      const verdict = classifyHumanGateReason(reason, options);
+      expect(verdict.valid).toBe(true);
+      expect(verdict.act).toBe(act);
+      expect(verdict.remedy).toBeNull();
+    }
   });
 
   // A secret is never a topic: a credential keyword wins over the topic veto,
@@ -110,12 +119,10 @@ describe("classifyHumanGateReason", () => {
   // behaviour (a held item); refusing a real credential gate would not.
   it.each([
     "secrets-manager-migration-design",
-    "oauth-provider-choice",
     "credential-rotation-policy",
     "api-keys-table-pagination",
     "credential-storage-strategy",
     "secrets-manager-adoption",
-    "oauth-scope-list",
     "password-reset-email-template",
   ])("lets a secret keyword win over the topic veto for %j", reason => {
     expect(classifyHumanGateReason(reason).act).toBe(CREDENTIAL);
@@ -132,7 +139,6 @@ describe("classifyHumanGateReason", () => {
 
   it.each([
     ["the operator's 2FA code for the AWS console migration", CREDENTIAL],
-    ["legal must review the new terms of service page", LEGAL],
     ["someone must buy the domain for the docs site", SPEND],
     [
       "a person with admin rights must add the bot to the Slack workspace",
@@ -182,7 +188,7 @@ describe("formatHumanGateHold", () => {
       })
     ).toBe(
       [
-        "Held for a person to supply a credential only a person holds: the AWS root credential.",
+        "Held for a person to complete a login or supply a credential only a person holds: the AWS root credential.",
         "<!-- [lisa-human-gate] reason=aws-root-credential -->",
       ].join("\n")
     );

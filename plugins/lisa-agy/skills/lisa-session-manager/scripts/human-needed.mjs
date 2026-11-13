@@ -3,9 +3,16 @@
  * on a work item that cannot progress without a human, and how it reads the
  * human's answer back off the item. Pure: no I/O, no clock, no config reads.
  *
- * Four cases need a human: a worker's question, an ambiguous repo route, an
- * item `exhausted` after `stall.maxAttempts`, and a design or product
- * decision. In each the manager marks the item with the configured
+ * Four kinds of mark exist: a worker's question, an ambiguous repo route, an
+ * item `exhausted` after `stall.maxAttempts`, and a `decision`. An agent
+ * performs every act it has access to (CodySwannGT/lisa#4687), so a hold is
+ * only for an act the agent lacks access to (an interactive login, a
+ * credential it cannot reach, spending money, a legal signature, an action
+ * only a person's account can take) or a hold the operator asked for. A
+ * design or product choice the agent can make is decided and recorded, not
+ * marked, unless the project sets `humanGate.mode: "strict"`. The kind
+ * identifiers are stable on purpose: ledgers in use already carry them. When
+ * a mark is warranted the manager marks the item with the configured
  * human-needed marker, posts the question on the item with enough context to
  * answer it there, records it pending in the ledger, and keeps dispatching
  * other work. One item waiting on a person never stops the queue.
@@ -19,7 +26,10 @@
  * @module session-manager/human-needed
  */
 
-/** The four reasons an item can need a human. */
+/**
+ * The four kinds of mark. Whether one is warranted follows `humanGate.mode`:
+ * under `access-only` only missing access or an operator hold needs a person.
+ */
 export const HUMAN_NEEDED_KINDS = Object.freeze([
   "worker-question",
   "repo-route",
@@ -165,7 +175,8 @@ const KIND_TITLES = {
   "worker-question": "the worker building it has a question",
   "repo-route": "it is not clear which repository it belongs to",
   exhausted: "every automatic attempt to build it stopped without finishing",
-  decision: "it needs a design or product decision",
+  decision:
+    "it needs a person: an act the agent cannot perform, or a call this project keeps for a person",
 };
 
 /**

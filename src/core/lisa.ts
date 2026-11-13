@@ -130,6 +130,7 @@ import {
 import type { IGitService } from "./git-service.js";
 import {
   dependencySettingsWarning,
+  humanGateSettingsWarnings,
   readProjectConfig,
   resolveLegacyProjectLearningsFile,
   resolveProjectLearningsFile,
@@ -463,15 +464,20 @@ export class Lisa {
   }
 
   /**
-   * Warn when `dependencies.humanSignOff` holds a value outside its closed
-   * vocabulary. The value is treated as `"default"` rather than failing the
-   * apply (see `project-config-dependencies`), so this warning is the only
+   * Warn when `humanGate` or `dependencies.humanSignOff` holds a value outside
+   * its closed vocabulary. The value is treated as its default rather than
+   * failing the apply (see `project-config-dependencies` and
+   * `project-config-human-gate`), so this warning is the only
    * place the CLI says the project did not get the setting it typed.
    */
   private async reportInvalidDependencySettings(): Promise<void> {
-    const warning = dependencySettingsWarning(
-      await readProjectConfig(this.config.destDir)
-    );
+    const config = await readProjectConfig(this.config.destDir);
+    // `humanGate` degrades the same way (CodySwannGT/lisa#4687): an invalid
+    // mode resolves to "access-only", and this is where the CLI says so.
+    for (const line of humanGateSettingsWarnings(config)) {
+      this.deps.logger.warn(line);
+    }
+    const warning = dependencySettingsWarning(config);
     if (warning !== undefined) this.deps.logger.warn(warning);
   }
 

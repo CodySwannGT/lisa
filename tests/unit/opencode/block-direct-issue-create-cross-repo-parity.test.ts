@@ -13,6 +13,8 @@
  * The plugin snapshots config at init from the process cwd, so each case
  * chdirs and re-imports the template with a cache-busting query.
  */
+import { readFileSync } from "node:fs";
+
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
@@ -265,4 +267,36 @@ describe("cross-repo filing parity: bash guard vs OpenCode port", () => {
       expect(opencode[index]).toBe(entry?.expected);
     }
   );
+});
+
+// CodySwannGT/lisa#4687: both refusals list the same closed set of acts a
+// person must perform — only acts the agent lacks access to — so an agent on
+// OpenCode is not told a compliance judgement is a human gate while Claude is
+// told it is not. Read from source: the message wording is not a verdict.
+describe("refusal wording parity: the human-gate acts", () => {
+  const flat = (file: string): string =>
+    readFileSync(file, "utf8")
+      .replace(/["',`+\\]/gu, " ")
+      .replace(/\s+/gu, " ");
+  const surfaces = [
+    "plugins/src/base/hooks/block-direct-issue-create.sh",
+    "src/opencode/plugin-templates/lisa-block-direct-issue-create.ts",
+  ];
+
+  it.each(surfaces)("%s names only the access acts", file => {
+    const text = flat(file);
+    for (const act of [
+      "interactive login",
+      "credential only they hold",
+      "approve spend",
+      "sign a legal agreement",
+      "account only a person holds",
+      "hold the operator explicitly asked for",
+      "file the project says only people write",
+      "unless humanGate.mode is",
+    ]) {
+      expect(text).toContain(act);
+    }
+    expect(text).not.toMatch(/compliance sign-off|accountable person/iu);
+  });
 });

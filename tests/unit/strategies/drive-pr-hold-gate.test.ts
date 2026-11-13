@@ -224,6 +224,30 @@ describe.each(ROOTS)("drive-pr-to-merge hold gate (%s)", root => {
     expect(gate).toContain("lisa:babysitter-on-duty");
     expect(gate).toMatch(/stop on its own lease/i);
   });
+
+  it("holds a low-confidence learning PR only under strict or an explicit human-triage (#4687)", () => {
+    // The operator's hold label stays a stop; the default learning route no
+    // longer is. Under access-only a low-confidence learning PR auto-merges.
+    expect(content).toMatch(
+      /only when a\s+low-confidence learning PR must wait for a human: under `humanGate\.mode:\s+"strict"`, or when the project sets `learnings\.lowConfidence: human-triage`\s+explicitly/
+    );
+    expect(content).toMatch(
+      /Under the default `access-only` mode, low-confidence learning PRs\s+auto-merge like any other PR/
+    );
+    expect(content).not.toMatch(/low-confidence PRs must wait for a\s+human/);
+  });
+
+  it("resolves a design-input conflict itself and escalates only for missing access (#4687)", () => {
+    expect(content).toMatch(
+      /A conflict that needs design input is yours to resolve/
+    );
+    expect(content).toMatch(
+      /record the reasoning in the merge commit and\s+a PR comment/
+    );
+    expect(content).not.toMatch(
+      /Only escalate to a human if the conflict needs design input/
+    );
+  });
 });
 
 describe.each(ROOTS)("git-submit-pr needs no hold check (%s)", root => {
