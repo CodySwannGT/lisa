@@ -96,7 +96,8 @@
     }
   },
   "pushGate": {
-    "cache": true
+    "cache": true,
+    "buildOnce": true
   },
   "gates": {
     "runner": "bun run",
@@ -480,8 +481,5 @@
       "skill": "lisa-github-build-intake",
       "enabled": false
     }
-  },
-  "pushGate": {
-    "buildOnce": true
   }
 }

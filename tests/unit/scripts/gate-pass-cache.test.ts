@@ -164,6 +164,10 @@ describe("key derivation", () => {
         LISA_GATE_CACHE: "on",
         LISA_PUSHED_REFS_FILE: "pushed-refs.abc",
         LISA_CLEANUP_SWEPT: "123:456",
+        // `lisa check` sets the admission wait bound and a push does not
+        // (CodySwannGT/lisa#4601); a wait bound never changes a verdict.
+        LISA_ADMISSION_MAX_WAIT: "30m",
+        LISA_ADMISSION_PUSH_MAX_WAIT: "5m",
         HOME: "/home/x",
         PATH: "/bin",
         TERM: "xterm",

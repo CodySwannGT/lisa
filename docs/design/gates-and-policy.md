@@ -293,7 +293,10 @@ the gate id and exact command, every lockfile present, the node and bun
 versions, the `gates` blocks of `.lisa.config.json` and
 `.lisa.config.local.json`, and an environment allowlist (`NODE_OPTIONS`,
 `NODE_ENV`, `TZ`, and every `LISA_*` variable except the volatile
-`LISA_GATE_CACHE`, `LISA_PUSHED_REFS_FILE` and `LISA_CLEANUP_SWEPT`). A hit
+`LISA_GATE_CACHE`, `LISA_PUSHED_REFS_FILE`, `LISA_CLEANUP_SWEPT` and the
+admission wait bounds `LISA_ADMISSION_MAX_WAIT` and
+`LISA_ADMISSION_PUSH_MAX_WAIT`, which decide when a gate starts, never what it
+proves). A hit
 prints `CACHED PASS (<first 12 hex of key>)`, counts as PASSED, and does not run.
 Entries live machine-wide under `${XDG_CACHE_HOME:-~/.cache}/lisa/gate-passes/`
 and are pruned after 30 days.
@@ -318,7 +321,32 @@ Every rule fails toward running the gate:
   full suite. `LISA_GATE_CACHE=off` switches it off for one run.
 - It is off unless `.lisa.config.json` sets `pushGate.cache: true`, and while
   off it is silent and touches nothing. Lisa turns it on for itself; hosts get it
-  when their stack template does (CodySwannGT/lisa#4611, #4613).
+  when their stack template does (CodySwannGT/lisa#4611, #4613). `lisa apply`
+  and the runner both refuse a value that is not `true` or `false`.
+
+### `lisa check`: fill the cache before the push
+
+Git opens the remote connection before the pre-push hook runs, and a hook that
+runs past about 35 minutes dies with exit 141 even when every gate passes
+(CodySwannGT/lisa#4505), so a long wait for machine headroom must not happen
+inside a push. `lisa check` (CodySwannGT/lisa#4601) runs the same push gates
+through the same runner — `lisa-run-gates.mjs --moment=push --coverage=<tmp>`,
+the project's copy when it has one, else the one the installed Lisa ships —
+against `HEAD`'s tree, outside the push. It sets `LISA_ADMISSION_MAX_WAIT`
+(default `30m`, `--max-wait <duration>` to change it) so admission may wait
+longer than the in-push bound. Its passes land in the cache, so the push that
+follows reports every cacheable gate as `CACHED PASS`.
+
+- A dirty working tree is refused (exit 1, "commit first"): the cache only
+  records a pass for a clean tree equal to the pushed commit.
+- A required gate that does not pass exits 1 with the runner's own lines.
+- With `pushGate.cache` off — every host until its template opts in — or with
+  `LISA_GATE_CACHE=off` or under CI, it runs nothing and exits 0 with
+  `gate pass cache is off for this project; push directly (the push runs every
+  gate)`, because checking first would only run every gate twice. That is what
+  lets the pushing skills (`lisa-git-submit-pr`, `lisa-drive-pr-to-merge`,
+  `lisa-implement`) tell every agent to run `lisa check` before `git push`
+  unconditionally. Humans may keep pushing normally.
 
 ## Hollow results
 

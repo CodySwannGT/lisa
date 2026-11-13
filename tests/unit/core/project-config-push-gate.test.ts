@@ -1,6 +1,8 @@
 /**
- * `pushGate.buildOnce` in `.lisa.config.json` (CodySwannGT/lisa#4595): off by
- * default, a boolean when present, and refused — never defaulted — otherwise.
+ * `pushGate.buildOnce` (CodySwannGT/lisa#4595) and `pushGate.cache`
+ * (CodySwannGT/lisa#4594, read by `lisa check` in #4601) in `.lisa.config.json`:
+ * off by default, a boolean when present, and refused — never defaulted —
+ * otherwise.
  */
 import { describe, expect, it } from "vitest";
 
@@ -31,6 +33,25 @@ describe("ProjectConfig pushGate", () => {
     expect(
       validateProjectConfig({ pushGate: {} }, CONFIG_PATH).pushGate
     ).toEqual({});
+  });
+
+  it("keeps an explicit cache boolean beside buildOnce", () => {
+    expect(
+      validateProjectConfig(
+        { pushGate: { buildOnce: true, cache: true } },
+        CONFIG_PATH
+      ).pushGate
+    ).toEqual({ buildOnce: true, cache: true });
+    expect(
+      validateProjectConfig({ pushGate: { cache: false } }, CONFIG_PATH)
+        .pushGate
+    ).toEqual({ cache: false });
+  });
+
+  it("refuses a non-boolean cache", () => {
+    expect(() =>
+      validateProjectConfig({ pushGate: { cache: "on" } }, CONFIG_PATH)
+    ).toThrow(/Invalid pushGate\.cache in fixture\.json/u);
   });
 
   it("refuses a non-object block and a non-boolean buildOnce", () => {

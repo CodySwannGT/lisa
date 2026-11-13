@@ -78,11 +78,19 @@ export const ENV_ALLOWLIST = Object.freeze(["NODE_OPTIONS", "NODE_ENV", "TZ"]);
  * without changing a verdict: the switch itself, the hook's temp file of
  * pushed refs, and the cleanup sweep's ownership marker. Left in, each would
  * make every lookup miss.
+ *
+ * The admission wait bounds are here too: `lisa check` sets
+ * `LISA_ADMISSION_MAX_WAIT` so it can wait longer for machine headroom than a
+ * push may, and the push that follows does not. A wait bound decides when a
+ * gate STARTS, never what it proves, so keying on it would only make the push
+ * miss every pass `lisa check` recorded (CodySwannGT/lisa#4601).
  */
 export const VOLATILE_LISA_ENV = Object.freeze([
   CACHE_ENV,
   "LISA_PUSHED_REFS_FILE",
   "LISA_CLEANUP_SWEPT",
+  "LISA_ADMISSION_MAX_WAIT",
+  "LISA_ADMISSION_PUSH_MAX_WAIT",
 ]);
 
 const ZERO_SHA = /^0+$/;

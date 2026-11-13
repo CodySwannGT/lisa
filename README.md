@@ -500,6 +500,10 @@ Worker count is not the only thing several runs contend over. Coverage runs writ
 
 A push can build the project several times: each test gate builds before it tests, and a drift check may rebuild again. Set `"pushGate": { "buildOnce": true }` in `.lisa.config.json` and the push gate runner builds once, before the first gate, then writes `.lisa/build-marker.json`, which records the working-tree hash, the lockfile hash and the node and bun versions. It exports that file's path as `LISA_BUILD_MARKER`. A later step can skip its own build only when every recorded value still matches. Any difference, or no marker at all, means it builds exactly as before. If the up-front build fails, the push fails without running any gate. The setting is off by default, and `lisa apply` and the gate runner both reject a value that is not `true` or `false`. Lisa turns it on for itself. Host templates turn it on per stack.
 
+### Checking before you push
+
+With `"pushGate": { "cache": true }`, a push skips any gate that already passed for the exact same tree. `lisa check` (or `bunx @codyswann/lisa check` where `lisa` is not on your PATH) runs the push gates for your last commit before you push, and records their passes so the push that follows takes seconds. It waits up to 30 minutes for the machine to have room (`--max-wait 2h` to change that), which is safe outside a push but not inside one. It refuses to run until you commit everything, and it exits non-zero when a gate fails. When the cache is off for the project it does nothing and tells you to push directly, so agents can always run it first. Lisa's agent skills run it before every push; you can keep pushing normally.
+
 ## Working across trackers and sources
 
 Lisa is deliberately vendor-neutral. The lifecycle runs the same whether your tickets live in one tracker or another and whether your product specs originate in one document tool or another — a thin dispatch layer selects the right integration from configuration, so the workflow you learn transfers.
