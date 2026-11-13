@@ -207,7 +207,12 @@ describe("usage-accounting utilities", () => {
 
     expect(updated).toContain("## Next Section");
     expect(updated).toContain("keep me");
-    expect(updated).not.toContain("stale body");
+    // Prose under the heading is not Lisa-rendered, so the writer keeps it
+    // after the managed block instead of deleting it (#4697).
+    expect(updated.match(USAGE_HEADING_MATCHER)).toHaveLength(1);
+    expect(updated).toMatch(
+      /<!-- lisa:usage-rollup [^\n]*-->\n\nstale body\n\n## Next Section\n/
+    );
   });
 
   it("updates an existing entry in place by stable entry_id", () => {

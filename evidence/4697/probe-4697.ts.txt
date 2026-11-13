@@ -1,0 +1,150 @@
+// Probe for #4697: run the REAL usage-accounting module from a given tree root.
+// Usage: bun run probe-4697.ts <tree-root> <label>
+const root = process.argv[2];
+const label = process.argv[3];
+const mod = await import(`${root}/src/utils/usage-accounting.ts`);
+const {
+  createLisaUsageRollup,
+  parseLisaUsageSection,
+  renderLisaUsageSection,
+  renderLisaUsageEntryToken,
+  upsertLisaUsageSection,
+  verifyLisaUsageSectionIntegrity,
+} = mod;
+
+const entry = (entryId: string) => ({
+  artifactRef: "github:example/project#1",
+  cachedInputTokens: 0,
+  cost: null,
+  currency: null,
+  entryId,
+  flow: "lisa-implement",
+  inputTokens: 10,
+  measuredSubsetTokens: null,
+  model: "model-a",
+  outputTokens: 5,
+  parentArtifactRef: null,
+  pricingSource: null,
+  pricingStatus: "unavailable",
+  provider: "anthropic",
+  reasoningTokens: 0,
+  runId: `run-${entryId}`,
+  source: "session",
+  totalTokens: 15,
+});
+const upsert = (doc: string, id: string) => {
+  const e = entry(id);
+  return upsertLisaUsageSection(doc, { entries: [e], rollup: createLisaUsageRollup([e]) });
+};
+const headingCount = (d: string) => d.split("\n").filter(l => l === "## Lisa Usage").length;
+const ids = (d: string) => parseLisaUsageSection(d).entries.map((e: any) => e.entryId);
+
+const PREAMBLE = "# Owned artifact\n\nKeep this description.\n";
+const EVIDENCE =
+  "<details><summary>Evidence</summary>\n\n```text\nproof output line\n```\n\n</details>\n\nA closing paragraph that is not a heading.\n";
+const NOTES = "## Notes\n\nKeep this later section too.\n";
+
+console.log(`===== PROBE ${label} root=${root} =====`);
+let failures = 0;
+const check = (name: string, ok: boolean, detail = "") => {
+  if (!ok) failures++;
+  console.log(`ASSERT ${ok ? "PASS" : "FAIL"} [${label}] ${name}${detail ? ` -- ${detail}` : ""}`);
+};
+
+for (const [caseName, tail] of [
+  ["at-EOF", ""],
+  ["before-##-Notes", `\n${NOTES}`],
+] as const) {
+  const before = `${upsert(PREAMBLE, "first")}\n${EVIDENCE}${tail}`;
+  const after = upsert(before, "second");
+  console.log(`\n----- case ${caseName}: BEFORE -----\n${before}----- case ${caseName}: AFTER -----\n${after}----- end -----`);
+  check(`${caseName}: Evidence <details> + paragraph present byte-identical`, after.includes(EVIDENCE));
+  if (tail) {
+    check(`${caseName}: Evidence block + ## Notes kept byte-identical in order`, after.includes(`${EVIDENCE}\n${NOTES}`));
+  } else {
+    check(`${caseName}: document ends with Evidence block`, after.endsWith(`\n\n${EVIDENCE}`));
+  }
+  check(`${caseName}: preamble preserved`, after.startsWith(PREAMBLE));
+  check(`${caseName}: exactly one ## Lisa Usage heading`, headingCount(after) === 1, `count=${headingCount(after)}`);
+  check(`${caseName}: parsed entry ids`, JSON.stringify(ids(after)) === '["first","second"]', JSON.stringify(ids(after)));
+  const integ = verifyLisaUsageSectionIntegrity(after, { entryIds: ["second"] });
+  check(`${caseName}: verifyLisaUsageSectionIntegrity(result,{entryIds:["second"]}).ok`, integ.ok === true, JSON.stringify(integ));
+}
+
+// Constraint: standard + legacy layouts parse the same entries.
+const es = [entry("a"), entry("b")];
+const standard = `${PREAMBLE}\n${renderLisaUsageSection({ entries: es, rollup: createLisaUsageRollup(es) })}`;
+let rowIdx = 0;
+const legacy = standard
+  .split("\n")
+  .filter(l => !l.startsWith("<!-- lisa:usage-entry"))
+  .map(l => {
+    if (!/^\| lisa-implement \| session \|/.test(l)) return l;
+    return `${l} ${renderLisaUsageEntryToken(es[rowIdx++])}`;
+  })
+  .join("\n");
+const legacyNoRollup = legacy
+  .split("\n")
+  .filter(l => !l.startsWith("<!-- lisa:usage-rollup"))
+  .join("\n");
+for (const [n, d] of [
+  ["standard", standard],
+  ["standard+NotesAfter", `${standard}\n${NOTES}`],
+  ["legacy(tokens trail rows)", legacy],
+  ["legacy-no-rollup", legacyNoRollup],
+] as const) {
+  console.log(`LAYOUT [${label}] ${n}: entries=${JSON.stringify(ids(d))} rollup=${JSON.stringify(parseLisaUsageSection(d).rollup?.directEntryIds ?? null)}`);
+}
+for (const [n, d] of [
+  ["legacy", legacy],
+  ["legacy-no-rollup", legacyNoRollup],
+  ["legacy+Evidence", `${legacy}\n${EVIDENCE}`],
+] as const) {
+  const out = upsert(d, "c");
+  console.log(`LAYOUT-UPSERT [${label}] ${n}: entries=${JSON.stringify(ids(out))} headings=${headingCount(out)} evidenceKept=${out.includes(EVIDENCE)} integrityOk=${verifyLisaUsageSectionIntegrity(out, { entryIds: ["a", "b", "c"] }).ok}`);
+}
+// ---- Revised-fix cases (round 2) ----
+const tok = (id: string) => renderLisaUsageEntryToken(entry(id));
+const showCase = (n: string, before: string, after: string) =>
+  console.log(`\n----- case ${n}: BEFORE -----\n${before}----- case ${n}: AFTER -----\n${after}----- end -----`);
+
+// (1) No rollup; prose quotes a rollup token inline.
+{
+  const PROSE =
+    "We used to keep a `<!-- lisa:usage-rollup direct_entry_ids=x -->` token here, see the runbook.\n";
+  const before = `${PREAMBLE}\n## Lisa Usage\n\n${tok("a")}\n\n${PROSE}`;
+  const after = upsert(before, "b");
+  showCase("R1-inline-rollup-prose", before, after);
+  check("R1: inline-rollup prose survives byte-identical", after.includes(PROSE));
+  check("R1: exactly one ## Lisa Usage heading", headingCount(after) === 1, `count=${headingCount(after)}`);
+  check("R1: entries [a,b]", JSON.stringify(ids(after)) === '["a","b"]', JSON.stringify(ids(after)));
+  const integ = verifyLisaUsageSectionIntegrity(after, { entryIds: ["a", "b"] });
+  check("R1: integrity ok", integ.ok === true, JSON.stringify(integ));
+}
+// (2) Documented `_Managed by Lisa…_` + `### Direct Usage` layout, no rollup.
+{
+  const before = `${PREAMBLE}\n## Lisa Usage\n\n_Managed by Lisa. Regenerated on each usage update; do not edit by hand._\n\n### Direct Usage\n\n| Flow | Model | Source | Tokens | Cost |\n|---|---|---|---:|---:|\n| lisa-implement | anthropic/model-a | session | 15 | null |\n\n${tok("old")}\n\n${EVIDENCE}`;
+  const parsedBefore = ids(before);
+  const after = upsert(before, "new");
+  showCase("R2-direct-usage-layout", before, after);
+  check("R2: entry old parsed before upsert", JSON.stringify(parsedBefore) === '["old"]', JSON.stringify(parsedBefore));
+  check("R2: entry old survives upsert (entries [old,new])", JSON.stringify(ids(after)) === '["old","new"]', JSON.stringify(ids(after)));
+  check("R2: exactly one ## Lisa Usage heading", headingCount(after) === 1, `count=${headingCount(after)}`);
+  const integ = verifyLisaUsageSectionIntegrity(after, { entryIds: ["old", "new"] });
+  check("R2: integrity ok with old+new", integ.ok === true, JSON.stringify(integ));
+  console.log(`INFO [${label}] R2: trailing Evidence kept=${after.includes(EVIDENCE)}`);
+}
+// (3) Legacy section with no rollup, then a blank line and a user table.
+{
+  const USER_TABLE = "| My column | Value |\n| --- | --- |\n| keep | me |\n";
+  const before = `${legacyNoRollup}\n${USER_TABLE}`;
+  const after = upsert(before, "c");
+  showCase("R3-user-table-after-legacy", before, after);
+  check("R3: user table survives byte-identical", after.includes(USER_TABLE));
+  check("R3: exactly one ## Lisa Usage heading", headingCount(after) === 1, `count=${headingCount(after)}`);
+  check("R3: entries [a,b,c]", JSON.stringify(ids(after)) === '["a","b","c"]', JSON.stringify(ids(after)));
+  const integ = verifyLisaUsageSectionIntegrity(after, { entryIds: ["a", "b", "c"] });
+  check("R3: integrity ok", integ.ok === true, JSON.stringify(integ));
+}
+console.log(`\n----- legacy layout sample -----\n${legacy}----- end -----`);
+console.log(`SUMMARY [${label}] failures=${failures}`);
