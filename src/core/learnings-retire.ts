@@ -79,10 +79,12 @@ export interface RetireLearningResult {
  * those merged lessons, so inside the ledger lock this re-reads the live entry
  * and refuses (`stale`, nothing written, `onStale` called) unless its
  * fingerprint equals `expectedFingerprint`. On a match it removes that entry,
- * leaves every other entry byte-identical, re-checks the shared budgets on the
- * rendered document, and writes atomically behind the same unchanged-guard the
- * persist writers use. A missing file or unknown id is a structured
- * `not-found` no-op; a missing file creates no directories or locks.
+ * re-checks the shared budgets on the rendered document, and writes atomically
+ * behind the same unchanged-guard the persist writers use. On a v2 ledger every
+ * other entry stays byte-identical; a v1 ledger is migrated to v2 by this write,
+ * exactly as `confirmLearningEntry` migrates it. A missing file or unknown id
+ * is a structured `not-found` no-op; a missing file creates no directories or
+ * locks.
  * @param projectRoot - Absolute path to the host project root
  * @param id - Stable id of the entry to retire
  * @param expectedFingerprint - The FULL live `entry.fingerprint` observed at

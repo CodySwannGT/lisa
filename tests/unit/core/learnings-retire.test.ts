@@ -221,18 +221,43 @@ describe("retireLearningEntry", () => {
     }
   );
 
-  it("accepts a legacy non-hash fingerprint stored by an older writer", async () => {
-    const legacy = {
-      ...BYSTANDER_ENTRY,
-      id: LEGACY_ID,
-      fingerprint: LEGACY_ID,
-      rule: "A legacy rule kept its v1 id as its fingerprint.",
-    };
-    await persistLearningEntry(tempDir, legacy);
+  it.each([LEGACY_ID, "learner-0123456789ab", "sll4-0123456789ab"])(
+    "accepts the legacy non-hash fingerprint %s stored by an older writer",
+    async legacyFingerprint => {
+      const legacy = {
+        ...BYSTANDER_ENTRY,
+        id: LEGACY_ID,
+        fingerprint: legacyFingerprint,
+        rule: "A legacy rule kept its older writer's token as its fingerprint.",
+      };
+      await persistLearningEntry(tempDir, legacy);
 
-    const result = await retireLearningEntry(tempDir, LEGACY_ID, LEGACY_ID);
+      const result = await retireLearningEntry(
+        tempDir,
+        LEGACY_ID,
+        legacyFingerprint
+      );
+
+      expect(result.status).toBe("retired");
+    }
+  );
+
+  it("migrates a v1 ledger to v2 in the same write that retires the entry", async () => {
+    const legacyEntries = [TARGET_ENTRY, BYSTANDER_ENTRY].map(
+      ({ fingerprint: _fingerprint, ...entry }) => entry
+    );
+    const legacy = `# Project Learnings\n\n<!-- lisa-learnings-contract:v1 -->\n\n\`\`\`jsonl\n${legacyEntries.map(entry => JSON.stringify(entry)).join("\n")}\n\`\`\`\n`;
+    await fs.outputFile(learningsPath, legacy);
+
+    // A v1 entry's fingerprint is its id, so that is what the audit observed.
+    const result = await retireLearningEntry(tempDir, TARGET_ID, TARGET_ID);
 
     expect(result.status).toBe("retired");
+    const migrated = await readFile(learningsPath, "utf8");
+    expect(migrated).toContain("lisa-learnings-contract:v2");
+    expect(parseLearningsFile(migrated)).toEqual([
+      { ...BYSTANDER_ENTRY, fingerprint: BYSTANDER_ID },
+    ]);
   });
 
   it("rejects a non-string id without touching the file", async () => {

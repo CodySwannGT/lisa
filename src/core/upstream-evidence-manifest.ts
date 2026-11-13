@@ -12474,6 +12474,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-overflow-identity.test.ts": true,
     "tests/unit/core/learnings-overflow.test.ts": true,
     "tests/unit/core/learnings-projection.test.ts": true,
+    "tests/unit/core/learnings-retire-race.test.ts": true,
     "tests/unit/core/learnings-retire.test.ts": true,
     "tests/unit/core/learnings-stable-ids.test.ts": true,
     "tests/unit/core/learnings-stray-ledger.test.ts": true,
