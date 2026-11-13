@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.1](https://github.com/CodySwannGT/lisa/compare/v4.107.0...v4.107.1) (2026-11-13)
+
+
+### Documentation
+
+* **ui:** stop pointing at the removed check:ui-demo-data script ([b04af53](https://github.com/CodySwannGT/lisa/commit/b04af53eb1f72178f32c4b33bf4e2bd310e52cc4)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+
 ## [4.107.0](https://github.com/CodySwannGT/lisa/compare/v4.106.3...v4.107.0) (2026-11-13)
 
 
