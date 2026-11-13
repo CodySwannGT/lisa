@@ -311,7 +311,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "027b3c891860c101ff748d1f126de72c4920b6eb8ac2dda81aa016af61ca18cf",
+      "5144adb258a1a071c81b733e0a5acccd72468d2007d0bb3effa9d9158a43210a",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "cc28bc714de50f1725be54076533100ca9d4ee63ee108a4a480bd7d80849d5e4",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -769,7 +769,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/package-lisa/package.lisa.json":
       "5c9b9aface34c7cdf78ecea988e536c5e451b01281032f34ceee9da59d8cc512",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
-      "cfffe18dfa58c3bf22f35173c0223fe458097e1c4e51e3effe1d068957c09a76",
+      "0e9a3e950ea05616522d6f115118791fa08caa3d2c8ee421aa8cf856558a6e77",
     "npm-package/package-lisa/package.lisa.json":
       "2336f61121c1fe3b17751bdc6d4c2285560f4704a645833c696b008fc8e13e5f",
     "oxlint/base.json":
@@ -1051,7 +1051,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "a4944924ed0573f056b5d7c629be3a2d35c403f4424814ef5d8384d3205833cb",
+      "a78f8e144075c70256a294f65739c2e4b9714a482575a7d2d9e40af5158df54c",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "61db1ec64bb1fd66b38d7527af2da3f34f98ec9c7ddc5f73c56056e38077c1be",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -2933,7 +2933,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/two-channel-couplings.json":
       "58ed0446bc34af4e5d955f922b9c943f63b31b1ad400a57970da496ee5544962",
     "scripts/update-node-version.ts":
-      "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
+      "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
       "e26a3ac716c33013e22bf5223a58457452f5af2038218a0e3a51c244eab5ddc9",
     "scripts/verify-health-agentic-built.mjs":
@@ -2993,7 +2993,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "888cfd16bd1ac04f9f8a835eae62f8bd2c956de654bce12ce9a6a52947b121ca",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
-      "360ddca69f976115cad890cc096e79dec00ca630dd954b9cd18a6dbeb1012347",
+      "f4753f66ec63a147b3c835963f35c068e91fcf6981947ab44c490268dd306330",
     "typescript/copy-overwrite/.lintstagedrc.json":
       "773a3e0a2bc20b69a16fc247e74c76eeb20ced8fae654702190bdfade964e364",
     "typescript/copy-overwrite/.nvmrc":
@@ -12609,6 +12609,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-instruction-file-edits.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-apply-patch.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-file-reach.test.ts": true,
+    "tests/unit/hooks/block-managed-file-edits-host-stack.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-redirects.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits.test.ts": true,
     "tests/unit/hooks/block-migration-edits.test.ts": true,
@@ -13701,6 +13702,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/sync/stryker-thresholds-ownership.test.ts": true,
     "tests/unit/templates/dependency-decisions-template.test.ts": true,
     "tests/unit/templates/lisa-dependency-decisions-seed.test.ts": true,
+    "tests/unit/templates/node-version-consistency.test.ts": true,
     "tests/unit/templates/project-learnings-template.test.ts": true,
     "tests/unit/templates/stack-tsconfig-shadowing.test.ts": true,
     "tests/unit/templates/stryker-cdk-targets.test.ts": true,
