@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.106.3](https://github.com/CodySwannGT/lisa/compare/v4.106.2...v4.106.3) (2026-11-13)
+
+
+### Documentation
+
+* mark the ID-only audit-exclusion plan as historical ([#4509](https://github.com/CodySwannGT/lisa/issues/4509)) ([e8968c3](https://github.com/CodySwannGT/lisa/commit/e8968c32163c9f4f89a0076c52417280670a6169)), closes [#4693](https://github.com/CodySwannGT/lisa/issues/4693)
+
 ### [4.106.2](https://github.com/CodySwannGT/lisa/compare/v4.106.1...v4.106.2) (2026-11-12)
 
 
