@@ -141,7 +141,9 @@ function run(host: Host, shell: "sh" | "bash", body: string) {
     command: shell === "sh" ? "/bin/sh" : "bash",
     args: ["-c", `{ ${body}\n} >> "$EVENT_LOG"`],
     cwd: host.cwd,
-    baseMs: 60_000,
+    // Measured at about 0.5 s per route on a quiet box (1 vitest process);
+    // 6 s is the highest base the flat 120 s case budget admits.
+    baseMs: 6_000,
     env: {
       PATH: `${host.bin}:${process.env.PATH ?? ""}`,
       HOME: process.env.HOME,

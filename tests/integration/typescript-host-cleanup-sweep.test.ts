@@ -10,11 +10,11 @@
  * `lisa-test-run` and Vitest, out of process, the way the host's own
  * `test:*:lisa` scripts start it.
  *
- * Scope: this proves the TEMPLATE layer. Whether the shared Vitest preset
- * still wires scratch setup files is the preset's own business (C2,
- * CodySwannGT/lisa#4602), so the assertion here is that the templates add
- * nothing on top of it — and that the host-owned local config contributes no
- * setup file, global setup or setup ordering at all.
+ * Scope: this proves the TEMPLATE layer, plus one check that the shared
+ * Vitest preset itself resolves with no scratch setup file or global setup
+ * now that CodySwannGT/lisa#4602 retired them. The templates add nothing on
+ * top of it, and the host-owned local config contributes no setup file,
+ * global setup or setup ordering at all.
  * @module tests/integration/typescript-host-cleanup-sweep
  */
 import * as fs from "node:fs";
@@ -24,15 +24,24 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { LisaConfig } from "../../src/core/config.js";
+import { coverageGlobalSetup } from "../../src/configs/vitest/base.js";
+import { getTypescriptVitestConfig } from "../../src/configs/vitest/typescript.js";
 import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
 import { SWEPT_ENV } from "../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs";
-import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
 const LISA_TEST_RUN = path.join(REPO_ROOT, "dist/cli/lisa-test-run.js");
 const VITEST = path.join(REPO_ROOT, "node_modules/vitest/vitest.mjs");
 const SWEEP_LINE = /^🧹 swept \d+ stale temp dirs?, \d+ orphaned test process/u;
 const HOUR_MS = 60 * 60 * 1000;
+const LOCAL_TEMPLATE = path.join(
+  REPO_ROOT,
+  "typescript/create-only/vitest.config.local.ts"
+);
 
 const roots: string[] = [];
 
@@ -165,7 +174,9 @@ function runSuite(host: Host) {
     ],
     cwd: host.cwd,
     env,
-    baseMs: 120_000,
+    // Measured at about 0.8 s per run on a quiet box (1 vitest process); 6 s
+    // is the highest base the flat 120 s case budget admits.
+    baseMs: 6_000,
   });
   return {
     status: child.status,
@@ -190,9 +201,15 @@ describe("a TypeScript host built from this branch's templates", () => {
 
   it("seeds a local Vitest config that adds no setup file, global setup or ordering", async () => {
     const host = await typescriptHost();
-    const { default: local } = (await import(
-      path.join(host.cwd, "vitest.config.local.ts")
-    )) as { default: { test?: Record<string, unknown> } };
+    // The host's copy is byte-for-byte the shipped template, so the template is
+    // imported by a literal specifier rather than through the host path.
+    expect(
+      fs.readFileSync(path.join(host.cwd, "vitest.config.local.ts"), "utf8")
+    ).toBe(fs.readFileSync(LOCAL_TEMPLATE, "utf8"));
+    const { default: local } =
+      (await import("../../typescript/create-only/vitest.config.local.js")) as {
+        default: { test?: Record<string, unknown> };
+      };
 
     expect(local).toEqual({});
     expect(local.test?.["setupFiles"]).toBeUndefined();
@@ -200,30 +217,49 @@ describe("a TypeScript host built from this branch's templates", () => {
     expect(local.test?.["sequence"]).toBeUndefined();
   });
 
-  it("runs its suite with one sweep line, and leaves no growing residue over five runs", async () => {
-    const host = await typescriptHost();
-    const counts: number[] = [];
-    for (let run = 0; run < 5; run += 1) {
-      const stale = path.join(host.tmp, `lisa-killed-run-${run}`);
-      fs.mkdirSync(stale, { mode: 0o700 });
-      const when = new Date(Date.now() - 48 * HOUR_MS);
-      fs.utimesSync(stale, when, when);
+  it("resolves a shared TypeScript preset that adds no scratch setup file or global setup", () => {
+    // The preset half of the scope note above (CodySwannGT/lisa#4602): with
+    // scratchSetupFiles() and scratchGlobalSetup() retired to [], the only
+    // global setup left is the coverage include guard.
+    const test = getTypescriptVitestConfig().test;
 
-      const outcome = runSuite(host);
+    expect(test?.setupFiles).toEqual([]);
+    expect(test?.globalSetup).toEqual([...coverageGlobalSetup()]);
+    expect(
+      [test?.setupFiles, test?.globalSetup]
+        .flat()
+        .filter(entry => /scratch/u.test(String(entry)))
+    ).toEqual([]);
+  });
 
-      expect(outcome.status, outcome.output).toBe(0);
-      expect(outcome.output).toMatch(/Tests\s+1 passed/u);
-      expect(
-        outcome.lines.filter(line => SWEEP_LINE.test(line.trim()))
-      ).toHaveLength(1);
-      counts.push(
-        fs
-          .readdirSync(host.tmp)
-          .filter(name => name.startsWith("lisa-killed-run-")).length
-      );
-    }
+  it(
+    "runs its suite with one sweep line, and leaves no growing residue over five runs",
+    async () => {
+      const host = await typescriptHost();
+      const counts: number[] = [];
+      for (let run = 0; run < 5; run += 1) {
+        const stale = path.join(host.tmp, `lisa-killed-run-${run}`);
+        fs.mkdirSync(stale, { mode: 0o700 });
+        const when = new Date(Date.now() - 48 * HOUR_MS);
+        fs.utimesSync(stale, when, when);
 
-    expect(counts[4]).toBeLessThanOrEqual(counts[0] ?? 0);
-    expect(counts).toEqual([0, 0, 0, 0, 0]);
-  }, 600_000);
+        const outcome = runSuite(host);
+
+        expect(outcome.status, outcome.output).toBe(0);
+        expect(outcome.output).toMatch(/Tests\s+1 passed/u);
+        expect(
+          outcome.lines.filter(line => SWEEP_LINE.test(line.trim()))
+        ).toHaveLength(1);
+        counts.push(
+          fs
+            .readdirSync(host.tmp)
+            .filter(name => name.startsWith("lisa-killed-run-")).length
+        );
+      }
+
+      expect(counts[4]).toBeLessThanOrEqual(counts[0] ?? 0);
+      expect(counts).toEqual([0, 0, 0, 0, 0]);
+    },
+    ioLatencyBudgetMs(60_000)
+  );
 });

@@ -55,8 +55,8 @@ function prepareApplication(directory: string, stack: string) {
   const local = fs
     .readFileSync(path.join(ROOT, "typescript/create-only", LOCAL), "utf8")
     .replace(
-      "  test: {",
-      "  test: {\n    env: { LISA_FIXTURE_LOCAL_PROOF: 'local-config-loaded' },"
+      "const config: ViteUserConfig = {};",
+      "const config: ViteUserConfig = {\n  test: {\n    env: { LISA_FIXTURE_LOCAL_PROOF: 'local-config-loaded' },\n  },\n};"
     );
   const test =
     stack === "cdk"
