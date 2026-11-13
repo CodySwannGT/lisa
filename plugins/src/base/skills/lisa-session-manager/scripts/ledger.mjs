@@ -98,7 +98,12 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @typedef {object} Ledger
  * @property {number} version - Shape version
  * @property {Record<string, LedgerItem>} items - Items keyed by ref
- * @property {{paused: boolean, maxWorkers: number|null, me: string|null}} control - Operator controls
+ * @property {{paused: boolean, maxWorkers: number|null, me: string|null,
+ *   setupGaps: Record<string, import("./ledger-setup-gaps.mjs").SetupGap>,
+ *   setupGapsClearedAt?: Record<string, string>}}
+ *   control - Operator controls; `setupGaps` holds the repos `spawn` refuses
+ *   until the operator clears them, `setupGapsClearedAt` when each was last
+ *   cleared (#4820; see ledger-setup-gaps.mjs)
  * @property {Record<string, ValidationFailure>} validationFailures - Backlog
  *   items that failed validation, keyed by ref, so an unchanged item is not
  *   re-validated every cycle
@@ -150,7 +155,7 @@ function emptyLedger() {
   return {
     version: LEDGER_VERSION,
     items: {},
-    control: { paused: false, maxWorkers: null, me: null },
+    control: { paused: false, maxWorkers: null, me: null, setupGaps: {} },
     validationFailures: {},
     cyclers: {},
   };
@@ -479,11 +484,13 @@ function assertControlPatch(patch) {
 
 /**
  * Merge operator controls into the ledger: `paused`, the `maxWorkers`
- * override (null clears it) and `me`, the resolved tracker identity.
+ * override (null clears it) and `me`, the resolved tracker identity. The
+ * block also carries `setupGaps` (and `setupGapsClearedAt` once a gap was
+ * cleared); this never changes them — only ledger-setup-gaps.mjs writes them.
  * @param {string} projectRoot - Absolute project root
  * @param {{paused?: boolean, maxWorkers?: number|null, me?: string|null}} patch - Fields to set
  * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<{paused: boolean, maxWorkers: number|null, me: string|null}>} New control block
+ * @returns {Promise<Ledger["control"]>} New control block, setup gaps included
  */
 export async function setControl(projectRoot, patch, seams) {
   assertControlPatch(patch);

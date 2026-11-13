@@ -254,7 +254,12 @@ describe("ledger", () => {
       "--me",
       "me",
     ]);
-    expect(control.json).toEqual({ paused: true, maxWorkers: 0, me: "me" });
+    expect(control.json).toEqual({
+      paused: true,
+      maxWorkers: 0,
+      me: "me",
+      setupGaps: {},
+    });
     const capacity = runCli(sandbox, ["capacity", "--meminfo", MEMINFO]);
     expect(capacity.json).toMatchObject({
       cap: 0,
