@@ -138,7 +138,7 @@ export function evidenceReleaseOverride(
   )
     throw new CompletionProofError(
       INVALID_CONFIG,
-      `${source} is ${JSON.stringify(value)}, which is not one of this project's evidence releases (${acceptedEvidenceReleases(policy).join(", ")}). Unset it, or set it to the name \`node scripts/lisa-work-item.mjs evidence-release\` prints.`
+      `${source} is ${JSON.stringify(value)}, which is not one of this project's evidence releases (${acceptedEvidenceReleases(policy).join(", ")}). Unset it, or set it to the name \`node scripts/lisa-work-item.mjs evidence-release --ensure\` prints.`
     );
   return value;
 }

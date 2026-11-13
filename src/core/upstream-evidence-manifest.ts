@@ -49,7 +49,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
-      "968eb555f3b2167c7e525f65db19aa86b6322d9a48e00cf3178b8fe2d3798672",
+      "fae8daa7ae960995bac49be351c23db9bc597047e3a221510f4d756a07cf61b8",
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
       "8ff9efc772463c3fccf5d6e5a42c73df324babd2e02e66228f2d9a0b1896cbf4",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
@@ -361,7 +361,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "9c7b426995048105a34ca8406e8c12ae06fd02294064cdf250238b156117d9a4",
+      "b5643bb8b2659860fde47aa4fdeade8e4fb473f87416660c32f9bb862e26f368",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1513,7 +1513,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-evidence/SKILL.md":
       "53aea19fe4be6cdeaa1b6d38b68218afeaf2bea2a019f69553fea9824055baeb",
     "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh":
-      "3feb6fc82803a69c5eea312a5ce71d436e680e2f09aeaa1c33a41728137a5f6b",
+      "1f64e5aa8a47d833f07c5531d990bfbb275262a554eb06d83c5f1258d8e81c4d",
     "plugins/src/base/skills/lisa-jira-journey/SKILL.md":
       "42ec2b223cc6c52815b69df362df1fabd6a7bea4dcfab335d059b300f3e5ec26",
     "plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py":
@@ -2107,7 +2107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/jira-evidence/SKILL.md":
       "3807b08e59cc301a4c67f0e3c07dd84f8b4c5f04e0c953fd223af22efc8b7c09",
     "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh":
-      "3feb6fc82803a69c5eea312a5ce71d436e680e2f09aeaa1c33a41728137a5f6b",
+      "1f64e5aa8a47d833f07c5531d990bfbb275262a554eb06d83c5f1258d8e81c4d",
     "plugins/src/expo/skills/jira-journey/SKILL.md":
       "6f62bfeea91a80120c5a6dbe3c966de4600f61ca49539b101904cd3bc266d39e",
     "plugins/src/expo/skills/jira-journey/scripts/generate-templates.py":
@@ -2387,7 +2387,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/jira-evidence/SKILL.md":
       "67f14885503f6b5ff0f9701b8e0a1ad4646df3f937c4962a4f77f7abbae2959a",
     "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh":
-      "3feb6fc82803a69c5eea312a5ce71d436e680e2f09aeaa1c33a41728137a5f6b",
+      "1f64e5aa8a47d833f07c5531d990bfbb275262a554eb06d83c5f1258d8e81c4d",
     "plugins/src/rails/skills/jira-journey/SKILL.md":
       "c65cf8bcde3dbfe4995d26dcce62067cf1a08314a9ba9ca7f7c1fdd53d61feb6",
     "plugins/src/rails/skills/jira-verify/SKILL.md":

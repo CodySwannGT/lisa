@@ -573,6 +573,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "bcd6a03ad609375b886a45e7af31670b49f1bc4888de1e2f31eb86c44ad56204",
     "e8152fec3b77c3d9b79358f7972b60e4ea0d0ed32618aff614bc787875ddfb92",
     "e8a5b585625c2d663c0f92046d8ff020b2e769860235634cd0e4bea4b3a234ae",
+    "fae8daa7ae960995bac49be351c23db9bc597047e3a221510f4d756a07cf61b8",
   ]),
   "scripts/lib/completion-proof-markdown.mjs": Object.freeze([
     "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
@@ -2443,6 +2444,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "b2f392ac7eb9f645583dfbe357d608ab266c19177230b9b4420baa8975573b2c",
     "b45d7b88eeadaf859ac312398aa49fc7e1f1882d1b5afcf58676178ea0695b58",
     "b4d6534ddcaaf0693f23ff8ca20d63ef8a3f8f537a266987cd9ac901d260c7d6",
+    "b5643bb8b2659860fde47aa4fdeade8e4fb473f87416660c32f9bb862e26f368",
     "b67b99e08c15aedbb2f1c4246c94106217eb83c5956d07e198f0e90d40893895",
     "b922ba883be07b5bef68c3a9e5718bbd41eec7cbf8b2b1c28a7beb8fed38d19d",
     "baa8ffc248ce29c30d10b579960b34b7836c7d7f47651ced3cbb551dfee65291",
@@ -3117,6 +3119,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "bcd6a03ad609375b886a45e7af31670b49f1bc4888de1e2f31eb86c44ad56204",
     "e8152fec3b77c3d9b79358f7972b60e4ea0d0ed32618aff614bc787875ddfb92",
     "e8a5b585625c2d663c0f92046d8ff020b2e769860235634cd0e4bea4b3a234ae",
+    "fae8daa7ae960995bac49be351c23db9bc597047e3a221510f4d756a07cf61b8",
   ]),
   "scripts/lib/completion-proof-markdown.mjs": Object.freeze([
     "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
@@ -4916,6 +4919,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "b2f392ac7eb9f645583dfbe357d608ab266c19177230b9b4420baa8975573b2c",
     "b45d7b88eeadaf859ac312398aa49fc7e1f1882d1b5afcf58676178ea0695b58",
     "b4d6534ddcaaf0693f23ff8ca20d63ef8a3f8f537a266987cd9ac901d260c7d6",
+    "b5643bb8b2659860fde47aa4fdeade8e4fb473f87416660c32f9bb862e26f368",
     "b67b99e08c15aedbb2f1c4246c94106217eb83c5956d07e198f0e90d40893895",
     "b922ba883be07b5bef68c3a9e5718bbd41eec7cbf8b2b1c28a7beb8fed38d19d",
     "baa8ffc248ce29c30d10b579960b34b7836c7d7f47651ced3cbb551dfee65291",
