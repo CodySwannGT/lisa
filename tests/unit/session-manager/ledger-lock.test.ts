@@ -11,7 +11,7 @@
  * its own lock.
  * @module tests/unit/session-manager/ledger-lock
  */
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -26,6 +26,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -102,8 +106,11 @@ function runWriter(
  * @returns Dead pid
  */
 function deadPid(): number {
-  const result = spawnSync(process.execPath, ["-e", ""]);
-  return result.pid;
+  return boundedSpawnSync({
+    label: "node exits at once (dead pid)",
+    command: process.execPath,
+    args: ["-e", ""],
+  }).pid;
 }
 
 /**
@@ -145,23 +152,27 @@ describe("ledger lock", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("loses no update when many separate processes write at once", async () => {
-    const startAt = Date.now() + 1500;
-    const ids = Array.from({ length: WRITERS }, (_, i) => `w${i}`);
-    const results = await Promise.all(
-      ids.map(id => runWriter(root, id, startAt))
-    );
+  it(
+    "loses no update when many separate processes write at once",
+    async () => {
+      const startAt = Date.now() + 1500;
+      const ids = Array.from({ length: WRITERS }, (_, i) => `w${i}`);
+      const results = await Promise.all(
+        ids.map(id => runWriter(root, id, startAt))
+      );
 
-    expect(results.filter(r => r.code !== 0)).toEqual([]);
-    const ledger = await readLedger(root);
-    const expected = ids.flatMap(id =>
-      Array.from({ length: UPDATES_PER_WRITER }, (_, i) => `${id}-${i}`)
-    );
-    const written = Object.keys(ledger.cyclers);
-    expect(written).toHaveLength(expected.length);
-    expect(written).toEqual(expect.arrayContaining(expected));
-    expect(existsSync(`${ledgerPath(root)}.lock`)).toBe(false);
-  }, 60_000);
+      expect(results.filter(r => r.code !== 0)).toEqual([]);
+      const ledger = await readLedger(root);
+      const expected = ids.flatMap(id =>
+        Array.from({ length: UPDATES_PER_WRITER }, (_, i) => `${id}-${i}`)
+      );
+      const written = Object.keys(ledger.cyclers);
+      expect(written).toHaveLength(expected.length);
+      expect(written).toEqual(expect.arrayContaining(expected));
+      expect(existsSync(`${ledgerPath(root)}.lock`)).toBe(false);
+    },
+    ioLatencyBudgetMs(60_000)
+  );
 
   it("recovers a lock left by a dead process and completes the write", async () => {
     const lock = plantLock(root, deadPid());

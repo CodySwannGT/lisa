@@ -9,7 +9,6 @@
  * or its owner record is unreadable and the file has not changed for 30s.
  * @module tests/unit/session-manager/ledger-lock-recovery
  */
-import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -24,6 +23,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -52,7 +52,11 @@ function addKey(key: string) {
  * @returns Dead pid
  */
 function deadPid(): number {
-  return spawnSync(process.execPath, ["-e", ""]).pid;
+  return boundedSpawnSync({
+    label: "node exits at once (dead pid)",
+    command: process.execPath,
+    args: ["-e", ""],
+  }).pid;
 }
 
 /**
