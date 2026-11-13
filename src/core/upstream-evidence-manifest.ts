@@ -887,11 +887,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/spec-conformance-specialist.md":
       "78ba2746ab0e338ed0058db2b7827176bbcc48d8a9095957f4eda2d90d682c34",
     "plugins/src/base/agents/test-specialist.md":
-      "c79ce4b185ec8a2f698a49225ed620428aafe145da9a1857bb171c263fcd0ef8",
+      "14fad0a5cee4925f4dae11f7f269501615294097cb44c413f69ab01a7892fcee",
     "plugins/src/base/agents/tracker-mining-specialist.md":
       "3cfd7c4543f8bd9d121164a3b581ccb7107130ec6c2c699e2cbccb99bfd6b853",
     "plugins/src/base/agents/verification-specialist.md":
-      "4668f21d0905b8fdd151c8680f7ecdbd23d0152ed05b2c1914b5b58dcb95ddb9",
+      "01caabdad24bfaae4755d2f215a0fd2482bc1a41f4fdc922a6edd5450deca5da",
     "plugins/src/base/commands/agent-ready.md":
       "d1189ffb5fd26253c81aa8f9d540b83c10711c4ec7f6d3308d0ce91913a31c0a",
     "plugins/src/base/commands/analyze-claude-remote.md":
@@ -1149,7 +1149,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/empirical-inquiry.md":
       "a60fdd251ccd5338300789ca21365b70658c6ee467073dc71bc9411b669dae34",
     "plugins/src/base/rules/eager/falsifiable-checks.md":
-      "cd6a64106f313ec283e1b0b41d830de8a70eb523b00a4f1bd50f1503374e72fc",
+      "2bcd2ce037174c07ec5815b3bc86f4abd9e1da4c90106820cff9e1b363f0e17d",
     "plugins/src/base/rules/eager/history-audit.md":
       "52c76f4ce55a48d4d80f0e699d745fad55e1b5186363afe206c64eece5dd7e53",
     "plugins/src/base/rules/eager/never-name-a-downstream-project.md":
@@ -1219,7 +1219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/factory-model.md":
       "b9a73efb67db48f0e7b868bd963e4c02e0a2ccc9ca74f9f9fdef8f89dfa17d05",
     "plugins/src/base/rules/reference/falsifiable-checks.md":
-      "886d9e1e57364f9049ba928d37a521fa36652172c4bca7c8bd0f9cb77b95429c",
+      "70909242d2a75574f71f7f5a270378d358a7cf2c8a7a322768c108ed408488f8",
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
@@ -1285,7 +1285,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/usage-accounting.md":
       "53dec94f4cba696d4b4f6e990565173c6aa0c9972432b8b127517fc3617ca7cc",
     "plugins/src/base/rules/reference/verification.md":
-      "a2652d7fd813ac285f50e3b9fd1860d36ef9742078b79179341f5fd2fabe41bd",
+      "cb8d03601dcc4ed4fb8e2bfd0aa9d7879dfa00be3401d6a33864a8c34cde38ef",
     "plugins/src/base/rules/reference/when-to-stop.md":
       "327f6f6f24dd03eb93a484b64a7bc7de4f1fa4e6f9314a4dc280fe06d0d70f2e",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
@@ -1395,7 +1395,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-codebase-research/SKILL.md":
       "77dbc2d7e86e5027df486294de315bb539a2ece84bd4b38e47ccc108f8c2875e",
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
-      "016833c8a3a52bd112170ce1396e62c9d72916a7246783bf872d00e0796a3985",
+      "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "c6128e80d6baeabd9c0ff4c092d094773fe7753b1fc0c3cd828b016a5c6c447f",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -3848,6 +3848,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4741/golden-d.sh": true,
     "evidence/4741/phase-path.sh": true,
     "evidence/4741/run-cli.sh": true,
+    "evidence/4760/diff-stat.txt": true,
+    "evidence/4760/eager-budget.txt": true,
+    "evidence/4760/fals-baseline.txt": true,
+    "evidence/4760/fals-broken-generated.txt": true,
+    "evidence/4760/plugins-sync.txt": true,
+    "evidence/4760/recipe-drive.sh": true,
+    "evidence/4760/recipe-run.txt": true,
+    "evidence/4760/recipe.sh": true,
+    "evidence/4760/scratch-copy-grep.txt": true,
+    "evidence/4760/tests-green.txt": true,
     "evidence/4809/bite-control-mutated-status.txt": true,
     "evidence/4809/case-self-false-plain-shell-status.txt": true,
     "evidence/4809/case-self-null-status.txt": true,
@@ -13466,6 +13476,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/evidence-reference-contract.test.ts": true,
     "tests/unit/strategies/evidence-release-stop-guard.test.ts": true,
     "tests/unit/strategies/falsifiable-checks-rule.test.ts": true,
+    "tests/unit/strategies/falsification-scratch-copy.test.ts": true,
     "tests/unit/strategies/gardener-fingerprint-hash.test.ts": true,
     "tests/unit/strategies/git-discipline-force-lease-contract.test.ts": true,
     "tests/unit/strategies/github-evidence-upload.test.ts": true,

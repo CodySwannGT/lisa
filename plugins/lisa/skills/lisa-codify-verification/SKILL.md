@@ -149,9 +149,11 @@ Confirm:
 
 Do it one of these ways, in order of preference:
 
-- **Run against the pre-fix commit** (bug fixes): check out the failing commit, run the new test, see it fail, return to the fix branch.
-- **Break the property in place**: delete the field, revert the line, flip the condition; run; restore. Prefer this when there is no single pre-fix commit.
+- **Run against the pre-fix commit** (bug fixes): add a throwaway detached worktree at the failing commit (`git worktree add --detach <tmp> <pre-fix-sha>`). Copy the new test, plus every new helper or fixture it imports, to the same paths there (`mkdir -p` the parent directories first), and give the copy its dependencies (symlink `node_modules` from your tree, or run the project's install there). Run the test and confirm it fails **at the assertion**, not on an import or a missing module, then `git worktree remove --force <tmp>`. Your own branch is never checked out away from.
+- **Break the property on a scratch copy**: add a throwaway detached worktree (`git worktree add --detach <tmp> HEAD`), apply the uncommitted diff (`git diff --binary HEAD | git -C <tmp> apply --allow-empty`), copy in untracked new files, and give it its dependencies as above. Run the test there **before** breaking anything and confirm it is green: a red baseline means the copy is incomplete, not that the test bites. Then delete the field, revert the line, or flip the condition; run; remove the worktree. Prefer this when there is no single pre-fix commit. The full recipe is in `falsifiable-checks`.
 - **Unit-test the checker against synthetic bad input**: required when the input is generated, schema-validated, or cached — a revert can silently fail to change what the test reads (a generator that errors leaves the previous artifact in place, and the test then "passes" on stale input).
+
+Every break runs on a scratch copy, never in a worktree another agent is editing. A worktree has one working tree, so an in-place mutation writes into a concurrent builder's files, and a restore that lands after their next save can delete or commit their work. Restore must never depend on the shared tree's state; discarding the scratch worktree is the restore.
 
 Two properties the failure itself must have:
 
