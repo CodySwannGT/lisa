@@ -2684,6 +2684,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "672e64375a914750c5a50c16d414bea12df7cdddfa921ccc3f944b857aaaba4d",
     "scripts/downstream-name-digest.mjs":
       "7db91654f03ddd37bfdf1c34acfbfad9832a44ab762ca94c179809ad8faf4aa3",
+    "scripts/fetch-test-access-map.d.mts":
+      "d4e6befd7da1dcd78b99e6a7a7e0627f732164c20fa9a783711805733f5b7d47",
+    "scripts/fetch-test-access-map.mjs":
+      "e6d14e62944c884a802bf964dd2bd6778db83f6279b9e4a8dd0f56f4ffac60b1",
     "scripts/fix-namespace-test-assertions.mjs":
       "91205014b0ed0734c30012d36d5ed21d7ac9b493f5c811ea8288040b4835594c",
     "scripts/fix-test-assertions-pass2.mjs":
@@ -2814,10 +2818,18 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c3ec8f0a9c52090d8044bbc99fae50eaebc45a1469f62ef2f4fd21c80aa67277",
     "scripts/lib/shipped-surface.mjs":
       "9ba04034e2a3382d90a48d81b641ba52c6f1c95028d14aa2005ab0d4e3d65208",
+    "scripts/lib/test-access-map-setup.mjs":
+      "057181835e51dccc7ff6f107272d442bf1d84217034ee2fc6e6cc5af22ed00e6",
+    "scripts/lib/test-access-map-tracer.mjs":
+      "bcd5c32dfbf36a7a452ab9b609179563a46d0790c4f40aafc353262ccb6fc055",
+    "scripts/lib/test-access-map.d.mts":
+      "4eb8168594f82d7694d6664e96a1d4fec6f21a0ff820cb04bb44c7359d5984c2",
+    "scripts/lib/test-access-map.mjs":
+      "d975991c5056b4b682fe4b8d23f35385521d5db62e315fd177d73b43cc411789",
     "scripts/lib/test-timings-reporter.d.mts":
-      "49dcb41192ce3396f9fc05d4598cab5c4642eb5192a4ad7be4b8bd9d2027da74",
+      "f14df21669928d1abb9352888066a28b2645bb8ca555b84a3e1d611b3a6528ce",
     "scripts/lib/test-timings-reporter.mjs":
-      "a3a9b52fd1f3ac6e9892daef80e0b76a2b468074a67408b21615a23a56232e4a",
+      "16eb180b5ff2a0c2d907da46910988d58f8b0719c2afdccf9d577ba0cb8795e5",
     "scripts/lib/upstream-manifest-staleness.mjs":
       "c69fc5ba10228b7f4f8d0068db27ee8a289143094fa8718b14af83f4af31f76d",
     "scripts/lib/workflow-contract-probe.mjs":
@@ -2907,7 +2919,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "4238d62a8fd9f8d7e69a124fb1338bcdc862cfa20ad0e87ced15b6d82abe009c",
+      "f692b63471300075e9a381fd4cde0f3a4ce8f8b5f341824c9b7db3cc4f87a3ec",
     "scripts/update-node-version.ts":
       "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
@@ -2975,7 +2987,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "52d45279ac12b96308f852ba220d92acfeda4692599a5c1de2b15a96132a97a3",
+      "396968685d66d69ec2e98088954b1d915e1fd91c03d2c072720ce1bd7a22b37c",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -10644,6 +10656,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/copy-opencode-plugin-templates.mjs": true,
     "scripts/detect-stale-workflow-inputs.mjs": true,
     "scripts/downstream-name-digest.mjs": true,
+    "scripts/fetch-test-access-map.d.mts": true,
+    "scripts/fetch-test-access-map.mjs": true,
     "scripts/fix-namespace-test-assertions.mjs": true,
     "scripts/fix-test-assertions-pass2.mjs": true,
     "scripts/fix-test-assertions.mjs": true,
@@ -10709,6 +10723,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/shell-guard-terminal-reporter.mjs": true,
     "scripts/lib/shell-guard-trace.mjs": true,
     "scripts/lib/shipped-surface.mjs": true,
+    "scripts/lib/test-access-map-setup.mjs": true,
+    "scripts/lib/test-access-map-tracer.mjs": true,
+    "scripts/lib/test-access-map.d.mts": true,
+    "scripts/lib/test-access-map.mjs": true,
     "scripts/lib/test-timings-reporter.d.mts": true,
     "scripts/lib/test-timings-reporter.mjs": true,
     "scripts/lib/upstream-manifest-staleness.mjs": true,
@@ -11852,6 +11870,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-unit-test-shards.test.ts": true,
     "tests/integration/quality-verification-coverage-collapse.test.ts": true,
     "tests/integration/quality-workflow-size.test.ts": true,
+    "tests/integration/quality-workflow-test-access-map.test.ts": true,
     "tests/integration/quality-workflow-test-timings.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/rails-helper-test-isolation.test.ts": true,
@@ -11929,6 +11948,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/recording-gh-stub.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/integration/support/shell-guard-refusal-fixture.ts": true,
+    "tests/integration/test-access-map-tracer.test.ts": true,
     "tests/integration/third-party-evidence-seed-apply.test.ts": true,
     "tests/integration/third-party-review-check-run-cli.test.ts": true,
     "tests/integration/third-party-review-check-run-legacy.test.ts": true,
@@ -12295,6 +12315,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/synthesis-scratch-reclaim.test.ts": true,
     "tests/unit/config/template-script-toolchain.test.ts": true,
     "tests/unit/config/template-security-floors.test.ts": true,
+    "tests/unit/config/test-access-map.test.ts": true,
     "tests/unit/config/test-run-child-process-analyzer.test.ts": true,
     "tests/unit/config/test-run-supervision-wiring.test.ts": true,
     "tests/unit/config/test-scratch-guard.test.ts": true,
@@ -12843,6 +12864,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/evidence-prune.test.ts": true,
     "tests/unit/scripts/evidence-release-capacity.test.ts": true,
     "tests/unit/scripts/export-surface.test.ts": true,
+    "tests/unit/scripts/fetch-test-access-map.test.ts": true,
     "tests/unit/scripts/floor-collisions.test.ts": true,
     "tests/unit/scripts/gate-declared-failure-shapes.test.ts": true,
     "tests/unit/scripts/gate-diagnosis-comment-terminated.test.ts": true,

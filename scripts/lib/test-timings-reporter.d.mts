@@ -3,6 +3,9 @@ export declare const TEST_TIMINGS_SCOPES: readonly ["unit", "integration"];
 export declare function testTimingsScope(
   env: Readonly<Record<string, string | undefined>>
 ): "unit" | "integration" | undefined;
+export declare function declaredTestScope(
+  env: Readonly<Record<string, string | undefined>>
+): "unit" | "integration" | undefined;
 export declare function testTimingsReporter(
   env: Readonly<Record<string, string | undefined>>,
   root: string

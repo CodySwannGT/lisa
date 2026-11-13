@@ -2398,6 +2398,12 @@ jobs:
     # context and every downstream `needs.test_unit` reader key on them.
     needs: [gate_plan, test_unit_shard_plan, test_unit_shard]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:unit,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_unit":"skip"')) }}
+    # Lisa-only test-to-file access map (#4593): vitest.config.local.ts arms
+    # a tracer when LISA_ACCESS_MAP=1, keyed on the PR's base commit.
+    env:
+      LISA_ACCESS_MAP: ${{ github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != '' && '1' || '' }}
+      LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
     outputs:
       registry_path: ${{ steps.registry.outputs.path }}
@@ -2838,6 +2844,16 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
+      - name: 🗺️ Upload test access map
+        if: always() && github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-unit
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-access-map/*.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
+
       - name: ⏭️ Skip unit tests (no test:unit script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
         env:
@@ -3216,6 +3232,12 @@ jobs:
       fail-fast: false
       matrix:
         shard: ${{ fromJSON(needs.test_unit_shard_plan.outputs.shards || '[1]') }}
+    # Lisa-only test-to-file access map (#4593): vitest.config.local.ts arms
+    # a tracer when LISA_ACCESS_MAP=1, keyed on the PR's base commit.
+    env:
+      LISA_ACCESS_MAP: ${{ github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != '' && '1' || '' }}
+      LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -3584,6 +3606,16 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
+      - name: 🗺️ Upload this shard's test access map
+        if: always() && github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-unit-shard-${{ matrix.shard }}
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-access-map/*.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
+
   test_mutation:
     permissions:
       contents: read
@@ -3907,6 +3939,12 @@ jobs:
     timeout-minutes: 60
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:integration,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_integration":"skip"')) }}
+    # Lisa-only test-to-file access map (#4593): vitest.config.local.ts arms
+    # a tracer when LISA_ACCESS_MAP=1, keyed on the PR's base commit.
+    env:
+      LISA_ACCESS_MAP: ${{ github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != '' && '1' || '' }}
+      LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
     steps:
       - name: 📥 Checkout repository
@@ -4126,6 +4164,16 @@ jobs:
           name: test-timings-${{ github.run_id }}-${{ github.run_attempt }}-integration
           path: ${{ inputs.working_directory || '.' }}/tmp/test-timings
           if-no-files-found: ignore
+          retention-days: 30
+
+      - name: 🗺️ Upload test access map
+        if: always() && github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-integration
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-access-map/*.json
+          if-no-files-found: ignore
+          overwrite: true
           retention-days: 30
 
       - name: ⏭️ Skip integration tests (no test:integration script)

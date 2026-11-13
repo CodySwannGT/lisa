@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 286,
-  "$names": 2052,
+  "$modules": 288,
+  "$names": 2073,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1797,6 +1797,14 @@
       "entryFor",
       "normalize"
     ],
+    "scripts/fetch-test-access-map.mjs": [
+      "formatAge",
+      "main",
+      "mergeMaps",
+      "parseArgs",
+      "parseArtifacts",
+      "selectRun"
+    ],
     "scripts/generate-agy-plugin-artifacts.mjs": [
       "generateAgyVariant"
     ],
@@ -2079,9 +2087,26 @@
       "removalKey",
       "resolveRelative"
     ],
+    "scripts/lib/test-access-map.mjs": [
+      "ACCESS_MAP_ENV",
+      "TEST_ACCESS_MAP_DIRECTORY",
+      "TEST_ACCESS_MAP_SETUP_FILE",
+      "TEST_ACCESS_MAP_TRACER_VERSION",
+      "accessMapMetadata",
+      "armTestAccessMap",
+      "mergeAccessRecords",
+      "repositoryFile",
+      "testAccessMapEnabled",
+      "testAccessMapPlugin",
+      "testAccessMapReporter",
+      "testAccessMapScope",
+      "testAccessMapSetupFiles",
+      "withTestAccessMapReporter"
+    ],
     "scripts/lib/test-timings-reporter.mjs": [
       "TEST_TIMINGS_DIRECTORY",
       "TEST_TIMINGS_SCOPES",
+      "declaredTestScope",
       "testTimingsReporter",
       "testTimingsScope",
       "withTestTimingsReporter"
