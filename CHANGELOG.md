@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.1.4](https://github.com/CodySwannGT/lisa/compare/v5.1.3...v5.1.4) (2026-11-13)
+
+
+### Bug Fixes
+
+* **ci:** lease the rails release push on the gated trigger commit ([0bad2b5](https://github.com/CodySwannGT/lisa/commit/0bad2b58878afca53ea58eca40a4cf4f8f6dcb96)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+* **ci:** never defer a rails release under an ungated tip ([c20187f](https://github.com/CodySwannGT/lisa/commit/c20187fa884e420f18a4d1e90ebd7449a42a2fbf)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+* **ci:** push rails release commit and tag atomically so racing merges cannot orphan a tag ([7118ba1](https://github.com/CodySwannGT/lisa/commit/7118ba15cfdba3470d38b838f1c32159de43cedb)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+* **ci:** release rails only on the gated trigger commit ([481ea1c](https://github.com/CodySwannGT/lisa/commit/481ea1c46f64a4231e0686550f5932bd5d13596d)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+* **ci:** scope rails release deferral to own releases; report refused pushes ([2dcca69](https://github.com/CodySwannGT/lisa/commit/2dcca6981e6bed27ae4057e69f595213c7941a88)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+* **ci:** tell operators to dispatch by hand when a superseding run is skipped ([60b3f54](https://github.com/CodySwannGT/lisa/commit/60b3f5460ed8417cd1dcc12ef6f3329a3e0383e8)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+
 ### [5.1.3](https://github.com/CodySwannGT/lisa/compare/v5.1.2...v5.1.3) (2026-11-13)
 
 
