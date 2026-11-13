@@ -3,7 +3,7 @@
 
 /** Exclude only actual canonical accounting; retain unknown requirement text. */
 import { parseLisaUsageSection } from "./usage-ledger.mjs";
-import { verifyLisaUsageSectionIntegrity } from "./usage-ledger-integrity.mjs";
+import { isLisaUsageLedgerIntact } from "./usage-ledger-integrity.mjs";
 import { requireProof } from "./completion-proof-errors.mjs";
 
 /** Stable presentation matching; this does not parse or authorize usage data. */
@@ -105,7 +105,7 @@ export function usageSpecRemainder(document) {
   try {
     parsed = parseLisaUsageSection(document);
     requireProof(
-      verifyLisaUsageSectionIntegrity(document).ok,
+      isLisaUsageLedgerIntact(document),
       "The canonical usage section is not an intact stored ledger."
     );
   } catch {
