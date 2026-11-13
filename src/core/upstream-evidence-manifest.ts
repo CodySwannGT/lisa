@@ -2795,7 +2795,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/packaged-apply-driver.mjs":
-      "df5c559e24b178d91ac26f2cc5596d5c5a4987c4a260e96776e8b79a916a1602",
+      "fff2171ae3fbb913b9bb8da45d002a6ad9f369bac4e93e75d79231468bce9bfb",
     "scripts/lib/packaged-apply-isolation.d.mts":
       "11378f7f0a7f7e2db4064021d13f4f70f3b5bc8189d02ef88fec2af38e6da675",
     "scripts/lib/packaged-apply-isolation.mjs":
@@ -2951,7 +2951,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-npm-advisories-4333.mjs":
       "f0a94aead747c28cf1317d999a4eb80ae027461a43ed22b5b996173a5a096aae",
     "scripts/verify-packaged-apply.mjs":
-      "29576e131201d0275ee00c1d85362a852767d09e9d3e7aa6db7bf7c70a4a2576",
+      "e80fc05e447dd281c10cb7ed65e96a85ec64ce3746ba3737b1dca6a9d6242fc9",
     "scripts/verify-packed-learnings-contract.mjs":
       "2227b32f3b3dc2dc6817a60b4998b64881c03e30ecd15cb52b6d6f95a5870613",
     "scripts/verify-rails-tooling.rb":
@@ -11542,6 +11542,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/npm-update-rails-mysql-native.sh": true,
     "tests/fixtures/npm-update-rails-mysql-observation.mjs": true,
     "tests/fixtures/opencode/host-name-guard-callback.mjs": true,
+    "tests/fixtures/packaged-apply/controller-failure.mjs": true,
     "tests/fixtures/packaged-apply/reference-package.mjs": true,
     "tests/fixtures/packaged-apply/run.mjs": true,
     "tests/fixtures/packaged-apply/symlink-control.mjs": true,
@@ -13119,6 +13120,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-tracker.test.ts": true,
     "tests/unit/scripts/operator-id-kinds.test.ts": true,
     "tests/unit/scripts/orphaned-branch-bindings.test.ts": true,
+    "tests/unit/scripts/packaged-apply-controller-failure.test.ts": true,
     "tests/unit/scripts/packaged-apply-isolation.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter-devin.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
