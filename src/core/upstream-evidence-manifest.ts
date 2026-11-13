@@ -1535,7 +1535,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "e082517cb42f437eeb22b3935aa0fef09299874736e55184e88d2b64f7860a7d",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "fc9ba0804e8f6772f232678c5a31bead4527e06e1caa4d5f35931bb1f1189625",
+      "fb8539fb70c9b16c0a79d1072b42bcda451f3e98b80a8f8a7b0f0cfe272dc2f9",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "83cbf20e7a9f5e5289f609f16079a95897aac5964380305d4a5193438230f965",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
@@ -11075,6 +11075,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/install-merge-driver-cmd.ts": true,
     "src/cli/kane-cmd.ts": true,
     "src/cli/learnings-overflow-cmd.ts": true,
+    "src/cli/learnings-retire-cmd.ts": true,
     "src/cli/lisa-test-run-bootstrap.ts": true,
     "src/cli/lisa-test-run-ipc.ts": true,
     "src/cli/lisa-test-run-jest-merge.ts": true,
@@ -11735,6 +11736,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/io-latency-budget.ts": true,
     "tests/helpers/latest-review-identity-fixtures.ts": true,
     "tests/helpers/latest-review-reducer-harness.ts": true,
+    "tests/helpers/learnings-overcap.ts": true,
     "tests/helpers/lintstaged-globs.ts": true,
     "tests/helpers/lisa-test-run-authority-equality.ts": true,
     "tests/helpers/lisa-test-run-exact-process-cleanup.ts": true,
@@ -11883,6 +11885,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/jira-evidence-pr-scoped-uploads.test.ts": true,
     "tests/integration/jira-shell-auth-destinations.test.ts": true,
     "tests/integration/job-names-name-properties.test.ts": true,
+    "tests/integration/learnings-retire-cli.test.ts": true,
     "tests/integration/lisa-cleanup-sweep.test.ts": true,
     "tests/integration/lisa-rollback-release.test.ts": true,
     "tests/integration/lisa-test-run-jest-shards-fixture.ts": true,
@@ -12267,6 +12270,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/kane-cmd.test.ts": true,
     "tests/unit/cli/kane-index.test.ts": true,
     "tests/unit/cli/learnings-overflow-cmd.test.ts": true,
+    "tests/unit/cli/learnings-retire-cmd.test.ts": true,
     "tests/unit/cli/lisa-test-run-ipc.test.ts": true,
     "tests/unit/cli/lisa-test-run-process-group.test.ts": true,
     "tests/unit/cli/lisa-test-run-protocol-state.test.ts": true,
@@ -12532,6 +12536,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-merge-reports-every-invalid-entry.test.ts": true,
     "tests/unit/core/learnings-merge.test.ts": true,
     "tests/unit/core/learnings-migration.test.ts": true,
+    "tests/unit/core/learnings-overcap-supersede.test.ts": true,
+    "tests/unit/core/learnings-overcap.test.ts": true,
     "tests/unit/core/learnings-overflow-budget-check.test.ts": true,
     "tests/unit/core/learnings-overflow-identity.test.ts": true,
     "tests/unit/core/learnings-overflow.test.ts": true,
