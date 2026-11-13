@@ -2,6 +2,50 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.11](https://github.com/CodySwannGT/lisa/compare/v4.107.10...v4.107.11) (2026-11-13)
+
+
+### Bug Fixes
+
+* **ci:** fail load-test.yml closed when k6 could not run (CodySwannGT/lisa[#4526](https://github.com/CodySwannGT/lisa/issues/4526)) ([b5ee3b1](https://github.com/CodySwannGT/lisa/commit/b5ee3b1116371ef69c72727107ba08b3da0769b5))
+* **ci:** pass k6 Cloud stack/project IDs and script env to cloud runs ([916f972](https://github.com/CodySwannGT/lisa/commit/916f9727eedf496b24e113725acf54968ff9183c)), closes [CodySwannGT/lisa#4526](https://github.com/CodySwannGT/lisa/issues/4526) [CodySwannGT/lisa#4526](https://github.com/CodySwannGT/lisa/issues/4526)
+
+### [4.107.10](https://github.com/CodySwannGT/lisa/compare/v4.107.9...v4.107.10) (2026-11-13)
+
+
+### Bug Fixes
+
+* **session-manager:** reclaim pre-boot ledger locks and never let release mask a write ([b60b671](https://github.com/CodySwannGT/lisa/commit/b60b671517425d41d7dd327ab6603aba730ef43c)), closes [#4828](https://github.com/CodySwannGT/lisa/issues/4828) [CodySwannGT/lisa#4828](https://github.com/CodySwannGT/lisa/issues/4828)
+* **session-manager:** serialize the ledger read-modify-write with a cross-process lock ([82df255](https://github.com/CodySwannGT/lisa/commit/82df255ca81f15a088446281fd6ab5124e687981)), closes [#4828](https://github.com/CodySwannGT/lisa/issues/4828) [CodySwannGT/lisa#4828](https://github.com/CodySwannGT/lisa/issues/4828)
+
+### [4.107.9](https://github.com/CodySwannGT/lisa/compare/v4.107.8...v4.107.9) (2026-11-13)
+
+
+### Bug Fixes
+
+* **session-manager:** find first-prompt transcripts in truncated long project dirs ([d3d805c](https://github.com/CodySwannGT/lisa/commit/d3d805c6b3fb1b44b18aa650762d0b67a26414a2)), closes [#4821](https://github.com/CodySwannGT/lisa/issues/4821) [CodySwannGT/lisa#4821](https://github.com/CodySwannGT/lisa/issues/4821)
+* **session-manager:** keep the exact name in the long-path transcript lookup ([2cc912b](https://github.com/CodySwannGT/lisa/commit/2cc912b4662c83f1139ead6fd45c3ba4451388ec)), closes [#4821](https://github.com/CodySwannGT/lisa/issues/4821) [#4821](https://github.com/CodySwannGT/lisa/issues/4821) [CodySwannGT/lisa#4821](https://github.com/CodySwannGT/lisa/issues/4821)
+
+### [4.107.8](https://github.com/CodySwannGT/lisa/compare/v4.107.7...v4.107.8) (2026-11-13)
+
+
+### Bug Fixes
+
+* **test-run:** settle DISARMED wait on close so an ack-then-exit is not a false failure ([59dd412](https://github.com/CodySwannGT/lisa/commit/59dd412de44eda240ff449f7c692e1670d214a02)), closes [CodySwannGT/lisa#4824](https://github.com/CodySwannGT/lisa/issues/4824) [CodySwannGT/lisa#4824](https://github.com/CodySwannGT/lisa/issues/4824)
+
+### [4.107.7](https://github.com/CodySwannGT/lisa/compare/v4.107.6...v4.107.7) (2026-11-13)
+
+
+### Bug Fixes
+
+* **session-manager:** anchor the subagent-wait exclusion ([01b86bb](https://github.com/CodySwannGT/lisa/commit/01b86bb4c8bc121a7bfce777c82903fbb7aa0f6c)), closes [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522) [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522)
+* **session-manager:** classify prompt-blocked workers and resume with spawn's permission flags ([d8a739e](https://github.com/CodySwannGT/lisa/commit/d8a739e7d753a7862aad3eb9ef08599ee04f5532)), closes [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522) [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522)
+
+
+### Documentation
+
+* **session-manager:** note question precedence and accurate restart wording ([ba9d2a0](https://github.com/CodySwannGT/lisa/commit/ba9d2a053a6c632f8d466a06c37f9ead49066760)), closes [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522) [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522)
+
 ### [4.107.6](https://github.com/CodySwannGT/lisa/compare/v4.107.5...v4.107.6) (2026-11-13)
 
 

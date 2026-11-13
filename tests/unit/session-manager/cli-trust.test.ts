@@ -33,7 +33,10 @@ import {
   LaunchError,
   resolveStateDir,
 } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs";
-import { buildWorkerResume } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs";
+import {
+  WORKER_PERMISSION_ARGS,
+  buildWorkerResume,
+} from "../../../plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs";
 import {
   makeSandbox,
   removeSandboxes,
@@ -194,6 +197,7 @@ describe("resume argv", () => {
       "--bg",
       "--resume",
       "abc",
+      ...WORKER_PERMISSION_ARGS,
       "--",
       "--settings {}",
     ]);

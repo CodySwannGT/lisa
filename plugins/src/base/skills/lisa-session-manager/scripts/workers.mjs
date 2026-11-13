@@ -20,6 +20,32 @@ export const WORKER_SETTINGS = JSON.stringify({
 });
 
 /**
+ * The permission and settings flags every worker invocation carries, spawn
+ * and resume alike. Resume once dropped them (lisa#4522): whether `--resume`
+ * keeps the original session's permission mode is undocumented, so a resumed
+ * worker could fall back to default permissions and prompt with nobody
+ * attached to answer.
+ */
+export const WORKER_PERMISSION_ARGS = Object.freeze([
+  "--dangerously-skip-permissions",
+  "--settings",
+  WORKER_SETTINGS,
+]);
+
+/**
+ * A `waitingFor` that names the session's own subagent as what it waits on,
+ * which is ordinary work. Anchored, so a prompt that merely mentions a
+ * subagent ("permission prompt (subagent x)") still blocks.
+ *
+ * Observed in Claude Code 2.1.319: `waitingFor` is set only while the session
+ * awaits a person ("permission prompt", "dialog open", "input needed",
+ * "sandbox request", "goal proposal"); an idle session reports none, and
+ * subagent work is reported as a separate work kind, not as `waitingFor`.
+ * This exclusion is defensive, for a future string of that shape.
+ */
+const SUBAGENT_WAIT_PATTERN = /^\s*sub-?agent\b/i;
+
+/**
  * Stall policy used when the caller passes none. Mirrors the
  * `sessionManager.stall` defaults, so a missing config block still classifies.
  */
@@ -163,9 +189,10 @@ function stringOrNull(value) {
  * terminal state, has finished. Reading `state` alone undercounted capacity,
  * let `spawn` duplicate a live worker and made `classify` say `dead`.
  * Every row comes back with all fields present (null when absent) and an
- * `active` flag, so callers never branch on shape.
+ * `active` flag, so callers never branch on shape. `waitingFor` is kept so
+ * `classifyWorker` can see a worker stuck on a prompt (lisa#4522).
  * @param {unknown} parsed - `JSON.parse` of the command's stdout
- * @returns {Array<{name: string|null, sessionId: string|null, id: string|null, pid: number|null, cwd: string|null, kind: string|null, startedAt: number|null, status: string|null, state: string|null, active: boolean}>} Rows
+ * @returns {Array<{name: string|null, sessionId: string|null, id: string|null, pid: number|null, cwd: string|null, kind: string|null, startedAt: number|null, status: string|null, state: string|null, waitingFor: string|null, active: boolean}>} Rows
  */
 export function normalizeAgents(parsed) {
   if (!Array.isArray(parsed)) {
@@ -188,6 +215,7 @@ export function normalizeAgents(parsed) {
         startedAt: typeof row.startedAt === "number" ? row.startedAt : null,
         status,
         state,
+        waitingFor: stringOrNull(row.waitingFor),
         active:
           activeShape || state === null || !TERMINAL_AGENT_STATES.has(state),
       };
@@ -280,13 +308,12 @@ export function buildWorkerSpawn({ ref, name, manager, repoDir, env }) {
   requireText("repoDir", repoDir);
   return {
     command: "claude",
+    // The name stays at args[2]: `spawn` in cli-workers.mjs reads it there.
     args: [
       "--bg",
       "-n",
       name,
-      "--dangerously-skip-permissions",
-      "--settings",
-      WORKER_SETTINGS,
+      ...WORKER_PERMISSION_ARGS,
       `/lisa:implement ${ref} managedBy=${manager}`,
     ],
     cwd: repoDir,
@@ -296,7 +323,8 @@ export function buildWorkerSpawn({ ref, name, manager, repoDir, env }) {
 
 /**
  * Build the spawn that resumes a worker with one message (an answer, or a
- * nudge after a stall), with the same cwd and environment scrub as a spawn.
+ * nudge after a stall), with the same cwd, environment scrub and permission
+ * flags (`WORKER_PERMISSION_ARGS`) as a spawn.
  * @param {{sessionId: string, text: string, repoDir: string, env: Record<string, string | undefined>}} input - Resume inputs
  * @returns {{command: string, args: string[], cwd: string, env: Record<string, string | undefined>}} Spawn spec
  */
@@ -313,7 +341,14 @@ export function buildWorkerResume({ sessionId, text, repoDir, env }) {
     command: "claude",
     // `--` ends option parsing: an answer that starts with `--` (claude
     // 2.1.296 reads `--x` there as an unknown option) stays message text.
-    args: ["--bg", "--resume", sessionId, "--", text],
+    args: [
+      "--bg",
+      "--resume",
+      sessionId,
+      ...WORKER_PERMISSION_ARGS,
+      "--",
+      text,
+    ],
     cwd: repoDir,
     env: scrubWorkerEnv(env),
   };
@@ -351,6 +386,24 @@ function toMillis(value) {
 }
 
 /**
+ * Whether an agent row's `waitingFor` means the worker is stuck on something
+ * nobody will answer.
+ *
+ * Workers run unattended, so any non-empty `waitingFor` (Claude Code reports
+ * e.g. "permission prompt") blocks them for good, except a parent waiting on
+ * its own subagent (`SUBAGENT_WAIT_PATTERN`), which is ordinary work.
+ * @param {unknown} waitingFor - The row's `waitingFor`
+ * @returns {boolean} True when the worker can never proceed on its own
+ */
+export function isBlockingWait(waitingFor) {
+  return (
+    typeof waitingFor === "string" &&
+    waitingFor.trim() !== "" &&
+    !SUBAGENT_WAIT_PATTERN.test(waitingFor)
+  );
+}
+
+/**
  * Classify one dispatched item for this cycle.
  *
  * Order matters: a recorded DONE/FAILED wins; a pending question means the
@@ -358,11 +411,15 @@ function toMillis(value) {
  * reads `done`; then a first prompt that never ran (`firstPromptFailure`,
  * read from the worker's transcript) is a `setup-gap` — a machine problem no
  * retry can fix, so it is never `working` until the stall timer and never
- * `exhausted` (lisa#4503); only then is liveness judged. `stalled` and `dead`
- * become `exhausted` at `maxAttempts`, which is the manager's cue to move the
- * item to Blocked instead of retrying it again.
+ * `exhausted` (lisa#4503); then an active worker whose row reports a
+ * blocking `waitingFor` (see `isBlockingWait`) is `blocked-on-prompt`, never
+ * `working` however its logs change (lisa#4522) — a pending question still
+ * wins, because a managed worker ends its turn after asking; only then is liveness
+ * judged. `blocked-on-prompt`, `stalled` and `dead` become `exhausted` at
+ * `maxAttempts`, which is the manager's cue to move the item to Blocked
+ * instead of retrying it again.
  * @param {{agent: ReturnType<typeof normalizeAgents>[number] | null, entry: {status?: string, startedAt?: string|number, lastProgressAt?: string|number|null, logsHash?: string|null, pendingQuestion?: {askedAt?: string|number, lastPingAt?: string|number|null} | null, attempts?: number}, logsHash?: string | null | undefined, now: Date | number, stall?: {noOutputMinutes: number, requestionHours: number, maxAttempts: number}, firstPromptFailure?: {kind: string, detail: string} | null}} input - Classification inputs
- * @returns {"finished"|"waiting"|"requestion"|"setup-gap"|"working"|"stalled"|"dead"|"exhausted"} Classification
+ * @returns {"finished"|"waiting"|"requestion"|"setup-gap"|"blocked-on-prompt"|"working"|"stalled"|"dead"|"exhausted"} Classification
  */
 export function classifyWorker({
   agent,
@@ -384,12 +441,27 @@ export function classifyWorker({
   }
   if (firstPromptFailure) return "setup-gap";
   const outcome = agent?.active
-    ? judgeActive(entry, logsHash, nowMs, stall)
+    ? judgeLive(agent, entry, logsHash, nowMs, stall)
     : "dead";
   if (outcome !== "working" && (entry.attempts ?? 0) >= stall.maxAttempts) {
     return "exhausted";
   }
   return outcome;
+}
+
+/**
+ * Judge an active worker: blocked on a prompt, or else by its progress.
+ * @param {{waitingFor?: string|null}} agent - Normalized active row
+ * @param {Parameters<typeof judgeActive>[0]} entry - Ledger row
+ * @param {string | null | undefined} logsHash - This cycle's logs hash
+ * @param {number} nowMs - Clock reading
+ * @param {{noOutputMinutes: number}} stall - Stall policy
+ * @returns {"blocked-on-prompt"|"working"|"stalled"} Classification
+ */
+function judgeLive(agent, entry, logsHash, nowMs, stall) {
+  return isBlockingWait(agent.waitingFor)
+    ? "blocked-on-prompt"
+    : judgeActive(entry, logsHash, nowMs, stall);
 }
 
 /**
