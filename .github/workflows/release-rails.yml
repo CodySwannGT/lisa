@@ -295,6 +295,12 @@ jobs:
           # A workflow_dispatch would not help — it checks out the same tip,
           # and the skip step skips it again — so the remedy is a merge.
           superseded() {
+            # Moved BACK, to an ancestor of the trigger: commits were removed
+            # from BRANCH on purpose, and releasing would put them back.
+            if [ "$1" != "$TRIGGER_SHA" ] && git merge-base --is-ancestor "$1" "$TRIGGER_SHA"; then
+              echo "::error title=Release branch rewound::$BRANCH was moved back to $1, an earlier commit than $TRIGGER_SHA, while this run was releasing $TRIGGER_SHA. Someone removed commits from $BRANCH on purpose, so this run did not put them back: nothing was published, no release commit and no tag. If the rewind was a mistake, restore $BRANCH and merge again to release it."
+              exit 1
+            fi
             echo "::error title=Release superseded::$BRANCH has moved on to $1, past $TRIGGER_SHA, the only commit this run's checks covered. Releasing from $1 would let the deploy after this job ship changes those checks never looked at, so this run published nothing: no release commit and no tag, and later releases are not blocked. The run for $1 checks it and releases everything up to it. If that run is skipped, because $1 is a promotion merge or a release commit, these changes are released by the next ordinary merge to $BRANCH: merge any ordinary change to $BRANCH to release it."
             exit 1
           }
@@ -334,7 +340,11 @@ jobs:
           bump
           git tag -a "$TAG" -m "chore(release): $TAG"
 
-          if ! git push --atomic origin "HEAD:refs/heads/$BRANCH" "refs/tags/$TAG"; then
+          # The lease re-asserts, at the moment of the push, that BRANCH is
+          # still exactly the gated trigger commit. Without it, a BRANCH
+          # rewound to an ancestor would accept this release commit as a
+          # fast-forward and silently restore the commits that were removed.
+          if ! git push --atomic --force-with-lease="refs/heads/$BRANCH:$TRIGGER_SHA" origin "HEAD:refs/heads/$BRANCH" "refs/tags/$TAG"; then
             # There is no retry: a retry could only rebuild on a tip no gate
             # checked. Re-read BRANCH to say what happened.
             if ! git fetch --quiet origin "$REMOTE_BRANCH"; then

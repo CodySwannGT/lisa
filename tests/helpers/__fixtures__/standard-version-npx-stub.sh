@@ -31,6 +31,12 @@ calls=$(wc -l < "$NPX_LOG" | tr -d ' ')
 if [ -n "${RACE_CLONE:-}" ] && [ "$calls" -le "${RACE_LANDINGS:-0}" ]; then
   (
     cd "$RACE_CLONE"
+    # RACE_REWIND_TO: instead of landing a merge, force the branch back to
+    # that commit, as someone with protection bypass rewinding it would.
+    if [ -n "${RACE_REWIND_TO:-}" ]; then
+      git push --quiet --force origin "$RACE_REWIND_TO:refs/heads/$RACE_BRANCH"
+      exit 0
+    fi
     git fetch --quiet origin "$RACE_BRANCH"
     git reset --quiet --hard "origin/$RACE_BRANCH"
     echo "$calls" >> concurrent.txt

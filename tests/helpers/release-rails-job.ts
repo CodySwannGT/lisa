@@ -98,6 +98,8 @@ export interface RaceSpec {
   readonly clone: string;
   /** How many bump invocations each land one concurrent merge first. */
   readonly landings: number;
+  /** When set, force the branch back to this commit instead of merging. */
+  readonly rewindTo?: string;
 }
 
 /** What one execution of the release job produced. */
@@ -365,6 +367,7 @@ function runStep(
       GITHUB_REPOSITORY: REPOSITORY,
       RACE_CLONE: race?.clone ?? "",
       RACE_LANDINGS: String(race?.landings ?? 0),
+      RACE_REWIND_TO: race?.rewindTo ?? "",
       RACE_BRANCH: fixture.branch,
     },
   });

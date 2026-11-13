@@ -46,6 +46,9 @@ import {
 const BRANCH = "main";
 const scratchRoots: string[] = [];
 
+/** Title of the error a run raises when its branch moved past the trigger. */
+const SUPERSEDED = "Release superseded";
+
 /**
  * A fresh remote at VERSION 0.0.1, removed after the case.
  * @param branch - Branch the release runs on.
@@ -338,6 +341,31 @@ describe("release-rails.yml racing merges (#4748)", () => {
     expect(tags(fixture.remote)).toEqual(["v0.0.2", "v0.0.3"]);
   });
 
+  it("does not restore commits when the branch is rewound during the run", () => {
+    const fixture = freshFixture();
+    const runA = cloneRemote(fixture, "a");
+    const other = cloneRemote(fixture, "b");
+    const ancestor = git(fixture.remote, "rev-parse", BRANCH);
+
+    landMerge(fixture, runA, "a.txt");
+    // Someone with protection bypass resets main back to an ancestor of the
+    // trigger while the run bumps. A plain fast-forward push would put the
+    // removed commit back.
+    const run = runReleaseJob(fixture, runA, {
+      clone: other,
+      landings: 1,
+      rewindTo: ancestor,
+    });
+
+    expect(run.status, run.output).not.toBe(0);
+    expect(run.output).toContain("::error title=Release branch rewound::");
+    expect(run.output).toContain(ancestor);
+    expect(run.output).not.toContain(SUPERSEDED);
+    expect(tags(fixture.remote)).toEqual([]);
+    expect(git(fixture.remote, "rev-parse", BRANCH)).toBe(ancestor);
+    expect(run.createsGithubRelease).toBe(false);
+  });
+
   it("treats an accepted push whose reply was lost as released", () => {
     const fixture = freshFixture();
     const runA = cloneRemote(fixture, "a");
@@ -348,7 +376,7 @@ describe("release-rails.yml racing merges (#4748)", () => {
 
     expect(run.status, run.output).toBe(0);
     expect(run.output).toContain("::notice title=Release push confirmed::");
-    expect(run.output).not.toContain("Release superseded");
+    expect(run.output).not.toContain(SUPERSEDED);
     expect(run.outputs["version"]?.["tag"]).toBe("v0.0.2");
     expect(run.outputs["version"]?.["version"]).toBe("0.0.2");
     expect(isAncestor(fixture.remote, "v0.0.2", BRANCH)).toBe(true);
@@ -403,7 +431,7 @@ describe("release-rails.yml racing merges (#4748)", () => {
     expect(run.output).toContain("::error title=Release push failed::");
     expect(run.output).toContain("could not tell");
     expect(run.output).not.toContain("refused by the remote");
-    expect(run.output).not.toContain("Release superseded");
+    expect(run.output).not.toContain(SUPERSEDED);
     expect(tags(fixture.remote)).toEqual([]);
   });
 });
