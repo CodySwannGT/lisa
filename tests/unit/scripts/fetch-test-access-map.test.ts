@@ -23,6 +23,7 @@ const B = "b".repeat(40);
 const C = "c".repeat(40);
 const X = "0".repeat(40);
 const NOV_13 = "2026-11-13T00:00:00Z";
+const CLOCK = "2026-11-13T03:00:00Z";
 const UNIT_11 = `test-access-map-${A}-11-unit`;
 const INTEGRATION_11 = `test-access-map-${A}-11-integration`;
 
@@ -108,7 +109,7 @@ function runMain(
   const calls: string[][] = [];
   const code = main([...argv, "--out", out], {
     run: fakeRun(listing, downloads, calls),
-    now: () => new Date("2026-11-13T03:00:00Z"),
+    now: () => new Date(CLOCK),
     out: text => stdout.push(text),
     err: text => stderr.push(text),
   });
@@ -121,11 +122,25 @@ describe("parseArgs", () => {
       base: A,
       repo: "CodySwannGT/lisa",
       out: ".lisa/test-access-map",
+      maxPages: 10,
+      maxAgeDays: 7,
     });
-    expect(parseArgs([`--base=${A}`, "--repo", "o/r", "--out=x"])).toEqual({
+    expect(
+      parseArgs([
+        `--base=${A}`,
+        "--repo",
+        "o/r",
+        "--out=x",
+        "--max-pages",
+        "3",
+        "--max-age-days=2",
+      ])
+    ).toEqual({
       base: A,
       repo: "o/r",
       out: "x",
+      maxPages: 3,
+      maxAgeDays: 2,
     });
   });
 });
@@ -260,6 +275,78 @@ describe("main", () => {
     const result = runMain(["--base", A], listing, {});
     expect(result.code).toBe(1);
     expect(result.stderr).toEqual([`no access map for ${A}`]);
+  });
+
+  it("stops paging at the first page that yields a usable run", () => {
+    const filler = Array.from({ length: 100 }, (_, index) =>
+      JSON.stringify({
+        name: `coverage-${index}`,
+        runId: 99,
+        createdAt: NOV_13,
+      })
+    ).join("\n");
+    const pages = [filler, listing, filler];
+    const calls: string[][] = [];
+    const base = fakeRun(listing, downloads, calls);
+    const out = fs.mkdtempSync(
+      path.join(os.tmpdir(), "lisa-access-map-fetch-")
+    );
+    created.push(out);
+    const code = main(["--base", B, "--out", out], {
+      run: (command, args) => {
+        const page = /[?&]page=(\d+)/.exec(String(args[1]))?.[1];
+        if (command === "gh" && args[0] === "api" && page !== undefined) {
+          calls.push([command, ...args]);
+          return pages[Number(page) - 1] ?? "";
+        }
+        return base(command, args);
+      },
+      now: () => new Date(CLOCK),
+      out: () => undefined,
+      err: () => undefined,
+    });
+    expect(code).toBe(0);
+    const listed = calls.filter(
+      call => call[0] === "gh" && String(call[2]).includes("/artifacts?")
+    );
+    expect(listed.map(call => call[2])).toEqual([
+      "repos/CodySwannGT/lisa/actions/artifacts?per_page=100&page=1",
+      "repos/CodySwannGT/lisa/actions/artifacts?per_page=100&page=2",
+      "repos/CodySwannGT/lisa/actions/runs/11/artifacts?per_page=100",
+    ]);
+  });
+
+  it("stops paging once the listing is older than --max-age-days", () => {
+    const old = Array.from({ length: 100 }, (_, index) =>
+      JSON.stringify({
+        name: `coverage-${index}`,
+        runId: 99,
+        createdAt: "2026-10-01T00:00:00Z",
+      })
+    ).join("\n");
+    const calls: string[][] = [];
+    const code = main(["--base", B, "--out", os.tmpdir()], {
+      run: (command, args) => {
+        calls.push([command, ...args]);
+        if (command === "git") return `${B}\n`;
+        return old;
+      },
+      now: () => new Date(CLOCK),
+      out: () => undefined,
+      err: () => undefined,
+    });
+    expect(code).toBe(1);
+    expect(calls.filter(call => call[0] === "gh")).toHaveLength(1);
+  });
+
+  it("skips expired artifacts", () => {
+    const expired = JSON.stringify({
+      name: UNIT_11,
+      runId: 11,
+      createdAt: NOV_13,
+      expired: true,
+    });
+    expect(parseArtifacts(expired)).toEqual([]);
   });
 
   it("exits 2 without --base", () => {

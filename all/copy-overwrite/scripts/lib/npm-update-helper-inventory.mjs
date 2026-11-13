@@ -43,6 +43,7 @@ const COMMON = [
   "lib/lisa-cleanup-sweep-processes.mjs",
   "lib/build-marker.mjs",
   "lib/gate-pass-cache.mjs",
+  "lib/affected-tests.mjs",
   "lib/history-secret-git.mjs",
   "lib/history-secret-scanner.mjs",
   "lib/history-secret-evidence.mjs",

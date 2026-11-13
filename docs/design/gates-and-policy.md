@@ -320,6 +320,28 @@ Every rule fails toward running the gate:
   off it is silent and touches nothing. Lisa turns it on for itself; hosts get it
   when their stack template does (CodySwannGT/lisa#4611, #4613).
 
+## Affected-test selection at push
+
+`pushGate.affectedTests: true` (CodySwannGT/lisa#4600) routes the unit push
+task through `scripts/lisa-affected-tests.mjs`, which narrows `vitest run` to
+`vitest related --run <changed files> <map-selected tests>` using the CI access
+map (#4593). The decisions live in `scripts/lib/affected-tests.mjs`:
+
+- Any reason the selection could be wrong runs the full command unchanged and
+  prints the reason. These are a missing, stale or unreadable map, a changed
+  file that is new since the map, a `FULL_SUITE_TRIGGERS` entry, or a CI run.
+  It never runs nothing because the map is in doubt.
+- The command reports what it selected through `LISA_SELECTION_REPORT`, a
+  per-command file the gate runner points it at. A partial pass is never
+  written to the pass cache.
+- `pushGate.affectedCoverage` decides what a partial run means for
+  `coverage-adequacy`. With `full` (the default), the full suite runs wherever
+  `coverage-adequacy` is declared at push. With `changed-files`, the chosen
+  tests run with coverage on and each changed source file is held to the floor
+  on its own. With `skip`, the runner reports `coverage-adequacy` SKIPPED with
+  `partial selection — enforced by CI`, and `test-correctness` keeps the run's
+  own verdict, so a failing chosen test still blocks the push.
+
 ## Hollow results
 
 Two forms, one response model.

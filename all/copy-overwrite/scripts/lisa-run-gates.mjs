@@ -58,6 +58,11 @@ import {
 } from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { openGatePassCache } from "./lib/gate-pass-cache.mjs";
+import {
+  PARTIAL_COVERAGE_SKIP_REASON,
+  coverageLeftToCi,
+  openSelectionReports,
+} from "./lib/affected-tests.mjs";
 import { runBuildOnce } from "./lib/build-marker.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { runStartOfRunSweep } from "./lib/lisa-cleanup-sweep.mjs";
@@ -857,6 +862,11 @@ function verdictFor(
  *   The push-gate pass cache from `openGatePassCache`, or null for none. A
  *   lookup hit reports `CACHED PASS` without running; only full passes are
  *   handed to `remember`, and `commit` writes them once the run is over.
+ * @param {{read: (command: string) => ({selection?: string, coverage?: string}|null)}|null} [options.selection]
+ *   What each command reported about the tests it selected, from
+ *   `openSelectionReports` (CodySwannGT/lisa#4600), or null for none. A
+ *   partial selection is never remembered by the cache, and one run with
+ *   coverage off reports coverage-adequacy SKIPPED.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -871,6 +881,7 @@ export function runGates({
   interrupted = runInterruption,
   clock = Date.now,
   cache = null,
+  selection = null,
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
   const results = [];
@@ -949,7 +960,7 @@ export function runGates({
       continue;
     }
     const began = clock();
-    const { outcome, shared, ran, raw } = verdictFor(gate, {
+    const verdict = verdictFor(gate, {
       proved,
       blockedBy,
       exec,
@@ -957,6 +968,24 @@ export function runGates({
       declarations: declaredShapes.get(gate.command) ?? [],
       cache,
     });
+    const { shared, ran, raw } = verdict;
+    // What the command said it selected (CodySwannGT/lisa#4600). A partial
+    // selection is never remembered as a pass, and with coverage switched off
+    // coverage-adequacy reports SKIPPED: its property was not measured here,
+    // and CI's full run enforces it before merge.
+    const report =
+      gate.command && !verdict.outcome.cached
+        ? (selection?.read(gate.command) ?? null)
+        : null;
+    const outcome = coverageLeftToCi(gate, report)
+      ? {
+          state: STATE.SKIPPED,
+          detail: `${PARTIAL_COVERAGE_SKIP_REASON} (${gate.command})`,
+          code: null,
+          diagnosis: null,
+          evidence: [],
+        }
+      : verdict.outcome;
     // One end reading per gate: the timing report and the pass cache share it.
     const elapsedMs = Math.max(0, clock() - began);
     const durationMs = ran ? elapsedMs : shared?.durationMs;
@@ -980,6 +1009,7 @@ export function runGates({
     const source = ran ? raw : shared?.outcome;
     if (
       cache &&
+      report?.selection !== "partial" &&
       outcome.state === STATE.PASSED &&
       !outcome.cached &&
       source?.state === STATE.PASSED
@@ -1902,12 +1932,21 @@ export function main(argv = process.argv.slice(2)) {
   }
 
   console.log(`🚦 Gates at ${moment}:`);
+  // At push a test command may narrow itself to the affected tests
+  // (CodySwannGT/lisa#4600) and says so through this channel.
+  const selection = moment === "push" ? openSelectionReports() : null;
   const result = runGates({
     gates: config.gates,
     moment,
     runner: config.runner,
-    exec: spawnExec,
+    exec: selection
+      ? command => {
+          selection.before(command);
+          return spawnExec(command);
+        }
+      : spawnExec,
     cache,
+    selection,
     // The manifest is read HERE and handed down, rather than read inside the
     // resolver, so that `runGates` stays a pure function of its inputs and
     // every test above can state what this project ships instead of writing a
@@ -1915,6 +1954,7 @@ export function main(argv = process.argv.slice(2)) {
     // check and the run cannot disagree about what this project ships.
     scripts,
   });
+  selection?.close();
   // A gates block that declares nothing at this moment is a deliberate
   // statement, not an unmigrated project: the registry governs the moment and
   // says there is nothing to prove. Say so rather than silently passing.

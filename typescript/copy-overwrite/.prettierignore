@@ -76,6 +76,7 @@ scripts/check-state-classification.mjs
 scripts/check-third-party-action-pins.mjs
 scripts/check-third-party-review-evidence.mjs
 scripts/lisa-push-timing-report.mjs
+scripts/lisa-affected-tests.mjs
 scripts/review-evidence-event.mjs
 scripts/check-threshold-ratchet.mjs
 scripts/check-verification-coverage.mjs
@@ -138,6 +139,7 @@ scripts/bdd/render.mjs
 scripts/bdd/report.mjs
 scripts/bdd/validate.mjs
 scripts/bdd/waivers.mjs
+scripts/lib/affected-tests.mjs
 scripts/lib/automation-provenance-contract.mjs
 scripts/lib/automation-provenance-files.mjs
 scripts/lib/automation-provenance-local.mjs

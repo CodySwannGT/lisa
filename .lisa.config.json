@@ -482,6 +482,7 @@
     }
   },
   "pushGate": {
-    "buildOnce": true
+    "buildOnce": true,
+    "affectedTests": true
   }
 }
