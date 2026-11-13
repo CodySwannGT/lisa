@@ -48,6 +48,7 @@ import {
 } from "./cli-cycle.mjs";
 import { answer, itemAnswer, markPlan } from "./cli-human.mjs";
 import { cycle } from "./cyclers.mjs";
+import { orphanPlan } from "./cli-orphans.mjs";
 import { overruledPlan } from "./cli-overruled.mjs";
 import { repoDir, start, status, stop, validate } from "./cli-manager.mjs";
 import { queue } from "./cli-queue.mjs";
@@ -129,6 +130,11 @@ const COMMANDS = {
     options: { input: text, max: text },
     positionals: 0,
   },
+  "orphan-plan": {
+    run: orphanPlan,
+    options: { input: text, max: text, "stale-hours": text },
+    positionals: 0,
+  },
   answer: { run: answer, options: {}, positionals: 1 },
   "item-answer": { run: itemAnswer, options: {}, positionals: 1 },
   "channel-answer": { run: channelAnswer, options: {}, positionals: 1 },
@@ -171,7 +177,12 @@ const LEDGER_SPECS = {
   "validation-cleared": { options: {}, positionals: 1 },
   "clear-setup-gap": { options: {}, positionals: 1 },
   control: {
-    options: { paused: text, "max-workers": text, me: text },
+    options: {
+      paused: text,
+      "max-workers": text,
+      me: text,
+      "hold-digest": text,
+    },
     positionals: 0,
   },
 };

@@ -58,6 +58,21 @@ function pausedFlag(value) {
 }
 
 /**
+ * Parse `--hold-digest <fingerprint>`: the sha256 `orphan-plan` reported.
+ * @param {string} value - Flag value
+ * @returns {string} Fingerprint
+ */
+function holdDigestFlag(value) {
+  if (!/^[0-9a-f]{64}$/u.test(value)) {
+    throw new CliError(
+      "--hold-digest must be a sha256 fingerprint or none.",
+      2
+    );
+  }
+  return value;
+}
+
+/**
  * Parse a flag where `none` clears the value.
  * @param {string | undefined} value - Flag value
  * @param {(value: string) => unknown} parse - Parser for a real value
@@ -173,6 +188,7 @@ const LEDGER_ACTIONS = {
             intFlag(value, "--max-workers")
           ),
           me: clearable(ctx.values.me, value => value),
+          holdDigest: clearable(ctx.values["hold-digest"], holdDigestFlag),
         }).filter(([, value]) => value !== undefined)
       )
     ),

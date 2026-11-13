@@ -1,0 +1,3 @@
+$ node plugins/lisa/skills/lisa-session-manager/scripts/session-manager.mjs orphan-plan --project-root /Users/codysai/.claude/jobs/313c93db/tmp/verify-4722/A < incomplete.json
+The orphan listing was not paged to completion (complete !== true); refusing to plan from a partial list.
+exit=2

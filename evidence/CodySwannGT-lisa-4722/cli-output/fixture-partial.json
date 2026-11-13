@@ -1,0 +1,17 @@
+{
+  "complete": true,
+  "items": [],
+  "holds": [
+    {
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "ref": "example-org/demo-repo#31",
+      "labels": [
+        "status:ready",
+        "human-needed"
+      ],
+      "body": "Two things are pending.\n<!-- [lisa-human-gate] reason=naming-triage -->\n<!-- [lisa-human-gate] reason=pricing-tier -->",
+      "comments": []
+    }
+  ]
+}
