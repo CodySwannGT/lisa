@@ -205,6 +205,11 @@ Performance load testing using k6:
 - Scenarios: `smoke`, `load`, `stress`, `spike`, `soak`
 - Configurable thresholds
 - Result artifact uploads
+- Fails closed: a missing runner or script, a script error or any other k6 error fails the job; `fail_on_threshold: false` suppresses only a threshold breach (k6 exit 99)
+- With `test_script` left at its default, runs `./scripts/k6-run.sh` if the repository provides one (it must be executable), else `k6 run .github/k6/scenarios/<test_scenario>.js`
+- A repository-provided `./scripts/k6-run.sh` must exit with k6's own status (99 for a threshold breach) for `fail_on_threshold` to apply; any other nonzero exit fails the job
+- `cloud_run: true` runs `k6 cloud run <script>`; a `thresholds_config` that does not exist fails the job
+- Outputs `test_passed` and `exit_code` (0 passed, 99 thresholds breached, anything else: the test did not run)
 
 ## Secrets Configuration
 

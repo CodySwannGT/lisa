@@ -705,7 +705,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/INTEGRATION_GUIDE.md":
       "a7da14fd26ed279f61cb476cefef436a6623a0878a64f0c724d01016d32a4dab",
     "nestjs/create-only/.github/k6/README.md":
-      "199cde3d0ac7282f3cd72fdb9167f9b11e134dd00cc0bbf3dbd71ea4266005eb",
+      "c538b69b1f35e5ad9e97bf585fba0fb994b0734ca403560d52c2dcf27b322915",
     "nestjs/create-only/.github/k6/SCENARIO_SELECTION_GUIDE.md":
       "64c2e83e2871fc187e227252a17522c4ba70d75685f67a0be6980c64803bfd35",
     "nestjs/create-only/.github/k6/examples/customer-deploy-integration.yml":
@@ -717,7 +717,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/scenarios/load.json":
       "1970bee0b48024cd1c38515522c78dd8aeacad09606880b227d49721afa44d37",
     "nestjs/create-only/.github/k6/scenarios/smoke.js":
-      "4a09443e2eb6b35eae33eb93f6fc6518f60a9a8b6d6fdaf9609a35125fe804f7",
+      "c21d605fb0bd9ce1e99db15d4ff368c3096d8cffbcbb8be088eaa4091d031dd6",
     "nestjs/create-only/.github/k6/scenarios/smoke.json":
       "eb6d80b580cadc7ea137fad5acae93b06096cd2162404f7054889e1af9208886",
     "nestjs/create-only/.github/k6/scenarios/soak.js":
@@ -2991,7 +2991,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "888cfd16bd1ac04f9f8a835eae62f8bd2c956de654bce12ce9a6a52947b121ca",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
-      "360ddca69f976115cad890cc096e79dec00ca630dd954b9cd18a6dbeb1012347",
+      "dee994a2d22e1bd2401b9190c983aa06bf165c7ab0b4f100a3c42b8e78a1a2c4",
     "typescript/copy-overwrite/.lintstagedrc.json":
       "773a3e0a2bc20b69a16fc247e74c76eeb20ced8fae654702190bdfade964e364",
     "typescript/copy-overwrite/.nvmrc":
@@ -11810,6 +11810,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/lisa-test-run-packed-bin.test.ts": true,
     "tests/integration/lisa-test-run-shard-cli.test.ts": true,
     "tests/integration/lisa.test.ts": true,
+    "tests/integration/load-test-workflow-runner.test.ts": true,
+    "tests/integration/load-test-workflow.test.ts": true,
     "tests/integration/maestro-build-reuse.test.ts": true,
     "tests/integration/maestro-caller-template.test.ts": true,
     "tests/integration/maestro-checkout-credentials.test.ts": true,
@@ -11970,7 +11972,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/standards-proof-typescript.test.ts": true,
     "tests/integration/support/bun-free-node-bin.ts": true,
     "tests/integration/support/cdk-ci-role-selection-harness.ts": true,
+    "tests/integration/support/fixtures/load-test-pre-fix.yml": true,
     "tests/integration/support/jira-evidence-run.ts": true,
+    "tests/integration/support/load-test-workflow-harness.ts": true,
     "tests/integration/support/maestro-android-retry-fixtures.ts": true,
     "tests/integration/support/maestro-android-retry-harness.ts": true,
     "tests/integration/support/maestro-build-step-harness.ts": true,
