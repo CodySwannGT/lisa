@@ -131,9 +131,21 @@ describe.each(ROOTS)(
 
     it("caps every watch at the time remaining before the ceiling", () => {
       // A 540 s watch started 54 minutes in would overrun a 60-minute ceiling.
-      expect(block).toMatch(/before each watch.{0,80}remaining/is);
+      expect(block).toMatch(
+        /only for a run still in progress, compute the seconds remaining/i
+      );
       expect(block).toMatch(/smaller of 540 and the seconds remaining/);
       expect(block).toMatch(/if none remain.{0,80}blocked-deploy rule/is);
+    });
+
+    it("judges an already-concluded run by its conclusion before any ceiling check", () => {
+      // A flow resumed after the ceiling must not mark a finished run blocked.
+      expect(block).toMatch(
+        /before each watch, first read `gh run view <run id> --json status,conclusion`/i
+      );
+      expect(block).toMatch(
+        /already concluded is judged by its conclusion, whatever the time/i
+      );
     });
 
     it("diagnoses a blocked deploy before choosing the step 2a blocker kind", () => {
