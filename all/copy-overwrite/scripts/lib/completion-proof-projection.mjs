@@ -16,17 +16,25 @@ const normalizedRow = line =>
 
 const CANONICAL_ALIGNMENT = "|---|---|---|---:|---:|";
 const ALIGNMENT_ROW = /^\|(?::?-+:?\|){5}$/;
-const LEADING_STAR_ITALIC = /^(\|?)\*([^*\r\n]+)\*(?=\||\s*$)/;
+const LEADING_STAR_ITALIC = /^(\|?)\*([^*\r\n]+)\*(?=\||$)/;
+const ESCAPED_PUNCTUATION = /\\([!-/:-@[-`{-~])/g;
 
 /**
  * Fold Linear's storage normalization back to the canonical writer's form
- * (CodySwannGT/lisa#4690): Linear re-serializes `_…_` as `*…*` and any table
- * alignment row as `| -- | … |`. Only the comparison key changes, so a folded
- * line is dropped solely when it then equals a known canonical row; any other
- * prose or row still reaches the spec digest.
+ * (CodySwannGT/lisa#4690): Linear escapes Markdown punctuation one layer deep
+ * (`\_`, `\.`), re-serializes `_…_` as `*…*`, and rewrites any table
+ * alignment row as `| -- | … |`. Only the comparison key changes, and known
+ * rows pass through the same fold, so a line is dropped solely when its key
+ * equals a known canonical row; any other prose or row still reaches the
+ * spec digest.
+ *
+ * Accepted limitation: any 5-cell alignment row folds to the canonical
+ * separator, so an extra alignment row inserted into the section is
+ * digest-invisible. Such a row carries only dashes and colons, so no
+ * specification words can hide that way.
  */
 function comparisonKey(line) {
-  const row = normalizedRow(line);
+  const row = normalizedRow(line.replace(ESCAPED_PUNCTUATION, "$1"));
   return ALIGNMENT_ROW.test(row)
     ? CANONICAL_ALIGNMENT
     : row.replace(LEADING_STAR_ITALIC, "$1_$2_");
@@ -55,7 +63,7 @@ function accountingRows(entries) {
           ? `${entry.cost} ${entry.currency}`
           : String(entry.cost);
     known.add(
-      normalizedRow(
+      comparisonKey(
         `| ${entry.flow} | ${entry.source} | ${entry.provider}/${entry.model} | ${tokens} | ${cost} |`
       )
     );

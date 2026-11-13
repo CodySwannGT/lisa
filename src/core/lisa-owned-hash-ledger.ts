@@ -574,6 +574,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/completion-proof-projection.mjs": Object.freeze([
     "1a6eabc8165a8945db5c359c12ca28303a25f9b07c3248f1236fb7ddcde72ea6",
+    "51f7246943b20e970a185d3e2d9a9255929f510b25261502154e909d3b109436",
     "656b498d7991bb3eb52f277f175a4e0ef08b366383ffe8debe84f4102c660ae7",
     "a8acdd491693126fe6f1660f4bd29c7b218855ae59c76ec2b7c0d5703d8c0d43",
   ]),
@@ -2380,6 +2381,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "a114ac60b0e390ad2518bda5871aa1c9680755f10fe36ebae26de4ad170490d5",
     "a158e4218fe975710a832b93c732bb9c10933755492cb1a671ec94f0447c8fc0",
     "a1ca3cd8fb9a9ed969c256bdcee5b4b4e740e58fe1cb43d38b7b4572823532b8",
+    "a2a216b96bcdb31b1b0225ada0334be4033906323275035b6e356edf333bb5bd",
     "a5728c0c8ff8b085b75a84b0bcc06351a12ae62eb97962c30667e183629d94c7",
     "a6ddf4c8c4c28b4a42b3363ea3372c9b203114b831dbb92d453babe13a8fe31f",
     "a9f7aff4ca32e9dafbd9f242d0253da86df5b3a38c66dd2a275aa44c14f032f2",
@@ -3057,6 +3059,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/completion-proof-projection.mjs": Object.freeze([
     "1a6eabc8165a8945db5c359c12ca28303a25f9b07c3248f1236fb7ddcde72ea6",
+    "51f7246943b20e970a185d3e2d9a9255929f510b25261502154e909d3b109436",
     "656b498d7991bb3eb52f277f175a4e0ef08b366383ffe8debe84f4102c660ae7",
     "a8acdd491693126fe6f1660f4bd29c7b218855ae59c76ec2b7c0d5703d8c0d43",
   ]),
@@ -4792,6 +4795,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "a114ac60b0e390ad2518bda5871aa1c9680755f10fe36ebae26de4ad170490d5",
     "a158e4218fe975710a832b93c732bb9c10933755492cb1a671ec94f0447c8fc0",
     "a1ca3cd8fb9a9ed969c256bdcee5b4b4e740e58fe1cb43d38b7b4572823532b8",
+    "a2a216b96bcdb31b1b0225ada0334be4033906323275035b6e356edf333bb5bd",
     "a5728c0c8ff8b085b75a84b0bcc06351a12ae62eb97962c30667e183629d94c7",
     "a6ddf4c8c4c28b4a42b3363ea3372c9b203114b831dbb92d453babe13a8fe31f",
     "a9f7aff4ca32e9dafbd9f242d0253da86df5b3a38c66dd2a275aa44c14f032f2",
