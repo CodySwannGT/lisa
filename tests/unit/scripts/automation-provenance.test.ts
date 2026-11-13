@@ -45,6 +45,7 @@ const CALLS_FILE = "fake-bin/calls.log";
 const RECOVERY_FILE = "recovery.json";
 const LEAF_BODY = "immutable leaf";
 import { predictedCommit } from "../../../all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs";
+import { resolverTimeoutMs } from "../../../all/copy-overwrite/scripts/lib/automation-provenance-local.mjs";
 const ROOT_HOOK = ".husky/commit-msg";
 const HOOKS = [ROOT_HOOK, "typescript/copy-contents/.husky/commit-msg"];
 const CLAIM_ENDPOINT = "repos/acme/widgets/issues/comments/77";
@@ -513,7 +514,16 @@ describe("full hook and checkout transport fixtures (not live issuance)", () => 
         JSON.stringify({ ...providerData(p), hangIssue: true })
       );
       p.f.env.LISA_WORK_ITEM_TIMEOUT_MS = "0";
+      // The resolver's own 30-second ceiling, shortened through the only knob
+      // that can shorten it, so the case does not sit out 30 seconds
+      // (CodySwannGT/lisa#4616, audit unit row 2). The ceiling itself, and
+      // that nothing can lengthen it, is pinned by `resolverTimeoutMs` below.
+      // The elapsed bound is what proves the resolver used ITS deadline: a
+      // resolver that fell back to the inherited one would take 30 seconds.
+      p.f.env.LISA_PROVENANCE_RESOLVER_TIMEOUT_MS = "1500";
+      const started = Date.now();
       const result = hook(p.f, ROOT_HOOK, MESSAGE + MARKER, 45_000);
+      expect(Date.now() - started).toBeLessThan(20_000);
       expect(result.status).toBe(1);
       expect(result.stdout).toContain("invalid automation provenance");
       expect(readFileSync(path.join(p.f.root, CALLS_FILE), "utf8")).toContain(
@@ -522,6 +532,22 @@ describe("full hook and checkout transport fixtures (not live issuance)", () => 
     },
     ioLatencyBudgetMs(55_000)
   );
+  it("bounds the canonical resolver at 30 seconds, which only a shorter value can change", () => {
+    expect(resolverTimeoutMs({})).toBe(30_000);
+    for (const value of ["0", "-5", "30000", "120000", "2.5", "never", ""])
+      expect(
+        resolverTimeoutMs({ LISA_PROVENANCE_RESOLVER_TIMEOUT_MS: value })
+      ).toBe(30_000);
+    expect(
+      resolverTimeoutMs({
+        LISA_PROVENANCE_RESOLVER_TIMEOUT_MS: "1500",
+        LISA_WORK_ITEM_TIMEOUT_MS: "0",
+      })
+    ).toBe(1500);
+    expect(resolverTimeoutMs({ LISA_WORK_ITEM_TIMEOUT_MS: "999999" })).toBe(
+      30_000
+    );
+  });
   it.each(HOOKS)(
     "reaches verified non-AI branch with exact final proposal: %s",
     hookPath => {

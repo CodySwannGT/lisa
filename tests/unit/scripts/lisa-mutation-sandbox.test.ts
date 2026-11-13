@@ -436,30 +436,51 @@ describe("the wrapper that enforces it", () => {
     // cosmetic: an orphan still holds the pipe, so `tee` waits for IT, and for
     // a genuinely hung run that wait is unbounded again — the deadline
     // defeated by the thing it was supposed to bound.
+    //
+    // The grandchild records its own PID before it sleeps, so the case asks
+    // the process table whether it is gone instead of sitting out the 12
+    // seconds it would have taken to write the survivor file
+    // (CodySwannGT/lisa#4616, audit unit row 26). A live PID after the kill is
+    // the same failure the survivor file detects, seen sooner.
     const survivor = path.join(dir, "survived");
+    const pidFile = path.join(dir, "grandchild.pid");
     const run = runWrapper(1000, [
       "/bin/sh",
       "-c",
-      `echo starting; /bin/sh -c "sleep 12; : > '${survivor}'" & wait`,
+      `echo starting; /bin/sh -c "echo \\$\\$ > '${pidFile}'; sleep 12; : > '${survivor}'" & wait`,
     ]);
 
     expect(run.killed).toBe(true);
     expect(run.elapsedMs).toBeLessThan(30_000);
-    // Long enough for the grandchild to have written, had it survived.
-    const deadline = Date.now() + 15_000;
-    while (Date.now() < deadline && !fs.existsSync(survivor)) {
-      // Busy-wait rather than sleep: this suite has no async surface, and the
-      // loop exits the instant the file appears.
+    expect(
+      fs.existsSync(pidFile),
+      "the grandchild must have started, or this case proves nothing"
+    ).toBe(true);
+    const pid = Number(fs.readFileSync(pidFile, "utf8").trim());
+    expect(Number.isInteger(pid) && pid > 1).toBe(true);
+    const alive = (): boolean => {
+      try {
+        process.kill(pid, 0);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    // A killed process can linger briefly before init reaps it; allow that,
+    // and no more. The loop exits the instant the PID is gone.
+    const deadline = Date.now() + 5_000;
+    while (Date.now() < deadline && alive()) {
       boundedExecFileSync({
         label: "wait a beat",
         command: "/bin/sh",
-        args: ["-c", "sleep 1"],
+        args: ["-c", "sleep 0.1"],
       });
     }
     expect(
-      fs.existsSync(survivor),
+      alive(),
       "a grandchild that outlives the kill holds the pipe open, which is the deadline defeated"
     ).toBe(false);
+    expect(fs.existsSync(survivor)).toBe(false);
   });
 });
 
