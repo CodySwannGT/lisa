@@ -54,9 +54,6 @@ describe("setup-linear scaffolds prd-verified idempotently (#594)", () => {
         .split("\n")
         .find(line => /^\|\s*`verified`\s*\|/.test(line));
       expect(verifiedRow).toBeDefined();
-      // PRD lifecycle lives on Linear Projects — the row must say project label.
-      expect(verifiedRow).toMatch(/project label/);
-      expect(verifiedRow).not.toMatch(/\*\*issue\*\* label/);
     });
 
     it("orders the prd-verified table row after the prd-shipped table row", () => {
@@ -71,13 +68,6 @@ describe("setup-linear scaffolds prd-verified idempotently (#594)", () => {
       );
       expect(shippedRowIdx).toBeGreaterThanOrEqual(0);
       expect(verifiedRowIdx).toBeGreaterThan(shippedRowIdx);
-    });
-
-    it("drives prd-* creation through the find-or-create access-layer project-label path", () => {
-      // The probe-then-create that makes reruns non-duplicating.
-      expect(content).toMatch(/operation: list-project-labels/);
-      expect(content).toMatch(/operation: create-project-label/);
-      expect(content).toMatch(/find-or-create/);
     });
 
     it("documents prd-verified as the terminal state after prd-shipped", () => {

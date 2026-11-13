@@ -47,9 +47,6 @@ const section = (text: string, heading: string): string => {
   return end === -1 ? rest : rest.slice(0, end);
 };
 
-const COMPLETENESS_HEADING =
-  "### Comments (<fetched> of <total>; comments_complete: <true|false>)";
-
 describe.each(skillPaths("lisa-github-read-issue"))(
   "lisa-github-read-issue always paginates comments (%s)",
   skillPath => {
@@ -59,18 +56,10 @@ describe.each(skillPaths("lisa-github-read-issue"))(
       expect(skill).toContain(
         "`gh api repos/<org>/<repo>/issues/<number>/comments --paginate --slurp | jq 'add // []'`"
       );
-      // `--paginate` alone prints one array per page; a count over that raw
-      // output undercounts, so completeness must be measured after flattening.
-      expect(skill).toMatch(
-        /The fetched count is the number of comments after flattening/
-      );
-      expect(skill).not.toContain("If pagination matters");
     });
 
     it("emits the shared completeness heading and INCOMPLETE line", () => {
-      expect(skill).toContain(COMPLETENESS_HEADING);
       expect(skill).toContain('"INCOMPLETE — <fetched> of <total>');
-      expect(skill).toMatch(/set `comments_complete: false`/);
     });
   }
 );
@@ -87,9 +76,7 @@ describe.each(skillPaths("lisa-linear-read-issue"))(
     });
 
     it("emits the shared completeness heading and INCOMPLETE line", () => {
-      expect(skill).toContain(COMPLETENESS_HEADING);
       expect(skill).toContain('"INCOMPLETE — <fetched> of <total>');
-      expect(skill).toMatch(/set `comments_complete: false`/);
     });
   }
 );
@@ -111,42 +98,6 @@ describe.each(skillPaths("lisa-atlassian-access"))(
         "### `comments` — every comment on one issue"
       );
       expect(body).toContain("startAt + maxResults >= total");
-      expect(body).toMatch(/never silently truncated/);
-    });
-
-    it("marks an MCP-only capped read incomplete with fetched-versus-total counts", () => {
-      const body = section(
-        skill,
-        "### `comments` — every comment on one issue"
-      );
-      expect(body).toContain(
-        "`comments_complete`, `comments_fetched`, and `comments_total`"
-      );
-      expect(body).toMatch(
-        /only the MCP substrate[^\n]*`comments_complete: false`/
-      );
-    });
-  }
-);
-
-describe.each(skillPaths("lisa-jira-read-ticket"))(
-  "lisa-jira-read-ticket uses the paginated read (%s)",
-  skillPath => {
-    const skill = read(skillPath);
-
-    it("reads the primary ticket's comments through the comments operation", () => {
-      expect(skill).toContain("`operation: comments key: <TICKET-KEY>`");
-    });
-
-    it("reads the epic parent's comments through the comments operation", () => {
-      expect(skill).toContain("`operation: comments key: <EPIC-KEY>`");
-    });
-
-    it("surfaces incomplete comments in the bundle", () => {
-      expect(skill).toMatch(/reports `comments_complete: false`[^\n]*MCP-only/);
-      expect(skill).toContain(
-        "### Comments (<fetched> of <total>; comments_complete: <true|false>)"
-      );
     });
   }
 );

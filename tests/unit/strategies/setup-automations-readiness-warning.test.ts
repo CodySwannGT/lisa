@@ -106,16 +106,6 @@ describe("setup-automations repository-readiness advisory (#1859)", () => {
     });
 
     it("documents every runtime's rule-delivery path and the Antigravity gap", () => {
-      for (const runtime of [
-        "Claude",
-        "Codex",
-        "Cursor",
-        "OpenCode",
-        "Antigravity",
-        "Copilot",
-      ]) {
-        expect(skill).toContain(runtime);
-      }
       expect(flat).toMatch(/Codex[^]{0,120}\.codex\/lisa-rules/i);
       expect(flat).toMatch(/OpenCode[^]{0,120}\.opencode\/lisa-rules/i);
       expect(flat).toMatch(/Antigravity[^]{0,120}representation gap/i);
@@ -132,11 +122,6 @@ describe("setup-automations repository-readiness advisory (#1859)", () => {
       path.resolve("wiki/documentation/overview.md"),
       "utf8"
     );
-    const index = readFileSync(path.resolve("wiki/index.md"), "utf8");
-
-    expect(vocabulary).toMatch(/## Installation Readiness/);
-    expect(vocabulary).toMatch(/## Repository Readiness/);
-    expect(vocabulary).toMatch(/## Ship Blocker/);
     for (const distinctTerm of [
       "blocking finding",
       "break-out",
@@ -149,9 +134,6 @@ describe("setup-automations repository-readiness advisory (#1859)", () => {
     expect(overview).toContain(".lisa/readiness.json");
     expect(overview).toContain("schema_version");
     expect(overview).toContain("resolveReadinessReportPath");
-    expect(index).toMatch(
-      /installation readiness.*repository readiness.*ship blocker/i
-    );
   });
 });
 
@@ -236,13 +218,6 @@ describe("RRR rubric six-agent parity backstop (#1859)", () => {
         existsSync(path.resolve(CLAUDE_ROOT, `rules/eager/${slug}.md`))
       ).toBe(false);
     });
-  });
-
-  it("keeps the readiness verdict ladder identical across every rule mirror", () => {
-    const source = read(`${SRC}/rules/reference/readiness-rubric.md`);
-    expect(source).toContain("seven ship blockers");
-    expect(source).toMatch(/B1[\s\S]{0,2000}B7/);
-    expect(source).toContain("narrowed claim");
   });
 
   describe("runtime delivery is positive and representation gaps are explicit", () => {

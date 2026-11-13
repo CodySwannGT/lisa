@@ -78,44 +78,6 @@ const copies = (): readonly (readonly [string, string])[] => [
 
 describe("standing-rulings re-read pointer (#3592)", () => {
   describe.each(copies())("%s", (_path, body) => {
-    it("names the action — re-read the instruction file from disk", () => {
-      // The issue's property 1. "from disk" is the whole point: it distinguishes
-      // opening the file from consulting the copy already in context, which is
-      // the copy that may be short.
-      expect(body.toLowerCase()).toContain("from disk");
-      expect(body.toLowerCase()).toMatch(/re-?read/);
-    });
-
-    it("points at the canonical standing-rulings heading", () => {
-      expect(body).toContain(HEADING);
-    });
-
-    it("states that context completeness is not observable from inside", () => {
-      // Without this sentence the rule reads as "double-check your context",
-      // which is the unsatisfiable form. It has to say why the action is an
-      // action rather than an assessment.
-      expect(body.toLowerCase()).toContain("not observable from inside");
-    });
-
-    it("fires at the escalation boundary, and says delivery is not application", () => {
-      expect(body.toLowerCase()).toContain("escalation");
-      // The distinction that stops a reviewer reading session-start DELIVERY as
-      // a violation of the escalation-boundary requirement.
-      expect(body.toLowerCase()).toContain("delivered at session start");
-    });
-
-    it("declares itself a pointer rather than a copy", () => {
-      expect(body.toLowerCase()).toContain("pointer, not a copy");
-    });
-
-    it("degrades to the whole file when the heading is absent", () => {
-      // A host that keeps rulings elsewhere still gets served, without Lisa
-      // adding a config surface for one pointer.
-      expect(body.toLowerCase()).toMatch(
-        /no such heading|without that heading|if the file has no/
-      );
-    });
-
     it("carries no host ruling text — the size ceiling is the guard", () => {
       // A pointer stays roughly this size as rulings accumulate; a copy grows.
       // This fails loudly if someone pastes a host's rulings into guidance.

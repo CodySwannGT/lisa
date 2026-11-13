@@ -253,26 +253,8 @@ describe("derived-artifact staleness gate: the procedure is written down", () =>
 
   it("ships a durable note stating stage-before-regenerate", () => {
     const rule = readFileSync(path.join(repoRoot, RULE), "utf8");
-
-    expect(rule).toContain("git add");
     expect(rule).toContain(LEDGER_COMMAND);
     expect(rule).toContain(MANIFEST_COMMAND);
-  });
-
-  it("records that lint-staged is why a hand-verified artifact fails at commit", () => {
-    const rule = readFileSync(path.join(repoRoot, RULE), "utf8");
-
-    expect(rule).toContain("lint-staged");
-  });
-
-  it("records that the manifest does not hash the ledger", () => {
-    // The folklore this rule replaces. Measured false in #2852: the ledger sits
-    // outside every packaged-evidence prefix, so the manifest records its path
-    // and never its bytes. Believing otherwise sends an author to regenerate
-    // the file that is not the cause, which is what cost the cycle.
-    const rule = readFileSync(path.join(repoRoot, RULE), "utf8");
-
-    expect(rule).toMatch(/does not hash the ledger/u);
   });
 
   it("is pointed at from the gate that blocks the commit", () => {

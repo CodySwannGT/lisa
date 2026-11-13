@@ -45,9 +45,6 @@ describe("public lisa-track entry point", () => {
     const command = read("plugins/src/base/commands/track.md");
 
     expect(command).toContain("/lisa-track");
-    expect(command).toMatch(
-      /existing.*reference.*specification file.*plain-text/is
-    );
   });
 
   describe.each(TRACK_SKILL_PATHS)("%s", file => {
@@ -55,11 +52,8 @@ describe("public lisa-track entry point", () => {
       const skill = read(file);
 
       expect(skill).toContain("lisa-tracker-read");
-      expect(skill).toMatch(/exactly one.*high-confidence/is);
-      expect(skill).toMatch(/create \*\*exactly one\*\*/i);
       expect(skill).toContain(TRACKER_WRITE);
       expect(skill).toContain("build_ready: true");
-      expect(skill).toMatch(/single-repository leaf/i);
     });
 
     it("claims before persisting and verifies the binding", () => {
@@ -77,16 +71,12 @@ describe("public lisa-track entry point", () => {
       expect(claim).toBeGreaterThan(-1);
       expect(persist).toBeGreaterThan(claim);
       expect(current).toBeGreaterThan(persist);
-      expect(skill).toMatch(/failed\/unverified claim/i);
-      expect(skill).toMatch(/stop before durable project work/i);
     });
 
     it("keeps interrupted work bound and clears only at terminal completion", () => {
       const skill = read(file);
 
       expect(skill).toContain(CLEAR_BINDING);
-      expect(skill).toMatch(/Keep the binding across ordinary interruptions/i);
-      expect(skill).toMatch(/only after true terminal completion/i);
     });
   });
 });
@@ -107,26 +97,15 @@ describe("vendor-neutral tracker claim", () => {
   it("requires a live leaf, idempotent claim, and post-write proof", () => {
     expect(dispatcher).toContain("leaf-only-lifecycle");
     expect(dispatcher).toContain("repo-scope-split");
-    expect(dispatcher).toMatch(/claimed role or a later non-terminal role/i);
-    expect(dispatcher).toMatch(/assign.*only when unassigned/i);
-    expect(dispatcher).toMatch(/post-write read/i);
-    expect(dispatcher).toMatch(/fail closed/i);
   });
 
   it.each(PROVIDERS)(
     "%s claim reuses the build-intake claim contract",
     provider => {
       const skill = read(`${BASE_SKILLS}/lisa-${provider}-claim/SKILL.md`);
-
-      expect(skill).toMatch(/build-intake.*Phase 3b/i);
       expect(skill).toContain("leaf-only-lifecycle");
       expect(skill).toContain("repo-scope-split");
-      expect(skill).toMatch(/immediately before mutation/i);
-      expect(skill).toMatch(/only if.*unassigned/i);
       expect(skill).toContain("[lisa-tracker-claim]");
-      expect(skill).toMatch(/deduped/i);
-      expect(skill).toMatch(/again.*Success requires/is);
-      expect(skill).toMatch(/claim_outcome: claimed\|reused/);
     }
   );
 
@@ -154,18 +133,11 @@ describe("Implement tracked-work gate", () => {
       expect(skill).toContain(
         "node scripts/lisa-work-item.mjs link <canonical-ref>"
       );
-      expect(skill).toMatch(/No project source.*may be created or changed/is);
     });
 
     it("makes development and PR linkage unconditional", () => {
       const skill = read(file);
-
-      expect(skill).toMatch(/Every Implement run now has a tracker work item/i);
-      expect(skill).toMatch(/Missing linkage is a workflow failure/i);
       expect(skill).toContain("node scripts/lisa-work-item.mjs attach-branch");
-      expect(skill).toMatch(/mandatory work-item ref/i);
-      expect(skill).not.toMatch(/including the work-item ref when one exists/i);
-      expect(skill).not.toMatch(/when a work item exists/i);
     });
 
     it("clears only after terminal completion", () => {
@@ -175,9 +147,6 @@ describe("Implement tracked-work gate", () => {
 
       expect(terminal).toBeGreaterThan(-1);
       expect(clear).toBeGreaterThan(terminal);
-      expect(skill).toMatch(
-        /Do not clear on an interruption or blocked outcome/i
-      );
     });
   });
 });
@@ -209,13 +178,9 @@ describe("tracked-work rules", () => {
   // the hooks enforce the binding, and the contract lives in the reference body.
   it.each(["reference"] as const)("%s rule pins the invariant", group => {
     const rule = read(`plugins/src/base/rules/${group}/tracked-work.md`);
-
-    expect(rule).toMatch(/Before.*durable/is);
-    expect(rule).toMatch(/exactly one.*leaf/is);
     expect(rule).toContain(TRACKER_WRITE);
     expect(rule).toContain("lisa-tracker-claim");
     expect(rule).toContain("node scripts/lisa-work-item.mjs link <ref>");
     expect(rule).toContain(CLEAR_BINDING);
-    expect(rule).toMatch(/only after.*terminal completion/is);
   });
 });

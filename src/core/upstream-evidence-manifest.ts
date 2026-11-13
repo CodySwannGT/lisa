@@ -2664,6 +2664,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "31e8404316dc95527ff87ee2bcbc7d19bcf70f6cb54b608fd7235e9c767506a1",
     "scripts/check-workflow-package-paths.mjs":
       "07ebf3f8a4504f6231c5ae492ecda7f95a80a0fa5f0424b9d3368544b1b612dd",
+    "scripts/classify-markdown-assertions.mjs":
+      "4b5ec8747ade3767b7d4f5b8bccf3e5a46f8cc296ad4397dabd89e4768ac68cd",
     "scripts/classify-phrase-tests.mjs":
       "11553629a6c167d9ed0851c6bc4cf9a818df2693d5a30afb2c30fb23a7b14eea",
     "scripts/claude-remote-setup.sh":
@@ -2764,6 +2766,26 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "097fa2bb680306c88cb49be43282113affe55d03ce515710f2d85ffc0938318a",
     "scripts/lib/invoked-as-script.mjs":
       "4711b3e900dc85c000c287dd6a675f519fd0f5f288508ae1d5acefdab136ad4e",
+    "scripts/lib/markdown-assertions/classify.mjs":
+      "cf1bb770413138fa7b8e544d82916d144c1d08f6831fe01b04fb03e799c16ed7",
+    "scripts/lib/markdown-assertions/context.mjs":
+      "b5a69dc926a1bf2a4bfd267ca0c40039be4c8ff581798568b6505fa4deadfbb6",
+    "scripts/lib/markdown-assertions/corpus.mjs":
+      "fb4ff33f84407e727189bc515658326a39a8db76fe8db138b22b96736a17b9e5",
+    "scripts/lib/markdown-assertions/manifest-cull.mjs":
+      "9610443a08f4e3084736bf87171e902974995da0c387b65418a69f5a25a78559",
+    "scripts/lib/markdown-assertions/record-setup.mjs":
+      "363ec7928ac389452196174aa099664edd017a00918e3363590c451314be089c",
+    "scripts/lib/markdown-assertions/record.mjs":
+      "097a8b8bcf7c9b48dfcafb792c2800ae426215bc81836b2fac621a1f07fb37d6",
+    "scripts/lib/markdown-assertions/record.vitest.config.mjs":
+      "2433b27edbcd9976d6c7a3d5f34eec566594f463bac8ed0f3e26322122015e38",
+    "scripts/lib/markdown-assertions/sites.mjs":
+      "3cd2d520cbf84e8f66807262882b2074dcd94f97670bd56e360fd32fc781c589",
+    "scripts/lib/markdown-assertions/test-cull.mjs":
+      "c0cb4a609434ef938866d339d7ab0c3001d52eb9d4db4b2969ffe4a44337346f",
+    "scripts/lib/markdown-assertions/tokens.mjs":
+      "2eb445fc02047bf0b54900042dbdbd15afeee077dd832c9b43a7458a20e17112",
     "scripts/lib/mutation-performance-reporter.mjs":
       "7f4fd67a2128797970b10a97b9947f9b63518fe1110c2f12e51fe2c430751235",
     "scripts/lib/nest-plugin-commands.mjs":
@@ -10648,6 +10670,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-workflow-contract-assertions.mjs": true,
     "scripts/check-workflow-load-failures.mjs": true,
     "scripts/check-workflow-package-paths.mjs": true,
+    "scripts/classify-markdown-assertions.mjs": true,
     "scripts/classify-phrase-tests.mjs": true,
     "scripts/claude-remote-setup.sh": true,
     "scripts/clean-dist.mjs": true,
@@ -10698,6 +10721,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/host-name-review-cases.mjs": true,
     "scripts/lib/host-name-target-cases.mjs": true,
     "scripts/lib/invoked-as-script.mjs": true,
+    "scripts/lib/markdown-assertions/classify.mjs": true,
+    "scripts/lib/markdown-assertions/context.mjs": true,
+    "scripts/lib/markdown-assertions/corpus.mjs": true,
+    "scripts/lib/markdown-assertions/manifest-cull.mjs": true,
+    "scripts/lib/markdown-assertions/record-setup.mjs": true,
+    "scripts/lib/markdown-assertions/record.mjs": true,
+    "scripts/lib/markdown-assertions/record.vitest.config.mjs": true,
+    "scripts/lib/markdown-assertions/sites.mjs": true,
+    "scripts/lib/markdown-assertions/test-cull.mjs": true,
+    "scripts/lib/markdown-assertions/tokens.mjs": true,
     "scripts/lib/mutation-performance-reporter.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
     "scripts/lib/packaged-apply-driver.mjs": true,
@@ -11981,6 +12014,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/workflow-expression-not-truncated.test.ts": true,
     "tests/integration/worktree-dependency-boundary.test.ts": true,
     "tests/integration/zero-collection-gate-bite.test.ts": true,
+    "tests/phrase-manifest/classification/manifest.json": true,
+    "tests/phrase-manifest/classification/test-assertions.json": true,
     "tests/phrase-manifest/required-phrases.json": true,
     "tests/platform/lint-staged-preflight.test.mjs": true,
     "tests/platform/process-tree-runner.test.mjs": true,
@@ -13020,6 +13055,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/maestro-flake-classification.test.ts": true,
     "tests/unit/scripts/maestro-flake-helpers.ts": true,
     "tests/unit/scripts/maestro-intermittent-registry.test.ts": true,
+    "tests/unit/scripts/markdown-assertions-classify.test.ts": true,
+    "tests/unit/scripts/markdown-assertions-test-cull.test.ts": true,
     "tests/unit/scripts/measure-scripts-profile-gap.test.ts": true,
     "tests/unit/scripts/measure-tmpdir-growth-performance.test.ts": true,
     "tests/unit/scripts/measure-tmpdir-growth.test.ts": true,

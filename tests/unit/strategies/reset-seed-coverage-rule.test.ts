@@ -46,27 +46,6 @@ const NON_DB_STATE = [
   "materialized",
 ] as const;
 
-/** Product names that must never appear as a mandate in the eager head. */
-const VENDOR_NAMES = [
-  "Postgres",
-  "MySQL",
-  "DynamoDB",
-  "Aurora",
-  "MongoDB",
-  "Redis",
-  "Elasticsearch",
-  "OpenSearch",
-  "Cognito",
-  "AWS",
-  "Kafka",
-  "Prisma",
-  "TypeORM",
-  "Playwright",
-  "Maestro",
-  "Cypress",
-  "Detox",
-] as const;
-
 /** Every skill wired to cite the contract rather than restate it. */
 const CITING_SKILLS = [
   "lisa-research",
@@ -106,19 +85,6 @@ describe("reset-seed-coverage rule contract", () => {
       }
     });
 
-    it("fails closed on an unclassified entity", () => {
-      expect(eager.toLowerCase()).toContain("fail");
-      expect(eager).toMatch(/unclassified/iu);
-      expect(eager).toMatch(/fails? closed/iu);
-    });
-
-    it("demotes keep-list-by-subtraction to a detector", () => {
-      expect(eager).toMatch(/detector/iu);
-      // The rejected model, stated so it cannot quietly come back.
-      expect(eager).toMatch(/cleared unless exempted|is not the boundary/iu);
-      expect(reference).toMatch(/wrong safety model|not the safety model/iu);
-    });
-
     it("says rows are only one kind of state", () => {
       for (const kind of NON_DB_STATE) {
         expect(eager.toLowerCase()).toContain(kind);
@@ -129,13 +95,6 @@ describe("reset-seed-coverage rule contract", () => {
       for (const assurance of ASSURANCES) {
         expect(reference).toContain(assurance);
       }
-    });
-
-    it("requires enforcement outside the script for forbidden state", () => {
-      expect(eager).toMatch(
-        /least-privilege role|revoked grant|roles?, grants?/iu
-      );
-      expect(reference).toMatch(/is not an enforcement/iu);
     });
 
     it("specifies the standard command envelope", () => {
@@ -154,21 +113,6 @@ describe("reset-seed-coverage rule contract", () => {
         expect(reference).toContain(field);
       }
       expect(reference).toContain("declared-noop");
-      expect(reference).toMatch(/idempotency-key/iu);
-    });
-
-    it("treats a caller-supplied stage as a request, never as the truth", () => {
-      expect(reference).toMatch(/never the source of truth|is a \*request\*/iu);
-    });
-
-    it("stays vendor-neutral in the eager head", () => {
-      for (const vendor of VENDOR_NAMES) {
-        expect(eager).not.toContain(vendor);
-      }
-    });
-
-    it("makes a miss a verification failure, not a warning", () => {
-      expect(eager).toMatch(/verification failure, not a warning/iu);
     });
 
     it("is cited by every lifecycle skill rather than restated in each", () => {

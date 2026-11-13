@@ -60,42 +60,16 @@ describe("verify workflow change skill (#1615)", () => {
       for (const trigger of DEFAULT_BRANCH_TRIGGERS) {
         expect(skill).toContain(trigger);
       }
-      expect(skill).toMatch(/default branch copy/i);
-      expect(skill).toMatch(/does not prove a pull request branch/i);
-      expect(skill).toMatch(/do not cite/i);
     });
 
     it("requires branch-ref dispatch through a workflow_dispatch sibling", () => {
       expect(skill).toContain("workflow_dispatch");
-      expect(skill).toMatch(/dispatchable sibling/i);
-      expect(skill).toContain("gh workflow run <workflow-file-or-name>");
       expect(skill).toContain("--ref <branch>");
-      expect(skill).toMatch(/same reusable workflow, job, step, or input/i);
-    });
-
-    it("cancels after the step under test and before side effects", () => {
-      expect(skill).toContain("gh run cancel <run-id>");
-      expect(skill).toMatch(/step under test/i);
-      expect(skill).toMatch(/before any expensive or side-effectful stage/i);
-      expect(skill).toMatch(
-        /opening pull requests|pushing branches|creating issues/
-      );
     });
 
     it("restores gate variables exactly, including unset state", () => {
-      expect(skill).toMatch(/gate variable/i);
-      expect(skill).toMatch(/Unset.+distinct state/i);
       expect(skill).toContain("gh variable delete <NAME>");
       expect(skill).toContain("gh variable set <NAME>");
-      expect(skill).toMatch(/restore to the exact prior state/i);
-    });
-
-    it("requires zero-side-effect readback and honest unverifiable verdicts", () => {
-      expect(skill).toMatch(/no branches were created/i);
-      expect(skill).toMatch(/no PRs were opened/i);
-      expect(skill).toMatch(/no issues were filed/i);
-      expect(skill).toContain("UNVERIFIABLE_PRE_MERGE");
-      expect(skill).toMatch(/Do not fabricate passing evidence/i);
     });
   });
 

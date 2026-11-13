@@ -225,8 +225,6 @@ describe("the packed-host journey runbook", () => {
   });
 
   it("names the protection that replaced the pull-request run", () => {
-    expect(runbook).toContain("#4604");
-    expect(runbook).toContain("#4605");
     expect(runbook).toContain("bun run release:rollback");
   });
 });

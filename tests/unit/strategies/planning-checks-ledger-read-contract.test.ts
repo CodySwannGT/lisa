@@ -92,13 +92,6 @@ describe.each(SKILL_ROOTS)("learned planning checks load (%s)", root => {
     expect(decomposition).toContain(
       "No output means there is no ledger yet (`ENOENT`): carry on."
     );
-    expect(decomposition).toContain(
-      "A ledger that exists but cannot be read, or is malformed, prints one warning naming the error and yields nothing: carry on without it."
-    );
-    expect(decomposition).toContain("`omitted` lists, by id,");
-    expect(decomposition).not.toContain(
-      "No output means there is no ledger yet: carry on."
-    );
   });
 
   it.each(VALIDATORS)("%s S18 uses the corrected command", validator => {

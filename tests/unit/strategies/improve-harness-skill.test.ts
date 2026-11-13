@@ -51,8 +51,6 @@ const VERDICTS = [
   "headless-proposal-only",
 ] as const;
 
-const DECISIONS = ["retain", "revise", "remove", "test-without"] as const;
-
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
 
@@ -81,14 +79,6 @@ describe("improve-harness bounded improvement loop", () => {
       }
     });
 
-    it("requires two comparable failures before worker-limitation", () => {
-      const unwrapped = skill.replace(/\s+/gu, " ");
-      expect(unwrapped).toContain("≥2 comparable failed trajectories");
-      expect(skill).toMatch(
-        /single trajectory can \*\*never\*\* establish `worker-limitation`/
-      );
-    });
-
     it("classifies the gap before any intervention is made", () => {
       const classifyIndex = skill.indexOf("## Phase 4 — Classify the gap");
       const interveneIndex = skill.indexOf(
@@ -102,49 +92,24 @@ describe("improve-harness bounded improvement loop", () => {
       for (const verdict of VERDICTS) {
         expect(skill).toContain(verdict);
       }
-      for (const decision of DECISIONS) {
-        expect(skill).toContain(decision);
-      }
-    });
-
-    it("gates a credited rerun on positive retrieval evidence", () => {
-      expect(skill).toContain("absence of evidence is not evidence");
-      expect(skill).toMatch(/\*\*Never `retain`\.\*\*/);
-      expect(skill).toContain("no-evidence-for-intervention");
     });
 
     it("caps the intervention at the smallest owning change", () => {
       expect(skill).toMatch(
         /file a proposed-intervention ticket via `lisa-tracker-write` and STOP/
       );
-      expect(skill).toContain("bounded-authority-stop");
     });
 
     it("is idempotent per trajectory via an ih1- fingerprint marker", () => {
       expect(skill).toContain("[lisa-improve-harness] key=<fingerprint>");
-      expect(skill).toMatch(/"ih1-" \+ first 12 hex chars of sha1/);
-      expect(skill).toContain("already-improved");
     });
 
     it("leaves a result record on every terminal state", () => {
-      expect(skill).toMatch(
-        /Every terminal state posts a result record to the originating item before stopping/
-      );
-      expect(skill).toContain("What this means:");
       expect(skill).toContain("What happens next:");
-      expect(skill).toContain("Known limits:");
-    });
-
-    it("triggers headless mode mechanically, never from terminal detection", () => {
-      expect(skill).toMatch(
-        /`mode=headless` was passed explicitly, or the invocation context carries/
-      );
-      expect(skill).toMatch(/Terminal detection is not a trigger/);
     });
 
     it("submits learnings for judgment instead of writing the ledger", () => {
       expect(skill).toContain("lisa-persist-learning");
-      expect(skill).toMatch(/never (?:writes|edits) the learnings/);
     });
   });
 

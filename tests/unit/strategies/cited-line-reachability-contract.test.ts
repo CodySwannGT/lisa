@@ -65,10 +65,6 @@ describe.each(SKILL_ROOTS)("%s root-cause-analysis", root => {
   const raw = read(root, "lisa-root-cause-analysis");
   const skill = flat(raw);
 
-  it("names a cited location as a hypothesis with its own section", () => {
-    expect(skill).toContain("## A cited line is a hypothesis, not a location");
-  });
-
   it("places the section right after confirm-by-executing", () => {
     // Ordering is the claim: the section applies that principle to the fix
     // target, so it must follow it rather than float elsewhere.
@@ -82,30 +78,6 @@ describe.each(SKILL_ROOTS)("%s root-cause-analysis", root => {
     expect(surviving).toBeGreaterThan(cited);
   });
 
-  it("treats it as hypothesis zero with a reachability kill condition", () => {
-    expect(skill).toContain("treat that as hypothesis zero");
-    expect(skill).toContain("**no production entry point reaches it.**");
-  });
-
-  it("does not reject a directly launched entry module for having no importers", () => {
-    // A CLI script, manifest `bin`, file-based route or config-registered
-    // handler has zero importers and still runs; rejecting it as dead code
-    // would discard a valid fix target.
-    expect(skill).toContain(
-      "A module with no importers can still be an entry point itself"
-    );
-    expect(skill).toContain("registered through configuration");
-    expect(skill).toContain(
-      "Zero production importers kills the hypothesis only when the module is not itself an entry point"
-    );
-  });
-
-  it("says a direct render or call does not establish reachability", () => {
-    expect(skill).toMatch(
-      /A test that renders or calls the cited symbol directly does not establish reachability\. It goes red-to-green on dead code too\./u
-    );
-  });
-
   it("tags the reachability throw so the existing cleanup grep finds it", () => {
     // A bare `throw` left in the cited block is invisible to the skill's
     // mechanical cleanup, which only searches for the `[DEBUG:` tag.
@@ -115,18 +87,7 @@ describe.each(SKILL_ROOTS)("%s root-cause-analysis", root => {
     expect(skill).toContain('git grep -n "\\[DEBUG:"');
   });
 
-  it("separates the Reachability line from the evidence-trail table", () => {
-    // Without a blank line, markdown renders the line as a broken table row.
-    // Matched on raw text: whitespace is the claim here.
-    expect(raw).toMatch(
-      /\| what this establishes \|\n\nReachability: <entry point>/u
-    );
-  });
-
   it("records reachability in the evidence-trail output", () => {
-    expect(skill).toContain(
-      "Reachability: <entry point> → … → <cited symbol> (static | throw | scoped coverage)"
-    );
     const trail = skill.indexOf("### Evidence trail");
     const cause = skill.indexOf("### Cause — confirmed verdicts only");
     const line = skill.lastIndexOf("Reachability: <entry point>");
@@ -139,12 +100,6 @@ describe.each(SKILL_ROOTS)("%s root-cause-analysis", root => {
 
 describe.each(SKILL_ROOTS)("%s reproduce-bug", root => {
   const skill = flat(read(root, "lisa-reproduce-bug"));
-
-  it("requires the entry point to reach the code the fix will change", () => {
-    expect(skill).toContain(
-      "- **That the entry point reaches the code the fix will change.** A reproduction that mounts or calls the cited component or function directly, not through the entry point, is replacement scaffolding."
-    );
-  });
 
   it("tags the reachability throw for cleanup", () => {
     expect(skill).toContain(

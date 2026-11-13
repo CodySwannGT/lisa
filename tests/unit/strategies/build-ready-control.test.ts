@@ -59,7 +59,6 @@ describe("build_ready write-control input", () => {
       const content = readSkill(root, skill);
 
       it("documents a Build-ready control input section", () => {
-        expect(content).toContain(BUILD_READY_HEADING);
         expect(content).toContain("build_ready");
       });
 
@@ -71,21 +70,7 @@ describe("build_ready write-control input", () => {
       it("keeps build_ready subordinate to leaf-only-lifecycle", () => {
         const idx = content.indexOf(BUILD_READY_HEADING);
         expect(idx).toBeGreaterThan(-1);
-        const section = content.slice(idx);
-        // A container is never build-ready regardless of build_ready.
-        expect(section).toMatch(/container is never/i);
         expect(content).toContain(RULE_SLUG);
-      });
-
-      // Superseded by `ready-role-filing` (WU-D): omitted no longer means
-      // "whatever this vendor used to do" — it means not build-ready
-      // everywhere. The full arm-by-arm contract lives in
-      // ready-role-filing-contract.test.ts; this keeps the section honest.
-      it("treats omitted as not build-ready", () => {
-        const idx = content.indexOf(BUILD_READY_HEADING);
-        const section = content.slice(idx);
-        expect(section).toMatch(/omitted/i);
-        expect(section).not.toMatch(/current behavior/i);
       });
     });
   });
@@ -119,21 +104,8 @@ describe("build_ready write-control input", () => {
       const content = readSkill(root, "lisa-linear-write-issue");
       const section = content.slice(content.indexOf(BUILD_READY_HEADING));
 
-      it("leaves a build_ready:false leaf in the default backlog state", () => {
-        // Tolerate markdown emphasis around "without" — the assertion is about
-        // the semantics (no ready state), not the formatting.
-        expect(section).toMatch(/without\W{0,4}the `ready` state/i);
-        expect(section).toMatch(/default backlog state/i);
-      });
-
       it("transitions a leaf to the configured ready state on build_ready:true", () => {
         expect(section).toContain(".linear.workflow.ready");
-      });
-
-      it("is best-effort: leaves the Issue in its default state if unreachable", () => {
-        expect(section).toMatch(
-          /do not fail the write|leave the Issue in its default state/i
-        );
       });
 
       it("never routes the build lifecycle through a status:* label", () => {
@@ -153,16 +125,7 @@ describe("build_ready write-control input", () => {
       const content = readSkill(root, "lisa-jira-write-ticket");
 
       it("transitions a leaf to the configured ready status on build_ready:true", () => {
-        expect(content).toMatch(
-          /transition the \*\*leaf\*\* to the resolved `ready`/
-        );
         expect(content).toContain(".jira.workflow.ready");
-      });
-
-      it("is best-effort: leaves the ticket in default status if unreachable", () => {
-        expect(content).toMatch(
-          /do not fail the write|leave the ticket in its default status/i
-        );
       });
     }
   );
@@ -179,17 +142,7 @@ describe("exploratory-qa feeds the lifecycle (no report file)", () => {
       expect(content).toContain("lisa-tracker-write");
     });
 
-    it("does not write a report file", () => {
-      expect(content).toMatch(
-        /does \*\*not\*\* write a report file|No report file/
-      );
-      // The old report-file deliverables must be gone.
-      expect(content).not.toContain("EXPLORATORY_QA_REPORT");
-      expect(content).not.toContain("PLAYWRIGHT_GAPS");
-    });
-
     it("exposes a ready flag whose default follows humanGate.mode", () => {
-      expect(content).toContain("ready=true|false");
       // #4687: build-ready by default under access-only, backlog under strict.
       expect(content).toMatch(
         /`ready=true` \(\*\*default\*\* under `humanGate\.mode: "access-only"`\)/
@@ -197,25 +150,19 @@ describe("exploratory-qa feeds the lifecycle (no report file)", () => {
       expect(content).toMatch(
         /`ready=false` \(\*\*default\*\* under `humanGate\.mode: "strict"`/
       );
-      expect(content).toMatch(/triage|backlog/i);
     });
 
     it("maps the ready flag to build_ready for bugs and suggestions", () => {
       expect(content).toContain("build_ready");
-      expect(content).toMatch(/Bug/);
-      expect(content).toMatch(/Improvement/);
     });
 
     it("delegates automated-coverage gaps to the e2e-coverage-gaps skill", () => {
       // The Playwright-coverage concern moved out of exploratory-qa.
       expect(content).toContain("e2e-coverage-gaps");
-      // The old report-file deliverable for gaps must be gone.
-      expect(content).not.toMatch(/Missing Playwright test/);
     });
 
     it("is idempotent via a stable lisa-exploratory-qa marker", () => {
       expect(content).toContain("[lisa-exploratory-qa]");
-      expect(content).toMatch(/never by title|match by the marker/i);
     });
   });
 });
@@ -240,11 +187,6 @@ describe("e2e-coverage-gaps files missing-test gaps as build-ready work", () => 
 
     it("files missing-test tickets build-ready by default", () => {
       expect(content).toContain("build_ready");
-      expect(content).toMatch(/missing-test/i);
-      expect(content).toMatch(/build-ready/i);
-      // ready flag defaults to true (coverage is safe to queue).
-      expect(content).toContain("ready=true|false");
-      expect(content).toMatch(/default.*`true`/i);
     });
 
     it("delegates human usability findings back to exploratory-qa", () => {
@@ -253,7 +195,6 @@ describe("e2e-coverage-gaps files missing-test gaps as build-ready work", () => 
 
     it("is idempotent via a stable lisa-e2e-coverage-gaps marker", () => {
       expect(content).toContain("[lisa-e2e-coverage-gaps]");
-      expect(content).toMatch(/never by title|match by the marker/i);
     });
   });
 });

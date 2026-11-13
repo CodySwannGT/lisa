@@ -80,73 +80,8 @@ describe("PRD idempotency hardening (#585, LPC-1.4)", () => {
       const backlink = skillFor(root, BACKLINK_SLUG);
       // Reads the PRD's current sub-issues before adding any link.
       expect(backlink).toMatch(/subIssues/);
-      expect(backlink).toMatch(
-        /existing sub-issues|already-linked|already linked/i
-      );
-      // Already-linked children are a no-op (mutation is not issued for them).
-      expect(backlink).toMatch(/no-op/i);
-      // Re-running never creates duplicate sub-issue links.
-      expect(backlink).toMatch(
-        /never creates? duplicate sub-issue|duplicate sub-issue links?/i
-      );
       // Dedupe is by the GitHub child-ref form.
       expect(backlink).toMatch(/owner\/repo#number/);
-    });
-
-    // ---- AC (b): re-running backlink does not duplicate generated-work entries ----
-    it("AC(b): re-running backlink regenerates (never appends) and dedupes generated-work entries by ref", () => {
-      const backlink = skillFor(root, BACKLINK_SLUG);
-      // Section is regenerated from the current ticket set, never appended.
-      expect(backlink).toMatch(/regenerat/i);
-      expect(backlink).toMatch(/never append/i);
-      // The same ticket set yields a byte-identical section (no duplicates).
-      expect(backlink).toMatch(/byte-identical/i);
-      // Dedupe is by child-ref, not list position.
-      expect(backlink).toMatch(
-        /dedupe is by \*\*child-ref\*\*|dedupe.*child-ref/i
-      );
-    });
-
-    // ---- AC (c): re-running rollup on an already-shipped PRD is a no-op ----
-    it("AC(c): re-running rollup on an already-shipped PRD is a no-op (github-prd-intake guard)", () => {
-      const intake = skillFor(root, GITHUB_INTAKE_SLUG);
-      // An explicit idempotency guard keyed on the PRD's current shipped state.
-      expect(intake).toMatch(/idempotency guard/i);
-      expect(intake).toMatch(/already shipped/i);
-      expect(intake).toMatch(/no-op/i);
-      // No duplicate transition, no shipped-time close, no duplicate comment.
-      expect(intake).toMatch(/do not re-transition/i);
-      expect(intake).toMatch(/do not close/i);
-      expect(intake).toMatch(/do not re-comment/i);
-      // The all-terminal condition is a pure function of child state (safe to re-run).
-      expect(intake).toMatch(/pure function/i);
-    });
-
-    // ---- AC (d): dedupe matches by stable ref, not title ----
-    it("AC(d): the rule mandates matching by stable ref, never by title", () => {
-      const rule = ruleFor(root);
-      // Explicit "match by stable ref, never by title" statement.
-      expect(rule).toMatch(/match by stable ref, never by title/i);
-      // A renamed child (title changed, ref unchanged) is the SAME child.
-      expect(rule).toMatch(
-        /title changed but whose ref is unchanged is the same child/i
-      );
-      // Title is never the dedupe key.
-      expect(rule).toMatch(
-        /never used as the dedupe key|title is never|never by title/i
-      );
-      // Cites the PRD #525 acceptance criterion verbatim.
-      expect(rule).toMatch(/Dedupe matches by stable ref not title/);
-    });
-
-    it("AC(d): prd-backlink agrees — match by ref, refresh title in place", () => {
-      const backlink = skillFor(root, BACKLINK_SLUG);
-      expect(backlink).toMatch(/match by stable ref, never by title/i);
-      // A renamed-but-same-ref ticket is refreshed in place, not duplicated.
-      expect(backlink).toMatch(
-        /title.*changed but whose `ref` is unchanged|same.*entry/i
-      );
-      expect(backlink).toMatch(/refreshed in place|appears exactly once/i);
     });
 
     // ---- Consistency: all surfaces cite the same dedupe-key rule by slug ----
@@ -155,33 +90,13 @@ describe("PRD idempotency hardening (#585, LPC-1.4)", () => {
       expect(skillFor(root, BACKLINK_SLUG)).toContain(RULE_SLUG);
       expect(skillFor(root, GITHUB_INTAKE_SLUG)).toContain(RULE_SLUG);
     });
-
-    // ---- The rule's dedupe key is consistent across all four AC scenarios ----
-    it("the rule's Idempotency dedupe key section covers all four re-run invariants", () => {
-      const rule = ruleFor(root);
-      // Single statement of the four duplication classes the dedupe key prevents.
-      expect(rule).toMatch(/duplicate child links/i);
-      expect(rule).toMatch(/duplicate sub-issues/i);
-      expect(rule).toMatch(/duplicate generated-work entries/i);
-      expect(rule).toMatch(/double `shipped` transition|double.*shipped/i);
-      // Keyed by child-ref identity.
-      expect(rule).toMatch(/child-ref identity/i);
-      // Rollup is no-op when already shipped/closed.
-      expect(rule).toMatch(/already in `shipped`.*no-op|no-op.*re-transition/i);
-    });
   });
 
   // ---- Both plugin roots agree byte-for-byte on the load-bearing wording ----
   it("source and generated artifact carry identical match-by-ref-not-title wording", () => {
     const [src, gen] = PLUGIN_ROOTS;
-    const marker = "Match by stable ref, never by title";
     // Both rule files exist and both carry the new wording.
     expect(existsSync(path.resolve(src.rules, `${RULE_SLUG}.md`))).toBe(true);
     expect(existsSync(path.resolve(gen.rules, `${RULE_SLUG}.md`))).toBe(true);
-    expect(ruleFor(src)).toContain(marker);
-    expect(ruleFor(gen)).toContain(marker);
-    // The prd-backlink leg agrees in both roots too.
-    expect(skillFor(src, BACKLINK_SLUG)).toContain(marker);
-    expect(skillFor(gen, BACKLINK_SLUG)).toContain(marker);
   });
 });

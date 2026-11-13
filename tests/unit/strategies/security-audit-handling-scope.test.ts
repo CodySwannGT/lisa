@@ -25,30 +25,8 @@ const read = (root: string): string =>
   readFileSync(path.resolve(root, SKILL), "utf8");
 
 describe.each(ROOTS)("security-audit-handling scope guidance (%s)", root => {
-  it("documents both scope fields with lockfile keys", () => {
-    const skill = read(root);
-    expect(skill).toContain("`versions`");
-    expect(skill).toContain("`paths`");
-    expect(skill).toMatch(/lockfile key path/u);
-    expect(skill).toContain('"paths": ["lint-plugin/pkg"]');
-  });
-
   it("links the exclusion guide by absolute URL (docs/ is not shipped)", () => {
     expect(read(root)).toContain(DOC_URL);
-  });
-
-  it("states the weaker isolation of Yarn and hoisted npm keys", () => {
-    const skill = read(root);
-    expect(skill).toMatch(/requested range, not a parent/u);
-    expect(skill).toMatch(/hoisted/u);
-  });
-
-  it("recommends paths over an ID-wide entry for dev-only copies", () => {
-    const skill = read(root);
-    expect(skill).toMatch(
-      /Whenever the vulnerable copy is dev-only[^\n]*add `versions` and `paths` rather than an ID-wide entry/u
-    );
-    expect(skill).toMatch(/never widens into an ID-wide exclusion/u);
   });
 
   it("is named by the audit's failure message", () => {

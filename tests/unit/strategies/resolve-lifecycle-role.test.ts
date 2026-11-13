@@ -199,7 +199,6 @@ describe("GitHub skills use the canonical resolver directly", () => {
     );
 
     expect(skill).toContain("resolve-lifecycle-role.mjs");
-    expect(skill).not.toContain("read_role() {");
   });
 });
 

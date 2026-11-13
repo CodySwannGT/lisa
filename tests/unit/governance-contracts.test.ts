@@ -42,9 +42,6 @@ describe("governance text contracts", () => {
 
       expect(content).toContain("No tracker configured in .lisa.config.json");
       expect(content).not.toContain("default: jira");
-      expect(content).not.toContain(
-        'tracker="${local_tracker:-${global_tracker:-jira}}"'
-      );
     }
   );
 

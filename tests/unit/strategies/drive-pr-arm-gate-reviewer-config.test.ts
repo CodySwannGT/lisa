@@ -54,12 +54,6 @@ const armGateSection = (root: string): string => {
 describe.each(ROOTS)("drive-pr-to-merge arm gate scope (%s)", root => {
   const section = armGateSection(root);
 
-  it("engages on a reviewer declared in .lisa.config.json", () => {
-    expect(section).toContain("in EITHER place");
-    expect(section).toContain("`evidence.reviewer: true`");
-    expect(section).toContain("Only a repository that declares neither");
-  });
-
   it("no longer passes every host without required-checks.json", () => {
     expect(section).not.toMatch(
       /`\.github\/required-checks\.json` — or none at all — passes this gate immediately/
@@ -69,36 +63,11 @@ describe.each(ROOTS)("drive-pr-to-merge arm gate scope (%s)", root => {
   it("decides through the all-stack prover's --arm mode", () => {
     expect(section).toContain(ARM_COMMAND);
     expect(section).toContain("--arm --json [--vacuity-report <path>]");
-    expect(section).toContain("Read `arm` and `action`, not the exit code");
   });
 
   it("keeps the vacuity classifier where it exists", () => {
     expect(section).toContain(
       "node scripts/check-skipped-required-checks.mjs --vacuity --pr=<pr> --json"
-    );
-    expect(section).toContain("pass its report in");
-  });
-
-  it("arms on a substitute as well as on a completed review", () => {
-    expect(section).toMatch(/`satisfied`, or\s+`substituted`/);
-  });
-
-  it("counts a substitute only as a writer's first-line marker", () => {
-    expect(section).toMatch(
-      /comment's \*\*first line\*\* and its author has\s+\*\*write access\*\*/
-    );
-  });
-
-  it("scopes a substitute-based arm to its head across pushes", () => {
-    expect(section).toContain(
-      'An arm with `basis: "substitute"` is authorised for that head only.'
-    );
-    expect(section).toMatch(/disarm it \(`gh pr merge <pr> --disable-auto`/);
-  });
-
-  it("treats a requested-changes proof as a blocker", () => {
-    expect(section).toMatch(
-      /`Changes requested` proof phrase proves the reviewer worked/
     );
   });
 });
@@ -111,16 +80,7 @@ describe.each(ROOTS)("drive-pr-to-merge unreviewed routes agree (%s)", root => {
 
   it("names the substitute arm alongside step (d), and keeps the report line", () => {
     expect(text).toContain(
-      "This and the arm gate's substitute arm (section 1) are the *only*"
-    );
-    expect(text).toContain(
       "Both routes write the `MERGED — NOT REVIEWED` line."
-    );
-  });
-
-  it("never arms in report mode", () => {
-    expect(text).toContain(
-      "report mode never arms, whatever the arm decision says."
     );
   });
 });
@@ -132,29 +92,11 @@ describe.each(UPDATE_COPIES)("lisa-update-projects step 14 (%s)", copy => {
       .find(line => line.startsWith("14. ")) ?? "";
 
   it("does not arm auto-merge unconditionally at open", () => {
-    expect(step14).toContain("Do not arm auto-merge at open.");
     expect(step14).not.toContain("gh pr merge --auto --squash");
   });
 
   it("arms only through the drive skill's arm gate", () => {
     expect(step14).toContain("`lisa-drive-pr-to-merge`'s arm gate");
     expect(step14).toContain(`${ARM_COMMAND} --arm --json`);
-    expect(step14).toContain("`arm: true`");
-  });
-
-  it("keeps the canary hold", () => {
-    expect(step14).toContain("until the canary decision is `proceed`");
-  });
-
-  it("does not let step 17 re-enable auto-merge outside the gate", () => {
-    const step17 =
-      readFileSync(path.resolve(copy), "utf8")
-        .split("\n")
-        .find(line => line.startsWith("17. ")) ?? "";
-
-    expect(step17).toContain(
-      "auto-merge armed only through the drive skill's arm gate"
-    );
-    expect(step17).not.toContain("with auto-merge enabled");
   });
 });

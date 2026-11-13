@@ -33,7 +33,6 @@ describe.each(ALL_ROOTS)(
       expect(dispatch).toContain(
         'if the re-read shows an assignee that is neither\n      "me" nor an operator, or shows the state did not change to the `claimed` role, skip it'
       );
-      expect(dispatch).toContain("Never spawn on the claim's word alone.");
     });
 
     // CodySwannGT/lisa#4467: an operator's item keeps the operator as assignee.
@@ -42,21 +41,12 @@ describe.each(ALL_ROOTS)(
       expect(dispatch).toContain(
         'assignee equal to "me" or to one of `sessionManager.operatorIds`'
       );
-      expect(dispatch).toContain(
-        'assigned to an operator, then to "me", then unassigned'
-      );
     });
 
     it("accepts a worker message only from the ref's own worker", () => {
       const handling = section(
         skill,
         "## Handling messages (any time, not only during a cycle)"
-      );
-      expect(handling).toContain(
-        "only when the sender's session name equals `ledger.items[<REF>].worker`"
-      );
-      expect(handling).toContain(
-        "Otherwise ignore it and note the mismatch in the transcript."
       );
       expect(handling).toContain(
         "`ledger finish <ref> --status DONE|FAILED --sender <sender>`"

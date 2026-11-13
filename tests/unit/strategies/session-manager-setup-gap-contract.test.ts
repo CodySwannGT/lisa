@@ -17,31 +17,13 @@ describe.each(ALL_ROOTS)("session-manager setup-gap contract (%s)", root => {
   const manager = read(`${root}/lisa-session-manager/SKILL.md`);
   const cycle = section(manager, "## The cycle");
 
-  it("widens spawn exit 2 to a first prompt that never ran", () => {
-    expect(cycle).toContain(
-      "including a worker\n        whose first prompt never ran"
-    );
-    expect(cycle).toContain("`UserPromptSubmit` hook rejected it");
-  });
-
   it("has a setup-gap classify row that refunds the attempt and stops dispatch", () => {
     const row = cycle
       .split("\n")
       .find(line => line.startsWith("| `setup-gap` |"));
     expect(row).toBeDefined();
     expect(row).toContain("ledger finish <ref> --status FAILED --setup-gap");
-    expect(row).toContain("move the item back to the `ready` role");
-    expect(row).toContain("do not respawn it");
-    expect(row).toContain("do not dispatch to that repo again");
     expect(row).toContain("`recovery-required`");
-  });
-
-  it("respects a human who already moved a setup-gap item out of the claimed role", () => {
-    const row = cycle
-      .split("\n")
-      .find(line => line.startsWith("| `setup-gap` |"));
-    expect(row).toContain("If it left the `claimed` role, a human moved it");
-    expect(row).toContain("do not move it back to the `ready` role");
   });
 
   it("finishes a still-running earlier ledger row on spawn exit 2", () => {

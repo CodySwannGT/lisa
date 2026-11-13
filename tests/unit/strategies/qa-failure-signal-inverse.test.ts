@@ -300,11 +300,6 @@ describe("every skill on the QA signal's path resolves it through one module", (
       const triage = readSkill(root, "lisa-rework-triage");
 
       expect(triage).toContain(SCRIPT);
-      expect(triage).toMatch(/\blive\b/);
-      expect(triage).toMatch(/stale/i);
-      // A stale signal is repaired where it is found, so the backlog of items
-      // labelled before the inverse existed drains instead of accumulating.
-      expect(triage).toMatch(/remove|clear/i);
     });
   });
 

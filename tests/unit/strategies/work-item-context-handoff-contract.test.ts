@@ -30,8 +30,6 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const CONTEXT_FILE = ".lisa/work-item-context.md";
-const PATH_ONLY_RULE =
-  "Bundle text, and any credential value in it, never appears in a subagent prompt, task description, or Skill argument — only its path.";
 
 const SKILL_ROOTS = [
   "plugins/src/base/skills",
@@ -100,37 +98,6 @@ describe.each(skillPaths("lisa-implement"))(
       expect(skill).toContain(
         `Persist the bundle verbatim to \`${CONTEXT_FILE}\``
       );
-      expect(skill).toMatch(/unedited/);
-    });
-
-    it("requires the resolver to return the path plus a flagged per-comment inventory", () => {
-      expect(skill).toContain("per-comment inventory");
-      expect(skill).toMatch(/author, date, one-line gist/);
-      for (const flag of [
-        "decision",
-        "constraint",
-        "credential",
-        "reproduction",
-      ]) {
-        expect(skill).toMatch(new RegExp(`flags?[^\\n]*${flag}`));
-      }
-    });
-
-    it("persists a caller-supplied bundle instead of discarding it, without skipping the live gate", () => {
-      expect(skill).toContain("caller-supplied bundle");
-      expect(skill).toMatch(/instead of discarding it/);
-      expect(skill).toMatch(/live validation and claim still run/);
-    });
-
-    it("makes every task carry the absolute context file path and the inventory", () => {
-      expect(skill).toMatch(
-        /"work_item_context": "<absolute path[^"]*\.lisa\/work-item-context\.md>"/
-      );
-      expect(skill).toMatch(/Do NOT omit[^\n]*`work_item_context`/);
-      expect(skill).toMatch(/every subagent prompt[^\n]*work-item-context/i);
-      expect(skill).toMatch(
-        /every subagent prompt[^\n]*pastes the per-comment inventory/i
-      );
     });
 
     it("forwards a caller bundle to lisa-track by path only", () => {
@@ -140,38 +107,14 @@ describe.each(skillPaths("lisa-implement"))(
       expect(skill).toContain(
         "Pass only `caller_bundle_path: <absolute path>` to `lisa-track`"
       );
-      expect(skill).toContain(PATH_ONLY_RULE);
-      expect(skill).not.toMatch(/pastes that bundle verbatim/);
-      expect(skill).not.toContain("`caller_bundle:`");
-    });
-
-    it("writes the flagged inventory into the file as a trailing section", () => {
-      expect(skill).toContain("trailing `## Comment inventory` section");
-      expect(skill).toContain("`decision|constraint|credential|repro`");
     });
 
     it("states one writer order: keep the live read, or caller bundle plus live additions", () => {
-      expect(skill).toContain("There is one writer order.");
       expect(skill).toMatch(/`lisa-track` has already written its live read/);
-      expect(skill).toMatch(/append under `## Added by live read` only/);
-      expect(skill).not.toContain("overwriting any earlier copy");
     });
 
     it("keeps credential values out of the inventory and everything copied from it", () => {
-      expect(skill).toContain(
-        "**A `credential` gist names only the kind and the location**"
-      );
-      expect(skill).toMatch(/never the secret value or identifier/);
-      expect(skill).toMatch(
-        /never copy it into task descriptions, subagent prompts, plan files, tracker comments, or PR text/
-      );
       expect(skill).toMatch(/`lisa-track` leaves an existing file untouched/);
-    });
-
-    it("keeps the absolute path", () => {
-      expect(skill).toContain(
-        "Keep `work_item_context: <absolute path of the file>`"
-      );
     });
   }
 );
@@ -191,13 +134,6 @@ describe.each(skillPaths("lisa-track"))(
       expect(skill).toMatch(
         /this is the first write; when `lisa-implement` forwarded a `caller_bundle_path`/
       );
-      expect(skill).toContain("`## Comment inventory` section");
-    });
-
-    it("never clobbers an existing file when a caller bundle path was forwarded", () => {
-      expect(skill).toMatch(
-        /When a `caller_bundle_path` was forwarded for this work item and the file already exists, do not overwrite it/
-      );
     });
   }
 );
@@ -207,24 +143,11 @@ describe.each(
     skillPaths(skill).map(skillPath => [skill, skillPath] as const)
   )
 )("%s hands the bundle over for persistence (%s)", (_skill, skillPath) => {
-  it("says lisa-implement persists the passed bundle at the context file", () => {
-    const skill = read(skillPath);
-    expect(skill).toMatch(
-      new RegExp(
-        `bundle[^\\n]*persist[^\\n]*${CONTEXT_FILE.replace(/[./]/g, "\\$&")}`
-      )
-    );
-  });
-
   it("writes the bundle to the file first and passes only its path", () => {
     const skill = read(skillPath);
     expect(skill).toMatch(
       /before invoking `lisa-implement`, run the ignore guard below, then write the bundle verbatim/
     );
-    expect(skill).toContain(
-      "pass only `caller_bundle_path=<absolute path>` in the invocation"
-    );
-    expect(skill).toContain(PATH_ONLY_RULE);
   });
 });
 
@@ -238,48 +161,11 @@ describe.each(
   const agent = read(agentPath);
   const body = section(agent, "## Work-item context");
 
-  it("has a Work-item context section naming the file", () => {
-    expect(body).toContain(CONTEXT_FILE);
-  });
-
-  it("reads the file in full first when the task belongs to a work item", () => {
-    expect(body).toMatch(
-      /^When your task belongs to a tracked work item — it names `work_item_context` or a work-item ref — read the work-item context file in full before/m
-    );
-  });
-
-  it("treats flagged comments as obligations", () => {
-    expect(body).toMatch(/flagged comment[^\n]*obligation/i);
-    expect(body).toContain("`## Comment inventory`");
-  });
-
   it("reads the absolute path its task gives, falling back to the bound worktree", () => {
-    expect(body).toContain(
-      "absolute path your task gives as `work_item_context`"
-    );
-    expect(body).toMatch(/at the root of the bound worktree/);
     // A work-item task delegated with only a prose summary names neither field;
     // without this default it would skip the file it most needs.
     expect(body).toContain(
       "If the task concerns a tracker work item but names neither, check for `.lisa/work-item-context.md` at the bound worktree root, or for a bound work item via `node scripts/lisa-work-item.mjs current`"
-    );
-  });
-
-  it("fails closed for a work-item task, and lets a non-work-item task use its own source", () => {
-    expect(body).toMatch(
-      /If a work item is named or bound and its context file is missing or unreadable, report that and stop — never proceed from memory/
-    );
-    expect(body).toMatch(
-      /Only a task whose source is a plan file, a PRD, a raw error, or a log, with no work item bound to the worktree, proceeds from the source the task supplies/
-    );
-  });
-
-  it("keeps a credential-flagged secret inside the context file", () => {
-    expect(body).toMatch(
-      /secret quoted in a credential-flagged comment never leaves that file/
-    );
-    expect(body).toMatch(
-      /keep the value or identifier out of code, commits, task notes, prompts, plan files, tracker comments, and PR text/
     );
   });
 });

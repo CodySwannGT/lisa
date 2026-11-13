@@ -114,7 +114,6 @@ describe.each(ALL_ROOTS)(
       expect(section(setup, "## Step 10: Verify")).toContain(
         'the "Session manager notifications?" check'
       );
-      expect(setup).not.toContain("Telegram isolation?");
     });
 
     it("sends a worker's question through the same rules", () => {

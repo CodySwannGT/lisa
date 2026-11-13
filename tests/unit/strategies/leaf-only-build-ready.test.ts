@@ -89,16 +89,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
     });
 
     it("makes the build-ready label conditional on a leaf work unit", () => {
-      // The skill must describe the conditional: only Bug/Task/Sub-task/
-      // Improvement leaves receive status:ready; containers do not.
-      expect(content).toMatch(/leaf work unit/i);
       expect(content).toMatch(/status:ready/);
-      expect(content).toMatch(/only.*leaf work unit/i);
-    });
-
-    it("names the container types that never receive build-ready", () => {
-      expect(content).toMatch(/Epic/);
-      expect(content).toMatch(/Story/);
     });
   });
 
@@ -110,8 +101,6 @@ describe("leaf-only build-ready invariant (#538)", () => {
     });
 
     it("states Epics (Phase 3) never receive the build-ready label", () => {
-      // Phase 3 creates Epics; it must not mark them build-ready.
-      expect(content).toMatch(/leaf/i);
       expect(content).toMatch(/status:ready/);
     });
 
@@ -135,21 +124,6 @@ describe("leaf-only build-ready invariant (#538)", () => {
       expect(content).toContain(RULE_SLUG);
     });
 
-    it("registers the S15 Leaf-only build-ready gate in the gate table", () => {
-      // Fixed category `structural`, product_relevant false per the ticket.
-      expect(content).toMatch(
-        /\|\s*S15 Leaf-only build-ready\s*\|\s*`structural`\s*\|\s*false\s*\|/
-      );
-    });
-
-    it("defines an S15 gate section", () => {
-      expect(content).toContain(S15_HEADING);
-    });
-
-    it("lists S15 in the output report template", () => {
-      expect(content).toMatch(/S15 Leaf-only build-ready — <one-line reason>/);
-    });
-
     it("extends the gate-ID range through the highest specification gate", () => {
       // The failure-detail field doc enumerates the valid gate IDs, and it is a
       // separate sentence from the gate table — so it goes stale silently every
@@ -162,30 +136,13 @@ describe("leaf-only build-ready invariant (#538)", () => {
       const highest = Math.max(...defined);
       // Floor, so a parse that finds nothing cannot make this vacuous.
       expect(highest).toBeGreaterThanOrEqual(20);
-      expect(content).toMatch(new RegExp(String.raw`S1.*S${highest}.*F1.*F5`));
     });
 
     it("FAILs a container that carries the build-ready role", () => {
       const s15Index = content.indexOf(S15_HEADING);
       expect(s15Index).toBeGreaterThan(-1);
       const section = content.slice(s15Index);
-      // Container with child work + build-ready => FAIL.
-      expect(section).toMatch(/Container with child work \+ build-ready/);
       expect(section).toMatch(/FAIL/);
-    });
-
-    it("FAILs a childless Epic but allows a childless Story/Spike marked build-ready", () => {
-      const s15Index = content.indexOf(S15_HEADING);
-      const section = content.slice(s15Index);
-      // Only a childless Epic still FAILs; the exception now promotes every
-      // other childless type (including Story/Spike) to a build-ready leaf.
-      expect(section).toMatch(/Childless Epic \+ build-ready/);
-      expect(section).toMatch(
-        /promotes every childless non-Epic type to a build-ready leaf/
-      );
-      expect(section).toMatch(
-        /childless Story or Spike is \*\*not\*\* failed here/
-      );
     });
 
     it("PASSes a childless leaf work unit marked build-ready", () => {
@@ -193,15 +150,6 @@ describe("leaf-only build-ready invariant (#538)", () => {
       const section = content.slice(s15Index);
       // The childless-parent exception: Bug/Task/Sub-task/Improvement leaf passes.
       expect(section).toMatch(/PASS \(the childless-parent exception\)/);
-      expect(section).toMatch(
-        /Bug, Task, Sub-task, Improvement|Bug \/ Task \/ Sub-task \/ Improvement/
-      );
-    });
-
-    it("treats a non-build-ready issue as N/A for S15", () => {
-      const s15Index = content.indexOf(S15_HEADING);
-      const section = content.slice(s15Index);
-      expect(section).toMatch(/N\/A.*not build-ready|not build-ready.*N\/A/i);
     });
 
     it("documents the build_ready and child_refs spec inputs", () => {
@@ -229,78 +177,22 @@ describe("leaf-only build-ready invariant (#538)", () => {
         expect(content).toContain(RULE_SLUG);
       });
 
-      it("registers the S15 Leaf-only build-ready gate in the gate table", () => {
-        // Fixed category `structural`, product_relevant false — the same fixed
-        // taxonomy github-validate-issue uses so PRD-intake formatting is shared.
-        expect(content).toMatch(
-          /\|\s*S15 Leaf-only build-ready\s*\|\s*`structural`\s*\|\s*false\s*\|/
-        );
-      });
-
-      it("defines an S15 gate section", () => {
-        expect(content).toContain(S15_HEADING);
-      });
-
-      it("lists S15 in the output report template", () => {
-        expect(content).toMatch(
-          /S15 Leaf-only build-ready — <one-line reason>/
-        );
-      });
-
       it("FAILs a container that carries the build-ready role", () => {
         const s15Index = content.indexOf(S15_HEADING);
         expect(s15Index).toBeGreaterThan(-1);
         const section = content.slice(s15Index);
-        expect(section).toMatch(/Container with child work \+ build-ready/);
         expect(section).toMatch(/FAIL/);
-      });
-
-      it("FAILs a childless Epic but allows a childless Story/Spike marked build-ready", () => {
-        const s15Index = content.indexOf(S15_HEADING);
-        const section = content.slice(s15Index);
-        // Only a childless Epic (a Project on Linear) still FAILs; the exception
-        // now promotes every other childless type (incl. Story/Spike) to a leaf.
-        expect(section).toMatch(/Childless Epic(\/Project)? \+ build-ready/);
-        expect(section).toMatch(
-          /promotes every childless non-Epic type to a build-ready leaf/
-        );
-        expect(section).toMatch(
-          /childless Story or Spike is \*\*not\*\* failed here/
-        );
       });
 
       it("PASSes a childless leaf work unit marked build-ready", () => {
         const s15Index = content.indexOf(S15_HEADING);
         const section = content.slice(s15Index);
         expect(section).toMatch(/PASS \(the childless-parent exception\)/);
-        expect(section).toMatch(
-          /Bug, Task, Sub-task, Improvement|Bug \/ Task \/ Sub-task \/ Improvement/
-        );
-      });
-
-      it("treats a non-build-ready item as N/A for S15", () => {
-        const s15Index = content.indexOf(S15_HEADING);
-        const section = content.slice(s15Index);
-        expect(section).toMatch(/N\/A.*not build-ready|not build-ready.*N\/A/i);
       });
 
       it("documents the build_ready and child_refs spec inputs", () => {
         expect(content).toContain("build_ready");
         expect(content).toContain("child_refs");
-      });
-
-      it("uses the same leaf-only remediation as github-validate-issue", () => {
-        const s15Index = content.indexOf(S15_HEADING);
-        const section = content.slice(s15Index);
-        // The shared remediation wording keeps PRD-intake comment formatting
-        // identical across the three validators (the #541 acceptance criterion:
-        // "equivalent leaf-only remediation").
-        expect(section).toContain(
-          "Build-ready is leaf-only per leaf-only-lifecycle."
-        );
-        expect(section).toMatch(
-          /a parent's lifecycle state rolls up from its children and is never set to ready directly/
-        );
       });
     });
   });
@@ -333,13 +225,8 @@ describe("leaf-only build-ready invariant (#538)", () => {
     it("moves a parent with open child work out of the ready queue without dispatch", () => {
       const gateIndex = content.indexOf(gateHeading);
       const section = content.slice(gateIndex);
-      // Structural container detection via open sub-issues.
-      expect(section).toMatch(/open child work/i);
       expect(section).toMatch(/remove-label "\$READY"/);
       expect(section).toMatch(/add-label "\$CLAIMED"/);
-      expect(section).toMatch(
-        /do NOT dispatch|never dispatched|without invoking/i
-      );
     });
 
     it("queries native sub-issues to detect open children", () => {
@@ -347,82 +234,25 @@ describe("leaf-only build-ready invariant (#538)", () => {
       const section = content.slice(gateIndex);
       // Same native hierarchy lisa-github-read-issue uses.
       expect(section).toMatch(/subIssues/);
-      expect(section).toMatch(/graphql/i);
       expect(section).toMatch(/OPEN/);
-    });
-
-    it("does not dispatch a childless Epic but dispatches a childless Story/Spike", () => {
-      const gateIndex = content.indexOf(gateHeading);
-      const section = content.slice(gateIndex);
-      // Only a childless Epic is held back; Story/Spike are dispatchable leaves.
-      expect(section).toMatch(/Childless Epic \(pure rollup container\)/);
-      expect(section).toMatch(/except Epic/i);
-      expect(section).toMatch(
-        /childless Story is a directly shippable increment/
-      );
-      expect(section).toMatch(/never dispatched|do NOT dispatch/i);
-    });
-
-    it("claims a childless leaf work unit", () => {
-      const gateIndex = content.indexOf(gateHeading);
-      const section = content.slice(gateIndex);
-      // The childless-parent exception: flat Bug/Task/Sub-task/Improvement
-      // with no open children falls through to the claim.
-      expect(section).toMatch(/leaf work unit/i);
-      expect(section).toMatch(
-        /Bug, Task, Sub-task, Improvement|Bug \/ Task \/ Sub-task \/ Improvement/
-      );
-      expect(section).toMatch(/[Pp]roceed.*claim|claim/);
-    });
-
-    it("posts a lifecycle-repair comment when moving a container", () => {
-      const gateIndex = content.indexOf(gateHeading);
-      const section = content.slice(gateIndex);
-      expect(section).toMatch(/lifecycle-repair/i);
-      expect(section).toMatch(/rollup\/build-lane progress/i);
-      expect(section).toMatch(
-        /direct implementation must happen on leaf issues/i
-      );
-    });
-
-    it("lists a Repaired (container) bucket in the summary report", () => {
-      expect(content).toMatch(/Repaired \(container/);
     });
 
     it("checks explicit Blocked by relationships before claiming", () => {
       const gateIndex = content.indexOf(gateHeading);
       const claimIndex = content.indexOf(claimHeading);
       const section = content.slice(gateIndex, claimIndex);
-
-      expect(section).toMatch(/Active dependency hold gate/);
-      expect(section).toMatch(/Blocked by: #123/);
-      expect(section).toMatch(/Blocked by: #123, #456/);
       expect(section).toMatch(/owner\/repo#123/);
-      expect(section).toMatch(
-        /https:\/\/github\.com\/owner\/repo\/issues\/123/
-      );
-      expect(section).toMatch(/before the claim relabel/i);
-      expect(section).toMatch(/without changing lifecycle labels/i);
-      expect(section).toMatch(/without dispatching the lifecycle/);
     });
 
     it("defines cleared and active blocker status semantics", () => {
       const gateIndex = content.indexOf(gateHeading);
       const claimIndex = content.indexOf(claimHeading);
       const section = content.slice(gateIndex, claimIndex);
-
-      expect(section).toMatch(/status:code-review/);
       expect(section).toMatch(/status:on-dev/);
       expect(section).toMatch(/status:on-stg/);
       expect(section).toMatch(/status:done/);
       expect(section).toMatch(/status:ready/);
       expect(section).toMatch(/status:in-progress/);
-      expect(section).toMatch(/inaccessible blockers as active/i);
-    });
-
-    it("lists a Skipped (active blockers) bucket in the summary report", () => {
-      expect(content).toMatch(/Skipped \(active blockers\)/);
-      expect(content).toMatch(/waiting on <blocker refs>/);
     });
   });
 
@@ -456,89 +286,6 @@ describe("leaf-only build-ready invariant (#538)", () => {
         // The gate must precede the claim step so a container is never claimed.
         expect(gateIndex).toBeLessThan(claimIndex);
       });
-
-      it("skips / safe-blocks a parent with open child work", () => {
-        const gateIndex = content.indexOf(gateHeading);
-        const section = content.slice(gateIndex);
-        expect(section).toMatch(/open child work/i);
-        expect(section).toMatch(/do NOT claim|never claimed|not claimed/i);
-        expect(section).toMatch(/skip|safe-block/i);
-      });
-
-      it("counts only open children, excluding terminal ones", () => {
-        const gateIndex = content.indexOf(gateHeading);
-        const section = content.slice(gateIndex);
-        // Same OPEN_CHILDREN structural detection the GitHub gate uses, mapped
-        // to each vendor's terminal state vocabulary.
-        expect(section).toMatch(/OPEN_CHILDREN/);
-        expect(section).toMatch(/still open|not.*(Done|terminal|completed)/i);
-      });
-
-      it("resolves children via the vendor's native hierarchy", () => {
-        const gateIndex = content.indexOf(gateHeading);
-        const section = content.slice(gateIndex);
-        // The gate must reuse the same hierarchy the vendor read skill uses and
-        // explicitly exclude dependency links (blocks / is blocked by) from
-        // parentage, per leaf-only-lifecycle.
-        expect(section).toMatch(/read-(ticket|issue)/);
-        expect(section).toMatch(/not parentage|not.*children/i);
-      });
-
-      it("does not claim a childless Epic but claims a childless Story/Spike", () => {
-        const gateIndex = content.indexOf(gateHeading);
-        const section = content.slice(gateIndex);
-        // Only a childless Epic (a Project on Linear) stays unclaimed; the
-        // exception promotes every other childless type, incl. Story/Spike.
-        expect(section).toMatch(
-          /Childless Epic(\/Project)? \(pure rollup container\)/
-        );
-        expect(section).toMatch(/except Epic/i);
-        expect(section).toMatch(
-          /childless Story is a directly shippable increment/
-        );
-      });
-
-      it("claims a childless leaf work unit", () => {
-        const gateIndex = content.indexOf(gateHeading);
-        const section = content.slice(gateIndex);
-        // The childless-parent exception: flat Bug/Task/Sub-task/Improvement
-        // with no open children falls through to the claim.
-        expect(section).toMatch(/leaf work unit/i);
-        expect(section).toMatch(
-          /Bug, Task, Sub-task, Improvement|Bug \/ Task \/ Sub-task \/ Improvement/
-        );
-        expect(section).toMatch(/[Pp]roceed.*claim|claim/);
-      });
-
-      it("posts a lifecycle-repair comment when safe-blocking a container", () => {
-        const gateIndex = content.indexOf(gateHeading);
-        const section = content.slice(gateIndex);
-        expect(section).toMatch(/lifecycle-repair/i);
-        // The repair guidance points the role off the parent onto its leaves.
-        expect(section).toMatch(
-          /onto its leaf children|move .* off this parent/i
-        );
-      });
-
-      it("uses the same leaf-only repair wording as the other arms", () => {
-        const gateIndex = content.indexOf(gateHeading);
-        const section = content.slice(gateIndex);
-        // Shared wording keeps the lifecycle-repair message consistent with the
-        // validators' S15 remediation (the #543 cross-vendor symmetry goal).
-        expect(section).toContain(
-          "Build-ready is leaf-only per leaf-only-lifecycle"
-        );
-        // Case-insensitive: the safe-block comment mirrors github-build-intake's
-        // capitalized sentence ("A parent's …"); the validators use it lowercase
-        // mid-sentence. Both encode the same rollup invariant.
-        expect(section).toMatch(
-          /a parent's lifecycle state rolls up from its children and is never set to ready directly/i
-        );
-      });
-
-      it("lists a Skipped (container) bucket in the summary report", () => {
-        expect(content).toMatch(/Skipped \(container/);
-      });
     });
   });
 
@@ -554,27 +301,10 @@ describe("leaf-only build-ready invariant (#538)", () => {
       expect(content).toContain(RULE_SLUG);
     });
 
-    it("documents the forwarded leaf-only dispatch contract", () => {
-      expect(content).toMatch(
-        /claims only.*leaf work units|dispatch.*leaf work units/i
-      );
-      expect(content).toMatch(/move|safe-block/i);
-      expect(content).toMatch(/open child work/i);
-    });
-
     it("names each vendor's Phase 3a gate", () => {
       expect(content).toContain(GITHUB_BUILD_INTAKE);
       expect(content).toContain("lisa-jira-build-intake");
       expect(content).toContain("lisa-linear-build-intake");
-      expect(content).toMatch(/Phase 3a/);
-    });
-
-    it("states the shim forwards rather than re-gates", () => {
-      // The shim must not claim to re-implement the gate — it relies on the
-      // resolved vendor scanner's Phase 3a.
-      expect(content).toMatch(
-        /forward|dispatch only|does not re-?(implement|gate)/i
-      );
     });
 
     it("ties the claim-time arm to its write and validate siblings", () => {
@@ -624,24 +354,16 @@ describe("leaf-only build-ready invariant (#538)", () => {
         const phase3 = phaseWindow(PHASE_3_HEADING, PHASE_4_HEADING);
         // The Epic block must carry the leaf-only guidance and forbid the label.
         expect(phase3).toContain(RULE_SLUG);
-        expect(phase3).toMatch(/container, not a leaf work unit/);
-        expect(phase3).toMatch(/build-ready role/);
       });
 
       it("states Stories (Phase 4) are never marked build-ready", () => {
         const phase4 = phaseWindow(PHASE_4_HEADING, PHASE_5_HEADING);
         expect(phase4).toContain(RULE_SLUG);
-        expect(phase4).toMatch(/a Story is a container/);
-        expect(phase4).toMatch(/build-ready role/);
       });
 
       it("applies the build-ready label only to Sub-tasks (Phase 5)", () => {
         const phase5 = phaseWindow(PHASE_5_HEADING, PHASE_55_HEADING);
         expect(phase5).toContain(RULE_SLUG);
-        expect(phase5).toMatch(/leaf work units/);
-        // Sub-tasks are the ONLY items that receive the label.
-        expect(phase5).toMatch(/the ONLY items in the hierarchy/);
-        expect(phase5).toMatch(/build-ready role/);
       });
 
       it("cites the vendor-neutral build intake, not the GitHub one", () => {

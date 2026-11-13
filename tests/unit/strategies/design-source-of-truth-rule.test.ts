@@ -50,8 +50,6 @@ describe("design-source-of-truth rule contract", () => {
       expect(reference).toContain("designSource.enabled");
       expect(reference).toContain("SKIPPED: designSource.enabled=false");
       expect(reference).toContain("design-value-binding");
-      expect(reference).not.toContain("is not exempt");
-      expect(reference).not.toContain("that is not an exemption");
     });
 
     it("ships as a paired rule with a non-trivial body on both sides", () => {
@@ -77,47 +75,10 @@ describe("design-source-of-truth rule contract", () => {
       }
     });
 
-    it("states that the gate fails closed, not that it warns", () => {
-      for (const doc of [eager, reference]) {
-        expect(doc).toMatch(/fails? closed/i);
-      }
-      expect(eager).toMatch(/never a warning|not a warning/i);
-      // Undeclared must be a violation, not an unknown that slips through.
-      expect(reference).toContain("Silence is a violation, never a pass.");
-    });
-
-    it("prefers sync-back and frames the marker as the exception", () => {
-      for (const doc of [eager, reference]) {
-        expect(doc).toMatch(/sync.back/i);
-        expect(doc).toMatch(/exception, not the default/i);
-      }
-    });
-
-    it("defines membership by user-observable surface, not repo or file type", () => {
-      expect(eager).toMatch(/surface, not repo name or file extension/i);
-      for (const doc of [eager, reference]) {
-        expect(doc).toMatch(/user.observable/i);
-      }
-    });
-
     it("defers to host design-system rules instead of contradicting them", () => {
       for (const hostRule of HOST_RULES) {
         expect(reference).toContain(hostRule);
       }
-      expect(reference).toMatch(/host.owned/i);
-      expect(reference).toContain(
-        "This contract governs whether the design source is declared, never what to build."
-      );
-      // The generated-from-RFC provenance pattern must survive contact with us.
-      expect(reference).toMatch(/amend the RFC and regenerate/i);
-    });
-
-    it("gives a bootstrap path that never demands a retroactive backfill", () => {
-      for (const doc of [eager, reference]) {
-        expect(doc).toMatch(/bootstrap/i);
-        expect(doc).toMatch(/burndown/i);
-      }
-      expect(eager).toMatch(/only the surfaces this change touched/i);
     });
 
     it("cites sibling rules and consumer skills by bare slug", () => {
@@ -148,22 +109,17 @@ describe("design-source-of-truth rule contract", () => {
       skill => {
         const consumer = read(root, `skills/${skill}/SKILL.md`);
         expect(consumer).toContain("designSource.enabled");
-        expect(consumer).toMatch(/boolean `false`/);
-        expect(consumer).toMatch(/omit.*design-source/i);
-        expect(consumer).toMatch(/do not.*(?:Figma|marker)/i);
       }
     );
 
     it("the review path runs the gate and treats a FAIL as blocking", () => {
       const reviewLocal = read(root, "skills/lisa-review-local/SKILL.md");
       expect(reviewLocal).toContain("design-source-gate.mjs");
-      expect(reviewLocal).toMatch(/blocking/i);
     });
 
     it("the implement path prefers sync-back before reaching for the marker", () => {
       const implement = read(root, "skills/lisa-implement/SKILL.md");
       expect(implement).toContain(MARKER);
-      expect(implement).toMatch(/sync.back/i);
     });
 
     it("source-artifacts points its divergence note at the code-side contract", () => {

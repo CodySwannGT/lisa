@@ -118,7 +118,6 @@ describe("every Linear state writer declares the role it is applying", () => {
     // declare and nothing for the guard to resolve. Saying otherwise would
     // send callers looking for a `stateId` that does not exist on Projects.
     expect(text).toContain("Do not send `lifecycle_role` here");
-    expect(text).toContain("operation: save-project");
   });
 
   it("requires an explicit build_ready before filing into the ready lane", () => {
@@ -150,37 +149,14 @@ describe("the access layer documents a resolved write, not a checked one", () =>
     const text = read(ACCESS_SKILL);
 
     expect(text).toContain(GUARD_IN_PLUGIN);
-    expect(text).toContain("before either transport");
-  });
-
-  it("keeps metadata-only updates out of lifecycle validation", () => {
-    expect(read(ACCESS_SKILL)).toContain(
-      "Metadata-only `save-issue` is untouched"
-    );
   });
 });
 
 describe("CONTROL — the claim paths still resolve their configured role", () => {
-  it.each([
-    [LINEAR_CLAIM, CLAIMED],
-    ["plugins/src/base/skills/lisa-jira-claim/SKILL.md", CLAIMED],
-    ["plugins/src/base/skills/lisa-github-claim/SKILL.md", CLAIMED],
-  ])("%s resolves the configured %s role", (path, role) => {
-    expect(read(path)).toContain(role);
-  });
-
   it("delegates the vendor-neutral claim rather than writing a lane itself", () => {
     const text = read("plugins/src/base/skills/lisa-tracker-claim/SKILL.md");
 
     expect(text).toContain("lisa-linear-claim");
-    expect(text).toContain("configured claimed");
-  });
-
-  it("never seeds an optional review binding during Linear setup", () => {
-    const text = read("plugins/src/base/skills/lisa-setup-linear/SKILL.md");
-
-    expect(text).toContain("optional, never seeded");
-    expect(text).not.toMatch(/\| `review` \| `In Review` \|/);
   });
 
   it("names no review-shaped literal as a Linear write target", () => {

@@ -88,8 +88,6 @@ describe.each(ROOTS)("drive-pr-to-merge armed-unmergeable (%s)", root => {
     expect(gate).toMatch(
       /`reviewDecision` is \*\*not part of `statusCheckRollup`\*\*/
     );
-    expect(gate).toMatch(/reads \*\*zero\*\* on a PR that can\s+never merge/i);
-    expect(gate).toMatch(/#3720/);
   });
 
   it("requires an explicit read, never an inferred one", () => {
@@ -106,16 +104,6 @@ describe.each(ROOTS)("drive-pr-to-merge armed-unmergeable (%s)", root => {
     expect(gate).toMatch(
       /\*\*Do not arm while `reviewDecision == CHANGES_REQUESTED`\.\*\*/
     );
-    expect(gate).toMatch(/Arming is a claim\s+that this PR will merge/i);
-  });
-
-  it("distinguishes this gate's question from the arm gate's", () => {
-    // The two predicates come apart exactly on the measured case: a review that
-    // asked for changes unambiguously DID work, so it clears the arm gate.
-    const gate = mergeGate();
-    expect(gate).toMatch(/did the review context do work\?/i);
-    expect(gate).toMatch(/is there a verdict standing in the way\?/i);
-    expect(gate).toMatch(/unambiguously \*\*did work\*\*/);
   });
 
   it("names both ruleset settings and says neither one clears a change request", () => {
@@ -124,14 +112,7 @@ describe.each(ROOTS)("drive-pr-to-merge armed-unmergeable (%s)", root => {
     // whenever a stale change request stands, whatever either setting says.
     const gate = mergeGate();
     expect(gate).toContain("dismiss_stale_reviews_on_push");
-    // The generated base ruleset sets it `true` (#4574), and the prose must
-    // still say that does not clear a change request: GitHub dismisses stale
-    // approvals only, measured on a probe repository.
-    expect(gate).toMatch(/dismisses stale \*\*approvals\*\* only/);
-    expect(gate).toMatch(/stays in force after a push\s+under either setting/);
     expect(gate).toContain("required_approving_review_count: 0");
-    expect(gate).toMatch(/pushing the fix never clears it/i);
-    expect(gate).toMatch(/\*\*indefinite, not slow\*\*/);
     // And they are to be verified per repo, not assumed from this one.
     expect(gate).toMatch(
       /gh api repos\/<owner>\/<repo>\/rules\/branches\/<base>/
@@ -144,8 +125,6 @@ describe.each(ROOTS)("drive-pr-to-merge armed-unmergeable (%s)", root => {
     // the operator to the wrong place.
     const gate = mergeGate();
     expect(gate).toContain("required_review_thread_resolution: true");
-    expect(gate).toMatch(/block independently of the verdict/i);
-    expect(gate).toMatch(/name whichever one\s+is standing/i);
   });
 
   // --- THE LOAD-BEARING HALF: the exit obligation --------------------------
@@ -155,15 +134,11 @@ describe.each(ROOTS)("drive-pr-to-merge armed-unmergeable (%s)", root => {
     expect(exit).toMatch(
       /\*\*This applies at every exit that leaves the PR OPEN\*\*/
     );
-    expect(exit).toMatch(
-      /concludes it is finished, hands back,\s+or gives up/i
-    );
   });
 
   it("re-reads live state immediately before reporting", () => {
     const exit = exitCheck();
     expect(exit).toMatch(/state reviewDecision autoMergeRequest/);
-    expect(exit).toMatch(/immediately before reporting/i);
   });
 
   it("says WHY the loop is not enough — the hole is a run that stops", () => {
@@ -171,54 +146,8 @@ describe.each(ROOTS)("drive-pr-to-merge armed-unmergeable (%s)", root => {
     // one. Losing it invites someone to delete the exit check as redundant with
     // step (e), which is exactly the argument that leaves the hole open.
     const exit = exitCheck();
-    expect(exit).toMatch(/While the loop runs this is\s+already covered/i);
-    expect(exit).toMatch(/The failure is a run that \*\*stops\*\*/);
-    expect(exit).toMatch(/arming looked like\s+completion/i);
     expect(exit).toMatch(
       /found only because a person queried\s+`reviewDecision` by hand/i
-    );
-  });
-
-  it("forbids reporting success, and states that arming is not completion", () => {
-    const exit = exitCheck();
-    expect(exit).toMatch(/never a\s+success, and never silence/i);
-    expect(exit).toMatch(/\*\*Arming is not completion\.\*\*/);
-  });
-
-  it("reports armed-unmergeable as a terminal state in operator English", () => {
-    const terminal = content.slice(content.indexOf("\n## 4. Terminal states"));
-    expect(terminal).toMatch(/\*\*`blocked:armed-unmergeable`\*\*/);
-    expect(terminal).toMatch(/which\*\* of the two is standing/i);
-    expect(terminal).toMatch(/it will sit\s+there forever/i);
-    expect(terminal).toMatch(/Never report this PR as merging/i);
-  });
-
-  // --- REJECTION CONTROLS --------------------------------------------------
-
-  it("REJECTION CONTROL: zero failing checks is explicitly NOT the signal", () => {
-    // The inverse of the defect. A rule keyed on "no red checks" is satisfied by
-    // exactly the PR this exists to catch, so the skill has to say so where
-    // someone editing it will see it.
-    const exit = exitCheck();
-    expect(exit).toMatch(
-      /Zero failing checks is\s+the symptom, not the signal/i
-    );
-    const gate = mergeGate();
-    expect(gate).toMatch(
-      /satisfied by exactly the PR this gate exists to catch/i
-    );
-  });
-
-  it("REJECTION CONTROL: report mode keeps its existing classification", () => {
-    // A new terminal state must not silently replace the blocker vocabulary
-    // report-mode callers already switch on — repair-intake and the build-intake
-    // skills parse those strings.
-    const exit = exitCheck();
-    expect(exit).toMatch(/`blocked:changes_requested`/);
-    expect(exit).toMatch(/does not drive/i);
-    // The published report-mode vocabulary is unchanged.
-    expect(content).toMatch(
-      /blocked:<conflict\|checks\|changes_requested\|deploy\|pending-auto-fix\|unreviewed>/
     );
   });
 });

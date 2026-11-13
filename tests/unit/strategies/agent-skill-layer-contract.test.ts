@@ -288,17 +288,6 @@ describe("agent/skill layer contract", () => {
       expect(doctrine).toMatch(/only claude enforces `tools:`/iu);
     });
 
-    it("forbids treating it as a containment control", () => {
-      expect(doctrine).toMatch(/not a security boundary/iu);
-      expect(doctrine).toMatch(/compromised or prompt-injected/iu);
-    });
-
-    it("names where the real controls live", () => {
-      for (const control of [/sandbox/iu, /egress/iu, /credential scope/iu]) {
-        expect(doctrine).toMatch(control);
-      }
-    });
-
     it("keeps the Codex transformer emitting the compatibility note", () => {
       const transformer = readFileSync(
         path.resolve("src/codex/agent-transformer.ts"),

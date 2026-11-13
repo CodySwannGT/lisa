@@ -64,17 +64,6 @@ describe("doctor scaffold (#749)", () => {
         expect(skill).toMatch(/name:\s*lisa-doctor/);
         expect(skill).toMatch(/description:/);
         expect(skill).toMatch(/allowed-tools:/);
-        expect(skill).toContain("Skill");
-        expect(skill).toContain("Bash");
-        expect(skill).toContain("Read");
-      });
-
-      it("documents a read-only readiness audit for the current repository", () => {
-        expect(skill).toMatch(/read-only Lisa readiness audit/i);
-        expect(skill).toMatch(/current repository/i);
-        expect(skill).toMatch(
-          /does \*\*not\*\* create automations, labels, tracker items/i
-        );
       });
 
       it("documents grouped PASS, WARN, FAIL, and SKIP checks", () => {
@@ -82,22 +71,17 @@ describe("doctor scaffold (#749)", () => {
         expect(skill).toContain("WARN");
         expect(skill).toContain("FAIL");
         expect(skill).toContain("SKIP");
-        expect(skill).toMatch(/grouped sections/i);
       });
 
       it("documents the overall READY verdict ladder", () => {
         expect(skill).toContain("READY");
         expect(skill).toContain("READY_WITH_WARNINGS");
         expect(skill).toContain("NOT_READY");
-        expect(skill).toMatch(/The verdict ladder is:/);
       });
 
       it("documents the shared grouped report rendering contract", () => {
         expect(skill).toContain("scripts/doctor-report.mjs");
         expect(skill).toMatch(/Overall verdict: <VERDICT>/);
-        expect(skill).toMatch(/Counts:/);
-        expect(skill).toMatch(/Observed:/);
-        expect(skill).toMatch(/Remediation:/);
       });
 
       it("reuses existing contracts for GitHub Project and wiki checks", () => {

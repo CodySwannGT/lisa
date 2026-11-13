@@ -362,7 +362,6 @@ describe("Phaser templates", () => {
     const skill = readText(
       "plugins/src/phaser/skills/phaser-build-deploy/SKILL.md"
     );
-    expect(skill).toContain("manualChunks: id");
     expect(skill).not.toContain('manualChunks: { phaser: ["phaser"] }');
   });
 

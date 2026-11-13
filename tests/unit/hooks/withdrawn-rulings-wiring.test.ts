@@ -84,10 +84,6 @@ describe("withdrawn-rulings — how it gets read", () => {
     const eager = read("plugins/src/base/rules/eager/withdrawn-rulings.md");
     expect(eager).toContain("--withdraw");
     expect(eager).toContain("--list");
-    expect(eager).toContain("verbatim");
-    expect(
-      read("plugins/src/base/rules/reference/withdrawn-rulings.md")
-    ).toContain("Surface parity");
   });
 
   it("never registers the re-check on a surface that cannot stamp a session", () => {

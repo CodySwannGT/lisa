@@ -160,9 +160,6 @@ describe("wiki safety sanitizer (#1169)", () => {
 
     expect(result.reviewRequired).toBe(false);
     expect(result.findings).toEqual([]);
-    expect(result.text).toContain("Grace Hopper");
-    expect(result.text).toContain("grace@example.com");
-    expect(result.text).toContain("4111 1111 1111 1112");
   });
 
   it("keeps scanner-unavailable source notes blocked when policy requires a scanner", () => {

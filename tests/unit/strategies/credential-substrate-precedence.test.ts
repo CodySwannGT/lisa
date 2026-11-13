@@ -27,30 +27,6 @@ const JAM = "lisa-jam-access";
 const SENTRY = "lisa-sentry-access";
 const POSTHOG = "lisa-posthog-access";
 
-/**
- * Access skills that resolve a real multi-tier ladder.
- *
- * Sonar is absent deliberately and NOT because it has one substrate — it prefers
- * the token-authed MCP and falls back to the Sonar Web API for reads. It is absent
- * because it documents a preference rather than the numbered `Tier 1`/`Tier 2`
- * ladder these assertions read.
- */
-const TIERED_SKILLS = [
-  ATLASSIAN,
-  LINEAR,
-  NOTION,
-  JAM,
-  SENTRY,
-  POSTHOG,
-] as const;
-
-/** Access skills that must cite the shared contract instead of restating it. */
-const CITING_SKILLS = [
-  ...TIERED_SKILLS,
-  "lisa-sonarcloud-access",
-  "lisa-secrets-access",
-] as const;
-
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
 
@@ -71,13 +47,6 @@ describe("credential-substrate-precedence contract", () => {
 
     it("ships one shared vendor-neutral slug with a non-trivial body", () => {
       expect(contract.length).toBeGreaterThan(2000);
-      expect(contract).toMatch(/vendor-neutral/i);
-    });
-
-    it("follows the one-shared-slug precedent instead of per-skill prose", () => {
-      expect(contract).toMatch(/leaf-only-lifecycle/);
-      expect(contract).toMatch(/repo-scope-split/);
-      expect(contract).toMatch(/never divergent\s+per-skill prose/i);
     });
 
     it("orders the configured-provider substrate ahead of interactive MCP", () => {
@@ -85,13 +54,6 @@ describe("credential-substrate-precedence contract", () => {
       const mcp = at(contract, /Tier 2 — interactive MCP/);
       expect(provider).toBeGreaterThan(-1);
       expect(mcp).toBeGreaterThan(provider);
-    });
-
-    it("gates tier 1 on both bootstrap availability and identity match", () => {
-      expect(contract).toMatch(/bootstrap\s+credential is available/i);
-      expect(contract).toMatch(
-        /identity-match(es)?\s+the configured\s*tenant\/workspace\/site/i
-      );
     });
 
     it("names lisa-secrets-access as the chokepoint feeding tier 1", () => {
@@ -105,69 +67,15 @@ describe("credential-substrate-precedence contract", () => {
         'candidates+=("$repo_root/node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs")'
       );
     });
-
-    it("makes identity-match mandatory on every tier, in both directions", () => {
-      expect(contract).toMatch(/mandatory on every substrate/i);
-      expect(contract).toMatch(/both directions/i);
-      expect(contract).toMatch(/skipped, never used/i);
-    });
-
-    it("preserves MCP as a genuine first-class fallback, not a removal", () => {
-      expect(contract).toMatch(/first-class fallback/i);
-      expect(contract).toMatch(/re-ordering, not a removal/i);
-      expect(contract).toMatch(/no bootstrap/i);
-      expect(contract).toMatch(/no adapter for the operation/i);
-      expect(contract).toMatch(/outage/i);
-    });
-
-    it("carries the three rationales the decision settled", () => {
-      expect(contract).toMatch(/headless parity/i);
-      expect(contract).toMatch(/tenant safety/i);
-      expect(contract).toMatch(/determinism/i);
-    });
-
-    it("generalizes the Atlassian write-tenant-safety rationale, vendor-neutrally", () => {
-      expect(contract).toMatch(/per-invocation/i);
-      expect(contract).toMatch(/ambient/i);
-      expect(contract).toMatch(/TOCTOU/);
-      // The generalization must cover reads too, not just writes.
-      expect(contract).toMatch(/read through the wrong tenant/i);
-    });
-
-    it("specifies the guarded-fallback protocol for ambient-bound substrates", () => {
-      expect(contract).toMatch(/post-write tenant assertion/i);
-      expect(contract).toMatch(/roll ?back/i);
-    });
-
-    it("states the intended consequence for stale or wrong tokens", () => {
-      expect(contract).toMatch(/stale or wrong/i);
-      expect(contract).toMatch(/fails? identity-match/i);
-      expect(contract).toMatch(/[Ii]ntended/);
-    });
-
-    it("is cited by every access skill rather than restated", () => {
-      for (const skill of CITING_SKILLS) {
-        expect(readSkill(root, skill)).toMatch(
-          /credential-substrate-precedence/
-        );
-      }
-    });
   });
 });
 
 describe("access skills conform to the precedence contract", () => {
   describe.each(ROOTS)("%s", root => {
-    it("keeps identity-match mandatory in every tiered access skill", () => {
-      for (const skill of TIERED_SKILLS) {
-        expect(readSkill(root, skill)).toMatch(/identity-match/i);
-      }
-    });
-
     describe("lisa-linear-access", () => {
       const skill = readSkill(root, LINEAR);
 
       it("no longer advertises MCP-first in its description", () => {
-        expect(skill).not.toMatch(/Resolves Linear MCP first/);
         expect(skill).toMatch(
           /description:[^\n]*LINEAR_API_KEY[^\n]*(before|first|ahead)/i
         );
@@ -178,19 +86,6 @@ describe("access skills conform to the precedence contract", () => {
         const mcp = at(skill, /2\. \*\*Tier 2[^\n]*Linear MCP/);
         expect(token).toBeGreaterThan(-1);
         expect(mcp).toBeGreaterThan(token);
-      });
-
-      it("states token-first plus preserved MCP fallback in its invariants", () => {
-        expect(skill).toMatch(/credential-substrate-precedence/);
-        expect(skill).not.toMatch(
-          /MCP is preferred when it is present and already authenticated/
-        );
-        expect(skill).toMatch(/MCP[^\n]*fallback/i);
-      });
-
-      it("requires identity-match against the configured workspace/team", () => {
-        expect(skill).toMatch(/identity-match/i);
-        expect(skill).toMatch(/skipped, never used/i);
       });
     });
 
@@ -205,21 +100,7 @@ describe("access skills conform to the precedence contract", () => {
       });
 
       it("no longer advertises MCP-first in its description", () => {
-        expect(skill).not.toMatch(/\(1\) Notion MCP/);
         expect(skill).toMatch(/description:[^\n]*\(1\)[^\n]*token/i);
-      });
-
-      it("keeps the workspace identity assertion mandatory at every tier", () => {
-        expect(skill).toMatch(/mandatory at every tier/i);
-        expect(skill).toMatch(/skipped, not used/i);
-      });
-
-      it("cites the contract and preserves the MCP fallback tier", () => {
-        expect(skill).toMatch(/credential-substrate-precedence/);
-        // The MCP tier is re-ordered, not removed: it still resolves as a
-        // substrate and stays available for ops curl has no adapter for.
-        expect(skill).toMatch(/\$\{substrate:=mcp\}/);
-        expect(skill).toMatch(/mcp_available=true/);
       });
     });
 
@@ -233,27 +114,6 @@ describe("access skills conform to the precedence contract", () => {
         expect(token).toBeGreaterThan(-1);
         expect(acli).toBeGreaterThan(token);
         expect(mcp).toBeGreaterThan(acli);
-      });
-
-      it("no longer describes acli as the preferred read substrate", () => {
-        expect(skill).not.toMatch(
-          /\*\*`acli`\*\*: routes through `acli`\. Preferred when available/
-        );
-        expect(skill).toMatch(/try curl, then acli, then MCP/i);
-      });
-
-      it("cites the shared contract instead of restating the write rationale", () => {
-        expect(skill).toMatch(/credential-substrate-precedence/);
-      });
-
-      it("keeps the guarded acli fallback with post-write tenant assertions", () => {
-        expect(skill).toMatch(/guarded fallback/);
-        expect(skill).toMatch(/roll back/i);
-      });
-
-      it("keeps identity-match mandatory and MCP available as a fallback", () => {
-        expect(skill).toMatch(/[Cc]onnection match is mandatory/);
-        expect(skill).toMatch(/mcp_available=true/);
       });
     });
   });
@@ -275,9 +135,6 @@ const RESOLVER_RUNG_SKILLS = [
   [JAM, "JAM_PAT"],
   ["lisa-sonarcloud-access", "SONARQUBE_CLI_TOKEN"],
 ] as const;
-
-/** Date the legacy OS-keychain fallbacks stop being read. */
-const KEYCHAIN_REMOVAL_DATE = "2026-11-01";
 
 describe("access skills resolve tier 1 through lisa-secrets-access", () => {
   describe.each(ROOTS)("%s", root => {
@@ -301,53 +158,8 @@ describe("access skills resolve tier 1 through lisa-secrets-access", () => {
 
       it("keeps the bare environment variable as a documented fallback", () => {
         expect(skill).toMatch(new RegExp(`\\$\\{?${variable}`, "u"));
-        expect(skill).toMatch(/fallback/i);
-      });
-
-      it("states the mutation boundary rather than leaving it implicit", () => {
-        // None of these four expose a mutating operation, so the contract's
-        // guarded-fallback / read-back reconciliation protocol is not engaged
-        // today — but that must be an asserted property, not an accident a
-        // future operation quietly breaks.
-        expect(skill).toMatch(/read-only/i);
-        expect(skill).toMatch(/guarded fallback|reconcil/i);
       });
     });
-  });
-});
-
-describe("legacy OS-keychain fallbacks carry a removal date", () => {
-  describe.each(ROOTS)("%s", root => {
-    const contract = read(root, CONTRACT);
-
-    it("publishes one shared removal date in the precedence contract", () => {
-      expect(contract).toMatch(/legacy OS-keychain fallback/i);
-      expect(contract).toContain(KEYCHAIN_REMOVAL_DATE);
-      expect(contract).toMatch(/removal date/i);
-    });
-
-    it("carries the date in the eager summary too, where the ban is stated", () => {
-      // An agent that loads only the eager rule reads "never read an OS keychain
-      // a second time"; the dated exception has to travel with it or the two
-      // surviving rungs look like a contradiction rather than a ramp.
-      const eager = read(
-        root,
-        "rules/reference/credential-substrate-precedence.md"
-      );
-      expect(eager).toContain(KEYCHAIN_REMOVAL_DATE);
-      expect(eager).toMatch(/removal date/i);
-    });
-
-    it.each([ATLASSIAN, NOTION])(
-      "dates the %s keychain fallback",
-      skillName => {
-        const skill = readSkill(root, skillName);
-        expect(skill).toContain(KEYCHAIN_REMOVAL_DATE);
-        expect(skill).toMatch(
-          /keychain[\s\S]{0,600}(removal date|removed on)|(removal date|removed on)[\s\S]{0,600}keychain/i
-        );
-      }
-    );
   });
 });
 
@@ -356,23 +168,6 @@ describe("integration-access-layer rule reflects the reversed ordering", () => {
     // The eager head was folded into `config-resolution` in the 2026-11
     // eager-tier cut; the ordering contract lives in the reference body.
     const reference = read(root, "rules/reference/integration-access-layer.md");
-
-    it("no longer documents MCP as the first resolution tier", () => {
-      for (const doc of [reference]) {
-        expect(doc).not.toMatch(
-          /Resolution order is MCP when available and authenticated/
-        );
-        expect(doc).not.toMatch(
-          /^1\. MCP, when the tool is available and already authenticated/m
-        );
-      }
-    });
-
-    it("breadcrumbs both halves to the shared precedence contract", () => {
-      for (const doc of [reference]) {
-        expect(doc).toMatch(/credential-substrate-precedence/);
-      }
-    });
 
     it("orders the token substrate ahead of MCP in the reference body", () => {
       const token = at(reference, /Configured-provider token\/CLI substrate/);

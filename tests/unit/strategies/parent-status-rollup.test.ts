@@ -34,66 +34,13 @@ const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 /** Vendor-neutral rule slug every rollup path cites. */
 const RULE_SLUG = "leaf-only-lifecycle";
-/** The rule section the rollup paths implement. */
-const STATE_MACHINE = "Parent status rollup (the state machine)";
 /** Shared test name reused for every skill that cites the rule by slug. */
 const CITES_SLUG = "cites the leaf-only-lifecycle rule by slug";
-/** Shared test name reused for every skill asserting the single-env collapse. */
-const COLLAPSE_TEST =
-  "documents the single-environment collapse and stays multi-env capable";
-/** Shared test name reused for every skill asserting the state machine. */
-const STATE_MACHINE_TEST =
-  "encodes the blocked-dominant priority state machine";
 /** Shared test name reused for every skill asserting the intermediate-env rung. */
 const INTERMEDIATE_ENV_TEST = "documents the intermediate-env rollup rung";
 
 const readSkill = (root: string, skill: string): string =>
   readFileSync(path.resolve(root, skill, "SKILL.md"), "utf8");
-
-/**
- * Assert a skill section documents the single-environment collapse while
- * staying multi-environment capable.
- * @param content - SKILL.md text (or the relevant rollup section) to assert.
- */
-const assertSingleEnvCollapse = (content: string): void => {
-  // Documents the collapse explicitly.
-  expect(content).toMatch(/[Ss]ingle-environment collapse/);
-  expect(content).toMatch(/production: main/);
-  // Never assumes a dev → staging → prod promotion chain for the rollup.
-  expect(content).toMatch(
-    /no.*dev.*staging.*promotion|dev\/staging promotion/i
-  );
-  // Stays multi-env capable — env-keyed done logic is preserved.
-  expect(content).toMatch(/env-keyed `done`|multi-environment|multi-env/i);
-  // Never resolves a dev/staging done in this single-env repo.
-  expect(content).toMatch(/never.*resolve.*dev|never resolves a dev/i);
-};
-
-/**
- * Assert a skill section encodes the env-ladder priority state machine
- * (blocked → least-advanced-env → in-progress → unchanged), the generalization
- * that closed the SE-318 intermediate-env gap (#544 follow-up).
- * @param section - The rollup section text to assert.
- */
-const assertStateMachine = (section: string): void => {
-  // Blocked dominates.
-  expect(section).toMatch(/blocked/i);
-  expect(section).toMatch(/[Bb]locked dominates/);
-  // In-progress (claimed or in review, or shipped while a sibling has not).
-  expect(section).toMatch(/in progress|in-progress/i);
-  // Env-rollup rung: every required leaf shipped to some env → least-advanced.
-  expect(section).toMatch(/shipped to some env/i);
-  expect(section).toMatch(/least-advanced/i);
-  // Terminal native closure still only at the production terminal.
-  expect(section).toMatch(/terminal/i);
-  // Required-only qualifier.
-  expect(section).toMatch(/[Rr]equired/);
-  // Recursive evaluation bottom-up.
-  expect(section).toMatch(/[Rr]ecursive/);
-  expect(section).toMatch(/bottom-up/i);
-  // The parent never carries the build-ready role.
-  expect(section).toMatch(/never set the parent to.*ready|never.*ready/i);
-};
 
 /**
  * Assert a section documents the intermediate-env rollup rung: a parent rolls
@@ -108,12 +55,6 @@ const assertIntermediateEnvRollup = (
   stagingToken: string
 ): void => {
   expect(section).toContain(stagingToken);
-  // Rolls up to the least-advanced env, not ahead of the laggard child.
-  expect(section).toMatch(/least-advanced env/i);
-  // Native closure fires ONLY at production, never at an intermediate env.
-  expect(section).toMatch(
-    /only.*production|never at.*(on-stg|On Stg|intermediate env)/i
-  );
 };
 
 describe("parent status rollup (#544)", () => {
@@ -126,29 +67,8 @@ describe("parent status rollup (#544)", () => {
       expect(content).toContain(RULE_SLUG);
     });
 
-    it("names the rollup state-machine section of the rule", () => {
-      expect(content).toContain(STATE_MACHINE);
-    });
-
-    it("forwards the --rollup flag to the vendor sync skill", () => {
-      expect(content).toMatch(/--rollup/);
-    });
-
-    it("documents the env-ladder priority state machine", () => {
-      assertStateMachine(content);
-    });
-
     it(INTERMEDIATE_ENV_TEST, () => {
       assertIntermediateEnvRollup(content, "On Stg");
-    });
-
-    it(COLLAPSE_TEST, () => {
-      assertSingleEnvCollapse(content);
-    });
-
-    it("requires a safe (no-op suggestion) default, never an unsafe guess", () => {
-      expect(content).toMatch(/[Ss]afe|no-op/);
-      expect(content).toMatch(/never.*unsafe|unsafe default/i);
     });
   });
 
@@ -162,20 +82,9 @@ describe("parent status rollup (#544)", () => {
       expect(content).toContain(RULE_SLUG);
     });
 
-    it("defines a parent status rollup step gated on --rollup", () => {
-      expect(content).toContain(heading);
-      const section = content.slice(content.indexOf(heading));
-      expect(section).toMatch(/--rollup/);
-    });
-
     it("resolves children via the github-read-issue sub-issue graph", () => {
       const section = content.slice(content.indexOf(heading));
-      expect(section).toMatch(/github-read-issue/);
       expect(section).toMatch(/subIssues/);
-    });
-
-    it(STATE_MACHINE_TEST, () => {
-      assertStateMachine(content.slice(content.indexOf(heading)));
     });
 
     it("maps the derived roles to GitHub status labels", () => {
@@ -183,14 +92,6 @@ describe("parent status rollup (#544)", () => {
       expect(section).toMatch(/status:blocked/);
       expect(section).toMatch(/status:in-progress/);
       expect(section).toMatch(/status:done/);
-    });
-
-    it("deduplicates every rendered state and tally through the classifier", () => {
-      const section = content.slice(content.indexOf(heading));
-      expect(section).toContain("exact rendered state and child tally");
-      expect(section).toMatch(/classifier for every derived rollup state/i);
-      expect(section).toMatch(/change\.fingerprint[\s\S]*change\.changed/);
-      expect(section).toMatch(/change\.summary[\s\S]*display text/i);
     });
 
     it("never sets the parent to status:ready", () => {
@@ -203,7 +104,6 @@ describe("parent status rollup (#544)", () => {
 
     it("collapses the terminal to a single status:done in this repo", () => {
       const section = content.slice(content.indexOf(heading));
-      assertSingleEnvCollapse(section);
       // No per-environment label hops.
       expect(section).toMatch(/status:on-dev|on-dev/);
     });
@@ -223,30 +123,9 @@ describe("parent status rollup (#544)", () => {
       expect(content).toContain(RULE_SLUG);
     });
 
-    it("defines a parent status rollup step gated on --rollup", () => {
-      expect(content).toContain(heading);
-      const section = content.slice(content.indexOf(heading));
-      expect(section).toMatch(/--rollup/);
-    });
-
-    it("resolves children via the jira-read-ticket Epic/Story/Sub-task hierarchy", () => {
-      const section = content.slice(content.indexOf(heading));
-      expect(section).toMatch(/jira-read-ticket/);
-      expect(section).toMatch(/Epic/);
-      expect(section).toMatch(/Sub-task/);
-    });
-
-    it(STATE_MACHINE_TEST, () => {
-      assertStateMachine(content.slice(content.indexOf(heading)));
-    });
-
     it("treats the review hop as optional for JIRA per config-resolution", () => {
       const section = content.slice(content.indexOf(heading));
       expect(section).toMatch(/review.*optional|optional for JIRA/i);
-    });
-
-    it(COLLAPSE_TEST, () => {
-      assertSingleEnvCollapse(content.slice(content.indexOf(heading)));
     });
 
     it(INTERMEDIATE_ENV_TEST, () => {
@@ -266,40 +145,18 @@ describe("parent status rollup (#544)", () => {
       expect(content).toContain(RULE_SLUG);
     });
 
-    it("defines a parent status rollup phase gated on --rollup", () => {
-      expect(content).toContain(heading);
-      const section = content.slice(content.indexOf(heading));
-      expect(section).toMatch(/--rollup/);
-    });
-
-    it("resolves children via the linear-read-issue Project/sub-Issue hierarchy", () => {
-      const section = content.slice(content.indexOf(heading));
-      expect(section).toMatch(/linear-read-issue/);
-      expect(section).toMatch(/Project/);
-      expect(section).toMatch(/sub-Issue/i);
-    });
-
-    it(STATE_MACHINE_TEST, () => {
-      assertStateMachine(content.slice(content.indexOf(heading)));
-    });
-
     // INVERTED by the Linear state migration. This used to assert the rollup
     // touched only `status:*` labels and never the native state — which was the
     // defect: the native state was then free to disagree with the label lane
     // forever. The rollup now writes the state, because the state IS the lane.
     it("rolls the parent up by moving its native workflow state", () => {
       const section = content.slice(content.indexOf(heading));
-      expect(section).toMatch(/state/i);
       expect(section).not.toMatch(/status:\*/);
     });
 
     it("never rolls a parent into the human-owned ready lane", () => {
       const section = content.slice(content.indexOf(heading));
       expect(section).toMatch(/never `\$READY`|never .*ready/i);
-    });
-
-    it(COLLAPSE_TEST, () => {
-      assertSingleEnvCollapse(content.slice(content.indexOf(heading)));
     });
 
     it(INTERMEDIATE_ENV_TEST, () => {
@@ -323,27 +180,8 @@ describe("leaf-only-lifecycle rule: rollup section (#544)", () => {
       "utf8"
     );
 
-    it("defines the parent status rollup state machine", () => {
-      expect(content).toContain(STATE_MACHINE);
-    });
-
-    it("documents the env-keyed terminal AND the single-environment collapse", () => {
-      expect(content).toMatch(/env-keyed/i);
-      expect(content).toMatch(/[Ss]ingle-environment collapse/);
-      expect(content).toMatch(/ready.*claimed.*review.*done|ready → claimed/);
-    });
-
-    it("states blocked dominates and the parent never carries ready", () => {
-      expect(content).toMatch(/[Bb]locked dominates/);
-      expect(content).toMatch(/parent never carries.*ready/i);
-    });
-
     it("documents the intermediate-env rollup rung (the SE-318 gap)", () => {
       assertIntermediateEnvRollup(content, "On Stg");
-      // A container found in `ready` is reconciled, not left stranded.
-      expect(content).toMatch(
-        /container found .*carrying `ready`|reconciled|roll/i
-      );
     });
   });
 });

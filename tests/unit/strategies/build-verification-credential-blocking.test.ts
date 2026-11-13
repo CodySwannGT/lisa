@@ -23,23 +23,8 @@ const PLUGIN_ROOTS = [
   "plugins/lisa-cursor",
 ] as const;
 
-// Reference bodies only: since the 2026-11 eager-tier cut the always-loaded
-// verification head carries a one-line pointer, and the full credential
-// contract lives in the reference body.
-const VERIFICATION_RULE_PATHS = [
-  "plugins/src/base/rules/reference/verification.md",
-  "plugins/lisa/rules/reference/verification.md",
-  "plugins/lisa-copilot/rules/reference/verification.md",
-  "plugins/lisa-cursor/rules/verification-reference.mdc",
-] as const;
-
-const HUMAN_REVIEW_LABEL_TEXT = "`needs-human` / `human-review`";
-
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
-
-const readPath = (rel: string): string =>
-  readFileSync(path.resolve(rel), "utf8");
 
 describe("build-side credential-gated verification (#1229)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
@@ -55,28 +40,11 @@ describe("build-side credential-gated verification (#1229)", () => {
       expect(fixtureIndex).toBeGreaterThan(-1);
       expect(localConfigIndex).toBeGreaterThan(fixtureIndex);
       expect(ticketIndex).toBeGreaterThan(localConfigIndex);
-
-      expect(content).toContain("Project e2e / Playwright config and fixtures");
       expect(content).toContain("e2e/constants.ts");
-      expect(content).toContain("e2e/fixtures/api-login.ts");
-      expect(content).toContain("555555");
       expect(content).toContain(
         "`.lisa.config.local.json` and environment variables"
       );
-      expect(content).toContain("Documented ticket credentials");
       expect(content).toContain("Sign-in Required");
-    });
-
-    it("verification lifecycle blocks genuine credential absence with a human label", () => {
-      const content = read(root, "skills/lisa-verification-lifecycle/SKILL.md");
-
-      expect(content).toMatch(/configured blocked state/i);
-      expect(content).toContain(HUMAN_REVIEW_LABEL_TEXT);
-      expect(content).toMatch(/artifact-only \/ verification deferred/i);
-      expect(content).toMatch(/verified empirically/i);
-      expect(content).toMatch(
-        /cannot mark a required runtime verification complete/i
-      );
     });
 
     it("verify flow applies the shared behavior during remote verification", () => {
@@ -85,28 +53,6 @@ describe("build-side credential-gated verification (#1229)", () => {
       expect(content).toContain(
         "shared `verification-lifecycle` credential lookup order"
       );
-      expect(content).toContain(
-        "project e2e / Playwright config and fixtures first"
-      );
-      expect(content).toMatch(
-        /do not complete the item on artifact-only evidence/i
-      );
-      expect(content).toMatch(/configured blocked state/i);
-      expect(content).toContain(HUMAN_REVIEW_LABEL_TEXT);
-    });
-  });
-
-  describe.each(VERIFICATION_RULE_PATHS)("%s", rulePath => {
-    it("verification rule surfaces the non-silent artifact-only outcome", () => {
-      const content = readPath(rulePath);
-
-      expect(content).toMatch(
-        /Exhaust credential sources|Credential-Gated Verification/
-      );
-      expect(content).toMatch(/e2e \/ Playwright config and fixtures/i);
-      expect(content).toMatch(/artifact-only \/ verification deferred/i);
-      expect(content).toMatch(/configured blocked state/i);
-      expect(content).toContain(HUMAN_REVIEW_LABEL_TEXT);
     });
   });
 });

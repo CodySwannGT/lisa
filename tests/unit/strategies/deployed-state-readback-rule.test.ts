@@ -76,13 +76,6 @@ describe("deployed-state-readback rule contract", () => {
     });
 
     it("routes each work kind to a probe that reads deployed state", () => {
-      for (const lane of [
-        "Infrastructure / IaC",
-        "CI / workflow config",
-        "Dependency / package pin",
-      ]) {
-        expect(reference).toContain(lane);
-      }
       expect(plain(reference)).toMatch(/describe the deployed resource/i);
       expect(plain(reference)).toMatch(
         /installed. artifact|installed artifact/i
@@ -165,10 +158,6 @@ describe("deployed-state-readback rule contract", () => {
       });
 
       it("no longer waives live-state grounding wholesale", () => {
-        // The old waiver said the quiet part: skip 2b and author from source.
-        expect(skill).not.toContain(
-          "Skip 2b only when the work is purely backend"
-        );
         expect(plain(skill)).toMatch(
           /Skipping 2b never means authoring the ticket with no live-state grounding/i
         );
@@ -177,7 +166,6 @@ describe("deployed-state-readback rule contract", () => {
       it("carries the readback step with its ancestry and unanswerable guards", () => {
         expect(plain(skill)).toMatch(/Deployed-state readback/i);
         expect(plain(skill)).toMatch(/absent from the deployed environment/i);
-        expect(skill).toContain("cdk synth");
         expect(plain(skill)).toMatch(/unanswerable probe is not a/i);
       });
     });

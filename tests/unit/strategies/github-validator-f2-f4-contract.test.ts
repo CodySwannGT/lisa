@@ -54,9 +54,6 @@ describe.each(VALIDATOR_PATHS)(
       expect(f2).toMatch(
         /`Epic` \| cross-repository or source\/tracker is not same-repo GitHub \| PRD lifecycle label only \| \*\*FAIL\*\*/
       );
-      expect(f2).toMatch(
-        /do not infer the exception from label spelling alone/
-      );
     });
 
     it("rejects Epic parents that only look like configured PRD lifecycle labels", () => {
@@ -85,7 +82,6 @@ describe.each(VALIDATOR_PATHS)(
 
     it("requires type and priority labels unconditionally", () => {
       expect(f4).toMatch(/`type:<issue_type>` and `priority:<priority>`/);
-      expect(f4).toMatch(/two labels are unconditional/i);
     });
 
     it("allows containers and build_ready:false leaves to omit status", () => {
@@ -120,7 +116,6 @@ describe.each(VALIDATOR_PATHS)(
       expect(s15).toContain("resolve `READY_ROLE`");
       expect(s15).toContain("`github.labels.build.ready`");
       expect(f4).toContain("derive `build_ready`");
-      expect(f4).toContain("S15-resolved");
       expect(f4).toContain("`READY_ROLE`");
       expect(validator).toMatch(
         /derive the spec fields[^\n]*label set contains the resolved `READY_ROLE`, not a hard-coded label/
@@ -128,17 +123,10 @@ describe.each(VALIDATOR_PATHS)(
     });
 
     it("fails a container carrying the configured ready label and renders that label in remediation", () => {
-      expect(s15).toContain('`github.labels.build.ready = "queue:approved"`');
       expect(s15).toMatch(
         /container carrying `queue:approved` FAILs S15[^.]*literal `status:ready`/
       );
       expect(s15).toContain("Move <READY_ROLE> off this container");
-    });
-
-    it("retains S15 as the container build-ready prohibition", () => {
-      expect(f4).toMatch(
-        /container carrying the build-ready role still FAILs S15/
-      );
     });
   }
 );

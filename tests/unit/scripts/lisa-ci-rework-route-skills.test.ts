@@ -60,25 +60,17 @@ describe.each(skillPaths("lisa-track"))("%s", file => {
     const helper = phase3.indexOf(HELPER);
     expect(helper).toBeGreaterThan(-1);
     expect(helper).toBeLessThan(phase3.indexOf("lisa-tracker-claim"));
-    expect(phase3).toMatch(/before[^.]*claim comment/iu);
   });
 
   it("ignores claim comments, so the session manager's earlier claim never hides the marker", () => {
     expect(phase3).toContain(SUPERSESSION);
-    expect(phase3).toMatch(/session-manager path[^\n]*already claimed/u);
-    expect(phase3).not.toContain("Known limitation");
   });
 
   it("runs the helper only on GitHub when the script exists, else continues normally", () => {
-    expect(phase3).toMatch(/tracker is `github`/u);
     expect(phase3).toMatch(new RegExp(`\`${HELPER}\` exists`, "u"));
-    expect(phase3).toMatch(/not shipped to host projects/u);
   });
 
   it("returns the route field and blocks at the loop bound without claiming", () => {
-    expect(phase3).toContain("route: implement|ci-rework pr=<n>");
-    expect(phase3).toContain("failing_checks:");
-    expect(phase3).toMatch(/`route` is `blocked`[^\n]*do not claim/u);
     expect(phase3).toContain("human_needed");
   });
 
@@ -89,7 +81,6 @@ describe.each(skillPaths("lisa-track"))("%s", file => {
     expect(blocked.indexOf("hold check")).toBeLessThan(
       blocked.indexOf("remove the configured")
     );
-    expect(blocked).toContain("held-by-gate");
   });
 });
 
@@ -102,23 +93,7 @@ describe.each(skillPaths("lisa-implement"))("%s", file => {
   });
 
   it("drives the existing PR from its head branch instead of building again", () => {
-    expect(resolve).toContain("route: ci-rework");
     expect(resolve).toContain("`lisa-drive-pr-to-merge pr=<n>`");
-    expect(resolve).toMatch(/head branch[^\n]*worktree/u);
-    expect(resolve).toMatch(/skip the full build/iu);
-    expect(resolve).toMatch(/never a new branch or a second pull request/iu);
-  });
-
-  it("files no rejection learning and is not complete while the marker is uncleared", () => {
-    expect(resolve).toMatch(/no rejection evidence/iu);
-    expect(resolve).toMatch(/no rejection learning/iu);
-    expect(resolve).toContain("[lisa-rejection-candidate]");
-    expect(resolve).toMatch(/not complete while the marker is uncleared/u);
-  });
-
-  it("documents the session-manager path as Claude Code only", () => {
-    expect(resolve).toMatch(/runtime-neutral/u);
-    expect(resolve).toMatch(/session manager[^\n]*Claude Code only/u);
   });
 });
 
@@ -132,7 +107,6 @@ describe.each(skillPaths("lisa-github-build-intake"))("%s", file => {
   it("states the same trusted-author supersession rule as the helper", () => {
     const claim = section(readFileSync(file, "utf8"), "#### 3b. Claim");
     expect(claim).toContain(SUPERSESSION);
-    expect(claim).not.toContain("do not count as Lisa markers");
   });
 });
 

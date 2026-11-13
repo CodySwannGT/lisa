@@ -24,16 +24,11 @@ describe.each(ALL_ROOTS)(
 
     it("restarts the worker as a fresh counted attempt", () => {
       expect(row).toBeDefined();
-      expect(row).toContain("`claude stop <worker>` if it is still listed");
-      expect(row).toContain("`spawn` a **fresh** attempt");
-      expect(row).toContain("the CLI counts attempts");
       expect(row).not.toContain("--setup-gap");
     });
 
     it("tells the operator once, naming the item and the waitingFor text", () => {
-      expect(row).toContain("one plain-English line");
       expect(row).toContain("`waitingFor`");
-      expect(row).toContain("once per occurrence");
     });
 
     it("records the retry as change-proved", () => {

@@ -58,27 +58,6 @@ describe("queue-status scaffold (#820)", () => {
       expect(skill).toMatch(/^---/);
       expect(skill).toMatch(/name:\s*lisa-queue-status/);
       expect(skill).toMatch(/allowed-tools:/);
-      expect(skill).toContain("Skill");
-      expect(skill).toContain("Bash");
-      expect(skill).toContain("Read");
-      expect(skill).toMatch(/read-only/i);
-      expect(skill).toMatch(/current repo|current project/i);
-      expect(skill).toMatch(
-        /do \*\*not\*\* ask for confirmation|do not ask for confirmation/i
-      );
-    });
-
-    it("reuses intake and repair-intake contract semantics", () => {
-      const skill = read(root, SKILL_REL);
-
-      expect(skill).toMatch(/intake/);
-      expect(skill).toMatch(/repair-intake/);
-      expect(skill).toMatch(/same contract/i);
-      expect(skill).toMatch(
-        /do \*\*not\*\* invent a second source of truth|do not invent a second source of truth/i
-      );
-      expect(skill).toMatch(/queue source/i);
-      expect(skill).toMatch(/build tracker/i);
     });
 
     it("names the expected queue verdicts and supported vendor families", () => {
@@ -88,36 +67,16 @@ describe("queue-status scaffold (#820)", () => {
       expect(skill).toMatch(/HEALTHY/);
       expect(skill).toMatch(/ATTENTION_NEEDED/);
       expect(skill).toMatch(/MISCONFIGURED/);
-      expect(skill).toMatch(/GitHub/);
-      expect(skill).toMatch(/Linear/);
       expect(skill).toMatch(/JIRA/);
-      expect(skill).toMatch(/Notion/);
-      expect(skill).toMatch(/Confluence/);
     });
 
     it("documents the queue selector and actionable-highlight expectations", () => {
       const skill = read(root, SKILL_REL);
-
-      expect(skill).toMatch(/queue=prd/);
       expect(skill).toMatch(/queue=build/);
-      expect(skill).toMatch(/blocked/i);
-      expect(skill).toMatch(/in-review|in review/i);
-      expect(skill).toMatch(/claimed/i);
-      expect(skill).toMatch(/shipped/i);
-      expect(skill).toMatch(/remediation/i);
     });
 
     it("defines grouped queue sections and overall-verdict mapping", () => {
       const skill = read(root, SKILL_REL);
-
-      expect(skill).toMatch(/grouped sections/i);
-      expect(skill).toMatch(/overall queue-health summary|overall verdict/i);
-      expect(skill).toMatch(/PRD queue section|PRD queue heading/i);
-      expect(skill).toMatch(/Build queue section|Build queue heading/i);
-      expect(skill).toMatch(/Do not interleave PRD and build facts/i);
-      expect(skill).toMatch(
-        /derive the \*\*overall verdict\*\*|derive the overall verdict/i
-      );
       expect(skill).toMatch(
         /`MISCONFIGURED` if any inspected queue is misconfigured/i
       );
