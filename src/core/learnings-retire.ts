@@ -7,12 +7,15 @@ import * as path from "node:path";
 import { writeFileAtomically } from "../utils/atomic-file-write.js";
 import {
   MAX_STABLE_TOKEN_BYTES,
+  estimateLearningTokens,
   type LearningEntry,
 } from "./learnings-contract.js";
 import {
   assertDocumentBudget,
+  isLedgerOverBudget,
   parseLearningsFile,
   renderLearningsFile,
+  type LearningsReadOptions,
 } from "./learnings-document.js";
 import {
   assertLearningsUnchanged,
@@ -34,6 +37,13 @@ const GARDENER_MARKER_HASH = /^[0-9a-f]{12}$/;
 const HASH_FINGERPRINT = /^learning-([0-9a-f]+)$/;
 /** Hex digits `learningFingerprint` emits after its `learning-` prefix. */
 const HASH_FINGERPRINT_HEX_LENGTH = 20;
+/**
+ * Retire only ever removes an entry, so it may open a ledger that is already
+ * over its cap (CodySwannGT/lisa#4536) — that is the state a retire most often
+ * exists to repair. The read stays bounded and still enforces conflict
+ * markers, format, entry schema, and identity uniqueness.
+ */
+const RETIRE_READ_POLICY: LearningsReadOptions = { allowOverBudget: true };
 
 /** Outcome vocabulary for {@link retireLearningEntry}. */
 export type RetireLearningStatus = "retired" | "stale" | "not-found";
@@ -85,6 +95,13 @@ export interface RetireLearningResult {
  * exactly as `confirmLearningEntry` migrates it. A missing file or unknown id
  * is a structured `not-found` no-op; a missing file creates no directories or
  * locks.
+ *
+ * An over-cap ledger is opened through the bounded tolerant read
+ * (CodySwannGT/lisa#4536). Every other writer is refused there, and before
+ * this no supported tool could bring the ledger back under its cap. On such a
+ * ledger the rendered document is required to be strictly smaller instead of
+ * within budget, so a retire can only ever improve it. A `stale` or
+ * `not-found` outcome writes nothing — neither the ledger nor the overflow.
  * @param projectRoot - Absolute path to the host project root
  * @param id - Stable id of the entry to retire
  * @param expectedFingerprint - The FULL live `entry.fingerprint` observed at
@@ -108,14 +125,17 @@ export async function retireLearningEntry(
   const { root, target } = resolveSafeLearningTarget(projectRoot, relativeFile);
   await assertSafeLearningParents(root, path.dirname(target));
   // Probe outside the lock so a missing file creates no directories or locks.
-  const probe = await readExistingLearnings(target);
+  const probe = await readExistingLearnings(target, RETIRE_READ_POLICY);
   if (probe === undefined) {
     return { status: "not-found", id, expectedFingerprint: fingerprint };
   }
   return withLearningTargetLock(target, async () => {
     await assertSafeLearningParents(root, path.dirname(target));
-    const existing = await readExistingLearnings(target);
-    const entries = existing === undefined ? [] : parseLearningsFile(existing);
+    const existing = await readExistingLearnings(target, RETIRE_READ_POLICY);
+    const entries =
+      existing === undefined
+        ? []
+        : parseLearningsFile(existing, RETIRE_READ_POLICY);
     const current = entries.find(entry => entry.id === id);
     const base = {
       id,
@@ -138,12 +158,14 @@ export async function retireLearningEntry(
       };
     }
     const rendered = renderRetiredDocument(
-      entries.filter(entry => entry.id !== id)
+      entries.filter(entry => entry.id !== id),
+      existing,
+      entries.length
     );
     await writeFileAtomically(target, rendered, {
       beforeRename: async () => {
         await assertSafeLearningParents(root, path.dirname(target));
-        await assertLearningsUnchanged(target, existing);
+        await assertLearningsUnchanged(target, existing, RETIRE_READ_POLICY);
       },
     });
     return { status: "retired", ...base, retired: current };
@@ -188,11 +210,34 @@ function requireFullFingerprint(value: unknown): string {
 /**
  * Render and budget-check the post-retirement document through the same path
  * every other writer uses, so a retire can never persist an invalid ledger.
+ *
+ * An in-budget ledger keeps the full budget check. An over-budget one
+ * ({@link isLedgerOverBudget}, shared with the over-cap supersede so both
+ * writers agree on what "over budget" means; CodySwannGT/lisa#4536) cannot be required to land within budget in one
+ * retire, so there the authority is shrinking instead, and it is asserted
+ * rather than assumed: a v1 source migrating to v2 gains a fingerprint per
+ * entry and could, in principle, grow despite losing one.
  * @param entries - Entries that remain after the retired one is removed
+ * @param existing - Ledger bytes read under the lock
+ * @param existingCount - Entry count of the ledger read under the lock
  * @returns Next canonical document
  */
-function renderRetiredDocument(entries: readonly LearningEntry[]): string {
+function renderRetiredDocument(
+  entries: readonly LearningEntry[],
+  existing: string | undefined,
+  existingCount: number
+): string {
   const rendered = renderLearningsFile(entries);
-  assertDocumentBudget(rendered, entries.length, "Learnings file");
+  const existingSize =
+    existing === undefined ? 0 : estimateLearningTokens(existing);
+  if (!isLedgerOverBudget(existingSize, existingCount)) {
+    assertDocumentBudget(rendered, entries.length, "Learnings file");
+    return rendered;
+  }
+  if (estimateLearningTokens(rendered) >= existingSize) {
+    throw new Error(
+      "Refusing to retire: the ledger is over its budget and the rewritten ledger would not be smaller than the current one. Nothing was written."
+    );
+  }
   return rendered;
 }

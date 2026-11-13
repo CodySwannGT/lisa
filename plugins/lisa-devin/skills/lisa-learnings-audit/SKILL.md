@@ -316,6 +316,10 @@ implementing run receives its instructions inside the work item:
   `retireLearningEntry(projectRoot, id, expectedFingerprint)` from
   `@codyswann/lisa/learnings` with the row's full `expectedFingerprint` —
   never by parse → filter → render in a script, and never by a hand edit.
+  From a shell, the same call is
+  `bunx @codyswann/lisa learnings-retire --id <id> --fingerprint <full fingerprint> --reason "<proof>"`
+  (JSON output; exit 1 on `stale` or `not-found`). Retire works on a ledger
+  that is over its cap, so use it to bring an over-budget ledger back down.
 - A RETIRE that returns `stale` means the entry's fingerprint drifted since
   the audit (a later learner run changed or merged into it): skip the row, do
   not delete it, and leave it for the next audit to re-evaluate.
