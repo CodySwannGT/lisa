@@ -181,6 +181,10 @@ one exists) must show:
   alone.
 - Per skipped candidate: which dedupe hit suppressed it (open ticket URL,
   done ticket, or rejection date).
+- Per PROMOTE/DEMOTE ticket, the destination-validation record (Ticket
+  emission): destinations checked, missing, and created as new; line pointers
+  pinned (with the SHA) or dropped; and counts reconciled — or, for a refused
+  ticket, the refusal and the mismatch that caused it.
 - For `nothing-needed`: the thresholds nothing met, in one line.
 
 The tickets themselves are the durable artifacts; the report is how a human
@@ -223,6 +227,8 @@ audits the auditor without re-running it.
    is **advisory**: it returns `rung`, `scope`, `rationale`, and
    `drafted_artifact`; the gardener decides whether the evidence clears the
    filing bar and attaches the router's draft to the ticket.
+   Before step 4, run the destination-validation check (Ticket emission) on
+   every PROMOTE/DEMOTE draft; a draft that fails it is refused, not filed.
 4. **Emit** (see Ticket emission).
 5. **Report and record** the run outcome and one-line summary — post the
    outcome, then record **exactly one** run-record line through the CLI (see
@@ -257,6 +263,38 @@ so it is filed held with `human_gate: "a human decides whether this learning is 
 into the always-loaded rules"`, which stamps the auditable `[lisa-human-gate]`
 marker. Every other build-ready ticket passes `build_ready: true`. The hold is
 declared, never implied by an omitted flag.
+
+<!-- destination-validation:start -->
+**Destination and count validation (before filing any PROMOTE / DEMOTE).**
+The router's draft says *where* the builder should make the change and *how
+much* evidence backs it. Neither is trusted until checked, because a ticket
+pointing at a section that does not exist, or quoting a figure its own
+evidence contradicts, sends the builder to re-derive everything by hand.
+Check each draft against the default branch's current head (resolve
+`<sha>` once per run with `git rev-parse origin/<default>`):
+
+1. **Destinations** — for every file the ticket names, run
+   `git show origin/<default>:<path>`; for every heading or section, search
+   that file for it. A destination that exists is cited as existing. A
+   section the builder must *create* is labelled **new** in the ticket,
+   never cited as existing. A file that does not exist is either relabelled
+   as a **new file** the builder creates, or, if the draft depends on it
+   already existing, the ticket is **refused**.
+2. **Line pointers** — drop them, or recompute each one against `<sha>` and
+   write that SHA beside it ("line 42 at `<sha>`") so anyone can re-check it
+   later. Never copy a pointer from the draft unchecked.
+3. **Counts** — every number quoted in the ticket ("12 of 12", "17
+   entries") is recounted from the evidence it cites. On any mismatch the
+   ticket is **refused**: it is not filed, and neither side is quietly
+   corrected. The mismatch (both figures and where each came from) goes in
+   the run report so a person can see what disagreed.
+
+A refused ticket is not a run failure: the run continues with the other
+candidates and reports the refusal under Proof. Record per ticket, in Proof:
+`destinations_checked`, `destinations_missing`, `destinations_new`,
+`pointers` (`pinned` with `pointer_sha`, or `dropped`), and
+`counts_reconciled: yes`, or `refused: <reason>`.
+<!-- destination-validation:end -->
 
 **Per-item tickets — PROMOTE / DEMOTE** (`issue_type: Task`; GitHub trackers
 carry the `type:Task` label) — one ticket per recommendation, capped by

@@ -149,6 +149,47 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     expect(skill).toMatch(/evidence links/i);
   });
 
+  // #4764: a PROMOTE ticket once named sections and a file that did not
+  // exist, an 18-line-stale pointer, and a count contradicting its evidence.
+  // Structural check only: the delimited block exists, sits inside Ticket
+  // emission before the per-item filing it gates, is referenced from the
+  // audit cycle, and carries the machine tokens Proof records per ticket.
+  it("validates destinations and counts before filing PROMOTE/DEMOTE (#4764)", () => {
+    const start = skill.indexOf("<!-- destination-validation:start -->");
+    const end = skill.indexOf("<!-- destination-validation:end -->");
+    const emission = skill.indexOf("## Ticket emission");
+    const perItem = skill.indexOf("**Per-item tickets — PROMOTE / DEMOTE**");
+    const nextSection = skill.indexOf("\n## ", emission + 1);
+    const cycleClassify = skill.indexOf("3. **Classify**");
+    const cycleEmit = skill.indexOf("4. **Emit**");
+
+    expect(start).toBeGreaterThan(emission);
+    expect(end).toBeGreaterThan(start);
+    expect(end).toBeLessThan(perItem);
+    expect(perItem).toBeLessThan(nextSection);
+
+    const block = skill.slice(start, end);
+    for (const token of [
+      "destinations_checked",
+      "destinations_missing",
+      "destinations_new",
+      "pointer_sha",
+      "counts_reconciled",
+      "refused",
+    ]) {
+      expect(block).toContain(token);
+    }
+
+    const cycleStep = skill.slice(cycleClassify, cycleEmit);
+    expect(cycleStep).toContain("destination-validation");
+
+    const proof = skill.slice(
+      skill.indexOf("## Proof"),
+      skill.indexOf("## The audit cycle")
+    );
+    expect(proof).toContain("destination-validation");
+  });
+
   it("batches CONFIRM and provably-redundant RETIRE into one ticket per run", () => {
     expect(skill).toMatch(/one batch ticket per run/i);
     expect(skill).toContain("CONFIRM");
