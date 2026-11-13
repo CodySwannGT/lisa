@@ -33,7 +33,6 @@ const packagedEvidencePrefixes = [
   "scripts/",
   "tsconfig/",
   "typescript/",
-  "ui/",
 ];
 const forbiddenSegments = new Set([
   ".claude-plugin",

@@ -18,6 +18,9 @@
  * same exit 2, so the manager returns the item to Ready without counting an
  * attempt. A transcript that does not resolve in time is not a failure: the
  * spawn proceeds exactly as before and `classify` keeps watching.
+ *
+ * Both exit-2 refusals carry `json.setupGap` (`{kind, detail}`), which
+ * `spawn` records per repo so later cycles stop dispatching there (#4820).
  * @module session-manager/worker-launch
  */
 import { CliError, EXIT, run } from "./cli-runtime.mjs";
@@ -62,7 +65,8 @@ export function runWorkerSession(spec) {
         `so claude --bg refused to start a worker there. This is a one-time ` +
         `step per repo: run \`claude\` once in ${spec.cwd}, accept the trust ` +
         `prompt, exit, then retry.`,
-      EXIT.SETUP
+      EXIT.SETUP,
+      { setupGap: { kind: "untrusted-workspace", detail: spec.cwd } }
     );
   }
   const detail = result.stderr.trim() || `exit ${result.status}`;
@@ -129,7 +133,7 @@ function firstPromptWindow(env) {
  */
 export function firstPromptGapMessage(failure, repoDir) {
   const tail =
-    "The worker was stopped; nothing was recorded and no attempt was " +
+    "The worker was stopped; no item was recorded and no attempt was " +
     "counted. Retrying cannot fix this until the repo is set up.";
   if (failure.kind === "unknown-command") {
     return (

@@ -65,7 +65,7 @@ Runs on every pull request to validate code quality:
 **Configuration**:
 ```yaml
 # In ci.yml, modify these inputs:
-node_version: '22.23.3'
+node_version: '24.21.0'
 package_manager: 'bun'
 skip_jobs: 'test:e2e,playwright_e2e'  # Exact comma-separated job ids
 ```
@@ -553,7 +553,7 @@ release.yml and create the environment in **Settings** > **Environments** first
 ```yaml
 uses: ./.github/workflows/quality.yml
 with:
-  node_version: '22.23.3'
+  node_version: '24.21.0'
   package_manager: 'bun'  # or npm, yarn
 ```
 

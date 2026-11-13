@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.6](https://github.com/CodySwannGT/lisa/compare/v4.107.5...v4.107.6) (2026-11-13)
+
+
+### Bug Fixes
+
+* **session-manager:** keep classify going when a setup-gap write fails ([bf02f9e](https://github.com/CodySwannGT/lisa/commit/bf02f9eda36505c712def0f27d2b8f6b2992fc9a)), closes [CodySwannGT/lisa#4820](https://github.com/CodySwannGT/lisa/issues/4820) [CodySwannGT/lisa#4820](https://github.com/CodySwannGT/lisa/issues/4820)
+* **session-manager:** persist a per-repo setup gap so dispatch to that repo stops across cycles ([1b83a4e](https://github.com/CodySwannGT/lisa/commit/1b83a4ee89da263e8f523f9bf389b99bd2527016)), closes [CodySwannGT/lisa#4820](https://github.com/CodySwannGT/lisa/issues/4820) [CodySwannGT/lisa#4820](https://github.com/CodySwannGT/lisa/issues/4820)
+
+### [4.107.5](https://github.com/CodySwannGT/lisa/compare/v4.107.4...v4.107.5) (2026-11-13)
+
+
+### Bug Fixes
+
+* align template Node versions with .nvmrc and scope the managed-file guard to the host's stacks ([9654ce4](https://github.com/CodySwannGT/lisa/commit/9654ce40404f704aae6ed266299ea8ff14d34687)), closes [CodySwannGT/lisa#4511](https://github.com/CodySwannGT/lisa/issues/4511) [CodySwannGT/lisa#4511](https://github.com/CodySwannGT/lisa/issues/4511)
+
+### [4.107.4](https://github.com/CodySwannGT/lisa/compare/v4.107.3...v4.107.4) (2026-11-13)
+
+
+### Bug Fixes
+
+* **ci:** pin packaged-apply reference to 4.106.2 ([6b14340](https://github.com/CodySwannGT/lisa/commit/6b143407eb05d5848cd89992f6308c453330c2df)), closes [#4803](https://github.com/CodySwannGT/lisa/issues/4803) [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822) [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822)
+* **ci:** print packaged-apply diagnostics on early controller exits ([263adad](https://github.com/CodySwannGT/lisa/commit/263adadc9c006b477d4d461be848217a12307bed)), closes [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822) [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822)
+* **ci:** surface the packaged-apply container's real failure ([96ae536](https://github.com/CodySwannGT/lisa/commit/96ae536ab754c0f8e76fb1208f664a4527cbd22c)), closes [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822) [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822)
+
+### [4.107.3](https://github.com/CodySwannGT/lisa/compare/v4.107.2...v4.107.3) (2026-11-13)
+
+### [4.107.2](https://github.com/CodySwannGT/lisa/compare/v4.107.1...v4.107.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* **cli:** refuse `lisa ui` and restore the coverage the removal dropped ([2e75c53](https://github.com/CodySwannGT/lisa/commit/2e75c536b3ab72ff50821c69c653419e722d1bb8)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+* **skills:** stop writing the console-only remote-environment contract ([32bfb2e](https://github.com/CodySwannGT/lisa/commit/32bfb2e8d7e1a1ec7bc333a1298257f269c188a5)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+* **tests:** align the suite with the console removal ([0c1d7df](https://github.com/CodySwannGT/lisa/commit/0c1d7dfa61e6327e8c48db6f03ce1827ca4c2315)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+
+
+### Code Refactoring
+
+* **cli:** remove the Lisa Console and keep its shared code under task names ([2ebb034](https://github.com/CodySwannGT/lisa/commit/2ebb03478a12aa1835c78519caecc105c3d42c8c)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+
+
+### Documentation
+
+* **wiki:** remove the Lisa Console architecture page ([bd4daca](https://github.com/CodySwannGT/lisa/commit/bd4daca84922303434bce1fa61f6a71dc8096e03)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+
+### [4.107.1](https://github.com/CodySwannGT/lisa/compare/v4.107.0...v4.107.1) (2026-11-13)
+
+
+### Documentation
+
+* **ui:** stop pointing at the removed check:ui-demo-data script ([b04af53](https://github.com/CodySwannGT/lisa/commit/b04af53eb1f72178f32c4b33bf4e2bd310e52cc4)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+
 ## [4.107.0](https://github.com/CodySwannGT/lisa/compare/v4.106.3...v4.107.0) (2026-11-13)
 
 

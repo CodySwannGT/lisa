@@ -45,6 +45,26 @@ async function docker(args) {
 }
 
 /**
+ * `docker start --attach` failing says nothing about why; carry the driver's
+ * own recorded assertion so every caller sees it (CodySwannGT/lisa#4822).
+ * @param {Error} error - Container start failure.
+ * @param {string} directory - Run output holding native-proof.json.
+ * @returns {Promise<Error>} The same error, its message extended when known.
+ */
+async function withNativeFailure(error, directory) {
+  try {
+    const { failure } = JSON.parse(
+      await readFile(path.join(directory, "native-proof.json"), "utf8")
+    );
+    if (failure)
+      error.message += `\nNative driver failure: ${failure.stack ?? failure.message}`;
+  } catch {
+    // An unreadable proof must not replace the original failure.
+  }
+  return error;
+}
+
+/**
  * @param {string} directory - Newly owned output directory.
  * @param {string} name - Private evidence filename.
  * @param {unknown} value - Evidence without raw operator configuration.
@@ -243,7 +263,7 @@ async function main() {
       `${id}:/lisa-proof.json`,
       path.join(output, "native-proof.json"),
     ]);
-    if (childFailure) throw childFailure;
+    if (childFailure) throw await withNativeFailure(childFailure, output);
     if (terminal.State.Status !== "exited" || terminal.State.ExitCode !== 0) {
       throw new Error(
         `Native verification child exited ${terminal.State.ExitCode}`

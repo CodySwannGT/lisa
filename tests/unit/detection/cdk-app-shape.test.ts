@@ -21,7 +21,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { readConfinedDetectedStacks } from "../../../src/cli/ui-detected-stacks.js";
+import { readConfinedDetectedStacks } from "../../../src/cli/detected-stacks.js";
 import { createDetectorRegistry } from "../../../src/detection/index.js";
 import { detectHealthProjectTypes } from "../../../src/health/template-inspection.js";
 import { PackageLisaStrategy } from "../../../src/strategies/package-lisa.js";
@@ -76,7 +76,7 @@ async function classifyEverywhere(
   return {
     "detection/detectors/cdk": await registry.detectAll(dir),
     "health/template-inspection": [...(await detectHealthProjectTypes(dir))],
-    "cli/ui-detected-stacks": [...(await readConfinedDetectedStacks(dir))],
+    "cli/detected-stacks": [...(await readConfinedDetectedStacks(dir))],
     "strategies/package-lisa": [...audit.detectedTypes],
   };
 }
@@ -196,10 +196,6 @@ describe("no surface reintroduces the dependency arm", () => {
    * per-surface assertions above are what cover the surfaces that exist today.
    */
   const ALLOWED = new Set([
-    // Asks a different question: does this repository need AWS credentials?
-    // A construct consumer genuinely does, and this arm is independent of the
-    // `cdk` project type, so narrowing detection does not weaken it.
-    "src/cli/remote-environment-detection.ts",
     // Names the dependencies the CDK preset FORCE-MERGES, so the
     // installed-base check can tell a repository what to back out. Not a
     // detection surface and structurally unable to become one: the

@@ -1,0 +1,13 @@
+### BITE 4: same apply, but fake plugin list reports every @lisa plugin for THIS projectPath -> expect NO '@lisa --scope project' installs
+exit=0
+@lisa install calls: 0
+[OK] Registered plugin: other@x
+[OK] Registered plugin: coderabbit@claude-plugins-official
+[OK] Registered plugin: typescript-lsp@claude-plugins-official
+[OK] Registered plugin: playwright@claude-plugins-official
+[OK] Registered plugin: posthog@claude-plugins-official
+### BITE 1: base (HEAD) install-claude-plugins.sh under npm_lifecycle_event=postinstall -> old text, no 'not registered'
+lisa: installation leaves unrelated project templates unchanged. Run `lisa apply .` to apply updates, or `lisa doctor` to check freshness.
+exit=0
+### BITE 1b: worktree script WITHOUT install lifecycle env (direct run) does not take the notice branch
+(not executed: direct run would call claude/lisa apply against the scratch dir; the branch is gated solely by the env test shown in the diff)

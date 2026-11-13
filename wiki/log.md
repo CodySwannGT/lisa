@@ -1,5 +1,10 @@
 # Lisa Wiki Log
 
+## 2026-11-12 - Lisa Console removed
+
+- Deleted `wiki/architecture/lisa-console-ui.md` and its `wiki/index.md` entry: the `lisa ui` command, `ui/index.html`, and their tests were removed (`CodySwannGT/lisa#4804`).
+- Updated `wiki/concepts/tasc-specification.md`: the Annex B readiness questionnaire lived in the console and went with it.
+
 ## 2026-10-11 - Devin CLI parity
 
 - Added a Devin CLI section to `wiki/architecture/coding-agent-parity.md` and the `lisa-devin` variant shape to `wiki/architecture/pattern-b-fan-out-spec.md` (Epic `#4283`, leaves `#4426` to `#4429`).

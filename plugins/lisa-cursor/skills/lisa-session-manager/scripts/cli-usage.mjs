@@ -27,7 +27,9 @@ Workers and capacity
   spawn <ref> [--repo <key>] [--max-workers <n>]
       Checks, in order: repo dir resolves and has .lisa.config.json (exit 2);
       capacity (exit 3, stdout = capacity report); no live wk- worker for the
-      ref (exit 4, stdout = {ref,worker,sessionId}); no pending question in
+      ref (exit 4, stdout = {ref,worker,sessionId}); no recorded setup gap
+      for the repo (exit 2, nothing launched or recorded: fix the repo, then
+      ledger clear-setup-gap <repo>); no pending question in
       the ledger for the ref (exit 2: clear it first). Then runs, with cwd = repo
       dir and every TELEGRAM_* variable removed:
         claude --bg -n wk-<token>-<MMDD-HHMM> --dangerously-skip-permissions
@@ -36,8 +38,14 @@ Workers and capacity
       Then reads the worker's transcript for up to 30s
       (LISA_SESSION_MANAGER_FIRST_PROMPT_MS overrides it): when the first
       prompt never ran (the command is unknown in that repo, or a
-      UserPromptSubmit hook rejected it), stops the worker, records nothing
-      and exits 2 (setup gap; no attempt counted).
+      UserPromptSubmit hook rejected it), stops the worker, records no item
+      and exits 2 (setup gap; no attempt counted). That gap, and an
+      untrusted workspace, are recorded per repo in the ledger's
+      control.setupGaps (repo "." on a single-repo project) until cleared.
+      Every setup-gap exit 2 prints {repo,setupGap,setupGapStatus}:
+      "recorded" (new: tell the operator), "already-recorded" (refused; the
+      operator was already told) or "not-recorded" (the ledger write failed,
+      warned on stderr: tell the operator).
       Records the ledger and sessions.jsonl. stdout {ref,name,sessionId,repo,
       cwd,firstPrompt}, firstPrompt "alive" or "unconfirmed" (the transcript
       did not resolve in time).
@@ -204,6 +212,10 @@ Per cycle
       ledger's validationFailures entry matches the item's updatedAt).
       GitHub fetches them itself; jira|linear need <file>.backlog =
       {complete:true,pages,items}, else exit 2.
+      Items in a repo with a recorded setup gap are excluded from both tiers
+      (setup-gap:<repo>): every item on a single-repo project, or items
+      labelled repo:<key> on a multi-repo one. setupGaps lists each gap once
+      as {repo,kind,detail,at,clear} (clear = the command that lifts it).
   ledger get [<ref>]
   ledger record-spawn <ref> --worker <name> [--session-id <id>] [--repo <key>]
   ledger set-question <ref> [--kind <kind>] [--telegram-message-id <n>]
@@ -238,6 +250,12 @@ Per cycle
   ledger validation-cleared <ref>
       Forgets that failure: after a promotion, or by hand to have the next
       cycle re-validate an item without editing it. stdout {cleared}.
+  ledger clear-setup-gap <repo>
+      Forgets a repo's recorded setup gap ("." on a single-repo project),
+      after the operator fixed the repo; queue offers its items and spawn
+      launches there again. Never automatic. Also stamps
+      control.setupGapsClearedAt, so classify never re-records the gap from
+      a worker that started before the clear. stdout {repo,cleared}.
   ledger control [--paused true|false] [--max-workers <n>|none] [--me <id>|none]
   route [--reply-to <telegram message id>] [--owner <name>] STDIN: message
       stdout {kind:"answer",ref,body[,message]} | {kind:"command",name,...}

@@ -47,10 +47,7 @@
     "scripts/**/*.js",
     "typescript/**/*.mjs",
     "typescript/**/*.cjs",
-    "typescript/**/*.js",
-    "ui/**/*.mjs",
-    "ui/**/*.cjs",
-    "ui/**/*.js"
+    "typescript/**/*.js"
   ],
   "exclude": [
     "**/node_modules",
