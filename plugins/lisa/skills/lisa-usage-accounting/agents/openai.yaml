@@ -1,4 +1,4 @@
 display_name: "Usage Accounting"
-short_description: "Shared usage-ledger utility for Lisa lifecycle flows and artifact writers"
+short_description: "Record token usage and refresh the canonical '## Lisa Usage' section on PRDs, tickets, evidence comments, PRs, and documents through one…"
 default_prompt:
-  - "Use $lisa-usage-accounting: Shared usage-ledger utility for Lisa lifecycle flows and artifact writers."
+  - "Use $lisa-usage-accounting: Record token usage and refresh the canonical '## Lisa Usage' section on PRDs, tickets, evidence comments, PRs, and documents through one…."

@@ -1,4 +1,4 @@
 display_name: "Setup Sonar"
-short_description: "Configure the official SonarQube plugin + MCP as Lisa's single Sonar substrate across every supported coding agent"
+short_description: "Set up the official SonarQube plugin and MCP for every supported coding agent: install the CLI, authenticate, connect each agent, and…"
 default_prompt:
-  - "Use $lisa-setup-sonar: Configure the official SonarQube plugin + MCP as Lisa's single Sonar substrate across every supported coding agent."
+  - "Use $lisa-setup-sonar: Set up the official SonarQube plugin and MCP for every supported coding agent: install the CLI, authenticate, connect each agent, and…."

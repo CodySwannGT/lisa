@@ -1,4 +1,4 @@
 display_name: "Harper Config Yaml"
-short_description: "creating or editing a Harper (HarperDB/Fabric) component's config.yaml — enabling a built-in extension (graphqlSchema, jsResource, rest…"
+short_description: "Create or edit a Harper (HarperDB/Fabric) config.yaml: enable built-in extensions, wire components, and debug extensions that don't load"
 default_prompt:
-  - "Use $harper-config-yaml: creating or editing a Harper (HarperDB/Fabric) component's config.yaml — enabling a built-in extension (graphqlSchema, jsResource, rest…."
+  - "Use $harper-config-yaml: Create or edit a Harper (HarperDB/Fabric) config.yaml: enable built-in extensions, wire components, and debug extensions that don't load."

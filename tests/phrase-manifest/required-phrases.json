@@ -1081,9 +1081,6 @@
     },
     "plugins/lisa-agy/skills/lisa-implement/SKILL.md": {
       "required": [
-        ".lisa/roster/<work-item-slug>.md",
-        "CodySwannGT-lisa-3395",
-        "CodySwannGT/lisa#1607",
         "None —",
         "[A-Za-z0-9._-]",
         "[lisa-pr-link]",
@@ -1098,10 +1095,6 @@
           "flags": "i"
         },
         {
-          "source": "Do not add `\\.lisa\\/roster\\/` to `\\.gitignore`",
-          "flags": ""
-        },
-        {
           "source": "Never read absence as `false`",
           "flags": ""
         },
@@ -1114,24 +1107,8 @@
           "flags": "i"
         },
         {
-          "source": "add\\/add",
-          "flags": "i"
-        },
-        {
-          "source": "concurrent",
-          "flags": "i"
-        },
-        {
-          "source": "leave it alone|keeps it",
-          "flags": "i"
-        },
-        {
           "source": "pr-merged",
           "flags": ""
-        },
-        {
-          "source": "trackable",
-          "flags": "i"
         },
         {
           "source": "verified native PR link",
@@ -2947,9 +2924,6 @@
     },
     "plugins/lisa-copilot/skills/lisa-implement/SKILL.md": {
       "required": [
-        ".lisa/roster/<work-item-slug>.md",
-        "CodySwannGT-lisa-3395",
-        "CodySwannGT/lisa#1607",
         "None —",
         "[A-Za-z0-9._-]",
         "[lisa-pr-link]",
@@ -2964,10 +2938,6 @@
           "flags": "i"
         },
         {
-          "source": "Do not add `\\.lisa\\/roster\\/` to `\\.gitignore`",
-          "flags": ""
-        },
-        {
           "source": "Never read absence as `false`",
           "flags": ""
         },
@@ -2980,24 +2950,8 @@
           "flags": "i"
         },
         {
-          "source": "add\\/add",
-          "flags": "i"
-        },
-        {
-          "source": "concurrent",
-          "flags": "i"
-        },
-        {
-          "source": "leave it alone|keeps it",
-          "flags": "i"
-        },
-        {
           "source": "pr-merged",
           "flags": ""
-        },
-        {
-          "source": "trackable",
-          "flags": "i"
         },
         {
           "source": "verified native PR link",
@@ -4839,9 +4793,6 @@
     },
     "plugins/lisa-cursor/skills/lisa-implement/SKILL.md": {
       "required": [
-        ".lisa/roster/<work-item-slug>.md",
-        "CodySwannGT-lisa-3395",
-        "CodySwannGT/lisa#1607",
         "None —",
         "[A-Za-z0-9._-]",
         "[lisa-pr-link]",
@@ -4856,10 +4807,6 @@
           "flags": "i"
         },
         {
-          "source": "Do not add `\\.lisa\\/roster\\/` to `\\.gitignore`",
-          "flags": ""
-        },
-        {
           "source": "Never read absence as `false`",
           "flags": ""
         },
@@ -4872,24 +4819,8 @@
           "flags": "i"
         },
         {
-          "source": "add\\/add",
-          "flags": "i"
-        },
-        {
-          "source": "concurrent",
-          "flags": "i"
-        },
-        {
-          "source": "leave it alone|keeps it",
-          "flags": "i"
-        },
-        {
           "source": "pr-merged",
           "flags": ""
-        },
-        {
-          "source": "trackable",
-          "flags": "i"
         },
         {
           "source": "verified native PR link",
@@ -7273,9 +7204,6 @@
     },
     "plugins/lisa/.codex-plugin/skills/lisa-implement/SKILL.md": {
       "required": [
-        ".lisa/roster/<work-item-slug>.md",
-        "CodySwannGT-lisa-3395",
-        "CodySwannGT/lisa#1607",
         "None —",
         "[A-Za-z0-9._-]",
         "[lisa-pr-link]",
@@ -7290,10 +7218,6 @@
           "flags": "i"
         },
         {
-          "source": "Do not add `\\.lisa\\/roster\\/` to `\\.gitignore`",
-          "flags": ""
-        },
-        {
           "source": "Never read absence as `false`",
           "flags": ""
         },
@@ -7306,24 +7230,8 @@
           "flags": "i"
         },
         {
-          "source": "add\\/add",
-          "flags": "i"
-        },
-        {
-          "source": "concurrent",
-          "flags": "i"
-        },
-        {
-          "source": "leave it alone|keeps it",
-          "flags": "i"
-        },
-        {
           "source": "pr-merged",
           "flags": ""
-        },
-        {
-          "source": "trackable",
-          "flags": "i"
         },
         {
           "source": "verified native PR link",
@@ -11583,9 +11491,6 @@
     "plugins/lisa/skills/lisa-implement/SKILL.md": {
       "required": [
         "## Lisa Usage",
-        ".lisa/roster/<work-item-slug>.md",
-        "CodySwannGT-lisa-3395",
-        "CodySwannGT/lisa#1607",
         "None —",
         "[A-Za-z0-9._-]",
         "[lisa-pr-link]",
@@ -11600,10 +11505,6 @@
         {
           "source": "Confirm two-way linkage",
           "flags": "i"
-        },
-        {
-          "source": "Do not add `\\.lisa\\/roster\\/` to `\\.gitignore`",
-          "flags": ""
         },
         {
           "source": "MUST NOT re-propose",
@@ -11622,19 +11523,7 @@
           "flags": "i"
         },
         {
-          "source": "add\\/add",
-          "flags": "i"
-        },
-        {
-          "source": "concurrent",
-          "flags": "i"
-        },
-        {
           "source": "direct `lisa-implement` usage entry",
-          "flags": "i"
-        },
-        {
-          "source": "leave it alone|keeps it",
           "flags": "i"
         },
         {
@@ -11655,10 +11544,6 @@
         },
         {
           "source": "source:\\s*unavailable",
-          "flags": "i"
-        },
-        {
-          "source": "trackable",
           "flags": "i"
         },
         {
@@ -15021,10 +14906,7 @@
       ]
     },
     "plugins/src/base/rules/eager/verification.md": {
-      "required": [
-        "[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]",
-        "[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]"
-      ],
+      "required": [],
       "forbidden": [],
       "requiredPatterns": [
         {
@@ -15042,14 +14924,6 @@
         {
           "source": "interactive Playwright control",
           "flags": "i"
-        },
-        {
-          "source": "must not be newly authored",
-          "flags": ""
-        },
-        {
-          "source": "never enters or satisfies the local S14 manifest",
-          "flags": ""
         }
       ],
       "forbiddenPatterns": [],
@@ -16208,6 +16082,14 @@
         {
           "source": "merged head|merge race",
           "flags": "i"
+        },
+        {
+          "source": "must not be newly authored",
+          "flags": ""
+        },
+        {
+          "source": "never enters or satisfies the local S14 manifest",
+          "flags": ""
         },
         {
           "source": "pointer only",
@@ -18262,9 +18144,6 @@
     "plugins/src/base/skills/lisa-implement/SKILL.md": {
       "required": [
         "## Lisa Usage",
-        ".lisa/roster/<work-item-slug>.md",
-        "CodySwannGT-lisa-3395",
-        "CodySwannGT/lisa#1607",
         "None —",
         "[A-Za-z0-9._-]",
         "[lisa-pr-link]",
@@ -18279,10 +18158,6 @@
         {
           "source": "Confirm two-way linkage",
           "flags": "i"
-        },
-        {
-          "source": "Do not add `\\.lisa\\/roster\\/` to `\\.gitignore`",
-          "flags": ""
         },
         {
           "source": "MUST NOT re-propose",
@@ -18301,19 +18176,7 @@
           "flags": "i"
         },
         {
-          "source": "add\\/add",
-          "flags": "i"
-        },
-        {
-          "source": "concurrent",
-          "flags": "i"
-        },
-        {
           "source": "direct `lisa-implement` usage entry",
-          "flags": "i"
-        },
-        {
-          "source": "leave it alone|keeps it",
           "flags": "i"
         },
         {
@@ -18334,10 +18197,6 @@
         },
         {
           "source": "source:\\s*unavailable",
-          "flags": "i"
-        },
-        {
-          "source": "trackable",
           "flags": "i"
         },
         {

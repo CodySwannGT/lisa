@@ -1,15 +1,15 @@
 ---
 name: lisa-learnings-audit
-description: "The gardener of the learnings…"
+description: "Audit every knowledge surface —…"
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
-The gardener of the learnings ladder (PRD #1729). Periodically audits every knowledge surface — ledger, rules trees (including Lisa's own shipped eager rules), skills, wiki index, and mechanical-control surfaces — gathers evidence per item (recurrence, staleness, redundancy, contradiction, budget pressure), classifies each candidate through the ladder router (skill-evaluator, advisory), and communicates exclusively through the tracker: one evidence-bearing ticket per PROMOTE/DEMOTE, one batch ticket per run for CONFIRM/RETIRE, upstream Lisa issues for upstream-scoped patterns. Everything is human-gated at v1 — the skill only files tickets; humans gate by flipping status:ready or closing as rejected, and rejections are remembered. Cron-able via lisa-setup-automations and runnable on demand via /lisa:learnings:audit.
+Audit every knowledge surface — learnings ledger, rules, skills, wiki, and checks — and file a ticket for each promotion, demotion, confirmation, or retirement. Tickets are build-ready except promotions into the always-loaded rules.
 
 
 # Learnings Audit (the gardener): $ARGUMENTS
 
 Run one audit cycle over this project's knowledge surfaces and convert what the
-evidence supports into **human-gated tracker tickets** — nothing else. The
+evidence supports into **tracker tickets** — nothing else. The
 gardener is the only flow in Lisa that takes knowledge *back out* or moves it
 *up* the ladder; it closes the loop that capture (learner, debrief-apply, MLD)
 opens.
@@ -25,8 +25,8 @@ not capped), `surface=<ledger|rules|skills|wiki|all>` (default `all`),
 Keep the knowledge system from silting up: every learning lives at the
 cheapest rung that still prevents the mistake (per the six-rung ladder,
 PRD #1729), prose never duplicates a mechanical owner, the eager tier shrinks
-over time, and every change to "what the agents believe" is approved by a
-human through the tracker. A quiet run with nothing to propose is a healthy
+over time, and every change to "what the agents believe" lands through a
+ticket and a reviewed PR. A human approves only additions to the eager tier. A quiet run with nothing to propose is a healthy
 outcome and says so in its one-line summary.
 
 ## Sources of truth
@@ -59,7 +59,7 @@ memorized list:
    come from exactly there.
 4. **Skills** — `.claude/skills/` and the plugin skill roots the runtime
    exposes (descriptions are eager context; bodies load on invoke).
-5. **The wiki index** — `wiki/index.md` when the project has a wiki.
+5. **The wiki index** — `wiki/index.md`.
 6. **Mechanical-control surfaces** — lint configs (ESLint/oxlint), ast-grep
    rules, git hooks, test suites, and `package.lisa.json` force sections:
    the surfaces that answer "does a mechanical owner already exist?".
@@ -146,8 +146,7 @@ evidence:
   inventoried surface, in this repository (`project` scope) or upstream in
   `CodySwannGT/lisa` (`upstream` scope).
 - **Out of scope**: executing any promotion/demotion/retirement (the factory
-  does, per flipped tickets), editing any knowledge surface, auto-apply modes
-  (v1 is fully gated), and the capture streams (learner, debrief, MLD).
+  does, per flipped tickets), editing any knowledge surface itself, and the capture streams (learner, debrief, MLD).
 
 ## Proof
 
@@ -212,13 +211,14 @@ audits the auditor without re-running it.
 ## Ticket emission
 
 All project-tracker writes go through **`lisa-tracker-write`** so gardener
-tickets pass the same validation gates as all factory work. Nothing is created
-`status:ready` — the human flips. Per `ready-role-filing` that hold is
-**declared, not implied**: every gardener ticket passes
-`human_gate: "a human decides whether this knowledge is promoted, demoted, or
-retired"` so the writer stamps the auditable `[lisa-human-gate]` marker. An
-omitted flag would be indistinguishable from the accidental non-ready filing
-the rule exists to catch.
+tickets pass the same validation gates as all factory work. Tickets are filed
+build-ready (`build_ready: true`, per `ready-role-filing`), so the factory
+implements them through the project's normal gates — the same review, CI, and
+`promotion-contract` legs as any other change. The one exception is a
+**PROMOTE into EAGER-RULE**: it adds to what every session loads, so it is
+filed held with `human_gate: "a human decides whether this learning is promoted
+into the always-loaded rules"`, which stamps the auditable `[lisa-human-gate]`
+marker. The hold is declared, never implied by an omitted flag.
 
 **Per-item tickets — PROMOTE / DEMOTE** (`issue_type: Task`; GitHub trackers
 carry the `type:Task` label) — one ticket per recommendation, capped by
@@ -258,8 +258,9 @@ rejected by rule (see the `promotion-contract` rule):
 **One batch ticket per run — CONFIRM + RETIRE** (`issue_type: Task`): a single
 ticket listing every CONFIRM row (`last_confirmed` bump, with the evidence the
 entry demonstrably applied) and every **provably-redundant** RETIRE row (with
-the mechanical owner / staleness proof per row). Rows are individually
-strikeable — the human deletes rows they reject, then flips the ticket ready.
+the mechanical owner / staleness proof per row). It is filed
+build-ready like the per-item tickets. Rows stay individually strikeable: a
+human who disagrees with a row deletes it before the factory picks the ticket up.
 The gardener **never bumps `last_confirmed` itself**: the bumps are executed
 by the **implementing factory run** that picks up the flipped batch ticket.
 Embed the following execution contract **verbatim** (markers included — do
@@ -353,15 +354,17 @@ it as **Completed** if it was fixed — a later recurrence may be re-filed as a 
 
 ## Autonomous-vs-approval boundary
 
-**Everything is human-gated at v1 — this skill only files tickets.** The
-gardener never edits, writes, or deletes any rule, skill, wiki page, ledger
-entry, lint config, or hook itself; it never merges, transitions, or flips
-anything to `status:ready`; it never bumps `last_confirmed`. Autonomous
-actions are limited to: reading surfaces, gathering evidence, invoking the
-advisory router, and creating/commenting marker-deduped tickets. Humans gate
-by flipping a ticket to `status:ready` (the factory then executes it like any
-work item, honoring the `promotion-contract` rule) or closing it as rejected.
-A future `learnings.autoApply` config may widen this; v1 ships none.
+**This skill only files tickets; the factory applies them.** The gardener
+never edits, writes, or deletes any rule, skill, wiki page, ledger entry, lint
+config, or hook itself; it never merges or transitions anything; it never
+bumps `last_confirmed`. Autonomous actions are limited to: reading surfaces,
+gathering evidence, invoking the advisory router, and creating/commenting
+marker-deduped tickets. Its tickets are filed build-ready (`status:ready`), so
+the factory executes them like any work item, honoring the
+`promotion-contract` rule. Approval is needed only for a PROMOTE into
+EAGER-RULE: that ticket is filed human-gated and waits for a human to flip it
+to `status:ready` or close it as rejected. Any ticket a human closes as
+rejected is remembered.
 
 ## Escalation
 

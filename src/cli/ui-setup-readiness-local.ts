@@ -292,8 +292,9 @@ export async function agentReadyFinding(
 }
 
 /**
- * Require the optional wiki to exist before accepting the Health wiki check.
- * @param projectRoot - Project root containing the optional wiki
+ * Require the project's wiki (the required knowledge role's default backend)
+ * to exist before accepting the Health wiki check.
+ * @param projectRoot - Project root containing the wiki
  * @param health - Current deterministic Health evidence, when available
  * @returns Wiki setup readiness finding
  */
@@ -307,7 +308,7 @@ export async function wikiSetupFinding(
       return setupFinding(
         WIKI_CHECK,
         "warn",
-        "Optional LLM wiki is not installed. Run /lisa:wiki:install."
+        "The LLM wiki is not scaffolded yet. Run /lisa:agent-ready (or the lisa-wiki-setup skill)."
       );
     }
   } catch {
@@ -321,7 +322,7 @@ export async function wikiSetupFinding(
     WIKI_CHECK,
     health,
     ["project.wiki"],
-    "The optional LLM wiki contract files are installed."
+    "The LLM wiki contract files are installed."
   );
 }
 

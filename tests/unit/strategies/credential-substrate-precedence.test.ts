@@ -353,11 +353,12 @@ describe("legacy OS-keychain fallbacks carry a removal date", () => {
 
 describe("integration-access-layer rule reflects the reversed ordering", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/integration-access-layer.md");
+    // The eager head was folded into `config-resolution` in the 2026-11
+    // eager-tier cut; the ordering contract lives in the reference body.
     const reference = read(root, "rules/reference/integration-access-layer.md");
 
     it("no longer documents MCP as the first resolution tier", () => {
-      for (const doc of [eager, reference]) {
+      for (const doc of [reference]) {
         expect(doc).not.toMatch(
           /Resolution order is MCP when available and authenticated/
         );
@@ -368,7 +369,7 @@ describe("integration-access-layer rule reflects the reversed ordering", () => {
     });
 
     it("breadcrumbs both halves to the shared precedence contract", () => {
-      for (const doc of [eager, reference]) {
+      for (const doc of [reference]) {
         expect(doc).toMatch(/credential-substrate-precedence/);
       }
     });

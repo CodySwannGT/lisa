@@ -1,9 +1,9 @@
 ---
 name: lisa-jira-validate-ticket
-description: "Validates a proposed JIRA…"
+description: "Check a proposed or existing…"
 allowed-tools: ["Bash", "Skill"]
 ---
-Validates a proposed JIRA ticket spec (or an existing ticket) against the organizational quality gates without writing anything. Returns a structured PASS/FAIL report per gate with concrete remediation. This is the single source of truth for what makes a valid ticket — both the write path (jira-write-ticket runs it pre-write) and the dry-run path (notion-to-tracker runs it during PRD intake) call this skill so the bar can never drift.
+Check a proposed or existing JIRA ticket against the organization's quality gates and return PASS/FAIL per gate with fixes. Read-only; shared by the write path and PRD intake dry runs.
 
 
 # Validate JIRA Ticket: $ARGUMENTS

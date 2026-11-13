@@ -18,9 +18,20 @@ them ONLY through the executable contract from `@codyswann/lisa/learnings`:
 `parseLearningsFile` to parse and validate, then `projectLearnings` to take the
 bounded serving slice (the highest-priority entries — ordered by confidence,
 then recency — that fit the token/entry budget, plus how many were omitted).
-**Never read the raw ledger file wholesale into context**; the session receives
-the bounded projection, not the full document. Do not duplicate numeric caps in
-rules or prompts; the exported contract is the source of truth.
+**Never read the raw ledger file wholesale into context**; the session receives the bounded projection, not the full document. Do not
+duplicate numeric caps in rules or prompts; the exported contract is the source
+of truth.
+
+**The read path.** `scripts/learnings-projection.mjs` (shipped in the lisa
+plugin) prints exactly that projection as one JSON line, optionally narrowed with
+`--match <regex>`. Implement, the builder and bug-fixer agents, and planning
+(`lisa-task-decomposition` step 0) run it at the start of work; it prints nothing
+when there is no ledger and warns without failing when the ledger is broken.
+
+**Entry style.** One idea per entry, in plain language a later agent can act on
+without the original incident in front of it: what to do or avoid, then — in
+`why` — what went wrong when it was not. Two ideas are two entries. The executable
+contract's limits (length, line count, provenance) still apply to every write.
 
 Each persisted v2 entry has eight fields:
 
@@ -87,8 +98,9 @@ collide.
   (`confirmLearningEntry`, below).
 
 Automated promotion of a captured learning to a higher rung (skill, eager rule,
-executable control, upstream ticket) is the gardener's job, gated by a human
-flipping a tracker ticket to `status:ready`.
+executable control, upstream ticket) is the gardener's job. Its tickets are filed
+build-ready and implemented through the project's normal gates; only a promotion
+into the eager (always-loaded) tier waits for a human to flip `status:ready`.
 
 ## Operator-directed standing rules
 
@@ -154,7 +166,7 @@ rung-1 capture only: it is never read into a later session's instruction surface
 never required of an agent (empty is valid), and never graded or scored. It reaches
 a durable surface only indirectly — through the learner's validation into the
 ledger (which sessions still consume solely as the bounded projection above), and
-from there through the gardener's ticket-gated promotion a human approved. Injecting
+from there through the gardener's ticket-gated promotion. Injecting
 raw self-reports, or treating their volume as a quality signal, would reward
 plausible commentary over good outcomes and bypass the very budget and validation
 this contract exists to enforce.

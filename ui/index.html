@@ -7112,9 +7112,9 @@
             items: [
               {
                 id: "setup.wiki",
-                label: "Install the LLM wiki",
-                desc: "In-repo knowledge base agents read and maintain.",
-                command: "/lisa:wiki:install",
+                label: "Scaffold the LLM wiki",
+                desc: "This repo's own knowledge base (the knowledge role's default backend).",
+                command: "/lisa:agent-ready",
                 optional: true,
               },
               {
@@ -10326,9 +10326,7 @@
               "lisa-harper-fabric@lisa":
                 "12 skills, generated-artifact protection",
               "lisa-wiki@lisa":
-                "In-repo LLM wiki: 22 skills, ingestion connectors (default-on for phaser only)",
-              "lisa-openclaw@lisa":
-                "Telegram/Slack routing via OpenClaw (opt-in)",
+                "In-repo LLM wiki: default backend for the required knowledge role",
               "lisa-cdk@lisa": "AWS CDK plugin",
             },
             thirdPartyCatalog: {

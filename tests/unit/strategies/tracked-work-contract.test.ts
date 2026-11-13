@@ -205,18 +205,17 @@ describe("the work-item guard reads no OS keychain", () => {
 });
 
 describe("tracked-work rules", () => {
-  it.each(["eager", "reference"] as const)(
-    "%s rule pins the invariant",
-    group => {
-      const rule = read(`plugins/src/base/rules/${group}/tracked-work.md`);
+  // The eager head was retired in the 2026-11 eager-tier cut: lisa-track and
+  // the hooks enforce the binding, and the contract lives in the reference body.
+  it.each(["reference"] as const)("%s rule pins the invariant", group => {
+    const rule = read(`plugins/src/base/rules/${group}/tracked-work.md`);
 
-      expect(rule).toMatch(/Before.*durable/is);
-      expect(rule).toMatch(/exactly one.*leaf/is);
-      expect(rule).toContain(TRACKER_WRITE);
-      expect(rule).toContain("lisa-tracker-claim");
-      expect(rule).toContain("node scripts/lisa-work-item.mjs link <ref>");
-      expect(rule).toContain(CLEAR_BINDING);
-      expect(rule).toMatch(/only after.*terminal completion/is);
-    }
-  );
+    expect(rule).toMatch(/Before.*durable/is);
+    expect(rule).toMatch(/exactly one.*leaf/is);
+    expect(rule).toContain(TRACKER_WRITE);
+    expect(rule).toContain("lisa-tracker-claim");
+    expect(rule).toContain("node scripts/lisa-work-item.mjs link <ref>");
+    expect(rule).toContain(CLEAR_BINDING);
+    expect(rule).toMatch(/only after.*terminal completion/is);
+  });
 });

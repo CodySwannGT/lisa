@@ -1,4 +1,4 @@
 display_name: "Jira Verify"
-short_description: "verifying that a JIRA ticket meets organizational standards for epic relationships, description quality, and (for UI tickets) Validation…"
+short_description: "Check that a JIRA ticket meets the organization's standards — epic links, description quality, and a Validation Journey for UI work — by…"
 default_prompt:
-  - "Use $jira-verify: verifying that a JIRA ticket meets organizational standards for epic relationships, description quality, and (for UI tickets) Validation…."
+  - "Use $jira-verify: Check that a JIRA ticket meets the organization's standards — epic links, description quality, and a Validation Journey for UI work — by…."

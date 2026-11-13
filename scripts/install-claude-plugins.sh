@@ -119,8 +119,7 @@ remove_user_wide_codex_lisa_plugins() {
     lisa-harper-fabric \
     lisa-phaser \
     lisa-rails \
-    lisa-wiki \
-    lisa-openclaw; do
+    lisa-wiki; do
     codex plugin remove "${plugin}@lisa" </dev/null >/dev/null 2>&1 || true
   done
   codex plugin marketplace remove lisa </dev/null >/dev/null 2>&1 || true

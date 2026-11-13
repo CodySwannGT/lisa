@@ -48,17 +48,16 @@ const read = (root: string, rel: string): string =>
 
 describe("stale-state-claims rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/stale-state-claims.md");
+    // The eager head was retired in the 2026-11 eager-tier cut; `empirical-inquiry`
+    // carries a one-line summary and the rule index points here. The former
+    // head's obligations now live at the end of the reference body.
     const reference = read(root, "rules/reference/stale-state-claims.md");
+    const eager = reference;
 
-    it("ships as a paired rule with a non-trivial body on both sides", () => {
-      expect(eager.length).toBeGreaterThan(500);
+    it("ships a non-trivial reference body reachable from the rule index", () => {
       expect(reference.length).toBeGreaterThan(2000);
-    });
-
-    it("eager head breadcrumbs to the reference body verbatim", () => {
-      expect(eager).toContain(
-        "Full prose, worked examples, and the rewrite patterns: [reference/stale-state-claims.md](../reference/stale-state-claims.md)."
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/stale-state-claims.md"
       );
     });
 
@@ -134,7 +133,7 @@ describe("stale-state-claims rule contract", () => {
     it("empirical-inquiry forbids treating a recorded note as current state", () => {
       const empirical = read(root, "rules/eager/empirical-inquiry.md");
       expect(empirical).toMatch(/stale-state-claims/);
-      expect(empirical).toMatch(/human-gated/);
+      expect(empirical).toMatch(/"blocked"/);
     });
 
     it("falsifiable-checks names it as the opposite-direction sibling", () => {

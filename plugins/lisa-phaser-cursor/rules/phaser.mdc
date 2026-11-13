@@ -29,6 +29,8 @@ lint-enforced project layer.
 3. **Nothing created or allocated inside `update()`** — no `this.add.*`,
    `tweens.add`, `time.addEvent`, `new Phaser.*`, object/array literals, or
    `map`/`filter`/`reduce` chains. Create in `create()`; pool via `Group`s.
+   This is the hot-path exception to the base immutability preference: inside
+   `update()`, reuse pooled objects and plain loops.
 4. **Events and state.** Cross-cutting events go through one dedicated
    `EventsCenter`; **never reuse `game.events`**. Every external `.on()` needs a
    matching `.off()` in the scene's `shutdown`. Global state goes through the

@@ -1,6 +1,6 @@
 ---
 name: notion-prd-intake
-description: PRD intake agent. Runs one intake cycle against a Notion PRD database — claims PRDs in the configured `ready` status, validates each through the dry-run pipeline, and routes to the `blocked` status (with clarifying comments) or the `ticketed` status (with destination tickets created). Designed to be invoked manually via /notion-prd-intake or autonomously via a scheduled cron.
+description: "Runs one Notion PRD intake cycle: takes the first ready PRD, validates it, and either creates its tickets and marks it ticketed or posts clarifying questions and marks it blocked. Manual or scheduled."
 skills:
   - notion-prd-intake
   - notion-to-tracker

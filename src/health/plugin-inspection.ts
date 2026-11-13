@@ -11,11 +11,7 @@ import {
 } from "../core/config.js";
 import { selectProjectLisaPluginsFromState } from "../core/lisa-plugin-selection.js";
 import { getPackageVersion } from "../cli/version.js";
-import {
-  projectPathKind,
-  readProjectJsonObject,
-  readProjectText,
-} from "./read-only-fs.js";
+import { readProjectJsonObject, readProjectText } from "./read-only-fs.js";
 
 const MAX_PLUGIN_OUTPUT_BYTES = 256 * 1024;
 const MAX_INSTALLED_PLUGINS = 512;
@@ -150,14 +146,7 @@ export async function inspectPlugins(
   ) {
     return { status: "fail", drift: ["plugin settings"] };
   }
-  const hasWiki =
-    (await projectPathKind(
-      projectRoot,
-      path.join("wiki", "lisa-wiki.config.json")
-    )) === "file";
-  const expected = [
-    ...selectProjectLisaPluginsFromState(config, types, hasWiki),
-  ]
+  const expected = [...selectProjectLisaPluginsFromState(config, types)]
     .map(plugin => `${plugin}@lisa`)
     .sort((left, right) => left.localeCompare(right));
   const settingsDrift = expected.filter(

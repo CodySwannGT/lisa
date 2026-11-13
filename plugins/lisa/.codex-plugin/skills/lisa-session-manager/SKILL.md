@@ -1,8 +1,8 @@
 ---
 name: lisa-session-manager
-description: "Runs the local session manager…"
+description: "Run the local session manager…"
 ---
-Runs the local session manager for a project: a long-lived Claude Code session in tmux that dispatches Ready work items to fresh background worker sessions (`/lisa:implement <REF> managedBy=<manager>`), relays worker questions and operator answers over the project's own Telegram bot when one is configured (Telegram is optional; without it questions stay pending in the ledger), reconciles stalled and blocked items, and records one automation run outcome per cycle. Tracker-neutral (GitHub, Jira, Linear); lifecycle states always come from config. Requires Claude Code (background sessions, channels, cross-session messaging). Set it up with lisa-setup-session-manager.
+Run the local session manager: a tmux-hosted Claude Code session that dispatches ready tickets to background workers, relays their questions (over Telegram when configured), and reconciles stalled or blocked items. Claude Code only.
 
 
 # Session manager

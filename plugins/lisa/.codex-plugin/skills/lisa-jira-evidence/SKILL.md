@@ -1,8 +1,8 @@
 ---
 name: lisa-jira-evidence
-description: "Upload text evidence to the…"
+description: "Post text evidence for a JIRA…"
 ---
-Upload text evidence to the configured GitHub evidence release (default pr-assets), update PR description, post JIRA comment with code blocks, and move ticket to the configured review status only when `jira.workflow.review` is set (otherwise leave it in `claimed`). Reusable by any skill that captures evidence and generates evidence/comment.txt + evidence/comment.md.
+Post text evidence for a JIRA ticket: upload it to the GitHub evidence release, update the PR description, comment on the ticket, and move it to review only when a review status is configured.
 
 
 # JIRA Evidence Posting

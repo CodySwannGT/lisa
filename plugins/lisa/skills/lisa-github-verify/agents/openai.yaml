@@ -1,4 +1,4 @@
 display_name: "Github Verify"
-short_description: "verifying that a GitHub Issue meets organizational standards for parent-sub-issue relationships and description quality"
+short_description: "Check that a GitHub issue meets the organization's standards — parent links and description quality — by fetching it live and running…"
 default_prompt:
-  - "Use $lisa-github-verify: verifying that a GitHub Issue meets organizational standards for parent-sub-issue relationships and description quality."
+  - "Use $lisa-github-verify: Check that a GitHub issue meets the organization's standards — parent links and description quality — by fetching it live and running…."

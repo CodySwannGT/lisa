@@ -1,4 +1,4 @@
 display_name: "Parity Code Review"
-short_description: "Lisa-native code review of the…"
+short_description: "Review the current git diff…"
 default_prompt:
-  - "Use $lisa-parity-code-review: Lisa-native code review of the…."
+  - "Use $lisa-parity-code-review: Review the current git diff…."

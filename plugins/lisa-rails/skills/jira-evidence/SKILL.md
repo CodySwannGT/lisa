@@ -1,6 +1,6 @@
 ---
 name: jira-evidence
-description: "Upload evidence to the configured GitHub evidence release (default pr-assets), update PR description, upload attachments to JIRA, post comment, and move ticket to the configured review status only when `jira.workflow.review` is set (otherwise leave it in `claimed`). Reusable by any skill that captures evidence and generates evidence/comment.txt + evidence/comment.md."
+description: "Post verification evidence: upload it to the GitHub evidence release, update the PR description, attach it to the JIRA ticket with a comment, and move the ticket to review only when a review status is configured."
 ---
 
 # JIRA Evidence Posting

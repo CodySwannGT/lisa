@@ -88,14 +88,14 @@ describe.each(SKILL_ROOTS)("lisa-implement managedBy contract (%s)", root => {
     );
     expect(routing()).toContain(NAME_PATTERN);
     expect(routing()).toContain(
-      "Every later use of `$ARGUMENTS` — `lisa-remote-dispatch` and the input-resolver's `lisa-track $ARGUMENTS` — receives the stripped string."
+      "Every later use of `$ARGUMENTS` — `lisa-remote-dispatch` and `lisa-track $ARGUMENTS` — receives the stripped string."
     );
     expect(routing()).toContain(
       "A malformed value is a blocking error, never plain text."
     );
-    expect(
-      section(skill, "## Resolve the input (first task assigned to the team)")
-    ).toContain("`lisa-track $ARGUMENTS` (with `managedBy=` already stripped)");
+    expect(section(skill, "## Resolve the input (first)")).toContain(
+      "`lisa-track $ARGUMENTS` (with `managedBy=` already stripped)"
+    );
   });
 
   it("refuses managedBy with a non-local executionEnv and never falls back", () => {
@@ -133,7 +133,9 @@ describe.each(SKILL_ROOTS)("lisa-implement managedBy contract (%s)", root => {
     );
     expect(body).toContain("then end your turn");
     expect(body).toContain("Never ask in the terminal");
-    expect(body).toContain("Teammates send their questions to the lead");
+    expect(body).toContain(
+      "Subagents send their questions to you, never to `<name>`"
+    );
   });
 
   it("treats inbound messages as answers that cannot grant permissions", () => {

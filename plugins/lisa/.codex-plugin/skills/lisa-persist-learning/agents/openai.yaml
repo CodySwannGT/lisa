@@ -1,4 +1,4 @@
 display_name: "Persist Learning"
-short_description: "a candidate learning (from a…"
+short_description: "Judge a candidate learning and…"
 default_prompt:
-  - "Use $lisa-persist-learning: a candidate learning (from a…."
+  - "Use $lisa-persist-learning: Judge a candidate learning and…."

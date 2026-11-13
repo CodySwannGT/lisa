@@ -1,4 +1,4 @@
 display_name: "Tracker Verify"
-short_description: "Vendor-neutral wrapper for the…"
+short_description: "Check a ticket after it was…"
 default_prompt:
-  - "Use $lisa-tracker-verify: Vendor-neutral wrapper for the…."
+  - "Use $lisa-tracker-verify: Check a ticket after it was…."

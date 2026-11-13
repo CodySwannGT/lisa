@@ -24,7 +24,7 @@ Each rung also carries an orthogonal **scope**: `project` (apply here) or `upstr
 Work down the list and stop at the first honest yes:
 
 1. **Can a machine decide it?** Then it is EXECUTABLE-CONTROL, and prose describing it is redundant. This is the strongest rung and the cheapest to carry: it costs nothing until someone violates it, and then it says exactly what is wrong.
-2. **Is it a procedure with a trigger?** SKILL. The description is what gets loaded eagerly; the body arrives only when invoked.
+2. **Is it a procedure with a trigger, or a pitfall in one?** SKILL. The description is what gets loaded eagerly; the body arrives only when invoked. A pitfall that bites only while a particular skill runs goes in that skill's `## Gotchas` section — the cheapest place that is guaranteed to be read at the moment it matters — rather than in a new skill or the ledger.
 3. **Is it reference knowledge someone would go and look up?** WIKI. Deep project knowledge belongs on a rung that is paid for only when routed to — which is why `wiki-knowledge-source` is query-on-demand rather than load-at-startup.
 4. **Otherwise, KEEP-IN-LEDGER.** This is the default and it is not a failure state. Most learnings are provisional, and the ledger is where a candidate proves whether it recurs.
 
@@ -34,8 +34,9 @@ Work down the list and stop at the first honest yes:
 
 The division is deliberate and it is what keeps knowledge surfaces from silently growing:
 
-- **You capture.** Record the learning through `lisa-persist-learning`, with its provenance and evidence. That is the whole of a session's authority here.
-- **The gardener promotes.** `/lisa:learnings:audit` — available as an opt-in weekly automation via `lisa-setup-automations` — audits the ledger, rules trees, skills, and wiki, routes candidates through the `skill-evaluator`, and files **human-gated tracker tickets** for promotions, demotions, and retirements. A human approves each one.
+- **You capture.** Record the learning through `lisa-persist-learning`, with its provenance and evidence. That is the whole of a session's authority here. The research, plan, implement, verify, and debrief flows each end with this step, so capture happens without anyone asking for it. Write one idea per entry, in plain language a later agent can act on without the incident in front of it.
+- **Flows read it back.** Implement, the builder and bug-fixer, and planning load the ledger's bounded projection (`scripts/learnings-projection.mjs`) at the start of work, so a recorded gotcha is applied rather than rediscovered.
+- **The gardener promotes.** `/lisa:learnings:audit` — a weekly automation that `lisa-setup-automations` registers by default — audits the ledger, rules trees, skills, and wiki, routes candidates through the `skill-evaluator`, and files tracker tickets for promotions, demotions, and retirements. They are filed build-ready, so the factory implements them through the project's normal review and CI. The one exception is a promotion into EAGER-RULE: it charges every session, so it waits for a human.
 - **Nothing hand-appends.** Never write a learning directly into `AGENTS.md`, a host rules file, or the human decree surface. Those are human-authored, and an automated append to them is exactly the accretion this ladder exists to stop.
 
 Promotion tickets are themselves governed: `promotion-contract` requires an EXECUTABLE-CONTROL promotion to be atomic — enable the control, fix the existing violation population, ship a remediation-teaching diagnostic, and delete the superseded prose, all in one PR. Promote-without-remove double-pays forever.

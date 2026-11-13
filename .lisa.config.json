@@ -1,6 +1,7 @@
 {
   "harness": "fleet",
   "tracker": "github",
+  "knowledge": "llm-wiki",
   "source": "github",
   "workItem": {
     "verify": "full"

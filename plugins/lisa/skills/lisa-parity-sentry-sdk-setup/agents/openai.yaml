@@ -1,4 +1,4 @@
 display_name: "Parity Sentry SDK Setup"
-short_description: "Install and configure the Sentry SDK for a project — detect the framework/runtime, add the correct @sentry/<framework> package, initialize…"
+short_description: "Install and configure the Sentry SDK for a project's framework: package, client init, DSN from env, error and performance monitoring, and…"
 default_prompt:
-  - "Use $lisa-parity-sentry-sdk-setup: Install and configure the Sentry SDK for a project — detect the framework/runtime, add the correct @sentry/<framework> package, initialize…."
+  - "Use $lisa-parity-sentry-sdk-setup: Install and configure the Sentry SDK for a project's framework: package, client init, DSN from env, error and performance monitoring, and…."

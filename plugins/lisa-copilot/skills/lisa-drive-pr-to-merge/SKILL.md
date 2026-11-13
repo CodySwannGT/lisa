@@ -1,6 +1,6 @@
 ---
 name: lisa-drive-pr-to-merge
-description: This skill should be used to drive a pull request all the way to MERGED, handling ANYTHING that blocks the merge. It enables auto-merge when the repo supports it (direct-merge fallback otherwise), keeps the branch rebased/synced and resolves merge conflicts, fixes failing CI/deploy checks, addresses and resolves every human and bot review comment (CodeRabbit, etc.) — implementing valid feedback and replying-then-resolving invalid feedback — dismisses stale CHANGES_REQUESTED gates, and verifies the fix actually shipped — both merge ancestry and that a deploy/release run fired for the merge SHA (auto-merge race + zero-deploy-run check). Composable and inline — invoked by other skills (e.g. git-submit-pr, implement, sync-down) via the Skill tool, never as a standalone user command.
+description: "Get a pull request merged, whatever is blocking it: auto-merge, rebasing and conflicts, failing checks, every review comment, stale change requests — then confirm the merge landed and its deploy ran. Called by other skills."
 allowed-tools: ["Bash", "Read", "Edit", "Write", "Grep", "Glob", "Skill"]
 ---
 
@@ -8,7 +8,7 @@ allowed-tools: ["Bash", "Read", "Edit", "Write", "Grep", "Glob", "Skill"]
 
 Single source of truth for the "watch a PR and clear every blocker until it
 merges" loop. Other skills delegate here instead of re-implementing it. Runs
-**inline** (the current agent does the fixes — it does not require an agent team).
+**inline** (the current agent does the fixes).
 
 ## Landing a change set
 

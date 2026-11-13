@@ -30,7 +30,10 @@ import {
   filterHooksForAgent,
   filterScriptsForAgent,
 } from "./lib/per-agent-hook-filter.mjs";
-import { nestCommandsUnderLisa } from "./lib/nest-plugin-commands.mjs";
+import {
+  nestCommandsUnderLisa,
+  stripClaudeOnlyCommandKeys,
+} from "./lib/nest-plugin-commands.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { rewritePluginRuleCitations } from "./lib/plugin-rule-citations.mjs";
 
@@ -173,6 +176,7 @@ export function generateCopilotVariant(srcDir, outDir, version) {
   // commands with the plugin name, so the directory manufactures the /lisa:*
   // namespace that Claude gets from the plugin name alone.
   nestCommandsUnderLisa(outDir);
+  stripClaudeOnlyCommandKeys(outDir);
 
   // 2. Rename agents/<n>.md to agents/<n>.agent.md (per Copilot's default convention).
   //    This is the safe-default path; if the manifest agents-path override probe

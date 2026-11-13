@@ -1,4 +1,4 @@
 display_name: "Wiki Status"
-short_description: "Report Lisa wiki source freshness across enabled ingestion connectors"
+short_description: "Report how fresh each wiki ingestion source is — fresh, stale, skipped, or blocked — with the exact next action for each"
 default_prompt:
-  - "Use $lisa-wiki-status: Report Lisa wiki source freshness across enabled ingestion connectors."
+  - "Use $lisa-wiki-status: Report how fresh each wiki ingestion source is — fresh, stale, skipped, or blocked — with the exact next action for each."

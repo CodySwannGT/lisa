@@ -39,7 +39,7 @@ try {
   );
   if (!verdict.passed)
     console.log(
-      "   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md"
+      "   Next step: follow the lisa-security-audit-handling skill — upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json; if it affects the project and cannot be fixed, stop for a human. Never bypass this hook. See https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md"
     );
   process.exitCode = verdict.passed ? 0 : 1;
 } catch (error) {

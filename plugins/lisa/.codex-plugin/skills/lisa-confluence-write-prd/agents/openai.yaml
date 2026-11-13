@@ -1,4 +1,4 @@
 display_name: "Confluence Write PRD"
-short_description: "Creates or idempotently updates…"
+short_description: "Create or update a PRD as a…"
 default_prompt:
-  - "Use $lisa-confluence-write-prd: Creates or idempotently updates…."
+  - "Use $lisa-confluence-write-prd: Create or update a PRD as a…."

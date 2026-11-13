@@ -1,4 +1,4 @@
 display_name: "Linear Access"
-short_description: "Vendor-neutral access layer for Linear"
+short_description: "The one way Lisa skills reach Linear: LINEAR_API_KEY GraphQL first, ahead of the Linear MCP, when the key matches the configured workspace…"
 default_prompt:
-  - "Use $lisa-linear-access: Vendor-neutral access layer for Linear."
+  - "Use $lisa-linear-access: The one way Lisa skills reach Linear: LINEAR_API_KEY GraphQL first, ahead of the Linear MCP, when the key matches the configured workspace…."

@@ -1,4 +1,4 @@
 display_name: "Cross Pollinate"
-short_description: "Detect a host project's…"
+short_description: "Make a project's own agent…"
 default_prompt:
-  - "Use $lisa-cross-pollinate: Detect a host project's…."
+  - "Use $lisa-cross-pollinate: Make a project's own agent…."

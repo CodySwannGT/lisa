@@ -184,15 +184,8 @@ export async function expectedCodexManagedFiles(
   const lisaRoot = await realpath(
     path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
   );
-  const [detectedTypes, wikiKind] = await Promise.all([
-    readConfinedDetectedStacks(root),
-    projectPathKind(root, "wiki/lisa-wiki.config.json"),
-  ]);
-  const plugins = selectProjectLisaPluginsFromState(
-    config,
-    detectedTypes,
-    wikiKind === "file"
-  );
+  const detectedTypes = await readConfinedDetectedStacks(root);
+  const plugins = selectProjectLisaPluginsFromState(config, detectedTypes);
   const agents = await discoverLisaAgents(
     lisaRoot,
     projectPluginFilter(plugins)

@@ -1,6 +1,6 @@
 ---
 name: learning-judge
-description: Skeptical judgment gate for candidate learnings. Classifies each candidate as durable-learning, planning-miss, one-off, misunderstanding/spec-gap, or lisa-upstream with mandatory evidence citation. Hostile default — most candidates are DROPPED; only durable-learning and planning-miss (a dispatched item that needed a human because planning let a gap through) persist. Use whenever a failure signal or debrief produces a claimed learning that something wants to write to the project learnings surface.
+description: "Skeptical gate for candidate learnings: classifies each with cited evidence and drops most. Only durable learnings and planning misses are kept. Use whenever something wants to write to the learnings ledger."
 ---
 
 # Learning Judge Agent

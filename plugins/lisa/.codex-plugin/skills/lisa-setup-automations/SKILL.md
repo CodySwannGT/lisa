@@ -3,7 +3,7 @@ name: lisa-setup-automations
 description: "Set up the recurring Lisa…"
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit"]
 ---
-Set up the recurring Lisa automations on the local workstation using the CURRENT runtime's native scheduler — Codex automations (the native automations / automation_update mechanism) or, on Claude, /schedule. This skill is a declarative specification: it states WHICH automations to create, how often, and with which parameters; it does not template schedule files or run scheduling code itself — the runtime's native automation mechanism does the creating. Creates six default automations: intake-repair (every 60 min), intake PRD (every 60 min), intake tickets (every 10 min), exploratory-bugs (once a day), exploratory-prds (once a day), monitor (once a day) — plus opt-in learnings-audit (once a week, the gardener). Three flags: auto-start-prds and auto-start-tickets control whether ideated PRDs / filed bug tickets are created auto-pickup-ready (prd_ready / ready, default true) or left for human review; learnings-audit (default false) opts into the weekly gardener loop. Tear down with /tear-down-automations.
+Set up the recurring Lisa automations for this project with the current runtime's native scheduler: intake, exploratory QA and ideation, monitoring, and the weekly learnings gardener. Undo with lisa-tear-down-automations.
 
 
 # Set up Lisa automations: $ARGUMENTS
@@ -121,11 +121,10 @@ nothing announces it. `lisa-automation-status` must treat a stopped clock as a f
   automation. `true` → filed bug/usability tickets are created build-ready (auto-picked-up by ticket
   intake); `false` → created in the backlog for human triage.
 
-- `learnings-audit` (default **false**) — opt-in: when `true`, additionally create the weekly
+- `learnings-audit` (default **true**) — create the weekly
   `lisa-auto-<project>-learnings-audit` automation running `/lisa:learnings:audit` (the gardener —
-  see "Optional automation" below). Default `false` because the gardener's output is human-gated
-  tracker tickets: a project opts into the recurring audit stream deliberately rather than
-  receiving recommendation tickets by surprise.
+  see "The gardener" below). On by default because learnings captured but never pruned or promoted
+  silt up the ledger; pass `false` to leave it out.
 
 The defaults are autonomous by design — the factory model wants inputs flowing through the gates
 without a human between the loops and the pipeline. Pass `false` explicitly to opt a project into
@@ -198,12 +197,10 @@ For a Codex `rrule`: every 60 min → `FREQ=HOURLY;INTERVAL=1`; every 10 min →
 `FREQ=MINUTELY;INTERVAL=10`; once a day → `FREQ=DAILY;INTERVAL=1`; once a week →
 `FREQ=WEEKLY;INTERVAL=1`.
 
-**Optional automation — the gardener.** When the operator opts in
-(`learnings-audit=true`; default **false** — this one is opt-in, unlike the six
-defaults above), additionally create `lisa-auto-<project>-learnings-audit`
+**The gardener.** Unless the operator passes `learnings-audit=false`, also create `lisa-auto-<project>-learnings-audit`
 running `/lisa:learnings:audit` once a **week**. It audits the project's
-knowledge surfaces (learnings ledger, rules trees, skills, wiki) and files
-human-gated promote/demote/confirm/retire tickets per the
+knowledge surfaces (learnings ledger, rules trees, skills, wiki) and files promote/demote/confirm/retire tickets — build-ready, except promotions into the
+always-loaded rules, which wait for a human — per the
 `lisa-learnings-audit` skill. Register at most ONE learnings-audit automation
 per project — the gardener's marker dedupe assumes a single scheduled runner
 and guarantees convergence (a transient duplicate from a concurrent run is
@@ -307,7 +304,7 @@ place (same names) rather than creating duplicates.
 
 Registration is what pulls a loop under the `automation-runbook-contract` rule, so registration is
 what must produce its runbook. For **every automation actually registered above** — including the
-conditionally-guarded `exploratory-bugs` and the opt-in `learnings-audit` — write a checked-in
+conditionally-guarded `exploratory-bugs` and the `learnings-audit` gardener (unless opted out) — write a checked-in
 runbook at:
 
 ```text

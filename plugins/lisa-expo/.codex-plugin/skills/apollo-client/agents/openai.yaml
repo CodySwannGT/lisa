@@ -1,4 +1,4 @@
 display_name: "Apollo Client"
-short_description: "writing or modifying GraphQL…"
+short_description: "Apollo Client 3.10 GraphQL…"
 default_prompt:
-  - "Use $apollo-client: writing or modifying GraphQL…."
+  - "Use $apollo-client: Apollo Client 3.10 GraphQL…."

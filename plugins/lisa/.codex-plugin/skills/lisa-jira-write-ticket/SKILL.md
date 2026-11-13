@@ -1,9 +1,9 @@
 ---
 name: lisa-jira-write-ticket
-description: "Creates or updates a JIRA…"
+description: "Create or update a JIRA ticket…"
 allowed-tools: ["Bash", "Skill"]
 ---
-Creates or updates a JIRA ticket following organizational best practices. Enforces description quality (coding assistant / developer / stakeholder sections), Gherkin acceptance criteria, epic parent relationship, explicit link discovery (blocks / is blocked by / relates to / duplicates / clones), remote links (PRs, Confluence, dashboards), labels, components, fix version, priority, story points, and Validation Journey. Rejects thin tickets — use this skill any time a ticket is created or significantly edited.
+Create or update a JIRA ticket to the organization's standards: description sections, Gherkin criteria, epic parent, links, labels, components, estimates, and Validation Journey. Use whenever a ticket is created or significantly edited.
 
 
 # Write JIRA Ticket: $ARGUMENTS

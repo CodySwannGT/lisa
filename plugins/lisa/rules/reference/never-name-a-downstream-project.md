@@ -2,7 +2,9 @@
 
 ## The rule
 
-A downstream project's identity — its organization, product, or repository name — does not belong in anything that outlives the session it was written in: tracker items (titles, descriptions, comments), pull request titles and bodies, commit messages, wiki and ingested sources, and the text of rules and skills.
+A downstream project's identity — its organization, product, or repository name — does not belong in anything Lisa ships or publishes: Lisa's tracker items (titles, descriptions, comments), pull request titles and bodies, commit messages, wiki and ingested sources, and the text of rules and skills.
+
+**The direction is the whole rule.** Projects may mention Lisa; Lisa may not mention projects. A host repository naming itself — in its own commits, tickets, wiki, or code — is not a leak, and this rule does not ask it to anonymize itself. The rule binds when text written in a host session lands somewhere Lisa owns: the Lisa repository, a Lisa upstream issue, or a file Lisa distributes.
 
 ## Why the identity is never the point
 

@@ -396,10 +396,10 @@ describe("POST /api/config", () => {
       "{",
       '  "handAuthored": {"spacing" : [1,  2,3]},',
       '  "quality": {"lintBudgets":{"cognitiveComplexity":20,"maxLines":375,"maxLinesPerFunction":100}},',
-      '  "wiki": {"source":{"path":"wiki"},"ttlSeconds":120},',
+      '  "notion": {"statusProperty":"State"},',
       '  "_lisaSync": {"populated": {',
       '    "quality.lintBudgets" : {"cognitiveComplexity":20,"maxLines":375,"maxLinesPerFunction":100},',
-      '    "wiki.ttlSeconds" : 120',
+      '    "notion.statusProperty" : "State"',
       "  }},",
       '  "tail"  : {"keep":true}',
       "}",
@@ -409,9 +409,9 @@ describe("POST /api/config", () => {
       "{",
       '  "handAuthored": {"spacing" : [1,  2,3]},',
       '  "quality": {"lintBudgets":{"cognitiveComplexity":20,"maxLines":400,"maxLinesPerFunction":100}},',
-      '  "wiki": {"source":{"path":"wiki"},"ttlSeconds":120},',
+      '  "notion": {"statusProperty":"State"},',
       '  "_lisaSync": {"populated": {',
-      '    "wiki.ttlSeconds" : 120',
+      '    "notion.statusProperty" : "State"',
       "  }},",
       '  "tail"  : {"keep":true}',
       "}",
@@ -437,12 +437,12 @@ describe("POST /api/config", () => {
       ...LEGACY_LINT_BUDGETS,
       maxLines: 400,
     });
-    expect(getAtPath(afterSync, "wiki.ttlSeconds")).toBe(300);
+    expect(getAtPath(afterSync, "notion.statusProperty")).toBe("Status");
     expect(
       report.actions.filter(action => action.kind === "default-evolved")
     ).toEqual([
       {
-        key: "wiki.ttlSeconds",
+        key: "notion.statusProperty",
         kind: "default-evolved",
         detail: "value still matched the old default; updated to the new one",
       },

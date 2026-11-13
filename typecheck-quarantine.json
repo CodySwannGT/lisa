@@ -151,7 +151,6 @@
     "tests/unit/core/learnings-consolidation.test.ts",
     "tests/unit/core/learnings-contract.test.ts",
     "tests/unit/core/learnings-migration.test.ts",
-    "tests/unit/core/role-agent-template-contract.test.ts",
     "tests/unit/core/upstream-attribution-body-hardening.test.ts",
     "tests/unit/core/upstream-attribution-body.test.ts",
     "tests/unit/detection/cdk-app-shape.test.ts",

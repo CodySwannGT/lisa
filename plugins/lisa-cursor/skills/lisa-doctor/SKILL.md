@@ -1,6 +1,6 @@
 ---
 name: lisa-doctor
-description: "Audit whether the current repository is ready to use Lisa. Runs grouped read-only checks across project detection, Lisa config, runtime distribution surfaces, tracker/source preflight access, automation prerequisites, optional GitHub Project coordination, and optional wiki delegation, then reports PASS/WARN/FAIL/SKIP results plus an overall readiness verdict (`READY`, `READY_WITH_WARNINGS`, or `NOT_READY`)."
+description: "Check whether this repository is ready to use Lisa — config, installed surfaces, tracker and source access, automation prerequisites, and optional integrations — and report PASS/WARN/FAIL with an overall verdict. Read-only."
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
 

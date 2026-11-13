@@ -282,7 +282,8 @@ fi
 | `usage` | no | — | Optional token/cost pricing metadata consumed by the `usage-accounting` rule. Missing pricing never blocks a lifecycle flow; Lisa records token counts with `estimated_cost: null` when no trustworthy price source is configured. |
 | `dependencies.humanSignOff` | no | `"default"` | Whether dependency decisions wait on a person. `"default"` keeps every ratification requirement in `dependency-trust-classes`; `"none"` drops all of them — the trust class and its per-class evidence are still required, and credential, paid-account, and license approvals are unaffected. Any other value is reported as invalid (in `lisa apply` output and the session's `lisa-resolved-config` block) and treated as `"default"`. |
 | `humanGate.humanOnly` | no | `[]` | Decision classes this project reserves for a person, such as `["pricing"]`. A `human_gate` reason naming one (as a whole word) is accepted by the writers and never lifted by the sweeps. Absent, only acts an agent cannot perform qualify as a human gate. `.lisa.config.local.json` replaces the list when it sets one. Read by `scripts/human-gate-act.mjs`; see `ready-role-filing`, "What a human gate is". |
-| `wiki` | no | — | Wiki location for the `wiki-knowledge-source` rule. Omit for a local in-repo wiki (`wiki/`). See **Wiki source** below. |
+| `knowledge` | **yes** | `llm-wiki` | Knowledge backend. Closed vocabulary; `llm-wiki` (the git-native wiki each repo owns at `wiki/`) is the only value today. `lisa sync` writes the default with `_lisaSync.populated` provenance and rejects any other value. Selects the plugin that provides the backend (`llm-wiki` → `lisa-wiki`). See **Knowledge role** below. |
+| ~~`wiki`~~ | — | — | **Retired.** Pointed at a local path or a remote wiki repo to mirror. Every repo now owns its own wiki at `wiki/`, so the key has nothing left to say; the `ensure-knowledge-role` migration removes it and nothing reads it. |
 | `sessionManager` | no | — (opt-in) | Local session manager: polls the Ready queue, runs each item in a fresh background Claude Code session, and relays questions over a per-project Telegram bot when one is configured (optional). Absent means the manager is not used; `lisa sync` never populates it. Written by `/lisa:setup:session-manager`. See **Session manager (`sessionManager`)** below. |
 
 ### Host rules (`.agents/rules/`)
@@ -294,36 +295,13 @@ Host-authored operating rules live in `.agents/rules/` — **fixed, not configur
 - **Not the learnings ledger.** `.agents/rules` is reserved in the auto-loaded-tree blocklist, so a `learnings.file` override can never resolve inside it.
 - **Transition.** A project that still has the retired `.claude/rules/PROJECT_RULES.md` keeps it, untouched and authoritative. The pointer block names it so agents whose runtime does not auto-load `.claude/rules/` still find it. Moving that content is a human-gated decision, never an automated rewrite.
 
-### Wiki source (`wiki`)
+### Knowledge role (`knowledge`)
 
-Declares **where this repo's LLM Wiki lives** so the query/ingest skills can resolve and (for a remote wiki) mirror it. `wiki.source` has two shapes — **local** (`path`) and **remote** (`url`) — and the block belongs in the **consumer** repo's `.lisa.config.json`, not in `wiki/lisa-wiki.config.json` (which describes a wiki from the inside and is unavailable until a remote wiki is mirrored — chicken-and-egg). The whole `wiki` block is optional; omit it and the resolver falls back to the in-repo `wiki/` convention.
+**Required**, like `tracker`, but with a default: `lisa sync` writes `"knowledge": "llm-wiki"` when it is missing, so every project has a knowledge base and the `wiki-knowledge-source` rule always has a query skill to point at.
 
-```json
-// local: an explicit path (optional — equivalent to the default convention)
-"wiki": { "source": { "path": "wiki" } }
+Flows use the backend for exactly two things — **ask** (a question in, an answer with sources out) and **record** (something learned goes in). Everything else is the backend's own configuration: for `llm-wiki` that is `wiki/lisa-wiki.config.json` (categories, connectors, sensitivity, PR policy). A future backend, such as a context graph, is a new value that provides those two operations; no flow changes.
 
-// remote: mirror a separate wiki repo
-"wiki": {
-  "source": {
-    "url": "git@github.com:org/wiki.git",
-    "ref": "main",
-    "mirrorPath": ".lisa/wiki",
-    "subdir": "wiki"
-  },
-  "ttlSeconds": 300
-}
-```
-
-| Field | Required | Default | Notes |
-|-------|----------|---------|-------|
-| `wiki.source.path` | no | `wiki` (via convention) | **Local** wiki root, relative to the repo. The explicit form of the in-repo default. Mutually exclusive with `url`. |
-| `wiki.source.url` | no | — | Clone URL of a separate wiki repo. **Its presence selects REMOTE mode.** Mutually exclusive with `path`. |
-| `wiki.source.ref` | no | remote HEAD | Branch/ref to mirror (remote only). |
-| `wiki.source.mirrorPath` | no | `.lisa/wiki` | Where the gitignored mirror is materialized (remote only). `ensure-wiki` keeps this path gitignored automatically. |
-| `wiki.source.subdir` | no | auto | Wiki root within the cloned repo (remote only). Auto-detected as `wiki/` if present, else the repo root. |
-| `wiki.ttlSeconds` | no | `300` | Skip the refresh fetch if the mirror was synced more recently than this (remote only). |
-
-`scripts/ensure-wiki.mjs` is the single resolver (`node scripts/ensure-wiki.mjs --json` → `{mode, wikiRoot, …}`). **LOCAL** mode (no `url`) is a no-op that resolves the wiki root in precedence order `wiki.source.path` → `wikiRoot` in `wiki/lisa-wiki.config.json` → `wiki`; **REMOTE** mode (`url` set) clones-if-missing, fast-forwards when stale, and is offline-tolerant (proceeds with the existing mirror and warns rather than blocking). Callers (`lisa-wiki-query`, `lisa-wiki-ingest`) invoke it as step 0 and never hardcode `wiki/`; the freshness guarantee is the tool's, not the caller's.
+`llm-wiki` has one shape: `wiki/` at the root of the repository that owns it. There is no remote or mirrored wiki and no root override. A repo that is one of several lists the others as plain pointers under **Related repositories** on `wiki/start-here.md`; agents follow them with the access they already have. See `wiki-knowledge-source`.
 
 ### Env → base branch
 

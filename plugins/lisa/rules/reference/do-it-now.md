@@ -1,5 +1,7 @@
 # Do It Now
 
+> Detail behind the eager `ownership` rule.
+
 Lisa helps projects ship dependable software with less effort. Finish authorized, worthwhile work instead of leaving an unowned promise. This instruction does not turn every imperfection into an obligation.
 
 ## Worth doing

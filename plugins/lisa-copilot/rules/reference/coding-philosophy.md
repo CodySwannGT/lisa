@@ -65,6 +65,8 @@ When unsure, ask in order:
 
 Never mutate data. Always create new references.
 
+**Hot-path exception.** Where a stack rule forbids allocation on a measured hot path — a Phaser `update()` loop, a render loop, a tight numeric kernel — the stack rule wins: reuse pooled objects and plain loops there, and keep the immutable style everywhere else.
+
 ```typescript
 // Correct - spread creates new object
 const updated = { ...user, name: "New Name" };
@@ -98,7 +100,7 @@ users.forEach(u => names.push(u.name));
 
 ### 4. Test-Driven Development (TDD)
 
-**Always write failing tests before implementation code.** This is mandatory, not optional.
+**Write failing tests before implementation code for every behavior change.** Documentation, configuration, and pure refactors already covered by tests do not need a new failing test.
 
 ```text
 TDD Cycle:
@@ -109,7 +111,7 @@ TDD Cycle:
 
 ### 5. Clean Deletion
 
-**Delete old code completely.** No deprecation warnings, migration shims, or backward-compatibility layers unless explicitly requested.
+**Delete old code completely.** No deprecation warnings, migration shims, or backward-compatibility layers unless explicitly requested. Schema and data migrations a framework requires (Rails migrations, database migrations) are ordinary code, not shims.
 
 ```typescript
 // Correct: Remove the old code entirely
@@ -426,3 +428,38 @@ export const calculateTeamGprRank = (
   // ...
 };
 ```
+
+## Optimize for Hill-Climbability
+
+Write code that supports rapid, incremental, verifiable improvement. Favor localized changes, clear contracts, low coupling, and fast feedback loops. Each implementation should establish a working baseline that can be improved without significant restructuring.
+
+Avoid premature abstraction and speculative generalization. Prefer simple, understandable implementations with obvious opportunities for refinement.
+
+Structure the code so future agents can easily identify what to change, make a targeted modification, verify its effect, and retain or revert the change independently.
+
+## Code-Level Intent Preservation
+
+Write comments and docstrings that preserve engineering intent, not merely implementation details.
+
+Code should generally explain **what** happens. Comments and docstrings should explain **why it happens that way**, especially when the reasoning is not obvious from the implementation.
+
+When adding, modifying, or removing code:
+
+- **Explain intent:** Document the underlying requirement, problem, or objective driving non-obvious implementation decisions.
+- **Preserve rationale:** Explain why a particular approach was chosen, especially when a simpler or more obvious alternative might appear preferable.
+- **Capture constraints:** Identify important invariants, assumptions, edge cases, and dependencies that future modifications must respect.
+- **Document negative knowledge:** Explain deliberate omissions, rejected approaches, and seemingly unnecessary complexity that actually serves an important purpose.
+- **Protect against regressions:** Where useful, describe what could go wrong if the implementation were simplified, replaced, or removed.
+- **Keep documentation synchronized:** Update or remove comments and docstrings whenever the behavior, assumptions, or underlying intent changes.
+
+### Documentation guidelines
+
+- Favor explanations of *why* over descriptions of *what*.
+- Document contracts, invariants, and side effects in function or class docstrings when they are not evident from signatures and types.
+- Place implementation rationale as close as practical to the code it governs.
+- Avoid comments that simply narrate operations already obvious from reading the code.
+- Do not document every change indiscriminately. Focus on decisions whose rationale would otherwise be lost.
+- Do not use comments as a historical changelog. Preserve enduring intent rather than a chronology of edits.
+- Never invent rationale. If the reason for an existing implementation is unknown, investigate rather than speculate.
+
+**Why this overrides "match the surrounding comment density".** Coding agents default to matching the comment style already in a file. Lisa's codebases are maintained by future agents with no memory of today's session, so a reason that is not written down is a reason that must be rediscovered — or, worse, a guard that gets "simplified" away. The goal is for future coding agents to understand not just what the code does, but why it was written that way, what constraints it protects, and what must remain true when improving it.

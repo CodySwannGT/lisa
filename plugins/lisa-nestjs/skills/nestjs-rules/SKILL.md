@@ -1,6 +1,6 @@
 ---
 name: nestjs-rules
-description: Procedural rules and patterns for NestJS backend development. This skill should be used when creating new NestJS modules, services, resolvers, or controllers. It covers component generation with NestJS CLI, TDD patterns, module structure conventions, Lambda handler patterns, and configuration standards. Use this skill alongside nestjs-graphql for GraphQL-specific patterns.
+description: "Rules for NestJS backend development: generating components with the CLI, TDD, module structure, Lambda handlers, and configuration. Use when creating modules, services, resolvers, or controllers."
 ---
 
 # NestJS Development Rules

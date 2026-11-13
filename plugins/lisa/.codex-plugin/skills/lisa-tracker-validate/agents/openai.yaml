@@ -1,4 +1,4 @@
 display_name: "Tracker Validate"
-short_description: "Vendor-neutral wrapper for the…"
+short_description: "Check a proposed or existing…"
 default_prompt:
-  - "Use $lisa-tracker-validate: Vendor-neutral wrapper for the…."
+  - "Use $lisa-tracker-validate: Check a proposed or existing…."

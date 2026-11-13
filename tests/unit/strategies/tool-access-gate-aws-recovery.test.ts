@@ -42,7 +42,7 @@ const paragraph = (doc: string, opening: string): string =>
 describe("tool-access-gate credential recovery routing (#4469)", () => {
   describe.each(ROOTS)("%s", root => {
     const reference = read(root, "rules/reference/tool-access-gate.md");
-    const eager = read(root, "rules/eager/tool-access-gate.md");
+    const eager = read(root, "rules/eager/when-to-stop.md");
 
     it("probes AWS through the bootstrap recovery before the caller-identity check", () => {
       const row = tableRow(reference, "AWS CLI");

@@ -1,9 +1,9 @@
 ---
 name: lisa-track
-description: "Resolves exactly one live…"
+description: "Find or create exactly one live…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
-Resolves exactly one live configured-tracker leaf for durable project work, claims it idempotently, and persists its canonical reference in worktree-local state. Accepts an existing Jira/GitHub/Linear ref, a spec file, or plain text. Also accepts human_gate: <the act a person must perform>, which files the leaf held — outside the build-ready lane, never claimed — instead of build-ready. Use directly to mention/create the related ticket, and as lisa-implement's mandatory input gate.
+Find or create exactly one live tracker ticket for durable project work, claim it, and remember it for this worktree. Takes a ticket ref, a spec file, or plain text. lisa-implement's first step; also use it directly to file related work.
 
 
 # Track Work: $ARGUMENTS

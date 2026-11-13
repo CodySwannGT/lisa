@@ -1,6 +1,6 @@
 ---
 name: lisa-linear-journey
-description: "Parse a Linear Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database queries, Playwright), capture evidence at each typed [EVIDENCE: <artifact-type>: <name>] marker, and post to Linear + GitHub PR using the linear-evidence skill. Linear counterpart of lisa-jira-journey."
+description: "Run a Linear issue's Validation Journey: perform the steps, capture evidence at each marker, and post it to Linear and the PR."
 allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
 ---
 

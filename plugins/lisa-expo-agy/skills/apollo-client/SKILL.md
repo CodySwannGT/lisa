@@ -1,6 +1,6 @@
 ---
 name: apollo-client
-description: This skill should be used when writing or modifying GraphQL operations, hooks, or mutations using Apollo Client 3.10. It enforces best practices for optimistic responses, cache updates, and TypeScript type generation. Use this skill when creating new queries/mutations, reviewing Apollo code, or troubleshooting cache issues.
+description: "Apollo Client 3.10 GraphQL operations, hooks, and mutations: optimistic responses, cache updates, and generated types. Use when writing or reviewing queries and mutations or debugging cache issues."
 ---
 
 # Apollo Client 3.10

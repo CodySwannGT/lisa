@@ -1,4 +1,4 @@
 display_name: "Learnings Audit"
-short_description: "The gardener of the learnings ladder (PRD #1729)"
+short_description: "Audit every knowledge surface — learnings ledger, rules, skills, wiki, and checks — and file a ticket for each promotion, demotion…"
 default_prompt:
-  - "Use $lisa-learnings-audit: The gardener of the learnings ladder (PRD #1729)."
+  - "Use $lisa-learnings-audit: Audit every knowledge surface — learnings ledger, rules, skills, wiki, and checks — and file a ticket for each promotion, demotion…."

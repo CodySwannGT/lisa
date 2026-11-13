@@ -4,36 +4,56 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Contract tests for the WU-B session-operating pack.
+ * Contract tests for the session operating pack — the always-loaded rules that
+ * shape how an unattended Lisa session works.
  *
- * The pack encodes operating rules that came from observed agent misbehaviour:
- * burning CI as a debugger, idling on a callback that never arrives, jargon-heavy
- * status updates, and deferring in-scope work. Because these rules load on EVERY
- * session for EVERY agent, the tests pin two things that are easy to lose: the
- * exact instruction each rule exists to give, and the fact that it reaches all
- * generated agent surfaces (rather than only the source tree).
+ * The 2026-11 rewrite merged nine older heads into four: `ownership` (was
+ * do-it-now + upstream-to-lisa), `when-to-stop` (was settled-decisions +
+ * not-blocked-just-waiting + tool-access-gate), `communication` (was
+ * report-actionability + session-status-updates), and the new
+ * `production-verifiability`. The retired heads keep their reference bodies,
+ * reachable from the rule index, so skills that cite them by slug still resolve.
+ *
+ * These rules load on EVERY session for EVERY agent, so the tests pin the
+ * instruction each exists to give, the instructions deliberately removed, and
+ * the fact that each reaches the generated agent surfaces.
  *
  * The `plugins/lisa` root is included so a source edit that was never fanned out
  * through `bun run build:plugins` fails here rather than shipping half-delivered.
  */
 const ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
 
-const LOCAL_CI_FIRST = "local-ci-first";
-const NOT_BLOCKED = "not-blocked-just-waiting";
-const STATUS_UPDATES = "session-status-updates";
-const DO_IT_NOW = "do-it-now";
-const LEARNINGS_LADDER = "learnings-ladder";
+const OWNERSHIP = "ownership";
+const WHEN_TO_STOP = "when-to-stop";
+const COMMUNICATION = "communication";
+const PRODUCTION_VERIFIABILITY = "production-verifiability";
 
 /** Rules the pack modifies rather than introduces. */
 const WIKI_KNOWLEDGE_SOURCE = "wiki-knowledge-source";
 const FALSIFIABLE_CHECKS = "falsifiable-checks";
 
 const PACK_SLUGS = [
-  LOCAL_CI_FIRST,
-  NOT_BLOCKED,
-  STATUS_UPDATES,
-  DO_IT_NOW,
-  LEARNINGS_LADDER,
+  OWNERSHIP,
+  WHEN_TO_STOP,
+  COMMUNICATION,
+  PRODUCTION_VERIFIABILITY,
+] as const;
+
+/** Heads retired from the eager tier whose reference bodies must stay indexed. */
+const RETIRED_HEADS = [
+  "do-it-now",
+  "upstream-to-lisa",
+  "settled-decisions",
+  "not-blocked-just-waiting",
+  "tool-access-gate",
+  "report-actionability",
+  "session-status-updates",
+  "local-ci-first",
+  "intent-routing",
+  "tracked-work",
+  "stale-state-claims",
+  "measurement-integrity",
+  "integration-access-layer",
 ] as const;
 
 const read = (root: string, rel: string): string =>
@@ -59,9 +79,7 @@ describe.each(ROOTS)("session operating pack in %s", root => {
     it("marks the eager head load-bearing and breadcrumbs to the body", () => {
       const eager = eagerOf(root, slug);
       expect(eager).toMatch(/^# .+ \(load-bearing\)$/m);
-      expect(eager).toContain(
-        `[reference/${slug}.md](../reference/${slug}.md)`
-      );
+      expect(eager).toContain(`(../reference/${slug}.md)`);
     });
 
     it("keeps the eager head short enough to load every session", () => {
@@ -77,76 +95,75 @@ describe.each(ROOTS)("session operating pack in %s", root => {
     });
   });
 
-  it("local-ci-first tells the agent to reproduce CI e2e failures locally", () => {
-    const eager = eagerOf(root, LOCAL_CI_FIRST);
-    expect(eager).toContain("CI Is Not a Debugger");
-    expect(eager).toContain("reproduce it locally with the same configuration");
-    expect(eager).toContain(
-      "Reconstruct the invocation from the workflow file"
-    );
-    expect(eager).toContain("Never push a speculative fix");
+  describe.each(RETIRED_HEADS)("retired head %s", slug => {
+    it("no longer loads eagerly but stays reachable from the index", () => {
+      expect(existsSync(path.resolve(root, `rules/eager/${slug}.md`))).toBe(
+        false
+      );
+      expect(existsSync(path.resolve(root, `rules/reference/${slug}.md`))).toBe(
+        true
+      );
+      expect(eagerOf(root, "00-rule-index")).toContain(`reference/${slug}.md`);
+    });
   });
 
-  it("not-blocked-just-waiting covers polling, blocked, and parallel phases", () => {
-    const eager = eagerOf(root, NOT_BLOCKED);
-    expect(eager).toContain("roughly every 5 minutes");
-    expect(eager).toContain("Blocked means you physically cannot proceed");
-    expect(eager).toContain("not sequential unless the user said so");
+  it("ownership is bounded to code the change touches or depends on", () => {
+    const eager = eagerOf(root, OWNERSHIP);
+    expect(eager).toContain("owner and long-term maintainer");
+    expect(eager).toContain("touches or depends on");
+    expect(eager).toContain("Also fixed");
+    expect(eager).toContain("build-ready ticket");
+    expect(eager).toContain("upstream on Lisa");
   });
 
-  it("not-blocked-just-waiting leaves the factory human_needed vocabulary alone", () => {
-    // The tracker lifecycle vocabulary is a separate, stricter contract. This
-    // rule governs session stuckness only; conflating the two would let a
-    // session downgrade a genuine tracker blocker to "just waiting".
-    const eager = eagerOf(root, NOT_BLOCKED);
-    expect(eager).toContain("human_needed");
-    expect(eager).toContain("lisa-repair-intake");
-    expect(eager).toMatch(/stricter, unchanged/);
+  it("when-to-stop names exactly three reasons and the flow's own exit", () => {
+    const eager = eagerOf(root, WHEN_TO_STOP);
+    expect(eager).toContain("Missing access");
+    expect(eager).toContain("Product ambiguity");
+    expect(eager).toContain("dangerous operation");
+    expect(eager).toContain("blocked or needs-human exit");
+    expect(eager).toContain("need no approval");
   });
 
-  it("session-status-updates fixes the three-part shape and plain language", () => {
-    const eager = eagerOf(root, STATUS_UPDATES);
-    expect(eager).toContain(
-      "what changed, what's blocked, and what needs a decision"
-    );
-    expect(eager).toContain("non-technical");
-    expect(eager).toContain("recommendation");
-    expect(eager).toContain("ramifications");
-  });
-
-  it("session-status-updates requires the safe-to-close line verbatim", () => {
-    const eager = eagerOf(root, STATUS_UPDATES);
-    expect(eager).toContain("`Safe to close: yes/no — <reason>`");
-  });
-
-  it("do-it-now completes accepted work while declining unnecessary expansion", () => {
-    const eager = eagerOf(root, DO_IT_NOW);
-    expect(eager).toContain("Complete the accepted scope");
-    expect(eager).toContain("Decline unnecessary work");
-    expect(eager).toContain("no ticket, new rule, or human approval");
-    expect(eager).toContain(
-      "Human decisions and protected actions still wait at their exterior gate"
-    );
-  });
-
-  it("learnings-ladder names all six rungs and the host rules path", () => {
-    const eager = eagerOf(root, LEARNINGS_LADDER);
-    for (const rung of [
-      "EXECUTABLE-CONTROL",
-      "EAGER-RULE",
-      "SKILL",
-      "WIKI",
-      "KEEP-IN-LEDGER",
-      "RETIRE",
+  it("when-to-stop no longer prescribes timed polling", () => {
+    // Claude Code notifies on background completion; a fixed 5-minute poll
+    // contradicted the harness and wasted turns.
+    for (const text of [
+      eagerOf(root, WHEN_TO_STOP),
+      referenceOf(root, "not-blocked-just-waiting"),
     ])
-      expect(eager).toContain(rung);
-    expect(eager).toContain(".agents/rules/");
+      expect(text).not.toMatch(/every (5|five) minutes/i);
   });
 
-  it("learnings-ladder routes promotion through the gardener, not the session", () => {
-    const eager = eagerOf(root, LEARNINGS_LADDER);
-    expect(eager).toContain("/lisa:learnings:audit");
-    expect(eager).toContain("lisa-persist-learning");
+  it("when-to-stop keeps the standing-rulings re-read at the escalation boundary", () => {
+    expect(eagerOf(root, WHEN_TO_STOP)).toContain("re-read `AGENTS.md`");
+    expect(referenceOf(root, WHEN_TO_STOP)).toContain("## Standing rulings");
+  });
+
+  it("communication writes for a low-context reader and accounts for scope", () => {
+    const eager = eagerOf(root, COMMUNICATION);
+    expect(eager).toContain("may not be technical");
+    expect(eager).toContain("recommendation");
+    expect(eager).toMatch(/6 findings: 3 fixed/);
+  });
+
+  it("communication dropped the close line and the hard sentence cap", () => {
+    for (const text of [
+      eagerOf(root, COMMUNICATION),
+      referenceOf(root, "session-status-updates"),
+    ]) {
+      expect(text).not.toContain("Safe to close");
+      expect(text).not.toMatch(/20 words/);
+    }
+  });
+
+  it("production-verifiability is tool-neutral and names the PR sections", () => {
+    const eager = eagerOf(root, PRODUCTION_VERIFIABILITY);
+    expect(eager).toContain("How we'll know it works in production");
+    expect(eager).toContain("How to undo");
+    expect(eager).toContain("wherever it sends data");
+    for (const vendor of ["Sentry", "CloudWatch", "Datadog", "PostHog"])
+      expect(eager).not.toContain(vendor);
   });
 
   it("wiki-knowledge-source is query-on-demand, not consult-first", () => {
@@ -156,31 +173,34 @@ describe.each(ROOTS)("session operating pack in %s", root => {
     expect(eager).not.toContain("authoritative answer");
   });
 
-  it("wiki-knowledge-source does not dangle when the wiki plugin is absent", () => {
-    // The packaging bug: the rule ships in base while lisa-wiki-query ships only
-    // in the wiki plugin, so a base-only project got a rule pointing at a skill
-    // it does not have. The rule now disqualifies itself on the same condition
-    // that gates the plugin's installation, and names the base-shipped recovery.
+  it("wiki-knowledge-source names the required knowledge role, not an optional install", () => {
+    // The rule ships in base while lisa-wiki-query ships in the wiki plugin.
+    // That stopped dangling when the wiki became the required `knowledge`
+    // role's default backend: every project now installs the query skill, so
+    // the rule no longer needs an applicability escape hatch or a bootstrap.
     for (const text of [
       eagerOf(root, WIKI_KNOWLEDGE_SOURCE),
       referenceOf(root, WIKI_KNOWLEDGE_SOURCE),
     ]) {
-      expect(text).toContain("lisa-wiki.config.json");
-      expect(text).toContain("lisa-wiki-install");
+      expect(text).toContain("`knowledge` role");
+      expect(text).not.toContain("lisa-wiki-install");
+      expect(text).not.toContain("mirror");
     }
   });
 
-  it("falsifiable-checks keeps the mutation-proof cardinality yardstick", () => {
-    // Was `toContain("exactly one")` until #2489 corrected the reading: exactly
-    // one is one of two load-bearing outcomes, not the requirement. The full
-    // contract lives in tests/unit/strategies/falsifiable-checks-rule.test.ts.
+  it("falsifiable-checks keeps the inert-guard reading", () => {
+    // The full contract lives in tests/unit/strategies/falsifiable-checks-rule.test.ts.
     const eager = eagerOf(root, FALSIFIABLE_CHECKS);
-    expect(eager).toContain("Exactly one, or several all named for the same");
+    expect(eager).toContain("Zero failures means the guard is inert");
   });
 
   it("falsifiable-checks forbids narrating a red state that was never run", () => {
-    const eager = eagerOf(root, FALSIFIABLE_CHECKS);
-    expect(eager).toContain("detached-HEAD worktree");
+    expect(eagerOf(root, FALSIFIABLE_CHECKS)).toContain(
+      "Do not narrate a failing state you did not run"
+    );
+    expect(referenceOf(root, FALSIFIABLE_CHECKS)).toContain(
+      "detached-HEAD worktree"
+    );
   });
 
   it("empirical-inquiry requires establishing branch position before a diff", () => {
@@ -188,8 +208,8 @@ describe.each(ROOTS)("session operating pack in %s", root => {
     expect(eager).toContain("git rev-list --count HEAD..origin/");
   });
 
-  it("integration-access-layer points at the secrets contract without copying it", () => {
-    const eager = eagerOf(root, "integration-access-layer");
+  it("config-resolution points at the secrets contract without copying it", () => {
+    const eager = eagerOf(root, "config-resolution");
     expect(eager).toContain("lisa-secrets-access");
     // A second copy of the note format would drift from the real contract.
     expect(eager).not.toContain("tool:");

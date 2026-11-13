@@ -1,4 +1,4 @@
 display_name: "Tear Down Automations"
-short_description: "Remove recurring Lisa automations that /setup-automations registered for this project — either the whole lisa-auto-<project>-* fleet by…"
+short_description: "Remove the recurring Lisa automations registered for this project, or a single named one, using the current runtime's native scheduler"
 default_prompt:
-  - "Use $lisa-tear-down-automations: Remove recurring Lisa automations that /setup-automations registered for this project — either the whole lisa-auto-<project>-* fleet by…."
+  - "Use $lisa-tear-down-automations: Remove the recurring Lisa automations registered for this project, or a single named one, using the current runtime's native scheduler."

@@ -97,8 +97,8 @@ describe.each(skillPaths("lisa-implement"))("%s", file => {
   const text = readFileSync(file, "utf8");
   const resolve = section(text, "## Resolve the input");
 
-  it("returns the route from the input-resolver", () => {
-    expect(resolve).toMatch(/Return[^\n]*`route`/u);
+  it("keeps the route lisa-track returned", () => {
+    expect(resolve).toMatch(/Keep[^\n]*`lisa-track`.s `route`/u);
   });
 
   it("drives the existing PR from its head branch instead of building again", () => {

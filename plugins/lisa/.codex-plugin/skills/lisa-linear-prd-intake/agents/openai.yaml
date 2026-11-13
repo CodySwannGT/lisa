@@ -1,4 +1,4 @@
 display_name: "Linear PRD Intake"
-short_description: "Scans a Linear workspace (or a…"
+short_description: "Run one cycle of Linear PRD…"
 default_prompt:
-  - "Use $lisa-linear-prd-intake: Scans a Linear workspace (or a…."
+  - "Use $lisa-linear-prd-intake: Run one cycle of Linear PRD…."

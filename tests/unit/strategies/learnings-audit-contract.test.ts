@@ -6,7 +6,7 @@
  * classifies via the ladder router (skill-evaluator, advisory), and
  * communicates exclusively through the tracker — per-item tickets for
  * PROMOTE/DEMOTE, one batch ticket per run for CONFIRM/RETIRE, upstream
- * issues for upstream-scoped recommendations. Everything is human-gated at
+ * issues for upstream-scoped recommendations. Only eager-tier promotions are human-gated at
  * v1; the skill only files tickets. Recommendations are fingerprint-marked
  * and deduped against open AND closed issues, and the gardener's own output
  * is never a candidate (no learning loops about learning).
@@ -75,9 +75,12 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     expect(skill).toContain("`policy-obsolete`");
   });
 
-  it("is human-gated everything at v1 — the skill only files tickets", () => {
+  it("only files tickets: build-ready, except eager-tier promotions held for a human", () => {
     expect(skill).toMatch(/only files tickets/i);
-    expect(skill).toMatch(/human-gated/i);
+    expect(skill).toContain("build_ready: true");
+    expect(skill).toContain(
+      'human_gate: "a human decides whether this learning is promoted\ninto the always-loaded rules"'
+    );
     expect(skill).toMatch(/status:ready/);
     // It never edits knowledge surfaces itself.
     expect(skill).toMatch(/never (edits?|writes?|deletes?|modif)/i);

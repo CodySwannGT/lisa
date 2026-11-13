@@ -15,8 +15,6 @@
  *   - SubagentStart, SessionEnd, Notification, PreCompact           ❌ (Codex doesn't have these)
  *
  * Claude hooks intentionally NOT ported (no Codex equivalent):
- *   - enforce-team-first.sh — gates Claude's TeamCreate/Skill/ToolSearch agent-
- *     team orchestration; Codex's multi-agent model is different.
  *   - inject-flow-context.sh — fires on SubagentStart, which Codex lacks.
  *   - the SessionEnd `entire` hook — Codex has no SessionEnd event.
  * inject-rules also fires on SubagentStart under Claude; on Codex only its
