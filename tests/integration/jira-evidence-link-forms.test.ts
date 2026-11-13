@@ -20,6 +20,11 @@ import {
   prepareRepository,
   runFor,
 } from "./support/jira-evidence-run.js";
+import {
+  postedBody,
+  recordedUploads,
+  releaseAssets,
+} from "./support/recording-gh-stub.js";
 
 const OTHER_PR = `${RELEASE}/pr-102-${SHOT}`;
 const BARE = `${RELEASE}/${SHOT}`;
@@ -58,18 +63,44 @@ describe.each(SOURCES)("Markdown link forms are validated: %s", script => {
     expect(result.stdout).not.toContain(DESCRIPTION_UPDATED);
   });
 
-  it("fails when a link names another evidence release of this repository (#4838)", () => {
+  it("fails before uploading when a link names this PR's asset in another evidence release (#4838, #4856)", () => {
     // The templates were generated against one release and the upload went
-    // to another (a roll-over in between): every such link would 404.
+    // to another (a roll-over in between): this PR's own links would 404.
+    // The refusal must come before any upload, so nothing is left orphaned
+    // in a release the operator then re-pins away from.
+    const repo = prepareRepository();
     const other = `https://github.com/org/repo/releases/download/pr-assets-2026-11/pr-101-${SHOT}`;
-    const result = runWith(script, `![Shot](${other})\n`);
+    const result = runFor(repo, script, "101", {
+      commentMd: `![Shot](${other})\n`,
+    });
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain(other);
     expect(result.stderr).toContain("'pr-assets-2026-11'");
     expect(result.stderr).toContain("LISA_EVIDENCE_RELEASE=pr-assets");
     expect(result.stdout).not.toContain(DESCRIPTION_UPDATED);
+    expect(result.stdout).not.toContain("↑");
+    expect(recordedUploads(repo.state)).toEqual([]);
+    expect(releaseAssets(repo.state)).toEqual([]);
   });
+
+  it.each([
+    ["another PR's asset", "pr-55-01-before.txt"],
+    ["a name with no PR prefix", "baseline.png"],
+  ])(
+    "posts a deliberate link to %s in an older release unchanged (#4856)",
+    (_kind, asset) => {
+      const repo = prepareRepository();
+      const older = `https://github.com/org/repo/releases/download/pr-assets-2026-10/${asset}`;
+      const commentMd = `![Shot](${OWN})\n[before](${older})\n`;
+      const result = runFor(repo, script, "101", { commentMd });
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stdout).toContain(DESCRIPTION_UPDATED);
+      expect(postedBody(repo.state)).toContain(`[before](${older})`);
+      expect(recordedUploads(repo.state)).not.toEqual([]);
+    }
+  );
 
   it("accepts a link into another repository's release alongside this run's upload", () => {
     const foreign = `https://github.com/org/other/releases/download/v1.0.0/notes.txt`;

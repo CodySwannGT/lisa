@@ -159,7 +159,9 @@ export function overflowReleaseTag(base, index) {
  *
  * The one resolver behind both `evidence-release` and
  * `publish-completion-proof`, so the release the publisher uploads to is
- * always the one `evidence-release` prints in the same environment. The
+ * always the one `evidence-release --ensure` prints in the same environment
+ * (plain `evidence-release` does not roll over, so after a rollover it names
+ * the full release instead, CodySwannGT/lisa#4856). The
  * publisher used to resolve the current-month name itself and ignore
  * `LISA_EVIDENCE_RELEASE`, so a full month blocked every completion even when
  * the operator pinned a release with room (CodySwannGT/lisa#4838).
