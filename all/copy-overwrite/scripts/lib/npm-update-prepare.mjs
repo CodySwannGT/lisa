@@ -22,7 +22,6 @@ import {
   validateHost,
   validateLock,
   proposalFrom,
-  proposalFileNames,
 } from "./npm-update-contract.mjs";
 import {
   runProcess,
@@ -34,7 +33,8 @@ import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { qualifyLisaOwner } from "./npm-update-owner.mjs";
 export { qualifyLisaOwner } from "./npm-update-owner.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
-import { committedBun, qualifiedBun, frozenBun } from "./npm-update-bun.mjs";
+import { directoryBun, qualifiedBun, frozenBun } from "./npm-update-bun.mjs";
+import { npmPath } from "./automation-provenance-contract.mjs";
 
 const NPM_FLAGS = ["--ignore-scripts", "--no-audit", "--no-fund"];
 
@@ -53,8 +53,16 @@ function installedVersions(directory, selections) {
   );
 }
 
-/** Re-read the committed source; an unstaged manifest cannot become the baseline. */
-export async function baseline(cwd, env, proposal) {
+/**
+ * Re-read the committed source; an unstaged manifest cannot become the baseline.
+ * Files are keyed by name inside the selected directory, never by repository path.
+ */
+export async function baseline(
+  cwd,
+  env,
+  proposal,
+  directory = proposal?.directory ?? "."
+) {
   const command = args =>
     runProcess("git", args, { cwd, env, maximum: 1_048_576 });
   const parent = (await command(["rev-parse", "HEAD"])).stdout
@@ -62,18 +70,19 @@ export async function baseline(cwd, env, proposal) {
     .trim();
   const files = {};
   for (const file of FILES) {
+    const path = npmPath({ directory }, file);
     const entry = (
-      await command(["ls-tree", "HEAD", "--", file])
+      await command(["ls-tree", "HEAD", "--", path])
     ).stdout.toString();
     required(
       entry.startsWith("100644 blob ") && entry.trim().split("\n").length === 1,
       "regular committed npm files required"
     );
-    files[file] = (await command(["show", `HEAD:${file}`])).stdout.toString(
+    files[file] = (await command(["show", `HEAD:${path}`])).stdout.toString(
       "utf8"
     );
   }
-  const bun = await committedBun(cwd, command, proposal);
+  const bun = await directoryBun(cwd, command, directory, proposal);
   if (bun !== undefined) files["bun.lock"] = bun;
   if (proposal)
     required(
@@ -178,7 +187,10 @@ async function preparedProposal({
       { cwd: app }
     );
   const files = Object.fromEntries(
-    names.map(file => [file, readFileSync(join(app, file), "utf8")])
+    names.map(file => [
+      npmPath(policy, file),
+      readFileSync(join(app, file), "utf8"),
+    ])
   );
   const proposal = proposalFrom(
     policy,
@@ -189,10 +201,7 @@ async function preparedProposal({
     bun ? sha256(original.files["bun.lock"]) : undefined
   );
   const hashes = Object.fromEntries(
-    proposalFileNames(proposal).map(file => [
-      file,
-      sha256(readFileSync(join(app, file))),
-    ])
+    names.map(file => [file, sha256(readFileSync(join(app, file)))])
   );
   await npm(["ci", ...npmFlags]);
   if (bun) await frozenBun(bun, app, names);
@@ -220,9 +229,9 @@ async function preparedProposal({
 
 /** The private resource lifecycle remains outside the prepared proposal's npm checks. */
 export async function prepareUpdate({ cwd, policy: input, config }) {
-  const engineStrict = await effectiveEngineStrict(cwd);
-  const npmFlags = [...NPM_FLAGS, ...(engineStrict ? ["--engine-strict"] : [])];
   const policy = validatePolicy(input, config);
+  const engineStrict = await effectiveEngineStrict(join(cwd, policy.directory));
+  const npmFlags = [...NPM_FLAGS, ...(engineStrict ? ["--engine-strict"] : [])];
   let privatePath;
   const result = await withPrivateRoot(async (root, env) => {
     privatePath = root;
@@ -236,7 +245,7 @@ export async function prepareUpdate({ cwd, policy: input, config }) {
       ["10.9.9", "11.21.0"].includes(version),
       "supported npm10.9.9 or11.21.0 is required"
     );
-    const original = await baseline(cwd, env);
+    const original = await baseline(cwd, env, undefined, policy.directory);
     const before = JSON.parse(original.files["package.json"]);
     validateHost(before);
     required(

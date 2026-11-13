@@ -9,7 +9,7 @@ import {
   required,
   keys,
   OBJECT,
-  validatePolicy,
+  selectPolicy,
   validateProposal,
 } from "./npm-update-contract.mjs";
 import {
@@ -33,8 +33,8 @@ import {
 } from "./github-attestation-recovery.mjs";
 import {
   DESCRIPTOR_KEYS,
-  optionalLockFields,
-  optionalRuntimeFields,
+  npmPath,
+  signedProposalFields,
 } from "./automation-provenance-contract.mjs";
 
 /** Only complete, digest-checked transport is considered; incomplete chunks grant nothing. */
@@ -58,7 +58,7 @@ export function completeCheckpoints(comments) {
 }
 
 /** Named committed objects, never ignored config or candidate paths, select historical authority. */
-export async function committedCancellationConfig(cwd, parent) {
+export async function committedCancellationConfig(cwd, parent, directory) {
   required(
     typeof parent === "string" && OBJECT.test(parent),
     "invalid committed cancellation parent"
@@ -81,9 +81,9 @@ export async function committedCancellationConfig(cwd, parent) {
     config.automationProvenance?.enabled === true,
     "original committed authority is disabled"
   );
-  validatePolicy(config.npmUpdater, config);
+  const { repository } = selectPolicy(config, directory);
   required(
-    config.automationProvenance.repository === config.npmUpdater.repository,
+    config.automationProvenance.repository === repository,
     "original committed authority repository differs"
   );
   return config;
@@ -134,7 +134,7 @@ export function assertOriginTransport(
 
 /** Original claim, body, policy and proposal are checked separately from current authority. */
 async function inspectOrigin(api, issue, payload, oldConfig, currentConfig) {
-  const policy = validatePolicy(oldConfig.npmUpdater, oldConfig);
+  const policy = selectPolicy(oldConfig, payload.proposal.directory);
   const proposal = validateProposal(payload.proposal, policy);
   const allocation = payload.allocation;
   keys(allocation, [
@@ -184,11 +184,8 @@ export function originalDescriptor(checkpoint, old, allocation, authority) {
   const preview = checkpoint.payload.preview;
   keys(preview, ["descriptor", "message", "epoch"]);
   const d = preview.descriptor;
-  keys(d, [
-    ...DESCRIPTOR_KEYS,
-    ...optionalLockFields(old),
-    ...optionalRuntimeFields(old),
-  ]);
+  const signed = signedProposalFields(old);
+  keys(d, [...DESCRIPTOR_KEYS, ...Object.keys(signed)]);
   required(
     d.version === 1 &&
       d.parent === old.parent &&
@@ -199,8 +196,7 @@ export function originalDescriptor(checkpoint, old, allocation, authority) {
       d.proposalKey === old.bindingKey &&
       d.policySha256 === sha256(canonicalJson(authority)) &&
       canonicalJson(d.files) === canonicalJson(old.hashes) &&
-      d.bunLockSha256 === old.bunLockSha256 &&
-      d.runtimeSha256 === old.runtimeSha256 &&
+      canonicalJson(signedProposalFields(d)) === canonicalJson(signed) &&
       canonicalJson(d.updates) === canonicalJson(old.updates) &&
       typeof preview.message === "string" &&
       sha256(preview.message) === d.messageSha256 &&
@@ -260,7 +256,11 @@ export async function authenticateStaleOrigin({
       old.selectionKey === proposal.selectionKey,
     "origin is not this stale selection"
   );
-  const oldConfig = await committedCancellationConfig(cwd, old.parent);
+  const oldConfig = await committedCancellationConfig(
+    cwd,
+    old.parent,
+    proposal.directory
+  );
   const authority = oldConfig.automationProvenance;
   required(
     [
@@ -282,7 +282,7 @@ export async function authenticateStaleOrigin({
   );
   const manifest = await runProcess(
     "git",
-    ["show", `${old.parent}:package.json`],
+    ["show", `${old.parent}:${npmPath(old, "package.json")}`],
     {
       cwd,
       env: {

@@ -10,6 +10,7 @@
 import { describe, expect, it } from "vitest";
 import {
   proposalFrom,
+  selectPolicy,
   validatePolicy,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-contract.mjs";
 import { buildDraft } from "../../../all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs";
@@ -172,6 +173,25 @@ describe("root identity is unchanged", () => {
     );
     expect(sha256(bun.body)).toMatchInlineSnapshot(
       `"92d8648249831f2ed7f75fc62d7baf616358258d957c96f6adb0c54e14de3a8d"`
+    );
+  });
+
+  it("gives the root entry of a directory list the same identity as the legacy object", () => {
+    const legacy = selectPolicy({ ...CONFIG, npmUpdater: POLICY }, ".");
+    const listed = selectPolicy(
+      {
+        ...CONFIG,
+        npmUpdater: [POLICY, { ...POLICY, directory: "externals" }],
+      },
+      "."
+    );
+    expect(listed).toEqual(validatePolicy(POLICY, CONFIG));
+    expect(identity(twoFile(listed))).toEqual(identity(twoFile(legacy)));
+    expect(identity(bunThreeFile(listed))).toEqual(
+      identity(bunThreeFile(legacy))
+    );
+    expect(identity(twoFile(listed))[0]).toBe(
+      "d586a08edccca8e122e58789873e1b545f2d96154a0a0a20f16cc3d047f58967"
     );
   });
 });

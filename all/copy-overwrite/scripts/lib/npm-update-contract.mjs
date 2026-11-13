@@ -12,6 +12,7 @@ export { UpdaterError, required, keys } from "./npm-update-invariants.mjs";
 import { canonicalJson } from "./automation-provenance-contract.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import {
+  npmPath,
   optionalLockFields,
   optionalRuntimeFields,
   proposalFileNames,
@@ -28,7 +29,12 @@ export const SECTIONS = [
 ];
 export const CLAIM =
   "[lisa-tracker-claim] Claimed by Lisa. Starting implementation.";
-export { NAME, VERSION, validatePolicy } from "./npm-update-policy.mjs";
+export {
+  NAME,
+  VERSION,
+  validatePolicy,
+  selectPolicy,
+} from "./npm-update-policy.mjs";
 import { VERSION } from "./npm-update-policy.mjs";
 export const OBJECT = /^[a-f0-9]{40}$/;
 
@@ -168,7 +174,7 @@ export function selectionKey(policy, updates) {
       repository: policy.repository,
       target: "main",
       ecosystem: "npm",
-      directory: ".",
+      directory: policy.directory,
       policySha256: sha256(canonicalJson(policy)),
       versions: updates
         .map(({ name, to }) => ({ name, version: to }))
@@ -190,6 +196,7 @@ export function proposalFrom(
   const optional = {
     ...(bunLockSha256 === undefined ? {} : { bunLockSha256 }),
     ...runtimeBinding(policy),
+    ...(policy.directory === "." ? {} : { directory: policy.directory }),
   };
   const names = proposalFileNames({ files, ...optional });
   for (const value of Object.values(files))
@@ -197,8 +204,8 @@ export function proposalFrom(
       typeof value === "string" && Buffer.byteLength(value) <= 1_048_576,
       "oversize proposal file"
     );
-  const after = JSON.parse(files["package.json"]);
-  const lock = JSON.parse(files["package-lock.json"]);
+  const after = JSON.parse(files[npmPath(optional, "package.json")]);
+  const lock = JSON.parse(files[npmPath(optional, "package-lock.json")]);
   validateManifest(before, after, updates, policy);
   validateLock(lock, after, updates);
   const ordered = [...updates].sort((a, b) => a.name.localeCompare(b.name));
@@ -206,7 +213,7 @@ export function proposalFrom(
     repository: policy.repository,
     target: policy.target,
     ecosystem: "npm",
-    directory: ".",
+    directory: policy.directory,
     parent,
     policySha256: sha256(canonicalJson(policy)),
     updates: ordered,

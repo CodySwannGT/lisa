@@ -5,6 +5,10 @@
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required } from "./npm-update-contract.mjs";
 import { validateProposal, keys } from "./npm-update-contract.mjs";
+import {
+  directoryOf,
+  proposalPolicy,
+} from "./automation-provenance-contract.mjs";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 import { writeJson, withPrivateRoot } from "./npm-update-process.mjs";
@@ -165,7 +169,13 @@ export async function recordedCancellation({
   keys(checkpoint.payload.preview, ["cancellation"]);
   const record = checkpoint.payload.preview.cancellation;
   validateCancellation(record, record);
-  const historical = await committedCancellationConfig(cwd, record.parent);
+  const directory = directoryOf(proposal);
+  const historical = await committedCancellationConfig(
+    cwd,
+    record.parent,
+    directory
+  );
+  const committed = proposalPolicy(historical, proposal);
   const authority = historical.automationProvenance;
   required(
     [
@@ -176,13 +186,10 @@ export async function recordedCancellation({
       "ghExecutable",
       "ghSha256",
     ].every(key => authority[key] === api.policy[key]) &&
-      historical.npmUpdater.maintainer === config.npmUpdater.maintainer,
+      committed.maintainer === proposalPolicy(config, proposal).maintainer,
     "recorded cancellation authority differs"
   );
-  const replacement = validateProposal(
-    checkpoint.payload.proposal,
-    historical.npmUpdater
-  );
+  const replacement = validateProposal(checkpoint.payload.proposal, committed);
   required(
     replacement.selectionKey === proposal.selectionKey,
     "recorded cancellation selection differs"

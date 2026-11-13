@@ -23,6 +23,8 @@ import {
   trustedConfiguration,
   npmProposal,
   signedProposalFields,
+  directoryOf,
+  policyEntry,
 } from "./lib/automation-provenance-contract.mjs";
 import {
   git,
@@ -67,7 +69,12 @@ function recoveryPermission(
     recoveryBytes.toString("utf8") === `${canonicalJson(recovery)}\n`,
     "noncanonical/duplicate recovery fields"
   );
-  const npmPolicySha256 = sha256(canonicalJson(config.npmUpdater));
+  // The digest is of the one committed entry for the descriptor's directory, so a
+  // legacy single-object root policy keeps its historical digest.
+  const directory = directoryOf(descriptor);
+  const entry = policyEntry(config, directory);
+  requireProof(entry, "committed npm directory policy is absent");
+  const npmPolicySha256 = sha256(canonicalJson(entry));
   verifyRecoveryOrigin(policy, descriptor, recovery, sha256(bytes), paths, {
     npmPolicySha256,
     proposalKey: sha256(
@@ -75,7 +82,7 @@ function recoveryPermission(
         repository: policy.repository,
         target: "main",
         ecosystem: "npm",
-        directory: ".",
+        directory,
         parent: descriptor.parent,
         policySha256: npmPolicySha256,
         updates: descriptor.updates,
@@ -84,7 +91,7 @@ function recoveryPermission(
     ),
     leafBodySha256: sha256(context.issue.body),
     commit: predictedCommit(descriptor, messageBytes),
-    maintainer: config.npmUpdater.maintainer,
+    maintainer: entry.maintainer,
     recoverySha256: sha256(recoveryBytes),
   });
   requireProof(

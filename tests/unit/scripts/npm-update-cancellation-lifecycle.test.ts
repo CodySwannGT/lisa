@@ -74,7 +74,7 @@ const authority = {
   signerDigest: hash("a", 40),
   allowedTriggers: ["workflow_dispatch"],
 };
-const policy = { maintainer: "maintainer" };
+const policy = { maintainer: "maintainer", directory: "." };
 const config = { npmUpdater: policy, automationProvenance: authority };
 const proposal = {
   repository: authority.repository,
