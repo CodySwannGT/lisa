@@ -104,9 +104,9 @@ describe.each(ROOTS)(
 
     it("states the watch bound with a fallback where `timeout` is missing", () => {
       // macOS ships no `timeout`; the bound must not depend on it existing.
-      expect(block).toMatch(/timeout 540.{0,80}where.{0,40}exists/is);
+      expect(block).toMatch(/timeout <n>.{0,80}where.{0,40}exists/is);
       expect(block).toMatch(/harness'?s own command timeout/i);
-      expect(block).toMatch(/tool call.{0,60}timeout above/is);
+      expect(block).toMatch(/tool call.{0,60}timeout (just )?above/is);
       expect(block).toMatch(/600000 ms/);
     });
 
@@ -126,6 +126,23 @@ describe.each(ROOTS)(
       expect(block).toMatch(/`timeout-minutes`/);
       expect(block).toMatch(
         /concluded unsuccessfully.{0,60}deploy failure.{0,40}step 11/is
+      );
+    });
+
+    it("caps every watch at the time remaining before the ceiling", () => {
+      // A 540 s watch started 54 minutes in would overrun a 60-minute ceiling.
+      expect(block).toMatch(/before each watch.{0,80}remaining/is);
+      expect(block).toMatch(/smaller of 540 and the seconds remaining/);
+      expect(block).toMatch(/if none remain.{0,80}blocked-deploy rule/is);
+    });
+
+    it("diagnoses a blocked deploy before choosing the step 2a blocker kind", () => {
+      expect(block).toMatch(/blocked-deploy rule: diagnose/i);
+      expect(block).toMatch(
+        /repository-owned technical gap.{0,200}actionable blocker.{0,80}file and link/is
+      );
+      expect(block).toMatch(
+        /access, credentials or a human decision.{0,40}human-only blocker/is
       );
     });
 
