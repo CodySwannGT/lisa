@@ -33,7 +33,7 @@ Upload captured evidence and generated templates to GitHub PR description and JI
 
 ## Usage
 
-Resolve the evidence release once, before posting. When `generate-templates.py` wrote the evidence links, use the same release it used so the links match the uploads. If the release cannot be used (for example, it is nearly full), the step prints `Evidence release not usable; stop.` and fails: stop there and report it instead of posting.
+Resolve the evidence release once, before posting. When `generate-templates.py` wrote the evidence links, use the same release it used so the links match the uploads. If the release cannot be used (for example, a pinned release is full, every overflow release is full, the release name is too long to roll over, or the publisher cannot create releases), the step prints `Evidence release not usable; stop.` and fails: stop there and report it instead of posting.
 
 If you came here from jira-journey, `generate-templates.py` already wrote the links: skip the block below and reuse the release name jira-journey printed in its Step 4, because resolving again can pick a different month's release.
 
@@ -54,7 +54,7 @@ LISA_EVIDENCE_RELEASE=<name> bash .claude/skills/jira-evidence/scripts/post-evid
 LISA_EVIDENCE_RELEASE=pr-assets bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 42
 ```
 
-`post-evidence.sh` uses `LISA_EVIDENCE_RELEASE` when it is set, after the resolver confirms it is one of the project's evidence releases and is not nearly full.
+`post-evidence.sh` uses `LISA_EVIDENCE_RELEASE` when it is set, after the resolver confirms it is one of the project's evidence releases and is not nearly full. A pinned release is an exact choice and never rolls over; without a pin, a nearly full release rolls over to its next overflow release (`<release>-2`, `-3`, …).
 
 ## What It Does
 
@@ -82,9 +82,15 @@ check it is not at GitHub's 1000-file limit, with:
 node scripts/lisa-work-item.mjs evidence-release --ensure
 ```
 
-If it reports the release is nearly full, set
-`verification.completion.evidenceRelease` in `.lisa.config.json` to a rotating
-name such as `pr-assets-{YYYY-MM}`; older evidence keeps validating.
+A nearly full release rolls over to the next overflow release (`<release>-2`,
+`-3`, …), which it prints. It refuses only when a pinned `LISA_EVIDENCE_RELEASE`
+is full (unset it, or pin a release with room), every overflow release of the
+period is full (prune old evidence with
+`node scripts/lisa-evidence-prune.mjs --release <release>`, or, if the release
+does not rotate yet, set `verification.completion.evidenceRelease` in
+`.lisa.config.json` to a rotating name such as `pr-assets-{YYYY-MM}`), or the
+release name is too long to take an overflow suffix (shorten it); older evidence
+keeps validating.
 
 ### JIRA comment shows `!filename.png!` as text (not image)
 

@@ -255,7 +255,14 @@ print(json.dumps({
       label: "generate_templates under python3",
       command: PYTHON,
       args: ["-c", program],
-      env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },
+      // Pin the release so the generator never runs `evidence-release
+      // --ensure`, which reads (and may create) a real GitHub release
+      // (CodySwannGT/lisa#4838). This test is about reference stripping.
+      env: {
+        ...process.env,
+        PYTHONDONTWRITEBYTECODE: "1",
+        LISA_EVIDENCE_RELEASE: "pr-assets",
+      },
     });
 
     expect(result.status, result.stderr).toBe(0);
