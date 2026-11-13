@@ -134,7 +134,7 @@ export function encodeProjectDir(cwd) {
  * Longest `projects/` directory name Claude Code keeps whole.
  *
  * Rule read from the Claude Code 2.1.319 binary and confirmed with a real
- * `claude -p` run in a 240-character cwd (lisa#4821): with `s` the encoded
+ * `claude -p` run in a 241-character cwd (lisa#4821): with `s` the encoded
  * cwd, the name is `s` when `s.length <= 200`, else
  * `${s.slice(0, 200)}-${Math.abs(h).toString(36)}`, where `h` is the 32-bit
  * Java string hash of the raw cwd.
@@ -143,8 +143,11 @@ const PROJECT_DIR_LIMIT = 200;
 
 /**
  * The `projects/` directories that may hold a cwd's transcripts: the exact
- * encoded name for a short cwd; for a long one, every directory whose name
- * starts with the truncated prefix and a dash. The prefix is matched rather
+ * encoded name for a short cwd; for a long one, the exact untruncated name
+ * (in case a Claude Code version without the truncation rule wrote it) plus
+ * every directory whose name starts with the truncated prefix and a dash.
+ * The dash keeps out a parent whose own encoded name is exactly that
+ * 200-character prefix. The prefix is matched rather
  * than the hash recomputed, so the hash is never relied on; the caller's
  * exactly-one-match rule turns two directories that both (or neither) hold
  * the session into no verdict.
@@ -157,13 +160,15 @@ function projectDirsFor(projectsDir, cwd) {
   if (encoded.length <= PROJECT_DIR_LIMIT) {
     return [path.join(projectsDir, encoded)];
   }
+  const exact = path.join(projectsDir, encoded);
   const prefix = `${encoded.slice(0, PROJECT_DIR_LIMIT)}-`;
   try {
-    return readdirSync(projectsDir)
+    const truncated = readdirSync(projectsDir)
       .filter(name => name.startsWith(prefix))
       .map(name => path.join(projectsDir, name));
+    return [...new Set([exact, ...truncated])];
   } catch {
-    return [];
+    return [exact];
   }
 }
 

@@ -166,6 +166,28 @@ describe("findTranscript under a truncated project directory", () => {
     expect(readFirstPrompt({ configDir, cwd, sessionId: FULL_ID })).toBeNull();
   });
 
+  it("ignores a parent directory named exactly the bare 200-character prefix", () => {
+    const configDir = tempDir();
+    const cwd = longCwd();
+    plantIn(configDir, truncatedPrefix(cwd).slice(0, -1));
+    const file = plantIn(configDir, claudeProjectDirName(cwd));
+    expect(findTranscript({ configDir, cwd, sessionId: FULL_ID })).toBe(file);
+  });
+
+  it("finds a transcript filed under the exact untruncated name", () => {
+    const configDir = tempDir();
+    // Over Claude Code's 200 but under the filesystem's 255-character name cap.
+    const base = tempDir();
+    const cwd = path.join(base, "e".repeat(230 - base.length - 1));
+    mkdirSync(cwd, { recursive: true });
+    const untruncated = cwd.replace(/[^A-Za-z0-9]/g, "-");
+    expect(untruncated.length).toBeGreaterThan(PROJECT_DIR_LIMIT);
+    const file = plantIn(configDir, untruncated);
+    expect(findTranscript({ configDir, cwd, sessionId: FULL_ID })).toBe(file);
+  });
+
+  // The literal AC2 "neither" case. It is null with or without the scan;
+  // the "one holds" and "both hold" cases above are what exercise the scan.
   it("gives no verdict when two prefix directories hold neither", () => {
     const configDir = tempDir();
     const cwd = longCwd();

@@ -3,7 +3,7 @@
  * under, re-implemented here as an independent test oracle (lisa#4821).
  *
  * Rule read from the Claude Code 2.1.319 binary and confirmed with a real
- * `claude -p` run in a 240-character cwd: every non-alphanumeric character
+ * `claude -p` run in a 241-character cwd: every non-alphanumeric character
  * becomes `-`; a result longer than 200 characters keeps its first 200 and
  * gains `-<base-36 of |h|>`, where `h` is the 32-bit Java string hash of the
  * raw cwd. Kept separate from `first-prompt.mjs` on purpose, so a test that

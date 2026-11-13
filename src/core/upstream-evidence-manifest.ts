@@ -1737,7 +1737,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/escalation-overruled.mjs":
       "42dc128249005547c2ebe405194e8c5d3798354e32b00697b8c45c1693cc65c4",
     "plugins/src/base/skills/lisa-session-manager/scripts/first-prompt.mjs":
-      "5820524a2482c6224472fcfa51bd8b319a98eaa2ecb12373b04a06904df9c418",
+      "3402d6d5f04c6fab87a0f70f9186bc30a5ec1c93ae5c7341f1db66fa4fb5add0",
     "plugins/src/base/skills/lisa-session-manager/scripts/human-answer.mjs":
       "cd3a049ddefd96e067683ec8d1b4f5a3c38800fcd328af1d560c578280de2b2c",
     "plugins/src/base/skills/lisa-session-manager/scripts/human-needed.mjs":
