@@ -85,7 +85,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/gate-pass-cache.mjs":
-      "5a30dba4837e8e693a2a529ce334c481e498e32fa6742d2b5517b16e0d98fdf1",
+      "7ac76be30b821b76aaba184810da9ea8f95b4303b44cbe7ad702fffc8c86bfe4",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
       "98dbe0326546a1d10e148ed9036d5696159dee38068beddff321f1b2d47fcdc7",
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
@@ -389,7 +389,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "baabc232fc5020953af42a3474dce8e2670a5e97af0cee4c19f8cb5105879000",
+      "9941f4b52e04534c4a0526ef4deb41c8798db8b963e62f5afca0d248023fbef8",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":

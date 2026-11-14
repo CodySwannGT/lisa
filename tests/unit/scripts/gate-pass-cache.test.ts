@@ -8,10 +8,14 @@
  * @module tests/unit/scripts/gate-pass-cache
  */
 import {
+  chmodSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   rmSync,
+  statSync,
   utimesSync,
   writeFileSync,
 } from "node:fs";
@@ -21,7 +25,9 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   cacheSetting,
+  environmentFingerprint,
   gateKey,
+  KEY_SCHEMA,
   MAX_AGE_MS,
   openGatePassCache,
   provedTree,
@@ -39,6 +45,15 @@ const LINT = { id: "code-style-slow", command: "bun run lint:slow" };
 const PUSH = "push";
 const BUN = (): string => "1.3.0";
 const CONFIG_FILE = ".lisa.config.json";
+
+/**
+ * The pass store under a cache home.
+ * @param home - Cache home
+ * @returns Store directory
+ */
+function storeOf(home: string): string {
+  return path.join(home, "lisa", "gate-passes");
+}
 
 /**
  * A fresh directory removed after the test.
@@ -343,7 +358,7 @@ describe("lookup and record", () => {
     writeFileSync(path.join(cwd, "a.txt"), "rewritten by a gate\n");
     cache?.commit();
     expect(lines.join("\n")).toMatch(/not recorded: the working tree changed/);
-    expect(existsSync(path.join(cacheHome, "lisa", "gate-passes"))).toBe(false);
+    expect(existsSync(storeOf(cacheHome))).toBe(false);
   });
 
   it("ignores and prunes entries older than 30 days", () => {
@@ -356,7 +371,7 @@ describe("lookup and record", () => {
     const later = () => start + MAX_AGE_MS + 1000;
     expect(open(cwd, env, { now: later }).cache?.lookup(LINT)).toBeNull();
 
-    const dir = path.join(cacheHome, "lisa", "gate-passes");
+    const dir = storeOf(cacheHome);
     const old = (start - MAX_AGE_MS - 1000) / 1000;
     for (const name of readdirSync(dir))
       utimesSync(path.join(dir, name), old, old);
@@ -364,6 +379,102 @@ describe("lookup and record", () => {
     second?.remember({ id: "dead-code", command: "bun run knip" }, 1);
     second?.commit();
     expect(readdirSync(dir)).toHaveLength(1);
+  });
+});
+
+describe("the stored record keeps environment values private", () => {
+  const SECRET = "bootstrap-secret-value-7f3a";
+  const SCOPE_VALUE = "scope-marker-value-91c2";
+  const secretEnv = (home: string): Record<string, string> => ({
+    XDG_CACHE_HOME: home,
+    LISA_SECRETS_BOOTSTRAP: SECRET,
+    LISA_SECRETS_BOOTSTRAP_KEY: `${SECRET}-key`,
+    LISA_DEPLOY_TOKEN: `${SECRET}-token`,
+    LISA_COVERAGE_SCOPE: SCOPE_VALUE,
+  });
+
+  /**
+   * Record one pass and return the stored files' text.
+   * @param cwd - Repository directory
+   * @param env - Environment
+   * @returns Every stored file's contents, joined
+   */
+  function recordAndRead(cwd: string, env: Record<string, string>): string {
+    const cache = open(cwd, env).cache;
+    cache?.remember(LINT, 1);
+    cache?.commit();
+    const dir = storeOf(env.XDG_CACHE_HOME ?? "");
+    return readdirSync(dir)
+      .map(name => readFileSync(path.join(dir, name), "utf8"))
+      .join("\n");
+  }
+
+  it("writes no LISA_* value and no secret-looking name to disk", () => {
+    const { cwd, cacheHome } = repo();
+    const text = recordAndRead(cwd, secretEnv(cacheHome));
+    expect(text).not.toContain(SECRET);
+    expect(text).not.toContain(SCOPE_VALUE);
+    expect(text).not.toMatch(/BOOTSTRAP|TOKEN/);
+    expect(text).toContain("LISA_COVERAGE_SCOPE");
+    expect(text).toMatch(/[0-9a-f]{64}/);
+  });
+
+  it("still misses when a secret-looking LISA_* value changes", () => {
+    const { cwd, cacheHome } = repo();
+    const env = secretEnv(cacheHome);
+    recordAndRead(cwd, env);
+    expect(open(cwd, env).cache?.lookup(LINT)).not.toBeNull();
+    expect(
+      open(cwd, { ...env, LISA_SECRETS_BOOTSTRAP: "rotated" }).cache?.lookup(
+        LINT
+      )
+    ).toBeNull();
+    expect(
+      open(cwd, { ...env, LISA_COVERAGE_SCOPE: "other" }).cache?.lookup(LINT)
+    ).toBeNull();
+  });
+
+  it("fingerprints names only, leaving secret-looking names out", () => {
+    const print = environmentFingerprint({
+      TZ: "UTC",
+      LISA_COVERAGE_SCOPE: "unit",
+      LISA_SECRETS_BOOTSTRAP: "s",
+      LISA_API_KEY: "k",
+      LISA_DB_PASSWORD: "p",
+      LISA_CREDENTIAL_FILE: "c",
+      LISA_SECRET: "x",
+    });
+    expect(print.names).toEqual(["LISA_COVERAGE_SCOPE", "TZ"]);
+    expect(print.digest).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(print)).not.toMatch(/"unit"|"UTC"/);
+  });
+
+  it("creates the store 0700 and its files 0600", () => {
+    const { cwd, cacheHome } = repo();
+    recordAndRead(cwd, { XDG_CACHE_HOME: cacheHome });
+    const dir = storeOf(cacheHome);
+    expect(statSync(dir).mode & 0o777).toBe(0o700);
+    for (const name of readdirSync(dir))
+      expect(statSync(path.join(dir, name)).mode & 0o777).toBe(0o600);
+  });
+
+  it("tightens a store and entries left readable by an earlier run, and drops legacy entries", () => {
+    const { cwd, cacheHome } = repo();
+    const dir = storeOf(cacheHome);
+    mkdirSync(dir, { recursive: true, mode: 0o755 });
+    chmodSync(dir, 0o755);
+    const legacy = path.join(dir, `${"a".repeat(64)}.json`);
+    writeFileSync(
+      legacy,
+      JSON.stringify({ key: "a", inputs: { environment: { X: SECRET } } }),
+      { mode: 0o644 }
+    );
+    chmodSync(legacy, 0o644);
+    const text = recordAndRead(cwd, { XDG_CACHE_HOME: cacheHome });
+    expect(statSync(dir).mode & 0o777).toBe(0o700);
+    expect(existsSync(legacy)).toBe(false);
+    expect(text).not.toContain(SECRET);
+    expect(text).toContain(KEY_SCHEMA);
   });
 });
 
