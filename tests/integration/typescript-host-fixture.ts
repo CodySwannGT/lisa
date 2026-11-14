@@ -15,6 +15,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { stripVTControlCharacters } from "node:util";
 
 import type { LisaConfig } from "../../src/core/config.js";
 import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
@@ -352,7 +353,8 @@ export async function typescriptHost(
  * @returns The summary lines, trimmed
  */
 export function testFileSummaries(output: string): string[] {
-  return output
+  // CI colours Vitest's summary; the lines are compared without the codes.
+  return stripVTControlCharacters(output)
     .split("\n")
     .filter(line => line.includes("Test Files "))
     .map(line => line.trim());

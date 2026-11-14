@@ -20,11 +20,15 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { stripVTControlCharacters } from "node:util";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { LisaConfig } from "../../src/core/config.js";
-import { coverageGlobalSetup } from "../../src/configs/vitest/base.js";
+import {
+  accessMapSetupFiles,
+  coverageGlobalSetup,
+} from "../../src/configs/vitest/base.js";
 import { getTypescriptVitestConfig } from "../../src/configs/vitest/typescript.js";
 import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
 import { SWEPT_ENV } from "../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs";
@@ -182,11 +186,9 @@ function runSuite(host: Host) {
     env,
     baseMs: 30_000,
   });
-  return {
-    status: child.status,
-    lines: `${child.stdout}${child.stderr}`.split("\n"),
-    output: `${child.stdout}${child.stderr}`,
-  };
+  // CI colours Vitest's summary; the assertions read the words, not the codes.
+  const output = stripVTControlCharacters(`${child.stdout}${child.stderr}`);
+  return { status: child.status, lines: output.split("\n"), output };
 }
 
 describe("a TypeScript host built from this branch's templates", () => {
@@ -227,7 +229,9 @@ describe("a TypeScript host built from this branch's templates", () => {
     // global setup left is the coverage include guard.
     const test = getTypescriptVitestConfig().test;
 
-    expect(test?.setupFiles).toEqual([]);
+    // The only setup file is the access-map recorder's (CodySwannGT/lisa#4611),
+    // which CI turns on with LISA_ACCESS_MAP=1 and which is empty otherwise.
+    expect(test?.setupFiles).toEqual([...accessMapSetupFiles()]);
     expect(test?.globalSetup).toEqual([...coverageGlobalSetup()]);
     expect(
       [test?.setupFiles, test?.globalSetup]
