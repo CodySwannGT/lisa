@@ -4,17 +4,21 @@
  * write wins, and a malformed block is left for the readers to refuse.
  * @module tests/unit/scripts/push-gate-defaults
  */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  isRailsProject,
   isTypeScriptProject,
   pushGateDefaultsFor,
+  RAILS_PUSH_GATE_DEFAULTS,
   TYPESCRIPT_PUSH_GATE_DEFAULTS,
+  withDefaults,
   withPushGateDefaults,
 } from "../../../all/copy-overwrite/scripts/lib/push-gate-defaults.mjs";
+import { RailsDetector } from "../../../src/detection/detectors/rails.js";
 import { TypeScriptDetector } from "../../../src/detection/detectors/typescript.js";
 
 const roots: string[] = [];
@@ -31,8 +35,10 @@ afterEach(() => {
 function project(files: Readonly<Record<string, string>>): string {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-push-gate-defaults-"));
   roots.push(root);
-  for (const [file, body] of Object.entries(files))
+  for (const [file, body] of Object.entries(files)) {
+    mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
     writeFileSync(path.join(root, file), body);
+  }
   return root;
 }
 
@@ -113,5 +119,55 @@ describe("withPushGateDefaults", () => {
     expect(withPushGateDefaults(undefined, root).pushGate).toEqual(
       TYPESCRIPT_PUSH_GATE_DEFAULTS
     );
+  });
+});
+
+describe("Rails defaults (CodySwannGT/lisa#4612, #4613)", () => {
+  it.each([
+    [{ "bin/rails": "" }, true],
+    [{ "config/application.rb": "" }, true],
+    [{ Gemfile: "" }, false],
+  ])(
+    "judges %j a Rails project: %s, as src/detection does",
+    async (files, expected) => {
+      const root = project(files);
+      expect(isRailsProject(root)).toBe(expected);
+      expect(await new RailsDetector().detect(root)).toBe(expected);
+    }
+  );
+
+  it("fills in cache, admission and affected specs with changed-files coverage", () => {
+    const root = project({ "bin/rails": "" });
+    expect(withPushGateDefaults({}, root).pushGate).toEqual({
+      cache: true,
+      admission: true,
+      affectedTests: true,
+      affectedCoverage: "changed-files",
+    });
+    expect(pushGateDefaultsFor(root)).toBe(RAILS_PUSH_GATE_DEFAULTS);
+  });
+
+  it("gives a Rails app that also has a tsconfig the Rails table", () => {
+    const root = project({ "bin/rails": "", "tsconfig.json": "{}" });
+    expect(pushGateDefaultsFor(root)).toBe(RAILS_PUSH_GATE_DEFAULTS);
+  });
+
+  it("lets an explicit Rails value win, false included", () => {
+    const root = project({ "config/application.rb": "" });
+    expect(
+      withPushGateDefaults({ pushGate: { cache: false } }, root).pushGate
+    ).toMatchObject({ cache: false, admission: true });
+  });
+
+  it("applies a known table without detection through withDefaults", () => {
+    expect(
+      withDefaults(
+        { pushGate: { affectedTests: false } },
+        RAILS_PUSH_GATE_DEFAULTS
+      ).pushGate
+    ).toEqual({ ...RAILS_PUSH_GATE_DEFAULTS, affectedTests: false });
+    expect(withDefaults({ pushGate: null }, RAILS_PUSH_GATE_DEFAULTS)).toEqual({
+      pushGate: null,
+    });
   });
 });

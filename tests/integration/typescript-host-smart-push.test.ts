@@ -22,7 +22,7 @@ import * as path from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
+import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
 import {
   RECORDED_MAP,
   REPO_ROOT,
@@ -35,7 +35,12 @@ import {
   unitSuite,
 } from "./typescript-host-fixture.js";
 
-const CASE_BUDGET_MS = ioLatencyBudgetMs(240_000);
+// File-scoped budget (CodySwannGT/lisa#4582): every case here starts real
+// host processes, measured at 0.9 to 2.9 s per case on a quiet box (1 vitest process). Both
+// the case budget and each child's bound scale with the measured slowdown, and
+// a child base at half the case base keeps the child dying first, by name.
+useIoLatencyBudget(240_000);
+
 const ALPHA = "src/alpha.ts";
 const ONE_FILE = /^Test Files\s+1 passed \(1\)/u;
 const BOTH_FILES = /^Test Files\s+2 passed \(2\)/u;
@@ -52,65 +57,54 @@ beforeAll(() => {
 afterAll(removeHosts);
 
 describe("a TypeScript host's smart push gate", () => {
-  it(
-    "records a map in CI shape, then runs only the tests a one-module change reaches",
-    async () => {
-      const cwd = await typescriptHost();
-      const map = JSON.parse(
-        fs.readFileSync(
-          path.join(cwd, ".lisa/test-access-map/map.json"),
-          "utf8"
-        )
-      ) as Record<string, string[]>;
-      expect(map["tests/alpha.test.ts"]).toContain(ALPHA);
-      expect(map["tests/alpha.test.ts"]).not.toContain("src/beta.ts");
+  it("records a map in CI shape, then runs only the tests a one-module change reaches", async () => {
+    const cwd = await typescriptHost();
+    const map = JSON.parse(
+      fs.readFileSync(path.join(cwd, ".lisa/test-access-map/map.json"), "utf8")
+    ) as Record<string, string[]>;
+    expect(map["tests/alpha.test.ts"]).toContain(ALPHA);
+    expect(map["tests/alpha.test.ts"]).not.toContain("src/beta.ts");
 
-      commit(cwd, { [ALPHA]: edited("alpha", 1) });
-      const result = push(cwd);
-      expect(result.status, result.output).toBe(0);
-      expect(result.output).toContain(
-        `${SELECTOR}: running 1 test file(s) the change can reach`
-      );
-      expect(result.output).toContain(`tests/alpha.test.ts  (map: ${ALPHA})`);
-      expect(result.output).not.toContain("tests/beta.test.ts  (map:");
-      expect(result.output).toContain(
-        "each changed source file must meet vitest.thresholds.json on its own"
-      );
-      expect(result.output).toContain(
-        "✅ affected tests: 1 changed source file(s) meet the coverage floor"
-      );
-      expect(testFileSummaries(result.output)).toEqual([
-        expect.stringMatching(ONE_FILE),
-      ]);
-    },
-    CASE_BUDGET_MS
-  );
+    commit(cwd, { [ALPHA]: edited("alpha", 1) });
+    const result = push(cwd);
+    expect(result.status, result.output).toBe(0);
+    expect(result.output).toContain(
+      `${SELECTOR}: running 1 test file(s) the change can reach`
+    );
+    expect(result.output).toContain(`tests/alpha.test.ts  (map: ${ALPHA})`);
+    expect(result.output).not.toContain("tests/beta.test.ts  (map:");
+    expect(result.output).toContain(
+      "each changed source file must meet vitest.thresholds.json on its own"
+    );
+    expect(result.output).toContain(
+      "✅ affected tests: 1 changed source file(s) meet the coverage floor"
+    );
+    expect(testFileSummaries(result.output)).toEqual([
+      expect.stringMatching(ONE_FILE),
+    ]);
+  });
 
-  it(
-    "re-pushes an unchanged tree from the pass cache",
-    async () => {
-      // Only a full run is remembered: a narrowed run proves the selection,
-      // not the tree (#4594, #4600). A host with no map yet runs in full.
-      const cwd = await typescriptHost({ map: false });
-      commit(cwd, { "src/beta.ts": edited("beta", 2) });
-      const first = push(cwd);
-      expect(first.status, first.output).toBe(0);
-      expect(first.output).not.toContain(CACHED);
+  it("re-pushes an unchanged tree from the pass cache", async () => {
+    // Only a full run is remembered: a narrowed run proves the selection,
+    // not the tree (#4594, #4600). A host with no map yet runs in full.
+    const cwd = await typescriptHost({ map: false });
+    commit(cwd, { "src/beta.ts": edited("beta", 2) });
+    const first = push(cwd);
+    expect(first.status, first.output).toBe(0);
+    expect(first.output).not.toContain(CACHED);
 
-      const again = push(cwd);
-      expect(again.status, again.output).toBe(0);
-      const lines = again.output.split("\n");
-      for (const gate of ["coverage-adequacy", "test-correctness"]) {
-        expect(
-          lines.find(line => line.includes(`required ${gate} `)),
-          again.output
-        ).toContain(CACHED);
-      }
-      expect(again.output).not.toContain(SELECTOR);
-      expect(testFileSummaries(again.output)).toEqual([]);
-    },
-    CASE_BUDGET_MS
-  );
+    const again = push(cwd);
+    expect(again.status, again.output).toBe(0);
+    const lines = again.output.split("\n");
+    for (const gate of ["coverage-adequacy", "test-correctness"]) {
+      expect(
+        lines.find(line => line.includes(`required ${gate} `)),
+        again.output
+      ).toContain(CACHED);
+    }
+    expect(again.output).not.toContain(SELECTOR);
+    expect(testFileSummaries(again.output)).toEqual([]);
+  });
 
   it.each([
     ["vitest.config.ts", "the Vitest configuration changed (vitest.config.ts)"],
@@ -136,88 +130,71 @@ describe("a TypeScript host's smart push gate", () => {
       expect(testFileSummaries(result.output)).toEqual([
         expect.stringMatching(BOTH_FILES),
       ]);
-    },
-    CASE_BUDGET_MS
+    }
   );
 
-  it(
-    "pushes with the full suite and a plain reason when there is no map yet",
-    async () => {
-      const cwd = await typescriptHost({ map: false });
-      commit(cwd, { [ALPHA]: edited("alpha", 1) });
-      const result = push(cwd);
-      expect(result.status, result.output).toBe(0);
-      expect(result.output).toContain(
-        `${SELECTOR}: Running the full suite: missing map: no test access map is available for this branch's base`
-      );
-      expect(testFileSummaries(result.output)).toEqual([
-        expect.stringMatching(BOTH_FILES),
-      ]);
-    },
-    CASE_BUDGET_MS
-  );
+  it("pushes with the full suite and a plain reason when there is no map yet", async () => {
+    const cwd = await typescriptHost({ map: false });
+    commit(cwd, { [ALPHA]: edited("alpha", 1) });
+    const result = push(cwd);
+    expect(result.status, result.output).toBe(0);
+    expect(result.output).toContain(
+      `${SELECTOR}: Running the full suite: missing map: no test access map is available for this branch's base`
+    );
+    expect(testFileSummaries(result.output)).toEqual([
+      expect.stringMatching(BOTH_FILES),
+    ]);
+  });
 
-  it(
-    "holds its heavy test run for headroom instead of starting it",
-    async () => {
-      const cwd = await typescriptHost();
-      commit(cwd, { [ALPHA]: edited("alpha", 1) });
-      const result = push(cwd, {
-        LISA_ADMISSION_FAKE_MACHINE: JSON.stringify({
-          cores: 4,
-          load1: 64,
-          freeMemoryMb: 8192,
-        }),
-        LISA_ADMISSION_PUSH_MAX_WAIT: "2s",
-      });
-      expect(result.output).toContain("lisa admission: waiting for headroom");
-      // Refused once the wait ran out, so the suite never started and the
-      // push is blocked rather than passed unproved.
-      expect(testFileSummaries(result.output)).toEqual([]);
-      expect(result.status).toBe(1);
-    },
-    CASE_BUDGET_MS
-  );
+  it("holds its heavy test run for headroom instead of starting it", async () => {
+    const cwd = await typescriptHost();
+    commit(cwd, { [ALPHA]: edited("alpha", 1) });
+    const result = push(cwd, {
+      LISA_ADMISSION_FAKE_MACHINE: JSON.stringify({
+        cores: 4,
+        load1: 64,
+        freeMemoryMb: 8192,
+      }),
+      LISA_ADMISSION_PUSH_MAX_WAIT: "2s",
+    });
+    expect(result.output).toContain("lisa admission: waiting for headroom");
+    // Refused once the wait ran out, so the suite never started and the
+    // push is blocked rather than passed unproved.
+    expect(testFileSummaries(result.output)).toEqual([]);
+    expect(result.status).toBe(1);
+  });
 
-  it(
-    "never narrows in CI, so CI still runs every test",
-    async () => {
-      const cwd = await typescriptHost();
-      commit(cwd, { [ALPHA]: edited("alpha", 1) });
-      const result = push(cwd, { CI: "true" });
-      expect(result.status, result.output).toBe(0);
-      expect(result.output).toContain(
-        `${SELECTOR}: Running the full suite: this is a CI run, and CI always runs every test`
-      );
-      expect(testFileSummaries(result.output)).toEqual([
-        expect.stringMatching(BOTH_FILES),
-      ]);
-    },
-    CASE_BUDGET_MS
-  );
+  it("never narrows in CI, so CI still runs every test", async () => {
+    const cwd = await typescriptHost();
+    commit(cwd, { [ALPHA]: edited("alpha", 1) });
+    const result = push(cwd, { CI: "true" });
+    expect(result.status, result.output).toBe(0);
+    expect(result.output).toContain(
+      `${SELECTOR}: Running the full suite: this is a CI run, and CI always runs every test`
+    );
+    expect(testFileSummaries(result.output)).toEqual([
+      expect.stringMatching(BOTH_FILES),
+    ]);
+  });
 
-  it(
-    "runs the full suite, silently, for a host that sets affectedTests to false",
-    async () => {
-      const cwd = await typescriptHost({
-        pushGate: { affectedTests: false },
-        map: false,
-      });
-      // Its CI would record nothing either: the recorder follows the switch.
-      const recording = unitSuite(cwd, { LISA_ACCESS_MAP: "1" });
-      expect(recording.status, recording.output).toBe(0);
-      expect(fs.existsSync(path.join(cwd, path.dirname(RECORDED_MAP)))).toBe(
-        false
-      );
+  it("runs the full suite, silently, for a host that sets affectedTests to false", async () => {
+    const cwd = await typescriptHost({
+      pushGate: { affectedTests: false },
+      map: false,
+    });
+    // Its CI would record nothing either: the recorder follows the switch.
+    const recording = unitSuite(cwd, { LISA_ACCESS_MAP: "1" });
+    expect(recording.status, recording.output).toBe(0);
+    expect(fs.existsSync(path.join(cwd, path.dirname(RECORDED_MAP)))).toBe(
+      false
+    );
 
-      commit(cwd, { [ALPHA]: edited("alpha", 1) });
-      const result = push(cwd);
-      expect(result.status, result.output).toBe(0);
-      expect(result.output).not.toContain(SELECTOR);
-      expect(testFileSummaries(result.output)).toEqual([
-        expect.stringMatching(BOTH_FILES),
-      ]);
-    },
-    CASE_BUDGET_MS
-  );
+    commit(cwd, { [ALPHA]: edited("alpha", 1) });
+    const result = push(cwd);
+    expect(result.status, result.output).toBe(0);
+    expect(result.output).not.toContain(SELECTOR);
+    expect(testFileSummaries(result.output)).toEqual([
+      expect.stringMatching(BOTH_FILES),
+    ]);
+  });
 });

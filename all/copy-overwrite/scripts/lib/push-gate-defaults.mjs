@@ -29,7 +29,17 @@
  *   cached re-push included. A host whose push steps do build can still set
  *   `buildOnce: true`.
  *
- * Other stacks get no defaults here. Rails is a separate leaf.
+ * Rails defaults (CodySwannGT/lisa#4612, #4613) are the same four switches:
+ * the pass cache and admission for `scripts/lisa-rails-gates.mjs`, and
+ * affected-spec selection with `changed-files` coverage for
+ * `scripts/lisa-rspec-select.mjs`. A Rails project is one with `bin/rails` or
+ * `config/application.rb`, as `src/detection/detectors/rails.ts` judges it.
+ * Rails is checked first, so a Rails app that also carries a `tsconfig.json`
+ * gets the Rails table; the two tables agree today.
+ *
+ * Other stacks get no defaults here. This file is the one place every stack's
+ * `pushGate` defaults live; the TypeScript and Rails runners, `lisa check` and
+ * `lisa-test-run`'s admission all read them through it.
  *
  * This file is plain `.mjs` and runs before any build, so it cannot import
  * `src/detection/`. It mirrors `src/detection/detectors/typescript.ts`: a
@@ -48,6 +58,26 @@ export const TYPESCRIPT_PUSH_GATE_DEFAULTS = Object.freeze({
   affectedTests: true,
   affectedCoverage: "changed-files",
 });
+
+/** What a Rails project gets when it does not say. */
+export const RAILS_PUSH_GATE_DEFAULTS = Object.freeze({
+  cache: true,
+  admission: true,
+  affectedTests: true,
+  affectedCoverage: "changed-files",
+});
+
+/**
+ * Whether `root` is a Rails project: `bin/rails`, else `config/application.rb`.
+ * @param {string} root Project root.
+ * @returns {boolean} True for a Rails project.
+ */
+export function isRailsProject(root) {
+  return (
+    existsSync(join(root, "bin", "rails")) ||
+    existsSync(join(root, "config", "application.rb"))
+  );
+}
 
 /**
  * Whether `root` is a TypeScript project, judged as `src/detection` judges it.
@@ -74,6 +104,7 @@ export function isTypeScriptProject(root) {
  * @returns {Readonly<Record<string, unknown>>} Defaults (empty when none apply).
  */
 export function pushGateDefaultsFor(root) {
+  if (isRailsProject(root)) return RAILS_PUSH_GATE_DEFAULTS;
   return isTypeScriptProject(root) ? TYPESCRIPT_PUSH_GATE_DEFAULTS : {};
 }
 
@@ -89,6 +120,18 @@ export function pushGateDefaultsFor(root) {
  * @returns {Record<string, unknown>} The config the push gate should read.
  */
 export function withPushGateDefaults(config, root) {
+  return withDefaults(config, pushGateDefaultsFor(root));
+}
+
+/**
+ * A parsed `.lisa.config.json` with the given `pushGate` defaults filled in
+ * under the project's own keys, by the same rules as
+ * {@link withPushGateDefaults}. For a caller that already knows the stack.
+ * @param {Record<string, unknown>|null|undefined} config Parsed config.
+ * @param {Readonly<Record<string, unknown>>} defaults The stack's defaults.
+ * @returns {Record<string, unknown>} The config with defaults applied.
+ */
+export function withDefaults(config, defaults) {
   const base = config && typeof config === "object" ? config : {};
   const declared = base.pushGate;
   const malformed =
@@ -97,7 +140,6 @@ export function withPushGateDefaults(config, root) {
       typeof declared !== "object" ||
       Array.isArray(declared));
   if (malformed) return base;
-  const defaults = pushGateDefaultsFor(root);
   if (Object.keys(defaults).length === 0) return base;
   return { ...base, pushGate: { ...defaults, ...(declared ?? {}) } };
 }

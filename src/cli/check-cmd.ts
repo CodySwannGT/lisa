@@ -21,6 +21,13 @@
  *   cache only records a pass for a clean tree equal to the commit being
  *   pushed, so a check of a dirty tree would prove nothing the push can reuse.
  * - Any failed required gate exits 1, with the runner's own FAILED lines above.
+ *
+ * In a Rails project (`bin/rails` or `config/application.rb`) the push gates
+ * are the lefthook pre-push commands, not the gate registry, so this runs
+ * `scripts/lisa-rails-gates.mjs --all` instead (CodySwannGT/lisa#4613): the
+ * same RSpec, Brakeman, Reek, Flog and Flay commands, through the same pass
+ * cache and admission. There `pushGate.cache` is on unless the project sets it
+ * to `false`.
  * @module cli/check-cmd
  */
 import { spawnSync } from "node:child_process";
@@ -33,6 +40,7 @@ import type { Command } from "commander";
 
 import { withPushGateDefaults } from "../../all/copy-overwrite/scripts/lib/push-gate-defaults.mjs";
 import { readProjectConfig } from "../core/project-config.js";
+import { RailsDetector } from "../detection/detectors/rails.js";
 
 /** Printed, and exit 0, when checking first would save nothing. */
 export const CACHE_OFF_MESSAGE =
@@ -55,6 +63,9 @@ const PROJECT_RUNNERS = [
   path.join("scripts", "lisa-run-gates.mjs"),
   path.join("all", "copy-overwrite", "scripts", "lisa-run-gates.mjs"),
 ] as const;
+
+/** The Rails pre-push gate script a Rails host carries (CodySwannGT/lisa#4613). */
+export const RAILS_RUNNER = path.join("scripts", "lisa-rails-gates.mjs");
 
 /** One invocation of the push-gate runner. */
 export interface RunnerRequest {
@@ -162,8 +173,9 @@ async function cacheGate(
   root: string,
   env: NodeJS.ProcessEnv
 ): Promise<{ skip: string } | { refuse: string } | null> {
-  // The stack's defaults count (CodySwannGT/lisa#4611): a TypeScript host has
-  // the cache on unless it says `false`, exactly as its push gate does.
+  // The stack's defaults count (CodySwannGT/lisa#4611, #4613): a TypeScript or
+  // Rails host has the cache on unless it says `false`, exactly as its push
+  // gate does. lib/push-gate-defaults.mjs owns both stacks' defaults.
   const enabled = await readProjectConfig(root).then(
     config =>
       (
@@ -288,6 +300,7 @@ export async function runCheck(
     error(head.refuse);
     return 1;
   }
+  const rails = await new RailsDetector().detect(head.root);
   const gate = await cacheGate(head.root, env);
   if (gate && "refuse" in gate) {
     error(`🚫 lisa check: ${gate.refuse}`);
@@ -297,7 +310,55 @@ export async function runCheck(
     log(gate.skip);
     return 0;
   }
-  return runPushGates(head.root, maxWait, env, dependencies, log, error);
+  return rails
+    ? runRailsGates(head.root, maxWait, env, dependencies, log, error)
+    : runPushGates(head.root, maxWait, env, dependencies, log, error);
+}
+
+/**
+ * Run a Rails host's pre-push gate set through its own gate script.
+ * @param root - Repository root
+ * @param maxWait - Admission wait bound
+ * @param env - Process environment
+ * @param dependencies - Injectable collaborators
+ * @param log - Informational sink
+ * @param error - Refusal sink
+ * @returns Process exit code
+ */
+function runRailsGates(
+  root: string,
+  maxWait: string,
+  env: NodeJS.ProcessEnv,
+  dependencies: CheckDependencies,
+  log: (line: string) => void,
+  error: (line: string) => void
+): number {
+  const runner = path.join(root, RAILS_RUNNER);
+  if (!existsSync(runner)) {
+    error(
+      `🚫 lisa check: no Rails gate script found (${RAILS_RUNNER}). ` +
+        "Run lisa to install it. Nothing was proved."
+    );
+    return 1;
+  }
+  const tree =
+    (dependencies.git ?? defaultGit)(["rev-parse", "HEAD^{tree}"], root) ?? "";
+  const run = dependencies.runRunner ?? defaultRunRunner;
+  log(
+    `🔎 lisa check: running the Rails push gates for tree ${tree.slice(0, 12)} ` +
+      `(waits up to ${maxWait} for machine headroom).`
+  );
+  return verdict(
+    run({
+      runner,
+      args: ["--all"],
+      cwd: root,
+      env: { ...env, [MAX_WAIT_ENV]: maxWait },
+    }),
+    tree,
+    log,
+    error
+  );
 }
 
 /**

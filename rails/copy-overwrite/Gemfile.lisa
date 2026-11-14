@@ -29,6 +29,10 @@ group :development, :test do
   # so the pre-push runs only the specs a change can reach
   # (scripts/lisa-rspec-select.mjs, CodySwannGT/lisa#4612). CI runs every spec.
   gem "gitlab-crystalball", "~> 1.1", ">= 1.1.3", require: false
+  # Parallel full RSpec run at pre-push, sized by headroom admission
+  # (scripts/lisa-rails-gates.mjs). Used only when the test database name in
+  # config/database.yml includes <%= ENV['TEST_ENV_NUMBER'] %>.
+  gem "parallel_tests", "~> 5.9", require: false
 
   # Code Quality
   gem "reek", "~> 6.3", require: false

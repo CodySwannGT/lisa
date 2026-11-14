@@ -30,8 +30,14 @@ import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
 import { SWEPT_ENV } from "../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs";
 import {
   boundedSpawnSync,
-  ioLatencyBudgetMs,
+  useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+
+// File-scoped budget (CodySwannGT/lisa#4582): every case here starts real
+// host processes, measured at about 0.8 s per host run and 4 s for the five-run case on a quiet box (1 vitest process). Both
+// the case budget and each child's bound scale with the measured slowdown, and
+// a child base at half the case base keeps the child dying first, by name.
+useIoLatencyBudget(120_000);
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
 const LISA_TEST_RUN = path.join(REPO_ROOT, "dist/cli/lisa-test-run.js");
@@ -174,9 +180,7 @@ function runSuite(host: Host) {
     ],
     cwd: host.cwd,
     env,
-    // Measured at about 0.8 s per run on a quiet box (1 vitest process); 6 s
-    // is the highest base the flat 120 s case budget admits.
-    baseMs: 6_000,
+    baseMs: 30_000,
   });
   return {
     status: child.status,
@@ -232,34 +236,30 @@ describe("a TypeScript host built from this branch's templates", () => {
     ).toEqual([]);
   });
 
-  it(
-    "runs its suite with one sweep line, and leaves no growing residue over five runs",
-    async () => {
-      const host = await typescriptHost();
-      const counts: number[] = [];
-      for (let run = 0; run < 5; run += 1) {
-        const stale = path.join(host.tmp, `lisa-killed-run-${run}`);
-        fs.mkdirSync(stale, { mode: 0o700 });
-        const when = new Date(Date.now() - 48 * HOUR_MS);
-        fs.utimesSync(stale, when, when);
+  it("runs its suite with one sweep line, and leaves no growing residue over five runs", async () => {
+    const host = await typescriptHost();
+    const counts: number[] = [];
+    for (let run = 0; run < 5; run += 1) {
+      const stale = path.join(host.tmp, `lisa-killed-run-${run}`);
+      fs.mkdirSync(stale, { mode: 0o700 });
+      const when = new Date(Date.now() - 48 * HOUR_MS);
+      fs.utimesSync(stale, when, when);
 
-        const outcome = runSuite(host);
+      const outcome = runSuite(host);
 
-        expect(outcome.status, outcome.output).toBe(0);
-        expect(outcome.output).toMatch(/Tests\s+1 passed/u);
-        expect(
-          outcome.lines.filter(line => SWEEP_LINE.test(line.trim()))
-        ).toHaveLength(1);
-        counts.push(
-          fs
-            .readdirSync(host.tmp)
-            .filter(name => name.startsWith("lisa-killed-run-")).length
-        );
-      }
+      expect(outcome.status, outcome.output).toBe(0);
+      expect(outcome.output).toMatch(/Tests\s+1 passed/u);
+      expect(
+        outcome.lines.filter(line => SWEEP_LINE.test(line.trim()))
+      ).toHaveLength(1);
+      counts.push(
+        fs
+          .readdirSync(host.tmp)
+          .filter(name => name.startsWith("lisa-killed-run-")).length
+      );
+    }
 
-      expect(counts[4]).toBeLessThanOrEqual(counts[0] ?? 0);
-      expect(counts).toEqual([0, 0, 0, 0, 0]);
-    },
-    ioLatencyBudgetMs(60_000)
-  );
+    expect(counts[4]).toBeLessThanOrEqual(counts[0] ?? 0);
+    expect(counts).toEqual([0, 0, 0, 0, 0]);
+  });
 });

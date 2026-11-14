@@ -348,6 +348,21 @@ follows reports every cacheable gate as `CACHED PASS`.
   `lisa-implement`) tell every agent to run `lisa check` before `git push`
   unconditionally. Humans may keep pushing normally.
 
+In a Rails project (`bin/rails`, else `config/application.rb`, as the Rails
+detector decides) the push gates are lefthook's pre-push commands, not the
+gate registry, so `lisa check` runs `scripts/lisa-rails-gates.mjs --all`
+instead (CodySwannGT/lisa#4613). Each lefthook command calls that script with
+its own gate name, so check and push run the same commands under the same
+cache keys, which add `Gemfile.lock`, `ruby -v` and `bundle -v`. `pushGate.cache`
+and `pushGate.admission` default to on there; an explicit `false` wins. RSpec
+(and an enabled mutation gate) goes through `lisa admit`; a full run uses
+`parallel_rspec -n <granted>` only when the host's create-only
+`config/database.yml` names its test database with `TEST_ENV_NUMBER`. Work-item
+traceability and the history scan stay in `lisa-rails-prepush.mjs`, which
+reads Git's stdin, and are never cached. Because only that command reads the
+pushed refs, a Rails gate proves `HEAD`'s clean tree, the same tree the
+uncached gates always tested.
+
 ## Affected-test selection at push
 
 `pushGate.affectedTests: true` (CodySwannGT/lisa#4600) routes the unit push

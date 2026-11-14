@@ -238,7 +238,7 @@
       "children": []
     },
     "lib/gate-pass-cache.mjs": {
-      "sha256": "4f2e8facee2058c30b519f4431dbe96aea18b4694c62e751306b0cec82ca7f28",
+      "sha256": "5a30dba4837e8e693a2a529ce334c481e498e32fa6742d2b5517b16e0d98fdf1",
       "staticImports": [
         "node:child_process",
         "node:crypto",
@@ -1301,7 +1301,7 @@
       "children": []
     },
     "lib/push-gate-defaults.mjs": {
-      "sha256": "667b99403d7a191029e937e9fedf8066509214792c73a62a61df6a726606982d",
+      "sha256": "1590f4044803f65b75a731dccfa18a9075e36b15f6f9c2be01d08a5d16a8af2d",
       "staticImports": [
         "node:fs",
         "node:path"
@@ -1321,9 +1321,10 @@
       "children": []
     },
     "lib/rspec-selection.mjs": {
-      "sha256": "1fe6c0a56a0a6dce6dc37564231a61600dc457ae503aeaac61e35b76ba54fb25",
+      "sha256": "65f1cef52767ec6c525cf60958ac24992560bfd8ecb5eb83f4c82b7116836f7e",
       "staticImports": [
-        "lib/affected-tests.mjs"
+        "lib/affected-tests.mjs",
+        "lib/push-gate-defaults.mjs"
       ],
       "dynamicImports": [],
       "children": []

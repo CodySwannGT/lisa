@@ -164,18 +164,6 @@ describe("the shared step bodies", () => {
         "scripts/lisa-rspec-select.mjs",
       ],
       [
-        "all/copy-overwrite/scripts/lib/rspec-selection.mjs",
-        "scripts/lib/rspec-selection.mjs",
-      ],
-      [
-        "all/copy-overwrite/scripts/lib/affected-tests.mjs",
-        "scripts/lib/affected-tests.mjs",
-      ],
-      [
-        "all/copy-overwrite/scripts/lib/invoked-as-script.mjs",
-        "scripts/lib/invoked-as-script.mjs",
-      ],
-      [
         "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb",
         "scripts/lisa_crystalball_recorder.rb",
       ],
@@ -183,6 +171,9 @@ describe("the shared step bodies", () => {
       ([from = "", to = ""]) =>
         `cp ${JSON.stringify(path.join(REPO_ROOT, from))} ${to}`
     ),
+    // lib/ whole: the selector imports into it, so naming its members here
+    // would be a second, silently stale copy of its dependency set.
+    `cp -R ${JSON.stringify(path.join(REPO_ROOT, "all/copy-overwrite/scripts/lib"))}/. scripts/lib/`,
   ].join("\n");
 
   it("arms the recorder from outside the project root", () => {

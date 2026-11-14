@@ -33,9 +33,9 @@ export const RECORDED_MAP = "tmp/test-access-map/unit.json";
 
 const NODE_MODULES = "node_modules";
 const SCOPE = "@codyswann";
-// A host push or unit run measured at 0.9 to 2.9 s on a quiet box (1 vitest
-// process); 6 s is the highest base the flat 120 s case budget admits.
-const SPAWN_BASE_MS = 6_000;
+// Half the 240 s file budget of typescript-host-smart-push.test.ts, which
+// scales both sides with useIoLatencyBudget, so the child dies first.
+const SPAWN_BASE_MS = 60_000;
 
 /**
  * A source module its test covers fully.

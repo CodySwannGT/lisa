@@ -17,6 +17,7 @@
 import {
   chmodSync,
   copyFileSync,
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -47,18 +48,6 @@ const BORROWED: ReadonlyArray<readonly [string, string]> = [
   [
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs",
     "scripts/lisa-rspec-select.mjs",
-  ],
-  [
-    "all/copy-overwrite/scripts/lib/rspec-selection.mjs",
-    "scripts/lib/rspec-selection.mjs",
-  ],
-  [
-    "all/copy-overwrite/scripts/lib/affected-tests.mjs",
-    "scripts/lib/affected-tests.mjs",
-  ],
-  [
-    "all/copy-overwrite/scripts/lib/invoked-as-script.mjs",
-    "scripts/lib/invoked-as-script.mjs",
   ],
   [
     "all/copy-overwrite/scripts/lisa-clean-git-env.sh",
@@ -139,6 +128,13 @@ function writeProject(root: string, options: FixtureOptions): void {
     mkdirSync(path.dirname(path.join(root, to)), { recursive: true });
     copyFileSync(path.join(REPO_ROOT, from), path.join(root, to));
   }
+  // lib/ whole: the selector imports into it, so naming its members here
+  // would be a second, silently stale copy of its dependency set.
+  cpSync(
+    path.join(REPO_ROOT, "all/copy-overwrite/scripts/lib"),
+    path.join(root, "scripts/lib"),
+    { recursive: true }
+  );
   write(root, "bin/bundle", FAKE_BUNDLE);
   write(root, "bin/gh", FAKE_GH);
   chmodSync(path.join(root, "bin/bundle"), 0o755);

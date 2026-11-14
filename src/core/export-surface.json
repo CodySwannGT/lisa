@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 305,
-  "$names": 2176,
+  "$modules": 306,
+  "$names": 2193,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -933,9 +933,12 @@
       "withAdmission"
     ],
     "all/copy-overwrite/scripts/lib/push-gate-defaults.mjs": [
+      "RAILS_PUSH_GATE_DEFAULTS",
       "TYPESCRIPT_PUSH_GATE_DEFAULTS",
+      "isRailsProject",
       "isTypeScriptProject",
       "pushGateDefaultsFor",
+      "withDefaults",
       "withPushGateDefaults"
     ],
     "all/copy-overwrite/scripts/lib/push-timing.mjs": [
@@ -1532,6 +1535,22 @@
     ],
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": [
       "invokedAsScript"
+    ],
+    "rails/copy-overwrite/scripts/lisa-rails-gates.mjs": [
+      "ADMISSION_REFUSED_EXIT",
+      "CHECK_GATES",
+      "RAILS_GATES",
+      "RSPEC_WORKERS_ENV",
+      "declaredWorkers",
+      "grantedWorkers",
+      "isRailsProject",
+      "main",
+      "parallelDatabaseReady",
+      "railsEffectiveConfig",
+      "railsLisaCli",
+      "rspecCommand",
+      "runPayload",
+      "runRailsGates"
     ],
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": [
       "MAX_SHARDS",

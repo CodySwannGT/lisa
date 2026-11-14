@@ -29,8 +29,17 @@ import * as path from "node:path";
 import { load as loadYaml } from "js-yaml";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../helpers/io-latency-budget.js";
 import { loadWorkflow } from "../helpers/workflow-test-utils.js";
+
+// File-scoped budget (CodySwannGT/lisa#4582): every case here starts real
+// host processes, measured at about 0.5 s per route and 2.8 s for a five-run case on a quiet box (1 vitest process). Both
+// the case budget and each child's bound scale with the measured slowdown, and
+// a child base at half the case base keeps the child dying first, by name.
+useIoLatencyBudget(120_000);
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
 const LEFTHOOK = path.join(REPO_ROOT, "rails/copy-overwrite/lefthook.yml");
@@ -141,9 +150,7 @@ function run(host: Host, shell: "sh" | "bash", body: string) {
     command: shell === "sh" ? "/bin/sh" : "bash",
     args: ["-c", `{ ${body}\n} >> "$EVENT_LOG"`],
     cwd: host.cwd,
-    // Measured at about 0.5 s per route on a quiet box (1 vitest process);
-    // 6 s is the highest base the flat 120 s case budget admits.
-    baseMs: 6_000,
+    baseMs: 30_000,
     env: {
       PATH: `${host.bin}:${process.env.PATH ?? ""}`,
       HOME: process.env.HOME,

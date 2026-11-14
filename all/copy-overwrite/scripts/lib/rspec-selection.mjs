@@ -29,12 +29,14 @@
  * @module rspec-selection
  */
 import {
-  AFFECTED_COVERAGE_KEY,
-  AFFECTED_TESTS_KEY,
   affectedTestsSettings,
   firedTrigger,
   readersByFile,
 } from "./affected-tests.mjs";
+import {
+  RAILS_PUSH_GATE_DEFAULTS,
+  withDefaults,
+} from "./push-gate-defaults.mjs";
 
 /** Where the downloaded map lives, relative to the repository root (gitignored). */
 export const MAP_DIR = ".lisa/crystalball-map";
@@ -42,8 +44,11 @@ export const MAP_DIR = ".lisa/crystalball-map";
 /** Every CI map artifact is named `crystalball-map-<base sha>-<run id>[-<leg>]`. */
 export const ARTIFACT_NAME = /^crystalball-map-([0-9a-f]{40})-(\d+)(?:-(.+))?$/;
 
-/** The coverage mode a Rails project gets when it names none (owner decision). */
-export const RAILS_DEFAULT_COVERAGE = "changed-files";
+/**
+ * The coverage mode a Rails project gets when it names none (owner decision).
+ * Owned by `push-gate-defaults.mjs`; re-exported for existing readers.
+ */
+export const RAILS_DEFAULT_COVERAGE = RAILS_PUSH_GATE_DEFAULTS.affectedCoverage;
 
 /** Where a partial run's coverage floors come from. */
 export const THRESHOLDS_FILE = "simplecov.thresholds.json";
@@ -130,15 +135,9 @@ export function isRailsProject(exists) {
  * @throws {Error} When `pushGate` is invalid.
  */
 export function rspecSelectionSettings(config, rails) {
-  const checked = affectedTestsSettings(config);
-  const block = config?.pushGate ?? {};
-  return {
-    enabled: block[AFFECTED_TESTS_KEY] === undefined ? rails : checked.enabled,
-    coverage:
-      block[AFFECTED_COVERAGE_KEY] === undefined
-        ? RAILS_DEFAULT_COVERAGE
-        : checked.coverage,
-  };
+  return affectedTestsSettings(
+    rails ? withDefaults(config, RAILS_PUSH_GATE_DEFAULTS) : config
+  );
 }
 
 /**

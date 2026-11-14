@@ -166,6 +166,9 @@ describe("key derivation", () => {
         LISA_GATE_CACHE: "on",
         LISA_PUSHED_REFS_FILE: "pushed-refs.abc",
         LISA_CLEANUP_SWEPT: "123:456",
+        // A Rails pre-push command's owner marker: a new pid every run
+        // (CodySwannGT/lisa#4613).
+        LISA_TEST_RUN_OWNER: "4242:0",
         // `lisa check` sets the admission wait bound and a push does not
         // (CodySwannGT/lisa#4601); a wait bound never changes a verdict.
         LISA_ADMISSION_MAX_WAIT: "30m",
@@ -192,6 +195,21 @@ describe("key derivation", () => {
     expect(Object.keys(inputs.lockfiles)).toEqual(["bun.lock"]);
     expect(inputs.gatesConfig.local).toEqual({ x: 1 });
     expect(inputs.tools.bun).toBe("1.3.0");
+  });
+
+  it("adds a caller's toolchain versions to the key inputs (Rails: ruby, bundler)", () => {
+    const { cwd } = repo();
+    const plain = sharedInputs(cwd, {}, BUN);
+    const rails = sharedInputs(cwd, {}, BUN, {
+      ruby: "ruby 3.4.0",
+      bundler: "Bundler version 2.6.0",
+    });
+    expect(rails.tools).toEqual({
+      ...plain.tools,
+      ruby: "ruby 3.4.0",
+      bundler: "Bundler version 2.6.0",
+    });
+    expect(plain.tools).toEqual({ node: process.versions.node, bun: "1.3.0" });
   });
 });
 
