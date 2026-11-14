@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.8.2](https://github.com/CodySwannGT/lisa/compare/v5.8.1...v5.8.2) (2026-11-14)
+
+
+### Bug Fixes
+
+* **auto-update:** judge a pending update by its own files ([6a3537b](https://github.com/CodySwannGT/lisa/commit/6a3537bd434805718b4ddd94b6fb58d5b33a10f3)), closes [CodySwannGT/lisa#4903](https://github.com/CodySwannGT/lisa/issues/4903) [CodySwannGT/lisa#4903](https://github.com/CodySwannGT/lisa/issues/4903)
+* **auto-update:** tell the developer when Lisa could not be updated ([9a5907b](https://github.com/CodySwannGT/lisa/commit/9a5907baf09f1fce104ab2443ca41ff3c1464662)), closes [CodySwannGT/lisa#4903](https://github.com/CodySwannGT/lisa/issues/4903) [CodySwannGT/lisa#4903](https://github.com/CodySwannGT/lisa/issues/4903)
+
 ### [5.8.1](https://github.com/CodySwannGT/lisa/compare/v5.8.0...v5.8.1) (2026-11-14)
 
 
