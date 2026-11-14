@@ -2,6 +2,64 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.5.0](https://github.com/CodySwannGT/lisa/compare/v5.4.0...v5.5.0) (2026-11-14)
+
+
+### Features
+
+* **ci:** publish per-file test timings from CI as an artifact ([c0bc157](https://github.com/CodySwannGT/lisa/commit/c0bc1578a7e807a86e55d61000f811d7f8324502)), closes [CodySwannGT/lisa#4592](https://github.com/CodySwannGT/lisa/issues/4592)
+* **ci:** record a test-to-file access map during the full CI run ([7764e2a](https://github.com/CodySwannGT/lisa/commit/7764e2a944efd9680d480c50f6d1835863f25c9c)), closes [CodySwannGT/lisa#4593](https://github.com/CodySwannGT/lisa/issues/4593)
+* **cli:** add lisa check so agents verify before git push ([d40d8aa](https://github.com/CodySwannGT/lisa/commit/d40d8aaf5b5b3baf0550d3976cd3ff8d57aa26ce)), closes [#4594](https://github.com/CodySwannGT/lisa/issues/4594) [#4595](https://github.com/CodySwannGT/lisa/issues/4595) [CodySwannGT/lisa#4601](https://github.com/CodySwannGT/lisa/issues/4601) [CodySwannGT/lisa#4601](https://github.com/CodySwannGT/lisa/issues/4601)
+* **fast-push:** escalate a short changed file to the full suite instead of failing the push ([ddfcc3d](https://github.com/CodySwannGT/lisa/commit/ddfcc3d0d933e322f565f72dd7dbbd1de1e556d3)), closes [CodySwannGT/lisa#4600](https://github.com/CodySwannGT/lisa/issues/4600) [CodySwannGT/lisa#4600](https://github.com/CodySwannGT/lisa/issues/4600)
+* **fast-push:** ship the smart push gate to TypeScript hosts ([f4337bc](https://github.com/CodySwannGT/lisa/commit/f4337bc682ba3d08e2b97e4355205d5a5dd30881)), closes [CodySwannGT/lisa#4611](https://github.com/CodySwannGT/lisa/issues/4611) [CodySwannGT/lisa#4611](https://github.com/CodySwannGT/lisa/issues/4611)
+* **gates:** add a per-gate push timing report ([6f01866](https://github.com/CodySwannGT/lisa/commit/6f018664c287db0b5add1f25a79035db2102dd34)), closes [CodySwannGT/lisa#4591](https://github.com/CodySwannGT/lisa/issues/4591)
+* **gates:** admit heavy runs by machine headroom ([6380e20](https://github.com/CodySwannGT/lisa/commit/6380e205c178f7e136a1cff0f7a37cddf4d2bf13))
+* **gates:** build once per push behind pushGate.buildOnce ([044ace7](https://github.com/CodySwannGT/lisa/commit/044ace7b445f8e99dd89b41997bd3135ac87ca58)), closes [#3778](https://github.com/CodySwannGT/lisa/issues/3778) [CodySwannGT/lisa#4595](https://github.com/CodySwannGT/lisa/issues/4595)
+* **gates:** remember push-gate passes by content fingerprint ([70cba7a](https://github.com/CodySwannGT/lisa/commit/70cba7a704e2773061e48d6fa33e0ce841bc158a)), closes [CodySwannGT/lisa#4594](https://github.com/CodySwannGT/lisa/issues/4594)
+* **push:** run only the tests a change affects at push ([f8c6f67](https://github.com/CodySwannGT/lisa/commit/f8c6f67f1e8f901bb4ab0d6496cfad46db55af90)), closes [CodySwannGT/lisa#4600](https://github.com/CodySwannGT/lisa/issues/4600)
+* **quality:** shard the integration suite with integration_test_shards ([d901f9f](https://github.com/CodySwannGT/lisa/commit/d901f9fe4432ee222328b2571e7ada889322618f)), closes [CodySwannGT/lisa#4599](https://github.com/CodySwannGT/lisa/issues/4599) [CodySwannGT/lisa#4599](https://github.com/CodySwannGT/lisa/issues/4599)
+* **rails:** cache, admit and lisa-check the Rails pre-push gates ([6f675d5](https://github.com/CodySwannGT/lisa/commit/6f675d5f13582769ae97c6769662a3239f924ac2)), closes [CodySwannGT/lisa#4613](https://github.com/CodySwannGT/lisa/issues/4613) [CodySwannGT/lisa#4613](https://github.com/CodySwannGT/lisa/issues/4613)
+* **rails:** select affected specs in the pre-push with gitlab-crystalball ([d1d5758](https://github.com/CodySwannGT/lisa/commit/d1d5758b0f38cc30acab668e61b0a5f1cee4d181)), closes [#4613](https://github.com/CodySwannGT/lisa/issues/4613) [CodySwannGT/lisa#4612](https://github.com/CodySwannGT/lisa/issues/4612) [CodySwannGT/lisa#4612](https://github.com/CodySwannGT/lisa/issues/4612)
+* **templates:** replace scratch policing with a start-of-run sweep (hosts: no action needed) ([104df04](https://github.com/CodySwannGT/lisa/commit/104df04e2349629cba8454e1fece31c3afe5553c)), closes [CodySwannGT/lisa#4603](https://github.com/CodySwannGT/lisa/issues/4603)
+* **tests:** classify Markdown assertions as structural, machine-token or wording ([718c281](https://github.com/CodySwannGT/lisa/commit/718c2813881332f8257a372bb5c5d13d8b86ad97)), closes [CodySwannGT/lisa#4867](https://github.com/CodySwannGT/lisa/issues/4867)
+* **tests:** record and cull WORDING assertion sites in test files ([b932b52](https://github.com/CodySwannGT/lisa/commit/b932b52f3e91398157386d4e7c2856858c8984f6)), closes [CodySwannGT/lisa#4867](https://github.com/CodySwannGT/lisa/issues/4867)
+
+
+### Bug Fixes
+
+* **admission:** bound the decision lock and make its fallback per-user ([5d8154c](https://github.com/CodySwannGT/lisa/commit/5d8154c045c76c2848da45f5ade68cb120f493ef)), closes [CodySwannGT/lisa#4596](https://github.com/CodySwannGT/lisa/issues/4596) [CodySwannGT/lisa#4596](https://github.com/CodySwannGT/lisa/issues/4596)
+* **admission:** size a suite's demand from the admitted machine, not the host ([3f7b6c6](https://github.com/CodySwannGT/lisa/commit/3f7b6c6bbacb201546bb94ddaf1f5cec5dfa2dea)), closes [CodySwannGT/lisa#4596](https://github.com/CodySwannGT/lisa/issues/4596) [CodySwannGT/lisa#4596](https://github.com/CodySwannGT/lisa/issues/4596)
+* **affected-tests:** fail closed on every hole the selection cannot see ([1f5ad32](https://github.com/CodySwannGT/lisa/commit/1f5ad325d9f02fee14a82fd388aac42bc6c3c140)), closes [CodySwannGT/lisa#4600](https://github.com/CodySwannGT/lisa/issues/4600) [CodySwannGT/lisa#4600](https://github.com/CodySwannGT/lisa/issues/4600)
+* **fast-push:** bring the integrated push-speed work into conformance ([95e64c7](https://github.com/CodySwannGT/lisa/commit/95e64c76ff0c65f1472a31ac12410af136a72629)), closes [CodySwannGT/lisa#4600](https://github.com/CodySwannGT/lisa/issues/4600)
+* **fast-push:** clear the full-suite failures the host rollout introduced ([1145f68](https://github.com/CodySwannGT/lisa/commit/1145f68b4f6dd140ab7f21cf7ab4fbe928de95ba)), closes [CodySwannGT/lisa#4600](https://github.com/CodySwannGT/lisa/issues/4600) [CodySwannGT/lisa#4600](https://github.com/CodySwannGT/lisa/issues/4600)
+* **fast-push:** make the TypeScript host suites read CI's output as CI prints it ([80176cc](https://github.com/CodySwannGT/lisa/commit/80176ccea0b1ea14b2241744e284fe07b1742bcf)), closes [CodySwannGT/lisa#4611](https://github.com/CodySwannGT/lisa/issues/4611) [CodySwannGT/lisa#4611](https://github.com/CodySwannGT/lisa/issues/4611)
+* **gates:** keep environment values out of the pass cache ([fdd7f1a](https://github.com/CodySwannGT/lisa/commit/fdd7f1aa31769651b57fab3f24b2610b67037195)), closes [CodySwannGT/lisa#4594](https://github.com/CodySwannGT/lisa/issues/4594) [CodySwannGT/lisa#4594](https://github.com/CodySwannGT/lisa/issues/4594)
+* **lint-staged-preflight:** refuse without waiting out the probe deadline ([db65bce](https://github.com/CodySwannGT/lisa/commit/db65bcee8c8ff8c8d1543a51f07934f94423bd57)), closes [#6](https://github.com/CodySwannGT/lisa/issues/6) [CodySwannGT/lisa#4616](https://github.com/CodySwannGT/lisa/issues/4616)
+* **npm-update:** raise the trusted-graph caps to 256 so the next helper cannot break pushes ([d74d896](https://github.com/CodySwannGT/lisa/commit/d74d896f5c808209fe9ae1827590194ec31953a6)), closes [CodySwannGT/lisa#4600](https://github.com/CodySwannGT/lisa/issues/4600) [CodySwannGT/lisa#4600](https://github.com/CodySwannGT/lisa/issues/4600)
+* **push-gate:** refuse test access maps from untrusted or incomplete runs ([fd68690](https://github.com/CodySwannGT/lisa/commit/fd686907397264703989a637c51e7e848004c342)), closes [CodySwannGT/lisa#4593](https://github.com/CodySwannGT/lisa/issues/4593) [CodySwannGT/lisa#4593](https://github.com/CodySwannGT/lisa/issues/4593)
+* **push:** keep affected-test selection inside the shipped ruleset ([b16b7d7](https://github.com/CodySwannGT/lisa/commit/b16b7d7e8e413f5f8fa04524010352dfeba54a22)), closes [CodySwannGT/lisa#4600](https://github.com/CodySwannGT/lisa/issues/4600)
+* **rails:** install rspec-expectations for the real-Ruby spec-selection suite ([129f43a](https://github.com/CodySwannGT/lisa/commit/129f43a53075c083ba9ab321ddad4c3a4dde3d3d)), closes [CodySwannGT/lisa#4612](https://github.com/CodySwannGT/lisa/issues/4612) [CodySwannGT/lisa#4612](https://github.com/CodySwannGT/lisa/issues/4612)
+* **rails:** never cache a partial RSpec pass; fail closed on a deleted spec ([f2fe556](https://github.com/CodySwannGT/lisa/commit/f2fe55666bb1ee2669b2055293ea3d4164770611)), closes [CodySwannGT/lisa#4613](https://github.com/CodySwannGT/lisa/issues/4613) [CodySwannGT/lisa#4613](https://github.com/CodySwannGT/lisa/issues/4613)
+* **rails:** run partial RSpec plans through the selector's coverage path ([f0a6666](https://github.com/CodySwannGT/lisa/commit/f0a66667adea93ea81af9c342873a08bacf27034)), closes [CodySwannGT/lisa#4612](https://github.com/CodySwannGT/lisa/issues/4612) [CodySwannGT/lisa#4613](https://github.com/CodySwannGT/lisa/issues/4613) [CodySwannGT/lisa#4613](https://github.com/CodySwannGT/lisa/issues/4613)
+* **rails:** select specs only from a trusted crystalball map ([841856d](https://github.com/CodySwannGT/lisa/commit/841856dd282c4828f7b1877cf1cc7c22790b6516)), closes [CodySwannGT/lisa#4612](https://github.com/CodySwannGT/lisa/issues/4612) [CodySwannGT/lisa#4612](https://github.com/CodySwannGT/lisa/issues/4612)
+* **shell-guard-trace:** sync the ESM exports after patching child_process ([3eef4e7](https://github.com/CodySwannGT/lisa/commit/3eef4e7c280b8e2cd59b365191348833f009302e)), closes [#4593](https://github.com/CodySwannGT/lisa/issues/4593) [CodySwannGT/lisa#4593](https://github.com/CodySwannGT/lisa/issues/4593) [CodySwannGT/lisa#4593](https://github.com/CodySwannGT/lisa/issues/4593)
+* **test-run:** keep a readable reporter in every Vitest shard leg ([880ebbf](https://github.com/CodySwannGT/lisa/commit/880ebbfa30c0e3589674c8169f64195f7fe28afa)), closes [CodySwannGT/lisa#4592](https://github.com/CodySwannGT/lisa/issues/4592) [CodySwannGT/lisa#4592](https://github.com/CodySwannGT/lisa/issues/4592)
+* **tests:** fail closed when a code-corpus file cannot be read ([6f3d9e7](https://github.com/CodySwannGT/lisa/commit/6f3d9e79e5860a5bacf866b492b2124a33876d82)), closes [CodySwannGT/lisa#4867](https://github.com/CodySwannGT/lisa/issues/4867)
+* **tests:** give the work-item script name its value, not itself ([c140279](https://github.com/CodySwannGT/lisa/commit/c1402794e1831ae4e8a3b255178bc72a96c9e514)), closes [CodySwannGT/lisa#4867](https://github.com/CodySwannGT/lisa/issues/4867) [CodySwannGT/lisa#4867](https://github.com/CodySwannGT/lisa/issues/4867)
+* **tests:** keep manifest phrases that name a declared code identifier ([cbfe39d](https://github.com/CodySwannGT/lisa/commit/cbfe39df990d796134d94bff0f05a638ac9e1dc9)), closes [CodySwannGT/lisa#4867](https://github.com/CodySwannGT/lisa/issues/4867)
+* **tests:** stop requiring the private TMPDIR that lisa-test-run retired ([0046cf5](https://github.com/CodySwannGT/lisa/commit/0046cf536587ed1a81d7b70c8d778f020bc1d852)), closes [CodySwannGT/lisa#4603](https://github.com/CodySwannGT/lisa/issues/4603) [CodySwannGT/lisa#4603](https://github.com/CodySwannGT/lisa/issues/4603)
+
+
+### Code Refactoring
+
+* **templates:** drop scratch-prefix registries and policing sequence from stack templates ([687e763](https://github.com/CodySwannGT/lisa/commit/687e763733b73f4bf61ce601d5ed2637c6e98e60)), closes [CodySwannGT/lisa#4603](https://github.com/CodySwannGT/lisa/issues/4603)
+* **tests:** retire per-test temp-folder and process policing ([375ea6c](https://github.com/CodySwannGT/lisa/commit/375ea6c78fdfce0b387c6370f6934238d5ad87c3)), closes [#4582](https://github.com/CodySwannGT/lisa/issues/4582) [#4597](https://github.com/CodySwannGT/lisa/issues/4597) [#4596](https://github.com/CodySwannGT/lisa/issues/4596) [CodySwannGT/lisa#4602](https://github.com/CodySwannGT/lisa/issues/4602) [CodySwannGT/lisa#4602](https://github.com/CodySwannGT/lisa/issues/4602)
+
+
+### Documentation
+
+* **tests:** audit the heaviest test files for cost and unique value ([bc2a0c9](https://github.com/CodySwannGT/lisa/commit/bc2a0c9400299f0bae05e32c04d1d18be396a13b)), closes [CodySwannGT/lisa#4615](https://github.com/CodySwannGT/lisa/issues/4615)
+
 ## [5.4.0](https://github.com/CodySwannGT/lisa/compare/v5.3.2...v5.4.0) (2026-11-14)
 
 
