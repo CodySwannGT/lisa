@@ -194,8 +194,10 @@ same matcher. See [dependency-audit exclusions](docs/dependency-audit-exclusions
 for the file format, lockfile keys, diagnostics, and shared helper.
 
 Clean TypeScript and CDK hosts receive the shared Node 24.21.0 LTS baseline,
-Vitest and coverage-v8 4.1.11 minimums, and a Vite 8.3.3 minimum within Vite 8.
-Lisa retains the TypeScript 6, ESLint 9, Knip 5, Husky 8 and Vitest 4 families.
+Vitest and coverage-v8 5.1.0 minimums, and a Vite 8.3.3 minimum within Vite 8.
+Lisa retains the TypeScript 6, ESLint 9, Knip 5, Husky 8 and Vitest 5 families.
+Vitest 5 is required for npm 10: any Vitest 4 dependency crashes npm 10.9.9's
+installer with `Cannot read properties of null (reading 'edgesOut')`.
 CDK applies force `constructs ^10.7.2` and default `aws-cdk-lib`, which satisfy
 the peers of `aws-cdk-github-oidc` 5.2.0. Lisa does not add opt-in construct
 libraries such as `aws-cdk-github-oidc` or `@aws-cdk/aws-amplify-alpha`: an app
