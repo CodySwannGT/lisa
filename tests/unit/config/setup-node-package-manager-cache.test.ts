@@ -28,6 +28,12 @@ const WORKFLOW_DIRS: readonly string[] = [
     .filter(entry => entry.isDirectory())
     .map(entry => `${entry.name}/create-only/.github/workflows`)
     .filter(dir => existsSync(path.join(REPO_ROOT, dir))),
+  ...["plugins", "plugins/src"].flatMap(root =>
+    readdirSync(path.join(REPO_ROOT, root), { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => `${root}/${entry.name}/ci`)
+      .filter(dir => existsSync(path.join(REPO_ROOT, dir)))
+  ),
 ];
 
 /** One workflow step, as far as this file reads it. */
