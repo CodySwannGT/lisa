@@ -4,8 +4,9 @@
  * The ledger is worth nothing if the only way to reach it is to go looking for
  * it — that is the defect it exists against. So these assert the readers: the
  * session stamp on both start events, the PostToolUse re-check that reaches a
- * running session, the gate that stops the ledger rotting, and the eager rule
- * that carries the manual `--list` for surfaces with no hook runtime.
+ * running session, and the gate that stops the ledger rotting. The eager
+ * rule's prose for surfaces with no hook runtime is guidance and is reviewed,
+ * not pinned (#4867).
  */
 import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
@@ -78,16 +79,6 @@ describe("withdrawn-rulings — how it gets read", () => {
       "check:withdrawn-rulings"
     );
     expect(config.gates["x-withdrawn-rulings"]?.push?.level).toBe("required");
-  });
-
-  it("carries the manual read in the eager rule, for surfaces with no hook runtime", () => {
-    const eager = read("plugins/src/base/rules/eager/withdrawn-rulings.md");
-    expect(eager).toContain("--withdraw");
-    expect(eager).toContain("--list");
-    expect(eager).toContain("verbatim");
-    expect(
-      read("plugins/src/base/rules/reference/withdrawn-rulings.md")
-    ).toContain("Surface parity");
   });
 
   it("never registers the re-check on a surface that cannot stamp a session", () => {

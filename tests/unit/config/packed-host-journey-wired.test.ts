@@ -5,10 +5,11 @@
  * Owner decision 4 of CodySwannGT/lisa#4587 took
  * `tests/integration/shared-runtime-packed-hosts.test.ts` off every pull
  * request. That trade is only safe while a maintainer can still run it on
- * demand, so the dispatch-only workflow, the package script it runs, and the
- * runbook that says when to use it are checked against each other here. The
- * silent failure this guards against is a workflow that still exists but runs
- * the wrong command, under a Node the journey defers on, or on every PR again.
+ * demand, so the dispatch-only workflow and the package script it runs are
+ * checked against each other here. The silent failure this guards against is
+ * a workflow that still exists but runs the wrong command, under a Node the
+ * journey defers on, or on every PR again. The runbook prose
+ * (`docs/packed-host-journey.md`) is not pinned (#4867).
  * @module tests/unit/config/packed-host-journey-wired
  */
 import { readFileSync } from "node:fs";
@@ -26,9 +27,6 @@ const JOURNEY = "tests/integration/shared-runtime-packed-hosts.test.ts";
 
 /** The dispatch-only workflow that runs it. */
 const WORKFLOW = ".github/workflows/packed-host-journey.yml";
-
-/** The runbook a maintainer reads to decide whether to run it. */
-const RUNBOOK = "docs/packed-host-journey.md";
 
 /** The package script both the workflow and the local command use. */
 const SCRIPT = "test:integration:packed-hosts";
@@ -197,36 +195,5 @@ describe("the fs-probe diagnostic route (CodySwannGT/lisa#4636)", () => {
     expect(record?.if).toBeUndefined();
     expect(record?.run).toContain("findmnt -no OPTIONS /");
     expect(steps.indexOf(record!)).toBeLessThan(journey);
-  });
-});
-
-describe("the packed-host journey runbook", () => {
-  const runbook = read(RUNBOOK);
-
-  it("names both ways to run it", () => {
-    expect(runbook).toContain(
-      "gh workflow run packed-host-journey.yml -f ref=main"
-    );
-    expect(runbook).toContain(`mise exec node@24.21.0 -- bun run ${SCRIPT}`);
-  });
-
-  it("names the packaging changes that require a run", () => {
-    for (const trigger of [
-      "`files`",
-      "`exports`",
-      "`bin`",
-      "scripts/build-plugins.sh",
-      "scripts/clean-dist.mjs",
-      "tsconfig*.json",
-      "tests/fixtures/shared-runtime-hosts/",
-    ]) {
-      expect(runbook, trigger).toContain(trigger);
-    }
-  });
-
-  it("names the protection that replaced the pull-request run", () => {
-    expect(runbook).toContain("#4604");
-    expect(runbook).toContain("#4605");
-    expect(runbook).toContain("bun run release:rollback");
   });
 });

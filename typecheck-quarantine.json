@@ -305,7 +305,6 @@
     "tests/unit/strategies/design-variable-ids.test.ts",
     "tests/unit/strategies/doctor-report-rendering.test.ts",
     "tests/unit/strategies/harness-parity-council-guardrails.test.ts",
-    "tests/unit/strategies/leaf-only-build-ready.test.ts",
     "tests/unit/strategies/lifecycle-label-claimability.test.ts",
     "tests/unit/strategies/linear-key-resolver-ladder-parity.test.ts",
     "tests/unit/strategies/linear-state-write-guard.test.ts",
