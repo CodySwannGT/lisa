@@ -55,15 +55,19 @@ const project = (pushGate?: unknown): string => {
 /**
  * A runtime on a machine with `load1` busy cores out of eight.
  * @param load1 - Load average
+ * @param cores - Logical cores the machine reports
  * @returns Runtime plus its log
  */
-const machine = (load1: number): AdmissionRuntime & { lines: string[] } => {
+const machine = (
+  load1: number,
+  cores = 8
+): AdmissionRuntime & { lines: string[] } => {
   const lines: string[] = [];
   const clock = { now: 1_800_000_000_000 };
   return {
     lines,
     pid: 900_002,
-    readMachine: () => ({ cores: 8, load1, freeMemoryMb: 8192 }),
+    readMachine: () => ({ cores, load1, freeMemoryMb: 8192 }),
     probes: { isAlive: () => false, startTimes: () => new Map() },
     now: () => clock.now,
     sleep: async ms => {
@@ -111,6 +115,22 @@ describe("admitTestRun", () => {
     expect(existsSync(join(state, "900002.json"))).toBe(true);
     if (typeof release === "function") release();
     expect(existsSync(join(state, "900002.json"))).toBe(false);
+  });
+
+  it("sizes its demand from the machine it was admitted on, not the host running the test", async () => {
+    // CI caught this: demand came from the HOST's core count while headroom
+    // came from the runtime, so a 4-core runner granted 2 where the same
+    // inputs on an 18-core laptop granted 3. An idle 4-core machine demands
+    // half its cores, two, whatever machine this test happens to run on.
+    const environment: NodeJS.ProcessEnv = { LISA_ADMISSION_STATE_DIR: dir() };
+    const release = await admitTestRun(
+      ["vitest", "run"],
+      environment,
+      project({ admission: true }),
+      machine(0, 4)
+    );
+    expect(environment.LISA_ADMITTED_WORKERS).toBe("2");
+    if (typeof release === "function") release();
   });
 
   it("refuses with the admission exit status once the bound expires", async () => {
