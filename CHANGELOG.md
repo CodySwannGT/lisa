@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.1.5](https://github.com/CodySwannGT/lisa/compare/v5.1.4...v5.1.5) (2026-11-14)
+
+
+### Bug Fixes
+
+* **apply:** retire a host's npm floor regardless of key order ([12b209c](https://github.com/CodySwannGT/lisa/commit/12b209cae53b897e3eb84ba3c2d7287121541ab4)), closes [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848) [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848)
+* **apply:** stop forcing an npm devEngines floor onto bun hosts ([6f712d0](https://github.com/CodySwannGT/lisa/commit/6f712d0baba73b13a871dbf5fc4776278e40ecb2)), closes [#4793](https://github.com/CodySwannGT/lisa/issues/4793) [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848) [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848)
+
+### [5.1.4](https://github.com/CodySwannGT/lisa/compare/v5.1.3...v5.1.4) (2026-11-13)
+
+
+### Bug Fixes
+
+* **ci:** lease the rails release push on the gated trigger commit ([0bad2b5](https://github.com/CodySwannGT/lisa/commit/0bad2b58878afca53ea58eca40a4cf4f8f6dcb96)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+* **ci:** never defer a rails release under an ungated tip ([c20187f](https://github.com/CodySwannGT/lisa/commit/c20187fa884e420f18a4d1e90ebd7449a42a2fbf)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+* **ci:** push rails release commit and tag atomically so racing merges cannot orphan a tag ([7118ba1](https://github.com/CodySwannGT/lisa/commit/7118ba15cfdba3470d38b838f1c32159de43cedb)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+* **ci:** release rails only on the gated trigger commit ([481ea1c](https://github.com/CodySwannGT/lisa/commit/481ea1c46f64a4231e0686550f5932bd5d13596d)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+* **ci:** scope rails release deferral to own releases; report refused pushes ([2dcca69](https://github.com/CodySwannGT/lisa/commit/2dcca6981e6bed27ae4057e69f595213c7941a88)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+* **ci:** tell operators to dispatch by hand when a superseding run is skipped ([60b3f54](https://github.com/CodySwannGT/lisa/commit/60b3f5460ed8417cd1dcc12ef6f3329a3e0383e8)), closes [#4748](https://github.com/CodySwannGT/lisa/issues/4748) [CodySwannGT/lisa#4748](https://github.com/CodySwannGT/lisa/issues/4748)
+
+### [5.1.3](https://github.com/CodySwannGT/lisa/compare/v5.1.2...v5.1.3) (2026-11-13)
+
+
+### Bug Fixes
+
+* **implement:** cap each deploy watch at the remaining ceiling time ([9df69f3](https://github.com/CodySwannGT/lisa/commit/9df69f3f45a1463b2e479380a062cc7a28edcf85)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** judge a concluded deploy run before the ceiling check ([41b96e1](https://github.com/CodySwannGT/lisa/commit/41b96e1392d2d1c1edafbce3db736a97549ea14b)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** never route a missing deploy run to a fix PR ([a16ef40](https://github.com/CodySwannGT/lisa/commit/a16ef40b857bb3248945d939480643e2b925d0c3)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** route every deploy outcome in step 10 explicitly ([909f1ef](https://github.com/CodySwannGT/lisa/commit/909f1efc55d90cb8355f1cea6eccd3e2dbedea69)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** wait on the deploy in the foreground, never a background watcher ([a8c8492](https://github.com/CodySwannGT/lisa/commit/a8c8492d0065157d7f5396ca7f70ce3efdff3772)), closes [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** watch step 8's confirmed deploy run with a portable bound ([dac06a2](https://github.com/CodySwannGT/lisa/commit/dac06a26c81a131f7e56106a9dd06763b692ad9f)), closes [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+
+### [5.1.2](https://github.com/CodySwannGT/lisa/compare/v5.1.1...v5.1.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* **agents:** make the scratch-copy falsification recipe runnable ([3db6cee](https://github.com/CodySwannGT/lisa/commit/3db6ceecd53ede8e087dff6a9cc99697c48391fc)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **agents:** run falsification breaks on a scratch copy, never in a shared worktree ([7aa81f2](https://github.com/CodySwannGT/lisa/commit/7aa81f2852ae42a924640aa202d4305a1706252b)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **rules:** install deps in the scratch copy for workspace monorepos ([6f90eed](https://github.com/CodySwannGT/lisa/commit/6f90eed1c0b91f3ef83c056efd20b83c3de42378)), closes [#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **rules:** make scratch copies with git worktree add, never a cwd-switching tool ([d900be2](https://github.com/CodySwannGT/lisa/commit/d900be224e53f77c2784fb903e8782868b1a8ab4)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **rules:** scope the break/restore steps main moved into reference rules ([3b2a6da](https://github.com/CodySwannGT/lisa/commit/3b2a6da8db5bc8a53d6d3479e2738647bb504445)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+
 ### [5.1.1](https://github.com/CodySwannGT/lisa/compare/v5.1.0...v5.1.1) (2026-11-13)
 
 

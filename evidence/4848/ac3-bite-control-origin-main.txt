@@ -1,0 +1,8 @@
+BAD .github/workflows/history-secrets.yml jobs.scan.steps[2] uses=actions/setup-node@v6 package-manager-cache=undefined
+BAD .github/workflows/npm-updater.yml jobs.prepare.steps[2] uses=actions/setup-node@v6 package-manager-cache=undefined
+BAD .github/workflows/npm-updater.yml jobs.allocate.steps[2] uses=actions/setup-node@v6 package-manager-cache=undefined
+BAD .github/workflows/npm-updater.yml jobs.gate.steps[2] uses=actions/setup-node@v6 package-manager-cache=undefined
+BAD .github/workflows/npm-updater.yml jobs.publish.steps[2] uses=actions/setup-node@v6 package-manager-cache=undefined
+BAD .github/workflows/quality.yml jobs.performance_budget.steps[1] uses=actions/setup-node@v6 package-manager-cache=undefined
+BAD all/create-only/.github/workflows/continuous-gates.yml jobs.configured.steps[1] uses=actions/setup-node@v6 package-manager-cache=undefined
+setup-node steps=93 missing=7

@@ -379,7 +379,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.agents/rules/README.md":
       "903b43e8eba91d626225a4608bcfeec3573e720201292b2ba83d4ca944315548",
     "all/create-only/.github/workflows/continuous-gates.yml":
-      "bfe3f798d9095b66c15dd4b2fed0b2fd9864c78b630269d81e02f5cfc7038add",
+      "9a08c1eb837825f9dc54e842bddcfdff930a0b72dd2b1ab2f11514c5cf309d0a",
     "all/create-only/.github/workflows/workflow-load-failure-sweep.yml":
       "d850b2b69db86eb3b74402fa125418e3f502f81c8169c8d96272c843bb304297",
     "all/create-only/.lisaignore":
@@ -1473,7 +1473,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "6cd4412bab44fc18af855d9df5ec09a48a9cfd3390d18dc8da8595187727ea22",
+      "c1f9f2c00d8826391d5df207e10b2ff04dc57a5dc380633cf6a7f1ca79283d04",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -2891,7 +2891,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "0f02eefa06c642485fb0e9bf6a29ed250d6e8700137e7d50667f8db11a581f78",
+      "a13c2c98f04643c2ebc5866f407a80346b4564c4376d4f2210ea1599292e3c5b",
     "scripts/update-node-version.ts":
       "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
@@ -3881,6 +3881,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4846/qualified-ref-accepted.txt": true,
     "evidence/4846/shared-grammar.txt": true,
     "evidence/4846/short-ref-refused.txt": true,
+    "evidence/4848/ac1-ac2-apply-fixed.txt": true,
+    "evidence/4848/ac1-ac2-control-origin-main.txt": true,
+    "evidence/4848/ac3-bite-control-origin-main.txt": true,
+    "evidence/4848/ac3-guard-test-bite-origin-main.txt": true,
+    "evidence/4848/ac3-guard-test.txt": true,
+    "evidence/4848/ac3-independent-setup-node-scan.txt": true,
+    "evidence/4848/ac4-tsc.txt": true,
+    "evidence/4848/ac4-vitest-wrapped.txt": true,
+    "evidence/4848/ac4-vitest.txt": true,
     "evidence/CodySwannGT-lisa-4496/01-outside-no-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/02-inside-manager-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/03-outside-while-running.txt": true,
@@ -11271,6 +11280,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/strategies/create-only.ts": true,
     "src/strategies/index.ts": true,
     "src/strategies/merge.ts": true,
+    "src/strategies/package-lisa-dev-engines.ts": true,
     "src/strategies/package-lisa-types.ts": true,
     "src/strategies/package-lisa.ts": true,
     "src/strategies/strategy.interface.ts": true,
@@ -11542,6 +11552,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/__fixtures__/scratch-inherited-lease.mjs": true,
     "tests/helpers/__fixtures__/scratch-leak-case.ts": true,
     "tests/helpers/__fixtures__/scratch-teardown-case.ts": true,
+    "tests/helpers/__fixtures__/standard-version-npx-stub.sh": true,
     "tests/helpers/__fixtures__/supervised-scratch-command.ts": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
     "tests/helpers/audit-action-fixture.ts": true,
@@ -11604,6 +11615,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/process-tree-runner-verdict.ts": true,
     "tests/helpers/rails-hook-install-fixture.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
+    "tests/helpers/release-rails-job.ts": true,
+    "tests/helpers/release-rails-remote-faults.ts": true,
     "tests/helpers/remote-env-materialized-artifact.ts": true,
     "tests/helpers/remote-env-materialized-fixture.ts": true,
     "tests/helpers/repo-file-walk.ts": true,
@@ -11864,6 +11877,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/release-notes-expansion.test.ts": true,
     "tests/integration/release-published-version-read.test.ts": true,
     "tests/integration/release-quality-opt-out.test.ts": true,
+    "tests/integration/release-rails-push-race.test.ts": true,
     "tests/integration/release-rails-tag-namespace.test.ts": true,
     "tests/integration/release-strategy-tag-namespace.test.ts": true,
     "tests/integration/release-version-injection.test.ts": true,
@@ -12281,6 +12295,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/scratch-supervision.test.ts": true,
     "tests/unit/config/scratch-tmpdir-trust.test.ts": true,
     "tests/unit/config/security-pin-floors.test.ts": true,
+    "tests/unit/config/setup-node-package-manager-cache.test.ts": true,
     "tests/unit/config/shipped-mjs-roster.test.ts": true,
     "tests/unit/config/slow-config-module-isolation.test.ts": true,
     "tests/unit/config/socket-safe-temp-base.test.ts": true,
@@ -13507,6 +13522,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/human-gate-release-inverse.test.ts": true,
     "tests/unit/strategies/human-gate-release-plan.test.ts": true,
     "tests/unit/strategies/human-gate-release-reach.test.ts": true,
+    "tests/unit/strategies/implement-deploy-wait-foreground.test.ts": true,
     "tests/unit/strategies/implement-env-base-branch.test.ts": true,
     "tests/unit/strategies/implement-managed-by-contract.test.ts": true,
     "tests/unit/strategies/improve-harness-skill.test.ts": true,
@@ -13547,6 +13563,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/monitor-threshold-compatibility.test.ts": true,
     "tests/unit/strategies/package-lisa-audit-script-governance.test.ts": true,
     "tests/unit/strategies/package-lisa-cdk-oidc.test.ts": true,
+    "tests/unit/strategies/package-lisa-dev-engines.test.ts": true,
     "tests/unit/strategies/package-lisa-override-floor-remedy.test.ts": true,
     "tests/unit/strategies/package-lisa-script-composition.test.ts": true,
     "tests/unit/strategies/package-lisa-script-report.test.ts": true,

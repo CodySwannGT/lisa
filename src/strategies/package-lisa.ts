@@ -33,6 +33,11 @@ import type {
   PackageLisaTemplate,
   ResolvedPackageLisaTemplate,
 } from "./package-lisa-types.js";
+import {
+  detectHostPackageManager,
+  fitDevEnginesToHost,
+  retireDevEnginesFloor,
+} from "./package-lisa-dev-engines.js";
 
 /** Planned package.json content plus messages the operator should see. */
 interface PackageJsonPlan {
@@ -134,23 +139,26 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @param detectedTypes - Canonically detected project types
    * @param lisaDir - Lisa package root
    * @param securityPinsOnly - Restrict to postinstall-safe security pins
+   * @param projectDir - Host directory, read for its lockfiles so a forced
+   *   package-manager floor reaches only hosts using that manager (#4848)
    * @returns Package document that apply would persist
    */
   async planPackageJson(
     projectJson: Record<string, unknown>,
     detectedTypes: readonly ProjectType[],
     lisaDir: string,
-    securityPinsOnly = false
+    securityPinsOnly = false,
+    projectDir?: string
   ): Promise<Record<string, unknown>> {
     const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
     const restricted =
       securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME;
     const effective = restricted ? this.restrictToSecurityPins(merged) : merged;
-    const forced = this.applyTemplate(
+    const forced = this.applyHostFittedTemplate(
       projectJson,
       effective,
-      this.PACKAGE_JSON,
-      restricted
+      restricted,
+      projectDir
     );
     const result = planSelfReferencingOverrideNormalization(
       forced.packageJson,
@@ -429,11 +437,11 @@ export class PackageLisaStrategy implements ICopyStrategy {
     const restricted =
       securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME;
     const effective = restricted ? this.restrictToSecurityPins(merged) : merged;
-    const forced = this.applyTemplate(
+    const forced = this.applyHostFittedTemplate(
       projectJson,
       effective,
-      this.PACKAGE_JSON,
-      restricted
+      restricted,
+      projectDir
     );
     const plan = planSelfReferencingOverrideNormalization(
       forced.packageJson,
@@ -825,6 +833,38 @@ export class PackageLisaStrategy implements ICopyStrategy {
     }
 
     return result;
+  }
+
+  /**
+   * Apply the template after fitting its forced package-manager floor to the
+   * host's manager, so a bun host never receives an npm floor (#4848).
+   * @param projectJson - Current project's package.json
+   * @param template - Merged package.lisa.json template
+   * @param restricted - True when the template was reduced to security pins
+   * @param projectDir - Host directory, or undefined when no tree is available
+   * @returns Modified package.json plus operator-visible notes
+   * @private
+   */
+  private applyHostFittedTemplate(
+    projectJson: Record<string, unknown>,
+    template: ResolvedPackageLisaTemplate,
+    restricted: boolean,
+    projectDir: string | undefined
+  ): PackageJsonPlan {
+    const fitted = fitDevEnginesToHost(
+      template,
+      detectHostPackageManager(projectDir, projectJson),
+      projectJson
+    );
+    const applied = this.applyTemplate(
+      projectJson,
+      fitted.template,
+      this.PACKAGE_JSON,
+      restricted
+    );
+    return fitted.retire
+      ? { ...applied, packageJson: retireDevEnginesFloor(applied.packageJson) }
+      : applied;
   }
 
   /**
