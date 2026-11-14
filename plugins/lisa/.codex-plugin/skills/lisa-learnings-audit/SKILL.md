@@ -98,19 +98,19 @@ results stays green whatever the code does. For every RETIRE whose proof is
 "owned by a test" (or any other mechanical owner that runs as a check), run
 the mutation proof before filing the row: break the rule the named test
 supposedly guards, run that named test and observe it **fail**, then revert
-the mutation and see it pass again. Record the result in the row — the
-mutation applied, the failing test name and its failure line, and the
-revert. A named owner that stays green under the mutation is not the owner:
-find the test that does fail, or drop the RETIRE. No failing observation ⇒
-no valid retire proof.
+the mutation. Record the result in the row — the mutation applied, the
+failing test name and its failure line, and the revert. A named owner that
+stays green under the mutation is not the owner: find the test that does
+fail, or drop the RETIRE. No failing observation ⇒ no valid retire proof.
 
 Run that break on a scratch copy,
 never in a worktree another agent is editing — not in the working folder
-this run is using either. Follow the
-`falsifiable-checks` rule's section "Break on a scratch copy, never in a
-shared worktree" for how to make the copy, take its green baseline, and
-discard it; do not restate it here. Discarding the copy is the revert, so
-the shared tree is never written to.
+this run is using either. Follow the `falsifiable-checks` rule's section
+"Break on a scratch copy, never in a shared worktree" for how to make the
+copy, take its green baseline, and discard it; do not restate it here.
+Discarding the copy is the revert, and the green baseline taken in the copy
+before the break is the pass-again evidence, so the shared tree is never
+written to.
 
 1. **Record where before you break.** Before applying the mutation, write
    the row's `mutation_location` — the mutated file, the line or section,
@@ -121,10 +121,11 @@ the shared tree is never written to.
 2. **A failed restore blocks the row.** If discarding the copy fails (the
    `git worktree remove` errors, or the copy path still exists afterwards),
    or anything suggests the mutation reached a tree other than the copy,
-   file **no** RETIRE row for that candidate. Report it in the run summary
-   as `mutation-restore-failed` with the recorded `mutation_location`, so a
-   person can find and repair the change, and treat the run outcome as
-   `recovery-required` for that candidate.
+   file **no** RETIRE row for that candidate and run no further mutation
+   proofs. Report `mutation-restore-failed` with the recorded
+   `mutation_location`, escalated per Escalation, so a person can find and
+   repair the change. The run outcome is `recovery-required` (see Run
+   outcomes).
 
 **Learned planning checks.** A ledger entry whose rule begins
 `Planning (prd|decomposition|ready-gate|filing):` is a `planning-miss` learning:
@@ -520,7 +521,10 @@ non-technical operator standing at the gate can act on.
 ## Recovery
 
 Every external write is marker-deduped, so a crashed or interrupted run
-leaves no cleanup debt: re-running is the recovery procedure. A partial run's
+leaves no cleanup debt: re-running is the recovery procedure. The one
+exception is a RETIRE mutation proof's scratch copy: a run interrupted
+mid-proof can leave it on disk, and its recorded `mutation_location` names
+the path to remove before re-running. A partial run's
 already-filed tickets are found by their markers and not duplicated; a batch
 ticket from an interrupted run is reused (append missing rows as a comment)
 rather than reissued. **Filing order**: file the per-item PROMOTE/DEMOTE
@@ -549,8 +553,10 @@ exact so nothing regresses:
   recommendation threshold. Report one line: surfaces scanned, entries seen,
   "nothing to propose".
 - `blocked` → **`recovery-required`** when the loop itself could not complete
-  (tracker unreachable, contradictory config, a ledger-contract parse error) —
-  escalated per Escalation with the operator-readable reason; **or**
+  (tracker unreachable, contradictory config, a ledger-contract parse error,
+  or a RETIRE mutation proof whose scratch copy could not be discarded, so a
+  mutation may survive outside the run's control) — escalated per Escalation
+  with the operator-readable reason; **or**
   **`approval-requested`** when the run finished and is waiting on a human gate
   rather than being broken.
   A run that filed nothing because destination-validation (Ticket emission)

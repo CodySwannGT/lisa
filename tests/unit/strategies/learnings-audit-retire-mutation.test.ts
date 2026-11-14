@@ -33,35 +33,64 @@ const SKILL_PATHS = [
 
 const SECTION_START = "A RETIRE owned by a test needs a mutation proof";
 const SECTION_END = "**Learned planning checks.**";
+const RECORD_ITEM = "1. **Record where before you break.**";
+const LOCATION_FIELD = "`mutation_location`";
+const BLOCK_ITEM = "2. **A failed restore blocks the row.**";
+
+/**
+ * The text between two markers; empty when either marker is missing, so a
+ * missing marker fails the content assertions rather than matching elsewhere.
+ * @param text - Document text
+ * @param from - Start marker (included)
+ * @param to - End marker (excluded); end of text when omitted
+ * @returns The slice
+ */
+const between = (text: string, from: string, to?: string): string => {
+  const start = text.indexOf(from);
+  if (start < 0) return "";
+  const end = to === undefined ? text.length : text.indexOf(to, start);
+  return end < 0 ? "" : text.slice(start, end);
+};
 
 describe.each(SKILL_PATHS)("RETIRE mutation proof (%s)", skillPath => {
   const skill = readFileSync(path.resolve(skillPath), "utf8");
-  const start = skill.indexOf(SECTION_START);
-  const end = skill.indexOf(SECTION_END, start);
-  const section = skill.slice(start, end);
-  const recordAt = section.indexOf("`mutation_location`");
-  const blockAt = section.indexOf("`mutation-restore-failed`");
+  const section = between(skill, SECTION_START, SECTION_END);
+  const recordItem = between(section, RECORD_ITEM, BLOCK_ITEM);
+  const blockItem = between(section, BLOCK_ITEM);
 
-  it("delegates the copy recipe to the falsifiable-checks rule by slug", () => {
-    expect(start).toBeGreaterThanOrEqual(0);
-    expect(end).toBeGreaterThan(start);
-    expect(section).toContain("`falsifiable-checks`");
+  it("delegates the copy recipe to the falsifiable-checks rule by slug, ahead of the steps", () => {
+    const citeAt = section.indexOf("`falsifiable-checks`");
+    expect(citeAt).toBeGreaterThan(0);
     expect(section).toMatch(
       /"Break on a scratch copy, never in a\s+shared worktree"/
     );
+    expect(section.indexOf(RECORD_ITEM)).toBeGreaterThan(citeAt);
   });
 
-  it("records mutation_location before the failed-restore exit, and the row carries it", () => {
-    expect(recordAt).toBeGreaterThan(0);
-    expect(blockAt).toBeGreaterThan(recordAt);
+  it("records mutation_location in its own step before the break, and the row carries it", () => {
+    expect(recordItem).toContain(LOCATION_FIELD);
+    expect(recordItem).toMatch(/Before applying the\s+mutation/);
+    expect(section.indexOf(BLOCK_ITEM)).toBeGreaterThan(
+      section.indexOf(RECORD_ITEM)
+    );
     // The batch-ticket RETIRE row description names the same field.
-    expect(skill.slice(end)).toContain("`mutation_location`");
+    expect(skill.slice(skill.indexOf(SECTION_END))).toContain(LOCATION_FIELD);
   });
 
-  it("routes a failed restore to recovery-required with no RETIRE row", () => {
-    const exit = section.slice(Math.max(0, blockAt - 400), blockAt + 300);
-    expect(blockAt).toBeGreaterThan(0);
-    expect(exit).toMatch(/\*\*no\*\* RETIRE row/);
-    expect(exit).toContain("`recovery-required`");
+  it("blocks the row on a failed restore and escalates with the location", () => {
+    expect(blockItem).toMatch(/\*\*no\*\*\s+RETIRE\s+row/);
+    expect(blockItem).toContain("`mutation-restore-failed`");
+    expect(blockItem).toContain(LOCATION_FIELD);
+    expect(blockItem).toMatch(/escalated\s+per\s+Escalation/);
+    expect(blockItem).toContain("`recovery-required`");
+  });
+
+  it("names the failed restore in Run outcomes and the leftover copy in Recovery", () => {
+    const outcomes = between(skill, "## Run outcomes");
+    const recovery = between(skill, "## Recovery", "## Run outcomes");
+    expect(outcomes).toMatch(
+      /RETIRE\s+mutation\s+proof\s+whose\s+scratch\s+copy/
+    );
+    expect(recovery).toContain(LOCATION_FIELD);
   });
 });
