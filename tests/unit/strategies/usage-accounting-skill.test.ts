@@ -2,10 +2,9 @@
  * Regression tests for the shared usage-accounting skill surface.
  *
  * Issue #729 adds the vendor-neutral `usage-accounting` skill contract that
- * lifecycle flows and artifact writers must delegate through. The skill owns
- * the three supported operations, the body-first with comment-fallback write
- * policy, and the structured response contract so later integrations do not
- * invent ad hoc usage-write behavior.
+ * lifecycle flows and artifact writers must delegate through. The skill's
+ * guidance prose is reviewed, not pinned; this suite proves the skill ships in
+ * both plugin roots and that its generated OpenAI agent metadata stays aligned.
  * @module tests/unit/strategies/usage-accounting-skill
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -22,72 +21,12 @@ const OPENAI_AGENT_PATH = path.resolve(
   "openai.yaml"
 );
 
-const readSkill = (root: string): string =>
-  readFileSync(path.resolve(root, SKILL_SLUG, "SKILL.md"), "utf8");
-
 describe("usage-accounting skill contract", () => {
   describe.each(ROOTS)("%s/%s", root => {
     const skillPath = path.resolve(root, SKILL_SLUG, "SKILL.md");
 
     it("exists in this plugin root", () => {
       expect(existsSync(skillPath)).toBe(true);
-    });
-
-    const content = readSkill(root);
-
-    it("defines the required record, rollup, and record_and_rollup operations", () => {
-      expect(content).toMatch(/operation:\s*record\b/i);
-      expect(content).toMatch(/operation:\s*rollup\b/i);
-      expect(content).toMatch(/operation:\s*record_and_rollup\b/i);
-      expect(content).toMatch(/upsert exactly one direct usage entry/i);
-      expect(content).toMatch(/recompute the rollup token/i);
-    });
-
-    it("requires callers to use the canonical usage-entry contract", () => {
-      expect(content).toMatch(/stable `entry_id`/i);
-      expect(content).toMatch(/source: unavailable/i);
-      expect(content).toMatch(/nullable token\/cost\s+fields/i);
-      expect(content).toMatch(/usage-accounting` rule/i);
-    });
-
-    it("documents the body-first with managed-comment fallback policy", () => {
-      expect(content).toMatch(/body first/i);
-      expect(content).toMatch(/fall back to a \*\*single managed comment\*\*/i);
-      expect(content).toMatch(/comment-only/i);
-      expect(content).toMatch(/comment-fallback/i);
-    });
-
-    it("returns structured surface and totals instead of prose-only output", () => {
-      expect(content).toMatch(/surface:/i);
-      expect(content).toMatch(/entry_ids:/i);
-      expect(content).toMatch(/rollup:/i);
-      expect(content).toMatch(
-        /outcome:\s*updated \| comment-fallback \| no-op \| blocked/i
-      );
-    });
-
-    it("forces the shared utility path instead of caller-specific renderers", () => {
-      expect(content).toMatch(/parseLisaUsageSection/i);
-      expect(content).toMatch(/mergeLisaUsageEntries/i);
-      expect(content).toMatch(/createLisaUsageRollup/i);
-      expect(content).toMatch(/upsertLisaUsageSection/i);
-    });
-
-    it("verifies writes by read-back and parse, never by the mutation result", () => {
-      expect(content).toMatch(/verifyLisaUsageSectionIntegrity/);
-      expect(content).toMatch(
-        /read the written surface back from the host and parse it/i
-      );
-      expect(content).toMatch(
-        /the host's mutation result is not evidence|never report `updated` on the strength of a mutation's return value/i
-      );
-    });
-
-    it("refuses to leave a rollup naming entries the surface cannot resolve", () => {
-      expect(content).toMatch(
-        /never leave a rollup token behind whose `direct_entry_ids` names entries[\s\S]{0,120}cannot be parsed from the same surface/i
-      );
-      expect(content).toMatch(/outcome: blocked/i);
     });
   });
 

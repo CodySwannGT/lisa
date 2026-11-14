@@ -6,12 +6,13 @@
  * `plugins/lisa` artifact ships the same surface after `bun run build:plugins`.
  *
  * This suite asserts the scaffold only:
- * 1. `commands/doctor.md` exists in both plugin roots and delegates to
- *    `/lisa:doctor`.
+ * 1. `commands/doctor.md` exists in both plugin roots with frontmatter and a
+ *    `$ARGUMENTS` pass-through.
  * 2. `skills/lisa-doctor/SKILL.md` exists in both plugin roots with the expected
- *    frontmatter and read-only readiness-audit contract.
- * 3. The skill documents grouped `PASS` / `WARN` / `FAIL` / `SKIP` checks plus
- *    the overall `READY` / `READY_WITH_WARNINGS` / `NOT_READY` verdict ladder.
+ *    frontmatter.
+ * 3. `scripts/doctor-report.mjs` exports the verdict helpers.
+ *
+ * The skill's guidance prose is not pinned (#4867).
  *
  * Both plugin roots are asserted (`plugins/src/base` source of truth and the
  * generated `plugins/lisa` artifact), so an artifact-only edit or a missed
@@ -47,11 +48,9 @@ describe("doctor scaffold (#749)", () => {
     describe(COMMAND_REL, () => {
       const command = read(root, COMMAND_REL);
 
-      it("is a pass-through command that delegates to /lisa:doctor", () => {
+      it("has command frontmatter and passes $ARGUMENTS through", () => {
         expect(command).toMatch(/^---/);
         expect(command).toMatch(/description:/);
-        expect(command).toContain('argument-hint: "[--fix=false]"');
-        expect(command).toMatch(/Use the \/lisa-doctor skill/);
         expect(command).toContain("$ARGUMENTS");
       });
     });
@@ -67,43 +66,6 @@ describe("doctor scaffold (#749)", () => {
         expect(skill).toContain("Skill");
         expect(skill).toContain("Bash");
         expect(skill).toContain("Read");
-      });
-
-      it("documents a read-only readiness audit for the current repository", () => {
-        expect(skill).toMatch(/read-only Lisa readiness audit/i);
-        expect(skill).toMatch(/current repository/i);
-        expect(skill).toMatch(
-          /does \*\*not\*\* create automations, labels, tracker items/i
-        );
-      });
-
-      it("documents grouped PASS, WARN, FAIL, and SKIP checks", () => {
-        expect(skill).toContain("PASS");
-        expect(skill).toContain("WARN");
-        expect(skill).toContain("FAIL");
-        expect(skill).toContain("SKIP");
-        expect(skill).toMatch(/grouped sections/i);
-      });
-
-      it("documents the overall READY verdict ladder", () => {
-        expect(skill).toContain("READY");
-        expect(skill).toContain("READY_WITH_WARNINGS");
-        expect(skill).toContain("NOT_READY");
-        expect(skill).toMatch(/The verdict ladder is:/);
-      });
-
-      it("documents the shared grouped report rendering contract", () => {
-        expect(skill).toContain("scripts/doctor-report.mjs");
-        expect(skill).toMatch(/Overall verdict: <VERDICT>/);
-        expect(skill).toMatch(/Counts:/);
-        expect(skill).toMatch(/Observed:/);
-        expect(skill).toMatch(/Remediation:/);
-      });
-
-      it("reuses existing contracts for GitHub Project and wiki checks", () => {
-        expect(skill).toContain("config-resolution");
-        expect(skill).toContain("lisa-github-project-v2");
-        expect(skill).toContain("lisa-wiki-doctor");
       });
     });
 

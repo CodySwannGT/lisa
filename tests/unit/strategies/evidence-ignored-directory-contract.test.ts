@@ -2,19 +2,14 @@
  * Regression contract for CodySwannGT/lisa#4490: the verification rules and
  * the tracker-evidence wrapper must not assume `evidence/` is tracked. A host
  * that gitignores the directory, or a file pattern its artifacts use, gets no
- * committed proof, so the guidance must branch on `git ls-files --ignored`,
- * fail closed when that check errors, and name the tracker comment plus
- * evidence-release uploads as the durable record — in the source and in every
- * generated agent copy.
+ * committed proof, so the guidance branches on `git ls-files --ignored`.
+ *
+ * The guidance prose is reviewed, not pinned. What stays here is the behaviour
+ * that guidance relies on: real git, in scratch repositories, proving the
+ * branch condition reports each case the way the rules assume.
  * @module tests/unit/strategies/evidence-ignored-directory-contract
  */
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -22,100 +17,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
-const read = (relativePath: string): string =>
-  readFileSync(path.resolve(relativePath), "utf8");
-
 const TICKET_DIR = "evidence/T-1/";
 const VERDICT_PATH = `${TICKET_DIR}verdict.json`;
 const SCREENSHOT_PATH = `${TICKET_DIR}01-step.png`;
 
-const REFERENCE_RULES = [
-  "plugins/src/base/rules/reference/verification.md",
-  "plugins/lisa/rules/reference/verification.md",
-  "plugins/lisa-copilot/rules/reference/verification.md",
-  "plugins/lisa-devin/rules/reference/verification.md",
-  "plugins/lisa-cursor/rules/verification-reference.mdc",
-] as const;
-
-const CLAIM_EVIDENCE_RULES = [
-  "plugins/src/base/rules/reference/claim-evidence-mapping.md",
-  "plugins/lisa/rules/reference/claim-evidence-mapping.md",
-  "plugins/lisa-copilot/rules/reference/claim-evidence-mapping.md",
-  "plugins/lisa-devin/rules/reference/claim-evidence-mapping.md",
-  "plugins/lisa-cursor/rules/claim-evidence-mapping-reference.mdc",
-] as const;
-
-const EVIDENCE_SKILLS = [
-  "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md",
-  "plugins/lisa/skills/lisa-tracker-evidence/SKILL.md",
-  "plugins/lisa/.codex-plugin/skills/lisa-tracker-evidence/SKILL.md",
-  "plugins/lisa-cursor/skills/lisa-tracker-evidence/SKILL.md",
-  "plugins/lisa-agy/skills/lisa-tracker-evidence/SKILL.md",
-  "plugins/lisa-copilot/skills/lisa-tracker-evidence/SKILL.md",
-  "plugins/lisa-devin/skills/lisa-tracker-evidence/SKILL.md",
-] as const;
-
 describe("ignored evidence contract (#4490)", () => {
-  describe.each(REFERENCE_RULES)("reference verification rule %s", file => {
-    const text = read(file);
-
-    it("documents all three outcomes of the check and the verdict field", () => {
-      expect(text).toContain("**When the repository ignores evidence.**");
-      expect(text).toContain('"evidence_committed": false');
-      expect(text).toContain('"evidence_committed": true');
-      expect(text).toContain("evidence_committed: true");
-      expect(text).toMatch(
-        /\*\*It exits non-zero\.\*\* The check itself failed/
-      );
-      expect(text).toMatch(/An empty result for a missing or mistyped/);
-    });
-
-    it("downgrades uncommitted digests to session-local anchors", () => {
-      expect(text).toContain("**session-local integrity anchor**");
-      expect(text).toMatch(
-        /uploaded evidence-release copy when git ignores the evidence/
-      );
-    });
-  });
-
-  describe.each(CLAIM_EVIDENCE_RULES)(
-    "claim-evidence-mapping rule %s",
-    file => {
-      const text = read(file);
-
-      it("defines sha256 for uploaded copies and recomputes against fetched bytes", () => {
-        expect(text).toMatch(
-          /or of its uploaded evidence-release copy when git ignores the evidence/
-        );
-        expect(text).toMatch(/of the bytes fetched from that URL/);
-      });
-    }
-  );
-
-  describe.each(EVIDENCE_SKILLS)("tracker-evidence skill %s", file => {
-    const text = read(file);
-
-    it("runs the ignored-evidence check before dispatch and fails closed on error", () => {
-      expect(text).toContain(
-        'git ls-files --others --ignored --exclude-standard -- "$EVIDENCE_DIR"'
-      );
-      expect(text).toMatch(/never read it as "tracked"/);
-    });
-
-    it("uploads every manifest artifact under a ticket-scoped name to the resolved release", () => {
-      expect(text).toMatch(
-        /Upload every manifest artifact except `verdict.json`/
-      );
-      expect(text).toMatch(/`<ticket>` is a `\[a-z0-9-\]` slug/);
-      expect(text).toContain('gh release upload "$RELEASE" <copies> --clobber');
-      expect(text).toMatch(/If any upload fails, stop before dispatching/);
-      expect(text).toContain("pr-<PR_NUMBER>-<ticket>-<file>");
-      expect(text).toContain("<IDENTIFIER>-<file>");
-      expect(text).toMatch(/Never hard-code `pr-assets`/);
-      expect(text).toMatch(/Never describe ignored evidence as "committed"/);
-    });
-  });
-
   describe("the branch condition the rules rely on", () => {
     // Drop inherited GIT_* so a hook-run suite cannot redirect the scratch repo.
     const env = Object.fromEntries(

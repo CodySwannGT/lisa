@@ -18,7 +18,7 @@
  * `bun run build:plugins` fails this suite.
  * @module tests/unit/strategies/qa-failure-signal-inverse
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -279,7 +279,6 @@ describe("the contract cannot be satisfied by prose", () => {
   });
 });
 
-const SKILL_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
 const GENERATED_ROOTS = [
   "plugins/lisa",
   "plugins/lisa-cursor",
@@ -287,27 +286,7 @@ const GENERATED_ROOTS = [
   "plugins/lisa-copilot",
 ] as const;
 
-const readSkill = (root: string, name: string): string =>
-  readFileSync(path.resolve(root, `skills/${name}/SKILL.md`), "utf8");
-
-describe("every skill on the QA signal's path resolves it through one module", () => {
-  describe.each(SKILL_ROOTS)("%s", root => {
-    // `lisa-qa-fail`, `lisa-qa-queue` and `lisa-qa-checklist`/`lisa-qa-clear`
-    // were retired: they were an unused human-tester acceptance loop, and they
-    // were the signal's only automatic writers. Rework triage is now the sole
-    // skill on this path, so it is the only one with a contract to enforce.
-    it("rework triage reads liveness, not bare label presence", () => {
-      const triage = readSkill(root, "lisa-rework-triage");
-
-      expect(triage).toContain(SCRIPT);
-      expect(triage).toMatch(/\blive\b/);
-      expect(triage).toMatch(/stale/i);
-      // A stale signal is repaired where it is found, so the backlog of items
-      // labelled before the inverse existed drains instead of accumulating.
-      expect(triage).toMatch(/remove|clear/i);
-    });
-  });
-
+describe("the QA signal resolver ships with every generated root", () => {
   describe.each(GENERATED_ROOTS)("generated root %s", root => {
     it("ships the resolver alongside the skills that call it", () => {
       expect(existsSync(path.resolve(root, SCRIPT))).toBe(true);
