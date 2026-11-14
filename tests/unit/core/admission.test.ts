@@ -25,6 +25,7 @@ import {
 } from "../../../src/core/admission.js";
 import type { AdmissionSettings } from "../../../src/core/admission-settings.js";
 import { lockAddress } from "../../../src/core/admission-lock.js";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -302,7 +303,7 @@ describe("the decision lock never blocks a run without bound", () => {
 
   it(
     "starts now, in one line, when the lock stays held past the wait bound",
-    { timeout: 10_000 },
+    { timeout: ioLatencyBudgetMs(10_000) },
     async () => {
       const dir = stateDir();
       await holdLockForever(dir);
@@ -321,7 +322,7 @@ describe("the decision lock never blocks a run without bound", () => {
 
   it(
     "never deletes a non-socket file at the lock path, and starts now saying why",
-    { timeout: 10_000 },
+    { timeout: ioLatencyBudgetMs(10_000) },
     async () => {
       const dir = stateDir();
       const planted = lockAddress(dir);
