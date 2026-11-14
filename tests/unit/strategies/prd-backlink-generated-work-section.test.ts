@@ -12,31 +12,20 @@
  * section ALONE, without scraping free-form comments. Part of PRD #525; cites
  * the `prd-lifecycle-rollup` rule (#579) by slug.
  *
- * The guarantees under test:
- *   (1) the documented section is ALWAYS written for every source_type
- *       (additive to native links, written even when native links exist);
- *   (2) each entry is MACHINE-READABLE — a `<!-- lisa:gw ref=.. url=.. type=..
- *       parent=.. -->` token carrying ref + URL + type + parent_key;
- *   (3) `## Tickets` is canonical and `## Generated Work` is a documented alias
- *       the reader recognizes;
- *   (4) the section is regenerated in place / deterministic with NO timestamp,
- *       so re-runs produce byte-identical output with no duplicate entries;
- *   (5) the `prd-lifecycle-rollup` rule is cited by slug.
+ * The skill's prose is guidance and is reviewed, not pinned (#4867). What
+ * stays here: the skill ships in both plugin roots, and the documented token
+ * format (`<!-- lisa:gw ref=.. url=.. type=.. parent=.. -->`) is shown to be
+ * machine-readable by PARSING a section rendered to that spec: it enumerates
+ * the child set, selects the generated TOP-LEVEL children (empty `parent`)
+ * without reading any prose, and shows a re-render of the same ticket set is
+ * byte-identical (idempotent).
  *
- * Beyond asserting the spec documents these guarantees, this suite proves the
- * documented token format is genuinely machine-readable by PARSING a section
- * rendered to that exact spec: it enumerates the child set, selects the
- * generated TOP-LEVEL children (empty `parent`) without reading any prose, and
- * shows a re-render of the same ticket set is byte-identical (idempotent) — the
- * empirical verification #582 requires.
- *
- * Both the source (`plugins/src/base/skills`) and the generated artifact
- * (`plugins/lisa/skills`) are asserted, so an artifact-only edit or a missed
- * `bun run build:plugins` fails the suite — the same discipline the
- * prd-backlink-native-linking (#580/#581) suite uses.
+ * The skill's presence is asserted in both the source
+ * (`plugins/src/base/skills`) and the generated artifact
+ * (`plugins/lisa/skills`).
  * @module tests/unit/strategies/prd-backlink-generated-work-section
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -46,105 +35,16 @@ const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 /** The skill's directory / slug. */
 const SKILL_SLUG = "lisa-prd-backlink";
-/** The vendor-neutral rule this skill cites by slug. */
-const RULE_SLUG = "prd-lifecycle-rollup";
 
 /** `describe.each` title shared by every plugin-root block. */
 const ROOT_TITLE = "%s/prd-backlink/SKILL.md";
 
-/** Every vendor source_type the section must be written for. */
-const SOURCE_TYPES = [
-  "notion",
-  "confluence",
-  "linear",
-  "github",
-  "file",
-] as const;
-
-const readSkill = (root: string): string =>
-  readFileSync(path.resolve(root, SKILL_SLUG, "SKILL.md"), "utf8");
-
-describe("prd-backlink always-written machine-readable section (#582)", () => {
+describe("prd-backlink ships in every plugin root (#582)", () => {
   describe.each(SKILL_ROOTS)(ROOT_TITLE, root => {
     const skillPath = path.resolve(root, SKILL_SLUG, "SKILL.md");
 
     it("exists in this plugin root", () => {
       expect(existsSync(skillPath)).toBe(true);
-    });
-
-    const content = readSkill(root);
-
-    // (1) always written for every source_type, additive to native linking.
-    it("documents the section is always written for every source_type", () => {
-      expect(content).toMatch(/always-written|always written/i);
-      // Additive to native linking, not a replacement.
-      expect(content).toMatch(/additive/i);
-      expect(content).toMatch(/never a (substitute|replacement)/i);
-      // Written for every vendor, including those that also get native links.
-      expect(content).toMatch(/every\s+`?source_type`?|for every vendor/i);
-    });
-
-    // (1) explicitly written even when a native hierarchy link also exists.
-    it("writes the section even when native links exist", () => {
-      expect(content).toMatch(
-        /even when a native (hierarchy )?link was also made|written.*regardless|either way/i
-      );
-    });
-
-    // (2) machine-readable token format: ref + URL + type + parent.
-    it("documents a machine-readable per-entry token", () => {
-      expect(content).toMatch(/machine-readable/i);
-      // The fixed sentinel + the four fields, in fixed order.
-      expect(content).toContain("<!-- lisa:gw ref=");
-      expect(content).toMatch(/ref=.*url=.*type=.*parent=/);
-    });
-
-    // (2) the token explicitly carries each required field with its meaning.
-    it("documents ref, url, type, and parent token fields", () => {
-      expect(content).toMatch(/\*\*`ref`\*\*/);
-      expect(content).toMatch(/\*\*`url`\*\*/);
-      expect(content).toMatch(/\*\*`type`\*\*/);
-      expect(content).toMatch(/\*\*`parent`\*\*/);
-      // parent is empty for top-level entries (the rollup selection key).
-      expect(content).toMatch(/empty\*?\*? when the entry is top-level/i);
-    });
-
-    // (2) parseable without reading prose — the explicit rollup contract.
-    it("states the set is parseable without reading prose/comments", () => {
-      expect(content).toMatch(
-        /parse(able|d)? (this section|the section) alone|without (reading|scraping) (prose|free-form|comments)/i
-      );
-    });
-
-    // (3) canonical heading + documented alias.
-    it("documents ## Tickets as canonical and ## Generated Work as alias", () => {
-      expect(content).toMatch(/## Tickets/);
-      expect(content).toMatch(/## Generated Work/);
-      expect(content).toMatch(/accepted alias|alias.*recognize/i);
-      // Either heading is matched when locating an existing section.
-      expect(content).toMatch(/match either heading|either name/i);
-    });
-
-    // (4) idempotent / regenerate-in-place / no timestamp.
-    it("is deterministic, regenerated in place with no timestamp", () => {
-      expect(content).toMatch(/byte-identical|identical output bytes/i);
-      expect(content).toMatch(
-        /never append|regenerate.*not append|regenerated/i
-      );
-      expect(content).toMatch(/does not include a timestamp/i);
-      // Dedupe by child-ref so no duplicate entries accumulate.
-      expect(content).toMatch(/dedupe.*child-ref|child-ref.*dedupe/i);
-      expect(content).toMatch(/no duplicate entries/i);
-    });
-
-    // (5) cites the prd-lifecycle-rollup rule by slug.
-    it("cites the prd-lifecycle-rollup rule by slug", () => {
-      expect(content).toContain(RULE_SLUG);
-    });
-
-    // (1) every vendor source_type is named as covered by the section.
-    it.each(SOURCE_TYPES)("names the %s source_type", sourceType => {
-      expect(content).toContain(sourceType);
     });
   });
 });

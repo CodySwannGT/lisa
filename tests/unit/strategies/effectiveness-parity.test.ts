@@ -20,9 +20,6 @@ describe("effectiveness contract delivery", () => {
     expect(await readFile(path.join(root, REFERENCE), "utf8")).toBe(
       await readFile(SOURCE, "utf8")
     );
-    expect(
-      await readFile(path.join(root, "lisa-usage-accounting/SKILL.md"), "utf8")
-    ).toContain("references/effectiveness.md");
   });
 
   it("installs the same nested reference for OpenCode", async () => {

@@ -1,0 +1,58 @@
+# Re-verification on head cdc7b3cae1fa053fbe1e343c94b78735a9d9a859 (PR #4886, after main merge) - CodySwannGT/lisa#4867
+Scope: AC-4 classifier, AC-2 a/b and AC-3 as targeted runs, and a scan of the evidence for credential shapes.
+AC-1: the full unit suite was not re-run here; the lead reports pre-push full coverage and integration passed on 839c5dc6ce, the pre-merge head.
+Earlier files in this directory record the verifier's run on 1f7375d9d5 plus the then-staged changes.
+
+## AC-4: node scripts/classify-phrase-tests.mjs --classify-manifest --json (exit 0)
+files 50 entries 54 {"MACHINE-TOKEN":54,"STRUCTURAL":0,"WORDING":0,"UNRESOLVED":0,"NOT-MARKDOWN":0}
+live output equal to committed classification-manifest-after.json: true
+
+## node scripts/classify-phrase-tests.mjs --classify-assertions --json (exit 0)
+testFiles 148 sites 1538 markdownSites 219 {"MACHINE-TOKEN":16,"STRUCTURAL":36,"WORDING":121,"UNRESOLVED":46,"NOT-MARKDOWN":0}
+live output equal to committed classification-assertions-after.json: FALSE
+Committed after-file: 148 files, 1536 sites, 217 Markdown sites, WORDING 120, UNRESOLVED 45.
+Drift (+2 Markdown sites: +1 WORDING, +1 UNRESOLVED) comes from the #4764 block main added to
+tests/unit/strategies/learnings-audit-contract.test.ts, kept in the merge: a loop asserting six output field
+names (UNRESOLVED) and 'destination-validation' in three anchored ranges (WORDING). No script, hook or src file
+parses either value. These sites are not in the reviewed residue table in classification-summary.md.
+
+## AC-4 bite: one WORDING entry added to required-phrases.json; npx vitest run tests/unit/docs/required-phrases.test.ts (exit 1); reverted
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > pins only MACHINE-TOKEN and STRUCTURAL phrases
++   "plugins/lisa-agy/skills/lisa-git-submit-pr/SKILL.md: \"Never a detached or unbounded\" (WORDING)",
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/skills/lisa-git-submit-pr/SKILL.md > required "Never a detached or unbounded"
+ Test Files  1 failed (1)
+      Tests  2 failed | 259 passed (261)
+
+## AC-2a: description deleted from plugins/src/base/skills/lisa-project-ideation/SKILL.md (exit 1); reverted
+(Run immediately after a clean baseline of the same three suites: 3 files, 76 tests passed.)
+ FAIL  |lisa| tests/unit/core/skill-frontmatter-contract.test.ts > skill, command, and agent frontmatter contract > every rendered surface loads under the active YAML parser
++ plugins/src/base/skills/lisa-project-ideation/SKILL.md: frontmatter is missing a non-empty string `description`
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 75 passed (76)
+
+## AC-2b: lisa-prd-backlink renamed to lisa-prd-backlink-renamed (directory and name) (exit 1); reverted
+ FAIL  |lisa| tests/unit/strategies/agent-skill-layer-contract.test.ts > agent/skill layer contract > a skill only invokes skills that exist > resolves every skill a skill invokes
++   "lisa-prd-backlink (from lisa-notion-to-tracker)",
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 75 passed (76)
+
+## AC-3: every [lisa-human-gate] replaced with [human-gate] in plugins/src/base/rules/reference/ready-role-filing.md (exit 1); reverted
+ FAIL  |lisa| tests/unit/strategies/ready-role-filing-contract.test.ts > ready-role-filing rule contract > plugins/src/base > carries the human-gate marker the filing guard parses
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 23 passed (24)
+
+## After revert: required-phrases, phrase-tests-redact, phrase-tests-marker-classes, 3 structural suites, ready-role-filing, block-direct-issue-create-container (exit 0)
+ Test Files  8 passed (8)
+      Tests  428 passed (428)
+
+## Note: a first pass of probes a and b failed for an unrelated reason (ENOENT reading a plugins/lisa-cursor
+command path mid-run, consistent with a concurrent process rewriting plugins/). A clean baseline then a re-run
+of a and b, recorded above, gave the expected failures.
+
+## Credential-shape scan of evidence/4867 (rg --hidden --no-ignore)
+Pattern: twelve vendor prefixes (payment, source-host, cloud-provider, chat, Google OAuth access, Google API, GitLab, JWT header, PEM header),
+described rather than quoted so this file cannot match its own scan.
+Result: no output, exit 1.
+Bite control: the same pattern on a scratch file holding two fake samples -> 2 matches.
+
+## Tree after probes: only this untracked file

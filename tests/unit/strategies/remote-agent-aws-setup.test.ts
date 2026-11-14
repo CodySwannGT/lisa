@@ -68,25 +68,6 @@ describe("remote AWS platform installer", () => {
       "utf8"
     );
     expect(guide).toContain("--secret-id company-remote-agent");
-    expect(guide).toContain("--profile <source-profile>");
-    expect(guide).not.toContain("aws --profile shared secretsmanager");
-    // The guide used to demonstrate bare stage names, which is the colliding
-    // convention itself. It must now teach the namespaced ones.
-    expect(guide).toContain("<project>-agent-<stage>");
-    expect(guide).not.toContain(
-      "aws --profile staging sts get-caller-identity"
-    );
-    for (const heading of [
-      "## Context",
-      "## Goal",
-      "## Changes",
-      "## Implementation",
-      "## Readiness",
-      "## Migration",
-      "## Notes",
-    ]) {
-      expect(guide).toContain(heading);
-    }
   });
 
   it("preserves an existing Cursor install command and is idempotent", () => {
@@ -192,19 +173,5 @@ describe("remote AWS runtime parity", () => {
         "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-aws/SKILL.md"
       )
     ).toBe(true);
-  });
-
-  it("documents every supported or explicitly bounded remote-agent surface", () => {
-    const guide = readFileSync(REMOTE_AWS_GUIDE_PATH, "utf8");
-    for (const platform of [
-      "Claude",
-      "Codex",
-      "Cursor",
-      "Copilot",
-      "Antigravity",
-      "OpenCode",
-    ]) {
-      expect(guide).toContain(platform);
-    }
   });
 });
