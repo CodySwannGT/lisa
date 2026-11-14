@@ -29,7 +29,12 @@ export function jiraNow() {
  * @returns The issue, if stored.
  */
 export function findIssue(store: JiraStore, key: string) {
-  return store.issues.find(issue => `${store.project}-${issue.number}` === key);
+  // Jira addresses an issue by its key or by its numeric id (10000 + number here).
+  return store.issues.find(
+    issue =>
+      `${store.project}-${issue.number}` === key ||
+      String(10_000 + issue.number) === key
+  );
 }
 
 /**

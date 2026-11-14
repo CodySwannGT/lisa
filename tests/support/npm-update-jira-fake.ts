@@ -42,7 +42,7 @@ const STATUSES = [
 /** Done-category statuses: Jira's closed history. */
 const CLOSED = new Set(["Done", "Won't Do"]);
 
-const ISSUE = "([A-Z]+-\\d+)";
+const ISSUE = "([A-Z]+-\\d+|\\d+)";
 /** The API account the fake answers as: the declared automation identity in test configs. */
 export const JIRA_ACCOUNT = "service-account-1";
 const ATLASSIAN = "atlassian";
@@ -223,7 +223,13 @@ function issueRoutes(store: JiraStore): Route[] {
       issuePath(),
       key => {
         const issue = findIssue(store, key);
-        return issue ? { key, fields: issue.fields } : undefined;
+        return issue
+          ? {
+              key: `${store.project}-${issue.number}`,
+              id: String(10_000 + issue.number),
+              fields: issue.fields,
+            }
+          : undefined;
       },
     ],
     [

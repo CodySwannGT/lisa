@@ -1269,7 +1269,7 @@
       "children": []
     },
     "lib/npm-update-tracker-jira.mjs": {
-      "sha256": "9836d5b7526d8fe46dfd1d4d0b9e46f9de31c5c00ad35053d93d2431598721f4",
+      "sha256": "221c0787e60102abf0d8b82b3d1b3223508810ab2b6b4e6419cddba7cfa76230",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-invariants.mjs",
@@ -1281,7 +1281,7 @@
       "children": []
     },
     "lib/npm-update-tracker-linear.mjs": {
-      "sha256": "34771ef30fc4809d8f534e996b6a511d577f330625d3ef048d4b62c221a404d9",
+      "sha256": "84695ba0e83650273409873ea0e89193b427d2cb8c933f0e803ef7d0ce6e398c",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-invariants.mjs",

@@ -121,11 +121,12 @@ describe("a remembered Jira ticket the search no longer accepts (#4873 review)",
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("falls back to the plain search instead of blocking allocation", async () => {
+  it("keeps the remembered ticket when the reconcile is refused and the index still lags", async () => {
     const config = { ...JIRA_CONFIG, automationProvenance: await automation() };
     await withPrivateRoot(async (root, env) => {
       const host = await committedHost(root, env, JIRA_MAINTAINER);
-      const jira = fakeJira({ assignable: [JIRA_MAINTAINER] });
+      // The index still lags, so the plain search alone would miss PROJ-1.
+      const jira = fakeJira({ assignable: [JIRA_MAINTAINER], indexLag: true });
       let refused = 0;
       const transport: typeof jira.transport = async (url, init) => {
         const body = String(init?.body ?? "");

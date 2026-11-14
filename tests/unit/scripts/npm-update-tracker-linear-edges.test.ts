@@ -233,3 +233,45 @@ describe("no silent GitHub fallback for a Jira or Linear config", () => {
     ).rejects.toThrow(/configured tracker adapter differs/);
   });
 });
+
+describe("a Linear API key that is not the declared automation user (#4873 review)", () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      Response.json(REGISTRY_METADATA)
+    );
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("stops before creating, moving or commenting on anything, naming LINEAR_API_KEY", async () => {
+    const config = {
+      ...LINEAR_CONFIG,
+      automationProvenance: await automation(),
+    };
+    await withPrivateRoot(async (root, env) => {
+      const host = await committedHost(root, env, LINEAR_MAINTAINER);
+      const linear = fakeLinear({
+        members: [LINEAR_MAINTAINER],
+        viewerId: "0f3c2a1b-4d5e-4f60-8a7b-9c0d1e2f3a40",
+      });
+      const api = {
+        ...codeHost(host.parent),
+        tracker: createTracker(
+          config,
+          { LINEAR_API_KEY: "k" },
+          linear.transport
+        )!,
+      };
+      const failure = await allocateLeaf({ api, config, ...host }).then(
+        () => undefined,
+        (error: unknown) => publicFailure(error)
+      );
+      expect(failure).toContain(
+        "The LINEAR_API_KEY signs in as a different account than linear.claimActorRef"
+      );
+      const writes = linear.log.filter(entry =>
+        /IssueCreate|IssueUpdate|CommentCreate/.test(entry.operation)
+      );
+      expect(writes).toEqual([]);
+    });
+  });
+});

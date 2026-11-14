@@ -247,6 +247,8 @@ export class LinearTracker {
     throw vocabularyRefusal("Linear");
   }
   async createLeaf(draft) {
+    // Every write proves the declared automation identity first (#4873 review).
+    await this.viewer();
     const input = {
       teamId: (await this.team()).id,
       title: draft.title,
@@ -280,6 +282,7 @@ export class LinearTracker {
     );
   }
   async update(number, input) {
+    await this.viewer();
     const id = await this.issueId(number);
     const reply = await this.graphql(UPDATE, { id, input }, "issue");
     required(reply.issueUpdate?.success === true, "tracker update refused");
@@ -294,6 +297,7 @@ export class LinearTracker {
   }
   /** Managed records sit in one exact fence; a backlink is the plain line the PR check reads. */
   async comment(number, text, stored = fence(text)) {
+    await this.viewer();
     const input = { issueId: await this.issueId(number), body: stored };
     const created = (
       await this.graphql(COMMENT_CREATE, { input }, "issue-comments")

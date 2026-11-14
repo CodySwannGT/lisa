@@ -223,13 +223,41 @@ export class JiraTracker {
     const jql = `project = "${this.key}" AND labels = "lisa-npm-${proposal.selectionKey}"`;
     const remembered = await this.remembered(proposal);
     if (!remembered) return this.search(jql);
-    // A remembered ticket that was since deleted must not block allocation:
-    // a refused reconcile falls back to the plain search used before #4873.
     try {
       return await this.search(jql, remembered);
     } catch {
-      return this.search(jql);
+      return this.searchWithout(jql, remembered[0], proposal);
     }
+  }
+  /**
+   * A refused reconcile must neither block allocation nor lose the remembered
+   * ticket to a still-lagging index (#4873 review): the ticket is read directly
+   * and kept in the result while it exists with this selection's label. Only a
+   * 404, a deleted ticket, lets the plain search stand alone; any other failed
+   * read throws, so nothing is created on an unknown answer.
+   */
+  async searchWithout(jql, id, proposal) {
+    const ticket = await this.call(
+      `/issue/${id}?fields=status,labels`,
+      "issue",
+      "GET",
+      undefined,
+      true
+    );
+    const found = await this.search(jql);
+    const label = `lisa-npm-${proposal.selectionKey}`;
+    if (ticket === null || !(ticket.fields?.labels ?? []).includes(label))
+      return found;
+    const number = this.numberOf(ticket.key);
+    if (found.items.some(item => item.number === number)) return found;
+    return {
+      ...found,
+      total_count: found.total_count + 1,
+      items: [
+        ...found.items,
+        { number, state: stateOf(ticket.fields?.status) },
+      ],
+    };
   }
   async relationships() {
     const query = `project = "${this.key}" AND (summary ~ "npm" OR description ~ "npm")`;
@@ -288,6 +316,7 @@ export class JiraTracker {
   }
   /** Exactly one workflow transition must reach the named status; none is ever guessed. */
   async moveTo(number, name) {
+    await this.myself();
     const current = await this.call(
       `/issue/${this.ref(number)}?fields=status`,
       "issue"
@@ -318,6 +347,8 @@ export class JiraTracker {
     );
   }
   async assign(number, accountId) {
+    // Every write proves the declared automation identity first (#4873 review).
+    await this.myself();
     await this.call(`/issue/${this.ref(number)}/assignee`, "issue", "PUT", {
       accountId,
     });
@@ -327,6 +358,7 @@ export class JiraTracker {
   }
   /** Managed records are one ADF code block; a backlink is the plain paragraph the PR check reads. */
   async comment(number, text, document = adfCodeBlock(withinJiraLimit(text))) {
+    await this.myself();
     const created = await this.call(
       `/issue/${this.ref(number)}/comment`,
       "issue-comments",
