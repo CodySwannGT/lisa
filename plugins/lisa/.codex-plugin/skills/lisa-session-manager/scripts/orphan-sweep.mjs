@@ -38,8 +38,15 @@ export {
 /** At most this many writes per cycle unless the caller says otherwise. */
 export const DEFAULT_ORPHAN_MAX = 10;
 
-/** An item updated more recently than this many hours is left alone. */
-export const DEFAULT_STALE_HOURS = 6;
+/**
+ * An item updated more recently than this many hours is left alone.
+ *
+ * Matches the documented `sessionManager.stall.orphanHours` default, which
+ * `orphan-plan` passes in. An in-progress item should never go two hours
+ * without a tracker update, so one that has is presumed abandoned
+ * (CodySwannGT/lisa#4901).
+ */
+export const DEFAULT_STALE_HOURS = 2;
 
 /** The order buckets spend the cap in. */
 const CAPPED_BUCKETS = ["doneReady", "return", "redispatch", "parked"];

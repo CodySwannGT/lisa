@@ -195,6 +195,8 @@ describe("sessionManager block", () => {
   it.each([
     ["noOutputMinutes", -1],
     ["requestionHours", -0.5],
+    ["orphanHours", -1],
+    ["orphanHours", "2"],
     ["maxAttempts", -1],
     ["maxAttempts", 0],
     ["maxAttempts", 1.5],

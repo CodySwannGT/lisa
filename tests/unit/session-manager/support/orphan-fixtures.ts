@@ -9,7 +9,7 @@ import { planOrphanSweep } from "../../../../plugins/src/base/skills/lisa-sessio
 export const REPO = "example-org/demo-repo";
 export const NOW = "2026-11-13T12:00:00Z";
 export const OLD = "2026-11-10T12:00:00Z";
-export const RECENT = "2026-11-13T10:00:00Z";
+export const RECENT = "2026-11-13T10:30:00Z";
 export const ME = "lisa-bot";
 export const OPERATOR = "op-login";
 export const STRANGER = "someone-else";

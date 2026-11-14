@@ -699,7 +699,7 @@ have a `.lisa.config.json` and their own `.git` (written as `"root": "."`).
     }
   },
   "capacity": { "maxWorkers": 6, "gbPerWorker": 3, "reserveGb": 8, "cpuFraction": 0.75, "maxLoadPerCore": 1.5 },
-  "stall": { "noOutputMinutes": 60, "maxAttempts": 3, "requestionHours": 4 },
+  "stall": { "noOutputMinutes": 60, "maxAttempts": 3, "requestionHours": 4, "orphanHours": 2 },
   "notify": { "provider": "telegram", "stateDir": "~/.claude/channels/telegram-<project>" }
 }
 ```
@@ -724,6 +724,7 @@ operator chooses Telegram (`init-config --notify telegram`).
 | `sessionManager.stall.noOutputMinutes` | no | `60` | A live worker with no new output for this long counts as stalled (zero or positive). |
 | `sessionManager.stall.maxAttempts` | no | `3` | Fresh sessions per item before it moves to the configured `blocked` role (a positive integer). |
 | `sessionManager.stall.requestionHours` | no | `4` | How long an unanswered worker question waits before the manager asks again (zero or positive). |
+| `sessionManager.stall.orphanHours` | no | `2` | An item in the `claimed` (or `review`) role with no live worker and no tracker update for this long is presumed abandoned, and the orphan sweep finishes, returns or re-dispatches it. Anything updated more recently is left alone, which protects someone running `/lisa:implement` by hand (zero or positive). |
 | `sessionManager.notify.provider` | no | `none` | `none` (no notification channel) or `telegram`. Absent, like an absent `notify` block, means `none`. Any other value fails validation. |
 | `sessionManager.notify.stateDir` | **yes** with `telegram`; must be absent otherwise | — | This project's own Telegram state dir. A `stateDir` without the `telegram` provider fails validation, because no bot would use it. Never the shared default `~/.claude/channels/telegram`, because one bot per state dir is how projects stay isolated. Setup writes `~/.claude/channels/telegram-<project>`. |
 | `sessionManager.trustedAuthorIds` | no | — | Optional list of **stable tracker user ids**, as strings: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira `accountId`, or the Linear user id. Not logins or display names: matching compares ids, so a plain login silently matches no one and excludes every item. An entry may name its kind: `id:<v>` is an id, `login:<v>` a GitHub login (matched by the queue and on-item answers; the hold-release check compares ids only and ignores it). A login GitHub frees (after a rename or a deleted account) can be re-registered by someone else, so prefer `id:` for trust. `integration:<service>` trusts items an integration files with no person behind them (Linear's `botActor`, by `subType` such as `sentry`, else its bot `id`, never its self-chosen display name; never an item a person or an outside user filed; it trusts who filed the item, not text an outsider can get into it, such as a quoted error message); GitHub Apps and Jira automation file as an account, so trust them by `id:`. An unknown prefix or an empty value fails validation. When set, the manager takes only items authored by these people or integrations. It is also who may release a human hold, unless `trustedReleaseIds` is set — so removing it removes every hold releaser too. |

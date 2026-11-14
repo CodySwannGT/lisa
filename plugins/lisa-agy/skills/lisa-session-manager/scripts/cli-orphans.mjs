@@ -130,6 +130,20 @@ function readEnvelope(ctx) {
 }
 
 /**
+ * The stale threshold for the sweep: the flag, else the config, else the
+ * planner's own default.
+ * @param {number | undefined} flag - `--stale-hours`
+ * @param {{ stall?: { orphanHours?: unknown } } | null | undefined} config -
+ *   Resolved `sessionManager` block, or absent
+ * @returns {{ staleHours?: number }} Spread into the planner options
+ */
+function orphanStaleHours(flag, config) {
+  if (flag !== undefined) return { staleHours: flag };
+  const configured = config?.stall?.orphanHours;
+  return typeof configured === "number" ? { staleHours: configured } : {};
+}
+
+/**
  * `orphan-plan [--input <file>] [--max <n>] [--stale-hours <n>]` (stdin
  * without --input: `{"complete":true,"items":[...],"holds":[...]}`).
  * @param {object} ctx - CLI context
@@ -155,7 +169,9 @@ export async function orphanPlan(ctx) {
         trustedAuthorIds: trustedReleaseEntries(config),
         now: new Date(),
         ...(max === undefined ? {} : { max }),
-        ...(staleHours === undefined ? {} : { staleHours }),
+        // An explicit --stale-hours wins; otherwise the project's
+        // `stall.orphanHours` (CodySwannGT/lisa#4901).
+        ...orphanStaleHours(staleHours, config),
         previousDigest: ledger.control.holdDigest ?? null,
         ...holdPolicy(project),
       })

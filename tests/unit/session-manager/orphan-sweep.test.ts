@@ -33,9 +33,9 @@ import {
 } from "./support/orphan-fixtures.js";
 
 describe("planOrphanSweep defaults", () => {
-  it("caps at 10 writes and calls an item stale after 6 hours", () => {
+  it("caps at 10 writes and calls an item stale after 2 hours (CodySwannGT/lisa#4901)", () => {
     expect(DEFAULT_ORPHAN_MAX).toBe(10);
-    expect(DEFAULT_STALE_HOURS).toBe(6);
+    expect(DEFAULT_STALE_HOURS).toBe(2);
   });
 
   it("needs a clock: now is required and must be a real time", () => {
