@@ -125,6 +125,15 @@ describe("fitDevEnginesToHost", () => {
     expect(fitted.retire).toBe(true);
   });
 
+  it("retires Lisa's floor whatever order its keys are in", () => {
+    const fitted = fitDevEnginesToHost(template(), "bun", {
+      devEngines: {
+        packageManager: { onFail: "warn", version: ">=11.6.0", name: "npm" },
+      },
+    });
+    expect(fitted.retire).toBe(true);
+  });
+
   it("leaves a devEngines value the host wrote itself", () => {
     const fitted = fitDevEnginesToHost(template(), "bun", {
       devEngines: { packageManager: { name: "bun", version: ">=1.4.0" } },

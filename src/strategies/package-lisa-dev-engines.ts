@@ -93,10 +93,26 @@ export function fitDevEnginesToHost(
 
   return {
     template: { ...template, force: withoutFloor(template.force) },
-    retire:
-      JSON.stringify(packageManagerFloor(projectJson)) ===
-      JSON.stringify(floor),
+    retire: canonical(packageManagerFloor(projectJson)) === canonical(floor),
   };
+}
+
+/**
+ * Serialise a JSON value with object keys sorted, so two equal values compare
+ * equal whatever order their keys were written in.
+ * @param value - JSON value
+ * @returns Canonical JSON text
+ */
+function canonical(value: unknown): string | undefined {
+  return JSON.stringify(value, (_key, inner: unknown) =>
+    inner !== null && typeof inner === "object" && !Array.isArray(inner)
+      ? Object.fromEntries(
+          Object.entries(inner as Record<string, unknown>).sort(([a], [b]) =>
+            a.localeCompare(b)
+          )
+        )
+      : inner
+  );
 }
 
 /**
