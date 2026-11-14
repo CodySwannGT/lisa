@@ -7,9 +7,11 @@ import {
   existsSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { createServer, type Server } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -22,6 +24,7 @@ import {
   requestAdmission,
 } from "../../../src/core/admission.js";
 import type { AdmissionSettings } from "../../../src/core/admission-settings.js";
+import { lockAddress } from "../../../src/core/admission-lock.js";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -271,4 +274,65 @@ describe("requestAdmission", () => {
     );
     expect(outcome).toEqual({ kind: "skipped", granted: 2 });
   });
+});
+
+describe("the decision lock never blocks a run without bound", () => {
+  const servers: Server[] = [];
+  afterEach(async () => {
+    await Promise.all(
+      servers
+        .splice(0)
+        .map(server => new Promise(resolve => server.close(resolve)))
+    );
+  });
+
+  /**
+   * Listen on the state's lock address and never let go, the way a holder
+   * suspended with Ctrl-Z, or another user listening there, would.
+   * @param dir - State directory
+   * @returns Once listening
+   */
+  const holdLockForever = async (dir: string): Promise<void> => {
+    const server = createServer(connection => connection.destroy());
+    servers.push(server);
+    await new Promise<void>(resolve =>
+      server.listen(lockAddress(dir), resolve)
+    );
+  };
+
+  it(
+    "starts now, in one line, when the lock stays held past the wait bound",
+    { timeout: 10_000 },
+    async () => {
+      const dir = stateDir();
+      await holdLockForever(dir);
+      const seams = runtime([IDLE]);
+      const outcome = await requestAdmission(
+        request(dir, 4, { maxWaitMs: 3_000 }),
+        seams
+      );
+      expect(outcome).toEqual({ kind: "skipped", granted: 4 });
+      const lines = seams.lines.filter(line => /decision lock/u.test(line));
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toMatch(/starting now without admission/u);
+      expect(readdirSync(dir)).not.toContain(`${String(SELF)}.json`);
+    }
+  );
+
+  it(
+    "never deletes a non-socket file at the lock path, and starts now saying why",
+    { timeout: 10_000 },
+    async () => {
+      const dir = stateDir();
+      const planted = lockAddress(dir);
+      writeFileSync(planted, "not a lock\n");
+      const seams = runtime([IDLE]);
+      const outcome = await requestAdmission(request(dir, 4), seams);
+      expect(outcome).toEqual({ kind: "skipped", granted: 4 });
+      expect(readFileSync(planted, "utf8")).toBe("not a lock\n");
+      expect(seams.lines.join("\n")).toMatch(
+        /is not a socket.*starting now without admission/u
+      );
+    }
+  );
 });

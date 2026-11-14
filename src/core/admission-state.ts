@@ -1,19 +1,10 @@
 /**
- * Machine-wide admission state: the decision lock, reservations, and readings.
+ * Machine-wide admission state: reservations and machine readings. The
+ * decision lock lives in `admission-lock.ts`.
  *
  * The state directory (`${XDG_CACHE_HOME:-$HOME/.cache}/lisa/admission/`) is
  * shared by every repository and worktree of one user, so a run in repository
  * B counts a run admitted from repository A.
- *
- * ## The lock
- *
- * Held only while deciding. It is a listening Unix-domain socket at
- * `admission.sock`: the OS closes it when the holder dies, so a crashed holder
- * leaves at most a socket FILE nobody listens on. A connect that fails with
- * `ECONNREFUSED` proves that, and the file is replaced. Before replacing it the
- * file's inode is read twice around the probe, so a socket another process
- * created in between is never unlinked. Windows uses a named pipe, which the OS
- * removes with its owner.
  *
  * ## Reservations
  *
@@ -23,152 +14,14 @@
  * @module core/admission-state
  */
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import {
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism, freemem, loadavg } from "node:os";
-import { createConnection, createServer, type Server } from "node:net";
 import { join } from "node:path";
 
 import type {
   AdmissionReservation,
   MachineReading,
 } from "./admission-decision.js";
-
-/** File name of the decision lock. */
-export const LOCK_FILE = "admission.sock";
-
-/**
- * Longest Unix socket path every supported platform can bind. macOS caps
- * `sun_path` at 104 bytes and, past it, binds a silently TRUNCATED path, so a
- * lock at the full path is never visible and `takeLock` would retry forever.
- */
-export const UNIX_SOCKET_PATH_LIMIT = 103;
-
-/**
- * Where the decision lock listens.
- *
- * A state directory deep enough to push `admission.sock` past the socket limit
- * (a long `XDG_CACHE_HOME`, a nested test scratch root) moves the lock to
- * `/tmp/lisa-admission-<digest>.sock`, named by the state directory so every
- * process sharing that directory still meets on one lock.
- * @param stateDir - State directory
- * @param platform - Platform to decide for
- * @returns Socket path, or a named pipe on Windows
- */
-export function lockAddress(
-  stateDir: string,
-  platform: NodeJS.Platform = process.platform
-): string {
-  const digest = createHash("sha256")
-    .update(stateDir)
-    .digest("hex")
-    .slice(0, 16);
-  if (platform === "win32") return `\\\\.\\pipe\\lisa-admission-${digest}`;
-  const beside = join(stateDir, LOCK_FILE);
-  if (Buffer.byteLength(beside) <= UNIX_SOCKET_PATH_LIMIT) return beside;
-  return `/tmp/lisa-admission-${digest}.sock`;
-}
-
-/**
- * Inode of a path, or null when it is absent.
- * @param path - Path to stat
- * @returns Inode number
- */
-function inodeOf(path: string): number | null {
-  try {
-    return statSync(path).ino;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Whether anything is listening on the lock address.
- * @param address - Socket path
- * @returns True when a holder answered, false on `ECONNREFUSED`/`ENOENT`
- */
-function holderListening(address: string): Promise<boolean> {
-  return new Promise(resolve => {
-    const socket = createConnection(address);
-    socket.once("connect", () => {
-      socket.destroy();
-      resolve(true);
-    });
-    socket.once("error", error => {
-      const code = (error as NodeJS.ErrnoException).code;
-      resolve(code !== "ECONNREFUSED" && code !== "ENOENT");
-    });
-  });
-}
-
-/**
- * Try once to take the decision lock.
- * @param address - Socket path
- * @returns The listening server, or null when somebody else holds it
- */
-function tryListen(address: string): Promise<Server | null> {
-  return new Promise((resolve, reject) => {
-    const server = createServer(connection => connection.destroy());
-    server.once("error", error => {
-      // macOS answers a bind through a symlinked directory (`/tmp`) with
-      // EEXIST rather than EADDRINUSE; both mean the address is taken.
-      const code = (error as NodeJS.ErrnoException).code;
-      if (code === "EADDRINUSE" || code === "EEXIST") {
-        resolve(null);
-      } else {
-        reject(error);
-      }
-    });
-    server.listen(address, () => resolve(server));
-  });
-}
-
-/**
- * Take the decision lock, replacing a socket file its dead holder left behind.
- * @param stateDir - State directory
- * @param sleep - Wait between attempts
- * @returns A release function
- */
-export async function acquireDecisionLock(
-  stateDir: string,
-  sleep: (ms: number) => Promise<void>
-): Promise<() => Promise<void>> {
-  mkdirSync(stateDir, { recursive: true });
-  return takeLock(lockAddress(stateDir), sleep);
-}
-
-/**
- * Listen on the lock address, retrying until it is ours.
- * @param address - Socket path
- * @param sleep - Wait between attempts
- * @returns A release function
- */
-async function takeLock(
-  address: string,
-  sleep: (ms: number) => Promise<void>
-): Promise<() => Promise<void>> {
-  const server = await tryListen(address);
-  if (server !== null) {
-    return () => new Promise(resolve => server.close(() => resolve()));
-  }
-  const before = inodeOf(address);
-  const listening = await holderListening(address);
-  if (!listening && before !== null && inodeOf(address) === before) {
-    rmSync(address, { force: true });
-  } else {
-    // Jitter only spreads retries apart; nothing depends on its quality.
-    // eslint-disable-next-line sonarjs/pseudo-random -- retry jitter, not a secret
-    await sleep(25 + Math.floor(Math.random() * 75));
-  }
-  return takeLock(address, sleep);
-}
 
 /**
  * Start times of the given pids, as `ps` reports them.

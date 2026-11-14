@@ -85,7 +85,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/gate-pass-cache.mjs":
-      "5a30dba4837e8e693a2a529ce334c481e498e32fa6742d2b5517b16e0d98fdf1",
+      "7ac76be30b821b76aaba184810da9ea8f95b4303b44cbe7ad702fffc8c86bfe4",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
       "98dbe0326546a1d10e148ed9036d5696159dee38068beddff321f1b2d47fcdc7",
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
@@ -11147,6 +11147,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/copilot/copilot-instructions-installer.ts": true,
     "src/copilot/plugin-installer.ts": true,
     "src/core/admission-decision.ts": true,
+    "src/core/admission-lock.ts": true,
     "src/core/admission-settings.ts": true,
     "src/core/admission-state.ts": true,
     "src/core/admission.ts": true,

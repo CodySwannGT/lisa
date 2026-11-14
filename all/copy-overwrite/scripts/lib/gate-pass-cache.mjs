@@ -31,11 +31,24 @@
  * The store is machine-local — one JSON file per passing key under
  * `${XDG_CACHE_HOME:-~/.cache}/lisa/gate-passes/` — shared by every worktree,
  * and pruned of entries older than 30 days whenever it is written.
+ *
+ * ## The store never holds an environment value
+ *
+ * `LISA_*` variables enter the key because some of them change a verdict, but
+ * that family also carries credentials — `LISA_SECRETS_BOOTSTRAP` and its key
+ * hold the secrets-provider bootstrap credential. The key therefore takes one
+ * digest of the relevant environment, and a stored record keeps only that
+ * digest plus the NAMES of the variables that are not secret-looking. No value
+ * is ever written. The directory is created (and re-tightened) 0700 and every
+ * entry 0600, so even the names and digests are private to the user, and an
+ * entry not written under the current schema is deleted on the next write —
+ * an earlier schema stored raw values (CodySwannGT/lisa#4594 review).
  * @module lib/gate-pass-cache
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -55,7 +68,20 @@ export const CACHE_ENV = "LISA_GATE_CACHE";
 export const CACHE_FIELD = "cache";
 
 /** Version of the key derivation; bumping it invalidates every entry. */
-export const KEY_SCHEMA = "lisa.gate-pass/v1";
+export const KEY_SCHEMA = "lisa.gate-pass/v2";
+
+/**
+ * Name fragments that mark a variable as possibly holding a credential. Such a
+ * name stays out of every stored record; its value still enters the digest.
+ */
+export const SECRET_NAME_PATTERN =
+  /KEY|TOKEN|SECRET|PASSWORD|PASSWD|BOOTSTRAP|CREDENTIAL|AUTH|PRIVATE/i;
+
+/** Mode of the store directory: only the user may list or enter it. */
+export const STORE_DIR_MODE = 0o700;
+
+/** Mode of every stored entry: only the user may read it. */
+export const STORE_FILE_MODE = 0o600;
 
 /** Entries older than this are ignored on read and pruned on write. */
 export const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -158,6 +184,23 @@ export function relevantEnvironment(env) {
 }
 
 /**
+ * The relevant environment reduced to what may be stored: one digest of every
+ * relevant name and value, and the names that do not look like credentials.
+ * @param {Record<string, string|undefined>} env Process environment.
+ * @returns {{digest: string, names: string[]}} The digest enters the key, so
+ *   changing any relevant value — secret-looking or not — still misses.
+ */
+export function environmentFingerprint(env) {
+  const relevant = relevantEnvironment(env);
+  return {
+    digest: createHash("sha256").update(canonicalJson(relevant)).digest("hex"),
+    names: Object.keys(relevant).filter(
+      name => !SECRET_NAME_PATTERN.test(name)
+    ),
+  };
+}
+
+/**
  * JSON with object keys sorted at every depth, so equal inputs hash equally.
  * @param {unknown} value Any JSON value.
  * @returns {string} Canonical JSON text.
@@ -257,8 +300,9 @@ function gatesBlockOf(path) {
  *   versions a caller's gates depend on — a Rails host adds `ruby -v` and
  *   `bundle -v` (CodySwannGT/lisa#4613). Empty for the gate runner, so its
  *   keys are unchanged.
- * @returns {{lockfiles: Record<string, string>, tools: {node: string, bun: string|null}, gatesConfig: {project: unknown, local: unknown}, environment: Record<string, string>}}
- *   Lockfile digests, tool versions, config and environment.
+ * @returns {{lockfiles: Record<string, string>, tools: {node: string, bun: string|null}, gatesConfig: {project: unknown, local: unknown}, environment: {digest: string, names: string[]}}}
+ *   Lockfile digests, tool versions, config and the environment fingerprint
+ *   (never raw values — see `environmentFingerprint`).
  */
 export function sharedInputs(cwd, env, bunVersion, extraTools = {}) {
   const lockfiles = Object.fromEntries(
@@ -276,7 +320,7 @@ export function sharedInputs(cwd, env, bunVersion, extraTools = {}) {
       project: gatesBlockOf(join(cwd, ".lisa.config.json")),
       local: gatesBlockOf(join(cwd, ".lisa.config.local.json")),
     },
-    environment: relevantEnvironment(env),
+    environment: environmentFingerprint(env),
   };
 }
 
@@ -311,7 +355,32 @@ function refusal(config, env) {
 }
 
 /**
- * Delete entries older than the retention window. Best effort.
+ * Whether a stored file was written under the current schema. An entry from an
+ * earlier schema may hold raw environment values, so it is never kept.
+ * @param {string} path Entry path.
+ * @returns {boolean} True for a current entry.
+ */
+function isCurrentEntry(path) {
+  try {
+    return JSON.parse(readFileSync(path, "utf8")).schema === KEY_SCHEMA;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Create the store private to the user, or tighten one an earlier run left
+ * readable. Throws when it cannot, so nothing is written to an open directory.
+ * @param {string} dir Store directory.
+ */
+function preparePrivateStore(dir) {
+  mkdirSync(dir, { recursive: true, mode: STORE_DIR_MODE });
+  chmodSync(dir, STORE_DIR_MODE);
+}
+
+/**
+ * Delete entries older than the retention window or from an earlier schema,
+ * and tighten any left readable. Best effort.
  * @param {string} dir Store directory.
  * @param {number} now Epoch milliseconds.
  */
@@ -319,8 +388,11 @@ function prune(dir, now) {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
     try {
-      if (now - statSync(path).mtimeMs > MAX_AGE_MS)
+      const stale = now - statSync(path).mtimeMs > MAX_AGE_MS;
+      const current = name.endsWith(".json") && isCurrentEntry(path);
+      if (stale || (name.endsWith(".json") && !current))
         rmSync(path, { force: true });
+      else chmodSync(path, STORE_FILE_MODE);
     } catch {
       // Another run pruned it first.
     }
@@ -420,11 +492,12 @@ export function openGatePassCache({
         return;
       }
       try {
-        mkdirSync(dir, { recursive: true });
+        preparePrivateStore(dir);
         prune(dir, now());
         for (const { gate, durationMs } of pending) {
           const key = keyFor(gate);
           const entry = {
+            schema: KEY_SCHEMA,
             key,
             gate: gate.id,
             inputs: {
@@ -437,7 +510,9 @@ export function openGatePassCache({
             durationMs,
           };
           const temp = join(dir, `.${key}.${process.pid}.tmp`);
-          writeFileSync(temp, `${JSON.stringify(entry, null, 2)}\n`);
+          writeFileSync(temp, `${JSON.stringify(entry, null, 2)}\n`, {
+            mode: STORE_FILE_MODE,
+          });
           renameSync(temp, join(dir, `${key}.json`));
         }
       } catch (err) {
