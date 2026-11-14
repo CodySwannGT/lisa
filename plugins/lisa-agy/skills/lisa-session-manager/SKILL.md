@@ -126,7 +126,9 @@ the manager.
   and records the filer on `botActor`; the value is its `subType`, such as `sentry`, else its
   bot `id` — never its display name, which any app can choose). It never matches an item a person or an outside user filed, and `queue` prints the value
   beside each such `untrusted-author` exclusion (`authorIntegration`). GitHub Apps and Jira
-  automation file as an account, so trust them by `id:` instead.
+  automation file as an account, so trust them by `id:` instead. Trusting an integration trusts
+  who filed the item, not what it says: an alarm or error ticket can quote text an outsider
+  controls (an error message, a request path), and that text reaches the worker too.
 - **Who may release a hold is a separate list.** `sessionManager.trustedReleaseIds` names who may
   release a human hold in `blocked-plan` and the orphan sweep, and who may answer on the item; unset,
   it falls back to `trustedAuthorIds`. It takes the same `id:` / `login:` / plain entries, never

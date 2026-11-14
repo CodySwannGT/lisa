@@ -1223,7 +1223,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "e1a0f1383ecb3e0dc27cd030067869fdab8beecade045225f517dd4afb68feaf",
+      "86395ae883820d78503d40fdd11e858e7024b615f85cf34545c8ecc09c7cfe98",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1725,7 +1725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "7279d617e4ad2d35568575a21509135e39c8c8a08274dfd8e4aa61a492d17115",
+      "bc6a89923fb84cd89921045bdd985ebde53c1d1a6806235ba834641af4a438db",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f77f80a5e649c57b40d87aa789b0fb2dd62870b1dee84248bfa0eaa413966e1d",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -4045,15 +4045,20 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4895/A3-queue-integration-never-trusts-person.txt": true,
     "evidence/4895/A4-queue-display-name-never-trusted.txt": true,
     "evidence/4895/A5-queue-bot-id-trusted.txt": true,
+    "evidence/4895/A6-queue-no-creator-key.txt": true,
+    "evidence/4895/A7-queue-empty-creator.txt": true,
     "evidence/4895/B1-validate-release-integration.txt": true,
     "evidence/4895/B2-validate-empty-authors.txt": true,
     "evidence/4895/B3-validate-operator-integration.txt": true,
     "evidence/4895/B4-validate-empty-release.txt": true,
     "evidence/4895/B5-validate-accepts-valid.txt": true,
+    "evidence/4895/B6-validate-release-null.txt": true,
     "evidence/4895/C1-blocked-plan-release-list.txt": true,
     "evidence/4895/C2-blocked-plan-fallback.txt": true,
     "evidence/4895/C3-blocked-plan-release-list-replaces.txt": true,
     "evidence/4895/C4-blocked-plan-integration-never-releases.txt": true,
+    "evidence/4895/C5-blocked-plan-local-null-release.txt": true,
+    "evidence/4895/C5-validate-local-null-release.txt": true,
     "evidence/4895/D1-queue-legacy-base.txt": true,
     "evidence/4895/D1-queue-legacy-head.txt": true,
     "evidence/4895/D2-blocked-plan-legacy-base.txt": true,
@@ -4065,6 +4070,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4895/X2-bite-base-blocked-plan-release-list.txt": true,
     "evidence/4895/X3-bite-prev-queue-display-name.txt": true,
     "evidence/4895/X4-bite-prev-item-answer-integration-only.txt": true,
+    "evidence/4895/X5-bite-prev2-queue-no-creator-key.txt": true,
+    "evidence/4895/X6-bite-prev2-blocked-plan-local-null-release.txt": true,
+    "evidence/4895/X6-bite-prev2-validate-local-null-release.txt": true,
+    "evidence/4895/X7-bite-prev2-queue-empty-creator.txt": true,
     "evidence/CodySwannGT-lisa-4496/01-outside-no-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/02-inside-manager-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/03-outside-while-running.txt": true,
