@@ -124,12 +124,7 @@ describe("trustedReleaseEntries", () => {
         trustedReleaseIds: ["b"],
       })
     ).toEqual(["b"]);
-    expect(
-      trustedReleaseEntries({
-        trustedAuthorIds: ["a"],
-        trustedReleaseIds: undefined,
-      })
-    ).toEqual(["a"]);
+    expect(trustedReleaseEntries({ trustedAuthorIds: ["a"] })).toEqual(["a"]);
     expect(trustedReleaseEntries(null)).toEqual([]);
   });
 
