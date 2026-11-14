@@ -185,8 +185,28 @@ export async function publishProposal({
       config
     );
     await destinationSnapshot(api, proposal, allocation, commit.sha);
-    publicationProof(api, descriptor, proof, proposal, policy, issue, commit);
-    if (api.tracker) await api.tracker.proveClaim(descriptor);
+    // Jira/Linear: the claim, its sole owner and assignability come from the adapter (#4873).
+    const claim = api.tracker
+      ? await api.tracker.proveClaim(descriptor)
+      : undefined;
+    if (api.tracker) {
+      required(
+        issue.assignees.length === 1 &&
+          issue.assignees[0].login === policy.maintainer,
+        "current recovery leaf or owner differs"
+      );
+      await api.tracker.assignable(policy.maintainer);
+    }
+    publicationProof(
+      api,
+      descriptor,
+      proof,
+      proposal,
+      policy,
+      issue,
+      commit,
+      claim
+    );
     return issue;
   };
   await authorize();

@@ -29,7 +29,6 @@ import { prepareUpdate } from "./lib/npm-update-prepare.mjs";
 import { GitHub, missingTarget } from "./lib/npm-update-github.mjs";
 import {
   createTracker,
-  refuseUnlessGithub,
   verifySignedWorkItem,
 } from "./lib/npm-update-tracker.mjs";
 import { allocateLeaf } from "./lib/npm-update-allocate.mjs";
@@ -81,7 +80,8 @@ export function cancellationRequest(env = process.env) {
 
 /** Cancellation stays inside the same trusted issuer job and never consumes ordinary publication slots. */
 async function cancellationPhase(cwd, output, proposal, config, phase) {
-  const api = new GitHub(config.automationProvenance, process.env.GH_TOKEN);
+  // Jira/Linear attach their adapter; a missing credential refuses before any write.
+  const api = updaterApi(config);
   const context = {
     api,
     cwd,
@@ -274,8 +274,6 @@ export async function main(argv = process.argv.slice(2)) {
   const { config, policy } = await withStage("configuration", () =>
     configuration(cwd)
   );
-  if (phase === CANCEL_PREPARE || phase === "cancel-checkpoint")
-    refuseUnlessGithub(config, phase);
   phaseDirectory(output);
   if (phase === "prepare") {
     await assertTargetBranchExists(cwd, policy);

@@ -184,7 +184,10 @@ describe("Linear allocation", () => {
         () => undefined,
         (error: unknown) => error
       );
-      expect(publicFailure(refusal)).toMatch(FOLLOWUP);
+      // #4873: a signed origin now resumes; it reaches the live GitHub run proof,
+      // which this fixture does not stage, instead of the old unsupported refusal.
+      expect(refusal).toBeDefined();
+      expect(publicFailure(refusal)).not.toMatch(FOLLOWUP);
     });
   });
 
@@ -198,7 +201,9 @@ describe("Linear allocation", () => {
         claimSha256: allocation.claimSha256,
       };
       const tracker = run.api.tracker;
-      await expect(tracker.proveClaim(descriptor)).resolves.toBeUndefined();
+      await expect(tracker.proveClaim(descriptor)).resolves.toEqual({
+        created_at: expect.any(String),
+      });
       await expect(
         tracker.proveClaim({ ...descriptor, workItem: "ENG-2" })
       ).rejects.toThrow(/claim/);

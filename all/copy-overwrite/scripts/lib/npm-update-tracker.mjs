@@ -15,10 +15,6 @@ import { verifyCurrentRun } from "./github-attestation-provider.mjs";
 import { JiraTracker } from "./npm-update-tracker-jira.mjs";
 import { LinearTracker } from "./npm-update-tracker-linear.mjs";
 
-/** The operator-approved sentence for every Jira/Linear phase that is not supported yet. */
-export const FOLLOWUP_SENTENCE =
-  "The npm updater can file and claim Jira and Linear work items, but it cannot yet check their claims, publish the pull request or cancel them. That support is tracked in CodySwannGT/lisa#4873. Projects that track work in GitHub are fully supported today.";
-
 /** Today's GitHub calls, unchanged in endpoint, method, body and order. */
 export function githubTracker(api, repository) {
   const repo = () => repository ?? api.policy.repository;
@@ -111,6 +107,44 @@ export function trustedHumanActorIds(config) {
   return config.github.trustedHumanActorIds ?? [];
 }
 
+/**
+ * A held Jira/Linear item whose project never named who may release holds can
+ * never be released, so say that instead of the generic hold refusal (#4873).
+ * The hold itself still stands: an absent list trusts no one.
+ */
+export function refuseUnreleasableHold(config, held) {
+  const tracker = config.tracker;
+  if (
+    held &&
+    (tracker === "jira" || tracker === "linear") &&
+    !Array.isArray(config[tracker]?.trustedHumanActorIds)
+  )
+    throw operatorRefusal(
+      "tracker hold trust list is absent",
+      `This work item is held for a person, and ${tracker}.trustedHumanActorIds is not set in .lisa.config.json, so no release comment can lift the hold. List the ${tracker === "jira" ? "Jira accountIds" : "Linear user ids"} of the people allowed to release holds, then rerun.`
+    );
+}
+
+/**
+ * A synchronous test for "the automation wrote this". GitHub: the configured
+ * Bot. Jira/Linear: the credential's own account, already required to be the
+ * declared claimActorRef (#4873).
+ */
+export async function managedActor(api) {
+  if (!api.tracker)
+    return user =>
+      user?.type === "Bot" && String(user.id) === api.policy.claimActorId;
+  const id = await api.tracker.actorId();
+  return user => typeof user?.id === "string" && user.id === id;
+}
+
+/** The one work item reference an allocation of this tracker may carry. */
+export function allocationWorkItem(api, config, repository, number) {
+  return api.tracker
+    ? expectedWorkItem(config, number)
+    : `${repository}#${number}`;
+}
+
 /** An api without an attached adapter is a GitHub-tracked host, exactly as before. */
 export function trackerOf(api, repository) {
   return api.tracker ?? githubTracker(api, repository);
@@ -136,15 +170,6 @@ export function createTracker(config, env, transport = globalThis.fetch) {
   return config.tracker === "jira"
     ? new JiraTracker(config, env, transport)
     : new LinearTracker(config, env, transport);
-}
-
-/** Every unsupported Jira/Linear step stops before its first write, in words the operator can act on. */
-export function refuseUnlessGithub(config, step) {
-  if (config.tracker !== "github")
-    throw operatorRefusal(
-      `${step} is not supported for this tracker yet`,
-      FOLLOWUP_SENTENCE
-    );
 }
 
 /** The one reference grammar a tracker's signed artifacts may carry. */

@@ -110,6 +110,21 @@ function providerOrigin(policy, descriptor, historical, execute) {
   };
 }
 
+/**
+ * Historical origin without the GitHub claim read: a Jira/Linear claim is proved
+ * by its tracker adapter, which supplies the claim time separately (#4873).
+ */
+export function verifyHistoricalRun(
+  policy,
+  descriptor,
+  execute = boundedSpawnSync
+) {
+  const read = endpoint =>
+    ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
+  repositoryState(read, policy, descriptor.parent, targetBranch(descriptor));
+  return runState(read, policy, descriptor, true);
+}
+
 /** Prove the trusted human remains assignable using the actual documented status. */
 export function verifyAssignable(
   policy,
@@ -204,6 +219,28 @@ export function verifyStaleOriginProvider(
   };
 }
 
+/**
+ * The repository and historical-run half of stale-origin authority, for a Jira
+ * or Linear host whose claim is proved by its own tracker adapter (#4873).
+ */
+export function verifyStaleOriginRun(
+  policy,
+  descriptor,
+  currentParent,
+  execute = boundedSpawnSync
+) {
+  requireProof(
+    typeof currentParent === "string" &&
+      /^[a-f0-9]{40}$/.test(currentParent) &&
+      currentParent !== descriptor.parent,
+    "cancellation requires a distinct current parent"
+  );
+  const read = endpoint =>
+    ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
+  repositoryState(read, policy, currentParent, targetBranch(descriptor));
+  return runState(read, policy, descriptor, true);
+}
+
 /** Fresh permission checks its own invocation and the exact observed destination. */
 export function verifyRecoveryProvider(
   policy,
@@ -219,6 +256,33 @@ export function verifyRecoveryProvider(
   );
   const read = endpoint =>
     ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
+  recoveryLeaf(read, policy, descriptor, recovery, maintainer);
+  recoveryDestination(read, policy, descriptor, recovery);
+}
+
+/**
+ * The code-host half of fresh recovery for a Jira/Linear host: its own live run
+ * and the exact observed destination. The leaf body, owner and claim live on the
+ * tracker and are proved by the adapter (#4873).
+ */
+export function verifyRecoveryDestination(
+  policy,
+  descriptor,
+  recovery,
+  execute = boundedSpawnSync
+) {
+  verifyCurrentRun(
+    policy,
+    { ...descriptor, runId: recovery.runId, runAttempt: recovery.runAttempt },
+    execute
+  );
+  const read = endpoint =>
+    ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
+  recoveryDestination(read, policy, descriptor, recovery);
+}
+
+/** The GitHub leaf is unchanged and owned by the one trusted maintainer. */
+function recoveryLeaf(read, policy, descriptor, recovery, maintainer) {
   const number = descriptor.workItem.slice(
     descriptor.workItem.lastIndexOf("#") + 1
   );
@@ -233,6 +297,10 @@ export function verifyRecoveryProvider(
       issue.assignees[0].type === "User",
     "current recovery leaf or owner differs"
   );
+}
+
+/** The recovery branch and PR are exactly the observed ones, or absent. */
+function recoveryDestination(read, policy, descriptor, recovery) {
   const refs = read(
     `repos/${policy.repository}/git/matching-refs/heads/${recovery.branch}`
   );

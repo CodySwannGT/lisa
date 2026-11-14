@@ -7,6 +7,14 @@ export interface LinearComment {
   id: string;
   body: string;
   userId: string | null;
+  createdAt: string;
+}
+
+/** One state change in an issue's history. */
+export interface LinearStateChange {
+  actorId: string;
+  createdAt: string;
+  stateId: string;
 }
 
 /** A stored issue and its comments. */
@@ -24,6 +32,7 @@ export interface LinearIssue {
   /** Inverse `blocks` relations held by an open or closed issue. */
   relations: Array<{ type: string; closed: boolean }>;
   comments: LinearComment[];
+  history: LinearStateChange[];
 }
 
 /** A Linear string comparator. */

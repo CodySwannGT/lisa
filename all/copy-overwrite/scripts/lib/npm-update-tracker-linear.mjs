@@ -27,6 +27,10 @@ import {
   assertDeclaredActor,
   assertClaimAuthor,
 } from "./npm-update-tracker-wire.mjs";
+import {
+  linearCancel,
+  linearAssertCancelled,
+} from "./npm-update-tracker-cancel.mjs";
 
 const VIEWER = "query LisaNpmViewer { viewer { id } }";
 const TEAM =
@@ -44,9 +48,9 @@ const ISSUE = `query LisaNpmIssue($id: String!) { issue(id: $id) { id identifier
   )
   .join(" ")} } }`;
 const COMMENTS =
-  "query LisaNpmComments($id: String!, $after: String) { issue(id: $id) { comments(first: 100, after: $after) { nodes { id body user { id } botActor { id } } pageInfo { hasNextPage endCursor } } } }";
+  "query LisaNpmComments($id: String!, $after: String) { issue(id: $id) { comments(first: 100, after: $after) { nodes { id body createdAt editedAt user { id } botActor { id } } pageInfo { hasNextPage endCursor } } } }";
 const COMMENT =
-  "query LisaNpmComment($id: String!) { comment(id: $id) { id body user { id } issue { identifier } } }";
+  "query LisaNpmComment($id: String!) { comment(id: $id) { id body createdAt user { id } issue { identifier } } }";
 const CREATE =
   "mutation LisaNpmIssueCreate($input: IssueCreateInput!) { issueCreate(input: $input) { success issue { number identifier } } }";
 const UPDATE =
@@ -66,6 +70,9 @@ function commentRecord(node) {
     user: node.user
       ? { id: node.user.id, type: "User" }
       : { id: node.botActor?.id, type: "Bot" },
+    // An edited comment reports its edit time, so an edit is never mistaken for the original.
+    created_at: node.createdAt,
+    updated_at: node.editedAt ?? node.createdAt,
   };
 }
 
@@ -156,6 +163,12 @@ export class LinearTracker {
       title: node.title,
       body: unfence(node.description),
       state: closed(node) ? "closed" : "open",
+      // Only a canceled-type state is an explicit cancellation (#4873).
+      state_reason: !closed(node)
+        ? null
+        : node.state?.type === "canceled" && !node.archivedAt
+          ? "not_planned"
+          : "completed",
       labels: [
         lifecycleName(this.lifecycle, node.state?.name),
         "type:Task",
@@ -304,6 +317,15 @@ export class LinearTracker {
       "checkpoint immediate readback differs"
     );
   }
+  actorId() {
+    return this.viewer();
+  }
+  cancel(number) {
+    return linearCancel(this, number);
+  }
+  assertCancelled(number) {
+    return linearAssertCancelled(this, number);
+  }
   async isManagedActor(user) {
     return user?.type === "User" && user.id === (await this.viewer());
   }
@@ -326,5 +348,6 @@ export class LinearTracker {
         sha256(unfence(comment.body)) === descriptor.claimSha256,
       "current tracker claim differs"
     );
+    return { created_at: comment.createdAt };
   }
 }

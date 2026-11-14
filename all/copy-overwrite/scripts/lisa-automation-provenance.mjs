@@ -78,6 +78,10 @@ function recoveryPermission(
   const entry = policyEntry(config, directory);
   requireProof(entry, "committed npm directory policy is absent");
   const npmPolicySha256 = sha256(canonicalJson(entry));
+  // The hooks hold no Jira/Linear credential: the leaf body, owner and claim
+  // time are proved by the adapter at checkpoint and again before publication,
+  // and the signed recovery record binds them here (#4873).
+  const vendor = config.tracker !== "github";
   verifyRecoveryOrigin(policy, descriptor, recovery, sha256(bytes), paths, {
     npmPolicySha256,
     proposalKey: sha256(
@@ -93,10 +97,13 @@ function recoveryPermission(
         ...signedProposalFields(descriptor),
       })
     ),
-    leafBodySha256: sha256(context.issue.body),
+    leafBodySha256: vendor
+      ? recovery.leafBodySha256
+      : sha256(context.issue.body),
     commit: predictedCommit(descriptor, messageBytes),
     maintainer: entry.maintainer,
     recoverySha256: sha256(recoveryBytes),
+    ...(vendor ? { tracker: true, claim: null } : {}),
   });
   requireProof(
     privateBytes(paths.recovery, 65_536).equals(recoveryBytes) &&
@@ -195,11 +202,6 @@ export function verifyAutomationProvenance(messageFile) {
     const recoveryBundle = optional[0]
       ? privateBytes(paths.recoveryBundle, 1_048_576)
       : null;
-    // Signed-origin recovery re-reads a GitHub leaf; a Jira/Linear host refuses it.
-    requireProof(
-      !recoveryBytes || config.tracker === "github",
-      "tracker recovery proof is not supported"
-    );
     if (recoveryBytes) {
       withProvenancePhase("recovery-local", () =>
         recoveryPermission(

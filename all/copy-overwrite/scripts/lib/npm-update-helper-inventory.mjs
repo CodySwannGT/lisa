@@ -126,6 +126,7 @@ const PRODUCER = [
   "tracker-jira",
   "tracker-linear",
   "tracker-wire",
+  "tracker-cancel",
   "worker-environment",
   "worker-inspection",
   "worker-lifecycle",

@@ -1,8 +1,8 @@
 /**
  * AC7 of CodySwannGT/lisa#4859: a missing tracker credential fails closed,
  * names the variable for the operator, and nothing is created anywhere. Also
- * covers the operator refusal for the phases Jira and Linear do not support yet
- * (CodySwannGT/lisa#4873).
+ * covers every Jira/Linear phase reaching its own credential check now that
+ * none is refused as unsupported (CodySwannGT/lisa#4873).
  */
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -22,8 +22,7 @@ import {
   policyFor,
 } from "../../support/npm-update-tracker-host.js";
 
-const FOLLOWUP =
-  "The npm updater can file and claim Jira and Linear work items, but it cannot yet check their claims, publish the pull request or cancel them. That support is tracked in CodySwannGT/lisa#4873. Projects that track work in GitHub are fully supported today.";
+const PROPOSAL_FILE = "proposal.json";
 const VARIABLES = [
   "LINEAR_API_KEY",
   "LINEAR_API_KEY_acme",
@@ -188,7 +187,7 @@ describe("the allocate phase with LINEAR_API_KEY unset", () => {
     await withPrivateRoot(async (root, env) => {
       const { cwd, output, proposal } = await linearCheckout(root, env);
       writeFileSync(
-        join(output, "proposal.json"),
+        join(output, PROPOSAL_FILE),
         `${canonicalJson(proposal)}\n`,
         { mode: 0o600 }
       );
@@ -209,7 +208,7 @@ describe("the allocate phase with LINEAR_API_KEY unset", () => {
       const { cwd, output, proposal } = await linearCheckout(root, env);
       const message = `chore(deps): update selected npm dependencies\n\nWork-Item: ENG-1\nAutomation-Provenance: actions/1/attempts/1\n`;
       const files: Record<string, unknown> = {
-        "proposal.json": proposal,
+        [PROPOSAL_FILE]: proposal,
         "allocation.json": { number: 1, workItem: "ENG-1" },
         "preview.json": {
           descriptor: { workItem: "ENG-1", messageSha256: sha256(message) },
@@ -235,17 +234,44 @@ describe("the allocate phase with LINEAR_API_KEY unset", () => {
     expect(network).not.toHaveBeenCalled();
   });
 
-  it.each(["cancel-prepare", "cancel-checkpoint"])(
-    "refuses the %s phase for a Linear host with the follow-up sentence",
+  it.each(["gate", "publish", "cancel-prepare", "cancel-checkpoint"])(
+    "no longer refuses the %s phase for a Linear host as unsupported (#4873)",
     async phase => {
       await withPrivateRoot(async (root, env) => {
-        const { cwd, output } = await linearCheckout(root, env);
+        const { cwd, output, proposal } = await linearCheckout(root, env);
+        writeFileSync(
+          join(output, PROPOSAL_FILE),
+          `${canonicalJson(proposal)}\n`,
+          { mode: 0o600 }
+        );
         const failure = await main([phase, cwd, output]).then(
           () => undefined,
           (error: unknown) => error
         );
-        expect(publicFailure(failure)).toContain(FOLLOWUP);
+        expect(publicFailure(failure)).not.toContain("CodySwannGT/lisa#4873");
+        expect(publicFailure(failure)).not.toContain("not supported");
       });
+    }
+  );
+
+  it.each(["cancel-prepare", "cancel-checkpoint"])(
+    "%s exits non-zero naming LINEAR_API_KEY before any request",
+    async phase => {
+      const network = vi.spyOn(globalThis, "fetch");
+      await withPrivateRoot(async (root, env) => {
+        const { cwd, output, proposal } = await linearCheckout(root, env);
+        writeFileSync(
+          join(output, PROPOSAL_FILE),
+          `${canonicalJson(proposal)}\n`,
+          { mode: 0o600 }
+        );
+        const failure = await main([phase, cwd, output]).then(
+          () => undefined,
+          (error: unknown) => error
+        );
+        expect(publicFailure(failure)).toContain("LINEAR_API_KEY");
+      });
+      expect(network).not.toHaveBeenCalled();
     }
   );
 

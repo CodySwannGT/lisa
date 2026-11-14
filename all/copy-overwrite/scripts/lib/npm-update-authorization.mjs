@@ -15,11 +15,12 @@ export { destinationSnapshot } from "./npm-update-publication.mjs";
 import { persistCheckpoint, recoveryRecord } from "./npm-update-recovery.mjs";
 export { recoveryRecord } from "./npm-update-recovery.mjs";
 import { verifyCurrentProvider } from "./github-attestation-verifier.mjs";
-import { verifyHistoricalProvider } from "./github-attestation-provider.mjs";
 import {
-  refuseUnlessGithub,
-  verifySignedWorkItem,
-} from "./npm-update-tracker.mjs";
+  verifyHistoricalProvider,
+  verifyHistoricalRun,
+  verifyCurrentRun,
+} from "./github-attestation-provider.mjs";
+import { verifySignedWorkItem } from "./npm-update-tracker.mjs";
 import {
   verifyHistoricalDescriptor,
   predictedCommit,
@@ -46,7 +47,8 @@ async function restoredOrigin(
   proposal,
   allocation,
   policy,
-  config
+  config,
+  api
 ) {
   const origin = allocation.origin;
   const preview = origin.payload.preview;
@@ -78,10 +80,16 @@ async function restoredOrigin(
     mode: 0o600,
     flag: "wx",
   });
-  const historical = verifyHistoricalProvider(
-    config.automationProvenance,
-    preview.descriptor
-  );
+  // A Jira/Linear claim and its time are proved by the adapter (#4873).
+  const historical = api.tracker
+    ? {
+        run: verifyHistoricalRun(
+          config.automationProvenance,
+          preview.descriptor
+        ),
+        claim: await api.tracker.proveClaim(preview.descriptor),
+      }
+    : verifyHistoricalProvider(config.automationProvenance, preview.descriptor);
   verifyHistoricalDescriptor(
     config.automationProvenance,
     preview.descriptor,
@@ -111,14 +119,19 @@ async function recoveryPreview({
     proposal,
     allocation,
     policy,
-    config
+    config,
+    api
   );
   if (!allocation.origin.complete) {
-    verifyCurrentProvider(api.policy, {
+    const current = {
       ...preview.descriptor,
       runId: process.env.GITHUB_RUN_ID,
       runAttempt: process.env.GITHUB_RUN_ATTEMPT,
-    });
+    };
+    if (api.tracker) {
+      verifyCurrentRun(api.policy, current);
+      await api.tracker.proveClaim(preview.descriptor);
+    } else verifyCurrentProvider(api.policy, current);
     await persistCheckpoint(
       api,
       original.number,
@@ -201,8 +214,6 @@ export async function prepareAuthorization({
   let proposal = suppliedProposal;
   if (allocation.status === "stale-outstanding")
     return { mode: allocation.status, allocation };
-  // Resuming a signed origin re-verifies the claim's GitHub chronology (#4873).
-  if (allocation.origin) refuseUnlessGithub(config, "signed-origin recovery");
   const restored =
     allocation.origin?.payload.proposal ??
     allocation.originalProposal ??

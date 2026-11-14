@@ -21,6 +21,42 @@ const MAINTAINER = {
   linear: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
 };
 const KEY = /^[A-Z][A-Z0-9]{1,9}$/;
+const VENDORS = new Set(["jira", "linear"]);
+
+/**
+ * Who may cancel or supersede an update (#4873). A cancel is a manual GitHub
+ * workflow run, so it is authorized by a GitHub login with write or admin on the
+ * repository. GitHub hosts keep the maintainer's own login; a Jira/Linear
+ * maintainer is a tracker id, so those hosts name a GitHub `cancelOperator`.
+ * Absent, every cancel refuses with the key to set; nothing falls back to a
+ * wider group of repository writers.
+ * @param {object} config - Committed Lisa config.
+ * @param {object} policy - The validated npmUpdater entry.
+ * @returns {string} The GitHub login whose dispatch and permission authorize a cancel.
+ */
+export function cancelOperatorOf(config, policy) {
+  if (!VENDORS.has(config.tracker)) return policy.maintainer;
+  if (typeof policy.cancelOperator !== "string")
+    throw operatorRefusal(
+      "npm updater cancel operator is not declared",
+      `npmUpdater.cancelOperator is not set in .lisa.config.json, so nobody is authorized to cancel or replace a ${config.tracker === "jira" ? "Jira" : "Linear"}-tracked npm update. Set it to the GitHub login of the person who may run the cancel workflow (they need write or admin on the repository). Nothing was changed.`
+    );
+  return policy.cancelOperator;
+}
+
+/** Only a Jira/Linear entry may name a cancel operator, and only as a GitHub login. */
+function validateCancelOperator(value, config) {
+  if (!Object.hasOwn(value, "cancelOperator")) return;
+  required(
+    VENDORS.has(config.tracker),
+    "npmUpdater.cancelOperator applies only to Jira and Linear trackers"
+  );
+  required(
+    typeof value.cancelOperator === "string" &&
+      MAINTAINER.github.test(value.cancelOperator),
+    "npmUpdater.cancelOperator must be a GitHub login"
+  );
+}
 
 /**
  * GitHub keeps its exact original check. Jira and Linear hosts still publish to
@@ -95,7 +131,9 @@ export function validatePolicy(value, config) {
     "packages",
     "lisaOwner",
     ...(Object.hasOwn(value ?? {}, "runtime") ? ["runtime"] : []),
+    ...(Object.hasOwn(value ?? {}, "cancelOperator") ? ["cancelOperator"] : []),
   ]);
+  validateCancelOperator(value, config);
   railsRuntime(value);
   required(
     value.version === 1 &&

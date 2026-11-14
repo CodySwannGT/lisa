@@ -338,9 +338,10 @@ export async function completeLinearConnections(node, graphql) {
   for (const name of Object.keys(LINEAR_CONNECTIONS)) {
     let connection = node[name];
     const nodes = [...(connection?.nodes ?? [])];
-    for (let page = 1; connection?.pageInfo?.hasNextPage !== false; page++) {
+    for (let page = 1; page <= LINEAR_CONNECTION_PAGES; page++) {
+      if (connection?.pageInfo?.hasNextPage === false) break;
       if (
-        page >= LINEAR_CONNECTION_PAGES ||
+        page === LINEAR_CONNECTION_PAGES ||
         typeof connection?.pageInfo?.endCursor !== "string"
       )
         throw operatorRefusal(

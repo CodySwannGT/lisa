@@ -13,6 +13,7 @@ import {
   fence,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-tracker-wire.mjs";
 import { withPrivateRoot } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
+import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
 import { fakeJira } from "../../support/npm-update-jira-fake.js";
 import { fakeLinear } from "../../support/npm-update-linear-fake.js";
 import {
@@ -26,6 +27,7 @@ import {
   committedHost,
 } from "../../support/npm-update-tracker-host.js";
 
+const JIRA_ENV = { JIRA_API_TOKEN: "t", JIRA_LOGIN: "bot@example.test" };
 const RELEASE = "[lisa-human-gate-release]";
 const HUMAN = "human-1";
 const HOLD = "human-needed";
@@ -68,11 +70,7 @@ describe("Jira human comments keep their code boundary for the hold classifier",
       const jira = fakeJira({ assignable: [JIRA_MAINTAINER] });
       const api = {
         ...codeHost(host.parent),
-        tracker: createTracker(
-          config,
-          { JIRA_API_TOKEN: "t", JIRA_LOGIN: "bot@example.test" },
-          jira.transport
-        )!,
+        tracker: createTracker(config, JIRA_ENV, jira.transport)!,
       };
       const allocate = () => allocateLeaf({ api, config, ...host });
       await allocate();
@@ -145,11 +143,7 @@ describe("Jira plain-text backticks cannot move the hold classifier's code bound
       const jira = fakeJira({ assignable: [JIRA_MAINTAINER] });
       const api = {
         ...codeHost(host.parent),
-        tracker: createTracker(
-          config,
-          { JIRA_API_TOKEN: "t", JIRA_LOGIN: "bot@example.test" },
-          jira.transport
-        )!,
+        tracker: createTracker(config, JIRA_ENV, jira.transport)!,
       };
       const allocate = () => allocateLeaf({ api, config, ...host });
       await allocate();
@@ -174,6 +168,37 @@ describe("Jira plain-text backticks cannot move the hold classifier's code bound
         adf([["``", { code: "y" }], [RELEASE], { block: "z" }])
       )
     ).toBe("PROJ-1");
+  });
+});
+
+describe("a Jira hold with no trusted release list (#4873)", () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      Response.json(REGISTRY_METADATA)
+    );
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("keeps the hold despite a release comment and names the missing trust list", async () => {
+    const config = { ...JIRA_CONFIG, automationProvenance: AUTOMATION };
+    await withPrivateRoot(async (root, env) => {
+      const host = await committedHost(root, env, JIRA_MAINTAINER);
+      const jira = fakeJira({ assignable: [JIRA_MAINTAINER] });
+      const api = {
+        ...codeHost(host.parent),
+        tracker: createTracker(config, JIRA_ENV, jira.transport)!,
+      };
+      const allocate = () => allocateLeaf({ api, config, ...host });
+      await allocate();
+      jira.issues[0]!.fields.labels.push(HOLD);
+      jira.comment(1, paragraph(RELEASE), HUMAN);
+      const failure = await allocate().then(
+        () => undefined,
+        (error: unknown) => publicFailure(error)
+      );
+      expect(failure).toContain("jira.trustedHumanActorIds is not set");
+      expect(jira.issues[0]!.fields.labels).toContain(HOLD);
+    });
   });
 });
 

@@ -166,8 +166,9 @@ describe("all-only npm host controller materialization", () => {
         join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
       );
       // 127 -> 131: CodySwannGT/lisa#4859 adds npm-update-tracker,
-      // -tracker-jira, -tracker-linear and -tracker-wire to the helper closure.
-      expect(managedTemplateMembers().size).toBe(131);
+      // -tracker-jira, -tracker-linear and -tracker-wire to the helper closure;
+      // 132: CodySwannGT/lisa#4873 adds npm-update-tracker-cancel.
+      expect(managedTemplateMembers().size).toBe(132);
     },
     ioLatencyBudgetMs(30_000)
   );

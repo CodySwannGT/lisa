@@ -8,6 +8,15 @@ export interface JiraComment {
   body: unknown;
   accountId: string;
   accountType: string;
+  /** Jira's own timestamp form, `+0000` offset. */
+  created: string;
+}
+
+/** One status change in a ticket's changelog. */
+export interface JiraStatusChange {
+  author: string;
+  created: string;
+  status: string;
 }
 
 /** Stored ticket fields, as Jira returns them. */
@@ -25,6 +34,7 @@ export interface JiraIssue {
   number: number;
   fields: JiraFields;
   comments: JiraComment[];
+  changelog: JiraStatusChange[];
 }
 
 /** One workflow transition the Task workflow offers. */

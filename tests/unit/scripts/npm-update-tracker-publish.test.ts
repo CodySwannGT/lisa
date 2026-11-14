@@ -100,17 +100,17 @@ describe("the publish-time claim proof for Jira and Linear", () => {
 
   it("accepts a Jira claim written by the configured automation accountId", async () => {
     const { tracker, allocation } = await allocated("jira");
-    await expect(
-      tracker.proveClaim(claimOf(allocation))
-    ).resolves.toBeUndefined();
+    await expect(tracker.proveClaim(claimOf(allocation))).resolves.toEqual({
+      created_at: expect.any(String),
+    });
   });
 
   it("accepts a Linear claim whose comment id is a UUID", async () => {
     const { tracker, allocation } = await allocated("linear");
     expect(allocation.claimCommentId).not.toMatch(/^[1-9]\d*$/);
-    await expect(
-      tracker.proveClaim(claimOf(allocation))
-    ).resolves.toBeUndefined();
+    await expect(tracker.proveClaim(claimOf(allocation))).resolves.toEqual({
+      created_at: expect.any(String),
+    });
   });
 
   it("refuses a Jira claim by any other user in plain words", async () => {

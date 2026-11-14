@@ -16,11 +16,7 @@ import { sha256 } from "./github-attestation-verifier.mjs";
 import { registryVersion } from "./npm-update-npm.mjs";
 import { discoverSupersession } from "./npm-update-supersession.mjs";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
-import {
-  trackerOf,
-  trackerFor,
-  refuseUnlessGithub,
-} from "./npm-update-tracker.mjs";
+import { trackerOf, trackerFor } from "./npm-update-tracker.mjs";
 import {
   buildDraft,
   qualityGates,
@@ -96,7 +92,6 @@ export async function discoverPrior(api, proposal, context) {
   );
   if (!found.total_count) return { status: "new" };
   if (context && (found.total_count > 1 || found.items[0].state === "closed")) {
-    refuseUnlessGithub(context.config, "supersession");
     return discoverSupersession(api, proposal, found.items, context);
   }
   const issue = await tracker.issue(found.items[0].number);

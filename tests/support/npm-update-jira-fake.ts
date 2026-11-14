@@ -17,7 +17,6 @@ import type {
   Transport,
 } from "./npm-update-tracker-transport.js";
 import type {
-  JiraComment,
   JiraIssue,
   JiraStore,
   JiraBody,
@@ -25,8 +24,24 @@ import type {
   JiraFakeOptions,
 } from "./npm-update-jira-fake-types.js";
 export type { JiraFakeOptions } from "./npm-update-jira-fake-types.js";
+import {
+  jiraNow,
+  findIssue,
+  addComment,
+  commentRoutes,
+} from "./npm-update-jira-fake-comments.js";
 
-const STATUSES = ["Backlog", "Ready", "In Progress", "Code Review", "Done"];
+const STATUSES = [
+  "Backlog",
+  "Ready",
+  "In Progress",
+  "Code Review",
+  "Done",
+  "Won't Do",
+];
+/** Done-category statuses: Jira's closed history. */
+const CLOSED = new Set(["Done", "Won't Do"]);
+
 const ISSUE = "([A-Z]+-\\d+)";
 /** The API account the fake answers as: the declared automation identity in test configs. */
 export const JIRA_ACCOUNT = "service-account-1";
@@ -41,7 +56,7 @@ const API = "/rest/api/3";
 function status(name: string) {
   return {
     name,
-    statusCategory: { key: name === "Done" ? "done" : "indeterminate" },
+    statusCategory: { key: CLOSED.has(name) ? "done" : "indeterminate" },
   };
 }
 
@@ -57,29 +72,6 @@ function workflow(ready: number) {
       to: { name },
     }))
   );
-}
-
-/**
- * Find an issue by its `<PROJECT>-<N>` key.
- * @param store - Fake project.
- * @param key - Issue key.
- * @returns The issue, if stored.
- */
-function findIssue(store: JiraStore, key: string) {
-  return store.issues.find(issue => `${store.project}-${issue.number}` === key);
-}
-
-/**
- * A comment as Jira returns it.
- * @param comment - Stored comment.
- * @returns The comment JSON.
- */
-function commentJson(comment: JiraComment) {
-  return {
-    id: comment.id,
-    body: comment.body,
-    author: { accountId: comment.accountId, accountType: comment.accountType },
-  };
 }
 
 /**
@@ -121,33 +113,20 @@ function createIssue(store: JiraStore, fields: JiraBody["fields"] = {}) {
       issuelinks: [],
     },
     comments: [],
+    changelog: [],
   });
   return { id: String(10_000 + number), key: `${store.project}-${number}` };
 }
 
 /**
- * Store one comment from the given account.
- * @param store - Fake project.
- * @param issue - Its ticket.
- * @param body - ADF body.
- * @param accountId - Author account.
- * @returns The stored comment.
+ * Move a ticket to a status and record who did it in its changelog.
+ * @param issue - The ticket.
+ * @param name - The new status.
+ * @param author - The account making the change.
  */
-function addComment(
-  store: JiraStore,
-  issue: JiraIssue,
-  body: unknown,
-  accountId = store.accountId
-) {
-  const total = store.issues.flatMap(item => item.comments).length;
-  const comment = {
-    id: String(20_000 + total),
-    body,
-    accountId,
-    accountType: accountId === store.accountId ? store.accountType : ATLASSIAN,
-  };
-  issue.comments.push(comment);
-  return comment;
+function moveIssue(issue: JiraIssue, name: string, author: string) {
+  issue.fields.status = status(name);
+  issue.changelog.push({ author, created: jiraNow(), status: name });
 }
 
 /**
@@ -249,6 +228,20 @@ function issueRoutes(store: JiraStore): Route[] {
     ],
     [
       "GET",
+      issuePath("/changelog"),
+      (key, _body, url) => {
+        const values = findIssue(store, key)!.changelog.map(change => ({
+          author: { accountId: change.author },
+          created: change.created,
+          items: [{ field: "status", toString: change.status }],
+        }));
+        const startAt = Number(url.searchParams.get("startAt") ?? 0);
+        const page = values.slice(startAt, startAt + 100);
+        return { values: page, isLast: startAt + 100 >= values.length };
+      },
+    ],
+    [
+      "GET",
       issuePath("/transitions"),
       () => ({ transitions: store.transitions }),
     ],
@@ -259,7 +252,7 @@ function issueRoutes(store: JiraStore): Route[] {
         const move = store.transitions.find(
           item => item.id === body.transition?.id
         );
-        findIssue(store, key)!.fields.status = status(move!.to.name);
+        moveIssue(findIssue(store, key)!, move!.to.name, store.accountId);
         return null;
       },
     ],
@@ -274,46 +267,6 @@ function issueRoutes(store: JiraStore): Route[] {
         };
         return null;
       },
-    ],
-  ];
-}
-
-/**
- * Comment list (paged by startAt/maxResults), read and create routes, scoped to their issue.
- * @param store - Fake project.
- * @returns The routes.
- */
-function commentRoutes(store: JiraStore): Route[] {
-  const commentPath = (suffix = "") =>
-    new RegExp(`^${API}/issue/${ISSUE}/comment${suffix}$`);
-  return [
-    [
-      "GET",
-      commentPath(),
-      (key, _body, url) => {
-        const all = findIssue(store, key)!.comments.map(commentJson);
-        const startAt = Number(url.searchParams.get("startAt") ?? 0);
-        const maxResults = Number(url.searchParams.get("maxResults") ?? 50);
-        const comments = all.slice(startAt, startAt + maxResults);
-        return { startAt, maxResults, total: all.length, comments };
-      },
-    ],
-    [
-      "GET",
-      commentPath("/(\\d+)"),
-      (key, _body, url) => {
-        const id = url.pathname.split("/").at(-1);
-        const comment = findIssue(store, key)?.comments.find(
-          item => item.id === id
-        );
-        return comment ? commentJson(comment) : undefined;
-      },
-    ],
-    [
-      "POST",
-      commentPath(),
-      (key, body) =>
-        commentJson(addComment(store, findIssue(store, key)!, body.body)),
     ],
   ];
 }
@@ -376,6 +329,9 @@ export function fakeJira(options: JiraFakeOptions = {}) {
     // Store a comment on ticket `number` from `accountId`.
     comment: (number: number, body: unknown, accountId?: string) =>
       addComment(store, store.issues[number - 1]!, body, accountId),
+    // Move ticket `number` to `name` as `accountId`, as a person would in Jira.
+    move: (number: number, name: string, accountId: string) =>
+      moveIssue(store.issues[number - 1]!, name, accountId),
     creates: () =>
       log.filter(entry => entry.operation === "POST /rest/api/3/issue").length,
     // The search index catches up with every create so far.

@@ -28,7 +28,8 @@ export function publicationProof(
   proposal,
   policy,
   issue,
-  commit
+  commit,
+  claim
 ) {
   required(
     canonicalJson(readJson(proof.descriptor, 65_536)) ===
@@ -41,11 +42,9 @@ export function publicationProof(
     proof.recoveryBundle && existsSync(proof.recoveryBundle)
   );
   required(recovery === bundle, "partial publication recovery authority");
-  // A Jira/Linear claim is proved by the adapter (publish authorize), not GitHub (#4873).
-  required(
-    !(recovery && api.tracker),
-    "tracker publication recovery is not supported"
-  );
+  // A Jira/Linear claim (and its time) is proved by the adapter in publish
+  // authorize and passed in; GitHub keeps its own comment read (#4873).
+  required(!api.tracker || claim, "tracker claim proof is absent");
   if (recovery) {
     verifyRecoveryOrigin(
       api.policy,
@@ -60,6 +59,7 @@ export function publicationProof(
         commit: commit.sha,
         maintainer: policy.maintainer,
         recoverySha256: sha256(readBytes(proof.recovery, 65_536)),
+        ...(api.tracker ? { tracker: true, claim } : {}),
       }
     );
   } else {

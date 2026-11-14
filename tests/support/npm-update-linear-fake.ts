@@ -39,6 +39,7 @@ const STATES = [
   { id: "state-progress", name: "In Progress", type: "started" },
   { id: "state-review", name: "Code Review", type: "started" },
   { id: "state-done", name: "Done", type: "completed" },
+  { id: "state-canceled", name: "Canceled", type: "canceled" },
 ];
 
 /**
@@ -109,6 +110,8 @@ function commentNode(
 ) {
   return {
     id: comment.id,
+    createdAt: comment.createdAt,
+    editedAt: null,
     body: comment.body,
     user: comment.userId ? { id: comment.userId } : null,
     botActor: comment.userId ? null : { id: "bot-actor" },
@@ -219,9 +222,21 @@ function addIssue(store: LinearStore, input: IssueInput) {
     children: [],
     relations: [],
     comments: [],
+    history: [],
   };
   store.issues.push(issue);
   return issue;
+}
+
+/**
+ * Move an issue to a workflow state and record who did it in its history.
+ * @param issue - The issue.
+ * @param stateId - The new state id.
+ * @param actorId - The user making the change.
+ */
+function moveIssue(issue: LinearIssue, stateId: string, actorId: string) {
+  issue.stateId = stateId;
+  issue.history.push({ actorId, createdAt: new Date().toISOString(), stateId });
 }
 
 /**
@@ -239,6 +254,7 @@ function addComment(
   userId: string | null = store.viewerId
 ) {
   const comment = {
+    createdAt: new Date().toISOString(),
     id: `comment-${issue.comments.length + 1}-${issue.number}`,
     body,
     userId,
@@ -298,6 +314,15 @@ function reads(store: LinearStore): Record<string, Handler> {
         },
       ])
     ),
+    LisaNpmIssueHistory: v => {
+      const issue = findIssue(store, v.id)!;
+      const nodes = issue.history.map(change => ({
+        createdAt: change.createdAt,
+        actor: { id: change.actorId },
+        toState: { id: change.stateId, type: stateOf(change.stateId).type },
+      }));
+      return { issue: { history: page(nodes, v.after) } };
+    },
     LisaNpmComments: v => {
       const issue = findIssue(store, v.id)!;
       const nodes = issue.comments.map(item => commentNode(store, item, issue));
@@ -330,7 +355,8 @@ function writes(store: LinearStore): Record<string, Handler> {
     LisaNpmIssueUpdate: v => {
       const issue = findIssue(store, v.id)!;
       const input = v.input ?? {};
-      if (input.stateId !== undefined) issue.stateId = String(input.stateId);
+      if (input.stateId !== undefined)
+        moveIssue(issue, String(input.stateId), store.viewerId);
       if (input.assigneeId !== undefined)
         issue.assigneeId = String(input.assigneeId);
       return { issueUpdate: { success: true } };
@@ -380,6 +406,9 @@ export function fakeLinear(options: LinearFakeOptions = {}) {
     // Store an issue directly, as a person or another tool would have filed it.
     seed: (input: IssueInput) => addIssue(store, input),
     // Store a comment on issue `number`; a null `userId` models a bot author.
+    // Move issue `number` to `stateId` as `actorId`, as a person would in Linear.
+    move: (number: number, stateId: string, actorId: string) =>
+      moveIssue(store.issues[number - 1]!, stateId, actorId),
     comment: (number: number, body: string, userId?: string | null) =>
       addComment(store, store.issues[number - 1]!, body, userId),
     creates: () =>

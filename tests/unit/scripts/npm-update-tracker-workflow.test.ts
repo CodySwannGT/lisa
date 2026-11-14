@@ -11,6 +11,8 @@ import { parse } from "yaml";
 
 const SECRETS = ["JIRA_API_TOKEN", "JIRA_LOGIN", "LINEAR_API_KEY"];
 const ADAPTER_STEPS = [
+  "allocate:Authenticate the explicit stale cancellation intent",
+  "allocate:Persist the authenticated cancellation before fresh allocation",
   "allocate:Allocate or recover the exact canonical leaf",
   "allocate:Transport the actual distinct bundle and persist the checkpoint",
   "publish:Publish the exact gated object and canonical PR declaration",
@@ -34,7 +36,7 @@ describe("optional tracker credentials in the npm updater workflow", () => {
       expect(secrets[name]).toMatchObject({ required: false });
   });
 
-  it("passes the secrets only to the allocate, checkpoint and publish steps", () => {
+  it("passes the secrets only to the cancel, allocate, checkpoint and publish steps", () => {
     const holders: string[] = [];
     for (const [job, definition] of Object.entries<{
       steps?: Step[];

@@ -71,8 +71,7 @@ function checkedSubject(subject) {
           subject.workItem.endsWith(`-${subject.issue}`) &&
           typeof subject.claim === "string" &&
           VENDOR_ID.test(subject.claim) &&
-          subject.tracker === subject.repository &&
-          subject.recovery === null
+          subject.tracker === subject.repository
         : decimal(subject.claim)) &&
       /^lisa\/npm-[a-f0-9]{64}$/.test(subject.branch) &&
       /^[a-f0-9]{40}$/.test(subject.parent),
@@ -160,10 +159,13 @@ function proofRequests(subject) {
       ? []
       : [`repos/${subject.tracker}/issues/comments/${subject.claim}`]),
   ];
+  // A Jira/Linear recovery reads no GitHub leaf or assignee: the adapter proves those (#4873).
   if (subject.recovery)
     endpoints.push(
       `repos/${repository}/actions/runs/${subject.recovery.runId}/attempts/${subject.recovery.runAttempt}`,
-      `repos/${repository}/issues/${subject.issue}`,
+      ...(vendorOf(subject)
+        ? []
+        : [`repos/${repository}/issues/${subject.issue}`]),
       `repos/${repository}/git/matching-refs/heads/${subject.branch}`
     );
   const records = endpoints.map(endpoint => ({
@@ -173,16 +175,20 @@ function proofRequests(subject) {
   if (subject.recovery)
     records.push(
       { kind: "recovery-page", page: 1, args: recoveryPage(subject, 1) },
-      {
-        kind: "plain",
-        args: [
-          "api",
-          "--hostname",
-          "github.com",
-          "--include",
-          `repos/${repository}/assignees/${subject.maintainer}`,
-        ],
-      }
+      ...(vendorOf(subject)
+        ? []
+        : [
+            {
+              kind: "plain",
+              args: [
+                "api",
+                "--hostname",
+                "github.com",
+                "--include",
+                `repos/${repository}/assignees/${subject.maintainer}`,
+              ],
+            },
+          ])
     );
   for (const proof of subject.proofs)
     records.push(proofRequest(subject, proof));

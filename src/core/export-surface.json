@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 288,
-  "$names": 2103,
+  "$modules": 289,
+  "$names": 2114,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -308,8 +308,11 @@
       "verifyCurrentProvider",
       "verifyCurrentRun",
       "verifyHistoricalProvider",
+      "verifyHistoricalRun",
+      "verifyRecoveryDestination",
       "verifyRecoveryProvider",
-      "verifyStaleOriginProvider"
+      "verifyStaleOriginProvider",
+      "verifyStaleOriginRun"
     ],
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs": [
       "assertHistoricalAttestation",
@@ -703,6 +706,7 @@
       "DEFAULT_TARGET",
       "NAME",
       "VERSION",
+      "cancelOperatorOf",
       "policyTarget",
       "selectPolicy",
       "validBranchName",
@@ -842,6 +846,14 @@
       "literalArguments",
       "toolInvocation"
     ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-cancel.mjs": [
+      "isoTime",
+      "jiraAssertCancelled",
+      "jiraCancel",
+      "linearAssertCancelled",
+      "linearCancel",
+      "linearCanceledState"
+    ],
     "all/copy-overwrite/scripts/lib/npm-update-tracker-jira.mjs": [
       "JiraTracker"
     ],
@@ -870,12 +882,13 @@
       "withinJiraLimit"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-tracker.mjs": [
-      "FOLLOWUP_SENTENCE",
+      "allocationWorkItem",
       "createTracker",
       "expectedWorkItem",
       "githubTracker",
+      "managedActor",
       "proveTrackerProvider",
-      "refuseUnlessGithub",
+      "refuseUnreleasableHold",
       "trackerFor",
       "trackerOf",
       "trustedHumanActorIds",

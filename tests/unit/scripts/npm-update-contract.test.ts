@@ -1019,8 +1019,9 @@ describe("complete authenticated helper closure", () => {
     for (const member of members)
       bytes.set(member, await helperAuditSource(member));
     // 129 + the four tracker modules (tracker, tracker-jira, tracker-linear,
-    // tracker-wire) added for Jira/Linear work items in CodySwannGT/lisa#4859.
-    expect(members.length).toBe(133);
+    // tracker-wire) added for Jira/Linear work items in CodySwannGT/lisa#4859,
+    // and tracker-cancel for their cancellation in CodySwannGT/lisa#4873.
+    expect(members.length).toBe(134);
     const completionMembers = [
       "lib/completion-authorization.mjs",
       "lib/completion-proof-adapters.mjs",

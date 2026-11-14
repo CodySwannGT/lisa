@@ -834,6 +834,21 @@ function lifecycleContract(config, provider) {
     roles: lifecycleRoleSet(roles, done),
     terminal: terminalName.toLowerCase(),
     terminalName,
+    // Where a cancelled or superseded Jira/Linear item is moved (#4873): Jira's
+    // configured status (default "Won't Do"); Linear's configured state, or by
+    // default the team's one state of type `canceled` (null here). Never a
+    // lifecycle role, so it cannot read as ready, claimed or done.
+    ...(provider === "jira" || provider === "linear"
+      ? {
+          canceled:
+            typeof configured?.canceled === "string" &&
+            configured.canceled.trim()
+              ? configured.canceled.trim()
+              : provider === "jira"
+                ? "Won't Do"
+                : null,
+        }
+      : {}),
   };
 }
 

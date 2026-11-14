@@ -11,12 +11,18 @@ What each tracker needs in the committed `.lisa.config.json`:
 | Tracker | Required keys | `maintainer` is | Secrets the caller passes |
 |---|---|---|---|
 | `github` | `github.org`, `github.repo` | the GitHub login | none |
-| `jira` | `jira.project`, and `atlassian.cloudId` or `atlassian.site` | the Jira account ID | `JIRA_API_TOKEN`, `JIRA_LOGIN` |
-| `linear` | `linear.teamKey`, `linear.workspace` | the Linear user ID | `LINEAR_API_KEY` |
+| `jira` | `jira.project`, `jira.claimActorRef`, and `atlassian.cloudId` or `atlassian.site` | the Jira account ID | `JIRA_API_TOKEN`, `JIRA_LOGIN` |
+| `linear` | `linear.teamKey`, `linear.workspace`, `linear.claimActorRef` | the Linear user ID | `LINEAR_API_KEY` |
+
+Three more keys apply only to Jira and Linear:
+
+- **`jira.claimActorRef` / `linear.claimActorRef` (required).** The Jira accountId or Linear user id of the account the updater's credential signs in as. Claims, checkpoints and closures count as the updater's own only when this account wrote them. If the key is missing, or the credential signs in as a different account, every phase stops before it changes anything and says which key to fix.
+- **`npmUpdater.cancelOperator` (required to cancel or replace an update).** A cancel is a manual run of the GitHub workflow, so it is authorized by a GitHub login. On a GitHub-tracked project that is the maintainer. A Jira or Linear maintainer is not a GitHub account, so name the GitHub login of the person allowed to run the cancel. They need write or admin on the repository. If the key is missing, the cancel stops and names the key. No other repository writer is allowed instead. The key is refused on a GitHub-tracked project.
+- **`jira.trustedHumanActorIds` / `linear.trustedHumanActorIds`.** The Jira accountIds or Linear user ids of the people whose release comment may lift a `human-needed` hold. If a held item's project has no such list, the hold stays and the run says that the list is missing.
 
 `npmUpdater.repository` must match `automationProvenance.repository`, the GitHub code-host repository. If `github.org` and `github.repo` are also set, it must match them too.
 
-The lifecycle names come from the same keys the build-intake skills read: `jira.workflow.*` and `linear.workflow.*`. The defaults are `Ready`, `In Progress`, `Code Review`, `Blocked`, and `On Dev`/`On Stg`/`Done`. Allocation creates the work item as a Task with Medium priority, assigns it to the maintainer, and puts it in the configured ready status. Claiming it moves it to the configured in-progress status. The updater never creates statuses, issue types or priorities. If one is missing from the project's vocabulary, allocation stops before it creates anything and says so. If a Jira ticket is created but its workflow then offers no single transition to the ready status, allocation stops and names the ticket: move it to the ready status by hand (or fix the workflow) and rerun. Status, issue type and priority are read from the tracker's own fields. A typed label that looks like one of them (such as `In Progress`, `type:Task` or `priority:medium`) is ignored. The `human-needed` label still places a hold. In Jira, each work item also carries the label `lisa-npm-<selection key>`. That is how a re-run finds the same item instead of filing a second one.
+The lifecycle names come from the same keys the build-intake skills read: `jira.workflow.*` and `linear.workflow.*`. The defaults are `Ready`, `In Progress`, `Code Review`, `Blocked`, and `On Dev`/`On Stg`/`Done`. A cancelled or replaced item moves to `jira.workflow.canceled` (default `Won't Do`) or `linear.workflow.canceled` (default: the team's one workflow state of type canceled). Allocation creates the work item as a Task with Medium priority, assigns it to the maintainer, and puts it in the configured ready status. Claiming it moves it to the configured in-progress status. The updater never creates statuses, issue types or priorities. If one is missing from the project's vocabulary, allocation stops before it creates anything and says so. If a Jira ticket is created but its workflow then offers no single transition to the ready status, allocation stops and names the ticket: move it to the ready status by hand (or fix the workflow) and rerun. Status, issue type and priority are read from the tracker's own fields. A typed label that looks like one of them (such as `In Progress`, `type:Task` or `priority:medium`) is ignored. The `human-needed` label still places a hold. In Jira, each work item also carries the label `lisa-npm-<selection key>`. That is how a re-run finds the same item instead of filing a second one. Jira's search can miss a ticket created moments earlier, so the updater also records each ticket it creates on its own Jira account (a user property) and adds that ticket to the next search. A retry inside that window finds it instead of filing a duplicate. Linear labels, sub-issues and relations are read page by page. Only an item with more than 1,000 of one of them stops the run, and the message names that item.
 
 Credentials are read from these environment variables only:
 
@@ -31,7 +37,7 @@ If a credential is missing, allocation fails before it makes any request, and th
 
 > **Note:** CodySwannGT/lisa#4859 asked for `JIRA_EMAIL`. Lisa uses `JIRA_LOGIN` instead, because that is the name its other Jira workflows and scripts already use. Set `JIRA_LOGIN`; `JIRA_EMAIL` is not read.
 
-Pass the secrets to the reusable workflow. They are optional, so GitHub-tracked callers pass nothing and the workflow contract major stays `1`. The workflow gives them only to the allocate and checkpoint steps:
+Pass the secrets to the reusable workflow. They are optional, so GitHub-tracked callers pass nothing and the workflow contract major stays `1`. The workflow gives them only to the steps that call the tracker: cancel, allocate, checkpoint and publish. The gate step never gets them, because the updated dependency code runs there. The gate checks the work-item reference offline, and the live claim is checked at checkpoint and again before publishing:
 
 ```yaml
 jobs:
@@ -50,15 +56,11 @@ The signed artifacts carry the tracker's own reference: `<PROJECT>-<N>` for Jira
 
 The work-item description and the updater's comments appear as one code block in Jira and Linear. That is how their exact bytes survive, including the hidden filing and proposal markers. Every write is read back and must match exactly. If a person edits the description, the updater stops instead of claiming the item.
 
-**Not supported yet:** for Jira and Linear, the updater can file and claim the work item and write its checkpoint. It cannot yet run the gate, publish the pull request, cancel or supersede a proposal, or resume a signed origin. Those phases stop with this message:
+Every phase runs for Jira and Linear (CodySwannGT/lisa#4873):
 
-> The npm updater can file and claim Jira and Linear work items, but it cannot yet check their claims, publish the pull request or cancel them. That support is tracked in CodySwannGT/lisa#4873. Projects that track work in GitHub are fully supported today.
-
-Resuming an interrupted Jira or Linear run:
-
-- **Before the checkpoint was signed:** run the workflow again. Allocation finds the same work item, reads back its claim and any unsigned checkpoint, and creates nothing new.
-- **After the checkpoint was signed:** a rerun stops with the CodySwannGT/lisa#4873 message above, because resuming a signed run is not supported yet.
-- **Earlier item deleted, archived or closed:** that selected update is blocked until CodySwannGT/lisa#4873. Replacing the earlier item is the cancellation and supersession path, which is not supported yet. This applies to a Linear item that is deleted or archived and to any earlier item that is closed.
+- **Publish** opens the pull request on GitHub with `Work-Item: <KEY>-<N>` and no GitHub issue link. It writes one `[lisa-pr-link]` backlink comment on the work item and reads it back. A rerun finds that comment and writes nothing.
+- **Cancel and supersede** move the old item to the canceled status or state. The updater then reads the Jira changelog or the Linear history to confirm its own account made that move. If someone else closed the item, the updater leaves it alone and says so.
+- **Resuming an interrupted run:** before the checkpoint was signed, run the workflow again: allocation finds the same item and creates nothing new. After it was signed, a rerun resumes the signed origin. The tracker credential proves the claim, the item's sole owner and its assignability, and GitHub proves the runs and the destination branch.
 
 ## Multiple npm project directories
 

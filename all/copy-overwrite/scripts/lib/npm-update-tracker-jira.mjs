@@ -26,8 +26,14 @@ import {
   assertDeclaredActor,
   assertClaimAuthor,
 } from "./npm-update-tracker-wire.mjs";
+import {
+  isoTime,
+  jiraCancel,
+  jiraAssertCancelled,
+} from "./npm-update-tracker-cancel.mjs";
 
 const API = "/rest/api/3";
+const CLAIM_DIFFERS = "current tracker claim differs";
 const FIELDS =
   "summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks";
 
@@ -55,6 +61,9 @@ function commentRecord(comment) {
       id: comment.author?.accountId,
       type: comment.author?.accountType === "app" ? "Bot" : "User",
     },
+    // Origin transport chronology reads these, as it reads GitHub's (#4873).
+    created_at: isoTime(comment.created),
+    updated_at: isoTime(comment.updated),
   };
 }
 
@@ -110,6 +119,14 @@ export class JiraTracker {
       title: fields.summary,
       body: adfText(fields.description),
       state: stateOf(fields.status),
+      // Only the configured canceled status is an explicit cancellation (#4873).
+      state_reason:
+        stateOf(fields.status) === "closed"
+          ? fields.status?.name?.toLowerCase() ===
+            this.lifecycle.canceled.toLowerCase()
+            ? "not_planned"
+            : "completed"
+          : null,
       labels: [
         lifecycleName(this.lifecycle, fields.status?.name),
         ...typeLabels(fields),
@@ -335,6 +352,15 @@ export class JiraTracker {
     );
   }
   /** The credential's own account, whether a person or an app/service account. */
+  actorId() {
+    return this.myself();
+  }
+  cancel(number) {
+    return jiraCancel(this, number);
+  }
+  assertCancelled(number) {
+    return jiraAssertCancelled(this, number);
+  }
   async isManagedActor(user) {
     return typeof user?.id === "string" && user.id === (await this.myself());
   }
@@ -342,16 +368,13 @@ export class JiraTracker {
     const number = this.numberOf(descriptor.workItem);
     required(
       /^[1-9]\d*$/.test(String(descriptor.claimCommentId)),
-      "current tracker claim differs"
+      CLAIM_DIFFERS
     );
     const comment = await this.call(
       `/issue/${this.ref(number)}/comment/${descriptor.claimCommentId}`,
       "issue-comment"
     );
-    required(
-      String(comment?.id) === descriptor.claimCommentId,
-      "current tracker claim differs"
-    );
+    required(String(comment?.id) === descriptor.claimCommentId, CLAIM_DIFFERS);
     assertClaimAuthor(
       "jira",
       descriptor.workItem,
@@ -360,7 +383,8 @@ export class JiraTracker {
     );
     required(
       sha256(adfText(comment.body)) === descriptor.claimSha256,
-      "current tracker claim differs"
+      CLAIM_DIFFERS
     );
+    return { created_at: isoTime(comment.created) };
   }
 }
