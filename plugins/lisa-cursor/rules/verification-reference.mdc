@@ -27,7 +27,7 @@ Never assume something works because the code "looks correct." Run a command, ob
 
 **If all you did was run tests, typecheck, and lint — you have NOT verified.** You have only confirmed quality checks pass. Verification requires running the actual system and observing the results: making HTTP requests, clicking through the UI, executing CLI commands, querying the database, or otherwise interacting with the running software as an end user would.
 
-**A check that cannot fail is not evidence either.** Every gate, probe, sweep, and codified spec you author is subject to the `falsifiable-checks` rule: break the guarded property, see the check fail at the right location, restore, and report that falsification.
+**A check that cannot fail is not evidence either.** Every gate, probe, sweep, and codified spec you author is subject to the `falsifiable-checks` rule: break the guarded property on a scratch copy, never in a worktree another agent is editing, see the check fail at the right location, restore, and report that falsification.
 
 ### Browser-controller neutrality
 
