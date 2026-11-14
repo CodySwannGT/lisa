@@ -18,7 +18,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { autoUpdate } from "../../plugins/src/base/hooks/auto-update.mjs";
+import { autoUpdateResult } from "../../plugins/src/base/hooks/auto-update.mjs";
 
 /** Installed version in the fixture. */
 export const OLD = "4.66.5";
@@ -50,6 +50,8 @@ const CHANGED = [
 
 /** How the fake environment answers. */
 export interface World {
+  /** What npm reports as latest (default NEW). */
+  readonly latest?: string;
   /** `git status --porcelain` before the update. */
   readonly dirtyBefore?: string;
   /** Current branch. */
@@ -241,20 +243,20 @@ export function fakeRunner(
  * @param root - Project root
  * @param world - How the environment answers
  * @param env - Process environment
- * @returns The context text and the commands run
+ * @returns The context text, the developer notice and the commands run
  */
 export async function sessionStart(
   root: string,
   world: World = {},
   env: NodeJS.ProcessEnv = {}
-): Promise<{ text: string; seen: string[] }> {
+): Promise<{ text: string; notice: string | null; seen: string[] }> {
   const runner = fakeRunner(root, world);
-  const text = await autoUpdate({
+  const { text, notice } = await autoUpdateResult({
     projectDir: root,
     env,
     nowMs: Date.parse("2026-10-03T12:00:00Z"),
     run: runner.run,
-    refresh: async () => NEW,
+    refresh: async () => world.latest ?? NEW,
   });
-  return { text, seen: runner.seen };
+  return { text, notice, seen: runner.seen };
 }
