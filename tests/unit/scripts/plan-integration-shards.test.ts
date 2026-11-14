@@ -20,8 +20,15 @@ import {
   planShards,
 } from "../../../scripts/plan-integration-shards.mjs";
 import { HISTORY_SCANNER_SUITES } from "../../../scripts/lib/history-scanner-suites.mjs";
+import { NIGHTLY_SLOW_SUITES } from "../../../scripts/lib/nightly-slow-suites.mjs";
+
+/** The scanner suites a pull-request run still holds (not nightly-only). */
+const PER_RUN_SCANNER_SUITES = HISTORY_SCANNER_SUITES.filter(
+  suite => !NIGHTLY_SLOW_SUITES.includes(suite)
+);
 
 const SCHEMA = "lisa.test-shard-plan/v1";
+const TIMED_FILE = "tests/integration/a.test.ts";
 const directories: string[] = [];
 
 afterEach(() => {
@@ -196,8 +203,8 @@ describe("main", () => {
   it("plans from downloaded timings and hands the plan to the legs", () => {
     const root = scratch();
     artifact(root, "test-timings-6-1-integration-shard-1", {
-      "tests/integration/a.test.ts": 30,
-      [HISTORY_SCANNER_SUITES[0] ?? ""]: 5,
+      [TIMED_FILE]: 30,
+      [PER_RUN_SCANNER_SUITES[0] ?? ""]: 5,
     });
     artifact(root, "test-timings-6-1-integration-shard-2", {
       "tests/integration/b.test.ts": 20,
@@ -209,14 +216,40 @@ describe("main", () => {
     expect(result.output).toMatch(/^mode=files\n/);
     const plan = JSON.parse(/plan=(.*)\n/.exec(result.output)?.[1] ?? "{}");
     expect(plan.schema).toBe(SCHEMA);
-    // The group weighs 5 s plus the 20 s median for each of its three
-    // untimed members, so it is the longest item and takes shard 1.
-    expect(plan.assignments["tests/integration/a.test.ts"]).toBe(2);
+    // The group weighs 5 s plus the 20 s median for its one untimed member,
+    // 25 s, so the 30 s file takes shard 1 and the group shard 2.
+    expect(plan.assignments[TIMED_FILE]).toBe(1);
     expect(plan.groups).toEqual([
-      { files: [...HISTORY_SCANNER_SUITES], shard: 1 },
+      { files: [...PER_RUN_SCANNER_SUITES], shard: 2 },
     ]);
     expect(result.lines.join("\n")).toContain("longest-processing-time-first");
     expect(result.lines.join("\n")).toContain("shard 1/2:");
+  });
+
+  it("leaves the nightly-only suites out of the plan (CodySwannGT/lisa#4896)", () => {
+    // Every pull-request run excludes them, so weighing a leg for them would
+    // only unbalance the legs; old timings still carry them for a while.
+    const root = scratch();
+    artifact(
+      root,
+      "test-timings-6-1-integration-shard-1",
+      Object.fromEntries([
+        [TIMED_FILE, 30],
+        ...NIGHTLY_SLOW_SUITES.map(file => [file, 90] as const),
+      ])
+    );
+
+    const result = cli(["--shards", "2", "--timings", root]);
+
+    expect(result.code).toBe(0);
+    const plan = JSON.parse(/plan=(.*)\n/.exec(result.output)?.[1] ?? "{}");
+    expect(Object.keys(plan.assignments)).toEqual([TIMED_FILE]);
+    const grouped = plan.groups.flatMap(
+      (group: { files: string[] }) => group.files
+    );
+    expect(grouped.length).toBeGreaterThan(0);
+    for (const file of NIGHTLY_SLOW_SUITES)
+      expect(grouped, file).not.toContain(file);
   });
 
   it("still keeps the scanner suites together when no timings can be fetched", () => {
@@ -242,7 +275,7 @@ describe("main", () => {
         });
       const into = args[args.indexOf("-D") + 1] ?? "";
       artifact(into, "test-timings-6-1-integration", {
-        "tests/integration/a.test.ts": 3,
+        [TIMED_FILE]: 3,
       });
       return "";
     };

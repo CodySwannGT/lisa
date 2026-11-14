@@ -1,0 +1,141 @@
+name: 📅 Nightly slow tests
+
+# The ONLY automated surface that runs the six suites listed in
+# `scripts/lib/nightly-slow-suites.mjs` (CodySwannGT/lisa#4896).
+#
+# ## Why these six left the pull-request and push paths
+#
+# A 2026-11-14 audit set each test file's CI runtime against 71 days of CI
+# catch history (the last 1,000 runs, 232 failure events). These six cost
+# about 380 s of test time per run between them and caught nothing confirmed in
+# that window, yet ran on every pull request and most pushes. They still guard
+# something real — a real Stryker run, the genuine pinned history scanner, and
+# repository-wide test-infrastructure checks — so they move here rather than
+# being deleted. What they assert is unchanged; only when they run is.
+#
+# ## One list, not six flags
+#
+# `vitest.config.local.ts` excludes the list from every run, so every package
+# script and CI shard leg drops these files without a flag of its own. This
+# lane sets `LISA_NIGHTLY_SLOW_SUITES=run`, which lifts that exclusion, and
+# names exactly the listed files. `tests/unit/config/nightly-slow-suites.test.ts`
+# fails if the names below and the list drift apart.
+#
+# ## A skipped file is a green file
+#
+# Running the suite is not enough on its own: a file that was excluded, moved,
+# or renamed is simply absent, and an absent file reports green. So the lane
+# writes a vitest JSON report and the step after the run asserts every listed
+# file is in it and passed.
+#
+# NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — do not move it
+# under plugins/src or the create-only template sets.
+
+on:
+  schedule:
+    # NIGHTLY, 03:40 UTC. Off the hour and clear of the other scheduled lanes
+    # (00/06/12/18:00 load-failure sweep, 04:25 temp-scan benchmark, 06:00
+    # lifecycle drift, 07:00 continuous gates and Monday security floors).
+    - cron: '40 3 * * *'
+  # Deliberately NO `pull_request:` or `push:` trigger, not even path-filtered:
+  # their cost on those paths is the reason they moved. Dispatch by hand to
+  # check a change that touches what they guard.
+  workflow_dispatch:
+
+# Never cancel a run in progress; a superseded nightly run is a night with no
+# evidence.
+concurrency:
+  group: nightly-slow-tests-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  nightly_slow_tests:
+    name: 📅 Nightly slow tests
+    # Forks have neither the runner minutes nor the reason.
+    if: github.repository == 'CodySwannGT/lisa'
+    runs-on: ubuntu-latest
+    # About 380 s of test time on the pull-request runners these files left.
+    # `timeout-minutes` is a resource limit, not a quality threshold: each
+    # case keeps its own budget, and raising this weakens nothing.
+    timeout-minutes: 60
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          # The history-secret suites read real git history.
+          fetch-depth: 0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '24.21.0'
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: 🏗️ Build
+        run: bun run build
+
+      # Through `lisa-test-run`, as every other suite runs: the wrapper sweeps
+      # stale scratch and admits the run against machine headroom.
+      # `shell: bash` named explicitly so the step runs with `pipefail`: a red
+      # suite must stay red through the `tee` that keeps its log.
+      - name: 🧪 Run the nightly slow tests
+        shell: bash
+        env:
+          LISA_NIGHTLY_SLOW_SUITES: run
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/config/test-run-supervision-wiring.test.ts
+          tests/integration/mutation-gate-bite.test.ts
+          tests/integration/history-secret-evidence.test.ts
+          tests/integration/history-secret-private-report.test.ts
+          tests/integration/vitest-nodenext-local-config.test.ts
+          tests/integration/staged-module-formatting.test.ts
+          --reporter=default
+          --reporter=json
+          --outputFile.json="$RUNNER_TEMP/nightly-slow-tests.json"
+          2>&1 | tee "$RUNNER_TEMP/nightly-slow-tests.log"
+
+      # The step that makes this lane a surface rather than a claim: every
+      # listed file must be in the report and must have passed.
+      - name: ✅ Prove every listed file ran
+        run: >-
+          node scripts/check-test-files-executed.mjs
+          --report "$RUNNER_TEMP/nightly-slow-tests.json"
+          --list scripts/lib/nightly-slow-suites.mjs#NIGHTLY_SLOW_SUITES
+
+      - name: 📤 Upload the test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-slow-tests-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/nightly-slow-tests.log
+            ${{ runner.temp }}/nightly-slow-tests.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  # A scheduled run nobody reads is the same as no scheduled run. A red run
+  # files an issue.
+  create_issue_on_failure:
+    if: ${{ failure() && github.repository == 'CodySwannGT/lisa' }}
+    needs: nightly_slow_tests
+    uses: ./.github/workflows/create-github-issue-on-failure.yml
+    permissions:
+      contents: read
+      issues: write
+    with:
+      workflow_name: 'Nightly slow tests'
+      failed_job: 'nightly_slow_tests'
+      package_manager: 'bun'

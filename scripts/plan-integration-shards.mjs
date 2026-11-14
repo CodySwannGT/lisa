@@ -11,6 +11,9 @@
  * the plan every leg applies through `lisa-test-run` (`LISA_TEST_SHARD_PLAN`,
  * `src/cli/lisa-test-run-shard-files.ts`).
  *
+ * The nightly-only suites (`scripts/lib/nightly-slow-suites.mjs`) are left
+ * out: the shared Vitest config excludes them from every leg.
+ *
  * The history-scanner suites are one item, so they land in one leg and a
  * sharded run downloads the pinned scanner at most once: their project's
  * global setup runs only in an invocation whose selection holds one of them.
@@ -34,6 +37,7 @@ import * as path from "node:path";
 
 import { HISTORY_SCANNER_SUITES } from "./lib/history-scanner-suites.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import { NIGHTLY_SLOW_SUITES } from "./lib/nightly-slow-suites.mjs";
 import { collectTimings } from "./test-timing-report.mjs";
 
 /** The schema token `lisa-test-run` requires of a plan. */
@@ -261,12 +265,17 @@ export function main(argv, deps) {
     return 2;
   }
   const read = readTimings(options, deps);
-  // A file deleted since the timings were recorded would only skew the loads.
-  const timings = read.timings.filter(entry => deps.exists(entry.file));
+  // A file deleted since the timings were recorded would only skew the loads,
+  // and so would a nightly-only suite the shared Vitest config excludes from
+  // every pull-request run (CodySwannGT/lisa#4896).
+  const nightlyOnly = new Set(NIGHTLY_SLOW_SUITES);
+  const timings = read.timings.filter(
+    entry => deps.exists(entry.file) && !nightlyOnly.has(entry.file)
+  );
   const plan = planShards({
     total: options.shards,
     timings,
-    groups: [[...HISTORY_SCANNER_SUITES]],
+    groups: [HISTORY_SCANNER_SUITES.filter(suite => !nightlyOnly.has(suite))],
   });
   if (timings.length === 0) {
     deps.out(

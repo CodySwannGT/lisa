@@ -45,6 +45,7 @@ import {
   validateGates,
   validatePolicy,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { NIGHTLY_SLOW_SUITES } from "../../../scripts/lib/nightly-slow-suites.mjs";
 import { runArtifactChecks } from "../../../scripts/run-artifact-checks.mjs";
 
 /** One gate resolved at one moment, as `resolveMoment` reports it. */
@@ -700,9 +701,19 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(command).toContain(
       "lisa-test-run -- --adapter vitest -- vitest run tests/integration"
     );
+    // A suite on the nightly-only list is excluded from every run by the
+    // shared Vitest config (CodySwannGT/lisa#4896), which is a stronger
+    // exclusion than a push flag, so the flag is not repeated for it.
+    const nightlyOnly = new Set(
+      NIGHTLY_SLOW_SUITES.map(file => path.basename(file))
+    );
     for (const suite of spawning) {
+      if (nightlyOnly.has(suite)) continue;
       expect(command, suite).toContain(`--exclude='**/${suite}'`);
     }
+    expect(
+      spawning.filter(suite => !nightlyOnly.has(suite)).length
+    ).toBeGreaterThan(0);
     // The other direction, and the reason the split is safe to make: a suite
     // that only names the tool must still RUN at push. Without this, narrowing
     // discovery could be undone later by excluding a cheap suite anyway and
@@ -713,10 +724,12 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
   });
 
   it("does not drop the bite test — it moves to the moment that owns its cost", () => {
-    // The mutation gate it is the bite control for is a pull-request gate, and
-    // the pull-request integration pass still collects the whole directory
-    // except the packed-host journey, which owner decision 4 of
-    // CodySwannGT/lisa#4587 moved to a by-hand run (CodySwannGT/lisa#4606).
+    // The pull-request integration pass collects the whole directory except
+    // the packed-host journey, which owner decision 4 of CodySwannGT/lisa#4587
+    // moved to a by-hand run (CodySwannGT/lisa#4606), and the nightly-only
+    // suites the shared Vitest config excludes — the bite test among them,
+    // which now runs on `.github/workflows/nightly-slow-tests.yml`
+    // (CodySwannGT/lisa#4896).
     const onPr = gatesAt(parsedConfig(), PULL_REQUEST).find(
       entry => entry.id === INTEGRATION_GATE
     );

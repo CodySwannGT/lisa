@@ -23,7 +23,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { availableParallelism, freemem, loadavg } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
 
@@ -46,6 +46,9 @@ const REPORT_NAME = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z(?:-\d+)?\.json$/u;
  * @property {string|null} startedAt ISO-8601 start, null when never reached.
  * @property {number} durationMs Time spent; 0 when proved by a sibling's run.
  * @property {string|null} provedBy The gate whose run proved this one.
+ * @property {string[]} failingTestFiles Repo-relative test files the gate's
+ *   output named as failing; empty unless the gate failed (#4896).
+ * @property {boolean} failingTestFilesTruncated True when that list was capped.
  */
 
 /**
@@ -99,28 +102,151 @@ export function formatDuration(ms) {
   return `${seconds}s`;
 }
 
+/** The most failing test files one gate records (#4896). */
+export const MAX_FAILING_TEST_FILES = 200;
+
+/** Terminal colour and cursor sequences, which Vitest wraps its FAIL badge in. */
+// eslint-disable-next-line no-control-regex -- matching the ESC byte is the point
+const ANSI_SEQUENCE = /\u001b\[[0-9;?]*[ -/]*[@-~]/gu;
+
+/**
+ * A runner's per-file failure header, at the start of a line:
+ * - Vitest: ` FAIL  |project| path/to/file.test.ts > suite > case`
+ * - Jest:   `FAIL path/to/file.test.ts (5.1 s)`
+ * The project tag is optional in both. A `FAIL` anywhere else in a line is prose.
+ */
+const FAIL_HEADER = /^\s*FAIL\s+(?:\|[^|\n]*\|\s+)?(\S+)/u;
+
+/**
+ * A path without its trailing slashes. A loop rather than `/\/+$/`, which the
+ * shipped ReDoS rule flags: an anchored `+` before `$` backtracks on a long run
+ * of slashes followed by anything else.
+ * @param {string} path A POSIX path.
+ * @returns {string} The path with trailing `/` characters removed.
+ */
+function trimTrailingSlashes(path) {
+  let end = path.length;
+  while (end > 0 && path[end - 1] === "/") end -= 1;
+  return path.slice(0, end);
+}
+
+/** A token that is plausibly a file path: path characters plus an extension. */
+const FILE_TOKEN = /^[\w@.+\-/\\]+\.[A-Za-z0-9]+$/u;
+
+/**
+ * A FAIL token as a repo-relative POSIX path, or null when it is not one.
+ *
+ * Only repo-relative paths are kept: an absolute path inside `root` is made
+ * relative, and anything outside it — or climbing out with `..` — is dropped,
+ * because a report that names files from somewhere else is not about this repo.
+ * @param {string} token The first token after `FAIL`.
+ * @param {string|null} root The project root, or null to keep relative paths only.
+ * @returns {string|null} The path, or null.
+ */
+function repoRelative(token, root) {
+  if (!FILE_TOKEN.test(token)) return null;
+  const posix = token.replaceAll("\\", "/");
+  const base = root
+    ? `${trimTrailingSlashes(root.replaceAll(sep, "/"))}/`
+    : null;
+  const absolute = posix.startsWith("/") || /^[A-Za-z]:\//u.test(posix);
+  const inRoot = absolute && base && posix.startsWith(base);
+  if (absolute && !inRoot) return null;
+  const relative = (inRoot ? posix.slice(base.length) : posix).replace(
+    /^(?:\.\/)+/u,
+    ""
+  );
+  const segments = relative.split("/");
+  if (segments.some(part => part === ".." || part === "")) return null;
+  return relative;
+}
+
+/**
+ * The test files a failed gate's output names as failing (CodySwannGT/lisa#4896).
+ *
+ * The push timing report records pass or fail per gate, which cannot say WHICH
+ * test file failed — so a slow file that never catches anything and a slow file
+ * that catches regressions every week look the same. This reads each runner's
+ * per-file failure header out of the captured diagnostic tail (Vitest's summary
+ * repeats every failed file there, so the tail is enough).
+ *
+ * Diagnostics only: anything unexpected — a non-string, binary noise, a format
+ * this does not know — yields an empty list. It never throws, so it can never
+ * change a gate verdict or fail a push.
+ * @param {unknown} output A gate's captured output.
+ * @param {object} [options] Bounds.
+ * @param {string|null} [options.root] Project root, for relativising absolute paths.
+ * @param {number} [options.max] Cap on the number of files.
+ * @returns {{files: string[], truncated: boolean}} Deduped files in first-seen order.
+ */
+export function failingTestFiles(
+  output,
+  { root = null, max = MAX_FAILING_TEST_FILES } = {}
+) {
+  try {
+    if (typeof output !== "string") return { files: [], truncated: false };
+    const unique = [
+      ...new Set(
+        output
+          .replace(ANSI_SEQUENCE, "")
+          .split(/\r?\n/u)
+          .map(line => FAIL_HEADER.exec(line)?.[1])
+          .filter(token => typeof token === "string")
+          .map(token => repoRelative(token, root))
+          .filter(path => path !== null)
+      ),
+    ];
+    return { files: unique.slice(0, max), truncated: unique.length > max };
+  } catch {
+    // probe-direction: neutral — a diagnostic list; no gate reads it.
+    return { files: [], truncated: false };
+  }
+}
+
+/** States under which a gate's run did not prove its property. */
+const UNPROVED_STATES = new Set(["FAILED", "UNPROVABLE", "KILLED"]);
+
+/**
+ * The failing-file fields of one gate record. A gate that did not fail records
+ * none, whatever its entry carries, and a malformed list reads as none.
+ * @param {string} state The record's state.
+ * @param {unknown} failingTests The entry's `{files, truncated}`, if any.
+ * @returns {{failingTestFiles: string[], failingTestFilesTruncated: boolean}} The fields.
+ */
+function failingFields(state, failingTests) {
+  const files = UNPROVED_STATES.has(state) ? failingTests?.files : null;
+  const valid =
+    Array.isArray(files) && files.every(file => typeof file === "string");
+  return {
+    failingTestFiles: valid ? [...files] : [],
+    failingTestFilesTruncated: valid && failingTests.truncated === true,
+  };
+}
+
 /**
  * One gate's timing record.
  * @param {object} entry A `runGates` result entry (or a pre-gate step).
  * @returns {GateTiming} The record.
  */
 function gateRecord(entry) {
+  // A remembered pass (#4594) did not run, so it is reported as CACHED
+  // rather than as a PASSED gate that happened to take no time.
+  const state =
+    entry.cached === true
+      ? "CACHED"
+      : String(entry.state ?? "unknown")
+          .toUpperCase()
+          .replaceAll("-", "_");
   return {
     id: entry.id,
     level: entry.level ?? null,
     command: entry.command ?? null,
-    // A remembered pass (#4594) did not run, so it is reported as CACHED
-    // rather than as a PASSED gate that happened to take no time.
-    state:
-      entry.cached === true
-        ? "CACHED"
-        : String(entry.state ?? "unknown")
-            .toUpperCase()
-            .replaceAll("-", "_"),
+    state,
     exitCode: typeof entry.code === "number" ? entry.code : null,
     startedAt: entry.startedAt ?? null,
     durationMs: typeof entry.durationMs === "number" ? entry.durationMs : 0,
     provedBy: entry.provedBy ?? null,
+    ...failingFields(state, entry.failingTests),
   };
 }
 
