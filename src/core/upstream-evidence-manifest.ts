@@ -13094,6 +13094,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-runtime-preservation.test.ts": true,
     "tests/unit/scripts/npm-update-runtime-qualification.test.ts": true,
     "tests/unit/scripts/npm-update-socket-witness.test.ts": true,
+    "tests/unit/scripts/npm-update-target-branch.test.ts": true,
     "tests/unit/scripts/npm-update-tracker-credentials.test.ts": true,
     "tests/unit/scripts/npm-update-tracker-finalize.test.ts": true,
     "tests/unit/scripts/npm-update-tracker-github.test.ts": true,
