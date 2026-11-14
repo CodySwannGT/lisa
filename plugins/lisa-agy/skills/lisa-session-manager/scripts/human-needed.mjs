@@ -296,7 +296,7 @@ function chooseMarker(label, blocked) {
  *   overruled?: boolean}}
  *   input - The item, why, the question, the configured human-needed label
  *   and `blocked` role value, whether a notification channel exists, whether
- *   anyone (operatorIds / trustedAuthorIds) may answer on the item, and the
+ *   anyone (operatorIds / trustedReleaseIds / trustedAuthorIds) may answer on the item, and the
  *   cause the planning-miss signal needs (default `planning`), and whether
  *   the item carries the wrongly-escalated label (`overruled`)
  * @returns {{ref: string, kind: string, marker: {type: string, value: string},

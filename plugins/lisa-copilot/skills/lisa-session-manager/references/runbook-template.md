@@ -68,7 +68,7 @@ Telegram the question goes there too; `/lisa:session-manager status` lists every
 The operator answers with the CLI `answer` command that `status` lists, on Telegram, or on the
 item (a reply from an operator or trusted author, matched on stable tracker ids, each
 `login:` / `id:` entry by its own kind; with neither
-`operatorIds` nor `trustedAuthorIds` set, replies on the item are not read); the next cycle
+`operatorIds` nor `trustedReleaseIds` / `trustedAuthorIds` set, replies on the item are not read); the next cycle
 delivers the answer (or, for a finished worker or an exhausted item, records it on the item for the
 next attempt and reads it back), removes the marker and clears the question. No question is ever asked in the
 manager's terminal. When the manager itself cannot proceed it records `recovery-required` with a one-line

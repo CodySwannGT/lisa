@@ -26,7 +26,8 @@ import {
   validOrAbsent,
 } from "./cli-runtime.mjs";
 import { parseJson } from "./cli-queue.mjs";
-import { notifyProvider } from "./config.mjs";
+import { parseIdEntry } from "../../../scripts/operator-id-kinds.mjs";
+import { notifyProvider, trustedReleaseEntries } from "./config.mjs";
 import { wronglyEscalatedLabel } from "./cli-overruled.mjs";
 import {
   carriesWronglyEscalated,
@@ -145,7 +146,8 @@ export async function answer(ctx) {
 }
 
 /**
- * Who may answer on the item: operators and trusted authors only. There is
+ * Who may answer on the item: operators and the people trusted to release a
+ * human gate (`trustedReleaseIds`, else `trustedAuthorIds`; #4895). There is
  * no fallback to the tracker identity (`control.me`): workers and the
  * manager post as that identity, so its comments cannot be told apart from
  * an answer.
@@ -153,10 +155,11 @@ export async function answer(ctx) {
  * @returns {string[]} Allowed author ids (empty: nobody may answer there)
  */
 function allowedAnswerers(config) {
-  return [
-    ...(config?.operatorIds ?? []),
-    ...(config?.trustedAuthorIds ?? []),
-  ].map(String);
+  // An `integration:` entry names no person, so it can never answer; counting
+  // it would tell the operator to reply on the item when no reply is read.
+  return [...(config?.operatorIds ?? []), ...trustedReleaseEntries(config)]
+    .map(String)
+    .filter(entry => parseIdEntry(entry)?.kind !== "integration");
 }
 
 /** Why nothing is read off the item when nobody may answer there. */
@@ -176,7 +179,9 @@ const CREDENTIAL_REPLY =
   "the secrets provider, and reply again without it.";
 
 const NO_ANSWERERS =
-  "No sessionManager.operatorIds or trustedAuthorIds are configured, so " +
+  "No person who may answer is configured (sessionManager.operatorIds, " +
+  "trustedReleaseIds, or a trustedAuthorIds entry other than " +
+  "integration:<service>), so " +
   "replies on the item are not read: the tracker identity is the one " +
   "workers post as. Answer with the answerCommand that status lists, or " +
   "set sessionManager.operatorIds.";

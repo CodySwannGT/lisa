@@ -26,6 +26,7 @@ import {
   stdinText,
   validOrAbsent,
 } from "./cli-runtime.mjs";
+import { trustedReleaseEntries } from "./config.mjs";
 import { parseJson, readJsonFile } from "./json-input.mjs";
 import { readLedger } from "./ledger.mjs";
 import { planOrphanSweep } from "./orphan-sweep.mjs";
@@ -150,7 +151,8 @@ export async function orphanPlan(ctx) {
         liveRefs,
         me: ledger.control.me ?? null,
         operatorIds: config?.operatorIds ?? [],
-        trustedAuthorIds: config?.trustedAuthorIds ?? [],
+        // The sweep uses this list only to judge hold releases (#4895).
+        trustedAuthorIds: trustedReleaseEntries(config),
         now: new Date(),
         ...(max === undefined ? {} : { max }),
         ...(staleHours === undefined ? {} : { staleHours }),

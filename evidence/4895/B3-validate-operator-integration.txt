@@ -1,0 +1,39 @@
+# check: B3-validate-operator-integration
+$ cd /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-B3-validate-operator-integration/project && HOME=/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-B3-validate-operator-integration/home node /Users/codysai/workspace/lisa/.claude/worktrees/4895-trusted-author-split/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs validate --project-root /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-B3-validate-operator-integration/project
+# .lisa.config.json:
+{
+  "tracker": "github",
+  "github": {
+    "org": "example-org",
+    "repo": "demo-repo",
+    "labels": {
+      "build": {
+        "ready": "status:ready"
+      }
+    }
+  },
+  "sessionManager": {
+    "name": "demo-manager",
+    "interval": "5m",
+    "capacity": {
+      "maxWorkers": 6,
+      "gbPerWorker": 1,
+      "reserveGb": 0,
+      "cpuFraction": 1,
+      "maxLoadPerCore": 1000
+    },
+    "notify": {
+      "provider": "telegram",
+      "stateDir": "/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-B3-validate-operator-integration/home/.claude/channels/telegram-demo"
+    },
+    "operatorIds": [
+      "integration:sentry"
+    ]
+  }
+}
+# --- stdout ---
+{"valid":false,"errors":["sessionManager.operatorIds[0] is an integration: entry, which belongs only in sessionManager.trustedAuthorIds. An integration can author dispatched work but is not a person, so it can never be an operator, answer a question, or release a human hold."]}
+
+# --- stderr ---
+
+# exit: 2

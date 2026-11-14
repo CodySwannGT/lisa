@@ -24,6 +24,7 @@ import {
   stdinText,
 } from "./cli-runtime.mjs";
 import { parseJson, readJsonFile } from "./cli-queue.mjs";
+import { trustedReleaseEntries } from "./config.mjs";
 import {
   clearPendingQuestion,
   clearValidationFailure,
@@ -251,8 +252,8 @@ export async function route(ctx) {
  * its JSON (stdin, or the file). `--ref` fills in the ledger's pending
  * question when the input does not carry one.
  *
- * Who may release a human hold comes from `sessionManager.trustedAuthorIds`
- * only. Any `trustedHumanActorIds` in the input is discarded: the input is
+ * Who may release a human hold comes from `sessionManager.trustedReleaseIds`
+ * only, falling back to `trustedAuthorIds` when it is unset (#4895). Any `trustedHumanActorIds` in the input is discarded: the input is
  * assembled from the item's own (untrusted) body and comments, so a list
  * carried beside them would let the item's text vouch for itself. The
  * release check compares account ids only, so an `id:` entry reaches it as
@@ -275,7 +276,7 @@ export async function blockedPlan(ctx) {
     (ref ? (await readLedger(ctx.root)).items[ref]?.pendingQuestion : null);
   const project = loadProject(ctx.root);
   const trustedHumanActorIds = idComparableValues(
-    project.config?.trustedAuthorIds
+    trustedReleaseEntries(project.config)
   );
   const policy = resolveHumanGatePolicy(project.local, project.global);
   return {

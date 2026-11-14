@@ -66,7 +66,11 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    `AWS CDK`, ...). Ask the operator to correct them and add the areas that identify the repo
    (e.g. `api`: `["NestJS","migrations"]`, `web`: `["Expo","screens"]`), and whether to
    set `sessionManager.trustedAuthorIds`. Without it, any author's Ready item reaches a
-   bypass-permissions worker; say so plainly. The list holds stable tracker user ids as strings,
+   bypass-permissions worker; say so plainly. If an integration files Ready items with no person
+   behind them (Linear's Sentry integration does), add `integration:<service>` (the value `queue`
+   prints as `authorIntegration`) rather than dropping the key, which would also drop every hold
+   releaser. To let different people release holds than author work, set
+   `sessionManager.trustedReleaseIds` (people only; it defaults to `trustedAuthorIds`). The list holds stable tracker user ids as strings,
    never logins: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira
    `accountId`, or the Linear user id. A plain login matches no one in the queue and silently
    excludes every item; to trust a GitHub login on purpose write it as `login:<login>`, and to say
@@ -92,8 +96,8 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    warns about it (in `warnings`, never failing) and names both forms. An unknown prefix
    (`user:octocat`) or an empty value (`login:`) fails `validate`, naming the entry.
    **Recommend setting it in every setup**, even a single-user one: it is also who may answer a
-   human-needed question by replying on the item. With neither `operatorIds` nor
-   `trustedAuthorIds` set, the manager reads no answer off the item at all, because the tracker
+   human-needed question by replying on the item. With none of `operatorIds`,
+   `trustedReleaseIds` and `trustedAuthorIds` set, the manager reads no answer off the item at all, because the tracker
    credential's identity is the one the workers and the manager post as, so its comments cannot be
    told apart from a human's answer. The operator then answers only at the terminal, with the
    `answerCommand` that `status` lists. Say so plainly.
