@@ -441,7 +441,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "984ef4610cc1568f9cc39223e98a3a50332d759a5267f219fa70901a49d28c02",
+      "ec27d434906c3dbae2a6b6f400e42bfb9c2433b1d45cd138536086b0bab79f0a",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -773,7 +773,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "2f0650670c75c6762869c40911214b330efa663f16b79183e940d1cc8116dc01",
+      "3128900cc9a761544a7bbc8ac9dcac396471bf82886e8b67cae459c4c317cce0",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "0e9a3e950ea05616522d6f115118791fa08caa3d2c8ee421aa8cf856558a6e77",
     "npm-package/package-lisa/package.lisa.json":
@@ -2609,7 +2609,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-merge-driver-registration.mjs":
       "8ed1aa50a640d4241c565cf8e0fcd45339e4e8f69a6b656117ca7ee18a5e3291",
     "scripts/check-npm-install-compat.mjs":
-      "5fccf09c4f4c4bea720f849a337aa0a7ea3652f041d159fd40e6cbc543073743",
+      "13cf2e44690911ecf19c27e493b066a4bf9213a31ac457d5c377e44d61a5380f",
     "scripts/check-npm-publish-landed.mjs":
       "9e79501cd7271b05149a275cf42cc092f6cb11a993696822ac6ef0d1f79a7e78",
     "scripts/check-orphan-test-processes.mjs":
@@ -3075,7 +3075,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "5ab57890f3f3624867c99d75df0786f93cf374cb80842bfebe170e337beedd02",
+      "ebcc2c65f86a56e2ff13239161e333d5d684a20047ab325348c01fec9c9a13b5",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */

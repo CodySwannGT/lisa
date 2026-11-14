@@ -103,8 +103,8 @@
       "eslint-plugin-oxlint": ">=1.62.0 <1.86.0",
       "oxlint": ">=1.62.0 <1.86.0",
       "oxlint-tsgolint": "^0.24.0",
-      "@stryker-mutator/core": "^9.0.0",
-      "@stryker-mutator/vitest-runner": "^9.0.0"
+      "@stryker-mutator/core": "^10.1.1",
+      "@stryker-mutator/vitest-runner": "^10.1.1"
     },
     "overrides": {
       "vite": "$vite"
