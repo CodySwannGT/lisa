@@ -1,6 +1,7 @@
 /** Real shipped wrappers must consume local overrides while executing application tests. */
 import * as fs from "node:fs";
 import { createRequire } from "node:module";
+import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
@@ -145,10 +146,13 @@ describe.each([
         fixture.directory,
         stack
       );
-      // Run the fixture under the caller's own temp root.
+      // Run the fixture under the caller's own temp root: os.tmpdir(), which
+      // is TMPDIR when set and the platform default (a Linux runner leaves it
+      // unset) otherwise. lisa-test-run no longer exports a private one
+      // (CodySwannGT/lisa#4603).
       const env: NodeJS.ProcessEnv = {
         ...fixture.env,
-        TMPDIR: process.env["TMPDIR"],
+        TMPDIR: os.tmpdir(),
         TMP: process.env["TMP"],
         TEMP: process.env["TEMP"],
       };
