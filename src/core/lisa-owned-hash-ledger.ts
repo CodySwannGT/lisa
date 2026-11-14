@@ -1047,6 +1047,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/npm-update-leaf.mjs": Object.freeze([
     "0cc4210470edf0042a61a74799d570b2a1a3e524dca03faca78e49ad88a4dfb9",
+    "17fb0d29089d6956605e801fae3d4f184d5e8840994ea4d0b7f37a90d46b870e",
     "6638fa03bb9bb44bd84fc9b4a91d8a334030c108e2759a2a673000dcbfbfe637",
     "8999ae7c274ab3f1728c6bc67f8ecb6b89e5413abda58fa72a8e0c28851cb5f4",
     "ff9c0fb53cfbdc0565b59df6310a0af0d2bb1eb9b2055049e5de85db0a1585f9",
@@ -1191,14 +1192,17 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/npm-update-tracker-jira.mjs": Object.freeze([
     "20ee8431cd8b3210cb954514053a6041fe3ce9b85405dece25d3f2f0eedf2d7f",
+    "3b1f0861d3e60c9dea3f6c3527cc705b170d914dc4fe18bf6a90fd63d1b85f62",
     "6d4e03019a8c98bc027971c95e03a7892e080b309301ad603ed9aa398beefacd",
   ]),
   "scripts/lib/npm-update-tracker-linear.mjs": Object.freeze([
     "3d8554fb49bcd92a849f2b4efc01f0a39eb24f9d0b579db76e7aabd0022b6f36",
     "b9a516d2a96c1e6ae8c9fc58e983226becffb300f559860e51d3187d563b392a",
     "d685ee2358c222853f443ba2fb03e2b0f0a10942d47c2413cce1e26414dfbc61",
+    "e6b0c0055e795c188e4390ebf15dfb81252f3cda8c6047fce19b8a421045ed48",
   ]),
   "scripts/lib/npm-update-tracker-wire.mjs": Object.freeze([
+    "5fe065390b2fc1ab42df18f9f1944cafa338293f6aaf12915b995f0660c2e841",
     "631669d70a897f5a5e7ef02b9c5cddbe1b4f5189f37111a287c1b436aa9dc890",
     "99fef810f677957ce7a7f6d96e0c04c0f4185f411673eff752c130e547f557ee",
     "ff46fff73c12c5553b91b5468216a5567af95e0b782cb658d21105d5ad56977c",
@@ -2502,6 +2506,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "728bcf6bdfb82c5b312da268db0ec7b50d94ac62c64ec58c70592eb106383f09",
     "748e40364b55387fefcf61c5689fafd9f7bd09d452527c02f6214b06ba93530c",
     "75c49dc8534018d8b71eacf934eb5c675c2401e27b722c322bf5137f646d78b3",
+    "76ccc6a2f6babdbb4ecb35404157ce014fee98da23c97aa706f1f3b60ad1b728",
     "78c00bc630304d220de75d288b94d2cdb0b12a7926a2c05536505c52b138e3a1",
     "7980805f54c2543e780d7e8ad12df2e978217e8ab1c9147bf4e3174b7dfb48f7",
     "79d41ce3eb5e6a2acf35dbe7a351b93f9d48631813c422814da4b8fed4717faa",
@@ -3706,6 +3711,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/npm-update-leaf.mjs": Object.freeze([
     "0cc4210470edf0042a61a74799d570b2a1a3e524dca03faca78e49ad88a4dfb9",
+    "17fb0d29089d6956605e801fae3d4f184d5e8840994ea4d0b7f37a90d46b870e",
     "6638fa03bb9bb44bd84fc9b4a91d8a334030c108e2759a2a673000dcbfbfe637",
     "8999ae7c274ab3f1728c6bc67f8ecb6b89e5413abda58fa72a8e0c28851cb5f4",
     "ff9c0fb53cfbdc0565b59df6310a0af0d2bb1eb9b2055049e5de85db0a1585f9",
@@ -3850,14 +3856,17 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/npm-update-tracker-jira.mjs": Object.freeze([
     "20ee8431cd8b3210cb954514053a6041fe3ce9b85405dece25d3f2f0eedf2d7f",
+    "3b1f0861d3e60c9dea3f6c3527cc705b170d914dc4fe18bf6a90fd63d1b85f62",
     "6d4e03019a8c98bc027971c95e03a7892e080b309301ad603ed9aa398beefacd",
   ]),
   "scripts/lib/npm-update-tracker-linear.mjs": Object.freeze([
     "3d8554fb49bcd92a849f2b4efc01f0a39eb24f9d0b579db76e7aabd0022b6f36",
     "b9a516d2a96c1e6ae8c9fc58e983226becffb300f559860e51d3187d563b392a",
     "d685ee2358c222853f443ba2fb03e2b0f0a10942d47c2413cce1e26414dfbc61",
+    "e6b0c0055e795c188e4390ebf15dfb81252f3cda8c6047fce19b8a421045ed48",
   ]),
   "scripts/lib/npm-update-tracker-wire.mjs": Object.freeze([
+    "5fe065390b2fc1ab42df18f9f1944cafa338293f6aaf12915b995f0660c2e841",
     "631669d70a897f5a5e7ef02b9c5cddbe1b4f5189f37111a287c1b436aa9dc890",
     "99fef810f677957ce7a7f6d96e0c04c0f4185f411673eff752c130e547f557ee",
     "ff46fff73c12c5553b91b5468216a5567af95e0b782cb658d21105d5ad56977c",
@@ -5091,6 +5100,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "728bcf6bdfb82c5b312da268db0ec7b50d94ac62c64ec58c70592eb106383f09",
     "748e40364b55387fefcf61c5689fafd9f7bd09d452527c02f6214b06ba93530c",
     "75c49dc8534018d8b71eacf934eb5c675c2401e27b722c322bf5137f646d78b3",
+    "76ccc6a2f6babdbb4ecb35404157ce014fee98da23c97aa706f1f3b60ad1b728",
     "78c00bc630304d220de75d288b94d2cdb0b12a7926a2c05536505c52b138e3a1",
     "7980805f54c2543e780d7e8ad12df2e978217e8ab1c9147bf4e3174b7dfb48f7",
     "79d41ce3eb5e6a2acf35dbe7a351b93f9d48631813c422814da4b8fed4717faa",

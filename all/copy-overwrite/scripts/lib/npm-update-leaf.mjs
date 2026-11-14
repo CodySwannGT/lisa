@@ -104,7 +104,13 @@ async function inspectLeafFields(issue, draft, policy, config) {
   const hold = (await canonicalClassifier(config))({
     body: issue.body,
     labels,
-    comments: issue.comments,
+    // Jira/Linear comments carry a classifier-only `prose` projection that keeps
+    // code boundaries; `body` stays the lossless managed-record form.
+    comments: issue.comments.map(comment =>
+      typeof comment.prose === "string"
+        ? { ...comment, body: comment.prose }
+        : comment
+    ),
     trustedHumanActorIds: trustedHumanActorIds(config),
     humanNeededLabel: roles.human,
   });

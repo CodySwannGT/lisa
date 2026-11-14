@@ -51,6 +51,8 @@ function commentRecord(node) {
   return {
     id: node.id,
     body: unfence(node.body),
+    // The classifier reads the Markdown as written: a fence a human typed stays a fence.
+    prose: String(node.body ?? ""),
     user: node.user
       ? { id: node.user.id, type: "User" }
       : { id: node.botActor?.id, type: "Bot" },

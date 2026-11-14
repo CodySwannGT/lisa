@@ -16,6 +16,7 @@ import {
   jsonCall,
   adfCodeBlock,
   adfText,
+  adfProse,
   lifecycleName,
   vocabularyRefusal,
   withinJiraLimit,
@@ -46,6 +47,7 @@ function commentRecord(comment) {
   return {
     id: String(comment.id),
     body: adfText(comment.body),
+    prose: adfProse(comment.body),
     user: {
       id: comment.author?.accountId,
       type: comment.author?.accountType === "app" ? "Bot" : "User",

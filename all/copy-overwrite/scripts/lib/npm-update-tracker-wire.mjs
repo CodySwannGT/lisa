@@ -151,6 +151,39 @@ export function adfText(document) {
   return blocks.map(block => textNodes(block).join("")).join("\n");
 }
 
+/** Backticks inside code are made inert so a projected code boundary cannot be closed early. */
+function inert(text) {
+  return String(text ?? "").replace(/`/g, "'");
+}
+
+/** One ADF node as Markdown-shaped prose: code stays inside a code boundary. */
+function proseOf(node) {
+  if (!node || typeof node !== "object") return "";
+  if (node.type === "codeBlock")
+    return `\n\`\`\`\n${inert(textNodes(node).join(""))}\n\`\`\`\n`;
+  if (node.type === "text")
+    return (Array.isArray(node.marks) ? node.marks : []).some(
+      mark => mark?.type === "code"
+    )
+      ? `\`${inert(node.text).replace(/\n/g, " ")}\``
+      : String(node.text ?? "");
+  if (node.type === "hardBreak") return "\n";
+  const inline = node.type === "paragraph" || node.type === "heading";
+  return (Array.isArray(node.content) ? node.content : [])
+    .map(proseOf)
+    .join(inline ? "" : "\n");
+}
+
+/**
+ * What the human-hold classifier reads for a Jira comment. Unlike adfText
+ * (the lossless managed-record form), a code block or inline code keeps a
+ * Markdown code boundary, so a marker written inside an example is
+ * documentation, never a release — the same rule GitHub and Linear text get.
+ */
+export function adfProse(document) {
+  return proseOf(document);
+}
+
 const OPEN = "````lisa\n";
 const CLOSE = "\n````";
 
