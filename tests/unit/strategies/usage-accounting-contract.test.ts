@@ -3,9 +3,11 @@
  *
  * Issue #727 defines the canonical usage ledger schema, source/pricing
  * semantics, machine-readable token shapes, rollup dedupe contract, and
- * deterministic rewrite rules before any writer integration lands. The rule is
- * the durable source of truth; both source and generated plugin roots must stay
- * in sync, and the token format must be parseable without reading prose.
+ * deterministic rewrite rules before any writer integration lands. The rule's
+ * guidance prose is not pinned (#4867); what stays is that the rule ships in
+ * both plugin roots carrying the machine-read `## Lisa Usage` heading and the
+ * usage-entry / usage-rollup token prefixes, and that the token format is
+ * parseable without reading prose.
  * @module tests/unit/strategies/usage-accounting-contract
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -192,51 +194,10 @@ describe("usage-accounting contract docs", () => {
 
     const content = readRule(root);
 
-    it("defines the canonical managed Lisa Usage section", () => {
+    it("carries the machine-read usage heading and token prefixes", () => {
       expect(content).toContain("## Lisa Usage");
-      expect(content).toMatch(/rewrite it in place/i);
-      expect(content).toMatch(/never append a second usage section/i);
-    });
-
-    it("documents the direct-entry schema and source semantics", () => {
-      expect(content).toContain("entry_id");
-      expect(content).toContain("pricing_status");
-      expect(content).toContain("artifact_ref");
-      expect(content).toMatch(/observed/i);
-      expect(content).toMatch(/estimated/i);
-      expect(content).toMatch(/measured-subset/i);
-      expect(content).toContain("measured_subset_tokens");
-      expect(content).toContain("lisa:usage-entry-measured-subset");
-      expect(content).toMatch(/unavailable/i);
-      expect(content).toMatch(/missing telemetry/i);
-    });
-
-    it("documents fixed-order usage-entry and usage-rollup tokens", () => {
       expect(content).toContain("<!-- lisa:usage-entry entry_id=");
       expect(content).toContain("<!-- lisa:usage-rollup");
-      expect(content).toContain("lisa:usage-rollup-token-status");
-      expect(content).toMatch(/Field order is fixed/i);
-      expect(content).toMatch(/machine-readable summary/i);
-      expect(content).toMatch(/percent-encoded/i);
-      expect(content).toMatch(/commas inside an item are encoded/i);
-    });
-
-    it("documents rollup dedupe by stable entry_id", () => {
-      expect(content).toMatch(/Dedupe strictly by stable `entry_id`/i);
-      expect(content).toMatch(/Count each `entry_id` at most once/i);
-      expect(content).toMatch(/Exclude descendant entries/i);
-      expect(content).toMatch(/child artifact A and child artifact B/i);
-      expect(content).toMatch(
-        /exclude that descendant copy from child totals/i
-      );
-    });
-
-    it("keeps rewrite timestamps out of the primary token and preamble", () => {
-      expect(content).toMatch(/byte-identical output/i);
-      expect(content).toMatch(
-        /Do not add timestamps to the section preamble or primary usage token/i
-      );
-      expect(content).toMatch(/Sort direct entries deterministically/i);
     });
   });
 });

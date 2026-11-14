@@ -1,0 +1,650 @@
+{
+  "$comment": [
+    "Phrases that must (required) or must not (forbidden) appear in files that are NOT Markdown documents — workflows, hooks, scripts — checked by tests/unit/docs/required-phrases.test.ts.",
+    "These guard source text, not guidance prose, so they are outside CodySwannGT/lisa#4867's Markdown cull; they were split out of required-phrases.json so that file holds only MACHINE-TOKEN and STRUCTURAL entries. A Markdown file listed here fails the test.",
+    "Same schema as required-phrases.json; hand-maintained, so keep keys and arrays sorted. Patterns are RegExp { source, flags } with String#match semantics."
+  ],
+  "files": {
+    ".github/workflows/plugins-sync.yml": {
+      "required": [
+        "DO NOT ADD A `paths:` FILTER",
+        "run: bun run check:plugins",
+        "run: bun run check:rules-pairing"
+      ],
+      "forbidden": [
+        "      - '.claude-plugin/marketplace.json'",
+        "      - '.github/workflows/plugins-sync.yml'",
+        "      - 'all/create-only/.lisa/PROJECT_LEARNINGS.md'",
+        "      - 'bun.lock'",
+        "      - 'package.json'",
+        "      - 'plugins/**'",
+        "      - 'scripts/build-plugins.sh'",
+        "      - 'scripts/check-learnings-budget.ts'",
+        "      - 'scripts/check-plugins-sync.sh'",
+        "      - 'scripts/check-rules-pairing.sh'",
+        "      - 'scripts/clean-dist.mjs'",
+        "      - 'scripts/generate-agy-plugin-artifacts.mjs'",
+        "      - 'scripts/generate-codex-plugin-artifacts.mjs'",
+        "      - 'scripts/generate-copilot-plugin-artifacts.mjs'",
+        "      - 'scripts/generate-cursor-plugin-artifacts.mjs'",
+        "      - 'scripts/internal-*-skill-policy.json'",
+        "      - 'scripts/internal-copilot-runtime-probe.json'",
+        "      - 'scripts/lib/**'",
+        "      - 'src/core/**'",
+        "      - 'tsconfig.json'",
+        "      - 'tsconfig.local.json'",
+        "      - 'tsconfig/**'",
+        "run: bun run check:learnings-budget"
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^on:\\n {2}pull_request:\\n {2}workflow_dispatch:$",
+          "flags": "mu"
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/scripts/plugin-sync-workflow.test.ts › Plugins Sync workflow triggers (#1397, #1578, #2485) > carries no pull_request path filter, so every input triggers it",
+        "tests/unit/scripts/plugin-sync-workflow.test.ts › Plugins Sync workflow triggers (#1397, #1578, #2485) > explains why the filter must not come back",
+        "tests/unit/scripts/plugin-sync-workflow.test.ts › Plugins Sync workflow triggers (#1397, #1578, #2485) > invokes the fanout parity and rules-pairing checks",
+        "tests/unit/scripts/plugin-sync-workflow.test.ts › Plugins Sync workflow triggers (#1397, #1578, #2485) > no longer enforces the learnings budget outside the gated job"
+      ]
+    },
+    "plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa/scripts/project-ideation-idempotency-harness.mjs": {
+      "required": [
+        "--command",
+        "--marker",
+        "--memory-file",
+        "`\"${marker}\" in:body`",
+        "memoryFieldsRecorded",
+        "memoryRecreated",
+        "source_agreement:"
+      ],
+      "forbidden": [],
+      "requiredPatterns": [],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/codex/project-ideation-idempotency-harness.test.ts › project-ideation idempotency harness (#1010) > plugins/lisa/scripts ships the marker-count harness script"
+      ]
+    },
+    "plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs": {
+      "required": [
+        "--command",
+        "--marker",
+        "--memory-file",
+        "`\"${marker}\" in:body`",
+        "memoryFieldsRecorded",
+        "memoryRecreated",
+        "source_agreement:"
+      ],
+      "forbidden": [],
+      "requiredPatterns": [],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/codex/project-ideation-idempotency-harness.test.ts › project-ideation idempotency harness (#1010) > plugins/src/base/scripts ships the marker-count harness script"
+      ]
+    },
+    "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/src/rails/hooks/rubocop-on-edit.sh": {
+      "required": [],
+      "forbidden": [],
+      "requiredPatterns": [
+        {
+          "source": "\\bexit 2\\b",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "(?:issues found|unfixable errors remain|RuboCop found unfixable errors|ast-grep found issues)[\\s\\S]{0,240}\\bexit 1\\b",
+          "flags": ""
+        }
+      ],
+      "source": [
+        "tests/unit/hooks/blocking-hook-exit.test.ts › blocking Claude hooks > plugins/src/rails/hooks/rubocop-on-edit.sh exits 2 when findings must be fed back to Claude"
+      ]
+    },
+    "plugins/src/rails/hooks/sg-scan-on-edit.sh": {
+      "required": [],
+      "forbidden": [],
+      "requiredPatterns": [
+        {
+          "source": "\\bexit 2\\b",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "(?:issues found|unfixable errors remain|RuboCop found unfixable errors|ast-grep found issues)[\\s\\S]{0,240}\\bexit 1\\b",
+          "flags": ""
+        }
+      ],
+      "source": [
+        "tests/unit/hooks/blocking-hook-exit.test.ts › blocking Claude hooks > plugins/src/rails/hooks/sg-scan-on-edit.sh exits 2 when findings must be fed back to Claude"
+      ]
+    },
+    "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh": {
+      "required": [
+        ".jira.workflow.code_review",
+        ".jira.workflow.review",
+        ".lisa.config.json",
+        ".lisa.config.local.json",
+        "No jira.workflow.review configured",
+        "REVIEW=\"\"",
+        "issue move \"$TICKET_ID\" \"$REVIEW\""
+      ],
+      "forbidden": [
+        "issue move \"$TICKET_ID\" \"Code Review\""
+      ],
+      "requiredPatterns": [
+        {
+          "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "if\\s+\\[\\s+-n\\s+\"\\$REVIEW\"\\s+\\]",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > defaults the review status to empty, not a hard-coded literal",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > leaves the ticket in claimed when review is unconfigured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
+        "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/src/typescript/hooks/sg-scan-on-edit.sh": {
+      "required": [],
+      "forbidden": [],
+      "requiredPatterns": [
+        {
+          "source": "\\bexit 2\\b",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "(?:issues found|unfixable errors remain|RuboCop found unfixable errors|ast-grep found issues)[\\s\\S]{0,240}\\bexit 1\\b",
+          "flags": ""
+        }
+      ],
+      "source": [
+        "tests/unit/hooks/blocking-hook-exit.test.ts › blocking Claude hooks > plugins/src/typescript/hooks/sg-scan-on-edit.sh exits 2 when findings must be fed back to Claude"
+      ]
+    },
+    "scripts/verify-learner-frontmatter-built.mjs": {
+      "required": [
+        "builds eight-field entries"
+      ],
+      "forbidden": [],
+      "requiredPatterns": [],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/learnings-fingerprint-contract.test.ts › pins the built learner proof to eight-field metadata"
+      ]
+    },
+    "src/core/instruction-files-migration.ts": {
+      "required": [
+        "`learnings.file` override",
+        "bounded projection",
+        "machine-managed project-learnings ledger",
+        "never"
+      ],
+      "forbidden": [],
+      "requiredPatterns": [],
+      "forbiddenPatterns": [],
+      "source": [
+        "tests/unit/strategies/project-learnings-rule-pair.test.ts › project-learnings rule > keeps the ledger obligations on a surface that reaches a session"
+      ]
+    }
+  }
+}

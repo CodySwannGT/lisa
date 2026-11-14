@@ -1,7 +1,6 @@
 /**
- * The fleet-update skill must cite only Lisa files that exist, describe Lisa's
- * reusable-workflow callers the way Lisa writes them, and say the same thing
- * in every tracked copy (CodySwannGT/lisa#4644).
+ * The fleet-update skill must cite only Lisa files that exist and say the same
+ * thing in every tracked copy (CodySwannGT/lisa#4644).
  *
  * Three defects motivated this file:
  *
@@ -10,8 +9,8 @@
  *   `reusable-claude*.yml` files Lisa no longer ships — so an agent following
  *   the skill went looking for files that are not there;
  * - step 8 described callers only as `…@main`, while Lisa's pinner writes
- *   `…@<40-char sha> # v<version>` (`src/core/reusable-workflow-pin.ts`), and
- *   accepted a detector run that scanned zero callers as clean;
+ *   `…@<40-char sha> # v<version>` (`src/core/reusable-workflow-pin.ts`) —
+ *   guidance prose, reviewed rather than pinned (#4867);
  * - the copies are hand-maintained and had drifted before.
  *
  * Per the Test Isolation house rule, expected values are HARDCODED.
@@ -155,17 +154,6 @@ const procedure = (text: string): readonly string[] =>
     .filter(line => /^(?:#{1,6} |\d+\. )/.test(line))
     .map(line => line.replaceAll("$lisa-", "/lisa-"));
 
-/**
- * Step 8 of one copy: from its numbered line up to step 9.
- * @param text - skill text
- * @returns the step's text
- */
-const step8 = (text: string): string => {
-  const start = text.indexOf("\n8. ");
-  const end = text.indexOf("\n9. ", start);
-  return text.slice(start, end);
-};
-
 describe("lisa-update-projects skill: references and parity", () => {
   it("has every copy present, so a renamed path cannot empty this file", () => {
     expect(
@@ -202,22 +190,6 @@ describe("lisa-update-projects skill: references and parity", () => {
       const body = (text: string): string =>
         text.replaceAll("$lisa-", "/lisa-");
       expect(body(read(copy))).toBe(body(read(SKILL_COPIES[0])));
-    }
-  );
-
-  it.each(SKILL_COPIES)("%s step 8 recognises pinned callers", copy => {
-    const text = step8(read(copy));
-    expect(text).toContain("@<40-char sha> # v<version>");
-    expect(text).toContain("legacy `@main`");
-  });
-
-  it.each(SKILL_COPIES)(
-    "%s step 8 never accepts a zero-caller detector run as clean",
-    copy => {
-      const text = step8(read(copy));
-      expect(text).toContain("`summary.scanned` is `0`");
-      expect(text).toContain("**unverified**, never clean");
-      expect(text).toContain('`"status": "unparsed"`');
     }
   );
 });

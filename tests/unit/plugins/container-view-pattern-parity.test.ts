@@ -1,6 +1,8 @@
 /**
- * Proof that every shipped copy of the `container-view-pattern` skill carries
- * the same, corrected View gate.
+ * Proof that every shipped copy of the `container-view-pattern` skill points
+ * at a validator script path that exists in a consumer, and that the shipped
+ * validator enforces the corrected View gate. The skill's guidance prose is
+ * not pinned (#4867).
  *
  * The skill exists once in `plugins/src/expo` and is materialised into five
  * more places — `lisa-expo`, its `.codex-plugin` sibling, `lisa-expo-agy`,
@@ -168,25 +170,6 @@ describe.each(COPIES.map(copy => [path.relative(REPO_ROOT, copy), copy]))(
   (_label, copy) => {
     const skill = (): string =>
       fs.readFileSync(path.join(copy, "SKILL.md"), "utf8");
-
-    it("names the hook rule in its enforcement table", () => {
-      expect(skill()).toContain("component-structure/no-hooks-in-view");
-    });
-
-    it("names the import restriction in its enforcement table", () => {
-      expect(skill()).toContain("no-restricted-imports");
-    });
-
-    it("states the guarantee as no statements and no hooks", () => {
-      // Not "pure". An expression body admits `{Date.now()}` and
-      // `{Math.random() > 0.5 ? … : …}`, so claiming purity would be the same
-      // false assurance this skill was corrected for.
-      expect(skill()).toContain("no statements and no hooks");
-    });
-
-    it("separates the requirements lint does not enforce", () => {
-      expect(skill()).toContain("What lint does NOT enforce");
-    });
 
     it("documents a script path that exists in a consumer", () => {
       // `.claude/skills/container-view-pattern/scripts/…` is where the skill is

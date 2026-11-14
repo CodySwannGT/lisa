@@ -1,7 +1,10 @@
 /**
  * Regression contract for SHA-scoped history-rewrite authorization (#1626).
- * Git discipline is emitted differently by each supported runtime, so every
- * equivalent committed projection must retain the same safety boundary.
+ * Git discipline is emitted differently by each supported runtime. The rule's
+ * guidance prose is not pinned (#4867); what stays is structural: generated
+ * Markdown projections match their source byte for byte, Cursor's frontmatter
+ * keeps the invariant always-on and the detail reference-only, and the
+ * Antigravity generator keeps rules out of agy artifacts.
  * @module tests/unit/strategies/git-discipline-force-lease-contract
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -21,89 +24,10 @@ const CURSOR_REFERENCE = "plugins/lisa-cursor/rules/base-rules-reference.mdc";
 const COPILOT_EAGER = "plugins/lisa-copilot/rules/eager/base-rules.md";
 const COPILOT_REFERENCE = "plugins/lisa-copilot/rules/reference/base-rules.md";
 
-// The full contract lives in the reference body. Since the 2026-11 eager-tier
-// cut the always-loaded head carries only the SHA-bound lease and the void rule
-// (asserted separately below), so the detailed wording is pinned on reference
-// surfaces only.
-const RULE_SURFACES = [
-  SOURCE_REFERENCE,
-  // Shared Claude artifact; Codex and OpenCode install these same rule files.
-  SHARED_REFERENCE,
-  CURSOR_REFERENCE,
-  COPILOT_REFERENCE,
-] as const;
-
-const EAGER_SURFACES = [
-  SOURCE_EAGER,
-  SHARED_EAGER,
-  CURSOR_EAGER,
-  COPILOT_EAGER,
-] as const;
-
-const REFERENCE_SURFACES = [
-  SOURCE_REFERENCE,
-  SHARED_REFERENCE,
-  CURSOR_REFERENCE,
-  COPILOT_REFERENCE,
-] as const;
-
 const MARKDOWN_PARITY = [
   [SOURCE_EAGER, SHARED_EAGER, COPILOT_EAGER],
   [SOURCE_REFERENCE, SHARED_REFERENCE, COPILOT_REFERENCE],
 ] as const;
-
-describe.each(RULE_SURFACES)(
-  "SHA-scoped force-lease contract (%s)",
-  rulePath => {
-    const rule = read(rulePath);
-
-    it("forbids plain force and prefers an explicit SHA-bound lease", () => {
-      expect(rule).toContain("Never use plain `git push --force`");
-      expect(rule).toContain("use `--force-with-lease`");
-      expect(rule).toContain("`--force-with-lease=<ref>:<sha>`");
-      expect(rule).toMatch(/exact remote tip the approval covered/);
-    });
-
-    it("voids stale approval instead of re-deriving consent", () => {
-      expect(rule).toMatch(
-        /History-rewrite approval is SHA-scoped, not durable/
-      );
-      expect(rule).toMatch(/remote ref moves or the lease rejects/);
-      expect(rule).toMatch(/approval is void/);
-      expect(rule).toMatch(/stop and obtain fresh confirmation/i);
-      expect(rule).toMatch(
-        /never re-derive consent from the earlier approval/i
-      );
-    });
-  }
-);
-
-describe.each(EAGER_SURFACES)(
-  "always-loaded force-lease head (%s)",
-  rulePath => {
-    it("requires the SHA-bound lease and voids a stale approval", () => {
-      const rule = read(rulePath);
-      expect(rule).toContain("`--force-with-lease=<ref>:<sha>`");
-      expect(rule).toMatch(/approval is void/);
-    });
-  }
-);
-
-describe.each(REFERENCE_SURFACES)(
-  "operational force-lease guidance (%s)",
-  rulePath => {
-    const rule = read(rulePath);
-
-    it("shows an explicit ref-and-SHA command and forbids implicit renewal", () => {
-      expect(rule).toContain(
-        "git push --force-with-lease=refs/heads/<branch>:<approved-sha> origin HEAD:refs/heads/<branch>"
-      );
-      expect(rule).toMatch(/fresh fetch as renewing authorization/);
-      expect(rule).toMatch(/do not retry with an updated implicit lease/);
-      expect(rule).toMatch(/or plain `--force`/);
-    });
-  }
-);
 
 describe.each(MARKDOWN_PARITY)(
   "generated Markdown parity (%s)",

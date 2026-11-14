@@ -7,10 +7,9 @@
  * accepting the bare label, the skill's table would become a lie and the audit
  * would report drift about a spelling nothing accepts any more.
  *
- * So this file pins the three surfaces together — the acceptance rule in
- * `lisa-work-item.mjs`, the table in the skill, and the finding kinds the
- * module emits — rather than letting them drift apart silently, which is the
- * same failure mode the audit itself is about.
+ * So this file pins the acceptance rule in `lisa-work-item.mjs` and the
+ * separators the audit module treats as canonical and malformed. The skill's
+ * table prose is not pinned (#4867).
  * @module tests/unit/strategies/repo-scope-vocabulary-contract
  */
 import { readFileSync } from "node:fs";
@@ -21,12 +20,9 @@ import { describe, expect, it } from "vitest";
 import {
   CANONICAL_SEPARATOR,
   MALFORMED_SEPARATORS,
-  REPO_SCOPE_FINDING_KINDS,
 } from "../../../plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs";
 
 const WORK_ITEM_SCRIPT = "all/copy-overwrite/scripts/lisa-work-item.mjs";
-const VALIDATE_MAPPING_SKILL =
-  "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md";
 
 /**
  * Read a repository file as UTF-8 text.
@@ -74,32 +70,9 @@ describe("the audited premise matches assertRepoScope", () => {
   });
 });
 
-describe("the skill and the module agree", () => {
-  const skill = read(VALIDATE_MAPPING_SKILL);
-
-  it("documents every finding kind the module can emit", () => {
-    for (const kind of REPO_SCOPE_FINDING_KINDS) {
-      expect(skill).toContain(`\`${kind}\``);
-    }
-  });
-
-  it("documents the canonical separator the module treats as correct", () => {
+describe("the audit module's separators", () => {
+  it("treats the colon as canonical and reports the hyphen as malformed", () => {
     expect(CANONICAL_SEPARATOR).toBe(":");
-    expect(skill).toContain("`repo:<name>` (canonical)");
-  });
-
-  it("names a malformed separator the module actually reports", () => {
     expect(MALFORMED_SEPARATORS).toContain("-");
-    expect(skill).toContain("`repo-frontend`");
-  });
-
-  it("records that the vocabulary is derived, never declared in config", () => {
-    // The rejected alternative, kept rejected: a config key nothing reads would
-    // look like an assertion and assert nothing.
-    expect(skill).toContain("Never introduce a config key declaring it");
-  });
-
-  it("records that an empty vocabulary is UNRESOLVABLE rather than VALID", () => {
-    expect(skill).toContain("`UNRESOLVABLE`, never\n`VALID`");
   });
 });

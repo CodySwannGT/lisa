@@ -136,20 +136,6 @@ describe("read_linear_key resolver ladder parity", () => {
       }
     });
 
-    it("names every path it tried when the whole ladder misses", () => {
-      // Diagnostics are part of the parity, not decoration. A ladder that
-      // fails silently sends the next reader hunting for a resolver they
-      // cannot see the absence of, which is most of the cost of this class of
-      // bug. Both skills must enumerate, and neither may print a value.
-      for (const skill of [
-        readSkill(surface, ACCESS),
-        readSkill(surface, SETUP),
-      ]) {
-        expect(skill).toContain("Tried, in order (relative paths are from");
-        expect(skill).toContain("printf '  %s\\n' \"${tried[@]}\"");
-      }
-    });
-
     it("ends at a rung that needs no environment variable", () => {
       // The plugin-root rungs are opportunistic: neither CLAUDE_PLUGIN_ROOT nor
       // PLUGIN_ROOT is exported into an agent's plain shell call, so a ladder
@@ -162,15 +148,6 @@ describe("read_linear_key resolver ladder parity", () => {
         );
       }
     });
-  });
-
-  it("states the invariant as the ladder, not the whole function", () => {
-    // The old wording ("Keep this identical to `linear-access`") described
-    // something unachievable — the two functions have different tails by
-    // design — and an unachievable rule is one that gets quietly dropped,
-    // which is how the ladders forked in the first place.
-    const setup = readSkill(SOURCE, SETUP);
-    expect(setup).toMatch(/ladder[\s\S]{0,120}identical to `linear-access`/iu);
   });
 });
 /**
@@ -237,8 +214,6 @@ describe("read_linear_key environment-rung parity", () => {
     // `lisa-generate-claude-remote-build-script` emits that suffixed name into
     // cloud-routine env templates. A routine configured from those skills with
     // only the suffixed name must be able to reach a key at all.
-    const analyze = readSkill(SOURCE, "lisa-analyze-claude-remote");
-    expect(analyze).toContain("LINEAR_API_KEY_<ws-slug>");
     expect(envRungsOf(readSkill(SOURCE, ACCESS))).toContain(
       "LINEAR_API_KEY_${slug}"
     );

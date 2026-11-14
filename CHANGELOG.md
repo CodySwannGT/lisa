@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.2.1](https://github.com/CodySwannGT/lisa/compare/v5.2.0...v5.2.1) (2026-11-14)
+
+## [5.2.0](https://github.com/CodySwannGT/lisa/compare/v5.1.7...v5.2.0) (2026-11-14)
+
+
+### Features
+
+* **npm-updater:** file and claim per-update work items in Jira and Linear ([3e0b6b4](https://github.com/CodySwannGT/lisa/commit/3e0b6b43d45b68a7770ad767c2657b900e6900cc)), closes [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859)
+
+
+### Bug Fixes
+
+* **npm-updater:** harden Jira/Linear adapters from [#4859](https://github.com/CodySwannGT/lisa/issues/4859) review ([3774b46](https://github.com/CodySwannGT/lisa/commit/3774b4613f6cfeb70969b17d91448d13a258db0e))
+* **npm-updater:** keep code boundaries in Jira/Linear comments for the hold classifier ([9c21a76](https://github.com/CodySwannGT/lisa/commit/9c21a76ddffc5fff4bbbcb02f77e647db6c8e002)), closes [#4881](https://github.com/CodySwannGT/lisa/issues/4881) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859)
+* **npm-updater:** refuse a Linear issue with an incomplete label, child or relation page ([bb4f22e](https://github.com/CodySwannGT/lisa/commit/bb4f22e3acc23349b72f5447f7bf315d7b8632a2)), closes [#4881](https://github.com/CodySwannGT/lisa/issues/4881) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859)
+
+
+### Documentation
+
+* **lisa:** record roster, research and plan for [#4859](https://github.com/CodySwannGT/lisa/issues/4859) ([2202407](https://github.com/CodySwannGT/lisa/commit/2202407abb0770e659fa026719d7c26d03f6d792))
+* **npm-updater:** correct Jira/Linear resume, credential and failure guidance ([e82fc15](https://github.com/CodySwannGT/lisa/commit/e82fc158293afeb9322680d67baa252b09318af6)), closes [#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859)
+* **npm-updater:** document Jira and Linear work-item tracking ([2f170a6](https://github.com/CodySwannGT/lisa/commit/2f170a651e1b357ebb7e7b0ba59fbfc4d4efdd93)), closes [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859)
+
 ### [5.1.7](https://github.com/CodySwannGT/lisa/compare/v5.1.6...v5.1.7) (2026-11-14)
 
 
