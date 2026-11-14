@@ -12,7 +12,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  TOKEN_CLASSES,
+  MARKER_CLASSES,
   classifyPhrase,
   literalOf,
   needlesOf,
@@ -29,9 +29,9 @@ const FIGMA_RULE = "design-source-figma";
 const FIGMA_URL = "https://www.figma.com/design/abc/x?node-id=1";
 const DESIGN_SOURCE_GATE = "plugins/src/base/scripts/design-source-gate.mjs";
 
-describe("TOKEN_CLASSES", () => {
+describe("MARKER_CLASSES", () => {
   it.each(
-    TOKEN_CLASSES.flatMap(row =>
+    MARKER_CLASSES.flatMap(row =>
       row.parser.flatMap(file =>
         needlesOf(row).map(needle => [row.id, file, needle] as const)
       )
@@ -46,7 +46,7 @@ describe("TOKEN_CLASSES", () => {
   });
 
   it("uses needles specific enough that losing one means the parser changed", () => {
-    const vague = TOKEN_CLASSES.flatMap(row =>
+    const vague = MARKER_CLASSES.flatMap(row =>
       needlesOf(row)
         .filter(needle => needle.length < 8)
         .map(needle => `${row.id}: ${JSON.stringify(needle)}`)
@@ -55,7 +55,7 @@ describe("TOKEN_CLASSES", () => {
   });
 
   it("ties the npm filing row to both markers it accepts", () => {
-    const row = TOKEN_CLASSES.find(
+    const row = MARKER_CLASSES.find(
       candidate => candidate.id === "lisa-npm-filing"
     );
     const needles = row ? needlesOf(row).join(" ") : "";
@@ -64,7 +64,7 @@ describe("TOKEN_CLASSES", () => {
   });
 
   it("has unique ids", () => {
-    const ids = TOKEN_CLASSES.map(row => row.id);
+    const ids = MARKER_CLASSES.map(row => row.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
