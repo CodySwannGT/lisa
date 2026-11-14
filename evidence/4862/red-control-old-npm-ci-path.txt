@@ -1,0 +1,88 @@
+vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
+ [38;5;240m   │[0m        ─────────────────┬─────────────────  
+ [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
+[38;5;246m────╯[0m
+
+vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
+ [38;5;240m   │[0m        ─────────────────┬─────────────────  
+ [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
+[38;5;246m────╯[0m
+
+vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
+ [38;5;240m   │[0m        ─────────────────┬─────────────────  
+ [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
+[38;5;246m────╯[0m
+
+vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
+ [38;5;240m   │[0m        ─────────────────┬─────────────────  
+ [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
+[38;5;246m────╯[0m
+
+
+ RUN  v4.1.11 ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root
+
+Sourcemap for "~/workspace/lisa/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-setup.js" points to missing source files
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+Sourcemap for "~/workspace/lisa/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
+ ❯ |lisa| tests/integration/npm-update-bun-root.test.ts (2 tests | 2 failed) 1598ms
+     × installs the root with frozen Bun and keeps every input byte 824ms
+     × refuses a root npm proposal on a Bun-only root before installing 773ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > installs the root with frozen Bun and keeps every input byte
+Error: ENOENT: no such file or directory, open '<tmp>/lisa-scratch/run-14117-1794646925044-ea1d8c9b/worker-14117-da63ca62eb582d55/lisa-npm-update-bUr3e1/host/package-lock.json'
+ ❯ all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs:113:24
+    111|     ...installInputs(context.proposal, rootManager),
+    112|     ...(ruby ? ["Gemfile", "Gemfile.lock"] : []),
+    113|   ].map(name => [name, readFileSync(join(context.cwd, name))]);
+       |                        ^
+    114|   if (rootManager === "bun") {
+    115|     const bun = await qualifiedBun(installed, { deadline: context.dead…
+ ❯ installHostedDependencies all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs:113:5
+ ❯ tests/integration/npm-update-bun-root.test.ts:98:13
+ ❯ withPrivateRoot all/copy-overwrite/scripts/lib/npm-update-process-core.mjs:65:12
+ ❯ tests/integration/npm-update-bun-root.test.ts:95:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |lisa| tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > refuses a root npm proposal on a Bun-only root before installing
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+  {
+    "installed": false,
+-   "message": "Invalid automation provenance: a Bun-only root supports only a subdirectory npm proposal",
++   "message": "ENOENT: no such file or directory, open '<tmp>/lisa-scratch/run-14117-1794646925044-ea1d8c9b/worker-14117-da63ca62eb582d55/lisa-npm-update-4cQXXj/host/package-lock.json'",
+  }
+
+ ❯ tests/integration/npm-update-bun-root.test.ts:142:22
+    140|       };
+    141|     });
+    142|     expect(observed).toEqual({
+       |                      ^
+    143|       message:
+    144|         "Invalid automation provenance: a Bun-only root supports only …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  04:02:04
+   Duration  2.59s (transform 539ms, setup 123ms, import 707ms, tests 1.60s, environment 0ms)
+

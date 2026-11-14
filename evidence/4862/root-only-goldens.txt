@@ -1,0 +1,179 @@
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run "--reporter=verbose" tests/unit/scripts/npm-update-root-identity.test.ts tests/unit/scripts/npm-update-directory.test.ts tests/unit/scripts/npm-update-hosted-gate.test.ts tests/integration/npm-update-subdirectory.test.ts tests/integration/npm-update-dual-lock.test.ts
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v5.3.1)
+Built plugins/lisa-typescript (v5.3.1)
+Built plugins/lisa-expo (v5.3.1)
+Built plugins/lisa-nestjs (v5.3.1)
+Built plugins/lisa-cdk (v5.3.1)
+Built plugins/lisa-harper-fabric (v5.3.1)
+Built plugins/lisa-phaser (v5.3.1)
+Built plugins/lisa-rails (v5.3.1)
+Built plugins/lisa-wiki (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-typescript-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-expo-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-nestjs-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-cdk-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-harper-fabric-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-phaser-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-rails-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-wiki-cursor (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-typescript-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-expo-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-nestjs-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-cdk-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-harper-fabric-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-phaser-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-rails-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-wiki-agy (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-typescript-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-expo-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-nestjs-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-cdk-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-harper-fabric-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-phaser-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-rails-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-wiki-copilot (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-typescript-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-expo-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-nestjs-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-cdk-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-harper-fabric-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-phaser-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-rails-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-wiki-devin (v5.3.1)
+lisa-test-run: TMPDIR <tmp> is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (52 ms); kept 19 entries not private to this user
+
+ RUN  v5.1.0 ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root
+
+ ✓ |lisa| tests/unit/scripts/npm-update-root-identity.test.ts > root identity is unchanged > keeps the two-file root proposal identity 5ms
+ ✓ |lisa| tests/unit/scripts/npm-update-root-identity.test.ts > root identity is unchanged > keeps the Bun three-file root proposal identity 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-root-identity.test.ts > root identity is unchanged > keeps the Rails runtime root proposal identity 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-root-identity.test.ts > root identity is unchanged > keeps the root policy digest 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-root-identity.test.ts > root identity is unchanged > keeps the byte-exact root leaf title and body 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-root-identity.test.ts > root identity is unchanged > gives the root entry of a directory list the same identity as the legacy object 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-hosted-gate.test.ts > original hosted gate prerequisites > shortens only browser-selected original hooks while preserving private candidate paths 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-hosted-gate.test.ts > original hosted gate prerequisites > fits the supported Linux socket pathname without shortening full authority tokens 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-hosted-gate.test.ts > original hosted gate prerequisites > keeps original application gates on their own read-only runner and privileged jobs on the trusted parent 12ms
+ ✓ |lisa| tests/unit/scripts/npm-update-hosted-gate.test.ts > original hosted gate prerequisites > asserts the registered caller contract before preparation and refuses a stale major 6ms
+ ✓ |lisa| tests/unit/scripts/npm-update-hosted-gate.test.ts > original hosted gate prerequisites > accepts only the selected hosted Linux AMD64 parent/caller and refuses mismatches 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-hosted-gate.test.ts > original hosted gate prerequisites > caps every later step by the unchanged original phase rather than renewing its budget 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > accepts . 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > accepts externals 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > accepts services/lambda 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > accepts a_b-c.d 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > accepts _private 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > accepts a/a/a/a/a/a/a/a 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > accepts xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses  0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses ./externals 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses externals/ 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses /externals 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses ../externals 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses a/../b 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses a/./b 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses a//b 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses .hidden 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses node_modules 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses a/node_modules/b 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses a\b 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses a b 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses a/a/a/a/a/a/a/a/a 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/a 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses 5 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses null 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed npm project directory names > refuses undefined 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed directory selection > reads the legacy single object as the one root entry 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed directory selection > accepts exactly eight distinct directories 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed directory selection > selects exactly one entry of a directory list 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed directory selection > refuses an empty list even when the root is selected 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed directory selection > refuses nine distinct valid directories even when the root is selected 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed directory selection > refuses a nested list even when the root is selected 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed directory selection > refuses a duplicate directory even when the root is selected 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed directory selection > refuses an invalid sibling entry even when the root is selected 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed directory selection > refuses an escaping sibling entry even when the root is selected 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed directory selection > keeps a subdirectory npm-only: no Lisa owner and no runtime profile 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed directory selection > keeps the tracker and target restrictions for every entry 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > directory-separated proposal identity > signs the directory and names only that directory's two files 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > directory-separated proposal identity > gives each directory its own keys and publication branch 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > directory-separated proposal identity > refuses a proposal validated against another directory's policy 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > directory-separated proposal identity > refuses root-keyed files or a Bun digest for a subdirectory 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > signed descriptor directory field > keeps the historical root key set and refuses an explicit root directory 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > signed descriptor directory field > refuses a duplicated directory on the hook side, as selectPolicy does 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > signed descriptor directory field > refuses an invalid or Bun-bound subdirectory 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > signed descriptor directory field > derives history paths, install inputs and the closed hash cohort 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > subdirectory leaf draft > names the directory in the title and its own files and hashes in the body 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed subdirectory baseline > reads the externals files by name and ignores the root Bun lock 551ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed subdirectory baseline > refuses a missing externals lock 171ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed subdirectory baseline > refuses a committed externals Bun lock 449ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed subdirectory baseline > refuses an untracked externals Bun lock or a dangling alias for one 547ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > committed subdirectory baseline > refuses a working-tree alias standing in for the committed directory 311ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > subdirectory engine-strict policy > reads engine-strict from the selected directory, not the root 517ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > subdirectory engine-strict policy > refuses a modified externals .npmrc 170ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > subdirectory engine-strict policy > refuses a uncommitted externals .npmrc 215ms
+stdout | tests/integration/npm-update-subdirectory.test.ts > native subdirectory npm project update > prepares exactly the selected externals files and leaves the root Bun lock alone
+native-subdirectory-observation {"code":0,"stdout":"prepared\n","directory":"externals","files":["externals/package-lock.json","externals/package.json"],"updates":[{"from":"6.0.0","name":"is-number","section":"dependencies","to":"7.0.0"}]}
+
+ ✓ |lisa| tests/integration/npm-update-subdirectory.test.ts > native subdirectory npm project update > prepares exactly the selected externals files and leaves the root Bun lock alone 3449ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > hook-side subdirectory staged cohort > verifies the staged externals commit and refuses a foreign root file 864ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > CLI directory selection > refuses a LISA_NPM_DIRECTORY that names no committed entry 212ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > declares a defaulted directory input, workflow env and per-directory concurrency 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > names every phase artifact with the validated directory suffix 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > exports the artifact suffix for . 29ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > exports the artifact suffix for externals 31ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > exports the artifact suffix for services/lambda 30ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > exports the artifact suffix for a/b 31ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > exports the artifact suffix for a__b 29ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > exports the artifact suffix for a_/b 29ms
+stdout | tests/integration/npm-update-subdirectory.test.ts > native subdirectory npm project update > refuses the uncommitted or escaping selection missing before any npm work
+native-subdirectory-refusal {"code":1,"stdout":"","stderr":"npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=configuration)\n","phase":false}
+
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > exports the artifact suffix for a/_b 30ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "." identically in the CLI and the workflow 31ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "externals" identically in the CLI and the workflow 31ms
+ ✓ |lisa| tests/integration/npm-update-subdirectory.test.ts > native subdirectory npm project update > refuses the uncommitted or escaping selection missing before any npm work 885ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "a__b" identically in the CLI and the workflow 31ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "a/a/a/a/a/a/a/a" identically in the CLI and the workflow 30ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" identically in the CLI and the workflow 34ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "" identically in the CLI and the workflow 31ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "../x" identically in the CLI and the workflow 32ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "./x" identically in the CLI and the workflow 30ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "x/" identically in the CLI and the workflow 31ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "/x" identically in the CLI and the workflow 29ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "a//b" identically in the CLI and the workflow 31ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges ".hidden" identically in the CLI and the workflow 29ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "node_modules" identically in the CLI and the workflow 30ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "a/node_modules" identically in the CLI and the workflow 33ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "a b" identically in the CLI and the workflow 33ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "a+b" identically in the CLI and the workflow 30ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "a/a/a/a/a/a/a/a/a" identically in the CLI and the workflow 30ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" identically in the CLI and the workflow 32ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/a" identically in the CLI and the workflow 38ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > judges "a\nB=1" identically in the CLI and the workflow 33ms
+ ✓ |lisa| tests/unit/scripts/npm-update-directory.test.ts > reusable workflow directory selection > never maps two accepted directories to one artifact suffix 190ms
+stdout | tests/integration/npm-update-subdirectory.test.ts > native subdirectory npm project update > refuses the uncommitted or escaping selection ../escape before any npm work
+native-subdirectory-refusal {"code":1,"stdout":"","stderr":"npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=configuration)\n","phase":false}
+
+ ✓ |lisa| tests/integration/npm-update-subdirectory.test.ts > native subdirectory npm project update > refuses the uncommitted or escaping selection ../escape before any npm work 925ms
+stdout | tests/integration/npm-update-dual-lock.test.ts > native optional Bun lock preparation > preserves genuine root and transitive registry aliases and refuses corrupted identities
+native-registry-alias-observation {"files":["bun.lock","package-lock.json","package.json"],"frozenNpmExit":0,"frozenBunExit":0,"rejected":["name","version","integrity","resolved"],"producerCleanup":true}
+
+ ✓ |lisa| tests/integration/npm-update-dual-lock.test.ts > native optional Bun lock preparation > preserves genuine root and transitive registry aliases and refuses corrupted identities 7631ms
+stdout | tests/integration/npm-update-dual-lock.test.ts > native optional Bun lock preparation > preserves a coherent three-file proposal for both genuine frozen installers
+native-dual-lock-observation {"files":["bun.lock","package-lock.json","package.json"],"frozenBunExit":0,"frozenBunDiagnostic":"","producerCleanup":true,"oldBunRetained":false}
+
+ ✓ |lisa| tests/integration/npm-update-dual-lock.test.ts > native optional Bun lock preparation > preserves a coherent three-file proposal for both genuine frozen installers 4628ms
+ ✓ |lisa| tests/integration/npm-update-dual-lock.test.ts > native optional Bun lock preparation > prepares the original npm-only cohort with no Bun executable available 2581ms
+
+ Test Files  5 passed (5)
+      Tests  104 passed (104)
+   Start at  04:15:12
+   Duration  15.21s (tests 96%, import 2%, setup 1%, transform 1%)
+

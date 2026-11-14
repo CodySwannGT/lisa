@@ -1,0 +1,65 @@
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run "--reporter=verbose" tests/integration/npm-update-bun-root.test.ts
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v5.3.1)
+Built plugins/lisa-typescript (v5.3.1)
+Built plugins/lisa-expo (v5.3.1)
+Built plugins/lisa-nestjs (v5.3.1)
+Built plugins/lisa-cdk (v5.3.1)
+Built plugins/lisa-harper-fabric (v5.3.1)
+Built plugins/lisa-phaser (v5.3.1)
+Built plugins/lisa-rails (v5.3.1)
+Built plugins/lisa-wiki (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-typescript-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-expo-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-nestjs-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-cdk-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-harper-fabric-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-phaser-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-rails-cursor (v5.3.1)
+Generated Cursor variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-wiki-cursor (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-typescript-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-expo-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-nestjs-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-cdk-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-harper-fabric-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-phaser-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-rails-agy (v5.3.1)
+Generated agy variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-wiki-agy (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-typescript-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-expo-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-nestjs-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-cdk-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-harper-fabric-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-phaser-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-rails-copilot (v5.3.1)
+Generated Copilot variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-wiki-copilot (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-typescript-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-expo-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-nestjs-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-cdk-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-harper-fabric-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-phaser-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-rails-devin (v5.3.1)
+Generated Devin variant at ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/plugins/lisa-wiki-devin (v5.3.1)
+lisa-test-run: TMPDIR <tmp> is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (59 ms); kept 19 entries not private to this user
+
+ RUN  v5.1.0 ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root
+
+stdout | tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > installs the root with frozen Bun and keeps every input byte
+bun-root-gate-install {"rootLock":false,"installed":"6.0.0","unchanged":true,"status":""}
+
+ ✓ |lisa| tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > installs the root with frozen Bun and keeps every input byte 1254ms
+ ✓ |lisa| tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > refuses a root npm proposal on a Bun-only root before installing 1042ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  04:14:44
+   Duration  2.65s (tests 90%, import 5%, transform 4%, setup 1%)
+
