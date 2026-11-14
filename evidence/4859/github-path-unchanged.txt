@@ -1,9 +1,11 @@
 # Validation Journey step 5 - github-path-unchanged (test-run-log)
-# HEAD d03e84394bb017ee17509c0bf9ede43fa3eab318   merge-base origin/main 8d2385d27d06c9e98131cf816e1f688045ab923d
-# RESULT: FAIL - 1 existing suite fails (tests/integration/npm-update-all-host-helpers.test.ts:168, pin 127 vs 131).
-# Cause (verifier-confirmed): managedTemplateMembers() at HEAD has 131 members = 127 + the 4 new tracker modules
-#   lib/npm-update-tracker.mjs, lib/npm-update-tracker-jira.mjs, lib/npm-update-tracker-linear.mjs, lib/npm-update-tracker-wire.mjs
-#   The pin line is unchanged from origin/main, so this suite does NOT pass without modification.
+# HEAD 2202407abb0770e659fa026719d7c26d03f6d792   merge-base origin/main 8d2385d27d06c9e98131cf816e1f688045ab923d
+# RESULT: PASS - 50/50 files, 769 passed, 2 skipped (same skip count as the run at d03e84394b), 0 failed.
+# Existing test files changed vs origin/main: exactly two member-count pin lines (diffs below), both operator-approved and recorded on #4859:
+#   tests/unit/scripts/npm-update-contract.test.ts            129 -> 133 (helper audit closure)
+#   tests/integration/npm-update-all-host-helpers.test.ts      127 -> 131 (managed template members)
+#   Both counts grow by the same 4 new modules: lib/npm-update-tracker{,-jira,-linear,-wire}.mjs.
+#   At d03e84394b the integration pin was still 127 and that suite failed (expected 127, received 131); fixed in 01c0889f5b.
 
 $ bun run lisa-test-run -- --adapter vitest -- vitest run <files below>
 # files: every tests/unit/scripts/npm-update-*.test.ts and tests/integration/npm-update*.test.ts that is not a new *tracker* file,
@@ -65,65 +67,16 @@ $ bun run lisa-test-run -- --adapter vitest -- vitest run <files below>
 ⏭  DEFERRED TO CI: needs a native (non-symlinked) Bun first on PATH. Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`.
 
 ⏭  DEFERRED TO CI: needs a native (non-symlinked) Bun first on PATH. Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`.
-stdout | tests/integration/npm-update-all-host-helpers.test.ts > all-only npm host controller materialization > installs required common helpers and qualifies actual controller entries
 
-========================================
-    Lisa Project Bootstrapper
-========================================
+ Test Files  50 passed (50)
+      Tests  769 passed | 2 skipped (771)
+   Start at  19:47:49
+   Duration  362.77s (transform 1.99s, setup 2.66s, import 6.68s, tests 231.58s, environment 2ms)
 
-
-
-stdout | tests/integration/npm-update-all-host-helpers.test.ts > all-only npm host controller materialization > installs required common helpers and qualifies actual controller entries
-
-========================================
-    Lisa Installation Complete!
-========================================
-
-  Copied:      131 files
-  Skipped:       0 files (identical or create-only)
-  Overwritten:   0 files (approved or Lisa-owned)
-  Out of date:   0 files (managed templates changed; NOT updated)
-  Appended:      0 files (copy-contents)
-  Merged:        0 files (JSON merged)
-  Deleted:       0 files
-
-Project types: all
-
-
- ❯ |lisa| tests/integration/npm-update-all-host-helpers.test.ts (4 tests | 1 failed) 20235ms
-     × installs required common helpers and qualifies actual controller entries 5207ms
-
-⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
-
- FAIL  |lisa| tests/integration/npm-update-all-host-helpers.test.ts > all-only npm host controller materialization > installs required common helpers and qualifies actual controller entries
-AssertionError: expected 131 to be 127 // Object.is equality
-
-- Expected
-+ Received
-
-- 127
-+ 131
-
- ❯ tests/integration/npm-update-all-host-helpers.test.ts:168:45
-    166|         join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
-    167|       );
-    168|       expect(managedTemplateMembers().size).toBe(127);
-       |                                             ^
-    169|     },
-    170|     ioLatencyBudgetMs(30_000)
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
-
-
- Test Files  1 failed | 49 passed (50)
-      Tests  1 failed | 768 passed | 2 skipped (771)
-   Start at  18:54:45
-   Duration  146.31s (transform 1.98s, setup 2.41s, import 6.35s, tests 202.22s, environment 2ms)
-
-error: script "lisa-test-run" exited with code 1
-exit=1
+exit=0
 
 $ git diff origin/main...HEAD --name-status -- tests/   (non-added entries only)
+M	tests/integration/npm-update-all-host-helpers.test.ts
 M	tests/unit/scripts/npm-update-contract.test.ts
 
 $ git diff origin/main...HEAD -- tests/unit/scripts/npm-update-contract.test.ts
@@ -142,6 +95,23 @@ index b27f209c00..796a42a62c 100644
      const completionMembers = [
        "lib/completion-authorization.mjs",
        "lib/completion-proof-adapters.mjs",
+
+$ git diff origin/main...HEAD -- tests/integration/npm-update-all-host-helpers.test.ts
+diff --git a/tests/integration/npm-update-all-host-helpers.test.ts b/tests/integration/npm-update-all-host-helpers.test.ts
+index 287935d1a9..413a7e95ce 100644
+--- a/tests/integration/npm-update-all-host-helpers.test.ts
++++ b/tests/integration/npm-update-all-host-helpers.test.ts
+@@ -165,7 +165,9 @@ describe("all-only npm host controller materialization", () => {
+       expect(graph).toHaveProperty(
+         join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
+       );
+-      expect(managedTemplateMembers().size).toBe(127);
++      // 127 -> 131: CodySwannGT/lisa#4859 adds npm-update-tracker,
++      // -tracker-jira, -tracker-linear and -tracker-wire to the helper closure.
++      expect(managedTemplateMembers().size).toBe(131);
+     },
+     ioLatencyBudgetMs(30_000)
+   );
 
 $ git diff origin/main...HEAD -- tests/unit/scripts/npm-update-root-identity.test.ts | wc -c
 0
