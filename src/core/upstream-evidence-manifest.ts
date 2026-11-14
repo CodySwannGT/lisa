@@ -2859,7 +2859,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/shell-guard-terminal-reporter.mjs":
       "5af1615782b5c0608c5218fd88149def957a6856000c699662356bba1f2cab93",
     "scripts/lib/shell-guard-trace.mjs":
-      "c3ec8f0a9c52090d8044bbc99fae50eaebc45a1469f62ef2f4fd21c80aa67277",
+      "48e3052067e0f62af1218d06b200aee54a19c41ebbdbbbccb7f2223c38ee5069",
     "scripts/lib/shipped-surface.mjs":
       "9ba04034e2a3382d90a48d81b641ba52c6f1c95028d14aa2005ab0d4e3d65208",
     "scripts/lib/test-access-map-setup.mjs":

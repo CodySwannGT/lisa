@@ -9,8 +9,6 @@
  * first), and released when the suite ends.
  * @module cli/lisa-test-run-admission
  */
-import { availableParallelism } from "node:os";
-
 import {
   MAX_WORKERS_OVERRIDE_VAR,
   MIN_FLEET_WORKERS,
@@ -59,7 +57,10 @@ export async function admitTestRun(
   runtime: AdmissionRuntime = defaultAdmissionRuntime()
 ): Promise<(() => void) | number> {
   if (!admissionSwitchOn(cwd)) return () => {};
-  const workers = declaredTestWorkers(environment, availableParallelism());
+  // The demand is sized from the same machine reading the headroom comes from,
+  // so the runtime seam decides both; the host's own core count is the default
+  // runtime's answer, not a second source.
+  const workers = declaredTestWorkers(environment, runtime.readMachine().cores);
   const outcome = await requestAdmission(
     {
       workers,

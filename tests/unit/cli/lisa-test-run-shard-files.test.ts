@@ -267,6 +267,7 @@ describe("filesShardArgv", () => {
       INTEGRATION_DIR,
       "--exclude=tests/integration/a.test.ts",
       "--exclude=tests/integration/\\[odd\\].test.ts",
+      "--reporter=default",
       "--reporter=blob",
       "--outputFile.blob=/out/blob-2-3.json",
       "--coverage.thresholds=false",
