@@ -17,6 +17,7 @@ import {
   optionalRuntimeFields,
   proposalFileNames,
   signedProposalFields,
+  targetField,
 } from "./automation-provenance-contract.mjs";
 export { proposalFileNames } from "./automation-provenance-contract.mjs";
 import { runtimeBinding } from "./npm-update-rails-runtime-contract.mjs";
@@ -34,8 +35,11 @@ export {
   VERSION,
   validatePolicy,
   selectPolicy,
+  policyTarget,
+  validBranchName,
+  DEFAULT_TARGET,
 } from "./npm-update-policy.mjs";
-import { VERSION } from "./npm-update-policy.mjs";
+import { VERSION, policyTarget } from "./npm-update-policy.mjs";
 export const OBJECT = /^[a-f0-9]{40}$/;
 
 /** Host declarations are checked before npm or lifecycle execution. */
@@ -172,7 +176,7 @@ export function selectionKey(policy, updates) {
   return sha256(
     canonicalJson({
       repository: policy.repository,
-      target: "main",
+      target: policyTarget(policy),
       ecosystem: "npm",
       directory: policy.directory,
       policySha256: sha256(canonicalJson(policy)),
@@ -197,6 +201,8 @@ export function proposalFrom(
     ...(bunLockSha256 === undefined ? {} : { bunLockSha256 }),
     ...runtimeBinding(policy),
     ...(policy.directory === "." ? {} : { directory: policy.directory }),
+    // Only a non-main target is signed into the binding and descriptor.
+    ...targetField(policy),
   };
   const names = proposalFileNames({ files, ...optional });
   for (const value of Object.values(files))
@@ -211,7 +217,7 @@ export function proposalFrom(
   const ordered = [...updates].sort((a, b) => a.name.localeCompare(b.name));
   const identity = {
     repository: policy.repository,
-    target: policy.target,
+    target: policyTarget(policy),
     ecosystem: "npm",
     directory: policy.directory,
     parent,

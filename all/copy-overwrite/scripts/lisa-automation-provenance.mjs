@@ -17,6 +17,7 @@ import {
   sha256,
   verifyCurrentProvider,
   verifyDescriptorAttestation,
+  targetBranch,
 } from "./lib/github-attestation-verifier.mjs";
 import {
   canonicalJson,
@@ -25,6 +26,7 @@ import {
   signedProposalFields,
   directoryOf,
   policyEntry,
+  assertCommittedTarget,
 } from "./lib/automation-provenance-contract.mjs";
 import {
   git,
@@ -80,7 +82,8 @@ function recoveryPermission(
     proposalKey: sha256(
       canonicalJson({
         repository: policy.repository,
-        target: "main",
+        // assertCommittedTarget already bound the descriptor to the committed target.
+        target: targetBranch(descriptor),
         ecosystem: "npm",
         directory,
         parent: descriptor.parent,
@@ -162,6 +165,9 @@ export function verifyAutomationProvenance(messageFile) {
     withProvenancePhase(LOCAL_PROOF, proofSnapshot);
   withProvenancePhase(LOCAL_PROOF, () =>
     verifyLocalProposal(descriptor, messageBytes, reference, policy)
+  );
+  withProvenancePhase(LOCAL_PROOF, () =>
+    assertCommittedTarget(config, descriptor)
   );
   withProvenancePhase("verifier", () => assertPinnedVerifier(policy));
   const context = withProvenancePhase("canonical-context", () =>

@@ -215,7 +215,7 @@ export async function recordedCancellation({
     "cancellation subject digest differs"
   );
   await verifyRecordedBundle(api, authority, checkpoint, record, issue);
-  await api.main(proposal.parent);
+  await api.main(proposal.parent, proposal.target);
   await cancellationDestinationAbsent(api, record.oldProposalKey);
   if (issue.state === "closed")
     required(

@@ -22,6 +22,11 @@ on:
         type: string
         default: '.'
         required: false
+      target_branch:
+        description: Branch this run updates and opens its pull request against; must equal the committed npmUpdater target (default main)
+        type: string
+        default: 'main'
+        required: false
       cancel_issue:
         description: Explicit stale prepublication proposal issue to cancel
         type: string
@@ -62,6 +67,8 @@ env:
   LISA_NPM_RUNTIME_PROFILE: ${{ inputs.runtime-profile }}
   # Selects one committed npmUpdater entry; the CLI refuses any directory policy does not commit.
   LISA_NPM_DIRECTORY: ${{ inputs.directory }}
+  # The CLI refuses a target_branch that differs from the committed npmUpdater target.
+  LISA_NPM_TARGET_BRANCH: ${{ inputs.target_branch }}
 
 jobs:
   workflow_contract:
@@ -125,7 +132,7 @@ jobs:
           echo "contract major ${DECLARED_MAJOR} agreed: ${WORKFLOW_FILE} has not declared a break under this caller."
   prepare:
     needs: workflow_contract
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == format('refs/heads/{0}', inputs.target_branch) && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

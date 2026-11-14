@@ -7,6 +7,7 @@ import {
   required,
   validateProposal,
   validateRawCommit,
+  policyTarget,
 } from "./npm-update-contract.mjs";
 import {
   authorizeAllocation,
@@ -96,7 +97,7 @@ export async function publishDestination({
     pr = await api.request(`${path}/pulls`, "POST", {
       title: allocation.draft.title,
       head: snapshot.branch,
-      base: "main",
+      base: policyTarget(proposal),
       body: publicationBody(allocation),
     });
   } else pr = await api.request(`${path}/pulls/${snapshot.prNumber}`);

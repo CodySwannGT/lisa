@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 284,
-  "$names": 2049,
+  "$names": 2065,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -117,6 +117,7 @@
       "FILES",
       "HEX",
       "OBJECT_ID",
+      "assertCommittedTarget",
       "canonicalJson",
       "directoryBunAbsent",
       "directoryOf",
@@ -129,10 +130,12 @@
       "optionalDirectoryFields",
       "optionalLockFields",
       "optionalRuntimeFields",
+      "optionalTargetFields",
       "policyEntry",
       "proposalFileNames",
       "proposalPolicy",
       "signedProposalFields",
+      "targetField",
       "trustedConfiguration",
       "validDirectory"
     ],
@@ -320,6 +323,7 @@
     ],
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs": [
       "ACTIONS_ISSUER",
+      "DEFAULT_TARGET",
       "PROPOSAL_PREDICATE",
       "RECOVERY_PREDICATE",
       "assertPinnedVerifier",
@@ -330,6 +334,8 @@
       "officialResult",
       "requireProof",
       "sha256",
+      "targetBranch",
+      "validBranchName",
       "verifiedRole",
       "verifyCurrentProvider",
       "verifyDescriptorAttestation"
@@ -476,6 +482,7 @@
     ],
     "all/copy-overwrite/scripts/lib/npm-update-contract.mjs": [
       "CLAIM",
+      "DEFAULT_TARGET",
       "FILES",
       "NAME",
       "OBJECT",
@@ -483,11 +490,13 @@
       "UpdaterError",
       "VERSION",
       "keys",
+      "policyTarget",
       "proposalFileNames",
       "proposalFrom",
       "required",
       "selectPolicy",
       "selectionKey",
+      "validBranchName",
       "validateHost",
       "validateLock",
       "validateManifest",
@@ -559,7 +568,8 @@
       "prepareGhRequest"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-github.mjs": [
-      "GitHub"
+      "GitHub",
+      "missingTarget"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs": [
       "assertManagedSelection",
@@ -641,6 +651,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs": [
       "buildDraft",
       "environment",
+      "environmentDeclaration",
       "leafRoles"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs": [
@@ -685,9 +696,12 @@
       "validateOwnerReceipt"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-policy.mjs": [
+      "DEFAULT_TARGET",
       "NAME",
       "VERSION",
+      "policyTarget",
       "selectPolicy",
+      "validBranchName",
       "validatePolicy"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs": [
@@ -1091,6 +1105,8 @@
       "tasksOf"
     ],
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs": [
+      "assertTargetBranchExists",
+      "assertWorkflowTarget",
       "cancellationRequest",
       "main"
     ],

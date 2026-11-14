@@ -20,6 +20,7 @@ import {
   predictedCommit,
 } from "./github-attestation-recovery.mjs";
 import { persistCheckpoint } from "./npm-update-checkpoint.mjs";
+import { targetField } from "./automation-provenance-contract.mjs";
 import { required, validateProposal } from "./npm-update-contract.mjs";
 import {
   trackerFor,
@@ -69,6 +70,8 @@ export function recoveryRecord(
     ...snapshot,
     runId: process.env.GITHUB_RUN_ID,
     runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+    // Only a non-main origin target is carried; the recovery certificate names that ref.
+    ...targetField(d),
   };
 }
 

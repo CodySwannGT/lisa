@@ -248,7 +248,7 @@ export async function authenticateStaleOrigin({
   proposal,
   config,
 }) {
-  await api.main(proposal.parent);
+  await api.main(proposal.parent, proposal.target);
   const checkpoint = originCheckpoint(issue);
   const old = checkpoint.payload.proposal;
   required(

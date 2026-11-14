@@ -5,7 +5,12 @@
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
-import { required, keys } from "./npm-update-contract.mjs";
+import {
+  required,
+  keys,
+  DEFAULT_TARGET,
+  policyTarget,
+} from "./npm-update-contract.mjs";
 import { proposalPolicy } from "./automation-provenance-contract.mjs";
 import { readBytes, readJson, writeJson } from "./npm-update-process.mjs";
 import { assertHostedGate } from "./npm-update-hosted-gate.mjs";
@@ -29,10 +34,16 @@ import {
 import { withStage } from "./npm-update-invariants.mjs";
 
 /** Native dispatch bytes are checked independently of reusable workflow input forwarding. */
-export function assertDispatchCancellation(event, run, request, authority) {
+export function assertDispatchCancellation(
+  event,
+  run,
+  request,
+  authority,
+  target = DEFAULT_TARGET
+) {
   required(
     event &&
-      ["main", "refs/heads/main"].includes(event.ref) &&
+      [target, `refs/heads/${target}`].includes(event.ref) &&
       event.repository?.full_name === authority.repository &&
       String(event.repository.id) === authority.repositoryId &&
       String(event.repository.owner?.id) === authority.ownerId &&
@@ -60,7 +71,7 @@ async function manualAuthority(api, proposal, config, request) {
     ),
     "native cancellation invocation is absent"
   );
-  await api.main(proposal.parent);
+  await api.main(proposal.parent, proposal.target);
   const run = await api.request(
     `repos/${proposal.repository}/actions/runs/${invocation.runId}/attempts/${invocation.runAttempt}`
   );
@@ -81,7 +92,13 @@ async function manualAuthority(api, proposal, config, request) {
       readBytes(process.env.GITHUB_EVENT_PATH, 1_048_576, false)
     )
   );
-  assertDispatchCancellation(event, run, request, api.policy);
+  assertDispatchCancellation(
+    event,
+    run,
+    request,
+    api.policy,
+    policyTarget(proposal)
+  );
   return { invocation, operatorId };
 }
 
@@ -240,7 +257,7 @@ export async function finalizeCancellation(context) {
       closed.title === issue.title,
     "cancellation closure readback differs"
   );
-  await api.main(proposal.parent);
+  await api.main(proposal.parent, proposal.target);
   await cancellationDestinationAbsent(api, request.proposalKey);
   return {
     status: "cancelled",
