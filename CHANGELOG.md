@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.2.3](https://github.com/CodySwannGT/lisa/compare/v5.2.2...v5.2.3) (2026-11-14)
+
+
+### Documentation
+
+* **rules:** stop claiming the phrase manifest pins derived-branch-plan wording ([586884b](https://github.com/CodySwannGT/lisa/commit/586884be6b91ba501aa05eef8e475dcd741d680c)), closes [#4867](https://github.com/CodySwannGT/lisa/issues/4867) [CodySwannGT/lisa#4872](https://github.com/CodySwannGT/lisa/issues/4872) [CodySwannGT/lisa#4872](https://github.com/CodySwannGT/lisa/issues/4872)
+
 ### [5.2.2](https://github.com/CodySwannGT/lisa/compare/v5.2.1...v5.2.2) (2026-11-14)
 
 
