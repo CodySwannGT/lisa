@@ -2039,7 +2039,7 @@
       "sourceTestFile"
     ],
     "scripts/lib/phrase-tests/marker-classes.mjs": [
-      "TOKEN_CLASSES",
+      "MARKER_CLASSES",
       "classifyPhrase",
       "literalOf",
       "needlesOf"

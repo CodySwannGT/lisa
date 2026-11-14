@@ -2783,7 +2783,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/phrase-tests/manifest.mjs":
       "c8360dcd3a75d3db64dd4af3f345756104312ad04a09e52e1e74f167d9049113",
     "scripts/lib/phrase-tests/marker-classes.mjs":
-      "eaadfd8dc77160d1a37a9f5c978e309888e7e51fbe5e1c0bfc17e426857bec90",
+      "2748ec6c10d35f8afaad0dedea7ad2e10e8c1b2f55533ebda1cd8ee5eddce9f0",
     "scripts/lib/phrase-tests/parity.mjs":
       "60325734223abec4d32ac66f7d14e9861bca4bba3c2b6f274f2b9dd1fa8ac554",
     "scripts/lib/phrase-tests/record.mjs":

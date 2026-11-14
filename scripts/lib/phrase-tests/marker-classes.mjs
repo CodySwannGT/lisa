@@ -43,7 +43,7 @@
 /** @typedef {"MACHINE-TOKEN" | "STRUCTURAL" | "WORDING"} PhraseClass */
 
 /**
- * @typedef {object} TokenClass
+ * @typedef {object} MarkerClass
  * @property {string} id - Stable rule name, reported with each verdict.
  * @property {"MACHINE-TOKEN" | "STRUCTURAL"} cls - The class it confers.
  * @property {RegExp} pattern - Matches the WHOLE literal phrase.
@@ -78,7 +78,7 @@ const FRONTMATTER_SPLIT = String.raw`/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)
  * @param {string} keys - Alternation of key names.
  * @param {string} parser - The transformer that reads them.
  * @param {readonly string[]} needle - How that transformer reads them.
- * @returns {TokenClass} The row.
+ * @returns {MarkerClass} The row.
  */
 function frontmatterKeyRow(id, keys, parser, needle) {
   return {
@@ -96,8 +96,8 @@ function frontmatterKeyRow(id, keys, parser, needle) {
 const WORK_ITEM_CLI = "all/copy-overwrite/scripts/lisa-work-item.mjs";
 const DESIGN_SOURCE_GATE = "plugins/src/base/scripts/design-source-gate.mjs";
 
-/** @type {readonly TokenClass[]} */
-export const TOKEN_CLASSES = Object.freeze([
+/** @type {readonly MarkerClass[]} */
+export const MARKER_CLASSES = Object.freeze([
   {
     id: "lisa-pr-link",
     cls: MACHINE_TOKEN,
@@ -263,7 +263,7 @@ export const TOKEN_CLASSES = Object.freeze([
 
 /**
  * The needles of a row as a list.
- * @param {TokenClass} row - A row.
+ * @param {MarkerClass} row - A row.
  * @returns {readonly string[]} Its needles.
  */
 export function needlesOf(row) {
@@ -309,7 +309,7 @@ export function literalOf(source) {
  */
 export function classifyPhrase(phrase, { isPattern = false } = {}) {
   const literal = isPattern ? literalOf(phrase) : phrase;
-  const row = TOKEN_CLASSES.find(candidate =>
+  const row = MARKER_CLASSES.find(candidate =>
     literal === undefined
       ? candidate.sourcePattern?.test(phrase) === true
       : candidate.pattern.test(literal.trim())
