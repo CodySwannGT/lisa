@@ -9,7 +9,8 @@
  * those goldens unchanged.
  */
 import { describe, expect, it } from "vitest";
-import { execFileSync } from "node:child_process";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { resolveGit } from "../../support/git-executable.js";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -700,7 +701,12 @@ describe("the CLI binds the workflow input and refuses a missing branch", () => 
     const root = mkdtempSync(join(tmpdir(), "lisa-target-git-"));
     try {
       const git = (...args: string[]) =>
-        execFileSync("git", args, { cwd: root, stdio: "pipe" });
+        boundedExecFileSync({
+          label: `git ${args[0]}`,
+          command: resolveGit(),
+          args,
+          cwd: root,
+        });
       git("init", "-q", "-b", "main");
       git(
         "-c",
