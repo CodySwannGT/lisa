@@ -30,6 +30,7 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import { partialSelector } from "./support/rails-partial-selector.js";
 
 // File-scoped budget (CodySwannGT/lisa#4582): every case here starts real
 // host processes, measured at 0.4 to 3.5 s per case (the longest waits on a held reservation) on a quiet box (1 vitest process). Both
@@ -85,9 +86,10 @@ exit 0
 /**
  * Build and commit a Rails host.
  * @param database - Contents of config/database.yml
+ * @param selector - Source of a stand-in scripts/lisa-rspec-select.mjs
  * @returns The host
  */
-function railsHost(database = PARALLEL_DB): Host {
+function railsHost(database = PARALLEL_DB, selector?: string): Host {
   const root = fs.realpathSync(
     fs.mkdtempSync(path.join(os.tmpdir(), "lisa-rg-"))
   );
@@ -97,6 +99,8 @@ function railsHost(database = PARALLEL_DB): Host {
   const env = hostEnv(root, bin, log);
   roots.push(root);
   writeHost(root, cwd, bin, database);
+  if (selector !== undefined)
+    fs.writeFileSync(path.join(cwd, "scripts/lisa-rspec-select.mjs"), selector);
   fs.writeFileSync(log, "");
   for (const args of [
     ["init", "-q"],
@@ -319,6 +323,34 @@ describe("Rails pre-push through the pass cache and admission", () => {
     expect(started(host).some(line => line.includes("parallel_rspec"))).toBe(
       true
     );
+  });
+
+  // A partial selection proves a slice; remembered, it would let a later push
+  // skip the full suite it owes (e.g. after affectedTests is turned off).
+  it("never remembers a partial RSpec selection, so the next push runs RSpec again", () => {
+    const host = railsHost(PARALLEL_DB, partialSelector(false));
+    const first = hook(host, "rspec");
+    expect(first.status, first.output).toBe(0);
+    expect(first.output).toContain("selected 1 spec");
+    const again = hook(host, "rspec");
+    expect(again.status, again.output).toBe(0);
+    expect(again.output).not.toMatch(/CACHED PASS/u);
+    expect(started(host)).toEqual([
+      "partial spec/a_spec.rb",
+      "partial spec/a_spec.rb",
+    ]);
+  });
+
+  it("remembers a partial selection that escalated to the full suite", () => {
+    const host = railsHost(PARALLEL_DB, partialSelector(true));
+    const first = hook(host, "rspec");
+    expect(first.status, first.output).toBe(0);
+    expect(started(host)).toContain(
+      "bundle exec parallel_rspec -n 3 workers=3"
+    );
+    const again = hook(host, "rspec");
+    expect(again.status, again.output).toBe(0);
+    expect(again.output).toMatch(/rspec: CACHED PASS/u);
   });
 
   it("never remembers a failed gate, so the next push runs it again", () => {

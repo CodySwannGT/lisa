@@ -150,6 +150,30 @@ describe("selectRailsSpecs", () => {
     ]);
   });
 
+  it("runs the full suite for a deleted spec when changed-files coverage decides the push", () => {
+    const changed = [
+      { path: POST_SPEC, status: "deleted" as const },
+      { path: USER, status: "modified" as const },
+    ];
+    expect(
+      selectRailsSpecs({
+        changed,
+        map: MAP,
+        alwaysRun: [],
+        exists,
+        coverage: "changed-files",
+      })
+    ).toMatchObject({
+      kind: "full",
+      reason: expect.stringContaining(`deleted spec: ${POST_SPEC}`),
+    });
+    const base = { changed, map: MAP, alwaysRun: [], exists };
+    expect(selectRailsSpecs({ ...base, coverage: "skip" }).kind).toBe(
+      "partial"
+    );
+    expect(selectRailsSpecs(base).kind).toBe("partial");
+  });
+
   it("runs the full suite for a trigger file, naming it", () => {
     expect(select([POST, "Gemfile.lock"])).toMatchObject({
       kind: "full",

@@ -198,17 +198,56 @@ export function fullSuite(reason) {
 }
 
 /**
+ * Why a deleted spec sends a `changed-files` push to the full suite, or null
+ * when no spec was deleted.
+ *
+ * Deleting a spec removes the coverage it gave the files it executed, and
+ * those files are usually unchanged, so the per-file check (which holds only
+ * the changed Ruby files to the floor) never looks at them. A branch could
+ * delete the only spec covering a model, drop whole-repo coverage below the
+ * floor, and still pass a partial push that the full run it replaced would
+ * have failed. Holding the deleted spec's map entry to the floor instead is
+ * not safe either: a file no remaining spec loads is absent from SimpleCov's
+ * resultset and would read as "outside coverage". So the push fails closed:
+ * the full suite runs and its whole-repo minimums decide.
+ * @param {ReadonlyArray<{path: string, status: string}>} changed Changed files.
+ * @returns {string|null} The full-suite reason.
+ */
+export function deletedSpecReason(changed) {
+  const gone = changed.find(
+    entry => entry.status === "deleted" && SPEC_FILE.test(entry.path)
+  );
+  if (!gone) return null;
+  return (
+    `deleted spec: ${gone.path} no longer covers what it ran, and only ` +
+    "the full suite's whole-repo coverage can say whether the project still meets its floor"
+  );
+}
+
+/**
  * Choose the specs a change can reach, or say why everything must run.
  * @param {object} input Inputs.
  * @param {ReadonlyArray<{path: string, status: "added"|"modified"|"deleted"}>} input.changed Changed files.
  * @param {Readonly<Record<string, ReadonlyArray<string>>>} input.map Spec file -> application files it executed.
  * @param {ReadonlyArray<string>} input.alwaysRun Spec files to run on every partial push.
  * @param {(file: string) => boolean} input.exists Whether a file is in the working tree.
+ * @param {"changed-files"|"skip"} [input.coverage] What the partial run does
+ *   about coverage. In `changed-files` mode a deleted spec sends the push to
+ *   the full suite: see {@link deletedSpecReason}.
  * @returns {RspecSelection} The selection.
  */
-export function selectRailsSpecs({ changed, map, alwaysRun, exists }) {
+export function selectRailsSpecs({
+  changed,
+  map,
+  alwaysRun,
+  exists,
+  coverage,
+}) {
   const trigger = railsTrigger(changed.map(entry => entry.path));
   if (trigger) return fullSuite(`${trigger.reason} (${trigger.file})`);
+  const deleted =
+    coverage === "changed-files" ? deletedSpecReason(changed) : null;
+  if (deleted) return fullSuite(deleted);
   const readers = readersByFile(map);
   const chosen = new Map();
   const choose = (file, reason) => {

@@ -14,8 +14,10 @@
  *
  * - The pass cache (`lib/gate-pass-cache.mjs`, `pushGate.cache`). Brakeman,
  *   Reek, Flog, Flay and RSpec are cacheable; a hit prints
- *   `CACHED PASS (<key>)`. `Gemfile.lock`, `ruby -v` and `bundle -v` enter the
- *   key. The mutation gate is never cached.
+ *   `CACHED PASS (<key>)`. `Gemfile.lock`, `ruby -v`, `bundle -v` and the
+ *   effective `pushGate` block enter the key. The mutation gate is never
+ *   cached, and neither is an RSpec run that ran only a partial selection:
+ *   it proved a slice, not the tree (the same contract as `lisa-run-gates.mjs`).
  * - Headroom admission (`lisa admit`, `pushGate.admission`). RSpec, and the
  *   mutation gate when `mutation.gate.yml` enables it, start only when the
  *   machine has headroom; the wait names the busy runs. Static analysers run
@@ -42,6 +44,10 @@ import { availableParallelism } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  openSelectionReports,
+  SELECTION_REPORT_ENV,
+} from "./lib/affected-tests.mjs";
 import { openGatePassCache } from "./lib/gate-pass-cache.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { runStartOfRunSweep } from "./lib/lisa-cleanup-sweep.mjs";
@@ -368,7 +374,41 @@ function runner(root, env) {
  */
 export async function runPayload(id, root, env, out) {
   const run = runner(root, env);
-  if (id !== "rspec") return run([...RAILS_GATES[id].command]);
+  if (id === "rspec") return runRspecPayload(root, env, out, run);
+  return run([...RAILS_GATES[id].command]);
+}
+
+/**
+ * Tell the gate runner which kind of RSpec run this is, through the
+ * selection-report file it named in `LISA_SELECTION_REPORT`. The runner
+ * remembers an RSpec pass only when the report says `full`, so a report that
+ * cannot be written leaves the pass unremembered rather than mistaken for a
+ * full one. A partial run that escalates overwrites it with `full` (the
+ * selector's `runRspecPlan` does that).
+ * @param {Record<string, string|undefined>} env Environment.
+ * @param {"full"|"partial"} kind The run.
+ * @param {number} tests Spec files a partial run selected.
+ */
+function reportSelection(env, kind, tests) {
+  const file = env[SELECTION_REPORT_ENV];
+  if (!file) return;
+  try {
+    writeFileSync(file, `${JSON.stringify({ selection: kind, tests })}\n`);
+  } catch {
+    // Unwritten, the runner reads no report and does not remember the pass.
+  }
+}
+
+/**
+ * Run RSpec: the selector's partial plan when it offers one, else the full
+ * suite, serial or parallel.
+ * @param {string} root Project root.
+ * @param {Record<string, string|undefined>} env Environment.
+ * @param {(line: string) => void} out Line sink.
+ * @param {(argv: string[]) => number} run Command runner.
+ * @returns {Promise<number>} Exit status.
+ */
+async function runRspecPayload(root, env, out, run) {
   const workers = grantedWorkers(env);
   // The full run, also what a partial plan escalates to when its changed
   // files fall short (CodySwannGT/lisa#4600), so it keeps the parallel path.
@@ -387,6 +427,7 @@ export async function runPayload(id, root, env, out) {
     return run(command.argv);
   };
   const plan = await rspecPlan(root, env, out, runFull);
+  reportSelection(env, plan.kind, plan.specs.length);
   return plan.run ? plan.run() : runFull();
 }
 
@@ -489,6 +530,21 @@ async function execute({ id, root, env, admit, out, cli }) {
 }
 
 /**
+ * Whether a passing gate's run proved the whole tree, so its pass may be
+ * remembered. RSpec qualifies only when its run reported a full suite: a
+ * partial selection proved a slice, and an unreadable report is treated as
+ * one (fail closed). Every other gate always runs whole.
+ * @param {string} id Gate id.
+ * @param {{read: (command: string) => any}} selection The selection reports.
+ * @param {{command: string}} entry The gate's result entry.
+ * @returns {boolean} True when the pass may be remembered.
+ */
+function provedWholeTree(id, selection, entry) {
+  if (id !== "rspec") return true;
+  return selection.read(entry.command)?.selection === "full";
+}
+
+/**
  * Run the named gates in order, each through the cache and, when heavy,
  * admission. Every gate runs even after one fails, so one push reports all.
  * @param {string[]} ids Gate ids.
@@ -532,8 +588,15 @@ export async function runRailsGates(
           ruby: versionOf("ruby", ["-v"], root),
           bundler: versionOf("bundle", ["-v"], root),
         },
+        // What RSpec selects decides what its pass proves, so the effective
+        // pushGate (selection, coverage mode) is part of every key.
+        extraConfig: { pushGate: config.pushGate ?? null },
       })
     : null;
+  // The gates run with a copy of the environment carrying the RSpec
+  // selection-report path, so the caller's object is never mutated.
+  const runEnv = { ...env };
+  const selection = openSelectionReports(runEnv);
   const results = [];
   for (const id of ids) {
     const gate = RAILS_GATES[id];
@@ -551,7 +614,8 @@ export async function runRailsGates(
       continue;
     }
     const began = Date.now();
-    const code = await execute({ id, root, env, admit, out, cli });
+    if (id === "rspec") selection.before(entry.command);
+    const code = await execute({ id, root, env: runEnv, admit, out, cli });
     const durationMs = Date.now() - began;
     results.push({
       ...entry,
@@ -561,11 +625,14 @@ export async function runRailsGates(
       durationMs,
     });
     if (code === 0) {
-      if (gate.cacheable) cache?.remember(entry, durationMs);
+      if (gate.cacheable && provedWholeTree(id, selection, entry)) {
+        cache?.remember(entry, durationMs);
+      }
     } else {
       out(`❌ ${id} FAILED (exit ${code}): ${entry.command}`);
     }
   }
+  selection.close();
   cache?.commit();
   recordPushTiming({
     moment: "push",

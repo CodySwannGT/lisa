@@ -68,6 +68,9 @@ import {
 /** The Ruby file that moves a partial run's coverage out of SimpleCov's minimums. */
 export const PARTIAL_COVERAGE_HELPER = "scripts/lisa_rspec_partial_coverage.rb";
 
+/** The coverage mode that holds each changed Ruby file to the floor. */
+const CHANGED_FILES = "changed-files";
+
 /** How long a failed download is remembered before it is tried again. */
 const MISS_TTL_MS = 15 * 60_000;
 
@@ -468,7 +471,7 @@ function thresholdsOf(root) {
 /** What each coverage outcome means, for the explanation. */
 const COVERAGE_NOTE = Object.freeze({
   full: "measured over the full suite, as before",
-  "changed-files": `each changed Ruby file is held to ${THRESHOLDS_FILE} on its own; one below it sends the push to the full suite`,
+  [CHANGED_FILES]: `each changed Ruby file is held to ${THRESHOLDS_FILE} on its own; one below it sends the push to the full suite`,
   skip: `not measured at push (${PARTIAL_COVERAGE_SKIP_REASON})`,
   none: "not measured at push (selection is off)",
 });
@@ -528,7 +531,7 @@ export function planRspecRun({
       `${PARTIAL_COVERAGE_HELPER} is not installed, so a partial run cannot keep the project's coverage minimums off the slice (run lisa to install it)`
     );
   }
-  if (settings.coverage === "changed-files" && !thresholdsOf(root)) {
+  if (settings.coverage === CHANGED_FILES && !thresholdsOf(root)) {
     return fullRun(
       `there is no ${THRESHOLDS_FILE} with line or branch floors to hold the changed files to`
     );
@@ -557,6 +560,7 @@ export function planRspecRun({
       read: file => readFileSync(join(root, file), "utf8"),
     }),
     exists,
+    coverage: settings.coverage,
   });
   const changedRuby = changed
     .filter(
@@ -792,24 +796,69 @@ export function runRspecPlan({
   runFull = () => run([...command], cwd, env),
 }) {
   if (plan.kind === "full") return runFull();
-  if (plan.specs.length === 0) {
+  const unmeasured =
+    plan.specs.length === 0 && plan.coverage === CHANGED_FILES
+      ? (plan.changedRuby ?? [])
+      : [];
+  if (plan.specs.length === 0 && unmeasured.length === 0) {
     out("   No spec can reach the changed files, so there is nothing to run.");
     return 0;
   }
+  // No spec selected, but changed Ruby files are owed a coverage check: with
+  // nothing run there is nothing to measure them by, and passing would let
+  // their coverage go unchecked. Fail closed to the full suite.
+  const escalation =
+    unmeasured.length > 0
+      ? [
+          railsFullSuiteEscalation(
+            `no selected spec runs ${unmeasured.join(", ")}, so the partial run could not measure ${unmeasured.length === 1 ? "its" : "their"} coverage`
+          ),
+        ]
+      : runPartial({ plan, command, cwd, env, out });
+  if (typeof escalation === "number") return escalation;
+  return escalate({ escalation, env, out, runFull });
+}
+
+/**
+ * Run a partial plan's specs with the coverage hand-off and, in
+ * `changed-files` mode, check each changed Ruby file afterwards.
+ * @param {object} input Inputs.
+ * @param {RspecPlan} input.plan The plan.
+ * @param {ReadonlyArray<string>} input.command The full RSpec command.
+ * @param {string} input.cwd Working directory.
+ * @param {NodeJS.ProcessEnv} input.env Environment.
+ * @param {(line: string) => void} input.out Output.
+ * @returns {number|string[]} The run's verdict, or escalation lines (empty
+ *   when the partial run passed and decides the push).
+ */
+function runPartial({ plan, command, cwd, env, out }) {
   const root = git(cwd, ["rev-parse", "--show-toplevel"]) ?? cwd;
   const coverageDir = mkdtempSync(join(tmpdir(), "lisa-rspec-coverage-"));
-  let escalation;
   try {
     const code = run(rspecArgv({ plan, command }), cwd, {
       ...env,
       LISA_RSPEC_PARTIAL_COVERAGE_DIR: coverageDir,
     });
-    if (plan.coverage !== "changed-files") return code;
+    if (plan.coverage !== CHANGED_FILES) return code;
     if (code !== 0 && !handOffEscalated(coverageDir)) return code;
-    escalation = checkChangedFiles({ root, coverageDir, plan, out });
+    return checkChangedFiles({ root, coverageDir, plan, out });
   } finally {
     rmSync(coverageDir, { recursive: true, force: true });
   }
+}
+
+/**
+ * Escalate a partial push to the full suite, or pass it when there is nothing
+ * to escalate: print why, tell the gate runner the run became a full one, and
+ * return the full run's verdict.
+ * @param {object} input Inputs.
+ * @param {string[]} input.escalation Escalation lines; empty passes the push.
+ * @param {NodeJS.ProcessEnv} input.env Environment.
+ * @param {(line: string) => void} input.out Output.
+ * @param {() => number} input.runFull Runs the full suite.
+ * @returns {number} Exit code.
+ */
+function escalate({ escalation, env, out, runFull }) {
   if (escalation.length === 0) return 0;
   for (const line of escalation) out(line);
   if (env[SELECTION_REPORT_ENV]) {

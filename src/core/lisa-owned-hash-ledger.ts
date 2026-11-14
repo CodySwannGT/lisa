@@ -742,6 +742,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "4f2e8facee2058c30b519f4431dbe96aea18b4694c62e751306b0cec82ca7f28",
     "5a30dba4837e8e693a2a529ce334c481e498e32fa6742d2b5517b16e0d98fdf1",
     "b853877bd6e39eaac4d6e469ccec7e10b6f34ba1e4e5ef70376cc3971b908092",
+    "cdb0f34a6cf6015718754bfedd0d0e7e58f9326a706ae2650da8d69a2102b635",
     "e1db0421f446d88e5b9b0fd5f215dbb644de244b9cf953c4a9cfe45b200f329e",
   ]),
   "scripts/lib/github-attestation-provider.mjs": Object.freeze([
@@ -1320,6 +1321,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lib/rspec-selection.mjs": Object.freeze([
     "1fe6c0a56a0a6dce6dc37564231a61600dc457ae503aeaac61e35b76ba54fb25",
     "65f1cef52767ec6c525cf60958ac24992560bfd8ecb5eb83f4c82b7116836f7e",
+    "98c77c77f932bb82a536c2a51d48256a4d15596e425c7d5ddbdf3efa71153b38",
     "a80683b5b83ae1efd874bb302d805af6d3c17c5d557c194aa1c2228dab580111",
   ]),
   "scripts/lib/usage-artifact-ref.d.mts": Object.freeze([
@@ -2097,6 +2099,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "8c62bf2423edbdf67ee5d1fbd8bb4935e4c2183ba0ccd55ef038212605f4c5d9",
     "9aa3135a09eaa0a674c73c2fa42489622cdcb5b930ec76113b90976c0cd70284",
     "b83f939c7ba65a6719cd7c31acc2d7f3ba5aa627652fcfda36bb470e6111265b",
+    "dc16136bd8afc8a2e686bf014109684a66051088d1b41150c4d1922a6d8e883f",
   ]),
   "scripts/lisa-rails-prepush.mjs": Object.freeze([
     "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
@@ -2127,6 +2130,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-rspec-select.mjs": Object.freeze([
     "3d3678afda4fb5c47bd3ffbb95d28cf7f2d7d50d69f93bcd6aedfafcde2e3dde",
+    "bb870fb565a3d662d42ea59edd62d347683e91ff52dcfabc2ddb1a8ce03b99bc",
     "f31f8aef6abac441c8038972dfe951f4da43408ae9c0582d244fcc7f48940caa",
   ]),
   "scripts/lisa-rspec-shard-recorder.rb": Object.freeze([
@@ -2593,6 +2597,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "7b1d6bba391f105b9d53b91773fd207c9a5e9b5bfcd638e1e6b579d507279d7d",
     "7c6573abde0071ab42aae6efe77edafc9b0a45f9ac46b5c6754e1f0dbef88925",
     "7c8b9d5b8f7d77dbf520c1009497d041eeb9930103c7f52bfd8b04a4492eb023",
+    "7e5515cb1bbf8f1602acfaea24b24d3dd273169484227502a613f30caac00846",
     "805f46fe1c469ee4192d31bd96d4288f96905d5ca86d6eebe0516cf692389a99",
     "8222dc8691ef84a30c06a6427aa17b353082ee53ee513cdd5cbe69e936d82698",
     "8333f65c58b8610c6aa8d7bca73c1b7546213cd373591794c84ee341a36c74ed",
@@ -3493,6 +3498,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "4f2e8facee2058c30b519f4431dbe96aea18b4694c62e751306b0cec82ca7f28",
     "5a30dba4837e8e693a2a529ce334c481e498e32fa6742d2b5517b16e0d98fdf1",
     "b853877bd6e39eaac4d6e469ccec7e10b6f34ba1e4e5ef70376cc3971b908092",
+    "cdb0f34a6cf6015718754bfedd0d0e7e58f9326a706ae2650da8d69a2102b635",
     "e1db0421f446d88e5b9b0fd5f215dbb644de244b9cf953c4a9cfe45b200f329e",
   ]),
   "scripts/lib/github-attestation-provider.mjs": Object.freeze([
@@ -4071,6 +4077,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/lib/rspec-selection.mjs": Object.freeze([
     "1fe6c0a56a0a6dce6dc37564231a61600dc457ae503aeaac61e35b76ba54fb25",
     "65f1cef52767ec6c525cf60958ac24992560bfd8ecb5eb83f4c82b7116836f7e",
+    "98c77c77f932bb82a536c2a51d48256a4d15596e425c7d5ddbdf3efa71153b38",
     "a80683b5b83ae1efd874bb302d805af6d3c17c5d557c194aa1c2228dab580111",
   ]),
   "scripts/lib/usage-artifact-ref.d.mts": Object.freeze([
@@ -4792,6 +4799,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "8c62bf2423edbdf67ee5d1fbd8bb4935e4c2183ba0ccd55ef038212605f4c5d9",
     "9aa3135a09eaa0a674c73c2fa42489622cdcb5b930ec76113b90976c0cd70284",
     "b83f939c7ba65a6719cd7c31acc2d7f3ba5aa627652fcfda36bb470e6111265b",
+    "dc16136bd8afc8a2e686bf014109684a66051088d1b41150c4d1922a6d8e883f",
   ]),
   "scripts/lisa-rails-prepush.mjs": Object.freeze([
     "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
@@ -4818,6 +4826,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lisa-rspec-select.mjs": Object.freeze([
     "3d3678afda4fb5c47bd3ffbb95d28cf7f2d7d50d69f93bcd6aedfafcde2e3dde",
+    "bb870fb565a3d662d42ea59edd62d347683e91ff52dcfabc2ddb1a8ce03b99bc",
     "f31f8aef6abac441c8038972dfe951f4da43408ae9c0582d244fcc7f48940caa",
   ]),
   "scripts/lisa-rspec-shard-recorder.rb": Object.freeze([
@@ -5274,6 +5283,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "7b1d6bba391f105b9d53b91773fd207c9a5e9b5bfcd638e1e6b579d507279d7d",
     "7c6573abde0071ab42aae6efe77edafc9b0a45f9ac46b5c6754e1f0dbef88925",
     "7c8b9d5b8f7d77dbf520c1009497d041eeb9930103c7f52bfd8b04a4492eb023",
+    "7e5515cb1bbf8f1602acfaea24b24d3dd273169484227502a613f30caac00846",
     "805f46fe1c469ee4192d31bd96d4288f96905d5ca86d6eebe0516cf692389a99",
     "8222dc8691ef84a30c06a6427aa17b353082ee53ee513cdd5cbe69e936d82698",
     "8333f65c58b8610c6aa8d7bca73c1b7546213cd373591794c84ee341a36c74ed",
