@@ -12,6 +12,7 @@ import {
   unfence,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-tracker-wire.mjs";
 import { CLAIM } from "../../../all/copy-overwrite/scripts/lib/npm-update-contract.mjs";
+import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
 import { fakeLinear } from "../../support/npm-update-linear-fake.js";
 import { LINEAR_CONFIG } from "../../support/npm-update-tracker-host.js";
 
@@ -55,6 +56,47 @@ describe("Linear pagination", () => {
       true
     );
     await expect(discoverPrior(api, PROPOSAL)).rejects.toThrow(/incomplete/);
+  });
+});
+
+describe("Linear issue connections are complete or refused", () => {
+  it.each(["labels", "children", "inverseRelations"])(
+    "refuses an issue whose %s connection has another page",
+    async name => {
+      const linear = fakeLinear({ truncated: [name] });
+      linear.seed({});
+      const failure = await trackerOver(linear)
+        .issue(1)
+        .then(
+          () => undefined,
+          (error: unknown) => error
+        );
+      expect(publicFailure(failure)).toContain(
+        "cannot confirm there is no hold or open blocker"
+      );
+    }
+  );
+
+  it("requests an explicit 100-node bound and pageInfo for each issue connection", async () => {
+    const linear = fakeLinear();
+    const queries: string[] = [];
+    linear.seed({});
+    const tracker = createTracker(
+      LINEAR_CONFIG,
+      { LINEAR_API_KEY: "k" },
+      async (url, init) => {
+        queries.push(JSON.parse(String(init?.body)).query);
+        return linear.transport(url, init);
+      }
+    )!;
+    await tracker.issue(1);
+    const issueQuery = queries.find(query => query.includes("LisaNpmIssue("))!;
+    for (const name of ["labels", "children", "inverseRelations"])
+      expect(issueQuery).toMatch(
+        new RegExp(
+          `${name}\\(first: 100\\) \\{ nodes \\{[^]*?pageInfo \\{ hasNextPage \\}`
+        )
+      );
   });
 });
 

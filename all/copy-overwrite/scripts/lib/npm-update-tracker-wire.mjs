@@ -224,3 +224,42 @@ export function vendorLabels(lifecycle, names) {
     );
   });
 }
+
+// Linear connection helpers, shared here to keep the Linear adapter within its size budget.
+
+/**
+ * Labels, sub-issues and relations decide holds and blockers, so a partial
+ * page is never read as the whole inventory: one more page refuses.
+ */
+export function completeLinearConnections(node) {
+  const partial = ["labels", "children", "inverseRelations"].some(
+    name => node[name]?.pageInfo?.hasNextPage !== false
+  );
+  if (partial)
+    throw operatorRefusal(
+      "issue connection is incomplete",
+      "This Linear issue has more than 100 labels, sub-issues or relations, so the npm updater cannot confirm there is no hold or open blocker. Remove the extra ones or handle this update by hand."
+    );
+}
+
+/** Completed, cancelled and archived issues are closed history, never claimable. */
+export function linearClosed(node) {
+  return (
+    Boolean(node?.archivedAt) ||
+    ["completed", "canceled"].includes(node?.state?.type)
+  );
+}
+
+/** A GraphQL connection page in the bounded search shape discoverPrior already checks. */
+export function linearSearchResult(connection) {
+  const nodes = connection?.nodes;
+  required(Array.isArray(nodes), "tracker search reply differs");
+  return {
+    incomplete_results: connection.pageInfo?.hasNextPage !== false,
+    total_count: nodes.length,
+    items: nodes.map(node => ({
+      number: node.number,
+      state: linearClosed(node) ? "closed" : "open",
+    })),
+  };
+}

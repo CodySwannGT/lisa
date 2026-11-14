@@ -19,6 +19,9 @@ import {
   lifecycleName,
   vocabularyRefusal,
   vendorLabels,
+  linearClosed as closed,
+  linearSearchResult as searchResult,
+  completeLinearConnections as completeConnections,
 } from "./npm-update-tracker-wire.mjs";
 
 const VIEWER = "query LisaNpmViewer { viewer { id } }";
@@ -29,7 +32,7 @@ const MEMBER =
 const ISSUES =
   "query LisaNpmIssues($filter: IssueFilter!) { issues(filter: $filter, first: 100, includeArchived: true) { nodes { number archivedAt state { type } } pageInfo { hasNextPage } } }";
 const ISSUE =
-  "query LisaNpmIssue($id: String!) { issue(id: $id) { id identifier number title description priority archivedAt state { name type } assignee { id } labels { nodes { name } } children { nodes { id } } inverseRelations { nodes { type issue { state { type } archivedAt } } } } }";
+  "query LisaNpmIssue($id: String!) { issue(id: $id) { id identifier number title description priority archivedAt state { name type } assignee { id } labels(first: 100) { nodes { name } pageInfo { hasNextPage } } children(first: 100) { nodes { id } pageInfo { hasNextPage } } inverseRelations(first: 100) { nodes { type issue { state { type } archivedAt } } pageInfo { hasNextPage } } } }";
 const COMMENTS =
   "query LisaNpmComments($id: String!, $after: String) { issue(id: $id) { comments(first: 100, after: $after) { nodes { id body user { id } botActor { id } } pageInfo { hasNextPage endCursor } } } }";
 const COMMENT =
@@ -42,28 +45,6 @@ const COMMENT_CREATE =
   "mutation LisaNpmCommentCreate($input: CommentCreateInput!) { commentCreate(input: $input) { success comment { id body issue { identifier } } } }";
 /** Linear's priority scale: 3 is Medium. */
 const MEDIUM = 3;
-
-/** Completed, cancelled and archived issues are closed history, never claimable. */
-function closed(node) {
-  return (
-    Boolean(node?.archivedAt) ||
-    ["completed", "canceled"].includes(node?.state?.type)
-  );
-}
-
-/** A GraphQL connection page in the bounded search shape discoverPrior already checks. */
-function searchResult(connection) {
-  const nodes = connection?.nodes;
-  required(Array.isArray(nodes), "tracker search reply differs");
-  return {
-    incomplete_results: connection.pageInfo?.hasNextPage !== false,
-    total_count: nodes.length,
-    items: nodes.map(node => ({
-      number: node.number,
-      state: closed(node) ? "closed" : "open",
-    })),
-  };
-}
 
 /** The API key's own user is the only identity a Linear write can prove. */
 function commentRecord(node) {
@@ -152,6 +133,7 @@ export class LinearTracker {
       node?.identifier === this.ref(number) && node.number === number,
       "live issue scope differs"
     );
+    completeConnections(node);
     this.ids.set(number, node.id);
     return {
       number,

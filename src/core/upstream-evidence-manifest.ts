@@ -235,9 +235,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-tracker-jira.mjs":
       "6d4e03019a8c98bc027971c95e03a7892e080b309301ad603ed9aa398beefacd",
     "all/copy-overwrite/scripts/lib/npm-update-tracker-linear.mjs":
-      "b9a516d2a96c1e6ae8c9fc58e983226becffb300f559860e51d3187d563b392a",
+      "3d8554fb49bcd92a849f2b4efc01f0a39eb24f9d0b579db76e7aabd0022b6f36",
     "all/copy-overwrite/scripts/lib/npm-update-tracker-wire.mjs":
-      "631669d70a897f5a5e7ef02b9c5cddbe1b4f5189f37111a287c1b436aa9dc890",
+      "99fef810f677957ce7a7f6d96e0c04c0f4185f411673eff752c130e547f557ee",
     "all/copy-overwrite/scripts/lib/npm-update-tracker.mjs":
       "aec4d2308751f928af924cb0be376b169c9542f781c6a466f2195458e04e8e30",
     "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs":
@@ -373,7 +373,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "95daabc691622b2e115600aadc520651a817fa53354626c821433b7ea22cbe0f",
+      "6f2b7d3ccfb0edeb16558023bf78e24330d9a7ec9d7a71b790f779cdda61d734",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":

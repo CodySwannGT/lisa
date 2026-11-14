@@ -64,6 +64,7 @@ interface LinearStore {
   teamKey: string;
   viewerId: string;
   members: readonly string[];
+  truncated: readonly string[];
   issues: LinearIssue[];
 }
 
@@ -75,6 +76,8 @@ export interface LinearFakeOptions {
   teamKey?: string;
   viewerId?: string;
   members?: string[];
+  /** Issue connections (labels, children, inverseRelations) to report as having another page. */
+  truncated?: string[];
 }
 
 const TEAM_ID = "team-1";
@@ -164,6 +167,17 @@ function commentNode(
 }
 
 /**
+ * One bounded issue connection; a truncated one reports another page.
+ * @param store - Fake workspace.
+ * @param name - Connection name on the issue node.
+ * @param nodes - Its nodes.
+ * @returns The connection.
+ */
+function connection(store: LinearStore, name: string, nodes: object[]) {
+  return { nodes, pageInfo: { hasNextPage: store.truncated.includes(name) } };
+}
+
+/**
  * The GraphQL issue node Linear returns.
  * @param store - Fake workspace.
  * @param issue - Stored issue.
@@ -181,9 +195,13 @@ function issueNode(store: LinearStore, issue: LinearIssue) {
     archivedAt: null,
     state: { name: state.name, type: state.type },
     assignee: issue.assigneeId ? { id: issue.assigneeId } : null,
-    labels: { nodes: issue.labels.map(name => ({ name })) },
-    children: { nodes: [] },
-    inverseRelations: { nodes: [] },
+    labels: connection(
+      store,
+      "labels",
+      issue.labels.map(name => ({ name }))
+    ),
+    children: connection(store, "children", []),
+    inverseRelations: connection(store, "inverseRelations", []),
   };
 }
 
@@ -349,6 +367,7 @@ export function fakeLinear(options: LinearFakeOptions = {}) {
     teamKey: options.teamKey ?? "ENG",
     viewerId: options.viewerId ?? "viewer-0001",
     members: options.members ?? [],
+    truncated: options.truncated ?? [],
     issues: [],
   };
   const handlers = { ...reads(store), ...writes(store) };
