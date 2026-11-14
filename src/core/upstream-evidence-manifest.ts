@@ -13086,6 +13086,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-backlink-pagination.test.ts": true,
     "tests/unit/scripts/npm-update-broker.test.ts": true,
     "tests/unit/scripts/npm-update-browser-process-observation.test.ts": true,
+    "tests/unit/scripts/npm-update-bun-ceiling.test.ts": true,
     "tests/unit/scripts/npm-update-bun-root.test.ts": true,
     "tests/unit/scripts/npm-update-cancel-origin-directory.test.ts": true,
     "tests/unit/scripts/npm-update-cancellation-lifecycle.test.ts": true,
