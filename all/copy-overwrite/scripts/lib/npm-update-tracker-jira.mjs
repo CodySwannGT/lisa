@@ -27,6 +27,7 @@ import {
   assertClaimAuthor,
 } from "./npm-update-tracker-wire.mjs";
 import {
+  canceledName,
   isoTime,
   jiraCancel,
   jiraAssertCancelled,
@@ -74,6 +75,7 @@ export class JiraTracker {
     this.provider = "jira";
     this.key = config.jira.project.trim().toUpperCase();
     this.lifecycle = trackerContract(config).lifecycle;
+    this.canceled = canceledName(config);
     this.baseUrl = credentials.baseUrl;
     this.authorization = credentials.authorization;
     this.transport = transport;
@@ -122,8 +124,7 @@ export class JiraTracker {
       // Only the configured canceled status is an explicit cancellation (#4873).
       state_reason:
         stateOf(fields.status) === "closed"
-          ? fields.status?.name?.toLowerCase() ===
-            this.lifecycle.canceled.toLowerCase()
+          ? fields.status?.name?.toLowerCase() === this.canceled.toLowerCase()
             ? "not_planned"
             : "completed"
           : null,

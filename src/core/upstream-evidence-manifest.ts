@@ -233,11 +233,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs":
       "03e58c15ceee04a80a2c2a597454132ab742fc13c878eb1cb742a6ee0e045045",
     "all/copy-overwrite/scripts/lib/npm-update-tracker-cancel.mjs":
-      "857a71ea643f165e289301b3456010c9263e0ad5c4b76c097f6499bb5c2f3c5f",
+      "9839e21e15dceae661ae185860a71e25a87f64f75ac98fdb8028a6c992043cc9",
     "all/copy-overwrite/scripts/lib/npm-update-tracker-jira.mjs":
-      "005153b70338f4a755f710b6e7c14bf55597ee41988fe41a5d522663454bbf55",
+      "4e8a32c39b6e821f84e1242d9df9ec27d07ad9f796f4df08b7ae43ad7d12ad4c",
     "all/copy-overwrite/scripts/lib/npm-update-tracker-linear.mjs":
-      "ce558a08d8e5631ecd4bd2c98ad69a747e818fc6ea559b3bff9e75618d3b14a2",
+      "34771ef30fc4809d8f534e996b6a511d577f330625d3ef048d4b62c221a404d9",
     "all/copy-overwrite/scripts/lib/npm-update-tracker-wire.mjs":
       "cc63043db3ef68b6069705ba9d9c982bf7c051a24e5e3b3648f8e9f25f1c71ec",
     "all/copy-overwrite/scripts/lib/npm-update-tracker.mjs":
@@ -365,7 +365,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "457a34f6e83a93c93c6b4f2b516ef546d22dd60f4d0098418347768adeb0d2f4",
+      "70a2e04018d6353498b49ee52c9fade01a477c17ffd5c1f1806a57f1512d4891",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -375,7 +375,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "202279101c5cc6667fffc964d290effa75b0f57cbdee5e2bff0dadab666d5a2b",
+      "6c8793037d0762b0f7552351e17032c23498f650f22c7a78232dd26815a06928",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":

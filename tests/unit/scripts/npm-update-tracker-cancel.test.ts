@@ -28,6 +28,7 @@ import {
   validatePolicy,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-policy.mjs";
 import { cancellationRecord } from "../../../all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs";
+import { canceledName } from "../../../all/copy-overwrite/scripts/lib/npm-update-tracker-cancel.mjs";
 import { createGhRequests } from "../../../all/copy-overwrite/scripts/lib/npm-update-gh-requests.mjs";
 import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
 import { withPrivateRoot } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
@@ -346,5 +347,24 @@ describe("the shared closure and publish-authority guards (#4873 review)", () =>
         issue
       )
     ).toBeUndefined();
+  });
+});
+
+describe("where a cancelled item is moved", () => {
+  it("reads jira.workflow.canceled and linear.workflow.canceled, with their defaults", () => {
+    expect(canceledName(JIRA_CONFIG)).toBe("Won't Do");
+    expect(
+      canceledName({
+        ...JIRA_CONFIG,
+        jira: { ...JIRA_CONFIG.jira, workflow: { canceled: " Cancelled " } },
+      })
+    ).toBe("Cancelled");
+    expect(canceledName(LINEAR_CONFIG)).toBeNull();
+    expect(
+      canceledName({
+        ...LINEAR_CONFIG,
+        linear: { ...LINEAR_CONFIG.linear, workflow: { canceled: "Dropped" } },
+      })
+    ).toBe("Dropped");
   });
 });

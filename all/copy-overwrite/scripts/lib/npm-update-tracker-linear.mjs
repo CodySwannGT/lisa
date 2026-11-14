@@ -28,6 +28,7 @@ import {
   assertClaimAuthor,
 } from "./npm-update-tracker-wire.mjs";
 import {
+  canceledName,
   linearCancel,
   linearAssertCancelled,
 } from "./npm-update-tracker-cancel.mjs";
@@ -83,6 +84,7 @@ export class LinearTracker {
     this.provider = "linear";
     this.key = config.linear.teamKey.trim().toUpperCase();
     this.lifecycle = trackerContract(config).lifecycle;
+    this.canceled = canceledName(config);
     this.url = credentials.baseUrl;
     this.authorization = credentials.authorization;
     this.transport = transport;

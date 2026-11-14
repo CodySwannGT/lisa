@@ -17,6 +17,26 @@ const PAGES = 20;
 const HISTORY =
   "query LisaNpmIssueHistory($id: String!, $after: String) { issue(id: $id) { history(first: 100, after: $after) { nodes { createdAt actor { id } toState { id type } } pageInfo { hasNextPage endCursor } } } }";
 
+/**
+ * Where a cancelled or superseded item is moved, from the same workflow keys the
+ * lifecycle reads: Jira's `jira.workflow.canceled` (default "Won't Do"), and
+ * Linear's `linear.workflow.canceled` or, when unset, the team's one state of
+ * type `canceled` (null). Never a lifecycle role, so it cannot read as ready,
+ * claimed or done.
+ * @param {object} config - Committed Lisa config.
+ * @returns {string|null} The configured name, or null for Linear's type default.
+ */
+export function canceledName(config) {
+  const workflow =
+    config.tracker === "jira"
+      ? config.jira?.workflow
+      : (config.linear?.workflow ?? config.linear?.labels?.build);
+  const configured = workflow?.canceled;
+  if (typeof configured === "string" && configured.trim())
+    return configured.trim();
+  return config.tracker === "jira" ? "Won't Do" : null;
+}
+
 /** Jira writes `+0000`; every timestamp the updater compares is normalized ISO-8601. */
 export function isoTime(value) {
   const parsed = Date.parse(
@@ -35,7 +55,7 @@ function foreignClosure(ref) {
 
 /** Jira: one workflow transition into the configured canceled status. */
 export function jiraCancel(jira, number) {
-  return jira.moveTo(number, jira.lifecycle.canceled);
+  return jira.moveTo(number, jira.canceled);
 }
 
 /** Jira: the newest status change must be into the canceled status, by the automation account. */
@@ -61,8 +81,7 @@ export async function jiraAssertCancelled(jira, number) {
   const last = moves.at(-1);
   const into = last?.items.filter(item => item.field === "status").at(-1);
   required(
-    String(into?.toString ?? "").toLowerCase() ===
-      jira.lifecycle.canceled.toLowerCase(),
+    String(into?.toString ?? "").toLowerCase() === jira.canceled.toLowerCase(),
     "cancellation closure readback differs"
   );
   if (last.author?.accountId !== (await jira.myself()))
@@ -72,7 +91,7 @@ export async function jiraAssertCancelled(jira, number) {
 /** Linear: the configured canceled state, else the team's one state of type `canceled`. */
 export async function linearCanceledState(linear) {
   const states = (await linear.team()).states.nodes;
-  const name = linear.lifecycle.canceled;
+  const name = linear.canceled;
   const matches = name
     ? states.filter(state => state.name.toLowerCase() === name.toLowerCase())
     : states.filter(state => state.type === "canceled");
