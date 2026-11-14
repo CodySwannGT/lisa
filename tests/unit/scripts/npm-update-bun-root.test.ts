@@ -3,7 +3,6 @@
  * npm updater for a declared npm subdirectory (CodySwannGT/lisa#4862), while a
  * root-only npm host keeps exactly its historical inputs and commands.
  */
-import { execFileSync } from "node:child_process";
 import {
   chmodSync,
   mkdirSync,
@@ -16,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { installInputs } from "../../../all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs";
 import { bunOnlyRoot } from "../../../all/copy-overwrite/scripts/lib/npm-update-bun.mjs";
 
@@ -77,7 +77,10 @@ function recordInstall(script: string, files: readonly string[]) {
     chmodSync(join(bin, tool), 0o755);
   }
   writeFileSync(log, "");
-  execFileSync("bash", ["-eu", "-c", script], {
+  boundedExecFileSync({
+    label: "workflow controller install",
+    command: "/bin/bash",
+    args: ["-eu", "-c", script],
     cwd: host,
     env: {
       PATH: `${bin}:/usr/bin:/bin`,

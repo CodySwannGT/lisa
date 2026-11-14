@@ -1,27 +1,7 @@
-vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
-    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
-    [38;5;246m│[0m
- [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
- [38;5;240m   │[0m        ─────────────────┬─────────────────  
- [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
-[38;5;246m────╯[0m
-
-vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
-    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
-    [38;5;246m│[0m
- [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
- [38;5;240m   │[0m        ─────────────────┬─────────────────  
- [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
-[38;5;246m────╯[0m
-
-vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
-    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
-    [38;5;246m│[0m
- [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
- [38;5;240m   │[0m        ─────────────────┬─────────────────  
- [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
-[38;5;246m────╯[0m
-
+# #4862 red controls, run on a throwaway detached worktree at 2152f39cff (removed afterwards)
+## Red 1: npm-update-hosted-gate.mjs rootManager forced to "npm" -> gate integration test
+lisa-test-run: TMPDIR <tmp> is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (87 ms); kept 19 entries not private to this user
 vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
     [38;5;246m│[0m
@@ -31,19 +11,19 @@ vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswa
 [38;5;246m────╯[0m
 
 
- RUN  v4.1.11 ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root
+ RUN  v5.1.0 /private/tmp/v4862-scratch
 
-Sourcemap for "~/workspace/lisa/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-setup.js" points to missing source files
-lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
-Sourcemap for "~/workspace/lisa/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
- ❯ |lisa| tests/integration/npm-update-bun-root.test.ts (2 tests | 2 failed) 1598ms
-     × installs the root with frozen Bun and keeps every input byte 824ms
-     × refuses a root npm proposal on a Bun-only root before installing 773ms
+Sourcemap for "~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/node_modules/.bun/@codyswann+lisa@5.0.1+1bc0933c9026d41b/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-setup.js" points to missing source files
+Sourcemap for "~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/node_modules/.bun/@codyswann+lisa@5.0.1+1bc0933c9026d41b/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
+ × |lisa| tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > installs the root with frozen Bun and keeps every input byte 914ms
+   → ENOENT: no such file or directory, open '<tmp>/fixture'
+ × |lisa| tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > refuses a root npm proposal on a Bun-only root before installing 834ms
+   → expected { …(2) } to deeply equal { …(2) }
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
 
  FAIL  |lisa| tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > installs the root with frozen Bun and keeps every input byte
-Error: ENOENT: no such file or directory, open '<tmp>/lisa-scratch/run-14117-1794646925044-ea1d8c9b/worker-14117-da63ca62eb582d55/lisa-npm-update-bUr3e1/host/package-lock.json'
+Error: ENOENT: no such file or directory, open '<tmp>/fixture'
  ❯ all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs:113:24
     111|     ...installInputs(context.proposal, rootManager),
     112|     ...(ruby ? ["Gemfile", "Gemfile.lock"] : []),
@@ -52,10 +32,12 @@ Error: ENOENT: no such file or directory, open '<tmp>/lisa-scratch/run-14117-179
     114|   if (rootManager === "bun") {
     115|     const bun = await qualifiedBun(installed, { deadline: context.dead…
  ❯ installHostedDependencies all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs:113:5
- ❯ tests/integration/npm-update-bun-root.test.ts:98:13
+ ❯ tests/integration/npm-update-bun-root.test.ts:99:13
  ❯ withPrivateRoot all/copy-overwrite/scripts/lib/npm-update-process-core.mjs:65:12
- ❯ tests/integration/npm-update-bun-root.test.ts:95:22
+ ❯ tests/integration/npm-update-bun-root.test.ts:96:22
 
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -2, code: 'ENOENT', syscall: 'open', path: '<tmp>/fixture' }
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
 
  FAIL  |lisa| tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > refuses a root npm proposal on a Bun-only root before installing
@@ -67,22 +49,55 @@ AssertionError: expected { …(2) } to deeply equal { …(2) }
   {
     "installed": false,
 -   "message": "Invalid automation provenance: a Bun-only root supports only a subdirectory npm proposal",
-+   "message": "ENOENT: no such file or directory, open '<tmp>/lisa-scratch/run-14117-1794646925044-ea1d8c9b/worker-14117-da63ca62eb582d55/lisa-npm-update-4cQXXj/host/package-lock.json'",
++   "message": "ENOENT: no such file or directory, open '<tmp>/fixture'",
   }
 
- ❯ tests/integration/npm-update-bun-root.test.ts:142:22
-    140|       };
-    141|     });
-    142|     expect(observed).toEqual({
+ ❯ tests/integration/npm-update-bun-root.test.ts:136:22
+    134|       };
+    135|     });
+    136|     expect(observed).toEqual({
        |                      ^
-    143|       message:
-    144|         "Invalid automation provenance: a Bun-only root supports only …
+    137|       message:
+    138|         "Invalid automation provenance: a Bun-only root supports only …
 
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
 
 
  Test Files  1 failed (1)
       Tests  2 failed (2)
-   Start at  04:02:04
-   Duration  2.59s (transform 539ms, setup 123ms, import 707ms, tests 1.60s, environment 0ms)
+   Start at  04:19:39
+   Duration  2.57s (tests 74%, transform 16%, import 8%, setup 2%)
 
+
+## Red 2: npm-updater.yml Bun-only condition replaced by "if false" (4 sites) -> workflow dispatch test
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > Bun-only root detection > is Bun-only only with bun.lock and no package-lock.json 3ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > hosted gate install inputs > keeps the historical root npm inputs byte for byte 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > hosted gate install inputs > guards bun.lock instead of a root package-lock.json on a Bun-only root 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > hosted gate install inputs > refuses a root proposal on a Bun-only root 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > prepare runs the unchanged npm ci on a root npm host 177ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > allocate runs the unchanged npm ci on a root npm host 160ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > gate runs the unchanged npm ci on a root npm host 157ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > publish runs the unchanged npm ci on a root npm host 164ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > prepare keeps npm ci on a dual-lock root 157ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > allocate keeps npm ci on a dual-lock root 161ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > gate keeps npm ci on a dual-lock root 155ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > publish keeps npm ci on a dual-lock root 155ms
+ × |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > prepare installs a Bun-only root with frozen Bun 159ms
+ × |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > allocate installs a Bun-only root with frozen Bun 186ms
+ × |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > gate installs a Bun-only root with frozen Bun 156ms
+ × |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > publish installs a Bun-only root with frozen Bun 153ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > prepare sets up Bun before its controller install 2ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > allocate sets up Bun before its controller install 3ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > gate sets up Bun before its controller install 2ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > publish sets up Bun before its controller install 2ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected 'npm install --global npm@11.21.0 --ig…' to be 'npm install --global npm@11.21.0 --ig…' // Object.is equality
+ Test Files  1 failed (1)
+      Tests  4 failed | 16 passed (20)
+
+## Bite control for the prepare probe: same Bun-only host, LISA_NPM_DIRECTORY="." must fail
+probe-bun-root-prepare {"rootLock":false,"code":1,"stdout":"","stderr":"npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=unknown)\n","files":null,"bunLockSha256":null,"rootBunUnchanged":true,"status":""}
+     × prepares externals when the root has bun.lock and no package-lock.json 1713ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=unknown)
+      Tests  1 failed (1)
