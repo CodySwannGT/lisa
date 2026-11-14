@@ -39,8 +39,17 @@ vi.mock(
 const PUSH = "push";
 const PASS_SCRIPT = "check-pass";
 const FAIL_SCRIPT = "check-fail";
+const TESTS_GATE = "test-correctness";
 /** A declared failure shape, so a bare exit 1 reads as FAILED, not UNPROVABLE. */
 const FAILED_LINE = "fixture gate FAILED";
+/**
+ * A failing test file the fixture's failing script names, Jest-style. The
+ * script prints it as an ABSOLUTE path under the fixture's own root, which the
+ * report relativises. Printed relative, the line would also land in Lisa's own
+ * push-gate transcript and be recorded as a phantom failing file there
+ * whenever that suite fails; absolute under a temp root, Lisa's gate drops it.
+ */
+const BROKEN_FILE = "tests/unit/broken.test.ts";
 
 /**
  * A clock that advances by a fixed step on every reading.
@@ -85,7 +94,7 @@ describe("runGates timing", () => {
     const { out } = sink();
     const shared = { [PUSH]: { level: "required", run: "test:cov" } };
     const result = runGates({
-      gates: { "coverage-adequacy": shared, "test-correctness": shared },
+      gates: { "coverage-adequacy": shared, [TESTS_GATE]: shared },
       moment: PUSH,
       runner: RUNNER,
       exec,
@@ -97,6 +106,39 @@ describe("runGates timing", () => {
     });
     const sharer = result.results.find(entry => entry.provedBy !== null);
     expect(sharer?.durationMs).toBe(0);
+  });
+
+  it("attaches the failing test files a failed gate's output names", () => {
+    const { out } = sink();
+    const output = [
+      " FAIL  |unit| tests/unit/a.test.ts > suite > case",
+      "FAIL src/b.test.ts (1.2 s)",
+      FAILED_LINE,
+    ].join("\n");
+    const result = runGates({
+      gates: {
+        [TESTS_GATE]: {
+          [PUSH]: { level: "required", run: "t", failure_shape: [FAILED_LINE] },
+        },
+        "type-correctness": { [PUSH]: { level: "required", run: "tc" } },
+      },
+      moment: PUSH,
+      runner: RUNNER,
+      exec: (command: string) =>
+        command.endsWith(" t") ? { code: 1, output } : { code: 0, output: "" },
+      out,
+      priorKills: [],
+      recordKill: () => true,
+      interrupted: () => null,
+      clock: steppingClock(1),
+    });
+    const byId = new Map(result.results.map(entry => [entry.id, entry]));
+    expect(byId.get(TESTS_GATE)?.failingTests).toEqual({
+      files: ["tests/unit/a.test.ts", "src/b.test.ts"],
+      truncated: false,
+    });
+    // A passing gate's output is never read for failures.
+    expect(byId.get("type-correctness")?.failingTests).toBeUndefined();
   });
 
   it("leaves a gate the run never reached without a start", () => {
@@ -158,7 +200,7 @@ describe.runIf(isMainThread)("main push timing report", () => {
         private: true,
         scripts: {
           [PASS_SCRIPT]: 'node -e "process.exit(0)"',
-          [FAIL_SCRIPT]: `node -e "console.error('${FAILED_LINE}'); process.exit(1)"`,
+          [FAIL_SCRIPT]: `node -e "console.error('FAIL ' + require('node:path').join(process.cwd(), '${BROKEN_FILE}')); console.error('${FAILED_LINE}'); process.exit(1)"`,
         },
       })
     );
@@ -169,7 +211,7 @@ describe.runIf(isMainThread)("main push timing report", () => {
           "type-correctness": {
             [PUSH]: { level: "required", run: PASS_SCRIPT },
           },
-          "test-correctness": {
+          [TESTS_GATE]: {
             [PUSH]: failing
               ? {
                   level: "required",
@@ -210,7 +252,7 @@ describe.runIf(isMainThread)("main push timing report", () => {
     expect(code).toBe(EXIT.PROVED);
     const report = onlyReport(root);
     expect(report.gates.map((gate: { id: string }) => gate.id).sort()).toEqual([
-      "test-correctness",
+      TESTS_GATE,
       "type-correctness",
     ]);
     for (const gate of report.gates) {
@@ -232,9 +274,22 @@ describe.runIf(isMainThread)("main push timing report", () => {
     ]);
     expect(code).toBe(EXIT.BLOCKED);
     const failed = onlyReport(root).gates.find(
-      (gate: { id: string }) => gate.id === "test-correctness"
+      (gate: { id: string }) => gate.id === TESTS_GATE
     );
-    expect(failed).toMatchObject({ state: "FAILED", exitCode: 1 });
+    expect(failed).toMatchObject({
+      state: "FAILED",
+      exitCode: 1,
+      failingTestFiles: [BROKEN_FILE],
+      failingTestFilesTruncated: false,
+    });
+  });
+
+  it("records no failing test files when the gates pass", async () => {
+    const root = await project(false);
+    main([`--moment=${PUSH}`, `--coverage=${path.join(root, "cov.txt")}`]);
+    for (const gate of onlyReport(root).gates) {
+      expect(gate.failingTestFiles).toEqual([]);
+    }
   });
 
   it("writes nothing at another moment", async () => {

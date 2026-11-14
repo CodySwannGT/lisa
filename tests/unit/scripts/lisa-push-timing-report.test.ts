@@ -19,6 +19,8 @@ import { sink } from "./lisa-run-gates-fixtures.js";
 
 const TESTS = "test-correctness";
 const TYPES = "type-correctness";
+const FLAKY = "tests/unit/flaky.test.ts";
+const STEADY = "tests/unit/steady.test.ts";
 const roots: string[] = [];
 
 afterEach(() => {
@@ -86,6 +88,46 @@ describe("summariseReports", () => {
     });
     expect(summary.runs).toHaveLength(3);
   });
+
+  it("counts, per test file, how many runs it failed in", () => {
+    const failing = (day: number, files: string[], truncated = false) => ({
+      ...report(day, 60_000),
+      gates: [
+        {
+          id: TESTS,
+          state: "FAILED",
+          durationMs: 1,
+          failingTestFiles: files,
+          failingTestFilesTruncated: truncated,
+        },
+        // A sibling proved by the same run repeats the list; one run is one count.
+        {
+          id: "coverage-adequacy",
+          state: "FAILED",
+          durationMs: 0,
+          failingTestFiles: files,
+        },
+      ],
+    });
+    const summary = summariseReports([
+      failing(1, [FLAKY, STEADY]),
+      failing(2, [FLAKY], true),
+      report(3, 60_000),
+      // An older report written before the field existed reads as none.
+      { ...report(4, 60_000), gates: [{ id: TESTS, state: "FAILED" }] },
+    ]);
+    expect(summary.failingFiles).toEqual([
+      { file: FLAKY, count: 2 },
+      { file: STEADY, count: 1 },
+    ]);
+    expect(summary.truncatedRuns).toBe(1);
+  });
+
+  it("reports no failing files when every run passed", () => {
+    const summary = summariseReports([report(1, 1), report(2, 1)]);
+    expect(summary.failingFiles).toEqual([]);
+    expect(summary.truncatedRuns).toBe(0);
+  });
 });
 
 describe("main", () => {
@@ -104,6 +146,33 @@ describe("main", () => {
     expect(text).toMatch(/load 2→3\/18 cores/u);
     expect(text).not.toMatch(/load 1→2/u);
     expect(text).toMatch(/3m10s/u);
+  });
+
+  it("lists how often each test file failed across the selected runs", () => {
+    const failed = {
+      ...report(2, 60_000),
+      gates: [
+        {
+          id: TESTS,
+          state: "FAILED",
+          durationMs: 60_000,
+          failingTestFiles: [FLAKY],
+        },
+      ],
+    };
+    const dir = reportDir([report(1, 60_000), failed]);
+    const { lines, out } = sink();
+    expect(main([], { dir, out, err: out })).toBe(0);
+    const text = lines.join("\n");
+    expect(text).toMatch(/failing test files/iu);
+    expect(text).toMatch(/1\/2 runs\s+tests\/unit\/flaky\.test\.ts/u);
+  });
+
+  it("prints no failing-files section when nothing failed", () => {
+    const dir = reportDir([report(1, 60_000)]);
+    const { lines, out } = sink();
+    main([], { dir, out, err: out });
+    expect(lines.join("\n")).not.toMatch(/failing test files/iu);
   });
 
   it("defaults to the last 10 reports", () => {

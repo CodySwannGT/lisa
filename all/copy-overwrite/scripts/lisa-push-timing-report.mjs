@@ -10,7 +10,10 @@
  *
  * Prints, per gate, the median and max duration and how many of the selected
  * runs recorded it; then, per run, the total wall time with the one-minute
- * load at start and end. A missing or empty `.lisa/push-timing/` exits 1 with
+ * load at start and end; then, when any selected run recorded failing test
+ * files (CodySwannGT/lisa#4896), how many of those runs each file failed in —
+ * the evidence for judging whether a slow test file ever catches anything.
+ * A missing or empty `.lisa/push-timing/` exits 1 with
  * one line saying so, because "no data" must not read as "nothing was slow".
  * @module lisa-push-timing-report
  */
@@ -35,9 +38,46 @@ export function median(values) {
 }
 
 /**
+ * The failing test files one report names, deduped across its gates: a file
+ * named by two gates that shared one run failed once, not twice. A report
+ * written before the field existed, or a malformed one, names none.
+ * @param {object} report One parsed timing report.
+ * @returns {{files: Set<string>, truncated: boolean}} The files and whether any gate's list was capped.
+ */
+function reportFailingFiles(report) {
+  const gates = Array.isArray(report?.gates) ? report.gates : [];
+  const lists = gates.map(gate =>
+    Array.isArray(gate?.failingTestFiles) ? gate.failingTestFiles : []
+  );
+  return {
+    files: new Set(lists.flat().filter(file => typeof file === "string")),
+    truncated: gates.some(gate => gate?.failingTestFilesTruncated === true),
+  };
+}
+
+/**
+ * How many reports each test file failed in, most frequent first.
+ * @param {object[]} reports Parsed timing reports.
+ * @returns {{failingFiles: Array<{file: string, count: number}>, truncatedRuns: number}} The tally.
+ */
+function tallyFailingFiles(reports) {
+  const perReport = reports.map(reportFailingFiles);
+  const counts = new Map();
+  for (const file of perReport.flatMap(entry => [...entry.files])) {
+    counts.set(file, (counts.get(file) ?? 0) + 1);
+  }
+  return {
+    failingFiles: [...counts.entries()]
+      .map(([file, count]) => ({ file, count }))
+      .sort((a, b) => b.count - a.count || a.file.localeCompare(b.file)),
+    truncatedRuns: perReport.filter(entry => entry.truncated).length,
+  };
+}
+
+/**
  * Per-gate and per-run figures for a list of reports, oldest first.
  * @param {object[]} reports Parsed timing reports.
- * @returns {{gates: Array<{id: string, count: number, medianMs: number, maxMs: number}>, runs: object[]}} The summary.
+ * @returns {{gates: Array<{id: string, count: number, medianMs: number, maxMs: number}>, runs: object[], failingFiles: Array<{file: string, count: number}>, truncatedRuns: number}} The summary.
  */
 export function summariseReports(reports) {
   const durations = new Map();
@@ -65,7 +105,7 @@ export function summariseReports(reports) {
     cores: report.cores,
     gates: (report.gates ?? []).length,
   }));
-  return { gates, runs };
+  return { gates, runs, ...tallyFailingFiles(reports) };
 }
 
 /**
@@ -126,7 +166,8 @@ export function main(
       return [];
     }
   });
-  const { gates, runs } = summariseReports(reports);
+  const { gates, runs, failingFiles, truncatedRuns } =
+    summariseReports(reports);
 
   out(`Push timing — last ${runs.length} run(s) from ${dir}/`);
   out("");
@@ -144,6 +185,19 @@ export function main(
         `${run.gates} gates  load ${formatLoad(run.loadStart)}→` +
         `${formatLoad(run.loadEnd)}/${run.cores} cores`
     );
+  }
+  if (failingFiles.length > 0) {
+    out("");
+    out(`Failing test files (runs failed in, of ${runs.length}):`);
+    for (const { file, count } of failingFiles) {
+      out(`  ${`${count}/${runs.length} runs`.padEnd(14)}${file}`);
+    }
+    if (truncatedRuns > 0) {
+      out(
+        `  (${truncatedRuns} run(s) failed more files than a report records; ` +
+          `those lists are incomplete)`
+      );
+    }
   }
   return 0;
 }

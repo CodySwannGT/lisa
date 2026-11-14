@@ -271,7 +271,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/push-gate-defaults.mjs":
       "3d6c68c6a9840007f9996dd3c018a8f6d41e663b2fdbc9efa599ea55c03eef1d",
     "all/copy-overwrite/scripts/lib/push-timing.mjs":
-      "31de9d9357839e7e63292a4c18ede6c7b66e2cc2d562ede80036cc90f24d0d9f",
+      "684c2e824e1d8682fffeef181e8801e8d4f6f5bc4d1c78ac6becbecb1eb199bd",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -375,7 +375,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "1b949b5687b2352eb5e712c055ab2fd4648380e7ab4da0c9457eac9b2be17a71",
     "all/copy-overwrite/scripts/lisa-push-timing-report.mjs":
-      "96aed02d22f93cc15ea83182c6fcf05a994ee45c7e38807dc34cf31d38ebbb70",
+      "0bfa5e899305b7c89d5b8e496953326ef2240e019bddebea63a5467ecae592bf",
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs":
       "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
@@ -383,7 +383,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "fa78b5b7756ff5407931e066b7fc12076551a5af272d91fe6ff2610b7117d283",
+      "99eb89df79bdee353136525d273cbb168b5c289f1ef0876120c73bf61d01901a",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -399,7 +399,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "16b689b214a6266145f9efc9de0471d7ae06e092c1d0f84cb76f523373c1deda",
+      "9dbe1d8ba2c9db60ecd1efbe467ee48e16ca26ecb32d08f5f982fbed5ce486e6",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2567,7 +2567,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs":
-      "dc16136bd8afc8a2e686bf014109684a66051088d1b41150c4d1922a6d8e883f",
+      "2e5c231ac779fcfd3ef3380282268d5e163544dabe41fb6ee41eb5109320c6c3",
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
       "00d504a0fee1f2a75d7328dc848cacabe6fd9360beacc5bf9632d0741388ade2",
     "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb":
