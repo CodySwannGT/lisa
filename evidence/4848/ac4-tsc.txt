@@ -1,0 +1,1 @@
+tsc --noEmit exit=0 at HEAD 6f712d0baba73b13a871dbf5fc4776278e40ecb2
