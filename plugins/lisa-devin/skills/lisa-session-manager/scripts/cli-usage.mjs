@@ -267,8 +267,8 @@ Per cycle
       --owner adds message "<owner>'s answer: ...".
   blocked-plan [--input <file>] [--ref <ref>]  STDIN (without --input): JSON
       {labels,body,comments,humanNeededLabel?,edges,pendingQuestion?}.
-      Trusted hold releasers are sessionManager.trustedAuthorIds (none when
-      unset; plain and id: entries, compared as ids; login: entries never
+      Trusted hold releasers are sessionManager.trustedReleaseIds, else
+      trustedAuthorIds (none when both unset; plain and id: entries, compared as ids; login: entries never
       release); trustedHumanActorIds in the input is ignored. stdout
       {action:release|keep|decide|escalate|skip-human-gate,reason,edges,gate}.
       --ref fills pendingQuestion from the ledger.
@@ -294,7 +294,8 @@ Per cycle
       configured human-needed label, else the configured blocked role;
       exhausted also moves to the blocked role. comment starts with
       [lisa-session-manager-question] and says, in plain words, how to
-      answer: on the item (only when operatorIds or trustedAuthorIds is set;
+      answer: on the item (only when operatorIds, trustedReleaseIds or
+      trustedAuthorIds is set;
       answerWith.item is null otherwise), with the answerCommand that status
       lists, or on Telegram when it is the channel. Exit 2 for an unknown
       kind, empty or credential-shaped text, no marker configured, or

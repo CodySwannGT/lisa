@@ -520,7 +520,7 @@ const TOKEN_VALUE = /^\d{5,}:[A-Za-z0-9_-]{30,}$/;
  * A legacy Jira Cloud accountId (`557058:<uuid>`), which `TOKEN_VALUE` also
  * matches (CodySwannGT/lisa#4719).
  *
- * Exempted only for `operatorIds` / `trustedAuthorIds` entries, where a Jira
+ * Exempted only for `operatorIds` / `trustedAuthorIds` / `trustedReleaseIds` entries, where a Jira
  * project puts exactly this id. A Telegram token's secret half is never in
  * canonical UUID form, so the exemption lets no token through.
  */
@@ -528,7 +528,11 @@ const JIRA_LEGACY_ACCOUNT_ID =
   /^\d+:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The block's id lists, whose entries the credential scan reads by kind. */
-const ID_LIST_KEYS = new Set(["operatorIds", "trustedAuthorIds"]);
+const ID_LIST_KEYS = new Set([
+  "operatorIds",
+  "trustedAuthorIds",
+  "trustedReleaseIds",
+]);
 
 /** Key names that only ever hold a credential. */
 const CREDENTIAL_KEY = /token|secret|password|passwd|api[-_]?key|credential/i;
@@ -803,7 +807,14 @@ function findCredentials(value, path, segments = []) {
 const ID_ENTRY_PREFIX = /^([A-Za-z]+):/;
 
 /** The kinds an id entry's prefix may name. */
-const ID_ENTRY_KINDS = new Set(["login", "id"]);
+const ID_ENTRY_KINDS = new Set(["login", "id", "integration"]);
+
+/**
+ * The one list an `integration:` entry belongs in (CodySwannGT/lisa#4895): an
+ * integration may author dispatched work, but it is not a person, so it can
+ * never be an operator or release a human hold.
+ */
+const INTEGRATION_LIST_KEYS = new Set(["trustedAuthorIds"]);
 
 /** Letters-and-colon starts of real tracker ids (JSM customers' `qm:`). */
 const PLAIN_ID_STARTS = new Set(["qm"]);
@@ -817,10 +828,11 @@ const ALL_DIGIT_ENTRY = /^\d+$/;
  * A local copy of the grammar in `scripts/operator-id-kinds.mjs`, because
  * plugin payload scripts ship standalone; `operator-id-kinds.test.ts` pins
  * the two together. `login:<v>` is a GitHub login, `id:<v>` an account id,
- * and an entry with no letters-only prefix is plain (a Jira accountId such as
+ * `integration:<service>` an integration that files items no person authored
+ * (CodySwannGT/lisa#4895), and an entry with no letters-only prefix is plain (a Jira accountId such as
  * `557058:<uuid>` or `qm:<id>` included).
  * @param {string} entry One entry.
- * @returns {"login" | "id" | "plain" | "unknown-prefix" | "empty-value"} Kind.
+ * @returns {"login" | "id" | "integration" | "plain" | "unknown-prefix" | "empty-value"} Kind.
  */
 export function classifyIdEntry(entry) {
   const prefix = ID_ENTRY_PREFIX.exec(entry)?.[1];
@@ -882,7 +894,7 @@ function idEntryCredentials(entry, path) {
  * drop a person. The refusal never repeats the entry's value: a token pasted
  * behind an unknown prefix (`ID:<token>`) would otherwise land in terminals,
  * CI logs and transcripts (CodySwannGT/lisa#4754).
- * @param {string} key `operatorIds` or `trustedAuthorIds`.
+ * @param {string} key `operatorIds`, `trustedAuthorIds` or `trustedReleaseIds`.
  * @param {readonly string[]} ids Entries, already known to be strings.
  * @returns {string[]} Problems found.
  */
@@ -896,9 +908,18 @@ function idEntryProblems(key, ids) {
       return [
         `${path} has an ` +
           `unknown prefix ${JSON.stringify(prefix)}. Use login:<GitHub ` +
-          `login>, id:<numeric or tracker account id>, or a plain id; write ` +
-          `a tracker id that itself starts with letters and a colon as ` +
-          `id:<that id>.`,
+          `login>, id:<numeric or tracker account id>, ` +
+          `integration:<service> (trustedAuthorIds only), or a plain id; ` +
+          `write a tracker id that itself starts with letters and a colon ` +
+          `as id:<that id>.`,
+      ];
+    }
+    if (kind === "integration" && !INTEGRATION_LIST_KEYS.has(key)) {
+      return [
+        `${path} is an integration: entry, which belongs only in ` +
+          `sessionManager.trustedAuthorIds. An integration can author ` +
+          `dispatched work but is not a person, so it can never be an ` +
+          `operator, answer a question, or release a human hold.`,
       ];
     }
     return kind === "empty-value"
@@ -981,6 +1002,31 @@ function validateOperatorIds(ids) {
 }
 
 /**
+ * Validate one trust list: `trustedAuthorIds` (whose items may be dispatched)
+ * or `trustedReleaseIds` (who may release a human hold; CodySwannGT/lisa#4895).
+ * Both take stable ids, never logins or display names, and both refuse an
+ * empty list, which reads as set while trusting no one or everyone.
+ * @param {"trustedAuthorIds" | "trustedReleaseIds"} key The list's key.
+ * @param {unknown} ids The value, if present.
+ * @param {string} emptyProblem The refusal for an empty list.
+ * @returns {string[]} Problems found.
+ */
+function validateTrustList(key, ids, emptyProblem) {
+  if (ids === undefined) return [];
+  if (
+    !Array.isArray(ids) ||
+    !ids.every(id => typeof id === "string" && id !== "")
+  ) {
+    return [
+      `sessionManager.${key} must be an array of stable ` +
+        `tracker user ids (GitHub numeric user id, Jira accountId, ` +
+        `Linear user id), not logins or display names.`,
+    ];
+  }
+  return ids.length === 0 ? [emptyProblem] : idEntryProblems(key, ids);
+}
+
+/**
  * Validate the opt-in `sessionManager` block.
  *
  * Structure only, like the rest of this file: whether the bot answers or tmux
@@ -998,11 +1044,6 @@ export function validateSessionManager(block) {
     typeof block.name === "string" && SESSION_MANAGER_NAME.test(block.name);
   const intervalOk =
     block.interval === undefined || parseLoopInterval(block.interval) !== null;
-  const trustedOk =
-    block.trustedAuthorIds === undefined ||
-    (Array.isArray(block.trustedAuthorIds) &&
-      block.trustedAuthorIds.every(id => typeof id === "string" && id !== ""));
-
   return [
     ...(nameOk
       ? []
@@ -1021,27 +1062,23 @@ export function validateSessionManager(block) {
     ...validateNumberBlock("capacity", block.capacity, CAPACITY_RULES),
     ...validateNumberBlock("stall", block.stall, STALL_RULES),
     ...validateNotify(block.notify),
-    ...(trustedOk
-      ? []
-      : [
-          `sessionManager.trustedAuthorIds must be an array of stable ` +
-            `tracker user ids (GitHub numeric user id, Jira accountId, ` +
-            `Linear user id), not logins or display names.`,
-        ]),
-    ...(trustedOk && Array.isArray(block.trustedAuthorIds)
-      ? idEntryProblems("trustedAuthorIds", block.trustedAuthorIds)
-      : []),
-    // An empty list reads as "set" but filters no author at all, so on a
-    // public repo it would dispatch anyone's item while looking configured.
-    ...(trustedOk &&
-    Array.isArray(block.trustedAuthorIds) &&
-    block.trustedAuthorIds.length === 0
-      ? [
-          `sessionManager.trustedAuthorIds must name at least one author id. ` +
-            `An empty list filters no author at all; remove the key instead ` +
-            `if every author's item may be dispatched.`,
-        ]
-      : []),
+    ...validateTrustList(
+      "trustedAuthorIds",
+      block.trustedAuthorIds,
+      `sessionManager.trustedAuthorIds must name at least one author id. ` +
+        `An empty list filters no author at all; remove the key instead ` +
+        `if every author's item may be dispatched. Removing it also ` +
+        `removes who may release a human hold, unless ` +
+        `sessionManager.trustedReleaseIds names them; to dispatch items an ` +
+        `integration files, add integration:<service> instead.`
+    ),
+    ...validateTrustList(
+      "trustedReleaseIds",
+      block.trustedReleaseIds,
+      `sessionManager.trustedReleaseIds must name at least one person. ` +
+        `An empty list releases no hold at all; remove the key instead to ` +
+        `fall back to trustedAuthorIds.`
+    ),
     ...validateOperatorIds(block.operatorIds),
     ...validateBacklogPickup(block.backlogPickup, block.operatorIds),
     ...findCredentials(block, "sessionManager"),

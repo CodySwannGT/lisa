@@ -118,11 +118,21 @@ the manager.
   **which items are dispatched** to those whose author (the item's creator) is trusted; `queue`
   enforces it. It does not vet the comments, later body edits or attachments on a dispatched item:
   a worker under `managedBy=` treats text from anyone other than the item's author or a trusted
-  author as untrusted data (`lisa-implement`). The same list is the only source of who may release
-  a human hold in `blocked-plan`. Without it, any author's Ready item is dispatched. A plain
-  entry is the author's stable id (GitHub numeric user id, Jira accountId, Linear user id);
+  author as untrusted data (`lisa-implement`). Without it, any author's Ready item is dispatched. A
+  plain entry is the author's stable id (GitHub numeric user id, Jira accountId, Linear user id);
   `id:<v>` says so outright, and `login:<v>` names a GitHub login, which the queue and
-  `item-answer` match but `blocked-plan` (ids only) never does.
+  `item-answer` match but `blocked-plan` (ids only) never does. `integration:<service>` trusts the
+  items an integration files with no person behind them (Linear leaves `creator` null for those
+  and records the filer on `botActor`; the value is its `subType`, such as `sentry`, else its
+  `name`). It never matches an item a person or an outside user filed, and `queue` prints the value
+  beside each such `untrusted-author` exclusion (`authorIntegration`). GitHub Apps and Jira
+  automation file as an account, so trust them by `id:` instead.
+- **Who may release a hold is a separate list.** `sessionManager.trustedReleaseIds` names who may
+  release a human hold in `blocked-plan` and the orphan sweep, and who may answer on the item; unset,
+  it falls back to `trustedAuthorIds`. It takes the same `id:` / `login:` / plain entries, never
+  `integration:`, because an integration is not a person. With neither set, no hold is released.
+  Removing `trustedAuthorIds` to dispatch integration-filed items would also remove every hold
+  releaser; add `integration:<service>` instead.
 
 ## Questions and notifications
 
@@ -135,7 +145,7 @@ the manager.
   (text on STDIN), mark the item as "Mark and move on" says, and carry on with the rest of the
   cycle. The operator sees pending questions with `status` (`pendingQuestions`), answers with the
   `answerCommand` that `status` lists for the item (or on the item, when
-  `sessionManager.operatorIds` or `trustedAuthorIds` is set), and the next cycle picks the answer
+  `sessionManager.operatorIds`, `trustedReleaseIds` or `trustedAuthorIds` is set), and the next cycle picks the answer
   up. The cycle ends with whatever
   outcome its work earns: having no channel never makes a cycle `recovery-required`.
 - **Telegram configured** (`notify` is `telegram`):
@@ -441,7 +451,8 @@ shows them.
   null; its text changed since it was marked, say): no reply is read, because the last recorded
   question comment is still the old question's and a reply to it is not this question's answer.
   Finish "Mark and move on" from step 1 for it, as for `marked: false` above.
-  `reason: "no-answerers-configured"` means neither `operatorIds` nor `trustedAuthorIds` is set,
+  `reason: "no-answerers-configured"` means none of `operatorIds`, `trustedReleaseIds` and
+  `trustedAuthorIds` is set,
   so nothing on the item is read (the tracker identity is the one workers post as); the operator
   answers with the `answerCommand` from `status`. A reply that looks like it holds a credential is
   never queued: it is skipped and listed in `refused`, so a later reply is still read.
@@ -605,7 +616,10 @@ Skip while `capacity` reports `paused`. Otherwise:
      `complete` to `true` only when you really reached the last page; the CLI refuses anything else.
      Raw Jira issues carry `key` and `fields` (summary, priority, assignee, created, labels,
      description, reporter, issuetype, subtasks); raw Linear nodes carry identifier, title, priority,
-     createdAt, assignee, labels, description, creator and children with their state type.
+     createdAt, assignee, labels, description, creator, `botActor { type subType name }`,
+     `externalUserCreator { id }` and children with their state type. Ask for both author fields:
+     without `externalUserCreator` an integration-filed item is never trusted by an
+     `integration:` entry, because an outside user may have filed it.
    - `ordered` is the dispatch order: assigned to an operator, then to "me", then unassigned; each
      group by priority, then age. `excluded` needs no action. `setupGaps` lists each repo the
      manager will not dispatch to until the operator fixes it (`kind`, `detail`, and `clear`, the

@@ -32,7 +32,10 @@
  * is compared exactly as before (with the normalized assignee id, or the
  * normalized author id). Each normalizer therefore also carries the login and
  * the account id of the assignee and the login of the author, where its
- * tracker has them, so the kinds never have to be guessed.
+ * tracker has them, so the kinds never have to be guessed. A trusted-author
+ * entry may also be `integration:<service>` (#4895): it matches an item no
+ * person authored, by the integration the tracker records as its filer
+ * (`authorIntegration`, today only Linear's `botActor`).
  *
  * Held items are judged by {@link isHumanGated}, the one shared answer to "is
  * a person holding this?", rather than by a local label check (#3805).
@@ -207,6 +210,9 @@ export function normalizeGithubIssue(issue, options = {}) {
     // explicitly, knowing a freed login can be re-registered (#4623).
     authorId: idOrNull(issue.user?.id),
     authorLogin: idOrNull(issue.user?.login),
+    // A GitHub App files as its own bot user, which has an id: trust it with
+    // `id:` like any author. No integration-only authorship exists here.
+    authorIntegration: null,
     isContainer: Number(summary?.total ?? 0) > Number(summary?.completed ?? 0),
     // `blocked_by` in the dependency summary counts only OPEN blockers.
     openBlockers: count(issue.issue_dependencies_summary?.blocked_by),
@@ -247,12 +253,39 @@ export function normalizeJiraIssue(issue) {
     body: adfText(fields.description),
     authorId: idOrNull(fields.reporter?.accountId ?? fields.creator?.accountId),
     authorLogin: null,
+    // Jira automation and integrations file as an account (the reporter), so
+    // they are trusted by accountId; no integration-only authorship exists.
+    authorIntegration: null,
     isContainer:
       Number(type.hierarchyLevel ?? 0) > 0 ||
       text(type.name).toLowerCase() === "epic" ||
       openSubtasks.length > 0,
     openBlockers,
   });
+}
+
+/**
+ * The integration that filed a Linear issue no person authored, or null
+ * (CodySwannGT/lisa#4895).
+ *
+ * Linear leaves `creator` null for an issue an integration or OAuth app
+ * created, and records the filer on `botActor`: `subType` names the
+ * integration service (`sentry`, `github`), and `name` the app when there is
+ * no service. `creator` is also null for a deleted account, and an
+ * integration can file on behalf of a non-Linear user (`externalUserCreator`,
+ * set by Slack or Intercom intake). Neither of those is the integration's own
+ * authorship, so both yield null. The fetch must have asked for
+ * `externalUserCreator`: when the key is missing, whether an outside person
+ * filed the item is unknown, and unknown is never trusted.
+ * @param {Record<string, any>} issue - Issue node
+ * @returns {string | null} The integration's service or app name
+ */
+function linearIntegrationAuthor(issue) {
+  if (idOrNull(issue?.creator?.id) !== null) return null;
+  if (!issue || !Object.hasOwn(issue, "externalUserCreator")) return null;
+  if (issue.externalUserCreator !== null) return null;
+  const bot = issue.botActor;
+  return idOrNull(bot?.subType) ?? idOrNull(bot?.name);
 }
 
 /**
@@ -293,6 +326,7 @@ export function normalizeLinearIssue(issue) {
     body: text(issue?.description),
     authorId: idOrNull(issue?.creator?.id),
     authorLogin: null,
+    authorIntegration: linearIntegrationAuthor(issue),
     isContainer: children.some(
       child => !LINEAR_FINISHED_STATE_TYPES.has(child?.state?.type)
     ),
@@ -306,8 +340,9 @@ export function normalizeLinearIssue(issue) {
  * dependencies whose blocker is not finished. The Ready tier ignores both.
  * `assigneeLogin` / `authorLogin` are GitHub logins (null on trackers with
  * none) and `assigneeAccountId` the assignee's account id, for kind-keyed
- * entries (#4623).
- * @param {{ ref: string, title: string, assigneeId: string | null, assigneeLogin: string | null, assigneeAccountId: string | null, priorityRank: number, createdAt: string, updatedAt: string, labels: string[], body: string, authorId: string | null, authorLogin: string | null, isContainer: boolean, openBlockers: number }} input
+ * entries (#4623). `authorIntegration` names the integration that filed an
+ * item no person authored, for `integration:` entries (#4895).
+ * @param {{ ref: string, title: string, assigneeId: string | null, assigneeLogin: string | null, assigneeAccountId: string | null, priorityRank: number, createdAt: string, updatedAt: string, labels: string[], body: string, authorId: string | null, authorLogin: string | null, authorIntegration: string | null, isContainer: boolean, openBlockers: number }} input
  */
 function shape(input) {
   return {
@@ -323,6 +358,7 @@ function shape(input) {
     body: input.body,
     authorId: input.authorId,
     authorLogin: input.authorLogin,
+    authorIntegration: input.authorIntegration,
     isContainer: input.isContainer,
     openBlockers: input.openBlockers,
     repoLabels: repoLabelsOf(input.labels),
@@ -349,7 +385,10 @@ function isOperatorItem(item, context) {
 /**
  * Whether a trusted-author entry names the item's author: a plain entry by
  * the normalized author id, as before; `login:` by the author's GitHub login;
- * `id:` by the author id (a GitHub numeric id, Jira accountId, Linear id).
+ * `id:` by the author id (a GitHub numeric id, Jira accountId, Linear id);
+ * `integration:` by the integration that filed an item with no person author
+ * (#4895). An item a person authored has no integration to match, so an
+ * `integration:` entry can never vouch for a person.
  * @param {Record<string, any>} item
  * @param {ReturnType<typeof orderingContext>} context
  * @returns {boolean}
@@ -360,6 +399,7 @@ function isTrustedAuthor(item, context) {
     plain: author,
     login: idOrNull(item.authorLogin),
     id: author,
+    integration: author === null ? idOrNull(item.authorIntegration) : null,
   };
   return context.trusted.some(entry => entryMatches(entry, fields));
 }
@@ -531,7 +571,17 @@ function rank(items, judge, context) {
     ),
     excluded: judged
       .filter(one => one.reason !== null)
-      .map(one => ({ ref: one.item.ref, reason: one.reason })),
+      .map(one => ({
+        ref: one.item.ref,
+        reason: one.reason,
+        // The value an `integration:` entry would need, so the operator can
+        // read it off the queue instead of the tracker's API (#4895).
+        ...(one.reason === "untrusted-author" &&
+        idOrNull(one.item.authorId) === null &&
+        idOrNull(one.item.authorIntegration) !== null
+          ? { authorIntegration: one.item.authorIntegration }
+          : {}),
+      })),
   };
 }
 
