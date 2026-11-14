@@ -1205,7 +1205,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/deployed-state-readback.md":
       "3ef5a52ddb8658ae53a7222dd25414380a7bdf6040c6a5271e7a6e8c73d1d654",
     "plugins/src/base/rules/reference/derived-branch-plan.md":
-      "26542594e8ae6642ff141018674c5637092f6e780f015c86e1a3c9707c456309",
+      "32d84b309bcffc812081c738333e8ef273ec46a5437eb283a71de93ced976341",
     "plugins/src/base/rules/reference/design-source-of-truth.md":
       "ef8d8e63d05d676c5f7246ba31901e42898a774b036fe65e12f87fc6d61e088e",
     "plugins/src/base/rules/reference/design-value-binding.md":
