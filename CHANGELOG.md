@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.7.0](https://github.com/CodySwannGT/lisa/compare/v5.6.0...v5.7.0) (2026-11-14)
+
+
+### Features
+
+* **session-manager:** split hold-release trust from dispatch trust and add integration: authors ([895143b](https://github.com/CodySwannGT/lisa/commit/895143b9c057255b73ee308d2760930a771311eb)), closes [CodySwannGT/lisa#4895](https://github.com/CodySwannGT/lisa/issues/4895) [CodySwannGT/lisa#4895](https://github.com/CodySwannGT/lisa/issues/4895)
+
+
+### Bug Fixes
+
+* **session-manager:** fail closed on unread creator and explicit null release list ([531c111](https://github.com/CodySwannGT/lisa/commit/531c11188db13cc711f37f1afb07cee3e403d26b)), closes [CodySwannGT/lisa#4895](https://github.com/CodySwannGT/lisa/issues/4895) [CodySwannGT/lisa#4895](https://github.com/CodySwannGT/lisa/issues/4895)
+* **session-manager:** never trust a bot's display name; integration entries cannot answer ([a35e693](https://github.com/CodySwannGT/lisa/commit/a35e69398d0e5240285936cc8cd3663bf2d9ebdc)), closes [#4895](https://github.com/CodySwannGT/lisa/issues/4895) [#4715](https://github.com/CodySwannGT/lisa/issues/4715) [CodySwannGT/lisa#4895](https://github.com/CodySwannGT/lisa/issues/4895) [CodySwannGT/lisa#4895](https://github.com/CodySwannGT/lisa/issues/4895)
+* **session-manager:** say why no answerer counts when only integrations are trusted ([519a374](https://github.com/CodySwannGT/lisa/commit/519a3741babd033fd9f9b17e57cf789bdbf3f809)), closes [CodySwannGT/lisa#4895](https://github.com/CodySwannGT/lisa/issues/4895) [CodySwannGT/lisa#4895](https://github.com/CodySwannGT/lisa/issues/4895)
+
+
+### Documentation
+
+* **session-manager:** integration trust covers the filer, not quoted text; add fail-closed evidence ([4dd97e4](https://github.com/CodySwannGT/lisa/commit/4dd97e4fc1ad1fef845859b14524bd4ec5461e24)), closes [CodySwannGT/lisa#4895](https://github.com/CodySwannGT/lisa/issues/4895) [CodySwannGT/lisa#4895](https://github.com/CodySwannGT/lisa/issues/4895)
+
 ## [5.6.0](https://github.com/CodySwannGT/lisa/compare/v5.5.0...v5.6.0) (2026-11-14)
 
 
