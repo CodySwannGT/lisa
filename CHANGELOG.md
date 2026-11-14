@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.9.0](https://github.com/CodySwannGT/lisa/compare/v5.8.2...v5.9.0) (2026-11-14)
+
+
+### Features
+
+* **session-manager:** sweep orphaned items after 2 hours, configurable ([853ebf3](https://github.com/CodySwannGT/lisa/commit/853ebf32dd9c7f3d2f4fc761b29e85625fe9ef34)), closes [CodySwannGT/lisa#4901](https://github.com/CodySwannGT/lisa/issues/4901) [CodySwannGT/lisa#4901](https://github.com/CodySwannGT/lisa/issues/4901)
+
 ### [5.8.2](https://github.com/CodySwannGT/lisa/compare/v5.8.1...v5.8.2) (2026-11-14)
 
 
