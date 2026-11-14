@@ -38,7 +38,7 @@ on:
         default: ''
         required: false
       cancel_expected_main:
-        description: Exact current main commit authorizing the replacement
+        description: Exact current tip of the target branch (main by default) authorizing the replacement
         type: string
         default: ''
         required: false
@@ -132,7 +132,8 @@ jobs:
           echo "contract major ${DECLARED_MAJOR} agreed: ${WORKFLOW_FILE} has not declared a break under this caller."
   prepare:
     needs: workflow_contract
-    if: github.ref == format('refs/heads/{0}', inputs.target_branch) && github.event_name != 'pull_request'
+    # An empty target_branch (an unset caller variable) is main, as in the CLI, never a silent skip.
+    if: github.ref == format('refs/heads/{0}', inputs.target_branch || 'main') && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

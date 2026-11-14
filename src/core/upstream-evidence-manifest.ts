@@ -171,7 +171,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-hosted-scope.mjs":
       "5081b6f28c7783d5339b57d6ed10bf6e8d7ffde83792db2ef8cfaa6bf70b8a81",
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs":
-      "531e7bc8b8893127a7e6b643b1dacc25b7a0ef5c767c4febe6f02cedf9a2e4ad",
+      "363b2e00a670234b140abea8b8360602c075fcdadb46524ad4fd6078ef12f908",
     "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs":
       "66ec5390a0af0e016880c781eae47b8c60d6fca0c79ef500e1926e42eae043bf",
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs":
@@ -189,7 +189,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-owner.mjs":
       "d2a0e25442f35f55a5d308c8e072398bcd5580ad6f6624c91340a907b5c97ca5",
     "all/copy-overwrite/scripts/lib/npm-update-policy.mjs":
-      "4ee11e80b5515dd531c59d220a3bb4592a9f63f5ae4f02e509696a6e7c294d66",
+      "bff4df0c907ee6742a7a7c927fba88e8240945d691c69230ba8837e1c16f32fb",
     "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs":
       "f3a73f543898f7946e28e4ec8788eddb88b736a22d7bfdeed67dbb2456fd9796",
     "all/copy-overwrite/scripts/lib/npm-update-process-core.mjs":
@@ -373,7 +373,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "0a9801dce76cfce0c0960168dba53125682aea2a6064294195666b17a77a42a6",
+      "3950e1390811710561b9a0b9eae03d2099538c35c07845ea526c80f09d524c52",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -3914,8 +3914,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4859/workitem-ref-grammar.txt": true,
     "evidence/4860/main-target-unchanged.txt": true,
     "evidence/4860/missing-target-fails-closed.txt": true,
+    "evidence/4860/policy-target-branch.txt": true,
     "evidence/4860/requests-use-configured-target.txt": true,
-    "evidence/4860/target-branch-spec.txt": true,
     "evidence/4860/workflow-target-gate.txt": true,
     "evidence/CodySwannGT-lisa-4496/01-outside-no-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/02-inside-manager-session.txt": true,

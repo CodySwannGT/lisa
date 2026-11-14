@@ -745,11 +745,12 @@ describe("the workflow runs prepare only on the configured target", () => {
   /** Evaluates the prepare guard's two operands for one call. */
   function prepareRuns(targetBranch: string, ref: string) {
     const match =
-      /^github\.ref == format\('refs\/heads\/\{0\}', inputs\.target_branch\) && github\.event_name != 'pull_request'$/.exec(
+      /^github\.ref == format\('refs\/heads\/\{0\}', inputs\.target_branch \|\| 'main'\) && github\.event_name != 'pull_request'$/.exec(
         condition
       );
     expect(match).not.toBeNull();
-    return ref === `refs/heads/${targetBranch}`;
+    // `inputs.target_branch || 'main'`: an empty input is main, as in the CLI.
+    return ref === `refs/heads/${targetBranch || "main"}`;
   }
 
   it("declares a target_branch input defaulting to main and passes it to the CLI", () => {
@@ -766,5 +767,6 @@ describe("the workflow runs prepare only on the configured target", () => {
     expect(prepareRuns(DEV, MAIN_REF)).toBe(false);
     expect(prepareRuns(DEV, DEV_REF)).toBe(true);
     expect(prepareRuns("main", MAIN_REF)).toBe(true);
+    expect(prepareRuns("", MAIN_REF)).toBe(true);
   });
 });

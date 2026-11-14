@@ -49,7 +49,7 @@ Generated Devin variant at <worktree>/plugins/lisa-phaser-devin (v5.2.0)
 Generated Devin variant at <worktree>/plugins/lisa-rails-devin (v5.2.0)
 Generated Devin variant at <worktree>/plugins/lisa-wiki-devin (v5.2.0)
 lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
-🧹 swept 0 stale temp dirs, 0 orphaned test processes (59 ms); kept 19 entries not private to this user
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (51 ms); kept 19 entries not private to this user
 
  RUN  v5.1.0 <worktree>
 
@@ -57,7 +57,7 @@ lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too lo
 
  Test Files  60 passed (60)
       Tests  804 passed (804)
-   Start at  01:32:04
-   Duration  36.01s (tests 93%, import 4%, setup 2%, transform 1%)
+   Start at  01:49:08
+   Duration  23.82s (tests 93%, import 4%, setup 2%, transform 1%)
 
 exit=0

@@ -5,7 +5,8 @@ origin/main actionlint exit=0
 $ raw file on this branch: only the pre-existing anchor-alias findings, which origin/main also has
 branch raw findings: 10
 origin/main raw findings: 10
-prepare.if: 135:    if: github.ref == format('refs/heads/{0}', inputs.target_branch) && github.event_name != 'pull_request'
-target_branch=dev github.ref=refs/heads/main -> prepare skipped
-target_branch=dev github.ref=refs/heads/dev -> prepare runs
-target_branch=main github.ref=refs/heads/main -> prepare runs
+prepare.if: 136:    if: github.ref == format('refs/heads/{0}', inputs.target_branch || 'main') && github.event_name != 'pull_request'
+target_branch='dev' github.ref=refs/heads/main -> prepare skipped
+target_branch='dev' github.ref=refs/heads/dev -> prepare runs
+target_branch='main' github.ref=refs/heads/main -> prepare runs
+target_branch='' github.ref=refs/heads/main -> prepare runs

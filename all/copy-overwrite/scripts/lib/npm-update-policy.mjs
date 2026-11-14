@@ -101,7 +101,7 @@ export function validatePolicy(value, config) {
     value.version === 1 &&
       validDirectory(value.directory) &&
       typeof policyTarget(value) === "string",
-    "only a committed npm directory on main is supported"
+    "only a committed npm directory on a configured target branch is supported"
   );
   validateTarget(value, config);
   required(

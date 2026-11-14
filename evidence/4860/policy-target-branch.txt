@@ -48,7 +48,7 @@ Generated Devin variant at <worktree>/plugins/lisa-phaser-devin (v5.2.0)
 Generated Devin variant at <worktree>/plugins/lisa-rails-devin (v5.2.0)
 Generated Devin variant at <worktree>/plugins/lisa-wiki-devin (v5.2.0)
 lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
-🧹 swept 0 stale temp dirs, 0 orphaned test processes (77 ms); kept 19 entries not private to this user
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (53 ms); kept 19 entries not private to this user
 
  RUN  v5.1.0 <worktree>
 
@@ -80,13 +80,13 @@ lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too lo
  ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > provenance verifies the dev source ref > reads the dev ref and requires the run on dev from the provider 2ms
  ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > provenance verifies the dev source ref > builds the hook-read GH catalogue against dev only 0ms
  ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the CLI binds the workflow input and refuses a missing branch > requires target_branch to equal the committed target 0ms
- ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the CLI binds the workflow input and refuses a missing branch > exits non-zero naming a target branch absent from the remote 104ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the CLI binds the workflow input and refuses a missing branch > exits non-zero naming a target branch absent from the remote 102ms
  ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the workflow runs prepare only on the configured target > declares a target_branch input defaulting to main and passes it to the CLI 0ms
  ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the workflow runs prepare only on the configured target > skips prepare on main and runs it on dev when target_branch is dev 0ms
 
  Test Files  1 passed (1)
       Tests  31 passed (31)
-   Start at  01:31:53
-   Duration  509ms (transform 33%, tests 32%, import 24%, setup 10%, worker 1%)
+   Start at  01:48:58
+   Duration  423ms (tests 35%, transform 29%, import 24%, setup 10%, worker 1%)
 
 exit=0

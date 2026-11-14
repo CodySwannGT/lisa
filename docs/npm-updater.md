@@ -4,7 +4,7 @@ The reusable [npm updater](../.github/workflows/npm-updater.yml) prepares one se
 
 ## Jira and Linear tracking
 
-A project that tracks work in Jira or Linear can turn the updater on. Each selected update gets one build-ready work item in that project's own tracker. It carries the same leaf text as a GitHub issue, and the same claim and checkpoint records, stored as tracker comments. The code host is still GitHub: allocation still reads the repository and `main` from GitHub, signs with GitHub attestations and publishes through GitHub.
+A project that tracks work in Jira or Linear can turn the updater on. Each selected update gets one build-ready work item in that project's own tracker. It carries the same leaf text as a GitHub issue, and the same claim and checkpoint records, stored as tracker comments. The code host is still GitHub: allocation still reads the repository and the configured target branch (`main` by default) from GitHub, signs with GitHub attestations and publishes through GitHub.
 
 What each tracker needs in the committed `.lisa.config.json`:
 
@@ -122,6 +122,7 @@ jobs:
 ```
 
 - Selection, the hosted gate, publication, cancellation and provenance all use the target: the base read, the run and certificate refs, and the pull request base. A non-`main` target is signed into the descriptor, recovery and cancellation records. A `main` or omitted target keeps byte-identical selection keys, signed artifacts and leaf text, so existing callers change nothing.
+- Trigger the caller with `push` or `workflow_dispatch` on the target branch. GitHub runs a `schedule` trigger on the default branch only, so a scheduled caller skips prepare for any target that is not the default branch.
 - One policy targets exactly one branch.
 
 Upgrade the managed Lisa scripts and the committed `automationProvenance.signerDigest` together before you add a subdirectory entry or a non-`main` target. Older hook verifiers do not know the signed `directory` or `target` fields, so they refuse those proposals rather than accept them.

@@ -822,7 +822,7 @@
       ]
     },
     "lib/npm-update-invariants.mjs": {
-      "sha256": "531e7bc8b8893127a7e6b643b1dacc25b7a0ef5c767c4febe6f02cedf9a2e4ad",
+      "sha256": "363b2e00a670234b140abea8b8360602c075fcdadb46524ad4fd6078ef12f908",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -933,7 +933,7 @@
       "children": []
     },
     "lib/npm-update-policy.mjs": {
-      "sha256": "4ee11e80b5515dd531c59d220a3bb4592a9f63f5ae4f02e509696a6e7c294d66",
+      "sha256": "bff4df0c907ee6742a7a7c927fba88e8240945d691c69230ba8837e1c16f32fb",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
