@@ -202,22 +202,37 @@ export async function verifyBunLock(bun, app, options = {}) {
   }
 }
 
+const FROZEN_INSTALL = [
+  "install",
+  "--frozen-lockfile",
+  "--ignore-scripts",
+  "--registry",
+  "https://registry.npmjs.org/",
+];
+
+/**
+ * A root is Bun-only when it has a bun.lock and no package-lock.json. The
+ * updater then installs that root with frozen Bun; it never updates bun.lock.
+ */
+export function bunOnlyRoot(cwd) {
+  return (
+    !existsSync(join(cwd, "package-lock.json")) &&
+    existsSync(join(cwd, "bun.lock"))
+  );
+}
+
+/** Script-free frozen install of a Bun-only root; the caller checks the input bytes. */
+export async function frozenRootBun(bun, app, options = {}) {
+  await bun(FROZEN_INSTALL, { ...options, cwd: app });
+}
+
 /** Frozen native installation must preserve every prepared manifest and lock byte. */
 export async function frozenBun(bun, app, files, options = {}) {
   await verifyBunLock(bun, app, options);
   const before = files.map(file =>
     readBytes(join(app, file), 1_048_576, false)
   );
-  await bun(
-    [
-      "install",
-      "--frozen-lockfile",
-      "--ignore-scripts",
-      "--registry",
-      "https://registry.npmjs.org/",
-    ],
-    { ...options, cwd: app }
-  );
+  await bun(FROZEN_INSTALL, { ...options, cwd: app });
   required(
     files.every((file, index) =>
       readBytes(join(app, file), 1_048_576, false).equals(before[index])

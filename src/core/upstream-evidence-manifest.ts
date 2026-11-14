@@ -27,7 +27,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
       "54b0844dd7b9f461ccd533603439164ce7dccdd83422344d1b085ed5f5fdfad3",
     "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs":
-      "858c3de3b63c9479c4b0c7a345f2329c7f9172f2748bcc1bab38b4a1a181524f",
+      "1ba7cda7b7de2199398571d4da0dfb183d1902857a6eb7f982f9ef0fda010269",
     "all/copy-overwrite/scripts/lib/automation-provenance-files.mjs":
       "5c3b2a88669e3e187c123850798e3dfafb3c078b6b25aa00da0ba93db03424c9",
     "all/copy-overwrite/scripts/lib/automation-provenance-local.mjs":
@@ -111,7 +111,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs":
       "bb785fc64de1dfeb09241d228c11eaf7aaf3821bafa96da4bc37f2bac28cd8d0",
     "all/copy-overwrite/scripts/lib/npm-update-bun.mjs":
-      "60e3d30e82f054a483633342891e047b08f79d20c0a5719e5e6ab276732c8e25",
+      "4178918e29a3ecf70a7aa8037e54e00adb66c2a4b14fc69d49d9217e3dac6784",
     "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs":
       "1bf82b7c4386d0012ac228d60bb02a8b6b4a93df1f6463922589998400ba284c",
     "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs":
@@ -165,7 +165,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-hook-read-client.mjs":
       "724f22f7a1d5525fca6ed593f70d6da2ffc05bf66f2b178393064fd4d86708b1",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs":
-      "ad410a4e5fec405885084abbcf77307ad971fe99bf573704c32acc674fec7a16",
+      "29cc68bb559ac5e6cb9a4884522334c9671e92dcb6fa72ceb37a3c8632c0b5ca",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs":
       "7cb0fa070365aa81bb6511dc8ec5aaa5121e85c343928f5ce0753f4892be93d6",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-scope.mjs":
@@ -373,7 +373,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "3950e1390811710561b9a0b9eae03d2099538c35c07845ea526c80f09d524c52",
+      "22f198a667c9e85874792259d6a6e1d09ef9fc299328799fb0e0a6bcdd3e4a4e",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -11851,6 +11851,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/nightly-e2e-tracking-workflow.test.ts": true,
     "tests/integration/node-suites-pr-only.test.ts": true,
     "tests/integration/npm-update-all-host-helpers.test.ts": true,
+    "tests/integration/npm-update-bun-root.test.ts": true,
     "tests/integration/npm-update-dual-lock.test.ts": true,
     "tests/integration/npm-update-rails-hook-scratch.test.ts": true,
     "tests/integration/npm-update-subdirectory.test.ts": true,
@@ -13081,6 +13082,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-backlink-pagination.test.ts": true,
     "tests/unit/scripts/npm-update-broker.test.ts": true,
     "tests/unit/scripts/npm-update-browser-process-observation.test.ts": true,
+    "tests/unit/scripts/npm-update-bun-root.test.ts": true,
     "tests/unit/scripts/npm-update-cancel-origin-directory.test.ts": true,
     "tests/unit/scripts/npm-update-cancellation-lifecycle.test.ts": true,
     "tests/unit/scripts/npm-update-cancellation-workflow.test.ts": true,

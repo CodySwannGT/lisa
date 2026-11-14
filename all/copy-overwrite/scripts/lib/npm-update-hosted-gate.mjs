@@ -10,7 +10,12 @@ import {
   policyTarget,
 } from "./npm-update-contract.mjs";
 import { installInputs } from "./automation-provenance-contract.mjs";
-import { qualifiedBun, frozenBun } from "./npm-update-bun.mjs";
+import {
+  qualifiedBun,
+  frozenBun,
+  bunOnlyRoot,
+  frozenRootBun,
+} from "./npm-update-bun.mjs";
 import { runProcess } from "./npm-update-process.mjs";
 import { qualifiedControllerGraph } from "./npm-update-helper.mjs";
 import { controllerTools } from "./npm-update-controller-factory.mjs";
@@ -89,7 +94,7 @@ function nativeStep(context, env, command, args, maximum = 3_145_728) {
 }
 
 /** Lifecycle execution is disabled; Bundler is an explicit original tool install in this credential-free job. */
-async function installHostedDependencies(context, root, env) {
+export async function installHostedDependencies(context, root, env) {
   const ruby = existsSync(join(context.cwd, "Gemfile"));
   const installed = { ...env };
   if (ruby) {
@@ -101,16 +106,23 @@ async function installHostedDependencies(context, root, env) {
     installed.BUNDLE_APP_CONFIG = join(root, "bundle");
     installed.BUNDLE_FROZEN = "true";
   }
+  const rootManager = bunOnlyRoot(context.cwd) ? "bun" : "npm";
   const before = [
-    ...installInputs(context.proposal),
+    ...installInputs(context.proposal, rootManager),
     ...(ruby ? ["Gemfile", "Gemfile.lock"] : []),
   ].map(name => [name, readFileSync(join(context.cwd, name))]);
-  await nativeStep(context, installed, "npm", [
-    "ci",
-    "--ignore-scripts",
-    "--no-audit",
-    "--no-fund",
-  ]);
+  if (rootManager === "bun") {
+    const bun = await qualifiedBun(installed, { deadline: context.deadline });
+    await frozenRootBun(bun, context.cwd, {
+      timeout: remainingGateTime(context.deadline),
+    });
+  } else
+    await nativeStep(context, installed, "npm", [
+      "ci",
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
+    ]);
   if (context.proposal.bunLockSha256 !== undefined) {
     const bun = await qualifiedBun(installed, { deadline: context.deadline });
     await frozenBun(bun, context.cwd, proposalFileNames(context.proposal), {
