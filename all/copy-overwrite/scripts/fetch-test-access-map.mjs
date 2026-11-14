@@ -1,9 +1,15 @@
 #!/usr/bin/env node
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /**
  * Download the test-to-file access map for a base commit (CodySwannGT/lisa#4593).
  *
- * Lisa's PR CI uploads `test-access-map-<baseSha>-<runId>-<job>` artifacts
- * from the unit job, every unit shard leg and the integration job. This picks
+ * The shared PR CI (`quality.yml`) uploads `test-access-map-<baseSha>-<runId>-<job>`
+ * artifacts from the unit job, every unit shard leg and the integration job,
+ * for Lisa and for every host whose `pushGate.affectedTests` is on
+ * (CodySwannGT/lisa#4611). The repository defaults to the one `origin` points
+ * at, so a host downloads its own maps. This picks
  * the newest run whose base is `<sha>` itself or, failing that, the nearest
  * ancestor of it, downloads every map artifact of that run, merges them, and
  * saves:
@@ -33,7 +39,37 @@ import * as path from "node:path";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
-const REPOSITORY = "CodySwannGT/lisa";
+/**
+ * `owner/name` from a GitHub remote URL (https, ssh or scp-like), or undefined.
+ * @param {string} url - Remote URL
+ * @returns {string | undefined} The repository
+ */
+export function repositoryFromRemote(url) {
+  const match = /github\.com[:/]+([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/u.exec(
+    url.trim()
+  );
+  return match ? `${match[1]}/${match[2]}` : undefined;
+}
+
+/**
+ * The repository whose maps to read: `GITHUB_REPOSITORY`, else `origin`.
+ * @returns {string | undefined} owner/name, or undefined when neither says
+ */
+function defaultRepository() {
+  if (process.env.GITHUB_REPOSITORY) return process.env.GITHUB_REPOSITORY;
+  try {
+    return repositoryFromRemote(
+      execFileSync("git", ["remote", "get-url", "origin"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      })
+    );
+  } catch {
+    // probe-direction: fail-closed — no repository means no map, so the push
+    // runs the full suite.
+    return undefined;
+  }
+}
 const DEFAULT_OUT = ".lisa/test-access-map";
 const ARTIFACT_NAME = /^test-access-map-([0-9a-f]{40})-(\d+)-(.+)$/;
 const DEFAULT_MAX_PAGES = 10;
@@ -61,7 +97,7 @@ const LISTING_JQ =
 /**
  * Parse `--base`, `--repo`, `--out`, `--max-pages` and `--max-age-days`.
  * @param {ReadonlyArray<string>} argv - Arguments after the script
- * @returns {{ base: string | undefined, repo: string, out: string, maxPages: number, maxAgeDays: number }} Options
+ * @returns {{ base: string | undefined, repo: string | undefined, out: string, maxPages: number, maxAgeDays: number }} Options
  */
 export function parseArgs(argv) {
   const value = flag => {
@@ -76,7 +112,7 @@ export function parseArgs(argv) {
   };
   return {
     base: value("--base"),
-    repo: value("--repo") ?? REPOSITORY,
+    repo: value("--repo") ?? defaultRepository(),
     out: value("--out") ?? DEFAULT_OUT,
     maxPages: number("--max-pages", DEFAULT_MAX_PAGES),
     maxAgeDays: number("--max-age-days", DEFAULT_MAX_AGE_DAYS),
@@ -202,6 +238,24 @@ export function mergeMaps(documents) {
 }
 
 /**
+ * The union of the full-rerun triggers each recorded map carries (the
+ * project's Vitest `forceRerunTriggers`, `setupFiles` and `globalSetup`).
+ * @param {ReadonlyArray<Record<string, unknown>>} metas - Recorded metadata
+ * @returns {ReadonlyArray<string>} Sorted, de-duplicated globs
+ */
+export function mergedTriggers(metas) {
+  return [
+    ...new Set(
+      metas.flatMap(meta =>
+        Array.isArray(meta.triggers)
+          ? meta.triggers.filter(glob => typeof glob === "string")
+          : []
+      )
+    ),
+  ].sort();
+}
+
+/**
  * A duration as `2d 3h`, `3h 12m` or `5m`.
  * @param {number} milliseconds - Duration
  * @returns {string} Human-readable age
@@ -289,6 +343,12 @@ export function main(argv, deps) {
     );
     return 2;
   }
+  if (!repo) {
+    deps.err(
+      "no access map: could not tell which GitHub repository to read (no --repo, GITHUB_REPOSITORY or GitHub origin remote)"
+    );
+    return 1;
+  }
   const sha = (() => {
     try {
       return deps
@@ -355,6 +415,7 @@ export function main(argv, deps) {
           createdAt,
           artifacts: choice.artifacts.map(artifact => artifact.name),
           testFiles: Object.keys(map).length,
+          triggers: mergedTriggers(metas),
         },
         null,
         2

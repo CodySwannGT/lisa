@@ -71,6 +71,7 @@ import {
   PUSH_CONTEXT,
   withAdmission,
 } from "./lib/push-admission.mjs";
+import { withPushGateDefaults } from "./lib/push-gate-defaults.mjs";
 import { hostReading, recordPushTiming } from "./lib/push-timing.mjs";
 import { worktreeDependencyProblem } from "./lib/worktree-dependencies.mjs";
 import {
@@ -1832,6 +1833,11 @@ export function main(argv = process.argv.slice(2)) {
     );
   }
 
+  // The stack's push-gate defaults (CodySwannGT/lisa#4611): a TypeScript host
+  // gets the pass cache, admission and affected tests without declaring them,
+  // and anything it does declare, `false` included, wins.
+  const pushConfig = withPushGateDefaults(config.config, process.cwd());
+
   const wired = wiredConditionalFloor({ moment });
   const missing = undeclaredFloor({ gates: config.gates, moment, wired });
 
@@ -1843,7 +1849,7 @@ export function main(argv = process.argv.slice(2)) {
   const cache =
     moment === "push"
       ? openGatePassCache({
-          config: config.config,
+          config: pushConfig,
           gates: config.gates,
           moment,
           out: line => console.log(line),
@@ -1903,7 +1909,7 @@ export function main(argv = process.argv.slice(2)) {
     process.env.LISA_ADMISSION_CONTEXT = PUSH_CONTEXT;
     try {
       exec = withAdmission(spawnExec, {
-        enabled: admissionEnabled(config.config),
+        enabled: admissionEnabled(pushConfig),
       });
     } catch (err) {
       console.error(`🚫 Nothing ran at "push": ${err.message}`);
@@ -1925,7 +1931,7 @@ export function main(argv = process.argv.slice(2)) {
   if (moment === "push") {
     try {
       buildOnceStep = runBuildOnce({
-        config: config.config,
+        config: pushConfig,
         runner: config.runner,
         scripts,
         exec: command => exec(command, { id: BUILD_ONCE_ID }),

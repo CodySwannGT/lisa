@@ -35,8 +35,18 @@ export declare function mergeAccessRecords(input: {
 export declare function accessMapMetadata(
   env: Env,
   scope: string,
-  now: Date
+  now: Date,
+  triggers?: readonly string[]
 ): Readonly<Record<string, unknown>>;
+export declare function configuredTriggers(
+  root: string,
+  config: {
+    readonly forceRerunTriggers?: unknown;
+    readonly setupFiles?: unknown;
+    readonly globalSetup?: unknown;
+  }
+): readonly string[];
+export declare function accessMapWanted(root: string): boolean;
 export declare function armTestAccessMap(
   env: Record<string, string | undefined>,
   root: string
@@ -45,6 +55,7 @@ export declare function testAccessMapReporter(input: {
   readonly root: string;
   readonly directory: string;
   readonly env: Env;
+  readonly triggers?: readonly string[];
 }): TestAccessMapReporter;
 export declare function withTestAccessMapReporter<T>(
   reporters: readonly T[],

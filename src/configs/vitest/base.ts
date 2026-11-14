@@ -16,6 +16,10 @@ import { env } from "node:process";
 import { fileURLToPath } from "node:url";
 
 import type { ViteUserConfig } from "vitest/config";
+import {
+  testAccessMapPlugin,
+  testAccessMapSetupFiles,
+} from "../../../scripts/lib/test-access-map.mjs";
 import { isUnitCoverageScope } from "../coverage-scope.js";
 import { isInsideWorktree } from "../worktrees.js";
 
@@ -327,6 +331,35 @@ export function scratchSetupFiles(): readonly string[] {
 }
 
 /**
+ * Per-worker setup for the test-to-file access map (CodySwannGT/lisa#4611).
+ *
+ * Names each test file for the tracer, and only when `LISA_ACCESS_MAP=1`, so
+ * an ordinary run gets nothing. CI sets that variable on a pull request, and
+ * the map it records is what lets a TypeScript host's push run only the tests
+ * a change can reach.
+ * @returns Setup files to spread into `test.setupFiles`.
+ */
+export function accessMapSetupFiles(): readonly string[] {
+  return testAccessMapSetupFiles(env);
+}
+
+/**
+ * The Vite plugins every stack preset carries: the access-map recorder.
+ *
+ * It does nothing unless `LISA_ACCESS_MAP=1` and the project's effective
+ * `pushGate.affectedTests` is on, so it only costs anything on a CI run whose
+ * map a push will read.
+ * @returns Plugins for the preset's top-level `plugins`.
+ */
+export function accessMapPlugins(): NonNullable<ViteUserConfig["plugins"]> {
+  return [
+    testAccessMapPlugin() as unknown as NonNullable<
+      ViteUserConfig["plugins"]
+    >[number],
+  ];
+}
+
+/**
  * Global setup for the suite's temporary directories: none.
  *
  * The residue audit that ran here was retired with the rest of the scratch
@@ -464,9 +497,14 @@ export const mergeVitestConfigs = (...configs: UserConfig[]): UserConfig => {
     const accTest = (acc.test ?? {}) as Record<string, unknown>;
     const configTest = (config.test ?? {}) as Record<string, unknown>;
 
+    // Plugins accumulate rather than replace, so a project's local plugins
+    // keep the preset's access-map recorder (CodySwannGT/lisa#4611).
+    const plugins = [...(acc.plugins ?? []), ...(config.plugins ?? [])];
+
     return {
       ...acc,
       ...config,
+      ...(plugins.length > 0 ? { plugins } : {}),
       test: mergeObjects(accTest, configTest),
     };
   }, {} as UserConfig);

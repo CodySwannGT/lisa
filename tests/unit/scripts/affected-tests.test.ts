@@ -13,14 +13,18 @@ import {
   affectedTestsSettings,
   changedFileCoverage,
   coverageDeclaredAtPush,
+  RECORDED_TRIGGER_REASON,
   coverageLeftToCi,
   excludedBy,
+  expandBraces,
   explainSelection,
   firedTrigger,
   globToRegExp,
   measuresCoverage,
+  narrowable,
   openSelectionReports,
   partialArgv,
+  recordedTriggers,
   selectAffectedTests,
   staleMapReason,
 } from "../../../all/copy-overwrite/scripts/lib/affected-tests.mjs";
@@ -30,6 +34,8 @@ const MAP_BASE = "a".repeat(40);
 const NOW = new Date("2026-11-13T12:00:00Z");
 const SPAWN = "all/copy-overwrite/scripts/lib/bounded-spawn.mjs";
 const COVERAGE = "coverage-adequacy";
+const COVERAGE_FLAG = "--coverage";
+const SETUP_FILE = "tests/setup.ts";
 const COMMAND_A = "bun run test:a";
 
 const MAP = {
@@ -52,7 +58,7 @@ const UNIT_COMMAND = [
   "--",
   "vitest",
   "run",
-  "--coverage",
+  COVERAGE_FLAG,
   "--exclude=**/integration/**",
   "--exclude=**/*.integration.*",
 ];
@@ -97,6 +103,14 @@ describe("full-suite triggers", () => {
     "src/configs/vitest/base.ts",
     "all/copy-overwrite/scripts/lib/affected-tests.mjs",
     "scripts/fetch-test-access-map.mjs",
+    "scripts/lib/push-gate-defaults.mjs",
+    // A TypeScript host's own layout (#4611).
+    "vite.config.ts",
+    "test/helpers/db.ts",
+    "tests/unit/setup/env.ts",
+    "src/__tests__/fixtures/user.json",
+    "spec/support/factory.ts",
+    "src/orders/__fixtures__/order.json",
   ])("%s runs the full suite and names the trigger", file => {
     const selection = select([{ path: file }]);
     expect(selection.kind).toBe("full");
@@ -266,7 +280,7 @@ describe("partialArgv", () => {
         "--coverage.thresholds.lines=0",
       ])
     );
-    expect(argv).not.toContain("--coverage");
+    expect(argv).not.toContain(COVERAGE_FLAG);
   });
 
   it("refuses a command with no `vitest run`", () => {
@@ -418,5 +432,51 @@ describe("the runner's selection channel", () => {
       channel.close();
     }
     expect(env[SELECTION_REPORT_ENV]).toBeUndefined();
+  });
+});
+
+describe("the project's recorded triggers (#4611)", () => {
+  it("turns the globs the recorder wrote into full-suite triggers", () => {
+    const triggers = recordedTriggers({
+      triggers: [SETUP_FILE, "**/{vitest,vite}.config.*/**", "seed/**"],
+    });
+    const selection = selectAffectedTests({
+      changed: [
+        { path: "seed/users.sql", status: "modified", existedAtMapBase: true },
+      ],
+      map: MAP,
+      excluded: [],
+      exists: () => true,
+      triggers,
+    });
+    expect(selection.kind).toBe("full");
+    expect(selection.reason).toContain(RECORDED_TRIGGER_REASON);
+    expect(selection.reason).toContain("seed/users.sql");
+    expect(firedTrigger([SETUP_FILE], triggers)?.reason).toContain(SETUP_FILE);
+    expect(firedTrigger(["web/vite.config.mts"], triggers)).not.toBeNull();
+  });
+
+  it("adds nothing for a map without a trigger list", () => {
+    expect(recordedTriggers({})).toEqual([]);
+    expect(recordedTriggers(null)).toEqual([]);
+    expect(recordedTriggers({ triggers: SETUP_FILE })).toEqual([]);
+  });
+
+  it("expands brace alternatives", () => {
+    expect(expandBraces("**/{vitest,vite}.config.{ts,js}")).toEqual([
+      "**/vitest.config.ts",
+      "**/vitest.config.js",
+      "**/vite.config.ts",
+      "**/vite.config.js",
+    ]);
+    expect(expandBraces("plain")).toEqual(["plain"]);
+  });
+});
+
+describe("narrowable", () => {
+  it("accepts a vitest run and refuses anything else", () => {
+    expect(narrowable(UNIT_COMMAND)).toBe(true);
+    expect(narrowable(["jest", COVERAGE_FLAG])).toBe(false);
+    expect(narrowable(["vitest"])).toBe(false);
   });
 });

@@ -45,6 +45,7 @@ const COMMON = [
   "lib/gate-pass-cache.mjs",
   "lib/affected-tests.mjs",
   "lib/push-admission.mjs",
+  "lib/push-gate-defaults.mjs",
   "lib/history-secret-git.mjs",
   "lib/history-secret-scanner.mjs",
   "lib/history-secret-evidence.mjs",

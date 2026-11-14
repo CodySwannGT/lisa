@@ -64,6 +64,18 @@ describe("admissionSwitchOn", () => {
     ).toBe(false);
   });
 
+  it("is on by default for a TypeScript project, and an explicit false wins (#4611)", () => {
+    expect(admissionSwitchOn(project({ "tsconfig.json": {} }))).toBe(true);
+    expect(
+      admissionSwitchOn(
+        project({
+          "tsconfig.json": {},
+          ".lisa.config.json": { pushGate: { admission: false } },
+        })
+      )
+    ).toBe(false);
+  });
+
   it("is on only for an explicit true", () => {
     expect(
       admissionSwitchOn(

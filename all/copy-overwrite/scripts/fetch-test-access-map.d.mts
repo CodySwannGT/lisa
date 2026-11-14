@@ -1,3 +1,6 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 export interface MapArtifact {
   readonly name: string;
   readonly baseSha: string;
@@ -12,7 +15,7 @@ export interface FetchDeps {
 }
 export declare function parseArgs(argv: readonly string[]): {
   readonly base: string | undefined;
-  readonly repo: string;
+  readonly repo: string | undefined;
   readonly out: string;
 };
 export declare function parseArtifacts(output: string): readonly MapArtifact[];
@@ -37,5 +40,9 @@ export declare function mergeMaps(
   readonly map: Readonly<Record<string, readonly string[]>>;
   readonly metas: readonly Readonly<Record<string, unknown>>[];
 };
+export declare function mergedTriggers(
+  metas: readonly Readonly<Record<string, unknown>>[]
+): readonly string[];
+export declare function repositoryFromRemote(url: string): string | undefined;
 export declare function formatAge(milliseconds: number): string;
 export declare function main(argv: readonly string[], deps: FetchDeps): number;

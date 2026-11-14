@@ -319,9 +319,9 @@ Every rule fails toward running the gate:
   an unknown gate-level key together with the whole gates block.
 - CI (`CI` or `GITHUB_ACTIONS` set) never reads or writes it; CI always runs the
   full suite. `LISA_GATE_CACHE=off` switches it off for one run.
-- It is off unless `.lisa.config.json` sets `pushGate.cache: true`, and while
-  off it is silent and touches nothing. Lisa turns it on for itself; hosts get it
-  when their stack template does (CodySwannGT/lisa#4611, #4613). `lisa apply`
+- It is off unless `pushGate.cache` is `true` (a TypeScript project defaults it on), and while
+  off it is silent and touches nothing. Lisa turns it on for itself; TypeScript hosts get it
+  by default (CodySwannGT/lisa#4611) and Rails hosts per #4613. `lisa apply`
   and the runner both refuse a value that is not `true` or `false`.
 
 ### `lisa check`: fill the cache before the push
@@ -340,7 +340,7 @@ follows reports every cacheable gate as `CACHED PASS`.
 - A dirty working tree is refused (exit 1, "commit first"): the cache only
   records a pass for a clean tree equal to the pushed commit.
 - A required gate that does not pass exits 1 with the runner's own lines.
-- With `pushGate.cache` off — every host until its template opts in — or with
+- With `pushGate.cache` off — a non-TypeScript host, or one that set it to `false` — or with
   `LISA_GATE_CACHE=off` or under CI, it runs nothing and exits 0 with
   `gate pass cache is off for this project; push directly (the push runs every
   gate)`, because checking first would only run every gate twice. That is what
@@ -369,6 +369,38 @@ map (#4593). The decisions live in `scripts/lib/affected-tests.mjs`:
   on its own. With `skip`, the runner reports `coverage-adequacy` SKIPPED with
   `partial selection — enforced by CI`, and `test-correctness` keeps the run's
   own verdict, so a failing chosen test still blocks the push.
+
+### TypeScript hosts (CodySwannGT/lisa#4611)
+
+- **Defaults by stack, at run time.** `scripts/lib/push-gate-defaults.mjs`
+  fills in `cache`, `admission`, `affectedTests: true` and
+  `affectedCoverage: "changed-files"` under the project's own `pushGate`
+  keys when the project is TypeScript. TypeScript is detected the way
+  `src/detection/detectors/typescript.ts` does it. The gate runner, the
+  selector, the access-map recorder, `lisa-test-run` (admission) and
+  `lisa check` (cache) all read it, so no two of them disagree. An explicit
+  value wins, `false` included. A malformed `pushGate` is passed through
+  unchanged so the readers still refuse it. `buildOnce` is not defaulted on:
+  a host's push gates do not build, so a build-once step would add a full
+  build to every push, a cached re-push included.
+- **Why `changed-files` for hosts.** With `full`, a seeded host (which
+  declares `coverage-adequacy` at push on `test:cov:unit`) would never narrow
+  at all. With `skip`, coverage would leave the push. `changed-files` keeps
+  coverage enforced at push for every file the change touched. It falls back
+  to the full measured suite when there is no `vitest.thresholds.json` or no
+  test reaches a changed source file. CI still enforces whole-repo coverage.
+- **Scripts.** Each Vitest stack's forced `test:cov:unit:lisa` and
+  `test:unit:lisa` run through `lisa-affected-tests.mjs --push-only`. That
+  narrows only when the gate runner set `LISA_SELECTION_REPORT`, so CI and a
+  developer's own run are unchanged. A command that is not a `vitest run`
+  (the Jest stack) always runs unchanged, with the reason printed.
+- **Map.** The stack presets carry the recorder plugin, which records only
+  when `LISA_ACCESS_MAP=1` and the effective `affectedTests` is on. The
+  shared `quality.yml` now sets that variable and uploads the map for every
+  pull request, not only Lisa's. The recorder also writes the resolved
+  `forceRerunTriggers`, `setupFiles` and `globalSetup` into the map, and the
+  selector treats them as full-suite triggers. The fetch script reads the
+  repository from `GITHUB_REPOSITORY` or the `origin` remote.
 
 ## Hollow results
 

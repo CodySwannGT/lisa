@@ -18,6 +18,7 @@ import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const require = createRequire(import.meta.url);
+const CONFIG_FILE = "vitest.config.mjs";
 const VITEST = path.join(
   path.dirname(require.resolve("vitest/package.json")),
   "vitest.mjs"
@@ -27,13 +28,17 @@ const ACCESS_MAP = pathToFileURL(
 ).href;
 
 const FILES: Readonly<Record<string, string>> = {
-  "vitest.config.mjs": `
+  [CONFIG_FILE]: `
 import { testAccessMapPlugin, testAccessMapSetupFiles } from ${JSON.stringify(ACCESS_MAP)};
 export default {
   plugins: [testAccessMapPlugin()],
   test: { include: ["tests/**/*.test.mjs"], setupFiles: [...testAccessMapSetupFiles(process.env)] },
 };
 `,
+  // The recorder records only for a project whose effective
+  // pushGate.affectedTests is on (#4611). This fixture is not a TypeScript
+  // project, so it has no stack default and opts in explicitly.
+  ".lisa.config.json": `${JSON.stringify({ pushGate: { affectedTests: true } })}\n`,
   "src/value.mjs": "export const value = 42;\n",
   "docs/guide.md": "# Guide\n",
   "docs/child.md": "read by a child\n",
@@ -121,7 +126,7 @@ describe("test access map tracer", () => {
     () => {
       const result = spawnSync(
         process.execPath,
-        [VITEST, "run", "--config", "vitest.config.mjs"],
+        [VITEST, "run", "--config", CONFIG_FILE],
         {
           cwd: fixture.root,
           env: freshEnvironment(),
@@ -183,6 +188,39 @@ describe("test access map tracer", () => {
   );
 
   it(
+    "records nothing for a project whose affected-test selection is off (#4611)",
+    () => {
+      const config = path.join(fixture.root, ".lisa.config.json");
+      const before = fs.readFileSync(config, "utf8");
+      fs.rmSync(path.join(fixture.root, "tmp"), {
+        recursive: true,
+        force: true,
+      });
+      fs.writeFileSync(
+        config,
+        JSON.stringify({ pushGate: { affectedTests: false } })
+      );
+      try {
+        const result = spawnSync(
+          process.execPath,
+          [VITEST, "run", "--config", CONFIG_FILE],
+          {
+            cwd: fixture.root,
+            env: freshEnvironment(),
+            encoding: "utf8",
+            timeout: 90_000,
+          }
+        );
+        expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+        expect(fs.existsSync(path.join(fixture.root, "tmp"))).toBe(false);
+      } finally {
+        fs.writeFileSync(config, before);
+      }
+    },
+    ioLatencyBudgetMs(120_000)
+  );
+
+  it(
     "records nothing without LISA_ACCESS_MAP=1",
     () => {
       fs.rmSync(path.join(fixture.root, "tmp"), {
@@ -192,7 +230,7 @@ describe("test access map tracer", () => {
       const env = { ...freshEnvironment(), LISA_ACCESS_MAP: "" };
       const result = spawnSync(
         process.execPath,
-        [VITEST, "run", "--config", "vitest.config.mjs"],
+        [VITEST, "run", "--config", CONFIG_FILE],
         { cwd: fixture.root, env, encoding: "utf8", timeout: 90_000 }
       );
       expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);

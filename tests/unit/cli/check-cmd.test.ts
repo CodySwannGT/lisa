@@ -128,6 +128,22 @@ describe("runCheck", () => {
     expect(requests).toEqual([]);
   });
 
+  it("runs the gates for a TypeScript host that does not set the cache (#4611)", async () => {
+    const root = projectDir({});
+    writeFileSync(path.join(root, "tsconfig.json"), "{}");
+    const { dependencies, requests } = deps(root);
+    expect(await runCheck({}, dependencies)).toBe(0);
+    expect(requests).toHaveLength(1);
+  });
+
+  it("lets a TypeScript host's explicit cache:false win (#4611)", async () => {
+    const root = projectDir({ pushGate: { cache: false } });
+    writeFileSync(path.join(root, "tsconfig.json"), "{}");
+    const { dependencies, requests } = deps(root);
+    expect(await runCheck({}, dependencies)).toBe(0);
+    expect(requests).toEqual([]);
+  });
+
   it("treats an explicit cache:false as off", async () => {
     const root = projectDir({ pushGate: { cache: false } });
     const { dependencies, requests } = deps(root);

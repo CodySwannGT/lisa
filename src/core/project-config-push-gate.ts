@@ -26,6 +26,12 @@
  * declared at push, `changed-files` holds each changed source file to the
  * thresholds on its own, and `skip` leaves coverage to CI. Both keys are read
  * at push by `scripts/lib/affected-tests.mjs`, which refuses the same shapes.
+ *
+ * "Off when absent" is the shape this file validates. At run time a TypeScript
+ * project gets `cache`, `admission`, `affectedTests` and
+ * `affectedCoverage: "changed-files"` by default (CodySwannGT/lisa#4611), from
+ * `all/copy-overwrite/scripts/lib/push-gate-defaults.mjs`, which every reader
+ * applies before validating. An explicit value always wins.
  */
 
 /** How a partial push-time selection treats coverage-adequacy. */

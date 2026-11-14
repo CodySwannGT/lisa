@@ -123,12 +123,23 @@ describe("gate runner admission", () => {
     expect(process.env.LISA_ADMISSION_CONTEXT).toBe("push");
   });
 
-  it("passes the switch through as off when the project does not set it", () => {
+  it("passes an explicit false through as off", () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    configure({ buildOnce: true, admission: false });
+    main([PUSH_FLAG, `--coverage=${coveragePath()}`]);
+    expect(vi.mocked(withAdmission).mock.calls[0]?.[1]).toEqual({
+      enabled: false,
+    });
+  });
+
+  it("defaults the switch on for a TypeScript project that does not set it (#4611)", () => {
+    // The runner reads the stack from its working directory, which here is
+    // this repository: a root tsconfig.json makes it a TypeScript project.
     vi.spyOn(console, "log").mockImplementation(() => {});
     configure({ buildOnce: true });
     main([PUSH_FLAG, `--coverage=${coveragePath()}`]);
     expect(vi.mocked(withAdmission).mock.calls[0]?.[1]).toEqual({
-      enabled: false,
+      enabled: true,
     });
   });
 
