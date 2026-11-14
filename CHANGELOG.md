@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.8.1](https://github.com/CodySwannGT/lisa/compare/v5.8.0...v5.8.1) (2026-11-14)
+
+
+### Code Refactoring
+
+* **gates:** delete the retired reuse gate field ([849ac57](https://github.com/CodySwannGT/lisa/commit/849ac57bae4f64923595ee6173655f27b8a67f04)), closes [CodySwannGT/lisa#4794](https://github.com/CodySwannGT/lisa/issues/4794) [CodySwannGT/lisa#4899](https://github.com/CodySwannGT/lisa/issues/4899) [CodySwannGT/lisa#4899](https://github.com/CodySwannGT/lisa/issues/4899)
+
 ## [5.8.0](https://github.com/CodySwannGT/lisa/compare/v5.7.0...v5.8.0) (2026-11-14)
 
 
