@@ -242,6 +242,11 @@ export function shardArgv(
   return [
     ...argv,
     shard,
+    // `default` beside `blob`: a CLI `--reporter` replaces every configured
+    // reporter, so a blob-only leg printed no FAIL line and no summary — a red
+    // shard said only "blob report written", and the merge job, which refuses
+    // a failed matrix before merging, never printed them either.
+    "--reporter=default",
     "--reporter=blob",
     `--outputFile.blob=${path.join(leg.output, `blob-${leg.index}-${leg.total}.json`)}`,
     // Every threshold off, not four zeroed metrics: glob, `perFile` and
