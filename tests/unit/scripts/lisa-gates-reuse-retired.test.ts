@@ -16,8 +16,8 @@ import {
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
 describe("the retired reuse declaration", () => {
-  it("is no longer a gate field", () => {
-    expect(GATE_FIELDS.has("reuse")).toBe(false);
+  it("is no longer a gate field, and the real settings all still are", () => {
+    expect([...GATE_FIELDS]).toEqual(["run", "needs", "task"]);
   });
 
   it("is reported as a problem naming reuse", () => {
