@@ -315,7 +315,11 @@ and resolve its head `<sha>` once per run:
   `git cat-file -t <sha>:<path>` must print `blob` (a `tree` is a directory,
   not a file), then `git show <sha>:<path>` for its text.
 - **Upstream** (`upstream` scope) — the paths live in `<upstreamRepo>`, not
-  this checkout: `gh api repos/<upstreamRepo>/commits/<default> --jq .sha`
+  this checkout, and so does its default branch. Resolve that branch first
+  with `gh api repos/<upstreamRepo> --jq .default_branch` — never assume this
+  checkout's branch name, because a wrong name makes every upstream lookup
+  return "not found" and every destination look missing. Then
+  `gh api repos/<upstreamRepo>/commits/<upstreamDefault> --jq .sha`
   for the SHA, then for each file
   `gh api -H "Accept: application/vnd.github.raw" repos/<upstreamRepo>/contents/<path>?ref=<sha>`,
   which returns the raw text so headings are searchable (the default JSON
@@ -577,6 +581,12 @@ exact so nothing regresses:
   never `nothing-needed`. Its `--summary` states each mismatch as a question
   for a person ("evidence says 17, draft says 12 — which is right?") and
   says that every run will refuse that draft again until someone answers.
+  **Every refusal reaches the `--summary`, whatever the outcome.** A mixed
+  run that files some tickets and refuses others still records
+  **`candidate-proposed`**, and its `--summary` also names each refused
+  PROMOTE/DEMOTE draft and its mismatch as a question for a person. The run
+  report alone is not enough: nobody is prompted to read it, so a refusal
+  left only there is repeated silently on every later run.
 
 The gardener also newly reaches **`policy-obsolete`** — the Retirement
 condition below tripped and it filed its own teardown proposal. It never
