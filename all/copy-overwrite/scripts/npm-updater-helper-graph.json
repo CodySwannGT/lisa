@@ -1301,7 +1301,7 @@
       "children": []
     },
     "lib/push-gate-defaults.mjs": {
-      "sha256": "1590f4044803f65b75a731dccfa18a9075e36b15f6f9c2be01d08a5d16a8af2d",
+      "sha256": "3d6c68c6a9840007f9996dd3c018a8f6d41e663b2fdbc9efa599ea55c03eef1d",
       "staticImports": [
         "node:fs",
         "node:path"

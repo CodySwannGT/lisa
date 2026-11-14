@@ -125,8 +125,30 @@ describe("repositoryFromRemote (#4611)", () => {
     ["https://github.com/owner/repo", OWNER_REPO],
     ["git@github.com:owner/repo.git", OWNER_REPO],
     ["ssh://git@github.com/owner/repo.git\n", OWNER_REPO],
+    ["https://github.com/owner/repo/", OWNER_REPO],
+    ["https://github.com/owner/repo.git/", OWNER_REPO],
+    ["git@github.com::owner/repo", OWNER_REPO],
   ])("reads %s as %s", (url, repo) => {
     expect(repositoryFromRemote(url)).toBe(repo);
+  });
+
+  it.each([
+    "https://github.com/owner",
+    "https://github.com/owner/repo/extra",
+    "https://github.com/own er/repo",
+    "https://github.com",
+    "https://github.comowner/repo",
+  ])("answers undefined for %s, which names no single repository", url => {
+    expect(repositoryFromRemote(url)).toBe(undefined);
+  });
+
+  it("answers a long remote the way the old pattern did, without backtracking", () => {
+    // sonarjs/slow-regex: the old lazy-name pattern backtracked on input like
+    // this. The answer is unchanged: one trailing `.git` is dropped.
+    const name = "a.git".repeat(20_000);
+    expect(repositoryFromRemote(`https://github.com/owner/${name}`)).toBe(
+      `owner/${name.slice(0, -".git".length)}`
+    );
   });
 
   it("answers undefined for a remote that is not on GitHub", () => {

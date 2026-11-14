@@ -141,5 +141,7 @@ export function withDefaults(config, defaults) {
       Array.isArray(declared));
   if (malformed) return base;
   if (Object.keys(defaults).length === 0) return base;
-  return { ...base, pushGate: { ...defaults, ...(declared ?? {}) } };
+  // Spreading an absent block adds nothing, so no `?? {}` is needed (and the
+  // shipped fixer would strip one).
+  return { ...base, pushGate: { ...defaults, ...declared } };
 }

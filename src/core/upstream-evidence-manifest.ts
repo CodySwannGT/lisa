@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/fetch-test-access-map.d.mts":
       "06cf2370fea13a753f47a5cc4037bbcd6aabbc9686624ac8d7a0110285db015b",
     "all/copy-overwrite/scripts/fetch-test-access-map.mjs":
-      "b0c226081036a2b2a6d5e8003f8b50b81435964fd7b5b432b88416df607e82ab",
+      "754a3152c26a9b18cffe77955218027cd2acf3547d3841abfddc78e65d57fc08",
     "all/copy-overwrite/scripts/lib/affected-tests.mjs":
       "9e2a738eb93707fb4fb110e093dd74df20bde44ebe892ff7a63b8ac0ae1adc2d",
     "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs":
@@ -259,7 +259,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/push-gate-defaults.d.mts":
       "b982cf3dde5132a6adaa6f595ca7d5258d1450bc79998414e4206f5f6e41501b",
     "all/copy-overwrite/scripts/lib/push-gate-defaults.mjs":
-      "1590f4044803f65b75a731dccfa18a9075e36b15f6f9c2be01d08a5d16a8af2d",
+      "3d6c68c6a9840007f9996dd3c018a8f6d41e663b2fdbc9efa599ea55c03eef1d",
     "all/copy-overwrite/scripts/lib/push-timing.mjs":
       "31de9d9357839e7e63292a4c18ede6c7b66e2cc2d562ede80036cc90f24d0d9f",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
@@ -389,7 +389,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "5c262922f3c0f5a4a04ae7765c3d4781cfb3aa3f974d6a14ff2efa260e56c7ce",
+      "19b789aae4eefce474fb288dfb228c801039e662ce46dfbc20eb729031569fb6",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2557,7 +2557,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs":
-      "9aa3135a09eaa0a674c73c2fa42489622cdcb5b930ec76113b90976c0cd70284",
+      "5f8dd1f06848084c9381e0524397d32847c9c83c2099bc8bf285c2001003ff8c",
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
       "00d504a0fee1f2a75d7328dc848cacabe6fd9360beacc5bf9632d0741388ade2",
     "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb":

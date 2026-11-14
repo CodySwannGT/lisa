@@ -45,10 +45,22 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * @returns {string | undefined} The repository
  */
 export function repositoryFromRemote(url) {
-  const match = /github\.com[:/]+([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/u.exec(
-    url.trim()
-  );
-  return match ? `${match[1]}/${match[2]}` : undefined;
+  // Parsed by hand rather than with one pattern: a lazy name followed by an
+  // optional `.git` and `/` backtracks on a long remote (sonarjs/slow-regex).
+  const text = url.trim();
+  const host = text.indexOf("github.com");
+  if (host === -1) return undefined;
+  let rest = text.slice(host + "github.com".length);
+  const start = rest.length - rest.replace(/^[:/]+/u, "").length;
+  if (start === 0) return undefined;
+  rest = rest.slice(start);
+  if (rest.endsWith("/")) rest = rest.slice(0, -1);
+  const parts = rest.split("/");
+  if (parts.length !== 2) return undefined;
+  const [owner, raw] = parts;
+  const name = raw.endsWith(".git") && raw.length > 4 ? raw.slice(0, -4) : raw;
+  const plain = part => part.length > 0 && !/\s/u.test(part);
+  return plain(owner) && plain(name) ? `${owner}/${name}` : undefined;
 }
 
 /**

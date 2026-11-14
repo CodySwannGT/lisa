@@ -51,6 +51,7 @@ const gates = (await import(
     pushGate?: unknown;
   };
   parallelDatabaseReady: (root: string) => boolean;
+  mutationEnabled: (root: string) => boolean;
   grantedWorkers: (env: Record<string, string>) => number;
   declaredWorkers: (env: Record<string, string>) => number;
   rspecCommand: (options: {
@@ -134,6 +135,25 @@ describe("Rails defaults", () => {
   });
 });
 
+describe("mutation gate switch", () => {
+  it.each([
+    ["enabled: true\n", true],
+    ["mode: x\n  enabled:   true # on\n", true],
+    ["enabled:\ttrue\r\n", true],
+    ["enabled: false\n", false],
+    ["enabled: trueish\n", false],
+    ["# enabled: true\n", false],
+  ])("reads %j as %s", (text, enabled) => {
+    expect(gates.mutationEnabled(project({ "mutation.gate.yml": text }))).toBe(
+      enabled
+    );
+  });
+
+  it("is off with no mutation.gate.yml", () => {
+    expect(gates.mutationEnabled(project({}))).toBe(false);
+  });
+});
+
 describe("parallel full RSpec run", () => {
   it("reads TEST_ENV_NUMBER only inside the test: block", () => {
     expect(
@@ -183,6 +203,26 @@ describe("parallel full RSpec run", () => {
     expect(command.argv).toEqual(["bundle", "exec", "rspec"]);
     expect(command.hint).toMatch(/TEST_ENV_NUMBER.*config\/database\.yml/u);
     expect(command.hint?.split("\n")).toHaveLength(1);
+  });
+
+  it("reads parallel_tests only as an indented Gemfile.lock spec line", () => {
+    const command = (lock: string) =>
+      gates.rspecCommand({
+        root: project({
+          "config/database.yml": NUMBERED_DB,
+          "Gemfile.lock": lock,
+        }),
+        plan: { kind: "full", specs: [] },
+        workers: 3,
+      }).parallel;
+    expect(command(PARALLEL_LOCK)).toBe(true);
+    expect(command("GEM\r\n  specs:\r\n    parallel_tests (5.9.0)\r\n")).toBe(
+      true
+    );
+    expect(command("parallel_tests (5.9.0)\n")).toBe(false);
+    expect(command("GEM\n  specs:\n    parallel_tests_extra (1.0)\n")).toBe(
+      false
+    );
   });
 
   it("stays serial with a hint when parallel_tests is not bundled", () => {

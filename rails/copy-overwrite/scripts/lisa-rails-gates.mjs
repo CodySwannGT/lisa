@@ -179,6 +179,17 @@ export function parallelDatabaseReady(root) {
 }
 
 /**
+ * A file's lines. Line by line rather than one multiline pattern: `^\s+` with
+ * the `m` flag lets `\s` run across newlines and backtrack
+ * (sonarjs/slow-regex).
+ * @param {string} text File contents.
+ * @returns {string[]} Lines, without their endings.
+ */
+function linesOf(text) {
+  return text.split(/\r?\n/u);
+}
+
+/**
  * Whether the bundle carries the `parallel_tests` gem.
  * @param {string} root Project root.
  * @returns {boolean} True when `Gemfile.lock` lists it.
@@ -187,7 +198,11 @@ function parallelGemInstalled(root) {
   const lock = join(root, "Gemfile.lock");
   return (
     existsSync(lock) &&
-    /^\s+parallel_tests \(/mu.test(readFileSync(lock, "utf8"))
+    linesOf(readFileSync(lock, "utf8")).some(
+      line =>
+        line !== line.trimStart() &&
+        line.trimStart().startsWith("parallel_tests (")
+    )
   );
 }
 
@@ -381,11 +396,13 @@ export async function runPayload(id, root, env, out) {
  * @param {string} root Project root.
  * @returns {boolean} True when `mutation.gate.yml` sets `enabled: true`.
  */
-function mutationEnabled(root) {
+export function mutationEnabled(root) {
   const path = join(root, "mutation.gate.yml");
   return (
     existsSync(path) &&
-    /^\s*enabled:\s*true\b/mu.test(readFileSync(path, "utf8"))
+    linesOf(readFileSync(path, "utf8")).some(line =>
+      /^enabled:[ \t]*true\b/u.test(line.trimStart())
+    )
   );
 }
 
