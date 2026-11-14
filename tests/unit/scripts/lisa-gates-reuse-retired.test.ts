@@ -1,35 +1,46 @@
 /**
- * The retired `reuse` declaration is still accepted, and nothing reads it.
+ * The retired `reuse` declaration is refused like any other unknown key.
  *
- * The release-reuse checker that consumed `gates.<id>.reuse` was removed
- * (CodySwannGT/lisa#4794). The key stays in the closed `GATE_FIELDS` allowlist
- * because refusing it would fail validation of a host's whole `gates` block and
- * silently un-configure every gate.
+ * The release-reuse checker that read `gates.<id>.reuse` was removed
+ * (CodySwannGT/lisa#4794), which kept the key accepted but ignored for a
+ * while. It is now gone from the closed `GATE_FIELDS` allowlist
+ * (CodySwannGT/lisa#4899): a setting Lisa silently ignores reads as one that
+ * does something, and no Lisa-managed host declared it when it was removed.
  * @module tests/unit/scripts/lisa-gates-reuse-retired
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import {
-  GATE_FIELDS,
-  validateGates,
-} from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { validateGates } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
 describe("the retired reuse declaration", () => {
-  it("is still an accepted gate field", () => {
-    expect(GATE_FIELDS.has("reuse")).toBe(true);
+  // The allowlist is built while the module LOADS, and per-test mutation
+  // coverage credits load-time code to whichever test imported the module
+  // first. So this case loads a fresh copy inside its own body, which makes the
+  // mutation gate run it against an altered list (as in CodySwannGT/lisa#3359).
+  it("is no longer a gate field, and the real settings all still are", async () => {
+    vi.resetModules();
+    const fresh =
+      await import("../../../all/copy-overwrite/scripts/lisa-gates.mjs");
+
+    expect([...fresh.GATE_FIELDS]).toEqual(["run", "needs", "task"]);
   });
 
-  it("validates whatever value an old host declared", () => {
+  it("is reported as a problem naming reuse", () => {
+    const problems = validateGates({
+      "code-style": {
+        "pull-request": "required",
+        reuse: { class: "time-sensitive", max_age_minutes: 60 },
+      },
+    });
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain('gates."code-style"."reuse"');
+  });
+
+  it("leaves a gate declaring only real settings and moments valid", () => {
     expect(
       validateGates({
-        "dependency-vulnerability": {
-          "pull-request": "required",
-          reuse: { class: "time-sensitive", max_age_minutes: 60 },
-        },
-        "code-style": {
-          "pull-request": "required",
-          reuse: { class: "no-longer-a-class" },
-        },
+        "code-style": { "pull-request": "required", run: "lint" },
       })
     ).toEqual([]);
   });

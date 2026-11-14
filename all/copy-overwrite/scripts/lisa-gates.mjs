@@ -268,12 +268,12 @@ export const STATE_FAMILIES = [CONTINUOUS];
 /**
  * Keys on a gate entry that are settings rather than moments.
  *
- * `reuse` is retired and ignored: the release-reuse checker that read it was
- * removed (CodySwannGT/lisa#4794). It stays in this CLOSED allowlist because
- * dropping it would make any host still declaring it fail validation of its
- * whole `gates` block, silently un-configuring every gate.
+ * The retired `reuse` setting is not among them. Its release-reuse checker was
+ * removed in CodySwannGT/lisa#4794, and the key itself in
+ * CodySwannGT/lisa#4899, after no Lisa-managed host was found declaring it, so
+ * a leftover declaration is now refused like any other unknown key.
  */
-export const GATE_FIELDS = new Set(["run", "needs", "task", "reuse"]);
+export const GATE_FIELDS = new Set(["run", "needs", "task"]);
 
 /**
  * The per-moment field saying how this gate's prover prints a MEASURED failure.
