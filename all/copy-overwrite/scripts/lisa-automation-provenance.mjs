@@ -16,6 +16,7 @@ import {
   requireProof,
   sha256,
   verifyCurrentProvider,
+  verifyCurrentRun,
   verifyDescriptorAttestation,
   targetBranch,
 } from "./lib/github-attestation-verifier.mjs";
@@ -105,8 +106,14 @@ function recoveryPermission(
 }
 
 /** Keep unchanged local authorization together without obscuring the canonical phase. */
-function verifyLocalProposal(descriptor, messageBytes, reference, policy) {
-  localDescriptor(descriptor, messageBytes, reference, policy);
+function verifyLocalProposal(
+  descriptor,
+  messageBytes,
+  reference,
+  policy,
+  tracker
+) {
+  localDescriptor(descriptor, messageBytes, reference, policy, tracker);
   npmProposal(descriptor, git);
   requireProof(
     descriptor.proposalKey ===
@@ -130,7 +137,8 @@ function verifyFinalSnapshot(
   descriptor,
   messageFile,
   reference,
-  policy
+  policy,
+  tracker
 ) {
   requireProof(
     privateBytes(paths.bundle, 1_048_576).equals(bundleBytes),
@@ -144,7 +152,8 @@ function verifyFinalSnapshot(
     descriptor,
     privateBytes(messageFile, 65_536, false),
     reference,
-    policy
+    policy,
+    tracker
   );
 }
 
@@ -164,7 +173,13 @@ export function verifyAutomationProvenance(messageFile) {
   const { paths, optional, bytes, bundleBytes, descriptor } =
     withProvenancePhase(LOCAL_PROOF, proofSnapshot);
   withProvenancePhase(LOCAL_PROOF, () =>
-    verifyLocalProposal(descriptor, messageBytes, reference, policy)
+    verifyLocalProposal(
+      descriptor,
+      messageBytes,
+      reference,
+      policy,
+      config.tracker
+    )
   );
   withProvenancePhase(LOCAL_PROOF, () =>
     assertCommittedTarget(config, descriptor)
@@ -180,6 +195,11 @@ export function verifyAutomationProvenance(messageFile) {
     const recoveryBundle = optional[0]
       ? privateBytes(paths.recoveryBundle, 1_048_576)
       : null;
+    // Signed-origin recovery re-reads a GitHub leaf; a Jira/Linear host refuses it.
+    requireProof(
+      !recoveryBytes || config.tracker === "github",
+      "tracker recovery proof is not supported"
+    );
     if (recoveryBytes) {
       withProvenancePhase("recovery-local", () =>
         recoveryPermission(
@@ -198,8 +218,11 @@ export function verifyAutomationProvenance(messageFile) {
       withProvenancePhase("ordinary-signature", () =>
         verifyDescriptorAttestation(policy, descriptor, paths, sha256(bytes))
       );
+      // A Jira/Linear claim is proved by the publisher's adapter, never a GitHub comment.
       withProvenancePhase("ordinary-provider", () =>
-        verifyCurrentProvider(policy, descriptor)
+        (config.tracker === "github"
+          ? verifyCurrentProvider
+          : verifyCurrentRun)(policy, descriptor)
       );
     }
     verifyFinalSnapshot(
@@ -209,7 +232,8 @@ export function verifyAutomationProvenance(messageFile) {
       descriptor,
       messageFile,
       reference,
-      policy
+      policy,
+      config.tracker
     );
     return true;
   });

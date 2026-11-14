@@ -59,6 +59,49 @@ function linearCredentials(config, env) {
   return { baseUrl: "https://api.linear.app/graphql", authorization: key };
 }
 
+/** A Jira accountId or a Linear user id, the same grammar the policy maintainer uses. */
+const ACTOR = {
+  jira: /^[A-Za-z0-9][A-Za-z0-9:-]{0,127}$/,
+  linear: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+};
+const ACTOR_NAME = { jira: "Jira accountId", linear: "Linear user id" };
+const ACTOR_CREDENTIAL = { jira: "JIRA_API_TOKEN", linear: "LINEAR_API_KEY" };
+
+/**
+ * The automation identity the project declares for its tracker (#4873). A claim,
+ * checkpoint or closure counts as the updater's own only when this account wrote
+ * it, so an absent or malformed declaration refuses before any provider call.
+ */
+export function declaredActor(config) {
+  const tracker = config.tracker;
+  const value = config[tracker]?.claimActorRef;
+  if (typeof value !== "string" || !ACTOR[tracker]?.test(value))
+    throw operatorRefusal(
+      "tracker automation identity is not declared",
+      `${tracker}.claimActorRef is not set in .lisa.config.json, so the npm updater cannot tell its own claims from anyone else's. Set it to the ${ACTOR_NAME[tracker]} of the account its ${ACTOR_CREDENTIAL[tracker]} signs in as. Nothing was created.`
+    );
+  return value;
+}
+
+/** The credential must sign in as the declared identity; any other account fails closed. */
+export function assertDeclaredActor(tracker, actual, declared) {
+  if (actual !== declared)
+    throw operatorRefusal(
+      "tracker credential is not the declared automation identity",
+      `The ${ACTOR_CREDENTIAL[tracker]} signs in as a different account than ${tracker}.claimActorRef, so the npm updater cannot prove its claims were made by the automation. Use the automation account's credential or correct ${tracker}.claimActorRef. Nothing was changed.`
+    );
+  return actual;
+}
+
+/** A claim written by any account but the declared automation identity never authorizes (#4873). */
+export function assertClaimAuthor(tracker, ref, author, declared) {
+  if (author !== declared)
+    throw operatorRefusal(
+      "tracker claim author differs",
+      `The claim on ${ref} was not made by the npm updater's automation account (${tracker}.claimActorRef), so nothing was published or changed. Remove that claim and let the updater claim the item again.`
+    );
+}
+
 /** Resolved before any provider call, so a gap can never follow a partial write. */
 export function trackerCredentials(config, env) {
   required(
@@ -94,7 +137,10 @@ async function boundedText(response) {
   );
 }
 
-/** One bounded JSON request; a refused status is opaque, never echoed. */
+/**
+ * One bounded JSON request; a refused status is opaque, never echoed. Only a
+ * caller that sets `missing: true` reads a 404 as an absent record (null).
+ */
 export async function jsonCall(transport, url, request, purpose) {
   const method = request.method ?? "GET";
   return withProviderOperation(purpose, method, async () => {
@@ -113,6 +159,7 @@ export async function jsonCall(transport, url, request, purpose) {
       signal: AbortSignal.timeout(30_000),
     });
     const text = await boundedText(response);
+    if (request.missing === true && response.status === 404) return null;
     required(response.ok, "tracker provider refused request");
     return text ? JSON.parse(text) : null;
   });
@@ -166,7 +213,9 @@ function proseOf(node) {
       mark => mark?.type === "code"
     )
       ? `\`${inert(node.text).replace(/\n/g, " ")}\``
-      : String(node.text ?? "");
+      : // A stray plain-text backtick would pair with a projected code boundary
+        // and move the hold classifier's view of what is code (#4873).
+        inert(node.text);
   if (node.type === "hardBreak") return "\n";
   const inline = node.type === "paragraph" || node.type === "heading";
   return (Array.isArray(node.content) ? node.content : [])
@@ -260,19 +309,59 @@ export function vendorLabels(lifecycle, names) {
 
 // Linear connection helpers, shared here to keep the Linear adapter within its size budget.
 
+/** The node selection each issue connection reads; the issue query and its page queries share it. */
+export const LINEAR_CONNECTIONS = {
+  labels: "name",
+  children: "id",
+  inverseRelations: "type issue { state { type } archivedAt }",
+};
+/** Pages per connection, 100 nodes each, before the inventory is called unbounded. */
+const LINEAR_CONNECTION_PAGES = 10;
+
+/** One connection's next page, addressed by the issue identifier and an opaque cursor. */
+function connectionPageQuery(name) {
+  const operation = `LisaNpmIssue${name[0].toUpperCase()}${name.slice(1)}`;
+  return `query ${operation}($id: String!, $after: String) { issue(id: $id) { ${name}(first: 100, after: $after) { nodes { ${LINEAR_CONNECTIONS[name]} } pageInfo { hasNextPage endCursor } } } }`;
+}
+
 /**
  * Labels, sub-issues and relations decide holds and blockers, so a partial
- * page is never read as the whole inventory: one more page refuses.
+ * page is never read as the whole inventory: each connection is read to its
+ * end by cursor, and one past the fixed bound refuses, naming the issue
+ * (CodySwannGT/lisa#4873).
+ * @param {object} node - The issue node, its connections on their first page.
+ * @param {(query: string, variables: object) => Promise<object>} graphql - Data-returning call.
+ * @returns {Promise<object>} The node with every connection's complete node list.
  */
-export function completeLinearConnections(node) {
-  const partial = ["labels", "children", "inverseRelations"].some(
-    name => node[name]?.pageInfo?.hasNextPage !== false
-  );
-  if (partial)
-    throw operatorRefusal(
-      "issue connection is incomplete",
-      "This Linear issue has more than 100 labels, sub-issues or relations, so the npm updater cannot confirm there is no hold or open blocker. Remove the extra ones or handle this update by hand."
-    );
+export async function completeLinearConnections(node, graphql) {
+  const complete = {};
+  for (const name of Object.keys(LINEAR_CONNECTIONS)) {
+    let connection = node[name];
+    const nodes = [...(connection?.nodes ?? [])];
+    for (let page = 1; connection?.pageInfo?.hasNextPage !== false; page++) {
+      if (
+        page >= LINEAR_CONNECTION_PAGES ||
+        typeof connection?.pageInfo?.endCursor !== "string"
+      )
+        throw operatorRefusal(
+          "issue connection is incomplete",
+          `Linear issue ${node.identifier} has more than ${LINEAR_CONNECTION_PAGES * 100} labels, sub-issues or relations, so the npm updater cannot confirm there is no hold or open blocker. Remove the extra ones or handle this update by hand.`
+        );
+      connection = (
+        await graphql(connectionPageQuery(name), {
+          id: node.identifier,
+          after: connection.pageInfo.endCursor,
+        })
+      ).issue?.[name];
+      required(
+        Array.isArray(connection?.nodes),
+        "provider page is not an array"
+      );
+      nodes.push(...connection.nodes);
+    }
+    complete[name] = { nodes };
+  }
+  return { ...node, ...complete };
 }
 
 /** Completed, cancelled and archived issues are closed history, never claimable. */

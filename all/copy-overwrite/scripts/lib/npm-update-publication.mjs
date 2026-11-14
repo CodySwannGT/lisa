@@ -12,7 +12,9 @@ import {
   sha256,
   verifyDescriptorAttestation,
   verifyCurrentProvider,
+  verifyCurrentRun,
 } from "./github-attestation-verifier.mjs";
+import { vendorBacklink } from "./npm-update-tracker.mjs";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { readJson, readBytes } from "./npm-update-process.mjs";
 import { existsSync } from "node:fs";
@@ -39,6 +41,11 @@ export function publicationProof(
     proof.recoveryBundle && existsSync(proof.recoveryBundle)
   );
   required(recovery === bundle, "partial publication recovery authority");
+  // A Jira/Linear claim is proved by the adapter (publish authorize), not GitHub (#4873).
+  required(
+    !(recovery && api.tracker),
+    "tracker publication recovery is not supported"
+  );
   if (recovery) {
     verifyRecoveryOrigin(
       api.policy,
@@ -57,7 +64,10 @@ export function publicationProof(
     );
   } else {
     verifyDescriptorAttestation(api.policy, descriptor, proof, digest);
-    verifyCurrentProvider(api.policy, descriptor);
+    (api.tracker ? verifyCurrentRun : verifyCurrentProvider)(
+      api.policy,
+      descriptor
+    );
   }
 }
 
@@ -104,6 +114,10 @@ export async function publicationBacklink(
   pr
 ) {
   await authorize();
+  // Jira/Linear: the adapter writes the managed backlink and reads it back exactly;
+  // the broker's helpers reach only GitHub (#4873).
+  if (api.tracker)
+    return vendorBacklink(api.tracker, allocation.number, pr.html_url);
   await api.workItem(
     cwd,
     ["backlink", "--ref", allocation.workItem, "--pr-url", pr.html_url],
@@ -173,7 +187,11 @@ export async function destinationSnapshot(api, proposal, allocation, commit) {
 
 /** The declaration is complete and the relationship waits for postmerge verification. */
 export function publicationBody(allocation) {
-  const body = `${allocation.draft.body}\nWork-Item: ${allocation.workItem}\n\nRelates to https://github.com/${allocation.workItem.replace("#", "/issues/")}\n`;
+  // Only a GitHub issue has a github.com address; a Jira/Linear key is declared by its trailer alone.
+  const relates = allocation.workItem.includes("#")
+    ? `\nRelates to https://github.com/${allocation.workItem.replace("#", "/issues/")}\n`
+    : "";
+  const body = `${allocation.draft.body}\nWork-Item: ${allocation.workItem}\n${relates}`;
   const closing = [
     ...body.matchAll(/\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+/gi),
   ];

@@ -93,7 +93,13 @@ function originalBun(descriptor) {
 }
 
 /** Match complete message and Git metadata before any network/proof acceptance. */
-export function localDescriptor(descriptor, messageBytes, reference, policy) {
+export function localDescriptor(
+  descriptor,
+  messageBytes,
+  reference,
+  policy,
+  tracker = "github"
+) {
   // Parsing never supplies the signed digest. Reject malformed UTF8 only on
   // this present-proof path; preserve any BOM as part of the actual message.
   const message = new TextDecoder("utf-8", {
@@ -120,9 +126,13 @@ export function localDescriptor(descriptor, messageBytes, reference, policy) {
     ].every(value => typeof value === "string" && HEX.test(value)),
     "invalid descriptor digest"
   );
+  // A Jira comment id is decimal and a Linear one a UUID; the committed tracker,
+  // read from HEAD, decides which grammar applies (#4873).
   requireProof(
     typeof descriptor.claimCommentId === "string" &&
-      /^[1-9]\d*$/.test(descriptor.claimCommentId),
+      (tracker === "github" ? /^[1-9]\d*$/ : /^[A-Za-z0-9-]{1,64}$/).test(
+        descriptor.claimCommentId
+      ),
     "invalid claim reference"
   );
   requireProof(
@@ -210,6 +220,18 @@ export function proofSnapshot() {
 
 /** Reuse the shipped resolver and retain current canonical lifecycle requirements. */
 export function canonicalContext(message, config, policy, descriptor) {
+  // A Jira/Linear item is bound offline here: the hooks hold no tracker credential,
+  // and the publisher proves the live claim through its adapter (#4873).
+  if (config.tracker !== "github") {
+    const vendor = resolveWorkItemContext(message, { config });
+    requireProof(
+      vendor.provider === config.tracker &&
+        vendor.ref === descriptor.workItem &&
+        descriptor.queue === policy.repository,
+      "canonical tracker scope differs"
+    );
+    return vendor;
+  }
   const context = resolveWorkItemContext(message, {
     config,
     requireLive: true,

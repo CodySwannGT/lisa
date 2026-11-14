@@ -14,73 +14,23 @@ import type {
   TrackerRequest,
   Transport,
 } from "./npm-update-tracker-transport.js";
+import type {
+  LinearComment,
+  LinearIssue,
+  TextTest,
+  IssueFilter,
+  IssueInput,
+  Variables,
+  LinearStore,
+  Handler,
+  LinearFakeOptions,
+} from "./npm-update-linear-fake-types.js";
+export type { LinearFakeOptions } from "./npm-update-linear-fake-types.js";
 
-/** A stored comment: its Markdown body exactly as sent, and its author. */
-interface LinearComment {
-  id: string;
-  body: string;
-  userId: string | null;
-}
-
-/** A stored issue and its comments. */
-interface LinearIssue {
-  id: string;
-  number: number;
-  title: string;
-  description: string;
-  priority: number;
-  stateId: string;
-  assigneeId: string | null;
-  labels: string[];
-  comments: LinearComment[];
-}
-
-/** A Linear string comparator. */
-interface TextTest {
-  contains?: string;
-  containsIgnoreCase?: string;
-}
-
-/** The issue-filter subset the adapter sends. */
-interface IssueFilter {
-  description?: TextTest;
-  or?: Array<{ title?: TextTest; description?: TextTest }>;
-}
-
-/** Issue fields a create or seed supplies. */
-type IssueInput = Record<string, string | number | undefined>;
-
-/** The GraphQL variables the adapter sends. */
-interface Variables {
-  id?: string;
-  key?: string;
-  filter?: IssueFilter;
-  after?: string | null;
-  input?: IssueInput;
-}
-
-/** The fake workspace: team key, API-key viewer, members and issues. */
-interface LinearStore {
-  teamKey: string;
-  viewerId: string;
-  members: readonly string[];
-  truncated: readonly string[];
-  issues: LinearIssue[];
-}
-
-/** Answers one GraphQL operation. */
-type Handler = (variables: Variables) => unknown;
-
-/** Options for one fake Linear workspace. */
-export interface LinearFakeOptions {
-  teamKey?: string;
-  viewerId?: string;
-  members?: string[];
-  /** Issue connections (labels, children, inverseRelations) to report as having another page. */
-  truncated?: string[];
-}
-
+/** The API-key user the fake answers as: the declared automation identity in test configs. */
+export const LINEAR_VIEWER = "7a1e3c55-2b0d-4c8e-9f61-3d2a4b5c6e7f";
 const TEAM_ID = "team-1";
+const CONNECTIONS = ["labels", "children", "inverseRelations"];
 const PAGE = 100;
 const LINEAR_URL = "https://api.linear.app/graphql";
 const STATES = [
@@ -167,14 +117,40 @@ function commentNode(
 }
 
 /**
- * One bounded issue connection; a truncated one reports another page.
+ * One issue connection page of 100 by cursor; a truncated one never ends.
  * @param store - Fake workspace.
  * @param name - Connection name on the issue node.
- * @param nodes - Its nodes.
- * @returns The connection.
+ * @param nodes - Every node in the connection.
+ * @param after - The previous page's end cursor, if any.
+ * @returns The connection page.
  */
-function connection(store: LinearStore, name: string, nodes: object[]) {
-  return { nodes, pageInfo: { hasNextPage: store.truncated.includes(name) } };
+function connection(
+  store: LinearStore,
+  name: string,
+  nodes: object[],
+  after?: string | null
+) {
+  if (store.truncated.includes(name))
+    return { nodes: [], pageInfo: { hasNextPage: true, endCursor: "0" } };
+  return page(nodes, after);
+}
+
+/**
+ * Every node of one named issue connection.
+ * @param issue - Stored issue.
+ * @param name - labels, children or inverseRelations.
+ * @returns Its nodes.
+ */
+function connectionNodes(issue: LinearIssue, name: string): object[] {
+  if (name === "labels") return issue.labels.map(label => ({ name: label }));
+  if (name === "children") return issue.children.map(id => ({ id }));
+  return issue.relations.map(relation => ({
+    type: relation.type,
+    issue: {
+      state: { type: relation.closed ? "completed" : "started" },
+      archivedAt: null,
+    },
+  }));
 }
 
 /**
@@ -195,13 +171,12 @@ function issueNode(store: LinearStore, issue: LinearIssue) {
     archivedAt: null,
     state: { name: state.name, type: state.type },
     assignee: issue.assigneeId ? { id: issue.assigneeId } : null,
-    labels: connection(
-      store,
-      "labels",
-      issue.labels.map(name => ({ name }))
+    ...Object.fromEntries(
+      CONNECTIONS.map(name => [
+        name,
+        connection(store, name, connectionNodes(issue, name)),
+      ])
     ),
-    children: connection(store, "children", []),
-    inverseRelations: connection(store, "inverseRelations", []),
   };
 }
 
@@ -231,7 +206,7 @@ function page<T>(nodes: T[], after: string | null | undefined) {
  */
 function addIssue(store: LinearStore, input: IssueInput) {
   const number = store.issues.length + 1;
-  const issue = {
+  const issue: LinearIssue = {
     id: `issue-${number}`,
     number,
     title: String(input.title ?? "Seeded issue"),
@@ -241,6 +216,8 @@ function addIssue(store: LinearStore, input: IssueInput) {
     assigneeId:
       input.assigneeId === undefined ? null : String(input.assigneeId),
     labels: [],
+    children: [],
+    relations: [],
     comments: [],
   };
   store.issues.push(issue);
@@ -311,6 +288,16 @@ function reads(store: LinearStore): Record<string, Handler> {
       const issue = findIssue(store, v.id);
       return { issue: issue ? issueNode(store, issue) : null };
     },
+    ...Object.fromEntries(
+      CONNECTIONS.map(name => [
+        `LisaNpmIssue${name[0]!.toUpperCase()}${name.slice(1)}`,
+        (v: Variables) => {
+          const issue = findIssue(store, v.id)!;
+          const nodes = connectionNodes(issue, name);
+          return { issue: { [name]: connection(store, name, nodes, v.after) } };
+        },
+      ])
+    ),
     LisaNpmComments: v => {
       const issue = findIssue(store, v.id)!;
       const nodes = issue.comments.map(item => commentNode(store, item, issue));
@@ -365,7 +352,7 @@ function writes(store: LinearStore): Record<string, Handler> {
 export function fakeLinear(options: LinearFakeOptions = {}) {
   const store: LinearStore = {
     teamKey: options.teamKey ?? "ENG",
-    viewerId: options.viewerId ?? "viewer-0001",
+    viewerId: options.viewerId ?? LINEAR_VIEWER,
     members: options.members ?? [],
     truncated: options.truncated ?? [],
     issues: [],

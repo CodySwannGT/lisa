@@ -10,6 +10,7 @@
  * @module npm-updater
  */
 import { required, operatorRefusal } from "./npm-update-invariants.mjs";
+import { backlinkBody } from "../lisa-work-item.mjs";
 import { verifyCurrentRun } from "./github-attestation-provider.mjs";
 import { JiraTracker } from "./npm-update-tracker-jira.mjs";
 import { LinearTracker } from "./npm-update-tracker-linear.mjs";
@@ -169,6 +170,22 @@ export function verifySignedWorkItem(config, allocation, preview) {
       trailers[0][1] === expected,
     "signed work item differs from the configured tracker"
   );
+}
+
+/**
+ * The managed PR backlink on a Jira/Linear work item, written by the declared
+ * automation identity and read back exactly. A rerun finds it and writes nothing.
+ */
+export async function vendorBacklink(tracker, number, prUrl) {
+  const body = backlinkBody(prUrl);
+  const present = async () => {
+    for (const comment of await tracker.comments(number))
+      if (comment.body === body && (await tracker.isManagedActor(comment.user)))
+        return true;
+    return false;
+  };
+  if (!(await present())) await tracker.backlinkComment(number, body);
+  required(await present(), "work item backlink readback differs");
 }
 
 /** Checkpoint authority for Jira/Linear: the live GitHub run plus the claim proved on the tracker. */

@@ -56,6 +56,10 @@ const RUNTIME = {
   dockerFixtures: false,
 };
 const ORIGINAL_BUN = '{"lockfileVersion":1}\n';
+const LINEAR_REF = "ENG-42";
+const LINEAR_MESSAGE = `chore: update npm dependencies\n\nWork-Item: ${LINEAR_REF}\n`;
+/** A Linear comment id is a UUID; the same value stands in for the automation user id. */
+const LINEAR_CLAIM = "0f3c2a1b-4d5e-4f60-8a7b-9c0d1e2f3a4b";
 
 afterEach(cleanupFixtures);
 afterAll(cleanupTemplates);
@@ -188,9 +192,15 @@ console.log(typeof data[key]==='string'?data[key]:JSON.stringify(data[key]));\n`
 /** Materialize a real two-file npm proposal on a committed trusted base. */
 function proposalFixture(
   recovery = false,
-  optional: { bun?: boolean; runtime?: boolean; unbound?: boolean } = {}
+  optional: {
+    bun?: boolean;
+    runtime?: boolean;
+    unbound?: boolean;
+    linear?: boolean;
+  } = {}
 ) {
   const f = fixture();
+  if (optional.linear) bindTo(f, LINEAR_REF, "feature/tracked", "linear");
   const policy = transport(f);
   const config = JSON.parse(readFileSync(path.join(f.root, CONFIG), "utf8"));
   writeFileSync(
@@ -198,6 +208,16 @@ function proposalFixture(
     JSON.stringify({
       ...config,
       automationProvenance: policy,
+      ...(optional.linear
+        ? {
+            tracker: "linear",
+            linear: {
+              workspace: "acme",
+              teamKey: "ENG",
+              claimActorRef: LINEAR_CLAIM,
+            },
+          }
+        : {}),
       ...(recovery || optional.runtime
         ? {
             npmUpdater: {
@@ -285,11 +305,13 @@ function proposalFixture(
     author: git(f.root, ["var", "GIT_AUTHOR_IDENT"], env),
     committer: git(f.root, ["var", "GIT_COMMITTER_IDENT"], env),
     policySha256: sha256(canonicalJson(policy)),
-    messageSha256: sha256(MESSAGE + MARKER),
-    claimCommentId: "77",
+    messageSha256: sha256(
+      (optional.linear ? LINEAR_MESSAGE : MESSAGE) + MARKER
+    ),
+    claimCommentId: optional.linear ? LINEAR_CLAIM : "77",
     claimSha256: sha256(claim),
     queue: "acme/widgets",
-    workItem: REF,
+    workItem: optional.linear ? LINEAR_REF : REF,
     ...bindings,
     proposalKey: sha256(
       canonicalJson({
@@ -606,6 +628,29 @@ describe("full hook and checkout transport fixtures (not live issuance)", () => 
         "https://foreign.example.test";
     writeFileSync(path.join(p.f.root, PROVIDER_FILE), JSON.stringify(data));
     expect(hook(p.f, ROOT_HOOK, message).status).toBe(1);
+  });
+});
+
+describe("a Linear-tracked host through the real hook (#4873)", () => {
+  it.each(HOOKS)(
+    "accepts a UUID claim and binds the key offline, reading no GitHub issue or comment: %s",
+    hookPath => {
+      const p = proposalFixture(false, { linear: true });
+      installProof(p);
+      const result = hook(p.f, hookPath, LINEAR_MESSAGE + MARKER);
+      expect(result.stdout + result.stderr).toContain(AUTHENTICATED_OUTPUT);
+      expect(result.status).toBe(0);
+      const calls = readFileSync(path.join(p.f.root, CALLS_FILE), "utf8");
+      expect(calls).not.toMatch(/issues\/comments|issue view/);
+      expect(calls).toContain("actions/runs/123/attempts/1");
+    }
+  );
+
+  it("still refuses a UUID claim id when the committed tracker is GitHub", () => {
+    const p = proposalFixture();
+    p.descriptor.claimCommentId = LINEAR_CLAIM;
+    installProof(p);
+    expect(hook(p.f, ROOT_HOOK, MESSAGE + MARKER).status).toBe(1);
   });
 });
 

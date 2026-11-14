@@ -11,6 +11,7 @@ import { createTracker } from "../../../all/copy-overwrite/scripts/lib/npm-updat
 import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
 import { withPrivateRoot } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 import { canonicalJson } from "../../../all/copy-overwrite/scripts/lisa-automation-provenance.mjs";
+import { sha256 } from "../../../all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs";
 import { main } from "../../../all/copy-overwrite/scripts/lisa-npm-updater.mjs";
 import {
   JIRA_CONFIG,
@@ -86,6 +87,58 @@ describe("tracker credentials fail closed before any request", () => {
     expect(transport).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["jira", JIRA_CONFIG, { JIRA_API_TOKEN: "t", JIRA_LOGIN: "b@x.test" }],
+    ["linear", LINEAR_CONFIG, { LINEAR_API_KEY: "k" }],
+  ] as const)(
+    "refuses a %s host without a declared claimActorRef, naming the key (#4873)",
+    (tracker, config, env) => {
+      const transport = vi.fn();
+      const section = {
+        ...(config as unknown as Record<string, object>)[tracker],
+        claimActorRef: undefined,
+      };
+      const text = operatorText(() =>
+        createTracker({ ...config, [tracker]: section }, env, transport)
+      );
+      expect(text).toContain(`${tracker}.claimActorRef is not set`);
+      expect(transport).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    [
+      "jira",
+      JIRA_CONFIG,
+      { JIRA_API_TOKEN: "t", JIRA_LOGIN: "b@x.test" },
+      { accountId: "someone-else" },
+      "JIRA_API_TOKEN",
+    ],
+    [
+      "linear",
+      LINEAR_CONFIG,
+      { LINEAR_API_KEY: "k" },
+      { data: { viewer: { id: "0f3c2a1b-4d5e-4f60-8a7b-9c0d1e2f3a40" } } },
+      "LINEAR_API_KEY",
+    ],
+  ] as const)(
+    "refuses a %s credential that signs in as a different account than claimActorRef (#4873)",
+    async (_tracker, config, env, reply, variable) => {
+      const tracker = createTracker(config, env, async () =>
+        Response.json(reply)
+      )!;
+      const failure = await (
+        "myself" in tracker ? tracker.myself() : tracker.viewer()
+      ).then(
+        () => undefined,
+        (error: unknown) => publicFailure(error)
+      );
+      expect(failure).toContain(
+        `The ${variable} signs in as a different account than`
+      );
+    }
+  );
+
   it("names the Jira site when neither a cloud id nor a site is configured", () => {
     const text = operatorText(() =>
       createTracker(
@@ -150,7 +203,39 @@ describe("the allocate phase with LINEAR_API_KEY unset", () => {
     expect(network).not.toHaveBeenCalled();
   });
 
-  it.each(["gate", "publish", "cancel-prepare", "cancel-checkpoint"])(
+  it("publish exits non-zero naming LINEAR_API_KEY before any request or output (#4873)", async () => {
+    const network = vi.spyOn(globalThis, "fetch");
+    await withPrivateRoot(async (root, env) => {
+      const { cwd, output, proposal } = await linearCheckout(root, env);
+      const message = `chore(deps): update selected npm dependencies\n\nWork-Item: ENG-1\nAutomation-Provenance: actions/1/attempts/1\n`;
+      const files: Record<string, unknown> = {
+        "proposal.json": proposal,
+        "allocation.json": { number: 1, workItem: "ENG-1" },
+        "preview.json": {
+          descriptor: { workItem: "ENG-1", messageSha256: sha256(message) },
+          message,
+          epoch: 1,
+        },
+        "gated.json": { raw: "", receipt: {} },
+      };
+      for (const [name, value] of Object.entries(files))
+        writeFileSync(join(output, name), `${canonicalJson(value)}\n`, {
+          mode: 0o600,
+        });
+      const failure = await main(["publish", cwd, output]).then(
+        () => undefined,
+        (error: unknown) => error
+      );
+      expect(publicFailure(failure)).toContain("LINEAR_API_KEY");
+      const byName = (left: string, right: string) => left.localeCompare(right);
+      expect(readdirSync(output).sort(byName)).toEqual(
+        Object.keys(files).sort(byName)
+      );
+    });
+    expect(network).not.toHaveBeenCalled();
+  });
+
+  it.each(["cancel-prepare", "cancel-checkpoint"])(
     "refuses the %s phase for a Linear host with the follow-up sentence",
     async phase => {
       await withPrivateRoot(async (root, env) => {

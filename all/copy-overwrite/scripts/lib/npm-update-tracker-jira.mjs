@@ -22,6 +22,9 @@ import {
   withinJiraLimit,
   strandedRefusal,
   vendorLabels,
+  declaredActor,
+  assertDeclaredActor,
+  assertClaimAuthor,
 } from "./npm-update-tracker-wire.mjs";
 
 const API = "/rest/api/3";
@@ -58,6 +61,7 @@ function commentRecord(comment) {
 export class JiraTracker {
   constructor(config, env, transport = globalThis.fetch) {
     const credentials = trackerCredentials(config, env);
+    this.actor = declaredActor(config);
     this.provider = "jira";
     this.key = config.jira.project.trim().toUpperCase();
     this.lifecycle = trackerContract(config).lifecycle;
@@ -65,11 +69,11 @@ export class JiraTracker {
     this.authorization = credentials.authorization;
     this.transport = transport;
   }
-  call(path, purpose, method = "GET", body) {
+  call(path, purpose, method = "GET", body, missing = false) {
     return jsonCall(
       this.transport,
       `${this.baseUrl}${API}${path}`,
-      { method, body, authorization: this.authorization },
+      { method, body, missing, authorization: this.authorization },
       purpose
     );
   }
@@ -82,12 +86,12 @@ export class JiraTracker {
     required(match, "tracker search reply differs");
     return Number(match[1]);
   }
+  /** The credential's own account, which must be the declared automation identity. */
   async myself() {
-    this.accountId ??= (await this.call("/myself", "unclassified"))?.accountId;
-    required(
-      typeof this.accountId === "string",
-      "tracker identity unavailable"
-    );
+    if (this.accountId) return this.accountId;
+    const id = (await this.call("/myself", "unclassified"))?.accountId;
+    required(typeof id === "string", "tracker identity unavailable");
+    this.accountId = assertDeclaredActor("jira", id, this.actor);
     return this.accountId;
   }
   async issue(number) {
@@ -143,11 +147,12 @@ export class JiraTracker {
     }
     throw new Error("npm updater: provider pagination exceeded bound");
   }
-  async search(jql) {
+  async search(jql, reconcileIssues) {
     const reply = await this.call("/search/jql", "issue-search", "POST", {
       jql,
       fields: ["status"],
       maxResults: 100,
+      ...(reconcileIssues ? { reconcileIssues } : {}),
     });
     required(Array.isArray(reply?.issues), "tracker search reply differs");
     return {
@@ -159,10 +164,44 @@ export class JiraTracker {
       })),
     };
   }
-  /** The exact selection label, not full-text ranking, finds a prior proposal. */
-  searchPrior(proposal) {
+  /**
+   * The automation account's own user property for one selection. Jira entity
+   * properties read back consistently, unlike the search index, and the calling
+   * account may write its own without an admin permission.
+   */
+  async rememberedPath(proposal) {
+    const account = encodeURIComponent(await this.myself());
+    return `/user/properties/lisa-npm-${proposal.selectionKey}?accountId=${account}`;
+  }
+  /**
+   * The ticket this automation last created for the selection, or undefined.
+   * Best effort by design: an unreadable record leaves search exactly as it
+   * was before #4873, where a duplicate still stops safely for a person.
+   */
+  async remembered(proposal) {
+    try {
+      const record = await this.call(
+        await this.rememberedPath(proposal),
+        "unclassified",
+        "GET",
+        undefined,
+        true
+      );
+      const id = Number(record?.value?.id);
+      return Number.isSafeInteger(id) && id > 0 ? [id] : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  /**
+   * The exact selection label, not full-text ranking, finds a prior proposal.
+   * Jira's search index can miss a ticket created moments ago, so the ticket
+   * this automation remembered creating is reconciled into the result (#4873).
+   */
+  async searchPrior(proposal) {
     return this.search(
-      `project = "${this.key}" AND labels = "lisa-npm-${proposal.selectionKey}"`
+      `project = "${this.key}" AND labels = "lisa-npm-${proposal.selectionKey}"`,
+      await this.remembered(proposal)
     );
   }
   async relationships() {
@@ -205,6 +244,17 @@ export class JiraTracker {
     };
     const created = await this.call("/issue", "issue", "POST", { fields });
     const number = this.numberOf(created?.key);
+    // Remembered first, so a retry inside the index window finds this ticket.
+    // Best effort, like the read: a refused write must not strand the ticket.
+    await this.call(
+      await this.rememberedPath(proposal),
+      "unclassified",
+      "PUT",
+      {
+        id: String(created.id),
+        key: created.key,
+      }
+    ).catch(() => undefined);
     try {
       await this.moveTo(number, this.lifecycle.ready);
     } catch {
@@ -251,18 +301,26 @@ export class JiraTracker {
   async transition(issue, roles) {
     await this.moveTo(issue.number, roles.claimed);
   }
-  async comment(number, text) {
+  /** Managed records are one ADF code block; a backlink is the plain paragraph the PR check reads. */
+  async comment(number, text, document = adfCodeBlock(withinJiraLimit(text))) {
     const created = await this.call(
       `/issue/${this.ref(number)}/comment`,
       "issue-comments",
       "POST",
-      { body: adfCodeBlock(withinJiraLimit(text)) }
+      { body: document }
     );
     required(
       /^[1-9]\d*$/.test(String(created?.id)) && adfText(created.body) === text,
       "checkpoint write readback differs"
     );
     return created;
+  }
+  backlinkComment(number, text) {
+    return this.comment(number, text, {
+      type: "doc",
+      version: 1,
+      content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+    });
   }
   /** The issue-scoped comment path is itself the scope proof: Jira answers 404 elsewhere. */
   async durableComment(number, text) {
@@ -291,9 +349,17 @@ export class JiraTracker {
       "issue-comment"
     );
     required(
-      String(comment?.id) === descriptor.claimCommentId &&
-        comment.author?.accountId === (await this.myself()) &&
-        sha256(adfText(comment.body)) === descriptor.claimSha256,
+      String(comment?.id) === descriptor.claimCommentId,
+      "current tracker claim differs"
+    );
+    assertClaimAuthor(
+      "jira",
+      descriptor.workItem,
+      comment.author?.accountId,
+      await this.myself()
+    );
+    required(
+      sha256(adfText(comment.body)) === descriptor.claimSha256,
       "current tracker claim differs"
     );
   }

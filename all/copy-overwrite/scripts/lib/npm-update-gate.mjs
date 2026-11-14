@@ -293,6 +293,11 @@ export async function gateProposal(context) {
         GIT_COMMITTER_EMAIL: MAIL,
         GIT_AUTHOR_DATE: `${preview.epoch} +0000`,
         GIT_COMMITTER_DATE: `${preview.epoch} +0000`,
+        // The gate holds no Jira/Linear credential (dependency code runs here),
+        // so the hooks bind that key offline; the adapter proves the claim (#4873).
+        ...(["jira", "linear"].includes(context.config?.tracker)
+          ? { LISA_WORK_ITEM_VERIFY: "trailer" }
+          : {}),
       };
       const branch = await withStage("gate-stage", () =>
         stageProposal(scoped, env)

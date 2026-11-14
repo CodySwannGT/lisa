@@ -30,6 +30,7 @@ import { GitHub, missingTarget } from "./lib/npm-update-github.mjs";
 import {
   createTracker,
   refuseUnlessGithub,
+  verifySignedWorkItem,
 } from "./lib/npm-update-tracker.mjs";
 import { allocateLeaf } from "./lib/npm-update-allocate.mjs";
 import { publishProposal } from "./lib/npm-update-publish.mjs";
@@ -212,7 +213,8 @@ async function publishPhase(
     typeof gated.raw === "string" && gated.raw.length <= 90_000,
     "bounded raw commit envelope required"
   );
-  const api = new GitHub(config.automationProvenance, process.env.GH_TOKEN);
+  // Jira/Linear attach their adapter; a missing credential refuses before any write.
+  const api = updaterApi(config);
   const result = await publishProposal({
     api,
     cwd,
@@ -272,7 +274,7 @@ export async function main(argv = process.argv.slice(2)) {
   const { config, policy } = await withStage("configuration", () =>
     configuration(cwd)
   );
-  if (!["prepare", "allocate", "checkpoint"].includes(phase))
+  if (phase === CANCEL_PREPARE || phase === "cancel-checkpoint")
     refuseUnlessGithub(config, phase);
   phaseDirectory(output);
   if (phase === "prepare") {
@@ -300,6 +302,9 @@ export async function main(argv = process.argv.slice(2)) {
     sha256(preview.message) === preview.descriptor.messageSha256,
     "preview final message differs"
   );
+  // The gate and publisher re-check the one exact Jira/Linear reference they carry.
+  if (config.tracker !== "github" && (phase === "gate" || phase === "publish"))
+    verifySignedWorkItem(config, allocation, preview);
   if (phase === "checkpoint") {
     const api = updaterApi(config);
     const result = await finalizeAuthorization({

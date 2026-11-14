@@ -186,6 +186,7 @@ export async function publishProposal({
     );
     await destinationSnapshot(api, proposal, allocation, commit.sha);
     publicationProof(api, descriptor, proof, proposal, policy, issue, commit);
+    if (api.tracker) await api.tracker.proveClaim(descriptor);
     return issue;
   };
   await authorize();

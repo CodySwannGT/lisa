@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 288,
-  "$names": 2097,
+  "$names": 2103,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -338,6 +338,7 @@
       "validBranchName",
       "verifiedRole",
       "verifyCurrentProvider",
+      "verifyCurrentRun",
       "verifyDescriptorAttestation"
     ],
     "all/copy-overwrite/scripts/lib/history-secret-evidence-shape.mjs": [
@@ -848,10 +849,14 @@
       "LinearTracker"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-tracker-wire.mjs": [
+      "LINEAR_CONNECTIONS",
       "adfCodeBlock",
       "adfProse",
       "adfText",
+      "assertClaimAuthor",
+      "assertDeclaredActor",
       "completeLinearConnections",
+      "declaredActor",
       "fence",
       "jsonCall",
       "lifecycleName",
@@ -874,6 +879,7 @@
       "trackerFor",
       "trackerOf",
       "trustedHumanActorIds",
+      "vendorBacklink",
       "verifySignedWorkItem"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs": [

@@ -12,6 +12,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runProcess } from "../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 import { proposalFrom } from "../../all/copy-overwrite/scripts/lib/npm-update-contract.mjs";
+import { JIRA_ACCOUNT } from "./npm-update-jira-fake.js";
+import { LINEAR_VIEWER } from "./npm-update-linear-fake.js";
 
 export const LINEAR_MAINTAINER = "0f3c2a1b-4d5e-4f60-8a7b-9c0d1e2f3a4b";
 export const JIRA_MAINTAINER = "557058:f58131cb-b67d-43c7-b30d-6b58d40bd077";
@@ -90,14 +92,14 @@ const BASE = {
 export const LINEAR_CONFIG = {
   ...BASE,
   tracker: "linear",
-  linear: { workspace: "acme", teamKey: "ENG" },
+  linear: { workspace: "acme", teamKey: "ENG", claimActorRef: LINEAR_VIEWER },
 };
 
 /** A Jira-tracked host: project PROJ on a Jira Cloud site. */
 export const JIRA_CONFIG = {
   ...BASE,
   tracker: "jira",
-  jira: { project: "PROJ" },
+  jira: { project: "PROJ", claimActorRef: JIRA_ACCOUNT },
   atlassian: { site: "acme.atlassian.net" },
 };
 
