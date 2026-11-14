@@ -4,9 +4,18 @@
 /** Supported disposable Actions Linux gates use original native tools; publisher authority stays in another job. */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { required, proposalFileNames } from "./npm-update-contract.mjs";
+import {
+  required,
+  proposalFileNames,
+  policyTarget,
+} from "./npm-update-contract.mjs";
 import { installInputs } from "./automation-provenance-contract.mjs";
-import { qualifiedBun, frozenBun } from "./npm-update-bun.mjs";
+import {
+  qualifiedBun,
+  frozenBun,
+  bunOnlyRoot,
+  frozenRootBun,
+} from "./npm-update-bun.mjs";
 import { runProcess } from "./npm-update-process.mjs";
 import { qualifiedControllerGraph } from "./npm-update-helper.mjs";
 import { controllerTools } from "./npm-update-controller-factory.mjs";
@@ -45,7 +54,7 @@ export function assertHostedGate(
       env.RUNNER_ENVIRONMENT === "github-hosted" &&
       env.GITHUB_REPOSITORY === context.policy.repository &&
       env.GITHUB_SHA === context.proposal.parent &&
-      env.GITHUB_REF === "refs/heads/main" &&
+      env.GITHUB_REF === `refs/heads/${policyTarget(context.proposal)}` &&
       context.config.automationProvenance.allowedTriggers.includes(
         env.GITHUB_EVENT_NAME
       ),
@@ -85,7 +94,7 @@ function nativeStep(context, env, command, args, maximum = 3_145_728) {
 }
 
 /** Lifecycle execution is disabled; Bundler is an explicit original tool install in this credential-free job. */
-async function installHostedDependencies(context, root, env) {
+export async function installHostedDependencies(context, root, env) {
   const ruby = existsSync(join(context.cwd, "Gemfile"));
   const installed = { ...env };
   if (ruby) {
@@ -97,16 +106,27 @@ async function installHostedDependencies(context, root, env) {
     installed.BUNDLE_APP_CONFIG = join(root, "bundle");
     installed.BUNDLE_FROZEN = "true";
   }
+  const rootManager = bunOnlyRoot(context.cwd) ? "bun" : "npm";
   const before = [
-    ...installInputs(context.proposal),
+    ...installInputs(context.proposal, rootManager),
     ...(ruby ? ["Gemfile", "Gemfile.lock"] : []),
   ].map(name => [name, readFileSync(join(context.cwd, name))]);
-  await nativeStep(context, installed, "npm", [
-    "ci",
-    "--ignore-scripts",
-    "--no-audit",
-    "--no-fund",
-  ]);
+  if (rootManager === "bun") {
+    // The whole root install gets the remaining phase budget, like `npm ci`.
+    const bun = await qualifiedBun(installed, {
+      deadline: context.deadline,
+      ceiling: remainingGateTime(context.deadline),
+    });
+    await frozenRootBun(bun, context.cwd, {
+      timeout: remainingGateTime(context.deadline),
+    });
+  } else
+    await nativeStep(context, installed, "npm", [
+      "ci",
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
+    ]);
   if (context.proposal.bunLockSha256 !== undefined) {
     const bun = await qualifiedBun(installed, { deadline: context.deadline });
     await frozenBun(bun, context.cwd, proposalFileNames(context.proposal), {

@@ -22,6 +22,11 @@ on:
         type: string
         default: '.'
         required: false
+      target_branch:
+        description: Branch this run updates and opens its pull request against; must equal the committed npmUpdater target (default main)
+        type: string
+        default: 'main'
+        required: false
       cancel_issue:
         description: Explicit stale prepublication proposal issue to cancel
         type: string
@@ -33,9 +38,22 @@ on:
         default: ''
         required: false
       cancel_expected_main:
-        description: Exact current main commit authorizing the replacement
+        description: Exact current tip of the target branch (main by default) authorizing the replacement
         type: string
         default: ''
+        required: false
+    # Optional: only a Jira- or Linear-tracked host passes these. They reach only the
+    # two steps that file, claim and checkpoint the work item; a GitHub-tracked host
+    # passes nothing and runs exactly as before.
+    secrets:
+      JIRA_API_TOKEN:
+        description: Jira API token for a host whose committed tracker is jira
+        required: false
+      JIRA_LOGIN:
+        description: Jira account email paired with JIRA_API_TOKEN (falls back to atlassian.email)
+        required: false
+      LINEAR_API_KEY:
+        description: Linear API key for a host whose committed tracker is linear
         required: false
 
 permissions: {}
@@ -49,6 +67,8 @@ env:
   LISA_NPM_RUNTIME_PROFILE: ${{ inputs.runtime-profile }}
   # Selects one committed npmUpdater entry; the CLI refuses any directory policy does not commit.
   LISA_NPM_DIRECTORY: ${{ inputs.directory }}
+  # The CLI refuses a target_branch that differs from the committed npmUpdater target.
+  LISA_NPM_TARGET_BRANCH: ${{ inputs.target_branch }}
 
 jobs:
   workflow_contract:
@@ -112,7 +132,8 @@ jobs:
           echo "contract major ${DECLARED_MAJOR} agreed: ${WORKFLOW_FILE} has not declared a break under this caller."
   prepare:
     needs: workflow_contract
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    # An empty target_branch (an unset caller variable) is main, as in the CLI, never a silent skip.
+    if: github.ref == format('refs/heads/{0}', inputs.target_branch || 'main') && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -158,7 +179,12 @@ jobs:
         run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
           npm install --global "npm@$NPM_VERSION" --ignore-scripts --no-audit --no-fund
-          npm ci --ignore-scripts --no-audit --no-fund
+          # A Bun-only root (bun.lock, no package-lock.json) installs with frozen Bun (#4862).
+          if [ ! -f package-lock.json ] && [ -f bun.lock ]; then
+            bun install --frozen-lockfile --ignore-scripts
+          else
+            npm ci --ignore-scripts --no-audit --no-fund
+          fi
       - id: prepare
         run: |
           node scripts/lisa-npm-updater.mjs prepare "$GITHUB_WORKSPACE" "$PHASE"
@@ -194,10 +220,19 @@ jobs:
           # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
           package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        if: hashFiles('package-lock.json') == '' && hashFiles('bun.lock') != ''
+        with:
+          bun-version: '1.4.4'
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
           npm install --global "npm@$NPM_VERSION" --ignore-scripts --no-audit --no-fund
-          npm ci --ignore-scripts --no-audit --no-fund
+          # A Bun-only root (bun.lock, no package-lock.json) installs with frozen Bun (#4862).
+          if [ ! -f package-lock.json ] && [ -f bun.lock ]; then
+            bun install --frozen-lockfile --ignore-scripts
+          else
+            npm ci --ignore-scripts --no-audit --no-fund
+          fi
       - &pinned-gh
         name: Install the official Linux GH bytes declared by the trusted host
         run: |
@@ -257,6 +292,9 @@ jobs:
       - name: Allocate or recover the exact canonical leaf
         env:
           GH_TOKEN: ${{ github.token }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_LOGIN: ${{ secrets.JIRA_LOGIN }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
         run: node scripts/lisa-npm-updater.mjs allocate "$GITHUB_WORKSPACE" "$PHASE"
       - id: authority
         name: Select the fixed current signing role
@@ -274,6 +312,9 @@ jobs:
       - name: Transport the actual distinct bundle and persist the checkpoint
         env:
           GH_TOKEN: ${{ github.token }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_LOGIN: ${{ secrets.JIRA_LOGIN }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
           BUNDLE: ${{ steps.attest.outputs.bundle-path }}
           MODE: ${{ steps.authority.outputs.mode }}
         run: |
@@ -308,18 +349,23 @@ jobs:
           # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
           package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: '1.4.4'
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
           npm install --global "npm@$NPM_VERSION" --ignore-scripts --no-audit --no-fund
-          npm ci --ignore-scripts --no-audit --no-fund
+          # A Bun-only root (bun.lock, no package-lock.json) installs with frozen Bun (#4862).
+          if [ ! -f package-lock.json ] && [ -f bun.lock ]; then
+            bun install --frozen-lockfile --ignore-scripts
+          else
+            npm ci --ignore-scripts --no-audit --no-fund
+          fi
       - uses: actions/download-artifact@v8
         with:
           name: npm-authorized-${{ env.NPM_ARTIFACT_SUFFIX }}
           path: ${{ env.PHASE }}
       - *pinned-gh
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: '1.4.4'
       - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
           ruby-version: '3.4.11'
@@ -368,10 +414,19 @@ jobs:
           # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
           package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        if: hashFiles('package-lock.json') == '' && hashFiles('bun.lock') != ''
+        with:
+          bun-version: '1.4.4'
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
           npm install --global "npm@$NPM_VERSION" --ignore-scripts --no-audit --no-fund
-          npm ci --ignore-scripts --no-audit --no-fund
+          # A Bun-only root (bun.lock, no package-lock.json) installs with frozen Bun (#4862).
+          if [ ! -f package-lock.json ] && [ -f bun.lock ]; then
+            bun install --frozen-lockfile --ignore-scripts
+          else
+            npm ci --ignore-scripts --no-audit --no-fund
+          fi
       - uses: actions/download-artifact@v8
         with:
           name: npm-gated-${{ env.NPM_ARTIFACT_SUFFIX }}

@@ -12,9 +12,10 @@
  * scope. What retires one is a `[lisa-review-body] review=<id>` marker in a PR
  * comment, which also makes re-runs idempotent.
  *
- * The selection rule is executed, not only matched: the shipped `jq` programs
- * are run against fixture comment and review lists, because a filter that reads
- * correctly can still select the wrong reviews.
+ * The selection rule is executed, not matched: the shipped `jq` programs are
+ * run against fixture comment and review lists, because a filter that reads
+ * correctly can still select the wrong reviews. The skills' guidance prose
+ * around those programs is reviewed, not pinned.
  *
  * Every copy root is asserted so a missed `bun run build:plugins` fails the
  * suite.
@@ -139,25 +140,6 @@ function runJq(program: string, args: string[], input: unknown): unknown {
   return JSON.parse(outcome.stdout);
 }
 
-/**
- * The skill's own one-line summary. The Codex copy shortens the frontmatter
- * description and carries the full text as the first body line.
- * @param root - Copy root.
- * @param content - Whole skill text.
- * @returns The full description text.
- */
-function summary(root: string, content: string): string {
-  if (!root.includes(".codex-plugin"))
-    return /^description: (.*)$/m.exec(content)?.[1] ?? "";
-  const afterFrontmatter = content.indexOf("\n---\n", 4) + "\n---\n".length;
-  return (
-    content
-      .slice(afterFrontmatter)
-      .split("\n")
-      .find(line => line.trim() !== "") ?? ""
-  );
-}
-
 describe.each(ROOTS)("pull-request-review reads review bodies (%s)", root => {
   const content = readSkill(root, "lisa-pull-request-review");
   const handledIds = (comments: unknown): unknown =>
@@ -171,21 +153,8 @@ describe.each(ROOTS)("pull-request-review reads review bodies (%s)", root => {
       ) as { id: number }[]
     ).map(review => review.id);
 
-  it("fetches the reviews and the PR's issue comments, paginated", () => {
-    const step = section(content, "Step 1c");
-    expect(step).toContain(
-      "gh api --paginate repos/<owner>/<repo>/pulls/<pr>/reviews --slurp"
-    );
-    expect(step).toContain(
-      "gh api --paginate repos/<owner>/<repo>/issues/<pr>/comments --slurp"
-    );
-    expect(step).toMatch(/outside diff range/i);
-    expect(step).toMatch(/nitpick/i);
-  });
-
   it("keeps non-dismissed, non-empty bodies from every head, older ones included", () => {
     expect(selectReviews([], REVIEWS)).toEqual([1, 2, 5]);
-    expect(section(content, "Step 1c")).not.toMatch(/commit_id == \$head/);
   });
 
   it("skips a review an existing marker comment already answered", () => {
@@ -248,21 +217,9 @@ describe.each(ROOTS)("pull-request-review reads review bodies (%s)", root => {
     expect(selectReviews(handled, [[]])).toEqual([]);
   });
 
-  it("answers body items in a quoting PR comment that carries one marker per review", () => {
-    const step = section(content, "Step 2");
-    expect(step).toMatch(/review-body item/i);
-    expect(step).toContain("gh pr comment <pr>");
-    expect(step).toMatch(/quot/i);
-    expect(step).toContain("<!-- [lisa-review-body] review=<id> -->");
-    expect(step).toMatch(/already addressed in <sha>/);
-    expect(step).toMatch(/no thread to resolve/i);
-  });
-
   it("marks a summary-only review so it is not re-read and step (e) can dismiss it", () => {
     // A body with no actionable items used to get no marker, so it was re-read
     // every run and drive-pr-to-merge step (e) waited on it forever.
-    const step1c = section(content, "Step 1c");
-    expect(step1c).toMatch(/no actionable items still needs its marker/i);
     const step = section(content, "Step 2");
     const template =
       /gh pr comment <pr> --body "(Review <id>: no actionable items[^"]*)"/.exec(
@@ -276,51 +233,5 @@ describe.each(ROOTS)("pull-request-review reads review bodies (%s)", root => {
     ]);
     expect(handled).toEqual([2]);
     expect(selectReviews(handled, REVIEWS)).toEqual([1, 5]);
-  });
-
-  it("counts review-body items separately in the Step 4 report", () => {
-    const step = section(content, "Step 4");
-    expect(step).toContain("review-body items: N implemented / M answered");
-    expect(step).toContain("summary-only reviews: <ids>");
-  });
-
-  it("says in its description and composition that it covers review bodies", () => {
-    expect(summary(root, content)).toMatch(/review bod(y|ies)/i);
-    expect(section(content, "Composition")).toMatch(/review bod(y|ies)/i);
-  });
-});
-
-describe.each(ROOTS)("drive-pr-to-merge routes review bodies (%s)", root => {
-  const content = readSkill(root, "lisa-drive-pr-to-merge");
-
-  it("summarises the delegated cycle as threads AND review-body findings", () => {
-    const start = content.indexOf("\n### d. Review comments");
-    const end = content.indexOf("**A green review check is not proof", start);
-    expect(start).toBeGreaterThanOrEqual(0);
-    expect(end).toBeGreaterThan(start);
-    const step = content.slice(start, end);
-    expect(step).toMatch(/unresolved human \+ bot thread/);
-    expect(step).toMatch(/review-body finding/);
-  });
-
-  it("never dismisses a stale change request whose body items are unmarked", () => {
-    const start = content.indexOf("\n### e. ");
-    const end = content.indexOf("\n### f. ", start);
-    expect(start).toBeGreaterThanOrEqual(0);
-    expect(end).toBeGreaterThan(start);
-    const step = content.slice(start, end);
-    expect(step).toMatch(
-      /never dismiss a stale\s+`CHANGES_REQUESTED` review while its\s+body has items with no\s+`\[lisa-review-body\] review=<id>` marker/i
-    );
-    expect(step).toMatch(/through step\s+\(d\) first/);
-  });
-
-  it("counts the no-actionable-items marker as the marker that permits dismissal", () => {
-    const start = content.indexOf("\n### e. ");
-    const end = content.indexOf("\n### f. ", start);
-    const step = content.slice(start, end);
-    expect(step).toMatch(
-      /`no actionable items` marker[^.]*summary-only body counts, because/i
-    );
   });
 });

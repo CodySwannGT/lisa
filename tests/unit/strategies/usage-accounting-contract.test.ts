@@ -3,9 +3,11 @@
  *
  * Issue #727 defines the canonical usage ledger schema, source/pricing
  * semantics, machine-readable token shapes, rollup dedupe contract, and
- * deterministic rewrite rules before any writer integration lands. The rule is
- * the durable source of truth; both source and generated plugin roots must stay
- * in sync, and the token format must be parseable without reading prose.
+ * deterministic rewrite rules before any writer integration lands. The rule's
+ * guidance prose is not pinned (#4867); what stays is that the rule ships in
+ * both plugin roots carrying the machine-read `## Lisa Usage` heading and the
+ * usage-entry / usage-rollup token prefixes, and that the token format is
+ * parseable without reading prose.
  * @module tests/unit/strategies/usage-accounting-contract
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -192,27 +194,10 @@ describe("usage-accounting contract docs", () => {
 
     const content = readRule(root);
 
-    it("defines the canonical managed Lisa Usage section", () => {
+    it("carries the machine-read usage heading and token prefixes", () => {
       expect(content).toContain("## Lisa Usage");
-    });
-
-    it("documents the direct-entry schema and source semantics", () => {
-      expect(content).toContain("entry_id");
-      expect(content).toContain("pricing_status");
-      expect(content).toContain("artifact_ref");
-      expect(content).toContain("measured_subset_tokens");
-      expect(content).toContain("lisa:usage-entry-measured-subset");
-    });
-
-    it("documents fixed-order usage-entry and usage-rollup tokens", () => {
       expect(content).toContain("<!-- lisa:usage-entry entry_id=");
       expect(content).toContain("<!-- lisa:usage-rollup");
-      expect(content).toContain("lisa:usage-rollup-token-status");
-    });
-
-    it("documents rollup dedupe by stable entry_id", () => {
-      expect(content).toMatch(/Dedupe strictly by stable `entry_id`/i);
-      expect(content).toMatch(/Count each `entry_id` at most once/i);
     });
   });
 });

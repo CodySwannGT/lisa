@@ -20,7 +20,14 @@ import {
   predictedCommit,
 } from "./github-attestation-recovery.mjs";
 import { persistCheckpoint } from "./npm-update-checkpoint.mjs";
+import { targetField } from "./automation-provenance-contract.mjs";
 import { required, validateProposal } from "./npm-update-contract.mjs";
+import {
+  trackerFor,
+  refuseUnlessGithub,
+  verifySignedWorkItem,
+  proveTrackerProvider,
+} from "./npm-update-tracker.mjs";
 
 import {
   decodeCheckpoint,
@@ -63,6 +70,8 @@ export function recoveryRecord(
     ...snapshot,
     runId: process.env.GITHUB_RUN_ID,
     runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+    // Only a non-main origin target is carried; the recovery certificate names that ref.
+    ...targetField(d),
   };
 }
 
@@ -172,11 +181,17 @@ export async function finalizeAuthorization({
   );
   const mode = readJson(join(output, "authorization.json")).mode;
   if (mode === "recovery") {
+    refuseUnlessGithub(config, "signed-origin recovery");
     verifyRenewal({ api, preview, paths, digest, proposal, issue, policy });
   } else {
     required(mode === "origin", "unknown authorization role");
     verifyDescriptorAttestation(api.policy, preview.descriptor, paths, digest);
-    verifyCurrentProvider(api.policy, preview.descriptor);
+    if (config.tracker === "github")
+      verifyCurrentProvider(api.policy, preview.descriptor);
+    else {
+      verifySignedWorkItem(config, allocation, preview);
+      await proveTrackerProvider(api, preview.descriptor, config);
+    }
     await persistCheckpoint(
       api,
       allocation.number,
@@ -188,11 +203,12 @@ export async function finalizeAuthorization({
         bundle: readBytes(paths.bundle, 1_048_576).toString("utf8"),
       },
       digest,
-      () => authorizeAllocation(api, proposal, allocation, policy, config)
+      () => authorizeAllocation(api, proposal, allocation, policy, config),
+      config
     );
   }
   const checkpoint = locateCheckpoint(
-    (await api.issue(allocation.number)).comments,
+    (await trackerFor(api, policy, config).issue(allocation.number)).comments,
     proposal,
     policy
   );

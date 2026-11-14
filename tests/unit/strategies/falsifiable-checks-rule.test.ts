@@ -7,14 +7,9 @@
  * false fixes: every code change was correct and every verification instrument
  * was broken.
  *
- * These assertions pin the parts an agent must not lose: the closed four-mode
- * vocabulary (each mode is a distinct mechanism, so dropping one leaves a live
- * blind spot), the "unvalidated, not passing" reporting requirement, the
- * breadcrumb the cursor generator rewrites, and — most importantly — the removal
- * of the `codify-verification` loophole that previously let "mentally reverting"
- * satisfy the fail-first step. That loophole is the exact mechanism by which a
- * non-functional guard ships, so its absence is asserted directly rather than
- * inferred from the presence of the replacement prose.
+ * The rule's guidance prose is not pinned (#4867). What stays is structural:
+ * both halves of the pair ship with a non-trivial body, and the eager head
+ * carries the breadcrumb link the cursor generator rewrites.
  *
  * Both roots are checked because `plugins/lisa` is generated from
  * `plugins/src/base`: asserting one side only would let source-or-artifact drift
@@ -42,20 +37,10 @@ describe("falsifiable-checks rule contract", () => {
     });
 
     it("eager head breadcrumbs to the reference body", () => {
-      // The cursor generator rewrites this link; the rest of the contract is
-      // asserted on the reference body, which carries the full prose since the
-      // 2026-11 eager-tier cut.
+      // The cursor generator rewrites this link.
       expect(eager).toContain(
         "[reference/falsifiable-checks.md](../reference/falsifiable-checks.md)"
       );
-    });
-  });
-
-  describe.each(ROOTS)("%s codify-verification integration", root => {
-    const skill = read(root, "skills/lisa-codify-verification/SKILL.md");
-
-    it("requires the failure to be observed, not reasoned about", () => {
-      expect(skill).toMatch(/ACTUALLY FAILS without the change/);
     });
   });
 });

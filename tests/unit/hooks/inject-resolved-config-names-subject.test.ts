@@ -122,7 +122,7 @@ describe("the instruction is scoped, not removed", () => {
   });
 });
 
-describe("every surface carries the same scoped wording", () => {
+describe("every hook copy carries the same scoped wording", () => {
   it("keeps every generated hook copy byte-identical to the base", () => {
     // Fixing one variant and missing the other two is the parity failure
     // AGENTS.md forbids; all four are generated from the base.

@@ -4,15 +4,8 @@
  * by the first 12 SHA-256 hex characters so existing dedupe markers stay valid.
  */
 import { invariantFingerprint } from "../../../src/utils/effectiveness.js";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 
 import { describe, expect, it } from "vitest";
-
-const SKILL = readFileSync(
-  path.resolve("plugins/src/base/skills/lisa-learnings-audit/SKILL.md"),
-  "utf8"
-);
 
 // Known vectors captured during the #1735 verification run — the two first-run
 // PROJECT_RULES.md candidates the gardener classified as RETIRE.
@@ -30,11 +23,6 @@ const VECTORS = [
 ] as const;
 
 describe("gardener deterministic invariant-hash procedure", () => {
-  it("documents the normalization + hash pipeline in the skill", () => {
-    expect(SKILL).toContain("lisa effectiveness fingerprint --input <file>");
-    expect(SKILL).toContain("first 12 SHA-256 hex characters");
-  });
-
   describe.each(VECTORS)("known vector: $label", vector => {
     it("normalizes then hashes to the pinned 12-char key", () => {
       expect(invariantFingerprint(vector.raw)).toBe(vector.hash);

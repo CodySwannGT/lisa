@@ -188,12 +188,6 @@ describe("check-verification-coverage", () => {
 });
 
 describe("verification (UAT) gate wiring", () => {
-  it("frames verification AS UAT (one concept) in the verification rule", () => {
-    const rule = read("plugins/src/base/rules/reference/verification.md");
-    expect(rule).toContain("verification-exempt");
-    expect(rule).toContain("lisa:product-walkthrough");
-  });
-
   it("does not ship a parallel acceptance-uat skill", () => {
     expect(
       fs.existsSync(

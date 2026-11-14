@@ -3,12 +3,21 @@
 
 /** Pure environment, lifecycle and fixed Task data cannot import live claim or quality orchestration. */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
-import { required } from "./npm-update-contract.mjs";
-import { trackerContract } from "../lisa-work-item.mjs";
+import {
+  required,
+  DEFAULT_TARGET,
+  policyTarget,
+} from "./npm-update-contract.mjs";
+import {
+  trackerContract,
+  deployBranchEnvironments,
+} from "../lisa-work-item.mjs";
 import { directoryOf, npmPath } from "./automation-provenance-contract.mjs";
 
-/** Immutable host config, not candidate data or local aliases, chooses lifecycle. */
-export function leafRoles(config, repository) {
+const TRACKER_NAMES = { github: "GitHub", jira: "Jira", linear: "Linear" };
+
+/** GitHub keeps every original queue and ProjectV2 refusal; its blocked/human roles are labels. */
+function githubRoles(config, repository) {
   required(
     config.tracker === "github" &&
       repository === `${config.github?.org}/${config.github?.repo}`,
@@ -25,8 +34,34 @@ export function leafRoles(config, repository) {
     "configured ProjectV2 coordination requires the ordinary writer"
   );
   const build = config.github.labels?.build ?? {};
+  return {
+    blocked: build.blocked ?? "status:blocked",
+    human: build.human_needed ?? "human-needed",
+  };
+}
+
+/** Jira and Linear block with a workflow status; a human hold is still a plain label. */
+function vendorRoles(config, repository) {
+  required(
+    ["jira", "linear"].includes(config.tracker) &&
+      /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository ?? ""),
+    "configured tracker scope differs"
+  );
+  const workflow =
+    config.tracker === "jira"
+      ? config.jira?.workflow
+      : (config.linear?.workflow ?? config.linear?.labels?.build);
+  return { blocked: workflow?.blocked ?? "Blocked", human: "human-needed" };
+}
+
+/** Immutable host config, not candidate data or local aliases, chooses lifecycle. */
+export function leafRoles(config, repository, target = DEFAULT_TARGET) {
+  const held =
+    config.tracker === "jira" || config.tracker === "linear"
+      ? vendorRoles(config, repository)
+      : githubRoles(config, repository);
   const contract = trackerContract(config);
-  const targetEnvironment = environment(config);
+  const targetEnvironment = environment(config, target);
   const terminal =
     contract.lifecycle.done.find(([name]) => name === targetEnvironment)?.[1] ??
     contract.lifecycle.terminalName;
@@ -44,38 +79,50 @@ export function leafRoles(config, repository) {
   const later = contract.lifecycle.roles.filter(
     label =>
       label !== contract.lifecycle.ready &&
-      label !== (build.blocked ?? "status:blocked") &&
+      label !== held.blocked &&
       !terminals.includes(label)
   );
   return {
     ready: contract.lifecycle.ready,
     claimed: contract.lifecycle.claimed,
-    blocked: build.blocked ?? "status:blocked",
-    human: build.human_needed ?? "human-needed",
+    blocked: held.blocked,
+    human: held.human,
     terminal,
     terminals,
     later,
   };
 }
 
-/** Reuse the canonical default while refusing an explicitly ambiguous main mapping. */
-export function environment(config) {
+/** Reuse the canonical default while refusing an explicitly ambiguous target mapping. */
+export function environment(config, branch = DEFAULT_TARGET) {
   const matches = Object.entries(config.deploy?.branches ?? {}).filter(
-    ([, branch]) => branch === "main"
+    ([, mapped]) => mapped === branch
   );
   required(
     matches.length <= 1,
-    "main requires one unambiguous configured runtime environment"
+    `${branch} requires one unambiguous configured runtime environment`
   );
-  const target = trackerContract(config).deployBranches.get("main");
-  required(target, "main has no configured runtime environment");
+  // The same map trackerContract exposes for GitHub/Linear; Jira's contract has none.
+  const target = deployBranchEnvironments(config).get(branch);
+  required(target, `${branch} has no configured runtime environment`);
   return target;
+}
+
+/**
+ * main keeps its historical remote-default assumption byte for byte. Another
+ * target comes from the committed npmUpdater target, which the body names.
+ */
+export function environmentDeclaration(env, target) {
+  return target === DEFAULT_TARGET
+    ? `Assumption: ${env} — remote default branch main`
+    : `Inferred: ${env} — evidence: body`;
 }
 
 /** A standalone, build-ready Task has complete implementation and terminal evidence. */
 export function buildDraft(proposal, policy, config, evidence) {
-  const roles = leafRoles(config, policy.repository);
-  const env = environment(config);
+  const target = policyTarget(policy);
+  const roles = leafRoles(config, policy.repository, target);
+  const env = environment(config, target);
   const versions = proposal.updates
     .map(update => `${update.name}: ${update.from} -> ${update.to}`)
     .join("\n");
@@ -95,7 +142,7 @@ Proposal key: ${proposal.key}
 Selection key: ${proposal.selectionKey}
 Update exactly ${manifest} and ${lock}${bun ? " and bun.lock" : ""}:
 ${versions}
-Use the trusted four-job npm updater. Preparation performs an installed-tree npm outdated check and npm ci with lifecycle scripts disabled. Allocation precedes the first attributed commit. Ordinary commit and original pre-push gates remain mandatory. Publish only the exact gated unsigned raw Git object with unchanged parent, tree, identities, times and message. Preserve every unrelated dependency, script and existing assignee. Stop on stale base, unavailable authorization, hold, failed gate or mismatching bytes. Lisa is excluded only with verified local full-apply ownership.
+${target === DEFAULT_TARGET ? "" : `Target branch: ${target} (committed npmUpdater target; deploy.branches maps it to ${env}).\n`}Use the trusted four-job npm updater. Preparation performs an installed-tree npm outdated check and npm ci with lifecycle scripts disabled. Allocation precedes the first attributed commit. Ordinary commit and original pre-push gates remain mandatory. Publish only the exact gated unsigned raw Git object with unchanged parent, tree, identities, times and message. Preserve every unrelated dependency, script and existing assignee. Stop on stale base, unavailable authorization, hold, failed gate or mismatching bytes. Lisa is excluded only with verified local full-apply ownership.
 
 ## Acceptance Criteria
 
@@ -104,7 +151,7 @@ Scenario: publish one coherent dependency proposal
   Given parent ${proposal.parent} and the selected versions above
   When the trusted updater claims this leaf and completes ordinary gates
   Then the manifest and lock agree and npm ci preserves both file hashes${bun ? " and frozen Bun preserves all three hashes" : ""}
-  And the pull request into main contains exactly the gated commit and ${bun ? "three" : "two"} files
+  And the pull request into ${target} contains exactly the gated commit and ${bun ? "three" : "two"} files
 Scenario: refuse unauthorized or stale publication
   Given a hold, changed parent, failed gate or mismatching proposal
   When publication is attempted
@@ -125,17 +172,17 @@ ${policy.repository}
 
 ## Target Backend Environment
 
-Assumption: ${env} — remote default branch main
+${environmentDeclaration(env, target)}
 
 ## Branch Plan
 
-Branch from: main
-PR into: main
+Branch from: ${target}
+PR into: ${target}
 Derived from: Target Backend Environment ${env} via .lisa.config.json deploy.branches
 
 ## Sign-in Required
 
-GitHub Actions runtime token with explicitly reduced job permissions. Trusted maintainer: ${policy.maintainer}. No maintainer credential is used. Allocation alone may sign. Preparation and gates have no provider write or issuance authority.
+GitHub Actions runtime token with explicitly reduced job permissions. Trusted maintainer: ${policy.maintainer}. No maintainer credential is used. Allocation alone may sign. Preparation and gates have no provider write or issuance authority.${config.tracker === "github" ? "" : ` Tracker writes use the configured ${TRACKER_NAMES[config.tracker]} API credential.`}
 
 ## Source Precedence
 
@@ -146,7 +193,7 @@ Business rules: this exact proposal and ordinary configured policy. Visual: exis
 Historical filing evidence, preserved from initial allocation. Current relationships and eligibility are checked again before each recovery.
 Git history command: ${evidence.history.command}
 Git history outcome: ${evidence.history.result}
-All-state GitHub query: ${evidence.search.query}
+All-state ${TRACKER_NAMES[config.tracker]} query: ${evidence.search.query}
 Outcome: every matching record was loaded completely; unrelated work was preserved and exact proposal recovery was checked separately.
 Matches are read completely before allocating this deterministic proposal. No parent or PRD lineage is declared; this build-ready standalone Task is one leaf.${evidence.supersession ? `\nSupersedes cancelled proposal ${evidence.supersession.workItem}. Original proposal key: ${evidence.supersession.proposalKey}. Verified cancellation SHA256: ${evidence.supersession.cancellationSha256}. The previous claim, specification and checkpoint are preserved; this leaf has fresh parent-bound authority.` : ""}
 

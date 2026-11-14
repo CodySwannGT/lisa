@@ -1,7 +1,6 @@
 /**
- * The fleet-update skill must cite only Lisa files that exist, describe Lisa's
- * reusable-workflow callers the way Lisa writes them, and say the same thing
- * in every tracked copy (CodySwannGT/lisa#4644).
+ * The fleet-update skill must cite only Lisa files that exist and say the same
+ * thing in every tracked copy (CodySwannGT/lisa#4644).
  *
  * Three defects motivated this file:
  *
@@ -10,8 +9,8 @@
  *   `reusable-claude*.yml` files Lisa no longer ships — so an agent following
  *   the skill went looking for files that are not there;
  * - step 8 described callers only as `…@main`, while Lisa's pinner writes
- *   `…@<40-char sha> # v<version>` (`src/core/reusable-workflow-pin.ts`), and
- *   accepted a detector run that scanned zero callers as clean;
+ *   `…@<40-char sha> # v<version>` (`src/core/reusable-workflow-pin.ts`) —
+ *   guidance prose, reviewed rather than pinned (#4867);
  * - the copies are hand-maintained and had drifted before.
  *
  * Per the Test Isolation house rule, expected values are HARDCODED.

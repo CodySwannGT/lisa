@@ -12,6 +12,10 @@
  * Encoding the shorter list would have opened the audit by reporting 91
  * correctly-labelled issues as vocabulary violations.
  *
+ * Only the vocabulary parity is pinned here. The prose that wires the audit
+ * into `lisa-validate-tracker-mapping` is guidance and is reviewed, not pinned
+ * (#4867).
+ *
  * @module tests/unit/strategies/scoping-label-vocabulary-contract
  */
 import { readFileSync } from "node:fs";
@@ -25,7 +29,6 @@ import {
 } from "../../../plugins/src/base/scripts/scoping-label-audit.mjs";
 
 const SKILL_ROOT = "plugins/src/base/skills";
-const VALIDATE_MAPPING_SKILL = "lisa-validate-tracker-mapping";
 const WRITE_ISSUE_SKILL = "lisa-github-write-issue";
 
 const readSkill = (name: string): string =>
@@ -59,37 +62,12 @@ describe("closed vocabularies match what lisa-github-write-issue declares", () =
   });
 
   it("encodes the declared priority vocabulary, critical included", () => {
+    expect(skill).toContain("priority:<low|medium|high|critical>");
     expect(CLOSED_PRIORITY_VOCABULARY).toEqual([
       "low",
       "medium",
       "high",
       "critical",
     ]);
-  });
-
-  it("still documents the create-on-demand behaviour this audit observes", () => {
-    expect(skill).toContain("gh label create");
-  });
-});
-
-describe("`lisa-validate-tracker-mapping` wires the scoping audit in", () => {
-  const skill = readSkill(VALIDATE_MAPPING_SKILL);
-
-  it("runs the audit through the shared script rather than re-deriving it", () => {
-    expect(skill).toContain("scoping-label-audit.mjs");
-  });
-
-  it("states that scoping findings never change the verdict or exit status", () => {
-    const scopingSection = skill.slice(skill.indexOf("## Step 4b"));
-
-    expect(scopingSection).toContain("advisory");
-    expect(scopingSection).toMatch(/exit status/i);
-  });
-
-  it("keeps scoping findings out of the repair path", () => {
-    const repairSection = skill.slice(skill.indexOf("## Step 6"));
-
-    expect(repairSection).toMatch(/never (auto-)?repair/i);
-    expect(repairSection).toContain("scoping");
   });
 });

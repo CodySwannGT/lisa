@@ -96,11 +96,49 @@ results stays green whatever the code does. For every RETIRE whose proof is
 "owned by a test" (or any other mechanical owner that runs as a check), run
 the mutation proof before filing the row: break the rule the named test
 supposedly guards, run that named test and observe it **fail**, then revert
-the mutation and see it pass again. Record the result in the row — the
-mutation applied, the failing test name and its failure line, and the
-revert. A named owner that stays green under the mutation is not the owner:
-find the test that does fail, or drop the RETIRE. No failing observation ⇒
-no valid retire proof.
+the mutation. Record the result in the row — the mutation applied, the
+failing test name and its failure line, and the revert. A named owner that
+stays green under the mutation is not the owner: find the test that does
+fail, or drop the RETIRE. No failing observation ⇒ no valid retire proof.
+
+Run that break on a scratch copy,
+never in a worktree another agent is editing — not in the working folder
+this run is using either. The `falsifiable-checks` rule's section
+"Break on a scratch copy, never in a shared worktree" is the full recipe.
+This skill carries the minimum itself, because some agents (Codex,
+Antigravity) receive this skill without the rules tree:
+
+```sh
+tmp=$(mktemp -d)                                  # record this path first (step 1)
+git worktree add --detach "$tmp" HEAD
+git diff --binary HEAD | git -C "$tmp" apply --allow-empty
+# copy untracked new files; install dependencies in "$tmp" (a linked
+# node_modules in a workspace monorepo resolves back to the shared tree)
+# baseline: run the named test in "$tmp" BEFORE breaking anything; it must be green
+# break the rule in "$tmp", run the named test there, read the failure
+git worktree remove --force "$tmp"                # discarding the copy is the revert
+```
+
+Address the copy by absolute path; never switch the session into it with a
+harness tool such as `EnterWorktree`. A red baseline means the copy is
+incomplete, not that the test bites. Discarding the copy is the revert, and
+the green baseline taken in the copy before the break is the pass-again
+evidence, so the shared tree is never written to.
+
+1. **Record where before you break.** Before applying the mutation, write
+   the row's `mutation_location` — the mutated file, the line or section,
+   and the absolute path of the scratch copy — into the run's working notes
+   for that candidate. It goes in the RETIRE row with the rest of the proof,
+   and it exists before the mutation does, so an interrupted run still says
+   what was changed and where.
+2. **A failed restore blocks the row.** If discarding the copy fails (the
+   `git worktree remove` errors, or the copy path still exists afterwards),
+   or anything suggests the mutation reached a tree other than the copy,
+   file **no** RETIRE row for that candidate and run no further mutation
+   proofs. Report `mutation-restore-failed` with the recorded
+   `mutation_location`, escalated per Escalation, so a person can find and
+   repair the change. The run outcome is `recovery-required` (see Run
+   outcomes).
 
 **Learned planning checks.** A ledger entry whose rule begins
 `Planning (prd|decomposition|ready-gate|filing):` is a `planning-miss` learning:
@@ -277,7 +315,11 @@ and resolve its head `<sha>` once per run:
   `git cat-file -t <sha>:<path>` must print `blob` (a `tree` is a directory,
   not a file), then `git show <sha>:<path>` for its text.
 - **Upstream** (`upstream` scope) — the paths live in `<upstreamRepo>`, not
-  this checkout: `gh api repos/<upstreamRepo>/commits/<default> --jq .sha`
+  this checkout, and so does its default branch. Resolve that branch first
+  with `gh api repos/<upstreamRepo> --jq .default_branch` — never assume this
+  checkout's branch name, because a wrong name makes every upstream lookup
+  return "not found" and every destination look missing. Then
+  `gh api repos/<upstreamRepo>/commits/<upstreamDefault> --jq .sha`
   for the SHA, then for each file
   `gh api -H "Accept: application/vnd.github.raw" repos/<upstreamRepo>/contents/<path>?ref=<sha>`,
   which returns the raw text so headings are searchable (the default JSON
@@ -351,8 +393,8 @@ rejected by rule (see the `promotion-contract` rule):
 **One batch ticket per run — CONFIRM + RETIRE** (`issue_type: Task`): a single
 ticket listing every CONFIRM row (`last_confirmed` bump, with the evidence the
 entry demonstrably applied) and every **provably-redundant** RETIRE row (with
-the mechanical owner / staleness proof per row, and the mutation proof when the
-owner is a test). Every RETIRE row also carries the entry's full
+the mechanical owner / staleness proof per row, and the mutation proof with its
+`mutation_location` when the owner is a test). Every RETIRE row also carries the entry's full
 `expectedFingerprint`: the live `entry.fingerprint` read from the parsed ledger
 at audit time (`learning-` plus 20 hex digits, or a legacy token). It is not the
 12-hex `<invariant-hash>` in the row's `[lisa-gardener]` marker — the two are
@@ -496,7 +538,10 @@ non-technical operator standing at the gate can act on.
 ## Recovery
 
 Every external write is marker-deduped, so a crashed or interrupted run
-leaves no cleanup debt: re-running is the recovery procedure. A partial run's
+leaves no cleanup debt: re-running is the recovery procedure. The one
+exception is a RETIRE mutation proof's scratch copy: a run interrupted
+mid-proof can leave it on disk, and its recorded `mutation_location` names
+the path to remove before re-running. A partial run's
 already-filed tickets are found by their markers and not duplicated; a batch
 ticket from an interrupted run is reused (append missing rows as a comment)
 rather than reissued. **Filing order**: file the per-item PROMOTE/DEMOTE
@@ -525,8 +570,10 @@ exact so nothing regresses:
   recommendation threshold. Report one line: surfaces scanned, entries seen,
   "nothing to propose".
 - `blocked` → **`recovery-required`** when the loop itself could not complete
-  (tracker unreachable, contradictory config, a ledger-contract parse error) —
-  escalated per Escalation with the operator-readable reason; **or**
+  (tracker unreachable, contradictory config, a ledger-contract parse error,
+  or a RETIRE mutation proof whose scratch copy could not be discarded, so a
+  mutation may survive outside the run's control) — escalated per Escalation
+  with the operator-readable reason; **or**
   **`approval-requested`** when the run finished and is waiting on a human gate
   rather than being broken.
   A run that filed nothing because destination-validation (Ticket emission)
@@ -534,6 +581,12 @@ exact so nothing regresses:
   never `nothing-needed`. Its `--summary` states each mismatch as a question
   for a person ("evidence says 17, draft says 12 — which is right?") and
   says that every run will refuse that draft again until someone answers.
+  **Every refusal reaches the `--summary`, whatever the outcome.** A mixed
+  run that files some tickets and refuses others still records
+  **`candidate-proposed`**, and its `--summary` also names each refused
+  PROMOTE/DEMOTE draft and its mismatch as a question for a person. The run
+  report alone is not enough: nobody is prompted to read it, so a refusal
+  left only there is repeated silently on every later run.
 
 The gardener also newly reaches **`policy-obsolete`** — the Retirement
 condition below tripped and it filed its own teardown proposal. It never

@@ -9,8 +9,9 @@
  * runs the shipped `scripts/learnings-projection.mjs` with a planning-check
  * `--match`: it treats only `ENOENT` as "no ledger", warns once naming any
  * other error, projects over the matched entries alone, and names the ones it
- * omitted. These tests pin the text in every copy and run the source script
- * against a missing, an unreadable and a valid ledger.
+ * omitted. These tests pin the step 0 command line in every copy and run the
+ * source script against a missing, an unreadable and a valid ledger. The
+ * surrounding guidance prose is not pinned (#4867).
  * @module tests/unit/strategies/planning-checks-ledger-read-contract
  */
 import {
@@ -45,25 +46,6 @@ const SKILL_ROOTS = [
   "plugins/lisa/.codex-plugin/skills",
 ] as const;
 
-const VALIDATORS = [
-  "lisa-jira-validate-ticket",
-  "lisa-github-validate-issue",
-  "lisa-linear-validate-issue",
-] as const;
-
-/** Every checked-in copy of the definition-of-ready rule. */
-const READY_RULES = [
-  "plugins/src/base/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa-copilot/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa-devin/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa-cursor/rules/work-item-definition-of-ready-reference.mdc",
-] as const;
-
-const UNREADABLE =
-  "a ledger it cannot read prints one warning naming the error";
-const OMITTED = "names each planning check the projection omitted, by id";
-
 /**
  * Read a repo-relative file.
  * @param relativePath - Path from the repository root
@@ -86,26 +68,6 @@ describe.each(SKILL_ROOTS)("learned planning checks load (%s)", root => {
   it("loads the planning checks through the shipped projection script", () => {
     expect(decomposition).toContain(STEP_ZERO_COMMAND);
     expect(decomposition).not.toMatch(/cat [^\n]*PROJECT_LEARNINGS/);
-  });
-
-  it("explains the three outcomes in the step 0 prose", () => {
-    expect(decomposition).toContain(
-      "No output means there is no ledger yet (`ENOENT`): carry on."
-    );
-  });
-
-  it.each(VALIDATORS)("%s S18 uses the corrected command", validator => {
-    const s18 = skill(validator).split("S18 — Stateless-pickup dry-run")[1];
-    expect(s18).toContain(UNREADABLE);
-    expect(s18).toContain(OMITTED);
-  });
-});
-
-describe.each(READY_RULES)("definition of ready S18 (%s)", rulePath => {
-  it("points at the corrected step 0 command", () => {
-    const rule = read(rulePath).replace(/\s+/g, " ");
-    expect(rule).toContain(UNREADABLE);
-    expect(rule).toContain(OMITTED);
   });
 });
 

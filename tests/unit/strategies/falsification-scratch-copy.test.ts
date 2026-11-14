@@ -72,6 +72,11 @@ const SURFACES: readonly Surface[] = [
     rel: "skills/lisa-codify-verification/SKILL.md",
     shippedAs: ["/skills/lisa-codify-verification/SKILL.md"],
   },
+  // The gardener's RETIRE mutation proof (CodySwannGT/lisa#4875).
+  {
+    rel: "skills/lisa-learnings-audit/SKILL.md",
+    shippedAs: ["/skills/lisa-learnings-audit/SKILL.md"],
+  },
 ];
 
 /**

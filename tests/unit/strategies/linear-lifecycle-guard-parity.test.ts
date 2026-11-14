@@ -1,21 +1,11 @@
 /**
- * Caller-role and agent-surface parity for the Linear state-write guard (#3356).
+ * Agent-surface parity for the Linear state-write guard (#3356).
  *
- * Two questions this file answers, which the guard's own unit tests cannot:
- *
- * 1. **Do the callers actually declare a role?** A chokepoint that can refuse is
- *    worth nothing if the skills routed around it. Every base surface that
- *    instructs a Linear workflow-state write must name the lifecycle role it is
- *    applying, and must not be telling a reader to compute a `stateId` itself.
- * 2. **Did every supported coding agent get it?** The guard ships as plugin
- *    bytes. A fix present only in `plugins/src/base` leaves consumers on the
- *    broken version, so each generated variant is checked for the same script
- *    and the same contract prose.
- *
- * It also pins the CONTROLS the issue was careful about: the Linear, JIRA and
- * GitHub claim paths already resolve their configured `claimed` role, and this
- * change must leave that true rather than "fix" it into something else. None of
- * these assertions claims any of those paths caused the observed transition.
+ * The guard ships as plugin bytes. A fix present only in `plugins/src/base`
+ * leaves consumers on the broken version, so each generated variant is checked
+ * for a byte-identical copy of the script, shipped wherever the lifecycle
+ * resolver it calls ships. The skill prose that tells callers to declare a
+ * role is guidance and is reviewed, not pinned (#4867).
  * @module tests/unit/strategies/linear-lifecycle-guard-parity
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -26,20 +16,9 @@ import { describe, expect, it } from "vitest";
 /** Repository root; every path below is resolved from it. */
 const ROOT = process.cwd();
 
-/** The one lifecycle role every claim path on every vendor must resolve. */
-const CLAIMED = "claimed";
-
-/** The direct-claim skill, asserted as a caller and again as a control. */
-const LINEAR_CLAIM = "plugins/src/base/skills/lisa-linear-claim/SKILL.md";
-
-/** The evidence and agent surfaces checked for review-shaped default prose. */
-const LINEAR_EVIDENCE = "plugins/src/base/skills/lisa-linear-evidence/SKILL.md";
-const LINEAR_AGENT = "plugins/src/base/agents/linear-agent.md";
-
 /** The guard's path inside any plugin root, and its authored source. */
 const GUARD_IN_PLUGIN = "scripts/linear-state-write-target.mjs";
 const GUARD_SOURCE = `plugins/src/base/${GUARD_IN_PLUGIN}`;
-const ACCESS_SKILL = "plugins/src/base/skills/lisa-linear-access/SKILL.md";
 
 /**
  * Every generated agent surface that carries the base plugin's scripts.
@@ -55,14 +34,6 @@ const AGENT_SURFACES = [
   "plugins/lisa-copilot",
 ];
 
-/** Generated copies of the access contract, including the Codex artifact. */
-const ACCESS_SKILL_COPIES = [
-  ...AGENT_SURFACES.map(root =>
-    join(root, "skills/lisa-linear-access/SKILL.md")
-  ),
-  "plugins/lisa/.codex-plugin/skills/lisa-linear-access/SKILL.md",
-];
-
 /**
  * Read a repository-relative file.
  *
@@ -70,105 +41,6 @@ const ACCESS_SKILL_COPIES = [
  * @returns {string} file contents
  */
 const read = (path: string): string => readFileSync(join(ROOT, path), "utf8");
-
-/**
- * Base surfaces that instruct a Linear workflow-state write, and the lifecycle
- * roles each one must name on that write.
- *
- * Listed explicitly rather than derived, because the assertion is about intent:
- * "this caller applies the `blocked` role here" is a claim about the lifecycle,
- * not something a regex can infer from the file.
- */
-const STATE_WRITERS = [
-  { path: LINEAR_CLAIM, roles: [CLAIMED] },
-  {
-    path: "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md",
-    roles: [CLAIMED, "blocked", "done"],
-  },
-  { path: LINEAR_EVIDENCE, roles: ["review"] },
-  {
-    path: "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md",
-    roles: ["ready"],
-  },
-  { path: LINEAR_AGENT, roles: ["blocked"] },
-];
-
-describe("every Linear state writer declares the role it is applying", () => {
-  it.each(STATE_WRITERS)(
-    "$path names its lifecycle role",
-    ({ path, roles }) => {
-      const text = read(path);
-
-      for (const role of roles)
-        expect(text).toContain(`lifecycle_role: ${role}`);
-    }
-  );
-
-  it.each(STATE_WRITERS)(
-    "$path no longer tells a caller to set a raw stateId",
-    ({ path }) => {
-      expect(read(path)).not.toMatch(/setting `stateId`|set `stateId`/);
-    }
-  );
-
-  it("keeps a Project rollup off the workflow-state guard", () => {
-    const text = read("plugins/src/base/skills/lisa-linear-sync/SKILL.md");
-
-    // A Linear Project has no team workflow state, so there is no role to
-    // declare and nothing for the guard to resolve. Saying otherwise would
-    // send callers looking for a `stateId` that does not exist on Projects.
-    expect(text).toContain("Do not send `lifecycle_role` here");
-  });
-
-  it("requires an explicit build_ready before filing into the ready lane", () => {
-    const text = read(
-      "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md"
-    );
-
-    expect(text).toContain("only on **explicit `build_ready: true`**");
-    expect(text).not.toContain("only when `build_ready` is not `false`");
-  });
-
-  it("routes the rollup writers through a declared role too", () => {
-    for (const path of [
-      "plugins/src/base/skills/lisa-linear-sync/SKILL.md",
-      "plugins/src/base/skills/lisa-repair-intake/SKILL.md",
-    ])
-      expect(read(path)).toContain("lifecycle_role: <derived role>");
-  });
-});
-
-describe("the access layer documents a resolved write, not a checked one", () => {
-  it("declares lifecycle_role on the save-issue contract", () => {
-    expect(read(ACCESS_SKILL)).toContain(
-      "operation: save-issue payload:{...} [lifecycle_role:<ROLE>] [env:<KEY>]"
-    );
-  });
-
-  it("invokes the guard before either transport", () => {
-    const text = read(ACCESS_SKILL);
-
-    expect(text).toContain(GUARD_IN_PLUGIN);
-  });
-});
-
-describe("CONTROL — the claim paths still resolve their configured role", () => {
-  it("delegates the vendor-neutral claim rather than writing a lane itself", () => {
-    const text = read("plugins/src/base/skills/lisa-tracker-claim/SKILL.md");
-
-    expect(text).toContain("lisa-linear-claim");
-  });
-
-  it("names no review-shaped literal as a Linear write target", () => {
-    for (const path of [
-      LINEAR_CLAIM,
-      LINEAR_EVIDENCE,
-      LINEAR_AGENT,
-      "plugins/src/base/agents/linear-build-intake.md",
-    ])
-      expect(read(path)).not.toMatch(/default[^.\n]*`In Review`/);
-  });
-});
 
 describe("every supported agent surface carries the same guard", () => {
   const source = read(GUARD_SOURCE);
@@ -178,10 +50,6 @@ describe("every supported agent surface carries the same guard", () => {
 
     expect(existsSync(join(ROOT, path))).toBe(true);
     expect(read(path)).toBe(source);
-  });
-
-  it.each(ACCESS_SKILL_COPIES)("%s carries the guard contract", path => {
-    expect(read(path)).toContain(GUARD_IN_PLUGIN);
   });
 
   it("ships the guard everywhere the resolver it calls ships", () => {

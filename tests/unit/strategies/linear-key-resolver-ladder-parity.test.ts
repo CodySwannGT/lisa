@@ -149,15 +149,6 @@ describe("read_linear_key resolver ladder parity", () => {
       }
     });
   });
-
-  it("states the invariant as the ladder, not the whole function", () => {
-    // The old wording ("Keep this identical to `linear-access`") described
-    // something unachievable — the two functions have different tails by
-    // design — and an unachievable rule is one that gets quietly dropped,
-    // which is how the ladders forked in the first place.
-    const setup = readSkill(SOURCE, SETUP);
-    expect(setup).toMatch(/ladder[\s\S]{0,120}identical to `linear-access`/iu);
-  });
 });
 /**
  * The environment rungs each copy consults before the resolver ladder starts.
@@ -223,8 +214,6 @@ describe("read_linear_key environment-rung parity", () => {
     // `lisa-generate-claude-remote-build-script` emits that suffixed name into
     // cloud-routine env templates. A routine configured from those skills with
     // only the suffixed name must be able to reach a key at all.
-    const analyze = readSkill(SOURCE, "lisa-analyze-claude-remote");
-    expect(analyze).toContain("LINEAR_API_KEY_<ws-slug>");
     expect(envRungsOf(readSkill(SOURCE, ACCESS))).toContain(
       "LINEAR_API_KEY_${slug}"
     );

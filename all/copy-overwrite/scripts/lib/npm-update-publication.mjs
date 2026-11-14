@@ -3,7 +3,11 @@
 
 /** Current-head checks and human approval retain their real integration and reviewer identities. @module npm-updater */
 import { workItemLines } from "../lisa-work-item.mjs";
-import { required } from "./npm-update-contract.mjs";
+import {
+  required,
+  DEFAULT_TARGET,
+  policyTarget,
+} from "./npm-update-contract.mjs";
 import {
   sha256,
   verifyDescriptorAttestation,
@@ -154,7 +158,7 @@ export async function destinationSnapshot(api, proposal, allocation, commit) {
         pr.head?.sha === commit &&
         pr.head?.ref === branch &&
         pr.head?.repo?.full_name === proposal.repository &&
-        pr.base?.ref === "main" &&
+        pr.base?.ref === policyTarget(proposal) &&
         pr.base?.repo?.full_name === proposal.repository &&
         pr.body === publicationBody(allocation),
       "foreign/closed/changed proposal PR is preserved"
@@ -204,9 +208,16 @@ export function assertPublicationPolicy(value) {
 }
 
 /** Current-head success and real human approval cannot be supplied by stale/skip records. */
-export function assertPublication(pr, checks, reviews, sha, requirements = []) {
+export function assertPublication(
+  pr,
+  checks,
+  reviews,
+  sha,
+  requirements = [],
+  target = DEFAULT_TARGET
+) {
   required(
-    pr.state === "open" && pr.head?.sha === sha && pr.base?.ref === "main",
+    pr.state === "open" && pr.head?.sha === sha && pr.base?.ref === target,
     "current-head PR differs"
   );
   required(

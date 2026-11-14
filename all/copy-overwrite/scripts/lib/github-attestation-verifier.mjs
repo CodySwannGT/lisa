@@ -23,6 +23,43 @@ export function requireProof(condition, reason) {
   if (!condition) throw new Error(`Invalid automation provenance: ${reason}`);
 }
 
+/** An absent target is the historical branch, so main-target bytes never change. */
+export const DEFAULT_TARGET = "main";
+
+/**
+ * git check-ref-format rules, narrowed to a conservative character set, so a
+ * target is safe inside an API path, a refs/heads/ ref and a public diagnostic.
+ */
+export function validBranchName(name) {
+  return (
+    typeof name === "string" &&
+    name.length > 0 &&
+    name.length <= 255 &&
+    /^[A-Za-z0-9._/-]+$/.test(name) &&
+    !name.startsWith("-") &&
+    !name.endsWith(".") &&
+    !name.includes("..") &&
+    name
+      .split("/")
+      .every(
+        part =>
+          part.length > 0 && !part.startsWith(".") && !part.endsWith(".lock")
+      )
+  );
+}
+
+/**
+ * The branch a proposal, descriptor, recovery, cancellation or GH subject targets.
+ * Only a non-main target is ever written into those objects.
+ */
+export function targetBranch(value) {
+  const target = Object.hasOwn(value ?? {}, "target")
+    ? value.target
+    : DEFAULT_TARGET;
+  requireProof(validBranchName(target), "invalid target branch");
+  return target;
+}
+
 /** Run only the trusted, hash-pinned official executable with bounded output. */
 export function assertPinnedVerifier(policy) {
   requireProof(
@@ -67,11 +104,11 @@ function matchCertificate(certificate, descriptor, policy) {
     issuer: ACTIONS_ISSUER,
     buildSignerURI: `https://github.com/${policy.signerWorkflow}@${policy.signerDigest}`,
     buildSignerDigest: policy.signerDigest,
-    buildConfigURI: `https://github.com/${policy.callerWorkflow}@refs/heads/main`,
+    buildConfigURI: `https://github.com/${policy.callerWorkflow}@refs/heads/${targetBranch(descriptor)}`,
     buildConfigDigest: descriptor.parent,
     sourceRepositoryURI: `https://github.com/${policy.repository}`,
     sourceRepositoryDigest: descriptor.parent,
-    sourceRepositoryRef: "refs/heads/main",
+    sourceRepositoryRef: `refs/heads/${targetBranch(descriptor)}`,
     sourceRepositoryIdentifier: policy.repositoryId,
     sourceRepositoryOwnerIdentifier: policy.ownerId,
     runInvocationURI: `https://github.com/${policy.repository}/actions/runs/${descriptor.runId}/attempts/${descriptor.runAttempt}`,
@@ -190,7 +227,7 @@ export function officialArguments(policy, identity, file, bundle, predicate) {
     "--source-digest",
     identity.parent,
     "--source-ref",
-    "refs/heads/main",
+    `refs/heads/${targetBranch(identity)}`,
     "--predicate-type",
     predicate,
     "--cert-oidc-issuer",

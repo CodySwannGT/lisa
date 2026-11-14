@@ -2,16 +2,10 @@
  * Regression tests for the bounded harness-improvement loop.
  *
  * The loop exists so a failed or expensive factory trajectory produces a
- * *proven* fix rather than a plausible one: the gap must be classified before
- * anything is changed, the change is capped at the smallest owning change, and
- * a fresh rerun only credits the intervention when the transcript shows it was
- * actually retrieved or invoked. Each assertion below pins one of those
- * load-bearing contracts — the taxonomy, the verdict/decision vocabularies, the
- * fingerprint format, and the relevance gate — so a rewrite cannot quietly drop
- * them.
- *
- * Both source and generated plugin roots are asserted so a missed
- * `bun run build:plugins` fails this suite.
+ * *proven* fix rather than a plausible one. The skill's guidance prose (the
+ * taxonomy, verdict vocabulary, relevance gate) is not pinned (#4867); this
+ * suite guards the structure: the command and skill exist with frontmatter and
+ * an argument pass-through, and every generated root carries the skill.
  * @module tests/unit/strategies/improve-harness-skill
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -31,26 +25,6 @@ const GENERATED_SKILL_ROOTS = [
 const COMMAND_REL = "commands/improve-harness.md";
 const SKILL_REL = "skills/lisa-improve-harness/SKILL.md";
 
-const GAPS = [
-  "context",
-  "capability",
-  "domain-ownership",
-  "authority",
-  "proof",
-  "feedback-delivery",
-  "worker-limitation",
-] as const;
-
-const VERDICTS = [
-  "intervention-supported",
-  "intervention-refuted",
-  "no-evidence-for-intervention",
-  "insufficient-evidence",
-  "unclassified",
-  "bounded-authority-stop",
-  "headless-proposal-only",
-] as const;
-
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
 
@@ -62,7 +36,6 @@ describe("improve-harness bounded improvement loop", () => {
     it("ships the pass-through command and skill", () => {
       expect(existsSync(path.resolve(root, COMMAND_REL))).toBe(true);
       expect(existsSync(path.resolve(root, SKILL_REL))).toBe(true);
-      expect(command).toContain("Use the /lisa-improve-harness skill");
       expect(command).toContain("$ARGUMENTS");
       expect(command).toMatch(/argument-hint:/);
     });
@@ -70,46 +43,7 @@ describe("improve-harness bounded improvement loop", () => {
     it("declares improve-harness frontmatter", () => {
       expect(skill).toMatch(/^---/);
       expect(skill).toMatch(/name:\s*lisa-improve-harness/);
-      expect(skill).toMatch(/description:.*trajectory/);
-    });
-
-    it("defines every gap in the taxonomy", () => {
-      for (const gap of GAPS) {
-        expect(skill).toContain(`\`${gap}\``);
-      }
-    });
-
-    it("classifies the gap before any intervention is made", () => {
-      const classifyIndex = skill.indexOf("## Phase 4 — Classify the gap");
-      const interveneIndex = skill.indexOf(
-        "## Phase 5 — The smallest owning intervention"
-      );
-      expect(classifyIndex).toBeGreaterThan(-1);
-      expect(interveneIndex).toBeGreaterThan(classifyIndex);
-    });
-
-    it("enumerates every verdict and every decision", () => {
-      for (const verdict of VERDICTS) {
-        expect(skill).toContain(verdict);
-      }
-    });
-
-    it("caps the intervention at the smallest owning change", () => {
-      expect(skill).toMatch(
-        /file a proposed-intervention ticket via `lisa-tracker-write` and STOP/
-      );
-    });
-
-    it("is idempotent per trajectory via an ih1- fingerprint marker", () => {
-      expect(skill).toContain("[lisa-improve-harness] key=<fingerprint>");
-    });
-
-    it("leaves a result record on every terminal state", () => {
-      expect(skill).toContain("What happens next:");
-    });
-
-    it("submits learnings for judgment instead of writing the ledger", () => {
-      expect(skill).toContain("lisa-persist-learning");
+      expect(skill).toMatch(/description:/);
     });
   });
 

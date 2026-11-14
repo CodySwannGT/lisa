@@ -1,0 +1,13 @@
+policy target: dev
+request: --version
+request: issue view 42 --repo acme/widgets --json number,url,state,body,labels,comments,closedByPullRequestsReferences --jq .comments |= map(select(.body | contains("[lisa-pr-link]")))
+request: api graphql -f query=query($owner:String!,$repo:String!,$number:Int!,$after:String){repository(owner:$owner,name:$repo){issue(number:$number){subIssues(first:100,after:$after){nodes{state}pageInfo{hasNextPage endCursor}}}}} -F owner=acme -F repo=widgets -F number=42
+request: pr view lisa/npm-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee --repo acme/widgets --json url,body,state
+request: api --hostname github.com repos/acme/widgets
+request: api --hostname github.com repos/acme/widgets/git/ref/heads/dev
+request: api --hostname github.com repos/acme/widgets/actions/runs/700/attempts/1
+request: api --hostname github.com repos/acme/widgets/issues/comments/77
+request: attestation verify /p/descriptor.json --bundle /p/bundle.json --repo acme/widgets --signer-workflow lisa/lisa/.github/workflows/npm-updater.yml --signer-digest bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb --source-digest aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --source-ref refs/heads/dev --predicate-type https://lisa.dev/attestations/npm-proposal/v1 --cert-oidc-issuer https://token.actions.githubusercontent.com --deny-self-hosted-runners --format json
+names heads/dev: true
+source-ref dev: true
+any request naming main: false

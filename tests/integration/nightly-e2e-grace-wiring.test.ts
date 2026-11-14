@@ -2,13 +2,12 @@
  * Wiring contract for the nightly e2e gate's PER-SUITE grace (rows 32-35).
  *
  * The behaviour is proven in `tests/unit/scripts/nightly-e2e-health-grace.test.ts`.
- * What no unit test can see is whether the four surfaces that must agree still
- * do: the normative doc (`docs/nightly-e2e-gate.md` §2 rows 32-35 and §4.1),
- * the guard that implements them, the JSON Schema an editor validates a
+ * What no unit test can see is whether the surfaces that must agree still do:
+ * the guard that implements the rows, the JSON Schema an editor validates a
  * `suites` table against, and the caller template that tells an operator which
  * knob to reach for. A field the guard accepts and the schema rejects is a
- * table that passes review and fails the gate; a rule that lives only in code
- * is a rule the next reader "simplifies" away.
+ * table that passes review and fails the gate. The normative doc
+ * (`docs/nightly-e2e-gate.md`) is prose and is not pinned (#4867).
  *
  * Sibling of `nightly-e2e-health-workflow.test.ts`, which pins the
  * status-check context identity and the rest of the reusable's contract.
@@ -27,7 +26,6 @@ const GUARD_REL =
   "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs";
 const SCHEMA_REL =
   "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json";
-const DOC_REL = "docs/nightly-e2e-gate.md";
 
 /**
  * Reads a repo-relative text file.
@@ -39,39 +37,12 @@ function read(relative: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relative), "utf-8");
 }
 
-describe("per-suite grace — doc, guard, schema and caller agree", () => {
-  // Collapsed to one line: the doc is hard-wrapped at 80 columns, so a phrase
-  // this test looks for can legitimately straddle a newline.
-  const doc = read(DOC_REL).replace(/\s+/g, " ");
-
-  it("the doc states the rules that bound the window", () => {
-    // The rule that must survive every future edit: the grace is ANCHORED and
-    // BOUNDED. A per-suite window that could sit in the future, or outlive
-    // `bootstrap_max_days`, is acmeorga's forever-bootstrap with extra steps —
-    // the exact thing §4 deletes.
-    expect(doc).toContain("Per-suite first-seen grace");
-    expect(doc).toContain("`first_seen` may not be in the future");
-    expect(doc).toContain(
-      "Grace forgives absence of evidence, never evidence of failure"
-    );
-    // Rows 32-35 exist in the numbered table, not only in prose — §2 is what
-    // the per-row tests are named after.
-    for (const row of ["| 32 |", "| 33 |", "| 34 |", "| 35 |"]) {
-      expect(read(DOC_REL)).toContain(row);
-    }
-  });
-
-  it("the doc argues the version call, because the change points at fail-OPEN", () => {
-    // §8 reads "anything that could turn a blocking observation into a passing
-    // one is major". These rows can — but only for a table an operator edited,
-    // never for an unchanged observation. That distinction is the whole
-    // argument for the minor, so it has to be findable rather than inferred.
-    expect(doc).toContain("shipped as `1.2.0` → `1.3.0`, a minor");
-    // The guard has moved on to 1.4.0 (rows 36-38). This suite owns the 1.3.0
-    // ARGUMENT, which lives in the doc and does not change; pinning the guard's
-    // current literal here would make every later minor look like a per-suite
-    // grace regression. What must still hold is that the version is a 1.x —
-    // §8's rule is about the MAJOR, and that is what the workflow asserts.
+describe("per-suite grace — guard, schema and caller agree", () => {
+  it("keeps the contract on major 1, because the change cannot fail open", () => {
+    // Pinning the guard's current literal here would make every later minor
+    // look like a per-suite grace regression. What must hold is that the
+    // version is a 1.x — §8's rule is about the MAJOR, and that is what the
+    // workflow asserts.
     expect(read(GUARD_REL)).toMatch(
       /NIGHTLY_E2E_CONTRACT_VERSION = "1\.\d+\.\d+"/
     );

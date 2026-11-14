@@ -1,12 +1,14 @@
 /**
- * Prose contract for the automatic upstream Lisa filing loop (#1583).
+ * Machine-read contract for the automatic upstream Lisa filing loop (#1583).
  *
- * lisa-persist-learning's `handoff-upstream` disposition must file the
- * upstream ticket with root-cause marker dedupe (keyed on the Lisa surface,
- * never the host project), an evidence-rich body, a per-run cap, and only a
- * brief local linking note — never a durable local rule. These are agent
- * instructions, so the assertions cover the canonical source and every
- * checked-in runtime projection.
+ * lisa-persist-learning's `handoff-upstream` disposition tells the agent what
+ * to write into an upstream filing. Two parts of it are read by shipped code
+ * (`src/core/upstream-attribution-body.ts`): the
+ * `[lisa-upstream-attribution] key=<root-cause-key>` dedupe marker, and the
+ * closed vocabulary of failure classes the body builder accepts. Those are
+ * asserted across the canonical source and every checked-in runtime
+ * projection. The surrounding prose is guidance and is reviewed, not pinned
+ * (#4867).
  * @module tests/unit/strategies/upstream-attribution-filing-contract
  */
 import { readFileSync } from "node:fs";
@@ -27,22 +29,15 @@ const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
 
 describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
+  // The whole skill, not a heading-bounded slice: the tokens are what the
+  // body builder reads, so renaming a section heading must not fail this.
   const skill = read(`${skillRoot}/lisa-persist-learning/SKILL.md`);
-  const handoff = skill.slice(
-    skill.indexOf("### `handoff-upstream`"),
-    skill.indexOf("### `persist`")
-  );
 
-  it("files automatically on the lisa verdict with the attribution marker", () => {
-    expect(handoff).toContain(
-      "[lisa-upstream-attribution] key=<root-cause-key>"
-    );
-    expect(handoff).toContain("lisa-github-write-issue");
-    expect(handoff).toContain("`self-hardening` label");
+  it("files with the attribution marker the body builder parses", () => {
+    expect(skill).toContain("[lisa-upstream-attribution] key=<root-cause-key>");
   });
 
-  it("keys dedupe on the Lisa surface, never the host project or title", () => {
-    expect(handoff).toMatch(/MARKER, never the title/);
+  it("names every failure class the body builder accepts", () => {
     for (const failureClass of [
       "access-control-failure",
       "agent-parity-regression",
@@ -62,44 +57,7 @@ describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
       "validation-gap",
       "workflow-contract-violation",
     ]) {
-      expect(handoff).toContain(`\`${failureClass}\``);
+      expect(skill).toContain(`\`${failureClass}\``);
     }
-  });
-
-  it("dedupes across all issue states and handles the closed-ticket branch", () => {
-    expect(handoff).toMatch(/--state all/);
-    expect(handoff).not.toMatch(/--state open/);
-  });
-
-  it("requires the attribution skill's lisa verdict and a redacted chain", () => {
-    expect(handoff).toMatch(
-      /Require a confirmed `lisa` verdict from `lisa-attribute-failure` — always/
-    );
-  });
-
-  it("binds evidence redaction for the public upstream repo", () => {
-    expect(handoff).toMatch(/must be REDACTED/);
-  });
-
-  it("delegates public body composition to the executable allowlist builder", () => {
-    expect(handoff).toContain("buildUpstreamAttributionIssueBody");
-    expect(handoff).toContain("@codyswann/lisa/learnings");
-  });
-
-  it("makes projection primary and invokes the public file-upstream command", () => {
-    expect(handoff).toContain("file-upstream");
-    expect(handoff).toContain('"redactedPlaceholders"');
-  });
-
-  it("projects repeat-occurrence comments through the same builder", () => {
-    expect(handoff).toContain('"documentKind": "occurrence"');
-    expect(handoff).toContain('"occurrenceFingerprint"');
-  });
-
-  it("files nothing on ambiguous and keeps the local trace a note, not a rule", () => {
-    expect(handoff).toMatch(
-      /`ambiguous`, `project`, or a verdict that cannot name a concrete Lisa surface — files \*\*NOTHING\*\*/
-    );
-    expect(handoff).toContain("hardening.upstreamRepo");
   });
 });

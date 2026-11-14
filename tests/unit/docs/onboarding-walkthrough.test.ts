@@ -7,7 +7,9 @@
  * mentioning the three exports a repo-less session cannot run without.
  *
  * So these assert the walkthrough against the surfaces registry and the command
- * table, rather than against a copy of what someone meant to write.
+ * table, rather than against a copy of what someone meant to write: every
+ * surface the code can configure must be named. The surrounding prose is
+ * guidance and is reviewed, not pinned (#4867).
  * @module tests/unit/docs/onboarding-walkthrough
  */
 
@@ -16,6 +18,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { TARGETS } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/environment.mjs";
+import { SURFACES } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 
 const README = readFileSync("README.md", "utf8");
 const SKILL = readFileSync(
@@ -31,20 +34,15 @@ describe("the README walkthrough", () => {
       expect(README).toContain(`environment ${surface}`);
     }
   });
-
-  it("requires --tenant where the command requires it", () => {
-    expect(README).toMatch(/environment local --tenant=/);
-  });
-
-  it("keeps the layers in order: machine, then repo", () => {
-    expect(README.indexOf("### 2. The machine")).toBeLessThan(
-      README.indexOf("### 3. Each repository")
-    );
-  });
 });
 
 describe("the skill's surface table", () => {
-  it("records that the old spelling still works", () => {
-    expect(SKILL).toContain("remote-env --emit=");
+  it("lists every surface that materializes", () => {
+    // A surface that writes credentials and is not described is one nobody
+    // knows to configure.
+    for (const [name, capability] of Object.entries(SURFACES)) {
+      if (!capability.materialized) continue;
+      expect(SKILL).toContain(name);
+    }
   });
 });

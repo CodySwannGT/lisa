@@ -9,13 +9,12 @@
  * every BCE-touched source file is pinned present and body-identical in each
  * generated root that can represent it, and the one surface that genuinely
  * cannot be represented (agy carries no rules tree; only Claude fires a Stop
- * hook) is pinned as a DOCUMENTED gap with a prose fallback, never a silent drop.
+ * hook) is pinned as a documented gap in the generator, never a silent drop.
  *
- * It also pins the two wiring obligations of the closeout ticket: the
- * `lisa-spec-conformance` surface reads the v2 verdict's claim→evidence mapping
- * (boundary, required evidence kinds, artifact identity, Not established) so a
- * boundary mismatch is a conformance finding, and the operator-readable
- * end-to-end write-up exists and names both config flip points.
+ * It also pins the v2 verdict field names the non-Claude prose gate must carry
+ * (the Stop hook parses them), that the Phase 3b cross-check is decidable on
+ * the shipped fixtures, and that the operator write-up is linked from the wiki
+ * index. The surrounding prose is guidance and is reviewed, not pinned (#4867).
  * @module tests/unit/strategies/bce-parity-and-consumption
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -175,50 +174,6 @@ describe("Non-Claude prose gate carries the v2 expectations (BCE-7)", () => {
       expect(implement).toContain(expectation);
     }
   });
-
-  it("names the Claude-only gate as the known representation gap, not a drop", () => {
-    const claudeOnly = implement.indexOf("Claude-only");
-    expect(claudeOnly).toBeGreaterThan(-1);
-  });
-});
-
-describe("spec-conformance consumes the v2 claim→evidence mapping (BCE-7)", () => {
-  const ROOTS = [SRC, CLAUDE_ROOT] as const;
-  /** The contract slug every consuming surface must cite by name. */
-  const MAPPING_SLUG = "claim-evidence-mapping";
-
-  describe.each(ROOTS)("%s", root => {
-    const skill = read(`${root}/skills/lisa-spec-conformance/SKILL.md`);
-    const agent = read(`${root}/agents/spec-conformance-specialist.md`);
-
-    it("reads the v2 verdict file and cites the mapping contract by slug", () => {
-      expect(skill).toContain(".lisa/verification-status.json");
-      expect(skill).toContain(MAPPING_SLUG);
-      expect(skill).toMatch(/schema_version.*2|v2/);
-    });
-
-    it("cross-checks each cited claim against its boundary and evidence kinds", () => {
-      expect(skill).toContain("required_evidence_kinds");
-      expect(skill).toContain("evidence_refs");
-    });
-
-    it("surfaces the Not-established section in the coverage matrix output", () => {
-      expect(skill).toContain("not_established_reviewed");
-    });
-
-    it("checks artifact identity so the verdict is bound to what shipped", () => {
-      expect(skill).toContain("artifact_head_sha");
-    });
-
-    it("tells the specialist agent a boundary mismatch is a finding", () => {
-      expect(agent).toContain(MAPPING_SLUG);
-    });
-
-    it("has verification-specialist cite the same contract", () => {
-      const verification = read(`${root}/agents/verification-specialist.md`);
-      expect(verification).toContain(MAPPING_SLUG);
-    });
-  });
 });
 
 /** One evidence row of a v2 verdict, as the skill instructs it be read. */
@@ -332,34 +287,10 @@ describe("The Phase 3b cross-check is decidable on the shipped fixtures (BCE-7)"
   });
 });
 
-describe("The bounded-claims evidence system is documented end-to-end (BCE-7)", () => {
-  const DOC = "wiki/concepts/bounded-claims-evidence-system.md";
-  const doc = read(DOC);
-
+describe("The bounded-claims evidence system write-up is indexed (BCE-7)", () => {
   it("is linked from the wiki index", () => {
     expect(read("wiki/index.md")).toContain(
       "concepts/bounded-claims-evidence-system.md"
-    );
-  });
-
-  it("names all four disciplines in operator-readable terms", () => {
-    for (const discipline of [
-      "boundary",
-      "Not established",
-      "artifact identity",
-      "security",
-    ]) {
-      expect(doc.toLowerCase()).toContain(discipline.toLowerCase());
-    }
-  });
-
-  it("names both config flip points and their defaults", () => {
-    expect(doc).toContain("verification.gate.enforceBoundaries");
-  });
-
-  it("is cross-linked from the verification reference rule", () => {
-    expect(read(`${SRC}/rules/reference/verification.md`)).toContain(
-      "spec-conformance"
     );
   });
 });

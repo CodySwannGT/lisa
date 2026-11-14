@@ -3,10 +3,17 @@
 
 /** A manual cancellation is a third fixed signing purpose, never publication or review authority. */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
-import { required, keys, OBJECT } from "./npm-update-contract.mjs";
+import {
+  required,
+  keys,
+  OBJECT,
+  policyTarget,
+} from "./npm-update-contract.mjs";
 import {
   hashCohort,
   proposalPolicy,
+  optionalTargetFields,
+  targetField,
 } from "./automation-provenance-contract.mjs";
 import { observedRunChronology } from "./github-attestation-recovery.mjs";
 import {
@@ -14,6 +21,7 @@ import {
   matchSigningTime,
   officialResult,
   sha256,
+  targetBranch,
 } from "./github-attestation-verifier.mjs";
 
 export const CANCELLATION_PREDICATE =
@@ -78,7 +86,7 @@ export function assertManualCancellation(
       policy.allowedTriggers?.includes("workflow_dispatch") &&
       run.status === "in_progress" &&
       run.head_sha === proposal.parent &&
-      run.head_branch === "main" &&
+      run.head_branch === policyTarget(proposal) &&
       run.path === policy.callerWorkflow.slice(policy.repository.length + 1) &&
       String(run.head_repository?.id) === policy.repositoryId &&
       Array.isArray(run.referenced_workflows) &&
@@ -87,7 +95,7 @@ export function assertManualCancellation(
           workflow.path?.split("@")[0] === policy.signerWorkflow &&
           workflow.sha === policy.signerDigest
       ),
-    "cancellation requires the actual manual main invocation"
+    "cancellation requires the actual manual target-branch invocation"
   );
   const actor = run.triggering_actor;
   required(
@@ -109,7 +117,8 @@ export function assertManualCancellation(
 
 /** The closed subject preserves one stale origin and one exact replacement, with no published destination. */
 export function validateCancellation(value, expected) {
-  keys(value, RECORD_KEYS);
+  // Only a non-main target is recorded; the final canonical comparison binds it.
+  keys(value, [...RECORD_KEYS, ...optionalTargetFields(value ?? {})]);
   // Root {bun.lock?, package-lock.json, package.json} or exactly one directory's two npm files.
   keys(value.proposalHashes, hashCohort(expected.proposalHashes));
   keys(value.destination, ["branch", "expectedBranchHead", "prNumber"]);
@@ -179,7 +188,7 @@ export function assertRecordedOperator(run, permission, policy, record) {
       run.event === "workflow_dispatch" &&
       policy.allowedTriggers?.includes("workflow_dispatch") &&
       run.head_sha === record.parent &&
-      run.head_branch === "main" &&
+      run.head_branch === targetBranch(record) &&
       run.path === policy.callerWorkflow.slice(policy.repository.length + 1) &&
       String(run.head_repository?.id) === policy.repositoryId &&
       run.triggering_actor?.type === "User" &&
@@ -237,6 +246,8 @@ export function cancellationRecord(
       expectedBranchHead: null,
       prNumber: null,
     },
+    // Only a non-main target is recorded; the cancellation certificate names that ref.
+    ...targetField(proposal),
   };
 }
 

@@ -2,17 +2,12 @@
  * Internal-consistency coverage for the `runtime_behavior_change` contract —
  * the falsifiable half of the contract's presence checks.
  *
- * Read this together with the `runtime_behavior_change` entries in
- * `tests/phrase-manifest/required-phrases.json`, checked by
- * `tests/unit/docs/required-phrases.test.ts`. The two divide one contract
- * along the axis that actually broke:
- *
- * - **Presence (the manifest)** asserts the contract wording is *present*.
- *   That pins it against silent deletion or a lossy regeneration. Every
- *   assertion there is existential — "some copy says the right thing".
- * - **Consistency (this file)** asserts no copy says the *wrong* thing. Every
- *   assertion here is universal — quantified over every occurrence in the
- *   corpus, so a second copy cannot contradict the first.
+ * The contract's wording used to be pinned *present* as well, by entries in
+ * `tests/phrase-manifest/required-phrases.json`. CodySwannGT/lisa#4867 removed
+ * those: presence of a sentence is guidance wording, which needs review, not a
+ * test. What remains here is **consistency** — no copy says the *wrong*
+ * thing. Every assertion is universal, quantified over every occurrence in the
+ * corpus, so a second copy cannot contradict the first.
  *
  * The distinction is not academic. The defect that produced this file shipped
  * twice. `lisa-linear-validate-issue` spelled the discriminator `` `None -` ``
@@ -32,21 +27,14 @@
  * underneath, so there is no function to call and no return value to assert.
  * These are still assertions over prose. What changed is the quantifier, and
  * that is the half that binds: a universal negative over the whole corpus
- * cannot be satisfied by a correct copy elsewhere in the file. Deletion is the
- * manifest's job; contradiction is this one's. Neither catches an agent
- * that reads a correct instruction and disobeys it.
+ * cannot be satisfied by a correct copy elsewhere in the file. It does not
+ * catch an agent that reads a correct instruction and disobeys it.
  * @module tests/unit/strategies/runtime-behavior-change-consistency
  */
-import { readFileSync } from "node:fs";
-import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { NO_RUNTIME_REASONS } from "../../../all/copy-overwrite/scripts/lib/completion-proof-shape.mjs";
-import {
-  MANIFEST_PATH,
-  type Manifest,
-} from "../../../scripts/lib/phrase-tests/manifest.mjs";
 import {
   CONTRACT_SKILLS,
   RULE_ROOTS,
@@ -153,24 +141,6 @@ describe("no copy reads an absent declaration as false", () => {
       // elsewhere in the file is not allowed to vouch for a broken one.
       for (const window of windows) expect(window).toMatch(/underivable/iu);
     });
-  });
-});
-
-describe("every copy this suite reads is pinned present by the manifest", () => {
-  // Presence lives in the required-phrases manifest, not here. A skill root
-  // added to SKILL_ROOTS without manifest coverage would be checked for
-  // contradiction only, and a deleted contract there would go unnoticed.
-  it("lists each SKILL_ROOTS x CONTRACT_SKILLS SKILL.md as a manifest key", () => {
-    const manifest = JSON.parse(
-      readFileSync(path.resolve(MANIFEST_PATH), "utf8")
-    ) as Manifest;
-    const expected = SKILL_ROOTS.flatMap(root =>
-      CONTRACT_SKILLS.map(slug => `${root}/${slug}/SKILL.md`)
-    );
-
-    expect(expected.filter(file => !(file in manifest.files))).toStrictEqual(
-      []
-    );
   });
 });
 

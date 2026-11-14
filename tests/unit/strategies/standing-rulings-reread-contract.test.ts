@@ -12,22 +12,12 @@
  * re-opened one settled decision in a single night, one of them twenty minutes
  * after the ruling was written.
  *
- * ## Why these assertions and not others
+ * ## What stays pinned
  *
- * **The rule must name the ACTION, not a judgement.** "Check whether your
- * context looks complete" is unsatisfiable — context completeness is not
- * observable from inside, which is the trap the issue exists to close. So the
- * text is pinned on saying *open the file from disk*.
- *
- * **It must stay a pointer.** A copy of any ruling is stale the moment the next
- * ruling is written, so the size ceiling below is load-bearing: it fails if
- * someone "helpfully" pastes host ruling text into Lisa's guidance.
- *
- * **The delivered/applied distinction is pinned** because it is the ambiguity
- * most likely to get a correct implementation rejected: the rule is DELIVERED at
- * session start (that is how eager rules travel) but the re-read it demands is
- * APPLIED at the escalation boundary. Property 3 of the issue constrains the
- * latter, not the former.
+ * The rule must stay a pointer. A copy of any ruling is stale the moment the
+ * next ruling is written, so the size ceiling below is load-bearing: it fails
+ * if someone "helpfully" pastes host ruling text into Lisa's guidance. The
+ * rule's wording is guidance prose and is not pinned (#4867).
  * @module tests/unit/strategies/standing-rulings-reread-contract
  */
 import { readFileSync } from "node:fs";
@@ -49,9 +39,6 @@ const MARKDOWN_ROOTS = [
 
 /** Cursor ships the same rule as a front-mattered `.mdc` at a flat path. */
 const CURSOR_RULE = "plugins/lisa-cursor/rules/when-to-stop-reference.mdc";
-
-/** The canonical heading a host is expected to use. */
-const HEADING = "## Standing rulings";
 
 /**
  * Read one shipped copy of the rule.
@@ -83,13 +70,5 @@ describe("standing-rulings re-read pointer (#3592)", () => {
       // This fails loudly if someone pastes a host's rulings into guidance.
       expect(body.length).toBeLessThan(7000);
     });
-  });
-
-  it("ships the pointer in every copy, so no runtime is left behind", () => {
-    const missing = copies()
-      .filter(([, body]) => !body.includes(HEADING))
-      .map(([file]) => file);
-
-    expect(missing).toEqual([]);
   });
 });

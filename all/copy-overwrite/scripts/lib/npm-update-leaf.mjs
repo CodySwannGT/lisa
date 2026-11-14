@@ -8,7 +8,7 @@
  */
 import { canonicalClassifier } from "./npm-update-helper.mjs";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
-import { required, CLAIM, keys } from "./npm-update-contract.mjs";
+import { required, CLAIM, keys, policyTarget } from "./npm-update-contract.mjs";
 import { qualityGates } from "./npm-update-quality.mjs";
 import { leafRoles } from "./npm-update-leaf-contract.mjs";
 export {
@@ -17,6 +17,7 @@ export {
   buildDraft,
 } from "./npm-update-leaf-contract.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
+import { trackerFor, trustedHumanActorIds } from "./npm-update-tracker.mjs";
 
 /** Each transition rereads holds, ownership and the actual managed claim. */
 export async function claimLeaf(
@@ -29,7 +30,8 @@ export async function claimLeaf(
   evidence,
   roles
 ) {
-  let issue = await api.issue(suppliedIssue.number);
+  const tracker = trackerFor(api, policy, config);
+  let issue = await tracker.issue(suppliedIssue.number);
   let state = await inspectLeaf(issue, draft, policy, config);
   qualityGates(
     { ...draft, title: issue.title, body: issue.body },
@@ -39,42 +41,22 @@ export async function claimLeaf(
     evidence
   );
   if (state.unassigned) {
-    await api.assignable(policy.maintainer);
-    await api.request(
-      `repos/${policy.repository}/issues/${issue.number}/assignees`,
-      "POST",
-      { assignees: [policy.maintainer] }
-    );
+    await tracker.assignable(policy.maintainer);
+    await tracker.assign(issue.number, policy.maintainer);
   }
-  issue = await api.issue(issue.number);
+  issue = await tracker.issue(issue.number);
   state = await inspectLeaf(issue, draft, policy, config);
   required(!state.unassigned, "allocation lacks trusted maintainer ownership");
-  if (!state.claimed) {
-    const labels = issue.labels
-      .map(label => label.name)
-      .filter(name => name !== roles.ready);
-    labels.push(roles.claimed);
-    await api.request(
-      `repos/${policy.repository}/issues/${issue.number}`,
-      "PATCH",
-      { labels }
-    );
-  }
-  issue = await api.issue(issue.number);
+  if (!state.claimed) await tracker.transition(issue, roles);
+  issue = await tracker.issue(issue.number);
   state = await inspectLeaf(issue, draft, policy, config);
-  if (!state.claims.length)
-    await api.request(
-      `repos/${policy.repository}/issues/${issue.number}/comments`,
-      "POST",
-      { body: CLAIM }
-    );
-  issue = await api.issue(issue.number);
+  if (!state.claims.length) await tracker.comment(issue.number, CLAIM);
+  issue = await tracker.issue(issue.number);
   state = await inspectLeaf(issue, draft, policy, config);
   required(
     state.claimed &&
       state.claims.length === 1 &&
-      String(state.claims[0].user?.id) === api.policy.claimActorId &&
-      state.claims[0].user?.type === "Bot",
+      (await tracker.isManagedActor(state.claims[0].user)),
     "actual managed claim identity differs"
   );
   return { issue, state };
@@ -103,7 +85,7 @@ export async function inspectCancelledLeaf(issue, draft, policy, config) {
 
 /** Both fixed state entry points preserve the original complete ownership and hold checks. */
 async function inspectLeafFields(issue, draft, policy, config) {
-  const roles = leafRoles(config, policy.repository);
+  const roles = leafRoles(config, policy.repository, policyTarget(policy));
   const labels = issue.labels.map(label => label.name);
   required(
     issue.children.length === 0 &&
@@ -122,8 +104,14 @@ async function inspectLeafFields(issue, draft, policy, config) {
   const hold = (await canonicalClassifier(config))({
     body: issue.body,
     labels,
-    comments: issue.comments,
-    trustedHumanActorIds: config.github.trustedHumanActorIds ?? [],
+    // Jira/Linear comments carry a classifier-only `prose` projection that keeps
+    // code boundaries; `body` stays the lossless managed-record form.
+    comments: issue.comments.map(comment =>
+      typeof comment.prose === "string"
+        ? { ...comment, body: comment.prose }
+        : comment
+    ),
+    trustedHumanActorIds: trustedHumanActorIds(config),
     humanNeededLabel: roles.human,
   });
   required(!hold.held, "current human hold is outstanding");
@@ -195,17 +183,17 @@ export async function authorizeAllocation(
   policy,
   config
 ) {
-  await api.main(proposal.parent);
-  await api.assignable(policy.maintainer);
-  const issue = await api.issue(allocation.number);
+  const tracker = trackerFor(api, policy, config);
+  await api.main(proposal.parent, proposal.target);
+  await tracker.assignable(policy.maintainer);
+  const issue = await tracker.issue(allocation.number);
   const state = await inspectLeaf(issue, allocation.draft, policy, config);
   required(
     state.claimed &&
       !state.unassigned &&
       state.claims.length === 1 &&
       String(state.claims[0].id) === allocation.claimCommentId &&
-      String(state.claims[0].user?.id) === api.policy.claimActorId &&
-      state.claims[0].user?.type === "Bot" &&
+      (await tracker.isManagedActor(state.claims[0].user)) &&
       sha256(state.claims[0].body) === allocation.claimSha256,
     "current proposal claim differs"
   );

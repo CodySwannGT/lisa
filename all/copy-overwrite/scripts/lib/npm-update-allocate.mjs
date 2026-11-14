@@ -2,7 +2,12 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Fixed-schema writer evidence and idempotent current claim. @module npm-updater */
-import { required, CLAIM, validateProposal } from "./npm-update-contract.mjs";
+import {
+  required,
+  CLAIM,
+  validateProposal,
+  policyTarget,
+} from "./npm-update-contract.mjs";
 import { historyPaths } from "./automation-provenance-contract.mjs";
 import { baseline } from "./npm-update-prepare.mjs";
 import { locateCheckpoint } from "./npm-update-recovery.mjs";
@@ -11,6 +16,11 @@ import { sha256 } from "./github-attestation-verifier.mjs";
 import { registryVersion } from "./npm-update-npm.mjs";
 import { discoverSupersession } from "./npm-update-supersession.mjs";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
+import {
+  trackerOf,
+  trackerFor,
+  refuseUnlessGithub,
+} from "./npm-update-tracker.mjs";
 import {
   buildDraft,
   qualityGates,
@@ -26,16 +36,14 @@ export async function filingEvidence(api, proposal, config, cwd) {
     { PATH: process.env.PATH, HOME: "/nonexistent", GIT_TERMINAL_PROMPT: "0" },
     proposal
   );
-  await api.main(proposal.parent);
-  const query = `repo:${proposal.repository} npm is:issue in:title,body`;
-  const search = await api.request(
-    `search/issues?q=${encodeURIComponent(query)}&per_page=100`
-  );
+  const tracker = trackerFor(api, proposal, config);
+  await api.main(proposal.parent, proposal.target);
+  const search = await tracker.relationships(proposal);
   required(
     !search.incomplete_results && search.total_count <= 100,
     "relationship search is incomplete or oversized"
   );
-  for (const item of search.items) await api.issue(item.number);
+  for (const item of search.items) await tracker.issue(item.number);
   const history = await runProcess(
     "git",
     [
@@ -58,15 +66,13 @@ export async function filingEvidence(api, proposal, config, cwd) {
   const registry = [];
   for (const update of proposal.updates)
     registry.push(await registryVersion(update, proposal));
-  const labels = (await api.list(`repos/${proposal.repository}/labels`)).map(
-    label => label.name
-  );
+  const labels = await tracker.vocabulary(proposal);
   return {
     history: {
       command: `git log ${proposal.parent} --max-count=20 -- ${historyPaths(proposal).join(" ")}`,
       result: history.stdout.toString() || "No matching history.",
     },
-    search: { query, total: search.total_count },
+    search: { query: search.query, total: search.total_count },
     registry,
     labels,
     main: proposal.parent,
@@ -75,10 +81,11 @@ export async function filingEvidence(api, proposal, config, cwd) {
 
 /** Same selected versions are discovered before deriving a new parent-bound key. */
 export async function discoverPrior(api, proposal, context) {
-  const query = `repo:${proposal.repository} "${proposal.selectionKey}" is:issue in:body`;
-  const found = await api.request(
-    `search/issues?q=${encodeURIComponent(query)}&per_page=100`
-  );
+  // With a committed config, the adapter must be the configured one; never GitHub by default.
+  const tracker = context
+    ? trackerFor(api, proposal, context.config)
+    : trackerOf(api, proposal.repository);
+  const found = await tracker.searchPrior(proposal);
   required(
     found.incomplete_results === false &&
       Number.isSafeInteger(found.total_count) &&
@@ -88,9 +95,11 @@ export async function discoverPrior(api, proposal, context) {
     "prior selection search is incomplete or ambiguous"
   );
   if (!found.total_count) return { status: "new" };
-  if (context && (found.total_count > 1 || found.items[0].state === "closed"))
+  if (context && (found.total_count > 1 || found.items[0].state === "closed")) {
+    refuseUnlessGithub(context.config, "supersession");
     return discoverSupersession(api, proposal, found.items, context);
-  const issue = await api.issue(found.items[0].number);
+  }
+  const issue = await tracker.issue(found.items[0].number);
   required(
     issue.state === "open" &&
       !issue.pull_request &&
@@ -140,8 +149,9 @@ async function restoredAllocation({
           state.claims.length === 1 &&
           String(state.claims[0].id) === allocation.claimCommentId &&
           sha256(state.claims[0].body) === allocation.claimSha256 &&
-          String(state.claims[0].user?.id) === api.policy.claimActorId &&
-          state.claims[0].user?.type === "Bot",
+          (await trackerFor(api, policy, config).isManagedActor(
+            state.claims[0].user
+          )),
         "origin checkpoint current claim changed"
       );
       qualityGates(
@@ -164,6 +174,7 @@ async function restoredAllocation({
 async function ensureLabels({
   api,
   policy,
+  config,
   roles,
   currentEvidence,
   prior,
@@ -176,11 +187,7 @@ async function ensureLabels({
     roles.claimed,
   ]) {
     if (!currentEvidence.labels.includes(name)) {
-      await api.request(`repos/${policy.repository}/labels`, "POST", {
-        name,
-        color: "ededed",
-        description: "Managed dependency Task lifecycle",
-      });
+      await trackerFor(api, policy, config).ensureRole(name);
       currentEvidence.labels.push(name);
       if (!prior.issue) evidence.labels = currentEvidence.labels;
     }
@@ -200,14 +207,8 @@ async function completeAllocation({
 }) {
   const draft = buildDraft(proposal, policy, config, evidence);
   const before = qualityGates(draft, proposal, policy, config, evidence);
-  let issue =
-    prior.issue ??
-    (await api.request(`repos/${policy.repository}/issues`, "POST", {
-      title: draft.title,
-      body: draft.body,
-      labels: draft.labels,
-      assignees: draft.assignees,
-    }));
+  const tracker = trackerFor(api, policy, config);
+  let issue = prior.issue ?? (await tracker.createLeaf(draft, proposal));
   const claimed = await claimLeaf(
     api,
     issue,
@@ -227,16 +228,12 @@ async function completeAllocation({
     config,
     evidence
   );
-  const announcement = `[${policy.repository.split("/")[1]}] Fresh dependency Task ${policy.repository}#${issue.number} is assigned to ${policy.maintainer}. Proposal key: ${proposal.key}. Pre/post writer quality gates completed; ordinary gates and runtime evidence remain required.`;
+  const announcement = `[${policy.repository.split("/")[1]}] Fresh dependency Task ${tracker.ref(issue.number)} is assigned to ${policy.maintainer}. Proposal key: ${proposal.key}. Pre/post writer quality gates completed; ordinary gates and runtime evidence remain required.`;
   if (!issue.comments.some(comment => comment.body === announcement))
-    await api.request(
-      `repos/${policy.repository}/issues/${issue.number}/comments`,
-      "POST",
-      { body: announcement }
-    );
+    await tracker.comment(issue.number, announcement);
   return {
     number: issue.number,
-    workItem: `${policy.repository}#${issue.number}`,
+    workItem: tracker.ref(issue.number),
     claimCommentId: String(state.claims[0].id),
     claimSha256: sha256(CLAIM),
     draft,
@@ -257,15 +254,16 @@ export async function allocateLeaf({
 }) {
   let proposal = suppliedProposal;
   validateProposal(proposal, policy);
-  await api.main(proposal.parent);
+  const tracker = trackerFor(api, policy, config);
+  await api.main(proposal.parent, proposal.target);
   const prior = await discoverPrior(api, proposal, { cwd, config });
   if (prior.status === "stale-outstanding")
     return {
       status: prior.status,
       number: prior.issue.number,
-      workItem: `${policy.repository}#${prior.issue.number}`,
+      workItem: tracker.ref(prior.issue.number),
     };
-  await api.assignable(policy.maintainer);
+  await tracker.assignable(policy.maintainer);
   const currentEvidence = await filingEvidence(api, proposal, config, cwd);
   if (prior.supersession)
     currentEvidence.supersession = {
@@ -280,7 +278,7 @@ export async function allocateLeaf({
   const evidence = prior.issue
     ? historicalFiling(prior.issue)
     : currentEvidence;
-  const roles = leafRoles(config, policy.repository);
+  const roles = leafRoles(config, policy.repository, policyTarget(policy));
   const inputs = {
     api,
     proposal,

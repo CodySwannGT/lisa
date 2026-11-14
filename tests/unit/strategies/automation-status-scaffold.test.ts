@@ -6,13 +6,10 @@
  * `plugins/lisa` artifact mirror. The runtime adapters, contract resolution,
  * drift detection, and read-only smoke coverage land in follow-up tickets.
  *
- * This suite proves the scaffold shipped in both plugin roots and documents the
- * intended contract clearly enough for the later implementation work:
- *   (1) the command delegates to `/lisa:automation-status`;
- *   (2) the skill is read-only and repo-scoped;
- *   (3) the skill reuses `setup-automations` / `tear-down-automations`
- *       contract semantics rather than inventing a second source of truth;
- *   (4) the skill names the expected fleet outcomes and runtime branches.
+ * This suite proves the scaffold shipped in both plugin roots: the command,
+ * skill and report script exist, the command and skill carry their
+ * frontmatter, and the report script exports its helpers. The skill's prose
+ * is guidance and is reviewed, not pinned (#4867).
  *
  * Both plugin roots are asserted so a missed `bun run build:plugins` fails the
  * suite.
@@ -43,45 +40,20 @@ describe("automation-status scaffold (#797)", () => {
       expect(existsSync(scriptPath)).toBe(true);
     });
 
-    it("uses a pass-through command that delegates to /lisa:automation-status", () => {
+    it("ships a pass-through command that forwards its arguments", () => {
       const command = read(root, COMMAND_REL);
 
       expect(command).toMatch(/^---/);
       expect(command).toMatch(/description:/);
-      expect(command).toMatch(/Use the \/lisa-automation-status skill/);
       expect(command).toContain("$ARGUMENTS");
     });
 
-    it("documents a read-only, repo-scoped operator surface", () => {
+    it("declares the skill's frontmatter", () => {
       const skill = read(root, SKILL_REL);
 
       expect(skill).toMatch(/^---/);
       expect(skill).toMatch(/name:\s*lisa-automation-status/);
       expect(skill).toMatch(/allowed-tools:/);
-    });
-
-    it("derives the fleet from the resolver, not a hardcoded roster (#1796)", () => {
-      const skill = read(root, SKILL_REL);
-
-      expect(skill).toContain("resolveExpectedAutomationFleet");
-      expect(skill).toContain("scripts/automation-status-expected-fleet.mjs");
-      expect(skill).toContain("automation-runbook-contract");
-      // The pre-#1796 roster bullet list must be gone.
-      expect(skill).not.toMatch(/^- `intake-repair`$/m);
-    });
-
-    it("names the expected runtime branches and fleet outcomes", () => {
-      const skill = read(root, SKILL_REL);
-      expect(skill).toMatch(/HEALTHY/);
-      expect(skill).toMatch(/ATTENTION_NEEDED/);
-      expect(skill).toMatch(/PARTIAL_SUPPORT/);
-    });
-
-    it("documents the shared grouped report rendering contract", () => {
-      const skill = read(root, SKILL_REL);
-
-      expect(skill).toContain("scripts/automation-status-report.mjs");
-      expect(skill).toMatch(/Overall verdict: <VERDICT>/);
     });
 
     it("ships report helper exports for later runtime adapters", () => {

@@ -15,7 +15,9 @@ import {
   officialArguments,
   PROPOSAL_PREDICATE,
   RECOVERY_PREDICATE,
+  targetBranch,
 } from "./github-attestation-verifier.mjs";
+import { optionalTargetFields } from "./automation-provenance-contract.mjs";
 const BACKLINK_PHASE = "publication-backlink";
 const STAGE_PHASE = "stage-read";
 const PHASES = [
@@ -46,6 +48,8 @@ function checkedSubject(subject) {
     "maintainer",
     "pr",
     "proofs",
+    // Only a non-main target is named, so a main subject keeps its exact shape.
+    ...optionalTargetFields(subject ?? {}),
   ]);
   required(
     PHASES.includes(subject.phase) &&
@@ -131,7 +135,7 @@ function proofRequests(subject) {
   const repository = subject.repository;
   const endpoints = [
     `repos/${repository}`,
-    `repos/${repository}/git/ref/heads/main`,
+    `repos/${repository}/git/ref/heads/${targetBranch(subject)}`,
     `repos/${repository}/actions/runs/${subject.origin.runId}/attempts/${subject.origin.runAttempt}`,
     `repos/${subject.tracker}/issues/comments/${subject.claim}`,
   ];

@@ -14,9 +14,11 @@ import { describe, expect, it } from "vitest";
  * `production-verifiability`. The retired heads keep their reference bodies,
  * reachable from the rule index, so skills that cite them by slug still resolve.
  *
- * These rules load on EVERY session for EVERY agent, so the tests pin the
- * instruction each exists to give, the instructions deliberately removed, and
- * the fact that each reaches the generated agent surfaces.
+ * These rules load on EVERY session for EVERY agent, so the tests pin their
+ * structure: each ships as a paired head and body, each head stays within its
+ * size budget, retired heads stay indexed, and each reaches the generated
+ * agent surfaces. The instructions themselves are guidance and are reviewed,
+ * not pinned (#4867).
  *
  * The `plugins/lisa` root is included so a source edit that was never fanned out
  * through `bun run build:plugins` fails here rather than shipping half-delivered.
@@ -27,9 +29,6 @@ const OWNERSHIP = "ownership";
 const WHEN_TO_STOP = "when-to-stop";
 const COMMUNICATION = "communication";
 const PRODUCTION_VERIFIABILITY = "production-verifiability";
-
-/** Rules the pack modifies rather than introduces. */
-const WIKI_KNOWLEDGE_SOURCE = "wiki-knowledge-source";
 
 const PACK_SLUGS = [
   OWNERSHIP,
@@ -75,7 +74,7 @@ describe.each(ROOTS)("session operating pack in %s", root => {
       );
     });
 
-    it("marks the eager head load-bearing and breadcrumbs to the body", () => {
+    it("breadcrumbs the eager head to its reference body", () => {
       const eager = eagerOf(root, slug);
       expect(eager).toContain(`(../reference/${slug}.md)`);
     });
@@ -103,59 +102,6 @@ describe.each(ROOTS)("session operating pack in %s", root => {
       );
       expect(eagerOf(root, "00-rule-index")).toContain(`reference/${slug}.md`);
     });
-  });
-
-  it("ownership is bounded to code the change touches or depends on", () => {
-    const eager = eagerOf(root, OWNERSHIP);
-    expect(eager).toContain("build-ready ticket");
-  });
-
-  it("when-to-stop no longer prescribes timed polling", () => {
-    // Claude Code notifies on background completion; a fixed 5-minute poll
-    // contradicted the harness and wasted turns.
-    for (const text of [
-      eagerOf(root, WHEN_TO_STOP),
-      referenceOf(root, "not-blocked-just-waiting"),
-    ])
-      expect(text).not.toMatch(/every (5|five) minutes/i);
-  });
-
-  it("when-to-stop keeps the standing-rulings re-read at the escalation boundary", () => {
-    expect(eagerOf(root, WHEN_TO_STOP)).toContain("re-read `AGENTS.md`");
-  });
-
-  it("communication writes for a low-context reader and accounts for scope", () => {
-    const eager = eagerOf(root, COMMUNICATION);
-    expect(eager).toContain("recommendation");
-  });
-
-  it("production-verifiability is tool-neutral and names the PR sections", () => {
-    const eager = eagerOf(root, PRODUCTION_VERIFIABILITY);
-    for (const vendor of ["Sentry", "CloudWatch", "Datadog", "PostHog"])
-      expect(eager).not.toContain(vendor);
-  });
-
-  it("wiki-knowledge-source names the required knowledge role, not an optional install", () => {
-    // The rule ships in base while lisa-wiki-query ships in the wiki plugin.
-    // That stopped dangling when the wiki became the required `knowledge`
-    // role's default backend: every project now installs the query skill, so
-    // the rule no longer needs an applicability escape hatch or a bootstrap.
-    for (const text of [
-      eagerOf(root, WIKI_KNOWLEDGE_SOURCE),
-      referenceOf(root, WIKI_KNOWLEDGE_SOURCE),
-    ]) {
-      expect(text).not.toContain("lisa-wiki-install");
-    }
-  });
-
-  it("empirical-inquiry requires establishing branch position before a diff", () => {
-    const eager = eagerOf(root, "empirical-inquiry");
-    expect(eager).toContain("git rev-list --count HEAD..origin/");
-  });
-
-  it("config-resolution points at the secrets contract without copying it", () => {
-    const eager = eagerOf(root, "config-resolution");
-    expect(eager).toContain("lisa-secrets-access");
   });
 });
 

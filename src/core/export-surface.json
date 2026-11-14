@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 307,
-  "$names": 2233,
+  "$modules": 315,
+  "$names": 2312,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -161,6 +161,7 @@
       "FILES",
       "HEX",
       "OBJECT_ID",
+      "assertCommittedTarget",
       "canonicalJson",
       "directoryBunAbsent",
       "directoryOf",
@@ -173,10 +174,12 @@
       "optionalDirectoryFields",
       "optionalLockFields",
       "optionalRuntimeFields",
+      "optionalTargetFields",
       "policyEntry",
       "proposalFileNames",
       "proposalPolicy",
       "signedProposalFields",
+      "targetField",
       "trustedConfiguration",
       "validDirectory"
     ],
@@ -385,6 +388,7 @@
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": [
       "verifyAssignable",
       "verifyCurrentProvider",
+      "verifyCurrentRun",
       "verifyHistoricalProvider",
       "verifyRecoveryProvider",
       "verifyStaleOriginProvider"
@@ -401,6 +405,7 @@
     ],
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs": [
       "ACTIONS_ISSUER",
+      "DEFAULT_TARGET",
       "PROPOSAL_PREDICATE",
       "RECOVERY_PREDICATE",
       "assertPinnedVerifier",
@@ -411,6 +416,8 @@
       "officialResult",
       "requireProof",
       "sha256",
+      "targetBranch",
+      "validBranchName",
       "verifiedRole",
       "verifyCurrentProvider",
       "verifyDescriptorAttestation"
@@ -508,9 +515,11 @@
       "invokeControllerRecipe"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-bun.mjs": [
+      "bunOnlyRoot",
       "committedBun",
       "directoryBun",
       "frozenBun",
+      "frozenRootBun",
       "qualifiedBun",
       "verifyBunLock"
     ],
@@ -557,6 +566,7 @@
     ],
     "all/copy-overwrite/scripts/lib/npm-update-contract.mjs": [
       "CLAIM",
+      "DEFAULT_TARGET",
       "FILES",
       "NAME",
       "OBJECT",
@@ -564,11 +574,13 @@
       "UpdaterError",
       "VERSION",
       "keys",
+      "policyTarget",
       "proposalFileNames",
       "proposalFrom",
       "required",
       "selectPolicy",
       "selectionKey",
+      "validBranchName",
       "validateHost",
       "validateLock",
       "validateManifest",
@@ -591,6 +603,7 @@
       "executeRecipe"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs": [
+      "childEnvironment",
       "initializeAdapter"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-gate-hooks.mjs": [
@@ -639,7 +652,8 @@
       "prepareGhRequest"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-github.mjs": [
-      "GitHub"
+      "GitHub",
+      "missingTarget"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs": [
       "assertManagedSelection",
@@ -683,6 +697,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs": [
       "assertHostedGate",
       "createHostedGate",
+      "installHostedDependencies",
       "originalHookEnvironment",
       "prepareRailsApplication",
       "remainingGateTime"
@@ -701,6 +716,7 @@
       "UpdaterError",
       "inheritProvenanceFailure",
       "keys",
+      "operatorRefusal",
       "provenanceFailure",
       "publicFailure",
       "recordNativeFailure",
@@ -720,6 +736,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs": [
       "buildDraft",
       "environment",
+      "environmentDeclaration",
       "leafRoles"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs": [
@@ -764,9 +781,12 @@
       "validateOwnerReceipt"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-policy.mjs": [
+      "DEFAULT_TARGET",
       "NAME",
       "VERSION",
+      "policyTarget",
       "selectPolicy",
+      "validBranchName",
       "validatePolicy"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs": [
@@ -902,6 +922,41 @@
       "launcherContext",
       "literalArguments",
       "toolInvocation"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-jira.mjs": [
+      "JiraTracker"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-linear.mjs": [
+      "LinearTracker"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-wire.mjs": [
+      "adfCodeBlock",
+      "adfProse",
+      "adfText",
+      "completeLinearConnections",
+      "fence",
+      "jsonCall",
+      "lifecycleName",
+      "linearClosed",
+      "linearSearchResult",
+      "strandedRefusal",
+      "trackerCredentials",
+      "unfence",
+      "vendorLabels",
+      "vocabularyRefusal",
+      "withinJiraLimit"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker.mjs": [
+      "FOLLOWUP_SENTENCE",
+      "createTracker",
+      "expectedWorkItem",
+      "githubTracker",
+      "proveTrackerProvider",
+      "refuseUnlessGithub",
+      "trackerFor",
+      "trackerOf",
+      "trustedHumanActorIds",
+      "verifySignedWorkItem"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs": [
       "assertRubyEnvironment",
@@ -1205,6 +1260,8 @@
       "tasksOf"
     ],
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs": [
+      "assertTargetBranchExists",
+      "assertWorkflowTarget",
       "cancellationRequest",
       "main"
     ],
@@ -1312,6 +1369,7 @@
       "githubFailureReason",
       "githubHierarchyArgs",
       "githubIssueViewArgs",
+      "jiraServerOrigin",
       "judgeLane",
       "labelNamesOf",
       "mergeOnlyRange",
@@ -2171,12 +2229,38 @@
       "classifyTestSource",
       "resolveTestImport"
     ],
+    "scripts/lib/phrase-tests/doc-taint.mjs": [
+      "DOCUMENT_ROOT",
+      "MARKDOWN_PATH",
+      "analyseDocTaint",
+      "isDocy",
+      "isPathy",
+      "mentionsDocumentPath",
+      "subjectSource"
+    ],
     "scripts/lib/phrase-tests/fold.mjs": [
       "foldPhraseTests"
+    ],
+    "scripts/lib/phrase-tests/inventory.mjs": [
+      "LOAD_BEARING",
+      "REPORT_CLASSES",
+      "classifyAssertions",
+      "classifyCheck",
+      "classifyManifest",
+      "countByClass",
+      "countBySource",
+      "literalPhrase",
+      "mergeManifests",
+      "phraseParts",
+      "pruneManifest",
+      "readsMarkdown",
+      "selectEntries"
     ],
     "scripts/lib/phrase-tests/manifest.mjs": [
       "MANIFEST_COMMENT",
       "MANIFEST_PATH",
+      "SOURCE_GUARDS_COMMENT",
+      "SOURCE_GUARDS_PATH",
       "SOURCE_SEPARATOR",
       "buildManifest",
       "describePhrase",
@@ -2185,12 +2269,23 @@
       "phraseFailure",
       "sourceTestFile"
     ],
+    "scripts/lib/phrase-tests/marker-classes.mjs": [
+      "MARKER_CLASSES",
+      "classifyPhrase",
+      "literalOf",
+      "needlesOf"
+    ],
     "scripts/lib/phrase-tests/parity.mjs": [
       "deletedTestFiles",
       "parityFailures"
     ],
     "scripts/lib/phrase-tests/record.mjs": [
       "recordTestFile"
+    ],
+    "scripts/lib/phrase-tests/redact.mjs": [
+      "SECRET_SHAPES",
+      "redactDeep",
+      "redactText"
     ],
     "scripts/lib/phrase-tests/repo.mjs": [
       "REPO_ROOT",

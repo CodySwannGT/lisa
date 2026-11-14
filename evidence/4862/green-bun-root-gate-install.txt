@@ -1,0 +1,47 @@
+# #4862 independent verification (verification-specialist), HEAD 2152f39cff
+## Step 1: hosted gate install on a Bun-only root (native bun 1.4.4 first on PATH)
+$ PATH="<native-bun-1.4.4>:node_modules/.bin:$PATH" node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run --reporter=verbose tests/integration/npm-update-bun-root.test.ts
+lisa-test-run: TMPDIR <tmp> is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (70 ms); kept 19 entries not private to this user
+
+ RUN  v5.1.0 ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root
+
+stdout | tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > installs the root with frozen Bun and keeps every input byte
+bun-root-gate-install {"rootLock":false,"installed":"6.0.0","unchanged":true,"status":""}
+
+ ✓ |lisa| tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > installs the root with frozen Bun and keeps every input byte 1209ms
+ ✓ |lisa| tests/integration/npm-update-bun-root.test.ts > hosted gate install on a Bun-only root > refuses a root npm proposal on a Bun-only root before installing 697ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  04:17:14
+   Duration  2.32s (tests 87%, import 7%, transform 4%, setup 2%)
+
+
+## Probe: real CLI 'lisa-npm-updater.mjs prepare' with LISA_NPM_DIRECTORY=externals on a Bun-only root
+## (scratch test derived from tests/integration/npm-update-subdirectory.test.ts; root has a real bun.lock from bun install --lockfile-only and no package-lock.json)
+lisa-test-run: TMPDIR <tmp> is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (84 ms); kept 19 entries not private to this user
+vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
+ [38;5;240m   │[0m        ─────────────────┬─────────────────  
+ [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
+[38;5;246m────╯[0m
+
+
+ RUN  v5.1.0 /private/tmp/v4862-scratch
+
+Sourcemap for "~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/node_modules/.bun/@codyswann+lisa@5.0.1+1bc0933c9026d41b/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-setup.js" points to missing source files
+Sourcemap for "~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root/node_modules/.bun/@codyswann+lisa@5.0.1+1bc0933c9026d41b/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
+stdout | tests/integration/probe-bun-root-prepare.test.ts > probe: prepare on a Bun-only root > prepares externals when the root has bun.lock and no package-lock.json
+probe-bun-root-prepare {"rootLock":false,"code":0,"stdout":"prepared\n","stderr":"","directory":"externals","files":["externals/package-lock.json","externals/package.json"],"bunLockSha256":false,"updates":[{"from":"6.0.0","name":"is-number","section":"dependencies","to":"7.0.0"}],"rootBunUnchanged":true,"status":""}
+
+ ✓ |lisa| tests/integration/probe-bun-root-prepare.test.ts > probe: prepare on a Bun-only root > prepares externals when the root has bun.lock and no package-lock.json 4061ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  04:19:05
+   Duration  4.70s (tests 90%, import 5%, transform 4%, setup 1%)
+

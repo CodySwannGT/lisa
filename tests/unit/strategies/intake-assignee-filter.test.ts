@@ -3,8 +3,9 @@
  *
  * Intake may narrow the ready queue to items already assigned to one person for
  * a local automation lane, but the default shared queue behavior must remain
- * unchanged when no assignee is resolved. Both source and generated plugin
- * roots are asserted.
+ * unchanged when no assignee is resolved. The documented ready query is
+ * executed against stubbed `gh` pages in both source and generated plugin
+ * roots; the surrounding guidance prose is not pinned (#4867).
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -75,20 +76,8 @@ function runReadyQuery(content: string, assignee: string, failed = false) {
 }
 
 describe("intake assignee filter", () => {
-  describe.each(ROOTS)("%s/lisa-intake", root => {
-    const content = readSkill(root, "lisa-intake");
-
-    it("documents the assignee argument and local config resolution order", () => {
-      expect(content).toContain(".lisa.config.local.json` `intake.assignee`");
-    });
-  });
-
   describe.each(ROOTS)("%s/lisa-github-build-intake", root => {
     const content = readSkill(root, "lisa-github-build-intake");
-
-    it("documents assignee resolution for github build intake", () => {
-      expect(content).toContain(".lisa.config.local.json` `intake.assignee`");
-    });
 
     it.each([
       { assignee: "", expected: [1, 3] },
@@ -115,28 +104,3 @@ describe("intake assignee filter", () => {
     });
   });
 });
-
-const RULES_ROOTS = [
-  "plugins/src/base/rules/reference",
-  "plugins/lisa/rules/reference",
-] as const;
-
-describe.each(RULES_ROOTS)(
-  "config-resolution intake.assignee docs (%s)",
-  rulesRoot => {
-    const content = readFileSync(
-      path.resolve(rulesRoot, "config-resolution.md"),
-      "utf8"
-    );
-
-    it("documents intake.assignee as a local-only override", () => {
-      expect(content).toMatch(/\.lisa\.config\.local\.json/);
-    });
-
-    it("documents argument override and empty default behavior", () => {
-      expect(content).toContain(
-        "$ARGUMENTS` `assignee=<vendor-user-id-or-login>`"
-      );
-    });
-  }
-);

@@ -3,7 +3,11 @@
 
 /** Closed canonical schemas and committed npm policy remain independent of local proof IO. */
 import { posix } from "node:path";
-import { requireProof } from "./github-attestation-verifier.mjs";
+import {
+  requireProof,
+  DEFAULT_TARGET,
+  targetBranch,
+} from "./github-attestation-verifier.mjs";
 
 const MANIFEST = "package.json";
 const NPM_LOCK = "package-lock.json";
@@ -93,6 +97,20 @@ export function policyEntry(config, directory) {
   return matches[0];
 }
 
+/**
+ * A signed subject's target must be the committed policy's target for its
+ * directory; an omitted target on either side is main.
+ */
+export function assertCommittedTarget(config, value) {
+  const entry = policyEntry(config, directoryOf(value));
+  const committed =
+    entry && Object.hasOwn(entry, "target") ? entry.target : DEFAULT_TARGET;
+  requireProof(
+    targetBranch(value) === committed,
+    "proposal target differs from committed npm policy"
+  );
+}
+
 /** Caller must pass a config already validated by selectPolicy. */
 export function proposalPolicy(config, value) {
   const entry = policyEntry(config, directoryOf(value));
@@ -118,9 +136,26 @@ export function optionalDirectoryFields(value) {
 }
 
 /**
+ * Only a non-main target is signed: main descriptors keep their historical key
+ * set byte for byte, so an explicit "main" stays an undeclared extra field.
+ */
+export function optionalTargetFields(value) {
+  if (!Object.hasOwn(value, "target") || value.target === DEFAULT_TARGET)
+    return [];
+  targetBranch(value);
+  return ["target"];
+}
+
+/** A value's target field only when it is not main; spread into signed subjects. */
+export function targetField(value) {
+  const target = targetBranch(value);
+  return target === DEFAULT_TARGET ? {} : { target };
+}
+
+/**
  * One exact optional projection preserves historical keys at producer and verifier boundaries.
  * @param {Record<string, any>} value - A proposal, descriptor or optional-field set.
- * @returns {{ bunLockSha256?: string, runtimeSha256?: string, directory?: string }} Present signed optional fields only.
+ * @returns {{ bunLockSha256?: string, runtimeSha256?: string, directory?: string, target?: string }} Present signed optional fields only.
  */
 export function signedProposalFields(value) {
   return Object.fromEntries(
@@ -128,6 +163,7 @@ export function signedProposalFields(value) {
       ...optionalLockFields(value),
       ...optionalRuntimeFields(value),
       ...optionalDirectoryFields(value),
+      ...optionalTargetFields(value),
     ].map(name => [name, value[name]])
   );
 }
@@ -148,9 +184,19 @@ export function proposalFileNames(value) {
   return files;
 }
 
-/** The root install's inputs plus the proposal's own files must all survive the ordinary install unchanged. */
-export function installInputs(value) {
-  return [...new Set([...FILES, ...cohortNames(value)])];
+/**
+ * The root install's inputs plus the proposal's own files must all survive the ordinary install unchanged.
+ * A Bun-only root (bun.lock, no package-lock.json) installs from bun.lock, and
+ * only a subdirectory proposal may run on one: the root npm project is absent.
+ */
+export function installInputs(value, rootManager = "npm") {
+  requireProof(
+    rootManager === "npm" ||
+      (rootManager === "bun" && directoryOf(value) !== "."),
+    "a Bun-only root supports only a subdirectory npm proposal"
+  );
+  const root = rootManager === "bun" ? [BUN_LOCK, MANIFEST] : FILES;
+  return [...new Set([...root, ...cohortNames(value)])];
 }
 
 /** Committed history paths in their historical order; the root command string never changes. */

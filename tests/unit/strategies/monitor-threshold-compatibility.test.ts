@@ -1,9 +1,10 @@
 /**
  * Prompt-as-code regression coverage for monitor threshold compatibility.
  *
- * `lisa-monitor` is an agent-executed skill, so its operational contract must
- * explicitly define scoped config extraction, alias precedence, defaults, and
- * observable reporting that an independent verifier can inspect.
+ * `lisa-monitor` is an agent-executed skill. Its guidance prose is reviewed, not
+ * pinned; what stays here is executable: the canonical jq projection the skill
+ * ships is run against a hostile config, and every generated copy of the skill
+ * stays in lockstep with the source.
  * @module tests/unit/strategies/monitor-threshold-compatibility
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -30,32 +31,6 @@ const read = (filePath: string): string =>
 const source = read(SOURCE_SKILL);
 
 describe("monitor threshold compatibility contract (#1527)", () => {
-  it("requires four-key-only jq extraction from committed and local config", () => {
-    expect(source).toMatch(/`\.lisa\.config\.json`.*`jq`/is);
-    expect(source).toContain(".lisa.config.local.json");
-  });
-
-  it("defines current, legacy, and default precedence for event counts", () => {
-    expect(source).toMatch(
-      /`monitor\.thresholds\.minEvents24h`[\s\S]*`monitor\.thresholds\.sentryMinEvents24h`[\s\S]*default[^\n]*`?1`?/i
-    );
-  });
-
-  it("defines current, legacy, and default precedence for fault rates", () => {
-    expect(source).toMatch(
-      /`monitor\.thresholds\.faultRatePct`[\s\S]*`monitor\.thresholds\.xrayFaultRatePct`[\s\S]*default[^\n]*`?5`?/i
-    );
-  });
-
-  it("requires observable resolved value and source reporting for both pairs", () => {
-    expect(source).toContain("monitor.thresholds.minEvents24h");
-    expect(source).toContain("monitor.thresholds.faultRatePct");
-  });
-
-  it("rejects invalid configured values without leaking config or falling back", () => {
-    expect(source).toMatch(/finite JSON number/i);
-  });
-
   it("executes the canonical jq projection without exposing NaN", () => {
     const projection = JQ_PROJECTION.exec(source)?.[1];
     expect(projection).toBeDefined();

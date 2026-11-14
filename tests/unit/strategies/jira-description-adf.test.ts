@@ -4,25 +4,12 @@
  * Lisa-authored JIRA descriptions must be converted to ADF before acli/curl
  * writes. Passing Markdown or wiki markup as plain text stores one literal
  * paragraph in JIRA Cloud, which breaks validator section detection and human
- * readability.
+ * readability. The converter is tested as code; the skill prose that routes
+ * writes through it is guidance and is not pinned here (#4867).
  * @module tests/unit/strategies/jira-description-adf
  */
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import { describe, expect, it } from "vitest";
 import { markdownToAdf } from "../../../plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs";
-
-const SKILL_ROOTS = [
-  "plugins/src/base/skills",
-  "plugins/lisa/skills",
-  "plugins/lisa-agy/skills",
-  "plugins/lisa-copilot/skills",
-  "plugins/lisa-cursor/skills",
-] as const;
-
-const readSkill = (root: string, skill: string): string =>
-  readFileSync(path.resolve(root, skill, "SKILL.md"), "utf8");
 
 describe("JIRA description Markdown to ADF conversion", () => {
   it("converts Lisa's description subset into structured ADF nodes", () => {
@@ -70,20 +57,6 @@ Then it works
       type: "heading",
       attrs: { level: 2 },
       content: [{ type: "text", text: "Repository" }],
-    });
-  });
-
-  describe.each(SKILL_ROOTS)("%s", root => {
-    it("routes JIRA write descriptions through the shared converter", () => {
-      const content = readSkill(root, "lisa-atlassian-access");
-
-      expect(content).toContain("markdown-to-adf.mjs");
-    });
-
-    it("documents that post-write verify catches descriptions dropped to literal text", () => {
-      const content = readSkill(root, "lisa-jira-write-ticket");
-
-      expect(content).toContain("markdown-to-adf.mjs");
     });
   });
 });

@@ -1,10 +1,11 @@
 /**
- * Fixture-backed smoke coverage plus exact queue-status read-only assertions.
+ * Fixture-backed smoke coverage plus queue-status source/generated parity.
  *
  * Issue #826 extends the earlier queue-status scaffold and reader coverage with
- * committed build-queue fixtures plus strict proof that the distributed command,
- * skill, and helper scripts stay aligned with the base plugin source and keep
- * the v1 surface explicitly read-only.
+ * committed build-queue fixtures plus proof that the distributed command,
+ * skill, and helper scripts stay aligned with the base plugin source. The
+ * read-only wording in the command and skill is guidance and is reviewed, not
+ * pinned (#4867).
  * @module tests/unit/strategies/queue-status-fixture-smoke-and-read-only
  */
 import { readFileSync } from "node:fs";
@@ -120,7 +121,7 @@ describe("queue-status fixture smoke coverage (#826)", () => {
   });
 });
 
-describe("queue-status source/generated parity and read-only contract (#826)", () => {
+describe("queue-status source/generated parity (#826)", () => {
   it("keeps the distributed queue-status command in lockstep with the source asset", () => {
     const sourceCommand = readUtf8(
       path.join(BASE_PLUGIN_ROOT, "commands", "queue-status.md")

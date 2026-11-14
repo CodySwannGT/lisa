@@ -1,4 +1,8 @@
-/** Cross-harness distribution and protocol contract for the Lisa Health skill. */
+/**
+ * Cross-harness distribution contract for the Lisa Health skill: where the
+ * command and skill land on each harness. The skill's protocol prose is
+ * guidance and is reviewed, not pinned (#4867).
+ */
 import * as fs from "fs-extra";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -32,65 +36,13 @@ function read(file: string): string {
 }
 
 describe("lisa-health source contract", () => {
-  it("keeps the Claude command flat and delegates behavior to the authored skill", () => {
+  it("keeps the Claude command flat and forwards its arguments", () => {
     expect(fs.pathExistsSync(SOURCE_COMMAND)).toBe(true);
     expect(
       fs.pathExistsSync(path.join(SOURCE_ROOT, "commands", "lisa", "health.md"))
     ).toBe(false);
     const command = read(SOURCE_COMMAND);
-    expect(command).toContain("/lisa-health skill");
     expect(command).toContain("$ARGUMENTS");
-  });
-
-  it("uses one digest-bound stdin protocol without prompt-owned composition", () => {
-    const skill = read(SOURCE_SKILL);
-    const prepare = skill.indexOf("--prepare-agentic");
-    const final = skill.indexOf("--agentic-evaluation");
-
-    expect(prepare).toBeGreaterThan(-1);
-    expect(final).toBeGreaterThan(prepare);
-    expect(skill).toContain(
-      '--agentic-evaluation < "<private-temp>/evaluation.json"'
-    );
-    expect(skill).toMatch(
-      /exact\s+three-field prepare envelope `\{protocolVersion, requestDigest, request\}`/
-    );
-    expect(skill).toContain(
-      "containing only the copied `protocolVersion` and `requestDigest`"
-    );
-    expect(skill).toContain('mktemp -d "${TMPDIR:-/tmp}/lisa-health.XXXXXX"');
-    expect(skill).toContain('unlink -- "<private-temp>/prepare.json"');
-    expect(skill).toContain(
-      "Empty strings, empty lists, missing/null YAML values"
-    );
-    for (const check of [
-      "agentic.disabled-mutation-gate",
-      "agentic.eslint.override",
-      "agentic.eslint.ignore-override",
-      "agentic.intentional-drift",
-      "agentic.ci.skipped-jobs",
-      "agentic.ci.verification-disabled",
-    ]) {
-      expect(skill).toContain(check);
-    }
-    expect(skill.replace(/\s+/gu, " ")).toContain("never invent another ID");
-    expect(skill).toMatch(
-      /Do not invoke `claude`, `codex`, `cursor-agent`, `opencode`, `agy`,/
-    );
-  });
-
-  it("names every supported invocation surface", () => {
-    const skill = read(SOURCE_SKILL);
-    for (const invocation of [
-      "Claude `/lisa:health`",
-      "Codex `$lisa-health`",
-      "Cursor `/lisa:health`",
-      "OpenCode `/lisa:health`",
-      "Antigravity `/lisa:health`",
-      "Copilot `/lisa:health`",
-    ]) {
-      expect(skill.replace(/\s+/gu, " ")).toContain(invocation);
-    }
   });
 });
 

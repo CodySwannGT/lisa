@@ -23,17 +23,17 @@
  *    undeclared — there is no frontmatter equivalent of an agent's `skills:` —
  *    so a renamed or deleted skill leaves a dangling invocation.
  *
- * Plus one honesty check: `tools:` is enforced only on Claude, and the doctrine
- * has to keep saying so, because a field that looks like a sandbox and is not
- * one is worse than no field at all.
+ * Plus one source-text check: the Codex agent transformer keeps emitting the
+ * note that `tools:` is enforced only on Claude, because a field that looks
+ * like a sandbox and is not one is worse than no field at all. (The doctrine
+ * skill's own wording of that point is reviewed, not pinned.)
  *
  * There is no exemption list, because no agent needs one. The single
  * intentional duplication in the tree — the `Security (proven)` /
  * `Security (unproven)` bucket headings that `security-specialist` and
- * `lisa-security-review` must both render so they cannot drift — is pinned by
- * `tests/phrase-manifest/required-phrases.json` (checked by
- * `tests/unit/docs/required-phrases.test.ts`) and never reaches this check,
- * since headings are excluded below. Should a future contract genuinely require a
+ * `lisa-security-review` must both render so they cannot drift — never reaches
+ * this check, since headings are excluded below. (Their wording is no longer
+ * pinned by a phrase test: CodySwannGT/lisa#4867.) Should a future contract genuinely require a
  * shared sentence, add the allowlist together with the test that pins it, so the
  * exemption and its justification cannot be separated.
  *
@@ -279,15 +279,6 @@ describe("agent/skill layer contract", () => {
   });
 
   describe("`tools:` is documented as advisory rather than enforced", () => {
-    const doctrine = readFileSync(
-      path.join(SRC, "base/skills/lisa-agent-design-best-practices/SKILL.md"),
-      "utf8"
-    );
-
-    it("says only Claude enforces the field", () => {
-      expect(doctrine).toMatch(/only claude enforces `tools:`/iu);
-    });
-
     it("keeps the Codex transformer emitting the compatibility note", () => {
       const transformer = readFileSync(
         path.resolve("src/codex/agent-transformer.ts"),

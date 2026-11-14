@@ -2,6 +2,9 @@
  * Regression contract for #1595: cross-work-item evidence references must not
  * inflate the current work item's S14 manifest.
  *
+ * The executable Jira journey parser and template generator are tested as
+ * code, and the OpenCode installer is guarded as source text. The skill and
+ * rule prose describing the reference grammar is not pinned (#4867).
  * @module tests/unit/strategies/evidence-reference-contract
  */
 import { readFileSync } from "node:fs";
@@ -13,41 +16,10 @@ import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
+
 const PYTHON = "/usr/bin/python3";
 
-const VALIDATORS = [
-  "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md",
-  "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md",
-  "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md",
-] as const;
-
-const GENERATED_SKILL_ROOTS = [
-  "plugins/lisa/skills",
-  "plugins/lisa/.codex-plugin/skills",
-  "plugins/lisa-cursor/skills",
-  "plugins/lisa-agy/skills",
-  "plugins/lisa-copilot/skills",
-] as const;
-
 describe("non-claiming evidence references (#1595)", () => {
-  it.each(VALIDATORS)(
-    "%s excludes references from every S14 manifest operation",
-    validatorPath => {
-      const validator = read(validatorPath);
-      expect(validator).toMatch(/exact `\[EVIDENCE:` prefix/);
-    }
-  );
-
-  it.each(["plugins/src/base/skills", ...GENERATED_SKILL_ROOTS])(
-    "%s advertises the canonical typed local marker",
-    root => {
-      const journey = read(`${root}/lisa-github-journey/SKILL.md`);
-      expect(journey).toContain(
-        "canonical `[EVIDENCE: <artifact-type>: <name>]` marker"
-      );
-    }
-  );
-
   it("installs built canonical skills into OpenCode verbatim", () => {
     const installer = read("src/opencode/skills-installer.ts");
 

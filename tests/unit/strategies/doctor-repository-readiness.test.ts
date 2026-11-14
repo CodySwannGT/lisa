@@ -7,11 +7,11 @@
  * `readiness-rubric` rule and renders one check per dimension, never fewer.
  * This suite proves the shared `doctor-report.mjs` renderer exposes the group,
  * that the group holds exactly eight dimension checks in fixed order with a
- * stated SKIP reason for every inapplicable dimension, and that the lisa-doctor
- * skill documents the section identically across the fanned-out plugin copies.
+ * stated SKIP reason for every inapplicable dimension. The lisa-doctor skill's
+ * prose describing the section is not pinned (#4867).
  * @module tests/unit/strategies/doctor-repository-readiness
  */
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -33,18 +33,6 @@ const EXPECTED_DIMENSION_IDS = [
   "delivery-authority",
   "proportionality",
 ] as const;
-
-/** Every plugin copy that must carry an identical lisa-doctor skill section. */
-const SKILL_ROOTS = [
-  "plugins/src/base/skills",
-  "plugins/lisa/skills",
-  "plugins/lisa-agy/skills",
-  "plugins/lisa-cursor/skills",
-  "plugins/lisa-copilot/skills",
-] as const;
-
-const readDoctorSkill = (root: string): string =>
-  readFileSync(path.resolve(root, "lisa-doctor", "SKILL.md"), "utf8");
 
 /**
  * A scratch root with no `.lisa/readiness.json`. Since #1902 the group projects
@@ -102,25 +90,3 @@ describe("repository-readiness doctor render group (#1855)", () => {
     }
   });
 });
-
-describe.each(SKILL_ROOTS)(
-  "doctor repository-readiness skill section (%s)",
-  root => {
-    const content = readDoctorSkill(root);
-
-    it("defines one shared doctor repository-readiness section citing the rubric", () => {
-      expect(content).toMatch(/--readiness/);
-    });
-
-    it("documents the eight dimensions and the SKIP-with-reason contract", () => {
-      for (const id of EXPECTED_DIMENSION_IDS) {
-        expect(content).toContain(id);
-      }
-    });
-
-    it("documents the persisted .lisa/readiness.json artifact", () => {
-      expect(content).toMatch(/\.lisa\/readiness\.json/);
-      expect(content).toMatch(/schema_version/);
-    });
-  }
-);

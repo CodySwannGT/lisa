@@ -3,18 +3,13 @@
  *
  * Issue #843 introduces the initial distribution surfaces for the per-item
  * intake/repair diagnosis flow: the base command file, the base skill scaffold,
- * and the generated `plugins/lisa` artifact mirror. The lifecycle readers,
- * verdict renderer, vendor adapters, and read-only smoke coverage land in the
- * follow-up tickets under PRD #838.
+ * and the generated `plugins/lisa` artifact mirror.
  *
- * This suite proves the scaffold shipped in both plugin roots and documents the
- * intended contract clearly enough for later implementation work:
- *   (1) the command delegates to `/lisa:intake-explain`;
- *   (2) the skill is read-only and scoped to one repo/project item;
- *   (3) the skill reuses `lisa-intake` / `repair-intake` contract semantics rather
- *       than inventing a second source of truth;
- *   (4) the skill names the expected verdict families and supported vendors;
- *   (5) the skill defines a stable per-item output shape and next-action model.
+ * The skill's guidance prose is reviewed, not pinned. This suite proves the
+ * scaffold shipped in both plugin roots with the structure the command and
+ * skill transformers read: frontmatter, the skill's `name` and
+ * `allowed-tools`, and the `$ARGUMENTS` pass-through the Codex transformer
+ * rewrites.
  *
  * Both plugin roots are asserted so a missed `bun run build:plugins` fails the
  * suite.
@@ -42,40 +37,20 @@ describe("intake-explain scaffold (#843)", () => {
       expect(existsSync(skillPath)).toBe(true);
     });
 
-    it("uses a pass-through command that delegates to /lisa:intake-explain", () => {
+    it("uses a pass-through command with frontmatter and $ARGUMENTS", () => {
       const command = read(root, COMMAND_REL);
 
       expect(command).toMatch(/^---/);
       expect(command).toMatch(/description:/);
-      expect(command).toContain('argument-hint: "<item-ref>"');
-      expect(command).toMatch(/Use the \/lisa-intake-explain skill/);
       expect(command).toContain("$ARGUMENTS");
     });
 
-    it("documents a read-only, single-item operator surface", () => {
+    it("declares the skill's name and allowed tools in frontmatter", () => {
       const skill = read(root, SKILL_REL);
 
       expect(skill).toMatch(/^---/);
       expect(skill).toMatch(/name:\s*lisa-intake-explain/);
       expect(skill).toMatch(/allowed-tools:/);
-    });
-
-    it("names the expected verdict families and supported vendors", () => {
-      const skill = read(root, SKILL_REL);
-      expect(skill).toMatch(/MISCONFIGURED/);
-      expect(skill).toMatch(/JIRA/);
-    });
-
-    it("documents the key gate families and next-action handoff", () => {
-      const skill = read(root, SKILL_REL);
-      expect(skill).toMatch(/\/lisa:intake/);
-      expect(skill).toMatch(/\/lisa:repair-intake/);
-    });
-
-    it("defines a stable per-item output shape", () => {
-      const skill = read(root, SKILL_REL);
-      expect(skill).toMatch(/Lifecycle: <PRD\|BUILD>/);
-      expect(skill).toMatch(/Verdict: <VERDICT>/);
     });
   });
 });

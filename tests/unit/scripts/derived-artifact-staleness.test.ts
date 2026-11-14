@@ -248,14 +248,8 @@ describe("derived-artifact staleness gate: wired into pre-commit", () => {
   }
 });
 
-describe("derived-artifact staleness gate: the procedure is written down", () => {
+describe("derived-artifact staleness gate: the gate names its procedure", () => {
   const RULE = ".agents/rules/regenerating-derived-artifacts.md";
-
-  it("ships a durable note stating stage-before-regenerate", () => {
-    const rule = readFileSync(path.join(repoRoot, RULE), "utf8");
-    expect(rule).toContain(LEDGER_COMMAND);
-    expect(rule).toContain(MANIFEST_COMMAND);
-  });
 
   it("is pointed at from the gate that blocks the commit", () => {
     // A note nobody is sent to is a note nobody reads. The person who needs it

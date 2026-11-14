@@ -1,20 +1,11 @@
 /**
  * Shared corpus for the `runtime_behavior_change` contract checks.
  *
- * The contract wording is pinned **present** by
- * `tests/phrase-manifest/required-phrases.json` (checked by
- * `tests/unit/docs/required-phrases.test.ts`);
- * `runtime-behavior-change-consistency.test.ts` asserts no copy of it
- * **contradicts** another and that every copy it reads is covered by that
- * manifest. They cover the same roots, so the roots live
- * here rather than in two hand-maintained lists — two drifting copies of one
- * rule is the precise defect these suites exist to catch, and repeating it in
- * the harness would be self-parody.
- *
- * The split between the manifest and the consistency suite is the axis the
- * contract broke along (presence versus contradiction), not a scope boundary.
- * A coverage probe that scores by filename must read both or it will
- * under-report, which is a known false-negative mode in this repo.
+ * `runtime-behavior-change-consistency.test.ts` asserts no copy of the
+ * contract **contradicts** another. Its roots live here so every suite that
+ * reads the contract reads the same copies — two drifting copies of one rule
+ * is the precise defect these suites exist to catch. (Presence of the
+ * contract's wording is no longer pinned: CodySwannGT/lisa#4867.)
  * @module tests/unit/strategies/runtime-behavior-change-sources
  */
 import { readFileSync } from "node:fs";

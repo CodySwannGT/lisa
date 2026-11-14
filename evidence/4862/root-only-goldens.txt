@@ -1,0 +1,29 @@
+# #4862 root-only npm hosts unchanged, HEAD 2152f39cff
+$ node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/unit/scripts/npm-update-root-identity.test.ts tests/unit/scripts/npm-update-directory.test.ts tests/unit/scripts/npm-update-hosted-gate.test.ts tests/integration/npm-update-subdirectory.test.ts tests/integration/npm-update-dual-lock.test.ts
+lisa-test-run: TMPDIR <tmp> is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (68 ms); kept 19 entries not private to this user
+
+ RUN  v5.1.0 ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root
+
+
+ Test Files  5 passed (5)
+      Tests  104 passed (104)
+   Start at  04:17:38
+   Duration  18.03s (tests 96%, import 2%, setup 1%, transform 1%)
+
+
+## npm ci lines, HEAD (.github/workflows/npm-updater.yml)
+186:            npm ci --ignore-scripts --no-audit --no-fund
+234:            npm ci --ignore-scripts --no-audit --no-fund
+362:            npm ci --ignore-scripts --no-audit --no-fund
+428:            npm ci --ignore-scripts --no-audit --no-fund
+## npm ci lines, origin/main d43272186d
+182:          npm ci --ignore-scripts --no-audit --no-fund
+221:          npm ci --ignore-scripts --no-audit --no-fund
+341:          npm ci --ignore-scripts --no-audit --no-fund
+401:          npm ci --ignore-scripts --no-audit --no-fund
+## installInputs({}) / ({directory:externals}) / ({directory:externals},"bun") / ({},"bun")
+["package-lock.json","package.json"]
+["package-lock.json","package.json","externals/package-lock.json","externals/package.json"]
+["bun.lock","package.json","externals/package-lock.json","externals/package.json"]
+refused: Invalid automation provenance: a Bun-only root supports only a subdirectory npm proposal

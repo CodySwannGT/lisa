@@ -12,31 +12,20 @@
  * section ALONE, without scraping free-form comments. Part of PRD #525; cites
  * the `prd-lifecycle-rollup` rule (#579) by slug.
  *
- * The guarantees under test:
- *   (1) the documented section is ALWAYS written for every source_type
- *       (additive to native links, written even when native links exist);
- *   (2) each entry is MACHINE-READABLE — a `<!-- lisa:gw ref=.. url=.. type=..
- *       parent=.. -->` token carrying ref + URL + type + parent_key;
- *   (3) `## Tickets` is canonical and `## Generated Work` is a documented alias
- *       the reader recognizes;
- *   (4) the section is regenerated in place / deterministic with NO timestamp,
- *       so re-runs produce byte-identical output with no duplicate entries;
- *   (5) the `prd-lifecycle-rollup` rule is cited by slug.
+ * The skill's prose is guidance and is reviewed, not pinned (#4867). What
+ * stays here: the skill ships in both plugin roots, and the documented token
+ * format (`<!-- lisa:gw ref=.. url=.. type=.. parent=.. -->`) is shown to be
+ * machine-readable by PARSING a section rendered to that spec: it enumerates
+ * the child set, selects the generated TOP-LEVEL children (empty `parent`)
+ * without reading any prose, and shows a re-render of the same ticket set is
+ * byte-identical (idempotent).
  *
- * Beyond asserting the spec documents these guarantees, this suite proves the
- * documented token format is genuinely machine-readable by PARSING a section
- * rendered to that exact spec: it enumerates the child set, selects the
- * generated TOP-LEVEL children (empty `parent`) without reading any prose, and
- * shows a re-render of the same ticket set is byte-identical (idempotent) — the
- * empirical verification #582 requires.
- *
- * Both the source (`plugins/src/base/skills`) and the generated artifact
- * (`plugins/lisa/skills`) are asserted, so an artifact-only edit or a missed
- * `bun run build:plugins` fails the suite — the same discipline the
- * prd-backlink-native-linking (#580/#581) suite uses.
+ * The skill's presence is asserted in both the source
+ * (`plugins/src/base/skills`) and the generated artifact
+ * (`plugins/lisa/skills`).
  * @module tests/unit/strategies/prd-backlink-generated-work-section
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -46,34 +35,16 @@ const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 /** The skill's directory / slug. */
 const SKILL_SLUG = "lisa-prd-backlink";
-/** The vendor-neutral rule this skill cites by slug. */
-const RULE_SLUG = "prd-lifecycle-rollup";
 
 /** `describe.each` title shared by every plugin-root block. */
 const ROOT_TITLE = "%s/prd-backlink/SKILL.md";
 
-const readSkill = (root: string): string =>
-  readFileSync(path.resolve(root, SKILL_SLUG, "SKILL.md"), "utf8");
-
-describe("prd-backlink always-written machine-readable section (#582)", () => {
+describe("prd-backlink ships in every plugin root (#582)", () => {
   describe.each(SKILL_ROOTS)(ROOT_TITLE, root => {
     const skillPath = path.resolve(root, SKILL_SLUG, "SKILL.md");
 
     it("exists in this plugin root", () => {
       expect(existsSync(skillPath)).toBe(true);
-    });
-
-    const content = readSkill(root);
-
-    // (1) always written for every source_type, additive to native linking.
-    it("documents the section is always written for every source_type", () => {
-      // Written for every vendor, including those that also get native links.
-      expect(content).toMatch(/every\s+`?source_type`?|for every vendor/i);
-    });
-
-    // (5) cites the prd-lifecycle-rollup rule by slug.
-    it("cites the prd-lifecycle-rollup rule by slug", () => {
-      expect(content).toContain(RULE_SLUG);
     });
   });
 });

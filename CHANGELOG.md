@@ -2,6 +2,83 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.4.0](https://github.com/CodySwannGT/lisa/compare/v5.3.2...v5.4.0) (2026-11-14)
+
+
+### Features
+
+* **npm-updater:** install a Bun-only root with frozen Bun ([7e6ea3e](https://github.com/CodySwannGT/lisa/commit/7e6ea3ef95eb48ba5a4256003298a8a1c58c43b1)), closes [#4862](https://github.com/CodySwannGT/lisa/issues/4862) [CodySwannGT/lisa#4862](https://github.com/CodySwannGT/lisa/issues/4862)
+
+
+### Bug Fixes
+
+* **npm-updater:** give the Bun-only root install the gate's phase budget ([cc5c4cb](https://github.com/CodySwannGT/lisa/commit/cc5c4cbce8e3c957d56911fe1a6403b5364bf60b)), closes [#4862](https://github.com/CodySwannGT/lisa/issues/4862) [CodySwannGT/lisa#4862](https://github.com/CodySwannGT/lisa/issues/4862)
+
+### [5.3.2](https://github.com/CodySwannGT/lisa/compare/v5.3.1...v5.3.2) (2026-11-14)
+
+
+### Bug Fixes
+
+* **learnings-audit:** resolve upstream default branch and summarise every refusal ([67b50f5](https://github.com/CodySwannGT/lisa/commit/67b50f51e7491204ec052e946140c84df3cd84a9)), closes [CodySwannGT/lisa#4885](https://github.com/CodySwannGT/lisa/issues/4885) [CodySwannGT/lisa#4885](https://github.com/CodySwannGT/lisa/issues/4885)
+
+### [5.3.1](https://github.com/CodySwannGT/lisa/compare/v5.3.0...v5.3.1) (2026-11-14)
+
+## [5.3.0](https://github.com/CodySwannGT/lisa/compare/v5.2.3...v5.3.0) (2026-11-14)
+
+
+### Features
+
+* **npm-updater:** make the target branch configurable instead of fixed to main ([5d252e5](https://github.com/CodySwannGT/lisa/commit/5d252e596c68eb8fa6279e99f7fc3bbb15a3ec1e)), closes [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860) [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860)
+
+
+### Bug Fixes
+
+* **npm-updater:** treat an empty target_branch input as main and correct stale text ([d141075](https://github.com/CodySwannGT/lisa/commit/d1410754900b32b0b8c0e53ca66bd10451692a14)), closes [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860) [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860)
+
+
+### Documentation
+
+* **npm-updater:** document the target branch and record its evidence ([3fcc6e0](https://github.com/CodySwannGT/lisa/commit/3fcc6e02dbd9e919f27fa8b41fe141b4952cb3db)), closes [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860) [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860)
+
+### [5.2.3](https://github.com/CodySwannGT/lisa/compare/v5.2.2...v5.2.3) (2026-11-14)
+
+
+### Documentation
+
+* **rules:** stop claiming the phrase manifest pins derived-branch-plan wording ([586884b](https://github.com/CodySwannGT/lisa/commit/586884be6b91ba501aa05eef8e475dcd741d680c)), closes [#4867](https://github.com/CodySwannGT/lisa/issues/4867) [CodySwannGT/lisa#4872](https://github.com/CodySwannGT/lisa/issues/4872) [CodySwannGT/lisa#4872](https://github.com/CodySwannGT/lisa/issues/4872)
+
+### [5.2.2](https://github.com/CodySwannGT/lisa/compare/v5.2.1...v5.2.2) (2026-11-14)
+
+
+### Bug Fixes
+
+* **skills:** escalate a failed RETIRE restore and anchor its tests ([a236554](https://github.com/CodySwannGT/lisa/commit/a2365541c0ab3e0173a889129caed461eea6c10c)), closes [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875) [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875)
+* **skills:** run the learnings-audit RETIRE mutation proof on a scratch copy ([7eb1921](https://github.com/CodySwannGT/lisa/commit/7eb1921ecf085ac878b97a9dfd7a70550b53c5ef)), closes [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875) [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875)
+* **skills:** ship the RETIRE scratch-copy recipe inside the skill ([db0724a](https://github.com/CodySwannGT/lisa/commit/db0724af9933bb7b7546ceec272716a8ebb7baaa)), closes [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875) [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875)
+
+### [5.2.1](https://github.com/CodySwannGT/lisa/compare/v5.2.0...v5.2.1) (2026-11-14)
+
+## [5.2.0](https://github.com/CodySwannGT/lisa/compare/v5.1.7...v5.2.0) (2026-11-14)
+
+
+### Features
+
+* **npm-updater:** file and claim per-update work items in Jira and Linear ([3e0b6b4](https://github.com/CodySwannGT/lisa/commit/3e0b6b43d45b68a7770ad767c2657b900e6900cc)), closes [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859)
+
+
+### Bug Fixes
+
+* **npm-updater:** harden Jira/Linear adapters from [#4859](https://github.com/CodySwannGT/lisa/issues/4859) review ([3774b46](https://github.com/CodySwannGT/lisa/commit/3774b4613f6cfeb70969b17d91448d13a258db0e))
+* **npm-updater:** keep code boundaries in Jira/Linear comments for the hold classifier ([9c21a76](https://github.com/CodySwannGT/lisa/commit/9c21a76ddffc5fff4bbbcb02f77e647db6c8e002)), closes [#4881](https://github.com/CodySwannGT/lisa/issues/4881) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859)
+* **npm-updater:** refuse a Linear issue with an incomplete label, child or relation page ([bb4f22e](https://github.com/CodySwannGT/lisa/commit/bb4f22e3acc23349b72f5447f7bf315d7b8632a2)), closes [#4881](https://github.com/CodySwannGT/lisa/issues/4881) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859)
+
+
+### Documentation
+
+* **lisa:** record roster, research and plan for [#4859](https://github.com/CodySwannGT/lisa/issues/4859) ([2202407](https://github.com/CodySwannGT/lisa/commit/2202407abb0770e659fa026719d7c26d03f6d792))
+* **npm-updater:** correct Jira/Linear resume, credential and failure guidance ([e82fc15](https://github.com/CodySwannGT/lisa/commit/e82fc158293afeb9322680d67baa252b09318af6)), closes [#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859)
+* **npm-updater:** document Jira and Linear work-item tracking ([2f170a6](https://github.com/CodySwannGT/lisa/commit/2f170a651e1b357ebb7e7b0ba59fbfc4d4efdd93)), closes [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859) [CodySwannGT/lisa#4859](https://github.com/CodySwannGT/lisa/issues/4859)
+
 ### [5.1.7](https://github.com/CodySwannGT/lisa/compare/v5.1.6...v5.1.7) (2026-11-14)
 
 
