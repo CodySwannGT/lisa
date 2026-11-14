@@ -166,8 +166,9 @@ describe("all-only npm host controller materialization", () => {
       );
       // 127 -> 131: CodySwannGT/lisa#4859 adds npm-update-tracker,
       // -tracker-jira, -tracker-linear and -tracker-wire to the helper closure;
-      // 131 -> 138: the fast-push gate helpers (CodySwannGT/lisa#4582).
-      expect(managedTemplateMembers().size).toBe(138);
+      // 131 -> 138: the fast-push gate helpers (CodySwannGT/lisa#4582);
+      // 139: CodySwannGT/lisa#4873 adds npm-update-tracker-cancel.
+      expect(managedTemplateMembers().size).toBe(139);
     },
     ioLatencyBudgetMs(30_000)
   );

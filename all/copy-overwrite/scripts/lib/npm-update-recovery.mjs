@@ -24,7 +24,6 @@ import { targetField } from "./automation-provenance-contract.mjs";
 import { required, validateProposal } from "./npm-update-contract.mjs";
 import {
   trackerFor,
-  refuseUnlessGithub,
   verifySignedWorkItem,
   proveTrackerProvider,
 } from "./npm-update-tracker.mjs";
@@ -128,7 +127,7 @@ export {
 } from "./npm-update-checkpoint.mjs";
 
 /** Renewal verifies fresh authority against every immutable original identity field. */
-function verifyRenewal({
+async function verifyRenewal({
   api,
   preview,
   paths,
@@ -138,6 +137,22 @@ function verifyRenewal({
   policy,
 }) {
   const recovery = readJson(paths.recovery, 65_536);
+  // Jira/Linear: the adapter proves claim, sole owner and assignability; the
+  // code host proves repository, runs and destination (#4873).
+  const vendor = api.tracker
+    ? {
+        tracker: true,
+        claim: await api.tracker.proveClaim(preview.descriptor),
+      }
+    : {};
+  if (api.tracker) {
+    required(
+      issue.assignees.length === 1 &&
+        issue.assignees[0].login === policy.maintainer,
+      "current recovery leaf or owner differs"
+    );
+    await api.tracker.assignable(policy.maintainer);
+  }
   verifyRecoveryOrigin(
     api.policy,
     preview.descriptor,
@@ -151,6 +166,7 @@ function verifyRenewal({
       commit: predictedCommit(preview.descriptor, Buffer.from(preview.message)),
       maintainer: policy.maintainer,
       recoverySha256: sha256(readBytes(paths.recovery, 65_536)),
+      ...vendor,
     }
   );
 }
@@ -181,8 +197,17 @@ export async function finalizeAuthorization({
   );
   const mode = readJson(join(output, "authorization.json")).mode;
   if (mode === "recovery") {
-    refuseUnlessGithub(config, "signed-origin recovery");
-    verifyRenewal({ api, preview, paths, digest, proposal, issue, policy });
+    if (config.tracker !== "github")
+      verifySignedWorkItem(config, allocation, preview);
+    await verifyRenewal({
+      api,
+      preview,
+      paths,
+      digest,
+      proposal,
+      issue,
+      policy,
+    });
   } else {
     required(mode === "origin", "unknown authorization role");
     verifyDescriptorAttestation(api.policy, preview.descriptor, paths, digest);

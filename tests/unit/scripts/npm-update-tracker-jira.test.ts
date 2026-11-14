@@ -150,9 +150,9 @@ describe("Jira allocation", () => {
         claimCommentId: allocation.claimCommentId,
         claimSha256: allocation.claimSha256,
       };
-      await expect(
-        run.api.tracker.proveClaim(descriptor)
-      ).resolves.toBeUndefined();
+      await expect(run.api.tracker.proveClaim(descriptor)).resolves.toEqual({
+        created_at: expect.any(String),
+      });
       await expect(
         run.api.tracker.proveClaim({ ...descriptor, claimSha256: sha256("x") })
       ).rejects.toThrow(/claim/);

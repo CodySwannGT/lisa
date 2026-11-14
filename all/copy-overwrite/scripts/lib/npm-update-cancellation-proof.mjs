@@ -16,6 +16,7 @@ import {
   targetField,
 } from "./automation-provenance-contract.mjs";
 import { observedRunChronology } from "./github-attestation-recovery.mjs";
+import { cancelOperatorOf } from "./npm-update-policy.mjs";
 import {
   verifiedRole,
   matchSigningTime,
@@ -115,6 +116,13 @@ export function assertManualCancellation(
   return String(actor.id);
 }
 
+/** A Jira/Linear record names its work item by key (#4873); a GitHub one by repository#number. */
+const VENDOR_ITEM = /^[A-Z][A-Z0-9]{1,9}-[1-9]\d*$/;
+const VENDOR_ID = /^[A-Za-z0-9-]{1,64}$/;
+function vendorRecord(value) {
+  return VENDOR_ITEM.test(value.workItem);
+}
+
 /** The closed subject preserves one stale origin and one exact replacement, with no published destination. */
 export function validateCancellation(value, expected) {
   // Only a non-main target is recorded; the final canonical comparison binds it.
@@ -136,19 +144,21 @@ export function validateCancellation(value, expected) {
       value.oldParent !== value.parent &&
       value.oldProposalKey !== value.proposalKey &&
       typeof value.workItem === "string" &&
-      value.workItem.startsWith(`${value.repository}#`) &&
-      DECIMAL.test(value.workItem.slice(value.repository.length + 1)),
+      (vendorRecord(value) ||
+        (value.workItem.startsWith(`${value.repository}#`) &&
+          DECIMAL.test(value.workItem.slice(value.repository.length + 1)))),
     "invalid stale cancellation scope"
   );
+  // A Jira/Linear claim id is an opaque tracker comment id; the adapter proves the comment (#4873).
   required(
-    [
-      "repositoryId",
-      "ownerId",
-      "claimCommentId",
-      "operatorId",
-      "runId",
-      "runAttempt",
-    ].every(
+    typeof value.claimCommentId === "string" &&
+      (vendorRecord(value)
+        ? VENDOR_ID.test(value.claimCommentId)
+        : DECIMAL.test(value.claimCommentId)),
+    "invalid stale cancellation claim"
+  );
+  required(
+    ["repositoryId", "ownerId", "operatorId", "runId", "runAttempt"].every(
       key => typeof value[key] === "string" && DECIMAL.test(value[key])
     ) &&
       [
@@ -237,7 +247,8 @@ export function cancellationRecord(
     leafBodySha256: sha256(origin.allocation.draft.body),
     policySha256: sha256(canonicalJson(authority)),
     npmPolicySha256: proposal.policySha256,
-    maintainer: proposalPolicy(config, proposal).maintainer,
+    // The GitHub login that authorized the cancel; on Jira/Linear the declared cancelOperator.
+    maintainer: cancelOperatorOf(config, proposalPolicy(config, proposal)),
     operatorId,
     runId: invocation.runId,
     runAttempt: invocation.runAttempt,

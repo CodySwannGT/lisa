@@ -26,7 +26,11 @@ import {
   qualityGates,
 } from "./npm-update-leaf.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
-import { verifyStaleOriginProvider } from "./github-attestation-provider.mjs";
+import {
+  verifyStaleOriginProvider,
+  verifyStaleOriginRun,
+} from "./github-attestation-provider.mjs";
+import { managedActor, allocationWorkItem } from "./npm-update-tracker.mjs";
 import {
   observedRunChronology,
   verifyHistoricalDescriptor,
@@ -107,7 +111,9 @@ export function assertOriginTransport(
   digest,
   policy,
   run,
-  now = Date.now()
+  now = Date.now(),
+  managed = user =>
+    user?.type === "Bot" && String(user.id) === policy.claimActorId
 ) {
   const chronology = observedRunChronology(run, now);
   required(chronology, "invalid original transport chronology");
@@ -121,8 +127,8 @@ export function assertOriginTransport(
   for (const comment of selected) {
     const posted = Date.parse(comment.created_at);
     required(
-      comment.user?.type === "Bot" &&
-        String(comment.user.id) === policy.claimActorId &&
+      // GitHub: the configured Bot. Jira/Linear: the declared automation account (#4873).
+      managed(comment.user) &&
         comment.updated_at === comment.created_at &&
         Number.isFinite(posted) &&
         posted >= start - 60_000 &&
@@ -152,7 +158,13 @@ async function inspectOrigin(api, issue, payload, oldConfig, current) {
     canonicalJson(allocation.evidence) === canonicalJson(evidence) &&
       canonicalJson(allocation.draft) === canonicalJson(draft) &&
       allocation.number === issue.number &&
-      allocation.workItem === `${policy.repository}#${issue.number}`,
+      allocation.workItem ===
+        allocationWorkItem(
+          api,
+          current.config,
+          policy.repository,
+          issue.number
+        ),
     "original allocation differs"
   );
   // The current qualified classifier checks present holds; historical config only supplies the original draft.
@@ -165,8 +177,7 @@ async function inspectOrigin(api, issue, payload, oldConfig, current) {
       state.claims.length === 1 &&
       String(state.claims[0].id) === allocation.claimCommentId &&
       sha256(state.claims[0].body) === allocation.claimSha256 &&
-      String(state.claims[0].user?.id) === api.policy.claimActorId &&
-      state.claims[0].user?.type === "Bot",
+      (await managedActor(api))(state.claims[0].user),
     "original managed claim changed"
   );
   qualityGates(
@@ -207,7 +218,15 @@ export function originalDescriptor(checkpoint, old, allocation, authority) {
 }
 
 /** The original fixed signing purpose and native transport chronology remain mandatory. */
-async function verifyOriginalSubject(checkpoint, authority, d, issue, parent) {
+async function verifyOriginalSubject(
+  api,
+  checkpoint,
+  authority,
+  d,
+  issue,
+  parent
+) {
+  const managed = await managedActor(api);
   await withPrivateRoot(async root => {
     const paths = {
       descriptor: join(root, "descriptor.json"),
@@ -222,12 +241,20 @@ async function verifyOriginalSubject(checkpoint, authority, d, issue, parent) {
       mode: 0o600,
       flag: "wx",
     });
-    const observed = verifyStaleOriginProvider(authority, d, parent);
+    // A Jira/Linear claim is re-proved by its adapter; GitHub keeps its comment read.
+    const observed = api.tracker
+      ? {
+          run: verifyStaleOriginRun(authority, d, parent),
+          claim: await api.tracker.proveClaim(d),
+        }
+      : verifyStaleOriginProvider(authority, d, parent);
     assertOriginTransport(
       issue.comments,
       checkpoint.digest,
       authority,
-      observed.run
+      observed.run,
+      Date.now(),
+      managed
     );
     verifyHistoricalDescriptor(
       authority,
@@ -304,6 +331,13 @@ export async function authenticateStaleOrigin({
     inspected.allocation,
     authority
   );
-  await verifyOriginalSubject(checkpoint, authority, d, issue, proposal.parent);
+  await verifyOriginalSubject(
+    api,
+    checkpoint,
+    authority,
+    d,
+    issue,
+    proposal.parent
+  );
   return { ...inspected, checkpoint, oldConfig, descriptor: d };
 }

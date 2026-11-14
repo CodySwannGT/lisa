@@ -16,6 +16,7 @@ import {
   requireProof,
   sha256,
   verifyCurrentProvider,
+  verifyCurrentRun,
   verifyDescriptorAttestation,
   targetBranch,
 } from "./lib/github-attestation-verifier.mjs";
@@ -77,6 +78,11 @@ function recoveryPermission(
   const entry = policyEntry(config, directory);
   requireProof(entry, "committed npm directory policy is absent");
   const npmPolicySha256 = sha256(canonicalJson(entry));
+  // The hooks hold no Jira/Linear credential: the leaf body, owner and claim
+  // time are proved by the adapter at checkpoint and again before publication,
+  // and the signed recovery record binds them here (#4873).
+  // Only an explicit Jira/Linear tracker takes this path; anything else is checked as GitHub.
+  const vendor = ["jira", "linear"].includes(config.tracker);
   verifyRecoveryOrigin(policy, descriptor, recovery, sha256(bytes), paths, {
     npmPolicySha256,
     proposalKey: sha256(
@@ -92,10 +98,13 @@ function recoveryPermission(
         ...signedProposalFields(descriptor),
       })
     ),
-    leafBodySha256: sha256(context.issue.body),
+    leafBodySha256: vendor
+      ? recovery.leafBodySha256
+      : sha256(context.issue.body),
     commit: predictedCommit(descriptor, messageBytes),
     maintainer: entry.maintainer,
     recoverySha256: sha256(recoveryBytes),
+    ...(vendor ? { tracker: true, claim: null } : {}),
   });
   requireProof(
     privateBytes(paths.recovery, 65_536).equals(recoveryBytes) &&
@@ -105,8 +114,14 @@ function recoveryPermission(
 }
 
 /** Keep unchanged local authorization together without obscuring the canonical phase. */
-function verifyLocalProposal(descriptor, messageBytes, reference, policy) {
-  localDescriptor(descriptor, messageBytes, reference, policy);
+function verifyLocalProposal(
+  descriptor,
+  messageBytes,
+  reference,
+  policy,
+  tracker
+) {
+  localDescriptor(descriptor, messageBytes, reference, policy, tracker);
   npmProposal(descriptor, git);
   requireProof(
     descriptor.proposalKey ===
@@ -130,7 +145,8 @@ function verifyFinalSnapshot(
   descriptor,
   messageFile,
   reference,
-  policy
+  policy,
+  tracker
 ) {
   requireProof(
     privateBytes(paths.bundle, 1_048_576).equals(bundleBytes),
@@ -144,7 +160,8 @@ function verifyFinalSnapshot(
     descriptor,
     privateBytes(messageFile, 65_536, false),
     reference,
-    policy
+    policy,
+    tracker
   );
 }
 
@@ -164,7 +181,13 @@ export function verifyAutomationProvenance(messageFile) {
   const { paths, optional, bytes, bundleBytes, descriptor } =
     withProvenancePhase(LOCAL_PROOF, proofSnapshot);
   withProvenancePhase(LOCAL_PROOF, () =>
-    verifyLocalProposal(descriptor, messageBytes, reference, policy)
+    verifyLocalProposal(
+      descriptor,
+      messageBytes,
+      reference,
+      policy,
+      config.tracker
+    )
   );
   withProvenancePhase(LOCAL_PROOF, () =>
     assertCommittedTarget(config, descriptor)
@@ -198,8 +221,11 @@ export function verifyAutomationProvenance(messageFile) {
       withProvenancePhase("ordinary-signature", () =>
         verifyDescriptorAttestation(policy, descriptor, paths, sha256(bytes))
       );
+      // A Jira/Linear claim is proved by the publisher's adapter, never a GitHub comment.
       withProvenancePhase("ordinary-provider", () =>
-        verifyCurrentProvider(policy, descriptor)
+        (!["jira", "linear"].includes(config.tracker)
+          ? verifyCurrentProvider
+          : verifyCurrentRun)(policy, descriptor)
       );
     }
     verifyFinalSnapshot(
@@ -209,7 +235,8 @@ export function verifyAutomationProvenance(messageFile) {
       descriptor,
       messageFile,
       reference,
-      policy
+      policy,
+      config.tracker
     );
     return true;
   });

@@ -17,7 +17,11 @@ export {
   buildDraft,
 } from "./npm-update-leaf-contract.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
-import { trackerFor, trustedHumanActorIds } from "./npm-update-tracker.mjs";
+import {
+  trackerFor,
+  trustedHumanActorIds,
+  refuseUnreleasableHold,
+} from "./npm-update-tracker.mjs";
 
 /** Each transition rereads holds, ownership and the actual managed claim. */
 export async function claimLeaf(
@@ -114,6 +118,7 @@ async function inspectLeafFields(issue, draft, policy, config) {
     trustedHumanActorIds: trustedHumanActorIds(config),
     humanNeededLabel: roles.human,
   });
+  refuseUnreleasableHold(config, hold.held);
   required(!hold.held, "current human hold is outstanding");
   required(
     issue.body === draft.body && issue.title === draft.title,

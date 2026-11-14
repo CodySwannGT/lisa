@@ -22,7 +22,16 @@ import {
   linearClosed as closed,
   linearSearchResult as searchResult,
   completeLinearConnections as completeConnections,
+  LINEAR_CONNECTIONS,
+  declaredActor,
+  assertDeclaredActor,
+  assertClaimAuthor,
 } from "./npm-update-tracker-wire.mjs";
+import {
+  canceledName,
+  linearCancel,
+  linearAssertCancelled,
+} from "./npm-update-tracker-cancel.mjs";
 
 const VIEWER = "query LisaNpmViewer { viewer { id } }";
 const TEAM =
@@ -31,12 +40,18 @@ const MEMBER =
   "query LisaNpmMember($id: String!, $key: String!) { user(id: $id) { id active teams(filter: { key: { eq: $key } }) { nodes { id } } } }";
 const ISSUES =
   "query LisaNpmIssues($filter: IssueFilter!) { issues(filter: $filter, first: 100, includeArchived: true) { nodes { number archivedAt state { type } } pageInfo { hasNextPage } } }";
-const ISSUE =
-  "query LisaNpmIssue($id: String!) { issue(id: $id) { id identifier number title description priority archivedAt state { name type } assignee { id } labels(first: 100) { nodes { name } pageInfo { hasNextPage } } children(first: 100) { nodes { id } pageInfo { hasNextPage } } inverseRelations(first: 100) { nodes { type issue { state { type } archivedAt } } pageInfo { hasNextPage } } } }";
+const ISSUE = `query LisaNpmIssue($id: String!) { issue(id: $id) { id identifier number title description priority archivedAt state { name type } assignee { id } ${Object.entries(
+  LINEAR_CONNECTIONS
+)
+  .map(
+    ([name, fields]) =>
+      `${name}(first: 100) { nodes { ${fields} } pageInfo { hasNextPage endCursor } }`
+  )
+  .join(" ")} } }`;
 const COMMENTS =
-  "query LisaNpmComments($id: String!, $after: String) { issue(id: $id) { comments(first: 100, after: $after) { nodes { id body user { id } botActor { id } } pageInfo { hasNextPage endCursor } } } }";
+  "query LisaNpmComments($id: String!, $after: String) { issue(id: $id) { comments(first: 100, after: $after) { nodes { id body createdAt editedAt user { id } botActor { id } } pageInfo { hasNextPage endCursor } } } }";
 const COMMENT =
-  "query LisaNpmComment($id: String!) { comment(id: $id) { id body user { id } issue { identifier } } }";
+  "query LisaNpmComment($id: String!) { comment(id: $id) { id body createdAt user { id } issue { identifier } } }";
 const CREATE =
   "mutation LisaNpmIssueCreate($input: IssueCreateInput!) { issueCreate(input: $input) { success issue { number identifier } } }";
 const UPDATE =
@@ -56,15 +71,20 @@ function commentRecord(node) {
     user: node.user
       ? { id: node.user.id, type: "User" }
       : { id: node.botActor?.id, type: "Bot" },
+    // An edited comment reports its edit time, so an edit is never mistaken for the original.
+    created_at: node.createdAt,
+    updated_at: node.editedAt ?? node.createdAt,
   };
 }
 
 export class LinearTracker {
   constructor(config, env, transport = globalThis.fetch) {
     const credentials = trackerCredentials(config, env);
+    this.actor = declaredActor(config);
     this.provider = "linear";
     this.key = config.linear.teamKey.trim().toUpperCase();
     this.lifecycle = trackerContract(config).lifecycle;
+    this.canceled = canceledName(config);
     this.url = credentials.baseUrl;
     this.authorization = credentials.authorization;
     this.transport = transport;
@@ -94,11 +114,12 @@ export class LinearTracker {
   ref(number) {
     return `${this.key}-${number}`;
   }
+  /** The API key's own user, which must be the declared automation identity. */
   async viewer() {
-    this.viewerId ??= (
-      await this.graphql(VIEWER, {}, "unclassified")
-    ).viewer?.id;
-    required(typeof this.viewerId === "string", "tracker identity unavailable");
+    if (this.viewerId) return this.viewerId;
+    const id = (await this.graphql(VIEWER, {}, "unclassified")).viewer?.id;
+    required(typeof id === "string", "tracker identity unavailable");
+    this.viewerId = assertDeclaredActor("linear", id, this.actor);
     return this.viewerId;
   }
   async team() {
@@ -129,19 +150,27 @@ export class LinearTracker {
       Number.isSafeInteger(number) && number > 0,
       "invalid live issue number"
     );
-    const node = (await this.graphql(ISSUE, { id: this.ref(number) }, "issue"))
+    const first = (await this.graphql(ISSUE, { id: this.ref(number) }, "issue"))
       .issue;
     required(
-      node?.identifier === this.ref(number) && node.number === number,
+      first?.identifier === this.ref(number) && first.number === number,
       "live issue scope differs"
     );
-    completeConnections(node);
+    const node = await completeConnections(first, (query, variables) =>
+      this.graphql(query, variables, "issue")
+    );
     this.ids.set(number, node.id);
     return {
       number,
       title: node.title,
       body: unfence(node.description),
       state: closed(node) ? "closed" : "open",
+      // Only a canceled-type state is an explicit cancellation (#4873).
+      state_reason: !closed(node)
+        ? null
+        : node.state?.type === "canceled" && !node.archivedAt
+          ? "not_planned"
+          : "completed",
       labels: [
         lifecycleName(this.lifecycle, node.state?.name),
         "type:Task",
@@ -218,6 +247,8 @@ export class LinearTracker {
     throw vocabularyRefusal("Linear");
   }
   async createLeaf(draft) {
+    // Every write proves the declared automation identity first (#4873 review).
+    await this.viewer();
     const input = {
       teamId: (await this.team()).id,
       title: draft.title,
@@ -251,6 +282,7 @@ export class LinearTracker {
     );
   }
   async update(number, input) {
+    await this.viewer();
     const id = await this.issueId(number);
     const reply = await this.graphql(UPDATE, { id, input }, "issue");
     required(reply.issueUpdate?.success === true, "tracker update refused");
@@ -263,18 +295,23 @@ export class LinearTracker {
       stateId: await this.stateId(roles.claimed),
     });
   }
-  async comment(number, text) {
-    const input = { issueId: await this.issueId(number), body: fence(text) };
+  /** Managed records sit in one exact fence; a backlink is the plain line the PR check reads. */
+  async comment(number, text, stored = fence(text)) {
+    await this.viewer();
+    const input = { issueId: await this.issueId(number), body: stored };
     const created = (
       await this.graphql(COMMENT_CREATE, { input }, "issue-comments")
     ).commentCreate;
     required(
       created?.success === true &&
         created.comment?.issue?.identifier === this.ref(number) &&
-        created.comment.body === fence(text),
+        created.comment.body === stored,
       "checkpoint write readback differs"
     );
     return created.comment;
+  }
+  backlinkComment(number, text) {
+    return this.comment(number, text, text);
   }
   async durableComment(number, text) {
     const created = await this.comment(number, text);
@@ -286,6 +323,15 @@ export class LinearTracker {
       "checkpoint immediate readback differs"
     );
   }
+  actorId() {
+    return this.viewer();
+  }
+  cancel(number) {
+    return linearCancel(this, number);
+  }
+  assertCancelled(number) {
+    return linearAssertCancelled(this, number);
+  }
   async isManagedActor(user) {
     return user?.type === "User" && user.id === (await this.viewer());
   }
@@ -294,11 +340,20 @@ export class LinearTracker {
     const comment = await this.field(COMMENT, { id }, "comment");
     required(
       comment?.id === descriptor.claimCommentId &&
-        comment.issue?.identifier === descriptor.workItem &&
-        comment.user?.id === (await this.viewer()) &&
-        typeof comment.body === "string" &&
+        comment.issue?.identifier === descriptor.workItem,
+      "current tracker claim differs"
+    );
+    assertClaimAuthor(
+      "linear",
+      descriptor.workItem,
+      comment.user?.id,
+      await this.viewer()
+    );
+    required(
+      typeof comment.body === "string" &&
         sha256(unfence(comment.body)) === descriptor.claimSha256,
       "current tracker claim differs"
     );
+    return { created_at: comment.createdAt };
   }
 }

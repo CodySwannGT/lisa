@@ -246,6 +246,7 @@ scripts/lib/npm-update-runtime-transport.mjs
 scripts/lib/npm-update-runtime.mjs
 scripts/lib/npm-update-supersession.mjs
 scripts/lib/npm-update-tool-launcher.mjs
+scripts/lib/npm-update-tracker-cancel.mjs
 scripts/lib/npm-update-tracker-jira.mjs
 scripts/lib/npm-update-tracker-linear.mjs
 scripts/lib/npm-update-tracker-wire.mjs

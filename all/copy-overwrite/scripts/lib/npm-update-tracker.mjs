@@ -10,13 +10,10 @@
  * @module npm-updater
  */
 import { required, operatorRefusal } from "./npm-update-invariants.mjs";
+import { backlinkBody } from "../lisa-work-item.mjs";
 import { verifyCurrentRun } from "./github-attestation-provider.mjs";
 import { JiraTracker } from "./npm-update-tracker-jira.mjs";
 import { LinearTracker } from "./npm-update-tracker-linear.mjs";
-
-/** The operator-approved sentence for every Jira/Linear phase that is not supported yet. */
-export const FOLLOWUP_SENTENCE =
-  "The npm updater can file and claim Jira and Linear work items, but it cannot yet check their claims, publish the pull request or cancel them. That support is tracked in CodySwannGT/lisa#4873. Projects that track work in GitHub are fully supported today.";
 
 /** Today's GitHub calls, unchanged in endpoint, method, body and order. */
 export function githubTracker(api, repository) {
@@ -110,6 +107,80 @@ export function trustedHumanActorIds(config) {
   return config.github.trustedHumanActorIds ?? [];
 }
 
+/**
+ * A held Jira/Linear item whose project never named who may release holds can
+ * never be released, so say that instead of the generic hold refusal (#4873).
+ * The hold itself still stands: an absent list trusts no one.
+ */
+export function refuseUnreleasableHold(config, held) {
+  const tracker = config.tracker;
+  if (
+    held &&
+    (tracker === "jira" || tracker === "linear") &&
+    !Array.isArray(config[tracker]?.trustedHumanActorIds)
+  )
+    throw operatorRefusal(
+      "tracker hold trust list is absent",
+      `This work item is held for a person, and ${tracker}.trustedHumanActorIds is not set in .lisa.config.json, so no release comment can lift the hold. List the ${tracker === "jira" ? "Jira accountIds" : "Linear user ids"} of the people allowed to release holds, then rerun.`
+    );
+}
+
+/**
+ * A synchronous test for "the automation wrote this". GitHub: the configured
+ * Bot. Jira/Linear: the credential's own account, already required to be the
+ * declared claimActorRef (#4873).
+ */
+export async function managedActor(api) {
+  if (!api.tracker)
+    return user =>
+      user?.type === "Bot" && String(user.id) === api.policy.claimActorId;
+  const id = await api.tracker.actorId();
+  return user => typeof user?.id === "string" && user.id === id;
+}
+
+/** The one work item reference an allocation of this tracker may carry. */
+export function allocationWorkItem(api, config, repository, number) {
+  return api.tracker
+    ? expectedWorkItem(config, number)
+    : `${repository}#${number}`;
+}
+
+/**
+ * The one closure check every cancellation path shares. GitHub: closed as
+ * not_planned by the configured Bot. Jira/Linear: closed into the canceled
+ * status or state, and the changelog or history shows the automation made that
+ * move (#4873). `reason` keeps each caller's original refusal.
+ */
+export async function assertManagedClosure(api, issue, reason) {
+  required(
+    issue.state === "closed" &&
+      issue.state_reason === "not_planned" &&
+      (api.tracker ||
+        (issue.closed_by?.type === "Bot" &&
+          String(issue.closed_by.id) === api.policy.claimActorId)),
+    reason
+  );
+  if (api.tracker) await api.tracker.assertCancelled(issue.number);
+}
+
+/**
+ * Publish-time tracker authority for Jira/Linear (#4873): the live claim by the
+ * automation identity (returned for the origin chronology), one owner who is the
+ * maintainer, and that owner still assignable. GitHub hosts return undefined;
+ * their claim is read from GitHub by the provider proof.
+ */
+export async function trackerPublishAuthority(api, descriptor, policy, issue) {
+  if (!api.tracker) return undefined;
+  const claim = await api.tracker.proveClaim(descriptor);
+  required(
+    issue.assignees.length === 1 &&
+      issue.assignees[0].login === policy.maintainer,
+    "current recovery leaf or owner differs"
+  );
+  await api.tracker.assignable(policy.maintainer);
+  return claim;
+}
+
 /** An api without an attached adapter is a GitHub-tracked host, exactly as before. */
 export function trackerOf(api, repository) {
   return api.tracker ?? githubTracker(api, repository);
@@ -137,15 +208,6 @@ export function createTracker(config, env, transport = globalThis.fetch) {
     : new LinearTracker(config, env, transport);
 }
 
-/** Every unsupported Jira/Linear step stops before its first write, in words the operator can act on. */
-export function refuseUnlessGithub(config, step) {
-  if (config.tracker !== "github")
-    throw operatorRefusal(
-      `${step} is not supported for this tracker yet`,
-      FOLLOWUP_SENTENCE
-    );
-}
-
 /** The one reference grammar a tracker's signed artifacts may carry. */
 export function expectedWorkItem(config, number) {
   required(Number.isSafeInteger(number) && number > 0, "invalid work item");
@@ -169,6 +231,22 @@ export function verifySignedWorkItem(config, allocation, preview) {
       trailers[0][1] === expected,
     "signed work item differs from the configured tracker"
   );
+}
+
+/**
+ * The managed PR backlink on a Jira/Linear work item, written by the declared
+ * automation identity and read back exactly. A rerun finds it and writes nothing.
+ */
+export async function vendorBacklink(tracker, number, prUrl) {
+  const body = backlinkBody(prUrl);
+  const present = async () => {
+    for (const comment of await tracker.comments(number))
+      if (comment.body === body && (await tracker.isManagedActor(comment.user)))
+        return true;
+    return false;
+  };
+  if (!(await present())) await tracker.backlinkComment(number, body);
+  required(await present(), "work item backlink readback differs");
 }
 
 /** Checkpoint authority for Jira/Linear: the live GitHub run plus the claim proved on the tracker. */

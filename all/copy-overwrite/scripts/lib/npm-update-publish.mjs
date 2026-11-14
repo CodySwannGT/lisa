@@ -16,6 +16,7 @@ import {
 import { runProcess } from "./npm-update-process.mjs";
 import { descriptorFor } from "./npm-update-gate.mjs";
 import { assertGateTransport } from "./npm-update-gate-hooks.mjs";
+import { trackerPublishAuthority } from "./npm-update-tracker.mjs";
 import {
   publicationBody,
   publicationBacklink,
@@ -185,7 +186,18 @@ export async function publishProposal({
       config
     );
     await destinationSnapshot(api, proposal, allocation, commit.sha);
-    publicationProof(api, descriptor, proof, proposal, policy, issue, commit);
+    // Jira/Linear: the claim, its sole owner and assignability come from the adapter (#4873).
+    const claim = await trackerPublishAuthority(api, descriptor, policy, issue);
+    publicationProof(
+      api,
+      descriptor,
+      proof,
+      proposal,
+      policy,
+      issue,
+      commit,
+      claim
+    );
     return issue;
   };
   await authorize();

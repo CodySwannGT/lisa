@@ -29,6 +29,10 @@ const PHASES = [
 const ID = /^[1-9]\d*$/;
 const REPO = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9_.-]{1,100}$/;
 const decimal = value => typeof value === "string" && ID.test(value);
+/** A Jira/Linear subject (#4873): its key, an opaque claim id and a vendor maintainer id. */
+const VENDOR_ITEM = /^[A-Z][A-Z0-9]{1,9}-[1-9]\d*$/;
+const VENDOR_ID = /^[A-Za-z0-9][A-Za-z0-9:-]{0,127}$/;
+const vendorOf = subject => Object.hasOwn(subject ?? {}, "workItem");
 const key = args => canonicalJson(args);
 const api = endpoint => ["api", "--hostname", "github.com", endpoint];
 import { recoveryPage } from "./npm-update-gh-grants.mjs";
@@ -50,7 +54,10 @@ function checkedSubject(subject) {
     "proofs",
     // Only a non-main target is named, so a main subject keeps its exact shape.
     ...optionalTargetFields(subject ?? {}),
+    // Only a Jira/Linear subject names its work item, so a GitHub subject keeps its exact shape.
+    ...(vendorOf(subject) ? ["workItem"] : []),
   ]);
+  const vendor = vendorOf(subject);
   required(
     PHASES.includes(subject.phase) &&
       REPO.test(subject.repository) &&
@@ -59,7 +66,13 @@ function checkedSubject(subject) {
         [".", ".."].includes(value.split("/")[1])
       ) &&
       decimal(subject.issue) &&
-      decimal(subject.claim) &&
+      (vendor
+        ? VENDOR_ITEM.test(subject.workItem) &&
+          subject.workItem.endsWith(`-${subject.issue}`) &&
+          typeof subject.claim === "string" &&
+          VENDOR_ID.test(subject.claim) &&
+          subject.tracker === subject.repository
+        : decimal(subject.claim)) &&
       /^lisa\/npm-[a-f0-9]{64}$/.test(subject.branch) &&
       /^[a-f0-9]{40}$/.test(subject.parent),
     "invalid closed GH subject"
@@ -78,7 +91,9 @@ function checkedSubject(subject) {
     "invalid GH PR identity"
   );
   required(
-    /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/.test(subject.maintainer) &&
+    (vendor ? VENDOR_ID : /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/).test(
+      subject.maintainer
+    ) &&
       Array.isArray(subject.proofs) &&
       subject.proofs.length <= 2 &&
       (subject.phase !== STAGE_PHASE || subject.proofs.length === 0),
@@ -97,21 +112,23 @@ function checkedSubject(subject) {
 
 /** Read families use the same literal constructors as the canonical shipped callers. */
 function ordinaryRequests(subject) {
-  const records = [
-    { kind: "plain", args: ["--version"] },
-    {
-      kind: "plain",
-      args: githubIssueViewArgs(subject.tracker, subject.issue),
-    },
-    {
-      kind: "hierarchy",
-      args: githubHierarchyArgs(
-        { repository: subject.tracker },
-        subject.issue,
-        null
-      ),
-    },
-  ];
+  // A Jira/Linear item is never read through GitHub: only the code-host reads remain.
+  const records = [{ kind: "plain", args: ["--version"] }];
+  if (!vendorOf(subject))
+    records.push(
+      {
+        kind: "plain",
+        args: githubIssueViewArgs(subject.tracker, subject.issue),
+      },
+      {
+        kind: "hierarchy",
+        args: githubHierarchyArgs(
+          { repository: subject.tracker },
+          subject.issue,
+          null
+        ),
+      }
+    );
   if (subject.phase !== STAGE_PHASE)
     records.push({
       kind: "plain",
@@ -121,7 +138,7 @@ function ordinaryRequests(subject) {
         subject.repository
       ),
     });
-  if (subject.phase === BACKLINK_PHASE)
+  if (subject.phase === BACKLINK_PHASE && !vendorOf(subject))
     records.push({
       kind: "comments",
       args: githubBacklinkListArgs(subject.tracker, subject.issue),
@@ -137,12 +154,18 @@ function proofRequests(subject) {
     `repos/${repository}`,
     `repos/${repository}/git/ref/heads/${targetBranch(subject)}`,
     `repos/${repository}/actions/runs/${subject.origin.runId}/attempts/${subject.origin.runAttempt}`,
-    `repos/${subject.tracker}/issues/comments/${subject.claim}`,
+    // A Jira/Linear claim is proved by its adapter outside the hooks (#4873).
+    ...(vendorOf(subject)
+      ? []
+      : [`repos/${subject.tracker}/issues/comments/${subject.claim}`]),
   ];
+  // A Jira/Linear recovery reads no GitHub leaf or assignee: the adapter proves those (#4873).
   if (subject.recovery)
     endpoints.push(
       `repos/${repository}/actions/runs/${subject.recovery.runId}/attempts/${subject.recovery.runAttempt}`,
-      `repos/${repository}/issues/${subject.issue}`,
+      ...(vendorOf(subject)
+        ? []
+        : [`repos/${repository}/issues/${subject.issue}`]),
       `repos/${repository}/git/matching-refs/heads/${subject.branch}`
     );
   const records = endpoints.map(endpoint => ({
@@ -152,16 +175,20 @@ function proofRequests(subject) {
   if (subject.recovery)
     records.push(
       { kind: "recovery-page", page: 1, args: recoveryPage(subject, 1) },
-      {
-        kind: "plain",
-        args: [
-          "api",
-          "--hostname",
-          "github.com",
-          "--include",
-          `repos/${repository}/assignees/${subject.maintainer}`,
-        ],
-      }
+      ...(vendorOf(subject)
+        ? []
+        : [
+            {
+              kind: "plain",
+              args: [
+                "api",
+                "--hostname",
+                "github.com",
+                "--include",
+                `repos/${repository}/assignees/${subject.maintainer}`,
+              ],
+            },
+          ])
     );
   for (const proof of subject.proofs)
     records.push(proofRequest(subject, proof));

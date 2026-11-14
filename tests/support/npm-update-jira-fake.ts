@@ -16,74 +16,35 @@ import type {
   TrackerRequest,
   Transport,
 } from "./npm-update-tracker-transport.js";
+import type {
+  JiraIssue,
+  JiraStore,
+  JiraBody,
+  Route,
+  JiraFakeOptions,
+} from "./npm-update-jira-fake-types.js";
+export type { JiraFakeOptions } from "./npm-update-jira-fake-types.js";
+import {
+  jiraNow,
+  findIssue,
+  addComment,
+  commentRoutes,
+} from "./npm-update-jira-fake-comments.js";
 
-/** A stored comment: its ADF body exactly as sent, and its author. */
-interface JiraComment {
-  id: string;
-  body: unknown;
-  accountId: string;
-  accountType: string;
-}
+const STATUSES = [
+  "Backlog",
+  "Ready",
+  "In Progress",
+  "Code Review",
+  "Done",
+  "Won't Do",
+];
+/** Done-category statuses: Jira's closed history. */
+const CLOSED = new Set(["Done", "Won't Do"]);
 
-/** Stored ticket fields, as Jira returns them. */
-interface JiraFields {
-  summary?: string;
-  description?: unknown;
-  labels: string[];
-  status: { name: string; statusCategory: { key: string } };
-  assignee: { accountId: string; accountType: string } | null;
-  [field: string]: unknown;
-}
-
-/** A stored ticket and its comments. */
-interface JiraIssue {
-  number: number;
-  fields: JiraFields;
-  comments: JiraComment[];
-}
-
-/** One workflow transition the Task workflow offers. */
-interface JiraTransition {
-  id: string;
-  to: { name: string };
-}
-
-/** The fake project: its key, API account, assignable accounts, workflow and tickets. */
-interface JiraStore {
-  project: string;
-  accountId: string;
-  accountType: string;
-  assignable: readonly string[];
-  transitions: JiraTransition[];
-  issues: JiraIssue[];
-}
-
-/** The JSON request bodies the adapter sends. */
-interface JiraBody {
-  jql?: string;
-  maxResults?: number;
-  fields?: Record<string, unknown> & { labels?: string[] };
-  body?: unknown;
-  transition?: { id: string };
-  accountId?: string;
-}
-
-/** Answers one routed request; undefined is 404 and null is 204. */
-type Handler = (key: string, body: JiraBody, url: URL) => unknown;
-/** One REST route: method, path pattern and handler. */
-type Route = readonly [method: string, path: RegExp, handler: Handler];
-
-/** Options for one fake Jira project. */
-export interface JiraFakeOptions {
-  project?: string;
-  accountId?: string;
-  accountType?: string;
-  assignable?: string[];
-  readyTransitions?: number;
-}
-
-const STATUSES = ["Backlog", "Ready", "In Progress", "Code Review", "Done"];
-const ISSUE = "([A-Z]+-\\d+)";
+const ISSUE = "([A-Z]+-\\d+|\\d+)";
+/** The API account the fake answers as: the declared automation identity in test configs. */
+export const JIRA_ACCOUNT = "service-account-1";
 const ATLASSIAN = "atlassian";
 const API = "/rest/api/3";
 
@@ -95,7 +56,7 @@ const API = "/rest/api/3";
 function status(name: string) {
   return {
     name,
-    statusCategory: { key: name === "Done" ? "done" : "indeterminate" },
+    statusCategory: { key: CLOSED.has(name) ? "done" : "indeterminate" },
   };
 }
 
@@ -111,29 +72,6 @@ function workflow(ready: number) {
       to: { name },
     }))
   );
-}
-
-/**
- * Find an issue by its `<PROJECT>-<N>` key.
- * @param store - Fake project.
- * @param key - Issue key.
- * @returns The issue, if stored.
- */
-function findIssue(store: JiraStore, key: string) {
-  return store.issues.find(issue => `${store.project}-${issue.number}` === key);
-}
-
-/**
- * A comment as Jira returns it.
- * @param comment - Stored comment.
- * @returns The comment JSON.
- */
-function commentJson(comment: JiraComment) {
-  return {
-    id: comment.id,
-    body: comment.body,
-    author: { accountId: comment.accountId, accountType: comment.accountType },
-  };
 }
 
 /**
@@ -175,33 +113,20 @@ function createIssue(store: JiraStore, fields: JiraBody["fields"] = {}) {
       issuelinks: [],
     },
     comments: [],
+    changelog: [],
   });
   return { id: String(10_000 + number), key: `${store.project}-${number}` };
 }
 
 /**
- * Store one comment from the given account.
- * @param store - Fake project.
- * @param issue - Its ticket.
- * @param body - ADF body.
- * @param accountId - Author account.
- * @returns The stored comment.
+ * Move a ticket to a status and record who did it in its changelog.
+ * @param issue - The ticket.
+ * @param name - The new status.
+ * @param author - The account making the change.
  */
-function addComment(
-  store: JiraStore,
-  issue: JiraIssue,
-  body: unknown,
-  accountId = store.accountId
-) {
-  const total = store.issues.flatMap(item => item.comments).length;
-  const comment = {
-    id: String(20_000 + total),
-    body,
-    accountId,
-    accountType: accountId === store.accountId ? store.accountType : ATLASSIAN,
-  };
-  issue.comments.push(comment);
-  return comment;
+function moveIssue(issue: JiraIssue, name: string, author: string) {
+  issue.fields.status = status(name);
+  issue.changelog.push({ author, created: jiraNow(), status: name });
 }
 
 /**
@@ -212,6 +137,25 @@ function addComment(
 function metaRoutes(store: JiraStore): Route[] {
   return [
     ["GET", /^\/rest\/api\/3\/myself$/, () => ({ accountId: store.accountId })],
+    [
+      "GET",
+      /^\/rest\/api\/3\/user\/properties\/([\w-]+)$/,
+      (key, _body, url) =>
+        url.searchParams.get("accountId") === store.accountId &&
+        store.properties.has(key)
+          ? { key, value: store.properties.get(key) }
+          : undefined,
+    ],
+    [
+      "PUT",
+      /^\/rest\/api\/3\/user\/properties\/([\w-]+)$/,
+      (key, body, url) => {
+        if (url.searchParams.get("accountId") !== store.accountId)
+          return undefined;
+        store.properties.set(key, body);
+        return null;
+      },
+    ],
     [
       "GET",
       /^\/rest\/api\/3\/user\/assignable\/search$/,
@@ -239,7 +183,10 @@ function metaRoutes(store: JiraStore): Route[] {
       "POST",
       /^\/rest\/api\/3\/search\/jql$/,
       (_key, body) => {
-        const found = jql(store, String(body.jql));
+        const visible = (issue: JiraIssue) =>
+          !store.unindexed.has(10_000 + issue.number) ||
+          (body.reconcileIssues ?? []).includes(10_000 + issue.number);
+        const found = jql(store, String(body.jql)).filter(visible);
         const size = body.maxResults ?? 50;
         return {
           issues: found.slice(0, size).map(issue => ({
@@ -265,14 +212,38 @@ function issueRoutes(store: JiraStore): Route[] {
     [
       "POST",
       /^\/rest\/api\/3\/issue$/,
-      (_key, body) => createIssue(store, body.fields),
+      (_key, body) => {
+        const created = createIssue(store, body.fields);
+        if (store.indexLag) store.unindexed.add(Number(created.id));
+        return created;
+      },
     ],
     [
       "GET",
       issuePath(),
       key => {
         const issue = findIssue(store, key);
-        return issue ? { key, fields: issue.fields } : undefined;
+        return issue
+          ? {
+              key: `${store.project}-${issue.number}`,
+              id: String(10_000 + issue.number),
+              fields: issue.fields,
+            }
+          : undefined;
+      },
+    ],
+    [
+      "GET",
+      issuePath("/changelog"),
+      (key, _body, url) => {
+        const values = findIssue(store, key)!.changelog.map(change => ({
+          author: { accountId: change.author },
+          created: change.created,
+          items: [{ field: "status", toString: change.status }],
+        }));
+        const startAt = Number(url.searchParams.get("startAt") ?? 0);
+        const page = values.slice(startAt, startAt + 100);
+        return { values: page, isLast: startAt + 100 >= values.length };
       },
     ],
     [
@@ -287,7 +258,7 @@ function issueRoutes(store: JiraStore): Route[] {
         const move = store.transitions.find(
           item => item.id === body.transition?.id
         );
-        findIssue(store, key)!.fields.status = status(move!.to.name);
+        moveIssue(findIssue(store, key)!, move!.to.name, store.accountId);
         return null;
       },
     ],
@@ -302,46 +273,6 @@ function issueRoutes(store: JiraStore): Route[] {
         };
         return null;
       },
-    ],
-  ];
-}
-
-/**
- * Comment list (paged by startAt/maxResults), read and create routes, scoped to their issue.
- * @param store - Fake project.
- * @returns The routes.
- */
-function commentRoutes(store: JiraStore): Route[] {
-  const commentPath = (suffix = "") =>
-    new RegExp(`^${API}/issue/${ISSUE}/comment${suffix}$`);
-  return [
-    [
-      "GET",
-      commentPath(),
-      (key, _body, url) => {
-        const all = findIssue(store, key)!.comments.map(commentJson);
-        const startAt = Number(url.searchParams.get("startAt") ?? 0);
-        const maxResults = Number(url.searchParams.get("maxResults") ?? 50);
-        const comments = all.slice(startAt, startAt + maxResults);
-        return { startAt, maxResults, total: all.length, comments };
-      },
-    ],
-    [
-      "GET",
-      commentPath("/(\\d+)"),
-      (key, _body, url) => {
-        const id = url.pathname.split("/").at(-1);
-        const comment = findIssue(store, key)?.comments.find(
-          item => item.id === id
-        );
-        return comment ? commentJson(comment) : undefined;
-      },
-    ],
-    [
-      "POST",
-      commentPath(),
-      (key, body) =>
-        commentJson(addComment(store, findIssue(store, key)!, body.body)),
     ],
   ];
 }
@@ -373,11 +304,14 @@ function respond(routes: Route[], method: string, url: URL, body: JiraBody) {
 export function fakeJira(options: JiraFakeOptions = {}) {
   const store: JiraStore = {
     project: options.project ?? "PROJ",
-    accountId: options.accountId ?? "service-account-1",
+    accountId: options.accountId ?? JIRA_ACCOUNT,
     accountType: options.accountType ?? ATLASSIAN,
     assignable: options.assignable ?? [],
     transitions: workflow(options.readyTransitions ?? 1),
     issues: [],
+    indexLag: options.indexLag ?? false,
+    unindexed: new Set(),
+    properties: new Map(),
   };
   const routes = [
     ...metaRoutes(store),
@@ -401,7 +335,13 @@ export function fakeJira(options: JiraFakeOptions = {}) {
     // Store a comment on ticket `number` from `accountId`.
     comment: (number: number, body: unknown, accountId?: string) =>
       addComment(store, store.issues[number - 1]!, body, accountId),
+    // Move ticket `number` to `name` as `accountId`, as a person would in Jira.
+    move: (number: number, name: string, accountId: string) =>
+      moveIssue(store.issues[number - 1]!, name, accountId),
     creates: () =>
       log.filter(entry => entry.operation === "POST /rest/api/3/issue").length,
+    // The search index catches up with every create so far.
+    index: () => store.unindexed.clear(),
+    properties: store.properties,
   };
 }

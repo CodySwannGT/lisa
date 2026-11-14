@@ -1,0 +1,43 @@
+== m1-claim-author
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-publish.test.ts > the publish-time claim proof for Jira and Linear > refuses a Jira claim by any other user in plain words
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-publish.test.ts > the publish-time claim proof for Jira and Linear > refuses a Linear claim by any other user in plain words
+      Tests  2 failed | 7 passed (9)
+== m2-jira-close-author
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-cancel.test.ts > closing a superseded or cancelled Jira/Linear work item > refuses a Jira cancellation made by a person
+      Tests  1 failed | 13 passed (14)
+== m3-linear-close-author
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-cancel.test.ts > closing a superseded or cancelled Jira/Linear work item > refuses a Linear cancellation made by a person
+      Tests  1 failed | 13 passed (14)
+== m4-cancel-operator
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-cancel.test.ts > who may cancel a Jira/Linear-tracked update > uses the declared GitHub cancelOperator for jira
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-cancel.test.ts > who may cancel a Jira/Linear-tracked update > uses the declared GitHub cancelOperator for linear
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-cancel.test.ts > who may cancel a Jira/Linear-tracked update > refuses every jira cancel without a cancelOperator, naming the key
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-cancel.test.ts > who may cancel a Jira/Linear-tracked update > refuses every linear cancel without a cancelOperator, naming the key
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-cancel.test.ts > who may cancel a Jira/Linear-tracked update > signs the cancelOperator, not the tracker maintainer, into the cancellation record
+== m5-finalize-no-assert
+      Tests  104 passed (104)
+== m6-supersede-no-assert
+      Tests  74 passed (74)
+== m7-unreleasable-hold
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-holds.test.ts > a Jira hold with no trusted release list (#4873) > keeps the hold despite a release comment and names the missing trust list
+      Tests  1 failed | 4 passed (5)
+== m8-plain-backtick
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-holds.test.ts > Jira plain-text backticks cannot move the hold classifier's code boundary (#4873) > keeps a code example a code example when a stray backtick precedes it
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-holds.test.ts > Jira plain-text backticks cannot move the hold classifier's code boundary (#4873) > still sees a real plain release when stray backticks sit before a code block
+      Tests  2 failed | 3 passed (5)
+== m9-index-lag
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-jira-index-lag.test.ts > Jira allocation retried inside the search-index window > finds the ticket the earlier run created instead of filing a second one
+      Tests  1 failed | 1 passed (2)
+== m10-hook-vendor-scope
+      Tests  69 passed (69)
+== m11-hook-id-grammar
+      Tests  69 passed (69)
+== m12-publish-claim
+      Tests  28 passed (28)

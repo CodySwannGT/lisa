@@ -278,4 +278,7 @@ export function verifyDescriptorAttestation(
 }
 
 // Compatibility exports retain ordinary callers without top-level provider work.
-export { verifyCurrentProvider } from "./github-attestation-provider.mjs";
+export {
+  verifyCurrentProvider,
+  verifyCurrentRun,
+} from "./github-attestation-provider.mjs";
