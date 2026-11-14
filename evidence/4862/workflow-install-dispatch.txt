@@ -1,0 +1,33 @@
+# #4862 workflow controller install dispatch (real YAML step scripts, recording npm/bun stubs), HEAD 2152f39cff
+$ node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run --reporter=verbose tests/unit/scripts/npm-update-bun-root.test.ts
+lisa-test-run: TMPDIR <tmp> is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (70 ms); kept 19 entries not private to this user
+
+ RUN  v5.1.0 ~/workspace/lisa/.claude/worktrees/4862-npm-updater-bun-root
+
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > Bun-only root detection > is Bun-only only with bun.lock and no package-lock.json 4ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > hosted gate install inputs > keeps the historical root npm inputs byte for byte 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > hosted gate install inputs > guards bun.lock instead of a root package-lock.json on a Bun-only root 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > hosted gate install inputs > refuses a root proposal on a Bun-only root 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > prepare runs the unchanged npm ci on a root npm host 551ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > allocate runs the unchanged npm ci on a root npm host 561ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > gate runs the unchanged npm ci on a root npm host 534ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > publish runs the unchanged npm ci on a root npm host 642ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > prepare keeps npm ci on a dual-lock root 559ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > allocate keeps npm ci on a dual-lock root 682ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > gate keeps npm ci on a dual-lock root 646ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > publish keeps npm ci on a dual-lock root 522ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > prepare installs a Bun-only root with frozen Bun 502ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > allocate installs a Bun-only root with frozen Bun 366ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > gate installs a Bun-only root with frozen Bun 449ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > publish installs a Bun-only root with frozen Bun 541ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > prepare sets up Bun before its controller install 3ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > allocate sets up Bun before its controller install 2ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > gate sets up Bun before its controller install 2ms
+ ✓ |lisa| tests/unit/scripts/npm-update-bun-root.test.ts > workflow controller install > publish sets up Bun before its controller install 2ms
+
+ Test Files  1 passed (1)
+      Tests  20 passed (20)
+   Start at  04:17:28
+   Duration  6.81s (tests 98%, setup 1%, transform 1%)
+

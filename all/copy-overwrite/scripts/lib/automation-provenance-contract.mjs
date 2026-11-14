@@ -184,9 +184,19 @@ export function proposalFileNames(value) {
   return files;
 }
 
-/** The root install's inputs plus the proposal's own files must all survive the ordinary install unchanged. */
-export function installInputs(value) {
-  return [...new Set([...FILES, ...cohortNames(value)])];
+/**
+ * The root install's inputs plus the proposal's own files must all survive the ordinary install unchanged.
+ * A Bun-only root (bun.lock, no package-lock.json) installs from bun.lock, and
+ * only a subdirectory proposal may run on one: the root npm project is absent.
+ */
+export function installInputs(value, rootManager = "npm") {
+  requireProof(
+    rootManager === "npm" ||
+      (rootManager === "bun" && directoryOf(value) !== "."),
+    "a Bun-only root supports only a subdirectory npm proposal"
+  );
+  const root = rootManager === "bun" ? [BUN_LOCK, MANIFEST] : FILES;
+  return [...new Set([...root, ...cohortNames(value)])];
 }
 
 /** Committed history paths in their historical order; the root command string never changes. */
