@@ -29,7 +29,7 @@ const read = (relative: string): string =>
 const PROVER = "check-third-party-review-evidence.mjs";
 const PROVER_ARM = `${PROVER} --arm output`;
 const PROVER_OUTCOMES = `EVIDENCE_OUTCOMES in ${PROVER}`;
-const WORK_ITEM = WORK_ITEM;
+const WORK_ITEM = "lisa-work-item.mjs";
 
 /** Every document, and the names it must carry, with who reads each name. */
 const CONTRACT: ReadonlyArray<{
