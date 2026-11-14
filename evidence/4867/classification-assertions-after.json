@@ -1,16 +1,16 @@
 {
   "testFiles": 148,
-  "sites": 1536,
-  "markdownSites": 217,
+  "sites": 1538,
+  "markdownSites": 219,
   "counts": {
     "MACHINE-TOKEN": 16,
     "STRUCTURAL": 36,
-    "WORDING": 120,
-    "UNRESOLVED": 45,
+    "WORDING": 121,
+    "UNRESOLVED": 46,
     "NOT-MARKDOWN": 0
   },
   "bySource": {
-    "markdown": 217,
+    "markdown": 219,
     "other": 1296,
     "unknown": 23
   },
@@ -1857,16 +1857,16 @@
     },
     {
       "file": "tests/unit/strategies/learnings-audit-contract.test.ts",
-      "sites": 4,
+      "sites": 6,
       "counts": {
         "MACHINE-TOKEN": 0,
         "STRUCTURAL": 2,
-        "WORDING": 1,
-        "UNRESOLVED": 1,
+        "WORDING": 2,
+        "UNRESOLVED": 2,
         "NOT-MARKDOWN": 0
       },
       "bySource": {
-        "markdown": 4,
+        "markdown": 6,
         "other": 0,
         "unknown": 0
       }
@@ -19013,7 +19013,31 @@
     },
     {
       "file": "tests/unit/strategies/learnings-audit-contract.test.ts",
-      "line": 66,
+      "line": 80,
+      "matcher": "toContain",
+      "subject": "block",
+      "source": "markdown",
+      "kind": "expression",
+      "value": "token",
+      "cls": "UNRESOLVED",
+      "rule": "argument-not-literal",
+      "parser": []
+    },
+    {
+      "file": "tests/unit/strategies/learnings-audit-contract.test.ts",
+      "line": 95,
+      "matcher": "toContain",
+      "subject": "skill.slice(fromAt, toAt)",
+      "source": "markdown",
+      "kind": "string",
+      "value": "destination-validation",
+      "cls": "WORDING",
+      "rule": "prose",
+      "parser": []
+    },
+    {
+      "file": "tests/unit/strategies/learnings-audit-contract.test.ts",
+      "line": 111,
       "matcher": "toContain",
       "subject": "skill",
       "source": "markdown",
@@ -19025,7 +19049,7 @@
     },
     {
       "file": "tests/unit/strategies/learnings-audit-contract.test.ts",
-      "line": 74,
+      "line": 119,
       "matcher": "toContain",
       "subject": "command",
       "source": "markdown",
@@ -19037,7 +19061,7 @@
     },
     {
       "file": "tests/unit/strategies/learnings-audit-contract.test.ts",
-      "line": 78,
+      "line": 123,
       "matcher": "toMatch",
       "subject": "command",
       "source": "markdown",
@@ -19054,7 +19078,7 @@
     },
     {
       "file": "tests/unit/strategies/learnings-audit-contract.test.ts",
-      "line": 79,
+      "line": 124,
       "matcher": "toMatch",
       "subject": "command",
       "source": "markdown",

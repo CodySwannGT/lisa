@@ -59,11 +59,11 @@ File: `classification-assertions-after.json`.
 | | Test files reading Markdown | Phrase assertion sites | On Markdown text | MACHINE-TOKEN | STRUCTURAL | WORDING | UNRESOLVED |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Before | 241 | 5,885 | 4,341 | 14 | 35 | 4,094 | 198 |
-| After | 148 | 1,536 | 217 | 16 | 36 | 120 | 45 |
+| After | 148 | 1,538 | 219 | 16 | 36 | 121 | 46 |
 
 ### Residual WORDING and UNRESOLVED Markdown sites
 
-The cull kept each of the 165 sites below on purpose; the keep reason
+The cull kept each of the 167 sites below on purpose; the keep reason
 names the contract the assertion still guards, and reasons for the sites the
 cull did not explain come from the review. 66 sites are not document
 assertions at all — the classifier's taint analysis attributed generator,
@@ -185,8 +185,10 @@ remain `unreviewed`.**
 | `unit/strategies/improve-harness-skill.test.ts:45` | WORDING | `/name:\s*lisa-improve-harness/` | STRUCTURAL (frontmatter form) |
 | `unit/strategies/intake-explain-scaffold.test.ts:45` | WORDING | `$ARGUMENTS` | `$ARGUMENTS` placeholder (transformer rewrites it) |
 | `unit/strategies/intake-explain-scaffold.test.ts:52` | WORDING | `/name:\s*lisa-intake-explain/` | STRUCTURAL (frontmatter form) |
-| `unit/strategies/learnings-audit-contract.test.ts:66` | UNRESOLVED | `canonical` | template byte-parity — promotion-contract AC template |
-| `unit/strategies/learnings-audit-contract.test.ts:74` | WORDING | `$ARGUMENTS` | `$ARGUMENTS` placeholder (transformer rewrites it) |
+| `unit/strategies/learnings-audit-contract.test.ts:80` | UNRESOLVED | `token` | added concurrently by #4764 after this cull; that lane's delimited-block check, left for its owner to review |
+| `unit/strategies/learnings-audit-contract.test.ts:95` | WORDING | `destination-validation` | added concurrently by #4764 after this cull; that lane's delimited-block check, left for its owner to review |
+| `unit/strategies/learnings-audit-contract.test.ts:111` | UNRESOLVED | `canonical` | template byte-parity — promotion-contract AC template |
+| `unit/strategies/learnings-audit-contract.test.ts:119` | WORDING | `$ARGUMENTS` | `$ARGUMENTS` placeholder (transformer rewrites it) |
 | `unit/strategies/linear-key-resolver-ladder-parity.test.ts:130` | WORDING | `.claude/skills/lisa-secrets-access/scripts/resolve-secret...` | embedded shell the test executes — ladder function extracted from the doc and run |
 | `unit/strategies/linear-key-resolver-ladder-parity.test.ts:133` | WORDING | `.agents/skills/lisa-secrets-access/scripts/resolve-secret...` | embedded shell the test executes — ladder function extracted from the doc and run |
 | `unit/strategies/linear-key-resolver-ladder-parity.test.ts:217` | WORDING | `LINEAR_API_KEY_${slug}` | embedded shell the test executes — ladder function extracted from the doc and run |

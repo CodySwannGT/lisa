@@ -3905,6 +3905,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4867/verification/breakage-b.txt": true,
     "evidence/4867/verification/breakage-c.txt": true,
     "evidence/4867/verification/classifier.txt": true,
+    "evidence/4867/verification/recheck-cdc7b3cae1.txt": true,
     "evidence/4867/verification/reword-probe.txt": true,
     "evidence/4867/verification/timings.txt": true,
     "evidence/CodySwannGT-lisa-4496/01-outside-no-session.txt": true,
