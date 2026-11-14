@@ -74,7 +74,23 @@ describe.each(SKILL_PATHS)("RETIRE mutation proof (%s)", skillPath => {
       section.indexOf(RECORD_ITEM)
     );
     // The batch-ticket RETIRE row description names the same field.
-    expect(skill.slice(skill.indexOf(SECTION_END))).toContain(LOCATION_FIELD);
+    const batchDescription = between(
+      skill,
+      "**One batch ticket per run",
+      "<!-- gardener-batch-ticket-template:start -->"
+    );
+    expect(batchDescription).toContain(LOCATION_FIELD);
+  });
+
+  // Codex and Antigravity ship this skill without the rules tree, so the
+  // copy, baseline and discard steps must travel in the skill itself.
+  it("carries its own scratch-copy recipe, before the numbered steps", () => {
+    const recipe = between(section, "```sh", RECORD_ITEM);
+    expect(recipe).toContain('git worktree add --detach "$tmp" HEAD');
+    expect(recipe).toContain("git diff --binary HEAD");
+    expect(recipe).toMatch(/baseline: run the named test in "\$tmp" BEFORE/);
+    expect(recipe).toContain('git worktree remove --force "$tmp"');
+    expect(recipe).toContain("EnterWorktree");
   });
 
   it("blocks the row on a failed restore and escalates with the location", () => {

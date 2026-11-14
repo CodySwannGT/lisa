@@ -1535,7 +1535,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "87ab07cae67e613c1ff4db93e8882af2e5bf225708116bafeeffc299324145de",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "82299705d0419e10aa7e52b750b24582ecea2c8aaf0970b528c85944a32ad423",
+      "17b8a36efd68efb6f4b25546e84b738fabbaf8b8f7a7e92c6eb4e058ab2826d2",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "767ccafac20f406894d1efb08c9719e896e77d58b876f72ba837199dc1e3d755",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":

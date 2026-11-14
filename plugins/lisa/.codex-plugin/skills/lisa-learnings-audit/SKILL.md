@@ -105,12 +105,27 @@ fail, or drop the RETIRE. No failing observation ⇒ no valid retire proof.
 
 Run that break on a scratch copy,
 never in a worktree another agent is editing — not in the working folder
-this run is using either. Follow the `falsifiable-checks` rule's section
-"Break on a scratch copy, never in a shared worktree" for how to make the
-copy, take its green baseline, and discard it; do not restate it here.
-Discarding the copy is the revert, and the green baseline taken in the copy
-before the break is the pass-again evidence, so the shared tree is never
-written to.
+this run is using either. The `falsifiable-checks` rule's section
+"Break on a scratch copy, never in a shared worktree" is the full recipe.
+This skill carries the minimum itself, because some agents (Codex,
+Antigravity) receive this skill without the rules tree:
+
+```sh
+tmp=$(mktemp -d)                                  # record this path first (step 1)
+git worktree add --detach "$tmp" HEAD
+git diff --binary HEAD | git -C "$tmp" apply --allow-empty
+# copy untracked new files; install dependencies in "$tmp" (a linked
+# node_modules in a workspace monorepo resolves back to the shared tree)
+# baseline: run the named test in "$tmp" BEFORE breaking anything; it must be green
+# break the rule in "$tmp", run the named test there, read the failure
+git worktree remove --force "$tmp"                # discarding the copy is the revert
+```
+
+Address the copy by absolute path; never switch the session into it with a
+harness tool such as `EnterWorktree`. A red baseline means the copy is
+incomplete, not that the test bites. Discarding the copy is the revert, and
+the green baseline taken in the copy before the break is the pass-again
+evidence, so the shared tree is never written to.
 
 1. **Record where before you break.** Before applying the mutation, write
    the row's `mutation_location` — the mutated file, the line or section,
