@@ -530,6 +530,12 @@ A partial run cannot measure overall coverage, so `pushGate.affectedCoverage` de
 
 Both settings are off or `"full"` by default, and `lisa apply` and the push gate both reject a value they do not recognise. Lisa turns `affectedTests` on for itself with `affectedCoverage` set to `"changed-files"`; whole-repo coverage is still enforced on the pull request.
 
+### The smart push gate in TypeScript projects
+
+A TypeScript project gets the smart push gate without configuring it. A project counts as TypeScript when it has a root `tsconfig.json`, or `typescript` in its `package.json` dependencies or devDependencies. When its `.lisa.config.json` does not say otherwise, it gets `cache`, `admission` and `affectedTests` set to `true`, and `affectedCoverage` set to `"changed-files"`, the same as Lisa. A value the project sets always wins, `false` included, so `"pushGate": { "affectedTests": false }` returns the push to the full suite. `buildOnce` stays off, because a TypeScript project's push gates do not build, so a build-once step would only add a build. Nothing is written into the project's config, and an existing project needs only `lisa apply`.
+
+The shipped `test:cov:unit` and `test:unit` scripts of every Vitest stack run through the selector, but they narrow only when the push gate (or `lisa check`) runs them. CI and a test run you start yourself still run every test. The Jest stack (Expo) is not narrowed. The shared Vitest presets record the project's access map on every pull request in the shared CI workflow when `affectedTests` is on, and `scripts/fetch-test-access-map.mjs` downloads it from the project's own repository. Until the project's CI has recorded a map, every push runs the full suite and says `missing map`. The project's own Vitest `forceRerunTriggers`, `setupFiles` and `globalSetup` are recorded with the map, so a change to any of them also runs the full suite.
+
 ## Working across trackers and sources
 
 Lisa is deliberately vendor-neutral. The lifecycle runs the same whether your tickets live in one tracker or another and whether your product specs originate in one document tool or another — a thin dispatch layer selects the right integration from configuration, so the workflow you learn transfers.

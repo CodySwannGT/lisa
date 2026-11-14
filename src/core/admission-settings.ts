@@ -23,6 +23,7 @@ import {
   type HeadroomThresholds,
   RECENT_RESERVATION_WINDOW_MS,
 } from "./admission-decision.js";
+import { withPushGateDefaults } from "../../all/copy-overwrite/scripts/lib/push-gate-defaults.mjs";
 import { validatePushGateConfig } from "./project-config-push-gate.js";
 
 /** Wait bound for a standalone run. */
@@ -109,7 +110,10 @@ function readJson(path: string): unknown {
 export function admissionSwitchOn(cwd: string): boolean {
   const path = join(cwd, ".lisa.config.json");
   const config = readJson(path) as Record<string, unknown> | undefined;
-  return validatePushGateConfig(config?.pushGate, path)?.admission === true;
+  // The stack's defaults under the project's own keys (CodySwannGT/lisa#4611),
+  // read through the same module the push gate runner reads.
+  const effective = withPushGateDefaults(config ?? {}, cwd);
+  return validatePushGateConfig(effective.pushGate, path)?.admission === true;
 }
 
 /**

@@ -13,6 +13,7 @@
  *   the gate runner in affected-tests-push-gates.test.ts).
  * @module tests/integration/affected-tests-push
  */
+import * as path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 import {
@@ -116,6 +117,33 @@ describe("affected tests at push", () => {
     const result = select(root);
     expect(result.calls).toEqual([FULL]);
     expect(result.output).toContain('pushGate.affectedCoverage is "full"');
+  });
+
+  it("with --push-only, runs the full command unchanged outside the push gate (#4611)", () => {
+    const root = fixture();
+    change(root, MOD_CHANGE);
+    const outside = select(root, {}, ["--push-only"]);
+    expect(outside.status, outside.output).toBe(0);
+    expect(outside.calls).toEqual([FULL]);
+    expect(outside.output).not.toContain("affected tests");
+
+    const report = path.join(root, ".lisa", "selection-report.json");
+    const inside = select(root, { LISA_SELECTION_REPORT: report }, [
+      "--push-only",
+    ]);
+    expect(inside.calls.at(-1)?.slice(0, 2)).toEqual(["related", "--run"]);
+  });
+
+  it("runs a command that is not a vitest run unchanged, with the reason (#4611)", () => {
+    const root = fixture({ pushGate: { affectedTests: true } });
+    change(root, MOD_CHANGE);
+    const jest = ["node", "fake/vitest", "--coverage"];
+    const result = select(root, {}, [], jest);
+    expect(result.status, result.output).toBe(0);
+    expect(result.calls).toEqual([["--coverage"]]);
+    expect(result.output).toContain(
+      "Running the full suite: the test command is not a `vitest run`"
+    );
   });
 
   it("selects by default when coverage-adequacy is not declared at push", () => {

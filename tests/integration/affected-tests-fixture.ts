@@ -43,6 +43,10 @@ const BORROWED: ReadonlyArray<readonly [string, string]> = [
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs",
     "scripts/lib/invoked-as-script.mjs",
   ],
+  [
+    "all/copy-overwrite/scripts/lib/push-gate-defaults.mjs",
+    "scripts/lib/push-gate-defaults.mjs",
+  ],
 ];
 
 /**
@@ -312,16 +316,20 @@ export function calls(root: string): string[][] {
  * Run the selector directly, as the push gate's test task does.
  * @param root - Fixture root
  * @param extra - Additional environment
+ * @param own - The selector's own flags, before `--`
+ * @param command - The full test command (default {@link BASE_COMMAND})
  * @returns Exit status, output, and the commands the stand-in saw
  */
 export function select(
   root: string,
-  extra: Record<string, string> = {}
+  extra: Record<string, string> = {},
+  own: readonly string[] = [],
+  command: readonly string[] = BASE_COMMAND
 ): { status: number | null; output: string; calls: string[][] } {
   const child = boundedSpawnSync({
     label: "lisa-affected-tests (fixture)",
     command: process.execPath,
-    args: ["scripts/lisa-affected-tests.mjs", "--", ...BASE_COMMAND],
+    args: ["scripts/lisa-affected-tests.mjs", ...own, "--", ...command],
     cwd: root,
     env: pushEnv(extra),
   });

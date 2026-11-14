@@ -17,7 +17,10 @@
  * running in CI — each one is a reason to run everything, never a reason to
  * run nothing.
  *
- * It is off unless `.lisa.config.json` sets `pushGate.affectedTests: true`.
+ * It is off unless `pushGate.affectedTests` is true. A TypeScript project gets
+ * it, and `affectedCoverage: "changed-files"`, by default
+ * (`lib/push-gate-defaults.mjs`, CodySwannGT/lisa#4611); this module only ever
+ * sees the config with those defaults already applied.
  * `pushGate.affectedCoverage` says what a partial run does about the
  * coverage-adequacy gate at push:
  *
@@ -89,8 +92,23 @@ export const FULL_SUITE_TRIGGERS = Object.freeze([
     reason: "the ESLint configuration changed",
   },
   {
+    pattern: /(^|\/)vite\.config[^/]*\.[cm]?[jt]s$/,
+    reason: "the Vite configuration changed",
+  },
+  {
     pattern: /^tests\/(helpers|support|fixtures|integration\/support)\//,
     reason: "shared test helpers, support code or fixtures changed",
+  },
+  {
+    // Any test root, in a host's own layout (CodySwannGT/lisa#4611): a shared
+    // helper is read by tests the map may not have seen import it directly.
+    pattern:
+      /(^|\/)(tests?|__tests__|specs?)\/(.+\/)?(__fixtures__|fixtures|helpers|support|setup)\//,
+    reason: "shared test helpers, support code, setup or fixtures changed",
+  },
+  {
+    pattern: /(^|\/)__fixtures__\//,
+    reason: "shared test fixtures changed",
   },
   {
     pattern: /^src\/configs\/vitest\//,
@@ -98,7 +116,7 @@ export const FULL_SUITE_TRIGGERS = Object.freeze([
   },
   {
     pattern:
-      /(^|\/)scripts\/(lisa-affected-tests\.mjs|lib\/affected-tests\.mjs|lib\/test-access-map[^/]*\.mjs|fetch-test-access-map\.mjs)$/,
+      /(^|\/)scripts\/(lisa-affected-tests\.mjs|lib\/affected-tests\.mjs|lib\/test-access-map[^/]*\.mjs|lib\/push-gate-defaults\.mjs|fetch-test-access-map\.mjs)$/,
     reason: "the test-selection machinery itself changed",
   },
 ]);
@@ -156,14 +174,82 @@ export function coverageDeclaredAtPush(gates) {
 /**
  * The first trigger any changed file fires, or null.
  * @param {ReadonlyArray<string>} changed Repository-relative changed paths.
+ * @param {ReadonlyArray<{pattern: RegExp, reason: string}>} [extra] The project's recorded triggers.
  * @returns {{file: string, reason: string}|null} The trigger.
  */
-export function firedTrigger(changed) {
+export function firedTrigger(changed, extra = []) {
+  const triggers = [...FULL_SUITE_TRIGGERS, ...extra];
   for (const file of changed) {
-    const trigger = FULL_SUITE_TRIGGERS.find(entry => entry.pattern.test(file));
+    const trigger = triggers.find(entry => entry.pattern.test(file));
     if (trigger) return { file, reason: trigger.reason };
   }
   return null;
+}
+
+/** Why a trigger recorded from the project's resolved Vitest config fires. */
+export const RECORDED_TRIGGER_REASON =
+  "a file the project's Vitest config names as a full-rerun trigger, setup file or global setup changed";
+
+/**
+ * The project's own triggers, recorded with the map from its resolved Vitest
+ * config (`forceRerunTriggers`, `setupFiles`, `globalSetup`), as matchers.
+ *
+ * The host's merged config is only known to Vitest, so the recorder writes
+ * these repository-relative globs into the map's metadata and the selector
+ * honours them here. A missing or malformed list adds nothing: the built-in
+ * triggers still apply.
+ * @param {{triggers?: unknown}|null|undefined} meta The map's meta.json.
+ * @returns {Array<{pattern: RegExp, reason: string}>} Extra triggers.
+ */
+export function recordedTriggers(meta) {
+  const globs = Array.isArray(meta?.triggers) ? meta.triggers : [];
+  return globs
+    .filter(glob => typeof glob === "string" && glob !== "")
+    .flatMap(expandBraces)
+    .map(glob => ({
+      // A trailing `/**` (Vitest writes `**/package.json/**`) matches the
+      // path itself or anything under it.
+      pattern: glob.endsWith("/**")
+        ? new RegExp(
+            globToRegExp(glob.slice(0, -3)).source.replace(/\$$/, "(?:/.*)?$")
+          )
+        : globToRegExp(glob),
+      reason: `${RECORDED_TRIGGER_REASON} (${glob})`,
+    }));
+}
+
+/**
+ * Expand `{a,b}` alternatives, as Vitest's own trigger globs use them.
+ * @param {string} glob A glob.
+ * @returns {string[]} One glob per alternative.
+ */
+export function expandBraces(glob) {
+  const match = /\{([^{}]*)\}/.exec(glob);
+  if (!match) return [glob];
+  const [whole, body] = match;
+  return body
+    .split(",")
+    .flatMap(choice =>
+      expandBraces(
+        glob.slice(0, match.index) +
+          choice +
+          glob.slice(match.index + whole.length)
+      )
+    );
+}
+
+/**
+ * Whether a test command can be narrowed: it must be a `vitest run`.
+ *
+ * Jest stacks (Expo) and anything else run unchanged with a printed reason,
+ * never with a rewrite the runner would misread (CodySwannGT/lisa#4519).
+ * @param {ReadonlyArray<string>} argv The test command.
+ * @returns {boolean} True for a `vitest run` command.
+ */
+export function narrowable(argv) {
+  return argv.some(
+    (arg, index) => /(^|\/)vitest$/.test(arg) && argv[index + 1] === "run"
+  );
 }
 
 /**
@@ -281,14 +367,24 @@ export function readersByFile(map) {
  * @param {Readonly<Record<string, ReadonlyArray<string>>>} input.map The access map.
  * @param {ReadonlyArray<RegExp>} input.excluded Paths the test command excludes.
  * @param {(file: string) => boolean} input.exists Whether a file is in the working tree.
+ * @param {ReadonlyArray<{pattern: RegExp, reason: string}>} [input.triggers] The project's recorded triggers.
  * @returns {Selection} The selection.
  */
-export function selectAffectedTests({ changed, map, excluded, exists }) {
+export function selectAffectedTests({
+  changed,
+  map,
+  excluded,
+  exists,
+  triggers = [],
+}) {
   const runnable = file =>
     TEST_FILE.test(file) &&
     !excluded.some(pattern => pattern.test(file)) &&
     exists(file);
-  const trigger = firedTrigger(changed.map(entry => entry.path));
+  const trigger = firedTrigger(
+    changed.map(entry => entry.path),
+    triggers
+  );
   if (trigger) {
     return full(`${trigger.reason} (${trigger.file})`);
   }

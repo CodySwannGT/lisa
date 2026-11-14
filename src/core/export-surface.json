@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 302,
-  "$names": 2136,
+  "$modules": 303,
+  "$names": 2149,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -112,6 +112,16 @@
       "main",
       "runCli"
     ],
+    "all/copy-overwrite/scripts/fetch-test-access-map.mjs": [
+      "formatAge",
+      "main",
+      "mergeMaps",
+      "mergedTriggers",
+      "parseArgs",
+      "parseArtifacts",
+      "repositoryFromRemote",
+      "selectRun"
+    ],
     "all/copy-overwrite/scripts/lib/affected-tests.mjs": [
       "AFFECTED_COVERAGE_KEY",
       "AFFECTED_TESTS_KEY",
@@ -120,19 +130,23 @@
       "FULL_SUITE_TRIGGERS",
       "MAX_AGE_ENV",
       "PARTIAL_COVERAGE_SKIP_REASON",
+      "RECORDED_TRIGGER_REASON",
       "SELECTION_REPORT_ENV",
       "affectedTestsSettings",
       "changedFileCoverage",
       "coverageDeclaredAtPush",
       "coverageLeftToCi",
       "excludedBy",
+      "expandBraces",
       "explainSelection",
       "firedTrigger",
       "globToRegExp",
       "measuresCoverage",
+      "narrowable",
       "openSelectionReports",
       "partialArgv",
       "readersByFile",
+      "recordedTriggers",
       "selectAffectedTests",
       "staleMapReason"
     ],
@@ -918,6 +932,12 @@
       "shellQuote",
       "withAdmission"
     ],
+    "all/copy-overwrite/scripts/lib/push-gate-defaults.mjs": [
+      "TYPESCRIPT_PUSH_GATE_DEFAULTS",
+      "isTypeScriptProject",
+      "pushGateDefaultsFor",
+      "withPushGateDefaults"
+    ],
     "all/copy-overwrite/scripts/lib/push-timing.mjs": [
       "KEEP_REPORTS",
       "TIMING_DIR",
@@ -972,6 +992,7 @@
     ],
     "all/copy-overwrite/scripts/lisa-affected-tests.mjs": [
       "MAP_DIR",
+      "PUSH_ONLY_FLAG",
       "main",
       "parseArgs",
       "plan"
@@ -1836,14 +1857,6 @@
       "entryFor",
       "normalize"
     ],
-    "scripts/fetch-test-access-map.mjs": [
-      "formatAge",
-      "main",
-      "mergeMaps",
-      "parseArgs",
-      "parseArtifacts",
-      "selectRun"
-    ],
     "scripts/generate-agy-plugin-artifacts.mjs": [
       "generateAgyVariant"
     ],
@@ -2176,7 +2189,9 @@
       "TEST_ACCESS_MAP_SETUP_FILE",
       "TEST_ACCESS_MAP_TRACER_VERSION",
       "accessMapMetadata",
+      "accessMapWanted",
       "armTestAccessMap",
+      "configuredTriggers",
       "mergeAccessRecords",
       "repositoryFile",
       "testAccessMapEnabled",

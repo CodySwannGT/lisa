@@ -12,7 +12,7 @@ import * as path from "node:path";
 import yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
 
-import { parseArtifacts } from "../../scripts/fetch-test-access-map.mjs";
+import { parseArtifacts } from "../../all/copy-overwrite/scripts/fetch-test-access-map.mjs";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
 const QUALITY_YML = path.join(REPO_ROOT, ".github", "workflows", "quality.yml");
@@ -71,10 +71,12 @@ function mapSteps(job: string): readonly Step[] {
 }
 
 describe("quality.yml test access map", () => {
-  it.each(cases)("%s turns the tracer on only for Lisa's PR runs", job => {
+  // Hosts record too (#4611): the presets' recorder writes a map only where
+  // the project's effective pushGate.affectedTests is on.
+  it.each(cases)("%s turns the tracer on for every PR run", job => {
     expect(workflow.jobs[job]?.env).toEqual({
       LISA_ACCESS_MAP:
-        "${{ github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != '' && '1' || '' }}",
+        "${{ github.event.pull_request.base.sha != '' && '1' || '' }}",
       LISA_ACCESS_MAP_BASE_SHA: BASE,
       LISA_ACCESS_MAP_HEAD_SHA:
         "${{ github.event.pull_request.head.sha || github.sha }}",
@@ -87,7 +89,7 @@ describe("quality.yml test access map", () => {
     const [step] = steps;
     expect(step?.uses).toBe("actions/upload-artifact@v7");
     expect(step?.if).toBe(
-      "always() && github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != ''"
+      "always() && github.event.pull_request.base.sha != ''"
     );
     expect(step?.with).toEqual({
       name,

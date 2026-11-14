@@ -18,14 +18,17 @@
  * - the reporter built here, which merges the raw records once the run ends
  *   into `tmp/test-access-map/<scope>.json`.
  *
- * Everything is off unless `LISA_ACCESS_MAP=1`, so local runs and host
- * projects are untouched.
+ * Everything is off unless `LISA_ACCESS_MAP=1` AND the project's effective
+ * `pushGate.affectedTests` is on, so ordinary local runs are untouched. The
+ * shipped Vitest presets carry the plugin (CodySwannGT/lisa#4611), so a host's
+ * own CI records its map the same way Lisa's does.
  * @module test-access-map
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { withPushGateDefaults } from "../../all/copy-overwrite/scripts/lib/push-gate-defaults.mjs";
 import { declaredTestScope } from "./test-timings-reporter.mjs";
 
 /** Directory, relative to the Vitest root, the per-scope maps land in. */
@@ -167,9 +170,10 @@ export function mergeAccessRecords({ root, lines, testFiles }) {
  * @param {Readonly<Record<string, string | undefined>>} env - Process environment
  * @param {string} scope - Map scope
  * @param {Date} now - Creation time
+ * @param {ReadonlyArray<string>} [triggers] - The project's full-rerun triggers
  * @returns {Readonly<Record<string, unknown>>} Metadata
  */
-export function accessMapMetadata(env, scope, now) {
+export function accessMapMetadata(env, scope, now, triggers = []) {
   return {
     scope,
     baseSha: env["LISA_ACCESS_MAP_BASE_SHA"] || null,
@@ -177,7 +181,59 @@ export function accessMapMetadata(env, scope, now) {
     runId: env["GITHUB_RUN_ID"] || null,
     createdAt: now.toISOString(),
     tracerVersion: TEST_ACCESS_MAP_TRACER_VERSION,
+    triggers: [...triggers],
   };
+}
+
+/**
+ * The project's own full-rerun triggers, from its resolved Vitest config, as
+ * repository-relative globs (CodySwannGT/lisa#4611).
+ *
+ * The selector cannot resolve a host's merged Vitest config at push, so the
+ * recorder writes `forceRerunTriggers`, `setupFiles` and `globalSetup` into
+ * the map. A change to any of them then runs the full suite with the trigger
+ * printed. Absolute paths become repository-relative, and paths outside the
+ * repository or under `node_modules` (Lisa's own preset files) are dropped.
+ * @param {string} root - Vitest root directory
+ * @param {{ forceRerunTriggers?: unknown, setupFiles?: unknown, globalSetup?: unknown }} config - Resolved Vitest config
+ * @returns {ReadonlyArray<string>} Sorted, de-duplicated globs
+ */
+export function configuredTriggers(root, config) {
+  const listed = ["forceRerunTriggers", "setupFiles", "globalSetup"].flatMap(
+    key => {
+      const value = config?.[key];
+      const entries = Array.isArray(value) ? value : [value];
+      return entries.filter(entry => typeof entry === "string" && entry);
+    }
+  );
+  const globs = listed.flatMap(entry => {
+    if (!path.isAbsolute(entry) && !entry.startsWith("file:")) return [entry];
+    const relative = repositoryFile(root, entry);
+    return relative === undefined ? [] : [relative];
+  });
+  return [...new Set(globs)].sort();
+}
+
+/**
+ * Whether the project at `root` wants a map recorded: its effective
+ * `pushGate.affectedTests`, stack defaults included (CodySwannGT/lisa#4611).
+ * A host that turned selection off pays nothing for a map it never reads. A
+ * missing or unreadable config falls back to the stack default; a malformed
+ * `pushGate` records nothing.
+ * @param {string} root - Project root
+ * @returns {boolean} True when the map is wanted
+ */
+export function accessMapWanted(root) {
+  const config = (() => {
+    try {
+      return JSON.parse(
+        fs.readFileSync(path.join(root, ".lisa.config.json"), "utf8")
+      );
+    } catch {
+      return {};
+    }
+  })();
+  return withPushGateDefaults(config, root).pushGate?.affectedTests === true;
 }
 
 /**
@@ -234,9 +290,10 @@ function rawLines(directory) {
  * @param {string} input.root - Vitest root directory
  * @param {string} input.directory - Raw-record directory
  * @param {Readonly<Record<string, string | undefined>>} input.env - Process environment
+ * @param {ReadonlyArray<string>} [input.triggers] - The project's full-rerun triggers
  * @returns {{ onTestRunEnd: (modules: ReadonlyArray<{ moduleId: string, state: () => string }>) => void }} Reporter
  */
-export function testAccessMapReporter({ root, directory, env }) {
+export function testAccessMapReporter({ root, directory, env, triggers = [] }) {
   return {
     lisaTestAccessMap: true,
     onTestRunEnd(testModules) {
@@ -255,7 +312,7 @@ export function testAccessMapReporter({ root, directory, env }) {
       fs.mkdirSync(path.dirname(output), { recursive: true });
       fs.writeFileSync(
         output,
-        `${JSON.stringify({ meta: accessMapMetadata(env, scope, new Date()), map }, null, 2)}\n`
+        `${JSON.stringify({ meta: accessMapMetadata(env, scope, new Date(), triggers), map }, null, 2)}\n`
       );
       fs.rmSync(directory, { recursive: true, force: true });
     },
@@ -300,9 +357,15 @@ export function testAccessMapPlugin(env = process.env) {
     name: "lisa:test-access-map",
     configureVitest({ vitest }) {
       const root = vitest.config.root;
+      if (!testAccessMapEnabled(env) || !accessMapWanted(root)) return;
       const directory = armTestAccessMap(env, root);
       if (directory === undefined) return;
-      const reporter = testAccessMapReporter({ root, directory, env });
+      const reporter = testAccessMapReporter({
+        root,
+        directory,
+        env,
+        triggers: configuredTriggers(root, vitest.config),
+      });
 
       vitest.config.reporters = [
         ...withTestAccessMapReporter(vitest.config.reporters, reporter),

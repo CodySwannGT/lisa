@@ -46,11 +46,14 @@ import {
   excludedBy,
   explainSelection,
   measuresCoverage,
+  narrowable,
   partialArgv,
+  recordedTriggers,
   selectAffectedTests,
   staleMapReason,
 } from "./lib/affected-tests.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import { withPushGateDefaults } from "./lib/push-gate-defaults.mjs";
 
 /** Where the map lives, relative to the repository root (gitignored). */
 export const MAP_DIR = ".lisa/test-access-map";
@@ -73,16 +76,31 @@ const GIT_LOCATION_ENV = new Set([
 ]);
 
 /**
- * Split `[--fetch <script>] -- <command…>`.
+ * Narrow only when the push gate runner asked for it.
+ *
+ * A host's shared `test:cov:unit` script carries the selector
+ * (CodySwannGT/lisa#4611), and a developer who runs that script by hand
+ * expects every test. With this flag the command runs unchanged unless the
+ * gate runner set `LISA_SELECTION_REPORT`, which it does only at push (and
+ * for `lisa check`, which runs the push gates ahead of the push).
+ */
+export const PUSH_ONLY_FLAG = "--push-only";
+
+/**
+ * Split `[--fetch <script>] [--push-only] -- <command…>`.
  * @param {ReadonlyArray<string>} argv Arguments after the script.
- * @returns {{fetch: string|undefined, command: string[]}} Parsed options.
+ * @returns {{fetch: string|undefined, pushOnly: boolean, command: string[]}} Parsed options.
  */
 export function parseArgs(argv) {
   const separator = argv.indexOf("--");
   const own = separator === -1 ? [] : argv.slice(0, separator);
   const command = separator === -1 ? [] : argv.slice(separator + 1);
   const at = own.indexOf("--fetch");
-  return { fetch: at === -1 ? undefined : own[at + 1], command };
+  return {
+    fetch: at === -1 ? undefined : own[at + 1],
+    pushOnly: own.includes(PUSH_ONLY_FLAG),
+    command,
+  };
 }
 
 /**
@@ -285,6 +303,11 @@ export function plan({ root, command, fetch, config, mode, env, out, now }) {
   if (env.CI || env.GITHUB_ACTIONS) {
     return fullRun("this is a CI run, and CI always runs every test");
   }
+  if (!narrowable(command)) {
+    return fullRun(
+      "the test command is not a `vitest run`, so it cannot be narrowed"
+    );
+  }
   const declared = coverageDeclaredAtPush(config.gates) && coverageWanted;
   if (declared && mode === "full") {
     return fullRun(
@@ -323,6 +346,7 @@ export function plan({ root, command, fetch, config, mode, env, out, now }) {
     map: loaded.map,
     excluded: excludedBy(command),
     exists: file => existsSync(join(root, file)),
+    triggers: recordedTriggers(loaded.meta),
   });
   if (selection.kind === "full") {
     return { selection, coverage: coverageWanted ? "measured" : "none" };
@@ -374,16 +398,21 @@ export function main(argv, deps = {}) {
   const env = deps.env ?? process.env;
   const out = deps.out ?? (line => console.log(line));
   const now = deps.now ?? (() => new Date());
-  const { fetch, command } = parseArgs(argv);
+  const { fetch, pushOnly, command } = parseArgs(argv);
   if (command.length === 0) {
     console.error(
-      "usage: lisa-affected-tests.mjs [--fetch <script>] -- <test command…>"
+      "usage: lisa-affected-tests.mjs [--fetch <script>] [--push-only] -- <test command…>"
     );
     return 2;
   }
   const cwd = deps.cwd ?? process.cwd();
+  if (pushOnly && !env[SELECTION_REPORT_ENV]) return run(command, cwd);
   const root = git(cwd, ["rev-parse", "--show-toplevel"]) ?? cwd;
-  const config = readJson(join(root, ".lisa.config.json")) ?? {};
+  // The stack's defaults under the project's own keys (CodySwannGT/lisa#4611).
+  const config = withPushGateDefaults(
+    readJson(join(root, ".lisa.config.json")) ?? {},
+    root
+  );
   let settings;
   try {
     settings = affectedTestsSettings(config);

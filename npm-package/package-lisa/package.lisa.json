@@ -5,12 +5,12 @@
       "prepublishOnly": "$npm_execpath run build",
       "setup:deploy-key": "setup-deploy-key",
       "test:cov:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile npm-package --adapter vitest -- vitest run --coverage",
-      "test:cov:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit lisa-test-run --profile npm-package --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
+      "test:cov:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- lisa-test-run --profile npm-package --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
       "test:integration:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile npm-package --adapter vitest -- vitest run '.integration.' 'integration/'",
       "test:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile npm-package --adapter vitest -- vitest run",
       "test:mutation": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile npm-package --adapter direct -- node scripts/lisa-mutation.mjs",
       "test:node:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile npm-package --adapter direct -- node scripts/lisa-test-node.mjs",
-      "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile npm-package --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
+      "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- lisa-test-run --profile npm-package --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
       "test:watch:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile npm-package --adapter vitest -- vitest"
     },
     "devDependencies": {

@@ -77,6 +77,7 @@ scripts/check-third-party-action-pins.mjs
 scripts/check-third-party-review-evidence.mjs
 scripts/lisa-push-timing-report.mjs
 scripts/lisa-affected-tests.mjs
+scripts/fetch-test-access-map.mjs
 scripts/review-evidence-event.mjs
 scripts/check-threshold-ratchet.mjs
 scripts/check-verification-coverage.mjs
@@ -249,6 +250,7 @@ scripts/lib/npm-update-worker-policy.mjs
 scripts/lib/placeholder-expiry.mjs
 scripts/lib/process-tree-runner.mjs
 scripts/lib/push-admission.mjs
+scripts/lib/push-gate-defaults.mjs
 scripts/lib/push-timing.mjs
 scripts/lib/reusable-workflow-load-adapter.mjs
 scripts/lib/reusable-workflow-load-failure.mjs

@@ -12,11 +12,13 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   formatAge,
   main,
+  mergedTriggers,
   mergeMaps,
   parseArgs,
   parseArtifacts,
+  repositoryFromRemote,
   selectRun,
-} from "../../../scripts/fetch-test-access-map.mjs";
+} from "../../../all/copy-overwrite/scripts/fetch-test-access-map.mjs";
 
 const A = "a".repeat(40);
 const B = "b".repeat(40);
@@ -26,6 +28,7 @@ const NOV_13 = "2026-11-13T00:00:00Z";
 const CLOCK = "2026-11-13T03:00:00Z";
 const UNIT_11 = `test-access-map-${A}-11-unit`;
 const INTEGRATION_11 = `test-access-map-${A}-11-integration`;
+const OWNER_REPO = "owner/repo";
 
 const created: string[] = [];
 afterEach(() => {
@@ -116,11 +119,42 @@ function runMain(
   return { code, stdout, stderr, out, calls };
 }
 
+describe("repositoryFromRemote (#4611)", () => {
+  it.each([
+    ["https://github.com/owner/repo.git", OWNER_REPO],
+    ["https://github.com/owner/repo", OWNER_REPO],
+    ["git@github.com:owner/repo.git", OWNER_REPO],
+    ["ssh://git@github.com/owner/repo.git\n", OWNER_REPO],
+  ])("reads %s as %s", (url, repo) => {
+    expect(repositoryFromRemote(url)).toBe(repo);
+  });
+
+  it("answers undefined for a remote that is not on GitHub", () => {
+    expect(repositoryFromRemote("https://gitlab.com/owner/repo.git")).toBe(
+      undefined
+    );
+  });
+});
+
+describe("mergedTriggers (#4611)", () => {
+  it("unions every recorded trigger list, sorted, ignoring junk", () => {
+    expect(
+      mergedTriggers([
+        { triggers: ["tests/setup.ts", "b/**"] },
+        { triggers: ["b/**", 3] },
+        { triggers: "nope" },
+        {},
+      ])
+    ).toEqual(["b/**", "tests/setup.ts"]);
+  });
+});
+
 describe("parseArgs", () => {
   it("reads --base, --repo and --out, with defaults", () => {
     expect(parseArgs(["--base", A])).toEqual({
       base: A,
-      repo: "CodySwannGT/lisa",
+      // GITHUB_REPOSITORY, else this checkout's origin.
+      repo: process.env.GITHUB_REPOSITORY ?? "CodySwannGT/lisa",
       out: ".lisa/test-access-map",
       maxPages: 10,
       maxAgeDays: 7,
@@ -255,6 +289,7 @@ describe("main", () => {
       runId: "11",
       createdAt: "2026-11-13T00:05:00.000Z",
       testFiles: 2,
+      triggers: [],
     });
     expect(result.stdout.join("\n")).toContain(`base ${A}`);
     expect(result.stdout.join("\n")).toContain("age 2h 55m");

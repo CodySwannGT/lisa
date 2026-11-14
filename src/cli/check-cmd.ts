@@ -31,6 +31,7 @@ import { fileURLToPath } from "node:url";
 
 import type { Command } from "commander";
 
+import { withPushGateDefaults } from "../../all/copy-overwrite/scripts/lib/push-gate-defaults.mjs";
 import { readProjectConfig } from "../core/project-config.js";
 
 /** Printed, and exit 0, when checking first would save nothing. */
@@ -161,8 +162,15 @@ async function cacheGate(
   root: string,
   env: NodeJS.ProcessEnv
 ): Promise<{ skip: string } | { refuse: string } | null> {
+  // The stack's defaults count (CodySwannGT/lisa#4611): a TypeScript host has
+  // the cache on unless it says `false`, exactly as its push gate does.
   const enabled = await readProjectConfig(root).then(
-    config => config.pushGate?.cache === true,
+    config =>
+      (
+        withPushGateDefaults({ ...config }, root).pushGate as
+          | { readonly cache?: unknown }
+          | undefined
+      )?.cache === true,
     (err: unknown) => (err instanceof Error ? err : new Error(String(err)))
   );
   if (enabled instanceof Error) return { refuse: enabled.message };

@@ -2403,10 +2403,10 @@ jobs:
     # context and every downstream `needs.test_unit` reader key on them.
     needs: [gate_plan, test_unit_shard_plan, test_unit_shard]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:unit,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_unit":"skip"')) }}
-    # Lisa-only test-to-file access map (#4593): vitest.config.local.ts arms
-    # a tracer when LISA_ACCESS_MAP=1, keyed on the PR's base commit.
+    # Test-to-file access map (#4593, #4611): the Vitest presets arm a tracer
+    # when LISA_ACCESS_MAP=1 and pushGate.affectedTests is on (TS default).
     env:
-      LISA_ACCESS_MAP: ${{ github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != '' && '1' || '' }}
+      LISA_ACCESS_MAP: ${{ github.event.pull_request.base.sha != '' && '1' || '' }}
       LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
@@ -2850,7 +2850,7 @@ jobs:
           retention-days: 30
 
       - name: 🗺️ Upload test access map
-        if: always() && github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != ''
+        if: always() && github.event.pull_request.base.sha != ''
         uses: actions/upload-artifact@v7
         with:
           name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-unit
@@ -3237,10 +3237,10 @@ jobs:
       fail-fast: false
       matrix:
         shard: ${{ fromJSON(needs.test_unit_shard_plan.outputs.shards || '[1]') }}
-    # Lisa-only test-to-file access map (#4593): vitest.config.local.ts arms
-    # a tracer when LISA_ACCESS_MAP=1, keyed on the PR's base commit.
+    # Test-to-file access map (#4593, #4611): the Vitest presets arm a tracer
+    # when LISA_ACCESS_MAP=1 and pushGate.affectedTests is on (TS default).
     env:
-      LISA_ACCESS_MAP: ${{ github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != '' && '1' || '' }}
+      LISA_ACCESS_MAP: ${{ github.event.pull_request.base.sha != '' && '1' || '' }}
       LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
@@ -3612,7 +3612,7 @@ jobs:
           retention-days: 30
 
       - name: 🗺️ Upload this shard's test access map
-        if: always() && github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != ''
+        if: always() && github.event.pull_request.base.sha != ''
         uses: actions/upload-artifact@v7
         with:
           name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-unit-shard-${{ matrix.shard }}
@@ -3953,10 +3953,10 @@ jobs:
         test_integration_shard,
       ]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:integration,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_integration":"skip"')) }}
-    # Lisa-only test-to-file access map (#4593): vitest.config.local.ts arms
-    # a tracer when LISA_ACCESS_MAP=1, keyed on the PR's base commit.
+    # Test-to-file access map (#4593, #4611): the Vitest presets arm a tracer
+    # when LISA_ACCESS_MAP=1 and pushGate.affectedTests is on (TS default).
     env: &integration_env
-      LISA_ACCESS_MAP: ${{ github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != '' && '1' || '' }}
+      LISA_ACCESS_MAP: ${{ github.event.pull_request.base.sha != '' && '1' || '' }}
       LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
@@ -4268,7 +4268,7 @@ jobs:
           retention-days: 30
 
       - name: 🗺️ Upload test access map
-        if: always() && github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != ''
+        if: always() && github.event.pull_request.base.sha != ''
         uses: actions/upload-artifact@v7
         with:
           name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-integration${{ strategy.job-total > 1 && format('-shard-{0}', strategy.job-index) || '' }}

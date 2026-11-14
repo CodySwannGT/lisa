@@ -25,6 +25,7 @@ const ROOT = path.join(path.sep, "repo");
 const TEST_A = "tests/a.test.ts";
 const TEST_B = "tests/b.test.ts";
 const MAP_DIR = "test-access-map";
+const SETUP_FILE = "tests/setup.ts";
 const at = (...parts: string[]): string => path.join(ROOT, ...parts);
 
 const created: string[] = [];
@@ -188,7 +189,14 @@ describe("accessMapMetadata", () => {
       runId: "42",
       createdAt: "2026-11-13T00:00:00.000Z",
       tracerVersion: 1,
+      triggers: [],
     });
+  });
+
+  it("carries the project's full-rerun triggers (#4611)", () => {
+    expect(
+      accessMapMetadata({}, "unit", new Date(0), [SETUP_FILE]).triggers
+    ).toEqual([SETUP_FILE]);
   });
 });
 
