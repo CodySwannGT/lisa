@@ -221,6 +221,9 @@ cdk.out
 # Test-to-file access map the push gate downloads when pushGate.affectedTests is
 # on (CodySwannGT/lisa#4600). A cache keyed by base commit, never committed.
 .lisa/test-access-map/
+# The gitlab-crystalball spec map the Rails pre-push downloads to run only the
+# specs a change can reach (CodySwannGT/lisa#4612). Keyed by base commit.
+.lisa/crystalball-map/
 
 # Verbatim work-item bundle written by the implement flow's input-resolver. It
 # can quote credentials from tracker comments and is per-worktree state. Keep

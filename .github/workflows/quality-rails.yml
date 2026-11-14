@@ -933,6 +933,32 @@ jobs:
           # coverage. It refuses to run from inside the root.
           cp scripts/lisa_rspec_shard_recorder.rb "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb"
 
+      - name: 🔮 Arm the crystalball map recorder
+        # CodySwannGT/lisa#4612. On a pull request, this full RSpec run also
+        # records which application files each spec executes (gitlab-crystalball),
+        # keyed by the pull request's base commit, so a later push can run only
+        # the specs a change reaches. It never narrows this run: every spec runs.
+        # Required from OUTSIDE the project root, like the shard recorder, so
+        # SimpleCov does not measure it. This workflow is consumed at `@main`, so
+        # it can reach a caller before `lisa apply` delivers the recorder; until
+        # then the step says so and moves on, and pushes run the full suite.
+        if: github.event.pull_request.base.sha != ''
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          JOB_LABEL: shard-${{ matrix.shard }}
+        run: |
+          if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
+            echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
+            exit 0
+          fi
+          cp scripts/lisa_crystalball_recorder.rb "$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+          {
+            echo "LISA_CRYSTALBALL_REQUIRE=$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+            echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
+            echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
+            echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+          } >> "$GITHUB_ENV"
+
       - name: 🧪 Run this shard's tests
         id: shard_run
         env:
@@ -951,7 +977,7 @@ jobs:
           fi
           echo "Running ${#SPEC_FILES[@]} spec files as shard $LISA_RSPEC_SHARD."
           export LISA_TEST_RUN_OWNER="$$:0"
-          bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
+          bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" ${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"} "${SPEC_FILES[@]}"
 
       - name: 📦 Stage this shard's coverage
         if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
@@ -963,6 +989,17 @@ jobs:
             exit 1
           fi
           node scripts/lisa-rspec-shards.mjs stage --record "$RECORD" --out "$RUNNER_TEMP/lisa-rspec-shard"
+
+      - name: 📤 Upload this shard's crystalball map
+        # The aggregate merges every leg's map into one artifact.
+        if: always() && github.event.pull_request.base.sha != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 1
 
       - name: 📤 Upload this shard's results
         if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
@@ -1052,11 +1089,47 @@ jobs:
             echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
 
+      - name: 🔮 Arm the crystalball map recorder
+        # CodySwannGT/lisa#4612. On a pull request, this full RSpec run also
+        # records which application files each spec executes (gitlab-crystalball),
+        # keyed by the pull request's base commit, so a later push can run only
+        # the specs a change reaches. It never narrows this run: every spec runs.
+        # Required from OUTSIDE the project root, like the shard recorder, so
+        # SimpleCov does not measure it. This workflow is consumed at `@main`, so
+        # it can reach a caller before `lisa apply` delivers the recorder; until
+        # then the step says so and moves on, and pushes run the full suite.
+        if: inputs.test_shards == 1 && github.event.pull_request.base.sha != ''
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          JOB_LABEL: unsharded
+        run: |
+          if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
+            echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
+            exit 0
+          fi
+          cp scripts/lisa_crystalball_recorder.rb "$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+          {
+            echo "LISA_CRYSTALBALL_REQUIRE=$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+            echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
+            echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
+            echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+          } >> "$GITHUB_ENV"
+
       - name: 🧪 Run tests
         if: inputs.test_shards == 1
         run: |
           export LISA_TEST_RUN_OWNER="$$:0"
-          bundle exec rspec
+          bundle exec rspec ${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"}
+
+      - name: 📤 Upload the crystalball map
+        if: always() && inputs.test_shards == 1 && github.event.pull_request.base.sha != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
 
       - name: 📥 Download the RSpec shard plan
         if: inputs.test_shards != 1
@@ -1071,6 +1144,41 @@ jobs:
         with:
           pattern: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-*
           path: ${{ runner.temp }}/lisa-rspec-shards
+
+      # CodySwannGT/lisa#4612: one map for the whole suite, keyed by the base
+      # commit, from every leg's map. A leg that recorded none (the recorder
+      # not installed yet) leaves nothing to merge, and the step says so.
+      - name: 📥 Download every shard's crystalball map
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        uses: actions/download-artifact@v8
+        with:
+          pattern: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-shard-*
+          path: ${{ runner.temp }}/lisa-crystalball-legs
+
+      - name: 🔮 Merge the shards' crystalball maps
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        run: |
+          set -euo pipefail
+          LEGS=()
+          if [ -d "$RUNNER_TEMP/lisa-crystalball-legs" ]; then
+            while IFS= read -r leg; do LEGS+=("$leg"); done < <(find "$RUNNER_TEMP/lisa-crystalball-legs" -name map.json -type f | sort)
+          fi
+          if [ "${#LEGS[@]}" -eq 0 ] || [ ! -f scripts/lisa-rspec-select.mjs ]; then
+            echo "🔮 no crystalball map to merge (no leg recorded one, or scripts/lisa-rspec-select.mjs is not installed yet)."
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/lisa-crystalball-map"
+          node scripts/lisa-rspec-select.mjs merge-maps --out "$RUNNER_TEMP/lisa-crystalball-map/map.json" "${LEGS[@]}"
+
+      - name: 📤 Upload the merged crystalball map
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
 
       # From each leg's run record, written from RSpec's own `files_to_run`:
       # every planned file ran, in exactly one shard, and the plan still
@@ -1198,6 +1306,32 @@ jobs:
           # coverage. It refuses to run from inside the root.
           cp scripts/lisa_rspec_shard_recorder.rb "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb"
 
+      - name: 🔮 Arm the crystalball map recorder
+        # CodySwannGT/lisa#4612. On a pull request, this full RSpec run also
+        # records which application files each spec executes (gitlab-crystalball),
+        # keyed by the pull request's base commit, so a later push can run only
+        # the specs a change reaches. It never narrows this run: every spec runs.
+        # Required from OUTSIDE the project root, like the shard recorder, so
+        # SimpleCov does not measure it. This workflow is consumed at `@main`, so
+        # it can reach a caller before `lisa apply` delivers the recorder; until
+        # then the step says so and moves on, and pushes run the full suite.
+        if: github.event.pull_request.base.sha != ''
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          JOB_LABEL: shard-${{ matrix.shard }}
+        run: |
+          if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
+            echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
+            exit 0
+          fi
+          cp scripts/lisa_crystalball_recorder.rb "$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+          {
+            echo "LISA_CRYSTALBALL_REQUIRE=$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+            echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
+            echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
+            echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+          } >> "$GITHUB_ENV"
+
       - name: 🧪 Run this shard's tests
         id: shard_run
         env:
@@ -1216,7 +1350,7 @@ jobs:
           fi
           echo "Running ${#SPEC_FILES[@]} spec files as shard $LISA_RSPEC_SHARD."
           export LISA_TEST_RUN_OWNER="$$:0"
-          bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
+          bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" ${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"} "${SPEC_FILES[@]}"
 
       - name: 📦 Stage this shard's coverage
         if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
@@ -1228,6 +1362,17 @@ jobs:
             exit 1
           fi
           node scripts/lisa-rspec-shards.mjs stage --record "$RECORD" --out "$RUNNER_TEMP/lisa-rspec-shard"
+
+      - name: 📤 Upload this shard's crystalball map
+        # The aggregate merges every leg's map into one artifact.
+        if: always() && github.event.pull_request.base.sha != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 1
 
       - name: 📤 Upload this shard's results
         if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
@@ -1319,11 +1464,47 @@ jobs:
             echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
 
+      - name: 🔮 Arm the crystalball map recorder
+        # CodySwannGT/lisa#4612. On a pull request, this full RSpec run also
+        # records which application files each spec executes (gitlab-crystalball),
+        # keyed by the pull request's base commit, so a later push can run only
+        # the specs a change reaches. It never narrows this run: every spec runs.
+        # Required from OUTSIDE the project root, like the shard recorder, so
+        # SimpleCov does not measure it. This workflow is consumed at `@main`, so
+        # it can reach a caller before `lisa apply` delivers the recorder; until
+        # then the step says so and moves on, and pushes run the full suite.
+        if: inputs.test_shards == 1 && github.event.pull_request.base.sha != ''
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          JOB_LABEL: unsharded
+        run: |
+          if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
+            echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
+            exit 0
+          fi
+          cp scripts/lisa_crystalball_recorder.rb "$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+          {
+            echo "LISA_CRYSTALBALL_REQUIRE=$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+            echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
+            echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
+            echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+          } >> "$GITHUB_ENV"
+
       - name: 🧪 Run tests
         if: inputs.test_shards == 1
         run: |
           export LISA_TEST_RUN_OWNER="$$:0"
-          bundle exec rspec
+          bundle exec rspec ${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"}
+
+      - name: 📤 Upload the crystalball map
+        if: always() && inputs.test_shards == 1 && github.event.pull_request.base.sha != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
 
       - name: 📥 Download the RSpec shard plan
         if: inputs.test_shards != 1
@@ -1338,6 +1519,41 @@ jobs:
         with:
           pattern: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-*
           path: ${{ runner.temp }}/lisa-rspec-shards
+
+      # CodySwannGT/lisa#4612: one map for the whole suite, keyed by the base
+      # commit, from every leg's map. A leg that recorded none (the recorder
+      # not installed yet) leaves nothing to merge, and the step says so.
+      - name: 📥 Download every shard's crystalball map
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        uses: actions/download-artifact@v8
+        with:
+          pattern: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-shard-*
+          path: ${{ runner.temp }}/lisa-crystalball-legs
+
+      - name: 🔮 Merge the shards' crystalball maps
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        run: |
+          set -euo pipefail
+          LEGS=()
+          if [ -d "$RUNNER_TEMP/lisa-crystalball-legs" ]; then
+            while IFS= read -r leg; do LEGS+=("$leg"); done < <(find "$RUNNER_TEMP/lisa-crystalball-legs" -name map.json -type f | sort)
+          fi
+          if [ "${#LEGS[@]}" -eq 0 ] || [ ! -f scripts/lisa-rspec-select.mjs ]; then
+            echo "🔮 no crystalball map to merge (no leg recorded one, or scripts/lisa-rspec-select.mjs is not installed yet)."
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/lisa-crystalball-map"
+          node scripts/lisa-rspec-select.mjs merge-maps --out "$RUNNER_TEMP/lisa-crystalball-map/map.json" "${LEGS[@]}"
+
+      - name: 📤 Upload the merged crystalball map
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
 
       # From each leg's run record, written from RSpec's own `files_to_run`:
       # every planned file ran, in exactly one shard, and the plan still

@@ -26,6 +26,12 @@
  * declared at push, `changed-files` holds each changed source file to the
  * thresholds on its own, and `skip` leaves coverage to CI. Both keys are read
  * at push by `scripts/lib/affected-tests.mjs`, which refuses the same shapes.
+ *
+ * Rails hosts read the same two keys through `scripts/lib/rspec-selection.mjs`
+ * (CodySwannGT/lisa#4612), with the same validation and two different
+ * defaults: `affectedTests` is ON for a Rails project when absent, and
+ * `affectedCoverage` defaults to `changed-files` (owner decision). An explicit
+ * value always wins.
  */
 
 /** How a partial push-time selection treats coverage-adequacy. */

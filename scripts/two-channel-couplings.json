@@ -126,30 +126,38 @@
     "quality.yml::scripts/plan-integration-shards.mjs": {
       "decision": "not-needed",
       "reason": "Unreachable outside this repository under the exact repository guard ratified above. The script runs from the same Lisa checkout it plans for, so no independently versioned consumer copy participates in this coupling."
+    },
+    "quality-rails.yml::scripts/lisa_crystalball_recorder.rb": {
+      "decision": "not-needed",
+      "reason": "A recorder, not a judge (CodySwannGT/lisa#4612). It rides along on the full RSpec run and writes the crystalball map a later push selects from; it never narrows the run and never posts a verdict, so CI's own red or green is unchanged by any copy of it. A superseded copy records a weaker or older-shaped map, which the pre-push selector reads with its own fallback rules (a missing, unreadable or stale map, or a changed file absent from it, runs the full suite); the cost of a stale copy is push-time speed, never merge protection."
+    },
+    "quality-rails.yml::scripts/lisa-rspec-select.mjs": {
+      "decision": "not-needed",
+      "reason": "A merger, not a judge (CodySwannGT/lisa#4612). The aggregate calls only its `merge-maps` subcommand, which unions the shard legs' crystalball maps into the one artifact pushes download; it posts no check context and the RSpec verdict comes from the legs and the aggregate's own steps. A superseded copy that lacks the subcommand fails the step loudly, and one that merges differently changes only which specs a later push selects, which the pre-push selector bounds with its full-suite fallbacks. A version handshake would gate an advisory map on a version comparison and buy no cover."
     }
   },
   "inspected": {
     "workflows": 26,
-    "steps": 859,
-    "couplings": 42,
-    "inventory": 230
+    "steps": 873,
+    "couplings": 44,
+    "inventory": 234
   },
   "counts": {
     "package-backed": 11,
-    "apply-lagged": 26,
+    "apply-lagged": 28,
     "never-delivered": 0,
     "undelivered": 5
   },
   "detectionCounts": {
     "version-handshake": 4,
     "capability-probe": 0,
-    "existence-only": 5,
+    "existence-only": 7,
     "no-probe": 17,
     "unchecked": 5
   },
   "decisionCounts": {
     "handshake": 4,
-    "not-needed": 16,
+    "not-needed": 18,
     "warranted": 11
   },
   "couplings": [
@@ -457,6 +465,28 @@
       "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lib/lisa-cleanup-sweep.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-zero` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
+      "key": "quality-rails.yml::scripts/lisa_crystalball_recorder.rb",
+      "workflow": "quality-rails.yml",
+      "path": "scripts/lisa_crystalball_recorder.rb",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": true,
+      "handling": [
+        "exit-zero"
+      ],
+      "detection": "existence-only",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "not-needed",
+      "reason": "A recorder, not a judge (CodySwannGT/lisa#4612). It rides along on the full RSpec run and writes the crystalball map a later push selects from; it never narrows the run and never posts a verdict, so CI's own red or green is unchanged by any copy of it. A superseded copy records a weaker or older-shaped map, which the pre-push selector reads with its own fallback rules (a missing, unreadable or stale map, or a changed file absent from it, runs the full suite); the cost of a stale copy is push-time speed, never merge protection.",
+      "lanes": [
+        "rails/copy-overwrite"
+      ],
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa_crystalball_recorder.rb` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
+    },
+    {
       "key": "quality-rails.yml::scripts/lisa_rspec_shard_recorder.rb",
       "workflow": "quality-rails.yml",
       "path": "scripts/lisa_rspec_shard_recorder.rb",
@@ -525,6 +555,28 @@
         "all/copy-contents"
       ],
       "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-mutation.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-contents). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-zero` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
+    },
+    {
+      "key": "quality-rails.yml::scripts/lisa-rspec-select.mjs",
+      "workflow": "quality-rails.yml",
+      "path": "scripts/lisa-rspec-select.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": true,
+      "handling": [
+        "exit-zero"
+      ],
+      "detection": "existence-only",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "not-needed",
+      "reason": "A merger, not a judge (CodySwannGT/lisa#4612). The aggregate calls only its `merge-maps` subcommand, which unions the shard legs' crystalball maps into the one artifact pushes download; it posts no check context and the RSpec verdict comes from the legs and the aggregate's own steps. A superseded copy that lacks the subcommand fails the step loudly, and one that merges differently changes only which specs a later push selects, which the pre-push selector bounds with its full-suite fallbacks. A version handshake would gate an advisory map on a version comparison and buy no cover.",
+      "lanes": [
+        "all/copy-overwrite"
+      ],
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-rspec-select.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality-rails.yml::scripts/lisa-rspec-shards.mjs",

@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/.gitattributes":
       "e5e115d084d4c7ff855ab9b39285c725f39700af54f73ef2e90845f1b8d72c36",
     "all/copy-contents/gitignore":
-      "284d3bd86b0d673cfb1b87dc66244896b19ff7a5b251a9796ccf4057dccd1e48",
+      "9aee6fe2edce4acdef159a1757c998b313abe538142aa6df37f01b38de088230",
     "all/copy-contents/scripts/lisa-mutation.sh":
       "dd62950d6f13b9eae7e879b9de24ec1d19dc985634a2d921e003ede5a6f56a81",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
@@ -159,7 +159,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "463e80eae242cab14ed2ab45779c6a06cc2d4d874c922924d62c9a8d6d10822d",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "0cc8fe5292e2c53ffd79924e3dbb0e209149676337ebc2825d0f68c55b2fd08e",
+      "72821267e36ce566410c4fd51f148582f9ef1f55c50ad4ac0c989888b0fdae21",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -266,6 +266,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "318a262a0976f1e3559252c78f55a64e2ef32b11833a66d2d39d22161c813e90",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
       "32e9968d27b7edead16c232bb93bebb8118dd24d175a837f61c2e1ff324dc223",
+    "all/copy-overwrite/scripts/lib/rspec-selection.mjs":
+      "1fe6c0a56a0a6dce6dc37564231a61600dc457ae503aeaac61e35b76ba54fb25",
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts":
       "e093245f67362bd1dfefe328e9354f5465279f534ce569efee5d3cdadd00598b",
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs":
@@ -360,6 +362,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "263860fba7fadae3c1096973eaf4f25dca1683ef2ce64279dea6845ac90faf6a",
+    "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
+      "3d3678afda4fb5c47bd3ffbb95d28cf7f2d7d50d69f93bcd6aedfafcde2e3dde",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
       "416f4a49d23c01610efd6d3ba8043a8dd9ad82f366c5e841d29dd37ad3441462",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
@@ -377,7 +381,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "d90a4ee1eae0eeabb17e46069be09ff8844b62d4cdeaa5ea528cab82a1bc2f51",
+      "02c401e8a020137945e5c944cc9f641147e8ea303c754c27e6b7e02d471522f7",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2519,7 +2523,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/.versionrc":
       "b6c4c0258819fa186a91d96cdeac7a017f36cfe1d2c59ccb69cff75c1a8598e0",
     "rails/copy-overwrite/Gemfile.lisa":
-      "50c6fb6bf7ebf76e1f3e65e8100ac5e33177185013c94c4f19967015a3328f75",
+      "ea0f771afa26b2bd99c448e9a9cbf947690dfbc7083919d52f006579743f81c4",
     "rails/copy-overwrite/ast-grep/rule-tests/.gitkeep":
       "fd9b902271d9cbaca0ead2a1e659776db904c10b06ceed7e5bc43fa57b89aba1",
     "rails/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml":
@@ -2541,11 +2545,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/config/initializers/version.rb":
       "9304268500aada31d8bd158dca4274888d10db4e30f8dadd9bf23a01d67f2480",
     "rails/copy-overwrite/lefthook.yml":
-      "01b57d0178853fb0415a9ba543a0819161331b716035ae54638b3e87c1221c64",
+      "78c5bea3d9ed34cc3a3533f78a68a2749737cc442fb1ec5eb600d9d3222c2c83",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
       "00d504a0fee1f2a75d7328dc848cacabe6fd9360beacc5bf9632d0741388ade2",
+    "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb":
+      "215868a41903f0c2d2713410bc8c39071f31a764889817f9ba70672be4248bfe",
+    "rails/copy-overwrite/scripts/lisa_rspec_partial_coverage.rb":
+      "b009f58bc782fe26eeaa7c1503ebd9d70d71e2e967ffe5e1c9e93ad763efcb60",
     "rails/copy-overwrite/scripts/lisa_rspec_shard_recorder.rb":
       "92d7dfa434bf2aa94fc7fce2fafd1e7a32c03bf5610e46839432f4f7473006df",
     "rails/copy-overwrite/scripts/lisa_simplecov_collate.rb":
@@ -2951,7 +2959,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "c5272ad50c148c5e951b0aecf11106c7984660a1e73ce82ff4b521ab86c4f5b4",
+      "f9ad32b118bd91ff703215793990610895a03bca45b4277fc2e3e4470cb642dc",
     "scripts/update-node-version.ts":
       "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
@@ -3019,7 +3027,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "c9e4bbcb090835286e19fe1d3bf93b86d2908d8ff2f94db4c15085ca17e45840",
+      "82a6ebb199929472a620e7c74f46facca349761d900bafc0d593f5647e6f1694",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3427,6 +3435,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.mjs": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.d.mts": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": true,
+    "all/copy-overwrite/scripts/lib/rspec-selection.mjs": true,
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts": true,
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs": true,
     "all/copy-overwrite/scripts/lib/usage-effectiveness.d.mts": true,
@@ -3474,6 +3483,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-push-timing-report.mjs": true,
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs": true,
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs": true,
+    "all/copy-overwrite/scripts/lisa-rspec-select.mjs": true,
     "all/copy-overwrite/scripts/lisa-run-gates.mjs": true,
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs": true,
     "all/copy-overwrite/scripts/lisa-test-node.mjs": true,
@@ -10618,6 +10628,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/copy-overwrite/lefthook.yml": true,
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": true,
+    "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb": true,
+    "rails/copy-overwrite/scripts/lisa_rspec_partial_coverage.rb": true,
     "rails/copy-overwrite/scripts/lisa_rspec_shard_recorder.rb": true,
     "rails/copy-overwrite/scripts/lisa_simplecov_collate.rb": true,
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs": true,
@@ -11873,6 +11885,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-integration-test-shards.test.ts": true,
     "tests/integration/quality-node-supervision.test.ts": true,
     "tests/integration/quality-non-declarable-jobs.test.ts": true,
+    "tests/integration/quality-rails-crystalball-map.test.ts": true,
     "tests/integration/quality-rails-database-image.test.ts": true,
     "tests/integration/quality-rails-test-shards-fixture.ts": true,
     "tests/integration/quality-rails-test-shards-merge.test.ts": true,
@@ -11892,10 +11905,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-workflow-test-timings.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/rails-cleanup-sweep-routes.test.ts": true,
+    "tests/integration/rails-crystalball-ruby.test.ts": true,
     "tests/integration/rails-helper-test-isolation.test.ts": true,
     "tests/integration/rails-hook-apply.test.ts": true,
     "tests/integration/rails-learnings-budget-gate.test.ts": true,
     "tests/integration/rails-prepush-hook.test.ts": true,
+    "tests/integration/rails-rspec-select-fixture.ts": true,
+    "tests/integration/rails-rspec-select-stand-ins.ts": true,
+    "tests/integration/rails-rspec-select.test.ts": true,
     "tests/integration/rails-rspec-shard-ruby.test.ts": true,
     "tests/integration/rails-version-initializer.test.ts": true,
     "tests/integration/registration-deferred-cli.test.ts": true,
@@ -13141,6 +13158,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/review-gate-waiver-vs-objection.test.ts": true,
     "tests/unit/scripts/review-objection-at-head.test.ts": true,
     "tests/unit/scripts/review-substitute-parity.test.ts": true,
+    "tests/unit/scripts/rspec-selection.test.ts": true,
     "tests/unit/scripts/run-artifact-checks.test.ts": true,
     "tests/unit/scripts/schema-validate-keyword-forms.test.ts": true,
     "tests/unit/scripts/schema-validate-prototype-keywords.test.ts": true,

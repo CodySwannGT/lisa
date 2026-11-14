@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 302,
-  "$names": 2136,
+  "$modules": 304,
+  "$names": 2163,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -945,6 +945,30 @@
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": [
       "scanForLoadFailures"
     ],
+    "all/copy-overwrite/scripts/lib/rspec-selection.mjs": [
+      "ALWAYS_RUN_DIRS",
+      "ARTIFACT_NAME",
+      "MAP_DIR",
+      "RAILS_DEFAULT_COVERAGE",
+      "RAILS_FULL_SUITE_TRIGGERS",
+      "SPEC_FILE",
+      "THRESHOLDS_FILE",
+      "alwaysRunSpecs",
+      "associatedSpec",
+      "changedRubyCoverage",
+      "chooseMapRun",
+      "explainRspecSelection",
+      "filePercentages",
+      "fullSuite",
+      "isRailsProject",
+      "mergeMapDocuments",
+      "nocovLines",
+      "parseMapArtifacts",
+      "railsTrigger",
+      "rspecSelectionSettings",
+      "selectRailsSpecs",
+      "taggedAlwaysRun"
+    ],
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs": [
       "LINEAR_REQUIRED_FORM",
       "assertCanonicalArtifactRef",
@@ -1168,6 +1192,13 @@
       "rulesetSignals",
       "sameDeclaredValue",
       "unobservablePolicyFields"
+    ],
+    "all/copy-overwrite/scripts/lisa-rspec-select.mjs": [
+      "PARTIAL_COVERAGE_HELPER",
+      "main",
+      "planRspecRun",
+      "rspecArgv",
+      "runRspecPlan"
     ],
     "all/copy-overwrite/scripts/lisa-run-gates.mjs": [
       "BUILTIN_FLOOR",

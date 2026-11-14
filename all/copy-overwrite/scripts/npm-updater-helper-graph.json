@@ -713,7 +713,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "0cc8fe5292e2c53ffd79924e3dbb0e209149676337ebc2825d0f68c55b2fd08e",
+      "sha256": "72821267e36ce566410c4fd51f148582f9ef1f55c50ad4ac0c989888b0fdae21",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1311,6 +1311,14 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/rspec-selection.mjs": {
+      "sha256": "1fe6c0a56a0a6dce6dc37564231a61600dc457ae503aeaac61e35b76ba54fb25",
+      "staticImports": [
+        "lib/affected-tests.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/usage-artifact-ref.mjs": {
       "sha256": "1f71d1e885b929ab8c6e80ec4ce8a3648b6debd0d1b6ff51679655a5e117d413",
       "staticImports": [],
@@ -1475,6 +1483,20 @@
       "children": [
         "lisa-work-item.mjs"
       ]
+    },
+    "lisa-rspec-select.mjs": {
+      "sha256": "3d3678afda4fb5c47bd3ffbb95d28cf7f2d7d50d69f93bcd6aedfafcde2e3dde",
+      "staticImports": [
+        "lib/affected-tests.mjs",
+        "lib/invoked-as-script.mjs",
+        "lib/rspec-selection.mjs",
+        "node:child_process",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
     },
     "lisa-run-gates.mjs": {
       "sha256": "416f4a49d23c01610efd6d3ba8043a8dd9ad82f366c5e841d29dd37ad3441462",
