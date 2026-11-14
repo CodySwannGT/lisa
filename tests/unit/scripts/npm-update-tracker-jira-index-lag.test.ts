@@ -20,6 +20,7 @@ import {
   committedHost,
 } from "../../support/npm-update-tracker-host.js";
 
+const SEARCH = "/search/jql";
 const CREDENTIALS = { JIRA_API_TOKEN: "t", JIRA_LOGIN: "bot@example.test" };
 
 /**
@@ -61,7 +62,7 @@ describe("Jira allocation retried inside the search-index window", () => {
     expect(creates).toBe(1);
     const priorSearches = jira.log.filter(
       entry =>
-        entry.operation.endsWith("/search/jql") &&
+        entry.operation.endsWith(SEARCH) &&
         String((entry.body as { jql?: string }).jql).includes("labels =")
     );
     expect(priorSearches.at(-1)?.body).toMatchObject({
@@ -105,9 +106,47 @@ describe("a Jira credential that is not the declared automation account (#4873 r
         "The JIRA_API_TOKEN signs in as a different account than jira.claimActorRef"
       );
       expect(jira.creates()).toBe(0);
-      expect(
-        jira.log.some(entry => entry.operation.endsWith("/search/jql"))
-      ).toBe(false);
+      expect(jira.log.some(entry => entry.operation.endsWith(SEARCH))).toBe(
+        false
+      );
+    });
+  });
+});
+
+describe("a remembered Jira ticket the search no longer accepts (#4873 review)", () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      Response.json(REGISTRY_METADATA)
+    );
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("falls back to the plain search instead of blocking allocation", async () => {
+    const config = { ...JIRA_CONFIG, automationProvenance: await automation() };
+    await withPrivateRoot(async (root, env) => {
+      const host = await committedHost(root, env, JIRA_MAINTAINER);
+      const jira = fakeJira({ assignable: [JIRA_MAINTAINER] });
+      let refused = 0;
+      const transport: typeof jira.transport = async (url, init) => {
+        const body = String(init?.body ?? "");
+        if (String(url).endsWith(SEARCH) && body.includes("reconcileIssues")) {
+          refused += 1;
+          return new Response("{}", { status: 400 });
+        }
+        return jira.transport(url, init);
+      };
+      const api = {
+        ...codeHost(host.parent),
+        tracker: createTracker(config, CREDENTIALS, transport)!,
+      };
+      expect((await allocateLeaf({ api, config, ...host })).workItem).toBe(
+        "PROJ-1"
+      );
+      expect((await allocateLeaf({ api, config, ...host })).workItem).toBe(
+        "PROJ-1"
+      );
+      expect(refused).toBeGreaterThan(0);
+      expect(jira.creates()).toBe(1);
     });
   });
 });

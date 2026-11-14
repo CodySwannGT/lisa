@@ -126,13 +126,15 @@ export function localDescriptor(
     ].every(value => typeof value === "string" && HEX.test(value)),
     "invalid descriptor digest"
   );
-  // A Jira comment id is decimal and a Linear one a UUID; the committed tracker,
+  // A Jira/Linear claim id is an opaque tracker comment id (the adapter proves the
+  // comment itself); only an explicit Jira/Linear tracker relaxes GitHub's decimal grammar. The committed tracker,
   // read from HEAD, decides which grammar applies (#4873).
   requireProof(
     typeof descriptor.claimCommentId === "string" &&
-      (tracker === "github" ? /^[1-9]\d*$/ : /^[A-Za-z0-9-]{1,64}$/).test(
-        descriptor.claimCommentId
-      ),
+      (["jira", "linear"].includes(tracker)
+        ? /^[A-Za-z0-9-]{1,64}$/
+        : /^[1-9]\d*$/
+      ).test(descriptor.claimCommentId),
     "invalid claim reference"
   );
   requireProof(
@@ -222,7 +224,7 @@ export function proofSnapshot() {
 export function canonicalContext(message, config, policy, descriptor) {
   // A Jira/Linear item is bound offline here: the hooks hold no tracker credential,
   // and the publisher proves the live claim through its adapter (#4873).
-  if (config.tracker !== "github") {
+  if (["jira", "linear"].includes(config.tracker)) {
     const vendor = resolveWorkItemContext(message, { config });
     requireProof(
       vendor.provider === config.tracker &&

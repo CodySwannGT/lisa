@@ -81,7 +81,8 @@ function recoveryPermission(
   // The hooks hold no Jira/Linear credential: the leaf body, owner and claim
   // time are proved by the adapter at checkpoint and again before publication,
   // and the signed recovery record binds them here (#4873).
-  const vendor = config.tracker !== "github";
+  // Only an explicit Jira/Linear tracker takes this path; anything else is checked as GitHub.
+  const vendor = ["jira", "linear"].includes(config.tracker);
   verifyRecoveryOrigin(policy, descriptor, recovery, sha256(bytes), paths, {
     npmPolicySha256,
     proposalKey: sha256(
@@ -222,7 +223,7 @@ export function verifyAutomationProvenance(messageFile) {
       );
       // A Jira/Linear claim is proved by the publisher's adapter, never a GitHub comment.
       withProvenancePhase("ordinary-provider", () =>
-        (config.tracker === "github"
+        (!["jira", "linear"].includes(config.tracker)
           ? verifyCurrentProvider
           : verifyCurrentRun)(policy, descriptor)
       );

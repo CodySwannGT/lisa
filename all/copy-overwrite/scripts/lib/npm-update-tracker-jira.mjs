@@ -220,10 +220,16 @@ export class JiraTracker {
    * this automation remembered creating is reconciled into the result (#4873).
    */
   async searchPrior(proposal) {
-    return this.search(
-      `project = "${this.key}" AND labels = "lisa-npm-${proposal.selectionKey}"`,
-      await this.remembered(proposal)
-    );
+    const jql = `project = "${this.key}" AND labels = "lisa-npm-${proposal.selectionKey}"`;
+    const remembered = await this.remembered(proposal);
+    if (!remembered) return this.search(jql);
+    // A remembered ticket that was since deleted must not block allocation:
+    // a refused reconcile falls back to the plain search used before #4873.
+    try {
+      return await this.search(jql, remembered);
+    } catch {
+      return this.search(jql);
+    }
   }
   async relationships() {
     const query = `project = "${this.key}" AND (summary ~ "npm" OR description ~ "npm")`;
@@ -352,7 +358,7 @@ export class JiraTracker {
       "checkpoint immediate readback differs"
     );
   }
-  /** The credential's own account, whether a person or an app/service account. */
+  /** The declared automation account the credential signs in as. */
   actorId() {
     return this.myself();
   }
@@ -362,6 +368,7 @@ export class JiraTracker {
   assertCancelled(number) {
     return jiraAssertCancelled(this, number);
   }
+  /** The credential's own account, whether a person or an app/service account. */
   async isManagedActor(user) {
     return typeof user?.id === "string" && user.id === (await this.myself());
   }

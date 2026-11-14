@@ -149,7 +149,7 @@ export function validateCancellation(value, expected) {
           DECIMAL.test(value.workItem.slice(value.repository.length + 1)))),
     "invalid stale cancellation scope"
   );
-  // A Jira comment id is decimal and a Linear one a UUID (#4873).
+  // A Jira/Linear claim id is an opaque tracker comment id; the adapter proves the comment (#4873).
   required(
     typeof value.claimCommentId === "string" &&
       (vendorRecord(value)
