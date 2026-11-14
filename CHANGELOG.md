@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.8.0](https://github.com/CodySwannGT/lisa/compare/v5.7.0...v5.8.0) (2026-11-14)
+
+
+### Features
+
+* **push-timing:** record failing test files per failed gate ([2161588](https://github.com/CodySwannGT/lisa/commit/21615887fb27ecb8c15827db1ea9cae34e5c2506)), closes [CodySwannGT/lisa#4896](https://github.com/CodySwannGT/lisa/issues/4896) [CodySwannGT/lisa#4896](https://github.com/CodySwannGT/lisa/issues/4896)
+
+
+### Bug Fixes
+
+* **push-timing:** trim the root's trailing slashes without a backtracking regex ([f22964f](https://github.com/CodySwannGT/lisa/commit/f22964f85575d770d32bb1bcdf69732dcabd9650)), closes [CodySwannGT/lisa#4896](https://github.com/CodySwannGT/lisa/issues/4896) [CodySwannGT/lisa#4896](https://github.com/CodySwannGT/lisa/issues/4896)
+* **shell-guard:** leave the nightly suites out of the candidate set ([43f065a](https://github.com/CodySwannGT/lisa/commit/43f065a4c6bb104f75f61614549a95693e1a1f9d)), closes [CodySwannGT/lisa#4896](https://github.com/CodySwannGT/lisa/issues/4896) [CodySwannGT/lisa#4896](https://github.com/CodySwannGT/lisa/issues/4896)
+
 ## [5.7.0](https://github.com/CodySwannGT/lisa/compare/v5.6.0...v5.7.0) (2026-11-14)
 
 
