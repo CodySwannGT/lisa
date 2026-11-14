@@ -32,12 +32,34 @@ if (!partialRun && existsSync("whole-coverage.fail")) process.exit(1);
 process.exit(argv.some(arg => arg.includes("failing")) ? 1 : 0);
 `;
 
-/** The stand-in `gh`. */
+/** The repository the stand-in `gh` reports. */
+export const GH_REPO = "acme/app";
+
+/** The head commit the stand-in `gh` reports for every run by default. */
+export const GH_HEAD_SHA = "c".repeat(40);
+
+/**
+ * The stand-in `gh`. It names the repository {@link GH_REPO}; describes each
+ * run from `gh-runs.json` (`{"<run id>": {...}}`), else as this repository's
+ * successful run at {@link GH_HEAD_SHA}; lists `gh-artifacts.ndjson`; and
+ * downloads `gh-map-<run id>.json`, else `gh-map.json`.
+ */
 export const FAKE_GH = `#!/usr/bin/env node
 const { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } = require("node:fs");
 const { join } = require("node:path");
 const argv = process.argv.slice(2);
 appendFileSync(".gh-calls", JSON.stringify(argv) + "\\n");
+if (argv[0] === "api" && argv[1] === "repos/{owner}/{repo}") {
+  process.stdout.write(${JSON.stringify(GH_REPO)} + "\\n");
+  process.exit(0);
+}
+const run = argv[0] === "api" ? /\\/actions\\/runs\\/(\\d+)$/.exec(argv[1] ?? "") : null;
+if (run) {
+  const runs = existsSync("gh-runs.json") ? JSON.parse(readFileSync("gh-runs.json", "utf8")) : {};
+  const info = runs[run[1]] ?? { conclusion: "success", headSha: ${JSON.stringify(GH_HEAD_SHA)}, headRepository: ${JSON.stringify(GH_REPO)} };
+  process.stdout.write(JSON.stringify(info) + "\\n");
+  process.exit(0);
+}
 if (argv[0] === "api") {
   process.stdout.write(existsSync("gh-artifacts.ndjson") ? readFileSync("gh-artifacts.ndjson", "utf8") : "");
   process.exit(0);
@@ -47,7 +69,8 @@ if (argv[0] === "run" && argv[1] === "download") {
   const names = argv.flatMap((arg, i) => (arg === "--name" ? [argv[i + 1]] : []));
   for (const name of names) {
     mkdirSync(join(dir, name), { recursive: true });
-    writeFileSync(join(dir, name, "map.json"), readFileSync("gh-map.json", "utf8"));
+    const own = "gh-map-" + argv[2] + ".json";
+    writeFileSync(join(dir, name, "map.json"), readFileSync(existsSync(own) ? own : "gh-map.json", "utf8"));
   }
   process.exit(0);
 }

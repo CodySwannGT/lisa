@@ -36,7 +36,13 @@ import {
   boundedSpawnSync,
 } from "../helpers/io-latency-budget.js";
 import { cleanGitEnv, GIT_BIN } from "../support/git-executable.js";
-import { FAKE_BUNDLE, FAKE_GH } from "./rails-rspec-select-stand-ins.js";
+import {
+  FAKE_BUNDLE,
+  FAKE_GH,
+  GH_HEAD_SHA,
+} from "./rails-rspec-select-stand-ins.js";
+
+export { GH_HEAD_SHA, GH_REPO } from "./rails-rspec-select-stand-ins.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -142,7 +148,7 @@ function writeProject(root: string, options: FixtureOptions): void {
   write(
     root,
     ".gitignore",
-    ".lisa/\n.bundle-calls\n.gh-calls\ncoverage.json\ngh-artifacts.ndjson\ngh-map.json\nwhole-coverage.fail\nhandoff-unavailable\nhandoff-silent\n"
+    ".lisa/\n.bundle-calls\n.gh-calls\ncoverage.json\ngh-artifacts.ndjson\ngh-map.json\ngh-map-*.json\ngh-runs.json\nwhole-coverage.fail\nhandoff-unavailable\nhandoff-silent\n"
   );
   write(root, "bin/rails", "#!/usr/bin/env ruby\n");
   write(root, "config/application.rb", "module Fixture; end\n");
@@ -180,11 +186,13 @@ function writeProject(root: string, options: FixtureOptions): void {
  * The map CI's full run recorded, as `lisa_crystalball_recorder.rb` writes it.
  * @param baseSha - The base it was recorded for
  * @param createdAt - When
+ * @param runId - The run that recorded it
  * @returns The document
  */
 export function mapDocument(
   baseSha: string,
-  createdAt = new Date(Date.now() - 3_600_000).toISOString()
+  createdAt = new Date(Date.now() - 3_600_000).toISOString(),
+  runId = "77"
 ): Record<string, unknown> {
   return {
     meta: {
@@ -192,8 +200,11 @@ export function mapDocument(
       tool: "gitlab-crystalball",
       baseSha,
       createdAt,
-      runId: "77",
+      runId,
       job: "unsharded",
+      headSha: GH_HEAD_SHA,
+      piece: 0,
+      pieces: 1,
     },
     map: {
       "spec/models/user_spec.rb": [USER],
@@ -229,7 +240,11 @@ export function writeMap(
   write(
     root,
     ".lisa/crystalball-map/meta.json",
-    JSON.stringify({ ...(document.meta as object), requestedBase: requested })
+    JSON.stringify({
+      ...(document.meta as object),
+      requestedBase: requested,
+      trust: 1,
+    })
   );
 }
 

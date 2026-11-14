@@ -20,7 +20,13 @@
  *
  * The map for the branch's merge-base is downloaded with `gh` from the
  * repository's `crystalball-map-<base sha>-<run id>[-<leg>]` artifacts, which
- * `quality-rails.yml` uploads from its full RSpec run. Without `gh`, or when
+ * `quality-rails.yml` uploads from its full RSpec run. A map decides which
+ * specs a push skips, so a run's map is used only when GitHub reports the run
+ * as this repository's own code (not a fork pull request's) that concluded
+ * `success`, and every piece it recorded names that run, its base and its
+ * head commit, with no shard leg missing. A refused run is skipped and older
+ * candidates are tried, up to a bound; when none qualifies the full suite
+ * runs (the same contract as `fetch-test-access-map.mjs`). Without `gh`, or when
  * the download fails or takes too long, a map already on disk is used if it
  * is still valid for this branch; otherwise the full suite runs.
  * `--no-fetch` uses only the map on disk.
@@ -49,18 +55,22 @@ import {
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
   MAP_DIR,
+  MAP_TRUST,
+  MAX_MAP_RUN_CHECKS,
   SPEC_FILE,
   THRESHOLDS_FILE,
   alwaysRunSpecs,
   changedRubyCoverage,
-  chooseMapRun,
   explainRspecSelection,
   fullSuite,
   isRailsProject,
+  mapPiecesRefusal,
+  mapRunRefusal,
   mergeMapDocuments,
   parseMapArtifacts,
   railsCoverageEscalation,
   railsFullSuiteEscalation,
+  rankMapRuns,
   rspecSelectionSettings,
   selectRailsSpecs,
 } from "./lib/rspec-selection.mjs";
@@ -86,6 +96,10 @@ const PAGE_SIZE = 100;
 /** The fields read from each listed artifact. */
 const LISTING_JQ =
   ".artifacts[] | {name, runId: .workflow_run.id, createdAt: .created_at, expired}";
+
+/** The fields read from a workflow run. */
+const RUN_JQ =
+  "{conclusion, headSha: .head_sha, headRepository: .head_repository.full_name}";
 
 /** The git subcommand that finds a branch point or proves ancestry. */
 const MERGE_BASE = "merge-base";
@@ -277,7 +291,10 @@ function saveMap({ documents, out, meta }) {
 }
 
 /**
- * Download the newest map for `base` (or its nearest ancestor) with `gh`.
+ * Download the newest trusted map for `base` (or its nearest ancestor) with
+ * `gh`: candidate runs are tried newest first, each checked with GitHub
+ * ({@link mapRunRefusal}) and its pieces checked for completeness
+ * ({@link mapPiecesRefusal}), up to {@link MAX_MAP_RUN_CHECKS} runs.
  * @param {object} input Inputs.
  * @param {string} input.root Repository root.
  * @param {string} input.base Merge-base.
@@ -291,6 +308,10 @@ function downloadMap({ root, base, dir, remaining }) {
     if (left <= 0) return { status: null, stdout: "", stderr: "out of time" };
     return exec("gh", args, { cwd: root, timeout: left });
   };
+  const failure = (child, what) =>
+    child.error?.code === "ENOENT"
+      ? "the GitHub CLI (gh) is not installed"
+      : `${what}: ${(child.stderr || "gh failed").trim().split("\n").at(-1)}`;
   const distance = baseSha => {
     if (baseSha === base) return 0;
     if (git(root, [MERGE_BASE, "--is-ancestor", baseSha, base]) === null) {
@@ -301,9 +322,15 @@ function downloadMap({ root, base, dir, remaining }) {
     );
     return Number.isFinite(count) ? count : undefined;
   };
+  const named = call(["api", "repos/{owner}/{repo}", "--jq", ".full_name"]);
+  if (named.status !== 0) {
+    return failure(named, "could not read this repository's name");
+  }
+  const repo = named.stdout.trim();
   const seen = [];
-  let choice;
-  for (let page = 1; page <= MAX_PAGES && !choice; page += 1) {
+  const tried = new Set();
+  const refusals = [];
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
     const listing = call([
       "api",
       `repos/{owner}/{repo}/actions/artifacts?per_page=${PAGE_SIZE}&page=${page}`,
@@ -311,44 +338,110 @@ function downloadMap({ root, base, dir, remaining }) {
       LISTING_JQ,
     ]);
     if (listing.status !== 0) {
-      return listing.error?.code === "ENOENT"
-        ? "the GitHub CLI (gh) is not installed"
-        : `could not list artifacts: ${(listing.stderr || "gh failed").trim().split("\n").at(-1)}`;
+      return failure(listing, "could not list artifacts");
     }
     seen.push(...parseMapArtifacts(listing.stdout));
-    choice = chooseMapRun(seen, distance);
+    for (const candidate of rankMapRuns(seen, distance)) {
+      if (tried.has(candidate.runId)) continue;
+      if (tried.size >= MAX_MAP_RUN_CHECKS) {
+        return noTrustedMap(base, refusals);
+      }
+      tried.add(candidate.runId);
+      const refused = tryRun({ call, repo, candidate, base, dir });
+      if (refused === null) return null;
+      refusals.push(`refused run ${candidate.runId} (${refused})`);
+    }
     if (listing.stdout.split("\n").filter(Boolean).length < PAGE_SIZE) break;
   }
-  if (!choice)
-    return `no crystalball map for ${base.slice(0, 12)} or an ancestor of it`;
+  return noTrustedMap(base, refusals);
+}
+
+/**
+ * Why no map was usable, naming every refused run.
+ * @param {string} base Merge-base.
+ * @param {string[]} refusals One entry per refused run.
+ * @returns {string} The reason.
+ */
+function noTrustedMap(base, refusals) {
+  const none = `no crystalball map for ${base.slice(0, 12)} or an ancestor of it`;
+  return refusals.length === 0
+    ? none
+    : `no trusted crystalball map for ${base.slice(0, 12)} or an ancestor of it: ${refusals.join("; ")}`;
+}
+
+/**
+ * Check one candidate run with GitHub, download its pieces, check them, and
+ * save the map when every check passes.
+ * @param {object} input Inputs.
+ * @param {(args: string[]) => {status: number|null, stdout: string, stderr: string}} input.call Runs gh within the budget.
+ * @param {string} input.repo owner/name.
+ * @param {import("./lib/rspec-selection.mjs").MapRunChoice} input.candidate The run.
+ * @param {string} input.base Merge-base the map is downloaded for.
+ * @param {string} input.dir Where the map lives.
+ * @returns {string|null} Why the run was refused, or null when its map was saved.
+ */
+function tryRun({ call, repo, candidate, base, dir }) {
+  const described = call([
+    "api",
+    `repos/{owner}/{repo}/actions/runs/${candidate.runId}`,
+    "--jq",
+    RUN_JQ,
+  ]);
+  // probe-direction: fail-closed — a run GitHub cannot describe is not
+  // trusted, so its map is skipped and the push runs more specs.
+  const info = described.status === 0 ? parseJson(described.stdout) : null;
+  if (!info) return "GitHub could not describe it";
+  const distrust = mapRunRefusal(info, repo);
+  if (distrust) return distrust;
   const download = mkdtempSync(join(tmpdir(), "lisa-crystalball-map-"));
   try {
     const fetched = call([
       "run",
       "download",
-      choice.runId,
-      ...choice.names.flatMap(name => ["--name", name]),
+      candidate.runId,
+      ...candidate.names.flatMap(name => ["--name", name]),
       "--dir",
       download,
     ]);
     if (fetched.status !== 0) {
-      return `could not download run ${choice.runId}'s map: ${(fetched.stderr || "gh failed").trim().split("\n").at(-1)}`;
+      return `its map could not be downloaded: ${(fetched.stderr || "gh failed").trim().split("\n").at(-1)}`;
     }
     const documents = jsonFilesUnder(download).map(readJson);
+    const incomplete = mapPiecesRefusal(mergeMapDocuments(documents).metas, {
+      runId: candidate.runId,
+      baseSha: candidate.baseSha,
+      headSha: info.headSha,
+    });
+    if (incomplete) return incomplete;
     const saved = saveMap({
       documents,
       out: dir,
       meta: {
         requestedBase: base,
-        baseSha: choice.baseSha,
-        commitsBehind: choice.distance,
-        runId: choice.runId,
-        artifacts: choice.names,
+        baseSha: candidate.baseSha,
+        commitsBehind: candidate.distance,
+        runId: candidate.runId,
+        headSha: info.headSha,
+        artifacts: candidate.names,
+        trust: MAP_TRUST,
       },
     });
-    return saved ? null : `run ${choice.runId}'s artifacts held no map`;
+    return saved ? null : "its artifacts held no map";
   } finally {
     rmSync(download, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Parse JSON text, or null when it is not JSON.
+ * @param {string} text Text.
+ * @returns {any} Parsed value.
+ */
+function parseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
   }
 }
 
@@ -364,7 +457,8 @@ function downloadMap({ root, base, dir, remaining }) {
  */
 function ensureMap({ root, base, fetch, out, now }) {
   const dir = join(root, MAP_DIR);
-  if (readJson(join(dir, META_FILE))?.requestedBase === base) return;
+  const saved = readJson(join(dir, META_FILE));
+  if (saved?.requestedBase === base && saved?.trust === MAP_TRUST) return;
   if (!fetch) return;
   const missFile = join(dir, "miss.json");
   const miss = readJson(missFile);
@@ -409,6 +503,12 @@ function loadMap({ root, base, env, now }) {
     return {
       problem:
         "missing map: no crystalball map is available for this branch's base",
+    };
+  }
+  if (meta.trust !== MAP_TRUST) {
+    return {
+      problem:
+        "unverified map: the map on disk was saved before Lisa checked the run that recorded it",
     };
   }
   const configured = Number(env[MAX_AGE_ENV]);
@@ -701,6 +801,9 @@ function mergeMapsCli(argv) {
       .filter(Boolean)
       .sort()[0] ?? meta.createdAt;
   meta.legs = merged.metas.map(entry => entry.job ?? "");
+  // Every leg's own metadata, so the push can prove no leg is missing
+  // (mapPiecesRefusal).
+  meta.merged = merged.metas;
   writeFileSync(
     target,
     `${JSON.stringify({ meta, map: merged.map, alwaysRun: merged.alwaysRun }, null, 2)}\n`

@@ -56,6 +56,13 @@
 #   LISA_CRYSTALBALL_MAP_OUT   Path of the JSON map to write. Unset = no-op.
 #   LISA_CRYSTALBALL_BASE_SHA  The pull request's base commit the map is for.
 #   LISA_CRYSTALBALL_JOB       Optional label of the job or shard leg.
+#   LISA_CRYSTALBALL_HEAD_SHA  The commit this run tested (the pull request's
+#                              head), which the push checks against GitHub.
+#   LISA_CRYSTALBALL_PIECE     This leg's zero-based index among the legs.
+#   LISA_CRYSTALBALL_PIECES    How many legs the suite ran in (1 unsharded).
+#   The push uses a map only when every piece is present and names the run,
+#   base and head commit GitHub reports for it; a map without them (an older
+#   workflow) is refused and the push runs the full suite.
 # -----------------------------------------------------------------------------
 
 require 'fileutils'
@@ -109,6 +116,12 @@ module LisaCrystalballRecorder
   def relative(path)
     absolute = Pathname.new(File.expand_path(path.to_s))
     absolute.relative_path_from(Pathname.new(Dir.pwd)).to_s
+  end
+
+  # A non-negative integer from the environment, or nil when unset or not one.
+  def integer_env(name)
+    value = ENV.fetch(name, '')
+    value.match?(/\A\d+\z/) ? value.to_i : nil
   end
 
   def note(message)
@@ -204,6 +217,9 @@ module LisaCrystalballRecorder
         'baseSha' => ENV.fetch('LISA_CRYSTALBALL_BASE_SHA', ''),
         'runId' => ENV.fetch('GITHUB_RUN_ID', ''),
         'job' => ENV.fetch('LISA_CRYSTALBALL_JOB', ''),
+        'headSha' => ENV.fetch('LISA_CRYSTALBALL_HEAD_SHA', ''),
+        'piece' => integer_env('LISA_CRYSTALBALL_PIECE'),
+        'pieces' => integer_env('LISA_CRYSTALBALL_PIECES'),
         'createdAt' => Time.now.utc.iso8601
       },
       'map' => @storage.map.keys.sort.to_h { |spec| [spec, @storage.map[spec].to_a.sort] },

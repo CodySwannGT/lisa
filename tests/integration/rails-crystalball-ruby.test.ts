@@ -154,6 +154,9 @@ describe.skipIf(deferred)("lisa_crystalball_recorder.rb", () => {
       LISA_CRYSTALBALL_MAP_OUT: out,
       LISA_CRYSTALBALL_BASE_SHA: "a".repeat(40),
       LISA_CRYSTALBALL_JOB: "unsharded",
+      LISA_CRYSTALBALL_HEAD_SHA: "c".repeat(40),
+      LISA_CRYSTALBALL_PIECE: "0",
+      LISA_CRYSTALBALL_PIECES: "1",
       GITHUB_RUN_ID: "77",
     });
     // Every spec ran: the recorder never narrows the run it rides along on.
@@ -166,6 +169,9 @@ describe.skipIf(deferred)("lisa_crystalball_recorder.rb", () => {
       baseSha: "a".repeat(40),
       runId: "77",
       job: "unsharded",
+      headSha: "c".repeat(40),
+      piece: 0,
+      pieces: 1,
     });
     expect(Date.parse(document.meta.createdAt)).not.toBeNaN();
     expect(document.map[ALPHA_SPEC]).toContain(ALPHA);
