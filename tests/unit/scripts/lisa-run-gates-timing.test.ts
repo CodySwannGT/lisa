@@ -11,6 +11,7 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { isMainThread } from "node:worker_threads";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -120,7 +121,12 @@ describe("runGates timing", () => {
   });
 });
 
-describe("main push timing report", () => {
+// `main()` reads the project from the process's working directory, so these
+// cases `chdir` into a fixture. The mutation gate runs Vitest in a threads pool,
+// where `process.chdir()` throws and one red dry-run test aborts the whole gate;
+// the in-process `runGates` cases above still give it the timing code to mutate.
+// The ordinary suite runs in forks, so it always runs these.
+describe.runIf(isMainThread)("main push timing report", () => {
   const roots: string[] = [];
   const cwd = process.cwd();
 
