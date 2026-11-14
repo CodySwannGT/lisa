@@ -15,9 +15,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 import { installInputs } from "../../../all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs";
-import { bunOnlyRoot } from "../../../all/copy-overwrite/scripts/lib/npm-update-bun.mjs";
+import {
+  bunOnlyRoot,
+  qualifiedBun,
+} from "../../../all/copy-overwrite/scripts/lib/npm-update-bun.mjs";
 
 const HEX = "a".repeat(64);
 const BUN_LOCK = "bun.lock";
@@ -89,6 +95,40 @@ function recordInstall(script: string, files: readonly string[]) {
   });
   return readFileSync(log, "utf8");
 }
+
+describe("qualified Bun call ceiling", () => {
+  /**
+   * A stub Bun 1.4.4 whose every other call sleeps briefly.
+   * @returns Trusted PATH environment selecting the stub.
+   */
+  function slowBun() {
+    const bin = join(hostWith([]), "bin");
+    mkdirSync(bin);
+    writeFileSync(
+      join(bin, "bun"),
+      '#!/bin/sh\nif [ "$1" = --version ]; then echo 1.4.4; exit 0; fi\nsleep 0.3\n'
+    );
+    chmodSync(join(bin, "bun"), 0o755);
+    return { PATH: `${bin}:/usr/bin:/bin` };
+  }
+
+  it("lets a whole-root install use a ceiling above the per-call default", async () => {
+    const bun = await qualifiedBun(slowBun(), {
+      ceiling: ioLatencyBudgetMs(5_000),
+    });
+    await expect(
+      bun(["install"], { timeout: ioLatencyBudgetMs(5_000) })
+    ).resolves.toBeDefined();
+  });
+
+  it("kills a call that outlives its ceiling", async () => {
+    const install = async () => {
+      const bun = await qualifiedBun(slowBun(), { ceiling: 50 });
+      await bun(["install"], { timeout: ioLatencyBudgetMs(5_000) });
+    };
+    await expect(install()).rejects.toThrow("child exceeded deadline");
+  });
+});
 
 describe("Bun-only root detection", () => {
   it("is Bun-only only with bun.lock and no package-lock.json", () => {

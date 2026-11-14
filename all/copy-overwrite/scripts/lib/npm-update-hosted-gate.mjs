@@ -112,7 +112,11 @@ export async function installHostedDependencies(context, root, env) {
     ...(ruby ? ["Gemfile", "Gemfile.lock"] : []),
   ].map(name => [name, readFileSync(join(context.cwd, name))]);
   if (rootManager === "bun") {
-    const bun = await qualifiedBun(installed, { deadline: context.deadline });
+    // The whole root install gets the remaining phase budget, like `npm ci`.
+    const bun = await qualifiedBun(installed, {
+      deadline: context.deadline,
+      ceiling: remainingGateTime(context.deadline),
+    });
     await frozenRootBun(bun, context.cwd, {
       timeout: remainingGateTime(context.deadline),
     });

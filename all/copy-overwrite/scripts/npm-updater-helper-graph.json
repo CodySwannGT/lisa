@@ -394,7 +394,7 @@
       "children": []
     },
     "lib/npm-update-bun.mjs": {
-      "sha256": "4178918e29a3ecf70a7aa8037e54e00adb66c2a4b14fc69d49d9217e3dac6784",
+      "sha256": "5f570618702708473c4bb7c79475b6eef6e43adce613dbc0a3ae109d67608a3d",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
@@ -766,7 +766,7 @@
       "children": []
     },
     "lib/npm-update-hosted-gate.mjs": {
-      "sha256": "29cc68bb559ac5e6cb9a4884522334c9671e92dcb6fa72ceb37a3c8632c0b5ca",
+      "sha256": "c907ba00805405d6b88463f671d9b11f4e8ce135a08e1ba51163f7433eaa1161",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/npm-update-bun.mjs",

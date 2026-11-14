@@ -99,8 +99,18 @@ function toolIdentity(path) {
   return `${stat.dev}:${stat.ino}:${stat.uid}:${stat.mode}:${binaryDigest(path)}`;
 }
 
-/** Only the original trusted PATH may select a supported native Bun installation. */
-export async function qualifiedBun(env, { executable, deadline } = {}) {
+/**
+ * Only the original trusted PATH may select a supported native Bun installation.
+ * Each call is capped at `ceiling` (two minutes by default); a whole-root install
+ * passes its remaining phase budget instead, as the npm path does.
+ * @param {NodeJS.ProcessEnv} env - Trusted environment whose PATH selects Bun.
+ * @param {{ executable?: string, deadline?: number, ceiling?: number }} [options] - Explicit executable, phase deadline and per-call ceiling.
+ * @returns {Promise<(args: string[], options?: Record<string, any>) => Promise<any>>} A bounded Bun invoker.
+ */
+export async function qualifiedBun(
+  env,
+  { executable, deadline, ceiling = 120_000 } = {}
+) {
   const path =
     executable ??
     (env.PATH ?? "")
@@ -118,8 +128,8 @@ export async function qualifiedBun(env, { executable, deadline } = {}) {
     );
     const timeout = Math.min(
       options.timeout ?? 120_000,
-      120_000,
-      deadline === undefined ? 120_000 : deadline - Date.now()
+      ceiling,
+      deadline === undefined ? ceiling : deadline - Date.now()
     );
     required(
       Number.isSafeInteger(timeout) && timeout > 0,
