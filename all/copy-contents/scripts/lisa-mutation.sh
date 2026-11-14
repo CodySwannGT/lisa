@@ -27,13 +27,11 @@
 #
 # Overridable via env: MUTATION_ENABLED=true|false, MUTATION_SINCE=<ref>.
 #
-# SCRATCH SUPERVISION LIVES OUTSIDE THIS FILE.
+# THE START-OF-RUN CLEANUP SWEEP LIVES OUTSIDE THIS FILE.
 #   Both routes that run this gate — the lefthook pre-push command and the
-#   `mutation` job in Lisa's reusable Rails quality workflow — wrap THIS script
-#   in `scripts/lisa-scratch-run.sh`. Do not add a supervisor call here: a route
-#   must cross exactly one supervisor boundary, and a second one would nest a
-#   run inside itself. The supervisor refuses that outright, so the mistake
-#   surfaces as a refusal rather than as a silent double boundary.
+#   `mutation` job in Lisa's reusable Rails quality workflow — run
+#   `scripts/lib/lisa-cleanup-sweep.mjs` once before THIS script
+#   (CodySwannGT/lisa#4603), so it needs no cleanup call of its own.
 # -----------------------------------------------------------------------------
 set -euo pipefail
 

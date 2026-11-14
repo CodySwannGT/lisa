@@ -1,6 +1,6 @@
 /** Concrete review findings through the actual supported terminal entry points. */
 import { readFileSync, writeFileSync } from "node:fs";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
   cleanupFixtures,
@@ -11,12 +11,26 @@ import {
   proofFixture,
   attachRecord,
   proofCli,
+  proofCliSpawned,
   PROOF_REF,
   setApi,
   setCompare,
 } from "../../support/work-item-proof-fixture.js";
 
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 23).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
+
 useIoLatencyBudget();
+/** The finding whose case runs the guard and provider as real processes. */
+const REAL_BOUNDARY = "caller-selected source snapshot";
+
 afterEach(cleanupFixtures);
 afterAll(cleanupTemplates);
 
@@ -24,7 +38,7 @@ describe.each(["direct", "applying sweep"])(
   "reviewed proof freshness: %s",
   mode => {
     it.each([
-      "caller-selected source snapshot",
+      REAL_BOUNDARY,
       "authorization block requirements",
       "postcondition block requirements",
       "contradictory global evidence head",
@@ -106,7 +120,10 @@ describe.each(["direct", "applying sweep"])(
         mode === "direct"
           ? ["complete", "--ref", PROOF_REF]
           : ["sweep", "--apply", "--since", fixture.before, "--branch", "main"];
-      const result = proofCli(fixture, args);
+      const result = (finding === REAL_BOUNDARY ? proofCliSpawned : proofCli)(
+        fixture,
+        args
+      );
       const writes = readFileSync(fixture.env.FAKE_GH_WRITES_FILE!, "utf8");
       console.log(
         JSON.stringify({

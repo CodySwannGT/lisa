@@ -5,6 +5,9 @@ import type { printUpdateWarning } from "./print-update-warning.js";
 import type { runUpdateCheck } from "./update-check.js";
 
 const UPDATE_CHECK_EXEMPT_COMMANDS = Object.freeze([
+  // Runs inside `git push` around heavy gates; a registry round-trip there is
+  // latency on every gate and noise in the gate transcript.
+  "admit",
   "doctor",
   "health",
   "standards-proof",

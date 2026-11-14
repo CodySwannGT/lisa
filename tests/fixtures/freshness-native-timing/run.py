@@ -10,8 +10,11 @@ parser.add_argument('--output', required=True)
 parser.add_argument('--expected-head')
 args = parser.parse_args()
 source, packet = Path(args.source).resolve(), Path(args.output).resolve()
-if not os.environ.get('TMPDIR') or not Path(os.environ['TMPDIR']).is_dir():
-    raise ValueError('ordinary lisa-test-run private TMPDIR is required')
+# The ordinary wrapper names its run's owner for every payload. It no longer
+# makes a private TMPDIR (retired with the scratch policing, CodySwannGT/lisa#4603),
+# so an unset TMPDIR on a Linux runner is normal; scratch below uses /tmp.
+if not os.environ.get('LISA_TEST_RUN_OWNER'):
+    raise ValueError('run this through ordinary lisa-test-run (LISA_TEST_RUN_OWNER is unset)')
 if shutil.which('docker') is None:
     raise ValueError('native timing requires the Docker CLI and a reachable daemon')
 

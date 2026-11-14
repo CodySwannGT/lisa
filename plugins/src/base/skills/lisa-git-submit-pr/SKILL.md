@@ -31,7 +31,7 @@ Recognized optional hints:
 2a. **Local review before push**: Unless `local_review=done` has current evidence, run `lisa-review-local` over the branch diff, address findings through `convergent-review`, and commit any fixes before step 3. This applies regardless of third-party reviewer availability. Reuse an applicable completed review instead of repeating it.
 
    Report the result as *self-reviewed*; it does not satisfy the ruleset-required third-party review check. If the runtime cannot delegate review, record **local review unavailable**, continue under the existing merge policy, and do not pass `local_review=done`. An unavailable review is not a passing review.
-3. **Push**: Push current branch to remote with `-u` flag and the following environment variable - GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5"
+3. **Push**: First run `lisa check` (or `bunx @codyswann/lisa check` when `lisa` is not on PATH) and fix any failure — fix, commit, re-run — before `git push`. It runs the push gates outside the push and records their passes, so the push that follows reuses them; when the project's gate pass cache is off it exits 0 at once and says to push directly. Then push current branch to remote with `-u` flag and the following environment variable - GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5"
 4. **PR Management**:
    - Check for existing PR on this branch
    - If exists: Update description with latest changes

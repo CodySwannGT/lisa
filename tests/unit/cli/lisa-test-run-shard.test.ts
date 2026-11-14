@@ -171,6 +171,7 @@ describe("shardArgv", () => {
       "run",
       COVERAGE,
       "--shard=2/4",
+      "--reporter=default",
       "--reporter=blob",
       `--outputFile.blob=${path.join("/o", "blob-2-4.json")}`,
       "--coverage.thresholds=false",

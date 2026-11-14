@@ -13,28 +13,33 @@ import * as path from "node:path";
 // the pre-push gate and `test:cov:unit` do not build first, so a stale or
 // missing build would silently leave this repo's own suite uncapped.
 import { resolveMaxWorkers } from "./src/configs/vitest/base.js";
-
-/** Wrapper-authoritative registry, with Lisa's legacy fixture default. */
-const scratchPrefixes =
-  process.env["LISA_TEST_SCRATCH_PREFIXES"] ??
-  JSON.stringify([
-    "changelog-",
-    "derived-",
-    "e2e-",
-    "failure-signatures-",
-    "invoked-",
-    "lisa-",
-    "maestro-",
-    "node-",
-    "review-",
-    "skipreq-",
-    "state-",
-    "vacuity-",
-    "wiki-",
-  ]);
+import { HISTORY_SCANNER_SUITES } from "./scripts/lib/history-scanner-suites.mjs";
+import { withTestTimingsReporter } from "./scripts/lib/test-timings-reporter.mjs";
+import {
+  testAccessMapPlugin,
+  testAccessMapSetupFiles,
+} from "./scripts/lib/test-access-map.mjs";
 
 const config: ViteUserConfig = {
   plugins: [
+    {
+      // Per-file timings on CI (#4592). Appended after resolution, not declared
+      // in `reporters`, so a shard leg's CLI `--reporter=blob` keeps it too.
+      name: "lisa:ci-test-timings",
+      configureVitest({ vitest }) {
+        vitest.config.reporters = [
+          ...withTestTimingsReporter(
+            vitest.config.reporters,
+            process.env,
+            vitest.config.root
+          ),
+        ];
+      },
+    },
+    // Test-to-file access map (#4593), only with LISA_ACCESS_MAP=1: arms the
+    // tracer every worker and Node child inherits, and merges what they
+    // recorded into tmp/test-access-map/<scope>.json.
+    testAccessMapPlugin(),
     {
       name: "lisa:dedicated-suite-groups",
       configureVitest({ vitest, project }) {
@@ -51,12 +56,9 @@ const config: ViteUserConfig = {
         // mutation config's unit-only list, keeps them out. The bulk project
         // excludes only the admitted ones, so a suite this matcher missed
         // stays in bulk and fails loudly at its handoff instead of vanishing.
-        const scannerSuites = [
-          "tests/integration/history-secret-evidence.test.ts",
-          "tests/integration/history-secret-private-report.test.ts",
-          "tests/integration/history-secret-scanner-path.test.ts",
-          "tests/integration/history-secret-scanner-preparation.test.ts",
-        ];
+        // The list is shared with the integration shard planner, which keeps
+        // these suites in one leg so a sharded run downloads the scanner once.
+        const scannerSuites = [...HISTORY_SCANNER_SUITES];
         const deadlineProject = project.name === "freshness-deadline";
         const scannerProject = project.name === "history-scanner";
         const bulkProject = project.name === "lisa";
@@ -92,9 +94,9 @@ const config: ViteUserConfig = {
           groupOrder: deadlineProject ? 1 : 2,
         };
         // Native initialization also runs the root's global setup. Keep
-        // admission, scratch audit and coverage guard there once, while every
-        // child retains its inherited per-worker setup and environment. The
-        // scanner child adds exactly one global setup of its own.
+        // the coverage guard there once, while every child retains its
+        // inherited per-worker setup and environment. The scanner child adds
+        // exactly one global setup of its own.
         project.config.globalSetup = scannerProject
           ? [
               path.resolve(
@@ -113,43 +115,14 @@ const config: ViteUserConfig = {
       { extends: true, test: { name: "history-scanner" } },
       { extends: true, test: { name: "lisa" } },
     ],
-    // The bounded scratch space, wired from source rather than from the built
-    // package. Downstream projects reach the same modules through the shipped
-    // factory (`getTypescriptVitestConfig`), which resolves them out of `dist/`.
-    // Lisa cannot rely on that here: `test:cov:unit` and the pre-push gate do
-    // not build first, so a stale or missing `dist/` would silently leave this
-    // repo's own suite writing into the shared platform temp directory — the
-    // exact condition being fixed, on the one project most able to cause it.
-    // Both paths land in the merged arrays when `dist/` is fresh; the setup
-    // module is idempotent per process, so that costs nothing.
-    setupFiles: [
-      path.resolve(import.meta.dirname, "src/configs/vitest/scratch-setup.ts"),
-      path.resolve(
-        import.meta.dirname,
-        "src/configs/vitest/scratch-leak-setup.ts"
-      ),
-    ],
+    // The per-test scratch redirection and leak audit that used to be wired
+    // here from source were retired (CodySwannGT/lisa#4602). Stale Lisa temp
+    // entries and orphaned test processes are cleared once per run by the
+    // start-of-run sweep in `lisa-test-run` (CodySwannGT/lisa#4597), and the
+    // whole suite is admitted against machine headroom before Vitest starts
+    // (CodySwannGT/lisa#4596).
+    setupFiles: [...testAccessMapSetupFiles(process.env)],
     sequence: { setupFiles: "list", hooks: "stack" },
-    // Lisa's own legacy suite predates per-stack prefix registration. Declare
-    // its bounded fixture namespaces before collection so the guard removes
-    // known residue without turning existing fixture conventions into false
-    // failures; a new prefix outside these families remains a red leak.
-    globalSetup: [
-      // Admission first, and for the same reason `maxWorkers` below defers to
-      // the resolver rather than restating it: this file names its global setup
-      // literally instead of calling `scratchGlobalSetup()`, so a control added
-      // there reaches every downstream project and not the repository that
-      // ships it. Lisa is the machine's largest single source of concurrent
-      // runs; it must be inside its own bound, not exempt from it.
-      path.resolve(
-        import.meta.dirname,
-        "src/configs/vitest/fleet-admission-global-setup.ts"
-      ),
-      path.resolve(
-        import.meta.dirname,
-        "src/configs/vitest/scratch-global-setup.ts"
-      ),
-    ],
     // Scale worker pressure with the machine instead of occupying every core.
     // On 2026-08-27 the 966-file coverage suite started 18 workers, drove the
     // host load above 300, and starved two repository-wide inventory tests past
@@ -293,10 +266,6 @@ const config: ViteUserConfig = {
     testTimeout: 120_000,
     hookTimeout: 120_000,
     env: {
-      // Never narrow a frozen wrapper lease. Mutation adds worker namespaces;
-      // replacing them here makes setup fail before the first test can register.
-      LISA_TEST_SCRATCH_PREFIXES: scratchPrefixes,
-      LISA_TEST_SCRATCH_SUITE: "lisa",
       // The SECOND duration band, and vitest cannot reach it. Fourteen failures
       // clustered at 30,034-30,376ms are not vitest's budget expiring — they are
       // `CHILD_TIMEOUT_MS` inside the code under test

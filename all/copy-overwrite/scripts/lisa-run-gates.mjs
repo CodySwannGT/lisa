@@ -57,8 +57,22 @@ import {
   recordKillMark,
 } from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
+import { openGatePassCache } from "./lib/gate-pass-cache.mjs";
+import {
+  PARTIAL_COVERAGE_SKIP_REASON,
+  coverageLeftToCi,
+  openSelectionReports,
+} from "./lib/affected-tests.mjs";
+import { BUILD_ONCE_ID, runBuildOnce } from "./lib/build-marker.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { runStartOfRunSweep } from "./lib/lisa-cleanup-sweep.mjs";
+import {
+  admissionEnabled,
+  PUSH_CONTEXT,
+  withAdmission,
+} from "./lib/push-admission.mjs";
+import { withPushGateDefaults } from "./lib/push-gate-defaults.mjs";
+import { hostReading, recordPushTiming } from "./lib/push-timing.mjs";
 import { worktreeDependencyProblem } from "./lib/worktree-dependencies.mjs";
 import {
   interruptionReason,
@@ -219,6 +233,12 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  *   `ATTRIBUTION`; absent unless a diagnosis attributed it.
  * @property {string|null} provedBy The gate whose run proved this one, when
  *   they share a command. Always set: `runMoment` stamps it on every outcome.
+ * @property {string|null} [startedAt] When this gate's verdict began,
+ *   ISO-8601; null when the run never reached it (#4591).
+ * @property {number} [durationMs] Time spent on this gate; 0 when a sibling's
+ *   run proved it or it was never reached (#4591).
+ * @property {boolean} [cached] True when the verdict is a remembered pass for
+ *   this exact content and the gate did not run (CodySwannGT/lisa#4594).
  */
 
 /**
@@ -729,9 +749,32 @@ function summarise(result, priorKills = []) {
  * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function}} ctx Run state.
  * @returns {{outcome: object, shared: object|undefined, ran: boolean}} The verdict.
  */
-function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
+function verdictFor(
+  gate,
+  { proved, blockedBy, exec, siblings, declarations, cache }
+) {
   const own = classifyStatic(gate);
   if (own) return { outcome: own, shared: undefined, ran: false };
+
+  // A remembered pass for this exact content (CodySwannGT/lisa#4594). It is a
+  // known verdict, so it is honoured even once the run is blocked, exactly as
+  // a shared result is. It is never shared onward: a sibling computes its own
+  // key, and a sibling marked `"cache": false` must run the command itself.
+  const hit = cache?.lookup(gate) ?? null;
+  if (hit) {
+    return {
+      outcome: {
+        state: STATE.PASSED,
+        detail: `CACHED PASS (${hit.key.slice(0, 12)}) ${gate.command}`,
+        code: 0,
+        diagnosis: null,
+        evidence: [],
+        cached: true,
+      },
+      shared: undefined,
+      ran: false,
+    };
+  }
 
   const shared = gate.command ? proved.get(gate.command) : undefined;
   if (shared) {
@@ -818,6 +861,18 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
  *   whether the run this chain serves is still there. Injectable for the same
  *   reason `exec` is: a test states that the caller went away instead of having
  *   to kill a real hook mid-chain.
+ * @param {() => number} [options.clock] Epoch-ms clock used to time each gate
+ *   for the push timing report (CodySwannGT/lisa#4591). Injectable so a test
+ *   states durations instead of racing a real clock.
+ * @param {{lookup: (gate: GateOutcome) => ({key: string}|null), remember: (gate: GateOutcome, durationMs: number|null) => void, commit: () => void}|null} [options.cache]
+ *   The push-gate pass cache from `openGatePassCache`, or null for none. A
+ *   lookup hit reports `CACHED PASS` without running; only full passes are
+ *   handed to `remember`, and `commit` writes them once the run is over.
+ * @param {{read: (command: string) => ({selection?: string, coverage?: string}|null)}|null} [options.selection]
+ *   What each command reported about the tests it selected, from
+ *   `openSelectionReports` (CodySwannGT/lisa#4600), or null for none. A
+ *   partial selection is never remembered by the cache, and one run with
+ *   coverage off reports coverage-adequacy SKIPPED.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -830,6 +885,9 @@ export function runGates({
   priorKills = recentKillMarks(),
   recordKill = recordKillMark,
   interrupted = runInterruption,
+  clock = Date.now,
+  cache = null,
+  selection = null,
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
   const results = [];
@@ -901,17 +959,42 @@ export function runGates({
         diagnosis: null,
         evidence: [],
         provedBy: null,
+        startedAt: null,
+        durationMs: 0,
       });
       out(formatLine(STATE.NOT_RUN, gate, detail));
       continue;
     }
-    const { outcome, shared, ran, raw } = verdictFor(gate, {
+    const began = clock();
+    const verdict = verdictFor(gate, {
       proved,
       blockedBy,
       exec,
       siblings: sharers.get(gate.command) ?? new Set(),
       declarations: declaredShapes.get(gate.command) ?? [],
+      cache,
     });
+    const { shared, ran, raw } = verdict;
+    // What the command said it selected (CodySwannGT/lisa#4600). A partial
+    // selection is never remembered as a pass, and with coverage switched off
+    // coverage-adequacy reports SKIPPED: its property was not measured here,
+    // and CI's full run enforces it before merge.
+    const report =
+      gate.command && !verdict.outcome.cached
+        ? (selection?.read(gate.command) ?? null)
+        : null;
+    const outcome = coverageLeftToCi(gate, report)
+      ? {
+          state: STATE.SKIPPED,
+          detail: `${PARTIAL_COVERAGE_SKIP_REASON} (${gate.command})`,
+          code: null,
+          diagnosis: null,
+          evidence: [],
+        }
+      : verdict.outcome;
+    // One end reading per gate: the timing report and the pass cache share it.
+    const elapsedMs = Math.max(0, clock() - began);
+    const durationMs = ran ? elapsedMs : shared?.durationMs;
 
     // Only what this iteration actually executed is shareable, and `ran` says
     // so explicitly rather than being inferred from the exit code. `execute`
@@ -920,10 +1003,34 @@ export function runGates({
     // next gate to run it again — re-running a whole suite an operator has
     // just interrupted.
     if (ran && gate.command) {
-      proved.set(gate.command, { id: gate.id, outcome: raw ?? outcome });
+      proved.set(gate.command, {
+        id: gate.id,
+        outcome: raw ?? outcome,
+        durationMs,
+      });
+    }
+    // Only a FULL pass is remembered: this gate's own verdict passed, and so
+    // did the run that produced it — never a pass read off a shared prover
+    // whose own outcome was anything else. Written after the run, by `commit`.
+    const source = ran ? raw : shared?.outcome;
+    if (
+      cache &&
+      report?.selection !== "partial" &&
+      outcome.state === STATE.PASSED &&
+      !outcome.cached &&
+      source?.state === STATE.PASSED
+    ) {
+      cache.remember(gate, durationMs ?? null);
     }
 
-    results.push({ ...gate, ...outcome, provedBy: shared?.id ?? null });
+    // A gate proved by a sibling's run takes no time of its own.
+    results.push({
+      ...gate,
+      ...outcome,
+      provedBy: shared?.id ?? null,
+      startedAt: new Date(began).toISOString(),
+      durationMs: shared ? 0 : elapsedMs,
+    });
     out(formatLine(outcome.state, gate, outcome.detail));
     for (const line of outcome.evidence ?? []) out(`${" ".repeat(6)}↳ ${line}`);
     const unproved =
@@ -942,6 +1049,7 @@ export function runGates({
   // next iteration to observe it, and an optional gate cannot block on its own.
   // Record the interruption before this result can claim completion.
   interruption ??= interrupted();
+  cache?.commit();
 
   const bucket = state => results.filter(entry => entry.state === state);
   const result = {
@@ -975,6 +1083,12 @@ export function runGates({
     recordKill({ kind: STATE.KILLED, gateId: entry.id });
   }
   for (const line of summarise(result, priorKills)) out(line);
+  const cached = result.passed.filter(entry => entry.cached).length;
+  if (cached) {
+    out(
+      `   ${cached} of those proved by a remembered pass for this exact tree.`
+    );
+  }
   return result;
 }
 
@@ -1585,7 +1699,10 @@ export function main(argv = process.argv.slice(2)) {
   // Taken before anything runs. See `evidenceDocument`: a start stamp makes a
   // freshness bound err toward `unknown` rather than toward crediting a stale
   // observation, which is the only direction a gate may err in.
-  const observedAt = new Date().toISOString();
+  const startedAtMs = Date.now();
+  const observedAt = new Date(startedAtMs).toISOString();
+  // Host load at the START of the run, for the push timing report (#4591).
+  const startReading = hostReading();
   if (!moment) {
     console.error(
       "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>] " +
@@ -1716,12 +1833,28 @@ export function main(argv = process.argv.slice(2)) {
     );
   }
 
+  // The stack's push-gate defaults (CodySwannGT/lisa#4611): a TypeScript host
+  // gets the pass cache, admission and affected tests without declaring them,
+  // and anything it does declare, `false` included, wins.
+  const pushConfig = withPushGateDefaults(config.config, process.cwd());
+
   const wired = wiredConditionalFloor({ moment });
   const missing = undeclaredFloor({ gates: config.gates, moment, wired });
 
   // One cleanup sweep per push (CodySwannGT/lisa#4597), before the first gate
   // and before the built-in fallback below, which runs tests too. It never
   // fails the run: whatever goes wrong is printed and the gates run.
+  // Opened before the sweep, and only at push. Off unless the project set
+  // `pushGate.cache: true`, and then silent and inert (CodySwannGT/lisa#4594).
+  const cache =
+    moment === "push"
+      ? openGatePassCache({
+          config: pushConfig,
+          gates: config.gates,
+          moment,
+          out: line => console.log(line),
+        })
+      : null;
   if (moment === "push") {
     try {
       runStartOfRunSweep();
@@ -1766,12 +1899,92 @@ export function main(argv = process.argv.slice(2)) {
     });
   }
 
+  // Heavy push steps go through headroom admission when the project opted in
+  // with `pushGate.admission` (CodySwannGT/lisa#4596). Off, `exec` is
+  // `spawnExec` itself and every step starts immediately as before.
+  let exec = spawnExec;
+  if (moment === "push") {
+    // Inherited by every gate, so `lisa admit` and `lisa-test-run` apply the
+    // short in-push wait bound rather than the standalone one.
+    process.env.LISA_ADMISSION_CONTEXT = PUSH_CONTEXT;
+    try {
+      exec = withAdmission(spawnExec, {
+        enabled: admissionEnabled(pushConfig),
+      });
+    } catch (err) {
+      console.error(`🚫 Nothing ran at "push": ${err.message}`);
+      console.error(
+        "   Fix pushGate in .lisa.config.json. This is NOT a pass."
+      );
+      return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED, {
+        gates: config.gates,
+        runner: config.runner,
+        scripts,
+      });
+    }
+  }
+
+  // Build once, before the first push gate, when the project opted in with
+  // `pushGate.buildOnce` (CodySwannGT/lisa#4595). `buildOnceStep` is the entry
+  // for the push timing report; null means the push builds exactly as before.
+  let buildOnceStep = null;
+  if (moment === "push") {
+    try {
+      buildOnceStep = runBuildOnce({
+        config: pushConfig,
+        runner: config.runner,
+        scripts,
+        exec: command => exec(command, { id: BUILD_ONCE_ID }),
+      });
+    } catch (err) {
+      console.error(`🚫 Nothing ran at "push": ${err.message}`);
+      console.error(
+        "   Fix pushGate in .lisa.config.json. This is NOT a pass."
+      );
+      return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED, {
+        gates: config.gates,
+        runner: config.runner,
+        scripts,
+      });
+    }
+    if (buildOnceStep) {
+      const seconds = (buildOnceStep.durationMs / 1000).toFixed(1);
+      if (buildOnceStep.state !== STATE.PASSED) {
+        console.error(
+          `❌ build-once: \`${buildOnceStep.command}\` failed (exit ` +
+            `${buildOnceStep.code}) after ${seconds}s; no push gate ran.`
+        );
+        return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.BLOCKED, {
+          gates: config.gates,
+          runner: config.runner,
+          scripts,
+        });
+      }
+      console.log(
+        `🔨 build-once: \`${buildOnceStep.command}\` built in ${seconds}s; ` +
+          `later steps skip their build while the tree matches.`
+      );
+    }
+  }
+
   console.log(`🚦 Gates at ${moment}:`);
+  // At push a test command may narrow itself to the affected tests
+  // (CodySwannGT/lisa#4600) and says so through this channel.
+  const selection = moment === "push" ? openSelectionReports() : null;
   const result = runGates({
     gates: config.gates,
     moment,
     runner: config.runner,
-    exec: spawnExec,
+    // Selection reporting wraps the admission-aware `exec`, so a narrowed
+    // test command is still admitted like any other heavy step.
+    exec: selection
+      ? (command, gate) => {
+          selection.before(command);
+          return exec(command, gate);
+        }
+      : exec,
+    cache,
+    selection,
     // The manifest is read HERE and handed down, rather than read inside the
     // resolver, so that `runGates` stays a pure function of its inputs and
     // every test above can state what this project ships instead of writing a
@@ -1779,11 +1992,23 @@ export function main(argv = process.argv.slice(2)) {
     // check and the run cannot disagree about what this project ships.
     scripts,
   });
+  selection?.close();
   // A gates block that declares nothing at this moment is a deliberate
   // statement, not an unmigrated project: the registry governs the moment and
   // says there is nothing to prove. Say so rather than silently passing.
   if (result.total === 0) {
     console.log(`   (the gates block declares nothing at ${moment})`);
+  }
+  // Per-gate push timing report (CodySwannGT/lisa#4591). A measurement only:
+  // it never throws and never changes the exit code below.
+  if (moment === "push" && result.total > 0) {
+    recordPushTiming({
+      moment,
+      startedAtMs,
+      start: startReading,
+      result,
+      preGates: buildOnceStep ? [buildOnceStep] : [],
+    });
   }
 
   // WRITTEN AFTER THE RUN, because it reports the run. Written before it, the

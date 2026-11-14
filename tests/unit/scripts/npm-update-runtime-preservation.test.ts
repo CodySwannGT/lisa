@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 
 useIoLatencyBudget();
@@ -68,10 +67,7 @@ const COMMAND_KIND: Record<string, string> = {
 };
 
 async function exercise(missing?: string) {
-  const owned = createSupervisedUnixFixture(
-    "hook-reader.sock",
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const owned = createSupervisedUnixFixture("hook-reader.sock");
   try {
     writeFileSync(
       join(owned.root, "hook-observation.json"),

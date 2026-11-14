@@ -1,14 +1,14 @@
 /**
  * Shard and merge planning for `lisa-test-run` (CodySwannGT/lisa#4479).
  *
- * `quality.yml` shards the unit suite by ENVIRONMENT, never by appending
- * arguments to the project's gate task. The task is a package script whose
- * shape Lisa does not know — `bun run test:cov` may reach the runner through
- * two `$npm_execpath run` hops, and npm, yarn and bun each forward trailing
- * arguments differently. The playwright workflow hit exactly that wall and
- * stopped sharding declared tasks altogether. An environment variable survives
- * every hop, and this wrapper is the one place that knows which runner it is
- * about to start, so the runner-specific spelling lives here.
+ * `quality.yml` shards the unit and integration (#4599) suites by ENVIRONMENT,
+ * never by appending arguments to the project's gate task, a package script
+ * whose shape Lisa does not know: `bun run test:cov` may reach the runner
+ * through two `$npm_execpath run` hops, and npm, yarn and bun each forward
+ * trailing arguments differently (the playwright workflow hit that wall and
+ * stopped sharding declared tasks). An environment variable survives every
+ * hop, and this wrapper alone knows which runner it starts, so the spelling
+ * lives here; file-list legs live in `lisa-test-run-shard-files.ts`.
  *
  * A shard leg writes a receipt BEFORE its runner starts. The workflow refuses a
  * leg that left none: a consumer still on a Lisa without this module, or a
@@ -18,9 +18,8 @@
  *
  * Per-shard coverage floors are switched off, because a shard measures a slice
  * of the suite against the whole source and fails any project-wide floor. The
- * floor is enforced once, by the merge, over the union of every shard. Vitest
- * enforces every threshold form its config declares at that merge; the Jest
- * merge supports the `global` key only and refuses the rest by name.
+ * floor is enforced once, by the merge, over every shard's union: Vitest's for
+ * every threshold form; Jest's for `global` only, refusing the rest by name.
  * @module cli/lisa-test-run-shard
  */
 import * as fs from "node:fs";
@@ -34,12 +33,15 @@ export const SHARD_OUTPUT_ENV = "LISA_TEST_SHARD_OUTPUT";
 export const SHARD_MERGE_ENV = "LISA_TEST_SHARD_MERGE";
 /** How many shards the merge leg must find. */
 export const SHARD_TOTAL_ENV = "LISA_TEST_SHARD_TOTAL";
+/** A leg's file-list plan (#4599); unset, it runs the runner's `--shard`. */
+export const SHARD_PLAN_ENV = "LISA_TEST_SHARD_PLAN";
 /** Every variable above, for stripping before the payload starts. */
 export const SHARD_ENV_NAMES = [
   SHARD_ENV,
   SHARD_OUTPUT_ENV,
   SHARD_MERGE_ENV,
   SHARD_TOTAL_ENV,
+  SHARD_PLAN_ENV,
 ] as const;
 
 /** File a shard leg leaves in its output directory. */
@@ -54,6 +56,7 @@ export interface ShardLeg {
   readonly index: number;
   readonly total: number;
   readonly output: string;
+  readonly filePlan?: string | undefined; // unset for a `--shard` slice
 }
 
 /** The merge leg. */
@@ -130,13 +133,16 @@ export function shardPlanFrom(
 ): ShardPlan {
   const shard = setting(env, SHARD_ENV);
   const merge = setting(env, SHARD_MERGE_ENV);
+  const filePlan = setting(env, SHARD_PLAN_ENV);
   if (shard !== undefined && merge !== undefined) {
     throw new Error(
       `${SHARD_ENV} and ${SHARD_MERGE_ENV} are both set; a run is one shard or the merge, never both.`
     );
   }
+  if (filePlan !== undefined && shard === undefined)
+    throw new Error(`${SHARD_PLAN_ENV} is set but ${SHARD_ENV} is not.`);
   if (shard !== undefined)
-    return shardLeg(shard, setting(env, SHARD_OUTPUT_ENV));
+    return { ...shardLeg(shard, setting(env, SHARD_OUTPUT_ENV)), filePlan };
   if (merge === undefined) return { kind: "none" };
   const total = env[SHARD_TOTAL_ENV] ?? "";
   if (!WHOLE_NUMBER.test(total)) {
@@ -236,6 +242,11 @@ export function shardArgv(
   return [
     ...argv,
     shard,
+    // `default` beside `blob`: a CLI `--reporter` replaces every configured
+    // reporter, so a blob-only leg printed no FAIL line and no summary — a red
+    // shard said only "blob report written", and the merge job, which refuses
+    // a failed matrix before merging, never printed them either.
+    "--reporter=default",
     "--reporter=blob",
     `--outputFile.blob=${path.join(leg.output, `blob-${leg.index}-${leg.total}.json`)}`,
     // Every threshold off, not four zeroed metrics: glob, `perFile` and
@@ -250,11 +261,13 @@ export function shardArgv(
  * @param leg - This shard leg
  * @param runner - Runner the leg starts
  * @param argv - The payload argv before sharding
+ * @param extra - What a file-list leg adds: its mode and file counts
  */
 export function writeShardReceipt(
   leg: ShardLeg,
   runner: ShardRunner,
-  argv: readonly string[]
+  argv: readonly string[],
+  extra: Readonly<Record<string, unknown>> = { mode: "shard" }
 ): void {
   fs.mkdirSync(leg.output, { recursive: true });
   fs.writeFileSync(
@@ -265,6 +278,7 @@ export function writeShardReceipt(
       total: leg.total,
       runner,
       coverage: collectsCoverage(argv),
+      ...extra,
     })}\n`
   );
 }

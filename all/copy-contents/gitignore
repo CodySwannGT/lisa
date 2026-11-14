@@ -214,6 +214,17 @@ cdk.out
 # machine/process evidence.
 .lisa/tmpdir-growth.json
 
+# Build-once marker written by the push gate runner when pushGate.buildOnce is
+# on. Per-worktree runtime state naming the tree that was just built.
+.lisa/build-marker.json
+
+# Test-to-file access map the push gate downloads when pushGate.affectedTests is
+# on (CodySwannGT/lisa#4600). A cache keyed by base commit, never committed.
+.lisa/test-access-map/
+# The gitlab-crystalball spec map the Rails pre-push downloads to run only the
+# specs a change can reach (CodySwannGT/lisa#4612). Keyed by base commit.
+.lisa/crystalball-map/
+
 # Verbatim work-item bundle written by the implement flow's input-resolver. It
 # can quote credentials from tracker comments and is per-worktree state. Keep
 # this above EASINCLUDE so remote build uploads never receive it.
@@ -286,6 +297,11 @@ expo-env.d.ts
 # routine under their own account — so committing it would collide on every
 # dispatch while telling a teammate nothing they can act on.
 .lisa/remote-dispatch.json
+
+# Per-run push gate timing reports (CodySwannGT/lisa#4591). Machine-local
+# measurements of one push on one host; summarise with
+# `node scripts/lisa-push-timing-report.mjs`.
+.lisa/push-timing/
 
 # Lisa-generated project Codex overlay. Keep host-owned config.toml and
 # hooks.json visible so projects can commit their own merged configuration.

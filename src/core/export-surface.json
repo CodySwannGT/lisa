@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 289,
-  "$names": 2117,
+  "$modules": 316,
+  "$names": 2332,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -112,6 +112,50 @@
       "main",
       "runCli"
     ],
+    "all/copy-overwrite/scripts/fetch-test-access-map.mjs": [
+      "formatAge",
+      "main",
+      "mergeMaps",
+      "mergedTriggers",
+      "parseArgs",
+      "parseArtifacts",
+      "piecesRefusal",
+      "rankRuns",
+      "repositoryFromRemote",
+      "runRefusal",
+      "selectRun"
+    ],
+    "all/copy-overwrite/scripts/lib/affected-tests.mjs": [
+      "AFFECTED_COVERAGE_KEY",
+      "AFFECTED_TESTS_KEY",
+      "COVERAGE_MODES",
+      "DEFAULT_MAX_AGE_DAYS",
+      "FULL_SUITE_TRIGGERS",
+      "MAX_AGE_ENV",
+      "NOT_READ_BY_TESTS",
+      "PARTIAL_COVERAGE_SKIP_REASON",
+      "RECORDED_TRIGGER_REASON",
+      "SELECTION_REPORT_ENV",
+      "affectedTestsSettings",
+      "changedFileCoverage",
+      "coverageDeclaredAtPush",
+      "coverageEscalationLines",
+      "coverageLeftToCi",
+      "excludedBy",
+      "expandBraces",
+      "explainSelection",
+      "firedTrigger",
+      "fullSuiteEscalation",
+      "globToRegExp",
+      "measuresCoverage",
+      "narrowable",
+      "openSelectionReports",
+      "partialArgv",
+      "readersByFile",
+      "recordedTriggers",
+      "selectAffectedTests",
+      "staleMapReason"
+    ],
     "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs": [
       "DESCRIPTOR_KEYS",
       "FILES",
@@ -149,7 +193,8 @@
       "localDescriptor",
       "predictedCommit",
       "privateBytes",
-      "proofSnapshot"
+      "proofSnapshot",
+      "resolverTimeoutMs"
     ],
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": [
       "DEFAULT_CHILD_BUDGET_MS",
@@ -157,6 +202,22 @@
       "boundedSpawnSync",
       "isChildTimeout",
       "rethrowIfChildTimeout"
+    ],
+    "all/copy-overwrite/scripts/lib/build-marker.mjs": [
+      "BUILD_MARKER_ENV",
+      "BUILD_MARKER_PATH",
+      "BUILD_MARKER_SCHEMA",
+      "BUILD_ONCE_ID",
+      "buildOnceEnabled",
+      "checkBuildMarker",
+      "currentFingerprint",
+      "lockfileHash",
+      "markerMatches",
+      "pluginsClean",
+      "readBuildMarker",
+      "runBuildOnce",
+      "workingTreeHash",
+      "writeBuildMarker"
     ],
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs": [
       "authorizeCompletion",
@@ -302,6 +363,27 @@
       "ranNoTests",
       "tempRootPopulation",
       "terminatedDocComments"
+    ],
+    "all/copy-overwrite/scripts/lib/gate-pass-cache.mjs": [
+      "CACHE_ENV",
+      "CACHE_FIELD",
+      "ENV_ALLOWLIST",
+      "KEY_SCHEMA",
+      "LOCKFILES",
+      "MAX_AGE_MS",
+      "SECRET_NAME_PATTERN",
+      "STORE_DIR_MODE",
+      "STORE_FILE_MODE",
+      "VOLATILE_LISA_ENV",
+      "cacheDirectory",
+      "cacheSetting",
+      "canonicalJson",
+      "environmentFingerprint",
+      "gateKey",
+      "openGatePassCache",
+      "provedTree",
+      "relevantEnvironment",
+      "sharedInputs"
     ],
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": [
       "verifyAssignable",
@@ -942,6 +1024,36 @@
       "timeoutVerdictForPlatform",
       "windowsTreeExists"
     ],
+    "all/copy-overwrite/scripts/lib/push-admission.mjs": [
+      "ADMITTED_GATES",
+      "PUSH_CONTEXT",
+      "admissionEnabled",
+      "admittedCommand",
+      "lisaCliPrefix",
+      "shellQuote",
+      "withAdmission"
+    ],
+    "all/copy-overwrite/scripts/lib/push-gate-defaults.mjs": [
+      "RAILS_PUSH_GATE_DEFAULTS",
+      "TYPESCRIPT_PUSH_GATE_DEFAULTS",
+      "isRailsProject",
+      "isTypeScriptProject",
+      "pushGateDefaultsFor",
+      "withDefaults",
+      "withPushGateDefaults"
+    ],
+    "all/copy-overwrite/scripts/lib/push-timing.mjs": [
+      "KEEP_REPORTS",
+      "TIMING_DIR",
+      "formatDuration",
+      "formatLoad",
+      "formatTimingLine",
+      "hostReading",
+      "recordPushTiming",
+      "reportFileName",
+      "timingReport",
+      "writeTimingReport"
+    ],
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs": [
       "RUNS_PER_PAGE",
       "createRunPageFetcher",
@@ -956,6 +1068,39 @@
     ],
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": [
       "scanForLoadFailures"
+    ],
+    "all/copy-overwrite/scripts/lib/rspec-selection.mjs": [
+      "ALWAYS_RUN_DIRS",
+      "ARTIFACT_NAME",
+      "MAP_DIR",
+      "MAP_TRUST",
+      "MAX_MAP_RUN_CHECKS",
+      "RAILS_DEFAULT_COVERAGE",
+      "RAILS_FULL_SUITE_TRIGGERS",
+      "RSPEC_SUBJECT",
+      "SPEC_FILE",
+      "THRESHOLDS_FILE",
+      "alwaysRunSpecs",
+      "associatedSpec",
+      "changedRubyCoverage",
+      "chooseMapRun",
+      "deletedSpecReason",
+      "explainRspecSelection",
+      "filePercentages",
+      "fullSuite",
+      "isRailsProject",
+      "mapPiecesRefusal",
+      "mapRunRefusal",
+      "mergeMapDocuments",
+      "nocovLines",
+      "parseMapArtifacts",
+      "railsCoverageEscalation",
+      "railsFullSuiteEscalation",
+      "railsTrigger",
+      "rankMapRuns",
+      "rspecSelectionSettings",
+      "selectRailsSpecs",
+      "taggedAlwaysRun"
     ],
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs": [
       "LINEAR_REQUIRED_FORM",
@@ -981,6 +1126,13 @@
     ],
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": [
       "worktreeDependencyProblem"
+    ],
+    "all/copy-overwrite/scripts/lisa-affected-tests.mjs": [
+      "MAP_DIR",
+      "PUSH_ONLY_FLAG",
+      "main",
+      "parseArgs",
+      "plan"
     ],
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs": [
       "automationReference",
@@ -1142,6 +1294,11 @@
       "APPLY_FAILURE_MARKER",
       "runPostinstall"
     ],
+    "all/copy-overwrite/scripts/lisa-push-timing-report.mjs": [
+      "main",
+      "median",
+      "summariseReports"
+    ],
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs": [
       "main"
     ],
@@ -1171,6 +1328,13 @@
       "rulesetSignals",
       "sameDeclaredValue",
       "unobservablePolicyFields"
+    ],
+    "all/copy-overwrite/scripts/lisa-rspec-select.mjs": [
+      "PARTIAL_COVERAGE_HELPER",
+      "main",
+      "planRspecRun",
+      "rspecArgv",
+      "runRspecPlan"
     ],
     "all/copy-overwrite/scripts/lisa-run-gates.mjs": [
       "BUILTIN_FLOOR",
@@ -1485,6 +1649,23 @@
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": [
       "invokedAsScript"
     ],
+    "rails/copy-overwrite/scripts/lisa-rails-gates.mjs": [
+      "ADMISSION_REFUSED_EXIT",
+      "CHECK_GATES",
+      "RAILS_GATES",
+      "RSPEC_WORKERS_ENV",
+      "declaredWorkers",
+      "grantedWorkers",
+      "isRailsProject",
+      "main",
+      "mutationEnabled",
+      "parallelDatabaseReady",
+      "railsEffectiveConfig",
+      "railsLisaCli",
+      "rspecCommand",
+      "runPayload",
+      "runRailsGates"
+    ],
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": [
       "MAX_SHARDS",
       "MIN_SHARDS",
@@ -1534,6 +1715,9 @@
       "globRoot",
       "parseJson",
       "parseK6Expression"
+    ],
+    "scripts/build-unless-marked.mjs": [
+      "main"
     ],
     "scripts/check-delivery-deletion-conflicts.mjs": [
       "DELIVERY_LANES",
@@ -1926,6 +2110,9 @@
       "GENERATED_ARTIFACT_DRIVER",
       "installGeneratedArtifactMergeDriver"
     ],
+    "scripts/integration-shard-build.mjs": [
+      "main"
+    ],
     "scripts/lib/bounded-spawn.mjs": [
       "DEFAULT_CHILD_BUDGET_MS",
       "boundedExecFileSync",
@@ -1946,6 +2133,9 @@
     ],
     "scripts/lib/gitattributes-merge-drivers.mjs": [
       "mergeDriversIn"
+    ],
+    "scripts/lib/history-scanner-suites.mjs": [
+      "HISTORY_SCANNER_SUITES"
     ],
     "scripts/lib/hook-registration-audit.mjs": [
       "REPO_ROOT",
@@ -1978,6 +2168,44 @@
     ],
     "scripts/lib/invoked-as-script.mjs": [
       "invokedAsScript"
+    ],
+    "scripts/lib/markdown-assertions/classify.mjs": [
+      "classifyCheck",
+      "knownNames",
+      "literalText"
+    ],
+    "scripts/lib/markdown-assertions/context.mjs": [
+      "createClassifier",
+      "isMarkdown"
+    ],
+    "scripts/lib/markdown-assertions/corpus.mjs": [
+      "buildCorpus",
+      "declaredNames",
+      "isCodePath",
+      "scriptLiterals",
+      "searchableText"
+    ],
+    "scripts/lib/markdown-assertions/manifest-cull.mjs": [
+      "CULLED_COMMENT",
+      "cullManifest"
+    ],
+    "scripts/lib/markdown-assertions/record.mjs": [
+      "candidateTestFiles",
+      "recordAssertions"
+    ],
+    "scripts/lib/markdown-assertions/sites.mjs": [
+      "classifySites",
+      "evidenceSites",
+      "exercisesCode",
+      "siteCounts"
+    ],
+    "scripts/lib/markdown-assertions/test-cull.mjs": [
+      "cullTestFiles"
+    ],
+    "scripts/lib/markdown-assertions/tokens.mjs": [
+      "MIN_TOKEN_LENGTH",
+      "patternLiteral",
+      "tokenCandidates"
     ],
     "scripts/lib/mutation-performance-reporter.mjs": [
       "LisaMeasurementReporter",
@@ -2164,6 +2392,32 @@
       "removalKey",
       "resolveRelative"
     ],
+    "scripts/lib/test-access-map.mjs": [
+      "ACCESS_MAP_ENV",
+      "TEST_ACCESS_MAP_DIRECTORY",
+      "TEST_ACCESS_MAP_SETUP_FILE",
+      "TEST_ACCESS_MAP_TRACER_VERSION",
+      "accessMapMetadata",
+      "accessMapWanted",
+      "armTestAccessMap",
+      "configuredTriggers",
+      "mergeAccessRecords",
+      "repositoryFile",
+      "testAccessMapEnabled",
+      "testAccessMapPlugin",
+      "testAccessMapReporter",
+      "testAccessMapScope",
+      "testAccessMapSetupFiles",
+      "withTestAccessMapReporter"
+    ],
+    "scripts/lib/test-timings-reporter.mjs": [
+      "TEST_TIMINGS_DIRECTORY",
+      "TEST_TIMINGS_SCOPES",
+      "declaredTestScope",
+      "testTimingsReporter",
+      "testTimingsScope",
+      "withTestTimingsReporter"
+    ],
     "scripts/lib/upstream-manifest-staleness.mjs": [
       "describeStaleManifest",
       "diagnoseStaleManifest",
@@ -2324,6 +2578,14 @@
       "validateMeasurement",
       "verifyPreparedManifest"
     ],
+    "scripts/plan-integration-shards.mjs": [
+      "SHARD_PLAN_SCHEMA",
+      "findTimingsRun",
+      "formatPlan",
+      "main",
+      "parseArgs",
+      "planShards"
+    ],
     "scripts/plugin-parity-drift.mjs": [
       "UsageError",
       "buildReport",
@@ -2373,6 +2635,13 @@
       "renderReport",
       "runArtifactChecks",
       "runCheck"
+    ],
+    "scripts/test-timing-report.mjs": [
+      "collectTimings",
+      "formatReport",
+      "main",
+      "parseArgs",
+      "summarize"
     ],
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs": [
       "ABSOLUTE_MAX_API_ATTEMPTS",

@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import { GIT_BIN } from "../../support/git-executable.js";
 import {
@@ -17,8 +17,19 @@ import {
   proofFixture,
   attachRecord,
   proofCli,
+  proofCliSpawned,
   PROOF_REF,
 } from "../../support/work-item-proof-fixture.js";
+
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 38).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
 
 useIoLatencyBudget();
 afterEach(cleanupFixtures);
@@ -30,7 +41,12 @@ const GIT_CALLS = "git-calls.jsonl";
 type ProofFixture = ReturnType<typeof proofFixture>;
 
 /** Capture actual CLI streams and native-shaped state independently of assertions. */
-function observe(fixture: ProofFixture, since?: string, selectedRef = MAIN) {
+function observe(
+  fixture: ProofFixture,
+  since?: string,
+  selectedRef = MAIN,
+  run: typeof proofCli | typeof proofCliSpawned = proofCli
+) {
   const stateFile = fixture.env.FAKE_GH_STATE_FILE!;
   const before = JSON.parse(readFileSync(stateFile, "utf8"));
   const args = [
@@ -40,7 +56,7 @@ function observe(fixture: ProofFixture, since?: string, selectedRef = MAIN) {
     "--branch",
     MAIN,
   ];
-  const result = proofCli(fixture, args);
+  const result = run(fixture, args);
   const state = JSON.parse(readFileSync(stateFile, "utf8"));
   const writes = readFileSync(fixture.env.FAKE_GH_WRITES_FILE!, "utf8");
   const calls = readFileSync(fixture.env.FAKE_GH_LOG!, "utf8");
@@ -109,7 +125,7 @@ function acceptedFixture() {
 describe("bounded sweep ancestry with accepted completion proof", () => {
   it("completes an ordinary ancestor-bounded range", () => {
     const fixture = acceptedFixture();
-    const observed = observe(fixture, fixture.before);
+    const observed = observe(fixture, fixture.before, MAIN, proofCliSpawned);
     expect(observed.result.status).toBe(0);
     expect(observed.result.stdout).toContain("work-item completed:");
     expect(observed.state.state).toBe("CLOSED");

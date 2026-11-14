@@ -105,7 +105,7 @@ export function launcherContext(file) {
     value.graph &&
       typeof value.graph === "object" &&
       !Array.isArray(value.graph) &&
-      Object.keys(value.graph).length <= 128,
+      Object.keys(value.graph).length <= 256,
     "unbounded trusted import graph"
   );
   controllerGraph(value.graph, value.routes);

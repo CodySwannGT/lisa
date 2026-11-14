@@ -1,4 +1,4 @@
-/** Packed npm-bin boundary proof for the foreground test supervisor. */
+/** Packed npm-bin boundary proof for the foreground test runner. */
 import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -30,7 +30,8 @@ const BIN_ROOT = path.join(TEST_ROOT, "node_modules", ".bin");
 const BIN = path.join(BIN_ROOT, "lisa-test-run");
 const PACKED_ENTRY = path.join(PACKAGE_ROOT, "dist/cli/lisa-test-run.js");
 const PAYLOAD = path.join(TEST_ROOT, "payload.mjs");
-const SCRATCH_NAMESPACE = "lisa-scratch";
+/** The retired scratch namespace; a run must no longer create it (#4602). */
+const RETIRED_SCRATCH_NAMESPACE = "lisa-scratch";
 const ADVERSARIAL_DIST_NAME = `lisa-packed-bin-adversarial-${process.pid}.map`;
 const GIT_BIN = resolveGit();
 
@@ -167,14 +168,13 @@ afterAll(() => {
 /**
  * Run one packed bin payload and retain its observed result.
  * @param mode - Terminal outcome the fixture should produce.
- * @returns The isolated scratch paths and observed child result.
+ * @returns The isolated temp base, payload marker and observed child result.
  */
 function runPacked(mode: "exit" | "signal") {
   const base = fs.mkdtempSync(path.join(TEST_ROOT, `${mode}-`));
   const marker = path.join(base, "payload.marker");
   const childEnv = {
     ...process.env,
-    LISA_TEST_SCRATCH_SUITE: "lisa",
     LISA_PACKED_BIN_MARKER: marker,
     LISA_PACKED_BIN_MODE: mode,
     TMPDIR: base,
@@ -247,9 +247,9 @@ describe.skipIf(process.platform === "win32")(
         expect(run.result.error, run.result.stderr).toBeUndefined();
         expect(fs.existsSync(run.base), run.result.stderr).toBe(true);
         expect(fs.readFileSync(run.marker, "utf8")).toBe("ran");
-        expect(fs.readdirSync(path.join(run.base, SCRATCH_NAMESPACE))).toEqual(
-          []
-        );
+        expect(
+          fs.existsSync(path.join(run.base, RETIRED_SCRATCH_NAMESPACE))
+        ).toBe(false);
       }
     );
 

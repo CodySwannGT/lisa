@@ -481,10 +481,10 @@ Lisa caps the pool for you, in three layers:
 | layer | what it does | when it applies |
 |---|---|---|
 | **Floor** | Half the machine's cores | Always, when this run is the only one |
-| **Divisor** | Floor ÷ concurrent runs, never below 2 workers | Whenever other Lisa runs are live |
+| **Divisor** | Floor ÷ concurrent runs, never below 2 workers | Whenever you state how many runs share the machine |
 | **Override** | Exactly the number you give it | Whenever you set it |
 
-You do not have to configure any of this. A run discovers how many sibling runs are live by looking at the shared scratch namespace, so the divisor applies to a fleet nobody told it about. Two variables are available when you want to steer it:
+You do not have to configure any of this. Runs no longer count live sibling runs on their own (that count read the per-test scratch folders, which were retired); on a busy machine, headroom admission below is what sizes a run. Two variables are available when you want to steer it:
 
 - **`LISA_FLEET_CONCURRENCY`** — state how many runs are coming, rather than letting the run count what has already started. Useful when you are about to launch six agents and want the first one sized for six.
 - **`LISA_VITEST_MAX_WORKERS`** — set the pool size outright. Wins over both other layers, in both directions: raise it above the floor as readily as you lower it.
@@ -496,7 +496,64 @@ Worker count is not the only thing several runs contend over. Coverage runs writ
 - **`LISA_COVERAGE_REPORTS_DIR`** — put the reports at a fixed path instead. For somewhere only one run happens at a time and something downstream expects to find the report in a known place, such as a CI job that uploads `coverage/lcov.info`.
 
 > **Prompt for your coding agent**
-> "Show me how this project's test worker pool is sized — find the resolver, tell me what each of the three layers would give on this machine right now, and how many sibling runs it currently detects."
+> "Show me how this project's test worker pool is sized — find the resolver, and tell me what each of the three layers would give on this machine right now."
+
+### Starting heavy runs only when the machine has room
+
+Sizing each pool is not enough when many agents start heavy runs at once: a ten-minute suite becomes a multi-hour flaky one. Set `"pushGate": { "admission": true }` in `.lisa.config.json` and every heavy run waits for headroom before it starts: every test suite run through `lisa-test-run`, plus the push gate's slow lint (`code-style-slow`), typecheck (`type-correctness`) and build-once steps. Headroom is the machine's cores, minus its one-minute load average, minus the workers of runs admitted in the last 60 seconds, because load average lags new work. A run starts at once when the headroom covers the workers it declares. A test suite can start with fewer workers, down to two, and passes the number it was given to Vitest as `LISA_ADMITTED_WORKERS`. Every repository and worktree on the machine shares one state directory, `${XDG_CACHE_HOME:-~/.cache}/lisa/admission/`, so a run in one repository counts a run admitted from another. A run that is killed leaves a reservation behind, and the next run ignores and deletes it.
+
+The wait has a limit, and nothing starts quietly when the limit runs out. The run stops with exit status 75 and names the runs that are holding the machine. Inside `git push` the limit is 5 minutes (`LISA_ADMISSION_PUSH_MAX_WAIT`). Elsewhere it is 30 minutes (`LISA_ADMISSION_MAX_WAIT`, which also applies inside a push when set). Scripts can wrap any command themselves with `lisa admit --workers <n> [--max-wait <duration>] -- <command…>`.
+
+- **Thresholds** belong to the machine, not the repository. Put them in `.lisa.config.local.json` under `admission` (`maxLoadPerCore`, default 1; `minFreeMemoryMb`, default 512; `maxWaitSeconds`; `pushMaxWaitSeconds`), or set the `LISA_ADMISSION_MAX_LOAD_PER_CORE` and `LISA_ADMISSION_MIN_FREE_MEMORY_MB` environment variables, which take precedence.
+- **`LISA_ADMISSION=off`** starts every run at once and prints that admission is off. CI skips admission because one job owns the runner. `LISA_ADMISSION=on` forces it on.
+- **Off by default.** If a project does not set the switch, its heavy runs start at once, exactly as before. Lisa turns it on for itself. Host templates turn it on per stack. The gate runner does not admit steps on Windows yet. When the switch is on there, it prints that and runs the steps at once.
+
+This replaces the old fleet admission, which held a Vitest run in a `globalSetup` hook. That hook counted runs instead of measuring load, covered only Vitest runs, and started a run anyway after two minutes.
+
+### Building once per push
+
+A push can build the project several times: each test gate builds before it tests, and a drift check may rebuild again. Set `"pushGate": { "buildOnce": true }` in `.lisa.config.json` and the push gate runner builds once, before the first gate, then writes `.lisa/build-marker.json`, which records the working-tree hash, the lockfile hash and the node and bun versions. It exports that file's path as `LISA_BUILD_MARKER`. A later step can skip its own build only when every recorded value still matches. Any difference, or no marker at all, means it builds exactly as before. If the up-front build fails, the push fails without running any gate. The setting is off by default, and `lisa apply` and the gate runner both reject a value that is not `true` or `false`. Lisa turns it on for itself. Host templates turn it on per stack.
+
+### Checking before you push
+
+With `"pushGate": { "cache": true }`, a push skips any gate that already passed for the exact same tree. `lisa check` (or `bunx @codyswann/lisa check` where `lisa` is not on your PATH) runs the push gates for your last commit before you push, and records their passes so the push that follows takes seconds. It waits up to 30 minutes for the machine to have room (`--max-wait 2h` to change that), which is safe outside a push but not inside one. It refuses to run until you commit everything, and it exits non-zero when a gate fails. When the cache is off for the project it does nothing and tells you to push directly, so agents can always run it first. Lisa's agent skills run it before every push; you can keep pushing normally.
+
+Rails projects get the cache and headroom admission without setting anything: the pre-push RSpec, Brakeman, Reek, Flog and Flay commands run through `scripts/lisa-rails-gates.mjs`, and `lisa check` runs that same set, so a re-push of an unchanged tree reports each as `CACHED PASS`. Set `"cache": false` or `"admission": false` under `pushGate` to turn either off. RSpec, and the mutation gate when you enable it, wait for room on the machine; the static analysers do not. When a full RSpec run is needed and the test database name in `config/database.yml` includes `<%= ENV['TEST_ENV_NUMBER'] %>`, it runs as `bundle exec parallel_rspec -n <workers>`, with as many workers as admission grants (ask for a different number with `LISA_ADMISSION_RSPEC_WORKERS`). Without that name it runs one process and prints a one-line hint. Lisa never edits `config/database.yml`.
+
+### Running only the affected tests at push
+
+Set `"pushGate": { "affectedTests": true }` in `.lisa.config.json` and the unit-test push gate runs only the tests your change can reach. It reads the access map that CI records for every pull request, which lists the files each test touched. It runs the tests that touched a changed file, plus any changed test, and hands the changed files to Vitest's own import-graph selection (`vitest related`). Before it runs, it prints each chosen test and the reason it was chosen.
+
+Whenever the choice could be wrong, it runs the full suite instead and says why in plain words. That happens when the map is missing, when it was recorded for a different base, when it is older than seven days (`LISA_ACCESS_MAP_MAX_AGE_DAYS` changes the limit), or when a changed file is new since the map was recorded. It also happens when `package.json`, a lockfile, the Vitest, TypeScript or ESLint config, or shared test helpers, support code or fixtures change. It never chooses a partial run in CI, so CI still runs every test before merge. The map for a base is downloaded once and kept in `.lisa/test-access-map/`. A download that finds nothing is remembered for 15 minutes.
+
+A partial run cannot measure overall coverage, so `pushGate.affectedCoverage` decides what happens to the `coverage-adequacy` gate at push:
+
+- **`"full"`** (the default): wherever `coverage-adequacy` is declared at push, the full suite runs with coverage measured, exactly as before. With this setting, selection only speeds up projects that do not check coverage at push.
+- **`"changed-files"`**: the chosen tests run with coverage on, and each changed source file is checked against `vitest.thresholds.json` on its own. When every changed file meets it, the push passes on the partial run. When one does not, the push does not fail for that alone: it prints which file is short and runs the full suite with whole-repo coverage, exactly as `"full"` does, and that run decides the push. So a push is never stricter than whole-repo coverage, which is what it checked before selection existed.
+- **`"skip"`**: the chosen tests run without coverage, and `coverage-adequacy` reports SKIPPED with `partial selection — enforced by CI`.
+
+Both settings are off or `"full"` by default, and `lisa apply` and the push gate both reject a value they do not recognise. Lisa turns `affectedTests` on for itself with `affectedCoverage` set to `"changed-files"`; whole-repo coverage is still enforced on the pull request.
+
+#### Rails projects
+
+On a Rails project (one with `bin/rails` or `config/application.rb`), the pre-push `rspec` command runs only the specs your change can reach, and this is on by default. Set `"pushGate": { "affectedTests": false }` to always run the full suite. The map comes from gitlab-crystalball: on every pull request, the full RSpec run in `quality-rails.yml` records which application files each spec executed, plus the files that define the class each spec describes. It uploads that map as `crystalball-map-<base sha>-<run id>`, merging the shards when the suite is sharded. The pre-push downloads the newest map for its base with `gh` and keeps it in `.lisa/crystalball-map/`. A partial run includes the specs that executed a changed file, each changed spec, and the conventional spec for a changed file (`app/models/user.rb` pairs with `spec/models/user_spec.rb`). It always adds `spec/system/**`, `spec/features/**`, specs tagged `:js`, and specs tagged `lisa_always_run: true`. That last tag is the escape hatch for a spec whose behaviour the map cannot see, such as one that spawns a child process, calls an external service, or relies on a class it does not describe through a declaration like `validates` or `scope`.
+
+The full suite runs, and the reason is printed, in any of these cases:
+
+- the push is a CI run;
+- the map is missing, unreadable, recorded off this branch's history, or older than seven days;
+- `Gemfile` or `Gemfile.lock` changes;
+- `db/schema.rb` or `db/structure.sql` changes;
+- anything under `config/` or `spec/support/` changes, or a `spec/*_helper.rb`, `.rspec` or `.simplecov`;
+- a file the map has never seen changes, such as a view or a fixture. Changes only to documentation, CI configuration or coding-agent configuration are the exception.
+
+Coverage defaults to `"changed-files"` on Rails. A partial run keeps SimpleCov's project-wide minimums off the slice (`scripts/lisa_rspec_partial_coverage.rb`), and then each changed Ruby file is checked against `simplecov.thresholds.json` on its own. A file below it does not fail the push for that alone: the pre-push names the file and runs the full suite, whose SimpleCov minimums decide the push, exactly as `"full"` would. It does the same when the partial run cannot measure coverage safely, for example with a SimpleCov too old to keep its minimums off the slice. `"skip"` leaves coverage to CI. `"full"` keeps the full suite. CI still runs every spec and enforces the thresholds on the whole suite before merge.
+
+### The smart push gate in TypeScript projects
+
+A TypeScript project gets the smart push gate without configuring it. A project counts as TypeScript when it has a root `tsconfig.json`, or `typescript` in its `package.json` dependencies or devDependencies. When its `.lisa.config.json` does not say otherwise, it gets `cache`, `admission` and `affectedTests` set to `true`, and `affectedCoverage` set to `"changed-files"`, the same as Lisa. A value the project sets always wins, `false` included, so `"pushGate": { "affectedTests": false }` returns the push to the full suite. `buildOnce` stays off, because a TypeScript project's push gates do not build, so a build-once step would only add a build. Nothing is written into the project's config, and an existing project needs only `lisa apply`.
+
+The shipped `test:cov:unit` and `test:unit` scripts of every Vitest stack run through the selector, but they narrow only when the push gate (or `lisa check`) runs them. CI and a test run you start yourself still run every test. The Jest stack (Expo) is not narrowed. The shared Vitest presets record the project's access map on every pull request in the shared CI workflow when `affectedTests` is on, and `scripts/fetch-test-access-map.mjs` downloads it from the project's own repository. Until the project's CI has recorded a map, every push runs the full suite and says `missing map`. The project's own Vitest `forceRerunTriggers`, `setupFiles` and `globalSetup` are recorded with the map, so a change to any of them also runs the full suite.
 
 ## Working across trackers and sources
 

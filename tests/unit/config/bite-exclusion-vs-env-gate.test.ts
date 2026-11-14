@@ -64,7 +64,7 @@ describe("mutation control scheduling", () => {
     // is the packed-host journey, which owner decision 4 of
     // CodySwannGT/lisa#4587 took off the PR path (CodySwannGT/lisa#4606).
     expect(script(task as string)).toBe(
-      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'"
+      "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_TIMINGS_SCOPE=integration $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'"
     );
   });
 });

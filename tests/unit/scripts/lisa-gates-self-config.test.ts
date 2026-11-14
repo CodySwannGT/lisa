@@ -722,7 +722,7 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     );
     expect(onPr?.task).toBe("test:integration");
     expect(script("test:integration")).toBe(
-      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'"
+      "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_TIMINGS_SCOPE=integration $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'"
     );
   });
 

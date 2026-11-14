@@ -74,6 +74,7 @@ import { createRequire } from "node:module";
 import { dirname, isAbsolute, join, parse, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { CACHE_FIELD } from "./lib/gate-pass-cache.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /**
@@ -3261,6 +3262,9 @@ export const KNOWN_CONFIG_KEYS = Object.freeze([
   "health",
   "verification",
   "thresholdRatchet",
+  // `pushGate.cache` switches on the push-gate pass cache; see
+  // `lib/gate-pass-cache.mjs` (CodySwannGT/lisa#4594).
+  "pushGate",
 ]);
 
 /**
@@ -4198,6 +4202,30 @@ function validateFailureShape(id, moment, shape) {
 }
 
 /**
+ * Validate the per-moment `cache` flag (CodySwannGT/lisa#4594).
+ *
+ * `"cache": false` beside `level` and `run` says this moment's verdict can
+ * depend on something the push-gate pass cache does not key on — the tracker,
+ * live machine state, history beyond the tree — so the gate always runs. It
+ * sits on the MOMENT entry, beside `failure_shape`, for the same reason that
+ * field does: an older Lisa ignores an unknown moment key but refuses an
+ * unknown gate-level one, along with the whole gates block. Only a boolean is
+ * accepted; anything else would silently read as "cacheable".
+ * @param {string} id Gate id.
+ * @param {string} moment Moment key.
+ * @param {*} value The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateCacheFlag(id, moment, value) {
+  if (value === undefined || typeof value === "boolean") return [];
+  return [
+    `gates."${id}"."${moment}".${CACHE_FIELD} is ${JSON.stringify(value)}; ` +
+      `expected false (this verdict depends on more than the pushed tree, ` +
+      `so it must always run) or true.`,
+  ];
+}
+
+/**
  * Validate one moment entry on a gate.
  * @param {string} id Gate id.
  * @param {string} moment The moment key.
@@ -4253,6 +4281,7 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
   problems.push(
     ...validateFailureShape(id, moment, entry[FAILURE_SHAPE_FIELD])
   );
+  problems.push(...validateCacheFlag(id, moment, entry[CACHE_FIELD]));
   problems.push(...validatePostedBy(id, moment, entry));
   problems.push(...validateCallerChain(id, moment, entry));
   if (!known && !interceptor && !entry.await && !entry.run && !gateRun) {

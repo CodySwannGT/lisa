@@ -132,6 +132,10 @@ const sectionsCarrying = (
     section => template[section]?.scripts?.[scriptName] !== undefined
   );
 
+/** The push-only selector wrapper the forced unit scripts carry (#4611). */
+const AFFECTED_TESTS_WRAPPER =
+  "node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- ";
+
 describe("host-facing test scripts are governed pairs, not forced values", () => {
   it.each(TEMPLATES)(
     "%s: forces the reserved base and only defaults the host-facing name",
@@ -203,11 +207,21 @@ describe("host-facing test scripts are governed pairs, not forced values", () =>
         ];
         // The dependency preflight was added after these legacy host values
         // shipped. It does not change which historical commands adoption owns.
-        const historical = forced.replace(
-          /^node scripts\/lib\/worktree-dependencies\.mjs && /u,
-          ""
+        // The push-only affected-test selector (CodySwannGT/lisa#4611) wraps
+        // the same command and runs it unchanged outside the push gate, so it
+        // does not change which historical command adoption owns either. Only
+        // this exact wrapper is removed; any other change still fails here.
+        const historical = forced
+          .replace(/^node scripts\/lib\/worktree-dependencies\.mjs && /u, "")
+          .replace(AFFECTED_TESTS_WRAPPER, "");
+        // Likewise, the historical values registered scratch prefixes for the
+        // per-test policing retired in CodySwannGT/lisa#4603; the command
+        // they ran is unchanged, so the registry is ignored when comparing.
+        return !recognised.some(
+          value =>
+            value.replace(/^LISA_TEST_SCRATCH_PREFIXES='[^']*' /u, "") ===
+            historical
         );
-        return !recognised.includes(historical);
       });
 
       // Without this, a host whose script still holds Lisa's own old value is

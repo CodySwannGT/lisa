@@ -44,6 +44,12 @@ import {
   validateNightlyE2EConfig,
   type NightlyE2EConfig,
 } from "./project-config-nightly-e2e.js";
+import {
+  validatePushGateConfig,
+  type PushGateConfig,
+} from "./project-config-push-gate.js";
+
+export type { PushGateConfig } from "./project-config-push-gate.js";
 
 export {
   AUTO_LOADED_RULES_DIR_PREFIXES,
@@ -159,6 +165,8 @@ export interface ProjectConfig {
   readonly nightlyE2E?: NightlyE2EConfig;
   /** Starter provenance and synchronization preferences. */
   readonly starter?: StarterConfig;
+  /** Optional push-gate behaviour, e.g. `buildOnce` (CodySwannGT/lisa#4595). */
+  readonly pushGate?: PushGateConfig;
   /**
    * Update this project to the latest Lisa when an agent session starts
    * (CodySwannGT/lisa#4337). On when absent; `false` opts out. The update runs
@@ -360,16 +368,22 @@ export function validateProjectConfig(
   const verification = validateVerificationConfig(obj.verification, configPath);
   const nightlyE2E = validateNightlyE2EConfig(obj.nightlyE2E, configPath);
   const starter = validateStarterConfig(obj.starter);
-  return {
-    ...(harness === undefined ? {} : { harness }),
-    ...(projectRulesFile === undefined ? {} : { projectRulesFile }),
-    ...(learnings === undefined ? {} : { learnings }),
-    ...(dependencies === undefined ? {} : { dependencies }),
-    ...(humanGate === undefined ? {} : { humanGate }),
-    ...(verification === undefined ? {} : { verification }),
-    ...(nightlyE2E === undefined ? {} : { nightlyE2E }),
-    ...(starter === undefined ? {} : { starter }),
+  const pushGate = validatePushGateConfig(obj.pushGate, configPath);
+  // An absent key stays absent rather than becoming `key: undefined`.
+  const validated = {
+    harness,
+    projectRulesFile,
+    learnings,
+    dependencies,
+    humanGate,
+    verification,
+    nightlyE2E,
+    starter,
+    pushGate,
   };
+  return Object.fromEntries(
+    Object.entries(validated).filter(([, value]) => value !== undefined)
+  ) as ProjectConfig;
 }
 
 /**

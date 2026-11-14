@@ -46,23 +46,12 @@
  * quoted as evidence.
  * @module tests/helpers/history-scanner-global-setup
  */
-import { dirname } from "node:path";
-import { env } from "node:process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 
 import type { TestProject } from "vitest/node";
 
-import {
-  materializeOwnedScratchRunRoot,
-  prepareOwnedScratchRunRoot,
-  removeOwnedScratchRunRoot,
-} from "../../src/configs/vitest/scratch-run-root-intent.js";
-import {
-  SCRATCH_SUPERVISION_LEASE_ENV,
-  createSupervisedWorkerScope,
-  parseScratchSupervisionLease,
-  removeSupervisedWorkerScope,
-} from "../../src/configs/vitest/scratch-supervision.js";
-import { describeTmpdirTrustFailure } from "../../src/configs/vitest/scratch-tmpdir-trust.js";
 import {
   PREPARATION_KEY,
   PROVISION_CLI,
@@ -131,18 +120,11 @@ function refused(reason: string): PreparedScope {
  * @returns Its path and a remover for it
  */
 export function reclaimableDirectory(): ReclaimableDirectory {
-  const lease = env[SCRATCH_SUPERVISION_LEASE_ENV];
-  if (lease !== undefined && lease !== "") {
-    const scope = createSupervisedWorkerScope(
-      parseScratchSupervisionLease(lease)
-    );
-    return {
-      path: scope.path,
-      remove: () => removeSupervisedWorkerScope(scope),
-    };
-  }
-  const root = materializeOwnedScratchRunRoot(prepareOwnedScratchRunRoot());
-  return { path: root.path, remove: () => removeOwnedScratchRunRoot(root) };
+  const root = mkdtempSync(join(tmpdir(), "lisa-history-scanner-"));
+  return {
+    path: root,
+    remove: () => rmSync(root, { recursive: true, force: true }),
+  };
 }
 
 /**
@@ -151,8 +133,8 @@ export function reclaimableDirectory(): ReclaimableDirectory {
  * The release never throws: a failure is reported on stderr instead, because
  * an exception thrown from an exit listener would crash the process. The
  * report is written synchronously, since an asynchronous write to a piped
- * stderr is abandoned at exit (`tests/helpers/stderr-sync.ts`). The scratch
- * reaper still reclaims whatever a failed release leaves behind.
+ * stderr is abandoned at exit (`tests/helpers/stderr-sync.ts`). The next run's
+ * start-of-run cleanup sweep reclaims whatever a failed release leaves behind.
  *
  * The scope's own exit listener is prepended
  * (`tests/helpers/history-scanner-preparation.ts`), so at exit it stops the
@@ -171,7 +153,7 @@ export function ownedParent(
       directory.remove();
     } catch (error) {
       writeStderrSync(
-        `history-scanner preparation: its scratch scope could not be released (${errorMessage(error)}); the scratch reaper reclaims it.\n`
+        `history-scanner preparation: its temp directory could not be released (${errorMessage(error)}); the next run's cleanup sweep reclaims it.\n`
       );
     }
   };
@@ -188,11 +170,6 @@ export function ownedParent(
 export async function prepareInOwnedParent(
   options: Pick<ColdProvisionOptions, "argv"> = {}
 ): Promise<PreparedScope> {
-  const untrusted = describeTmpdirTrustFailure();
-  if (untrusted !== undefined)
-    return refused(
-      `The temporary root is not trusted, so no scanner was acquired. ${untrusted}`
-    );
   const parent = ownedParent();
   const prepared = await prepareHistoryScanner({
     ...options,
