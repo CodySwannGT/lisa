@@ -5,6 +5,7 @@
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required } from "./npm-update-contract.mjs";
 import { trackerContract } from "../lisa-work-item.mjs";
+import { directoryOf, npmPath } from "./automation-provenance-contract.mjs";
 
 /** Immutable host config, not candidate data or local aliases, chooses lifecycle. */
 export function leafRoles(config, repository) {
@@ -79,6 +80,10 @@ export function buildDraft(proposal, policy, config, evidence) {
     .map(update => `${update.name}: ${update.from} -> ${update.to}`)
     .join("\n");
   const bun = Object.hasOwn(proposal, "bunLockSha256");
+  // Root paths render exactly as they always have; a subdirectory names its own files.
+  const directory = directoryOf(proposal);
+  const manifest = npmPath(proposal, "package.json");
+  const lock = npmPath(proposal, "package-lock.json");
   const body = `## Context / Business Value
 
 Keep the selected dependencies current while preserving ordinary review, required checks and runtime verification. This Task owns one exact dependency proposal; its implementation ticket is never reused for another update.
@@ -88,7 +93,7 @@ Keep the selected dependencies current while preserving ordinary review, require
 Base parent: ${proposal.parent}
 Proposal key: ${proposal.key}
 Selection key: ${proposal.selectionKey}
-Update exactly package.json and package-lock.json${bun ? " and bun.lock" : ""}:
+Update exactly ${manifest} and ${lock}${bun ? " and bun.lock" : ""}:
 ${versions}
 Use the trusted four-job npm updater. Preparation performs an installed-tree npm outdated check and npm ci with lifecycle scripts disabled. Allocation precedes the first attributed commit. Ordinary commit and original pre-push gates remain mandatory. Publish only the exact gated unsigned raw Git object with unchanged parent, tree, identities, times and message. Preserve every unrelated dependency, script and existing assignee. Stop on stale base, unavailable authorization, hold, failed gate or mismatching bytes. Lisa is excluded only with verified local full-apply ownership.
 
@@ -156,14 +161,17 @@ Matches are read completely before allocating this deterministic proposal. No pa
 
 ## Proposal Bytes
 
-package.json SHA256: ${proposal.hashes["package.json"]}
-package-lock.json SHA256: ${proposal.hashes["package-lock.json"]}${bun ? `\nbun.lock SHA256: ${proposal.hashes["bun.lock"]}\nOriginal bun.lock SHA256: ${proposal.bunLockSha256}` : ""}
+${manifest} SHA256: ${proposal.hashes[manifest]}
+${lock} SHA256: ${proposal.hashes[lock]}${bun ? `\nbun.lock SHA256: ${proposal.hashes["bun.lock"]}\nOriginal bun.lock SHA256: ${proposal.bunLockSha256}` : ""}
 
 <!-- [lisa-npm-filing] ${Buffer.from(canonicalJson(evidence)).toString("base64")} -->
 <!-- [lisa-npm-proposal] ${proposal.key} -->
 `;
   return {
-    title: "Update selected npm dependencies",
+    title:
+      directory === "."
+        ? "Update selected npm dependencies"
+        : `Update selected npm dependencies in ${directory}`,
     body,
     labels: ["type:Task", "priority:medium", roles.ready],
     assignees: [policy.maintainer],

@@ -5,6 +5,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { required, proposalFileNames } from "./npm-update-contract.mjs";
+import { installInputs } from "./automation-provenance-contract.mjs";
 import { qualifiedBun, frozenBun } from "./npm-update-bun.mjs";
 import { runProcess } from "./npm-update-process.mjs";
 import { qualifiedControllerGraph } from "./npm-update-helper.mjs";
@@ -97,9 +98,7 @@ async function installHostedDependencies(context, root, env) {
     installed.BUNDLE_FROZEN = "true";
   }
   const before = [
-    "package.json",
-    "package-lock.json",
-    ...(context.proposal.bunLockSha256 === undefined ? [] : ["bun.lock"]),
+    ...installInputs(context.proposal),
     ...(ruby ? ["Gemfile", "Gemfile.lock"] : []),
   ].map(name => [name, readFileSync(join(context.cwd, name))]);
   await nativeStep(context, installed, "npm", [

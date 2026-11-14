@@ -17,6 +17,11 @@ on:
         type: string
         default: 'none'
         required: false
+      directory:
+        description: Committed npmUpdater directory this run updates ('.' is the root project); one run per directory
+        type: string
+        default: '.'
+        required: false
       cancel_issue:
         description: Explicit stale prepublication proposal issue to cancel
         type: string
@@ -35,12 +40,15 @@ on:
 
 permissions: {}
 concurrency:
-  group: lisa-npm-${{ github.repository }}
+  # The root keeps its historical group name; a subdirectory appends -<directory>.
+  group: lisa-npm-${{ github.repository }}${{ inputs.directory != '.' && format('-{0}', inputs.directory) || '' }}
   cancel-in-progress: false
 
 env:
   NPM_VERSION: ${{ inputs.npm-version }}
   LISA_NPM_RUNTIME_PROFILE: ${{ inputs.runtime-profile }}
+  # Selects one committed npmUpdater entry; the CLI refuses any directory policy does not commit.
+  LISA_NPM_DIRECTORY: ${{ inputs.directory }}
 
 jobs:
   workflow_contract:
@@ -114,7 +122,24 @@ jobs:
     steps:
       - &phase-path
         name: Select this job's native private phase directory
-        run: echo "PHASE=$RUNNER_TEMP/lisa-npm-phase" >> "$GITHUB_ENV"
+        # The directory input is validated here, before it names any artifact, with the
+        # same grammar the CLI enforces; the CLI still refuses an uncommitted selection.
+        run: |
+          set -eu
+          segment='[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}'
+          if [ "$LISA_NPM_DIRECTORY" = "." ]; then
+            suffix=root
+          elif [ "${#LISA_NPM_DIRECTORY}" -le 200 ] &&
+            [[ "$LISA_NPM_DIRECTORY" =~ ^${segment}(/${segment}){0,7}$ ]] &&
+            [[ "/$LISA_NPM_DIRECTORY/" != */node_modules/* ]]; then
+            # "+" is outside the directory grammar, so this "/" mapping is injective.
+            suffix="dir-${LISA_NPM_DIRECTORY//\//+}"
+          else
+            echo "::error title=Invalid npm directory::directory must be '.' or a committed relative npm project path"
+            exit 1
+          fi
+          echo "PHASE=$RUNNER_TEMP/lisa-npm-phase" >> "$GITHUB_ENV"
+          echo "NPM_ARTIFACT_SUFFIX=$suffix" >> "$GITHUB_ENV"
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
@@ -124,6 +149,7 @@ jobs:
         with:
           # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
+          package-manager-cache: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         if: hashFiles('bun.lock') != ''
         with:
@@ -140,7 +166,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: steps.prepare.outputs.status == 'prepared'
         with:
-          name: npm-prepared
+          name: npm-prepared-${{ env.NPM_ARTIFACT_SUFFIX }}
           path: ${{ env.PHASE }}/*.json
           if-no-files-found: error
           retention-days: 1
@@ -167,6 +193,7 @@ jobs:
         with:
           # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
+          package-manager-cache: false
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
           npm install --global "npm@$NPM_VERSION" --ignore-scripts --no-audit --no-fund
@@ -182,7 +209,7 @@ jobs:
           sudo install -m 755 -- "$directory/gh" /usr/local/bin/gh
       - uses: actions/download-artifact@v8
         with:
-          name: npm-prepared
+          name: npm-prepared-${{ env.NPM_ARTIFACT_SUFFIX }}
           path: ${{ env.PHASE }}
       - run: chmod 700 "$PHASE" && chmod 600 "$PHASE"/*.json
       - id: cancel_prepare
@@ -255,7 +282,7 @@ jobs:
           node scripts/lisa-npm-updater.mjs checkpoint "$GITHUB_WORKSPACE" "$PHASE"
       - uses: actions/upload-artifact@v7
         with:
-          name: npm-authorized
+          name: npm-authorized-${{ env.NPM_ARTIFACT_SUFFIX }}
           path: ${{ env.PHASE }}/*.json
           if-no-files-found: error
           retention-days: 1
@@ -280,13 +307,14 @@ jobs:
         with:
           # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
+          package-manager-cache: false
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
           npm install --global "npm@$NPM_VERSION" --ignore-scripts --no-audit --no-fund
           npm ci --ignore-scripts --no-audit --no-fund
       - uses: actions/download-artifact@v8
         with:
-          name: npm-authorized
+          name: npm-authorized-${{ env.NPM_ARTIFACT_SUFFIX }}
           path: ${{ env.PHASE }}
       - *pinned-gh
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -313,7 +341,7 @@ jobs:
         run: node scripts/lisa-npm-updater.mjs gate "$GITHUB_WORKSPACE" "$PHASE"
       - uses: actions/upload-artifact@v7
         with:
-          name: npm-gated
+          name: npm-gated-${{ env.NPM_ARTIFACT_SUFFIX }}
           path: ${{ env.PHASE }}/*.json
           if-no-files-found: error
           retention-days: 1
@@ -339,13 +367,14 @@ jobs:
         with:
           # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
+          package-manager-cache: false
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
           npm install --global "npm@$NPM_VERSION" --ignore-scripts --no-audit --no-fund
           npm ci --ignore-scripts --no-audit --no-fund
       - uses: actions/download-artifact@v8
         with:
-          name: npm-gated
+          name: npm-gated-${{ env.NPM_ARTIFACT_SUFFIX }}
           path: ${{ env.PHASE }}
       - *pinned-gh
       - run: chmod 700 "$PHASE" && chmod 600 "$PHASE"/*.json

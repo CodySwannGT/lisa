@@ -3,7 +3,11 @@
 
 /** A manual cancellation is a third fixed signing purpose, never publication or review authority. */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
-import { required, keys, FILES, OBJECT } from "./npm-update-contract.mjs";
+import { required, keys, OBJECT } from "./npm-update-contract.mjs";
+import {
+  hashCohort,
+  proposalPolicy,
+} from "./automation-provenance-contract.mjs";
 import { observedRunChronology } from "./github-attestation-recovery.mjs";
 import {
   verifiedRole,
@@ -106,12 +110,8 @@ export function assertManualCancellation(
 /** The closed subject preserves one stale origin and one exact replacement, with no published destination. */
 export function validateCancellation(value, expected) {
   keys(value, RECORD_KEYS);
-  keys(
-    value.proposalHashes,
-    Object.hasOwn(expected.proposalHashes, "bun.lock")
-      ? ["bun.lock", ...FILES]
-      : FILES
-  );
+  // Root {bun.lock?, package-lock.json, package.json} or exactly one directory's two npm files.
+  keys(value.proposalHashes, hashCohort(expected.proposalHashes));
   keys(value.destination, ["branch", "expectedBranchHead", "prNumber"]);
   required(
     value.version === 1 &&
@@ -228,7 +228,7 @@ export function cancellationRecord(
     leafBodySha256: sha256(origin.allocation.draft.body),
     policySha256: sha256(canonicalJson(authority)),
     npmPolicySha256: proposal.policySha256,
-    maintainer: config.npmUpdater.maintainer,
+    maintainer: proposalPolicy(config, proposal).maintainer,
     operatorId,
     runId: invocation.runId,
     runAttempt: invocation.runAttempt,

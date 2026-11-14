@@ -22,6 +22,7 @@ import {
   withPrivateRoot,
 } from "./npm-update-process.mjs";
 import { baseline } from "./npm-update-prepare.mjs";
+import { signedProposalFields } from "./automation-provenance-contract.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import {
   createHostedGate,
@@ -125,12 +126,8 @@ export async function descriptorFor({
       author: identity,
       committer: identity,
       files: proposal.hashes,
-      ...(proposal.bunLockSha256 === undefined
-        ? {}
-        : { bunLockSha256: proposal.bunLockSha256 }),
-      ...(proposal.runtimeSha256 === undefined
-        ? {}
-        : { runtimeSha256: proposal.runtimeSha256 }),
+      // Root keeps its historical key set; only a subdirectory adds `directory`.
+      ...signedProposalFields(proposal),
       messageSha256: sha256(message),
       updates: proposal.updates,
       proposalKey: proposal.bindingKey,

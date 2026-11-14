@@ -10,6 +10,44 @@ import { runProcess, readBytes } from "./npm-update-process-core.mjs";
 import { binaryDigest } from "./npm-update-worker-lifecycle.mjs";
 import { canonicalJson } from "./automation-provenance-contract.mjs";
 
+/** No path at all, including a dangling alias, may stand where a lock must be absent. */
+function requireAbsent(path) {
+  required(!existsSync(path), "unexpected Bun lock path");
+  try {
+    lstatSync(path);
+    required(false, "unexpected Bun lock alias");
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+}
+
+/**
+ * A subdirectory npm project is a committed, unaliased real directory with no
+ * Bun lock of its own. The root bun.lock belongs to the root project, so a
+ * subdirectory proposal neither reads nor binds it.
+ */
+export async function directoryBun(cwd, command, directory, proposal) {
+  if (directory === ".") return committedBun(cwd, command, proposal);
+  const tree = (
+    await command(["ls-tree", "HEAD", "--", directory])
+  ).stdout.toString();
+  const path = join(cwd, directory);
+  required(
+    tree.startsWith("040000 tree ") &&
+      tree.endsWith(`\t${directory}\n`) &&
+      tree.split("\n").length === 2 &&
+      realpathSync(path) === join(realpathSync(cwd), directory),
+    "committed real npm project directory required"
+  );
+  const lock = `${directory}/bun.lock`;
+  required(
+    !(await command(["ls-tree", "HEAD", "--", lock])).stdout.length,
+    "a subdirectory npm project cannot use a Bun lock"
+  );
+  requireAbsent(join(cwd, lock));
+  return undefined;
+}
+
 /** An untracked, removed, aliased or changed original lock never becomes authority. */
 export async function committedBun(cwd, command, proposal) {
   const entry = (
@@ -17,13 +55,7 @@ export async function committedBun(cwd, command, proposal) {
   ).stdout.toString();
   const path = join(cwd, "bun.lock");
   if (!entry) {
-    required(!existsSync(path), "unexpected Bun lock path");
-    try {
-      lstatSync(path);
-      required(false, "unexpected Bun lock alias");
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
+    requireAbsent(path);
     required(
       !proposal || !Object.hasOwn(proposal, "bunLockSha256"),
       "original Bun lock was removed"

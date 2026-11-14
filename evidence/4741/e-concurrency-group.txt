@@ -1,0 +1,6 @@
+group template: lisa-npm-${{ github.repository }}${{ inputs.directory != '.' && format('-{0}', inputs.directory) || '' }}
+"."          => lisa-npm-CodySwannGT/lisa
+"externals"  => lisa-npm-CodySwannGT/lisa-externals
+"a/b"        => lisa-npm-CodySwannGT/lisa-a/b
+root group equals lisa-npm-${{ github.repository }} rendering: true
+bite control (pre-fix template, root): lisa-npm-CodySwannGT/lisa-. equals historical: false

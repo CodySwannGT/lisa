@@ -2,12 +2,8 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Fixed-schema writer evidence and idempotent current claim. @module npm-updater */
-import {
-  required,
-  CLAIM,
-  validateProposal,
-  proposalFileNames,
-} from "./npm-update-contract.mjs";
+import { required, CLAIM, validateProposal } from "./npm-update-contract.mjs";
+import { historyPaths } from "./automation-provenance-contract.mjs";
 import { baseline } from "./npm-update-prepare.mjs";
 import { locateCheckpoint } from "./npm-update-recovery.mjs";
 import { runProcess } from "./npm-update-process.mjs";
@@ -48,9 +44,7 @@ export async function filingEvidence(api, proposal, config, cwd) {
       "--max-count=20",
       "--format=%H %s",
       "--",
-      "package.json",
-      "package-lock.json",
-      ...(Object.hasOwn(proposal, "bunLockSha256") ? ["bun.lock"] : []),
+      ...historyPaths(proposal),
     ],
     {
       cwd,
@@ -69,7 +63,7 @@ export async function filingEvidence(api, proposal, config, cwd) {
   );
   return {
     history: {
-      command: `git log ${proposal.parent} --max-count=20 -- package.json package-lock.json${proposalFileNames(proposal).includes("bun.lock") ? " bun.lock" : ""}`,
+      command: `git log ${proposal.parent} --max-count=20 -- ${historyPaths(proposal).join(" ")}`,
       result: history.stdout.toString() || "No matching history.",
     },
     search: { query, total: search.total_count },

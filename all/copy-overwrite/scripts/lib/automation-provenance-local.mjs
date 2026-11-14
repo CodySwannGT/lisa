@@ -12,6 +12,7 @@ import { requireProof, sha256 } from "./github-attestation-verifier.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
 import {
   canonicalJson,
+  directoryBunAbsent,
   exactKeys,
   proposalFileNames,
   signedProposalFields,
@@ -50,6 +51,8 @@ function stagedFiles(descriptor) {
 
 /** Bind optional lock presence to HEAD and refuse aliased working-tree counterparts. */
 function originalBun(descriptor) {
+  if (directoryBunAbsent(descriptor, git, path => fileAbsent(resolve(path))))
+    return;
   const original = git(["ls-tree", "HEAD", "--", "bun.lock"]);
   if (!Object.hasOwn(descriptor, "bunLockSha256")) {
     requireProof(original === "", "original Bun lock omitted from descriptor");

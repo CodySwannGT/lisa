@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 306,
-  "$names": 2200,
+  "$names": 2213,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -158,13 +158,23 @@
       "HEX",
       "OBJECT_ID",
       "canonicalJson",
+      "directoryBunAbsent",
+      "directoryOf",
       "exactKeys",
+      "hashCohort",
+      "historyPaths",
+      "installInputs",
+      "npmPath",
       "npmProposal",
+      "optionalDirectoryFields",
       "optionalLockFields",
       "optionalRuntimeFields",
+      "policyEntry",
       "proposalFileNames",
+      "proposalPolicy",
       "signedProposalFields",
-      "trustedConfiguration"
+      "trustedConfiguration",
+      "validDirectory"
     ],
     "all/copy-overwrite/scripts/lib/automation-provenance-files.mjs": [
       "fileAbsent",
@@ -491,6 +501,7 @@
     ],
     "all/copy-overwrite/scripts/lib/npm-update-bun.mjs": [
       "committedBun",
+      "directoryBun",
       "frozenBun",
       "qualifiedBun",
       "verifyBunLock"
@@ -548,6 +559,7 @@
       "proposalFileNames",
       "proposalFrom",
       "required",
+      "selectPolicy",
       "selectionKey",
       "validateHost",
       "validateLock",
@@ -746,6 +758,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-policy.mjs": [
       "NAME",
       "VERSION",
+      "selectPolicy",
       "validatePolicy"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs": [

@@ -85,6 +85,7 @@ And when you are the one clearing a condition: sweep for the notes that describe
 - **`empirical-inquiry`** — supplies the discipline this rule depends on: settle the fact with the cheapest probe rather than reasoning from what is written down. A stale note is exactly the "confident-sounding answer from a prior assumption" that rule forbids.
 - **`verification`** — a status derived from a comment is not runtime evidence. Reporting "still blocked" on the strength of a note is the same error as reporting "works" on the strength of the code looking correct.
 - **`tracked-work`** — the destination for any prediction that survives its item's closure: one live leaf, explicit blocking link, carried on the branch and PR.
+- **`work-item-definition-of-ready`** (S13, shipped-prerequisite check) — the opposite direction: a premature *done* claim ("already shipped") that the default branch does not back. Verify it on `origin/<default>` and link the owning item as `is blocked by`.
 - **`claim-archaeology`** — the recovery path once mode 3 has already happened. Lifecycles are one-way, so a warning lost to closure resurfaces only as a fresh item whose ancestry has to be reconstructed. Archaeology is the cleanup; this rule is the prevention.
 
 ## Summary of obligations (formerly the always-loaded head)
