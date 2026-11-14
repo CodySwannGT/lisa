@@ -360,16 +360,38 @@ export function readersByFile(map) {
  * @property {string} [reason] Why the full suite runs (kind `full`).
  * @property {Array<{file: string, reason: string}>} tests Test files to run, with why.
  * @property {string[]} related Changed files handed to the runner's import-graph selection.
- * @property {string[]} unread Changed files no unit test read when the map was recorded.
+ * @property {string[]} unread Changed documents no unit test read when the map was recorded.
  */
 
 /**
+ * Documents no test can reach through a path the recording misses, so a
+ * change to one that no test was recorded reading needs no test. It is the
+ * Rails selector's list (`lib/rspec-selection.mjs`) narrowed to
+ * documentation: in a TypeScript host, Markdown under a template or skill
+ * directory is product, copied with `cp` and then read through a path the
+ * map never records.
+ */
+export const NOT_READ_BY_TESTS = Object.freeze([
+  /^(LICENSE|CHANGELOG|README)[^/]*$/i,
+  /^(docs|wiki)\//,
+]);
+
+/**
  * Choose the tests a change can affect, or say why everything must run.
+ *
+ * Every hole the selection cannot see through fails closed (review of
+ * CodySwannGT/lisa#4600). A changed file that is not a document and that no
+ * test was recorded reading may still be reached through a path the tracer
+ * misses (`cp`, `readdir`, a shell `source`), so it runs the full suite. A
+ * test the map has never seen (added on the default branch after the
+ * recording) is always selected. A deleted test hands every file it read on
+ * as if that file had changed, so its coverage is still held to the floor.
  * @param {object} input Inputs.
  * @param {ReadonlyArray<ChangedFile>} input.changed Changed files.
  * @param {Readonly<Record<string, ReadonlyArray<string>>>} input.map The access map.
  * @param {ReadonlyArray<RegExp>} input.excluded Paths the test command excludes.
  * @param {(file: string) => boolean} input.exists Whether a file is in the working tree.
+ * @param {ReadonlyArray<string>} input.testFiles Every file in the working tree; the tests among them the map lacks are selected.
  * @param {ReadonlyArray<{pattern: RegExp, reason: string}>} [input.triggers] The project's recorded triggers.
  * @returns {Selection} The selection.
  */
@@ -378,12 +400,12 @@ export function selectAffectedTests({
   map,
   excluded,
   exists,
+  testFiles,
   triggers = [],
 }) {
+  const isExcluded = file => excluded.some(pattern => pattern.test(file));
   const runnable = file =>
-    TEST_FILE.test(file) &&
-    !excluded.some(pattern => pattern.test(file)) &&
-    exists(file);
+    TEST_FILE.test(file) && !isExcluded(file) && exists(file);
   const trigger = firedTrigger(
     changed.map(entry => entry.path),
     triggers
@@ -391,6 +413,14 @@ export function selectAffectedTests({
   if (trigger) {
     return full(`${trigger.reason} (${trigger.file})`);
   }
+  const inherited = inheritedFromDeletedTests({
+    changed,
+    map,
+    isExcluded,
+    exists,
+    triggers,
+  });
+  if (typeof inherited === "string") return full(inherited);
   const readers = readersByFile(map);
   const chosen = new Map();
   const choose = (file, reason) => {
@@ -398,7 +428,7 @@ export function selectAffectedTests({
   };
   const related = [];
   const unread = [];
-  for (const entry of changed) {
+  for (const entry of [...changed, ...inherited]) {
     if (TEST_FILE.test(entry.path)) {
       if (entry.status !== "deleted") choose(entry.path, "changed test");
       continue;
@@ -410,10 +440,25 @@ export function selectAffectedTests({
       return full(
         `unmapped file: ${entry.path} is new since the map was recorded, so no map entry can say which tests read it`
       );
-    } else {
+    } else if (NOT_READ_BY_TESTS.some(pattern => pattern.test(entry.path))) {
+      // A document no test reads is imported by nothing either, so it is not
+      // handed to the import graph: a docs-only push runs nothing.
       unread.push(entry.path);
+      continue;
+    } else {
+      return full(
+        `unread file: ${entry.path} is in the map's tree but no test was recorded reading it, and a test may still reach it in a way the recording cannot see (a copy, a directory listing, a shell script)`
+      );
     }
     if (entry.status !== "deleted") related.push(entry.path);
+  }
+  for (const file of testFiles) {
+    if (!Object.hasOwn(map, file)) {
+      choose(
+        file,
+        "not in the map: added after the recording, or never recorded"
+      );
+    }
   }
   return {
     kind: "partial",
@@ -421,6 +466,66 @@ export function selectAffectedTests({
     related,
     unread,
   };
+}
+
+/**
+ * The files the deleted tests read, as changes of their own.
+ *
+ * Deleting a test can only lower the coverage of what it read, so each of
+ * those files is handed on as a modified file: its remaining readers run and
+ * it is held to the floor. A setup or trigger file is read by every test, so
+ * one deletion cannot move its coverage; it is left out. When a deleted test
+ * is not in the map, or was the only test that read a file, only the full
+ * suite can say what coverage was lost.
+ * @param {object} input Inputs.
+ * @param {ReadonlyArray<ChangedFile>} input.changed Changed files.
+ * @param {Readonly<Record<string, ReadonlyArray<string>>>} input.map The access map.
+ * @param {(file: string) => boolean} input.isExcluded Whether the test command excludes a path.
+ * @param {(file: string) => boolean} input.exists Whether a file is in the working tree.
+ * @param {ReadonlyArray<{pattern: RegExp, reason: string}>} input.triggers The project's recorded triggers.
+ * @returns {ChangedFile[]|string} The inherited changes, or why the full suite must run.
+ */
+function inheritedFromDeletedTests({
+  changed,
+  map,
+  isExcluded,
+  exists,
+  triggers,
+}) {
+  const deleted = changed
+    .filter(
+      entry =>
+        entry.status === "deleted" &&
+        TEST_FILE.test(entry.path) &&
+        !isExcluded(entry.path)
+    )
+    .map(entry => entry.path);
+  const missing = deleted.find(test => !Object.hasOwn(map, test));
+  if (missing) {
+    return `deleted test: ${missing} is not in the map, so the files whose coverage it carried cannot be known`;
+  }
+  const gone = new Set(deleted);
+  const changedPaths = new Set(changed.map(entry => entry.path));
+  const readers = readersByFile(map);
+  const inherited = [];
+  for (const file of new Set(deleted.flatMap(test => map[test]))) {
+    if (
+      changedPaths.has(file) ||
+      TEST_FILE.test(file) ||
+      !exists(file) ||
+      firedTrigger([file], triggers)
+    ) {
+      continue;
+    }
+    const remaining = [...(readers.get(file) ?? [])].filter(
+      test => !gone.has(test) && !isExcluded(test) && exists(test)
+    );
+    if (remaining.length === 0) {
+      return `deleted test: it was the only test that read ${file}, so only the full suite can say what its coverage is now`;
+    }
+    inherited.push({ path: file, status: "modified", existedAtMapBase: true });
+  }
+  return inherited;
 }
 
 /**
@@ -433,14 +538,30 @@ function full(reason) {
 }
 
 /**
- * Whether a test command measures coverage (`--coverage` or `--coverage.enabled`).
+ * Whether a test command switches coverage on with a flag.
+ *
+ * Every spelling Vitest accepts counts (`--coverage`, `--coverage=true`,
+ * `--coverage.enabled`, `--coverage.enabled=true`), and the last one written
+ * wins over an earlier `--coverage=false`, `--coverage.enabled=false` or
+ * `--no-coverage`. Coverage switched on only in the Vitest config is not
+ * visible here; such a command reports coverage `none`, and the gate runner
+ * then reports a partial run's coverage-adequacy SKIPPED, never PASSED
+ * ({@link coverageLeftToCi}).
  * @param {ReadonlyArray<string>} argv The test command.
  * @returns {boolean} True when coverage is on.
  */
 export function measuresCoverage(argv) {
-  return argv.some(
-    arg => arg === "--coverage" || arg === "--coverage.enabled=true"
-  );
+  let on = false;
+  argv.forEach((arg, index) => {
+    const match = /^--coverage(?:\.enabled)?(?:=(.*))?$/.exec(arg);
+    if (match) {
+      const value = match[1] ?? (argv[index + 1] === "false" ? "false" : "");
+      on = value !== "false";
+    } else if (arg === "--no-coverage") {
+      on = false;
+    }
+  });
+  return on;
 }
 
 /**
@@ -465,9 +586,19 @@ export function partialArgv({ argv, selection, coverage, coverageDir }) {
   if (at === -1) {
     throw new Error("the test command has no `vitest run` to narrow");
   }
-  const rest = argv
-    .slice(at + 2)
-    .filter(arg => arg !== "--coverage" && !arg.startsWith("--coverage."));
+  // Every coverage flag goes, with the `true`/`false` a bare one may take as
+  // its next argument, which would otherwise be read as a file filter.
+  const tail = argv.slice(at + 2);
+  const rest = tail.filter((arg, index) => {
+    const previous = tail[index - 1];
+    const takesValue =
+      previous === "--coverage" || previous === "--coverage.enabled";
+    return !(
+      /^--coverage([.=]|$)/.test(arg) ||
+      arg === "--no-coverage" ||
+      (takesValue && (arg === "true" || arg === "false"))
+    );
+  });
   const coverageArgs =
     coverage === "on"
       ? [
@@ -500,26 +631,47 @@ const METRICS = Object.freeze(["statements", "branches", "functions", "lines"]);
  * A file absent from the summary is outside the coverage population (a test,
  * a document, an excluded path) and is listed as not measured. A metric with
  * nothing to measure (`"Unknown"`, e.g. a type-only module) cannot fall short.
+ *
+ * A file is matched only exactly, under the root or under its real path
+ * (Vitest keys on the real path of a root reached through a symlink: `/tmp`
+ * on macOS, a linked worktree). A suffix match could read another file's
+ * numbers (`src/index.ts` against `packages/a/src/index.ts`), so a file with
+ * no exact entry but an entry that ends in its path fails closed: it is a
+ * shortfall, which sends the push to the full suite.
  * @param {object} input Inputs.
  * @param {Record<string, Record<string, {pct: number|string}>>} input.summary Vitest's json-summary, keyed by absolute path.
  * @param {string} input.root Repository root, absolute.
+ * @param {string} [input.realRoot] The root's real path, when it differs.
  * @param {ReadonlyArray<string>} input.files Changed, existing, non-test files.
  * @param {Record<string, number>} input.thresholds Minimum percentage per metric.
  * @returns {{shortfalls: string[], measured: string[], unmeasured: string[]}} The verdict.
  */
-export function changedFileCoverage({ summary, root, files, thresholds }) {
+export function changedFileCoverage({
+  summary,
+  root,
+  realRoot = root,
+  files,
+  thresholds,
+}) {
   const shortfalls = [];
   const measured = [];
   const unmeasured = [];
   for (const file of files) {
-    // Exact first; then by suffix, because Vitest may key on the real path of
-    // a root reached through a symlink (`/tmp` on macOS, a linked worktree).
-    const key = Object.hasOwn(summary, `${root}/${file}`)
-      ? `${root}/${file}`
-      : Object.keys(summary).find(candidate => candidate.endsWith(`/${file}`));
+    const key = [`${root}/${file}`, `${realRoot}/${file}`].find(candidate =>
+      Object.hasOwn(summary, candidate)
+    );
     const entry = key === undefined ? undefined : summary[key];
     if (!entry) {
-      unmeasured.push(file);
+      const lookalikes = Object.keys(summary).filter(candidate =>
+        candidate.endsWith(`/${file}`)
+      ).length;
+      if (lookalikes > 0) {
+        shortfalls.push(
+          `${file}: no coverage entry is exactly this file, and ${lookalikes} other entr${lookalikes === 1 ? "y ends" : "ies end"} in its path`
+        );
+      } else {
+        unmeasured.push(file);
+      }
       continue;
     }
     measured.push(file);
@@ -648,7 +800,10 @@ export function openSelectionReports(env = process.env) {
 
 /**
  * Whether a gate's verdict is SKIPPED because its command ran a partial
- * selection with coverage switched off (`pushGate.affectedCoverage: "skip"`).
+ * selection that measured no coverage: `pushGate.affectedCoverage: "skip"`,
+ * or `none`, a command the selector did not see switch coverage on (coverage
+ * enabled only in the Vitest config). A partial run that measured nothing
+ * proves nothing about coverage, so it is never reported PASSED.
  * Only coverage-adequacy: test-correctness keeps the run's own verdict.
  * @param {{id: string}} gate The gate.
  * @param {{selection?: string, coverage?: string}|null} report What the command reported.
@@ -658,6 +813,6 @@ export function coverageLeftToCi(gate, report) {
   return (
     gate.id === "coverage-adequacy" &&
     report?.selection === "partial" &&
-    report?.coverage === "skip"
+    (report?.coverage === "skip" || report?.coverage === "none")
   );
 }

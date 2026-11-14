@@ -40,8 +40,13 @@ const COVERAGE_FLAG = "--coverage";
 const SETUP_FILE = "tests/setup.ts";
 const COMMAND_A = "bun run test:a";
 
+const SPAWN_TEST = "tests/unit/scripts/bounded-spawn.test.ts";
+const WIKI_NOTE = "wiki/notes.md";
+const A_TEST = "tests/unit/a.test.ts";
+const COVERAGE_OFF = "--coverage.enabled=false";
+const COVERAGE_ENABLED = "--coverage.enabled";
 const MAP = {
-  "tests/unit/scripts/bounded-spawn.test.ts": [SPAWN],
+  [SPAWN_TEST]: [SPAWN],
   "tests/unit/scripts/lisa-run-gates.test.ts": [
     "all/copy-overwrite/scripts/lisa-run-gates.mjs",
     SPAWN,
@@ -86,6 +91,7 @@ function select(
     map: MAP,
     excluded: excludedBy(UNIT_COMMAND),
     exists: () => true,
+    testFiles: Object.keys(MAP),
   });
 }
 
@@ -141,7 +147,7 @@ describe("selectAffectedTests", () => {
       kind: "partial",
       tests: [
         {
-          file: "tests/unit/scripts/bounded-spawn.test.ts",
+          file: SPAWN_TEST,
           reason: `map: ${SPAWN}`,
         },
         {
@@ -176,11 +182,11 @@ describe("selectAffectedTests", () => {
   });
 
   it("lists an existing file no unit test read, and selects nothing for it", () => {
-    const selection = select([{ path: "wiki/notes.md" }]);
+    const selection = select([{ path: WIKI_NOTE }]);
     expect(selection).toMatchObject({
       kind: "partial",
       tests: [],
-      unread: ["wiki/notes.md"],
+      unread: [WIKI_NOTE],
     });
   });
 
@@ -204,10 +210,121 @@ describe("selectAffectedTests", () => {
       map: MAP,
       excluded: excludedBy(UNIT_COMMAND),
       exists: file => file !== "tests/unit/scripts/lisa-run-gates.test.ts",
+      testFiles: Object.keys(MAP),
     });
-    expect(selection.tests.map(test => test.file)).toEqual([
-      "tests/unit/scripts/bounded-spawn.test.ts",
+    expect(selection.tests.map(test => test.file)).toEqual([SPAWN_TEST]);
+  });
+});
+
+describe("selectAffectedTests fails closed (review of #4887)", () => {
+  const HELPER = "scripts/lib/helper.sh";
+  const ONLY_OLD = "src/only-old.ts";
+  const OLD_TEST = "tests/unit/old.test.ts";
+  const WITH_OLD = { ...MAP, [OLD_TEST]: [SPAWN, ONLY_OLD, SETUP_FILE] };
+  const pick = (
+    changed: ReadonlyArray<{
+      path: string;
+      status?: "added" | "modified" | "deleted";
+    }>,
+    options: {
+      map?: Record<string, string[]>;
+      testFiles?: string[];
+      exists?: (file: string) => boolean;
+    } = {}
+  ) => {
+    const map = options.map ?? MAP;
+    return selectAffectedTests({
+      changed: changed.map(entry => ({
+        status: "modified" as const,
+        existedAtMapBase: true,
+        ...entry,
+      })),
+      map,
+      excluded: excludedBy(UNIT_COMMAND),
+      exists: options.exists ?? (() => true),
+      testFiles: options.testFiles ?? Object.keys(map),
+      triggers: [{ pattern: /^tests\/setup\.ts$/, reason: "setup file" }],
+    });
+  };
+
+  it("runs the full suite for an existing non-document file no test was recorded reading", () => {
+    // A shell helper hook scripts `source`: the tracer never sees bash read it.
+    const selection = pick([{ path: HELPER }, { path: SPAWN }]);
+    expect(selection.kind).toBe("full");
+    expect(selection.reason).toMatch(/^unread file: scripts\/lib\/helper\.sh /);
+  });
+
+  it("runs the full suite for a deleted non-document file no test was recorded reading", () => {
+    const selection = pick([{ path: HELPER, status: "deleted" }]);
+    expect(selection.kind).toBe("full");
+  });
+
+  it.each(["README.md", "docs/guide.md", WIKI_NOTE, "CHANGELOG.md"])(
+    "still lists an unread document (%s) without running everything",
+    file => {
+      const selection = pick([{ path: file }], { map: {} });
+      expect(selection).toMatchObject({ kind: "partial", unread: [file] });
+    }
+  );
+
+  it("adds every runnable test the map has never seen", () => {
+    const added = "tests/unit/added-on-main.test.ts";
+    const selection = pick([{ path: SPAWN }], {
+      testFiles: [
+        ...Object.keys(MAP),
+        added,
+        "tests/integration/added.test.ts",
+        "src/not-a-test.ts",
+      ],
+    });
+    expect(selection.kind).toBe("partial");
+    expect(selection.tests).toContainEqual({
+      file: added,
+      reason: "not in the map: added after the recording, or never recorded",
+    });
+    expect(selection.tests.map(test => test.file)).not.toContain(
+      "tests/integration/added.test.ts"
+    );
+  });
+
+  it("holds the files a deleted test read to the floor, as if they changed", () => {
+    const selection = pick([{ path: OLD_TEST, status: "deleted" }], {
+      map: { ...WITH_OLD, "tests/unit/also-old.test.ts": [ONLY_OLD] },
+      exists: file => file !== OLD_TEST,
+    });
+    expect(selection.kind).toBe("partial");
+    expect(selection.related).toEqual([SPAWN, ONLY_OLD]);
+    expect(selection.tests.map(test => test.file)).toEqual(
+      expect.arrayContaining([SPAWN_TEST, "tests/unit/also-old.test.ts"])
+    );
+    expect(selection.tests.map(test => test.file)).not.toContain(OLD_TEST);
+  });
+
+  it("runs the full suite when a deleted test was the only reader of a file", () => {
+    const selection = pick([{ path: OLD_TEST, status: "deleted" }], {
+      map: WITH_OLD,
+      exists: file => file !== OLD_TEST,
+    });
+    expect(selection.kind).toBe("full");
+    expect(selection.reason).toContain(ONLY_OLD);
+  });
+
+  it("runs the full suite when a deleted test is not in the map", () => {
+    const selection = pick(
+      [{ path: "tests/unit/gone.test.ts", status: "deleted" }],
+      {
+        exists: () => false,
+      }
+    );
+    expect(selection.kind).toBe("full");
+    expect(selection.reason).toContain("tests/unit/gone.test.ts");
+  });
+
+  it("ignores a deleted test the command excludes", () => {
+    const selection = pick([
+      { path: "tests/integration/gone.test.ts", status: "deleted" },
     ]);
+    expect(selection).toMatchObject({ kind: "partial", related: [] });
   });
 });
 
@@ -247,7 +364,7 @@ describe("staleMapReason", () => {
 describe("partialArgv", () => {
   const selection = {
     kind: "partial" as const,
-    tests: [{ file: "tests/unit/a.test.ts", reason: "changed test" }],
+    tests: [{ file: A_TEST, reason: "changed test" }],
     related: ["src/a.ts"],
     unread: [],
   };
@@ -261,9 +378,9 @@ describe("partialArgv", () => {
       "--run",
       "--exclude=**/integration/**",
       "--exclude=**/*.integration.*",
-      "--coverage.enabled=false",
+      COVERAGE_OFF,
       "src/a.ts",
-      "tests/unit/a.test.ts",
+      A_TEST,
     ]);
   });
 
@@ -283,6 +400,27 @@ describe("partialArgv", () => {
       ])
     );
     expect(argv).not.toContain(COVERAGE_FLAG);
+  });
+
+  it("drops every coverage spelling, and the value a bare one takes", () => {
+    const argv = [
+      "vitest",
+      "run",
+      COVERAGE_ENABLED,
+      "true",
+      "--coverage=true",
+      "--no-coverage",
+      "--reporter=dot",
+    ];
+    expect(partialArgv({ argv, selection, coverage: "off" })).toEqual([
+      "vitest",
+      "related",
+      "--run",
+      "--reporter=dot",
+      COVERAGE_OFF,
+      "src/a.ts",
+      A_TEST,
+    ]);
   });
 
   it("refuses a command with no `vitest run`", () => {
@@ -313,6 +451,7 @@ describe("changedFileCoverage", () => {
       changedFileCoverage({
         summary,
         root: "/repo",
+        realRoot: "/real/repo",
         files: ["src/a.ts", "src/b.ts", "README.md"],
         thresholds: { statements: 74, branches: 65, functions: 60, lines: 75 },
       })
@@ -321,6 +460,27 @@ describe("changedFileCoverage", () => {
       measured: ["src/a.ts", "src/b.ts"],
       unmeasured: ["README.md"],
     });
+  });
+
+  it("never reads a file's coverage off another file that shares its suffix", () => {
+    const verdict = changedFileCoverage({
+      summary: {
+        "/repo/packages/a/src/index.ts": {
+          statements: { pct: 100 },
+          branches: { pct: 100 },
+          functions: { pct: 100 },
+          lines: { pct: 100 },
+        },
+      },
+      root: "/repo",
+      realRoot: "/repo",
+      files: ["src/index.ts"],
+      thresholds: { lines: 75 },
+    });
+    expect(verdict.measured).toEqual([]);
+    expect(verdict.shortfalls).toEqual([
+      expect.stringMatching(/^src\/index\.ts: /),
+    ]);
   });
 });
 
@@ -434,6 +594,19 @@ describe("settings and gate declarations", () => {
     expect(measuresCoverage(["vitest", "run"])).toBe(false);
   });
 
+  it.each([
+    [[COVERAGE_ENABLED], true],
+    [["--coverage=true"], true],
+    [["--coverage.enabled=true"], true],
+    [[COVERAGE_ENABLED, "true"], true],
+    [["--coverage=false"], false],
+    [[COVERAGE_OFF], false],
+    [["--no-coverage"], false],
+    [["--coverage", COVERAGE_OFF], false],
+  ])("reads coverage flags %j as %s", (flags, on) => {
+    expect(measuresCoverage(["vitest", "run", ...flags])).toBe(on);
+  });
+
   it("matches exclude globs the way the test command writes them", () => {
     expect(
       globToRegExp("**/integration/**").test("tests/integration/a.test.ts")
@@ -469,6 +642,10 @@ describe("the runner's selection channel", () => {
       )
     ).toBe(false);
     expect(coverageLeftToCi(gate, null)).toBe(false);
+    // A partial run that measured nothing proves nothing about coverage.
+    expect(
+      coverageLeftToCi(gate, { selection: "partial", coverage: "none" })
+    ).toBe(true);
     expect(PARTIAL_COVERAGE_SKIP_REASON).toBe(
       "partial selection — enforced by CI"
     );
@@ -504,6 +681,7 @@ describe("the project's recorded triggers (#4611)", () => {
       map: MAP,
       excluded: [],
       exists: () => true,
+      testFiles: Object.keys(MAP),
       triggers,
     });
     expect(selection.kind).toBe("full");

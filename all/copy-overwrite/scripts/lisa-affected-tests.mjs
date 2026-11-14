@@ -29,6 +29,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -351,6 +352,12 @@ export function plan({ root, command, fetch, config, mode, env, out, now }) {
     map: loaded.map,
     excluded: excludedBy(command),
     exists: file => existsSync(join(root, file)),
+    testFiles: (
+      git(root, ["ls-files", "--cached", "--others", "--exclude-standard"]) ??
+      ""
+    )
+      .split("\n")
+      .filter(Boolean),
     triggers: recordedTriggers(loaded.meta),
   });
   if (selection.kind === "full") {
@@ -453,7 +460,10 @@ export function main(argv, deps = {}) {
   for (const line of explainSelection(selection, COVERAGE_NOTE[coverage]))
     out(line);
   if (selection.kind === "full") return run(command, cwd);
-  if (selection.tests.length === 0) {
+  // Only a selection with neither a test nor a file for Vitest's import graph
+  // has nothing to run. With changed files left, `vitest related` still runs:
+  // the map may miss an importer that the import graph finds.
+  if (selection.tests.length === 0 && selection.related.length === 0) {
     out(
       "   No unit test can reach the changed files, so there is nothing to run."
     );
@@ -531,6 +541,7 @@ function checkChangedFiles({ root, coverageDir, selection, out }) {
   const verdict = changedFileCoverage({
     summary,
     root,
+    realRoot: realpathSync(root),
     files: selection.related,
     thresholds: thresholdsOf(root) ?? {},
   });

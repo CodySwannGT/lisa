@@ -77,6 +77,20 @@ describe("affected-test selection in the gate runner", () => {
     expect(remembered).toEqual([]);
   });
 
+  it("never reports coverage-adequacy PASSED for a partial run that measured no coverage", () => {
+    // Coverage switched on only in the Vitest config is invisible to the
+    // selector, which then reports coverage `none` for its partial run.
+    const { result, remembered } = run(0, {
+      selection: "partial",
+      coverage: "none",
+    });
+    expect(states(result)).toEqual({
+      "coverage-adequacy": "skipped",
+      "test-correctness": "passed",
+    });
+    expect(remembered).toEqual([]);
+  });
+
   it("still blocks the push when a selected test fails", () => {
     const { result } = run(1, { selection: "partial", coverage: "skip" });
     expect(states(result)["test-correctness"]).toBe("failed");
