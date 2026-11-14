@@ -680,6 +680,7 @@ const STALL_RULES = {
   noOutputMinutes: [n => n >= 0, "zero or a positive number"],
   maxAttempts: [n => Number.isInteger(n) && n > 0, "a positive integer"],
   requestionHours: [n => n >= 0, "zero or a positive number"],
+  orphanHours: [n => n >= 0, "zero or a positive number"],
 };
 
 /** Notification providers `sessionManager.notify.provider` accepts. */

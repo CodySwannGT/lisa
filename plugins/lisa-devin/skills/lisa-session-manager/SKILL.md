@@ -512,8 +512,9 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    operators and the trusted authors come from the ledger and config, never from the input. It
    skips refs the ledger shows running or asking (their holds too, so an item waiting on a
    person's answer is never on the operator's list twice), items assigned to anyone but "me" or an
-   operator, and items updated within `--stale-hours` (default 6) or with no `updatedAt`, which
-   protects a person running `/lisa:implement` by hand. A live or foreign hold is skipped the
+   operator, and items updated within `sessionManager.stall.orphanHours` (default 2;
+   `--stale-hours` overrides it) or with no `updatedAt`, which protects a person running
+   `/lisa:implement` by hand. A live or foreign hold is skipped the
    same way; a fresh or undated one is not lifted this cycle, but its human reasons still reach
    the operator's list, so a new comment never makes the list change.
 2. **Act** per bucket. **Before every write** in this sweep (a finish, a return, a re-dispatch

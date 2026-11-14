@@ -328,7 +328,7 @@ Per cycle
       trustedAuthorIds and the hold labels come from the ledger and config;
       the same keys in the input are ignored. Skips live, foreign (assigned
       to neither me nor an operator), fresh (updated within --stale-hours,
-      default 6) and undated items. Live and foreign holds are skipped; a
+      else sessionManager.stall.orphanHours, default 2) and undated items. Live and foreign holds are skipped; a
       fresh or undated hold is not lifted (skipped fresh or undated) but its
       kept reasons still reach holds.keep and the digest. A lift left with
       nothing to write is skipped as nothing-to-write; decision is null for

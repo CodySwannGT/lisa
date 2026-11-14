@@ -99,7 +99,12 @@ describe("buildDefaultBlock", () => {
         cpuFraction: 0.75,
         maxLoadPerCore: 1.5,
       },
-      stall: { noOutputMinutes: 60, maxAttempts: 3, requestionHours: 4 },
+      stall: {
+        noOutputMinutes: 60,
+        maxAttempts: 3,
+        requestionHours: 4,
+        orphanHours: 2,
+      },
       notify: { provider: "none" },
     });
     expect(block).not.toHaveProperty("repos");

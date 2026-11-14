@@ -50,6 +50,7 @@ export const SESSION_MANAGER_DEFAULTS = Object.freeze({
     noOutputMinutes: 60,
     maxAttempts: 3,
     requestionHours: 4,
+    orphanHours: 2,
   }),
   notify: Object.freeze({ provider: "none" }),
 });
@@ -74,7 +75,7 @@ export function notifyProvider(config) {
  * @typedef {{ maxWorkers: number, gbPerWorker: number, reserveGb: number,
  *   cpuFraction: number, maxLoadPerCore: number }} CapacityBlock
  * @typedef {{ noOutputMinutes: number, maxAttempts: number,
- *   requestionHours: number }} StallBlock
+ *   requestionHours: number, orphanHours: number }} StallBlock
  * @typedef {{ provider: string, stateDir?: string }} NotifyBlock
  * @typedef {{
  *   name: string,
