@@ -84,7 +84,7 @@ export function notifyProvider(config) {
  *   stall: StallBlock,
  *   notify: NotifyBlock,
  *   trustedAuthorIds: string[] | null,
- *   trustedReleaseIds: string[] | null,
+ *   trustedReleaseIds?: string[] | null,
  *   operatorIds?: string[] | null,
  *   backlogPickup?: boolean,
  * }} SessionManagerConfig
@@ -141,7 +141,9 @@ export function resolveSessionManagerConfig(globalConfig, localConfig) {
     ...merged,
     repos,
     trustedAuthorIds: merged.trustedAuthorIds ?? null,
-    trustedReleaseIds: merged.trustedReleaseIds ?? null,
+    // Left as declared, like operatorIds: an explicit null must reach the
+    // validator and be refused, never read as "unset" and fall back (#4895).
+    trustedReleaseIds: merged.trustedReleaseIds,
     // Left as declared: absent stays undefined and an explicit null stays null,
     // so validation can refuse the null instead of reading it as "no operators".
     operatorIds: merged.operatorIds,
@@ -156,14 +158,18 @@ export function resolveSessionManagerConfig(globalConfig, localConfig) {
  * a bypass-permissions worker — and may name integrations, which are never a
  * person. `trustedReleaseIds` separates the two; unset, it falls back to
  * `trustedAuthorIds`, so a project that never declared it behaves exactly as
- * before. Neither set means nobody, and a hold fails closed.
+ * before. Neither set means nobody, and a hold fails closed. A declared
+ * value that is not a list (an explicit null) also means nobody: it never
+ * falls back, so a malformed release list cannot widen who may release.
  * @param {{ trustedAuthorIds?: string[] | null, trustedReleaseIds?: string[] | null } | null | undefined} config
  *   - Resolved block (only its two trust lists are read)
  * @returns {string[]} The configured release entries (unparsed)
  */
 export function trustedReleaseEntries(config) {
-  const declared = config?.trustedReleaseIds ?? config?.trustedAuthorIds;
-  return Array.isArray(declared) ? declared : [];
+  const release = config?.trustedReleaseIds;
+  if (release !== undefined) return Array.isArray(release) ? release : [];
+  const authors = config?.trustedAuthorIds;
+  return Array.isArray(authors) ? authors : [];
 }
 
 /**

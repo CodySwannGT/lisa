@@ -1395,7 +1395,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/ready-queue-order.mjs":
-      "337c51b2518c5286ff18a7cca8cce132fa6f3dbb2c853aa31d4ffc887206c85a",
+      "b7d7e3832a6e89f9f7d74cca104369c88db52d7a01c0762a0cfb23aa4b81180d",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "2a5b21f4fa3df268fb579976b4bc5f480d9176dbf6e3ae64fe3a869df287ca30",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
@@ -1749,7 +1749,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
       "7b473a9396a639932fb6090df82c9730fbccfd28392712c1bad3c14292dcd763",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
-      "faf2ae077a996fcb27f792024d52b632224c0eb9a97c07546260588c2856d395",
+      "b43edfe70f30a75ae95b74040c4efe30d0d359f71f1ca8bd43dbc293c6705bc6",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
       "4b125971939f6e99863930a109315038520c1bc8e0543d1e34476c9987d30605",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
@@ -1761,7 +1761,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
-      "a996d7287228914972bc7a8e9e1c6283260d857a0b823340f8bedbade846a599",
+      "5423d1e576e79683dd259afb8013be7f27cb18c34e5f6082d2639fb845bc6034",
     "plugins/src/base/skills/lisa-session-manager/scripts/cyclers.mjs":
       "b2cc3c6eb940d8a880db179390de22c58df1131f5876b606a12ed694d9b6e18d",
     "plugins/src/base/skills/lisa-session-manager/scripts/escalation-overruled.mjs":

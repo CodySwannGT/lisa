@@ -285,8 +285,11 @@ export function normalizeJiraIssue(issue) {
  * @returns {string | null} The integration's service, else its bot id
  */
 function linearIntegrationAuthor(issue) {
-  if (idOrNull(issue?.creator?.id) !== null) return null;
-  if (!issue || !Object.hasOwn(issue, "externalUserCreator")) return null;
+  // Both author fields must be read and explicitly null: a missing key, or a
+  // creator object without an id, says nothing about who filed the item.
+  if (!issue || !Object.hasOwn(issue, "creator")) return null;
+  if (issue.creator !== null) return null;
+  if (!Object.hasOwn(issue, "externalUserCreator")) return null;
   if (issue.externalUserCreator !== null) return null;
   const bot = issue.botActor;
   return idOrNull(bot?.subType) ?? idOrNull(bot?.id);

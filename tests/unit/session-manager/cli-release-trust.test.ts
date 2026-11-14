@@ -117,7 +117,7 @@ describe("blocked-plan with trustedReleaseIds", () => {
 });
 
 describe("trustedReleaseEntries", () => {
-  it("prefers trustedReleaseIds, falls back to trustedAuthorIds, else none", () => {
+  it("prefers trustedReleaseIds, falls back to trustedAuthorIds only when unset", () => {
     expect(
       trustedReleaseEntries({
         trustedAuthorIds: ["a"],
@@ -127,10 +127,19 @@ describe("trustedReleaseEntries", () => {
     expect(
       trustedReleaseEntries({
         trustedAuthorIds: ["a"],
-        trustedReleaseIds: null,
+        trustedReleaseIds: undefined,
       })
     ).toEqual(["a"]);
     expect(trustedReleaseEntries(null)).toEqual([]);
+  });
+
+  it("never falls back from an explicit null release list", () => {
+    expect(
+      trustedReleaseEntries({
+        trustedAuthorIds: ["a"],
+        trustedReleaseIds: null,
+      })
+    ).toEqual([]);
   });
 });
 
@@ -174,6 +183,9 @@ describe("validateSessionManager trust lists", () => {
     ).toMatch(/trustedReleaseIds must name at least one person/);
     expect(
       validateSessionManager({ ...minimal, trustedReleaseIds: "4242" })[0]
+    ).toMatch(/trustedReleaseIds must be an array/);
+    expect(
+      validateSessionManager({ ...minimal, trustedReleaseIds: null })[0]
     ).toMatch(/trustedReleaseIds must be an array/);
   });
 

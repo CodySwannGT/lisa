@@ -118,6 +118,15 @@ describe("normalizeLinearIssue authorIntegration", () => {
     expect(normalizeLinearIssue(node).authorIntegration).toBeNull();
   });
 
+  it("is null when the fetch did not say who created the item", () => {
+    const { creator: _c, ...noCreatorKey } = SENTRY_FILED;
+    expect(
+      normalizeLinearIssue(linearNode("OPS-8", noCreatorKey)).authorIntegration
+    ).toBeNull();
+    const idless = linearNode("OPS-9", { ...SENTRY_FILED, creator: {} });
+    expect(normalizeLinearIssue(idless).authorIntegration).toBeNull();
+  });
+
   it("is null for a deleted account, which has no bot either", () => {
     const node = linearNode("OPS-6", {
       creator: null,
