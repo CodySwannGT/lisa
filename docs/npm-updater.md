@@ -1,6 +1,6 @@
 # Opt-in selected npm updates
 
-The reusable [npm updater](../.github/workflows/npm-updater.yml) prepares one selected npm update in one committed npm project directory, allocates its canonical leaf, runs ordinary gates and publishes the exact gated commit. It has no schedule. The host owns cadence and exact package versions in its committed `.lisa.config.json`. Supported shapes are the root npm project and committed npm subdirectory projects, all targeting `main`. Work items can be tracked in GitHub Issues, Jira or Linear (see [Jira and Linear tracking](#jira-and-linear-tracking)); the code host is GitHub in every case.
+The reusable [npm updater](../.github/workflows/npm-updater.yml) prepares one selected npm update in one committed npm project directory, allocates its canonical leaf, runs ordinary gates and publishes the exact gated commit. It has no schedule. The host owns cadence and exact package versions in its committed `.lisa.config.json`. Supported shapes are the root npm project and committed npm subdirectory projects. Each targets `main` unless its policy names another configured deploy branch (see [Target branch](#target-branch)). Work items can be tracked in GitHub Issues, Jira or Linear (see [Jira and Linear tracking](#jira-and-linear-tracking)); the code host is GitHub in every case.
 
 ## Jira and Linear tracking
 
@@ -78,7 +78,8 @@ Rules every entry must meet, all checked before any npm work:
 - `directory` is `"."` or a normalized relative path: one to eight segments, each starting with a letter, digit or underscore and using only letters, digits, `_`, `.` and `-`. Absolute paths, `.`/`..` segments, trailing slashes and any `node_modules` segment are refused. Directories are unique across the list.
 - A subdirectory is npm-only. It must be a committed real directory holding regular committed `package.json` and `package-lock.json` files and no `bun.lock` of its own, committed or not. A root `bun.lock` belongs to the root project; a subdirectory proposal neither reads nor changes it.
 - A subdirectory entry uses `lisaOwner: "absent"` and has no `runtime` profile. Lisa ownership and the Rails runtime stay root-only.
-- `tracker` is `github`, `jira` or `linear` (see [Jira and Linear tracking](#jira-and-linear-tracking)), and `target` stays `main` for every entry.
+- `tracker` is `github`, `jira` or `linear` (see [Jira and Linear tracking](#jira-and-linear-tracking)).
+- `target` is optional and defaults to `main`; see [Target branch](#target-branch).
 - The root must still commit a `package-lock.json`, even when only a subdirectory is selected: the hosted gate installs the root with `npm ci` before running the ordinary hooks. A root that uses only Bun (a `bun.lock` with no `package-lock.json`) is not supported yet; see CodySwannGT/lisa#4862.
 
 Each run updates exactly one directory, chosen by the reusable workflow's `directory` input (default `"."`). A subdirectory proposal changes exactly `<directory>/package.json` and `<directory>/package-lock.json`. Its leaf is titled `Update selected npm dependencies in <directory>`, and its signed descriptor carries the directory. A root-only policy keeps byte-identical proposal keys, policy digest and leaf text, so existing root leaves and checkpoints remain valid. Updating several directories means several runs, for example one matrix job per directory:
@@ -96,7 +97,34 @@ jobs:
       directory: ${{ matrix.directory }}
 ```
 
-Upgrade the managed Lisa scripts and the committed `automationProvenance.signerDigest` together before you add a subdirectory entry. Older hook verifiers do not know the signed `directory` field, so they refuse subdirectory proposals rather than accept them.
+### Target branch
+
+`target` names the one branch the updater bases its proposal on and opens its pull request into. It defaults to `main` when omitted. A project that integrates on another branch, for example one that promotes `dev` → `staging` → `main`, sets it to that branch:
+
+```json
+{ "deploy": { "branches": { "dev": "dev", "staging": "staging", "production": "main" } },
+  "npmUpdater": { "version": 1, "repository": "owner/repo", "directory": ".", "target": "dev", "maintainer": "maintainer-login", "packages": [{ "name": "package-name", "version": "1.2.3" }], "lisaOwner": "absent" } }
+```
+
+- A target other than `main` must be one of the `.lisa.config.json` `deploy.branches` values, so the leaf's Target Backend Environment and Branch Plan can be derived from it. Any other value is refused with a message naming the target and the allowed branches. Branch names must be valid Git branch names.
+- The branch must exist on the remote. Preparation exits non-zero naming a missing branch, before any work item or pull request is created.
+- The caller passes the same branch as the workflow's `target_branch` input (default `main`). The prepare job runs only when the run's ref is `refs/heads/<target_branch>`, and every phase refuses a `target_branch` that differs from the committed `target`. Trigger the caller on that branch:
+
+```yaml
+on:
+  push:
+    branches: [dev]
+jobs:
+  npm-update:
+    uses: CodySwannGT/lisa/.github/workflows/npm-updater.yml@main
+    with:
+      target_branch: dev
+```
+
+- Selection, the hosted gate, publication, cancellation and provenance all use the target: the base read, the run and certificate refs, and the pull request base. A non-`main` target is signed into the descriptor, recovery and cancellation records. A `main` or omitted target keeps byte-identical selection keys, signed artifacts and leaf text, so existing callers change nothing.
+- One policy targets exactly one branch.
+
+Upgrade the managed Lisa scripts and the committed `automationProvenance.signerDigest` together before you add a subdirectory entry or a non-`main` target. Older hook verifiers do not know the signed `directory` or `target` fields, so they refuse those proposals rather than accept them.
 
 When the original commit also contains a regular text `bun.lock`, preparation uses genuine Bun 1.4.4 to update that lock with lifecycle scripts disabled. Both native npm ci and frozen Bun installation must preserve the prepared bytes. The proposal and signed descriptor bind the original Bun lock SHA256 and exactly three updated files: `package.json`, `package-lock.json` and `bun.lock`. Staging, recovery, cancellation and raw Git publication preserve this closed file set. An npm-only host retains its original two-file proposal and does not acquire a Bun preparation prerequisite. No lock is migrated or introduced.
 
@@ -144,7 +172,7 @@ has networking disabled and cannot satisfy that check through its Unix socket.
 Source and synthetic protocol controls do not establish Ubuntu execution,
 genuine Actions Bot publication or protected-check acceptance.
 
-Install the normally released Lisa package and apply its managed scripts through the ordinary workflow. Keep the host's canonical work-item configuration and hooks. Select `npmUpdater.version: 1`, the exact `repository`, `directory: "."` (or a committed subdirectory, as described above), `target: "main"`, `maintainer`, `packages: [{"name": "package-name", "version": "1.2.3"}]`, and `lisaOwner: "absent"` or `"verified-local-full-apply"`. Lisa itself is excluded only when the latter ownership has been positively verified. Automation provenance must be explicitly enabled and its repository must match the configured GitHub code-host repository (`github.org`/`github.repo`).
+Install the normally released Lisa package and apply its managed scripts through the ordinary workflow. Keep the host's canonical work-item configuration and hooks. Select `npmUpdater.version: 1`, the exact `repository`, `directory: "."` (or a committed subdirectory, as described above), `target: "main"` (or omitted, or another configured deploy branch as described above), `maintainer`, `packages: [{"name": "package-name", "version": "1.2.3"}]`, and `lisaOwner: "absent"` or `"verified-local-full-apply"`. Lisa itself is excluded only when the latter ownership has been positively verified. Automation provenance must be explicitly enabled and its repository must match the configured GitHub code-host repository (`github.org`/`github.repo`).
 
 The complete authenticated helper inventory is delivered by the common template
 lane, including the Git environment cleaner, scratch supervisor, ratchet modules

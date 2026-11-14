@@ -1,0 +1,9 @@
+$ LISA_NPM_TARGET_BRANCH=staging node lisa-npm-updater.mjs prepare <checkout without refs/remotes/origin/staging> <phase-dir>
+npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=unknown)
+Target branch "staging" does not exist on the remote; create it or change npmUpdater target. Nothing was published and no work item was created.
+exit=1
+phase directory contents after refusal (no proposal, no allocation):
+---
+$ LISA_NPM_TARGET_BRANCH=dev (differs from committed target staging)
+npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=configuration)
+exit=1
