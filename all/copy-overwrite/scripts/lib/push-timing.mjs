@@ -117,6 +117,19 @@ const ANSI_SEQUENCE = /\u001b\[[0-9;?]*[ -/]*[@-~]/gu;
  */
 const FAIL_HEADER = /^\s*FAIL\s+(?:\|[^|\n]*\|\s+)?(\S+)/u;
 
+/**
+ * A path without its trailing slashes. A loop rather than `/\/+$/`, which the
+ * shipped ReDoS rule flags: an anchored `+` before `$` backtracks on a long run
+ * of slashes followed by anything else.
+ * @param {string} path A POSIX path.
+ * @returns {string} The path with trailing `/` characters removed.
+ */
+function trimTrailingSlashes(path) {
+  let end = path.length;
+  while (end > 0 && path[end - 1] === "/") end -= 1;
+  return path.slice(0, end);
+}
+
 /** A token that is plausibly a file path: path characters plus an extension. */
 const FILE_TOKEN = /^[\w@.+\-/\\]+\.[A-Za-z0-9]+$/u;
 
@@ -134,7 +147,7 @@ function repoRelative(token, root) {
   if (!FILE_TOKEN.test(token)) return null;
   const posix = token.replaceAll("\\", "/");
   const base = root
-    ? `${root.replaceAll(sep, "/").replace(/\/+$/u, "")}/`
+    ? `${trimTrailingSlashes(root.replaceAll(sep, "/"))}/`
     : null;
   const absolute = posix.startsWith("/") || /^[A-Za-z]:\//u.test(posix);
   const inRoot = absolute && base && posix.startsWith(base);

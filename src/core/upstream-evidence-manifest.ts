@@ -271,7 +271,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/push-gate-defaults.mjs":
       "3d6c68c6a9840007f9996dd3c018a8f6d41e663b2fdbc9efa599ea55c03eef1d",
     "all/copy-overwrite/scripts/lib/push-timing.mjs":
-      "684c2e824e1d8682fffeef181e8801e8d4f6f5bc4d1c78ac6becbecb1eb199bd",
+      "7f04b451325dfa5aea321ec5b5d1aa7f34e737c8395e3a8a2de7dcdbf7d22d3f",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -399,7 +399,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "9dbe1d8ba2c9db60ecd1efbe467ee48e16ca26ecb32d08f5f982fbed5ce486e6",
+      "8bc64fc8ba942bf5958988970af40def6dd7d77ca28fa373afb8a44f8a21ff4c",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
