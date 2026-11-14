@@ -272,8 +272,10 @@ Validate against the default branch of the repository the ticket targets,
 and resolve its head `<sha>` once per run:
 
 - **This repository** (`project` scope) — run `git fetch origin <default>`
-  first, then `git rev-parse origin/<default>` for the SHA and
-  `git show origin/<default>:<path>` for each file.
+  first, then `git rev-parse origin/<default>` once for the SHA. Read every
+  file at that SHA, never at the moving `origin/<default>`:
+  `git cat-file -t <sha>:<path>` must print `blob` (a `tree` is a directory,
+  not a file), then `git show <sha>:<path>` for its text.
 - **Upstream** (`upstream` scope) — the paths live in `<upstreamRepo>`, not
   this checkout: `gh api repos/<upstreamRepo>/commits/<default> --jq .sha`
   for the SHA, then for each file
