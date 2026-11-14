@@ -1,0 +1,789 @@
+
+ RUN  v5.1.0 /Users/codysai/workspace/lisa/.claude/worktrees/4873-npm-updater-vendor-gate
+
+ ❯ |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts (21 tests | 16 failed) 10ms
+   ❯ closed runtime qualification diagnostics (21)
+     × captures the original apt-update refusal without exposing private native output 3ms
+     × captures the original apt-install refusal without exposing private native output 0ms
+     × refuses a foreign private package capture and rejects unknown phases before publication 0ms
+     × requests bounded DOM capture while retaining internal-URL and sandbox requirements 0ms
+     × captures an independent blank-page diagnostic without certifying the sandbox 0ms
+     × retains a blank-page diagnostic refusal rather than certifying browser success 0ms
+     × bounds a real hanging browser child and retains remaining phase time for cleanup observations 0ms
+     × bounds a real hanging browser-control child and retains remaining phase time for cleanup observations 0ms
+     × refuses incomplete captured sandbox evidence: You are adequately sandboxed.You are NOT adequately sandboxed.<tr><td>Layer 1 Sandbox</td><td>SUID</td></tr> 0ms
+     × refuses incomplete captured sandbox evidence: <td>SUID Sandbox</td><td>Yes</td> 0ms
+     × refuses incomplete captured sandbox evidence: You are adequately sandboxed.<td>SUID Sandbox</td><td>No</td> 0ms
+     × retains real exit17 output privately while exporting only closed status, sizes and hashes 0ms
+     × refuses unknown stages before any native child 0ms
+     × preserves the native refusal when exclusive private capture also fails 0ms
+     × refuses an existing or aliased result while preserving foreign bytes 0ms
+     × pins the private parent and refuses redirected publication 0ms
+ ❯ |lisa| tests/unit/scripts/npm-update-driver-diagnostic.test.ts (18 tests | 6 failed) 8ms
+   ❯ bounded native driver diagnostics (18)
+     × reaches the native protocol consumer and waits for owned driver closure (qualification=false) 2ms
+     × reaches the native protocol consumer and waits for owned driver closure (qualification=true) 0ms
+     × retains failed native status and private streams when diagnostic output is malformed 0ms
+     × keeps the native refusal and withholds the consumer's sensitive message 0ms
+     × rejects coerced session identifiers before navigation 0ms
+     × never requests an endpoint from unrelated readiness prose 0ms
+ ❯ |lisa| tests/unit/scripts/npm-update-hosted-scope.test.ts (7 tests | 7 failed) 5ms
+   ❯ owned hosted read scope (7)
+     × preserves the real post-install environment through the native gateway 2ms
+     × retains native publication EEXIST when an injected close-report failure occurs after real listener cleanup 0ms
+     × requires native zero from the canonical gateway (synthetic verifier exit 0) 0ms
+     × requires native zero from the canonical gateway (synthetic verifier exit 10) 0ms
+     × requires native zero from the canonical gateway (synthetic verifier exit 17) 0ms
+     × returns a token-free native gateway and positively closes its listener 0ms
+     × preserves an exclusive context collision and closes the already allocated native listener 0ms
+ ❯ |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts (13 tests | 13 failed) 6ms
+   ❯ hosted gate read-only provider transport (13)
+     × refuses absent preload context before executing the genuine provenance CLI 2ms
+     × routes only the real canonical commit CLI 0 0ms
+     × routes only the real canonical commit CLI 1 0ms
+     × routes only the real canonical commit CLI 2 0ms
+     × routes only the real canonical commit CLI 3 0ms
+     × routes only the real canonical commit CLI 4 0ms
+     × routes only the real canonical commit CLI 5 0ms
+     × routes only the real canonical commit CLI 6 0ms
+     × reaches the actual token-free Node gateway/preload/client and preserves binary stdin and native refusal 0ms
+     × preserves actual native failure/stdout/stderr and positively closes its owned listener 0ms
+     × preserves native application subprocess overloads and callback results in an instrumented hook 0ms
+     × refuses a changed graph, expired reader and canonical loader before granting a read route 0ms
+     × refuses writer, foreign subject, caller-selected native options and unknown slots 0ms
+
+⏭  DEFERRED TO CI: needs a native (non-symlinked) Bun first on PATH. Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`.
+
+⏭  DEFERRED TO CI: needs a native (non-symlinked) Bun first on PATH. Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`.
+ ❯ |lisa| tests/unit/scripts/npm-update-broker.test.ts (6 tests | 6 failed) 5ms
+   ❯ closed native controller broker (6)
+     × runs the genuine canonical helper through its exact non-null instrumented recipe without serializing its credential 2ms
+     × keeps an actual helper refusal nonzero despite the recipe's allowed-zero policy 0ms
+     × never turns an actual capture overflow into a zero exit 0ms
+     × snapshots the controller recipe before a caller attempts to mutate it 0ms
+     × preserves genuine helper results through the closed client transport 0ms
+     × runs the genuine canonical contract probe and rejects worker-supplied commands 0ms
+ ❯ |lisa| tests/unit/scripts/npm-update-qualification-packages.test.ts (3 tests | 3 failed) 5ms
+   ❯ disposable qualification package normalization (3)
+     × normalizes newer package state before unchanged strict production qualification 2ms
+     × retains original update failure and does not normalize state 0ms
+     × retains original install failure and does not normalize state 0ms
+ ❯ |lisa| tests/unit/scripts/npm-update-runtime-preservation.test.ts (5 tests | 5 failed) 5ms
+   ❯ actual component qualification preservation decision (5)
+     × observes nonempty inventories for all four kinds before certifying preservation 2ms
+     × refuses missing prior containers and keeps overall qualification false 0ms
+     × refuses missing prior networks and keeps overall qualification false 0ms
+     × refuses missing prior volumes and keeps overall qualification false 0ms
+     × refuses missing prior images and keeps overall qualification false 0ms
+ ❯ |lisa| tests/unit/scripts/npm-update-hosted-runtime.test.ts (4 tests | 4 failed) 5ms
+   ❯ authenticated hosted Rails orchestration (4)
+     × authenticates before tools and prepares schemas only after frozen installation while preserving qualified hook env 3ms
+     × refuses failed canonical authentication before any installation or allocation 0ms
+     × retains schema failure and closes the allocated runtime 0ms
+     × preserves the original schema error when owned runtime cleanup also fails 0ms
+ ❯ |lisa| tests/unit/scripts/npm-update-rails-browser-environment.test.ts (1 test | 1 failed) 4ms
+   ❯ finite native browser environment (1)
+     × supplies CHROME_BIN consumers with the same actual selected bytes as CHROME_BINARY 2ms
+ ❯ |lisa| tests/unit/scripts/npm-update-socket-witness.test.ts (8 tests | 1 failed) 5ms
+   ❯ native hook scratch witness (8)
+     × requires actual absence and refuses a dangling symlink 1ms
+
+⏭  DEFERRED TO CI: needs a native (non-symlinked) Bun first on PATH. Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`.
+
+⏭  DEFERRED TO CI: needs a native (non-symlinked) Bun first on PATH. Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`.
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 62 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-broker.test.ts > closed native controller broker > runs the genuine canonical helper through its exact non-null instrumented recipe without serializing its credential
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ tests/unit/scripts/npm-update-broker.test.ts:86:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-broker.test.ts > closed native controller broker > keeps an actual helper refusal nonzero despite the recipe's allowed-zero policy
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ withBroker tests/unit/scripts/npm-update-broker.test.ts:47:19
+ ❯ tests/unit/scripts/npm-update-broker.test.ts:182:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-broker.test.ts > closed native controller broker > never turns an actual capture overflow into a zero exit
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ withBroker tests/unit/scripts/npm-update-broker.test.ts:47:19
+ ❯ tests/unit/scripts/npm-update-broker.test.ts:196:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-broker.test.ts > closed native controller broker > snapshots the controller recipe before a caller attempts to mutate it
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ withBroker tests/unit/scripts/npm-update-broker.test.ts:47:19
+ ❯ tests/unit/scripts/npm-update-broker.test.ts:207:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-broker.test.ts > closed native controller broker > preserves genuine helper results through the closed client transport
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ tests/unit/scripts/npm-update-broker.test.ts:217:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-broker.test.ts > closed native controller broker > runs the genuine canonical contract probe and rejects worker-supplied commands
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ tests/unit/scripts/npm-update-broker.test.ts:258:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-driver-diagnostic.test.ts > bounded native driver diagnostics > reaches the native protocol consumer and waits for owned driver closure (qualification=false)
+ FAIL  |lisa| tests/unit/scripts/npm-update-driver-diagnostic.test.ts > bounded native driver diagnostics > reaches the native protocol consumer and waits for owned driver closure (qualification=true)
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-driver-diagnostic.test.ts:34:17
+ ❯ tests/unit/scripts/npm-update-driver-diagnostic.test.ts:127:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-driver-diagnostic.test.ts > bounded native driver diagnostics > retains failed native status and private streams when diagnostic output is malformed
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-driver-diagnostic.test.ts:34:17
+ ❯ tests/unit/scripts/npm-update-driver-diagnostic.test.ts:175:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-driver-diagnostic.test.ts > bounded native driver diagnostics > keeps the native refusal and withholds the consumer's sensitive message
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-driver-diagnostic.test.ts:34:17
+ ❯ tests/unit/scripts/npm-update-driver-diagnostic.test.ts:200:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-driver-diagnostic.test.ts > bounded native driver diagnostics > rejects coerced session identifiers before navigation
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-driver-diagnostic.test.ts:34:17
+ ❯ tests/unit/scripts/npm-update-driver-diagnostic.test.ts:238:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-driver-diagnostic.test.ts > bounded native driver diagnostics > never requests an endpoint from unrelated readiness prose
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-driver-diagnostic.test.ts:34:17
+ ❯ tests/unit/scripts/npm-update-driver-diagnostic.test.ts:263:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > refuses absent preload context before executing the genuine provenance CLI
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hook-provider.test.ts:28:19
+ ❯ tests/unit/scripts/npm-update-hook-provider.test.ts:120:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > routes only the real canonical commit CLI 0
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > routes only the real canonical commit CLI 1
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > routes only the real canonical commit CLI 2
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > routes only the real canonical commit CLI 3
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > routes only the real canonical commit CLI 4
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > routes only the real canonical commit CLI 5
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > routes only the real canonical commit CLI 6
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hook-provider.test.ts:28:19
+ ❯ tests/unit/scripts/npm-update-hook-provider.test.ts:160:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > reaches the actual token-free Node gateway/preload/client and preserves binary stdin and native refusal
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hook-provider.test.ts:28:19
+ ❯ tests/unit/scripts/npm-update-hook-provider.test.ts:193:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > preserves actual native failure/stdout/stderr and positively closes its owned listener
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hook-provider.test.ts:28:19
+ ❯ tests/unit/scripts/npm-update-hook-provider.test.ts:224:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > preserves native application subprocess overloads and callback results in an instrumented hook
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hook-provider.test.ts:28:19
+ ❯ tests/unit/scripts/npm-update-hook-provider.test.ts:242:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > refuses a changed graph, expired reader and canonical loader before granting a read route
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hook-provider.test.ts:28:19
+ ❯ tests/unit/scripts/npm-update-hook-provider.test.ts:264:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hook-provider.test.ts > hosted gate read-only provider transport > refuses writer, foreign subject, caller-selected native options and unknown slots
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hook-provider.test.ts:28:19
+ ❯ tests/unit/scripts/npm-update-hook-provider.test.ts:296:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hosted-runtime.test.ts > authenticated hosted Rails orchestration > authenticates before tools and prepares schemas only after frozen installation while preserving qualified hook env
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ Module.createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hosted-runtime.test.ts:108:19
+ ❯ tests/unit/scripts/npm-update-hosted-runtime.test.ts:143:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hosted-runtime.test.ts > authenticated hosted Rails orchestration > refuses failed canonical authentication before any installation or allocation
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ Module.createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hosted-runtime.test.ts:108:19
+ ❯ tests/unit/scripts/npm-update-hosted-runtime.test.ts:175:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hosted-runtime.test.ts > authenticated hosted Rails orchestration > retains schema failure and closes the allocated runtime
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ Module.createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hosted-runtime.test.ts:108:19
+ ❯ tests/unit/scripts/npm-update-hosted-runtime.test.ts:191:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hosted-runtime.test.ts > authenticated hosted Rails orchestration > preserves the original schema error when owned runtime cleanup also fails
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ Module.createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hosted-runtime.test.ts:108:19
+ ❯ tests/unit/scripts/npm-update-hosted-runtime.test.ts:206:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hosted-scope.test.ts > owned hosted read scope > preserves the real post-install environment through the native gateway
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ Module.createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hosted-scope.test.ts:46:19
+ ❯ tests/unit/scripts/npm-update-hosted-scope.test.ts:115:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hosted-scope.test.ts > owned hosted read scope > retains native publication EEXIST when an injected close-report failure occurs after real listener cleanup
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ Module.createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hosted-scope.test.ts:46:19
+ ❯ tests/unit/scripts/npm-update-hosted-scope.test.ts:155:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hosted-scope.test.ts > owned hosted read scope > requires native zero from the canonical gateway (synthetic verifier exit 0)
+ FAIL  |lisa| tests/unit/scripts/npm-update-hosted-scope.test.ts > owned hosted read scope > requires native zero from the canonical gateway (synthetic verifier exit 10)
+ FAIL  |lisa| tests/unit/scripts/npm-update-hosted-scope.test.ts > owned hosted read scope > requires native zero from the canonical gateway (synthetic verifier exit 17)
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ Module.createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hosted-scope.test.ts:46:19
+ ❯ tests/unit/scripts/npm-update-hosted-scope.test.ts:189:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hosted-scope.test.ts > owned hosted read scope > returns a token-free native gateway and positively closes its listener
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ Module.createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hosted-scope.test.ts:46:19
+ ❯ tests/unit/scripts/npm-update-hosted-scope.test.ts:226:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-hosted-scope.test.ts > owned hosted read scope > preserves an exclusive context collision and closes the already allocated native listener
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ Module.createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-hosted-scope.test.ts:46:19
+ ❯ tests/unit/scripts/npm-update-hosted-scope.test.ts:248:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-qualification-packages.test.ts > disposable qualification package normalization > normalizes newer package state before unchanged strict production qualification
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-qualification-packages.test.ts:37:17
+ ❯ tests/unit/scripts/npm-update-qualification-packages.test.ts:68:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-qualification-packages.test.ts > disposable qualification package normalization > retains original update failure and does not normalize state
+ FAIL  |lisa| tests/unit/scripts/npm-update-qualification-packages.test.ts > disposable qualification package normalization > retains original install failure and does not normalize state
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-qualification-packages.test.ts:37:17
+ ❯ tests/unit/scripts/npm-update-qualification-packages.test.ts:88:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-rails-browser-environment.test.ts > finite native browser environment > supplies CHROME_BIN consumers with the same actual selected bytes as CHROME_BINARY
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ tests/unit/scripts/npm-update-rails-browser-environment.test.ts:15:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-preservation.test.ts > actual component qualification preservation decision > observes nonempty inventories for all four kinds before certifying preservation
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ Module.createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ exercise tests/unit/scripts/npm-update-runtime-preservation.test.ts:71:17
+ ❯ tests/unit/scripts/npm-update-runtime-preservation.test.ts:156:48
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-preservation.test.ts > actual component qualification preservation decision > refuses missing prior containers and keeps overall qualification false
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-preservation.test.ts > actual component qualification preservation decision > refuses missing prior networks and keeps overall qualification false
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-preservation.test.ts > actual component qualification preservation decision > refuses missing prior volumes and keeps overall qualification false
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-preservation.test.ts > actual component qualification preservation decision > refuses missing prior images and keeps overall qualification false
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ Module.createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ exercise tests/unit/scripts/npm-update-runtime-preservation.test.ts:71:17
+ ❯ tests/unit/scripts/npm-update-runtime-preservation.test.ts:168:50
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > captures the original apt-update refusal without exposing private native output
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > captures the original apt-install refusal without exposing private native output
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:55:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > refuses a foreign private package capture and rejects unknown phases before publication
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:155:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > requests bounded DOM capture while retaining internal-URL and sandbox requirements
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:238:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > captures an independent blank-page diagnostic without certifying the sandbox
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:262:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > retains a blank-page diagnostic refusal rather than certifying browser success
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:284:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > bounds a real hanging browser child and retains remaining phase time for cleanup observations
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > bounds a real hanging browser-control child and retains remaining phase time for cleanup observations
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:307:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > refuses incomplete captured sandbox evidence: You are adequately sandboxed.You are NOT adequately sandboxed.<tr><td>Layer 1 Sandbox</td><td>SUID</td></tr>
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > refuses incomplete captured sandbox evidence: <td>SUID Sandbox</td><td>Yes</td>
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > refuses incomplete captured sandbox evidence: You are adequately sandboxed.<td>SUID Sandbox</td><td>No</td>
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:402:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > retains real exit17 output privately while exporting only closed status, sizes and hashes
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:422:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > refuses unknown stages before any native child
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:447:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > preserves the native refusal when exclusive private capture also fails
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:457:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > refuses an existing or aliased result while preserving foreign bytes
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:481:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-runtime-qualification.test.ts > closed runtime qualification diagnostics > pins the private parent and refuses redirected publication
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ fixture tests/unit/scripts/npm-update-runtime-qualification.test.ts:42:17
+ ❯ tests/unit/scripts/npm-update-runtime-qualification.test.ts:493:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/62]⎯
+
+ FAIL  |lisa| tests/unit/scripts/npm-update-socket-witness.test.ts > native hook scratch witness > requires actual absence and refuses a dangling symlink
+Error: Native Unix fixtures require the lisa-test-run supervision lease
+ ❯ fixtureLease tests/helpers/supervised-unix-fixture.ts:23:11
+     21| function fixtureLease(raw: string | undefined): ScratchSupervisionLeas…
+     22|   if (!raw)
+     23|     throw new Error(
+       |           ^
+     24|       "Native Unix fixtures require the lisa-test-run supervision leas…
+     25|     );
+ ❯ createSupervisedUnixFixture tests/helpers/supervised-unix-fixture.ts:52:17
+ ❯ tests/unit/scripts/npm-update-socket-witness.test.ts:26:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/62]⎯
+
+
+ Test Files  10 failed | 63 passed (73)
+      Tests  62 failed | 895 passed | 4 skipped (961)
+   Start at  07:26:07
+   Duration  71.26s (tests 94%, import 3%, setup 2%, transform 1%)
+

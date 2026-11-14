@@ -1,0 +1,23 @@
+== n5-finalize-callsite
+      Tests  90 passed (90)
+== n6-supersede-callsite
+      Tests  81 passed (81)
+== n12-publish-callsite
+      Tests  43 passed (43)
+== h1-helper-no-assert
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-cancel.test.ts > the shared closure and publish-authority guards (#4873 review) > accepts a Jira closure only when the automation account made it
+      Tests  1 failed | 16 passed (17)
+== h2-helper-no-claim
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-cancel.test.ts > the shared closure and publish-authority guards (#4873 review) > refuses publication when the Linear claim was written by a person
+      Tests  1 failed | 25 passed (26)
+== h3-jira-identity-after-create
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-jira-index-lag.test.ts > a Jira credential that is not the declared automation account (#4873 review) > stops before searching or creating anything, naming JIRA_API_TOKEN
+ FAIL  |lisa| tests/unit/scripts/zz-verifier-actor-probe.test.ts > verifier probe > mismatched credential account
+      Tests  2 failed | 3 passed (5)
+== h4-github-closed-by
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/npm-update-tracker-cancel.test.ts > the shared closure and publish-authority guards (#4873 review) > keeps GitHub's own closed_by check exactly
+      Tests  1 failed | 76 passed (77)
