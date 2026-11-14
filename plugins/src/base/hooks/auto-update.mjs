@@ -753,9 +753,14 @@ async function pendingReminder(ctx) {
   );
   const marker = readJson(markerPath);
   if (!marker) return null;
-  const dirty = await ctx.run(["git", "status", "--porcelain"], {
-    cwd: ctx.projectDir,
-  });
+  // Only the marker's own files decide it: an unrelated edit must not keep a
+  // committed update looking pending, and no recorded files means none is.
+  const files = marker.files ?? [];
+  const dirty = files.length
+    ? await ctx.run(["git", "status", "--porcelain", "--", ...files], {
+        cwd: ctx.projectDir,
+      })
+    : "";
   if (!dirty) {
     rmSync(markerPath, { force: true });
     return null;
@@ -769,7 +774,7 @@ async function pendingReminder(ctx) {
       ? ` Lisa ${latest} has been released since.`
       : "";
   return {
-    text: `A Lisa update to ${marker.to} was applied in an earlier session and is still uncommitted (${(marker.files ?? []).length} file(s)).${since} Binding a work item on a feature branch commits it first, as its own commit. Do not fold these files into a feature commit.`,
+    text: `A Lisa update to ${marker.to} was applied in an earlier session and is still uncommitted (${files.length} file(s)).${since} Binding a work item on a feature branch commits it first, as its own commit. Do not fold these files into a feature commit.`,
     notice: `A Lisa update to ${marker.to} is sitting in this project but is not committed.${since} Ask your agent to commit it on its own branch so it is not lost or mixed into other work.`,
   };
 }

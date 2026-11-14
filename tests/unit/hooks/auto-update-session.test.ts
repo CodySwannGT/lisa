@@ -187,6 +187,16 @@ describe("auto-update: a session start", () => {
     expect(pendingMarker(root)).toBeNull();
   });
 
+  it("clears a committed pending marker even when unrelated files are dirty", async () => {
+    const root = project({ installed: NEW });
+    seedPendingMarker(root);
+    const { text } = await sessionStart(root, {
+      dirtyBefore: " M src/app.ts",
+    });
+    expect(text).not.toContain("still uncommitted");
+    expect(pendingMarker(root)).toBeNull();
+  });
+
   it("refuses to update through a node_modules link into another checkout", async () => {
     const other = project({});
     const root = mkdtempSync(path.join(tmpdir(), "lisa-auto-update-linked-"));

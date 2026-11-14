@@ -159,13 +159,13 @@ export function pendingMarker(
 function applySideEffects(root: string, world: World, argv: string[]): boolean {
   if (argv[0] === "bun" && argv[1] === "add") {
     if (world.bumpWorks !== false) {
-      writeJson(installedManifest(root), { version: NEW });
+      writeJson(installedManifest(root), { version: world.latest ?? NEW });
     }
     return true;
   }
   if (argv.join(" ").startsWith(APPLY)) {
     writeJson(path.join(root, ".lisa", "apply-receipt.json"), {
-      lisa_version: NEW,
+      lisa_version: world.latest ?? NEW,
       apply_mode: "full",
     });
   }
@@ -189,6 +189,20 @@ export function fakeRunner(
     [
       line => line === "git status --porcelain",
       () => (updated.current ? CHANGED.join("\n") : (world.dirtyBefore ?? "")),
+    ],
+    [
+      // Scoped to the pending marker's files: only those dirty lines count.
+      line => line.startsWith("git status --porcelain -- "),
+      () => {
+        const files = log.current
+          .at(-1)!
+          .slice("git status --porcelain -- ".length)
+          .split(" ");
+        return (world.dirtyBefore ?? "")
+          .split("\n")
+          .filter(entry => files.includes(entry.slice(3)))
+          .join("\n");
+      },
     ],
     [
       line => line.startsWith("git status --porcelain=v1 -z"),

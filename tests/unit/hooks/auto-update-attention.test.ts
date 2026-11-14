@@ -61,6 +61,11 @@ describe("auto-update: telling the developer", () => {
     expect(notice).toMatch(/not committed/u);
   });
 
+  it("stays quiet after a successful update to whatever npm reports", async () => {
+    const { notice } = await sessionStart(project({}), { latest: NEWER });
+    expect(notice).toBeNull();
+  });
+
   it("surfaces a failed update", async () => {
     const { notice } = await sessionStart(project({}), { bumpWorks: false });
     expect(notice).toMatch(/could not update/u);

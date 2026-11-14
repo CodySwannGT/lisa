@@ -1065,7 +1065,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/verify.md":
       "ffbc553ec86e77845da72b5b0eb0dbb2b5a93b781ac8a7dbb2ef0f31f38f7b96",
     "plugins/src/base/hooks/auto-update.mjs":
-      "abe5efd260d15d105992502655802d8bbca0cb62724a3c212623acc81b2383f0",
+      "e1f8d025f7b36a0f54833d52855fc23f72ce00ed858d1bbf76116ba0cd85accb",
     "plugins/src/base/hooks/auto-update.sh":
       "4e09fb31e8d697b0f62d775b8b2bd4c535f9cfcf2423d99329cd4844a614b8af",
     "plugins/src/base/hooks/block-blind-automerge.agy.sh":
