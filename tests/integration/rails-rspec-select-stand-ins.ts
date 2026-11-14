@@ -12,8 +12,13 @@ const { join, resolve } = require("node:path");
 const argv = process.argv.slice(2);
 appendFileSync(".bundle-calls", JSON.stringify(argv) + "\\n");
 const dir = process.env.LISA_RSPEC_PARTIAL_COVERAGE_DIR;
-if (dir && argv.some(arg => arg.endsWith("lisa_rspec_partial_coverage.rb"))) {
+const partialRun = argv.some(arg => arg.endsWith("lisa_rspec_partial_coverage.rb"));
+if (dir && partialRun && !existsSync("handoff-silent")) {
   mkdirSync(dir, { recursive: true });
+  if (existsSync("handoff-unavailable")) {
+    writeFileSync(join(dir, "status.json"), JSON.stringify({ measuring: true, escalate: "this SimpleCov has no finalize_merge" }));
+    process.exit(1);
+  }
   if (existsSync("coverage.json")) {
     const raw = JSON.parse(readFileSync("coverage.json", "utf8"));
     const coverage = Object.fromEntries(Object.entries(raw).map(([file, lines]) => [resolve(file), { lines, branches: {} }]));
@@ -23,6 +28,7 @@ if (dir && argv.some(arg => arg.endsWith("lisa_rspec_partial_coverage.rb"))) {
     writeFileSync(join(dir, "status.json"), JSON.stringify({ measuring: false }));
   }
 }
+if (!partialRun && existsSync("whole-coverage.fail")) process.exit(1);
 process.exit(argv.some(arg => arg.includes("failing")) ? 1 : 0);
 `;
 

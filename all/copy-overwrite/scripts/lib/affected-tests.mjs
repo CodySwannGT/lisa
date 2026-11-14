@@ -28,7 +28,10 @@
  *   coverage-measured suite, so selection only speeds up test-correctness
  *   where coverage-adequacy is not declared at push.
  * - `changed-files`: the selected tests run with coverage on, and each changed
- *   source file must meet the project's thresholds on its own.
+ *   source file is held to the project's thresholds on its own. When every
+ *   one meets them the partial run passes; when one does not, the push is
+ *   never failed on that alone: it escalates to the full suite with
+ *   whole-repo coverage, as `full` runs it, and that verdict decides.
  * - `skip`: the selected tests run without coverage and coverage-adequacy
  *   reports SKIPPED, "partial selection — enforced by CI".
  *
@@ -530,6 +533,49 @@ export function changedFileCoverage({ summary, root, files, thresholds }) {
     }
   }
   return { shortfalls, measured, unmeasured };
+}
+
+/**
+ * The line that sends a partial push run to the full suite.
+ *
+ * A push is never stricter than whole-repo coverage (CodySwannGT/lisa#4600):
+ * before selection, a push failed coverage only when the whole suite's
+ * coverage did. So a partial run that cannot clear every changed file on its
+ * own does not fail the push; it runs the full suite with whole-repo coverage,
+ * exactly as `affectedCoverage: "full"` does, and that run's verdict decides.
+ * @param {string} subject Who is speaking ("affected tests", "affected specs").
+ * @param {string} because Why the partial run could not decide the push.
+ * @returns {string} One plain-language line.
+ */
+export function fullSuiteEscalation(subject, because) {
+  return `↪️  ${subject}: ${because}, so the full suite is running now with whole-repo coverage, and that run decides this push.`;
+}
+
+/**
+ * One escalation line per changed file below its floor, naming every metric
+ * it misses. Shortfalls are matched to a file by its exact `file: ` prefix,
+ * the form {@link changedFileCoverage} and the Rails check both write.
+ * @param {object} input Inputs.
+ * @param {string} input.subject Who is speaking.
+ * @param {ReadonlyArray<string>} input.files Changed files, in report order.
+ * @param {ReadonlyArray<string>} input.shortfalls The verdict's shortfalls.
+ * @returns {string[]} Lines; empty when every file meets its floor.
+ */
+export function coverageEscalationLines({ subject, files, shortfalls }) {
+  return files.flatMap(file => {
+    const prefix = `${file}: `;
+    const misses = shortfalls
+      .filter(line => line.startsWith(prefix))
+      .map(line => line.slice(prefix.length));
+    return misses.length === 0
+      ? []
+      : [
+          fullSuiteEscalation(
+            subject,
+            `${file} is below its coverage floor on its own (${misses.join("; ")})`
+          ),
+        ];
+  });
 }
 
 /**

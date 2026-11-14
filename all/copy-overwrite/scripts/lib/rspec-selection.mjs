@@ -30,7 +30,9 @@
  */
 import {
   affectedTestsSettings,
+  coverageEscalationLines,
   firedTrigger,
+  fullSuiteEscalation,
   readersByFile,
 } from "./affected-tests.mjs";
 import {
@@ -459,6 +461,32 @@ export function changedRubyCoverage({
     }
   }
   return { shortfalls, measured, unmeasured };
+}
+
+/** Who speaks in the Rails selector's lines. */
+export const RSPEC_SUBJECT = "affected specs";
+
+/**
+ * The Rails selector's escalation lines: one per changed Ruby file below its
+ * floor. A push is never stricter than whole-repo coverage
+ * (CodySwannGT/lisa#4600), so such a file sends the push to the full suite,
+ * whose SimpleCov minimums decide it, rather than failing it.
+ * @param {object} input Inputs.
+ * @param {ReadonlyArray<string>} input.files Changed Ruby files, in order.
+ * @param {ReadonlyArray<string>} input.shortfalls {@link changedRubyCoverage}'s shortfalls.
+ * @returns {string[]} Lines; empty when every file meets its floor.
+ */
+export function railsCoverageEscalation({ files, shortfalls }) {
+  return coverageEscalationLines({ subject: RSPEC_SUBJECT, files, shortfalls });
+}
+
+/**
+ * The Rails selector's escalation line for a partial run that proved nothing.
+ * @param {string} because Why the partial run could not decide the push.
+ * @returns {string} One line.
+ */
+export function railsFullSuiteEscalation(because) {
+  return fullSuiteEscalation(RSPEC_SUBJECT, because);
 }
 
 /**

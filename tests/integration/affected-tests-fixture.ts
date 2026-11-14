@@ -52,7 +52,9 @@ const BORROWED: ReadonlyArray<readonly [string, string]> = [
 /**
  * The stand-in `vitest`. It records argv, writes a coverage summary into
  * `--coverage.reportsDirectory` from `coverage.json` when one is present, and
- * fails when a `failing` test is among its arguments.
+ * fails when a `failing` test is among its arguments, or when a full
+ * coverage run (`--coverage`) finds a `whole-coverage.fail` marker, which
+ * stands for whole-repo coverage below the project's thresholds.
  */
 const FAKE_VITEST = `import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -68,6 +70,7 @@ if (dir && existsSync("coverage.json")) {
   }]));
   writeFileSync(join(target, "coverage-summary.json"), JSON.stringify(summary));
 }
+if (argv.includes("--coverage") && existsSync("whole-coverage.fail")) process.exit(1);
 process.exit(argv.some(arg => arg.includes("failing")) ? 1 : 0);
 `;
 
@@ -157,7 +160,11 @@ function writeProject(root: string, options: FixtureOptions): void {
     copyFileSync(path.join(REPO_ROOT, from), path.join(root, to));
   }
   write(root, "fake/vitest", FAKE_VITEST);
-  write(root, ".gitignore", ".lisa/\n.vitest-calls\ncoverage.json\n");
+  write(
+    root,
+    ".gitignore",
+    ".lisa/\n.vitest-calls\ncoverage.json\nwhole-coverage.fail\n"
+  );
   write(root, MOD, "export const mod = 1;\n");
   write(root, OTHER, "export const other = 1;\n");
   write(root, "docs/notes.md", "notes\n");

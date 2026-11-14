@@ -13,6 +13,8 @@ import {
   affectedTestsSettings,
   changedFileCoverage,
   coverageDeclaredAtPush,
+  coverageEscalationLines,
+  fullSuiteEscalation,
   RECORDED_TRIGGER_REASON,
   coverageLeftToCi,
   excludedBy,
@@ -319,6 +321,61 @@ describe("changedFileCoverage", () => {
       measured: ["src/a.ts", "src/b.ts"],
       unmeasured: ["README.md"],
     });
+  });
+});
+
+/** The TypeScript selector's voice in its own lines. */
+const SUBJECT = "affected tests";
+
+describe("coverage escalation (push is never stricter than whole-repo coverage)", () => {
+  it("names each changed file below its floor once, with every metric it misses", () => {
+    expect(
+      coverageEscalationLines({
+        subject: SUBJECT,
+        files: ["src/a.ts", "src/b.ts", "src/c.ts"],
+        shortfalls: [
+          "src/a.ts: lines 50% is below 80%",
+          "src/a.ts: branches 40% is below 70%",
+          "src/c.ts: lines 10% is below 80%",
+        ],
+      })
+    ).toEqual([
+      "↪️  affected tests: src/a.ts is below its coverage floor on its own (lines 50% is below 80%; branches 40% is below 70%), so the full suite is running now with whole-repo coverage, and that run decides this push.",
+      "↪️  affected tests: src/c.ts is below its coverage floor on its own (lines 10% is below 80%), so the full suite is running now with whole-repo coverage, and that run decides this push.",
+    ]);
+  });
+
+  it("does not take one file's shortfall for another that shares its prefix", () => {
+    expect(
+      coverageEscalationLines({
+        subject: SUBJECT,
+        files: ["src/a.ts", "src/a.tsx"],
+        shortfalls: ["src/a.tsx: lines 1% is below 80%"],
+      })
+    ).toEqual([
+      "↪️  affected tests: src/a.tsx is below its coverage floor on its own (lines 1% is below 80%), so the full suite is running now with whole-repo coverage, and that run decides this push.",
+    ]);
+  });
+
+  it("asks for nothing when every changed file meets its floor", () => {
+    expect(
+      coverageEscalationLines({
+        subject: SUBJECT,
+        files: ["src/a.ts"],
+        shortfalls: [],
+      })
+    ).toEqual([]);
+  });
+
+  it("says why for a partial run that proved nothing", () => {
+    expect(
+      fullSuiteEscalation(
+        "affected specs",
+        "the partial run left no SimpleCov resultset"
+      )
+    ).toBe(
+      "↪️  affected specs: the partial run left no SimpleCov resultset, so the full suite is running now with whole-repo coverage, and that run decides this push."
+    );
   });
 });
 

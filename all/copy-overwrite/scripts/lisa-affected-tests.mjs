@@ -43,8 +43,10 @@ import {
   affectedTestsSettings,
   changedFileCoverage,
   coverageDeclaredAtPush,
+  coverageEscalationLines,
   excludedBy,
   explainSelection,
+  fullSuiteEscalation,
   measuresCoverage,
   narrowable,
   partialArgv,
@@ -57,6 +59,9 @@ import { withPushGateDefaults } from "./lib/push-gate-defaults.mjs";
 
 /** Where the map lives, relative to the repository root (gitignored). */
 export const MAP_DIR = ".lisa/test-access-map";
+
+/** Who speaks in this selector's lines. */
+const SUBJECT = "affected tests";
 
 /** The coverage mode that holds each changed file to the floor. */
 const CHANGED_FILES = "changed-files";
@@ -369,7 +374,7 @@ const COVERAGE_NOTE = Object.freeze({
   measured: "measured over the full suite, as before",
   none: "not measured at push (coverage-adequacy is not checked at push)",
   [CHANGED_FILES]:
-    "each changed source file must meet vitest.thresholds.json on its own",
+    "each changed source file is held to vitest.thresholds.json on its own; one below it sends the push to the full suite",
   skip: `not measured; coverage-adequacy reports SKIPPED (${PARTIAL_COVERAGE_SKIP_REASON})`,
 });
 
@@ -459,6 +464,7 @@ export function main(argv, deps = {}) {
     coverage === CHANGED_FILES
       ? mkdtempSync(join(tmpdir(), "lisa-affected-coverage-"))
       : undefined;
+  let escalation;
   try {
     const code = run(
       partialArgv({
@@ -470,10 +476,40 @@ export function main(argv, deps = {}) {
       cwd
     );
     if (code !== 0 || coverage !== CHANGED_FILES) return code;
-    return checkChangedFiles({ root, coverageDir, selection, out });
+    escalation = checkChangedFiles({ root, coverageDir, selection, out });
   } finally {
     if (coverageDir) rmSync(coverageDir, { recursive: true, force: true });
   }
+  if (escalation.length === 0) return 0;
+  return escalate({ lines: escalation, command, cwd, env, out });
+}
+
+/**
+ * Run the full command, as `full` mode does, after a partial run could not
+ * clear the changed files (CodySwannGT/lisa#4600: a push is never stricter
+ * than whole-repo coverage). Its verdict is the push's, and the report says
+ * a full run produced it, so the gate runner may remember the pass.
+ * @param {object} input Inputs.
+ * @param {string[]} input.lines Why, one line per reason.
+ * @param {string[]} input.command The full command.
+ * @param {string} input.cwd Working directory.
+ * @param {NodeJS.ProcessEnv} input.env Environment.
+ * @param {(line: string) => void} input.out Output.
+ * @returns {number} The full run's exit code.
+ */
+function escalate({ lines, command, cwd, env, out }) {
+  for (const line of lines) out(line);
+  if (env[SELECTION_REPORT_ENV]) {
+    try {
+      writeFileSync(
+        env[SELECTION_REPORT_ENV],
+        `${JSON.stringify({ selection: "full", reason: lines.join(" "), coverage: "measured", tests: 0, escalated: true })}\n`
+      );
+    } catch {
+      // Without the report the runner reads nothing and reports as before.
+    }
+  }
+  return run(command, cwd);
 }
 
 /**
@@ -483,15 +519,14 @@ export function main(argv, deps = {}) {
  * @param {string} input.coverageDir Where the run wrote `coverage-summary.json`.
  * @param {import("./lib/affected-tests.mjs").Selection} input.selection The selection.
  * @param {(line: string) => void} input.out Output.
- * @returns {number} Exit code.
+ * @returns {string[]} Escalation lines; empty when every changed file meets its floor.
  */
 function checkChangedFiles({ root, coverageDir, selection, out }) {
   const summary = readJson(join(coverageDir, "coverage-summary.json"));
   if (!summary) {
-    out(
-      "❌ affected tests: the run wrote no coverage summary, so the changed files' coverage is unproved."
-    );
-    return 1;
+    return [
+      fullSuiteEscalation(SUBJECT, "the partial run wrote no coverage summary"),
+    ];
   }
   const verdict = changedFileCoverage({
     summary,
@@ -500,11 +535,11 @@ function checkChangedFiles({ root, coverageDir, selection, out }) {
     thresholds: thresholdsOf(root) ?? {},
   });
   if (verdict.shortfalls.length > 0) {
-    out(
-      "❌ affected tests: these changed files are below the coverage floor on their own:"
-    );
-    for (const line of verdict.shortfalls) out(`   ${line}`);
-    return 1;
+    return coverageEscalationLines({
+      subject: SUBJECT,
+      files: selection.related,
+      shortfalls: verdict.shortfalls,
+    });
   }
   const outside = verdict.unmeasured.length
     ? `; ${verdict.unmeasured.length} are outside coverage`
@@ -512,7 +547,7 @@ function checkChangedFiles({ root, coverageDir, selection, out }) {
   out(
     `✅ affected tests: ${verdict.measured.length} changed source file(s) meet the coverage floor${outside}`
   );
-  return 0;
+  return [];
 }
 
 if (invokedAsScript(import.meta.url)) {

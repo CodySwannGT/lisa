@@ -527,7 +527,7 @@ Whenever the choice could be wrong, it runs the full suite instead and says why 
 A partial run cannot measure overall coverage, so `pushGate.affectedCoverage` decides what happens to the `coverage-adequacy` gate at push:
 
 - **`"full"`** (the default): wherever `coverage-adequacy` is declared at push, the full suite runs with coverage measured, exactly as before. With this setting, selection only speeds up projects that do not check coverage at push.
-- **`"changed-files"`**: the chosen tests run with coverage on, and each changed source file must meet `vitest.thresholds.json` on its own.
+- **`"changed-files"`**: the chosen tests run with coverage on, and each changed source file is checked against `vitest.thresholds.json` on its own. When every changed file meets it, the push passes on the partial run. When one does not, the push does not fail for that alone: it prints which file is short and runs the full suite with whole-repo coverage, exactly as `"full"` does, and that run decides the push. So a push is never stricter than whole-repo coverage, which is what it checked before selection existed.
 - **`"skip"`**: the chosen tests run without coverage, and `coverage-adequacy` reports SKIPPED with `partial selection — enforced by CI`.
 
 Both settings are off or `"full"` by default, and `lisa apply` and the push gate both reject a value they do not recognise. Lisa turns `affectedTests` on for itself with `affectedCoverage` set to `"changed-files"`; whole-repo coverage is still enforced on the pull request.
@@ -545,7 +545,7 @@ The full suite runs, and the reason is printed, in any of these cases:
 - anything under `config/` or `spec/support/` changes, or a `spec/*_helper.rb`, `.rspec` or `.simplecov`;
 - a file the map has never seen changes, such as a view or a fixture. Changes only to documentation, CI configuration or coding-agent configuration are the exception.
 
-Coverage defaults to `"changed-files"` on Rails. A partial run keeps SimpleCov's project-wide minimums off the slice (`scripts/lisa_rspec_partial_coverage.rb`), and then each changed Ruby file must meet `simplecov.thresholds.json` on its own. `"skip"` leaves coverage to CI. `"full"` keeps the full suite. CI still runs every spec and enforces the thresholds on the whole suite before merge.
+Coverage defaults to `"changed-files"` on Rails. A partial run keeps SimpleCov's project-wide minimums off the slice (`scripts/lisa_rspec_partial_coverage.rb`), and then each changed Ruby file is checked against `simplecov.thresholds.json` on its own. A file below it does not fail the push for that alone: the pre-push names the file and runs the full suite, whose SimpleCov minimums decide the push, exactly as `"full"` would. It does the same when the partial run cannot measure coverage safely, for example with a SimpleCov too old to keep its minimums off the slice. `"skip"` leaves coverage to CI. `"full"` keeps the full suite. CI still runs every spec and enforces the thresholds on the whole suite before merge.
 
 ### The smart push gate in TypeScript projects
 

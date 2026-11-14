@@ -142,7 +142,7 @@ function writeProject(root: string, options: FixtureOptions): void {
   write(
     root,
     ".gitignore",
-    ".lisa/\n.bundle-calls\n.gh-calls\ncoverage.json\ngh-artifacts.ndjson\ngh-map.json\n"
+    ".lisa/\n.bundle-calls\n.gh-calls\ncoverage.json\ngh-artifacts.ndjson\ngh-map.json\nwhole-coverage.fail\nhandoff-unavailable\nhandoff-silent\n"
   );
   write(root, "bin/rails", "#!/usr/bin/env ruby\n");
   write(root, "config/application.rb", "module Fixture; end\n");

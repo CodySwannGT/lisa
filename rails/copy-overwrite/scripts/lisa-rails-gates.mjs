@@ -213,10 +213,12 @@ export function grantedWorkers(env) {
  * @param {string} root Project root.
  * @param {Record<string, string|undefined>} env Environment.
  * @param {(line: string) => void} out Line sink.
+ * @param {() => number} runFull Runs the full suite; a partial plan's
+ *   escalation (CodySwannGT/lisa#4600) runs it too.
  * @returns {Promise<{kind: "full"|"partial", specs: string[], run?: () => Promise<number>|number}>}
  *   The plan, and for a partial one the call that runs it.
  */
-async function rspecPlan(root, env, out) {
+async function rspecPlan(root, env, out, runFull) {
   const selector = join(dirname(SCRIPT), "lisa-rspec-select.mjs");
   if (!existsSync(selector)) return { kind: "full", specs: [] };
   try {
@@ -233,7 +235,7 @@ async function rspecPlan(root, env, out) {
     return {
       kind: "partial",
       specs: [...plan.specs],
-      run: () => runRspecPlan({ plan, cwd: root, env, out }),
+      run: () => runRspecPlan({ plan, cwd: root, env, out, runFull }),
     };
   } catch (err) {
     out(
@@ -353,16 +355,24 @@ export async function runPayload(id, root, env, out) {
   const run = runner(root, env);
   if (id !== "rspec") return run([...RAILS_GATES[id].command]);
   const workers = grantedWorkers(env);
-  const plan = await rspecPlan(root, env, out);
-  if (plan.run) return plan.run();
-  const command = rspecCommand({ root, plan, workers });
-  if (command.hint) out(command.hint);
-  if (command.parallel) {
-    const prepared = prepareParallelDatabases(root, workers, run, out);
-    if (prepared !== 0) return prepared;
-  }
-  out(`▶️  rspec: ${command.argv.join(" ")}`);
-  return run(command.argv);
+  // The full run, also what a partial plan escalates to when its changed
+  // files fall short (CodySwannGT/lisa#4600), so it keeps the parallel path.
+  const runFull = () => {
+    const command = rspecCommand({
+      root,
+      plan: { kind: "full", specs: [] },
+      workers,
+    });
+    if (command.hint) out(command.hint);
+    if (command.parallel) {
+      const prepared = prepareParallelDatabases(root, workers, run, out);
+      if (prepared !== 0) return prepared;
+    }
+    out(`▶️  rspec: ${command.argv.join(" ")}`);
+    return run(command.argv);
+  };
+  const plan = await rspecPlan(root, env, out, runFull);
+  return plan.run ? plan.run() : runFull();
 }
 
 /**

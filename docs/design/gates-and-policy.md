@@ -376,12 +376,17 @@ map (#4593). The decisions live in `scripts/lib/affected-tests.mjs`:
   It never runs nothing because the map is in doubt.
 - The command reports what it selected through `LISA_SELECTION_REPORT`, a
   per-command file the gate runner points it at. A partial pass is never
-  written to the pass cache.
+  written to the pass cache. An escalated run (below) reports itself as a
+  full run, because a full run produced its verdict.
 - `pushGate.affectedCoverage` decides what a partial run means for
   `coverage-adequacy`. With `full` (the default), the full suite runs wherever
   `coverage-adequacy` is declared at push. With `changed-files`, the chosen
   tests run with coverage on and each changed source file is held to the floor
-  on its own. With `skip`, the runner reports `coverage-adequacy` SKIPPED with
+  on its own. When every one meets it, the partial run passes. When one does
+  not, or the run left no coverage to read, the selector does not fail the
+  push on that alone: it prints one line per short file and runs the full
+  command with whole-repo coverage, as `full` does, and that exit code is the
+  verdict. With `skip`, the runner reports `coverage-adequacy` SKIPPED with
   `partial selection — enforced by CI`, and `test-correctness` keeps the run's
   own verdict, so a failing chosen test still blocks the push.
 
@@ -401,7 +406,18 @@ map (#4593). The decisions live in `scripts/lib/affected-tests.mjs`:
 - **Why `changed-files` for hosts.** With `full`, a seeded host (which
   declares `coverage-adequacy` at push on `test:cov:unit`) would never narrow
   at all. With `skip`, coverage would leave the push. `changed-files` keeps
-  coverage enforced at push for every file the change touched. It falls back
+  coverage enforced at push for every file the change touched.
+- **Never stricter than before (owner rule, CodySwannGT/lisa#4600).** Before
+  selection, a push failed coverage only when whole-repo coverage failed. A
+  per-file floor is stricter than that: a file can sit below the floor while
+  the repo as a whole clears it. So the per-file check only decides when to
+  take the fast path. A shortfall escalates to the full suite with whole-repo
+  coverage, which passes or fails the push exactly as `full` would. The same
+  rule holds on Rails: `lisa-rspec-select.mjs` escalates on a short changed
+  file, a missing resultset, or a hand-off that could not keep SimpleCov's
+  minimums off the slice (`lisa_rspec_partial_coverage.rb` writes `escalate`
+  to its `status.json`). The Rails gate runner passes its own full run,
+  parallel when granted, as the escalation. It falls back
   to the full measured suite when there is no `vitest.thresholds.json` or no
   test reaches a changed source file. CI still enforces whole-repo coverage.
 - **Scripts.** Each Vitest stack's forced `test:cov:unit:lisa` and

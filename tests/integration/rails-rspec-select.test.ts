@@ -17,6 +17,9 @@
  *   simplecov.thresholds.json on its own.
  * @module tests/integration/rails-rspec-select
  */
+import * as fs from "node:fs";
+import * as path from "node:path";
+
 import { afterAll, describe, expect, it } from "vitest";
 
 import {
@@ -200,17 +203,61 @@ describe("Rails pre-push spec selection", () => {
   it("holds each changed Ruby file to simplecov.thresholds.json on its own by default", () => {
     const { root } = fixture();
     change(root, { [POST]: "class Post\n  def title\n    'q'\n  end\nend\n" });
-
-    write(root, COVERAGE, JSON.stringify({ [POST]: [1, 0, 0, 0, null] }));
-    const low = select(root);
-    expect(low.status).toBe(1);
-    expect(low.output).toContain(`${POST}: line coverage 25.00% is below 80%`);
+    const fresh = (): void =>
+      fs.rmSync(path.join(root, ".bundle-calls"), { force: true });
 
     write(root, COVERAGE, JSON.stringify({ [POST]: [1, 1, 1, 1, null] }));
     const high = select(root);
     expect(high.status, high.output).toBe(0);
     expect(high.output).toContain(
       "1 changed Ruby file(s) meet the coverage floor"
+    );
+    expect(high.calls, "no escalation when every file meets it").toHaveLength(
+      1
+    );
+
+    // Push is never stricter than whole-repo coverage (CodySwannGT/lisa#4600):
+    // a changed file short on its own escalates to the full suite, whose
+    // SimpleCov minimums then decide the push.
+    fresh();
+    write(root, COVERAGE, JSON.stringify({ [POST]: [1, 0, 0, 0, null] }));
+    const low = select(root);
+    expect(low.status, low.output).toBe(0);
+    expect(low.calls[1]).toEqual(FULL);
+    expect(low.output).toContain(
+      `${POST} is below its coverage floor on its own (line coverage 25.00% is below 80%), so the full suite is running now with whole-repo coverage, and that run decides this push.`
+    );
+    expect(low.output).not.toContain("❌");
+
+    fresh();
+    write(root, "whole-coverage.fail", "");
+    const whole = select(root);
+    expect(whole.status, "the full run's verdict stands").toBe(1);
+    expect(whole.calls[1]).toEqual(FULL);
+  });
+
+  it("escalates when the coverage hand-off cannot keep the minimums off the slice", () => {
+    const { root } = fixture();
+    change(root, POST_CHANGE);
+    write(root, "handoff-unavailable", "");
+    const result = select(root);
+    expect(result.status, result.output).toBe(0);
+    expect(result.calls[1]).toEqual(FULL);
+    expect(result.output).toContain(
+      "this SimpleCov has no finalize_merge, so the full suite is running now with whole-repo coverage"
+    );
+  });
+
+  it("escalates rather than fails when the partial run leaves no resultset", () => {
+    const { root } = fixture();
+    change(root, POST_CHANGE);
+    // The hand-off never ran: no status, no resultset.
+    write(root, "handoff-silent", "");
+    const result = select(root);
+    expect(result.status, result.output).toBe(0);
+    expect(result.calls[1]).toEqual(FULL);
+    expect(result.output).toContain(
+      "the partial run left no SimpleCov resultset, so the full suite is running now with whole-repo coverage"
     );
   });
 

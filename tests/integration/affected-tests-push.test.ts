@@ -10,9 +10,12 @@
  *   the full command unchanged and print the reason;
  * - selection off, or a CI run, runs the full command unchanged;
  * - the coverage modes `full` and `changed-files` (`skip` is pinned through
- *   the gate runner in affected-tests-push-gates.test.ts).
+ *   the gate runner in affected-tests-push-gates.test.ts);
+ * - in `changed-files`, a changed file below its floor escalates the push to
+ *   the full suite with whole-repo coverage, whose verdict decides it.
  * @module tests/integration/affected-tests-push
  */
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
@@ -157,7 +160,7 @@ describe("affected tests at push", () => {
     expect(call).toContain("--coverage.enabled=false");
   });
 
-  it("holds each changed source file to the floor in changed-files mode", () => {
+  it("passes a partial run whose changed files all meet the floor, and escalates one that does not", () => {
     const root = fixture({
       pushGate: { affectedTests: true, affectedCoverage: "changed-files" },
       map: "none",
@@ -172,18 +175,60 @@ describe("affected tests at push", () => {
       git(root, "rev-parse", "HEAD~1")
     );
     change(root, MOD_CHANGE);
-
-    write(root, "coverage.json", JSON.stringify({ [MOD]: 50 }));
-    const low = select(root);
-    expect(low.status).toBe(1);
-    expect(low.output).toContain(`${MOD}: lines 50% is below 80%`);
-    expect(low.calls[0]).toContain("--coverage.enabled=true");
+    const fresh = (): void =>
+      fs.rmSync(path.join(root, ".vitest-calls"), { force: true });
 
     write(root, "coverage.json", JSON.stringify({ [MOD]: 95 }));
     const high = select(root);
     expect(high.status, high.output).toBe(0);
     expect(high.output).toContain(
       "1 changed source file(s) meet the coverage floor"
+    );
+    expect(high.calls, "no escalation when every file meets it").toHaveLength(
+      1
+    );
+
+    // Push is never stricter than whole-repo coverage (CodySwannGT/lisa#4600):
+    // a changed file short on its own sends the push to the full suite with
+    // whole-repo coverage, exactly as "full" mode runs it, and that decides.
+    fresh();
+    write(root, "coverage.json", JSON.stringify({ [MOD]: 50 }));
+    const low = select(root);
+    expect(low.status, low.output).toBe(0);
+    expect(low.calls[0]).toContain("--coverage.enabled=true");
+    expect(low.calls[1]).toEqual(FULL);
+    expect(low.output).toContain(
+      `${MOD} is below its coverage floor on its own (lines 50% is below 80%), so the full suite is running now with whole-repo coverage, and that run decides this push.`
+    );
+    expect(low.output).not.toContain("❌");
+
+    fresh();
+    write(root, "whole-coverage.fail", "");
+    const whole = select(root);
+    expect(whole.status, "the full run's verdict stands").toBe(1);
+    expect(whole.calls[1]).toEqual(FULL);
+  });
+
+  it("escalates rather than fails when the partial run leaves no coverage summary", () => {
+    const root = fixture({
+      pushGate: { affectedTests: true, affectedCoverage: "changed-files" },
+      map: "none",
+    });
+    change(root, {
+      "vitest.thresholds.json": JSON.stringify({ global: { lines: 80 } }),
+    });
+    git(root, "update-ref", "refs/remotes/origin/main", "HEAD");
+    writeMap(
+      root,
+      git(root, "rev-parse", "HEAD"),
+      git(root, "rev-parse", "HEAD~1")
+    );
+    change(root, MOD_CHANGE);
+    const result = select(root);
+    expect(result.status, result.output).toBe(0);
+    expect(result.calls[1]).toEqual(FULL);
+    expect(result.output).toContain(
+      "the partial run wrote no coverage summary, so the full suite is running now with whole-repo coverage"
     );
   });
 });

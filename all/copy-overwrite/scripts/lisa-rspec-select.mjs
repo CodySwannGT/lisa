@@ -59,6 +59,8 @@ import {
   isRailsProject,
   mergeMapDocuments,
   parseMapArtifacts,
+  railsCoverageEscalation,
+  railsFullSuiteEscalation,
   rspecSelectionSettings,
   selectRailsSpecs,
 } from "./lib/rspec-selection.mjs";
@@ -466,7 +468,7 @@ function thresholdsOf(root) {
 /** What each coverage outcome means, for the explanation. */
 const COVERAGE_NOTE = Object.freeze({
   full: "measured over the full suite, as before",
-  "changed-files": `each changed Ruby file must meet ${THRESHOLDS_FILE} on its own`,
+  "changed-files": `each changed Ruby file is held to ${THRESHOLDS_FILE} on its own; one below it sends the push to the full suite`,
   skip: `not measured at push (${PARTIAL_COVERAGE_SKIP_REASON})`,
   none: "not measured at push (selection is off)",
 });
@@ -604,12 +606,17 @@ function run(argv, cwd, env = process.env) {
 
 /**
  * Hold each changed Ruby file to the floors after a partial run.
+ *
+ * A push is never stricter than whole-repo coverage (CodySwannGT/lisa#4600):
+ * a file below its floor, a hand-off that could not keep the project's
+ * minimums off the slice, or a run that left no resultset returns escalation
+ * lines instead of failing, and the caller runs the full suite.
  * @param {object} input Inputs.
  * @param {string} input.root Repository root.
  * @param {string} input.coverageDir Where the hand-off wrote its status and resultset.
  * @param {RspecPlan} input.plan The plan.
  * @param {(line: string) => void} input.out Output.
- * @returns {number} Exit code.
+ * @returns {string[]} Escalation lines; empty when the partial run decides the push.
  */
 function checkChangedFiles({ root, coverageDir, plan, out }) {
   const status = readJson(join(coverageDir, "status.json"));
@@ -617,14 +624,16 @@ function checkChangedFiles({ root, coverageDir, plan, out }) {
     out(
       "   Coverage: SimpleCov was not measuring this run, so there was no coverage to check."
     );
-    return 0;
+    return [];
+  }
+  if (typeof status?.escalate === "string") {
+    return [railsFullSuiteEscalation(status.escalate)];
   }
   const resultset = readJson(join(coverageDir, ".resultset.json"));
   if (!status || !resultset) {
-    out(
-      "❌ affected specs: the run left no SimpleCov resultset, so the changed files' coverage is unproved."
-    );
-    return 1;
+    return [
+      railsFullSuiteEscalation("the partial run left no SimpleCov resultset"),
+    ];
   }
   const verdict = changedRubyCoverage({
     resultset,
@@ -634,11 +643,10 @@ function checkChangedFiles({ root, coverageDir, plan, out }) {
     read: file => readFileSync(join(root, file), "utf8"),
   });
   if (verdict.shortfalls.length > 0) {
-    out(
-      "❌ affected specs: these changed files are below the coverage floor on their own:"
-    );
-    for (const line of verdict.shortfalls) out(`   ${line}`);
-    return 1;
+    return railsCoverageEscalation({
+      files: plan.changedRuby,
+      shortfalls: verdict.shortfalls,
+    });
   }
   const outside = verdict.unmeasured.length
     ? `; ${verdict.unmeasured.length} are outside coverage`
@@ -646,7 +654,20 @@ function checkChangedFiles({ root, coverageDir, plan, out }) {
   out(
     `✅ affected specs: ${verdict.measured.length} changed Ruby file(s) meet the coverage floor${outside}`
   );
-  return 0;
+  return [];
+}
+
+/**
+ * Whether the hand-off asked for the full suite because it could not run the
+ * slice safely: its verdict replaces the slice's exit code, which then only
+ * says the hand-off stopped the run.
+ * @param {string} coverageDir Where the hand-off wrote its status.
+ * @returns {boolean} True when the hand-off escalated.
+ */
+function handOffEscalated(coverageDir) {
+  return (
+    typeof readJson(join(coverageDir, "status.json"))?.escalate === "string"
+  );
 }
 
 /**
@@ -747,12 +768,19 @@ export function main(argv, deps = {}) {
  * (CodySwannGT/lisa#4613): a caller that runs a partial plan's specs any
  * other way leaves SimpleCov's project minimums armed against the slice and
  * skips the changed-file check.
+ *
+ * When the partial run cannot clear every changed file, the push escalates to
+ * the full suite with whole-repo coverage (CodySwannGT/lisa#4600: a push is
+ * never stricter than whole-repo coverage) and that run's exit code is the
+ * verdict. `runFull` is how the caller runs its full suite, so the gate runner
+ * can keep its parallel run for the escalation.
  * @param {object} input Inputs.
  * @param {RspecPlan} input.plan The plan.
  * @param {ReadonlyArray<string>} [input.command] The full RSpec command.
  * @param {string} input.cwd Working directory.
  * @param {NodeJS.ProcessEnv} [input.env] Environment.
  * @param {(line: string) => void} [input.out] Output.
+ * @param {() => number} [input.runFull] Runs the full suite (default: `command` unchanged).
  * @returns {number} Exit code.
  */
 export function runRspecPlan({
@@ -761,24 +789,40 @@ export function runRspecPlan({
   cwd,
   env = process.env,
   out = line => console.log(line),
+  runFull = () => run([...command], cwd, env),
 }) {
-  if (plan.kind === "full") return run([...command], cwd, env);
+  if (plan.kind === "full") return runFull();
   if (plan.specs.length === 0) {
     out("   No spec can reach the changed files, so there is nothing to run.");
     return 0;
   }
   const root = git(cwd, ["rev-parse", "--show-toplevel"]) ?? cwd;
   const coverageDir = mkdtempSync(join(tmpdir(), "lisa-rspec-coverage-"));
+  let escalation;
   try {
     const code = run(rspecArgv({ plan, command }), cwd, {
       ...env,
       LISA_RSPEC_PARTIAL_COVERAGE_DIR: coverageDir,
     });
-    if (code !== 0 || plan.coverage !== "changed-files") return code;
-    return checkChangedFiles({ root, coverageDir, plan, out });
+    if (plan.coverage !== "changed-files") return code;
+    if (code !== 0 && !handOffEscalated(coverageDir)) return code;
+    escalation = checkChangedFiles({ root, coverageDir, plan, out });
   } finally {
     rmSync(coverageDir, { recursive: true, force: true });
   }
+  if (escalation.length === 0) return 0;
+  for (const line of escalation) out(line);
+  if (env[SELECTION_REPORT_ENV]) {
+    try {
+      writeFileSync(
+        env[SELECTION_REPORT_ENV],
+        `${JSON.stringify({ selection: "full", reason: escalation.join(" "), coverage: "none", tests: 0, escalated: true })}\n`
+      );
+    } catch {
+      // Without the report the runner reads nothing and reports as before.
+    }
+  }
+  return runFull();
 }
 
 if (invokedAsScript(import.meta.url)) {

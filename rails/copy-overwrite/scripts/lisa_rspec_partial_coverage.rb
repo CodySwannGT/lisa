@@ -18,12 +18,16 @@
 #      replace a full run's.
 #
 # The selector then holds each CHANGED file to simplecov.thresholds.json on
-# its own (pushGate.affectedCoverage "changed-files"). CI still runs every
-# spec and enforces the project's thresholds on the whole suite.
+# its own (pushGate.affectedCoverage "changed-files"). A file below its floor
+# does not fail the push: the selector runs the full suite with whole-repo
+# coverage and that verdict decides (CodySwannGT/lisa#4600: a push is never
+# stricter than whole-repo coverage). CI still runs every spec and enforces
+# the project's thresholds on the whole suite.
 #
 # It writes `status.json` beside the resultset, saying whether SimpleCov was
 # measuring, so "this project measures no coverage" and "the run lost its
-# coverage" cannot look alike.
+# coverage" cannot look alike. When it cannot hand off safely it writes
+# `escalate` with the reason, and the selector runs the full suite.
 #
 # ENVIRONMENT
 #   LISA_RSPEC_PARTIAL_COVERAGE_DIR  Fresh directory for the resultset. Required.
@@ -34,6 +38,9 @@ require 'json'
 
 # Moves a partial run's coverage out of the project's threshold check.
 module LisaRspecPartialCoverage
+  # Why a partial run asks for the full suite instead (status.json `escalate`).
+  ESCALATE_NO_FINALIZE_MERGE = "this SimpleCov has no finalize_merge, so the slice cannot skip the project's minimums"
+
   module_function
 
   def directory
@@ -56,9 +63,12 @@ module LisaRspecPartialCoverage
     return status('measuring' => false) unless measuring?
 
     unless ::SimpleCov.respond_to?(:finalize_merge)
-      raise 'lisa-rspec-partial-coverage: this SimpleCov has no `finalize_merge`, so a partial run cannot skip the ' \
-            "project's minimums. Upgrade simplecov (Lisa's Gemfile.lisa pins >= 1.3.2), or set " \
-            'pushGate.affectedCoverage to "full" in .lisa.config.json.'
+      # Never stricter than whole-repo coverage (CodySwannGT/lisa#4600): the
+      # slice cannot be measured safely, so ask the selector for the full
+      # suite, whose verdict decides the push, and stop the slice here.
+      status('measuring' => true, 'escalate' => ESCALATE_NO_FINALIZE_MERGE)
+      raise "lisa-rspec-partial-coverage: #{ESCALATE_NO_FINALIZE_MERGE}; the selector runs the full suite instead. " \
+            "Upgrade simplecov (Lisa's Gemfile.lisa pins >= 1.3.2) to keep partial pushes fast."
     end
 
     ::SimpleCov.coverage_path(directory)

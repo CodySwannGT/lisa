@@ -17,6 +17,7 @@ import {
   mergeMapDocuments,
   nocovLines,
   parseMapArtifacts,
+  railsCoverageEscalation,
   railsTrigger,
   rspecSelectionSettings,
   selectRailsSpecs,
@@ -368,5 +369,18 @@ describe("changed-file coverage", () => {
       measured: [USER, POST],
       unmeasured: ["lib/unloaded.rb"],
     });
+  });
+});
+
+describe("railsCoverageEscalation", () => {
+  it("names each changed Ruby file below its floor in the affected-specs voice", () => {
+    expect(
+      railsCoverageEscalation({
+        files: [USER, POST],
+        shortfalls: [`${POST}: line coverage 25.00% is below 80%`],
+      })
+    ).toEqual([
+      `↪️  affected specs: ${POST} is below its coverage floor on its own (line coverage 25.00% is below 80%), so the full suite is running now with whole-repo coverage, and that run decides this push.`,
+    ]);
   });
 });

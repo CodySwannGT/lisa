@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/fetch-test-access-map.mjs":
       "b0c226081036a2b2a6d5e8003f8b50b81435964fd7b5b432b88416df607e82ab",
     "all/copy-overwrite/scripts/lib/affected-tests.mjs":
-      "c39f3866c80b5499f3e725e31ff8a8389cfb85b4229137b18b9dbf9b7b6d82f5",
+      "9e2a738eb93707fb4fb110e093dd74df20bde44ebe892ff7a63b8ac0ae1adc2d",
     "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs":
       "b3a3b2ed7e1bb0ff6f24123e81e8bd509f2d428f7f7b1e7e22354a90965e548d",
     "all/copy-overwrite/scripts/lib/automation-provenance-files.mjs":
@@ -275,7 +275,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
       "32e9968d27b7edead16c232bb93bebb8118dd24d175a837f61c2e1ff324dc223",
     "all/copy-overwrite/scripts/lib/rspec-selection.mjs":
-      "65f1cef52767ec6c525cf60958ac24992560bfd8ecb5eb83f4c82b7116836f7e",
+      "a80683b5b83ae1efd874bb302d805af6d3c17c5d557c194aa1c2228dab580111",
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts":
       "e093245f67362bd1dfefe328e9354f5465279f534ce569efee5d3cdadd00598b",
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs":
@@ -303,7 +303,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
       "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
     "all/copy-overwrite/scripts/lisa-affected-tests.mjs":
-      "9d4473e8c01e23820923f9c4894bd9c0ae7b804ca0ba88b609b9c0bcd2e70bdb",
+      "da3f262445430d0f8ab585f542763a5f605dc93dfa41e5e178a4d64a77011920",
     "all/copy-overwrite/scripts/lisa-audit.mjs":
       "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs":
@@ -371,7 +371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "263860fba7fadae3c1096973eaf4f25dca1683ef2ce64279dea6845ac90faf6a",
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
-      "3d3678afda4fb5c47bd3ffbb95d28cf7f2d7d50d69f93bcd6aedfafcde2e3dde",
+      "f31f8aef6abac441c8038972dfe951f4da43408ae9c0582d244fcc7f48940caa",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
       "fa78b5b7756ff5407931e066b7fc12076551a5af272d91fe6ff2610b7117d283",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
@@ -389,7 +389,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "1d789f645602224783524c0d65f45cc855e7d42dc2817abe878d0fdcf04c8b3a",
+      "5f9b0f80ee75f675571259e55f72372b4cbe9a114c103d7d5bacbc61d2732ca4",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2557,13 +2557,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs":
-      "34e6fa2e8b5a1a5794e107b880b30780596f219af09f6128e13423036f272d31",
+      "9aa3135a09eaa0a674c73c2fa42489622cdcb5b930ec76113b90976c0cd70284",
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
       "00d504a0fee1f2a75d7328dc848cacabe6fd9360beacc5bf9632d0741388ade2",
     "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb":
       "215868a41903f0c2d2713410bc8c39071f31a764889817f9ba70672be4248bfe",
     "rails/copy-overwrite/scripts/lisa_rspec_partial_coverage.rb":
-      "b009f58bc782fe26eeaa7c1503ebd9d70d71e2e967ffe5e1c9e93ad763efcb60",
+      "a061915b6c95171fb79d907482ef76e9d1d76eed99c64f7a248e18735c29cf37",
     "rails/copy-overwrite/scripts/lisa_rspec_shard_recorder.rb":
       "92d7dfa434bf2aa94fc7fce2fafd1e7a32c03bf5610e46839432f4f7473006df",
     "rails/copy-overwrite/scripts/lisa_simplecov_collate.rb":

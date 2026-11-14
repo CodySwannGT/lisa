@@ -74,7 +74,7 @@ describe("a TypeScript host's smart push gate", () => {
     expect(result.output).toContain(`tests/alpha.test.ts  (map: ${ALPHA})`);
     expect(result.output).not.toContain("tests/beta.test.ts  (map:");
     expect(result.output).toContain(
-      "each changed source file must meet vitest.thresholds.json on its own"
+      "each changed source file is held to vitest.thresholds.json on its own; one below it sends the push to the full suite"
     );
     expect(result.output).toContain(
       "✅ affected tests: 1 changed source file(s) meet the coverage floor"
@@ -82,6 +82,34 @@ describe("a TypeScript host's smart push gate", () => {
     expect(testFileSummaries(result.output)).toEqual([
       expect.stringMatching(ONE_FILE),
     ]);
+  });
+
+  it("escalates to the full suite, and passes, when one changed file is short but the whole repo is not", async () => {
+    // Push is never stricter than whole-repo coverage (CodySwannGT/lisa#4600).
+    // alpha gains a branch no test takes (below 90% on its own); beta gains
+    // enough covered code that the whole repo still clears 90%.
+    const cwd = await typescriptHost();
+    const helpers = Array.from(
+      { length: 20 },
+      (_, index) =>
+        `function h${index}(flag: boolean): number {\n  if (flag) {\n    return ${index};\n  }\n  return 0;\n}\n`
+    ).join("");
+    const calls = Array.from(
+      { length: 20 },
+      (_, index) => `h${index}(true) + h${index}(false)`
+    );
+    commit(cwd, {
+      [ALPHA]:
+        "export function alpha(flag = false): number {\n  if (flag) {\n    return 0;\n  }\n  return 1;\n}\n",
+      "src/beta.ts": `${helpers}export function beta(): number {\n  const total = ${calls.join(" + ")};\n  return total - total + 2;\n}\n`,
+    });
+    const result = push(cwd);
+    expect(result.status, result.output).toBe(0);
+    expect(result.output).toMatch(
+      /↪️ {2}affected tests: src\/alpha\.ts is below its coverage floor on its own \(.+\), so the full suite is running now with whole-repo coverage, and that run decides this push\./u
+    );
+    expect(result.output).not.toContain("src/beta.ts is below");
+    expect(result.output).not.toContain("❌");
   });
 
   it("re-pushes an unchanged tree from the pass cache", async () => {
