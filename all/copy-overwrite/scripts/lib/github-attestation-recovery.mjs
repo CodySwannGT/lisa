@@ -16,6 +16,8 @@ import {
   officialResult,
   PROPOSAL_PREDICATE,
   RECOVERY_PREDICATE,
+  DEFAULT_TARGET,
+  targetBranch,
 } from "./github-attestation-verifier.mjs";
 
 /** An active run's update is not completion; invalid provider chronology has no usable bounds. */
@@ -112,10 +114,19 @@ export function validateRecovery(value, origin, digest, policy) {
       typeof value === "object" &&
       !Array.isArray(value) &&
       Object.keys(value).sort().join("\n") ===
-        [...RECOVERY_KEYS].sort().join("\n"),
+        [
+          ...RECOVERY_KEYS,
+          // Only a non-main origin target is carried, so main recoveries keep their bytes.
+          ...(targetBranch(origin) === DEFAULT_TARGET ? [] : ["target"]),
+        ]
+          .sort()
+          .join("\n"),
     "recovery fields differ"
   );
   const expected = {
+    ...(targetBranch(origin) === DEFAULT_TARGET
+      ? {}
+      : { target: targetBranch(origin) }),
     version: 1,
     purpose: "resume-identical-npm-proposal",
     repository: policy.repository,

@@ -4,7 +4,12 @@
 /** Bounded trusted GitHub transport. @module npm-updater */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { assertPinnedVerifier } from "./github-attestation-verifier.mjs";
-import { required } from "./npm-update-contract.mjs";
+import {
+  required,
+  DEFAULT_TARGET,
+  validBranchName,
+} from "./npm-update-contract.mjs";
+import { operatorRefusal } from "./npm-update-invariants.mjs";
 import { runProcess } from "./npm-update-process.mjs";
 import { gitObjectId } from "./npm-update-object.mjs";
 import { proposalFileNames } from "./npm-update-contract.mjs";
@@ -34,6 +39,14 @@ function providerPurpose(repository, endpoint) {
   if (/^issues(?:\/\d+)?$/.test(route)) return "issue";
   if (/^pulls(?:\/\d+)?$/.test(route)) return "pulls";
   return "unclassified";
+}
+
+/** A grammar-checked branch name is safe to name in the public diagnostic. */
+export function missingTarget(target) {
+  return operatorRefusal(
+    "npm updater target branch does not exist",
+    `Target branch "${target}" does not exist on the remote; create it or change npmUpdater target. Nothing was published and no work item was created.`
+  );
 }
 
 export class GitHub {
@@ -144,18 +157,27 @@ export class GitHub {
     issue.blockers = await this.list(`${path}/dependencies/blocked_by`);
     return issue;
   }
-  async main(parent) {
+  /**
+   * The configured target's tip must still be the proposal parent. main keeps its
+   * exact historical requests and default-branch check; another target must be a
+   * valid branch that exists, because it need not be the repository default.
+   */
+  async main(parent, target = DEFAULT_TARGET) {
+    required(validBranchName(target), "invalid npm updater target branch");
     const repo = await this.request(`repos/${this.policy.repository}`);
     required(
       repo.full_name === this.policy.repository &&
-        repo.default_branch === "main" &&
+        (target !== DEFAULT_TARGET || repo.default_branch === DEFAULT_TARGET) &&
         String(repo.id) === this.policy.repositoryId &&
         String(repo.owner.id) === this.policy.ownerId,
       "actual repository identity differs"
     );
-    const main = await this.request(
-      `repos/${this.policy.repository}/git/ref/heads/main`
-    );
+    const endpoint = `repos/${this.policy.repository}/git/ref/heads/${target}`;
+    const main =
+      target === DEFAULT_TARGET
+        ? await this.request(endpoint)
+        : await this.maybe(endpoint);
+    if (main === null) throw missingTarget(target);
     required(main.object?.sha === parent, "actual main parent changed");
     return repo;
   }

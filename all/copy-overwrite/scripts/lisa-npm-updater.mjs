@@ -14,6 +14,9 @@ import {
   keys,
   selectPolicy,
   validateProposal,
+  policyTarget,
+  validBranchName,
+  DEFAULT_TARGET,
 } from "./lib/npm-update-contract.mjs";
 import { publicFailure, withStage } from "./lib/npm-update-invariants.mjs";
 import {
@@ -23,7 +26,7 @@ import {
   phaseDirectory,
 } from "./lib/npm-update-process.mjs";
 import { prepareUpdate } from "./lib/npm-update-prepare.mjs";
-import { GitHub } from "./lib/npm-update-github.mjs";
+import { GitHub, missingTarget } from "./lib/npm-update-github.mjs";
 import {
   createTracker,
   refuseUnlessGithub,
@@ -95,6 +98,46 @@ async function cancellationPhase(cwd, output, proposal, config, phase) {
 }
 
 /**
+ * The workflow's target_branch input gates which ref the jobs run on; it must
+ * name the committed policy's target, so neither side can redirect the other.
+ * An absent input is main, matching callers seeded before the input existed.
+ */
+export function assertWorkflowTarget(policy, input) {
+  const requested =
+    input === undefined || input === "" ? DEFAULT_TARGET : input;
+  required(
+    validBranchName(requested) && requested === policyTarget(policy),
+    "workflow target_branch differs from the committed npmUpdater target"
+  );
+}
+
+/**
+ * A non-main target must exist on the remote before anything is prepared. The
+ * checkout fetches every branch, so its remote-tracking ref is the evidence;
+ * main keeps its historical path, where the provider read proves the base.
+ */
+export async function assertTargetBranchExists(cwd, policy) {
+  const target = policyTarget(policy);
+  if (target === DEFAULT_TARGET) return;
+  const result = await runProcess(
+    "git",
+    [
+      "rev-parse",
+      "--verify",
+      "--quiet",
+      `refs/remotes/origin/${target}^{commit}`,
+    ],
+    {
+      cwd,
+      env: { PATH: process.env.PATH, HOME: "/nonexistent" },
+      allowed: [0, 1],
+      maximum: 4096,
+    }
+  );
+  if (result.code !== 0) throw missingTarget(target);
+}
+
+/**
  * Only committed policy grants authority; ignored/local config cannot activate Actions.
  * LISA_NPM_DIRECTORY only selects among committed entries ("." by default); it never adds one.
  */
@@ -110,6 +153,7 @@ async function configuration(cwd, directory = process.env.LISA_NPM_DIRECTORY) {
     "automation provenance must be explicitly configured on committed main"
   );
   const policy = selectPolicy(config, directory ?? ".");
+  assertWorkflowTarget(policy, process.env.LISA_NPM_TARGET_BRANCH);
   required(
     config.automationProvenance.repository === policy.repository,
     "committed authority repository differs"
@@ -232,6 +276,7 @@ export async function main(argv = process.argv.slice(2)) {
     refuseUnlessGithub(config, phase);
   phaseDirectory(output);
   if (phase === "prepare") {
+    await assertTargetBranchExists(cwd, policy);
     const result = await prepareUpdate({ cwd, policy, config });
     writeJson(join(output, "prepare.json"), result);
     if (result.status === "prepared")

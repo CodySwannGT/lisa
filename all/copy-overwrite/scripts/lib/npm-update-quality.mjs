@@ -2,8 +2,12 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Twenty-five fixed writer checks retain semantic quality independently of storage. */
-import { required } from "./npm-update-contract.mjs";
-import { environment, buildDraft } from "./npm-update-leaf-contract.mjs";
+import { required, policyTarget } from "./npm-update-contract.mjs";
+import {
+  environment,
+  environmentDeclaration,
+  buildDraft,
+} from "./npm-update-leaf-contract.mjs";
 
 /** Core Task fields are validated independently of provider storage. */
 function coreChecks(draft, body, policy) {
@@ -44,7 +48,10 @@ function runtimeChecks(body, config, policy, evidence) {
     [
       "S8",
       body.includes(
-        `Assumption: ${environment(config)} — remote default branch main`
+        environmentDeclaration(
+          environment(config, policyTarget(policy)),
+          policyTarget(policy)
+        )
       ),
       "runtime target derived",
     ],
@@ -80,7 +87,15 @@ function runtimeChecks(body, config, policy, evidence) {
 }
 
 /** Declared evidence and fixed proposal fields must match actual prerequisite reads. */
-function evidenceChecks(draft, body, proposal, expected, config, evidence) {
+function evidenceChecks(
+  draft,
+  body,
+  proposal,
+  expected,
+  config,
+  evidence,
+  policy
+) {
   return [
     [
       "S14",
@@ -97,7 +112,7 @@ function evidenceChecks(draft, body, proposal, expected, config, evidence) {
     [
       "S19",
       body.includes(
-        `Derived from: Target Backend Environment ${environment(config)} via .lisa.config.json deploy.branches`
+        `Derived from: Target Backend Environment ${environment(config, policyTarget(policy))} via .lisa.config.json deploy.branches`
       ),
       "actual main mapping",
     ],
@@ -127,7 +142,15 @@ export function qualityGates(draft, proposal, policy, config, evidence) {
   const checks = [
     ...coreChecks(draft, body, policy),
     ...runtimeChecks(body, config, policy, evidence),
-    ...evidenceChecks(draft, body, proposal, expected, config, evidence),
+    ...evidenceChecks(
+      draft,
+      body,
+      proposal,
+      expected,
+      config,
+      evidence,
+      policy
+    ),
   ];
   required(
     checks.every(([, passed]) => passed),

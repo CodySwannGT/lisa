@@ -4,7 +4,11 @@
 /** Supported disposable Actions Linux gates use original native tools; publisher authority stays in another job. */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { required, proposalFileNames } from "./npm-update-contract.mjs";
+import {
+  required,
+  proposalFileNames,
+  policyTarget,
+} from "./npm-update-contract.mjs";
 import { installInputs } from "./automation-provenance-contract.mjs";
 import { qualifiedBun, frozenBun } from "./npm-update-bun.mjs";
 import { runProcess } from "./npm-update-process.mjs";
@@ -45,7 +49,7 @@ export function assertHostedGate(
       env.RUNNER_ENVIRONMENT === "github-hosted" &&
       env.GITHUB_REPOSITORY === context.policy.repository &&
       env.GITHUB_SHA === context.proposal.parent &&
-      env.GITHUB_REF === "refs/heads/main" &&
+      env.GITHUB_REF === `refs/heads/${policyTarget(context.proposal)}` &&
       context.config.automationProvenance.allowedTriggers.includes(
         env.GITHUB_EVENT_NAME
       ),

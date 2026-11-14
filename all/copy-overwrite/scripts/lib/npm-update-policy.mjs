@@ -2,9 +2,13 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Fixed npm policy validation shares the optional signed runtime contract without cycles. */
-import { keys, required } from "./npm-update-invariants.mjs";
+import { keys, operatorRefusal, required } from "./npm-update-invariants.mjs";
 import { railsRuntime } from "./npm-update-rails-runtime-contract.mjs";
 import { validDirectory } from "./automation-provenance-contract.mjs";
+import {
+  DEFAULT_TARGET,
+  validBranchName,
+} from "./github-attestation-verifier.mjs";
 
 export const NAME = /^(?:@[a-z0-9][a-z0-9_.-]*\/)?[a-z0-9][a-z0-9_.-]*$/;
 export const VERSION =
@@ -49,13 +53,44 @@ function trackerScope(value, config) {
   );
 }
 
+export { DEFAULT_TARGET, validBranchName };
+
+/**
+ * The branch every updater step reads, compares and opens its pull request
+ * against. An omitted target keeps main, so an existing policy's digest never moves.
+ */
+export function policyTarget(policy) {
+  return Object.hasOwn(policy ?? {}, "target") ? policy.target : DEFAULT_TARGET;
+}
+
+/**
+ * A non-main target must be a configured deploy branch: without that mapping the
+ * leaf's Target Backend Environment and Branch Plan cannot be derived. main keeps
+ * its historical check, which the leaf contract applies when it derives the env.
+ */
+function validateTarget(value, config) {
+  const target = policyTarget(value);
+  if (target === DEFAULT_TARGET) return;
+  required(validBranchName(target), "invalid npm updater target branch");
+  const allowed = [
+    ...new Set(
+      Object.values(config.deploy?.branches ?? {}).filter(validBranchName)
+    ),
+  ];
+  if (!allowed.includes(target))
+    throw operatorRefusal(
+      "npm updater target is not a configured deploy branch",
+      `npmUpdater target "${target}" is not a .lisa.config.json deploy.branches value; allowed branches: ${allowed.join(", ") || "(none configured)"}.`
+    );
+}
+
 /** Configured tracking and an explicit owner are prerequisites, never inferred. */
 export function validatePolicy(value, config) {
   keys(value, [
     "version",
     "repository",
     "directory",
-    "target",
+    ...(Object.hasOwn(value ?? {}, "target") ? ["target"] : []),
     "maintainer",
     "packages",
     "lisaOwner",
@@ -65,9 +100,10 @@ export function validatePolicy(value, config) {
   required(
     value.version === 1 &&
       validDirectory(value.directory) &&
-      value.target === "main",
-    "only a committed npm directory on main is supported"
+      typeof policyTarget(value) === "string",
+    "only a committed npm directory on a configured target branch is supported"
   );
+  validateTarget(value, config);
   required(
     value.directory === "." ||
       (value.lisaOwner === "absent" && !Object.hasOwn(value, "runtime")),

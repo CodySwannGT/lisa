@@ -2,7 +2,12 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Fixed-schema writer evidence and idempotent current claim. @module npm-updater */
-import { required, CLAIM, validateProposal } from "./npm-update-contract.mjs";
+import {
+  required,
+  CLAIM,
+  validateProposal,
+  policyTarget,
+} from "./npm-update-contract.mjs";
 import { historyPaths } from "./automation-provenance-contract.mjs";
 import { baseline } from "./npm-update-prepare.mjs";
 import { locateCheckpoint } from "./npm-update-recovery.mjs";
@@ -32,7 +37,7 @@ export async function filingEvidence(api, proposal, config, cwd) {
     proposal
   );
   const tracker = trackerFor(api, proposal, config);
-  await api.main(proposal.parent);
+  await api.main(proposal.parent, proposal.target);
   const search = await tracker.relationships(proposal);
   required(
     !search.incomplete_results && search.total_count <= 100,
@@ -250,7 +255,7 @@ export async function allocateLeaf({
   let proposal = suppliedProposal;
   validateProposal(proposal, policy);
   const tracker = trackerFor(api, policy, config);
-  await api.main(proposal.parent);
+  await api.main(proposal.parent, proposal.target);
   const prior = await discoverPrior(api, proposal, { cwd, config });
   if (prior.status === "stale-outstanding")
     return {
@@ -273,7 +278,7 @@ export async function allocateLeaf({
   const evidence = prior.issue
     ? historicalFiling(prior.issue)
     : currentEvidence;
-  const roles = leafRoles(config, policy.repository);
+  const roles = leafRoles(config, policy.repository, policyTarget(policy));
   const inputs = {
     api,
     proposal,

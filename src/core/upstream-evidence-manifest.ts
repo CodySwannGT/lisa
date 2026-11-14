@@ -27,7 +27,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
       "54b0844dd7b9f461ccd533603439164ce7dccdd83422344d1b085ed5f5fdfad3",
     "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs":
-      "7c24a2eabd4c56d46ad6d2b5c14b4a4d033d58fee08b87dfbd5d054818b7ab35",
+      "858c3de3b63c9479c4b0c7a345f2329c7f9172f2748bcc1bab38b4a1a181524f",
     "all/copy-overwrite/scripts/lib/automation-provenance-files.mjs":
       "5c3b2a88669e3e187c123850798e3dfafb3c078b6b25aa00da0ba93db03424c9",
     "all/copy-overwrite/scripts/lib/automation-provenance-local.mjs":
@@ -77,11 +77,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
-      "bc4a6b0df674432de686099f323b9226634052ca05abffa45e2323faf95458d6",
+      "fcd56c2fd10b15a7558fc407a9594ecbdc4d5e6ceae50c8405523c6c5a86ce98",
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
-      "aa97fbc52f58aba1cc93e105a9ee7a32a0ae184259c10ab55e23589b593207f9",
+      "1abf7afc38213c7d46d8f04a52d14bb4d997786032201c522cf1fab3f2cb0bb9",
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs":
-      "d7eb4fb96dd697f9abbd5132ffde5ec47d2972f9d5c0725529b57b8f54e06dc3",
+      "72b993807038f61155c684a39f8bbec88ab139e320d26741e690b9def1af6507",
     "all/copy-overwrite/scripts/lib/history-secret-evidence-shape.mjs":
       "2e75089cb44e4e3ed09740f4a06bd7a83cf48718838d1e9b049db3170c0907d5",
     "all/copy-overwrite/scripts/lib/history-secret-evidence.mjs":
@@ -105,7 +105,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs":
       "08450444d7f03d5a0e560f023a4e30db74821209ea45df41959b46636f6191bd",
     "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs":
-      "e6f0c6bb2f92c63865ea9e8dabd61c2a55d2c68aa07c55783e9c39e60e302fe9",
+      "ba971bdd1e539e482b14ec707a26fb8abc8f6664c4c735c699dbfbc68812d361",
     "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs":
       "1050687b6f313415ac3bc96cf241d5713ed871e93bd8d030e5e6ee8071420911",
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs":
@@ -113,11 +113,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-bun.mjs":
       "60e3d30e82f054a483633342891e047b08f79d20c0a5719e5e6ab276732c8e25",
     "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs":
-      "57bf06a580f5c0433690dabf3bcbd36dd2bd5e6de4fa77e04806ca0042152214",
+      "1bf82b7c4386d0012ac228d60bb02a8b6b4a93df1f6463922589998400ba284c",
     "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs":
-      "8572761b79fd89f9d4e6a45258d9c1fbd75a39aac25c60a692b2c6332ff42c73",
+      "c849f5f3ec760f83f64d7a7b61648d3c59ba833e284682ea89c5890e048f6941",
     "all/copy-overwrite/scripts/lib/npm-update-cancellation.mjs":
-      "cf2f4a8f0456f6a40ade2f34682cc4f7be8fe58f85e71a391c1bc77324ab8ef9",
+      "f673e2da460ca5472b0bac95e2a0ccdc25cdcb77179d407f4f610fcc3fc6cf78",
     "all/copy-overwrite/scripts/lib/npm-update-checkpoint-codec.mjs":
       "2d263bc8aedb3af38671debca9a77577aee44e4912152d0dbb174505480f8f95",
     "all/copy-overwrite/scripts/lib/npm-update-checkpoint.mjs":
@@ -125,11 +125,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-classifier-cache.mjs":
       "92272e40617ca9d620ff47e3ffe07a0e5bc1a3949d139752aa2675398ab49f9b",
     "all/copy-overwrite/scripts/lib/npm-update-contract.mjs":
-      "6db3b43a61a89cbb8638207c18862d759023b021f8140fa2a0a30a8b80a2bc87",
+      "15d91e05d21501575f00de3a479c373935ec285c7199cd7980ed6bd1c5ad3000",
     "all/copy-overwrite/scripts/lib/npm-update-controller-broker.mjs":
       "c2c598f48a403707d699baadb40be7aaf2023a4d6c6e0a41b5e591c5a2af5cc6",
     "all/copy-overwrite/scripts/lib/npm-update-controller-factory.mjs":
-      "8b5af4dc0a2569168869b4fd2694c7a042b446ea5ca646bfd3f127f490097ded",
+      "53e7dc8a1c7c5c4291ca25cd1868f79c2a1174b0811887b709c72956672df6ec",
     "all/copy-overwrite/scripts/lib/npm-update-controller-recipe.mjs":
       "fd67b592564fdbd6fe0963681a389cdd6689ea882f3b5fe125b38b4fdbf00062",
     "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs":
@@ -147,9 +147,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-gh-grants.mjs":
       "1ed12369027e4c25a54e25c119be6d1430baffae79370deba01e2b462e430c18",
     "all/copy-overwrite/scripts/lib/npm-update-gh-requests.mjs":
-      "54604122ee71c3597c01890499f0cba5872f7c4d807c437b5161f52f9b5133be",
+      "f2eb0b8feeb005dae119445dea796bb833a395b3fb7b18348fc681ae9abb4bbc",
     "all/copy-overwrite/scripts/lib/npm-update-github.mjs":
-      "adef012960dc0c64dd68d687c2db9a66104780e0e68942f8ce27f11a0cf6262e",
+      "065d44d4e8ca98d127a916183443eafcfe6bd67b560d1a1b6b3f66efb05e4f58",
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "4bfa589aaeda81f29c800409e5e66fab6e6d735135c1a075213ee6d2e007773b",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
@@ -165,19 +165,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-hook-read-client.mjs":
       "724f22f7a1d5525fca6ed593f70d6da2ffc05bf66f2b178393064fd4d86708b1",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs":
-      "72755685d08ca4ce01f99211fd19fd293d3b6bc77bef042579acb448da5fe8e1",
+      "ad410a4e5fec405885084abbcf77307ad971fe99bf573704c32acc674fec7a16",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs":
       "7cb0fa070365aa81bb6511dc8ec5aaa5121e85c343928f5ce0753f4892be93d6",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-scope.mjs":
-      "bf046814b607f5449f80b18081b3a42a97a9a96d54fae302661471e166797459",
+      "5081b6f28c7783d5339b57d6ed10bf6e8d7ffde83792db2ef8cfaa6bf70b8a81",
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs":
-      "531e7bc8b8893127a7e6b643b1dacc25b7a0ef5c767c4febe6f02cedf9a2e4ad",
+      "363b2e00a670234b140abea8b8360602c075fcdadb46524ad4fd6078ef12f908",
     "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs":
       "66ec5390a0af0e016880c781eae47b8c60d6fca0c79ef500e1926e42eae043bf",
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs":
-      "9f7257d23f98f22bcb44432742d2384e2fcaf44fc5b78406e1862e0709675ded",
+      "148bf09c1c71fec7253c7e5290aa9df386fe9fa09fb1fdbdf50eb9a120b6b56a",
     "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs":
-      "17fb0d29089d6956605e801fae3d4f184d5e8840994ea4d0b7f37a90d46b870e",
+      "8a8d804bcef92bbcdd5c9d812b5de8c160e7b4ab77ab3b40ab68061f865ca9b0",
     "all/copy-overwrite/scripts/lib/npm-update-native-process.mjs":
       "ab8dea4348ce670814fe446755876331cef0f5769b6d9140e726081641f04326",
     "all/copy-overwrite/scripts/lib/npm-update-npm.mjs":
@@ -189,7 +189,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-owner.mjs":
       "d2a0e25442f35f55a5d308c8e072398bcd5580ad6f6624c91340a907b5c97ca5",
     "all/copy-overwrite/scripts/lib/npm-update-policy.mjs":
-      "59638ff33a53b08779358a76e9bd9f0496f9afecf5e7089e888d02421f0e62de",
+      "bff4df0c907ee6742a7a7c927fba88e8240945d691c69230ba8837e1c16f32fb",
     "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs":
       "f3a73f543898f7946e28e4ec8788eddb88b736a22d7bfdeed67dbb2456fd9796",
     "all/copy-overwrite/scripts/lib/npm-update-process-core.mjs":
@@ -197,11 +197,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-process.mjs":
       "5d557574eeee9fd40d3f421715ddb95f0e7239acc9a43c8eefefea3b7d63b47c",
     "all/copy-overwrite/scripts/lib/npm-update-publication.mjs":
-      "4bef866f22884283a43d38d417e064ddb9a8a8ef7efea55edec75852da0f15b4",
+      "536b902e90e78ee2320aed7ef83df678715eac763fd623b103b1f99f6271c6ab",
     "all/copy-overwrite/scripts/lib/npm-update-publish.mjs":
-      "d29706956c82a08a321133ba01c50bd3b301d94224135d9773311083542a9065",
+      "1e50c8f193d7e919504d324d107264e7fb020255d3298382cde4599bb096ca19",
     "all/copy-overwrite/scripts/lib/npm-update-quality.mjs":
-      "dcbdf3dc6e15caafa39184d8d5d4c978dfcc5fb8d3dcdb228053a5299936f7b6",
+      "96f1b512867d30ee107f9f53b67efe5a79b9a82b683b0a337a3dab7e2fd335e1",
     "all/copy-overwrite/scripts/lib/npm-update-rails-mysql-daemon.mjs":
       "8f2659d1d9c1dcc108f911633e3db776882a966abe73e04fe715fbd857de649c",
     "all/copy-overwrite/scripts/lib/npm-update-rails-mysql-resource.mjs":
@@ -219,7 +219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs":
       "c6670b72d0d9bfdb93f96cbb499d0361669e0367ab90e276cf24eb141dfc4a57",
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs":
-      "7699922ae10e5f07f9afb7cbe2762641702f42f0eced953d7a9a934fd1b3f715",
+      "011ba06372218ee2d8105a1deaa1b287bf955707743b71a02d3837e34a47e5c5",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs":
       "27fb9639965681f0a9b8282ade6b6c45554ea03d5a192c54b13ce51cb03b254e",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-graph.mjs":
@@ -229,7 +229,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-runtime.mjs":
       "2c4bcf43ddb93a4078a7abb26429f8228bc2fe77d020cfec6cfb83bccb002c60",
     "all/copy-overwrite/scripts/lib/npm-update-supersession.mjs":
-      "c03d8282e3a3b9102937b1b4214c8189d6f166ae54c12a1bff0e2c03acbe18a5",
+      "44bd232bac810133a45d480b4ecae3e646dfe6eaff803560599cedaf36b59746",
     "all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs":
       "03e58c15ceee04a80a2c2a597454132ab742fc13c878eb1cb742a6ee0e045045",
     "all/copy-overwrite/scripts/lib/npm-update-tracker-jira.mjs":
@@ -293,7 +293,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-audit.mjs":
       "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs":
-      "e77233323bf99c9a02a2ea42a07e07c065536645769c76e2e1f7ee49e9b1bb8a",
+      "a6f776c67dee06b28f50f5cac8343214253b8620714d84bd4904f3b0ccf67346",
     "all/copy-overwrite/scripts/lisa-clean-git-env.sh":
       "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
@@ -345,7 +345,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "2379d4fc5174ae4727997a0d88d43a0212941d91bdebaf790caadd20a8c59810",
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs":
-      "968d7e31383369fa9e77ee5a7e850028d1d585755bce18afe1ee2c1a5b7480c9",
+      "e8ad61784d1783049405b5ca2e367678a08625192c1c50901a5abd217941dbca",
     "all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs":
       "7d88002ba9ecc501612f3fa6de0931fe65f4c8a961f51f767be0c8f2f42eec54",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
@@ -373,7 +373,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "76ccc6a2f6babdbb4ecb35404157ce014fee98da23c97aa706f1f3b60ad1b728",
+      "3950e1390811710561b9a0b9eae03d2099538c35c07845ea526c80f09d524c52",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -3920,6 +3920,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4859/policy-accepts-jira-linear.txt": true,
     "evidence/4859/run.sh": true,
     "evidence/4859/workitem-ref-grammar.txt": true,
+    "evidence/4860/main-target-unchanged.txt": true,
+    "evidence/4860/missing-target-fails-closed.txt": true,
+    "evidence/4860/policy-target-branch.txt": true,
+    "evidence/4860/requests-use-configured-target.txt": true,
+    "evidence/4860/workflow-target-gate.txt": true,
     "evidence/4867/classification-assertions-after.json": true,
     "evidence/4867/classification-assertions-before.json": true,
     "evidence/4867/classification-manifest-after.json": true,
@@ -13116,6 +13121,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-runtime-preservation.test.ts": true,
     "tests/unit/scripts/npm-update-runtime-qualification.test.ts": true,
     "tests/unit/scripts/npm-update-socket-witness.test.ts": true,
+    "tests/unit/scripts/npm-update-target-branch.test.ts": true,
     "tests/unit/scripts/npm-update-tracker-credentials.test.ts": true,
     "tests/unit/scripts/npm-update-tracker-finalize.test.ts": true,
     "tests/unit/scripts/npm-update-tracker-github.test.ts": true,

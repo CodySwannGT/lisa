@@ -319,6 +319,8 @@ export class UpdaterError extends Error {
  * A refusal the operator must act on carries one fixed plain-language sentence,
  * registered here rather than read from an error property, so no provider
  * payload or arbitrary exception text can ever reach the public diagnostic.
+ * Any value interpolated into the sentence must already be validated (for
+ * example a branch name checked by validBranchName).
  */
 export function operatorRefusal(reason, sentence) {
   const error = new UpdaterError(reason);

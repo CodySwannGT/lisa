@@ -5,13 +5,14 @@
 import { mkdirSync, realpathSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
-import { required, OBJECT } from "./npm-update-contract.mjs";
+import { required, OBJECT, policyTarget } from "./npm-update-contract.mjs";
 import { leafRoles } from "./npm-update-leaf-contract.mjs";
 import { qualifiedControllerGraph } from "./npm-update-helper.mjs";
 import { withPrivateRoot, writeJson } from "./npm-update-process.mjs";
 import { assertPinnedVerifier } from "./github-attestation-verifier.mjs";
 import { binaryDigest } from "./npm-update-isolation.mjs";
 import { createGhRequests } from "./npm-update-gh-requests.mjs";
+import { targetField } from "./automation-provenance-contract.mjs";
 import { startControllerBroker } from "./npm-update-controller-broker.mjs";
 import { invokeControllerRecipe } from "./npm-update-broker-client.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
@@ -31,7 +32,7 @@ export function controllerDeadline(context, now = Date.now()) {
 export function controllerSubject(context, phase, pr, proofs = []) {
   const { config, policy, proposal, allocation } = context;
   const descriptor = context.descriptor ?? context.preview?.descriptor;
-  leafRoles(config, policy.repository);
+  leafRoles(config, policy.repository, policyTarget(policy));
   required(
     proposal.repository === policy.repository &&
       Number.isSafeInteger(allocation.number) &&
@@ -70,6 +71,7 @@ export function controllerSubject(context, phase, pr, proofs = []) {
     maintainer: policy.maintainer,
     pr: pr === null ? null : { number: String(pr.number), url: pr.html_url },
     proofs,
+    ...targetField(proposal),
   };
   createGhRequests(subject);
   return subject;

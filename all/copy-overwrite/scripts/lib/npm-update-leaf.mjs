@@ -8,7 +8,7 @@
  */
 import { canonicalClassifier } from "./npm-update-helper.mjs";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
-import { required, CLAIM, keys } from "./npm-update-contract.mjs";
+import { required, CLAIM, keys, policyTarget } from "./npm-update-contract.mjs";
 import { qualityGates } from "./npm-update-quality.mjs";
 import { leafRoles } from "./npm-update-leaf-contract.mjs";
 export {
@@ -85,7 +85,7 @@ export async function inspectCancelledLeaf(issue, draft, policy, config) {
 
 /** Both fixed state entry points preserve the original complete ownership and hold checks. */
 async function inspectLeafFields(issue, draft, policy, config) {
-  const roles = leafRoles(config, policy.repository);
+  const roles = leafRoles(config, policy.repository, policyTarget(policy));
   const labels = issue.labels.map(label => label.name);
   required(
     issue.children.length === 0 &&
@@ -184,7 +184,7 @@ export async function authorizeAllocation(
   config
 ) {
   const tracker = trackerFor(api, policy, config);
-  await api.main(proposal.parent);
+  await api.main(proposal.parent, proposal.target);
   await tracker.assignable(policy.maintainer);
   const issue = await tracker.issue(allocation.number);
   const state = await inspectLeaf(issue, allocation.draft, policy, config);

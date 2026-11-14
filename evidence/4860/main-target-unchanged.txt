@@ -1,0 +1,63 @@
+$ git diff --stat origin/main -- tests/unit/scripts/npm-update-root-identity.test.ts (empty = goldens unmodified)
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/unit/scripts/npm-update "--reporter=dot"
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v5.2.0)
+Built plugins/lisa-typescript (v5.2.0)
+Built plugins/lisa-expo (v5.2.0)
+Built plugins/lisa-nestjs (v5.2.0)
+Built plugins/lisa-cdk (v5.2.0)
+Built plugins/lisa-harper-fabric (v5.2.0)
+Built plugins/lisa-phaser (v5.2.0)
+Built plugins/lisa-rails (v5.2.0)
+Built plugins/lisa-wiki (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-typescript-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-expo-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-nestjs-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-cdk-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-harper-fabric-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-phaser-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-rails-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-wiki-cursor (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-typescript-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-expo-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-nestjs-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-cdk-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-harper-fabric-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-phaser-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-rails-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-wiki-agy (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-typescript-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-expo-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-nestjs-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-cdk-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-harper-fabric-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-phaser-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-rails-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-wiki-copilot (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-typescript-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-expo-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-nestjs-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-cdk-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-harper-fabric-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-phaser-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-rails-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-wiki-devin (v5.2.0)
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (51 ms); kept 19 entries not private to this user
+
+ RUN  v5.1.0 <worktree>
+
+····································································································································································································································································································································································································································································································································································································································································································································································································································
+
+ Test Files  60 passed (60)
+      Tests  804 passed (804)
+   Start at  01:49:08
+   Duration  23.82s (tests 93%, import 4%, setup 2%, transform 1%)
+
+exit=0
