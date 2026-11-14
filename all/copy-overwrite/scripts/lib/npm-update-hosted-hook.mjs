@@ -113,7 +113,8 @@ export function tokenFreeHookEnvironment(source) {
   const env = { ...source };
   for (const name of Object.keys(env))
     if (
-      /^(?:GH_TOKEN|GITHUB_TOKEN|ACTIONS_ID_TOKEN_|ACTIONS_RUNTIME_|LISA_NPM_DISPATCH_CONTEXT|NODE_OPTIONS|NODE_PATH)/.test(
+      // Tracker credentials (CodySwannGT/lisa#4859) are as private as the GitHub token.
+      /^(?:GH_TOKEN|GITHUB_TOKEN|ACTIONS_ID_TOKEN_|ACTIONS_RUNTIME_|LISA_NPM_DISPATCH_CONTEXT|NODE_OPTIONS|NODE_PATH|JIRA_|ATLASSIAN_|LINEAR_API_KEY)/.test(
         name
       )
     )

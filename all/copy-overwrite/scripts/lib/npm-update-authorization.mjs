@@ -17,6 +17,10 @@ export { recoveryRecord } from "./npm-update-recovery.mjs";
 import { verifyCurrentProvider } from "./github-attestation-verifier.mjs";
 import { verifyHistoricalProvider } from "./github-attestation-provider.mjs";
 import {
+  refuseUnlessGithub,
+  verifySignedWorkItem,
+} from "./npm-update-tracker.mjs";
+import {
   verifyHistoricalDescriptor,
   predictedCommit,
 } from "./github-attestation-recovery.mjs";
@@ -120,7 +124,8 @@ async function recoveryPreview({
       original.number,
       allocation.origin.payload,
       allocation.origin.digest,
-      () => authorizeAllocation(api, proposal, original, policy, config)
+      () => authorizeAllocation(api, proposal, original, policy, config),
+      config
     );
   }
   const commit = predictedCommit(
@@ -158,7 +163,8 @@ async function originPreview({
     original.number,
     { version: 1, proposal, allocation: original, preview: null, bundle: "" },
     proposal.key,
-    () => authorizeAllocation(api, proposal, original, policy, config)
+    () => authorizeAllocation(api, proposal, original, policy, config),
+    config
   );
   const preview = await descriptorFor({
     cwd,
@@ -195,6 +201,8 @@ export async function prepareAuthorization({
   let proposal = suppliedProposal;
   if (allocation.status === "stale-outstanding")
     return { mode: allocation.status, allocation };
+  // Resuming a signed origin re-verifies the claim's GitHub chronology (#4873).
+  if (allocation.origin) refuseUnlessGithub(config, "signed-origin recovery");
   const restored =
     allocation.origin?.payload.proposal ??
     allocation.originalProposal ??
@@ -225,6 +233,8 @@ export async function prepareAuthorization({
   const preview = allocation.origin
     ? await recoveryPreview(inputs)
     : await originPreview(inputs);
+  if (config.tracker !== "github")
+    verifySignedWorkItem(config, original, preview);
   writeJson(join(output, "preview.json"), preview);
   writeJson(join(output, "allocation.json"), original);
   const mode = allocation.origin ? "recovery" : "origin";
