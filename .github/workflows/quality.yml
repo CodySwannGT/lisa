@@ -4035,9 +4035,10 @@ jobs:
 
       - name: 💎 Install Rails configuration resolver for Lisa regression
         if: (inputs.integration_test_shards == 1 || strategy.job-total > 1) && (github.repository == 'CodySwannGT/lisa')
-        # gitlab-crystalball, rspec-core and simplecov: the Rails spec-selection
-        # Ruby regression (rails-crystalball-ruby.test.ts, CodySwannGT/lisa#4612).
-        run: gem install activerecord:8.1.4 gitlab-crystalball:1.1.3 rspec-core:3.13.6 simplecov:1.3.2 --no-document
+        # gitlab-crystalball, rspec-core, rspec-expectations and simplecov: the
+        # Rails spec-selection Ruby regression (rails-crystalball-ruby.test.ts,
+        # CodySwannGT/lisa#4612), whose specs use `expect`.
+        run: gem install activerecord:8.1.4 gitlab-crystalball:1.1.3 rspec-core:3.13.6 rspec-expectations:3.13.6 simplecov:1.3.2 --no-document
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && ((inputs.integration_test_shards == 1 || strategy.job-total > 1))

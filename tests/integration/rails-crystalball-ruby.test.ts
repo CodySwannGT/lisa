@@ -1,7 +1,7 @@
 /**
  * The two Ruby halves of the Rails push-time spec selection
  * (CodySwannGT/lisa#4612), run by a real Ruby with the real gems
- * (gitlab-crystalball, rspec-core, simplecov) against a two-class project:
+ * (gitlab-crystalball, rspec-core, rspec-expectations, simplecov) against a two-class project:
  *
  * - `lisa_crystalball_recorder.rb`, required into a full RSpec run, writes
  *   the map the pre-push selects from: each spec file to the application
@@ -52,10 +52,12 @@ const deferred = suiteDeferral(
   () =>
     probeSucceeds("ruby", [
       "-e",
-      "require 'crystalball'; require 'rspec/core'; require 'simplecov'",
+      // rspec-expectations too: the fixture specs use `expect`, which
+      // rspec-core alone does not define.
+      "require 'crystalball'; require 'rspec/core'; require 'rspec/expectations'; require 'simplecov'",
     ]),
-  "Ruby with gitlab-crystalball, rspec-core and simplecov",
-  "Run: gem install gitlab-crystalball:1.1.3 rspec-core:3.13.6 simplecov:1.3.2 --no-document"
+  "Ruby with gitlab-crystalball, rspec-core, rspec-expectations and simplecov",
+  "Run: gem install gitlab-crystalball:1.1.3 rspec-core:3.13.6 rspec-expectations:3.13.6 simplecov:1.3.2 --no-document"
 );
 
 const roots: string[] = [];
