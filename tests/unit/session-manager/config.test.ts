@@ -90,6 +90,7 @@ describe("resolveSessionManagerConfig", () => {
       stall: { noOutputMinutes: 60, maxAttempts: 3, requestionHours: 4 },
       notify: NOTIFY,
       trustedAuthorIds: null,
+      trustedReleaseIds: null,
     });
   });
 

@@ -16,6 +16,16 @@
  * - `login:<v>` is a GitHub login and matches only a `login` field.
  * - `id:<v>` is an account id (a GitHub numeric id, a Jira accountId, a
  *   Linear user id) and matches only an id field.
+ * - `integration:<service>` names an integration that files items with no
+ *   person behind them (CodySwannGT/lisa#4895), and is meaningful only in
+ *   `trustedAuthorIds`. Linear's Sentry integration creates issues whose
+ *   `creator` is null, so there is no person id to trust; the entry matches
+ *   such an item by the integration Linear records on it instead (`botActor`).
+ *   It never matches an item a person authored, never an item a non-Linear
+ *   user filed through an integration (`externalUserCreator`), and never a
+ *   person, so it cannot answer a question or release a human hold: those
+ *   readers drop it (`idComparableValues`, the answer matcher), and the
+ *   validator refuses it in `operatorIds` and `trustedReleaseIds`.
  * - A plain entry (no prefix) keeps exactly the meaning each reader gave it
  *   before kind-keyed entries existed. Changing that is a later, breaking
  *   change.
@@ -38,7 +48,7 @@
  */
 
 /** The kinds a prefixed entry may name. */
-export const ID_ENTRY_KINDS = Object.freeze(["login", "id"]);
+export const ID_ENTRY_KINDS = Object.freeze(["login", "id", "integration"]);
 
 /** A letters-only prefix at the start of an entry. */
 const PREFIX = /^([A-Za-z]+):/;
@@ -50,7 +60,7 @@ const PREFIX = /^([A-Za-z]+):/;
 const PLAIN_ID_STARTS = new Set(["qm"]);
 
 /**
- * @typedef {{ kind: "login" | "id" | "plain", value: string }
+ * @typedef {{ kind: "login" | "id" | "integration" | "plain", value: string }
  *   | { kind: "invalid", problem: "unknown-prefix" | "empty-value", prefix: string }} IdEntry
  */
 
@@ -93,9 +103,11 @@ export function parseIdEntries(entries) {
  * Whether one parsed entry names the identity whose fields are given. Each
  * field is the reader's value for that kind: `plain` is what a plain entry
  * has always been compared with there, `login` the GitHub login (null when
- * the tracker has none), `id` the account id. A missing field never matches.
+ * the tracker has none), `id` the account id, `integration` the integration
+ * that filed an item with no person author (null otherwise, and absent for
+ * every reader that matches people). A missing field never matches.
  * @param {IdEntry} entry - Parsed entry
- * @param {{ plain?: string | null, login?: string | null, id?: string | null }} fields
+ * @param {{ plain?: string | null, login?: string | null, id?: string | null, integration?: string | null }} fields
  * @returns {boolean} Whether it matches
  */
 export function entryMatches(entry, fields) {

@@ -84,6 +84,7 @@ export function notifyProvider(config) {
  *   stall: StallBlock,
  *   notify: NotifyBlock,
  *   trustedAuthorIds: string[] | null,
+ *   trustedReleaseIds: string[] | null,
  *   operatorIds?: string[] | null,
  *   backlogPickup?: boolean,
  * }} SessionManagerConfig
@@ -140,10 +141,29 @@ export function resolveSessionManagerConfig(globalConfig, localConfig) {
     ...merged,
     repos,
     trustedAuthorIds: merged.trustedAuthorIds ?? null,
+    trustedReleaseIds: merged.trustedReleaseIds ?? null,
     // Left as declared: absent stays undefined and an explicit null stays null,
     // so validation can refuse the null instead of reading it as "no operators".
     operatorIds: merged.operatorIds,
   };
+}
+
+/**
+ * Who may discharge a human gate: release a hold, or answer the manager's
+ * question on the item (CodySwannGT/lisa#4895).
+ *
+ * `trustedAuthorIds` answers a different question — whose item text may reach
+ * a bypass-permissions worker — and may name integrations, which are never a
+ * person. `trustedReleaseIds` separates the two; unset, it falls back to
+ * `trustedAuthorIds`, so a project that never declared it behaves exactly as
+ * before. Neither set means nobody, and a hold fails closed.
+ * @param {{ trustedAuthorIds?: string[] | null, trustedReleaseIds?: string[] | null } | null | undefined} config
+ *   - Resolved block (only its two trust lists are read)
+ * @returns {string[]} The configured release entries (unparsed)
+ */
+export function trustedReleaseEntries(config) {
+  const declared = config?.trustedReleaseIds ?? config?.trustedAuthorIds;
+  return Array.isArray(declared) ? declared : [];
 }
 
 /**
