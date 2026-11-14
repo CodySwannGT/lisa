@@ -66,7 +66,6 @@
     "check:whole-output-guards": "node scripts/check-whole-output-guards.mjs",
     "check:empty-subject-guards": "node scripts/check-empty-subject-guards.mjs",
     "check:cwd-resolution-corpus": "node scripts/check-cwd-resolution-corpus.mjs",
-    "check:phrase-manifest-parity": "node scripts/check-phrase-manifest-parity.mjs --base 02b59a6297 --head 5207036771 --exact",
     "check:probe-absence-direction": "node scripts/check-probe-absence-direction.mjs",
     "check:guard-parity-notes": "node scripts/check-guard-parity-notes.mjs",
     "check:shell-guard-refusals": "node scripts/lib/worktree-dependencies.mjs && bun run build && $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/check-shell-guard-refusal-coverage.mjs --trace-out .lisa/shell-guard-trace.jsonl",

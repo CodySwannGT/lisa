@@ -1,0 +1,40 @@
+# Classifier re-run (Validation Journey step 1) - CodySwannGT/lisa#4867
+Commands: node scripts/classify-phrase-tests.mjs --classify-manifest --json (exit 0); node scripts/classify-phrase-tests.mjs --classify-assertions --json (exit 0)
+
+## required-phrases.json
+| | files | entries | counts |
+|---|---:|---:|---|
+| before (committed) | 376 | 5391 | {"MACHINE-TOKEN":54,"STRUCTURAL":0,"WORDING":5135,"UNRESOLVED":0,"NOT-MARKDOWN":202} |
+| after (committed) | 50 | 54 | {"MACHINE-TOKEN":54,"STRUCTURAL":0,"WORDING":0,"UNRESOLVED":0,"NOT-MARKDOWN":0} |
+| after (live re-run) | 50 | 54 | {"MACHINE-TOKEN":54,"STRUCTURAL":0,"WORDING":0,"UNRESOLVED":0,"NOT-MARKDOWN":0} |
+live re-run byte-identical (JSON) to committed after: true
+WORDING entries remaining: 0; non MACHINE-TOKEN/STRUCTURAL: 0
+
+## Markdown assertions in test files
+| | test files | sites | markdown sites | counts |
+|---|---:|---:|---:|---|
+| before (committed) | 241 | 5885 | 4341 | {"MACHINE-TOKEN":14,"STRUCTURAL":35,"WORDING":4094,"UNRESOLVED":198,"NOT-MARKDOWN":0} |
+| after (committed) | 147 | 1513 | 217 | {"MACHINE-TOKEN":16,"STRUCTURAL":36,"WORDING":120,"UNRESOLVED":45,"NOT-MARKDOWN":0} |
+| after (live re-run) | 147 | 1513 | 217 | {"MACHINE-TOKEN":16,"STRUCTURAL":36,"WORDING":120,"UNRESOLVED":45,"NOT-MARKDOWN":0} |
+live re-run equal to committed after: true
+Residual 120 WORDING + 45 UNRESOLVED markdown sites are each listed with a keep reason in classification-summary.md (0 unreviewed per that file).
+
+## Bite control for AC-4: add one WORDING entry to required-phrases.json, run npx vitest run tests/unit/docs/required-phrases.test.ts (exit 1)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > pins only MACHINE-TOKEN and STRUCTURAL phrases
+AssertionError: these phrases are not load-bearing: delete WORDING, move NOT-MARKDOWN to source-text-guards.json, or add the token class and its parser to token-classes.mjs: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "plugins/lisa-agy/skills/lisa-git-submit-pr/SKILL.md: \"Never a detached or unbounded\" (WORDING)",
++ ]
+
+ ❯ tests/unit/docs/required-phrases.test.ts:109:7
+    107|       misplaced(manifest, LOAD_BEARING),
+Revert: manifest restored from byte copy; required-phrases.test.ts re-run:
+ Test Files  1 passed (1)
+      Tests  260 passed (260)

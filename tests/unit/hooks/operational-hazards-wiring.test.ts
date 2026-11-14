@@ -95,9 +95,6 @@ describe("operational-hazards — how it gets read", () => {
     // The expiry is the whole mechanism; a rule that mentions the surface
     // without it invites the permanent-scripture failure back.
     expect(eager).toContain("--until");
-    expect(
-      read("plugins/src/base/rules/reference/operational-hazards.md")
-    ).toContain("Surface parity");
   });
 
   it("never registers the re-check on a surface that cannot stamp a session", () => {
