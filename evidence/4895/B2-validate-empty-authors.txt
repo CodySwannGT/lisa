@@ -1,0 +1,37 @@
+# check: B2-validate-empty-authors
+$ cd /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-B2-validate-empty-authors/project && HOME=/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-B2-validate-empty-authors/home node /Users/codysai/workspace/lisa/.claude/worktrees/4895-trusted-author-split/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs validate --project-root /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-B2-validate-empty-authors/project
+# .lisa.config.json:
+{
+  "tracker": "github",
+  "github": {
+    "org": "example-org",
+    "repo": "demo-repo",
+    "labels": {
+      "build": {
+        "ready": "status:ready"
+      }
+    }
+  },
+  "sessionManager": {
+    "name": "demo-manager",
+    "interval": "5m",
+    "capacity": {
+      "maxWorkers": 6,
+      "gbPerWorker": 1,
+      "reserveGb": 0,
+      "cpuFraction": 1,
+      "maxLoadPerCore": 1000
+    },
+    "notify": {
+      "provider": "telegram",
+      "stateDir": "/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-B2-validate-empty-authors/home/.claude/channels/telegram-demo"
+    },
+    "trustedAuthorIds": []
+  }
+}
+# --- stdout ---
+{"valid":false,"errors":["sessionManager.trustedAuthorIds must name at least one author id. An empty list filters no author at all; remove the key instead if every author's item may be dispatched. Removing it also removes who may release a human hold, unless sessionManager.trustedReleaseIds names them; to dispatch items an integration files, add integration:<service> instead."]}
+
+# --- stderr ---
+
+# exit: 2

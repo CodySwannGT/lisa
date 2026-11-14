@@ -1,0 +1,51 @@
+# check: X4-bite-prev-item-answer-integration-only
+# CLI: /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/prev/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs
+# .lisa.config.json:
+{
+  "tracker": "github",
+  "github": {
+    "org": "example-org",
+    "repo": "demo-repo",
+    "labels": {
+      "build": {
+        "ready": "status:ready",
+        "blocked": "custom:blocked",
+        "human_needed": "custom:needs-person"
+      }
+    }
+  },
+  "sessionManager": {
+    "name": "demo-manager",
+    "capacity": {
+      "maxWorkers": 6,
+      "gbPerWorker": 1,
+      "reserveGb": 0,
+      "cpuFraction": 1,
+      "maxLoadPerCore": 1000
+    },
+    "trustedAuthorIds": [
+      "integration:sentry"
+    ]
+  }
+}
+$ cd /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X4-bite-prev-item-answer-integration-only/project && PATH=/Users/codysai/workspace/lisa/.claude/worktrees/4895-trusted-author-split/tests/fixtures/session-manager/stub-bin:/usr/bin:/bin:/usr/sbin:/sbin HOME=/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X4-bite-prev-item-answer-integration-only/home node /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/prev/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs ledger set-question example-org/demo-repo#7 --kind worker-question --project-root /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X4-bite-prev-item-answer-integration-only/project <<< 'Should the export be CSV or JSON?'
+# --- stdout ---
+{"repo":null,"worker":null,"sessionId":null,"status":"question","startedAt":null,"lastProgressAt":null,"logsHash":null,"pendingQuestion":{"text":"Should the export be CSV or JSON?","kind":"worker-question","askedAt":"2026-11-14T15:05:18.884Z","lastPingAt":"2026-11-14T15:05:18.884Z","telegramMessageId":null,"markerType":null,"marker":null,"markedAt":null,"managerCommentIds":[],"answer":null},"attempts":0,"history":[{"event":"question","at":"2026-11-14T15:05:18.884Z"}]}
+
+# --- stderr ---
+
+# exit: 0
+$ cd /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X4-bite-prev-item-answer-integration-only/project && PATH=/Users/codysai/workspace/lisa/.claude/worktrees/4895-trusted-author-split/tests/fixtures/session-manager/stub-bin:/usr/bin:/bin:/usr/sbin:/sbin HOME=/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X4-bite-prev-item-answer-integration-only/home node /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/prev/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs ledger marked example-org/demo-repo#7 --marker-type label --marker custom:needs-person --comment-id 900 --project-root /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X4-bite-prev-item-answer-integration-only/project <<< ''
+# --- stdout ---
+{"repo":null,"worker":null,"sessionId":null,"status":"question","startedAt":null,"lastProgressAt":null,"logsHash":null,"pendingQuestion":{"text":"Should the export be CSV or JSON?","kind":"worker-question","askedAt":"2026-11-14T15:05:18.884Z","lastPingAt":"2026-11-14T15:05:18.884Z","telegramMessageId":null,"markerType":"label","marker":"custom:needs-person","markedAt":"2026-11-14T15:05:18.926Z","managerCommentIds":["900"],"answer":null},"attempts":0,"history":[{"event":"question","at":"2026-11-14T15:05:18.884Z"},{"event":"marked","at":"2026-11-14T15:05:18.926Z","markerType":"label","marker":"custom:needs-person"}]}
+
+# --- stderr ---
+
+# exit: 0
+$ cd /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X4-bite-prev-item-answer-integration-only/project && PATH=/Users/codysai/workspace/lisa/.claude/worktrees/4895-trusted-author-split/tests/fixtures/session-manager/stub-bin:/usr/bin:/bin:/usr/sbin:/sbin HOME=/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X4-bite-prev-item-answer-integration-only/home node /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/prev/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs item-answer example-org/demo-repo#7 --project-root /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X4-bite-prev-item-answer-integration-only/project <<< '{"comments":[{"id":900,"author":{"login":"op-login"},"body":"[lisa-session-manager-question] example-org/demo-repo#7 needs a human"},{"author":{"login":"sentry"},"body":"CSV"}]}'
+# --- stdout ---
+{"queued":false,"ref":"example-org/demo-repo#7","reason":"no-answer-yet"}
+
+# --- stderr ---
+
+# exit: 0

@@ -26,6 +26,8 @@ const EMPTY_VALUE = "empty-value";
 const TABLE: readonly [string, string][] = [
   ["login:583231", "login"],
   ["id:99999", "id"],
+  ["integration:sentry", "integration"],
+  ["integration:", EMPTY_VALUE],
   ["id:557058:f58131cb-b67d-43c7-b30d-6b58d40bd077", "id"],
   ["583231", PLAIN],
   ["octocat", PLAIN],
@@ -95,7 +97,14 @@ describe("parseIdEntry", () => {
 describe("idComparableValues", () => {
   it("keeps plain and id: values for an id-only comparator, drops login: and invalid ones", () => {
     expect(
-      idComparableValues(["4242", "octocat", "id:99", "login:mallory", "x:y"])
+      idComparableValues([
+        "4242",
+        "octocat",
+        "id:99",
+        "login:mallory",
+        "integration:sentry",
+        "x:y",
+      ])
     ).toEqual(["4242", "octocat", "99"]);
   });
 

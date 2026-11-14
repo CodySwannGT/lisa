@@ -1,0 +1,50 @@
+# check: X1-bite-base-queue-trust-sentry
+$ cd /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X1-bite-base-queue-trust-sentry/project && HOME=/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X1-bite-base-queue-trust-sentry/home node /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/base/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs queue --tracker linear --input /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/queue-envelope.json --project-root /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X1-bite-base-queue-trust-sentry/project
+# .lisa.config.json:
+{
+  "tracker": "github",
+  "github": {
+    "org": "example-org",
+    "repo": "demo-repo",
+    "labels": {
+      "build": {
+        "ready": "status:ready"
+      }
+    }
+  },
+  "sessionManager": {
+    "name": "demo-manager",
+    "interval": "5m",
+    "capacity": {
+      "maxWorkers": 6,
+      "gbPerWorker": 1,
+      "reserveGb": 0,
+      "cpuFraction": 1,
+      "maxLoadPerCore": 1000
+    },
+    "notify": {
+      "provider": "telegram",
+      "stateDir": "/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X1-bite-base-queue-trust-sentry/home/.claude/channels/telegram-demo"
+    },
+    "trustedAuthorIds": [
+      "id:a1b2c3d4-0000-4000-8000-000000000001",
+      "integration:sentry"
+    ]
+  }
+}
+# input file /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/queue-envelope.json:
+{"complete":true,"pages":1,"items":[
+{"identifier":"OPS-1","title":"Sentry: TypeError in checkout","priority":2,"createdAt":"2026-11-01T00:00:00Z","updatedAt":"2026-11-01T00:00:00Z","assignee":null,"labels":{"nodes":[]},"description":"","children":{"nodes":[]},"creator":null,"externalUserCreator":null,"botActor":{"type":"integration","subType":"sentry","name":"Sentry"}},
+{"identifier":"OPS-2","title":"Trusted human item","priority":2,"createdAt":"2026-11-02T00:00:00Z","updatedAt":"2026-11-02T00:00:00Z","assignee":null,"labels":{"nodes":[]},"description":"","children":{"nodes":[]},"creator":{"id":"a1b2c3d4-0000-4000-8000-000000000001"},"externalUserCreator":null,"botActor":null},
+{"identifier":"OPS-3","title":"Untrusted human item","priority":2,"createdAt":"2026-11-03T00:00:00Z","updatedAt":"2026-11-03T00:00:00Z","assignee":null,"labels":{"nodes":[]},"description":"","children":{"nodes":[]},"creator":{"id":"ffffffff-0000-4000-8000-000000000099"},"externalUserCreator":null,"botActor":null},
+{"identifier":"OPS-4","title":"Outside user filed through Sentry","priority":2,"createdAt":"2026-11-04T00:00:00Z","updatedAt":"2026-11-04T00:00:00Z","assignee":null,"labels":{"nodes":[]},"description":"","children":{"nodes":[]},"creator":null,"externalUserCreator":{"id":"ext-77","name":"Outsider"},"botActor":{"type":"integration","subType":"sentry","name":"Sentry"}},
+{"identifier":"OPS-5","title":"Sentry bot but node lacks externalUserCreator key","priority":2,"createdAt":"2026-11-05T00:00:00Z","updatedAt":"2026-11-05T00:00:00Z","assignee":null,"labels":{"nodes":[]},"description":"","children":{"nodes":[]},"creator":null,"botActor":{"type":"integration","subType":"sentry","name":"Sentry"}}
+]}
+
+# --- stdout ---
+
+# --- stderr ---
+sessionManager config is invalid:
+- sessionManager.trustedAuthorIds[1] has an unknown prefix "integration:". Use login:<GitHub login>, id:<numeric or tracker account id>, or a plain id; write a tracker id that itself starts with letters and a colon as id:<that id>.
+
+# exit: 2
