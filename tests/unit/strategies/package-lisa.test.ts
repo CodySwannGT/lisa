@@ -2546,6 +2546,9 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies["@stryker-mutator/jest-runner"]).toBe(
         "^9.0.0"
       );
+      // jest-runner 9.x peers core 9.x exactly; the TypeScript parent forces
+      // core ^10.1.1 for Vitest 5, so Expo's override must keep the pair matched.
+      expect(content.devDependencies["@stryker-mutator/core"]).toBe("^9.0.0");
     });
   });
 

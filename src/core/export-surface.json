@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 279,
-  "$names": 2012,
+  "$modules": 288,
+  "$names": 2078,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -303,6 +303,7 @@
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": [
       "verifyAssignable",
       "verifyCurrentProvider",
+      "verifyCurrentRun",
       "verifyHistoricalProvider",
       "verifyRecoveryProvider",
       "verifyStaleOriginProvider"
@@ -509,6 +510,7 @@
       "executeRecipe"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs": [
+      "childEnvironment",
       "initializeAdapter"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-gate-hooks.mjs": [
@@ -619,6 +621,7 @@
       "UpdaterError",
       "inheritProvenanceFailure",
       "keys",
+      "operatorRefusal",
       "provenanceFailure",
       "publicFailure",
       "recordNativeFailure",
@@ -820,6 +823,41 @@
       "launcherContext",
       "literalArguments",
       "toolInvocation"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-jira.mjs": [
+      "JiraTracker"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-linear.mjs": [
+      "LinearTracker"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-wire.mjs": [
+      "adfCodeBlock",
+      "adfProse",
+      "adfText",
+      "completeLinearConnections",
+      "fence",
+      "jsonCall",
+      "lifecycleName",
+      "linearClosed",
+      "linearSearchResult",
+      "strandedRefusal",
+      "trackerCredentials",
+      "unfence",
+      "vendorLabels",
+      "vocabularyRefusal",
+      "withinJiraLimit"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker.mjs": [
+      "FOLLOWUP_SENTENCE",
+      "createTracker",
+      "expectedWorkItem",
+      "githubTracker",
+      "proveTrackerProvider",
+      "refuseUnlessGithub",
+      "trackerFor",
+      "trackerOf",
+      "trustedHumanActorIds",
+      "verifySignedWorkItem"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs": [
       "assertRubyEnvironment",
@@ -1148,6 +1186,7 @@
       "githubFailureReason",
       "githubHierarchyArgs",
       "githubIssueViewArgs",
+      "jiraServerOrigin",
       "judgeLane",
       "labelNamesOf",
       "mergeOnlyRange",
@@ -1557,6 +1596,14 @@
       "inspectMergeDrivers",
       "runCheckMergeDrivers"
     ],
+    "scripts/check-npm-install-compat.mjs": [
+      "DEFAULT_NPM_VERSIONS",
+      "evaluateInstall",
+      "formatReport",
+      "main",
+      "parseArgs",
+      "runChecks"
+    ],
     "scripts/check-orphan-test-processes.mjs": [
       "FIXTURE_PREFIXES",
       "excerptCommand",
@@ -1935,12 +1982,38 @@
       "classifyTestSource",
       "resolveTestImport"
     ],
+    "scripts/lib/phrase-tests/doc-taint.mjs": [
+      "DOCUMENT_ROOT",
+      "MARKDOWN_PATH",
+      "analyseDocTaint",
+      "isDocy",
+      "isPathy",
+      "mentionsDocumentPath",
+      "subjectSource"
+    ],
     "scripts/lib/phrase-tests/fold.mjs": [
       "foldPhraseTests"
+    ],
+    "scripts/lib/phrase-tests/inventory.mjs": [
+      "LOAD_BEARING",
+      "REPORT_CLASSES",
+      "classifyAssertions",
+      "classifyCheck",
+      "classifyManifest",
+      "countByClass",
+      "countBySource",
+      "literalPhrase",
+      "mergeManifests",
+      "phraseParts",
+      "pruneManifest",
+      "readsMarkdown",
+      "selectEntries"
     ],
     "scripts/lib/phrase-tests/manifest.mjs": [
       "MANIFEST_COMMENT",
       "MANIFEST_PATH",
+      "SOURCE_GUARDS_COMMENT",
+      "SOURCE_GUARDS_PATH",
       "SOURCE_SEPARATOR",
       "buildManifest",
       "describePhrase",
@@ -1949,12 +2022,23 @@
       "phraseFailure",
       "sourceTestFile"
     ],
+    "scripts/lib/phrase-tests/marker-classes.mjs": [
+      "TOKEN_CLASSES",
+      "classifyPhrase",
+      "literalOf",
+      "needlesOf"
+    ],
     "scripts/lib/phrase-tests/parity.mjs": [
       "deletedTestFiles",
       "parityFailures"
     ],
     "scripts/lib/phrase-tests/record.mjs": [
       "recordTestFile"
+    ],
+    "scripts/lib/phrase-tests/redact.mjs": [
+      "SECRET_SHAPES",
+      "redactDeep",
+      "redactText"
     ],
     "scripts/lib/phrase-tests/repo.mjs": [
       "REPO_ROOT",

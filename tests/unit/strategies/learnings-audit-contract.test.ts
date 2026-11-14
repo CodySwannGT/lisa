@@ -13,8 +13,11 @@
  * and deduped against open AND closed issues, and the gardener's own output
  * is never a candidate (no learning loops about learning).
  *
- * These are agent instructions, so the assertions cover the canonical plugin
- * source and every checked-in runtime projection of the skill and command.
+ * The assertions here are structural: every runtime projection carries the
+ * batch-ticket execution template byte-identical to the canonical source, the
+ * skill embeds the promotion-contract AC template verbatim, and the command
+ * keeps its frontmatter and forwards `$ARGUMENTS`. The runbook prose is
+ * guidance and is reviewed, not pinned (#4867).
  * @module tests/unit/strategies/learnings-audit-contract
  */
 import { readFileSync } from "node:fs";
@@ -42,283 +45,77 @@ const COMMAND_PATHS = [
   "plugins/lisa/commands/learnings/audit.md",
 ] as const;
 
-const SETUP_AUTOMATIONS_PATHS = [
-  "plugins/src/base/skills/lisa-setup-automations/SKILL.md",
-  "plugins/lisa/skills/lisa-setup-automations/SKILL.md",
-] as const;
-
 const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
 
 describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
   const skill = read(skillPath);
 
-  it("carries every runbook contract section", () => {
-    expect(skill).toMatch(/## Intent/);
-    expect(skill).toMatch(/## Sources of truth/);
-    expect(skill).toMatch(/## Candidate-selection rules/);
-    expect(skill).toMatch(/## Scope/);
-    expect(skill).toMatch(/## Proof/);
-    expect(skill).toMatch(/## Autonomous-vs-approval boundary/);
-    expect(skill).toMatch(/## Escalation/);
-    expect(skill).toMatch(/## Recovery/);
-    expect(skill).toMatch(/## Run outcomes/);
-    expect(skill).toMatch(/## Retirement condition/);
-  });
+  // #4764: a PROMOTE ticket once named sections and a file that did not
+  // exist, an 18-line-stale pointer, and a count contradicting its evidence.
+  // Structural check only: the delimited block exists, sits inside Ticket
+  // emission before the per-item filing it gates, is referenced from the
+  // audit cycle, and carries the machine tokens Proof records per ticket.
+  it("validates destinations and counts before filing PROMOTE/DEMOTE (#4764)", () => {
+    const start = skill.indexOf("<!-- destination-validation:start -->");
+    const end = skill.indexOf("<!-- destination-validation:end -->");
+    const emission = skill.indexOf("## Ticket emission");
+    const perItem = skill.indexOf("**Per-item tickets — PROMOTE / DEMOTE**");
+    const nextSection = skill.indexOf("\n## ", emission + 1);
 
-  it("declares the six run outcomes and documents the mapping from the retired three", () => {
-    expect(skill).toContain(
-      "nothing-needed | candidate-proposed | change-proved | approval-requested | recovery-required | policy-obsolete"
-    );
-    // The retired three-value vocabulary is documented as the prior state it maps from.
-    expect(skill).toContain("nothing-needed | candidates-proposed | blocked");
-    expect(skill).toContain("`candidates-proposed` → **`candidate-proposed`**");
-    expect(skill).toContain("`blocked` → **`recovery-required`**");
-    expect(skill).toContain("`approval-requested`");
-    expect(skill).toContain("`policy-obsolete`");
-  });
+    expect(start).toBeGreaterThan(emission);
+    expect(end).toBeGreaterThan(start);
+    expect(end).toBeLessThan(perItem);
+    expect(perItem).toBeLessThan(nextSection);
 
-  it("only files tickets: build-ready, except eager-tier promotions held for a human", () => {
-    expect(skill).toMatch(/only files tickets/i);
-    expect(skill).toContain("build_ready: true");
-    expect(skill).toContain(
-      'human_gate: "a human decides whether this learning is promoted\ninto the always-loaded rules"'
-    );
-    expect(skill).toMatch(/status:ready/);
-    expect(skill).toMatch(/never (edits?|writes?|deletes?|modif)/i);
-  });
+    const block = skill.slice(start, end);
+    for (const token of [
+      "destinations_checked",
+      "destinations_missing",
+      "destinations_new",
+      "pointer_sha",
+      "counts_reconciled",
+      "refused",
+    ]) {
+      expect(block).toContain(token);
+    }
 
-  it("files build-ready under access-only, with a human gate only for a human-authored surface", () => {
-    const emission = skill.slice(
-      skill.indexOf("## Ticket emission"),
-      skill.indexOf("**Per-item tickets")
-    );
-    expect(emission).toMatch(
-      /\*\*`access-only` \(default\)\*\* — file every PROMOTE \/ DEMOTE \/ RETIRE \/\s+CONFIRM ticket \*\*build-ready\*\* \(`status:ready`\), with no `human_gate`/
-    );
-    expect(emission).toMatch(/\*\*human-authored surface\*\*/);
-    expect(emission).toMatch(
-      /authorship\s+rule, not an access gate, and it holds in both modes/
-    );
-  });
-
-  it("keeps everything human-gated under strict, with the declared hold reason", () => {
-    expect(skill).toMatch(/under `strict` everything is human-gated/i);
-    expect(skill).toContain(
-      'ticket passes `human_gate: "a human decides whether this knowledge is\n  promoted, demoted, or retired"`'
-    );
-  });
-
-  it("makes close-out decisions itself, never by deleting tickets", () => {
-    expect(skill).toMatch(/Close-out decisions are the agent's/);
-    expect(skill).not.toMatch(/close-out decisions belong to humans/i);
-  });
-
-  it("inventories every knowledge surface through the proper access paths", () => {
-    expect(skill).toContain("parseLearningsFile");
-    expect(skill).toContain("projectLearnings");
-    expect(skill).toContain("@codyswann/lisa/learnings");
-    expect(skill).toContain(".claude/rules");
-    expect(skill).toMatch(/wiki index|wiki\/index\.md/i);
-    expect(skill).toMatch(/lint|hook|force/i);
-  });
-
-  it("gathers the five evidence axes per item", () => {
-    expect(skill).toMatch(/recurrence/i);
-    expect(skill).toMatch(/staleness/i);
-    expect(skill).toMatch(/redundancy/i);
-    expect(skill).toMatch(/contradiction/i);
-    expect(skill).toMatch(/budget pressure/i);
-    // Recurrence is measured since last_confirmed, reusing git-history-analyzer.
-    expect(skill).toContain("last_confirmed");
-    expect(skill).toContain("git-history-analyzer");
-  });
-
-  it("classifies via the ladder router, advisory-only", () => {
-    expect(skill).toContain("skill-evaluator");
-    expect(skill).toMatch(/advisory/i);
-    expect(skill).toContain("drafted_artifact");
-  });
-
-  it("emits per-item PROMOTE/DEMOTE tickets via lisa-tracker-write", () => {
-    expect(skill).toContain("PROMOTE");
-    expect(skill).toContain("DEMOTE");
-    expect(skill).toContain("lisa-tracker-write");
-    expect(skill).toContain("type:Task");
-    expect(skill).toMatch(/three-audience/);
-    expect(skill).toMatch(/evidence links/i);
-  });
-
-  it("batches CONFIRM and provably-redundant RETIRE into one ticket per run", () => {
-    expect(skill).toMatch(/one batch ticket per run/i);
-    expect(skill).toContain("CONFIRM");
-    expect(skill).toContain("RETIRE");
-    expect(skill).toContain("confirmLearningEntry");
-    // The gardener never bumps last_confirmed itself; the implementing
-    // factory run applies the bumps after the human flips the batch ready.
-    expect(skill).toMatch(/implementing factory run|factory.*applies/i);
+    // The audit cycle, Proof, and the drafted_artifact bullet (embedded only
+    // after validation edits it) all point at the check.
+    for (const [from, to] of [
+      ["3. **Classify**", "4. **Emit**"],
+      ["## Proof", "## The audit cycle"],
+      ["**`drafted_artifact`** verbatim", "For **EXECUTABLE-CONTROL**"],
+    ] as const) {
+      const fromAt = skill.indexOf(from);
+      const toAt = skill.indexOf(to);
+      // A renamed anchor must fail, not slice an empty or wrong range.
+      expect(fromAt).toBeGreaterThanOrEqual(0);
+      expect(toAt).toBeGreaterThan(fromAt);
+      expect(skill.slice(fromAt, toAt)).toContain("destination-validation");
+    }
   });
 
   it("carries the delimited batch-ticket execution contract, byte-identical to canonical", () => {
     const template = extractBatchTemplate(skill);
-
-    expect(template).toContain("confirmLearningEntry");
-    // RETIRE names its shell tool and says it works over the cap
-    // (CodySwannGT/lisa#4536): an over-budget ledger is exactly the state a
-    // retire most often exists to repair.
-    expect(template).toContain("bunx @codyswann/lisa learnings-retire");
-    expect(template).toMatch(/works on a ledger\s+that is over its cap/);
-    expect(template).toMatch(/proof-citing deletion PR/i);
-    expect(template).toMatch(/reverse-atomicity/i);
-    expect(template).toMatch(/never hand-edit the ledger/i);
-    // RETIRE deletes go through the fingerprint-guarded CAS API, and a
-    // drifted row is skipped rather than deleted (CodySwannGT/lisa#4530).
-    expect(template).toContain(
-      "retireLearningEntry(projectRoot, id, expectedFingerprint)"
-    );
-    expect(template).toMatch(/never by parse → filter → render/);
-    expect(template).toMatch(
-      /returns `stale`[\s\S]*skip the row, do\s+not delete it/
-    );
-    expect(template).toMatch(
-      /returns `not-found` means the entry is already gone: note it\s+in the PR and skip the row/
-    );
-    expect(template).toMatch(
-      /concurrent-write error, retry the call\s+once; never fall back to a manual edit/
-    );
-
     const canonical = extractBatchTemplate(
       read("plugins/src/base/skills/lisa-learnings-audit/SKILL.md")
     );
     expect(template).toBe(canonical);
   });
 
-  it("makes every RETIRE row carry the full entry fingerprint, not the marker hash", () => {
-    expect(skill).toContain("expectedFingerprint");
-    expect(skill).toMatch(/live `entry\.fingerprint`[\s\S]{0,80}at audit time/);
-    expect(skill).toMatch(/not the\s+12-hex `<invariant-hash>`/);
-  });
-
-  it("requires a mutation proof before retiring a rule as owned by a test", () => {
-    expect(skill).toMatch(/A RETIRE owned by a test needs a mutation proof/);
-    expect(skill).toMatch(/break the rule the named test\s+supposedly guards/);
-    expect(skill).toMatch(/observe it \*\*fail\*\*/);
-    expect(skill).toMatch(/revert/);
-    expect(skill).toMatch(/Record the result in the row/);
-    expect(skill).toMatch(/No failing observation ⇒\s+no valid retire proof/);
-  });
-
   it("embeds the promotion-contract AC template verbatim for EXECUTABLE-CONTROL", () => {
-    expect(skill).toContain("EXECUTABLE-CONTROL");
-    expect(skill).toContain("promotion-contract");
-
     const canonical = extractAcTemplate(
       read("plugins/src/base/rules/reference/promotion-contract.md")
     );
     expect(skill).toContain(canonical);
-  });
-
-  it("routes upstream scope to the two Lisa lanes, marker-deduped", () => {
-    expect(skill).toContain("self-hardening");
-    expect(skill).toContain("template-candidate");
-    expect(skill).toContain("CodySwannGT/lisa");
-  });
-
-  it("uses the stable gardener fingerprint marker grammar", () => {
-    expect(skill).toContain("<!-- [lisa-gardener] key=");
-    expect(skill).toMatch(/invariant/i);
-  });
-
-  it("computes the invariant hash deterministically, never model-estimated", () => {
-    // Normalization: trim + collapse internal whitespace + lowercase.
-    expect(skill).toMatch(/trim/i);
-    expect(skill).toMatch(/collapse/i);
-    expect(skill).toMatch(/lowercase/i);
-    // Shared executable fingerprint, truncated to 12 hex chars.
-    expect(skill).toContain("lisa effectiveness fingerprint --input");
-    expect(skill).toContain("12 SHA-256");
-    expect(skill).toMatch(/never estimated by the model/i);
-  });
-
-  it("dedupes on the surface prefix first, hash as disambiguation only", () => {
-    expect(skill).toContain("searches open AND closed by default");
-    expect(skill).toMatch(/prefix.*first|first.*prefix/i);
-    expect(skill).toMatch(/disambiguation only/i);
-    // Body-enumeration fallback covers search-index lag.
-    expect(skill).toMatch(/body-enum/i);
-  });
-
-  it("dedupes against open AND closed issues, remembering rejections", () => {
-    expect(skill).toMatch(/open AND closed/i);
-    expect(skill).toMatch(/closed.*(unmerged|rejected)|rejected/i);
-    expect(skill).toMatch(/new evidence.*postdates|postdating/i);
-  });
-
-  it("excludes the learning machinery from its own candidate scan", () => {
-    expect(skill).toMatch(/no learning loops about learning/i);
-    expect(skill).toContain("[lisa-learning-");
-    expect(skill).toContain("[lisa-rejection-candidate]");
-    expect(skill).toContain("[lisa-archaeology-candidate]");
-    expect(skill).toMatch(/its own tickets|the gardener'?s own/i);
-  });
-
-  it("audits the eager tier every run, including Lisa's own shipped eager rules", () => {
-    expect(skill).toMatch(/eager tier/i);
-    expect(skill).toMatch(/every run/i);
-    expect(skill).toMatch(/Lisa'?s own shipped eager rules/i);
-    expect(skill).toMatch(/demotion-biased/i);
-  });
-
-  it("escalates headlessly: status:blocked + human-needed, never prompts", () => {
-    expect(skill).toContain("status:blocked");
-    expect(skill).toContain("human-needed");
-    expect(skill).toMatch(/operator-readable/i);
-    expect(skill).toMatch(/never prompts?/i);
-  });
-
-  it("documents cron registration via lisa-setup-automations", () => {
-    expect(skill).toContain("lisa-setup-automations");
-    expect(skill).toMatch(/lisa-auto-<project>-learnings-audit/);
-  });
-
-  it("bounds each run with a max_candidates cap", () => {
-    expect(skill).toContain("max_candidates");
-  });
-
-  it("states a stateless, tracker-derived retirement condition for the loop itself", () => {
-    // No durable counter: the condition is derived from the tracker.
-    expect(skill).toMatch(/stateless/i);
-    expect(skill).toMatch(/never from a\s+counter or state file/i);
-    // (a) date-filtered search over the trailing window …
-    expect(skill).toMatch(/trailing six-week window/i);
-    expect(skill).toContain("--created");
-    // … AND (b) the current run itself proposes nothing.
-    expect(skill).toMatch(/current run'?s inventory yields zero/i);
-    // The old in-memory consecutive-run counter is gone.
-    expect(skill).not.toMatch(/six consecutive/i);
-  });
-
-  it("is honest about concurrency: convergence, not mutual exclusion", () => {
-    expect(skill).toMatch(/convergence, not mutual exclusion/i);
-    expect(skill).toMatch(/transient duplicate/i);
-    // Single-scheduled-runner assumption + manual runs check the cron first.
-    expect(skill).toMatch(/at most ONE\s+learnings-audit automation/i);
-    expect(skill).toMatch(/not due\s+or currently running/i);
-    // No overstated overlap-safety claim survives.
-    expect(skill).not.toMatch(/safely\s+concurrent-adjacent/i);
-  });
-
-  it("files per-item tickets first and the batch ticket last for recoverability", () => {
-    expect(skill).toMatch(/batch ticket last/i);
-    expect(skill).toMatch(/completion signal/i);
   });
 });
 
 describe.each(COMMAND_PATHS)("gardener command (%s)", commandPath => {
   const command = read(commandPath);
 
-  it("passes through to the lisa-learnings-audit skill", () => {
-    expect(command).toContain("lisa-learnings-audit");
+  it("passes its arguments through to the skill", () => {
     expect(command).toContain("$ARGUMENTS");
   });
 
@@ -327,21 +124,3 @@ describe.each(COMMAND_PATHS)("gardener command (%s)", commandPath => {
     expect(command).toMatch(/^argument-hint:/m);
   });
 });
-
-describe.each(SETUP_AUTOMATIONS_PATHS)(
-  "setup-automations optional gardener loop (%s)",
-  setupPath => {
-    const setup = read(setupPath);
-
-    it("registers learnings-audit as an optional (opt-in) automation", () => {
-      expect(setup).toContain("learnings-audit");
-      expect(setup).toMatch(/opt-in|optional/i);
-    });
-
-    it("documents the single-runner assumption instead of overlap safety", () => {
-      expect(setup).toMatch(/at most ONE learnings-audit automation/i);
-      expect(setup).toMatch(/convergence/i);
-      expect(setup).not.toMatch(/overlapping\s+manual runs are safe/i);
-    });
-  }
-);

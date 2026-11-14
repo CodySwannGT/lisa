@@ -37,6 +37,19 @@ on:
         type: string
         default: ''
         required: false
+    # Optional: only a Jira- or Linear-tracked host passes these. They reach only the
+    # two steps that file, claim and checkpoint the work item; a GitHub-tracked host
+    # passes nothing and runs exactly as before.
+    secrets:
+      JIRA_API_TOKEN:
+        description: Jira API token for a host whose committed tracker is jira
+        required: false
+      JIRA_LOGIN:
+        description: Jira account email paired with JIRA_API_TOKEN (falls back to atlassian.email)
+        required: false
+      LINEAR_API_KEY:
+        description: Linear API key for a host whose committed tracker is linear
+        required: false
 
 permissions: {}
 concurrency:
@@ -149,6 +162,7 @@ jobs:
         with:
           # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
+          package-manager-cache: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         if: hashFiles('bun.lock') != ''
         with:
@@ -192,6 +206,7 @@ jobs:
         with:
           # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
+          package-manager-cache: false
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
           npm install --global "npm@$NPM_VERSION" --ignore-scripts --no-audit --no-fund
@@ -255,6 +270,9 @@ jobs:
       - name: Allocate or recover the exact canonical leaf
         env:
           GH_TOKEN: ${{ github.token }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_LOGIN: ${{ secrets.JIRA_LOGIN }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
         run: node scripts/lisa-npm-updater.mjs allocate "$GITHUB_WORKSPACE" "$PHASE"
       - id: authority
         name: Select the fixed current signing role
@@ -272,6 +290,9 @@ jobs:
       - name: Transport the actual distinct bundle and persist the checkpoint
         env:
           GH_TOKEN: ${{ github.token }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_LOGIN: ${{ secrets.JIRA_LOGIN }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
           BUNDLE: ${{ steps.attest.outputs.bundle-path }}
           MODE: ${{ steps.authority.outputs.mode }}
         run: |
@@ -305,6 +326,7 @@ jobs:
         with:
           # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
+          package-manager-cache: false
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
           npm install --global "npm@$NPM_VERSION" --ignore-scripts --no-audit --no-fund
@@ -364,6 +386,7 @@ jobs:
         with:
           # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
+          package-manager-cache: false
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
           npm install --global "npm@$NPM_VERSION" --ignore-scripts --no-audit --no-fund

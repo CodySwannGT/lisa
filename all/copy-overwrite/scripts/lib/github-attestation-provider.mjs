@@ -154,6 +154,21 @@ export function verifyCurrentProvider(
   return providerOrigin(policy, descriptor, false, execute);
 }
 
+/**
+ * The repository and live-run half of current authority, for a Jira or Linear
+ * host whose claim is proved by its own tracker adapter rather than GitHub.
+ */
+export function verifyCurrentRun(
+  policy,
+  descriptor,
+  execute = boundedSpawnSync
+) {
+  const read = endpoint =>
+    ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
+  repositoryState(read, policy, descriptor.parent);
+  return runState(read, policy, descriptor, false);
+}
+
 /** Historical origin returns qualified provider chronology, never current authority. */
 export function verifyHistoricalProvider(
   policy,

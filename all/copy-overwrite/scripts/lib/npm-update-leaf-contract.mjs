@@ -4,11 +4,16 @@
 /** Pure environment, lifecycle and fixed Task data cannot import live claim or quality orchestration. */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required } from "./npm-update-contract.mjs";
-import { trackerContract } from "../lisa-work-item.mjs";
+import {
+  trackerContract,
+  deployBranchEnvironments,
+} from "../lisa-work-item.mjs";
 import { directoryOf, npmPath } from "./automation-provenance-contract.mjs";
 
-/** Immutable host config, not candidate data or local aliases, chooses lifecycle. */
-export function leafRoles(config, repository) {
+const TRACKER_NAMES = { github: "GitHub", jira: "Jira", linear: "Linear" };
+
+/** GitHub keeps every original queue and ProjectV2 refusal; its blocked/human roles are labels. */
+function githubRoles(config, repository) {
   required(
     config.tracker === "github" &&
       repository === `${config.github?.org}/${config.github?.repo}`,
@@ -25,6 +30,32 @@ export function leafRoles(config, repository) {
     "configured ProjectV2 coordination requires the ordinary writer"
   );
   const build = config.github.labels?.build ?? {};
+  return {
+    blocked: build.blocked ?? "status:blocked",
+    human: build.human_needed ?? "human-needed",
+  };
+}
+
+/** Jira and Linear block with a workflow status; a human hold is still a plain label. */
+function vendorRoles(config, repository) {
+  required(
+    ["jira", "linear"].includes(config.tracker) &&
+      /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository ?? ""),
+    "configured tracker scope differs"
+  );
+  const workflow =
+    config.tracker === "jira"
+      ? config.jira?.workflow
+      : (config.linear?.workflow ?? config.linear?.labels?.build);
+  return { blocked: workflow?.blocked ?? "Blocked", human: "human-needed" };
+}
+
+/** Immutable host config, not candidate data or local aliases, chooses lifecycle. */
+export function leafRoles(config, repository) {
+  const held =
+    config.tracker === "jira" || config.tracker === "linear"
+      ? vendorRoles(config, repository)
+      : githubRoles(config, repository);
   const contract = trackerContract(config);
   const targetEnvironment = environment(config);
   const terminal =
@@ -44,14 +75,14 @@ export function leafRoles(config, repository) {
   const later = contract.lifecycle.roles.filter(
     label =>
       label !== contract.lifecycle.ready &&
-      label !== (build.blocked ?? "status:blocked") &&
+      label !== held.blocked &&
       !terminals.includes(label)
   );
   return {
     ready: contract.lifecycle.ready,
     claimed: contract.lifecycle.claimed,
-    blocked: build.blocked ?? "status:blocked",
-    human: build.human_needed ?? "human-needed",
+    blocked: held.blocked,
+    human: held.human,
     terminal,
     terminals,
     later,
@@ -67,7 +98,8 @@ export function environment(config) {
     matches.length <= 1,
     "main requires one unambiguous configured runtime environment"
   );
-  const target = trackerContract(config).deployBranches.get("main");
+  // The same map trackerContract exposes for GitHub/Linear; Jira's contract has none.
+  const target = deployBranchEnvironments(config).get("main");
   required(target, "main has no configured runtime environment");
   return target;
 }
@@ -135,7 +167,7 @@ Derived from: Target Backend Environment ${env} via .lisa.config.json deploy.bra
 
 ## Sign-in Required
 
-GitHub Actions runtime token with explicitly reduced job permissions. Trusted maintainer: ${policy.maintainer}. No maintainer credential is used. Allocation alone may sign. Preparation and gates have no provider write or issuance authority.
+GitHub Actions runtime token with explicitly reduced job permissions. Trusted maintainer: ${policy.maintainer}. No maintainer credential is used. Allocation alone may sign. Preparation and gates have no provider write or issuance authority.${config.tracker === "github" ? "" : ` Tracker writes use the configured ${TRACKER_NAMES[config.tracker]} API credential.`}
 
 ## Source Precedence
 
@@ -146,7 +178,7 @@ Business rules: this exact proposal and ordinary configured policy. Visual: exis
 Historical filing evidence, preserved from initial allocation. Current relationships and eligibility are checked again before each recovery.
 Git history command: ${evidence.history.command}
 Git history outcome: ${evidence.history.result}
-All-state GitHub query: ${evidence.search.query}
+All-state ${TRACKER_NAMES[config.tracker]} query: ${evidence.search.query}
 Outcome: every matching record was loaded completely; unrelated work was preserved and exact proposal recovery was checked separately.
 Matches are read completely before allocating this deterministic proposal. No parent or PRD lineage is declared; this build-ready standalone Task is one leaf.${evidence.supersession ? `\nSupersedes cancelled proposal ${evidence.supersession.workItem}. Original proposal key: ${evidence.supersession.proposalKey}. Verified cancellation SHA256: ${evidence.supersession.cancellationSha256}. The previous claim, specification and checkpoint are preserved; this leaf has fresh parent-bound authority.` : ""}
 

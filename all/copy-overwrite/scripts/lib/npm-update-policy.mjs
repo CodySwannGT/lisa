@@ -10,6 +10,45 @@ export const NAME = /^(?:@[a-z0-9][a-z0-9_.-]*\/)?[a-z0-9][a-z0-9_.-]*$/;
 export const VERSION =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[A-Za-z0-9.-]+)?$/;
 
+/** Each tracker names its maintainer by its own identifier: GitHub login, Jira accountId, Linear user id. */
+const MAINTAINER = {
+  github: /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/,
+  jira: /^[A-Za-z0-9][A-Za-z0-9:-]{0,127}$/,
+  linear: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+};
+const KEY = /^[A-Z][A-Z0-9]{1,9}$/;
+
+/**
+ * GitHub keeps its exact original check. Jira and Linear hosts still publish to
+ * the configured GitHub code host, so a configured GitHub repository must match;
+ * their own work items live in the configured project or team.
+ */
+function trackerScope(value, config) {
+  if (config.tracker !== "jira" && config.tracker !== "linear") {
+    required(
+      config.tracker === "github" &&
+        value.repository === `${config.github?.org}/${config.github?.repo}`,
+      "configured repository/tracker differs"
+    );
+    return;
+  }
+  const key =
+    config.tracker === "jira" ? config.jira?.project : config.linear?.teamKey;
+  required(
+    typeof key === "string" &&
+      KEY.test(key.trim().toUpperCase()) &&
+      (config.tracker === "jira" ||
+        (typeof config.linear?.workspace === "string" &&
+          config.linear.workspace.trim().length > 0)),
+    "configured tracker lacks its project, team or workspace"
+  );
+  required(
+    !config.github?.org ||
+      value.repository === `${config.github.org}/${config.github.repo}`,
+    "configured repository/tracker differs"
+  );
+}
+
 /** Configured tracking and an explicit owner are prerequisites, never inferred. */
 export function validatePolicy(value, config) {
   keys(value, [
@@ -34,18 +73,14 @@ export function validatePolicy(value, config) {
       (value.lisaOwner === "absent" && !Object.hasOwn(value, "runtime")),
     "a subdirectory npm project has no Lisa owner or runtime profile"
   );
-  required(
-    config.tracker === "github" &&
-      value.repository === `${config.github?.org}/${config.github?.repo}`,
-    "configured repository/tracker differs"
-  );
+  trackerScope(value, config);
   required(
     /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(value.repository),
     "invalid repository"
   );
   required(
     typeof value.maintainer === "string" &&
-      /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/.test(value.maintainer),
+      MAINTAINER[config.tracker].test(value.maintainer),
     "explicit assignable maintainer required"
   );
   required(
