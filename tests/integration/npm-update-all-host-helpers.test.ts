@@ -165,7 +165,9 @@ describe("all-only npm host controller materialization", () => {
       expect(graph).toHaveProperty(
         join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
       );
-      expect(managedTemplateMembers().size).toBe(127);
+      // 127 -> 131: CodySwannGT/lisa#4859 adds npm-update-tracker,
+      // -tracker-jira, -tracker-linear and -tracker-wire to the helper closure.
+      expect(managedTemplateMembers().size).toBe(131);
     },
     ioLatencyBudgetMs(30_000)
   );

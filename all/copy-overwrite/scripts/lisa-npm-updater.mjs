@@ -24,6 +24,10 @@ import {
 } from "./lib/npm-update-process.mjs";
 import { prepareUpdate } from "./lib/npm-update-prepare.mjs";
 import { GitHub } from "./lib/npm-update-github.mjs";
+import {
+  createTracker,
+  refuseUnlessGithub,
+} from "./lib/npm-update-tracker.mjs";
 import { allocateLeaf } from "./lib/npm-update-allocate.mjs";
 import { publishProposal } from "./lib/npm-update-publish.mjs";
 import {
@@ -113,9 +117,17 @@ async function configuration(cwd, directory = process.env.LISA_NPM_DIRECTORY) {
   return { config, policy };
 }
 
+/** A Jira/Linear credential gap fails before the code host or tracker sees any request. */
+function updaterApi(config) {
+  const tracker = createTracker(config, process.env);
+  const api = new GitHub(config.automationProvenance, process.env.GH_TOKEN);
+  if (tracker) api.tracker = tracker;
+  return api;
+}
+
 /** Allocation creates its canonical leaf before previewing any attributed commit. */
 async function allocatePhase(cwd, output, proposal, policy, config) {
-  const api = new GitHub(config.automationProvenance, process.env.GH_TOKEN);
+  const api = updaterApi(config);
   const allocation = await allocateLeaf({
     api,
     proposal,
@@ -216,6 +228,8 @@ export async function main(argv = process.argv.slice(2)) {
   const { config, policy } = await withStage("configuration", () =>
     configuration(cwd)
   );
+  if (!["prepare", "allocate", "checkpoint"].includes(phase))
+    refuseUnlessGithub(config, phase);
   phaseDirectory(output);
   if (phase === "prepare") {
     const result = await prepareUpdate({ cwd, policy, config });
@@ -242,7 +256,7 @@ export async function main(argv = process.argv.slice(2)) {
     "preview final message differs"
   );
   if (phase === "checkpoint") {
-    const api = new GitHub(config.automationProvenance, process.env.GH_TOKEN);
+    const api = updaterApi(config);
     const result = await finalizeAuthorization({
       api,
       output,

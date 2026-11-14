@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.1.7](https://github.com/CodySwannGT/lisa/compare/v5.1.6...v5.1.7) (2026-11-14)
+
+
+### Bug Fixes
+
+* **deps:** move Stryker to ^10.1.1 for Vitest 5 per-test filtering ([8b5087f](https://github.com/CodySwannGT/lisa/commit/8b5087f9826051bc827c17ed1642234a2c78e5cd)), closes [CodySwannGT/lisa#4871](https://github.com/CodySwannGT/lisa/issues/4871) [CodySwannGT/lisa#4871](https://github.com/CodySwannGT/lisa/issues/4871)
+* **deps:** move Vitest to ^5.1.0 so npm 10 can install Lisa ([70f8f06](https://github.com/CodySwannGT/lisa/commit/70f8f061208571db2221e8ac1d821270fa7476c9)), closes [CodySwannGT/lisa#4871](https://github.com/CodySwannGT/lisa/issues/4871) [CodySwannGT/lisa#4871](https://github.com/CodySwannGT/lisa/issues/4871)
+* **release:** keep the publish token out of the npm install gate ([673743e](https://github.com/CodySwannGT/lisa/commit/673743e3321c404457f2fdcd8b032df92babf4ba)), closes [CodySwannGT/lisa#4871](https://github.com/CodySwannGT/lisa/issues/4871) [CodySwannGT/lisa#4871](https://github.com/CodySwannGT/lisa/issues/4871)
+* **scripts:** resolve the install-check tarball to an absolute path ([0fb6968](https://github.com/CodySwannGT/lisa/commit/0fb6968cec8fb53ab0f4ca391341c066a7709a8a)), closes [CodySwannGT/lisa#4871](https://github.com/CodySwannGT/lisa/issues/4871) [CodySwannGT/lisa#4871](https://github.com/CodySwannGT/lisa/issues/4871)
+
 ### [5.1.6](https://github.com/CodySwannGT/lisa/compare/v5.1.5...v5.1.6) (2026-11-14)
 
 

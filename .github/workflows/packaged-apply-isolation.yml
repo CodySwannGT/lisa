@@ -8,6 +8,42 @@ permissions:
   contents: read
 
 jobs:
+  npm-install-compat:
+    # CodySwannGT/lisa#4871: npm 10's arborist crashed installing Lisa
+    # ("Cannot read properties of null (reading 'edgesOut')") while npm 11 was
+    # fine. This pull-request job is the early signal; the gate is the same
+    # check in publish-to-npm.yml, run on the exact release tarball before
+    # `npm publish`.
+    name: Packed Lisa installs under npm 10 and npm 11
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+      - name: Build and pack the candidate
+        env:
+          CI: '1'
+          LISA_BOOTSTRAP: '1'
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+          bun pm pack --ignore-scripts --filename "$RUNNER_TEMP/lisa-candidate.tgz"
+      # Hosts install Lisa on Node 22 with npm 10, the pairing that crashed.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.3'
+          package-manager-cache: false
+      - name: Install the packed candidate under npm 10.9.9 and npm 11.6.2
+        run: node scripts/check-npm-install-compat.mjs --tarball "$RUNNER_TEMP/lisa-candidate.tgz" --npm 10.9.9,11.6.2
+
   native:
     name: Packaged apply preserves operator configuration
     runs-on: ubuntu-24.04
