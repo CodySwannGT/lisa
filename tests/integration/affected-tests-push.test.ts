@@ -168,7 +168,7 @@ describe("affected tests at push", () => {
     change(root, {
       "vitest.thresholds.json": JSON.stringify({ global: { lines: 80 } }),
     });
-    git(root, "update-ref", "refs/remotes/origin/main", "HEAD");
+    pointMainAtHead(root);
     writeMap(
       root,
       git(root, "rev-parse", "HEAD"),
@@ -217,7 +217,7 @@ describe("affected tests at push", () => {
     change(root, {
       "vitest.thresholds.json": JSON.stringify({ global: { lines: 80 } }),
     });
-    git(root, "update-ref", "refs/remotes/origin/main", "HEAD");
+    pointMainAtHead(root);
     writeMap(
       root,
       git(root, "rev-parse", "HEAD"),
@@ -229,6 +229,125 @@ describe("affected tests at push", () => {
     expect(result.calls[1]).toEqual(FULL);
     expect(result.output).toContain(
       "the partial run wrote no coverage summary, so the full suite is running now with whole-repo coverage"
+    );
+  });
+});
+
+/** A unit test the fixture map links to `MOD`. */
+const MOD_TEST = "tests/unit/mod.test.ts";
+
+/** The fixture source two unit tests read. */
+const OTHER_SOURCE = "src/other.mjs";
+
+/** The fixture test that always fails. */
+const FAILING_TEST = "tests/unit/failing.test.ts";
+
+/**
+ * Point `origin/main` at the branch head.
+ * @param root - Fixture root
+ */
+function pointMainAtHead(root: string): void {
+  git(root, "update-ref", "refs/remotes/origin/main", "HEAD");
+}
+
+/**
+ * Move `origin/main` to the branch head and keep the map recorded for the
+ * commit before it, so the map is one commit older than the base.
+ * @param root - Fixture root
+ */
+function advanceMainPastTheMap(root: string): void {
+  pointMainAtHead(root);
+  writeMap(
+    root,
+    git(root, "rev-parse", "HEAD"),
+    git(root, "rev-parse", "HEAD~1")
+  );
+}
+
+/**
+ * Delete files on the branch and commit.
+ * @param root - Fixture root
+ * @param files - Repository-relative paths
+ */
+function remove(root: string, ...files: string[]): void {
+  for (const file of files) fs.rmSync(path.join(root, file));
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "delete");
+}
+
+describe("affected tests fail closed (review of #4887)", () => {
+  it("runs the full suite when a changed file no test was recorded reading is not a document", () => {
+    // A shell helper hook scripts `source`: bash reads it, Node never does.
+    const root = fixture({ map: "none" });
+    change(root, { "scripts/lib/helper.sh": "helper() { :; }\n" });
+    pointMainAtHead(root);
+    const head = git(root, "rev-parse", "HEAD");
+    writeMap(root, head, head);
+    change(root, {
+      "scripts/lib/helper.sh": "helper() { exit 1; }\n",
+      ...MOD_CHANGE,
+    });
+    const result = select(root);
+    expect(result.calls).toEqual([FULL]);
+    expect(result.output).toContain(
+      "Running the full suite: unread file: scripts/lib/helper.sh"
+    );
+  });
+
+  it("runs nothing for a document no test reads", () => {
+    const root = fixture();
+    change(root, { "docs/notes.md": "more notes\n" });
+    const result = select(root);
+    expect(result.status, result.output).toBe(0);
+    expect(result.calls).toEqual([]);
+  });
+
+  it("selects a test added on the default branch after the map was recorded", () => {
+    const root = fixture({ map: "none" });
+    change(root, { "tests/unit/fresh.test.ts": "// fresh\n" });
+    advanceMainPastTheMap(root);
+    change(root, MOD_CHANGE);
+    const [call] = select(root).calls;
+    expect(call).toEqual(
+      expect.arrayContaining([MOD_TEST, "tests/unit/fresh.test.ts"])
+    );
+  });
+
+  it("still hands a changed file to Vitest when the map links it to no runnable test", () => {
+    const root = fixture({ coverageAtPush: false });
+    write(
+      root,
+      ".lisa/test-access-map/map.json",
+      JSON.stringify({
+        [MOD_TEST]: [],
+        "tests/unit/other.test.ts": [OTHER_SOURCE],
+        [FAILING_TEST]: [OTHER_SOURCE],
+        "tests/integration/mod.test.ts": [MOD],
+      })
+    );
+    change(root, MOD_CHANGE);
+    const result = select(root);
+    expect(result.status, result.output).toBe(0);
+    expect(result.calls).toHaveLength(1);
+    expect(result.calls[0]?.slice(0, 2)).toEqual(["related", "--run"]);
+    expect(result.calls[0]).toContain(MOD);
+  });
+
+  it("holds what a deleted test read to the floor through its remaining readers", () => {
+    const root = fixture();
+    remove(root, "tests/unit/other.test.ts");
+    const [call] = select(root).calls;
+    expect(call?.slice(0, 2)).toEqual(["related", "--run"]);
+    expect(call).toEqual(expect.arrayContaining([OTHER_SOURCE, FAILING_TEST]));
+  });
+
+  it("runs the full suite when a deleted test was a file's only unit reader", () => {
+    const root = fixture();
+    remove(root, MOD_TEST);
+    const result = select(root);
+    expect(result.calls).toEqual([FULL]);
+    expect(result.output).toContain(
+      `deleted test: it was the only test that read ${MOD}`
     );
   });
 });

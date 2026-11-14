@@ -522,6 +522,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "19305be8db5e3f87dfb34b12e079373d81a36b5c7ba388786c97cade72c97679",
     "8fddba8e7412abc6dfc488717444952fc18bc64abbea35cac591a706adb63035",
     "9e2a738eb93707fb4fb110e093dd74df20bde44ebe892ff7a63b8ac0ae1adc2d",
+    "ba3a7aab7c6a6a309b90d0bb4f3cef1816dc0819f9105a542ebfb5245e2075f7",
     "c39f3866c80b5499f3e725e31ff8a8389cfb85b4229137b18b9dbf9b7b6d82f5",
   ]),
   "scripts/lib/automation-provenance-contract.mjs": Object.freeze([
@@ -1392,6 +1393,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
   ]),
   "scripts/lisa-affected-tests.mjs": Object.freeze([
+    "31a4b1adac29014ba8997daf60e3ee4f2a948e1c915924bae35c0d43872d632c",
     "9608138da83ff97a35687e25d2e998647cfef9f31abd9caef9758268c40d200e",
     "97c8ec60870ca7c31cb19404c2d3da2cc1cdde35d03798005b1048e46df7ee30",
     "9d4473e8c01e23820923f9c4894bd9c0ae7b804ca0ba88b609b9c0bcd2e70bdb",
@@ -2545,6 +2547,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "33fb1ed24533df65dbc98076055c91397d5d57669fb0cb6407013e5c165da5b8",
     "34f4354eefbe5c2a4b1f4e87b575d63d52ec8420f03a71e5e9a0c586046aa925",
     "381611fa7242751ab28617797c257b5137f928c8bff1041eec0821014638fbd5",
+    "3ee8682eddd62011416817b1b70251638829f267012af13442bfbca20cdc69e8",
     "4147c90547b1b67d1ea213fbd1e1e55917335325374e65b0ec4039311184713e",
     "431214bf3a4a09a38305f8cb0007205debe8d47b92caaeac2c0504b1b6417504",
     "43a72257b7c504ae3f44f04ab9568bbecba8efce486d3ea7d1993d3a0c8dd8fe",
@@ -3276,6 +3279,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "19305be8db5e3f87dfb34b12e079373d81a36b5c7ba388786c97cade72c97679",
     "8fddba8e7412abc6dfc488717444952fc18bc64abbea35cac591a706adb63035",
     "9e2a738eb93707fb4fb110e093dd74df20bde44ebe892ff7a63b8ac0ae1adc2d",
+    "ba3a7aab7c6a6a309b90d0bb4f3cef1816dc0819f9105a542ebfb5245e2075f7",
     "c39f3866c80b5499f3e725e31ff8a8389cfb85b4229137b18b9dbf9b7b6d82f5",
   ]),
   "scripts/lib/automation-provenance-contract.mjs": Object.freeze([
@@ -4145,6 +4149,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
   ]),
   "scripts/lisa-affected-tests.mjs": Object.freeze([
+    "31a4b1adac29014ba8997daf60e3ee4f2a948e1c915924bae35c0d43872d632c",
     "9608138da83ff97a35687e25d2e998647cfef9f31abd9caef9758268c40d200e",
     "97c8ec60870ca7c31cb19404c2d3da2cc1cdde35d03798005b1048e46df7ee30",
     "9d4473e8c01e23820923f9c4894bd9c0ae7b804ca0ba88b609b9c0bcd2e70bdb",
@@ -5228,6 +5233,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "33fb1ed24533df65dbc98076055c91397d5d57669fb0cb6407013e5c165da5b8",
     "34f4354eefbe5c2a4b1f4e87b575d63d52ec8420f03a71e5e9a0c586046aa925",
     "381611fa7242751ab28617797c257b5137f928c8bff1041eec0821014638fbd5",
+    "3ee8682eddd62011416817b1b70251638829f267012af13442bfbca20cdc69e8",
     "4147c90547b1b67d1ea213fbd1e1e55917335325374e65b0ec4039311184713e",
     "431214bf3a4a09a38305f8cb0007205debe8d47b92caaeac2c0504b1b6417504",
     "43a72257b7c504ae3f44f04ab9568bbecba8efce486d3ea7d1993d3a0c8dd8fe",
