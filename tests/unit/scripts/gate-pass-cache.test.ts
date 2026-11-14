@@ -226,6 +226,27 @@ describe("key derivation", () => {
     });
     expect(plain.tools).toEqual({ node: process.versions.node, bun: "1.3.0" });
   });
+
+  // A Rails host's RSpec pass depends on pushGate (whether it ran a
+  // selection), so turning affectedTests off must change the key.
+  it("adds a caller's configuration to the key inputs, leaving the gate runner's keys alone", () => {
+    const { cwd } = repo();
+    const plain = sharedInputs(cwd, {}, BUN);
+    expect(plain).not.toHaveProperty("extraConfig");
+    expect(sharedInputs(cwd, {}, BUN, {}, {})).toEqual(plain);
+    const selecting = sharedInputs(cwd, {}, BUN, {}, { pushGate: {} });
+    const full = sharedInputs(
+      cwd,
+      {},
+      BUN,
+      {},
+      { pushGate: { affectedTests: false } }
+    );
+    const key = (inputs: object) =>
+      gateKey({ ...inputs, tree: "t", moment: PUSH, gate: "rspec" });
+    expect(key(selecting)).not.toBe(key(full));
+    expect(key(selecting)).not.toBe(key(plain));
+  });
 });
 
 describe("pushGate.cache setting", () => {

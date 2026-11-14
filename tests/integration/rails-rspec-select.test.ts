@@ -45,6 +45,9 @@ afterAll(removeFixtures);
 /** A one-line change to {@link POST}. */
 const POST_CHANGE = { [POST]: "class Post\nend\n" };
 
+/** The only spec the map links to {@link POST}. */
+const POST_SPEC = "spec/models/post_spec.rb";
+
 /** The coverage the stand-in `bundle` reports. */
 const COVERAGE = "coverage.json";
 
@@ -54,9 +57,7 @@ describe("Rails pre-push spec selection", () => {
     change(root, { [POST]: "class Post\n  def title\n    'q'\n  end\nend\n" });
     const result = lefthookRspec(root);
     expect(result.status, result.output).toBe(0);
-    expect(result.calls).toEqual([
-      partial(["spec/models/post_spec.rb", ...ALWAYS]),
-    ]);
+    expect(result.calls).toEqual([partial([POST_SPEC, ...ALWAYS])]);
     expect(result.output).toContain(`spec/models/post_spec.rb  (map: ${POST})`);
     expect(result.output).toContain("spec/system/login_spec.rb  (always run)");
     expect(result.output).toContain("CI still runs every spec before merge.");
@@ -154,9 +155,7 @@ describe("Rails pre-push spec selection", () => {
     write(root, "gh-map.json", JSON.stringify(mapDocument(base)));
     const result = select(root);
     expect(result.status, result.output).toBe(0);
-    expect(result.calls).toEqual([
-      partial(["spec/models/post_spec.rb", ...ALWAYS]),
-    ]);
+    expect(result.calls).toEqual([partial([POST_SPEC, ...ALWAYS])]);
     const download = calls(root, ".gh-calls").find(call => call[0] === "run");
     expect(download).toEqual(
       expect.arrayContaining([
@@ -261,6 +260,31 @@ describe("Rails pre-push spec selection", () => {
     );
   });
 
+  // A deleted spec takes away coverage from the files it read, and none of
+  // those files is "changed", so the changed-files check never looks at them.
+  // Whole-repo coverage can drop below the floor while the slice passes; the
+  // push fails closed by running the full suite instead.
+  it("runs the full suite when a spec is deleted and coverage is checked at push", () => {
+    const { root } = fixture();
+    git(root, "rm", "-q", POST_SPEC);
+    git(root, "commit", "-q", "-m", "drop the only spec covering post.rb");
+    const result = select(root);
+    expect(result.status, result.output).toBe(0);
+    expect(result.calls).toEqual([FULL]);
+    expect(result.output).toContain(
+      "Running the full suite: deleted spec: spec/models/post_spec.rb"
+    );
+  });
+
+  it("still selects when a spec is deleted and coverage is left to CI", () => {
+    const { root } = fixture({ pushGate: { affectedCoverage: "skip" } });
+    git(root, "rm", "-q", POST_SPEC);
+    git(root, "commit", "-q", "-m", "drop a spec");
+    const result = select(root);
+    expect(result.status, result.output).toBe(0);
+    expect(result.calls).toEqual([partial(ALWAYS)]);
+  });
+
   it("leaves coverage to CI in skip mode", () => {
     const { root } = fixture({ pushGate: { affectedCoverage: "skip" } });
     change(root, POST_CHANGE);
@@ -277,5 +301,50 @@ describe("Rails pre-push spec selection", () => {
     change(root, POST_CHANGE);
     const result = lefthookRspec(root);
     expect(result.calls).toEqual([FULL]);
+  });
+});
+
+describe("a partial plan that selected no spec", () => {
+  const plan = (changedRuby: string[]) => ({
+    kind: "partial" as const,
+    reason: null,
+    specs: [],
+    coverage: "changed-files" as const,
+    lines: [],
+    changedRuby,
+    selection: {
+      kind: "partial" as const,
+      reason: null,
+      specs: [],
+      ignored: [],
+    },
+  });
+
+  it("runs the full suite rather than passing a changed Ruby file no spec measured", async () => {
+    const { runRspecPlan } =
+      await import("../../all/copy-overwrite/scripts/lisa-rspec-select.mjs");
+    const lines: string[] = [];
+    const code = runRspecPlan({
+      plan: plan([POST]),
+      cwd: fixture().root,
+      env: {},
+      out: (line: string) => lines.push(line),
+      runFull: () => 9,
+    });
+    expect(code, "the full run's verdict decides").toBe(9);
+    expect(lines.join("\n")).toContain(POST);
+  });
+
+  it("passes with nothing to run when no changed Ruby file needs measuring", async () => {
+    const { runRspecPlan } =
+      await import("../../all/copy-overwrite/scripts/lisa-rspec-select.mjs");
+    const code = runRspecPlan({
+      plan: plan([]),
+      cwd: fixture().root,
+      env: {},
+      out: () => {},
+      runFull: () => 9,
+    });
+    expect(code).toBe(0);
   });
 });

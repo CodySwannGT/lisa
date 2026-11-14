@@ -300,11 +300,21 @@ function gatesBlockOf(path) {
  *   versions a caller's gates depend on — a Rails host adds `ruby -v` and
  *   `bundle -v` (CodySwannGT/lisa#4613). Empty for the gate runner, so its
  *   keys are unchanged.
- * @returns {{lockfiles: Record<string, string>, tools: {node: string, bun: string|null}, gatesConfig: {project: unknown, local: unknown}, environment: {digest: string, names: string[]}}}
+ * @param {Record<string, unknown>} [extraConfig] Further configuration a
+ *   caller's verdicts depend on — a Rails host adds its effective `pushGate`,
+ *   which decides whether RSpec runs a selection. Empty for the gate runner,
+ *   so its keys are unchanged.
+ * @returns {{lockfiles: Record<string, string>, tools: {node: string, bun: string|null}, gatesConfig: {project: unknown, local: unknown}, environment: {digest: string, names: string[]}, extraConfig?: Record<string, unknown>}}
  *   Lockfile digests, tool versions, config and the environment fingerprint
  *   (never raw values — see `environmentFingerprint`).
  */
-export function sharedInputs(cwd, env, bunVersion, extraTools = {}) {
+export function sharedInputs(
+  cwd,
+  env,
+  bunVersion,
+  extraTools = {},
+  extraConfig = {}
+) {
   const lockfiles = Object.fromEntries(
     LOCKFILES.filter(name => existsSync(join(cwd, name))).map(name => [
       name,
@@ -321,6 +331,7 @@ export function sharedInputs(cwd, env, bunVersion, extraTools = {}) {
       local: gatesBlockOf(join(cwd, ".lisa.config.local.json")),
     },
     environment: environmentFingerprint(env),
+    ...(Object.keys(extraConfig).length > 0 ? { extraConfig } : {}),
   };
 }
 
@@ -417,6 +428,8 @@ function prune(dir, now) {
  * @param {() => (string|null)} [options.bunVersion] Bun version reader.
  * @param {Record<string, string|null>} [options.extraTools] Further toolchain
  *   versions that enter every key (see `sharedInputs`).
+ * @param {Record<string, unknown>} [options.extraConfig] Further configuration
+ *   that enters every key (see `sharedInputs`).
  * @returns {{lookup: Function, remember: Function, commit: Function}|null} The cache.
  */
 export function openGatePassCache({
@@ -430,6 +443,7 @@ export function openGatePassCache({
   git = defaultGit,
   bunVersion = defaultBunVersion,
   extraTools = {},
+  extraConfig = {},
 }) {
   const refused = refusal(config, env);
   if (refused) {
@@ -444,7 +458,7 @@ export function openGatePassCache({
   }
   let shared;
   try {
-    shared = sharedInputs(cwd, env, bunVersion, extraTools);
+    shared = sharedInputs(cwd, env, bunVersion, extraTools, extraConfig);
   } catch (err) {
     out(`🗃️  Gate pass cache skipped: ${err.message}. Every gate runs.`);
     return null;

@@ -27,6 +27,9 @@ const WHOLE = `crystalball-map-${BASE}-\${{ github.run_id }}`;
 const ARM = "🔮 Arm the crystalball map recorder";
 const MERGE = "🔮 Merge the shards' crystalball maps";
 const MERGED_UPLOAD = "📤 Upload the merged crystalball map";
+const SAME_REPO =
+  "github.event.pull_request.head.repo.full_name == github.repository";
+const UPLOADS = ["📤 Upload the crystalball map", MERGED_UPLOAD] as const;
 const RECORDER_REQUIRE =
   '${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"}';
 
@@ -129,6 +132,29 @@ describe.each(DATABASES)(
       ).toHaveLength(1);
     });
 
+    // A fork's pull request runs the fork's code and recorder, so its map
+    // must never become an artifact a maintainer's push selects from.
+    it("uploads a map only from a pull request of this repository's own code", () => {
+      for (const name of UPLOADS)
+        expect(step(aggregate, name).if).toContain(SAME_REPO);
+      expect(step(leg, "📤 Upload this shard's crystalball map").if).toContain(
+        SAME_REPO
+      );
+    });
+
+    it("records the head commit and which piece of the suite each map is", () => {
+      expect(step(aggregate, ARM).env).toMatchObject({
+        HEAD_SHA: "${{ github.event.pull_request.head.sha }}",
+        PIECE_NUMBER: 1,
+        PIECES: 1,
+      });
+      expect(step(leg, ARM).env).toMatchObject({
+        HEAD_SHA: "${{ github.event.pull_request.head.sha }}",
+        PIECE_NUMBER: "${{ matrix.shard }}",
+        PIECES: "${{ inputs.test_shards }}",
+      });
+    });
+
     it("uploads each leg's map and the aggregate's merge of them", () => {
       expect(
         step(leg, "📤 Upload this shard's crystalball map").with
@@ -179,12 +205,21 @@ describe("the shared step bodies", () => {
   it("arms the recorder from outside the project root", () => {
     const outcome = execute(install, arm, {
       BASE_SHA: "a".repeat(40),
-      JOB_LABEL: "unsharded",
+      HEAD_SHA: "c".repeat(40),
+      JOB_LABEL: "shard-2",
+      PIECE_NUMBER: "2",
+      PIECES: "3",
     });
     expect(outcome.status).toBe(0);
     expect(outcome.env).toContain(
       `LISA_CRYSTALBALL_REQUIRE=${outcome.runnerTemp}/lisa_crystalball_recorder.rb`
     );
+    expect(outcome.env).toContain(
+      `LISA_CRYSTALBALL_HEAD_SHA=${"c".repeat(40)}`
+    );
+    // Zero-based: the push checks pieces 0..PIECES-1 are all present.
+    expect(outcome.env).toContain("LISA_CRYSTALBALL_PIECE=1");
+    expect(outcome.env).toContain("LISA_CRYSTALBALL_PIECES=3");
     expect(outcome.env).toContain(
       `LISA_CRYSTALBALL_BASE_SHA=${"a".repeat(40)}`
     );
@@ -249,6 +284,7 @@ describe("the shared step bodies", () => {
       baseSha: "a".repeat(40),
       createdAt: "2026-11-01T00:00:00Z",
       legs: ["shard-1", "shard-2"],
+      merged: legs.map(document => document.meta),
     });
   });
 

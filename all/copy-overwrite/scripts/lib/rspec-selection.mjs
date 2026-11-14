@@ -198,17 +198,56 @@ export function fullSuite(reason) {
 }
 
 /**
+ * Why a deleted spec sends a `changed-files` push to the full suite, or null
+ * when no spec was deleted.
+ *
+ * Deleting a spec removes the coverage it gave the files it executed, and
+ * those files are usually unchanged, so the per-file check (which holds only
+ * the changed Ruby files to the floor) never looks at them. A branch could
+ * delete the only spec covering a model, drop whole-repo coverage below the
+ * floor, and still pass a partial push that the full run it replaced would
+ * have failed. Holding the deleted spec's map entry to the floor instead is
+ * not safe either: a file no remaining spec loads is absent from SimpleCov's
+ * resultset and would read as "outside coverage". So the push fails closed:
+ * the full suite runs and its whole-repo minimums decide.
+ * @param {ReadonlyArray<{path: string, status: string}>} changed Changed files.
+ * @returns {string|null} The full-suite reason.
+ */
+export function deletedSpecReason(changed) {
+  const gone = changed.find(
+    entry => entry.status === "deleted" && SPEC_FILE.test(entry.path)
+  );
+  if (!gone) return null;
+  return (
+    `deleted spec: ${gone.path} no longer covers what it ran, and only ` +
+    "the full suite's whole-repo coverage can say whether the project still meets its floor"
+  );
+}
+
+/**
  * Choose the specs a change can reach, or say why everything must run.
  * @param {object} input Inputs.
  * @param {ReadonlyArray<{path: string, status: "added"|"modified"|"deleted"}>} input.changed Changed files.
  * @param {Readonly<Record<string, ReadonlyArray<string>>>} input.map Spec file -> application files it executed.
  * @param {ReadonlyArray<string>} input.alwaysRun Spec files to run on every partial push.
  * @param {(file: string) => boolean} input.exists Whether a file is in the working tree.
+ * @param {"changed-files"|"skip"} [input.coverage] What the partial run does
+ *   about coverage. In `changed-files` mode a deleted spec sends the push to
+ *   the full suite: see {@link deletedSpecReason}.
  * @returns {RspecSelection} The selection.
  */
-export function selectRailsSpecs({ changed, map, alwaysRun, exists }) {
+export function selectRailsSpecs({
+  changed,
+  map,
+  alwaysRun,
+  exists,
+  coverage,
+}) {
   const trigger = railsTrigger(changed.map(entry => entry.path));
   if (trigger) return fullSuite(`${trigger.reason} (${trigger.file})`);
+  const deleted =
+    coverage === "changed-files" ? deletedSpecReason(changed) : null;
+  if (deleted) return fullSuite(deleted);
   const readers = readersByFile(map);
   const chosen = new Map();
   const choose = (file, reason) => {
@@ -332,44 +371,163 @@ export function parseMapArtifacts(output) {
     });
 }
 
+/** Candidate runs checked before the push gives up on a map. */
+export const MAX_MAP_RUN_CHECKS = 10;
+
 /**
- * The run to download: base equal to the merge-base first, else the nearest
- * ancestor of it, then the newest run at that base, with all its artifacts.
+ * What a verified map's saved metadata carries. A map saved without it was
+ * saved before Lisa checked a map's run, so it is not used.
+ */
+export const MAP_TRUST = 1;
+
+/** A full 40-character commit SHA. */
+const FULL_SHA = /^[0-9a-f]{40}$/;
+
+/**
+ * @typedef {{runId: string, baseSha: string, distance: number, names: string[]}} MapRunChoice
+ */
+
+/**
+ * Every candidate run, in preference order: base equal to the merge-base
+ * first, then nearer ancestors, and within one base the newest run first.
+ * Each must still pass {@link mapRunRefusal} and {@link mapPiecesRefusal}
+ * before its map is used (same contract as `fetch-test-access-map.mjs`).
  * @param {ReadonlyArray<{name: string, baseSha: string, runId: string, createdAt: string}>} artifacts Artifacts.
  * @param {(baseSha: string) => number|undefined} distance Commits from a base to the merge-base, undefined when it is not an ancestor.
- * @returns {{runId: string, baseSha: string, distance: number, names: string[]}|undefined} The choice.
+ * @returns {MapRunChoice[]} The candidates.
  */
-export function chooseMapRun(artifacts, distance) {
-  const ranked = [...new Set(artifacts.map(artifact => artifact.baseSha))]
+export function rankMapRuns(artifacts, distance) {
+  const bases = [...new Set(artifacts.map(artifact => artifact.baseSha))]
     .map(baseSha => ({ baseSha, distance: distance(baseSha) }))
     .filter(entry => entry.distance !== undefined)
     .sort((a, b) => a.distance - b.distance);
-  const nearest = ranked[0];
-  if (!nearest) return undefined;
-  const atBase = artifacts.filter(
-    artifact => artifact.baseSha === nearest.baseSha
+  return bases.flatMap(({ baseSha, distance: behind }) => {
+    const atBase = artifacts.filter(artifact => artifact.baseSha === baseSha);
+    const runs = [
+      ...new Set(
+        [...atBase]
+          .sort(
+            (a, b) =>
+              b.createdAt.localeCompare(a.createdAt) ||
+              Number(b.runId) - Number(a.runId)
+          )
+          .map(artifact => artifact.runId)
+      ),
+    ];
+    return runs.map(runId => {
+      const names = [
+        ...new Set(
+          atBase
+            .filter(artifact => artifact.runId === runId)
+            .map(artifact => artifact.name)
+        ),
+      ].sort();
+      // A sharded run uploads each leg's map and the aggregate's merge of
+      // them; the merge alone is the whole suite, so it is all that needs
+      // downloading. Its metadata lists every leg, so completeness is still
+      // checked (see mapPiecesRefusal).
+      const whole = `crystalball-map-${baseSha}-${runId}`;
+      return {
+        runId,
+        baseSha,
+        distance: behind,
+        names: names.includes(whole) ? [whole] : names,
+      };
+    });
+  });
+}
+
+/**
+ * The preferred candidate run, before any trust check (see {@link rankMapRuns}).
+ * @param {ReadonlyArray<{name: string, baseSha: string, runId: string, createdAt: string}>} artifacts Artifacts.
+ * @param {(baseSha: string) => number|undefined} distance Commits from a base to the merge-base.
+ * @returns {MapRunChoice|undefined} The choice.
+ */
+export function chooseMapRun(artifacts, distance) {
+  return rankMapRuns(artifacts, distance)[0];
+}
+
+/**
+ * Why a workflow run's map must not be used, or null when it may.
+ *
+ * A map decides which specs a push skips, and a public repository's artifact
+ * listing includes fork pull requests' runs and runs that failed or were
+ * cancelled part way. Only a run of this repository's own code that concluded
+ * `success` qualifies: a fork controls the code (and recorder) that wrote its
+ * map, and a failed or cancelled run may have stopped before every spec ran.
+ * @param {{conclusion?: unknown, headSha?: unknown, headRepository?: unknown}|null|undefined} info What `gh api repos/<repo>/actions/runs/<id>` reports.
+ * @param {string} repo owner/name the map is meant for.
+ * @returns {string|null} The reason, or null.
+ */
+export function mapRunRefusal(info, repo) {
+  const head =
+    typeof info?.headRepository === "string" ? info.headRepository : "";
+  if (!repo || head.toLowerCase() !== repo.toLowerCase()) {
+    return `its code came from ${head || "an unknown repository"}, not ${repo || "this repository"}`;
+  }
+  if (info?.conclusion !== "success") {
+    return `it did not succeed (${typeof info?.conclusion === "string" ? info.conclusion : "still running"})`;
+  }
+  if (typeof info.headSha !== "string" || !FULL_SHA.test(info.headSha)) {
+    return "GitHub reported no head commit for it";
+  }
+  return null;
+}
+
+/**
+ * The per-leg metadata a downloaded map stands for: a merged map's
+ * `meta.merged` (one entry per shard leg), else the map's own `meta`.
+ * @param {ReadonlyArray<Record<string, any>>} metas Downloaded documents' metadata.
+ * @returns {Array<Record<string, any>>} One entry per recorded piece.
+ */
+function pieceMetas(metas) {
+  return metas.flatMap(meta =>
+    Array.isArray(meta?.merged) ? meta.merged : [meta ?? {}]
   );
-  const newest = [...atBase].sort(
-    (a, b) =>
-      b.createdAt.localeCompare(a.createdAt) ||
-      Number(b.runId) - Number(a.runId)
-  )[0];
-  const names = [
-    ...new Set(
-      atBase
-        .filter(artifact => artifact.runId === newest.runId)
-        .map(artifact => artifact.name)
-    ),
-  ].sort();
-  // A sharded run uploads each leg's map and the aggregate's merge of them;
-  // the merge alone is the whole suite, so it is all that needs downloading.
-  const whole = `crystalball-map-${nearest.baseSha}-${newest.runId}`;
-  return {
-    runId: newest.runId,
-    baseSha: nearest.baseSha,
-    distance: nearest.distance,
-    names: names.includes(whole) ? [whole] : names,
-  };
+}
+
+/**
+ * Why a run's downloaded map pieces are not one complete map of that run, or
+ * null when they are.
+ *
+ * Each piece names the run, base and head commit it was recorded at, how many
+ * pieces the suite has (`pieces`, one per shard leg) and its own zero-based
+ * index (`piece`). Every piece must be present exactly once: a shard that
+ * never recorded would otherwise drop its specs from the map. A piece that
+ * does not say how many there are (an older recorder) is refused too.
+ * @param {ReadonlyArray<Record<string, any>>} metas Downloaded documents' metadata.
+ * @param {{runId: string, baseSha: string, headSha: string}} run The run they must belong to.
+ * @returns {string|null} The reason, or null.
+ */
+export function mapPiecesRefusal(metas, { runId, baseSha, headSha }) {
+  const pieces = pieceMetas(metas);
+  if (pieces.length === 0) return "its artifacts hold no map";
+  const foreign = pieces.some(
+    meta =>
+      String(meta.runId ?? "") !== runId ||
+      meta.baseSha !== baseSha ||
+      meta.headSha !== headSha
+  );
+  if (foreign) {
+    return `a map piece was not recorded by run ${runId} at its head commit ${headSha.slice(0, 12)}`;
+  }
+  const declared = [...new Set(pieces.map(meta => meta.pieces))];
+  if (declared.length !== 1) {
+    return "its map pieces disagree on how many there are";
+  }
+  const [total] = declared;
+  if (!Number.isInteger(total) || total < 1) {
+    return "its map does not say how many pieces it has";
+  }
+  const indices = new Set(
+    pieces
+      .map(meta => meta.piece)
+      .filter(piece => Number.isInteger(piece) && piece >= 0 && piece < total)
+  );
+  if (indices.size !== total || pieces.length !== total) {
+    return `only ${indices.size} of ${total} map pieces were recorded`;
+  }
+  return null;
 }
 
 /**

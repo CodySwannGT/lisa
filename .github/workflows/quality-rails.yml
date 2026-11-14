@@ -945,7 +945,10 @@ jobs:
         if: github.event.pull_request.base.sha != ''
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           JOB_LABEL: shard-${{ matrix.shard }}
+          PIECE_NUMBER: ${{ matrix.shard }}
+          PIECES: ${{ inputs.test_shards }}
         run: |
           if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
             echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
@@ -957,6 +960,10 @@ jobs:
             echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
             echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
             echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+            echo "LISA_CRYSTALBALL_HEAD_SHA=$HEAD_SHA"
+            # Zero-based, out of PIECES, so the push can prove no leg is missing.
+            echo "LISA_CRYSTALBALL_PIECE=$((PIECE_NUMBER - 1))"
+            echo "LISA_CRYSTALBALL_PIECES=$PIECES"
           } >> "$GITHUB_ENV"
 
       - name: 🧪 Run this shard's tests
@@ -991,8 +998,10 @@ jobs:
           node scripts/lisa-rspec-shards.mjs stage --record "$RECORD" --out "$RUNNER_TEMP/lisa-rspec-shard"
 
       - name: 📤 Upload this shard's crystalball map
-        # The aggregate merges every leg's map into one artifact.
-        if: always() && github.event.pull_request.base.sha != ''
+        # The aggregate merges every leg's map into one artifact. Never from a
+        # fork's pull request: its code recorded the map, and the push trusts
+        # only this repository's runs.
+        if: always() && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v7
         with:
           name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-shard-${{ matrix.shard }}
@@ -1101,7 +1110,10 @@ jobs:
         if: inputs.test_shards == 1 && github.event.pull_request.base.sha != ''
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           JOB_LABEL: unsharded
+          PIECE_NUMBER: 1
+          PIECES: 1
         run: |
           if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
             echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
@@ -1113,6 +1125,10 @@ jobs:
             echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
             echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
             echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+            echo "LISA_CRYSTALBALL_HEAD_SHA=$HEAD_SHA"
+            # Zero-based, out of PIECES, so the push can prove no leg is missing.
+            echo "LISA_CRYSTALBALL_PIECE=$((PIECE_NUMBER - 1))"
+            echo "LISA_CRYSTALBALL_PIECES=$PIECES"
           } >> "$GITHUB_ENV"
 
       - name: 🧪 Run tests
@@ -1122,7 +1138,8 @@ jobs:
           bundle exec rspec ${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"}
 
       - name: 📤 Upload the crystalball map
-        if: always() && inputs.test_shards == 1 && github.event.pull_request.base.sha != ''
+        # Never from a fork's pull request: its code recorded the map.
+        if: always() && inputs.test_shards == 1 && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v7
         with:
           name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
@@ -1171,7 +1188,8 @@ jobs:
           node scripts/lisa-rspec-select.mjs merge-maps --out "$RUNNER_TEMP/lisa-crystalball-map/map.json" "${LEGS[@]}"
 
       - name: 📤 Upload the merged crystalball map
-        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        # Never from a fork's pull request: its code recorded the map.
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v7
         with:
           name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
@@ -1318,7 +1336,10 @@ jobs:
         if: github.event.pull_request.base.sha != ''
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           JOB_LABEL: shard-${{ matrix.shard }}
+          PIECE_NUMBER: ${{ matrix.shard }}
+          PIECES: ${{ inputs.test_shards }}
         run: |
           if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
             echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
@@ -1330,6 +1351,10 @@ jobs:
             echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
             echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
             echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+            echo "LISA_CRYSTALBALL_HEAD_SHA=$HEAD_SHA"
+            # Zero-based, out of PIECES, so the push can prove no leg is missing.
+            echo "LISA_CRYSTALBALL_PIECE=$((PIECE_NUMBER - 1))"
+            echo "LISA_CRYSTALBALL_PIECES=$PIECES"
           } >> "$GITHUB_ENV"
 
       - name: 🧪 Run this shard's tests
@@ -1364,8 +1389,10 @@ jobs:
           node scripts/lisa-rspec-shards.mjs stage --record "$RECORD" --out "$RUNNER_TEMP/lisa-rspec-shard"
 
       - name: 📤 Upload this shard's crystalball map
-        # The aggregate merges every leg's map into one artifact.
-        if: always() && github.event.pull_request.base.sha != ''
+        # The aggregate merges every leg's map into one artifact. Never from a
+        # fork's pull request: its code recorded the map, and the push trusts
+        # only this repository's runs.
+        if: always() && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v7
         with:
           name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-shard-${{ matrix.shard }}
@@ -1476,7 +1503,10 @@ jobs:
         if: inputs.test_shards == 1 && github.event.pull_request.base.sha != ''
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           JOB_LABEL: unsharded
+          PIECE_NUMBER: 1
+          PIECES: 1
         run: |
           if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
             echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
@@ -1488,6 +1518,10 @@ jobs:
             echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
             echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
             echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+            echo "LISA_CRYSTALBALL_HEAD_SHA=$HEAD_SHA"
+            # Zero-based, out of PIECES, so the push can prove no leg is missing.
+            echo "LISA_CRYSTALBALL_PIECE=$((PIECE_NUMBER - 1))"
+            echo "LISA_CRYSTALBALL_PIECES=$PIECES"
           } >> "$GITHUB_ENV"
 
       - name: 🧪 Run tests
@@ -1497,7 +1531,8 @@ jobs:
           bundle exec rspec ${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"}
 
       - name: 📤 Upload the crystalball map
-        if: always() && inputs.test_shards == 1 && github.event.pull_request.base.sha != ''
+        # Never from a fork's pull request: its code recorded the map.
+        if: always() && inputs.test_shards == 1 && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v7
         with:
           name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
@@ -1546,7 +1581,8 @@ jobs:
           node scripts/lisa-rspec-select.mjs merge-maps --out "$RUNNER_TEMP/lisa-crystalball-map/map.json" "${LEGS[@]}"
 
       - name: 📤 Upload the merged crystalball map
-        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        # Never from a fork's pull request: its code recorded the map.
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v7
         with:
           name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
