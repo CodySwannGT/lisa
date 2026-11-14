@@ -145,6 +145,42 @@ export function allocationWorkItem(api, config, repository, number) {
     : `${repository}#${number}`;
 }
 
+/**
+ * The one closure check every cancellation path shares. GitHub: closed as
+ * not_planned by the configured Bot. Jira/Linear: closed into the canceled
+ * status or state, and the changelog or history shows the automation made that
+ * move (#4873). `reason` keeps each caller's original refusal.
+ */
+export async function assertManagedClosure(api, issue, reason) {
+  required(
+    issue.state === "closed" &&
+      issue.state_reason === "not_planned" &&
+      (api.tracker ||
+        (issue.closed_by?.type === "Bot" &&
+          String(issue.closed_by.id) === api.policy.claimActorId)),
+    reason
+  );
+  if (api.tracker) await api.tracker.assertCancelled(issue.number);
+}
+
+/**
+ * Publish-time tracker authority for Jira/Linear (#4873): the live claim by the
+ * automation identity (returned for the origin chronology), one owner who is the
+ * maintainer, and that owner still assignable. GitHub hosts return undefined;
+ * their claim is read from GitHub by the provider proof.
+ */
+export async function trackerPublishAuthority(api, descriptor, policy, issue) {
+  if (!api.tracker) return undefined;
+  const claim = await api.tracker.proveClaim(descriptor);
+  required(
+    issue.assignees.length === 1 &&
+      issue.assignees[0].login === policy.maintainer,
+    "current recovery leaf or owner differs"
+  );
+  await api.tracker.assignable(policy.maintainer);
+  return claim;
+}
+
 /** An api without an attached adapter is a GitHub-tracked host, exactly as before. */
 export function trackerOf(api, repository) {
   return api.tracker ?? githubTracker(api, repository);

@@ -18,7 +18,11 @@ import {
   allocateLeaf,
   discoverPrior,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-allocate.mjs";
-import { createTracker } from "../../../all/copy-overwrite/scripts/lib/npm-update-tracker.mjs";
+import {
+  createTracker,
+  assertManagedClosure,
+  trackerPublishAuthority,
+} from "../../../all/copy-overwrite/scripts/lib/npm-update-tracker.mjs";
 import {
   cancelOperatorOf,
   validatePolicy,
@@ -271,5 +275,76 @@ describe("a Jira/Linear recovery subject on the gate's GitHub catalogue", () => 
     expect(text).toContain("actions/runs/92/attempts/1");
     expect(text).toContain("git/matching-refs/heads/lisa/npm-");
     expect(text).not.toMatch(/issues|assignees/);
+  });
+});
+
+describe("the shared closure and publish-authority guards (#4873 review)", () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      Response.json(REGISTRY_METADATA)
+    );
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  const REASON = "cancellation closure readback differs";
+
+  it("accepts a Jira closure only when the automation account made it", async () => {
+    const { fake, tracker, api } = await allocated("jira");
+    await tracker.cancel(1);
+    await expect(
+      assertManagedClosure(api, await tracker.issue(1), REASON)
+    ).resolves.toBeUndefined();
+    (fake as ReturnType<typeof fakeJira>).move(1, "Won't Do", JIRA_MAINTAINER);
+    expect(
+      await failureOf(assertManagedClosure(api, await tracker.issue(1), REASON))
+    ).toContain(`PROJ-1 ${FOREIGN}`);
+  });
+
+  it("keeps GitHub's own closed_by check exactly", async () => {
+    const api = { policy: { claimActorId: "99" } };
+    const closed = {
+      number: 4,
+      state: "closed",
+      state_reason: "not_planned",
+      closed_by: { id: 99, type: "Bot" },
+    };
+    await expect(
+      assertManagedClosure(api, closed, REASON)
+    ).resolves.toBeUndefined();
+    await expect(
+      assertManagedClosure(
+        api,
+        { ...closed, closed_by: { id: 7, type: "User" } },
+        REASON
+      )
+    ).rejects.toThrow(REASON);
+  });
+
+  it("refuses publication when the Linear claim was written by a person", async () => {
+    const { fake, tracker, api, host } = await allocated("linear");
+    const issue = await tracker.issue(1);
+    const forged = (fake as ReturnType<typeof fakeLinear>).comment(
+      1,
+      "[lisa-tracker-claim] forged",
+      LINEAR_MAINTAINER
+    );
+    const descriptor = {
+      workItem: "ENG-1",
+      claimCommentId: forged.id,
+      claimSha256: "0".repeat(64),
+    };
+    expect(
+      await failureOf(
+        trackerPublishAuthority(api, descriptor, host.policy, issue)
+      )
+    ).toContain("was not made by the npm updater's automation account");
+    expect(
+      await trackerPublishAuthority(
+        { policy: {} },
+        descriptor,
+        host.policy,
+        issue
+      )
+    ).toBeUndefined();
   });
 });

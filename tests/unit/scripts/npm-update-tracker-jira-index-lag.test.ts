@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { allocateLeaf } from "../../../all/copy-overwrite/scripts/lib/npm-update-allocate.mjs";
 import { createTracker } from "../../../all/copy-overwrite/scripts/lib/npm-update-tracker.mjs";
 import { withPrivateRoot } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
+import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
 import { fakeJira } from "../../support/npm-update-jira-fake.js";
 import {
   JIRA_CONFIG,
@@ -73,5 +74,40 @@ describe("Jira allocation retried inside the search-index window", () => {
     const { second, creates } = await retryInsideIndexWindow(false);
     expect(second).toBe("PROJ-2");
     expect(creates).toBe(2);
+  });
+});
+
+describe("a Jira credential that is not the declared automation account (#4873 review)", () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      Response.json(REGISTRY_METADATA)
+    );
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("stops before searching or creating anything, naming JIRA_API_TOKEN", async () => {
+    const config = { ...JIRA_CONFIG, automationProvenance: await automation() };
+    await withPrivateRoot(async (root, env) => {
+      const host = await committedHost(root, env, JIRA_MAINTAINER);
+      const jira = fakeJira({
+        assignable: [JIRA_MAINTAINER],
+        accountId: "557058:a-person",
+      });
+      const api = {
+        ...codeHost(host.parent),
+        tracker: createTracker(config, CREDENTIALS, jira.transport)!,
+      };
+      const failure = await allocateLeaf({ api, config, ...host }).then(
+        () => undefined,
+        (error: unknown) => publicFailure(error)
+      );
+      expect(failure).toContain(
+        "The JIRA_API_TOKEN signs in as a different account than jira.claimActorRef"
+      );
+      expect(jira.creates()).toBe(0);
+      expect(
+        jira.log.some(entry => entry.operation.endsWith("/search/jql"))
+      ).toBe(false);
+    });
   });
 });

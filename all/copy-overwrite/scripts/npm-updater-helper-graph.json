@@ -440,7 +440,7 @@
       "children": []
     },
     "lib/npm-update-cancellation.mjs": {
-      "sha256": "d4c0cb057a30fda5a482b4510c73f6dd7c157bb78e18f201ac1642301b5bc41c",
+      "sha256": "b2ffc979aaec56343f0da818d96576f7af9a955f36387db95e5414bc642ba91d",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
@@ -1003,7 +1003,7 @@
       "children": []
     },
     "lib/npm-update-publish.mjs": {
-      "sha256": "e3bab244d9a0ca5d0cceff12ca00425feb318934aace2a925e72a06b6568ca4b",
+      "sha256": "88dec698a3b465575eaaa5556f5eb4f48bd1e6f6f457c1bf23c50550280cfe55",
       "staticImports": [
         "lib/npm-update-authorization.mjs",
         "lib/npm-update-contract.mjs",
@@ -1011,6 +1011,7 @@
         "lib/npm-update-gate.mjs",
         "lib/npm-update-process.mjs",
         "lib/npm-update-publication.mjs",
+        "lib/npm-update-tracker.mjs",
         "lisa-automation-provenance.mjs"
       ],
       "dynamicImports": [],
@@ -1188,7 +1189,7 @@
       "children": []
     },
     "lib/npm-update-supersession.mjs": {
-      "sha256": "f8e56ac6a2e16589c0c88340fc25131c7dc6b92f853db4211825e3229c85f0d8",
+      "sha256": "51d27a8b5e285af6371721cbb00d4ed3fc99e803a817814e4a0bcfb1ffee3acb",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
@@ -1233,7 +1234,7 @@
       "children": []
     },
     "lib/npm-update-tracker-jira.mjs": {
-      "sha256": "1237e807266b958fa91d2bf071a2bbde059b0cb5b1e2a711a1be11c303ade52d",
+      "sha256": "005153b70338f4a755f710b6e7c14bf55597ee41988fe41a5d522663454bbf55",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-invariants.mjs",
@@ -1266,7 +1267,7 @@
       "children": []
     },
     "lib/npm-update-tracker.mjs": {
-      "sha256": "f168c6e2260b976510f08f926538019c6de694e654e11ed1143fd3ae567c32a5",
+      "sha256": "e400dd2d8be8b82298ee42f66fdd1462a7c495dd39729abe518850d240f47a39",
       "staticImports": [
         "lib/github-attestation-provider.mjs",
         "lib/npm-update-invariants.mjs",

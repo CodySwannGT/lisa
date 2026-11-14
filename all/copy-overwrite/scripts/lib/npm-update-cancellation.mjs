@@ -13,7 +13,7 @@ import {
 } from "./npm-update-contract.mjs";
 import { proposalPolicy } from "./automation-provenance-contract.mjs";
 import { cancelOperatorOf } from "./npm-update-policy.mjs";
-import { trackerOf } from "./npm-update-tracker.mjs";
+import { trackerOf, assertManagedClosure } from "./npm-update-tracker.mjs";
 import { readBytes, readJson, writeJson } from "./npm-update-process.mjs";
 import { assertHostedGate } from "./npm-update-hosted-gate.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
@@ -261,17 +261,14 @@ export async function finalizeCancellation(context) {
     );
   const closed = await trackerOf(api).issue(request.number);
   required(
-    closed.state === "closed" &&
-      closed.state_reason === "not_planned" &&
-      (api.tracker ||
-        (closed.closed_by?.type === "Bot" &&
-          String(closed.closed_by.id) === api.policy.claimActorId)) &&
-      closed.body === issue.body &&
-      closed.title === issue.title,
+    closed.body === issue.body && closed.title === issue.title,
     "cancellation closure readback differs"
   );
-  // Jira/Linear prove who closed it through the changelog or history (#4873).
-  if (api.tracker) await api.tracker.assertCancelled(request.number);
+  await assertManagedClosure(
+    api,
+    closed,
+    "cancellation closure readback differs"
+  );
   await api.main(proposal.parent, proposal.target);
   await cancellationDestinationAbsent(api, request.proposalKey);
   return {

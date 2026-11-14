@@ -13,7 +13,11 @@ import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 import { writeJson, withPrivateRoot } from "./npm-update-process.mjs";
 import { cancelOperatorOf } from "./npm-update-policy.mjs";
-import { managedActor, trackerOf } from "./npm-update-tracker.mjs";
+import {
+  managedActor,
+  trackerOf,
+  assertManagedClosure,
+} from "./npm-update-tracker.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import {
   completeCheckpoints,
@@ -228,17 +232,12 @@ export async function recordedCancellation({
   await verifyRecordedBundle(api, authority, checkpoint, record, issue);
   await api.main(proposal.parent, proposal.target);
   await cancellationDestinationAbsent(api, record.oldProposalKey);
-  if (issue.state === "closed") {
-    required(
-      issue.state_reason === "not_planned" &&
-        (api.tracker ||
-          (issue.closed_by?.type === "Bot" &&
-            String(issue.closed_by.id) === api.policy.claimActorId)),
+  if (issue.state === "closed")
+    await assertManagedClosure(
+      api,
+      issue,
       "closure is not the authenticated managed cancellation"
     );
-    // Jira/Linear prove who closed it through the changelog or history (#4873).
-    if (api.tracker) await api.tracker.assertCancelled(issue.number);
-  }
   return checkpoint;
 }
 

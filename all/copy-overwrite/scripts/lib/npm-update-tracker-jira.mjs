@@ -196,9 +196,12 @@ export class JiraTracker {
    * was before #4873, where a duplicate still stops safely for a person.
    */
   async remembered(proposal) {
+    // Identity is proved first and never swallowed: a credential that signs in
+    // as another account must stop the run before anything is created.
+    const path = await this.rememberedPath(proposal);
     try {
       const record = await this.call(
-        await this.rememberedPath(proposal),
+        path,
         "unclassified",
         "GET",
         undefined,
@@ -250,6 +253,8 @@ export class JiraTracker {
     throw vocabularyRefusal("Jira");
   }
   async createLeaf(draft, proposal) {
+    // The declared automation identity is proved before the create, never after it.
+    const remember = await this.rememberedPath(proposal);
     const fields = {
       project: { key: this.key },
       issuetype: { name: "Task" },
@@ -263,15 +268,10 @@ export class JiraTracker {
     const number = this.numberOf(created?.key);
     // Remembered first, so a retry inside the index window finds this ticket.
     // Best effort, like the read: a refused write must not strand the ticket.
-    await this.call(
-      await this.rememberedPath(proposal),
-      "unclassified",
-      "PUT",
-      {
-        id: String(created.id),
-        key: created.key,
-      }
-    ).catch(() => undefined);
+    await this.call(remember, "unclassified", "PUT", {
+      id: String(created.id),
+      key: created.key,
+    }).catch(() => undefined);
     try {
       await this.moveTo(number, this.lifecycle.ready);
     } catch {
