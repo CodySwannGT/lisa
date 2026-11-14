@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.1.6](https://github.com/CodySwannGT/lisa/compare/v5.1.5...v5.1.6) (2026-11-14)
+
+
+### Bug Fixes
+
+* **learnings-audit:** apply destination checks to the embedded draft and upstream tickets ([4f91a61](https://github.com/CodySwannGT/lisa/commit/4f91a616012c50016559c0cec3c853281cfc85d3)), closes [CodySwannGT/lisa#4764](https://github.com/CodySwannGT/lisa/issues/4764) [CodySwannGT/lisa#4764](https://github.com/CodySwannGT/lisa/issues/4764)
+* **learnings-audit:** read project destinations at the captured SHA and reject directories ([da7bcb5](https://github.com/CodySwannGT/lisa/commit/da7bcb540ea7d692642ac72e705d2db008e08154)), closes [CodySwannGT/lisa#4764](https://github.com/CodySwannGT/lisa/issues/4764) [CodySwannGT/lisa#4764](https://github.com/CodySwannGT/lisa/issues/4764)
+* **learnings-audit:** read upstream destinations as raw text and ask the refusal question ([e17bff4](https://github.com/CodySwannGT/lisa/commit/e17bff4a1555eef3f383625fd0f61ef72ca0ffeb)), closes [CodySwannGT/lisa#4764](https://github.com/CodySwannGT/lisa/issues/4764) [CodySwannGT/lisa#4764](https://github.com/CodySwannGT/lisa/issues/4764)
+* **learnings-audit:** validate ticket destinations and counts before filing ([a12dc56](https://github.com/CodySwannGT/lisa/commit/a12dc563a143d2a4480e175f408fd7bcf74c6f90)), closes [CodySwannGT/lisa#4764](https://github.com/CodySwannGT/lisa/issues/4764) [CodySwannGT/lisa#4764](https://github.com/CodySwannGT/lisa/issues/4764)
+
+### [5.1.5](https://github.com/CodySwannGT/lisa/compare/v5.1.4...v5.1.5) (2026-11-14)
+
+
+### Bug Fixes
+
+* **apply:** retire a host's npm floor regardless of key order ([12b209c](https://github.com/CodySwannGT/lisa/commit/12b209cae53b897e3eb84ba3c2d7287121541ab4)), closes [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848) [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848)
+* **apply:** stop forcing an npm devEngines floor onto bun hosts ([6f712d0](https://github.com/CodySwannGT/lisa/commit/6f712d0baba73b13a871dbf5fc4776278e40ecb2)), closes [#4793](https://github.com/CodySwannGT/lisa/issues/4793) [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848) [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848)
+
 ### [5.1.4](https://github.com/CodySwannGT/lisa/compare/v5.1.3...v5.1.4) (2026-11-13)
 
 

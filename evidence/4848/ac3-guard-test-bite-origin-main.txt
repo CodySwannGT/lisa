@@ -1,0 +1,42 @@
+
+ RUN  v4.1.11 /Users/codysai/.claude/jobs/9c0bd661/tmp/base-lisa
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/unit/config/setup-node-package-manager-cache.test.ts (2 tests | 1 failed) 6ms
+     × turns package-manager caching off on every setup-node step 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/config/setup-node-package-manager-cache.test.ts > setup-node package-manager cache > turns package-manager caching off on every setup-node step
+AssertionError: expected [ …(7) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   ".github/workflows/history-secrets.yml scan[2]",
++   ".github/workflows/npm-updater.yml prepare[2]",
++   ".github/workflows/npm-updater.yml allocate[2]",
++   ".github/workflows/npm-updater.yml gate[2]",
++   ".github/workflows/npm-updater.yml publish[2]",
++   ".github/workflows/quality.yml performance_budget[1]",
++   "all/create-only/.github/workflows/continuous-gates.yml configured[1]",
++ ]
+
+ ❯ tests/unit/config/setup-node-package-manager-cache.test.ts:70:21
+     68|       ([, step]) => step.with?.["package-manager-cache"] !== false
+     69|     ).map(([label]) => label);
+     70|     expect(missing).toEqual([]);
+       |                     ^
+     71|   });
+     72| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  19:06:17
+   Duration  503ms (transform 71ms, setup 128ms, import 171ms, tests 6ms, environment 0ms)
+
