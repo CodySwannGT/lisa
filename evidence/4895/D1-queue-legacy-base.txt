@@ -1,0 +1,48 @@
+# check: D1-queue-legacy-base
+$ cd /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-D1-queue-legacy-base/project && HOME=/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-D1-queue-legacy-base/home node /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/base/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs queue --tracker linear --input /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/queue-humans-only.json --project-root /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-D1-queue-legacy-base/project
+# .lisa.config.json:
+{
+  "tracker": "github",
+  "github": {
+    "org": "example-org",
+    "repo": "demo-repo",
+    "labels": {
+      "build": {
+        "ready": "status:ready"
+      }
+    }
+  },
+  "sessionManager": {
+    "name": "demo-manager",
+    "interval": "5m",
+    "capacity": {
+      "maxWorkers": 6,
+      "gbPerWorker": 1,
+      "reserveGb": 0,
+      "cpuFraction": 1,
+      "maxLoadPerCore": 1000
+    },
+    "notify": {
+      "provider": "telegram",
+      "stateDir": "/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-D1-queue-legacy-base/home/.claude/channels/telegram-demo"
+    },
+    "trustedAuthorIds": [
+      "a1b2c3d4-0000-4000-8000-000000000001",
+      "id:b1b2c3d4-0000-4000-8000-000000000002"
+    ]
+  }
+}
+# input file /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/queue-humans-only.json:
+{"complete":true,"pages":1,"items":[
+{"identifier":"OPS-20","title":"Plain-entry author","priority":2,"createdAt":"2026-11-01T00:00:00Z","updatedAt":"2026-11-01T00:00:00Z","assignee":null,"labels":{"nodes":[]},"description":"","children":{"nodes":[]},"creator":{"id":"a1b2c3d4-0000-4000-8000-000000000001"}},
+{"identifier":"OPS-21","title":"id:-entry author","priority":1,"createdAt":"2026-11-02T00:00:00Z","updatedAt":"2026-11-02T00:00:00Z","assignee":null,"labels":{"nodes":[]},"description":"","children":{"nodes":[]},"creator":{"id":"b1b2c3d4-0000-4000-8000-000000000002"}},
+{"identifier":"OPS-22","title":"Untrusted author","priority":2,"createdAt":"2026-11-03T00:00:00Z","updatedAt":"2026-11-03T00:00:00Z","assignee":null,"labels":{"nodes":[]},"description":"","children":{"nodes":[]},"creator":{"id":"ffffffff-0000-4000-8000-000000000099"}},
+{"identifier":"OPS-23","title":"No creator at all","priority":2,"createdAt":"2026-11-04T00:00:00Z","updatedAt":"2026-11-04T00:00:00Z","assignee":null,"labels":{"nodes":[]},"description":"","children":{"nodes":[]},"creator":null}
+]}
+
+# --- stdout ---
+{"tracker":"linear","me":null,"operators":[],"total":4,"pages":1,"ordered":[{"ref":"OPS-21","title":"id:-entry author","assigneeId":null,"assigneeLogin":null,"assigneeAccountId":null,"priorityRank":0,"createdAt":"2026-11-02T00:00:00Z","updatedAt":"2026-11-02T00:00:00Z","labels":[],"body":"","authorId":"b1b2c3d4-0000-4000-8000-000000000002","authorLogin":null,"isContainer":false,"openBlockers":0,"repoLabels":[]},{"ref":"OPS-20","title":"Plain-entry author","assigneeId":null,"assigneeLogin":null,"assigneeAccountId":null,"priorityRank":1,"createdAt":"2026-11-01T00:00:00Z","updatedAt":"2026-11-01T00:00:00Z","labels":[],"body":"","authorId":"a1b2c3d4-0000-4000-8000-000000000001","authorLogin":null,"isContainer":false,"openBlockers":0,"repoLabels":[]}],"excluded":[{"ref":"OPS-22","reason":"untrusted-author"},{"ref":"OPS-23","reason":"untrusted-author"}],"setupGaps":[],"backlogPickup":false}
+
+# --- stderr ---
+
+# exit: 0
