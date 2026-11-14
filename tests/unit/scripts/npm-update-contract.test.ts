@@ -230,8 +230,8 @@ const result = await runProcess(process.execPath, process.argv.slice(2), {
 process.exitCode = result.code;`
   );
   // The trusted graph is the closure the dispatched chain can reach, as the
-  // real controller selects it, rather than every managed helper: the whole
-  // inventory now outgrows the 128-entry trusted-graph bound on its own.
+  // real controller selects it, rather than every managed helper. The whole
+  // inventory still fits the bound; see "keeps the trusted-graph bound clear".
   const manifest = JSON.parse(
     readFileSync(resolve(HELPER_GRAPH_FILE), "utf8")
   ) as {
@@ -307,6 +307,48 @@ describe.skipIf(!["linux", "darwin"].includes(process.platform))(
         expect(launcherContext(fixture.file)).toEqual(fixture.context);
         replaceJson(fixture.file, context);
         expect(launcherContext(fixture.file)).toEqual(context);
+      });
+    });
+
+    it("keeps the trusted-graph bound clear of the whole managed inventory", async () => {
+      // The bound is 256, like the helper graph's own (CodySwannGT/lisa#4582):
+      // at 128 the inventory sat within a few files of it, so the next managed
+      // helper would have refused every npm-update push.
+      const { launcherContext } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+      const { replaceJson } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs");
+      const { managedTemplateMembers } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs");
+      const { readFileSync, realpathSync } = await import("node:fs");
+      await withPrivateRoot(async root => {
+        const fixture = await directBootstrapFixture(root);
+        const graph: Record<string, string> = { ...fixture.context.graph };
+        for (const path of managedTemplateMembers().values()) {
+          if (!path.endsWith(".mjs")) continue;
+          const absolute = realpathSync(path);
+          graph[absolute] = sha256(readFileSync(absolute));
+        }
+        // Measured at the 128 cap itself when the cap was raised.
+        expect(Object.keys(graph).length).toBeGreaterThanOrEqual(128);
+        const filler = (count: number): Record<string, string> => ({
+          ...graph,
+          ...Object.fromEntries(
+            Array.from(
+              { length: Math.max(0, count - Object.keys(graph).length) },
+              (_, index) => [`/lisa-bound-filler/${index}.mjs`, "c".repeat(64)]
+            )
+          ),
+        });
+        const atBound = { ...fixture.context, graph: filler(256) };
+        replaceJson(fixture.file, atBound);
+        expect(Object.keys(launcherContext(fixture.file).graph)).toHaveLength(
+          256
+        );
+        replaceJson(fixture.file, { ...fixture.context, graph: filler(257) });
+        expect(() => launcherContext(fixture.file)).toThrow(
+          "unbounded trusted import graph"
+        );
       });
     });
 

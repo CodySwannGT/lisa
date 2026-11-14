@@ -532,7 +532,7 @@
       "children": []
     },
     "lib/npm-update-controller-broker.mjs": {
-      "sha256": "c2c598f48a403707d699baadb40be7aaf2023a4d6c6e0a41b5e591c5a2af5cc6",
+      "sha256": "9f8378842e413c10f4f3464f486aeff4d4e059e969a263af1cf55232c65811ca",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-controller-recipe.mjs",
@@ -600,7 +600,7 @@
       ]
     },
     "lib/npm-update-gate-hooks.mjs": {
-      "sha256": "3ef6fe8fc458c6888afc511e6f246b78facbea8643a5abd572b8ba7303912c5c",
+      "sha256": "d73aa1ce691fbd487d43dd34594ca4e52cf42105ac914852c2d7247f847d38a1",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
@@ -812,7 +812,7 @@
       "children": []
     },
     "lib/npm-update-hosted-hook.mjs": {
-      "sha256": "801b41f0f3f455c08b4e86a64f076190a5f245492959a154d70b897dd0d60a31",
+      "sha256": "285715d9715e233d60d64ff9c5b1318e564db29057f35c85e27143a39ea4ec69",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-invariants.mjs",
@@ -1215,7 +1215,7 @@
       "children": []
     },
     "lib/npm-update-tool-launcher.mjs": {
-      "sha256": "03e58c15ceee04a80a2c2a597454132ab742fc13c878eb1cb742a6ee0e045045",
+      "sha256": "c14c992035afd5e107fdf3b5159699a1e49b398f66d971078f13dce28b51eec8",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "lib/npm-update-contract.mjs",

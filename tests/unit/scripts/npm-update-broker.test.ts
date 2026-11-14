@@ -300,3 +300,51 @@ describe("closed native controller broker", () => {
     }
   });
 });
+
+describe("broker graph bound (CodySwannGT/lisa#4582)", () => {
+  it("admits a graph up to 256 entries, like the helper graph, and refuses one more", async () => {
+    const graphOf = (root: string, count: number): Record<string, string> => {
+      const graph: Record<string, string> = {
+        [CANONICAL_ENTRY]: sha256(readFileSync(CANONICAL_ENTRY)),
+      };
+      for (let index = 1; index < count; index += 1) {
+        const filler = resolve(root, `bound-filler-${index}.mjs`);
+        writeFileSync(filler, `export const n = ${index};\n`);
+        graph[filler] = sha256(readFileSync(filler));
+      }
+      return graph;
+    };
+    const start = async (count: number) => {
+      const scratch = createSupervisedUnixFixture(CONTROLLER_SOCKET);
+      const node = realpathSync(process.execPath);
+      try {
+        const broker = await startControllerBroker({
+          root: scratch.root,
+          deadline: Date.now() + 10_000,
+          graph: graphOf(scratch.root, count),
+          node: { path: node, sha256: binaryDigest(node) },
+          recipes: [
+            {
+              id: CONTRACT_PROBE,
+              command: node,
+              args: [CANONICAL_ENTRY, CONTRACT_VERSION],
+              cwd: scratch.root,
+              input: Buffer.alloc(0),
+              env: { PATH: SYSTEM_PATH, HOME: scratch.root },
+              allowed: [0],
+              timeout: 5000,
+              maximum: 65536,
+            },
+          ],
+        });
+        await broker.close();
+      } finally {
+        scratch.close();
+      }
+    };
+    await expect(start(256)).resolves.toBeUndefined();
+    await expect(start(257)).rejects.toThrow(
+      "broker graph is absent or unbounded"
+    );
+  });
+});

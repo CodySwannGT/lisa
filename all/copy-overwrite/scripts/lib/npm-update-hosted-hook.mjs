@@ -53,7 +53,7 @@ export function hostedHookContext(file) {
   );
   const observed = currentGraph(context.graph);
   required(
-    Object.keys(observed).length <= 128 &&
+    Object.keys(observed).length <= 256 &&
       Object.entries(context.graph).every(
         ([path, hash]) => observed[path] === hash
       ),
