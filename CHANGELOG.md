@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.3.0](https://github.com/CodySwannGT/lisa/compare/v5.2.3...v5.3.0) (2026-11-14)
+
+
+### Features
+
+* **npm-updater:** make the target branch configurable instead of fixed to main ([5d252e5](https://github.com/CodySwannGT/lisa/commit/5d252e596c68eb8fa6279e99f7fc3bbb15a3ec1e)), closes [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860) [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860)
+
+
+### Bug Fixes
+
+* **npm-updater:** treat an empty target_branch input as main and correct stale text ([d141075](https://github.com/CodySwannGT/lisa/commit/d1410754900b32b0b8c0e53ca66bd10451692a14)), closes [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860) [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860)
+
+
+### Documentation
+
+* **npm-updater:** document the target branch and record its evidence ([3fcc6e0](https://github.com/CodySwannGT/lisa/commit/3fcc6e02dbd9e919f27fa8b41fe141b4952cb3db)), closes [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860) [CodySwannGT/lisa#4860](https://github.com/CodySwannGT/lisa/issues/4860)
+
 ### [5.2.3](https://github.com/CodySwannGT/lisa/compare/v5.2.2...v5.2.3) (2026-11-14)
 
 
