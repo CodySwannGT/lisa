@@ -32,8 +32,8 @@ export function assertGeneratedPolicy(host: string): void {
       "utf8"
     )
   ).toContain(`node-version: \${{ vars.NODE_VERSION || '${NODE_VERSION}' }}`);
-  expect(manifest.devDependencies.vitest).toBe("^4.1.11");
-  expect(manifest.devDependencies["@vitest/coverage-v8"]).toBe("^4.1.11");
+  expect(manifest.devDependencies.vitest).toBe("^5.1.0");
+  expect(manifest.devDependencies["@vitest/coverage-v8"]).toBe("^5.1.0");
   expect(
     manifest.overrides.vite === "$vite"
       ? manifest.devDependencies.vite
@@ -85,8 +85,9 @@ export function assertPatchedFloors(
   const encoded = (name: string): number =>
     Number(versions[name]!.split(".")[1]) * 100_000 +
     Number(versions[name]!.split(".")[2]);
+  // 5.1.0, the declared floor since CodySwannGT/lisa#4871.
   ["vitest", "@vitest/coverage-v8"].forEach(name =>
-    expect(encoded(name), name).toBeGreaterThanOrEqual(100_011)
+    expect(encoded(name), name).toBeGreaterThanOrEqual(100_000)
   );
   // 8.3.3, the declared floor since GHSA-587h-7wmj-h5pm.
   expect(encoded("vite"), "vite").toBeGreaterThanOrEqual(300_003);
@@ -103,8 +104,8 @@ export function installedVersions(
   host: string
 ): Readonly<Record<string, string>> {
   const majors = {
-    vitest: 4,
-    "@vitest/coverage-v8": 4,
+    vitest: 5,
+    "@vitest/coverage-v8": 5,
     vite: 8,
     typescript: 6,
     eslint: 9,

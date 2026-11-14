@@ -293,6 +293,25 @@ jobs:
             --tag "$RELEASE_TAG" \
             --pack-destination "$pack_destination"
 
+      - name: Prove the release candidate installs under npm 10 and npm 11
+        # CodySwannGT/lisa#4871: npm 10's arborist crashed installing Lisa
+        # ("Cannot read properties of null (reading 'edgesOut')") while npm 11
+        # was fine. This is the gate; the pull-request job in
+        # packaged-apply-isolation.yml is only the early signal. npm 10.9.9
+        # reproduces the crash on this job's Node 24 as well as on Node 22.
+        # Lisa's own repository only: callers reach this reusable workflow at
+        # @main and do not ship this Lisa-specific script.
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          RELEASE_TARBALL: ${{ steps.release_package.outputs.tarball }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ "$REPOSITORY" != "CodySwannGT/lisa" ]; then
+            echo "::error::npm install compatibility gate is Lisa-source-only and must not run in $REPOSITORY"
+            exit 1
+          fi
+          node scripts/check-npm-install-compat.mjs --tarball "$RELEASE_TARBALL" --npm 10.9.9,11.6.2
+
       - name: Publish to npm with OIDC
         env:
           RELEASE_TARBALL: ${{ steps.release_package.outputs.tarball }}

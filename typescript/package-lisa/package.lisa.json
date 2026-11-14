@@ -73,12 +73,12 @@
   "defaults": {
     "devDependencies": {
       "@ast-grep/cli": "^0.40.4",
-      "@vitest/coverage-v8": "^4.1.11",
+      "@vitest/coverage-v8": "^5.1.0",
       "eslint": "^9.39.5",
       "husky": "^8.0.0",
       "prettier": "3.8.0",
       "typescript": "^6.0.3",
-      "vitest": "^4.1.11"
+      "vitest": "^5.1.0"
     },
     "scripts": {
       "build": "node scripts/lib/worktree-dependencies.mjs && tsc",
