@@ -12,7 +12,10 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const ROOT = path.resolve(import.meta.dirname, "../../..");
 const NODE_PATCH = "24.21.0";
-const VITEST_FLOOR = "4.1.11";
+// Vitest 5: any Vitest 4 dependency crashes npm 10's arborist through vite's
+// optional devtools peer chain (CodySwannGT/lisa#4871).
+const VITEST_FLOOR = "5.1.0";
+const VITEST_MAJOR = 5;
 const VITE_FLOOR = "8.3.3";
 const PACKAGE_JSON = "package.json";
 const TEMPLATE_NAME = "package.lisa.json";
@@ -129,8 +132,8 @@ describe("shared runtime patch policy", () => {
       ...template.defaults?.devDependencies,
       ...template.force?.devDependencies,
     };
-    expectFloor(tools.vitest, VITEST_FLOOR, 4);
-    expectFloor(tools["@vitest/coverage-v8"], VITEST_FLOOR, 4);
+    expectFloor(tools.vitest, VITEST_FLOOR, VITEST_MAJOR);
+    expectFloor(tools["@vitest/coverage-v8"], VITEST_FLOOR, VITEST_MAJOR);
     expect(tools.vitest).toBe(tools["@vitest/coverage-v8"]);
     if (tools.vite !== undefined) expectFloor(tools.vite, VITE_FLOOR, 8);
     const node =
@@ -143,11 +146,11 @@ describe("shared runtime patch policy", () => {
     async harness => {
       const result = await applyTemplate("typescript", {}, harness);
       expect(result.engines?.node).toBe(NODE_PATCH);
-      expectFloor(result.devDependencies?.vitest, VITEST_FLOOR, 4);
+      expectFloor(result.devDependencies?.vitest, VITEST_FLOOR, VITEST_MAJOR);
       expectFloor(
         result.devDependencies?.["@vitest/coverage-v8"],
         VITEST_FLOOR,
-        4
+        VITEST_MAJOR
       );
       expectFloor(result.overrides?.vite, VITE_FLOOR, 8);
       expectFloor(result.devDependencies?.typescript, "6.0.0", 6);
@@ -183,11 +186,11 @@ describe("shared runtime patch policy", () => {
       },
     });
     expect(result.engines?.node).toBe("22.22.0");
-    expectFloor(result.devDependencies?.vitest, VITEST_FLOOR, 4);
+    expectFloor(result.devDependencies?.vitest, VITEST_FLOOR, VITEST_MAJOR);
     expectFloor(
       result.devDependencies?.["@vitest/coverage-v8"],
       VITEST_FLOOR,
-      4
+      VITEST_MAJOR
     );
     expectFloor(result.devDependencies?.vite, VITE_FLOOR, 8);
   });
