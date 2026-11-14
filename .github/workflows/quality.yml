@@ -2409,6 +2409,8 @@ jobs:
       LISA_ACCESS_MAP: ${{ github.event.pull_request.base.sha != '' && '1' || '' }}
       LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      LISA_ACCESS_MAP_PIECE: ${{ strategy.job-index }}
+      LISA_ACCESS_MAP_PIECES: ${{ strategy.job-total }}
 
     outputs:
       registry_path: ${{ steps.registry.outputs.path }}
@@ -2850,7 +2852,7 @@ jobs:
           retention-days: 30
 
       - name: 🗺️ Upload test access map
-        if: always() && github.event.pull_request.base.sha != ''
+        if: always() && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v7
         with:
           name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-unit
@@ -3243,6 +3245,8 @@ jobs:
       LISA_ACCESS_MAP: ${{ github.event.pull_request.base.sha != '' && '1' || '' }}
       LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      LISA_ACCESS_MAP_PIECE: ${{ strategy.job-index }}
+      LISA_ACCESS_MAP_PIECES: ${{ strategy.job-total }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -3612,7 +3616,7 @@ jobs:
           retention-days: 30
 
       - name: 🗺️ Upload this shard's test access map
-        if: always() && github.event.pull_request.base.sha != ''
+        if: always() && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v7
         with:
           name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-unit-shard-${{ matrix.shard }}
@@ -3959,6 +3963,8 @@ jobs:
       LISA_ACCESS_MAP: ${{ github.event.pull_request.base.sha != '' && '1' || '' }}
       LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      LISA_ACCESS_MAP_PIECE: ${{ strategy.job-index }}
+      LISA_ACCESS_MAP_PIECES: ${{ strategy.job-total }}
 
     steps: &integration_steps
       # With shards this job runs only these two steps and no test: it is the
@@ -4271,7 +4277,7 @@ jobs:
           retention-days: 30
 
       - name: 🗺️ Upload test access map
-        if: always() && github.event.pull_request.base.sha != ''
+        if: always() && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v7
         with:
           name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-integration${{ strategy.job-total > 1 && format('-shard-{0}', strategy.job-index) || '' }}

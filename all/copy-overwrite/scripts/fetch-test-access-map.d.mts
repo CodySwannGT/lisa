@@ -19,18 +19,41 @@ export declare function parseArgs(argv: readonly string[]): {
   readonly out: string;
 };
 export declare function parseArtifacts(output: string): readonly MapArtifact[];
+export interface RunChoice {
+  readonly runId: string;
+  readonly baseSha: string;
+  readonly distance: number;
+  readonly artifacts: readonly MapArtifact[];
+}
+export declare function rankRuns(
+  artifacts: readonly MapArtifact[],
+  sha: string,
+  run: FetchDeps["run"]
+): readonly RunChoice[];
 export declare function selectRun(
   artifacts: readonly MapArtifact[],
   sha: string,
   run: FetchDeps["run"]
-):
-  | {
-      readonly runId: string;
-      readonly baseSha: string;
-      readonly distance: number;
-      readonly artifacts: readonly MapArtifact[];
-    }
-  | undefined;
+): RunChoice | undefined;
+export declare function runRefusal(
+  info:
+    | {
+        readonly conclusion?: unknown;
+        readonly headSha?: unknown;
+        readonly headRepository?: unknown;
+      }
+    | null
+    | undefined,
+  repo: string
+): string | undefined;
+export declare function piecesRefusal(
+  metas: readonly Readonly<Record<string, unknown>>[],
+  run: {
+    readonly runId: string;
+    readonly baseSha: string;
+    readonly headSha: string;
+  }
+): string | undefined;
 export declare function mergeMaps(
   documents: readonly {
     readonly meta?: Readonly<Record<string, unknown>>;

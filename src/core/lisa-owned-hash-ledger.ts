@@ -507,10 +507,12 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/fetch-test-access-map.d.mts": Object.freeze([
     "06cf2370fea13a753f47a5cc4037bbcd6aabbc9686624ac8d7a0110285db015b",
     "d4e6befd7da1dcd78b99e6a7a7e0627f732164c20fa9a783711805733f5b7d47",
+    "f1d2542f1b7a96f26822678cc52645a82993a9d850fd7a7f81887e95c0416e87",
   ]),
   "scripts/fetch-test-access-map.mjs": Object.freeze([
     "2878e1de6725fd589ca073e7189e8aa19a78388187f649d05f3a63a44162e45a",
     "754a3152c26a9b18cffe77955218027cd2acf3547d3841abfddc78e65d57fc08",
+    "af18ae21a5d40310f7210b9a3cad4f81ea18ce94e7d74ac7b34e8a4d73bfcbe9",
     "b0c226081036a2b2a6d5e8003f8b50b81435964fd7b5b432b88416df607e82ab",
     "d19bbd5be6eadcd47c4d301f9994b098e38f6fbcb4cce8bce05e4c55986c618f",
     "d2e7de20625cb1747a4133d4de80752e5322b2c376b4d346fb5846cfbeca1f19",
@@ -3259,10 +3261,12 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/fetch-test-access-map.d.mts": Object.freeze([
     "06cf2370fea13a753f47a5cc4037bbcd6aabbc9686624ac8d7a0110285db015b",
     "d4e6befd7da1dcd78b99e6a7a7e0627f732164c20fa9a783711805733f5b7d47",
+    "f1d2542f1b7a96f26822678cc52645a82993a9d850fd7a7f81887e95c0416e87",
   ]),
   "scripts/fetch-test-access-map.mjs": Object.freeze([
     "2878e1de6725fd589ca073e7189e8aa19a78388187f649d05f3a63a44162e45a",
     "754a3152c26a9b18cffe77955218027cd2acf3547d3841abfddc78e65d57fc08",
+    "af18ae21a5d40310f7210b9a3cad4f81ea18ce94e7d74ac7b34e8a4d73bfcbe9",
     "b0c226081036a2b2a6d5e8003f8b50b81435964fd7b5b432b88416df607e82ab",
     "d19bbd5be6eadcd47c4d301f9994b098e38f6fbcb4cce8bce05e4c55986c618f",
     "d2e7de20625cb1747a4133d4de80752e5322b2c376b4d346fb5846cfbeca1f19",

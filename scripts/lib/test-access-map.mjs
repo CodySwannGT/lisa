@@ -166,7 +166,25 @@ export function mergeAccessRecords({ root, lines, testFiles }) {
 }
 
 /**
+ * A whole number from the environment that is at least `minimum`, or null.
+ * @param {string | undefined} value - Raw value
+ * @param {number} minimum - Smallest accepted value
+ * @returns {number | null} The number, or null
+ */
+function wholeNumber(value, minimum) {
+  const parsed = /^\d+$/.test(value ?? "") ? Number(value) : Number.NaN;
+  return Number.isSafeInteger(parsed) && parsed >= minimum ? parsed : null;
+}
+
+/**
  * Metadata a published map carries, read from the CI environment.
+ *
+ * `piece` and `pieces` (CodySwannGT/lisa#4593) say which piece of the scope's
+ * map this job uploaded and how many the scope has: the workflow passes the
+ * job's `strategy.job-index` and `strategy.job-total` as
+ * `LISA_ACCESS_MAP_PIECE` and `LISA_ACCESS_MAP_PIECES`. The fetcher refuses a
+ * run missing any piece, because a shard that never uploaded would otherwise
+ * drop its tests from the merged map, and refuses a piece with no count.
  * @param {Readonly<Record<string, string | undefined>>} env - Process environment
  * @param {string} scope - Map scope
  * @param {Date} now - Creation time
@@ -181,6 +199,8 @@ export function accessMapMetadata(env, scope, now, triggers = []) {
     runId: env["GITHUB_RUN_ID"] || null,
     createdAt: now.toISOString(),
     tracerVersion: TEST_ACCESS_MAP_TRACER_VERSION,
+    piece: wholeNumber(env["LISA_ACCESS_MAP_PIECE"], 0),
+    pieces: wholeNumber(env["LISA_ACCESS_MAP_PIECES"], 1),
     triggers: [...triggers],
   };
 }

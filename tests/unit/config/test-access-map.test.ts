@@ -189,9 +189,38 @@ describe("accessMapMetadata", () => {
       runId: "42",
       createdAt: "2026-11-13T00:00:00.000Z",
       tracerVersion: 1,
+      piece: null,
+      pieces: null,
       triggers: [],
     });
   });
+
+  it("records which piece of how many this shard leg's map is (#4593)", () => {
+    const meta = accessMapMetadata(
+      { LISA_ACCESS_MAP_PIECE: "2", LISA_ACCESS_MAP_PIECES: "4" },
+      "unit",
+      new Date(0)
+    );
+    expect(meta).toMatchObject({ piece: 2, pieces: 4 });
+  });
+
+  it.each([
+    ["", ""],
+    ["x", "2"],
+    ["-1", "2"],
+    ["0", "0"],
+    ["1.5", "2"],
+  ])(
+    "records no piece count for PIECE=%j PIECES=%j, so the fetcher refuses it",
+    (piece, pieces) => {
+      const meta = accessMapMetadata(
+        { LISA_ACCESS_MAP_PIECE: piece, LISA_ACCESS_MAP_PIECES: pieces },
+        "unit",
+        new Date(0)
+      );
+      expect(meta["pieces"] === null || meta["piece"] === null).toBe(true);
+    }
+  );
 
   it("carries the project's full-rerun triggers (#4611)", () => {
     expect(

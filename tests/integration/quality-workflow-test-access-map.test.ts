@@ -80,16 +80,22 @@ describe("quality.yml test access map", () => {
       LISA_ACCESS_MAP_BASE_SHA: BASE,
       LISA_ACCESS_MAP_HEAD_SHA:
         "${{ github.event.pull_request.head.sha || github.sha }}",
+      // Which piece of how many (#4593): the fetcher refuses a run whose
+      // shard set is incomplete.
+      LISA_ACCESS_MAP_PIECE: "${{ strategy.job-index }}",
+      LISA_ACCESS_MAP_PIECES: "${{ strategy.job-total }}",
     });
   });
 
+  // A fork pull request's run must not publish a map into this repository
+  // (#4593); the fetcher refuses one anyway, through the run's head repository.
   it.each(cases)("%s uploads its map as %s", (job, name) => {
     const steps = mapSteps(job);
     expect(steps).toHaveLength(1);
     const [step] = steps;
     expect(step?.uses).toBe("actions/upload-artifact@v7");
     expect(step?.if).toBe(
-      "always() && github.event.pull_request.base.sha != ''"
+      "always() && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository"
     );
     expect(step?.with).toEqual({
       name,
