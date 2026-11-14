@@ -13750,6 +13750,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/shipped-prerequisite-check-helpers.ts": true,
     "tests/unit/strategies/shipped-prerequisite-check-text.test.ts": true,
     "tests/unit/strategies/shipped-prerequisite-check.test.ts": true,
+    "tests/unit/strategies/skill-machine-read-names.test.ts": true,
     "tests/unit/strategies/skill-text-defects-4643-items-2-3-7-8.test.ts": true,
     "tests/unit/strategies/stale-state-claims-rule.test.ts": true,
     "tests/unit/strategies/standing-rulings-reread-contract.test.ts": true,
