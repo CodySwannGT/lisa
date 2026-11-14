@@ -751,7 +751,9 @@ export async function packageJsonConforms(
   const planned = await new PackageLisaStrategy().planPackageJson(
     { ...safePackage },
     safeTypes,
-    lisaRoot
+    lisaRoot,
+    false,
+    projectRoot
   );
   return (
     JSON.stringify(planned, null, 2) === JSON.stringify(safePackage, null, 2)
