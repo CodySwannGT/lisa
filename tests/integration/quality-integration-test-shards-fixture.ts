@@ -197,6 +197,8 @@ export function lisaJob(shards: number, total: number, index: number): Context {
     "strategy.job-index": index,
     "github.repository": "CodySwannGT/lisa",
     "github.event.pull_request.base.sha": "a".repeat(40),
+    // A same-repository pull request, whose run may publish an access map.
+    "github.event.pull_request.head.repo.full_name": "CodySwannGT/lisa",
     "inputs.package_manager": "bun",
     "inputs.cache_dependencies": true,
     "needs.test_integration_shard_plan.result":

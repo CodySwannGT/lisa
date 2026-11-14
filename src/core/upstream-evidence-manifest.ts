@@ -27,9 +27,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
       "54b0844dd7b9f461ccd533603439164ce7dccdd83422344d1b085ed5f5fdfad3",
     "all/copy-overwrite/scripts/fetch-test-access-map.d.mts":
-      "06cf2370fea13a753f47a5cc4037bbcd6aabbc9686624ac8d7a0110285db015b",
+      "f1d2542f1b7a96f26822678cc52645a82993a9d850fd7a7f81887e95c0416e87",
     "all/copy-overwrite/scripts/fetch-test-access-map.mjs":
-      "754a3152c26a9b18cffe77955218027cd2acf3547d3841abfddc78e65d57fc08",
+      "af18ae21a5d40310f7210b9a3cad4f81ea18ce94e7d74ac7b34e8a4d73bfcbe9",
     "all/copy-overwrite/scripts/lib/affected-tests.mjs":
       "9e2a738eb93707fb4fb110e093dd74df20bde44ebe892ff7a63b8ac0ae1adc2d",
     "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs":
@@ -2871,7 +2871,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/test-access-map.d.mts":
       "c65d17161d0c12935f2624285c25b3a09f7b1ea1786919ab3fe9bdd1415c89a8",
     "scripts/lib/test-access-map.mjs":
-      "46172248580371fe0bc1c91fcd27e6f781b48139ddf3e84b543df35b52b03ed4",
+      "30607e1c37269665f72be4b67034c2f115a3f5ffbaf065e3c02729294ebc407b",
     "scripts/lib/test-timings-reporter.d.mts":
       "f14df21669928d1abb9352888066a28b2645bb8ca555b84a3e1d611b3a6528ce",
     "scripts/lib/test-timings-reporter.mjs":
