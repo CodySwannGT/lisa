@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.6.0](https://github.com/CodySwannGT/lisa/compare/v5.5.0...v5.6.0) (2026-11-14)
+
+
+### Features
+
+* **npm-updater:** cancel, supersede and resume Jira and Linear work items ([0c1df17](https://github.com/CodySwannGT/lisa/commit/0c1df17e9358b72d6f5a402df9e7435840915154)), closes [#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873)
+* **npm-updater:** gate and publish Jira and Linear work items ([d8843f8](https://github.com/CodySwannGT/lisa/commit/d8843f8b465be9baff86c69595c14c399bf435a1)), closes [#4881](https://github.com/CodySwannGT/lisa/issues/4881) [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873)
+
+
+### Bug Fixes
+
+* **npm-updater:** address CodeRabbit review on Jira/Linear identity and reconcile ([fa73294](https://github.com/CodySwannGT/lisa/commit/fa732942227e4b4d0708f2e8924176e1bfc152e3)), closes [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873)
+* **npm-updater:** apply local review findings for Jira and Linear support ([83ca30b](https://github.com/CodySwannGT/lisa/commit/83ca30b4b73ccf8959276238713b80e7661b69b1)), closes [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873)
+* **npm-updater:** prove the Jira identity before searching or creating ([3c69d13](https://github.com/CodySwannGT/lisa/commit/3c69d13541084cf8d9e4e5c5ec9138940ba0ffdd)), closes [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873)
+
+
+### Code Refactoring
+
+* **npm-updater:** resolve the canceled status in the updater, not lisa-work-item ([54032f4](https://github.com/CodySwannGT/lisa/commit/54032f4966c2b03a2fbb72f41fe8c46dbd561ca5)), closes [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873) [CodySwannGT/lisa#4873](https://github.com/CodySwannGT/lisa/issues/4873)
+
 ## [5.5.0](https://github.com/CodySwannGT/lisa/compare/v5.4.0...v5.5.0) (2026-11-14)
 
 
