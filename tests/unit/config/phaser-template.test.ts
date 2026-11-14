@@ -224,12 +224,8 @@ describe("Phaser templates", () => {
 
   it("defers to Phaser's official skills and drops duplicative lisa skills", () => {
     // Phaser ships authoritative API skills in node_modules/phaser/skills; the
-    // lisa-phaser plugin must point at them, not duplicate (and drift from) them.
-    // The pointer lives in the EAGER head (#3993 split the rule into tiers), so
-    // it reaches a session that never asks for the reference body.
-    const rules = readText("plugins/src/phaser/rules/eager/phaser.md");
-    expect(rules).toContain("node_modules/phaser/skills");
-
+    // lisa-phaser plugin must not duplicate (and drift from) them. How the rule
+    // words its pointer to them is reviewed, not pinned.
     const skillsDir = path.join(REPO_ROOT, "plugins/src/phaser/skills");
     const skills = fs.readdirSync(skillsDir);
     // Removed: these duplicate official Phaser skills.
@@ -356,14 +352,6 @@ describe("Phaser templates", () => {
     // retirement deleting an opt-in without saying what replaced it is how
     // enforcement disappears quietly.
     expect(source).toMatch(/coverage-adequacy[\s\S]*check:verification/u);
-  });
-
-  it("documents the Vite 8 (rolldown) function-form manualChunks", () => {
-    const skill = readText(
-      "plugins/src/phaser/skills/phaser-build-deploy/SKILL.md"
-    );
-    expect(skill).toContain("manualChunks: id");
-    expect(skill).not.toContain('manualChunks: { phaser: ["phaser"] }');
   });
 
   it("ships a pre-push verification (UAT) snippet that runs the coverage check", () => {

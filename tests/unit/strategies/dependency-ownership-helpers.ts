@@ -19,16 +19,8 @@ export const SCAFFOLD = "all/create-only/.lisa/DEPENDENCY_DECISIONS.md";
 export const SEED = ".lisa/DEPENDENCY_DECISIONS.md";
 /** The path a host project's record always lives at. */
 export const RECORD_PATH = ".lisa/DEPENDENCY_DECISIONS.md";
-/** The planning surface all three rules wire into. */
-export const DECOMPOSITION =
-  "plugins/src/base/skills/lisa-task-decomposition/SKILL.md";
 /** DEP-3: the manifest-authoritative duplicate-version detector. */
 export const DUPLICATE_CHECK = "scripts/check-duplicate-versions.mjs";
-/** DEP-2's canonical rule pair — the taxonomy every other surface defers to. */
-export const TRUST_CLASS_EAGER =
-  "plugins/src/base/rules/reference/dependency-trust-classes.md";
-export const TRUST_CLASS_REFERENCE =
-  "plugins/src/base/rules/reference/dependency-trust-classes.md";
 /** The operator walkthrough this layer is documented by (#1891 §4). */
 export const OPERATOR_DOC =
   "wiki/playbooks/dependency-ownership-operator-guide.md";
@@ -61,14 +53,6 @@ export const HOST_RULES_DIR =
  */
 export const HOST_DETECTOR_INVOCATION =
   "node node_modules/@codyswann/lisa/scripts/check-duplicate-versions.mjs --root . --scan .";
-
-/** Work-item legs, reused from the per-story fixtures rather than duplicated. */
-export const ADDITION_TICKET =
-  "tests/fixtures/dependency-trust-classes/dependency-addition-ticket.md";
-export const INTERNALIZATION_TICKET =
-  "tests/fixtures/dependency-internalization-kit/dependency-internalization-ticket.md";
-export const BUMP_TICKET =
-  "tests/fixtures/dependency-internalization-kit/version-bump-ticket.md";
 
 /** Record + host-project legs, new for the tie-together. */
 export const ADDITION_PROJECT = "tests/fixtures/dependency-ownership/addition";

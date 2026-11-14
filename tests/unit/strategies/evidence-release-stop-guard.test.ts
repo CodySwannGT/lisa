@@ -9,8 +9,6 @@
  * the line promised a stop. Reading the wording is not proof the wording
  * works, so this test lifts the release-selection block out of each SKILL.md
  * and runs it under bash, with `node` replaced by a stand-in resolver on PATH.
- * The phrase checks for the same files (and their generated copies) live in
- * `tests/phrase-manifest/required-phrases.json`.
  * @module tests/unit/strategies/evidence-release-stop-guard
  */
 import {

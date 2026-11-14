@@ -248,19 +248,6 @@ describe("core/host-rules parity across supported agents", () => {
         SYNC_REGISTRY.some(setting => setting.key === "projectRulesFile")
       ).toBe(false);
     });
-
-    it("documents the directory in the config-resolution reference", async () => {
-      const reference = await fs.readFile(
-        path.join(
-          REPO_ROOT,
-          "plugins/src/base/rules/reference/config-resolution.md"
-        ),
-        "utf8"
-      );
-
-      expect(reference).toContain(HOST_RULES_DIR);
-      expect(reference).not.toContain('"projectRulesFile"');
-    });
   });
 });
 

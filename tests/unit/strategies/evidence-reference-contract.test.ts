@@ -2,6 +2,9 @@
  * Regression contract for #1595: cross-work-item evidence references must not
  * inflate the current work item's S14 manifest.
  *
+ * The executable Jira journey parser and template generator are tested as
+ * code, and the OpenCode installer is guarded as source text. The skill and
+ * rule prose describing the reference grammar is not pinned (#4867).
  * @module tests/unit/strategies/evidence-reference-contract
  */
 import { readFileSync } from "node:fs";
@@ -14,170 +17,15 @@ import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
 
-const REFERENCE_GRAMMAR =
-  "[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]";
-const LEGACY_REFERENCE_GRAMMAR =
-  "[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]";
 const PYTHON = "/usr/bin/python3";
 
-const VALIDATORS = [
-  "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md",
-  "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md",
-  "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md",
-] as const;
-
-const WRITERS = [
-  "plugins/src/base/skills/lisa-github-create/SKILL.md",
-  "plugins/src/base/skills/lisa-github-write-issue/SKILL.md",
-  "plugins/src/base/skills/lisa-github-add-journey/SKILL.md",
-  "plugins/src/base/skills/lisa-jira-create/SKILL.md",
-  "plugins/src/base/skills/lisa-jira-write-ticket/SKILL.md",
-  "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md",
-  "plugins/src/base/skills/lisa-linear-create/SKILL.md",
-  "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md",
-  "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md",
-  "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md",
-] as const;
-
-const CONSUMERS = [
-  "plugins/src/base/skills/lisa-github-journey/SKILL.md",
-  "plugins/src/base/skills/lisa-jira-journey/SKILL.md",
-  "plugins/src/base/skills/lisa-linear-journey/SKILL.md",
-  "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md",
-  "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md",
-] as const;
-
-const GENERATED_SKILL_ROOTS = [
-  "plugins/lisa/skills",
-  "plugins/lisa/.codex-plugin/skills",
-  "plugins/lisa-cursor/skills",
-  "plugins/lisa-agy/skills",
-  "plugins/lisa-copilot/skills",
-] as const;
-
-const VALIDATOR_SKILL_NAMES = [
-  "lisa-github-validate-issue",
-  "lisa-jira-validate-ticket",
-  "lisa-linear-validate-issue",
-] as const;
-
 describe("non-claiming evidence references (#1595)", () => {
-  it("defines one deterministic cross-work-item reference grammar", () => {
-    const contract = read("plugins/src/base/rules/reference/verification.md");
-
-    expect(contract).toContain(
-      "[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]"
-    );
-    expect(contract).toMatch(/pointer only/i);
-    expect(contract).toMatch(/never satisfies S14/i);
-    expect(contract).toMatch(/never participates in marker-name uniqueness/i);
-    expect(contract).toMatch(/never captured or checked/i);
-    expect(contract).toMatch(
-      /references but no local claiming marker still fails S14/i
-    );
-  });
-
-  it.each(VALIDATORS)(
-    "%s excludes references from every S14 manifest operation",
-    validatorPath => {
-      const validator = read(validatorPath);
-
-      expect(validator).toContain(REFERENCE_GRAMMAR);
-      expect(validator).toContain(LEGACY_REFERENCE_GRAMMAR);
-      expect(validator).toMatch(/accepted as a legacy non-claiming alias/);
-      expect(validator).toMatch(/parse it from the right/);
-      expect(validator).toMatch(/exact `\[EVIDENCE:` prefix/);
-      expect(validator).toMatch(/Exclude both forms from the manifest/);
-      expect(validator).toMatch(/minimum-marker count/);
-      expect(validator).toMatch(/duplicate-name checks/);
-      expect(validator).toMatch(/malformed reference FAILs S14/);
-      expect(validator).toMatch(/untyped/i);
-      expect(validator).toMatch(
-        /contains only `EVIDENCE-REF` entries FAILs S14/
-      );
-    }
-  );
-
-  it.each([
-    "plugins/src/base/skills/lisa-github-add-journey/SKILL.md",
-    "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md",
-    "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md",
-  ])("%s repairs a reference-only existing journey", writerPath => {
-    const writer = read(writerPath);
-
-    expect(writer).toContain(REFERENCE_GRAMMAR);
-    expect(writer).toMatch(
-      /Stop only when that local marker exists|counts as complete only when/i
-    );
-    expect(writer).toMatch(
-      /references? are present without a local claiming marker|references but no local claiming marker|reference-only journey is incomplete/i
-    );
-    expect(writer).toMatch(/preserve all .*EVIDENCE-REF.*pointers/i);
-    expect(writer).toMatch(
-      /Never create a second .*Validation Journey.*heading/i
-    );
-  });
-
-  it.each(GENERATED_SKILL_ROOTS)(
-    "%s carries the validator contract for every checked-in agent surface",
-    root => {
-      for (const skillName of VALIDATOR_SKILL_NAMES) {
-        const validator = read(`${root}/${skillName}/SKILL.md`);
-        expect(validator).toContain(REFERENCE_GRAMMAR);
-        expect(validator).toContain(LEGACY_REFERENCE_GRAMMAR);
-        expect(validator).toMatch(/malformed reference FAILs S14/);
-        expect(validator).toMatch(
-          /contains only `EVIDENCE-REF` entries FAILs S14/
-        );
-      }
-    }
-  );
-
-  it.each(["plugins/src/base/skills", ...GENERATED_SKILL_ROOTS])(
-    "%s advertises the canonical typed local marker",
-    root => {
-      const journey = read(`${root}/lisa-github-journey/SKILL.md`);
-      expect(journey).toContain(
-        "canonical `[EVIDENCE: <artifact-type>: <name>]` marker"
-      );
-      expect(journey).toMatch(/accepting the documented legacy untyped form/);
-    }
-  );
-
   it("installs built canonical skills into OpenCode verbatim", () => {
     const installer = read("src/opencode/skills-installer.ts");
 
     expect(installer).toMatch(/Copy one bundled skill folder verbatim/);
     expect(installer).toContain("await copyFile(srcPath, destPath)");
   });
-
-  it.each(WRITERS)(
-    "%s authors sibling references without claiming them",
-    writerPath => {
-      const writer = read(writerPath);
-
-      expect(writer).toContain(REFERENCE_GRAMMAR);
-      expect(writer).toMatch(
-        /(?:non-claiming|without claiming|never replace|does not replace)/i
-      );
-      expect(writer).toMatch(
-        /(?:cannot satisfy|never satisfies|never replace|does not replace).*S14/i
-      );
-    }
-  );
-
-  it.each(CONSUMERS)(
-    "%s ignores references for capture and completion",
-    consumerPath => {
-      const consumer = read(consumerPath);
-
-      expect(consumer).toContain(REFERENCE_GRAMMAR);
-      expect(consumer).toContain(LEGACY_REFERENCE_GRAMMAR);
-      expect(consumer).toMatch(/(?:do not|never|exclude)/i);
-      expect(consumer).toMatch(/(?:capture|artifact lookup|local manifest)/i);
-      expect(consumer).toMatch(/(?:S14|runtime-changing leaf)/i);
-    }
-  );
 
   it("keeps EVIDENCE-REF as prose in the executable Jira journey parser", () => {
     const parserPath = path.resolve(
