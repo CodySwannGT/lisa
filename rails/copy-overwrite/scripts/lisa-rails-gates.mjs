@@ -210,21 +210,37 @@ export function grantedWorkers(env) {
 /**
  * The spec selection, when the affected-spec selector (CodySwannGT/lisa#4612)
  * is installed; a full run otherwise.
+ *
+ * A partial plan is run by the selector's own `runRspecPlan`, never as a plain
+ * `bundle exec rspec <specs>`: that would hold the slice to SimpleCov's
+ * project-wide minimums (failing every partial push on a host with a coverage
+ * floor) and skip the changed-files coverage check. A selector that offers a
+ * partial plan but no `runRspecPlan` gets a full run instead.
  * @param {string} root Project root.
  * @param {Record<string, string|undefined>} env Environment.
  * @param {(line: string) => void} out Line sink.
- * @returns {Promise<{kind: "full"|"partial", specs: string[]}>} The plan.
+ * @returns {Promise<{kind: "full"|"partial", specs: string[], run?: () => Promise<number>|number}>}
+ *   The plan, and for a partial one the call that runs it.
  */
 async function rspecPlan(root, env, out) {
   const selector = join(dirname(SCRIPT), "lisa-rspec-select.mjs");
   if (!existsSync(selector)) return { kind: "full", specs: [] };
   try {
-    const { planRspecRun } = await import(selector);
+    const { planRspecRun, runRspecPlan } = await import(selector);
     const plan = await planRspecRun({ cwd: root, env });
     for (const line of plan.lines ?? []) out(line);
-    return plan.kind === "partial"
-      ? { kind: "partial", specs: [...plan.specs] }
-      : { kind: "full", specs: [] };
+    if (plan.kind !== "partial") return { kind: "full", specs: [] };
+    if (typeof runRspecPlan !== "function") {
+      out(
+        "ℹ️  rspec: this spec selector cannot run a partial plan with its coverage check; running the full suite."
+      );
+      return { kind: "full", specs: [] };
+    }
+    return {
+      kind: "partial",
+      specs: [...plan.specs],
+      run: () => runRspecPlan({ plan, cwd: root, env, out }),
+    };
   } catch (err) {
     out(
       `ℹ️  rspec: spec selection unavailable (${err.message}); running the full suite.`
@@ -344,6 +360,7 @@ export async function runPayload(id, root, env, out) {
   if (id !== "rspec") return run([...RAILS_GATES[id].command]);
   const workers = grantedWorkers(env);
   const plan = await rspecPlan(root, env, out);
+  if (plan.run) return plan.run();
   const command = rspecCommand({ root, plan, workers });
   if (command.hint) out(command.hint);
   if (command.parallel) {

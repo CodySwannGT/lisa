@@ -2545,7 +2545,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs":
-      "6b2f0bf7d3689a8081ae1287b7a73115e46d0c305b7a648861edfb11a8bf0cb9",
+      "b83f939c7ba65a6719cd7c31acc2d7f3ba5aa627652fcfda36bb470e6111265b",
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
       "00d504a0fee1f2a75d7328dc848cacabe6fd9360beacc5bf9632d0741388ade2",
     "rails/copy-overwrite/scripts/lisa_rspec_shard_recorder.rb":

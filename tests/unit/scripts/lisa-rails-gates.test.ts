@@ -20,6 +20,8 @@ import { pathToFileURL } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
+const SCRIPT_NAME = "lisa-rails-gates.mjs";
+const SPEC = "spec/a_spec.rb";
 const LIBS = [
   "gate-pass-cache.mjs",
   "invoked-as-script.mjs",
@@ -34,8 +36,8 @@ const roots: string[] = [installed];
 
 mkdirSync(path.join(installed, "lib"));
 copyFileSync(
-  path.join(REPO_ROOT, "rails/copy-overwrite/scripts/lisa-rails-gates.mjs"),
-  path.join(installed, "lisa-rails-gates.mjs")
+  path.join(REPO_ROOT, `rails/copy-overwrite/scripts/${SCRIPT_NAME}`),
+  path.join(installed, SCRIPT_NAME)
 );
 for (const lib of LIBS)
   copyFileSync(
@@ -44,7 +46,7 @@ for (const lib of LIBS)
   );
 
 const gates = (await import(
-  pathToFileURL(path.join(installed, "lisa-rails-gates.mjs")).href
+  pathToFileURL(path.join(installed, SCRIPT_NAME)).href
 )) as {
   CHECK_GATES: readonly string[];
   isRailsProject: (root: string) => boolean;
@@ -216,10 +218,10 @@ describe("parallel full RSpec run", () => {
     expect(
       gates.rspecCommand({
         root,
-        plan: { kind: "partial", specs: ["spec/a_spec.rb"] },
+        plan: { kind: "partial", specs: [SPEC] },
         workers: 4,
       }).argv
-    ).toEqual(["bundle", "exec", "rspec", "spec/a_spec.rb"]);
+    ).toEqual(["bundle", "exec", "rspec", SPEC]);
   });
 
   it("reads the grant and the declared demand", () => {
@@ -230,5 +232,66 @@ describe("parallel full RSpec run", () => {
       5
     );
     expect(gates.declaredWorkers({})).toBeGreaterThanOrEqual(1);
+  });
+});
+
+/**
+ * Install the script beside a stand-in affected-spec selector
+ * (CodySwannGT/lisa#4612) and load it.
+ * @param selector - Source of `lisa-rspec-select.mjs`
+ * @returns The loaded script's `runPayload`
+ */
+async function withSelector(
+  selector: string
+): Promise<
+  (
+    id: string,
+    root: string,
+    env: Record<string, string>,
+    out: (line: string) => void
+  ) => Promise<number>
+> {
+  const dir = mkdtempSync(path.join(tmpdir(), "lisa-rails-gates-select-"));
+  roots.push(dir);
+  mkdirSync(path.join(dir, "lib"));
+  copyFileSync(path.join(installed, SCRIPT_NAME), path.join(dir, SCRIPT_NAME));
+  for (const lib of LIBS)
+    copyFileSync(path.join(installed, "lib", lib), path.join(dir, "lib", lib));
+  writeFileSync(path.join(dir, "lisa-rspec-select.mjs"), selector);
+  const loaded = (await import(
+    pathToFileURL(path.join(dir, SCRIPT_NAME)).href
+  )) as { runPayload: Awaited<ReturnType<typeof withSelector>> };
+  return loaded.runPayload;
+}
+
+const PARTIAL_PLAN = `export const planRspecRun = () => ({ kind: "partial", specs: [${JSON.stringify(SPEC)}], lines: ["selected 1 spec"] });`;
+
+describe("partial RSpec plans (CodySwannGT/lisa#4612)", () => {
+  it("hands a partial plan to the selector's runRspecPlan, so its coverage check runs", async () => {
+    const runPayload = await withSelector(
+      `${PARTIAL_PLAN}\nexport const runRspecPlan = ({ plan, cwd }) => { globalThis.ran = { specs: plan.specs, cwd }; return 7; };`
+    );
+    const root = project({});
+    const lines: string[] = [];
+    expect(await runPayload("rspec", root, {}, line => lines.push(line))).toBe(
+      7
+    );
+    expect((globalThis as { ran?: unknown }).ran).toEqual({
+      specs: [SPEC],
+      cwd: root,
+    });
+    expect(lines).toContain("selected 1 spec");
+  });
+
+  it("runs the full suite rather than a bare partial rspec when the selector cannot run the plan", async () => {
+    const runPayload = await withSelector(PARTIAL_PLAN);
+    const root = project({});
+    const lines: string[] = [];
+    // No `bundle` on PATH here, so the run exits 127; the line says what ran.
+    await runPayload("rspec", root, { PATH: "/nonexistent" }, line =>
+      lines.push(line)
+    );
+    expect(lines).toContain("▶️  rspec: bundle exec rspec");
+    expect(lines.join("\n")).toMatch(/running the full suite/u);
   });
 });

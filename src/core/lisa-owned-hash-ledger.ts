@@ -2024,6 +2024,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-rails-gates.mjs": Object.freeze([
     "6b2f0bf7d3689a8081ae1287b7a73115e46d0c305b7a648861edfb11a8bf0cb9",
+    "b83f939c7ba65a6719cd7c31acc2d7f3ba5aa627652fcfda36bb470e6111265b",
   ]),
   "scripts/lisa-rails-prepush.mjs": Object.freeze([
     "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
@@ -4616,6 +4617,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lisa-rails-gates.mjs": Object.freeze([
     "6b2f0bf7d3689a8081ae1287b7a73115e46d0c305b7a648861edfb11a8bf0cb9",
+    "b83f939c7ba65a6719cd7c31acc2d7f3ba5aa627652fcfda36bb470e6111265b",
   ]),
   "scripts/lisa-rails-prepush.mjs": Object.freeze([
     "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
