@@ -179,8 +179,9 @@ const CREDENTIAL_REPLY =
   "the secrets provider, and reply again without it.";
 
 const NO_ANSWERERS =
-  "No sessionManager.operatorIds, trustedReleaseIds or trustedAuthorIds " +
-  "are configured, so " +
+  "No person who may answer is configured (sessionManager.operatorIds, " +
+  "trustedReleaseIds, or a trustedAuthorIds entry other than " +
+  "integration:<service>), so " +
   "replies on the item are not read: the tracker identity is the one " +
   "workers post as. Answer with the answerCommand that status lists, or " +
   "set sessionManager.operatorIds.";

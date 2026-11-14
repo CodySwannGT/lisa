@@ -1737,7 +1737,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
       "fc3418fdea403b97da57708aa60cc52430c3d726d78764f591503922adb70407",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
-      "a784da9b3706f1a64c4bdb13b07739b40480f135bcf9682a53af99b817340b1f",
+      "bd6a56716c665f9e741e9a70d39fc8a403a54f28aaeaf8087f862fb75bcdf8fd",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs":
       "7478baf8cdb72029aa04d31f0951f262d086004e1dfc5ad3e422b3a2eea326c6",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs":
@@ -4043,6 +4043,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4895/A1-queue-trust-sentry.txt": true,
     "evidence/4895/A2-queue-human-only.txt": true,
     "evidence/4895/A3-queue-integration-never-trusts-person.txt": true,
+    "evidence/4895/A4-queue-display-name-never-trusted.txt": true,
+    "evidence/4895/A5-queue-bot-id-trusted.txt": true,
     "evidence/4895/B1-validate-release-integration.txt": true,
     "evidence/4895/B2-validate-empty-authors.txt": true,
     "evidence/4895/B3-validate-operator-integration.txt": true,
@@ -4058,8 +4060,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4895/D2-blocked-plan-legacy-head.txt": true,
     "evidence/4895/D3-blocked-plan-nokeys-base.txt": true,
     "evidence/4895/D3-blocked-plan-nokeys-head.txt": true,
+    "evidence/4895/E1-item-answer-integration-only.txt": true,
     "evidence/4895/X1-bite-base-queue-trust-sentry.txt": true,
     "evidence/4895/X2-bite-base-blocked-plan-release-list.txt": true,
+    "evidence/4895/X3-bite-prev-queue-display-name.txt": true,
+    "evidence/4895/X4-bite-prev-item-answer-integration-only.txt": true,
     "evidence/CodySwannGT-lisa-4496/01-outside-no-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/02-inside-manager-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/03-outside-while-running.txt": true,
