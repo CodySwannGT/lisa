@@ -799,9 +799,8 @@ jobs:
           persist-credentials: false
 
       - name: 🧹 Assert the RSpec shard tooling is installed
-        # The same two-channel window the scratch supervisor's assertion
-        # describes: this workflow is live at `@main` before `lisa apply` has
-        # delivered the scripts it runs. Sharding without them would run the
+        # The two-channel window: this workflow is live at `@main` before
+        # `lisa apply` has delivered the scripts it runs. Sharding without them would run the
         # whole suite in every leg, or not merge coverage, so their absence is
         # a failure with a named remedy.
         env:
@@ -850,9 +849,8 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # One leg per shard. It prepares its own database outside the supervisor,
-  # as the unsharded route does, and runs only its planned files through
-  # scripts/lisa-scratch-run.sh under a suite label unique to the leg.
+  # One leg per shard. It prepares its own database and sweeps as the
+  # unsharded route does, and runs only its planned files.
   # lisa_rspec_shard_recorder.rb tells SimpleCov to store this leg's
   # resultset without checking the project's minimums against a slice of the
   # suite, and records which files RSpec loaded; the aggregate does the rest.
@@ -896,28 +894,21 @@ jobs:
           bundler-cache: true
 
       - name: 🗄️ Prepare database
-        # Kept OUTSIDE the supervisor on purpose: a database-preparation
-        # failure must stay a database-preparation failure, not be relabelled
-        # as a test failure or a cleanup failure.
+        # A step of its own: a database-preparation failure must stay a
+        # database-preparation failure, not be relabelled as a test failure.
         run: bin/rails db:prepare
 
-      - name: 🧹 Assert the scratch supervisor is installed
-        # Every Rails test and mutation route enters the supervisor, and it is
-        # the only boundary on that route.
-        #
-        # This workflow is consumed at `@main`, so it goes live in a caller the
-        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
-        # `lisa apply` channel — the two halves land in that order, and there is
-        # a window where a caller has this step and not that file. The window
-        # closes on the caller's next apply, and the same argument the threshold
-        # ratchet gate makes above applies here: a gate that passes because it
-        # found nothing is worse than no gate. Running the payload unsupervised
-        # is exactly the abandoned-scratch behavior this step exists to end, so
-        # the absence is a failure with a named remedy.
+      - name: 🧹 Sweep stale Lisa temp entries
+        # One start-of-run sweep (stale Lisa temp entries, orphaned test
+        # processes of dead runs) replaces the retired scratch supervisor
+        # (CodySwannGT/lisa#4603). It never fails the job. This workflow is
+        # consumed at `@main`, so it can reach a caller before `lisa apply`
+        # delivers the sweep; until then the step says so and moves on.
         run: |
-          if [ ! -f scripts/lisa-scratch-run.sh ]; then
-            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
-            exit 1
+          if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then
+            node scripts/lib/lisa-cleanup-sweep.mjs
+          else
+            echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
 
       - name: 📥 Download the RSpec shard plan
@@ -942,12 +933,44 @@ jobs:
           # coverage. It refuses to run from inside the root.
           cp scripts/lisa_rspec_shard_recorder.rb "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb"
 
+      - name: 🔮 Arm the crystalball map recorder
+        # CodySwannGT/lisa#4612. On a pull request, this full RSpec run also
+        # records which application files each spec executes (gitlab-crystalball),
+        # keyed by the pull request's base commit, so a later push can run only
+        # the specs a change reaches. It never narrows this run: every spec runs.
+        # Required from OUTSIDE the project root, like the shard recorder, so
+        # SimpleCov does not measure it. This workflow is consumed at `@main`, so
+        # it can reach a caller before `lisa apply` delivers the recorder; until
+        # then the step says so and moves on, and pushes run the full suite.
+        if: github.event.pull_request.base.sha != ''
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          JOB_LABEL: shard-${{ matrix.shard }}
+          PIECE_NUMBER: ${{ matrix.shard }}
+          PIECES: ${{ inputs.test_shards }}
+        run: |
+          if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
+            echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
+            exit 0
+          fi
+          cp scripts/lisa_crystalball_recorder.rb "$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+          {
+            echo "LISA_CRYSTALBALL_REQUIRE=$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+            echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
+            echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
+            echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+            echo "LISA_CRYSTALBALL_HEAD_SHA=$HEAD_SHA"
+            # Zero-based, out of PIECES, so the push can prove no leg is missing.
+            echo "LISA_CRYSTALBALL_PIECE=$((PIECE_NUMBER - 1))"
+            echo "LISA_CRYSTALBALL_PIECES=$PIECES"
+          } >> "$GITHUB_ENV"
+
       - name: 🧪 Run this shard's tests
         id: shard_run
         env:
           LISA_RSPEC_SHARD: ${{ matrix.shard }}/${{ inputs.test_shards }}
           LISA_RSPEC_SHARD_RECORD: ${{ runner.temp }}/lisa-rspec-shard/record.json
-          SUITE: rspec-postgres-shard-${{ matrix.shard }}-of-${{ inputs.test_shards }}
         run: |
           set -euo pipefail
           SPEC_FILES=()
@@ -960,7 +983,8 @@ jobs:
             exit 1
           fi
           echo "Running ${#SPEC_FILES[@]} spec files as shard $LISA_RSPEC_SHARD."
-          bash scripts/lisa-scratch-run.sh --suite "$SUITE" -- bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
+          export LISA_TEST_RUN_OWNER="$$:0"
+          bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" ${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"} "${SPEC_FILES[@]}"
 
       - name: 📦 Stage this shard's coverage
         if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
@@ -972,6 +996,19 @@ jobs:
             exit 1
           fi
           node scripts/lisa-rspec-shards.mjs stage --record "$RECORD" --out "$RUNNER_TEMP/lisa-rspec-shard"
+
+      - name: 📤 Upload this shard's crystalball map
+        # The aggregate merges every leg's map into one artifact. Never from a
+        # fork's pull request: its code recorded the map, and the push trusts
+        # only this repository's runs.
+        if: always() && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 1
 
       - name: 📤 Upload this shard's results
         if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
@@ -1043,34 +1080,73 @@ jobs:
 
       - name: 🗄️ Prepare database
         if: inputs.test_shards == 1
-        # Kept OUTSIDE the supervisor on purpose: a database-preparation
-        # failure must stay a database-preparation failure, not be relabelled
-        # as a test failure or a cleanup failure.
+        # A step of its own: a database-preparation failure must stay a
+        # database-preparation failure, not be relabelled as a test failure.
         run: bin/rails db:prepare
 
-      - name: 🧹 Assert the scratch supervisor is installed
-        # Every Rails test and mutation route enters the supervisor, and it is
-        # the only boundary on that route.
-        #
-        # This workflow is consumed at `@main`, so it goes live in a caller the
-        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
-        # `lisa apply` channel — the two halves land in that order, and there is
-        # a window where a caller has this step and not that file. The window
-        # closes on the caller's next apply, and the same argument the threshold
-        # ratchet gate makes above applies here: a gate that passes because it
-        # found nothing is worse than no gate. Running the payload unsupervised
-        # is exactly the abandoned-scratch behavior this step exists to end, so
-        # the absence is a failure with a named remedy.
+      - name: 🧹 Sweep stale Lisa temp entries
+        # One start-of-run sweep (stale Lisa temp entries, orphaned test
+        # processes of dead runs) replaces the retired scratch supervisor
+        # (CodySwannGT/lisa#4603). It never fails the job. This workflow is
+        # consumed at `@main`, so it can reach a caller before `lisa apply`
+        # delivers the sweep; until then the step says so and moves on.
         if: inputs.test_shards == 1
         run: |
-          if [ ! -f scripts/lisa-scratch-run.sh ]; then
-            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
-            exit 1
+          if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then
+            node scripts/lib/lisa-cleanup-sweep.mjs
+          else
+            echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
+
+      - name: 🔮 Arm the crystalball map recorder
+        # CodySwannGT/lisa#4612. On a pull request, this full RSpec run also
+        # records which application files each spec executes (gitlab-crystalball),
+        # keyed by the pull request's base commit, so a later push can run only
+        # the specs a change reaches. It never narrows this run: every spec runs.
+        # Required from OUTSIDE the project root, like the shard recorder, so
+        # SimpleCov does not measure it. This workflow is consumed at `@main`, so
+        # it can reach a caller before `lisa apply` delivers the recorder; until
+        # then the step says so and moves on, and pushes run the full suite.
+        if: inputs.test_shards == 1 && github.event.pull_request.base.sha != ''
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          JOB_LABEL: unsharded
+          PIECE_NUMBER: 1
+          PIECES: 1
+        run: |
+          if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
+            echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
+            exit 0
+          fi
+          cp scripts/lisa_crystalball_recorder.rb "$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+          {
+            echo "LISA_CRYSTALBALL_REQUIRE=$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+            echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
+            echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
+            echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+            echo "LISA_CRYSTALBALL_HEAD_SHA=$HEAD_SHA"
+            # Zero-based, out of PIECES, so the push can prove no leg is missing.
+            echo "LISA_CRYSTALBALL_PIECE=$((PIECE_NUMBER - 1))"
+            echo "LISA_CRYSTALBALL_PIECES=$PIECES"
+          } >> "$GITHUB_ENV"
 
       - name: 🧪 Run tests
         if: inputs.test_shards == 1
-        run: bash scripts/lisa-scratch-run.sh --suite rspec-postgres -- bundle exec rspec
+        run: |
+          export LISA_TEST_RUN_OWNER="$$:0"
+          bundle exec rspec ${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"}
+
+      - name: 📤 Upload the crystalball map
+        # Never from a fork's pull request: its code recorded the map.
+        if: always() && inputs.test_shards == 1 && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
 
       - name: 📥 Download the RSpec shard plan
         if: inputs.test_shards != 1
@@ -1085,6 +1161,42 @@ jobs:
         with:
           pattern: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-*
           path: ${{ runner.temp }}/lisa-rspec-shards
+
+      # CodySwannGT/lisa#4612: one map for the whole suite, keyed by the base
+      # commit, from every leg's map. A leg that recorded none (the recorder
+      # not installed yet) leaves nothing to merge, and the step says so.
+      - name: 📥 Download every shard's crystalball map
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        uses: actions/download-artifact@v8
+        with:
+          pattern: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-shard-*
+          path: ${{ runner.temp }}/lisa-crystalball-legs
+
+      - name: 🔮 Merge the shards' crystalball maps
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        run: |
+          set -euo pipefail
+          LEGS=()
+          if [ -d "$RUNNER_TEMP/lisa-crystalball-legs" ]; then
+            while IFS= read -r leg; do LEGS+=("$leg"); done < <(find "$RUNNER_TEMP/lisa-crystalball-legs" -name map.json -type f | sort)
+          fi
+          if [ "${#LEGS[@]}" -eq 0 ] || [ ! -f scripts/lisa-rspec-select.mjs ]; then
+            echo "🔮 no crystalball map to merge (no leg recorded one, or scripts/lisa-rspec-select.mjs is not installed yet)."
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/lisa-crystalball-map"
+          node scripts/lisa-rspec-select.mjs merge-maps --out "$RUNNER_TEMP/lisa-crystalball-map/map.json" "${LEGS[@]}"
+
+      - name: 📤 Upload the merged crystalball map
+        # Never from a fork's pull request: its code recorded the map.
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
 
       # From each leg's run record, written from RSpec's own `files_to_run`:
       # every planned file ran, in exactly one shard, and the plan still
@@ -1126,9 +1238,8 @@ jobs:
           fi
           bundle exec ruby scripts/lisa_simplecov_collate.rb "${RESULTSETS[@]}"
 
-  # One leg per shard. It prepares its own database outside the supervisor,
-  # as the unsharded route does, and runs only its planned files through
-  # scripts/lisa-scratch-run.sh under a suite label unique to the leg.
+  # One leg per shard. It prepares its own database and sweeps as the
+  # unsharded route does, and runs only its planned files.
   # lisa_rspec_shard_recorder.rb tells SimpleCov to store this leg's
   # resultset without checking the project's minimums against a slice of the
   # suite, and records which files RSpec loaded; the aggregate does the rest.
@@ -1175,26 +1286,20 @@ jobs:
           bundler-cache: true
 
       - name: 🗄️ Prepare database
-        # Outside the supervisor for the same reason as the PostgreSQL route.
+        # A step of its own for the same reason as the PostgreSQL route.
         run: bin/rails db:prepare
 
-      - name: 🧹 Assert the scratch supervisor is installed
-        # Every Rails test and mutation route enters the supervisor, and it is
-        # the only boundary on that route.
-        #
-        # This workflow is consumed at `@main`, so it goes live in a caller the
-        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
-        # `lisa apply` channel — the two halves land in that order, and there is
-        # a window where a caller has this step and not that file. The window
-        # closes on the caller's next apply, and the same argument the threshold
-        # ratchet gate makes above applies here: a gate that passes because it
-        # found nothing is worse than no gate. Running the payload unsupervised
-        # is exactly the abandoned-scratch behavior this step exists to end, so
-        # the absence is a failure with a named remedy.
+      - name: 🧹 Sweep stale Lisa temp entries
+        # One start-of-run sweep (stale Lisa temp entries, orphaned test
+        # processes of dead runs) replaces the retired scratch supervisor
+        # (CodySwannGT/lisa#4603). It never fails the job. This workflow is
+        # consumed at `@main`, so it can reach a caller before `lisa apply`
+        # delivers the sweep; until then the step says so and moves on.
         run: |
-          if [ ! -f scripts/lisa-scratch-run.sh ]; then
-            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
-            exit 1
+          if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then
+            node scripts/lib/lisa-cleanup-sweep.mjs
+          else
+            echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
 
       - name: 📥 Download the RSpec shard plan
@@ -1219,12 +1324,44 @@ jobs:
           # coverage. It refuses to run from inside the root.
           cp scripts/lisa_rspec_shard_recorder.rb "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb"
 
+      - name: 🔮 Arm the crystalball map recorder
+        # CodySwannGT/lisa#4612. On a pull request, this full RSpec run also
+        # records which application files each spec executes (gitlab-crystalball),
+        # keyed by the pull request's base commit, so a later push can run only
+        # the specs a change reaches. It never narrows this run: every spec runs.
+        # Required from OUTSIDE the project root, like the shard recorder, so
+        # SimpleCov does not measure it. This workflow is consumed at `@main`, so
+        # it can reach a caller before `lisa apply` delivers the recorder; until
+        # then the step says so and moves on, and pushes run the full suite.
+        if: github.event.pull_request.base.sha != ''
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          JOB_LABEL: shard-${{ matrix.shard }}
+          PIECE_NUMBER: ${{ matrix.shard }}
+          PIECES: ${{ inputs.test_shards }}
+        run: |
+          if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
+            echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
+            exit 0
+          fi
+          cp scripts/lisa_crystalball_recorder.rb "$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+          {
+            echo "LISA_CRYSTALBALL_REQUIRE=$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+            echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
+            echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
+            echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+            echo "LISA_CRYSTALBALL_HEAD_SHA=$HEAD_SHA"
+            # Zero-based, out of PIECES, so the push can prove no leg is missing.
+            echo "LISA_CRYSTALBALL_PIECE=$((PIECE_NUMBER - 1))"
+            echo "LISA_CRYSTALBALL_PIECES=$PIECES"
+          } >> "$GITHUB_ENV"
+
       - name: 🧪 Run this shard's tests
         id: shard_run
         env:
           LISA_RSPEC_SHARD: ${{ matrix.shard }}/${{ inputs.test_shards }}
           LISA_RSPEC_SHARD_RECORD: ${{ runner.temp }}/lisa-rspec-shard/record.json
-          SUITE: rspec-mysql-shard-${{ matrix.shard }}-of-${{ inputs.test_shards }}
         run: |
           set -euo pipefail
           SPEC_FILES=()
@@ -1237,7 +1374,8 @@ jobs:
             exit 1
           fi
           echo "Running ${#SPEC_FILES[@]} spec files as shard $LISA_RSPEC_SHARD."
-          bash scripts/lisa-scratch-run.sh --suite "$SUITE" -- bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
+          export LISA_TEST_RUN_OWNER="$$:0"
+          bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" ${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"} "${SPEC_FILES[@]}"
 
       - name: 📦 Stage this shard's coverage
         if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
@@ -1249,6 +1387,19 @@ jobs:
             exit 1
           fi
           node scripts/lisa-rspec-shards.mjs stage --record "$RECORD" --out "$RUNNER_TEMP/lisa-rspec-shard"
+
+      - name: 📤 Upload this shard's crystalball map
+        # The aggregate merges every leg's map into one artifact. Never from a
+        # fork's pull request: its code recorded the map, and the push trusts
+        # only this repository's runs.
+        if: always() && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 1
 
       - name: 📤 Upload this shard's results
         if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
@@ -1323,32 +1474,72 @@ jobs:
 
       - name: 🗄️ Prepare database
         if: inputs.test_shards == 1
-        # Outside the supervisor for the same reason as the PostgreSQL route.
+        # A step of its own for the same reason as the PostgreSQL route.
         run: bin/rails db:prepare
 
-      - name: 🧹 Assert the scratch supervisor is installed
-        # Every Rails test and mutation route enters the supervisor, and it is
-        # the only boundary on that route.
-        #
-        # This workflow is consumed at `@main`, so it goes live in a caller the
-        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
-        # `lisa apply` channel — the two halves land in that order, and there is
-        # a window where a caller has this step and not that file. The window
-        # closes on the caller's next apply, and the same argument the threshold
-        # ratchet gate makes above applies here: a gate that passes because it
-        # found nothing is worse than no gate. Running the payload unsupervised
-        # is exactly the abandoned-scratch behavior this step exists to end, so
-        # the absence is a failure with a named remedy.
+      - name: 🧹 Sweep stale Lisa temp entries
+        # One start-of-run sweep (stale Lisa temp entries, orphaned test
+        # processes of dead runs) replaces the retired scratch supervisor
+        # (CodySwannGT/lisa#4603). It never fails the job. This workflow is
+        # consumed at `@main`, so it can reach a caller before `lisa apply`
+        # delivers the sweep; until then the step says so and moves on.
         if: inputs.test_shards == 1
         run: |
-          if [ ! -f scripts/lisa-scratch-run.sh ]; then
-            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
-            exit 1
+          if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then
+            node scripts/lib/lisa-cleanup-sweep.mjs
+          else
+            echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
+
+      - name: 🔮 Arm the crystalball map recorder
+        # CodySwannGT/lisa#4612. On a pull request, this full RSpec run also
+        # records which application files each spec executes (gitlab-crystalball),
+        # keyed by the pull request's base commit, so a later push can run only
+        # the specs a change reaches. It never narrows this run: every spec runs.
+        # Required from OUTSIDE the project root, like the shard recorder, so
+        # SimpleCov does not measure it. This workflow is consumed at `@main`, so
+        # it can reach a caller before `lisa apply` delivers the recorder; until
+        # then the step says so and moves on, and pushes run the full suite.
+        if: inputs.test_shards == 1 && github.event.pull_request.base.sha != ''
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          JOB_LABEL: unsharded
+          PIECE_NUMBER: 1
+          PIECES: 1
+        run: |
+          if [ ! -f scripts/lisa_crystalball_recorder.rb ]; then
+            echo "🔮 crystalball map not recorded: scripts/lisa_crystalball_recorder.rb is not installed yet (run lisa)."
+            exit 0
+          fi
+          cp scripts/lisa_crystalball_recorder.rb "$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+          {
+            echo "LISA_CRYSTALBALL_REQUIRE=$RUNNER_TEMP/lisa_crystalball_recorder.rb"
+            echo "LISA_CRYSTALBALL_MAP_OUT=$RUNNER_TEMP/lisa-crystalball-map/map.json"
+            echo "LISA_CRYSTALBALL_BASE_SHA=$BASE_SHA"
+            echo "LISA_CRYSTALBALL_JOB=$JOB_LABEL"
+            echo "LISA_CRYSTALBALL_HEAD_SHA=$HEAD_SHA"
+            # Zero-based, out of PIECES, so the push can prove no leg is missing.
+            echo "LISA_CRYSTALBALL_PIECE=$((PIECE_NUMBER - 1))"
+            echo "LISA_CRYSTALBALL_PIECES=$PIECES"
+          } >> "$GITHUB_ENV"
 
       - name: 🧪 Run tests
         if: inputs.test_shards == 1
-        run: bash scripts/lisa-scratch-run.sh --suite rspec-mysql -- bundle exec rspec
+        run: |
+          export LISA_TEST_RUN_OWNER="$$:0"
+          bundle exec rspec ${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"}
+
+      - name: 📤 Upload the crystalball map
+        # Never from a fork's pull request: its code recorded the map.
+        if: always() && inputs.test_shards == 1 && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
 
       - name: 📥 Download the RSpec shard plan
         if: inputs.test_shards != 1
@@ -1363,6 +1554,42 @@ jobs:
         with:
           pattern: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-*
           path: ${{ runner.temp }}/lisa-rspec-shards
+
+      # CodySwannGT/lisa#4612: one map for the whole suite, keyed by the base
+      # commit, from every leg's map. A leg that recorded none (the recorder
+      # not installed yet) leaves nothing to merge, and the step says so.
+      - name: 📥 Download every shard's crystalball map
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        uses: actions/download-artifact@v8
+        with:
+          pattern: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-shard-*
+          path: ${{ runner.temp }}/lisa-crystalball-legs
+
+      - name: 🔮 Merge the shards' crystalball maps
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != ''
+        run: |
+          set -euo pipefail
+          LEGS=()
+          if [ -d "$RUNNER_TEMP/lisa-crystalball-legs" ]; then
+            while IFS= read -r leg; do LEGS+=("$leg"); done < <(find "$RUNNER_TEMP/lisa-crystalball-legs" -name map.json -type f | sort)
+          fi
+          if [ "${#LEGS[@]}" -eq 0 ] || [ ! -f scripts/lisa-rspec-select.mjs ]; then
+            echo "🔮 no crystalball map to merge (no leg recorded one, or scripts/lisa-rspec-select.mjs is not installed yet)."
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/lisa-crystalball-map"
+          node scripts/lisa-rspec-select.mjs merge-maps --out "$RUNNER_TEMP/lisa-crystalball-map/map.json" "${LEGS[@]}"
+
+      - name: 📤 Upload the merged crystalball map
+        # Never from a fork's pull request: its code recorded the map.
+        if: always() && inputs.test_shards != 1 && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: crystalball-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/lisa-crystalball-map/map.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
 
       # From each leg's run record, written from RSpec's own `files_to_run`:
       # every planned file ran, in exactly one shard, and the plan still
@@ -1452,24 +1679,22 @@ jobs:
         run: bin/rails db:prepare
 
       - name: 🧬 Run mutation-testing gate (diff-only, self-skips when disabled)
-        # The supervisor boundary is HERE, not inside lisa-mutation.sh, so the
-        # pre-push route and this one each cross exactly one boundary and the
-        # gate's enabled/disabled and changed-file behaviour is unchanged.
-        #
-        # The supervisor assertion sits INSIDE the existing absent-gate branch:
-        # a project that does not ship the mutation gate at all has no payload
-        # to supervise, and must not start failing because of a file it has no
-        # use for.
+        # The same start-of-run sweep as the RSpec routes runs before the gate
+        # script (CodySwannGT/lisa#4603), inside the absent-gate branch, so a
+        # project without the gate does no work at all. The sweep never fails
+        # the job and is skipped, with a line, until `lisa apply` delivers it.
         run: |
           if [ ! -f scripts/lisa-mutation.sh ]; then
             echo "Skipping mutation gate - scripts/lisa-mutation.sh not found"
             exit 0
           fi
-          if [ ! -f scripts/lisa-scratch-run.sh ]; then
-            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so the mutation gate has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'mutation' to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
-            exit 1
+          if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then
+            node scripts/lib/lisa-cleanup-sweep.mjs
+          else
+            echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"
           fi
-          bash scripts/lisa-scratch-run.sh --suite mutant-postgres -- bash scripts/lisa-mutation.sh
+          export LISA_TEST_RUN_OWNER="$$:0"
+          bash scripts/lisa-mutation.sh
 
   code-quality:
     permissions:

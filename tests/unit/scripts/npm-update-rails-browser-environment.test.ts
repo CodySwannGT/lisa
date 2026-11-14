@@ -5,17 +5,13 @@ import { writeFileSync } from "node:fs";
 import { railsBrowserEnvironment } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tool-downloads.mjs";
 import { runProcess } from "../../../all/copy-overwrite/scripts/lib/npm-update-process-core.mjs";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 
 useIoLatencyBudget();
 
 describe("finite native browser environment", () => {
   it("supplies CHROME_BIN consumers with the same actual selected bytes as CHROME_BINARY", async () => {
-    const owned = createSupervisedUnixFixture(
-      "hook-reader.sock",
-      process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-    );
+    const owned = createSupervisedUnixFixture("hook-reader.sock");
     const chrome = join(owned.root, "chrome");
     try {
       writeFileSync(chrome, "synthetic-owned-browser", {

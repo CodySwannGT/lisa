@@ -107,6 +107,24 @@ the mismatch and rerun rather than suppressing the checker. Confirm an actual
 profiled development HTTP response while retaining rack-mini-profiler 5's
 advanced-debugging defaults.
 
+## Start-of-run sweep replaces the scratch supervisor
+
+Lisa used to run the pre-push `rspec` and `mutation` commands, and the reusable
+workflow's RSpec and Mutant jobs, through `scripts/lisa-scratch-run.sh`. It now
+runs `scripts/lib/lisa-cleanup-sweep.mjs` once before each of them instead. The
+sweep removes stale Lisa temp entries and test processes left behind by dead
+runs. It never fails the run (CodySwannGT/lisa#4603).
+
+Most hosts need to do nothing. The next `lisa` apply replaces the managed
+`lefthook.yml` and removes `scripts/lisa-scratch-run.sh`, as long as the copy is
+unedited and nothing in the host's `package.json` scripts or workflows names
+it. A host keeps the script, with a notice, when it edited it or wired it in
+itself. In that case, remove those references and then delete the script.
+
+Hosts on a TypeScript stack may still have `LISA_TEST_SCRATCH_PREFIXES=...`
+assignments in their own test scripts. Nothing reads them any more. Lisa leaves
+host-owned scripts alone, so remove the assignments whenever convenient.
+
 ## Repeatable bounded API controls
 
 `scripts/verify-rails-tooling.rb` runs against an installed consumer bundle and

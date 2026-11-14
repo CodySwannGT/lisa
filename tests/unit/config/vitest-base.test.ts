@@ -223,6 +223,20 @@ describe("vitest.base", () => {
   });
 
   describe("mergeVitestConfigs", () => {
+    it("keeps the preset's plugins beside a project's own (#4611)", () => {
+      const preset = { name: "preset" };
+      const local = { name: "local" };
+      expect(
+        mergeVitestConfigs({ plugins: [preset] }, { plugins: [local] }).plugins
+      ).toEqual([preset, local]);
+      expect(
+        mergeVitestConfigs({ plugins: [preset] }, { test: {} }).plugins
+      ).toEqual([preset]);
+      expect(mergeVitestConfigs({ test: {} }, { test: {} })).not.toHaveProperty(
+        "plugins"
+      );
+    });
+
     it("merges scalar test values with later configs taking precedence", () => {
       const base = {
         test: { environment: "node" as const, testTimeout: 5000 },

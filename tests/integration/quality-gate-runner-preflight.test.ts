@@ -205,7 +205,9 @@ describe("🧪 gate runner existence preflight", () => {
           steps.some(
             step =>
               (step.run ?? "").trim() === RUN_SITE ||
-              (job === "test_integration" &&
+              // The integration shard leg runs test_integration's own steps.
+              ((job === "test_integration" ||
+                job === "test_integration_shard") &&
                 (step.run ?? "")
                   .split("\n")
                   .some(line =>

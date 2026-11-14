@@ -32,6 +32,17 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/affected-tests.mjs": {
+      "sha256": "ba3a7aab7c6a6a309b90d0bb4f3cef1816dc0819f9105a542ebfb5245e2075f7",
+      "staticImports": [
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/automation-provenance-contract.mjs": {
       "sha256": "1ba7cda7b7de2199398571d4da0dfb183d1902857a6eb7f982f9ef0fda010269",
       "staticImports": [
@@ -51,7 +62,7 @@
       "children": []
     },
     "lib/automation-provenance-local.mjs": {
-      "sha256": "09c6d63675bdcc23dd83c3a9f0a5ecbd8e7b7789f40fe4ec00717bbb68eb14ae",
+      "sha256": "b60caff3a40812cefdce3c63e3c1956004dc98574055030c4338fa5ab4a62c15",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/automation-provenance-files.mjs",
@@ -70,6 +81,18 @@
       "sha256": "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
       "staticImports": [
         "node:child_process"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/build-marker.mjs": {
+      "sha256": "505519d9632ab86572cfdeca917d93599256cf8e798987ad593a82296a7d8175",
+      "staticImports": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
       ],
       "dynamicImports": [],
       "children": []
@@ -215,6 +238,18 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/gate-pass-cache.mjs": {
+      "sha256": "db7d75cfd8cb62fb24a2643aa015aa0fdb33a6de110c56b638b27a2b869ddcb8",
+      "staticImports": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/github-attestation-provider.mjs": {
       "sha256": "fcd56c2fd10b15a7558fc407a9594ecbdc4d5e6ceae50c8405523c6c5a86ce98",
       "staticImports": [
@@ -310,7 +345,7 @@
       "children": []
     },
     "lib/kill-marks.mjs": {
-      "sha256": "13388da7203b02ba84a845abd7885074bc8a495e215437a97122060d69367030",
+      "sha256": "abbfda1fafce96930e9e8b2e61d9ce0196692c1a71c83fe6340c9dfa97b3583a",
       "staticImports": [
         "node:crypto",
         "node:fs",
@@ -321,7 +356,7 @@
       "children": []
     },
     "lib/lisa-cleanup-sweep-processes.mjs": {
-      "sha256": "b7bbd0a383d981b55848f52bd13f1f61bb29c912871dd0a09dd7b45172fae576",
+      "sha256": "026d79cf54594e41cecd24d1f5df72dd2338b786dce485e69eeaa6b61dce1059",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "node:fs",
@@ -504,7 +539,7 @@
       "children": []
     },
     "lib/npm-update-controller-broker.mjs": {
-      "sha256": "c2c598f48a403707d699baadb40be7aaf2023a4d6c6e0a41b5e591c5a2af5cc6",
+      "sha256": "9f8378842e413c10f4f3464f486aeff4d4e059e969a263af1cf55232c65811ca",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-controller-recipe.mjs",
@@ -573,7 +608,7 @@
       ]
     },
     "lib/npm-update-gate-hooks.mjs": {
-      "sha256": "3ef6fe8fc458c6888afc511e6f246b78facbea8643a5abd572b8ba7303912c5c",
+      "sha256": "d73aa1ce691fbd487d43dd34594ca4e52cf42105ac914852c2d7247f847d38a1",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
@@ -687,7 +722,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "2e06ba18e3de4b3c46c22cfc21c4739970e584d098925d7c11b0baf7cb27b6ce",
+      "sha256": "2d23eb459ce5eaa458e9acd02be9d14ddda0a434ebc0a4e5784c8ee718dcd904",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -787,7 +822,7 @@
       "children": []
     },
     "lib/npm-update-hosted-hook.mjs": {
-      "sha256": "7cb0fa070365aa81bb6511dc8ec5aaa5121e85c343928f5ce0753f4892be93d6",
+      "sha256": "90f929e20affdb334c2945b0eacc64e572e0d9b82ac69db17ac817517359d2e3",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-invariants.mjs",
@@ -1199,7 +1234,7 @@
       "children": []
     },
     "lib/npm-update-tool-launcher.mjs": {
-      "sha256": "03e58c15ceee04a80a2c2a597454132ab742fc13c878eb1cb742a6ee0e045045",
+      "sha256": "c14c992035afd5e107fdf3b5159699a1e49b398f66d971078f13dce28b51eec8",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "lib/npm-update-contract.mjs",
@@ -1317,6 +1352,44 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/push-admission.mjs": {
+      "sha256": "b748b7a65518ba71e5579a363716cdd1afea51be1b3e0ab72b4d82c679adfd4d",
+      "staticImports": [
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/push-gate-defaults.mjs": {
+      "sha256": "3d6c68c6a9840007f9996dd3c018a8f6d41e663b2fdbc9efa599ea55c03eef1d",
+      "staticImports": [
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/push-timing.mjs": {
+      "sha256": "31de9d9357839e7e63292a4c18ede6c7b66e2cc2d562ede80036cc90f24d0d9f",
+      "staticImports": [
+        "lib/bounded-spawn.mjs",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/rspec-selection.mjs": {
+      "sha256": "20304b4b4c8798005908f23df627103721f929c9995db1afb59f9ed00a1a8c36",
+      "staticImports": [
+        "lib/affected-tests.mjs",
+        "lib/push-gate-defaults.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/usage-artifact-ref.mjs": {
       "sha256": "1f71d1e885b929ab8c6e80ec4ce8a3648b6debd0d1b6ff51679655a5e117d413",
       "staticImports": [],
@@ -1413,8 +1486,9 @@
       "children": []
     },
     "lisa-gates.mjs": {
-      "sha256": "94640dede038608239edea5cffbf0227a86d77b3e4b9b9c6e3762369fa2de259",
+      "sha256": "ffb2e8d96c4a30bcf0312ca6ca89bd4b04962e33b85faa7e48bb08520851a7c4",
       "staticImports": [
+        "lib/gate-pass-cache.mjs",
         "lib/invoked-as-script.mjs",
         "node:crypto",
         "node:fs",
@@ -1438,7 +1512,7 @@
       "children": []
     },
     "lisa-mutation.sh": {
-      "sha256": "dfe6e7a208fe72d02355548d9aba8484748b7d95eca0bf989043008311af29c4",
+      "sha256": "dd62950d6f13b9eae7e879b9de24ec1d19dc985634a2d921e003ede5a6f56a81",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1482,15 +1556,35 @@
         "lisa-work-item.mjs"
       ]
     },
-    "lisa-run-gates.mjs": {
-      "sha256": "62f3b3b78419a53ca3d9c0ed2e2ce2d8952a54674ab11bfe77cdf02b61115e74",
+    "lisa-rspec-select.mjs": {
+      "sha256": "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
       "staticImports": [
+        "lib/affected-tests.mjs",
+        "lib/invoked-as-script.mjs",
+        "lib/rspec-selection.mjs",
+        "node:child_process",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lisa-run-gates.mjs": {
+      "sha256": "fa78b5b7756ff5407931e066b7fc12076551a5af272d91fe6ff2610b7117d283",
+      "staticImports": [
+        "lib/affected-tests.mjs",
         "lib/bounded-spawn.mjs",
+        "lib/build-marker.mjs",
         "lib/gate-failure-diagnosis.mjs",
+        "lib/gate-pass-cache.mjs",
         "lib/invoked-as-script.mjs",
         "lib/kill-marks.mjs",
         "lib/lisa-cleanup-sweep.mjs",
         "lib/process-tree-runner.mjs",
+        "lib/push-admission.mjs",
+        "lib/push-gate-defaults.mjs",
+        "lib/push-timing.mjs",
         "lib/worktree-dependencies.mjs",
         "lisa-gates.mjs",
         "node:fs",
@@ -1502,12 +1596,6 @@
         "lib/process-tree-runner.mjs",
         "lisa-gates.mjs"
       ]
-    },
-    "lisa-scratch-run.sh": {
-      "sha256": "76ccf8ca6f98b214361f02ebf6ad58041129b76ed29128455e810095db6c292f",
-      "staticImports": [],
-      "dynamicImports": [],
-      "children": []
     },
     "lisa-test-node.mjs": {
       "sha256": "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",

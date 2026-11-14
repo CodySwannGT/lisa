@@ -94,6 +94,10 @@ async function deadOwnerMarker(): Promise<string> {
   children.push(owner);
   owner.kill("SIGKILL");
   await exited;
+  // An unread start time would make this a different case from the one under
+  // test; say so instead of failing later as a missing kill.
+  if (marker.endsWith(":0"))
+    throw new Error(`dead owner's start time was unreadable: ${marker}`);
   return marker;
 }
 
@@ -110,6 +114,29 @@ async function ended(pid: number, deadlineMs = 5_000): Promise<boolean> {
     await new Promise(resolve => setTimeout(resolve, 50));
   }
   return !isAlive(pid);
+}
+
+/**
+ * Wait until every pid is listed with an owner marker, or fail at a deadline.
+ * @param pids - Children the sweep must see
+ * @param deadlineMs - Longest wait
+ */
+async function markersListed(
+  pids: ReadonlySet<number | undefined>,
+  deadlineMs = 10_000
+): Promise<void> {
+  const until = Date.now() + deadlineMs;
+  for (;;) {
+    const marked = listProcesses().filter(
+      row => pids.has(row.pid) && row.owner !== null
+    );
+    if (marked.length === pids.size) return;
+    if (Date.now() >= until)
+      throw new Error(
+        `only ${marked.length} of ${pids.size} children listed with a marker after ${deadlineMs} ms`
+      );
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
 }
 
 afterEach(() => {
@@ -154,8 +181,10 @@ describe("cleanup sweep, real filesystem and processes", () => {
       const orphan = markedChild(await deadOwnerMarker());
       const liveChild = markedChild(ownerMarkerFor(process.pid));
       const ours = new Set([orphan.pid, liveChild.pid]);
-      // Let both start so the listing shows their real environment.
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Wait until the real listing shows both children with their markers.
+      // A fixed sleep lost this race under full-suite load: a child not yet
+      // listed with its environment is (correctly) spared, so nothing died.
+      await markersListed(ours);
       const result = await sweepOrphans({
         listProcesses: () => listProcesses().filter(row => ours.has(row.pid)),
         graceMs: 200,

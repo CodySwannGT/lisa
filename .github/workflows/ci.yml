@@ -34,6 +34,14 @@ jobs:
       # so more legs can still reach the target; 10 is the smallest count
       # estimated to.
       unit_test_shards: 10
+      # Split the integration suite across parallel legs (#4599). The plan job
+      # assigns files longest-processing-time-first from the newest recorded
+      # integration timings and keeps the history-scanner suites in one leg;
+      # every leg reuses one shared build. `🔍 Quality Checks / 🧪 Run
+      # Integration Tests` stays the one required check. 3 is the issue's
+      # starting count for ~660 s of integration work; re-choose it from the
+      # plan job's printed per-shard totals once a run has recorded them.
+      integration_test_shards: 3
     secrets: inherit
   bin_smoke:
     name: Lisa CLI bin smoke

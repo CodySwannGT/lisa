@@ -16,9 +16,15 @@ import {
 } from "../helpers/io-latency-budget.js";
 import { stepsIn } from "./quality-gate-facade-fixture.js";
 
-// One proof waits for the actual 30-second production timer. Its quiet-box
-// budget leaves the required 2x margin; other cases exit immediately.
-useIoLatencyBudget(75_000);
+// The quiet-command proof runs the real timer process at a one-second
+// interval instead of sitting out the production 30 seconds
+// (CodySwannGT/lisa#4616, audit integration row 4). The 30-second interval
+// itself is pinned as text on the same workflow body, so a change to it still
+// fails here. Every other case exits immediately.
+useIoLatencyBudget(20_000);
+
+/** The production interval, as the workflow body spells it. */
+const PRODUCTION_INTERVAL = "}, 30000);";
 
 const steps = stepsIn("test_unit");
 const configured = steps.find(step => step.id === "gate_run");
@@ -71,7 +77,7 @@ function execute(root: string, body: string, env: Record<string, string>) {
     command: "bash",
     args: ["--noprofile", "--norc", "-e", "-o", "pipefail", "-c", observed],
     cwd: root,
-    baseMs: 37_500,
+    baseMs: 10_000,
     label: "unit-test progress workflow",
     env: {
       PATH: `${path.join(root, "bin")}${path.delimiter}${process.env.PATH}`,
@@ -127,13 +133,28 @@ describe("unit-test workflow progress", () => {
     }
   );
 
-  it("reports a real quiet command at 30 seconds, then reaps its timer", () => {
+  it.each([
+    ["configured", configured],
+    ["fallback", fallback],
+  ])("%s step reports progress every 30 seconds", (_name, step) => {
+    const body = step?.run ?? "";
+    expect(body.split(PRODUCTION_INTERVAL)).toHaveLength(2);
+    expect(body).toContain("A progress notice will appear every 30 seconds");
+  });
+
+  it("reports a real quiet command at its interval, then reaps its timer", () => {
     const root = fixture();
-    const result = execute(root, configured?.run ?? "exit 99", {
-      GATE_RUNNER: "node",
-      GATE_TASK: "probe.cjs",
-      PROBE_DELAY: "31500",
-    });
+    const body = configured?.run ?? "exit 99";
+    expect(body).toContain(PRODUCTION_INTERVAL);
+    const result = execute(
+      root,
+      body.replace(PRODUCTION_INTERVAL, "}, 1000);"),
+      {
+        GATE_RUNNER: "node",
+        GATE_TASK: "probe.cjs",
+        PROBE_DELAY: "1500",
+      }
+    );
 
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain("Command is still running (");

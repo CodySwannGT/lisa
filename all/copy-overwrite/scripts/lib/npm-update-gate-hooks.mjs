@@ -100,7 +100,8 @@ export function controllerGraph(graph, routes = []) {
     }
   }
   required(
-    Object.keys(expected).length <= 128,
+    // 256, like the helper graph: at 128 the managed inventory sat at the cap.
+    Object.keys(expected).length <= 256,
     "configured helper/configuration closure exceeds bound"
   );
   return expected;

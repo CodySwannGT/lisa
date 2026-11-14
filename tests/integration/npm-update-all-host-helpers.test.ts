@@ -58,7 +58,6 @@ const ENTRIES = [
 ];
 const NEWLY_COMMON = [
   "lisa-clean-git-env.sh",
-  "lisa-scratch-run.sh",
   "check-threshold-ratchet.mjs",
   "threshold-ratchet-families.mjs",
   "threshold-ratchet-compare.mjs",
@@ -166,8 +165,9 @@ describe("all-only npm host controller materialization", () => {
         join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
       );
       // 127 -> 131: CodySwannGT/lisa#4859 adds npm-update-tracker,
-      // -tracker-jira, -tracker-linear and -tracker-wire to the helper closure.
-      expect(managedTemplateMembers().size).toBe(131);
+      // -tracker-jira, -tracker-linear and -tracker-wire to the helper closure;
+      // 131 -> 138: the fast-push gate helpers (CodySwannGT/lisa#4582).
+      expect(managedTemplateMembers().size).toBe(138);
     },
     ioLatencyBudgetMs(30_000)
   );
@@ -175,7 +175,7 @@ describe("all-only npm host controller materialization", () => {
   it.each(["absent", "mutated", "symlink"] as const)(
     "refuses a newly universal member that is %s before returning controller authority",
     async mode => {
-      const target = join(cwd, "scripts/lisa-scratch-run.sh");
+      const target = join(cwd, "scripts/lisa-clean-git-env.sh");
       const bytes = readFileSync(target);
       if (mode === "mutated")
         writeFileSync(
@@ -188,7 +188,7 @@ describe("all-only npm host controller materialization", () => {
           symlinkSync(
             join(
               owner.root,
-              managedTemplateMembers().get("lisa-scratch-run.sh")!
+              managedTemplateMembers().get("lisa-clean-git-env.sh")!
             ),
             target
           );

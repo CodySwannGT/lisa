@@ -139,7 +139,8 @@
     ".github/workflows/lisa-update.yml",
     "scripts/lisa-self-update.mjs",
     "scripts/lisa-hooks/parity-safety-net.sh",
-    ".opencode/plugin/lisa-parity-safety-net.ts"
+    ".opencode/plugin/lisa-parity-safety-net.ts",
+    "scripts/lisa-scratch-run.sh"
   ],
   "keep": [
     "scripts/setup-deploy-key.sh",
@@ -283,7 +284,8 @@
     ".github/workflows/lisa-update.yml": "legacy: the scheduled Lisa Update workflow (4.67.0-4.68.x) opened update pull requests as a bot and so needed a PAT secret in every repository; replaced by the local session-start auto-update (CodySwannGT/lisa#4337), which needs no token",
     "scripts/lisa-self-update.mjs": "legacy: the self-update script (4.67.0-4.68.x) only ever ran from the scheduled Lisa Update workflow, retired with it in CodySwannGT/lisa#4337; removed only while unedited and unreferenced (CodySwannGT/lisa#4393)",
     "scripts/lisa-hooks/parity-safety-net.sh": "legacy: the parity-safety-net hook copy, retired to a no-op in CodySwannGT/lisa#4672 and no longer shipped from CodySwannGT/lisa#4803; nothing Lisa ships calls it. Removed only while byte-identical to a version in the hash ledger and unreferenced",
-    ".opencode/plugin/lisa-parity-safety-net.ts": "legacy: the OpenCode adapter for the parity-safety-net hook, retired to a no-op in CodySwannGT/lisa#4672 and no longer shipped from CodySwannGT/lisa#4803. Removed only while byte-identical to a shipped version and unreferenced"
+    ".opencode/plugin/lisa-parity-safety-net.ts": "legacy: the OpenCode adapter for the parity-safety-net hook, retired to a no-op in CodySwannGT/lisa#4672 and no longer shipped from CodySwannGT/lisa#4803. Removed only while byte-identical to a shipped version and unreferenced",
+    "scripts/lisa-scratch-run.sh": "legacy: the Rails scratch supervisor (CodySwannGT/lisa#3335, #4371, #4372) that wrapped the pre-push and CI RSpec and mutation routes, retired in CodySwannGT/lisa#4603 in favour of the start-of-run cleanup sweep; the Lisa-managed lefthook.yml and quality-rails.yml no longer call it. Removed only while byte-identical to a shipped version and unreferenced"
   },
   "retireUnmodified": {
     ".github/workflows/lisa-update.yml": [
@@ -384,6 +386,13 @@
       "870365ad7876d8f2ba991e8654899fc888e6c37c4977508b8d790869654f647e",
       "a7bf88e6e5aa39b95785ec2522d9ee9b56b69935a17350fd7b5c06aea396fbc7",
       "b8c5cce685557676782daa5c4cc932a3f3deb647ead8b2de3efd5157ab135003"
+    ],
+    "scripts/lisa-scratch-run.sh": [
+      "375f52fc823be97c9d12a774b15ad353c5ef2d99e8073cc7ca94dfbdcb62fe72",
+      "53dc40fb45907273b435a280a22ceb65d4edf7aecec60e154801552a3b219464",
+      "6fdec1ad0441d7636dc6749c44a23167baf7b75004f156b8a7d4ce1c18c790b7",
+      "76ccf8ca6f98b214361f02ebf6ad58041129b76ed29128455e810095db6c292f",
+      "ef3c38f8d1d2f48ba265e21f841310d25142228dac57b0a5742c7d902113ca9a"
     ]
   }
 }

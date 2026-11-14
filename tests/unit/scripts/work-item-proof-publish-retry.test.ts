@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
@@ -24,9 +24,20 @@ import {
 import {
   proofFixture,
   proofCli,
+  proofCliSpawned,
   PROOF_REF,
   setApi,
 } from "../../support/work-item-proof-fixture.js";
+
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 10).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
 
 const MARKER = "[lisa-completion-authorization]\n";
 const LISTING = [
@@ -51,12 +62,16 @@ interface Asset {
 /**
  * Publish the fixture's coherent accepted record through the actual CLI.
  * @param fixture - Owned disposable repository and controlled provider.
- * @returns The actual spawn result.
+ * @param run - In-process by default; the real-boundary case spawns.
+ * @returns The actual CLI result.
  */
-function publish(fixture: ProofFixture) {
+function publish(
+  fixture: ProofFixture,
+  run: typeof proofCli | typeof proofCliSpawned = proofCli
+) {
   const file = path.join(fixture.root, "record-input.json");
   writeFileSync(file, JSON.stringify(fixture.record));
-  return proofCli(fixture, [
+  return run(fixture, [
     "publish-completion-proof",
     "--ref",
     PROOF_REF,
@@ -151,7 +166,7 @@ describe("publish-completion-proof under transient GitHub reads", () => {
         { kind: "assets" },
       ],
     });
-    const result = publish(fixture);
+    const result = publish(fixture, proofCliSpawned);
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
     const publication = JSON.parse(result.stdout);

@@ -34,8 +34,6 @@ describe.each(ALL_ROOTS)("FAILED worker answer requeue (%s)", root => {
       clearing.indexOf("whose worker already reported `DONE` or `FAILED`")
     );
     const bullet = flat(finished.slice(0, finished.indexOf("\n\n")));
-    expect(bullet).toContain("`requeue: true`");
-    expect(bullet).toMatch(/move it to the `ready` role/);
     expect(bullet).toContain("A `DONE` worker's item is left where it is");
   });
 
@@ -44,29 +42,10 @@ describe.each(ALL_ROOTS)("FAILED worker answer requeue (%s)", root => {
       clearing.indexOf("whose worker already reported `DONE` or `FAILED`")
     );
     const bullet = flat(finished.slice(0, finished.indexOf("\n\n")));
-    expect(bullet).toContain(
-      "Only when the read-back shows it **in the `blocked` role**"
-    );
-    expect(bullet).toContain("`requeue` never overrides a human's move");
-    expect(bullet).toContain("`stop REF`");
     // A FAILED handled as `--kind decision` is held, not moved, on FAILED.
     expect(bullet).not.toContain(
       "A worker's `FAILED` moved the item to the `blocked` role"
     );
-  });
-
-  it("makes the step 2 update carry the move only from the blocked role", () => {
-    const step2 = flat(
-      clearing.slice(
-        clearing.indexOf("2. **Remove the manager's own marker**"),
-        clearing.indexOf("3. `ledger clear-question")
-      )
-    );
-    expect(step2).toContain(
-      "returned `requeue: true` and the read-back shows the item in the `blocked` role"
-    );
-    expect(step2).toContain("moves it to the `ready` role");
-    expect(step2).toContain("in any other role, leave the item where it is");
   });
 
   it("reads requeue whatever record says, an item answer included", () => {

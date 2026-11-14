@@ -132,7 +132,7 @@ describe("qualified runtimes in required CI execution paths", () => {
       readFileSync(path.join(ROOT, "package.json"), "utf8")
     ) as { scripts: Record<string, string> };
     expect(manifest.scripts["lisa-test-run"]).toBe(
-      "node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa"
+      "node scripts/lib/worktree-dependencies.mjs && node scripts/build-unless-marked.mjs && node dist/cli/lisa-test-run.js --profile lisa"
     );
     expect(items.some(step => step.run === "bun run build")).toBe(false);
     expect(

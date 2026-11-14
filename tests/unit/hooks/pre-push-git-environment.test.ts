@@ -105,34 +105,39 @@ describe("pre-push Git environment isolation", () => {
     const source = await readFile(RAILS_LEFTHOOK, "utf8");
     const wrapper = "sh scripts/lisa-clean-git-env.sh";
     // The git-environment wrapper stays OUTERMOST on every command. The two
-    // commands that create scratch — RSpec and the Mutant gate — additionally
-    // pass through the scratch supervisor, which sits INSIDE this wrapper: the
-    // supervisor and everything it launches must see the cleaned environment
-    // too, and a supervisor placed outside would hand its payload the
-    // repository-local GIT_* variables this wrapper exists to remove.
-    const supervised = "sh scripts/lisa-scratch-run.sh --suite";
+    // test commands — RSpec and the Mutant gate — run the start-of-run sweep
+    // and then their payload INSIDE this wrapper, so both see the cleaned
+    // environment rather than the repository-local GIT_* variables this
+    // wrapper exists to remove (CodySwannGT/lisa#4603).
+    const swept = "sh -c 'if command -v node";
     expect(source.indexOf("validate-push {1}")).toBeLessThan(
-      source.indexOf(
-        `${wrapper} ${supervised} prepush-rspec -- bundle exec rspec`
-      )
+      source.indexOf(`${wrapper} ${swept}`)
     );
-    for (const command of [
-      "bundle exec bundler-audit check --update",
-      "bundle exec brakeman --no-pager --quiet",
-      "bundle exec reek app/ lib/",
-      "bundle exec flog --all --group app/ lib/",
-      "bundle exec flay app/ lib/",
-    ]) {
-      expect(source).toContain(`${wrapper} ${command}`);
+    expect(source).toContain(
+      `${wrapper} bundle exec bundler-audit check --update`
+    );
+    // The static analysers run through the Rails gate script (pass cache,
+    // CodySwannGT/lisa#4613) INSIDE the wrapper, and fall back to the bare
+    // command, still inside it, when node or the script is absent.
+    const gated = (id: string, command: string): string =>
+      `${wrapper} sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs ${id}; fi; exec ${command}'`;
+    for (const [id, command] of [
+      ["brakeman", "bundle exec brakeman --no-pager --quiet"],
+      ["reek", "bundle exec reek app/ lib/"],
+      ["flog", "bundle exec flog --all --group app/ lib/"],
+      ["flay", "bundle exec flay app/ lib/"],
+    ] as const) {
+      expect(source).toContain(gated(id, command));
     }
-    for (const [suite, payload] of [
-      ["prepush-rspec", "bundle exec rspec"],
-      ["prepush-mutant", "bash scripts/lisa-mutation.sh"],
+    for (const payload of [
+      "bundle exec rspec",
+      "bash scripts/lisa-mutation.sh",
     ]) {
-      expect(source).toContain(
-        `${wrapper} ${supervised} ${suite} -- ${payload}`
-      );
+      expect(source).toContain(`exec ${payload}'`);
     }
+    // rspec and mutation (sweep first) plus the four static analysers.
+    expect(source.split(`${wrapper} ${swept}`)).toHaveLength(7);
+    expect(source).not.toContain("lisa-scratch-run.sh");
   });
 
   it("cleans Rails command environments and preserves foreign-repo discovery", async () => {

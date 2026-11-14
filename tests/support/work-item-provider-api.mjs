@@ -9,14 +9,17 @@ const ESCAPE_FLAG = "--allow-escape-sequences";
  * @param args - Exact native CLI argument vector.
  * @param env - Owned fixture transport configuration.
  * @param state - Native state changed only by recorded operations.
+ * @param io - Where output goes and stdin comes from: the real process
+ *   streams when the fake runs as an executable, captured buffers when a
+ *   suite runs it in-process (see work-item-stateful-gh-core.mjs).
  * @returns Whether this explicit provider resource was handled.
  */
-export function serveProviderApi(args, env, state) {
+export function serveProviderApi(args, env, state, io) {
   if (!env.FAKE_GH_API_FILE) return false;
   const table = JSON.parse(readFileSync(env.FAKE_GH_API_FILE, "utf8"));
   const repository = env.FAKE_GH_REPOSITORY ?? "acme/code";
   const root = `repos/${repository}`;
-  const send = value => process.stdout.write(`${JSON.stringify(value)}\n`);
+  const send = value => io.out(`${JSON.stringify(value)}\n`);
   const assets = () =>
     JSON.parse(readFileSync(env.FAKE_GH_ASSET_INDEX, "utf8"));
   const selected = table[JSON.stringify(args)];
@@ -39,10 +42,10 @@ export function serveProviderApi(args, env, state) {
     env.FAKE_GH_ESCAPE_MODE === "unknown-flag" &&
     args.includes(ESCAPE_FLAG)
   ) {
-    process.stderr.write(
+    io.err(
       `unknown flag: ${ESCAPE_FLAG}\n\nUsage:  gh api <endpoint> [flags]\n`
     );
-    process.exitCode = 1;
+    io.fail(1);
     return true;
   }
   if (row) {
@@ -51,11 +54,11 @@ export function serveProviderApi(args, env, state) {
       writeFileSync(env.FAKE_GH_STATE_FILE, JSON.stringify(state));
     }
     if (row.failure) {
-      process.stderr.write(row.failure);
-      process.exitCode = 1;
+      io.err(row.failure);
+      io.fail(1);
     } else if (row.kind === "comments") send([state.comments ?? []]);
     else if (row.kind === "assets") send([assets()]);
-    else if (row.file) process.stdout.write(readFileSync(row.file));
+    else if (row.file) io.out(readFileSync(row.file));
     else send(row.json);
     return true;
   }
@@ -64,8 +67,8 @@ export function serveProviderApi(args, env, state) {
   // exactly as GitHub's does, so the validator's release check is exercised.
   if (args[0] === "release" && args[1] === "upload") {
     if (env.FAKE_GH_UPLOAD_FAILURE) {
-      process.stderr.write(env.FAKE_GH_UPLOAD_FAILURE);
-      process.exitCode = 1;
+      io.err(env.FAKE_GH_UPLOAD_FAILURE);
+      io.fail(1);
       return true;
     }
     const tag = args[2];
@@ -85,7 +88,7 @@ export function serveProviderApi(args, env, state) {
     writeFileSync(join(env.FAKE_GH_ASSET_DIRECTORY, `${id}.bin`), bytes);
     index.push(metadata);
     writeFileSync(env.FAKE_GH_ASSET_INDEX, JSON.stringify(index));
-    process.stdout.write(`Uploaded ${name}\n`);
+    io.out(`Uploaded ${name}\n`);
     return true;
   }
   const endpoint = args.find(value => value.startsWith("repos/"));
@@ -101,12 +104,12 @@ export function serveProviderApi(args, env, state) {
       env.FAKE_GH_ESCAPE_MODE === "refuse-escapes" &&
       !args.includes(ESCAPE_FLAG)
     ) {
-      process.stderr.write(
+      io.err(
         `the response contains terminal escape sequences; pass ${ESCAPE_FLAG} to output it anyway\n`
       );
-      process.exitCode = 1;
+      io.fail(1);
     } else if (args.includes("Accept: application/octet-stream"))
-      process.stdout.write(
+      io.out(
         readFileSync(join(env.FAKE_GH_ASSET_DIRECTORY, `${metadata.id}.bin`))
       );
     else send(metadata);
@@ -117,7 +120,7 @@ export function serveProviderApi(args, env, state) {
     args.includes("POST") &&
     endpoint === `${root}/issues/${state.number}/comments`
   ) {
-    const payload = JSON.parse(readFileSync(0, "utf8"));
+    const payload = JSON.parse(io.stdin().toString("utf8"));
     const comment = {
       id: 1000 + (state.comments?.length ?? 0),
       body: payload.body,

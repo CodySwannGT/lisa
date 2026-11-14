@@ -1,6 +1,6 @@
 /** Each unusable proof reaches both real production entry points. */
 import { readFileSync } from "node:fs";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
@@ -11,9 +11,21 @@ import {
   proofFixture,
   attachRecord,
   proofCli,
+  proofCliSpawned,
   PROOF_REF,
 } from "../../support/work-item-proof-fixture.js";
 import { DENIALS } from "../../support/work-item-proof-denials.js";
+
+// The controlled provider answers in-process (work-item-inprocess-gh.ts). The
+// first denial on each route still runs the guard and the provider as real
+// processes, so both production entry points keep a real-boundary proof
+// (CodySwannGT/lisa#4616, audit unit row 5).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
+const REAL_BOUNDARY = DENIALS[0];
 
 useIoLatencyBudget();
 afterEach(cleanupFixtures);
@@ -31,7 +43,10 @@ describe.each(["direct", "applying sweep"])(
         route === "direct"
           ? ["complete", "--ref", PROOF_REF]
           : ["sweep", "--apply", "--since", fixture.before, "--branch", "main"];
-      const result = proofCli(fixture, args);
+      const result = (scenario === REAL_BOUNDARY ? proofCliSpawned : proofCli)(
+        fixture,
+        args
+      );
       const writes = readFileSync(fixture.env.FAKE_GH_WRITES_FILE!, "utf8");
       const unhandled = readFileSync(
         fixture.env.FAKE_GH_UNHANDLED_FILE!,

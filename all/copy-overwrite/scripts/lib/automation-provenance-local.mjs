@@ -208,6 +208,27 @@ export function proofSnapshot() {
   return { paths, optional, bytes, bundleBytes, descriptor };
 }
 
+/** Ceiling on one canonical tracker read, whatever deadline is inherited. */
+const RESOLVER_TIMEOUT_MS = 30_000;
+
+/**
+ * The canonical resolver's per-read deadline. It deliberately ignores the
+ * inherited `LISA_WORK_ITEM_TIMEOUT_MS`, so a zero or a huge value there cannot
+ * unbound it. `LISA_PROVENANCE_RESOLVER_TIMEOUT_MS` may only shorten it (a
+ * shorter deadline can only refuse sooner), which lets a suite prove a hung
+ * resolver is refused without sitting out thirty seconds.
+ * @param {Readonly<Record<string, string | undefined>>} env Process environment.
+ * @returns {number} Deadline in milliseconds.
+ */
+export function resolverTimeoutMs(env = process.env) {
+  const requested = Number(env.LISA_PROVENANCE_RESOLVER_TIMEOUT_MS);
+  return Number.isSafeInteger(requested) &&
+    requested > 0 &&
+    requested < RESOLVER_TIMEOUT_MS
+    ? requested
+    : RESOLVER_TIMEOUT_MS;
+}
+
 /** Reuse the shipped resolver and retain current canonical lifecycle requirements. */
 export function canonicalContext(message, config, policy, descriptor) {
   const context = resolveWorkItemContext(message, {
@@ -216,7 +237,7 @@ export function canonicalContext(message, config, policy, descriptor) {
     execute: (command, args, options) =>
       run(command === "gh" ? policy.ghExecutable : command, args, {
         ...options,
-        timeout: 30_000,
+        timeout: resolverTimeoutMs(),
         maxBuffer: 1_048_576,
         env: { ...process.env, GH_HOST: "github.com" },
       }),

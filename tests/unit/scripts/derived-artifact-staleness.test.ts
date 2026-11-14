@@ -286,7 +286,7 @@ describe("local test command covers the same files as CI", () => {
     // delegating — is unchanged and now strictly stronger; only the literal
     // moved.
     expect(scripts["lisa-test-run"]).toBe(
-      "node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa"
+      "node scripts/lib/worktree-dependencies.mjs && node scripts/build-unless-marked.mjs && node dist/cli/lisa-test-run.js --profile lisa"
     );
   });
 

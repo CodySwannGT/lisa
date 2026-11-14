@@ -18,6 +18,7 @@ import {
 } from "../../src/utils/usage-accounting.js";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import {
+  cli,
   createFixture,
   githubConfig,
   git,
@@ -187,13 +188,49 @@ export function attachRecord(
   writeFileSync(fixture.env.FAKE_GH_STATE_FILE!, JSON.stringify(state));
 }
 
+/** What one proof CLI invocation produced, in the spawned result's shape. */
+export interface ProofOutcome {
+  status: number;
+  stderr: string;
+  stdout: string;
+}
+
 /**
- * Execute the live canonical MJS, never an app-dist replacement.
+ * Run the live canonical MJS in-process, through the shared `cli()` harness.
+ *
+ * The proof suites used to spawn the CLI for every case. A spawn costs a whole
+ * Node start and module load per case, and it hides the guard from the
+ * mutation gate, which credits only code loaded in the test's own process
+ * (CodySwannGT/lisa#4616, docs/test-audit-2026-11.md). Each proof suite keeps
+ * at least one case on {@link proofCliSpawned}, so the real executable boundary
+ * is still proven once per behaviour family; the repetitions run here.
+ *
+ * Same environment as the spawned run, including the blanked tokens. The
+ * working directory is NOT the fixture root here (the mutation gate's threads
+ * pool forbids `process.chdir`; `cli()` selects the repository through
+ * `GIT_DIR`/`GIT_WORK_TREE` instead), so a path argument must be absolute.
+ * Every one the proof suites pass is.
+ * @param fixture - Owned disposable repository and controlled provider.
+ * @param args - Exact provider or CLI argument vector.
+ * @returns Exit status (0 when unset) and captured output.
+ */
+export function proofCli(fixture: Fixture, args: string[]): ProofOutcome {
+  const outcome = cli(fixture, args, { GH_TOKEN: "", GITHUB_TOKEN: "" });
+  return {
+    status: outcome.exitCode ?? 0,
+    stderr: outcome.stderr,
+    stdout: outcome.stdout,
+  };
+}
+
+/**
+ * Execute the live canonical MJS as a real child, never an app-dist
+ * replacement. Each proof suite keeps at least one case here.
  * @param fixture - Owned disposable repository and controlled provider.
  * @param args - Exact provider or CLI argument vector.
  * @returns Actual executable exit and captured output.
  */
-export function proofCli(fixture: Fixture, args: string[]) {
+export function proofCliSpawned(fixture: Fixture, args: string[]) {
   return boundedSpawnSync({
     label: `actual completion CLI ${args[0]}`,
     command: process.execPath,

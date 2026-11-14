@@ -95,6 +95,13 @@
       }
     }
   },
+  "pushGate": {
+    "cache": true,
+    "buildOnce": true,
+    "admission": true,
+    "affectedTests": true,
+    "affectedCoverage": "changed-files"
+  },
   "gates": {
     "runner": "bun run",
     "code-style": {
@@ -149,11 +156,17 @@
       "pull-request": "optional"
     },
     "traceability": {
-      "push": "required",
+      "push": {
+        "level": "required",
+        "cache": false
+      },
       "pull-request": "required"
     },
     "threshold-monotonicity": {
-      "push": "optional"
+      "push": {
+        "level": "optional",
+        "cache": false
+      }
     },
     "dead-code": {
       "run": "knip:check",
@@ -209,7 +222,8 @@
     "x-orphan-fixture-processes": {
       "push": {
         "level": "optional",
-        "run": "check:orphan-processes"
+        "run": "check:orphan-processes",
+        "cache": false
       }
     },
     "x-failure-signature-index": {
@@ -221,13 +235,15 @@
     "x-withdrawn-rulings": {
       "push": {
         "level": "required",
-        "run": "check:withdrawn-rulings"
+        "run": "check:withdrawn-rulings",
+        "cache": false
       }
     },
     "x-operational-hazards": {
       "push": {
         "level": "required",
-        "run": "check:operational-hazards"
+        "run": "check:operational-hazards",
+        "cache": false
       }
     },
     "x-plugin-artifact-sync": {

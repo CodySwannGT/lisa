@@ -219,13 +219,33 @@ export function privateResult(file) {
 }
 
 /**
+ * The most one stage may spend of the original phase. Browser and driver
+ * stages are capped well inside it, so a hung browser leaves the phase time
+ * the cleanup observations after it still need.
+ * @param {string} stage Qualification stage.
+ * @returns {number} Stage ceiling in milliseconds.
+ */
+export function stageBoundMs(stage) {
+  return BROWSER_STAGES.has(stage) ||
+    [DRIVER_STAGE, DRIVER_QUALIFICATION].includes(stage)
+    ? 10000
+    : 1800000;
+}
+
+/**
  * The existing native supervisor retains real status and privately bounded streams even on refusal.
  * @param {string} captures Owned private capture directory.
  * @param {number} deadline Original absolute expiry.
  * @param {Array<object>} records Metadata-only event collection.
+ * @param {function(string): number} [boundFor] Stage ceiling; a test shortens it so a real hang is killed without sitting out ten seconds.
  * @returns {function(string, string, object, string, Array<string>): Promise<object>} Original supervised command recorder.
  */
-export function nativeRecorder(captures, deadline, records) {
+export function nativeRecorder(
+  captures,
+  deadline,
+  records,
+  boundFor = stageBoundMs
+) {
   return async (stage, cwd, env, command, args) => {
     required(STAGES.has(stage), "unknown qualification stage");
     const started = performance.now();
@@ -236,13 +256,7 @@ export function nativeRecorder(captures, deadline, records) {
       state.result = await runProcess(command, args, {
         cwd,
         env,
-        timeout: runtimeTime(
-          deadline,
-          BROWSER_STAGES.has(stage) ||
-            [DRIVER_STAGE, DRIVER_QUALIFICATION].includes(stage)
-            ? 10000
-            : 1800000
-        ),
+        timeout: runtimeTime(deadline, boundFor(stage)),
         maximum: 3145728,
       });
     } catch (error) {

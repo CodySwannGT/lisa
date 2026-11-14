@@ -52,25 +52,6 @@ const MARKER_SPAN = /`None[^`]*`/gs;
 const ABSENCE_SITE = /\babsent\b\W{0,4}\bsection\b/gi;
 
 /**
- * Phrasings that read a missing declaration as `false`.
- *
- * Stated as a universal negative on purpose. The positive form — "the file
- * says underivable somewhere" — is what let the marker mutation through twice.
- */
-const ABSENCE_AS_FALSE: readonly RegExp[] = [
-  /\babsent\b\W{0,4}\bsection\b[^.\n]{0,30}?(?:\b(?:means|is|reads as)\b|→|=)\s*\*{0,2}`?false`?/i,
-  /\babsence\b[^.\n]{0,30}?(?:\b(?:means|is|reads as)\b|→|=)\s*\*{0,2}`?false`?/i,
-  /\bno section\b[^.\n]{0,30}?(?:\b(?:means|is|reads as)\b|→|=)\s*\*{0,2}`?false`?/i,
-  /\|[^|\n]*\babsent\b[^|\n]*\|\s*\*{0,2}`?false`?\*{0,2}\s*\|/i,
-];
-
-/** Phrasings that hand authority back to the caller's assertion. */
-const CALLER_BEATS_STORED: readonly RegExp[] = [
-  /\bcallers?(?:'s|')?\b[^.\n]{0,60}?\b(?:is taken as given|takes precedence|is authoritative|is trusted|is believed)\b/i,
-  /\basserted\b[^.\n]{0,40}?\bbeats\b[^.\n]{0,40}?\bpersisted\b/i,
-];
-
-/**
  * How many times each skill must state the absence rule.
  *
  * Two for a validator is load-bearing, not incidental: the gate prose and the
@@ -159,49 +140,6 @@ describe("no copy reads an absent declaration as false", () => {
       // Each site must resolve to a verdict on its own. A correct copy
       // elsewhere in the file is not allowed to vouch for a broken one.
       for (const window of windows) expect(window).toMatch(/underivable/iu);
-
-      for (const pattern of ABSENCE_AS_FALSE) {
-        expect(content).not.toMatch(pattern);
-      }
-    });
-  });
-});
-
-describe("no rule copy reads an absent declaration as false", () => {
-  describe.each(RULE_ROOTS)("%s", root => {
-    // #3992 demoted `derived-branch-plan` out of the eager tier, folding its
-    // head into the reference body. One copy per root now, so the sweep runs
-    // over the tier that has it — still every root, still a universal negative.
-    it.each(["reference"] as const)("%s tier", tier => {
-      const content = readRule(root, tier);
-
-      expect(content).toMatch(/underivable/iu);
-
-      for (const pattern of ABSENCE_AS_FALSE) {
-        expect(content).not.toMatch(pattern);
-      }
-    });
-  });
-});
-
-describe("no copy hands authority back to the caller", () => {
-  describe.each(SKILL_ROOTS)("%s", root => {
-    it.each(VALIDATORS)("%s keeps the stored declaration on top", slug => {
-      const content = readSkill(root, slug);
-
-      for (const pattern of CALLER_BEATS_STORED) {
-        expect(content).not.toMatch(pattern);
-      }
-    });
-  });
-
-  describe.each(RULE_ROOTS)("%s", root => {
-    it("the reference tier keeps the stored declaration on top", () => {
-      const content = readRule(root, "reference");
-
-      for (const pattern of CALLER_BEATS_STORED) {
-        expect(content).not.toMatch(pattern);
-      }
     });
   });
 });

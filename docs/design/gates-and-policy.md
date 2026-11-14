@@ -283,6 +283,156 @@ over a subprocess is a measurement of the machine, not of the code**, and a
 suite that spawns a second copy of itself is the case where the machine is
 guaranteed to be busy.
 
+## A push pass is remembered by content
+
+A retry, or a re-push of a tree that already passed (a rebase that changes no
+content, a second branch, a push after a network failure), used to pay every
+push gate again. `lib/gate-pass-cache.mjs` remembers a push gate's pass under a
+sha256 key over everything its verdict can depend on: the pushed commit's tree,
+the gate id and exact command, every lockfile present, the node and bun
+versions, the `gates` blocks of `.lisa.config.json` and
+`.lisa.config.local.json`, and an environment allowlist (`NODE_OPTIONS`,
+`NODE_ENV`, `TZ`, and every `LISA_*` variable except the volatile
+`LISA_GATE_CACHE`, `LISA_PUSHED_REFS_FILE`, `LISA_CLEANUP_SWEPT` and the
+admission wait bounds `LISA_ADMISSION_MAX_WAIT` and
+`LISA_ADMISSION_PUSH_MAX_WAIT`, which decide when a gate starts, never what it
+proves). A hit
+prints `CACHED PASS (<first 12 hex of key>)`, counts as PASSED, and does not run.
+Entries live machine-wide under `${XDG_CACHE_HOME:-~/.cache}/lisa/gate-passes/`
+and are pruned after 30 days.
+
+Every rule fails toward running the gate:
+
+- The cache is read or filled only when the working tree is exactly the tree
+  being pushed — `git status --porcelain` empty and `HEAD^{tree}` equal to the
+  tree of every non-deletion pushed ref — and passes are written only after the
+  run, once the tree is re-read unchanged. A green must describe the pushed tree
+  (CodySwannGT/lisa#3874).
+- Only a full pass is remembered: never FAILED, KILLED, UNPROVABLE or NOT_RUN,
+  and never a pass read off a shared prover that did not itself pass.
+- A moment entry declares `"cache": false` beside `level` and `run` when its
+  verdict depends on anything outside the key. Lisa marks `traceability` (reads
+  the tracker), `threshold-monotonicity` (compares against `HEAD^`),
+  `x-orphan-fixture-processes` (live processes), and `x-operational-hazards` and
+  `x-withdrawn-rulings` (each also reads a machine ledger under `~/.lisa`). It
+  sits on the moment entry, like `failure_shape`, because an older Lisa refuses
+  an unknown gate-level key together with the whole gates block.
+- CI (`CI` or `GITHUB_ACTIONS` set) never reads or writes it; CI always runs the
+  full suite. `LISA_GATE_CACHE=off` switches it off for one run.
+- It is off unless `pushGate.cache` is `true` (a TypeScript project defaults it on), and while
+  off it is silent and touches nothing. Lisa turns it on for itself; TypeScript hosts get it
+  by default (CodySwannGT/lisa#4611) and Rails hosts per #4613. `lisa apply`
+  and the runner both refuse a value that is not `true` or `false`.
+
+### `lisa check`: fill the cache before the push
+
+Git opens the remote connection before the pre-push hook runs, and a hook that
+runs past about 35 minutes dies with exit 141 even when every gate passes
+(CodySwannGT/lisa#4505), so a long wait for machine headroom must not happen
+inside a push. `lisa check` (CodySwannGT/lisa#4601) runs the same push gates
+through the same runner — `lisa-run-gates.mjs --moment=push --coverage=<tmp>`,
+the project's copy when it has one, else the one the installed Lisa ships —
+against `HEAD`'s tree, outside the push. It sets `LISA_ADMISSION_MAX_WAIT`
+(default `30m`, `--max-wait <duration>` to change it) so admission may wait
+longer than the in-push bound. Its passes land in the cache, so the push that
+follows reports every cacheable gate as `CACHED PASS`.
+
+- A dirty working tree is refused (exit 1, "commit first"): the cache only
+  records a pass for a clean tree equal to the pushed commit.
+- A required gate that does not pass exits 1 with the runner's own lines.
+- With `pushGate.cache` off — a non-TypeScript host, or one that set it to `false` — or with
+  `LISA_GATE_CACHE=off` or under CI, it runs nothing and exits 0 with
+  `gate pass cache is off for this project; push directly (the push runs every
+  gate)`, because checking first would only run every gate twice. That is what
+  lets the pushing skills (`lisa-git-submit-pr`, `lisa-drive-pr-to-merge`,
+  `lisa-implement`) tell every agent to run `lisa check` before `git push`
+  unconditionally. Humans may keep pushing normally.
+
+In a Rails project (`bin/rails`, else `config/application.rb`, as the Rails
+detector decides) the push gates are lefthook's pre-push commands, not the
+gate registry, so `lisa check` runs `scripts/lisa-rails-gates.mjs --all`
+instead (CodySwannGT/lisa#4613). Each lefthook command calls that script with
+its own gate name, so check and push run the same commands under the same
+cache keys, which add `Gemfile.lock`, `ruby -v` and `bundle -v`. `pushGate.cache`
+and `pushGate.admission` default to on there; an explicit `false` wins. RSpec
+(and an enabled mutation gate) goes through `lisa admit`; a full run uses
+`parallel_rspec -n <granted>` only when the host's create-only
+`config/database.yml` names its test database with `TEST_ENV_NUMBER`. Work-item
+traceability and the history scan stay in `lisa-rails-prepush.mjs`, which
+reads Git's stdin, and are never cached. Because only that command reads the
+pushed refs, a Rails gate proves `HEAD`'s clean tree, the same tree the
+uncached gates always tested.
+
+## Affected-test selection at push
+
+`pushGate.affectedTests: true` (CodySwannGT/lisa#4600) routes the unit push
+task through `scripts/lisa-affected-tests.mjs`, which narrows `vitest run` to
+`vitest related --run <changed files> <map-selected tests>` using the CI access
+map (#4593). The decisions live in `scripts/lib/affected-tests.mjs`:
+
+- Any reason the selection could be wrong runs the full command unchanged and
+  prints the reason. These are a missing, stale or unreadable map, a changed
+  file that is new since the map, a `FULL_SUITE_TRIGGERS` entry, or a CI run.
+  It never runs nothing because the map is in doubt.
+- The command reports what it selected through `LISA_SELECTION_REPORT`, a
+  per-command file the gate runner points it at. A partial pass is never
+  written to the pass cache. An escalated run (below) reports itself as a
+  full run, because a full run produced its verdict.
+- `pushGate.affectedCoverage` decides what a partial run means for
+  `coverage-adequacy`. With `full` (the default), the full suite runs wherever
+  `coverage-adequacy` is declared at push. With `changed-files`, the chosen
+  tests run with coverage on and each changed source file is held to the floor
+  on its own. When every one meets it, the partial run passes. When one does
+  not, or the run left no coverage to read, the selector does not fail the
+  push on that alone: it prints one line per short file and runs the full
+  command with whole-repo coverage, as `full` does, and that exit code is the
+  verdict. With `skip`, the runner reports `coverage-adequacy` SKIPPED with
+  `partial selection — enforced by CI`, and `test-correctness` keeps the run's
+  own verdict, so a failing chosen test still blocks the push.
+
+### TypeScript hosts (CodySwannGT/lisa#4611)
+
+- **Defaults by stack, at run time.** `scripts/lib/push-gate-defaults.mjs`
+  fills in `cache`, `admission`, `affectedTests: true` and
+  `affectedCoverage: "changed-files"` under the project's own `pushGate`
+  keys when the project is TypeScript. TypeScript is detected the way
+  `src/detection/detectors/typescript.ts` does it. The gate runner, the
+  selector, the access-map recorder, `lisa-test-run` (admission) and
+  `lisa check` (cache) all read it, so no two of them disagree. An explicit
+  value wins, `false` included. A malformed `pushGate` is passed through
+  unchanged so the readers still refuse it. `buildOnce` is not defaulted on:
+  a host's push gates do not build, so a build-once step would add a full
+  build to every push, a cached re-push included.
+- **Why `changed-files` for hosts.** With `full`, a seeded host (which
+  declares `coverage-adequacy` at push on `test:cov:unit`) would never narrow
+  at all. With `skip`, coverage would leave the push. `changed-files` keeps
+  coverage enforced at push for every file the change touched.
+- **Never stricter than before (owner rule, CodySwannGT/lisa#4600).** Before
+  selection, a push failed coverage only when whole-repo coverage failed. A
+  per-file floor is stricter than that: a file can sit below the floor while
+  the repo as a whole clears it. So the per-file check only decides when to
+  take the fast path. A shortfall escalates to the full suite with whole-repo
+  coverage, which passes or fails the push exactly as `full` would. The same
+  rule holds on Rails: `lisa-rspec-select.mjs` escalates on a short changed
+  file, a missing resultset, or a hand-off that could not keep SimpleCov's
+  minimums off the slice (`lisa_rspec_partial_coverage.rb` writes `escalate`
+  to its `status.json`). The Rails gate runner passes its own full run,
+  parallel when granted, as the escalation. It falls back
+  to the full measured suite when there is no `vitest.thresholds.json` or no
+  test reaches a changed source file. CI still enforces whole-repo coverage.
+- **Scripts.** Each Vitest stack's forced `test:cov:unit:lisa` and
+  `test:unit:lisa` run through `lisa-affected-tests.mjs --push-only`. That
+  narrows only when the gate runner set `LISA_SELECTION_REPORT`, so CI and a
+  developer's own run are unchanged. A command that is not a `vitest run`
+  (the Jest stack) always runs unchanged, with the reason printed.
+- **Map.** The stack presets carry the recorder plugin, which records only
+  when `LISA_ACCESS_MAP=1` and the effective `affectedTests` is on. The
+  shared `quality.yml` now sets that variable and uploads the map for every
+  pull request, not only Lisa's. The recorder also writes the resolved
+  `forceRerunTriggers`, `setupFiles` and `globalSetup` into the map, and the
+  selector treats them as full-suite triggers. The fetch script reads the
+  repository from `GITHUB_REPOSITORY` or the `origin` remote.
+
 ## Hollow results
 
 Two forms, one response model.

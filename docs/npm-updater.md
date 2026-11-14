@@ -176,7 +176,7 @@ genuine Actions Bot publication or protected-check acceptance.
 Install the normally released Lisa package and apply its managed scripts through the ordinary workflow. Keep the host's canonical work-item configuration and hooks. Select `npmUpdater.version: 1`, the exact `repository`, `directory: "."` (or a committed subdirectory, as described above), `target: "main"` (or omitted, or another configured deploy branch as described above), `maintainer`, `packages: [{"name": "package-name", "version": "1.2.3"}]`, and `lisaOwner: "absent"` or `"verified-local-full-apply"`. Lisa itself is excluded only when the latter ownership has been positively verified. Automation provenance must be explicitly enabled and its repository must match the configured GitHub code-host repository (`github.org`/`github.repo`).
 
 The complete authenticated helper inventory is delivered by the common template
-lane, including the Git environment cleaner, scratch supervisor, ratchet modules
+lane, including the Git environment cleaner, cleanup sweep, ratchet modules
 and mutation wrapper. A common-only npm host uses the same full byte and path
 qualification as a framework host. Materializing these helpers does not install
 framework-specific gates; the host retains its existing configured hook routes.

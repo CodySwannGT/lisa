@@ -1,5 +1,7 @@
 import { Command } from "commander";
+import { addAdmitCommand } from "./admit-cmd.js";
 import { runApply } from "./apply.js";
+import { addCheckCommand } from "./check-cmd.js";
 import { runCheckLearningsBudget } from "./check-learnings-budget-cmd.js";
 import {
   type CrossPollinateOptions,
@@ -243,12 +245,12 @@ function addMaintenanceCommands(
     .option("--yes", "Execute the update command after printing it")
     .action(async (options: { yes?: boolean }) => {
       const code = await deps.runUpdate(options);
-      if (code !== 0) {
-        process.exitCode = code;
-      }
+      if (code !== 0) process.exitCode = code;
     });
 
   addWorkstationCommand(program);
+  addCheckCommand(program);
+  addAdmitCommand(program);
   addEffectivenessCommand(program);
   addRemoteEnvCommand(program);
   addEnvironmentCommand(program);
@@ -266,9 +268,7 @@ function addMaintenanceCommands(
     .option("--json", "Emit the report as JSON")
     .action(async (targetPath: string | undefined, options: SyncCmdOptions) => {
       const code = await deps.runSync(targetPath, options);
-      if (code !== 0) {
-        process.exitCode = code;
-      }
+      if (code !== 0) process.exitCode = code;
     });
 
   addRemovedUiCommand(program);

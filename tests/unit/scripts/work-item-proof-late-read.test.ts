@@ -1,6 +1,6 @@
 /** Provider changes during slow source reads must precede the final decision. */
 import { readFileSync } from "node:fs";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
   cleanupFixtures,
@@ -10,18 +10,32 @@ import {
   proofFixture,
   attachRecord,
   proofCli,
+  proofCliSpawned,
   PROOF_REF,
   setApi,
   SPEC,
 } from "../../support/work-item-proof-fixture.js";
 
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 39).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
+
 useIoLatencyBudget();
+/** The change whose case runs the guard and provider as real processes. */
+const REAL_BOUNDARY = "Verify usage";
+
 afterEach(cleanupFixtures);
 afterAll(cleanupTemplates);
 
 describe("immediate authoritative completion reread", () => {
   it.each([
-    "Verify usage",
+    REAL_BOUNDARY,
     "primary backlink",
     "locator",
     "owner and labels",
@@ -33,7 +47,7 @@ describe("immediate authoritative completion reread", () => {
       readFileSync(fixture.env.FAKE_GH_STATE_FILE!, "utf8")
     );
     const patch =
-      change === "Verify usage"
+      change === REAL_BOUNDARY
         ? { body: SPEC }
         : change === "primary backlink"
           ? {
@@ -62,7 +76,10 @@ describe("immediate authoritative completion reread", () => {
         { json: { commit: { sha: fixture.merge } }, concurrentState: patch },
       ],
     });
-    const result = proofCli(fixture, ["complete", "--ref", PROOF_REF]);
+    const result = (change === REAL_BOUNDARY ? proofCliSpawned : proofCli)(
+      fixture,
+      ["complete", "--ref", PROOF_REF]
+    );
     console.log(
       JSON.stringify({
         name: `late ${change}`,

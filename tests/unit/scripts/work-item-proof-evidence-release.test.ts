@@ -7,7 +7,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
@@ -27,9 +27,20 @@ import {
 import {
   proofFixture,
   proofCli,
+  proofCliSpawned,
   PROOF_REF,
   setApi,
 } from "../../support/work-item-proof-fixture.js";
+
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 14).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
 
 const PAGINATE = "--paginate";
 const ROTATING = "pr-assets-{YYYY-MM}";
@@ -87,7 +98,11 @@ describe("completion-proof publication to the configured evidence release", () =
       readFileSync(fixture.env.FAKE_GH_ASSET_INDEX!, "utf8")
     ).find((asset: { id: number }) => asset.id === 101);
     expect(stored.browser_download_url).toContain(`/releases/download/${tag}/`);
-    const completed = proofCli(fixture, ["complete", "--ref", PROOF_REF]);
+    const completed = proofCliSpawned(fixture, [
+      "complete",
+      "--ref",
+      PROOF_REF,
+    ]);
     expect(completed.stderr).toBe("");
     expect(completed.stdout).toContain("work-item completed:");
     expect(readFileSync(fixture.env.FAKE_GH_UNHANDLED_FILE!, "utf8")).toBe("");
@@ -265,7 +280,7 @@ describe("lisa-work-item.mjs evidence-release", () => {
     configure(fixture, { evidenceRelease: ROTATING });
     const tag = rotatedTag(fixture);
     const create = absentRelease(fixture, tag);
-    const result = proofCli(fixture, [COMMAND, "--ensure"]);
+    const result = proofCliSpawned(fixture, [COMMAND, "--ensure"]);
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
     expect(result.stdout.trim()).toBe(tag);

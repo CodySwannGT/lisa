@@ -196,9 +196,12 @@ if (verb === "audit") {
   // LISA_COVERAGE_SCOPE=unit. They are kept in the listing so the run is the
   // same one, and skipped over when deciding this is a vitest invocation.
   // Managed templates insert the transparent lisa-test-run -- supervisor
-  // between those assignments and Vitest. The collection probe removes only
-  // that transport layer before converting run to list.
-  const VITEST = /^((?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)(?:lisa-test-run\s+--profile\s+[a-z][a-z0-9-]*\s+--adapter\s+vitest\s+--\s+)?vitest\s+run\b/;
+  // between those assignments and Vitest, and the unit scripts also pass
+  // through the push-only affected-test selector (CodySwannGT/lisa#4611),
+  // which runs the command unchanged outside the gate runner, as here. The
+  // collection probe removes only those transport layers before converting
+  // run to list.
+  const VITEST = /^((?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)(?:node\s+scripts\/lisa-affected-tests\.mjs\s+--push-only\s+--fetch\s+scripts\/fetch-test-access-map\.mjs\s+--\s+)?(?:lisa-test-run\s+--profile\s+[a-z][a-z0-9-]*\s+--adapter\s+vitest\s+--\s+)?vitest\s+run\b/;
   const match = command && VITEST.exec(command);
   if (match) {
     const listing = command.replace(VITEST, match[1] + "vitest list --filesOnly");

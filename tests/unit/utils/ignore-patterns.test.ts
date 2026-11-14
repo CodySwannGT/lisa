@@ -25,11 +25,10 @@ describe("ignore-patterns", () => {
   // three, while the same suite run alone -> exit 0, 19 passed. No budget was
   // exceeded in either case, which is why this reads as machine load.
   //
-  // `process.cwd()` also puts the path outside the run-scoped scratch root that
-  // `src/configs/vitest/scratch-setup.ts` redirects `os.tmpdir()` into, so
-  // #2886's isolation never reached it. `createTempDir` is `mkdtemp` under
-  // `os.tmpdir()`, which the redirection does cover, and mkdtemp's suffix makes
-  // the path unique per run and per test.
+  // `process.cwd()` also put the path inside the working tree, where nothing
+  // cleans up after a killed run. `createTempDir` is `mkdtemp` under
+  // `os.tmpdir()`, and mkdtemp's suffix makes the path unique per run and per
+  // test.
   let testDir: string;
 
   /** Every fixture path handed out, so uniqueness is asserted, not assumed. */

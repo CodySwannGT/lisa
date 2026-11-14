@@ -8,9 +8,9 @@ import {
   browserDriverQualification,
   driverDiagnostic,
 } from "../../fixtures/npm-update-hosted-runtime/driver-diagnostic.mjs";
+import { probeDeadlineMs } from "../../fixtures/npm-update-hosted-runtime/driver-probe.mjs";
 import { nativeRecorder } from "../../fixtures/npm-update-hosted-runtime/observations.mjs";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 
 const PRIVATE_VALUE = "synthetic-private-driver-material";
 const TRACE = "driver-trace.json";
@@ -31,10 +31,7 @@ const RESULT = {
 };
 
 function fixture(operation: (root: string) => Promise<void>) {
-  const owned = createSupervisedUnixFixture(
-    "hook-reader.sock",
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const owned = createSupervisedUnixFixture("hook-reader.sock");
   return operation(owned.root).finally(() => owned.close());
 }
 
@@ -259,6 +256,15 @@ describe("bounded native driver diagnostics", () => {
     });
   });
 
+  it("grants a driver eight seconds, and lets the environment only shorten that", () => {
+    expect(probeDeadlineMs({})).toBe(8000);
+    for (const value of ["0", "-1", "8000", "60000", "1.5", "soon", ""])
+      expect(probeDeadlineMs({ LISA_DRIVER_PROBE_DEADLINE_MS: value })).toBe(
+        8000
+      );
+    expect(probeDeadlineMs({ LISA_DRIVER_PROBE_DEADLINE_MS: "750" })).toBe(750);
+  });
+
   it("never requests an endpoint from unrelated readiness prose", async () => {
     await fixture(async root => {
       const records: object[] = [];
@@ -269,6 +275,11 @@ describe("bounded native driver diagnostics", () => {
           env: {
             CHROME_BINARY: process.execPath,
             CHROMEDRIVER: nativeDriver(root, "unready"),
+            // The probe abandons a driver that never reports ready at its
+            // inner deadline. One second here rather than the eight the case
+            // above pins, so this case does not sit out the difference
+            // (CodySwannGT/lisa#4616, audit unit row 45).
+            LISA_DRIVER_PROBE_DEADLINE_MS: "1000",
           },
         },
         nativeRecorder(root, Date.now() + 60000, records)
