@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.2.2](https://github.com/CodySwannGT/lisa/compare/v5.2.1...v5.2.2) (2026-11-14)
+
+
+### Bug Fixes
+
+* **skills:** escalate a failed RETIRE restore and anchor its tests ([a236554](https://github.com/CodySwannGT/lisa/commit/a2365541c0ab3e0173a889129caed461eea6c10c)), closes [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875) [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875)
+* **skills:** run the learnings-audit RETIRE mutation proof on a scratch copy ([7eb1921](https://github.com/CodySwannGT/lisa/commit/7eb1921ecf085ac878b97a9dfd7a70550b53c5ef)), closes [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875) [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875)
+* **skills:** ship the RETIRE scratch-copy recipe inside the skill ([db0724a](https://github.com/CodySwannGT/lisa/commit/db0724af9933bb7b7546ceec272716a8ebb7baaa)), closes [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875) [CodySwannGT/lisa#4875](https://github.com/CodySwannGT/lisa/issues/4875)
+
 ### [5.2.1](https://github.com/CodySwannGT/lisa/compare/v5.2.0...v5.2.1) (2026-11-14)
 
 ## [5.2.0](https://github.com/CodySwannGT/lisa/compare/v5.1.7...v5.2.0) (2026-11-14)
