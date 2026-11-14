@@ -113,6 +113,9 @@ describe("runGates timing", () => {
     const output = [
       " FAIL  |unit| tests/unit/a.test.ts > suite > case",
       "FAIL src/b.test.ts (1.2 s)",
+      // Jest prints absolute paths: the runner hands the project root to the
+      // parser so a path inside it is recorded repo-relative, not dropped.
+      `FAIL ${path.join(process.cwd(), "tests", "unit", "c.test.ts")} (2 s)`,
       FAILED_LINE,
     ].join("\n");
     const result = runGates({
@@ -134,7 +137,7 @@ describe("runGates timing", () => {
     });
     const byId = new Map(result.results.map(entry => [entry.id, entry]));
     expect(byId.get(TESTS_GATE)?.failingTests).toEqual({
-      files: ["tests/unit/a.test.ts", "src/b.test.ts"],
+      files: ["tests/unit/a.test.ts", "src/b.test.ts", "tests/unit/c.test.ts"],
       truncated: false,
     });
     // A passing gate's output is never read for failures.
