@@ -104,6 +104,28 @@ revert. A named owner that stays green under the mutation is not the owner:
 find the test that does fail, or drop the RETIRE. No failing observation ⇒
 no valid retire proof.
 
+Run that break on a scratch copy,
+never in a worktree another agent is editing — not in the working folder
+this run is using either. Follow the
+`falsifiable-checks` rule's section "Break on a scratch copy, never in a
+shared worktree" for how to make the copy, take its green baseline, and
+discard it; do not restate it here. Discarding the copy is the revert, so
+the shared tree is never written to.
+
+1. **Record where before you break.** Before applying the mutation, write
+   the row's `mutation_location` — the mutated file, the line or section,
+   and the absolute path of the scratch copy — into the run's working notes
+   for that candidate. It goes in the RETIRE row with the rest of the proof,
+   and it exists before the mutation does, so an interrupted run still says
+   what was changed and where.
+2. **A failed restore blocks the row.** If discarding the copy fails (the
+   `git worktree remove` errors, or the copy path still exists afterwards),
+   or anything suggests the mutation reached a tree other than the copy,
+   file **no** RETIRE row for that candidate. Report it in the run summary
+   as `mutation-restore-failed` with the recorded `mutation_location`, so a
+   person can find and repair the change, and treat the run outcome as
+   `recovery-required` for that candidate.
+
 **Learned planning checks.** A ledger entry whose rule begins
 `Planning (prd|decomposition|ready-gate|filing):` is a `planning-miss` learning:
 the check planning should have run before a dispatched worker had to stop for a
@@ -353,8 +375,8 @@ rejected by rule (see the `promotion-contract` rule):
 **One batch ticket per run — CONFIRM + RETIRE** (`issue_type: Task`): a single
 ticket listing every CONFIRM row (`last_confirmed` bump, with the evidence the
 entry demonstrably applied) and every **provably-redundant** RETIRE row (with
-the mechanical owner / staleness proof per row, and the mutation proof when the
-owner is a test). Every RETIRE row also carries the entry's full
+the mechanical owner / staleness proof per row, and the mutation proof with its
+`mutation_location` when the owner is a test). Every RETIRE row also carries the entry's full
 `expectedFingerprint`: the live `entry.fingerprint` read from the parsed ledger
 at audit time (`learning-` plus 20 hex digits, or a legacy token). It is not the
 12-hex `<invariant-hash>` in the row's `[lisa-gardener]` marker — the two are

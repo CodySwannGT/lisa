@@ -1527,7 +1527,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "87ab07cae67e613c1ff4db93e8882af2e5bf225708116bafeeffc299324145de",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "c0131a99cb25faa07583650e1453f0a9f855191b68471dfdb5b6a8f0f2649385",
+      "3d5a9a1c5122d476d571dde08e1bac1ad46fc0b52bf0f5055c11fcdbdf938b8e",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "767ccafac20f406894d1efb08c9719e896e77d58b876f72ba837199dc1e3d755",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
@@ -13535,6 +13535,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/leaf-only-build-ready.test.ts": true,
     "tests/unit/strategies/leaf-only-lifecycle-done-shape.test.ts": true,
     "tests/unit/strategies/learnings-audit-contract.test.ts": true,
+    "tests/unit/strategies/learnings-audit-retire-mutation.test.ts": true,
     "tests/unit/strategies/learnings-audit-stage-promotion-contract.test.ts": true,
     "tests/unit/strategies/learnings-confirmation-contract.test.ts": true,
     "tests/unit/strategies/learnings-low-confidence-routing-contract.test.ts": true,
