@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.4.0](https://github.com/CodySwannGT/lisa/compare/v5.3.2...v5.4.0) (2026-11-14)
+
+
+### Features
+
+* **npm-updater:** install a Bun-only root with frozen Bun ([7e6ea3e](https://github.com/CodySwannGT/lisa/commit/7e6ea3ef95eb48ba5a4256003298a8a1c58c43b1)), closes [#4862](https://github.com/CodySwannGT/lisa/issues/4862) [CodySwannGT/lisa#4862](https://github.com/CodySwannGT/lisa/issues/4862)
+
+
+### Bug Fixes
+
+* **npm-updater:** give the Bun-only root install the gate's phase budget ([cc5c4cb](https://github.com/CodySwannGT/lisa/commit/cc5c4cbce8e3c957d56911fe1a6403b5364bf60b)), closes [#4862](https://github.com/CodySwannGT/lisa/issues/4862) [CodySwannGT/lisa#4862](https://github.com/CodySwannGT/lisa/issues/4862)
+
 ### [5.3.2](https://github.com/CodySwannGT/lisa/compare/v5.3.1...v5.3.2) (2026-11-14)
 
 
