@@ -74,6 +74,7 @@
  */
 import { spawn, spawnSync } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
+import { createHash } from "node:crypto";
 import { once } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -358,9 +359,30 @@ function expectSweepProvedAKilledRun(
   ).toBe(true);
 }
 
+/**
+ * The lock Vitest 5 holds for a coverage reports directory.
+ *
+ * Vitest 5 writes `vitest-coverage-<sha256(reportsDirectory)[0:16]>.lock` into
+ * the temp directory for the life of a coverage run and removes it on exit. A
+ * run this suite kills on purpose never reaches that removal, so the lock is
+ * this suite's own debris, and Lisa's scratch-leak guard rightly reports it
+ * (CodySwannGT/lisa#4871). Vitest reclaims a lock whose owner is dead, so it
+ * never blocks a later run; removing it is cleanup, not a workaround.
+ * @param reportsDirectory - The `--coverage.reportsDirectory` a child ran with
+ * @returns The lock file path in this process's temp directory
+ */
+function coverageLockFor(reportsDirectory: string): string {
+  const hash = createHash("sha256")
+    .update(path.resolve(reportsDirectory))
+    .digest("hex")
+    .slice(0, 16);
+  return path.join(os.tmpdir(), `vitest-coverage-${hash}.lock`);
+}
+
 afterEach(() => {
   for (const dir of created.splice(0)) {
     fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(coverageLockFor(dir), { force: true });
   }
 });
 

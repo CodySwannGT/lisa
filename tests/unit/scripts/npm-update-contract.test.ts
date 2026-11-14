@@ -1018,7 +1018,9 @@ describe("complete authenticated helper closure", () => {
     const bytes = new Map<string, Buffer>();
     for (const member of members)
       bytes.set(member, await helperAuditSource(member));
-    expect(members.length).toBe(129);
+    // 129 + the four tracker modules (tracker, tracker-jira, tracker-linear,
+    // tracker-wire) added for Jira/Linear work items in CodySwannGT/lisa#4859.
+    expect(members.length).toBe(133);
     const completionMembers = [
       "lib/completion-authorization.mjs",
       "lib/completion-proof-adapters.mjs",

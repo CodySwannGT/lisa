@@ -1,6 +1,64 @@
 # Opt-in selected npm updates
 
-The reusable [npm updater](../.github/workflows/npm-updater.yml) prepares one selected npm update in one committed npm project directory, allocates its canonical leaf, runs ordinary gates and publishes the exact gated commit. It has no schedule. The host owns cadence and exact package versions in its committed `.lisa.config.json`. Supported shapes are the root npm project and committed npm subdirectory projects, all targeting `main` and tracked in GitHub Issues.
+The reusable [npm updater](../.github/workflows/npm-updater.yml) prepares one selected npm update in one committed npm project directory, allocates its canonical leaf, runs ordinary gates and publishes the exact gated commit. It has no schedule. The host owns cadence and exact package versions in its committed `.lisa.config.json`. Supported shapes are the root npm project and committed npm subdirectory projects, all targeting `main`. Work items can be tracked in GitHub Issues, Jira or Linear (see [Jira and Linear tracking](#jira-and-linear-tracking)); the code host is GitHub in every case.
+
+## Jira and Linear tracking
+
+A project that tracks work in Jira or Linear can turn the updater on. Each selected update gets one build-ready work item in that project's own tracker. It carries the same leaf text as a GitHub issue, and the same claim and checkpoint records, stored as tracker comments. The code host is still GitHub: allocation still reads the repository and `main` from GitHub, signs with GitHub attestations and publishes through GitHub.
+
+What each tracker needs in the committed `.lisa.config.json`:
+
+| Tracker | Required keys | `maintainer` is | Secrets the caller passes |
+|---|---|---|---|
+| `github` | `github.org`, `github.repo` | the GitHub login | none |
+| `jira` | `jira.project`, and `atlassian.cloudId` or `atlassian.site` | the Jira account ID | `JIRA_API_TOKEN`, `JIRA_LOGIN` |
+| `linear` | `linear.teamKey`, `linear.workspace` | the Linear user ID | `LINEAR_API_KEY` |
+
+`npmUpdater.repository` must match `automationProvenance.repository`, the GitHub code-host repository. If `github.org` and `github.repo` are also set, it must match them too.
+
+The lifecycle names come from the same keys the build-intake skills read: `jira.workflow.*` and `linear.workflow.*`. The defaults are `Ready`, `In Progress`, `Code Review`, `Blocked`, and `On Dev`/`On Stg`/`Done`. Allocation creates the work item as a Task with Medium priority, assigns it to the maintainer, and puts it in the configured ready status. Claiming it moves it to the configured in-progress status. The updater never creates statuses, issue types or priorities. If one is missing from the project's vocabulary, allocation stops before it creates anything and says so. If a Jira ticket is created but its workflow then offers no single transition to the ready status, allocation stops and names the ticket: move it to the ready status by hand (or fix the workflow) and rerun. Status, issue type and priority are read from the tracker's own fields. A typed label that looks like one of them (such as `In Progress`, `type:Task` or `priority:medium`) is ignored. The `human-needed` label still places a hold. In Jira, each work item also carries the label `lisa-npm-<selection key>`. That is how a re-run finds the same item instead of filing a second one.
+
+Credentials are read from these environment variables only:
+
+- Jira: `JIRA_API_TOKEN` and `JIRA_LOGIN` (or `atlassian.email` from config).
+- Linear: `LINEAR_API_KEY`.
+
+The reusable workflow forwards exactly these three secrets, `JIRA_API_TOKEN`, `JIRA_LOGIN` and `LINEAR_API_KEY`. The aliases `ATLASSIAN_API_TOKEN` and `LINEAR_API_KEY_<workspace>` are also accepted, but only when you run the updater locally from the command line; the workflow never passes them.
+
+The Jira token is sent to `https://api.atlassian.com/ex/jira/<atlassian.cloudId>` or, when there is no cloud ID, to the `atlassian.site` origin from the committed config. `JIRA_SERVER` is not read. Point `atlassian.site` only at your own Jira site.
+
+If a credential is missing, allocation fails before it makes any request, and the error names the variable. Use a dedicated account for the credential: a person's account or an app/service account both work. Every comment that account writes counts as written by the updater. Jira, Atlassian and Linear credentials are removed from the environment of ordinary hooks and nested tools, the same way the GitHub token is.
+
+> **Note:** CodySwannGT/lisa#4859 asked for `JIRA_EMAIL`. Lisa uses `JIRA_LOGIN` instead, because that is the name its other Jira workflows and scripts already use. Set `JIRA_LOGIN`; `JIRA_EMAIL` is not read.
+
+Pass the secrets to the reusable workflow. They are optional, so GitHub-tracked callers pass nothing and the workflow contract major stays `1`. The workflow gives them only to the allocate and checkpoint steps:
+
+```yaml
+jobs:
+  update:
+    uses: CodySwannGT/lisa/.github/workflows/npm-updater.yml@REVIEWED_IMMUTABLE_COMMIT
+    with:
+      expected_workflow_contract_major: '1'
+    secrets:
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      JIRA_LOGIN: ${{ secrets.JIRA_LOGIN }}
+      # or, for a Linear-tracked project:
+      # LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+```
+
+The signed artifacts carry the tracker's own reference: `<PROJECT>-<N>` for Jira and `<TEAM>-<N>` for Linear, in the descriptor's `workItem` and in the commit's `Work-Item:` trailer. A reference in any other tracker's format fails verification. GitHub-tracked projects keep `owner/repo#N`, byte-identical to before.
+
+The work-item description and the updater's comments appear as one code block in Jira and Linear. That is how their exact bytes survive, including the hidden filing and proposal markers. Every write is read back and must match exactly. If a person edits the description, the updater stops instead of claiming the item.
+
+**Not supported yet:** for Jira and Linear, the updater can file and claim the work item and write its checkpoint. It cannot yet run the gate, publish the pull request, cancel or supersede a proposal, or resume a signed origin. Those phases stop with this message:
+
+> The npm updater can file and claim Jira and Linear work items, but it cannot yet check their claims, publish the pull request or cancel them. That support is tracked in CodySwannGT/lisa#4873. Projects that track work in GitHub are fully supported today.
+
+Resuming an interrupted Jira or Linear run:
+
+- **Before the checkpoint was signed:** run the workflow again. Allocation finds the same work item, reads back its claim and any unsigned checkpoint, and creates nothing new.
+- **After the checkpoint was signed:** a rerun stops with the CodySwannGT/lisa#4873 message above, because resuming a signed run is not supported yet.
+- **Earlier item deleted, archived or closed:** that selected update is blocked until CodySwannGT/lisa#4873. Replacing the earlier item is the cancellation and supersession path, which is not supported yet. This applies to a Linear item that is deleted or archived and to any earlier item that is closed.
 
 ## Multiple npm project directories
 
@@ -20,7 +78,7 @@ Rules every entry must meet, all checked before any npm work:
 - `directory` is `"."` or a normalized relative path: one to eight segments, each starting with a letter, digit or underscore and using only letters, digits, `_`, `.` and `-`. Absolute paths, `.`/`..` segments, trailing slashes and any `node_modules` segment are refused. Directories are unique across the list.
 - A subdirectory is npm-only. It must be a committed real directory holding regular committed `package.json` and `package-lock.json` files and no `bun.lock` of its own, committed or not. A root `bun.lock` belongs to the root project; a subdirectory proposal neither reads nor changes it.
 - A subdirectory entry uses `lisaOwner: "absent"` and has no `runtime` profile. Lisa ownership and the Rails runtime stay root-only.
-- `tracker` stays `github` and `target` stays `main` for every entry.
+- `tracker` is `github`, `jira` or `linear` (see [Jira and Linear tracking](#jira-and-linear-tracking)), and `target` stays `main` for every entry.
 - The root must still commit a `package-lock.json`, even when only a subdirectory is selected: the hosted gate installs the root with `npm ci` before running the ordinary hooks. A root that uses only Bun (a `bun.lock` with no `package-lock.json`) is not supported yet; see CodySwannGT/lisa#4862.
 
 Each run updates exactly one directory, chosen by the reusable workflow's `directory` input (default `"."`). A subdirectory proposal changes exactly `<directory>/package.json` and `<directory>/package-lock.json`. Its leaf is titled `Update selected npm dependencies in <directory>`, and its signed descriptor carries the directory. A root-only policy keeps byte-identical proposal keys, policy digest and leaf text, so existing root leaves and checkpoints remain valid. Updating several directories means several runs, for example one matrix job per directory:
@@ -86,7 +144,7 @@ has networking disabled and cannot satisfy that check through its Unix socket.
 Source and synthetic protocol controls do not establish Ubuntu execution,
 genuine Actions Bot publication or protected-check acceptance.
 
-Install the normally released Lisa package and apply its managed scripts through the ordinary workflow. Keep the host's canonical work-item configuration and hooks. Select `npmUpdater.version: 1`, the exact `repository`, `directory: "."` (or a committed subdirectory, as described above), `target: "main"`, `maintainer`, `packages: [{"name": "package-name", "version": "1.2.3"}]`, and `lisaOwner: "absent"` or `"verified-local-full-apply"`. Lisa itself is excluded only when the latter ownership has been positively verified. Automation provenance must be explicitly enabled and its repository must match the configured GitHub tracker.
+Install the normally released Lisa package and apply its managed scripts through the ordinary workflow. Keep the host's canonical work-item configuration and hooks. Select `npmUpdater.version: 1`, the exact `repository`, `directory: "."` (or a committed subdirectory, as described above), `target: "main"`, `maintainer`, `packages: [{"name": "package-name", "version": "1.2.3"}]`, and `lisaOwner: "absent"` or `"verified-local-full-apply"`. Lisa itself is excluded only when the latter ownership has been positively verified. Automation provenance must be explicitly enabled and its repository must match the configured GitHub code-host repository (`github.org`/`github.repo`).
 
 The complete authenticated helper inventory is delivered by the common template
 lane, including the Git environment cleaner, scratch supervisor, ratchet modules

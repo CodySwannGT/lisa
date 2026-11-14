@@ -1,0 +1,118 @@
+# Validation Journey step 5 - github-path-unchanged (test-run-log)
+# HEAD 2202407abb0770e659fa026719d7c26d03f6d792   merge-base origin/main 8d2385d27d06c9e98131cf816e1f688045ab923d
+# RESULT: PASS - 50/50 files, 769 passed, 2 skipped (same skip count as the run at d03e84394b), 0 failed.
+# Existing test files changed vs origin/main: exactly two member-count pin lines (diffs below), both operator-approved and recorded on #4859:
+#   tests/unit/scripts/npm-update-contract.test.ts            129 -> 133 (helper audit closure)
+#   tests/integration/npm-update-all-host-helpers.test.ts      127 -> 131 (managed template members)
+#   Both counts grow by the same 4 new modules: lib/npm-update-tracker{,-jira,-linear,-wire}.mjs.
+#   At d03e84394b the integration pin was still 127 and that suite failed (expected 127, received 131); fixed in 01c0889f5b.
+
+$ bun run lisa-test-run -- --adapter vitest -- vitest run <files below>
+# files: every tests/unit/scripts/npm-update-*.test.ts and tests/integration/npm-update*.test.ts that is not a new *tracker* file,
+#        plus tests/unit/scripts/automation-provenance.test.ts and tests/integration/reusable-workflow-caller-scopes.test.ts:
+#   tests/integration/npm-update-all-host-helpers.test.ts
+#   tests/integration/npm-update-dual-lock.test.ts
+#   tests/integration/npm-update-rails-hook-scratch.test.ts
+#   tests/integration/npm-update-subdirectory.test.ts
+#   tests/integration/npm-updater-download-https.test.ts
+#   tests/integration/reusable-workflow-caller-scopes.test.ts
+#   tests/unit/scripts/automation-provenance.test.ts
+#   tests/unit/scripts/npm-update-backlink-pagination.test.ts
+#   tests/unit/scripts/npm-update-broker.test.ts
+#   tests/unit/scripts/npm-update-browser-process-observation.test.ts
+#   tests/unit/scripts/npm-update-cancel-origin-directory.test.ts
+#   tests/unit/scripts/npm-update-cancellation-lifecycle.test.ts
+#   tests/unit/scripts/npm-update-cancellation-workflow.test.ts
+#   tests/unit/scripts/npm-update-cancellation.test.ts
+#   tests/unit/scripts/npm-update-checkpoint.test.ts
+#   tests/unit/scripts/npm-update-classifier-cache.test.ts
+#   tests/unit/scripts/npm-update-compatibility.test.ts
+#   tests/unit/scripts/npm-update-contract.test.ts
+#   tests/unit/scripts/npm-update-controller-factory.test.ts
+#   tests/unit/scripts/npm-update-diagnostics.test.ts
+#   tests/unit/scripts/npm-update-directory.test.ts
+#   tests/unit/scripts/npm-update-driver-diagnostic.test.ts
+#   tests/unit/scripts/npm-update-driver-qualification.test.ts
+#   tests/unit/scripts/npm-update-dual-lock-contract.test.ts
+#   tests/unit/scripts/npm-update-gate-proof.test.ts
+#   tests/unit/scripts/npm-update-gh-dispatch.test.ts
+#   tests/unit/scripts/npm-update-gh-requests.test.ts
+#   tests/unit/scripts/npm-update-github.test.ts
+#   tests/unit/scripts/npm-update-helper-generator.test.ts
+#   tests/unit/scripts/npm-update-hook-installation.test.ts
+#   tests/unit/scripts/npm-update-hook-provider.test.ts
+#   tests/unit/scripts/npm-update-hosted-gate.test.ts
+#   tests/unit/scripts/npm-update-hosted-hook-rails-inline.test.ts
+#   tests/unit/scripts/npm-update-hosted-runtime.test.ts
+#   tests/unit/scripts/npm-update-hosted-scope.test.ts
+#   tests/unit/scripts/npm-update-husky-compatibility.test.ts
+#   tests/unit/scripts/npm-update-native-process.test.ts
+#   tests/unit/scripts/npm-update-provider-diagnostics.test.ts
+#   tests/unit/scripts/npm-update-qualification-package-contract.test.ts
+#   tests/unit/scripts/npm-update-qualification-packages.test.ts
+#   tests/unit/scripts/npm-update-rails-browser-environment.test.ts
+#   tests/unit/scripts/npm-update-rails-mysql.test.ts
+#   tests/unit/scripts/npm-update-rails-runtime-contract.test.ts
+#   tests/unit/scripts/npm-update-rails-runtime-descriptor.test.ts
+#   tests/unit/scripts/npm-update-rails-tool-downloads.test.ts
+#   tests/unit/scripts/npm-update-rails-tools.test.ts
+#   tests/unit/scripts/npm-update-root-identity.test.ts
+#   tests/unit/scripts/npm-update-runtime-preservation.test.ts
+#   tests/unit/scripts/npm-update-runtime-qualification.test.ts
+#   tests/unit/scripts/npm-update-socket-witness.test.ts
+# (build/plugin-generation preamble and fleet-admission wait lines omitted; vitest output follows verbatim)
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4859-npm-updater-trackers
+
+
+⏭  DEFERRED TO CI: needs a native (non-symlinked) Bun first on PATH. Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`.
+
+⏭  DEFERRED TO CI: needs a native (non-symlinked) Bun first on PATH. Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`.
+
+ Test Files  50 passed (50)
+      Tests  769 passed | 2 skipped (771)
+   Start at  19:47:49
+   Duration  362.77s (transform 1.99s, setup 2.66s, import 6.68s, tests 231.58s, environment 2ms)
+
+exit=0
+
+$ git diff origin/main...HEAD --name-status -- tests/   (non-added entries only)
+M	tests/integration/npm-update-all-host-helpers.test.ts
+M	tests/unit/scripts/npm-update-contract.test.ts
+
+$ git diff origin/main...HEAD -- tests/unit/scripts/npm-update-contract.test.ts
+diff --git a/tests/unit/scripts/npm-update-contract.test.ts b/tests/unit/scripts/npm-update-contract.test.ts
+index b27f209c00..796a42a62c 100644
+--- a/tests/unit/scripts/npm-update-contract.test.ts
++++ b/tests/unit/scripts/npm-update-contract.test.ts
+@@ -1018,7 +1018,9 @@ describe("complete authenticated helper closure", () => {
+     const bytes = new Map<string, Buffer>();
+     for (const member of members)
+       bytes.set(member, await helperAuditSource(member));
+-    expect(members.length).toBe(129);
++    // 129 + the four tracker modules (tracker, tracker-jira, tracker-linear,
++    // tracker-wire) added for Jira/Linear work items in CodySwannGT/lisa#4859.
++    expect(members.length).toBe(133);
+     const completionMembers = [
+       "lib/completion-authorization.mjs",
+       "lib/completion-proof-adapters.mjs",
+
+$ git diff origin/main...HEAD -- tests/integration/npm-update-all-host-helpers.test.ts
+diff --git a/tests/integration/npm-update-all-host-helpers.test.ts b/tests/integration/npm-update-all-host-helpers.test.ts
+index 287935d1a9..413a7e95ce 100644
+--- a/tests/integration/npm-update-all-host-helpers.test.ts
++++ b/tests/integration/npm-update-all-host-helpers.test.ts
+@@ -165,7 +165,9 @@ describe("all-only npm host controller materialization", () => {
+       expect(graph).toHaveProperty(
+         join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
+       );
+-      expect(managedTemplateMembers().size).toBe(127);
++      // 127 -> 131: CodySwannGT/lisa#4859 adds npm-update-tracker,
++      // -tracker-jira, -tracker-linear and -tracker-wire to the helper closure.
++      expect(managedTemplateMembers().size).toBe(131);
+     },
+     ioLatencyBudgetMs(30_000)
+   );
+
+$ git diff origin/main...HEAD -- tests/unit/scripts/npm-update-root-identity.test.ts | wc -c
+0
+# (0 bytes: the signed-artifact goldens - descriptor/proposal/policy digests - are byte-unchanged, and npm-update-root-identity.test.ts passed above)

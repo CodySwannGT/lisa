@@ -1,0 +1,47 @@
+$ bun evidence/4859/allocate-evidence.ts jira
+--- allocation run 1: workItem=PROJ-1 claimCommentId=20000
+  POST /rest/api/3/search/jql
+  GET /rest/api/3/user/assignable/search?project=PROJ&accountId=557058%3Af58131cb-b67d-43c7-b30d-6b58d40bd077
+  POST /rest/api/3/search/jql
+  GET /rest/api/3/project/PROJ/statuses
+  GET /rest/api/3/priority
+  POST /rest/api/3/issue
+  GET /rest/api/3/issue/PROJ-1?fields=status
+  GET /rest/api/3/issue/PROJ-1/transitions
+  POST /rest/api/3/issue/PROJ-1/transitions
+  GET /rest/api/3/issue/PROJ-1?fields=summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks
+  GET /rest/api/3/issue/PROJ-1/comment?startAt=0&maxResults=100
+  GET /rest/api/3/issue/PROJ-1?fields=summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks
+  GET /rest/api/3/issue/PROJ-1/comment?startAt=0&maxResults=100
+  GET /rest/api/3/issue/PROJ-1?fields=status
+  GET /rest/api/3/issue/PROJ-1/transitions
+  POST /rest/api/3/issue/PROJ-1/transitions
+  GET /rest/api/3/issue/PROJ-1?fields=summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks
+  GET /rest/api/3/issue/PROJ-1/comment?startAt=0&maxResults=100
+  POST /rest/api/3/issue/PROJ-1/comment
+  GET /rest/api/3/issue/PROJ-1?fields=summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks
+  GET /rest/api/3/issue/PROJ-1/comment?startAt=0&maxResults=100
+  GET /rest/api/3/myself
+  POST /rest/api/3/issue/PROJ-1/comment
+  creates so far: 1
+--- allocation run 2: workItem=PROJ-1 claimCommentId=20000
+  POST /rest/api/3/search/jql
+  GET /rest/api/3/issue/PROJ-1?fields=summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks
+  GET /rest/api/3/issue/PROJ-1/comment?startAt=0&maxResults=100
+  GET /rest/api/3/user/assignable/search?project=PROJ&accountId=557058%3Af58131cb-b67d-43c7-b30d-6b58d40bd077
+  POST /rest/api/3/search/jql
+  GET /rest/api/3/issue/PROJ-1?fields=summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks
+  GET /rest/api/3/issue/PROJ-1/comment?startAt=0&maxResults=100
+  GET /rest/api/3/project/PROJ/statuses
+  GET /rest/api/3/priority
+  GET /rest/api/3/issue/PROJ-1?fields=summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks
+  GET /rest/api/3/issue/PROJ-1/comment?startAt=0&maxResults=100
+  GET /rest/api/3/issue/PROJ-1?fields=summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks
+  GET /rest/api/3/issue/PROJ-1/comment?startAt=0&maxResults=100
+  GET /rest/api/3/issue/PROJ-1?fields=summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks
+  GET /rest/api/3/issue/PROJ-1/comment?startAt=0&maxResults=100
+  GET /rest/api/3/issue/PROJ-1?fields=summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks
+  GET /rest/api/3/issue/PROJ-1/comment?startAt=0&maxResults=100
+  creates so far: 1
+TOTAL work items created across both runs: 1
+exit=0
