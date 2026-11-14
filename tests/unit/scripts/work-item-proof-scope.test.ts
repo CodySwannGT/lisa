@@ -1,7 +1,7 @@
 /** Ambiguous/example declarations cannot waive actual runtime obligations. */
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
@@ -12,12 +12,23 @@ import {
   proofFixture,
   attachRecord,
   proofCli,
+  proofCliSpawned,
   putAsset,
   digest,
   SPEC,
   PROOF_REF,
   setApi,
 } from "../../support/work-item-proof-fixture.js";
+
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 24).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
 
 useIoLatencyBudget();
 afterEach(cleanupFixtures);
@@ -168,7 +179,7 @@ describe("actual CLI completion scope", () => {
     );
     writeFileSync(stateFile, JSON.stringify(state));
     attachRecord(fixture);
-    const result = proofCli(fixture, ["complete", "--ref", PROOF_REF]);
+    const result = proofCliSpawned(fixture, ["complete", "--ref", PROOF_REF]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain(COMPLETED);
     expect(readFileSync(fixture.env.FAKE_GH_UNHANDLED_FILE!, "utf8")).toBe("");

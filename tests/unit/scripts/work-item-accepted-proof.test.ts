@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
@@ -13,9 +13,20 @@ import {
   proofFixture,
   attachRecord,
   proofCli,
+  proofCliSpawned,
   PROOF_REF,
   putAsset,
 } from "../../support/work-item-proof-fixture.js";
+
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 35).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
 
 const COMPLETED = "work-item completed:";
 
@@ -110,7 +121,7 @@ describe("accepted completion proof through actual CLI", () => {
   it("allows exact accepted direct completion and a repeated completion writes nothing", () => {
     const fixture = proofFixture();
     attachRecord(fixture);
-    const first = proofCli(fixture, [
+    const first = proofCliSpawned(fixture, [
       "complete",
       "--ref",
       PROOF_REF,
@@ -178,7 +189,7 @@ describe("accepted completion proof through actual CLI", () => {
     const fixture = proofFixture();
     const file = path.join(fixture.root, "record-input.json");
     writeFileSync(file, JSON.stringify(fixture.record));
-    const result = proofCli(fixture, [
+    const result = proofCliSpawned(fixture, [
       "publish-completion-proof",
       "--ref",
       PROOF_REF,

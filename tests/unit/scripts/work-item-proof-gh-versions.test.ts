@@ -7,7 +7,7 @@
  */
 import { readFileSync } from "node:fs";
 
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
@@ -18,8 +18,19 @@ import {
   proofFixture,
   attachRecord,
   proofCli,
+  proofCliSpawned,
   setApi,
 } from "../../support/work-item-proof-fixture.js";
+
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 57).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
 
 const FAKE_TOKEN = `ghs_${"Z9y8X7w6".repeat(4)}`;
 
@@ -30,10 +41,14 @@ afterAll(cleanupTemplates);
 /**
  * Run the applying sweep the terminal-transition workflow runs.
  * @param fixture - Owned disposable repository and controlled provider.
+ * @param run - In-process by default; the real-boundary case spawns.
  * @returns The actual CLI result.
  */
-function sweep(fixture: ReturnType<typeof proofFixture>) {
-  return proofCli(fixture, [
+function sweep(
+  fixture: ReturnType<typeof proofFixture>,
+  run: typeof proofCli | typeof proofCliSpawned = proofCli
+) {
+  return run(fixture, [
     "sweep",
     "--apply",
     "--since",
@@ -51,7 +66,10 @@ describe("terminal sweep across gh escape-sequence behaviours", () => {
     const fixture = proofFixture();
     fixture.env.FAKE_GH_ESCAPE_MODE = mode;
     attachRecord(fixture);
-    const result = sweep(fixture);
+    const result = sweep(
+      fixture,
+      mode === "refuse-escapes" ? proofCliSpawned : proofCli
+    );
     expect(result.stdout).not.toContain("[read-error]");
     expect(result.stdout).toContain("work-item completed:");
     expect(result.status).toBe(0);

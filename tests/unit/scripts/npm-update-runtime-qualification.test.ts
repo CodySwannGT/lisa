@@ -322,8 +322,11 @@ describe("closed runtime qualification diagnostics", () => {
         // 18). Three, not one: the Linux process observer takes its first
         // sample at 2.5 seconds, and the Linux branch below asserts on it.
         // The child would outlive either ceiling on its own.
-        const native = nativeRecorder(root, deadline, records, name =>
-          name === stage ? 3000 : stageBoundMs(name)
+        const native = nativeRecorder(
+          root,
+          deadline,
+          records,
+          (name: string) => (name === stage ? 3000 : stageBoundMs(name))
         );
         const executable =
           stage === CONTROL_STAGE
