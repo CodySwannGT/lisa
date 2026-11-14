@@ -379,7 +379,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.agents/rules/README.md":
       "903b43e8eba91d626225a4608bcfeec3573e720201292b2ba83d4ca944315548",
     "all/create-only/.github/workflows/continuous-gates.yml":
-      "bfe3f798d9095b66c15dd4b2fed0b2fd9864c78b630269d81e02f5cfc7038add",
+      "9a08c1eb837825f9dc54e842bddcfdff930a0b72dd2b1ab2f11514c5cf309d0a",
     "all/create-only/.github/workflows/workflow-load-failure-sweep.yml":
       "d850b2b69db86eb3b74402fa125418e3f502f81c8169c8d96272c843bb304297",
     "all/create-only/.lisaignore":
@@ -3879,6 +3879,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4846/qualified-ref-accepted.txt": true,
     "evidence/4846/shared-grammar.txt": true,
     "evidence/4846/short-ref-refused.txt": true,
+    "evidence/4848/ac1-ac2-apply-fixed.txt": true,
+    "evidence/4848/ac1-ac2-control-origin-main.txt": true,
+    "evidence/4848/ac3-bite-control-origin-main.txt": true,
+    "evidence/4848/ac3-guard-test-bite-origin-main.txt": true,
+    "evidence/4848/ac3-guard-test.txt": true,
+    "evidence/4848/ac3-independent-setup-node-scan.txt": true,
+    "evidence/4848/ac4-tsc.txt": true,
+    "evidence/4848/ac4-vitest-wrapped.txt": true,
+    "evidence/4848/ac4-vitest.txt": true,
     "evidence/CodySwannGT-lisa-4496/01-outside-no-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/02-inside-manager-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/03-outside-while-running.txt": true,
@@ -11268,6 +11277,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/strategies/create-only.ts": true,
     "src/strategies/index.ts": true,
     "src/strategies/merge.ts": true,
+    "src/strategies/package-lisa-dev-engines.ts": true,
     "src/strategies/package-lisa-types.ts": true,
     "src/strategies/package-lisa.ts": true,
     "src/strategies/strategy.interface.ts": true,
@@ -12282,6 +12292,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/scratch-supervision.test.ts": true,
     "tests/unit/config/scratch-tmpdir-trust.test.ts": true,
     "tests/unit/config/security-pin-floors.test.ts": true,
+    "tests/unit/config/setup-node-package-manager-cache.test.ts": true,
     "tests/unit/config/shipped-mjs-roster.test.ts": true,
     "tests/unit/config/slow-config-module-isolation.test.ts": true,
     "tests/unit/config/socket-safe-temp-base.test.ts": true,
@@ -13548,6 +13559,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/monitor-threshold-compatibility.test.ts": true,
     "tests/unit/strategies/package-lisa-audit-script-governance.test.ts": true,
     "tests/unit/strategies/package-lisa-cdk-oidc.test.ts": true,
+    "tests/unit/strategies/package-lisa-dev-engines.test.ts": true,
     "tests/unit/strategies/package-lisa-override-floor-remedy.test.ts": true,
     "tests/unit/strategies/package-lisa-script-composition.test.ts": true,
     "tests/unit/strategies/package-lisa-script-report.test.ts": true,

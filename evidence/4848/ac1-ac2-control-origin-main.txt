@@ -1,0 +1,21 @@
+##### Lisa build: control-origin-main (/Users/codysai/.claude/jobs/9c0bd661/tmp/base-lisa)
+===== HOST bun-fresh  lockfiles: [bun.lock ]
+before devEngines: undefined
+$ (cd /Users/codysai/.claude/jobs/9c0bd661/tmp/hosts/bun-fresh && LISA_BOOTSTRAP=1 node /Users/codysai/.claude/jobs/9c0bd661/tmp/base-lisa/dist/index.js apply --yes --full-apply --skip-git-check /Users/codysai/.claude/jobs/9c0bd661/tmp/hosts/bun-fresh)
+apply exit=0; cdk template applied: 15 log lines mention cdk/
+after  devEngines: {"packageManager":{"name":"npm","version":">=11.6.0","onFail":"warn"}}
+===== HOST bun-oldfloor  lockfiles: [bun.lock ]
+before devEngines: {"packageManager":{"name":"npm","version":">=11.6.0","onFail":"warn"}}
+$ (cd /Users/codysai/.claude/jobs/9c0bd661/tmp/hosts/bun-oldfloor && LISA_BOOTSTRAP=1 node /Users/codysai/.claude/jobs/9c0bd661/tmp/base-lisa/dist/index.js apply --yes --full-apply --skip-git-check /Users/codysai/.claude/jobs/9c0bd661/tmp/hosts/bun-oldfloor)
+apply exit=0; cdk template applied: 15 log lines mention cdk/
+after  devEngines: {"packageManager":{"name":"npm","version":">=11.6.0","onFail":"warn"}}
+===== HOST npm-lock  lockfiles: [package-lock.json ]
+before devEngines: undefined
+$ (cd /Users/codysai/.claude/jobs/9c0bd661/tmp/hosts/npm-lock && LISA_BOOTSTRAP=1 node /Users/codysai/.claude/jobs/9c0bd661/tmp/base-lisa/dist/index.js apply --yes --full-apply --skip-git-check /Users/codysai/.claude/jobs/9c0bd661/tmp/hosts/npm-lock)
+apply exit=0; cdk template applied: 15 log lines mention cdk/
+after  devEngines: {"packageManager":{"name":"npm","version":">=11.6.0","onFail":"warn"}}
+===== HOST no-lock  lockfiles: []
+before devEngines: undefined
+$ (cd /Users/codysai/.claude/jobs/9c0bd661/tmp/hosts/no-lock && LISA_BOOTSTRAP=1 node /Users/codysai/.claude/jobs/9c0bd661/tmp/base-lisa/dist/index.js apply --yes --full-apply --skip-git-check /Users/codysai/.claude/jobs/9c0bd661/tmp/hosts/no-lock)
+apply exit=0; cdk template applied: 15 log lines mention cdk/
+after  devEngines: {"packageManager":{"name":"npm","version":">=11.6.0","onFail":"warn"}}
