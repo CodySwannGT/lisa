@@ -1,0 +1,148 @@
+# Validation Journey step 5 - github-path-unchanged (test-run-log)
+# HEAD d03e84394bb017ee17509c0bf9ede43fa3eab318   merge-base origin/main 8d2385d27d06c9e98131cf816e1f688045ab923d
+# RESULT: FAIL - 1 existing suite fails (tests/integration/npm-update-all-host-helpers.test.ts:168, pin 127 vs 131).
+# Cause (verifier-confirmed): managedTemplateMembers() at HEAD has 131 members = 127 + the 4 new tracker modules
+#   lib/npm-update-tracker.mjs, lib/npm-update-tracker-jira.mjs, lib/npm-update-tracker-linear.mjs, lib/npm-update-tracker-wire.mjs
+#   The pin line is unchanged from origin/main, so this suite does NOT pass without modification.
+
+$ bun run lisa-test-run -- --adapter vitest -- vitest run <files below>
+# files: every tests/unit/scripts/npm-update-*.test.ts and tests/integration/npm-update*.test.ts that is not a new *tracker* file,
+#        plus tests/unit/scripts/automation-provenance.test.ts and tests/integration/reusable-workflow-caller-scopes.test.ts:
+#   tests/integration/npm-update-all-host-helpers.test.ts
+#   tests/integration/npm-update-dual-lock.test.ts
+#   tests/integration/npm-update-rails-hook-scratch.test.ts
+#   tests/integration/npm-update-subdirectory.test.ts
+#   tests/integration/npm-updater-download-https.test.ts
+#   tests/integration/reusable-workflow-caller-scopes.test.ts
+#   tests/unit/scripts/automation-provenance.test.ts
+#   tests/unit/scripts/npm-update-backlink-pagination.test.ts
+#   tests/unit/scripts/npm-update-broker.test.ts
+#   tests/unit/scripts/npm-update-browser-process-observation.test.ts
+#   tests/unit/scripts/npm-update-cancel-origin-directory.test.ts
+#   tests/unit/scripts/npm-update-cancellation-lifecycle.test.ts
+#   tests/unit/scripts/npm-update-cancellation-workflow.test.ts
+#   tests/unit/scripts/npm-update-cancellation.test.ts
+#   tests/unit/scripts/npm-update-checkpoint.test.ts
+#   tests/unit/scripts/npm-update-classifier-cache.test.ts
+#   tests/unit/scripts/npm-update-compatibility.test.ts
+#   tests/unit/scripts/npm-update-contract.test.ts
+#   tests/unit/scripts/npm-update-controller-factory.test.ts
+#   tests/unit/scripts/npm-update-diagnostics.test.ts
+#   tests/unit/scripts/npm-update-directory.test.ts
+#   tests/unit/scripts/npm-update-driver-diagnostic.test.ts
+#   tests/unit/scripts/npm-update-driver-qualification.test.ts
+#   tests/unit/scripts/npm-update-dual-lock-contract.test.ts
+#   tests/unit/scripts/npm-update-gate-proof.test.ts
+#   tests/unit/scripts/npm-update-gh-dispatch.test.ts
+#   tests/unit/scripts/npm-update-gh-requests.test.ts
+#   tests/unit/scripts/npm-update-github.test.ts
+#   tests/unit/scripts/npm-update-helper-generator.test.ts
+#   tests/unit/scripts/npm-update-hook-installation.test.ts
+#   tests/unit/scripts/npm-update-hook-provider.test.ts
+#   tests/unit/scripts/npm-update-hosted-gate.test.ts
+#   tests/unit/scripts/npm-update-hosted-hook-rails-inline.test.ts
+#   tests/unit/scripts/npm-update-hosted-runtime.test.ts
+#   tests/unit/scripts/npm-update-hosted-scope.test.ts
+#   tests/unit/scripts/npm-update-husky-compatibility.test.ts
+#   tests/unit/scripts/npm-update-native-process.test.ts
+#   tests/unit/scripts/npm-update-provider-diagnostics.test.ts
+#   tests/unit/scripts/npm-update-qualification-package-contract.test.ts
+#   tests/unit/scripts/npm-update-qualification-packages.test.ts
+#   tests/unit/scripts/npm-update-rails-browser-environment.test.ts
+#   tests/unit/scripts/npm-update-rails-mysql.test.ts
+#   tests/unit/scripts/npm-update-rails-runtime-contract.test.ts
+#   tests/unit/scripts/npm-update-rails-runtime-descriptor.test.ts
+#   tests/unit/scripts/npm-update-rails-tool-downloads.test.ts
+#   tests/unit/scripts/npm-update-rails-tools.test.ts
+#   tests/unit/scripts/npm-update-root-identity.test.ts
+#   tests/unit/scripts/npm-update-runtime-preservation.test.ts
+#   tests/unit/scripts/npm-update-runtime-qualification.test.ts
+#   tests/unit/scripts/npm-update-socket-witness.test.ts
+# (build/plugin-generation preamble and fleet-admission wait lines omitted; vitest output follows verbatim)
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4859-npm-updater-trackers
+
+
+⏭  DEFERRED TO CI: needs a native (non-symlinked) Bun first on PATH. Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`.
+
+⏭  DEFERRED TO CI: needs a native (non-symlinked) Bun first on PATH. Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`.
+stdout | tests/integration/npm-update-all-host-helpers.test.ts > all-only npm host controller materialization > installs required common helpers and qualifies actual controller entries
+
+========================================
+    Lisa Project Bootstrapper
+========================================
+
+
+
+stdout | tests/integration/npm-update-all-host-helpers.test.ts > all-only npm host controller materialization > installs required common helpers and qualifies actual controller entries
+
+========================================
+    Lisa Installation Complete!
+========================================
+
+  Copied:      131 files
+  Skipped:       0 files (identical or create-only)
+  Overwritten:   0 files (approved or Lisa-owned)
+  Out of date:   0 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        0 files (JSON merged)
+  Deleted:       0 files
+
+Project types: all
+
+
+ ❯ |lisa| tests/integration/npm-update-all-host-helpers.test.ts (4 tests | 1 failed) 20235ms
+     × installs required common helpers and qualifies actual controller entries 5207ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/integration/npm-update-all-host-helpers.test.ts > all-only npm host controller materialization > installs required common helpers and qualifies actual controller entries
+AssertionError: expected 131 to be 127 // Object.is equality
+
+- Expected
++ Received
+
+- 127
++ 131
+
+ ❯ tests/integration/npm-update-all-host-helpers.test.ts:168:45
+    166|         join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
+    167|       );
+    168|       expect(managedTemplateMembers().size).toBe(127);
+       |                                             ^
+    169|     },
+    170|     ioLatencyBudgetMs(30_000)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 49 passed (50)
+      Tests  1 failed | 768 passed | 2 skipped (771)
+   Start at  18:54:45
+   Duration  146.31s (transform 1.98s, setup 2.41s, import 6.35s, tests 202.22s, environment 2ms)
+
+error: script "lisa-test-run" exited with code 1
+exit=1
+
+$ git diff origin/main...HEAD --name-status -- tests/   (non-added entries only)
+M	tests/unit/scripts/npm-update-contract.test.ts
+
+$ git diff origin/main...HEAD -- tests/unit/scripts/npm-update-contract.test.ts
+diff --git a/tests/unit/scripts/npm-update-contract.test.ts b/tests/unit/scripts/npm-update-contract.test.ts
+index b27f209c00..796a42a62c 100644
+--- a/tests/unit/scripts/npm-update-contract.test.ts
++++ b/tests/unit/scripts/npm-update-contract.test.ts
+@@ -1018,7 +1018,9 @@ describe("complete authenticated helper closure", () => {
+     const bytes = new Map<string, Buffer>();
+     for (const member of members)
+       bytes.set(member, await helperAuditSource(member));
+-    expect(members.length).toBe(129);
++    // 129 + the four tracker modules (tracker, tracker-jira, tracker-linear,
++    // tracker-wire) added for Jira/Linear work items in CodySwannGT/lisa#4859.
++    expect(members.length).toBe(133);
+     const completionMembers = [
+       "lib/completion-authorization.mjs",
+       "lib/completion-proof-adapters.mjs",
+
+$ git diff origin/main...HEAD -- tests/unit/scripts/npm-update-root-identity.test.ts | wc -c
+0
+# (0 bytes: the signed-artifact goldens - descriptor/proposal/policy digests - are byte-unchanged, and npm-update-root-identity.test.ts passed above)

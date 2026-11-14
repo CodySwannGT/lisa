@@ -1,0 +1,25 @@
+# Validation Journey step 1 - policy-accepts-jira-linear (test-run-log)
+# HEAD d03e84394bb017ee17509c0bf9ede43fa3eab318
+$ bun run lisa-test-run -- --adapter vitest -- vitest run tests/unit/scripts/npm-update-tracker-policy.test.ts --reporter=verbose
+# (build/plugin-generation preamble and fleet-admission wait lines omitted; vitest output follows verbatim)
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4859-npm-updater-trackers
+
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > accepts a Linear-tracked host with a Linear user id maintainer 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > accepts a Jira-tracked host with a Jira account id maintainer 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > does not fail jira with the repository/tracker refusal 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > does not fail linear with the repository/tracker refusal 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > refuses tracker gitlab 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > refuses tracker notion 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > refuses tracker GitHub 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > refuses tracker  0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > refuses tracker undefined 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > refuses a Jira host without a project and a Linear host without a team 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > refuses a code-host repository that differs from the configured GitHub repository 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-policy.test.ts > npm-update policy tracker scope > requires the maintainer identifier grammar of the configured tracker 0ms
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  18:47:46
+   Duration  240.88s (transform 252ms, setup 207ms, import 123ms, tests 5ms, environment 0ms)
+
+exit=0
