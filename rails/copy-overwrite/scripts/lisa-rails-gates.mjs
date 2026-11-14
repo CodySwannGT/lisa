@@ -634,6 +634,12 @@ export async function runRailsGates(
   }
   selection.close();
   cache?.commit();
+  // Known gap (CodySwannGT/lisa#4896): the JS/TS runner records, per failed
+  // test gate, the test files its Vitest or Jest output named as failing. Here
+  // RSpec runs with inherited stdio (`runner` above), so no transcript exists
+  // to read `rspec ./spec/...` lines from, and every Rails gate records an empty
+  // `failingTestFiles`. Closing it needs a bounded output tail on the rspec
+  // payload, as the JS runner's supervisor keeps.
   recordPushTiming({
     moment: "push",
     startedAtMs,

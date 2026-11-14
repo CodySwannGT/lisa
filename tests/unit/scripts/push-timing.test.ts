@@ -21,8 +21,10 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  failingTestFiles,
   formatDuration,
   formatTimingLine,
+  MAX_FAILING_TEST_FILES,
   reportFileName,
   timingReport,
   writeTimingReport,
@@ -153,6 +155,8 @@ describe("timingReport", () => {
       startedAt: RESULT.results[1]?.startedAt,
       durationMs: 171_000,
       provedBy: null,
+      failingTestFiles: [],
+      failingTestFilesTruncated: false,
     });
     expect(gates[2]).toMatchObject({ state: "UNPROVABLE", provedBy: SLOW });
     expect(gates[3]).toMatchObject({ state: "NOT_RUN", exitCode: null });
@@ -182,6 +186,127 @@ describe("timingReport", () => {
       },
     });
     expect(doc.gates[0]).toMatchObject({ state: "CACHED", durationMs: 0 });
+  });
+});
+
+/**
+ * Build a report whose only gate is the given result entry.
+ * @param entry - One `runGates` result entry
+ * @returns The single gate record
+ */
+function onlyGate(entry: Record<string, unknown>) {
+  return timingReport({
+    moment: "push",
+    startedAtMs: STARTED_MS,
+    finishedAtMs: FINISHED_MS,
+    cores: 1,
+    start: { loadavg: [1, 1, 1], freeMem: 1 },
+    end: { loadavg: [1, 1, 1], freeMem: 1 },
+    versions: { node: null, bun: null },
+    head: null,
+    tree: null,
+    result: { results: [entry] },
+  }).gates[0];
+}
+
+const ROOT = "/work/repo";
+const VITEST_A = "tests/unit/a.test.ts";
+const VITEST_B = "tests/integration/b.test.ts";
+const JEST_C = "src/c.test.tsx";
+
+/** Gate output carrying Vitest and Jest failure lines, duplicates, and noise. */
+const MIXED_OUTPUT = [
+  " RUN  v3.2.4 /work/repo",
+  ` ✓ |unit| tests/unit/ok.test.ts (3 tests) 12ms`,
+  ` FAIL  |unit| ${VITEST_A} > widget > renders`,
+  ` FAIL  |unit| ${VITEST_A} > widget > updates`,
+  `\u001b[31m FAIL \u001b[39m |integration| ${VITEST_B} [ ${VITEST_B} ]`,
+  ` FAIL  ${VITEST_A} > no project tag`,
+  `FAIL ${JEST_C} (5.12 s)`,
+  `FAIL ./src/d.test.js`,
+  `FAIL ${ROOT}/src/e.test.ts`,
+  "FAIL /elsewhere/outside.test.ts",
+  "FAIL ../escape.test.ts",
+  "Test Files  2 failed | 1 passed (3)",
+  "  ● widget › renders — FAIL in the middle of prose is not a header",
+].join("\n");
+
+describe("failingTestFiles", () => {
+  it("reads Vitest and Jest FAIL lines into deduped repo-relative paths", () => {
+    expect(failingTestFiles(MIXED_OUTPUT, { root: ROOT })).toEqual({
+      files: [VITEST_A, VITEST_B, JEST_C, "src/d.test.js", "src/e.test.ts"],
+      truncated: false,
+    });
+  });
+
+  it("caps the list and says it did", () => {
+    const output = Array.from(
+      { length: MAX_FAILING_TEST_FILES + 5 },
+      (_, i) => `FAIL tests/f${i}.test.ts`
+    ).join("\n");
+    const parsed = failingTestFiles(output, { root: ROOT });
+    expect(parsed.files).toHaveLength(MAX_FAILING_TEST_FILES);
+    expect(parsed.truncated).toBe(true);
+  });
+
+  it.each([
+    ["null", null],
+    ["a number", 42],
+    ["an object", { FAIL: "x" }],
+    ["binary noise", "\u0000\u00ff FAIL \u0001\nFAIL\n FAIL  |broken"],
+    [
+      "passing output",
+      " ✓ tests/unit/ok.test.ts (3 tests)\nTest Files  1 passed",
+    ],
+  ])("finds nothing in %s, without throwing", (_label, output) => {
+    expect(failingTestFiles(output, { root: ROOT })).toEqual({
+      files: [],
+      truncated: false,
+    });
+  });
+});
+
+describe("failing test files in the report", () => {
+  const failed = {
+    id: SLOW,
+    command: COV_COMMAND,
+    state: "failed",
+    code: 1,
+    failingTests: { files: [VITEST_A, JEST_C], truncated: false },
+  };
+
+  it("records the failing test files of a failed gate", () => {
+    expect(onlyGate(failed)).toMatchObject({
+      state: "FAILED",
+      failingTestFiles: [VITEST_A, JEST_C],
+      failingTestFilesTruncated: false,
+    });
+  });
+
+  it("carries the truncation flag through", () => {
+    expect(
+      onlyGate({
+        ...failed,
+        failingTests: { files: [VITEST_A], truncated: true },
+      })
+    ).toMatchObject({ failingTestFilesTruncated: true });
+  });
+
+  it.each([
+    ["passed", false],
+    ["passed", true],
+    ["skipped", false],
+  ])("records none for a %s gate (cached: %s)", (state, cached) => {
+    expect(onlyGate({ ...failed, state, cached, code: 0 })).toMatchObject({
+      failingTestFiles: [],
+      failingTestFilesTruncated: false,
+    });
+  });
+
+  it("records none when the entry's list is malformed", () => {
+    expect(
+      onlyGate({ ...failed, failingTests: { files: "nope", truncated: 1 } })
+    ).toMatchObject({ failingTestFiles: [], failingTestFilesTruncated: false });
   });
 });
 

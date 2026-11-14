@@ -72,7 +72,11 @@ import {
   withAdmission,
 } from "./lib/push-admission.mjs";
 import { withPushGateDefaults } from "./lib/push-gate-defaults.mjs";
-import { hostReading, recordPushTiming } from "./lib/push-timing.mjs";
+import {
+  failingTestFiles,
+  hostReading,
+  recordPushTiming,
+} from "./lib/push-timing.mjs";
 import { worktreeDependencyProblem } from "./lib/worktree-dependencies.mjs";
 import {
   interruptionReason,
@@ -239,6 +243,9 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  *   run proved it or it was never reached (#4591).
  * @property {boolean} [cached] True when the verdict is a remembered pass for
  *   this exact content and the gate did not run (CodySwannGT/lisa#4594).
+ * @property {{files: string[], truncated: boolean}} [failingTests] Test files
+ *   a nonzero run's output named as failing, for the push timing report only
+ *   (CodySwannGT/lisa#4896). Absent on a pass; never read into a verdict.
  */
 
 /**
@@ -503,6 +510,11 @@ function execute(gate, exec, declarations) {
     diagnosis: diagnosis.kind,
     evidence: diagnosis.evidence,
     proves: diagnosis.proves,
+    // Which test files the output names as failing, for the push timing report
+    // (CodySwannGT/lisa#4896). Read only on this failure branch, so a passing
+    // gate never carries a list. Diagnostics only: the parser never throws and
+    // nothing above or below reads it into a verdict.
+    failingTests: failingTestFiles(output, { root: process.cwd() }),
   };
 }
 
