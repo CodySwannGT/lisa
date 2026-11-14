@@ -124,7 +124,7 @@ the manager.
   `item-answer` match but `blocked-plan` (ids only) never does. `integration:<service>` trusts the
   items an integration files with no person behind them (Linear leaves `creator` null for those
   and records the filer on `botActor`; the value is its `subType`, such as `sentry`, else its
-  `name`). It never matches an item a person or an outside user filed, and `queue` prints the value
+  bot `id` — never its display name, which any app can choose). It never matches an item a person or an outside user filed, and `queue` prints the value
   beside each such `untrusted-author` exclusion (`authorIntegration`). GitHub Apps and Jira
   automation file as an account, so trust them by `id:` instead.
 - **Who may release a hold is a separate list.** `sessionManager.trustedReleaseIds` names who may
@@ -616,7 +616,7 @@ Skip while `capacity` reports `paused`. Otherwise:
      `complete` to `true` only when you really reached the last page; the CLI refuses anything else.
      Raw Jira issues carry `key` and `fields` (summary, priority, assignee, created, labels,
      description, reporter, issuetype, subtasks); raw Linear nodes carry identifier, title, priority,
-     createdAt, assignee, labels, description, creator, `botActor { type subType name }`,
+     createdAt, assignee, labels, description, creator, `botActor { type subType id name }`,
      `externalUserCreator { id }` and children with their state type. Ask for both author fields:
      without `externalUserCreator` an integration-filed item is never trusted by an
      `integration:` entry, because an outside user may have filed it.

@@ -26,6 +26,7 @@ import {
   validOrAbsent,
 } from "./cli-runtime.mjs";
 import { parseJson } from "./cli-queue.mjs";
+import { parseIdEntry } from "../../../scripts/operator-id-kinds.mjs";
 import { notifyProvider, trustedReleaseEntries } from "./config.mjs";
 import { wronglyEscalatedLabel } from "./cli-overruled.mjs";
 import {
@@ -154,9 +155,11 @@ export async function answer(ctx) {
  * @returns {string[]} Allowed author ids (empty: nobody may answer there)
  */
 function allowedAnswerers(config) {
-  return [...(config?.operatorIds ?? []), ...trustedReleaseEntries(config)].map(
-    String
-  );
+  // An `integration:` entry names no person, so it can never answer; counting
+  // it would tell the operator to reply on the item when no reply is read.
+  return [...(config?.operatorIds ?? []), ...trustedReleaseEntries(config)]
+    .map(String)
+    .filter(entry => parseIdEntry(entry)?.kind !== "integration");
 }
 
 /** Why nothing is read off the item when nobody may answer there. */

@@ -20,7 +20,8 @@
  *   person behind them (CodySwannGT/lisa#4895), and is meaningful only in
  *   `trustedAuthorIds`. Linear's Sentry integration creates issues whose
  *   `creator` is null, so there is no person id to trust; the entry matches
- *   such an item by the integration Linear records on it instead (`botActor`).
+ *   such an item by the integration Linear records on it instead (`botActor`:
+ *   its service, else its bot id, never its self-chosen display name).
  *   It never matches an item a person authored, never an item a non-Linear
  *   user filed through an integration (`externalUserCreator`), and never a
  *   person, so it cannot answer a question or release a human hold: those

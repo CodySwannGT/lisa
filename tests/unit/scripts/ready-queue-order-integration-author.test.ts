@@ -73,12 +73,25 @@ describe("normalizeLinearIssue authorIntegration", () => {
     ).toBe("sentry");
   });
 
-  it("falls back to the app name when the bot has no service", () => {
+  it("falls back to the bot id when the bot has no service", () => {
     const node = linearNode("OPS-2", {
       ...SENTRY_FILED,
-      botActor: { type: "oauthClient", subType: null, name: "Sentry" },
+      botActor: { type: "oauthClient", subType: null, id: "app-7", name: "X" },
     });
-    expect(normalizeLinearIssue(node).authorIntegration).toBe("Sentry");
+    expect(normalizeLinearIssue(node).authorIntegration).toBe("app-7");
+  });
+
+  it("never trusts a bot's self-chosen display name", () => {
+    const node = linearNode("OPS-7", {
+      ...SENTRY_FILED,
+      botActor: {
+        type: "oauthClient",
+        subType: null,
+        id: null,
+        name: "sentry",
+      },
+    });
+    expect(normalizeLinearIssue(node).authorIntegration).toBeNull();
   });
 
   it("is null when a person authored the item, whatever botActor says", () => {

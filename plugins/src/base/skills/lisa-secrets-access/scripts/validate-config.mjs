@@ -856,7 +856,7 @@ function botTokenProblem(path) {
 }
 
 /**
- * Strip every leading `login:` / `id:` prefix from an entry, so a value
+ * Strip every leading `login:` / `id:` / `integration:` prefix from an entry, so a value
  * stacked behind several (`login:id:<v>`) is reached (CodySwannGT/lisa#4754).
  * @param {string} entry One entry, already trimmed.
  * @returns {string} The value after the last known prefix, trimmed.
@@ -869,10 +869,10 @@ function stripIdEntryPrefixes(entry) {
 }
 
 /**
- * Scan one `operatorIds` / `trustedAuthorIds` entry for a bot token
+ * Scan one `operatorIds` / `trustedAuthorIds` / `trustedReleaseIds` entry for a bot token
  * (CodySwannGT/lisa#4719).
  *
- * The value after one or more `login:` / `id:` prefixes is what gets tested,
+ * The value after one or more `login:` / `id:` / `integration:` prefixes is what gets tested,
  * since a token pasted behind a prefix (or a stack of them, such as
  * `login:id:<token>`; CodySwannGT/lisa#4754) is as leaked as a bare one. A
  * legacy Jira accountId (`557058:<uuid>`) is token-shaped but is a real id,

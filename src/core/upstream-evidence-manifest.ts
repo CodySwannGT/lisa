@@ -1223,7 +1223,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "54e66825bd0d5c7c55cb1844208f71e90061f8ec8cde6ac102b780efcc70e974",
+      "e1a0f1383ecb3e0dc27cd030067869fdab8beecade045225f517dd4afb68feaf",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1377,7 +1377,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/linear-state-write-target.mjs":
       "71cee45d5d88e6e5065cbf10542acddc4a2a521484801ae1c2ad215d65daa392",
     "plugins/src/base/scripts/operator-id-kinds.mjs":
-      "19b0eda349245057292a9a21eb8f495b411fc5e05bec5adbb9d0c01ca2b7536e",
+      "5844cab1a13c3809f9f2853105ef93126912ce1337975bc5c1a5c194dc1ad54c",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
       "17cc7dde8f269b0cbc848c6385d6630a5926327c24e5769b2a16ed7d6aba2d76",
     "plugins/src/base/scripts/pr-arming-sweep.mjs":
@@ -1395,7 +1395,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/ready-queue-order.mjs":
-      "67dd17f87b3f92d6b1ff8c08eee3cf773bbb72074a4bf8df54fd9343dec01d4e",
+      "337c51b2518c5286ff18a7cca8cce132fa6f3dbb2c853aa31d4ffc887206c85a",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "2a5b21f4fa3df268fb579976b4bc5f480d9176dbf6e3ae64fe3a869df287ca30",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
@@ -1715,7 +1715,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "a8062250c9f9795a08c111434c1c6a3bc9688f7cb21a62b0a1e3d242f2cedf83",
+      "8c62980dec3821be65c3d4e436568cc8436cf8d5e20d7315e4afcb823370a21e",
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md":
       "42fa1f7456a4511dede443da16875337e19f4185bad4ba1808143fb05f425b74",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
@@ -1725,7 +1725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "eb9069d0a3b1e120f1dcebba108b2457e283e9c26cfd061d13a59da76b30c072",
+      "7279d617e4ad2d35568575a21509135e39c8c8a08274dfd8e4aa61a492d17115",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f77f80a5e649c57b40d87aa789b0fb2dd62870b1dee84248bfa0eaa413966e1d",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1737,7 +1737,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
       "fc3418fdea403b97da57708aa60cc52430c3d726d78764f591503922adb70407",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
-      "dd7ff608d14b4763869598e842d5559336dee5bc05f749cc3e15489b06687d16",
+      "a784da9b3706f1a64c4bdb13b07739b40480f135bcf9682a53af99b817340b1f",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs":
       "7478baf8cdb72029aa04d31f0951f262d086004e1dfc5ad3e422b3a2eea326c6",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs":
@@ -13539,6 +13539,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli-human-answer.test.ts": true,
     "tests/unit/session-manager/cli-human-planning-miss.test.ts": true,
     "tests/unit/session-manager/cli-human.test.ts": true,
+    "tests/unit/session-manager/cli-integration-answerers.test.ts": true,
     "tests/unit/session-manager/cli-isolation.test.ts": true,
     "tests/unit/session-manager/cli-liveness.test.ts": true,
     "tests/unit/session-manager/cli-manager.test.ts": true,

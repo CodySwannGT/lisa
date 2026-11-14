@@ -270,22 +270,26 @@ export function normalizeJiraIssue(issue) {
  *
  * Linear leaves `creator` null for an issue an integration or OAuth app
  * created, and records the filer on `botActor`: `subType` names the
- * integration service (`sentry`, `github`), and `name` the app when there is
- * no service. `creator` is also null for a deleted account, and an
+ * integration service (`sentry`, `github`), set by Linear itself. With no
+ * service, the bot's `id` identifies its source record instead. The bot's
+ * `name` is never used: an app's display name is chosen by whoever registers
+ * it, so trusting it would let any app installed in the workspace take over an
+ * entry by naming itself after a trusted integration (the risk #4715 recorded
+ * for `login:`). `creator` is also null for a deleted account, and an
  * integration can file on behalf of a non-Linear user (`externalUserCreator`,
  * set by Slack or Intercom intake). Neither of those is the integration's own
  * authorship, so both yield null. The fetch must have asked for
  * `externalUserCreator`: when the key is missing, whether an outside person
  * filed the item is unknown, and unknown is never trusted.
  * @param {Record<string, any>} issue - Issue node
- * @returns {string | null} The integration's service or app name
+ * @returns {string | null} The integration's service, else its bot id
  */
 function linearIntegrationAuthor(issue) {
   if (idOrNull(issue?.creator?.id) !== null) return null;
   if (!issue || !Object.hasOwn(issue, "externalUserCreator")) return null;
   if (issue.externalUserCreator !== null) return null;
   const bot = issue.botActor;
-  return idOrNull(bot?.subType) ?? idOrNull(bot?.name);
+  return idOrNull(bot?.subType) ?? idOrNull(bot?.id);
 }
 
 /**
