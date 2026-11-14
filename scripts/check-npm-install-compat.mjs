@@ -297,7 +297,9 @@ export function main(argv, deps = {}) {
     write = text => process.stdout.write(text),
   } = deps;
   const options = parseArgs(argv);
-  const tarball = options.tarball ?? pack();
+  // Absolute, because the install runs in a temp directory: a relative
+  // `--tarball` would resolve against a different cwd there than here.
+  const tarball = path.resolve(options.tarball ?? pack());
   const candidate = { tarball, packageVersion: readVersion(tarball) };
   const results = runChecks(candidate, options.npmVersions, install);
   write(formatReport(results));

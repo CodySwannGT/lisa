@@ -15,6 +15,7 @@
  * publish-to-npm.yml before every publish).
  * @module tests/unit/scripts/check-npm-install-compat
  */
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -243,5 +244,23 @@ describe("main", () => {
       readVersion: () => "9.9.9",
     });
     expect(code).toBe(1);
+  });
+
+  it("hands the installer an absolute tarball path for a relative --tarball", () => {
+    // The install runs in a temp directory, so a relative path would resolve
+    // there instead of against the caller's cwd.
+    const { calls, install } = stubInstaller({});
+    const read: string[] = [];
+    main(["--tarball", "./x.tgz", "--npm", NPM11], {
+      ...quietDeps(install),
+      readVersion: (tarball: string) => {
+        read.push(tarball);
+        return VERSION;
+      },
+    });
+    const absolute = path.resolve("./x.tgz");
+    expect(path.isAbsolute(absolute)).toBe(true);
+    expect(calls).toEqual([`${NPM11}:${absolute}`]);
+    expect(read).toEqual([absolute]);
   });
 });
