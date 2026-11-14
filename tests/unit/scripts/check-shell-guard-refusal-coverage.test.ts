@@ -40,6 +40,7 @@ import {
   candidateSuites,
   HAND_RUN_SUITES,
 } from "../../../scripts/check-shell-guard-refusal-coverage.mjs";
+import { NIGHTLY_SLOW_SUITES } from "../../../scripts/lib/nightly-slow-suites.mjs";
 
 /** The check's CLI, by repository-relative path. */
 const CHECK = "scripts/check-shell-guard-refusal-coverage.mjs";
@@ -259,13 +260,27 @@ describe("the candidate suites", () => {
     // The exclusion is explicit and named, not an accident of the filter: the
     // journey still names `.sh` files and starts children, so without the
     // entry it would be collected into a Plugins Sync shard on every PR.
-    expect(HAND_RUN_SUITES).toEqual([PACKED_HOST_JOURNEY]);
+    expect(HAND_RUN_SUITES).toContain(PACKED_HOST_JOURNEY);
     expect(suites).not.toContain(PACKED_HOST_JOURNEY);
     // The absent case: an empty candidate list would also satisfy the line
     // above while measuring nothing.
     expect(suites).toContain(
       "tests/unit/scripts/check-shell-guard-refusal-coverage.test.ts"
     );
+  });
+
+  it("leave the nightly suites to the nightly run (CodySwannGT/lisa#4896)", () => {
+    const suites = candidateSuites(process.cwd());
+
+    // Every per-PR Vitest run excludes them, so a candidate list that kept one
+    // would never match the native collection it is compared against.
+    expect(HAND_RUN_SUITES).toEqual([
+      PACKED_HOST_JOURNEY,
+      ...NIGHTLY_SLOW_SUITES,
+    ]);
+    for (const suite of NIGHTLY_SLOW_SUITES) {
+      expect(suites).not.toContain(suite);
+    }
   });
 });
 
