@@ -229,12 +229,47 @@ const result = await runProcess(process.execPath, process.argv.slice(2), {
 }); process.stdout.write(result.stdout); process.stderr.write(result.stderr);
 process.exitCode = result.code;`
   );
+  // The trusted graph is the closure the dispatched chain can reach, as the
+  // real controller selects it, rather than every managed helper: the whole
+  // inventory now outgrows the 128-entry trusted-graph bound on its own.
+  const manifest = JSON.parse(
+    readFileSync(resolve(HELPER_GRAPH_FILE), "utf8")
+  ) as {
+    members: Record<
+      string,
+      {
+        staticImports: string[];
+        dynamicImports: string[];
+        children: string[];
+      }
+    >;
+  };
+  const reachable = new Set<string>();
+  const visit = (name: string): void => {
+    const record = manifest.members[name];
+    if (record === undefined || reachable.has(name)) return;
+    reachable.add(name);
+    for (const next of [
+      ...record.staticImports,
+      ...record.dynamicImports,
+      ...record.children,
+    ])
+      visit(next);
+  };
+  for (const name of [
+    "lib/npm-update-process-core.mjs",
+    "lib/npm-update-execution-adapter.mjs",
+    "lib/npm-update-tool-launcher.mjs",
+  ])
+    visit(name);
+  const members = managedTemplateMembers();
   const graph: Record<string, string> = {};
-  for (const path of managedTemplateMembers().values())
-    if (path.endsWith(".mjs")) {
-      const absolute = realpathSync(path);
-      graph[absolute] = sha256(readFileSync(absolute));
-    }
+  for (const name of reachable) {
+    const path = members.get(name);
+    if (path === undefined || !path.endsWith(".mjs")) continue;
+    const absolute = realpathSync(path);
+    graph[absolute] = sha256(readFileSync(absolute));
+  }
   for (const path of [entry, caller]) graph[path] = sha256(readFileSync(path));
   const identity = qualifiedUpdaterNode();
   const context = {
@@ -1018,7 +1053,7 @@ describe("complete authenticated helper closure", () => {
     const bytes = new Map<string, Buffer>();
     for (const member of members)
       bytes.set(member, await helperAuditSource(member));
-    expect(members.length).toBe(134);
+    expect(members.length).toBe(136);
     const completionMembers = [
       "lib/completion-authorization.mjs",
       "lib/completion-proof-adapters.mjs",

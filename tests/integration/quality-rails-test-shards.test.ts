@@ -108,7 +108,9 @@ describe.each(DATABASES)(
         expect(holds(condition, { "inputs.test_shards": 4 })).toBe(false);
       }
       expect(step(aggregate, "🧪 Run tests").run).toBe(
-        'export LISA_TEST_RUN_OWNER="$$:0"\nbundle exec rspec\n'
+        // The crystalball recorder rides along on a pull request
+        // (CodySwannGT/lisa#4612); it never narrows the run.
+        'export LISA_TEST_RUN_OWNER="$$:0"\nbundle exec rspec ${LISA_CRYSTALBALL_REQUIRE:+--require "$LISA_CRYSTALBALL_REQUIRE"}\n'
       );
     });
 

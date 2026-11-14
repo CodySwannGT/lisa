@@ -32,6 +32,12 @@
  * `affectedCoverage: "changed-files"` by default (CodySwannGT/lisa#4611), from
  * `all/copy-overwrite/scripts/lib/push-gate-defaults.mjs`, which every reader
  * applies before validating. An explicit value always wins.
+ *
+ * Rails hosts read the same two keys through `scripts/lib/rspec-selection.mjs`
+ * (CodySwannGT/lisa#4612), with the same validation and two different
+ * defaults: `affectedTests` is ON for a Rails project when absent, and
+ * `affectedCoverage` defaults to `changed-files` (owner decision). An explicit
+ * value always wins.
  */
 
 /** How a partial push-time selection treats coverage-adequacy. */

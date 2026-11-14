@@ -44,6 +44,8 @@ const COMMON = [
   "lib/build-marker.mjs",
   "lib/gate-pass-cache.mjs",
   "lib/affected-tests.mjs",
+  "lisa-rspec-select.mjs",
+  "lib/rspec-selection.mjs",
   "lib/push-admission.mjs",
   "lib/push-gate-defaults.mjs",
   "lib/history-secret-git.mjs",

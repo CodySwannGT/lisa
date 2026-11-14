@@ -43,7 +43,14 @@ pre-push:
       # (CodySwannGT/lisa#4603). It never fails the push. The payload then runs
       # as itself, exported as LISA_TEST_RUN_OWNER so a later sweep recognises
       # any child it orphans.
-      run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then node scripts/lib/lisa-cleanup-sweep.mjs; else echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"; fi; export LISA_TEST_RUN_OWNER="$$:0"; exec bundle exec rspec'
+      #
+      # scripts/lisa-rspec-select.mjs runs only the specs the change can reach,
+      # from the gitlab-crystalball map CI records (CodySwannGT/lisa#4612), and
+      # runs the full suite, saying why, whenever that could be wrong. Set
+      # pushGate.affectedTests to false in .lisa.config.json to always run the
+      # full suite. Until `lisa` has installed the script (or without node),
+      # the full suite runs as before.
+      run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then node scripts/lib/lisa-cleanup-sweep.mjs; else echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"; fi; export LISA_TEST_RUN_OWNER="$$:0"; if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rspec-select.mjs ]; then exec node scripts/lisa-rspec-select.mjs -- bundle exec rspec; fi; exec bundle exec rspec'
     brakeman:
       run: sh scripts/lisa-clean-git-env.sh bundle exec brakeman --no-pager --quiet
     reek:

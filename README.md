@@ -530,6 +530,21 @@ A partial run cannot measure overall coverage, so `pushGate.affectedCoverage` de
 
 Both settings are off or `"full"` by default, and `lisa apply` and the push gate both reject a value they do not recognise. Lisa turns `affectedTests` on for itself with `affectedCoverage` set to `"changed-files"`; whole-repo coverage is still enforced on the pull request.
 
+#### Rails projects
+
+On a Rails project (one with `bin/rails` or `config/application.rb`), the pre-push `rspec` command runs only the specs your change can reach, and this is on by default. Set `"pushGate": { "affectedTests": false }` to always run the full suite. The map comes from gitlab-crystalball: on every pull request, the full RSpec run in `quality-rails.yml` records which application files each spec executed, plus the files that define the class each spec describes. It uploads that map as `crystalball-map-<base sha>-<run id>`, merging the shards when the suite is sharded. The pre-push downloads the newest map for its base with `gh` and keeps it in `.lisa/crystalball-map/`. A partial run includes the specs that executed a changed file, each changed spec, and the conventional spec for a changed file (`app/models/user.rb` pairs with `spec/models/user_spec.rb`). It always adds `spec/system/**`, `spec/features/**`, specs tagged `:js`, and specs tagged `lisa_always_run: true`. That last tag is the escape hatch for a spec whose behaviour the map cannot see, such as one that spawns a child process, calls an external service, or relies on a class it does not describe through a declaration like `validates` or `scope`.
+
+The full suite runs, and the reason is printed, in any of these cases:
+
+- the push is a CI run;
+- the map is missing, unreadable, recorded off this branch's history, or older than seven days;
+- `Gemfile` or `Gemfile.lock` changes;
+- `db/schema.rb` or `db/structure.sql` changes;
+- anything under `config/` or `spec/support/` changes, or a `spec/*_helper.rb`, `.rspec` or `.simplecov`;
+- a file the map has never seen changes, such as a view or a fixture. Changes only to documentation, CI configuration or coding-agent configuration are the exception.
+
+Coverage defaults to `"changed-files"` on Rails. A partial run keeps SimpleCov's project-wide minimums off the slice (`scripts/lisa_rspec_partial_coverage.rb`), and then each changed Ruby file must meet `simplecov.thresholds.json` on its own. `"skip"` leaves coverage to CI. `"full"` keeps the full suite. CI still runs every spec and enforces the thresholds on the whole suite before merge.
+
 ### The smart push gate in TypeScript projects
 
 A TypeScript project gets the smart push gate without configuring it. A project counts as TypeScript when it has a root `tsconfig.json`, or `typescript` in its `package.json` dependencies or devDependencies. When its `.lisa.config.json` does not say otherwise, it gets `cache`, `admission` and `affectedTests` set to `true`, and `affectedCoverage` set to `"changed-files"`, the same as Lisa. A value the project sets always wins, `false` included, so `"pushGate": { "affectedTests": false }` returns the push to the full suite. `buildOnce` stays off, because a TypeScript project's push gates do not build, so a build-once step would only add a build. Nothing is written into the project's config, and an existing project needs only `lisa apply`.
