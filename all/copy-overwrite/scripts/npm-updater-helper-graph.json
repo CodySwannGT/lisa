@@ -61,7 +61,7 @@
       "children": []
     },
     "lib/automation-provenance-local.mjs": {
-      "sha256": "5847417a10ff0005114080d0023bb265d908990601caef7397bce83e1f19bfc2",
+      "sha256": "ddbfbb3cad6c622af9cec2c38c85763a5af6a0c79f015f06aab5440a9ae5547b",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/automation-provenance-files.mjs",
