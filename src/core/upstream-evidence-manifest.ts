@@ -11147,6 +11147,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/copilot/copilot-instructions-installer.ts": true,
     "src/copilot/plugin-installer.ts": true,
     "src/core/admission-decision.ts": true,
+    "src/core/admission-lock.ts": true,
     "src/core/admission-settings.ts": true,
     "src/core/admission-state.ts": true,
     "src/core/admission.ts": true,

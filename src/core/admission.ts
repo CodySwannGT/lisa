@@ -3,8 +3,15 @@
  *
  * Runs go in parallel while the machine has capacity and queue only when it
  * does not. The wait is bounded and ends in a refusal that names the runs
- * holding the machine; there is no "start anyway". It replaces the fixed-count
- * fleet admission that only ever covered Lisa's own Vitest runs.
+ * holding the machine; a busy machine never means "start anyway". It replaces
+ * the fixed-count fleet admission that only ever covered Lisa's own Vitest
+ * runs.
+ *
+ * Admission that cannot DECIDE is different. When the decision lock cannot be
+ * taken within the wait bound — its holder is suspended, another user owns the
+ * address, it is not a socket — the run starts now with one line saying why,
+ * the same way a skipped admission does. Admission paces work; it must never
+ * become the thing that hangs a push (CodySwannGT/lisa#4596 review).
  *
  * Callers: `lisa admit --workers <n> -- <command>` (the gate runner and other
  * scripts) and `lisa-test-run` (in process). Both switch it on only where
@@ -25,8 +32,8 @@ import {
   ADMITTED_WORKERS_ENV,
   type AdmissionSettings,
 } from "./admission-settings.js";
+import { acquireDecisionLock } from "./admission-lock.js";
 import {
-  acquireDecisionLock,
   pidAlive,
   processStartTimes,
   readLiveReservations,
@@ -136,11 +143,20 @@ function parentHolder(
     : undefined;
 }
 
+/**
+ * The least time the lock gets on any attempt, even one made after the wait
+ * bound has just run out, so ordinary brief contention never turns a busy
+ * machine's refusal into a start without admission.
+ */
+const LOCK_GRACE_MS = 2_000;
+
 /** One attempt's result. */
 type Attempt =
   | { readonly admitted: true; readonly granted: number; readonly path: string }
+  | { readonly admitted: false; readonly undecided: string }
   | {
       readonly admitted: false;
+      readonly undecided?: undefined;
       readonly reason: string;
       readonly holders: readonly AdmissionReservation[];
     };
@@ -149,14 +165,23 @@ type Attempt =
  * Decide once, under the lock, and reserve when admitted.
  * @param request - The request
  * @param runtime - Seams
+ * @param deadline - When the overall wait bound runs out
  * @returns The attempt
  */
 async function attemptOnce(
   request: AdmissionRequest,
-  runtime: AdmissionRuntime
+  runtime: AdmissionRuntime,
+  deadline: number
 ): Promise<Attempt> {
   const { settings } = request;
-  const release = await acquireDecisionLock(settings.stateDir, runtime.sleep);
+  const lock = await acquireDecisionLock(settings.stateDir, {
+    sleep: runtime.sleep,
+    now: runtime.now,
+    until: Math.max(deadline, runtime.now() + LOCK_GRACE_MS),
+  });
+  if ("unavailable" in lock) {
+    return { admitted: false, undecided: lock.unavailable };
+  }
   try {
     const holders = readLiveReservations(
       settings.stateDir,
@@ -185,7 +210,7 @@ async function attemptOnce(
     });
     return { admitted: true, granted: decision.granted, path };
   } finally {
-    await release();
+    await lock.release();
   }
 }
 
@@ -199,7 +224,7 @@ async function attemptOnce(
  */
 function refusal(
   request: AdmissionRequest,
-  attempt: Extract<Attempt, { admitted: false }>,
+  attempt: Extract<Attempt, { reason: string }>,
   waitedMs: number,
   now: number
 ): string {
@@ -226,7 +251,17 @@ async function poll(
   startedAt: number,
   announced: string
 ): Promise<AdmissionOutcome> {
-  const attempt = await attemptOnce(request, runtime);
+  const attempt = await attemptOnce(
+    request,
+    runtime,
+    startedAt + request.settings.maxWaitMs
+  );
+  if (!attempt.admitted && attempt.undecided !== undefined) {
+    runtime.log(
+      `lisa admission: could not take the decision lock for \`${request.command}\` (${attempt.undecided}); starting now without admission`
+    );
+    return { kind: "skipped", granted: request.workers };
+  }
   if (attempt.admitted) {
     runtime.log(
       `lisa admission: admitted \`${request.command}\` with ${String(attempt.granted)} worker(s)`
