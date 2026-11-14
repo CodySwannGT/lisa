@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.1.5](https://github.com/CodySwannGT/lisa/compare/v5.1.4...v5.1.5) (2026-11-14)
+
+
+### Bug Fixes
+
+* **apply:** retire a host's npm floor regardless of key order ([12b209c](https://github.com/CodySwannGT/lisa/commit/12b209cae53b897e3eb84ba3c2d7287121541ab4)), closes [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848) [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848)
+* **apply:** stop forcing an npm devEngines floor onto bun hosts ([6f712d0](https://github.com/CodySwannGT/lisa/commit/6f712d0baba73b13a871dbf5fc4776278e40ecb2)), closes [#4793](https://github.com/CodySwannGT/lisa/issues/4793) [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848) [CodySwannGT/lisa#4848](https://github.com/CodySwannGT/lisa/issues/4848)
+
 ### [5.1.4](https://github.com/CodySwannGT/lisa/compare/v5.1.3...v5.1.4) (2026-11-13)
 
 
