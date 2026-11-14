@@ -96,6 +96,37 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     }
   });
 
+  // #4885: an assumed upstream branch name makes every upstream destination
+  // look missing, and a mixed run's refusals were reachable only from the
+  // run report. Machine tokens only: the upstream lookup resolves
+  // `.default_branch` before its commits call, and Run outcomes routes
+  // refusals of a `candidate-proposed` run into `--summary`.
+  it("resolves the upstream default branch and summarises every refusal (#4885)", () => {
+    const start = skill.indexOf("<!-- destination-validation:start -->");
+    const end = skill.indexOf("<!-- destination-validation:end -->");
+    const block = skill.slice(start, end);
+    const resolve = block.indexOf("--jq .default_branch");
+    const commits = block.indexOf("/commits/<upstreamDefault>");
+
+    expect(resolve).toBeGreaterThan(0);
+    expect(commits).toBeGreaterThan(resolve);
+    expect(block).not.toContain("/commits/<default>");
+
+    const outcomesAt = skill.indexOf("## Run outcomes");
+    expect(outcomesAt).toBeGreaterThan(0);
+    const outcomesEnd = skill.indexOf("\n## ", outcomesAt + 1);
+    const outcomes = skill.slice(outcomesAt, outcomesEnd);
+    const mixed = outcomes
+      .split("\n- ")
+      .find(
+        chunk =>
+          chunk.includes("`candidate-proposed`") &&
+          chunk.includes("refused") &&
+          chunk.includes("`--summary`")
+      );
+    expect(mixed).toBeDefined();
+  });
+
   it("carries the delimited batch-ticket execution contract, byte-identical to canonical", () => {
     const template = extractBatchTemplate(skill);
     const canonical = extractBatchTemplate(
