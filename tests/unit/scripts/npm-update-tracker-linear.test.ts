@@ -186,7 +186,10 @@ describe("Linear allocation", () => {
       );
       // #4873: a signed origin now resumes; it reaches the live GitHub run proof,
       // which this fixture does not stage, instead of the old unsupported refusal.
-      expect(refusal).toBeDefined();
+      // The pinned gh read is the historical run proof (verifyHistoricalRun).
+      expect((refusal as Error).message).toContain(
+        "official gh executable is not pinned"
+      );
       expect(publicFailure(refusal)).not.toMatch(FOLLOWUP);
     });
   });

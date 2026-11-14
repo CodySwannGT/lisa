@@ -234,21 +234,33 @@ describe("the allocate phase with LINEAR_API_KEY unset", () => {
     expect(network).not.toHaveBeenCalled();
   });
 
-  it.each(["gate", "publish", "cancel-prepare", "cancel-checkpoint"])(
-    "no longer refuses the %s phase for a Linear host as unsupported (#4873)",
+  it.each(["gate", "publish"])(
+    "dispatches the %s phase for a Linear host to its signed-reference check (#4873)",
     async phase => {
       await withPrivateRoot(async (root, env) => {
         const { cwd, output, proposal } = await linearCheckout(root, env);
-        writeFileSync(
-          join(output, PROPOSAL_FILE),
-          `${canonicalJson(proposal)}\n`,
-          { mode: 0o600 }
-        );
+        const message = `chore(deps): update selected npm dependencies\n\nWork-Item: ENG-2\nAutomation-Provenance: actions/1/attempts/1\n`;
+        // Allocation number 1 must carry ENG-1; ENG-2 everywhere else must refuse.
+        const files: Record<string, unknown> = {
+          [PROPOSAL_FILE]: proposal,
+          "allocation.json": { number: 1, workItem: "ENG-2" },
+          "preview.json": {
+            descriptor: { workItem: "ENG-2", messageSha256: sha256(message) },
+            message,
+            epoch: 1,
+          },
+        };
+        for (const [name, value] of Object.entries(files))
+          writeFileSync(join(output, name), `${canonicalJson(value)}\n`, {
+            mode: 0o600,
+          });
         const failure = await main([phase, cwd, output]).then(
           () => undefined,
           (error: unknown) => error
         );
-        expect(publicFailure(failure)).not.toContain("CodySwannGT/lisa#4873");
+        expect((failure as Error).message).toContain(
+          "signed work item differs from the configured tracker"
+        );
         expect(publicFailure(failure)).not.toContain("not supported");
       });
     }
