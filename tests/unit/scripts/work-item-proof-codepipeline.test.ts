@@ -3,7 +3,7 @@
  * the real canonical `complete` route with a controlled read-only `aws`.
  */
 import { readFileSync } from "node:fs";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
@@ -13,6 +13,7 @@ import {
 import {
   attachRecord,
   proofCli,
+  proofCliSpawned,
   PROOF_REF,
 } from "../../support/work-item-proof-fixture.js";
 import {
@@ -29,6 +30,16 @@ import {
   type PipelineFixture,
 } from "../../support/work-item-proof-codepipeline.js";
 
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 15).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
+
 const COMPLETE = ["complete", "--ref", PROOF_REF];
 const INVALID = "[invalid-proof]";
 const COMPLETED = "work-item completed:";
@@ -43,11 +54,15 @@ afterAll(cleanupTemplates);
 /**
  * Run lifecycle complete and capture what the providers observed.
  * @param fixture - Owned CodePipeline-delivered host with an attached record.
+ * @param run - In-process by default; the real-boundary case spawns.
  * @returns CLI result, native issue state, attempted writes and AWS calls.
  */
-function complete(fixture: PipelineFixture) {
+function complete(
+  fixture: PipelineFixture,
+  run: typeof proofCli | typeof proofCliSpawned = proofCli
+) {
   attachRecord(fixture);
-  const result = proofCli(fixture, COMPLETE);
+  const result = run(fixture, COMPLETE);
   const state = JSON.parse(
     readFileSync(fixture.env.FAKE_GH_STATE_FILE!, "utf8")
   );
@@ -74,7 +89,7 @@ describe("CodePipeline delivery proof through actual CLI", () => {
   it("accepts an execution that Succeeded at the delivered commit and reports the pinned execution", () => {
     const fixture = pipelineFixture();
     setExecution(fixture, "Succeeded", fixture.merge);
-    const observed = complete(fixture);
+    const observed = complete(fixture, proofCliSpawned);
     console.log(JSON.stringify({ case: "succeeded", ...observed.result }));
     expect(observed.result.stderr).toBe("");
     expect(observed.result.status).toBe(0);

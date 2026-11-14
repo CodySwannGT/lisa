@@ -56,7 +56,7 @@ How each saving is projected:
   times 0.36s. 0.36s per test is the slowest measured per-test rate among the
   existing in-process `work-item-cli-*` suites (`work-item-cli-trackers`); the
   pooled rate across all eight is 0.12s. This is an estimate until #4616
-  converts one suite and measures it.
+  converts one suite and measures it. #4616 measured it: see "What #4616 did with these rows".
 - **slim (Jest shard reports):** 60% of the file, assuming one shared whole
   run and shard pair replaces ten. This is an estimate.
 - **move to on-demand:** the whole file leaves the pull-request path.
@@ -201,6 +201,153 @@ for is the mutation **value** measurement:
   neither run mutated. None of them is recommended for deletion.
 - Stryker cost on this machine: M1 took 19 minutes for 1,546 mutants with
   `--disableBail`. M2 took 42 minutes for 616 mutants, because many of the 73 reaching suites cover each mutant. Mutating the whole of `lisa-work-item.mjs` the same way would take about 7 hours (616 mutants per 750 lines, scaled to 7,240 lines), which is beyond this timebox and is the first thing #4616 should run before it deletes any work-item suite.
+
+## What #4616 did with these rows
+
+CodySwannGT/lisa#4616 acted on the 25 **slim** rows, deleted nothing, and
+left the three **move to on-demand** rows for the owner.
+
+### Measured before and after
+
+Each slimmed file was run before and after, in small batches of four to eight
+files, on 2026-11-13, on the same 18-core macOS machine (shared with three
+other agents, so absolute times are noisy). Every run set `CI=1` and
+`LISA_TEST_TIMINGS_SCOPE`, so the per-file timing reporter (#4592) wrote
+`tmp/test-timings/<scope>.json`. The seconds are that file's per-file span
+(first test start to last test end), the same figure
+`scripts/test-timing-report.mjs` reports. The report script itself refuses a
+directory that lacks either scope, and each batch ran one scope, so the span
+was read straight from the reporter's file. The "before" runs used the base
+versions of the files. Every file passed both times.
+
+| Scope | Audit row | File | Audit (s) | Projected saving (s) | Before (s) | Tests before | After (s) | Tests after | Saved (s) |
+|---|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| unit | 2 | `tests/unit/scripts/automation-provenance.test.ts` | 67.1 | 29.7 | 56.4 | 66 | 25.9 | 67 | 30.5 |
+| unit | 5 | `tests/unit/scripts/work-item-proof-denials.test.ts` | 46.4 | 28.4 | 53.8 | 50 | 16.7 | 50 | 37.2 |
+| unit | 6 | `tests/unit/scripts/lint-staged-preflight.test.ts` | 45.4 | 44.0 | 45.3 | 31 | 0.4 | 32 | 44.9 |
+| unit | 10 | `tests/unit/scripts/work-item-proof-publish-retry.test.ts` | 32.8 | 30.0 | 35.0 | 8 | 8.2 | 8 | 26.8 |
+| unit | 12 | `tests/unit/scripts/github-attestation-verifier.test.ts` | 30.5 | 29.0 | 30.5 | 52 | 1.0 | 52 | 29.5 |
+| unit | 14 | `tests/unit/scripts/work-item-proof-evidence-release.test.ts` | 25.4 | 17.1 | 28.9 | 23 | 9.8 | 23 | 19.1 |
+| unit | 15 | `tests/unit/scripts/work-item-proof-codepipeline.test.ts` | 25.0 | 17.5 | 28.7 | 21 | 5.8 | 21 | 22.8 |
+| unit | 17 | `tests/unit/scripts/work-item-proof-trust.test.ts` | 22.6 | 18.6 | 25.7 | 11 | 4.1 | 11 | 21.6 |
+| unit | 18 | `tests/unit/scripts/npm-update-runtime-qualification.test.ts` | 21.8 | 18.0 | 21.0 | 21 | 7.0 | 22 | 14.0 |
+| unit | 23 | `tests/unit/scripts/work-item-proof-freshness-review.test.ts` | 18.2 | 12.5 | 19.6 | 16 | 5.4 | 16 | 14.2 |
+| unit | 24 | `tests/unit/scripts/work-item-proof-scope.test.ts` | 17.7 | 14.1 | 21.6 | 10 | 4.8 | 10 | 16.8 |
+| unit | 25 | `tests/unit/scripts/work-item-proof-evidence-pin.test.ts` | 17.3 | 15.5 | 20.1 | 5 | 3.5 | 5 | 16.6 |
+| unit | 26 | `tests/unit/scripts/lisa-mutation-sandbox.test.ts` | 17.2 | 15.0 | 17.4 | 29 | 2.1 | 29 | 15.3 |
+| unit | 30 | `tests/unit/scripts/work-item-linear-accepted-proof.test.ts` | 15.7 | 13.1 | 18.6 | 7 | 5.9 | 7 | 12.6 |
+| unit | 31 | `tests/unit/scripts/work-item-linear-production.test.ts` | 15.1 | 9.7 | 17.9 | 15 | 5.0 | 15 | 12.8 |
+| unit | 35 | `tests/unit/scripts/work-item-accepted-proof.test.ts` | 13.7 | 12.3 | 18.0 | 4 | 6.1 | 4 | 12.0 |
+| unit | 38 | `tests/unit/scripts/work-item-sweep-ancestry.test.ts` | 12.8 | 9.5 | 16.0 | 9 | 5.3 | 9 | 10.7 |
+| unit | 39 | `tests/unit/scripts/work-item-proof-late-read.test.ts` | 12.5 | 10.7 | 14.9 | 5 | 3.8 | 5 | 11.1 |
+| unit | 45 | `tests/unit/scripts/npm-update-driver-diagnostic.test.ts` | 9.2 | 7.0 | 8.8 | 18 | 1.8 | 19 | 7.0 |
+| unit | 57 | `tests/unit/scripts/work-item-proof-gh-versions.test.ts` | 7.5 | 6.4 | 9.6 | 3 | 3.8 | 3 | 5.8 |
+| unit | 62 | `tests/unit/scripts/work-item-coherent-related.test.ts` | 6.6 | 5.9 | 8.4 | 2 | 6.2 | 2 | 2.3 |
+| unit | 64 | `tests/unit/scripts/work-item-proof-evidence-overflow.test.ts` | 6.4 | 5.3 | 7.9 | 3 | 3.7 | 3 | 4.3 |
+| unit | 65 | `tests/unit/scripts/work-item-proof-write-errors.test.ts` | 6.3 | 5.3 | 8.0 | 3 | 1.7 | 3 | 6.3 |
+| integration | 4 | `tests/integration/quality-unit-progress.test.ts` | 31.8 | 30.0 | 31.9 | 6 | 1.9 | 8 | 30.0 |
+| integration | 5 | `tests/integration/lisa-test-run-jest-shards-reports.test.ts` | 29.7 | 17.8 | 19.3 | 10 | 6.9 | 10 | 12.4 |
+| **unit total** | | | | **374.6** | **532.2** | | **138.1** | | **394.1** |
+| **integration total** | | | | **47.8** | **51.2** | | **8.8** | | **42.4** |
+| **all** | | | | **422.4** | **583.4** | | **146.9** | | **436.5** |
+
+The saving is 436.5s summed file time against the 422.4s projected, 103% of
+the projection. Test counts rose where a case was added to pin a production
+value (below). No test was removed. The jest-shards span excludes the shared
+`beforeAll` fixtures it now builds; Vitest's own test time for that file was
+8.2s after.
+
+### What changed, by kind
+
+- **The product defect (unit row 6).** `lisa-lint-staged-preflight.mjs` no
+  longer passes `timeout` to `spawn`. It owns the deadline and clears it on
+  `exit` and on `error`, so a tool that cannot start no longer holds the
+  refusal open for 15 seconds. A new case fails first on the old code
+  (15,039ms against a 5,000ms bound). The script ships to hosts from
+  `all/copy-overwrite/scripts/`, its only copy.
+- **Deadline waits (unit rows 2, 12, 18, 26, 45; integration row 4).** Each
+  case still drives the real process to the real kill or refusal, at a
+  shorter deadline. The production value is pinned separately, so changing it
+  still fails:
+  - The automation-provenance resolver takes a new tighten-only
+    `LISA_PROVENANCE_RESOLVER_TIMEOUT_MS`. `resolverTimeoutMs` pins 30s, and
+    pins that neither the inherited `LISA_WORK_ITEM_TIMEOUT_MS` nor a larger
+    value changes it. The hook case also asserts it finished in under 20s,
+    which a resolver falling back to the inherited 30s would fail. The old
+    case passed in that situation too.
+  - The attestation verifier case runs a real hanging child through the real
+    bounded spawn at 500ms, and asserts ghJson asked for 30,000ms.
+  - Runtime qualification runs the hanging browser children at a 3s stage
+    ceiling. Three seconds, not one, because the Linux process observer's
+    first sample is at 2.5s. `stageBoundMs` pins 10s for browser and driver
+    stages.
+  - The mutation-sandbox case polls the grandchild's PID instead of waiting
+    15s for a survivor file. It still fails against a watchdog that kills
+    only the direct child; that was checked by making the change by hand.
+  - The driver-diagnostic probe takes a tighten-only
+    `LISA_DRIVER_PROBE_DEADLINE_MS` (test fixture only). `probeDeadlineMs`
+    pins the 8s default.
+  - `quality-unit-progress` runs the workflow's real timer process at a 1s
+    interval. A new case pins both workflow steps to the `30000` ms interval
+    and to the "every 30 seconds" notice. This was the row marked as an owner
+    call. It was slimmed because the production interval stays pinned as text
+    on the same workflow body.
+- **Work-item proof suites (unit rows 5, 10, 14, 15, 17, 23, 24, 25, 30, 31,
+  35, 38, 39, 57, 62, 64, 65).** The audit's premise was wrong about where the
+  time goes. Running the guard in-process saved almost nothing: one
+  `complete` took 1.76s in-process against 1.80s spawned. The time was in the
+  controlled `gh` provider. One `complete` calls it 53 times, and each call
+  started a Node process, at 33ms each on a quiet machine. The suites now run
+  the guard in-process through `cli()`. A `node:child_process` mock
+  (`tests/support/work-item-inprocess-gh.ts`) answers a `spawnSync` whose
+  program resolves to the controlled provider by calling the provider's core
+  (`tests/support/work-item-stateful-gh-core.mjs`) directly. The provider's
+  logic moved into that core unchanged, and the executable is now a thin
+  shim over it. Every other spawn, real git included, is real. Every
+  assertion is unchanged. Every suite that spawned the CLI keeps at least one
+  case on `proofCliSpawned`, where the guard and the provider are both real
+  processes:
+  - the first denial on each of the two routes;
+  - both routes of the coherent related case;
+  - the publish, sweep, direct-complete, finish and evidence-release entry
+    points, each in the suite that owns it.
+
+  `work-item-linear-production` already ran in-process; its Linear accepted
+  path is proven across the process boundary by
+  `work-item-linear-accepted-proof`'s spawned case. These suites now load the
+  guard in the test process, so the mutation gate can credit their kills. M2
+  measured them as covering no `lisa-work-item.mjs` mutant.
+- **Jest shard reports (integration row 5).** The four cases on the default
+  project share one whole run and one merged pair that carries every reporter
+  they read. The five environment cases share one sharded pair, built
+  outside any environment stub, and each case runs only its own whole Jest
+  run. The shards collect coverage and the merge builds every report, so only
+  the whole run and the merge read the environment. The flat-summarizer case
+  is unchanged.
+
+### Mutation protection
+
+The issue's mutation acceptance criterion could not be measured here. A
+whole-file Stryker run of `lisa-work-item.mjs` is about 7 hours on this
+machine (see Where the timebox stopped). The argument instead:
+
+- For the proof suites, the before score is the M2 measurement above. Every
+  one of these suites covered no mutant, because a child process is invisible
+  to Stryker, so their contribution cannot fall.
+- For the deadline rows, every assertion stays, and the new pins add kills
+  for the production constants that the long waits only implied.
+
+### Not done: the three move-to-on-demand rows
+
+Moving these off the pull-request path removes protection from every pull
+request, so it waits for an owner decision on #4615. Together they are 223.6s
+of summed integration time in the audit run:
+
+| File | Seconds | Tests | Note |
+|---|---:|---:|---|
+| `tests/integration/history-secret-evidence.test.ts` | 96.6 | 17 | the genuine pinned history scanner |
+| `tests/integration/history-secret-private-report.test.ts` | 80.8 | 25 | the same scanner |
+| `tests/integration/mutation-gate-bite.test.ts` | 46.2 | 4 | real Stryker, already excluded from `test:integration:push` |
 
 ## Judgment calls for the owner
 

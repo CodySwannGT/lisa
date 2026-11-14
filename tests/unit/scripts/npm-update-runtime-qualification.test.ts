@@ -14,6 +14,7 @@ import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
   privateResult,
   nativeRecorder,
+  stageBoundMs,
   failureMetadata,
   hookWitness,
   browserStderrMetadata,
@@ -297,13 +298,36 @@ describe("closed runtime qualification diagnostics", () => {
       ]);
     });
   });
+  it("caps browser and driver stages at ten seconds, inside the phase", () => {
+    // The ceiling the hang cases below shorten, pinned where it is chosen.
+    for (const stage of [
+      "browser",
+      CONTROL_STAGE,
+      "browser-driver",
+      "browser-driver-qualification",
+    ])
+      expect(stageBoundMs(stage)).toBe(10000);
+    for (const stage of [STAGE, "source", "daemon-after"])
+      expect(stageBoundMs(stage)).toBe(1800000);
+  });
   it.each(["browser", CONTROL_STAGE])(
     "bounds a real hanging %s child and retains remaining phase time for cleanup observations",
     async stage => {
       await fixture(async root => {
         const records: object[] = [];
         const deadline = Date.now() + 60000;
-        const native = nativeRecorder(root, deadline, records);
+        // A real hanging child is still killed by the real supervisor, but at
+        // a three-second stage ceiling rather than the shipped ten seconds,
+        // which the case above pins (CodySwannGT/lisa#4616, audit unit row
+        // 18). Three, not one: the Linux process observer takes its first
+        // sample at 2.5 seconds, and the Linux branch below asserts on it.
+        // The child would outlive either ceiling on its own.
+        const native = nativeRecorder(
+          root,
+          deadline,
+          records,
+          (name: string) => (name === stage ? 3000 : stageBoundMs(name))
+        );
         const executable =
           stage === CONTROL_STAGE
             ? join(root, "native-executable-alias")

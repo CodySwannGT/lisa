@@ -39,6 +39,26 @@ function profileIdentity(profile) {
   return { dev: st.dev, ino: st.ino };
 }
 
+/** Inner diagnostic deadline the probe grants a driver, in milliseconds. */
+const PROBE_DEADLINE_MS = 8000;
+
+/**
+ * The inner deadline for this run. The environment may shorten it, never
+ * lengthen or disable it, so a suite can prove a driver that never becomes
+ * ready is abandoned without sitting out the full eight seconds
+ * (CodySwannGT/lisa#4616).
+ * @param {Readonly<Record<string, string | undefined>>} env Process environment.
+ * @returns {number} Deadline in milliseconds.
+ */
+export function probeDeadlineMs(env) {
+  const requested = Number(env.LISA_DRIVER_PROBE_DEADLINE_MS);
+  return Number.isSafeInteger(requested) &&
+    requested > 0 &&
+    requested < PROBE_DEADLINE_MS
+    ? requested
+    : PROBE_DEADLINE_MS;
+}
+
 /**
  * The live child publishes its ephemeral port before this fixture makes requests.
  * @param {object} child Still-owned native driver handle.
@@ -150,7 +170,8 @@ export async function probeDriver(
   if (!["diagnostic", "qualification"].includes(purpose))
     throw new Error(REFUSAL);
   const identity = profileIdentity(profile);
-  const deadline = Date.now() + 8000;
+  // eslint-disable-next-line no-restricted-syntax -- the probe is a standalone child process; its environment is the only channel its supervisor has
+  const deadline = Date.now() + probeDeadlineMs(process.env);
   const state = { stage: DRIVER_START, session: null, endpoint: null };
   const phase = stage => {
     state.stage = stage;

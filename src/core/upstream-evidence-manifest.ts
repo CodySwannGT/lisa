@@ -37,7 +37,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/automation-provenance-files.mjs":
       "5c3b2a88669e3e187c123850798e3dfafb3c078b6b25aa00da0ba93db03424c9",
     "all/copy-overwrite/scripts/lib/automation-provenance-local.mjs":
-      "5847417a10ff0005114080d0023bb265d908990601caef7397bce83e1f19bfc2",
+      "ddbfbb3cad6c622af9cec2c38c85763a5af6a0c79f015f06aab5440a9ae5547b",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/build-marker.mjs":
@@ -357,7 +357,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "2fe0a765030bd2b47122021ba3505fbbea1f60002c4e1ed9f0fc4f5b2f786253",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
-      "2379d4fc5174ae4727997a0d88d43a0212941d91bdebaf790caadd20a8c59810",
+      "f97dec544a99a2db7ea9d7f7eff183ac9276490eb4cf29b5271d4b3180c63abf",
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs":
       "3ee8529f74396b06b1189db9dd37bc002d1e17d9abd9fbd9da6c20c212db7898",
     "all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs":
@@ -389,7 +389,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "5f9b0f80ee75f675571259e55f72372b4cbe9a114c103d7d5bacbc61d2732ca4",
+      "fc24850a9ff3a5611aea6df41a41423893b63e532de045a260ad0d7364a1a9c6",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -12040,6 +12040,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/work-item-cli.ts": true,
     "tests/support/work-item-coherent-related.ts": true,
     "tests/support/work-item-fake-aws.mjs": true,
+    "tests/support/work-item-inprocess-gh.ts": true,
     "tests/support/work-item-linear-proof-fixture.ts": true,
     "tests/support/work-item-proof-assets.ts": true,
     "tests/support/work-item-proof-codepipeline.ts": true,
@@ -12054,6 +12055,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/work-item-proof-spec.ts": true,
     "tests/support/work-item-provider-api.mjs": true,
     "tests/support/work-item-provider-issues.mjs": true,
+    "tests/support/work-item-stateful-gh-core.mjs": true,
     "tests/support/work-item-stateful-gh.mjs": true,
     "tests/support/work-item-stateful-linear.mjs": true,
     "tests/support/work-item-stateful-provider.ts": true,

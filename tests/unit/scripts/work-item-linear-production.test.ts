@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import {
   linearProofFixture,
   attachLinearRecord,
@@ -15,6 +15,17 @@ import {
   createFixture,
   PR_URL,
 } from "../../support/work-item-cli.js";
+
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. This suite already
+// ran the guard in-process; the guard-to-provider process boundary for the
+// Linear accepted path is proven by work-item-linear-accepted-proof's spawned
+// case (CodySwannGT/lisa#4616, audit unit row 31).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
 
 const COMPLETE = ["complete", "--ref", "LIN-12", "--pr-url", PR_URL];
 const PRODUCTION_BRANCH = "release/production";
