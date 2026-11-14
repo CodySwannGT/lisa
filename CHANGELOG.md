@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.3.2](https://github.com/CodySwannGT/lisa/compare/v5.3.1...v5.3.2) (2026-11-14)
+
+
+### Bug Fixes
+
+* **learnings-audit:** resolve upstream default branch and summarise every refusal ([67b50f5](https://github.com/CodySwannGT/lisa/commit/67b50f51e7491204ec052e946140c84df3cd84a9)), closes [CodySwannGT/lisa#4885](https://github.com/CodySwannGT/lisa/issues/4885) [CodySwannGT/lisa#4885](https://github.com/CodySwannGT/lisa/issues/4885)
+
 ### [5.3.1](https://github.com/CodySwannGT/lisa/compare/v5.3.0...v5.3.1) (2026-11-14)
 
 ## [5.3.0](https://github.com/CodySwannGT/lisa/compare/v5.2.3...v5.3.0) (2026-11-14)
