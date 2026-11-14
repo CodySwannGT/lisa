@@ -14,6 +14,7 @@ import * as path from "node:path";
 // missing build would silently leave this repo's own suite uncapped.
 import { resolveMaxWorkers } from "./src/configs/vitest/base.js";
 import { HISTORY_SCANNER_SUITES } from "./scripts/lib/history-scanner-suites.mjs";
+import { nightlySlowSuiteExclusions } from "./scripts/lib/nightly-slow-suites.mjs";
 import { withTestTimingsReporter } from "./scripts/lib/test-timings-reporter.mjs";
 import {
   testAccessMapPlugin,
@@ -155,6 +156,12 @@ const config: ViteUserConfig = {
     // this honest: it walks the workspaces independently of these patterns and
     // fails on any suite they miss — and on finding none at all.
     include: ["tests/**/*.test.ts", "eslint-plugin-*/__tests__/**/*.test.js"],
+    // The nightly-only suites (CodySwannGT/lisa#4896), excluded here once so
+    // every package script and CI shard leg drops them without a flag of its
+    // own. `.github/workflows/nightly-slow-tests.yml` sets
+    // LISA_NIGHTLY_SLOW_SUITES=run to lift it. Exact paths, appended to the
+    // stack's default exclusions by `mergeVitestConfigs`.
+    exclude: nightlySlowSuiteExclusions(process.env),
     // Lisa's own suite (~11.5k tests) is unlike a downstream project's: a large
     // sub-population spawns real subprocesses (git, bash, npm pack, tsc, oxlint)
     // or performs fsync-paired filesystem work in temp repositories. Against the

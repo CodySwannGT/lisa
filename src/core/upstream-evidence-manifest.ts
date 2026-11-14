@@ -2684,6 +2684,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "bf26be3a1c1556a22b218914704cd9f3ef2b26de721b3e961d5a21ddc8141efe",
     "scripts/check-test-case-executed.mjs":
       "99c4e0f4544f67c920d787fe6a7fb801ac37c591b6392791b4e3d1802bec5359",
+    "scripts/check-test-files-executed.mjs":
+      "9f27a021257f5fed27068deee6e6857216cbf2e6cee802770225bd4c06dae952",
     "scripts/check-third-party-action-pins.mjs":
       "39420e981ebd85279dc92f07eed5cb948c17b810a45951b4b3a7c7b3950bb3e5",
     "scripts/check-typecheck-tests.mjs":
@@ -2822,6 +2824,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "7f4fd67a2128797970b10a97b9947f9b63518fe1110c2f12e51fe2c430751235",
     "scripts/lib/nest-plugin-commands.mjs":
       "49ca0f1b25e2b2f5c1d3725cb9d521e4fdebbeb7224441abb273d358d84aeeab",
+    "scripts/lib/nightly-slow-suites.mjs":
+      "90227589c252ce232ed04957509735e2f52bdbb59048b28134084c18b5c7bc52",
     "scripts/lib/packaged-apply-driver.mjs":
       "fff2171ae3fbb913b9bb8da45d002a6ad9f369bac4e93e75d79231468bce9bfb",
     "scripts/lib/packaged-apply-isolation.d.mts":
@@ -2961,7 +2965,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/mutation-performance.schema.json":
       "b99a447bb5b3ff73b22d2a1539a0effedadaa5fc08e546f988f5c4e9e5682499",
     "scripts/plan-integration-shards.mjs":
-      "bdbb5eb75b07274dfb08713f4e852f7ad4739d3a4399b76aa65589563b6bfa7d",
+      "5c8de04583a8c9d1c72f379a190addd0337e192110e0d4b0d5c633ccf8986c1e",
     "scripts/plugin-parity-drift.mjs":
       "50e8911a25502d1173ac26a368c8f8495e6e5280c5676092c6de27a6b254bd84",
     "scripts/plugin-routing-validate.mjs":
@@ -3289,6 +3293,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/nightly-e2e-health.yml": true,
     ".github/workflows/nightly-e2e-report.yml": true,
     ".github/workflows/nightly-e2e-tracking.yml": true,
+    ".github/workflows/nightly-slow-tests.yml": true,
     ".github/workflows/nightly-tmpdir-growth-benchmark.yml": true,
     ".github/workflows/npm-updater-runtime-qualification.yml": true,
     ".github/workflows/npm-updater.yml": true,
@@ -10791,6 +10796,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-state-classification.mjs": true,
     "scripts/check-template-workflow-refs.mjs": true,
     "scripts/check-test-case-executed.mjs": true,
+    "scripts/check-test-files-executed.mjs": true,
     "scripts/check-third-party-action-pins.mjs": true,
     "scripts/check-typecheck-tests.mjs": true,
     "scripts/check-whole-output-guards.mjs": true,
@@ -10860,6 +10866,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/markdown-assertions/tokens.mjs": true,
     "scripts/lib/mutation-performance-reporter.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
+    "scripts/lib/nightly-slow-suites.mjs": true,
     "scripts/lib/packaged-apply-driver.mjs": true,
     "scripts/lib/packaged-apply-isolation.d.mts": true,
     "scripts/lib/packaged-apply-isolation.mjs": true,
@@ -12431,6 +12438,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/mutation-gate-source-shape.test.ts": true,
     "tests/unit/config/mutation-performance-baseline-wired.test.ts": true,
     "tests/unit/config/mutation-sigterm-control-wired.test.ts": true,
+    "tests/unit/config/nightly-slow-suites.test.ts": true,
     "tests/unit/config/npm-publish-verification-workflows.test.ts": true,
     "tests/unit/config/orphan-process-gate-wired.test.ts": true,
     "tests/unit/config/oxlint-expo.test.ts": true,
@@ -12969,6 +12977,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-shipped-surface-removals.test.ts": true,
     "tests/unit/scripts/check-template-workflow-refs.test.ts": true,
     "tests/unit/scripts/check-test-case-executed.test.ts": true,
+    "tests/unit/scripts/check-test-files-executed.test.ts": true,
     "tests/unit/scripts/check-third-party-action-pins.test.ts": true,
     "tests/unit/scripts/check-typecheck-tests.test.ts": true,
     "tests/unit/scripts/check-whole-output-guards.test.ts": true,
