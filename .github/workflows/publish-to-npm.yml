@@ -298,13 +298,19 @@ jobs:
         # ("Cannot read properties of null (reading 'edgesOut')") while npm 11
         # was fine. This is the gate; the pull-request job in
         # packaged-apply-isolation.yml is only the early signal. npm 10.9.9
-        # reproduces the crash on this job's Node 24 as well as on Node 22.
+        # reproduces the crash on this job's Node 24 as well as on Node 22;
+        # Node-22-only install defects are left to the pull-request job, since
+        # switching Node here would also switch the npm that publishes.
+        # The installs read an empty user config, so the publish token written
+        # to ~/.npmrc above is neither sent with ~1,100 public package reads
+        # nor able to fail them with E401.
         # Lisa's own repository only: callers reach this reusable workflow at
         # @main and do not ship this Lisa-specific script.
         if: github.repository == 'CodySwannGT/lisa'
         env:
           RELEASE_TARBALL: ${{ steps.release_package.outputs.tarball }}
           REPOSITORY: ${{ github.repository }}
+          NPM_CONFIG_USERCONFIG: /dev/null
         run: |
           if [ "$REPOSITORY" != "CodySwannGT/lisa" ]; then
             echo "::error::npm install compatibility gate is Lisa-source-only and must not run in $REPOSITORY"
