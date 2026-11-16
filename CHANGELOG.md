@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.10.1](https://github.com/CodySwannGT/lisa/compare/v5.10.0...v5.10.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **mutation:** keep the repository's built vitest config in the Stryker sandbox ([b9eea72](https://github.com/CodySwannGT/lisa/commit/b9eea72f6003da779843ac314a9c315a26fc380e)), closes [CodySwannGT/lisa#4910](https://github.com/CodySwannGT/lisa/issues/4910) [CodySwannGT/lisa#4910](https://github.com/CodySwannGT/lisa/issues/4910)
+
 ## [5.10.0](https://github.com/CodySwannGT/lisa/compare/v5.9.1...v5.10.0) (2026-11-16)
 
 
