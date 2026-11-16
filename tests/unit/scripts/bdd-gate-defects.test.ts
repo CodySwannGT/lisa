@@ -11,8 +11,8 @@
  *
  * @module tests/unit/scripts/bdd-gate-defects
  */
-import { GATE_DIR, sourceCode } from "./bdd/sources";
-import { read } from "./bdd/support";
+import { GATE_DIR, sourceCode } from "./bdd/sources.js";
+import { read } from "./bdd/support.js";
 
 /** Every vendored gate source the SonarCloud findings were raised against. */
 const GATE_SOURCES = [
