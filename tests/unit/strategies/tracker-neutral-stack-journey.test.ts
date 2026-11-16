@@ -1,21 +1,25 @@
 /**
- * Reachability contract for stack Validation Journey guidance (#4911).
+ * Reachability contract for stack Validation Journey guidance (#4911, #4921).
  *
- * The Expo and Rails plugins ship Jira-only overlays (`jira-journey`,
+ * The Expo and Rails plugins used to ship Jira-only overlays (`jira-journey`,
  * `jira-evidence`, ...), but the vendor-neutral dispatchers route to the base
  * `lisa-{jira,github,linear}-*` skills, so a GitHub or Linear project on those
- * stacks never reached the stack guidance at all. The fix is a tracker-neutral
- * `journey-guidance` skill per stack that the dispatchers consult.
+ * stacks never reached the stack guidance at all. #4911 added a tracker-neutral
+ * `journey-guidance` skill per stack that the dispatchers consult; #4921
+ * retired the overlays, moving their Jira mechanics into the base skills.
  *
  * Pinned here are the structural edges only — which skills exist and which
  * skills reference which — never the guidance wording (#4867):
  *
- * 1. Every stack that ships a Jira journey overlay also ships the
- *    tracker-neutral `journey-guidance` skill, in source and in every generated
- *    projection of that stack's plugin.
- * 2. Each vendor-neutral journey/evidence dispatcher names that skill, so the
+ * 1. Every stack with journey guidance ships the tracker-neutral
+ *    `journey-guidance` skill, in source and in every generated projection of
+ *    that stack's plugin.
+ * 2. No stack ships a tracker-specific journey skill any more, in source or in
+ *    any generated projection, and the guidance names none of them — so every
+ *    tracker reaches the same stack guidance.
+ * 3. Each vendor-neutral journey/evidence dispatcher names that skill, so the
  *    edge from dispatcher to stack guidance cannot be silently dropped.
- * 3. The vendor-neutral verification agents preload the vendor-neutral tracker
+ * 4. The vendor-neutral verification agents preload the vendor-neutral tracker
  *    skills rather than a Jira-specific one.
  * @module tests/unit/strategies/tracker-neutral-stack-journey
  */
@@ -28,17 +32,26 @@ const SRC = path.resolve("plugins/src");
 const PLUGINS = path.resolve("plugins");
 const GUIDANCE = "journey-guidance";
 
+/** Stacks whose Validation Journeys need stack-specific guidance. */
+const GUIDED_STACKS = ["expo", "rails"] as const;
+
+/** The retired stack overlays (#4921); the base `lisa-jira-*` skills own Jira. */
+const RETIRED_OVERLAYS = [
+  "jira-journey",
+  "jira-add-journey",
+  "jira-create",
+  "jira-evidence",
+  "jira-verify",
+] as const;
+
 /**
- * Stacks under `plugins/src` whose skills include a Jira journey overlay.
+ * Every stack directory under `plugins/src` other than `base`.
  * @returns Stack directory names such as `expo` and `rails`.
  */
-const stacksWithJiraOverlay = (): readonly string[] =>
+const sourceStacks = (): readonly string[] =>
   readdirSync(SRC, { withFileTypes: true })
     .filter(entry => entry.isDirectory() && entry.name !== "base")
-    .map(entry => entry.name)
-    .filter(stack =>
-      existsSync(path.join(SRC, stack, "skills", "jira-journey", "SKILL.md"))
-    );
+    .map(entry => entry.name);
 
 /**
  * Generated plugin directories for one stack that carry a `skills/` tree.
@@ -64,13 +77,7 @@ const DISPATCHERS = [
 ] as const;
 
 describe("stack journey guidance is reachable from every tracker", () => {
-  const stacks = stacksWithJiraOverlay();
-
-  it("finds the stacks that carry a Jira journey overlay", () => {
-    expect(stacks.length).toBeGreaterThan(0);
-  });
-
-  describe.each(stacks)("%s", stack => {
+  describe.each(GUIDED_STACKS)("%s", stack => {
     it("ships a tracker-neutral journey-guidance skill in source", () => {
       expect(
         existsSync(path.join(SRC, stack, "skills", GUIDANCE, "SKILL.md"))
@@ -87,7 +94,34 @@ describe("stack journey guidance is reachable from every tracker", () => {
         );
       }
     });
+
+    it("names no retired tracker-specific overlay", () => {
+      const text = readFileSync(
+        path.join(SRC, stack, "skills", GUIDANCE, "SKILL.md"),
+        "utf8"
+      );
+
+      for (const overlay of RETIRED_OVERLAYS)
+        expect(text, overlay).not.toContain(`\`${overlay}\``);
+    });
   });
+
+  it.each(sourceStacks())(
+    "%s ships no stack jira-* skill in source or any projection",
+    stack => {
+      const roots = [
+        path.join(SRC, stack, "skills"),
+        ...generatedSkillRoots(stack),
+      ].filter(existsSync);
+      const leftovers = roots.flatMap(root =>
+        readdirSync(root)
+          .filter(name => name.startsWith("jira-"))
+          .map(name => path.relative(PLUGINS, path.join(root, name)))
+      );
+
+      expect(leftovers).toEqual([]);
+    }
+  );
 
   it.each(DISPATCHERS)("%s consults journey-guidance", dispatcher => {
     const text = readFileSync(

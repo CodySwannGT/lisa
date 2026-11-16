@@ -1,4 +1,0 @@
-display_name: "Jira Journey"
-short_description: "Parse a JIRA ticket's Validation Journey section, execute the verification steps, capture evidence, and post to JIRA + GitHub PR using the…"
-default_prompt:
-  - "Use $jira-journey: Parse a JIRA ticket's Validation Journey section, execute the verification steps, capture evidence, and post to JIRA + GitHub PR using the…."

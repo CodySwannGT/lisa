@@ -1,4 +1,0 @@
-display_name: "Jira Verify"
-short_description: "Check that a JIRA ticket meets…"
-default_prompt:
-  - "Use $jira-verify: Check that a JIRA ticket meets…."

@@ -19,11 +19,9 @@ import {
   writeStub,
 } from "./shell-guard-refusal-fixture.js";
 
-/** The three byte-identical source scripts. */
+/** The source script; the Expo and Rails copies were retired in #4921. */
 export const SOURCES = [
   "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh",
-  "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh",
-  "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh",
 ];
 export const SHOT = "01-search-step-desktop.png";
 export const HEALTH = "01-health-check.json";

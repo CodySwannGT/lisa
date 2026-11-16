@@ -278,6 +278,29 @@ describe("opencode/skills-installer", () => {
     expect(await fs.pathExists(path.join(skillsDir, BUG_TRIAGE))).toBe(true);
   });
 
+  it("drops a stack skill an earlier stack plugin shipped when the host upgrades", async () => {
+    // The Expo and Rails plugins retired their jira-* skills (#4921). A host
+    // that installed the older plugin must not keep the copied skill folder.
+    const retired = "jira-journey";
+    const kept = "journey-guidance";
+    await seedSkill("lisa-expo", retired, { [SKILL_MD]: SAMPLE_SKILL_MD });
+    await seedSkill("lisa-expo", kept, { [SKILL_MD]: SAMPLE_SKILL_MD });
+    const before = await installSkills(lisaDir, destDir, [], ["expo"]);
+    const skillsDir = path.join(destDir, OPENCODE_DIR, LISA_SKILLS_SUBDIR);
+    expect(await fs.pathExists(path.join(skillsDir, retired))).toBe(true);
+
+    await fs.remove(
+      path.join(lisaDir, "plugins", "lisa-expo", "skills", retired)
+    );
+    const after = await installSkills(lisaDir, destDir, before.managedFiles, [
+      "expo",
+    ]);
+
+    expect(after.deleted).toEqual([retired]);
+    expect(await fs.pathExists(path.join(skillsDir, retired))).toBe(false);
+    expect(await fs.pathExists(path.join(skillsDir, kept))).toBe(true);
+  });
+
   it("never deletes skills outside .opencode/skills/lisa/", async () => {
     await seedSkill("lisa", BUG_TRIAGE, { [SKILL_MD]: SAMPLE_SKILL_MD });
     const hostSkillsDir = path.join(destDir, OPENCODE_DIR, "skills", "host");

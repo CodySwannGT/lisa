@@ -22,8 +22,6 @@ const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const SCOPED_PREFIX = "pr-${PR_NUMBER}-";
 const SOURCES = [
   "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh",
-  "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh",
-  "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh",
 ];
 const COPIES = checkoutFiles(repoRoot)
   .filter(file => path.basename(file) === "post-evidence.sh")
@@ -64,7 +62,9 @@ function uploads(text: string): readonly { line: string; asset: string }[] {
 
 describe("every post-evidence.sh uploads pull-request-scoped asset names", () => {
   it("finds every source and generated copy", () => {
-    expect(COPIES.length).toBeGreaterThanOrEqual(21);
+    // The base source plus its six agent projections. The Expo and Rails
+    // stack copies were retired with their jira-evidence skills (#4921).
+    expect(COPIES.length).toBeGreaterThanOrEqual(7);
     for (const source of SOURCES) expect(COPIES).toContain(source);
   });
 
@@ -119,11 +119,10 @@ describe("every post-evidence.sh uploads pull-request-scoped asset names", () =>
   });
 });
 
-describe("the three source scripts stay identical", () => {
-  it("keeps base, expo and rails byte-identical", () => {
-    const [first, ...rest] = SOURCES.map(source =>
-      readFileSync(path.join(repoRoot, source), "utf8")
+describe("every generated copy stays identical to the base source", () => {
+  it.each(COPIES)("%s matches the base script", copy => {
+    expect(readFileSync(path.join(repoRoot, copy), "utf8")).toBe(
+      readFileSync(path.join(repoRoot, SOURCES[0] ?? ""), "utf8")
     );
-    for (const text of rest) expect(text).toBe(first);
   });
 });

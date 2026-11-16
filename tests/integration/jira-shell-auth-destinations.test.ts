@@ -24,8 +24,6 @@ const DOWNLOAD =
 const SOURCES = [
   DOWNLOAD,
   "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh",
-  "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh",
-  "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh",
 ];
 const ORIGIN = "https://jira.invalid";
 const INSECURE_ORIGIN = ORIGIN.replace("https:", "http:");

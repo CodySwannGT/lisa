@@ -7,7 +7,7 @@ description: "Rails stack guidance for Validation Journeys on any tracker: picki
 
 Stack-specific guidance for Validation Journeys in a Rails project. It applies the same way whichever tracker the project uses (`tracker` in `.lisa.config.json`: `jira`, `github`, or `linear`).
 
-This skill adds the Rails parts only. The vendor skills still read the ticket, append the journey, and post the evidence; the tracker dispatchers (`lisa-tracker-journey`, `lisa-tracker-add-journey`, `lisa-tracker-create`, `lisa-tracker-evidence`) consult this skill before they dispatch. The Jira-only overlays in this plugin (`jira-journey`, `jira-add-journey`, `jira-create`, `jira-evidence`) carry the same guidance plus Jira mechanics; this skill is what a GitHub or Linear project reaches.
+This skill adds the Rails parts only. The vendor skills still read the ticket, append the journey, and post the evidence; the tracker dispatchers (`lisa-tracker-journey`, `lisa-tracker-add-journey`, `lisa-tracker-create`, `lisa-tracker-evidence`) consult this skill before they dispatch. The Jira mechanics (parsing the journey, generating the evidence comment, uploading screenshots) live in the base `lisa-jira-*` skills, so this skill is the only stack guidance on every tracker.
 
 ## Writing the journey
 
@@ -24,6 +24,8 @@ Compose Prerequisites, Steps with typed evidence markers (`[EVIDENCE: <artifact-
 Start the app with `ops-run-local` when a step needs it.
 
 When drafting tickets for UI work, prefer reusing the closest existing partial or ViewComponent over pixel-matching a mock from scratch, and say which one in the ticket.
+
+Put every feature behind a feature flag with a lifecycle plan (when it turns on, and when the flag is removed), and name the flag in the journey's Prerequisites.
 
 ## Running the journey
 
