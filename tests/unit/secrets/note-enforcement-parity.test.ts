@@ -55,7 +55,7 @@ const verifyWithNote = (note: string): number => {
 const doctorBlocks = (note: string): boolean => {
   const { findings, report } = collector();
   checkNotes(new Map([["A_KEY", { value: "v", note, id: "id" }]]), report);
-  return findings.some(f => f.level === "error");
+  return findings.some(f => "level" in f && f.level === "error");
 };
 
 const CASES: [label: string, note: string, blocked: boolean][] = [

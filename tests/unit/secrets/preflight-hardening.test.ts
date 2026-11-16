@@ -99,8 +99,8 @@ describe("routingFloor reads only what a vendor declared", () => {
 describe("every required credential names a cause", () => {
   it("falls back to the floor when no routing reason explains the name", () => {
     const [entry] = requiredNames({ requiredFloor: [GH_TOKEN], require: [] });
-    expect(entry.reasons).not.toEqual([]);
-    expect(entry.name).toBe(GH_TOKEN);
+    expect(entry?.reasons).not.toEqual([]);
+    expect(entry?.name).toBe(GH_TOKEN);
   });
 
   it("does not read inherited routing reasons for credential names", () => {
@@ -133,7 +133,7 @@ describe("every required credential names a cause", () => {
       require: [GH_TOKEN],
       routing: { tracker: "github" },
     });
-    expect(entry.reasons).toEqual([
+    expect(entry?.reasons).toEqual([
       'tracker is "github"',
       "declared in secrets.require",
     ]);
