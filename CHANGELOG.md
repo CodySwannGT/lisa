@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.13.0](https://github.com/CodySwannGT/lisa/compare/v5.12.0...v5.13.0) (2026-11-16)
+
+
+### Features
+
+* **skills:** make Jira-assuming generic guidance tracker-neutral ([cf3a6f6](https://github.com/CodySwannGT/lisa/commit/cf3a6f61fd1f651336934a721b7183c94b9ea586)), closes [CodySwannGT/lisa#4911](https://github.com/CodySwannGT/lisa/issues/4911) [CodySwannGT/lisa#4911](https://github.com/CodySwannGT/lisa/issues/4911)
+
+
+### Bug Fixes
+
+* **skills:** keep the journey-guidance descriptions inside the length budget ([26eb47a](https://github.com/CodySwannGT/lisa/commit/26eb47a2d72c02caa0430b821f054b389531755c)), closes [CodySwannGT/lisa#4911](https://github.com/CodySwannGT/lisa/issues/4911) [CodySwannGT/lisa#4911](https://github.com/CodySwannGT/lisa/issues/4911)
+* **skills:** stop promising GitHub and Linear projects a screenshot upload ([a95f6e3](https://github.com/CodySwannGT/lisa/commit/a95f6e385b07000ac7e542266f3178556ec3e5f5)), closes [CodySwannGT/lisa#4911](https://github.com/CodySwannGT/lisa/issues/4911) [CodySwannGT/lisa#4911](https://github.com/CodySwannGT/lisa/issues/4911)
+
 ## [5.12.0](https://github.com/CodySwannGT/lisa/compare/v5.11.0...v5.12.0) (2026-11-16)
 
 
