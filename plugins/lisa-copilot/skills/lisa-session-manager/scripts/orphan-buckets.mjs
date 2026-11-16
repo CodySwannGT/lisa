@@ -184,27 +184,34 @@ export function mergedReturnComment(prUrl) {
  * completion was refused (a deploy not yet verified, say), the code work is
  * done but nobody is finishing the rest, so it goes back to the `ready` role
  * with a note that only the missing step is left (CodySwannGT/lisa#4906). A
- * held item stays parked: returning it would spend a person's hold.
- * @param {{ref: string, pr: {url?: string}, comments?: unknown}} item - Item
+ * held item stays parked: returning it would spend a person's hold. So does an
+ * item in the `review` role: it is already past the build and waiting on
+ * review, deploy or verification — often the very step completion refused on —
+ * so returning it to Ready would move it backwards.
+ * @param {{ref: string, role?: unknown, pr: {url?: string}, comments?: unknown}} item - Item
  * @param {{now: number, finishRetryMs: number}} policy - Resolved policy
  * @returns {{bucket: string, entry: object}} Bucket and its entry
  */
 function mergedBucket(item, policy) {
   const { ref, pr } = item;
   const held = isHeld(item, policy);
+  const inReview = item.role === "review";
   if (!completionRefused(item, policy)) {
     const reason = "its pull request merged; only completion is missing";
     // When this cycle's finish is refused, the manager returns the item with
-    // `returnComment` straight away, unless a person holds it.
-    const back = held ? {} : { returnComment: mergedReturnComment(pr.url) };
+    // `returnComment` straight away, unless a person holds it or it is in
+    // review.
+    const back =
+      held || inReview ? {} : { returnComment: mergedReturnComment(pr.url) };
     return {
       bucket: "doneReady",
       entry: { ref, prUrl: pr.url, reason, ...back },
     };
   }
-  if (held) {
-    const reason =
-      "its pull request merged but completion was refused, and a person holds it";
+  if (held || inReview) {
+    const reason = held
+      ? "its pull request merged but completion was refused, and a person holds it"
+      : "in review: its pull request merged but completion was refused; the refusal on the item says why";
     return { bucket: "parked", entry: { ref, reason, reasonOnItem: true } };
   }
   return {

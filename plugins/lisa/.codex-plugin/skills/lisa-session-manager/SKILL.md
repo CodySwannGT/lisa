@@ -533,10 +533,10 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
      why the item cannot complete yet. Then, when the entry has a `returnComment`, re-read the item
      and leave it in place if a person now holds it; otherwise move the item to the `ready` role
      with that comment: the code work is merged, so the next agent finishes only
-     the missing step instead of redoing it. An entry with no `returnComment` is held by a person;
-     leave it where it is. A later cycle that still sees a recent refusal on a claimed item puts it
-     in `return` (or `parked` when a person holds it), and retries finishing once the refusal is
-     more than 24 hours old.
+     the missing step instead of redoing it. An entry with no `returnComment` is held by a person
+     or is in the `review` role; leave it where it is. A later cycle that still sees a recent refusal puts the item
+     in `return`, or in `parked` when a person holds it or it is in the `review` role, and retries
+     finishing once the refusal is more than 24 hours old.
    - `return`: move it to the `ready` role with the entry's `comment`. A merged item whose
      completion was refused, and an item whose pull request was closed without merging, land here
      with a comment that names that pull request, so the next agent builds on the earlier work.

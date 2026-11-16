@@ -21,6 +21,10 @@ import { MERGED_URL, orphan, plan, ref } from "./support/orphan-fixtures.js";
 const OPEN = { url: MERGED_URL, state: "open" };
 const MERGED = { url: MERGED_URL, state: "merged" };
 const CLOSED = { url: MERGED_URL, state: "closed" };
+/** A refusal posted an hour before the fixtures' clock. */
+const AN_HOUR_AGO = "2026-11-13T11:00:00Z";
+/** A refusal comment body, as the manager posts it. */
+const MISSING_DEPLOY_PROOF = `${FINISH_REFUSED_PREFIX} the deploy proof is missing.`;
 
 describe("review-role items", () => {
   it("parks an item in the review role with an open PR, without a comment", () => {
@@ -77,7 +81,7 @@ describe("refused completions", () => {
   });
 
   it.each([
-    ["an hour ago", "2026-11-13T11:00:00Z"],
+    ["an hour ago", AN_HOUR_AGO],
     ["with no date", undefined],
     ["with an unreadable date", "soon"],
   ])(
@@ -89,7 +93,7 @@ describe("refused completions", () => {
             pr: MERGED,
             comments: [
               {
-                body: `${FINISH_REFUSED_PREFIX} the deploy proof is missing.`,
+                body: MISSING_DEPLOY_PROOF,
                 ...(createdAt === undefined ? {} : { createdAt }),
               },
             ],
@@ -123,8 +127,8 @@ describe("refused completions", () => {
           labels: ["human-needed"],
           comments: [
             {
-              body: `${FINISH_REFUSED_PREFIX} the deploy proof is missing.`,
-              createdAt: "2026-11-13T11:00:00Z",
+              body: MISSING_DEPLOY_PROOF,
+              createdAt: AN_HOUR_AGO,
             },
           ],
         }),
@@ -135,6 +139,42 @@ describe("refused completions", () => {
     expect(result.parked.map(entry => entry.ref)).toEqual([ref(1)]);
   });
 
+  it("parks a refused merged item in the review role, instead of returning it", () => {
+    const result = plan({
+      items: [
+        orphan(1, {
+          role: "review",
+          pr: MERGED,
+          comments: [
+            {
+              body: MISSING_DEPLOY_PROOF,
+              createdAt: AN_HOUR_AGO,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(result.return).toEqual([]);
+    expect(result.doneReady).toEqual([]);
+    expect(result.parked).toEqual([
+      {
+        ref: ref(1),
+        reason: expect.stringContaining("in review"),
+        reasonOnItem: true,
+      },
+    ]);
+  });
+
+  it("tries to finish a merged review-role item, but never returns it to Ready", () => {
+    const result = plan({
+      items: [orphan(1, { role: "review", pr: MERGED })],
+    });
+    expect(result.doneReady).toEqual([
+      expect.objectContaining({ ref: ref(1), prUrl: MERGED_URL }),
+    ]);
+    expect(result.doneReady[0]).not.toHaveProperty("returnComment");
+  });
+
   it("retries finishing once the refusal is older than 24 hours", () => {
     expect(FINISH_RETRY_HOURS).toBe(24);
     const result = plan({
@@ -143,7 +183,7 @@ describe("refused completions", () => {
           pr: MERGED,
           comments: [
             {
-              body: `${FINISH_REFUSED_PREFIX} the deploy proof is missing.`,
+              body: MISSING_DEPLOY_PROOF,
               createdAt: "2026-11-12T11:00:00Z",
             },
           ],
