@@ -33,6 +33,7 @@ export {
   FINISH_REFUSED_PREFIX,
   FINISH_RETRY_HOURS,
   SWEEP_COMMENT_PREFIX,
+  mergedReturnComment,
 } from "./orphan-buckets.mjs";
 
 /** At most this many writes per cycle unless the caller says otherwise. */

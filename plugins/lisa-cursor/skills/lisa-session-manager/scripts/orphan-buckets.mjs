@@ -21,15 +21,16 @@ export const SWEEP_COMMENT_PREFIX = "[lisa-session-manager]";
 
 /**
  * How the comment the manager posts when `lisa-work-item.mjs finish`
- * refuses an item begins. A later cycle that sees a recent one parks the
- * item instead of trying to finish it again every cycle.
+ * refuses an item begins. A later cycle that sees a recent one does not try
+ * to finish it again: it returns the item to Ready (or parks it, when a
+ * person holds it).
  */
 export const FINISH_REFUSED_PREFIX = `${SWEEP_COMMENT_PREFIX} Cannot complete:`;
 
 /**
- * How long a refusal parks an item. After that, finishing is retried: the
- * refusal's cause (a missing deploy, a slow check) is often fixed by then,
- * and a park with no end would strand a merged item for good.
+ * How long a refusal stops finishing from being retried. After that it is
+ * retried: the refusal's cause (a missing deploy, a slow check) is often
+ * fixed by then.
  */
 export const FINISH_RETRY_HOURS = 24;
 
@@ -164,22 +165,58 @@ function completionRefused(item, policy) {
 }
 
 /**
- * The bucket for a merged item: finish it, unless completion was already
- * refused within the retry window, in which case it waits for whatever the
- * refusal named.
+ * The note on a merged item sent back to Ready because it could not complete:
+ * the code work is done, so the next agent finishes only the missing step.
+ * @param {string | undefined} prUrl - The merged pull request
+ * @returns {string} Comment body
+ */
+export function mergedReturnComment(prUrl) {
+  return (
+    `${SWEEP_COMMENT_PREFIX} Returned to Ready: its pull request ${prUrl ?? ""} is merged, ` +
+    "so the code work is done, but the item could not be completed and no worker is " +
+    `finishing it. The \`${FINISH_REFUSED_PREFIX}\` comment says what is missing. ` +
+    "The next agent should finish only that step and not redo the merged work."
+  );
+}
+
+/**
+ * The bucket for a merged item. With no recent refusal it is finished. When
+ * completion was refused (a deploy not yet verified, say), the code work is
+ * done but nobody is finishing the rest, so it goes back to the `ready` role
+ * with a note that only the missing step is left (CodySwannGT/lisa#4906). A
+ * held item stays parked: returning it would spend a person's hold.
  * @param {{ref: string, pr: {url?: string}, comments?: unknown}} item - Item
  * @param {{now: number, finishRetryMs: number}} policy - Resolved policy
  * @returns {{bucket: string, entry: object}} Bucket and its entry
  */
 function mergedBucket(item, policy) {
   const { ref, pr } = item;
-  if (completionRefused(item, policy)) {
+  const held = isHeld(item, policy);
+  if (!completionRefused(item, policy)) {
+    const reason = "its pull request merged; only completion is missing";
+    // When this cycle's finish is refused, the manager returns the item with
+    // `returnComment` straight away, unless a person holds it.
+    const back = held ? {} : { returnComment: mergedReturnComment(pr.url) };
+    return {
+      bucket: "doneReady",
+      entry: { ref, prUrl: pr.url, reason, ...back },
+    };
+  }
+  if (held) {
     const reason =
-      "its pull request merged but completion was refused; the refusal on the item says why";
+      "its pull request merged but completion was refused, and a person holds it";
     return { bucket: "parked", entry: { ref, reason, reasonOnItem: true } };
   }
-  const reason = "its pull request merged; only completion is missing";
-  return { bucket: "doneReady", entry: { ref, prUrl: pr.url, reason } };
+  return {
+    bucket: "return",
+    entry: {
+      ref,
+      prUrl: pr.url,
+      reason:
+        "its pull request merged but completion was refused, and no worker is finishing it",
+      comment: mergedReturnComment(pr.url),
+    },
+  };
 }
 
 /**
@@ -222,12 +259,16 @@ export function classifyOrphan(item, policy) {
   }
   if (state === "open") return openBucket(item);
   const age = ageInWords(policy.now - new Date(item.updatedAt).getTime());
+  const earlier =
+    state === "closed"
+      ? ` An earlier pull request, ${pr.url ?? ""}, was closed without merging; reuse or learn from it rather than starting over.`
+      : "";
   return {
     bucket: "return",
     entry: {
       ref,
       reason: "no live worker and no open or merged pull request",
-      comment: `${SWEEP_COMMENT_PREFIX} Returned to Ready: claimed ${age} with no live worker and no open or merged pull request.`,
+      comment: `${SWEEP_COMMENT_PREFIX} Returned to Ready: claimed ${age} with no live worker and no open or merged pull request.${earlier}`,
     },
   };
 }

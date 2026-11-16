@@ -14,6 +14,7 @@ import {
   DEFAULT_ORPHAN_MAX,
   DEFAULT_STALE_HOURS,
   SWEEP_COMMENT_PREFIX,
+  mergedReturnComment,
   planOrphanSweep,
 } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs";
 import {
@@ -127,8 +128,22 @@ describe("orphans: buckets", () => {
         ref: ref(1),
         prUrl: MERGED_URL,
         reason: expect.stringContaining("merged"),
+        returnComment: mergedReturnComment(MERGED_URL),
       },
     ]);
+  });
+
+  it("gives a held merged item no return note, so a refusal never spends the hold", () => {
+    const result = plan({
+      items: [
+        orphan(1, {
+          labels: ["human-needed"],
+          pr: { url: MERGED_URL, state: "merged" },
+        }),
+      ],
+    });
+    expect(result.doneReady).toHaveLength(1);
+    expect(result.doneReady[0]).not.toHaveProperty("returnComment");
   });
 
   it("re-dispatches an item with an open PR and no live worker", () => {
@@ -144,11 +159,8 @@ describe("orphans: buckets", () => {
     ]);
   });
 
-  it.each([
-    ["no PR", null],
-    ["a closed PR", { url: MERGED_URL, state: "closed" }],
-  ])("returns an item with %s to the ready role with a comment", (_, pr) => {
-    const result = plan({ items: [orphan(1, { pr })] });
+  it("returns an item with no PR to the ready role with a comment", () => {
+    const result = plan({ items: [orphan(1, { pr: null })] });
     expect(result.return).toHaveLength(1);
     expect(result.return[0]?.comment).toBe(
       `${SWEEP_COMMENT_PREFIX} Returned to Ready: claimed for 3 days with no live worker and no open or merged pull request.`
