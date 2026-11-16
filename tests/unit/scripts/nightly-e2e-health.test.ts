@@ -25,7 +25,7 @@ import {
   STATE,
   loadGateModule,
   runWith,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /** The exact job name a `mode: "job"` suite watches in these cases. */
 const WATCHED_JOB = "🎭 Browser Journeys";

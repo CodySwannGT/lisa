@@ -31,7 +31,7 @@ import {
   loadReusable,
   ran,
   runBuildStep,
-} from "./support/maestro-build-step-harness";
+} from "./support/maestro-build-step-harness.js";
 
 describe("maestro-native-e2e EAS build reuse (executed)", () => {
   let script: string;

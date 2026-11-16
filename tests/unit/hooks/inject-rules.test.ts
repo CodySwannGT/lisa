@@ -33,7 +33,7 @@ const runHookRaw = (
     command: BASH,
     args: [path.resolve(hookPath)],
     env: { ...process.env, CLAUDE_PLUGIN_ROOT: pluginRoot },
-    input: input ? JSON.stringify(input) : undefined,
+    ...(input ? { input: JSON.stringify(input) } : {}),
   });
 
   expect(result.status).toBe(0);

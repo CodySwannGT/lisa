@@ -139,7 +139,11 @@ export function evaluateExpression(
             "has stopped mirroring the workflow."
         );
       }
-      return operand(match[1], match[2], context) === match[3];
+      const [, step, field, expected] = match;
+      if (step === undefined || field === undefined || expected === undefined) {
+        throw new Error(`condition term matched without its operands: ${term}`);
+      }
+      return operand(step, field, context) === expected;
     });
 }
 

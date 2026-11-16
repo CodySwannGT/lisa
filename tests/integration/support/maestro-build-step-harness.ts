@@ -19,6 +19,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { jobOf } from "../../helpers/workflow-job-graph.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -205,7 +206,7 @@ export const loadReusable = async (): Promise<ReusableWorkflow> =>
  * @returns The build step's shell script exactly as CI will run it
  */
 export const buildStepScript = (workflow: ReusableWorkflow): string => {
-  const step = (workflow.jobs.build.steps ?? []).find(candidate =>
+  const step = (jobOf(workflow, "build").steps ?? []).find(candidate =>
     candidate.name?.includes("Build with EAS")
   );
   if (!step?.run) {

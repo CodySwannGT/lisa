@@ -22,7 +22,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
-import { makeProject, runGate } from "./bdd/support";
+import { makeProject, runGate } from "./bdd/support.js";
 
 const FIXTURE_DIR = path.resolve(__dirname, "bdd");
 

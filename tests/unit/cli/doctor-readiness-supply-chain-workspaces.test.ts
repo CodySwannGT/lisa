@@ -141,7 +141,7 @@ describe("assessDependenciesSupplyChainDimension — workspace child manifests",
 
     expect(record.status).toBe(PASS);
     expect(assessReadiness([record]).blockers).toEqual([]);
-    expect(asFindings(record.findings)[0].evidence).toContain(
+    expect(asFindings(record.findings)[0]?.evidence).toContain(
       "1 workspace child manifest"
     );
   });
@@ -169,7 +169,9 @@ describe("assessDependenciesSupplyChainDimension — workspace child manifests",
     );
     expect(
       Array.from(
-        finding?.evidence.matchAll(new RegExp(WORKSPACE_MANIFEST, "g")) ?? []
+        String(finding?.evidence ?? "").matchAll(
+          new RegExp(WORKSPACE_MANIFEST, "g")
+        )
       )
     ).toHaveLength(1);
   });
@@ -192,7 +194,7 @@ describe("assessDependenciesSupplyChainDimension — workspace child manifests",
     const record = await assessDependenciesSupplyChainDimension(cwd);
 
     expect(record.status).toBe(PASS);
-    const evidence = asFindings(record.findings)[0].evidence;
+    const evidence = asFindings(record.findings)[0]?.evidence;
     expect(evidence).toContain("2 dependency spec(s)");
     expect(evidence).toContain("1 workspace child manifest");
   });

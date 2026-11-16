@@ -18,15 +18,15 @@ import {
   SCREENSHOT_KIND,
   v2BoundaryMismatch,
   v2Verdict,
-} from "../../helpers/verification-gate-fixtures";
-import type { GateScenario } from "../../helpers/verification-gate-harness";
+} from "../../helpers/verification-gate-fixtures.js";
+import type { GateScenario } from "../../helpers/verification-gate-harness.js";
 import {
   createGateScenario,
   EXIT_ALLOWED,
   EXIT_BLOCKED,
   FIXTURE_HEAD_SHA,
   MAX_BLOCKS,
-} from "../../helpers/verification-gate-harness";
+} from "../../helpers/verification-gate-harness.js";
 
 let harness: GateScenario;
 

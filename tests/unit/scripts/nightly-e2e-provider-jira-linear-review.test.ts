@@ -63,7 +63,10 @@ function env(): Record<string, string> {
  * @param call - Captured request
  * @returns Parsed JSON body
  */
-function body(call: ProviderTransportRequest): Record<string, unknown> {
+function body(
+  call: ProviderTransportRequest | undefined
+): Record<string, unknown> {
+  if (call === undefined) throw new Error("expected a recorded transport call");
   expect(typeof call.options?.body).toBe("string");
   return JSON.parse(String(call.options?.body)) as Record<string, unknown>;
 }
@@ -205,7 +208,7 @@ describe("Jira enhanced-search authority", () => {
         summary: "Nightly E2E condition is red",
       },
     });
-    expect(String(refresh.options?.body)).not.toMatch(
+    expect(String(refresh?.options?.body)).not.toMatch(
       /issuetype|labels|project/u
     );
   });
@@ -238,7 +241,7 @@ describe("Linear completed-state close authority", () => {
     expect(body(calls[1])).toMatchObject({
       variables: { id: "linear-1", state: "done-1" },
     });
-    expect(String(calls[1].options?.body)).not.toContain(CANCELED_STATE_ID);
+    expect(String(calls[1]?.options?.body)).not.toContain(CANCELED_STATE_ID);
   });
 
   it("refuses multiple completed states before mutation", async () => {
