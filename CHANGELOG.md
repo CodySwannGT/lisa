@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.14.0](https://github.com/CodySwannGT/lisa/compare/v5.13.0...v5.14.0) (2026-11-16)
+
+
+### Features
+
+* **config:** follow configured error-tracking and analytics providers ([3b3a11b](https://github.com/CodySwannGT/lisa/commit/3b3a11b7ede3bb1b13fe626f7b11df11709de262)), closes [CodySwannGT/lisa#4912](https://github.com/CodySwannGT/lisa/issues/4912) [CodySwannGT/lisa#4912](https://github.com/CodySwannGT/lisa/issues/4912)
+
+
+### Bug Fixes
+
+* **secrets:** follow the configured provider in play-store-access and setup-remote-env ([829f8ac](https://github.com/CodySwannGT/lisa/commit/829f8acb9c52ca86535d09fe23551edf7a394f6d)), closes [CodySwannGT/lisa#4913](https://github.com/CodySwannGT/lisa/issues/4913) [CodySwannGT/lisa#4913](https://github.com/CodySwannGT/lisa/issues/4913)
+* **secrets:** refuse an unsafe bootstrap key and default to no install ([2d287c4](https://github.com/CodySwannGT/lisa/commit/2d287c4e93b61f15bafe0b7eea99e45ccb2ddf91)), closes [CodySwannGT/lisa#4913](https://github.com/CodySwannGT/lisa/issues/4913) [CodySwannGT/lisa#4913](https://github.com/CodySwannGT/lisa/issues/4913)
+* **secrets:** validate the setup provider and match the runtime's choice ([a622137](https://github.com/CodySwannGT/lisa/commit/a622137d3e4d49e05512ccd8df63422cd0221962)), closes [CodySwannGT/lisa#4913](https://github.com/CodySwannGT/lisa/issues/4913) [CodySwannGT/lisa#4913](https://github.com/CodySwannGT/lisa/issues/4913)
+* **skills:** follow the configured providers in the remaining Expo and PostHog guidance ([ec0ac66](https://github.com/CodySwannGT/lisa/commit/ec0ac66d5cb14055473065ff21ea79189cebac3e)), closes [CodySwannGT/lisa#4912](https://github.com/CodySwannGT/lisa/issues/4912) [CodySwannGT/lisa#4912](https://github.com/CodySwannGT/lisa/issues/4912)
+
 ## [5.13.0](https://github.com/CodySwannGT/lisa/compare/v5.12.0...v5.13.0) (2026-11-16)
 
 
