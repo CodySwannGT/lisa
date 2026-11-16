@@ -346,6 +346,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "48d3fa3043e144bcf52feb0e20db887d75c7ebda3b1fa708fe93f6554f6bec78",
     "4bb978ab36a5a1c1664690c7b647cd04fa78a59324afdbb982e0c4e4adc61b33",
     "53ec522511aa862dd186a0acc66848f361b4c3a02f53314c332cff640db6034b",
+    "5ad01567614edf69e65b3c7927244b0d2f1c7306372e5a9bccd50f346655cf08",
     "5af5f112ba258c4874a65c72c8bed12165e75e4df407265eb46ee9c89c4e0e53",
     "5b7f41a5c68f4a4cd43952093ef15ad08d28eff04bd7386da946f69cc2f74a8a",
     "5bf0c8aadecfd12eaddeef81001f90d64b90bd98e9dba49666c41db05cafd74b",
@@ -2921,6 +2922,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/review-evidence-event.mjs": Object.freeze([
     "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
+    "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
   ]),
   "scripts/schemas/lisa-command-envelope.v1.schema.json": Object.freeze([
     "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
@@ -3298,6 +3300,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "48d3fa3043e144bcf52feb0e20db887d75c7ebda3b1fa708fe93f6554f6bec78",
     "4bb978ab36a5a1c1664690c7b647cd04fa78a59324afdbb982e0c4e4adc61b33",
     "53ec522511aa862dd186a0acc66848f361b4c3a02f53314c332cff640db6034b",
+    "5ad01567614edf69e65b3c7927244b0d2f1c7306372e5a9bccd50f346655cf08",
     "5af5f112ba258c4874a65c72c8bed12165e75e4df407265eb46ee9c89c4e0e53",
     "5b7f41a5c68f4a4cd43952093ef15ad08d28eff04bd7386da946f69cc2f74a8a",
     "5bf0c8aadecfd12eaddeef81001f90d64b90bd98e9dba49666c41db05cafd74b",
@@ -5800,6 +5803,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/review-evidence-event.mjs": Object.freeze([
     "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
+    "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
   ]),
   "scripts/schemas/lisa-command-envelope.v1.schema.json": Object.freeze([
     "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",

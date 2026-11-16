@@ -1039,7 +1039,10 @@ export function loadDeclaration(rootDir) {
       `check-skipped-required-checks: ${DECLARATION_PATH} does not exist. This guard rests on two REVIEWED SNAPSHOTS that cannot be derived from the repository — the ruleset's required contexts, and what each \`skip_jobs\` token silences. Create it (Lisa ships a seed) rather than deleting the guard.`
     );
   }
-  const declaration = JSON.parse(readFileSync(path, "utf8"));
+  const declaration = withGateReviewers(
+    JSON.parse(readFileSync(path, "utf8")),
+    gateReviewers(rootDir)
+  );
   assertRequiredDeclarationKeys(declaration);
   assertDeclarationCollections(declaration);
   assertRequiredContextsByBranch(declaration);
@@ -1050,6 +1053,115 @@ export function loadDeclaration(rootDir) {
     contexts: declaration.required_contexts,
   });
   return declaration;
+}
+
+/** Repo-relative path of the project's Lisa config, which holds the gates. */
+const LISA_CONFIG_PATH = ".lisa.config.json";
+
+/**
+ * The third-party reviewers `.lisa.config.json` declares, as
+ * evidence-bearing check vocabularies keyed by the awaited context
+ * (CodySwannGT/lisa#4914).
+ *
+ * A reviewer is a gate whose pull-request entry awaits a context and marks it
+ * `evidence.reviewer: true` — the same reading as `configuredReviewers` in
+ * `check-third-party-review-evidence.mjs`. That script ships from the `all/`
+ * template and this one from `typescript/`, so a host can carry either without
+ * the other; the reading is repeated here rather than imported, and a unit test
+ * holds the two to the same answer.
+ *
+ * A gate proven by `evidence.review_by` is left out. Its reviewer submits a
+ * pull-request review and posts no check this guard could read, so declaring it
+ * here would report it as never having reported.
+ *
+ * No config means no reviewers. A config that does not parse is refused: this
+ * guard would otherwise examine fewer reviewers than the project declared and
+ * say nothing.
+ * @param {string} rootDir - Repository root
+ * @returns {Record<string, {proof?: string[], no_work?: string[]}>} Vocabulary per reviewer context
+ * @throws {Error} When `.lisa.config.json` exists but does not parse
+ */
+function gateReviewers(rootDir) {
+  const path = resolveWithinRoot(rootDir, LISA_CONFIG_PATH, "the Lisa config");
+  if (!existsSync(path)) return {};
+  let config;
+  try {
+    config = JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    throw new Error(
+      `check-skipped-required-checks: ${LISA_CONFIG_PATH} is not readable (${/** @type {Error} */ (error).message}). Its gates declare the third-party reviewers this guard examines, so it refuses rather than examining none of them.`
+    );
+  }
+  /** @type {Record<string, {proof?: string[], no_work?: string[]}>} */
+  const reviewers = {};
+  for (const gate of Object.values(config?.gates ?? {})) {
+    const entry = gate?.["pull-request"];
+    const evidence = entry?.evidence;
+    if (evidence?.reviewer !== true) continue;
+    if (typeof entry.await !== "string" || entry.await.trim() === "") continue;
+    if (
+      typeof evidence.review_by === "string" &&
+      evidence.review_by.trim() !== ""
+    )
+      continue;
+    reviewers[entry.await] = mergeVocabulary(reviewers[entry.await] ?? {}, {
+      ...(evidence.proof === undefined ? {} : { proof: evidence.proof }),
+      ...(evidence.no_work === undefined ? {} : { no_work: evidence.no_work }),
+    });
+  }
+  return reviewers;
+}
+
+/**
+ * Two vocabularies for one check, as one: each phrase list is the union of
+ * both, in order, without repeats. Phrases only ever ADD to the shipped
+ * defaults, so a union is the reading that keeps both declarations' meaning.
+ * @param {Record<string, unknown>} left - One vocabulary
+ * @param {Record<string, unknown>} right - The other
+ * @returns {Record<string, unknown>} The combined vocabulary
+ */
+function mergeVocabulary(left, right) {
+  const merged = { ...left, ...right };
+  for (const list of ["proof", "no_work"]) {
+    if (Array.isArray(left[list]) && Array.isArray(right[list])) {
+      merged[list] = [...new Set([...left[list], ...right[list]])];
+    }
+  }
+  return merged;
+}
+
+/**
+ * The declaration with the gates config's reviewers added to
+ * `evidence_bearing_checks` (CodySwannGT/lisa#4914).
+ *
+ * The gates config is where a project names its reviewer; a project switching
+ * vendors edits it and this guard follows. Names already in
+ * `evidence_bearing_checks` keep working, and a name declared in both reads
+ * both vocabularies. With no reviewer gate the declaration is returned as is.
+ * @param {object} declaration - Parsed `.github/required-checks.json`
+ * @param {Record<string, object>} reviewers - From {@link gateReviewers}
+ * @returns {object} The declaration to validate and judge
+ */
+function withGateReviewers(declaration, reviewers) {
+  if (Object.keys(reviewers).length === 0) return declaration;
+  const declared = declaration.evidence_bearing_checks;
+  // A malformed declared value is left for `assertEvidenceBearingChecks` to
+  // refuse, instead of being papered over by the gates' entries.
+  if (
+    declared !== undefined &&
+    declared !== null &&
+    (typeof declared !== "object" || Array.isArray(declared))
+  )
+    return declaration;
+  const checks = { ...(declared ?? {}) };
+  for (const [name, vocabulary] of Object.entries(reviewers)) {
+    const existing = checks[name];
+    checks[name] =
+      existing && typeof existing === "object" && !Array.isArray(existing)
+        ? mergeVocabulary(existing, vocabulary)
+        : (existing ?? vocabulary);
+  }
+  return { ...declaration, evidence_bearing_checks: checks };
 }
 
 /**
