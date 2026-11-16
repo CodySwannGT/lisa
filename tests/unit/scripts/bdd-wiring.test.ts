@@ -15,7 +15,7 @@ import {
   SCRIPT_REL,
   SEED_MAP_REL,
   read,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 const RULESET_REL = "expo/github-rulesets/bdd-coverage.json";
 const DOC_REL = "docs/bdd-coverage-schema.md";
@@ -96,7 +96,7 @@ describe("shipped wiring", () => {
       expect(seed.testDiscovery[runner]?.evidence, runner).toBeTruthy();
     }
     // The subflow directory the fleet's hardcoded roots could not see.
-    expect(seed.testDiscovery.maestro.roots).toContain(".maestro/subflows");
+    expect(seed.testDiscovery.maestro?.roots).toContain(".maestro/subflows");
   });
 
   it("documents discovery and exclusions in the versioned schema doc", () => {
@@ -176,7 +176,7 @@ describe("shipped wiring", () => {
       (await import("../../../all/copy-overwrite/scripts/lisa-gates.mjs")) as {
         QUALITY_JOB_GATES: Record<string, string>;
         UNGATED_QUALITY_JOBS: Record<string, unknown>;
-        REGISTRY: Record<string, { label: string }>;
+        REGISTRY: Record<"behavior-contract", { label: string }>;
       };
     expect(registry.QUALITY_JOB_GATES.bdd_coverage).toBe("behavior-contract");
     expect(registry.UNGATED_QUALITY_JOBS).not.toHaveProperty("bdd_coverage");
@@ -227,12 +227,12 @@ describe("shipped wiring", () => {
         parameters?: { required_status_checks?: { context: string }[] };
       }[];
     };
-    const checks = ruleset.rules[0].parameters?.required_status_checks ?? [];
+    const checks = ruleset.rules[0]?.parameters?.required_status_checks ?? [];
     expect(checks).toHaveLength(1);
-    expect(checks[0].context).toBe(
-      "🔍 Quality Checks / 🧾 BDD Behavior Contract"
-    );
-    expect(workflow).toContain(`name: ${checks[0].context.split(" / ")[1]}`);
+    const [check] = checks;
+    if (!check) throw new Error("ruleset template requires no status check");
+    expect(check.context).toBe("🔍 Quality Checks / 🧾 BDD Behavior Contract");
+    expect(workflow).toContain(`name: ${check.context.split(" / ")[1]}`);
   });
 
   it("documents the output schema, compatibility policy, and tracker grammar", () => {

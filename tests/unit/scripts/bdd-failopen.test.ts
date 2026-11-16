@@ -31,7 +31,7 @@ import {
   runGateWrite,
   runReport,
   writeMap,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 const RESULTS_FILE = "results.json";
 const STALE_TITLE = "renamed away";

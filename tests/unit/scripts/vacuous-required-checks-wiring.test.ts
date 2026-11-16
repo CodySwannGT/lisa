@@ -120,6 +120,7 @@ interface RawCheckRun {
 /** One violation. */
 interface Violation {
   readonly kind: string;
+  readonly message: string;
 }
 
 /** The refusal a run carries when it inspected nothing. */
@@ -387,7 +388,7 @@ describe("the vacuity arm, as something that actually runs", () => {
         const workflow = loadWorkflow(path.join(REPO_ROOT, relative));
         // `on: pull_request` is the whole point: a schedule would reproduce
         // a scheduled workflow, which is what the arm was NOT.
-        expect(workflow.on?.pull_request).toBeDefined();
+        expect(workflow.on).toHaveProperty("pull_request");
         const steps = workflow.jobs?.vacuity?.steps ?? [];
         const step = steps.find(candidate =>
           candidate.run?.includes("--vacuity")

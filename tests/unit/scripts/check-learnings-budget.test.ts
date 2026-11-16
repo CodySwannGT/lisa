@@ -353,7 +353,9 @@ describe("check:learnings-budget", () => {
     // below proves one byte more fails. This exercises the ceiling itself,
     // closing the earlier ~2.7 KB-of-slack gap.
     const pad = LEARNINGS_CONTRACT.maxTokens - measured;
-    entries[0] = { ...entries[0], why: `${entries[0].why}${"x".repeat(pad)}` };
+    const [first] = entries;
+    if (!first) throw new Error("the budget fixture needs at least one entry");
+    entries[0] = { ...first, why: `${first.why}${"x".repeat(pad)}` };
     const atLimit = renderLearningsFile(entries);
     expect(Buffer.byteLength(atLimit, "utf8")).toBe(
       LEARNINGS_CONTRACT.maxTokens
