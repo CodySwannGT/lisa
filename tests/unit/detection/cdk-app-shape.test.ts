@@ -219,6 +219,7 @@ describe("no surface reintroduces the dependency arm", () => {
     // would need a bounded spawn and an absolute path to git, and buys nothing
     // when every TypeScript file under src is tracked anyway.
     const entries = await fs.readdir(path.join(REPO_ROOT, "src"), {
+      encoding: "utf8",
       recursive: true,
     });
     const listed = entries

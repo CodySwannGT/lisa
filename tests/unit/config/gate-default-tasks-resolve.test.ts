@@ -117,11 +117,12 @@ interface GateTasks {
 const GATES: readonly GateTasks[] = Object.entries(REGISTRY).map(
   ([id, gate]) => ({
     id,
-    tasks: [gate.task, ...Object.values(gate.taskAt ?? {})].filter(
-      (task): task is string => typeof task === "string"
-    ),
-    declareOnly: gate.declareOnly,
-    shippedAs: gate.shippedAs,
+    tasks: [
+      gate.task,
+      ...Object.values("taskAt" in gate ? gate.taskAt : {}),
+    ].filter((task): task is string => typeof task === "string"),
+    declareOnly: "declareOnly" in gate ? gate.declareOnly : undefined,
+    shippedAs: "shippedAs" in gate ? gate.shippedAs : undefined,
   })
 );
 

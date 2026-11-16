@@ -64,6 +64,17 @@ const OTHER_SESSION = "99999999-8888-7777-6666-555555555555";
 const NOTICE = "not from npm";
 
 /**
+ * The current POSIX user id, which names the hook's per-user notice directory.
+ * @returns The uid
+ */
+function uid(): number {
+  if (process.getuid === undefined) {
+    throw new Error("the notice directory is keyed on a POSIX uid");
+  }
+  return process.getuid();
+}
+
+/**
  * A checkout whose host tree is behind and whose plugin tree is current — the
  * fleet's normal state, where the notice has something to say on every call.
  * @returns The project root.
@@ -94,11 +105,11 @@ describe("the proactive notice, across one session", () => {
     expect(runs.map(run => run.status)).toEqual(Array(12).fill(0));
     expect(
       runs.filter(run => run.output.includes(NOTICE)),
-      runs.map(run => run.output)
+      runs.map(run => run.output).join("\n")
     ).toHaveLength(1);
     expect(
       lstatSync(
-        path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`, SESSION)
+        path.join(tmp, `lisa-enforcement-notice-${uid()}`, SESSION)
       ).isDirectory()
     ).toBe(true);
   });
@@ -144,10 +155,7 @@ describe("the proactive notice, across one session", () => {
 
     runFallback(bash("ls -la", SESSION), root, tmp);
 
-    const stateDir = path.join(
-      tmp,
-      `lisa-enforcement-notice-${process.getuid()}`
-    );
+    const stateDir = path.join(tmp, `lisa-enforcement-notice-${uid()}`);
     expect(statSync(stateDir).mode & 0o077).toBe(0);
     expect(lstatSync(path.join(stateDir, SESSION)).isDirectory()).toBe(true);
   });
@@ -162,9 +170,9 @@ describe("the proactive notice, across one session", () => {
     );
 
     expect(spoke).toEqual([true, true]);
-    expect(
-      existsSync(path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`))
-    ).toBe(false);
+    expect(existsSync(path.join(tmp, `lisa-enforcement-notice-${uid()}`))).toBe(
+      false
+    );
   });
 
   it("speaks every time when its state cannot be created", () => {
@@ -179,9 +187,7 @@ describe("the proactive notice, across one session", () => {
 
       expect(spoke).toEqual([true, true]);
       expect(
-        existsSync(
-          path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`)
-        )
+        existsSync(path.join(tmp, `lisa-enforcement-notice-${uid()}`))
       ).toBe(false);
     } finally {
       chmodSync(tmp, 0o700);
@@ -195,7 +201,7 @@ describe("the proactive notice, across one session", () => {
 
     for (const stateDir of [
       path.join(tmp, "lisa-enforcement-notice"),
-      path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`),
+      path.join(tmp, `lisa-enforcement-notice-${uid()}`),
     ]) {
       mkdirSync(stateDir, { recursive: true });
       symlinkSync(target, path.join(stateDir, SESSION));

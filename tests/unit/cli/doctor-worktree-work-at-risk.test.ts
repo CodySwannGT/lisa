@@ -91,7 +91,7 @@ function mockGit(responses: ReadonlyMap<string, GitResult>) {
         ? String(options.cwd)
         : "";
     const key = commandKey(cwd, Array.isArray(args) ? args.map(String) : []);
-    const result =
+    const result: GitResult =
       command === "git"
         ? (responses.get(key) ?? {
             error: Object.assign(new Error(`Unexpected git call: ${key}`), {

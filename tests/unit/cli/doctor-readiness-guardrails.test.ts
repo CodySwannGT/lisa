@@ -374,10 +374,12 @@ describe("assessFeedbackGuardrailsDimension — ordinary operations stay clear",
     expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
     expect(findings.length).toBeGreaterThan(0);
-    expect(String(findings[0].reason)).toContain(
+    const [head] = findings;
+    if (head === undefined) throw new Error("expected a SKIP finding");
+    expect(String(head.reason)).toContain(
       "No GitHub Actions workflow files were found"
     );
-    expect(findings[0].skip).toBe(true);
+    expect(head.skip).toBe(true);
     expectNoBlocker(record.findings);
   });
 });
