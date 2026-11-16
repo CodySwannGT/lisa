@@ -27,7 +27,9 @@ import {
   classifyCheckDescription,
   DESCRIPTION_VERDICTS,
   evaluateVacuousChecks,
+  fetchSettledChecks,
   loadDeclaration as loadUntypedDeclaration,
+  vacuityRefusal,
 } from "../../../typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs";
 
 const leases: string[] = [];
@@ -129,6 +131,30 @@ function namedByGuard(gates: Record<string, unknown>): string[] {
     ...Object.keys(declaration.evidence_bearing_checks ?? {}),
     ...Object.keys(declaration.review_by_checks ?? {}),
   ]);
+}
+
+/**
+ * The review_by reviewer contexts the evidence prover reads from these gates.
+ * @param gates - The `gates` block
+ * @returns Sorted contexts
+ */
+function reviewByByProver(gates: Record<string, unknown>): string[] {
+  return sorted(
+    configuredReviewers({ gates })
+      .filter(reviewer => reviewer.reviewBy !== undefined)
+      .map(reviewer => reviewer.context)
+  );
+}
+
+/**
+ * The review_by reviewer contexts this guard reads from these gates.
+ * @param gates - The `gates` block
+ * @returns Sorted contexts
+ */
+function reviewByByGuard(gates: Record<string, unknown>): string[] {
+  return sorted(
+    Object.keys(loadDeclaration(project(BASE, gates)).review_by_checks ?? {})
+  );
 }
 
 afterEach(() => {
@@ -320,6 +346,143 @@ describe("gates-config reviewers are evidence-bearing (#4914)", () => {
     const root = project(BASE);
     writeFileSync(join(root, ".lisa.config.json"), "{ not json");
     expect(() => loadDeclaration(root)).toThrow(/\.lisa\.config\.json/);
+  });
+
+  it("treats a review_by gate pinned by posted_by as evidence-bearing", () => {
+    const gates = {
+      "code-review": {
+        "pull-request": {
+          ...(reviewerGate(REVIEW_BY_CONTEXT, { review_by: REVIEW_BY_LOGIN })[
+            "pull-request"
+          ] as Record<string, unknown>),
+          posted_by: 12_345,
+        },
+      },
+    };
+    const declaration = loadDeclaration(project(BASE, gates));
+    expect(Object.keys(declaration.evidence_bearing_checks)).toEqual([
+      REVIEW_BY_CONTEXT,
+    ]);
+    expect(declaration.review_by_checks).toBeUndefined();
+    expect(reviewByByGuard(gates)).toEqual(reviewByByProver(gates));
+  });
+
+  it("splits review_by reviewers from the rest as the evidence prover does", () => {
+    const gates = {
+      "code-review": reviewerGate("CodeRabbit"),
+      "third-review": reviewerGate("Reviewed By Hand", {
+        review_by: "a-bot[bot]",
+      }),
+      "pinned-review": {
+        "pull-request": {
+          await: "Pinned",
+          posted_by: 7,
+          evidence: { reviewer: true, review_by: "pinned[bot]" },
+        },
+      },
+    };
+    expect(reviewByByGuard(gates)).toEqual(reviewByByProver(gates));
+  });
+
+  it("reads a review_by gate's phrases on a name evidence_bearing_checks declares", () => {
+    const root = project(
+      { ...BASE, evidence_bearing_checks: { CodeRabbit: { proof: ["A"] } } },
+      {
+        "code-review": reviewerGate("CodeRabbit", {
+          review_by: REVIEW_BY_LOGIN,
+          proof: ["B"],
+          no_work: ["y"],
+        }),
+      }
+    );
+    const declaration = loadDeclaration(root);
+    expect(declaration.evidence_bearing_checks.CodeRabbit).toEqual({
+      proof: ["A", "B"],
+      no_work: ["y"],
+    });
+    expect(declaration.review_by_checks).toBeUndefined();
+  });
+
+  it("reads a review_by gate's phrases on a name a check gate also awaits", () => {
+    const root = project(BASE, {
+      "code-review": reviewerGate("Greptile", { proof: ["A"] }),
+      "second-review": reviewerGate("Greptile", {
+        review_by: REVIEW_BY_LOGIN,
+        proof: ["B"],
+      }),
+    });
+    const declaration = loadDeclaration(root);
+    expect(declaration.evidence_bearing_checks.Greptile).toEqual({
+      proof: ["A", "B"],
+    });
+    expect(declaration.review_by_checks).toBeUndefined();
+  });
+
+  it("does not refuse the vacuity arm when only review_by reviewers are declared", () => {
+    const root = project(BASE, {
+      "code-review": reviewerGate(REVIEW_BY_CONTEXT, {
+        review_by: REVIEW_BY_LOGIN,
+      }),
+    });
+    expect(
+      vacuityRefusal({
+        declaration: loadDeclaration(root),
+        pr: "1",
+        checks: [{ name: "build", state: "SUCCESS" }],
+      })
+    ).toBeNull();
+  });
+
+  it("keeps the settle loop waiting while a review_by reviewer's check is pending", () => {
+    const root = project(
+      { ...BASE, evidence_bearing_checks: { CodeRabbit: {} } },
+      {
+        "code-review": reviewerGate(REVIEW_BY_CONTEXT, {
+          review_by: REVIEW_BY_LOGIN,
+        }),
+      }
+    );
+    const done = {
+      name: "CodeRabbit",
+      state: "SUCCESS",
+      bucket: "pass",
+      description: REVIEW_COMPLETED,
+    };
+    const reads = [
+      [done, { name: REVIEW_BY_CONTEXT, state: "PENDING", bucket: "pending" }],
+      [
+        done,
+        {
+          name: REVIEW_BY_CONTEXT,
+          state: "SUCCESS",
+          bucket: "pass",
+          description: REVIEW_COMPLETED,
+        },
+      ],
+    ];
+    let clock = 0;
+    let polls = 0;
+    const result = fetchSettledChecks(loadDeclaration(root), "1", undefined, {
+      timeoutSeconds: 300,
+      intervalSeconds: 15,
+      now: () => clock,
+      sleep: (ms: number) => {
+        clock += ms;
+      },
+      headSha: () => "a".repeat(40),
+      fetch: () => {
+        const roster = reads[Math.min(polls, reads.length - 1)];
+        polls += 1;
+        return roster;
+      },
+    }) as unknown as {
+      settled: boolean;
+      evidence: { expired: boolean; line: string };
+    };
+    expect(polls).toBe(2);
+    expect(result.settled).toBe(true);
+    expect(result.evidence.expired).toBe(false);
+    expect(result.evidence.line).toMatch(/^Review evidence settled/);
   });
 
   it("names the same reviewers as the evidence prover", () => {

@@ -1115,16 +1115,27 @@ function gateReviewers(rootDir) {
       assertGatePhrases(gateId, list, evidence[list]);
       vocabulary[list] = evidence[list];
     }
+    // A gate pinned by `posted_by` never takes the review route (#4916), so it
+    // must post its check: evidence-bearing, as the prover reads it.
     const set =
-      typeof evidence.review_by === "string" && evidence.review_by.trim() !== ""
+      entry.posted_by === undefined &&
+      typeof evidence.review_by === "string" &&
+      evidence.review_by.trim() !== ""
         ? reviewers.reviewBy
         : reviewers.checks;
     set[entry.await] = mergeVocabulary(set[entry.await] ?? {}, vocabulary);
   }
   // A context another gate requires to post a check is evidence-bearing, and
-  // judging it twice would report one hollow green as two.
-  for (const name of Object.keys(reviewers.checks))
+  // judging it twice would report one hollow green as two. It is judged once,
+  // reading both gates' phrases.
+  for (const name of Object.keys(reviewers.checks)) {
+    if (!Object.hasOwn(reviewers.reviewBy, name)) continue;
+    reviewers.checks[name] = mergeVocabulary(
+      reviewers.checks[name],
+      reviewers.reviewBy[name]
+    );
     delete reviewers.reviewBy[name];
+  }
   return reviewers;
 }
 
@@ -1212,11 +1223,15 @@ function withGateReviewers(declaration, reviewers) {
     else if (isPlainObject(checks[name]))
       checks[name] = mergeVocabulary(checks[name], vocabulary);
   }
-  const reviewBy = Object.fromEntries(
-    Object.entries(reviewers.reviewBy).filter(
-      ([name]) => !Object.hasOwn(checks, name)
-    )
-  );
+  /** @type {GateVocabularies} */
+  const reviewBy = {};
+  for (const [name, vocabulary] of Object.entries(reviewers.reviewBy)) {
+    // A name `evidence_bearing_checks` declares must post a check; it is
+    // judged there, reading the review_by gate's phrases too.
+    if (!Object.hasOwn(checks, name)) reviewBy[name] = vocabulary;
+    else if (isPlainObject(checks[name]))
+      checks[name] = mergeVocabulary(checks[name], vocabulary);
+  }
   // `review_by_checks` is derived from the gates and nowhere else, so a copy
   // written into the declaration by hand is not read.
   const base = Object.fromEntries(
@@ -1224,7 +1239,8 @@ function withGateReviewers(declaration, reviewers) {
   );
   return {
     ...base,
-    ...(Object.keys(reviewers.checks).length === 0
+    ...((declared === undefined || declared === null) &&
+    Object.keys(checks).length === 0
       ? {}
       : { evidence_bearing_checks: checks }),
     ...(Object.keys(reviewBy).length === 0
@@ -4800,6 +4816,9 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
     );
   // A substitute is useful only at the head it was actually read for. Pending
   // rows still wait, and a missing required reviewer still needs a real row.
+  // A review_by reviewer's check that posted is waited for like any other
+  // (#4914); one that posted nothing is not in flight — see
+  // {@link reportedReviewByChecks}.
   const evidenceReady = observed =>
     declaredEvidenceChecks(declaration).every(name => {
       const found = observed.checks.find(check => check.name === name);
@@ -4809,7 +4828,10 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
           observed.headSha === options.substituteHead &&
           options.substitutes?.has(name))
       );
-    });
+    }) &&
+    reportedReviewByChecks(declaration, observed.checks).every(([name]) =>
+      checkSettled(observed.checks.find(check => check.name === name))
+    );
 
   // Bracket checks with coherent head/base observations. The early substitute
   // read can supply the first observation without another metadata request.
@@ -5041,7 +5063,10 @@ export function vacuityRefusal(input) {
       reason: `PR #${pr} reported ZERO checks of any kind. A pull request with no checks and a pull request whose checks are all honest produce the same silence from this arm, so it refuses rather than picking one. Confirm the token can read checks (\`actions: read\` for the \`gh pr checks\` rollup, or \`checks: read\` + \`statuses: read\` for the fallback) before believing this.`,
     };
   }
-  if (declaredEvidenceChecks(declaration).length === 0) {
+  if (
+    declaredEvidenceChecks(declaration).length === 0 &&
+    Object.keys(declaration.review_by_checks ?? {}).length === 0
+  ) {
     return {
       kind: VACUITY_REFUSALS.noneDeclared,
       reason: `\`evidence_bearing_checks\` in ${DECLARATION_PATH} is empty, so this repository has declared that NO check's green means anything reviewed the code — and the vacuity arm examined nothing on PR #${pr}. If that is true, say so by removing the arm from your workflow. If it is not, name the checks by their exact check names: \`"evidence_bearing_checks": { "<reviewer check name>": {} }\`.`,
