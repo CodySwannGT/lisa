@@ -118,14 +118,18 @@ def screenshot_viewport(stem, journey):
     """Return the journey viewport a screenshot was captured at, or None.
 
     Screenshot journeys run once per viewport and name each capture
-    NN-<marker>-<viewport>.png, so the last name segment is matched,
-    case-insensitively, against the journey's Viewports table.
+    NN-<marker>-<viewport>.png. A viewport name may itself contain hyphens
+    ("Mobile-Landscape"), so each name is matched, case-insensitively, as a
+    whole suffix at a hyphen boundary, and the longest matching name wins.
     """
-    suffix = stem.rsplit("-", 1)[-1].lower()
-    for viewport in journey.get("viewports") or []:
-        if str(viewport.get("name", "")).lower() == suffix:
-            return viewport
-    return None
+    lowered = stem.lower()
+    matches = [
+        viewport
+        for viewport in journey.get("viewports") or []
+        if str(viewport.get("name", ""))
+        and lowered.endswith("-" + str(viewport["name"]).lower())
+    ]
+    return max(matches, key=lambda v: len(str(v["name"])), default=None)
 
 
 def evidence_label(evidence_path, journey):
@@ -138,7 +142,8 @@ def evidence_label(evidence_path, journey):
     viewport = screenshot_viewport(stem, journey) if evidence_path.suffix == ".png" else None
     label_parts = stem.split("-")[1:]
     if viewport is not None:
-        label_parts = label_parts[:-1]
+        name_segments = len(str(viewport["name"]).split("-"))
+        label_parts = label_parts[:-name_segments]
     label = " ".join(label_parts).title() if label_parts else stem
     if viewport is not None:
         label = f"{label} ({viewport['name']} {viewport['width']}x{viewport['height']})"

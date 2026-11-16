@@ -1541,7 +1541,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-journey/SKILL.md":
       "f2374a818c92d28c6f2f4c494f171522ca42ceaf27be3648839b31a9dbb86444",
     "plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py":
-      "e34c32592ce5a833638288000a32cc2454f455a88aeef09ff86c0d9cedae9b99",
+      "abd50e33b1f6038e4b92bcc76b29e92f78aa03a7302923fd46d24049ba6fce04",
     "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py":
       "a96fda5de44cd6d65fcc7ecf36aa365766707b77ad68b198062124d31a9238b9",
     "plugins/src/base/skills/lisa-jira-read-ticket/SKILL.md":

@@ -223,6 +223,26 @@ describe.each(GENERATORS)("viewport-aware screenshots: %s", generator => {
     expect(markdown).toContain("| Mobile | 375x812 |");
   });
 
+  it("matches a hyphenated viewport name, preferring the longest match", () => {
+    const LANDSCAPE_SHOT = "03-search-step-mobile-landscape.png";
+    const { markdown, wiki } = generate(
+      generator,
+      "101",
+      [LANDSCAPE_SHOT],
+      false,
+      {
+        ...JOURNEY,
+        viewports: [
+          { name: "Landscape", width: 1024, height: 768 },
+          { name: "Mobile-Landscape", width: 667, height: 375 },
+        ],
+      }
+    );
+
+    expect(wiki).toContain(`!${LANDSCAPE_SHOT}|width=667!`);
+    expect(markdown).toContain("**Search Step (Mobile-Landscape 667x375):**");
+  });
+
   it("keeps the plain label when the suffix names no journey viewport", () => {
     const { markdown } = generate(generator, "101", [], false, {
       ...JOURNEY,
