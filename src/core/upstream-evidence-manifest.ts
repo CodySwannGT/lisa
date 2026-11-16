@@ -1175,7 +1175,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/base-rules.md":
       "816cd63221dfbe664d371877d203153877d9e3423fd32dda0a41790d893a3082",
     "plugins/src/base/rules/eager/coding-philosophy.md":
-      "f0662555bcbcebe0582be253a7773b28f5e397fe9e5d89cfa6e58549bd99fbdf",
+      "77037a08ce174db2150897bb7675d3df016df95752ac8291596dee362427cd2b",
     "plugins/src/base/rules/eager/communication.md":
       "bc192f299fbe76f27d60aca38d461b2eec3412737e49b1e400fde8399116b389",
     "plugins/src/base/rules/eager/config-resolution.md":
@@ -1217,7 +1217,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/claim-time-guards.md":
       "a50664632190c94a68df74cf8e1893552e1507f0162e3dc497615a8360b40007",
     "plugins/src/base/rules/reference/coding-philosophy.md":
-      "6fc1d3f796be44118c774361d3972a944ead988428edf15b17bab271354fae1f",
+      "30bd85c82b319aa9ba29761d08c029d10d7a0ba0a8b8db0044af6fab9dec7925",
     "plugins/src/base/rules/reference/communication.md":
       "c9873d1b4564eb3cf86a350224158fe8d1c4da6a7a0644bcf4bfd200206bc174",
     "plugins/src/base/rules/reference/completion-authorization.md":
