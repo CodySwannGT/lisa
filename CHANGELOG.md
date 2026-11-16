@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.14.2](https://github.com/CodySwannGT/lisa/compare/v5.14.1...v5.14.2) (2026-11-16)
+
+
+### Documentation
+
+* **philosophy:** add a no-technical-debt principle ([a4e5b7f](https://github.com/CodySwannGT/lisa/commit/a4e5b7f01edab9679d5bd6e01da3ea7d9f6dfff3)), closes [CodySwannGT/lisa#4924](https://github.com/CodySwannGT/lisa/issues/4924) [CodySwannGT/lisa#4924](https://github.com/CodySwannGT/lisa/issues/4924)
+* **philosophy:** keep the no-technical-debt bullet inside the eager budget ([4a33dca](https://github.com/CodySwannGT/lisa/commit/4a33dca04da9df29c6f56f5d8b421803b6702223)), closes [CodySwannGT/lisa#4924](https://github.com/CodySwannGT/lisa/issues/4924) [CodySwannGT/lisa#4924](https://github.com/CodySwannGT/lisa/issues/4924)
+
 ### [5.14.1](https://github.com/CodySwannGT/lisa/compare/v5.14.0...v5.14.1) (2026-11-16)
 
 
