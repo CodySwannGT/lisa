@@ -1367,13 +1367,39 @@ async function detectSurface() {
 
 /**
  * Read the bootstrap key name, which is the one value the operator must paste.
- * @param {string} [cwd] Repository root.
- * @returns {string|null} The configured key name, when there is one.
+ *
+ * Located by the secrets runtime's own `readConfig` walk — the same file the
+ * provider is resolved from — so a run from a subdirectory, or one anchored by
+ * `LISA_PROJECT_DIR` / `CLAUDE_PROJECT_DIR`, cannot pair one config's provider
+ * with another directory's key.
+ *
+ * The name is printed unquoted as `export <key>='…'` in a block the operator
+ * pastes, so it must be a shell variable name and nothing else. The grammar is
+ * the secrets runtime's own `ENV_KEY`, the rule it applies to every name it
+ * exports. (`bootstrap-store` accepts a looser path segment, `.` and `-`
+ * included; neither is a variable name, so the stricter rule is the one that
+ * fits a line of shell.)
+ * @param {string} [cwd] Directory to resolve the config from.
+ * @param {Record<string, string|undefined>} [env] Environment, for the config anchors.
+ * @returns {Promise<string|null>} The configured key name, when there is one.
  */
-function readBootstrapKey(cwd = process.cwd()) {
-  const path = join(cwd, ".lisa.config.json");
-  if (!existsSync(path)) return null;
-  return JSON.parse(readFileSync(path, "utf8")).secrets?.bootstrap?.key ?? null;
+async function readBootstrapKey(cwd = process.cwd(), env = process.env) {
+  const { readConfig } = await import(
+    pathToFileURL(siblingScript("lisa-secrets-access", "surfaces.mjs")).href
+  );
+  const { configPath } = readConfig(cwd, env);
+  if (!configPath) return null;
+  const key = readLayer(configPath)?.secrets?.bootstrap?.key ?? null;
+  if (key === null) return null;
+  const { ENV_KEY } = await import(
+    pathToFileURL(siblingScript("lisa-secrets-access", "providers.mjs")).href
+  );
+  if (typeof key === "string" && ENV_KEY.test(key)) return key;
+  throw new Error(
+    `secrets.bootstrap.key ${JSON.stringify(key)} in ${configPath} is not a ` +
+      "valid environment variable name. Use letters, digits and underscores " +
+      "only, not starting with a digit (for example BWS_ACCESS_TOKEN_acme)."
+  );
 }
 
 /**
@@ -1503,7 +1529,9 @@ export function workstationProviderFor(provider) {
  * @returns {Promise<object>} The plan row, updated with the install outcome.
  */
 export async function ensureProviderCli(provider, options = {}) {
-  const { dryRun = false, consent = true, deps = {} } = options;
+  // Consent defaults to NO: a caller that says nothing must not install. `main`
+  // passes it explicitly — always on a remote surface, `--install-tools` locally.
+  const { dryRun = false, consent = false, deps = {} } = options;
   const workstation = await import(
     pathToFileURL(siblingScript("lisa-setup-workstation", "workstation.mjs"))
       .href
@@ -1599,7 +1627,7 @@ export async function resolveEmitTarget(
   // A configured key outranks the convention: a project may legitimately use a
   // name that is not derivable, and this command must not tell its operator to
   // set a different one from the one their sessions actually read.
-  const configured = readBootstrapKey(cwd);
+  const configured = await readBootstrapKey(cwd, env);
   if (configured) return { tenant, provider, bootstrapKey: configured };
   if (!tenant) return { tenant, provider, bootstrapKey: null };
 

@@ -1865,7 +1865,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
       "324b7826e6cb98b274ab09a25f1c29ae6877bc827032642cabccfe1ef21fcc99",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "54635c30537695cb86d8ef07d03e0ad5d0cb6f4601b6422fdab626d2fd6e7867",
+      "97cef44c3e3fc74f7cc391b3a9d60ec5a1e2f1de4f6b13e444d263476eb4a250",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs":
       "8bf279a2b198c7a6d4163420ec73f871fb9c9cb70d7c87d852026bc5dbf97091",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
@@ -13537,6 +13537,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/remote-dispatch.test.ts": true,
     "tests/unit/secrets/remote-env-asset-installation.test.ts": true,
     "tests/unit/secrets/remote-env-bindir-path.test.ts": true,
+    "tests/unit/secrets/remote-env-bootstrap-key.test.ts": true,
     "tests/unit/secrets/remote-env-cached-tool-path.test.ts": true,
     "tests/unit/secrets/remote-env-cli-entrypoint.test.ts": true,
     "tests/unit/secrets/remote-env-configured-provider.test.ts": true,
