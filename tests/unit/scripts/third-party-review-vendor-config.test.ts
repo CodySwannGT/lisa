@@ -397,3 +397,70 @@ describe("validating the reviewer's phrases and account", () => {
     expect(problems.join(" ")).toContain("non-empty");
   });
 });
+
+describe("a review stands in only for silence (#4916 re-review)", () => {
+  it.each([
+    ["failure", ""],
+    ["error", "  "],
+  ])(
+    "is not credited after a %s status with no words",
+    (state, description) => {
+      const reading = readReviewerEvidence({
+        reviewer: reviewer({ review_by: LOGIN }),
+        statuses: [{ context: CONTEXT, state, description }],
+        sha: HEAD,
+        reviews: [review()],
+      });
+      expect(reading.reviewed).toBe(false);
+    }
+  );
+
+  it("is credited after an empty status that passed", () => {
+    const reading = readReviewerEvidence({
+      reviewer: reviewer({ review_by: LOGIN }),
+      statuses: [{ context: CONTEXT, state: "success", description: "" }],
+      sha: HEAD,
+      reviews: [review()],
+    });
+    expect(reading.reviewed).toBe(true);
+  });
+
+  it("never takes the review route for a gate pinned by posted_by", () => {
+    const [pinned] = configuredReviewers({
+      gates: {
+        "code-review": {
+          "pull-request": {
+            level: "required",
+            await: CONTEXT,
+            posted_by: 1,
+            evidence: { reviewer: true, review_by: LOGIN },
+          },
+        },
+      },
+    });
+    if (!pinned) throw new Error("expected one configured reviewer");
+    const reading = readReviewerEvidence({
+      reviewer: pinned,
+      statuses: [],
+      checkRuns: [],
+      sha: HEAD,
+      reviews: [review()],
+    });
+    expect(reading.reviewed).toBe(false);
+  });
+
+  it("denies a status whose words hold a no-work phrase before any proof", () => {
+    const reading = readReviewerEvidence({
+      reviewer: reviewer({ proof: ["review done without waiting"] }),
+      statuses: [
+        {
+          context: CONTEXT,
+          state: "success",
+          description: "Review done without waiting",
+        },
+      ],
+      sha: HEAD,
+    });
+    expect(reading.reading).toBe(EVIDENCE_READINGS.noWork);
+  });
+});

@@ -538,14 +538,14 @@ function readStatusEvidence({ reviewer, statuses }) {
     return answer(EVIDENCE_READINGS.pending);
   }
   if (normalised === "") return answer(EVIDENCE_READINGS.empty);
+  // Denial first, as the check-run reading and the TypeScript checker do.
+  if (readsAsNoWork(normalised, reviewer.noWork)) {
+    return answer(EVIDENCE_READINGS.noWork);
+  }
   if (reviewer.proof.includes(normalised)) {
     return answer(EVIDENCE_READINGS.reviewed, true);
   }
-  return answer(
-    readsAsNoWork(normalised, reviewer.noWork)
-      ? EVIDENCE_READINGS.noWork
-      : EVIDENCE_READINGS.unrecognised
-  );
+  return answer(EVIDENCE_READINGS.unrecognised);
 }
 
 /**
@@ -813,11 +813,20 @@ const SUBMITTED_REVIEW_STATES = new Set([
   "CHANGES_REQUESTED",
 ]);
 
-/** The readings a reviewer's own pull-request review may replace: silence. */
-const REVIEW_FALLBACK_READINGS = new Set([
-  EVIDENCE_READINGS.absent,
-  EVIDENCE_READINGS.empty,
-]);
+/**
+ * Whether the reviewer said nothing at the head: no status or run at all, or
+ * an empty one that passed. Only silence may be replaced by the reviewer's own
+ * review; an empty status that failed or errored is a denial.
+ * @param {{reading: string, state?: string|null}} reading - The status or run reading.
+ * @returns {boolean} Whether a review may stand in.
+ */
+function saidNothing(reading) {
+  if (reading.reading === EVIDENCE_READINGS.absent) return true;
+  return (
+    reading.reading === EVIDENCE_READINGS.empty &&
+    String(reading.state ?? "").toLowerCase() === "success"
+  );
+}
 
 /**
  * The reviewer's own submitted pull-request review at this head, if its gate
@@ -915,7 +924,11 @@ export function readReviewerEvidence({
   // A review stands in only where the reviewer said nothing at the head. A
   // status or run that said "no work", failed, or said anything else is a
   // denial, and a review from the same account never overrides a denial.
-  if (!REVIEW_FALLBACK_READINGS.has(reading.reading)) return reading;
+  if (!saidNothing(reading)) return reading;
+  // posted_by accepts only that app's check run; a review carries no app id,
+  // so a pinned gate never takes the review route (validateGates also
+  // refuses the pair, but the config is not validated at run time).
+  if (reviewer.postedBy !== undefined) return reading;
   const fromReview = readReviewEvidence({ reviewer, reviews, sha });
   if (fromReview !== null) {
     return {
