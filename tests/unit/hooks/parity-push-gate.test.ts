@@ -31,7 +31,7 @@ import path from "node:path";
 import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
-import { cleanGitEnv } from "../../helpers/test-utils";
+import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const HOOK = path.resolve(".husky/pre-push.local");
@@ -229,7 +229,9 @@ describe("parity push gate", () => {
     const root = gateRepo(CLEAN_SKILL);
     const artifact = path.join(root, ROUTING_DIR, ARTIFACT);
     const parsed = JSON.parse(readFileSync(artifact, "utf8")) as {
-      routing: Record<string, { outcome: string }>;
+      routing: Record<string, { outcome: string }> & {
+        codex: { outcome: string };
+      };
     };
     parsed.routing.codex.outcome = "not-a-real-outcome";
     writeFileSync(artifact, JSON.stringify(parsed, null, 2), "utf8");

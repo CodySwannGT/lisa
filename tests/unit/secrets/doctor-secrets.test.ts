@@ -19,6 +19,45 @@ import {
   collector,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs";
 
+/** One finding as the collector records it. */
+interface Finding {
+  readonly level: string;
+  readonly name: string;
+  readonly message: string;
+}
+
+/**
+ * Narrow one collector finding to its recorded shape.
+ *
+ * The collector is untyped JavaScript, so its findings arrive as bare objects;
+ * this checks the shape instead of assuming it.
+ * @param finding A finding the collector recorded, if any.
+ * @returns The finding, typed.
+ */
+const asFinding = (finding: object | undefined): Finding => {
+  if (
+    finding === undefined ||
+    !("level" in finding) ||
+    !("name" in finding) ||
+    !("message" in finding) ||
+    typeof finding.level !== "string" ||
+    typeof finding.name !== "string" ||
+    typeof finding.message !== "string"
+  ) {
+    throw new Error(
+      `expected a recorded finding, got ${JSON.stringify(finding)}`
+    );
+  }
+  return { level: finding.level, name: finding.name, message: finding.message };
+};
+
+/**
+ * The first finding the collector recorded, typed.
+ * @param findings Findings the collector recorded.
+ * @returns The first finding.
+ */
+const first = (findings: readonly object[]): Finding => asFinding(findings[0]);
+
 /**
  * Build a provider view from plain entries, defaulting note and identifier.
  * @param entries Secret entries by exact name.
@@ -64,7 +103,7 @@ describe("required-name assertion", () => {
       new Map(),
       report
     );
-    expect(findings[0].level).toBe("ok");
+    expect(first(findings).level).toBe("ok");
   });
 
   it("errors on a declared name that resolves nowhere", () => {
@@ -72,7 +111,7 @@ describe("required-name assertion", () => {
     // startup error rather than a late surprise.
     const { findings, report } = collector();
     checkRequired({ require: ["ABSENT"] }, new Map(), new Map(), report);
-    expect(findings[0].level).toBe("error");
+    expect(first(findings).level).toBe("error");
   });
 
   it("does not call a proxy placeholder resolved", () => {
@@ -87,8 +126,8 @@ describe("required-name assertion", () => {
         new Map(),
         report
       );
-      expect(findings[0].level).toBe("warn");
-      expect(findings[0].message).toMatch(/substituted at egress/i);
+      expect(first(findings).level).toBe("warn");
+      expect(first(findings).message).toMatch(/substituted at egress/i);
     });
   });
 
@@ -96,7 +135,7 @@ describe("required-name assertion", () => {
     withEnv("REAL_TOKEN", "an-actual-value", () => {
       const { findings, report } = collector();
       checkRequired({ require: ["REAL_TOKEN"] }, new Map(), new Map(), report);
-      expect(findings[0].level).toBe("ok");
+      expect(first(findings).level).toBe("ok");
     });
   });
 
@@ -108,7 +147,7 @@ describe("required-name assertion", () => {
       new Map([["FILE_ONLY", "v"]]),
       report
     );
-    expect(findings[0].level).toBe("ok");
+    expect(first(findings).level).toBe("ok");
   });
 });
 
@@ -118,7 +157,7 @@ describe("naming assertion", () => {
     // resolve for ATTIO_API_KEY.
     const { findings, report } = collector();
     checkNaming(providerView({ "attio-prod": { value: "v" } }), report);
-    expect(findings[0].level).toBe("warn");
+    expect(first(findings).level).toBe("warn");
   });
 
   it("stays quiet on a conforming key", () => {
@@ -136,14 +175,14 @@ describe("note assertion", () => {
     // empty.
     const { findings, report } = collector();
     checkNotes(providerView({ A_KEY: { value: "v", note: "" } }), report);
-    expect(findings[0].level).toBe("error");
-    expect(findings[0].name).toBe("A_KEY");
+    expect(first(findings).level).toBe("error");
+    expect(first(findings).name).toBe("A_KEY");
   });
 
   it("blocks on a missing note", () => {
     const { findings, report } = collector();
     checkNotes(providerView({ A_KEY: { value: "v" } }), report);
-    expect(findings[0].level).toBe("error");
+    expect(first(findings).level).toBe("error");
   });
 
   it("accepts a note in the documented shape", () => {
@@ -163,8 +202,8 @@ describe("note assertion", () => {
       providerView({ A_KEY: { value: "v", note: "owner: platform-team" } }),
       report
     );
-    expect(findings[0].level).toBe("error");
-    expect(findings[0].message).toMatch(/first line/i);
+    expect(first(findings).level).toBe("error");
+    expect(first(findings).message).toMatch(/first line/i);
   });
 
   it("blocks a malformed tool line", () => {
@@ -175,8 +214,8 @@ describe("note assertion", () => {
       }),
       report
     );
-    expect(findings[0].level).toBe("error");
-    expect(findings[0].message).toContain("sonar (for CI)");
+    expect(first(findings).level).toBe("error");
+    expect(first(findings).message).toContain("sonar (for CI)");
   });
 
   it("warns without blocking on a stray separator in a tool line", () => {
@@ -185,7 +224,7 @@ describe("note assertion", () => {
       providerView({ A_KEY: { value: "v", note: "A token.\ntools: sonar," } }),
       report
     );
-    expect(findings[0].level).toBe("warn");
+    expect(first(findings).level).toBe("warn");
   });
 
   it("attributes every defect to the secret that carries it", () => {
@@ -200,7 +239,7 @@ describe("note assertion", () => {
       report
     );
     expect(
-      findings.map(f => f.name).sort((a, b) => a.localeCompare(b))
+      findings.map(f => asFinding(f).name).sort((a, b) => a.localeCompare(b))
     ).toEqual(["A_KEY", "B_KEY"]);
   });
 });
@@ -215,8 +254,8 @@ describe("rotation readiness", () => {
       providerView({ TOKEN: { value: "v" } }),
       report
     );
-    expect(findings[0].level).toBe("error");
-    expect(findings[0].message).toMatch(/strand/i);
+    expect(first(findings).level).toBe("error");
+    expect(first(findings).message).toMatch(/strand/i);
   });
 
   it("errors when there is no provider identifier to write to", () => {
@@ -226,7 +265,7 @@ describe("rotation readiness", () => {
       providerView({ TOKEN: { value: "v", id: null } }),
       report
     );
-    expect(findings[0].level).toBe("error");
+    expect(first(findings).level).toBe("error");
   });
 
   it("passes when both a bootstrap and an identifier exist", () => {
@@ -236,7 +275,7 @@ describe("rotation readiness", () => {
       providerView({ TOKEN: { value: "v" } }),
       report
     );
-    expect(findings[0].level).toBe("ok");
+    expect(first(findings).level).toBe("ok");
   });
 });
 
@@ -248,9 +287,9 @@ describe("two-store detection", () => {
       new Map([["APOLLO_API_KEY", "local-value"]]),
       report
     );
-    expect(findings[0].level).toBe("error");
-    expect(findings[0].message).toMatch(/TWO LIVE CREDENTIALS/);
-    expect(findings[0].message).toMatch(/stop and ask/i);
+    expect(first(findings).level).toBe("error");
+    expect(first(findings).message).toMatch(/TWO LIVE CREDENTIALS/);
+    expect(first(findings).message).toMatch(/stop and ask/i);
   });
 
   it("compares by digest, never exposing either value", () => {
@@ -260,8 +299,8 @@ describe("two-store detection", () => {
       new Map([["K", "local-secret-value"]]),
       report
     );
-    expect(findings[0].message).not.toContain("provider-secret-value");
-    expect(findings[0].message).not.toContain("local-secret-value");
+    expect(first(findings).message).not.toContain("provider-secret-value");
+    expect(first(findings).message).not.toContain("local-secret-value");
   });
 
   it("warns rather than errors when the copies still match", () => {
@@ -273,7 +312,7 @@ describe("two-store detection", () => {
       new Map([["K", "same"]]),
       report
     );
-    expect(findings[0].level).toBe("warn");
+    expect(first(findings).level).toBe("warn");
   });
 
   it("says nothing about a secret that lives in only one store", () => {

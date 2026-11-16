@@ -6,6 +6,20 @@ import { fileURLToPath } from "node:url";
 
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 
+/**
+ * Read one keyed entry, failing the test when it is absent.
+ * @param record Entries by name.
+ * @param name Name to read.
+ * @returns The entry under that name.
+ */
+const key = <T>(record: Readonly<Record<string, T>>, name: string): T => {
+  const entry = record[name];
+  if (entry === undefined) {
+    throw new Error(`expected an entry named ${name}`);
+  }
+  return entry;
+};
+
 // Derive the repo root from this test file's location so the test is
 // portable across worktrees and CI working directories.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,7 +50,7 @@ describe("release changelog entry generation", () => {
   // standard-version rewrites CHANGELOG.md but never wrote CHANGELOG_ENTRY.md,
   // so every host release shipped with an empty "## 📝 Changelog" section.
   it("writes CHANGELOG_ENTRY.md in the standard-version branch", () => {
-    const steps = releaseWorkflow.jobs.version.steps ?? [];
+    const steps = key(releaseWorkflow.jobs, "version").steps ?? [];
     const changelog = steps.find(s => s.name === "Generate Changelog");
     const run = changelog?.run ?? "";
 
@@ -48,7 +62,7 @@ describe("release changelog entry generation", () => {
   });
 
   it("falls back to a CHANGELOG.md link when the entry is missing or empty", () => {
-    const steps = releaseWorkflow.jobs.github_release.steps ?? [];
+    const steps = key(releaseWorkflow.jobs, "github_release").steps ?? [];
     const notes = steps.find(s => s.name === "Generate Release Notes");
     const run = notes?.run ?? "";
 
@@ -83,7 +97,7 @@ describe("changelog entry extraction (awk)", () => {
     // Run the exact awk program embedded in the Generate Changelog step, so
     // the test cannot drift from what the workflow actually executes.
     const releaseWorkflow = await loadWorkflow();
-    const steps = releaseWorkflow.jobs.version.steps ?? [];
+    const steps = key(releaseWorkflow.jobs, "version").steps ?? [];
     const run = steps.find(s => s.name === "Generate Changelog")?.run ?? "";
     const match = /awk -v ver="[^"]*" '([\s\S]*?)' CHANGELOG\.md/.exec(run);
     if (!match?.[1]) {

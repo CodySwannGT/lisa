@@ -19,6 +19,17 @@ import { AGENTS } from "../../../plugins/src/base/skills/lisa-setup-workstation/
 import { planWorkstation } from "../../../plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs";
 import { SETUP_FIELD } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
 
+/**
+ * The group a plan row belongs to.
+ *
+ * The planner is untyped JavaScript that reports rows as bare objects, so the
+ * field is read through a presence check rather than assumed.
+ * @param row One planned row.
+ * @returns Its group, or undefined when the row names none.
+ */
+const groupOf = (row: object): unknown =>
+  "group" in row ? row.group : undefined;
+
 /** The sentinel the field passes to select no agents. */
 const NONE = "none";
 
@@ -46,7 +57,7 @@ describe(`"${NONE}" as an agent selector`, () => {
       probe: () => ({ present: true, version: "1.0.0" }),
     });
 
-    expect(plan.filter(row => row.group === "agent")).toEqual([]);
+    expect(plan.filter(row => groupOf(row) === "agent")).toEqual([]);
   });
 
   it("still plans the provider and the tools", () => {
@@ -57,7 +68,7 @@ describe(`"${NONE}" as an agent selector`, () => {
       probe: () => ({ present: false, version: null }),
     });
 
-    expect(plan.some(row => row.group === "provider")).toBe(true);
-    expect(plan.some(row => row.group === "tool")).toBe(true);
+    expect(plan.some(row => groupOf(row) === "provider")).toBe(true);
+    expect(plan.some(row => groupOf(row) === "tool")).toBe(true);
   });
 });

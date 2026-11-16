@@ -29,6 +29,62 @@ import {
   sweep,
 } from "../../../scripts/check-whole-output-guards.mjs";
 
+/** The fields of one sweep finding these tests read. */
+interface SweepFinding {
+  readonly file: unknown;
+  readonly scope: unknown;
+  readonly steps: unknown;
+  readonly unaccounted: readonly { readonly anchor: unknown }[];
+  readonly guards: readonly { readonly test: unknown }[];
+}
+
+/**
+ * Whether a value is a list of objects that each carry a given field.
+ * @param value Candidate list.
+ * @param field Field each element must carry.
+ * @returns True when every element is an object with that field.
+ */
+const isListWith = <K extends string>(
+  value: unknown,
+  field: K
+): value is readonly Record<K, unknown>[] =>
+  Array.isArray(value) &&
+  value.every(
+    (item: unknown) =>
+      typeof item === "object" && item !== null && field in item
+  );
+
+/**
+ * Narrow the sweep's first finding to the fields these tests read.
+ *
+ * The sweep is untyped JavaScript and reports findings as bare objects, so the
+ * shape is checked rather than assumed.
+ * @param findings Findings the sweep reported.
+ * @returns The first finding, typed.
+ */
+const firstFinding = (findings: readonly object[]): SweepFinding => {
+  const finding = findings[0];
+  if (
+    finding === undefined ||
+    !("file" in finding) ||
+    !("scope" in finding) ||
+    !("steps" in finding) ||
+    !("unaccounted" in finding) ||
+    !("guards" in finding) ||
+    !isListWith(finding.unaccounted, "anchor") ||
+    !isListWith(finding.guards, "test")
+  ) {
+    throw new Error(`expected a sweep finding, got ${JSON.stringify(finding)}`);
+  }
+  return {
+    file: finding.file,
+    scope: finding.scope,
+    steps: finding.steps,
+    unaccounted: finding.unaccounted,
+    guards: finding.guards,
+  };
+};
+
 /** Where the offending fixture is written inside a throwaway tree. */
 const FIXTURE_PATH = "src/prover-fixture.mjs";
 
@@ -129,19 +185,16 @@ describe("sweep", () => {
     const report = sweep(root);
 
     expect(report.findings).toHaveLength(1);
-    expect(report.findings[0].file).toBe(FIXTURE_PATH);
-    expect(report.findings[0].scope).toBe("preMoveProverSource");
-    expect(report.findings[0].steps).toBe(2);
-    expect(report.findings[0].unaccounted).toHaveLength(2);
-    expect(
-      report.findings[0].unaccounted.map(
-        (step: { anchor: string }) => step.anchor
-      )
-    ).toEqual([
+    const finding = firstFinding(report.findings);
+    expect(finding.file).toBe(FIXTURE_PATH);
+    expect(finding.scope).toBe("preMoveProverSource");
+    expect(finding.steps).toBe(2);
+    expect(finding.unaccounted).toHaveLength(2);
+    expect(finding.unaccounted.map(step => step.anchor)).toEqual([
       '"import { execFileSync } from \\"node:child_process\\";"',
       '"path.resolve(root ?? process.cwd())"',
     ]);
-    expect(report.findings[0].guards[0].test).toBe("rewritten === source");
+    expect(finding.guards[0]?.test).toBe("rewritten === source");
   });
 
   it("a transform that asserts each anchor comes back clean", () => {
