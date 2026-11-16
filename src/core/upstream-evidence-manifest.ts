@@ -1725,7 +1725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "b1a76f0e80dfd6c5580328ce17b3bf15bfca5476fc7bb8f045157374b78fe524",
+      "85b268fe90abba7ede3c4a24c9f4c085b81bf1363664032d05b6b7dec0d9db88",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f77f80a5e649c57b40d87aa789b0fb2dd62870b1dee84248bfa0eaa413966e1d",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":

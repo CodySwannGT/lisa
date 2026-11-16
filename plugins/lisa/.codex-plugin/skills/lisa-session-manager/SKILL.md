@@ -530,8 +530,9 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    - `doneReady`: the pull request merged. In the item's repo dir run
      `node scripts/lisa-work-item.mjs finish --ref <ref> --pr-url <prUrl>`. If it refuses, post
      one comment that starts `[lisa-session-manager] Cannot complete:` and says, in plain words,
-     why the item cannot complete yet. Then, when the entry has a `returnComment`, move the item to
-     the `ready` role with that comment: the code work is merged, so the next agent finishes only
+     why the item cannot complete yet. Then, when the entry has a `returnComment`, re-read the item
+     and leave it in place if a person now holds it; otherwise move the item to the `ready` role
+     with that comment: the code work is merged, so the next agent finishes only
      the missing step instead of redoing it. An entry with no `returnComment` is held by a person;
      leave it where it is. A later cycle that still sees a recent refusal on a claimed item puts it
      in `return` (or `parked` when a person holds it), and retries finishing once the refusal is
