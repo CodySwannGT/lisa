@@ -78,7 +78,8 @@
       "husky": "^8.0.0",
       "prettier": "3.8.0",
       "typescript": "^6.0.3",
-      "vitest": "^5.1.0"
+      "vitest": "^5.1.0",
+      "@types/node": "^24.0.0"
     },
     "scripts": {
       "build": "node scripts/lib/worktree-dependencies.mjs && tsc",

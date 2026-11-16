@@ -449,7 +449,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/tsconfig.cdk.json":
       "7d62683ed6f67dd3453ef577e0e0251a22d82159b5b5c0e79a0315059bf36571",
     "cdk/copy-overwrite/tsconfig.eslint.json":
-      "fcba9e695a032fac7b51dc5c5232c82c7e8787156ff4de1c589b8d88ac7b0e47",
+      "8e13a2f76604fb82dabc8f94d1885eb72c6a9ad351ce701811a844b511852d67",
     "cdk/copy-overwrite/tsconfig.json":
       "bd960df819bb1ce01163ac4b28721eea3f07d482f6c454cfea9a8dc90191033a",
     "cdk/copy-overwrite/vitest.cdk.ts":
@@ -611,7 +611,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "expo/copy-overwrite/tsconfig.eslint.json":
-      "eb72e9a565512f9f16ee2e5dcbc0d021c790bad3011429733e26fbdf529e190b",
+      "1623aeffa1b8e63de0797b5a1053ee51ff9aa5990aeac2c532e5f03bebb1f7fa",
     "expo/copy-overwrite/tsconfig.expo.json":
       "55f3dfe80496f03152d40d364c5a9cabf3fdce3adc8cebea48ba5257d77b7aa9",
     "expo/copy-overwrite/tsconfig.json":
@@ -701,7 +701,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/knip.json":
       "7f23d3075b63fac399305cdec3abed477daee7bc349f26290b7b47a53be6bd51",
     "harper-fabric/copy-overwrite/tsconfig.eslint.json":
-      "63ddc31cbbdf91ba4def5f04ed76b2a8b61ced456d4472aea77a55cc037a62e1",
+      "0f57d78c6eb613a1cb54a4c1b304bbd1cbb5aa8413b6ef3b3313e56a13e7d9a2",
     "harper-fabric/copy-overwrite/tsconfig.json":
       "64b9f2e919160568712e2641b125aa21bec486532249a7b17e4fb2f4bb3988cc",
     "harper-fabric/copy-overwrite/vitest.config.ts":
@@ -733,7 +733,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/copy-overwrite/tsconfig.build.json":
       "c914ee7550d89c0946253bf5002086a306d061b150f4d4519ba8fecd78a63c87",
     "nestjs/copy-overwrite/tsconfig.eslint.json":
-      "9e451b95b04ed070319a152c4ecf7f12bb65109b2b79bed9e8349c535602b498",
+      "861e94134824a0fdd6dfe157981d2214839200a033b93e5edb5d669f4d01c3cf",
     "nestjs/copy-overwrite/tsconfig.json":
       "9241aaff2834a43467846dc03b76703be7df26aeb17922db1246c5431b8f6666",
     "nestjs/copy-overwrite/tsconfig.nestjs.json":
@@ -853,7 +853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "phaser/copy-overwrite/tsconfig.eslint.json":
-      "f68ef61ca6ba5081db23a13e18b845e00487407cf2d3b8cbceea6f85f2b01498",
+      "203663659ccd76293248bf1ed5ce8a7202867373230949ab8ca5d2c81e1d29c7",
     "phaser/copy-overwrite/tsconfig.json":
       "8d9ce60a68b5e29213c4251ae35e68bc22c7128e49659d5a8967de6a16d620e5",
     "phaser/copy-overwrite/vitest.config.ts":
@@ -3109,7 +3109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "typescript/copy-overwrite/tsconfig.eslint.json":
-      "83421522f0817673d488db4ad4c0f5c5bc6bca0e0f16a6dc55e74666481b82c4",
+      "3625c14b2641aeb5d97fc1b56e301b373deb4175f4807868394e0afd08aa709c",
     "typescript/copy-overwrite/tsconfig.json":
       "8f4257fcd2cfd4b23e83e0fdd4908d41ee8f1ae75bb95d632e653a0ac13d58e4",
     "typescript/copy-overwrite/vitest.config.ts":
@@ -3153,7 +3153,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "5dee9b811ee57acfe65f3572c0fafc5207d57997216460415f534ad60a276d71",
+      "342ad472cb9a83874748dbf458d140efed80a99d9415068419cf9cc750ff48e4",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -12398,6 +12398,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/test-run-supervision-wiring.test.ts": true,
     "tests/unit/config/test-timings-reporter.test.ts": true,
     "tests/unit/config/tmpdir-growth-benchmark-scheduled.test.ts": true,
+    "tests/unit/config/tsconfig-eslint-programs.test.ts": true,
     "tests/unit/config/tsconfig-no-unused-flags.test.ts": true,
     "tests/unit/config/tsconfig-template-references.test.ts": true,
     "tests/unit/config/vitest-base.test.ts": true,

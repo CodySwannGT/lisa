@@ -1,11 +1,15 @@
 {
+  "//": "The program ESLint's type-aware rules read types from. It must resolve what the code really uses, or those rules see `any` and error types. This stack runs Jest, so `types` loads jest plus Node; allowJs without checkJs lets TypeScript files import local .js/.mjs modules with inferred types instead of `any`, without type-checking the JavaScript.",
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "module": "preserve",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": false,
+    "types": ["jest", "node"]
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules", "dist", "build", ".expo", "ios", "android", "worktrees"]
