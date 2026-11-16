@@ -55,7 +55,7 @@ describe("failure-signature index — how it gets read", () => {
         { matcher: string; hooks: { command: string }[] }[]
       >;
     };
-    const bash = manifest.hooks.PostToolUse.filter(
+    const bash = (manifest.hooks.PostToolUse ?? []).filter(
       block => block.matcher === "Bash"
     );
     expect(

@@ -111,7 +111,7 @@ function collectCallSites(): CallSite[] {
     for (const [job, body] of Object.entries(doc.jobs ?? {})) {
       const uses = body?.uses;
       if (typeof uses !== "string" || !uses.startsWith(LISA_USES)) continue;
-      const callee = uses.slice(LISA_USES.length).split("@")[0];
+      const callee = uses.slice(LISA_USES.length).split("@")[0] ?? "";
       sites.push({
         template,
         job,

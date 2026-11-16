@@ -123,8 +123,8 @@ describe("runWorkstation", () => {
         return { status: 0 };
       },
     });
-    expect(calls[0].command).toBe(process.execPath);
-    expect(calls[0].args).toEqual([path.join(root, SCRIPT_PATH), "--install"]);
+    expect(calls[0]?.command).toBe(process.execPath);
+    expect(calls[0]?.args).toEqual([path.join(root, SCRIPT_PATH), "--install"]);
   });
 
   it("propagates the script's exit code", () => {

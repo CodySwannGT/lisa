@@ -49,6 +49,16 @@ const ID_MAP = {
   ambiguous: {},
 };
 
+/**
+ * Narrows an untyped value to a string-keyed record.
+ *
+ * @param value - The value to check.
+ * @returns Whether the value is a non-null object.
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 describe("regimeFromVariableNames", () => {
   it("types an axis the map publishes variables for and leaves the rest untyped", () => {
     // The common real-world case: a mature colour system, no spacing scale.
@@ -149,6 +159,9 @@ describe("judgeProbe — owner attribution and the threshold", () => {
   });
 });
 
+/** Why a case that asserted a skip cannot read the skip's reason. */
+const EXPECTED_SKIP = "expected a skip decision";
+
 describe("skipReason — the design source is optional", () => {
   const env = { FIGMA_ACCESS_TOKEN: "tok" };
 
@@ -157,6 +170,9 @@ describe("skipReason — the design source is optional", () => {
     // and a mandatory gate on an absent integration breaks every one of them.
     const result = skipReason({}, env, ID_MAP);
     expect(result.skip).toBe(true);
+    if (!result.skip) {
+      throw new Error(EXPECTED_SKIP);
+    }
     expect(result.reason).toMatch(/no design source is configured/u);
   });
 
@@ -167,6 +183,9 @@ describe("skipReason — the design source is optional", () => {
       ID_MAP
     );
     expect(result.skip).toBe(true);
+    if (!result.skip) {
+      throw new Error(EXPECTED_SKIP);
+    }
     expect(result.reason).toMatch(/FIGMA_ACCESS_TOKEN/u);
   });
 
@@ -177,6 +196,9 @@ describe("skipReason — the design source is optional", () => {
       null
     );
     expect(result.skip).toBe(true);
+    if (!result.skip) {
+      throw new Error(EXPECTED_SKIP);
+    }
     expect(result.reason).toMatch(/design-variable-ids\.mjs/u);
   });
 
@@ -202,7 +224,7 @@ describe("tokenNamer", () => {
 describe("evaluateSubtree", () => {
   it("produces a regime, findings, and a design-owned block from one subtree", () => {
     // Colour and radius are published here; spacing deliberately is not.
-    const result = evaluateSubtree({
+    const result: unknown = evaluateSubtree({
       component: CARD,
       idMap: {
         byId: { [SURFACE_ID]: SURFACE_NAME, [RADIUS_ID]: RADIUS_NAME },
@@ -228,6 +250,15 @@ describe("evaluateSubtree", () => {
       },
     });
 
+    // The probe documents its result as a bare `object`; narrow each level
+    // rather than cast it to a shape it does not declare.
+    if (!isRecord(result) || !isRecord(result.regime)) {
+      throw new Error("evaluateSubtree returned no regime");
+    }
+    const { bindList } = result;
+    if (!Array.isArray(bindList)) {
+      throw new Error("evaluateSubtree returned no bind list");
+    }
     expect(result.verdict).toBe("BLOCK");
     expect(result.owner).toBe("design");
     // Colour is published, spacing is not — so the regime the gate receives
@@ -241,6 +272,6 @@ describe("evaluateSubtree", () => {
         value: "#3a7bd5",
       })
     );
-    expect(result.bindList.length).toBeGreaterThan(0);
+    expect(bindList.length).toBeGreaterThan(0);
   });
 });

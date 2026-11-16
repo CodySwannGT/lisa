@@ -99,9 +99,13 @@ describe("agy/collectLisaMcpServers", () => {
 
     const written = (await fs.readJson(target)) as Record<string, unknown>;
     const servers = written[MCP] as Record<string, Record<string, unknown>>;
-    expect(servers.expo.serverUrl).toBe(EXPO_URL);
-    expect("url" in servers.expo).toBe(false);
-    expect("type" in servers.expo).toBe(false);
-    expect(servers.expo[LISA_MANAGED_MARKER]).toBe(true);
+    const expo = servers.expo;
+    if (expo === undefined) {
+      throw new Error("the written config has no expo server");
+    }
+    expect(expo.serverUrl).toBe(EXPO_URL);
+    expect("url" in expo).toBe(false);
+    expect("type" in expo).toBe(false);
+    expect(expo[LISA_MANAGED_MARKER]).toBe(true);
   });
 });

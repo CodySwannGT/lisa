@@ -32,7 +32,7 @@ function git(args: readonly string[]): string {
     label: `git ${args.join(" ")}`,
     command: GIT,
     args,
-    cwd: root,
+    ...(root === undefined ? {} : { cwd: root }),
   }).trim();
 }
 
