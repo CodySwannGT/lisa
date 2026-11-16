@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.10.0](https://github.com/CodySwannGT/lisa/compare/v5.9.1...v5.10.0) (2026-11-16)
+
+
+### Features
+
+* **session-manager:** return abandoned merged-but-incomplete items to Ready ([a387860](https://github.com/CodySwannGT/lisa/commit/a387860a1c6c06e6220e2462bb36e2cb979de052)), closes [CodySwannGT/lisa#4906](https://github.com/CodySwannGT/lisa/issues/4906) [CodySwannGT/lisa#4906](https://github.com/CodySwannGT/lisa/issues/4906)
+
+
+### Bug Fixes
+
+* **session-manager:** keep merged review-role items parked when completion is refused ([97cc4b2](https://github.com/CodySwannGT/lisa/commit/97cc4b26aa86f53db18c36ac7f50c408671e9da4)), closes [CodySwannGT/lisa#4906](https://github.com/CodySwannGT/lisa/issues/4906) [CodySwannGT/lisa#4906](https://github.com/CodySwannGT/lisa/issues/4906)
+
+
+### Documentation
+
+* **session-manager:** re-check for a human hold before returning a refused item ([bf5d3b9](https://github.com/CodySwannGT/lisa/commit/bf5d3b9c35bc8820b1d47f8084a69e1954e7a858)), closes [CodySwannGT/lisa#4906](https://github.com/CodySwannGT/lisa/issues/4906) [CodySwannGT/lisa#4906](https://github.com/CodySwannGT/lisa/issues/4906)
+
 ### [5.9.1](https://github.com/CodySwannGT/lisa/compare/v5.9.0...v5.9.1) (2026-11-16)
 
 ## [5.9.0](https://github.com/CodySwannGT/lisa/compare/v5.8.2...v5.9.0) (2026-11-14)
