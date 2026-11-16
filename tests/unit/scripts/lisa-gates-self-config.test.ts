@@ -48,6 +48,16 @@ import {
 import { NIGHTLY_SLOW_SUITES } from "../../../scripts/lib/nightly-slow-suites.mjs";
 import { runArtifactChecks } from "../../../scripts/run-artifact-checks.mjs";
 
+/**
+ * Reads an untyped `object` (a JSDoc `{object}` return) field by field.
+ * @param value - The object under test
+ * @returns Its own enumerable fields
+ */
+const fieldsOf = (value: object): Readonly<Record<string, unknown>> => {
+  const fields: [string, unknown][] = Object.entries(value);
+  return Object.fromEntries(fields);
+};
+
 /** One gate resolved at one moment, as `resolveMoment` reports it. */
 interface GateEntry {
   readonly id: string;
@@ -438,8 +448,8 @@ describe("gates backing a required branch-protection context", () => {
       entry => entry.mode === "await"
     );
 
-    const byName = (left: string, right: string): number =>
-      left.localeCompare(right);
+    const byName = (left: string | null, right: string | null): number =>
+      (left ?? "").localeCompare(right ?? "");
     expect(gates.map(entry => entry.awaits).sort(byName)).toEqual(
       [...AWAITED_VENDOR_CONTEXTS].sort(byName)
     );
@@ -468,17 +478,21 @@ describe("gates backing a required branch-protection context", () => {
 describe("the Node-suite facade uses the supervised public command", () => {
   it("runs the built-in fallback through the direct adapter", async () => {
     const imported = HARDCODED_INVOCATIONS.find(
-      entry => entry.job === "test_node_suites"
+      entry => fieldsOf(entry).job === "test_node_suites"
     );
     vi.resetModules();
     const activated =
       await import("../../../all/copy-overwrite/scripts/lisa-gates.mjs");
     const invocation = activated.HARDCODED_INVOCATIONS.find(
-      entry => entry.job === "test_node_suites"
+      entry => fieldsOf(entry).job === "test_node_suites"
     );
 
-    expect(imported?.command).toBe(TEST_NODE_SUITES_COMMAND);
-    expect(invocation?.command).toBe(TEST_NODE_SUITES_COMMAND);
+    expect(imported && fieldsOf(imported).command).toBe(
+      TEST_NODE_SUITES_COMMAND
+    );
+    expect(invocation && fieldsOf(invocation).command).toBe(
+      TEST_NODE_SUITES_COMMAND
+    );
   });
 });
 
@@ -515,7 +529,7 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(
       covering
         .map(entry => entry.id)
-        .toSorted((left, right) => left.localeCompare(right))
+        .sort((left, right) => left.localeCompare(right))
     ).toEqual(COVERAGE_PROVER_GATES);
     const tasks = [...new Set(covering.map(entry => entry.task))];
     // One task, not two: the same run proves both properties, and the pre-push

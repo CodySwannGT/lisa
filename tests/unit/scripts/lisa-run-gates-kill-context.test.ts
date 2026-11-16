@@ -42,7 +42,7 @@ const EARLIER = [
  * @param priorKills - Marks left by earlier runs
  * @returns The printed lines.
  */
-function report(code: number, priorKills: readonly object[]): string[] {
+function report(code: number, priorKills: object[]): string[] {
   const { exec } = stubExec({ [LINT_COMMAND]: code });
   const { lines, out } = sink();
   runGates({

@@ -37,7 +37,6 @@ function makeEntry(
     cachedInputTokens: null,
     cost: 0.12,
     currency: "USD",
-    entryId: overrides.entryId,
     flow: "lisa-plan",
     inputTokens: 100,
     measuredSubsetTokens: null,
@@ -48,7 +47,6 @@ function makeEntry(
     pricingStatus: "estimated",
     provider: "openai",
     reasoningTokens: null,
-    runId: overrides.runId,
     source: "prompt",
     totalTokens: 120,
     ...overrides,
@@ -271,6 +269,7 @@ describe("usage-accounting utilities", () => {
     const previousRollup: import("../../../src/utils/usage-accounting.js").LisaUsageRollup =
       {
         childCost: 0.99,
+        childCurrency: "USD",
         childEntryIds: ["stale-child"],
         childRefs: ["github:issue:stale"],
         childTokens: 999,
@@ -490,6 +489,7 @@ describe("usage-accounting utilities", () => {
   it("preserves pricing metadata and prior child rollups during direct-entry refreshes", () => {
     const existingEntry = makeEntry({
       entryId: PRICED_ENTRY_ID,
+      runId: "run-priced",
       pricingSource: PRICING_SOURCE,
       pricingStatus: "estimated",
     });

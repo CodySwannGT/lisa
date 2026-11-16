@@ -67,6 +67,20 @@ const writersOnly = (login: string) => login === WRITER;
  */
 const byWriter = (body: string) => ({ body, user: { login: WRITER } });
 
+/** A pull-request review object as the reviews API returns it. */
+interface ReviewObject {
+  readonly state: string;
+  readonly body?: string;
+  readonly commit_id?: string;
+}
+
+/**
+ * Types a review-object fixture as the full API shape.
+ * @param review - The review fixture
+ * @returns The same review
+ */
+const reviewObject = (review: ReviewObject): ReviewObject => review;
+
 /** One gates block declaring a single third-party reviewer. */
 const ONE_REVIEWER = {
   "code-review": {
@@ -83,21 +97,32 @@ const ONE_REVIEWER = {
  * @param gates - A gates block
  * @returns The resolved reviewers
  */
-const reviewersOf = (gates: object) =>
-  configuredReviewers({ gates }) as ReadonlyArray<{
-    context: string;
-    proof: string[];
-  }>;
+const reviewersOf = (gates: object) => configuredReviewers({ gates });
+
+/**
+ * The single reviewer a one-reviewer gates block declares.
+ * @param gates - A gates block declaring exactly one reviewer
+ * @returns That reviewer
+ */
+const onlyReviewerOf = (gates: object) => {
+  const [reviewer] = reviewersOf(gates);
+  if (!reviewer) throw new Error("the gates block declares no reviewer");
+  return reviewer;
+};
 
 /**
  * Read one reviewer's evidence off a single status description.
  * @param description - The status description to present
  * @returns The reading
  */
-const readingFor = (description: string | null | undefined) =>
+const readingFor = (description: string | undefined) =>
   readReviewerEvidence({
-    reviewer: reviewersOf(ONE_REVIEWER)[0],
-    statuses: [{ context: CONTEXT, state: "success", description }],
+    reviewer: onlyReviewerOf(ONE_REVIEWER),
+    statuses: [
+      description === undefined
+        ? { context: CONTEXT, state: "success" }
+        : { context: CONTEXT, state: "success", description },
+    ],
   });
 
 /**
@@ -222,7 +247,7 @@ describe("readReviewerEvidence — every other shape is NOT REVIEWED", () => {
   it("treats an unrecognised SUCCESS description as not reviewed", () => {
     expect(
       readReviewerEvidence({
-        reviewer: reviewersOf(ONE_REVIEWER)[0],
+        reviewer: onlyReviewerOf(ONE_REVIEWER),
         statuses: [
           {
             context: CONTEXT,
@@ -246,7 +271,7 @@ describe("readReviewerEvidence — every other shape is NOT REVIEWED", () => {
 
   it("treats an absent status as not reviewed", () => {
     const reading = readReviewerEvidence({
-      reviewer: reviewersOf(ONE_REVIEWER)[0],
+      reviewer: onlyReviewerOf(ONE_REVIEWER),
       statuses: [{ context: "Some Other Check", state: "success" }],
     });
     expect(reading.reviewed).toBe(false);
@@ -341,9 +366,10 @@ describe("reviewEvidenceVerdict", () => {
       ],
     });
     expect(verdict.outcome).toBe(EVIDENCE_OUTCOMES.unsatisfied);
-    expect(
-      verdict.readings.map((reading: never) => reading["reviewed"])
-    ).toEqual([true, false]);
+    expect(verdict.readings.map(reading => reading.reviewed)).toEqual([
+      true,
+      false,
+    ]);
   });
 
   it("reports a no-op when the commit is nobody's pull request head", () => {
@@ -362,7 +388,7 @@ describe("reviewEvidenceVerdict", () => {
 describe("an unsettled reviewer is deferred, never judged", () => {
   it("treats a pending status as pending rather than as no evidence", () => {
     const reading = readReviewerEvidence({
-      reviewer: reviewersOf(ONE_REVIEWER)[0],
+      reviewer: onlyReviewerOf(ONE_REVIEWER),
       statuses: [
         { context: CONTEXT, state: "pending", description: "Review queued" },
       ],
@@ -479,9 +505,9 @@ describe("substitutePosted", () => {
 
 describe("classifyReviewObject — a review OBJECT is not a status CONTEXT", () => {
   it("does not treat an empty-bodied APPROVED review as hollow", () => {
-    expect(classifyReviewObject({ state: "APPROVED", body: "" })).toBe(
-      REVIEW_OBJECT_VERDICTS.approval
-    );
+    expect(
+      classifyReviewObject(reviewObject({ state: "APPROVED", body: "" }))
+    ).toBe(REVIEW_OBJECT_VERDICTS.approval);
   });
 
   it("does not treat a body-less APPROVED review as hollow", () => {
@@ -491,9 +517,11 @@ describe("classifyReviewObject — a review OBJECT is not a status CONTEXT", () 
   });
 
   it("treats an empty-bodied CHANGES_REQUESTED as a blocking objection", () => {
-    expect(classifyReviewObject({ state: "CHANGES_REQUESTED", body: "" })).toBe(
-      REVIEW_OBJECT_VERDICTS.objection
-    );
+    expect(
+      classifyReviewObject(
+        reviewObject({ state: "CHANGES_REQUESTED", body: "" })
+      )
+    ).toBe(REVIEW_OBJECT_VERDICTS.objection);
   });
 });
 
@@ -535,7 +563,9 @@ describe("stale review objects are filtered in BOTH directions", () => {
   });
 
   it("drops a review whose commit is unknown rather than admitting it", () => {
-    expect(reviewsAtHead([{ state: "APPROVED" }], HEAD)).toEqual([]);
+    expect(reviewsAtHead([reviewObject({ state: "APPROVED" })], HEAD)).toEqual(
+      []
+    );
   });
 
   it("counts an empty-bodied approval at head as an approval", () => {
@@ -597,7 +627,7 @@ describe("the report names the observed condition, not a guessed cause", () => {
 
   it("gives every reading its own operator-readable sentence", () => {
     for (const reading of Object.values(EVIDENCE_READINGS)) {
-      expect(READING_SENTENCES[reading as string]).toBeTypeOf("string");
+      expect(READING_SENTENCES[reading]).toBeTypeOf("string");
     }
   });
 
