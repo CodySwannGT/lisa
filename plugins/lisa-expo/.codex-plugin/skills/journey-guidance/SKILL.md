@@ -2,7 +2,7 @@
 name: journey-guidance
 description: "Expo stack guidance for…"
 ---
-Expo stack guidance for Validation Journeys on any tracker (Jira, GitHub, Linear): when a ticket needs one, how to write it with screenshot markers and viewports, how to run it in the browser at each viewport, and how to name the screenshots. Consulted by the tracker journey, add-journey, create, and evidence dispatchers.
+Expo stack guidance for Validation Journeys on any tracker: when a ticket needs one, writing it with screenshot markers and viewports, running it in the browser, and naming screenshots. Read by the tracker journey, add-journey, create and evidence skills.
 
 
 # Expo Validation Journey Guidance

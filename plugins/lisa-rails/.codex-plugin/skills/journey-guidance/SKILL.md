@@ -2,7 +2,7 @@
 name: journey-guidance
 description: "Rails stack guidance for…"
 ---
-Rails stack guidance for Validation Journeys on any tracker (Jira, GitHub, Linear): choosing the verification method for UI, API, and background-job changes, reusing partials and ViewComponents, and naming text and image evidence. Consulted by the tracker journey, add-journey, create, and evidence dispatchers.
+Rails stack guidance for Validation Journeys on any tracker: picking the check for UI, API and background-job changes, reusing partials and ViewComponents, and naming evidence. Read by the tracker journey, add-journey, create and evidence skills.
 
 
 # Rails Validation Journey Guidance

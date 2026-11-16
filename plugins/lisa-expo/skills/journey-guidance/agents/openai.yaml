@@ -1,4 +1,4 @@
 display_name: "Journey Guidance"
-short_description: "Expo stack guidance for Validation Journeys on any tracker (Jira, GitHub, Linear): when a ticket needs one, how to write it with screenshot…"
+short_description: "Expo stack guidance for Validation Journeys on any tracker: when a ticket needs one, writing it with screenshot markers and viewports…"
 default_prompt:
-  - "Use $journey-guidance: Expo stack guidance for Validation Journeys on any tracker (Jira, GitHub, Linear): when a ticket needs one, how to write it with screenshot…."
+  - "Use $journey-guidance: Expo stack guidance for Validation Journeys on any tracker: when a ticket needs one, writing it with screenshot markers and viewports…."
