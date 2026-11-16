@@ -617,7 +617,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/nightly-e2e-policy.json":
       "a6fc52bbaa7943523fba35bd1ab51d8da4b29354bf0133b47aa299b725f51e8c",
     "expo/create-only/.github/required-checks.json":
-      "90a52cdb046174ffda71b39f4d8996d5fdafd0b0366a36a4deee6cc8cfe58072",
+      "3e265df9cdf08ff88360cef63a7a5181b99823ae971391d3cf4e6ba2a531d723",
     "expo/create-only/.github/workflows/ci.yml":
       "f4a95f3895d906429b82e33bb13c77c7a2d63027634da61c249c0a800d353f44",
     "expo/create-only/.github/workflows/deploy.yml":
@@ -785,7 +785,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/required-checks.json":
-      "4f0595c8078a5f019fa7b2ce681cb3b0b229f3a170d961736b0a1e501e7e3a1e",
+      "4c4a30d0ee5f911608715779d458c9ccf01b264d40380eb8a3c2bc5da4bfca87",
     "nestjs/create-only/.github/workflows/ci.yml":
       "5355a0152b04ba54bf2d207df536de18e2734429a1c030487b80aa3db0693df5",
     "nestjs/create-only/.github/workflows/deploy.yml":
@@ -3095,7 +3095,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "8dd3161accac1d2712d4f13c707c95efe73d1f61e56ed8805860acbdb854c45b",
+      "d72bad48ef6a944529afaa459d52d1c6ca35cb242ccbaa823a9b51d0a090cbfe",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -3135,7 +3135,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "8bb367786323bb758324a0bcf232b58ebef7d2d2f5732152c0b2e246f2a01ecf",
     "typescript/create-only/.github/required-checks.json":
-      "1792ee5eff820bdb7d82b7b32999de24b6aa2404b03c5aadc42e94671e2c629a",
+      "f3cecd0eba243453a37bee66f10d83903910ee0d7f29f0c6cb5abb6ccb94cd46",
     "typescript/create-only/.github/workflows/ci.yml":
       "313e42045137c59f77cf61abeebb19c8005ba7fa6d5b7d92a169a1e86ab168b5",
     "typescript/create-only/.github/workflows/review-evidence.yml":

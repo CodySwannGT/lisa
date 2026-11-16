@@ -1059,9 +1059,13 @@ export function loadDeclaration(rootDir) {
 const LISA_CONFIG_PATH = ".lisa.config.json";
 
 /**
- * The third-party reviewers `.lisa.config.json` declares, as
- * evidence-bearing check vocabularies keyed by the awaited context
- * (CodySwannGT/lisa#4914).
+ * @typedef {Record<string, {proof?: string[], no_work?: string[]}>} GateVocabularies
+ * Description vocabulary per reviewer context, as read from the gates config.
+ */
+
+/**
+ * The third-party reviewers `.lisa.config.json` declares, as description
+ * vocabularies keyed by the awaited context (CodySwannGT/lisa#4914).
  *
  * A reviewer is a gate whose pull-request entry awaits a context and marks it
  * `evidence.reviewer: true` — the same reading as `configuredReviewers` in
@@ -1070,20 +1074,26 @@ const LISA_CONFIG_PATH = ".lisa.config.json";
  * the other; the reading is repeated here rather than imported, and a unit test
  * holds the two to the same answer.
  *
- * A gate proven by `evidence.review_by` is left out. Its reviewer submits a
- * pull-request review and posts no check this guard could read, so declaring it
- * here would report it as never having reported.
+ * Reviewers come back in two sets. `checks` must post a check, so they are
+ * evidence-bearing. `reviewBy` are proven by `evidence.review_by`: the prover
+ * reads their `await` check first and falls back to their submitted review only
+ * when they posted none, so a check they DO post is still examined for a hollow
+ * green — but one that never posted is not a finding, because a review is
+ * that reviewer's evidence.
  *
- * No config means no reviewers. A config that does not parse is refused: this
- * guard would otherwise examine fewer reviewers than the project declared and
- * say nothing.
+ * No config means no reviewers. A config that does not parse, or a reviewer
+ * gate whose phrases are malformed, is refused: this guard would otherwise
+ * examine fewer reviewers, or other words, than the project declared and say
+ * nothing.
  * @param {string} rootDir - Repository root
- * @returns {Record<string, {proof?: string[], no_work?: string[]}>} Vocabulary per reviewer context
- * @throws {Error} When `.lisa.config.json` exists but does not parse
+ * @returns {{checks: GateVocabularies, reviewBy: GateVocabularies}} Vocabulary per reviewer context
+ * @throws {Error} When `.lisa.config.json` does not parse or a reviewer gate's phrases are malformed
  */
 function gateReviewers(rootDir) {
   const path = resolveWithinRoot(rootDir, LISA_CONFIG_PATH, "the Lisa config");
-  if (!existsSync(path)) return {};
+  /** @type {{checks: GateVocabularies, reviewBy: GateVocabularies}} */
+  const reviewers = { checks: {}, reviewBy: {} };
+  if (!existsSync(path)) return reviewers;
   let config;
   try {
     config = JSON.parse(readFileSync(path, "utf8"));
@@ -1092,76 +1102,135 @@ function gateReviewers(rootDir) {
       `check-skipped-required-checks: ${LISA_CONFIG_PATH} is not readable (${/** @type {Error} */ (error).message}). Its gates declare the third-party reviewers this guard examines, so it refuses rather than examining none of them.`
     );
   }
-  /** @type {Record<string, {proof?: string[], no_work?: string[]}>} */
-  const reviewers = {};
-  for (const gate of Object.values(config?.gates ?? {})) {
-    const entry = gate?.["pull-request"];
-    const evidence = entry?.evidence;
+  for (const [gateId, gate] of Object.entries(config?.gates ?? {})) {
+    if (!isPlainObject(gate)) continue;
+    const entry = gate["pull-request"];
+    if (!isPlainObject(entry)) continue;
+    const evidence = entry.evidence;
     if (evidence?.reviewer !== true) continue;
     if (typeof entry.await !== "string" || entry.await.trim() === "") continue;
-    if (
-      typeof evidence.review_by === "string" &&
-      evidence.review_by.trim() !== ""
-    )
-      continue;
-    reviewers[entry.await] = mergeVocabulary(reviewers[entry.await] ?? {}, {
-      ...(evidence.proof === undefined ? {} : { proof: evidence.proof }),
-      ...(evidence.no_work === undefined ? {} : { no_work: evidence.no_work }),
-    });
+    const vocabulary = {};
+    for (const list of ["proof", "no_work"]) {
+      if (evidence[list] === undefined) continue;
+      assertGatePhrases(gateId, list, evidence[list]);
+      vocabulary[list] = evidence[list];
+    }
+    const set =
+      typeof evidence.review_by === "string" && evidence.review_by.trim() !== ""
+        ? reviewers.reviewBy
+        : reviewers.checks;
+    set[entry.await] = mergeVocabulary(set[entry.await] ?? {}, vocabulary);
   }
+  // A context another gate requires to post a check is evidence-bearing, and
+  // judging it twice would report one hollow green as two.
+  for (const name of Object.keys(reviewers.checks))
+    delete reviewers.reviewBy[name];
   return reviewers;
+}
+
+/**
+ * Whether a value is a non-null, non-array object.
+ * @param {unknown} value - Any value
+ * @returns {boolean} True for a plain object
+ */
+function isPlainObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Refuses a reviewer gate's phrase list unless it is an array of non-blank
+ * strings, naming the gate it came from so the fix lands in the right file.
+ * @param {string} gateId - The gate's id in `.lisa.config.json`
+ * @param {string} list - `proof` or `no_work`
+ * @param {unknown} phrases - The declared value
+ * @returns {void}
+ * @throws {Error} When the list is malformed
+ */
+function assertGatePhrases(gateId, list, phrases) {
+  if (
+    !Array.isArray(phrases) ||
+    phrases.some(
+      phrase =>
+        typeof phrase !== "string" || normalizeDescription(phrase) === ""
+    )
+  ) {
+    throw new Error(
+      `check-skipped-required-checks: ${LISA_CONFIG_PATH} \`gates.${gateId}.pull-request.evidence.${list}\` must be an array of non-empty description strings.`
+    );
+  }
 }
 
 /**
  * Two vocabularies for one check, as one: each phrase list is the union of
  * both, in order, without repeats. Phrases only ever ADD to the shipped
  * defaults, so a union is the reading that keeps both declarations' meaning.
+ *
+ * A list `left` holds that is not an array is kept as it is, so
+ * `assertEvidenceBearingChecks` still refuses it rather than seeing the other
+ * declaration's valid list in its place.
  * @param {Record<string, unknown>} left - One vocabulary
  * @param {Record<string, unknown>} right - The other
  * @returns {Record<string, unknown>} The combined vocabulary
  */
 function mergeVocabulary(left, right) {
-  const merged = { ...left, ...right };
+  const merged = { ...left };
   for (const list of ["proof", "no_work"]) {
-    if (Array.isArray(left[list]) && Array.isArray(right[list])) {
+    if (right[list] === undefined) continue;
+    if (left[list] === undefined) merged[list] = right[list];
+    else if (Array.isArray(left[list]) && Array.isArray(right[list]))
       merged[list] = [...new Set([...left[list], ...right[list]])];
-    }
   }
   return merged;
 }
 
 /**
- * The declaration with the gates config's reviewers added to
- * `evidence_bearing_checks` (CodySwannGT/lisa#4914).
+ * The declaration with the gates config's reviewers added
+ * (CodySwannGT/lisa#4914).
  *
  * The gates config is where a project names its reviewer; a project switching
- * vendors edits it and this guard follows. Names already in
- * `evidence_bearing_checks` keep working, and a name declared in both reads
- * both vocabularies. With no reviewer gate the declaration is returned as is.
+ * vendors edits it and this guard follows. Reviewers that must post a check
+ * join `evidence_bearing_checks`; names already there keep working, and a name
+ * declared in both reads both vocabularies. Reviewers proven by
+ * `evidence.review_by` go to `review_by_checks`, which only the vacuity arm
+ * reads and only for a check they actually posted — see
+ * {@link evaluateVacuousChecks}. With no reviewer gate the declaration is
+ * returned as is.
  * @param {object} declaration - Parsed `.github/required-checks.json`
- * @param {Record<string, object>} reviewers - From {@link gateReviewers}
+ * @param {{checks: GateVocabularies, reviewBy: GateVocabularies}} reviewers - From {@link gateReviewers}
  * @returns {object} The declaration to validate and judge
  */
 function withGateReviewers(declaration, reviewers) {
-  if (Object.keys(reviewers).length === 0) return declaration;
   const declared = declaration.evidence_bearing_checks;
   // A malformed declared value is left for `assertEvidenceBearingChecks` to
   // refuse, instead of being papered over by the gates' entries.
-  if (
-    declared !== undefined &&
-    declared !== null &&
-    (typeof declared !== "object" || Array.isArray(declared))
-  )
+  if (declared !== undefined && declared !== null && !isPlainObject(declared))
     return declaration;
   const checks = { ...declared };
-  for (const [name, vocabulary] of Object.entries(reviewers)) {
-    const existing = checks[name];
-    checks[name] =
-      existing && typeof existing === "object" && !Array.isArray(existing)
-        ? mergeVocabulary(existing, vocabulary)
-        : (existing ?? vocabulary);
+  for (const [name, vocabulary] of Object.entries(reviewers.checks)) {
+    if (!Object.hasOwn(checks, name)) checks[name] = vocabulary;
+    // Likewise a malformed declared entry, `null` included, stays as written.
+    else if (isPlainObject(checks[name]))
+      checks[name] = mergeVocabulary(checks[name], vocabulary);
   }
-  return { ...declaration, evidence_bearing_checks: checks };
+  const reviewBy = Object.fromEntries(
+    Object.entries(reviewers.reviewBy).filter(
+      ([name]) => !Object.hasOwn(checks, name)
+    )
+  );
+  // `review_by_checks` is derived from the gates and nowhere else, so a copy
+  // written into the declaration by hand is not read.
+  const base = Object.fromEntries(
+    Object.entries(declaration).filter(([key]) => key !== "review_by_checks")
+  );
+  return {
+    ...base,
+    ...(Object.keys(reviewers.checks).length === 0
+      ? {}
+      : { evidence_bearing_checks: checks }),
+    ...(Object.keys(reviewBy).length === 0
+      ? {}
+      : { review_by_checks: reviewBy }),
+  };
 }
 
 /**
@@ -1810,8 +1879,20 @@ export function evaluateVacuousChecks(declaration, checks, options = {}) {
     });
     if (violation !== null) violations.push(violation);
   }
+  // A reviewer proven by its submitted review (`evidence.review_by`, #4914) is
+  // judged only on a check it actually posted: a hollow green from it is as
+  // hollow as anyone's, but posting nothing is how that reviewer works.
+  const reviewedBy = reportedReviewByChecks(declaration, checks);
+  for (const [name, entry] of reviewedBy) {
+    const violation = evaluateEvidenceBearingCheck(name, entry, checks, {
+      at,
+      required,
+      trustRequired,
+    });
+    if (violation !== null) violations.push(violation);
+  }
 
-  return { violations, checked: entries.length };
+  return { violations, checked: entries.length + reviewedBy.length };
 }
 
 /**
@@ -4612,8 +4693,28 @@ export function declaredEvidenceChecks(declaration) {
  * @returns {boolean} True when nothing declared is still in flight
  */
 export function checksSettled(declaration, checks) {
-  return declaredEvidenceChecks(declaration).every(name =>
-    checkSettled(checks.find(check => check.name === name))
+  return (
+    declaredEvidenceChecks(declaration).every(name =>
+      checkSettled(checks.find(check => check.name === name))
+    ) &&
+    reportedReviewByChecks(declaration, checks).every(([name]) =>
+      checkSettled(checks.find(check => check.name === name))
+    )
+  );
+}
+
+/**
+ * The `review_by_checks` entries whose context posted a row (#4914). One that
+ * posted nothing is neither a finding nor still in flight: that reviewer's
+ * evidence is its submitted review, which the review-evidence prover reads.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{name: string}>} checks - Rows
+ * @returns {Array<[string, object]>} Name and vocabulary of each reported one
+ */
+function reportedReviewByChecks(declaration, checks) {
+  return Object.entries(declaration.review_by_checks ?? {}).filter(([name]) =>
+    checks.some(check => check.name === name)
   );
 }
 

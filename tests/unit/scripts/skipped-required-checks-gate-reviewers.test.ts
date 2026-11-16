@@ -23,12 +23,17 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { configuredReviewers } from "../../../all/copy-overwrite/scripts/check-third-party-review-evidence.mjs";
 import {
+  checksSettled,
   classifyCheckDescription,
   DESCRIPTION_VERDICTS,
+  evaluateVacuousChecks,
   loadDeclaration as loadUntypedDeclaration,
 } from "../../../typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs";
 
 const leases: string[] = [];
+const REVIEW_BY_CONTEXT = "Some Reviewer";
+const REVIEW_BY_LOGIN = "some-reviewer[bot]";
+const REVIEW_COMPLETED = "Review completed";
 const BASE = {
   required_contexts: [],
   workflows: [".github/workflows/ci.yml"],
@@ -38,6 +43,7 @@ const BASE = {
 /** The part of a loaded declaration these cases read. */
 interface LoadedDeclaration {
   evidence_bearing_checks: Record<string, Record<string, unknown>>;
+  review_by_checks?: Record<string, Record<string, unknown>>;
 }
 
 /**
@@ -87,9 +93,42 @@ function reviewerGate(
     "pull-request": {
       level: "required",
       await: context,
-      evidence: { reviewer: true, proof: ["Review completed"], ...evidence },
+      evidence: { reviewer: true, proof: [REVIEW_COMPLETED], ...evidence },
     },
   };
+}
+
+/**
+ * Sort context names for comparison.
+ * @param names - Context names
+ * @returns The names, sorted
+ */
+function sorted(names: string[]): string[] {
+  return [...names].sort((left, right) => left.localeCompare(right));
+}
+
+/**
+ * The reviewer contexts the evidence prover reads from these gates.
+ * @param gates - The `gates` block
+ * @returns Sorted contexts
+ */
+function namedByProver(gates: Record<string, unknown>): string[] {
+  return sorted(
+    configuredReviewers({ gates }).map(reviewer => reviewer.context)
+  );
+}
+
+/**
+ * The reviewer contexts this guard reads from these gates, either set.
+ * @param gates - The `gates` block
+ * @returns Sorted contexts
+ */
+function namedByGuard(gates: Record<string, unknown>): string[] {
+  const declaration = loadDeclaration(project(BASE, gates));
+  return sorted([
+    ...Object.keys(declaration.evidence_bearing_checks ?? {}),
+    ...Object.keys(declaration.review_by_checks ?? {}),
+  ]);
 }
 
 afterEach(() => {
@@ -174,13 +213,95 @@ describe("gates-config reviewers are evidence-bearing (#4914)", () => {
     });
   });
 
-  it("does not add a reviewer proven by its own submitted review", () => {
+  it("keeps a review_by reviewer out of evidence_bearing_checks", () => {
     const root = project(BASE, {
-      "code-review": reviewerGate("Some Reviewer", {
-        review_by: "some-reviewer[bot]",
+      "code-review": reviewerGate(REVIEW_BY_CONTEXT, {
+        review_by: REVIEW_BY_LOGIN,
       }),
     });
-    expect(loadDeclaration(root)).toEqual(BASE);
+    const declaration = loadDeclaration(root);
+    expect(declaration.evidence_bearing_checks).toBeUndefined();
+    expect(Object.keys(declaration.review_by_checks ?? {})).toEqual([
+      REVIEW_BY_CONTEXT,
+    ]);
+  });
+
+  it("examines a review_by reviewer's check when it reports a hollow green", () => {
+    const root = project(BASE, {
+      "code-review": reviewerGate(REVIEW_BY_CONTEXT, {
+        review_by: REVIEW_BY_LOGIN,
+      }),
+    });
+    const { violations } = evaluateVacuousChecks(loadDeclaration(root), [
+      {
+        name: REVIEW_BY_CONTEXT,
+        state: "SUCCESS",
+        description: "Review skipped",
+      },
+    ]);
+    expect(violations).toEqual([
+      expect.objectContaining({ kind: "vacuous_required_check" }),
+    ]);
+  });
+
+  it("reports nothing for a review_by reviewer that posted no check", () => {
+    const root = project(BASE, {
+      "code-review": reviewerGate(REVIEW_BY_CONTEXT, {
+        review_by: REVIEW_BY_LOGIN,
+      }),
+    });
+    const declaration = loadDeclaration(root);
+    expect(evaluateVacuousChecks(declaration, []).violations).toEqual([]);
+    expect(checksSettled(declaration, [])).toBe(true);
+  });
+
+  it("waits for a review_by reviewer's check that is still pending", () => {
+    const root = project(BASE, {
+      "code-review": reviewerGate(REVIEW_BY_CONTEXT, {
+        review_by: REVIEW_BY_LOGIN,
+      }),
+    });
+    expect(
+      checksSettled(loadDeclaration(root), [
+        { name: REVIEW_BY_CONTEXT, state: "PENDING", bucket: "pending" },
+      ])
+    ).toBe(false);
+  });
+
+  it("still refuses a malformed declared proof beside a gate's valid one", () => {
+    const root = project(
+      {
+        ...BASE,
+        evidence_bearing_checks: { CodeRabbit: { proof: REVIEW_COMPLETED } },
+      },
+      { "code-review": reviewerGate("CodeRabbit") }
+    );
+    expect(() => loadDeclaration(root)).toThrow(
+      /evidence_bearing_checks\.CodeRabbit\.proof/
+    );
+  });
+
+  it("still refuses a declared null entry that a gate also names", () => {
+    const root = project(
+      { ...BASE, evidence_bearing_checks: { CodeRabbit: null } },
+      { "code-review": reviewerGate("CodeRabbit") }
+    );
+    expect(() => loadDeclaration(root)).toThrow(
+      /CodeRabbit.*must be an object/
+    );
+  });
+
+  it.each([
+    ["a string", REVIEW_COMPLETED],
+    ["a non-string phrase", [7]],
+    ["a whitespace-only phrase", ["  "]],
+  ])("names the gates config when a gate's proof is %s", (_label, proof) => {
+    const root = project(BASE, {
+      "code-review": reviewerGate("Greptile", { proof }),
+    });
+    expect(() => loadDeclaration(root)).toThrow(
+      /\.lisa\.config\.json.*gates\.code-review\.pull-request\.evidence\.proof/
+    );
   });
 
   it("refuses an evidence-bearing registration deferral for a gate reviewer", () => {
@@ -201,7 +322,7 @@ describe("gates-config reviewers are evidence-bearing (#4914)", () => {
     expect(() => loadDeclaration(root)).toThrow(/\.lisa\.config\.json/);
   });
 
-  it("names the same reviewers as the evidence prover, minus review_by gates", () => {
+  it("names the same reviewers as the evidence prover", () => {
     const gates = {
       "code-review": reviewerGate("CodeRabbit"),
       "second-review": reviewerGate("Greptile"),
@@ -212,16 +333,35 @@ describe("gates-config reviewers are evidence-bearing (#4914)", () => {
         "pull-request": { level: "required", await: "GitGuardian" },
       },
     };
-    const expected = configuredReviewers({ gates })
-      .filter(reviewer => reviewer.reviewBy === undefined)
-      .map(reviewer => reviewer.context)
-      .sort((left, right) => left.localeCompare(right));
-    const root = project(BASE, gates);
-    expect(
-      Object.keys(loadDeclaration(root).evidence_bearing_checks).sort(
-        (left, right) => left.localeCompare(right)
-      )
-    ).toEqual(expected);
+    expect(namedByGuard(gates)).toEqual(namedByProver(gates));
+  });
+
+  it.each([
+    ["a null gate", { "code-review": null }],
+    ["an array gate", { "code-review": [reviewerGate("CodeRabbit")] }],
+    [
+      "an array pull-request entry",
+      { "code-review": { "pull-request": [{ await: "CodeRabbit" }] } },
+    ],
+    [
+      "a non-string await",
+      {
+        "code-review": {
+          "pull-request": { await: 7, evidence: { reviewer: true } },
+        },
+      },
+    ],
+    [
+      "a whitespace-only await",
+      {
+        "code-review": {
+          "pull-request": { await: "  ", evidence: { reviewer: true } },
+        },
+      },
+    ],
+  ])("agrees with the evidence prover on %s", (_label, malformed) => {
+    const gates = { ...malformed, "second-review": reviewerGate("Greptile") };
+    expect(namedByGuard(gates)).toEqual(namedByProver(gates));
   });
 });
 
@@ -237,7 +377,10 @@ describe("shipped required-checks seeds (#4914)", () => {
         )
       );
       expect(seed.evidence_bearing_checks).toEqual({ CodeRabbit: {} });
-      expect(seed._readme.join("\n")).toContain("CodySwannGT/lisa#4914");
+      const readme = seed._readme.join("\n");
+      expect(readme).toContain("CodySwannGT/lisa#4914");
+      expect(readme).not.toContain("posts no check");
+      expect(readme).toContain("`evidence.review_by`");
     }
   );
 });
