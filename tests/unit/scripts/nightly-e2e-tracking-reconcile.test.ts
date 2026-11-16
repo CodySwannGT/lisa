@@ -12,6 +12,7 @@ import {
   finding,
   loadTrackingModule,
   type ExistingConditionTracker,
+  type SuiteTrackingFinding,
   type TrackingDestination,
   type TrackingProviderAdapter,
 } from "../../helpers/nightly-e2e-tracking-harness.js";
@@ -194,11 +195,13 @@ describe("combined nightly condition planning", () => {
     );
   });
 
-  it.each([
-    [finding(PLAYWRIGHT, "fail")],
-    [...RED, finding("Unexpected nightly", "pass")],
-    [finding(PLAYWRIGHT, "fail"), finding(PLAYWRIGHT, "pass")],
-    [finding("Playwright", "fail"), finding(MAESTRO, "pass")],
+  // Each case is ONE argument — the whole finding list. A bare list here would
+  // be spread by it.each, handing the planner only its first finding.
+  it.each<[readonly SuiteTrackingFinding[]]>([
+    [[finding(PLAYWRIGHT, "fail")]],
+    [[...RED, finding("Unexpected nightly", "pass")]],
+    [[finding(PLAYWRIGHT, "fail"), finding(PLAYWRIGHT, "pass")]],
+    [[finding("Playwright", "fail"), finding(MAESTRO, "pass")]],
   ])("rejects an incomplete or ambiguous suite identity set %#", async rows => {
     const module = await loadTrackingModule(REPO_ROOT);
 

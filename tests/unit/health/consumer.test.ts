@@ -76,6 +76,9 @@ const evaluationRequest = (
           gate: Object.freeze({ enabled: true }),
         }),
       }),
+      gates: Object.freeze({
+        traceability: Object.freeze({ level: null }),
+      }),
     }),
     artifacts: Object.freeze([
       Object.freeze({

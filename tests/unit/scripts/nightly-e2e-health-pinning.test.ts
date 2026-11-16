@@ -41,7 +41,7 @@ import {
   fakeResponse,
   loadGateModule,
   noWait,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /** The suite every case speaks about. */
 const LABEL = "Maestro native e2e";
@@ -78,7 +78,12 @@ function finding(overrides: Partial<Finding> = {}): Finding {
  * @param pinIssues - Whether pinning is switched on
  * @returns A context `planIssueActions` accepts
  */
-function context(pinIssues: boolean): Record<string, unknown> {
+function context(pinIssues: boolean): {
+  readonly branch: string;
+  readonly label: string;
+  readonly now: Date;
+  readonly [field: string]: unknown;
+} {
   return {
     branch: BRANCH,
     label: "nightly-e2e",
