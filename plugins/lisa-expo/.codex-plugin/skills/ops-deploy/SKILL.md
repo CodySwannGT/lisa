@@ -114,7 +114,7 @@ After any deployment:
 
 1. **Health check** the deployed environment (use `ops-verify-health` skill)
 2. **Check logs** for errors in the first 5 minutes (use `ops-check-logs` skill)
-3. **Monitor Sentry** for new issues (use `ops-monitor-errors` skill)
+3. **Monitor the configured error tracker** for new issues (use `ops-monitor-errors` skill; when `observability.errorTracking.provider` is `none`, record "no error tracker configured" for this step instead)
 4. **Run browser UAT smoke test** against the deployed environment (use `ops-browser-uat` skill)
 
 Report deployment result as a table:

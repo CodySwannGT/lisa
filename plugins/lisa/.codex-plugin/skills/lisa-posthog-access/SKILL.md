@@ -8,6 +8,8 @@ The one way Lisa skills reach PostHog: token-authenticated REST matched to the c
 
 # PostHog Access: $ARGUMENTS
 
+First read `observability.analytics.provider` from the `<lisa-resolved-config>` block (absent means `posthog`). When it is `none` or `other`, the project does not use PostHog: stop and say so instead of resolving a PostHog key.
+
 Single chokepoint for PostHog operations. Caller skills and rules MUST NOT call
 `mcp__posthog__*` tools or PostHog REST directly.
 

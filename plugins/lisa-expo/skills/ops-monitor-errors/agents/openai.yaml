@@ -1,4 +1,4 @@
 display_name: "Ops Monitor Errors"
-short_description: "Monitor Sentry for unresolved errors in frontend and backend projects"
+short_description: "Monitor the project's configured error tracker (Sentry by default) for unresolved errors in frontend and backend projects"
 default_prompt:
-  - "Use $ops-monitor-errors: Monitor Sentry for unresolved errors in frontend and backend projects."
+  - "Use $ops-monitor-errors: Monitor the project's configured error tracker (Sentry by default) for unresolved errors in frontend and backend projects."

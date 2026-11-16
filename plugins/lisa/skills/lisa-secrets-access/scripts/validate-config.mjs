@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Validate the `secrets`, `remoteEnv`, `automations`, and `sessionManager`
- * blocks.
+ * Validate the `secrets`, `remoteEnv`, `automations`, `sessionManager`, and
+ * `observability` blocks.
  *
  * These blocks are read by shell, by Node, and by generated workflows, so a
  * malformed one surfaces late and somewhere unhelpful — a container that fails
@@ -1114,6 +1114,44 @@ function validateBacklogPickup(value, operatorIds) {
 }
 
 /**
+ * Providers each `observability` role may name. The first entry is the
+ * built-in default an absent key resolves to, which is what Lisa assumed
+ * before the key existed, so an existing project changes nothing. `other`
+ * means "a provider Lisa has no dedicated path for": guidance discovers what
+ * the project wires instead of reaching for Sentry or PostHog.
+ */
+export const OBSERVABILITY_PROVIDERS = {
+  errorTracking: ["sentry", "none", "other"],
+  analytics: ["posthog", "none", "other"],
+};
+
+/**
+ * Validate the `observability` block.
+ *
+ * A closed vocabulary because a typo must not silently resolve to the default
+ * and send an agent to a tool the project does not have.
+ * @param {unknown} block The `observability` block, possibly absent.
+ * @returns {string[]} Problems found.
+ */
+export function validateObservability(block) {
+  if (block === undefined) return [];
+  if (!isPlainObject(block)) return ["observability must be an object"];
+  return Object.entries(OBSERVABILITY_PROVIDERS).flatMap(([role, allowed]) => {
+    const entry = block[role];
+    if (entry === undefined) return [];
+    if (!isPlainObject(entry)) {
+      return [`observability.${role} must be an object`];
+    }
+    const provider = entry.provider;
+    if (provider === undefined || allowed.includes(provider)) return [];
+    return [
+      `observability.${role}.provider is ${JSON.stringify(provider)}; ` +
+        `expected one of ${allowed.map(v => `"${v}"`).join(" | ")}`,
+    ];
+  });
+}
+
+/**
  * Validate every block this plan introduced.
  * @param {object} cfg Parsed `.lisa.config.json`.
  * @returns {string[]} Problems found.
@@ -1124,6 +1162,7 @@ export function validateConfig(cfg) {
     ...validateRemoteEnv(cfg.remoteEnv),
     ...validateAutomations(cfg.automations, cfg.remoteEnv),
     ...validateSessionManager(cfg.sessionManager),
+    ...validateObservability(cfg.observability),
   ];
 }
 
@@ -1173,13 +1212,17 @@ function readJsonIfPresent(file) {
   return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : undefined;
 }
 
+/** Blocks the runtime reads local over committed, so validation must too. */
+const LOCAL_MERGED_BLOCKS = ["sessionManager", "observability"];
+
 /**
  * Read the config this CLI validates from a project root.
  *
- * `sessionManager` is merged local over committed (deep, per key), because
- * that is how the runtime resolves it and a bad local override must fail here,
- * not at runtime. Every other block is read from `.lisa.config.json` alone,
- * exactly as before, so their validation is unchanged.
+ * `sessionManager` and `observability` are merged local over committed (deep,
+ * per key), because that is how the runtime resolves them and a bad local
+ * override must fail here, not at runtime. Every other block is read from
+ * `.lisa.config.json` alone, exactly as before, so their validation is
+ * unchanged.
  * @param {string} root Project root.
  * @returns {Record<string, unknown> | null} Config to validate, or null when
  *   neither file exists.
@@ -1189,11 +1232,13 @@ export function readValidationConfig(root) {
   const local = readJsonIfPresent(join(root, ".lisa.config.local.json"));
   if (committed === undefined && local === undefined) return null;
   const base = isPlainObject(committed) ? committed : {};
-  const blocks = [base.sessionManager, local?.sessionManager].filter(
-    isPlainObject
+  const merged = Object.fromEntries(
+    LOCAL_MERGED_BLOCKS.flatMap(name => {
+      const blocks = [base[name], local?.[name]].filter(isPlainObject);
+      return blocks.length === 0 ? [] : [[name, mergeConfigLayers(...blocks)]];
+    })
   );
-  if (blocks.length === 0) return base;
-  return { ...base, sessionManager: mergeConfigLayers(...blocks) };
+  return { ...base, ...merged };
 }
 
 function main() {
@@ -1209,7 +1254,7 @@ function main() {
   }
   if (!problems.length) {
     console.log(
-      "config: secrets, remoteEnv, automations and sessionManager blocks are well-formed"
+      "config: secrets, remoteEnv, automations, sessionManager and observability blocks are well-formed"
     );
     return;
   }

@@ -1125,7 +1125,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
-      "3be47a81037ff73d681003a76494bef9810163dd0734d3f02e458ed8923c7e50",
+      "86cbab69cbe0827a0512b154bfb48c5646483203ae17b71000a6fc3f69be4e68",
     "plugins/src/base/hooks/inject-resolved-config.sh":
       "bc73e118afff35f455241647c24da6e23caaf30d189eb6d3a48814e9a8309613",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -1223,7 +1223,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "294b71c7ca06856322b090bcdf43b15c8ba92b4cbdb61fa44eaf1a910e499433",
+      "eb9e9d4987d415e1524a875cd9e89b14cb59ccd25d17b6dfb7711d927766b3c0",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1593,7 +1593,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "f6de212c8ac7a905e754b82e08b0696d8d03f81b8e6b281e02fb28e3a489552d",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
-      "8fa690969e7328cd7e680577247878eb08420367e29f4fc6662ea3168a3fcaae",
+      "0d6e713e3bb71c22ce3079e62b1fb88c65fa37091015a0c43552ae42c4e7fec7",
     "plugins/src/base/skills/lisa-nightly-add-test-coverage/SKILL.md":
       "1e8d7c9519e107ca21aaa9438515b4d51fac4cd25f2a0f80bdb4e037ac89856c",
     "plugins/src/base/skills/lisa-nightly-improve-tests/SKILL.md":
@@ -1625,7 +1625,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-plugin-sync-explain/SKILL.md":
       "b41619f3d0d342af2438afd54cb97db7d2445e54e3fc7bb012292079acbc6a4f",
     "plugins/src/base/skills/lisa-posthog-access/SKILL.md":
-      "eefee4c77501d31685f119ae42b86b8b1c8651f83dd71bc777205f8f35a0aa8c",
+      "f4d1a8f0a1d3094ad22d49ed8967a60b619d964b05745b783347536c746e8f92",
     "plugins/src/base/skills/lisa-prd-backlink/SKILL.md":
       "911abfd547761e706ab2f7a11ed607b4d6967fa2ea42339b5844c9a5ae4ad06e",
     "plugins/src/base/skills/lisa-prd-source-write/SKILL.md":
@@ -1715,7 +1715,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "2ef79b30c311abd803807fed109874a6da3dca00a8e9a06654cf75a7ffc613f7",
+      "419cdbea9138de4ec2963d9b753522e58d08e2ebcdd1137c4173113a1d273f66",
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md":
       "42fa1f7456a4511dede443da16875337e19f4185bad4ba1808143fb05f425b74",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
@@ -1957,7 +1957,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/THIRD-PARTY-NOTICES.md":
       "dba9f65622cc8e2e57a47ccc1e85fe7213f742722c74dda4ed47c6688d6a92f8",
     "plugins/src/expo/agents/ops-specialist.md":
-      "3745d0d54187073828a0cdf3f5844fe9d47f41ea9e183c9fc770d520138a34d8",
+      "9d3716f78ee1978bf5248f88e8e5ff962dbd09482456816a257289f85258ed68",
     "plugins/src/expo/commands/e2e-coverage-gaps.md":
       "136677df5c595628ab3cf7fb7596355bdef9022348956fa25304d034996c7f5a",
     "plugins/src/expo/commands/maestro-mcp-setup.md":
@@ -2125,9 +2125,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/gluestack-nativewind/scripts/validate_styling.py":
       "cc27d03e202b18be1fe8810d0a83b263926107b31f3e335f8fa7b92a82f4ceac",
     "plugins/src/expo/skills/jira-add-journey/SKILL.md":
-      "f3ee60c6ce8652350d3efadd35a4704f60fde2d527627bf65aac521ad94a9e3a",
+      "8f2c6a28fd5f6112202be8bba538e573097ed6c780313970b73d6fd65467d46a",
     "plugins/src/expo/skills/jira-create/SKILL.md":
-      "0fb4378b7399580e180beaacd22f832af3ff0ddae7c5d7761039bc81832c0c43",
+      "71c0def8a9b330f0296327dd2984b0b4dc9502d8962ba63e2cec1ce3fa332e14",
     "plugins/src/expo/skills/jira-evidence/SKILL.md":
       "359b3b80031c6d1bc825e81eb15186d148f44be8176fc7119b2aea1a3f1a9891",
     "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh":
@@ -2141,7 +2141,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/jira-verify/SKILL.md":
       "0c7a8533bdee7fb448d6d752daa84e4a52621f8270e24e2c5120f90f14202969",
     "plugins/src/expo/skills/journey-guidance/SKILL.md":
-      "68bbfb918095c474d4393b81533c894e197f1b37ad17525ad3dc84db301adfa2",
+      "d855d78bfbdd18aed0b7c154a9574d705fde687f14264123bd495b4623647874",
     "plugins/src/expo/skills/local-state/SKILL.md":
       "39a16fdeab3c96f236376e587d060790e0c52c8689553c53dc9e1284e5155d46",
     "plugins/src/expo/skills/local-state/references/async-storage.md":
@@ -2159,13 +2159,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/ops-browser-uat/SKILL.md":
       "d24a96ed6ea3eeb3b1a89f73a15a8da82f8aeea6dba76b142a2f4973e50395f6",
     "plugins/src/expo/skills/ops-check-logs/SKILL.md":
-      "a5c53b0389be769f7096807c66774fac6f816c6786967536e92741eefa1ef193",
+      "8fbffb54364b92181b4ba137198c3f596956afcb48ab5314c3ae29ab7a919471",
     "plugins/src/expo/skills/ops-db-ops/SKILL.md":
       "a94ad3b9b757e738bfef9959dbf7acde087ccfd15f6531e81bc685d878ed1d04",
     "plugins/src/expo/skills/ops-deploy/SKILL.md":
-      "287264d7589bd6d40449c3c11c32ce649be58e020726e365a7ce586a8ea69e43",
+      "1e1718cd2afc0630bc0e77dd359510ab4c047fad04db2e085f918da09a41e630",
     "plugins/src/expo/skills/ops-monitor-errors/SKILL.md":
-      "06fb960a925c1a9ddd078450fa4c22748cb71d63ba4491d5692b6417ec0d45cb",
+      "6e20a16155111a52ffba98cfba69fa1f8abfede7c6c7d4a9b403ad470e19666b",
     "plugins/src/expo/skills/ops-performance/SKILL.md":
       "a799b52a80208a246c94b951da207839f694eefbdfc33cb562143457f5c588a7",
     "plugins/src/expo/skills/ops-run-local/SKILL.md":
@@ -12840,6 +12840,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/inject-resolved-config-completeness.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-dependencies.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-names-subject.test.ts": true,
+    "tests/unit/hooks/inject-resolved-config-observability.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-repository-bound.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-wiring.test.ts": true,
     "tests/unit/hooks/inject-resolved-config.test.ts": true,
@@ -13570,6 +13571,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/tools-from-notes.test.ts": true,
     "tests/unit/secrets/user-session-hook.test.ts": true,
     "tests/unit/secrets/validate-config-local-merge.test.ts": true,
+    "tests/unit/secrets/validate-config-observability.test.ts": true,
     "tests/unit/secrets/validate-config-operator-id-kinds.test.ts": true,
     "tests/unit/secrets/validate-config-session-manager.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,

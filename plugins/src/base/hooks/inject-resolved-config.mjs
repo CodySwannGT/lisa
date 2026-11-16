@@ -357,6 +357,7 @@ const SUBTREE_ORDER = [
   "nightlyE2E",
   "intake",
   "monitor",
+  "observability",
   "automations",
   "remoteEnv",
 ];

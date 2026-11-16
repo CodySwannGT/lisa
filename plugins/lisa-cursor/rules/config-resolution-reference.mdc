@@ -270,6 +270,11 @@ fi
       "p95LatencyMs": 1000,
       "faultRatePct": 5
     }
+  },
+
+  "observability": {
+    "errorTracking": { "provider": "sentry" },
+    "analytics": { "provider": "posthog" }
   }
 }
 ```
@@ -651,6 +656,29 @@ Resolution order matches every other key: `$ARGUMENTS` override → `.lisa.confi
 `.lisa.config.json` → built-in default. `monitor` files only within the current repo (type-scoped
 rubric + `repo:<name>` single-repo leaves); it never fixes — the `intake` cron implements what it
 files.
+
+### Observability providers (`observability`)
+
+Names the project's error tracker and product-analytics provider, so stack guidance follows the
+project instead of assuming one. Both keys are **optional** and default to what Lisa assumed
+before they existed, so existing projects need no config change. `lisa-secrets-access`'s
+`validate-config.mjs` rejects any other value (local file merged over committed, as at runtime).
+
+| Key | Required | Default | Notes |
+|-----|----------|---------|-------|
+| `observability.errorTracking.provider` | no | `sentry` | `sentry` \| `none` \| `other`. `sentry`: the Sentry path (`lisa-sentry-access`, the Expo `ops-monitor-errors` Sentry commands). `none`: no error tracker — error-monitoring steps report "no error tracker configured" and skip; nothing calls Sentry. `other`: a tracker Lisa has no dedicated path for — guidance discovers what the project wires and queries that, never Sentry. |
+| `observability.analytics.provider` | no | `posthog` | `posthog` \| `none` \| `other`. `posthog`: product-analytics work goes through `lisa-posthog-access`. `none` / `other`: do not reach for PostHog; `other` discovers what the project wires. |
+
+**Known gap — tool enablement is not conditional.** These keys steer guidance, not installation.
+The base plugin still declares the Sentry MCP server (`plugins/src/base/.mcp.json`), and the Expo
+settings template still enables the `posthog@claude-plugins-official` plugin. Plugin MCP servers
+are static per plugin and the settings template is a static merge, and Lisa has no per-project
+conditional for either; building one would be new apply machinery for little gain. Both are inert
+when the configured provider is not theirs: guidance never calls them. To turn the Claude plugin
+off, set `sentry@claude-plugins-official` or `posthog@claude-plugins-official` to `false` under
+`enabledPlugins` in the project's `.claude/settings.json`; the merge keeps an explicit boolean
+for these two plugins instead of re-applying the template default.
+Tracked by CodySwannGT/lisa#4912.
 
 ### Intake assignee filter (`intake.assignee`)
 

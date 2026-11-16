@@ -1,4 +1,4 @@
 display_name: "Ops Monitor Errors"
-short_description: "Monitor Sentry for unresolved…"
+short_description: "Monitor the project's…"
 default_prompt:
-  - "Use $ops-monitor-errors: Monitor Sentry for unresolved…."
+  - "Use $ops-monitor-errors: Monitor the project's…."
