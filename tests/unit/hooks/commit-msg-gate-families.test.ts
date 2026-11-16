@@ -43,6 +43,21 @@ import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * The families a hook installs, as registry entries. `detectFamilies` filters
+ * `FAMILIES` but documents its result as plain objects; resolving each entry
+ * back to the registry restores the type without trusting a cast.
+ * @param sources - Hook sources
+ * @returns The detected registry entries, in registry order
+ */
+function familiesIn(sources: string[]): (typeof FAMILIES)[number][] {
+  return detectFamilies(sources).map(entry => {
+    const family = FAMILIES.find(known => known === entry);
+    if (family === undefined) throw new Error("detected a non-registry family");
+    return family;
+  });
+}
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
 const GIT = resolveGit();
@@ -92,7 +107,7 @@ describe("what the summary reads off a hook", () => {
   const HOOK_SOURCE = readFileSync(HOOK_PATH, "utf8");
 
   it("finds every family this repository's own hook runs", () => {
-    expect(detectFamilies([HOOK_SOURCE]).map(family => family.id)).toEqual([
+    expect(familiesIn([HOOK_SOURCE]).map(family => family.id)).toEqual([
       "traceability",
       "commit-conformance",
       "ai-coauthorship",
@@ -103,7 +118,7 @@ describe("what the summary reads off a hook", () => {
     // A hook that runs commitlint alone must not be described as running three
     // gates. Naming a gate a project does not have is the failure mode that
     // kept this out of the traceability checklist in the first place.
-    const detected = detectFamilies(['npx commitlint --edit "$1"']);
+    const detected = familiesIn(['npx commitlint --edit "$1"']);
 
     expect(detected.map(family => family.id)).toEqual(["commit-conformance"]);
   });
@@ -135,7 +150,7 @@ describe("what the summary reads off a hook", () => {
   });
 
   it("counts in the singular when one family is installed", () => {
-    expect(summary([FAMILIES[0]], null)).toContain("1 gate family runs");
+    expect(summary(FAMILIES.slice(0, 1), null)).toContain("1 gate family runs");
   });
 });
 
@@ -254,7 +269,7 @@ describe("every tracked commit-msg hook introduces what it installs", () => {
   it.each(HOOKS)("%s calls the summary for every family it runs", hook => {
     const source = readFileSync(path.join(REPO_ROOT, hook), "utf8");
 
-    for (const family of detectFamilies([source])) {
+    for (const family of familiesIn([source])) {
       expect(source).toContain(`lisa_commit_gate_families ${family.id}`);
     }
   });

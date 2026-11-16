@@ -13,6 +13,7 @@
  * key at all — otherwise a healthy repository would be reported NOT_READY.
  * @module tests/unit/cli/doctor-readiness-supply-chain
  */
+import { fail } from "node:assert/strict";
 import { readFile, rm } from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -33,6 +34,14 @@ import {
   writeRepoFile,
   writeRepoJson,
 } from "../../helpers/readiness-workflow-fixtures.js";
+
+/**
+ * The first entry of a list the assertion requires to be non-empty.
+ * @param items - The list under test
+ * @returns Its first entry, failing loudly when there is none
+ */
+const first = <T>(items: readonly T[]): T =>
+  items[0] ?? fail("expected at least one entry");
 
 /** The dimension this producer owns. */
 const DIMENSION_ID = "dependencies-supply-chain";
@@ -152,9 +161,9 @@ describe("assessDependenciesSupplyChainDimension — B5 violations", () => {
     const assessment = assessReadiness([record]);
 
     expect(assessment.verdict).toBe("NOT_READY");
-    expect(assessment.blockers[0].id).toBe(BLOCKER_ID);
-    expect(assessment.blockers[0].dimension_id).toBe(DIMENSION_ID);
-    expect(assessment.blockers[0].label).toBe(
+    expect(first(assessment.blockers).id).toBe(BLOCKER_ID);
+    expect(first(assessment.blockers).dimension_id).toBe(DIMENSION_ID);
+    expect(first(assessment.blockers).label).toBe(
       "An owned compatibility or security surface has no confidence model"
     );
     expect(assessment.narrowed_claim).toContain("NOT ready");
@@ -280,7 +289,7 @@ describe("assessDependenciesSupplyChainDimension — clean and unassessable repo
     expect(assessReadiness([record]).verdict).toBe("READY");
     // The evidence must claim only what was read: the root manifest, not every
     // workspace child's (walking those is #1903).
-    expect(findings[0].evidence).toContain("root `package.json`");
+    expect(first(findings).evidence).toContain("root `package.json`");
   });
 
   it("accepts an audit gate declared only in a CI workflow", async () => {
@@ -334,10 +343,10 @@ describe("assessDependenciesSupplyChainDimension — clean and unassessable repo
 
     expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
-    expect(findings[0].skip).toBe(true);
-    expect(typeof findings[0].reason).toBe("string");
-    expect(findings[0].reason).not.toBe("");
-    expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
+    expect(first(findings).skip).toBe(true);
+    expect(typeof first(findings).reason).toBe("string");
+    expect(first(findings).reason).not.toBe("");
+    expect(Object.hasOwn(first(findings), "blocker")).toBe(false);
     expect(assessReadiness([record]).blockers).toEqual([]);
   });
 
@@ -352,9 +361,9 @@ describe("assessDependenciesSupplyChainDimension — clean and unassessable repo
 
     expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
-    expect(findings[0].skip).toBe(true);
-    expect(findings[0].reason).not.toBe("");
-    expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
+    expect(first(findings).skip).toBe(true);
+    expect(first(findings).reason).not.toBe("");
+    expect(Object.hasOwn(first(findings), "blocker")).toBe(false);
   });
 
   it("SKIPs with a stated reason when the manifest cannot be parsed", async () => {
@@ -365,9 +374,9 @@ describe("assessDependenciesSupplyChainDimension — clean and unassessable repo
 
     expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
-    expect(findings[0].skip).toBe(true);
-    expect(findings[0].reason).not.toBe("");
-    expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
+    expect(first(findings).skip).toBe(true);
+    expect(first(findings).reason).not.toBe("");
+    expect(Object.hasOwn(first(findings), "blocker")).toBe(false);
   });
 });
 

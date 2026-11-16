@@ -176,7 +176,7 @@ describe("codex/hooks-installer", () => {
       .flat()
       .flatMap(group => group.hooks ?? [])
       .map(hook => hook[LISA_ID_MARKER]);
-    expect(hookIds).toEqual(expect.arrayContaining(HARPER_HOOK_IDS));
+    expect(hookIds).toEqual(expect.arrayContaining([...HARPER_HOOK_IDS]));
     expect(
       await fs.pathExists(
         path.join(
