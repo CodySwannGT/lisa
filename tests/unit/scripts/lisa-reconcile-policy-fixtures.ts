@@ -28,7 +28,7 @@ export type GhResult = {
 };
 
 /** One recorded call, with the body piped to stdin when there was one. */
-export type GhCall = { args: string[]; input?: string };
+export type GhCall = { args: string[]; input?: string | undefined };
 
 /** Canned responses, keyed by the call each one answers. */
 export type GhState = {

@@ -73,7 +73,11 @@ export function collectBoundedEntryNames(iterable, limit = MAX_TMPDIR_ENTRIES) {
   return names.sort(codePointCompare);
 }
 
-/** Build sorted prefix counts while enforcing a unique-prefix cap. */
+/**
+ * Build sorted prefix counts while enforcing a unique-prefix cap.
+ * @param {readonly string[]} names Entry names.
+ * @returns {Array<{prefix: string, count: number}>} Counts, most common first.
+ */
 function prefixCounts(names) {
   const counts = new Map();
   for (const name of names) {
@@ -534,10 +538,25 @@ function assertComparable(before, after) {
 }
 
 /**
+ * What changed in the temp directory between two snapshots.
+ * @typedef {object} GrowthReport
+ * @property {number} total Entries in the current snapshot.
+ * @property {number|null} delta Change in entry count, or null with no previous snapshot.
+ * @property {number} created Entries that appeared.
+ * @property {number} removed Entries that disappeared.
+ * @property {number} unreclaimed Net entries created and not removed.
+ * @property {number|null} elapsedMs Time between snapshots, or null.
+ * @property {number|null} rateEntriesPerDay Net growth rate, or null.
+ * @property {Array<{prefix: string, count: number}>} topPrefixes The ten most common canonical prefixes.
+ * @property {{total: number, owned: number, live: number, unowned: number, created: number, removed: number, unreclaimed: number, newlyUnowned: number}} namespace Lisa scratch-namespace counts.
+ * @property {string[]} violations Plain-language growth violations.
+ */
+
+/**
  * Compare two complete snapshots without hiding equal creation/removal.
  * @param {object|undefined} before Previous snapshot
  * @param {object} after Current snapshot
- * @returns {object} Deterministic growth report
+ * @returns {GrowthReport} Deterministic growth report
  */
 export function buildGrowthReport(before, after) {
   if (before === undefined) {

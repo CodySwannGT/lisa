@@ -30,6 +30,20 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+/**
+ * Read one element, failing the test when it is absent.
+ * @param items Items to index.
+ * @param index Position to read.
+ * @returns The element at that position.
+ */
+const at = <T>(items: readonly T[], index: number): T => {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}`);
+  }
+  return item;
+};
+
 /** Both plugin roots: source of truth and generated artifact. */
 const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
@@ -200,7 +214,12 @@ describe("generated-work token format is genuinely machine-readable", () => {
   });
 
   it("re-render is order-independent and dedupe-stable by ref", () => {
-    const shuffled = [tickets[3], tickets[1], tickets[0], tickets[2]] as const;
+    const shuffled = [
+      at(tickets, 3),
+      at(tickets, 1),
+      at(tickets, 0),
+      at(tickets, 2),
+    ] as const;
     // Same set in a different order renders identical bytes (sorted by ref).
     expect(renderSection(shuffled)).toBe(renderSection(tickets));
     // No duplicate entries: N tickets render exactly N tokens.

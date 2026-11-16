@@ -414,6 +414,7 @@ describe("lisa-generated-artifact merge driver", () => {
       const text = readFileSync(path.resolve(file), "utf8");
       const parsed = parseArtifact(text);
       expect(parsed.ok).toBe(true);
+      if (!parsed.ok) throw new Error(parsed.reason);
       expect(renderArtifact(parsed.chunks)).toBe(text);
     }
   });

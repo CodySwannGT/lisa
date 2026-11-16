@@ -25,6 +25,20 @@ import {
   scoreCandidates,
 } from "../../../plugins/src/base/scripts/design-variable-ids.mjs";
 
+/**
+ * Read one element, failing the test when it is absent.
+ * @param items Items to index.
+ * @param index Position to read.
+ * @returns The element at that position.
+ */
+const at = <T>(items: readonly T[], index: number): T => {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}`);
+  }
+  return item;
+};
+
 /** Names and ids reused across cases, hoisted so the literals live in one place. */
 const SURFACE_BASE = "surface/base";
 const ON_ACCENT = "content/on-accent";
@@ -57,7 +71,7 @@ describe("scoreCandidates", () => {
     });
 
     expect(ranked[0]).toEqual([SURFACE_BASE, 10]);
-    expect(ranked[1][1]).toBeLessThan(10);
+    expect(at(ranked, 1)[1]).toBeLessThan(10);
   });
 
   it("narrows candidates by property kind before comparing values", () => {

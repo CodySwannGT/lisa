@@ -8,6 +8,17 @@
  * backlink is written once through the adapter and read back exactly.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Owner discovery is pinned to a committed hermetic owner, so the classifier's
+// real source authority never depends on this run being a Git checkout of Lisa
+// or on the live npm registry (CodySwannGT/lisa#4923).
+vi.mock(
+  "../../../all/copy-overwrite/scripts/lib/npm-update-npm.mjs",
+  async original =>
+    (
+      await import("../../support/npm-update-helper-owner.js")
+    ).withHermeticOwner(await original())
+);
 import { allocateLeaf } from "../../../all/copy-overwrite/scripts/lib/npm-update-allocate.mjs";
 import {
   createTracker,

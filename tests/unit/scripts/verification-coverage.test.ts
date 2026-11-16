@@ -177,7 +177,6 @@ describe("check-verification-coverage", () => {
     const labels = await fetchLivePullRequestLabels({
       repository: REPOSITORY,
       prNumber: "1371",
-      token: undefined,
       fetchImpl: (() => {
         throw new Error("fetch should not be called");
       }) as unknown as typeof fetch,

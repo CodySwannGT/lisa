@@ -438,8 +438,8 @@ describe("gates backing a required branch-protection context", () => {
       entry => entry.mode === "await"
     );
 
-    const byName = (left: string, right: string): number =>
-      left.localeCompare(right);
+    const byName = (left: string | null, right: string | null): number =>
+      (left ?? "").localeCompare(right ?? "");
     expect(gates.map(entry => entry.awaits).sort(byName)).toEqual(
       [...AWAITED_VENDOR_CONTEXTS].sort(byName)
     );
@@ -515,7 +515,7 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(
       covering
         .map(entry => entry.id)
-        .toSorted((left, right) => left.localeCompare(right))
+        .sort((left, right) => left.localeCompare(right))
     ).toEqual(COVERAGE_PROVER_GATES);
     const tasks = [...new Set(covering.map(entry => entry.task))];
     // One task, not two: the same run proves both properties, and the pre-push

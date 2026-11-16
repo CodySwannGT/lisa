@@ -33,6 +33,20 @@ import {
 } from "../../../src/cli/doctor-readiness.js";
 import { runDoctor } from "../../../src/cli/doctor.js";
 
+/**
+ * Read one element, failing the test when it is absent.
+ * @param items Items to index.
+ * @param index Position to read.
+ * @returns The element at that position.
+ */
+const at = <T>(items: readonly T[], index: number): T => {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}`);
+  }
+  return item;
+};
+
 let tempDir: string | undefined;
 
 /**
@@ -172,11 +186,11 @@ describe("checkRepositoryReadiness", () => {
       // #1898: a SKIP is never blank — it always carries the reason it was not
       // assessed, so silence is reported as silence rather than as health.
       expect(findings.length).toBeGreaterThan(0);
-      expect(typeof findings[0].reason).toBe("string");
-      expect(findings[0].reason).not.toBe("");
-      expect(findings[0].skip).toBe(true);
+      expect(typeof at(findings, 0).reason).toBe("string");
+      expect(at(findings, 0).reason).not.toBe("");
+      expect(at(findings, 0).skip).toBe(true);
       // A SKIP must never name a blocker: the engine would stand it up.
-      expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
+      expect(Object.hasOwn(at(findings, 0), "blocker")).toBe(false);
     }
   });
 

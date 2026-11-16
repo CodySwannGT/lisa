@@ -98,7 +98,7 @@ describe("automation run record CLI (#1798)", () => {
     expect(result.status).toBe(0);
     const lines = readLines(RECORDS);
     expect(lines).toHaveLength(1);
-    expect(JSON.parse(lines[0])).toMatchObject({
+    expect(JSON.parse(lines[0] ?? "")).toMatchObject({
       loop_id: LOOP,
       outcome: NOTHING_NEEDED,
       summary: NOTHING_SUMMARY,
@@ -206,7 +206,7 @@ describe("automation run record CLI (#1798)", () => {
     ]);
 
     expect(result.status).toBe(0);
-    expect(JSON.parse(readLines(RECORDS)[0])).toMatchObject({
+    expect(JSON.parse(readLines(RECORDS)[0] ?? "")).toMatchObject({
       denominator: { sweptCount: 0, totalOpen: 0 },
     });
   });

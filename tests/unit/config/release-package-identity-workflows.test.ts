@@ -9,6 +9,8 @@ import * as path from "node:path";
 import yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
 
+import { jobOf } from "../../helpers/workflow-job-graph.js";
+
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 const RESOLVE_RELEASE_COMMIT_STEP = "Resolve immutable release commit";
 const STAMP_RELEASE_IDENTITY_STEP = "Stamp immutable release identity";
@@ -109,12 +111,12 @@ describe("release package identity workflow", () => {
 
   it("exports the pushed release commit and targets tags and releases to it", async () => {
     const release = await readWorkflow("release.yml");
-    const versionSteps = release.jobs.version.steps ?? [];
+    const versionSteps = jobOf(release, "version").steps ?? [];
     const releaseCommitSteps = versionSteps.filter(
       step => step.name === RESOLVE_RELEASE_COMMIT_STEP
     );
     const releaseCommit = namedStep(
-      release.jobs.version,
+      jobOf(release, "version"),
       RESOLVE_RELEASE_COMMIT_STEP
     );
     const releaseCommitRun = releaseCommit.run ?? "";
@@ -128,7 +130,7 @@ describe("release package identity workflow", () => {
     expect(release.on?.workflow_call?.outputs?.release_commit?.value).toBe(
       "${{ jobs.version.outputs.release_commit }}"
     );
-    expect(release.jobs.version.outputs?.release_commit).toBe(
+    expect(jobOf(release, "version").outputs?.release_commit).toBe(
       "${{ steps.release_commit.outputs.sha }}"
     );
     expect(releaseCommitSteps).toHaveLength(1);
@@ -154,7 +156,7 @@ describe("release package identity workflow", () => {
       'echo "sha=$release_commit" >> "$GITHUB_OUTPUT"'
     );
 
-    const signingCheckout = release.jobs.release_signing.steps?.find(
+    const signingCheckout = jobOf(release, "release_signing").steps?.find(
       step => step.uses === "actions/checkout@v6"
     );
     expect(signingCheckout?.with?.ref).toBe(
@@ -168,7 +170,7 @@ describe("release package identity workflow", () => {
     // binding is asserted on `env` and the usage on the shell variable. The
     // negative assertions are what keep this a guard rather than a restatement.
     const createReleaseStep = namedStep(
-      release.jobs.github_release,
+      jobOf(release, "github_release"),
       "Create GitHub Release"
     );
     const createRelease = createReleaseStep.run;
@@ -188,10 +190,10 @@ describe("release package identity workflow", () => {
   it("requires the exact release commit and establishes version before build", async () => {
     const deploy = await readWorkflow("deploy.yml");
     const publish = await readWorkflow("publish-to-npm.yml");
-    const publishJob = publish.jobs.publish;
+    const publishJob = jobOf(publish, "publish");
     const steps = publishJob.steps ?? [];
 
-    expect(deploy.jobs.publish_npm.with?.release_commit).toBe(
+    expect(jobOf(deploy, "publish_npm").with?.release_commit).toBe(
       "${{ needs.release.outputs.release_commit }}"
     );
     expect(publish.on?.workflow_call?.inputs?.release_commit).toMatchObject({
@@ -263,7 +265,7 @@ describe("release package identity workflow", () => {
 
   it("stamps the release tag and validates it in the packed candidate", async () => {
     const publish = await readWorkflow("publish-to-npm.yml");
-    const publishJob = publish.jobs.publish;
+    const publishJob = jobOf(publish, "publish");
     const stamp = namedStep(publishJob, STAMP_RELEASE_IDENTITY_STEP).run ?? "";
     const pack =
       namedStep(publishJob, "Pack and validate release candidate").run ?? "";

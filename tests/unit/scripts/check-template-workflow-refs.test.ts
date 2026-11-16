@@ -29,8 +29,19 @@ import {
   violatesRefPolicy,
 } from "../../../scripts/check-template-workflow-refs.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
-import { cleanGitEnv } from "../../helpers/test-utils";
+import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
+
+/**
+ * The first element of a list, failing the test loudly when the list is empty.
+ * @param items - The list under test
+ * @returns Its first element
+ */
+function first<T>(items: readonly T[]): T {
+  const [head] = items;
+  if (head === undefined) throw new Error("expected a non-empty list");
+  return head;
+}
 
 const SCRIPT = path.resolve("scripts/check-template-workflow-refs.mjs");
 const GIT = resolveGit();
@@ -248,7 +259,7 @@ describe("findWorkflowRefs", () => {
           target: REUSABLE_A,
         },
       ]);
-      expect(violatesRefPolicy(refs[0]), `verdict ${marker}`).toBe(true);
+      expect(violatesRefPolicy(first(refs)), `verdict ${marker}`).toBe(true);
     }
   });
 

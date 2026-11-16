@@ -57,7 +57,7 @@ interface ReusableWorkflow {
       inputs?: Record<string, { default?: unknown; type?: string }>;
     };
   };
-  jobs: Record<string, WorkflowJob>;
+  jobs: { android: WorkflowJob; ios: WorkflowJob };
 }
 
 describe("maestro-native-e2e zero-flow detector (executed)", () => {
@@ -132,6 +132,10 @@ describe("maestro-native-e2e zero-flow detector (executed)", () => {
           .filter(Boolean)
           .map(line => line.split("=") as [string, string])
       );
+      const { executed } = parsed;
+      if (executed === undefined) {
+        throw new Error("the count step wrote no `executed` output");
+      }
 
       try {
         const stdout = boundedExecFileSync({
@@ -147,14 +151,14 @@ describe("maestro-native-e2e zero-flow detector (executed)", () => {
           env: {
             ...env,
             REPORT_PRESENT: parsed.report_present,
-            EXECUTED: parsed.executed,
+            EXECUTED: executed,
           },
         });
-        return { executed: parsed.executed, status: 0, output: stdout };
+        return { executed, status: 0, output: stdout };
       } catch (error) {
         const failure = error as { exitCode?: number | null; stdout?: string };
         return {
-          executed: parsed.executed,
+          executed,
           status: failure.exitCode ?? -1,
           output: failure.stdout ?? "",
         };

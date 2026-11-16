@@ -112,7 +112,7 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
     // bypass: the bytes that ship were never the bytes that were checked. It is
     // provable from this file alone, so no trigger exempts it.
     expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(assessReadiness([record]).blockers[0]?.id).toBe("B2");
   });
 
   it("truncates a very long step label instead of carrying it whole", async () => {
@@ -133,7 +133,7 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
 
     const record = await assessDeliveryAuthorityDimension(cwd);
 
-    const evidence = String(asFindings(record.findings)[0].evidence);
+    const evidence = String(asFindings(record.findings)[0]?.evidence);
     expect(record.status).toBe(FAIL);
     expect(evidence).toContain("…");
     expect(evidence).not.toContain("exactly the problem");
@@ -184,8 +184,8 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
     const record = await assessDeliveryAuthorityDimension(cwd);
 
     expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
-    expect(String(asFindings(record.findings)[0].evidence)).toContain(
+    expect(assessReadiness([record]).blockers[0]?.id).toBe("B2");
+    expect(String(asFindings(record.findings)[0]?.evidence)).toContain(
       "docker/build-push-action@v6"
     );
   });
@@ -236,7 +236,7 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
     const record = await assessDeliveryAuthorityDimension(cwd);
 
     expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(assessReadiness([record]).blockers[0]?.id).toBe("B2");
   });
 
   it("PASSes a single job that validates before it publishes", async () => {
@@ -279,7 +279,7 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
     const record = await assessDeliveryAuthorityDimension(cwd);
 
     expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(assessReadiness([record]).blockers[0]?.id).toBe("B2");
   });
 
   // Test hardened to kill mutant M001 (Risk Factor: Release artifact integrity / templated build detection).
@@ -302,7 +302,7 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
     const record = await assessDeliveryAuthorityDimension(cwd);
 
     expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(assessReadiness([record]).blockers[0]?.id).toBe("B2");
   });
 
   it("does not accept a loose 'test' substring as validation", async () => {
@@ -324,7 +324,7 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
     const record = await assessDeliveryAuthorityDimension(cwd);
 
     expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(assessReadiness([record]).blockers[0]?.id).toBe("B2");
   });
 
   it("quotes a readable step label rather than dumping a multi-line script", async () => {
@@ -347,7 +347,7 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
 
     const record = await assessDeliveryAuthorityDimension(cwd);
 
-    const evidence = String(asFindings(record.findings)[0].evidence);
+    const evidence = String(asFindings(record.findings)[0]?.evidence);
     expect(record.status).toBe(FAIL);
     expect(evidence).toContain("Publish the package");
     expect(evidence).not.toContain("set -euo pipefail");

@@ -38,7 +38,7 @@ import {
   SIGN_IN,
   SIGN_IN_PATH,
   loadClassifier,
-} from "./maestro-flake-helpers";
+} from "./maestro-flake-helpers.js";
 
 const CARD_DETAIL = ".maestro/flows/card-detail.yaml";
 const RUN_SIGN_IN = "- runFlow: ../subflows/sign-in.yaml\n";

@@ -45,6 +45,7 @@ import {
   NOW,
   REASON,
   REQUIRED_STATE,
+  type Requiredness,
   STATE,
   TEST_API,
   type TrackedIssue,
@@ -52,7 +53,7 @@ import {
   loadGateModule,
   noWait,
   requiredChecksRule,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /** The suite every case speaks about. */
 const LABEL = "Maestro native e2e";
@@ -103,7 +104,14 @@ describe("nightly e2e reporting — §10.7, the blocking claim is measured", () 
   function context(
     state: string,
     detail: string | null = null
-  ): Record<string, unknown> {
+  ): {
+    readonly branch: string;
+    readonly label: string;
+    readonly now: Date;
+    readonly gateContext: string;
+    readonly bypassLabel: string;
+    readonly requiredness: Requiredness;
+  } {
     return {
       branch: BRANCH,
       label: "nightly-e2e",
@@ -667,7 +675,7 @@ describe("nightly e2e reporting — §10.7, the blocking claim is measured", () 
       branch: BRANCH,
       label: "nightly-e2e",
       now: NOW,
-    } as unknown as Record<string, unknown>);
+    });
     expect(plan[0]?.requiredness).toBe(REQUIRED_STATE.unknown);
     expect(plan[0]?.body).not.toContain(BLOCKED_CLAIM);
   });

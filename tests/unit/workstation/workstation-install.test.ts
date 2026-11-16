@@ -45,7 +45,8 @@ describe("installEntry", () => {
       { name: "codex", kind: NPM_GLOBAL_KIND, package: CODEX_PACKAGE },
       { label: "Codex" },
       {
-        run: (_cmd, _args, callOptions) => options.push(callOptions),
+        run: (_cmd: string, _args: string[], opts: { timeout?: number }) =>
+          options.push(opts),
         locate: () => `${BIN_DIR}/codex`,
       }
     );
@@ -55,7 +56,7 @@ describe("installEntry", () => {
   });
 
   it("installs an npm-global entry with npm", async () => {
-    const calls = [];
+    const calls: string[][] = [];
     const entry = {
       name: "codex",
       kind: NPM_GLOBAL_KIND,
@@ -65,7 +66,7 @@ describe("installEntry", () => {
       entry,
       { label: "Codex" },
       {
-        run: (cmd, args) => calls.push([cmd, ...args]),
+        run: (cmd: string, args: string[]) => calls.push([cmd, ...args]),
         // `locate` MUST be injected. Without it the post-install check runs a
         // real `command -v codex`, which passes on a laptop that has Codex and
         // fails on CI that does not — the machine-dependent test this whole
@@ -91,9 +92,9 @@ describe("installEntry", () => {
         locate: () => `${BIN_DIR}/claude`,
       }
     );
-    expect(calls[0][0]).toBe("bash");
-    expect(calls[0].join(" ")).toContain("| bash");
-    expect(calls[0].join(" ")).not.toMatch(/\|\s*sh\b/);
+    expect(calls[0]?.[0]).toBe("bash");
+    expect(calls[0]?.join(" ")).toContain("| bash");
+    expect(calls[0]?.join(" ")).not.toMatch(/\|\s*sh\b/);
   });
 
   it("sets pipefail so a 404 is not laundered into success", async () => {
@@ -165,7 +166,7 @@ describe("installEntry", () => {
         platform: "linux",
       }
     );
-    const script = calls[0].join(" ");
+    const script = calls[0]?.join(" ");
     expect(script).toContain('--install-dir "/home/me/.local/aws-cli"');
     expect(script).toContain('--bin-dir "/home/me/.local/bin"');
     expect(script).not.toContain("/usr/local");
@@ -239,13 +240,13 @@ describe("run", () => {
    * @returns {object} Sinks plus the collected lines.
    */
   const sink = () => {
-    const lines = [];
-    const errors = [];
+    const lines: string[] = [];
+    const errors: string[] = [];
     return {
       lines,
       errors,
-      log: text => lines.push(String(text)),
-      error: text => errors.push(String(text)),
+      log: (text: unknown) => lines.push(String(text)),
+      error: (text: unknown) => errors.push(String(text)),
     };
   };
 
@@ -275,11 +276,14 @@ describe("run", () => {
     const everything = Object.fromEntries(
       [...AGENTS, ...TOOLS].map(e => [e.name, `${ANY_PATH}/${e.name}`])
     );
-    const calls = [];
+    const calls: unknown[][] = [];
     const io = sink();
     const options = {
       ...io,
-      probes: { ...probes(everything), run: (...args) => calls.push(args) },
+      probes: {
+        ...probes(everything),
+        run: (...args: unknown[]) => calls.push(args),
+      },
     };
     await run(["--install"], options);
     await run(["--install"], options);
@@ -294,11 +298,11 @@ describe("run", () => {
   });
 
   it("rejects an unknown provider without installing anything", async () => {
-    const calls = [];
+    const calls: unknown[][] = [];
     const io = sink();
     const code = await run(["--install", "--provider=lastpass"], {
       ...io,
-      probes: { ...probes(), run: (...args) => calls.push(args) },
+      probes: { ...probes(), run: (...args: unknown[]) => calls.push(args) },
     });
     expect(code).toBe(1);
     expect(calls).toHaveLength(0);
@@ -311,13 +315,13 @@ describe("run", () => {
     const present = Object.fromEntries(
       [...AGENTS, ...TOOLS].map(e => [e.name, `${ANY_PATH}/${e.name}`])
     );
-    const calls = [];
+    const calls: string[][] = [];
     const io = sink();
     await run(["--install", "--provider=doppler"], {
       ...io,
       probes: {
         ...probes(present),
-        run: (cmd, args) => calls.push([cmd, ...args]),
+        run: (cmd: string, args: string[]) => calls.push([cmd, ...args]),
       },
     });
     expect(calls.length).toBeGreaterThan(0);
@@ -328,7 +332,7 @@ describe("run", () => {
     const io = sink();
     await run(["--json", "--provider=vault"], { ...io, probes: probes() });
     const { plan } = JSON.parse(io.lines.join("\n"));
-    expect(new Set(plan.map(r => r.group))).toEqual(
+    expect(new Set(plan.map((r: { group: string }) => r.group))).toEqual(
       new Set(["agent", "provider", "tool"])
     );
   });

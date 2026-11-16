@@ -356,14 +356,14 @@ describe("assessDomainOwnershipDimension — an empty runbook directory suppress
 
     expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
-    expect(String(findings[0].reason)).toContain("recovery runbook present");
-    expect(String(findings[0].reason)).toContain(
+    expect(String(findings[0]?.reason)).toContain("recovery runbook present");
+    expect(String(findings[0]?.reason)).toContain(
       "found 1 irreversible data-destroying operation(s)"
     );
-    expect(String(findings[0].reason)).toContain(
+    expect(String(findings[0]?.reason)).toContain(
       "no-way-back half of B1 is not established"
     );
-    expect(String(findings[0].reason)).not.toContain(
+    expect(String(findings[0]?.reason)).not.toContain(
       "found none running unattended and ungated"
     );
     for (const finding of findings) {

@@ -31,7 +31,7 @@ import {
   runValidate,
   summaryOf,
   VALID_DIR,
-} from "./plugin-routing-validate-helpers";
+} from "./plugin-routing-validate-helpers.js";
 
 describe("routing validation with no plugin cache", () => {
   it("exits 0 and counts the artifact as unverifiable rather than invalid", () => {
@@ -54,7 +54,9 @@ describe("routing validation with no plugin cache", () => {
 
   it("still keeps every non-version gate on a cacheless machine", () => {
     const artifact = baseArtifact();
-    artifact.routing.codex.outcome = "frobnicate";
+    const codex = artifact.routing.codex;
+    if (codex === undefined) throw new Error("base artifact routes codex");
+    codex.outcome = "frobnicate";
     const errors = validateArtifact(artifact, {
       ...baseContext(),
       cacheMax: null,

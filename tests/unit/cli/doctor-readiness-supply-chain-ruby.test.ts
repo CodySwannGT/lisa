@@ -3,6 +3,7 @@
  * (B5, PRD #1739, #1896).
  * @module tests/unit/cli/doctor-readiness-supply-chain-ruby
  */
+import { fail } from "node:assert/strict";
 import { rm } from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
 import { assessDependenciesSupplyChainDimension } from "../../../src/cli/doctor-readiness-supply-chain.js";
@@ -13,6 +14,14 @@ import {
   SKIP,
   writeRepoFile,
 } from "../../helpers/readiness-workflow-fixtures.js";
+
+/**
+ * The first entry of a list the assertion requires to be non-empty.
+ * @param items - The list under test
+ * @returns Its first entry, failing loudly when there is none
+ */
+const first = <T>(items: readonly T[]): T =>
+  items[0] ?? fail("expected at least one entry");
 
 /** The ship blocker this producer can stand up. */
 const BLOCKER_ID = "B5";
@@ -85,7 +94,7 @@ describe("assessDependenciesSupplyChainDimension — Ruby/Bundler repositories",
     expect(finding?.evidence).toContain(GEMFILE_LOCK);
     expect(finding?.evidence).toContain(RUBY_AUDIT_GATE_EVIDENCE);
     expect(finding?.evidence).toContain("pg");
-    expect(assessReadiness([record]).blockers[0].id).toBe(BLOCKER_ID);
+    expect(first(assessReadiness([record]).blockers).id).toBe(BLOCKER_ID);
   });
 
   it("PASSes a locked and audited Bundler repository with constrained gems", async () => {
@@ -105,9 +114,9 @@ describe("assessDependenciesSupplyChainDimension — Ruby/Bundler repositories",
     expect(record.status).toBe("PASS");
     expect(assessReadiness([record]).blockers).toEqual([]);
     const findings = asFindings(record.findings);
-    expect(findings[0].evidence).toContain(GEMFILE);
-    expect(findings[0].evidence).toContain(GEMFILE_LOCK);
-    expect(findings[0].evidence).not.toContain("audit exception");
+    expect(first(findings).evidence).toContain(GEMFILE);
+    expect(first(findings).evidence).toContain(GEMFILE_LOCK);
+    expect(first(findings).evidence).not.toContain("audit exception");
     for (const finding of findings) {
       expect(Object.hasOwn(finding, "blocker")).toBe(false);
     }
@@ -125,8 +134,8 @@ describe("assessDependenciesSupplyChainDimension — Ruby/Bundler repositories",
 
     expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
-    expect(findings[0].reason).toContain("gemspec");
-    expect(findings[0].reason).not.toContain(
+    expect(first(findings).reason).toContain("gemspec");
+    expect(first(findings).reason).not.toContain(
       "owns no Ruby third-party surface"
     );
     expect(assessReadiness([record]).blockers).toEqual([]);

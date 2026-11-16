@@ -39,6 +39,19 @@ import {
 /** A no-op step reused by fixtures that only exercise workflow metadata. */
 const RUN_ECHO = "      - run: echo hi";
 
+/**
+ * Narrow an indexed value to defined, failing the test loudly when it is not.
+ * @param value - Value read from an array index or destructure
+ * @param label - Name used in the failure message
+ * @returns The value, narrowed to exclude undefined
+ */
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`expected ${label} to be defined`);
+  }
+  return value;
+}
+
 let tempDir: string | undefined;
 
 /**
@@ -93,13 +106,13 @@ describe("parseRepositoryWorkflows", () => {
     const workflows = await parseRepositoryWorkflows(cwd);
 
     expect(workflows).toHaveLength(1);
-    const workflow = workflows[0];
+    const workflow = requireDefined(workflows[0], "workflow");
     expect(workflow.file).toBe(".github/workflows/release.yml");
     expect(workflow.name).toBe("Release");
     expect(workflow.permissions).toEqual({ contents: "read" });
     expect(workflow.jobs.map(job => job.id)).toEqual(["test", "publish"]);
 
-    const test = workflow.jobs[0];
+    const test = requireDefined(workflow.jobs[0], "test job");
     expect(test.needs).toEqual([]);
     expect(test.steps).toEqual([
       {
@@ -112,7 +125,7 @@ describe("parseRepositoryWorkflows", () => {
       },
     ]);
 
-    const publish = workflow.jobs[1];
+    const publish = requireDefined(workflow.jobs[1], "publish job");
     expect(publish.needs).toEqual(["test"]);
     expect(publish.environment).toEqual(["production"]);
     expect(publish.permissions).toEqual({
@@ -158,9 +171,12 @@ describe("parseRepositoryWorkflows", () => {
 
     const workflows = await parseRepositoryWorkflows(cwd);
 
-    expect(workflows[0].jobs[0].uses).toBe("./.github/workflows/quality.yml");
-    expect(workflows[0].jobs[1].needs).toEqual(["quality"]);
-    expect(workflows[0].jobs[1].permissions).toBe("write-all");
+    const [quality, gate] = requireDefined(workflows[0], "workflow").jobs;
+    expect(requireDefined(quality, "quality job").uses).toBe(
+      "./.github/workflows/quality.yml"
+    );
+    expect(requireDefined(gate, "gate job").needs).toEqual(["quality"]);
+    expect(requireDefined(gate, "gate job").permissions).toBe("write-all");
   });
 
   it("captures the `if:` condition on a job and on a step (#1896)", async () => {
@@ -181,10 +197,16 @@ describe("parseRepositoryWorkflows", () => {
 
     // The B1/B4 producers read these to tell a deliberately gated operation
     // from an unattended one, so an absent block must be `""`, never undefined.
-    const job = workflows[0].jobs[0];
+    const job = requireDefined(
+      requireDefined(workflows[0], "workflow").jobs[0],
+      "gated job"
+    );
+    const [gatedStep, alwaysStep] = job.steps;
     expect(job.ifCondition).toBe("github.ref == 'refs/heads/main'");
-    expect(job.steps[0].ifCondition).toBe("${{ inputs.confirm == 'yes' }}");
-    expect(job.steps[1].ifCondition).toBe("");
+    expect(requireDefined(gatedStep, "gated step").ifCondition).toBe(
+      "${{ inputs.confirm == 'yes' }}"
+    );
+    expect(requireDefined(alwaysStep, "always step").ifCondition).toBe("");
   });
 
   it("captures the trigger block, including push branches and tags", async () => {
@@ -211,7 +233,10 @@ describe("parseRepositoryWorkflows", () => {
       RUN_ECHO,
     ]);
 
-    const [called, tagged] = await parseRepositoryWorkflows(cwd);
+    const [calledWorkflow, taggedWorkflow] =
+      await parseRepositoryWorkflows(cwd);
+    const called = requireDefined(calledWorkflow, "called workflow");
+    const tagged = requireDefined(taggedWorkflow, "tagged workflow");
 
     expect(called.on.events).toEqual(["workflow_call"]);
     expect(called.on.pushBranches).toEqual([]);
@@ -231,7 +256,8 @@ describe("parseRepositoryWorkflows", () => {
       RUN_ECHO,
     ]);
 
-    const [workflow] = await parseRepositoryWorkflows(cwd);
+    const [parsed] = await parseRepositoryWorkflows(cwd);
+    const workflow = requireDefined(parsed, "scalar workflow");
 
     expect(workflow.on.events).toEqual(["push"]);
     expect(workflow.on.pushBranches).toEqual([]);
@@ -256,6 +282,10 @@ describe("parseRepositoryWorkflows", () => {
     expect(workflows.map(workflow => workflow.file)).toEqual([
       ".github/workflows/deploy.yaml",
     ]);
-    expect(workflows[0].jobs[0].steps[0].run).toBe("cdk deploy");
+    const ship = requireDefined(
+      requireDefined(workflows[0], "deploy workflow").jobs[0],
+      "ship job"
+    );
+    expect(requireDefined(ship.steps[0], "ship step").run).toBe("cdk deploy");
   });
 });

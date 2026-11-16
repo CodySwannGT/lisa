@@ -347,9 +347,13 @@ export async function runFallbackConcurrently(
   const driver = path.join(driverRoot, "run-fallback.sh");
   const bashEnv = path.join(driverRoot, "notice-precheck-barrier.sh");
   const barrierDir = path.join(driverRoot, "arrivals");
+  const uid = process.getuid?.();
+  if (uid === undefined) {
+    throw new Error("the notice barrier race needs a POSIX user id");
+  }
   const marker = path.join(
     realpathSync(tmpDir),
-    `lisa-enforcement-notice-${process.getuid()}`,
+    `lisa-enforcement-notice-${uid}`,
     sessionId
   );
   /**

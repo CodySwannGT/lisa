@@ -44,7 +44,7 @@ interface WorkflowStep {
 
 /** Root shape of the parsed reusable workflow. */
 interface ReusableWorkflow {
-  jobs: Record<string, { steps?: WorkflowStep[] }>;
+  jobs: { ios: { steps?: WorkflowStep[] } };
 }
 
 describe("maestro-native-e2e iOS driver-startup retry (executed)", () => {

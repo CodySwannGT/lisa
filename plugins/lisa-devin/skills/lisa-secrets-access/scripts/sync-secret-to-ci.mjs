@@ -158,7 +158,7 @@ export function assertValue(name, value) {
  * the ambiguity is resolved once, here, rather than at each call site. Anything
  * else is refused outright: a target is interpolated into an API path, and a
  * silently mis-parsed one would push a credential somewhere nobody named.
- * @param {string} raw Target as typed.
+ * @param {string | undefined} raw Target as typed; absent is refused like any malformed target.
  * @returns {{kind: string, slug: string, listPath: string, scopeArgs: string[]}} Parsed target.
  */
 export function parseTarget(raw) {

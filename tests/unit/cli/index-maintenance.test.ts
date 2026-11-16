@@ -1,6 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 import { createTestProgram } from "./index-test-program.js";
 
+/**
+ * Read one element, failing the test when it is absent.
+ * @param items Items to index.
+ * @param index Position to read.
+ * @returns The element at that position.
+ */
+const at = <T>(items: readonly T[], index: number): T => {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}`);
+  }
+  return item;
+};
+
 const DEST = "./sample-proj";
 const CHECK_BUDGET_COMMAND = "check-learnings-budget";
 
@@ -137,7 +151,7 @@ describe("check-learnings-budget invocation", () => {
     );
 
     expect(runCheckLearningsBudget).toHaveBeenCalledTimes(1);
-    expect(runCheckLearningsBudget.mock.calls[0][0]).toBe(
+    expect(at(runCheckLearningsBudget.mock.calls, 0)[0]).toBe(
       "custom/PROJECT_LEARNINGS.md"
     );
   });
@@ -148,7 +162,7 @@ describe("check-learnings-budget invocation", () => {
     await program.parseAsync([CHECK_BUDGET_COMMAND], { from: "user" });
 
     expect(runCheckLearningsBudget).toHaveBeenCalledTimes(1);
-    expect(runCheckLearningsBudget.mock.calls[0][0]).toBeUndefined();
+    expect(at(runCheckLearningsBudget.mock.calls, 0)[0]).toBeUndefined();
   });
 
   it("routes --overflow as the configured overflow target", async () => {

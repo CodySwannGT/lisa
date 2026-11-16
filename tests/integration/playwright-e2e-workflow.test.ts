@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
-import { evaluateIf } from "../helpers/workflow-job-graph";
+import { evaluateIf } from "../helpers/workflow-job-graph.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -108,7 +108,7 @@ function job(id: string): Job {
  * @returns A thunk that throws when the shell exits non-zero.
  */
 function runResolution(present: boolean): () => void {
-  const step = doc.jobs.prepare.steps.find(candidate =>
+  const step = job("prepare").steps.find(candidate =>
     candidate.name.includes(PREPARE_STEP)
   );
   const dir = mkdtempSync(path.join(tmpdir(), "lisa-pw-"));
@@ -150,9 +150,9 @@ function afterPrepare(prepare: string) {
 
 describe("the suite is gated on the environment preparation", () => {
   it("runs the shards only on an allowlisted preparation result", () => {
-    const guard = doc.jobs.playwright_e2e.if ?? "";
+    const guard = job("playwright_e2e").if ?? "";
 
-    expect(doc.jobs.playwright_e2e.needs).toContain("prepare");
+    expect(job("playwright_e2e").needs).toContain("prepare");
     expect(evaluateIf(guard, afterPrepare("success"))).toBe(true);
     expect(evaluateIf(guard, afterPrepare("skipped"))).toBe(true);
     expect(evaluateIf(guard, afterPrepare("failure"))).toBe(false);
@@ -163,9 +163,9 @@ describe("the suite is gated on the environment preparation", () => {
     // The one that would actually hurt. On the gate-configured path this job
     // builds and runs the whole suite, so `always()` alone would run it
     // against unprepared state — and report a result for it.
-    const guard = doc.jobs.playwright_e2e_aggregate.if ?? "";
+    const guard = job("playwright_e2e_aggregate").if ?? "";
 
-    expect(doc.jobs.playwright_e2e_aggregate.needs).toContain("prepare");
+    expect(job("playwright_e2e_aggregate").needs).toContain("prepare");
     expect(evaluateIf(guard, afterPrepare("failure"))).toBe(false);
     expect(evaluateIf(guard, afterPrepare("success"))).toBe(true);
   });
@@ -174,13 +174,13 @@ describe("the suite is gated on the environment preparation", () => {
     // Pure shell arithmetic, no checkout and no API. Making it wait on the
     // preparation would add a serial hop before anything can start, for a job
     // that cannot touch the environment.
-    expect(doc.jobs.playwright_e2e_setup.needs ?? []).not.toContain("prepare");
+    expect(job("playwright_e2e_setup").needs ?? []).not.toContain("prepare");
   });
 });
 
 describe("preparation is opt-in and fails closed", () => {
   it("prepares nothing when no environment is named", () => {
-    const step = doc.jobs.prepare.steps.find(candidate =>
+    const step = job("prepare").steps.find(candidate =>
       candidate.name.includes(PREPARE_STEP)
     );
 
@@ -192,7 +192,7 @@ describe("preparation is opt-in and fails closed", () => {
   it("prepares when an environment is named", () => {
     // The positive control: without it the assertion above is equally
     // consistent with a guard that never passes.
-    const step = doc.jobs.prepare.steps.find(candidate =>
+    const step = job("prepare").steps.find(candidate =>
       candidate.name.includes(PREPARE_STEP)
     );
 

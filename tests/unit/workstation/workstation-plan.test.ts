@@ -40,9 +40,35 @@ import {
   probes,
 } from "./fixtures.js";
 
+/**
+ * Finds the pinned provider or tool entry for one binary name.
+ *
+ * @param tool The binary name.
+ * @returns The catalogue entry.
+ */
+const pinnedEntry = (tool: string) => {
+  const entry = [...PROVIDERS, ...TOOLS].find(
+    e => (e.binary ?? e.name) === tool
+  );
+  if (!entry) throw new Error(`no catalogue entry installs ${tool}`);
+  return entry;
+};
+
+/**
+ * Finds one credential-manager entry by name.
+ *
+ * @param name The provider name.
+ * @returns The catalogue entry.
+ */
+const providerNamed = (name: string) => {
+  const provider = PROVIDERS.find(p => p.name === name);
+  if (!provider) throw new Error(`no provider named ${name}`);
+  return provider;
+};
+
 describe("catalogue integrity", () => {
   const checksummed = [...AGENTS, ...PROVIDERS, ...TOOLS].filter(e =>
-    CHECKSUMMED.has(e.kind as string)
+    CHECKSUMMED.has(e.kind)
   );
 
   it("has at least one checksummed entry, or this suite proves nothing", () => {
@@ -78,9 +104,7 @@ describe("catalogue integrity", () => {
       // bitwarden provider got `no pin for darwin-arm64` from this very
       // resolver — the one credential CLI Lisa can verify was the one macOS had
       // to install by hand. `gh` had the mirror-image gap on Intel macs.
-      const entry = [...PROVIDERS, ...TOOLS].find(
-        e => (e.binary ?? e.name) === tool
-      );
+      const entry = pinnedEntry(tool);
       // Through the installer's own adapter, so what is asserted is the entry
       // the installer receives — not the catalogue block a reader sees.
       const resolved = resolvePlatform(toManifestEntry(entry), platform);
@@ -104,11 +128,9 @@ describe("catalogue integrity", () => {
     // Without this, dropping a platform block would delete its row's coverage
     // silently: the table above only proves the platforms it happens to list.
     for (const tool of ["bws", "gh"]) {
-      const entry = [...PROVIDERS, ...TOOLS].find(
-        e => (e.binary ?? e.name) === tool
-      );
+      const entry = pinnedEntry(tool);
       const byName = (a: string, b: string) => a.localeCompare(b);
-      expect(Object.keys(entry.platforms).sort(byName)).toEqual(
+      expect(Object.keys(entry.platforms ?? {}).sort(byName)).toEqual(
         PINNED_ARTIFACTS.filter(p => p.tool === tool)
           .map(p => p.platform)
           .sort(byName)
@@ -189,9 +211,10 @@ describe("version", () => {
     // Info-ZIP exits 10 on --version but still prints its banner. Reporting
     // that as absent is the false negative that shipped once already.
     const failing = () => {
-      const error = new Error("exit 10");
-      error.status = 10;
-      error.stdout = "UnZip 6.00 of 20 April 2009";
+      const error = Object.assign(new Error("exit 10"), {
+        status: 10,
+        stdout: "UnZip 6.00 of 20 April 2009",
+      });
       throw error;
     };
     expect(version("unzip", failing)).toBe("6.00");
@@ -199,8 +222,9 @@ describe("version", () => {
 
   it("returns null only when the binary cannot be spawned", async () => {
     const missing = () => {
-      const error = new Error("spawn failed");
-      error.code = "ENOENT";
+      const error = Object.assign(new Error("spawn failed"), {
+        code: "ENOENT",
+      });
       throw error;
     };
     expect(version("nope", missing)).toBeNull();
@@ -267,7 +291,7 @@ describe("resolveProvider", () => {
   });
 
   it("resolves a known provider", async () => {
-    expect(resolveProvider("bitwarden").binary).toBe("bws");
+    expect(resolveProvider("bitwarden")?.binary).toBe("bws");
   });
 
   it("throws on an unknown name rather than falling back", async () => {
@@ -279,16 +303,13 @@ describe("resolveProvider", () => {
 
 describe("planProvider", () => {
   it("treats none as a supported answer, not an absence", async () => {
-    const row = planProvider(PROVIDERS.find(p => p.name === "none"));
+    const row = planProvider(providerNamed("none"));
     expect(row.action).toBe("present");
     expect(row.path).toBeNull();
   });
 
   it("plans the selected provider by its binary name", async () => {
-    const row = planProvider(
-      PROVIDERS.find(p => p.name === "bitwarden"),
-      probes()
-    );
+    const row = planProvider(providerNamed("bitwarden"), probes());
     expect(row.name).toBe("bws");
     expect(row.action).toBe("install");
   });
@@ -299,7 +320,7 @@ describe("planWorkstation", () => {
     const plan = planWorkstation({ provider: "doppler", ...probes() });
     const credentials = plan.filter(r => r.group === "provider");
     expect(credentials).toHaveLength(1);
-    expect(credentials[0].name).toBe("doppler");
+    expect(credentials[0]?.name).toBe("doppler");
   });
 
   it("omits the credential group entirely when none is requested", async () => {
@@ -326,7 +347,7 @@ describe("renderPlan", () => {
   it("shows a reason rather than a version for a pathless row", async () => {
     const text = renderPlan([
       {
-        ...planProvider(PROVIDERS.find(p => p.name === "none")),
+        ...planProvider(providerNamed("none")),
         group: "provider",
       },
     ]);

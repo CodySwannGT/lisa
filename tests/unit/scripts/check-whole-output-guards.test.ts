@@ -129,19 +129,17 @@ describe("sweep", () => {
     const report = sweep(root);
 
     expect(report.findings).toHaveLength(1);
-    expect(report.findings[0].file).toBe(FIXTURE_PATH);
-    expect(report.findings[0].scope).toBe("preMoveProverSource");
-    expect(report.findings[0].steps).toBe(2);
-    expect(report.findings[0].unaccounted).toHaveLength(2);
-    expect(
-      report.findings[0].unaccounted.map(
-        (step: { anchor: string }) => step.anchor
-      )
-    ).toEqual([
+    const [finding] = report.findings;
+    if (finding === undefined) throw new Error("expected a sweep finding");
+    expect(finding.file).toBe(FIXTURE_PATH);
+    expect(finding.scope).toBe("preMoveProverSource");
+    expect(finding.steps).toBe(2);
+    expect(finding.unaccounted).toHaveLength(2);
+    expect(finding.unaccounted.map(step => step.anchor)).toEqual([
       '"import { execFileSync } from \\"node:child_process\\";"',
       '"path.resolve(root ?? process.cwd())"',
     ]);
-    expect(report.findings[0].guards[0].test).toBe("rewritten === source");
+    expect(finding.guards[0]?.test).toBe("rewritten === source");
   });
 
   it("a transform that asserts each anchor comes back clean", () => {

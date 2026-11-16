@@ -180,7 +180,7 @@ describe("collisions", () => {
       resolutions: { prettier: "3.8.3" },
     });
     expect(found).toHaveLength(1);
-    expect(found[0].from).toBe("resolutions");
+    expect(found[0]?.from).toBe("resolutions");
   });
 
   it("reports the same package once per section it collides in", () => {

@@ -229,7 +229,7 @@ import {
  * @property {Ruleset[]} rulesets Branch-target rulesets, in full.
  * @property {LiveContext[]} contexts Every required context they carry.
  * @property {Record<string, *>} settings Repository settings.
- * @property {Record<string, boolean>} signals Ruleset-surface policy.
+ * @property {Record<string, unknown>} signals Ruleset-surface policy: boolean signals plus the policy ruleset's shape fields.
  */
 
 /**
@@ -835,7 +835,7 @@ function effectiveAwaitedRecords(awaited, records) {
  * rather than against the project's decision.
  * @param {object} options Comparison inputs.
  * @param {object} options.policy The `policy` block.
- * @param {{settings?: Record<string, *>, signals?: Record<string, boolean>}} options.live The two
+ * @param {{settings?: Record<string, *>, signals?: Record<string, unknown>}} options.live The two
  *   surfaces a policy field can be observed on. Narrower than `LivePolicy` on
  *   purpose: this is everything the comparison reads.
  * @returns {SettingsDrift} Findings.
@@ -1025,7 +1025,7 @@ export function awaitedPins(gates, moment) {
  * the declaration says which one owns each context, so a repair can write it
  * where it was declared instead of wherever the single fallback target points.
  * @param {object} [requiredChecks] The `requiredChecks` map, by ruleset name.
- * @returns {{contexts: string[], homes: Record<string, string>, pins: Record<string, number>}} Declared checks.
+ * @returns {{contexts: string[], homes: Record<string, string>, pins: Record<string, number>, records: Array<{context: string, ruleset: string, integration_id?: number}>}} Declared checks; `records` is the declaration itself, one per context per ruleset.
  */
 export function declaredChecks(requiredChecks = {}) {
   const contexts = [];
@@ -1174,6 +1174,8 @@ export function rulesetPayload(
  *   Ruleset-scoped contexts an external app posts.
  * @param {Record<string, number>} [options.pins] Declared app id per awaited
  *   context.
+ * @param {Record<string, string>} [options.homes] Declared ruleset per context,
+ *   from `declaredChecks`, so a repair lands where it was declared.
  * @returns {RepairAction[]} Planned actions.
  */
 export function planRepairs({

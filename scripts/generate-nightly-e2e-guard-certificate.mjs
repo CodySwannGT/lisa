@@ -70,6 +70,12 @@ export const RETAINED_RELEASES = Object.freeze([
   // to the 50 releases from v4.22.13 through v4.26.0 (#3500), found only after
   // the fact. Adding the ref here is what stops this change repeating it.
   "v4.50.3",
+  // The guard every release from at least v4.111.2 through v5.14.2 shipped
+  // (sha256 d1b26caeaf65…). Retained in the commit that corrects a JSDoc type
+  // in the workspace guard (#4923): the edit changes the file's digest, so
+  // without this ref regeneration would revoke the certificate those installed
+  // releases rely on, the #3500 regression again.
+  "v5.14.2",
 ]);
 
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");

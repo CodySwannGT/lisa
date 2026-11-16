@@ -571,8 +571,9 @@ const CHILD_TIMEOUT_MS = Number(
  * convincingly.
  * @param {string} command - Executable to run.
  * @param {string[]} args - Arguments to pass.
- * @param {object} [options] - cwd, env, input, timeout, allowFailure, error.
- * @returns {object} The spawnSync result, with stdout and stderr always strings.
+ * @template {boolean} [B=false]
+ * @param {{cwd?: string, env?: NodeJS.ProcessEnv, input?: string | Buffer, timeout?: number, maxBuffer?: number, allowFailure?: boolean, error?: string, binary?: B}} [options] - Spawn controls; `binary: true` returns stdout as a Buffer.
+ * @returns {{status: number | null, signal: NodeJS.Signals | null, error?: Error, pid: number, stdout: B extends true ? Buffer : string, stderr: string}} The spawnSync result, with stdout and stderr never null.
  */
 export function run(command, args, options = {}) {
   const result = spawnSync(command, args, {

@@ -291,7 +291,8 @@ describe("Lighthouse detail budget", () => {
 
   it("fails closed when a passing audit omits detail evidence", () => {
     const missingDetails = report(1);
-    delete missingDetails.audits["forced-reflow-insight"].details;
+    const audit = missingDetails.audits["forced-reflow-insight"];
+    Reflect.deleteProperty(audit, "details");
 
     const result = run(projectWithReports([missingDetails]));
 

@@ -195,7 +195,7 @@ describe("per-agent-hook-filter", () => {
         "SessionStart",
       ]);
       // SessionStart keeps install-pkgs + setup-jira-cli, drops inject-rules.
-      const sessionCmds = out.SessionStart.flatMap(e =>
+      const sessionCmds = (out.SessionStart ?? []).flatMap(e =>
         e.hooks.map(h => h.command)
       );
       expect(sessionCmds).toEqual([
@@ -311,7 +311,7 @@ describe("per-agent-hook-filter", () => {
       expect("SubagentStart" in out).toBe(false);
       expect("sessionStart" in out).toBe(true);
       expect("preToolUse" in out).toBe(true);
-      const sessionCmds = out.sessionStart.flatMap(e =>
+      const sessionCmds = (out.sessionStart ?? []).flatMap(e =>
         e.hooks.map(h => h.command)
       );
       expect(sessionCmds.some(c => c.includes(INJECT_RULES))).toBe(true);

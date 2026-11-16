@@ -2,6 +2,7 @@
  * Regression coverage for B2 resolving local reusable-workflow callers.
  * @module tests/unit/cli/doctor-readiness-delivery-reusable-callers
  */
+import { fail } from "node:assert/strict";
 import { rm } from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
 import { assessDeliveryAuthorityDimension } from "../../../src/cli/doctor-readiness-delivery.js";
@@ -23,6 +24,14 @@ import {
   TEST_JOB,
   writeWorkflow,
 } from "../../helpers/readiness-workflow-fixtures.js";
+
+/**
+ * The first entry of a list the assertion requires to be non-empty.
+ * @param items - The list under test
+ * @returns Its first entry, failing loudly when there is none
+ */
+const first = <T>(items: readonly T[]): T =>
+  items[0] ?? fail("expected at least one entry");
 
 const REUSABLE_WORKFLOW = "publish-to-npm.yml";
 const REUSABLE_PATH = "./.github/workflows/publish-to-npm.yml";
@@ -135,10 +144,10 @@ describe("assessDeliveryAuthorityDimension — B2 reusable workflow callers", ()
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
-    const evidence = String(asFindings(record.findings)[0].evidence);
+    const evidence = String(first(asFindings(record.findings)).evidence);
 
     expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(first(assessReadiness([record]).blockers).id).toBe("B2");
     expect(evidence).toContain(CHECKOUT_V4_REF);
     expect(evidence).toContain("local caller ancestor");
   });
@@ -162,6 +171,6 @@ describe("assessDeliveryAuthorityDimension — B2 reusable workflow callers", ()
     );
     expect(finding?.evidence).toContain(REUSABLE_WORKFLOW);
     expect(finding?.evidence).toContain("no validating job");
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(first(assessReadiness([record]).blockers).id).toBe("B2");
   });
 });

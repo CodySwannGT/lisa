@@ -143,6 +143,8 @@ describe("brace-expansion security floor", () => {
       // A line with no patched release at all — 4.x, which the advisories
       // route to 5.x — must not appear in the tree.
       expect(floor).toBeDefined();
+      if (floor === undefined)
+        throw new Error(`no patched floor for ${version}`);
       expect(gte(version, floor)).toBe(true);
     }
   });

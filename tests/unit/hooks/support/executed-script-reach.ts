@@ -102,7 +102,7 @@ export const runGuard = (
     label: path.basename(guard),
     command: BASH_PATH,
     args: [guard],
-    cwd: options.cwd,
+    ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     env: { ...process.env, ...options.env },
     input: JSON.stringify(payload),
   });

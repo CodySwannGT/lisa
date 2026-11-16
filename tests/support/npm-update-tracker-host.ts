@@ -12,6 +12,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runProcess } from "../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 import { proposalFrom } from "../../all/copy-overwrite/scripts/lib/npm-update-contract.mjs";
+import { hermeticOwner } from "./npm-update-helper-owner.js";
 import { JIRA_ACCOUNT } from "./npm-update-jira-fake.js";
 import { LINEAR_VIEWER } from "./npm-update-linear-fake.js";
 
@@ -70,17 +71,15 @@ const AUTOMATION_FIELDS = {
 };
 
 /**
- * The committed automation policy. Its signer digest is this checkout's own
- * HEAD, so the hold classifier authenticates the helper bytes this checkout
- * already ships, exactly as it does when run from source.
+ * The committed automation policy. Its signer digest is the commit of the
+ * hermetic helper owner, so the hold classifier authenticates the helper bytes
+ * this run executes through the unmodified source authority — never through
+ * whether the run happens to be a Git checkout, nor the live registry. Suites
+ * calling this must redirect owner discovery with `withHermeticOwner`.
  * @returns The automation policy object.
  */
 export async function automation() {
-  const head = await runProcess("git", ["rev-parse", "HEAD"], {
-    cwd: process.cwd(),
-    env: process.env,
-  });
-  return { ...AUTOMATION_FIELDS, signerDigest: head.stdout.toString().trim() };
+  return { ...AUTOMATION_FIELDS, signerDigest: hermeticOwner().head };
 }
 
 const BASE = {

@@ -371,6 +371,8 @@ describe("the wrapper that enforces it", () => {
     const logPath = path.join(dir, "log");
     const killedPath = path.join(dir, "killed");
     const script = watchdogScript(deadlineMs) as string;
+    const [program, ...programArgs] = command;
+    if (program === undefined) throw new Error("the child argv is empty");
     const startedAt = Date.now();
     // The wrapper is the subject, so it is driven exactly as `runStryker`
     // drives it: argv through `"$0" "$@"`, never interpolated — the three
@@ -381,11 +383,11 @@ describe("the wrapper that enforces it", () => {
       args: [
         "-c",
         script,
-        command[0],
+        program,
         statusPath,
         logPath,
         killedPath,
-        ...command.slice(1),
+        ...programArgs,
       ],
       cwd: dir,
     });

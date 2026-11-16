@@ -827,7 +827,8 @@ jobs:
             refs/tags/v4.17.16:refs/tags/v4.17.16 \
             refs/tags/v4.26.1:refs/tags/v4.26.1 \
             refs/tags/v4.26.0:refs/tags/v4.26.0 \
-            refs/tags/v4.50.3:refs/tags/v4.50.3
+            refs/tags/v4.50.3:refs/tags/v4.50.3 \
+            refs/tags/v5.14.2:refs/tags/v5.14.2
 
       - name: 🔧 Setup Node.js
         if: matrix.action == 'run'
@@ -2458,7 +2459,8 @@ jobs:
             refs/tags/v4.17.16:refs/tags/v4.17.16 \
             refs/tags/v4.26.1:refs/tags/v4.26.1 \
             refs/tags/v4.26.0:refs/tags/v4.26.0 \
-            refs/tags/v4.50.3:refs/tags/v4.50.3
+            refs/tags/v4.50.3:refs/tags/v4.50.3 \
+            refs/tags/v5.14.2:refs/tags/v5.14.2
 
       - name: 📎 Fetch export-removal witness history
         if: github.repository == 'CodySwannGT/lisa'
@@ -2973,7 +2975,8 @@ jobs:
             refs/tags/v4.17.16:refs/tags/v4.17.16 \
             refs/tags/v4.26.1:refs/tags/v4.26.1 \
             refs/tags/v4.26.0:refs/tags/v4.26.0 \
-            refs/tags/v4.50.3:refs/tags/v4.50.3
+            refs/tags/v4.50.3:refs/tags/v4.50.3 \
+            refs/tags/v5.14.2:refs/tags/v5.14.2
 
       - name: 📎 Fetch export-removal witness history
         if: github.repository == 'CodySwannGT/lisa'
@@ -3275,7 +3278,8 @@ jobs:
             refs/tags/v4.17.16:refs/tags/v4.17.16 \
             refs/tags/v4.26.1:refs/tags/v4.26.1 \
             refs/tags/v4.26.0:refs/tags/v4.26.0 \
-            refs/tags/v4.50.3:refs/tags/v4.50.3
+            refs/tags/v4.50.3:refs/tags/v4.50.3 \
+            refs/tags/v5.14.2:refs/tags/v5.14.2
 
       - name: 📎 Fetch export-removal witness history
         if: github.repository == 'CodySwannGT/lisa'

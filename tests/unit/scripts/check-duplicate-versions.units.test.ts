@@ -37,7 +37,7 @@ import {
   NODE_VERSION,
   PACKAGE_JSON,
   WORKFLOW_FILE,
-} from "./check-duplicate-versions-helpers";
+} from "./check-duplicate-versions-helpers.js";
 describe("normalizeVersion", () => {
   it("strips range operators", () => {
     expect(normalizeVersion("^0.40.4")).toBe("0.40.4");

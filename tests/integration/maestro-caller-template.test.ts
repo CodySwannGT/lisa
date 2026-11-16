@@ -42,7 +42,7 @@ interface CallerWorkflow {
     };
   };
   concurrency?: { group?: string; "cancel-in-progress"?: boolean };
-  jobs: Record<string, WorkflowJob>;
+  jobs: { maestro: WorkflowJob };
 }
 
 describe("expo maestro-e2e caller template", () => {

@@ -36,6 +36,35 @@ import { mergeTemplateJson } from "../../../src/strategies/merge.js";
 import { TaggedMergeStrategy } from "../../../src/strategies/tagged-merge.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
+/**
+ * Reads one field off an untyped JSON value.
+ *
+ * `HealthRuleset.rules` is `unknown` by contract, so rule fields are read by
+ * key rather than cast to a shape.
+ *
+ * @param value - Any parsed JSON value
+ * @param key - Object key or array index
+ * @returns The field, or undefined when the value has none
+ */
+function field(value: unknown, key: string | number): unknown {
+  return typeof value === "object" && value !== null
+    ? Reflect.get(value, key)
+    : undefined;
+}
+
+/**
+ * The `required_status_checks` of a ruleset's first rule.
+ *
+ * @param ruleset - An expected ruleset, if one was produced
+ * @returns The first rule's required checks, or undefined
+ */
+function firstRuleChecks(ruleset: HealthRuleset | undefined): unknown {
+  return field(
+    field(field(ruleset?.rules, 0), "parameters"),
+    "required_status_checks"
+  );
+}
+
 const temporaryRoots: string[] = [];
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -482,9 +511,7 @@ describe("deterministic health governance regressions", () => {
         },
       },
     });
-    expect(
-      withAddition?.rules?.[0]?.parameters?.required_status_checks
-    ).toEqual([
+    expect(firstRuleChecks(withAddition)).toEqual([
       { context: "CI", integration_id: 15_368 },
       { context: "🧩 Repo Only", integration_id: 15_368 },
     ]);
@@ -499,7 +526,7 @@ describe("deterministic health governance regressions", () => {
         },
       },
     });
-    expect(unrelated?.rules?.[0]?.parameters?.required_status_checks).toEqual([
+    expect(firstRuleChecks(unrelated)).toEqual([
       { context: "CI", integration_id: 15_368 },
     ]);
   });
@@ -528,16 +555,19 @@ describe("deterministic health governance regressions", () => {
     );
     const quality = rulesets.find(item => item.name === "quality checks");
     const base = rulesets.find(item => item.name === "base");
-    const contexts = (ruleset: HealthRuleset | undefined) =>
-      (ruleset?.rules ?? []).flatMap(rule =>
-        rule.type === "required_status_checks"
-          ? (
-              (rule.parameters?.required_status_checks ?? []) as {
-                context: string;
-              }[]
-            ).map(check => check.context)
-          : []
-      );
+    const contexts = (ruleset: HealthRuleset | undefined): unknown[] => {
+      const rules = ruleset?.rules;
+      return (Array.isArray(rules) ? rules : []).flatMap((rule: unknown) => {
+        if (field(rule, "type") !== "required_status_checks") return [];
+        const checks = field(
+          field(rule, "parameters"),
+          "required_status_checks"
+        );
+        return Array.isArray(checks)
+          ? checks.map((check: unknown) => field(check, "context"))
+          : [];
+      });
+    };
 
     expect(contexts(quality)).toEqual(
       expect.arrayContaining([

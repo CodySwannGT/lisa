@@ -29,7 +29,7 @@ import {
   addConnector,
   writeJson,
   writeText,
-} from "../../helpers/__fixtures__/wiki-status-fixture";
+} from "../../helpers/__fixtures__/wiki-status-fixture.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 

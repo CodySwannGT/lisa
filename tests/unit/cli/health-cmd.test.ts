@@ -4,10 +4,23 @@ import { describe, expect, it, vi } from "vitest";
 import {
   readBoundedHealthInput,
   runHealthCli,
+  type HealthCliDependencies,
 } from "../../../src/cli/health-cmd.js";
+import type { HealthResult } from "../../../src/health/index.js";
 
 const ROOT = path.resolve("test-output", "lisa-health-cli");
 const FINAL_JSON = '{"final":true}\n';
+
+/** A complete persisted result; the command only forwards its serialized bytes. */
+const PERSISTED_RESULT: HealthResult = {
+  schemaVersion: 1,
+  runId: "health-cli-test",
+  mode: "deterministic",
+  startedAt: "2026-01-01T00:00:00.000Z",
+  completedAt: "2026-01-01T00:00:00.000Z",
+  findings: [],
+  summary: { verdict: "in band", counts: { pass: 0, warn: 0, fail: 0 } },
+};
 
 /**
  * Build isolated process/health boundaries for one command test.
@@ -16,15 +29,19 @@ const FINAL_JSON = '{"final":true}\n';
 function dependencies() {
   return {
     cwd: ROOT,
-    prepare: vi.fn(async () => undefined),
-    runPersisted: vi.fn(async () => ({
-      writeOutcome: { status: "written" as const, path: ROOT, result: {} },
-      result: {},
+    prepare: vi.fn<HealthCliDependencies["prepare"]>(async () => undefined),
+    runPersisted: vi.fn<HealthCliDependencies["runPersisted"]>(async () => ({
+      writeOutcome: { status: "written", path: ROOT, result: PERSISTED_RESULT },
+      result: PERSISTED_RESULT,
       serialized: FINAL_JSON,
     })),
-    serializeRequest: vi.fn(() => '{"prepared":true}\n'),
-    readStdin: vi.fn(async () => '{"evaluation":{"status":"unavailable"}}'),
-    write: vi.fn(),
+    serializeRequest: vi.fn<HealthCliDependencies["serializeRequest"]>(
+      () => '{"prepared":true}\n'
+    ),
+    readStdin: vi.fn<HealthCliDependencies["readStdin"]>(
+      async () => '{"evaluation":{"status":"unavailable"}}'
+    ),
+    write: vi.fn<HealthCliDependencies["write"]>(),
   };
 }
 
@@ -46,7 +63,7 @@ describe("runHealthCli", () => {
     await runHealthCli(undefined, { prepareAgentic: true }, deps);
 
     expect(deps.runPersisted).not.toHaveBeenCalled();
-    expect(JSON.parse(deps.write.mock.calls[0][0])).toEqual({
+    expect(JSON.parse(String(deps.write.mock.calls[0]?.[0]))).toEqual({
       protocolVersion: 1,
       status: "unavailable",
     });

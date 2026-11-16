@@ -38,7 +38,7 @@ import {
   TRUST_CLASSES,
   flat,
   read,
-} from "./dependency-ownership-helpers";
+} from "./dependency-ownership-helpers.js";
 
 /**
  * Agent surfaces carrying a full nested `rules/eager` + `rules/reference` tree.

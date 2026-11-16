@@ -28,16 +28,24 @@ import {
   REVIEW_BOT,
 } from "./lisa-gates-fixtures.js";
 
-/**
- * Registry lookup that keeps TypeScript out of the way in assertions.
- * @param id - Gate id to look up
- * @returns The registry definition for that gate
- */
 /** The moments a gate needing a running target is confined to. */
 const DEPLOY_MOMENTS = ["pre-deploy", "post-deploy", "continuous"] as const;
 
-const definition = (id: string) =>
-  (REGISTRY as Record<string, { moments: string[] }>)[id];
+/** The registry, keyed by gate id, as these assertions read it. */
+const GATES_BY_ID: Readonly<
+  Record<string, { readonly moments: readonly string[] }>
+> = REGISTRY;
+
+/**
+ * Registry lookup, failing loudly on a gate id the registry does not know.
+ * @param id - Gate id to look up
+ * @returns The registry definition for that gate
+ */
+const definition = (id: string): { readonly moments: readonly string[] } => {
+  const gate = GATES_BY_ID[id];
+  if (gate === undefined) throw new Error(`no registry gate ${id}`);
+  return gate;
+};
 
 describe("REGISTRY", () => {
   it("gives every gate a label, summary, task and legal moments", () => {

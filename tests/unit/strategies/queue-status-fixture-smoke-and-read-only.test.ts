@@ -81,8 +81,8 @@ describe("queue-status fixture smoke coverage (#826)", () => {
         summary:
           "Oldest stalled build item likely actionable for repair-intake",
       });
-      expect(snapshot.highlights[1].nextStep).toContain("/lisa:repair-intake");
-      expect(snapshot.highlights[2].nextStep).toContain("/lisa:intake");
+      expect(snapshot.highlights[1]?.nextStep).toContain("/lisa:repair-intake");
+      expect(snapshot.highlights[2]?.nextStep).toContain("/lisa:intake");
       expect(snapshot.repairSignals).toMatchObject({
         actionable: true,
         suggestedCommand:

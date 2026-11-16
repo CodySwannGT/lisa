@@ -8,6 +8,7 @@ import { assessReadiness } from "../../../src/cli/doctor-readiness-blockers.js";
 import { assessDeliveryAuthorityDimension } from "../../../src/cli/doctor-readiness-delivery.js";
 import {
   asFindings,
+  type Finding,
   FAIL,
   JOBS,
   makeScratchRepo,
@@ -26,6 +27,20 @@ import {
   TEST_JOB,
   writeWorkflow,
 } from "../../helpers/readiness-workflow-fixtures.js";
+
+/**
+ * The first finding a dimension record carries.
+ *
+ * @param findings - The record's findings
+ * @returns The first finding
+ */
+function firstFinding(findings: readonly unknown[]): Finding {
+  const [first] = asFindings(findings);
+  if (first === undefined) {
+    throw new Error("expected the record to carry at least one finding");
+  }
+  return first;
+}
 
 const PINNED_UPLOAD_ARTIFACT =
   "      - uses: actions/upload-artifact@0123456789abcdef0123456789abcdef01234567";
@@ -72,7 +87,7 @@ describe("assessDeliveryAuthorityDimension — promoted artifact integrity", () 
 
     expect(record.status).toBe("SKIP");
     expect(assessReadiness([record]).blockers).toEqual([]);
-    expect(String(asFindings(record.findings)[0].reason)).toContain(
+    expect(String(firstFinding(record.findings).reason)).toContain(
       "cannot be tied to anything that was validated"
     );
   });
@@ -97,7 +112,7 @@ describe("assessDeliveryAuthorityDimension — promoted artifact integrity", () 
 
     expect(record.status).toBe(FAIL);
     expect(assessReadiness([record]).blockers[0]?.id).toBe("B2");
-    expect(asFindings(record.findings)[0].evidence).toContain(
+    expect(firstFinding(record.findings).evidence).toContain(
       "builds its own artifact and ships it"
     );
   });
@@ -132,7 +147,7 @@ describe("assessDeliveryAuthorityDimension — promoted artifact integrity", () 
 
     expect(record.status).toBe(FAIL);
     expect(assessReadiness([record]).blockers[0]?.id).toBe("B2");
-    expect(String(asFindings(record.findings)[0].evidence)).toContain(
+    expect(String(firstFinding(record.findings).evidence)).toContain(
       "no validating ancestor uploads"
     );
   });
@@ -170,7 +185,7 @@ describe("assessDeliveryAuthorityDimension — promoted artifact integrity", () 
 
     expect(record.status).toBe(FAIL);
     expect(assessReadiness([record]).blockers[0]?.id).toBe("B2");
-    expect(String(asFindings(record.findings)[0].evidence)).toContain(
+    expect(String(firstFinding(record.findings).evidence)).toContain(
       "no validating ancestor uploads"
     );
   });
@@ -206,7 +221,7 @@ describe("assessDeliveryAuthorityDimension — promoted artifact integrity", () 
 
     expect(record.status).toBe("SKIP");
     expect(assessReadiness([record]).blockers).toEqual([]);
-    expect(String(asFindings(record.findings)[0].reason)).toContain(
+    expect(String(firstFinding(record.findings).reason)).toContain(
       "no digest or attestation verification"
     );
   });
@@ -279,7 +294,7 @@ describe("assessDeliveryAuthorityDimension — promoted artifact integrity", () 
 
     expect(record.status).toBe("SKIP");
     expect(assessReadiness([record]).blockers).toEqual([]);
-    expect(String(asFindings(record.findings)[0].reason)).toContain(
+    expect(String(firstFinding(record.findings).reason)).toContain(
       "no digest or attestation verification"
     );
   });

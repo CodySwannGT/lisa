@@ -37,7 +37,22 @@ import {
   ok,
   recorded,
   writes,
+  type GhCall,
 } from "./lisa-reconcile-policy-fixtures.js";
+
+/**
+ * Read one element, failing the test when it is absent.
+ * @param items Items to index.
+ * @param index Position to read.
+ * @returns The element at that position.
+ */
+const at = <T>(items: readonly T[], index: number): T => {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}`);
+  }
+  return item;
+};
 
 const CODERABBIT = "CodeRabbit";
 const GITGUARDIAN = "GitGuardian Security Checks";
@@ -75,14 +90,12 @@ const AWAIT_GATES = {
  * @param calls Recorded `gh` calls.
  * @returns The parsed payload.
  */
-function soleWrite(
-  calls: readonly { args: string[]; input?: string }[]
-): Record<string, never> & {
+function soleWrite(calls: readonly GhCall[]): Record<string, never> & {
   rules: { type: string; parameters: Record<string, unknown> }[];
 } {
   const written = writes([...calls]);
   expect(written).toHaveLength(1);
-  return JSON.parse(written[0].input as string);
+  return JSON.parse(at(written, 0).input as string);
 }
 
 /**
@@ -112,7 +125,7 @@ describe("an awaited context is declared, not extra", () => {
     const live = baseRuleset([]) as {
       rules: { parameters: { required_status_checks: unknown[] } }[];
     };
-    live.rules[0].parameters.required_status_checks = [
+    at(live.rules, 0).parameters.required_status_checks = [
       { context: CODERABBIT, integration_id: CODERABBIT_APP },
       { context: GITGUARDIAN, integration_id: GITGUARDIAN_APP },
     ];
@@ -254,7 +267,7 @@ describe("github.rulesets.requiredChecks", () => {
 
     const written = writes(recorded(gh.mock.calls));
     expect(written).toHaveLength(1);
-    expect(written[0].args.join(" ")).toContain("rulesets/9");
+    expect(at(written, 0).args.join(" ")).toContain("rulesets/9");
     expect(result.plan[0]).toMatchObject({
       kind: "contexts",
       ruleset: QUALITY_CHECKS,
@@ -313,8 +326,8 @@ describe("prune removes a context from the ruleset that requires it", () => {
 
     const written = writes(recorded(gh.mock.calls));
     expect(written).toHaveLength(1);
-    expect(written[0].args.join(" ")).toContain("rulesets/9");
-    expect(checksOf(JSON.parse(written[0].input as string))).toEqual([]);
+    expect(at(written, 0).args.join(" ")).toContain("rulesets/9");
+    expect(checksOf(JSON.parse(at(written, 0).input as string))).toEqual([]);
   });
 });
 

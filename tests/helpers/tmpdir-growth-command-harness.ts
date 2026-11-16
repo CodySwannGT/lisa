@@ -146,7 +146,7 @@ function assertValidTmpdirTrial(
   expect(result.status, result.stderr).toBe(0);
   expect(result.elapsedMs).toBeLessThanOrEqual(TMPDIR_GROWTH_COMMAND_BUDGET_MS);
   expect(
-    Object.keys(report).toSorted((left, right) => left.localeCompare(right))
+    Object.keys(report).sort((left, right) => left.localeCompare(right))
   ).toEqual([
     "created",
     "delta",

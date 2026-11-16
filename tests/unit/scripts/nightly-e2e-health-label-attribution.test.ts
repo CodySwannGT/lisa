@@ -17,7 +17,7 @@ import {
   fakeResponse,
   loadGateModule,
   noWait,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /**
  * Installs a stub `fetch`.

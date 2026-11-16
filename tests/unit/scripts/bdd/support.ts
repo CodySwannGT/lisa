@@ -154,7 +154,13 @@ export interface Report {
     count: number;
     entries: readonly Record<string, unknown>[];
   };
-  readonly floor: { ok: boolean; unset: readonly string[] };
+  readonly floor: {
+    ok: boolean;
+    unset: readonly string[];
+    byPlatform: Readonly<
+      Record<string, { readonly state: string; readonly ok: boolean }>
+    >;
+  };
   readonly trackers: { tags: readonly { tag: string; url: string | null }[] };
   readonly gaps: readonly Record<string, unknown>[];
   readonly testInventory: {

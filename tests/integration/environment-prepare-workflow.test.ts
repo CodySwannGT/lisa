@@ -65,7 +65,11 @@ function workflow(): {
  * @returns The step list.
  */
 function steps() {
-  return workflow().jobs.prepare.steps;
+  const job = workflow().jobs.prepare;
+  if (job === undefined) {
+    throw new Error("the workflow declares no prepare job");
+  }
+  return job.steps;
 }
 
 /**

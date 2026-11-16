@@ -22,6 +22,20 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+/**
+ * Read one keyed entry, failing the test when it is absent.
+ * @param record Entries by name.
+ * @param name Name to read.
+ * @returns The entry under that name.
+ */
+const key = <T>(record: Readonly<Record<string, T>>, name: string): T => {
+  const entry = record[name];
+  if (entry === undefined) {
+    throw new Error(`expected an entry named ${name}`);
+  }
+  return entry;
+};
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
@@ -126,7 +140,9 @@ describe("the reporting half cannot fail the merge gate (§10.4)", () => {
       ruleset.rules.find(rule => rule.type === "required_status_checks")
         ?.parameters?.required_status_checks ?? [];
     for (const check of required) {
-      expect(check.context).not.toContain(reportCaller.jobs.report.name);
+      expect(check.context).not.toContain(
+        key(reportCaller.jobs, "report").name
+      );
     }
     expect(read(REPORT_CALLER_REL)).toContain("never make it a required check");
   });
@@ -148,7 +164,7 @@ describe("the reporting half cannot fail the merge gate (§10.4)", () => {
     // the gate moved on, producing exactly the divergence it was meant to
     // prevent. What actually detects a mismatch is the contract-version
     // assertion below, not the ref.
-    const uses = reportCaller.jobs.report.uses ?? "";
+    const uses = key(reportCaller.jobs, "report").uses ?? "";
     expect(uses).toContain(
       "CodySwannGT/lisa/.github/workflows/nightly-e2e-report.yml@"
     );
@@ -156,7 +172,7 @@ describe("the reporting half cannot fail the merge gate (§10.4)", () => {
   });
 
   it("the reporter asserts the guard's contract major, like the gate", () => {
-    const assertion = (report.jobs.report.steps ?? []).find(step =>
+    const assertion = (key(report.jobs, "report").steps ?? []).find(step =>
       step.run?.includes("--contract-version")
     );
     expect(assertion?.run).toContain("contract mismatch");
@@ -173,10 +189,12 @@ describe("cancel a read, queue a write", () => {
     // Two overlapping reports would both read "no open issue for this suite"
     // and both file one. Cancelling the older one would be worse still: it can
     // be half way through updating an issue set.
-    expect(report.jobs.report.concurrency?.["cancel-in-progress"]).toBe(false);
+    expect(key(report.jobs, "report").concurrency?.["cancel-in-progress"]).toBe(
+      false
+    );
     // Repository-wide, not per-ref: two runs on different refs still write to
     // the same issues.
-    expect(report.jobs.report.concurrency?.group).toContain(
+    expect(key(report.jobs, "report").concurrency?.group).toContain(
       "github.repository"
     );
   });
@@ -185,7 +203,7 @@ describe("cancel a read, queue a write", () => {
     // A forgotten concurrency group produces exactly the duplicates that "one
     // issue per suite" exists to prevent, so it is not left to the caller.
     expect(reportCaller.concurrency).toBeUndefined();
-    expect(reportCaller.jobs.report.concurrency).toBeUndefined();
+    expect(key(reportCaller.jobs, "report").concurrency).toBeUndefined();
   });
 
   it("the GATE caller keeps its per-PR CANCELLING group", () => {

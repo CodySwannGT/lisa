@@ -177,12 +177,12 @@ describe("remote SessionStart materialized artifact authority", () => {
       roots.push(fixture.root);
       const profileBefore = readFileSync(`${fixture.home}/.profile`, "utf8");
 
-      if (options.artifact === "invalid-command") {
+      if ("artifact" in options && options.artifact === "invalid-command") {
         expect(readFileSync(fixture.valuesFile, "utf8")).toContain(
           "SHOULD_NOT_RUN"
         );
       }
-      if (options.artifact === "unreadable") {
+      if ("artifact" in options && options.artifact === "unreadable") {
         expect(artifactIdentity(fixture).fileMode).toBe(0o000);
       }
 

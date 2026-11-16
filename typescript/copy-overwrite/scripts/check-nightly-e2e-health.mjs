@@ -1666,7 +1666,7 @@ export function parseWaiverTrailer(prBody) {
  * PR body — a security limit a caller can relax is not a limit.
  *
  * @param {object} request - `{ labelEvent, prAuthor, prNumber, label, prBody, actorPermission, maxHours, extraReasonPattern, now }`
- * @returns {{valid: boolean, reason: string, actor: string|null, appliedAt: string|null, expiresAt: string|null, ticket: string|null, detail: string|null}} The decision
+ * @returns {{valid: boolean, reason: string, actor: string|null, appliedAt: string|null, expiresAt: string|null, ticket: string|null, detail: string|null, label: string|null, prAuthor: string|null, prNumber: number|null, actorPermission: string|null}} The decision
  */
 export function evaluateBypass(request) {
   const {

@@ -146,7 +146,7 @@ function resolveProtocolBinding(
     active: new Set([...state.active, name]),
     declarationVisits: state.declarationVisits + 1,
   };
-  const dependencies = binding.dependencies.reduce(
+  const dependencies = binding.dependencies.reduce<ResolvedProtocolBinding>(
     (current, dependency) => {
       const resolved = resolveProtocolBinding(dependency, bindings, {
         ...current.state,

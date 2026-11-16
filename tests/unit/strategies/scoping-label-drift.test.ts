@@ -31,6 +31,17 @@ import {
   parseScopingLabel,
 } from "../../../plugins/src/base/scripts/scoping-label-audit.mjs";
 
+/**
+ * The first entry of a list, failing loudly when the list is empty.
+ * @param items - The list under test
+ * @returns Its first entry
+ */
+const firstEntry = <T>(items: readonly T[]): T => {
+  const [first] = items;
+  if (first === undefined) throw new Error("expected at least one entry");
+  return first;
+};
+
 const CI = "component:ci";
 const CLI = "component:cli";
 const PLUGINS = "component:plugins";
@@ -78,7 +89,7 @@ describe("scoping-label smells are reported, never gated (#3420)", () => {
     });
 
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({
+    expect(firstEntry(findings)).toMatchObject({
       family: "component",
       label: PLUGIN,
       kind: SYNONYM,
@@ -94,8 +105,8 @@ describe("scoping-label smells are reported, never gated (#3420)", () => {
       labels: TYPO_BESIDE_ESTABLISHED,
     });
 
-    expect(findings[0].kind).not.toBe("outside-vocabulary");
-    expect(findings[0].detail).toContain("open");
+    expect(firstEntry(findings).kind).not.toBe("outside-vocabulary");
+    expect(firstEntry(findings).detail).toContain("open");
   });
 
   it("reports an issue type outside the closed set", () => {
@@ -183,7 +194,7 @@ describe("the proximity rule needs rarity too", () => {
     });
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].label).toBe("component:doctors");
+    expect(firstEntry(findings).label).toBe("component:doctors");
   });
 
   it("reports nothing on a bootstrapped repository where nothing is established", () => {
@@ -218,7 +229,7 @@ describe("the proximity rule needs rarity too", () => {
     });
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].neighbour).toBe(PLUGINS);
+    expect(firstEntry(findings).neighbour).toBe(PLUGINS);
   });
 });
 
@@ -246,7 +257,10 @@ describe("points is checked against the Fibonacci scale", () => {
       labels: [{ name: "points:xl", count: 2 }],
     });
 
-    expect(findings[0]).toMatchObject({ family: "points", kind: "off-scale" });
+    expect(firstEntry(findings)).toMatchObject({
+      family: "points",
+      kind: "off-scale",
+    });
   });
 });
 
@@ -304,7 +318,7 @@ describe("label parsing stays inside the scoping families", () => {
     });
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].usage).toBe(1);
+    expect(firstEntry(findings).usage).toBe(1);
   });
 });
 

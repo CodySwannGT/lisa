@@ -52,6 +52,8 @@ describe("pre-push Git environment isolation", () => {
   it.each([MANAGED_HOOKS[0], MANAGED_HOOKS[1]])(
     "sanitizes %s after work-item validation and before quality commands",
     async hook => {
+      if (hook === undefined)
+        throw new Error("expected two managed pre-push hooks");
       const source = await readFile(path.resolve(hook), "utf8");
       expect(source.indexOf("validate-push")).toBeLessThan(
         source.indexOf("git rev-parse --local-env-vars")

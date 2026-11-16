@@ -41,7 +41,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   STRICT_FLAG,
   runDetector,
-} from "../scripts/check-duplicate-versions-helpers";
+} from "../scripts/check-duplicate-versions-helpers.js";
 import {
   ADDITION_PROJECT,
   DUPLICATE_CHECK,
@@ -54,7 +54,7 @@ import {
   read,
   readEntries,
   readRecord,
-} from "./dependency-ownership-helpers";
+} from "./dependency-ownership-helpers.js";
 
 const temporaryRoots: string[] = [];
 

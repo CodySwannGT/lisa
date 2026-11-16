@@ -180,12 +180,29 @@ async function writeFixture(): Promise<void> {
   );
 }
 
+/**
+ * An evaluator that resolves to arbitrary, possibly hostile output.
+ *
+ * The evaluator is consumer JavaScript, so nothing at runtime holds it to the
+ * declared result type; these cases exist to prove the runtime validation that
+ * stands in for it. The value is untyped input, asserted at this one boundary.
+ * @param produce Builds the raw output the evaluator resolves to.
+ * @returns An evaluator resolving to that output.
+ */
+function hostileEvaluator(produce: () => unknown): AgenticHealthEvaluator {
+  return async () => (await produce()) as AgenticHealthEvaluation;
+}
+
 async function collect(
   evaluator?: AgenticHealthEvaluator
 ): Promise<HealthResult> {
   return runHealth(projectRoot, {
     now: () => new Date(AGENTIC_COMPLETED_AT),
-    agentic: { enabled: true, evaluator, timeoutMs: GENEROUS_TIMEOUT_MS },
+    agentic: {
+      enabled: true,
+      ...(evaluator === undefined ? {} : { evaluator }),
+      timeoutMs: GENEROUS_TIMEOUT_MS,
+    },
   });
 }
 
@@ -218,7 +235,7 @@ describe("runHealth deterministic-first behavior", () => {
   });
 
   it("returns the exact deterministic result when agentic review is disabled or absent", async () => {
-    const evaluator = vi.fn(async () => ({
+    const evaluator = vi.fn<AgenticHealthEvaluator>(async () => ({
       status: "completed",
       judgments: [],
     }));
@@ -552,7 +569,7 @@ describe("runHealth hostile evaluator degradation", () => {
   it.each(invalidEvaluation)(
     "degrades malformed output atomically: %s",
     async (_name, make) => {
-      const result = await collect(async () => make());
+      const result = await collect(hostileEvaluator(make));
       expect(result).toBe(mocks.deterministic);
     }
   );
@@ -568,7 +585,7 @@ describe("runHealth hostile evaluator degradation", () => {
         },
       }
     );
-    const result = await collect(async () => proxy);
+    const result = await collect(hostileEvaluator(() => proxy));
 
     expect(result).toBe(mocks.deterministic);
     expect(invoked).toBe(false);
@@ -583,7 +600,7 @@ describe("runHealth hostile evaluator degradation", () => {
         return "unavailable";
       },
     });
-    const result = await collect(async () => candidate);
+    const result = await collect(hostileEvaluator(() => candidate));
 
     expect(result).toBe(mocks.deterministic);
     expect(invoked).toBe(false);
@@ -628,7 +645,7 @@ describe("runHealth hostile evaluator degradation", () => {
     expect(result).toBe(mocks.deterministic);
   });
 
-  it.each([
+  it.each<[string, AgenticHealthEvaluator]>([
     ["unavailable", async () => ({ status: "unavailable" })],
     [
       "throw",
@@ -803,7 +820,7 @@ describe("runHealth confined evidence collection", () => {
   });
 
   it("degrades without calling the evaluator for an escaping symlink", async () => {
-    const evaluator = vi.fn(async () => ({
+    const evaluator = vi.fn<AgenticHealthEvaluator>(async () => ({
       status: "completed",
       judgments: [],
     }));
@@ -824,7 +841,7 @@ describe("runHealth confined evidence collection", () => {
   });
 
   it("degrades before evaluation for oversized or invalid UTF-8 evidence", async () => {
-    const evaluator = vi.fn(async () => ({
+    const evaluator = vi.fn<AgenticHealthEvaluator>(async () => ({
       status: "completed",
       judgments: [],
     }));
@@ -842,7 +859,7 @@ describe("runHealth confined evidence collection", () => {
   });
 
   it("degrades when workflow enumeration exceeds its fixed limit", async () => {
-    const evaluator = vi.fn(async () => ({
+    const evaluator = vi.fn<AgenticHealthEvaluator>(async () => ({
       status: "completed",
       judgments: [],
     }));

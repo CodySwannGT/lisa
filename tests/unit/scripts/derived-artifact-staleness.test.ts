@@ -177,7 +177,7 @@ describe("derived-artifact staleness gate: prefix list stays in step", () => {
     );
     const declared = [
       ...(block?.groups?.body ?? "").matchAll(/"([^"]+)"/gu),
-    ].map(match => match[1]);
+    ].flatMap(match => match[1] ?? []);
 
     const byCodePoint = (left: string, right: string) =>
       left < right ? -1 : Number(left > right);
@@ -303,6 +303,9 @@ describe("local test command covers the same files as CI", () => {
     // A path argument or --include/--dir here is exactly how the two sets would
     // silently come apart again; --coverage cannot change file discovery.
     for (const script of [scripts.test, scripts["test:cov"]]) {
+      if (script === undefined) {
+        throw new Error("package.json is missing a test script");
+      }
       expect(script).not.toMatch(/--(?:include|dir|project)\b/u);
 
       const words = script.split(/\s+/u);

@@ -209,7 +209,7 @@ describe("inject-resolved-config: agent fan-out", () => {
     // agy has no SessionStart event; the gap is compensated by the shared
     // gate-runner and `lisa doctor` rungs, not by an agent-layer hook.
     ["agy", false],
-  ])("ships to %s: %s", (agent, expected) => {
+  ] as const)("ships to %s: %s", (agent, expected) => {
     expect(shouldShipScript("inject-resolved-config.sh", agent)).toBe(expected);
   });
 });

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { RETIRED_SKIP_JOB_TOKENS } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { RETAINED_RELEASES } from "../../scripts/generate-nightly-e2e-guard-certificate.mjs";
+import { jobOf } from "../helpers/workflow-job-graph.js";
 
 // Derive the repo root from this test file's location so the test is
 // portable across worktrees and CI working directories.
@@ -452,7 +453,9 @@ describe("quality.yml reusable workflow", () => {
       // passing it.
       for (const file of [NESTJS_CI_YML, EXPO_CI_YML]) {
         const ci = yaml.load(fs.readFileSync(file, "utf8")) as QualityWorkflow;
-        const tokens = (ci.jobs.quality?.with?.skip_jobs ?? "").split(",");
+        const tokens = String(ci.jobs.quality?.with?.skip_jobs ?? "").split(
+          ","
+        );
         const retired = tokens.filter(token =>
           Object.hasOwn(RETIRED_SKIP_JOB_TOKENS, token)
         );
@@ -543,7 +546,7 @@ describe("quality.yml reusable workflow", () => {
 
   describe("verification coverage labels", () => {
     it("passes event labels to the coverage script without live GitHub context", () => {
-      const job = workflow.jobs.verification_coverage;
+      const job = jobOf(workflow, "verification_coverage");
       // This job used to inherit the workflow-level floor (#1769); that floor is
       // now written onto each job directly, because as a workflow-level block it
       // also zeroed the scopes it omitted for work_item_traceability. The scope
@@ -589,7 +592,7 @@ describe("quality.yml reusable workflow", () => {
     });
 
     it("starts optional service containers and applies env before coverage", () => {
-      const steps = workflow.jobs.test_unit.steps ?? [];
+      const steps = jobOf(workflow, "test_unit").steps ?? [];
       const checkIndex = steps.findIndex(step => step.id === "check_script");
       const serviceIndex = steps.findIndex(
         step => step.name === "🧰 Start coverage service containers"
@@ -710,7 +713,7 @@ describe("quality.yml reusable workflow", () => {
 
   describe("e2e route coverage dependencies", () => {
     it("installs host dependencies after detection and before route analysis", () => {
-      const steps = workflow.jobs.e2e_coverage.steps ?? [];
+      const steps = jobOf(workflow, "e2e_coverage").steps ?? [];
       const checkIndex = steps.findIndex(step => step.id === "check_script");
       const bunIndex = steps.findIndex(step => step.name === "🍞 Setup Bun");
       const installIndex = steps.findIndex(
@@ -875,7 +878,7 @@ describe("quality.yml reusable workflow", () => {
     });
 
     it("passes only SonarCloud's token to the SonarCloud action", () => {
-      const steps = workflow.jobs.sonarcloud.steps ?? [];
+      const steps = jobOf(workflow, "sonarcloud").steps ?? [];
       const scan = steps.find(
         s =>
           s.uses ===
@@ -892,7 +895,7 @@ describe("quality.yml reusable workflow", () => {
 
   describe("cross-repo reusable workflow approval gate", () => {
     it("does not bind a dynamic environment in the optional approval job", () => {
-      expect(workflow.jobs.approval_gate.environment).toBeUndefined();
+      expect(jobOf(workflow, "approval_gate").environment).toBeUndefined();
     });
   });
 
@@ -903,7 +906,7 @@ describe("quality.yml reusable workflow", () => {
     ])("%s soft-fails only quota exhaustion", (_label, workflowPath) => {
       const raw = fs.readFileSync(workflowPath, "utf8");
       const parsed = yaml.load(raw) as QualityWorkflow;
-      const steps = parsed.jobs.secret_scanning.steps ?? [];
+      const steps = jobOf(parsed, "secret_scanning").steps ?? [];
       const scan = steps.find(s => s.name === "🔐 GitGuardian scan");
 
       expect(scan).toBeDefined();
@@ -918,7 +921,7 @@ describe("quality.yml reusable workflow", () => {
 
   describe("canonical audit workflow delivery", () => {
     it("runs an immutable workflow-owned audit without requiring a newly applied caller adapter", () => {
-      const steps = workflow.jobs.npm_security_scan.steps ?? [];
+      const steps = jobOf(workflow, "npm_security_scan").steps ?? [];
       const audit = steps.find(s => s.name === "🔒 Run security audit");
       expect(audit?.uses).toMatch(
         /^CodySwannGT\/lisa\/\.github\/actions\/dependency-audit@[0-9a-f]{40}$/u
@@ -1060,14 +1063,14 @@ describe("release and deploy workflows", () => {
     // installed repos can never self-heal. quality.yml's work_item_traceability
     // job declares no permissions of its own and is pull_request-only, so this
     // push path needs nothing beyond the long-standing baseline.
-    expect(releaseWorkflow.jobs.quality.permissions).toEqual({
+    expect(jobOf(releaseWorkflow, "quality").permissions).toEqual({
       contents: "read",
       "pull-requests": "read",
     });
   });
 
   it("pushes signed release tags after creating them", () => {
-    const steps = releaseWorkflow.jobs.release_signing.steps ?? [];
+    const steps = jobOf(releaseWorkflow, "release_signing").steps ?? [];
     const signTag = steps.find(s => s.name === "Create Signed Git Tag");
     const run = signTag?.run ?? "";
 
@@ -1081,7 +1084,7 @@ describe("release and deploy workflows", () => {
   it("normalizes versions and bumps past existing tags before composing release tags", () => {
     // Version counters are branch-local but tags are repo-global (dev and
     // staging can compute the same next version); custom pins never bump.
-    const steps = releaseWorkflow.jobs.version.steps ?? [];
+    const steps = jobOf(releaseWorkflow, "version").steps ?? [];
     const determineVersion = steps.find(s => s.name === "Determine Version");
     const run = determineVersion?.run ?? "";
 
@@ -1115,7 +1118,7 @@ describe("release and deploy workflows", () => {
   });
 
   it("fails release creation on API errors but reuses an existing release on rerun", () => {
-    const steps = releaseWorkflow.jobs.github_release.steps ?? [];
+    const steps = jobOf(releaseWorkflow, "github_release").steps ?? [];
     const createRelease = steps.find(s => s.name === "Create GitHub Release");
     const run = createRelease?.run ?? "";
 
@@ -1146,7 +1149,7 @@ describe("release and deploy workflows", () => {
   });
 
   it("keeps NestJS dotenv materialization opt-in and env-driven", () => {
-    const deploySteps = nestjsDeployWorkflow.jobs?.deploy.steps ?? [];
+    const deploySteps = jobOf(nestjsDeployWorkflow, "deploy").steps ?? [];
     const dotenvStep = deploySteps.find(
       step => step.name === "Materialize dotenv env file"
     );
@@ -1166,7 +1169,7 @@ describe("release and deploy workflows", () => {
   });
 
   it("keeps NestJS post-deploy health smoke opt-in and CloudFormation-backed", () => {
-    const deploySteps = nestjsDeployWorkflow.jobs?.deploy.steps ?? [];
+    const deploySteps = jobOf(nestjsDeployWorkflow, "deploy").steps ?? [];
     const smokeStep = deploySteps.find(
       step => step.name === "Post-deploy health smoke"
     );
@@ -1236,20 +1239,20 @@ describe("release and deploy workflows", () => {
 
   it("uses explicit least-privilege permissions for read-only NestJS jobs and release caller", () => {
     expect(
-      nestjsDeployWorkflow.jobs?.determine_environment.permissions
+      jobOf(nestjsDeployWorkflow, "determine_environment").permissions
     ).toEqual({ contents: "read" });
     expect(
-      nestjsDeployWorkflow.jobs?.verify_aws_credentials.permissions
+      jobOf(nestjsDeployWorkflow, "verify_aws_credentials").permissions
     ).toEqual({ contents: "read" });
     expect(
-      nestjsDeployWorkflow.jobs?.check_migration_required.permissions
+      jobOf(nestjsDeployWorkflow, "check_migration_required").permissions
     ).toEqual({ contents: "read" });
-    expect(nestjsDeployWorkflow.jobs?.verify_vpn.permissions).toEqual({
+    expect(jobOf(nestjsDeployWorkflow, "verify_vpn").permissions).toEqual({
       contents: "read",
     });
     // No issues scope: release.yml requests none, and a host granting a scope
     // its callee never asks for is dead weight, not defense in depth.
-    expect(nestjsDeployWorkflow.jobs?.release.permissions).toEqual({
+    expect(jobOf(nestjsDeployWorkflow, "release").permissions).toEqual({
       contents: "write",
       "pull-requests": "read",
     });
@@ -1273,33 +1276,35 @@ describe("release and deploy workflows", () => {
   });
 
   it("grants reusable Expo release and deploy jobs the permissions they request", () => {
-    expect(expoDeployWorkflow.jobs?.release.permissions).toEqual({
+    expect(jobOf(expoDeployWorkflow, "release").permissions).toEqual({
       contents: "write",
       "pull-requests": "read",
     });
-    expect(expoDeployWorkflow.jobs?.determine_environment.permissions).toEqual({
+    expect(
+      jobOf(expoDeployWorkflow, "determine_environment").permissions
+    ).toEqual({
       contents: "read",
     });
-    expect(expoDeployWorkflow.jobs?.check_eas_setup.permissions).toEqual({
+    expect(jobOf(expoDeployWorkflow, "check_eas_setup").permissions).toEqual({
       contents: "read",
     });
     expect(
-      expoDeployWorkflow.jobs?.check_app_config_changes.permissions
+      jobOf(expoDeployWorkflow, "check_app_config_changes").permissions
     ).toEqual({ contents: "read" });
-    expect(expoDeployWorkflow.jobs?.deploy.permissions).toEqual({
+    expect(jobOf(expoDeployWorkflow, "deploy").permissions).toEqual({
       contents: "read",
     });
   });
 
   it("grants GitHub issue fallback workflows enough token scope for read-only repos", () => {
     expect(
-      createIssueOnFailureWorkflow.jobs?.create_github_issue.permissions
+      jobOf(createIssueOnFailureWorkflow, "create_github_issue").permissions
     ).toEqual({
       contents: "read",
       issues: "write",
     });
     expect(
-      createGithubIssueOnFailureWorkflow.jobs?.create_issue.permissions
+      jobOf(createGithubIssueOnFailureWorkflow, "create_issue").permissions
     ).toEqual({
       contents: "read",
       issues: "write",

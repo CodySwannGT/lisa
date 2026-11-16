@@ -179,7 +179,7 @@ export function tokenProcessIds(token: string): readonly number[] {
     .split("\n")
     .filter(row => row.includes(token))
     .map(row => processRow.exec(row.trim()))
-    .filter((match): match is RegExpMatchArray =>
+    .filter((match): match is RegExpExecArray =>
       Boolean(match && !match[2]?.startsWith("Z"))
     )
     .map(match => Number(match[1]));

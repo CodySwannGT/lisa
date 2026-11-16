@@ -193,8 +193,8 @@ export function exactVersionUrl(registry, name, version) {
  * @param {object} timeout - Per-attempt deadline dependencies.
  * @param {number} timeout.attemptTimeoutMs - Deadline in milliseconds.
  * @param {() => AbortController} timeout.createAbortController - Controller factory.
- * @param {typeof setTimeout} timeout.setAttemptTimer - Timer scheduler.
- * @param {typeof clearTimeout} timeout.clearAttemptTimer - Timer clearer.
+ * @param {(callback: () => void, ms: number) => unknown} timeout.setAttemptTimer - Timer scheduler; returns a handle.
+ * @param {(timer: unknown) => void} timeout.clearAttemptTimer - Clears a handle the scheduler returned.
  * @returns {Promise<{verdict: string, detail: string}>} One attempt's outcome.
  */
 async function askOnce(url, fetchImpl, version, timeout) {
@@ -262,6 +262,9 @@ const worthRetrying = verdict => verdict !== "published";
  * @param {number} [options.attemptTimeoutMs] - Deadline for each attempt.
  * @param {typeof fetch} [options.fetchImpl] - Injected for tests.
  * @param {(ms: number) => Promise<void>} [options.sleep] - Injected for tests.
+ * @param {() => AbortController} [options.createAbortController] - Per-attempt controller factory; injected for tests.
+ * @param {(callback: () => void, ms: number) => unknown} [options.setAttemptTimer] - Arms each attempt's deadline and returns a handle; defaults to `setTimeout`.
+ * @param {(timer: unknown) => void} [options.clearAttemptTimer] - Clears a handle `setAttemptTimer` returned; defaults to `clearTimeout`.
  * @returns {Promise<{verdict: string, detail: string, urls: string[]}>} Outcome.
  */
 export async function verifyPublish({

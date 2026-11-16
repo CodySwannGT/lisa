@@ -100,6 +100,26 @@ interface GuardModule {
 
 const DAY_MS = 86_400_000;
 
+/** A shipped seed declaration, as read from disk. */
+interface SeedDeclaration {
+  readonly [key: string]: unknown;
+  readonly required_contexts: unknown;
+  readonly ruleset: { readonly baseline_fetched_at: unknown };
+}
+
+/**
+ * Narrow a possibly-absent value, failing the test loudly when it is absent.
+ * @param value - Value read from an index or optional lookup
+ * @param label - Name used in the failure message
+ * @returns The value, narrowed to exclude undefined
+ */
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`expected ${label} to be defined`);
+  }
+  return value;
+}
+
 /**
  * Creates a throwaway repository with a `.github/workflows` directory.
  *
@@ -182,8 +202,12 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
       expect(collected.violations.map(violation => violation.kind)).toEqual([
         mod.VIOLATIONS.whitespace,
       ]);
-      expect(collected.violations[0].token).toBe("test:e2e");
-      expect(collected.violations[0].message).toContain("fails closed");
+      expect(requireDefined(collected.violations[0], "violation").token).toBe(
+        "test:e2e"
+      );
+      expect(
+        requireDefined(collected.violations[0], "violation").message
+      ).toContain("fails closed");
     });
 
     it("reports a lone ` test ` padded on both sides", () => {
@@ -193,7 +217,9 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
       expect(collected.violations.map(violation => violation.kind)).toEqual([
         mod.VIOLATIONS.whitespace,
       ]);
-      expect(collected.violations[0].token).toBe("test");
+      expect(requireDefined(collected.violations[0], "violation").token).toBe(
+        "test"
+      );
     });
 
     it("still carries the TRIMMED token forward — over-report, never under-report", () => {
@@ -313,14 +339,18 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
       // must still say the merge gate was satisfied — but `Review rate limited`
       // cannot establish that no review happened (CodySwannGT/lisa#3762), so it
       // must not instruct that conclusion, and must point at what settles it.
-      expect(violations[0].message).toContain(
+      expect(requireDefined(violations[0], "violation").message).toContain(
         "branch protection recorded a satisfied review gate"
       );
-      expect(violations[0].message).not.toMatch(
+      expect(requireDefined(violations[0], "violation").message).not.toMatch(
         /treat this pr as unreviewed/iu
       );
-      expect(violations[0].message).toContain("reviewThreads");
-      expect(violations[0].message).not.toContain(NOT_KNOWN);
+      expect(requireDefined(violations[0], "violation").message).toContain(
+        "reviewThreads"
+      );
+      expect(requireDefined(violations[0], "violation").message).not.toContain(
+        NOT_KNOWN
+      );
     });
 
     it("STILL REFUSES: an empty stamp downgrades that same claim, as before", () => {
@@ -339,9 +369,13 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
         HOLLOW_CHECKS,
         { trustRequiredContexts: trust.trusted }
       );
-      expect(violations[0].kind).toBe(mod.VIOLATIONS.vacuous);
-      expect(violations[0].message).toContain(NOT_KNOWN);
-      expect(violations[0].message).not.toContain(
+      expect(requireDefined(violations[0], "violation").kind).toBe(
+        mod.VIOLATIONS.vacuous
+      );
+      expect(requireDefined(violations[0], "violation").message).toContain(
+        NOT_KNOWN
+      );
+      expect(requireDefined(violations[0], "violation").message).not.toContain(
         "branch protection recorded a satisfied review gate"
       );
     });
@@ -359,7 +393,9 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
         HOLLOW_CHECKS,
         { trustRequiredContexts: trust.trusted }
       );
-      expect(violations[0].message).toContain(NOT_KNOWN);
+      expect(requireDefined(violations[0], "violation").message).toContain(
+        NOT_KNOWN
+      );
     });
 
     it("SUPPRESSES every rule that reads `required_contexts` when untrusted", () => {
@@ -439,9 +475,9 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
       "nestjs/create-only",
       "typescript/create-only",
     ])("%s ships no guessed required_contexts and no stamp", seedDir => {
-      const seed = JSON.parse(
+      const seed: SeedDeclaration = JSON.parse(
         fs.readFileSync(path.join(REPO_ROOT, seedDir, DECLARATION_REL), "utf-8")
-      ) as Record<string, never>;
+      );
       expect(seed.required_contexts).toEqual([]);
       expect(seed.ruleset.baseline_fetched_at).toBe("");
       expect(mod.snapshotTrust(seed).trusted).toBe(false);
@@ -592,9 +628,12 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
             Record<string, readonly string[]>
           >;
         };
-        expect(declaration.evidence_bearing_checks.CodeRabbit[list]).toEqual([
-          "One exact phrase",
-        ]);
+        expect(
+          requireDefined(
+            declaration.evidence_bearing_checks.CodeRabbit,
+            "CodeRabbit vocabulary"
+          )[list]
+        ).toEqual(["One exact phrase"]);
       }
     );
   });

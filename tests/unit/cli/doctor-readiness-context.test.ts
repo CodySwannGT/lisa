@@ -36,6 +36,17 @@ import {
   writeRepoJson,
 } from "../../helpers/readiness-workflow-fixtures.js";
 
+/**
+ * The first entry of a list, failing loudly when the list is empty.
+ * @param items - The list under test
+ * @returns Its first entry
+ */
+const firstEntry = <T>(items: readonly T[]): T => {
+  const [first] = items;
+  if (first === undefined) throw new Error("expected at least one entry");
+  return first;
+};
+
 /** The dimension this producer owns. */
 const DIMENSION_ID = "context-routing";
 
@@ -126,9 +137,9 @@ describe("assessContextRoutingDimension — B6 (documentation overstates enforce
     const assessment = assessReadiness([record]);
 
     expect(assessment.verdict).toBe("NOT_READY");
-    expect(assessment.blockers[0].id).toBe(BLOCKER_ID);
-    expect(assessment.blockers[0].dimension_id).toBe(DIMENSION_ID);
-    expect(assessment.blockers[0].label).toBe(
+    expect(firstEntry(assessment.blockers).id).toBe(BLOCKER_ID);
+    expect(firstEntry(assessment.blockers).dimension_id).toBe(DIMENSION_ID);
+    expect(firstEntry(assessment.blockers).label).toBe(
       "Documentation overstates enforced guarantees"
     );
     expect(assessment.narrowed_claim).toContain("NOT ready");
@@ -162,10 +173,10 @@ describe("assessContextRoutingDimension — unassessable repositories", () => {
 
     expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
-    expect(findings[0].skip).toBe(true);
-    expect(typeof findings[0].reason).toBe("string");
-    expect(findings[0].reason).not.toBe("");
-    expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
+    expect(firstEntry(findings).skip).toBe(true);
+    expect(typeof firstEntry(findings).reason).toBe("string");
+    expect(firstEntry(findings).reason).not.toBe("");
+    expect(Object.hasOwn(firstEntry(findings), "blocker")).toBe(false);
     expect(assessReadiness([record]).blockers).toEqual([]);
   });
 
@@ -177,9 +188,9 @@ describe("assessContextRoutingDimension — unassessable repositories", () => {
 
     expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
-    expect(findings[0].reason).toContain(WIKI_INDEX);
-    expect(findings[0].reason).toContain(".lisa.config.json");
-    expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
+    expect(firstEntry(findings).reason).toContain(WIKI_INDEX);
+    expect(firstEntry(findings).reason).toContain(".lisa.config.json");
+    expect(Object.hasOwn(firstEntry(findings), "blocker")).toBe(false);
   });
 
   it("still WARNs on an overstatement even when the routing artifacts are incomplete", async () => {

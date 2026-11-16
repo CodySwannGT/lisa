@@ -18,16 +18,17 @@ import type {
   IssuePlanEntry,
   IssueResult,
   ReportingModule,
-} from "./nightly-e2e-reporting-harness";
+  TrackedIssue,
+} from "./nightly-e2e-reporting-harness.js";
 import type {
   Observation,
   Run,
   RunSelection,
   SelectionModule,
-} from "./nightly-e2e-selection-harness";
+} from "./nightly-e2e-selection-harness.js";
 import type { WaiverModule } from "./nightly-e2e-waiver-harness.js";
 
-export type { Run } from "./nightly-e2e-selection-harness";
+export type { Run } from "./nightly-e2e-selection-harness.js";
 
 export {
   GATE_CONTEXT,
@@ -36,7 +37,7 @@ export {
   LABEL_STATE,
   REQUIRED_STATE,
   requiredChecksRule,
-} from "./nightly-e2e-reporting-harness";
+} from "./nightly-e2e-reporting-harness.js";
 export type {
   BypassLabelState,
   IssuePlanEntry,
@@ -44,7 +45,7 @@ export type {
   Requiredness,
   RulesetSource,
   TrackedIssue,
-} from "./nightly-e2e-reporting-harness";
+} from "./nightly-e2e-reporting-harness.js";
 
 /** Repository root, from this file's location. */
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -122,6 +123,11 @@ export interface BypassDecision {
   readonly ticket: string | null;
   readonly detail: string | null;
   readonly expiresAt: string | null;
+  readonly appliedAt: string | null;
+  readonly label: string | null;
+  readonly prNumber: number | null;
+  readonly actorPermission: string | null;
+  readonly prAuthor: string | null;
   readonly waived?: readonly Finding[];
 }
 

@@ -44,6 +44,20 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 
+/**
+ * Read one keyed entry, failing the test when it is absent.
+ * @param record Entries by name.
+ * @param name Name to read.
+ * @returns The entry under that name.
+ */
+const key = <T>(record: Readonly<Record<string, T>>, name: string): T => {
+  const entry = record[name];
+  if (entry === undefined) {
+    throw new Error(`expected an entry named ${name}`);
+  }
+  return entry;
+};
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const REUSABLE_YML = path.join(
@@ -205,7 +219,7 @@ describe("maestro-native-e2e per-flow retry (executed)", () => {
    * @returns The step's shell script exactly as CI will run it
    */
   const iosStep = (namePart: string): string => {
-    const step = (workflow.jobs.ios.steps ?? []).find(candidate =>
+    const step = (key(workflow.jobs, "ios").steps ?? []).find(candidate =>
       candidate.name?.includes(namePart)
     );
     if (!step?.run) throw new Error(`no iOS step matching "${namePart}"`);

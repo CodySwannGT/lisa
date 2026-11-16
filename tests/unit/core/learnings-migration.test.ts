@@ -119,7 +119,9 @@ describe("v1 mutation-only migration", () => {
     const initial = renderLegacyEntries(entries);
     const padding = 12_000 - Buffer.byteLength(initial, "utf8");
     expect(padding).toBeGreaterThan(0);
-    entries[0] = { ...entries[0], why: `w${"x".repeat(padding)}` };
+    const [first] = entries;
+    if (!first) throw new Error("expected maxEntries legacy entries");
+    entries[0] = { ...first, why: `w${"x".repeat(padding)}` };
     const legacy = renderLegacyEntries(entries);
 
     expect(Buffer.byteLength(legacy, "utf8")).toBe(12_000);

@@ -27,7 +27,7 @@
 
 import * as fs from "fs-extra";
 import { load as loadYaml } from "js-yaml";
-import { spawnSync } from "node:child_process";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -140,9 +140,7 @@ function seed(options: {
  * @param env Environment for the step, including the GitHub file paths.
  * @returns The completed child process.
  */
-function executeStep(
-  env: NodeJS.ProcessEnv
-): ReturnType<typeof spawnSync<string>> {
+function executeStep(env: NodeJS.ProcessEnv): SpawnSyncReturns<string> {
   const script = path.join(project, "gate-step.sh");
   fs.writeFileSync(script, gateScript());
   return spawnSync(SHELL, ["-e", script], {

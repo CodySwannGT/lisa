@@ -18,7 +18,7 @@ import { DEFAULT_SANDBOX_ROOT } from "../../src/configs/repo-scan.js";
 
 import type { GateRun } from "../helpers/gate-capture.js";
 import { captureGateRun } from "../helpers/gate-capture.js";
-import { suitesByGuard } from "../../vitest.config.mutation";
+import { suitesByGuard } from "../../vitest.config.mutation.js";
 import {
   assertGuardsContributedKills,
   killCounts,

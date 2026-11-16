@@ -41,11 +41,12 @@ import {
   STALE,
   STATE,
   TEST_API,
+  type Verdict,
   fakeResponse,
   loadGateModule,
   noWait,
-} from "../../helpers/nightly-e2e-gate-harness";
-import { observeContext } from "../../helpers/nightly-e2e-selection-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
+import { observeContext } from "../../helpers/nightly-e2e-selection-harness.js";
 
 /** The run that tested everything: eight jobs, all green. */
 const PASSED_RUN: Run = Object.freeze({
@@ -408,11 +409,15 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
       expect(observation?.run?.id).toBe(truncated.id);
       expect(observation?.selection?.skipped).toEqual([]);
       expect(observation?.selection?.fellBack).toBe(false);
-      const finding = mod.assessSuite(RUN_SUITE, observation ?? {}, {
-        branch: BRANCH,
-        freshnessHours: CONTEXT.freshnessHours,
-        now: NOW,
-      });
+      const finding = mod.assessSuite(
+        RUN_SUITE,
+        { ...observation },
+        {
+          branch: BRANCH,
+          freshnessHours: CONTEXT.freshnessHours,
+          now: NOW,
+        }
+      );
       expect(finding.state).not.toBe(STATE.pass);
     });
 
@@ -469,7 +474,7 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
       // Both match modes argue green from the jobs that were read, so both
       // must refuse it.
       for (const suite of [RUN_SUITE, PATTERN_SUITE]) {
-        const finding = mod.assessSuite(suite, observation ?? {}, context);
+        const finding = mod.assessSuite(suite, { ...observation }, context);
         expect(finding.state).toBe(STATE.unknown);
         expect(finding.reason).toBe(REASON.incompleteRun);
       }
@@ -492,11 +497,15 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
       );
 
       expect(observation?.run?.id).toBe(PASSED_RUN.id);
-      const finding = mod.assessSuite(PATTERN_SUITE, observation ?? {}, {
-        branch: BRANCH,
-        freshnessHours: CONTEXT.freshnessHours,
-        now: NOW,
-      });
+      const finding = mod.assessSuite(
+        PATTERN_SUITE,
+        { ...observation },
+        {
+          branch: BRANCH,
+          freshnessHours: CONTEXT.freshnessHours,
+          now: NOW,
+        }
+      );
       expect(finding.state).toBe(STATE.pass);
     });
 
@@ -517,11 +526,15 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
         CONTEXT,
         noWait
       );
-      const finding = mod.assessSuite(RUN_SUITE, observation ?? {}, {
-        branch: BRANCH,
-        freshnessHours: CONTEXT.freshnessHours,
-        now: NOW,
-      });
+      const finding = mod.assessSuite(
+        RUN_SUITE,
+        { ...observation },
+        {
+          branch: BRANCH,
+          freshnessHours: CONTEXT.freshnessHours,
+          now: NOW,
+        }
+      );
 
       expect(finding.state).toBe(STATE.fail);
       expect(finding.conclusion).toBe("failure");
@@ -557,11 +570,15 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
 
       expect(observation?.run?.id).toBe(901);
       expect(observation?.selection?.skipped).toEqual([]);
-      const finding = mod.assessSuite(RUN_SUITE, observation ?? {}, {
-        branch: BRANCH,
-        freshnessHours: CONTEXT.freshnessHours,
-        now: NOW,
-      });
+      const finding = mod.assessSuite(
+        RUN_SUITE,
+        { ...observation },
+        {
+          branch: BRANCH,
+          freshnessHours: CONTEXT.freshnessHours,
+          now: NOW,
+        }
+      );
       expect(finding.state).toBe(STATE.unknown);
       expect(finding.reason).toBe(REASON.indecisive);
     });
@@ -591,11 +608,15 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
       expect(observation?.selection?.skipped.map(entry => entry.runId)).toEqual(
         [902]
       );
-      const finding = mod.assessSuite(RUN_SUITE, observation ?? {}, {
-        branch: BRANCH,
-        freshnessHours: CONTEXT.freshnessHours,
-        now: NOW,
-      });
+      const finding = mod.assessSuite(
+        RUN_SUITE,
+        { ...observation },
+        {
+          branch: BRANCH,
+          freshnessHours: CONTEXT.freshnessHours,
+          now: NOW,
+        }
+      );
       expect(finding.state).toBe(STATE.unknown);
       expect(finding.reason).toBe(REASON.indecisive);
     });
@@ -623,11 +644,15 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
 
       expect(observation?.run?.id).toBe(DISPLACED_RUN.id);
       expect(paths.some(url => url.includes("/runs/903/jobs"))).toBe(false);
-      const finding = mod.assessSuite(RUN_SUITE, observation ?? {}, {
-        branch: BRANCH,
-        freshnessHours: CONTEXT.freshnessHours,
-        now: NOW,
-      });
+      const finding = mod.assessSuite(
+        RUN_SUITE,
+        { ...observation },
+        {
+          branch: BRANCH,
+          freshnessHours: CONTEXT.freshnessHours,
+          now: NOW,
+        }
+      );
       expect(finding.state).not.toBe(STATE.pass);
     });
 
@@ -869,7 +894,7 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
      */
     async function judgeBothArms(): Promise<{
       findings: readonly Finding[];
-      verdict: { blocked: boolean; verdict: string };
+      verdict: Verdict;
     }> {
       stubArms(
         {
@@ -891,11 +916,15 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
         noWait
       );
       const findings = suites.map((suite, index) =>
-        mod.assessSuite(suite, observations[index] ?? {}, {
-          branch: BRANCH,
-          freshnessHours: CONTEXT.freshnessHours,
-          now: NOW,
-        })
+        mod.assessSuite(
+          suite,
+          { ...observations[index] },
+          {
+            branch: BRANCH,
+            freshnessHours: CONTEXT.freshnessHours,
+            now: NOW,
+          }
+        )
       );
       return {
         findings,
@@ -1258,11 +1287,15 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
         expect(observation?.selection?.timedOut).toBe(complete ? true : null);
         expect(annotations).toHaveLength(complete ? 1 : 0);
         expect(
-          mod.assessSuite(RUN_SUITE, observation ?? {}, {
-            branch: BRANCH,
-            freshnessHours: CONTEXT.freshnessHours,
-            now: NOW,
-          }).state
+          mod.assessSuite(
+            RUN_SUITE,
+            { ...observation },
+            {
+              branch: BRANCH,
+              freshnessHours: CONTEXT.freshnessHours,
+              now: NOW,
+            }
+          ).state
         ).not.toBe(STATE.pass);
       }
     );

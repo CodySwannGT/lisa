@@ -33,7 +33,7 @@ import {
   TEST_API,
   fakeResponse,
   loadGateModule,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /** Two days before `NOW`: a suite added this week. */
 const RECENTLY = "2026-08-10T00:00:00Z";

@@ -230,10 +230,10 @@ describe("resolveMoment", () => {
       },
       moment: PULL_REQUEST,
     });
-    expect(gate?.evidence.no_work).toContain("seat limit exceeded");
+    expect(gate?.evidence?.no_work).toContain("seat limit exceeded");
     // Removing a default would narrow detection with no signal it was narrowed.
     for (const phrase of EVIDENCE_DEFAULTS.no_work) {
-      expect(gate?.evidence.no_work).toContain(phrase);
+      expect(gate?.evidence?.no_work).toContain(phrase);
     }
   });
 
@@ -246,7 +246,7 @@ describe("resolveMoment", () => {
       },
       moment: PULL_REQUEST,
     });
-    expect(gate?.evidence.on_hollow).toBe("report");
+    expect(gate?.evidence?.on_hollow).toBe("report");
   });
 });
 

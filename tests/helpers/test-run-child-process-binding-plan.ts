@@ -331,14 +331,14 @@ function planScopes(
     node !== source &&
     (ts.isBlock(node) || ts.isFunctionLike(node) || ts.isCatchClause(node));
   const currentId = nested ? plan.nextScopeId : incomingId;
-  const opened = nested
+  const opened: ChildProcessScopePlan = nested
     ? {
         ...plan,
         nextScopeId: plan.nextScopeId + 1,
         parents: [...plan.parents, incomingId],
       }
     : plan;
-  const current = {
+  const current: ChildProcessScopePlan = {
     ...opened,
     events: [
       ...opened.events,
@@ -346,7 +346,7 @@ function planScopes(
     ],
     nodeScopes: [...opened.nodeScopes, [node, currentId] as const],
   };
-  return traversableChildren(node).reduce(
+  return traversableChildren(node).reduce<ChildProcessScopePlan>(
     (state, child) => planScopes(child, currentId, source, state),
     current
   );

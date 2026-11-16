@@ -43,6 +43,29 @@ export interface SimulatedWorkflow {
   jobs: Record<string, SimulatedJob>;
 }
 
+/**
+ * Looks up a job a test requires the parsed workflow to declare.
+ *
+ * A record index is possibly-undefined to the compiler; a test that reads a
+ * named job needs it present, so a missing job fails loudly here instead of
+ * as a TypeError on the next property access.
+ *
+ * @param workflow The parsed workflow.
+ * @param workflow.jobs The workflow's jobs, keyed by job id.
+ * @param name The job id.
+ * @returns The job.
+ */
+export const jobOf = <Job>(
+  workflow: { readonly jobs?: Readonly<Record<string, Job>> },
+  name: string
+): Job => {
+  const job = workflow.jobs?.[name];
+  if (job === undefined) {
+    throw new Error(`workflow declares no job '${name}'`);
+  }
+  return job;
+};
+
 /** One job's simulated outcome. */
 export interface JobOutcome {
   /** Whether the job's guard passed, i.e. GitHub would start it. */
@@ -80,6 +103,21 @@ const COMPARISON_RE = /^([\w.]+)\s*(==|!=)\s*'([^']*)'$/;
 const BARE_PATH_RE = /^[\w.]+$/;
 const MATRIX_RE = /^\$\{\{\s*fromJSON\((.+)\)\s*\}\}$/;
 const COMMAND_RE = /\$\{\{\s*inputs\.(\w+)\s*\}\}/;
+
+/**
+ * Reads a capture group that the regex grammar guarantees on a match.
+ *
+ * @param match A successful regex match.
+ * @param index The capture group index.
+ * @returns The captured text.
+ */
+const capture = (match: RegExpExecArray, index: number): string => {
+  const value = match[index];
+  if (value === undefined) {
+    throw new Error(`regex capture group ${index} missing in '${match[0]}'`);
+  }
+  return value;
+};
 
 /** The `needs` / `inputs` a guard can see. */
 type ExpressionContext = Record<string, unknown>;
@@ -125,14 +163,17 @@ const evaluateTerm = (term: string, ctx: ExpressionContext): boolean => {
   if (ALWAYS_TRUE.includes(text)) return true;
   if (ALWAYS_FALSE.includes(text)) return false;
   if (contains) {
-    const allowed = JSON.parse(contains[1]) as string[];
-    return allowed.includes(String(resolvePath(ctx, contains[2]) ?? ""));
+    const allowed = JSON.parse(capture(contains, 1)) as string[];
+    return allowed.includes(
+      String(resolvePath(ctx, capture(contains, 2)) ?? "")
+    );
   }
   if (comparison) {
-    const actual = String(resolvePath(ctx, comparison[1]) ?? "");
-    return comparison[2] === "=="
-      ? actual === comparison[3]
-      : actual !== comparison[3];
+    const actual = String(resolvePath(ctx, capture(comparison, 1)) ?? "");
+    const expected = capture(comparison, 3);
+    return capture(comparison, 2) === "=="
+      ? actual === expected
+      : actual !== expected;
   }
   if (BARE_PATH_RE.test(text)) return isTruthy(resolvePath(ctx, text));
   throw new Error(`unsupported expression term in workflow guard: '${text}'`);
@@ -222,7 +263,7 @@ const instancesOf = (job: SimulatedJob, ctx: ExpressionContext): number => {
   if (typeof expression !== "string") return 1;
   const inner = MATRIX_RE.exec(expression);
   if (!inner) return 1;
-  const resolved = resolvePath(ctx, inner[1].trim());
+  const resolved = resolvePath(ctx, capture(inner, 1).trim());
   return (JSON.parse(String(resolved ?? "[]")) as string[]).length;
 };
 
@@ -241,9 +282,9 @@ const tallyOf = (
 ): Record<string, number> =>
   (job.steps ?? []).reduce<Record<string, number>>((acc, step) => {
     const match = COMMAND_RE.exec(step.run ?? "");
-    return match && evaluateIf(step.if, ctx)
-      ? { ...acc, [match[1]]: (acc[match[1]] ?? 0) + instances }
-      : acc;
+    if (!match || !evaluateIf(step.if, ctx)) return acc;
+    const input = capture(match, 1);
+    return { ...acc, [input]: (acc[input] ?? 0) + instances };
   }, {});
 
 /**

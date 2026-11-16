@@ -249,7 +249,7 @@ describe("no gate is proved twice", () => {
   });
 
   it("records every hand-written block in the job table", () => {
-    const governed = new Set(Object.values(QUALITY_JOB_GATES));
+    const governed = new Set<string>(Object.values(QUALITY_JOB_GATES));
     expect(
       [...HARDCODED].filter(gate => !governed.has(gate)).sort(byName)
     ).toEqual([]);

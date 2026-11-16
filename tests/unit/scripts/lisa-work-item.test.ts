@@ -155,7 +155,7 @@ function command(
     command: process.execPath,
     cwd: fixture.root,
     env: { ...fixture.env, ...options.env },
-    input: options.input,
+    ...(options.input === undefined ? {} : { input: options.input }),
     label: `lisa-work-item.mjs ${args[0] ?? ""}`,
   });
   return {

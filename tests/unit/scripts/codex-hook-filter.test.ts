@@ -22,6 +22,34 @@ import {
 } from "../../../scripts/generate-codex-plugin-artifacts.mjs";
 
 /**
+ * Read one keyed entry, failing the test when it is absent.
+ * @param record Entries by name.
+ * @param name Name to read.
+ * @returns The entry under that name.
+ */
+const key = <T>(record: Readonly<Record<string, T>>, name: string): T => {
+  const entry = record[name];
+  if (entry === undefined) {
+    throw new Error(`expected an entry named ${name}`);
+  }
+  return entry;
+};
+
+/**
+ * Read one element, failing the test when it is absent.
+ * @param items Items to index.
+ * @param index Position to read.
+ * @returns The element at that position.
+ */
+const at = <T>(items: readonly T[], index: number): T => {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}`);
+  }
+  return item;
+};
+
+/**
  * Build a hook command referencing the Claude plugin root.
  * @param name Hook script filename.
  * @returns A ${CLAUDE_PLUGIN_ROOT}-prefixed command string.
@@ -61,7 +89,7 @@ describe("generate-codex-plugin-artifacts: filterCodexHooks", () => {
     const out = filterCodexHooks(
       blockWith("PreToolUse", "Bash", PLUGIN_ROOT_CMD(BLOCK_NO_VERIFY))
     ) as Record<string, { hooks: { command: string }[] }[]>;
-    expect(out["PreToolUse"][0].hooks[0].command).toBe(
+    expect(at(at(key(out, "PreToolUse"), 0).hooks, 0).command).toBe(
       "${PLUGIN_ROOT}/hooks/block-no-verify.sh"
     );
   });
@@ -98,7 +126,9 @@ describe("generate-codex-plugin-artifacts: filterCodexHooks", () => {
     const out = filterCodexHooks(
       blockWith("PreToolUse", "Bash", "echo custom")
     ) as Record<string, { hooks: { command: string }[] }[]>;
-    expect(out["PreToolUse"][0].hooks[0].command).toBe("echo custom");
+    expect(at(at(key(out, "PreToolUse"), 0).hooks, 0).command).toBe(
+      "echo custom"
+    );
   });
 });
 
@@ -136,7 +166,7 @@ describe("generate-codex-plugin-artifacts: emitCodexHooks placement (issue #1058
     const doc = fs.readJsonSync(codexJson()) as {
       hooks: { PreToolUse: { hooks: { command: string }[] }[] };
     };
-    expect(doc.hooks.PreToolUse[0].hooks[0].command).toBe(
+    expect(at(at(doc.hooks.PreToolUse, 0).hooks, 0).command).toBe(
       `\${PLUGIN_ROOT}/hooks/${BLOCK_NO_VERIFY}`
     );
   });

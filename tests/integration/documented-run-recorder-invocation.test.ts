@@ -147,13 +147,26 @@ function shippedSkills(): string[] {
 }
 
 /**
+ * The first capture group of a match whose pattern makes that group mandatory.
+ * @param match - A match of {@link INVOCATION} or {@link DOCUMENTED_IMPORT}.
+ * @returns The captured text.
+ */
+function firstGroup(match: RegExpMatchArray): string {
+  const group = match[1];
+  if (group === undefined) {
+    throw new Error(`pattern matched without its capture group: ${match[0]}`);
+  }
+  return group;
+}
+
+/**
  * The plugin-root expressions a skill documents for the recorder.
  * @param relative - Repository-relative `SKILL.md` path.
  * @returns One entry per documented invocation, in file order.
  */
 function documentedRoots(relative: string): string[] {
   const body = fs.readFileSync(path.join(ROOT, relative), "utf8");
-  return [...body.matchAll(INVOCATION)].map(match => match[1]);
+  return [...body.matchAll(INVOCATION)].map(firstGroup);
 }
 
 /** Every skill that documents the recorder at all, with its expressions. */
@@ -237,7 +250,7 @@ const SPECIFIERS: readonly { file: string; specifier: string }[] =
     const body = fs.readFileSync(path.join(ROOT, file), "utf8");
     return [...body.matchAll(DOCUMENTED_IMPORT)].map(match => ({
       file,
-      specifier: shellConcatenated(match[1]).replace(
+      specifier: shellConcatenated(firstGroup(match)).replace(
         /\$\{CLAUDE_PLUGIN_ROOT:-([^}]*)\}/g,
         "$1"
       ),

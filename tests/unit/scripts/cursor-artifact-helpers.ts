@@ -78,7 +78,7 @@ export function readMdcFrontmatter(filePath: string): {
       hasDescription: false,
     };
   }
-  const body = match[1];
+  const body = match[1] ?? "";
   const alwaysApplyMatch = /^alwaysApply:\s*(true|false)\s*$/m.exec(body);
   return {
     hasFrontmatter: true,
