@@ -134,6 +134,26 @@ const getPlayerScore = (player: Player): number => calculateScore(player);
 - Never write migration code unless explicitly asked
 - Trust git history for recovery if needed
 
+### 6. No Technical Debt
+
+**Fix failures in the change that surfaces them.** Turning on a lint rule, type check, coverage floor or any other check often reveals failures that already exist. Fix them. Do not exempt them.
+
+An exemption list only grows. Once a quarantine file exists, every hard case gets added to it rather than fixed, and nobody remembers why each entry is there. It hides exactly the failures the check exists to catch, so the check reports green while the code it covers drifts. One repository's test type-check quarantine grew to 311 files hiding 1,403 errors before anyone looked.
+
+```text
+Wrong: turn the check on and record today's failures as allowed
+  typecheck-quarantine.json  ->  ["tests/a.test.ts", "tests/b.test.ts", ...]
+
+Right: fix every failure, then turn the check on with nothing exempted
+```
+
+**No-technical-debt rules:**
+- Never add quarantine, baseline, exemption, grandfather or "known failures" lists that let existing failures pass a check
+- Never silence a check: no `@ts-ignore`, `eslint-disable`, `any`, loosened compiler or linter config, lowered coverage thresholds, or skipped tests to get green
+- Never defer part of the requested job as "follow-up" or "known gap". Finish it, or say plainly that it is not done and why
+- If the backlog is too large for one change, split the fix into parallel changes and land them together. The check still turns on strict, with nothing exempted
+- An existing exemption list is debt to pay off: fix its entries and delete the list and the code that reads it
+
 ---
 
 ## Quick Reference
