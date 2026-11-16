@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.11.0](https://github.com/CodySwannGT/lisa/compare/v5.10.1...v5.11.0) (2026-11-16)
+
+
+### Features
+
+* **review-evidence:** read third-party reviewers from config, not CodeRabbit's wording ([867d35e](https://github.com/CodySwannGT/lisa/commit/867d35e5bc5d26b56a8de5d4cbfc8f20acecb763)), closes [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909) [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909)
+
+
+### Bug Fixes
+
+* **review-evidence:** address CodeRabbit review of the reviewer-config change ([2a8efdc](https://github.com/CodySwannGT/lisa/commit/2a8efdc10b4a0f26ad5061d40ee1689ecb33d091)), closes [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909) [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909)
+* **review-evidence:** let a review replace only silence, and never under a pin ([a515ba7](https://github.com/CodySwannGT/lisa/commit/a515ba7dfdfde3ff971fd03faf2e395dbe9cf155)), closes [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909) [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909)
+* **review-evidence:** never let a reviewer's own review override a denial ([c7ce209](https://github.com/CodySwannGT/lisa/commit/c7ce209d9fbb48da25aea2546991dbb2730627d5)), closes [#4916](https://github.com/CodySwannGT/lisa/issues/4916) [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909) [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909)
+* **review-evidence:** parse the structured result line without a regex ([35c8fd5](https://github.com/CodySwannGT/lisa/commit/35c8fd56403002cb59638ed151c327ae86a70e4a)), closes [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909) [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909)
+* **review-evidence:** require silence on both surfaces before a review stands in ([1a7395c](https://github.com/CodySwannGT/lisa/commit/1a7395cd21c451540bb7ce6de6aa6ba1cbb0a290)), closes [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909) [CodySwannGT/lisa#4909](https://github.com/CodySwannGT/lisa/issues/4909)
+
 ### [5.10.1](https://github.com/CodySwannGT/lisa/compare/v5.10.0...v5.10.1) (2026-11-16)
 
 
