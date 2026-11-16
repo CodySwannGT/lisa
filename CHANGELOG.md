@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.14.1](https://github.com/CodySwannGT/lisa/compare/v5.14.0...v5.14.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **jira-journey:** match hyphenated viewport names in screenshot evidence ([8128ddb](https://github.com/CodySwannGT/lisa/commit/8128ddb5e514a3cbf864c0c8b1d91f697ae9a0a2)), closes [CodySwannGT/lisa#4921](https://github.com/CodySwannGT/lisa/issues/4921) [CodySwannGT/lisa#4921](https://github.com/CodySwannGT/lisa/issues/4921)
+
 ## [5.14.0](https://github.com/CodySwannGT/lisa/compare/v5.13.0...v5.14.0) (2026-11-16)
 
 
