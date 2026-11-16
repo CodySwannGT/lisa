@@ -230,7 +230,7 @@
       "children": []
     },
     "lib/gate-failure-diagnosis.mjs": {
-      "sha256": "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
+      "sha256": "16aa855e6eeaabb5d79db280a97d9a7ae60fbe849e66552b3bd74dd24dadfa34",
       "staticImports": [
         "node:fs",
         "node:os"
@@ -1495,7 +1495,7 @@
       "children": []
     },
     "lisa-commit-msg-gates.mjs": {
-      "sha256": "df7a2b76125830d3e1ef95f0ab7524657603671ecd90968a78d164f9a31c4adc",
+      "sha256": "f540f962ec9aaa0f65610f3e9c535cb1a7335c6c62ee028d00a1e6b03e25b54b",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "node:fs",
@@ -1505,7 +1505,7 @@
       "children": []
     },
     "lisa-gates.mjs": {
-      "sha256": "9186dd6047a6e2fc45cad907f0b770f7845122f08e3b3513cf04c5a69bd9a9c9",
+      "sha256": "73216a048fb468d2350857113aaa4d9bb661d98aeab3dbab481fb971b9d32c6e",
       "staticImports": [
         "lib/gate-pass-cache.mjs",
         "lib/invoked-as-script.mjs",
@@ -1590,7 +1590,7 @@
       "children": []
     },
     "lisa-run-gates.mjs": {
-      "sha256": "99eb89df79bdee353136525d273cbb168b5c289f1ef0876120c73bf61d01901a",
+      "sha256": "d4043757ed79d62410c8962b631de774e41adc85c306083887f5c55c7423fb8f",
       "staticImports": [
         "lib/affected-tests.mjs",
         "lib/bounded-spawn.mjs",
@@ -1628,7 +1628,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "70a2e04018d6353498b49ee52c9fade01a477c17ffd5c1f1806a57f1512d4891",
+      "sha256": "46fb0606ccee999a75479ee479f92ac60f4fd62bbf5808e574380ff8df606e6f",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-adapters.mjs",
@@ -1687,7 +1687,7 @@
       "children": []
     },
     "threshold-ratchet-families.mjs": {
-      "sha256": "15b8dd22f25795127258cb9bf0271253bb9e285cf735177d157037a5cc4663f8",
+      "sha256": "07d3dbd1230c29777d3ff5492431795aa62e64d1e77eb81d9487a350b4aa4b56",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
