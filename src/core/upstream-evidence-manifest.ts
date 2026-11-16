@@ -2625,7 +2625,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-guard-parity-notes.mjs":
       "3035043067ec7153d754cedf0eb51da22643fc0b2b744770b8ba93b0e6506092",
     "scripts/check-learnings-budget.ts":
-      "6e9a735f090a7f1f73f0a447e6688c3dabe9edf61de5e9ad48b0c22701ee38d0",
+      "6e5fb8b6d80b94574004fa8ef5193fa4f591ebd9333d4651bdbfb3f21b78148f",
     "scripts/check-merge-driver-registration.mjs":
       "8ed1aa50a640d4241c565cf8e0fcd45339e4e8f69a6b656117ca7ee18a5e3291",
     "scripts/check-npm-install-compat.mjs":
@@ -2971,7 +2971,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/two-channel-couplings.json":
       "1dc650c631a7ca339f3a225e47a314e7af448060d14bfd52c25e0c7192976335",
     "scripts/update-node-version.ts":
-      "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
+      "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
       "e26a3ac716c33013e22bf5223a58457452f5af2038218a0e3a51c244eab5ddc9",
     "scripts/verify-health-agentic-built.mjs":

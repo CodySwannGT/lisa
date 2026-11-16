@@ -18,7 +18,16 @@
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.config.local
  */
-export default [
+import type { getTypescriptConfig } from "@codyswann/lisa/eslint/typescript";
+
+/**
+ * The element type eslint.config.ts spreads this into. Annotated so rule
+ * severities such as "off" keep their literal type instead of widening to
+ * `string`, which is not a rule config (CodySwannGT/lisa#4927).
+ */
+type LocalConfig = ReturnType<typeof getTypescriptConfig>;
+
+const localConfig: LocalConfig = [
   {
     // Lisa-specific: ignore distributable payloads that are copied/published to other
     // projects, not part of this monorepo's app source. plugins/** also covers GENERATED
@@ -30,7 +39,16 @@ export default [
       "all/**",
       "cdk/**",
       "expo/**",
+      // phaser/** and harper-fabric/** are stack template trees exactly like
+      // cdk/** and expo/**, and were the only two missing from this list. Their
+      // eslint.config.ts and vitest.config.ts import host-only siblings
+      // (./eslint.config.local, ./vitest.thresholds.json), so they have no
+      // resolvable types here; tsconfig.eslint.json excludes the same trees.
+      // Each stack's eslint.config.ts is linted in a real host layout by
+      // tests/unit/config/eslint-shipped-config-templates.test.ts.
+      "harper-fabric/**",
       "nestjs/**",
+      "phaser/**",
       "npm-package/**",
       "typescript/**",
       "plugins/**",
@@ -84,3 +102,5 @@ export default [
     },
   },
 ];
+
+export default localConfig;

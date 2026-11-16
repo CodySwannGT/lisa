@@ -57,7 +57,7 @@ async function twice(name: "linear" | "jira") {
     };
     for (const run of [1, 2]) {
       const before = fake.log.length;
-      const result = await allocateLeaf({ api, config, cwd: host.cwd, ...host });
+      const result = await allocateLeaf({ api, config, ...host });
       console.log(`--- allocation run ${run}: workItem=${result.workItem} claimCommentId=${result.claimCommentId}`);
       for (const entry of fake.log.slice(before)) console.log(`  ${entry.operation}`);
       console.log(`  creates so far: ${fake.creates()}`);

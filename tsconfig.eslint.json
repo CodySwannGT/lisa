@@ -1,12 +1,32 @@
 {
+  "//": "The program ESLint's type-aware rules read their types from (src/configs/eslint/base.ts sets parserOptions.project to this file). It must describe exactly the TypeScript ESLint lints and compile with zero errors, or those rules see `any` and error types instead of real ones (CodySwannGT/lisa#4927); scripts/check-typecheck-tests.mjs --project tsconfig.eslint.json (part of `bun run typecheck`) fails on any error in it. Test globals and Node types match tsconfig.tests.json, and allowJs without checkJs gives the .mjs modules tests and scripts import real declarations-by-inference without type-checking them. The excluded template trees are exactly the ones eslint.config.local.ts ignores: they are payloads copied into host projects, whose relative imports (./eslint.config.local, ./vitest.thresholds.json) only resolve in a host layout, and they are linted there under the host's own tsconfig.eslint.json — tests/unit/config/eslint-shipped-config-templates.test.ts lints each stack's eslint.config.ts in that layout. Keep this list and those ignores identical; nothing ESLint lints is excluded here.",
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "module": "preserve",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": false,
+    "types": ["vitest/globals", "node"]
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist", "build", "worktrees"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "worktrees",
+    "all",
+    "cdk",
+    "expo",
+    "harper-fabric",
+    "nestjs",
+    "npm-package",
+    "phaser",
+    "plugins",
+    "typescript",
+    "wiki",
+    "src/opencode/plugin-templates"
+  ]
 }
