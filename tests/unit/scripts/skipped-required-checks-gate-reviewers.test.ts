@@ -25,7 +25,7 @@ import { configuredReviewers } from "../../../all/copy-overwrite/scripts/check-t
 import {
   classifyCheckDescription,
   DESCRIPTION_VERDICTS,
-  loadDeclaration,
+  loadDeclaration as loadUntypedDeclaration,
 } from "../../../typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs";
 
 const leases: string[] = [];
@@ -34,6 +34,20 @@ const BASE = {
   workflows: [".github/workflows/ci.yml"],
   skip_job_declarations: {},
 };
+
+/** The part of a loaded declaration these cases read. */
+interface LoadedDeclaration {
+  evidence_bearing_checks: Record<string, Record<string, unknown>>;
+}
+
+/**
+ * Load a project's declaration, typed for the fields these cases read.
+ * @param root - The project root
+ * @returns The loaded declaration
+ */
+function loadDeclaration(root: string): LoadedDeclaration {
+  return loadUntypedDeclaration(root) as unknown as LoadedDeclaration;
+}
 
 /**
  * Write a project with a required-checks declaration and, optionally, a
