@@ -3,7 +3,7 @@ name: spec-conformance-specialist
 description: "Checks that shipped work matches its spec — acceptance criteria, Out of Scope, technical approach, journey, deliverables — with a coverage matrix, scope creep flagged separately, and a CONFORMS / PARTIAL / DIVERGES verdict."
 skills:
   - spec-conformance
-  - jira-read-ticket
+  - tracker-read
 ---
 
 # Spec Conformance Specialist Agent

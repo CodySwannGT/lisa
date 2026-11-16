@@ -4,7 +4,7 @@ description: Verification specialist agent. Discovers project tooling and execut
 skills:
   - verification-lifecycle
   - codify-verification
-  - jira-journey
+  - tracker-journey
   - spec-conformance
 ---
 
