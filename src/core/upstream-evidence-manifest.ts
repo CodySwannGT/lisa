@@ -1715,7 +1715,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "419cdbea9138de4ec2963d9b753522e58d08e2ebcdd1137c4173113a1d273f66",
+      "8687d794603742e83f3b7d7b1d21a56c98422e4301eef99f0d05eacc26d955b8",
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md":
       "42fa1f7456a4511dede443da16875337e19f4185bad4ba1808143fb05f425b74",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
@@ -1853,7 +1853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "3095f60387eb87c32a02a09a5a0eddb994b8e48eadd2be698b40316f5d120b76",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "abe5230855ecd7ba04725944855a91786e98d21a631eb8cede793a29932f87d5",
+      "189ef38e226aa77e24c289b569ea284850d093f844d9915658fc97895617c804",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/materialized-env-authority.mjs":
       "2844475d7b407c4dccce4e0f500a3aaf5412f9f315c9173dd0ca22dd24497049",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
@@ -1865,7 +1865,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
       "324b7826e6cb98b274ab09a25f1c29ae6877bc827032642cabccfe1ef21fcc99",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "b8967bec0d35f5e30d1c9347c5002ce795adf52841d6a13999eaf152d9a0587b",
+      "97cef44c3e3fc74f7cc391b3a9d60ec5a1e2f1de4f6b13e444d263476eb4a250",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs":
       "8bf279a2b198c7a6d4163420ec73f871fb9c9cb70d7c87d852026bc5dbf97091",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
@@ -2175,7 +2175,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/owasp-zap/SKILL.md":
       "9e64e3716cb1bedda61a88446b3721a15710ae63beb6e3c41b6fb342f483cbd8",
     "plugins/src/expo/skills/play-store-access/SKILL.md":
-      "7bb6c8f08bde2f685459fdba482c3c58a68466efe3ef1fc9488b3d69d3eef2fc",
+      "be1e4c52e877d81b2f9e9a7619f3eac986cffa8431e8500b9cbb67a822873a4b",
     "plugins/src/expo/skills/playwright-ci-debugging/SKILL.md":
       "dac723822939ef6f93d00a3bfe6b50075e6c6693e295d4f0e1ade1ec4e82d2e9",
     "plugins/src/expo/skills/playwright-selectors/SKILL.md":
@@ -13522,6 +13522,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/neutral-tenant-var.test.ts": true,
     "tests/unit/secrets/note-enforcement-parity.test.ts": true,
     "tests/unit/secrets/note-format.test.ts": true,
+    "tests/unit/secrets/play-store-key-provider.test.ts": true,
     "tests/unit/secrets/preflight-hardening.test.ts": true,
     "tests/unit/secrets/preflight-secrets.test.ts": true,
     "tests/unit/secrets/preflight-tools-report.test.ts": true,
@@ -13536,8 +13537,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/remote-dispatch.test.ts": true,
     "tests/unit/secrets/remote-env-asset-installation.test.ts": true,
     "tests/unit/secrets/remote-env-bindir-path.test.ts": true,
+    "tests/unit/secrets/remote-env-bootstrap-key.test.ts": true,
     "tests/unit/secrets/remote-env-cached-tool-path.test.ts": true,
     "tests/unit/secrets/remote-env-cli-entrypoint.test.ts": true,
+    "tests/unit/secrets/remote-env-configured-provider.test.ts": true,
     "tests/unit/secrets/remote-env-installed-copy.test.ts": true,
     "tests/unit/secrets/remote-env-materialize-both.test.ts": true,
     "tests/unit/secrets/remote-env-materialized-authority.test.ts": true,
