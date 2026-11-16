@@ -4320,6 +4320,25 @@ export function fetchChecksForCommit(sha, repo, evidenceChecks = {}) {
 }
 
 /**
+ * The phrase a structured success line names, or null.
+ *
+ * Reads `Result: Success - <phrase>` with any spacing around the words, by
+ * plain string steps rather than a regular expression, so no input can make it
+ * backtrack.
+ * @param {string} line - A first summary line.
+ * @returns {string|null} The trimmed phrase, or null when the line has another shape.
+ */
+function structuredSuccessPhrase(line) {
+  if (!line.startsWith("Result:")) return null;
+  const outcome = line.slice("Result:".length).trimStart();
+  if (!outcome.startsWith("Success")) return null;
+  const rest = outcome.slice("Success".length).trimStart();
+  if (!rest.startsWith("-")) return null;
+  const phrase = rest.slice(1).trim();
+  return phrase === "" ? null : phrase;
+}
+
+/**
  * Decode a selected check run without changing legacy commit-status policy.
  *
  * The first physical line owns structured results. Only the supported positive
@@ -4361,9 +4380,9 @@ function checkRunReviewDescription(row, vocabulary) {
   // instance, not the rule (#4909). The same pattern is in
   // `check-third-party-review-evidence.mjs`, and the parity tests hold the two
   // provers to the same answers.
-  const structured = /^Result:\s*Success\s*-\s*(.+?)\s*$/u.exec(firstLine);
-  if (succeeded && structured !== null && proves(structured[1])) {
-    return structured[1];
+  const structured = structuredSuccessPhrase(firstLine);
+  if (succeeded && structured !== null && proves(structured)) {
+    return structured;
   }
   const resultLooking =
     /^[\s>#|]*Result\b/iu.test(firstLine) ||

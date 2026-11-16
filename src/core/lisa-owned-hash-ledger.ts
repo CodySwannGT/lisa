@@ -331,6 +331,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "2a9613b7b7a2fb09579225ff7b7c6be1c6ba5e3dc4b63587677bee1db497a7f9",
     "2bafd97867aeabbb9f584e35312a7c16e2c8ad899b39152b8606fb8fff550fdb",
     "2d0d86f8484a9cbf7faf0cc04f114f93ed0afa782276d92efc14154d884be0fb",
+    "2f60285abe47dcb902eebce44544e7745bdb7d6ef18ed2f20b0ea17d123e67f2",
     "304d914be7f50462f4b9fc2fa4493a4ab35a3b2dd6bc9a2337c6543acd166929",
     "33e3cc9fd5a1ad9a239a4f47b5315217bd4459f028002ab6f82760e0bc93a6da",
     "35796a9f26c1e456be3c23193171fdfbeb1d7088ed8b6a7c3c144949a8495897",
@@ -430,6 +431,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "b578c55d2d8d63243de502e332f2dd2e0ae2a670c6ed18c418c67abb96c8b8fd",
   ]),
   "scripts/check-third-party-review-evidence.mjs": Object.freeze([
+    "1dd741c63b9e1902f0de2456fb9539bd652615d91ccc6004324a33acca06356f",
     "225e69c41b56f2eb82cdc1a16da26770090c3ccac85fe0dad278938d8ae4f769",
     "24ac97ac14c48006201fd31e4850eab323ed0025c6042e187532a1ed21be42b8",
     "2f18042de7e7f2cd8af350e65ff2092619b7e076ceadc9e021520c215513caec",
@@ -3272,6 +3274,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "2a9613b7b7a2fb09579225ff7b7c6be1c6ba5e3dc4b63587677bee1db497a7f9",
     "2bafd97867aeabbb9f584e35312a7c16e2c8ad899b39152b8606fb8fff550fdb",
     "2d0d86f8484a9cbf7faf0cc04f114f93ed0afa782276d92efc14154d884be0fb",
+    "2f60285abe47dcb902eebce44544e7745bdb7d6ef18ed2f20b0ea17d123e67f2",
     "304d914be7f50462f4b9fc2fa4493a4ab35a3b2dd6bc9a2337c6543acd166929",
     "33e3cc9fd5a1ad9a239a4f47b5315217bd4459f028002ab6f82760e0bc93a6da",
     "35796a9f26c1e456be3c23193171fdfbeb1d7088ed8b6a7c3c144949a8495897",
@@ -3371,6 +3374,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "b578c55d2d8d63243de502e332f2dd2e0ae2a670c6ed18c418c67abb96c8b8fd",
   ]),
   "scripts/check-third-party-review-evidence.mjs": Object.freeze([
+    "1dd741c63b9e1902f0de2456fb9539bd652615d91ccc6004324a33acca06356f",
     "225e69c41b56f2eb82cdc1a16da26770090c3ccac85fe0dad278938d8ae4f769",
     "24ac97ac14c48006201fd31e4850eab323ed0025c6042e187532a1ed21be42b8",
     "2f18042de7e7f2cd8af350e65ff2092619b7e076ceadc9e021520c215513caec",

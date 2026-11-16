@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
-      "24ac97ac14c48006201fd31e4850eab323ed0025c6042e187532a1ed21be42b8",
+      "1dd741c63b9e1902f0de2456fb9539bd652615d91ccc6004324a33acca06356f",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
@@ -3095,7 +3095,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "923b1c702ec5aaac1422f4decd58f18b939d1f940615de7e906b870c95ccd052",
+      "2f60285abe47dcb902eebce44544e7745bdb7d6ef18ed2f20b0ea17d123e67f2",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":

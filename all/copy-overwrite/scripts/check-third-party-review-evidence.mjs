@@ -450,22 +450,34 @@ const SHIPPED_REVIEWER_WORDS = Object.freeze({
  * CodeRabbit's structured first line for a review that completed (#4547).
  *
  * Kept as a named example, not as a rule: it is credited because it has the
- * generic {@link STRUCTURED_SUCCESS} shape and its phrase, `Review completed`,
+ * generic `Result: Success - <phrase>` shape (see {@link structuredSuccessPhrase}) and its phrase, `Review completed`,
  * is a shipped proof phrase. A different reviewer is credited the same way
  * through the phrases its gate declares in `evidence.proof` (#4909).
  */
 export const COMPLETED_REVIEW_RESULT = "Result: Success - Review completed";
 
 /**
- * A structured first line that reports success and names what happened:
- * `Result: Success - <phrase>`. The phrase is judged against the reviewer's
- * declared proof, exactly as a status description is. The same pattern is in
- * `check-skipped-required-checks.mjs`; duplicated rather than imported because
- * the two scripts ship from different template trees, and
- * `tests/integration/third-party-review-check-run-cli` holds both provers to
- * the same answers.
+ * The phrase a structured success line names, or null.
+ *
+ * Reads `Result: Success - <phrase>` (CodeRabbit's {@link COMPLETED_REVIEW_RESULT}
+ * is one instance) with any spacing around the words, by
+ * plain string steps rather than a regular expression, so no input can make it
+ * backtrack. The same steps are in `check-skipped-required-checks.mjs`;
+ * duplicated rather than imported because the two scripts ship from different
+ * template trees, and the parity tests hold the two provers to the same
+ * answers.
+ * @param {string} line - A first summary line.
+ * @returns {string|null} The trimmed phrase, or null when the line has another shape.
  */
-const STRUCTURED_SUCCESS = /^Result:\s*Success\s*-\s*(.+?)\s*$/u;
+function structuredSuccessPhrase(line) {
+  if (!line.startsWith("Result:")) return null;
+  const outcome = line.slice("Result:".length).trimStart();
+  if (!outcome.startsWith("Success")) return null;
+  const rest = outcome.slice("Success".length).trimStart();
+  if (!rest.startsWith("-")) return null;
+  const phrase = rest.slice(1).trim();
+  return phrase === "" ? null : phrase;
+}
 
 /** What a summary that is present but not text is reported as. */
 const MALFORMED_SUMMARY = "Malformed check-run summary";
@@ -598,9 +610,9 @@ export function checkRunResult(run, reviewer = SHIPPED_REVIEWER_WORDS) {
   }
   const succeeded =
     run?.status === "completed" && run?.conclusion === "success";
-  const structured = STRUCTURED_SUCCESS.exec(firstLine);
-  if (succeeded && structured !== null && declares(structured[1])) {
-    return { text: firstLine, canonical: structured[1] };
+  const structured = structuredSuccessPhrase(firstLine);
+  if (succeeded && structured !== null && declares(structured)) {
+    return { text: firstLine, canonical: structured };
   }
   if (looksLikeResult(firstLine)) return said(firstLine);
   if (succeeded && declares(firstLine)) return said(firstLine);
