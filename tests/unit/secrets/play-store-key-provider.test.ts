@@ -13,7 +13,6 @@
  * @module tests/unit/secrets/play-store-key-provider
  */
 
-import { execFileSync } from "node:child_process";
 import {
   chmodSync,
   mkdirSync,
@@ -26,6 +25,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 import {
   extractFunction,
@@ -98,18 +99,16 @@ const plantTree = (): { bin: string; keychainLog: string } => {
  */
 const runKeyLookup = (fnText: string): { out: string; keychain: string } => {
   const { bin, keychainLog } = plantTree();
-  const out = execFileSync(
-    "/bin/bash",
-    ["-c", `PACKAGE_NAME=com.example.app; KEY_PATH=; ${fnText}\n${FN}`],
-    {
-      cwd: project,
-      encoding: "utf8",
-      env: {
-        PATH: `${bin}:${path.dirname(process.execPath)}:/usr/bin:/bin`,
-        HOME: project,
-      },
-    }
-  );
+  const out = boundedExecFileSync({
+    label: "play-store key lookup",
+    command: "/bin/bash",
+    args: ["-c", `PACKAGE_NAME=com.example.app; KEY_PATH=; ${fnText}\n${FN}`],
+    cwd: project,
+    env: {
+      PATH: `${bin}:${path.dirname(process.execPath)}:/usr/bin:/bin`,
+      HOME: project,
+    },
+  });
   return { out, keychain: readFileSync(keychainLog, "utf8") };
 };
 
