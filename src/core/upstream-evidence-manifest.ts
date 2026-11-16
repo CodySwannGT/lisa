@@ -2141,7 +2141,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/jira-verify/SKILL.md":
       "0c7a8533bdee7fb448d6d752daa84e4a52621f8270e24e2c5120f90f14202969",
     "plugins/src/expo/skills/journey-guidance/SKILL.md":
-      "45900f2c8f16841445d15cb45db090c9820e5d2f7a5f33c8bfc1ece9f84a3f0d",
+      "68bbfb918095c474d4393b81533c894e197f1b37ad17525ad3dc84db301adfa2",
     "plugins/src/expo/skills/local-state/SKILL.md":
       "39a16fdeab3c96f236376e587d060790e0c52c8689553c53dc9e1284e5155d46",
     "plugins/src/expo/skills/local-state/references/async-storage.md":
@@ -2399,7 +2399,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/jira-verify/SKILL.md":
       "ea7aabc7549639d81a60bf3893965cb11c6261a73d549c5eaaa00fe4f5d83332",
     "plugins/src/rails/skills/journey-guidance/SKILL.md":
-      "965430d2ff380f67872190370af3c61396805a0e28ae64f68bb8c69990160267",
+      "08b5fa861935a5cb11dd9c43196963616768c30263c55340f556c34fc8465ecb",
     "plugins/src/rails/skills/ops-check-logs/SKILL.md":
       "e243eb223398e0ae1f1b5f0db7dda8c8ad8ffdea4ec66b9b38164c76f472ba28",
     "plugins/src/rails/skills/ops-deploy/SKILL.md":

@@ -36,4 +36,4 @@ Run each step in order and capture an artifact of the declared type at every mar
 - Image evidence: `NN-name-viewport.png` (for example `01-search-step-desktop.png`).
 - Text evidence: `NN-name.txt` or `NN-name.json` (for example `01-health-check.json`).
 
-The vendor evidence skill uploads them to the configured evidence release under a PR-scoped name, so same-named files on two pull requests never overwrite each other.
+What happens to them next depends on the tracker. On Jira, `lisa-jira-evidence` uploads them to the configured evidence release under a PR-scoped name, so same-named files on two pull requests never overwrite each other. The GitHub and Linear evidence skills upload text evidence only (`lisa-github-evidence` takes `NN-*.txt`/`.json`; `lisa-linear-evidence` takes text files from `evidence/files/`), so on those trackers attach image evidence to the pull request yourself, and record the text form of each check (for example the command output) under the same `NN-` name so the vendor skill carries it.
