@@ -16,6 +16,8 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 const HOOKS_CONFIG = ".codex/hooks.json";
 const GUARD_FILE = "block-no-verify.sh";
 const INJECT_FILE = "inject-rules.sh";
+// Host stubs only print a marker and never read stdin, so their spawns pass no
+// input: writing to a child that exits unread races an EPIPE (CodySwannGT/lisa#4905).
 const HOST_CUSTOM_SCRIPT =
   "#!/bin/sh\n# Lisa-managed Codex hook script\nprintf HOST_CUSTOM_MARKER\n";
 const ROOT = process.cwd();
@@ -127,7 +129,6 @@ describe("Codex active hook compatibility", () => {
       command: "bash",
       args: ["-c", OLD_COMMAND],
       cwd: host,
-      input: "{}",
       label: "host command before",
     });
     expect(await installHookCompatibility(ROOT, host, [], [])).toEqual([]);
@@ -137,7 +138,6 @@ describe("Codex active hook compatibility", () => {
       command: "bash",
       args: ["-c", OLD_COMMAND],
       cwd: host,
-      input: "{}",
       label: "host command after",
     });
     expect(before.status).toBe(0);
@@ -169,7 +169,6 @@ describe("Codex active hook compatibility", () => {
         command: "bash",
         args: ["-c", OLD_COMMAND],
         cwd: host,
-        input: "{}",
         label: "preserved host catalog-shaped link",
       });
       expect(await fs.readlink(script)).toBe(target);
@@ -228,7 +227,6 @@ describe("Codex active hook compatibility", () => {
         command: "bash",
         args: [helper],
         cwd: host,
-        input: "{}",
         label: "preserved host helper",
       });
       expect(result.status).toBe(0);
