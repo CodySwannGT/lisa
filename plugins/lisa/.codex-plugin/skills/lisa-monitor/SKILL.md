@@ -98,7 +98,7 @@ Execute the **Monitor** sub-flow as defined in the `intent-routing` reference ru
 
 - `ops-verify-health` — health endpoints
 - `ops-check-logs` — CloudWatch / browser console / device / Serverless logs
-- `ops-monitor-errors` — Sentry issues, error-rate spikes, regressions
+- `ops-monitor-errors` — issues in the configured error tracker (`observability.errorTracking.provider`, default Sentry), error-rate spikes, regressions
 - `ops-performance` — slow queries, p99 latency, hotspots
 - `ops-browser-uat` — Playwright smoke flows against the deployed env
 - `ops-db-ops` — pending migrations, replication lag

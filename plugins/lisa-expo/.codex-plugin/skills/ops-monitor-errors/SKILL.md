@@ -1,18 +1,30 @@
 ---
 name: ops-monitor-errors
-description: "Monitor Sentry for unresolved…"
+description: "Monitor the project's…"
 allowed-tools:
   - Bash
   - Read
 ---
-Monitor Sentry for unresolved errors in frontend and backend projects. Supports filtering by project, environment, and time range.
+Monitor the project's configured error tracker (Sentry by default) for unresolved errors in frontend and backend projects. Supports filtering by project, environment, and time range. Follows observability.errorTracking.provider — reports "no error tracker configured" when it is none.
 
 
 # Ops: Monitor Errors
 
-Monitor Sentry for errors in the application.
+Monitor the project's error tracker for errors in the application.
 
 **Argument**: `$ARGUMENTS` — project (`frontend`, `backend`, `all`; default: `all`) and optional time range (default: `1h`)
+
+## Resolve the configured error tracker
+
+Read `observability.errorTracking.provider` from the `<lisa-resolved-config>` block (the `config-resolution` rule documents the key). Absent means `sentry`, which is what this skill assumed before the key existed.
+
+| Provider | What to do |
+|----------|------------|
+| `sentry` | Use the Sentry path below. |
+| `none` | Do not query anything. Report `No error tracker is configured for this project (observability.errorTracking.provider: none), so error monitoring was skipped.` and stop. Never call the Sentry CLI, API, or MCP. |
+| `other` | Do not use Sentry. Discover the tracker the project actually wires (read `package.json` dependencies, `.env.*` keys, and app bootstrap code), then query it through its own CLI or API with credentials from `lisa-secrets-access`. If nothing reachable is wired, report what is missing and stop. Produce the same output table and severity classification below. |
+
+Everything from here to **Post-Deploy Workflow** is the `sentry` path.
 
 ## Discovery
 
@@ -76,7 +88,7 @@ curl -sf "https://sentry.io/api/0/projects/{org}/{project}/issues/?query=is:unre
 After any deployment:
 
 1. Wait 5 minutes for errors to surface
-2. Check for new unresolved issues in the deployed environment
+2. Check for new unresolved issues in the deployed environment, using the configured provider (skip with the `none` message when no tracker is configured)
 3. Assess severity: are these new regressions or pre-existing?
 4. Report findings with severity assessment
 
