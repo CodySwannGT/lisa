@@ -104,7 +104,7 @@ h3. Assertions
 1. **3-7 screenshot markers** — Enough to prove the feature, not so many that execution is slow
 2. **Concrete steps** — "Click the 'Add action' button" not "Interact with the controls"
 3. **Include auth if needed** — If the journey requires login, include credentials in Prerequisites
-4. **Name feature flags explicitly** — If the feature is behind a PostHog flag, name it
+4. **Name feature flags explicitly** — If the feature is behind a feature flag (in PostHog when `observability.analytics.provider` is `posthog`, the default), name it
 5. **Assertions must be testable** — "Buttons stacked vertically on mobile" not "Layout looks good"
 6. **Screenshot names in kebab-case** — `confirm-step-disabled`, `modal-open`, `form-error`
 

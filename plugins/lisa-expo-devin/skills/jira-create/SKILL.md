@@ -88,7 +88,7 @@ h3. Assertions
 3. **Include 3-7 screenshot markers** — Enough to prove the feature works, not so many that execution is slow
 4. **Viewports match the change scope** — Always include Desktop (1512x768). Add Mobile (375x812) for responsive changes. Add Tablet (768x1024) only if relevant.
 5. **Assertions are testable statements** — "Buttons stacked vertically on mobile" not "Layout looks good"
-6. **Prerequisites include feature flags** — If the feature is behind a PostHog flag, name it explicitly
+6. **Prerequisites include feature flags** — If the feature is behind a feature flag (in PostHog when `observability.analytics.provider` is `posthog`, the default), name it explicitly
 7. **Auth steps included when needed** — If the journey requires login, include the test credentials in Prerequisites
 
 ## Source Artifacts

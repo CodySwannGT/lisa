@@ -33,7 +33,7 @@ Write it from the end user's point of view, in the tracker's own markup (Markdow
 ### Prerequisites
 - App running locally or on dev
 - Authenticated as test user
-- Required feature flags enabled (name each PostHog flag)
+- Required feature flags enabled (name each flag; in PostHog when `observability.analytics.provider` is `posthog`, the default)
 
 ### Steps
 1. Navigate to the relevant page

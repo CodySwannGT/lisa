@@ -1625,7 +1625,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-plugin-sync-explain/SKILL.md":
       "b41619f3d0d342af2438afd54cb97db7d2445e54e3fc7bb012292079acbc6a4f",
     "plugins/src/base/skills/lisa-posthog-access/SKILL.md":
-      "eefee4c77501d31685f119ae42b86b8b1c8651f83dd71bc777205f8f35a0aa8c",
+      "f4d1a8f0a1d3094ad22d49ed8967a60b619d964b05745b783347536c746e8f92",
     "plugins/src/base/skills/lisa-prd-backlink/SKILL.md":
       "911abfd547761e706ab2f7a11ed607b4d6967fa2ea42339b5844c9a5ae4ad06e",
     "plugins/src/base/skills/lisa-prd-source-write/SKILL.md":
@@ -2125,9 +2125,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/gluestack-nativewind/scripts/validate_styling.py":
       "cc27d03e202b18be1fe8810d0a83b263926107b31f3e335f8fa7b92a82f4ceac",
     "plugins/src/expo/skills/jira-add-journey/SKILL.md":
-      "f3ee60c6ce8652350d3efadd35a4704f60fde2d527627bf65aac521ad94a9e3a",
+      "8f2c6a28fd5f6112202be8bba538e573097ed6c780313970b73d6fd65467d46a",
     "plugins/src/expo/skills/jira-create/SKILL.md":
-      "0fb4378b7399580e180beaacd22f832af3ff0ddae7c5d7761039bc81832c0c43",
+      "71c0def8a9b330f0296327dd2984b0b4dc9502d8962ba63e2cec1ce3fa332e14",
     "plugins/src/expo/skills/jira-evidence/SKILL.md":
       "359b3b80031c6d1bc825e81eb15186d148f44be8176fc7119b2aea1a3f1a9891",
     "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh":
@@ -2159,7 +2159,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/ops-browser-uat/SKILL.md":
       "d24a96ed6ea3eeb3b1a89f73a15a8da82f8aeea6dba76b142a2f4973e50395f6",
     "plugins/src/expo/skills/ops-check-logs/SKILL.md":
-      "a5c53b0389be769f7096807c66774fac6f816c6786967536e92741eefa1ef193",
+      "8fbffb54364b92181b4ba137198c3f596956afcb48ab5314c3ae29ab7a919471",
     "plugins/src/expo/skills/ops-db-ops/SKILL.md":
       "a94ad3b9b757e738bfef9959dbf7acde087ccfd15f6531e81bc685d878ed1d04",
     "plugins/src/expo/skills/ops-deploy/SKILL.md":
