@@ -170,7 +170,7 @@ describe("shipped ShellCheck directives are parseable", () => {
       directive.body
         .split(/\s+/u)
         .filter(token => PAIR.test(token))
-        .map(token => token.split("=")[0])
+        .map(token => token.slice(0, token.indexOf("=")))
         .filter(key => !known.has(key))
         .map(key => `${directive.file}:${directive.line}  ${key}`)
     );

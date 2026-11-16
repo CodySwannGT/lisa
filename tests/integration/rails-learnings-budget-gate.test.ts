@@ -20,6 +20,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
+import type { WorkflowStep } from "../helpers/workflow-test-utils.js";
 import {
   runDeclaredProver,
   runResolve,
@@ -170,7 +171,8 @@ describe("quality-rails.yml learnings-budget declaration", () => {
     // the level that asked to. Pinned as an exact string: a literal `true`, or
     // anything that also exempts `required`, is the same defect pointed the
     // other way.
-    const declared = stepNamedInJob(DECLARED);
+    const declared: WorkflowStep & { "continue-on-error"?: unknown } =
+      stepNamedInJob(DECLARED);
 
     expect(declared["continue-on-error"]).toBe(OPTIONAL_ONLY);
     expect(declared.id).toBe("gate_run");

@@ -24,6 +24,41 @@ import {
   refsOf,
 } from "../../../plugins/src/base/scripts/design-bindings-probe.mjs";
 
+/** A bound observation, as `collectBound` records it. */
+interface BoundObservation {
+  readonly axis: string;
+  readonly property: string;
+  readonly where: string;
+  readonly id: string;
+}
+
+/** A literal observation, as the literal collectors record it. */
+interface LiteralObservation {
+  readonly axis: string;
+  readonly property: string;
+  readonly where: string;
+  readonly value: string;
+}
+
+/**
+ * Collect observations, viewed as the records the probe constructs. Its JSDoc
+ * types both lists as bare `object[]`.
+ * @param root - The subtree root
+ * @returns The bound and literal observations
+ */
+const observe = (
+  root: Parameters<typeof collectValues>[0]
+): {
+  bound: readonly BoundObservation[];
+  literal: readonly LiteralObservation[];
+} => {
+  const { bound, literal } = collectValues(root);
+  return {
+    bound: bound as BoundObservation[],
+    literal: literal as LiteralObservation[],
+  };
+};
+
 /** Ids and values reused across cases, hoisted so the literals live in one place. */
 const SURFACE_ID = "VariableID:106:15";
 const RADIUS_ID = "VariableID:106:16";
@@ -73,7 +108,7 @@ describe("refsOf — the three boundVariables shapes", () => {
 
 describe("collectValues", () => {
   it("counts corner-keyed radius bindings as bound", () => {
-    const { bound } = collectValues({
+    const { bound } = observe({
       type: "FRAME",
       name: CARD,
       boundVariables: {
@@ -91,7 +126,7 @@ describe("collectValues", () => {
   it("counts a value bound to a zero variable, which the payload omits entirely", () => {
     // `paddingLeft` is bound to `space/0`, so Figma omits the resolved property.
     // Inferring boundness from the resolved value loses this binding silently.
-    const { bound, literal } = collectValues({
+    const { bound, literal } = observe({
       type: "FRAME",
       name: CARD,
       boundVariables: { paddingLeft: { id: ZERO_SPACE_ID } },
@@ -106,7 +141,7 @@ describe("collectValues", () => {
   });
 
   it("records a literal paint that carries no binding", () => {
-    const { bound, literal } = collectValues({
+    const { bound, literal } = observe({
       type: "FRAME",
       name: CARD,
       fills: [{ type: "SOLID", color: BRAND }],
@@ -118,7 +153,7 @@ describe("collectValues", () => {
   });
 
   it("records a bound paint as bound and never as a literal", () => {
-    const { bound, literal } = collectValues({
+    const { bound, literal } = observe({
       type: "FRAME",
       name: CARD,
       boundVariables: { fills: [{ id: SURFACE_ID }] },
@@ -130,7 +165,7 @@ describe("collectValues", () => {
   });
 
   it("walks the whole subtree, not just the root", () => {
-    const { literal } = collectValues({
+    const { literal } = observe({
       type: "FRAME",
       name: CARD,
       children: [
@@ -149,7 +184,7 @@ describe("collectValues", () => {
   });
 
   it("ignores a zero literal, which is the absence of a value rather than a decision", () => {
-    const { literal } = collectValues({
+    const { literal } = observe({
       type: "FRAME",
       name: CARD,
       paddingTop: 0,

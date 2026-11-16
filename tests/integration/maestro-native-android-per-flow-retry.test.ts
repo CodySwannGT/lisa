@@ -49,7 +49,7 @@ import {
   rows,
   rowsInFileOrder,
   SUITE_SIZE,
-} from "./support/maestro-android-retry-fixtures";
+} from "./support/maestro-android-retry-fixtures.js";
 import {
   androidStep,
   driverInvocation,
@@ -60,7 +60,7 @@ import {
   runSuiteDriver,
   type ReusableWorkflow,
   type RunOptions,
-} from "./support/maestro-android-retry-harness";
+} from "./support/maestro-android-retry-harness.js";
 
 /** The ledger row a flow-07 first-attempt loss produces once it recovers. */
 const FLOW_07_RECOVERED = "flow|.maestro/flows/flow-07.yaml|2|recovered";
@@ -266,7 +266,11 @@ describe("maestro-native-e2e Android per-flow retry (executed)", () => {
       const announced = (output: string): string[] =>
         [
           ...output.matchAll(/Maestro flow retried \(android\)::(\S+) failed/g),
-        ].map(match => match[1]);
+        ].map(([, flow]) => {
+          if (flow === undefined)
+            throw new Error("retry warning named no flow");
+          return flow;
+        });
       const forward = await run({ failing });
       const reversed = await run({ failing, reverseOrder: true });
       expect(announced(forward.output)).toEqual([

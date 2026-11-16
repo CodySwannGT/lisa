@@ -22,7 +22,7 @@
 
 import * as fs from "fs-extra";
 import { load as loadYaml } from "js-yaml";
-import { spawnSync } from "node:child_process";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -152,7 +152,7 @@ function execute(
   outputs: string,
   summary: string,
   extra: Record<string, string> = {}
-): ReturnType<typeof spawnSync<string>> {
+): SpawnSyncReturns<string> {
   const script = path.join(project, `${id}-step.sh`);
   fs.writeFileSync(script, stepScript(id));
   return spawnSync(SHELL, ["-e", script], {

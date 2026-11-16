@@ -41,7 +41,7 @@ import {
   REFERENCE_RULES,
   scaffoldSource,
   walkFiles,
-} from "./cursor-artifact-helpers";
+} from "./cursor-artifact-helpers.js";
 import { fileURLToPath } from "node:url";
 
 describe("generate-cursor-plugin-artifacts (Cursor-native shape — issue #1055)", () => {
@@ -370,7 +370,10 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
         // human-readable link TEXT (e.g. "[reference/base-rules.md](...)"), so a
         // label may still read "reference/..."; what must not survive is a link
         // URL into the removed nested tree OR a still-unconverted `.md` target.
-        const linkUrls = [...text.matchAll(/\]\(([^)]+)\)/g)].map(m => m[1]);
+        const linkUrls = [...text.matchAll(/\]\(([^)]+)\)/g)].map(([, url]) => {
+          if (url === undefined) throw new Error("link matched no target");
+          return url;
+        });
         for (const url of linkUrls) {
           expect(url).not.toMatch(/(?:^|\/)(?:eager|reference)\//);
           // Intra-repo rule links must be .mdc now; external links (with a URL

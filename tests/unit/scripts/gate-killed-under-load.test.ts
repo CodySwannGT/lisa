@@ -81,7 +81,10 @@ describe("a real signal death, not a stub that returns 143", () => {
   });
 
   it("prints KILLED, not FAILED, for that real death", () => {
-    const raw = spawnExec(SELF_TERMINATE) as { code: number | null };
+    const raw = spawnExec(SELF_TERMINATE) as {
+      code: number | null;
+      output: string | null;
+    };
     const { lines, out } = sink();
     const result = runGates({
       gates: { [STYLE]: REQUIRED_AT_COMMIT },

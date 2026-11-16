@@ -24,7 +24,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { isMoment } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
-import { loadWorkflow } from "../helpers/workflow-test-utils.js";
+import {
+  loadWorkflow,
+  type ParsedWorkflow,
+} from "../helpers/workflow-test-utils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -48,7 +51,12 @@ const PLAYWRIGHT_YML = path.join(
   "playwright-e2e.yml"
 );
 
-const template = loadWorkflow(TEMPLATE);
+/** The caller template, plus the triggers this suite pins. */
+type CallerTemplate = ParsedWorkflow & {
+  on?: { pull_request?: unknown; schedule?: unknown };
+};
+
+const template: CallerTemplate = loadWorkflow(TEMPLATE);
 const call = template.jobs.playwright as {
   name?: string;
   uses?: string;

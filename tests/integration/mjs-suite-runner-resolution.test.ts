@@ -42,8 +42,12 @@ const PACKAGE_COPY =
 /** The runner's path after `lisa apply` has copied it in. */
 const REPO_COPY = "scripts/lisa-test-node.mjs";
 
-const body =
-  (workflow.jobs[JOB].steps ?? []).find(step => step.name === STEP)?.run ?? "";
+/** The job under test, failing loudly when the facade no longer declares it. */
+const job = workflow.jobs[JOB];
+if (job === undefined)
+  throw new Error(`the quality workflow has no ${JOB} job`);
+
+const body = (job.steps ?? []).find(step => step.name === STEP)?.run ?? "";
 
 /**
  * The shell the step body is executed under, by absolute path.
@@ -111,9 +115,9 @@ const runStep = (
 describe("the fallback resolves the runner the way the gate resolver does", () => {
   it("is the step that runs when the project declared no task", () => {
     expect(body).not.toBe("");
-    expect(
-      (workflow.jobs[JOB].steps ?? []).find(step => step.name === STEP)?.if
-    ).toBe("steps.gate.outputs.configured == 'false'");
+    expect((job.steps ?? []).find(step => step.name === STEP)?.if).toBe(
+      "steps.gate.outputs.configured == 'false'"
+    );
   });
 
   it("prefers the packaged copy over the copied one", () => {
@@ -146,9 +150,7 @@ describe("the fallback resolves the runner the way the gate resolver does", () =
     // assuming it. `set -o pipefail` above is a bash builtin that dash
     // rejects; if someone pins `shell: sh` here, the step breaks in CI and
     // this assertion is what says so.
-    const step = (workflow.jobs[JOB].steps ?? []).find(
-      entry => entry.name === STEP
-    );
+    const step = (job.steps ?? []).find(entry => entry.name === STEP);
 
     expect(
       (step as Record<string, unknown> | undefined)?.shell

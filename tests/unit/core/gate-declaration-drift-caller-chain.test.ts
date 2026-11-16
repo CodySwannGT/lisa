@@ -85,10 +85,10 @@ describe("contextOwners with a per-declaration caller chain", () => {
     // Fail CLOSED. The alternative is to derive the caller-wide name for a
     // gate whose declaration has just said that name is wrong, which reports
     // agreement about a check GitHub will hold "Expected" for ever.
-    const older: MergeContextRegistry = {
-      ...WITH_OVERRIDE,
-      callerPrefix: undefined,
-    };
+    // An older installed registry predates `callerPrefix`, so it is absent
+    // rather than present-and-undefined.
+    const { callerPrefix: _omitted, ...older }: MergeContextRegistry =
+      WITH_OVERRIDE;
 
     expect(() =>
       contextOwners({

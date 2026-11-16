@@ -8,6 +8,7 @@ import {
   UPSTREAM_FAILURE_CLASSES,
   UPSTREAM_REDACTED_PLACEHOLDERS,
 } from "../../../src/core/learnings.js";
+import type { UpstreamAttributionBodyInput } from "../../../src/core/upstream-attribution-body.js";
 
 const SURFACE = "plugins/src/base/skills/lisa-persist-learning/SKILL.md";
 const OWNED_TEXT =
@@ -19,10 +20,17 @@ const PUBLIC_SHA = "90549e6dae19aa5e53b86908d5050d303b724f55";
 
 /**
  * Build one valid event with optional hostile overrides.
+ *
+ * The builder's declared input type describes a well-formed event, but its
+ * real contract is an untrusted host-supplied object it validates at runtime.
+ * These cases deliberately inject fields and values outside that type, so the
+ * event is asserted to the declared input type once here, at the boundary.
  * @param overrides - Fields to replace or append
  * @returns Candidate event
  */
-function validEvent(overrides: Record<string, unknown> = {}) {
+function validEvent(
+  overrides: Record<string, unknown> = {}
+): UpstreamAttributionBodyInput {
   return {
     documentKind: "issue",
     failureClass: "stale-artifact-overwrite",
@@ -31,7 +39,7 @@ function validEvent(overrides: Record<string, unknown> = {}) {
     redactedPlaceholders: ["<host-project>", "<env-value>"],
     upstreamCommitRefs: [PUBLIC_SHA],
     ...overrides,
-  };
+  } as UpstreamAttributionBodyInput;
 }
 
 describe("buildUpstreamAttributionIssueBody hardening", () => {

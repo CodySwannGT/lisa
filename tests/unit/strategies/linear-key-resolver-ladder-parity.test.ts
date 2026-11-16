@@ -24,7 +24,7 @@ import {
   type LadderSkill,
   runLadder,
   SOURCE,
-} from "./credential-resolver-ladder-helpers";
+} from "./credential-resolver-ladder-helpers.js";
 
 /** Every surface the two skills are fanned out to. */
 const SURFACES = [

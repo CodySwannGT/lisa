@@ -53,9 +53,24 @@ const PRE_TOOL = "pre-tool";
 /** The line the CLI prints about a moment no declaration is legal at. */
 const UNDECLARABLE = "[NOT DECLARABLE AT THIS MOMENT]";
 
+/** The inventory fields this suite reads, from the entry builders. */
+interface InventoryEntry {
+  readonly gate: string;
+  readonly surface: string;
+  readonly moment: string;
+  readonly artifact: string;
+  readonly hookEvent?: string;
+}
+
+/**
+ * The shipped inventory. Its JSDoc types each entry as a bare `object`; the
+ * entry builders in `lisa-gates.mjs` construct exactly these fields.
+ */
+const INVENTORY = HARDCODED_INVOCATIONS as readonly InventoryEntry[];
+
 /** Every on-edit inventory entry. */
-const onEdit = (): typeof HARDCODED_INVOCATIONS =>
-  HARDCODED_INVOCATIONS.filter(entry => entry.surface === ON_EDIT_SURFACE);
+const onEdit = (): readonly InventoryEntry[] =>
+  INVENTORY.filter(entry => entry.surface === ON_EDIT_SURFACE);
 
 /**
  * Runs the shipped CLI against this repository.
@@ -95,9 +110,7 @@ describe("the on-edit entries name the moment their script fires at", () => {
     // The pair is the whole guard: `moment` is the registry's vocabulary and
     // `hookEvent` is the harness's, and they must never be able to disagree.
     for (const entry of onEdit()) {
-      expect((entry as { hookEvent?: string }).hookEvent, entry.artifact).toBe(
-        "PostToolUse"
-      );
+      expect(entry.hookEvent, entry.artifact).toBe("PostToolUse");
     }
   });
 });
