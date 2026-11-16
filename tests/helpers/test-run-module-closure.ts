@@ -234,21 +234,19 @@ export function executableModuleGraph(
       ),
     };
   });
+  const findings = rows.flatMap(value => value.findings);
+  const unresolved = rows.flatMap(value => value.unresolved);
   return {
-    findings: rows
-      .flatMap(value => value.findings)
-      .toSorted((left, right) =>
-        `${left.file}:${left.message}`.localeCompare(
-          `${right.file}:${right.message}`
-        )
-      ),
+    findings: [...findings].sort((left, right) =>
+      `${left.file}:${left.message}`.localeCompare(
+        `${right.file}:${right.message}`
+      )
+    ),
     graph: new Map(rows.map(value => value.graphEntry)),
-    unresolved: rows
-      .flatMap(value => value.unresolved)
-      .toSorted((left, right) =>
-        `${left.importer}:${left.specifier}`.localeCompare(
-          `${right.importer}:${right.specifier}`
-        )
-      ),
+    unresolved: [...unresolved].sort((left, right) =>
+      `${left.importer}:${left.specifier}`.localeCompare(
+        `${right.importer}:${right.specifier}`
+      )
+    ),
   };
 }
