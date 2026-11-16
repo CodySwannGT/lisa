@@ -195,21 +195,6 @@ Fixer of last resort for red CI on unattended branches: Claude analyzes error lo
 - Skips environment branches (`main`, `staging`, `dev`) and auto-fix branches (prevents infinite loops); failing checks on an auto-fix PR escalate to a ticket instead of re-entering
 - Requires the caller to map `JIRA_API_TOKEN` / `LINEAR_API_KEY` (and `PAT`) explicitly in its `secrets:` block so tracker credentials reach the issue dispatcher — least-privilege by design; `secrets: inherit` also works mechanically but hands the chain every repo secret and trips SonarCloud security gates
 
-### Claude Code Review Response (`claude-code-review-response.yml`)
-
-**Triggers**: CodeRabbit review submitted on a PR
-
-**Opt-in**: Set repository variable `ENABLE_CLAUDE_CODE_REVIEW_RESPONSE` to `true`
-
-Automatically triages CodeRabbit review comments and either fixes valid findings or replies to dismiss invalid ones.
-
-- Triggers when CodeRabbit submits a review (not per inline comment — once per review summary)
-- Skips PRs authored by `coderabbitai[bot]` or `dependabot[bot]` to prevent bot-to-bot loops (PRs authored by `claude[bot]` or other bots are allowed)
-- For each review comment, Claude determines if the finding is valid or a misunderstanding
-- Valid findings: fixes the code and commits with conventional messages
-- Invalid findings: replies to the comment explaining why the suggestion does not apply
-- Pushes fixes directly to the existing PR branch (no new PR created)
-
 ### Claude Nightly Test Improvement (`claude-nightly-test-improvement.yml`)
 
 **Triggers**: Cron at 3 AM UTC weekdays, manual dispatch
@@ -543,7 +528,6 @@ Variables are non-sensitive configuration values. Set them in **Settings** > **S
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `ENABLE_CLAUDE_NIGHTLY` | Enable nightly Claude workflows | `true` |
-| `ENABLE_CLAUDE_CODE_REVIEW_RESPONSE` | Enable Claude response to CodeRabbit reviews | `true` |
 | `JIRA_BASE_URL` | Jira instance base URL (enables Jira triage workflow) | `https://company.atlassian.net` |
 | `JIRA_USER_EMAIL` | Email associated with the Jira API token | `user@company.com` |
 | `JIRA_PROJECT_KEY` | Jira project key for ticket queries | `PROJ` |
@@ -705,7 +689,6 @@ with:
 │   ├── load-test.yml                       # k6 load testing
 │   ├── claude.yml                              # AI assistance
 │   ├── claude-ci-auto-fix.yml                  # Auto-fix CI failures
-│   ├── claude-code-review-response.yml         # Respond to CodeRabbit reviews
 │   ├── claude-nightly-test-improvement.yml     # Nightly test quality
 │   ├── claude-nightly-test-coverage.yml        # Nightly test coverage
 │   ├── claude-nightly-code-complexity.yml      # Nightly code complexity

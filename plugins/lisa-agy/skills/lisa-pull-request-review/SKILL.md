@@ -51,15 +51,31 @@ A required review check can post `success` having reviewed nothing. Measured on
 PRs #2483 and #2484: `CodeRabbit` reported `success — "Review rate limited"`,
 zero reviews, and both merged on that green carrying security-relevant changes.
 
+The project's reviewers are the gates in `.lisa.config.json` whose
+`pull-request` entry sets `evidence.reviewer: true`. The check name is that
+entry's `await`, and the words that mean "it read the code" are its
+`evidence.proof` phrases. Read them from the config rather than assuming a
+vendor:
+
 ```bash
-gh pr checks <pr> --json name,state,bucket,description \
-  --jq '.[] | select(.name | test("(?i)coderabbit|review")) | "\(.name)\t\(.state)\t\(.description)"'
+jq -r '.gates // {} | to_entries[] | .value["pull-request"] // empty
+  | select(.evidence.reviewer == true) | .await' .lisa.config.json |
+while read -r reviewer; do
+  gh pr checks <pr> --json name,state,bucket,description \
+    --jq ".[] | select(.name == \"$reviewer\") | \"\(.name)\t\(.state)\t\(.description)\""
+done
 ```
+
+No reviewer gate declared means the project has no third-party reviewer; say
+so rather than reporting one as absent.
 
 **The state column passes whether the review was real or hollow — only the
 reviewer's words distinguish them.** For a commit status those words are the
-description: `Review approved` / `Review completed` is a real review;
-`Review rate limited`, `Review queued`, or a missing context is not. A reviewer
+description. A real review uses a declared proof phrase, such as CodeRabbit's
+`Review approved` / `Review completed`. A no-work phrase, such as CodeRabbit's
+`Review rate limited` or `Review queued`, or a missing context, is not a
+review. A reviewer whose gate sets `evidence.review_by` reports through its
+own pull-request review instead of a check. A reviewer
 can also report through a **check run** instead, and then this command cannot
 tell you anything: the description column is empty for a check run, which
 reads `SUCCESS` when it reviewed and `NEUTRAL` — still passing a required
@@ -103,14 +119,15 @@ threads" on its own** — it is true of an unreviewed PR too. Say which you
 observed:
 
 - `unknown — PR discovery unreadable (the open pull requests could not be read); review verdict deferred until access is restored`
-- `reviewed — CodeRabbit "Review approved", 0 unresolved threads`
-- `NOT REVIEWED — CodeRabbit success but "Review rate limited" (vacuous); 0 threads means nobody looked`
+- `reviewed — <reviewer> "Review approved", 0 unresolved threads`
+- `NOT REVIEWED — <reviewer> success but "Review rate limited" (vacuous); 0 threads means nobody looked`
 - `NOT REVIEWED — no review check reported on this PR at all`
 
 ## Step 1c: Fetch every unanswered review-body finding
 
-Some findings have no thread. CodeRabbit puts its "outside diff range" and
-"nitpick" comments in the review **body**, and Step 1 never reads a body. Fetch
+Some findings have no thread. Reviewers often put findings in the review
+**body** (CodeRabbit, for example, puts its "outside diff range" and "nitpick"
+comments there), and Step 1 never reads a body. Fetch
 the reviews too (GitHub; CodySwannGT/lisa#4643), skipping each review that a PR
 comment already marks as handled:
 
@@ -130,8 +147,8 @@ Do not filter on the head commit. **A push does not answer a review body**, so a
 review from an earlier head stays in scope until a marker retires it. Split each
 body into its actionable items (a summary or walkthrough with nothing to change
 is not one) and triage them in Step 2. Expand and read every collapsed `<details>`
-section before you call a body summary-only: CodeRabbit puts its nitpick and
-outside-diff items there. A body with no actionable items still needs its marker
+section before you call a body summary-only: reviewers such as CodeRabbit put
+nitpick and outside-diff items there. A body with no actionable items still needs its marker
 (Step 2), or it is re-read on every run and step (e) of `drive-pr-to-merge` waits
 on it forever. For an older review, first decide whether each item still applies
 to the current code.

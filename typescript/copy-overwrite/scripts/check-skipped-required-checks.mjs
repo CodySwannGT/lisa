@@ -4352,12 +4352,18 @@ function checkRunReviewDescription(row, vocabulary) {
   ) {
     return firstLine;
   }
-  if (
-    row.status === "completed" &&
-    row.conclusion === "success" &&
-    firstLine === "Result: Success - Review completed"
-  ) {
-    return "Review completed";
+  const succeeded = row.status === "completed" && row.conclusion === "success";
+  const proves = (/** @type {string} */ phrase) =>
+    classifyCheckDescription(phrase, vocabulary) ===
+    DESCRIPTION_VERDICTS.proved;
+  // `Result: Success - <phrase>` stands for `<phrase>` when the phrase is
+  // declared proof — CodeRabbit's `Result: Success - Review completed` is one
+  // instance, not the rule (#4909). The same pattern is in
+  // `check-third-party-review-evidence.mjs`, and the parity tests hold the two
+  // provers to the same answers.
+  const structured = /^Result:\s*Success\s*-\s*(.+?)\s*$/u.exec(firstLine);
+  if (succeeded && structured !== null && proves(structured[1])) {
+    return structured[1];
   }
   const resultLooking =
     /^[\s>#|]*Result\b/iu.test(firstLine) ||
@@ -4365,6 +4371,9 @@ function checkRunReviewDescription(row, vocabulary) {
   if (resultLooking) {
     return firstLine;
   }
+  // A reviewer that writes its verdict as a plain first summary line is read
+  // by its own declared proof phrases (#4909).
+  if (succeeded && proves(firstLine)) return firstLine;
   return title;
 }
 
@@ -4799,7 +4808,7 @@ export function vacuityRefusal(input) {
   if (declaredEvidenceChecks(declaration).length === 0) {
     return {
       kind: VACUITY_REFUSALS.noneDeclared,
-      reason: `\`evidence_bearing_checks\` in ${DECLARATION_PATH} is empty, so this repository has declared that NO check's green means anything reviewed the code — and the vacuity arm examined nothing on PR #${pr}. If that is true, say so by removing the arm from your workflow. If it is not, name the checks: \`"evidence_bearing_checks": { "CodeRabbit": {} }\`.`,
+      reason: `\`evidence_bearing_checks\` in ${DECLARATION_PATH} is empty, so this repository has declared that NO check's green means anything reviewed the code — and the vacuity arm examined nothing on PR #${pr}. If that is true, say so by removing the arm from your workflow. If it is not, name the checks by their exact check names: \`"evidence_bearing_checks": { "<reviewer check name>": {} }\`.`,
     };
   }
   return null;

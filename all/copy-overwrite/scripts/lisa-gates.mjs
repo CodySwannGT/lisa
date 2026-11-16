@@ -4468,8 +4468,13 @@ function validateReviewerFlag(where, evidence) {
         `third-party code review, so any other value silently declares nothing.`,
     ];
   }
+  const reviewBy = validateReviewBy(where, evidence);
+  if (reviewBy.length > 0) return reviewBy;
   if (evidence.reviewer !== true) return [];
   if (Array.isArray(evidence.proof) && evidence.proof.length > 0) return [];
+  // A reviewer proven by its own submitted review states its evidence by
+  // naming the account, so it needs no status phrase (#4909).
+  if (typeof evidence.review_by === "string") return [];
   return [
     `${where}.reviewer is true but no ${where}.proof phrase is declared. The ` +
       `reviewed-when phrase is an ALLOWLIST — only a description that matches ` +
@@ -4477,6 +4482,38 @@ function validateReviewerFlag(where, evidence) {
       `defaults alone means this project never stated what its own reviewer ` +
       `says when it has actually read the code.`,
   ];
+}
+
+/**
+ * Validate `evidence.review_by`, the account whose submitted pull-request
+ * review at the head is the reviewer's evidence (#4909).
+ *
+ * It must be a non-empty login, and it means something only on a third-party
+ * reviewer: on any other awaited signal nothing reads it, and a key that looks
+ * obeyed and is not is refused rather than ignored.
+ * @param {string} where - The declaration path, for the message.
+ * @param {object} evidence - The evidence block.
+ * @returns {string[]} Problems.
+ */
+function validateReviewBy(where, evidence) {
+  if (evidence.review_by === undefined) return [];
+  if (
+    typeof evidence.review_by !== "string" ||
+    evidence.review_by.trim() === ""
+  ) {
+    return [
+      `${where}.review_by is ${JSON.stringify(evidence.review_by)}; expected ` +
+        `the reviewer's GitHub login, such as "greptile-apps[bot]".`,
+    ];
+  }
+  if (evidence.reviewer !== true) {
+    return [
+      `${where}.review_by is set but ${where}.reviewer is not true. Only a ` +
+        `third-party code reviewer is proven by its own review, so nothing ` +
+        `would read this key.`,
+    ];
+  }
+  return [];
 }
 
 /**

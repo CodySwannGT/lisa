@@ -139,6 +139,37 @@ const PARITY: ReadonlyArray<
     rawCheckRun({ output: { title: FINISHED, summary: null } }),
     false,
   ],
+  [
+    "a plain first line that is the proof phrase (#4909)",
+    rawCheckRun({
+      output: { title: FINISHED, summary: `${REVIEW_COMPLETED}\nFiles: 3` },
+    }),
+    true,
+  ],
+  [
+    "a structured success with looser spacing (#4909)",
+    rawCheckRun({
+      output: {
+        title: FINISHED,
+        summary: `Result: Success  -  ${REVIEW_COMPLETED}`,
+      },
+    }),
+    true,
+  ],
+  [
+    "a structured success naming an undeclared phrase (#4909)",
+    rawCheckRun({
+      output: { title: FINISHED, summary: "Result: Success - Looked around" },
+    }),
+    false,
+  ],
+  [
+    "a plain undeclared first line (#4909)",
+    rawCheckRun({
+      output: { title: FINISHED, summary: "Looked around\nFiles: 3" },
+    }),
+    false,
+  ],
   ["the measured rate limit", RATE_LIMITED_RUN, false],
   [
     "the measured pause",
