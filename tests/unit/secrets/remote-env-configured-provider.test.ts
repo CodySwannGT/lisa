@@ -148,7 +148,7 @@ describe("ensureProviderCli", () => {
     });
 
     expect(probed).toStrictEqual(["doppler"]);
-    expect(row.action).toBe("present");
+    expect((row as { action?: unknown }).action).toBe("present");
   });
 
   it("plans, but does not run, an install without consent", async () => {
@@ -164,7 +164,7 @@ describe("ensureProviderCli", () => {
       },
     });
 
-    expect(row.action).toBe("install");
+    expect((row as { action?: unknown }).action).toBe("install");
     expect(ran).toStrictEqual([]);
   });
 

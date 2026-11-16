@@ -32,7 +32,7 @@ import {
   FLOOR_RUNG,
   ladderOf,
   REQUIRED_RUNGS,
-} from "../strategies/credential-resolver-ladder-helpers";
+} from "../strategies/credential-resolver-ladder-helpers.js";
 
 /** The canonical skill source; built copies are held to it by check:plugins. */
 const SKILL = path.resolve(
