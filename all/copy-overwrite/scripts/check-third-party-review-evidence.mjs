@@ -725,13 +725,16 @@ function readCheckRunEvidence({ reviewer, run }) {
     reading = EVIDENCE_READINGS.pending;
   } else if (!settled) {
     reading = EVIDENCE_READINGS.unrecognised;
+  } else if (readsAsNoWork(normalised, reviewer.noWork)) {
+    // Denial first, as the TypeScript checker reads a description: a
+    // project's no-work phrase that overlaps a proof phrase then withholds
+    // credit instead of granting it.
+    reading = EVIDENCE_READINGS.noWork;
   } else if (
     conclusion === "success" &&
     reviewer.proof.includes(normalizeDescription(canonical))
   ) {
     reading = EVIDENCE_READINGS.reviewed;
-  } else if (readsAsNoWork(normalised, reviewer.noWork)) {
-    reading = EVIDENCE_READINGS.noWork;
   } else if (conclusion !== "success") {
     reading = EVIDENCE_READINGS.unsuccessful;
   } else if (normalised === "") {
@@ -810,6 +813,12 @@ const SUBMITTED_REVIEW_STATES = new Set([
   "CHANGES_REQUESTED",
 ]);
 
+/** The readings a reviewer's own pull-request review may replace: silence. */
+const REVIEW_FALLBACK_READINGS = new Set([
+  EVIDENCE_READINGS.absent,
+  EVIDENCE_READINGS.empty,
+]);
+
 /**
  * The reviewer's own submitted pull-request review at this head, if its gate
  * names the account that writes it (`evidence.review_by`, #4909).
@@ -834,6 +843,7 @@ function readReviewEvidence({ reviewer, reviews, sha }) {
     .filter(
       review =>
         String(review?.user?.login ?? "").toLowerCase() === login &&
+        review?.user?.type === "Bot" &&
         SUBMITTED_REVIEW_STATES.has(String(review?.state ?? "").toUpperCase())
     )
     .sort((left, right) =>
@@ -844,6 +854,19 @@ function readReviewEvidence({ reviewer, reviews, sha }) {
   const latest = mine.at(-1);
   if (latest === undefined) return null;
   const state = String(latest.state).toUpperCase();
+  const body = typeof latest.body === "string" ? latest.body : "";
+  const firstLine = body.trim().split(/\r?\n/u, 1)[0] ?? "";
+  if (readsAsNoWork(normalizeDescription(firstLine), reviewer.noWork)) {
+    // The review itself says the reviewer skipped the code.
+    return {
+      context: reviewer.context,
+      reviewed: false,
+      reading: EVIDENCE_READINGS.noWork,
+      observed: firstLine,
+      state,
+      source: EVIDENCE_SOURCES.review,
+    };
+  }
   return {
     context: reviewer.context,
     reviewed: true,
@@ -889,6 +912,10 @@ export function readReviewerEvidence({
     sha,
   });
   if (reading.reviewed || reviewer.reviewBy === undefined) return reading;
+  // A review stands in only where the reviewer said nothing at the head. A
+  // status or run that said "no work", failed, or said anything else is a
+  // denial, and a review from the same account never overrides a denial.
+  if (!REVIEW_FALLBACK_READINGS.has(reading.reading)) return reading;
   const fromReview = readReviewEvidence({ reviewer, reviews, sha });
   if (fromReview !== null) {
     return {

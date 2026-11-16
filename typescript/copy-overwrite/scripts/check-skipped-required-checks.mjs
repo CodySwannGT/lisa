@@ -1612,7 +1612,11 @@ function findOrphanedExemptions(declarations, skipped) {
  * @returns {string} One of `DESCRIPTION_VERDICTS`
  */
 export function classifyCheckDescription(description, vocabulary = {}) {
-  const text = (description ?? "").trim().toLowerCase();
+  // Whitespace-collapsed, as the review-evidence prover's normalizeDescription
+  // reads a description, so the two checkers give the same answer.
+  const fold = (/** @type {string} */ value) =>
+    value.trim().replace(/\s+/gu, " ").toLowerCase();
+  const text = fold(description ?? "");
   if (text === "") return DESCRIPTION_VERDICTS.unproven;
 
   // No-work is tested FIRST. The lists are asserted non-overlapping in the
@@ -1623,7 +1627,7 @@ export function classifyCheckDescription(description, vocabulary = {}) {
     ...REVIEW_DESCRIPTION_DEFAULTS.no_work,
     ...(vocabulary.no_work ?? []),
   ];
-  if (noWork.some(phrase => text.includes(phrase.trim().toLowerCase()))) {
+  if (noWork.some(phrase => text.includes(fold(phrase)))) {
     return DESCRIPTION_VERDICTS.noWork;
   }
 
@@ -1631,7 +1635,7 @@ export function classifyCheckDescription(description, vocabulary = {}) {
     ...REVIEW_DESCRIPTION_DEFAULTS.proof,
     ...(vocabulary.proof ?? []),
   ];
-  if (proof.some(phrase => text === phrase.trim().toLowerCase())) {
+  if (proof.some(phrase => text === fold(phrase))) {
     return DESCRIPTION_VERDICTS.proved;
   }
   return DESCRIPTION_VERDICTS.unproven;

@@ -1174,8 +1174,12 @@ line is one of the gate's declared `evidence.proof` phrases, or
 `Result: Success - <phrase>` with a declared phrase, and reads the gate's
 `evidence.no_work` phrases as no work done (#4909). A reviewer that posts no
 status or check run, and only submits a pull-request review, is declared with
-`evidence.review_by: "<its login>"`: its submitted review on the exact head
-counts as its evidence. The evidence workflow wakes only on statuses and check
+`evidence.review_by: "<its bot login>"`, such as `greptile-apps[bot]`: its
+submitted review on the exact head counts as its evidence. The review counts
+only when the reviewer posted no status or check run there, and not when the
+review's own first line says it did no work; a no-work or failed status or run
+is never overridden by a review. `review_by` must be a bot login, and cannot be
+combined with `posted_by`. The evidence workflow wakes only on statuses and check
 runs, so re-run the review gate after such a review lands.
 Filter by name — the `?check_name=<context>` filter, sent as a field so a name
 with spaces is encoded for you — because a head commonly carries more check

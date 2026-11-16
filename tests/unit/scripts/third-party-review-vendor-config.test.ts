@@ -24,6 +24,7 @@ import {
   reviewEvidenceVerdict,
 } from "../../../all/copy-overwrite/scripts/check-third-party-review-evidence.mjs";
 import { validateGates } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { classifyCheckDescription } from "../../../typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs";
 
 const HEAD = "e".repeat(40);
 const OLDER = "f".repeat(40);
@@ -31,6 +32,7 @@ const CONTEXT = "Greptile Review";
 const LOGIN = "greptile-apps[bot]";
 const DECLARED = "Review complete";
 const PAUSED = "Paused by plan";
+const SHIPPED_PROOF = "Review completed";
 
 /**
  * One reviewer gate, as a project declares it.
@@ -89,7 +91,8 @@ function review(overrides: Record<string, unknown> = {}) {
     state: "COMMENTED",
     commit_id: HEAD,
     submitted_at: "2026-11-16T10:00:00Z",
-    user: { login: LOGIN },
+    user: { login: LOGIN, type: "Bot" },
+    body: "Reviewed 4 files.",
     ...overrides,
   };
 }
@@ -142,7 +145,7 @@ describe("a check run is credited by the reviewer's declared proof", () => {
         conclusion: "success",
         output: { title: "Finished", summary: COMPLETED_REVIEW_RESULT },
       })
-    ).toEqual({ text: COMPLETED_REVIEW_RESULT, canonical: "Review completed" });
+    ).toEqual({ text: COMPLETED_REVIEW_RESULT, canonical: SHIPPED_PROOF });
   });
 });
 
@@ -190,14 +193,21 @@ describe("a reviewer proven by its own review (evidence.review_by)", () => {
       reviewer: declared(),
       statuses: [],
       sha: HEAD,
-      reviews: [review({ user: { login: LOGIN.toUpperCase() } })],
+      reviews: [review({ user: { login: LOGIN.toUpperCase(), type: "Bot" } })],
     });
     expect(reading.reviewed).toBe(true);
   });
 
   it.each([
     ["a review of an earlier commit", review({ commit_id: OLDER })],
-    ["a review from another account", review({ user: { login: "someone" } })],
+    [
+      "a review from another account",
+      review({ user: { login: "someone", type: "Bot" } }),
+    ],
+    [
+      "a review from a user account with the same login",
+      review({ user: { login: LOGIN, type: "User" } }),
+    ],
     ["a dismissed review", review({ state: "DISMISSED" })],
     ["an unsubmitted review", review({ state: "PENDING" })],
   ])("is not credited by %s", (_name, object) => {
@@ -269,5 +279,121 @@ describe("validating evidence.review_by", () => {
       },
     });
     expect(problems.join(" ")).toContain("reviewer is not true");
+  });
+});
+
+describe("a review never overrides a denial (#4916 review)", () => {
+  const declared = () => reviewer({ review_by: LOGIN });
+
+  it.each([
+    ["a no-work check run", run("Review skipped: rate limited")],
+    ["a failed check run", run("Looked around", "failure")],
+  ])("is not credited after %s", (_name, object) => {
+    const reading = readReviewerEvidence({
+      reviewer: declared(),
+      statuses: [],
+      checkRuns: [object],
+      sha: HEAD,
+      reviews: [review({ state: "APPROVED" })],
+    });
+    expect(reading.reviewed).toBe(false);
+    expect(reading.source).toBe(EVIDENCE_SOURCES.checkRun);
+  });
+
+  it("is not credited after a no-work status", () => {
+    const reading = readReviewerEvidence({
+      reviewer: declared(),
+      statuses: [
+        { context: CONTEXT, state: "success", description: "Review skipped" },
+      ],
+      sha: HEAD,
+      reviews: [review()],
+    });
+    expect(reading.reviewed).toBe(false);
+  });
+
+  it("reads a review whose own words say it skipped as no work", () => {
+    const reading = readReviewerEvidence({
+      reviewer: declared(),
+      statuses: [],
+      sha: HEAD,
+      reviews: [review({ body: "Review skipped: pull request too large" })],
+    });
+    expect(reading).toMatchObject({
+      reviewed: false,
+      reading: EVIDENCE_READINGS.noWork,
+      source: EVIDENCE_SOURCES.review,
+    });
+  });
+});
+
+describe("a no-work phrase is read before a proof phrase", () => {
+  it("denies a run whose no-work title also names a proof phrase", () => {
+    const reading = readReviewerEvidence({
+      reviewer: reviewer({ proof: [DECLARED], no_work: ["review"] }),
+      statuses: [],
+      checkRuns: [
+        {
+          ...run("Result: Failure - Review failed"),
+          output: {
+            title: SHIPPED_PROOF,
+            summary: "Result: Failure - Review failed",
+          },
+        },
+      ],
+      sha: HEAD,
+    });
+    expect(reading.reviewed).toBe(false);
+  });
+});
+
+describe("both checkers fold whitespace the same way", () => {
+  it("credits a proof phrase with doubled inner spaces in both", () => {
+    expect(classifyCheckDescription("Review  completed")).toBe(
+      classifyCheckDescription(SHIPPED_PROOF)
+    );
+    const reading = readReviewerEvidence({
+      reviewer: reviewer({ proof: [DECLARED] }),
+      statuses: [],
+      checkRuns: [run("Result: Success - Review  completed")],
+      sha: HEAD,
+    });
+    expect(reading.reviewed).toBe(true);
+  });
+});
+
+describe("validating the reviewer's phrases and account", () => {
+  it("refuses a review_by that is not a bot login", () => {
+    expect(validateGates(gates({ review_by: "greptile" })).join(" ")).toContain(
+      "[bot]"
+    );
+  });
+
+  it("refuses review_by alongside posted_by", () => {
+    const problems = validateGates({
+      "code-review": {
+        "pull-request": {
+          level: "required",
+          await: CONTEXT,
+          posted_by: 347564,
+          evidence: { reviewer: true, review_by: LOGIN },
+        },
+      },
+    });
+    expect(problems.join(" ")).toContain("posted_by");
+  });
+
+  it("refuses a proof phrase that contains a no-work phrase", () => {
+    const problems = validateGates(
+      gates({ proof: [DECLARED], no_work: ["review"] })
+    );
+    expect(problems.join(" ")).toContain("contains");
+  });
+
+  it("refuses an empty no-work phrase", () => {
+    const problems = validateGates(
+      gates({ proof: [DECLARED], no_work: [" "] })
+    );
+    expect(problems.join(" ")).toContain("non-empty");
   });
 });

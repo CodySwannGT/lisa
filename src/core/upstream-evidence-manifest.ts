@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
-      "1dd741c63b9e1902f0de2456fb9539bd652615d91ccc6004324a33acca06356f",
+      "456f35def7e892272f440d97ee45eb3e212a344910813bf28a104f7648f7a2fb",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
@@ -339,7 +339,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "79082113c0f1db894bc1b18fb8230f8bc9999d277cceb6eadf1bba2fbc701dc3",
+      "9bc593b8b4890f2b015afc81a926dc833ccc708117a5593c9e730986d4087f64",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -399,7 +399,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "e47d36134c0a7a5d85498340a084de0dd116dc9ce7dd9e50db8e0b158d785a52",
+      "5eb85949e1924ebd71c1fa47d73629ae414bd68bf3da73494d3c0584fbebc00c",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1455,7 +1455,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "d87e939d1fd2b5686d6bd7cd3467df94fe719b42e537695788ec94281f79b7cf",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "98ec88e1adfaaec879f4fbf1e79ab96e842b0cf3e6f85241a1dfffcd3787d96b",
+      "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -3095,7 +3095,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "2f60285abe47dcb902eebce44544e7745bdb7d6ef18ed2f20b0ea17d123e67f2",
+      "d3e5af71dc6249b71285b723bbe239e7271ba764f5a0f1e91e03cb1a24936d9f",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
