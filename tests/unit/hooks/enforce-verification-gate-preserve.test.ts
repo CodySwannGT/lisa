@@ -19,9 +19,9 @@
 import {
   PASSING_CRITERION,
   v1Verdict,
-} from "../../helpers/verification-gate-fixtures";
-import type { GateScenario } from "../../helpers/verification-gate-harness";
-import { createGateScenario } from "../../helpers/verification-gate-harness";
+} from "../../helpers/verification-gate-fixtures.js";
+import type { GateScenario } from "../../helpers/verification-gate-harness.js";
+import { createGateScenario } from "../../helpers/verification-gate-harness.js";
 
 let harness: GateScenario;
 

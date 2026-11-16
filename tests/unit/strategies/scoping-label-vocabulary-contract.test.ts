@@ -35,7 +35,9 @@ const readSkill = (name: string): string =>
   readFileSync(path.resolve(SKILL_ROOT, name, "SKILL.md"), "utf8");
 
 const typesFromRow = (row: string): readonly string[] =>
-  [...row.matchAll(/`(?:type:)?([A-Z][A-Za-z-]*)`/g)].map(match => match[1]);
+  [...row.matchAll(/`(?:type:)?([A-Z][A-Za-z-]*)`/g)].flatMap(
+    match => match[1] ?? []
+  );
 
 const rowStartingWith = (skill: string, prefix: string): string => {
   const row = skill.split("\n").find(line => line.startsWith(prefix));

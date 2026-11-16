@@ -22,7 +22,7 @@ import { describe, expect, it } from "vitest";
 import {
   POLICY_RULESET_NAME,
   awaitedChecks,
-  buildRulesetPayload,
+  buildRulesetPayload as buildUntypedRulesetPayload,
 } from "../../../scripts/lisa-ruleset-payload.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -40,6 +40,35 @@ const DEFAULT_REFS = [
   "refs/heads/staging",
   "refs/heads/main",
 ];
+
+/**
+ * Narrows an untyped value to a string-keyed record.
+ *
+ * @param value The value to check.
+ * @returns Whether the value is a non-null object.
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * Builds a payload through the module under test, narrowed to a record.
+ *
+ * The module documents its return as a bare `object`; every payload is a
+ * JSON document, so this narrows it rather than casting.
+ *
+ * @param options Build inputs, passed through unchanged.
+ * @returns The generated ruleset.
+ */
+function buildRulesetPayload(
+  options?: Parameters<typeof buildUntypedRulesetPayload>[0]
+): Record<string, unknown> {
+  const payload: unknown = buildUntypedRulesetPayload(options);
+  if (!isRecord(payload)) {
+    throw new Error("buildRulesetPayload returned a non-object payload");
+  }
+  return payload;
+}
 
 /** One rule in a generated payload, projected to what the tests read. */
 type Rule = {

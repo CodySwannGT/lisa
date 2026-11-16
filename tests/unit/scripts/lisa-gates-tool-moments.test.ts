@@ -252,9 +252,14 @@ describe("the agent tool boundary is two declarable moments", () => {
 
 describe("each script's gate is declarable where the script fires", () => {
   it("permits every (script, moment) pair the manifests register", () => {
+    // Indexed by a gate name read from the manifests, so the registry is
+    // viewed as an open record: an unknown name is caught by the case above.
+    const registry: Readonly<
+      Record<string, { readonly moments: readonly string[] } | undefined>
+    > = REGISTRY;
     const illegal = REGISTRATIONS.flatMap(registration =>
       (PROVES[registration.script] ?? [])
-        .filter(gate => !REGISTRY[gate].moments.includes(registration.moment))
+        .filter(gate => !registry[gate]?.moments.includes(registration.moment))
         .map(
           gate =>
             `${registration.script} runs at ${registration.moment} but ` +

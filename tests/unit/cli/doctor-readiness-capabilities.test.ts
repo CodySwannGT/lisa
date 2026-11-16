@@ -24,10 +24,25 @@ import {
 } from "../../../src/cli/doctor-readiness.js";
 import {
   asFindings,
+  type Finding,
   makeScratchRepo,
   SKIP,
   writeRepoFile,
 } from "../../helpers/readiness-workflow-fixtures.js";
+
+/**
+ * The first finding a dimension record carries.
+ *
+ * @param findings - The record's findings
+ * @returns The first finding
+ */
+function firstFinding(findings: readonly unknown[]): Finding {
+  const [first] = asFindings(findings);
+  if (first === undefined) {
+    throw new Error("expected the record to carry at least one finding");
+  }
+  return first;
+}
 
 /** The dimension this producer owns. */
 const DIMENSION_ID = "capabilities-tools";
@@ -61,10 +76,14 @@ describe("assessCapabilitiesToolsDimension", () => {
     expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
     expect(findings).toHaveLength(1);
-    expect(String(findings[0].reason)).toContain("live");
-    expect(String(findings[0].reason)).toContain("probe");
-    expect(findings[0].skip).toBe(true);
-    expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
+    const [finding] = findings;
+    if (finding === undefined) {
+      throw new Error("expected one finding");
+    }
+    expect(String(finding.reason)).toContain("live");
+    expect(String(finding.reason)).toContain("probe");
+    expect(finding.skip).toBe(true);
+    expect(Object.hasOwn(finding, "blocker")).toBe(false);
   });
 
   it("still SKIPs when the repository declares the tools it uses", async () => {
@@ -80,9 +99,7 @@ describe("assessCapabilitiesToolsDimension", () => {
     // Declared-and-installed is precisely the `tool-access-gate` anti-pattern:
     // it must never be reported as reachability.
     expect(record.status).toBe(SKIP);
-    expect(Object.hasOwn(asFindings(record.findings)[0], "blocker")).toBe(
-      false
-    );
+    expect(Object.hasOwn(firstFinding(record.findings), "blocker")).toBe(false);
   });
 });
 
@@ -104,8 +121,12 @@ describe("readiness close-out — every dimension has a producer or a reasoned S
       const findings = dimension.findings as Array<Record<string, unknown>>;
       expect(findings.length).toBeGreaterThan(0);
       if (dimension.status === SKIP) {
-        expect(String(findings[0].reason).trim()).not.toBe("");
-        expect(findings[0].skip).toBe(true);
+        const [first] = findings;
+        if (first === undefined) {
+          throw new Error("expected a SKIP dimension to carry a finding");
+        }
+        expect(String(first.reason).trim()).not.toBe("");
+        expect(first.skip).toBe(true);
       }
     }
   });

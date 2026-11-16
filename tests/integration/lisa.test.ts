@@ -167,6 +167,7 @@ describe("Lisa Integration Tests", () => {
       const populated = renderLearningsFile([
         {
           id: "learning-1576-sentinel",
+          fingerprint: "learning-1576-sentinel",
           rule: "Preserve the host-owned project learnings file.",
           why: "Lisa apply must not erase durable project memory.",
           provenance: ["https://github.com/CodySwannGT/lisa/issues/1576"],
@@ -294,6 +295,7 @@ describe("Lisa Integration Tests", () => {
       const populated = renderLearningsFile([
         {
           id: "fleet-upgrade-sentinel",
+          fingerprint: "fleet-upgrade-sentinel",
           rule: "Never strand a populated legacy ledger on upgrade.",
           why: "The fleet updater forces LISA_BOOTSTRAP=1 + --skip-git-check.",
           provenance: ["https://github.com/CodySwannGT/lisa/issues/1730"],

@@ -226,6 +226,7 @@ describe("core/instruction-files-migration", () => {
       renderLearningsFile([
         {
           id: "relocate-1",
+          fingerprint: "relocate-1",
           rule: "Keep the ledger out of eager context.",
           why: "Raw injection bypasses the contract.",
           provenance: ["https://github.com/CodySwannGT/lisa/issues/1730"],

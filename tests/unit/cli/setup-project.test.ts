@@ -150,9 +150,11 @@ describe("runSetupProject", () => {
       ],
     ]);
     expect(runApply).toHaveBeenCalledWith(destination, { yes: true });
-    expect(runCommand.mock.invocationCallOrder.at(-1)).toBeLessThan(
-      runApply.mock.invocationCallOrder[0]
-    );
+    const [applyOrder] = runApply.mock.invocationCallOrder;
+    if (applyOrder === undefined) {
+      throw new Error("runApply was never invoked");
+    }
+    expect(runCommand.mock.invocationCallOrder.at(-1)).toBeLessThan(applyOrder);
   });
 
   it("treats an existing non-empty destination as an apply target", async () => {

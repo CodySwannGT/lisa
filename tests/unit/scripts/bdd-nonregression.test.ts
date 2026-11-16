@@ -37,7 +37,7 @@ import {
   readMap,
   runGate,
   writeMap,
-} from "./bdd/support";
+} from "./bdd/support.js";
 import {
   EXTRA_FEATURE,
   EXTRA_FEATURE_FILE,
@@ -52,7 +52,7 @@ import {
   HOME_ONLY_MAPPINGS,
   removeExtraSpec,
   twoScenarioProject,
-} from "./bdd/regression-support";
+} from "./bdd/regression-support.js";
 
 describe("coverage the repo already accepted cannot be given back", () => {
   it.each([MAP_REL, `bdd/features/${HOME_FEATURE_FILE}`])(
