@@ -510,3 +510,31 @@ describe("CodeRabbit's findings on #4916", () => {
     expect(decision.reason).toContain("requested changes");
   });
 });
+
+describe("a review needs silence on both surfaces (CodeRabbit, #4916)", () => {
+  const declared = () => reviewer({ review_by: LOGIN });
+
+  it("is not credited when an empty passed run hides a no-work status", () => {
+    const reading = readReviewerEvidence({
+      reviewer: declared(),
+      statuses: [
+        { context: CONTEXT, state: "success", description: "Review skipped" },
+      ],
+      checkRuns: [run("")],
+      sha: HEAD,
+      reviews: [review()],
+    });
+    expect(reading.reviewed).toBe(false);
+  });
+
+  it("is not credited when the check runs could not be read", () => {
+    const reading = readReviewerEvidence({
+      reviewer: declared(),
+      statuses: [{ context: CONTEXT, state: "success", description: "" }],
+      checkRuns: null,
+      sha: HEAD,
+      reviews: [review()],
+    });
+    expect(reading.reviewed).toBe(false);
+  });
+});

@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
-      "d3cc457db6f0db07656608e57911c38ee2fdbd9346a579f32c524b6a1e2a8a1f",
+      "c144a8e5e58d573df8ba2195a42fe2cd30b0b85f619be4476aad18958473ecd3",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
@@ -1649,7 +1649,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-project-ideation/examples/unavailable-data-rejection.md":
       "362835db13cb8f73179754bce427d0f7caef7738a575aa5b936a0383b7f81078",
     "plugins/src/base/skills/lisa-pull-request-review/SKILL.md":
-      "60c041820bcf7cf006be0635a0cab2c315feed1b1544e4325cf4bb7eff364ce1",
+      "e6a247297b6d61b48c239df8e16148e735d67b22b97373900720cec3939266d6",
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
       "c51afffe153f614bcef5bbd2a7b8ffb53c241ebd246900863448e3a6f4be7d47",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":

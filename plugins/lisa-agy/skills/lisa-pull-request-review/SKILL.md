@@ -83,8 +83,9 @@ description. A real review uses a declared proof phrase, such as CodeRabbit's
 review. A reviewer whose gate sets `evidence.review_by` reports through its
 own pull-request review instead of a check, which the loop above cannot see.
 For that gate run `node scripts/check-third-party-review-evidence.mjs --sha
-<head-sha> --json` and report the reviewer as reviewed only when it reads
-`reviewed` from a review on the head commit. A reviewer
+<head-sha> --repo <owner>/<repo> --json` and report the reviewer as reviewed
+only when it reads `reviewed` at the head commit, whichever source it names (a
+check run, a status, or a review). A reviewer
 can also report through a **check run** instead, and then this command cannot
 tell you anything: the description column is empty for a check run, which
 reads `SUCCESS` when it reviewed and `NEUTRAL` — still passing a required

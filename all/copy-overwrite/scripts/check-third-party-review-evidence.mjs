@@ -930,6 +930,15 @@ export function readReviewerEvidence({
   // status or run that said "no work", failed, or said anything else is a
   // denial, and a review from the same account never overrides a denial.
   if (!saidNothing(reading)) return reading;
+  // An empty passed run can hide a denial in the same reviewer's status, and
+  // an unread run or status list can hide one too. Only silence on both
+  // surfaces, both read, may be replaced by a review.
+  if (checkRuns === null || statuses === null) return reading;
+  if (
+    !saidNothing(readStatusEvidence({ reviewer, statuses: statuses ?? [] }))
+  ) {
+    return reading;
+  }
   // posted_by accepts only that app's check run; a review carries no app id,
   // so a pinned gate never takes the review route (validateGates also
   // refuses the pair, but the config is not validated at run time).
