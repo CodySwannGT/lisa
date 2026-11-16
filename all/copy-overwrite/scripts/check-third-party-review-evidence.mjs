@@ -240,6 +240,8 @@ export const EVIDENCE_SOURCES = Object.freeze({
   status: "status",
   /** `repos/{repo}/commits/{sha}/check-runs`. */
   checkRun: "check-run",
+  /** `repos/{repo}/pulls/{n}/reviews`, from the gate's `evidence.review_by` account (#4909). */
+  review: "review",
 });
 
 /** What the whole evaluation concluded. */
@@ -350,7 +352,7 @@ export function normalizeDescription(description) {
  * @param {object} options - Resolution inputs.
  * @param {object} options.gates - The `gates` block of `.lisa.config.json`.
  * @param {string} [options.moment] - Which moment to read. Defaults to the pull-request moment.
- * @returns {Array<{gateId: string, context: string, proof: string[], postedBy?: unknown}>} Declared reviewers.
+ * @returns {Array<{gateId: string, context: string, proof: string[], noWork: string[], postedBy?: unknown, reviewBy?: string}>} Declared reviewers.
  */
 export function configuredReviewers({ gates, moment = PULL_REQUEST }) {
   const reviewers = [];
@@ -366,7 +368,14 @@ export function configuredReviewers({ gates, moment = PULL_REQUEST }) {
       proof: [...EVIDENCE_DEFAULTS.proof, ...(entry.evidence.proof ?? [])].map(
         normalizeDescription
       ),
+      noWork: [...EVIDENCE_DEFAULTS.no_work, ...(entry.evidence.no_work ?? [])],
       ...(entry.posted_by === undefined ? {} : { postedBy: entry.posted_by }),
+      // A gate pinned by posted_by never takes the review route (#4916).
+      ...(entry.posted_by === undefined &&
+      typeof entry.evidence.review_by === "string" &&
+      entry.evidence.review_by.trim() !== ""
+        ? { reviewBy: entry.evidence.review_by.trim() }
+        : {}),
     });
   }
   return reviewers.sort((left, right) =>
@@ -388,17 +397,28 @@ export function configuredReviewers({ gates, moment = PULL_REQUEST }) {
  * @param {string} normalised - An already-normalised description.
  * @returns {boolean} Whether a shipped no-work phrase appears in it.
  */
-function readsAsNoWork(normalised) {
-  return EVIDENCE_DEFAULTS.no_work.some(phrase =>
+function readsAsNoWork(normalised, noWork = EVIDENCE_DEFAULTS.no_work) {
+  return noWork.some(phrase =>
     normalised.includes(normalizeDescription(phrase))
   );
 }
+
+/**
+ * The words a reviewer is judged by when no gate declared any: Lisa's shipped
+ * phrases alone.
+ */
+const SHIPPED_REVIEWER_WORDS = Object.freeze({
+  proof: Object.freeze(EVIDENCE_DEFAULTS.proof.map(normalizeDescription)),
+  noWork: EVIDENCE_DEFAULTS.no_work,
+});
 
 /**
  * @typedef {object} ReviewerShape
  * @property {string} context - The status context or check-run name it reports under.
  * @property {string[]} proof - The normalised reviewed-when allowlist.
  * @property {unknown} [postedBy] - The app id a check run must come from, exactly as declared; absent for any app. When declared, no commit status counts.
+ * @property {ReadonlyArray<string>} [noWork] - Phrases that say the reviewer did no work: Lisa's shipped ones plus the gate's `evidence.no_work` (#4909). Absent means the shipped ones alone.
+ * @property {string} [reviewBy] - The account whose pull-request review at the head counts as this reviewer's evidence, from `evidence.review_by` (#4909).
  */
 
 /**
@@ -429,19 +449,37 @@ function readsAsNoWork(normalised) {
  */
 
 /**
- * The one structured first line that says a review completed.
+ * CodeRabbit's structured first line for a review that completed (#4547).
  *
- * Byte-identical to the line `check-skipped-required-checks.mjs` recognises
- * (#4547), and matched the same way: exactly, as the first physical line, on a
- * run that completed with `success`. Duplicated rather than imported because
- * the two scripts ship from different template trees and a host that has this
- * one need not have that one; `tests/integration/third-party-review-check-run-cli`
- * holds both provers to the same answers.
+ * Kept as a named example, not as a rule: it is credited because it has the
+ * generic `Result: Success - <phrase>` shape (see {@link structuredSuccessPhrase}) and its phrase, `Review completed`,
+ * is a shipped proof phrase. A different reviewer is credited the same way
+ * through the phrases its gate declares in `evidence.proof` (#4909).
  */
 export const COMPLETED_REVIEW_RESULT = "Result: Success - Review completed";
 
-/** The proof phrase that line stands for. */
-const COMPLETED_REVIEW_PROOF = "Review completed";
+/**
+ * The phrase a structured success line names, or null.
+ *
+ * Reads `Result: Success - <phrase>` (CodeRabbit's {@link COMPLETED_REVIEW_RESULT}
+ * is one instance) with any spacing around the words, by
+ * plain string steps rather than a regular expression, so no input can make it
+ * backtrack. The same steps are in `check-skipped-required-checks.mjs`;
+ * duplicated rather than imported because the two scripts ship from different
+ * template trees, and the parity tests hold the two provers to the same
+ * answers.
+ * @param {string} line - A first summary line.
+ * @returns {string|null} The trimmed phrase, or null when the line has another shape.
+ */
+function structuredSuccessPhrase(line) {
+  if (!line.startsWith("Result:")) return null;
+  const outcome = line.slice("Result:".length).trimStart();
+  if (!outcome.startsWith("Success")) return null;
+  const rest = outcome.slice("Success".length).trimStart();
+  if (!rest.startsWith("-")) return null;
+  const phrase = rest.slice(1).trim();
+  return phrase === "" ? null : phrase;
+}
 
 /** What a summary that is present but not text is reported as. */
 const MALFORMED_SUMMARY = "Malformed check-run summary";
@@ -502,14 +540,14 @@ function readStatusEvidence({ reviewer, statuses }) {
     return answer(EVIDENCE_READINGS.pending);
   }
   if (normalised === "") return answer(EVIDENCE_READINGS.empty);
+  // Denial first, as the check-run reading and the TypeScript checker do.
+  if (readsAsNoWork(normalised, reviewer.noWork)) {
+    return answer(EVIDENCE_READINGS.noWork);
+  }
   if (reviewer.proof.includes(normalised)) {
     return answer(EVIDENCE_READINGS.reviewed, true);
   }
-  return answer(
-    readsAsNoWork(normalised)
-      ? EVIDENCE_READINGS.noWork
-      : EVIDENCE_READINGS.unrecognised
-  );
+  return answer(EVIDENCE_READINGS.unrecognised);
 }
 
 /**
@@ -536,38 +574,50 @@ function looksLikeResult(line) {
  *  3. A summary that is not text is never read: it stands for no phrase, and
  *     the report carries the value it actually was.
  *  4. A first summary line that reads as no-work decides next.
- *  5. `Result: Success - Review completed`, as the whole first line of a run
- *     that completed with `success`, stands for the proof phrase
- *     `Review completed`. This is the ONLY route from a summary to credit.
+ *  5. `Result: Success - <phrase>`, as the whole first line of a run that
+ *     completed with `success`, stands for `<phrase>` when the reviewer
+ *     declares that phrase as proof. CodeRabbit's
+ *     {@link COMPLETED_REVIEW_RESULT} is one instance (#4909).
  *  6. Any other result-shaped first line is authoritative as it stands, so a
  *     failed or unknown result cannot inherit a positive title.
- *  7. A plain first line keeps the title, and later lines are never read.
+ *  7. A plain first line that is itself a declared proof phrase, on a run
+ *     that completed with `success`, stands for that phrase, so a reviewer
+ *     that writes its verdict in the summary rather than the title is read by
+ *     its own declared words (#4909).
+ *  8. Any other plain first line keeps the title, and later lines are never
+ *     read.
  *
  * `text` is what decided, verbatim, for the report; `canonical` is what the
  * allowlist compares. They differ only in rules 3 and 5.
  * @param {RawCheckRun} run - One raw check run.
+ * @param {{proof: ReadonlyArray<string>, noWork?: ReadonlyArray<string>}} [reviewer] - The reviewer's declared words; Lisa's shipped ones when absent.
  * @returns {{text: string, canonical: string}} The run's words.
  */
-export function checkRunResult(run) {
+export function checkRunResult(run, reviewer = SHIPPED_REVIEWER_WORDS) {
   const output = run?.output ?? {};
   const title = typeof output.title === "string" ? output.title : "";
   const said = (/** @type {string} */ text) => ({ text, canonical: text });
-  if (readsAsNoWork(normalizeDescription(title))) return said(title);
+  const noWork = reviewer.noWork ?? EVIDENCE_DEFAULTS.no_work;
+  const declares = (/** @type {string} */ phrase) =>
+    reviewer.proof.includes(normalizeDescription(phrase));
+  if (readsAsNoWork(normalizeDescription(title), noWork)) return said(title);
   const summary = output.summary;
   if (summary === null || summary === undefined) return said(title);
   if (typeof summary !== "string") {
     return { text: JSON.stringify(summary), canonical: MALFORMED_SUMMARY };
   }
   const firstLine = summary.split(/\r?\n/u, 1)[0] ?? "";
-  if (readsAsNoWork(normalizeDescription(firstLine))) return said(firstLine);
-  if (
-    run?.status === "completed" &&
-    run?.conclusion === "success" &&
-    firstLine === COMPLETED_REVIEW_RESULT
-  ) {
-    return { text: firstLine, canonical: COMPLETED_REVIEW_PROOF };
+  if (readsAsNoWork(normalizeDescription(firstLine), noWork)) {
+    return said(firstLine);
+  }
+  const succeeded =
+    run?.status === "completed" && run?.conclusion === "success";
+  const structured = structuredSuccessPhrase(firstLine);
+  if (succeeded && structured !== null && declares(structured)) {
+    return { text: firstLine, canonical: structured };
   }
   if (looksLikeResult(firstLine)) return said(firstLine);
+  if (succeeded && declares(firstLine)) return said(firstLine);
   return said(title);
 }
 
@@ -669,7 +719,7 @@ export function selectReviewerCheckRun({ reviewer, runs, sha }) {
 function readCheckRunEvidence({ reviewer, run }) {
   const status = typeof run.status === "string" ? run.status : "";
   const conclusion = typeof run.conclusion === "string" ? run.conclusion : null;
-  const { text, canonical } = checkRunResult(run);
+  const { text, canonical } = checkRunResult(run, reviewer);
   const settled = status === "completed";
   const normalised = normalizeDescription(text);
   let reading = EVIDENCE_READINGS.unrecognised;
@@ -677,13 +727,16 @@ function readCheckRunEvidence({ reviewer, run }) {
     reading = EVIDENCE_READINGS.pending;
   } else if (!settled) {
     reading = EVIDENCE_READINGS.unrecognised;
+  } else if (readsAsNoWork(normalised, reviewer.noWork)) {
+    // Denial first, as the TypeScript checker reads a description: a
+    // project's no-work phrase that overlaps a proof phrase then withholds
+    // credit instead of granting it.
+    reading = EVIDENCE_READINGS.noWork;
   } else if (
     conclusion === "success" &&
     reviewer.proof.includes(normalizeDescription(canonical))
   ) {
     reading = EVIDENCE_READINGS.reviewed;
-  } else if (readsAsNoWork(normalised)) {
-    reading = EVIDENCE_READINGS.noWork;
   } else if (conclusion !== "success") {
     reading = EVIDENCE_READINGS.unsuccessful;
   } else if (normalised === "") {
@@ -694,6 +747,9 @@ function readCheckRunEvidence({ reviewer, run }) {
     reviewed: reading === EVIDENCE_READINGS.reviewed,
     reading,
     observed: text,
+    // The phrase that decided the run, which the objection check compares:
+    // `Result: Success - Changes requested` objects like a bare line does.
+    objection: normalizeDescription(canonical),
     state: settled ? (conclusion ?? status) : status || null,
     source: EVIDENCE_SOURCES.checkRun,
     checkRunId: run.id ?? null,
@@ -755,6 +811,86 @@ function pinnedWithoutRun(reviewer, checkRuns) {
   };
 }
 
+/** Review states that mean the reviewer submitted a review it wrote. */
+const SUBMITTED_REVIEW_STATES = new Set([
+  "APPROVED",
+  "COMMENTED",
+  "CHANGES_REQUESTED",
+]);
+
+/**
+ * Whether the reviewer said nothing at the head: no status or run at all, or
+ * an empty one that passed. Only silence may be replaced by the reviewer's own
+ * review; an empty status that failed or errored is a denial.
+ * @param {{reading: string, state?: string|null}} reading - The status or run reading.
+ * @returns {boolean} Whether a review may stand in.
+ */
+function saidNothing(reading) {
+  if (reading.reading === EVIDENCE_READINGS.absent) return true;
+  return (
+    reading.reading === EVIDENCE_READINGS.empty &&
+    String(reading.state ?? "").toLowerCase() === "success"
+  );
+}
+
+/**
+ * The reviewer's own submitted pull-request review at this head, if its gate
+ * names the account that writes it (`evidence.review_by`, #4909).
+ *
+ * Some reviewers post no status and no check run: they only submit a review.
+ * Without this they read `absent` on every pull request, and every merge then
+ * needs a substitute. The review must be on the exact head commit — a review
+ * of an earlier commit read different code — and must come from the named
+ * account, compared case-insensitively as GitHub compares logins. A
+ * `CHANGES_REQUESTED` review proves the reviewer read the code; whether it
+ * still blocks the merge is the separate objection check's question.
+ * @param {object} options - Reading inputs.
+ * @param {ReviewerShape} options.reviewer - One declared reviewer.
+ * @param {ReadonlyArray<{commit_id?: string, state?: string, submitted_at?: string, id?: unknown, user?: {login?: string}}>|null|undefined} options.reviews - Review objects on the head's pull requests; null when the read failed.
+ * @param {string|undefined} options.sha - The head commit.
+ * @returns {Omit<EvidenceReading, "ignoredCheckRuns" | "ignoredStatuses">|null} A reviewed reading, or null when no such review stands.
+ */
+function readReviewEvidence({ reviewer, reviews, sha }) {
+  if (reviewer.reviewBy === undefined || typeof sha !== "string") return null;
+  const login = reviewer.reviewBy.toLowerCase();
+  const mine = reviewsAtHead(reviews ?? [], sha)
+    .filter(
+      review =>
+        String(review?.user?.login ?? "").toLowerCase() === login &&
+        review?.user?.type === "Bot" &&
+        SUBMITTED_REVIEW_STATES.has(String(review?.state ?? "").toUpperCase())
+    )
+    .sort((left, right) =>
+      String(left?.submitted_at ?? "").localeCompare(
+        String(right?.submitted_at ?? "")
+      )
+    );
+  const latest = mine.at(-1);
+  if (latest === undefined) return null;
+  const state = String(latest.state).toUpperCase();
+  const body = typeof latest.body === "string" ? latest.body : "";
+  const firstLine = body.trim().split(/\r?\n/u, 1)[0] ?? "";
+  if (readsAsNoWork(normalizeDescription(firstLine), reviewer.noWork)) {
+    // The review itself says the reviewer skipped the code.
+    return {
+      context: reviewer.context,
+      reviewed: false,
+      reading: EVIDENCE_READINGS.noWork,
+      observed: firstLine,
+      state,
+      source: EVIDENCE_SOURCES.review,
+    };
+  }
+  return {
+    context: reviewer.context,
+    reviewed: true,
+    reading: EVIDENCE_READINGS.reviewed,
+    observed: `${state} review by ${reviewer.reviewBy}`,
+    state,
+    source: EVIDENCE_SOURCES.review,
+  };
+}
+
 /**
  * Read one reviewer's evidence at one commit, from both representations.
  *
@@ -773,9 +909,65 @@ function pinnedWithoutRun(reviewer, checkRuns) {
  *   `.statuses` from `repos/{owner}/{repo}/commits/{sha}/status`, newest first; null when the read failed.
  * @param {ReadonlyArray<RawCheckRun>|null} [options.checkRuns] - Runs read for the reviewer's name; null when the read failed, absent when none were read.
  * @param {string} [options.sha] - The head commit, which every check run must report on.
+ * @param {ReadonlyArray<object>|null} [options.reviews] - Review objects on the head's pull requests, read only for a reviewer whose gate names `evidence.review_by`; null when the read failed.
  * @returns {EvidenceReading} The reading.
  */
-export function readReviewerEvidence({ reviewer, statuses, checkRuns, sha }) {
+export function readReviewerEvidence({
+  reviewer,
+  statuses,
+  checkRuns,
+  sha,
+  reviews,
+}) {
+  const reading = readStatusOrRunEvidence({
+    reviewer,
+    statuses,
+    checkRuns,
+    sha,
+  });
+  if (reading.reviewed || reviewer.reviewBy === undefined) return reading;
+  // A review stands in only where the reviewer said nothing at the head. A
+  // status or run that said "no work", failed, or said anything else is a
+  // denial, and a review from the same account never overrides a denial.
+  if (!saidNothing(reading)) return reading;
+  // An empty passed run can hide a denial in the same reviewer's status, and
+  // an unread run or status list can hide one too. Only silence on both
+  // surfaces, both read, may be replaced by a review.
+  if (checkRuns === null || statuses === null) return reading;
+  if (
+    !saidNothing(readStatusEvidence({ reviewer, statuses: statuses ?? [] }))
+  ) {
+    return reading;
+  }
+  // posted_by accepts only that app's check run; a review carries no app id,
+  // so a pinned gate never takes the review route (validateGates also
+  // refuses the pair, but the config is not validated at run time).
+  if (reviewer.postedBy !== undefined) return reading;
+  const fromReview = readReviewEvidence({ reviewer, reviews, sha });
+  if (fromReview !== null) {
+    return {
+      ...fromReview,
+      ignoredCheckRuns: reading.ignoredCheckRuns,
+      ignoredStatuses: reading.ignoredStatuses,
+    };
+  }
+  // A review read that failed could have held the evidence, so an absence
+  // is not proven; say the read failed instead.
+  return reviews === null && reading.reading === EVIDENCE_READINGS.absent
+    ? { ...reading, reading: EVIDENCE_READINGS.unreadable }
+    : reading;
+}
+
+/**
+ * Read one reviewer's evidence from its statuses and check runs alone.
+ * @param {object} options - Reading inputs, as {@link readReviewerEvidence} takes them.
+ * @param {ReviewerShape} options.reviewer - One declared reviewer.
+ * @param {ReadonlyArray<{context?: string, state?: string, description?: string}>|null} [options.statuses] - Statuses on the commit; null when the read failed.
+ * @param {ReadonlyArray<RawCheckRun>|null} [options.checkRuns] - Runs read for the reviewer's name; null when the read failed.
+ * @param {string} [options.sha] - The head commit.
+ * @returns {EvidenceReading} The reading.
+ */
+function readStatusOrRunEvidence({ reviewer, statuses, checkRuns, sha }) {
   const { run, ignored } = selectReviewerCheckRun({
     reviewer,
     runs: checkRuns,
@@ -1034,13 +1226,14 @@ export function reviewStanding({ reviews, sha }) {
  * this project declared no third-party reviewer, which is a legitimate state
  * that must be SAID rather than passed through in silence.
  * @param {object} options - Decision inputs.
- * @param {Array<{gateId: string, context: string, proof: string[], postedBy?: unknown}>} options.reviewers - Declared reviewers.
+ * @param {Array<{gateId: string, context: string, proof: string[], postedBy?: unknown, reviewBy?: string}>} options.reviewers - Declared reviewers.
  * @param {ReadonlyArray<object>|null} options.statuses - Statuses on the head commit; null when the read failed.
  * @param {Record<string, ReadonlyArray<RawCheckRun>|null>} [options.checkRuns] -
  *   Check runs read for each reviewer's context, keyed by that context; a null
  *   entry is a read that failed, and a missing key is a reviewer whose runs
  *   were not read.
  * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>|null} options.comments - Issue comments on the pull request; null when they could not all be read, which counts no substitute.
+ * @param {ReadonlyArray<object>|null} [options.reviews] - Review objects on the pull request, for reviewers whose gate names `evidence.review_by`; null when the read failed.
  * @param {string} options.sha - The head commit.
  * @param {boolean|null} [options.isPullRequestHead] - Whether an open pull request has this commit as its head; null when the read failed.
  * @param {(login: string) => boolean|null} [options.canWrite] -
@@ -1053,6 +1246,7 @@ export function reviewEvidenceVerdict({
   statuses,
   checkRuns,
   comments,
+  reviews = [],
   sha,
   isPullRequestHead = true,
   canWrite = UNREAD_PERMISSIONS,
@@ -1088,6 +1282,7 @@ export function reviewEvidenceVerdict({
           ? checkRuns[reviewer.context]
           : undefined,
       sha,
+      reviews,
     });
     if (reading.reviewed) {
       return { ...reading, gateId: reviewer.gateId, substituted: false };
@@ -1229,7 +1424,9 @@ function evidenceSignal(evidence, substitutes) {
   // not cancelled by another reviewer's substitute.
   if (
     readings.some(
-      reading => normalizeDescription(reading.observed) === OBJECTING_PROOF
+      reading =>
+        (reading.objection ?? normalizeDescription(reading.observed)) ===
+        OBJECTING_PROOF
     )
   ) {
     return engagedSignal(
@@ -2589,6 +2786,14 @@ export function main(argv, io = {}) {
               pulls ?? []
             )
           : [],
+        // Read only when some reviewer is proven by its review, so a project
+        // whose reviewers all report through statuses spends no extra call.
+        reviews:
+          evaluated && reviewers.some(reviewer => reviewer.reviewBy)
+            ? (io.reviews ?? (numbers => readReviews(repo, numbers)))(
+                pulls ?? []
+              )
+            : [],
         sha: opts.sha,
         isPullRequestHead,
         canWrite,

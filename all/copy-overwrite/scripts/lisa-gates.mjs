@@ -4267,6 +4267,7 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
       );
     }
     problems.push(...validateEvidence(id, moment, entry.evidence ?? {}));
+    problems.push(...validateReviewByPin(id, moment, entry));
   } else if (entry.evidence !== undefined) {
     // Evidence describes what an AWAITED signal's description proves. Declared
     // without an `await`, there is no signal and no description, so the block
@@ -4436,10 +4437,21 @@ function validateEvidence(id, moment, evidence) {
     }
   }
   for (const field of ["proof", "no_work"]) {
-    if (evidence[field] !== undefined && !Array.isArray(evidence[field])) {
+    if (evidence[field] === undefined) continue;
+    if (!Array.isArray(evidence[field])) {
       problems.push(`${where}.${field} must be an array of phrases`);
+    } else if (
+      evidence[field].some(
+        phrase => typeof phrase !== "string" || phrase.trim() === ""
+      )
+    ) {
+      problems.push(
+        `${where}.${field} must hold only non-empty phrases. An empty ` +
+          `no-work phrase matches every description.`
+      );
     }
   }
+  problems.push(...validatePhraseOverlap(where, evidence));
   problems.push(...validateReviewerFlag(where, evidence));
   return problems;
 }
@@ -4460,7 +4472,8 @@ function validateEvidence(id, moment, evidence) {
  * @returns {string[]} Problems.
  */
 function validateReviewerFlag(where, evidence) {
-  if (evidence.reviewer === undefined) return [];
+  // review_by without reviewer: true is read by nothing; say so (#4916).
+  if (evidence.reviewer === undefined) return validateReviewBy(where, evidence);
   if (typeof evidence.reviewer !== "boolean") {
     return [
       `${where}.reviewer is ${JSON.stringify(evidence.reviewer)}; expected ` +
@@ -4468,8 +4481,13 @@ function validateReviewerFlag(where, evidence) {
         `third-party code review, so any other value silently declares nothing.`,
     ];
   }
+  const reviewBy = validateReviewBy(where, evidence);
+  if (reviewBy.length > 0) return reviewBy;
   if (evidence.reviewer !== true) return [];
   if (Array.isArray(evidence.proof) && evidence.proof.length > 0) return [];
+  // A reviewer proven by its own submitted review states its evidence by
+  // naming the account, so it needs no status phrase (#4909).
+  if (typeof evidence.review_by === "string") return [];
   return [
     `${where}.reviewer is true but no ${where}.proof phrase is declared. The ` +
       `reviewed-when phrase is an ALLOWLIST — only a description that matches ` +
@@ -4477,6 +4495,98 @@ function validateReviewerFlag(where, evidence) {
       `defaults alone means this project never stated what its own reviewer ` +
       `says when it has actually read the code.`,
   ];
+}
+
+/**
+ * Refuse a no-work phrase that a proof phrase contains (#4909).
+ *
+ * A description is denied when it CONTAINS a no-work phrase and credited when
+ * it EQUALS a proof phrase, so a proof phrase holding a no-work phrase can
+ * never be credited, and a project that wrote both meant something it will
+ * not get. Shipped phrases count on both sides, since both lists are merged.
+ * @param {string} where - The declaration path, for the message.
+ * @param {object} evidence - The evidence block.
+ * @returns {string[]} Problems.
+ */
+function validatePhraseOverlap(where, evidence) {
+  const phrases = (/** @type {unknown} */ list) =>
+    (Array.isArray(list) ? list : [])
+      .filter(phrase => typeof phrase === "string" && phrase.trim() !== "")
+      .map(phrase => phrase.trim().replace(/\s+/gu, " ").toLowerCase());
+  const proof = [...EVIDENCE_DEFAULTS.proof, ...phrases(evidence.proof)];
+  const noWork = [...EVIDENCE_DEFAULTS.no_work, ...phrases(evidence.no_work)];
+  const clashes = proof.flatMap(reviewed =>
+    noWork
+      .filter(denied => reviewed.includes(denied))
+      .map(denied => `"${reviewed}" contains "${denied}"`)
+  );
+  if (clashes.length === 0) return [];
+  return [
+    `${where}: a proof phrase contains a no_work phrase (${clashes.join(", ")}). ` +
+      `A description holding a no-work phrase is always read as no work, so ` +
+      `that proof phrase could never count.`,
+  ];
+}
+
+/**
+ * Refuse `review_by` alongside `posted_by` (#4909).
+ *
+ * `posted_by` says only that app's check run speaks for the reviewer. A review
+ * route would accept a submitted review instead, which carries no app id, so
+ * the two together would quietly widen the pin.
+ * @param {string} id - Gate id.
+ * @param {string} moment - Moment key.
+ * @param {object} entry - The moment's declaration.
+ * @returns {string[]} Problems.
+ */
+function validateReviewByPin(id, moment, entry) {
+  if (entry?.evidence?.review_by === undefined) return [];
+  if (entry.posted_by === undefined) return [];
+  return [
+    `gates.${id}.${moment}: evidence.review_by and posted_by cannot both be ` +
+      `set. posted_by accepts only that app's check run, and a review carries ` +
+      `no app id, so declaring both would weaken the pin.`,
+  ];
+}
+
+/**
+ * Validate `evidence.review_by`, the account whose submitted pull-request
+ * review at the head is the reviewer's evidence (#4909).
+ *
+ * It must be a non-empty login, and it means something only on a third-party
+ * reviewer: on any other awaited signal nothing reads it, and a key that looks
+ * obeyed and is not is refused rather than ignored.
+ * @param {string} where - The declaration path, for the message.
+ * @param {object} evidence - The evidence block.
+ * @returns {string[]} Problems.
+ */
+function validateReviewBy(where, evidence) {
+  if (evidence.review_by === undefined) return [];
+  if (
+    typeof evidence.review_by !== "string" ||
+    evidence.review_by.trim() === ""
+  ) {
+    return [
+      `${where}.review_by is ${JSON.stringify(evidence.review_by)}; expected ` +
+        `the reviewer's GitHub login, such as "greptile-apps[bot]".`,
+    ];
+  }
+  if (!evidence.review_by.trim().endsWith("[bot]")) {
+    return [
+      `${where}.review_by is ${JSON.stringify(evidence.review_by)}; expected ` +
+        `a GitHub App's bot login ending in "[bot]", such as ` +
+        `"greptile-apps[bot]". A plain account name could be any user, and ` +
+        `anyone can submit a review on a public repository.`,
+    ];
+  }
+  if (evidence.reviewer !== true) {
+    return [
+      `${where}.review_by is set but ${where}.reviewer is not true. Only a ` +
+        `third-party code reviewer is proven by its own review, so nothing ` +
+        `would read this key.`,
+    ];
+  }
+  return [];
 }
 
 /**

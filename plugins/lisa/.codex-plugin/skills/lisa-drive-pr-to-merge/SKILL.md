@@ -483,6 +483,11 @@ Fail closed: absence of evidence is not evidence of a review.
 
 #### Vacuous, transient or standing: the response is the same
 
+The descriptions in the table below are CodeRabbit's, measured on real pull
+requests. They are examples, not the rule: what counts for your reviewer is its
+gate's `evidence.proof` and `evidence.no_work` phrases, on top of Lisa's
+shipped ones.
+
 A vacuous context is never something to wait out. Waiting looks like progress
 but it is a stall, and on a repository where the state never clears it waits
 forever. Some vacuities clear on their own and some do not. **That changes what
@@ -1161,8 +1166,21 @@ nothing. A second repository sampled `success` on 50 of 50.
 
 **Read the words from the reviewer's own API object, never from the rollup.**
 A check run's title is often a generic `Finished`; its result is the **first
-line of its summary** — `Result: Success - Review completed` when a review
-completed, `Result: Rate limited - Review rate limited` when it was throttled.
+line of its summary**. CodeRabbit, for example, writes
+`Result: Success - Review completed` when a review completed and
+`Result: Rate limited - Review rate limited` when it was throttled. Other
+reviewers word it differently: the checker credits a successful run whose first
+line is one of the gate's declared `evidence.proof` phrases, or
+`Result: Success - <phrase>` with a declared phrase, and reads the gate's
+`evidence.no_work` phrases as no work done (#4909). A reviewer that posts no
+status or check run, and only submits a pull-request review, is declared with
+`evidence.review_by: "<its bot login>"`, such as `greptile-apps[bot]`: its
+submitted review on the exact head counts as its evidence. The review counts
+only when the reviewer posted no status or check run there, and not when the
+review's own first line says it did no work; a no-work or failed status or run
+is never overridden by a review. `review_by` must be a bot login, and cannot be
+combined with `posted_by`. The evidence workflow wakes only on statuses and check
+runs, so re-run the review gate after such a review lands.
 Filter by name — the `?check_name=<context>` filter, sent as a field so a name
 with spaces is encoded for you — because a head commonly carries more check
 runs than one unfiltered page returns:

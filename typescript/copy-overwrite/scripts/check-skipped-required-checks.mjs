@@ -1612,7 +1612,11 @@ function findOrphanedExemptions(declarations, skipped) {
  * @returns {string} One of `DESCRIPTION_VERDICTS`
  */
 export function classifyCheckDescription(description, vocabulary = {}) {
-  const text = (description ?? "").trim().toLowerCase();
+  // Whitespace-collapsed, as the review-evidence prover's normalizeDescription
+  // reads a description, so the two checkers give the same answer.
+  const fold = (/** @type {string} */ value) =>
+    value.trim().replace(/\s+/gu, " ").toLowerCase();
+  const text = fold(description ?? "");
   if (text === "") return DESCRIPTION_VERDICTS.unproven;
 
   // No-work is tested FIRST. The lists are asserted non-overlapping in the
@@ -1623,7 +1627,7 @@ export function classifyCheckDescription(description, vocabulary = {}) {
     ...REVIEW_DESCRIPTION_DEFAULTS.no_work,
     ...(vocabulary.no_work ?? []),
   ];
-  if (noWork.some(phrase => text.includes(phrase.trim().toLowerCase()))) {
+  if (noWork.some(phrase => text.includes(fold(phrase)))) {
     return DESCRIPTION_VERDICTS.noWork;
   }
 
@@ -1631,7 +1635,7 @@ export function classifyCheckDescription(description, vocabulary = {}) {
     ...REVIEW_DESCRIPTION_DEFAULTS.proof,
     ...(vocabulary.proof ?? []),
   ];
-  if (proof.some(phrase => text === phrase.trim().toLowerCase())) {
+  if (proof.some(phrase => text === fold(phrase))) {
     return DESCRIPTION_VERDICTS.proved;
   }
   return DESCRIPTION_VERDICTS.unproven;
@@ -4320,6 +4324,25 @@ export function fetchChecksForCommit(sha, repo, evidenceChecks = {}) {
 }
 
 /**
+ * The phrase a structured success line names, or null.
+ *
+ * Reads `Result: Success - <phrase>` with any spacing around the words, by
+ * plain string steps rather than a regular expression, so no input can make it
+ * backtrack.
+ * @param {string} line - A first summary line.
+ * @returns {string|null} The trimmed phrase, or null when the line has another shape.
+ */
+function structuredSuccessPhrase(line) {
+  if (!line.startsWith("Result:")) return null;
+  const outcome = line.slice("Result:".length).trimStart();
+  if (!outcome.startsWith("Success")) return null;
+  const rest = outcome.slice("Success".length).trimStart();
+  if (!rest.startsWith("-")) return null;
+  const phrase = rest.slice(1).trim();
+  return phrase === "" ? null : phrase;
+}
+
+/**
  * Decode a selected check run without changing legacy commit-status policy.
  *
  * The first physical line owns structured results. Only the supported positive
@@ -4352,12 +4375,18 @@ function checkRunReviewDescription(row, vocabulary) {
   ) {
     return firstLine;
   }
-  if (
-    row.status === "completed" &&
-    row.conclusion === "success" &&
-    firstLine === "Result: Success - Review completed"
-  ) {
-    return "Review completed";
+  const succeeded = row.status === "completed" && row.conclusion === "success";
+  const proves = (/** @type {string} */ phrase) =>
+    classifyCheckDescription(phrase, vocabulary) ===
+    DESCRIPTION_VERDICTS.proved;
+  // `Result: Success - <phrase>` stands for `<phrase>` when the phrase is
+  // declared proof — CodeRabbit's `Result: Success - Review completed` is one
+  // instance, not the rule (#4909). The same pattern is in
+  // `check-third-party-review-evidence.mjs`, and the parity tests hold the two
+  // provers to the same answers.
+  const structured = structuredSuccessPhrase(firstLine);
+  if (succeeded && structured !== null && proves(structured)) {
+    return structured;
   }
   const resultLooking =
     /^[\s>#|]*Result\b/iu.test(firstLine) ||
@@ -4365,6 +4394,9 @@ function checkRunReviewDescription(row, vocabulary) {
   if (resultLooking) {
     return firstLine;
   }
+  // A reviewer that writes its verdict as a plain first summary line is read
+  // by its own declared proof phrases (#4909).
+  if (succeeded && proves(firstLine)) return firstLine;
   return title;
 }
 
@@ -4799,7 +4831,7 @@ export function vacuityRefusal(input) {
   if (declaredEvidenceChecks(declaration).length === 0) {
     return {
       kind: VACUITY_REFUSALS.noneDeclared,
-      reason: `\`evidence_bearing_checks\` in ${DECLARATION_PATH} is empty, so this repository has declared that NO check's green means anything reviewed the code — and the vacuity arm examined nothing on PR #${pr}. If that is true, say so by removing the arm from your workflow. If it is not, name the checks: \`"evidence_bearing_checks": { "CodeRabbit": {} }\`.`,
+      reason: `\`evidence_bearing_checks\` in ${DECLARATION_PATH} is empty, so this repository has declared that NO check's green means anything reviewed the code — and the vacuity arm examined nothing on PR #${pr}. If that is true, say so by removing the arm from your workflow. If it is not, name the checks by their exact check names: \`"evidence_bearing_checks": { "<reviewer check name>": {} }\`.`,
     };
   }
   return null;
