@@ -2725,7 +2725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "59d91a2d068d5e59edc8747630fa4d6fa69fadcb288571fe16094b3167107df6",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
-      "cfa441fced288d9e82d6b4a0a5e6c0d66b513f50b87751b879e8d2410a8054a3",
+      "e1445ac512ef9597d91b13ac733e5bd0f17b6e8fbdc17d2973c802a50586cefc",
     "scripts/generate-npm-updater-helper-graph.mjs":
       "f128835f309f5a4b8d2015d57018da44fd558778efa4eed382747c6d6319260a",
     "scripts/generate-phrase-manifest.mjs":
