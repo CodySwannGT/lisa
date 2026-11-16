@@ -6,7 +6,7 @@ allowed-tools: ["Read", "Glob", "Grep", "Bash"]
 
 # Ticket Triage: $ARGUMENTS
 
-Perform analytical triage on the ticket. The caller MUST have run `lisa-tracker-read` (or its vendor-specific underlying skill — `lisa-jira-read-ticket` for JIRA, `lisa-github-read-issue` for GitHub) first and provided the resulting context bundle — which includes the primary ticket, all linked tickets (blocks / is blocked by / relates to / duplicates), parent (Epic in JIRA, parent sub-issue in GitHub), siblings, sub-tasks / sub-issues, and remote PR state. Do not triage from a bare ticket summary — if the bundle is missing link or parent context, stop and instruct the caller to run `/tracker-read` first.
+Perform analytical triage on the ticket. The caller MUST have run `lisa-tracker-read` (or its vendor-specific underlying skill — `lisa-jira-read-ticket` for JIRA, `lisa-github-read-issue` for GitHub, `lisa-linear-read-issue` for Linear) first and provided the resulting context bundle — which includes the primary ticket, all linked tickets (blocks / is blocked by / relates to / duplicates), parent (Epic in JIRA, parent sub-issue in GitHub, parent Project or parent Issue in Linear), siblings, sub-tasks / sub-issues, and remote PR state. Do not triage from a bare ticket summary — if the bundle is missing link or parent context, stop and instruct the caller to run `/tracker-read` first.
 
 Repository name for scoped labels and comment headers: determine via `basename $(git rev-parse --show-toplevel)`.
 
@@ -14,7 +14,7 @@ Repository name for scoped labels and comment headers: determine via `basename $
 
 Before any analytical work, confirm the ticket carries the content an implementer needs to start. The caller should already have run `lisa-tracker-verify`; this phase consumes its output. If `lisa-tracker-verify` returned `FAIL` for any of the following, emit `BLOCKED` immediately with the missing-requirements list and skip to Phase 6:
 
-- Parent missing (Epic parent for JIRA non-bug-non-epic; parent sub-issue for GitHub non-bug-non-epic)
+- Parent missing (Epic parent for JIRA non-bug-non-epic; parent sub-issue for GitHub non-bug-non-epic; parent Project — or parent Issue for a sub-Issue — for Linear non-bug-non-epic)
 - Description quality failures (no Gherkin acceptance criteria, missing audience sections)
 - Validation Journey missing on a runtime-behavior ticket
 - Target backend environment missing on a runtime-behavior ticket
@@ -23,7 +23,7 @@ Before any analytical work, confirm the ticket carries the content an implemente
 
 Single-repo scope is handled separately — see below.
 
-The caller (jira-agent or github-agent) is responsible for transitioning the ticket to `Blocked` (JIRA status) or relabeling to `status:blocked` (GitHub), reassigning to the **Reporter / original author**, and posting a comment listing the missing requirements. This skill only emits the verdict and the missing-requirements list.
+The caller (jira-agent, github-agent, or linear-agent) is responsible for moving the ticket to the configured `blocked` lifecycle role — the `Blocked` status in JIRA, the `status:blocked` label in GitHub, the configured `blocked` workflow state in Linear — reassigning to the **Reporter / original author**, and posting a comment listing the missing requirements. This skill only emits the verdict and the missing-requirements list.
 
 **Single-repo scope is split, not blocked.** A cross-repo leaf work unit (Bug / Task / Sub-task / Improvement spanning repos) is a decomposition error the agent owns, not a terminal BLOCKED. Do not emit BLOCKED for it. The caller runs the **work-time split procedure** in the `repo-scope-split` rule (narrow the original to one repo, spin off a sibling per additional repo, link the producer→consumer dependency), then re-runs `tracker-verify` and re-enters triage on the now single-repo ticket. Only fall back to BLOCKED if the split is ambiguous (see "When to block instead of split" in that rule).
 
@@ -170,7 +170,7 @@ Evaluate the findings and produce exactly one verdict:
 
 - **`NOT_RELEVANT`** -- No relevant code was found in this repository (Phase 1). The caller should add the triage label and skip implementation in this repo.
 - **`DUPLICATE_ALREADY_FIXED`** -- This ticket duplicates canonical work whose fix is already merged/deployed and empirically confirmed present on the relevant base branch. Work MUST NOT proceed. The caller must post the triage finding, ensure the native `duplicates <canonical>` link exists when the tracker supports one, and return the structured canonical reference/evidence to build intake for terminal duplicate closeout.
-- **`BLOCKED`** -- Blocking conditions were found in Phase 0 (missing required description content), Phase 1.5 (open blockers, duplicate-of-open), and/or Phase 3 (ambiguities). Work MUST NOT proceed until resolved by a human. When the block is from Phase 0, the caller (jira-agent) MUST transition the ticket to `Blocked` and reassign to the Reporter — not just leave it in place. For Phase 1.5 / Phase 3 blocks, post findings, add the triage label, and STOP.
+- **`BLOCKED`** -- Blocking conditions were found in Phase 0 (missing required description content), Phase 1.5 (open blockers, duplicate-of-open), and/or Phase 3 (ambiguities). Work MUST NOT proceed until resolved by a human. When the block is from Phase 0, the caller (jira-agent, github-agent, or linear-agent) MUST move the ticket to the configured `blocked` lifecycle role and reassign to the Reporter — not just leave it in place. For Phase 1.5 / Phase 3 blocks, post findings, add the triage label, and STOP.
 - **`PASSED_WITH_FINDINGS`** -- No ambiguities, but edge cases or verification findings were identified. Work can proceed. The caller should post findings and add the triage label.
 - **`PASSED`** -- No ambiguities, edge cases, or verification gaps found. Work can proceed. The caller should add the triage label.
 
@@ -207,8 +207,8 @@ Structure all output with clear section headers so the caller can parse and post
 ```
 
 The caller is responsible for:
-1. Posting the findings as comments on the ticket (using whatever Jira mechanism is available)
+1. Posting the findings as comments on the ticket with the configured tracker's comment mechanism — the vendor agent's triage step owns it: jira-agent for JIRA, github-agent (`gh issue comment`) for GitHub, linear-agent (`lisa-linear-access`) for Linear
 2. Adding the `claude-triaged-{repo}` label to the ticket
-3. If `BLOCKED` due to Phase 0 (missing required description content): transitioning the ticket to `Blocked`, reassigning to the **Reporter**, posting a comment listing the missing requirements, and stopping all work.
+3. If `BLOCKED` due to Phase 0 (missing required description content): moving the ticket to the configured `blocked` lifecycle role, reassigning to the **Reporter**, posting a comment listing the missing requirements, and stopping all work.
 4. If `DUPLICATE_ALREADY_FIXED`: return the canonical ticket reference and empirical base-branch evidence to build intake so it can close the ticket as a terminal duplicate without opening a PR.
 5. If `BLOCKED` due to Phase 1.5 (open blockers, duplicate-of-open) or Phase 3 (ambiguities): stopping all work and reporting to the human; do NOT auto-transition status in these cases.

@@ -919,13 +919,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/skill-evaluator.md":
       "6fc771ac4c19bd25431822a275a83a1794865592acbe98a82d43600f12908679",
     "plugins/src/base/agents/spec-conformance-specialist.md":
-      "78ba2746ab0e338ed0058db2b7827176bbcc48d8a9095957f4eda2d90d682c34",
+      "25ebc7f53c2af1a1900c1c1f29cac1dc360dfb95b767e91a22136e23c5df54a4",
     "plugins/src/base/agents/test-specialist.md":
       "14fad0a5cee4925f4dae11f7f269501615294097cb44c413f69ab01a7892fcee",
     "plugins/src/base/agents/tracker-mining-specialist.md":
       "3cfd7c4543f8bd9d121164a3b581ccb7107130ec6c2c699e2cbccb99bfd6b853",
     "plugins/src/base/agents/verification-specialist.md":
-      "01caabdad24bfaae4755d2f215a0fd2482bc1a41f4fdc922a6edd5450deca5da",
+      "bcc52ddfca7230576f70617b2bc5a83bd778f0ae209bee7f6e865f874a87ff9d",
     "plugins/src/base/commands/agent-ready.md":
       "d1189ffb5fd26253c81aa8f9d540b83c10711c4ec7f6d3308d0ce91913a31c0a",
     "plugins/src/base/commands/analyze-claude-remote.md":
@@ -1205,7 +1205,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/automation-runbook-contract.md":
       "d03d4f8f9294e14f0c78970927b0c1c444851cc535d385cbabe3dff0f6bedb22",
     "plugins/src/base/rules/reference/base-rules.md":
-      "4e0c1385a644e14c7855cbefa68a062a34ac12a8384219d42c309e6fb83681f3",
+      "55a03d0092e1ba90643077144577ae9ee0ba474ab8d96ad9ac96bac0a2a7be0d",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
       "a32f44a8800403f6d4210e3a8f7e2968e79f9a1aedad911da136bcc91f7440bb",
     "plugins/src/base/rules/reference/blocker-containment.md":
@@ -1905,23 +1905,23 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-test-strategy/SKILL.md":
       "8976e0056b65475fe69f4ed02c8d0d3ae898fd9ab5ff28bf632981a3293c9f6e",
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
-      "67dfd1cba42437817a2ff77c21383f0450cf5ad72f2507b85dbc19d30cc604b9",
+      "8bbee6b63650115190991947a5ceed8f5a7654f8bf32b616a701c36e1b1cee93",
     "plugins/src/base/skills/lisa-track/SKILL.md":
       "42a6f36bb59c7894d1339666afbc541c37a89829eb96bcaec1357b3f60c3af2a",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
-      "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
+      "5e250f235e91a6f72a7ebee93560d6c6fd7c5c47aabefe341fba05c6b88c4b25",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
       "272f1c20b30a024dcaa4547eb7ee32712d9c9a448e68e48cdb1b1033fdf8e422",
     "plugins/src/base/skills/lisa-tracker-claim/SKILL.md":
       "5b1c9bb54f1fc5b6f865ae71caaae5da7c6b5ef91dd2a2e9b445429923306532",
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
-      "4c36f16eda79c1ad47d95ffe6838f7c993c3751a72159c1566bf1225ca930b8e",
+      "e37b751782fe53c0cb6e8b682ca12e61b96635edf9fbe4d19990a22d897b88e3",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "8846030b91a2a28737e429ddf61b95124d98d81f7da879dbbfcaeb7098f3a2be",
+      "1caf36b425f012f9e6a9501fa8dfb92cae65c8b650e28f25bab005010d78180f",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "c4656c11936ca8f2f05091ba5d4922cadca293cf822b644e5ee46cbf22103706",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
-      "8f9b35bdfd16c8e2137bcc52b139bd35810109d8a156cfaf5f02390bbfc43308",
+      "4b95e256e0c9e7ce87fb5b827fcfc94496757e600247c639ecf50d06e4e910b3",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":
       "3932a5ddf3bb58cdd09b0f36d38bbc3b45c9587c68c254e24225660f422f91c4",
     "plugins/src/base/skills/lisa-tracker-source-artifacts/SKILL.md":
@@ -2140,6 +2140,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "4c777dfa36c4c01216906b20a9ce473a764a71e4fccd29aed465403229d8de6d",
     "plugins/src/expo/skills/jira-verify/SKILL.md":
       "0c7a8533bdee7fb448d6d752daa84e4a52621f8270e24e2c5120f90f14202969",
+    "plugins/src/expo/skills/journey-guidance/SKILL.md":
+      "6312b11cd498e5e6c4e5f4a795b491640508cc1582dc835f4a35841ab637018d",
     "plugins/src/expo/skills/local-state/SKILL.md":
       "39a16fdeab3c96f236376e587d060790e0c52c8689553c53dc9e1284e5155d46",
     "plugins/src/expo/skills/local-state/references/async-storage.md":
@@ -2396,6 +2398,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c65cf8bcde3dbfe4995d26dcce62067cf1a08314a9ba9ca7f7c1fdd53d61feb6",
     "plugins/src/rails/skills/jira-verify/SKILL.md":
       "ea7aabc7549639d81a60bf3893965cb11c6261a73d549c5eaaa00fe4f5d83332",
+    "plugins/src/rails/skills/journey-guidance/SKILL.md":
+      "b3dd2baa2ebe71fb3022b5b6e386c1f803d73ad91a8a6054b320fe675a859a66",
     "plugins/src/rails/skills/ops-check-logs/SKILL.md":
       "e243eb223398e0ae1f1b5f0db7dda8c8ad8ffdea4ec66b9b38164c76f472ba28",
     "plugins/src/rails/skills/ops-deploy/SKILL.md":
@@ -6901,6 +6905,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo-agy/skills/jira-journey/scripts/generate-templates.py": true,
     "plugins/lisa-expo-agy/skills/jira-journey/scripts/parse-plan.py": true,
     "plugins/lisa-expo-agy/skills/jira-verify/SKILL.md": true,
+    "plugins/lisa-expo-agy/skills/journey-guidance/SKILL.md": true,
     "plugins/lisa-expo-agy/skills/local-state/SKILL.md": true,
     "plugins/lisa-expo-agy/skills/local-state/references/async-storage.md": true,
     "plugins/lisa-expo-agy/skills/local-state/references/persistence-patterns.md": true,
@@ -7030,6 +7035,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo-copilot/skills/jira-journey/scripts/generate-templates.py": true,
     "plugins/lisa-expo-copilot/skills/jira-journey/scripts/parse-plan.py": true,
     "plugins/lisa-expo-copilot/skills/jira-verify/SKILL.md": true,
+    "plugins/lisa-expo-copilot/skills/journey-guidance/SKILL.md": true,
     "plugins/lisa-expo-copilot/skills/local-state/SKILL.md": true,
     "plugins/lisa-expo-copilot/skills/local-state/references/async-storage.md": true,
     "plugins/lisa-expo-copilot/skills/local-state/references/persistence-patterns.md": true,
@@ -7161,6 +7167,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo-cursor/skills/jira-journey/scripts/generate-templates.py": true,
     "plugins/lisa-expo-cursor/skills/jira-journey/scripts/parse-plan.py": true,
     "plugins/lisa-expo-cursor/skills/jira-verify/SKILL.md": true,
+    "plugins/lisa-expo-cursor/skills/journey-guidance/SKILL.md": true,
     "plugins/lisa-expo-cursor/skills/local-state/SKILL.md": true,
     "plugins/lisa-expo-cursor/skills/local-state/references/async-storage.md": true,
     "plugins/lisa-expo-cursor/skills/local-state/references/persistence-patterns.md": true,
@@ -7291,6 +7298,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo-devin/skills/jira-journey/scripts/generate-templates.py": true,
     "plugins/lisa-expo-devin/skills/jira-journey/scripts/parse-plan.py": true,
     "plugins/lisa-expo-devin/skills/jira-verify/SKILL.md": true,
+    "plugins/lisa-expo-devin/skills/journey-guidance/SKILL.md": true,
     "plugins/lisa-expo-devin/skills/local-state/SKILL.md": true,
     "plugins/lisa-expo-devin/skills/local-state/references/async-storage.md": true,
     "plugins/lisa-expo-devin/skills/local-state/references/persistence-patterns.md": true,
@@ -7443,6 +7451,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo/.codex-plugin/skills/jira-journey/scripts/parse-plan.py": true,
     "plugins/lisa-expo/.codex-plugin/skills/jira-verify/SKILL.md": true,
     "plugins/lisa-expo/.codex-plugin/skills/jira-verify/agents/openai.yaml": true,
+    "plugins/lisa-expo/.codex-plugin/skills/journey-guidance/SKILL.md": true,
+    "plugins/lisa-expo/.codex-plugin/skills/journey-guidance/agents/openai.yaml": true,
     "plugins/lisa-expo/.codex-plugin/skills/lisa-e2e-coverage-gaps/SKILL.md": true,
     "plugins/lisa-expo/.codex-plugin/skills/lisa-e2e-coverage-gaps/agents/openai.yaml": true,
     "plugins/lisa-expo/.codex-plugin/skills/lisa-maestro-mcp-setup/SKILL.md": true,
@@ -7621,6 +7631,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo/skills/jira-journey/scripts/parse-plan.py": true,
     "plugins/lisa-expo/skills/jira-verify/SKILL.md": true,
     "plugins/lisa-expo/skills/jira-verify/agents/openai.yaml": true,
+    "plugins/lisa-expo/skills/journey-guidance/SKILL.md": true,
+    "plugins/lisa-expo/skills/journey-guidance/agents/openai.yaml": true,
     "plugins/lisa-expo/skills/local-state/SKILL.md": true,
     "plugins/lisa-expo/skills/local-state/agents/openai.yaml": true,
     "plugins/lisa-expo/skills/local-state/references/async-storage.md": true,
@@ -8104,6 +8116,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh": true,
     "plugins/lisa-rails-agy/skills/jira-journey/SKILL.md": true,
     "plugins/lisa-rails-agy/skills/jira-verify/SKILL.md": true,
+    "plugins/lisa-rails-agy/skills/journey-guidance/SKILL.md": true,
     "plugins/lisa-rails-agy/skills/ops-check-logs/SKILL.md": true,
     "plugins/lisa-rails-agy/skills/ops-deploy/SKILL.md": true,
     "plugins/lisa-rails-agy/skills/ops-run-local/SKILL.md": true,
@@ -8137,6 +8150,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh": true,
     "plugins/lisa-rails-copilot/skills/jira-journey/SKILL.md": true,
     "plugins/lisa-rails-copilot/skills/jira-verify/SKILL.md": true,
+    "plugins/lisa-rails-copilot/skills/journey-guidance/SKILL.md": true,
     "plugins/lisa-rails-copilot/skills/ops-check-logs/SKILL.md": true,
     "plugins/lisa-rails-copilot/skills/ops-deploy/SKILL.md": true,
     "plugins/lisa-rails-copilot/skills/ops-run-local/SKILL.md": true,
@@ -8170,6 +8184,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh": true,
     "plugins/lisa-rails-cursor/skills/jira-journey/SKILL.md": true,
     "plugins/lisa-rails-cursor/skills/jira-verify/SKILL.md": true,
+    "plugins/lisa-rails-cursor/skills/journey-guidance/SKILL.md": true,
     "plugins/lisa-rails-cursor/skills/ops-check-logs/SKILL.md": true,
     "plugins/lisa-rails-cursor/skills/ops-deploy/SKILL.md": true,
     "plugins/lisa-rails-cursor/skills/ops-run-local/SKILL.md": true,
@@ -8200,6 +8215,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails-devin/skills/jira-evidence/scripts/post-evidence.sh": true,
     "plugins/lisa-rails-devin/skills/jira-journey/SKILL.md": true,
     "plugins/lisa-rails-devin/skills/jira-verify/SKILL.md": true,
+    "plugins/lisa-rails-devin/skills/journey-guidance/SKILL.md": true,
     "plugins/lisa-rails-devin/skills/ops-check-logs/SKILL.md": true,
     "plugins/lisa-rails-devin/skills/ops-deploy/SKILL.md": true,
     "plugins/lisa-rails-devin/skills/ops-run-local/SKILL.md": true,
@@ -8236,6 +8252,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails/.codex-plugin/skills/jira-journey/agents/openai.yaml": true,
     "plugins/lisa-rails/.codex-plugin/skills/jira-verify/SKILL.md": true,
     "plugins/lisa-rails/.codex-plugin/skills/jira-verify/agents/openai.yaml": true,
+    "plugins/lisa-rails/.codex-plugin/skills/journey-guidance/SKILL.md": true,
+    "plugins/lisa-rails/.codex-plugin/skills/journey-guidance/agents/openai.yaml": true,
     "plugins/lisa-rails/.codex-plugin/skills/lisa-e2e-coverage-gaps/SKILL.md": true,
     "plugins/lisa-rails/.codex-plugin/skills/lisa-e2e-coverage-gaps/agents/openai.yaml": true,
     "plugins/lisa-rails/.codex-plugin/skills/ops-check-logs/SKILL.md": true,
@@ -8290,6 +8308,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails/skills/jira-journey/agents/openai.yaml": true,
     "plugins/lisa-rails/skills/jira-verify/SKILL.md": true,
     "plugins/lisa-rails/skills/jira-verify/agents/openai.yaml": true,
+    "plugins/lisa-rails/skills/journey-guidance/SKILL.md": true,
+    "plugins/lisa-rails/skills/journey-guidance/agents/openai.yaml": true,
     "plugins/lisa-rails/skills/ops-check-logs/SKILL.md": true,
     "plugins/lisa-rails/skills/ops-check-logs/agents/openai.yaml": true,
     "plugins/lisa-rails/skills/ops-deploy/SKILL.md": true,
@@ -10487,6 +10507,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/expo/skills/jira-journey/scripts/generate-templates.py": true,
     "plugins/src/expo/skills/jira-journey/scripts/parse-plan.py": true,
     "plugins/src/expo/skills/jira-verify/SKILL.md": true,
+    "plugins/src/expo/skills/journey-guidance/SKILL.md": true,
     "plugins/src/expo/skills/local-state/SKILL.md": true,
     "plugins/src/expo/skills/local-state/references/async-storage.md": true,
     "plugins/src/expo/skills/local-state/references/persistence-patterns.md": true,
@@ -10615,6 +10636,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh": true,
     "plugins/src/rails/skills/jira-journey/SKILL.md": true,
     "plugins/src/rails/skills/jira-verify/SKILL.md": true,
+    "plugins/src/rails/skills/journey-guidance/SKILL.md": true,
     "plugins/src/rails/skills/ops-check-logs/SKILL.md": true,
     "plugins/src/rails/skills/ops-deploy/SKILL.md": true,
     "plugins/src/rails/skills/ops-run-local/SKILL.md": true,
@@ -13866,6 +13888,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/tagged-merge.test.ts": true,
     "tests/unit/strategies/template-consent-routing.test.ts": true,
     "tests/unit/strategies/tracked-work-contract.test.ts": true,
+    "tests/unit/strategies/tracker-neutral-stack-journey.test.ts": true,
     "tests/unit/strategies/upstream-attribution-filing-contract.test.ts": true,
     "tests/unit/strategies/usage-accounting-contract.test.ts": true,
     "tests/unit/strategies/usage-accounting-skill.test.ts": true,

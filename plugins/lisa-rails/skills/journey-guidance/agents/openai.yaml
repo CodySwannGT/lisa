@@ -1,0 +1,4 @@
+display_name: "Journey Guidance"
+short_description: "Rails stack guidance for Validation Journeys on any tracker (Jira, GitHub, Linear): choosing the verification method for UI, API, and…"
+default_prompt:
+  - "Use $journey-guidance: Rails stack guidance for Validation Journeys on any tracker (Jira, GitHub, Linear): choosing the verification method for UI, API, and…."

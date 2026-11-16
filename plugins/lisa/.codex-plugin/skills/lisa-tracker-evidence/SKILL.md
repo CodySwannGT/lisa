@@ -22,6 +22,7 @@ or publishing completion proof. It ships with the skill even on runtimes that
 omit the plugin rules tree; do not assume a runtime-specific rules directory.
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
+   Then, when an installed stack plugin ships a `journey-guidance` skill (the Expo and Rails plugins do), invoke it and carry its guidance — how the stack names its evidence files — into the vendor skill below. It is tracker-neutral, so it applies to `jira`, `github`, and `linear` alike. When no stack plugin ships one, continue with the base behaviour; that is not an error.
 2. Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
 3. Before dispatching, update the generated evidence artifact through `lisa-usage-accounting` so the comment body / PR evidence section carries a direct `lisa-verify` usage entry in the canonical `## Lisa Usage` section. If the originating work item's parentage or child refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if trustworthy runtime usage is unavailable, write `source: unavailable` with nullable token/cost fields instead of skipping the row.
 4. Dispatch:

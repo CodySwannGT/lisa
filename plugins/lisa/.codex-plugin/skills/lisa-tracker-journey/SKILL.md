@@ -15,6 +15,7 @@ See the `config-resolution` rule for configuration and dispatch table.
 ## Workflow
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
+   Then, when an installed stack plugin ships a `journey-guidance` skill (the Expo and Rails plugins do), invoke it and carry its guidance — how to satisfy prerequisites, run the steps (for example, once per viewport), and name the captured evidence — into the vendor skill below. It is tracker-neutral, so it applies to `jira`, `github`, and `linear` alike. When no stack plugin ships one, continue with the base behaviour; that is not an error.
 2. Dispatch:
    - Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
    - `jira` → invoke `lisa-jira-journey` with `$ARGUMENTS` verbatim. Arg shape: `<TICKET_ID> [PR_NUMBER]`.
