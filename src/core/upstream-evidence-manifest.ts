@@ -2141,7 +2141,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/jira-verify/SKILL.md":
       "0c7a8533bdee7fb448d6d752daa84e4a52621f8270e24e2c5120f90f14202969",
     "plugins/src/expo/skills/journey-guidance/SKILL.md":
-      "68bbfb918095c474d4393b81533c894e197f1b37ad17525ad3dc84db301adfa2",
+      "d855d78bfbdd18aed0b7c154a9574d705fde687f14264123bd495b4623647874",
     "plugins/src/expo/skills/local-state/SKILL.md":
       "39a16fdeab3c96f236376e587d060790e0c52c8689553c53dc9e1284e5155d46",
     "plugins/src/expo/skills/local-state/references/async-storage.md":
