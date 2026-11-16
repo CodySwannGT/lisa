@@ -2667,7 +2667,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-third-party-action-pins.mjs":
       "39420e981ebd85279dc92f07eed5cb948c17b810a45951b4b3a7c7b3950bb3e5",
     "scripts/check-typecheck-tests.mjs":
-      "d498e76ff727ca5f3f4bd3f52744b924b51865e160cea33bc383650d7e20de45",
+      "e56722975d708b87ec4bf11e292567ef6e22faa319481f6ec517336e36268b10",
     "scripts/check-whole-output-guards.mjs":
       "3c694de42c681ff25ba5eaa18abdc48d39c6fa8bfd27f48d0e5cdf71c3733a81",
     "scripts/check-workflow-contract-assertions.mjs":
