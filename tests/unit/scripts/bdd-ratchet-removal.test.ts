@@ -28,7 +28,7 @@ import {
   featureSource,
   messages,
   runGate,
-} from "./bdd/support";
+} from "./bdd/support.js";
 import {
   EXTRA_FEATURE_FILE,
   EXTRA_KEY,
@@ -36,7 +36,7 @@ import {
   HOME_KEY,
   HOME_ONLY_MAPPINGS,
   twoScenarioProject,
-} from "./bdd/regression-support";
+} from "./bdd/regression-support.js";
 
 /** One route out of the contract, and the check that still refuses it. */
 interface Vector {

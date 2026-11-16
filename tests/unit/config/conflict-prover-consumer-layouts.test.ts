@@ -46,7 +46,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { applyRewrites } from "../../../src/core/anchored-rewrite.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
-import { cleanGitEnv } from "../../helpers/test-utils";
+import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const REPO_ROOT = process.cwd();

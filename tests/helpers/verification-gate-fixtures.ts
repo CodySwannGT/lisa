@@ -12,7 +12,7 @@ import path from "path";
 import {
   FIXTURE_HEAD_SHA,
   FIXTURE_TIMESTAMP,
-} from "./verification-gate-harness";
+} from "./verification-gate-harness.js";
 
 /** Directory holding the committed failure-mode verdict fixtures (BCE-6). */
 const FAILURE_MODE_DIR = path.resolve("tests/fixtures/verification");
