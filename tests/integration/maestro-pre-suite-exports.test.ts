@@ -22,7 +22,10 @@ import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
-import type { SimulatedWorkflow } from "../helpers/workflow-job-graph";
+import {
+  jobOf,
+  type SimulatedWorkflow,
+} from "../helpers/workflow-job-graph.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -64,7 +67,7 @@ describe("pre-suite exports cross the job boundary as a validated output", () =>
    * @returns The step's exit status, console output, and $GITHUB_OUTPUT.
    */
   const capture = (exported: string): StepOutcome => {
-    const step = (workflow.jobs.pre_suite.steps ?? []).find(
+    const step = (jobOf(workflow, "pre_suite").steps ?? []).find(
       candidate => candidate.id === "capture"
     );
     const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-capture-"));
@@ -162,7 +165,7 @@ describe("each platform leg re-applies the exports to its own $GITHUB_ENV", () =
   });
 
   it.each(PLATFORM_JOBS)("%s reads the pre-suite job's output", leg => {
-    const step = (workflow.jobs[leg].steps ?? []).find(
+    const step = (jobOf(workflow, leg).steps ?? []).find(
       candidate => candidate.name === APPLY_STEP
     );
     expect(step?.env?.PRE_SUITE_ENV).toBe(
@@ -171,7 +174,7 @@ describe("each platform leg re-applies the exports to its own $GITHUB_ENV", () =
   });
 
   it.each(PLATFORM_JOBS)("%s turns that output back into env lines", leg => {
-    const step = (workflow.jobs[leg].steps ?? []).find(
+    const step = (jobOf(workflow, leg).steps ?? []).find(
       candidate => candidate.name === APPLY_STEP
     );
     const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-apply-"));
@@ -196,7 +199,7 @@ describe("each platform leg re-applies the exports to its own $GITHUB_ENV", () =
   });
 
   it.each(PLATFORM_JOBS)("%s applies them BEFORE setup_command runs", leg => {
-    const names = (workflow.jobs[leg].steps ?? []).map(step => step.name);
+    const names = (jobOf(workflow, leg).steps ?? []).map(step => step.name);
     const applyIndex = names.indexOf(APPLY_STEP);
     const setupIndex = names.indexOf("🎯 Run setup command");
     expect(applyIndex).toBeGreaterThanOrEqual(0);
