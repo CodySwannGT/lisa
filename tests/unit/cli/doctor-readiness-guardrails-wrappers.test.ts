@@ -146,9 +146,11 @@ describe("assessFeedbackGuardrailsDimension — local wrapper commands", () => {
         await writeRepoFile(root, script, "echo checked");
       })
     );
+    const lastWrapper = wrapperScripts[64];
+    if (!lastWrapper) throw new Error("expected 65 wrapper scripts");
     await writeRepoFile(
       root,
-      wrapperScripts[64],
+      lastWrapper,
       "terraform apply -auto-approve prod.tfplan"
     );
     await writeWorkflow(root, DEPLOY_YML, [

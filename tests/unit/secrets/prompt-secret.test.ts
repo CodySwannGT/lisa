@@ -20,11 +20,11 @@ const TYPED = "stand-in-not-a-credential\n";
  */
 function harness(typed = TYPED): {
   io: Record<string, unknown>;
-  stty: string[];
+  stty: (string | undefined)[];
   written: string[];
   closed: number[];
 } {
-  const stty: string[] = [];
+  const stty: (string | undefined)[] = [];
   const written: string[] = [];
   const closed: number[] = [];
   return {

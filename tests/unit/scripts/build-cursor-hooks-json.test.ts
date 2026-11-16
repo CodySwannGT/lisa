@@ -32,6 +32,21 @@ const group = (matcher: string | undefined, ...scripts: readonly string[]) => ({
   hooks: scripts.map(s => ({ type: "command", command: `${PLUGIN_ROOT}${s}` })),
 });
 
+/**
+ * The first hook a generated event carries, failing loudly when the event is absent.
+ * @param hooks - The generated hooks map
+ * @param event - The cursor event name
+ * @returns The first hook entry
+ */
+const firstHook = <T>(
+  hooks: Readonly<Record<string, readonly T[]>>,
+  event: string
+): T => {
+  const first = hooks[event]?.[0];
+  if (first === undefined) throw new Error(`no ${event} hook was generated`);
+  return first;
+};
+
 describe("buildCursorHooksJson", () => {
   it("returns undefined for non-object input", () => {
     for (const bad of [null, undefined, "nope", 42]) {
@@ -67,13 +82,15 @@ describe("buildCursorHooksJson", () => {
       SessionStart: [group(undefined, INSTALL_PKGS)], // no matcher → omitted
       PostToolUse: [group("", BLOCK_NO_VERIFY)], // empty-string matcher → omitted
     }) as { hooks: Record<string, Array<Record<string, unknown>>> };
-    expect(out.hooks.preToolUse[0]).toEqual({
+    expect(firstHook(out.hooks, "preToolUse")).toEqual({
       command: BLOCK_CMD,
       matcher: "Bash",
     });
-    expect(out.hooks.sessionStart[0]).toEqual({ command: INSTALL_CMD });
-    expect("matcher" in out.hooks.sessionStart[0]).toBe(false);
-    expect("matcher" in out.hooks.postToolUse[0]).toBe(false);
+    expect(firstHook(out.hooks, "sessionStart")).toEqual({
+      command: INSTALL_CMD,
+    });
+    expect("matcher" in firstHook(out.hooks, "sessionStart")).toBe(false);
+    expect("matcher" in firstHook(out.hooks, "postToolUse")).toBe(false);
   });
 
   it("drops an event that is empty after cursor filtering (inject-rules stripped)", () => {
@@ -95,8 +112,12 @@ describe("buildCursorHooksJson", () => {
     const out = buildCursorHooksJson({
       PreToolUse: [group("Bash", BLOCK_NO_VERIFY)],
     }) as { hooks: Record<string, Array<{ command: string }>> };
-    expect(out.hooks.preToolUse[0].command).toBe(BLOCK_CMD);
-    expect(out.hooks.preToolUse[0].command).not.toContain("CLAUDE_PLUGIN_ROOT");
-    expect(out.hooks.preToolUse[0].command).toContain("${CURSOR_PLUGIN_ROOT}/");
+    expect(firstHook(out.hooks, "preToolUse").command).toBe(BLOCK_CMD);
+    expect(firstHook(out.hooks, "preToolUse").command).not.toContain(
+      "CLAUDE_PLUGIN_ROOT"
+    );
+    expect(firstHook(out.hooks, "preToolUse").command).toContain(
+      "${CURSOR_PLUGIN_ROOT}/"
+    );
   });
 });

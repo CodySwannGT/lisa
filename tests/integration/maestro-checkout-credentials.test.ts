@@ -109,7 +109,7 @@ describe("maestro-native-e2e checkout credentials", () => {
   it("BITE: the check fails when any single checkout drops the setting", () => {
     for (const [jobName, step] of checkoutSteps(workflow)) {
       const mutated = yaml.load(yaml.dump(workflow)) as Workflow;
-      const victim = (mutated.jobs[jobName].steps ?? []).find(
+      const victim = (mutated.jobs[jobName]?.steps ?? []).find(
         candidate =>
           String(candidate.uses ?? "").startsWith(CHECKOUT_ACTION) &&
           candidate.name === step.name
