@@ -28,7 +28,7 @@ import {
   messages,
   runGate,
   runReport,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 describe("scenario and mapping validation", () => {
   it("rejects duplicate scenario IDs", () => {

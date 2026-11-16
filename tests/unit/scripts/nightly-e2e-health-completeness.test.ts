@@ -39,8 +39,8 @@ import {
   loadGateModule,
   noWait,
   runWith,
-} from "../../helpers/nightly-e2e-gate-harness";
-import { observeContext } from "../../helpers/nightly-e2e-selection-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
+import { observeContext } from "../../helpers/nightly-e2e-selection-harness.js";
 
 /** The Android arm, green. */
 const ANDROID: Job = Object.freeze({

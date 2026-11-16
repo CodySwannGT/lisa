@@ -48,12 +48,76 @@ const GATE_LABEL = "♿ Accessibility";
 /** One gate's declaration, as a gates block resolves it at this moment. */
 const BLOCK = { accessibility: { [MOMENT]: "required" }, runner: BUN };
 
+/** One gate row of the envelope, as `gateEvidence` writes it. */
+interface EvidenceRow {
+  readonly gate: string;
+  readonly status: string;
+  readonly level: string;
+  readonly label: string;
+}
+
+/** The evidence envelope `evidenceDocument` returns. */
+interface Envelope {
+  readonly schema: string;
+  readonly verdict: string;
+  readonly subject: {
+    readonly repository: string | null;
+    readonly tree: string | null;
+    readonly commit: string | null;
+    readonly ref: string | null;
+  };
+  readonly contract: {
+    readonly moment: string;
+    readonly gates_digest: string | null;
+  };
+  readonly observed_at: string;
+  readonly gates: readonly EvidenceRow[];
+}
+
+/** The options object `evidenceDocument` accepts. */
+type EnvelopeOptions = Parameters<typeof evidenceDocument>[0];
+
+/** What running one moment produced, as `runGates` returns it. */
+type GateRun = NonNullable<EnvelopeOptions["result"]>;
+
+/** One gate outcome, as `runGates` pushes it into a run's results. */
+type Outcome = GateRun["results"][number];
+
+/**
+ * A complete run over the given outcomes, bucketed by state the way
+ * `runGates` buckets them. The envelope reads only `results`.
+ * @param results Gate outcomes in execution order.
+ * @returns The run.
+ */
+function gateRun(results: Outcome[]): GateRun {
+  const inState = (state: string): Outcome[] =>
+    results.filter(result => result.state === state);
+  return {
+    moment: MOMENT,
+    blocked: false,
+    blockedBy: null,
+    interrupted: null,
+    total: results.length,
+    results,
+    passed: inState(STATE.PASSED),
+    failed: inState(STATE.FAILED),
+    unprovable: inState(STATE.UNPROVABLE),
+    killed: inState(STATE.KILLED),
+    skipped: inState(STATE.SKIPPED),
+    notRun: inState(STATE.NOT_RUN),
+  };
+}
+
 /**
  * One outcome in the shape `runGates` pushes, with only what matters overridden.
+ *
+ * Cases deliberately inject values outside the declared outcome type (an
+ * unknown state, a missing label) to prove the builder fails closed, so the
+ * merged record is asserted to the outcome type once, here.
  * @param over Fields to override.
  * @returns A gate outcome.
  */
-function outcome(over: Record<string, unknown> = {}): Record<string, unknown> {
+function outcome(over: Record<string, unknown> = {}): Outcome {
   return {
     code: 0,
     command: PROVER,
@@ -64,7 +128,18 @@ function outcome(over: Record<string, unknown> = {}): Record<string, unknown> {
     level: "required",
     state: STATE.PASSED,
     ...over,
-  };
+  } as Outcome;
+}
+
+/**
+ * Run the envelope builder and view its result as the documented envelope.
+ * @param options Document options.
+ * @returns The envelope.
+ */
+function envelope(options: EnvelopeOptions): Envelope {
+  // The builder is plain JS whose JSDoc return type is a bare `object`; the
+  // fields asserted below are exactly the ones it constructs.
+  return evidenceDocument(options) as Envelope;
 }
 
 /**
@@ -74,18 +149,29 @@ function outcome(over: Record<string, unknown> = {}): Record<string, unknown> {
  * @returns The envelope.
  */
 function build(
-  outcomes: Record<string, unknown>[] = [outcome()],
-  over: Record<string, unknown> = {}
-): Record<string, never> {
-  return evidenceDocument({
+  outcomes: Outcome[] = [outcome()],
+  over: Partial<EnvelopeOptions> = {}
+): Envelope {
+  return envelope({
     gates: BLOCK,
     moment: MOMENT,
     observedAt: OBSERVED,
-    result: { results: outcomes },
+    result: gateRun(outcomes),
     runner: BUN,
     verdict: "proved",
     ...over,
-  }) as Record<string, never>;
+  });
+}
+
+/**
+ * The single gate row of an envelope, failing loudly when there is none.
+ * @param doc The envelope.
+ * @returns Its first gate row.
+ */
+function firstRow(doc: Envelope): EvidenceRow {
+  const [row] = doc.gates;
+  if (row === undefined) throw new Error("envelope carries no gate rows");
+  return row;
 }
 
 /** Environment keys this suite sets, restored after each case. */
@@ -123,12 +209,12 @@ afterEach(() => {
 
 describe("a runner state becomes exactly one evidence status", () => {
   it("credits only a gate that ran and passed", () => {
-    expect(build([outcome()]).gates[0].status).toBe("pass");
+    expect(firstRow(build([outcome()])).status).toBe("pass");
   });
 
   it("blames only a gate that was measured and found wanting", () => {
     const doc = build([outcome({ code: 1, state: STATE.FAILED })]);
-    expect(doc.gates[0].status).toBe("fail");
+    expect(firstRow(doc).status).toBe("fail");
   });
 
   it("says unknown for every state that measured nothing", () => {
@@ -144,7 +230,7 @@ describe("a runner state becomes exactly one evidence status", () => {
     ];
     const doc = build(states.map(state => outcome({ state })));
 
-    expect(doc.gates.map((row: { status: string }) => row.status)).toEqual([
+    expect(doc.gates.map(row => row.status)).toEqual([
       "unknown",
       "unknown",
       "unknown",
@@ -156,7 +242,7 @@ describe("a runner state becomes exactly one evidence status", () => {
     // Fails closed. A state added upstream without a mapping here must not
     // fall through to a credit.
     const doc = build([outcome({ state: "invented" })]);
-    expect(doc.gates[0].status).toBe("unknown");
+    expect(firstRow(doc).status).toBe("unknown");
   });
 });
 
@@ -186,7 +272,7 @@ describe("every row is the slim record a reader needs", () => {
 
   it("falls back to the gate id when the registry has no label", () => {
     const doc = build([outcome({ label: undefined })]);
-    expect(doc.gates[0].label).toBe(GATE_ID);
+    expect(firstRow(doc).label).toBe(GATE_ID);
   });
 });
 
@@ -204,20 +290,20 @@ describe("the contract digest answers one question and no other", () => {
   it("is unchanged by the ORDER keys happen to be written in", () => {
     // An editor reordering two keys must not make every prior observation
     // read as produced under a different contract.
-    const one = evidenceDocument({
+    const one = envelope({
       gates: { accessibility: { [MOMENT]: "required" }, runner: BUN },
       moment: MOMENT,
       observedAt: OBSERVED,
       runner: BUN,
       verdict: "proved",
-    }) as Record<string, never>;
-    const other = evidenceDocument({
+    });
+    const other = envelope({
       gates: { runner: BUN, accessibility: { [MOMENT]: "required" } },
       moment: MOMENT,
       observedAt: OBSERVED,
       runner: BUN,
       verdict: "proved",
-    }) as Record<string, never>;
+    });
 
     expect(one.contract.gates_digest).toMatch(DIGEST);
     expect(one.contract.gates_digest).toBe(other.contract.gates_digest);
@@ -274,12 +360,12 @@ describe("the envelope reads its subject and contract from the run", () => {
 
 describe("an envelope that observed nothing says so", () => {
   it("records an empty gate list when the run produced no results", () => {
-    const doc = evidenceDocument({
+    const doc = envelope({
       gates: BLOCK,
       moment: MOMENT,
       observedAt: OBSERVED,
       verdict: "no-gates",
-    }) as Record<string, never>;
+    });
 
     expect(doc.gates).toEqual([]);
     // The verdict is what keeps this from being byte-similar to a clean run.

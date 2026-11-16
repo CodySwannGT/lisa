@@ -67,6 +67,26 @@ const ORPHAN_VERSION = "4.33.7";
 /** A probe that answers the same way for every version. */
 const always = (result: Record<string, unknown>) => () => result;
 
+/** One reconciled release tag, as `reconcile` builds each row. */
+interface ReleaseRow {
+  readonly tag: string;
+  readonly version: string;
+  readonly verdict: string;
+}
+
+/**
+ * Reconcile, viewing each row as the record `reconcile` constructs. Its JSDoc
+ * types the rows as bare `object`s.
+ * @param options - The tags and the probe
+ * @returns The rows and the refs that were not release tags
+ */
+const reconcileRows = (
+  options: Parameters<typeof reconcile>[0]
+): { rows: readonly ReleaseRow[]; ignored: string[] } => {
+  const { rows, ignored } = reconcile(options);
+  return { rows: rows as ReleaseRow[], ignored };
+};
+
 describe("parseVersionTag", () => {
   it("reads the current v1.2.3 convention", () => {
     expect(parseVersionTag("v4.33.7")).toBe("4.33.7");
@@ -121,7 +141,7 @@ describe("reconcile", () => {
   it("reports a completed release as good", () => {
     // The regression fence from the ticket: a reconciliation that flags
     // everything is as useless as one that flags nothing.
-    const { rows } = reconcile({
+    const { rows } = reconcileRows({
       tags: ["v4.34.5", "vv2.40.0"],
       probe: always({ verdict: "published" }),
     });
@@ -132,7 +152,7 @@ describe("reconcile", () => {
   });
 
   it("finds an orphan under either tag convention", () => {
-    const { rows } = reconcile({
+    const { rows } = reconcileRows({
       tags: ["v4.33.7", "vv1.83.2"],
       probe: always({ verdict: "missing" }),
     });
@@ -141,7 +161,7 @@ describe("reconcile", () => {
   });
 
   it("keeps non-release refs out of the report entirely", () => {
-    const { rows, ignored } = reconcile({
+    const { rows, ignored } = reconcileRows({
       tags: ["v1.0.0", ...NON_RELEASE_REFS.slice(0, 2)],
       probe: always({ verdict: "published" }),
     });
@@ -153,7 +173,7 @@ describe("reconcile", () => {
     // The whole tag list against an unreachable registry. Every row must be
     // unprovable; a single `missing` here would be a report that reads as
     // "these releases never shipped" when the truth is "we could not look".
-    const { rows } = reconcile({
+    const { rows } = reconcileRows({
       tags: ["v4.34.5", "v4.34.6", "vv2.40.0"],
       probe: always({ verdict: "unprovable" }),
     });
@@ -163,9 +183,9 @@ describe("reconcile", () => {
 
   it("distinguishes the two per version rather than flattening to one verdict", () => {
     const published = new Set(["4.34.5"]);
-    const { rows } = reconcile({
+    const { rows } = reconcileRows({
       tags: ["v4.34.5", "v4.33.7", "v9.9.9"],
-      probe: (version: string) => {
+      probe: (version: string): Record<string, unknown> => {
         if (published.has(version)) return { verdict: "published" };
         if (version === "9.9.9") return { verdict: "unprovable" };
         return { verdict: "missing" };

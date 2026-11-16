@@ -62,7 +62,7 @@ export function analyzeChildProcessCalls(
     calls: scanned.calls,
     findings: [
       ...new Set([...parserFindings(source), ...scanned.findings]),
-    ].toSorted((left, right) => left.localeCompare(right)),
+    ].sort((left, right) => left.localeCompare(right)),
     inertCalls: scanned.inertCalls,
   };
 }

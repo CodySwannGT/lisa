@@ -9,7 +9,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { REPO_ROOT, read } from "./support";
+import { REPO_ROOT, read } from "./support.js";
 
 /** Template directories the gate is vendored from. */
 export const GATE_DIR = "expo/copy-overwrite/scripts";

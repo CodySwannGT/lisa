@@ -814,7 +814,7 @@ describe("PackageLisaStrategy", () => {
       return {
         written: content.overrides?.[PKG],
         error: outcome.error,
-        note: outcome.note,
+        ...(outcome.note === undefined ? {} : { note: outcome.note }),
       };
     };
 
@@ -3386,9 +3386,10 @@ describe("test:integration governance and layout (#3070)", () => {
     );
 
     it("keeps the typescript and cdk templates in agreement, which is where the split was found", async () => {
-      const [typescript, cdk] = await Promise.all(
-        ["typescript", "cdk"].map(shippedTemplate)
-      );
+      const [typescript, cdk] = await Promise.all([
+        shippedTemplate("typescript"),
+        shippedTemplate("cdk"),
+      ]);
 
       expect(sectionsCarrying(cdk, INTEGRATION)).toEqual(
         sectionsCarrying(typescript, INTEGRATION)

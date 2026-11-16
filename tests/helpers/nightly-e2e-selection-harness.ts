@@ -11,7 +11,7 @@
  * Specification: `docs/nightly-e2e-gate.md` §2 rows 41-42 and §2.6.
  * @module tests/helpers/nightly-e2e-selection-harness
  */
-import type { Job } from "./nightly-e2e-gate-harness";
+import type { Job } from "./nightly-e2e-gate-harness.js";
 
 /** Actions run identity shared by discovery, direct reads and selection. */
 export interface Run {
