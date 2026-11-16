@@ -12,7 +12,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import type { CommittedProject } from "./support";
+import type { CommittedProject } from "./support.js";
 import {
   HOME_ID,
   HOME_SPEC,
@@ -24,7 +24,7 @@ import {
   healthyProject,
   readMap,
   writeMap,
-} from "./support";
+} from "./support.js";
 
 export type { CommittedProject };
 

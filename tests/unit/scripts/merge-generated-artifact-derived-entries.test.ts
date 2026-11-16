@@ -328,6 +328,9 @@ describe("which artifacts resolve a contested entry", () => {
       MANIFEST
     );
     expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
     expect(result.resolved).toEqual([SHARED]);
     expect(result.text).toContain(`"${OUR_HASH}",`);
   });
@@ -344,6 +347,9 @@ describe("which artifacts resolve a contested entry", () => {
       MANIFEST
     );
     expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
     expect(result.resolved).toEqual([]);
     expect(result.text).toContain(`"${OUR_HASH}",`);
     expect(result.text).toContain(`"${THEIR_HASH}",`);
@@ -357,6 +363,9 @@ describe("which artifacts resolve a contested entry", () => {
       MANIFEST
     );
     expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
     expect(result.resolved).toEqual([]);
   });
 
@@ -374,6 +383,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       MANIFEST
     );
     expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error("expected the merge to conflict");
+    }
     expect(result.reason).toContain("in incompatible ways");
   });
 });

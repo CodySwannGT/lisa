@@ -186,7 +186,7 @@ describe("destructive operations are unreachable in production", () => {
       correlationId: CORRELATION_ID,
       summary: { ...NO_COUNTS },
     });
-    expect(built["status"]).toBe("denied");
+    expect(Reflect.get(built, "status")).toBe("denied");
   });
 
   it("does not fire on a read-only capability reporting no mutations", () => {

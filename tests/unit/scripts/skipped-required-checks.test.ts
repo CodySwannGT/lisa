@@ -172,8 +172,10 @@ describe("check-skipped-required-checks", () => {
         ["test:e2e"]
       );
       expect(result.violations).toHaveLength(1);
-      expect(result.violations[0].kind).toBe(mod.VIOLATIONS.suppressesRequired);
-      expect(result.violations[0].message).toContain(
+      expect(result.violations[0]?.kind).toBe(
+        mod.VIOLATIONS.suppressesRequired
+      );
+      expect(result.violations[0]?.message).toContain(
         "counts a SKIPPED required check as SATISFIED"
       );
     });
@@ -238,7 +240,7 @@ describe("check-skipped-required-checks", () => {
         }),
         ["test:e2e"]
       );
-      expect(result.violations[0].kind).toBe(mod.VIOLATIONS.badExemption);
+      expect(result.violations[0]?.kind).toBe(mod.VIOLATIONS.badExemption);
     });
 
     it("an ORPHANED exemption is a violation — a fiction the list keeps telling", () => {

@@ -27,7 +27,7 @@ import {
   NOW,
   RED_FINDING,
   loadGateModule,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /** Absolute path of the guard, for the source-level deletion assertion. */
 const GUARD_PATH = path.resolve(__dirname, "..", "..", "..", GUARD_REL);
