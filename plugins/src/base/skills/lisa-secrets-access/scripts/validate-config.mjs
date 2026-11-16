@@ -30,6 +30,15 @@ const IMPLEMENTED_PROVIDERS = new Set(["bitwarden", "doppler", "env"]);
 const DECLARED_PROVIDERS = new Set(["1password", "aws", "vault"]);
 
 /**
+ * Every provider name the secrets contract recognises, implemented or declared.
+ * Exported so a caller that prints the name into shell can refuse anything else.
+ */
+export const KNOWN_SECRETS_PROVIDERS = Object.freeze([
+  ...IMPLEMENTED_PROVIDERS,
+  ...DECLARED_PROVIDERS,
+]);
+
+/**
  * Surfaces the resolver knows.
  *
  * Derived from the resolver's own table rather than restated here. The two

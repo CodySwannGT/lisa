@@ -1715,7 +1715,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "419cdbea9138de4ec2963d9b753522e58d08e2ebcdd1137c4173113a1d273f66",
+      "8687d794603742e83f3b7d7b1d21a56c98422e4301eef99f0d05eacc26d955b8",
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md":
       "42fa1f7456a4511dede443da16875337e19f4185bad4ba1808143fb05f425b74",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
@@ -1853,7 +1853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "3095f60387eb87c32a02a09a5a0eddb994b8e48eadd2be698b40316f5d120b76",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "b3caa38a60193c1add15e3401c1fb6b950e79d2d0242b0b117ff69a7e8ae6050",
+      "189ef38e226aa77e24c289b569ea284850d093f844d9915658fc97895617c804",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/materialized-env-authority.mjs":
       "2844475d7b407c4dccce4e0f500a3aaf5412f9f315c9173dd0ca22dd24497049",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
@@ -1865,7 +1865,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
       "324b7826e6cb98b274ab09a25f1c29ae6877bc827032642cabccfe1ef21fcc99",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "44bcc86e5d1c83b0793773e55541f3d6f1527cc987ce4cb0d0c17dd7a6b9ee51",
+      "54635c30537695cb86d8ef07d03e0ad5d0cb6f4601b6422fdab626d2fd6e7867",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs":
       "8bf279a2b198c7a6d4163420ec73f871fb9c9cb70d7c87d852026bc5dbf97091",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
