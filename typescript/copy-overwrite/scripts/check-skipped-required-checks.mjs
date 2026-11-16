@@ -1153,7 +1153,7 @@ function withGateReviewers(declaration, reviewers) {
     (typeof declared !== "object" || Array.isArray(declared))
   )
     return declaration;
-  const checks = { ...(declared ?? {}) };
+  const checks = { ...declared };
   for (const [name, vocabulary] of Object.entries(reviewers)) {
     const existing = checks[name];
     checks[name] =
