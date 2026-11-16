@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.14.3](https://github.com/CodySwannGT/lisa/compare/v5.14.2...v5.14.3) (2026-11-16)
+
+
+### Bug Fixes
+
+* **nightly-e2e:** retain the guard v5.14.2 shipped before this branch revokes it ([3ee8343](https://github.com/CodySwannGT/lisa/commit/3ee83437be012bc4e0a17d88526eb493a83d5a78)), closes [#3500](https://github.com/CodySwannGT/lisa/issues/3500) [CodySwannGT/lisa#4923](https://github.com/CodySwannGT/lisa/issues/4923) [CodySwannGT/lisa#4923](https://github.com/CodySwannGT/lisa/issues/4923)
+* **typecheck:** delete the test typecheck quarantine so any type error fails ([7b538d9](https://github.com/CodySwannGT/lisa/commit/7b538d9ac1927484ea86d7627367d9f5eab3877b)), closes [CodySwannGT/lisa#4923](https://github.com/CodySwannGT/lisa/issues/4923) [CodySwannGT/lisa#4923](https://github.com/CodySwannGT/lisa/issues/4923)
+* **types:** type shipped script contracts and clear the remaining test type errors ([a682b1f](https://github.com/CodySwannGT/lisa/commit/a682b1fa7a9a2e19e48fb55629cb48db5c3d4610)), closes [CodySwannGT/lisa#4923](https://github.com/CodySwannGT/lisa/issues/4923) [CodySwannGT/lisa#4923](https://github.com/CodySwannGT/lisa/issues/4923)
+
 ### [5.14.2](https://github.com/CodySwannGT/lisa/compare/v5.14.1...v5.14.2) (2026-11-16)
 
 
