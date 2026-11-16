@@ -498,7 +498,7 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    Write `{"complete":true,"items":[{ref,role,labels,body,comments,assignees,updatedAt}],"holds":[{ref,role,labels,body,comments,assignees,updatedAt}]}`
    to `.lisa/session-manager/orphan-input.json`: refs canonical as dispatch uses them, comments
    as `{id,author,body,createdAt}` with the author's stable id and the comment's own posting
-   time (a refusal comment with no `createdAt` never ages out of its 24-hour park), assignees as `{login,id}` objects on GitHub (the REST
+   time (a refusal comment with no `createdAt` never ages out of its 24-hour window), assignees as `{login,id}` objects on GitHub (the REST
    `.assignees[].id`) and as the account or user id on Jira and Linear, and each hold's `role` as
    the lifecycle role it is in (`ready`, `claimed`, `review`, `blocked`, `done`), so a lift never
    moves an item that is in a lane back to the `ready` role. On Jira and Linear a hold with no
@@ -528,9 +528,16 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    - `doneReady`: the pull request merged. In the item's repo dir run
      `node scripts/lisa-work-item.mjs finish --ref <ref> --pr-url <prUrl>`. If it refuses, post
      one comment that starts `[lisa-session-manager] Cannot complete:` and says, in plain words,
-     why the item cannot complete yet. Later cycles see that comment and park the item, then retry
-     finishing once it is more than 24 hours old.
-   - `return`: move it to the `ready` role with the entry's `comment`.
+     why the item cannot complete yet. Then, when the entry has a `returnComment`, re-read the item
+     and leave it in place if a person now holds it; otherwise move the item to the `ready` role
+     with that comment: the code work is merged, so the next agent finishes only
+     the missing step instead of redoing it. An entry with no `returnComment` is held by a person
+     or is in the `review` role; leave it where it is. A later cycle that still sees a recent refusal puts the item
+     in `return`, or in `parked` when a person holds it or it is in the `review` role, and retries
+     finishing once the refusal is more than 24 hours old.
+   - `return`: move it to the `ready` role with the entry's `comment`. A merged item whose
+     completion was refused, and an item whose pull request was closed without merging, land here
+     with a comment that names that pull request, so the next agent builds on the earlier work.
    - `redispatch`: an open pull request and no worker. Claim it (`reused`) and `spawn` it exactly
      as Dispatch steps 2.3 and 2.4, ahead of new items, while `capacity` says `can_spawn`. A
      spawn that reaches `stall.maxAttempts` follows the `exhausted` row above.

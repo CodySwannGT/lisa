@@ -1,9 +1,11 @@
 /**
  * Orphan-bucketing edge cases from review (CodySwannGT/lisa#4722): an item in
  * the `review` role with an open pull request is waiting on review or merge,
- * so it is parked, never re-dispatched; an item whose completion was already
- * refused is parked rather than finished again every cycle; and a closed
- * pull request sends the item back to the `ready` role.
+ * so it is parked, never re-dispatched; an item whose pull request merged but
+ * whose completion was refused goes back to the `ready` role with a note that
+ * the code work is done (CodySwannGT/lisa#4906), unless a person holds it; and
+ * a closed pull request sends the item back to the `ready` role, naming that
+ * pull request as earlier work.
  * @module tests/unit/session-manager/orphan-sweep-review
  */
 import { readFileSync } from "node:fs";
@@ -19,6 +21,10 @@ import { MERGED_URL, orphan, plan, ref } from "./support/orphan-fixtures.js";
 const OPEN = { url: MERGED_URL, state: "open" };
 const MERGED = { url: MERGED_URL, state: "merged" };
 const CLOSED = { url: MERGED_URL, state: "closed" };
+/** A refusal posted an hour before the fixtures' clock. */
+const AN_HOUR_AGO = "2026-11-13T11:00:00Z";
+/** A refusal comment body, as the manager posts it. */
+const MISSING_DEPLOY_PROOF = `${FINISH_REFUSED_PREFIX} the deploy proof is missing.`;
 
 describe("review-role items", () => {
   it("parks an item in the review role with an open PR, without a comment", () => {
@@ -75,31 +81,98 @@ describe("refused completions", () => {
   });
 
   it.each([
-    ["an hour ago", "2026-11-13T11:00:00Z"],
+    ["an hour ago", AN_HOUR_AGO],
     ["with no date", undefined],
     ["with an unreadable date", "soon"],
-  ])("parks a merged item whose completion was refused %s", (_, createdAt) => {
+  ])(
+    "returns a merged item whose completion was refused %s to Ready, naming the merged work",
+    (_, createdAt) => {
+      const result = plan({
+        items: [
+          orphan(1, {
+            pr: MERGED,
+            comments: [
+              {
+                body: MISSING_DEPLOY_PROOF,
+                ...(createdAt === undefined ? {} : { createdAt }),
+              },
+            ],
+          }),
+        ],
+      });
+      expect(result.doneReady).toEqual([]);
+      expect(result.parked).toEqual([]);
+      expect(result.return).toEqual([
+        {
+          ref: ref(1),
+          prUrl: MERGED_URL,
+          reason: expect.stringContaining("completion was refused"),
+          comment: expect.stringContaining(MERGED_URL),
+        },
+      ]);
+      const comment = result.return[0]?.comment ?? "";
+      expect(
+        comment.startsWith("[lisa-session-manager] Returned to Ready:")
+      ).toBe(true);
+      expect(comment).toMatch(/merged/u);
+      expect(comment).toMatch(/not redo/u);
+    }
+  );
+
+  it("parks a refused merged item that a person holds, instead of returning it", () => {
     const result = plan({
       items: [
         orphan(1, {
           pr: MERGED,
+          labels: ["human-needed"],
           comments: [
             {
-              body: `${FINISH_REFUSED_PREFIX} the deploy proof is missing.`,
-              ...(createdAt === undefined ? {} : { createdAt }),
+              body: MISSING_DEPLOY_PROOF,
+              createdAt: AN_HOUR_AGO,
             },
           ],
         }),
       ],
     });
+    expect(result.return).toEqual([]);
+    expect(result.doneReady).toEqual([]);
+    expect(result.parked.map(entry => entry.ref)).toEqual([ref(1)]);
+  });
+
+  it("parks a refused merged item in the review role, instead of returning it", () => {
+    const result = plan({
+      items: [
+        orphan(1, {
+          role: "review",
+          pr: MERGED,
+          comments: [
+            {
+              body: MISSING_DEPLOY_PROOF,
+              createdAt: AN_HOUR_AGO,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(result.return).toEqual([]);
     expect(result.doneReady).toEqual([]);
     expect(result.parked).toEqual([
       {
         ref: ref(1),
-        reason: expect.stringContaining("completion"),
+        reason: expect.stringContaining("in review"),
         reasonOnItem: true,
       },
     ]);
+  });
+
+  it("tries to finish a merged review-role item, but never returns it to Ready", () => {
+    const result = plan({
+      items: [orphan(1, { role: "review", pr: MERGED })],
+    });
+    expect(result.doneReady).toEqual([
+      expect.objectContaining({ ref: ref(1), prUrl: MERGED_URL }),
+    ]);
+    expect(result.doneReady[0]).not.toHaveProperty("returnComment");
   });
 
   it("retries finishing once the refusal is older than 24 hours", () => {
@@ -110,7 +183,7 @@ describe("refused completions", () => {
           pr: MERGED,
           comments: [
             {
-              body: `${FINISH_REFUSED_PREFIX} the deploy proof is missing.`,
+              body: MISSING_DEPLOY_PROOF,
               createdAt: "2026-11-12T11:00:00Z",
             },
           ],
@@ -135,9 +208,11 @@ describe("refused completions", () => {
 });
 
 describe("closed pull requests", () => {
-  it("returns an item whose only PR was closed to the ready role", () => {
+  it("returns an item whose only PR was closed to the ready role, naming that PR", () => {
     const result = plan({ items: [orphan(1, { pr: CLOSED })] });
     expect(result.return.map(entry => entry.ref)).toEqual([ref(1)]);
+    expect(result.return[0]?.comment).toContain(MERGED_URL);
+    expect(result.return[0]?.comment).toMatch(/closed without merging/u);
     expect(result.redispatch).toEqual([]);
     expect(result.doneReady).toEqual([]);
   });
