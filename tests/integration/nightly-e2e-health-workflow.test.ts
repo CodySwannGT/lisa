@@ -112,8 +112,8 @@ describe("the required status-check context identity", () => {
   const caller = workflow(CALLER_REL);
   const ruleset = JSON.parse(read(RULESET_REL)) as Ruleset;
 
-  const reusableJobName = reusable.jobs.gate.name;
-  const callerJobName = caller.jobs.health.name;
+  const reusableJobName = reusable.jobs.gate?.name;
+  const callerJobName = caller.jobs.health?.name;
   const requiredContexts =
     ruleset.rules.find(rule => rule.type === "required_status_checks")
       ?.parameters?.required_status_checks ?? [];
@@ -127,7 +127,7 @@ describe("the required status-check context identity", () => {
   });
 
   it("the caller's job actually calls the reusable this context names", () => {
-    expect(caller.jobs.health.uses).toContain(
+    expect(caller.jobs.health?.uses).toContain(
       "CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@"
     );
   });
@@ -145,7 +145,7 @@ describe("the required status-check context identity", () => {
     // A merge gate is where that matters MOST, not where it is excused: an
     // absent gate does not fail closed, it hangs. `@main` breaking is loud, and
     // the sanctioned response is to fix the reusable upstream.
-    const ref = (caller.jobs.health.uses ?? "").split("@")[1];
+    const ref = (caller.jobs.health?.uses ?? "").split("@")[1];
     expect(ref).toBe("main");
   });
 });
@@ -161,20 +161,20 @@ describe("the reusable workflow's contract", () => {
   };
 
   it("takes `suites` as a REQUIRED structured-JSON string", () => {
-    expect(call.inputs.suites.required).toBe(true);
-    expect(call.inputs.suites.type).toBe("string");
+    expect(call.inputs.suites?.required).toBe(true);
+    expect(call.inputs.suites?.type).toBe("string");
     // A `workflow_call` input cannot be an object, which is why the table is a
     // JSON string validated against a schema rather than a native type.
     expect(fs.existsSync(path.join(REPO_ROOT, SCHEMA_REL))).toBe(true);
   });
 
   it("takes `branch` as REQUIRED — an unfiltered read lets any branch clear the gate", () => {
-    expect(call.inputs.branch.required).toBe(true);
+    expect(call.inputs.branch?.required).toBe(true);
   });
 
   it("defaults the bootstrap window to OFF and caps how far out it may sit", () => {
-    expect(call.inputs.bootstrap_until.default).toBe("");
-    expect(call.inputs.bootstrap_max_days.default).toBe(30);
+    expect(call.inputs.bootstrap_until?.default).toBe("");
+    expect(call.inputs.bootstrap_max_days?.default).toBe(30);
   });
 
   it("exposes the verdict and the audit record as outputs", () => {
@@ -205,7 +205,7 @@ describe("the reusable workflow's contract", () => {
     // The workflow travels by git ref and the guard by `lisa apply`, so the two
     // halves drift. A mismatch must fail closed, not run a contract neither
     // half agrees on.
-    const steps = reusable.jobs.gate.steps ?? [];
+    const steps = reusable.jobs.gate?.steps ?? [];
     const assertion = steps.find(step =>
       step.run?.includes("--contract-version")
     );
@@ -215,7 +215,7 @@ describe("the reusable workflow's contract", () => {
   });
 
   it("fails closed when the guard is not installed at all", () => {
-    const steps = reusable.jobs.gate.steps ?? [];
+    const steps = reusable.jobs.gate?.steps ?? [];
     const assertion = steps.find(step => step.run?.includes("does not exist"));
     expect(assertion?.run).toContain("green gate that measured nothing");
   });
@@ -333,7 +333,7 @@ describe("the caller template", () => {
     // A hardcoded count, not `> 0`: deleting either shipped suite would leave
     // a table that still "validates" while no longer matching the tracker.
     expect(guard.validateSuites(suites)).toHaveLength(2);
-    expect(caller.jobs.health.with?.suites).toBe(
+    expect(caller.jobs.health?.with?.suites).toBe(
       "${{ needs.policy.outputs.suites }}"
     );
   });
@@ -370,7 +370,7 @@ describe("the bypass reaper", () => {
     // The assertion used to be "no checkout step exists", which is a proxy for
     // this property rather than the property. Pinned as the real rule here:
     // nothing in this workflow may name the pull request's head.
-    const steps = reaper.jobs.reap.steps ?? [];
+    const steps = reaper.jobs.reap?.steps ?? [];
     const checkouts = steps.filter(step =>
       step.uses?.startsWith("actions/checkout")
     );
@@ -393,7 +393,7 @@ describe("the bypass reaper", () => {
     // withdraws the REQUEST and erases the INDEX in the same call. A record
     // written afterwards would be written from a pull request that can no
     // longer say a waiver was ever involved.
-    const steps = reaper.jobs.reap.steps ?? [];
+    const steps = reaper.jobs.reap?.steps ?? [];
     const record = steps.findIndex(step => step.env?.MARKER !== undefined);
     const strip = steps.findIndex(step => step.env?.LABEL !== undefined);
     expect(record).toBeGreaterThanOrEqual(0);
@@ -455,12 +455,12 @@ describe("maestro-native-e2e `require_prerequisites`", () => {
   ).inputs;
 
   it("exists, is boolean, and defaults to the safe-to-install behaviour", () => {
-    expect(inputs.require_prerequisites.type).toBe("boolean");
-    expect(inputs.require_prerequisites.default).toBe(false);
+    expect(inputs.require_prerequisites?.type).toBe("boolean");
+    expect(inputs.require_prerequisites?.default).toBe(false);
   });
 
   it("inverts warn-and-skip into a hard failure when true", () => {
-    const preflight = maestro.jobs.preflight.steps ?? [];
+    const preflight = maestro.jobs.preflight?.steps ?? [];
     const check = preflight.find(step => step.run?.includes("should_run=true"));
     expect(check?.run).toContain('REQUIRE_PREREQUISITES" == "true"');
     expect(check?.run).toContain("exit 1");
@@ -470,7 +470,7 @@ describe("maestro-native-e2e `require_prerequisites`", () => {
   });
 
   it("still warns and skips by default, so it stays safe to install fleet-wide", () => {
-    const preflight = maestro.jobs.preflight.steps ?? [];
+    const preflight = maestro.jobs.preflight?.steps ?? [];
     const check = preflight.find(step => step.run?.includes("should_run=true"));
     expect(check?.run).toContain("::warning::Maestro native e2e skipped");
   });

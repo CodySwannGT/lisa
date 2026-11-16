@@ -18,14 +18,14 @@ import {
   FAILING_CRITERION,
   PASSING_CRITERION,
   v1Verdict,
-} from "../../helpers/verification-gate-fixtures";
-import type { GateScenario } from "../../helpers/verification-gate-harness";
+} from "../../helpers/verification-gate-fixtures.js";
+import type { GateScenario } from "../../helpers/verification-gate-harness.js";
 import {
   createGateScenario,
   EXIT_ALLOWED,
   EXIT_BLOCKED,
   MAX_BLOCKS,
-} from "../../helpers/verification-gate-harness";
+} from "../../helpers/verification-gate-harness.js";
 
 let harness: GateScenario;
 

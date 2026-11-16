@@ -161,7 +161,7 @@ appendFileSync(sink, JSON.stringify({ mutation: "issueUpdate", stateId }) + "\\n
 
     expect(observed.status).toBe(0);
     expect(observed.mutations).toHaveLength(1);
-    expect(JSON.parse(observed.mutations[0])).toEqual({
+    expect(JSON.parse(observed.mutations[0] ?? "")).toEqual({
       mutation: "issueUpdate",
       stateId: CLAIMED_ID,
     });
@@ -171,6 +171,6 @@ appendFileSync(sink, JSON.stringify({ mutation: "issueUpdate", stateId }) + "\\n
     const observed = run(["done", "production", ""]);
 
     expect(observed.status).toBe(0);
-    expect(JSON.parse(observed.mutations[0]).stateId).toBe("st-done");
+    expect(JSON.parse(observed.mutations[0] ?? "").stateId).toBe("st-done");
   });
 });

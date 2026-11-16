@@ -340,6 +340,7 @@ describe("post-evidence.sh consumes the config Lisa writes", () => {
   async function runPostEvidence(): Promise<{
     status: number | null;
     stderr: string;
+    stdout: string;
   }> {
     const stubDir = await makeGhStub();
     const result = boundedSpawnSync({

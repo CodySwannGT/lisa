@@ -188,6 +188,9 @@ describe("the CI gate surface", () => {
       const job = (workflow.jobs as Record<string, Record<string, unknown>>)[
         IDENTITY_JOB
       ];
+      if (job === undefined) {
+        throw new Error(`${file} has no ${IDENTITY_JOB} job`);
+      }
       for (const [name, other] of Object.entries(
         workflow.jobs as Record<
           string,

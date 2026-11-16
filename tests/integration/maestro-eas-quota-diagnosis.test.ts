@@ -17,8 +17,8 @@ import {
   buildStepScript,
   loadReusable,
   runBuildStep,
-} from "./support/maestro-build-step-harness";
-import type { BuildMode } from "./support/maestro-build-step-harness";
+} from "./support/maestro-build-step-harness.js";
+import type { BuildMode } from "./support/maestro-build-step-harness.js";
 
 /** The annotation the diagnosis emits, and the only string worth matching. */
 const QUOTA_BANNER = "::error title=EAS build quota exhausted::";

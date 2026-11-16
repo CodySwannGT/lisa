@@ -11,6 +11,9 @@ import {
   type KaneCommandRunner,
 } from "../../../src/core/kane-cli.js";
 
+/** The parameters of the policy assertion, as the rejection table feeds them. */
+type KanePolicyArgs = Parameters<typeof assertKaneRunAllowed>;
+
 const TERMINAL_PASS = JSON.stringify({
   type: "run_end",
   status: "passed",
@@ -164,7 +167,11 @@ describe("Kane CLI adapter", () => {
     ],
   ] as const)(
     "rejects unsafe provider policy: %s",
-    (config, message, mutation) => {
+    (
+      config: KanePolicyArgs[0],
+      message: string,
+      mutation?: KanePolicyArgs[1]["mutation"]
+    ) => {
       expect(() =>
         assertKaneRunAllowed(config, {
           environment: "staging",

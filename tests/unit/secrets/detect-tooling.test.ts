@@ -91,10 +91,12 @@ describe("signals", () => {
     // allowlist already removes Linear before it becomes evidence, so the only
     // tools reaching that branch were ones like Maestro that genuinely do have
     // a CLI — the binary the Expo template invokes and nothing installs.
-    const proposal = proposedEntries({
+    // A detected tool carries its evidence; the proposer documents only `name`.
+    const detected = {
       name: "maestro",
       evidence: ['MCP server "maestro" - interactive auth'],
-    });
+    };
+    const proposal = proposedEntries(detected);
 
     expect(proposal.install).toHaveLength(1);
     // No companion `require`: the install entry now names an artifact for every
@@ -107,14 +109,18 @@ describe("signals", () => {
     // binary is expensive to be wrong about, since its checksum moves with
     // every version bump. Asserted directly rather than relying on the
     // substrate allowlist to keep Linear out of proposals.
-    const proposal = proposedEntries({
+    const detected = {
       name: "linear",
       evidence: ['MCP server "linear-server" - interactive auth'],
-    });
+    };
+    const proposal = proposedEntries(detected);
 
     expect(proposal.install).toHaveLength(0);
     expect(proposal.require).toHaveLength(0);
-    expect(proposal.question).toMatch(/key-authenticated API call/);
+    // `question` is returned only on this branch and is absent from the JSDoc.
+    expect("question" in proposal ? proposal.question : undefined).toMatch(
+      /key-authenticated API call/
+    );
   });
 
   it("survives a malformed config instead of throwing", () => {
