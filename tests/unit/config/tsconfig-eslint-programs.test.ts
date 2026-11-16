@@ -17,8 +17,9 @@
  *     import compiles with zero errors under each shipped template — and does
  *     NOT without those settings, so the assertion is about them.
  *
- * It also pins the root program's scope: every tree it excludes is one ESLint
- * ignores, so nothing ESLint lints is hidden from the type checker.
+ * It also compiles a NestJS host's spec files under the shipped
+ * `tsconfig.spec.json`. Lisa's own root program's scope is pinned by the sibling
+ * `tsconfig-eslint-root-scope.test.ts`.
  *
  * The stack set is DISCOVERED from `<stack>/copy-overwrite/tsconfig.eslint.json`.
  * @module tests/unit/config/tsconfig-eslint-programs
@@ -28,11 +29,8 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import process from "node:process";
 
-import { minimatch } from "minimatch";
 import { afterEach, describe, expect, it } from "vitest";
 
-import localConfig from "../../../eslint.config.local.js";
-import { defaultIgnores } from "../../../src/configs/eslint/base.js";
 import { PROJECT_TYPE_HIERARCHY } from "../../../src/core/config.js";
 import {
   boundedSpawnSync,
@@ -43,7 +41,10 @@ useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const ESLINT_PROGRAM = "tsconfig.eslint.json";
-const TEMPLATE = path.join("copy-overwrite", ESLINT_PROGRAM);
+const COPY_OVERWRITE = "copy-overwrite";
+const TEMPLATE = path.join(COPY_OVERWRITE, ESLINT_PROGRAM);
+/** NestJS ships this beside its ESLint program to type-check spec files. */
+const SPEC_PROGRAM = "tsconfig.spec.json";
 const TSGO = path.join(
   REPO_ROOT,
   "node_modules",
@@ -109,7 +110,7 @@ function readJson<T>(relative: string): T {
  */
 function runnerOf(stack: string): keyof typeof RUNNER_GLOBALS {
   const has = (file: string): boolean =>
-    fs.existsSync(path.join(REPO_ROOT, stack, "copy-overwrite", file));
+    fs.existsSync(path.join(REPO_ROOT, stack, COPY_OVERWRITE, file));
   const jest = has("jest.config.ts");
   const vitest = has("vitest.config.ts");
   if (jest === vitest) {
@@ -157,6 +158,22 @@ function installedPackages(stack: string): ReadonlySet<string> {
 }
 
 /**
+ * A disposable host root whose `node_modules` is Lisa's own, so `types`
+ * entries resolve exactly as they would in a host that installed them.
+ * @param prefix - Temp directory prefix.
+ * @returns The realpath'd root.
+ */
+function hostRoot(prefix: string): string {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(tmpdir(), prefix)));
+  fixtures.push(root);
+  fs.symlinkSync(
+    path.join(REPO_ROOT, "node_modules"),
+    path.join(root, "node_modules")
+  );
+  return root;
+}
+
+/**
  * Write a host-shaped fixture around a given `tsconfig.eslint.json`.
  *
  * The host's own `tsconfig.json` is minimal on purpose: the program's test
@@ -166,14 +183,7 @@ function installedPackages(stack: string): ReadonlySet<string> {
  * @returns The fixture root.
  */
 function writeHost(eslintProgram: string): string {
-  const root = fs.realpathSync(
-    fs.mkdtempSync(path.join(tmpdir(), "lisa-4927-"))
-  );
-  fixtures.push(root);
-  fs.symlinkSync(
-    path.join(REPO_ROOT, "node_modules"),
-    path.join(root, "node_modules")
-  );
+  const root = hostRoot("lisa-4927-");
   fs.mkdirSync(path.join(root, "src"));
   fs.mkdirSync(path.join(root, "tests"));
   fs.writeFileSync(
@@ -308,31 +318,52 @@ describe("shipped tsconfig.eslint.json templates", () => {
   });
 });
 
-describe("Lisa's own tsconfig.eslint.json", () => {
-  it("excludes only trees ESLint ignores", () => {
-    const program = readJson<Tsconfig>(ESLINT_PROGRAM);
-    const ignores = [
-      ...readJson<{ readonly ignores: readonly string[] }>(
-        "eslint.ignore.config.json"
-      ).ignores,
-      ...defaultIgnores,
-      ...localConfig.flatMap(entry =>
-        entry.files === undefined ? (entry.ignores ?? []) : []
-      ),
-    ].filter((pattern): pattern is string => typeof pattern === "string");
-
-    const linted = (program.exclude ?? []).filter(
-      tree => !ignores.some(pattern => minimatch(`${tree}/probe.ts`, pattern))
+describe("shipped NestJS tsconfig.spec.json", () => {
+  it("compiles a host's spec files under Vitest globals with zero errors", () => {
+    // NestJS runs Vitest (nestjs/copy-overwrite/vitest.config.ts) and Lisa
+    // deletes the old jest.config.ts, so spec files must see Vitest's globals.
+    // The host's tsconfig.json is the shipped NestJS preset, copied beside it
+    // because a fixture cannot resolve `@codyswann/lisa/tsconfig/nestjs`.
+    const root = hostRoot("lisa-4927-nestjs-");
+    fs.copyFileSync(
+      path.join(REPO_ROOT, "tsconfig", "base.json"),
+      path.join(root, "base.json")
     );
-    expect(linted).toEqual([]);
-  });
+    fs.copyFileSync(
+      path.join(REPO_ROOT, "tsconfig", "nestjs.json"),
+      path.join(root, "nestjs.json")
+    );
+    fs.writeFileSync(
+      path.join(root, "tsconfig.json"),
+      JSON.stringify({ extends: "./nestjs.json" })
+    );
+    fs.copyFileSync(
+      path.join(REPO_ROOT, "nestjs", COPY_OVERWRITE, SPEC_PROGRAM),
+      path.join(root, SPEC_PROGRAM)
+    );
+    fs.mkdirSync(path.join(root, "src"));
+    fs.writeFileSync(
+      path.join(root, "src", "app.spec.ts"),
+      [
+        'describe("app", () => {',
+        '  it("runs", () => {',
+        "    const spy = vi.fn();",
+        "    spy(process.pid);",
+        "    expect(spy).toHaveBeenCalledOnce();",
+        "  });",
+        "});",
+        "",
+      ].join("\n")
+    );
 
-  it("matches the test program's globals and JS interop", () => {
-    const eslint = readJson<Tsconfig>(ESLINT_PROGRAM).compilerOptions ?? {};
-    const tests = readJson<Tsconfig>("tsconfig.tests.json").compilerOptions;
+    const result = boundedSpawnSync({
+      args: [TSGO, "--noEmit", "--pretty", "false", "-p", SPEC_PROGRAM],
+      command: process.execPath,
+      cwd: root,
+      label: `tsgo -p ${SPEC_PROGRAM}`,
+    });
 
-    expect(eslint.types).toEqual(tests?.types);
-    expect(eslint.allowJs).toBe(tests?.allowJs);
-    expect(eslint.checkJs).toBe(tests?.checkJs);
+    expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toBe("");
+    expect(result.status).toBe(0);
   });
 });

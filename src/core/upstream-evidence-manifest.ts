@@ -739,7 +739,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/copy-overwrite/tsconfig.nestjs.json":
       "34e125780238eacc425688edd14fca303f719adf3130677f71045856fb646295",
     "nestjs/copy-overwrite/tsconfig.spec.json":
-      "c94b97ece66d5e19231244eb3e32bff3a40c13188474a1e0d17db08c37fc10b7",
+      "457412a1e62fb3f1304138a65163134750225ca2743feb0841a8b09fa27b563a",
     "nestjs/copy-overwrite/vitest.config.ts":
       "c02f41cfb1680a6001528191b36f7fced9d06538bd4cf7ea91fd63d666a39a8e",
     "nestjs/copy-overwrite/vitest.nestjs.ts":

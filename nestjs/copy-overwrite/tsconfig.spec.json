@@ -1,7 +1,8 @@
 {
+  "//": "Type-checks NestJS spec files. NestJS projects run Vitest with `globals: true` (vitest.config.ts; Lisa deletes the old jest.config.ts), so `types` loads vitest/globals plus Node, as every Vitest stack's tsconfig.eslint.json does (CodySwannGT/lisa#4927).",
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["jest", "node"]
+    "types": ["vitest/globals", "node"]
   },
   "include": ["**/*.spec.ts", "**/*.d.ts"],
   "exclude": ["node_modules", ".build", "dist"]
