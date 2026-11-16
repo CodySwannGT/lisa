@@ -12507,6 +12507,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/socket-safe-temp-base.test.ts": true,
     "tests/unit/config/sonar-coverage-handoff.test.ts": true,
     "tests/unit/config/stale-deploy-guard.test.ts": true,
+    "tests/unit/config/stryker-sandbox-dist-configs.test.ts": true,
     "tests/unit/config/template-script-toolchain.test.ts": true,
     "tests/unit/config/template-security-floors.test.ts": true,
     "tests/unit/config/test-access-map-triggers.test.ts": true,
