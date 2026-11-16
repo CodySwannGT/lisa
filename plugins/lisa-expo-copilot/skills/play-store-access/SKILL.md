@@ -59,7 +59,10 @@ Supported credential locations, in resolution order:
 1. `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` containing the raw service-account JSON.
 2. `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_BASE64` containing base64 JSON.
 3. `.lisa.config.local.json` `playStore.serviceAccountKeyPath`.
-4. Darwin keychain item `lisa-google-play` account `<packageName>`.
+4. `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` resolved through `lisa-secrets-access`
+   from the project's configured secrets provider (`.lisa.config.json`
+   `secrets.provider`), by exact key name. Do not read the OS keychain or a
+   provider CLI directly.
 
 Fail closed if no credential is available. Never prompt indefinitely and never
 fall back to Play Console UI scraping.
@@ -78,9 +81,11 @@ For `operation: setup`:
 4. In Play Console, open **Setup -> API access**, link the Google Cloud project if
    needed, then grant the service-account email app access with read-level
    release visibility. Do not grant release-management write permissions for v1.
-5. Store the key locally using one of the credential locations above. If using a
-   path, add the path to `.gitignore` and record only the path in
-   `.lisa.config.local.json`.
+5. Store the key using one of the credential locations above. Prefer the
+   project's secrets provider under the exact name
+   `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, so every surface resolves it the same
+   way. If using a path, add the path to `.gitignore` and record only the path
+   in `.lisa.config.local.json`.
 6. Record non-secret defaults in `.lisa.config.json`:
 
    ```bash
@@ -133,10 +138,40 @@ read_service_account_json() {
     cat "$KEY_PATH"
     return
   fi
-  if [ "$(uname -s)" = "Darwin" ] && [ -n "$PACKAGE_NAME" ]; then
-    security find-generic-password -s lisa-google-play -a "$PACKAGE_NAME" -w 2>/dev/null
-    return
+  # Last rung: the project's configured secrets provider, through the
+  # `lisa-secrets-access` chokepoint (environment, then the materialized file,
+  # then the provider by exact key name). It replaced a direct macOS keychain
+  # read, which only worked on one vendor-specific machine store and left a
+  # Doppler, AWS, 1Password or Bitwarden project with no path at all.
+  # This LADDER is identical in every skill that resolves a credential.
+  # Execute only machine-managed plugin/package resolvers. Checkout-local
+  # candidates are repository-controlled code, not trusted merely by path.
+  local candidates=()
+  if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+    candidates+=("$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   fi
+  if [ -n "${PLUGIN_ROOT:-}" ]; then
+    candidates+=("$PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
+  fi
+  # Needs no environment variable: the installed package is always reachable.
+  candidates+=(node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs)
+
+  local resolver
+  local tried=()
+  for resolver in "${candidates[@]}"; do
+    tried+=("$resolver")
+    if [ -f "$resolver" ]; then
+      local via_lisa
+      via_lisa=$(node "$resolver" get GOOGLE_PLAY_SERVICE_ACCOUNT_JSON 2>/dev/null) \
+        && [ -n "$via_lisa" ] && { printf '%s' "$via_lisa"; return; }
+      # Empty/error means this substrate had no answer; try the next one.
+    fi
+  done
+  # Paths only — never any resolved value.
+  echo "Could not resolve GOOGLE_PLAY_SERVICE_ACCOUNT_JSON through lisa-secrets-access." >&2
+  echo "Tried, in order (relative paths are from $PWD):" >&2
+  printf '  %s\n' "${tried[@]}" >&2
+  return 1
 }
 
 SERVICE_ACCOUNT_JSON="$(read_service_account_json)"

@@ -741,6 +741,11 @@ export const SETUP_FIELD =
   //
   // The first pass installs only the provider CLI (`--tools=none`, the same
   // idiom as `--agents=none`), because that is all materialization requires.
+  //
+  // The Bitwarden fallback is NOT a vendor preference: this branch runs with no
+  // checkout, so no `secrets.provider` is readable, and it mirrors the
+  // repo-less tenant convention `lisa-secrets-access` applies at runtime. The
+  // emitted guidance exports LISA_PROVIDER from the operator's own config.
   `npx -y ${SELF_SPEC} workstation --install --agents=none --tools=none ` +
   '--provider="${LISA_PROVIDER:-${LISA_SECRETS_PROVIDER:-bitwarden}}" || tw=$?; ' +
   // Exported BEFORE the secrets phase, not after: the toolchain installs into
@@ -975,8 +980,11 @@ export function pinEnvironment(environmentId, cwd = process.cwd()) {
  * placeholder — a line that would be a syntax error if pasted.
  *
  * `LISA_PROVIDER` is exported even though the field defaults it, because the
- * field's default is Bitwarden. A Doppler tenant that omits it gets `bws`
- * installed and its own CLI missing, having configured everything correctly.
+ * field runs with no checkout and so cannot read `secrets.provider`; its
+ * fallback mirrors the `lisa-secrets-access` repo-less tenant convention
+ * (Bitwarden). The provider printed here comes from `resolveSecretsProvider`,
+ * which DOES read the operator's config, so exporting it carries the
+ * configured choice into a session that has none.
  * @param {object} options Resolved identity and display strings.
  * @returns {string[]} Lines to include in the emitted guidance.
  */
@@ -1212,7 +1220,7 @@ export function emitContainer({
     "  machine install the identical set:",
     "",
     "    npx -y @codyswann/lisa@latest workstation --print-dockerfile \\",
-    `      --provider=${provider ?? "bitwarden"} > Dockerfile.lisa`,
+    `      --provider=${workstationProviderFor(provider)} > Dockerfile.lisa`,
     "    docker build -f Dockerfile.lisa -t lisa-workstation .",
     "",
     "  Nothing secret belongs in it. An image layer is readable by anyone who",
@@ -1362,6 +1370,129 @@ function readBootstrapKey(cwd = process.cwd()) {
 }
 
 /**
+ * Read a JSON config layer, or undefined when the file does not exist.
+ * @param {string} file Absolute path.
+ * @returns {unknown} Parsed contents, or undefined.
+ */
+function readLayer(file) {
+  return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : undefined;
+}
+
+/**
+ * Decide which secrets provider this setup run is provisioning for.
+ *
+ * The provider used to come from environment variables alone, falling back to
+ * Bitwarden, so a project that had correctly configured `secrets.provider` was
+ * still handed `bws` and told to export a Bitwarden variable. Precedence is now
+ * explicit and runs from most to least deliberate:
+ *
+ *   1. `--provider=<name>` on this command;
+ *   2. `LISA_PROVIDER` / `LISA_SECRETS_PROVIDER` — an explicit override;
+ *   3. `secrets.provider` from the merged config, `.lisa.config.local.json`
+ *      over `.lisa.config.json` (the shared `config-resolution` merge);
+ *   4. whatever `lisa-secrets-access` resolves at runtime: `env` for a config
+ *      that names no provider, and the repo-less tenant convention when there
+ *      is no config at all — so install and materialization cannot disagree.
+ *
+ * The config is located by the secrets skill's own walk, not re-implemented,
+ * so a run from a subdirectory finds the same file the runtime reads.
+ * @param {{argv?: string[], env?: Record<string, string|undefined>, cwd?: string}} [options] Inputs.
+ * @returns {Promise<{provider: string, source: "flag"|"environment"|"config"|"default"}>} Provider and where it came from.
+ */
+export async function resolveSecretsProvider({
+  argv = [],
+  env = process.env,
+  cwd = process.cwd(),
+} = {}) {
+  const flagged = (
+    argv.find(a => a.startsWith("--provider="))?.slice("--provider=".length) ??
+    ""
+  ).trim();
+  if (flagged) return { provider: flagged, source: "flag" };
+
+  const overridden = (
+    env.LISA_PROVIDER ??
+    env.LISA_SECRETS_PROVIDER ??
+    ""
+  ).trim();
+  if (overridden) return { provider: overridden, source: "environment" };
+
+  const { readConfig } = await import(
+    pathToFileURL(siblingScript("lisa-secrets-access", "surfaces.mjs")).href
+  );
+  const runtime = readConfig(cwd, env);
+  if (!runtime.configPath) {
+    return { provider: runtime.provider, source: "default" };
+  }
+
+  const { mergeConfigLayers } = await import(
+    pathToFileURL(siblingScript("lisa-secrets-access", "validate-config.mjs"))
+      .href
+  );
+  const merged = mergeConfigLayers(
+    readLayer(runtime.configPath),
+    readLayer(join(dirname(runtime.configPath), ".lisa.config.local.json"))
+  );
+  const configured = merged.secrets?.provider;
+  if (typeof configured === "string" && configured.trim()) {
+    return { provider: configured.trim(), source: "config" };
+  }
+  return { provider: runtime.provider, source: "default" };
+}
+
+/**
+ * Translate a secrets provider name into the workstation catalogue's name.
+ *
+ * The two vocabularies agree on every vendor and differ on one word: the
+ * secrets contract calls "the environment is the provider" `env`, and the
+ * workstation catalogue calls "install no credential manager" `none`. Passing
+ * `env` through made the bootstrap reject a supported configuration as an
+ * unknown credential manager. A missing provider means none, never a vendor.
+ * @param {string|null|undefined} provider Secrets provider name.
+ * @returns {string} Workstation catalogue name.
+ */
+export function workstationProviderFor(provider) {
+  if (!provider || provider === "env") return "none";
+  return provider;
+}
+
+/**
+ * Verify — and, with consent, install — the configured provider's CLI.
+ *
+ * The toolchain phase used to install only what `remoteEnv.tools` listed, so a
+ * project whose manifest did not happen to name its provider's CLI reached the
+ * secrets phase without it. The catalogue entry, probe and installer are the
+ * workstation skill's own, borrowed rather than duplicated so the pins and the
+ * vendor install routes cannot drift between the two.
+ * @param {string} provider Secrets provider name.
+ * @param {{dryRun?: boolean, consent?: boolean, deps?: object}} [options] Run mode and injected probes.
+ * @returns {Promise<object>} The plan row, updated with the install outcome.
+ */
+export async function ensureProviderCli(provider, options = {}) {
+  const { dryRun = false, consent = true, deps = {} } = options;
+  const workstation = await import(
+    pathToFileURL(siblingScript("lisa-setup-workstation", "workstation.mjs"))
+      .href
+  );
+  const entry = workstation.resolveProvider(workstationProviderFor(provider));
+  const row = workstation.planProvider(entry, deps);
+  if (row.action !== "install" || dryRun || !consent) return row;
+
+  const installPinned =
+    deps.installPinned ??
+    (await (
+      await import(
+        pathToFileURL(siblingScript("lisa-setup-workstation", "cli.mjs")).href
+      )
+    ).loadPinnedInstaller()) ??
+    undefined;
+  return workstation.installEntry({ ...entry, name: entry.binary }, row, {
+    ...deps,
+    installPinned,
+  });
+}
+
+/**
  * Work out what to tell the operator to export, for a surface that has no repo.
  *
  * Emitting used to read the key out of `.lisa.config.json` in the working
@@ -1391,11 +1522,6 @@ export async function resolveEmitTarget(
     flag("tenant") ||
     (env.LISA_TENANT ?? env.LISA_SECRETS_NAMESPACE ?? "").trim() ||
     null;
-  const provider =
-    flag("provider") ||
-    (env.LISA_PROVIDER ?? env.LISA_SECRETS_PROVIDER ?? "").trim() ||
-    "bitwarden";
-
   // Validated before it can reach the output, by the same rule the runtime path
   // applies. This one becomes `export LISA_TENANT=<value>` in a block an
   // operator pastes verbatim, so `my tenant` or `has$var` would emit shell that
@@ -1407,6 +1533,14 @@ export async function resolveEmitTarget(
     );
     assertNamespace(tenant);
   }
+
+  // The tenant is handed on as the session will see it — exported — so a run
+  // with no config resolves the same default the repo-less runtime will.
+  const { provider } = await resolveSecretsProvider({
+    argv,
+    env: tenant ? { ...env, LISA_TENANT: tenant } : env,
+    cwd,
+  });
 
   // A configured key outranks the convention: a project may legitimately use a
   // name that is not derivable, and this command must not tell its operator to
@@ -1521,10 +1655,29 @@ async function main() {
     // watching, and provisioning it is why the script exists. Locally the
     // operator opts in per run.
     const remote = Boolean(materializeAt);
+    const consent = remote || process.argv.includes("--install-tools");
     applyToolchain(cfg.tools, dryRun, {
       surface: remote ? "remote" : "local",
-      consent: remote || process.argv.includes("--install-tools"),
+      consent,
     });
+    // After the manifest, so a provider CLI the project pins itself is found
+    // present rather than installed twice by two different routes.
+    const { provider, source } = await resolveSecretsProvider({
+      argv: process.argv,
+    });
+    const row = await ensureProviderCli(provider, { dryRun, consent });
+    console.log(
+      `  provider ${provider} (from ${source}): ${row.action} — ${row.reason}`
+    );
+    // A remote container with no provider CLI cannot materialize anything, so
+    // it fails here, naming the cause, rather than one phase later as a
+    // missing-binary error from inside the secrets step.
+    if (remote && !dryRun && !["present", "installed"].includes(row.action)) {
+      throw new Error(
+        `the configured secrets provider "${provider}" needs ${row.name}, ` +
+          `which is not available: ${row.reason}`
+      );
+    }
   }
 
   if (phases.includes("secrets")) {

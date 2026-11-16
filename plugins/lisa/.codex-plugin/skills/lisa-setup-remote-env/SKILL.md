@@ -94,6 +94,8 @@ A project with no lockfile is not fatal on its own — a checkout may carry the 
 
 Order matters. The toolchain comes first because the secrets step needs the provider CLI it installs. The hook comes last because it is the only part that may assume everything else is ready.
 
+**Which provider CLI the toolchain verifies.** The provider is resolved, most deliberate first: `--provider=<name>`, then `LISA_PROVIDER` / `LISA_SECRETS_PROVIDER`, then `secrets.provider` from `.lisa.config.local.json` over `.lisa.config.json`, then the `lisa-secrets-access` runtime default (`env` — no CLI — for a config that names none). After the `remoteEnv.tools` manifest is applied, that provider's CLI is probed and, with consent, installed through the workstation catalogue; a remote container that still lacks it fails the toolchain phase with the provider named. The emitted guidance (`--emit=…`) uses the same resolution, so it exports the configured provider rather than assuming one.
+
 #### Which phases run depends on the surface
 
 Not every surface runs all three here, and the reason is worth understanding before changing it.
