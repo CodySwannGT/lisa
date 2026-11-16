@@ -1195,6 +1195,32 @@ function mergeVocabulary(left, right) {
 }
 
 /**
+ * The phrases each check run is decoded with: the evidence-bearing checks'
+ * and the review_by checks', unioned per name (#4914). A review_by run decoded
+ * without its gate's phrases would miss a declared no-work title and read as
+ * proved.
+ * @param {object} declaration - The loaded declaration.
+ * @returns {Record<string, object>} Phrases by check name.
+ */
+export function decodingVocabulary(declaration) {
+  const evidence =
+    /** @type {{evidence_bearing_checks?: Record<string, object>|null, review_by_checks?: Record<string, object>|null}} */ (
+      declaration
+    );
+  const merged = { ...evidence.evidence_bearing_checks };
+  for (const [name, vocabulary] of Object.entries(
+    evidence.review_by_checks ?? {}
+  )) {
+    const existing = merged[name];
+    merged[name] =
+      existing && typeof existing === "object"
+        ? mergeVocabulary(existing, vocabulary ?? {})
+        : (vocabulary ?? {});
+  }
+  return merged;
+}
+
+/**
  * The declaration with the gates config's reviewers added
  * (CodySwannGT/lisa#4914).
  *
@@ -4794,8 +4820,7 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
       return fetchChecksForCommit(
         headSha,
         slug,
-        /** @type {{evidence_bearing_checks?: ReviewEvidenceChecks|null}} */
-        (declaration).evidence_bearing_checks ?? {}
+        decodingVocabulary(declaration)
       );
     });
   const resolveHead = options.headSha ?? resolveHeadSha;

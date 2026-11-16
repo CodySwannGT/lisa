@@ -25,6 +25,7 @@ import { configuredReviewers } from "../../../all/copy-overwrite/scripts/check-t
 import {
   checksSettled,
   classifyCheckDescription,
+  decodingVocabulary,
   DESCRIPTION_VERDICTS,
   evaluateVacuousChecks,
   fetchSettledChecks,
@@ -546,4 +547,23 @@ describe("shipped required-checks seeds (#4914)", () => {
       expect(readme).toContain("`evidence.review_by`");
     }
   );
+});
+
+describe("a review_by run is decoded with its gate's phrases (#4917 review)", () => {
+  const GATE = "Greptile";
+  it("carries a review_by gate's no-work phrases into decoding", () => {
+    const vocabulary = decodingVocabulary({
+      evidence_bearing_checks: {},
+      review_by_checks: { [GATE]: { no_work: ["Skipped: draft"] } },
+    });
+    expect(vocabulary[GATE]).toEqual({ no_work: ["Skipped: draft"] });
+  });
+
+  it("unions phrases for a name in both sets", () => {
+    const vocabulary = decodingVocabulary({
+      evidence_bearing_checks: { [GATE]: { proof: ["Done"] } },
+      review_by_checks: { [GATE]: { no_work: ["Paused"] } },
+    });
+    expect(vocabulary[GATE]).toEqual({ proof: ["Done"], no_work: ["Paused"] });
+  });
 });
