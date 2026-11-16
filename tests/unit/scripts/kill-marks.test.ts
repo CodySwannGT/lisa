@@ -69,7 +69,7 @@ describe("an earlier run leaves a mark a later run can read", () => {
         { dir, now: NOW, pid: 111 }
       )
     ).toBe(true);
-    const marks = recentKillMarks({ dir, now: NOW, self: SELF }) as Mark[];
+    const marks = recentKillMarks({ dir, now: NOW }) as Mark[];
 
     expect(marks).toHaveLength(1);
     expect(marks[0]?.kind).toBe("killed");
@@ -86,7 +86,7 @@ describe("an earlier run leaves a mark a later run can read", () => {
       { dir, now: NOW, pid: SELF }
     );
 
-    expect(recentKillMarks({ dir, now: NOW, self: SELF })).toHaveLength(1);
+    expect(recentKillMarks({ dir, now: NOW })).toHaveLength(1);
   });
 
   it("ignores a mark older than the retention window", () => {
@@ -99,7 +99,7 @@ describe("an earlier run leaves a mark a later run can read", () => {
       { dir, now: stale, pid: 111 }
     );
 
-    expect(recentKillMarks({ dir, now: NOW, self: SELF })).toEqual([]);
+    expect(recentKillMarks({ dir, now: NOW })).toEqual([]);
   });
 
   it("keeps a mark inside the window", () => {
@@ -110,7 +110,7 @@ describe("an earlier run leaves a mark a later run can read", () => {
       { dir, now: fresh, pid: 111 }
     );
 
-    expect(recentKillMarks({ dir, now: NOW, self: SELF })).toHaveLength(1);
+    expect(recentKillMarks({ dir, now: NOW })).toHaveLength(1);
   });
 
   it("ignores a future-dated mark", () => {
@@ -122,7 +122,7 @@ describe("an earlier run leaves a mark a later run can read", () => {
       )
     ).toBe(true);
 
-    expect(recentKillMarks({ dir, now: NOW, self: SELF })).toEqual([]);
+    expect(recentKillMarks({ dir, now: NOW })).toEqual([]);
   });
 
   it("returns the newest first, so the closest kill reads first", () => {
@@ -135,7 +135,7 @@ describe("an earlier run leaves a mark a later run can read", () => {
       { kind: "killed", gateId: "new" },
       { dir, now: NOW - 60_000, pid: 222 }
     );
-    const marks = recentKillMarks({ dir, now: NOW, self: SELF }) as Mark[];
+    const marks = recentKillMarks({ dir, now: NOW }) as Mark[];
 
     expect(marks.map(mark => mark.gateId)).toEqual(["new", "old"]);
   });
@@ -218,7 +218,7 @@ describe("recording never becomes a second failure", () => {
       `lisa-killmark-absent-${String(process.pid)}`
     );
 
-    expect(recentKillMarks({ dir: absent, now: NOW, self: SELF })).toEqual([]);
+    expect(recentKillMarks({ dir: absent, now: NOW })).toEqual([]);
   });
 
   it("skips a corrupt mark instead of failing the read", () => {
@@ -231,7 +231,7 @@ describe("recording never becomes a second failure", () => {
       { kind: "killed", gateId: "good" },
       { dir, now: NOW, pid: 222 }
     );
-    const marks = recentKillMarks({ dir, now: NOW, self: SELF }) as Mark[];
+    const marks = recentKillMarks({ dir, now: NOW }) as Mark[];
 
     expect(marks).toHaveLength(1);
     expect(marks[0]?.gateId).toBe("good");
@@ -246,6 +246,6 @@ describe("recording never becomes a second failure", () => {
       JSON.stringify({ schema: 2, kind: "killed", at: NOW, pid: 111 })
     );
 
-    expect(recentKillMarks({ dir, now: NOW, self: SELF })).toEqual([]);
+    expect(recentKillMarks({ dir, now: NOW })).toEqual([]);
   });
 });

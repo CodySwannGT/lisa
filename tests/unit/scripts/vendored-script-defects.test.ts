@@ -489,7 +489,13 @@ describe("#3029/10 lisa-reconcile-policy: the declaration is structured", () => 
 });
 
 describe("#3029/11 lisa-reconcile-policy: --ruleset governs awaited contexts", () => {
-  const withRulesets = (names: string[]): unknown => ({
+  const withRulesets = (
+    names: string[]
+  ): Parameters<typeof awaitedHome>[0] => ({
+    ok: true,
+    contexts: [],
+    settings: {},
+    signals: {},
     rulesets: names.map((name, index) => ({
       name,
       id: index + 1,

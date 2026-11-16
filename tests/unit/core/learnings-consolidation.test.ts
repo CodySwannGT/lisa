@@ -8,6 +8,7 @@ import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { LEARNINGS_CONTRACT } from "../../../src/core/learnings-contract.js";
+import type { LearningEntryStamp } from "../../../src/core/learnings-supersede.js";
 import {
   parseLearningsFile,
   persistConsolidatedLearning,
@@ -269,11 +270,13 @@ describe("learnings consolidation writer", () => {
   it("rejects a malformed supersede list before touching the file", async () => {
     await persistLearningEntry(tempDir, BASE_ENTRY);
     const before = await readFile(learningsPath, "utf8");
+    // Hostile runtime input: bare strings where {id, fingerprint} stamps belong.
+    const malformed: unknown = ["", BASE_ENTRY.id];
     await expect(
       persistConsolidatedLearning(
         tempDir,
         { ...BASE_ENTRY, id: NEW_ID },
-        { supersede: ["", BASE_ENTRY.id] }
+        { supersede: malformed as readonly LearningEntryStamp[] }
       )
     ).rejects.toThrow(/supersede/i);
     expect(await readFile(learningsPath, "utf8")).toBe(before);

@@ -73,7 +73,7 @@ afterAll(cleanupStagedDirs);
 function realRun(
   gates: Record<string, unknown>,
   answers: Record<string, { code: number | null; output: string }> = {}
-): { results: { id: string; state: string }[]; blocked: boolean } {
+): ReturnType<typeof runGates> {
   return runGates({
     gates,
     moment: PUSH,

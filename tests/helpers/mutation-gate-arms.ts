@@ -18,7 +18,7 @@
 import {
   suitesByGuard,
   suitesReachingGuards,
-} from "../../vitest.config.mutation";
+} from "../../vitest.config.mutation.js";
 
 /**
  * The guards whose suites are withheld to weaken the gate.

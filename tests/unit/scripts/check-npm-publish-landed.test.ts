@@ -262,7 +262,8 @@ describe("each registry attempt has its own complete deadline", () => {
     });
     const cleared: unknown[] = [];
     const token = { timer: true };
-    const pending = verifyPublish({
+    // The timer seams are real `verifyPublish` options its JSDoc does not list yet.
+    const options = {
       packageName: PACKAGE,
       version: VERSION,
       registry: REGISTRY,
@@ -274,7 +275,8 @@ describe("each registry attempt has its own complete deadline", () => {
       })) as unknown as typeof fetch,
       setAttemptTimer: (() => token) as unknown as typeof setTimeout,
       clearAttemptTimer: (value: unknown) => cleared.push(value),
-    });
+    };
+    const pending = verifyPublish(options);
 
     await Promise.resolve();
     await Promise.resolve();
@@ -297,7 +299,8 @@ describe("each registry attempt has its own complete deadline", () => {
           );
         }),
     })) as unknown as typeof fetch;
-    const pending = verifyPublish({
+    // The timer seams are real `verifyPublish` options its JSDoc does not list yet.
+    const options = {
       packageName: PACKAGE,
       version: VERSION,
       registry: REGISTRY,
@@ -309,7 +312,8 @@ describe("each registry attempt has its own complete deadline", () => {
         return { timer: true };
       },
       clearAttemptTimer: () => undefined,
-    });
+    };
+    const pending = verifyPublish(options);
 
     await Promise.resolve();
     expire?.();

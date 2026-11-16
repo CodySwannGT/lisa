@@ -156,7 +156,8 @@ describe("maestro-native-e2e android emulator capability inputs", () => {
     // `toContain`: this test's property is that a caller's options are passed
     // through rather than replaced, and a containment check would also pass if
     // something else were smuggled into this string.
-    const emulatorOptions = withBlock["emulator-options"] ?? "";
+    const rawOptions = withBlock["emulator-options"];
+    const emulatorOptions = typeof rawOptions === "string" ? rawOptions : "";
     const callerValue = "${{ inputs.android_emulator_options }}";
     expect(emulatorOptions.startsWith(callerValue)).toBe(true);
     expect(emulatorOptions.slice(callerValue.length)).toBe(
