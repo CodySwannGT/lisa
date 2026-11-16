@@ -55,7 +55,9 @@ function stepNames(file: string, job: string): string[] {
   const doc = yaml.load(readFileSync(path.join(WORKFLOWS, file), "utf8")) as {
     jobs: Record<string, { steps: { name: string }[] }>;
   };
-  return doc.jobs[job].steps.map(step => step.name);
+  const declared = doc.jobs[job];
+  if (declared === undefined) throw new Error(`${job} is not a job in ${file}`);
+  return declared.steps.map(step => step.name);
 }
 
 describe("the preparation setup seam", () => {

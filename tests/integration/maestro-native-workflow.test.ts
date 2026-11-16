@@ -72,6 +72,18 @@ interface ReusableWorkflow {
 describe("maestro-native-e2e reusable workflow", () => {
   let workflow: ReusableWorkflow;
 
+  /**
+   * Look up a job the workflow must declare.
+   * @param name - Job key under `jobs:`
+   * @returns The declared job
+   */
+  function jobNamed(name: string): WorkflowJob {
+    const job = workflow.jobs[name];
+    if (job === undefined)
+      throw new Error(`workflow declares no job "${name}"`);
+    return job;
+  }
+
   beforeAll(async () => {
     workflow = yaml.load(
       await fs.readFile(REUSABLE_YML, "utf-8")
@@ -81,13 +93,13 @@ describe("maestro-native-e2e reusable workflow", () => {
   it("is callable with an optional EXPO_TOKEN secret (graceful skip, not hard requirement)", () => {
     const secrets = workflow.on.workflow_call?.secrets ?? {};
     expect(secrets.EXPO_TOKEN).toBeDefined();
-    expect(secrets.EXPO_TOKEN.required ?? false).toBe(false);
+    expect(secrets.EXPO_TOKEN?.required ?? false).toBe(false);
   });
 
   it("accepts sensitive flow variables via an optional MAESTRO_SECRET_ENV secret", () => {
     const secrets = workflow.on.workflow_call?.secrets ?? {};
     expect(secrets.MAESTRO_SECRET_ENV).toBeDefined();
-    expect(secrets.MAESTRO_SECRET_ENV.required ?? false).toBe(false);
+    expect(secrets.MAESTRO_SECRET_ENV?.required ?? false).toBe(false);
   });
 
   it("does not depend on Maestro Cloud", () => {
@@ -129,32 +141,32 @@ describe("maestro-native-e2e reusable workflow", () => {
     expect(suiteTimeout?.default).toBe(90);
 
     // The input caps EACH platform suite job...
-    expect(workflow.jobs.android["timeout-minutes"]).toBe(
+    expect(jobNamed("android")["timeout-minutes"]).toBe(
       "${{ inputs.suite_timeout_minutes }}"
     );
-    expect(workflow.jobs.ios["timeout-minutes"]).toBe(
+    expect(jobNamed("ios")["timeout-minutes"]).toBe(
       "${{ inputs.suite_timeout_minutes }}"
     );
     // ...and only those: the EAS build job is a separate, fixed ceiling, so
     // raising the suite budget must not also loosen a hung build.
-    expect(workflow.jobs.build["timeout-minutes"]).toBe(90);
+    expect(jobNamed("build")["timeout-minutes"]).toBe(90);
   });
 
   it("gates build and test jobs behind the preflight prerequisite check", () => {
     expect(workflow.jobs.preflight).toBeDefined();
-    expect(workflow.jobs.build.if).toContain(
+    expect(jobNamed("build").if).toContain(
       "needs.preflight.outputs.should_run == 'true'"
     );
-    expect(workflow.jobs.android.if).toContain(
+    expect(jobNamed("android").if).toContain(
       "needs.preflight.outputs.run_android == 'true'"
     );
-    expect(workflow.jobs.ios.if).toContain(
+    expect(jobNamed("ios").if).toContain(
       "needs.preflight.outputs.run_ios == 'true'"
     );
   });
 
   it("warns instead of failing when prerequisites are missing", () => {
-    const check = (workflow.jobs.preflight.steps ?? []).find(
+    const check = (jobNamed("preflight").steps ?? []).find(
       step => step.id === "check"
     );
     expect(check?.run).toContain("::warning::");
@@ -163,7 +175,7 @@ describe("maestro-native-e2e reusable workflow", () => {
   });
 
   it("builds per-platform via an EAS matrix from the preflight platform output", () => {
-    const build = workflow.jobs.build;
+    const build = jobNamed("build");
     expect(build.strategy?.["fail-fast"]).toBe(false);
     expect(build.strategy?.matrix?.platform).toBe(
       "${{ fromJSON(needs.preflight.outputs.platforms) }}"
@@ -186,12 +198,12 @@ describe("maestro-native-e2e reusable workflow", () => {
   });
 
   it("does not let one platform's build failure skip the other platform's tests", () => {
-    expect(workflow.jobs.android.if).toContain("!cancelled()");
-    expect(workflow.jobs.ios.if).toContain("!cancelled()");
+    expect(jobNamed("android").if).toContain("!cancelled()");
+    expect(jobNamed("ios").if).toContain("!cancelled()");
   });
 
   it("runs Android on an emulator with the maestro command on a single line", () => {
-    const android = workflow.jobs.android;
+    const android = jobNamed("android");
     expect(android["runs-on"]).toBe("ubuntu-latest");
     const kvm = (android.steps ?? []).find(step =>
       step.run?.includes("static_node=kvm")
@@ -254,7 +266,7 @@ describe("maestro-native-e2e reusable workflow", () => {
       .split("\n")
       .filter(line => line.includes("maestro-android-suite.sh"));
     expect(suiteLines).toHaveLength(1);
-    expect(suiteLines[0].trim()).toBe("bash maestro-android-suite.sh");
+    expect(suiteLines[0]?.trim()).toBe("bash maestro-android-suite.sh");
     expect(script).not.toContain("maestro test");
     // The driver the line invokes is written by an ordinary `run:` step in the
     // same job, and it is what now carries the flags, the report output and
@@ -272,7 +284,7 @@ describe("maestro-native-e2e reusable workflow", () => {
   });
 
   it("runs iOS on a macos-15 simulator from the tarball artifact", () => {
-    const ios = workflow.jobs.ios;
+    const ios = jobNamed("ios");
     expect(ios["runs-on"]).toBe("macos-15");
     const boot = (ios.steps ?? []).find(step =>
       step.run?.includes("xcrun simctl")
@@ -283,8 +295,8 @@ describe("maestro-native-e2e reusable workflow", () => {
 
   it("uploads JUnit reports and debug output even when flows fail", () => {
     for (const [job, platform] of [
-      [workflow.jobs.android, "android"],
-      [workflow.jobs.ios, "ios"],
+      [jobNamed("android"), "android"],
+      [jobNamed("ios"), "ios"],
     ] as const) {
       const debugUpload = (job.steps ?? []).find(
         step => step.with?.name === `maestro-${platform}-results`
@@ -298,8 +310,8 @@ describe("maestro-native-e2e reusable workflow", () => {
 
   it("forwards declared env, secret env, MAESTRO_* vars, and per-platform app ids as -e flags", () => {
     for (const [job, appInput] of [
-      [workflow.jobs.android, "android_app_id"],
-      [workflow.jobs.ios, "ios_app_id"],
+      [jobNamed("android"), "android_app_id"],
+      [jobNamed("ios"), "ios_app_id"],
     ] as const) {
       const assemble = (job.steps ?? []).find(step =>
         step.run?.includes("MAESTRO_E2E_ARGS")
