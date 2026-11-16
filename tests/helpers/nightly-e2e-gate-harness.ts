@@ -123,6 +123,11 @@ export interface BypassDecision {
   readonly ticket: string | null;
   readonly detail: string | null;
   readonly expiresAt: string | null;
+  readonly appliedAt: string | null;
+  readonly label: string | null;
+  readonly prNumber: number | null;
+  readonly actorPermission: string | null;
+  readonly prAuthor: string | null;
   readonly waived?: readonly Finding[];
 }
 

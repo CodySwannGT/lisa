@@ -48,31 +48,11 @@ const GATE_LABEL = "♿ Accessibility";
 /** One gate's declaration, as a gates block resolves it at this moment. */
 const BLOCK = { accessibility: { [MOMENT]: "required" }, runner: BUN };
 
-/** One gate row of the envelope, as `gateEvidence` writes it. */
-interface EvidenceRow {
-  readonly gate: string;
-  readonly status: string;
-  readonly level: string;
-  readonly label: string;
-}
-
 /** The evidence envelope `evidenceDocument` returns. */
-interface Envelope {
-  readonly schema: string;
-  readonly verdict: string;
-  readonly subject: {
-    readonly repository: string | null;
-    readonly tree: string | null;
-    readonly commit: string | null;
-    readonly ref: string | null;
-  };
-  readonly contract: {
-    readonly moment: string;
-    readonly gates_digest: string | null;
-  };
-  readonly observed_at: string;
-  readonly gates: readonly EvidenceRow[];
-}
+type Envelope = ReturnType<typeof evidenceDocument>;
+
+/** One gate row of the envelope, as `gateEvidence` writes it. */
+type EvidenceRow = Envelope["gates"][number];
 
 /** The options object `evidenceDocument` accepts. */
 type EnvelopeOptions = Parameters<typeof evidenceDocument>[0];
@@ -132,17 +112,6 @@ function outcome(over: Record<string, unknown> = {}): Outcome {
 }
 
 /**
- * Run the envelope builder and view its result as the documented envelope.
- * @param options Document options.
- * @returns The envelope.
- */
-function envelope(options: EnvelopeOptions): Envelope {
-  // The builder is plain JS whose JSDoc return type is a bare `object`; the
-  // fields asserted below are exactly the ones it constructs.
-  return evidenceDocument(options) as Envelope;
-}
-
-/**
  * Build an envelope over the given outcomes.
  * @param outcomes Gate outcomes the run produced.
  * @param over Document options to override.
@@ -152,7 +121,7 @@ function build(
   outcomes: Outcome[] = [outcome()],
   over: Partial<EnvelopeOptions> = {}
 ): Envelope {
-  return envelope({
+  return evidenceDocument({
     gates: BLOCK,
     moment: MOMENT,
     observedAt: OBSERVED,
@@ -290,14 +259,14 @@ describe("the contract digest answers one question and no other", () => {
   it("is unchanged by the ORDER keys happen to be written in", () => {
     // An editor reordering two keys must not make every prior observation
     // read as produced under a different contract.
-    const one = envelope({
+    const one = evidenceDocument({
       gates: { accessibility: { [MOMENT]: "required" }, runner: BUN },
       moment: MOMENT,
       observedAt: OBSERVED,
       runner: BUN,
       verdict: "proved",
     });
-    const other = envelope({
+    const other = evidenceDocument({
       gates: { runner: BUN, accessibility: { [MOMENT]: "required" } },
       moment: MOMENT,
       observedAt: OBSERVED,
@@ -360,7 +329,7 @@ describe("the envelope reads its subject and contract from the run", () => {
 
 describe("an envelope that observed nothing says so", () => {
   it("records an empty gate list when the run produced no results", () => {
-    const doc = envelope({
+    const doc = evidenceDocument({
       gates: BLOCK,
       moment: MOMENT,
       observedAt: OBSERVED,

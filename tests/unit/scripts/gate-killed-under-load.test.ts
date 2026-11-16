@@ -72,19 +72,13 @@ describe("a real signal death, not a stub that returns 143", () => {
     // The positive control #3032 asked for. If the executor ever starts
     // reporting a signal death as a plain nonzero exit, every stubbed
     // assertion downstream stays green while the real path regresses.
-    const raw = spawnExec(SELF_TERMINATE) as {
-      code: number | null;
-      output: string | null;
-    };
+    const raw = spawnExec(SELF_TERMINATE);
 
     expect(raw.code === null || raw.code === 143).toBe(true);
   });
 
   it("prints KILLED, not FAILED, for that real death", () => {
-    const raw = spawnExec(SELF_TERMINATE) as {
-      code: number | null;
-      output: string | null;
-    };
+    const raw = spawnExec(SELF_TERMINATE);
     const { lines, out } = sink();
     const result = runGates({
       gates: { [STYLE]: REQUIRED_AT_COMMIT },

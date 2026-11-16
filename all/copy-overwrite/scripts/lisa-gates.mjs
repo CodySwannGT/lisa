@@ -78,6 +78,35 @@ import { CACHE_FIELD } from "./lib/gate-pass-cache.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /**
+ * One built-in invocation in {@link HARDCODED_INVOCATIONS}: a command written
+ * into a shipped artifact rather than resolved from the project's declaration.
+ * @typedef {object} InventoryEntry
+ * @property {string} gate Registry gate id that should govern it.
+ * @property {string} moment The moment it runs at.
+ * @property {string} surface Which kind of artifact carries it.
+ * @property {string} artifact Repository-relative path to that artifact.
+ * @property {string|null} job The workflow job id, or null off a workflow.
+ * @property {string} command What the built-in runs, descriptively.
+ * @property {readonly string[]} steps Workflow step names on its fallback path.
+ * @property {readonly string[]|null} seedRun Candidate seed tasks; null for the registry default, empty for none.
+ * @property {string} facade Whether the artifact consults a declaration first.
+ * @property {boolean} [unconditional] The fallback fails when its prover cannot run.
+ * @property {string} [hookEvent] The harness event a hook entry registers for.
+ */
+
+/**
+ * One moment's declaration for a gate: a bare level, or an object naming the
+ * level and, optionally, the task or the external check to await.
+ * @typedef {string | {level?: string, run?: string, await?: unknown}} MomentDeclaration
+ */
+
+/**
+ * A `gates` block: the optional task runner, then one entry per gate id
+ * mapping moment names to their declarations.
+ * @typedef {{runner?: string} & Record<string, Record<string, MomentDeclaration>>} GatesBlock
+ */
+
+/**
  * The npm manifest filename, named once.
  *
  * Three call sites read one: two resolve a project's own scripts, and the
@@ -1976,7 +2005,7 @@ const QUALITY_FALLBACKS = Object.freeze({
  * `QUALITY_JOB_GATES` — the same table `lisa doctor` and a consumer migrating
  * off `skip_jobs` read — instead of being spelled out a second time here where
  * the two copies could disagree.
- * @returns {object[]} One frozen entry per façade job.
+ * @returns {InventoryEntry[]} One frozen entry per façade job.
  */
 function qualityInvocations() {
   return Object.entries(QUALITY_FALLBACKS).map(([job, entry]) => {
@@ -2014,7 +2043,7 @@ function qualityInvocations() {
  * @param {string} gate Registry gate id.
  * @param {string} command What the built-in else-branch runs.
  * @param {string[]|null} seedRun Candidate task names, or null for the registry default.
- * @returns {object} A frozen inventory entry.
+ * @returns {InventoryEntry} A frozen inventory entry.
  */
 function prePushInvocation(gate, command, seedRun) {
   return Object.freeze({
@@ -2040,7 +2069,7 @@ function prePushInvocation(gate, command, seedRun) {
  * @param {string} command What the built-in else-branch runs.
  * @param {string[]|null} seedRun Candidate task names, or null for the registry default.
  * @param {boolean} [unconditional] The fallback fails when its prover cannot run.
- * @returns {object} A frozen inventory entry.
+ * @returns {InventoryEntry} A frozen inventory entry.
  */
 function preCommitInvocation(gate, command, seedRun, unconditional = false) {
   return Object.freeze({
@@ -2062,7 +2091,7 @@ function preCommitInvocation(gate, command, seedRun, unconditional = false) {
  * @param {string} gate Registry gate id the tool proves.
  * @param {string} artifact Repository-relative path to the source hook.
  * @param {string} command The tool written into the script.
- * @returns {object} A frozen inventory entry.
+ * @returns {InventoryEntry} A frozen inventory entry.
  */
 function onEditInvocation(gate, artifact, command) {
   return Object.freeze({
@@ -2128,7 +2157,7 @@ function onEditInvocation(gate, artifact, command) {
  * @param {string} gate Registry gate id the built-in proves.
  * @param {string} artifact Repository-relative path to the source hook.
  * @param {string} command The check written into the script.
- * @returns {object} A frozen inventory entry.
+ * @returns {InventoryEntry} A frozen inventory entry.
  */
 function preToolRefusalInvocation(gate, artifact, command) {
   return Object.freeze({
@@ -2188,6 +2217,7 @@ function preToolRefusalInvocation(gate, artifact, command) {
  * an entry naming a step that is gone fails, and a façade job, a
  * `lisa_gate_covers` call, or an `-on-edit.sh` source script with no entry
  * fails too.
+ * @type {readonly InventoryEntry[]}
  */
 export const HARDCODED_INVOCATIONS = Object.freeze([
   // ── Class A: the pre-push hook. Nine gated steps, nine written-in else
@@ -2415,7 +2445,7 @@ export function isDeclarableAt(gate, moment) {
  * @param {string} [options.moment] Only invocations at this moment.
  * @param {string} [options.surface] Only invocations on this surface.
  * @param {string} [options.gate] Only invocations for this gate.
- * @returns {object[]} Matching entries, in table order.
+ * @returns {InventoryEntry[]} Matching entries, in table order.
  */
 export function hardcodedAt({ moment, surface, gate } = {}) {
   return HARDCODED_INVOCATIONS.filter(
@@ -2564,30 +2594,6 @@ function reasonFor(entry, hit, declarable, moment) {
 }
 
 /**
- * A `gates` block that declares what the built-ins are proving today.
- *
- * SEEDING IS THE MECHANISM THAT RETIRES A FALLBACK, and it is only safe if the
- * seeded declaration runs the same thing the fallback did. Two rules enforce
- * that, and they are why this returns less than the full registry:
- *
- *   * A gate is seeded only when the task that reproduces the built-in is a
- *     script the project ACTUALLY HAS. Twenty of the registry's default tasks
- *     are shipped by no template, so seeding by default would declare gates
- *     whose prover does not exist — a red fleet, delivered by a version bump.
- *   * A gate is seeded only at a moment the registry says it may be declared
- *     at. `test-meaningfulness` runs at push and cannot be declared there;
- *     seeding it would produce a config `validate` refuses.
- *
- * What is NOT seeded stays ungoverned, and stays reported by `unconfiguredAt`.
- * That is the honest outcome: this closes the gap it can prove it closes, and
- * leaves the rest visible rather than declaring it away.
- * @param {object} options Inputs.
- * @param {object} [options.gates] The existing gates block; its declarations win.
- * @param {Record<string, string>} [options.scripts] The project's package.json scripts.
- * @param {string} [options.runner] Task runner to record, when none is declared.
- * @returns {{gates: object, seeded: Array<{gate: string, moment: string, run: string|null}>, skipped: Array<{gate: string, moment: string, reason: string}>}} The merged block and what it did.
- */
-/**
  * The pull-request jobs #3052 deleted because a declared gate leg proves the
  * same property, with the gate each one proved and how that gate is seeded.
  *
@@ -2620,6 +2626,30 @@ function runnerOwnedJobs() {
   );
 }
 
+/**
+ * A `gates` block that declares what the built-ins are proving today.
+ *
+ * SEEDING IS THE MECHANISM THAT RETIRES A FALLBACK, and it is only safe if the
+ * seeded declaration runs the same thing the fallback did. Two rules enforce
+ * that, and they are why this returns less than the full registry:
+ *
+ *   * A gate is seeded only when the task that reproduces the built-in is a
+ *     script the project ACTUALLY HAS. Twenty of the registry's default tasks
+ *     are shipped by no template, so seeding by default would declare gates
+ *     whose prover does not exist — a red fleet, delivered by a version bump.
+ *   * A gate is seeded only at a moment the registry says it may be declared
+ *     at. `test-meaningfulness` runs at push and cannot be declared there;
+ *     seeding it would produce a config `validate` refuses.
+ *
+ * What is NOT seeded stays ungoverned, and stays reported by `unconfiguredAt`.
+ * That is the honest outcome: this closes the gap it can prove it closes, and
+ * leaves the rest visible rather than declaring it away.
+ * @param {object} options Inputs.
+ * @param {GatesBlock} [options.gates] The existing gates block; its declarations win.
+ * @param {Record<string, string>} [options.scripts] The project's package.json scripts.
+ * @param {string} [options.runner] Task runner to record, when none is declared.
+ * @returns {{gates: GatesBlock, seeded: Array<{gate: string, moment: string, run: string|null}>, skipped: Array<{gate: string, moment: string, reason: string}>}} The merged block and what it did.
+ */
 export function seedGates({ gates = {}, scripts = {}, runner } = {}) {
   const seeded = [];
   const skipped = [];
@@ -3872,6 +3902,7 @@ function declaredLevel(entry) {
  * @param {object} options.gates The gates block.
  * @param {Record<string, string>|null} [options.scripts] The project's package scripts, or null when unknown.
  * @param {Record<string, string>} [options.outsideFacade] Gates proved by a step the façade does not represent. A SEAM, not configuration: the shipped table is empty today, and a branch nothing can reach is a branch nothing tests.
+ * @param {{moments?: string[], families?: string[]}} [options.executedMoments] Moments this repository actually runs gates at; defaults to none.
  * @returns {Array<{gate: string, moment: string, level: string, verdict: string, detail: string}>} One finding per declaration that is not plainly executable.
  */
 export function classifyDeclaredExecutors({

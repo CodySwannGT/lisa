@@ -26,7 +26,36 @@
  * @module catalogue
  */
 
-/** Lisa's supported coding agents. Kept in sync with the harness list. */
+/**
+ * One platform's pinned artifact for a release-archive install.
+ * @typedef {object} PlatformArtifact
+ * @property {string} url Exact-version download URL.
+ * @property {string} sha256 Checksum published with the release.
+ * @property {string} [binary] Path of the executable inside the archive.
+ * @property {string} [install] Archive kind, when it differs from the entry's.
+ */
+
+/**
+ * One installable (or asserted) thing on a workstation.
+ * @typedef {object} CatalogueEntry
+ * @property {string} name Catalogue name.
+ * @property {string} label Human name.
+ * @property {string} kind How it is installed, or `required` / `manual` / `none`.
+ * @property {string} [binary] Executable name, when it differs from `name`.
+ * @property {string} [note] Why it is installed the way it is.
+ * @property {string} [version] Pinned version.
+ * @property {string} [package] npm package, for `npm-global`.
+ * @property {string} [script] Vendor install script URL.
+ * @property {string} [binDir] Where a vendor script puts the executable.
+ * @property {string} [minVersion] Lowest acceptable version of a required tool.
+ * @property {boolean} [selfUpdates] Whether the tool updates itself.
+ * @property {Record<string, PlatformArtifact>} [platforms] Per-platform artifacts.
+ */
+
+/**
+ * Lisa's supported coding agents. Kept in sync with the harness list.
+ * @type {CatalogueEntry[]}
+ */
 export const AGENTS = [
   {
     name: "claude",
@@ -99,6 +128,7 @@ export const AGENTS = [
  * Only the SELECTED provider is installed. Installing all of them would put
  * four unused credential CLIs on a machine, each an extra thing to keep patched
  * for no benefit.
+ * @type {CatalogueEntry[]}
  */
 export const PROVIDERS = [
   {
@@ -178,6 +208,7 @@ export const PROVIDERS = [
 
 /**
  * Tools every workstation needs regardless of project or provider.
+ * @type {CatalogueEntry[]}
  */
 export const TOOLS = [
   {

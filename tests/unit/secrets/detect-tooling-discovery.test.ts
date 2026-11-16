@@ -28,16 +28,6 @@ import {
   toolsFromGitHooks,
 } from "../../../plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs";
 
-/**
- * The vocabulary a proposal's `why` came from. `detectTooling` emits it on
- * every proposal, though its JSDoc return type predates the field.
- * @param proposal - One proposal
- * @returns Its `source`, or undefined when the proposal carries none
- */
-function sourceOf(proposal: object): unknown {
-  return "source" in proposal ? proposal.source : undefined;
-}
-
 /** The hook path used by most fixtures here. */
 const PRE_COMMIT = ".husky/pre-commit";
 
@@ -260,7 +250,7 @@ describe("detectTooling with discovery", () => {
     });
     for (const proposal of detectTooling(root)) {
       expect(proposal.why).not.toBe("");
-      expect(["curated", "discovered"]).toContain(sourceOf(proposal));
+      expect(["curated", "discovered"]).toContain(proposal.source);
     }
   });
 
@@ -270,9 +260,7 @@ describe("detectTooling with discovery", () => {
       [PRE_COMMIT]: GITLEAKS_HOOK,
     });
     const found = detectTooling(root).find(p => p.name === "gitleaks");
-    expect(found === undefined ? undefined : sourceOf(found)).toBe(
-      "discovered"
-    );
+    expect(found?.source).toBe("discovered");
     expect(found?.why).toContain("git hook");
   });
 });

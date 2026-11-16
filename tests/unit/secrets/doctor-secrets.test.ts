@@ -19,44 +19,16 @@ import {
   collector,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs";
 
-/** One finding as the collector records it. */
-interface Finding {
-  readonly level: string;
-  readonly name: string;
-  readonly message: string;
-}
-
 /**
- * Narrow one collector finding to its recorded shape.
- *
- * The collector is untyped JavaScript, so its findings arrive as bare objects;
- * this checks the shape instead of assuming it.
- * @param finding A finding the collector recorded, if any.
- * @returns The finding, typed.
- */
-const asFinding = (finding: object | undefined): Finding => {
-  if (
-    finding === undefined ||
-    !("level" in finding) ||
-    !("name" in finding) ||
-    !("message" in finding) ||
-    typeof finding.level !== "string" ||
-    typeof finding.name !== "string" ||
-    typeof finding.message !== "string"
-  ) {
-    throw new Error(
-      `expected a recorded finding, got ${JSON.stringify(finding)}`
-    );
-  }
-  return { level: finding.level, name: finding.name, message: finding.message };
-};
-
-/**
- * The first finding the collector recorded, typed.
+ * The first finding the collector recorded, failing loudly when there is none.
  * @param findings Findings the collector recorded.
  * @returns The first finding.
  */
-const first = (findings: readonly object[]): Finding => asFinding(findings[0]);
+const first = <T>(findings: readonly T[]): T => {
+  const [finding] = findings;
+  if (finding === undefined) throw new Error("expected a recorded finding");
+  return finding;
+};
 
 /**
  * Build a provider view from plain entries, defaulting note and identifier.
@@ -239,7 +211,7 @@ describe("note assertion", () => {
       report
     );
     expect(
-      findings.map(f => asFinding(f).name).sort((a, b) => a.localeCompare(b))
+      findings.map(f => f.name).sort((a, b) => a.localeCompare(b))
     ).toEqual(["A_KEY", "B_KEY"]);
   });
 });

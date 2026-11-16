@@ -18,7 +18,7 @@ import { describe, expect, it } from "vitest";
 import {
   BLOCKER_ACTOR,
   classifyHeldItem,
-  classifyRollupBlockers as classifyUntypedRollupBlockers,
+  classifyRollupBlockers,
   describeRollupBlockerChange,
   renderRollupBlockerReport,
   rollupBlockerFingerprint,
@@ -35,48 +35,32 @@ import {
   unclassifiedLeaf,
 } from "./support/rollup-blocker-fixtures.js";
 
-/**
- * Narrows an untyped value to a string-keyed record.
- *
- * @param value - The value to check.
- * @returns Whether the value is a non-null object.
- */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
+/** What one classification run returns. */
+type Classification = ReturnType<typeof classifyRollupBlockers>;
 
 /**
- * Classifies a rollup through the module under test, narrowed to a record.
- *
- * The module documents its result as a bare `object`; it is always a plain
- * record, so this narrows it rather than casting.
- *
- * @param input - The classification input, passed through unchanged.
- * @returns The classification result.
+ * The classification a run produced, failing the test when it refused instead.
+ * @param result - A classification run.
+ * @returns The classification.
  */
-function classifyRollupBlockers(
-  input: Parameters<typeof classifyUntypedRollupBlockers>[0]
-): Record<string, unknown> {
-  const result: unknown = classifyUntypedRollupBlockers(input);
-  if (!isRecord(result)) {
-    throw new Error("classifyRollupBlockers returned a non-object result");
-  }
+function classified(
+  result: Classification
+): Extract<Classification, { ok: true }> {
+  if (!result.ok)
+    throw new Error(`expected a classification: ${result.reason}`);
   return result;
 }
 
 /**
- * The `ref` of every blocker in a classification result.
- *
- * @param blockers - The result's `blockers` field.
- * @returns Each blocker's ref, in order.
+ * The failure a run reported, failing the test when it classified instead.
+ * @param result - A classification run.
+ * @returns The failure.
  */
-function refsOf(blockers: unknown): unknown[] {
-  if (!Array.isArray(blockers)) {
-    throw new Error("classification result has no blockers list");
-  }
-  return blockers.map((blocker: unknown) =>
-    isRecord(blocker) ? blocker.ref : undefined
-  );
+function unclassified(
+  result: Classification
+): Extract<Classification, { ok: false }> {
+  if (result.ok) throw new Error("expected the rollup to stay unclassified");
+  return result;
 }
 
 const NOT_ALL_CLEAR = "This is not an all-clear";
@@ -161,7 +145,9 @@ describe("rollup blocker classification (#3045)", () => {
         children: [transparentParent],
       });
 
-      expect(refsOf(result.blockers)).toEqual([specDefectLeaf.ref]);
+      expect(classified(result).blockers.map(blocker => blocker.ref)).toEqual([
+        specDefectLeaf.ref,
+      ]);
     });
 
     it("prints the recorded signal that produced each classification", () => {
@@ -185,15 +171,12 @@ describe("rollup blocker classification (#3045)", () => {
     });
 
     it("does not guess spec-defect from prose on the item", () => {
-      // Prose fields are not part of the documented input; they ride along on
-      // a real tracker node, which is exactly what this case exercises.
-      const node = {
+      const verdict = classifyHeldItem({
         ref: specDefectLeaf.ref,
         labels: [BLOCKED],
         body: "The acceptance criteria name a dev environment this repo does not have.",
         title: "bad acceptance criterion",
-      };
-      const verdict = classifyHeldItem(node);
+      });
 
       expect(verdict.class).toBe("unknown");
     });
@@ -227,7 +210,7 @@ describe("rollup blocker classification (#3045)", () => {
       });
 
       expect(result.ok).toBe(false);
-      expect(result.reason).toBe("container-unreadable");
+      expect(unclassified(result).reason).toBe("container-unreadable");
       expect(renderRollupBlockerReport(result)).toContain("NOT CLASSIFIED");
       expect(renderRollupBlockerReport(result)).toContain(NOT_ALL_CLEAR);
     });
@@ -236,7 +219,7 @@ describe("rollup blocker classification (#3045)", () => {
       const result = classifyRollupBlockers({ container: EPIC, children: [] });
 
       expect(result.ok).toBe(false);
-      expect(result.reason).toBe("rollup-has-no-children");
+      expect(unclassified(result).reason).toBe("rollup-has-no-children");
       expect(renderRollupBlockerReport(result)).toContain("NOT CLASSIFIED");
     });
 
@@ -247,7 +230,7 @@ describe("rollup blocker classification (#3045)", () => {
       });
 
       expect(result.ok).toBe(false);
-      expect(result.reason).toBe("no-child-could-be-examined");
+      expect(unclassified(result).reason).toBe("no-child-could-be-examined");
       expect(result.examined).toBe(0);
       expect(renderRollupBlockerReport(result)).toContain(NOT_ALL_CLEAR);
     });
@@ -274,7 +257,7 @@ describe("rollup blocker classification (#3045)", () => {
       const text = renderRollupBlockerReport(result);
 
       expect(result.verdict).toBe("not-blocked");
-      expect(result.blockers).toEqual([]);
+      expect(classified(result).blockers).toEqual([]);
       expect(text).toContain("not blocked");
       expect(text).toContain("1 item(s) examined, none held");
       expect(text).not.toContain(REWRITE_HEADING);

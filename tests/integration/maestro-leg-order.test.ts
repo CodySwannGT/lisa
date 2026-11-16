@@ -90,11 +90,9 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
   let caller: Record<string, unknown>;
 
   beforeAll(async () => {
-    raw = yaml.load(await fs.readFile(REUSABLE_YML, "utf-8")) as Record<
-      string,
-      unknown
-    >;
-    workflow = raw as unknown as ReusableWorkflow;
+    const parsed: unknown = yaml.load(await fs.readFile(REUSABLE_YML, "utf-8"));
+    raw = parsed as Record<string, unknown>;
+    workflow = parsed as ReusableWorkflow;
     caller = yaml.load(await fs.readFile(CALLER_YML, "utf-8")) as Record<
       string,
       unknown

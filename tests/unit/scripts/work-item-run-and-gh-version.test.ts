@@ -17,37 +17,6 @@ import {
   run,
 } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 
-/** The fields of a `run` result these cases read. */
-interface RunResult {
-  readonly stdout: string;
-  readonly stderr: string;
-  readonly status: number | null;
-  readonly error?: unknown;
-}
-
-/**
- * `run` documents its result as a plain object; prove the fields read here.
- * @param args - The arguments `run` takes
- * @returns The result, typed by what was checked
- */
-function runChecked(...args: Parameters<typeof run>): RunResult {
-  const result: object = run(...args);
-  if (
-    !("stdout" in result && typeof result.stdout === "string") ||
-    !("stderr" in result && typeof result.stderr === "string") ||
-    !("status" in result) ||
-    !(typeof result.status === "number" || result.status === null)
-  ) {
-    throw new Error(`run returned an unexpected shape: ${String(result)}`);
-  }
-  return {
-    stdout: result.stdout,
-    stderr: result.stderr,
-    status: result.status,
-    error: "error" in result ? result.error : undefined,
-  };
-}
-
 const ABSENT = "lisa-no-such-binary-9f2a";
 
 /**
@@ -130,7 +99,7 @@ describe("run: a child that never started", () => {
     // for `.stdout.trim()` and throws `Cannot read properties of null`, which
     // names a TypeError instead of the real cause, on the exact path written
     // to tolerate failure.
-    const result = runChecked(ABSENT, ["--version"], { allowFailure: true });
+    const result = run(ABSENT, ["--version"], { allowFailure: true });
     expect(result.stdout).toBe("");
     expect(result.stderr).toBe("");
     expect(() => result.stdout.trim()).not.toThrow();
@@ -139,7 +108,7 @@ describe("run: a child that never started", () => {
   it("keeps the underlying failure visible", () => {
     // Normalizing the streams must not hide WHY nothing ran; the error and a
     // non-zero-or-null status are what a caller inspects to find out.
-    const result = runChecked(ABSENT, ["--version"], { allowFailure: true });
+    const result = run(ABSENT, ["--version"], { allowFailure: true });
     expect(result.error).toBeDefined();
     expect(result.status).not.toBe(0);
   });
@@ -150,7 +119,7 @@ describe("run: a child that never started", () => {
   });
 
   it("leaves a successful command's output untouched", () => {
-    const result = runChecked(process.execPath, [
+    const result = run(process.execPath, [
       "-e",
       "process.stdout.write('hello')",
     ]);

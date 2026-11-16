@@ -334,6 +334,6 @@ describe("an empty denominator is not 100%", () => {
         files: HEALTHY_FILES,
       })
     );
-    expect(report.floor.byPlatform.ios.ok).toBe(false);
+    expect(report.floor.byPlatform.ios?.ok).toBe(false);
   });
 });

@@ -21,16 +21,6 @@ import {
 } from "../../helpers/tmpdir-growth-cap-boundary.js";
 import { darwinBirthBatchingEvidence } from "../../helpers/tmpdir-growth-darwin-performance.js";
 
-/**
- * Reads an untyped `object` (a JSDoc `{object}` return) field by field.
- * @param value - The object under test
- * @returns Its own enumerable fields
- */
-const fieldsOf = (value: object): Readonly<Record<string, unknown>> => {
-  const fields: [string, unknown][] = Object.entries(value);
-  return Object.fromEntries(fields);
-};
-
 const INVALID_RUN_NAME = "run-1-1-invalid";
 const ENTRY_RUN_NAME = "run-1-1-entry";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
@@ -372,10 +362,7 @@ describe("temp growth measurement", () => {
       snapshot(2_000, ["beta-Ab12xy", "alpha-Ab12xy"])
     );
 
-    const { topPrefixes } = fieldsOf(report);
-    if (!Array.isArray(topPrefixes))
-      throw new Error("report has no topPrefixes");
-    expect(topPrefixes.map((entry: object) => fieldsOf(entry).prefix)).toEqual([
+    expect(report.topPrefixes.map(entry => entry.prefix)).toEqual([
       "alpha-*",
       "beta-*",
     ]);

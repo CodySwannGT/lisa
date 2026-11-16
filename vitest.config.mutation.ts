@@ -257,7 +257,7 @@ const requestedSubsetOf = (derived: readonly string[]): readonly string[] => {
  * @returns The mutation-gate vitest config
  */
 export default async (): Promise<ViteUserConfig> => {
-  const { default: baseConfig } = await import("./vitest.config");
+  const { default: baseConfig } = await import("./vitest.config.js");
   return {
     ...baseConfig,
     test: {

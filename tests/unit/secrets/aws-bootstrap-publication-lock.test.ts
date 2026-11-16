@@ -85,8 +85,7 @@ describe("AWS bootstrap provider locking", () => {
       holderId: vi.fn(() => "current"),
     });
 
-    // The JSDoc types the winning row as a bare `object`.
-    expect("id" in lock ? lock.id : undefined).toBe(contender.id);
+    expect(lock.id).toBe(contender.id);
     expect(state.removeCoordination).toHaveBeenCalledWith(cfg, expired.id);
   });
 

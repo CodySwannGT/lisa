@@ -71,23 +71,6 @@ function bundle(accessKeyId: string): string {
   });
 }
 
-/**
- * The environment one STS child was spawned with. The runner's options are
- * typed as a bare `object`; `verifyAwsBootstrap` always passes `{ env }`.
- * @param options - The options the runner received
- * @returns The child's environment
- */
-function childEnv(options: object): NodeJS.ProcessEnv {
-  if (
-    !("env" in options) ||
-    typeof options.env !== "object" ||
-    options.env === null
-  ) {
-    throw new Error("the STS child was spawned without an explicit env");
-  }
-  return options.env as NodeJS.ProcessEnv;
-}
-
 describe("AWS bootstrap candidate validation", () => {
   it("accepts the double-encoded profiles emitted by CloudFormation", () => {
     const candidate = validateAwsBootstrap(`${bundle("AKIAOLD")}\n`);
@@ -112,7 +95,7 @@ describe("AWS bootstrap candidate validation", () => {
 
   it("isolates STS verification from ambient AWS credentials", () => {
     const candidate = validateAwsBootstrap(bundle("AKIACANDIDATE"));
-    const run = vi.fn<(bin: string, args: string[], options: object) => string>(
+    const run = vi.fn<NonNullable<Parameters<typeof verifyAwsBootstrap>[1]>>(
       () => "expiry"
     );
 
@@ -120,7 +103,7 @@ describe("AWS bootstrap candidate validation", () => {
 
     expect(run).toHaveBeenCalledTimes(2);
     for (const call of run.mock.calls) {
-      const environment = childEnv(call[2]);
+      const environment = call[2].env;
       expect(environment.AWS_ACCESS_KEY_ID).toBe("AKIACANDIDATE");
       expect(environment.AWS_SECRET_ACCESS_KEY).toBe(
         "secret-for-AKIACANDIDATE"

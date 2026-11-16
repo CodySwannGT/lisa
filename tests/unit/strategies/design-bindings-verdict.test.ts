@@ -49,16 +49,6 @@ const ID_MAP = {
   ambiguous: {},
 };
 
-/**
- * Narrows an untyped value to a string-keyed record.
- *
- * @param value - The value to check.
- * @returns Whether the value is a non-null object.
- */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
 describe("regimeFromVariableNames", () => {
   it("types an axis the map publishes variables for and leaves the rest untyped", () => {
     // The common real-world case: a mature colour system, no spacing scale.
@@ -224,7 +214,7 @@ describe("tokenNamer", () => {
 describe("evaluateSubtree", () => {
   it("produces a regime, findings, and a design-owned block from one subtree", () => {
     // Colour and radius are published here; spacing deliberately is not.
-    const result: unknown = evaluateSubtree({
+    const result = evaluateSubtree({
       component: CARD,
       idMap: {
         byId: { [SURFACE_ID]: SURFACE_NAME, [RADIUS_ID]: RADIUS_NAME },
@@ -250,15 +240,6 @@ describe("evaluateSubtree", () => {
       },
     });
 
-    // The probe documents its result as a bare `object`; narrow each level
-    // rather than cast it to a shape it does not declare.
-    if (!isRecord(result) || !isRecord(result.regime)) {
-      throw new Error("evaluateSubtree returned no regime");
-    }
-    const { bindList } = result;
-    if (!Array.isArray(bindList)) {
-      throw new Error("evaluateSubtree returned no bind list");
-    }
     expect(result.verdict).toBe("BLOCK");
     expect(result.owner).toBe("design");
     // Colour is published, spacing is not — so the regime the gate receives
@@ -272,6 +253,6 @@ describe("evaluateSubtree", () => {
         value: "#3a7bd5",
       })
     );
-    expect(bindList.length).toBeGreaterThan(0);
+    expect(result.bindList.length).toBeGreaterThan(0);
   });
 });

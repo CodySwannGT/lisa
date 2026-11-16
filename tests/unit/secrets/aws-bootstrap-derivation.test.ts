@@ -20,16 +20,6 @@ import {
   parseBootstrap,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs";
 
-/**
- * Reads an untyped `object` (a JSDoc `{object}` return) field by field.
- * @param value - The object under test
- * @returns Its own enumerable fields
- */
-const fieldsOf = (value: object): Readonly<Record<string, unknown>> => {
-  const fields: [string, unknown][] = Object.entries(value);
-  return Object.fromEntries(fields);
-};
-
 /** The example access key id, repeated across cases. */
 const KEY_ID = "AKIAEXAMPLE";
 
@@ -78,8 +68,7 @@ const OWNER = "acmeco";
 
 describe("parseBootstrap", () => {
   it("parses a well-formed bundle", () => {
-    const parsed = parseBootstrap(BUNDLE);
-    expect(parsed && fieldsOf(parsed).roleName).toBe("RemoteAgent");
+    expect(parseBootstrap(BUNDLE)?.roleName).toBe("RemoteAgent");
   });
 
   it.each([

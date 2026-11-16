@@ -99,23 +99,6 @@ const checksIn = (
     .required_status_checks;
 
 /**
- * `planRepairs` reads `homes` (context -> ruleset routing), but its JSDoc
- * options omit it; this widens the documented options by exactly that field.
- */
-type RoutedPlanOptions = Parameters<typeof planRepairs>[0] & {
-  homes?: Record<string, string>;
-};
-
-/**
- * Plan repairs with `homes` routing, as `reconcile` passes it.
- * @param options - The planning inputs, including `homes`.
- * @returns The planned actions.
- */
-const planRoutedRepairs = (
-  options: RoutedPlanOptions
-): ReturnType<typeof planRepairs> => planRepairs(options);
-
-/**
  * A successful live read carrying only the rulesets a plan routes into.
  * @param rulesets - The live rulesets.
  * @returns A complete `LivePolicy` with nothing else observed.
@@ -244,7 +227,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
     // Routed to `release` by `homes`, the awaited record — whose own ruleset is
     // unresolved — was filtered out of the payload's awaited list, and the
     // context was written pinned to Actions: permanently unsatisfiable.
-    const plan = planRoutedRepairs({
+    const plan = planRepairs({
       contexts: {
         missing: [SONAR],
         missingRecords: [{ context: SONAR }],
@@ -264,7 +247,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
   });
 
   it("writes an unscoped awaited context unpinned through the fallback", () => {
-    const plan = planRoutedRepairs({
+    const plan = planRepairs({
       contexts: {
         missing: [SONAR],
         missingRecords: [{ context: SONAR }],
@@ -284,7 +267,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
   });
 
   it("still applies a declared awaited pin on the routed ruleset", () => {
-    const plan = planRoutedRepairs({
+    const plan = planRepairs({
       contexts: {
         missing: [SONAR],
         missingRecords: [{ context: SONAR }],
@@ -306,7 +289,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
   });
 
   it("leaves a non-awaited context on the Actions default", () => {
-    const plan = planRoutedRepairs({
+    const plan = planRepairs({
       contexts: {
         missing: [SONAR],
         missingRecords: [{ context: SONAR }],

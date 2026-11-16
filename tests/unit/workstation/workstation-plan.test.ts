@@ -40,35 +40,6 @@ import {
   probes,
 } from "./fixtures.js";
 
-/** A plan row or resolved entry, read field by field by the assertions. */
-type Row = Readonly<Record<string, unknown>>;
-
-/**
- * Narrows an untyped `object` the workstation modules return into a readable row.
- *
- * @param value The value under test.
- * @returns Its own enumerable fields.
- */
-const asRow = (value: unknown): Row => {
-  if (typeof value !== "object" || value === null) {
-    throw new Error(`expected an object, got ${String(value)}`);
-  }
-  const fields: [string, unknown][] = Object.entries(value);
-  return Object.fromEntries(fields);
-};
-
-/**
- * The executable name an entry installs, which defaults to its name.
- *
- * @param entry A catalogue entry.
- * @param entry.name Its catalogue name.
- * @returns Its binary name.
- */
-const binaryOf = (entry: { readonly name: string }): string =>
-  "binary" in entry && typeof entry.binary === "string"
-    ? entry.binary
-    : entry.name;
-
 /**
  * Finds the pinned provider or tool entry for one binary name.
  *
@@ -76,7 +47,9 @@ const binaryOf = (entry: { readonly name: string }): string =>
  * @returns The catalogue entry.
  */
 const pinnedEntry = (tool: string) => {
-  const entry = [...PROVIDERS, ...TOOLS].find(e => binaryOf(e) === tool);
+  const entry = [...PROVIDERS, ...TOOLS].find(
+    e => (e.binary ?? e.name) === tool
+  );
   if (!entry) throw new Error(`no catalogue entry installs ${tool}`);
   return entry;
 };
@@ -95,7 +68,7 @@ const providerNamed = (name: string) => {
 
 describe("catalogue integrity", () => {
   const checksummed = [...AGENTS, ...PROVIDERS, ...TOOLS].filter(e =>
-    CHECKSUMMED.has(e.kind as string)
+    CHECKSUMMED.has(e.kind)
   );
 
   it("has at least one checksummed entry, or this suite proves nothing", () => {
@@ -134,7 +107,7 @@ describe("catalogue integrity", () => {
       const entry = pinnedEntry(tool);
       // Through the installer's own adapter, so what is asserted is the entry
       // the installer receives — not the catalogue block a reader sees.
-      const resolved = asRow(resolvePlatform(toManifestEntry(entry), platform));
+      const resolved = resolvePlatform(toManifestEntry(entry), platform);
 
       expect(resolved.url, `${tool}/${platform} url`).toBe(expected.url);
       expect(resolved.sha256, `${tool}/${platform} sha256`).toBe(
@@ -157,7 +130,7 @@ describe("catalogue integrity", () => {
     for (const tool of ["bws", "gh"]) {
       const entry = pinnedEntry(tool);
       const byName = (a: string, b: string) => a.localeCompare(b);
-      expect(Object.keys(asRow(asRow(entry).platforms)).sort(byName)).toEqual(
+      expect(Object.keys(entry.platforms ?? {}).sort(byName)).toEqual(
         PINNED_ARTIFACTS.filter(p => p.tool === tool)
           .map(p => p.platform)
           .sort(byName)
@@ -272,48 +245,40 @@ describe("provenance", () => {
 
 describe("planEntry", () => {
   it("leaves an installed tool alone regardless of how it got there", async () => {
-    const row = asRow(
-      planEntry(
-        { name: "gh", label: "GitHub CLI", kind: "release-tar" },
-        probes({ gh: "/opt/homebrew/bin/gh" })
-      )
+    const row = planEntry(
+      { name: "gh", label: "GitHub CLI", kind: "release-tar" },
+      probes({ gh: "/opt/homebrew/bin/gh" })
     );
     expect(row.action).toBe("present");
     expect(row.from).toBe("homebrew");
   });
 
   it("blocks on a required tool that is absent", async () => {
-    const row = asRow(
-      planEntry(
-        { name: "git", label: "git", kind: "required", note: "from the OS" },
-        probes()
-      )
+    const row = planEntry(
+      { name: "git", label: "git", kind: "required", note: "from the OS" },
+      probes()
     );
     expect(row.action).toBe("blocked");
   });
 
   it("reports a manual-only tool as manual, not installable", async () => {
-    const row = asRow(
-      planEntry(
-        {
-          name: "vendor-only-tool",
-          label: "A tool with no headless installer",
-          kind: "manual",
-          note: "no installer",
-        },
-        probes()
-      )
+    const row = planEntry(
+      {
+        name: "vendor-only-tool",
+        label: "A tool with no headless installer",
+        kind: "manual",
+        note: "no installer",
+      },
+      probes()
     );
     expect(row.action).toBe("manual");
     expect(row.reason).toBe("no installer");
   });
 
   it("marks a vendor-script install as not checksummed", async () => {
-    const row = asRow(
-      planEntry(
-        { name: "claude", label: "Claude Code", kind: "vendor-script" },
-        probes()
-      )
+    const row = planEntry(
+      { name: "claude", label: "Claude Code", kind: "vendor-script" },
+      probes()
     );
     expect(row.action).toBe("install");
     expect(row.checksummed).toBe(false);
@@ -326,7 +291,7 @@ describe("resolveProvider", () => {
   });
 
   it("resolves a known provider", async () => {
-    expect(asRow(resolveProvider("bitwarden")).binary).toBe("bws");
+    expect(resolveProvider("bitwarden")?.binary).toBe("bws");
   });
 
   it("throws on an unknown name rather than falling back", async () => {
@@ -338,13 +303,13 @@ describe("resolveProvider", () => {
 
 describe("planProvider", () => {
   it("treats none as a supported answer, not an absence", async () => {
-    const row = asRow(planProvider(providerNamed("none")));
+    const row = planProvider(providerNamed("none"));
     expect(row.action).toBe("present");
     expect(row.path).toBeNull();
   });
 
   it("plans the selected provider by its binary name", async () => {
-    const row = asRow(planProvider(providerNamed("bitwarden"), probes()));
+    const row = planProvider(providerNamed("bitwarden"), probes());
     expect(row.name).toBe("bws");
     expect(row.action).toBe("install");
   });
@@ -352,23 +317,19 @@ describe("planProvider", () => {
 
 describe("planWorkstation", () => {
   it("plans only the selected credential manager", async () => {
-    const plan = planWorkstation({ provider: "doppler", ...probes() }).map(
-      asRow
-    );
+    const plan = planWorkstation({ provider: "doppler", ...probes() });
     const credentials = plan.filter(r => r.group === "provider");
     expect(credentials).toHaveLength(1);
     expect(credentials[0]?.name).toBe("doppler");
   });
 
   it("omits the credential group entirely when none is requested", async () => {
-    const plan = planWorkstation(probes()).map(asRow);
+    const plan = planWorkstation(probes());
     expect(plan.filter(r => r.group === "provider")).toHaveLength(0);
   });
 
   it("restricts agents to the requested subset", async () => {
-    const plan = planWorkstation({ agents: ["claude"], ...probes() }).map(
-      asRow
-    );
+    const plan = planWorkstation({ agents: ["claude"], ...probes() });
     const agents = plan.filter(r => r.group === "agent");
     expect(agents.map(a => a.name)).toEqual(["claude"]);
   });

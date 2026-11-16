@@ -27,16 +27,6 @@ import {
   ungovernedProperties,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
-/**
- * Reads an untyped `object` (a JSDoc `{object}` return) field by field.
- * @param value - The object under test
- * @returns Its own enumerable fields
- */
-const fieldsOf = (value: object): Readonly<Record<string, unknown>> => {
-  const fields: [string, unknown][] = Object.entries(value);
-  return Object.fromEntries(fields);
-};
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const GATES = path.join(
@@ -72,10 +62,9 @@ describe("ungovernedProperties", () => {
       )
     );
     const expected = new Set(
-      HARDCODED_INVOCATIONS.map(entry => {
-        const { gate, moment, artifact } = fieldsOf(entry);
-        return `${String(gate)} ${String(moment)} ${String(artifact)}`;
-      })
+      HARDCODED_INVOCATIONS.map(
+        entry => `${entry.gate} ${entry.moment} ${entry.artifact}`
+      )
     );
 
     expect(findings.length).toBeGreaterThan(0);

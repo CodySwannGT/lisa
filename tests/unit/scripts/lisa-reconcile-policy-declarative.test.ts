@@ -37,6 +37,7 @@ import {
   ok,
   recorded,
   writes,
+  type GhCall,
 } from "./lisa-reconcile-policy-fixtures.js";
 
 /**
@@ -89,9 +90,7 @@ const AWAIT_GATES = {
  * @param calls Recorded `gh` calls.
  * @returns The parsed payload.
  */
-function soleWrite(
-  calls: readonly { args: string[]; input?: string }[]
-): Record<string, never> & {
+function soleWrite(calls: readonly GhCall[]): Record<string, never> & {
   rules: { type: string; parameters: Record<string, unknown> }[];
 } {
   const written = writes([...calls]);

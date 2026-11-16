@@ -199,6 +199,15 @@ function nextActionFor(verdict, connectorName, reason) {
   return `Run /lisa-wiki:ingest --source ${connectorName}.`;
 }
 
+/**
+ * Build the reader-facing freshness report for every enabled connector.
+ * @param {object} [options] Inputs.
+ * @param {string} [options.configPath] Path to the wiki config JSON.
+ * @param {string} [options.wikiRoot] Wiki directory; defaults to `wiki`.
+ * @param {Date} [options.now] The instant freshness is judged at.
+ * @param {number} [options.staleAfterDays] Age at which an observation is stale.
+ * @returns {{generatedAt: string, configPath: string, wikiRoot: string, items: Array<{connector: string, sideEffects: string, verdict: string, evidence: string[], lastObserved: string, reason: string, nextAction: string}>}} The report.
+ */
 export function createWikiFreshnessReport({
   configPath = "wiki/lisa-wiki.config.json",
   wikiRoot,
@@ -228,6 +237,15 @@ export function createWikiFreshnessReport({
   };
 }
 
+/**
+ * Read each enabled connector's freshness facts from the wiki, without writing.
+ * @param {object} [options] Inputs.
+ * @param {string} [options.configPath] Path to the wiki config JSON.
+ * @param {string} [options.wikiRoot] Wiki directory; defaults to `wiki`.
+ * @param {Date} [options.now] The instant freshness is judged at.
+ * @param {number} [options.staleAfterDays] Age at which an observation is stale.
+ * @returns {{configPath: string, wikiRoot: string, connectors: Array<{connector: string, sideEffects: string, verdict: string, evidencePaths: string[], lastObservedDate: string|undefined, reason: string, nextAction: string}>}} Absolute paths and one record per connector.
+ */
 export function parseWikiSourceFreshness({
   configPath = "wiki/lisa-wiki.config.json",
   wikiRoot,

@@ -4,7 +4,6 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { env } from "node:process";
 
-// @ts-expect-error -- the shipped JavaScript helper carries the same checked JSDoc signature
 import { invokedAsScript } from "../../scripts/lib/invoked-as-script.mjs";
 import { worktreeDependencyProblem } from "../../all/copy-overwrite/scripts/lib/worktree-dependencies.mjs";
 

@@ -1521,7 +1521,7 @@ function gitRev(spec) {
  *
  * `tree` is the identity and `commit` is evidentiary: two commits share a tree
  * after a rebase, and the tree is what the gates actually examined.
- * @returns {object} The subject binding.
+ * @returns {{repository: string|null, tree: string|null, commit: string|null, ref: string|null}} The subject binding.
  */
 function evidenceSubject() {
   return {
@@ -1567,7 +1567,7 @@ function gateEvidence(outcome) {
  * @param {string} [options.runner] The task-runner prefix.
  * @param {Record<string,string>|null} [options.scripts] Project scripts.
  * @param {string} options.observedAt When the run began, ISO-8601.
- * @returns {object} The evidence envelope.
+ * @returns {{schema: string, verdict: string, subject: {repository: string|null, tree: string|null, commit: string|null, ref: string|null}, contract: {moment: string, gates_digest: string|null}, observed_at: string, gates: Array<{gate: string, status: string, level: string, label: string}>}} The evidence envelope.
  */
 export function evidenceDocument({
   moment,
