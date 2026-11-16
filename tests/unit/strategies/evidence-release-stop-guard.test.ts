@@ -30,13 +30,10 @@ const BASH = "/bin/bash";
 const RELEASE = "lisa-evidence-2026-11";
 const STOP_MESSAGE = "Evidence release not usable; stop.";
 
-/** The five source skills that pick the evidence release. */
+/** The source skills that pick the evidence release. */
 const SOURCES = [
   "plugins/src/base/skills/lisa-jira-evidence/SKILL.md",
   "plugins/src/base/skills/lisa-jira-journey/SKILL.md",
-  "plugins/src/expo/skills/jira-evidence/SKILL.md",
-  "plugins/src/expo/skills/jira-journey/SKILL.md",
-  "plugins/src/rails/skills/jira-evidence/SKILL.md",
 ] as const;
 
 /**

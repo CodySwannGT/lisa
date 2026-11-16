@@ -23,8 +23,6 @@ const SAFE_COMMAND_PATH = `${path.dirname(process.execPath)}:/usr/bin:/bin:/usr/
 const ROTATED = "pr-assets-2026-11";
 const SCRIPT_COPIES = [
   "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh",
-  "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh",
-  "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh",
 ] as const;
 
 describe("post-evidence.sh uploads to the configured evidence release", () => {
@@ -127,13 +125,6 @@ describe("post-evidence.sh uploads to the configured evidence release", () => {
     expect(await fs.readFile(ghLog, "utf8")).toContain(
       "release upload pr-assets-2026-10 "
     );
-  });
-
-  it("keeps every source copy byte-identical", async () => {
-    const [first, ...rest] = await Promise.all(
-      SCRIPT_COPIES.map(copy => fs.readFile(path.join(repoRoot, copy), "utf8"))
-    );
-    for (const text of rest) expect(text).toBe(first);
   });
 
   /**

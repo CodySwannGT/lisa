@@ -1,4 +1,0 @@
-display_name: "Jira Evidence"
-short_description: "Post screenshot evidence…"
-default_prompt:
-  - "Use $jira-evidence: Post screenshot evidence…."

@@ -1,4 +1,0 @@
-display_name: "Jira Evidence"
-short_description: "Post screenshot evidence: upload it to the GitHub evidence release, update the PR description, attach it to the JIRA ticket with a comment…"
-default_prompt:
-  - "Use $jira-evidence: Post screenshot evidence: upload it to the GitHub evidence release, update the PR description, attach it to the JIRA ticket with a comment…."

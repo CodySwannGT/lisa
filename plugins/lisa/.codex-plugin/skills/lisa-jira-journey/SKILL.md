@@ -144,7 +144,7 @@ LISA_EVIDENCE_RELEASE=<name> python3 .claude/skills/jira-journey/scripts/generat
   ./evidence
 ```
 
-This generates `evidence/comment.txt` (JIRA wiki markup) and `evidence/comment.md` (GitHub markdown) with evidence formatted as code blocks.
+This generates `evidence/comment.txt` (JIRA wiki markup) and `evidence/comment.md` (GitHub markdown) with text evidence formatted as code blocks. `NN-<name>-<viewport>.png` screenshots are embedded as images, labelled and sized by the journey viewport their name ends in (capped at 700px in JIRA), and the journey's viewports are listed under Key Viewports. Stack-specific capture guidance — which markers, viewports and tools — comes from the stack's `journey-guidance` skill when one is installed.
 
 Both `generate-templates.py` and `post-evidence.sh` read `LISA_EVIDENCE_RELEASE`; `post-evidence.sh` still validates and capacity-checks it. Without it they resolve the configured release themselves (default `pr-assets`).
 
@@ -158,7 +158,7 @@ LISA_EVIDENCE_RELEASE=<name> bash .claude/skills/jira-evidence/scripts/post-evid
 
 ### Step 6: Verify
 
-Confirm evidence is posted to both the JIRA ticket and GitHub PR.
+Confirm evidence is posted to both the JIRA ticket and GitHub PR, and that any screenshots render inline at both.
 
 ## Verification Patterns Reference
 

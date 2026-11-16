@@ -88,7 +88,12 @@ def get_github_repo():
 
 
 def collect_evidence(evidence_dir):
-    """Collect evidence files (text, JSON, and images) sorted by name."""
+    """Collect evidence files (text, JSON, and images) sorted by name.
+
+    Images are NN-*.png only: that is exactly what post-evidence.sh uploads
+    and attaches, and it refuses a description that links anything it did
+    not upload (CodySwannGT/lisa#4639). Linking a .jpg/.gif would fail it.
+    """
     evidence_path = Path(evidence_dir)
     files = []
     for pattern in ("[0-9][0-9]-*.txt", "[0-9][0-9]-*.json", "[0-9][0-9]-*.png"):
@@ -107,6 +112,48 @@ def detect_language(filename, content):
     if "CREATE TABLE" in content or "ALTER TABLE" in content or "\\d " in content:
         return "sql"
     return "text"
+
+
+def screenshot_viewport(stem, journey):
+    """Return the journey viewport a screenshot was captured at, or None.
+
+    Screenshot journeys run once per viewport and name each capture
+    NN-<marker>-<viewport>.png. A viewport name may itself contain hyphens
+    ("Mobile-Landscape"), so each name is matched, case-insensitively, as a
+    whole suffix at a hyphen boundary, and the longest matching name wins.
+    """
+    lowered = stem.lower()
+    matches = [
+        viewport
+        for viewport in journey.get("viewports") or []
+        if str(viewport.get("name", ""))
+        and lowered.endswith("-" + str(viewport["name"]).lower())
+    ]
+    return max(matches, key=lambda v: len(str(v["name"])), default=None)
+
+
+def evidence_label(evidence_path, journey):
+    """Readable label for one evidence file, and its viewport when it has one.
+
+    The NN- prefix is dropped. For a screenshot whose name ends in a journey
+    viewport, that suffix moves into the label as "(Name WxH)".
+    """
+    stem = evidence_path.stem
+    viewport = screenshot_viewport(stem, journey) if evidence_path.suffix == ".png" else None
+    label_parts = stem.split("-")[1:]
+    if viewport is not None:
+        name_segments = len(str(viewport["name"]).split("-"))
+        label_parts = label_parts[:-name_segments]
+    label = " ".join(label_parts).title() if label_parts else stem
+    if viewport is not None:
+        label = f"{label} ({viewport['name']} {viewport['width']}x{viewport['height']})"
+    return label, viewport
+
+
+def viewport_rows(journey):
+    """Yield (name, "WxH") for each journey viewport."""
+    for viewport in journey.get("viewports") or []:
+        yield viewport["name"], f"{viewport['width']}x{viewport['height']}"
 
 
 def generate_jira_wiki(ticket_id, pr_number, branch, evidence_files, journey, gh_repo):
@@ -132,13 +179,12 @@ def generate_jira_wiki(ticket_id, pr_number, branch, evidence_files, journey, gh
 
     for evidence_path in evidence_files:
         filename = evidence_path.name
-        stem = evidence_path.stem
-        # Extract readable label: remove NN- prefix
-        label_parts = stem.split("-")[1:]
-        label = " ".join(label_parts).title() if label_parts else stem
+        label, viewport = evidence_label(evidence_path, journey)
 
         if filename.endswith(".png"):
-            display_width = 700
+            # Show a screenshot at its viewport's width so a mobile capture is
+            # not upscaled, capped at 700 to fit the Jira comment column.
+            display_width = min(viewport["width"], 700) if viewport else 700
             lines.append(f"*{label}:*")
             lines.append(f"!{filename}|width={display_width}!")
             lines.append("")
@@ -159,6 +205,14 @@ def generate_jira_wiki(ticket_id, pr_number, branch, evidence_files, journey, gh
             text = step["text"]
             clean_text = LOCAL_EVIDENCE_PATTERN.sub('', text).strip()
             lines.append(f"# {clean_text}")
+        lines.append("")
+
+    if journey.get("viewports"):
+        lines.append("h3. Key Viewports")
+        lines.append("")
+        lines.append("||Viewport||Resolution||")
+        for name, resolution in viewport_rows(journey):
+            lines.append(f"|{name}|{resolution}|")
         lines.append("")
 
     return "\n".join(lines)
@@ -192,9 +246,7 @@ def generate_github_md(ticket_id, pr_number, branch, evidence_files, journey, gh
 
     for evidence_path in evidence_files:
         filename = evidence_path.name
-        stem = evidence_path.stem
-        label_parts = stem.split("-")[1:]
-        label = " ".join(label_parts).title() if label_parts else stem
+        label, _viewport = evidence_label(evidence_path, journey)
 
         if filename.endswith(".png"):
             lines.append(f"**{label}:**")
@@ -222,6 +274,15 @@ def generate_github_md(ticket_id, pr_number, branch, evidence_files, journey, gh
             text = step["text"]
             clean_text = LOCAL_EVIDENCE_PATTERN.sub('', text).strip()
             lines.append(f"{step['number']}. {clean_text}")
+        lines.append("")
+
+    if journey.get("viewports"):
+        lines.append("### Key Viewports")
+        lines.append("")
+        lines.append("| Viewport | Resolution |")
+        lines.append("|----------|-----------|")
+        for name, resolution in viewport_rows(journey):
+            lines.append(f"| {name} | {resolution} |")
         lines.append("")
 
     return "\n".join(lines)
