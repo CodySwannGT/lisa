@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.12.0](https://github.com/CodySwannGT/lisa/compare/v5.11.0...v5.12.0) (2026-11-16)
+
+
+### Features
+
+* **review-evidence:** treat gates-config reviewers as evidence-bearing ([aae8399](https://github.com/CodySwannGT/lisa/commit/aae8399452e83734735aaa8fd28e558f77e17f49)), closes [#4909](https://github.com/CodySwannGT/lisa/issues/4909) [CodySwannGT/lisa#4914](https://github.com/CodySwannGT/lisa/issues/4914) [CodySwannGT/lisa#4914](https://github.com/CodySwannGT/lisa/issues/4914)
+
+
+### Bug Fixes
+
+* **review-evidence:** decode review_by check runs with their gate's phrases ([d2a38d2](https://github.com/CodySwannGT/lisa/commit/d2a38d201d43f066af5d4c1339a7d0ea7cc8961c)), closes [CodySwannGT/lisa#4914](https://github.com/CodySwannGT/lisa/issues/4914) [CodySwannGT/lisa#4914](https://github.com/CodySwannGT/lisa/issues/4914)
+* **review-evidence:** examine review_by reviewers' checks and keep malformed declarations refused ([70c0819](https://github.com/CodySwannGT/lisa/commit/70c08192d1037f33561dfda6ee7652ae0bde2de4)), closes [CodySwannGT/lisa#4914](https://github.com/CodySwannGT/lisa/issues/4914) [CodySwannGT/lisa#4914](https://github.com/CodySwannGT/lisa/issues/4914)
+* **review-evidence:** spread the declared checks as the shipped fixer writes it ([cde44a2](https://github.com/CodySwannGT/lisa/commit/cde44a2a1b4cfd8f2a4b737ff7fe2996c7421f43)), closes [CodySwannGT/lisa#4914](https://github.com/CodySwannGT/lisa/issues/4914) [CodySwannGT/lisa#4914](https://github.com/CodySwannGT/lisa/issues/4914)
+* **review-evidence:** wait on pending review_by checks and match the prover's split ([5a86f3c](https://github.com/CodySwannGT/lisa/commit/5a86f3cfd3abe724acb47b34e0d91305dd52f2dc)), closes [CodySwannGT/lisa#4914](https://github.com/CodySwannGT/lisa/issues/4914) [CodySwannGT/lisa#4914](https://github.com/CodySwannGT/lisa/issues/4914)
+
 ## [5.11.0](https://github.com/CodySwannGT/lisa/compare/v5.10.1...v5.11.0) (2026-11-16)
 
 
