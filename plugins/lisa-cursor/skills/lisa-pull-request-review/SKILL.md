@@ -58,15 +58,21 @@ entry's `await`, and the words that mean "it read the code" are its
 vendor:
 
 ```bash
-jq -r '.gates // {} | to_entries[] | .value["pull-request"] // empty
-  | select(.evidence.reviewer == true) | .await' .lisa.config.json |
-while read -r reviewer; do
+reviewers=$(jq -r '.gates // {} | to_entries[] | .value["pull-request"] // empty
+  | select(.evidence.reviewer == true) | .await' .lisa.config.json) || {
+  echo "Cannot read the reviewer gates in .lisa.config.json." >&2
+  exit 1
+}
+printf '%s\n' "$reviewers" | while read -r reviewer; do
+  [ -n "$reviewer" ] || continue
   gh pr checks <pr> --json name,state,bucket,description \
     --jq ".[] | select(.name == \"$reviewer\") | \"\(.name)\t\(.state)\t\(.description)\""
 done
 ```
 
-No reviewer gate declared means the project has no third-party reviewer; say
+If the config cannot be read, report the reviewer configuration as
+unreadable, never as "no reviewer". Only a config that reads cleanly and
+declares no reviewer gate means the project has no third-party reviewer; say
 so rather than reporting one as absent.
 
 **The state column passes whether the review was real or hollow — only the
@@ -75,7 +81,10 @@ description. A real review uses a declared proof phrase, such as CodeRabbit's
 `Review approved` / `Review completed`. A no-work phrase, such as CodeRabbit's
 `Review rate limited` or `Review queued`, or a missing context, is not a
 review. A reviewer whose gate sets `evidence.review_by` reports through its
-own pull-request review instead of a check. A reviewer
+own pull-request review instead of a check, which the loop above cannot see.
+For that gate run `node scripts/check-third-party-review-evidence.mjs --sha
+<head-sha> --json` and report the reviewer as reviewed only when it reads
+`reviewed` from a review on the head commit. A reviewer
 can also report through a **check run** instead, and then this command cannot
 tell you anything: the description column is empty for a check run, which
 reads `SUCCESS` when it reviewed and `NEUTRAL` — still passing a required

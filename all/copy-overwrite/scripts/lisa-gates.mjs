@@ -4472,7 +4472,8 @@ function validateEvidence(id, moment, evidence) {
  * @returns {string[]} Problems.
  */
 function validateReviewerFlag(where, evidence) {
-  if (evidence.reviewer === undefined) return [];
+  // review_by without reviewer: true is read by nothing; say so (#4916).
+  if (evidence.reviewer === undefined) return validateReviewBy(where, evidence);
   if (typeof evidence.reviewer !== "boolean") {
     return [
       `${where}.reviewer is ${JSON.stringify(evidence.reviewer)}; expected ` +

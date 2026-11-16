@@ -370,7 +370,9 @@ export function configuredReviewers({ gates, moment = PULL_REQUEST }) {
       ),
       noWork: [...EVIDENCE_DEFAULTS.no_work, ...(entry.evidence.no_work ?? [])],
       ...(entry.posted_by === undefined ? {} : { postedBy: entry.posted_by }),
-      ...(typeof entry.evidence.review_by === "string" &&
+      // A gate pinned by posted_by never takes the review route (#4916).
+      ...(entry.posted_by === undefined &&
+      typeof entry.evidence.review_by === "string" &&
       entry.evidence.review_by.trim() !== ""
         ? { reviewBy: entry.evidence.review_by.trim() }
         : {}),
@@ -745,6 +747,9 @@ function readCheckRunEvidence({ reviewer, run }) {
     reviewed: reading === EVIDENCE_READINGS.reviewed,
     reading,
     observed: text,
+    // The phrase that decided the run, which the objection check compares:
+    // `Result: Success - Changes requested` objects like a bare line does.
+    objection: normalizeDescription(canonical),
     state: settled ? (conclusion ?? status) : status || null,
     source: EVIDENCE_SOURCES.checkRun,
     checkRunId: run.id ?? null,
@@ -1410,7 +1415,9 @@ function evidenceSignal(evidence, substitutes) {
   // not cancelled by another reviewer's substitute.
   if (
     readings.some(
-      reading => normalizeDescription(reading.observed) === OBJECTING_PROOF
+      reading =>
+        (reading.objection ?? normalizeDescription(reading.observed)) ===
+        OBJECTING_PROOF
     )
   ) {
     return engagedSignal(

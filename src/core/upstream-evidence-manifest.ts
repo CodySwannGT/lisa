@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
-      "e06b359ade467ecaf358e574594467e448ac5f4c2788843268a05a33f3e5bbc8",
+      "d3cc457db6f0db07656608e57911c38ee2fdbd9346a579f32c524b6a1e2a8a1f",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
@@ -339,7 +339,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "9bc593b8b4890f2b015afc81a926dc833ccc708117a5593c9e730986d4087f64",
+      "9186dd6047a6e2fc45cad907f0b770f7845122f08e3b3513cf04c5a69bd9a9c9",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -399,7 +399,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "5eb85949e1924ebd71c1fa47d73629ae414bd68bf3da73494d3c0584fbebc00c",
+      "9c19942608786767f05ed3aa6384b01e7e209c7112cf9fa42f139d0070533dcb",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1649,7 +1649,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-project-ideation/examples/unavailable-data-rejection.md":
       "362835db13cb8f73179754bce427d0f7caef7738a575aa5b936a0383b7f81078",
     "plugins/src/base/skills/lisa-pull-request-review/SKILL.md":
-      "efe701ccb6cc14f16217a563f35b6239fa335783c9d9ff65c24f7bf36b97110a",
+      "60c041820bcf7cf006be0635a0cab2c315feed1b1544e4325cf4bb7eff364ce1",
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
       "c51afffe153f614bcef5bbd2a7b8ffb53c241ebd246900863448e3a6f4be7d47",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":

@@ -14,6 +14,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  armDecision,
   checkRunResult,
   COMPLETED_REVIEW_RESULT,
   configuredReviewers,
@@ -462,5 +463,50 @@ describe("a review stands in only for silence (#4916 re-review)", () => {
       sha: HEAD,
     });
     expect(reading.reading).toBe(EVIDENCE_READINGS.noWork);
+  });
+});
+
+describe("CodeRabbit's findings on #4916", () => {
+  it("drops review_by from a reviewer pinned by posted_by", () => {
+    const [pinned] = configuredReviewers({
+      gates: {
+        "code-review": {
+          "pull-request": {
+            level: "required",
+            await: CONTEXT,
+            posted_by: 1,
+            evidence: { reviewer: true, review_by: LOGIN },
+          },
+        },
+      },
+    });
+    expect(pinned?.reviewBy).toBeUndefined();
+  });
+
+  it("refuses review_by on a gate that omits reviewer", () => {
+    const problems = validateGates({
+      "code-review": {
+        "pull-request": {
+          level: "required",
+          await: CONTEXT,
+          evidence: { review_by: LOGIN },
+        },
+      },
+    });
+    expect(problems.join(" ")).toContain("review_by");
+  });
+
+  it("blocks arming on a structured Changes requested line", () => {
+    const evidence = reviewEvidenceVerdict({
+      reviewers: [reviewer({ proof: [DECLARED] })],
+      statuses: [],
+      checkRuns: { [CONTEXT]: [run("Result: Success - Changes requested")] },
+      comments: [],
+      sha: HEAD,
+    });
+    expect(evidence.outcome).toBe(EVIDENCE_OUTCOMES.satisfied);
+    const decision = armDecision({ evidence, sha: HEAD });
+    expect(decision.arm).toBe(false);
+    expect(decision.reason).toContain("requested changes");
   });
 });
