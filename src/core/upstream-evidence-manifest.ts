@@ -1175,7 +1175,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/base-rules.md":
       "816cd63221dfbe664d371877d203153877d9e3423fd32dda0a41790d893a3082",
     "plugins/src/base/rules/eager/coding-philosophy.md":
-      "7090cb21ff698d6af39cc10ba9910ff6efaaa2c6bb111aa1b8468e446354c0a7",
+      "77037a08ce174db2150897bb7675d3df016df95752ac8291596dee362427cd2b",
     "plugins/src/base/rules/eager/communication.md":
       "bc192f299fbe76f27d60aca38d461b2eec3412737e49b1e400fde8399116b389",
     "plugins/src/base/rules/eager/config-resolution.md":
