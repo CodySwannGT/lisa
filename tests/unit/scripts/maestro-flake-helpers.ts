@@ -190,7 +190,9 @@ export async function loadClassifier(): Promise<ClassifierModule> {
  */
 export function reader(files: Record<string, string>): Reader {
   return target =>
-    Object.prototype.hasOwnProperty.call(files, target) ? files[target] : null;
+    Object.prototype.hasOwnProperty.call(files, target)
+      ? (files[target] ?? null)
+      : null;
 }
 
 /**

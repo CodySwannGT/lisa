@@ -51,7 +51,7 @@ const PROTOTYPE_NAMES = [
  * @param schema Schema to apply.
  * @returns The joined error text.
  */
-function errorsOf(document: unknown, schema: unknown): string {
+function errorsOf(document: unknown, schema: object): string {
   return validateAgainstSchema(document, schema).errors.join(" | ");
 }
 

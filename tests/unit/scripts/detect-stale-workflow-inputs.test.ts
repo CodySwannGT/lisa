@@ -44,7 +44,7 @@ import {
   PROJECT_VINTAGE,
   REUSABLE_EXAMPLE_AGENT_YML,
   runDetector,
-} from "./detect-stale-workflow-inputs-helpers";
+} from "./detect-stale-workflow-inputs-helpers.js";
 
 describe("detect-stale-workflow-inputs end-to-end", () => {
   it("flags the vintage caller's package_manager as stale (exit 1)", () => {

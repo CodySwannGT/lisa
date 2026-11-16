@@ -20,8 +20,13 @@ import {
  * @param id - Gate id to look up
  * @returns That gate's registry definition
  */
-const definition = (id: string) =>
-  (REGISTRY as Record<string, { moments: string[]; work?: string }>)[id];
+const definition = (id: string): { moments: string[]; work?: string } => {
+  const entry = (
+    REGISTRY as Record<string, { moments: string[]; work?: string }>
+  )[id];
+  if (entry === undefined) throw new Error(`${id} is not a registered gate`);
+  return entry;
+};
 const GENERATIVE = "generative-testing";
 const CONTINUOUS = "continuous";
 

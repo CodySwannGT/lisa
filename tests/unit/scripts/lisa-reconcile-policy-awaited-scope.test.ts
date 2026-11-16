@@ -31,6 +31,7 @@ import {
   REPO,
   SONAR,
   baseRuleset,
+  type GhCall,
   gitHub,
   recorded,
   writes,
@@ -85,15 +86,58 @@ const liveCheck = (
  */
 const checksIn = (
   plan: readonly {
-    ruleset?: string;
-    payload?: {
-      rules: { parameters: { required_status_checks: unknown[] } }[];
-    };
+    ruleset?: string | undefined;
+    payload?:
+      | {
+          rules?: { parameters: { required_status_checks: unknown[] } }[];
+        }
+      | undefined;
   }[],
   name: string
 ): unknown =>
-  plan.find(action => action.ruleset === name)?.payload?.rules[0].parameters
+  plan.find(action => action.ruleset === name)?.payload?.rules?.[0]?.parameters
     .required_status_checks;
+
+/**
+ * `planRepairs` reads `homes` (context -> ruleset routing), but its JSDoc
+ * options omit it; this widens the documented options by exactly that field.
+ */
+type RoutedPlanOptions = Parameters<typeof planRepairs>[0] & {
+  homes?: Record<string, string>;
+};
+
+/**
+ * Plan repairs with `homes` routing, as `reconcile` passes it.
+ * @param options - The planning inputs, including `homes`.
+ * @returns The planned actions.
+ */
+const planRoutedRepairs = (
+  options: RoutedPlanOptions
+): ReturnType<typeof planRepairs> => planRepairs(options);
+
+/**
+ * A successful live read carrying only the rulesets a plan routes into.
+ * @param rulesets - The live rulesets.
+ * @returns A complete `LivePolicy` with nothing else observed.
+ */
+const liveWith = (rulesets: Record<string, unknown>[]) => ({
+  ok: true as const,
+  rulesets,
+  contexts: [],
+  settings: {},
+  signals: {},
+});
+
+/**
+ * The one write a case expects, failing loudly when there was none.
+ * @param written - The recorded ruleset writes.
+ * @returns The first write.
+ */
+const firstWrite = (written: GhCall[]): GhCall => {
+  const [call] = written;
+  if (call === undefined) throw new Error("expected a ruleset write");
+  return call;
+};
 
 describe("an awaited declaration carries its ruleset into the comparison", () => {
   it("keeps the default Actions pin when an explicit record overrides await", () => {
@@ -200,7 +244,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
     // Routed to `release` by `homes`, the awaited record — whose own ruleset is
     // unresolved — was filtered out of the payload's awaited list, and the
     // context was written pinned to Actions: permanently unsatisfiable.
-    const plan = planRepairs({
+    const plan = planRoutedRepairs({
       contexts: {
         missing: [SONAR],
         missingRecords: [{ context: SONAR }],
@@ -208,7 +252,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
         matched: [],
       },
       settings: NO_SETTINGS,
-      live: { rulesets },
+      live: liveWith(rulesets),
       prune: false,
       rulesetName: null,
       awaited: [{ context: SONAR }],
@@ -220,7 +264,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
   });
 
   it("writes an unscoped awaited context unpinned through the fallback", () => {
-    const plan = planRepairs({
+    const plan = planRoutedRepairs({
       contexts: {
         missing: [SONAR],
         missingRecords: [{ context: SONAR }],
@@ -228,7 +272,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
         matched: [],
       },
       settings: NO_SETTINGS,
-      live: { rulesets: [baseRuleset([], { id: 9, name: QUALITY_CHECKS })] },
+      live: liveWith([baseRuleset([], { id: 9, name: QUALITY_CHECKS })]),
       prune: false,
       rulesetName: null,
       awaited: [{ context: SONAR }],
@@ -240,7 +284,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
   });
 
   it("still applies a declared awaited pin on the routed ruleset", () => {
-    const plan = planRepairs({
+    const plan = planRoutedRepairs({
       contexts: {
         missing: [SONAR],
         missingRecords: [{ context: SONAR }],
@@ -248,7 +292,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
         matched: [],
       },
       settings: NO_SETTINGS,
-      live: { rulesets },
+      live: liveWith(rulesets),
       prune: false,
       rulesetName: null,
       awaited: [{ context: SONAR }],
@@ -262,7 +306,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
   });
 
   it("leaves a non-awaited context on the Actions default", () => {
-    const plan = planRepairs({
+    const plan = planRoutedRepairs({
       contexts: {
         missing: [SONAR],
         missingRecords: [{ context: SONAR }],
@@ -270,7 +314,7 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
         matched: [],
       },
       settings: NO_SETTINGS,
-      live: { rulesets },
+      live: liveWith(rulesets),
       prune: false,
       rulesetName: null,
       awaited: [],
@@ -296,7 +340,7 @@ describe("awaited scope, end to end", () => {
     const written = writes(recorded(gh.mock.calls));
     expect(written).toHaveLength(1);
     expect(
-      JSON.parse(written[0].input as string).rules[0].parameters
+      JSON.parse(firstWrite(written).input as string).rules[0].parameters
         .required_status_checks
     ).toEqual([{ context: SONAR, integration_id: ACTIONS_ID }]);
   });
@@ -322,9 +366,9 @@ describe("awaited scope, end to end", () => {
     expect(result.contexts?.missing).toEqual([SONAR]);
     const written = writes(recorded(gh.mock.calls));
     expect(written).toHaveLength(1);
-    expect(written[0].args).toContain(`repos/${REPO}/rulesets/7`);
+    expect(firstWrite(written).args).toContain(`repos/${REPO}/rulesets/7`);
     expect(
-      JSON.parse(written[0].input as string).rules[0].parameters
+      JSON.parse(firstWrite(written).input as string).rules[0].parameters
         .required_status_checks
     ).toEqual([{ context: SONAR }]);
   });
@@ -335,7 +379,7 @@ describe("awaited scope, end to end", () => {
 
     const written = writes(recorded(gh.mock.calls));
     expect(
-      JSON.parse(written[0].input as string).rules[0].parameters
+      JSON.parse(firstWrite(written).input as string).rules[0].parameters
         .required_status_checks
     ).toEqual([{ context: SONAR, integration_id: SONAR_APP }]);
   });
