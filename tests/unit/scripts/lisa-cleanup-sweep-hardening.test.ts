@@ -114,7 +114,10 @@ describe.runIf(typeof process.getuid === "function")(
       const dir = staleDir(root, "lisa-private", 0o700);
       const file = staleFile(root, "lisa-readable.txt", 0o644);
       const result = await sweepRoot(root);
-      expect(result.removed).toEqual([dir, file]);
+      // The sweep reports entries in directory-listing order, which the file
+      // system does not fix, so compare them as a set (CodySwannGT/lisa#4905).
+      expect(result.removed).toHaveLength(2);
+      expect(result.removed).toEqual(expect.arrayContaining([dir, file]));
       expect(result.skippedUnsafe).toBe(0);
     });
   }
