@@ -1629,7 +1629,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-posthog-access/SKILL.md":
       "f4d1a8f0a1d3094ad22d49ed8967a60b619d964b05745b783347536c746e8f92",
     "plugins/src/base/skills/lisa-prd-backlink/SKILL.md":
-      "911abfd547761e706ab2f7a11ed607b4d6967fa2ea42339b5844c9a5ae4ad06e",
+      "867b063f4d6a06f370e7aaf4328657ac3ee0fd959fa21db4e3012e884d04f5e7",
     "plugins/src/base/skills/lisa-prd-source-write/SKILL.md":
       "a228e5fb2fcb140d419d86534a82aa02f79817f5377f3baf591b0033d05a52e0",
     "plugins/src/base/skills/lisa-prd-ticket-coverage/SKILL.md":
@@ -13689,6 +13689,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/pr-arming-suppression.test.ts": true,
     "tests/unit/strategies/pr-arming-sweep.test.ts": true,
     "tests/unit/strategies/prd-backlink-generated-work-section.test.ts": true,
+    "tests/unit/strategies/prd-backlink-github-body-limit-helpers.ts": true,
+    "tests/unit/strategies/prd-backlink-github-body-limit.test.ts": true,
     "tests/unit/strategies/prd-backlink-native-linking.test.ts": true,
     "tests/unit/strategies/prd-intake-rollup-vendors.test.ts": true,
     "tests/unit/strategies/prd-lifecycle-rollup.test.ts": true,
