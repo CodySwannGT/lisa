@@ -1,0 +1,186 @@
+/**
+ * The audit report as an operator reads it.
+ *
+ * `report.md` is rendered from the validated JSON, never written by hand, so it
+ * cannot say something the checked record does not. It leads with the plain
+ * question and the three plain-language fields, and keeps the criterion id as
+ * detail (CodySwannGT/lisa#4978).
+ */
+import { describe, expect, it } from "vitest";
+
+import {
+  AUDIT_REPORT_MARKDOWN_SECTIONS,
+  renderAuditReportMarkdown,
+  type AuditReportMarkdownSection,
+} from "../../../src/controls/audit-report-markdown.js";
+import {
+  validateAuditReport,
+  type AuditReport,
+} from "../../../src/controls/audit-report.js";
+import {
+  criterionIdsIn,
+  inScopeCriteria,
+  loadCriterionCatalogue,
+} from "../../../src/controls/catalogue.js";
+import {
+  amendFinding,
+  completeAuditReport,
+  type SampleReport,
+} from "../../helpers/control-audit-report.js";
+
+const CRITERIA = inScopeCriteria(loadCriterionCatalogue());
+const FIRST = CRITERIA[0];
+const WHAT = "A linter is configured, but nothing runs it.";
+const WHY = "A change that breaks the style rules can still be merged.";
+const NEXT = "Run the configure step to wire the linter into commits.";
+
+/**
+ * Validate a sample so the renderer is given what the command gives it.
+ * @param sample - Candidate report
+ * @returns The validated report
+ */
+function validated(sample: SampleReport): AuditReport {
+  const { report, violations } = validateAuditReport(sample, {
+    criteria: CRITERIA,
+    evidence: [],
+    now: new Date("2026-11-17T12:00:00.000Z"),
+    repository: {
+      lineCount: () => 5,
+      isFolder: () => true,
+    },
+  });
+  if (report === null) {
+    throw new Error(`sample report is invalid: ${JSON.stringify(violations)}`);
+  }
+  return report;
+}
+
+/**
+ * Render a sample report.
+ * @param sample - Candidate report
+ * @returns The Markdown
+ */
+function render(sample: SampleReport): string {
+  return renderAuditReportMarkdown(validated(sample), CRITERIA);
+}
+
+const WITH_LINTER = amendFinding(
+  completeAuditReport([".", "api"]),
+  { criterion: FIRST?.id ?? "", scope: "api" },
+  {
+    state: "exists-not-enforced",
+    what: WHAT,
+    why: WHY,
+    next: NEXT,
+    mechanisms: [
+      {
+        tool: "ruff",
+        command: "ruff check .",
+        moment: "commit",
+        locators: [{ path: "api/ruff.toml", line: 4 }],
+      },
+    ],
+  }
+);
+
+describe("renderAuditReportMarkdown", () => {
+  it("has one section for the whole repository and one per folder", () => {
+    const headings = render(completeAuditReport([".", "api", "web"]))
+      .split("\n")
+      .filter(line => line.startsWith("## "));
+
+    expect(headings).toEqual([
+      "## Summary",
+      "## Whole repository",
+      "## Folder `api`",
+      "## Folder `web`",
+    ]);
+  });
+
+  it("counts the findings of each part by state", () => {
+    const markdown = render(WITH_LINTER);
+
+    expect(markdown).toContain(
+      `| Whole repository | 0 | 0 | ${CRITERIA.length} | 0 | 0 | 0 |`
+    );
+    expect(markdown).toContain(
+      `| Folder \`api\` | 0 | 1 | ${CRITERIA.length - 1} | 0 | 0 | 0 |`
+    );
+  });
+
+  it("leads each finding with the plain question", () => {
+    const headings = render(completeAuditReport())
+      .split("\n")
+      .filter(line => line.startsWith("### "));
+
+    expect(headings).toEqual(
+      CRITERIA.map(criterion => `### ${criterion.question}`)
+    );
+  });
+
+  it("shows the three plain-language fields and where the control was found", () => {
+    const markdown = render(WITH_LINTER);
+
+    expect(markdown).toContain(`- **What was found:** ${WHAT}`);
+    expect(markdown).toContain(`- **Why it matters:** ${WHY}`);
+    expect(markdown).toContain(`- **What to do next:** ${NEXT}`);
+    expect(markdown).toContain(
+      "- **Where:** `ruff`, run as `ruff check .` at commit: `api/ruff.toml` line 4"
+    );
+    expect(markdown).toContain("**In place, but nothing enforces it**");
+  });
+
+  it("keeps criterion ids on the detail line only", () => {
+    const lines = render(WITH_LINTER).split("\n");
+    const withIds = lines.filter(line => criterionIdsIn(line).length > 0);
+
+    expect(withIds.length).toBe(CRITERIA.length * 2);
+    withIds.forEach(line => {
+      expect(line.startsWith("- **Detail:** requirement ")).toBe(true);
+    });
+    expect(lines).toContain(
+      `- **Detail:** requirement ${FIRST?.id} (${FIRST?.title})`
+    );
+  });
+
+  it("names the evidence record behind a proved finding", () => {
+    const checked = validated(WITH_LINTER);
+    const report: AuditReport = {
+      ...checked,
+      findings: checked.findings.map(finding =>
+        finding.state === "exists-not-enforced"
+          ? { ...finding, state: "proved", evidence_id: "ev-0001" }
+          : finding
+      ),
+    };
+
+    expect(renderAuditReportMarkdown(report, CRITERIA)).toContain(
+      "- **Evidence record:** `ev-0001`"
+    );
+  });
+
+  it("renders the same report to the same bytes, ending in a newline", () => {
+    const first = render(WITH_LINTER);
+
+    expect(render(WITH_LINTER)).toBe(first);
+    expect(first.endsWith("\n")).toBe(true);
+    expect(first.endsWith("\n\n")).toBe(false);
+  });
+
+  it("takes a new section as one more entry", () => {
+    const closing: AuditReportMarkdownSection = report => [
+      "## Closing",
+      "",
+      `${report.findings.length} findings.`,
+    ];
+    const markdown = renderAuditReportMarkdown(
+      validated(completeAuditReport()),
+      CRITERIA,
+      [...AUDIT_REPORT_MARKDOWN_SECTIONS, closing]
+    );
+
+    expect(
+      markdown.endsWith(`## Closing\n\n${CRITERIA.length} findings.\n`)
+    ).toBe(true);
+  });
+});
