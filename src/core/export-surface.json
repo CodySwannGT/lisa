@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 321,
-  "$names": 2371,
+  "$names": 2389,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1442,18 +1442,22 @@
     "all/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",
       "compareConstraints",
+      "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
       "formatReport"
     ],
     "all/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
+      "DECLARED_DIRECTIONS",
       "FAMILIES",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
+      "declaredThresholdKey",
       "describeAllowScope",
       "extractAllowEntries",
+      "extractDeclaredThresholds",
       "extractK6Constraints",
       "extractLighthouseAssertions",
       "extractNumericLeaves",
@@ -1461,7 +1465,9 @@
       "extractStrykerConstraints",
       "extractStrykerMutate",
       "familyFor",
+      "findDeclaredParameter",
       "globRoot",
+      "isDeclaredDirection",
       "parseJson",
       "parseK6Expression"
     ],
@@ -1706,18 +1712,22 @@
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",
       "compareConstraints",
+      "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
       "formatReport"
     ],
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
+      "DECLARED_DIRECTIONS",
       "FAMILIES",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
+      "declaredThresholdKey",
       "describeAllowScope",
       "extractAllowEntries",
+      "extractDeclaredThresholds",
       "extractK6Constraints",
       "extractLighthouseAssertions",
       "extractNumericLeaves",
@@ -1725,7 +1735,9 @@
       "extractStrykerConstraints",
       "extractStrykerMutate",
       "familyFor",
+      "findDeclaredParameter",
       "globRoot",
+      "isDeclaredDirection",
       "parseJson",
       "parseK6Expression"
     ],
@@ -2994,18 +3006,22 @@
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",
       "compareConstraints",
+      "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
       "formatReport"
     ],
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
+      "DECLARED_DIRECTIONS",
       "FAMILIES",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
+      "declaredThresholdKey",
       "describeAllowScope",
       "extractAllowEntries",
+      "extractDeclaredThresholds",
       "extractK6Constraints",
       "extractLighthouseAssertions",
       "extractNumericLeaves",
@@ -3013,7 +3029,9 @@
       "extractStrykerConstraints",
       "extractStrykerMutate",
       "familyFor",
+      "findDeclaredParameter",
       "globRoot",
+      "isDeclaredDirection",
       "parseJson",
       "parseK6Expression"
     ]
