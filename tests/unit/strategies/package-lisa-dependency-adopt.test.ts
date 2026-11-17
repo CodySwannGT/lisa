@@ -25,6 +25,7 @@ const RETIRED_VALUE = "^1.2.0";
 const DEV_DEPENDENCIES = "devDependencies";
 const UNRELATED_SOURCE = "export const x = 1;\n";
 const OLD_PLUGIN = "old-plugin";
+const MANIFEST = "package.json";
 
 /** A template that no longer supplies the package and recognises its old value. */
 const TEMPLATE = {
@@ -60,7 +61,7 @@ function installPackage(
 ): void {
   writeHostFile(
     dir,
-    path.join("node_modules", name, "package.json"),
+    path.join("node_modules", name, MANIFEST),
     JSON.stringify({ name, version: "1.0.0", peerDependencies })
   );
 }
@@ -275,6 +276,55 @@ describe("findMentionedPackages", () => {
     );
   });
 
+  it("keeps a package a tool loads by its short name", async () => {
+    gitInit(host.hostDir());
+    // codegen.ts names plugins as `typescript-operations`, not the package.
+    writeHostFile(
+      host.hostDir(),
+      "codegen.ts",
+      'export default { generates: { "a.ts": { plugins: ["typescript-operations"] } } };\n'
+    );
+    expect([
+      ...(await findMentionedPackages(host.hostDir(), [
+        "@graphql-codegen/typescript-operations",
+        "@graphql-codegen/near-operation-file-preset",
+      ])),
+    ]).toEqual(["@graphql-codegen/typescript-operations"]);
+  });
+
+  it("keeps a package the app config loads through a setting", async () => {
+    // Expo loads expo-system-ui for `userInterfaceStyle`; the host never
+    // names the package, and knip's Expo plugin counts it as used.
+    gitInit(host.hostDir());
+    writeHostFile(
+      host.hostDir(),
+      "app.json",
+      '{"expo":{"userInterfaceStyle":"automatic"}}'
+    );
+    expect([
+      ...(await findMentionedPackages(host.hostDir(), [
+        "expo-system-ui",
+        "expo-navigation-bar",
+      ])),
+    ]).toEqual(["expo-system-ui"]);
+  });
+
+  it("keeps a package a manifest script runs, but not one it merely lists", async () => {
+    gitInit(host.hostDir());
+    writeHostFile(
+      host.hostDir(),
+      MANIFEST,
+      JSON.stringify({
+        scripts: { "test:debug": "node -r ts-node/register run.ts" },
+        devDependencies: { "ts-node": "^10.9.2", "old-lib": "1" },
+        overrides: { "old-lib": "1" },
+      })
+    );
+    expect([
+      ...(await findMentionedPackages(host.hostDir(), ["ts-node", "old-lib"])),
+    ]).toEqual(["ts-node"]);
+  });
+
   it("keeps the commitlint preset while the host keeps commitlint itself", async () => {
     gitInit(host.hostDir());
     const preset = "@commitlint/config-conventional";
@@ -291,7 +341,7 @@ describe("findMentionedPackages", () => {
     gitInit(host.hostDir());
     writeHostFile(
       host.hostDir(),
-      "package.json",
+      MANIFEST,
       '{"dependencies":{"a":"1","b":"1"}}'
     );
     writeHostFile(host.hostDir(), "src/use.ts", 'import "a";\n');

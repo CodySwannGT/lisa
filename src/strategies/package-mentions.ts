@@ -43,9 +43,12 @@ import { classifyOwnershipHeader } from "../core/ownership-header.js";
 
 const run = promisify(execFile);
 
+/** A package's manifest file name. */
+const MANIFEST = "package.json";
+
 /** The files that name every dependency by construction, so prove nothing. */
 const MANIFEST_AND_LOCKFILES = [
-  "package.json",
+  MANIFEST,
   // Lisa's governance manifest for the host: it lists what Lisa writes.
   "package.lisa.json",
   "bun.lock",
@@ -90,16 +93,90 @@ const GIT_GREP_NO_MATCH = 1;
 const GIT_GREP_TIMEOUT_MS = 30_000;
 
 /**
- * The names whose mention keeps a package: itself, and for a `@types/` package
- * the package it types (`@types/scope__pkg` types `@scope/pkg`).
+ * Tools that load a package from a short name, and the prefix they drop:
+ * codegen's `typescript` is `@graphql-codegen/typescript`, Babel's
+ * `module-resolver` is `babel-plugin-module-resolver`. ESLint plugins are not
+ * here: Lisa's flat configs import them by their full names.
+ */
+const SHORT_NAME_PREFIXES = ["@graphql-codegen/", "babel-plugin-"] as const;
+
+/**
+ * Packages a framework loads because of a setting rather than a name — the
+ * same inferences knip's Expo plugin makes from the app config, so the reclaim
+ * never removes a package the host's own gate counts as used.
+ */
+const IMPLIED_BY_SETTING: Readonly<Record<string, readonly string[]>> = {
+  "expo-system-ui": ["userInterfaceStyle", "backgroundColor"],
+  "expo-notifications": ["notification"],
+  "expo-updates": ["updates"],
+  "expo-navigation-bar": ["androidNavigationBar"],
+};
+
+/**
+ * The names whose mention keeps a package: itself; for a `@types/` package the
+ * package it types (`@types/scope__pkg` types `@scope/pkg`); the short name a
+ * tool loads it by; and any setting that makes a framework load it.
  * @param name - Dependency key
  * @returns Literal strings to search for
  */
 function mentionNames(name: string): readonly string[] {
   const typed = /^@types\/(.+)$/u.exec(name)?.[1];
-  if (typed === undefined) return [name];
-  const [scope, pkg] = typed.split("__");
-  return [name, pkg === undefined ? typed : `@${scope}/${pkg}`];
+  const [scope, pkg] = typed?.split("__") ?? [];
+  const typedName =
+    typed === undefined ? [] : [pkg === undefined ? typed : `@${scope}/${pkg}`];
+  const shortName = SHORT_NAME_PREFIXES.filter(
+    prefix => name.startsWith(prefix) && name.length > prefix.length
+  ).map(prefix => name.slice(prefix.length));
+  return [
+    name,
+    ...typedName,
+    ...shortName,
+    ...(IMPLIED_BY_SETTING[name] ?? []),
+  ];
+}
+
+/** Manifest sections that list packages rather than use them. */
+const LISTING_SECTIONS = [
+  "dependencies",
+  "devDependencies",
+  "peerDependencies",
+  "peerDependenciesMeta",
+  "optionalDependencies",
+  "bundleDependencies",
+  "bundledDependencies",
+  "overrides",
+  "resolutions",
+  "trustedDependencies",
+] as const;
+
+/**
+ * Whether the host manifest uses a package outside the sections that merely
+ * list it: a script that runs its binary or preloads it (`-r ts-node/register`),
+ * or tool configuration kept in package.json.
+ * @param projectDir - Host directory
+ * @param names - Names whose standalone mention counts
+ * @returns True when the manifest uses the package, or exists but cannot be
+ *   read
+ */
+function manifestUses(projectDir: string, names: readonly string[]): boolean {
+  const file = path.join(projectDir, MANIFEST);
+  if (!existsSync(file)) return false;
+  try {
+    const manifest = JSON.parse(readFileSync(file, "utf8")) as Record<
+      string,
+      unknown
+    >;
+    const rest = JSON.stringify(
+      Object.fromEntries(
+        Object.entries(manifest).filter(
+          ([key]) => !(LISTING_SECTIONS as readonly string[]).includes(key)
+        )
+      )
+    );
+    return names.some(literal => standalone(literal).test(rest));
+  } catch {
+    return true;
+  }
 }
 
 /** Lisa's block inside a host file it shares, such as a git hook. */
@@ -167,6 +244,7 @@ function hostMentions(
  * @returns False only when git searched the host and found no mention
  */
 async function isMentioned(projectDir: string, name: string): Promise<boolean> {
+  if (manifestUses(projectDir, mentionNames(name))) return true;
   try {
     const { stdout } = await run(
       "git",
@@ -211,7 +289,7 @@ function installedPeers(projectDir: string, name: string): readonly string[] {
   try {
     const manifest = JSON.parse(
       readFileSync(
-        path.join(projectDir, "node_modules", name, "package.json"),
+        path.join(projectDir, "node_modules", name, MANIFEST),
         "utf8"
       )
     ) as { peerDependencies?: Record<string, unknown> };
