@@ -6,6 +6,7 @@
 - **TDD for behavior changes.** Write the failing test first, make it pass, then refactor. Learn real behavior by running code before you write expectations.
 - **Delete replaced code completely**, with no `V2` copies or compatibility shims. Framework migrations, such as Rails migrations, are ordinary code. Simplify your diff before you finish.
 - **No technical debt.** Fix failures in the change that surfaces them. Never add quarantine, baseline or exemption lists, silence a check, or defer part of the job as "follow-up". Split a large backlog across parallel changes; the check still turns on strict.
+- **No assumed human.** No one is inside the factory. Unless a person was explicitly asked for, do the work, decide and record a default, or file a ticket; never advise a person to act. Only `when-to-stop` and declared human gates wait for one.
 - **Comments preserve intent.** Explain why, not what: the requirement behind a non-obvious choice, the rejected alternative, the invariant a change must respect, and what breaks if someone simplifies it. Keep comments true when code changes, and do not invent a rationale. If you do not know why code exists, find out (`history-audit`). This overrides any default to match the surrounding comment density, because future agents keep no memory of today.
 
 Examples, documentation guidelines, and anti-patterns: [reference/coding-philosophy.md](../reference/coding-philosophy.md).

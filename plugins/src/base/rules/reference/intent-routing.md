@@ -17,9 +17,9 @@ Each lifecycle skill decides how to run its own work. The default is a single ag
 Every flow begins with a gate check. The gate defines what information must be present before the flow can begin.
 
 If the gate fails:
-- **Interactive session** (user is present):
+- **Interactive session** (the operator is in the conversation):
   1. Identify exactly what is missing
-  2. Before asking the user, attempt to answer the questions yourself from available context (source code, docs, git history, project structure, config files). Only ask the user about information you genuinely cannot determine.
+  2. Before asking the user, attempt to answer the questions yourself from available context (source code, docs, git history, project structure, config files). A choice with a reasonable default is yours: decide it and record it. Only ask the user about information you genuinely cannot determine.
   3. When you do ask the user, provide recommended answers to choose from based on what you found in the codebase. Do not ask open-ended questions when you can offer specific options.
   4. Tell the user what is needed and why
   5. Do NOT proceed until the missing information is provided or resolved
@@ -86,7 +86,7 @@ When: Working on a specific ticket (story, task, bug, spike), implementing a wel
 Gate:
 - A well-defined work item with acceptance criteria must be provided (ticket URL, file spec, or detailed description)
 - The work item must have clear scope, expected behavior, and verification method
-- If acceptance criteria are missing or ambiguous, stop and ask before proceeding
+- If acceptance criteria are missing or ambiguous, resolve them yourself from the code, tracker, wiki and git history, and record what you derived on the item. What you genuinely cannot resolve goes back through the gate (the flow's blocked exit with a specific clarifying comment and your recommended answer), not a mid-session question
 - If the work item is too large (epic-level), stop and suggest running the **Plan** flow first
 
 Determine the work type and execute the matching variant:

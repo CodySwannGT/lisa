@@ -29,7 +29,7 @@ Once you have a project key or JQL, RUN. Do not ask the caller whether to procee
 
 The invoking caller (a slash command or a future schedule wrapper) hands you a JIRA project key (e.g. `SE`) or a full JQL filter. You do not pick the query yourself.
 
-If no query is provided, stop and ask. Never run intake against a default scope — the side effects (status transitions, PRs opened, builds running) are too high to act without an explicit target.
+If no query is provided and none is configured, exit `recovery-required` naming the missing input and the `/lisa:setup:*` skill that configures it. Never run intake against a default scope — the side effects (status transitions, PRs opened, builds running) are too high to act without an explicit target.
 
 ### 2. Run the intake skill
 

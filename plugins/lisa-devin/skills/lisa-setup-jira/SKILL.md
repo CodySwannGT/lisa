@@ -45,7 +45,7 @@ For each role:
 
 1. If a status with the **default name** exists in the workflow → use the default; no config entry needed.
 2. If the default name is missing but a status with a similar role exists (e.g. `Resolved` instead of `Done`) → present the project's status list via `AskUserQuestion` and let the user pick which maps to the role.
-3. If nothing plausible exists → stop and tell the user to either add the missing status to their JIRA workflow (admin task) or pick a fallback that's close enough.
+3. If nothing plausible exists → this is missing access, not a choice: `lisa-atlassian-access` cannot edit a Jira workflow. Stop and name the status to add and that adding it needs Jira project-admin rights. The operator running this setup may instead pick the closest existing status as a fallback.
 
 Collect overrides as a partial workflow map. ONLY write keys that differ from defaults — don't bloat the config with redundant values.
 

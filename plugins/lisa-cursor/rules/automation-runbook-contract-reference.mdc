@@ -55,7 +55,7 @@ It opens with the outcome and the operator action, before any narrative:
 ```
 change-proved — nothing for you. PR #6393 open, auto-merge on, CI running.
 approval-requested — need your account: approve the protected production deploy for the 135 Regular→Bold flips.
-recovery-required — need you: staging E2E gate red for congestion; rerun or admin-merge.
+recovery-required — need your access: the CI deploy role lacks `ecr:PutImage`, so no deploy runs until it is granted.
 ```
 
 The operator must learn whether they are needed **from the first line**, without reading the report.

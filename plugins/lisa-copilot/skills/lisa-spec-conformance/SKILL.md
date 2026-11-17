@@ -134,7 +134,7 @@ Separately from the matrix, scan the diff for work NOT traceable to any requirem
 - Summarize the change in one line
 - Classify as `UNTRACEABLE_CHANGE` (not necessarily wrong — refactors often land here — but MUST be surfaced)
 
-Untraceable changes are not automatic failures. They become findings the human reviews.
+Untraceable changes are not automatic failures. They become findings the implementer resolves: justify each in the PR, revert it, or move it to a ticket.
 
 **Ownership fixes are not scope creep.** A change that fixes a real defect in code this work touches or depends on, and is listed in the PR description as such, is expected under the bounded ownership rule: classify it `OWNERSHIP_FIX` in the untraceable list, never `SCOPE_CREEP_VIOLATION`, and never count it against the verdict. Two exceptions still count: the fix lands in something the spec's Out of Scope names explicitly, or the PR does not list it (an unlisted fix is an ordinary `UNTRACEABLE_CHANGE`). Work on code the change neither touches nor depends on belongs in a ticket, not this PR.
 

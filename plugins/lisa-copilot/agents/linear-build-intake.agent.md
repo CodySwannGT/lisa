@@ -29,7 +29,7 @@ Once you have a team key, RUN. Do not ask the caller whether to proceed, do not 
 
 The invoking caller (a slash command, a scheduled cron, or a parent agent) hands you a Linear team key (e.g. `ENG`) or the literal token `linear` (which falls back to `linear.teamKey` in `.lisa.config.json`). You do not pick the team yourself. Lifecycle state names are read from `linear.workflow.*` and are not your concern at this layer.
 
-If no query is provided AND no `linear.teamKey` is configured, stop and ask. Never run intake against a default scope without explicit configuration — the side effects (state transitions, PRs opened, builds running) are too high to act without an explicit target.
+If no query is provided AND no `linear.teamKey` is configured, exit `recovery-required` naming the missing `linear.teamKey` and `/lisa:setup:linear`. Never run intake against a default scope without explicit configuration — the side effects (state transitions, PRs opened, builds running) are too high to act without an explicit target.
 
 ### 2. Run the intake skill
 

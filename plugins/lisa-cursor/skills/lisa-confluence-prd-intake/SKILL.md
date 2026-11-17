@@ -280,7 +280,7 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
    | `COMPLETE` | Done. Leave PRD under `ticketed` parent. End the cycle. |
    | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory footer comment naming the scope-creep tickets (so product can decide whether to close them as out-of-scope). Leave PRD under `ticketed` parent. |
    | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a comment using the same product-facing template as Phase 3c.3 — inline-anchored when `prd_anchor` is non-null, footer otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one footer summary comment listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Re-parent the PRD from `ticketed` back to `blocked`: `transition_prd "$PRD_ID" blocked`. |
-   | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave the PRD under `ticketed` with a comment flagging the audit failure for human review. |
+   | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave the PRD under `ticketed` with a comment naming the audit failure. It means the audit or the write path is broken, so file it as one Lisa upstream ticket (`upstream-to-lisa`). |
 
 3. The created tickets remain in the destination tracker regardless of the verdict — they are valid in their own right. The audit only tells us whether *more* are needed.
 

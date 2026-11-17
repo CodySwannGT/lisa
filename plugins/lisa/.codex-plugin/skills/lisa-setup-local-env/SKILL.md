@@ -94,4 +94,4 @@ a machine from a reviewed, pinned, checksummed entry.
 - **No package-manager fallback.** Shelling out to Homebrew would give no version pin and no
   checksum, which is the property this design exists to enforce.
 - **No writes to the manifest.** Proposing entries belongs to `/lisa:detect-tooling`; deciding
-  belongs to a human reviewing a diff.
+  belongs to the reviewed change that commits it.
