@@ -48,9 +48,41 @@
       "minLength": 1,
       "description": "The criterion's title exactly as the specification writes it. Detail for readers who know the specification; never shown in place of the question."
     },
+    "question": {
+      "type": "string",
+      "pattern": "^[^?]+\\?$",
+      "description": "The requirement as one question a non-technical operator can answer or understand. Plain language, no criterion id, no specification vocabulary, and written so that the answer yes means the requirement is met."
+    },
+    "minimum_rung": {
+      "enum": ["asserted", "observed", "exercised"],
+      "description": "The weakest evidence the criterion accepts. exercised: the control has been seen to operate, for instance by refusing a change that deliberately breaks the rule. observed: the evidence was read directly from the repository or a connected system. asserted: a named person states it. A human-attested entry is always asserted, and no other kind is."
+    },
+    "not_applicable_when": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The verifiable fact about the system that makes the requirement not apply, in plain language. The single word never when no such fact can exist."
+    },
+    "level_note": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional. What the specification says about this criterion at other conformance levels, where that explains why the entry asks for what it does."
+    },
+    "gate_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "description": "The id of a gate exactly as the gate registry keys it, for example test-correctness."
+    },
     "in_scope_criterion": {
+      "description": "A criterion that states a requirement (MUST) applying at the catalogue's level. Its kind says how the requirement is shown to be met. gate: by a control that refuses work which breaks the rule. artifact: by a record, document or configuration that exists and has the required content. human-attested: by the statement of a named person, because no tool can read the answer. An entry of kind gate also names the registered gates that can satisfy it, or says that there are none and why; an entry of any other kind carries no gate mapping.",
+      "oneOf": [
+        { "$ref": "#/$defs/criterion_met_without_a_gate" },
+        { "$ref": "#/$defs/criterion_with_gates" },
+        { "$ref": "#/$defs/criterion_with_no_gate" }
+      ]
+    },
+    "criterion_met_without_a_gate": {
       "type": "object",
-      "description": "A criterion that states a requirement (MUST) applying at the catalogue's level.",
+      "description": "An in-scope criterion of kind artifact or human-attested. It carries no gate mapping.",
       "additionalProperties": false,
       "required": [
         "id",
@@ -65,28 +97,88 @@
         "id": { "$ref": "#/$defs/criterion_id" },
         "title": { "$ref": "#/$defs/criterion_title" },
         "in_scope": { "const": true },
-        "question": {
-          "type": "string",
-          "pattern": "^[^?]+\\?$",
-          "description": "The requirement as one question a non-technical operator can answer or understand. Plain language, no criterion id, no specification vocabulary, and written so that the answer yes means the requirement is met."
-        },
+        "question": { "$ref": "#/$defs/question" },
         "kind": {
-          "enum": ["gate", "artifact", "human-attested"],
-          "description": "How the requirement is shown to be met. gate: by a control that refuses work which breaks the rule. artifact: by a record, document or configuration that exists and has the required content. human-attested: by the statement of a named person, because no tool can read the answer."
+          "enum": ["artifact", "human-attested"],
+          "description": "artifact: the requirement is shown to be met by a record, document or configuration that exists and has the required content. human-attested: by the statement of a named person, because no tool can read the answer."
         },
-        "minimum_rung": {
-          "enum": ["asserted", "observed", "exercised"],
-          "description": "The weakest evidence the criterion accepts. exercised: the control has been seen to operate, for instance by refusing a change that deliberately breaks the rule. observed: the evidence was read directly from the repository or a connected system. asserted: a named person states it. A human-attested entry is always asserted, and no other kind is."
+        "minimum_rung": { "$ref": "#/$defs/minimum_rung" },
+        "not_applicable_when": { "$ref": "#/$defs/not_applicable_when" },
+        "level_note": { "$ref": "#/$defs/level_note" }
+      }
+    },
+    "criterion_with_gates": {
+      "type": "object",
+      "description": "An in-scope criterion of kind gate that at least one registered gate can satisfy.",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "in_scope",
+        "question",
+        "kind",
+        "minimum_rung",
+        "not_applicable_when",
+        "gates"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/criterion_id" },
+        "title": { "$ref": "#/$defs/criterion_title" },
+        "in_scope": { "const": true },
+        "question": { "$ref": "#/$defs/question" },
+        "kind": {
+          "const": "gate",
+          "description": "The requirement is shown to be met by a control that refuses work which breaks the rule."
         },
-        "not_applicable_when": {
+        "minimum_rung": { "$ref": "#/$defs/minimum_rung" },
+        "not_applicable_when": { "$ref": "#/$defs/not_applicable_when" },
+        "level_note": { "$ref": "#/$defs/level_note" },
+        "gates": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/gate_id" },
+          "description": "The id of each gate in the gate registry that can satisfy the requirement: a gate whose refusal of a change is evidence that the requirement is enforced. A gate that only touches the same subject is not listed."
+        }
+      }
+    },
+    "criterion_with_no_gate": {
+      "type": "object",
+      "description": "An in-scope criterion of kind gate that no registered gate can satisfy. It says so with an empty list of gates and gives the reason.",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "in_scope",
+        "question",
+        "kind",
+        "minimum_rung",
+        "not_applicable_when",
+        "gates",
+        "no_gate_reason"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/criterion_id" },
+        "title": { "$ref": "#/$defs/criterion_title" },
+        "in_scope": { "const": true },
+        "question": { "$ref": "#/$defs/question" },
+        "kind": {
+          "const": "gate",
+          "description": "The requirement is shown to be met by a control that refuses work which breaks the rule."
+        },
+        "minimum_rung": { "$ref": "#/$defs/minimum_rung" },
+        "not_applicable_when": { "$ref": "#/$defs/not_applicable_when" },
+        "level_note": { "$ref": "#/$defs/level_note" },
+        "gates": {
+          "type": "array",
+          "maxItems": 0,
+          "items": { "$ref": "#/$defs/gate_id" },
+          "description": "Empty: the gate registry has no gate that can satisfy the requirement."
+        },
+        "no_gate_reason": {
           "type": "string",
           "minLength": 1,
-          "description": "The verifiable fact about the system that makes the requirement not apply, in plain language. The single word never when no such fact can exist."
-        },
-        "level_note": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Optional. What the specification says about this criterion at other conformance levels, where that explains why the entry asks for what it does."
+          "description": "Why no registered gate can satisfy the requirement, specific to this criterion and in plain language. Where a registered gate looks close, the reason says what that gate does not prove."
         }
       }
     },

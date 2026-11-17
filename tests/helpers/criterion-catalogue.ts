@@ -59,6 +59,10 @@ export interface InScopeCriterion {
   readonly minimum_rung: string;
   readonly not_applicable_when: string;
   readonly level_note?: string;
+  /** Kind `gate` only: the registered gates that can satisfy the entry. */
+  readonly gates?: readonly string[];
+  /** Kind `gate` with no gates only: why the registry has none. */
+  readonly no_gate_reason?: string;
 }
 
 /** A catalogue entry the Level 1 verdict leaves out, and why. */
@@ -157,8 +161,31 @@ export function loadCatalogue(): Catalogue {
 }
 
 /**
+ * Of several shapes a value failed to match, the findings for the one it came
+ * closest to: the fewest findings. An entry is one of several shapes, and
+ * listing what is wrong with it as each of them buries the one line that says
+ * what to fix. Shapes that tie are all reported, a repeated line once.
+ * @param alternatives - The findings against each shape
+ * @returns The findings against the closest shape or shapes
+ */
+function closestAlternative(
+  alternatives: readonly (readonly string[])[]
+): string[] {
+  const fewest = Math.min(...alternatives.map(findings => findings.length));
+  return [
+    ...new Set(
+      alternatives.filter(findings => findings.length === fewest).flat()
+    ),
+  ];
+}
+
+/**
  * Turn a validator's findings into one line each, opening a failed either/or
  * so the line names the field rather than only "invalid input".
+ *
+ * An either/or can also fail with nothing to open: a value that matches more
+ * than one shape where exactly one is allowed. That is reported as its own
+ * line, so no failure ever comes back as an empty list.
  * @param issues - Findings from the validator
  * @param at - Path of the value the findings belong to
  * @returns `<path>: <message>` for every finding
@@ -169,8 +196,10 @@ function describeIssues(
 ): string[] {
   return issues.flatMap(issue => {
     const where = [...at, ...issue.path];
-    return issue.code === "invalid_union"
-      ? issue.errors.flatMap(branch => describeIssues(branch, where))
+    return issue.code === "invalid_union" && issue.errors.length > 0
+      ? closestAlternative(
+          issue.errors.map(branch => describeIssues(branch, where))
+        )
       : [`${where.map(String).join(".")}: ${issue.message}`];
   });
 }

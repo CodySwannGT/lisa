@@ -30,7 +30,8 @@
       "question": "Is every change reviewed, verified and approved for release by someone or something other than the agent that wrote it?",
       "kind": "gate",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "gates": ["code-review"]
     },
     {
       "id": "AC1.4",
@@ -265,7 +266,9 @@
       "kind": "gate",
       "minimum_rung": "observed",
       "not_applicable_when": "never",
-      "level_note": "Section 10 of the specification lists server-side enforcement of every authoritative gate under Level 2. The criterion itself sets no level on the requirement, so it is in scope at Level 1."
+      "level_note": "Section 10 of the specification lists server-side enforcement of every authoritative gate under Level 2. The criterion itself sets no level on the requirement, so it is in scope at Level 1.",
+      "gates": [],
+      "no_gate_reason": "Whether a required check can be skipped is decided by how the hosting platform protects the main branch, not by a check that runs on a change. No registered gate tests that the agent being judged cannot bypass or switch off a required check."
     },
     {
       "id": "AC5.2",
@@ -274,7 +277,9 @@
       "question": "Are the local copies of your checks generated from the same source as the required ones, with any difference caught automatically?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "The required checks run in one place only: no copy of them runs on a workstation or inside an agent."
+      "not_applicable_when": "The required checks run in one place only: no copy of them runs on a workstation or inside an agent.",
+      "gates": [],
+      "no_gate_reason": "No registered gate compares the local copies of the checks with the required ones. The artifact-freshness gate proves that generated files match their source in general; it does not say whether the checks themselves are generated from one source."
     },
     {
       "id": "AC5.3",
@@ -292,7 +297,8 @@
       "question": "Is a change that lowers a quality bar refused unless it is made on its own and separately approved?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "gates": ["threshold-monotonicity"]
     },
     {
       "id": "AC5.5",
@@ -365,7 +371,8 @@
       "question": "Are passwords, keys and tokens kept in a dedicated store, out of the repository and out of the text agents read?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "gates": ["credential-leakage", "introduced-history-credential-leakage"]
     },
     {
       "id": "AC6.4",
@@ -439,7 +446,8 @@
       "question": "Must every change be independently reviewed, pass the required checks and have its review findings resolved before it can be merged?",
       "kind": "gate",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "gates": ["code-review"]
     },
     {
       "id": "AC8.2",
@@ -448,7 +456,9 @@
       "question": "Are the agents' instructions kept under version control and put through the same checks as the code?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "gates": [],
+      "no_gate_reason": "This asks what the checks cover, not for one more check: that the agents' instructions are under version control and go through the same checks as the code. No registered gate verifies that coverage."
     },
     {
       "id": "AC8.3",
@@ -466,7 +476,8 @@
       "question": "Is work turned away before agents start it when the request is unclear or the tools and access it needs cannot be shown to work?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "gates": ["credential-availability", "tool-availability"]
     },
     {
       "id": "AC8.5",
@@ -475,7 +486,9 @@
       "question": "Is a release to production blocked until someone or something other than the releasing agent approves it?",
       "kind": "gate",
       "minimum_rung": "observed",
-      "not_applicable_when": "Nothing built from this repository is deployed to a production environment."
+      "not_applicable_when": "Nothing built from this repository is deployed to a production environment.",
+      "gates": [],
+      "no_gate_reason": "Approval of a production release is given by the hosting platform's protected environments or by a person. No registered gate tests that the releasing agent cannot approve its own release."
     },
     {
       "id": "AC8.6",
@@ -484,7 +497,9 @@
       "question": "Is each work item checked automatically against a definition of ready for its type before agents may build it?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "gates": [],
+      "no_gate_reason": "Registered gates judge a change to the repository; this requirement judges a work item in the tracker before any change exists. The traceability gate proves that a change is tied to a work item, not that the item met a definition of ready."
     },
     {
       "id": "AC8.7",
@@ -502,7 +517,9 @@
       "question": "Are the riskier parts of the system marked, with automatic limits on what agents may do there without a person?",
       "kind": "gate",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "gates": [],
+      "no_gate_reason": "No registered gate knows which parts of the system are marked as higher risk, so none can refuse unattended work there."
     },
     {
       "id": "AC8.9",
@@ -529,7 +546,8 @@
       "question": "Is a new outside package refused unless it passes a review or an automatic safety scan?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "gates": ["dependency-vulnerability"]
     },
     {
       "id": "AC9.3",
@@ -538,7 +556,8 @@
       "question": "Is a change refused when it brings in an outside package whose licence is not on your approved list?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "The software uses no outside packages."
+      "not_applicable_when": "The software uses no outside packages.",
+      "gates": ["license-compliance"]
     },
     {
       "id": "AC9.4",
@@ -571,7 +590,8 @@
       "question": "Is a change refused when the automated tests of individual pieces of code fail?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents.",
+      "gates": ["test-correctness", "test-node-suites"]
     },
     {
       "id": "SI2",
@@ -580,7 +600,8 @@
       "question": "Is a change refused when the share of code exercised by tests falls below a minimum you have set?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents.",
+      "gates": ["coverage-adequacy"]
     },
     {
       "id": "SI3",
@@ -598,7 +619,13 @@
       "question": "Is a release blocked unless every user-facing requirement has an automated walk-through that passed against a running build?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "The software has no surface that its users interact with directly."
+      "not_applicable_when": "The software has no surface that its users interact with directly.",
+      "gates": [
+        "e2e-browser",
+        "e2e-native",
+        "journey-coverage",
+        "behavior-contract"
+      ]
     },
     {
       "id": "SI5",
@@ -625,7 +652,14 @@
       "question": "Is a change refused when it breaks your limits on code size, complexity, structure, unused code or house style?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents.",
+      "gates": [
+        "code-style",
+        "code-style-slow",
+        "format-conformance",
+        "structural-rules",
+        "dead-code"
+      ]
     },
     {
       "id": "SI8",
@@ -634,7 +668,8 @@
       "question": "Before release, is the software tested under load against response-time and capacity targets you have stated?",
       "kind": "gate",
       "minimum_rung": "observed",
-      "not_applicable_when": "The software offers no service that people or other systems call."
+      "not_applicable_when": "The software offers no service that people or other systems call.",
+      "gates": ["load-capacity"]
     },
     {
       "id": "SI9",
@@ -643,7 +678,8 @@
       "question": "Are automatically generated inputs, not only hand-written examples, used to test the rules your software must always obey?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents.",
+      "gates": ["generative-testing"]
     },
     {
       "id": "SI10",
@@ -652,7 +688,9 @@
       "question": "Is a change refused when it contains code copied from elsewhere whose licence has not been identified and honoured?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "gates": [],
+      "no_gate_reason": "No registered gate looks for code copied into the repository's own source. The license-compliance gate reads the licences of declared packages only, and copied code has no package entry for it to read."
     },
     {
       "id": "DP1",
@@ -697,7 +735,9 @@
       "question": "Do colours, spacing and type come from one defined set of values, so that anything outside it is caught automatically?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "The software has no screen, page or app that people use."
+      "not_applicable_when": "The software has no screen, page or app that people use.",
+      "gates": [],
+      "no_gate_reason": "No registered gate is about colours, spacing or type. A project can write a lint or structural rule that catches values outside its defined set, but the code-style and structural-rules gates do not themselves promise one."
     },
     {
       "id": "UX3",
@@ -712,7 +752,9 @@
       "question": "Is every finished screen compared automatically with its approved design, within a difference limit you have set?",
       "kind": "gate",
       "minimum_rung": "observed",
-      "not_applicable_when": "The software has no screen, page or app that people use."
+      "not_applicable_when": "The software has no screen, page or app that people use.",
+      "gates": [],
+      "no_gate_reason": "No registered gate compares a finished screen with its approved design. The browser and device journey gates prove that journeys pass, not that a screen matches its design."
     },
     {
       "id": "UX5",
@@ -721,7 +763,14 @@
       "question": "Are the intended user journeys, including small screens and accessibility, run automatically against the working interface?",
       "kind": "gate",
       "minimum_rung": "exercised",
-      "not_applicable_when": "The software has no screen, page or app that people use."
+      "not_applicable_when": "The software has no screen, page or app that people use.",
+      "gates": [
+        "e2e-browser",
+        "e2e-native",
+        "journey-coverage",
+        "behavior-contract",
+        "accessibility"
+      ]
     }
   ]
 }
