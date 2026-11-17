@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.0.0](https://github.com/CodySwannGT/lisa/compare/v5.14.3...v6.0.0) (2026-11-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **jest:** the @codyswann/lisa/jest/typescript, /jest/nestjs and
+/jest/cdk exports, and their factories re-exported from
+@codyswann/lisa/jest, are removed. Use @codyswann/lisa/vitest/<stack>.
+
+### Features
+
+* **jest:** remove the unused TypeScript, NestJS and CDK Jest configs ([5f70fc9](https://github.com/CodySwannGT/lisa/commit/5f70fc945834a665d128f0637af9d8f7d0e64245)), closes [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927) [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927)
+* **typecheck:** compile the ESLint program in bun run typecheck ([6eac4ee](https://github.com/CodySwannGT/lisa/commit/6eac4ee061a96a8dca7c4ac538267803dad59b15)), closes [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927) [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927)
+
+
+### Bug Fixes
+
+* **eslint:** make Lisa's tsconfig.eslint.json compile with zero errors ([926415a](https://github.com/CodySwannGT/lisa/commit/926415a57b3c15ef2d2cf944f735c62990a706fd)), closes [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927) [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927)
+* **eslint:** share one ignore list across both ESLint configs and the program ([dc222f4](https://github.com/CodySwannGT/lisa/commit/dc222f49a422a41357a97a3d496a0c6a698ba2ac)), closes [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927) [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927)
+* **nestjs:** type-check spec files against Vitest globals, not Jest ([ad4dcb6](https://github.com/CodySwannGT/lisa/commit/ad4dcb6ac94d02b5472e6cfddc6c43ded729178c)), closes [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927) [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927)
+* **templates:** declare test globals and JS interop in shipped ESLint programs ([b137a93](https://github.com/CodySwannGT/lisa/commit/b137a931a5bb80c36cd5a55bee1838a700d0c234)), closes [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927) [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927)
+* **templates:** inherit the host's types and add runner globals via files ([cbf1322](https://github.com/CodySwannGT/lisa/commit/cbf13220e690ddb7b298620d38f6bcff2924280c)), closes [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927) [CodySwannGT/lisa#4927](https://github.com/CodySwannGT/lisa/issues/4927)
+
 ### [5.14.3](https://github.com/CodySwannGT/lisa/compare/v5.14.2...v5.14.3) (2026-11-16)
 
 
