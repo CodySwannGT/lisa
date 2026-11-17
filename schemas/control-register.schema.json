@@ -84,6 +84,10 @@
         "evidence": {
           "$ref": "#/$defs/evidence",
           "description": "What supports recording this rule. Present on every entry generated from one of a gate's `parts`: a part that names nothing is refused before the register is written. Absent on the entry of a gate with no parts, whose rule comes from the declarations Lisa ships for a supported project type."
+        },
+        "status": {
+          "enum": ["unproved"],
+          "description": "Present only while the entry is unproved: its pull-request check runs from a file Lisa did not write (see `executor` on the enforcement point), and the evidence file at `.lisa/controls/evidence.json` holds no record of both halves of the entry's proof. Left off every other entry, so its absence is not a claim that the rule was proved."
         }
       }
     },
@@ -155,8 +159,30 @@
         "measuring_mechanism": {
           "$ref": "#/$defs/measuring_mechanism",
           "description": "What measures the rule at this moment. Present only when it differs from the entry's own."
+        },
+        "executor": {
+          "$ref": "#/$defs/executor",
+          "description": "The file that runs the rule at this moment, when the `gates` block names one. Only a `pull-request` enforcement point has it."
         }
       }
+    },
+    "executor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "path"],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "description": "The platform that hosts the repository, in lower-case letters and digits with hyphens between words. `github` is the one platform Lisa ships this file for; on any other the repository's own agent wrote it."
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The file the platform runs on a pull request, written from the repository root."
+        }
+      },
+      "description": "The file the hosting platform runs on a pull request, which in turn runs the gates."
     },
     "measuring_mechanism": {
       "oneOf": [

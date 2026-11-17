@@ -17,6 +17,14 @@
  * the gate registry come from the Lisa package the command runs from; nothing
  * is read from the host but `.lisa.config.json`, `package.json` when there is
  * one, and the register itself.
+ *
+ * One declaration makes it read one more file. When a gate's pull-request
+ * moment names an executor on a platform Lisa ships no pull-request file for,
+ * the entries it runs read `unproved` until `.lisa/controls/evidence.json`
+ * holds both halves of their proof, and the command says which entries those
+ * are. The register is then generated from the declaration and that file
+ * together, in both modes, so `--check` fails exactly when one of the two
+ * changed since the register was written. The clock is never read.
  * @module controls/commands/register
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -26,6 +34,7 @@ import type { Command } from "commander";
 
 import { pathKind, resolveRepositoryRoot } from "../audit-report-file.js";
 import { GATES_DECLARATION_PATH } from "../gates-declaration.js";
+import { unprovedNote } from "../pull-request-executor.js";
 import { controlRegisterDrift } from "../register-drift.js";
 import {
   generateControlRegister,
@@ -226,6 +235,10 @@ export async function runRegister(
       `${counted(generated.problems.length, "problem")} with the gates declaration in ${GATES_DECLARATION_PATH}, so no register could be generated. Fix the declaration, then run this again`
     );
   }
+  const unproved = unprovedNote(generated.register);
+  const noteUnproved = (): void => {
+    if (unproved !== null) stdout(`${name}: ${unproved}`);
+  };
   if (options.check === true) {
     const drift = await differences(root, generated.register);
     if (drift.length > 0) {
@@ -234,6 +247,7 @@ export async function runRegister(
         `${counted(drift.length, "difference")} between ${CONTROL_REGISTER_PATH} and the gates declaration in ${GATES_DECLARATION_PATH}. ${HOW_TO_FIX}`
       );
     }
+    noteUnproved();
     stdout(
       `${name}: PASS. ${CONTROL_REGISTER_PATH} matches the gates declaration (${contents(generated.register)})`
     );
@@ -246,6 +260,7 @@ export async function runRegister(
   const outcome = written.wrote
     ? `wrote ${CONTROL_REGISTER_PATH}`
     : `${CONTROL_REGISTER_PATH} is already up to date`;
+  noteUnproved();
   stdout(`${name}: PASS. ${contents(generated.register)}; ${outcome}`);
   return 0;
 }

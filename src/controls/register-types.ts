@@ -81,6 +81,27 @@ export const PARAMETER_DIRECTIONS = ["floor", "ceiling"] as const;
 /** A `floor` may rise and never fall; a `ceiling` may fall and never rise. */
 export type ParameterDirection = (typeof PARAMETER_DIRECTIONS)[number];
 
+/**
+ * What the register says about an entry beyond what the declaration states.
+ *
+ * `unproved`: the entry's pull-request check runs from a file Lisa did not
+ * write, and the evidence file holds no record of both halves of the entry's
+ * proof. The key is left off every other entry, so its absence is not a claim
+ * that the rule was proved; that is the verdict's to say.
+ */
+export const CONTROL_ENTRY_STATUSES = ["unproved"] as const;
+
+/** The status of an entry that has one. */
+export type ControlEntryStatus = (typeof CONTROL_ENTRY_STATUSES)[number];
+
+/** The file that runs the gates on a pull request, and the platform it is for. */
+export interface PullRequestExecutor {
+  /** The hosting platform's name, for example `github` or `gitlab`. */
+  readonly platform: string;
+  /** The file, written from the repository root. */
+  readonly path: string;
+}
+
 /** A command the repository declares for one folder. */
 export interface CommandMechanism {
   readonly kind: "command";
@@ -138,6 +159,11 @@ export interface EnforcementPoint {
   readonly location: EnforcementLocation;
   /** What measures the rule here, only when it differs from the entry's own. */
   readonly measuring_mechanism?: MeasuringMechanism;
+  /**
+   * The file that runs the rule here, when the declaration names one. Only a
+   * `pull-request` point has it.
+   */
+  readonly executor?: PullRequestExecutor;
 }
 
 /** One named setting of a check. */
@@ -212,6 +238,8 @@ export interface ControlRegisterEntry {
    * has no part to carry evidence.
    */
   readonly evidence?: ControlEvidence;
+  /** Present only while the entry is {@link CONTROL_ENTRY_STATUSES unproved}. */
+  readonly status?: ControlEntryStatus;
 }
 
 /** The control register file. */

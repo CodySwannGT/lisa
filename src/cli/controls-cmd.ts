@@ -21,6 +21,7 @@ import { registerCatalogue } from "../controls/commands/catalogue.js";
 import { registerDeclarationCheck } from "../controls/commands/declaration-check.js";
 import { registerGaps } from "../controls/commands/gaps.js";
 import { registerProposeThreshold } from "../controls/commands/propose-threshold.js";
+import { registerProtect } from "../controls/commands/protect.js";
 import { registerRegister } from "../controls/commands/register.js";
 import { registerReportCheck } from "../controls/commands/report-check.js";
 import { registerSeed } from "../controls/commands/seed.js";
@@ -40,6 +41,7 @@ export const CONTROLS_SUBCOMMANDS: readonly ControlsSubcommand[] = [
   registerProposeThreshold,
   registerDeclarationCheck,
   registerRegister,
+  registerProtect,
 ];
 
 /**
