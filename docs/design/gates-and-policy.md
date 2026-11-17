@@ -153,6 +153,53 @@ pass `--coverage` is an older hook whose only lever is all-or-nothing, and for
 that one the runner still withholds the whole moment until the block is
 complete.
 
+### A caller with no built-in checks
+
+Everything above assumes the hook has checks of its own to keep. The hooks a
+stack template ships do. A repository on no supported project type has no such
+hook: whatever calls the runner there — the carrier the enforce step installs —
+has nothing behind it. For that caller, exit 78 ("run your own checks instead")
+is an instruction it cannot follow, and obeying it would let a commit through
+having checked nothing.
+
+So the caller says which kind it is. `--builtins=none` tells the runner there
+are no built-in checks behind this call, and the runner then answers with a
+verdict every time:
+
+| Exit | Meaning for the caller                                                                                           |
+| ---- | ---------------------------------------------------------------------------------------------------------------- |
+| `0`  | Let it through. Every required gate declared at this moment was proved, or nothing is declared at this moment.   |
+| `1`  | Stop it. A required gate was not proved, or the declaration is one the validator refuses.                        |
+| `70` | Stop it. The runner could not run (unreadable configuration, a flag it does not understand), so nothing was proved. |
+
+It never answers 78. Three things change under the flag, and nothing else:
+
+- **A half-written block is run, not withheld.** The floor lists what the
+  caller's built-in checks prove. With no built-in checks there is no floor,
+  so silence about `credential-leakage` deletes nothing — nothing was proving
+  it.
+- **No gates at all is a pass that says so.** The runner prints
+  `No gates are declared in .lisa.config.json, so nothing was checked at
+<moment>` and exits 0, and the evidence envelope still records `no-gates`.
+  It is the same answer a gates block that is silent at one moment has always
+  had.
+- **A gate left to a built-in check is not proved.** The registry resolves
+  some gates to `builtin`: the hook proves them with a step of its own. To a
+  caller with such a step they print `SKIPPED`. To a caller with none they
+  print `UNPROVABLE`, and a required one stops the commit, because otherwise a
+  required gate would read as settled while nothing anywhere had checked it.
+
+`--builtins=none` and `--coverage` say opposite things about the caller, so
+the runner refuses the two together (exit 70) rather than pick one.
+
+**No manifest is needed for any of it.** A part names its own command, so the
+runner resolves and starts it whether or not the repository has a
+`package.json`. A gate with _no_ parts still resolves to `<runner> <task>` as
+it always has; in a repository with no manifest that command has nothing to
+run, exits non-zero, and the gate is reported as not proved — at `required`,
+where it stops the commit, and at `optional`, where it is reported and stops
+nothing. It is never reported as passing.
+
 ## Requirements follow the work, not the surface
 
 A gate declares `needs: {tools, secrets}`. Whatever runs at a moment therefore
