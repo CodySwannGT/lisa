@@ -56,6 +56,8 @@ function validated(sample: SampleReport): AuditReport {
       lineCount: () => 5,
       isFolder: () => true,
     },
+    trackerConfigured: false,
+    inlineAnswers: { rendered: false, problems: [], entries: [] },
   });
   if (report === null) {
     throw new Error(`sample report is invalid: ${JSON.stringify(violations)}`);
@@ -99,6 +101,7 @@ describe("renderAuditReportMarkdown", () => {
 
     expect(headings).toEqual([
       "## Summary",
+      "## Open questions (type each answer on its Answer line, then run the audit again)",
       "## Whole repository",
       "## Folder `api`",
       "## Folder `web`",
@@ -121,13 +124,14 @@ describe("renderAuditReportMarkdown", () => {
       .split("\n")
       .filter(line => line.startsWith("### "));
 
-    expect(headings).toEqual(
-      CRITERIA.map(criterion => `### ${criterion.question}`)
-    );
+    expect(headings).toEqual([
+      "### tracker",
+      ...CRITERIA.map(criterion => `### ${criterion.question}`),
+    ]);
   });
 
   it("shows each requirement only where it is answered: once for the repository, or under every folder", () => {
-    const [, repository, api, web] = render(
+    const [, , repository, api, web] = render(
       completeAuditReport([".", "api", "web"])
     )
       .split(/^## /mu)

@@ -24,7 +24,10 @@ import { everyCriterionOncePerScope } from "./audit-report-rules/coverage.js";
 import { locatorsResolve } from "./audit-report-rules/locators.js";
 import { plainLanguageFields } from "./audit-report-rules/plain-language.js";
 import { provedNeedsFreshEvidence } from "./audit-report-rules/proved-evidence.js";
+import { questionsMatchFindings } from "./audit-report-rules/questions.js";
+import { answersAreWhatWasTyped } from "./audit-report-rules/recorded-answers.js";
 import { scopesAreRepositoryFolders } from "./audit-report-rules/scopes.js";
+import { trackerQuestionAsked } from "./audit-report-rules/tracker-question.js";
 import {
   parseAuditReport,
   type ParsedAuditReport,
@@ -56,6 +59,9 @@ export const AUDIT_REPORT_RULES: readonly AuditReportRule[] = [
   plainLanguageFields,
   provedNeedsFreshEvidence,
   locatorsResolve,
+  questionsMatchFindings,
+  trackerQuestionAsked,
+  answersAreWhatWasTyped,
 ];
 
 /**

@@ -23,6 +23,7 @@ import {
 } from "../helpers/control-audit-fixtures.js";
 import {
   sampleFinding,
+  sampleTrackerQuestion,
   writeAuditReport,
   type SampleFinding,
   type SampleReport,
@@ -92,7 +93,8 @@ function answeredIn(
 
 /**
  * The report an agent would write: one finding for every requirement that was
- * printed, in each part the requirement is answered in.
+ * printed, in each part the requirement is answered in, and the question about
+ * the tracker, which no fixture configures (CodySwannGT/lisa#4980).
  * @param criteria - The requirements `lisa controls catalogue` printed
  * @param scopes - The parts of the repository
  * @param known - Findings to use in place of the plain ones
@@ -115,6 +117,7 @@ function reportFor(
           ) ?? sampleFinding(String(criterion.id), scope)
       )
     ),
+    questions: [sampleTrackerQuestion()],
   };
 }
 
@@ -269,6 +272,7 @@ describe("the audit on F-mixed, which has two parts", () => {
     );
     expect(headings).toEqual([
       "## Summary",
+      "## Open questions (type each answer on its Answer line, then run the audit again)",
       "## Whole repository",
       "## Folder `api`",
       "## Folder `web`",
@@ -309,6 +313,7 @@ describe("the audit on F-mixed, which has two parts", () => {
         findings: MIXED_PARTS.flatMap(scope =>
           criteria.map(criterion => sampleFinding(String(criterion.id), scope))
         ),
+        questions: [sampleTrackerQuestion()],
       });
     });
     const check = stepRunning(steps, REPORT_CHECK);
@@ -339,16 +344,23 @@ describe("the audit on F-mixed, which has two parts", () => {
 
       const steps = runAuditSkillCommands(repoPath, lisa.folder, criteria => {
         writeAuditReport(repoPath, {
-          ...example,
           ...reportFor(criteria, example.scopes.map(String), example.findings),
+          questions: example.questions,
+          answers: example.answers,
         });
       });
       const check = stepRunning(steps, REPORT_CHECK);
       const readable = readFileSync(path.join(repoPath, REPORT_MD), "utf8");
 
       expect(example.findings.length).toBeGreaterThan(0);
+      expect(example.questions?.length).toBeGreaterThan(0);
       expect(check.stderr).toBe("");
       expect(check.status).toBe(0);
+      expect(
+        (example.questions ?? []).filter(
+          question => !readable.includes(String(question.text))
+        )
+      ).toEqual([]);
       expect(
         example.findings.filter(
           finding => !readable.includes(String(finding.what))

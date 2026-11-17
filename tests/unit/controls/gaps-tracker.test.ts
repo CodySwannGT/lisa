@@ -49,7 +49,7 @@ describe("a repository with no tracker configured", () => {
       name: null,
       problem:
         "No tracker is configured in .lisa.config.json, so no ticket can be filed. Run /lisa:setup:jira, /lisa:setup:github or /lisa:setup:linear, then run the enforce step again.",
-      question: null,
+      question: TRACKER_QUESTION_ID,
     });
   });
 
@@ -137,7 +137,7 @@ describe("a tracker setting that cannot be used", () => {
       name: null,
       problem:
         'The tracker named in .lisa.config.json is "spreadsheet", which is not one Lisa can file in, so no ticket can be filed. Set it to jira, github or linear, then run the enforce step again.',
-      question: null,
+      question: TRACKER_QUESTION_ID,
     });
     expect(output.gaps.map(gap => gap.outcome)).toEqual(["blocked", "blocked"]);
   });
@@ -167,12 +167,45 @@ describe("a tracker setting that cannot be used", () => {
 });
 
 describe("the tracker question", () => {
-  it("is not referenced while the report records no questions", async () => {
+  it("is referenced by its fixed id while the audit's question is open", async () => {
     const output = printed(
       await gaps(mixedRepository(reportMissing(TWO_MISSING)))
     );
 
-    expect(output.tracker.question).toBeNull();
+    expect(output.tracker.question).toBe(TRACKER_QUESTION_ID);
     expect(TRACKER_QUESTION_ID).toBe("tracker");
+  });
+
+  it("is not referenced once a person has answered it", async () => {
+    const output = printed(
+      await gaps(
+        mixedRepository({
+          ...reportMissing(TWO_MISSING),
+          questions: [],
+          answers: [
+            {
+              id: TRACKER_QUESTION_ID,
+              question: "Which tracker does the team plan its work in?",
+              answer: "GitHub Issues",
+            },
+          ],
+        })
+      )
+    );
+
+    expect(output.tracker.question).toBeNull();
+    expect(output.gaps.map(gap => gap.outcome)).toEqual(["blocked", "blocked"]);
+  });
+
+  it("must be asked: a report that does not ask it is refused while no tracker is configured", async () => {
+    const run = await gaps(
+      mixedRepository({ ...reportMissing(TWO_MISSING), questions: [] })
+    );
+
+    expect(run.code).toBe(1);
+    expect(run.stdout).toEqual([]);
+    expect(run.stderr[0]).toContain(
+      `Add a question with the id "${TRACKER_QUESTION_ID}"`
+    );
   });
 });

@@ -142,7 +142,7 @@ describe("lisa controls report-check", () => {
     return { program, runReportCheck };
   }
 
-  it("takes one optional project path and no options", () => {
+  it("takes one optional project path, and --absorb as its only option", () => {
     const { program } = programWith(0);
     const command = controlsGroup(program)?.commands.find(
       candidate => candidate.name() === REPORT_CHECK
@@ -152,7 +152,7 @@ describe("lisa controls report-check", () => {
       command?.registeredArguments.map(argument => argument.name())
     ).toEqual(["path"]);
     expect(command?.registeredArguments[0]?.required).toBe(false);
-    expect(command?.options).toEqual([]);
+    expect(command?.options.map(option => option.long)).toEqual(["--absorb"]);
   });
 
   it("passes the path to the check and leaves the exit code alone on a pass", async () => {
