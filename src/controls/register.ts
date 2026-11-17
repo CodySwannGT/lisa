@@ -9,6 +9,13 @@
  * entries are ordered by gate and then by folder, and nothing in the file
  * depends on when or where it was generated.
  *
+ * One thing in it comes from a second committed file. An entry whose
+ * pull-request check runs from a file Lisa did not write reads `unproved`
+ * until the evidence file holds both halves of its proof; see
+ * `pull-request-executor.ts`. For such a declaration the same declaration and
+ * the same evidence produce the same bytes. For every other declaration the
+ * evidence file is not read at all.
+ *
  * It works in a repository where Lisa was never applied, with or without a
  * `package.json`, and for a declaration with no `parts` at all: such a gate
  * gets one entry for the whole repository, taken from how the shipped gate
@@ -27,6 +34,11 @@ import {
   type GatesDeclaration,
   type GatesModule,
 } from "./gates-declaration.js";
+import { readEvidenceDocument } from "./proof-halves.js";
+import {
+  withDeclaredExecutors,
+  withProofStatus,
+} from "./pull-request-executor.js";
 import { entriesForGate } from "./register-entries.js";
 import { resolveEnforcementPoints } from "./register-points.js";
 import { CONTROL_REGISTER_RULES } from "./register-rules.js";
@@ -44,6 +56,11 @@ export interface ControlRegisterInputs {
   readonly registry: GatesModule;
   /** The criterion catalogue. */
   readonly catalogue: CriterionCatalogue;
+  /**
+   * Reads the parsed evidence file. Called once, and only when an entry's
+   * status depends on it; left out, there is no evidence.
+   */
+  readonly evidenceDocument?: () => unknown;
 }
 
 /** A register, or one line per reason there is none. */
@@ -116,7 +133,13 @@ export function buildControlRegister(
     ? { problems }
     : {
         problems: null,
-        register: { schema_version: CONTROL_REGISTER_SCHEMA_VERSION, entries },
+        register: {
+          schema_version: CONTROL_REGISTER_SCHEMA_VERSION,
+          entries: withProofStatus(
+            withDeclaredExecutors(entries, declaration),
+            inputs.evidenceDocument ?? (() => null)
+          ),
+        },
       };
 }
 
@@ -138,6 +161,8 @@ export interface ControlRegisterSources {
   readonly loadGates?: () => Promise<GatesModule>;
   /** Loads the criterion catalogue. */
   readonly loadCatalogue?: () => CriterionCatalogue;
+  /** Reads and parses the evidence file of a repository. */
+  readonly readEvidenceDocument?: (root: string) => unknown;
 }
 
 /**
@@ -162,6 +187,8 @@ export async function generateControlRegister(
       declaration: read.declaration,
       registry,
       catalogue: (sources.loadCatalogue ?? loadCriterionCatalogue)(),
+      evidenceDocument: () =>
+        (sources.readEvidenceDocument ?? readEvidenceDocument)(root),
     });
     return built.problems === null
       ? { ...built, text: serializeControlRegister(built.register) }

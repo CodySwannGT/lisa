@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 321,
-  "$names": 2387,
+  "$names": 2390,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1198,6 +1198,8 @@
       "DUAL_ADOPTION_CONTROLS",
       "ENFORCEMENTS",
       "EVIDENCE_DEFAULTS",
+      "EXECUTOR_FIELD",
+      "EXECUTOR_FIELDS",
       "EXECUTOR_VERDICTS",
       "FACADE_CLASSES",
       "FAILURE_SHAPE_FIELD",
@@ -1210,6 +1212,7 @@
       "LEG_ACTIONS",
       "LEG_TIMEOUT_MINUTES",
       "LEVELS",
+      "LISA_EXECUTOR_PLATFORM",
       "MOMENTS",
       "MOMENT_EXECUTOR_DIR",
       "MOMENT_FAMILIES",

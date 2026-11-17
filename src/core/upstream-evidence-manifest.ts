@@ -341,7 +341,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "748232939ec716fa4b8a1a758c10bb95ac4778ea5f75d725a18c36cdffc337b7",
+      "905bfe77e7970ebeffc723d6af2ca78cb3a8648c965b13fb32199b71c05f8f65",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -401,7 +401,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "7dc697c6fc6acfcc77c2196660bc9f099c8cf87a02c646e26f102cb80e0ff5fa",
+      "f554c53111c432c11b1e6d014d53dcf8190b5eef26657c689d8cab40a1e9bed0",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1464,6 +1464,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
+    "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
+      "c93ead6b5f20f7126c6843daf1b6c20d1812345536bee25bc75cff9d88295003",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -5011,6 +5013,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-enforce/references/missing-capability-tickets.md": true,
+    "plugins/lisa-agy/skills/lisa-enforce/references/pull-request-executor.md": true,
     "plugins/lisa-agy/skills/lisa-epic-triage/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-evaluation-suite/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-exploratory-qa/SKILL.md": true,
@@ -5563,6 +5566,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-enforce/references/missing-capability-tickets.md": true,
+    "plugins/lisa-copilot/skills/lisa-enforce/references/pull-request-executor.md": true,
     "plugins/lisa-copilot/skills/lisa-epic-triage/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-evaluation-suite/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-exploratory-qa/SKILL.md": true,
@@ -6099,6 +6103,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-enforce/references/missing-capability-tickets.md": true,
+    "plugins/lisa-cursor/skills/lisa-enforce/references/pull-request-executor.md": true,
     "plugins/lisa-cursor/skills/lisa-epic-triage/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-evaluation-suite/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-exploratory-qa/SKILL.md": true,
@@ -6567,6 +6572,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-enforce/references/missing-capability-tickets.md": true,
+    "plugins/lisa-devin/skills/lisa-enforce/references/pull-request-executor.md": true,
     "plugins/lisa-devin/skills/lisa-epic-triage/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-evaluation-suite/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-exploratory-qa/SKILL.md": true,
@@ -9379,6 +9385,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa/skills/lisa-drive-pr-to-merge/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-enforce/references/missing-capability-tickets.md": true,
+    "plugins/lisa/skills/lisa-enforce/references/pull-request-executor.md": true,
     "plugins/lisa/skills/lisa-epic-triage/SKILL.md": true,
     "plugins/lisa/skills/lisa-epic-triage/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-evaluation-suite/SKILL.md": true,
@@ -10071,6 +10078,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md": true,
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md": true,
+    "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md": true,
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md": true,
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md": true,
     "plugins/src/base/skills/lisa-exploratory-qa/SKILL.md": true,
@@ -11188,6 +11196,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/controls/control-gap-marker.ts": true,
     "src/controls/evidence.ts": true,
     "src/controls/gates-declaration.ts": true,
+    "src/controls/proof-halves.ts": true,
+    "src/controls/pull-request-executor.ts": true,
     "src/controls/register-drift.ts": true,
     "src/controls/register-entries.ts": true,
     "src/controls/register-points.ts": true,
@@ -11828,6 +11838,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/controls-gaps.test.ts": true,
     "tests/integration/controls-no-manifest-runner.test.ts": true,
     "tests/integration/controls-part-argv-runner.test.ts": true,
+    "tests/integration/controls-register-executor.test.ts": true,
     "tests/integration/controls-register.test.ts": true,
     "tests/integration/controls-report-check.test.ts": true,
     "tests/integration/coverage-scratch-debris.test.ts": true,
@@ -12532,15 +12543,21 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/paved-road-regression.test.ts": true,
     "tests/unit/controls/paved-road-resolution.snapshot.json": true,
     "tests/unit/controls/paved-road-snapshot.ts": true,
+    "tests/unit/controls/proof-halves.test.ts": true,
     "tests/unit/controls/register-build.test.ts": true,
     "tests/unit/controls/register-check.test.ts": true,
     "tests/unit/controls/register-command.test.ts": true,
     "tests/unit/controls/register-drift.test.ts": true,
+    "tests/unit/controls/register-executor-command.test.ts": true,
+    "tests/unit/controls/register-executor-rule.test.ts": true,
+    "tests/unit/controls/register-executor.test.ts": true,
     "tests/unit/controls/register-paved-road.test.ts": true,
+    "tests/unit/controls/register-schema-executor.test.ts": true,
     "tests/unit/controls/register-schema-validation.test.ts": true,
     "tests/unit/controls/register-schema.test.ts": true,
     "tests/unit/controls/report-check-refusals.test.ts": true,
     "tests/unit/controls/report-check.test.ts": true,
+    "tests/unit/controls/support/executor-fixtures.ts": true,
     "tests/unit/controls/support/gaps-run.ts": true,
     "tests/unit/controls/support/register-build.ts": true,
     "tests/unit/controls/support/register-run.ts": true,
@@ -13138,6 +13155,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-caller-chain.test.ts": true,
     "tests/unit/scripts/lisa-gates-declared-executors.test.ts": true,
     "tests/unit/scripts/lisa-gates-evidence.test.ts": true,
+    "tests/unit/scripts/lisa-gates-executor.test.ts": true,
     "tests/unit/scripts/lisa-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-gates-hardcoded-invocations.test.ts": true,
     "tests/unit/scripts/lisa-gates-identity.test.ts": true,
@@ -13676,6 +13694,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/workers-setup-gap.test.ts": true,
     "tests/unit/session-manager/workers.test.ts": true,
     "tests/unit/skills/missing-capability-tickets.test.ts": true,
+    "tests/unit/skills/pull-request-executor-reference.test.ts": true,
     "tests/unit/skills/pushing-skills-run-lisa-check.test.ts": true,
     "tests/unit/skills/secrets-provider-timeout-message.test.ts": true,
     "tests/unit/sonar/sonar-installer.test.ts": true,

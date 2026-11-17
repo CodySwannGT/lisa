@@ -18,6 +18,7 @@ import type {
   EnforcementPoint,
   MeasuringMechanism,
   MechanismKind,
+  PullRequestExecutor,
 } from "../../../../src/controls/register-types.js";
 
 /** One mechanism of every kind, each with every key its type has. */
@@ -34,12 +35,19 @@ export const MECHANISMS: {
   none: { kind: "none" },
 };
 
+/** A pull-request executor with every key. */
+export const EXECUTOR: Required<PullRequestExecutor> = {
+  platform: "gitlab",
+  path: ".gitlab-ci.yml",
+};
+
 /** An enforcement point with every key. */
 export const POINT: Required<EnforcementPoint> = {
-  moment: "pre-deploy:production",
+  moment: "pull-request",
   level: "required",
-  location: "deployment-pipeline",
+  location: "hosting-platform",
   measuring_mechanism: MECHANISMS.task,
+  executor: EXECUTOR,
 };
 
 /** A parameter with every key. */
@@ -69,6 +77,7 @@ export const ENTRY: Required<ControlRegisterEntry> = {
   parameters: { "minimum-coverage": PARAMETER },
   proof: PROOF,
   accountable_party: "Platform team",
+  status: "unproved",
 };
 
 /** A register with every key. */
@@ -86,7 +95,11 @@ export const BARE_POINT: EnforcementPoint = {
 
 /** An entry with every optional key left off and every `null` taken. */
 export const BARE_ENTRY: ControlRegisterEntry = {
-  ...ENTRY,
+  id: ENTRY.id,
+  gate: ENTRY.gate,
+  scope: ENTRY.scope,
+  tier: ENTRY.tier,
+  measuring_mechanism: ENTRY.measuring_mechanism,
   criteria: [],
   enforcement_points: [BARE_POINT],
   parameters: { flag: { value: true }, name: { value: "strict" } },
@@ -106,8 +119,9 @@ export const BARE_ENTRY: ControlRegisterEntry = {
  */
 export const SHAPES: readonly (readonly [string, object, readonly string[]])[] =
   [
-    ["entry", ENTRY, []],
-    ["enforcement_point", POINT, ["measuring_mechanism"]],
+    ["entry", ENTRY, ["status"]],
+    ["enforcement_point", POINT, ["measuring_mechanism", "executor"]],
+    ["executor", EXECUTOR, []],
     ["parameter", PARAMETER, ["direction"]],
     ["proof", PROOF, []],
   ];

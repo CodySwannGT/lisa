@@ -11,6 +11,7 @@
  */
 import { isJsonObject } from "../sync/json-path.js";
 import { canonicalText, compareCodeUnits } from "./canonical-json.js";
+import { STATUS_DRIFT_NOTE } from "./pull-request-executor.js";
 import { serializeControlRegister } from "./register.js";
 import {
   CONTROL_REGISTER_PATH,
@@ -19,6 +20,9 @@ import {
 
 /** The key of the register that holds its entries. */
 const ENTRIES_KEY = "entries";
+
+/** The key of an entry that comes from the evidence file. */
+const STATUS_KEY = "status";
 
 /** A committed entry, matched to its identifier when it has one. */
 interface CommittedEntry {
@@ -100,10 +104,11 @@ function entryDifferences(
       ];
     }
     const fields = differingKeys(found.get(entry.id), entry);
+    const note = fields.includes(STATUS_KEY) ? ` ${STATUS_DRIFT_NOTE}` : "";
     return fields.length === 0
       ? []
       : [
-          `The entry "${entry.id}" in ${CONTROL_REGISTER_PATH} does not match the gates declaration: ${differing(fields)}.`,
+          `The entry "${entry.id}" in ${CONTROL_REGISTER_PATH} does not match the gates declaration: ${differing(fields)}.${note}`,
         ];
   });
   const unexpected = [...new Set(committed.map(entry => entry.id))]
