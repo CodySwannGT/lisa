@@ -12656,6 +12656,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/helpers/child-completion-diagnostics.test.ts": true,
     "tests/unit/helpers/child-timeout-output.test.ts": true,
     "tests/unit/helpers/committed-case-table.test.ts": true,
+    "tests/unit/helpers/enforcement-fallback-scratch-roots.test.ts": true,
     "tests/unit/helpers/freshness-owned-processes.test.ts": true,
     "tests/unit/helpers/fs-latency-budget.test.ts": true,
     "tests/unit/helpers/fs-probe-diagnostic.test.ts": true,

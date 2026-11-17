@@ -129,12 +129,19 @@ export const PLUGIN_TREE = path.join("plugins", "lisa", "hooks");
  */
 const SCRATCH_PREFIX = `lisa-fallback-copy-${process.pid}-`;
 
+/**
+ * The one directory every scratch root of this worker is made in, resolved
+ * once when the module loads. Creation and cleanup both use it, so a test
+ * that changes `TMPDIR` in between cannot strand a root where cleanup no
+ * longer looks.
+ */
+const SCRATCH_BASE = tmpdir();
+
 /** Remove every scratch root this worker made since the last call. */
 export function cleanupScratchRoots(): void {
-  const parent = tmpdir();
-  for (const name of readdirSync(parent)) {
+  for (const name of readdirSync(SCRATCH_BASE)) {
     if (name.startsWith(SCRATCH_PREFIX))
-      rmSync(path.join(parent, name), { recursive: true, force: true });
+      rmSync(path.join(SCRATCH_BASE, name), { recursive: true, force: true });
   }
 }
 
@@ -143,7 +150,7 @@ export function cleanupScratchRoots(): void {
  * @returns Absolute path to the new directory.
  */
 export function scratchRoot(): string {
-  return mkdtempSync(path.join(tmpdir(), SCRATCH_PREFIX));
+  return mkdtempSync(path.join(SCRATCH_BASE, SCRATCH_PREFIX));
 }
 
 /**
