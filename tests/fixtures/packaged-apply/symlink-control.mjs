@@ -21,6 +21,32 @@ const CAPTURE_LIMIT = 256 * 1024;
 const SCENARIO = "owned-post-run-symlink";
 
 /**
+ * Fixed Docker CLI locations, tried in order: Docker Desktop's links on
+ * macOS, Homebrew, then the Linux package location. A fixed absolute path, not
+ * a bare `docker`, so a writeable directory early on `PATH` cannot choose the
+ * binary that removes the container.
+ */
+const DOCKER_CANDIDATES = Object.freeze([
+  "/usr/local/bin/docker",
+  "/opt/homebrew/bin/docker",
+  "/Applications/Docker.app/Contents/Resources/bin/docker",
+  "/usr/bin/docker",
+]);
+
+/**
+ * Resolve the Docker CLI to an absolute path.
+ * @returns {string} The first installed Docker CLI.
+ */
+function resolveDocker() {
+  const found = DOCKER_CANDIDATES.find(candidate => existsSync(candidate));
+  if (found === undefined)
+    throw new Error(
+      `Docker CLI not found at any of: ${DOCKER_CANDIDATES.join(", ")}`
+    );
+  return found;
+}
+
+/**
  * Keep a bounded tail of a child stream for failure diagnostics.
  * @param {import("node:stream").Readable} stream - Child output stream.
  * @returns {{text: string}} Live holder of the captured tail.
@@ -210,8 +236,7 @@ export async function qualifySymlinkChange(input) {
       );
       if (state.containerId)
         execFileSync(
-          // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed Docker executable, qualified by the controller
-          "docker",
+          resolveDocker(),
           ["rm", "--force", "--volumes", state.containerId],
           {
             timeout: 30_000,

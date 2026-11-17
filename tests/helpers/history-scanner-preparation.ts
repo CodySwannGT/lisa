@@ -51,6 +51,7 @@ import {
   qualifyScanner,
 } from "../../all/copy-overwrite/scripts/lib/history-secret-scanner.mjs";
 import { errorMessage, writeStderrSync } from "./stderr-sync.js";
+import { inheritedEnvironment } from "../support/process-environment.js";
 
 /** Repository root, resolved from this module. */
 const REPO_ROOT = resolve(import.meta.dirname, "..", "..");
@@ -253,13 +254,13 @@ export function qualificationFailure(path: string): string | undefined {
  * @param limits.deadlineMs - Kill the child with SIGKILL at this age
  * @param limits.env - Complete environment for the child
  * @param live - Holds the running child so a dispose can stop it
- * @param live.child - The running child, while it runs
+ * @param live.current - The running child, while it runs
  * @returns What the child did
  */
 function runBounded(
   argv: readonly [string, ...string[]],
   limits: { readonly deadlineMs: number; readonly env: NodeJS.ProcessEnv },
-  live: { child?: ChildProcess | undefined }
+  live: { current?: ChildProcess | undefined }
 ): Promise<ChildRun> {
   return new Promise(settle => {
     const started = performance.now();
@@ -269,12 +270,14 @@ function runBounded(
       env: limits.env,
       stdio: ["ignore", "pipe", "pipe"],
     });
-    /* eslint-disable functional/no-let, functional/immutable-data -- live child streams and outcome accumulate until the real process closes */
-    const captured = { stdout: "", stderr: "" };
-    let errorCode: string | null = null;
+    // Cells over the live child's outcome, replaced as its streams arrive.
+    const captured: {
+      current: { readonly stdout: string; readonly stderr: string };
+    } = { current: { stdout: "", stderr: "" } };
+    const errorCode: { current: string | null } = { current: null };
     const timer = setTimeout(() => {
       if (child.exitCode !== null || child.signalCode !== null) return;
-      errorCode = TIMED_OUT;
+      errorCode.current = TIMED_OUT;
       child.kill("SIGKILL");
     }, limits.deadlineMs);
     const finish = (
@@ -282,31 +285,35 @@ function runBounded(
       signal: NodeJS.Signals | null
     ): void => {
       clearTimeout(timer);
-      live.child = undefined;
+      live.current = undefined;
       settle({
         status,
         signal,
         // The deadline explains only a death it caused. A child that exited on
         // its own in the turn the timer fired keeps its own outcome.
         errorCode:
-          errorCode === TIMED_OUT && signal !== "SIGKILL" ? null : errorCode,
-        ...captured,
+          errorCode.current === TIMED_OUT && signal !== "SIGKILL"
+            ? null
+            : errorCode.current,
+        ...captured.current,
         elapsedMs: Math.round(performance.now() - started),
       });
     };
     // Listen for a spawn failure before touching the streams: when the spawn
     // itself fails (EMFILE, ENOENT) they can be absent.
     child.once("error", (error: NodeJS.ErrnoException) => {
-      errorCode ??= error.code ?? "ERROR";
+      errorCode.current ??= error.code ?? "ERROR";
       if (child.pid === undefined) finish(null, null);
     });
-    live.child = child;
+    live.current = child;
     for (const name of ["stdout", "stderr"] as const)
       child[name]?.on("data", (chunk: Buffer) => {
-        if (captured[name].length < MAX_CAPTURE)
-          captured[name] += chunk.toString("utf8");
+        if (captured.current[name].length < MAX_CAPTURE)
+          captured.current = {
+            ...captured.current,
+            [name]: captured.current[name] + chunk.toString("utf8"),
+          };
       });
-    /* eslint-enable functional/no-let, functional/immutable-data -- capture ends with the close event below */
     child.once("close", finish);
   });
 }
@@ -399,15 +406,15 @@ function reportFailure(what: string, step: () => unknown): void {
  */
 function ownedScope(parent: string): {
   readonly scope: string;
-  readonly live: { child?: ChildProcess | undefined };
+  readonly live: { current?: ChildProcess | undefined };
   readonly dispose: () => void;
 } {
   const scope = mkdtempSync(join(parent, "lisa-history-scanner-preparation-"));
-  const live: { child?: ChildProcess | undefined } = {};
+  const live: { current?: ChildProcess | undefined } = {};
   const dispose = (): void => {
     process.off("exit", dispose);
     reportFailure("its provision child could not be stopped", () =>
-      live.child?.kill("SIGKILL")
+      live.current?.kill("SIGKILL")
     );
     reportFailure("its preparation scope could not be removed", () => {
       rmSync(scope, { recursive: true, force: true });
@@ -440,8 +447,7 @@ export async function prepareHistoryScanner(
     "provision",
     executable,
   ];
-  // eslint-disable-next-line no-restricted-syntax -- the provision child inherits the real environment, as each suite's provision child did; only its TMPDIR moves into the owned scope
-  const env = { ...process.env, TMPDIR: join(scope, "tmp") };
+  const env = { ...inheritedEnvironment(), TMPDIR: join(scope, "tmp") };
   const run = await runBounded(argv, { deadlineMs, env }, live);
   const pin = platformPin();
   const failure = childFailure(run, deadlineMs);

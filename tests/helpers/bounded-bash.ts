@@ -25,14 +25,22 @@
  */
 import { spawn } from "node:child_process";
 
+/** Absolute bash, so a writeable `PATH` entry cannot choose the shell. */
+const BASH = "/bin/bash";
+
 /** Default wall-clock bound for a single fixture script run. */
 const DEFAULT_TIMEOUT_MS = 120_000;
 
 /** Grace period between the group SIGTERM and the group SIGKILL. */
 const KILL_GRACE_MS = 2_000;
 
-/** Process groups spawned by this module that have not yet been reaped. */
-const liveGroups = new Set<number>();
+/**
+ * Process groups spawned by this module that have not yet been reaped.
+ *
+ * A live OS registry, so it changes over time; the cell is replaced with a new
+ * immutable set on every change rather than mutated in place.
+ */
+const liveGroups: { current: ReadonlySet<number> } = { current: new Set() };
 
 /** Options accepted by {@link runBoundedBash}. */
 export type BoundedBashOptions = {
@@ -82,11 +90,10 @@ function terminateGroup(pid: number): void {
  * process-exit signals below so an interrupted run still cleans up.
  */
 export function reapLiveGroups(): void {
-  for (const pid of liveGroups) {
+  for (const pid of liveGroups.current) {
     killGroup(pid, "SIGKILL");
   }
-  // eslint-disable-next-line functional/immutable-data -- a live OS process registry is mutable by nature
-  liveGroups.clear();
+  liveGroups.current = new Set();
 }
 
 /**
@@ -94,7 +101,7 @@ export function reapLiveGroups(): void {
  * @returns Count of spawned groups not yet reaped. A test-visible leak counter.
  */
 export function liveGroupCount(): number {
-  return liveGroups.size;
+  return liveGroups.current.size;
 }
 
 process.once("exit", reapLiveGroups);
@@ -122,8 +129,7 @@ export async function runBoundedBash(
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   return new Promise<BoundedBashResult>((resolve, reject) => {
-    // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed executable and argv
-    const child = spawn("bash", [scriptPath], {
+    const child = spawn(BASH, [scriptPath], {
       cwd: options.cwd,
       // `detached` makes the child a process-group leader, so a single
       // `kill(-pid)` reaches its grandchildren. Without it, jq/node/git
@@ -138,27 +144,25 @@ export async function runBoundedBash(
       reject(new Error(`failed to spawn bash for ${scriptPath}`));
       return;
     }
-    // eslint-disable-next-line functional/immutable-data -- a live OS process registry is mutable by nature
-    liveGroups.add(pid);
+    liveGroups.current = new Set([...liveGroups.current, pid]);
 
-    /* eslint-disable functional/no-let -- child streams accumulate until the close event */
-    let stdout = "";
-    let stderr = "";
-    let timedOut = false;
-    /* eslint-enable functional/no-let -- accumulation ends with this promise */
-    child.stdout.on("data", chunk => (stdout += String(chunk)));
-    child.stderr.on("data", chunk => (stderr += String(chunk)));
+    const stdout = { current: "" };
+    const stderr = { current: "" };
+    const timedOut = { current: false };
+    child.stdout.on("data", chunk => (stdout.current += String(chunk)));
+    child.stderr.on("data", chunk => (stderr.current += String(chunk)));
 
     const timer = setTimeout(() => {
-      timedOut = true;
+      timedOut.current = true;
       terminateGroup(pid);
     }, timeoutMs);
 
     /** Clear the timer and drop the group from the live set. */
     const settle = (): void => {
       clearTimeout(timer);
-      // eslint-disable-next-line functional/immutable-data -- a live OS process registry is mutable by nature
-      liveGroups.delete(pid);
+      liveGroups.current = new Set(
+        [...liveGroups.current].filter(live => live !== pid)
+      );
       // Sweep the group even on a clean exit: bash may have left a background
       // grandchild behind. One immediate signal only — a *deferred* SIGKILL
       // here could land on a pid the OS has recycled since the child exited.
@@ -172,7 +176,7 @@ export async function runBoundedBash(
 
     child.once("close", code => {
       settle();
-      if (timedOut) {
+      if (timedOut.current) {
         reject(
           new Error(
             `bash ${scriptPath} exceeded ${timeoutMs}ms and its process group was killed`
@@ -181,13 +185,17 @@ export async function runBoundedBash(
         return;
       }
       if (code === 0) {
-        resolve({ stderr, stdout });
+        resolve({ stderr: stderr.current, stdout: stdout.current });
         return;
       }
       const failure = new Error(
-        `bash ${scriptPath} exited with code ${String(code)}\n${stderr}`
+        `bash ${scriptPath} exited with code ${String(code)}\n${stderr.current}`
       );
-      Object.assign(failure, { code, stderr, stdout });
+      Object.assign(failure, {
+        code,
+        stderr: stderr.current,
+        stdout: stdout.current,
+      });
       reject(failure);
     });
   });

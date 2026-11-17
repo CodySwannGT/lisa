@@ -152,11 +152,16 @@ async function captureDeadline(
   mode: string
 ): Promise<DeadlineObservation> {
   const start = performance.now();
-  const state: Capture = {
-    output: "",
-    enteredAt: null,
-    guardAt: null,
-    timedOut: false,
+  // A cell over immutable snapshots: each OS observation replaces the record.
+  const state: { current: Capture } = {
+    current: { output: "", enteredAt: null, guardAt: null, timedOut: false },
+  };
+  /**
+   * Replace the capture with a copy carrying new observations.
+   * @param change - Fields observed since the last snapshot.
+   */
+  const record = (change: Partial<Capture>): void => {
+    state.current = { ...state.current, ...change };
   };
   const child = spawn("/bin/bash", [fixture.driver], {
     cwd: fixture.root,
@@ -168,19 +173,19 @@ async function captureDeadline(
   const owned = ownedProcesses(child.pid);
   /** Capture real helper entry and first genuine guard execution. */
   const poll = (): void => {
-    /* eslint-disable functional/immutable-data -- these event timestamps record mutable OS observations */
-    if (readFileSync(fixture.entries, "utf8") && state.enteredAt === null)
-      state.enteredAt = performance.now();
-    if (readFileSync(fixture.guards, "utf8") && state.guardAt === null)
-      state.guardAt = performance.now();
-    /* eslint-enable functional/immutable-data -- all other fixture values remain immutable */
+    if (
+      readFileSync(fixture.entries, "utf8") &&
+      state.current.enteredAt === null
+    )
+      record({ enteredAt: performance.now() });
+    if (readFileSync(fixture.guards, "utf8") && state.current.guardAt === null)
+      record({ guardAt: performance.now() });
   };
   const interval = setInterval(poll, 20);
   /** Keep native census work outside the fast marker-file timing loop. */
   const observe = (): void => {
     void owned.observe().catch(error => {
-      // eslint-disable-next-line functional/immutable-data -- preserve the actual observer failure instead of accepting empty evidence
-      state.observerFailure = error;
+      record({ observerFailure: error });
       child.kill("SIGKILL");
     });
   };
@@ -188,12 +193,10 @@ async function captureDeadline(
   // can evade this 100ms sampling interval; empty evidence is not universal proof.
   const censusInterval = setInterval(observe, 100);
   const detector = setTimeout(() => {
-    // eslint-disable-next-line functional/immutable-data -- the live outer detector records its actual expiry
-    state.timedOut = true;
+    record({ timedOut: true });
     poll();
     void owned.drain().catch(error => {
-      // eslint-disable-next-line functional/immutable-data -- an unknown cleanup census must fail the actual observation
-      state.observerFailure = error;
+      record({ observerFailure: error });
       child.kill("SIGKILL");
     });
   }, ioLatencyBudgetMs(5_000));
@@ -201,10 +204,12 @@ async function captureDeadline(
     child.once("error", reject);
     child.once("close", resolve);
   });
-  /* eslint-disable functional/immutable-data -- captured stream data is accumulated until the real process closes */
-  child.stdout.on("data", chunk => (state.output += String(chunk)));
-  child.stderr.on("data", chunk => (state.output += String(chunk)));
-  /* eslint-enable functional/immutable-data -- no state writes after process completion */
+  child.stdout.on("data", chunk =>
+    record({ output: state.current.output + String(chunk) })
+  );
+  child.stderr.on("data", chunk =>
+    record({ output: state.current.output + String(chunk) })
+  );
   observe();
   return closed
     .finally(() => {
@@ -215,9 +220,10 @@ async function captureDeadline(
     .then(async status => {
       // Wait for the last pending census, then take a fresh completion snapshot.
       await owned.observe();
-      if (state.observerFailure !== undefined) throw state.observerFailure;
+      if (state.current.observerFailure !== undefined)
+        throw state.current.observerFailure;
       poll();
-      return summarize(fixture, state, status, owned, start);
+      return summarize(fixture, state.current, status, owned, start);
     });
 }
 

@@ -80,7 +80,6 @@ function selected(source: string, scripts: Record<string, string>): string {
       path.join(root, "package.json"),
       JSON.stringify({ scripts }, null, 2)
     );
-    // eslint-disable-next-line sonarjs/no-os-command-from-path -- the block under test is POSIX shell; running it needs the system shell
     const result = spawnSync(
       "/bin/sh",
       ["-c", `${selectionBlock(source)}\nprintf '%s' "$COVERAGE_SCRIPT"`],

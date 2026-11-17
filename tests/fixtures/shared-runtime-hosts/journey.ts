@@ -1,4 +1,3 @@
-/* eslint-disable code-organization/enforce-statement-order -- Git checkpoints and real CLI operations are chronological operator steps. */
 /** Actual packed CLI adoption, install, native tests and offline synth assertions. */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -27,8 +26,8 @@ async function prepareHost(
   stack: "typescript" | "cdk"
 ): Promise<string> {
   const host = path.join(candidate.root, stack);
-  seedHost(host, stack);
   const git = resolveGit();
+  seedHost(host, stack);
   await run(
     git,
     ["init", "--initial-branch=main"],
@@ -252,5 +251,3 @@ export async function verifyHost(
     caseWallMs: Math.round(performance.now() - started),
   });
 }
-
-/* eslint-enable code-organization/enforce-statement-order -- End the chronological fixture harness. */

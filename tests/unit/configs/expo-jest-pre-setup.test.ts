@@ -1,11 +1,9 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import * as path from "node:path";
-import { runInNewContext } from "node:vm";
 import { describe, expect, it, vi } from "vitest";
-import {
-  ioLatencyBudgetMs,
-  useIoLatencyBudget,
-} from "../../helpers/io-latency-budget.js";
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 
 useIoLatencyBudget();
 
@@ -16,6 +14,43 @@ const MANAGED_SETUP = readFileSync(
   ),
   "utf8"
 );
+
+/**
+ * Every free name the managed setup reads. Each becomes a parameter of the
+ * wrapper below, so the setup sees only the sandbox the test hands it and
+ * never the real global object, process, or module loader.
+ */
+const SANDBOXED_NAMES = [
+  "global",
+  "globalThis",
+  "process",
+  "jest",
+  "require",
+] as const;
+
+/** The managed setup, loaded as a function of the names it reads. */
+type ManagedSetup = (...sandbox: readonly unknown[]) => void;
+
+/**
+ * Load the managed setup as a CommonJS module whose body is wrapped in a
+ * function of {@link SANDBOXED_NAMES}, the same shape Node gives every module.
+ * The repository file is written to a private temporary module and required.
+ * @returns The setup body, callable against a sandbox.
+ */
+function loadManagedSetup(): ManagedSetup {
+  const directory = mkdtempSync(path.join(tmpdir(), "lisa-expo-setup-"));
+  const file = path.join(directory, "jest.setup.pre.cjs");
+  writeFileSync(
+    file,
+    `module.exports = function (${SANDBOXED_NAMES.join(", ")}) {\n${MANAGED_SETUP}\n};\n`,
+    { mode: 0o600 }
+  );
+  try {
+    return createRequire(import.meta.url)(file) as ManagedSetup;
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
 
 /** Native module constants contract used by actual React Native initialization. */
 interface NativeModuleMock {
@@ -43,8 +78,8 @@ function loadSetup(registry: Readonly<Record<string, unknown>>) {
     },
   };
   globals["global"] = globals;
-  // eslint-disable-next-line sonarjs/code-eval -- Execute repository-owned setup only in an isolated VM; project imports are inert fixtures.
-  runInNewContext(MANAGED_SETUP, globals, { timeout: ioLatencyBudgetMs(1000) });
+  globals["globalThis"] = globals;
+  loadManagedSetup()(...SANDBOXED_NAMES.map(name => globals[name]));
   expect(globals["__turboModuleProxy"]).toBeTypeOf("function");
   return globals["__turboModuleProxy"] as (name: string) => unknown;
 }

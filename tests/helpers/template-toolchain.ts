@@ -39,7 +39,7 @@ import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
 const TEMP_KEYS = ["TMPDIR", "TMP", "TEMP"] as const;
 
 /** Guard against overlapping process-environment mutations in one worker. */
-const platformTempGuard = { active: false };
+const platformTempGuard: { current: boolean } = { current: false };
 
 /**
  * Run one synchronous test after selecting its logical platform temp root.
@@ -52,11 +52,10 @@ export function withProcessPlatformTempRoot<T>(
   root: string,
   operation: () => T
 ): T {
-  if (platformTempGuard.active) {
+  if (platformTempGuard.current) {
     throw new Error("Platform-temp test controls must not overlap");
   }
-  // eslint-disable-next-line functional/immutable-data -- restored by the synchronous finally below
-  platformTempGuard.active = true;
+  platformTempGuard.current = true;
   const previous = TEMP_KEYS.map(key => [key, Reflect.get(env, key)] as const);
   for (const key of TEMP_KEYS) {
     Reflect.set(env, key, root);
@@ -75,8 +74,7 @@ export function withProcessPlatformTempRoot<T>(
         Reflect.set(env, key, value);
       }
     }
-    // eslint-disable-next-line functional/immutable-data -- paired with guarded acquisition
-    platformTempGuard.active = false;
+    platformTempGuard.current = false;
   }
 }
 

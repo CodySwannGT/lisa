@@ -1,4 +1,3 @@
-/* eslint-disable code-organization/enforce-statement-order -- Open the command log before spawning the process that writes it. */
 /** Bounded subprocesses for the real packed-host verification journey. */
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
@@ -35,6 +34,30 @@ export function nativeUnitDeadlineMs(
 }
 
 /**
+ * Open a child's evidence log and record the invocation before it starts.
+ * @param file - Evidence log file to append to
+ * @param command - Actual child executable
+ * @param args - Actual child arguments
+ * @param baseMs - Quiet-box child work deadline in milliseconds
+ * @param deadlineMs - Explicit wall deadline including any bounded control phase
+ * @returns Open append descriptor the child writes its output to
+ */
+function openRunLog(
+  file: string,
+  command: string,
+  args: readonly string[],
+  baseMs: number,
+  deadlineMs: number
+): number {
+  const fd = fs.openSync(file, "a");
+  fs.writeSync(
+    fd,
+    `${new Date().toISOString()} ${JSON.stringify([command, ...args])}\nwork_budget_ms=${ioLatencyBudgetMs(baseMs)} wall_deadline_ms=${deadlineMs} slowdown=${workerSpawnSlowdown()}\n`
+  );
+  return fd;
+}
+
+/**
  * Run an actual child while leaving the loopback registry event loop available.
  * @param command - Actual child executable
  * @param args - Actual child arguments
@@ -61,11 +84,7 @@ export async function run(
     );
   const file = path.join(logs, `${label}.log`);
   const started = performance.now();
-  const fd = fs.openSync(file, "a");
-  fs.writeSync(
-    fd,
-    `${new Date().toISOString()} ${JSON.stringify([command, ...args])}\nwork_budget_ms=${ioLatencyBudgetMs(baseMs)} wall_deadline_ms=${deadlineMs} slowdown=${workerSpawnSlowdown()}\n`
-  );
+  const fd = openRunLog(file, command, args, baseMs, deadlineMs);
   const child = spawn(command, [...args], {
     cwd,
     env,
@@ -109,5 +128,3 @@ export async function run(
     fs.closeSync(fd);
   }
 }
-
-/* eslint-enable code-organization/enforce-statement-order -- End the chronological fixture harness. */

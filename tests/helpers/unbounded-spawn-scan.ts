@@ -64,12 +64,20 @@ export const SYNCHRONOUS_CHILD_STARTS: readonly string[] = [
  * @returns Its direct structural children in source order
  */
 function syntaxChildren(node: ts.Node): readonly ts.Node[] {
-  const children: ts.Node[] = [];
-  ts.forEachChild(node, child => {
-    // eslint-disable-next-line functional/immutable-data -- local AST projection
-    children.push(child);
-  });
-  return children;
+  // A cell over immutable arrays. A node array (statements, arguments) arrives
+  // whole through the second callback, so each copy is per field, not per
+  // child, and the collection stays linear in the node's fields.
+  const children: { current: readonly ts.Node[] } = { current: [] };
+  ts.forEachChild(
+    node,
+    child => {
+      children.current = [...children.current, child];
+    },
+    nodes => {
+      children.current = [...children.current, ...nodes];
+    }
+  );
+  return children.current;
 }
 
 /** Option that makes a child start bounded. */
