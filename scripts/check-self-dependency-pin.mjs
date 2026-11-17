@@ -10,9 +10,12 @@
  * own `name` is `@codyswann/lisa` is restricted to security pins, so the
  * self-pin phase never runs. That exemption is right — a package should not
  * acquire a dependency on a published copy of itself as a side effect of
- * applying to itself — and it has a consequence nobody wrote down: **the one
- * repository whose pin no automation will ever correct is the one that ships
- * the automation.**
+ * applying to itself — and it had a consequence nobody wrote down: **the one
+ * repository whose pin no automation corrected was the one that ships the
+ * automation.** The correction now lives on the release path instead:
+ * `scripts/raise-self-dependency-pin.mjs`, run by the deploy workflow's
+ * `raise_self_pin` job after every publish (#4951). This check is what proves
+ * that job did its work.
  *
  * The result was measured twice. #2279 (2026-08-04) moved the floor to
  * `^2.328.0` because it was 130 releases behind. #3662 (2026-09-03) moved it
@@ -349,8 +352,11 @@ function failureReport(outcome, registry) {
       `❌ ${SELF_PACKAGE} is pinned at "${outcome.spec}" and ${outcome.detail}.\n` +
       `   Compared against ${registry} — NOT the session plugin cache and NOT\n` +
       `   the marketplace clone, both of which can name a different version.\n` +
-      `   Nothing corrects this pin automatically: apply skips the self-pin\n` +
-      `   phase on Lisa's own manifest (#3768). Raise the floor by hand.\n`
+      `   The release raises this pin itself: the Release and Deploy workflow's\n` +
+      `   raise_self_pin job runs scripts/raise-self-dependency-pin.mjs right\n` +
+      `   after the publish lands and pushes the raise to main (#4951). Red here\n` +
+      `   means that job has not landed for ${outcome.newest} yet, or it failed —\n` +
+      `   its run in that release is where the cause is. Rebase once it lands.\n`
     );
   }
   return (

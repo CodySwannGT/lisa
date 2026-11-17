@@ -122,3 +122,82 @@ describe("the self-pin drift check is wired where it blocks (#3768)", () => {
     expect(invocation).not.toContain("--manifest");
   });
 });
+
+/** The workflow whose release job owns the self-pin raise. */
+const DEPLOY_WORKFLOW = ".github/workflows/deploy.yml";
+
+/** One deploy-workflow job, as far as the raise wiring needs to see it. */
+interface DeployJob extends Job {
+  /** Jobs this one waits for. */
+  readonly needs?: readonly string[];
+  /** The job's run condition. */
+  readonly if?: string;
+  /** Steps, with the action inputs the checkout carries. */
+  readonly steps?: readonly (Step & {
+    readonly uses?: string;
+    readonly with?: Record<string, string>;
+    readonly if?: string;
+  })[];
+}
+
+/**
+ * The deploy workflow's raise job.
+ * @returns The job definition.
+ */
+function raiseJob(): DeployJob {
+  const workflow = loadYaml(
+    readFileSync(path.join(ROOT, DEPLOY_WORKFLOW), "utf8")
+  ) as { jobs: Record<string, DeployJob> };
+  const job = workflow.jobs.raise_self_pin;
+  expect(job, `${DEPLOY_WORKFLOW} has no raise_self_pin job`).toBeDefined();
+  return job as DeployJob;
+}
+
+describe("the release raises the self-pin the check guards (#4951)", () => {
+  it("runs only after a successful npm publish on main", () => {
+    const job = raiseJob();
+
+    expect(job.needs).toEqual(
+      expect.arrayContaining(["release", "publish_npm"])
+    );
+    expect(job.if).toContain("needs.publish_npm.result == 'success'");
+    expect(job.if).toContain("== 'main'");
+  });
+
+  it("raises with the published version and proves the check before pushing", () => {
+    const runs = (raiseJob().steps ?? []).map(step => step.run ?? "");
+    const raise = runs.findIndex(run =>
+      run.includes('scripts/raise-self-dependency-pin.mjs --version "$VERSION"')
+    );
+    const prove = runs.findIndex(run => run.includes(`bun run ${SCRIPT_TASK}`));
+    const push = runs.findIndex(run =>
+      run.includes("git push origin HEAD:main")
+    );
+
+    expect(raise).toBeGreaterThanOrEqual(0);
+    expect(prove).toBeGreaterThan(raise);
+    expect(push).toBeGreaterThan(prove);
+    expect(runs[prove]).toContain("bun install --frozen-lockfile");
+  });
+
+  it("pushes with the deploy key the rulesets already let bypass", () => {
+    const checkout = (raiseJob().steps ?? []).find(step =>
+      (step.uses ?? "").startsWith("actions/checkout@")
+    );
+
+    expect(checkout?.with?.["ssh-key"]).toBe("${{ secrets.DEPLOY_KEY }}");
+  });
+
+  it("waits for npm to serve the version before re-resolving the lockfile", () => {
+    const runs = (raiseJob().steps ?? []).map(step => step.run ?? "");
+    const landed = runs.findIndex(run =>
+      run.includes("scripts/check-npm-publish-landed.mjs")
+    );
+    const raise = runs.findIndex(run =>
+      run.includes("scripts/raise-self-dependency-pin.mjs")
+    );
+
+    expect(landed).toBeGreaterThanOrEqual(0);
+    expect(landed).toBeLessThan(raise);
+  });
+});

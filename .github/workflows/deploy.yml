@@ -109,6 +109,114 @@ jobs:
       node_version: '24.21.0'
       package_manager: 'bun'
 
+  # Raise Lisa's own @codyswann/lisa pin once the release it cannot resolve has
+  # landed on npm (CodySwannGT/lisa#4951).
+  #
+  # `check:self-pin` fails a REQUIRED check on every pull request the moment a
+  # release leaves the self-pin's caret range — every major does. Before this
+  # job, nothing on the release path moved the pin, so 6.0.0 turned every open
+  # PR red until somebody raised the floor by hand. The release is the one actor
+  # that knows the exact moment the pin goes stale, so the release fixes it.
+  #
+  # WHY A DIRECT PUSH, NOT A PULL REQUEST. A PR opened with GITHUB_TOKEN never
+  # starts its own checks (the reason #4337 removed the old CI updater), so it
+  # would sit unmergeable. The deploy key is already in the `base` and `quality
+  # checks` ruleset bypass lists — it is how the release commit itself reaches
+  # main — and this job proves the same things the PR checks would care about
+  # for a lockfile-only change before it pushes: the lockfile re-resolves
+  # frozen, the self-pin check is current, and the project still type-checks.
+  #
+  # WHY IT CANNOT LOOP. The script raises only when the declared range can no
+  # longer resolve the published version — the exact predicate the check fails
+  # on. The push is a normal commit, so it cuts a patch release; that release is
+  # inside the raised range, so the next run reports `current` and pushes
+  # nothing.
+  raise_self_pin:
+    name: Raise the self-dependency pin
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    needs: [determine_environment, release, publish_npm]
+    if: ${{ needs.determine_environment.outputs.environment == 'main' && needs.publish_npm.result == 'success' && needs.release.outputs.version != '' }}
+    permissions:
+      contents: read
+    env:
+      # Same as the release job: hooks are a local-session control and this
+      # commit is produced and verified by the steps below.
+      HUSKY: '0'
+    steps:
+      - name: Checkout main with the deploy key
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: '.nvmrc'
+
+      - name: '🍞 Setup Bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      - name: Wait until npm serves the published version
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          package_name="$(node -p "require('./package.json').name")"
+          node scripts/check-npm-publish-landed.mjs --package "$package_name" --version "$VERSION"
+
+      - name: Raise the pin when the release left it behind
+        id: raise
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          node scripts/raise-self-dependency-pin.mjs --version "$VERSION" | tee "$RUNNER_TEMP/raise.txt"
+          verdict="$(sed -n 's/^raise-self-dependency-pin: \([a-z-]*\) .*/\1/p' "$RUNNER_TEMP/raise.txt" | head -n 1)"
+          if [ -z "$verdict" ]; then
+            echo "::error::The raise script printed no verdict line."
+            exit 1
+          fi
+          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+
+      - name: Re-resolve the lockfile and prove the raise
+        if: steps.raise.outputs.verdict == 'raised'
+        run: |
+          bun install
+          bun install --frozen-lockfile
+          bun run check:self-pin
+          bun run typecheck
+
+      - name: Push the raise to main
+        if: steps.raise.outputs.verdict == 'raised'
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json bun.lock
+          git commit -m "chore(deps): raise @codyswann/lisa self-pin to ^${VERSION}" \
+            -m "The release published ${VERSION}, which the previous self-pin could not resolve. Raised by the raise_self_pin job (CodySwannGT/lisa#4951)."
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort 2>/dev/null || true
+              echo "::error::Rebasing the self-pin raise onto main conflicted; package.json or bun.lock moved underneath it."
+              exit 1
+            fi
+            if git push origin HEAD:main; then
+              echo "✅ Raised the self-pin to ^${VERSION} on main."
+              exit 0
+            fi
+            echo "::warning::Push attempt $attempt failed; retrying against a fresh main"
+            sleep $((attempt * 5))
+          done
+          echo "::error::Could not push the self-pin raise to main after 3 attempts."
+          exit 1
+
   # The deploy-outcome guard.
   #
   # `publish_npm` is a reusable-workflow call, so it cannot carry a guard step of

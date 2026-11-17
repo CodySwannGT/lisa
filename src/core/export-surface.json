@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 318,
-  "$names": 2344,
+  "$modules": 320,
+  "$names": 2350,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -2622,6 +2622,10 @@
       "parseArgs",
       "validateArtifact"
     ],
+    "scripts/raise-self-dependency-pin.mjs": [
+      "main",
+      "raiseSelfPin"
+    ],
     "scripts/reconcile-release-tags.mjs": [
       "VERDICT",
       "classifyProbe",
@@ -2657,6 +2661,12 @@
       "main",
       "parseArgs",
       "summarize"
+    ],
+    "typescript/copy-overwrite/.lisa/patches/picomatch-ghsa-fc5q-39xc-vjpf.regression.mjs": [
+      "ATTACK_INPUTS",
+      "ATTACK_PATTERNS",
+      "BUDGET_MS",
+      "checkPicomatch"
     ],
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs": [
       "ABSOLUTE_MAX_API_ATTEMPTS",

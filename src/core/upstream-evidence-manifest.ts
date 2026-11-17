@@ -2651,7 +2651,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-security-floors.mjs":
       "a1abe6d2cbbef9243b9687c73d5c4497c069bc8d714e34be7375805fadbc4721",
     "scripts/check-self-dependency-pin.mjs":
-      "f517c44a1058a87051b6bb9520e8596a37521f475ca67e0d47159163999ff692",
+      "accff490dbf6ef4cb4fee6f14386edd969de04f5e9f2dbc2ace00a2a5b740ba2",
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "82bc9fbd7537cfc30d359d75e4ce86efbcea6455d4854c8d1273a445feae253c",
     "scripts/check-shipped-surface-removals.mjs":
@@ -2952,6 +2952,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "b688c899549cfcd10660c0154f01e5bedb9d1baaaa27958c9d8f436bc45c87e6",
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
+    "scripts/raise-self-dependency-pin.mjs":
+      "c950a7fae981ad682b6f1e4c5c3a28338b87d1b491dde17e49567b4865304db3",
     "scripts/reconcile-release-tags.mjs":
       "038e97bad361e1653f7c8d9842ab371d2dde62f02dc85c4e326a1b5aca06b178",
     "scripts/remedy-conformance.mjs":
@@ -10857,6 +10859,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/plugin-parity-drift.mjs": true,
     "scripts/plugin-routing-validate.mjs": true,
     "scripts/probes/wave3-verification.sh": true,
+    "scripts/raise-self-dependency-pin.mjs": true,
     "scripts/reconcile-release-tags.mjs": true,
     "scripts/remedy-conformance.mjs": true,
     "scripts/remote-agent-aws-setup.sh": true,
@@ -13231,6 +13234,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/push-admission.test.ts": true,
     "tests/unit/scripts/push-gate-defaults.test.ts": true,
     "tests/unit/scripts/push-timing.test.ts": true,
+    "tests/unit/scripts/raise-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/ready-queue-order-backlog.test.ts": true,
     "tests/unit/scripts/ready-queue-order-human-gate-policy.test.ts": true,
     "tests/unit/scripts/ready-queue-order-id-kinds.test.ts": true,
