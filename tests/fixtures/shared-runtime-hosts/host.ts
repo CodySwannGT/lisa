@@ -4,6 +4,27 @@ import * as path from "node:path";
 import { createHash } from "node:crypto";
 
 /**
+ * The package manager every journey host is installed with: Bun at the
+ * version Lisa itself is reviewed on (its own `engines.bun`).
+ *
+ * A host must say so before its first adoption. Apply fits a template's forced
+ * `devEngines.packageManager` floor to the host's manager (CodySwannGT/lisa#4848);
+ * a host with no signal keeps the CDK template's npm floor, and the same host
+ * shows up as bun once `bun install` writes `bun.lock`, so a silent host made
+ * the second adoption retire the floor (CodySwannGT/lisa#4941).
+ */
+export const HOST_PACKAGE_MANAGER = `bun@${
+  (
+    JSON.parse(
+      fs.readFileSync(
+        path.join(import.meta.dirname, "../../../package.json"),
+        "utf8"
+      )
+    ) as { readonly engines: { readonly bun: string } }
+  ).engines.bun
+}`;
+
+/**
  * Persist one fixture file, creating its parent directory.
  * @param root - Isolated fixture root
  * @param name - Relative fixture path
@@ -30,6 +51,7 @@ export function seedHost(root: string, stack: "typescript" | "cdk"): void {
     version: "1.0.0",
     private: true,
     type: "module",
+    packageManager: HOST_PACKAGE_MANAGER,
   });
   write(root, "tsconfig.json", {
     extends: [`@codyswann/lisa/tsconfig/${stack}`, "./tsconfig.local.json"],
