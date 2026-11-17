@@ -20,6 +20,10 @@ import { describe, expect, it } from "vitest";
 
 import { CONTROLS_COMMAND } from "../../../src/cli/controls-cmd.js";
 import { createProgram } from "../../../src/cli/index.js";
+import {
+  inScopeCriteria,
+  loadCriterionCatalogue,
+} from "../../../src/controls/catalogue.js";
 import { auditSkillShellBlocks } from "../../helpers/audit-skill.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -103,6 +107,26 @@ describe("lisa-audit skill and /lisa:audit command", () => {
     );
 
     expect(copies.filter(file => !read(file).endsWith(body))).toEqual([]);
+  });
+
+  it("explains every field the catalogue command prints for a requirement", () => {
+    // The agent is told where to file a finding by a field of the printed
+    // requirement (`answered`), not by a rule of thumb in the skill. A field
+    // the command prints and the skill never names is one the agent has to
+    // guess the meaning of (CodySwannGT/lisa#5007).
+    const skill = read(`plugins/src/base/${SKILL}`);
+    const printed = [
+      ...new Set(
+        inScopeCriteria(loadCriterionCatalogue()).flatMap(criterion =>
+          Object.keys(criterion)
+        )
+      ),
+    ];
+
+    expect(printed).toContain("answered");
+    expect(printed.filter(field => !skill.includes(`\`${field}\``))).toEqual(
+      []
+    );
   });
 
   it("runs only lisa controls subcommands the CLI registers", () => {

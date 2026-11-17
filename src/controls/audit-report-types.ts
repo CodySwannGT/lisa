@@ -102,7 +102,10 @@ export interface AuditMechanism {
   readonly locators: readonly AuditLocator[];
 }
 
-/** Where one criterion stands in one part of the repository. */
+/**
+ * Where one criterion stands: in the repository as a whole, or in one part of
+ * it, as the catalogue says the criterion is answered.
+ */
 export interface AuditFinding {
   /** Criterion id. Detail for readers who know the specification. */
   readonly criterion: string;
@@ -125,7 +128,11 @@ export interface AuditReport {
   readonly schema_version: typeof AUDIT_REPORT_SCHEMA_VERSION;
   /** The parts the report covers: `.` and each part's folder path. */
   readonly scopes: readonly string[];
-  /** One finding per in-scope criterion per scope. */
+  /**
+   * One finding per in-scope criterion for each scope it is answered in: `.`
+   * alone when the catalogue says it is answered once for the repository,
+   * every listed folder when it says it is answered per part.
+   */
   readonly findings: readonly AuditFinding[];
 }
 

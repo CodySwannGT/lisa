@@ -56,15 +56,15 @@ Use `bunx @codyswann/lisa controls gaps` when `lisa` is not on the PATH. The com
   },
   "gaps": [
     {
-      "criterion": "AC8.2",
+      "criterion": "SI8",
       "scope": "api",
       "part": "folder api",
       "question": "<the requirement as a plain question>",
       "what": "<what the audit found>",
       "why": "<why it matters>",
       "next": "<what to do next>",
-      "key": "9a486b704cd0",
-      "marker": "[lisa-control-gap] criterion=AC8.2 scope=api key=9a486b704cd0",
+      "key": "21d606d43cb0",
+      "marker": "[lisa-control-gap] criterion=SI8 scope=api key=21d606d43cb0",
       "outcome": null
     }
   ]
@@ -182,7 +182,7 @@ engineering would have to look up.
 
    ```text
    Lisa finds this ticket again by the next line. Please leave it as it is.
-   [lisa-control-gap] criterion=AC8.2 scope=api key=9a486b704cd0
+   [lisa-control-gap] criterion=SI8 scope=api key=21d606d43cb0
    ```
 
    Write the marker as ordinary text. Do not put it inside an HTML comment: some trackers do not

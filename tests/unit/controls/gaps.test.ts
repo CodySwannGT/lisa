@@ -30,7 +30,13 @@ import {
   amendFinding,
   type SampleReport,
 } from "../../helpers/control-audit-report.js";
-import { CRITERIA, FIRST, SECOND } from "./audit-report-facts.js";
+import {
+  CRITERIA,
+  FIRST,
+  PART_FIRST,
+  PART_SECOND,
+  SECOND,
+} from "./audit-report-facts.js";
 import {
   gaps,
   mixedRepository,
@@ -139,9 +145,9 @@ describe("a report with two missing requirements", () => {
 
 describe("the same report written in another order", () => {
   const SPREAD = [
-    { criterion: SECOND, scope: "web" },
-    { criterion: FIRST, scope: "web" },
-    { criterion: SECOND, scope: "api" },
+    { criterion: PART_SECOND, scope: "web" },
+    { criterion: PART_FIRST, scope: "web" },
+    { criterion: PART_SECOND, scope: "api" },
     { criterion: FIRST, scope: "." },
   ] as const;
 
@@ -161,9 +167,9 @@ describe("the same report written in another order", () => {
 
     expect(output.gaps.map(gap => [gap.criterion, gap.scope])).toEqual([
       [FIRST, "."],
-      [FIRST, "web"],
-      [SECOND, "api"],
-      [SECOND, "web"],
+      [PART_FIRST, "web"],
+      [PART_SECOND, "api"],
+      [PART_SECOND, "web"],
     ]);
   });
 

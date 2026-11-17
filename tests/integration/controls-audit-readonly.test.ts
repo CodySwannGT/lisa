@@ -75,8 +75,24 @@ function repositoryOf(built: ControlAuditFixture): string {
 }
 
 /**
+ * The parts a requirement is answered in, read the way the skill tells the
+ * agent to read it: from the `answered` value the catalogue command printed.
+ * @param criterion - One printed requirement
+ * @param scopes - The parts of the repository
+ * @returns Every folder for a requirement answered per part, when there are
+ *   folders; otherwise the whole repository alone
+ */
+function answeredIn(
+  criterion: PrintedCriterion,
+  scopes: readonly string[]
+): readonly string[] {
+  const folders = scopes.filter(scope => scope !== ".");
+  return criterion.answered === "part" && folders.length > 0 ? folders : ["."];
+}
+
+/**
  * The report an agent would write: one finding for every requirement that was
- * printed, in every part.
+ * printed, in each part the requirement is answered in.
  * @param criteria - The requirements `lisa controls catalogue` printed
  * @param scopes - The parts of the repository
  * @param known - Findings to use in place of the plain ones
@@ -90,9 +106,9 @@ function reportFor(
   return {
     schema_version: 1,
     scopes,
-    findings: scopes.flatMap(scope =>
-      criteria.map(
-        criterion =>
+    findings: criteria.flatMap(criterion =>
+      answeredIn(criterion, scopes).map(
+        scope =>
           known.find(
             finding =>
               finding.criterion === criterion.id && finding.scope === scope
@@ -223,15 +239,17 @@ describe("the audit on F-none, where Lisa was never applied", () => {
     const repoPath = repositoryOf(buildFNone());
 
     const steps = runAuditSkillCommands(repoPath, lisa.folder, criteria => {
+      const report = reportFor(criteria, [".", "src"]);
       writeAuditReport(repoPath, {
-        ...reportFor(criteria, ["."]),
-        scopes: [".", "src"],
+        ...report,
+        findings: report.findings.filter(finding => finding.scope !== "src"),
       });
     });
     const check = stepRunning(steps, REPORT_CHECK);
 
     expect(check.status).toBe(1);
     expect(check.stdout).toBe("");
+    expect(check.stderr).toMatch(/^The report lists the folder src but /u);
     expect(check.stderr).toMatch(/report-check: FAIL\. 1 problem in /u);
     expect(runControlAuditGit(repoPath, EVERY_FILE)).toBe(`?? ${REPORT_JSON}`);
   });
@@ -247,7 +265,7 @@ describe("the audit on F-mixed, which has two parts", () => {
       .filter(line => line.startsWith("## "));
 
     expect(stepRunning(steps, REPORT_CHECK).stdout).toMatch(
-      /^report-check: PASS\. 231 findings across 3 parts/u
+      /^report-check: PASS\. 90 findings across 3 parts/u
     );
     expect(headings).toEqual([
       "## Summary",
@@ -259,6 +277,55 @@ describe("the audit on F-mixed, which has two parts", () => {
       `?? ${REPORT_JSON}`,
       `?? ${REPORT_MD}`,
     ]);
+  });
+
+  it("is told, for every requirement printed, whether it is answered once or per part", () => {
+    const repoPath = repositoryOf(buildFMixed());
+    const printed: PrintedCriterion[] = [];
+
+    runAuditSkillCommands(repoPath, lisa.folder, criteria => {
+      printed.push(...criteria);
+      writeAuditReport(repoPath, reportFor(criteria, MIXED_PARTS));
+    });
+    const perPart = printed.filter(criterion => criterion.answered === "part");
+
+    expect(printed).toHaveLength(77);
+    expect(
+      printed.filter(
+        criterion =>
+          criterion.answered !== "part" && criterion.answered !== "repository"
+      )
+    ).toEqual([]);
+    expect(printed.length - perPart.length + perPart.length * 2).toBe(90);
+  });
+
+  it("stops at the check when every requirement is filed in every part, as the report used to be written", () => {
+    const repoPath = repositoryOf(buildFMixed());
+
+    const steps = runAuditSkillCommands(repoPath, lisa.folder, criteria => {
+      writeAuditReport(repoPath, {
+        schema_version: 1,
+        scopes: MIXED_PARTS,
+        findings: MIXED_PARTS.flatMap(scope =>
+          criteria.map(criterion => sampleFinding(String(criterion.id), scope))
+        ),
+      });
+    });
+    const check = stepRunning(steps, REPORT_CHECK);
+    const problems = check.stderr.trimEnd().split("\n").slice(0, -1);
+
+    expect(check.status).toBe(1);
+    expect(check.stdout).toBe("");
+    expect(problems).toHaveLength(231 - 90);
+    expect(
+      problems.filter(
+        line =>
+          !/is answered once, for the whole repository, but this finding files it under the folder (?:api|web)\.|is answered once for each folder the report lists, but this finding files it under the whole repository\./u.test(
+            line
+          )
+      )
+    ).toEqual([]);
+    expect(existsSync(path.join(repoPath, REPORT_MD))).toBe(false);
   });
 
   it("is shown at least one whole report as an example by the skill", () => {

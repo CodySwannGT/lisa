@@ -1425,7 +1425,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
-      "dbc2e1044faf9eab7b7fb334fcd5e90b775b7015d6c613aa2622dfb226f3f045",
+      "df703c649b0ef7ddf55a2556b145c66bea2cbbe76bb89a07443597df441e69a6",
     "plugins/src/base/skills/lisa-automation-status/SKILL.md":
       "3af301b5b70cbe4ba9377ebfed0e397d1445d70b2edc0a001edfa4bd2d5802b0",
     "plugins/src/base/skills/lisa-bug-triage/SKILL.md":
@@ -1463,7 +1463,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
-      "050f2b807ba9227dc80ed06b3c19a37531731cd2298b4f780066efa990c7de85",
+      "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -12504,6 +12504,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/configs/lighthouse-collect-config.test.ts": true,
     "tests/unit/configs/lighthouse-detail-budget.test.ts": true,
     "tests/unit/configs/lintstaged-matcher-ordering.test.ts": true,
+    "tests/unit/controls/audit-report-coverage.test.ts": true,
     "tests/unit/controls/audit-report-facts.ts": true,
     "tests/unit/controls/audit-report-findings.test.ts": true,
     "tests/unit/controls/audit-report-markdown.test.ts": true,
@@ -13667,6 +13668,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/sonar/sonar-shim-repoint-safety.test.ts": true,
     "tests/unit/sonar/sonar-shim-repoint.test.ts": true,
     "tests/unit/sonar/support/sonar-shim-fixtures.ts": true,
+    "tests/unit/spec/criterion-catalogue-answered.test.ts": true,
     "tests/unit/spec/criterion-catalogue-schema.test.ts": true,
     "tests/unit/spec/criterion-catalogue.test.ts": true,
     "tests/unit/spec/criterion-gate-mapping.test.ts": true,

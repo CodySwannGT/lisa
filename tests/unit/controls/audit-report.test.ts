@@ -3,10 +3,10 @@
  *
  * The audit is written by an agent, so code has to check it before anyone
  * relies on it. These cases pin the report's fixed names, what a complete
- * report looks like, the rule that every requirement is placed exactly once in
- * every part, and how the rule list is extended. The rules about a single
- * finding and the report's shape have suites of their own
- * (CodySwannGT/lisa#4978).
+ * report looks like, the findings that belong to no count, and how the rule
+ * list is extended. Where each requirement must be answered has a suite of its
+ * own (`audit-report-coverage.test.ts`), as have the rules about a single
+ * finding and the report's shape (CodySwannGT/lisa#4978).
  */
 import { describe, expect, it } from "vitest";
 
@@ -22,19 +22,19 @@ import {
 import { loadCriterionCatalogue } from "../../../src/controls/catalogue.js";
 import {
   completeAuditReport,
-  dropFinding,
   sampleFinding,
 } from "../../helpers/control-audit-report.js";
 import {
   API,
   CRITERIA,
   EXISTS_NOT_ENFORCED,
-  FIRST,
   FRESH,
   LINTER,
+  PART_FIRST,
+  PER_PART,
   PROVED,
+  REPOSITORY_WIDE,
   RULE,
-  SECOND,
   WHOLE,
   context,
   violationsOf,
@@ -74,14 +74,16 @@ describe("a complete report", () => {
     expect(report?.findings).toHaveLength(CRITERIA.length);
   });
 
-  it("passes with one finding per in-scope criterion for each part", () => {
+  it("passes with each requirement filed where the catalogue says it is answered", () => {
     const { report, violations } = validateAuditReport(
       completeAuditReport([WHOLE, API, "web"]),
       context()
     );
 
     expect(violations).toEqual([]);
-    expect(report?.findings).toHaveLength(CRITERIA.length * 3);
+    expect(report?.findings).toHaveLength(
+      REPOSITORY_WIDE.length + PER_PART.length * 2
+    );
   });
 
   it.each(
@@ -121,38 +123,7 @@ describe("a complete report", () => {
   });
 });
 
-describe("every in-scope criterion exactly once per part", () => {
-  it("names a criterion with no finding", () => {
-    const [violation, ...rest] = violationsOf(
-      dropFinding(completeAuditReport([WHOLE, API]), {
-        criterion: SECOND,
-        scope: API,
-      })
-    );
-
-    expect(rest).toEqual([]);
-    expect(violation).toMatchObject({
-      rule: RULE.coverage,
-      criterion: SECOND,
-      scope: API,
-    });
-  });
-
-  it("names a criterion placed in two states", () => {
-    const report = completeAuditReport();
-    const twice = {
-      ...report,
-      findings: [
-        ...report.findings,
-        { ...sampleFinding(FIRST, WHOLE), state: "unknown" },
-      ],
-    };
-
-    expect(violationsOf(twice)).toEqual([
-      expect.objectContaining({ rule: RULE.coverage, criterion: FIRST }),
-    ]);
-  });
-
+describe("a finding that belongs to no count", () => {
   it.each([
     { name: "an id the catalogue does not hold", criterion: "AC99.9" },
     {
@@ -182,25 +153,19 @@ describe("every in-scope criterion exactly once per part", () => {
     const report = completeAuditReport();
     const stray = {
       ...report,
-      findings: [...report.findings, sampleFinding(FIRST, API)],
+      findings: [...report.findings, sampleFinding(PART_FIRST, API)],
     };
 
     expect(violationsOf(stray)).toEqual([
       expect.objectContaining({
         rule: RULE.coverage,
-        criterion: FIRST,
+        criterion: PART_FIRST,
         scope: API,
+        message: expect.stringContaining(
+          `has a finding under the folder api, which the report's "scopes" list does not include`
+        ),
       }),
     ]);
-  });
-
-  it("says once that a listed part has no findings at all", () => {
-    const report = { ...completeAuditReport(), scopes: [WHOLE, API] };
-
-    expect(violationsOf(report)).toEqual([
-      expect.objectContaining({ rule: RULE.coverage, scope: API }),
-    ]);
-    expect(violationsOf(report)[0]?.criterion).toBeUndefined();
   });
 });
 

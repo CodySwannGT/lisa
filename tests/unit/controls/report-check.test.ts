@@ -32,7 +32,9 @@ import {
   EXISTS_NOT_ENFORCED,
   FIRST,
   LINTER,
+  PER_PART,
   PROVED,
+  REPOSITORY_WIDE,
   withFirst,
 } from "./audit-report-facts.js";
 import {
@@ -109,7 +111,7 @@ describe("a complete report passes", () => {
 
     expect(run.code).toBe(0);
     expect(run.stdout[0]).toContain(
-      `${CRITERIA.length * 3} findings across 3 parts`
+      `${REPOSITORY_WIDE.length + PER_PART.length * 2} findings across 3 parts`
     );
     expect(
       readFileSync(path.join(repoPath, AUDIT_REPORT_MARKDOWN_PATH), "utf8")
