@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 318,
-  "$names": 2344,
+  "$modules": 320,
+  "$names": 2351,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1880,6 +1880,9 @@
       "refusalFor",
       "sweep"
     ],
+    "scripts/check-release-commit-listed.mjs": [
+      "checkReleaseCommitListed"
+    ],
     "scripts/check-release-package-identity.mjs": [
       "assertCheckoutIdentity",
       "assertReleaseCommit",
@@ -2434,9 +2437,17 @@
       "withTestTimingsReporter"
     ],
     "scripts/lib/upstream-manifest-staleness.mjs": [
+      "blockFor",
       "describeStaleManifest",
       "diagnoseStaleManifest",
       "parseManifestInputs"
+    ],
+    "scripts/lib/upstream-public-commits.mjs": [
+      "MANIFEST_PATH",
+      "REFRESH_PUBLIC_COMMITS_COMMAND",
+      "describeUnlistedReleaseCommit",
+      "droppedPublicCommits",
+      "listedPublicCommits"
     ],
     "scripts/lib/workflow-contract-probe.mjs": [
       "CONTRACT_KINDS",
