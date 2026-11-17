@@ -385,7 +385,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "3494da83f789601d6e6d13a736091f2abb532565048970f6d7074c680b75053a",
+      "126569b0b93e78aea66806cc776ebbb40b83708bd113ecc76d04e661778eb344",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -401,7 +401,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "5f5df577fa6d67f34ed8e0f68a86e7778e483b2439c3cf18af0b9176b9023e30",
+      "4417960f5a1fc0204212cabe491b059a100b5c1a94d937af12cc67cafb99a64c",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -13192,6 +13192,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-killed.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-parts-assertion.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-parts-fixtures.ts": true,
+    "tests/unit/scripts/lisa-run-gates-parts-proof.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-parts-record.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-parts-scope.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-parts-spawn.test.ts": true,

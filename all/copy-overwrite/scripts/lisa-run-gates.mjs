@@ -75,6 +75,7 @@ import {
   resolve,
   sep,
 } from "node:path";
+import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -581,9 +582,37 @@ function execute(gate, exec, declarations) {
  *   diagnosis: string|null, evidence: string[]}} The outcome.
  */
 function executePart(gate, execArgv, directory, declarations) {
-  const shown = shownArgv(gate.argv);
   // A copy, so no executor can change what the report goes on to print.
   const raw = execArgv([...gate.argv], { cwd: directory, gate });
+  return judgePart(gate.argv, raw, declarations, directory);
+}
+
+/**
+ * Classify what one part's argument list answered, without starting it.
+ *
+ * The second half of {@link executePart}, on its own so that something other
+ * than this runner can ask the same question of an answer it obtained itself.
+ * The paired-proof runner is that something (CodySwannGT/lisa#4995): it plants
+ * a change, starts the part's command, and has to read the answer by exactly
+ * the rules a gate is read by — exit 0 from a run that says it ran nothing is
+ * not a pass, a kill is not a failure, and a failure says which failure it
+ * was. Two readings of one answer would let a proof say a control works when
+ * the gate itself would not have been believed.
+ *
+ * It decides nothing new and starts nothing. `detail` and `evidence` are
+ * written for a person and may quote this machine's load; `state`, `code` and
+ * `diagnosis` are what a caller should act on.
+ * @param {readonly string[]} argv The argument list, as the report prints it.
+ * @param {number|null|undefined|{code: number|null, output: string|null, signal?: string, notStarted?: string}} raw
+ *   What an executor answered, in any shape `runGates` accepts from one.
+ * @param {Array<{gate: string, shape: string[]}>} [declarations] Declared
+ *   failure shapes for this command.
+ * @param {string} [cwd] The folder the command ran in.
+ * @returns {{state: string, detail: string, code: number|null,
+ *   diagnosis: string|null, evidence: string[]}} The outcome.
+ */
+export function judgePart(argv, raw, declarations = [], cwd = process.cwd()) {
+  const shown = shownArgv(argv);
   const notStarted =
     raw !== null && typeof raw === "object" ? raw.notStarted : undefined;
   if (typeof notStarted === "string" && notStarted !== "") {
@@ -595,7 +624,7 @@ function executePart(gate, execArgv, directory, declarations) {
       evidence: [],
     };
   }
-  return judge(shown, normaliseExec(raw), declarations, directory);
+  return judge(shown, normaliseExec(raw), declarations, cwd);
 }
 
 /**
@@ -853,12 +882,16 @@ function argvProblem(argv) {
  * That one comparison is the whole test. `..`, a path from the top of the
  * disk and a link all fail it for the same reason, so there is no list of
  * spellings to keep complete.
+ *
+ * Exported for the paired-proof runner (CodySwannGT/lisa#4995), which starts
+ * a part's command in a copy of the repository and must hold the folder to
+ * the same test there.
  * @param {string} root The repository root.
  * @param {unknown} scope The part's folder, written from the root.
  * @returns {{directory: string}|{problem: string}} The folder, or the reason,
  *   finishing `NOTHING_RAN`.
  */
-function partDirectory(root, scope) {
+export function partDirectory(root, scope) {
   if (typeof scope !== "string" || scope === "") {
     return { problem: "it names no folder" };
   }
@@ -1831,6 +1864,9 @@ export function spawnExec(command) {
  */
 const PART_COMMAND_BUDGET_MS = 30 * 60 * 1000;
 
+/** The most output a quiet start with no supervisor collects, in bytes. */
+const QUIET_OUTPUT_BYTES = 64 * 1024 * 1024;
+
 /** Where a program is looked for when the environment sets no `PATH`. */
 const DEFAULT_SEARCH_PATH = "/usr/bin:/bin";
 
@@ -1910,20 +1946,27 @@ function programMissing(program) {
  * hook that started this run goes away. `--direct-argv` is the mode that
  * hands the list to the system as written; there is no `/bin/sh -c` on this
  * path, and `shell: false` says so for the one hop this file owns.
+ *
+ * A quiet start shows nothing while the command runs: the command reads from
+ * nothing and what it prints goes only to the captured tail. Only the
+ * supervisor's own messages still reach this process's error output.
  * @param {readonly string[]} argv The program and its arguments.
  * @param {string} cwd The folder to start in.
- * @param {boolean} capture Whether to keep a diagnostic tail of the output.
+ * @param {{capture: boolean, quiet: boolean, budgetMs: number}} how Whether to
+ *   keep a diagnostic tail of the output, whether to show nothing while the
+ *   command runs, and the deadline.
  * @returns {import("node:child_process").SpawnSyncReturns<string>} Result.
  */
-function superviseArgv(argv, cwd, capture) {
+function superviseArgv(argv, cwd, { capture, quiet, budgetMs }) {
   const watch = isWatchablePid(LAUNCH_PARENT_PID)
     ? [`--watch-pid=${LAUNCH_PARENT_PID}`]
     : [];
+  const shown = quiet ? "ignore" : "inherit";
   return boundedSpawnSync(
     process.execPath,
     [
       PROCESS_TREE_RUNNER,
-      `--timeout-ms=${PART_COMMAND_BUDGET_MS}`,
+      `--timeout-ms=${budgetMs}`,
       ...watch,
       ...(capture ? ["--capture-fd=3"] : []),
       "--direct-argv",
@@ -1933,9 +1976,39 @@ function superviseArgv(argv, cwd, capture) {
     {
       cwd,
       shell: false,
-      stdio: capture ? ["inherit", "inherit", "inherit", "pipe"] : "inherit",
-      timeout: PART_COMMAND_BUDGET_MS + PROCESS_TREE_REAP_BUDGET_MS,
+      stdio: capture ? [shown, shown, "inherit", "pipe"] : "inherit",
+      timeout: budgetMs + PROCESS_TREE_REAP_BUDGET_MS,
     }
+  );
+}
+
+/**
+ * The deadline one start of a part's command is held to, in milliseconds.
+ *
+ * A gate never passes one and gets {@link PART_COMMAND_BUDGET_MS}. A proof
+ * passes the limit its declaration gives one half (CodySwannGT/lisa#4995).
+ * The supervisor's literal mode accepts a whole number of milliseconds up to
+ * thirty minutes and nothing else, so anything else is refused here in a
+ * sentence instead of by the supervisor in a stack trace that would read as
+ * the command having run and failed.
+ * @param {unknown} timeoutMs What the caller asked for, if anything.
+ * @returns {number} The deadline.
+ * @throws {TypeError} When a limit was given and is not one the supervisor
+ *   accepts.
+ */
+function partBudget(timeoutMs) {
+  if (timeoutMs === undefined) return PART_COMMAND_BUDGET_MS;
+  if (
+    Number.isInteger(timeoutMs) &&
+    timeoutMs >= 1 &&
+    timeoutMs <= PART_COMMAND_BUDGET_MS
+  ) {
+    return timeoutMs;
+  }
+  throw new TypeError(
+    `A part's command was not started: its time limit is ` +
+      `${JSON.stringify(timeoutMs)}, and a limit is a whole number of ` +
+      `milliseconds from 1 to ${PART_COMMAND_BUDGET_MS}.`
   );
 }
 
@@ -1949,18 +2022,27 @@ function superviseArgv(argv, cwd, capture) {
  *
  * Here the system itself says when a program is not there (`ENOENT`), so
  * nothing is looked up first.
+ *
+ * A quiet start is the one case that keeps the output here: the command
+ * reads from nothing and what it prints is collected instead of shown.
  * @param {readonly string[]} argv The program and its arguments.
  * @param {string} cwd The folder to start in.
- * @returns {{code: number|null, output: null, signal?: string, notStarted?: string}}
+ * @param {{quiet: boolean, budgetMs: number}} how Whether to collect the
+ *   output instead of showing it, and the deadline.
+ * @returns {{code: number|null, output: string|null, signal?: string, notStarted?: string}}
  *   Exit code; null with `notStarted` when the program could not be started.
+ * @throws {Error} When the program was killed at its deadline.
  */
-function startArgv(argv, cwd) {
+function startArgv(argv, cwd, { quiet, budgetMs }) {
   const [program, ...rest] = argv;
   const child = boundedSpawnSync(program, rest, {
     cwd,
     shell: false,
-    stdio: "inherit",
-    timeout: PART_COMMAND_BUDGET_MS,
+    stdio: quiet ? ["ignore", "pipe", "pipe"] : "inherit",
+    timeout: budgetMs,
+    // Only a quiet start collects anything, and a check that prints a great
+    // deal must still be read rather than cut off as if it could not start.
+    ...(quiet ? { maxBuffer: QUIET_OUTPUT_BYTES } : {}),
   });
   if (child.error) {
     const code = /** @type {{code?: unknown}} */ (child.error).code;
@@ -1976,7 +2058,7 @@ function startArgv(argv, cwd) {
   }
   return {
     code: child.status,
-    output: null,
+    output: quiet ? `${child.stdout ?? ""}${child.stderr ?? ""}` : null,
     ...(child.signal ? { signal: child.signal } : {}),
   };
 }
@@ -2004,17 +2086,44 @@ function startArgv(argv, cwd) {
  * with a well-formed list is an answer instead: `{code: null}` with
  * `notStarted` for a folder or a program that is not there, and `{code:
  * null}` alone for a command killed at its deadline.
+ *
+ * ## What a proof asks for that a gate does not
+ *
+ * A gate passes neither `timeoutMs` nor `quiet`, and nothing above changes
+ * for it. The paired-proof runner (CodySwannGT/lisa#4995) passes both.
+ *
+ * `timeoutMs` is the limit its declaration gives one half of a proof. A
+ * command still running at that limit is stopped with its whole process
+ * tree, exactly as at the gate's own deadline, and the answer says so with
+ * `timedOut: true` — the one thing an exit code cannot say, and the
+ * difference between "this check is too slow for its limit" and "this
+ * machine killed it". The key is only ever present, and only ever true, on a
+ * start that was given a limit and was stopped no earlier than it.
+ *
+ * `quiet` shows nothing while the command runs. A proof's report is one
+ * document, and a command printing into the middle of it would make that
+ * document unreadable by the program it was written for. The command reads
+ * from nothing, and what it prints is kept for the answer whatever
+ * `LISA_GATES_CAPTURE` says, because the output is what the proof is read
+ * from.
  * @param {readonly string[]} argv The program, then its arguments.
  * @param {object} options How to start it.
  * @param {string} options.cwd The folder to start in.
  * @param {string} [options.platform] The platform, for the route Windows
  *   takes. Injectable so that route can be run where it is not the default.
- * @returns {{code: number|null, output: string|null, signal?: string, notStarted?: string}}
+ * @param {number} [options.timeoutMs] The deadline, in whole milliseconds
+ *   from 1 to thirty minutes. Thirty minutes when left out.
+ * @param {boolean} [options.quiet] Show nothing while the command runs, and
+ *   always keep what it printed.
+ * @returns {{code: number|null, output: string|null, signal?: string, notStarted?: string, timedOut?: true}}
  *   OS status and diagnostic tail, or why nothing started.
- * @throws {TypeError} When `argv` is not a list of text naming a program, or
- *   `cwd` is not given.
+ * @throws {TypeError} When `argv` is not a list of text naming a program,
+ *   `cwd` is not given, or `timeoutMs` is not a limit the supervisor accepts.
  */
-export function spawnArgv(argv, { cwd, platform = process.platform } = {}) {
+export function spawnArgv(
+  argv,
+  { cwd, platform = process.platform, timeoutMs, quiet = false } = {}
+) {
   const problem = argvProblem(argv);
   if (problem !== null) {
     throw new TypeError(
@@ -2028,6 +2137,7 @@ export function spawnArgv(argv, { cwd, platform = process.platform } = {}) {
       "A part's command was not started: no folder to start it in was given."
     );
   }
+  const budgetMs = partBudget(timeoutMs);
   // Asked here as well as in `partDirectory`, for a caller that is not
   // `runGates`: the system reports a missing folder as the PROGRAM not being
   // found, which would send an operator to install something they have.
@@ -2038,24 +2148,43 @@ export function spawnArgv(argv, { cwd, platform = process.platform } = {}) {
       notStarted: `the folder ${JSON.stringify(cwd)} does not exist`,
     };
   }
-  if (platform === "win32") return startArgv(argv, cwd);
+  const limited = timeoutMs !== undefined;
+  const began = performance.now();
+  // Read off a clock that cannot be set back, and only to name a stop that
+  // has already happened: the supervisor ends a tree at its deadline with the
+  // same signal anything else on the machine would use, so the elapsed time
+  // is the only thing that tells the two apart.
+  const atDeadline = answer =>
+    limited && answer.code === null && performance.now() - began >= budgetMs
+      ? { ...answer, timedOut: true }
+      : answer;
+  if (platform === "win32") {
+    try {
+      return startArgv(argv, cwd, { quiet, budgetMs });
+    } catch (error) {
+      // A gate keeps what it always had here. Only a start that was given a
+      // limit of its own is answered instead.
+      if (!limited) throw error;
+      return atDeadline(killedOrRethrow(error));
+    }
+  }
   const notStarted = programProblem(argv[0], cwd);
   if (notStarted !== null) return { code: null, output: null, notStarted };
-  const capture = process.env.LISA_GATES_CAPTURE !== "0";
+  const capture = quiet || process.env.LISA_GATES_CAPTURE !== "0";
   try {
-    const child = superviseArgv(argv, cwd, capture);
+    const child = superviseArgv(argv, cwd, { capture, quiet, budgetMs });
     // A non-timeout `spawnSync` failure arrives on the result, and it means
     // the supervisor itself never ran: nothing checked this part.
     if (child.error) return { code: null, output: null };
     const captured = capture ? child.output?.[3] : null;
-    return {
+    return atDeadline({
       code: child.status,
       ...(child.signal ? { signal: child.signal } : {}),
       output:
         captured === null || captured === undefined ? null : String(captured),
-    };
+    });
   } catch (error) {
-    return killedOrRethrow(error);
+    return atDeadline(killedOrRethrow(error));
   }
 }
 

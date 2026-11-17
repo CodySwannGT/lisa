@@ -1590,7 +1590,7 @@
       "children": []
     },
     "lisa-run-gates.mjs": {
-      "sha256": "3494da83f789601d6e6d13a736091f2abb532565048970f6d7074c680b75053a",
+      "sha256": "126569b0b93e78aea66806cc776ebbb40b83708bd113ecc76d04e661778eb344",
       "staticImports": [
         "lib/affected-tests.mjs",
         "lib/bounded-spawn.mjs",
@@ -1608,6 +1608,7 @@
         "lisa-gates.mjs",
         "node:fs",
         "node:path",
+        "node:perf_hooks",
         "node:url"
       ],
       "dynamicImports": [],
