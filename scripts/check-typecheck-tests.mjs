@@ -40,6 +40,13 @@
  * token out of this header to decide the gate is probeable at all — without it
  * this sits in that sweep's declared blind spot.
  *
+ * `--project` POINTS IT AT ANOTHER PROGRAM. `tsconfig.eslint.json` is the
+ * program ESLint's type-aware rules read their types from; it once reported
+ * 5,294 errors while lint passed, so those rules were reasoning over `any` and
+ * error types (CodySwannGT/lisa#4927). `bun run typecheck:eslint` runs this
+ * same gate over it — same rules, same refusals, no exemption list — so that
+ * program cannot rot unseen again. Without the flag it checks the test program.
+ *
  * WHAT IS DELIBERATELY NOT DONE HERE: the declared `lib` is not widened. tsc
  * emits "Try changing the 'lib' compiler option to 'es2023' or later" on the
  * ES2023 array APIs, and taking that suggestion would have erased the
@@ -66,8 +73,40 @@ const DEFAULT_ROOT = path.resolve(
   ".."
 );
 
-/** The gate's name, as it prints in both the report and the refusal. */
-const GATE = "type-correctness (tests)";
+/** The project the gate compiles when no `--project` is given. */
+const DEFAULT_PROJECT = "tsconfig.tests.json";
+
+/**
+ * How each known program is named in the report and the refusal. The test
+ * program's wording is a contract: `gate-failure-diagnosis.mjs` and the tests
+ * pinning this gate read it.
+ * @type {Readonly<Record<string, { gate: string, program: string }>>}
+ */
+const PROGRAMS = {
+  "tsconfig.tests.json": {
+    gate: "type-correctness (tests)",
+    program: "the test program",
+  },
+  "tsconfig.eslint.json": {
+    gate: "type-correctness (eslint program)",
+    program: "the ESLint program",
+  },
+};
+
+/**
+ * Name a program for the report: a known one by its fixed wording, any other
+ * by its config file, so a new project never prints as the test program.
+ * @param {string} project - The tsconfig path, relative to the root.
+ * @returns {{ gate: string, program: string }} The gate name and program noun.
+ */
+export function describeProgram(project) {
+  return (
+    PROGRAMS[project] ?? {
+      gate: `type-correctness (${project})`,
+      program: `the ${project} program`,
+    }
+  );
+}
 
 /**
  * Where the compiler is spawned from, relative to the root: the TypeScript
@@ -117,16 +156,17 @@ function parseDiagnostics(output) {
  * NO FILE IS NAMED HERE, deliberately: nothing was compiled, so nothing is
  * known about any file.
  *
+ * @param {{ gate: string, program: string }} named - The program's names.
  * @param {string} because - Why the measurement could not happen.
  * @param {string} fix - The action that repairs THIS cause. Named per call
  *   site rather than fixed, because telling someone to install dependencies
  *   they already have is how a refusal gets dismissed as noise.
  * @returns {string} The refusal block.
  */
-function refuseUnmeasurable(because, fix) {
+function refuseUnmeasurable(named, because, fix) {
   return cannotMeasure({
-    gate: GATE,
-    denial: "that the test program type-checks",
+    gate: named.gate,
+    denial: `that ${named.program} type-checks`,
     because,
     remedy: `${fix} No file was compiled, so nothing was established about any of them.`,
   });
@@ -135,9 +175,11 @@ function refuseUnmeasurable(because, fix) {
 /**
  * Run the gate.
  * @param {string} root - Directory to resolve the project under.
+ * @param {string} [project] - The tsconfig to compile, relative to the root.
  * @returns {number} The process exit code.
  */
-export function main(root) {
+export function main(root, project = DEFAULT_PROJECT) {
+  const named = describeProgram(project);
   // PRECONDITION. Checked before the spawn rather than inferred from it: the
   // spawn SUCCEEDS with an empty `node_modules` — node starts, and it is node
   // that cannot find the module — so `tsc.error` never fires and the failure
@@ -146,6 +188,7 @@ export function main(root) {
   if (missing.length > 0) {
     console.error(
       refuseUnmeasurable(
+        named,
         `the TypeScript native compiler (tsgo) is not installed — no file at ${missing[0]}.`,
         `Run \`${INSTALL_COMMAND}\`, then re-run this gate.`
       )
@@ -161,7 +204,7 @@ export function main(root) {
       "--pretty",
       "false",
       "-p",
-      path.join(root, "tsconfig.tests.json"),
+      path.join(root, project),
     ],
     { cwd: root, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 }
   );
@@ -189,6 +232,7 @@ export function main(root) {
       .find(Boolean);
     console.error(
       refuseUnmeasurable(
+        named,
         `tsgo exited ${tsc.status} without emitting one diagnostic this gate ` +
           `could parse, so the check had no subject.` +
           `${firstLine ? ` First output line: ${firstLine}` : ""}`,
@@ -201,7 +245,7 @@ export function main(root) {
   const offenders = [...errorsByFile.keys()].sort();
   const totalErrors = [...errorsByFile.values()].reduce((sum, n) => sum + n, 0);
   console.log(
-    `${GATE}: ${errorsByFile.size} file(s) with ${totalErrors} error(s).`
+    `${named.gate}: ${errorsByFile.size} file(s) with ${totalErrors} error(s).`
   );
 
   if (offenders.length > 0) {
@@ -212,14 +256,33 @@ export function main(root) {
     }
     console.error("");
     console.error(
-      "Fix each at its cause. There is no exemption list: every file in the"
+      "Fix each at its cause. There is no exemption list: every file in"
     );
-    console.error("test program is type-checked, and one error fails it.");
+    console.error(`${named.program} is type-checked, and one error fails it.`);
     return 1;
   }
 
-  console.log("✅ The test program type-checks with no errors.");
+  const program =
+    named.program.charAt(0).toUpperCase() + named.program.slice(1);
+  console.log(`✅ ${program} type-checks with no errors.`);
   return 0;
+}
+
+/**
+ * Read the value following `flag`, or undefined when the flag is absent.
+ * @param {ReadonlyArray<string>} argv - Arguments after the script name.
+ * @param {string} flag - The flag, e.g. `--root`.
+ * @returns {string | undefined} The flag's value.
+ */
+function flagValue(argv, flag) {
+  const index = argv.indexOf(flag);
+  if (index === -1) return undefined;
+  const value = argv[index + 1];
+  if (value === undefined) {
+    console.error(`check-typecheck-tests: ${flag} requires a value`);
+    process.exit(2);
+  }
+  return value;
 }
 
 /**
@@ -228,16 +291,21 @@ export function main(root) {
  * @returns {string} The absolute root.
  */
 export function rootFrom(argv) {
-  const flag = argv.indexOf("--root");
-  if (flag === -1) return DEFAULT_ROOT;
-  const value = argv[flag + 1];
-  if (value === undefined) {
-    console.error("check-typecheck-tests: --root requires a value");
-    process.exit(2);
-  }
-  return path.resolve(value);
+  const value = flagValue(argv, "--root");
+  return value === undefined ? DEFAULT_ROOT : path.resolve(value);
+}
+
+/**
+ * Resolve the project from `--project <tsconfig>`, relative to the root and
+ * defaulting to the test program.
+ * @param {ReadonlyArray<string>} argv - Arguments after the script name.
+ * @returns {string} The tsconfig path relative to the root.
+ */
+export function projectFrom(argv) {
+  return flagValue(argv, "--project") ?? DEFAULT_PROJECT;
 }
 
 if (invokedAsScript(import.meta.url)) {
-  process.exit(main(rootFrom(process.argv.slice(2))));
+  const argv = process.argv.slice(2);
+  process.exit(main(rootFrom(argv), projectFrom(argv)));
 }

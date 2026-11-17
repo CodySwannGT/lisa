@@ -136,7 +136,7 @@ function readNvmrcVersion(): string {
  * Extracts the major version from a semver string
  */
 function getMajorVersion(version: string): string {
-  return version.split(".")[0];
+  return version.split(".").at(0) ?? version;
 }
 
 /**

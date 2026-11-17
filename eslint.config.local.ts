@@ -18,30 +18,21 @@
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.config.local
  */
-export default [
-  {
-    // Lisa-specific: ignore distributable payloads that are copied/published to other
-    // projects, not part of this monorepo's app source. plugins/** also covers GENERATED
-    // build artifacts (plugins/lisa, plugins/lisa-*) which must never be auto-fixed —
-    // a lint --fix there would desync them from plugins/src and break check:plugins.
-    // wiki/** is the LLM Wiki content (markdown + JSON config/state cursors), not app
-    // code, so app lint rules (e.g. sonarjs/no-duplicate-string on the config) don't apply.
-    ignores: [
-      "all/**",
-      "cdk/**",
-      "expo/**",
-      "nestjs/**",
-      "npm-package/**",
-      "typescript/**",
-      "plugins/**",
-      "wiki/**",
-      // OpenCode plugin templates: copied verbatim into a host project's
-      // `.opencode/plugin/` and executed under OpenCode's Bun runtime, NOT this
-      // monorepo's runtime. They use Bun globals (`Bun`, `$`) and the OpenCode
-      // plugin shape, so this repo's functional/jsdoc rules don't apply.
-      "src/opencode/plugin-templates/**",
-    ],
-  },
+import type { getTypescriptConfig } from "@codyswann/lisa/eslint/typescript";
+
+/**
+ * The element type eslint.config.ts spreads this into. Annotated so rule
+ * severities such as "off" keep their literal type instead of widening to
+ * `string`, which is not a rule config (CodySwannGT/lisa#4927).
+ */
+type LocalConfig = ReturnType<typeof getTypescriptConfig>;
+
+const localConfig: LocalConfig = [
+  // Lisa's own ignores (template trees, generated plugins, the wiki, OpenCode
+  // plugin templates) live in eslint.ignore.config.local.json, NOT here: that
+  // file is the one list eslint.config.ts, eslint.slow.config.ts and
+  // tsconfig.eslint.json's `exclude` all agree on (CodySwannGT/lisa#4927).
+  // An ignore added here would reach the fast lint only.
   {
     // Shared test fixtures. `**/*.test.ts` is already exempt from the app's
     // `process.env` restriction because a test must be able to construct the
@@ -84,3 +75,5 @@ export default [
     },
   },
 ];
+
+export default localConfig;

@@ -439,7 +439,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
-      "5b6f329449a492cf6264b4db6a9bfea60e93458be25a83785cfd3ac0df62e578",
+      "5dbf3833607851e0db4538964fabbf6c2e779ce1eeebe34e8085cf99103c8fd6",
     "cdk/copy-overwrite/eslint.config.ts":
       "1d7c8d9d3c2dd68ed418175b9e0da9c5029ebaa887b1dc8dd7aa37d91b99314d",
     "cdk/copy-overwrite/eslint.slow.config.ts":
@@ -449,7 +449,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/tsconfig.cdk.json":
       "7d62683ed6f67dd3453ef577e0e0251a22d82159b5b5c0e79a0315059bf36571",
     "cdk/copy-overwrite/tsconfig.eslint.json":
-      "fcba9e695a032fac7b51dc5c5232c82c7e8787156ff4de1c589b8d88ac7b0e47",
+      "314a5fdee22c57ba4d41d57f9109fc50e1a02ac2c6a0c745df1ed08bd1b149a6",
     "cdk/copy-overwrite/tsconfig.json":
       "bd960df819bb1ce01163ac4b28721eea3f07d482f6c454cfea9a8dc90191033a",
     "cdk/copy-overwrite/vitest.cdk.ts":
@@ -547,7 +547,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/eslint.config.ts":
       "bb02718e1a809151c282d5fc54a1b570fe1cc86236dc1e5f2bcb570b06a22baa",
     "expo/copy-overwrite/eslint.expo.ts":
-      "e43d528568450ba2acfc943c5dea07a34f0a03550ec739ba531f6d5a4bf234d7",
+      "c024470992f717d768275bd055936300ce43a3b29eed2659bd15940e27be0cd3",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "3189a36471d596f5d4c3ed43484a9b7a5d33ef27b4d0fdb93007b823cec6cad0",
     "expo/copy-overwrite/jest.config.ts":
@@ -611,7 +611,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "expo/copy-overwrite/tsconfig.eslint.json":
-      "eb72e9a565512f9f16ee2e5dcbc0d021c790bad3011429733e26fbdf529e190b",
+      "3104f11ff28be519dbf88cf65689c99fcaa41529cad21adb43fa77775ab55c3a",
     "expo/copy-overwrite/tsconfig.expo.json":
       "55f3dfe80496f03152d40d364c5a9cabf3fdce3adc8cebea48ba5257d77b7aa9",
     "expo/copy-overwrite/tsconfig.json":
@@ -701,7 +701,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/knip.json":
       "7f23d3075b63fac399305cdec3abed477daee7bc349f26290b7b47a53be6bd51",
     "harper-fabric/copy-overwrite/tsconfig.eslint.json":
-      "63ddc31cbbdf91ba4def5f04ed76b2a8b61ced456d4472aea77a55cc037a62e1",
+      "1b0e21887370e395f3605406763217ff80ebac472c3373e8b69212d98ad75d59",
     "harper-fabric/copy-overwrite/tsconfig.json":
       "64b9f2e919160568712e2641b125aa21bec486532249a7b17e4fb2f4bb3988cc",
     "harper-fabric/copy-overwrite/vitest.config.ts":
@@ -725,7 +725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
-      "50986c80ebfcbef86b6c24d6a50ace0964d43fe85c65a732230388caffab453c",
+      "5f3216996fe38e79f6d6a7659839e6e9424912ae612c840d1185d74786c981a9",
     "nestjs/copy-overwrite/eslint.slow.config.ts":
       "602a21f47370a0a947e92bced1b93bf8fa4c146e07c944ffe1d56ef50914a688",
     "nestjs/copy-overwrite/knip.json":
@@ -733,13 +733,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/copy-overwrite/tsconfig.build.json":
       "c914ee7550d89c0946253bf5002086a306d061b150f4d4519ba8fecd78a63c87",
     "nestjs/copy-overwrite/tsconfig.eslint.json":
-      "9e451b95b04ed070319a152c4ecf7f12bb65109b2b79bed9e8349c535602b498",
+      "ef1c13d48c11f908994440c9e9e275a6905cf41b4fe72166c9af49ac44584a53",
     "nestjs/copy-overwrite/tsconfig.json":
       "9241aaff2834a43467846dc03b76703be7df26aeb17922db1246c5431b8f6666",
     "nestjs/copy-overwrite/tsconfig.nestjs.json":
       "34e125780238eacc425688edd14fca303f719adf3130677f71045856fb646295",
     "nestjs/copy-overwrite/tsconfig.spec.json":
-      "c94b97ece66d5e19231244eb3e32bff3a40c13188474a1e0d17db08c37fc10b7",
+      "e501602cf937849a802a2e2b64e24ae57637f8f108c96f8dee8394f70eaf37b0",
     "nestjs/copy-overwrite/vitest.config.ts":
       "c02f41cfb1680a6001528191b36f7fced9d06538bd4cf7ea91fd63d666a39a8e",
     "nestjs/copy-overwrite/vitest.nestjs.ts":
@@ -853,7 +853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "phaser/copy-overwrite/tsconfig.eslint.json":
-      "f68ef61ca6ba5081db23a13e18b845e00487407cf2d3b8cbceea6f85f2b01498",
+      "b41d0de022b83615124d43dba1753473b5cff0ddb2654e95fc628a2844daff71",
     "phaser/copy-overwrite/tsconfig.json":
       "8d9ce60a68b5e29213c4251ae35e68bc22c7128e49659d5a8967de6a16d620e5",
     "phaser/copy-overwrite/vitest.config.ts":
@@ -2625,7 +2625,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-guard-parity-notes.mjs":
       "3035043067ec7153d754cedf0eb51da22643fc0b2b744770b8ba93b0e6506092",
     "scripts/check-learnings-budget.ts":
-      "6e9a735f090a7f1f73f0a447e6688c3dabe9edf61de5e9ad48b0c22701ee38d0",
+      "6e5fb8b6d80b94574004fa8ef5193fa4f591ebd9333d4651bdbfb3f21b78148f",
     "scripts/check-merge-driver-registration.mjs":
       "8ed1aa50a640d4241c565cf8e0fcd45339e4e8f69a6b656117ca7ee18a5e3291",
     "scripts/check-npm-install-compat.mjs":
@@ -2667,7 +2667,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-third-party-action-pins.mjs":
       "39420e981ebd85279dc92f07eed5cb948c17b810a45951b4b3a7c7b3950bb3e5",
     "scripts/check-typecheck-tests.mjs":
-      "d498e76ff727ca5f3f4bd3f52744b924b51865e160cea33bc383650d7e20de45",
+      "e56722975d708b87ec4bf11e292567ef6e22faa319481f6ec517336e36268b10",
     "scripts/check-whole-output-guards.mjs":
       "3c694de42c681ff25ba5eaa18abdc48d39c6fa8bfd27f48d0e5cdf71c3733a81",
     "scripts/check-workflow-contract-assertions.mjs":
@@ -2971,7 +2971,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/two-channel-couplings.json":
       "1dc650c631a7ca339f3a225e47a314e7af448060d14bfd52c25e0c7192976335",
     "scripts/update-node-version.ts":
-      "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
+      "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
       "e26a3ac716c33013e22bf5223a58457452f5af2038218a0e3a51c244eab5ddc9",
     "scripts/verify-health-agentic-built.mjs":
@@ -3109,7 +3109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "typescript/copy-overwrite/tsconfig.eslint.json":
-      "83421522f0817673d488db4ad4c0f5c5bc6bca0e0f16a6dc55e74666481b82c4",
+      "4d1c8f69b83ef0480796a5880dc3abca8f9fcb951b9bb76f54a724ba75c0275c",
     "typescript/copy-overwrite/tsconfig.json":
       "8f4257fcd2cfd4b23e83e0fdd4908d41ee8f1ae75bb95d632e653a0ac13d58e4",
     "typescript/copy-overwrite/vitest.config.ts":
@@ -3659,6 +3659,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "eslint.config.local.ts": true,
     "eslint.config.ts": true,
     "eslint.ignore.config.json": true,
+    "eslint.ignore.config.local.json": true,
     "eslint.slow.config.ts": true,
     "eslint.thresholds.json": true,
     "evidence/1529/browser-drift.png": true,
@@ -11112,11 +11113,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/eslint/typescript.ts": true,
     "src/configs/eslint/view-gate.ts": true,
     "src/configs/jest/base.ts": true,
-    "src/configs/jest/cdk.ts": true,
     "src/configs/jest/expo.ts": true,
     "src/configs/jest/index.ts": true,
-    "src/configs/jest/nestjs.ts": true,
-    "src/configs/jest/typescript.ts": true,
     "src/configs/repo-scan.ts": true,
     "src/configs/vitest/base.ts": true,
     "src/configs/vitest/cdk.ts": true,
@@ -12327,6 +12325,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-plugin-phaser.test.ts": true,
     "tests/unit/config/eslint-plugin-ui-standards-design-value.test.ts": true,
     "tests/unit/config/eslint-shipped-config-templates.test.ts": true,
+    "tests/unit/config/eslint-shipped-host-files.test.ts": true,
     "tests/unit/config/eslint-shipped-max-lines.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-clean.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-coverage.test.ts": true,
@@ -12398,6 +12397,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/test-run-supervision-wiring.test.ts": true,
     "tests/unit/config/test-timings-reporter.test.ts": true,
     "tests/unit/config/tmpdir-growth-benchmark-scheduled.test.ts": true,
+    "tests/unit/config/tsconfig-eslint-programs.test.ts": true,
+    "tests/unit/config/tsconfig-eslint-root-scope.test.ts": true,
     "tests/unit/config/tsconfig-no-unused-flags.test.ts": true,
     "tests/unit/config/tsconfig-template-references.test.ts": true,
     "tests/unit/config/vitest-base.test.ts": true,

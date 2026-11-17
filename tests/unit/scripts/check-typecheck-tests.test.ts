@@ -1,6 +1,6 @@
 /**
  * Unit tests for scripts/check-typecheck-tests.mjs (CodySwannGT/lisa#3811,
- * #3913, #4923).
+ * #3913, #4923, #4927).
  *
  * The gate is strict: one type error in any file of the test program fails it,
  * and there is no exemption list to consult (#4923 deleted the quarantine that
@@ -31,6 +31,7 @@
 import {
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   realpathSync,
   rmSync,
   symlinkSync,
@@ -119,14 +120,21 @@ function fixture({
   return root;
 }
 
+/** The program ESLint's type-aware rules read their types from. */
+const ESLINT_PROJECT = "tsconfig.eslint.json";
+
 /**
  * Run the gate against a fixture.
  * @param root - The fixture root.
+ * @param extraArgs - Further arguments, e.g. `--project`.
  * @returns The exit status and combined output.
  */
-function runGate(root: string): { status: number; output: string } {
+function runGate(
+  root: string,
+  extraArgs: readonly string[] = []
+): { status: number; output: string } {
   const result = boundedSpawnSync({
-    args: [SCRIPT, "--root", root],
+    args: [SCRIPT, "--root", root, ...extraArgs],
     command: process.execPath,
     label: "check-typecheck-tests.mjs",
   });
@@ -243,6 +251,80 @@ describe("check-typecheck-tests", () => {
       expect(output).toContain("had no subject");
       expect(output).not.toContain("✅");
       expect(status).toBe(1);
+    });
+  });
+
+  describe("--project tsconfig.eslint.json (CodySwannGT/lisa#4927)", () => {
+    /**
+     * A fixture whose ESLint program differs from its test program, so a pass
+     * or a failure can only come from the project the flag named.
+     * @param broken - Whether the ESLint program holds a type error.
+     * @returns The fixture root.
+     */
+    function eslintFixture(broken: boolean): string {
+      const root = fixture({ installed: true, broken: false });
+      mkdirSync(path.join(root, "configs"));
+      writeFileSync(
+        path.join(root, "configs/lint-only.ts"),
+        broken ? BROKEN : CLEAN
+      );
+      writeFileSync(
+        path.join(root, ESLINT_PROJECT),
+        JSON.stringify({ ...TSCONFIG, include: ["src/**/*", "configs/**/*"] })
+      );
+      return root;
+    }
+
+    it("fails on an error in a file only the ESLint program compiles", () => {
+      const root = eslintFixture(true);
+
+      const eslint = runGate(root, ["--project", ESLINT_PROJECT]);
+      expect(eslint.status).toBe(1);
+      expect(eslint.output).toContain(
+        "type-correctness (eslint program): 1 file(s) with 1 error(s)."
+      );
+      expect(eslint.output).toContain(`1 ${HAS_ERRORS}`);
+      expect(eslint.output).toContain("configs/lint-only.ts (1)");
+
+      // The same tree under the default project is clean: the verdict above
+      // came from the program the flag named, not from the test program.
+      expect(runGate(root).status).toBe(0);
+    });
+
+    it("passes when the ESLint program is clean", () => {
+      const { output, status } = runGate(eslintFixture(false), [
+        "--project",
+        ESLINT_PROJECT,
+      ]);
+
+      expect(output).toContain("✅ The ESLint program type-checks");
+      expect(status).toBe(0);
+    });
+
+    it("refuses, naming the ESLint program, when the compiler is absent", () => {
+      const root = fixture({ installed: false, broken: false });
+      writeFileSync(path.join(root, ESLINT_PROJECT), JSON.stringify(TSCONFIG));
+
+      const { output, status } = runGate(root, ["--project", ESLINT_PROJECT]);
+
+      expect(output).toContain(CANNOT_MEASURE);
+      expect(output).toContain(
+        "is NOT reporting that the ESLint program type-checks"
+      );
+      expect(status).toBe(1);
+    });
+
+    it("is part of `bun run typecheck`", () => {
+      const scripts = (
+        JSON.parse(readFileSync("package.json", "utf8")) as {
+          readonly scripts: Readonly<Record<string, string>>;
+        }
+      ).scripts;
+
+      expect(scripts["typecheck:eslint"]).toBe(
+        "node scripts/check-typecheck-tests.mjs --project tsconfig.eslint.json"
+      );
+      expect(scripts["typecheck"]).toContain("bun run typecheck:eslint");
     });
   });
 });
