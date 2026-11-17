@@ -35,6 +35,21 @@ describe("security-audit-handling is named by the audit", () => {
     expect(skill).not.toMatch(/add (?:it|an exclusion entry) to/iu);
   });
 
+  it("files a build-ready ticket instead of assuming a human", () => {
+    const skill = readFileSync(
+      "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md",
+      "utf8"
+    );
+    expect(skill).toContain("**file a build-ready ticket**");
+    expect(skill).toContain(
+      "the advisory, the dependency path that reaches the vulnerable copy, and what was tried at each of the four steps"
+    );
+    expect(skill).toContain(
+      "Stop only when the next act needs access you do not have, and then say exactly what is missing."
+    );
+    expect(skill).not.toMatch(/stop for a human/iu);
+  });
+
   it("never advertises an exclusion file in the failure message", () => {
     for (const script of [
       "all/copy-overwrite/scripts/lisa-audit.mjs",

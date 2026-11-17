@@ -83,7 +83,11 @@ outside the scope fails and names the vulnerable lockfile paths. The failure
 also says what to do next, in order: refresh the lockfile within the current
 range, upgrade the direct dependency that pulls the copy, add a targeted
 override to the fixed version, or replace or remove the dependency when no fix
-exists. Empty `paths`, invalid
+exists. When none of these works in the change at hand, the agent files a
+build-ready ticket in the tracker with the evidence (the advisory, the
+dependency path, and what was tried at each step), so the factory carries the
+replacement or removal as work. It stops only when the next act needs access
+it does not have, and then says exactly what is missing. Empty `paths`, invalid
 or unknown scope fields, missing or unreadable lockfiles, malformed lockfile
 data, and unknown resolved package data fail with a diagnostic. They never
 turn into an advisory-wide exclusion. A present scope requires readable

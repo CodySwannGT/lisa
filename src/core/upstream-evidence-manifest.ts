@@ -1305,7 +1305,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/reset-seed-coverage.md":
       "cfbb50fc9fdb6f0a354255802392adc717ea18af65aca92cc866416bf9256d91",
     "plugins/src/base/rules/reference/security-audit-handling.md":
-      "5a1c57d459d78378068414b9968ffffd45aee9cd6cb1573ca7abedeecfea2908",
+      "efa516249c5984970251ee8b77573864247d46e1725a28f686e262bf72130d3e",
     "plugins/src/base/rules/reference/session-status-updates.md":
       "dc4d782da9428c90fbb419787c937f4a08bdee894eff3acfe3fffa942e2438d0",
     "plugins/src/base/rules/reference/settled-decisions.md":
@@ -1719,7 +1719,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
       "8687d794603742e83f3b7d7b1d21a56c98422e4301eef99f0d05eacc26d955b8",
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md":
-      "ca1bdc807d90e9abffc257a9f704a66ee3a75515d133c66c717a8a177ee07e5c",
+      "e5b38481ba3da864165b07fb89d2630e688590cbd4bb1af0a04d631c68981837",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "6878641d8ae3c0b1e6bab736e46dd5b0fd32a5e25ca9a0eecd1e66a5fb0bfdd2",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
