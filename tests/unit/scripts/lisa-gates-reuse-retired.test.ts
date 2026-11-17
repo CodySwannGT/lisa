@@ -22,7 +22,15 @@ describe("the retired reuse declaration", () => {
     const fresh =
       await import("../../../all/copy-overwrite/scripts/lisa-gates.mjs");
 
-    expect([...fresh.GATE_FIELDS]).toEqual(["run", "needs", "task"]);
+    expect([...fresh.GATE_FIELDS]).toEqual([
+      "run",
+      "needs",
+      "task",
+      "criteria",
+      "owner",
+      "tier",
+      "parts",
+    ]);
   });
 
   it("is reported as a problem naming reuse", () => {
