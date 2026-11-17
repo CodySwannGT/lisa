@@ -36,6 +36,7 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import { enclosingAdmissionEnv } from "../helpers/enclosing-admission.js";
 
 // File-scoped budget (CodySwannGT/lisa#4582): every case here starts real
 // host processes, measured at about 0.8 s per host run and 4 s for the five-run case on a quiet box (1 vitest process). Both
@@ -157,15 +158,21 @@ async function typescriptHost(): Promise<
 function runSuite(host: Host) {
   // A fresh run, not a nested one: drop everything the enclosing Lisa and
   // Vitest run exported, including its sweep marker, so the host's
-  // lisa-test-run sweeps as it does on a developer's machine.
-  const env: NodeJS.ProcessEnv = Object.fromEntries(
-    Object.entries(process.env).filter(
-      ([key]) =>
-        !key.startsWith("LISA_") &&
-        !key.startsWith("VITEST") &&
-        key !== SWEPT_ENV
-    )
-  );
+  // lisa-test-run sweeps as it does on a developer's machine. Its admission
+  // decision is the exception: the host's suite is work the parent was
+  // already admitted for, so it runs inside that reservation rather than
+  // queueing for headroom a second time.
+  const env: NodeJS.ProcessEnv = {
+    ...Object.fromEntries(
+      Object.entries(process.env).filter(
+        ([key]) =>
+          !key.startsWith("LISA_") &&
+          !key.startsWith("VITEST") &&
+          key !== SWEPT_ENV
+      )
+    ),
+    ...enclosingAdmissionEnv(),
+  };
   env.TMPDIR = host.tmp;
   delete env.NODE_ENV;
   const child = boundedSpawnSync({
