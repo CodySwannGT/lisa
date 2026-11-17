@@ -11,6 +11,7 @@
 import {
   amendFinding,
   completeAuditReport,
+  sampleQuestion,
   type SampleFinding,
   type SampleReport,
 } from "./control-audit-report.js";
@@ -66,7 +67,9 @@ export function openQuestion(criterion: string, scope: string): SampleFinding {
 }
 
 /**
- * A complete report in which the given findings replace the plain ones.
+ * A complete report in which the given findings replace the plain ones. A
+ * finding that needs a person's answer brings the question that asks for it,
+ * since a report with one and not the other is refused.
  * @param scopes - The parts the report covers
  * @param findings - The findings to put in
  * @returns The report
@@ -75,16 +78,18 @@ export function reportWith(
   scopes: readonly string[],
   findings: readonly SampleFinding[]
 ): SampleReport {
-  return findings.reduce<SampleReport>(
-    (report, finding) =>
-      amendFinding(
-        report,
-        {
-          criterion: String(finding.criterion),
-          scope: String(finding.scope),
-        },
-        finding
-      ),
-    completeAuditReport(scopes)
-  );
+  return findings.reduce<SampleReport>((report, finding) => {
+    const criterion = String(finding.criterion);
+    const scope = String(finding.scope);
+    const placed = amendFinding(report, { criterion, scope }, finding);
+    return finding.state === "question"
+      ? {
+          ...placed,
+          questions: [
+            ...(placed.questions ?? []),
+            sampleQuestion(criterion, scope),
+          ],
+        }
+      : placed;
+  }, completeAuditReport(scopes));
 }

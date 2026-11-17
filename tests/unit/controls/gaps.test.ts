@@ -230,6 +230,8 @@ describe("listControlGaps", () => {
           mechanisms: [],
         },
       ],
+      questions: [],
+      answers: [],
     } as const;
 
     expect(listControlGaps(report, CRITERIA)).toEqual([]);

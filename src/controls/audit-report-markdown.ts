@@ -15,6 +15,11 @@
  * no lines and leaves no gap.
  * @module controls/audit-report-markdown
  */
+import { recordedAnswer } from "./audit-answers.js";
+import {
+  OPEN_QUESTIONS_TITLE,
+  questionsSection,
+} from "./audit-questions-markdown.js";
 import {
   AUDIT_FINDING_STATES,
   AUDIT_REPORT_JSON_PATH,
@@ -26,6 +31,7 @@ import {
   type AuditReport,
 } from "./audit-report-types.js";
 import type { InScopeCriterion } from "./catalogue.js";
+import { requirementQuestionId } from "./question-ids.js";
 
 /** One part of the rendered document. */
 export type AuditReportMarkdownSection = (
@@ -96,14 +102,39 @@ function whereLine(mechanism: AuditMechanism): string {
 }
 
 /**
+ * Tie a finding to its question: where to answer it while it is open, and
+ * what was answered once it is not.
+ * @param finding - The finding
+ * @param report - The report it is in
+ * @returns One line, or none when the finding never had a question
+ */
+function questionLines(
+  finding: AuditFinding,
+  report: AuditReport
+): readonly string[] {
+  const id = requirementQuestionId(finding.criterion, finding.scope);
+  const answer = recordedAnswer(report, id);
+  if (answer !== null) {
+    return [`- **Your answer on record:** ${answer.answer}`];
+  }
+  return report.questions.some(question => question.id === id)
+    ? [
+        `- **Where to answer:** under "${OPEN_QUESTIONS_TITLE}" near the top of this report, at \`${id}\``,
+      ]
+    : [];
+}
+
+/**
  * Render one finding.
  * @param finding - The finding
  * @param criterion - The catalogue entry it is about
+ * @param report - The report the finding is in
  * @returns The finding's lines
  */
 function findingLines(
   finding: AuditFinding,
-  criterion: InScopeCriterion
+  criterion: InScopeCriterion,
+  report: AuditReport
 ): readonly string[] {
   return [
     `### ${criterion.question}`,
@@ -117,6 +148,7 @@ function findingLines(
     ...(finding.evidence_id === undefined
       ? []
       : [`- **Evidence record:** \`${finding.evidence_id}\``]),
+    ...questionLines(finding, report),
     `- **Detail:** requirement ${criterion.id} (${criterion.title})`,
   ];
 }
@@ -168,14 +200,14 @@ const partSections: AuditReportMarkdownSection = (report, criteria) =>
             finding =>
               finding.scope === scope && finding.criterion === criterion.id
           )
-          .map(finding => findingLines(finding, criterion))
+          .map(finding => findingLines(finding, criterion, report))
       ),
     ])
     .flatMap((block, index) => (index === 0 ? block : ["", ...block]));
 
 /** The sections of the document, in the order they appear. */
 export const AUDIT_REPORT_MARKDOWN_SECTIONS: readonly AuditReportMarkdownSection[] =
-  [titleSection, summarySection, partSections];
+  [titleSection, summarySection, questionsSection, partSections];
 
 /**
  * Render a validated report as Markdown.

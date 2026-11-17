@@ -10,13 +10,15 @@
  *
  * It works in a repository where Lisa was never applied. The requirements come
  * from the catalogue inside the Lisa package the command runs from; nothing is
- * read from the host repository except the report, the evidence file, and the
- * files and folders the report points at. Nothing is written.
+ * read from the host repository except the report, its rendering and the wiki
+ * file its questions are copied to, the evidence file, the tracker setting,
+ * and the files and folders the report points at. Nothing is written.
  * @module controls/audit-report-file
  */
 import { lstat, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 
+import { readInlineAnswers } from "./audit-inline-answers-file.js";
 import {
   AUDIT_REPORT_JSON_PATH,
   formatAuditReportViolation,
@@ -30,6 +32,7 @@ import {
 } from "./catalogue.js";
 import { readEvidenceRecords } from "./evidence.js";
 import { createRepositoryReader } from "./repository-reader.js";
+import { readConfiguredTracker } from "./tracker-config.js";
 
 /** What is at a path, without following a link in its last step. */
 export type PathKind = "missing" | "file" | "folder" | "other";
@@ -161,6 +164,8 @@ export async function loadAuditReport(
     evidence: readEvidenceRecords(root),
     now,
     repository: createRepositoryReader(root),
+    trackerConfigured: (await readConfiguredTracker(root)).configured,
+    inlineAnswers: await readInlineAnswers(root),
   });
   return report === null
     ? {

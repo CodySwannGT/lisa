@@ -11,8 +11,18 @@
  * It works in a repository where Lisa was never applied. The requirements come
  * from the catalogue inside the Lisa package the command runs from; nothing is
  * read from the host repository except the report, the evidence file, and the
- * files and folders the report points at. Nothing is written except
- * `report.md`.
+ * files and folders the report points at.
+ *
+ * It writes `report.md`, and one thing more where the repository keeps a
+ * wiki: the audit's open questions, as one marked block of `wiki/gaps.md`
+ * (`../audit-gaps-file.ts`). It never creates a wiki. Both files are places a
+ * person types answers in, so both are looked at before either is written: a
+ * report that does not carry an answer one of them holds is refused by the
+ * rules, and a file that cannot be written safely stops the run before the
+ * other is touched.
+ *
+ * With `--absorb` the command does a different job and none of the above:
+ * see `./report-absorb.ts`.
  * @module controls/commands/report-check
  */
 import { readFile, writeFile } from "node:fs/promises";
@@ -20,6 +30,8 @@ import path from "node:path";
 
 import type { Command } from "commander";
 
+import { planGapsFile, writeGapsFile } from "../audit-gaps-file.js";
+import { WIKI_GAPS_PATH } from "../audit-questions-format.js";
 import {
   loadAuditReport,
   pathKind,
@@ -32,6 +44,7 @@ import {
   type AuditReport,
 } from "../audit-report.js";
 import type { InScopeCriterion } from "../catalogue.js";
+import { ABSORB_OPTION, runReportAbsorb } from "./report-absorb.js";
 
 /** The subcommand's name under `lisa controls`. */
 export const REPORT_CHECK_COMMAND = "report-check";
@@ -49,29 +62,37 @@ export interface ReportCheckDependencies {
 }
 
 /**
- * Write the rendered report, unless something other than an ordinary file is
- * in its place. A link there could point outside the repository, and this
- * command writes nowhere else.
+ * Tell whether the rendered report can be written: nothing but an ordinary
+ * file may be in its place. A link there could point outside the repository.
+ * @param root - Real path of the repository
+ * @returns `null` when it can be written, or the one-line reason it cannot
+ */
+async function markdownProblem(root: string): Promise<string | null> {
+  const kind = await pathKind(path.join(root, AUDIT_REPORT_MARKDOWN_PATH));
+  return kind === "missing" || kind === "file"
+    ? null
+    : `${AUDIT_REPORT_MARKDOWN_PATH} is not an ordinary file (it may be a link), so nothing was written to it. Remove it, then run this check again.`;
+}
+
+/**
+ * Write the rendered report, when it differs from the one in place.
  * @param root - Real path of the repository
  * @param report - The validated report
  * @param criteria - The in-scope criteria, in catalogue order
- * @returns `null` when the file is in place, or the one-line reason it is not
  */
 async function writeMarkdown(
   root: string,
   report: AuditReport,
   criteria: readonly InScopeCriterion[]
-): Promise<string | null> {
+): Promise<void> {
   const file = path.join(root, AUDIT_REPORT_MARKDOWN_PATH);
-  const kind = await pathKind(file);
-  if (kind !== "missing" && kind !== "file") {
-    return `${AUDIT_REPORT_MARKDOWN_PATH} is not an ordinary file (it may be a link), so nothing was written to it. Remove it, then run this check again.`;
-  }
   const markdown = renderAuditReportMarkdown(report, criteria);
-  if (kind === "missing" || (await readFile(file, "utf8")) !== markdown) {
+  if (
+    (await pathKind(file)) === "missing" ||
+    (await readFile(file, "utf8")) !== markdown
+  ) {
     await writeFile(file, markdown);
   }
-  return null;
 }
 
 /**
@@ -123,7 +144,8 @@ export async function runReportCheck(
   if (loaded.problems !== null) return fail(loaded.problems);
   const { report, criteria } = loaded;
 
-  const unwritten = await writeMarkdown(root, report, criteria);
+  const gaps = await planGapsFile(root, report, criteria);
+  const unwritten = (await markdownProblem(root)) ?? gaps.problem;
   if (unwritten !== null) {
     stderr(unwritten);
     stderr(
@@ -131,15 +153,24 @@ export async function runReportCheck(
     );
     return 1;
   }
+  await writeMarkdown(root, report, criteria);
+  if (gaps.content !== null) await writeGapsFile(root, gaps.content);
+  const copied = gaps.managed
+    ? ` and ${counted(report.questions.length, "open question")} to ${WIKI_GAPS_PATH}`
+    : "";
   stdout(
-    `report-check: PASS. ${counted(report.findings.length, "finding")} across ${counted(report.scopes.length, "part")}; wrote ${AUDIT_REPORT_MARKDOWN_PATH}`
+    `report-check: PASS. ${counted(report.findings.length, "finding")} across ${counted(report.scopes.length, "part")}; wrote ${AUDIT_REPORT_MARKDOWN_PATH}${copied}`
   );
   return 0;
 }
 
-/** The collaborator the registration needs, replaceable in a test. */
+/** The collaborators the registration needs, each replaceable in a test. */
 export interface ReportCheckCommandDependencies {
   readonly runReportCheck: (targetPath: string | undefined) => Promise<number>;
+  /** Runs instead of the check when `--absorb` is given. */
+  readonly runReportAbsorb?: (
+    targetPath: string | undefined
+  ) => Promise<number>;
 }
 
 /**
@@ -159,8 +190,22 @@ export function registerReportCheck(
       `Check the audit report at ${AUDIT_REPORT_JSON_PATH} and render ${AUDIT_REPORT_MARKDOWN_PATH} from it`
     )
     .argument("[path]", "Project path (default: current directory)")
-    .action(async (targetPath: string | undefined) => {
-      const code = await dependencies.runReportCheck(targetPath);
-      if (code !== 0) process.exitCode = code;
-    });
+    .option(
+      ABSORB_OPTION,
+      `Do not check: record the answers typed on the answer lines of ${AUDIT_REPORT_MARKDOWN_PATH} in ${AUDIT_REPORT_JSON_PATH} and drop the answered questions`
+    )
+    .action(
+      async (
+        targetPath: string | undefined,
+        options: { readonly absorb?: boolean }
+      ) => {
+        const absorb =
+          dependencies.runReportAbsorb ??
+          ((target: string | undefined) => runReportAbsorb(target));
+        const code = await (options.absorb === true
+          ? absorb(targetPath)
+          : dependencies.runReportCheck(targetPath));
+        if (code !== 0) process.exitCode = code;
+      }
+    );
 }

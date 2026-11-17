@@ -120,6 +120,8 @@ describe("the missing-capability ticket flow", () => {
             mechanisms: [],
           },
         ],
+        questions: [],
+        answers: [],
       },
       [
         {
