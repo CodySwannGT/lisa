@@ -60,6 +60,10 @@ Reads only, unless --apply is given:
                    administrator access. Then reads the settings back.
   any other hosting platform: nothing is sent; the file is written.
 
+A check is only ever made required once the platform shows a result under its
+name, on the branch or on a recent pull request into it. One that has not run
+yet is reported as not-ready and is left out of the change.
+
 Prints one JSON document on stdout. Exit codes:
   0  every derived check is required, or the register asks for none
   2  at least one register entry is blocked (the JSON says which and why)

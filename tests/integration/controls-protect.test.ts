@@ -54,6 +54,25 @@ const READ_ONLY_REPOSITORY = {
   permissions: { admin: false, push: true, pull: true },
 };
 
+const HEAD = `${API}/commits/heads/main`;
+const RUNS = `${HEAD}/check-runs?per_page=100`;
+const STATUSES = `${HEAD}/status?per_page=100`;
+const PULLS = `${API}/pulls?state=all&base=main&sort=updated&direction=desc&per_page=5`;
+/** A repository with no ruleset, where the lint check has run on `main`. */
+const READ_ONLY_REPORTED = {
+  [`${API}/rulesets`]: [],
+  [API]: READ_ONLY_REPOSITORY,
+  [RUNS]: { total_count: 1, check_runs: [{ name: LINT_CHECK }] },
+};
+/** The same repository, where nothing has ever run. */
+const READ_ONLY_NEVER_REPORTED = {
+  [`${API}/rulesets`]: [],
+  [API]: READ_ONLY_REPOSITORY,
+  [RUNS]: { total_count: 0, check_runs: [] },
+  [STATUSES]: { total_count: 0, statuses: [] },
+  [PULLS]: [],
+};
+
 const fixtures: ControlAuditFixture[] = [];
 const stubRoots: string[] = [];
 
@@ -126,7 +145,7 @@ describe("built lisa controls protect with read-only credentials", () => {
     "writes the handover, reports blocked and sends no write with flags %j",
     flags => {
       const repoPath = repository(`https://github.com/${REPO}.git`);
-      const gh = stub({ [`${API}/rulesets`]: [], [API]: READ_ONLY_REPOSITORY });
+      const gh = stub(READ_ONLY_REPORTED);
 
       const ran = protect(repoPath, gh, flags);
 
@@ -147,8 +166,10 @@ describe("built lisa controls protect with read-only credentials", () => {
       expect(recordedGhCalls(gh)).toEqual([
         `api ${API}/rulesets`,
         `api ${API}`,
+        `api ${RUNS}`,
       ]);
       expect(result.requests.map(request => request.method)).toEqual([
+        "GET",
         "GET",
         "GET",
       ]);
@@ -156,9 +177,38 @@ describe("built lisa controls protect with read-only credentials", () => {
     }
   );
 
+  it("reports a check that has never run as not ready, with reads only", () => {
+    const repoPath = repository(`https://github.com/${REPO}.git`);
+    const gh = stub(READ_ONLY_NEVER_REPORTED);
+
+    const ran = protect(repoPath, gh, ["--apply"]);
+
+    expect(ran.status).toBe(2);
+    const result = JSON.parse(ran.stdout) as {
+      readonly required_checks: readonly {
+        readonly state: string;
+        readonly detail: string | null;
+      }[];
+    };
+    expect(result.required_checks.map(check => check.state)).toEqual([
+      "not-ready",
+    ]);
+    expect(result.required_checks[0]?.detail).toMatch(/^It has not run yet:/u);
+    expect(recordedGhCalls(gh)).toEqual([
+      `api ${API}/rulesets`,
+      `api ${API}`,
+      `api ${RUNS}`,
+      `api ${STATUSES}`,
+      `api ${PULLS}`,
+    ]);
+    expect(readFileSync(path.join(repoPath, HANDOVER), "utf8")).toContain(
+      "| GitHub Actions | Not yet |"
+    );
+  });
+
   it("changes nothing on a second run", () => {
     const repoPath = repository(`https://github.com/${REPO}.git`);
-    const gh = stub({ [`${API}/rulesets`]: [], [API]: READ_ONLY_REPOSITORY });
+    const gh = stub(READ_ONLY_REPORTED);
     protect(repoPath, gh);
     const written = readFileSync(path.join(repoPath, HANDOVER), "utf8");
     const before = runControlAuditGit(repoPath, STATUS);

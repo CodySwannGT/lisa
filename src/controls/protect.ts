@@ -51,7 +51,7 @@ const NOTHING_TO_REQUIRE =
 
 /** Said in the handover when each open check carries its own reason. */
 const SEE_TABLE =
-  "The table below says, for each check, why it cannot safely be required yet.";
+  "No check below can safely be required yet; the notes under the table say why for each one.";
 
 /**
  * Turn what was found into the result document and the handover file.
@@ -70,7 +70,11 @@ async function report(
   const { derived, platform, options } = prepared;
   const branch = finding?.branch ?? null;
   const runReason = finding?.runReason ?? "";
-  const checks = checkStates(derived.checks, finding?.required ?? null);
+  const checks = checkStates(
+    derived.checks,
+    finding?.required ?? null,
+    finding?.unreported
+  );
   const entries = derived.entries.map(entry =>
     entryOutcome(entry, checks, branch, runReason)
   );

@@ -15,6 +15,7 @@ import {
   droppedChecks,
   type DerivedProtection,
 } from "../../../src/controls/protect-derive.js";
+import { NO_WORKFLOW_FOLDER } from "../../../src/controls/protect-held.js";
 import {
   loadProtectionModules,
   type ProtectionModules,
@@ -190,6 +191,7 @@ describe("where each derived check stands", () => {
       app_id: null,
       gates: [CODE_STYLE],
       state: "not-ready",
+      detail: NO_WORKFLOW_FOLDER.detail,
     });
   });
 });

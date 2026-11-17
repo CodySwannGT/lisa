@@ -40,12 +40,18 @@ export type ProtectMode = "read-only" | "apply";
  * Where one check stands on the platform.
  *
  * - `required`: the platform requires it on the branch.
- * - `missing`: it is not required, and requiring it is the change to make.
- * - `not-ready`: nothing in the repository reports it yet, so requiring it
- *   would hold every pull request waiting.
+ * - `missing`: it is not required, the platform shows it has been reported,
+ *   and requiring it is the change to make. Only a `missing` check is ever
+ *   sent in a write.
+ * - `not-ready`: it is not required and nothing reports it yet — the platform
+ *   shows no result under its name, or the repository has no workflow folder
+ *   — so requiring it would hold every pull request waiting.
  * - `excluded`: the repository's own configuration says never to require it.
- * - `unknown`: the platform was not read, so nothing says either way. It is
- *   never reported as required and never as known to be missing.
+ * - `unknown`: a read did not answer. Either the platform's settings were not
+ *   read, so nothing says whether it is required (`detail` is `null`), or
+ *   they were and it is not required, but whether it has ever been reported
+ *   could not be read (`detail` says so). It is never reported as required,
+ *   never as known to be missing, and never sent in a write.
  */
 export type CheckState =
   | "required"
@@ -65,6 +71,12 @@ export interface RequiredCheck {
   /** The gates in the declaration that derive this check. */
   readonly gates: readonly string[];
   readonly state: CheckState;
+  /**
+   * Why the check is held back rather than made required, as one plain
+   * sentence or two; `null` when it is `required` or `missing`, and when
+   * nothing was read at all.
+   */
+  readonly detail: string | null;
 }
 
 /** The outcome for one requirement an entry serves. */

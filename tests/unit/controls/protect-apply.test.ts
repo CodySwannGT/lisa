@@ -83,6 +83,7 @@ describe("lisa controls protect --apply with permission", () => {
         app_id: null,
         gates: ["code-style"],
         state: "required",
+        detail: null,
       },
     ]);
     expect(result.entries.map(entry => entry.outcome)).toEqual([

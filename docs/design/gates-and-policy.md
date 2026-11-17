@@ -1257,11 +1257,22 @@ read again through `lisa health`'s ruleset reader and compared again. A
 platform that accepted the change and did not keep it is `blocked`, with the
 difference, never `wired`.
 
-**Two checks are held back rather than required.** One a pipeline job would
-report, in a repository with no `.github/workflows` folder: nothing can report
-it, and a required check that never reports holds every pull request waiting
-with no failure to read — the same rule the ruleset applier follows. And one
-the repository lists under `github.rulesets.dropRequiredChecks`.
+**A check is only made required once it has been reported.** A required check
+that never reports does not fail a pull request; the platform holds it waiting
+for ever, with no failure to read. So before a missing check is sent, the
+command reads the check runs and commit statuses on the head of the protected
+branch and, while a name is still unseen, on the heads of the five most
+recently updated pull requests into it — a pipeline that runs only on pull
+requests never reports on the branch itself. Whether a name counts is
+`verifyContextsPosted` in the registry. These are reads only. A name the
+platform shows no result for is `not-ready`; one it could not be asked about,
+because a read failed or a list came back incomplete, is `unknown`. Neither is
+in any write, and each carries a sentence saying what has to happen first.
+
+**Two more checks are held back without asking the platform.** One a pipeline
+job would report, in a repository with no `.github/workflows` folder: nothing
+can report it — the same rule the ruleset applier follows. And one the
+repository lists under `github.rulesets.dropRequiredChecks`.
 
 **Rulesets are the only merge protection it reads.** That is what the ruleset
 scripts it is built from read. A check required through a classic branch

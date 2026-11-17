@@ -163,6 +163,10 @@ export type ProtectGatesModule = Omit<GatesModule, "readGates"> & {
     gates: unknown,
     options: { readonly moment: string }
   ) => string[];
+  readonly verifyContextsPosted: (input: {
+    readonly derived: readonly string[];
+    readonly posted: readonly string[];
+  }) => { readonly ok: boolean; readonly missing: string[] };
   readonly readGates: (cwd: string) => {
     readonly runner: string;
     readonly gates: Record<string, unknown>;

@@ -57,7 +57,11 @@ describe("lisa controls protect with read-only credentials", () => {
     });
     expect(handover(repoPath)).toContain(LINT_CHECK);
     expect(github.writes()).toEqual([]);
-    expect(github.log.map(request => request.method)).toEqual(["GET", "GET"]);
+    expect(github.log.map(request => request.method)).toEqual([
+      "GET",
+      "GET",
+      "GET",
+    ]);
     expect(result.requests.every(request => request.method === "GET")).toBe(
       true
     );

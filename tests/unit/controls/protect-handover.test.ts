@@ -17,6 +17,10 @@ import {
   type HandoverFacts,
 } from "../../../src/controls/protect-handover.js";
 import { syncHandover } from "../../../src/controls/protect-handover-file.js";
+import {
+  neverReported,
+  reportingNotRead,
+} from "../../../src/controls/protect-held.js";
 import type { ProtectedEntry } from "../../../src/controls/protect-derive.js";
 import {
   MERGE_PROTECTION_CHANGE_PATH,
@@ -56,15 +60,22 @@ function entry(
  * A check a pipeline job reports.
  * @param context - Its name
  * @param state - Where it stands
- * @param gates - The gates that derive it
+ * @param detail - Why it is held back, when it is
  * @returns The check
  */
 function check(
   context: string,
   state: RequiredCheck["state"],
-  gates: readonly string[] = [CODE_STYLE]
+  detail: string | null = null
 ): RequiredCheck {
-  return { context, source: "workflow", app_id: null, gates, state };
+  return {
+    context,
+    source: "workflow",
+    app_id: null,
+    gates: [CODE_STYLE],
+    state,
+    detail,
+  };
 }
 
 const GITHUB_FACTS: HandoverFacts = {
@@ -143,6 +154,7 @@ describe("the administrator handover for GitHub", () => {
           app_id: 4242,
           gates: [CODE_STYLE],
           state: "missing",
+          detail: null,
         },
       ],
     });
@@ -166,16 +178,37 @@ describe("the administrator handover for GitHub", () => {
     expect(alreadyRequired).toContain(`- \`${LINT}\``);
   });
 
-  it("warns against requiring a check that nothing reports yet", () => {
+  it("says a check has not run yet, and what has to happen first", () => {
+    const held = neverReported("`main`");
     const text = renderHandover({
       ...GITHUB_FACTS,
-      checks: [check(LINT, "not-ready")],
+      checks: [check(LINT, held.state, held.detail), check("Other", "missing")],
     });
 
     expect(text).toContain("| GitHub Actions | Not yet |");
-    expect(text).toMatch(
-      /every pull request would wait for a result that never arrives/u
+    expect(text).toContain(
+      'Require only the checks marked "Yes". Do not require the others yet:'
     );
+    expect(text).toContain(`- \`${LINT}\`: It has not run yet:`);
+    expect(text).toMatch(
+      /leave every pull request waiting for a result that never arrives/u
+    );
+    expect(text).toMatch(/First merge the workflow \(or install the app\)/u);
+    expect(text).not.toContain("- `Other`:");
+  });
+
+  it("marks a check whose history could not be read as not confirmed", () => {
+    const held = reportingNotRead("`main`", "gh: Not Found (HTTP 404)");
+    const text = renderHandover({
+      ...GITHUB_FACTS,
+      checks: [check(LINT, held.state, held.detail)],
+    });
+
+    expect(text).toContain("| GitHub Actions | Not confirmed |");
+    expect(text).toContain(
+      `- \`${LINT}\`: It could not be read whether this check has ever run`
+    );
+    expect(text).toContain("gh: Not Found (HTTP 404)");
   });
 
   it("carries no date and is the same text for the same facts", () => {

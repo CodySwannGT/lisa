@@ -10,6 +10,7 @@
  * only what the command concluded but exactly what it sent.
  * @module tests/unit/controls/support/fake-github
  */
+import { reportedAnswer, type ReportedOptions } from "./fake-github-reports.js";
 
 /** What one call of the `gh` function answers. */
 export interface FakeGhResult {
@@ -33,7 +34,7 @@ export type FakeRuleset = Readonly<Record<string, unknown>> & {
 };
 
 /** How the stand-in platform is set up. */
-export interface FakeGithubOptions {
+export interface FakeGithubOptions extends ReportedOptions {
   /** `owner/name` of the only repository that exists. */
   readonly repo: string;
   /**
@@ -202,6 +203,17 @@ function read(
         ? {}
         : { permissions: { admin: options.admin, push: true, pull: true } }),
     });
+  }
+  const reports = reportedAnswer(
+    options,
+    base,
+    options.defaultBranch ?? "main",
+    path
+  );
+  if (reports !== null) {
+    return reports.kind === "document"
+      ? answer(reports.value)
+      : refusal(reports.message, 404);
   }
   if (path === `${base}/rulesets`) {
     return answer(

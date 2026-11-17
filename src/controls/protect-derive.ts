@@ -21,6 +21,11 @@ import path from "node:path";
 
 import { pathKind } from "./audit-report-file.js";
 import { compareCodeUnits } from "./canonical-json.js";
+import {
+  DROPPED_BY_CONFIGURATION,
+  NO_WORKFLOW_FOLDER,
+  type HeldBack,
+} from "./protect-held.js";
 import type { ProtectionModules } from "./protect-modules.js";
 import {
   PULL_REQUEST_MOMENT,
@@ -43,6 +48,14 @@ export interface DerivedCheck {
   /** Why it must not be required as things stand, or `null` when it may be. */
   readonly held: Extract<CheckState, "not-ready" | "excluded"> | null;
 }
+
+/** The reason for each hold that is known without asking the platform. */
+const LOCAL_HOLDS: Readonly<
+  Record<NonNullable<DerivedCheck["held"]>, HeldBack>
+> = {
+  "not-ready": NO_WORKFLOW_FOLDER,
+  excluded: DROPPED_BY_CONFIGURATION,
+};
 
 /** One register entry the hosting platform is asked to enforce. */
 export interface ProtectedEntry {
@@ -142,23 +155,38 @@ export function deriveRequiredChecks(inputs: DeriveInputs): DerivedProtection {
  * @param checks - The derived checks
  * @param required - The names the platform requires on the branch, or `null`
  *   when the platform was not read
+ * @param unreported - The checks the platform does not show as ever
+ *   reported, or could not be asked about, each with its reason
  * @returns The checks as the result document lists them
  */
 export function checkStates(
   checks: readonly DerivedCheck[],
-  required: ReadonlySet<string> | null
+  required: ReadonlySet<string> | null,
+  unreported: ReadonlyMap<string, HeldBack> = new Map()
 ): readonly RequiredCheck[] {
-  const stateOf = (check: DerivedCheck): CheckState => {
-    if (required?.has(check.context) === true) return "required";
-    if (check.held !== null) return check.held;
-    return required === null ? "unknown" : "missing";
+  const standing = (
+    check: DerivedCheck
+  ): Pick<RequiredCheck, "state" | "detail"> => {
+    if (required?.has(check.context) === true) {
+      return { state: "required", detail: null };
+    }
+    const held =
+      check.held === null
+        ? unreported.get(check.context)
+        : LOCAL_HOLDS[check.held];
+    return (
+      held ?? {
+        state: required === null ? "unknown" : "missing",
+        detail: null,
+      }
+    );
   };
   return checks.map(check => ({
     context: check.context,
     source: check.awaited ? "external" : "workflow",
     app_id: check.appId,
     gates: check.gates,
-    state: stateOf(check),
+    ...standing(check),
   }));
 }
 

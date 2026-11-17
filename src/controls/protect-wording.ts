@@ -10,7 +10,6 @@ import type { ProtectedEntry } from "./protect-derive.js";
 import { GATES_DECLARATION_PATH } from "./gates-declaration.js";
 import {
   PULL_REQUEST_MOMENT,
-  type CheckState,
   type CriterionOutcome,
   type EntryOutcome,
   type RequiredCheck,
@@ -86,15 +85,15 @@ function checkReason(
   branch: string | null,
   runReason: string
 ): string {
-  const name = `\`${check.context}\``;
+  const name = quoted(check.context);
   const on = branchName(branch);
-  const sentences: Record<Exclude<CheckState, "required">, string> = {
-    missing: `${name} is not required on ${on}. ${runReason}`,
-    unknown: `It could not be confirmed that ${name} is required on ${on}. ${runReason}`,
-    "not-ready": `${name} is not required on ${on}, and nothing in this repository reports it yet (there is no .github/workflows folder), so requiring it now would hold every pull request waiting. Add and merge the workflow that reports it, then run this again.`,
-    excluded: `${name} is not required on ${on}, and ${GATES_DECLARATION_PATH} lists it under github.rulesets.dropRequiredChecks, which says never to require it. Take it off that list, or declare the rule's tier as advisory.`,
-  };
-  return check.state === "required" ? "" : sentences[check.state];
+  if (check.state === "required") return "";
+  if (check.detail !== null) {
+    return `${name} is not required on ${on}. ${check.detail}`;
+  }
+  return check.state === "unknown"
+    ? `It could not be confirmed that ${name} is required on ${on}. ${runReason}`
+    : `${name} is not required on ${on}. ${runReason}`;
 }
 
 /**
@@ -155,14 +154,20 @@ export function entryOutcome(
  * List what the platform does not require as derived.
  * @param checks - Every derived check, with where it stands
  * @param branch - The branch that was compared
- * @returns One line per check that is known not to be required
+ * @returns One line per check that is known not to be required. A check
+ *   whose required state was never read is left out; one that was read as
+ *   not required is listed even when it is unknown whether it has ever run
  */
 export function differencesOf(
   checks: readonly RequiredCheck[],
   branch: string | null
 ): readonly string[] {
   return checks
-    .filter(check => check.state !== "required" && check.state !== "unknown")
+    .filter(
+      check =>
+        check.state !== "required" &&
+        !(check.state === "unknown" && check.detail === null)
+    )
     .map(
       check => `\`${check.context}\` is not required on ${branchName(branch)}.`
     );

@@ -123,7 +123,7 @@ function reporter(check: RequiredCheck): string {
 /** What the "Ready to require" column says for each state that is listed. */
 const READINESS: Readonly<Record<string, string>> = {
   missing: "Yes",
-  unknown: "Yes",
+  unknown: "Not confirmed",
   "not-ready": "Not yet",
   excluded: "No",
 };
@@ -149,29 +149,32 @@ function githubTable(
 }
 
 /**
- * Write the notes that explain any "Not yet" or "No" in the table.
+ * Write the notes that explain every check that is not simply ready.
+ *
+ * Only a check marked "Yes" should be required now. Each other check gets
+ * one line saying why, in the words the result document uses for it.
  * @param open - The checks that are not required
- * @returns The notes, each followed by a blank line
+ * @returns The notes, followed by a blank line; nothing when all are ready
  */
 function readinessNotes(open: readonly RequiredCheck[]): readonly string[] {
-  const has = (state: string): boolean =>
-    open.some(check => check.state === state);
+  const held = open.filter(check => check.detail !== null);
+  const unread = open.some(
+    check => check.state === "unknown" && check.detail === null
+  );
   return [
-    ...(has("not-ready")
-      ? [
-          '"Not yet" means nothing in this repository reports that check so far: the repository has no `.github/workflows` folder, so GitHub Actions cannot run. If the check were required now, every pull request would wait for a result that never arrives. First add and merge the workflow that reports the check, then require it.',
+    ...(held.length === 0
+      ? []
+      : [
+          'Require only the checks marked "Yes". Do not require the others yet:',
           "",
-        ]
-      : []),
-    ...(has("excluded")
-      ? [
-          '"No" means this repository\'s own configuration (`.lisa.config.json`, under `github.rulesets.dropRequiredChecks`) says that check must never be required, while its control register says the platform enforces it. The two disagree. Whoever owns that configuration has to decide which is right; do not require the check until they have.',
+          ...held.map(
+            check => `- \`${check.context}\`: ${String(check.detail)}`
+          ),
           "",
-        ]
-      : []),
-    ...(has("unknown")
+        ]),
+    ...(unread
       ? [
-          "It could not be read whether these checks are already required. If one already is, leave it as it is.",
+          '"Not confirmed" means it could not be read whether the check is already required, or whether it has ever run. If it is already required, leave it as it is. Before requiring one, confirm that it appears on a recent pull request: a required check that never reports leaves every pull request waiting.',
           "",
         ]
       : []),
