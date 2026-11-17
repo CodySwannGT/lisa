@@ -3,6 +3,7 @@ import { addAdmitCommand } from "./admit-cmd.js";
 import { runApply } from "./apply.js";
 import { addCheckCommand } from "./check-cmd.js";
 import { runCheckLearningsBudget } from "./check-learnings-budget-cmd.js";
+import { addControlsCommand } from "./controls-cmd.js";
 import {
   type CrossPollinateOptions,
   runCrossPollinate,
@@ -257,6 +258,7 @@ function addMaintenanceCommands(
   addDoctorCommand(program, deps);
   addHealthCommand(program, deps);
   addStandardsProofCommand(program, deps);
+  addControlsCommand(program);
 
   program
     .command("sync")
