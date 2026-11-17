@@ -515,6 +515,10 @@ export const PROOF_DIRECTORY = ".lisa/controls/proofs/";
  * - `proof` — the paired proof; see {@link PROOF_FIELDS}. Optional, because a
  *   part is declared before its proof is written and a part without one is
  *   reported as unproved rather than refused.
+ * - `evidence` — what supports declaring this part at all; see
+ *   {@link PART_EVIDENCE_FIELDS}. Optional HERE, because the commands that run a
+ *   part never read it. The control register is where a part without it is
+ *   refused.
  *
  * ## A key that is not on this list is REFUSED
  *
@@ -541,7 +545,37 @@ export const PART_FIELDS = Object.freeze([
   "command",
   "parameters",
   "proof",
+  "evidence",
 ]);
+
+/**
+ * The keys a part's `evidence` may carry. At least one of them is present.
+ *
+ * A part is declared because something supports it: the audit found the check
+ * in the repository, or a person answered a question the audit asked. This is
+ * where the declaration says which, so that a control nobody evidenced cannot
+ * be written down as if it had been.
+ *
+ * - `locators` — where the audit found the check: a non-empty list of places,
+ *   each written as {@link PART_EVIDENCE_LOCATOR_FIELDS}, copied from the audit
+ *   report's findings.
+ * - `questions` — the ids of the audit questions a person answered: a
+ *   non-empty list of ids, each written exactly as the audit report writes it.
+ *
+ * Only how each is WRITTEN is checked here. Whether a place is one the audit
+ * reported, and whether a question has been answered, are facts about the
+ * audit report, which this registry never reads; `lisa controls
+ * declaration-check` holds the declaration to the report.
+ */
+export const PART_EVIDENCE_FIELDS = Object.freeze(["locators", "questions"]);
+
+/**
+ * The keys one place in a part's `evidence.locators` carries. Both are
+ * required: `path`, a file written from the repository root, and `line`,
+ * counted from 1. It is the audit report's own locator, so one can be copied
+ * from a finding without rewriting it.
+ */
+export const PART_EVIDENCE_LOCATOR_FIELDS = Object.freeze(["path", "line"]);
 
 /**
  * The keys a part's `proof` may carry. All are optional.
@@ -5407,6 +5441,156 @@ function validateProof(where, proof) {
   ];
 }
 
+/** A well-formed place, shown in every message that refuses one. */
+const LOCATOR_EXAMPLE = '{ "path": "api/ruff.toml", "line": 1 }';
+
+/**
+ * Validate one place a part's evidence points at.
+ *
+ * Only how it is written is checked. Whether the file exists, and whether the
+ * audit reported that line, are facts about a checkout and about the audit
+ * report; neither is this registry's to read.
+ * @param {string} where The place being validated.
+ * @param {*} locator The declared value.
+ * @returns {string[]} Problems.
+ */
+function validatePartEvidenceLocator(where, locator) {
+  if (!isKeyed(locator)) {
+    return [
+      `${where} is ${JSON.stringify(locator)}; expected an object such as ` +
+        `${LOCATOR_EXAMPLE}.`,
+    ];
+  }
+  const problems = unknownKeyProblems(
+    where,
+    locator,
+    PART_EVIDENCE_LOCATOR_FIELDS
+  );
+  const { path: file, line } = locator;
+  const advice =
+    `A place names the file the audit found the check in, written from the ` +
+    `repository root: for example ${LOCATOR_EXAMPLE}.`;
+  if (typeof file !== "string" || file.trim() === "") {
+    problems.push(
+      `${where}.path is ${JSON.stringify(file)}; expected the path of a ` +
+        `file. ${advice}`
+    );
+  } else if (file === WHOLE_REPOSITORY) {
+    problems.push(
+      `${where}.path is ${JSON.stringify(file)}, which is the whole ` +
+        `repository rather than a file in it. ${advice}`
+    );
+  } else {
+    const problem = repositoryPathProblem(file);
+    if (problem !== null) {
+      problems.push(
+        `${where}.path is ${JSON.stringify(file)}, which ${problem}. ${advice}`
+      );
+    }
+  }
+  if (!Number.isInteger(line) || line < 1) {
+    problems.push(
+      `${where}.line is ${JSON.stringify(line)}; expected the number of the ` +
+        `line in that file, counted from 1.`
+    );
+  }
+  return problems;
+}
+
+/**
+ * Validate a list a part's evidence carries, refusing one that is not a list,
+ * is empty, or says the same thing twice.
+ * @param {string} where The key being validated.
+ * @param {*} list The declared value, if any.
+ * @param {object} kind What the list holds.
+ * @param {string} kind.expected What the list is, to finish "expected …".
+ * @param {(where: string, item: *) => string[]} kind.validate Validates one item.
+ * @returns {string[]} Problems.
+ */
+function validatePartEvidenceList(where, list, { expected, validate }) {
+  if (list === undefined) return [];
+  if (!Array.isArray(list)) {
+    return [`${where} is ${JSON.stringify(list)}; expected ${expected}.`];
+  }
+  if (list.length === 0) {
+    return [
+      `${where} is empty, so it says nothing while looking filled in. ` +
+        `Remove it, or give ${expected}.`,
+    ];
+  }
+  const problems = [];
+  const firstSeenAt = new Map();
+  for (const [index, item] of list.entries()) {
+    const found = validate(`${where}[${index}]`, item);
+    problems.push(...found);
+    if (found.length > 0) continue;
+    const key = JSON.stringify(isKeyed(item) ? [item.path, item.line] : [item]);
+    if (firstSeenAt.has(key)) {
+      problems.push(
+        `${where}[${index}] repeats ${where}[${firstSeenAt.get(key)}]. ` +
+          `List each one once.`
+      );
+      continue;
+    }
+    firstSeenAt.set(key, index);
+  }
+  return problems;
+}
+
+/**
+ * Validate what a part says supports it.
+ *
+ * `evidence` is optional here and never read by anything that runs a part, so
+ * leaving it off changes nothing at any moment. What is refused is one that is
+ * present and points at nothing: it would read as "this control was
+ * evidenced" to everyone who saw the key, which is the one thing the key
+ * exists to make checkable.
+ * @param {string} where The key being validated.
+ * @param {*} evidence The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validatePartEvidence(where, evidence) {
+  if (evidence === undefined) return [];
+  const example = `{ "locators": [${LOCATOR_EXAMPLE}] }`;
+  if (!isKeyed(evidence)) {
+    return [
+      `${where} is ${JSON.stringify(evidence)}; expected an object such as ` +
+        `${example}.`,
+    ];
+  }
+  const problems = unknownKeyProblems(where, evidence, PART_EVIDENCE_FIELDS);
+  if (evidence.locators === undefined && evidence.questions === undefined) {
+    problems.push(
+      `${where} names neither a place the audit found this check ` +
+        `("locators") nor a question a person answered ("questions"), so ` +
+        `the part looks supported while pointing at nothing. Give one of ` +
+        `them, for example ${example}.`
+    );
+  }
+  return [
+    ...problems,
+    ...validatePartEvidenceList(`${where}.locators`, evidence.locators, {
+      expected:
+        `a list of the places the audit found this check, each written ` +
+        `like ${LOCATOR_EXAMPLE}`,
+      validate: validatePartEvidenceLocator,
+    }),
+    ...validatePartEvidenceList(`${where}.questions`, evidence.questions, {
+      expected:
+        `a list of the ids of the audit questions a person answered, each ` +
+        `written exactly as the audit report writes it`,
+      validate: (item, id) =>
+        typeof id === "string" && id.trim() !== ""
+          ? []
+          : [
+              `${item} is ${JSON.stringify(id)}; expected the id of an ` +
+                `audit question, written exactly as the audit report ` +
+                `writes it.`,
+            ],
+    }),
+  ];
+}
+
 /**
  * Validate one entry of a gate's `parts`.
  * @param {string} where The entry being validated.
@@ -5426,6 +5610,7 @@ function validatePart(where, part) {
     ...validateCommand(`${where}.command`, part.command),
     ...validateParameters(`${where}.parameters`, part.parameters),
     ...validateProof(`${where}.proof`, part.proof),
+    ...validatePartEvidence(`${where}.evidence`, part.evidence),
   ];
 }
 

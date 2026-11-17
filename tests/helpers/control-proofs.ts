@@ -19,7 +19,7 @@ import {
   type ControlAuditFixture,
   type ControlAuditFixtureName,
 } from "./control-audit-fixtures.js";
-import { configFile, type GatesBlock } from "./control-register.js";
+import { configFile, evidenceAt, type GatesBlock } from "./control-register.js";
 
 const NODE = process.execPath;
 
@@ -155,9 +155,11 @@ export function declaredPart(part: ProvedPart): Record<string, unknown> {
   const halves = (["violation", "clean"] as const).filter(
     half => !without.includes(half)
   );
+  const scope = part.scope ?? ".";
   return {
-    scope: part.scope ?? ".",
+    scope,
     command: part.command,
+    evidence: evidenceAt(scope === "." ? "Makefile" : `${scope}/Makefile`),
     proof: {
       ...Object.fromEntries(
         halves.map(half => [half, `${PROOFS}/${name}.${half}.patch`])

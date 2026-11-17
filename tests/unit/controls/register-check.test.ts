@@ -193,7 +193,8 @@ describe("a declaration changed without regenerating", () => {
         "type-correctness": {
           push: "required",
           "pull-request": "required",
-          parts: [{ scope: "web", command: ["npx", "tsc", "--noEmit"] }],
+          parts: (F_MIXED_GATES["type-correctness"] as { parts: unknown })
+            .parts,
         },
       })
     );

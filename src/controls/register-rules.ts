@@ -20,6 +20,7 @@ import {
   GATES_DECLARATION_PATH,
   type GatesDeclaration,
 } from "./gates-declaration.js";
+import { partsAreEvidenced } from "./register-evidence-rule.js";
 import { executorsAgree } from "./pull-request-executor.js";
 
 /** What a rule is given. */
@@ -83,5 +84,6 @@ export const criteriaAreCatalogued: ControlRegisterRule = context => {
 /** Every rule a declaration is held to before a register is made from it. */
 export const CONTROL_REGISTER_RULES: readonly ControlRegisterRule[] = [
   criteriaAreCatalogued,
+  partsAreEvidenced,
   executorsAgree,
 ];

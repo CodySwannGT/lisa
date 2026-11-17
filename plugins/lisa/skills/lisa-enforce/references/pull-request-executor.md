@@ -54,7 +54,13 @@ A gate says where its pull-request executor is on its `pull-request` entry in th
         "level": "required",
         "executor": { "platform": "gitlab", "path": ".gitlab-ci.yml" }
       },
-      "parts": [{ "scope": ".", "command": ["ruff", "check", "."] }]
+      "parts": [
+        {
+          "scope": ".",
+          "command": ["ruff", "check", "."],
+          "evidence": { "locators": [{ "path": "ruff.toml", "line": 1 }] }
+        }
+      ]
     }
   }
 }

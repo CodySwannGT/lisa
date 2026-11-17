@@ -11,11 +11,13 @@
  * @module tests/unit/controls/support/register-samples
  */
 import type {
+  ControlEvidence,
   ControlParameter,
   ControlProof,
   ControlRegister,
   ControlRegisterEntry,
   EnforcementPoint,
+  EvidenceLocator,
   MeasuringMechanism,
   MechanismKind,
   PullRequestExecutor,
@@ -65,6 +67,18 @@ export const PROOF: Required<ControlProof> = {
   external_effects: [],
 };
 
+/** A place the audit found a check, with every key. */
+export const LOCATOR: Required<EvidenceLocator> = {
+  path: "api/ruff.toml",
+  line: 1,
+};
+
+/** What supports an entry, with every key filled in. */
+export const EVIDENCE: Required<ControlEvidence> = {
+  locators: [LOCATOR],
+  questions: ["SI2@api"],
+};
+
 /** An entry with every key filled in. */
 export const ENTRY: Required<ControlRegisterEntry> = {
   id: "code-style@api",
@@ -77,6 +91,7 @@ export const ENTRY: Required<ControlRegisterEntry> = {
   parameters: { "minimum-coverage": PARAMETER },
   proof: PROOF,
   accountable_party: "Platform team",
+  evidence: EVIDENCE,
   status: "unproved",
 };
 
@@ -119,7 +134,9 @@ export const BARE_ENTRY: ControlRegisterEntry = {
  */
 export const SHAPES: readonly (readonly [string, object, readonly string[]])[] =
   [
-    ["entry", ENTRY, ["status"]],
+    ["entry", ENTRY, ["evidence", "status"]],
+    ["evidence", EVIDENCE, []],
+    ["locator", LOCATOR, []],
     ["enforcement_point", POINT, ["measuring_mechanism", "executor"]],
     ["executor", EXECUTOR, []],
     ["parameter", PARAMETER, ["direction"]],

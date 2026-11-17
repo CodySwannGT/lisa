@@ -27,7 +27,7 @@ export const AUDIT_SKILL_SOURCE = path.join(
 );
 
 /** One fenced block of the skill. */
-interface FencedBlock {
+export interface FencedBlock {
   /** The language the fence names, such as `bash` or `json`. */
   readonly language: string;
   /** The block's content, without the fence or the fence's indentation. */
@@ -52,7 +52,7 @@ const FENCE = /^(\s*)```(\w*)\s*$/u;
  * @param markdown - The document
  * @returns Each block with a language, in the order it appears
  */
-function fencedBlocks(markdown: string): readonly FencedBlock[] {
+export function fencedBlocks(markdown: string): readonly FencedBlock[] {
   const scanned = markdown.split("\n").reduce<FenceScan>(
     (scan, line) => {
       const fence = FENCE.exec(line);

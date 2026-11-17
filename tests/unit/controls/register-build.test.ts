@@ -18,6 +18,7 @@ import {
   F_NONE_GATES,
   F_PAVED_GATES,
   OWNER,
+  evidenceAt,
 } from "../../helpers/control-register.js";
 import { buildOf, entryOf, registerOf } from "./support/register-build.js";
 
@@ -43,7 +44,7 @@ describe("a repository with more than one part", () => {
     ]);
   });
 
-  it("states all nine things about a part, and the gate it came from", async () => {
+  it("states all nine things about a part, what supports it, and the gate it came from", async () => {
     expect(entryOf(await registerOf(F_NONE_GATES), LINT_WHOLE)).toEqual({
       id: LINT_WHOLE,
       gate: LINT,
@@ -68,6 +69,7 @@ describe("a repository with more than one part", () => {
         external_effects: [],
       },
       accountable_party: OWNER,
+      evidence: { locators: [{ path: "ruff.toml", line: 1 }], questions: [] },
     });
   });
 
@@ -91,7 +93,15 @@ describe("a repository with more than one part", () => {
 
   it("lists a part that is declared and enforced nowhere, with no enforcement points", async () => {
     const register = await registerOf({
-      [LINT]: { parts: [{ scope: "api", command: ["ruff", "check", "."] }] },
+      [LINT]: {
+        parts: [
+          {
+            scope: "api",
+            command: ["ruff", "check", "."],
+            evidence: evidenceAt("api/ruff.toml"),
+          },
+        ],
+      },
     });
 
     expect(entryOf(register, LINT_API)).toMatchObject({
@@ -119,9 +129,12 @@ describe("an entry's identifier", () => {
       [LINT]: {
         ...(F_MIXED_GATES[LINT] as object),
         parts: [
-          { scope: "docs", command: ["vale", "."] },
-          { scope: "web", command: ["npm", "run", "lint"] },
-          { scope: "api", command: ["ruff", "check", "."] },
+          {
+            scope: "docs",
+            command: ["vale", "."],
+            evidence: evidenceAt("docs/.vale.ini"),
+          },
+          ...(F_MIXED_GATES[LINT] as { parts: readonly object[] }).parts,
         ],
       },
     });
@@ -135,11 +148,13 @@ describe("an entry's identifier", () => {
     const built = await buildOf({
       "x-docs": {
         push: "optional",
-        parts: [{ scope: "a@b", command: ["true"] }],
+        parts: [
+          { scope: "a@b", command: ["true"], evidence: evidenceAt("a@b/x") },
+        ],
       },
       "x-docs@a": {
         push: "optional",
-        parts: [{ scope: "b", command: ["true"] }],
+        parts: [{ scope: "b", command: ["true"], evidence: evidenceAt("b/x") }],
       },
     });
 
@@ -187,6 +202,7 @@ describe("the same declaration always gives the same register", () => {
       "accountable_party",
       "criteria",
       "enforcement_points",
+      "evidence",
       "gate",
       "id",
       "measuring_mechanism",

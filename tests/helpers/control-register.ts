@@ -33,6 +33,23 @@ export const OWNER = "Platform team";
 /** A `gates` block as it is written in `.lisa.config.json`. */
 export type GatesBlock = Readonly<Record<string, unknown>>;
 
+/** What a part says supports it, as it is written in a `gates` block. */
+export type PartEvidence = Readonly<Record<string, unknown>>;
+
+/**
+ * The evidence of a part the audit found in one place. Every part of a
+ * declaration needs one before a register is generated from it.
+ * @param file - The file the audit found the check in, from the repository root
+ * @param line - The line in that file, counted from 1
+ * @returns The part's `evidence`
+ */
+export function evidenceAt(file: string, line = 1): PartEvidence {
+  return { locators: [{ path: file, line }] };
+}
+
+/** The audit question the F-none coverage floor rests on. */
+export const COVERAGE_QUESTION = "SI2@.";
+
 /** F-none: one Python package, so every part covers the whole repository. */
 export const F_NONE_GATES: GatesBlock = {
   "code-style": {
@@ -52,6 +69,7 @@ export const F_NONE_GATES: GatesBlock = {
           timeout_seconds: 120,
           external_effects: [],
         },
+        evidence: evidenceAt("ruff.toml"),
       },
     ],
   },
@@ -64,6 +82,7 @@ export const F_NONE_GATES: GatesBlock = {
         scope: ".",
         command: ["python", "-m", "pytest", "--cov"],
         parameters: { "minimum-coverage": { value: 80, direction: "floor" } },
+        evidence: { questions: [COVERAGE_QUESTION] },
       },
     ],
   },
@@ -78,14 +97,28 @@ export const F_MIXED_GATES: GatesBlock = {
     owner: OWNER,
     tier: "authoritative",
     parts: [
-      { scope: "web", command: ["npm", "run", "lint"] },
-      { scope: "api", command: ["ruff", "check", "."] },
+      {
+        scope: "web",
+        command: ["npm", "run", "lint"],
+        evidence: evidenceAt("web/package.json"),
+      },
+      {
+        scope: "api",
+        command: ["ruff", "check", "."],
+        evidence: evidenceAt("api/ruff.toml"),
+      },
     ],
   },
   "type-correctness": {
     push: "required",
     owner: OWNER,
-    parts: [{ scope: "web", command: ["npx", "tsc", "--noEmit"] }],
+    parts: [
+      {
+        scope: "web",
+        command: ["npx", "tsc", "--noEmit"],
+        evidence: evidenceAt("web/tsconfig.json"),
+      },
+    ],
   },
 };
 

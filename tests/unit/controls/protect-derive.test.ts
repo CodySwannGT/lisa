@@ -25,6 +25,7 @@ import {
   F_MIXED_GATES,
   F_PAVED_GATES,
   declarationOf,
+  evidenceAt,
   type GatesBlock,
 } from "../../helpers/control-register.js";
 
@@ -105,7 +106,13 @@ describe("required checks derived from the control register", () => {
       "test-correctness": {
         "pull-request": "required",
         tier: "advisory",
-        parts: [{ scope: "web", command: ["npm", "test"] }],
+        parts: [
+          {
+            scope: "web",
+            command: ["npm", "test"],
+            evidence: evidenceAt("web/package.json"),
+          },
+        ],
       },
     });
 
@@ -118,7 +125,13 @@ describe("required checks derived from the control register", () => {
       [CODE_STYLE]: {
         "pull-request": "optional",
         tier: "authoritative",
-        parts: [{ scope: ".", command: ["ruff", "check", "."] }],
+        parts: [
+          {
+            scope: ".",
+            command: ["ruff", "check", "."],
+            evidence: evidenceAt("ruff.toml"),
+          },
+        ],
       },
     });
 

@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { ControlAuditFixture } from "../../helpers/control-audit-fixtures.js";
-import { F_MIXED_GATES } from "../../helpers/control-register.js";
+import { F_MIXED_GATES, evidenceAt } from "../../helpers/control-register.js";
 import { fakeGithub } from "./support/fake-github.js";
 import {
   GITHUB_REMOTE,
@@ -164,7 +164,13 @@ describe("lisa controls protect when the register asks nothing of the platform",
       gates: {
         "type-correctness": {
           push: "required",
-          parts: [{ scope: "web", command: ["npx", "tsc", "--noEmit"] }],
+          parts: [
+            {
+              scope: "web",
+              command: ["npx", "tsc", "--noEmit"],
+              evidence: evidenceAt("web/tsconfig.json"),
+            },
+          ],
         },
       },
     });

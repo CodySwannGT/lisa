@@ -20,6 +20,7 @@ import {
   F_NONE_GATES,
   F_PAVED_GATES,
   OWNER,
+  evidenceAt,
   type GatesBlock,
 } from "../../helpers/control-register.js";
 import { registerOf } from "./support/register-build.js";
@@ -44,8 +45,13 @@ const SEVERAL: GatesBlock = {
           "max-warnings": { value: 0, direction: "ceiling" },
           config: { value: "strict" },
         },
+        evidence: evidenceAt("web/package.json"),
       },
-      { scope: "api", command: ["ruff", "check", "."] },
+      {
+        scope: "api",
+        command: ["ruff", "check", "."],
+        evidence: evidenceAt("api/ruff.toml"),
+      },
     ],
   },
   "coverage-adequacy": {
@@ -56,6 +62,7 @@ const SEVERAL: GatesBlock = {
         scope: "api",
         command: ["python", "-m", "pytest", "--cov"],
         parameters: { "minimum-coverage": { value: 80, direction: "floor" } },
+        evidence: evidenceAt("api/pyproject.toml"),
       },
       {
         scope: "web",
@@ -65,6 +72,7 @@ const SEVERAL: GatesBlock = {
           "minimum-branches": { value: 55.5, direction: "floor" },
           retries: { value: 2 },
         },
+        evidence: evidenceAt("web/package.json"),
       },
     ],
   },
