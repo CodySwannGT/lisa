@@ -122,6 +122,7 @@ describe("the missing-capability ticket flow", () => {
         ],
         questions: [],
         answers: [],
+        probes: [],
       },
       [
         {

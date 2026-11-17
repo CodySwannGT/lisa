@@ -23,10 +23,14 @@
 import { everyCriterionOncePerScope } from "./audit-report-rules/coverage.js";
 import { locatorsResolve } from "./audit-report-rules/locators.js";
 import { plainLanguageFields } from "./audit-report-rules/plain-language.js";
+import { dependentsOfUnreadSystemsAreUnknown } from "./audit-report-rules/probe-dependents.js";
+import { probesHoldNoCredentials } from "./audit-report-rules/probe-secrets.js";
+import { probesAreWellFormed } from "./audit-report-rules/probes.js";
 import { provedNeedsFreshEvidence } from "./audit-report-rules/proved-evidence.js";
 import { questionsMatchFindings } from "./audit-report-rules/questions.js";
 import { answersAreWhatWasTyped } from "./audit-report-rules/recorded-answers.js";
 import { scopesAreRepositoryFolders } from "./audit-report-rules/scopes.js";
+import { serverSideAuthorityNeedsPlatformRead } from "./audit-report-rules/server-side-authority.js";
 import { trackerQuestionAsked } from "./audit-report-rules/tracker-question.js";
 import {
   parseAuditReport,
@@ -37,6 +41,13 @@ import type {
   AuditReportRule,
 } from "./audit-report-types.js";
 
+export * from "./audit-probe-types.js";
+export {
+  isNeededBy,
+  isReached,
+  probeOf,
+  unreachedProbesOf,
+} from "./audit-probes.js";
 export * from "./audit-report-types.js";
 export {
   AUDIT_REPORT_SECTIONS,
@@ -62,6 +73,10 @@ export const AUDIT_REPORT_RULES: readonly AuditReportRule[] = [
   questionsMatchFindings,
   trackerQuestionAsked,
   answersAreWhatWasTyped,
+  probesAreWellFormed,
+  dependentsOfUnreadSystemsAreUnknown,
+  serverSideAuthorityNeedsPlatformRead,
+  probesHoldNoCredentials,
 ];
 
 /**

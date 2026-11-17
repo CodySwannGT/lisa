@@ -8,6 +8,7 @@
  * `./audit-report.js` unless you are one of those modules.
  * @module controls/audit-report-types
  */
+import type { AuditProbe } from "./audit-probe-types.js";
 import type { InScopeCriterion } from "./catalogue.js";
 import type { EvidenceRecordRef } from "./evidence.js";
 import type { RepositoryReader } from "./repository-reader.js";
@@ -216,6 +217,11 @@ export interface AuditReport {
    * answered with, find the entry whose `id` is `X` and read its `answer`.
    */
   readonly answers: readonly AuditAnswer[];
+  /**
+   * One entry for each outside system the audit tried, or declined, to read;
+   * empty when no requirement depends on one (`./audit-probe-types.ts`).
+   */
+  readonly probes: readonly AuditProbe[];
 }
 
 /** One thing wrong with a report. */
