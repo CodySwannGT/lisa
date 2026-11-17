@@ -53,6 +53,27 @@
  * reports a verdict, so "the runner could not run" must never look like "all
  * gates passed". Hence `NO_GATES` and `RUNNER_FAILED` are distinct from
  * `PROVED`, and the hook routes each one deliberately.
+ *
+ * ## A caller with no built-in checks
+ *
+ * `NO_GATES` means "run your own checks instead", and it is only an answer
+ * for a caller that has some. The hooks a stack template ships do: a secret
+ * scan, lint-staged, a test run. A repository on no supported project type
+ * has no such hook, and a caller there that was sent away with 78 would let
+ * the commit through having checked nothing.
+ *
+ * That caller passes `--builtins=none`, and gets a verdict every time:
+ *
+ * - `0` — let it through. Every required gate declared at this moment was
+ *   proved, or nothing is declared at this moment (the runner says which).
+ * - `1` — stop it. A required gate was not proved, or the declaration is one
+ *   the validator refuses.
+ * - `70` — stop it. The runner could not run, so nothing was proved.
+ *
+ * It never gets 78. A half-written gates block is simply run, because there
+ * is no built-in check for its silence to delete; and a gate the registry
+ * leaves to a built-in check is reported as not proved, because nothing is
+ * left to check it. Without the flag every exit code means what it always has.
  * @module lisa-run-gates
  */
 
@@ -140,6 +161,9 @@ export { compareCodeUnits };
  * send the hook to its hardcoded path. They are separate because one is a
  * project that has not migrated and the other is a broken tool, and an
  * operator reading a hook transcript needs to be able to tell them apart.
+ *
+ * A caller that passed `--builtins=none` has no hardcoded path, and is never
+ * answered with `NO_GATES`: see "A caller with no built-in checks" above.
  */
 export const EXIT = Object.freeze({
   /** Every required gate at this moment was proved. */
@@ -417,11 +441,10 @@ function shownArgv(argv) {
  */
 function formatLine(state, gate, detail) {
   const token = `${state.toUpperCase()}`.padEnd(STATE_WIDTH);
-  // A part's name carries its folder and so has no fixed width; the space
-  // keeps a long one from running into the detail beside it.
-  const id = isPart(gate)
-    ? `${nameOf(gate)} `.padEnd(ID_WIDTH)
-    : gate.id.padEnd(ID_WIDTH);
+  // A name has no fixed width: a part's carries its folder, and a gate id may
+  // be longer than the column. The space keeps a long one from running into
+  // the detail beside it, and changes nothing for a name that fits.
+  const id = `${nameOf(gate)} `.padEnd(ID_WIDTH);
   const alias = gate.alias
     ? ` (no "${gate.alias.from}" script here; this project ships "${gate.alias.to}")`
     : "";
@@ -763,11 +786,34 @@ function attributed(gate, outcome, siblings) {
 }
 
 /**
+ * What a gate left to a built-in check says when the caller has none.
+ *
+ * `builtin` is the registry's word for "the hook that called this runner
+ * proves this property itself, with a step of its own". That is true of the
+ * hooks a stack template ships and of nothing else. Reported as not
+ * applicable to a caller with no such step, the gate would read as settled
+ * while nothing anywhere had checked it — so it is reported as what it is.
+ */
+const NO_BUILTIN_TO_DEFER_TO =
+  "left to a check built in to the caller, and this caller has no built-in " +
+  "checks, so nothing ran and nothing was proved. Name a command for this " +
+  'gate under "parts", or declare it "off"';
+
+/**
  * Classify a gate without running it, when there is nothing to run.
  * @param {GateOutcome} gate The resolved gate.
+ * @param {boolean} [builtins] Whether the caller of this run has built-in
+ *   checks of its own. See `runGates`.
  * @returns {{state: string, detail: string, code: null}|null} Outcome or null.
  */
-function classifyStatic(gate) {
+function classifyStatic(gate, builtins = true) {
+  if (!builtins && gate.mode === "builtin") {
+    return {
+      state: STATE.UNPROVABLE,
+      detail: NO_BUILTIN_TO_DEFER_TO,
+      code: null,
+    };
+  }
   const skip = skipReason(gate);
   if (skip) return { state: STATE.SKIPPED, detail: skip, code: null };
   // A part has no command LINE by design — it has an argument list, and
@@ -1113,16 +1159,26 @@ function summarise(result, priorKills = []) {
  * A part adds one question in front of all of that: may its command start at
  * all, and where. See `partStart`.
  * @param {GateOutcome} gate The resolved gate.
- * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function, execArgv: Function, root: string}} ctx Run state.
+ * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function, execArgv: Function, root: string, builtins: boolean}} ctx Run state.
  * @returns {{outcome: object, shared: object|undefined, ran: boolean}} The verdict.
  */
 function verdictFor(
   gate,
-  { proved, blockedBy, exec, execArgv, root, siblings, declarations, cache }
+  {
+    proved,
+    blockedBy,
+    exec,
+    execArgv,
+    root,
+    builtins,
+    siblings,
+    declarations,
+    cache,
+  }
 ) {
   const start = isPart(gate) ? partStart(gate, root) : null;
   const own =
-    classifyStatic(gate) ??
+    classifyStatic(gate, builtins) ??
     (start !== null && "problem" in start
       ? partNotStarted(start.problem)
       : null);
@@ -1259,6 +1315,11 @@ function verdictFor(
  *   `openSelectionReports` (CodySwannGT/lisa#4600), or null for none. A
  *   partial selection is never remembered by the cache, and one run with
  *   coverage off reports coverage-adequacy SKIPPED.
+ * @param {boolean} [options.builtins] Whether the caller of this run has
+ *   built-in checks of its own to prove what the registry leaves to them.
+ *   True by default, which is every hook a stack template ships. False for a
+ *   caller with none (`--builtins=none`): a gate resolved to `builtin` is then
+ *   reported as not proved, because nothing is left to prove it.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -1276,6 +1337,7 @@ export function runGates({
   clock = Date.now,
   cache = null,
   selection = null,
+  builtins = true,
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
   const results = [];
@@ -1361,6 +1423,7 @@ export function runGates({
       exec,
       execArgv,
       root,
+      builtins,
       siblings: sharers.get(key) ?? new Set(),
       declarations: declaredShapes.get(key) ?? [],
       cache,
@@ -2255,6 +2318,47 @@ function readFlag(argv, name) {
   return hit ? hit.slice(name.length + 3) : null;
 }
 
+/** How the command line is written. */
+const USAGE =
+  "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>] " +
+  "[--evidence=<file>] [--builtins=none]";
+
+/** The flag a caller uses to say what checks of its own it has. */
+const BUILTINS_FLAG = "builtins";
+
+/** The one value that flag takes: the caller has no checks of its own. */
+const NO_BUILTINS = "none";
+
+/**
+ * Why the `--builtins` flag cannot be honoured as given, or null when it can.
+ *
+ * `--coverage` and `--builtins=none` are refused together because they say
+ * opposite things about the caller. The first asks which of its built-in
+ * checks it may skip; the second says it has none. Honouring either one would
+ * mean ignoring the other, and the caller would not learn which.
+ * @param {string|null} value The flag's value, or null when it was not given.
+ * @param {string|null} coveragePath The `--coverage` file, if one was given.
+ * @returns {string|null} The problem, in a sentence, or null.
+ */
+function builtinsFlagProblem(value, coveragePath) {
+  if (value === null) return null;
+  if (value !== NO_BUILTINS) {
+    return (
+      `--${BUILTINS_FLAG}=${JSON.stringify(value)} is not something this ` +
+      `runner understands. The only value is --${BUILTINS_FLAG}=${NO_BUILTINS}, ` +
+      `for a caller that has no built-in checks of its own.`
+    );
+  }
+  if (coveragePath) {
+    return (
+      `--coverage and --${BUILTINS_FLAG}=${NO_BUILTINS} cannot be used ` +
+      `together: the first asks which built-in checks to skip, and the ` +
+      `second says there are none.`
+    );
+  }
+  return null;
+}
+
 /**
  * Write the covered ids where the calling hook can read them.
  *
@@ -2345,12 +2449,24 @@ export function main(argv = process.argv.slice(2)) {
   // Host load at the START of the run, for the push timing report (#4591).
   const startReading = hostReading();
   if (!moment) {
-    console.error(
-      "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>] " +
-        "[--evidence=<file>]"
-    );
+    console.error(USAGE);
     return EXIT.RUNNER_FAILED;
   }
+  // Read before anything runs, and refused rather than guessed at. This flag
+  // decides whether "go and run your own checks" is an answer the caller can
+  // act on, so a value this runner does not know must not quietly become
+  // either answer.
+  const builtinsFlag = argv.includes(`--${BUILTINS_FLAG}`)
+    ? ""
+    : readFlag(argv, BUILTINS_FLAG);
+  const flagProblem = builtinsFlagProblem(builtinsFlag, coveragePath);
+  if (flagProblem) {
+    console.error(`⚠️  ${flagProblem}`);
+    console.error(USAGE);
+    console.error("   Nothing ran, so nothing was proved. This is NOT a pass.");
+    return EXIT.RUNNER_FAILED;
+  }
+  const standalone = builtinsFlag === NO_BUILTINS;
 
   // PRINTED BEFORE ANY GATE RUNS, so it is present whether they pass, fail,
   // are optional, or never run at all. Every early return below is a report an
@@ -2420,6 +2536,17 @@ export function main(argv = process.argv.slice(2)) {
   // has not adopted the registry, so the caller must run its hardcoded steps.
   if (!config.gates || Object.keys(config.gates).length === 0) {
     if (coveragePath) writeCoverage(coveragePath, []);
+    // A caller with no built-in checks has no hardcoded steps to run instead,
+    // so 78 would be an instruction it cannot follow. What is true is that
+    // nothing is declared and so nothing was checked: the same answer a gates
+    // block that is silent at this moment gets further down, said out loud.
+    if (standalone) {
+      console.log(
+        `ℹ️  No gates are declared in .lisa.config.json, so nothing was ` +
+          `checked at ${moment}.`
+      );
+      return settle(EXIT.PROVED, EVIDENCE_VERDICT.NO_GATES);
+    }
     return settle(EXIT.NO_GATES, EVIDENCE_VERDICT.NO_GATES);
   }
 
@@ -2479,8 +2606,13 @@ export function main(argv = process.argv.slice(2)) {
   // and anything it does declare, `false` included, wins.
   const pushConfig = withPushGateDefaults(config.config, process.cwd());
 
-  const wired = wiredConditionalFloor({ moment });
-  const missing = undeclaredFloor({ gates: config.gates, moment, wired });
+  // The floor is the list of properties the caller's built-in checks prove.
+  // A caller with none has no floor: there is nothing for a half-written
+  // block to delete by omission, and nothing to fall back to if it did.
+  const wired = standalone ? [] : wiredConditionalFloor({ moment });
+  const missing = standalone
+    ? []
+    : undeclaredFloor({ gates: config.gates, moment, wired });
 
   // One cleanup sweep per push (CodySwannGT/lisa#4597), before the first gate
   // and before the built-in fallback below, which runs tests too. It never
@@ -2626,6 +2758,7 @@ export function main(argv = process.argv.slice(2)) {
       : exec,
     cache,
     selection,
+    builtins: !standalone,
     // The manifest is read HERE and handed down, rather than read inside the
     // resolver, so that `runGates` stays a pure function of its inputs and
     // every test above can state what this project ships instead of writing a
