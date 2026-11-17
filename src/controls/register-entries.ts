@@ -16,6 +16,7 @@ import type { ResolvedPoint } from "./register-points.js";
 import {
   WHOLE_REPOSITORY_SCOPE,
   controlEntryId,
+  type ControlEvidence,
   type ControlParameter,
   type ControlProof,
   type ControlRegisterEntry,
@@ -40,6 +41,7 @@ interface DeclaredPart {
   readonly command: readonly string[];
   readonly parameters?: Readonly<Record<string, ControlParameter>>;
   readonly proof?: DeclaredProof;
+  readonly evidence?: Partial<ControlEvidence>;
 }
 
 /**
@@ -145,6 +147,21 @@ function proofOf(proof: DeclaredProof = {}): ControlProof {
 }
 
 /**
+ * What a part says supports it, with both lists present.
+ * @param evidence - The part's `evidence`
+ * @returns The places and the question ids, in the order they are declared
+ */
+function evidenceOf(evidence: Partial<ControlEvidence>): ControlEvidence {
+  return {
+    locators: (evidence.locators ?? []).map(({ path, line }) => ({
+      path,
+      line,
+    })),
+    questions: [...(evidence.questions ?? [])],
+  };
+}
+
+/**
  * Tell whether two mechanisms are the same.
  * @param left - First mechanism
  * @param right - Second mechanism
@@ -229,6 +246,9 @@ export function entriesForGate(
       parameters: parametersOf(part?.parameters),
       proof: proofOf(part?.proof),
       accountable_party: typeof gate.owner === "string" ? gate.owner : null,
+      ...(part?.evidence === undefined
+        ? {}
+        : { evidence: evidenceOf(part.evidence) }),
     };
   });
 }

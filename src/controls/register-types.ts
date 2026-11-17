@@ -164,6 +164,27 @@ export interface ControlProof {
   readonly external_effects: readonly string[] | null;
 }
 
+/** A place the audit found a check: the audit report's own locator. */
+export interface EvidenceLocator {
+  /** The file, written from the repository root. */
+  readonly path: string;
+  /** The line in that file, counted from 1. */
+  readonly line: number;
+}
+
+/**
+ * What supports an entry: the places the audit found its check, and the audit
+ * questions a person answered. Both keys are always present and at least one
+ * of the two lists is not empty, because a part that names neither is refused
+ * before a register is written.
+ */
+export interface ControlEvidence {
+  /** Where the audit found the check, as the declaration lists them. */
+  readonly locators: readonly EvidenceLocator[];
+  /** The ids of the answered audit questions, as the declaration lists them. */
+  readonly questions: readonly string[];
+}
+
 /** One rule, for one folder. */
 export interface ControlRegisterEntry {
   /** `<gate>@<scope>`; see {@link controlEntryId}. */
@@ -184,6 +205,13 @@ export interface ControlRegisterEntry {
   readonly proof: ControlProof;
   /** Who answers for the rule, or `null` when the gate names nobody. */
   readonly accountable_party: string | null;
+  /**
+   * What supports the entry. Present on every entry generated from one of a
+   * gate's `parts`. Absent on the entry of a gate with no parts: that rule
+   * comes from the declarations Lisa ships for a supported project type, and
+   * has no part to carry evidence.
+   */
+  readonly evidence?: ControlEvidence;
 }
 
 /** The control register file. */

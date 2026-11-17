@@ -136,6 +136,7 @@ describe("the control keys on a gate", () => {
       "command",
       "parameters",
       "proof",
+      "evidence",
     ]);
     expect(fresh.PROOF_FIELDS).toEqual([
       "violation",

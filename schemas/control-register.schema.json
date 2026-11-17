@@ -80,8 +80,48 @@
           "type": ["string", "null"],
           "minLength": 1,
           "description": "The person or team that answers for the rule, or `null` when the gate names nobody."
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence",
+          "description": "What supports recording this rule. Present on every entry generated from one of a gate's `parts`: a part that names nothing is refused before the register is written. Absent on the entry of a gate with no parts, whose rule comes from the declarations Lisa ships for a supported project type."
         }
       }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["locators", "questions"],
+      "properties": {
+        "locators": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/locator" },
+          "description": "The places the audit found the check, in the order the declaration lists them. Empty when the entry rests on answered questions alone."
+        },
+        "questions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "The ids of the audit questions a person answered, in the order the declaration lists them. Empty when the entry rests on what the audit found alone."
+        }
+      },
+      "description": "What supports an entry. At least one of the two lists is not empty."
+    },
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "line"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The file, written from the repository root."
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The line in that file, counted from 1."
+        }
+      },
+      "description": "A place the audit found a check: a file and a line, exactly as the audit report writes it."
     },
     "criterion_id": {
       "type": "string",

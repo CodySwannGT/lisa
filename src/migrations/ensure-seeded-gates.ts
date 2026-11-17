@@ -65,7 +65,7 @@ interface SeedPlan {
  * @param projectDir - Destination project directory
  * @returns A runner string for `gates.runner`
  */
-async function detectRunner(projectDir: string): Promise<string> {
+export async function detectRunner(projectDir: string): Promise<string> {
   const has = async (file: string): Promise<boolean> =>
     fse.pathExists(path.join(projectDir, file));
   if ((await has("bun.lockb")) || (await has("bun.lock"))) return "bun run";

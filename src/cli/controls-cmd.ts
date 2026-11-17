@@ -18,9 +18,12 @@
 import type { Command } from "commander";
 
 import { registerCatalogue } from "../controls/commands/catalogue.js";
+import { registerDeclarationCheck } from "../controls/commands/declaration-check.js";
 import { registerGaps } from "../controls/commands/gaps.js";
+import { registerProposeThreshold } from "../controls/commands/propose-threshold.js";
 import { registerRegister } from "../controls/commands/register.js";
 import { registerReportCheck } from "../controls/commands/report-check.js";
+import { registerSeed } from "../controls/commands/seed.js";
 
 /** The group's name on the command line. */
 export const CONTROLS_COMMAND = "controls";
@@ -33,6 +36,9 @@ export const CONTROLS_SUBCOMMANDS: readonly ControlsSubcommand[] = [
   registerCatalogue,
   registerReportCheck,
   registerGaps,
+  registerSeed,
+  registerProposeThreshold,
+  registerDeclarationCheck,
   registerRegister,
 ];
 

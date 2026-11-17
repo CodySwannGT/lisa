@@ -11,11 +11,13 @@
  * @module tests/unit/controls/support/register-samples
  */
 import type {
+  ControlEvidence,
   ControlParameter,
   ControlProof,
   ControlRegister,
   ControlRegisterEntry,
   EnforcementPoint,
+  EvidenceLocator,
   MeasuringMechanism,
   MechanismKind,
 } from "../../../../src/controls/register-types.js";
@@ -57,6 +59,18 @@ export const PROOF: Required<ControlProof> = {
   external_effects: [],
 };
 
+/** A place the audit found a check, with every key. */
+export const LOCATOR: Required<EvidenceLocator> = {
+  path: "api/ruff.toml",
+  line: 1,
+};
+
+/** What supports an entry, with every key filled in. */
+export const EVIDENCE: Required<ControlEvidence> = {
+  locators: [LOCATOR],
+  questions: ["coverage-floor"],
+};
+
 /** An entry with every key filled in. */
 export const ENTRY: Required<ControlRegisterEntry> = {
   id: "code-style@api",
@@ -69,6 +83,7 @@ export const ENTRY: Required<ControlRegisterEntry> = {
   parameters: { "minimum-coverage": PARAMETER },
   proof: PROOF,
   accountable_party: "Platform team",
+  evidence: EVIDENCE,
 };
 
 /** A register with every key. */
@@ -84,9 +99,11 @@ export const BARE_POINT: EnforcementPoint = {
   location: "local-checkout",
 };
 
+const { evidence: _evidence, ...UNEVIDENCED_ENTRY } = ENTRY;
+
 /** An entry with every optional key left off and every `null` taken. */
 export const BARE_ENTRY: ControlRegisterEntry = {
-  ...ENTRY,
+  ...UNEVIDENCED_ENTRY,
   criteria: [],
   enforcement_points: [BARE_POINT],
   parameters: { flag: { value: true }, name: { value: "strict" } },
@@ -106,7 +123,9 @@ export const BARE_ENTRY: ControlRegisterEntry = {
  */
 export const SHAPES: readonly (readonly [string, object, readonly string[]])[] =
   [
-    ["entry", ENTRY, []],
+    ["entry", ENTRY, ["evidence"]],
+    ["evidence", EVIDENCE, []],
+    ["locator", LOCATOR, []],
     ["enforcement_point", POINT, ["measuring_mechanism"]],
     ["parameter", PARAMETER, ["direction"]],
     ["proof", PROOF, []],
