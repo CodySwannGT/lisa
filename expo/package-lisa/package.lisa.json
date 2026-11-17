@@ -68,7 +68,8 @@
       "eslint-plugin-oxlint": ">=1.62.0 <1.86.0",
       "oxlint": ">=1.62.0 <1.86.0",
       "oxlint-tsgolint": "^0.24.0",
-      "babel-jest": "^30.2.0"
+      "babel-jest": "^30.2.0",
+      "eas-cli": "^27.0.0"
     },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",
@@ -77,7 +78,20 @@
       "fast-xml-parser": "^5.10.1",
       "tar": ">=7.5.21",
       "websocket-driver": ">=0.7.5",
-      "baseline-browser-mapping": ">=2.9.2"
+      "baseline-browser-mapping": ">=2.9.2",
+      "@apollo/client": ">=3.10.8",
+      "@hookform/resolvers": ">=3.9.0",
+      "apollo-link-sentry": ">=4.4.0",
+      "base-64": ">=1.0.0",
+      "date-fns": ">=3.6.0",
+      "date-fns-tz": ">=3.1.3",
+      "events": ">=3.3.0",
+      "graphql": ">=16.12.0",
+      "i18n-js": ">=4.5.1",
+      "patch-package": ">=8.0.0",
+      "react-hook-form": ">=7.70.0",
+      "text-encoding-polyfill": ">=0.6.7",
+      "usehooks-ts": ">=3.1.1"
     },
     "overrides": {
       "@isaacs/brace-expansion": "^5.0.1",
@@ -86,7 +100,20 @@
       "zod-validation-error": "^4.0.0",
       "tar": ">=7.5.21",
       "websocket-driver": ">=0.7.5",
-      "baseline-browser-mapping": ">=2.9.2"
+      "baseline-browser-mapping": ">=2.9.2",
+      "@apollo/client": ">=3.10.8",
+      "@hookform/resolvers": ">=3.9.0",
+      "apollo-link-sentry": ">=4.4.0",
+      "base-64": ">=1.0.0",
+      "date-fns": ">=3.6.0",
+      "date-fns-tz": ">=3.1.3",
+      "events": ">=3.3.0",
+      "graphql": ">=16.12.0",
+      "i18n-js": ">=4.5.1",
+      "patch-package": ">=8.0.0",
+      "react-hook-form": ">=7.70.0",
+      "text-encoding-polyfill": ">=0.6.7",
+      "usehooks-ts": ">=3.1.1"
     }
   },
   "defaults": {
@@ -117,8 +144,7 @@
       "@testing-library/react-native": "^13.3.3",
       "@types/react": "~19.2.15",
       "@types/react-dom": "~19.2.3",
-      "jest-expo": "~57.0.1",
-      "eas-cli": "^27.0.0"
+      "jest-expo": "~57.0.1"
     },
     "scripts": {
       "lighthouse:check": "lhci autorun --collect.settings.chromeFlags='--no-sandbox --disable-gpu --headless' --assert.assertions.forced-reflow-insight=off && node scripts/check-lighthouse-details.mjs",
@@ -224,173 +250,6 @@
       ],
       "start:atlas": [
         "cp .env.development .env.local && STAGE=development EXPO_ATLAS=true expo start"
-      ]
-    },
-    "dependencies": {
-      "@apollo/client": [
-        "^3.10.8"
-      ],
-      "@expo/html-elements": [
-        "^0.12.5"
-      ],
-      "@gluestack-ui/core": [
-        "^3.0.10"
-      ],
-      "@gluestack-ui/utils": [
-        "^3.0.7"
-      ],
-      "@gorhom/bottom-sheet": [
-        "^5.2.6"
-      ],
-      "@hookform/resolvers": [
-        "^3.9.0"
-      ],
-      "@legendapp/motion": [
-        "^2.4.0"
-      ],
-      "@react-native-async-storage/async-storage": [
-        "2.2.0"
-      ],
-      "@react-native-masked-view/masked-view": [
-        "^0.3.2"
-      ],
-      "@sentry/react-native": [
-        "7.2.0",
-        "~7.11.0"
-      ],
-      "@shopify/flash-list": [
-        "2.0.2"
-      ],
-      "@shopify/react-native-skia": [
-        "2.2.12",
-        "2.6.2"
-      ],
-      "apollo-link-sentry": [
-        "4.4.0",
-        "^3.3.0",
-        "^4.0.0"
-      ],
-      "base-64": [
-        "^1.0.0"
-      ],
-      "date-fns": [
-        "^3.6.0"
-      ],
-      "date-fns-tz": [
-        "^3.1.3"
-      ],
-      "expo-application": [
-        "~56.0.3",
-        "~57.0.0",
-        "~7.0.8"
-      ],
-      "expo-battery": [
-        "~10.0.8",
-        "~56.0.4",
-        "~57.0.0"
-      ],
-      "expo-build-properties": [
-        "~1.0.10",
-        "~56.0.15",
-        "~57.0.3"
-      ],
-      "expo-clipboard": [
-        "~56.0.3",
-        "~57.0.0",
-        "~8.0.8"
-      ],
-      "expo-crypto": [
-        "^15.0.8",
-        "~56.0.4",
-        "~57.0.0"
-      ],
-      "expo-device": [
-        "~56.0.4",
-        "~57.0.0",
-        "~8.0.10"
-      ],
-      "expo-font": [
-        "~14.0.10",
-        "~56.0.5",
-        "~57.0.0"
-      ],
-      "expo-linear-gradient": [
-        "~15.0.8",
-        "~56.0.4",
-        "~57.0.0"
-      ],
-      "expo-localization": [
-        "^17.0.8",
-        "~56.0.6",
-        "~57.0.0"
-      ],
-      "expo-network": [
-        "~56.0.4",
-        "~57.0.0",
-        "~8.0.8"
-      ],
-      "expo-notifications": [
-        "~0.32.16",
-        "~56.0.14",
-        "~57.0.3"
-      ],
-      "expo-secure-store": [
-        "~15.0.8",
-        "~56.0.4",
-        "~57.0.0"
-      ],
-      "expo-splash-screen": [
-        "~31.0.13",
-        "~56.0.10",
-        "~57.0.2"
-      ],
-      "expo-status-bar": [
-        "~3.0.9",
-        "~56.0.4",
-        "~57.0.0"
-      ],
-      "expo-system-ui": [
-        "~56.0.5",
-        "~57.0.0",
-        "~6.0.9"
-      ],
-      "graphql": [
-        "^16.12.0"
-      ],
-      "i18n-js": [
-        "^4.5.1"
-      ],
-      "lucide-react-native": [
-        "^0.562.0"
-      ],
-      "patch-package": [
-        "^8.0.0"
-      ],
-      "react-hook-form": [
-        "^7.70.0"
-      ],
-      "react-native-keyboard-controller": [
-        "1.20.4",
-        "1.21.6",
-        "1.21.9"
-      ],
-      "react-native-svg": [
-        "15.15.4",
-        "^15.15.1"
-      ],
-      "tar": [
-        ">=7.5.11",
-        ">=7.5.19",
-        ">=7.5.21",
-        "^7.5.6",
-        "^7.5.7",
-        "^7.5.8"
-      ],
-      "text-encoding-polyfill": [
-        "^0.6.7"
-      ],
-      "usehooks-ts": [
-        "^3.1.1"
       ]
     },
     "devDependencies": {

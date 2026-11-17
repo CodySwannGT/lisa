@@ -309,6 +309,23 @@ describe("findMentionedPackages", () => {
     ]).toEqual(["expo-system-ui"]);
   });
 
+  it("keeps a native module that only the app config names, as a config plugin", async () => {
+    // Expo resolves config plugins from app.json at prebuild; host code never
+    // imports them, and the tracked config is where the name lives.
+    gitInit(host.hostDir());
+    writeHostFile(
+      host.hostDir(),
+      "app.json",
+      '{"expo":{"plugins":[["expo-build-properties",{"ios":{}}]]}}'
+    );
+    expect([
+      ...(await findMentionedPackages(host.hostDir(), [
+        "expo-build-properties",
+        "expo-battery",
+      ])),
+    ]).toEqual(["expo-build-properties"]);
+  });
+
   it("keeps a package a manifest script runs, but not one it merely lists", async () => {
     gitInit(host.hostDir());
     writeHostFile(

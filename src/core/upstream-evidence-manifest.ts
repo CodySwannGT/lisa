@@ -489,7 +489,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "990a41114920f968c2dfe3fb5adf6acd1c94bb53b8c9fe72c6fcd72f9fad5991",
+      "ac3db7dc5b95d2c10985ac6b45c004d5a29fbee3d5d72df412240f2435901fc4",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -563,7 +563,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/eslint.slow.config.ts":
       "3189a36471d596f5d4c3ed43484a9b7a5d33ef27b4d0fdb93007b823cec6cad0",
     "expo/copy-overwrite/jest.config.ts":
-      "97ac88b6d5718a85f4bd0ae963bb5fd6d89e4068a5e6de26fd4587ac9377b8b3",
+      "b58454a9cf55cf5c1449457fe8eae8390471c57787bdee05b5e34710aa89950a",
     "expo/copy-overwrite/jest.expo.ts":
       "e6d7dffc4c83fccc02e0b2d2a52e10de30c8c00a12de44184e960bd6155edcd6",
     "expo/copy-overwrite/jest.setup.pre.js":
@@ -821,7 +821,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "23e778c77aed6b57d71c4c2c9cc9edf171555f7dc5deecb6361b74523641d6cf",
+      "14e4269f12180e34616e1971fb0b241a49abfe99703730bbd6986950675bc89c",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "0e9a3e950ea05616522d6f115118791fa08caa3d2c8ee421aa8cf856558a6e77",
     "npm-package/package-lisa/package.lisa.json":
@@ -11198,6 +11198,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/learnings-retire-cmd.ts": true,
     "src/cli/lisa-test-run-admission.ts": true,
     "src/cli/lisa-test-run-jest-merge.ts": true,
+    "src/cli/lisa-test-run-missing-tool.ts": true,
     "src/cli/lisa-test-run-payload.ts": true,
     "src/cli/lisa-test-run-shard-files.ts": true,
     "src/cli/lisa-test-run-shard.ts": true,
@@ -12753,6 +12754,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/learnings-overflow-cmd.test.ts": true,
     "tests/unit/cli/learnings-retire-cmd.test.ts": true,
     "tests/unit/cli/lisa-test-run-admission.test.ts": true,
+    "tests/unit/cli/lisa-test-run-missing-tool.test.ts": true,
     "tests/unit/cli/lisa-test-run-payload.test.ts": true,
     "tests/unit/cli/lisa-test-run-shard-files.test.ts": true,
     "tests/unit/cli/lisa-test-run-shard.test.ts": true,
@@ -12914,6 +12916,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/required-checks-declaration.test.ts": true,
     "tests/unit/config/required-checks-unit-tests-deferred.test.ts": true,
     "tests/unit/config/reusable-workflow-secret-channel.test.ts": true,
+    "tests/unit/config/runtime-dependency-ownership.test.ts": true,
     "tests/unit/config/security-pin-floors.test.ts": true,
     "tests/unit/config/setup-node-package-manager-cache.test.ts": true,
     "tests/unit/config/shipped-mjs-roster.test.ts": true,
