@@ -4,6 +4,6 @@ The `<lisa-resolved-config>` block in your context holds the effective configura
 
 - Put developer identity, such as `atlassian.email`, in `.lisa.config.local.json`.
 - Dispatch through the configured `tracker`, and do not infer it. A missing `tracker` means a `/lisa:setup:*` skill has not run.
-- Reach external systems through their `*-access` skill, with credentials from `lisa-secrets-access`.
+- Reach external systems through their `*-access` skill, with credentials from `lisa-secrets-access`. Do not ask a human for a value that provider can supply.
 
 Detail: [reference/config-resolution.md](../reference/config-resolution.md).

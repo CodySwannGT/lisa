@@ -143,19 +143,19 @@ Decide yourself which drifted files to upstream; do not hand the choice back. Fo
 - **Upstream** — an improvement every host of that stack should get: a fix, a hardening, or a pattern that is not specific to this project.
 - **Host-specific** — a customization that only makes sense here. Leave it in the project.
 
-For each file classified **Upstream**:
+For each file classified **Upstream**, go through Lisa's normal path. Never Write the host's file straight into the Lisa checkout, which is a public repository:
 
-1. Confirm the target path in Lisa (e.g., `typescript/copy-overwrite/.github/workflows/ci.yml`)
-2. Use the Write tool to copy the project's version to Lisa
-3. Report success
+1. **Scrub it first.** Remove every host identifier from the content you carry over: org, product and repository names, account numbers, bundle identifiers, internal domains, and local paths that embed them (`never-name-a-downstream-project`). `block-host-name-leak` checks only a curated list and only Bash calls, so read the result yourself; it is not a substitute for the scrub.
+2. **Open a branch and a PR on Lisa.** In a Lisa worktree, branch off its default branch, apply the scrubbed change to the matching template path (e.g., `typescript/copy-overwrite/.github/workflows/ci.yml`), and submit it through `lisa-git-submit-pr` so it passes Lisa's own hooks, CI and review gates. When no Lisa checkout is writable, file one upstream ticket instead (`upstream-to-lisa`), scrubbed the same way.
+3. Report the PR or ticket URL for each file.
 
 Example report:
 ```
 I found X files that have drifted from Lisa's templates.
 
-Upstreamed (2):
-1. .github/workflows/ci.yml - adds a timeout every host's CI needs
-2. .claude/settings.json - fixes a hook path that is wrong for every host
+Upstreamed through a scrubbed Lisa PR (2):
+1. .github/workflows/ci.yml - adds a timeout every host's CI needs - <PR URL>
+2. .claude/settings.json - fixes a hook path that is wrong for every host - <PR URL>
 
 Kept as host-specific (1):
 3. .github/workflows/deploy.yml - names this project's own environments
@@ -163,7 +163,7 @@ Kept as host-specific (1):
 
 ### Important Notes
 
-- **Upstream only what you classified as a cross-host improvement** - record the reason for each file, kept or upstreamed
+- **Upstream only what you classified as a cross-host improvement, scrubbed, through a Lisa PR** - record the reason for each file, kept or upstreamed, and never write into the Lisa checkout without a branch and PR
 - **Preserve the most specific type directory** - if a file exists in both `typescript/` and `all/`, upstream to where it currently exists
 - **Handle binary files gracefully** - skip comparison for non-text files
 - **Respect .gitignore patterns** - some generated files shouldn't be compared

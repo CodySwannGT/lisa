@@ -15,10 +15,10 @@ It is the audit/repair counterpart to `/lisa:setup:jira` (and the other `setup:*
 ## Confirmation policy
 
 - **Default mode is read-only.** Detect drift and report. Never mutate config or the tracker.
-- **`repair=true` enables writes — to the config only, never to the tracker.** Within repair mode:
+- **`repair=true` enables writes — to the config, plus one tracker write: re-creating a MISSING label or state.** Within repair mode:
   - **Case drift** (the live workflow has the same name with different casing — the configured name resolves case-insensitively but the canonical case differs) is repaired automatically: rewrite the config value to the live canonical name. This is non-destructive and unambiguous.
-  - **Missing name** (no case-insensitive match exists in the live set — renamed beyond recognition or deleted) is **never** auto-repaired. Compute the closest live candidates and confirm via `AskUserQuestion` before writing. Default to leaving the value unchanged.
-- This skill never renames or deletes anything in the tracker/source. Repair fixes the Lisa config to match reality; correcting the tracker itself is a human/admin decision made elsewhere.
+  - **Missing name** (no case-insensitive match exists in the live set — renamed beyond recognition or deleted) is never repointed at a guessed near-match. See "MISSING" in Step 6: create the configured name when access allows, or stop as missing access. Only an operator running this skill interactively is offered the near-matches via `AskUserQuestion`.
+- This skill never renames or deletes anything in the tracker/source. Apart from re-creating a MISSING label or state under its configured name, repair fixes the Lisa config to match reality. This matches `config-resolution`, "Defaults vs. requirements".
 
 ## Arguments
 
@@ -361,7 +361,7 @@ Write those lines for a non-technical operator: say what was seen and what a
 person might do about it, never "FAIL". A healthy repository prints
 `scoping labels: none` and nothing else.
 
-End with a roll-up: counts of VALID / DRIFTED / UNRESOLVABLE projects and the exact next command (`… repair=true` when drift is auto-repairable; an admin note when a status is genuinely MISSING; `/lisa:setup:linear` when a `ready` is INVERTED; an admin note naming the items when a repo scope is UNSTAMPED_ALIAS). Scoping-label findings are reported alongside that roll-up as a **separate count**, never folded into DRIFTED.
+End with a roll-up: counts of VALID / DRIFTED / UNRESOLVABLE projects and the exact next command (`… repair=true` when drift is auto-repairable; the missing access (status/label and permission) when a MISSING name could not be re-created; `/lisa:setup:linear` when a `ready` is INVERTED; an admin note naming the items when a repo scope is UNSTAMPED_ALIAS). Scoping-label findings are reported alongside that roll-up as a **separate count**, never folded into DRIFTED.
 
 ## Step 6 — Repair (only when `repair=true`)
 
@@ -385,13 +385,16 @@ jq --arg v "$CANONICAL" '.github.labels.<lane>.<role> = $v' \
   .lisa.config.json > .lisa.config.json.tmp && mv .lisa.config.json.tmp .lisa.config.json
 ```
 
-### MISSING — confirm first
+### MISSING — re-create it, or stop as missing access
 
-Compute the closest live candidates (case-insensitive token/substring overlap, then edit distance). Present via `AskUserQuestion`:
+The configured name is the one the queue already reads, so the safe repair puts that name back. Do not repoint the role at a near-match on your own: a near-match may be another lane the team fills.
 
-> Role `<role>` maps to `<configured>`, which no longer exists in `<vendor>`. Closest live names: `<c1>`, `<c2>`, `<c3>`. Pick the replacement, leave unchanged, or enter a name manually.
+- **Unattended, or `repair=true` with no operator present:** create the missing label or state under its configured name — a GitHub label (`gh label create`), or a Linear issue label or project label through `lisa-linear-access`. Then re-run the audit and report VALID. A Jira workflow status cannot be created this way, because `lisa-atlassian-access` does not edit workflows, and any tracker can refuse for lack of permission. Either case is **missing access**: keep the project `DRIFTED` and stop, naming the exact status or label, the project, and the permission that is missing.
+- **An operator running this skill interactively** may instead be offered the closest live candidates (case-insensitive token/substring overlap, then edit distance) via `AskUserQuestion`:
 
-Only write on an explicit pick. Never auto-select. If the user leaves it unchanged, keep the project `DRIFTED` and surface the admin remediation (add the status back, or fix it in the tracker).
+  > Role `<role>` maps to `<configured>`, which no longer exists in `<vendor>`. Closest live names: `<c1>`, `<c2>`, `<c3>`. Re-create `<configured>`, pick a replacement, or enter a name manually.
+
+  Write a replacement only on an explicit pick.
 
 ### INVERTED — never auto-repair
 
@@ -447,15 +450,15 @@ Re-print the project section showing the post-repair mapping and the new verdict
 ## Idempotency & repeatability
 
 - Re-running on a clean config reports `VALID` and writes nothing.
-- Read-only mode has no side effects and is safe to schedule. Pair with `/schedule` (or run in CI) to detect drift continuously; run `repair=true` interactively when drift appears (the `MISSING` path needs a human decision and should not run unattended).
+- Read-only mode has no side effects and is safe to schedule. Pair with `/schedule` (or run in CI) to detect drift continuously; `repair=true` may also run unattended: a `MISSING` name is re-created when access allows and reported as missing access otherwise.
 - Repair only ever touches `.lisa.config.json` (and clears the local verification-cache key) — it preserves all unrelated config and never stages secrets or env values.
 
 ## Rules
 
 - Compare status/label names **case-sensitively** against the live canonical set. A case-insensitive tracker query (e.g. JQL) that resolves is not proof the casing matches.
 - Verify the access substrate is authenticated to the **configured** account before trusting any enumeration. An audit run against the wrong instance is `UNRESOLVABLE`, not `VALID`.
-- Repair fixes the **config**, never the tracker. Do not rename or delete tracker statuses, labels, or options.
-- Never auto-repair a `MISSING` mapping; confirm the replacement via `AskUserQuestion`.
+- Repair fixes the **config**. Its only tracker write is re-creating a MISSING label or state under its configured name. Do not rename or delete tracker statuses, labels, or options.
+- Never repoint a `MISSING` mapping at a guessed near-match. Re-create it, stop as missing access, or (interactive only) take the operator's explicit pick.
 - Use `jq` for all JSON reads/writes; write only changed keys via `jq … > tmp && mv`.
 - In batch mode, audit each project independently — one project's `UNRESOLVABLE` (e.g. an auth mismatch) must not abort the rest of the sweep.
 - Reuse the config-resolution defaults and the vendor access skills (`atlassian-access`, `gh`, Linear/Notion MCP); do not invent a parallel mapping or lifecycle vocabulary.
