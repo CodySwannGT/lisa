@@ -994,6 +994,54 @@ would be a threshold nothing holds while every tool reported the declaration
 valid. A key that starts with `x-` is the project's own and passes through
 unread.
 
+## The control register
+
+The `gates` block is the only thing a person or an agent writes. The control
+register at `.lisa/controls/register.json` is generated from it, so the one
+file an operator or an auditor reads cannot disagree with what runs:
+
+```
+lisa controls register [path]          # write the register
+lisa controls register [path] --check  # write nothing; fail when it differs
+```
+
+Both read the declaration through the shipped registry — `readGates`,
+`validateGates`, `resolveMoment` — and restate none of it. A declaration
+`validate` refuses is refused here with the same lines.
+
+**One entry per gate and folder.** A gate with `parts` gets an entry per part;
+a gate with none gets one entry for the whole repository (`scope` is `.`),
+taken from what `resolveMoment` returns for it today.
+
+| field | what it states |
+| --- | --- |
+| `id` | `<gate>@<scope>`, for example `code-style@api` or `code-style@.`. Nothing else goes into it, so it does not change when other gates or folders are added or removed. |
+| `gate` | The gate the entry was generated from. |
+| `criteria` | The gate's `criteria`, in catalogue order. A gate that declares none gets the requirements the criterion catalogue maps to it. |
+| `scope` | The part's folder, or `.`. |
+| `tier` | The gate's `tier`. A gate that declares none is `authoritative` when it is `required` on the hosting platform, in a deployment or in a scheduled run, and `advisory` otherwise. |
+| `enforcement_points` | One `{ moment, level, location }` per moment the gate is declared at and not `off`, in the order the moments happen. `location` is `coding-agent`, `local-checkout`, `hosting-platform`, `deployment-pipeline` or `scheduled-run`. |
+| `measuring_mechanism` | `{ kind, … }`: a part's `command` (`argv`), a `task` (`task`, `command`), an awaited `external-check` (`name`, `posted_by`), a shipped `interceptor`, the workflow's `built-in` job, or `none`. An enforcement point measured differently carries its own. |
+| `parameters` | The part's `parameters`, or `{}`. |
+| `proof` | The part's `proof` with every key present; `null` where the declaration does not say. |
+| `accountable_party` | The gate's `owner`, or `null`. |
+
+**The same declaration gives the same bytes.** Keys are sorted at every depth,
+entries are ordered by gate and then by folder, and nothing in the file is a
+date or a path of the machine it was written on. `--check` compares byte for
+byte and names each entry that differs.
+
+**Whether a requirement id exists is checked here.** `validate` checks only
+how a `criteria` id is written, because the registry ships to repositories
+that do not carry the criterion catalogue. Generating the register refuses an
+id the catalogue does not list as in scope.
+
+The format is published as `schemas/control-register.schema.json` in the Lisa
+package. Every object in it is closed, so a new fact about an entry is a new
+key in the schema and in `src/controls/register-types.ts` together;
+`tests/unit/controls/register-schema.test.ts` fails when one has a key or a
+value the other does not.
+
 ## Open items
 
 - Tests are excluded from the typecheck program (`tsconfig.json` is

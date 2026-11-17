@@ -141,7 +141,8 @@
     "eslint-plugin-ui-standards",
     "eslint-plugin-phaser",
     "spec/tasc-criteria.json",
-    "spec/tasc-criteria.schema.json"
+    "spec/tasc-criteria.schema.json",
+    "schemas/control-register.schema.json"
   ],
   "trustedDependencies": [
     "@ast-grep/cli",
