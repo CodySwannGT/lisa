@@ -301,8 +301,23 @@ export const STATE_FAMILIES = [CONTINUOUS];
  * removed in CodySwannGT/lisa#4794, and the key itself in
  * CodySwannGT/lisa#4899, after no Lisa-managed host was found declaring it, so
  * a leftover declaration is now refused like any other unknown key.
+ *
+ * `criteria`, `owner`, `tier` and `parts` are the control keys: which
+ * requirements the gate serves, who answers for it, whether the author of a
+ * change can get around it, and — for a repository with more than one part —
+ * the folder and command that prove it in each. They are read by the control
+ * register, and only `parts` changes what a moment resolves to; see
+ * {@link PART_FIELDS}.
  */
-export const GATE_FIELDS = new Set(["run", "needs", "task"]);
+export const GATE_FIELDS = new Set([
+  "run",
+  "needs",
+  "task",
+  "criteria",
+  "owner",
+  "tier",
+  "parts",
+]);
 
 /**
  * The per-moment field saying how this gate's prover prints a MEASURED failure.
@@ -449,6 +464,122 @@ export const CALLER_CHAIN_FIELD = "caller_chain";
 
 /** Prefix marking a gate, or a config key, that this project invented. */
 export const CUSTOM_PREFIX = "x-";
+
+/**
+ * The enforcement tiers a gate may declare.
+ *
+ * `authoritative` is enforced where the author of a change cannot get around
+ * it; `advisory` is feedback the author can bypass. Recorded for the control
+ * register and never read by resolution — whether a failing gate stops a
+ * change at a given moment is still that moment's `level`.
+ */
+export const TIERS = Object.freeze(["authoritative", "advisory"]);
+
+/**
+ * How a criterion id is written: `AC5.4`, `SI2`, `DP1`, `UX3`.
+ *
+ * A gate's `criteria` names the requirements it serves by their ids in the
+ * criterion catalogue (`spec/tasc-criteria.json` in Lisa). This registry ships
+ * to repositories that do not carry that catalogue, so it checks how an id is
+ * WRITTEN and nothing else; whether the id exists is checked where the
+ * catalogue is in reach, when the control register is generated. A test holds
+ * this pattern to every id the catalogue contains.
+ */
+export const CRITERION_ID_PATTERN =
+  /^(?:AC[1-9]\d*\.[1-9]\d*|(?:SI|DP|UX)[1-9]\d*)$/;
+
+/** The `scope` that means the whole repository rather than one folder. */
+export const WHOLE_REPOSITORY = ".";
+
+/**
+ * The folder a part's paired-proof patch files live under, written from the
+ * repository root.
+ *
+ * A proof is a pair of small changes — one that breaks the rule, one that does
+ * not — applied to a disposable copy of the repository to see the gate refuse
+ * the first and accept the second. Confining both to one known folder means
+ * the step that applies them never reads a path a declaration merely names.
+ */
+export const PROOF_DIRECTORY = ".lisa/controls/proofs/";
+
+/**
+ * The keys one entry of a gate's `parts` may carry.
+ *
+ * - `scope` — the folder this part covers, written from the repository root,
+ *   or {@link WHOLE_REPOSITORY}. Required.
+ * - `command` — what checks it, as an ARGUMENT LIST: one item per argument,
+ *   the program first. Required. Never a single string, because the command is
+ *   started directly and a string is what a shell would have to split.
+ * - `parameters` — named settings of the check, each `{ value, direction }`;
+ *   see {@link PARAMETER_FIELDS}. Optional.
+ * - `proof` — the paired proof; see {@link PROOF_FIELDS}. Optional, because a
+ *   part is declared before its proof is written and a part without one is
+ *   reported as unproved rather than refused.
+ *
+ * ## A key that is not on this list is REFUSED
+ *
+ * That is a decision, and the alternative — passing an unknown key through —
+ * was weighed. A part is read by several tools that never see each other: the
+ * runner reads `scope` and `command`, the register reads all of it, the
+ * threshold check reads `parameters`. A misspelt `paramaters` passed through
+ * would be a threshold nothing holds, and a misspelt `proof` a control nothing
+ * proves, with every tool reporting the declaration as valid. Refusing is the
+ * same rule `GATE_FIELDS` applies one level up, for the same reason.
+ *
+ * Two consequences follow, and both are intended:
+ *
+ * - **A new key is added HERE, with its validator in `validatePart`**, in the
+ *   change that introduces its reader. Until then it is a typo by definition.
+ * - **A project's own key passes through untouched when it starts with
+ *   {@link CUSTOM_PREFIX}** — the marker this file already uses for anything a
+ *   project invented. Lisa reads none of them and refuses none of them.
+ *
+ * The same rule applies inside `proof` and inside each parameter.
+ */
+export const PART_FIELDS = Object.freeze([
+  "scope",
+  "command",
+  "parameters",
+  "proof",
+]);
+
+/**
+ * The keys a part's `proof` may carry. All are optional.
+ *
+ * - `violation` and `clean` — the two halves of the paired proof, each the
+ *   path of a patch file under {@link PROOF_DIRECTORY}.
+ * - `failure_shape` — literal strings the command prints when it measures the
+ *   property and finds it wanting; the same meaning, and the same rules, as
+ *   the per-moment {@link FAILURE_SHAPE_FIELD}.
+ * - `timeout_seconds` — how long one half of the proof may run.
+ * - `external_effects` — plain-language statements of anything the proof does
+ *   outside the repository, each quoted to the operator who must allow it. An
+ *   empty list says it has none.
+ */
+export const PROOF_FIELDS = Object.freeze([
+  "violation",
+  "clean",
+  FAILURE_SHAPE_FIELD,
+  "timeout_seconds",
+  "external_effects",
+]);
+
+/**
+ * The keys one named parameter of a part may carry.
+ *
+ * `value` is required: a number, text, or true or false. `direction` is
+ * optional and marks a number as a threshold — see
+ * {@link PARAMETER_DIRECTIONS}.
+ */
+export const PARAMETER_FIELDS = Object.freeze(["value", "direction"]);
+
+/**
+ * Which way a threshold parameter is allowed to move.
+ *
+ * A `floor` may rise and never fall (a minimum coverage percentage); a
+ * `ceiling` may fall and never rise (a maximum number of warnings).
+ */
+export const PARAMETER_DIRECTIONS = Object.freeze(["floor", "ceiling"]);
 
 /**
  * `needs.deps: false`, named once.
@@ -3939,7 +4070,7 @@ export function classifyDeclaredExecutors({
  * One declaration's verdict, or null when it is plainly executable.
  * @param {object} options The declaration.
  * @param {string} options.gate Gate id.
- * @param {object} options.block The gate's block.
+ * @param {Record<string, unknown>} options.block The gate's block.
  * @param {string} options.moment Declared moment.
  * @param {string} options.level Declared level.
  * @param {Record<string, string>|null|undefined} options.scripts Project scripts.
@@ -4017,6 +4148,12 @@ function verdictFor({
   // reproducing its task precedence here is how a new execution mode can be
   // mistaken for a missing package script.
   if (scripts === null || scripts === undefined) return null;
+  // A gate with parts carries its own command for each part, so "does this
+  // project have the script" is not a question it can fail: no script is
+  // looked up. Whether those commands are well-formed is `validateGates`'
+  // question and is answered there — asking the resolver here as well would
+  // throw on a malformed part and replace that answer with a stack trace.
+  if (block.parts !== undefined) return null;
   const [resolved] = resolveMoment({
     gates: { [gate]: block },
     moment,
@@ -4045,10 +4182,29 @@ function verdictFor({
  * A resolver that only looks at `gate[moment]` can make a typo'd config key look
  * like a truthful absence at that moment. Validation is therefore part of
  * resolution, not just the standalone `validate` command.
+ *
+ * Malformed `parts` are refused in the same breath, for a stronger reason. A
+ * resolved part carries the argument list a runner starts as a process and
+ * the folder it starts it in. Every other field of a resolved entry describes
+ * what to run; these two ARE what runs, so resolution never hands out one that
+ * `validateGates` would have refused — a command still written as a string, a
+ * scope that climbs out of the repository. Checking it here rather than
+ * trusting that `validate` ran first is what lets a runner treat `argv` and
+ * `scope` as already checked.
+ *
+ * Both kinds of problem are thrown together, so an operator fixing a block
+ * the resolver refuses sees all of them in one run. The parts check costs
+ * nothing for a block with no `parts`: `validateParts` returns at its first
+ * line for every gate that does not declare the key.
  * @param {object} gates The gates block.
  */
-function assertValidMomentKeys(gates) {
-  const problems = validateGateMomentKeys(gates);
+function assertResolvable(gates) {
+  const problems = [
+    ...validateGateMomentKeys(gates),
+    ...Object.entries(gates ?? {}).flatMap(([id, gate]) =>
+      isKeyed(gate) ? validateParts(id, gate) : []
+    ),
+  ];
   if (!problems.length) return;
   throw new Error(
     `Invalid gates configuration:\n${problems
@@ -4084,7 +4240,7 @@ function validateGateMomentKeys(gates) {
 /**
  * Validate one gate entry.
  * @param {string} id Gate id.
- * @param {object} gate The entry.
+ * @param {Record<string, any>} gate The entry.
  * @returns {string[]} Problems.
  */
 function validateGate(id, gate) {
@@ -4122,6 +4278,10 @@ function validateGate(id, gate) {
     );
   }
   problems.push(...validateNeeds(id, gate));
+  problems.push(...validateCriteria(id, gate.criteria));
+  problems.push(...validateOwner(id, gate.owner));
+  problems.push(...validateTier(id, gate.tier));
+  problems.push(...validateParts(id, gate));
 
   for (const [moment, value] of Object.entries(gate)) {
     // A key that is neither a known field nor a well-formed moment is a typo,
@@ -4171,7 +4331,16 @@ function validateGate(id, gate) {
       continue;
     }
     problems.push(
-      ...validateMoment(id, moment, value, known, interceptor, gate.run)
+      ...validateMoment(
+        id,
+        moment,
+        value,
+        known,
+        interceptor,
+        // Either one is a prover named once for every moment of the gate: a
+        // task, or a command per part.
+        Boolean(gate.run) || gate.parts !== undefined
+      )
     );
   }
   return problems;
@@ -4190,14 +4359,17 @@ function validateGate(id, gate) {
  *   contained in every line, so every unrecognised failure would report FAILED
  *   against whichever gate declared it. That is this mechanism's own inverse
  *   defect, and shipping it by accident is one keystroke away.
- * @param {string} id Gate id.
- * @param {string} moment Moment key.
+ *
+ * One validator for both places a shape is declared — on a moment, and in a
+ * part's `proof` — because both are read the same way against the same kind
+ * of transcript, so a value refused in one must be refused in the other.
+ * @param {string} where The key being validated, as an operator would find
+ *   it: `gates."<id>"."<moment>".failure_shape`, or the same key in a proof.
  * @param {*} shape The declared value, if any.
  * @returns {string[]} Problems.
  */
-function validateFailureShape(id, moment, shape) {
+function validateFailureShape(where, shape) {
   if (shape === undefined) return [];
-  const where = `gates."${id}"."${moment}".${FAILURE_SHAPE_FIELD}`;
   if (!Array.isArray(shape)) {
     return [
       `${where} is ${JSON.stringify(shape)}; expected a list of literal ` +
@@ -4263,10 +4435,11 @@ function validateCacheFlag(id, moment, value) {
  * @param {*} value Level string, or a prover object.
  * @param {boolean} known Whether the gate is in the registry.
  * @param {boolean} interceptor Whether the gate intercepts.
- * @param {string} [gateRun] A task declared once for the whole gate.
+ * @param {boolean} gateProver Whether the gate names a prover once for every
+ *   moment: a `run` task, or `parts`.
  * @returns {string[]} Problems.
  */
-function validateMoment(id, moment, value, known, interceptor, gateRun) {
+function validateMoment(id, moment, value, known, interceptor, gateProver) {
   const problems = [];
   const entry = typeof value === "string" ? { level: value } : (value ?? {});
 
@@ -4311,12 +4484,15 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     );
   }
   problems.push(
-    ...validateFailureShape(id, moment, entry[FAILURE_SHAPE_FIELD])
+    ...validateFailureShape(
+      `gates."${id}"."${moment}".${FAILURE_SHAPE_FIELD}`,
+      entry[FAILURE_SHAPE_FIELD]
+    )
   );
   problems.push(...validateCacheFlag(id, moment, entry[CACHE_FIELD]));
   problems.push(...validatePostedBy(id, moment, entry));
   problems.push(...validateCallerChain(id, moment, entry));
-  if (!known && !interceptor && !entry.await && !entry.run && !gateRun) {
+  if (!known && !interceptor && !entry.await && !entry.run && !gateProver) {
     problems.push(
       `gates."${id}"."${moment}" names no prover and Lisa has no default task ` +
         `for a custom gate, so nothing would execute.`
@@ -4665,6 +4841,569 @@ function validateNeeds(id, gate) {
 }
 
 /**
+ * Whether a value is an object with keys of its own, and not a list.
+ * @param {*} value Candidate value.
+ * @returns {value is Record<string, any>} True for an object that is neither null nor an array.
+ */
+function isKeyed(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * Report every key an object carries that Lisa does not read there.
+ *
+ * The rule {@link PART_FIELDS} states, in one place for the three levels it
+ * applies at: a key outside the closed set is refused, and a key starting with
+ * {@link CUSTOM_PREFIX} is the project's own and passes through unread.
+ * @param {string} where The object being validated, as an operator finds it.
+ * @param {object} declared The object as declared.
+ * @param {readonly string[]} known The keys Lisa reads on it.
+ * @returns {string[]} Problems.
+ */
+function unknownKeyProblems(where, declared, known) {
+  return Object.keys(declared)
+    .filter(key => !known.includes(key) && !key.startsWith(CUSTOM_PREFIX))
+    .map(key => {
+      const near = nearest(key, [...known]);
+      const suggestion = near ? `. Did you mean "${near}"?` : ".";
+      return (
+        `${where}.${key} is not a key Lisa reads here${suggestion} The keys ` +
+        `it reads are ${known.join(", ")}. Nothing would use this one, so ` +
+        `whatever it was meant to set is unset. A key of the project's own ` +
+        `must start with "${CUSTOM_PREFIX}".`
+      );
+    });
+}
+
+/**
+ * Validate the requirement ids a gate says it serves.
+ *
+ * Checked for how each id is written, not for whether it exists — see
+ * {@link CRITERION_ID_PATTERN} for why the catalogue is not consulted here.
+ * @param {string} id Gate id.
+ * @param {*} criteria The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateCriteria(id, criteria) {
+  if (criteria === undefined) return [];
+  const where = `gates."${id}".criteria`;
+  if (!Array.isArray(criteria)) {
+    return [
+      `${where} is ${JSON.stringify(criteria)}; expected a list of the ` +
+        `requirement ids this gate serves, for example ["AC5.4"].`,
+    ];
+  }
+  if (criteria.length === 0) {
+    return [
+      `${where} is empty, so it says nothing while looking filled in. ` +
+        `Remove it, or list the requirement ids this gate serves.`,
+    ];
+  }
+  const problems = [];
+  const firstSeenAt = new Map();
+  for (const [index, criterion] of criteria.entries()) {
+    if (
+      typeof criterion !== "string" ||
+      !CRITERION_ID_PATTERN.test(criterion)
+    ) {
+      problems.push(
+        `${where}[${index}] is ${JSON.stringify(criterion)}, which is not a ` +
+          `requirement id. An id is written exactly as the specification ` +
+          `writes it, for example "AC5.4" or "SI2".`
+      );
+      continue;
+    }
+    if (firstSeenAt.has(criterion)) {
+      problems.push(
+        `${where}[${index}] repeats ${JSON.stringify(criterion)} from ` +
+          `${where}[${firstSeenAt.get(criterion)}]. List each id once.`
+      );
+      continue;
+    }
+    firstSeenAt.set(criterion, index);
+  }
+  return problems;
+}
+
+/**
+ * Validate the accountable party a gate names.
+ * @param {string} id Gate id.
+ * @param {*} owner The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateOwner(id, owner) {
+  if (owner === undefined) return [];
+  if (typeof owner === "string" && owner.trim() !== "") return [];
+  return [
+    `gates."${id}".owner is ${JSON.stringify(owner)}; expected the name of ` +
+      `the person or team that answers for this gate.`,
+  ];
+}
+
+/**
+ * Validate a gate's enforcement tier.
+ * @param {string} id Gate id.
+ * @param {*} tier The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateTier(id, tier) {
+  if (tier === undefined || TIERS.includes(tier)) return [];
+  return [
+    `gates."${id}".tier is ${JSON.stringify(tier)}; expected authoritative ` +
+      `(enforced where the author of a change cannot get around it) or ` +
+      `advisory (feedback the author can bypass).`,
+  ];
+}
+
+/**
+ * The one way to write a repository-relative path: folders joined by `/`,
+ * with nothing that adds no folder — no leading `./`, no trailing or doubled
+ * `/`, no `.` in the middle.
+ * @param {string} value A path as declared.
+ * @returns {string} The same path in its one spelling.
+ */
+function shortestSpelling(value) {
+  return (
+    value
+      .split("/")
+      .filter(segment => segment !== "" && segment !== ".")
+      .join("/") || WHOLE_REPOSITORY
+  );
+}
+
+/**
+ * Why a declared path cannot be used as a path inside the repository, in
+ * words that finish the sentence "<key> is <value>, which …".
+ *
+ * Three ways out of the repository are refused — a backslash (which is a
+ * separator on one operating system and a letter on the others), a path that
+ * starts at the top of the disk, and `..` — and so is any second spelling of
+ * a path that is otherwise fine. The last one is what lets every reader
+ * compare two paths as text: `api`, `api/` and `./api` are one folder, and
+ * only the first is accepted.
+ * @param {string} value A non-blank path as declared.
+ * @returns {string|null} The reason, or null when the path is usable.
+ */
+function repositoryPathProblem(value) {
+  if (value.includes("\\")) {
+    return 'uses a backslash. Separate folders with "/" on every system';
+  }
+  if (value.startsWith("/") || /^[A-Za-z]:/u.test(value)) {
+    return "starts at the top of the disk rather than inside the repository";
+  }
+  if (value.split("/").includes("..")) {
+    return 'contains "..", so it points outside the repository';
+  }
+  const shortest = shortestSpelling(value);
+  if (shortest !== value) {
+    return (
+      `is ${JSON.stringify(shortest)} written a longer way. Write it as ` +
+      `${JSON.stringify(shortest)}, so everything that reads it sees one ` +
+      `spelling`
+    );
+  }
+  return null;
+}
+
+/** What a scope is, said once for every message that refuses one. */
+const SCOPE_ADVICE =
+  `A scope is a folder inside the repository, written from the repository ` +
+  `root: for example "api", or "${WHOLE_REPOSITORY}" for the whole repository.`;
+
+/**
+ * Validate the folder a part covers.
+ * @param {string} where The key being validated.
+ * @param {*} scope The declared value.
+ * @returns {string[]} Problems.
+ */
+function validateScope(where, scope) {
+  if (scope === undefined) return [`${where} is missing. ${SCOPE_ADVICE}`];
+  if (typeof scope !== "string" || scope.trim() === "") {
+    return [
+      `${where} is ${JSON.stringify(scope)}; expected the folder this part ` +
+        `covers. ${SCOPE_ADVICE}`,
+    ];
+  }
+  const problem = repositoryPathProblem(scope);
+  return problem === null
+    ? []
+    : [
+        `${where} is ${JSON.stringify(scope)}, which ${problem}. ${SCOPE_ADVICE}`,
+      ];
+}
+
+/** How a command is written, said once for every message that refuses one. */
+const COMMAND_ADVICE =
+  `Write the command as a list with one item per argument, the program ` +
+  `first: for example ["npm", "run", "lint"].`;
+
+/**
+ * Validate the command that checks a part.
+ *
+ * An ARGUMENT LIST and nothing else. The command is started directly, with no
+ * shell between Lisa and the program, so nothing in it is ever interpreted:
+ * `;`, `&&`, `$(…)` and a quoted space are all just characters in one
+ * argument. That only holds while the declaration cannot be a string — a
+ * string has to be split by something, and whatever splits it is a shell or
+ * an imitation of one. So a string is refused here rather than split, and
+ * `resolveMoment` refuses to hand out an `argv` that did not pass this check.
+ *
+ * An empty item is allowed anywhere but first: an empty argument is a real
+ * thing to pass a program, and a blank program name is not a program.
+ * @param {string} where The key being validated.
+ * @param {*} command The declared value.
+ * @returns {string[]} Problems.
+ */
+function validateCommand(where, command) {
+  if (command === undefined) {
+    return [
+      `${where} is missing. Every part names the command that checks it. ` +
+        `${COMMAND_ADVICE}`,
+    ];
+  }
+  if (typeof command === "string") {
+    return [
+      `${where} is the single string ${JSON.stringify(command)}; expected a ` +
+        `list with one item per argument, the program first: for example ` +
+        `["npm", "run", "lint"]. The command is started directly, never ` +
+        `through a shell, so a single string is never split into a program ` +
+        `and its arguments.`,
+    ];
+  }
+  if (!Array.isArray(command)) {
+    return [
+      `${where} is ${JSON.stringify(command)}; expected a list. ` +
+        `${COMMAND_ADVICE}`,
+    ];
+  }
+  if (command.length === 0) {
+    return [`${where} is empty, so there is nothing to run. ${COMMAND_ADVICE}`];
+  }
+  const problems = [];
+  for (const [index, argument] of command.entries()) {
+    if (typeof argument === "string") continue;
+    problems.push(
+      `${where}[${index}] is ${JSON.stringify(argument)}; expected text. ` +
+        `Write a number in quotes, for example "3".`
+    );
+  }
+  if (typeof command[0] === "string" && command[0].trim() === "") {
+    problems.push(
+      `${where}[0] is blank. The first item is the program to run.`
+    );
+  }
+  return problems;
+}
+
+/** A well-formed parameter, shown in every message that refuses one. */
+const PARAMETER_EXAMPLE = '{ "value": 80, "direction": "floor" }';
+
+/**
+ * Validate one named parameter of a part.
+ *
+ * A direction is refused on anything but a number, because "may not fall" has
+ * no meaning between two pieces of text — and a threshold that cannot be
+ * compared is one nothing holds, while reading as held.
+ * @param {string} where The parameter being validated.
+ * @param {*} parameter The declared value.
+ * @returns {string[]} Problems.
+ */
+function validateParameter(where, parameter) {
+  if (!isKeyed(parameter)) {
+    return [
+      `${where} is ${JSON.stringify(parameter)}; expected an object such as ` +
+        `${PARAMETER_EXAMPLE}.`,
+    ];
+  }
+  const problems = unknownKeyProblems(where, parameter, PARAMETER_FIELDS);
+  const { value, direction } = parameter;
+  const worded = typeof value === "string" || typeof value === "boolean";
+  if (value === undefined) {
+    problems.push(
+      `${where}.value is missing. Every parameter states its value, for ` +
+        `example ${PARAMETER_EXAMPLE}.`
+    );
+  } else if (!worded && !Number.isFinite(value)) {
+    problems.push(
+      `${where}.value is ${JSON.stringify(value)}; expected a number, text, ` +
+        `or true or false.`
+    );
+  }
+  if (direction === undefined) return problems;
+  if (!PARAMETER_DIRECTIONS.includes(direction)) {
+    problems.push(
+      `${where}.direction is ${JSON.stringify(direction)}; expected floor ` +
+        `(the value may rise and never fall) or ceiling (it may fall and ` +
+        `never rise).`
+    );
+  } else if (worded) {
+    problems.push(
+      `${where}.direction is ${JSON.stringify(direction)}, but ` +
+        `${where}.value is ${JSON.stringify(value)}, which is not a number. ` +
+        `Only a number can be held to a floor or a ceiling.`
+    );
+  }
+  return problems;
+}
+
+/**
+ * Validate the named settings of a part's check.
+ * @param {string} where The key being validated.
+ * @param {*} parameters The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateParameters(where, parameters) {
+  if (parameters === undefined) return [];
+  if (!isKeyed(parameters)) {
+    return [
+      `${where} is ${JSON.stringify(parameters)}; expected an object with ` +
+        `one named entry per setting, each written like ${PARAMETER_EXAMPLE}.`,
+    ];
+  }
+  return Object.entries(parameters).flatMap(([name, parameter]) =>
+    validateParameter(`${where}.${JSON.stringify(name)}`, parameter)
+  );
+}
+
+/**
+ * Validate one half of a paired proof: the path of its patch file.
+ *
+ * Only the path is checked. Whether the file exists is a fact about a
+ * checkout, not about a declaration, and a missing half is reported where the
+ * proof is run — as unproved — rather than refused here.
+ * @param {string} where The key being validated.
+ * @param {*} file The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateProofFile(where, file) {
+  if (file === undefined) return [];
+  const advice =
+    `A proof file is a patch under ${PROOF_DIRECTORY}, written from the ` +
+    `repository root: for example "${PROOF_DIRECTORY}lint.violation.patch".`;
+  if (typeof file !== "string" || file.trim() === "") {
+    return [
+      `${where} is ${JSON.stringify(file)}; expected the path of a patch ` +
+        `file. ${advice}`,
+    ];
+  }
+  const problem = repositoryPathProblem(file);
+  if (problem !== null) {
+    return [`${where} is ${JSON.stringify(file)}, which ${problem}. ${advice}`];
+  }
+  if (!file.startsWith(PROOF_DIRECTORY)) {
+    return [
+      `${where} is ${JSON.stringify(file)}, which is not a file under ` +
+        `${PROOF_DIRECTORY}. ${advice}`,
+    ];
+  }
+  return [];
+}
+
+/**
+ * Validate how long one half of a proof may run.
+ * @param {string} where The key being validated.
+ * @param {*} timeout The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateProofTimeout(where, timeout) {
+  if (timeout === undefined) return [];
+  if (Number.isInteger(timeout) && timeout > 0) return [];
+  return [
+    `${where} is ${JSON.stringify(timeout)}; expected a whole number of ` +
+      `seconds above zero, for example 120.`,
+  ];
+}
+
+/**
+ * Validate what a proof says it does outside the repository.
+ *
+ * Each entry is a sentence, because it is quoted to the person asked to allow
+ * the proof to run. A blank one would ask for that permission and say nothing
+ * about what it is for.
+ * @param {string} where The key being validated.
+ * @param {*} effects The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateExternalEffects(where, effects) {
+  if (effects === undefined) return [];
+  if (!Array.isArray(effects)) {
+    return [
+      `${where} is ${JSON.stringify(effects)}; expected a list of ` +
+        `sentences, each saying one thing the proof does outside the ` +
+        `repository, or an empty list when it does nothing there.`,
+    ];
+  }
+  const problems = [];
+  for (const [index, effect] of effects.entries()) {
+    if (typeof effect === "string" && effect.trim() !== "") continue;
+    problems.push(
+      `${where}[${index}] is ${JSON.stringify(effect)}; expected a sentence ` +
+        `saying what the proof does outside the repository. It is shown to ` +
+        `the person asked to allow it.`
+    );
+  }
+  return problems;
+}
+
+/**
+ * Validate a part's paired proof.
+ * @param {string} where The key being validated.
+ * @param {*} proof The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateProof(where, proof) {
+  if (proof === undefined) return [];
+  if (!isKeyed(proof)) {
+    return [
+      `${where} is ${JSON.stringify(proof)}; expected an object naming the ` +
+        `two halves of the proof, "violation" and "clean".`,
+    ];
+  }
+  const problems = [
+    ...unknownKeyProblems(where, proof, PROOF_FIELDS),
+    ...validateProofFile(`${where}.violation`, proof.violation),
+    ...validateProofFile(`${where}.clean`, proof.clean),
+  ];
+  if (typeof proof.clean === "string" && proof.clean === proof.violation) {
+    problems.push(
+      `${where}.clean is the same file as ${where}.violation. The two ` +
+        `halves are different changes: one that breaks the rule and one ` +
+        `that does not.`
+    );
+  }
+  return [
+    ...problems,
+    ...validateFailureShape(
+      `${where}.${FAILURE_SHAPE_FIELD}`,
+      proof[FAILURE_SHAPE_FIELD]
+    ),
+    ...validateProofTimeout(`${where}.timeout_seconds`, proof.timeout_seconds),
+    ...validateExternalEffects(
+      `${where}.external_effects`,
+      proof.external_effects
+    ),
+  ];
+}
+
+/**
+ * Validate one entry of a gate's `parts`.
+ * @param {string} where The entry being validated.
+ * @param {*} part The declared value.
+ * @returns {string[]} Problems.
+ */
+function validatePart(where, part) {
+  if (!isKeyed(part)) {
+    return [
+      `${where} is ${JSON.stringify(part)}; expected an object naming a ` +
+        `scope and a command.`,
+    ];
+  }
+  return [
+    ...unknownKeyProblems(where, part, PART_FIELDS),
+    ...validateScope(`${where}.scope`, part.scope),
+    ...validateCommand(`${where}.command`, part.command),
+    ...validateParameters(`${where}.parameters`, part.parameters),
+    ...validateProof(`${where}.proof`, part.proof),
+  ];
+}
+
+/**
+ * Refuse a second prover on a gate that has parts.
+ *
+ * With parts, each part's command is what proves the gate, at every moment
+ * the gate is declared at. A task or an awaited signal beside them would give
+ * one declaration two things that claim to prove it, and resolution would
+ * have to pick — silently, which is how a declared check ends up never run.
+ * The existing rule one level down, "a moment has one prover", is the same
+ * rule. A property proved by a command in one place and by an external signal
+ * in another is two gates.
+ * @param {string} id Gate id.
+ * @param {Record<string, unknown>} gate The entry, which declares `parts`.
+ * @returns {string[]} Problems.
+ */
+function validatePartsAreTheOnlyProver(id, gate) {
+  const problems = [];
+  if (Object.hasOwn(INTERCEPTORS, id)) {
+    problems.push(
+      `gates."${id}".parts gives this gate commands to run, but it stops ` +
+        `an action before it happens and cannot be handed to a command: by ` +
+        `the time a command could run, the thing it prevents has happened.`
+    );
+  }
+  if (gate.run !== undefined && gate.run !== null) {
+    problems.push(
+      `gates."${id}".run names one task for the whole gate, and the gate ` +
+        `also has parts. With parts, each part's command is what proves ` +
+        `the gate, so the task would never run. Remove one of the two.`
+    );
+  }
+  for (const [moment, value] of Object.entries(gate)) {
+    if (!isMoment(moment) || !isKeyed(value)) continue;
+    for (const prover of ["run", "await"]) {
+      if (value[prover] === undefined || value[prover] === null) continue;
+      problems.push(
+        `gates."${id}"."${moment}".${prover} is declared on a gate that has ` +
+          `parts. With parts, each part's command is what proves the gate ` +
+          `at every moment, so a second prover at one moment would never ` +
+          `be used. Remove it, or declare that moment on a gate of its own.`
+      );
+    }
+  }
+  return problems;
+}
+
+/**
+ * Validate a gate's `parts`: the folders of the repository it covers, and
+ * the command that proves it in each.
+ *
+ * Two parts of one gate may not cover the same folder. Everything downstream
+ * identifies a part by its gate and its scope, so two that share one cannot
+ * be told apart — one of them would be reported under the other's name.
+ * Folders that merely overlap are fine: a rule for the whole repository and a
+ * stricter one for a single folder are two different parts.
+ * @param {string} id Gate id.
+ * @param {Record<string, unknown>} gate The entry.
+ * @returns {string[]} Problems, empty when the gate declares no parts.
+ */
+function validateParts(id, gate) {
+  const { parts } = gate;
+  if (parts === undefined) return [];
+  const where = `gates."${id}".parts`;
+  if (!Array.isArray(parts)) {
+    return [
+      `${where} is ${JSON.stringify(parts)}; expected a list with one entry ` +
+        `for each part of the repository this gate covers, each naming a ` +
+        `scope and a command.`,
+    ];
+  }
+  if (parts.length === 0) {
+    return [
+      `${where} is empty, so the gate covers nothing while looking filled ` +
+        `in. Remove it, or add an entry naming a scope and a command.`,
+    ];
+  }
+  const problems = validatePartsAreTheOnlyProver(id, gate);
+  const firstSeenAt = new Map();
+  for (const [index, part] of parts.entries()) {
+    problems.push(...validatePart(`${where}[${index}]`, part));
+    const scope = isKeyed(part) ? part.scope : undefined;
+    if (typeof scope !== "string") continue;
+    const folder = shortestSpelling(scope);
+    if (!firstSeenAt.has(folder)) {
+      firstSeenAt.set(folder, index);
+      continue;
+    }
+    problems.push(
+      `${where}[${index}].scope is ${JSON.stringify(scope)}, the same ` +
+        `folder as ${where}[${firstSeenAt.get(folder)}].scope. Each part of ` +
+        `a gate covers its own folder. Give this part a different scope, or ` +
+        `merge the two.`
+    );
+  }
+  return problems;
+}
+
+/**
  * Describe why a declared policy value does not fit its declared type.
  *
  * The vocabulary grew past `typeof` when the ruleset shape moved into config:
@@ -4909,7 +5648,7 @@ export function auditConfigKeys(config) {
  *   UNKNOWN, and an unknown manifest resolves exactly as it did before this
  *   option existed — a caller that has not been taught to read the manifest
  *   must not have its answers changed by silence.
- * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, declared: string|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null, callerChain: string[]|null, failureShape: string[]|null, mayRewrite: boolean, costly: boolean}>} Resolved provers, sorted by gate id. `declared` is the project's own `run:` — the PROVENANCE of the command, which `task` alone cannot carry because a project may spell its `run:` exactly as the registry default.
+ * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, declared: string|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null, callerChain: string[]|null, failureShape: string[]|null, mayRewrite: boolean, costly: boolean, scope?: string, argv?: string[]|null}>} Resolved provers, sorted by gate id. `declared` is the project's own `run:` — the PROVENANCE of the command, which `task` alone cannot carry because a project may spell its `run:` exactly as the registry default. `scope` and `argv` are present ONLY on an entry resolved from a gate's `parts` — one entry per part, in declared order; see `resolveParts`. An entry for a gate with no parts has neither key.
  */
 export function resolveMoment({
   gates,
@@ -4940,7 +5679,7 @@ export function resolveMoment({
       `"${moment}" ${unknownMomentMessage(moment)} ${knownMomentsMessage()}`
     );
   }
-  assertValidMomentKeys(gates);
+  assertResolvable(gates);
 
   const resolved = [];
   for (const [id, gate] of Object.entries(gates ?? {})) {
@@ -4948,6 +5687,15 @@ export function resolveMoment({
     if (raw === undefined) continue;
     const entry = typeof raw === "string" ? { level: raw } : raw;
     if (!entry?.level) continue;
+    // A gate with parts takes its own path and never reaches the code below,
+    // so everything from here down is what it was before `parts` existed. A
+    // gate with no parts resolves exactly as it always has, field for field.
+    if (gate.parts !== undefined) {
+      resolved.push(
+        ...resolveParts({ id, entry, parts: gate.parts, includeOff })
+      );
+      continue;
+    }
     // Read before the `off` branch so every resolved entry carries it. A
     // project's `run:` is a fact about the DECLARATION, not about the resolved
     // command, so an entry that runs nothing still has a truthful answer.
@@ -5109,6 +5857,77 @@ export function resolveMoment({
       Number(left.costly) - Number(right.costly) ||
       left.id.localeCompare(right.id)
   );
+}
+
+/**
+ * Resolve a gate that declares `parts` at one moment: one entry per part.
+ *
+ * Each entry carries every field an entry has always had, then two more:
+ *
+ * - `scope` — the folder the part covers, as declared.
+ * - `argv` — the argument list to start, as a copy. `null` when the moment is
+ *   declared `off`, for the reason `task` and `command` are: those say what
+ *   WOULD run, and nothing does.
+ *
+ * `task` and `command` are always `null`. `command` is the `<runner> <task>`
+ * STRING a runner hands to a shell, and a part's command must never become
+ * one: a consumer that only knows `command` therefore finds nothing to run
+ * and reports the part as not proved, which is true of that consumer. A
+ * consumer that can start an argument list reads `argv`.
+ *
+ * `declared` is `null` because it means the project's own `run:` task, and a
+ * gate with parts has none — `validateGates` refuses the two together.
+ *
+ * `failureShape` reads the moment's own declaration first, then the part's
+ * `proof.failure_shape`, then the registry's. The part's sits where a gate's
+ * `run:` would: it describes the command the project named.
+ *
+ * Parts stay in the order they were declared. The caller's sort is stable and
+ * orders by gate, never by part.
+ * @param {object} options Inputs.
+ * @param {string} options.id Gate id.
+ * @param {{level: string, [key: string]: unknown}} options.entry The gate's
+ *   declaration at this moment, already an object.
+ * @param {Array<{scope: string, command: string[], proof?: {failure_shape?: string[]}}>} options.parts
+ *   The gate's parts, already validated by `assertResolvable`.
+ * @param {boolean} options.includeOff Whether to report a moment declared off.
+ * @returns {object[]} One resolved entry per part; none for a moment declared
+ *   off unless `includeOff`.
+ */
+function resolveParts({ id, entry, parts, includeOff }) {
+  const off = entry.level === "off";
+  if (off && !includeOff) return [];
+  // A project's own gate is not in the registry, so the lookup is by a plain
+  // string and may find nothing.
+  /** @type {Record<string, {label: string, work?: string, failureShape?: readonly string[], mayRewrite?: boolean, costly?: boolean} | undefined>} */
+  const registry = REGISTRY;
+  const definition = registry[id];
+  const momentShape = entry[FAILURE_SHAPE_FIELD] ?? null;
+  return parts.map(part => ({
+    id,
+    level: entry.level,
+    mode: off ? "off" : "run",
+    awaits: null,
+    postedBy: null,
+    declared: null,
+    task: null,
+    command: null,
+    label: definition?.label ?? id,
+    work: off ? null : (definition?.work ?? null),
+    alias: null,
+    evidence: null,
+    callerChain: off ? null : (entry[CALLER_CHAIN_FIELD] ?? null),
+    failureShape: off
+      ? momentShape
+      : (momentShape ??
+        part.proof?.[FAILURE_SHAPE_FIELD] ??
+        definition?.failureShape ??
+        null),
+    mayRewrite: !off && definition?.mayRewrite === true,
+    costly: !off && definition?.costly === true,
+    scope: part.scope,
+    argv: off ? null : [...part.command],
+  }));
 }
 
 /**
@@ -6195,8 +7014,13 @@ function main() {
       // as `(intercepted by Lisa)` — a line that reads like success to the
       // person running `list` to check their config. Interception is a
       // property of the gate id, so ask the mode, not the command.
-      const how =
-        gate.mode === "await"
+      // A part has no `<runner> <task>` string by design, so without its own
+      // branch it would print as NO PROVER beside the command that proves it.
+      // The argument list is shown as the list it is, never joined into text
+      // that reads like something a shell was given.
+      const how = Array.isArray(gate.argv)
+        ? `in ${gate.scope}: ${JSON.stringify(gate.argv)}`
+        : gate.mode === "await"
           ? `await ${gate.awaits}`
           : gate.mode === "intercept"
             ? "(intercepted by Lisa)"

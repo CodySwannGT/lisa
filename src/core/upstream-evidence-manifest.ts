@@ -341,7 +341,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "73216a048fb468d2350857113aaa4d9bb661d98aeab3dbab481fb971b9d32c6e",
+      "748232939ec716fa4b8a1a758c10bb95ac4778ea5f75d725a18c36cdffc337b7",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -13092,6 +13092,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-moment-validation.test.ts": true,
     "tests/unit/scripts/lisa-gates-on-edit-moment.test.ts": true,
     "tests/unit/scripts/lisa-gates-order.test.ts": true,
+    "tests/unit/scripts/lisa-gates-parts-cli.test.ts": true,
+    "tests/unit/scripts/lisa-gates-parts-resolution.test.ts": true,
+    "tests/unit/scripts/lisa-gates-parts.test.ts": true,
     "tests/unit/scripts/lisa-gates-resolution.test.ts": true,
     "tests/unit/scripts/lisa-gates-reuse-retired.test.ts": true,
     "tests/unit/scripts/lisa-gates-runner-owned.test.ts": true,

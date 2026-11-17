@@ -926,6 +926,74 @@ only under an explicit flag. Same rule as extra required contexts — silently
 removing something a human may have installed deliberately is destructive on a
 guess.
 
+## One property, several parts
+
+A repository with more than one part — an API in one folder, a web client in
+another — proves the same property with a different command in each. A gate
+says so with `parts`, and says what it is for with three more keys:
+
+```json
+"code-style": {
+  "commit": "required",
+  "criteria": ["SI7"],
+  "owner": "Platform team",
+  "tier": "authoritative",
+  "parts": [
+    { "scope": "api", "command": ["go", "vet", "./..."] },
+    {
+      "scope": "web",
+      "command": ["npm", "run", "lint"],
+      "parameters": { "max-warnings": { "value": 0, "direction": "ceiling" } },
+      "proof": {
+        "violation": ".lisa/controls/proofs/lint-web.violation.patch",
+        "clean": ".lisa/controls/proofs/lint-web.clean.patch",
+        "failure_shape": ["problems found"],
+        "timeout_seconds": 120,
+        "external_effects": []
+      }
+    }
+  ]
+}
+```
+
+| key | on | meaning |
+| --- | --- | --- |
+| `criteria` | gate | The requirement ids the gate serves, written as the specification writes them. |
+| `owner` | gate | The person or team that answers for the gate. |
+| `tier` | gate | `authoritative` (the author of a change cannot get around it) or `advisory`. |
+| `parts` | gate | One entry per folder the gate covers. |
+| `scope` | part | The folder, written from the repository root; `.` is the whole repository. |
+| `command` | part | What checks it, as a list with one item per argument. |
+| `parameters` | part | Named settings, each `{ value, direction }`; `direction` is `floor` or `ceiling` and marks a number as a threshold. |
+| `proof` | part | Two patch files under `.lisa/controls/proofs/` — one that breaks the rule, one that does not — plus how a failure prints, a time limit, and anything the proof does outside the repository. |
+
+**`command` is a list and never a string.** It is started directly, with no
+shell in between, so `;` and `&&` are characters in an argument rather than
+instructions. A string would have to be split by something, and whatever splits
+it is a shell or an imitation of one — so validation refuses a string instead
+of splitting it.
+
+**A gate with parts resolves to one entry per part.** Each carries every field
+an entry always had, then `scope` and `argv`. `task` and `command` are `null`
+on purpose: `command` is the text a shell is handed, and a part's argument list
+must never become one. A gate with no parts resolves exactly as it did before
+the key existed, field for field, and `tests/unit/controls/paved-road-regression.test.ts`
+holds that.
+
+**With parts, the parts are the only prover.** A `run` or an `await` beside
+them is refused, for the reason a moment may not declare both: one declaration
+with two things claiming to prove it has to be resolved by picking, silently.
+
+**Two parts of one gate may not cover the same folder**, and a folder has one
+spelling — `api`, not `api/` or `./api` — so every reader can compare two
+scopes as text.
+
+**A key Lisa does not read on a part is refused**, as it is on a gate. A part
+is read by several tools that never see each other, so a misspelt `parameters`
+would be a threshold nothing holds while every tool reported the declaration
+valid. A key that starts with `x-` is the project's own and passes through
+unread.
+
 ## Open items
 
 - Tests are excluded from the typecheck program (`tsconfig.json` is
