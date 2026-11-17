@@ -20,6 +20,10 @@ import {
   registerGaps,
 } from "../../../src/controls/commands/gaps.js";
 import { registerCatalogue } from "../../../src/controls/commands/catalogue.js";
+import {
+  REGISTER_COMMAND,
+  registerRegister,
+} from "../../../src/controls/commands/register.js";
 import { registerReportCheck } from "../../../src/controls/commands/report-check.js";
 
 const REPORT_CHECK = "report-check";
@@ -236,6 +240,86 @@ describe("lisa controls catalogue", () => {
     const { program } = programWith(1);
 
     await program.parseAsync([CONTROLS_COMMAND, CATALOGUE], { from: "user" });
+
+    expect(process.exitCode).toBe(1);
+  });
+});
+
+describe("lisa controls register", () => {
+  const exitCodeBefore = process.exitCode;
+
+  beforeEach(() => {
+    process.exitCode = undefined;
+  });
+
+  afterEach(() => {
+    process.exitCode = exitCodeBefore;
+  });
+
+  /**
+   * Build a controls group whose register runs a stand-in.
+   * @param code - Exit code the stand-in returns
+   * @returns The program and the stand-in
+   */
+  function programWith(code: number): {
+    readonly program: Command;
+    readonly runRegister: ReturnType<typeof vi.fn>;
+  } {
+    const runRegister = vi.fn(async () => code);
+    const program = new Command().exitOverride();
+    addControlsCommand(program, [
+      group => {
+        registerRegister(group, { runRegister });
+      },
+    ]);
+    return { program, runRegister };
+  }
+
+  it("is on the shipped list, with one optional path and a --check flag", () => {
+    const command = controlsGroup(createProgram())?.commands.find(
+      candidate => candidate.name() === REGISTER_COMMAND
+    );
+
+    expect(CONTROLS_SUBCOMMANDS).toContain(registerRegister);
+    expect(
+      command?.registeredArguments.map(argument => argument.name())
+    ).toEqual(["path"]);
+    expect(command?.registeredArguments[0]?.required).toBe(false);
+    expect(command?.options.map(option => option.flags)).toEqual(["--check"]);
+  });
+
+  it("writes by default, in the current directory when no path is given", async () => {
+    const { program, runRegister } = programWith(0);
+
+    await program.parseAsync([CONTROLS_COMMAND, REGISTER_COMMAND], {
+      from: "user",
+    });
+
+    expect(runRegister).toHaveBeenCalledExactlyOnceWith(undefined, {
+      check: false,
+    });
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("checks instead of writing when --check is given", async () => {
+    const { program, runRegister } = programWith(0);
+
+    await program.parseAsync(
+      [CONTROLS_COMMAND, REGISTER_COMMAND, "some/repo", "--check"],
+      { from: "user" }
+    );
+
+    expect(runRegister).toHaveBeenCalledExactlyOnceWith("some/repo", {
+      check: true,
+    });
+  });
+
+  it("exits non-zero when the register is refused or has drifted", async () => {
+    const { program } = programWith(1);
+
+    await program.parseAsync([CONTROLS_COMMAND, REGISTER_COMMAND, "--check"], {
+      from: "user",
+    });
 
     expect(process.exitCode).toBe(1);
   });
