@@ -48,7 +48,7 @@ export function evidenceAt(file: string, line = 1): PartEvidence {
 }
 
 /** The audit question the F-none coverage floor rests on. */
-export const COVERAGE_QUESTION = "coverage-floor";
+export const COVERAGE_QUESTION = "SI2@.";
 
 /** F-none: one Python package, so every part covers the whole repository. */
 export const F_NONE_GATES: GatesBlock = {

@@ -127,7 +127,6 @@ export async function runDeclarationCheck(
     register: generated.register,
     report: loaded.report,
     criteria: loaded.criteria,
-    document: loaded.document,
   });
   if (problems.length > 0) {
     return fail(

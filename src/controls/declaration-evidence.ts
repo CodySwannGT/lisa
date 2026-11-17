@@ -11,7 +11,9 @@
  * - a place (`evidence.locators`) is one the audit reported, on a finding
  *   that says a check exists, for a requirement the entry serves, about the
  *   entry's folder, a folder inside it, or the whole repository;
- * - a question (`evidence.questions`) is one the report holds an answer to;
+ * - a question (`evidence.questions`) is one a person has answered, about a
+ *   requirement the entry serves, in a part of the repository that bears on
+ *   the entry in the same way;
  * - no requirement the entry serves is still an open question there, because
  *   an unanswered question produces no entry.
  *
@@ -25,19 +27,26 @@
  * from a gate's `parts`. An entry of a gate with no parts comes from the
  * declarations Lisa ships for a supported project type and is not looked at.
  *
- * ## The question form is built against a stated shape
+ * ## How an answered question is recognised
  *
- * The audit report does not hold questions yet. The shape this reads is the
- * one agreed for them: a top-level `questions` list whose items have an `id`
- * and, once a person has answered, a non-blank `answer`. A report without
- * that list has no answered question. A finding in state `question` is taken
- * to be still open: once a question is answered, the audit re-runs and places
- * the requirement in another state.
+ * The audit never lets an agent name a question. A question about a
+ * requirement has the id `<requirement>@<scope>` (`./question-ids.ts`), and
+ * once a person answers it the question leaves the report's `questions` and
+ * its answer is recorded in `answers` under the same id
+ * (`./audit-answers.ts`). So an id tells this check three things without
+ * reading the answer's words: whether an answer is on record, which
+ * requirement it is about, and which part of the repository. A question
+ * about how the repository is set up (which tracker, which platform) is
+ * about no requirement and supports no part.
+ *
+ * A finding in the state `question` is still open: the report check refuses
+ * a finding that stays in that state once its question has an answer.
  * @module controls/declaration-evidence
  */
-import { isJsonObject } from "../sync/json-path.js";
+import { recordedAnswer } from "./audit-answers.js";
 import {
   AUDIT_REPORT_JSON_PATH,
+  AUDIT_REPORT_MARKDOWN_PATH,
   LOCATED_STATES,
   describeScope,
   type AuditFinding,
@@ -45,6 +54,7 @@ import {
 } from "./audit-report.js";
 import type { InScopeCriterion } from "./catalogue.js";
 import { GATES_DECLARATION_PATH } from "./gates-declaration.js";
+import { parseQuestionId } from "./question-ids.js";
 import {
   WHOLE_REPOSITORY_SCOPE,
   type ControlRegister,
@@ -63,8 +73,6 @@ export interface DeclarationEvidenceFacts {
   readonly report: AuditReport;
   /** The in-scope criteria, for a requirement's plain question. */
   readonly criteria: readonly InScopeCriterion[];
-  /** The report exactly as parsed, for its questions. */
-  readonly document: unknown;
 }
 
 /**
@@ -79,24 +87,8 @@ export function evidencedEntries(
 }
 
 /**
- * The ids of the audit questions a person has answered.
- * @param document - The parsed content of the audit report, of any shape
- * @returns Each id whose question carries a non-blank answer
- */
-export function answeredQuestionIds(document: unknown): readonly string[] {
-  if (!isJsonObject(document) || !Array.isArray(document.questions)) return [];
-  return document.questions.flatMap(question =>
-    isJsonObject(question) &&
-    typeof question.id === "string" &&
-    typeof question.answer === "string" &&
-    question.answer.trim() !== ""
-      ? [question.id]
-      : []
-  );
-}
-
-/**
- * Tell whether a finding bears on an entry.
+ * Tell whether something the audit recorded about a part of the repository
+ * bears on an entry.
  *
  * It does when it is about the entry's folder or a folder inside it. It also
  * does when it is about the whole repository, whatever folder the entry
@@ -104,18 +96,18 @@ export function answeredQuestionIds(document: unknown): readonly string[] {
  * finding there, and that finding lists what was found in every folder. So a
  * check found for one folder under such a requirement supports a part for
  * that folder, and a question still open about such a requirement stops a
- * part in any folder. What never bears on an entry is a finding about a
- * different folder.
+ * part in any folder. What never bears on an entry is something recorded
+ * about a different folder.
  * @param entryScope - The folder the entry covers
- * @param findingScope - The folder the finding is about
- * @returns Whether the finding is one the entry is held to
+ * @param recordedScope - The folder the finding or the question is about
+ * @returns Whether the entry is held to it
  */
-function covers(entryScope: string, findingScope: string): boolean {
+function covers(entryScope: string, recordedScope: string): boolean {
   return (
     entryScope === WHOLE_REPOSITORY_SCOPE ||
-    findingScope === WHOLE_REPOSITORY_SCOPE ||
-    findingScope === entryScope ||
-    findingScope.startsWith(`${entryScope}/`)
+    recordedScope === WHOLE_REPOSITORY_SCOPE ||
+    recordedScope === entryScope ||
+    recordedScope.startsWith(`${entryScope}/`)
   );
 }
 
@@ -171,21 +163,52 @@ function locatorProblems(
 }
 
 /**
+ * Say why one question a part names does not support it, when it does not.
+ * @param entry - An entry that carries evidence
+ * @param id - The question id the part names
+ * @param report - The validated audit report
+ * @returns The rest of the sentence after the question is named, or `null`
+ *   when an answer to it is on record and it is about this entry
+ */
+function questionProblem(
+  entry: ControlRegisterEntry,
+  id: string,
+  report: AuditReport
+): string | null {
+  if (report.questions.some(question => question.id === id)) {
+    return `that question is still waiting for its answer in ${AUDIT_REPORT_MARKDOWN_PATH}. A rule is recorded only once its question is answered. Have it answered and run the audit again, or remove the part.`;
+  }
+  if (recordedAnswer(report, id) === null) {
+    return `${AUDIT_REPORT_JSON_PATH} holds no answer to a question with that id. A rule is recorded only once its question is answered. Copy the id from an answer the report records, or remove the part.`;
+  }
+  const asked = parseQuestionId(id);
+  if (asked === null || asked.kind === "setup") {
+    return `that question is about how the repository is set up, not about a requirement. A part rests on the answer to a question about a requirement its gate serves. Name that question, or remove the part.`;
+  }
+  return entry.criteria.includes(asked.criterion) &&
+    covers(entry.scope, asked.scope)
+    ? null
+    : `that question is about another requirement or another part of the repository than this part. A part rests on the answer to a question about a requirement its gate serves, there. Name that question, or remove the part.`;
+}
+
+/**
  * Check the questions one entry names.
  * @param entry - An entry that carries evidence
- * @param answered - The ids of the answered questions
- * @returns One line per question the report holds no answer to
+ * @param report - The validated audit report
+ * @returns One line per question that does not support the entry
  */
 function questionProblems(
   entry: ControlRegisterEntry,
-  answered: readonly string[]
+  report: AuditReport
 ): readonly string[] {
-  return (entry.evidence?.questions ?? [])
-    .filter(id => !answered.includes(id))
-    .map(
-      id =>
-        `${partOf(entry)} that rests on the audit question "${id}", but ${AUDIT_REPORT_JSON_PATH} holds no answer to a question with that id. A rule is recorded only once its question is answered. Have the question answered and run the audit again, or remove the part.`
-    );
+  return (entry.evidence?.questions ?? []).flatMap(id => {
+    const problem = questionProblem(entry, id, report);
+    return problem === null
+      ? []
+      : [
+          `${partOf(entry)} that rests on the audit question "${id}", but ${problem}`,
+        ];
+  });
 }
 
 /**
@@ -219,8 +242,7 @@ function openQuestionProblems(
 export function declarationEvidenceProblems(
   facts: DeclarationEvidenceFacts
 ): readonly string[] {
-  const { register, report, criteria, document } = facts;
-  const answered = answeredQuestionIds(document);
+  const { register, report, criteria } = facts;
   return evidencedEntries(register).flatMap(entry => {
     const covered = report.findings.filter(
       finding =>
@@ -229,7 +251,7 @@ export function declarationEvidenceProblems(
     );
     return [
       ...locatorProblems(entry, covered),
-      ...questionProblems(entry, answered),
+      ...questionProblems(entry, report),
       ...openQuestionProblems(entry, covered, criteria),
     ];
   });

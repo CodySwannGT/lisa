@@ -163,10 +163,17 @@ Sort the findings:
 | `unknown` or `not-applicable` | Nothing to declare. |
 | any state, for a requirement whose `kind` is `artifact` or `human-attested` | Nothing to declare here: it is a record or a person's word, not a check that can refuse a change. |
 
-When the report has a `questions` list, a question in it that carries an `answer` has been
-answered by a person. A check that rests on such an answer, rather than on something the audit
-found in the repository, may be declared too; it names the question's `id` as what supports it. A
-report with no `questions` list has no answered question.
+**What a person answered.** The report's `answers` list holds what people have answered. Each
+entry has the `id` of the question, the `question` as it was asked, and the `answer`. A question
+about a requirement has the id `<requirement id>@<scope>`, so the id says which requirement and
+which part of the repository the answer is about. When such an answer names a check for that
+requirement there (the tool, and how it is run), that check may be declared too, whatever the
+finding's state, and it names the answer's `id` as what supports it. An answer that names no check
+declares nothing.
+
+The `questions` list holds the questions still waiting for a person: an id on it supports nothing
+yet. The answers about how the repository is set up (`tracker`, `hosting-platform`,
+`repository-administrator`) are about no requirement and support no check.
 
 ### Step 4: Decide each check with the operator
 
@@ -276,7 +283,8 @@ exist. Keep everything else in the file as it is.
   the only keys this step writes on a part.
 - `evidence` is what supports the part, and every part has it. It holds `locators`, the places the
   audit found the check, each copied from the finding as `{ "path", "line" }`; or `questions`, the
-  ids of the answered questions it rests on; or both.
+  ids of the answers it rests on, each copied from the report's `answers`, such as `"SI2@api"`; or
+  both.
 - A check that covers two parts is one gate with two entries in `parts`, each with its own
   command and its own evidence.
 
@@ -291,11 +299,12 @@ lisa controls declaration-check
 - **Exit 0.** Every declared part is supported. On the paved road it passes at once, because
   nothing was declared from a finding.
 - **Any other exit.** Each line printed is one problem, naming the gate and the part. A part that
-  names a place the audit did not report, rests on a question nobody answered, or serves a
-  requirement the audit still asks about is refused. Correct the declaration so that it says
-  truthfully what supports each part, and run this step again. Never clear a problem by pointing
-  at a place that does not show the check, or by inventing a question id. A part that cannot be
-  supported honestly is removed.
+  names a place the audit did not report, rests on a question nobody answered or on an answer
+  about something else, or serves a requirement the audit still asks about is refused. Correct the
+  declaration so that it says truthfully what supports each part, and run this step again. Never
+  clear a problem by pointing at a place that does not show the check, by naming an answer about
+  another requirement, or by writing an answer yourself: only a person answers, on the answer
+  line of `.lisa/audit/report.md`. A part that cannot be supported honestly is removed.
 
 ### Step 8: Write the control register
 
@@ -344,9 +353,10 @@ In plain language, for someone who does not code:
    run and the ones that were already there.
 3. Each threshold: what is measured, the value measured today, and the value the operator
    confirmed.
-4. What was **not** declared and why: each open question, with who is likely to know the answer;
-   each proposal the operator declined; each decision still waiting because nobody was there to
-   make it.
+4. What was **not** declared and why: each open question, with who is likely to know the answer,
+   and that it is answered by typing on its answer line in `.lisa/audit/report.md` and running
+   `/lisa:audit` again; each proposal the operator declined; each decision still waiting because
+   nobody was there to make it.
 5. Where the record is: `.lisa.config.json` holds what was decided, and
    `.lisa/controls/register.json` is the record generated from it.
 6. That nothing was committed, nothing was wired in, and nothing has been proved to work yet.

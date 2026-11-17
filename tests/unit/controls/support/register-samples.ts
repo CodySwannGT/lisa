@@ -76,7 +76,7 @@ export const LOCATOR: Required<EvidenceLocator> = {
 /** What supports an entry, with every key filled in. */
 export const EVIDENCE: Required<ControlEvidence> = {
   locators: [LOCATOR],
-  questions: ["coverage-floor"],
+  questions: ["SI2@api"],
 };
 
 /** An entry with every key filled in. */
