@@ -19,9 +19,11 @@ import {
   GAPS_COMMAND,
   registerGaps,
 } from "../../../src/controls/commands/gaps.js";
+import { registerCatalogue } from "../../../src/controls/commands/catalogue.js";
 import { registerReportCheck } from "../../../src/controls/commands/report-check.js";
 
 const REPORT_CHECK = "report-check";
+const CATALOGUE = "catalogue";
 
 /**
  * Find the controls group of a program.
@@ -55,6 +57,13 @@ describe("lisa controls", () => {
     expect(
       controlsGroup(program)?.commands.map(command => command.name())
     ).toEqual(["first", "second"]);
+  });
+
+  it("lists catalogue among the shipped subcommands", () => {
+    expect(CONTROLS_SUBCOMMANDS).toContain(registerCatalogue);
+    expect(
+      controlsGroup(createProgram())?.commands.map(command => command.name())
+    ).toContain(CATALOGUE);
   });
 
   it("lists report-check among the shipped subcommands", () => {
@@ -169,6 +178,64 @@ describe("lisa controls report-check", () => {
     await program.parseAsync([CONTROLS_COMMAND, REPORT_CHECK], {
       from: "user",
     });
+
+    expect(process.exitCode).toBe(1);
+  });
+});
+
+describe("lisa controls catalogue", () => {
+  const exitCodeBefore = process.exitCode;
+
+  beforeEach(() => {
+    process.exitCode = undefined;
+  });
+
+  afterEach(() => {
+    process.exitCode = exitCodeBefore;
+  });
+
+  /**
+   * Build a controls group whose catalogue runs a stand-in.
+   * @param code - Exit code the stand-in returns
+   * @returns The program and the stand-in
+   */
+  function programWith(code: number): {
+    readonly program: Command;
+    readonly runCatalogue: ReturnType<typeof vi.fn>;
+  } {
+    const runCatalogue = vi.fn(() => code);
+    const program = new Command().exitOverride();
+    addControlsCommand(program, [
+      group => {
+        registerCatalogue(group, { runCatalogue });
+      },
+    ]);
+    return { program, runCatalogue };
+  }
+
+  it("takes no argument and no option: the requirements are the same everywhere", () => {
+    const { program } = programWith(0);
+    const command = controlsGroup(program)?.commands.find(
+      candidate => candidate.name() === CATALOGUE
+    );
+
+    expect(command?.registeredArguments).toEqual([]);
+    expect(command?.options).toEqual([]);
+  });
+
+  it("prints the requirements and leaves the exit code alone on a pass", async () => {
+    const { program, runCatalogue } = programWith(0);
+
+    await program.parseAsync([CONTROLS_COMMAND, CATALOGUE], { from: "user" });
+
+    expect(runCatalogue).toHaveBeenCalledOnce();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("exits non-zero when the catalogue cannot be read", async () => {
+    const { program } = programWith(1);
+
+    await program.parseAsync([CONTROLS_COMMAND, CATALOGUE], { from: "user" });
 
     expect(process.exitCode).toBe(1);
   });
