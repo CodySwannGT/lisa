@@ -17,6 +17,7 @@
  */
 import type { Command } from "commander";
 
+import { registerAttest } from "../controls/commands/attest.js";
 import { registerCatalogue } from "../controls/commands/catalogue.js";
 import { registerDeclarationCheck } from "../controls/commands/declaration-check.js";
 import { registerGaps } from "../controls/commands/gaps.js";
@@ -42,6 +43,7 @@ export const CONTROLS_SUBCOMMANDS: readonly ControlsSubcommand[] = [
   registerDeclarationCheck,
   registerRegister,
   registerProtect,
+  registerAttest,
 ];
 
 /**
