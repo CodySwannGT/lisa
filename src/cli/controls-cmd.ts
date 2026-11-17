@@ -17,6 +17,7 @@
  */
 import type { Command } from "commander";
 
+import { registerGaps } from "../controls/commands/gaps.js";
 import { registerReportCheck } from "../controls/commands/report-check.js";
 
 /** The group's name on the command line. */
@@ -28,6 +29,7 @@ export type ControlsSubcommand = (group: Command) => void;
 /** Every subcommand of `lisa controls`, in the order help lists them. */
 export const CONTROLS_SUBCOMMANDS: readonly ControlsSubcommand[] = [
   registerReportCheck,
+  registerGaps,
 ];
 
 /**

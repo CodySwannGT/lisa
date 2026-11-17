@@ -123,6 +123,29 @@ export function dropFinding(
 }
 
 /**
+ * A report that passes, in which only the named findings are missing. Every
+ * other requirement is one the audit could not check, a state that needs no
+ * pointer into the repository (CodySwannGT/lisa#4992).
+ * @param missing - The findings that stay in state `missing`
+ * @param scopes - The parts the report covers; `.` is the whole repository
+ * @returns The report
+ */
+export function reportMissing(
+  missing: readonly FindingAddress[],
+  scopes: readonly string[] = ["."]
+): SampleReport {
+  const report = completeAuditReport(scopes);
+  return {
+    ...report,
+    findings: report.findings.map(finding =>
+      missing.some(address => isAt(finding, address))
+        ? finding
+        : { ...finding, state: "unknown" }
+    ),
+  };
+}
+
+/**
  * Write a JSON document into a repository, creating its folder.
  * @param repoPath - Repository root
  * @param relative - Repository-relative path of the file
