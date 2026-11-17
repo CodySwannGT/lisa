@@ -103,6 +103,24 @@ describe("PackageLisaStrategy", () => {
       );
     });
 
+    it("removes eslint-plugin-react-compiler, whose zod 3 is unpatched (#4931)", () => {
+      // Earlier templates forced it into Expo hosts; it pins zod ^3, and zod 3
+      // gets no fix for GHSA-mrhx-c7xc-m3w5. react-hooks 7 now carries its
+      // checks, so hosts must drop it on update rather than keep zod 3.
+      const template = readExpoTemplate() as ReturnType<
+        typeof readExpoTemplate
+      > & {
+        remove: { devDependencies: string[] };
+      };
+
+      expect(
+        template.force.devDependencies["eslint-plugin-react-compiler"]
+      ).toBeUndefined();
+      expect(template.remove.devDependencies).toContain(
+        "eslint-plugin-react-compiler"
+      );
+    });
+
     it("keeps non-SDK-coupled tooling/governance in force", () => {
       const template = readExpoTemplate();
       // Pure JS tooling stays forced (governance-critical).

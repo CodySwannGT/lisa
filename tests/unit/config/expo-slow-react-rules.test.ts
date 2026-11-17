@@ -20,7 +20,12 @@ import { ESLint, type Linter } from "eslint";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { getExpoConfig } from "../../../src/configs/eslint/expo.js";
-import { getExpoSlowConfig } from "../../../src/configs/eslint/slow-expo.js";
+import reactHooksPlugin from "eslint-plugin-react-hooks";
+
+import {
+  EXPO_SLOW_REACT_RULES,
+  getExpoSlowConfig,
+} from "../../../src/configs/eslint/slow-expo.js";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 
 // Type-aware parsing of a fresh program: measured at about 3s on a quiet box.
@@ -60,6 +65,27 @@ const FIXTURES = {
   "react-hooks/purity": [
     "export function Clock() {",
     "  return <p>{Date.now()}</p>;",
+    "}",
+    "",
+  ].join("\n"),
+  "react-hooks/rule-suppression": [
+    'import { useEffect } from "react";',
+    "export function Logger(props: { id: string }) {",
+    "  useEffect(() => {",
+    "    console.log(props.id);",
+    "    // eslint-disable-next-line react-hooks/exhaustive-deps",
+    "  }, []);",
+    "  return <p>{props.id}</p>;",
+    "}",
+    "",
+  ].join("\n"),
+  "react-hooks/void-use-memo": [
+    'import { useMemo } from "react";',
+    "export function Total(props: { items: readonly number[] }) {",
+    "  useMemo(() => {",
+    "    props.items.reduce((sum, item) => sum + item, 0);",
+    "  }, [props.items]);",
+    "  return <p>{props.items.length}</p>;",
     "}",
     "",
   ].join("\n"),
@@ -118,6 +144,14 @@ beforeAll(() => {
     FIXTURES["react-hooks/purity"]
   );
   fs.writeFileSync(path.join(root, "src", "static.tsx"), FIXTURES[SLOW_RULE]);
+  fs.writeFileSync(
+    path.join(root, "src", "suppressed.tsx"),
+    FIXTURES["react-hooks/rule-suppression"]
+  );
+  fs.writeFileSync(
+    path.join(root, "src", "void-memo.tsx"),
+    FIXTURES["react-hooks/void-use-memo"]
+  );
   fs.writeFileSync(path.join(root, "src", "clean.tsx"), CLEAN);
 });
 
@@ -162,8 +196,13 @@ async function errorsWith(
 }
 
 describe("Expo lint:slow React rules, through the real ESLint", () => {
-  it(`flags a ${SLOW_RULE} violation`, async () => {
-    expect(await slowErrors("static.tsx")).toContain(SLOW_RULE);
+  it.each([
+    [SLOW_RULE, "static.tsx"],
+    // The old react-compiler rule reported this suppression as InvalidReact.
+    ["react-hooks/rule-suppression", "suppressed.tsx"],
+    ["react-hooks/void-use-memo", "void-memo.tsx"],
+  ] as const)("flags a %s violation", async (rule, file) => {
+    expect(await slowErrors(file)).toContain(rule);
   });
 
   it("passes a component that breaks no rule", async () => {
@@ -184,13 +223,45 @@ describe("Expo main-lint React Compiler rules, through the real ESLint", () => {
   });
 });
 
+/**
+ * The last setting a flat config array gives a rule.
+ * @param configs - Flat config array
+ * @param rule - Rule id
+ * @returns The effective setting, or undefined when unset
+ */
+function lastSetting(configs: readonly Linter.Config[], rule: string): unknown {
+  return configs
+    .map(config => config.rules?.[rule])
+    .filter(setting => setting !== undefined)
+    .at(-1);
+}
+
 describe("the Expo configs keep every React Compiler rule", () => {
-  it(`sets ${SLOW_RULE} to error for TSX in lint:slow`, () => {
-    const entry = getExpoSlowConfig().find(
-      (config: Linter.Config) => config.rules?.[SLOW_RULE] !== undefined
-    );
-    expect(entry?.rules?.[SLOW_RULE]).toBe("error");
-    expect(entry?.files).toEqual(expect.arrayContaining(["**/*.tsx"]));
+  it.each(EXPO_SLOW_REACT_RULES)(
+    "sets %s to error for TSX in lint:slow",
+    rule => {
+      const entry = getExpoSlowConfig().find(
+        (config: Linter.Config) => config.rules?.[rule] !== undefined
+      );
+      expect([entry?.rules?.[rule]].flat()[0]).toBe("error");
+      expect(entry?.files).toEqual(expect.arrayContaining(["**/*.tsx"]));
+    }
+  );
+
+  it("enforces every rule in react-hooks' recommended-latest preset", () => {
+    const preset = (
+      reactHooksPlugin.configs as unknown as Record<
+        string,
+        { rules: Record<string, string> }
+      >
+    )["recommended-latest"]!.rules;
+    const main = getExpoConfig({ tsconfigRootDir: root });
+    const slow = getExpoSlowConfig();
+    const missing = Object.entries(preset).filter(([rule, level]) => {
+      const settings = [lastSetting(main, rule), lastSetting(slow, rule)];
+      return !settings.includes("error") && !settings.includes(level);
+    });
+    expect(missing).toEqual([]);
   });
 
   it.each(MAIN_COMPILER_RULES)(

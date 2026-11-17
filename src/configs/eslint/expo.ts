@@ -308,9 +308,8 @@ export function getExpoConfig({
         "react-hooks/preserve-manual-memoization": "error",
         "react-hooks/refs": "error",
         "react-hooks/immutability": "error",
-        // React Compiler diagnostics. These replace the single
-        // `react-compiler/react-compiler` rule (eslint-plugin-react-compiler pins
-        // zod 3, which gets no fix for GHSA-mrhx-c7xc-m3w5).
+        // React Compiler diagnostics, replacing react-compiler/react-compiler
+        // (its plugin pins zod 3, unfixed for GHSA-mrhx-c7xc-m3w5).
         "react-hooks/use-memo": "error",
         "react-hooks/globals": "error",
         "react-hooks/error-boundaries": "error",
@@ -321,6 +320,8 @@ export function getExpoConfig({
         // Slow rules - disabled by default, run via `lint:slow` script
         // @see eslint.slow.config.ts
         "react-hooks/static-components": "off",
+        // react-hooks/rule-suppression and react-hooks/void-use-memo stay unset
+        // here; they run in lint:slow (getExpoSlowConfig).
         // End Slow rules - disabled by default, run via `lint:slow` script
         // Environment variables - enforce validated env module usage
         // @see .claude/skills/expo-env-config/SKILL.md

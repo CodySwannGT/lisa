@@ -547,7 +547,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/eslint.config.ts":
       "bb02718e1a809151c282d5fc54a1b570fe1cc86236dc1e5f2bcb570b06a22baa",
     "expo/copy-overwrite/eslint.expo.ts":
-      "30813c33f46719f4a9c3b5f38bcb0756047dbcc89a578d76cac9187a7eab35cd",
+      "ddb517c107220214bf893c84b405ca65b7476102fed82a15617ad82002544eca",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "3189a36471d596f5d4c3ed43484a9b7a5d33ef27b4d0fdb93007b823cec6cad0",
     "expo/copy-overwrite/jest.config.ts":
@@ -681,7 +681,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "57295685c94073612c67c0db0d0d3b31ebd9ea222fb403fbab030389fb628016",
+      "01f5c9478d6546d9ec39a7f4cc097e4980328f427dc3d3dd0976b7b91fc5dec4",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":

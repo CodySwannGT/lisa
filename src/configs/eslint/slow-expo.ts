@@ -1,9 +1,11 @@
 /**
  * ESLint 9 Flat Config - Slow Rules Only (Expo)
  *
- * The shared slow rules plus the one React Compiler check the main Expo
- * config turns off for speed:
- * - react-hooks/static-components - Static component optimization checks (slow)
+ * The shared slow rules plus the React Compiler checks the main Expo config
+ * leaves off for speed (EXPO_SLOW_REACT_RULES):
+ * - react-hooks/static-components - Static component optimization checks
+ * - react-hooks/rule-suppression - eslint-disable of a React hooks rule
+ * - react-hooks/void-use-memo - useMemo callbacks that return nothing
  *
  * The other React Compiler checks ship in eslint-plugin-react-hooks 7 as one
  * rule per compiler diagnostic and run at "error" in the main Expo lint
@@ -26,8 +28,35 @@ import reactHooksPlugin from "eslint-plugin-react-hooks";
 import { getSlowConfig } from "./slow.js";
 
 /**
+ * The React Compiler checks lint:slow adds, where the old
+ * `react-compiler/react-compiler` rule ran. `rule-suppression` and
+ * `void-use-memo` restore what that rule reported and #4931 had dropped: an
+ * `eslint-disable` of `react-hooks/exhaustive-deps` or
+ * `react-hooks/rules-of-hooks` (the compiler's InvalidReact suppression
+ * diagnostic), and a `useMemo` whose callback returns nothing.
+ */
+export const EXPO_SLOW_REACT_RULES = [
+  "react-hooks/static-components",
+  "react-hooks/rule-suppression",
+  "react-hooks/void-use-memo",
+] as const;
+
+/**
+ * Compiler options that make `react-hooks/rule-suppression` see eslint-disable
+ * comments. react-hooks 7 looks for them only when one of its own
+ * exhaustive-memo-dependency or hooks-usage validations is off, because with
+ * both on it re-checks what the suppressed rule checked. The old
+ * `react-compiler/react-compiler` rule always reported the suppression, so
+ * this rule compiles with memo-dependency validation off. The compiler caches
+ * per option set, so the other rules keep their full validation.
+ */
+const RULE_SUPPRESSION_OPTIONS = {
+  environment: { validateExhaustiveMemoizationDependencies: false },
+} as const;
+
+/**
  * Creates the slow ESLint configuration for Expo projects: the shared slow
- * rules plus the React rule the main Expo config turns off for speed.
+ * rules plus the React rules the main Expo config turns off for speed.
  *
  * The React rules moved here from the main Expo lint when lint:slow was
  * introduced (0b58fe96a4). A later rewrite of this module kept only the
@@ -53,8 +82,10 @@ export function getExpoSlowConfig({
         "react-hooks": { rules: reactHooksPlugin.rules },
       },
       rules: {
-        // Static component optimization (slow)
-        "react-hooks/static-components": "error",
+        ...Object.fromEntries(
+          EXPO_SLOW_REACT_RULES.map(rule => [rule, "error"] as const)
+        ),
+        "react-hooks/rule-suppression": ["error", RULE_SUPPRESSION_OPTIONS],
       },
     },
   ];

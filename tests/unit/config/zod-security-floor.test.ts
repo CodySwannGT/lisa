@@ -7,9 +7,13 @@
  * from eslint-plugin-react-compiler, whose final release requires zod ^3.22.4;
  * #4507 kept it behind an audit exception. #4931 replaced that plugin with the
  * React Compiler rules eslint-plugin-react-hooks 7 ships (which accepts zod 4)
- * and floors every zod with a root override, so the exception is gone. This
- * suite fails if any zod drops below 4.6.6, if a package that needs zod 3
- * returns, or if any audit exclusion list excuses the advisory again.
+ * and floors every zod with a root override, so the exception is gone. The
+ * override stays load-bearing until the dev-only self-pin reaches a published
+ * Lisa without that plugin: @codyswann/lisa 6.0.0 still depends on it. This
+ * suite fails if any lockfile entry, under any key or alias, resolves a zod
+ * below 4.6.6, if a direct dependency needs zod 3 again, if the override goes
+ * while something still requires zod 3, or if any audit exclusion list
+ * excuses the advisory again.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -54,9 +58,9 @@ function parts(version: string): number[] {
  * @returns Lockfile key and resolved version, one entry per resolution
  */
 function lockedZods(): { key: string; version: string }[] {
-  return [...read("bun.lock").matchAll(/"([^"]+)": \["zod@(\d+\.\d+\.\d+)"/g)]
-    .map(([, key = "", version = ""]) => ({ key, version }))
-    .filter(({ key }) => key === "zod" || key.endsWith("/zod"));
+  return [
+    ...read("bun.lock").matchAll(/"([^"]+)": \["zod@(\d+\.\d+\.\d+)"/g),
+  ].map(([, key = "", version = ""]) => ({ key, version }));
 }
 
 /**
@@ -106,6 +110,14 @@ describe(`zod security floor (${ADVISORY})`, () => {
       ...Object.keys(manifest.devDependencies ?? {}),
     ]);
     expect(zodThreeRequirers().filter(name => direct.has(name))).toEqual([]);
+  });
+
+  it("keeps the zod override while any locked package still requires zod 3", () => {
+    const manifest = JSON.parse(read(MANIFEST)) as {
+      overrides?: Record<string, string>;
+    };
+    if (zodThreeRequirers().length > 0)
+      expect(manifest.overrides?.zod, "overrides.zod").toBeDefined();
   });
 
   it("forces every transitive zod past the advisory", () => {
