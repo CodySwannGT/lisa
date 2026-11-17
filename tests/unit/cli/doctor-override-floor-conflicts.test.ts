@@ -31,6 +31,9 @@ import {
 
 const CHECK_NAME = "Override self-references safe?";
 
+/** A direct range semver cannot read, so no rewrite of it can be proven safe. */
+const UNPROVABLE = "workspace:*";
+
 describe("checkOverrideFloorConflicts", () => {
   let tempDir: string;
   let lisaRoot: string;
@@ -71,6 +74,31 @@ describe("checkOverrideFloorConflicts", () => {
   }
 
   it("reports the package, both ranges, and the raise needed", async () => {
+    // A direct range semver cannot read is one Lisa cannot prove safe, so
+    // the apply still refuses it and doctor must say so in advance.
+    await createTypeScriptProject(projectDir);
+    await writeTemplate("typescript", {
+      force: { overrides: { vite: "^8.0.16" } },
+    });
+    await writeManifest({
+      name: "host",
+      dependencies: { typescript: "^5.0.0" },
+      devDependencies: { vite: UNPROVABLE },
+    });
+
+    const result = await checkOverrideFloorConflicts(projectDir, lisaRoot);
+
+    expect(result.name).toBe(CHECK_NAME);
+    expect(result.status).toBe("fail");
+    expect(result.detail).toContain("overrides.vite");
+    expect(result.detail).toContain(`direct ${UNPROVABLE}`);
+    expect(result.detail).toContain("Lisa floor ^8.0.16");
+    expect(result.detail).toContain(
+      `Raise the direct dependency vite from "${UNPROVABLE}" to "^8.0.16"`
+    );
+  });
+
+  it("does NOT report a direct range below a Lisa floor, which the apply raises", async () => {
     await createTypeScriptProject(projectDir);
     await writeTemplate("typescript", {
       force: { overrides: { vite: "^8.0.16" } },
@@ -83,14 +111,7 @@ describe("checkOverrideFloorConflicts", () => {
 
     const result = await checkOverrideFloorConflicts(projectDir, lisaRoot);
 
-    expect(result.name).toBe(CHECK_NAME);
-    expect(result.status).toBe("fail");
-    expect(result.detail).toContain("overrides.vite");
-    expect(result.detail).toContain("direct ^8.0.5");
-    expect(result.detail).toContain("Lisa floor ^8.0.16");
-    expect(result.detail).toContain(
-      'Raise the direct dependency vite from "^8.0.5" to "^8.0.16"'
-    );
+    expect(result.status).toBe("ok");
   });
 
   it("does NOT report a direct dependency that satisfies the floor", async () => {
@@ -213,7 +234,7 @@ describe("checkOverrideFloorConflicts", () => {
     });
     await writeManifest({
       name: "host",
-      dependencies: { typescript: "^5.0.0", axios: "^1.16.0" },
+      dependencies: { typescript: "^5.0.0", axios: UNPROVABLE },
     });
 
     const result = await checkOverrideFloorConflicts(projectDir, lisaRoot);
@@ -221,7 +242,7 @@ describe("checkOverrideFloorConflicts", () => {
     expect(result.status).toBe("fail");
     expect(result.detail).toContain("refuses on postinstall and full apply");
     expect(result.detail).toContain(
-      'Raise the direct dependency axios from "^1.16.0" to "^1.18.0"'
+      `Raise the direct dependency axios from "${UNPROVABLE}" to "^1.18.0"`
     );
   });
 });

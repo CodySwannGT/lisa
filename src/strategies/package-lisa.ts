@@ -23,6 +23,7 @@ import {
   describeSelfReferenceRemedy,
   DIRECT_DEPENDENCY_SECTIONS,
   OVERRIDE_SECTIONS,
+  raiseDirectRangesToLisaFloors,
   type OverrideFloorAudit,
   type SelfReferenceCandidate,
   type SelfReferenceFloorConflict,
@@ -171,7 +172,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
       )
     );
     const result = planSelfReferencingOverrideNormalization(
-      forced.packageJson,
+      raiseDirectRangesToLisaFloors(forced.packageJson, effective.force)
+        .packageJson,
       this.PACKAGE_JSON
     );
     assertManifestIsInstallable(result.packageJson, this.PACKAGE_JSON);
@@ -243,7 +245,10 @@ export class PackageLisaStrategy implements ICopyStrategy {
       );
       return {
         applyPath,
-        audit: auditSelfReferenceRewrites(forced.packageJson),
+        audit: auditSelfReferenceRewrites(
+          raiseDirectRangesToLisaFloors(forced.packageJson, effective.force)
+            .packageJson
+        ),
         error: null,
       };
     } catch (error) {
@@ -459,12 +464,28 @@ export class PackageLisaStrategy implements ICopyStrategy {
         declaredDependencies(projectJson)
       )
     );
-    const plan = planSelfReferencingOverrideNormalization(
+    const raised = raiseDirectRangesToLisaFloors(
       forced.packageJson,
+      effective.force
+    );
+    const plan = planSelfReferencingOverrideNormalization(
+      raised.packageJson,
       this.PACKAGE_JSON
     );
     assertManifestIsInstallable(plan.packageJson, this.PACKAGE_JSON);
-    return { ...plan, notes: [...forced.notes, ...plan.notes] };
+    return {
+      ...plan,
+      notes: [
+        ...forced.notes,
+        ...raised.raises.map(
+          raise =>
+            `Raised ${raise.name} from ${JSON.stringify(raise.from)} to ` +
+            `${JSON.stringify(raise.to)} to meet Lisa's floor ` +
+            `${JSON.stringify(raise.floorRange)}.`
+        ),
+        ...plan.notes,
+      ],
+    };
   }
 
   /**

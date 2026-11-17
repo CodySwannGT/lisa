@@ -17,11 +17,19 @@
  *   installs nothing. No release history records a reason beyond "the stack's
  *   standard library" — every one arrived in the initial commit — so all of
  *   them keep the floor rather than a guess about which mattered.
+ *
+ * A fresh project must still install, build, lint and test, so no file Lisa
+ * ships into a stack's hosts may import a library that stack is no longer
+ * given — neither a de-forced runtime library nor a retired dev tool (an
+ * `adopt.devDependencies` key). Either the import goes, or the library stays
+ * supplied.
  * @module tests/unit/config/runtime-dependency-ownership
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { PROJECT_TYPE_HIERARCHY } from "../../../src/core/config.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
@@ -71,8 +79,23 @@ interface Template {
   readonly force?: Readonly<
     Record<string, Readonly<Record<string, string>> | undefined>
   >;
-  readonly adopt?: Readonly<Record<string, unknown>>;
+  readonly defaults?: Readonly<
+    Record<string, Readonly<Record<string, string>> | undefined>
+  >;
+  readonly adopt?: Readonly<
+    Record<string, Readonly<Record<string, string>> | undefined>
+  >;
 }
+
+/** Template lanes whose files land in a host. */
+const LANES = ["create-only", "copy-overwrite"] as const;
+
+/** Source files a host runs or compiles. */
+const SOURCE_FILE = /\.[cm]?[jt]sx?$/u;
+
+/** Module specifiers in `import … from`, bare `import`, `import()` and `require()`. */
+const SPECIFIER =
+  /(?:\bfrom\s+|\bimport\s+|\bimport\(\s*|\brequire\(\s*)["']([^"'\s]+)["']/gu;
 
 /**
  * Every stack template in the repository.
@@ -94,6 +117,107 @@ function templates(): readonly (readonly [string, Template])[] {
 }
 
 const TEMPLATES = new Map(templates());
+
+/**
+ * A stack and its parents, nearest first.
+ * @param stack - Stack directory
+ * @returns The lineage
+ */
+function lineage(stack: string): readonly string[] {
+  const parent = PROJECT_TYPE_HIERARCHY[stack];
+  return parent === undefined ? [stack] : [stack, ...lineage(parent)];
+}
+
+/**
+ * Lisa's own runtime dependencies, which install with `@codyswann/lisa` into
+ * every host — the reason a stack need not force them.
+ */
+const LISA_DEPENDENCIES = Object.keys(
+  (
+    JSON.parse(
+      fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf8")
+    ) as { dependencies?: Record<string, string> }
+  ).dependencies ?? {}
+);
+
+/**
+ * Packages a stack's hosts are still given.
+ * @param stack - Stack directory
+ * @returns Package names Lisa forces, defaults, or installs with itself
+ */
+function supplied(stack: string): ReadonlySet<string> {
+  return new Set([
+    ...LISA_DEPENDENCIES,
+    ...lineage(stack).flatMap(layer => {
+      const template = TEMPLATES.get(layer);
+      return [template?.force, template?.defaults].flatMap(section =>
+        ["dependencies", "devDependencies"].flatMap(key =>
+          Object.keys(section?.[key] ?? {})
+        )
+      );
+    }),
+  ]);
+}
+
+/**
+ * Libraries a stack's hosts are no longer given: its de-forced runtime
+ * libraries and its retired dev tools, less anything a layer still supplies.
+ * @param stack - Stack directory
+ * @returns Package names
+ */
+function withdrawn(stack: string): ReadonlySet<string> {
+  const still = supplied(stack);
+  return new Set(
+    lineage(stack)
+      .flatMap(layer => [
+        ...Object.keys(DE_FORCED[layer] ?? {}),
+        ...Object.keys(TEMPLATES.get(layer)?.adopt?.devDependencies ?? {}),
+      ])
+      .filter(name => !still.has(name))
+  );
+}
+
+/**
+ * The package a module specifier loads.
+ * @param specifier - Import or require specifier
+ * @returns Package name, or undefined for a relative, absolute or builtin path
+ */
+function packageOf(specifier: string): string | undefined {
+  if (/^(?:\.|\/|node:)/u.test(specifier)) return undefined;
+  const parts = specifier.split("/");
+  return specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
+}
+
+/**
+ * Every package a source text imports or requires.
+ * @param text - File contents
+ * @returns Package names
+ */
+function importedPackages(text: string): readonly string[] {
+  return [...text.matchAll(SPECIFIER)].flatMap(match => {
+    const name = packageOf(match[1] ?? "");
+    return name === undefined ? [] : [name];
+  });
+}
+
+/**
+ * Every source file a stack's lineage ships into a host.
+ * @param stack - Stack directory
+ * @returns Absolute paths
+ */
+function shippedSources(stack: string): readonly string[] {
+  return lineage(stack).flatMap(layer =>
+    LANES.flatMap(lane => {
+      const root = path.join(REPO_ROOT, layer, lane);
+      return fs.existsSync(root)
+        ? fs
+            .readdirSync(root, { recursive: true, encoding: "utf8" })
+            .filter(file => SOURCE_FILE.test(file) && !file.endsWith(".d.ts"))
+            .map(file => path.join(root, file))
+        : [];
+    })
+  );
+}
 
 describe("runtime libraries Lisa stopped forcing", () => {
   it("discovers every stack this suite names", () => {
@@ -123,6 +247,36 @@ describe("runtime libraries Lisa stopped forcing", () => {
           floor
         );
       }
+    }
+  );
+});
+
+describe("shipped host files and withdrawn libraries", () => {
+  it("reads the package a specifier loads", () => {
+    expect(
+      importedPackages(
+        [
+          'import { useForm } from "react-hook-form";',
+          'import "events";',
+          'const b = require("base-64");',
+          'const z = await import("@apollo/client/core");',
+          'import { join } from "node:path";',
+          'import local from "./local";',
+        ].join("\n")
+      )
+    ).toEqual(["react-hook-form", "events", "base-64", "@apollo/client"]);
+  });
+
+  it.each(Object.keys(PROJECT_TYPE_HIERARCHY).filter(s => TEMPLATES.has(s)))(
+    "%s ships no file importing a library its hosts are no longer given",
+    stack => {
+      const gone = withdrawn(stack);
+      const offending = shippedSources(stack).flatMap(file =>
+        importedPackages(fs.readFileSync(file, "utf8"))
+          .filter(name => gone.has(name))
+          .map(name => `${path.relative(REPO_ROOT, file)} imports ${name}`)
+      );
+      expect(offending).toEqual([]);
     }
   );
 });

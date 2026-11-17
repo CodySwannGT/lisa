@@ -20,6 +20,7 @@ import {
   auditSelfReferenceRewrites,
   classifySelfReferenceRewrite,
   describeSelfReferenceRemedy,
+  raiseDirectRangesToLisaFloors,
   suggestSatisfyingDirectRange,
 } from "../../../src/core/override-floors.js";
 
@@ -196,5 +197,67 @@ describe("describeSelfReferenceRemedy", () => {
         suggestedDirectRange: null,
       })
     ).toContain("is not guessing one");
+  });
+});
+
+describe("raiseDirectRangesToLisaFloors", () => {
+  const FLOOR = ">=5.4.0";
+  const LISA_FORCE = {
+    overrides: { "@apollo/server": FLOOR },
+    resolutions: { "@apollo/server": FLOOR },
+  };
+
+  it("raises a direct range below a floor Lisa forced, in every section listing it", () => {
+    const { packageJson, raises } = raiseDirectRangesToLisaFloors(
+      {
+        dependencies: { "@apollo/server": "^5.2.0" },
+        peerDependencies: { "@apollo/server": "^5.2.0" },
+        overrides: { "@apollo/server": FLOOR },
+        resolutions: { "@apollo/server": FLOOR },
+      },
+      LISA_FORCE
+    );
+    expect(packageJson.dependencies).toEqual({ "@apollo/server": "^5.4.0" });
+    expect(packageJson.peerDependencies).toEqual({
+      "@apollo/server": "^5.4.0",
+    });
+    expect(raises).toEqual([
+      {
+        name: "@apollo/server",
+        from: "^5.2.0",
+        to: "^5.4.0",
+        floorRange: FLOOR,
+      },
+    ]);
+    expect(auditSelfReferenceRewrites(packageJson).conflicts).toEqual([]);
+  });
+
+  it("leaves a floor the host wrote for the refusal", () => {
+    const pkg = {
+      dependencies: { "@apollo/server": "^5.2.0" },
+      overrides: { "@apollo/server": FLOOR },
+    };
+    expect(raiseDirectRangesToLisaFloors(pkg, {}).raises).toEqual([]);
+  });
+
+  it("leaves a direct range Lisa cannot read for the refusal", () => {
+    const pkg = {
+      dependencies: { "@apollo/server": "workspace:*" },
+      overrides: { "@apollo/server": FLOOR },
+    };
+    const { packageJson, raises } = raiseDirectRangesToLisaFloors(
+      pkg,
+      LISA_FORCE
+    );
+    expect(raises).toEqual([]);
+    expect(packageJson).toBe(pkg);
+  });
+
+  it("leaves a direct range that already meets the floor", () => {
+    const pkg = {
+      dependencies: { "@apollo/server": "^5.6.0" },
+      overrides: { "@apollo/server": FLOOR },
+    };
+    expect(raiseDirectRangesToLisaFloors(pkg, LISA_FORCE).raises).toEqual([]);
   });
 });

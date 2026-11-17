@@ -23,9 +23,15 @@
  *   the guard being broken rather than the range being wrong. A suggestion that
  *   does not verify is withheld, not printed hopefully.
  *
- * Nothing here rewrites a host range or lowers a floor. Raising a dependency is
- * a version decision with its own blast radius; this module names the raise and
- * the operator makes it.
+ * Nothing here lowers a floor, and nothing rewrites a range the host wrote to
+ * satisfy a floor the host wrote. The one raise Lisa makes itself is
+ * {@link raiseDirectRangesToLisaFloors}: when the floor is Lisa's own forced
+ * value and the host's direct range starts below it, Lisa raises that direct
+ * range to the verified remedy (CodySwannGT/lisa#4932). That is what forcing the
+ * dependency did before Lisa stopped installing libraries a host may not use;
+ * the floor now reaches only hosts that list the package, and refusing there
+ * would stop an apply over a value Lisa itself chose. No human is waiting at
+ * the gate to make the raise by hand.
  * @module core/override-floors
  */
 import semver from "semver";
@@ -322,4 +328,76 @@ export function describeSelfReferenceRemedy(
     `${JSON.stringify(conflict.suggestedDirectRange)}, which Lisa has ` +
     `verified satisfies the floor ${JSON.stringify(conflict.floorRange)}.`
   );
+}
+
+/** One direct range raised to meet a floor Lisa forced. */
+export interface DirectRangeRaise {
+  /** Package name. */
+  readonly name: string;
+  /** The host's direct range before the raise. */
+  readonly from: string;
+  /** The verified range it was raised to. */
+  readonly to: string;
+  /** Lisa's floor that required it. */
+  readonly floorRange: string;
+}
+
+/**
+ * Raise a host's direct range to meet a floor Lisa itself forced into
+ * `overrides`/`resolutions`, where the `$name` rewrite would otherwise widen.
+ * @remarks
+ * Only `widening` conflicts whose override value is exactly Lisa's forced value
+ * and that have a verified remedy are raised. A floor the host wrote, an
+ * `unprovable` range (`workspace:*`, a git spec) and a floor with no verified
+ * remedy are left for {@link auditSelfReferenceRewrites} to refuse as before.
+ * @param pkg - Merged package.json, as the apply would persist it
+ * @param lisaForce - The applied template's `force` section
+ * @returns The manifest with raised direct ranges, and each raise made
+ */
+export function raiseDirectRangesToLisaFloors(
+  pkg: Record<string, unknown>,
+  lisaForce: Readonly<Record<string, unknown>>
+): {
+  readonly packageJson: Record<string, unknown>;
+  readonly raises: readonly DirectRangeRaise[];
+} {
+  const targets = new Map(
+    auditSelfReferenceRewrites(pkg)
+      .conflicts.filter(
+        conflict =>
+          conflict.verdict === "widening" &&
+          conflict.suggestedDirectRange !== null &&
+          asRecord(lisaForce[conflict.section])[conflict.name] ===
+            conflict.floorRange
+      )
+      .reverse()
+      .map(conflict => [conflict.name, conflict] as const)
+  );
+  if (targets.size === 0) return { packageJson: pkg, raises: [] };
+  const sections = DIRECT_DEPENDENCY_SECTIONS.flatMap(section =>
+    section in pkg
+      ? [
+          [
+            section,
+            Object.fromEntries(
+              Object.entries(asRecord(pkg[section])).map(([name, value]) => {
+                const target = targets.get(name);
+                return target === undefined || typeof value !== "string"
+                  ? [name, value]
+                  : [name, target.suggestedDirectRange];
+              })
+            ),
+          ] as const,
+        ]
+      : []
+  );
+  return {
+    packageJson: { ...pkg, ...Object.fromEntries(sections) },
+    raises: [...targets.values()].map(conflict => ({
+      name: conflict.name,
+      from: conflict.directRange,
+      to: conflict.suggestedDirectRange ?? conflict.directRange,
+      floorRange: conflict.floorRange,
+    })),
+  };
 }

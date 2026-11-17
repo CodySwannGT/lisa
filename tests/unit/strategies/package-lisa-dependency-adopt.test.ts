@@ -255,8 +255,9 @@ describe("findMentionedPackages", () => {
       "eslint.ignore.config.json": '{"ignores":["tar-report/**"]}',
       "tests/e2e/a.spec.ts": 'import { test } from "@tar/test";\n',
       ".lintstagedrc.json": '{"*.{js,tar,tsx}":["eslint"]}',
-      // Lisa's own paths, and Lisa's block inside a shared hook.
+      // Lisa's own paths and machine state, and Lisa's block inside a shared hook.
       "scripts/lisa-gate.mjs": 'await import("tar");\n',
+      ".lisa/plan-host-1.json": '{"steps":["remove tar"]}',
       ".husky/pre-commit":
         "#!/bin/sh\n# BEGIN: AI GUARDRAILS\nnpx tar\n# END: AI GUARDRAILS\n",
     };

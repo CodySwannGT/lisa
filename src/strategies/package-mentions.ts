@@ -19,7 +19,8 @@
  * knip or audit exception names a package without using it.
  *
  * Nor is a file Lisa itself writes — its header says Lisa replaces it, or its
- * path has a `lisa-` segment, which Lisa reserves for itself — nor Lisa's
+ * path has a `lisa-` segment, which Lisa reserves for itself, or it is Lisa's
+ * machine state under `.lisa/` — nor Lisa's
  * guardrails block inside a hook the host shares, and a name only counts when
  * it stands alone: `tar` inside `start` is not a mention. Lisa answers for what its own files import:
  * it supplies those packages, and its template suites prove they resolve. An
@@ -191,6 +192,12 @@ const NAME_CHARACTER = "[A-Za-z0-9_.,-]";
 /** Path-segment namespace Lisa reserves for artifacts it owns outright. */
 const LISA_SEGMENT = "lisa-";
 
+/**
+ * Top-level directory holding Lisa's machine state — plans, learnings,
+ * ledgers. Lisa writes it, so a package named there was named by Lisa.
+ */
+const LISA_STATE_DIR = ".lisa";
+
 /** Larger files are not read; a match in one counts as a mention. */
 const MAX_READ_BYTES = 2 * 1024 * 1024;
 
@@ -223,7 +230,11 @@ function hostMentions(
   relative: string,
   names: readonly string[]
 ): boolean {
-  if (relative.split("/").some(segment => segment.startsWith(LISA_SEGMENT)))
+  const segments = relative.split("/");
+  if (
+    segments[0] === LISA_STATE_DIR ||
+    segments.some(segment => segment.startsWith(LISA_SEGMENT))
+  )
     return false;
   const file = path.join(projectDir, relative);
   try {
