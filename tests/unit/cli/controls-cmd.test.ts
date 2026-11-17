@@ -15,6 +15,10 @@ import {
 } from "../../../src/cli/controls-cmd.js";
 import { createProgram } from "../../../src/cli/index.js";
 import { addUpdateCheckHook } from "../../../src/cli/update-check-hook.js";
+import {
+  GAPS_COMMAND,
+  registerGaps,
+} from "../../../src/controls/commands/gaps.js";
 import { registerReportCheck } from "../../../src/controls/commands/report-check.js";
 
 const REPORT_CHECK = "report-check";
@@ -55,6 +59,19 @@ describe("lisa controls", () => {
 
   it("lists report-check among the shipped subcommands", () => {
     expect(CONTROLS_SUBCOMMANDS).toContain(registerReportCheck);
+  });
+
+  it("lists gaps among the shipped subcommands, with one optional path and no options", () => {
+    const command = controlsGroup(createProgram())?.commands.find(
+      candidate => candidate.name() === GAPS_COMMAND
+    );
+
+    expect(CONTROLS_SUBCOMMANDS).toContain(registerGaps);
+    expect(
+      command?.registeredArguments.map(argument => argument.name())
+    ).toEqual(["path"]);
+    expect(command?.registeredArguments[0]?.required).toBe(false);
+    expect(command?.options).toEqual([]);
   });
 
   it("does not run the update check: these run inside other steps", async () => {

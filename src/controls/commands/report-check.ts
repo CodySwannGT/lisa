@@ -15,26 +15,23 @@
  * `report.md`.
  * @module controls/commands/report-check
  */
-import { lstat, readFile, realpath, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { Command } from "commander";
 
+import {
+  loadAuditReport,
+  pathKind,
+  resolveRepositoryRoot,
+} from "../audit-report-file.js";
 import { renderAuditReportMarkdown } from "../audit-report-markdown.js";
 import {
   AUDIT_REPORT_JSON_PATH,
   AUDIT_REPORT_MARKDOWN_PATH,
-  formatAuditReportViolation,
-  validateAuditReport,
   type AuditReport,
 } from "../audit-report.js";
-import {
-  inScopeCriteria,
-  loadCriterionCatalogue,
-  type InScopeCriterion,
-} from "../catalogue.js";
-import { readEvidenceRecords } from "../evidence.js";
-import { createRepositoryReader } from "../repository-reader.js";
+import type { InScopeCriterion } from "../catalogue.js";
 
 /** The subcommand's name under `lisa controls`. */
 export const REPORT_CHECK_COMMAND = "report-check";
@@ -49,99 +46,6 @@ export interface ReportCheckDependencies {
   readonly stdout?: (line: string) => void;
   /** Where problems go, one per call. */
   readonly stderr?: (line: string) => void;
-}
-
-/** What is at a path, without following a link in its last step. */
-type PathKind = "missing" | "file" | "folder" | "other";
-
-/** The folder the report and its rendering live in. */
-const AUDIT_FOLDER = path.dirname(AUDIT_REPORT_JSON_PATH);
-
-/**
- * Say what is at a path, without following a link in its last step.
- * @param target - Absolute path
- * @returns What is there
- */
-async function kindOf(target: string): Promise<PathKind> {
-  try {
-    const stat = await lstat(target);
-    if (stat.isFile()) return "file";
-    return stat.isDirectory() ? "folder" : "other";
-  } catch {
-    return "missing";
-  }
-}
-
-/**
- * Resolve the repository to check to its real path.
- * @param candidate - Absolute path the operator named
- * @returns The real path of the folder, or `null` when it is not a folder
- */
-async function repositoryRoot(candidate: string): Promise<string | null> {
-  try {
-    const real = await realpath(candidate);
-    return (await kindOf(real)) === "folder" ? real : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Tell whether the report folder is a folder of the repository itself, rather
- * than a link that leads somewhere else.
- * @param root - Real path of the repository
- * @returns Whether reading and writing there stays inside the repository
- */
-async function auditFolderIsInside(root: string): Promise<boolean> {
-  try {
-    return (
-      (await realpath(path.join(root, AUDIT_FOLDER))) ===
-      path.join(root, AUDIT_FOLDER)
-    );
-  } catch {
-    return false;
-  }
-}
-
-/** The parsed report, or the one-line reason there is none to check. */
-type ReportRead =
-  | { readonly problem: null; readonly document: unknown }
-  | { readonly problem: string };
-
-/**
- * Read and parse the report a repository holds.
- * @param root - Real path of the repository
- * @returns The parsed JSON, or the one-line reason it could not be read
- */
-async function readReport(root: string): Promise<ReportRead> {
-  const file = path.join(root, AUDIT_REPORT_JSON_PATH);
-  const kind = await kindOf(file);
-  if (kind === "missing") {
-    return {
-      problem: `No audit report was found at ${AUDIT_REPORT_JSON_PATH}. Run the audit first, then run this check again.`,
-    };
-  }
-  if (kind !== "file") {
-    return {
-      problem: `${AUDIT_REPORT_JSON_PATH} is not an ordinary file, so it was not read. Replace it with the report the audit writes.`,
-    };
-  }
-  if (!(await auditFolderIsInside(root))) {
-    return {
-      problem: `${AUDIT_FOLDER} is a link to somewhere outside the repository, so nothing in it was read or written. Replace it with an ordinary folder.`,
-    };
-  }
-  try {
-    return {
-      problem: null,
-      document: JSON.parse(await readFile(file, "utf8")) as unknown,
-    };
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    return {
-      problem: `${AUDIT_REPORT_JSON_PATH} is not valid JSON, so it cannot be checked. Write it again. (${detail})`,
-    };
-  }
 }
 
 /**
@@ -159,7 +63,7 @@ async function writeMarkdown(
   criteria: readonly InScopeCriterion[]
 ): Promise<string | null> {
   const file = path.join(root, AUDIT_REPORT_MARKDOWN_PATH);
-  const kind = await kindOf(file);
+  const kind = await pathKind(file);
   if (kind !== "missing" && kind !== "file") {
     return `${AUDIT_REPORT_MARKDOWN_PATH} is not an ordinary file (it may be a link), so nothing was written to it. Remove it, then run this check again.`;
   }
@@ -209,27 +113,16 @@ export async function runReportCheck(
     dependencies.cwd ?? process.cwd(),
     targetPath ?? "."
   );
-  const root = await repositoryRoot(named);
+  const root = await resolveRepositoryRoot(named);
   if (root === null) {
     return fail([
       `${targetPath ?? named} is not a folder. Give the path of the repository to check.`,
     ]);
   }
-  const read = await readReport(root);
-  if (read.problem !== null) return fail([read.problem]);
+  const loaded = await loadAuditReport(root, dependencies.now ?? new Date());
+  if (loaded.problems !== null) return fail(loaded.problems);
+  const { report, criteria } = loaded;
 
-  const criteria = inScopeCriteria(loadCriterionCatalogue());
-  const { report, violations } = validateAuditReport(read.document, {
-    criteria,
-    evidence: readEvidenceRecords(root),
-    now: dependencies.now ?? new Date(),
-    repository: createRepositoryReader(root),
-  });
-  if (report === null) {
-    return fail(
-      violations.map(violation => formatAuditReportViolation(violation))
-    );
-  }
   const unwritten = await writeMarkdown(root, report, criteria);
   if (unwritten !== null) {
     stderr(unwritten);
