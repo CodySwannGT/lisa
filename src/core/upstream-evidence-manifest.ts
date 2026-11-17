@@ -439,7 +439,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
-      "5b6f329449a492cf6264b4db6a9bfea60e93458be25a83785cfd3ac0df62e578",
+      "5dbf3833607851e0db4538964fabbf6c2e779ce1eeebe34e8085cf99103c8fd6",
     "cdk/copy-overwrite/eslint.config.ts":
       "1d7c8d9d3c2dd68ed418175b9e0da9c5029ebaa887b1dc8dd7aa37d91b99314d",
     "cdk/copy-overwrite/eslint.slow.config.ts":
@@ -547,7 +547,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/eslint.config.ts":
       "bb02718e1a809151c282d5fc54a1b570fe1cc86236dc1e5f2bcb570b06a22baa",
     "expo/copy-overwrite/eslint.expo.ts":
-      "e43d528568450ba2acfc943c5dea07a34f0a03550ec739ba531f6d5a4bf234d7",
+      "c024470992f717d768275bd055936300ce43a3b29eed2659bd15940e27be0cd3",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "3189a36471d596f5d4c3ed43484a9b7a5d33ef27b4d0fdb93007b823cec6cad0",
     "expo/copy-overwrite/jest.config.ts":
@@ -725,7 +725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
-      "50986c80ebfcbef86b6c24d6a50ace0964d43fe85c65a732230388caffab453c",
+      "5f3216996fe38e79f6d6a7659839e6e9424912ae612c840d1185d74786c981a9",
     "nestjs/copy-overwrite/eslint.slow.config.ts":
       "602a21f47370a0a947e92bced1b93bf8fa4c146e07c944ffe1d56ef50914a688",
     "nestjs/copy-overwrite/knip.json":
@@ -12325,6 +12325,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-plugin-phaser.test.ts": true,
     "tests/unit/config/eslint-plugin-ui-standards-design-value.test.ts": true,
     "tests/unit/config/eslint-shipped-config-templates.test.ts": true,
+    "tests/unit/config/eslint-shipped-host-files.test.ts": true,
     "tests/unit/config/eslint-shipped-max-lines.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-clean.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-coverage.test.ts": true,

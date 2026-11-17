@@ -6,173 +6,19 @@
 /**
  * ESLint 9 Flat Config - CDK Stack
  *
- * This configuration extends TypeScript config for AWS CDK projects.
- * It adjusts rules for CDK patterns like constructs, stacks, and
- * infrastructure-as-code conventions.
- *
- * Inheritance chain:
- *   eslint.cdk.ts (this file)
- *   └── eslint.typescript.ts
- *       └── eslint.base.ts
+ * Re-exports the CDK ESLint configuration from @codyswann/lisa. This file
+ * exists as a local sibling for projects that import stack config from a
+ * relative path. It used to carry its own copy of the configuration built on
+ * a local ./eslint.typescript, which Lisa deletes from every project, so it
+ * could not compile; the published factory is the one eslint.config.ts uses.
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.cdk
  */
-
-// Import TypeScript config and utilities
-import {
-  codeOrganization,
-  defaultIgnores,
-  defaultThresholds,
-  getBaseConfigs,
-  getBaseLanguageOptions,
-  getJsFilesOverride,
-  getSharedFilesOverride,
-  getSharedRules,
-  getTestFilesOverride,
-  getTsFilesOverride,
-  getTsTestFilesOverride,
-} from "./eslint.typescript";
-
-// Re-export for downstream configs
 export {
   defaultIgnores,
   defaultThresholds,
   getBaseConfigs,
   getBaseLanguageOptions,
+  getCdkConfig,
   getSharedRules,
-};
-
-// CDK-specific ignores
-const cdkIgnores = [
-  ...defaultIgnores,
-  "cdk.out/**",
-  "*.js", // CDK generates JS files
-  "*.d.ts",
-];
-
-// CDK-specific rule adjustments layered over the shared base rules
-const cdkRules = {
-  // Code organization
-  "code-organization/enforce-statement-order": "error",
-
-  // Configuration enforcement - prevent direct process.env access
-  // All configuration should go through config module
-  // @see .claude/rules/PROJECT_RULES.md
-  "no-restricted-syntax": [
-    "error",
-    {
-      selector: "MemberExpression[object.name='process'][property.name='env']",
-      message:
-        "Direct process.env access is forbidden. Use config module for type-safe configuration. See .claude/rules/PROJECT_RULES.md.",
-    },
-  ],
-
-  // CDK uses classes for constructs and stacks
-  "functional/no-classes": "off",
-
-  // CDK constructs and stacks require documentation
-  "jsdoc/require-jsdoc": [
-    "error",
-    {
-      require: {
-        FunctionDeclaration: true,
-        MethodDefinition: true,
-        ClassDeclaration: true,
-        ArrowFunctionExpression: false,
-        FunctionExpression: false,
-      },
-      contexts: [
-        "TSInterfaceDeclaration",
-        "TSTypeAliasDeclaration",
-        "VariableDeclaration[declarations.0.init.type='ArrowFunctionExpression']:has([id.name=/^[A-Z]/])",
-      ],
-    },
-  ],
-};
-
-// Per-path rule relaxations for CDK project layout
-const cdkPathOverrides = [
-  // CDK bin files - entry points can access process.env for stage selection
-  {
-    files: ["bin/**/*.ts"],
-    rules: {
-      "no-restricted-syntax": "off",
-    },
-  },
-
-  // Configuration files - allowed to use process.env directly
-  {
-    files: ["**/*config.*", "**/config/**/*.ts"],
-    rules: {
-      "no-restricted-syntax": "off",
-    },
-  },
-
-  // Lambda handlers - often have different constraints
-  {
-    files: ["**/lambda/**/*.ts", "**/lambdas/**/*.ts", "**/functions/**/*.ts"],
-    rules: {
-      // Lambda cold starts benefit from simpler code
-      "sonarjs/cognitive-complexity": ["error", 15],
-    },
-  },
-];
-
-/**
- * Creates the CDK ESLint configuration.
- * @param {object} options - Configuration options
- * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
- * @param {string[]} [options.ignorePatterns] - Patterns to ignore
- * @param {object} [options.thresholds] - Threshold overrides
- * @returns {Array} ESLint flat config array
- */
-export function getCdkConfig({
-  tsconfigRootDir,
-  ignorePatterns = cdkIgnores,
-  thresholds = defaultThresholds,
-}: {
-  tsconfigRootDir: string;
-  ignorePatterns?: string[];
-  thresholds?: typeof defaultThresholds;
-}) {
-  return [
-    // Global ignores
-    {
-      ignores: ignorePatterns,
-    },
-
-    // Base configurations from shared module
-    ...getBaseConfigs(),
-
-    // Base configuration for all files
-    {
-      languageOptions: getBaseLanguageOptions(),
-      plugins: {
-        "code-organization": codeOrganization,
-      },
-      rules: {
-        // Shared rules from base
-        ...getSharedRules(thresholds),
-        ...cdkRules,
-      },
-    },
-
-    // JavaScript files override
-    getJsFilesOverride(),
-
-    // Shared hooks and components
-    getSharedFilesOverride(),
-
-    // Test files
-    getTestFilesOverride(),
-
-    // TypeScript files - enable type-checked linting
-    getTsFilesOverride(["**/*.ts"], tsconfigRootDir),
-
-    // TypeScript test files - disable immutable-data
-    getTsTestFilesOverride(["**/*.test.ts", "**/*.spec.ts"]),
-
-    // Per-path CDK relaxations (bin, config, lambda handlers)
-    ...cdkPathOverrides,
-  ];
-}
+} from "@codyswann/lisa/eslint/cdk";

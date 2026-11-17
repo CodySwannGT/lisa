@@ -18,12 +18,8 @@
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.expo
  */
-import jsxA11y from "eslint-plugin-jsx-a11y";
 import react from "eslint-plugin-react";
 import reactCompiler from "eslint-plugin-react-compiler";
-// @ts-expect-error -- eslint-plugin-react-perf lacks type declarations
-import reactPerf from "eslint-plugin-react-perf";
-import tailwind from "eslint-plugin-tailwindcss";
 import { readFileSync } from "fs";
 import { createRequire } from "module";
 import path from "path";
@@ -53,11 +49,22 @@ export {
   getSharedRules,
 };
 
+/** View component files, which the View rules below all target. */
+const VIEW_FILES = ["**/*View.tsx", "**/*View.jsx"];
+
+/** Generated UI primitives (gluestack), exempt from the component rules. */
+const UI_COMPONENTS = "components/ui/**";
+
 // Custom plugins (CommonJS - use createRequire)
 const require = createRequire(import.meta.url);
 const componentStructure = require("@codyswann/eslint-plugin-component-structure");
 const uiStandards = require("@codyswann/eslint-plugin-ui-standards");
 const expoConfig = require("eslint-config-expo/flat");
+// No type declarations ship for these three, so they load through require, as
+// in the published factory, rather than through an import TypeScript rejects.
+const reactPerf = require("eslint-plugin-react-perf");
+const jsxA11y = require("eslint-plugin-jsx-a11y");
+const tailwind = require("eslint-plugin-tailwindcss");
 
 /**
  * React's hook named exports, banned from a View's import list.
@@ -393,11 +400,7 @@ export function getExpoConfig({
         "components/**/*.tsx",
         "components/**/*.jsx",
       ],
-      ignores: [
-        "components/ui/**",
-        "components/shared/**",
-        "components/icons/**",
-      ],
+      ignores: [UI_COMPONENTS, "components/shared/**", "components/icons/**"],
       rules: {
         "component-structure/enforce-component-structure": "error",
         "component-structure/single-component-per-file": "error",
@@ -412,7 +415,7 @@ export function getExpoConfig({
     // skill claiming an enforcement it did not have is what let a hook live in
     // a View for so long; the fix must not repeat the shape of the defect.
     {
-      files: ["**/*View.tsx", "**/*View.jsx"],
+      files: VIEW_FILES,
       rules: {
         "component-structure/no-return-in-view": "error",
       },
@@ -433,12 +436,8 @@ export function getExpoConfig({
     // `@/features/*/*` restriction is carried forward because a flat-config
     // override replaces a rule's options wholesale.
     {
-      files: ["**/*View.tsx", "**/*View.jsx"],
-      ignores: [
-        "components/ui/**",
-        "components/shared/**",
-        "components/icons/**",
-      ],
+      files: VIEW_FILES,
+      ignores: [UI_COMPONENTS, "components/shared/**", "components/icons/**"],
       rules: {
         "component-structure/no-hooks-in-view": "error",
         "no-restricted-imports": [
@@ -468,8 +467,8 @@ export function getExpoConfig({
 
     // View memo requirement (excluding UI components)
     {
-      files: ["**/*View.tsx", "**/*View.jsx"],
-      ignores: ["components/ui/**"],
+      files: VIEW_FILES,
+      ignores: [UI_COMPONENTS],
       rules: {
         "component-structure/require-memo-in-view": "error",
       },
