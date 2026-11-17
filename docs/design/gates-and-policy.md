@@ -1089,6 +1089,62 @@ key in the schema and in `src/controls/register-types.ts` together;
 `tests/unit/controls/register-schema.test.ts` fails when one has a key or a
 value the other does not.
 
+## A pull-request executor Lisa did not write
+
+Lisa ships the file that runs the gates on a pull request for one hosting
+platform, GitHub. On any other the host's agent writes it, and the declaration
+says where it is, on the gate's `pull-request` entry:
+
+```json
+"code-style": {
+  "pull-request": {
+    "level": "required",
+    "executor": { "platform": "gitlab", "path": ".gitlab-ci.yml" }
+  }
+}
+```
+
+| key | meaning |
+| --- | --- |
+| `platform` | The hosting platform, in lower-case letters and digits with hyphens between words. `github` is the one Lisa ships the file for; anything else is a platform Lisa did not write the executor for. |
+| `path` | The file, from the repository root, under the spelling rules of a part's `scope`. `.` is refused: it names the repository, not a file. |
+
+**It sits on the moment entry, and only at `pull-request`.** `validate`
+refuses it at any other moment, and refuses any key in it but those two unless
+the key starts with `x-`. A moment-level key is one an older Lisa ignores; a
+gate-level key would make an older Lisa refuse the whole block. It changes
+nothing about what the moment resolves to.
+
+**Every gate checked at the pull-request moment names the same executor, or
+none does.** One command, `lisa-run-gates.mjs --moment=pull-request`, runs all
+of them, so they all run from one file. Generating the register refuses a
+declaration that names the file on some of those gates and not on others, or
+that names two. A gate that only awaits a check another system reports may
+leave it out.
+
+**The register records it and marks the entry unproved.** The entry's
+`pull-request` enforcement point carries `executor`. When the platform is not
+GitHub the entry also carries `"status": "unproved"`, until
+`.lisa/controls/evidence.json` holds a record of both halves of that entry's
+proof: a record with the entry's id as `entry_id` and `half` set to
+`violation`, and one with `half` set to `clean`. A record that names a
+`moment` counts only when it is `pull-request`. An entry with no `status` is
+not thereby proved; the verdict says what was proved.
+
+**So the register is generated from two committed files, and `--check` stays
+honest.** For a declaration that names such an executor, the same declaration
+and the same evidence give the same bytes, and `--check` regenerates from both.
+The committed register is out of date exactly when one of them changed since it
+was written, and the difference is reported against the entry, with a sentence
+saying the status comes from the evidence file. The clock is never read: how old
+a record is decides whether a verdict may rely on it, and a register that
+changed because time passed would fail its own check with nothing changed. For
+every other declaration the evidence file is not read at all, and the register
+is what it always was.
+
+The contract the file must meet is in the enforce skill, at
+`plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md`.
+
 ## Open items
 
 - Tests are excluded from the typecheck program (`tsconfig.json` is

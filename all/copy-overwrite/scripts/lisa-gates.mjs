@@ -4429,6 +4429,127 @@ function validateCacheFlag(id, moment, value) {
 }
 
 /**
+ * The pull-request moment's field naming the file that runs the gates on the
+ * platform hosting the repository (CodySwannGT/lisa#4991).
+ *
+ * Lisa ships that file for one platform, {@link LISA_EXECUTOR_PLATFORM}. On
+ * any other the host's agent writes it, and this is where the declaration
+ * says so: `"pull-request": { "level": "required", "executor": { "platform":
+ * "gitlab", "path": ".gitlab-ci.yml" } }`. The control register records it on
+ * the entry's pull-request enforcement point, and reads an entry whose
+ * executor Lisa did not write as unproved until a proof is on record.
+ *
+ * Nothing here runs the file or reads it, and the key changes nothing about
+ * what the moment resolves to. It sits on the MOMENT entry, where an older
+ * Lisa ignores a key it does not know; a gate-level key would make an older
+ * Lisa refuse the whole gates block.
+ */
+export const EXECUTOR_FIELD = "executor";
+
+/**
+ * The keys Lisa reads in an `executor`: the hosting platform's name, and the
+ * file, written from the repository root. Closed the way {@link PART_FIELDS}
+ * is: any other key is refused unless it starts with {@link CUSTOM_PREFIX}.
+ */
+export const EXECUTOR_FIELDS = Object.freeze(["platform", "path"]);
+
+/** The one hosting platform Lisa ships the pull-request executor for. */
+export const LISA_EXECUTOR_PLATFORM = "github";
+
+/**
+ * How a platform is named: lower-case letters and digits, in words joined by
+ * single hyphens. One spelling, so `GitHub` cannot be read as a platform
+ * other than `github`.
+ */
+const EXECUTOR_PLATFORM_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+
+/**
+ * Validate the hosting platform an executor names.
+ * @param {string} where The key being validated.
+ * @param {*} platform The declared value.
+ * @returns {string[]} Problems.
+ */
+function validateExecutorPlatform(where, platform) {
+  if (
+    typeof platform === "string" &&
+    EXECUTOR_PLATFORM_PATTERN.test(platform)
+  ) {
+    return [];
+  }
+  return [
+    `${where} is ${JSON.stringify(platform)}; expected the name of the ` +
+      `platform that hosts the repository, in lower-case letters and ` +
+      `digits with hyphens between words: "${LISA_EXECUTOR_PLATFORM}" for ` +
+      `the one platform Lisa ships this file for, or the platform's own ` +
+      `name for any other, for example "gitlab" or "azure-devops".`,
+  ];
+}
+
+/**
+ * Validate the file an executor names.
+ *
+ * Only the path is checked. Whether the file exists is a fact about a
+ * checkout, not about a declaration.
+ * @param {string} where The key being validated.
+ * @param {*} file The declared value.
+ * @returns {string[]} Problems.
+ */
+function validateExecutorPath(where, file) {
+  const advice =
+    `Write the file from the repository root: for example ` +
+    `".gitlab-ci.yml" or "ci/pull-request.yml".`;
+  if (file === undefined) return [`${where} is missing. ${advice}`];
+  if (typeof file !== "string" || file.trim() === "") {
+    return [
+      `${where} is ${JSON.stringify(file)}; expected the path of the file ` +
+        `that runs the gates on a pull request. ${advice}`,
+    ];
+  }
+  if (file === WHOLE_REPOSITORY) {
+    return [
+      `${where} is ${JSON.stringify(file)}, which names the repository ` +
+        `itself rather than a file in it. ${advice}`,
+    ];
+  }
+  const problem = repositoryPathProblem(file);
+  return problem === null
+    ? []
+    : [`${where} is ${JSON.stringify(file)}, which ${problem}. ${advice}`];
+}
+
+/**
+ * Validate the executor a moment names.
+ * @param {string} id Gate id.
+ * @param {string} moment Moment key.
+ * @param {*} executor The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateExecutor(id, moment, executor) {
+  if (executor === undefined) return [];
+  const where = `gates."${id}"."${moment}".${EXECUTOR_FIELD}`;
+  if (moment !== PULL_REQUEST) {
+    return [
+      `${where} names a file that runs the gates, but only the ` +
+        `"${PULL_REQUEST}" moment has one: it is the pipeline file the ` +
+        `hosting platform runs on a pull request. Move it to ` +
+        `gates."${id}"."${PULL_REQUEST}", or remove it.`,
+    ];
+  }
+  if (!isKeyed(executor)) {
+    return [
+      `${where} is ${JSON.stringify(executor)}; expected an object naming ` +
+        `the hosting platform and the file that runs the gates there, for ` +
+        `example { "platform": "gitlab", "path": ".gitlab-ci.yml" }.`,
+    ];
+  }
+  return [
+    ...unknownKeyProblems(where, executor, EXECUTOR_FIELDS),
+    ...validateExecutorPlatform(`${where}.platform`, executor.platform),
+    ...validateExecutorPath(`${where}.path`, executor.path),
+  ];
+}
+
+/**
  * Validate one moment entry on a gate.
  * @param {string} id Gate id.
  * @param {string} moment The moment key.
@@ -4490,6 +4611,7 @@ function validateMoment(id, moment, value, known, interceptor, gateProver) {
     )
   );
   problems.push(...validateCacheFlag(id, moment, entry[CACHE_FIELD]));
+  problems.push(...validateExecutor(id, moment, entry[EXECUTOR_FIELD]));
   problems.push(...validatePostedBy(id, moment, entry));
   problems.push(...validateCallerChain(id, moment, entry));
   if (!known && !interceptor && !entry.await && !entry.run && !gateProver) {
