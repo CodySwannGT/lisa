@@ -31,12 +31,15 @@ Lisa.
 These hold in every step.
 
 1. **Change nothing but the report.** The only paths this skill may create or change are
-   `.lisa/audit/report.json`, which you write, and `.lisa/audit/report.md`, which the check in
-   step 6 writes. Nothing else: no notes or scratch files inside the repository, no installed
-   packages, no edit to `.gitignore` or any configuration, no `git add`, commit, stash, branch
-   switch or push. Do not create `.lisa.config.json` and do not run `lisa apply`. Anything you
-   need to set aside while you work (the printed requirements, drafts of the report) goes in the
-   system's temporary folder, outside the repository.
+   `.lisa/audit/report.json`, which you write and which the command in step 1a adds the
+   operator's answers to, and `.lisa/audit/report.md`, which the check in step 6 writes. There is
+   one more, and only in a repository that already has a `wiki` folder:
+   `wiki/gaps.md`, where the same check copies the open questions. You never write that file
+   yourself, and a `wiki` folder is never created. Nothing else: no notes or scratch files inside
+   the repository, no installed packages, no edit to `.gitignore` or any configuration, no
+   `git add`, commit, stash, branch switch or push. Do not create `.lisa.config.json` and do not
+   run `lisa apply`. Anything you need to set aside while you work (the printed requirements,
+   drafts of the report) goes in the system's temporary folder, outside the repository.
 2. **Read, never run.** Discover by reading files and by asking git what it already knows
    (`git remote -v`, `git log`, `git config --get …`). Do not run the repository's own tests,
    linters, builds, hooks or scripts: they leave caches and output behind, and running a check
@@ -53,6 +56,10 @@ These hold in every step.
    token, write the name it goes by and leave the value out.
 6. **Code decides whether the report is acceptable.** You do not judge your own report. Step 6
    does, and an unchecked report is not an audit result.
+7. **Only a person answers a question.** When the audit cannot establish something, it asks, and
+   the operator answers by typing in the report. You never write an answer, guess one, pick one of
+   the candidates, or type on an answer line, and you never edit `.lisa/audit/report.md` or
+   `wiki/gaps.md`. The command in step 1a is the only thing that moves an answer into the record.
 
 ## How to run the Lisa commands
 
@@ -119,6 +126,40 @@ Lisa that is known to work.
    `controls` for the name of a folder to set Lisa up in. Move to the next way of running Lisa in
    "How to run the Lisa commands" and check that one the same way. If none passes, stop and tell
    the operator that the audit needs a newer Lisa and that nothing was changed.
+
+### Step 1a: Take in the answers the operator gave
+
+**Needs:** the repository root and a way of running Lisa. **Hands on:** the answers on record.
+
+An earlier audit may have asked questions, and the operator may have answered them since by typing
+on the answer lines of `.lisa/audit/report.md` (or of `wiki/gaps.md`, where the repository keeps a
+wiki). Take those answers in before anything else, so that nothing later in this run can overwrite
+them:
+
+```bash
+lisa controls report-check --absorb
+```
+
+- **Exit 0, nothing to absorb.** This is a first audit, or nobody has answered anything. Go on.
+- **Exit 0, answers recorded.** Each answer was moved into `.lisa/audit/report.json`: it is now an
+  entry of `answers`, and its question is gone from `questions`. The files the operator typed in
+  were left exactly as they were.
+- **Any other exit.** Nothing was changed. Each line printed names a file and a line number and
+  says what is wrong there: usually an answer typed under its answer line instead of on it. **Stop
+  here.** Tell the operator, in plain words, which line to correct and how, and that their answers
+  are still where they typed them. Do not correct the file yourself.
+
+Then read the `answers` list of `.lisa/audit/report.json`, when that file exists. Each entry is a
+fact a person gave:
+
+| Field | What it holds |
+| --- | --- |
+| `id` | The id of the question that was answered. |
+| `question` | The question as it was asked. |
+| `answer` | What the person typed, word for word. |
+
+Keep the whole list. Step 4 uses each answer as a fact, and step 5 copies the list into the new
+record unchanged.
 
 ### Step 2: Get the requirements
 
@@ -234,7 +275,7 @@ file it exactly as this table says. The check in step 6 refuses a finding filed 
 | `not-applicable` | The requirement's `not_applicable_when` condition is true here and you can name the fact that makes it true. Something missing from the repository is such a fact only when the condition is about what the repository holds (it has no screen, it uses no outside packages). When the condition is about how the organisation or its agents work, nothing in the repository can show it: that is a `question`. Whether the software is released, deployed or run for users is one of those, unless the repository itself shows it (a release script, a deployment pipeline). Never choose this state because a requirement is hard to answer, or because its answer is written up in another section. | The fact, in `what`. |
 | `exists-not-enforced` | Reading found something that checks or records this. This is the strongest thing an audit can say by itself, however well wired the mechanism looks. It is also the state when what you found covers only some of the requirement: say in `what` which part is covered and which is not. | At least one mechanism with a locator. |
 | `unknown` | The answer is a setting held by an outside system you can name from what you read (a hosting platform named by a remote or a pipeline file, a tracker, a monitoring service), and this audit does not read outside systems. A repository with no remote and no pipeline has no such system to name: that is `missing`. | In `next`, the system that holds the answer and the access needed to read it. |
-| `question` | Only a person can say: the requirement is of kind `human-attested` and nothing written down vouches for it; or nothing you can read shows whether its `not_applicable_when` condition holds; or two things you found contradict each other. | In `what`, what you looked for and could not establish. In `next`, who is likely to know. |
+| `question` | Only a person can say, and nobody has said yet: the requirement is of kind `human-attested` and nothing written down vouches for it; or nothing you can read shows whether its `not_applicable_when` condition holds; or two things you found contradict each other. Never choose it for a finding whose question already has an answer on record (see "Using an answer on record"). | In `what`, what you looked for and could not establish. In `next`, who is likely to know. And its question, in the record's `questions` list (see "Asking a question"). |
 | `missing` | Everything else: you read every source above and nothing does this. A requirement about keeping something in order (two copies of a check in step, a list up to date) is also `missing` when that thing does not exist at all. | An empty `mechanisms` list. |
 
 **The one way a finding may say `proved`.** You never choose it. If `.lisa/controls/evidence.json`
@@ -243,6 +284,53 @@ record for the same requirement, and you put that record's `id` in the finding's
 check in step 6 refuses a `proved` finding that cites no record, cites a record made for another
 requirement, or cites one that is too old. When it refuses, change the state to what you actually
 found. Never hunt for another record id to make it pass.
+
+**Asking a question.** A question goes in the record's `questions` list, and the operator answers
+it by typing in the report. There are two kinds, and neither has an id you make up:
+
+- **A question about a requirement.** Every finding in the state `question` has exactly one, and
+  its `id` is the finding's `criterion`, then `@`, then the finding's `scope`: `AC1.7@.` for the
+  whole repository, `SI7@api` for the folder `api`. The check in step 6 refuses a `question`
+  finding with no question, and a question of this kind whose finding is in another state.
+- **A question about how the repository is set up.** It belongs to no single requirement, and its
+  `id` is one of these three, exactly as written:
+
+  | `id` | Ask it when |
+  | --- | --- |
+  | `tracker` | The repository names no tracker for Lisa to file tickets in: `.lisa.config.json` is absent, or its `tracker` is not `jira`, `github` or `linear`. The check in step 6 refuses a report that does not ask it then. |
+  | `hosting-platform` | You cannot tell from the git remotes or the pipeline files where the repository is hosted and where its changes are merged. |
+  | `repository-administrator` | A finding's next step needs someone who can change the hosting platform's settings, and nothing written names who that is. |
+
+Each question has these fields:
+
+| Field | Value |
+| --- | --- |
+| `id` | As above. The same on every run, so a question is never asked twice. |
+| `text` | The question, as one plain sentence ending in a question mark, on one line. No requirement id in it. |
+| `candidates` | The answers you found evidence for. Each has an `answer`, the candidate in plain words, and a `found_in`, where you found it in plain words (which file, remote or commit, and what it says there). An empty list when you found none. |
+| `no_candidates_reason` | Only when `candidates` is empty, and required then: where you looked and found nothing, in plain words. |
+
+A question never carries an `answer` of its own. Do not ask what you can read, and do not ask a
+question that has an answer on record.
+
+**Using an answer on record.** An entry of `answers` (step 1a) is a fact a person gave. Its
+question is not asked again: leave it out of `questions`. When its `id` is a finding's `criterion`
+and `scope`, decide that finding again with the answer as one more thing you know, by the table
+above, and give it any state but `question`:
+
+- the answer shows the requirement's `not_applicable_when` condition holds: `not-applicable`, with
+  the answer as the fact in `what`;
+- the answer points at something written down that you can now read: read it, and file what you
+  find, with its locator;
+- the answer names an outside system that holds the setting: `unknown`;
+- the answer states something that nothing in the repository records: `missing`. Say in `what`
+  that the operator answered and nothing written down records it yet, and in `next` that the
+  configure step writes it down.
+
+If an answer does not settle the matter, do not ask again. File what you can establish, and say in
+`next` what is still needed and that the operator can replace the answer on its answer line in the
+report. The check in step 6 refuses a finding left in the state `question` once its question was
+answered.
 
 **The three plain-language fields.** Every finding carries all three, each a sentence or two:
 
@@ -259,7 +347,8 @@ found. Never hunt for another record id to make it pass.
 **Needs:** every finding. **Hands on:** `.lisa/audit/report.json`.
 
 Write the whole file new on every run, from what you found in this run. Do not edit an earlier
-report into shape. The record has exactly these keys and no others:
+report into shape. One thing is carried over and never rewritten: `answers`, the list you read in
+step 1a, copied exactly as it was. The record has exactly these keys and no others:
 
 ```json
 {
@@ -300,7 +389,26 @@ report into shape. The record has exactly these keys and no others:
       "next": "Ask whoever runs this team to name that person and a backup.",
       "mechanisms": []
     }
-  ]
+  ],
+  "questions": [
+    {
+      "id": "tracker",
+      "text": "Which tracker does the team plan and follow its work in?",
+      "candidates": [
+        {
+          "answer": "GitHub Issues",
+          "found_in": "The address of the remote named origin is on github.com, and three commit messages end with an issue number."
+        }
+      ]
+    },
+    {
+      "id": "AC1.7@.",
+      "text": "Who answers for what the coding agents do in this repository, and who is that person's backup?",
+      "candidates": [],
+      "no_candidates_reason": "The audit read the ownership files, the contribution guide and the agent instruction files, and none of them names a person."
+    }
+  ],
+  "answers": []
 }
 ```
 
@@ -310,13 +418,33 @@ The real file has one finding for every requirement with the `answered` value `r
 one for every requirement with the value `part` under each folder. When the list of parts is just
 `.`, that is one finding for every requirement.
 
+It also shows two questions: one about how the repository is set up (`tracker`), with a candidate
+answer and where it was found, and the one that belongs to the `AC1.7` finding, with no candidate
+and a statement of where the audit looked. On a later run, once the operator has answered the
+tracker question, that question is gone and `answers` holds what step 1a recorded:
+
+```json
+[
+  {
+    "id": "tracker",
+    "question": "Which tracker does the team plan and follow its work in?",
+    "answer": "GitHub Issues"
+  }
+]
+```
+
 - `scopes` is the list from step 3, `.` first, each part once.
 - Every finding has all seven keys shown: `criterion`, `scope`, `state`, `what`, `why`, `next` and
   `mechanisms`, which is an empty list when nothing was found.
 - `scope` is one entry of `scopes`, chosen by the table in step 4. `criterion` is one `id` from
   step 2.
 - `evidence_id` is the only other key a finding may have, and only on a `proved` finding.
-- The order of the findings does not matter.
+- `questions` holds every question still open, as "Asking a question" in step 4 describes: one for
+  each finding in the state `question`, plus the setup questions. An empty list when there is
+  nothing to ask.
+- `answers` is the list from step 1a, unchanged: the same entries, the same words. An empty list
+  when nobody has answered anything. Never add, reword or remove an entry.
+- The order of the findings, and of the questions, does not matter.
 - The file is large. You may draft it in pieces in the system's temporary folder and put the
   pieces together, as long as every finding is your own judgment of what you read and the finished
   file is the only thing written inside the repository.
@@ -330,8 +458,10 @@ lisa controls report-check
 ```
 
 - **Exit 0.** The record is valid. The command wrote `.lisa/audit/report.md`, the readable report,
-  with one section for the whole repository and one for each part. Never write or edit that file
-  yourself.
+  with the open questions near the top, each with a line for the operator's answer, then one
+  section for the whole repository and one for each part. Where the repository already has a
+  `wiki` folder, it also copied the open questions into `wiki/gaps.md`, as one marked block, and
+  left the rest of that file as it was. Never write or edit either file yourself.
 - **Any other exit.** The audit has not completed. **Stop here:** do not go on to step 7, and do
   not present any finding as the audit's result. Each line printed is one problem, in plain words,
   naming the requirement and the part. The only way forward is to correct
@@ -339,13 +469,18 @@ lisa controls report-check
   A line saying a requirement is answered once for the whole repository, or once for each folder,
   means a finding is filed in the wrong place or is absent from the right one: move it or add it
   as the table in step 4 says.
+  A line saying the report or the wiki file holds an answer that the record does not carry means
+  the `answers` list was not copied over. Run the command of step 1a again, which puts it back,
+  then this step again. The operator's answers are safe meanwhile: a failed check overwrites
+  nothing.
   Never clear a problem by removing a requirement or a part, by pointing at a line that does not
-  show the control, or by inventing an evidence record. If the report cannot be made to pass
-  honestly, stop and tell the operator in plain words that the audit did not complete and why.
+  show the control, by inventing an evidence record, or by writing an answer. If the report cannot
+  be made to pass honestly, stop and tell the operator in plain words that the audit did not
+  complete and why.
 
-The check holds the record to its shape, its coverage, where each requirement is filed and its
-pointers into the repository. It cannot tell whether you chose the right state: that judgment
-stays yours.
+The check holds the record to its shape, its coverage, where each requirement is filed, its
+pointers into the repository, its questions, and the answers people typed. It cannot tell whether
+you chose the right state: that judgment stays yours.
 
 ### Step 7: Confirm nothing else changed
 
@@ -370,7 +505,9 @@ diff "<before picture>" "<after picture>"
 
 `diff` exits 1 when there is a difference; that is expected. Every line it marks with `<` or `>`
 must be the report's own path: `.lisa/` when that folder did not exist before, `.lisa/audit/`, or
-one of the two report files under `.lisa/audit/`.
+one of the two report files under `.lisa/audit/`. One other path may appear, and only in a
+repository that had a `wiki` folder before the audit began: `wiki/gaps.md`. A line for `wiki/`
+itself means a wiki folder was created, which the audit must never do.
 
 If any other line appears, the audit changed something it must not. Remove only what you yourself
 created during this run, then take the after picture and compare again. Never delete, restore or
@@ -397,10 +534,17 @@ In plain language, for someone who does not code:
    appears under the whole repository when it has one answer for the repository, and under each
    folder when its answer can differ from folder to folder.
 3. The few findings that matter most, each as its `what` and its `next`.
-4. Where the report is: `.lisa/audit/report.md` to read, `.lisa/audit/report.json` as the checked
+4. The questions that need the operator's answer: how many there are, and each one as its plain
+   sentence. Say how to answer: open `.lisa/audit/report.md`, find "Open questions" near the top,
+   type each answer on its line that starts `- **Answer**:` in place of `_(human fills in)_`, save
+   the file, and run the audit again. Say that an answer goes on that one line and that every
+   other line is left as it is. Where the repository has a wiki, say that the same questions are
+   in `wiki/gaps.md` and may be answered there instead. If this run took in answers the operator
+   had given, say which questions are now settled and will not be asked again.
+5. Where the report is: `.lisa/audit/report.md` to read, `.lisa/audit/report.json` as the checked
    record.
-5. That nothing else in the repository was changed, and that nothing was committed.
-6. The next step: `/lisa:configure` turns these findings, and the operator's answers, into the
+6. That nothing else in the repository was changed, and that nothing was committed.
+7. The next step: `/lisa:configure` turns these findings, and the operator's answers, into the
    record of what governs the repository.
 
 Say nothing is proved unless the report says so: an audit shows what exists, not what works.

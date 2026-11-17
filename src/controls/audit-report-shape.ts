@@ -18,6 +18,10 @@
  */
 import { isJsonObject, type JsonObject } from "../sync/json-path.js";
 import {
+  answersSectionProblems,
+  questionsSectionProblems,
+} from "./audit-report-questions-shape.js";
+import {
   AUDIT_FINDING_STATES,
   AUDIT_REPORT_SCHEMA_VERSION,
   MECHANISM_MOMENTS,
@@ -306,6 +310,24 @@ export const AUDIT_REPORT_SECTIONS: readonly AuditReportSection[] = [
       violations: Array.isArray(value)
         ? value.flatMap((finding, index) => findingViolations(finding, index))
         : [reportViolation(`The report's "findings" must be a list.`)],
+    }),
+  },
+  {
+    key: "questions",
+    parse: value => ({
+      value: value ?? [],
+      violations: questionsSectionProblems(value).map(message =>
+        reportViolation(message)
+      ),
+    }),
+  },
+  {
+    key: "answers",
+    parse: value => ({
+      value: value ?? [],
+      violations: answersSectionProblems(value).map(message =>
+        reportViolation(message)
+      ),
     }),
   },
 ];

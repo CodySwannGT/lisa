@@ -123,6 +123,81 @@ export interface AuditFinding {
   readonly evidence_id?: string;
 }
 
+/** An answer the audit found evidence for, offered to the person answering. */
+export interface AuditQuestionCandidate {
+  /** The candidate answer, in plain words. */
+  readonly answer: string;
+  /** Where the audit found it, in plain words. */
+  readonly found_in: string;
+}
+
+/**
+ * Something the audit could not establish from any source it can reach, put
+ * to a person. A question is open for as long as it is on the report: once it
+ * is answered it leaves this list and its answer joins `answers`.
+ */
+export interface AuditQuestion {
+  /**
+   * The same on every run: `<criterion>@<scope>` for a question that belongs
+   * to a finding, or one of the fixed setup ids (`./question-ids.ts`).
+   */
+  readonly id: string;
+  /** The question, as one plain sentence. */
+  readonly text: string;
+  /** The answers the audit found evidence for; empty when it found none. */
+  readonly candidates: readonly AuditQuestionCandidate[];
+  /** Where the audit looked, when it found no candidate. */
+  readonly no_candidates_reason?: string;
+  /**
+   * Always empty. A person's answer is typed in the rendered report and
+   * recorded by `lisa controls report-check --absorb`, never written here.
+   */
+  readonly answer?: null;
+}
+
+/** A fact a person gave by answering a question, kept under the question's id. */
+export interface AuditAnswer {
+  /** The id of the question that was answered. */
+  readonly id: string;
+  /** The question as it was asked. */
+  readonly question: string;
+  /** The answer, exactly as it was typed on the answer line. */
+  readonly answer: string;
+}
+
+/** One question entry of a rendered report, as a person left it. */
+export interface InlineEntry {
+  /** The question's id. */
+  readonly id: string;
+  /** The question as the entry prints it. */
+  readonly question: string;
+  /** What was typed on the answer line; `null` when nothing was. */
+  readonly answer: string | null;
+  /**
+   * Whether the entry was rendered as an answered question. An answered entry
+   * whose answer line is empty is an answer a person took back; an open entry
+   * whose line is empty is only a question nobody has answered here.
+   */
+  readonly answered: boolean;
+  /** The file the entry is in, relative to the repository root. */
+  readonly file: string;
+  /** The answer line's number in that file, counted from 1. */
+  readonly line: number;
+}
+
+/** What people have typed on the answer lines of the rendered report. */
+export interface InlineAnswers {
+  /** Whether a rendered report was there to read. */
+  readonly rendered: boolean;
+  /**
+   * One line per thing wrong with the files, each naming the file and line.
+   * While there is any, the entries cannot be relied on.
+   */
+  readonly problems: readonly string[];
+  /** Every question entry found, each id once. */
+  readonly entries: readonly InlineEntry[];
+}
+
 /** The audit report, after its shape has been checked. */
 export interface AuditReport {
   readonly schema_version: typeof AUDIT_REPORT_SCHEMA_VERSION;
@@ -134,6 +209,13 @@ export interface AuditReport {
    * every listed folder when it says it is answered per part.
    */
   readonly findings: readonly AuditFinding[];
+  /** The questions still waiting for a person; empty when there are none. */
+  readonly questions: readonly AuditQuestion[];
+  /**
+   * The facts people have given by answering. To learn what question `X` was
+   * answered with, find the entry whose `id` is `X` and read its `answer`.
+   */
+  readonly answers: readonly AuditAnswer[];
 }
 
 /** One thing wrong with a report. */
@@ -163,6 +245,10 @@ export interface AuditReportContext {
   readonly now: Date;
   /** The repository the report describes. */
   readonly repository: RepositoryReader;
+  /** Whether the repository names a tracker Lisa can file a ticket in. */
+  readonly trackerConfigured: boolean;
+  /** What people have typed on the answer lines of the rendered report. */
+  readonly inlineAnswers: InlineAnswers;
 }
 
 /**

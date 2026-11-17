@@ -1,10 +1,11 @@
 /**
  * The facts the audit report suites check a report against.
  *
- * A report is valid or not relative to four things: the catalogue, the
- * evidence file, the clock and the repository. The suites share one in-memory
- * set of them so each case changes a single finding and nothing else
- * (CodySwannGT/lisa#4978).
+ * A report is valid or not relative to the catalogue, the evidence file, the
+ * clock, the repository, whether a tracker is configured, and what people
+ * have typed on the answer lines of the rendered report. The suites share one
+ * in-memory set of them so each case changes a single finding and nothing
+ * else (CodySwannGT/lisa#4978, CodySwannGT/lisa#4980).
  * @module tests/unit/controls/audit-report-facts
  */
 import {
@@ -19,6 +20,7 @@ import {
 import type { EvidenceRecordRef } from "../../../src/controls/evidence.js";
 import {
   amendFinding,
+  askAbout,
   completeAuditReport,
   type SampleReport,
 } from "../../helpers/control-audit-report.js";
@@ -67,8 +69,11 @@ export const RULE = {
   locators: "locators",
   plainLanguage: "plain-language",
   provedEvidence: "proved-evidence",
+  questions: "questions",
+  recordedAnswers: "recorded-answers",
   scopes: "scopes",
   shape: "shape",
+  trackerQuestion: "tracker-question",
 } as const;
 
 /** Line counts of the files the in-memory repository holds. */
@@ -124,6 +129,8 @@ export function context(
       lineCount: file => FILES[file] ?? null,
       isFolder: folder => FOLDERS.includes(folder),
     },
+    trackerConfigured: false,
+    inlineAnswers: { rendered: false, problems: [], entries: [] },
     ...change,
   };
 }
@@ -138,12 +145,15 @@ export function violationsOf(report: unknown): readonly AuditReportViolation[] {
 }
 
 /**
- * The complete report with its first finding changed.
+ * The complete report with its first finding changed. A finding put in the
+ * state that needs a person's answer is given its question, because one
+ * without the other is refused (CodySwannGT/lisa#4980).
  * @param change - Fields to set on the finding
  * @returns The report
  */
 export function withFirst(
   change: Readonly<Record<string, unknown>>
 ): SampleReport {
-  return amendFinding(completeAuditReport(), AT_FIRST, change);
+  const changed = amendFinding(completeAuditReport(), AT_FIRST, change);
+  return change.state === "question" ? askAbout(changed, AT_FIRST) : changed;
 }

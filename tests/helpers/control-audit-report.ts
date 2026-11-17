@@ -20,6 +20,8 @@ import {
   loadCriterionCatalogue,
 } from "../../src/controls/catalogue.js";
 import { EVIDENCE_PATH } from "../../src/controls/evidence.js";
+import { requirementQuestionId } from "../../src/controls/question-ids.js";
+import { TRACKER_QUESTION_ID } from "../../src/controls/tracker-question.js";
 
 /** The scope that means the whole repository rather than one folder of it. */
 const WHOLE_REPOSITORY = ".";
@@ -27,11 +29,16 @@ const WHOLE_REPOSITORY = ".";
 /** One finding as plain JSON, so a suite can also write a malformed one. */
 export type SampleFinding = Readonly<Record<string, unknown>>;
 
+/** One question as plain JSON, so a suite can also write a malformed one. */
+export type SampleQuestion = Readonly<Record<string, unknown>>;
+
 /** A report as plain JSON, so a suite can also write a malformed one. */
 export interface SampleReport {
   readonly schema_version: unknown;
   readonly scopes: readonly unknown[];
   readonly findings: readonly SampleFinding[];
+  readonly questions?: readonly SampleQuestion[];
+  readonly answers?: readonly SampleQuestion[];
   readonly [section: string]: unknown;
 }
 
@@ -60,11 +67,53 @@ export function sampleFinding(criterion: string, scope: string): SampleFinding {
 }
 
 /**
+ * The question every audit of a repository with no tracker configured has to
+ * ask, here with nothing found to suggest an answer.
+ * @returns A question that passes every rule
+ */
+export function sampleTrackerQuestion(): SampleQuestion {
+  return {
+    id: TRACKER_QUESTION_ID,
+    text: "Which tracker does the team plan and follow its work in?",
+    candidates: [],
+    no_candidates_reason:
+      "The audit read the git remotes, the pipeline files and the configuration files, and none of them names a tracker.",
+  };
+}
+
+/**
+ * The question that belongs to one finding, with one candidate answer.
+ * @param criterion - The finding's requirement id
+ * @param scope - The finding's scope
+ * @returns A question that passes every rule once its finding is in state
+ *   `question`
+ */
+export function sampleQuestion(
+  criterion: string,
+  scope: string
+): SampleQuestion {
+  return {
+    id: requirementQuestionId(criterion, scope),
+    text: "Who decides what happens when this goes wrong?",
+    candidates: [
+      {
+        answer: "The team lead",
+        found_in: "The file named OWNERS lists one person for the whole tree.",
+      },
+    ],
+  };
+}
+
+/**
  * A report that passes: every in-scope criterion filed where the catalogue
  * says it is answered. A criterion answered once for the repository gets one
  * finding, under `.`. A criterion answered per part gets one finding under
  * each folder, or one under `.` when the report lists no folder. Nothing is
  * filed anywhere else, so the report carries no filler.
+ *
+ * It asks which tracker the team uses, because the fixture repositories
+ * configure none and a report that does not ask is refused there
+ * (CodySwannGT/lisa#4980).
  *
  * The placement is written out here instead of borrowed from the rule that
  * checks it, so a suite that passes a sample to the rule is comparing two
@@ -90,7 +139,25 @@ export function completeAuditReport(
         perPart.map(criterion => sampleFinding(criterion.id, folder))
       ),
     ],
+    questions: [sampleTrackerQuestion()],
   };
+}
+
+/**
+ * Put one finding in the state that needs a person's answer, and ask the
+ * question that goes with it.
+ * @param report - The report to start from
+ * @param address - Which finding needs the answer
+ * @param question - The question to ask, when not the plain sample
+ * @returns A new report; the original is untouched
+ */
+export function askAbout(
+  report: SampleReport,
+  address: FindingAddress,
+  question: SampleQuestion = sampleQuestion(address.criterion, address.scope)
+): SampleReport {
+  const asked = amendFinding(report, address, { state: "question" });
+  return { ...asked, questions: [...(report.questions ?? []), question] };
 }
 
 /**
