@@ -85,6 +85,43 @@ new range, and the printed `basis` (for example "calibrated x2 (median actual/es
 comparable finished item(s)") goes into the section. Items whose actual is unknown — no ledger,
 `unavailable` telemetry, or a `measured-subset` total — are skipped, never counted as zero. With
 no usable history the range is unchanged and the basis says "no calibration history".
-- **When the config is off:** nothing about estimates blocks; the check reports `N/A`.
+
+
+## Done: the actual beside the estimate
+
+When the work is done, the section also shows what it really cost (CodySwannGT/lisa#4956). The
+actual is the item's `## Lisa Usage` rollup — the same ledger every flow already records into, not
+a second one:
+
+```markdown
+| Estimate | 2M–4M | $3.14–$6.28 USD | claude-opus-5-5 |
+| Actual | 3M | $4.71 USD | — |
+
+Actual: the Lisa Usage ledger total over 2 usage entries (source: observed); 1x the estimate's midpoint.
+
+<!-- lisa:estimate-actual tokens=3000000 cost=4.71 currency=USD sources=observed entries=2 ratio=1 -->
+```
+
+After the Verify usage entry is written (`lisa-tracker-evidence` step 3) and before the accepted
+completion proof is published, tally it and write the body back:
+
+```bash
+node scripts/lisa-estimate.mjs tally --body-file <body.md> [--usage-file <comment.md>]
+node scripts/lisa-estimate.mjs check --phase done --body-file <stored-body.md> [--usage-file <comment.md>]
+```
+
+Pass `--usage-file` when the ledger lives in an evidence comment rather than the body. An unknown
+total (`unavailable` telemetry, a `measured-subset` rollup, incomplete child totals) is shown as
+`unknown`, never as zero and never guessed. An item that reached done with no estimate shows
+`none recorded` in the estimate row rather than an invented range.
+
+`lisa-work-item complete` enforces it: when `required` is true, it refuses (as `pending-proof`) an
+item with no usage entry, with no tally, or with a tally that no longer matches the ledger. The
+estimate section is machine-owned metadata, so rewriting it does not change the specification
+digest the accepted completion proof is bound to; prose a person adds inside it still does.
+
+## When the config is off
+
+Nothing about estimates blocks. Every check reports `N/A`, and `complete` skips the done gate.
 
 The recommended model is recorded only. It does not choose which model or agent runs the work.

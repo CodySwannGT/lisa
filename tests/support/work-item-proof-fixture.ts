@@ -28,6 +28,13 @@ import {
 import { putAsset, PUBLISHER } from "./work-item-proof-assets.js";
 import { prepareProofProvider } from "./work-item-proof-resources.js";
 import { makeProofRecord } from "./work-item-proof-payload.js";
+import { resolveEstimateConfig } from "../../all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs";
+import { tallyEstimate } from "../../all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs";
+import {
+  buildEstimate,
+  renderEstimateSection,
+  upsertEstimateSection,
+} from "../../all/copy-overwrite/scripts/lib/work-item-estimate.mjs";
 import { SPEC } from "./work-item-proof-spec.js";
 export { SPEC } from "./work-item-proof-spec.js";
 export {
@@ -73,6 +80,26 @@ export function proofUsage(sourceRef: string): string {
     entries: [entry],
     rollup: createLisaUsageRollup([entry]),
   });
+}
+
+/**
+ * What a completed item carries under the default `workItem.estimate.required`
+ * (CodySwannGT/lisa#4956): the usage ledger, plus the estimate written at
+ * claim time with its actual tallied from that ledger.
+ * @param sourceRef - Exact canonical source work-item reference.
+ * @returns Usage section followed by the tallied estimate section.
+ */
+export function proofLedger(sourceRef: string): string {
+  const estimated = upsertEstimateSection(
+    proofUsage(sourceRef),
+    renderEstimateSection(
+      buildEstimate(
+        { tokensLow: 1_000_000, tokensHigh: 2_000_000, model: "opus" },
+        resolveEstimateConfig({})
+      )
+    )
+  );
+  return tallyEstimate(estimated);
 }
 
 /**
@@ -141,7 +168,7 @@ export function proofFixture(sourceRef = PROOF_REF, existing?: Fixture) {
   );
   const merge = mergeOnMain(fixture);
   const now = new Date().toISOString();
-  const body = SPEC + proofUsage(sourceRef);
+  const body = SPEC + proofLedger(sourceRef);
   const facts = prepareProofProvider(fixture, {
     repository,
     number,

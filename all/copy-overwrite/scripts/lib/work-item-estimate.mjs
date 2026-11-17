@@ -106,11 +106,18 @@ export function buildEstimate(input, settings) {
 }
 
 /**
- * Render the managed section for an estimate.
- * @param {Estimate} estimate - Result of {@link buildEstimate}.
- * @returns {string} Markdown section, ending in a newline.
+ * The estimate row and machine token, or a plain "none recorded" row when the
+ * item reached completion without one.
+ * @param {Estimate | null} estimate - Estimate, if any.
+ * @returns {{row: string, basis: string, token: string | null}} Rendered parts.
  */
-export function renderEstimateSection(estimate) {
+function estimateParts(estimate) {
+  if (!estimate)
+    return {
+      row: "| Estimate | none recorded | — | — |",
+      basis: "no estimate was recorded before work began",
+      token: null,
+    };
   const cost =
     estimate.costLow === null
       ? "unpriced"
@@ -126,6 +133,22 @@ export function renderEstimateSection(estimate) {
     `model=${encode(estimate.model)}`,
     `basis=${encode(estimate.basis)}`,
   ];
+  return {
+    row: `| Estimate | ${formatTokens(estimate.tokensLow)}–${formatTokens(estimate.tokensHigh)} | ${cost} | ${estimate.model} |`,
+    basis: estimate.basis,
+    token: `<!-- lisa:estimate ${fields.join(" ")} -->`,
+  };
+}
+
+/**
+ * Render the managed section for an estimate and, once the work is done, its
+ * actual (CodySwannGT/lisa#4956).
+ * @param {Estimate | null} estimate - Result of {@link buildEstimate}, or null when none was recorded.
+ * @param {{row: string, note: string, token: string} | null} [actual] - Rendered actual parts from the tally.
+ * @returns {string} Markdown section, ending in a newline.
+ */
+export function renderEstimateSection(estimate, actual = null) {
+  const parts = estimateParts(estimate);
   return [
     ESTIMATE_HEADING,
     "",
@@ -133,11 +156,14 @@ export function renderEstimateSection(estimate) {
     "",
     "| Row | Tokens | Cost | Model |",
     "|---|---:|---:|---|",
-    `| Estimate | ${formatTokens(estimate.tokensLow)}–${formatTokens(estimate.tokensHigh)} | ${cost} | ${estimate.model} |`,
+    parts.row,
+    ...(actual ? [actual.row] : []),
     "",
-    `Basis: ${estimate.basis}`,
+    `Basis: ${parts.basis}`,
+    ...(actual ? ["", actual.note] : []),
     "",
-    `<!-- lisa:estimate ${fields.join(" ")} -->`,
+    ...(parts.token ? [parts.token] : []),
+    ...(actual ? [actual.token] : []),
     "",
   ].join("\n");
 }
@@ -230,13 +256,15 @@ function parseTokenFields(section) {
 /**
  * Parse the item's estimate section.
  * @param {string} body - Item body.
- * @returns {{count: number, estimate: Estimate | null}} Section count and its parsed token.
+ * @returns {{count: number, estimate: Estimate | null, section: string | null}} Section count, its parsed estimate token, and its text.
  */
 export function parseEstimateSection(body) {
   const spans = estimateSpans(body);
-  if (spans.length !== 1) return { count: spans.length, estimate: null };
+  if (spans.length !== 1)
+    return { count: spans.length, estimate: null, section: null };
   const lines = body.split("\n").slice(spans[0].start, spans[0].end);
-  return { count: 1, estimate: parseToken(lines.join("\n")) };
+  const section = lines.join("\n");
+  return { count: 1, estimate: parseToken(section), section };
 }
 
 /**

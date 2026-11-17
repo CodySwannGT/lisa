@@ -202,4 +202,39 @@ describe("lisa-estimate", () => {
       run(["check", "--phase", "claim", BODY_FILE, body, CWD, root])
     ).toMatchObject({ code: 1, out: expect.stringMatching(/FAIL/) });
   });
+
+  it("tallies the actual into the body and passes the done check", () => {
+    const { root, body } = project({});
+    writeFileSync(
+      body,
+      finishedItem(1_000_000, 3_000_000, [usageEntry("a", 2_000_000, 4)])
+    );
+    const tallied = run(["tally", BODY_FILE, body, CWD, root]);
+    expect(tallied).toMatchObject({
+      code: 0,
+      out: expect.stringContaining("| Actual | 2M | $4.00 USD | — |"),
+    });
+    writeFileSync(body, tallied.out);
+    expect(
+      run(["check", "--phase", "done", BODY_FILE, body, CWD, root])
+    ).toMatchObject({ code: 0, out: expect.stringMatching(/PASS/) });
+  });
+
+  it("reads the ledger from --usage-file and refuses a tally without one", () => {
+    const { root, body } = project({});
+    expect(run(["tally", BODY_FILE, body, CWD, root])).toMatchObject({
+      code: 2,
+      err: expect.stringMatching(/No Lisa Usage entry/),
+    });
+    const usage = path.join(root, "usage.md");
+    writeFileSync(
+      usage,
+      finishedItem(1000, 2000, [usageEntry("a", 10)]).slice(
+        finishedItem(1000, 2000, [usageEntry("a", 10)]).indexOf("## Lisa Usage")
+      )
+    );
+    expect(
+      run(["tally", BODY_FILE, body, "--usage-file", usage, CWD, root]).out
+    ).toContain("| Actual | 10 |");
+  });
 });

@@ -273,6 +273,7 @@ scripts/lib/windows-process-job.mjs
 scripts/lib/work-item-estimate-calibration.mjs
 scripts/lib/work-item-estimate-check.mjs
 scripts/lib/work-item-estimate-config.mjs
+scripts/lib/work-item-estimate-tally.mjs
 scripts/lib/work-item-estimate.mjs
 scripts/lib/worktree-dependencies.mjs
 scripts/lisa-hooks/worktree-binding-guard.mjs

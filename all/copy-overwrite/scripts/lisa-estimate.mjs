@@ -17,11 +17,18 @@
  *     --model claude-opus-5-5 [--basis <text>] [--body-file <path>]
  *   node scripts/lisa-estimate.mjs calibrate --tokens-low 1M --tokens-high 2M
  *     --history-file <comparable-items.json>
- *   node scripts/lisa-estimate.mjs check [--phase ready|claim] [--body-file <path>]
+ *   node scripts/lisa-estimate.mjs tally [--body-file <path>] [--usage-file <path>]
+ *   node scripts/lisa-estimate.mjs check [--phase ready|claim|done]
+ *     [--body-file <path>] [--usage-file <path>]
  *
  * `calibrate` scales a first estimate by how comparable finished items
  * actually ran (their `## Lisa Usage` totals against their estimates) and
  * prints the calibrated range and a basis line to pass to `render`.
+ *
+ * `tally` rewrites the estimate section with the actual tokens and cost from
+ * the item's `## Lisa Usage` ledger and prints the whole body. When the
+ * ledger lives in a comment instead of the body, pass that comment as
+ * `--usage-file`.
  *
  * `check` exits 0 on PASS or N/A and 1 on FAIL; any usage or config error
  * exits 2. Without `--body-file`, the body is read from standard input.
@@ -47,6 +54,7 @@ import {
   historyBodies,
 } from "./lib/work-item-estimate-calibration.mjs";
 import { checkEstimate } from "./lib/work-item-estimate-check.mjs";
+import { tallyEstimate } from "./lib/work-item-estimate-tally.mjs";
 
 const VALUE_FLAGS = new Set([
   "--tokens-low",
@@ -56,6 +64,7 @@ const VALUE_FLAGS = new Set([
   "--body-file",
   "--phase",
   "--history-file",
+  "--usage-file",
   "--cwd",
 ]);
 
@@ -110,6 +119,11 @@ const readBody = flags =>
     ? readFileSync(0, "utf8")
     : readFileSync(flags["body-file"], "utf8");
 
+const ledgerDocuments = (body, flags) =>
+  flags["usage-file"] === undefined
+    ? [body]
+    : [body, readFileSync(flags["usage-file"], "utf8")];
+
 const COMMANDS = {
   config: (_flags, settings) => ({
     out: `${JSON.stringify({ ...settings, defaultPricing: DEFAULT_ESTIMATE_PRICING }, null, 2)}\n`,
@@ -149,8 +163,18 @@ const COMMANDS = {
     );
     return { out: `${JSON.stringify(result, null, 2)}\n`, code: 0 };
   },
+  tally: flags => {
+    const body = readBody(flags);
+    return { out: tallyEstimate(body, ledgerDocuments(body, flags)), code: 0 };
+  },
   check: (flags, settings) => {
-    const result = checkEstimate(readBody(flags), settings, flags.phase);
+    const body = readBody(flags);
+    const result = checkEstimate(
+      body,
+      settings,
+      flags.phase,
+      ledgerDocuments(body, flags)
+    );
     const lines = [`S21 token estimate: ${result.verdict}`, ...result.lines];
     return {
       out: `${lines.join("\n")}\n`,
@@ -160,7 +184,7 @@ const COMMANDS = {
 };
 
 const USAGE =
-  "Usage: lisa-estimate.mjs config | render --tokens-low <n> --tokens-high <n> --model <id> [--basis <text>] [--body-file <path>] | calibrate --tokens-low <n> --tokens-high <n> --history-file <path> | check [--phase ready|claim] [--body-file <path>]\n";
+  "Usage: lisa-estimate.mjs config | render --tokens-low <n> --tokens-high <n> --model <id> [--basis <text>] [--body-file <path>] | calibrate --tokens-low <n> --tokens-high <n> --history-file <path> | tally [--body-file <path>] [--usage-file <path>] | check [--phase ready|claim|done] [--body-file <path>] [--usage-file <path>]\n";
 
 /**
  * Run the CLI.

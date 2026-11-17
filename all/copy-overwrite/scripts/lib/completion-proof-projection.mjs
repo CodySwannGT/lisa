@@ -127,6 +127,36 @@ export function usageSpecRemainder(document) {
     .join("");
 }
 
+/**
+ * The machine-written lines of a `## Lisa Estimate` section
+ * (CodySwannGT/lisa#4956). The estimate and its actual tally are rewritten as
+ * work is claimed and completed, so they are metadata, like the usage ledger,
+ * not requirements: rewriting them must not invalidate an accepted proof.
+ */
+const ESTIMATE_MANAGED_LINE = [
+  /^## Lisa Estimate$/,
+  /^_Managed by Lisa\. Rewritten in place on each estimate or tally; do not edit by hand\._$/,
+  /^\| Row \| Tokens \| Cost \| Model \|$/,
+  /^\|---\|---:\|---:\|---\|$/,
+  /^\| (?:Estimate|Actual) \|.*\|$/,
+  /^(?:Basis|Actual): /,
+  /^<!-- lisa:estimate(?:-actual)? [^\r\n]*-->$/,
+];
+
+/**
+ * Unknown lines within the estimate section remain part of the spec digest;
+ * the heading and the machine-written lines do not, exactly as for usage.
+ */
+export function estimateSpecRemainder(document) {
+  return document
+    .split(/(?<=\n)/)
+    .filter(raw => {
+      const line = raw.trim();
+      return line && !ESTIMATE_MANAGED_LINE.some(pattern => pattern.test(line));
+    })
+    .join("");
+}
+
 /** Only a closed canonical metadata schema can be omitted from the primary spec. */
 export function canonicalCompletionBlock(name, payload) {
   let value;
