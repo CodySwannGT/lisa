@@ -74,7 +74,7 @@ import {
 } from "./workflow-moments.js";
 
 export { qualityCalls } from "./workflow-moments.js";
-export type { MomentContext, QualityCall } from "./workflow-moments.js";
+export type { MomentContext } from "./workflow-moments.js";
 
 /** Name rendered in the doctor report. */
 const CHECK_NAME = "skip_jobs migrated to gates?";

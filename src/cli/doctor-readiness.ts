@@ -44,25 +44,12 @@ import { sanitizeReadinessReportForPersistence } from "./doctor-readiness-report
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 import { getPackageVersion } from "./version.js";
 
-// Re-export the blocker-gate surface (RRR-5, #1857) so `.lisa/readiness.json`
-// readers and tests keep one import path even though the gate lives in a
-// sibling module for file-size hygiene.
-export {
-  CLAIM_EVIDENCE_UNAVAILABLE_REASON,
-  SHIP_BLOCKER_IDS,
-  assessProvabilityBlocker,
-  assessReadiness,
-  computeNarrowedClaim,
-  detectShipBlockers,
-} from "./doctor-readiness-blockers.js";
+// Re-export the blocker-gate types (RRR-5, #1857) this collector's callers
+// read, even though the gate lives in a sibling module for file-size hygiene.
 export type {
-  BlockerDetectionOptions,
   DetectedBlocker,
-  ProvabilityAssessment,
-  ReadinessAssessment,
   ReadinessDimensionInput,
   ReadinessVerdict,
-  ShipBlockerId,
 } from "./doctor-readiness-blockers.js";
 
 /** Doctor check name for the repository-readiness collector. */

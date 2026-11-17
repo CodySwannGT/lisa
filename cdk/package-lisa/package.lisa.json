@@ -18,8 +18,7 @@
       "watch": "node scripts/lib/worktree-dependencies.mjs && tsc -w"
     },
     "dependencies": {
-      "constructs": "^10.7.2",
-      "source-map-support": "^0.5.21"
+      "constructs": "^10.7.2"
     },
     "devDependencies": {
       "aws-cdk": "^2.1127.0",
@@ -125,6 +124,11 @@
         "lisa-test-run --profile cdk --adapter vitest -- vitest",
         "lisa-test-run --profile cdk -- vitest",
         "lisa-test-run -- vitest"
+      ]
+    },
+    "dependencies": {
+      "source-map-support": [
+        "^0.5.21"
       ]
     }
   }

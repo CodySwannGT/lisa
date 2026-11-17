@@ -36,10 +36,7 @@ export interface FixtureShape {
   repeatFailing: boolean;
 }
 
-export {
-  commandEvidence,
-  type CommandEvidence,
-} from "./maestro-command-evidence.js";
+export type { CommandEvidence } from "./maestro-command-evidence.js";
 
 /**
  * Byte order, matching the `LC_ALL=C sort` the workflow uses. Deliberately not

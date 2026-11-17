@@ -28,6 +28,7 @@ import {
   type SelfReferenceFloorConflict,
 } from "../core/override-floors.js";
 import { LISA_PACKAGE_NAME } from "../core/self-apply.js";
+import { findMentionedPackages } from "./package-mentions.js";
 import { getPackageVersion } from "../cli/version.js";
 import type {
   PackageLisaTemplate,
@@ -162,7 +163,12 @@ export class PackageLisaStrategy implements ICopyStrategy {
       effective,
       restricted,
       projectDir,
-      invokingPackageManager
+      invokingPackageManager,
+      await findMentionedPackages(
+        projectDir,
+        adoptableDependencies(projectJson, effective),
+        declaredDependencies(projectJson)
+      )
     );
     const result = planSelfReferencingOverrideNormalization(
       forced.packageJson,
@@ -446,7 +452,12 @@ export class PackageLisaStrategy implements ICopyStrategy {
       effective,
       restricted,
       projectDir,
-      context.config.invokingPackageManager
+      context.config.invokingPackageManager,
+      await findMentionedPackages(
+        projectDir,
+        adoptableDependencies(projectJson, effective),
+        declaredDependencies(projectJson)
+      )
     );
     const plan = planSelfReferencingOverrideNormalization(
       forced.packageJson,
@@ -848,6 +859,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @param restricted - True when the template was reduced to security pins
    * @param projectDir - Host directory, or undefined when no tree is available
    * @param invokingPackageManager - Manager that launched this apply, if any
+   * @param mentioned - Packages the host names outside its manifest, which a
+   *   dependency `adopt` entry must never delete
    * @returns Modified package.json plus operator-visible notes
    * @private
    */
@@ -856,7 +869,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
     template: ResolvedPackageLisaTemplate,
     restricted: boolean,
     projectDir: string | undefined,
-    invokingPackageManager: string | undefined
+    invokingPackageManager: string | undefined,
+    mentioned: ReadonlySet<string>
   ): PackageJsonPlan {
     const fitted = fitDevEnginesToHost(
       template,
@@ -867,7 +881,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
       projectJson,
       fitted.template,
       this.PACKAGE_JSON,
-      restricted
+      restricted,
+      mentioned
     );
     return fitted.retire
       ? { ...applied, packageJson: retireDevEnginesFloor(applied.packageJson) }
@@ -888,6 +903,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @param fileName - Basename used in error messages
    * @param restricted - True when the template was reduced to security pins,
    *   which is the postinstall path and Lisa's own repository
+   * @param mentioned - Packages the host names outside its manifest. Omitted,
+   *   every package counts as mentioned and no dependency is reclaimed.
    * @returns Modified package.json plus operator-visible notes
    * @private
    */
@@ -895,7 +912,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
     projectJson: Record<string, unknown>,
     template: ResolvedPackageLisaTemplate,
     fileName: string,
-    restricted = false
+    restricted = false,
+    mentioned?: ReadonlySet<string>
   ): PackageJsonPlan {
     // Phase 1: Apply force (Lisa's values completely replace project's), then
     // restore any dependency pin the host had raised ABOVE Lisa's floor.
@@ -908,7 +926,11 @@ export class PackageLisaStrategy implements ICopyStrategy {
     // Phase 1.5: Reclaim keys still carrying a value Lisa itself wrote, so the
     // defaults phase can install the current one. A host value Lisa does not
     // recognise as its own is left alone — that is the whole point.
-    const afterAdopt = applyAdoptSections(afterForce.packageJson, template);
+    const afterAdopt = applyAdoptSections(
+      afterForce.packageJson,
+      template,
+      name => mentioned === undefined || mentioned.has(name)
+    );
 
     // Phase 2: Apply defaults (project's values preserved, Lisa provides fallback)
     const afterDefaults = deepMerge(
@@ -1174,6 +1196,60 @@ const RESERVED_BASE_SUFFIX = ":lisa";
 /** How much of a script value an operator note quotes before eliding. */
 const NOTE_VALUE_BUDGET = 140;
 
+/** Sections whose keys name packages a host's code may import. */
+const DEPENDENCY_SECTIONS: ReadonlySet<string> = new Set([
+  "dependencies",
+  "devDependencies",
+  "optionalDependencies",
+  "peerDependencies",
+]);
+
+/**
+ * Every package a manifest declares, in any dependency section.
+ * @param projectJson - Host package.json as read
+ * @returns Package names, each at most once
+ */
+function declaredDependencies(
+  projectJson: Record<string, unknown>
+): readonly string[] {
+  return [
+    ...new Set(
+      [...DEPENDENCY_SECTIONS].flatMap(section =>
+        Object.keys(asRecord(projectJson[section]))
+      )
+    ),
+  ];
+}
+
+/**
+ * Dependencies an `adopt` entry would delete, before the mention check runs.
+ * @remarks
+ * Only these are worth asking git about: a key the template forces is never
+ * reclaimed, and one holding a value Lisa did not write is the host's own.
+ * @param projectJson - Host package.json as read
+ * @param template - Resolved template carrying the adopt section
+ * @returns Package names, each at most once
+ */
+function adoptableDependencies(
+  projectJson: Record<string, unknown>,
+  template: ResolvedPackageLisaTemplate
+): readonly string[] {
+  const names = Object.entries(template.adopt)
+    .filter(([sectionName]) => DEPENDENCY_SECTIONS.has(sectionName))
+    .flatMap(([sectionName, recognised]) => {
+      const forcedHere = asRecord(asRecord(template.force)[sectionName]);
+      return Object.entries(asRecord(projectJson[sectionName])).flatMap(
+        ([key, value]) =>
+          typeof value === "string" &&
+          !(key in forcedHere) &&
+          (recognised[key] ?? []).includes(value)
+            ? [key]
+            : []
+      );
+    });
+  return [...new Set(names)];
+}
+
 /**
  * Merge two `adopt` sections, taking the UNION of the recognised values.
  * @remarks
@@ -1222,13 +1298,20 @@ function mergeAdoptSections(
  * a key Lisa used to force. Nothing else is touched: a value absent from the
  * adopt list is the host's own work by definition, and keeping it is the entire
  * behaviour this exists to provide.
+ *
+ * A dependency needs one more proof than a script. Keeping the version Lisa
+ * wrote says nothing about whether the host imports the package, so a
+ * dependency key is cleared only when the host also never mentions it
+ * (CodySwannGT/lisa#4932, `package-mentions.ts`).
  * @param packageJson - The document as the force phase left it
  * @param template - Resolved template carrying the adopt section
+ * @param isMentioned - Whether the host names a package outside its manifest
  * @returns The document with Lisa-authored values cleared
  */
 function applyAdoptSections(
   packageJson: Record<string, unknown>,
-  template: ResolvedPackageLisaTemplate
+  template: ResolvedPackageLisaTemplate,
+  isMentioned: (name: string) => boolean
 ): Record<string, unknown> {
   return Object.entries(template.adopt).reduce<Record<string, unknown>>(
     (document, [sectionName, recognised]) => {
@@ -1245,12 +1328,14 @@ function applyAdoptSections(
       // whatever `defaults` happens to carry — so force wins, and adopt is a
       // no-op there. Adopt only has meaning for a key Lisa has handed back.
       const forcedHere = asRecord(asRecord(template.force)[sectionName]);
+      const guarded = DEPENDENCY_SECTIONS.has(sectionName);
       const entries = Object.entries(section as Record<string, unknown>);
       const kept = entries.filter(
         ([key, value]) =>
           typeof value !== "string" ||
           key in forcedHere ||
-          !(recognised[key] ?? []).includes(value)
+          !(recognised[key] ?? []).includes(value) ||
+          (guarded && isMentioned(key))
       );
       if (kept.length === entries.length) {
         return document;

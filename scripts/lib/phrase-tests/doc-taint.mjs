@@ -283,16 +283,6 @@ export function mentionsDocumentPath(sourceFile) {
 }
 
 /**
- * Whether an expression names a repository Markdown document.
- * @param {ts.Node} node - An expression.
- * @param {Taint} taint - What is known so far.
- * @returns {boolean} True for a PATH expression.
- */
-export function isPathy(node, taint) {
-  return hasMarkdown(node, taint) && hasRoot(node, taint);
-}
-
-/**
  * Whether an expression holds Markdown text.
  * @param {ts.Node} node - An expression.
  * @param {Taint} taint - What is known so far.

@@ -38,15 +38,6 @@ export const GIT_CANDIDATES: readonly string[] = Object.freeze([
 ]);
 
 /**
- * The path that is not git.
- *
- * On macOS `/usr/bin/git` is Apple's `xcrun` shim, which locates a developer
- * directory and re-executes the real binary there. Exported so a guard test can
- * pin it by name rather than by string literal.
- */
-export const XCRUN_SHIM = "/usr/bin/git";
-
-/**
  * Resolve git to an absolute executable path.
  *
  * The fixed candidates are tried first; a `PATH` scan is the fallback for

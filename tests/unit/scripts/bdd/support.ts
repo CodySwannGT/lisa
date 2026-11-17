@@ -115,7 +115,6 @@ export function hermeticEnv(root: string): Record<string, string> {
 
 /** Envelope statuses this gate emits. */
 export const COMPLETED = "completed";
-export const FAILED = "failed";
 export const INVALID = "invalid";
 
 /** One finding in the standard command envelope. */

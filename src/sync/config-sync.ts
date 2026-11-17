@@ -36,7 +36,6 @@ import {
   syncArtifacts,
   validateEntryValue,
   type SyncAction,
-  type SyncActionKind,
   type SyncReadDependencies,
   type SyncState,
 } from "./artifact-sync.js";
@@ -44,7 +43,7 @@ import { aliasCompatibleDefault, hasLegacyAlias } from "./legacy-aliases.js";
 import { applyLegacyMonitorThresholdMigration } from "./legacy-monitor-thresholds.js";
 import { recordedPopulation, recordPopulation } from "./sync-population.js";
 
-export type { SyncAction, SyncActionKind, SyncReadDependencies };
+export type { SyncAction, SyncReadDependencies };
 
 /** Result of one sync run. */
 export interface SyncReport {

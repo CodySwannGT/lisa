@@ -7,23 +7,13 @@ import type {
   LisaUsageEntry,
   LisaUsageRollup,
   LisaUsageChildArtifact,
-  ParsedLisaUsageSection,
-  LisaUsageSectionIntegrityIssue,
-  LisaUsageSectionIntegrityResult,
 } from "../../all/copy-overwrite/scripts/lib/usage-ledger.mjs";
 export {
   LISA_USAGE_HEADING,
   parseLisaUsageSection,
   verifyLisaUsageSectionIntegrity,
 };
-export type {
-  LisaUsageEntry,
-  LisaUsageRollup,
-  LisaUsageChildArtifact,
-  ParsedLisaUsageSection,
-  LisaUsageSectionIntegrityIssue,
-  LisaUsageSectionIntegrityResult,
-};
+export type { LisaUsageEntry, LisaUsageRollup, LisaUsageChildArtifact };
 /* eslint-disable max-lines -- Usage ledger parsing, rendering, and rollup helpers share one public utility surface. */
 
 import { collectLisaUsageChildArtifacts } from "./usage-accounting-rollup.js";

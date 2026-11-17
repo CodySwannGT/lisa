@@ -102,15 +102,6 @@ export async function cleanupTempDir(
 }
 
 /**
- * Create a minimal project structure with package.json
- * @param dir - Directory to create project structure in
- */
-export async function createMinimalProject(dir: string): Promise<void> {
-  await fs.ensureDir(dir);
-  await fs.writeJson(path.join(dir, PACKAGE_JSON), {});
-}
-
-/**
  * Create a TypeScript project structure with tsconfig.json
  * @param dir - Directory to create project structure in
  */

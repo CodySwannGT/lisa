@@ -10,9 +10,6 @@ const PROFILE = 2;
 const ADAPTER = 4;
 const SEPARATOR = 8;
 
-/** Bit proving the source runner path participates in one command. */
-export const LISA_TEST_RUNNER_PATH_BIT = RUNNER_PATH;
-
 /** Linear declaration-resolution metrics and bare Vitest calls. */
 export interface VitestSpawnAnalysis {
   readonly bypasses: readonly string[];

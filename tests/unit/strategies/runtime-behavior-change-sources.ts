@@ -30,12 +30,6 @@ export const RULE_ROOTS = [
 ] as const;
 
 export const SLUG = "derived-branch-plan";
-export const FLAG = "runtime_behavior_change";
-export const SECTION = "Target Backend Environment";
-
-/** The machine discriminator. Its exact spelling is the contract. */
-export const EXEMPT_PREFIX = "None —";
-
 /** The three skills that persist the declaration onto a work item. */
 export const WRITERS = [
   "lisa-github-write-issue",

@@ -63,11 +63,6 @@ export type OpencodeMcpServerEntry =
   | OpencodeLocalMcpEntry
   | OpencodeRemoteMcpEntry;
 
-/** Top-level `opencode.json` shape, narrowed to the keys this module touches. */
-export interface OpencodeConfigShape {
-  readonly mcp?: Readonly<Record<string, OpencodeMcpServerEntry>>;
-}
-
 /** Result of the OpenCode MCP install pass. */
 export interface OpencodeMcpInstallResult {
   /** Absolute path written. */

@@ -1,22 +1,20 @@
 /**
  * Proof that the git hooks Lisa INSTALLS pass the dead-code gate Lisa installs
- * alongside them.
+ * alongside them, with no binary excused.
  *
  * Both halves ship in the same release and are both Lisa-managed, so a
  * disagreement between them is not a host's to fix: editing either file forks
  * it from upstream and stops future refreshes. Measured on a repository
  * upgrading to 3.45.6, a single such disagreement — `printf`, invoked by the
- * shipped `commit-msg` hook and absent from every shipped `ignoreBinaries` —
- * was the entire red pre-push dead-code gate, and every project running a full
- * apply reproduced it out of the box.
+ * shipped `commit-msg` hook — was the entire red pre-push dead-code gate, and
+ * every project running a full apply reproduced it out of the box.
  *
- * `printf` is a POSIX shell BUILTIN in every shell git runs a hook under, so
- * there is no tool to declare. knip's own `IGNORED_GLOBAL_BINARIES` already
- * carries that class — `echo`, `printenv`, `test`, `true` — and simply omits
- * this one. Correcting the gate's facts is the move; rewriting the hook to
- * avoid `printf` would trade away the shell-portability guarantee the hook's
- * own comment records (a POSIX/XSI `echo` honours `\c` and truncates the
- * message before `grep` ever sees the trailer — #2143).
+ * That was once answered by listing `printf` in every shipped `ignoreBinaries`.
+ * Knip 6 knows the shell builtins itself, and the shipped hooks route the
+ * dependency audit through `node scripts/lisa-audit.mjs` rather than a package
+ * manager's `audit` subcommand, so nothing remains to excuse: the shipped
+ * configs carry no `ignoreBinaries` at all (CodySwannGT/lisa#4932), and this
+ * suite proves the hooks still report no unlisted binary without one.
  *
  * The pairing is DISCOVERED, never listed: a new `<stack>/copy-overwrite`
  * carrying a `knip.json` inherits these assertions with nobody remembering to
@@ -103,6 +101,15 @@ function discoverShippedHooks(): readonly string[] {
 }
 
 /**
+ * Where a stack keeps the `knip.json` every host receives.
+ * @param stack - Stack directory name
+ * @returns Absolute path to that stack's shipped config
+ */
+function shippedKnipConfig(stack: string): string {
+  return path.join(REPO_ROOT, stack, "copy-overwrite", "knip.json");
+}
+
+/**
  * Every stack that ships a `knip.json` next to those hooks.
  * @returns Stack directory names, sorted
  */
@@ -111,9 +118,7 @@ function discoverStacksShippingKnip(): readonly string[] {
     .readdirSync(REPO_ROOT, { withFileTypes: true })
     .filter(entry => entry.isDirectory() && !entry.name.startsWith("."))
     .map(entry => entry.name)
-    .filter(name =>
-      fs.existsSync(path.join(REPO_ROOT, name, "copy-overwrite", "knip.json"))
-    )
+    .filter(name => fs.existsSync(shippedKnipConfig(name)))
     .sort((a, b) => (a < b ? -1 : Number(a > b)));
 }
 
@@ -143,10 +148,7 @@ function createConsumer(
     fs.writeFileSync(path.join(fixture, ".husky", name), body);
   }
 
-  fs.copyFileSync(
-    path.join(REPO_ROOT, stack, "copy-overwrite", "knip.json"),
-    path.join(fixture, "knip.json")
-  );
+  fs.copyFileSync(shippedKnipConfig(stack), path.join(fixture, "knip.json"));
   fs.writeFileSync(
     path.join(fixture, "src", "index.ts"),
     "export const x = 1;"
@@ -209,8 +211,14 @@ describe("shipped git hooks pass the shipped dead-code gate", () => {
   });
 
   it.each(STACKS.map(stack => [stack]))(
-    "%s reports no unlisted binary in any hook Lisa ships",
+    "%s ships no ignoreBinaries and reports no unlisted binary in any hook Lisa ships",
     stack => {
+      const config = JSON.parse(
+        fs.readFileSync(shippedKnipConfig(stack), "utf8")
+      ) as Record<string, unknown>;
+      // Checked first: a binary excused by the config would make the scan
+      // below pass for the wrong reason.
+      expect(config).not.toHaveProperty("ignoreBinaries");
       expect(unlistedBinaries(createConsumer(stack))).toEqual([]);
     },
     KNIP_TIMEOUT_MS
@@ -221,14 +229,16 @@ describe("shipped git hooks pass the shipped dead-code gate", () => {
     () => {
       // The negative control. Without it, a harness that had stopped reporting
       // — a knip that fails to parse the hooks, a plugin that never enables —
-      // would make every assertion above pass for the wrong reason.
+      // would make every assertion above pass for the wrong reason. knip 6
+      // treats a hook's bare commands as optional and reports only what a
+      // package manager runs, so the control is the exact call the shipped
+      // hooks stopped making: Yarn's `audit` subcommand.
       const fixture = createConsumer(STACKS[0] ?? "typescript", {
-        "pre-merge-commit":
-          "#!/bin/sh\nif ! lisa-not-a-real-binary | grep -q x; then exit 1; fi\n",
+        "pre-merge-commit": "#!/bin/sh\nyarn audit --groups dependencies\n",
       });
 
       expect(unlistedBinaries(fixture)).toContain(
-        ".husky/pre-merge-commit: lisa-not-a-real-binary"
+        ".husky/pre-merge-commit: audit"
       );
     },
     KNIP_TIMEOUT_MS

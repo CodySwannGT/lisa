@@ -106,9 +106,6 @@ export interface FleetCensus {
   readonly summary: FleetCensusSummary;
 }
 
-/** The fleet roster `scripts/lisa-update-local.sh` already maintains. */
-export const DEFAULT_ROSTER_FILE = ".lisa.workspaces.json";
-
 /**
  * Expand a leading `~` the way the roster's other reader does.
  * @param value - A path that may start with `~`

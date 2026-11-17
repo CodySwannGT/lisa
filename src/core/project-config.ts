@@ -60,8 +60,6 @@ export {
 export {
   DEFAULT_LOW_CONFIDENCE_ROUTING,
   LOW_CONFIDENCE_ROUTINGS,
-  STRICT_LOW_CONFIDENCE_ROUTING,
-  defaultLowConfidenceRouting,
   resolveLearningsSettings,
   resolveProjectLearningsFile,
   type LearningsConfig,
@@ -70,39 +68,21 @@ export {
 } from "./project-config-learnings.js";
 
 export {
-  DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
-  DEPENDENCY_HUMAN_SIGN_OFF_VALUES,
-  STRICT_DEPENDENCY_HUMAN_SIGN_OFF,
-  defaultDependencyHumanSignOff,
   dependencySettingsWarning,
-  resolveDependencySettings,
   type DependenciesConfig,
-  type DependencyHumanSignOff,
-  type ResolvedDependencySettings,
 } from "./project-config-dependencies.js";
 
 export {
-  DEFAULT_HUMAN_GATE_MODE,
-  HUMAN_GATE_MODES,
   humanGateSettingsWarnings,
-  resolveHumanGateMode,
-  resolveHumanGateSettings,
   type HumanGateConfig,
-  type HumanGateMode,
-  type ResolvedHumanGateSettings,
 } from "./project-config-human-gate.js";
 
 export type {
-  BrowserVerificationConfig,
   KaneBrowserConfig,
   VerificationConfig,
 } from "./project-config-kane.js";
 
-export type {
-  NightlyE2EConfig,
-  NightlyE2ETrackingConfig,
-  NightlyE2ETrackingDestination,
-} from "./project-config-nightly-e2e.js";
+export type { NightlyE2EConfig } from "./project-config-nightly-e2e.js";
 
 /** Filename of the per-project config, relative to the destination root */
 export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";

@@ -35,10 +35,7 @@ import { opencodeProjectPluginFilter } from "./project-plugin-gate.js";
 import { transformCommandToOpencode } from "./command-transformer.js";
 import { OPENCODE_CONFIG_DIR } from "./manifest.js";
 
-export {
-  type LisaCommandSource,
-  discoverLisaCommands,
-} from "../core/lisa-skill-sources.js";
+export type { LisaCommandSource } from "../core/lisa-skill-sources.js";
 
 /** Subdirectory inside `.opencode/` where Lisa-owned commands live */
 export const LISA_COMMANDS_SUBDIR = "commands";

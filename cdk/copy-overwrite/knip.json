@@ -1,5 +1,5 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "bin/**/*.ts",
     "lib/**/*.ts",
@@ -18,47 +18,9 @@
     "utils/**/*.ts",
     "lambda/**/*.ts",
     "lambdas/**/*.ts",
-    "functions/**/*.ts"
+    "functions/**/*.ts",
+    "test/**/*.ts",
+    "tests/**/*.ts"
   ],
-  "ignore": [
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "**/__tests__/**",
-    "**/__mocks__/**",
-    "**/tests/**",
-    "**/test/**",
-    "**/dist/**",
-    "**/build/**",
-    "**/coverage/**",
-    "**/node_modules/**",
-    "**/cdk.out/**",
-    "**/scripts/**",
-    "**/eslint-plugin-*/**"
-  ],
-  "ignoreDependencies": [
-    "@aws-cdk/*",
-    "aws-cdk",
-    "aws-cdk-lib",
-    "constructs",
-    "aws-cdk-github-oidc"
-  ],
-  "ignoreBinaries": [
-    "expo",
-    "playwright",
-    "audit",
-    "docker",
-    "eval",
-    "ast-grep",
-    "eslint",
-    "husky",
-    "knip",
-    "prettier",
-    "printf",
-    "tsc",
-    "vitest"
-  ],
-  "ignoreExportsUsedInFile": true,
-  "rules": {
-    "devDependencies": "off"
-  }
+  "ignoreExportsUsedInFile": true
 }

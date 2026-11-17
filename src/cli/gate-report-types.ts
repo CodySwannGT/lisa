@@ -308,21 +308,6 @@ export interface GateReport {
 }
 
 /**
- * Who owns a finding the report could not turn into a pass.
- *
- * The report has two audiences and they are not the same person. A consumer
- * asks "what is wrong with MY project, that I can fix"; showing them Lisa's
- * own unfixed defect as fifty-two blanks in their report tells them their
- * project is largely unverified when nothing about it is at fault.
- *
- * Attribution, never suppression. A finding is reattributed away from the
- * project only when it is provably not the project's — a missing script, an
- * absent declaration or an unrunnable command stays firmly in the project's
- * view however unflattering, and no reattribution ever turns a row green.
- */
-export type Attribution = "project" | "lisa" | "third-party";
-
-/**
  * One limitation of Lisa itself, stated once rather than per affected cell.
  *
  * "Fifty-two not checked here" is the wrong unit. It is ONE upstream

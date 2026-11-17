@@ -19,7 +19,6 @@ import {
 } from "../core/lisa-plugin-selection.js";
 
 export { convertCommandToSkill } from "./command-skill-transformer.js";
-export { LISA_COMMAND_SKILL_PREFIX } from "../core/lisa-skill-sources.js";
 
 /** Subdirectory inside `.codex/skills/` wholly owned by Lisa. */
 export const LISA_SKILLS_SUBDIR = path.join("skills", "lisa");

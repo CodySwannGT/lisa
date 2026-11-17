@@ -45,7 +45,12 @@ const ADVISORIES = [
     ghsa: "GHSA-c4qx-w738-7hr3",
     range: ">= 10.10.1, <= 12.0.1",
     patched: "12.0.2",
-    sites: ["nestjs/package-lisa/package.lisa.json:force.dependencies"],
+    // Lisa stopped installing the package itself (#4932); the floor now
+    // reaches every copy a host's GraphQL stack pulls in.
+    sites: [
+      "nestjs/package-lisa/package.lisa.json:force.overrides",
+      "nestjs/package-lisa/package.lisa.json:force.resolutions",
+    ],
   },
 ] as const;
 

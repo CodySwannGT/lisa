@@ -74,12 +74,3 @@ export const ISSUE_2494 = {
     },
   ],
 } as const;
-
-/**
- * Collapse markdown line wrapping so prose assertions can match plain
- * substrings instead of backtracking-prone whitespace regexes.
- *
- * @param source raw markdown
- * @returns the same text with every whitespace run collapsed to one space
- */
-export const flatten = (source: string): string => source.replace(/\s+/gu, " ");

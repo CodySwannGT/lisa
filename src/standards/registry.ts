@@ -351,15 +351,6 @@ export function digestStandardsConfig(config: JsonObject): string {
 }
 
 /**
- * Return a canonical SHA-256 digest without retaining config values.
- * @param value - JSON-like value to digest
- * @returns Canonical SHA-256 digest
- */
-export function digestStandardsValue(value: unknown): string {
-  return digest(value);
-}
-
-/**
  * Construct one fixed direct-command check.
  * @param id - Stable check identifier
  * @param category - Standards category

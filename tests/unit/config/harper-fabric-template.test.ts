@@ -70,24 +70,27 @@ describe("Harper/Fabric templates", () => {
     expect(deletions.paths).toContain("jest.config.local.ts");
   });
 
-  it("ignore hook-invoked binaries in Knip", () => {
+  it("names no hook-invoked binary for Knip to overlook (#4932)", () => {
     const knip = readJson(HARPER_FABRIC_KNIP_TEMPLATE) as {
       readonly ignoreBinaries?: readonly string[];
     };
 
-    expect(knip.ignoreBinaries).toEqual(
-      expect.arrayContaining(["audit", "knip"])
-    );
+    // The shipped hooks reach both through scripts Knip reads (`node
+    // scripts/lisa-audit.mjs` and the `knip:check` script), so no binary
+    // needs exempting (knip-shipped-hooks-binaries proves it per stack).
+    expect(knip.ignoreBinaries).toBeUndefined();
   });
 
-  it("suppresses generated Harper schema row types in Knip", () => {
+  it("keeps the generated Harper schema row types out of Knip's report", () => {
+    // Generated output, so the whole file is left out rather than one issue
+    // type exempted inside it (CodySwannGT/lisa#4932).
     const knip = readJson(HARPER_FABRIC_KNIP_TEMPLATE) as {
-      readonly ignoreIssues?: Readonly<Record<string, readonly string[]>>;
+      readonly ignore?: readonly string[];
+      readonly ignoreIssues?: unknown;
     };
 
-    expect(knip.ignoreIssues?.["src/types/harper-schema.ts"]).toContain(
-      "types"
-    );
+    expect(knip.ignore).toContain("src/types/harper-schema.ts");
+    expect(knip.ignoreIssues).toBeUndefined();
   });
 
   it("includes slow lint config but not Jest config in the ESLint project", () => {

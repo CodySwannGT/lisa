@@ -164,7 +164,8 @@ export function writeReservation(
  *
  * `os.freemem()` on macOS counts only never-used pages, which on a busy Mac is
  * a few hundred megabytes even with gigabytes reclaimable, so there the
- * reading adds inactive and speculative pages from `vm_stat`. Linux reads
+ * reading adds inactive and speculative pages from `vm_stat`, run by its fixed
+ * system path so nothing earlier on `PATH` can answer instead. Linux reads
  * `MemAvailable`.
  * @returns Megabytes
  */
@@ -177,8 +178,7 @@ export function availableMemoryMb(): number {
     return match?.[1] === undefined ? fallback : Number(match[1]) / 1024;
   }
   if (process.platform !== "darwin") return fallback;
-  // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed system vm_stat executable
-  const text = spawnSync("vm_stat", { encoding: "utf8" }).stdout ?? "";
+  const text = spawnSync("/usr/bin/vm_stat", { encoding: "utf8" }).stdout ?? "";
   const page = Number(/page size of (\d+) bytes/u.exec(text)?.[1] ?? 0);
   const pages = ["free", "inactive", "speculative"].map(kind =>
     Number(new RegExp(`Pages ${kind}:\\s+(\\d+)`, "u").exec(text)?.[1] ?? 0)
