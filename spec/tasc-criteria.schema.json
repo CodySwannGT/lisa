@@ -62,6 +62,10 @@
       "minLength": 1,
       "description": "The verifiable fact about the system that makes the requirement not apply, in plain language. The single word never when no such fact can exist."
     },
+    "answered": {
+      "enum": ["repository", "part"],
+      "description": "Where the requirement is answered when the repository has more than one part. repository: once, for the repository as a whole, because the answer rests on people, policy, the hosting platform, the tracker, agent identity, how incidents are handled, or the system as a whole. part: once for each part, because the honest answer can differ between two folders of one repository: it rests on that folder's code, tests, outside packages or screens. A requirement that is genuinely both is repository. In a repository that is a single part, every requirement is answered once."
+    },
     "level_note": {
       "type": "string",
       "minLength": 1,
@@ -91,7 +95,8 @@
         "question",
         "kind",
         "minimum_rung",
-        "not_applicable_when"
+        "not_applicable_when",
+        "answered"
       ],
       "properties": {
         "id": { "$ref": "#/$defs/criterion_id" },
@@ -104,6 +109,7 @@
         },
         "minimum_rung": { "$ref": "#/$defs/minimum_rung" },
         "not_applicable_when": { "$ref": "#/$defs/not_applicable_when" },
+        "answered": { "$ref": "#/$defs/answered" },
         "level_note": { "$ref": "#/$defs/level_note" }
       }
     },
@@ -119,6 +125,7 @@
         "kind",
         "minimum_rung",
         "not_applicable_when",
+        "answered",
         "gates"
       ],
       "properties": {
@@ -132,6 +139,7 @@
         },
         "minimum_rung": { "$ref": "#/$defs/minimum_rung" },
         "not_applicable_when": { "$ref": "#/$defs/not_applicable_when" },
+        "answered": { "$ref": "#/$defs/answered" },
         "level_note": { "$ref": "#/$defs/level_note" },
         "gates": {
           "type": "array",
@@ -154,6 +162,7 @@
         "kind",
         "minimum_rung",
         "not_applicable_when",
+        "answered",
         "gates",
         "no_gate_reason"
       ],
@@ -168,6 +177,7 @@
         },
         "minimum_rung": { "$ref": "#/$defs/minimum_rung" },
         "not_applicable_when": { "$ref": "#/$defs/not_applicable_when" },
+        "answered": { "$ref": "#/$defs/answered" },
         "level_note": { "$ref": "#/$defs/level_note" },
         "gates": {
           "type": "array",

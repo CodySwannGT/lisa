@@ -29,9 +29,26 @@ export const NOW = new Date("2026-11-17T12:00:00.000Z");
 /** The in-scope criteria of the shipped catalogue. */
 export const CRITERIA = inScopeCriteria(loadCriterionCatalogue());
 
-/** The first two in-scope criterion ids. */
+/**
+ * The first two in-scope criterion ids. Both are answered once, for the whole
+ * repository, so neither may be filed under a folder.
+ */
 export const FIRST = CRITERIA[0]?.id ?? "";
 export const SECOND = CRITERIA[1]?.id ?? "";
+
+/** The criteria answered once for the whole repository. */
+export const REPOSITORY_WIDE = CRITERIA.filter(
+  criterion => criterion.answered === "repository"
+);
+
+/** The criteria answered once for each part. */
+export const PER_PART = CRITERIA.filter(
+  criterion => criterion.answered === "part"
+);
+
+/** The first two criterion ids that are answered once for each part. */
+export const PART_FIRST = PER_PART[0]?.id ?? "";
+export const PART_SECOND = PER_PART[1]?.id ?? "";
 
 /** The scopes the in-memory repository has. */
 export const WHOLE = ".";

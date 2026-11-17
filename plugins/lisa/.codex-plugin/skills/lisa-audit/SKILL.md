@@ -137,6 +137,7 @@ requirement the audit must answer, in order. For each one:
 | `id` | The requirement's id. Goes in a finding's `criterion` field and nowhere else. |
 | `question` | The requirement as a plain question. This is what you are answering. |
 | `kind` | What sort of thing answers it. `gate`: an automatic check that can refuse a change. `artifact`: a file or record that exists. `human-attested`: something a person vouches for, so look for where it is written down. |
+| `answered` | Where its finding goes. `repository`: it has one answer for the whole repository. `part`: it has one answer for each part, because the answer depends on that part's code and tools. Step 4 says exactly where to file each kind. This is decided here, not by you. |
 | `not_applicable_when` | The one condition under which the requirement does not apply. `never` means it always applies. |
 | `gates` | Only on a `gate`: the names Lisa gives its own checks of this kind. Read them as hint words for what to look for (`code-style`, `dependency-vulnerability`). An empty list means Lisa has no check of its own for it; the requirement still stands. |
 | `title`, `in_scope`, `minimum_rung`, `level_note`, `no_gate_reason` | Background. Not needed to answer. |
@@ -149,11 +150,13 @@ Answer exactly the requirements on that list: no more and no fewer.
 
 Findings are reported part by part, and a part is identified by its folder path.
 
-- **The whole repository** is always the first part, written `.`.
+- **The whole repository** is always the first part, written `.`. It holds the requirements that
+  have one answer for the repository.
 - **A folder is a part** when it holds a piece of software of its own: it has its own manifest or
   build definition (for example `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`,
   `pom.xml`, `Gemfile`) and its own language or tools, so the answer to "is this checked?" can
-  differ from the folder next to it.
+  differ from the folder next to it. Each folder holds the requirements that have one answer for
+  each part.
 - Name the shallowest folder that holds the whole piece: `services/api`, not `services/api/src`.
   Write the path from the repository root with `/` between folder names, with no leading `./` and
   no trailing `/`.
@@ -162,13 +165,16 @@ Findings are reported part by part, and a part is identified by its folder path.
 - These are never parts: documentation, vendored third-party code, installed dependencies, build
   output, test fixtures.
 - When the root itself is the one piece of software, there are no separate parts and the list is
-  just `.`. Every requirement is then answered in the whole-repository section, and the rules
-  about sections in step 4 do not come into play.
+  just `.`. Every requirement is then answered once, in the whole-repository section.
+- When the root holds a piece of software of its own **and** other folders hold theirs, the list
+  needs a folder for the root's software too, because once folders are listed `.` holds only the
+  requirements that have one answer for the repository. Name the folder its code is in (`src`,
+  for example), so its tests, style and outside packages are answered like any other part's.
 
 ### Step 4: Discover what checks each requirement in each part
 
-**Needs:** the requirements and the parts. **Hands on:** one finding for every requirement in every
-part.
+**Needs:** the requirements and the parts. **Hands on:** one finding for every requirement in each
+place it is answered.
 
 **Where to look.** Read all of these before deciding anything is absent:
 
@@ -198,36 +204,34 @@ part.
 | `moment` | When it runs: `commit`, `push`, `pull-request`, `session-start`, `pre-tool`, `post-tool`, or `pre-deploy`, `post-deploy` or `continuous`, each optionally followed by `:` and an environment name such as `pre-deploy:production`. `none` when nothing runs it by itself: a settings file alone (`command` is `null`), or a script that exists but that no hook or pipeline calls (`command` is the script's own line). |
 | `locators` | Where you saw it: one or more `{ "path", "line" }`, the path from the repository root and the line counted from 1. Point at a line that exists. |
 
-A mechanism's file may sit anywhere. File the finding under the part whose code it checks. Something
-you found that answers no requirement on the list (a type checker, for example) is left out of the
-report.
+A mechanism's file may sit anywhere: a pipeline file at the root can run one folder's tests. What
+decides where a finding is filed is the requirement's `answered` value, below, and for a
+requirement answered per part, the part whose code the mechanism checks. Something you found that
+answers no requirement on the list (a type checker, for example) is left out of the report.
 
-**Which section a requirement is answered in.** Every requirement gets exactly one finding in every
-part, but it is really answered in one kind of place. Ask: _could the answer differ between two
-folders, because it depends on that folder's code, language or tools?_
+**Where each requirement's finding goes.** Read the requirement's `answered` value from step 2 and
+file it exactly as this table says. The check in step 6 refuses a finding filed anywhere else.
 
-- **Yes: it is answered part by part.** Tests, coverage, style, structure, copied code, load
-  tests, walk-throughs of the working software before and after release, screens and design, and
-  the outside packages a folder's code pulls in. Each part's section holds that part's real
-  answer. In the whole-repository section, answer it for the code that is in no part; when there
-  is none, the finding there only points at the parts.
-- **No: it is answered once, in the whole-repository section.** Accounts, permissions, secrets,
-  merge and release rules, agent instructions, records, people, schedules, monitoring, and the
-  companies that supply models or services. In each part's section the finding only points at the
-  whole-repository section.
-- **When a requirement seems to fit both,** go by what is being checked: the software itself is
-  answered part by part, and the way people or agents work is answered once.
-- **A finding that only points** has the state `not-applicable` and an empty `mechanisms` list.
-  Its `what` says the requirement is answered elsewhere, its `why` says it is answered once so
-  that it is not counted twice, and its `next` names the section to read: "Whole repository", or
-  "Folder api" for the folder `api`.
-- Every requirement needs at least one finding that is not a pointer.
+| `answered` | The list of parts is just `.` | The list of parts names folders |
+| --- | --- | --- |
+| `repository` | One finding, with the scope `.`. | One finding, with the scope `.`. None under any folder. |
+| `part` | One finding, with the scope `.`. | One finding under every folder, each saying what is true of that folder. None with the scope `.`. |
+
+- Every finding is a real answer. There is no finding whose only job is to point at another
+  section: a requirement simply does not appear where it is not answered.
+- Do not move a requirement because its answer seems to live somewhere else. When a requirement
+  with one answer for the repository is met for one folder and not for another, that is one
+  finding, with the scope `.`: say in `what` which folder is covered and which is not, and list
+  every mechanism you found.
+- A requirement answered per part gets a finding under every folder, including a folder where it
+  does not apply (a folder with no screen, for a requirement about screens) or where nothing was
+  found.
 
 **Which state to choose.** Take the first row that is true:
 
 | State | Choose it when | It must carry |
 | --- | --- | --- |
-| `not-applicable` | The requirement's `not_applicable_when` condition is true here and you can name the fact that makes it true, or the finding only points at another section (above). Something missing from the repository is such a fact only when the condition is about what the repository holds (it has no screen, it uses no outside packages). When the condition is about how the organisation or its agents work, nothing in the repository can show it: that is a `question`. Whether the software is released, deployed or run for users is one of those, unless the repository itself shows it (a release script, a deployment pipeline). Never choose this state because a requirement is hard to answer. | The fact, or the section, in `what`. |
+| `not-applicable` | The requirement's `not_applicable_when` condition is true here and you can name the fact that makes it true. Something missing from the repository is such a fact only when the condition is about what the repository holds (it has no screen, it uses no outside packages). When the condition is about how the organisation or its agents work, nothing in the repository can show it: that is a `question`. Whether the software is released, deployed or run for users is one of those, unless the repository itself shows it (a release script, a deployment pipeline). Never choose this state because a requirement is hard to answer, or because its answer is written up in another section. | The fact, in `what`. |
 | `exists-not-enforced` | Reading found something that checks or records this. This is the strongest thing an audit can say by itself, however well wired the mechanism looks. It is also the state when what you found covers only some of the requirement: say in `what` which part is covered and which is not. | At least one mechanism with a locator. |
 | `unknown` | The answer is a setting held by an outside system you can name from what you read (a hosting platform named by a remote or a pipeline file, a tracker, a monitoring service), and this audit does not read outside systems. A repository with no remote and no pipeline has no such system to name: that is `missing`. | In `next`, the system that holds the answer and the access needed to read it. |
 | `question` | Only a person can say: the requirement is of kind `human-attested` and nothing written down vouches for it; or nothing you can read shows whether its `not_applicable_when` condition holds; or two things you found contradict each other. | In `what`, what you looked for and could not establish. In `next`, who is likely to know. |
@@ -288,25 +292,29 @@ report into shape. The record has exactly these keys and no others:
       "mechanisms": []
     },
     {
-      "criterion": "SI7",
+      "criterion": "AC1.7",
       "scope": ".",
-      "state": "not-applicable",
-      "what": "All the code this applies to sits in the two folders, so it is answered for each of them.",
-      "why": "It is answered once for each folder so that it is not counted twice.",
-      "next": "Read the sections Folder api and Folder web.",
+      "state": "question",
+      "what": "Nothing written in the repository names the person who answers for what the agents do, or a backup for that person.",
+      "why": "If an agent's change causes harm, nobody is on record as the one who decides what happens next.",
+      "next": "Ask whoever runs this team to name that person and a backup.",
       "mechanisms": []
     }
   ]
 }
 ```
 
-The example shows three findings. The real file has one finding for every requirement in every
-part: the number of requirements times the number of parts.
+The example shows three findings: a requirement answered per part (`SI7`), once under each folder
+and not under `.`, and a requirement with one answer for the repository (`AC1.7`), once under `.`.
+The real file has one finding for every requirement with the `answered` value `repository`, plus
+one for every requirement with the value `part` under each folder. When the list of parts is just
+`.`, that is one finding for every requirement.
 
 - `scopes` is the list from step 3, `.` first, each part once.
 - Every finding has all seven keys shown: `criterion`, `scope`, `state`, `what`, `why`, `next` and
   `mechanisms`, which is an empty list when nothing was found.
-- `scope` is one entry of `scopes`. `criterion` is one `id` from step 2.
+- `scope` is one entry of `scopes`, chosen by the table in step 4. `criterion` is one `id` from
+  step 2.
 - `evidence_id` is the only other key a finding may have, and only on a `proved` finding.
 - The order of the findings does not matter.
 - The file is large. You may draft it in pieces in the system's temporary folder and put the
@@ -328,12 +336,16 @@ lisa controls report-check
   not present any finding as the audit's result. Each line printed is one problem, in plain words,
   naming the requirement and the part. The only way forward is to correct
   `.lisa/audit/report.json` so that it says truthfully what you found, and run this step again.
+  A line saying a requirement is answered once for the whole repository, or once for each folder,
+  means a finding is filed in the wrong place or is absent from the right one: move it or add it
+  as the table in step 4 says.
   Never clear a problem by removing a requirement or a part, by pointing at a line that does not
   show the control, or by inventing an evidence record. If the report cannot be made to pass
   honestly, stop and tell the operator in plain words that the audit did not complete and why.
 
-The check holds the record to its shape, its coverage and its pointers. It cannot tell whether you
-chose the right state or the right section: that judgment stays yours.
+The check holds the record to its shape, its coverage, where each requirement is filed and its
+pointers into the repository. It cannot tell whether you chose the right state: that judgment
+stays yours.
 
 ### Step 7: Confirm nothing else changed
 
@@ -379,10 +391,11 @@ In plain language, for someone who does not code:
 
 1. What was audited: the repository, and each part by its folder.
 2. The picture, section by section: for the whole repository and then for each part, how many of
-   the requirements really answered there are in place but not yet shown to be enforced, how many
-   are missing, how many do not apply, how many could not be checked, and how many need a
-   person's answer. When some findings only point at another section, leave them out of every
-   count and say that the report's own summary table includes them under "Does not apply".
+   the requirements answered there are in place but not yet shown to be enforced, how many are
+   missing, how many do not apply, how many could not be checked, and how many need a person's
+   answer. These are the numbers in the report's own summary table. Say once that a requirement
+   appears under the whole repository when it has one answer for the repository, and under each
+   folder when its answer can differ from folder to folder.
 3. The few findings that matter most, each as its `what` and its `next`.
 4. Where the report is: `.lisa/audit/report.md` to read, `.lisa/audit/report.json` as the checked
    record.
