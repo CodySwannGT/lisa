@@ -310,6 +310,14 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "599628647c03ac22fe7cd5df22219a70b67e449cc893cc85564a93d658df2c2d",
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1":
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
+    "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs":
+      "4dcea21ae9fe5114964abda7dbadeb5365241893e7e96d83411c27e1b777f5b9",
+    "all/copy-overwrite/scripts/lib/work-item-estimate-config.d.mts":
+      "68ba3eba29ed10a0ca3488e35722882413a85eaa2105b0266f3edfa121d9bb86",
+    "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs":
+      "dea9d7e5440646b8bd4122846bf587a2f7cfff95e720b43302dda98b91c58b5f",
+    "all/copy-overwrite/scripts/lib/work-item-estimate.mjs":
+      "87339af7a7ae14f53994f817566d77434769f8000e8da869696bfe664f822166",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
       "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
@@ -336,6 +344,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "5f303bc2c0427fbf686bc75fe2f481da9f70708165c6d2a51d0432aedfcd205d",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "264dc09909dc6c2624d87fd3d342c4538bdc62654e7c804732cdee97218fbcd0",
+    "all/copy-overwrite/scripts/lisa-estimate.mjs":
+      "3e154026f7308947f1d33305d9563d6fdd951ccbfc7f4372f4e48211092bc119",
     "all/copy-overwrite/scripts/lisa-evidence-prune.mjs":
       "878b2014be5a0bedc8b4899d0e961dfea5b1147ff0a694a9fac00f77121f035a",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -1225,7 +1235,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "91ed826d68b75b562771cf51cbd188e0bb67ab9a5c0eeed05616f91ebfd661ef",
+      "01b344acc01bf075dabc607df5e89ed4c203398cf9efb4b49d23fbe881a3dc81",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1329,7 +1339,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
       "34afe0413fce11872ac99b87e6323c59a754db7992c5fb054a56845af0723785",
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
-      "11c0c1dfbdc56ddeae72f6672a6ccdf0b35356234b694d33743c816e6c155ec7",
+      "21b833ba64aa122a6295f48f39eb23522ba6d032c028ee2a49075338fcc3eb31",
     "plugins/src/base/rules/reference/work-item-trailer-definition.md":
       "2997766dc8ab61bf63891781dc9e86339a47ca35eddd4ca387bd7cc0ce85f2a5",
     "plugins/src/base/scripts/automation-run-record.mjs":
@@ -1497,7 +1507,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "e068c078a79015af58b8faed193f1f736ff18d32ed1a677b0ee9cddf635d71b6",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
-      "17761b97be674ec7f133d87ae782b6347b0e1e63fa9c2e397108b2b8e2b98c85",
+      "476bc4d9d926461f0edddbaf5c71df5c43b87ce9e6754768232a8b71db70f42b",
     "plugins/src/base/skills/lisa-github-verify/SKILL.md":
       "7264fbb02cdc6e8059d2130f19e16fadd36f5defff64621a1d95fc24565abc15",
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md":
@@ -1553,7 +1563,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
       "943a89c2fd70b7cd1f13badc8ce0018f9f5ff18a0a7443440ba68a309bf4685f",
     "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md":
-      "695a45c2429d2898990935ebcfbf6d4fbba95284f44220c8a136db08e365ce4f",
+      "7e89ebf3e9ee13728b9a9d573b372af4091d7fd62a181d8ee2b4c929aaa0e19c",
     "plugins/src/base/skills/lisa-jira-verify/SKILL.md":
       "55484ce81b43a167db9bbeed62edf8b204676827b7ef7bf1892c17453027c7b6",
     "plugins/src/base/skills/lisa-jira-write-ticket/SKILL.md":
@@ -1587,7 +1597,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "af8efdcd13d0e30f729938a8c70674be58fd7113f2ad723ab5ebad7ea42ac5ce",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
-      "ac53b37f37ebf7d7a825c2dfab28a0a0b9be987993e5797df1a5ed3c63e9374d",
+      "57440decb644afe7852241e6496f1d89bb2ab9a2666fe94762746de0108c4a8f",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
@@ -1937,9 +1947,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-write/SKILL.md":
       "ec546503c322ebf4b6283f3a265a61cff8c1b0f895aed73f75474bf4b2397abe",
     "plugins/src/base/skills/lisa-usage-accounting/SKILL.md":
-      "6500984bcd2dc7e6932473c72b6e61191c57b6620ee0ee4cf49239d27c17897e",
+      "bad08b1e1c843d13bd6fc8abe7f697620f99e8f6d78c1409663bcb6ffef86fbc",
     "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md":
       "d34e7b4951bc26caf15625e081e8273a11ee8ca1bde6137750f4b687fca7e8bf",
+    "plugins/src/base/skills/lisa-usage-accounting/references/estimate.md":
+      "ced0798230291b4eb8ed87bd0b3b172710cd2cf6456aa92451c2b30d4ed97a84",
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "9605cce9b30a5a4db04ce936b5dddcaaf05368ddcd91ce4067956071a481db63",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
@@ -2906,6 +2918,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "5971482c13ba1b31171d35b640cca5e4a5c8c2fb6c353f9b5b720f2ada5b175f",
     "scripts/lisa-enforcement-freshness.mjs":
       "b3e91b689b7cb83957e46ecfae35765422b7c7343270cfb31007ef510ac05086",
+    "scripts/lisa-estimate.mjs":
+      "2334e384ec77ba5d85b6547d1cb714002b9a44ec8945747f694310a52dd68ae8",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -2975,7 +2989,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "cf83ba30039a040461689fbcf5df0ac582cc177e3d475986dcffe8177484d631",
+      "1e21b290591f2c66c75e1c59b72baca7ea9a729f3e56e9fc004222f16080734d",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3045,7 +3059,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "f76ae42a7af0278fe95f37c48140acbe054ad03ad7c66fbcffadc6506eec8db8",
+      "9073b4e9c9c876373bdb547539e50f2365e930fd4f24b21bd5f64cf5eaf9c0a4",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3477,6 +3491,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/windows-process-job.cs": true,
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs": true,
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1": true,
+    "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs": true,
+    "all/copy-overwrite/scripts/lib/work-item-estimate-config.d.mts": true,
+    "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs": true,
+    "all/copy-overwrite/scripts/lib/work-item-estimate.mjs": true,
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts": true,
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": true,
     "all/copy-overwrite/scripts/lisa-affected-tests.mjs": true,
@@ -3490,6 +3508,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh": true,
     "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs": true,
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs": true,
+    "all/copy-overwrite/scripts/lisa-estimate.mjs": true,
     "all/copy-overwrite/scripts/lisa-evidence-prune.mjs": true,
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs": true,
     "all/copy-overwrite/scripts/lisa-gates.mjs": true,
@@ -5251,6 +5270,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-tracker-write/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-usage-accounting/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-usage-accounting/references/effectiveness.md": true,
+    "plugins/lisa-agy/skills/lisa-usage-accounting/references/estimate.md": true,
     "plugins/lisa-agy/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-validate-tracker-mapping/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-verification-lifecycle/SKILL.md": true,
@@ -5800,6 +5820,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-tracker-write/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-usage-accounting/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-usage-accounting/references/effectiveness.md": true,
+    "plugins/lisa-copilot/skills/lisa-usage-accounting/references/estimate.md": true,
     "plugins/lisa-copilot/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-validate-tracker-mapping/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-verification-lifecycle/SKILL.md": true,
@@ -6333,6 +6354,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-tracker-write/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-usage-accounting/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-usage-accounting/references/effectiveness.md": true,
+    "plugins/lisa-cursor/skills/lisa-usage-accounting/references/estimate.md": true,
     "plugins/lisa-cursor/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-validate-tracker-mapping/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-verification-lifecycle/SKILL.md": true,
@@ -6799,6 +6821,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-tracker-write/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-usage-accounting/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-usage-accounting/references/effectiveness.md": true,
+    "plugins/lisa-devin/skills/lisa-usage-accounting/references/estimate.md": true,
     "plugins/lisa-devin/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-validate-tracker-mapping/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-verification-lifecycle/SKILL.md": true,
@@ -9034,6 +9057,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-usage-accounting/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-usage-accounting/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-usage-accounting/references/effectiveness.md": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-usage-accounting/references/estimate.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-use-the-product/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-validate-tracker-mapping/SKILL.md": true,
@@ -9747,6 +9771,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-usage-accounting/SKILL.md": true,
     "plugins/lisa/skills/lisa-usage-accounting/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-usage-accounting/references/effectiveness.md": true,
+    "plugins/lisa/skills/lisa-usage-accounting/references/estimate.md": true,
     "plugins/lisa/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/lisa/skills/lisa-use-the-product/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-validate-tracker-mapping/SKILL.md": true,
@@ -10295,6 +10320,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-tracker-write/SKILL.md": true,
     "plugins/src/base/skills/lisa-usage-accounting/SKILL.md": true,
     "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md": true,
+    "plugins/src/base/skills/lisa-usage-accounting/references/estimate.md": true,
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md": true,
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md": true,
@@ -10849,6 +10875,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-enforcement-census.mjs": true,
     "scripts/lisa-enforcement-fallback.sh": true,
     "scripts/lisa-enforcement-freshness.mjs": true,
+    "scripts/lisa-estimate.mjs": true,
     "scripts/lisa-github-environments.sh": true,
     "scripts/lisa-github-repo-settings.sh": true,
     "scripts/lisa-github-repo-setup.sh": true,
@@ -11399,6 +11426,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/sync/registry.ts": true,
     "src/sync/stryker-thresholds-ownership.ts": true,
     "src/sync/sync-population.ts": true,
+    "src/sync/work-item-estimate-setting.ts": true,
     "src/transaction/backup.ts": true,
     "src/transaction/created-paths.ts": true,
     "src/transaction/index.ts": true,
@@ -13072,6 +13100,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts": true,
     "tests/unit/scripts/lisa-cleanup-sweep.test.ts": true,
     "tests/unit/scripts/lisa-environment-prepare.test.ts": true,
+    "tests/unit/scripts/lisa-estimate-cli.test.ts": true,
     "tests/unit/scripts/lisa-gates-await-deploy-refusal.test.ts": true,
     "tests/unit/scripts/lisa-gates-await-moment-reach.test.ts": true,
     "tests/unit/scripts/lisa-gates-builtin-contract.test.ts": true,
@@ -13386,6 +13415,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-comment-projection.test.ts": true,
     "tests/unit/scripts/work-item-completion-authorization.test.ts": true,
     "tests/unit/scripts/work-item-contract-version.test.ts": true,
+    "tests/unit/scripts/work-item-estimate.test.ts": true,
     "tests/unit/scripts/work-item-evidence-release-cli.test.ts": true,
     "tests/unit/scripts/work-item-gate-scope-advice.test.ts": true,
     "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
@@ -13871,6 +13901,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/sync/mutation-floor-divergence.test.ts": true,
     "tests/unit/sync/starter-config.test.ts": true,
     "tests/unit/sync/stryker-thresholds-ownership.test.ts": true,
+    "tests/unit/sync/work-item-estimate-sync.test.ts": true,
     "tests/unit/templates/dependency-decisions-template.test.ts": true,
     "tests/unit/templates/lisa-dependency-decisions-seed.test.ts": true,
     "tests/unit/templates/node-version-consistency.test.ts": true,
