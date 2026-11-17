@@ -31,6 +31,18 @@ export const CATALOGUE_PACKAGE_PATH = path.join("spec", "tasc-criteria.json");
  */
 export const CRITERION_ID_SOURCE = String.raw`AC[1-9]\d*\.[1-9]\d*|(?:SI|DP|UX)[1-9]\d*`;
 
+/**
+ * Where a requirement is answered when a repository has more than one part.
+ * `repository`: once, for the repository as a whole. `part`: once for each
+ * part, because the honest answer can differ between two folders. The
+ * catalogue decides this for every in-scope criterion so that nobody placing
+ * or checking a finding has to guess.
+ */
+export const CRITERION_ANSWERED = ["repository", "part"] as const;
+
+/** One of the two places a requirement is answered. */
+export type CriterionAnswered = (typeof CRITERION_ANSWERED)[number];
+
 /** A criterion the Level 1 verdict covers. */
 export interface InScopeCriterion {
   /** The id exactly as the specification writes it, for example `AC5.4`. */
@@ -40,6 +52,8 @@ export interface InScopeCriterion {
   readonly in_scope: true;
   /** The requirement as one plain-language question. */
   readonly question: string;
+  /** Whether it has one answer for the repository or one for each part. */
+  readonly answered: CriterionAnswered;
   /** Catalogue keys this module does not interpret. */
   readonly [key: string]: unknown;
 }
@@ -107,6 +121,15 @@ function isText(value: unknown): value is string {
 }
 
 /**
+ * Tell whether a value is one of the two places a requirement is answered.
+ * @param value - Candidate
+ * @returns Whether it is `repository` or `part`
+ */
+function isAnswered(value: unknown): value is CriterionAnswered {
+  return CRITERION_ANSWERED.some(answered => answered === value);
+}
+
+/**
  * Tell whether a value has the fields the control commands read from an entry.
  * @param entry - Candidate catalogue entry
  * @returns Whether it can be used
@@ -116,7 +139,7 @@ function isCriterion(entry: unknown): entry is CatalogueCriterion {
     return false;
   }
   return entry.in_scope === true
-    ? isText(entry.question)
+    ? isText(entry.question) && isAnswered(entry.answered)
     : entry.in_scope === false;
 }
 
@@ -136,7 +159,7 @@ export function loadCriterionCatalogue(
     !document.criteria.every(entry => isCriterion(entry))
   ) {
     throw new Error(
-      `${file} is not a usable criterion catalogue: every entry needs an id, a title and an in_scope flag, and every in-scope entry a question.`
+      `${file} is not a usable criterion catalogue: every entry needs an id, a title and an in_scope flag, and every in-scope entry a question and an answered value of ${CRITERION_ANSWERED.join(" or ")}.`
     );
   }
   return document as CriterionCatalogue;

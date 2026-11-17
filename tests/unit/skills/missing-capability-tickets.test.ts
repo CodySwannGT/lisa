@@ -15,7 +15,11 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { classifyHumanGateReason } from "../../../plugins/src/base/scripts/human-gate-act.mjs";
-import { CRITERION_ID_SOURCE } from "../../../src/controls/catalogue.js";
+import {
+  CRITERION_ID_SOURCE,
+  inScopeCriteria,
+  loadCriterionCatalogue,
+} from "../../../src/controls/catalogue.js";
 import {
   GAPS_SCHEMA_VERSION,
   listControlGaps,
@@ -64,8 +68,12 @@ const TEXT = reference(SURFACES[0]);
 /** The document with every run of white space as one space, so a wrap is not a difference. */
 const PROSE = TEXT.replaceAll(/\s+/gu, " ");
 
-/** The example the document walks through. */
-const EXAMPLE = { criterion: "AC8.2", scope: "api" } as const;
+/**
+ * The example the document walks through: a gap under a folder. Only a
+ * requirement the catalogue says is answered per part can have a finding
+ * there, so the example has to be one (CodySwannGT/lisa#5007).
+ */
+const EXAMPLE = { criterion: "SI8", scope: "api" } as const;
 
 /**
  * The first fenced block of a language in the document.
@@ -119,6 +127,7 @@ describe("the missing-capability ticket flow", () => {
           title: "A title",
           in_scope: true,
           question: "Is it done?",
+          answered: "part",
         },
       ]
     );
@@ -146,6 +155,15 @@ describe("the missing-capability ticket flow", () => {
     });
   });
 
+  it("walks through a gap the report check would accept under a folder", () => {
+    const criterion = inScopeCriteria(loadCriterionCatalogue()).find(
+      entry => entry.id === EXAMPLE.criterion
+    );
+
+    expect(EXAMPLE.scope).not.toBe(".");
+    expect(criterion?.answered).toBe("part");
+  });
+
   it("quotes the marker and the key the code produces for its example", () => {
     const marker = controlGapMarker(EXAMPLE.criterion, EXAMPLE.scope);
 
@@ -170,7 +188,7 @@ describe("the missing-capability ticket flow", () => {
 
     expect(withId.length).toBeGreaterThan(0);
     withId.forEach(line => {
-      expect(line).toMatch(/criterion=AC8\.2 |"criterion": "AC8\.2"/u);
+      expect(line).toMatch(/criterion=SI8 |"criterion": "SI8"/u);
     });
   });
 
