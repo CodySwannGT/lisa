@@ -13,13 +13,23 @@
  * A dependency, binary or file the gate cannot see is fixed where it lives:
  * removed when unused, or made visible through a plugin, an entry or a
  * declaration. It is never listed here. The configs are DISCOVERED, so a new
- * stack's `knip.json` is held to this the moment it exists.
+ * stack's `knip.json` is held to this the moment it exists. The `knip.ts` an
+ * Expo host is told to write (the `knip-platform-files` skill's worked
+ * example, built on `@codyswann/lisa/knip`) is evaluated and held to the same
+ * bar, so the documented fix can never carry an exemption either.
  * @module tests/unit/config/knip-config-strictness
  */
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { minimatch } from "minimatch";
 import { describe, expect, it } from "vitest";
+
+import {
+  againstSource,
+  workedExample,
+} from "../../helpers/expo-knip-fixture.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
@@ -68,6 +78,30 @@ function readConfig(file: string): KnipConfig {
     Record<string, unknown>
   >;
   return { file, scopes: [parsed, ...Object.values(workspaces)] };
+}
+
+/**
+ * The skill's worked-example `knip.ts`, evaluated as knip would load it.
+ * @returns The config object it exports, as a parsed config
+ */
+async function evaluatedWorkedExample(): Promise<KnipConfig> {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-knip-ts-"));
+  const file = path.join(dir, "knip.ts");
+  fs.writeFileSync(file, againstSource(workedExample()));
+  return import(pathToFileURL(file).href)
+    .then((loaded: { default: Record<string, unknown> }) => ({
+      file: "knip-platform-files/SKILL.md knip.ts",
+      scopes: [
+        loaded.default,
+        ...Object.values(
+          (loaded.default.workspaces ?? {}) as Record<
+            string,
+            Record<string, unknown>
+          >
+        ),
+      ],
+    }))
+    .finally(() => fs.rmSync(dir, { recursive: true, force: true }));
 }
 
 /**
@@ -150,6 +184,17 @@ describe("knip configs Lisa runs and ships are strict", () => {
 
   it("keeps every test file in the analysis", () => {
     expect(CONFIGS.flatMap(testIgnores)).toEqual([]);
+  });
+
+  it("holds a host knip.ts built from Lisa's Expo resolution to the same bar", async () => {
+    const example = await evaluatedWorkedExample();
+    // It really is the helper's output: without these the check is vacuous.
+    expect(Object.keys(example.scopes[0] ?? {})).toEqual(
+      expect.arrayContaining(["compilers", "paths"])
+    );
+    expect(exemptions(example)).toEqual([]);
+    expect(disabledRules(example)).toEqual([]);
+    expect(testIgnores(example)).toEqual([]);
   });
 
   it("still catches each kind of exemption when one is present", () => {

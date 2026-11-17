@@ -219,6 +219,7 @@
     "./jest": "./dist/configs/jest/index.js",
     "./jest/base": "./dist/configs/jest/base.js",
     "./jest/expo": "./dist/configs/jest/expo.js",
+    "./knip": "./dist/configs/knip/index.js",
     "./vitest": "./dist/configs/vitest/index.js",
     "./vitest/base": "./dist/configs/vitest/base.js",
     "./vitest/typescript": "./dist/configs/vitest/typescript.js",

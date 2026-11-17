@@ -17,6 +17,11 @@ import { describe, expect, it } from "vitest";
 import { findMentionedPackages } from "../../../src/strategies/package-mentions.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { createPackageLisaApplyHarness } from "../../helpers/package-lisa-apply-harness.js";
+import {
+  gitInit,
+  installPackage,
+  writeHostFile,
+} from "../../helpers/package-mention-fixture.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const TYPESCRIPT = "typescript";
@@ -32,50 +37,6 @@ const TEMPLATE = {
   force: { scripts: { build: "tsc" } },
   adopt: { devDependencies: { [RETIRED]: [RETIRED_VALUE] } },
 };
-
-/**
- * Make a directory an installed git repository: the mention check searches it
- * with git and reads peers from its `node_modules`.
- * @param dir - Host directory
- */
-function gitInit(dir: string): void {
-  boundedExecFileSync({
-    label: "git init host fixture",
-    command: resolveGit(),
-    args: ["init", "-q"],
-    cwd: dir,
-  });
-  fs.mkdirSync(path.join(dir, "node_modules"), { recursive: true });
-}
-
-/**
- * Install a package's manifest into the host's `node_modules`.
- * @param dir - Host directory
- * @param name - Package name
- * @param peerDependencies - Peers the installed package declares
- */
-function installPackage(
-  dir: string,
-  name: string,
-  peerDependencies: Readonly<Record<string, string>> = {}
-): void {
-  writeHostFile(
-    dir,
-    path.join("node_modules", name, MANIFEST),
-    JSON.stringify({ name, version: "1.0.0", peerDependencies })
-  );
-}
-
-/**
- * Write a host file, creating its directory.
- * @param dir - Host directory
- * @param relative - Path inside the host
- * @param contents - File contents
- */
-function writeHostFile(dir: string, relative: string, contents: string): void {
-  fs.mkdirSync(path.dirname(path.join(dir, relative)), { recursive: true });
-  fs.writeFileSync(path.join(dir, relative), contents);
-}
 
 describe("dependency adopt is guarded by use (#4932)", () => {
   const host = createPackageLisaApplyHarness();
@@ -275,84 +236,6 @@ describe("findMentionedPackages", () => {
     expect([...(await findMentionedPackages(host.hostDir(), ["tar"]))]).toEqual(
       ["tar"]
     );
-  });
-
-  it("keeps a package a tool loads by its short name", async () => {
-    gitInit(host.hostDir());
-    // codegen.ts names plugins as `typescript-operations`, not the package.
-    writeHostFile(
-      host.hostDir(),
-      "codegen.ts",
-      'export default { generates: { "a.ts": { plugins: ["typescript-operations"] } } };\n'
-    );
-    expect([
-      ...(await findMentionedPackages(host.hostDir(), [
-        "@graphql-codegen/typescript-operations",
-        "@graphql-codegen/near-operation-file-preset",
-      ])),
-    ]).toEqual(["@graphql-codegen/typescript-operations"]);
-  });
-
-  it("keeps a package the app config loads through a setting", async () => {
-    // Expo loads expo-system-ui for `userInterfaceStyle`; the host never
-    // names the package, and knip's Expo plugin counts it as used.
-    gitInit(host.hostDir());
-    writeHostFile(
-      host.hostDir(),
-      "app.json",
-      '{"expo":{"userInterfaceStyle":"automatic"}}'
-    );
-    expect([
-      ...(await findMentionedPackages(host.hostDir(), [
-        "expo-system-ui",
-        "expo-navigation-bar",
-      ])),
-    ]).toEqual(["expo-system-ui"]);
-  });
-
-  it("keeps a native module that only the app config names, as a config plugin", async () => {
-    // Expo resolves config plugins from app.json at prebuild; host code never
-    // imports them, and the tracked config is where the name lives.
-    gitInit(host.hostDir());
-    writeHostFile(
-      host.hostDir(),
-      "app.json",
-      '{"expo":{"plugins":[["expo-build-properties",{"ios":{}}]]}}'
-    );
-    expect([
-      ...(await findMentionedPackages(host.hostDir(), [
-        "expo-build-properties",
-        "expo-battery",
-      ])),
-    ]).toEqual(["expo-build-properties"]);
-  });
-
-  it("keeps a package a manifest script runs, but not one it merely lists", async () => {
-    gitInit(host.hostDir());
-    writeHostFile(
-      host.hostDir(),
-      MANIFEST,
-      JSON.stringify({
-        scripts: { "test:debug": "node -r ts-node/register run.ts" },
-        devDependencies: { "ts-node": "^10.9.2", "old-lib": "1" },
-        overrides: { "old-lib": "1" },
-      })
-    );
-    expect([
-      ...(await findMentionedPackages(host.hostDir(), ["ts-node", "old-lib"])),
-    ]).toEqual(["ts-node"]);
-  });
-
-  it("keeps the commitlint preset while the host keeps commitlint itself", async () => {
-    gitInit(host.hostDir());
-    const preset = "@commitlint/config-conventional";
-    const deps = ["@commitlint/cli", preset];
-    expect([
-      ...(await findMentionedPackages(host.hostDir(), [preset], deps)),
-    ]).toEqual([preset]);
-    expect([
-      ...(await findMentionedPackages(host.hostDir(), deps, deps)),
-    ]).toEqual([]);
   });
 
   it("separates a mentioned package from an unmentioned one", async () => {

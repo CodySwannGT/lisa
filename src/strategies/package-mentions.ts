@@ -252,10 +252,32 @@ function hostMentions(
  * Whether any host file other than the manifest and lockfiles names a package.
  * @param projectDir - Host directory holding package.json
  * @param name - Package name to look for, matched literally
+ * @param providers - Declared packages that stay, whose binaries can serve a
+ *   script's command in place of the candidate's
  * @returns False only when git searched the host and found no mention
  */
-async function isMentioned(projectDir: string, name: string): Promise<boolean> {
-  if (manifestUses(projectDir, mentionNames(name))) return true;
+async function isMentioned(
+  projectDir: string,
+  name: string,
+  providers: readonly string[]
+): Promise<boolean> {
+  if (
+    manifestUses(projectDir, mentionNames(name)) &&
+    !binaryProvidedElsewhere(projectDir, name, name, providers)
+  )
+    return true;
+  // A script that runs the package's own binary uses it without naming it:
+  // `nest build` needs `@nestjs/cli`. A binary a kept package also provides
+  // does not: `playwright test` runs `@playwright/test`'s copy.
+  if (
+    manifestUses(
+      projectDir,
+      installedBinaries(projectDir, name).filter(
+        binary => !binaryProvidedElsewhere(projectDir, binary, name, providers)
+      )
+    )
+  )
+    return true;
   try {
     const { stdout } = await run(
       "git",
@@ -297,17 +319,78 @@ async function isMentioned(projectDir: string, name: string): Promise<boolean> {
  * @returns Peer names; none when the package is not installed or unreadable
  */
 function installedPeers(projectDir: string, name: string): readonly string[] {
+  return Object.keys(
+    installedManifest(projectDir, name).peerDependencies ?? {}
+  );
+}
+
+/**
+ * An installed package's manifest, or an empty one when it cannot be read.
+ * @param projectDir - Host directory
+ * @param name - Package name
+ * @returns The fields this module reads
+ */
+function installedManifest(
+  projectDir: string,
+  name: string
+): {
+  readonly peerDependencies?: Record<string, unknown>;
+  readonly bin?: string | Record<string, unknown>;
+} {
   try {
-    const manifest = JSON.parse(
+    return JSON.parse(
       readFileSync(
         path.join(projectDir, "node_modules", name, MANIFEST),
         "utf8"
       )
-    ) as { peerDependencies?: Record<string, unknown> };
-    return Object.keys(manifest.peerDependencies ?? {});
+    ) as {
+      peerDependencies?: Record<string, unknown>;
+      bin?: string | Record<string, unknown>;
+    };
   } catch {
-    return [];
+    return {};
   }
+}
+
+/**
+ * Binary names an installed package puts on PATH.
+ * @param projectDir - Host directory
+ * @param name - Package name
+ * @returns Its `bin` names
+ */
+function installedBinaries(
+  projectDir: string,
+  name: string
+): readonly string[] {
+  const { bin } = installedManifest(projectDir, name);
+  if (typeof bin === "string") return [name.slice(name.lastIndexOf("/") + 1)];
+  return Object.keys(bin ?? {});
+}
+
+/**
+ * Whether a manifest script's use of `binary` as a command is already served
+ * by another package the host keeps. `@playwright/test` puts `playwright` on
+ * PATH, so `playwright test` in a script does not need the `playwright`
+ * package Lisa once installed beside it (CodySwannGT/lisa#4932). Only the
+ * manifest checks defer to this; a host file that imports the package still
+ * keeps it.
+ * @param projectDir - Host directory
+ * @param binary - Command a script may run
+ * @param name - Candidate package name
+ * @param providers - Declared packages that are not reclaim candidates
+ * @returns True when another kept package provides a binary of that name
+ */
+function binaryProvidedElsewhere(
+  projectDir: string,
+  binary: string,
+  name: string,
+  providers: readonly string[]
+): boolean {
+  return providers.some(
+    provider =>
+      provider !== name &&
+      installedBinaries(projectDir, provider).includes(binary)
+  );
 }
 
 /**
@@ -358,8 +441,12 @@ export async function findMentionedPackages(
   ) {
     return new Set(candidates);
   }
+  const providers = dependencies.filter(name => !candidates.includes(name));
   const verdicts = await Promise.all(
-    candidates.map(async name => [name, await isMentioned(projectDir, name)])
+    candidates.map(async name => [
+      name,
+      await isMentioned(projectDir, name, providers),
+    ])
   );
   const removable = withoutKeptPeers(
     projectDir,

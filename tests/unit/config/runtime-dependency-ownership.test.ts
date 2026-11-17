@@ -51,10 +51,12 @@ const DE_FORCED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
     tar: ">=7.5.21",
     "text-encoding-polyfill": ">=0.6.7",
     "usehooks-ts": ">=3.1.1",
+    zod: ">=4.6.6",
   },
   nestjs: {
     "@apollo/server": ">=5.4.0",
     "@as-integrations/express5": ">=1.1.2",
+    "@graphql-tools/utils": ">=12.0.2",
     "@aws-sdk/client-apigatewaymanagementapi": ">=3.967.0",
     "@aws-sdk/client-cognito-identity-provider": ">=3.969.0",
     "@aws-sdk/rds-signer": ">=3.968.0",

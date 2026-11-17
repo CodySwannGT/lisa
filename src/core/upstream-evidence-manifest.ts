@@ -821,7 +821,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "14e4269f12180e34616e1971fb0b241a49abfe99703730bbd6986950675bc89c",
+      "e1b32700f64efb91fdd20de863fd067de61b103c7365afc232b926ecb48e7a48",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "0e9a3e950ea05616522d6f115118791fa08caa3d2c8ee421aa8cf856558a6e77",
     "npm-package/package-lisa/package.lisa.json":
@@ -2061,7 +2061,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/container-view-pattern/scripts/validate_component.py":
       "90974c9292fa104334e5ec724d24171fc22c36c0ced37c72b2026c1febef0656",
     "plugins/src/expo/skills/cross-platform-compatibility/SKILL.md":
-      "9c011ebdb8bda46fd43b2add036d73f5e980ed3161e4beb226deb7bde9132513",
+      "467fdae571feca55469d03ab4b1f48edce14c00acae7bb2b044ab4c74e884901",
     "plugins/src/expo/skills/cross-platform-compatibility/references/common-issues.md":
       "a9109582351155f3a2415fe77b417cec9e8e12d5d1860e68d87ab80198e01f45",
     "plugins/src/expo/skills/cross-platform-compatibility/references/file-extensions.md":
@@ -2162,6 +2162,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "cc27d03e202b18be1fe8810d0a83b263926107b31f3e335f8fa7b92a82f4ceac",
     "plugins/src/expo/skills/journey-guidance/SKILL.md":
       "50fd01dcc177c0992b39d49f97a0a39c480422ec3c4547c26f402b28544b637a",
+    "plugins/src/expo/skills/knip-platform-files/SKILL.md":
+      "aec02970fe14a8cf72c6c5fde7349df9a9973b38b20b15b21efb75dcda4ccecf",
     "plugins/src/expo/skills/local-state/SKILL.md":
       "39a16fdeab3c96f236376e587d060790e0c52c8689553c53dc9e1284e5155d46",
     "plugins/src/expo/skills/local-state/references/async-storage.md":
@@ -6990,6 +6992,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo-agy/skills/gluestack-nativewind/scripts/test_validate_styling.py": true,
     "plugins/lisa-expo-agy/skills/gluestack-nativewind/scripts/validate_styling.py": true,
     "plugins/lisa-expo-agy/skills/journey-guidance/SKILL.md": true,
+    "plugins/lisa-expo-agy/skills/knip-platform-files/SKILL.md": true,
     "plugins/lisa-expo-agy/skills/local-state/SKILL.md": true,
     "plugins/lisa-expo-agy/skills/local-state/references/async-storage.md": true,
     "plugins/lisa-expo-agy/skills/local-state/references/persistence-patterns.md": true,
@@ -7112,6 +7115,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo-copilot/skills/gluestack-nativewind/scripts/test_validate_styling.py": true,
     "plugins/lisa-expo-copilot/skills/gluestack-nativewind/scripts/validate_styling.py": true,
     "plugins/lisa-expo-copilot/skills/journey-guidance/SKILL.md": true,
+    "plugins/lisa-expo-copilot/skills/knip-platform-files/SKILL.md": true,
     "plugins/lisa-expo-copilot/skills/local-state/SKILL.md": true,
     "plugins/lisa-expo-copilot/skills/local-state/references/async-storage.md": true,
     "plugins/lisa-expo-copilot/skills/local-state/references/persistence-patterns.md": true,
@@ -7236,6 +7240,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo-cursor/skills/gluestack-nativewind/scripts/test_validate_styling.py": true,
     "plugins/lisa-expo-cursor/skills/gluestack-nativewind/scripts/validate_styling.py": true,
     "plugins/lisa-expo-cursor/skills/journey-guidance/SKILL.md": true,
+    "plugins/lisa-expo-cursor/skills/knip-platform-files/SKILL.md": true,
     "plugins/lisa-expo-cursor/skills/local-state/SKILL.md": true,
     "plugins/lisa-expo-cursor/skills/local-state/references/async-storage.md": true,
     "plugins/lisa-expo-cursor/skills/local-state/references/persistence-patterns.md": true,
@@ -7359,6 +7364,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo-devin/skills/gluestack-nativewind/scripts/test_validate_styling.py": true,
     "plugins/lisa-expo-devin/skills/gluestack-nativewind/scripts/validate_styling.py": true,
     "plugins/lisa-expo-devin/skills/journey-guidance/SKILL.md": true,
+    "plugins/lisa-expo-devin/skills/knip-platform-files/SKILL.md": true,
     "plugins/lisa-expo-devin/skills/local-state/SKILL.md": true,
     "plugins/lisa-expo-devin/skills/local-state/references/async-storage.md": true,
     "plugins/lisa-expo-devin/skills/local-state/references/persistence-patterns.md": true,
@@ -7500,6 +7506,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo/.codex-plugin/skills/gluestack-nativewind/scripts/validate_styling.py": true,
     "plugins/lisa-expo/.codex-plugin/skills/journey-guidance/SKILL.md": true,
     "plugins/lisa-expo/.codex-plugin/skills/journey-guidance/agents/openai.yaml": true,
+    "plugins/lisa-expo/.codex-plugin/skills/knip-platform-files/SKILL.md": true,
+    "plugins/lisa-expo/.codex-plugin/skills/knip-platform-files/agents/openai.yaml": true,
     "plugins/lisa-expo/.codex-plugin/skills/lisa-e2e-coverage-gaps/SKILL.md": true,
     "plugins/lisa-expo/.codex-plugin/skills/lisa-e2e-coverage-gaps/agents/openai.yaml": true,
     "plugins/lisa-expo/.codex-plugin/skills/lisa-maestro-mcp-setup/SKILL.md": true,
@@ -7667,6 +7675,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo/skills/gluestack-nativewind/scripts/validate_styling.py": true,
     "plugins/lisa-expo/skills/journey-guidance/SKILL.md": true,
     "plugins/lisa-expo/skills/journey-guidance/agents/openai.yaml": true,
+    "plugins/lisa-expo/skills/knip-platform-files/SKILL.md": true,
+    "plugins/lisa-expo/skills/knip-platform-files/agents/openai.yaml": true,
     "plugins/lisa-expo/skills/local-state/SKILL.md": true,
     "plugins/lisa-expo/skills/local-state/agents/openai.yaml": true,
     "plugins/lisa-expo/skills/local-state/references/async-storage.md": true,
@@ -10525,6 +10535,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/expo/skills/gluestack-nativewind/scripts/test_validate_styling.py": true,
     "plugins/src/expo/skills/gluestack-nativewind/scripts/validate_styling.py": true,
     "plugins/src/expo/skills/journey-guidance/SKILL.md": true,
+    "plugins/src/expo/skills/knip-platform-files/SKILL.md": true,
     "plugins/src/expo/skills/local-state/SKILL.md": true,
     "plugins/src/expo/skills/local-state/references/async-storage.md": true,
     "plugins/src/expo/skills/local-state/references/persistence-patterns.md": true,
@@ -11283,6 +11294,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/jest/base.ts": true,
     "src/configs/jest/expo.ts": true,
     "src/configs/jest/index.ts": true,
+    "src/configs/knip/index.ts": true,
     "src/configs/repo-scan.ts": true,
     "src/configs/vitest/base.ts": true,
     "src/configs/vitest/cdk.ts": true,
@@ -12061,6 +12073,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/enforcement-census-fixtures.ts": true,
     "tests/helpers/enforcement-fallback-fixtures.ts": true,
     "tests/helpers/enforcement-vintage-harness.ts": true,
+    "tests/helpers/expo-knip-fixture.ts": true,
     "tests/helpers/fake-credentials.ts": true,
     "tests/helpers/freshness-deadline-fixture.ts": true,
     "tests/helpers/freshness-deadline-inputs.ts": true,
@@ -12094,6 +12107,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/nightly-e2e-tracking-harness.ts": true,
     "tests/helpers/nightly-e2e-waiver-harness.ts": true,
     "tests/helpers/package-lisa-apply-harness.ts": true,
+    "tests/helpers/package-mention-fixture.ts": true,
     "tests/helpers/pinned-revision.ts": true,
     "tests/helpers/process-tree-runner-verdict.ts": true,
     "tests/helpers/rails-hook-install-fixture.ts": true,
@@ -12880,6 +12894,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/jest-expo.test.ts": true,
     "tests/unit/config/js-yaml-security-floor.test.ts": true,
     "tests/unit/config/knip-config-strictness.test.ts": true,
+    "tests/unit/config/knip-expo-resolution.test.ts": true,
     "tests/unit/config/knip-shipped-hooks-binaries.test.ts": true,
     "tests/unit/config/lisa-optional-peers.test.ts": true,
     "tests/unit/config/lisa-pin-is-not-templated.test.ts": true,
@@ -14533,6 +14548,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/monitor-threshold-compatibility.test.ts": true,
     "tests/unit/strategies/package-lisa-audit-script-governance.test.ts": true,
     "tests/unit/strategies/package-lisa-cdk-oidc.test.ts": true,
+    "tests/unit/strategies/package-lisa-dependency-adopt-loaders.test.ts": true,
     "tests/unit/strategies/package-lisa-dependency-adopt.test.ts": true,
     "tests/unit/strategies/package-lisa-dev-engines.test.ts": true,
     "tests/unit/strategies/package-lisa-expo-sdk.test.ts": true,
