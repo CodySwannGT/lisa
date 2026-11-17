@@ -30,6 +30,7 @@ const repoRoot = path.resolve(".");
 const LEDGER_COMMAND = "bun run build:lisa-owned-hash-ledger";
 const MANIFEST_COMMAND = "bun run build:upstream-evidence-manifest";
 const CERTIFICATE_COMMAND = "bun run build:nightly-guard-certificate";
+const QUESTIONNAIRE_COMMAND = "bun run build:readiness-questionnaire";
 const LISA_OWNED_SOURCE =
   "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh";
 const PACKAGED_EVIDENCE_SOURCE = "scripts/build-plugins.sh";
@@ -211,6 +212,7 @@ describe("derived-artifact staleness gate: end to end", () => {
     expect(source).toContain(LEDGER_COMMAND);
     expect(source).toContain(MANIFEST_COMMAND);
     expect(source).toContain(CERTIFICATE_COMMAND);
+    expect(source).toContain(QUESTIONNAIRE_COMMAND);
   });
 });
 

@@ -89,14 +89,32 @@ describe("the declaration matches this repository", () => {
     expect(inspectGeneratedArtifacts(REPO_ROOT).violations).toEqual([]);
   });
 
-  it("declares five artifacts", () => {
+  it("declares six artifacts", () => {
     // Four when this guard landed; a fifth once CodySwannGT/lisa#3718 added
     // `src/core/export-surface.json`. A sixth, for retired-handler ownership,
-    // left with the safety-net hook in CodySwannGT/lisa#4803.
+    // left with the safety-net hook in CodySwannGT/lisa#4803, and
+    // CodySwannGT/lisa#4977 brought the count back to six with the generated
+    // operator questionnaire.
     // Hardcoded per the Test Isolation house
     // rule, so a silently dropped declaration fails here rather than
     // agreeing with whatever the declaration happens to hold.
-    expect(GENERATED_ARTIFACTS.length).toBe(5);
+    expect(GENERATED_ARTIFACTS.length).toBe(6);
+  });
+
+  it("declares the operator questionnaire out of the driver's reach", () => {
+    // It is Markdown prose. The driver merges `"key": value` entries, and a
+    // conflict in this document is settled by regenerating it instead.
+    const questionnaire = GENERATED_ARTIFACTS.find(
+      entry => entry.path === "docs/agentic-readiness-questionnaire.md"
+    );
+
+    expect(questionnaire?.check).toBe("check:readiness-questionnaire");
+    expect(questionnaire?.disposition).toBe(DISPOSITION.UNSUPPORTED);
+    expect(
+      driverCanStructure(
+        readArtifact("docs/agentic-readiness-questionnaire.md")
+      ).reason
+    ).toContain("ZERO entries");
   });
 
   it("covers exactly the two the driver can structure", () => {
