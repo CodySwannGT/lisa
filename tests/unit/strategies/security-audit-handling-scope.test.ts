@@ -1,7 +1,7 @@
 /**
  * The audit's failure message must name the `lisa-security-audit-handling`
  * skill (#4521), so an agent that hits a failing audit is pointed at the
- * ladder that teaches the scoped exclusion shape. Checked in the distributed
+ * fix ladder (#4931: refresh, upgrade, override, replace). Checked in the distributed
  * script and the repository's own copy.
  * @module tests/unit/strategies/security-audit-handling-scope
  */
@@ -18,5 +18,34 @@ describe("security-audit-handling is named by the audit", () => {
       expect(readFileSync(script, "utf8"), script).toContain(
         "lisa-security-audit-handling"
       );
+  });
+
+  it("teaches the four fixes and never an exclusion as the remedy", () => {
+    const skill = readFileSync(
+      "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md",
+      "utf8"
+    );
+    for (const step of [
+      "Refresh the lockfile within the current range",
+      "Upgrade the direct dependency",
+      "Add a targeted override",
+      "Replace or remove the dependency",
+    ])
+      expect(skill).toContain(step);
+    expect(skill).not.toMatch(/add (?:it|an exclusion entry) to/iu);
+  });
+
+  it("never advertises an exclusion file in the failure message", () => {
+    for (const script of [
+      "all/copy-overwrite/scripts/lisa-audit.mjs",
+      "scripts/lisa-audit.mjs",
+      ".github/actions/dependency-audit/run.mjs",
+    ]) {
+      const nextStep = readFileSync(script, "utf8")
+        .split("\n")
+        .filter(line => line.includes("Next step:"));
+      expect(nextStep, script).toHaveLength(1);
+      expect(nextStep[0], script).not.toContain("audit.ignore");
+    }
   });
 });

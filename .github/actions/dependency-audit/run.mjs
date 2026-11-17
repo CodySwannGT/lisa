@@ -82,7 +82,7 @@ try {
   );
   if (!verdict.passed)
     console.log(
-      "   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md"
+      "   Next step: fix the named copy: 1) refresh the lockfile within its current range; 2) upgrade the direct dependency that pulls it; 3) add a targeted override to the fixed version; 4) replace or remove the dependency when no fix exists — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md"
     );
   process.exitCode = verdict.passed ? 0 : 1;
 } catch (error) {

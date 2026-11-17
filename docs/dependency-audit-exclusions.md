@@ -80,8 +80,10 @@ changes the accepted dependency layout.
 
 A path-scoped match reports `excluded GHSA-… for <paths> (reason)`. A finding
 outside the scope fails and names the vulnerable lockfile paths. The failure
-also says what to do next. Upgrade or override the named copy. If it is
-dev-only and reviewed, add its lockfile path to `paths`. Empty `paths`, invalid
+also says what to do next, in order: refresh the lockfile within the current
+range, upgrade the direct dependency that pulls the copy, add a targeted
+override to the fixed version, or replace or remove the dependency when no fix
+exists. Empty `paths`, invalid
 or unknown scope fields, missing or unreadable lockfiles, malformed lockfile
 data, and unknown resolved package data fail with a diagnostic. They never
 turn into an advisory-wide exclusion. A present scope requires readable
