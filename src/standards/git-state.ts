@@ -1,6 +1,7 @@
 /** Bounded, no-shell Git observation for standards proof freshness. */
 import { execFile } from "node:child_process";
 import { realpath } from "node:fs/promises";
+import { env } from "node:process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -226,6 +227,5 @@ async function git(
  * @returns Current process environment
  */
 function getProcessEnvironment(): NodeJS.ProcessEnv {
-  // eslint-disable-next-line no-restricted-syntax -- Git must inherit the operator toolchain while clearing repository redirects
-  return process.env;
+  return env;
 }

@@ -39,8 +39,13 @@ describe("postinstall-trampoline", () => {
   const originalEnv = { ...process.env };
 
   afterEach(() => {
-    // Restore env vars mutated by individual tests
-    process.env = { ...originalEnv };
+    // Restore env vars mutated by individual tests IN PLACE: the module reads
+    // the `env` binding imported from node:process, which is this same object,
+    // so replacing process.env would leave the module reading a stale one.
+    for (const key of Object.keys(process.env)) {
+      if (!(key in originalEnv)) delete process.env[key];
+    }
+    Object.assign(process.env, originalEnv);
     vi.restoreAllMocks();
   });
 

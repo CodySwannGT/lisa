@@ -74,6 +74,20 @@ const localConfig: LocalConfig = [
       "code-organization/enforce-statement-order": "off",
     },
   },
+  {
+    // `sonarjs/os-command` is a security hotspot whose threat is untrusted
+    // input reaching a shell. `lisa admit -- "<command line>"` exists to run
+    // the operator's own command line under headroom admission, exactly as the
+    // operator's shell would run it unadmitted: the command arrives from the
+    // same argv, at the same trust level, as the shell that launched Lisa. The
+    // rule is wrong for that one entry point and right everywhere else, so it
+    // is turned off for this file alone (CodySwannGT/lisa#4929), pinned by
+    // tests/unit/config/eslint-local-os-command-scope.test.ts.
+    files: ["src/cli/admit-cmd.ts"],
+    rules: {
+      "sonarjs/os-command": "off",
+    },
+  },
 ];
 
 export default localConfig;

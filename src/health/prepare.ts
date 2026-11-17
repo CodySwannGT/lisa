@@ -25,20 +25,40 @@ export async function prepareHealthEvaluation(
 ): Promise<HealthEvaluationRequestEnvelope | undefined> {
   const root = await resolveHealthProtocolProjectRoot(projectPath);
   const { timeoutMs, ...deterministicOptions } = options;
-  // eslint-disable-next-line functional/no-let -- callback capture is the prepare protocol boundary
-  let captured: AgenticHealthRequest | undefined;
+  const capture = new RequestCapture();
   await runHealth(root, {
     ...deterministicOptions,
     agentic: {
       enabled: true,
       ...(timeoutMs === undefined ? {} : { timeoutMs }),
       evaluator: request => {
-        captured = request;
+        capture.record(request);
         return Promise.resolve(Object.freeze({ status: "unavailable" }));
       },
     },
   });
-  return captured === undefined
+  return capture.request === undefined
     ? undefined
-    : createHealthEvaluationRequestEnvelope(root, captured);
+    : createHealthEvaluationRequestEnvelope(root, capture.request);
+}
+
+/** Holds the one request the evaluator callback hands back to prepare. */
+class RequestCapture {
+  private captured: AgenticHealthRequest | undefined;
+
+  /**
+   * The request the evaluator received, if collection reached it.
+   * @returns The captured request, or undefined when it never arrived
+   */
+  get request(): AgenticHealthRequest | undefined {
+    return this.captured;
+  }
+
+  /**
+   * Keep the request the evaluator callback received.
+   * @param request - Bounded request produced by `runHealth`
+   */
+  record(request: AgenticHealthRequest): void {
+    this.captured = request;
+  }
 }

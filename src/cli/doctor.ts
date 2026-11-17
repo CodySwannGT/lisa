@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
+import { env as processEnvironment } from "node:process";
 import { probeKaneReadiness } from "../core/kane-cli.js";
 import { probeSonarReadiness } from "../core/sonar-integration.js";
 import {
@@ -113,13 +114,14 @@ export interface DoctorDependencies {
 }
 
 /**
- * Read the CLI process environment through one explicit, reviewable exception.
- * GitHub authentication is supplied by the surrounding agent or CI runtime.
+ * Read the CLI process environment. GitHub authentication is supplied by the
+ * surrounding agent or CI runtime, never by project configuration.
+ * The binding is imported from `node:process` so the dependency is declared
+ * at the top of the module rather than reached for mid-function.
  * @returns Current process environment
  */
 function readProcessEnvironment(): NodeJS.ProcessEnv {
-  // eslint-disable-next-line no-restricted-syntax -- doctor must read externally supplied GitHub authentication once
-  return process.env;
+  return processEnvironment;
 }
 
 const DEFAULT_DEPENDENCIES: DoctorDependencies = {

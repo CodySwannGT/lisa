@@ -23,7 +23,7 @@
  * answer — the file whose bytes moved, the cause, and both commands:
  *
  * ```
- * Error: src/core/upstream-evidence-manifest.ts is stale.
+ * Error: src/core/upstream-evidence-manifest.json is stale.
  *   Its inputs moved after it was generated. …
  *   At commit time lint-staged reformats every staged file BEFORE this
  *   check runs, so a manifest generated first is stale by the time it is

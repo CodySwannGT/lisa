@@ -212,7 +212,7 @@ describe("provider inventory and protocol reuse", () => {
   });
 
   it("ships the script through the refreshing TypeScript asset lane", () => {
-    const manifest = read("src/core/upstream-evidence-manifest.ts");
+    const manifest = read("src/core/upstream-evidence-manifest.json");
     for (const relative of TRACKER_ASSETS) {
       expect(manifest).toContain(relative);
       const mode = fs.statSync(path.join(REPO_ROOT, relative)).mode & 0o777;

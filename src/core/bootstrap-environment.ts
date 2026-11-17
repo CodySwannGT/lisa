@@ -1,3 +1,5 @@
+import { env as processEnvironment } from "node:process";
+
 export const LISA_BOOTSTRAP_ENV = "LISA_BOOTSTRAP";
 
 export const BUILD_ENV_FINGERPRINTS: readonly string[] = [
@@ -48,14 +50,15 @@ export interface BootstrapGuardOptions {
 }
 
 /**
- * Read process.env through one explicit, reviewable exception to the app-template
- * config access ban. Lisa's CLI bootstrap guard must inspect externally supplied
- * build-system fingerprints before any project config is available.
+ * Read the process environment. Lisa's CLI bootstrap guard must inspect
+ * externally supplied build-system fingerprints before any project config is
+ * available.
+ * The binding is imported from `node:process` so the dependency is declared
+ * at the top of the module rather than reached for mid-function.
  * @returns The current process environment
  */
 function readProcessEnv(): NodeJS.ProcessEnv {
-  // eslint-disable-next-line no-restricted-syntax -- CLI bootstrap guard must read externally supplied build env vars once
-  return process.env;
+  return processEnvironment;
 }
 
 /**

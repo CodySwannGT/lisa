@@ -89,8 +89,8 @@ const SHIPPED_ROOTS = [
  * exported name per line is what makes a removal show up as a DELETED line in
  * the pull request that causes it — which is the entire point of recording the
  * surface. At 974 names that is well past the 300-line ceiling `max-lines`
- * applies to source, and the sibling generated artifacts buy their way past it
- * with a file-wide `eslint-disable`. Data does not need to be source: as JSON
+ * applies to source — the reason the sibling generated artifacts (the hash
+ * ledger and the evidence manifest) are JSON too. Data does not need to be source: as JSON
  * the artifact keeps the per-name diff, needs no waiver, and its reader becomes
  * `JSON.parse` instead of a hand-rolled line parser that could silently
  * disagree with the renderer.

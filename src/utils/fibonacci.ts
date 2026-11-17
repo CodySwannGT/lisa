@@ -8,10 +8,31 @@
  */
 
 /**
+ * The two consecutive Fibonacci values a generator advances through. The pair
+ * is the recurrence's whole state, so it lives on one private instance per
+ * generator and never escapes it.
+ */
+class FibonacciPair {
+  private current = 0n;
+  private following = 1n;
+
+  /**
+   * Returns the current value and moves the pair one step forward.
+   * @returns The Fibonacci number at the pair's position before advancing
+   */
+  advance(): bigint {
+    const value = this.current;
+    this.current = this.following;
+    this.following = value + this.following;
+    return value;
+  }
+}
+
+/**
  * Infinite generator yielding the Fibonacci sequence as BigInts.
  *
- * Uses a two-element pair to track consecutive values, yielding the leading
- * element on each iteration and advancing the pair forward. Each call returns
+ * Uses a pair of consecutive values, yielding the leading element on each
+ * iteration and advancing the pair forward. Each call returns
  * an independent iterator, so multiple consumers never interfere.
  * @yields The next Fibonacci number (0n, 1n, 1n, 2n, 3n, 5n, …)
  * @example
@@ -22,13 +43,10 @@
  * ```
  */
 export function* fibonacciGenerator(): Generator<bigint, never, unknown> {
-  /* eslint-disable functional/no-let -- generator requires mutable pair to track consecutive Fibonacci values */
-  let pair: readonly [bigint, bigint] = [0n, 1n];
-  /* eslint-enable functional/no-let -- re-enable after generator state declaration */
+  const pair = new FibonacciPair();
 
   for (;;) {
-    yield pair[0];
-    pair = [pair[1], pair[0] + pair[1]];
+    yield pair.advance();
   }
 }
 

@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function -- config file requires many lines */
 /**
  * ESLint 9 Flat Config - NestJS Stack
  *
@@ -40,100 +39,69 @@ export {
 };
 
 /**
- * Creates the NestJS ESLint configuration.
- * @param {object} options - Configuration options
- * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
- * @param {string[]} [options.ignorePatterns] - Patterns to ignore
- * @param {object} [options.thresholds] - Threshold overrides
- * @returns {import("eslint").Linter.Config[]} ESLint flat config array
+ * The NestJS rule block applied to every file: shared rules plus the
+ * ConfigService process.env ban, class allowance, and documentation rules.
+ * @param thresholds - Threshold values for the shared size and complexity rules
+ * @returns The ESLint flat config object for all NestJS files
  */
-export function getNestjsConfig({
-  tsconfigRootDir,
-  ignorePatterns = defaultIgnores,
-  thresholds = defaultThresholds,
-}: {
-  tsconfigRootDir: string;
-  ignorePatterns?: string[];
-  thresholds?: typeof defaultThresholds;
-}): import("eslint").Linter.Config[] {
+function getNestjsAllFilesConfig(thresholds: typeof defaultThresholds) {
+  return {
+    languageOptions: getBaseLanguageOptions(),
+    plugins: {
+      "code-organization": codeOrganization,
+    },
+    rules: {
+      // Shared rules from base
+      ...getSharedRules(thresholds),
+
+      // Code organization
+      "code-organization/enforce-statement-order": "error",
+
+      // Configuration enforcement - prevent direct process.env access
+      // All configuration should go through ConfigService
+      // @see the host rules in .agents/rules/
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "MemberExpression[object.name='process'][property.name='env']",
+          message:
+            "Direct process.env access is forbidden. Use ConfigService for type-safe configuration. See the host rules in .agents/rules/.",
+        },
+      ],
+
+      // NestJS uses classes extensively for modules, controllers, services, etc.
+      "functional/no-classes": "off",
+
+      // NestJS decorators require class methods
+      "jsdoc/require-jsdoc": [
+        "error",
+        {
+          require: {
+            FunctionDeclaration: true,
+            MethodDefinition: true,
+            ClassDeclaration: true,
+            ArrowFunctionExpression: false,
+            FunctionExpression: false,
+          },
+          contexts: [
+            "TSInterfaceDeclaration",
+            "TSTypeAliasDeclaration",
+            "VariableDeclaration[declarations.0.init.type='ArrowFunctionExpression']:has([id.name=/^[A-Z]/])",
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * NestJS path overrides: module, controller/service, configuration and
+ * Lambda-handler files each relax one rule.
+ * @returns ESLint flat config objects for NestJS-specific paths
+ */
+function getNestjsPathOverrides() {
   return [
-    // Global ignores
-    {
-      ignores: ignorePatterns,
-    },
-
-    // Base configurations from shared module
-    ...getBaseConfigs(),
-
-    // Base configuration for all files
-    {
-      languageOptions: getBaseLanguageOptions(),
-      plugins: {
-        "code-organization": codeOrganization,
-      },
-      rules: {
-        // Shared rules from base
-        ...getSharedRules(thresholds),
-
-        // Code organization
-        "code-organization/enforce-statement-order": "error",
-
-        // Configuration enforcement - prevent direct process.env access
-        // All configuration should go through ConfigService
-        // @see the host rules in .agents/rules/
-        "no-restricted-syntax": [
-          "error",
-          {
-            selector:
-              "MemberExpression[object.name='process'][property.name='env']",
-            message:
-              "Direct process.env access is forbidden. Use ConfigService for type-safe configuration. See the host rules in .agents/rules/.",
-          },
-        ],
-
-        // NestJS uses classes extensively for modules, controllers, services, etc.
-        "functional/no-classes": "off",
-
-        // NestJS decorators require class methods
-        "jsdoc/require-jsdoc": [
-          "error",
-          {
-            require: {
-              FunctionDeclaration: true,
-              MethodDefinition: true,
-              ClassDeclaration: true,
-              ArrowFunctionExpression: false,
-              FunctionExpression: false,
-            },
-            contexts: [
-              "TSInterfaceDeclaration",
-              "TSTypeAliasDeclaration",
-              "VariableDeclaration[declarations.0.init.type='ArrowFunctionExpression']:has([id.name=/^[A-Z]/])",
-            ],
-          },
-        ],
-      },
-    },
-
-    // JavaScript files override
-    getJsFilesOverride(),
-
-    // Shared hooks and components
-    getSharedFilesOverride(),
-
-    // Test files
-    getTestFilesOverride(),
-
-    // TypeScript files - enable type-checked linting
-    getTsFilesOverride(["**/*.ts"], tsconfigRootDir),
-
-    // TypeScript test files - disable immutable-data
-    getTsTestFilesOverride([
-      "**/*.test.ts",
-      "**/*.spec.ts",
-      "**/*.e2e-spec.ts",
-    ]),
-
     // NestJS module files - relax some rules
     {
       files: ["**/*.module.ts"],
@@ -167,6 +135,59 @@ export function getNestjsConfig({
         "no-restricted-syntax": "off",
       },
     },
+  ];
+}
+
+/**
+ * Creates the NestJS ESLint configuration.
+ * @param {object} options - Configuration options
+ * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
+ * @param {string[]} [options.ignorePatterns] - Patterns to ignore
+ * @param {object} [options.thresholds] - Threshold overrides
+ * @returns {import("eslint").Linter.Config[]} ESLint flat config array
+ */
+export function getNestjsConfig({
+  tsconfigRootDir,
+  ignorePatterns = defaultIgnores,
+  thresholds = defaultThresholds,
+}: {
+  tsconfigRootDir: string;
+  ignorePatterns?: string[];
+  thresholds?: typeof defaultThresholds;
+}): import("eslint").Linter.Config[] {
+  return [
+    // Global ignores
+    {
+      ignores: ignorePatterns,
+    },
+
+    // Base configurations from shared module
+    ...getBaseConfigs(),
+
+    // Base configuration for all files
+    getNestjsAllFilesConfig(thresholds),
+
+    // JavaScript files override
+    getJsFilesOverride(),
+
+    // Shared hooks and components
+    getSharedFilesOverride(),
+
+    // Test files
+    getTestFilesOverride(),
+
+    // TypeScript files - enable type-checked linting
+    getTsFilesOverride(["**/*.ts"], tsconfigRootDir),
+
+    // TypeScript test files - disable immutable-data
+    getTsTestFilesOverride([
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      "**/*.e2e-spec.ts",
+    ]),
+
+    // NestJS module, controller/service, configuration and handler files
+    ...getNestjsPathOverrides(),
 
     // Standalone maintenance scripts — MUST stay last so it wins over the
     // application-oriented overrides above. These files used to be ignored
@@ -174,4 +195,3 @@ export function getNestjsConfig({
     getScriptsFilesOverride(),
   ] as unknown as import("eslint").Linter.Config[];
 }
-/* eslint-enable max-lines-per-function -- config file requires many lines */

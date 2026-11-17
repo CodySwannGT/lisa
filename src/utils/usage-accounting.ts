@@ -24,21 +24,16 @@ export type {
   LisaUsageSectionIntegrityIssue,
   LisaUsageSectionIntegrityResult,
 };
-/* eslint-disable max-lines -- Usage ledger parsing, rendering, and rollup helpers share one public utility surface. */
 
-import { collectLisaUsageChildArtifacts } from "./usage-accounting-rollup.js";
-import { sumNullableDecimals } from "./decimal-sum.js";
+import { createLisaUsageRollup } from "./usage-accounting-totals.js";
 import { renderEffectivenessToken } from "./effectiveness.js";
 import { assertCanonicalArtifactRef } from "../../all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs";
 
-export { assertCanonicalArtifactRef };
-
-const MIXED_CURRENCY = "mixed";
+export { assertCanonicalArtifactRef, createLisaUsageRollup };
 
 /**
  * Serialize a token field so whitespace, delimiters, and HTML comment endings
  * cannot corrupt the machine-readable comment on the next parse.
- *
  * @param value String token value to render.
  * @returns The percent-encoded token value.
  */
@@ -48,7 +43,6 @@ function encodeTokenValue(value: string): string {
 
 /**
  * Serialize a nullable token field.
- *
  * @param value Primitive token value to render.
  * @returns The canonical string form used inside usage tokens.
  */
@@ -63,7 +57,6 @@ function renderNullable(value: number | string | null): string {
 /**
  * Serialize a list as a comma-delimited token field with each item encoded
  * independently, so commas inside item values are preserved.
- *
  * @param values String values to serialize.
  * @returns Encoded comma-delimited list.
  */
@@ -72,56 +65,7 @@ function renderCsv(values: readonly string[]): string {
 }
 
 /**
- * Sum nullable numeric values while preserving null when nothing was recorded.
- *
- * @param values Numeric values to aggregate.
- * @returns The sum of present values, or null when all are missing.
- */
-function sumNullable(values: readonly (number | null)[]): number | null {
-  const present = values.filter((value): value is number => value !== null);
-  if (present.length === 0) {
-    return null;
-  }
-
-  return present.reduce((total, value) => total + value, 0);
-}
-
-/**
- * Detect an entry whose recorded count is explicitly only part of a run.
- *
- * @param entry Usage entry to inspect.
- * @returns Whether token rollups must remain incomplete for this entry.
- */
-function hasMeasuredSubset(entry: LisaUsageEntry): boolean {
-  return (
-    entry.source === "measured-subset" ||
-    (entry.measuredSubsetTokens ?? null) !== null
-  );
-}
-
-/**
- * Resolve the only currency represented by present cost values.
- *
- * @param entries Usage entries to inspect.
- * @returns The single currency, mixed sentinel, or null when no priced currency exists.
- */
-function resolveDirectCostCurrency(
-  entries: readonly LisaUsageEntry[]
-): string | null {
-  const currencies = new Set(
-    entries.filter(entry => entry.cost !== null).map(entry => entry.currency)
-  );
-
-  if (currencies.size > 1) {
-    return MIXED_CURRENCY;
-  }
-
-  return currencies.values().next().value ?? null;
-}
-
-/**
  * Split an artifact body around the managed usage section.
- *
  * @param document Artifact markdown to split.
  * @param range Located managed-section boundaries, if present.
  * @returns The trimmed content before and after the managed section.
@@ -151,7 +95,6 @@ function withTrailingNewline(text: string): string {
 
 /**
  * Render a token-count value for the human-readable table.
- *
  * @param value Token count to format.
  * @returns A deterministic display string.
  */
@@ -162,7 +105,6 @@ function formatTokens(value: number | null): string {
 /**
  * Render the token-count cell for human readers without making a measured
  * subset look like a complete total.
- *
  * @param entry Usage entry to display.
  * @returns A deterministic display string.
  */
@@ -178,7 +120,6 @@ function formatEntryTokens(entry: LisaUsageEntry): string {
 
 /**
  * Render a cost value for the human-readable table.
- *
  * @param value Cost amount to format.
  * @param currency Currency code paired with the cost, when known.
  * @returns A deterministic display string.
@@ -194,7 +135,6 @@ function formatCost(value: number | null, currency: string | null): string {
 /**
  * Merge new usage entries into an existing ledger while keeping stable order for
  * previously recorded entries and replacing matching `entry_id` rows in place.
- *
  * @param existingEntries Previously recorded direct usage entries.
  * @param nextEntries Newly observed direct usage entries to apply.
  * @returns The merged direct-entry set in deterministic document order.
@@ -227,169 +167,8 @@ export function mergeLisaUsageEntries(
 }
 
 /**
- * Resolve the child portion of a rollup, preferring fresh child artifacts and
- * falling back to whatever the previous rollup recorded.
- *
- * @param previousRollup Existing rollup token, if any.
- * @param childArtifacts Optional fresh child ledgers.
- * @param directEntryIds Direct entry IDs already represented in the rollup.
- * @returns The resolved child entry IDs, refs, tokens, currency, and cost.
- */
-function resolveChildRollupParts(
-  previousRollup: LisaUsageRollup | null | undefined,
-  childArtifacts: readonly LisaUsageChildArtifact[] | undefined,
-  directEntryIds: readonly string[]
-): {
-  childCost: number | null;
-  childCurrency: string | null;
-  childEntryIds: readonly string[];
-  childRefs: readonly string[];
-  childTokens: number | null;
-  childTokensIncomplete: boolean;
-} {
-  if (childArtifacts !== undefined) {
-    const collected = collectLisaUsageChildArtifacts(
-      childArtifacts,
-      directEntryIds
-    );
-    const deduped = collected.childEntries;
-    const childCurrency = resolveDirectCostCurrency(deduped);
-    const childTokensIncomplete = deduped.some(hasMeasuredSubset);
-    const rawChildCost = sumNullableDecimals(deduped.map(entry => entry.cost));
-    return {
-      childEntryIds: deduped.map(entry => entry.entryId),
-      childRefs: collected.childRefs,
-      childTokens: childTokensIncomplete
-        ? null
-        : sumNullable(deduped.map(entry => entry.totalTokens)),
-      childTokensIncomplete,
-      childCurrency,
-      childCost: childCurrency === MIXED_CURRENCY ? null : rawChildCost,
-    };
-  }
-
-  const rawChildCost = previousRollup?.childCost ?? null;
-  const persistedChildCurrency = previousRollup?.childCurrency ?? null;
-  const aggregateCurrency =
-    previousRollup?.currency === MIXED_CURRENCY
-      ? null
-      : (previousRollup?.currency ?? null);
-  const childCurrency =
-    rawChildCost === null
-      ? null
-      : (persistedChildCurrency ?? aggregateCurrency);
-  return {
-    childEntryIds: previousRollup?.childEntryIds ?? [],
-    childRefs: previousRollup?.childRefs ?? [],
-    childTokens: previousRollup?.childTokens ?? null,
-    childTokensIncomplete: previousRollup?.childTokensIncomplete ?? false,
-    childCurrency,
-    childCost: childCurrency === MIXED_CURRENCY ? null : rawChildCost,
-  };
-}
-
-/**
- * Resolve the combined currency for a rollup, marking it `mixed` when the
- * direct and child sides disagree about the cost currency.
- *
- * @param directCurrency Currency resolved from direct entries.
- * @param childCurrency Currency resolved from descendant entries.
- * @param directCost Direct cost total used to detect cross-side mismatches.
- * @param childCost Child cost total used to detect cross-side mismatches.
- * @returns The unified currency or the mixed sentinel.
- */
-function resolveRollupCurrency(
-  directCurrency: string | null,
-  childCurrency: string | null,
-  directCost: number | null,
-  childCost: number | null
-): string | null {
-  const crossSideMismatch =
-    directCost !== null &&
-    childCost !== null &&
-    directCurrency !== childCurrency;
-  if (
-    directCurrency === MIXED_CURRENCY ||
-    childCurrency === MIXED_CURRENCY ||
-    crossSideMismatch
-  ) {
-    return MIXED_CURRENCY;
-  }
-
-  return directCurrency ?? childCurrency ?? null;
-}
-
-/**
- * Build a default rollup token from direct entries while preserving any prior
- * child-work totals supplied by callers from later lifecycle stages.
- *
- * @param entries Direct usage entries that should appear in the section.
- * @param previousRollup Existing rollup token parsed from the artifact, if any.
- * @param childArtifacts Optional child ledgers to recompute descendant totals from current work.
- * @returns A deterministic rollup token payload for the managed section.
- */
-export function createLisaUsageRollup(
-  entries: readonly LisaUsageEntry[],
-  previousRollup?: LisaUsageRollup | null,
-  childArtifacts?: readonly LisaUsageChildArtifact[]
-): LisaUsageRollup {
-  const directEntryIds = entries.map(entry => entry.entryId);
-  const directTokensIncomplete = entries.some(hasMeasuredSubset);
-  const directTokens = directTokensIncomplete
-    ? null
-    : sumNullable(entries.map(entry => entry.totalTokens));
-  const directCurrency = resolveDirectCostCurrency(entries);
-  const directCost =
-    directCurrency === MIXED_CURRENCY
-      ? null
-      : sumNullableDecimals(entries.map(entry => entry.cost));
-
-  const {
-    childEntryIds,
-    childRefs,
-    childTokens,
-    childTokensIncomplete,
-    childCurrency,
-    childCost,
-  } = resolveChildRollupParts(previousRollup, childArtifacts, directEntryIds);
-
-  const totalTokens =
-    directTokensIncomplete || childTokensIncomplete
-      ? null
-      : directTokens === null && childTokens === null
-        ? null
-        : (directTokens ?? 0) + (childTokens ?? 0);
-  const currency = resolveRollupCurrency(
-    directCurrency,
-    childCurrency,
-    directCost,
-    childCost
-  );
-  const totalCost =
-    currency === MIXED_CURRENCY || (directCost === null && childCost === null)
-      ? null
-      : sumNullableDecimals([directCost, childCost]);
-
-  return {
-    directEntryIds,
-    childEntryIds,
-    childRefs,
-    directTokens,
-    childTokens,
-    ...(childTokensIncomplete ? { childTokensIncomplete: true } : {}),
-    totalTokens,
-    directCost,
-    childCost,
-    totalCost,
-    currency,
-    childCurrency,
-  };
-}
-
-/**
  * Refuse every entry whose `artifact_ref` the completion-proof reader would
  * not recognise (CodySwannGT/lisa#4699).
- *
  * @param entries Entries about to be written.
  */
 function assertEntriesCanonical(entries: readonly LisaUsageEntry[]): void {
@@ -399,7 +178,6 @@ function assertEntriesCanonical(entries: readonly LisaUsageEntry[]): void {
 /**
  * Render the machine-readable token for a single direct usage row without the
  * grammar check, so already-stored legacy rows can be re-serialized.
- *
  * @param entry Direct usage entry to serialize.
  * @returns The legacy-readable primary token plus its measured-subset extension.
  */
@@ -411,7 +189,6 @@ function renderEntryToken(entry: LisaUsageEntry): string {
 
 /**
  * Render the machine-readable token for a single direct usage row.
- *
  * @param entry Direct usage entry to serialize.
  * @returns The legacy-readable primary token plus its measured-subset extension.
  * @throws {Error} When `entry.artifactRef` is a short `linear:<KEY-N>` or
@@ -424,7 +201,6 @@ export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
 
 /**
  * Render the machine-readable rollup token for a managed usage section.
- *
  * @param rollup Rollup values to serialize.
  * @returns The canonical `lisa:usage-rollup` token line.
  */
@@ -453,7 +229,6 @@ export function renderLisaUsageRollupToken(rollup: LisaUsageRollup): string {
  * a non-canonical `artifact_ref` even from a row already stored elsewhere.
  * Callers holding a document with stored rows should use
  * `upsertLisaUsageSection`, which validates only the new entries.
- *
  * @param input Section payload containing direct entries and rollup totals.
  * @param input.entries Direct entries to render in document order.
  * @param input.rollup Rollup token to end the section with.
@@ -473,7 +248,6 @@ export function renderLisaUsageSection(input: {
  * Render the managed section body without the `artifact_ref` grammar check.
  * Only the upsert path calls it, after checking the NEW entries, so
  * a legacy row already stored in the document never blocks a rewrite.
- *
  * @param input Section payload containing direct entries and rollup totals.
  * @param input.entries Direct entries to render in document order.
  * @param input.rollup Rollup token to end the section with.
@@ -512,7 +286,6 @@ function renderSection(input: {
 /**
  * Append or replace the canonical `## Lisa Usage` section in a markdown
  * artifact while preserving prior entries that are not being refreshed.
- *
  * @param document Existing artifact markdown or comment body.
  * @param input New usage content to merge into the managed section.
  * @param input.childArtifacts Optional child ledgers to recompute descendant totals from current work.
@@ -538,7 +311,6 @@ export function upsertLisaUsageSection(
  * Merge new entries into the managed section once they passed the grammar
  * check. Stored rows are re-serialized unchecked so a legacy row never blocks
  * a rewrite.
- *
  * @param document Existing artifact markdown or comment body.
  * @param input New usage content to merge into the managed section.
  * @param input.childArtifacts Optional child ledgers to recompute descendant totals from current work.
@@ -590,5 +362,3 @@ function mergeUsageSection(
 
   return `${before}\n\n${usageSection}\n\n${withTrailingNewline(after)}`;
 }
-
-/* eslint-enable max-lines -- End usage accounting public utility surface. */

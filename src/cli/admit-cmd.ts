@@ -61,7 +61,6 @@ function runAdmitted(
   const child =
     args.length === 0
       ? // The caller's own command line, run exactly as it would run unadmitted.
-        // eslint-disable-next-line sonarjs/os-command -- operator-supplied command, by design
         spawn(file ?? "", { shell: true, stdio: "inherit", env: environment })
       : spawn(file ?? "", args, { stdio: "inherit", env: environment });
   const forward = (signal: NodeJS.Signals): void => {

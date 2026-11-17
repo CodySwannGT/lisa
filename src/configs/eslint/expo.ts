@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function -- config file needs a lot of lines */
 /**
  * ESLint 9 Flat Config - Expo Stack
  *
@@ -13,7 +12,6 @@
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module configs/eslint/expo
  */
-import oxlint from "eslint-plugin-oxlint";
 import react from "eslint-plugin-react";
 import { readFileSync } from "fs";
 import { createRequire } from "module";
@@ -27,18 +25,20 @@ import {
   defaultThresholds,
   getBaseConfigs,
   getBaseLanguageOptions,
-  getJsFilesOverride,
   getScriptsFilesOverride,
-  getSharedFilesOverride,
   getSharedRules,
-  getTestFilesOverride,
-  getTsFilesOverride,
-  getTsTestFilesOverride,
 } from "./typescript.js";
-import { getViewGateConfigs } from "./view-gate.js";
+import {
+  getExpoEnvOverrides,
+  getExpoOxlintConfigs,
+  getExpoSourceOverrides,
+  getExpoStructureOverrides,
+  OXLINT_HANDED_OFF_A11Y_RULES,
+} from "./expo-overrides.js";
 
 // Re-export for downstream configs
 export {
+  OXLINT_HANDED_OFF_A11Y_RULES,
   defaultIgnores,
   defaultThresholds,
   getBaseConfigs,
@@ -67,18 +67,6 @@ const expoConfig = require("eslint-config-expo/flat");
 const reactPerf = require("eslint-plugin-react-perf");
 const jsxA11y = require("eslint-plugin-jsx-a11y");
 const tailwind = require("eslint-plugin-tailwindcss");
-
-/**
- * jsx-a11y `strict` rules that eslint-plugin-oxlint's `flat/jsx-a11y` preset
- * hands to oxlint from 1.63.0–1.65.0, where they only warn. Expo restores them
- * after the preset so they keep blocking (#4508).
- */
-export const OXLINT_HANDED_OFF_A11Y_RULES = [
-  "jsx-a11y/interactive-supports-focus",
-  "jsx-a11y/no-interactive-element-to-noninteractive-role",
-  "jsx-a11y/no-noninteractive-element-interactions",
-  "jsx-a11y/no-noninteractive-element-to-interactive-role",
-] as const;
 
 /**
  * A project's `.lisa.config.json`, when it has one.
@@ -182,6 +170,206 @@ function getExpoScriptsFilesOverride(): import("eslint").Linter.Config {
 }
 
 /**
+ * Expo design-system, Tailwind and import rules.
+ * @param typedAxes - Axes the project declares typed; arms the design-value rule
+ * @returns Rule settings for ui-standards, tailwindcss and import
+ */
+function getExpoToolingRules(typedAxes: readonly string[]) {
+  return {
+    // UI standards (all off by default)
+    "ui-standards/no-classname-outside-ui": "off",
+    "ui-standards/no-direct-rn-imports": "off",
+    // Regime-aware by declaration: silent until the project names the axes
+    // it publishes design variables for. Declaring `design.tokens.axes` in
+    // .lisa.config.json is what arms it — the managed eslint.config.ts
+    // reads that key and hands it here (#2807). Declaring nothing leaves
+    // the rule off, which is the correct default and was previously the
+    // ONLY reachable state.
+    "ui-standards/no-unbound-design-value":
+      getDesignValueBindingRule(typedAxes),
+
+    // Tailwind
+    "tailwindcss/classnames-order": [
+      "error",
+      {
+        callees: ["tva", "classnames", "clsx", "ctl", "cva", "tv"],
+      },
+    ],
+
+    // Import rules
+    // Slow rules - disabled by default, run via `lint:slow` script
+    // @see eslint.slow.config.ts
+    "import/no-cycle": "off",
+    "import/namespace": "off",
+    // End Slow rules - disabled by default, run via `lint:slow` script
+    "import/no-unresolved": "off", // Disabled: doesn't understand React Native platform extensions (.native.tsx, .web.tsx)
+    "import/prefer-default-export": "off",
+    "import/no-duplicates": "error",
+  };
+}
+
+/**
+ * React, React-performance and React-hooks rules.
+ * @returns Rule settings for the React rule families
+ */
+function getExpoReactRules() {
+  return {
+    // React performance
+    "react-perf/jsx-no-new-object-as-prop": "error",
+    "react-perf/jsx-no-new-array-as-prop": "error",
+    "react-perf/jsx-no-new-function-as-prop": "error",
+
+    // React rules
+    "react/jsx-no-constructed-context-values": "error",
+    "react/jsx-uses-react": "off",
+    "react/react-in-jsx-scope": "off",
+    "react-hooks/exhaustive-deps": "error",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/set-state-in-effect": "error",
+    "react-hooks/preserve-manual-memoization": "error",
+    "react-hooks/refs": "error",
+    "react-hooks/immutability": "error",
+    // React Compiler diagnostics, replacing react-compiler/react-compiler
+    // (its plugin pins zod 3, unfixed for GHSA-mrhx-c7xc-m3w5).
+    "react-hooks/use-memo": "error",
+    "react-hooks/globals": "error",
+    "react-hooks/error-boundaries": "error",
+    "react-hooks/purity": "error",
+    "react-hooks/set-state-in-render": "error",
+    "react-hooks/config": "error",
+    "react-hooks/gating": "error",
+    // Slow rules - disabled by default, run via `lint:slow` script
+    // @see eslint.slow.config.ts
+    "react-hooks/static-components": "off",
+    // react-hooks/rule-suppression and react-hooks/void-use-memo stay unset
+    // here; they run in lint:slow (getExpoSlowConfig).
+    // End Slow rules - disabled by default, run via `lint:slow` script
+  };
+}
+
+/**
+ * Expo policy rules: env-module enforcement, console, classes and JSDoc.
+ * @returns Rule settings for Expo's project policies
+ */
+function getExpoPolicyRules() {
+  return {
+    // Environment variables - enforce validated env module usage
+    // @see .claude/skills/expo-env-config/SKILL.md
+    "no-restricted-syntax": [
+      "error",
+      {
+        selector:
+          "MemberExpression[object.name='process'][property.name='env']",
+        message:
+          "Direct process.env access is forbidden. Import { env } from '@/lib/env' instead for type-safe, validated environment variables.",
+      },
+    ],
+
+    // Console warnings for Expo
+    "no-console": "warn",
+
+    // Functional programming - classes not allowed in Expo (functional components only)
+    "functional/no-classes": "error",
+
+    // JSDoc rules - Expo has relaxed requirements for classes/methods
+    "jsdoc/require-jsdoc": [
+      "error",
+      {
+        require: {
+          FunctionDeclaration: true,
+          MethodDefinition: false,
+          ClassDeclaration: false,
+          ArrowFunctionExpression: false,
+          FunctionExpression: false,
+        },
+        contexts: [
+          "TSInterfaceDeclaration",
+          "TSTypeAliasDeclaration",
+          "VariableDeclaration[declarations.0.init.type='ArrowFunctionExpression']:has([id.name=/^[A-Z]/])",
+        ],
+      },
+    ],
+  };
+}
+
+/**
+ * Every rule the Expo all-files block applies, in a fixed order.
+ * @param thresholds - Threshold values for the shared size and complexity rules
+ * @param typedAxes - Axes the project declares typed
+ * @returns The rules object for the Expo all-files block
+ */
+function getExpoAllFilesRules(
+  thresholds: typeof defaultThresholds,
+  typedAxes: readonly string[]
+) {
+  return {
+    // Shared rules from base
+    ...getSharedRules(thresholds),
+
+    // Code organization
+    "code-organization/enforce-statement-order": "error",
+    ...getExpoToolingRules(typedAxes),
+    ...getExpoReactRules(),
+    ...getExpoPolicyRules(),
+  };
+}
+
+/**
+ * The Expo rule block applied to every file, with JSX parsing and the custom
+ * plugins registered.
+ * @param thresholds - Threshold values for the shared size and complexity rules
+ * @param typedAxes - Axes the project declares typed
+ * @returns The ESLint flat config object for all Expo files
+ */
+function getExpoAllFilesConfig(
+  thresholds: typeof defaultThresholds,
+  typedAxes: readonly string[]
+) {
+  return {
+    languageOptions: {
+      ...getBaseLanguageOptions(),
+      parserOptions: {
+        ...getBaseLanguageOptions().parserOptions,
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    plugins: {
+      "component-structure": componentStructure,
+      "code-organization": codeOrganization,
+      "ui-standards": uiStandards,
+    },
+    rules: {
+      ...getExpoAllFilesRules(thresholds, typedAxes),
+    },
+  };
+}
+
+/**
+ * Upstream presets Expo layers over the shared base: Expo, React, a11y,
+ * Tailwind and React-performance.
+ * @returns The preset flat configs, in application order
+ */
+function getExpoPresetConfigs() {
+  return [
+    // Expo-specific configurations
+    ...expoConfig,
+
+    // React configurations
+    react.configs.flat.recommended,
+    react.configs.flat["jsx-runtime"],
+
+    // Accessibility
+    jsxA11y.flatConfigs.strict,
+
+    // Tailwind CSS
+    ...tailwind.configs["flat/recommended"],
+
+    // Performance
+    reactPerf.configs.flat.recommended,
+  ];
+}
+
+/**
  * Creates the Expo ESLint configuration.
  * @param {object} options - Configuration options
  * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
@@ -226,282 +414,23 @@ export function getExpoConfig({
     // Base configurations from shared module
     ...getBaseConfigs(),
 
-    // Expo-specific configurations
-    ...expoConfig,
-
-    // React configurations
-    react.configs.flat.recommended,
-    react.configs.flat["jsx-runtime"],
-
-    // Accessibility
-    jsxA11y.flatConfigs.strict,
-
-    // Tailwind CSS
-    ...tailwind.configs["flat/recommended"],
-
-    // Performance
-    reactPerf.configs.flat.recommended,
+    // Expo-specific, React, accessibility, Tailwind and performance presets
+    ...getExpoPresetConfigs(),
 
     // Base configuration for all files
-    {
-      languageOptions: {
-        ...getBaseLanguageOptions(),
-        parserOptions: {
-          ...getBaseLanguageOptions().parserOptions,
-          ecmaFeatures: { jsx: true },
-        },
-      },
-      plugins: {
-        "component-structure": componentStructure,
-        "code-organization": codeOrganization,
-        "ui-standards": uiStandards,
-      },
-      rules: {
-        // Shared rules from base
-        ...getSharedRules(thresholds),
+    getExpoAllFilesConfig(thresholds, typedAxes),
 
-        // Code organization
-        "code-organization/enforce-statement-order": "error",
+    // JS, shared, UI, test and TypeScript file overrides
+    ...getExpoSourceOverrides(sourceRoot, tsconfigRootDir),
 
-        // UI standards (all off by default)
-        "ui-standards/no-classname-outside-ui": "off",
-        "ui-standards/no-direct-rn-imports": "off",
-        // Regime-aware by declaration: silent until the project names the axes
-        // it publishes design variables for. Declaring `design.tokens.axes` in
-        // .lisa.config.json is what arms it — the managed eslint.config.ts
-        // reads that key and hands it here (#2807). Declaring nothing leaves
-        // the rule off, which is the correct default and was previously the
-        // ONLY reachable state.
-        "ui-standards/no-unbound-design-value":
-          getDesignValueBindingRule(typedAxes),
+    // Component structure, view gate and view memo
+    ...getExpoStructureOverrides(sourceRoot),
 
-        // Tailwind
-        "tailwindcss/classnames-order": [
-          "error",
-          {
-            callees: ["tva", "classnames", "clsx", "ctl", "cva", "tv"],
-          },
-        ],
+    // Files allowed to read process.env
+    ...getExpoEnvOverrides(),
 
-        // Import rules
-        // Slow rules - disabled by default, run via `lint:slow` script
-        // @see eslint.slow.config.ts
-        "import/no-cycle": "off",
-        "import/namespace": "off",
-        // End Slow rules - disabled by default, run via `lint:slow` script
-        "import/no-unresolved": "off", // Disabled: doesn't understand React Native platform extensions (.native.tsx, .web.tsx)
-        "import/prefer-default-export": "off",
-        "import/no-duplicates": "error",
-
-        // React performance
-        "react-perf/jsx-no-new-object-as-prop": "error",
-        "react-perf/jsx-no-new-array-as-prop": "error",
-        "react-perf/jsx-no-new-function-as-prop": "error",
-
-        // React rules
-        "react/jsx-no-constructed-context-values": "error",
-        "react/jsx-uses-react": "off",
-        "react/react-in-jsx-scope": "off",
-        "react-hooks/exhaustive-deps": "error",
-        "react-hooks/rules-of-hooks": "error",
-        "react-hooks/set-state-in-effect": "error",
-        "react-hooks/preserve-manual-memoization": "error",
-        "react-hooks/refs": "error",
-        "react-hooks/immutability": "error",
-        // React Compiler diagnostics, replacing react-compiler/react-compiler
-        // (its plugin pins zod 3, unfixed for GHSA-mrhx-c7xc-m3w5).
-        "react-hooks/use-memo": "error",
-        "react-hooks/globals": "error",
-        "react-hooks/error-boundaries": "error",
-        "react-hooks/purity": "error",
-        "react-hooks/set-state-in-render": "error",
-        "react-hooks/config": "error",
-        "react-hooks/gating": "error",
-        // Slow rules - disabled by default, run via `lint:slow` script
-        // @see eslint.slow.config.ts
-        "react-hooks/static-components": "off",
-        // react-hooks/rule-suppression and react-hooks/void-use-memo stay unset
-        // here; they run in lint:slow (getExpoSlowConfig).
-        // End Slow rules - disabled by default, run via `lint:slow` script
-        // Environment variables - enforce validated env module usage
-        // @see .claude/skills/expo-env-config/SKILL.md
-        "no-restricted-syntax": [
-          "error",
-          {
-            selector:
-              "MemberExpression[object.name='process'][property.name='env']",
-            message:
-              "Direct process.env access is forbidden. Import { env } from '@/lib/env' instead for type-safe, validated environment variables.",
-          },
-        ],
-
-        // Console warnings for Expo
-        "no-console": "warn",
-
-        // Functional programming - classes not allowed in Expo (functional components only)
-        "functional/no-classes": "error",
-
-        // JSDoc rules - Expo has relaxed requirements for classes/methods
-        "jsdoc/require-jsdoc": [
-          "error",
-          {
-            require: {
-              FunctionDeclaration: true,
-              MethodDefinition: false,
-              ClassDeclaration: false,
-              ArrowFunctionExpression: false,
-              FunctionExpression: false,
-            },
-            contexts: [
-              "TSInterfaceDeclaration",
-              "TSTypeAliasDeclaration",
-              "VariableDeclaration[declarations.0.init.type='ArrowFunctionExpression']:has([id.name=/^[A-Z]/])",
-            ],
-          },
-        ],
-      },
-    },
-
-    // JavaScript files override
-    getJsFilesOverride(),
-
-    // Shared hooks and components
-    getSharedFilesOverride(),
-
-    // UI components
-    {
-      files: [
-        `${sourceRoot}components/ui/**/*.tsx`,
-        `${sourceRoot}components/ui/**/*.jsx`,
-        `${sourceRoot}components/custom/ui/**/*.tsx`,
-        `${sourceRoot}components/custom/ui/**/*.jsx`,
-      ],
-      rules: {
-        "ui-standards/no-classname-outside-ui": "off",
-      },
-    },
-
-    // Test files and Jest setup (with JSX patterns)
-    getTestFilesOverride([
-      "**/*.test.jsx",
-      "**/*.test.tsx",
-      "**/*spec.jsx",
-      "**/*spec.tsx",
-    ]),
-
-    // TypeScript files - enable type-checked linting (includes TSX)
-    {
-      ...getTsFilesOverride(["**/*.ts", "**/*.tsx"], tsconfigRootDir),
-      rules: {
-        ...getTsFilesOverride(["**/*.ts", "**/*.tsx"], tsconfigRootDir).rules,
-        "react/prop-types": "off",
-      },
-    },
-
-    // TSX files - disable require-returns for components
-    {
-      files: ["**/*.tsx"],
-      rules: {
-        "jsdoc/require-returns": "off",
-      },
-    },
-
-    // TypeScript test files - disable immutable-data (must come after TypeScript config)
-    getTsTestFilesOverride([
-      "**/*.test.ts",
-      "**/*.test.tsx",
-      "**/*spec.ts",
-      "**/*spec.tsx",
-    ]),
-
-    // Component structure rules
-    {
-      files: [
-        `${sourceRoot}features/**/components/**/*.ts`,
-        `${sourceRoot}features/**/components/**/*.tsx`,
-        `${sourceRoot}features/**/components/**/*.jsx`,
-        `${sourceRoot}features/**/screens/**/*.ts`,
-        `${sourceRoot}features/**/screens/**/*.tsx`,
-        `${sourceRoot}features/**/screens/**/*.jsx`,
-        `${sourceRoot}components/**/*.ts`,
-        `${sourceRoot}components/**/*.tsx`,
-        `${sourceRoot}components/**/*.jsx`,
-      ],
-      ignores: [
-        `${sourceRoot}components/ui/**`,
-        `${sourceRoot}components/shared/**`,
-        `${sourceRoot}components/icons/**`,
-      ],
-      rules: {
-        "component-structure/enforce-component-structure": "error",
-        "component-structure/single-component-per-file": "error",
-      },
-    },
-
-    // View gate: no statements, no hooks. See `view-gate.ts` for why it is
-    // stated as those two properties and not as "Views are pure functions".
-    ...getViewGateConfigs(sourceRoot),
-
-    // View memo requirement (excluding UI components)
-    {
-      files: ["**/*View.tsx", "**/*View.jsx"],
-      ignores: [`${sourceRoot}components/ui/**`],
-      rules: {
-        "component-structure/require-memo-in-view": "error",
-      },
-    },
-
-    // Environment validation module - allowed to access process.env
-    // This is the ONLY file that should directly read environment variables
-    // @see .claude/skills/expo-env-config/SKILL.md
-    {
-      files: ["src/lib/env.ts", "lib/env.ts", "lib/__tests__/env.test.ts"],
-      rules: {
-        "no-restricted-syntax": "off",
-      },
-    },
-
-    // Test files that mock process.env for environment variable testing
-    // These need direct access to process.env to set up test fixtures
-    {
-      files: [
-        "lib/apollo/sentryLink.test.ts",
-        "lib/build/info.test.ts",
-        "lib/sentry/config.test.ts",
-      ],
-      rules: {
-        "no-restricted-syntax": "off",
-      },
-    },
-
-    // Configuration files - allowed to use process.env directly
-    {
-      files: ["**/*config.*", "lighthouserc.js", "codegen.ts"],
-      rules: {
-        "no-restricted-syntax": "off",
-      },
-    },
-
-    // eslint-plugin-oxlint: turn off ESLint rules covered by oxlint, including
-    // the React/JSX-A11y/perf rule sets specific to Expo. Must come last so
-    // disables override prior enables.
-    ...oxlint.configs["flat/react"],
-    ...oxlint.configs["flat/jsx-a11y"],
-
-    // Keep these four blocking, exactly as jsx-a11y `strict` sets them above.
-    // From eslint-plugin-oxlint 1.63.0–1.65.0 the `flat/jsx-a11y` preset turns
-    // them off because oxlint implements them, but oxlint reports them only as
-    // correctness-category warnings, which never fail lint. Must come after the
-    // preset so it wins (#4508).
-    {
-      name: "lisa/jsx-a11y-strict-restore",
-      rules: Object.fromEntries(
-        OXLINT_HANDED_OFF_A11Y_RULES.map(rule => [
-          rule,
-          jsxA11y.flatConfigs.strict.rules[rule],
-        ])
-      ),
-    },
+    // oxlint hand-off and jsx-a11y strict restore
+    ...getExpoOxlintConfigs(),
 
     // Standalone maintenance scripts — MUST stay last so it wins over the
     // application-oriented overrides above. These files used to be ignored
@@ -509,5 +438,3 @@ export function getExpoConfig({
     getExpoScriptsFilesOverride(),
   ] as unknown as import("eslint").Linter.Config[];
 }
-
-/* eslint-enable max-lines-per-function -- config file needs a lot of lines */

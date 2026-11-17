@@ -436,9 +436,16 @@ generated_path() {
 # which side it is on.
 ledger_tracked() {
   local rel="$1"
-  local ledger="$package_root/dist/core/lisa-owned-hash-ledger.js"
-  [ -f "$ledger" ] || return 1
-  grep -q "\"$rel\"" "$ledger" 2>/dev/null
+  # The ledger's data is JSON since CodySwannGT/lisa#4929; an older package
+  # still carries it inside the compiled module, so read whichever exists.
+  local ledger
+  for ledger in "$package_root/dist/core/lisa-owned-hash-ledger.json" \
+    "$package_root/dist/core/lisa-owned-hash-ledger.js"; do
+    [ -f "$ledger" ] || continue
+    grep -q "\"$rel\"" "$ledger" 2>/dev/null
+    return
+  done
+  return 1
 }
 
 refuse() {

@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 331,
-  "$names": 2457,
+  "$modules": 319,
+  "$names": 2346,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -218,17 +218,6 @@
       "runBuildOnce",
       "workingTreeHash",
       "writeBuildMarker"
-    ],
-    "all/copy-overwrite/scripts/lib/changed-paths.mjs": [
-      "DECLARATION_FILE",
-      "PUSH_REFS_ENV",
-      "PUSH_REFS_STDIN",
-      "PUSH_REF_LIMIT",
-      "changeAt",
-      "parsePushRefs",
-      "pathsOutside",
-      "readPushRefs",
-      "touchesFolder"
     ],
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs": [
       "authorizeCompletion",
@@ -1137,31 +1126,6 @@
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs": [
       "startWindowsProcessJob"
     ],
-    "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs": [
-      "checkEstimate"
-    ],
-    "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs": [
-      "DEFAULT_ESTIMATE_MODELS",
-      "DEFAULT_ESTIMATE_PRICING",
-      "DEFAULT_TOKEN_MIX",
-      "DEFAULT_WORK_ITEM_ESTIMATE",
-      "EstimateConfigError",
-      "costCents",
-      "priceFor",
-      "resolveEstimateConfig",
-      "validateEstimateConfig"
-    ],
-    "all/copy-overwrite/scripts/lib/work-item-estimate.mjs": [
-      "ESTIMATE_HEADING",
-      "buildEstimate",
-      "formatTokens",
-      "humanLines",
-      "managedEstimateLines",
-      "parseEstimateSection",
-      "parseTokenCount",
-      "renderEstimateSection",
-      "upsertEstimateSection"
-    ],
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": [
       "worktreeDependencyProblem"
     ],
@@ -1209,10 +1173,6 @@
       "prepareEnvironment",
       "runCli"
     ],
-    "all/copy-overwrite/scripts/lisa-estimate.mjs": [
-      "readProjectConfig",
-      "runCli"
-    ],
     "all/copy-overwrite/scripts/lisa-evidence-prune.mjs": [
       "main"
     ],
@@ -1224,14 +1184,11 @@
     ],
     "all/copy-overwrite/scripts/lisa-gates.mjs": [
       "ADVISORY_PROVERS",
-      "AGENT_MOMENTS",
       "CALLER_CHAIN_FIELD",
-      "CODING_AGENTS",
       "CONSULTS_THEN_FALLS_BACK",
       "CONTEXT_SEPARATOR",
       "CONTEXT_VERDICTS",
       "COSTLY_LEG_TIMEOUT_MINUTES",
-      "CRITERION_ID_PATTERN",
       "CUSTOM_PREFIX",
       "DECLARATION_REQUIRED_JOBS",
       "DEFAULT_RUNNER",
@@ -1240,8 +1197,6 @@
       "DUAL_ADOPTION_CONTROLS",
       "ENFORCEMENTS",
       "EVIDENCE_DEFAULTS",
-      "EXECUTOR_FIELD",
-      "EXECUTOR_FIELDS",
       "EXECUTOR_VERDICTS",
       "FACADE_CLASSES",
       "FAILURE_SHAPE_FIELD",
@@ -1254,22 +1209,14 @@
       "LEG_ACTIONS",
       "LEG_TIMEOUT_MINUTES",
       "LEVELS",
-      "LISA_EXECUTOR_PLATFORM",
       "MOMENTS",
       "MOMENT_EXECUTOR_DIR",
       "MOMENT_FAMILIES",
       "NEVER_CONSULTS",
       "NON_DECLARABLE_JOBS",
       "NO_OP_RUNNERS",
-      "PARAMETER_DIRECTIONS",
-      "PARAMETER_FIELDS",
-      "PART_EVIDENCE_FIELDS",
-      "PART_EVIDENCE_LOCATOR_FIELDS",
-      "PART_FIELDS",
       "POLICY_ENFORCED",
       "POLICY_SCHEMA",
-      "PROOF_DIRECTORY",
-      "PROOF_FIELDS",
       "PROVED_OUTSIDE_FACADE",
       "PULL_REQUEST",
       "QUALITY_JOB_GATES",
@@ -1280,11 +1227,8 @@
       "SKIP_JOB_STATUS",
       "SKIP_JOB_TOKENS",
       "STATE_FAMILIES",
-      "TIERS",
-      "UNENFORCEABLE_ON_FIELD",
       "UNGATED_QUALITY_JOBS",
       "UNPROVEN_RESPONSES",
-      "WHOLE_REPOSITORY",
       "artifactDigest",
       "auditConfigKeys",
       "auditProvers",
@@ -1404,15 +1348,11 @@
       "compareCodeUnits",
       "coveredFloor",
       "evidenceDocument",
-      "judgePart",
       "main",
-      "partDirectory",
       "provenFloor",
       "runGates",
-      "spawnArgv",
       "spawnExec",
       "undeclaredFloor",
-      "unreachedFloor",
       "wiredConditionalFloor"
     ],
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs": [
@@ -1491,22 +1431,18 @@
     "all/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",
       "compareConstraints",
-      "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
       "formatReport"
     ],
     "all/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
-      "DECLARED_DIRECTIONS",
       "FAMILIES",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
-      "declaredThresholdKey",
       "describeAllowScope",
       "extractAllowEntries",
-      "extractDeclaredThresholds",
       "extractK6Constraints",
       "extractLighthouseAssertions",
       "extractNumericLeaves",
@@ -1514,9 +1450,7 @@
       "extractStrykerConstraints",
       "extractStrykerMutate",
       "familyFor",
-      "findDeclaredParameter",
       "globRoot",
-      "isDeclaredDirection",
       "parseJson",
       "parseK6Expression"
     ],
@@ -1761,22 +1695,18 @@
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",
       "compareConstraints",
-      "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
       "formatReport"
     ],
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
-      "DECLARED_DIRECTIONS",
       "FAMILIES",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
-      "declaredThresholdKey",
       "describeAllowScope",
       "extractAllowEntries",
-      "extractDeclaredThresholds",
       "extractK6Constraints",
       "extractLighthouseAssertions",
       "extractNumericLeaves",
@@ -1784,18 +1714,12 @@
       "extractStrykerConstraints",
       "extractStrykerMutate",
       "familyFor",
-      "findDeclaredParameter",
       "globRoot",
-      "isDeclaredDirection",
       "parseJson",
       "parseK6Expression"
     ],
     "scripts/build-unless-marked.mjs": [
       "main"
-    ],
-    "scripts/check-control-command-parity.mjs": [
-      "main",
-      "parseArguments"
     ],
     "scripts/check-delivery-deletion-conflicts.mjs": [
       "DELIVERY_LANES",
@@ -1819,7 +1743,6 @@
       "requiresLedgerCheck",
       "requiresManifestCheck",
       "requiresNightlyGuardCertificateCheck",
-      "requiresReadinessQuestionnaireCheck",
       "stagedPaths",
       "staleArtifacts"
     ],
@@ -1957,9 +1880,6 @@
       "refusalFor",
       "sweep"
     ],
-    "scripts/check-release-commit-listed.mjs": [
-      "checkReleaseCommitListed"
-    ],
     "scripts/check-release-package-identity.mjs": [
       "assertCheckoutIdentity",
       "assertReleaseCommit",
@@ -1993,12 +1913,10 @@
     ],
     "scripts/check-self-dependency-pin.mjs": [
       "SELF_PACKAGE",
-      "awaitListed",
       "checkSelfPin",
       "compareSpec",
       "locateSelfPin",
       "main",
-      "newestInstallableVersion",
       "publishedVersionsDescending"
     ],
     "scripts/check-shell-guard-refusal-coverage.mjs": [
@@ -2160,7 +2078,6 @@
       "shippedScripts"
     ],
     "scripts/generate-lisa-owned-hash-ledger.mjs": [
-      "$",
       "DEFAULT_REPO_ROOT",
       "HISTORY_EXPORT",
       "LEDGER_EXPORT",
@@ -2191,21 +2108,6 @@
       "auditedHelperEdges",
       "generatedHelperGraph"
     ],
-    "scripts/generate-readiness-questionnaire.mjs": [
-      "CATALOGUE_PATH",
-      "GENERATOR_COMMAND",
-      "QUESTIONNAIRE_PATH",
-      "familyOf",
-      "familyTitles",
-      "inspectQuestionnaire",
-      "renderQuestionnaire",
-      "writeQuestionnaire"
-    ],
-    "scripts/generate-upstream-evidence-manifest.mjs": [
-      "UPSTREAM_EVIDENCE_MANIFEST",
-      "UPSTREAM_PUBLIC_COMMITS",
-      "UPSTREAM_SURFACE_MANIFEST"
-    ],
     "scripts/install-generated-artifact-merge-driver.mjs": [
       "DRIVER_COMMAND",
       "GENERATED_ARTIFACT_DRIVER",
@@ -2225,31 +2127,12 @@
       "emitCodexSharedScripts",
       "extractRelativeSpecifiers"
     ],
-    "scripts/lib/control-command-parity.mjs": [
-      "CONTROL_COMMANDS",
-      "DIFFERENCES_HEADING",
-      "FAILURE_HEADING",
-      "PARITY_FIXTURE",
-      "REPO_ROOT",
-      "RUNNING_HEADING",
-      "SUPPORTED_AGENTS",
-      "VIOLATION",
-      "auditControlCommandParity",
-      "controlCommandFiles",
-      "exitStatusOf",
-      "formatControlCommandParity",
-      "readParityFixture",
-      "skillNameOf"
-    ],
     "scripts/lib/dependency-tree.mjs": [
       "CANNOT_MEASURE",
       "INSTALL_COMMAND",
       "cannotMeasure",
       "missingDependencies",
       "ranVacuously"
-    ],
-    "scripts/lib/docker-cli.mjs": [
-      "resolveDockerCli"
     ],
     "scripts/lib/gitattributes-merge-drivers.mjs": [
       "mergeDriversIn"
@@ -2326,6 +2209,13 @@
       "MIN_TOKEN_LENGTH",
       "patternLiteral",
       "tokenCandidates"
+    ],
+    "scripts/lib/merge-generated-json.mjs": [
+      "formatGeneratedJson",
+      "isJsonArtifact",
+      "mergeJsonArtifact",
+      "parseJsonArtifact",
+      "renderJsonArtifact"
     ],
     "scripts/lib/mutation-performance-reporter.mjs": [
       "LisaMeasurementReporter",
@@ -2545,17 +2435,9 @@
       "withTestTimingsReporter"
     ],
     "scripts/lib/upstream-manifest-staleness.mjs": [
-      "blockFor",
       "describeStaleManifest",
       "diagnoseStaleManifest",
       "parseManifestInputs"
-    ],
-    "scripts/lib/upstream-public-commits.mjs": [
-      "MANIFEST_PATH",
-      "REFRESH_PUBLIC_COMMITS_COMMAND",
-      "describeUnlistedReleaseCommit",
-      "droppedPublicCommits",
-      "listedPublicCommits"
     ],
     "scripts/lib/workflow-contract-probe.mjs": [
       "CONTRACT_KINDS",
@@ -2741,10 +2623,6 @@
       "parseArgs",
       "validateArtifact"
     ],
-    "scripts/raise-self-dependency-pin.mjs": [
-      "main",
-      "raiseSelfPin"
-    ],
     "scripts/reconcile-release-tags.mjs": [
       "VERDICT",
       "classifyProbe",
@@ -2781,15 +2659,8 @@
       "parseArgs",
       "summarize"
     ],
-    "scripts/verify-self-pin-raise.mjs": [
-      "fetchRegistryIntegrity",
-      "main",
-      "mainLockfile",
-      "mainSpec",
-      "setSelfSpec",
-      "verifyLockfileMatch",
-      "verifySelfLockEntry",
-      "verifySelfPinRaise"
+    "scripts/verify-packed-learnings-contract.mjs": [
+      "invalid"
     ],
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs": [
       "ABSOLUTE_MAX_API_ATTEMPTS",
@@ -3094,22 +2965,18 @@
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",
       "compareConstraints",
-      "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
       "formatReport"
     ],
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
-      "DECLARED_DIRECTIONS",
       "FAMILIES",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
-      "declaredThresholdKey",
       "describeAllowScope",
       "extractAllowEntries",
-      "extractDeclaredThresholds",
       "extractK6Constraints",
       "extractLighthouseAssertions",
       "extractNumericLeaves",
@@ -3117,9 +2984,7 @@
       "extractStrykerConstraints",
       "extractStrykerMutate",
       "familyFor",
-      "findDeclaredParameter",
       "globRoot",
-      "isDeclaredDirection",
       "parseJson",
       "parseK6Expression"
     ]

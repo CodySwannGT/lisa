@@ -21,7 +21,7 @@
  * deleted unless it is a socket this user owns.
  * @module core/admission-lock
  */
-import { createHash } from "node:crypto";
+import { createHash, randomInt } from "node:crypto";
 import {
   chmodSync,
   lstatSync,
@@ -322,7 +322,6 @@ async function takeLock(
     };
   }
   // Jitter only spreads retries apart; nothing depends on its quality.
-  // eslint-disable-next-line sonarjs/pseudo-random -- retry jitter, not a secret
-  await wait.sleep(Math.min(left, 25 + Math.floor(Math.random() * 75)));
+  await wait.sleep(Math.min(left, 25 + randomInt(75)));
   return takeLock(address, wait);
 }

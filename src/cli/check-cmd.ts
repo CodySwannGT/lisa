@@ -35,12 +35,14 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { env as processEnvironment } from "node:process";
 
 import type { Command } from "commander";
 
 import { withPushGateDefaults } from "../../all/copy-overwrite/scripts/lib/push-gate-defaults.mjs";
 import { readProjectConfig } from "../core/project-config.js";
 import { RailsDetector } from "../detection/detectors/rails.js";
+import { resolveExecutable } from "../utils/resolve-executable.js";
 
 /** Printed, and exit 0, when checking first would save nothing. */
 export const CACHE_OFF_MESSAGE =
@@ -121,8 +123,10 @@ export function parseMaxWait(value: string): string | null {
  * @returns Trimmed stdout, or null when git failed
  */
 function defaultGit(args: readonly string[], cwd: string): string | null {
-  // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed git executable, the one the pre-push hook runs under
-  const child = spawnSync("git", [...args], { cwd, encoding: "utf8" });
+  const child = spawnSync(resolveExecutable("git"), [...args], {
+    cwd,
+    encoding: "utf8",
+  });
   return child.status === 0 ? String(child.stdout).trim() : null;
 }
 
@@ -282,8 +286,7 @@ export async function runCheck(
   options: CheckOptions,
   dependencies: CheckDependencies = {}
 ): Promise<number> {
-  // eslint-disable-next-line no-restricted-syntax -- the CLI hands its externally supplied environment to the gate runner, as the pre-push hook does
-  const env = dependencies.env ?? process.env;
+  const env = dependencies.env ?? processEnvironment;
   const log = dependencies.log ?? ((line: string) => console.log(line));
   const error = dependencies.error ?? ((line: string) => console.error(line));
   const git = dependencies.git ?? defaultGit;

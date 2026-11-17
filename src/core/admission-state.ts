@@ -17,6 +17,7 @@ import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism, freemem, loadavg } from "node:os";
 import { join } from "node:path";
+import { resolveExecutable } from "../utils/resolve-executable.js";
 
 import type {
   AdmissionReservation,
@@ -32,10 +33,13 @@ export function processStartTimes(
   pids: readonly number[]
 ): ReadonlyMap<number, string> {
   if (pids.length === 0 || process.platform === "win32") return new Map();
-  // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed system ps executable
-  const child = spawnSync("ps", ["-o", "pid=,lstart=", "-p", pids.join(",")], {
-    encoding: "utf8",
-  });
+  const child = spawnSync(
+    resolveExecutable("ps"),
+    ["-o", "pid=,lstart=", "-p", pids.join(",")],
+    {
+      encoding: "utf8",
+    }
+  );
   if (typeof child.stdout !== "string") return new Map();
   return new Map(
     child.stdout
@@ -177,8 +181,8 @@ export function availableMemoryMb(): number {
     return match?.[1] === undefined ? fallback : Number(match[1]) / 1024;
   }
   if (process.platform !== "darwin") return fallback;
-  // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed system vm_stat executable
-  const text = spawnSync("vm_stat", { encoding: "utf8" }).stdout ?? "";
+  const text =
+    spawnSync(resolveExecutable("vm_stat"), { encoding: "utf8" }).stdout ?? "";
   const page = Number(/page size of (\d+) bytes/u.exec(text)?.[1] ?? 0);
   const pages = ["free", "inactive", "speculative"].map(kind =>
     Number(new RegExp(`Pages ${kind}:\\s+(\\d+)`, "u").exec(text)?.[1] ?? 0)

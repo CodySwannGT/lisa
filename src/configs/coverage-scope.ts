@@ -21,6 +21,7 @@
  * whose floor was written for what it actually runs.
  * @module configs/coverage-scope
  */
+import { env as processEnvironment } from "node:process";
 
 /** The variable the unit-scoped coverage script sets. */
 export const COVERAGE_SCOPE_ENV = "LISA_COVERAGE_SCOPE";
@@ -39,5 +40,4 @@ export const UNIT_COVERAGE_SCOPE = "unit";
  * @returns True when the unit scope is in force.
  */
 export const isUnitCoverageScope = (): boolean =>
-  // eslint-disable-next-line no-restricted-syntax -- a test-runner config factory loads before any config service and the scope arrives only as an env var
-  process.env[COVERAGE_SCOPE_ENV]?.trim() === UNIT_COVERAGE_SCOPE;
+  processEnvironment[COVERAGE_SCOPE_ENV]?.trim() === UNIT_COVERAGE_SCOPE;

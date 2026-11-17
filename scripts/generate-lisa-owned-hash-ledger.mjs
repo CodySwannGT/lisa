@@ -38,8 +38,8 @@
  * downgrades nothing and a deeper one only ever adds.
  *
  * It also has to survive the merge driver added in CodySwannGT/lisa#3084, which
- * unions array-valued entries **line by line** at one indent. A per-digest label
- * written into the entry line would make the same hash render differently on two
+ * unions array-valued entries **element by element**. A per-digest label
+ * written into the element would make the same hash render differently on two
  * branches: the union would keep both spellings, and the base check would see an
  * element that vanished — a permanent conflict on the very file that driver
  * exists to stop conflicting. A second block of the same shape merges pointwise
@@ -53,12 +53,24 @@ import process from "node:process";
 
 import { boundedExecFileSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import { formatGeneratedJson } from "./lib/merge-generated-json.mjs";
 
 /** Repository this generator runs against when no root is supplied. */
 export const DEFAULT_REPO_ROOT = path.resolve(import.meta.dirname, "..");
 
-/** Repo-relative path of the generated ledger module. */
-export const LEDGER_RELATIVE_PATH = "src/core/lisa-owned-hash-ledger.ts";
+/**
+ * Repo-relative path of the generated ledger data.
+ *
+ * JSON rather than a TypeScript module, for the reason argued at
+ * `scripts/generate-export-surface.mjs`: data does not need to be source. The
+ * ledger grows by one line per published hash and long ago passed the
+ * 300-line `max-lines` budget that applies to source, so as a module it could
+ * only exist behind a file-wide lint waiver. As JSON it keeps one hash per
+ * line — the per-entry diff and the merge driver's pointwise merge both depend
+ * on that — and needs no waiver. `src/core/lisa-owned-hash-ledger.ts` is the
+ * hand-written loader that turns it into the frozen records the runtime reads.
+ */
+export const LEDGER_RELATIVE_PATH = "src/core/lisa-owned-hash-ledger.json";
 
 /** Name of the record holding every hash ever shipped at a destination. */
 export const LEDGER_EXPORT = "LISA_OWNED_HASH_LEDGER";
@@ -264,42 +276,53 @@ export function historicalHashes(root, source) {
 }
 
 /**
- * The source text of one exported record, or undefined when it is not there.
- *
- * Sliced by export rather than matched across the whole file, because the two
- * records share a shape: a file-wide regex would fold the second block's entries
- * over the first block's under the same key, and the ledger would silently
- * become whichever block happened to be rendered last.
- * @param {string} text - Whole module source
- * @param {string} name - Exported constant name
- * @returns {string|undefined} The declaration's source, when present
+ * Whether a value is a well-formed `destination -> hashes` record.
+ * @param {unknown} value - Candidate record
+ * @returns {boolean} True when every entry is an array of sha256 hex digests
  */
-function sectionSource(text, name) {
-  const start = text.indexOf(`export const ${name}`);
-  if (start === -1) return undefined;
-  const end = text.indexOf("\n});", start);
-  if (end === -1) return undefined;
-  return text.slice(start, end);
+function isHashRecord(value) {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.values(value).every(
+      hashes =>
+        Array.isArray(hashes) &&
+        hashes.every(
+          hash => typeof hash === "string" && /^[0-9a-f]{64}$/u.test(hash)
+        )
+    )
+  );
 }
 
 /**
- * Parse one `destination -> hashes` record out of the module source.
- * @param {string} text - Whole module source
- * @param {string} name - Exported constant name
- * @returns {Map<string, string[]>|undefined} Recorded hashes, when the block exists
+ * Parse one `destination -> hashes` record out of the ledger JSON.
+ *
+ * Keyed by record name, so the two records cannot fold into each other: they
+ * share a shape, and a reader that merged them would silently become whichever
+ * record it read last. A record that is missing or not of that shape reads as
+ * absent, never as empty — the caller decides whether absence may report.
+ * @param {string} text - Whole ledger JSON
+ * @param {string} name - Record name ({@link LEDGER_EXPORT} or {@link HISTORY_EXPORT})
+ * @returns {Map<string, string[]>|undefined} Recorded hashes, when the record exists
  */
 export function parseSection(text, name) {
-  const source = sectionSource(text, name);
-  if (source === undefined) return undefined;
-  const parsed = new Map();
-  const entry = /"([^"]+)": Object\.freeze\(\[([^\]]*)\]\)/g;
-  for (const match of source.matchAll(entry)) {
-    parsed.set(
-      match[1],
-      [...match[2].matchAll(/"([0-9a-f]{64})"/g)].map(hash => hash[1])
-    );
+  let document;
+  try {
+    document = JSON.parse(text);
+  } catch {
+    return undefined;
   }
-  return parsed;
+  const record =
+    typeof document === "object" &&
+    document !== null &&
+    !Array.isArray(document)
+      ? document[name]
+      : undefined;
+  if (!isHashRecord(record)) return undefined;
+  return new Map(
+    Object.entries(record).map(([key, hashes]) => [key, [...hashes]])
+  );
 }
 
 /**
@@ -326,85 +349,47 @@ export function readLedgerSections(root) {
 }
 
 /**
- * Render one record's `destination: Object.freeze([...])` entries.
+ * One record as the plain object the ledger JSON stores.
  *
- * Indentation matches what Prettier produces. `lint-staged` reformats every
- * staged file, so a generator whose output Prettier would reindent leaves
- * `--check` failing immediately after the commit that regenerated it.
- *
- * A destination with no hashes is dropped rather than rendered as an empty
- * array: an empty entry parses back as a destination the ledger vouches for
- * nothing at, which reads exactly like a destination whose hashes were lost.
+ * Destinations are sorted the way the merge driver sorts, so a merged file and
+ * a regenerated one are the same bytes. A destination with no hashes is dropped
+ * rather than rendered as an empty array: an empty entry parses back as a
+ * destination the ledger vouches for nothing at, which reads exactly like a
+ * destination whose hashes were lost.
  * @param {Map<string, string[]>} entries - Destination path to hashes
- * @returns {string} Rendered entry lines
+ * @returns {Record<string, string[]>} Sorted record
  */
-function renderEntries(entries) {
-  return [...entries.entries()]
-    .filter(([, hashes]) => hashes.length > 0)
-    .sort(([left], [right]) => byText(left, right))
-    .map(([destination, hashes]) => {
-      const rendered = hashes.map(hash => `    "${hash}",`).join("\n");
-      return `  "${destination}": Object.freeze([\n${rendered}\n  ]),`;
-    })
-    .join("\n");
+function recordOf(entries) {
+  return Object.fromEntries(
+    [...entries.entries()]
+      .filter(([, hashes]) => hashes.length > 0)
+      .sort(([left], [right]) => byText(left, right))
+  );
 }
 
 /**
- * Render the ledger module.
+ * Render the ledger JSON.
+ *
+ * Two records, the ledger and the subset some run derived from git history.
+ * Provenance in one lookup (CodySwannGT/lisa#3115): a digest in the ledger and
+ * NOT in the history-derived record was **carried forward** from an earlier
+ * checked-in ledger, and no run of the generator has been able to derive it
+ * since. Carried-forward digests are kept, never pruned — the history walk
+ * depends on clone depth and merge topology, so "this clone cannot see it" is
+ * not evidence that Lisa never shipped it. They are *reported* instead, by
+ * `bun run build:lisa-owned-hash-ledger` and by its `--check` mode.
+ *
+ * Two-space indentation, one hash per line: what `formatGeneratedJson` emits,
+ * and what the merge driver re-emits after a merge.
  * @param {Map<string, string[]>} ledger - Destination path to known-good hashes
  * @param {Map<string, string[]>} historyDerived - Destination path to history-attested hashes
- * @returns {string} TypeScript module source
+ * @returns {string} Ledger JSON, newline-terminated
  */
 export function render(ledger, historyDerived) {
-  const entries = renderEntries(ledger);
-  const attested = renderEntries(historyDerived);
-  // The ledger grows by one line per published hash, so it crosses the
-  // 300-line max-lines budget once enough artifacts accumulate - which it
-  // now has, at 42 destinations. A length limit is a readability rule for
-  // code humans maintain, and nobody maintains this file; the sibling
-  // manifest generator has emitted the same disable since it was written.
-  // Emitted by the generator rather than added by hand, because a hand-edit
-  // here is lost on the next regeneration.
-  return `/* eslint-disable max-lines -- generated append-only hash ledger */
-/** Generated by scripts/generate-lisa-owned-hash-ledger.mjs. Do not edit. */
-
-/**
- * Every content hash Lisa has published at each Lisa-owned destination path.
- *
- * A host copy whose hash appears here is provably an older Lisa artifact and may
- * be refreshed. One that appears nowhere here was edited downstream, and refresh
- * refuses rather than risk deleting a stronger guard. See
- * \`src/core/lisa-owned-provenance.ts\`.
- */
-export const ${LEDGER_EXPORT}: Readonly<
-  Record<string, readonly string[]>
-> = Object.freeze({
-${entries}
-});
-
-/**
- * The subset of the ledger some run of the generator derived from git history.
- *
- * Provenance, in one lookup (CodySwannGT/lisa#3115). A digest recorded here was
- * produced by the \`git log --follow\` walk, or by the bytes in the working tree,
- * at the time it was recorded. A digest in the ledger and NOT here was **carried
- * forward** from an earlier checked-in ledger, and no run of the generator has
- * been able to derive it since.
- *
- * Carried-forward digests are kept, never pruned. The history walk depends on
- * clone depth and merge topology, so "this clone cannot see it" is not evidence
- * that Lisa never shipped it, and dropping one would permanently stop refresh
- * recognising a genuinely older host copy. They are *reported* instead — by
- * \`${REGENERATE}\` and by its \`--check\` mode — so the question is answerable
- * without archaeology.
- */
-export const ${HISTORY_EXPORT}: Readonly<
-  Record<string, readonly string[]>
-> = Object.freeze({
-${attested}
-});
-/* eslint-enable max-lines -- end generated append-only hash ledger */
-`;
+  return formatGeneratedJson({
+    [LEDGER_EXPORT]: recordOf(ledger),
+    [HISTORY_EXPORT]: recordOf(historyDerived),
+  });
 }
 
 /**

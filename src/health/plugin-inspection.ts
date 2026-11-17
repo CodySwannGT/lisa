@@ -1,5 +1,4 @@
 /** Bounded actual plugin-installation inspection for deterministic health. */
-/* eslint-disable jsdoc/require-param-description, jsdoc/require-returns -- typed plugin readers are self-describing */
 import { execFile } from "node:child_process";
 import path from "node:path";
 
@@ -12,6 +11,7 @@ import {
 import { selectProjectLisaPluginsFromState } from "../core/lisa-plugin-selection.js";
 import { PLUGIN_LIST_MAX_CAPTURE_BYTES } from "../core/plugin-command.js";
 import { getPackageVersion } from "../cli/version.js";
+import { resolveExecutable } from "../utils/resolve-executable.js";
 import { readProjectJsonObject, readProjectText } from "./read-only-fs.js";
 
 // `claude plugin list --json` lists every project-scope registration on the
@@ -43,9 +43,10 @@ export type PluginInspection =
 
 /**
  * Default fixed-argv Claude installed-plugin reader.
- * @param projectRoot
- * @param timeoutMs
- * @param signal
+ * @param projectRoot - Canonical host project root
+ * @param timeoutMs - Bound for the external command, in milliseconds
+ * @param signal - Cancellation shared with the health deadline
+ * @returns Sorted ids of the plugins installed for this project
  */
 export const readInstalledClaudePlugins: InstalledPluginReader = async (
   projectRoot,
@@ -54,8 +55,7 @@ export const readInstalledClaudePlugins: InstalledPluginReader = async (
 ) =>
   new Promise((resolve, reject) => {
     execFile(
-      // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed Claude executable
-      "claude",
+      resolveExecutable("claude"),
       ["plugin", "list", "--json"],
       {
         cwd: projectRoot,
@@ -95,7 +95,8 @@ export const readInstalledClaudePlugins: InstalledPluginReader = async (
 
 /**
  * Resolve configured harness without accepting invalid strings.
- * @param config
+ * @param config - Parsed `.lisa.config.json` contents
+ * @returns The configured harness, or undefined when the value is not one Lisa supports
  */
 export function configuredHarness(
   config: Readonly<Record<string, unknown>>
@@ -185,4 +186,3 @@ export async function inspectPlugins(
     ? { status: "pass", drift: [] }
     : { status: "fail", drift: missing };
 }
-/* eslint-enable jsdoc/require-param-description, jsdoc/require-returns -- restore repository documentation defaults */

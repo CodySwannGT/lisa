@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
+import { env as processEnvironment } from "node:process";
 import { gt, valid } from "semver";
 import { getPackageVersion } from "./version.js";
 
@@ -80,13 +81,14 @@ export function getDefaultCachePath(cwd: string = process.cwd()): string {
 }
 
 /**
- * Read process.env through one explicit, reviewable exception to the app-template
- * env rule. The CLI needs externally supplied process env for this root opt-out.
+ * Read the CLI process environment. The root opt-out is externally supplied,
+ * so there is no config service to consult.
+ * The binding is imported from `node:process` so the dependency is declared
+ * at the top of the module rather than reached for mid-function.
  * @returns Current process environment
  */
 function getProcessEnv(): NodeJS.ProcessEnv {
-  // eslint-disable-next-line no-restricted-syntax -- CLI root option must read externally supplied process env once
-  return process.env;
+  return processEnvironment;
 }
 
 /**

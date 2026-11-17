@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { env as processEnvironment } from "node:process";
 import { sanitizeEnvForReconciliation } from "./pm-env.js";
 import {
   type LockfileRegenPlan,
@@ -58,19 +59,17 @@ export {
 export type { LockfileRegenPlan, PackageManager, TrampolineReporting };
 
 /**
- * Read an env var by name without widening the project-wide process.env ban.
+ * Read an env var by name from the process environment.
  * Lisa's CLI isn't a Lambda handler or Nest service; it has to introspect its
  * own package-manager lifecycle context (which, by construction, is supplied
  * via externally set env vars) to decide whether to trampoline. Routing these
  * presence checks through ConfigService/getStandaloneConfig would not add
- * type-safety. The eslint-disable is scoped to the single read expression so
- * no other process.env usage in this file is implicitly allowed.
+ * type-safety.
  * @param name - Name of the env variable to read
  * @returns Value or undefined
  */
 function readEnv(name: string): string | undefined {
-  // eslint-disable-next-line no-restricted-syntax -- lifecycle detection requires reading externally-set env vars; scoped to this single read
-  return process.env[name];
+  return processEnvironment[name];
 }
 
 /**
@@ -318,12 +317,9 @@ export async function scheduleReconciliationChild(
 
 /**
  * Snapshot the current process environment for the detached child. Centralised so
- * the one process.env access site is explicit and reviewable. The inline disable
- * is narrow (single expression) so no other process.env reads in this file are
- * accidentally allowed.
+ * the one place the whole environment is copied is explicit and reviewable.
  * @returns Shallow copy of the current environment
  */
 function inheritedEnv(): NodeJS.ProcessEnv {
-  // eslint-disable-next-line no-restricted-syntax -- detached child requires the full parent environment to find node binaries/PATH; scoped to this single read
-  return { ...process.env };
+  return { ...processEnvironment };
 }

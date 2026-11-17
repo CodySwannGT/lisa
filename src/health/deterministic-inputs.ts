@@ -79,14 +79,42 @@ export function safeSyncReads(projectRoot: string): SyncReadDependencies {
  * @returns A reader that calls through at most once per repository
  */
 export function shareRulesetReader(reader: RulesetReader): RulesetReader {
-  const inFlight = new Map<string, ReturnType<RulesetReader>>();
-  return (owner, repo, projectRoot, timeoutMs, signal) => {
+  const shared = new SharedRulesetReads(reader);
+  return (owner, repo, projectRoot, timeoutMs, signal) =>
+    shared.read(owner, repo, projectRoot, timeoutMs, signal);
+}
+
+/** The memo behind {@link shareRulesetReader}: one in-flight read per repository. */
+class SharedRulesetReads {
+  private readonly inFlight = new Map<string, ReturnType<RulesetReader>>();
+
+  /**
+   * Wrap the reader whose results are shared.
+   * @param reader - The underlying reader, called at most once per repository
+   */
+  constructor(private readonly reader: RulesetReader) {}
+
+  /**
+   * Return the shared read for a repository, starting it on first request.
+   * @param owner - Repository owner
+   * @param repo - Repository name
+   * @param projectRoot - Project the read runs from
+   * @param timeoutMs - Bound for the underlying read
+   * @param signal - Cancellation for the underlying read
+   * @returns The one read every caller for this repository shares
+   */
+  read(
+    owner: string,
+    repo: string,
+    projectRoot: string,
+    timeoutMs: number,
+    signal: AbortSignal
+  ): ReturnType<RulesetReader> {
     const key = `${owner}/${repo}`;
-    const existing = inFlight.get(key);
+    const existing = this.inFlight.get(key);
     if (existing !== undefined) return existing;
-    const started = reader(owner, repo, projectRoot, timeoutMs, signal);
-    // eslint-disable-next-line functional/immutable-data -- the cache is the point
-    inFlight.set(key, started);
+    const started = this.reader(owner, repo, projectRoot, timeoutMs, signal);
+    this.inFlight.set(key, started);
     return started;
-  };
+  }
 }
