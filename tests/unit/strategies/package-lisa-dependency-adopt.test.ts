@@ -10,12 +10,12 @@
  * and every doubt — no repository, git unable to answer — keeps it.
  * @module tests/unit/strategies/package-lisa-dependency-adopt
  */
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { findMentionedPackages } from "../../../src/strategies/package-mentions.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { createPackageLisaApplyHarness } from "../../helpers/package-lisa-apply-harness.js";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -38,7 +38,12 @@ const TEMPLATE = {
  * @param dir - Host directory
  */
 function gitInit(dir: string): void {
-  execFileSync(resolveGit(), ["init", "-q"], { cwd: dir });
+  boundedExecFileSync({
+    label: "git init host fixture",
+    command: resolveGit(),
+    args: ["init", "-q"],
+    cwd: dir,
+  });
   fs.mkdirSync(path.join(dir, "node_modules"), { recursive: true });
 }
 
@@ -136,7 +141,12 @@ describe("dependency adopt is guarded by use (#4932)", () => {
     await host.writeHostManifest({
       [DEV_DEPENDENCIES]: { [RETIRED]: RETIRED_VALUE },
     });
-    execFileSync(resolveGit(), ["init", "-q"], { cwd: host.hostDir() });
+    boundedExecFileSync({
+      label: "git init host fixture",
+      command: resolveGit(),
+      args: ["init", "-q"],
+      cwd: host.hostDir(),
+    });
     await host.runApply();
     expect(
       ((await host.hostPackage())[DEV_DEPENDENCIES] as Record<string, string>)[
