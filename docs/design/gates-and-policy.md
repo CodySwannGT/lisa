@@ -1069,7 +1069,7 @@ a different thing:
 | --- | --- | --- |
 | `validate` (the shipped registry) | `evidence` that is written wrongly: not an object, an unknown key, an empty list, a path outside the repository, a line below 1, the same place twice, or neither list. | It ships to every repository and reads no report. `evidence` is optional here, because nothing that runs a part reads it. |
 | `lisa controls register` | A part with no `evidence` at all. | The register is where "this rule governs this folder" becomes a record. It never reads the audit report, so it stays the same bytes on every machine. |
-| `lisa controls declaration-check` | A place the audit did not report for a requirement the gate serves in that folder, a question the report holds no answer to, and a part for a requirement the audit still asks about. | It is the one place the declaration and the audit report are both in reach. |
+| `lisa controls declaration-check` | A place the audit did not report for a requirement the gate serves, in that folder or in the report's whole-repository section; a question the report holds no answer to; and a part for a requirement the audit still asks about. | It is the one place the declaration and the audit report are both in reach. |
 
 **A gate with no parts is outside all three.** Its one entry comes from the
 declarations Lisa ships for a supported project type, it has no part to carry

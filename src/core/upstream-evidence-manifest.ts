@@ -1439,7 +1439,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "7862158ee32d674a7a8a9c8fb9c68c396482832711a73fd620ef6a55d8b67bad",
+      "f11482fac2f409da3ae4cfe0d0aa746390bfa100651a77d3fb46ba10deac78e6",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "c6128e80d6baeabd9c0ff4c092d094773fe7753b1fc0c3cd828b016a5c6c447f",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -12548,6 +12548,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/configure-skill.test.ts": true,
     "tests/unit/controls/control-audit-fixtures.test.ts": true,
     "tests/unit/controls/control-gap-marker.test.ts": true,
+    "tests/unit/controls/declaration-check-repository.test.ts": true,
     "tests/unit/controls/declaration-check.test.ts": true,
     "tests/unit/controls/declaration-evidence.test.ts": true,
     "tests/unit/controls/evidence.test.ts": true,

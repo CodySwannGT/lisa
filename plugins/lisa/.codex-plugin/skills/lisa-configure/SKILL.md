@@ -182,7 +182,7 @@ question.
 | --- | --- |
 | The gate it belongs to | The first name in the requirement's `gates` list. When that list is empty, a short name of your own that starts with `x-`, such as `x-design-tokens`. Requirements that share a gate name share one gate. |
 | The requirement it serves | The requirement's `id`, in the gate's `criteria`. List only requirements a finding supports. |
-| The part it covers | The finding's `scope`. |
+| The part it covers | The finding's `scope`. A requirement that has one answer for the whole repository has its one finding under `.`, even when a check it lists covers a single folder: the part is then the folder that check covers. |
 | The command | The mechanism's `command`, split into a list with one item per argument and the program first. The command is started in the part's folder and never through a shell. If the line as written chains or pipes commands, declare the script or task that wraps it. If `command` is `null`, nothing runs the tool today: propose the tool's own usual way of running a check, and say to the operator that this is a proposal, not something found. |
 | What supports it | The `path` and `line` of the mechanism's `locators`, copied exactly. |
 | When it runs | The operator's choice. For most checks: when code is committed (`commit`), before it is pushed (`push`), or before it is merged (`pull-request`). For a check tied to a release: before or after a deployment to a named environment (`pre-deploy:production`, `post-deploy:production`). And whether a failure stops the change (`required`) or is only reported (`optional`). Not every check can run at every moment: when step 8 refuses a moment, its message lists the ones that check accepts, and you go back to the operator with those. |

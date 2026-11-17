@@ -9,11 +9,15 @@
  * that what a part names is really there:
  *
  * - a place (`evidence.locators`) is one the audit reported, on a finding
- *   that says a check exists, for a requirement the entry serves, in the
- *   entry's folder or a folder inside it;
+ *   that says a check exists, for a requirement the entry serves, about the
+ *   entry's folder, a folder inside it, or the whole repository;
  * - a question (`evidence.questions`) is one the report holds an answer to;
  * - no requirement the entry serves is still an open question there, because
  *   an unanswered question produces no entry.
+ *
+ * Nothing here depends on how many findings a requirement has or on where
+ * the catalogue says it is answered: the report is read as it was validated,
+ * finding by finding.
  *
  * ## Exactly which entries it applies to
  *
@@ -92,14 +96,24 @@ export function answeredQuestionIds(document: unknown): readonly string[] {
 }
 
 /**
- * Tell whether a finding is about an entry's folder or a folder inside it.
+ * Tell whether a finding bears on an entry.
+ *
+ * It does when it is about the entry's folder or a folder inside it. It also
+ * does when it is about the whole repository, whatever folder the entry
+ * covers: a requirement that has one answer for the repository has its only
+ * finding there, and that finding lists what was found in every folder. So a
+ * check found for one folder under such a requirement supports a part for
+ * that folder, and a question still open about such a requirement stops a
+ * part in any folder. What never bears on an entry is a finding about a
+ * different folder.
  * @param entryScope - The folder the entry covers
  * @param findingScope - The folder the finding is about
- * @returns Whether the entry covers the finding's folder
+ * @returns Whether the finding is one the entry is held to
  */
 function covers(entryScope: string, findingScope: string): boolean {
   return (
     entryScope === WHOLE_REPOSITORY_SCOPE ||
+    findingScope === WHOLE_REPOSITORY_SCOPE ||
     findingScope === entryScope ||
     findingScope.startsWith(`${entryScope}/`)
   );
