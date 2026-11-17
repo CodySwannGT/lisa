@@ -994,6 +994,60 @@ would be a threshold nothing holds while every tool reported the declaration
 valid. A key that starts with `x-` is the project's own and passes through
 unread.
 
+## A declared threshold moves one way
+
+A parameter with a `direction` is a threshold, and `threshold-monotonicity`
+holds it: a `floor` may rise and never fall, a `ceiling` may fall and never
+rise. The prover is the one that already held Lisa's own threshold files
+(`plugins/src/base/hooks/threshold-ratchet*.mjs`, shipped to every repository
+as `scripts/check-threshold-ratchet.mjs` and its two siblings). It compares
+`.lisa.config.json` between the base and the change, so it needs no threshold
+file, no `package.json` and nothing installed — only `node` and git.
+
+It walks the thresholds the base declares and asks of each whether it is still
+held at least as tightly. Everything else follows from that one question:
+
+| the change | verdict |
+| --- | --- |
+| a floor goes down, or a ceiling goes up | refused |
+| a floor goes up, a ceiling goes down, or the value stays | allowed |
+| the parameter, its part, its gate or the file is removed | refused: removing a floor lowers it all the way |
+| the part's folder or the gate is renamed | refused, even when the threshold moved with it |
+| `direction` is dropped, or a floor becomes a ceiling or the reverse | refused |
+| the value stops being a number | refused |
+| the file stops being valid JSON while it held a threshold | refused |
+| a parameter with no `direction` changes or goes | not compared |
+| a new parameter, part or gate | allowed |
+| the base declares no thresholds, or has no such file | allowed: there is nothing to loosen |
+
+**A rename is refused on purpose.** A threshold is named by its gate, its
+folder and its parameter. Nothing in two versions of a file can tell a renamed
+folder from a part that was removed beside an unrelated one that was added, or
+show that a floor under a new name covers the code the old one covered. So a
+rename leaves the way any deliberate loosening does.
+
+**There is one way out, and it is not new.** A person records a
+`thresholdRatchet.allow` entry in `.lisa.config.json` with a reason and an
+`until` day, in a change of its own; the check honours it only once it is on
+the base side, and only through that day. For a declared threshold `file` is
+`.lisa.config.json` and `key` is
+`gates.<gate>.parts[<folder>].parameters.<name>` — every refusal prints the
+exact pair. Nothing written beside the parameter is read as permission.
+
+**The prover reads the declaration and does not validate it.** `validate`
+decides what a valid `gates` block is. A shape it would refuse yields no
+threshold here rather than an error, because a comparison that throws on a
+hand-edited file compares nothing.
+`tests/unit/controls/declared-thresholds-register.test.ts` holds the prover and
+the register to the same list of thresholds for one declaration.
+
+**What still has to call it.** The files reach every repository Lisa is applied
+to, and the coding agent's after-edit hook runs them wherever the plugin is
+installed. The commit and pull-request callers are the TypeScript and Rails
+templates' hooks and the reusable quality workflows; a repository on neither
+has to name the command itself — `node scripts/check-threshold-ratchet.mjs
+--base <ref>`.
+
 ## The control register
 
 The `gates` block is the only thing a person or an agent writes. The control
