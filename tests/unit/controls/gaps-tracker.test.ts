@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { TRACKER_QUESTION_ID } from "../../../src/controls/tracker-question.js";
-import { FIRST, SECOND } from "./audit-report-facts.js";
+import { FIRST, PART_FIRST } from "./audit-report-facts.js";
 import {
   gaps,
   mixedRepository,
@@ -26,7 +26,7 @@ const LOCAL_CONFIG = ".lisa.config.local.json";
 
 const TWO_MISSING = [
   { criterion: FIRST, scope: "." },
-  { criterion: SECOND, scope: "api" },
+  { criterion: PART_FIRST, scope: "api" },
 ] as const;
 
 describe("a repository with no tracker configured", () => {

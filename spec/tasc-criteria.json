@@ -11,7 +11,8 @@
       "question": "Is every action an agent takes recorded under the agent's own account rather than a person's?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC1.2",
@@ -21,6 +22,7 @@
       "kind": "artifact",
       "minimum_rung": "observed",
       "not_applicable_when": "never",
+      "answered": "repository",
       "level_note": "From Level 2, at least one link of the chain (from a change to its work item) must be enforced automatically at commit or merge time. At Level 3 the chain must also record the procedure, prompt version and model version that produced each change."
     },
     {
@@ -31,6 +33,7 @@
       "kind": "gate",
       "minimum_rung": "observed",
       "not_applicable_when": "never",
+      "answered": "repository",
       "gates": ["code-review"]
     },
     {
@@ -40,7 +43,8 @@
       "question": "Are the accounts and permissions your agents hold reviewed on a set schedule?",
       "kind": "human-attested",
       "minimum_rung": "asserted",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC1.5",
@@ -49,7 +53,8 @@
       "question": "Are records of agent sessions kept for a stated length of time, with a stated limit on who may read them?",
       "kind": "human-attested",
       "minimum_rung": "asserted",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC1.6",
@@ -58,7 +63,8 @@
       "question": "Is agent spending capped for every run and checked against the provider's own usage records?",
       "kind": "human-attested",
       "minimum_rung": "asserted",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC1.7",
@@ -67,7 +73,8 @@
       "question": "Is there a named person, with a named backup, who answers for what the agents do?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC1.8",
@@ -76,7 +83,8 @@
       "question": "Is every decision to accept a risk instead of fixing it made and recorded by a named person who is allowed to make it?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC1.9",
@@ -85,7 +93,8 @@
       "question": "Does someone independent regularly re-check a sample of the approvals your agents give?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "No agent approves work: every review, merge approval and sign-off is given by a person."
+      "not_applicable_when": "No agent approves work: every review, merge approval and sign-off is given by a person.",
+      "answered": "repository"
     },
     {
       "id": "AC2.1",
@@ -94,7 +103,8 @@
       "question": "Can someone who is not an engineer understand every message the agents send out, such as rejections, questions and results?",
       "kind": "human-attested",
       "minimum_rung": "asserted",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC2.2",
@@ -104,6 +114,7 @@
       "kind": "artifact",
       "minimum_rung": "observed",
       "not_applicable_when": "No agent job runs on a schedule or trigger: agents work only when a person starts them.",
+      "answered": "repository",
       "level_note": "Section 10 of the specification lists enforcement of named run outcomes under Level 2. The criterion itself sets no level on the requirement, so it is in scope at Level 1."
     },
     {
@@ -113,7 +124,8 @@
       "question": "Does every scheduled agent job have a written guide in the repository saying what it is for, what starts it and what an operator should do?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "No agent job runs on a schedule or trigger: agents work only when a person starts them."
+      "not_applicable_when": "No agent job runs on a schedule or trigger: agents work only when a person starts them.",
+      "answered": "repository"
     },
     {
       "id": "AC2.4",
@@ -122,7 +134,8 @@
       "question": "When the agents ask a person for help, does the request say what is broken or what must be decided, and what to do about it?",
       "kind": "human-attested",
       "minimum_rung": "asserted",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC3.1",
@@ -131,7 +144,8 @@
       "question": "Is there a written list of the ways your agents could be attacked or misled, with a safeguard named for each one?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC3.2",
@@ -140,7 +154,8 @@
       "question": "Is content that agents fetch from outside treated as information to read, never as instructions to follow?",
       "kind": "human-attested",
       "minimum_rung": "asserted",
-      "not_applicable_when": "Agents cannot read anything from outside the organisation: no web pages, no outside repositories and no comments written by outsiders."
+      "not_applicable_when": "Agents cannot read anything from outside the organisation: no web pages, no outside repositories and no comments written by outsiders.",
+      "answered": "repository"
     },
     {
       "id": "AC3.3",
@@ -149,7 +164,8 @@
       "question": "Is a trust decision made before agents act on instruction files that arrive with outside code?",
       "kind": "human-attested",
       "minimum_rung": "asserted",
-      "not_applicable_when": "Agents never open code from outside the organisation, so no outside instruction file, hook or skill can reach them."
+      "not_applicable_when": "Agents never open code from outside the organisation, so no outside instruction file, hook or skill can reach them.",
+      "answered": "repository"
     },
     {
       "id": "AC3.4",
@@ -158,7 +174,8 @@
       "question": "Is every lesson an agent saves for later checked before it is kept, labelled with where it came from, and removable?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "Agents keep no memory or lessons from one run to the next."
+      "not_applicable_when": "Agents keep no memory or lessons from one run to the next.",
+      "answered": "repository"
     },
     {
       "id": "AC3.5",
@@ -167,7 +184,8 @@
       "question": "Is it written down what an agent could reach if it were taken over, with that reach kept to what the agent needs?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC3.6",
@@ -176,7 +194,8 @@
       "question": "Is it recorded which agents can ask which other agents to act, so that no agent can get another to do what it may not do itself?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "Only one agent works here, and it has no way to ask another agent to act for it."
+      "not_applicable_when": "Only one agent works here, and it has no way to ask another agent to act for it.",
+      "answered": "repository"
     },
     {
       "id": "AC4.1",
@@ -185,7 +204,8 @@
       "question": "Do errors, logs, performance figures and problems reported by users all reach the agents as signals to act on?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "Nothing built from this repository runs anywhere for users, so there is nothing to monitor."
+      "not_applicable_when": "Nothing built from this repository runs anywhere for users, so there is nothing to monitor.",
+      "answered": "repository"
     },
     {
       "id": "AC4.2",
@@ -195,6 +215,7 @@
       "kind": "artifact",
       "minimum_rung": "observed",
       "not_applicable_when": "Nothing built from this repository runs anywhere for users, so there is nothing to monitor.",
+      "answered": "repository",
       "level_note": "At Level 3 every liveness mechanism must also carry continuously refreshed evidence that it fires."
     },
     {
@@ -204,7 +225,8 @@
       "question": "When monitoring spots a problem, does it become a tracked work item that passes the same entry checks as any other work?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "Nothing built from this repository runs anywhere for users, so there is nothing to monitor."
+      "not_applicable_when": "Nothing built from this repository runs anywhere for users, so there is nothing to monitor.",
+      "answered": "repository"
     },
     {
       "id": "AC4.4",
@@ -219,7 +241,8 @@
       "question": "When an agent makes a mistake, is the lesson recorded and turned into a rule or check that stops the next agent repeating it?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC4.6",
@@ -228,7 +251,8 @@
       "question": "Is every automatic source of findings filtered before its findings become work, with its rate of false alarms measured?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "Nothing produces findings for the work queue automatically: there is no monitor, audit job, test generator or reviewing agent."
+      "not_applicable_when": "Nothing produces findings for the work queue automatically: there is no monitor, audit job, test generator or reviewing agent.",
+      "answered": "repository"
     },
     {
       "id": "AC4.7",
@@ -237,7 +261,8 @@
       "question": "Are the numbers your decisions rest on produced by something other than the agents being judged, and checked against an independent record?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC4.8",
@@ -246,7 +271,8 @@
       "question": "Is a defect closed only when its underlying cause is fixed, or when a named person has accepted the risk on the record?",
       "kind": "human-attested",
       "minimum_rung": "asserted",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC4.9",
@@ -256,6 +282,7 @@
       "kind": "artifact",
       "minimum_rung": "observed",
       "not_applicable_when": "never",
+      "answered": "repository",
       "level_note": "Section 10 of the specification lists capability monitoring against a baseline under Level 3. The criterion itself sets no level on the requirement, so it is in scope at Level 1."
     },
     {
@@ -266,6 +293,7 @@
       "kind": "gate",
       "minimum_rung": "observed",
       "not_applicable_when": "never",
+      "answered": "repository",
       "level_note": "Section 10 of the specification lists server-side enforcement of every authoritative gate under Level 2. The criterion itself sets no level on the requirement, so it is in scope at Level 1.",
       "gates": [],
       "no_gate_reason": "Whether a required check can be skipped is decided by how the hosting platform protects the main branch, not by a check that runs on a change. No registered gate tests that the agent being judged cannot bypass or switch off a required check."
@@ -278,6 +306,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "The required checks run in one place only: no copy of them runs on a workstation or inside an agent.",
+      "answered": "repository",
       "gates": [],
       "no_gate_reason": "No registered gate compares the local copies of the checks with the required ones. The artifact-freshness gate proves that generated files match their source in general; it does not say whether the checks themselves are generated from one source."
     },
@@ -288,7 +317,8 @@
       "question": "Does every kind of agent you use face the same checks, with any gap written down and covered elsewhere?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "Only one kind of coding agent works in this repository."
+      "not_applicable_when": "Only one kind of coding agent works in this repository.",
+      "answered": "repository"
     },
     {
       "id": "AC5.4",
@@ -298,6 +328,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "never",
+      "answered": "repository",
       "gates": ["threshold-monotonicity"]
     },
     {
@@ -308,6 +339,7 @@
       "kind": "artifact",
       "minimum_rung": "exercised",
       "not_applicable_when": "never",
+      "answered": "repository",
       "level_note": "The specification sets how often the demonstration must be repeated only for Type II attestations (at least once in the period) and Type C attestations (within each gate's freshness lifetime), which belong to Levels 2 and 3. The catalogue therefore asks for one demonstration."
     },
     {
@@ -317,7 +349,8 @@
       "question": "When the agents' instructions change, is any new risk the change brings written down and reviewed before it takes effect?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC5.7",
@@ -326,7 +359,8 @@
       "question": "Are the rules that exist only as instructions to agents listed, with a measurement of how often they are broken?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "No rule exists only as an instruction to agents: every rule is backed by an automatic check."
+      "not_applicable_when": "No rule exists only as an instruction to agents: every rule is backed by an automatic check.",
+      "answered": "repository"
     },
     {
       "id": "AC5.8",
@@ -335,7 +369,8 @@
       "question": "Is every rule you hold yourselves to kept in a versioned file a program can read, with the checks produced from that file?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC5.9",
@@ -344,7 +379,8 @@
       "question": "Is there one list of every rule, where it is enforced, what measures it and who answers for it, kept in step with what actually runs?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC6.1",
@@ -353,7 +389,8 @@
       "question": "Do agents sign in to every outside system as themselves, with only the access they need, rather than with a person's login?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC6.2",
@@ -362,7 +399,8 @@
       "question": "When an agent acts with a person's permissions, is that explicit, limited in time and reach, and logged?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "Agents never act with a person's login or permissions."
+      "not_applicable_when": "Agents never act with a person's login or permissions.",
+      "answered": "repository"
     },
     {
       "id": "AC6.3",
@@ -372,6 +410,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "never",
+      "answered": "repository",
       "gates": ["credential-leakage", "introduced-history-credential-leakage"]
     },
     {
@@ -381,7 +420,8 @@
       "question": "For every place agents run, is each sign-in they need written down and shown to work from that place?",
       "kind": "artifact",
       "minimum_rung": "exercised",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC6.5",
@@ -390,7 +430,8 @@
       "question": "Is what agents can reach over the network limited to what the work needs?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC7.1",
@@ -399,7 +440,8 @@
       "question": "Is every scheduled agent job registered, with what starts it and what happens when a run is missed written down?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "No agent job runs on a schedule or trigger: agents work only when a person starts them."
+      "not_applicable_when": "No agent job runs on a schedule or trigger: agents work only when a person starts them.",
+      "answered": "repository"
     },
     {
       "id": "AC7.2",
@@ -408,7 +450,8 @@
       "question": "If an agent's change breaks production, is there a set way to undo it that has actually been tried?",
       "kind": "artifact",
       "minimum_rung": "exercised",
-      "not_applicable_when": "Nothing built from this repository is deployed to a production environment."
+      "not_applicable_when": "Nothing built from this repository is deployed to a production environment.",
+      "answered": "repository"
     },
     {
       "id": "AC7.3",
@@ -417,7 +460,8 @@
       "question": "When the agents cannot carry on, do they stop and tell a person exactly what is needed instead of stalling in silence?",
       "kind": "human-attested",
       "minimum_rung": "asserted",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC7.4",
@@ -427,6 +471,7 @@
       "kind": "artifact",
       "minimum_rung": "observed",
       "not_applicable_when": "never",
+      "answered": "repository",
       "level_note": "Level 3 systems must also publish the autonomy rate in their public summary report."
     },
     {
@@ -437,6 +482,7 @@
       "kind": "artifact",
       "minimum_rung": "observed",
       "not_applicable_when": "never",
+      "answered": "repository",
       "level_note": "Section 10 of the specification lists delivery effectiveness under Level 3, where the results must also be published with their definitions. The criterion itself sets no level on measuring it, so measurement is in scope at Level 1."
     },
     {
@@ -447,6 +493,7 @@
       "kind": "gate",
       "minimum_rung": "observed",
       "not_applicable_when": "never",
+      "answered": "repository",
       "gates": ["code-review"]
     },
     {
@@ -457,6 +504,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "never",
+      "answered": "repository",
       "gates": [],
       "no_gate_reason": "This asks what the checks cover, not for one more check: that the agents' instructions are under version control and go through the same checks as the code. No registered gate verifies that coverage."
     },
@@ -467,7 +515,8 @@
       "question": "Are the model version and its settings fixed, with any change to them tested on your own tasks before use and able to be undone?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC8.4",
@@ -477,6 +526,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "never",
+      "answered": "repository",
       "gates": ["credential-availability", "tool-availability"]
     },
     {
@@ -487,6 +537,7 @@
       "kind": "gate",
       "minimum_rung": "observed",
       "not_applicable_when": "Nothing built from this repository is deployed to a production environment.",
+      "answered": "repository",
       "gates": [],
       "no_gate_reason": "Approval of a production release is given by the hosting platform's protected environments or by a person. No registered gate tests that the releasing agent cannot approve its own release."
     },
@@ -498,6 +549,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "never",
+      "answered": "repository",
       "gates": [],
       "no_gate_reason": "Registered gates judge a change to the repository; this requirement judges a work item in the tracker before any change exists. The traceability gate proves that a change is tied to a work item, not that the item met a definition of ready."
     },
@@ -508,7 +560,8 @@
       "question": "Do you keep your own set of test tasks for judging agents, reviewed on a schedule and hidden from the agents it judges?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC8.8",
@@ -518,6 +571,7 @@
       "kind": "gate",
       "minimum_rung": "observed",
       "not_applicable_when": "never",
+      "answered": "repository",
       "gates": [],
       "no_gate_reason": "No registered gate knows which parts of the system are marked as higher risk, so none can refuse unattended work there."
     },
@@ -528,7 +582,8 @@
       "question": "Before a new agent's work is relied on, is it run on trial beside the existing checks and tested with deliberately faulty work?",
       "kind": "artifact",
       "minimum_rung": "exercised",
-      "not_applicable_when": "never"
+      "not_applicable_when": "never",
+      "answered": "repository"
     },
     {
       "id": "AC9.1",
@@ -537,7 +592,8 @@
       "question": "For each company that supplies a model, are its availability, data retention and training-use terms written down, with a plan for an outage?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "The organisation runs every model its agents use itself: no outside company supplies one."
+      "not_applicable_when": "The organisation runs every model its agents use itself: no outside company supplies one.",
+      "answered": "repository"
     },
     {
       "id": "AC9.2",
@@ -547,6 +603,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "never",
+      "answered": "part",
       "gates": ["dependency-vulnerability"]
     },
     {
@@ -557,6 +614,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "The software uses no outside packages.",
+      "answered": "part",
       "gates": ["license-compliance"]
     },
     {
@@ -566,7 +624,8 @@
       "question": "Is every connector that gives agents access to outside tools fixed to a version, checked before use and listed?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "Agents use no connectors to outside tools or services."
+      "not_applicable_when": "Agents use no connectors to outside tools or services.",
+      "answered": "repository"
     },
     {
       "id": "AC9.5",
@@ -575,7 +634,8 @@
       "question": "Was each vendor-hosted service your agents run on assessed for isolation, network access, secret storage and scheduling before real work ran there?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "No agent runs on a service hosted by a vendor: every agent runs on machines the organisation controls."
+      "not_applicable_when": "No agent runs on a service hosted by a vendor: every agent runs on machines the organisation controls.",
+      "answered": "repository"
     },
     {
       "id": "AC9.6",
@@ -591,6 +651,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents.",
+      "answered": "part",
       "gates": ["test-correctness", "test-node-suites"]
     },
     {
@@ -601,6 +662,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents.",
+      "answered": "part",
       "gates": ["coverage-adequacy"]
     },
     {
@@ -610,7 +672,8 @@
       "question": "Do you measure whether your tests would actually catch a mistake, including the defects you have already fixed?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents.",
+      "answered": "part"
     },
     {
       "id": "SI4",
@@ -620,6 +683,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "The software has no surface that its users interact with directly.",
+      "answered": "part",
       "gates": [
         "e2e-browser",
         "e2e-native",
@@ -634,7 +698,8 @@
       "question": "After a change ships, does someone or something other than its author use the software and record whether it does what was asked?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents.",
+      "answered": "repository"
     },
     {
       "id": "SI6",
@@ -643,7 +708,8 @@
       "question": "Is every check that passed after release turned into a permanent automated test?",
       "kind": "human-attested",
       "minimum_rung": "asserted",
-      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents.",
+      "answered": "repository"
     },
     {
       "id": "SI7",
@@ -653,6 +719,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents.",
+      "answered": "part",
       "gates": [
         "code-style",
         "code-style-slow",
@@ -669,6 +736,7 @@
       "kind": "gate",
       "minimum_rung": "observed",
       "not_applicable_when": "The software offers no service that people or other systems call.",
+      "answered": "part",
       "gates": ["load-capacity"]
     },
     {
@@ -679,6 +747,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents.",
+      "answered": "part",
       "gates": ["generative-testing"]
     },
     {
@@ -689,6 +758,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "never",
+      "answered": "repository",
       "gates": [],
       "no_gate_reason": "No registered gate looks for code copied into the repository's own source. The license-compliance gate reads the licences of declared packages only, and copied code has no package entry for it to read."
     },
@@ -699,7 +769,8 @@
       "question": "Is it defined which kinds of data agents may see, with production and personal data kept out or masked automatically?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "Neither the software nor the agents working on it ever handle personal, confidential or regulated data."
+      "not_applicable_when": "Neither the software nor the agents working on it ever handle personal, confidential or regulated data.",
+      "answered": "repository"
     },
     {
       "id": "DP2",
@@ -708,7 +779,8 @@
       "question": "Are records of agent sessions protected as carefully as the most sensitive data that could appear in them?",
       "kind": "human-attested",
       "minimum_rung": "asserted",
-      "not_applicable_when": "Neither the software nor the agents working on it ever handle personal, confidential or regulated data."
+      "not_applicable_when": "Neither the software nor the agents working on it ever handle personal, confidential or regulated data.",
+      "answered": "repository"
     },
     {
       "id": "DP3",
@@ -717,7 +789,8 @@
       "question": "For every outside company that receives what agents read, is its data retention and training use written down and acceptable under your data duties?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "Neither the software nor the agents working on it ever handle personal, confidential or regulated data."
+      "not_applicable_when": "Neither the software nor the agents working on it ever handle personal, confidential or regulated data.",
+      "answered": "repository"
     },
     {
       "id": "UX1",
@@ -726,7 +799,8 @@
       "question": "Are screens built by agents put together from an approved set of components rather than styled one by one?",
       "kind": "artifact",
       "minimum_rung": "observed",
-      "not_applicable_when": "The software has no screen, page or app that people use."
+      "not_applicable_when": "The software has no screen, page or app that people use.",
+      "answered": "part"
     },
     {
       "id": "UX2",
@@ -736,6 +810,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "The software has no screen, page or app that people use.",
+      "answered": "part",
       "gates": [],
       "no_gate_reason": "No registered gate is about colours, spacing or type. A project can write a lint or structural rule that catches values outside its defined set, but the code-style and structural-rules gates do not themselves promise one."
     },
@@ -753,6 +828,7 @@
       "kind": "gate",
       "minimum_rung": "observed",
       "not_applicable_when": "The software has no screen, page or app that people use.",
+      "answered": "part",
       "gates": [],
       "no_gate_reason": "No registered gate compares a finished screen with its approved design. The browser and device journey gates prove that journeys pass, not that a screen matches its design."
     },
@@ -764,6 +840,7 @@
       "kind": "gate",
       "minimum_rung": "exercised",
       "not_applicable_when": "The software has no screen, page or app that people use.",
+      "answered": "part",
       "gates": [
         "e2e-browser",
         "e2e-native",

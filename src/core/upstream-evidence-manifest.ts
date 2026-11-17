@@ -385,7 +385,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "d4043757ed79d62410c8962b631de774e41adc85c306083887f5c55c7423fb8f",
+      "3494da83f789601d6e6d13a736091f2abb532565048970f6d7074c680b75053a",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -401,7 +401,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "43a4a68a2fff94d04a1b5ea80e63e35375e87eb7a91ee9e400c39252a8534fa7",
+      "06d7249e743499f1bf74acb2120bd2604c95f204b6886d18d3b5c5f8c1d299d7",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1425,7 +1425,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
-      "dbc2e1044faf9eab7b7fb334fcd5e90b775b7015d6c613aa2622dfb226f3f045",
+      "df703c649b0ef7ddf55a2556b145c66bea2cbbe76bb89a07443597df441e69a6",
     "plugins/src/base/skills/lisa-automation-status/SKILL.md":
       "3af301b5b70cbe4ba9377ebfed0e397d1445d70b2edc0a001edfa4bd2d5802b0",
     "plugins/src/base/skills/lisa-bug-triage/SKILL.md":
@@ -1463,7 +1463,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
-      "050f2b807ba9227dc80ed06b3c19a37531731cd2298b4f780066efa990c7de85",
+      "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -11826,6 +11826,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/continuous-gates-empty.test.ts": true,
     "tests/integration/controls-audit-readonly.test.ts": true,
     "tests/integration/controls-gaps.test.ts": true,
+    "tests/integration/controls-part-argv-runner.test.ts": true,
     "tests/integration/controls-register.test.ts": true,
     "tests/integration/controls-report-check.test.ts": true,
     "tests/integration/coverage-scratch-debris.test.ts": true,
@@ -12102,6 +12103,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/recording-gh-stub.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/integration/support/shell-guard-refusal-fixture.ts": true,
+    "tests/integration/support/shipped-threshold-check.ts": true,
     "tests/integration/test-access-map-tracer.test.ts": true,
     "tests/integration/third-party-evidence-seed-apply.test.ts": true,
     "tests/integration/third-party-review-check-run-cli.test.ts": true,
@@ -12113,6 +12115,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/third-party-review-evidence-workflow.test.ts": true,
     "tests/integration/third-party-review-pull-read-cli.test.ts": true,
     "tests/integration/third-party-review-substitute-authors-cli.test.ts": true,
+    "tests/integration/threshold-ratchet-declared-gate.test.ts": true,
     "tests/integration/threshold-ratchet-declared-parameters.test.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/integration/tracked-source-nul-bytes.test.ts": true,
@@ -12505,6 +12508,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/configs/lighthouse-collect-config.test.ts": true,
     "tests/unit/configs/lighthouse-detail-budget.test.ts": true,
     "tests/unit/configs/lintstaged-matcher-ordering.test.ts": true,
+    "tests/unit/controls/audit-report-coverage.test.ts": true,
     "tests/unit/controls/audit-report-facts.ts": true,
     "tests/unit/controls/audit-report-findings.test.ts": true,
     "tests/unit/controls/audit-report-markdown.test.ts": true,
@@ -13192,6 +13196,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-invalid-config.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-kill-context.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-killed.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-parts-assertion.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-parts-fixtures.ts": true,
+    "tests/unit/scripts/lisa-run-gates-parts-record.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-parts-scope.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-parts-spawn.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-parts.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-pass-cache.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-registry-version.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shared-prover.test.ts": true,
@@ -13667,6 +13677,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/sonar/sonar-shim-repoint-safety.test.ts": true,
     "tests/unit/sonar/sonar-shim-repoint.test.ts": true,
     "tests/unit/sonar/support/sonar-shim-fixtures.ts": true,
+    "tests/unit/spec/criterion-catalogue-answered.test.ts": true,
     "tests/unit/spec/criterion-catalogue-schema.test.ts": true,
     "tests/unit/spec/criterion-catalogue.test.ts": true,
     "tests/unit/spec/criterion-gate-mapping.test.ts": true,

@@ -29,7 +29,15 @@ import {
 } from "../../helpers/control-audit-report.js";
 
 const CRITERIA = inScopeCriteria(loadCriterionCatalogue());
-const FIRST = CRITERIA[0];
+
+/** The requirements answered once for the repository, and those answered per part. */
+const REPOSITORY_WIDE = CRITERIA.filter(
+  ({ answered }) => answered === "repository"
+);
+const PER_PART = CRITERIA.filter(({ answered }) => answered === "part");
+
+/** A requirement that has a finding in every folder: the first answered per part. */
+const FIRST = PER_PART[0];
 const WHAT = "A linter is configured, but nothing runs it.";
 const WHY = "A change that breaks the style rules can still be merged.";
 const NEXT = "Run the configure step to wire the linter into commits.";
@@ -101,10 +109,10 @@ describe("renderAuditReportMarkdown", () => {
     const markdown = render(WITH_LINTER);
 
     expect(markdown).toContain(
-      `| Whole repository | 0 | 0 | ${CRITERIA.length} | 0 | 0 | 0 |`
+      `| Whole repository | 0 | 0 | ${REPOSITORY_WIDE.length} | 0 | 0 | 0 |`
     );
     expect(markdown).toContain(
-      `| Folder \`api\` | 0 | 1 | ${CRITERIA.length - 1} | 0 | 0 | 0 |`
+      `| Folder \`api\` | 0 | 1 | ${PER_PART.length - 1} | 0 | 0 | 0 |`
     );
   });
 
@@ -116,6 +124,23 @@ describe("renderAuditReportMarkdown", () => {
     expect(headings).toEqual(
       CRITERIA.map(criterion => `### ${criterion.question}`)
     );
+  });
+
+  it("shows each requirement only where it is answered: once for the repository, or under every folder", () => {
+    const [, repository, api, web] = render(
+      completeAuditReport([".", "api", "web"])
+    )
+      .split(/^## /mu)
+      .slice(1)
+      .map(section =>
+        section.split("\n").filter(line => line.startsWith("### "))
+      );
+    const questions = (criteria: typeof CRITERIA): readonly string[] =>
+      criteria.map(criterion => `### ${criterion.question}`);
+
+    expect(repository).toEqual(questions(REPOSITORY_WIDE));
+    expect(api).toEqual(questions(PER_PART));
+    expect(web).toEqual(questions(PER_PART));
   });
 
   it("shows the three plain-language fields and where the control was found", () => {
@@ -134,7 +159,7 @@ describe("renderAuditReportMarkdown", () => {
     const lines = render(WITH_LINTER).split("\n");
     const withIds = lines.filter(line => criterionIdsIn(line).length > 0);
 
-    expect(withIds.length).toBe(CRITERIA.length * 2);
+    expect(withIds.length).toBe(REPOSITORY_WIDE.length + PER_PART.length);
     withIds.forEach(line => {
       expect(line.startsWith("- **Detail:** requirement ")).toBe(true);
     });

@@ -11,7 +11,7 @@
  * from both sides: one that was merged before the loosening, and one the
  * loosening tries to bring along.
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -35,22 +35,12 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import {
+  SHIPPED_CHECK,
+  shippedThresholdCheck,
+} from "./support/shipped-threshold-check.js";
 
 useIoLatencyBudget();
-
-const REPO_ROOT = path.resolve(__dirname, "..", "..");
-
-/** Where Lisa keeps the files it ships to every repository, whatever its stack. */
-const SHIPPED_DIR = path.join(REPO_ROOT, "all", "copy-overwrite", "scripts");
-
-/** The check and the two files it imports from beside itself. */
-const SHIPPED = [
-  "check-threshold-ratchet.mjs",
-  "threshold-ratchet-compare.mjs",
-  "threshold-ratchet-families.mjs",
-] as const;
-
-const CHECK = "scripts/check-threshold-ratchet.mjs";
 
 /** What every refusal of the 60 to 55 change says. */
 const LOWERED = "was lowered from 60 to 55";
@@ -84,14 +74,8 @@ function declaring(
  * @returns The repository root
  */
 function host(config: string): string {
-  const shipped = Object.fromEntries(
-    SHIPPED.map(name => [
-      `scripts/${name}`,
-      readFileSync(path.join(SHIPPED_DIR, name), "utf8"),
-    ])
-  );
   const built = buildFNone({
-    extraFiles: { ...shipped, [LISA_CONFIG_FILE]: config },
+    extraFiles: { ...shippedThresholdCheck(), [LISA_CONFIG_FILE]: config },
   });
   fixtures.push(built);
   return built.repoPath;
@@ -136,7 +120,7 @@ function check(
   const child = boundedSpawnSync({
     label: "shipped threshold check in a repository on no supported stack",
     command: process.execPath,
-    args: [CHECK, ...args],
+    args: [SHIPPED_CHECK, ...args],
     cwd: repoPath,
     env: controlAuditGitEnv(),
     input,

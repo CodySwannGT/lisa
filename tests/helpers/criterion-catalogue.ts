@@ -58,6 +58,8 @@ export interface InScopeCriterion {
   readonly kind: string;
   readonly minimum_rung: string;
   readonly not_applicable_when: string;
+  /** `repository`: answered once. `part`: answered once for each part. */
+  readonly answered: string;
   readonly level_note?: string;
   /** Kind `gate` only: the registered gates that can satisfy the entry. */
   readonly gates?: readonly string[];

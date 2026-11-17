@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   CATALOGUE_PACKAGE_PATH,
+  CRITERION_ANSWERED,
   criterionIdsIn,
   inScopeCriteria,
   loadCriterionCatalogue,
@@ -22,6 +23,15 @@ import {
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const scratch: string[] = [];
+
+/** The fields the loader needs from an in-scope entry, and no others. */
+const IN_SCOPE_ENTRY = {
+  id: "AC1.1",
+  title: "Attribution",
+  in_scope: true,
+  question: "Is it recorded?",
+  answered: "part",
+} as const;
 
 /**
  * Write a candidate catalogue to a scratch file.
@@ -69,6 +79,15 @@ describe("the criterion catalogue the package ships", () => {
     });
   });
 
+  it("says where every in-scope criterion is answered: once, or once per part", () => {
+    const answered = inScopeCriteria(loadCriterionCatalogue()).map(
+      criterion => criterion.answered
+    );
+
+    expect(new Set(answered)).toEqual(new Set(CRITERION_ANSWERED));
+    expect([...CRITERION_ANSWERED]).toEqual(["repository", "part"]);
+  });
+
   it("keeps keys it does not know, so a later field needs no change here", () => {
     const file = catalogueFile({
       specification: "spec/example.md",
@@ -76,22 +95,23 @@ describe("the criterion catalogue the package ships", () => {
       level: 1,
       criteria: [
         {
-          id: "AC1.1",
-          title: "Attribution",
-          in_scope: true,
-          question: "Is it recorded?",
+          ...IN_SCOPE_ENTRY,
           kind: "gate",
           minimum_rung: "observed",
           not_applicable_when: "never",
           gates: ["example-gate"],
         },
+        { id: "AC9.6", title: "Left out", in_scope: false },
       ],
     });
 
-    expect(inScopeCriteria(loadCriterionCatalogue(file))[0]).toMatchObject({
-      id: "AC1.1",
-      gates: ["example-gate"],
-    });
+    expect(inScopeCriteria(loadCriterionCatalogue(file))).toEqual([
+      expect.objectContaining({
+        id: "AC1.1",
+        answered: "part",
+        gates: ["example-gate"],
+      }),
+    ]);
   });
 
   it.each([
@@ -103,7 +123,19 @@ describe("the criterion catalogue the package ships", () => {
     },
     {
       name: "an in-scope entry with no question",
-      document: { criteria: [{ id: "AC1.1", title: "A", in_scope: true }] },
+      document: {
+        criteria: [{ ...IN_SCOPE_ENTRY, question: undefined }],
+      },
+    },
+    {
+      name: "an in-scope entry that does not say where it is answered",
+      document: {
+        criteria: [{ ...IN_SCOPE_ENTRY, answered: undefined }],
+      },
+    },
+    {
+      name: "an in-scope entry answered somewhere other than repository or part",
+      document: { criteria: [{ ...IN_SCOPE_ENTRY, answered: "folder" }] },
     },
   ])("refuses $name instead of auditing against it", ({ document }) => {
     expect(() => loadCriterionCatalogue(catalogueFile(document))).toThrow(

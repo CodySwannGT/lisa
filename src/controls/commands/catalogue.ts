@@ -9,9 +9,11 @@
  * operator is asked.
  *
  * What it prints is exactly the set `report-check` holds a report to, because
- * both read the same catalogue through `../catalogue.ts`. An agent that
- * answers every requirement printed here, once for each part of the
- * repository, has covered everything the check will count.
+ * both read the same catalogue through `../catalogue.ts`. Each requirement is
+ * printed with its `answered` value, which says whether it has one answer for
+ * the repository or one for each part. An agent that answers every requirement
+ * printed here where that value says has covered everything the check will
+ * count.
  *
  * It reads nothing from the repository it is run in and writes nothing
  * anywhere.

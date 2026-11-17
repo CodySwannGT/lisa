@@ -994,6 +994,53 @@ would be a threshold nothing holds while every tool reported the declaration
 valid. A key that starts with `x-` is the project's own and passes through
 unread.
 
+### How the runner runs a part
+
+`lisa-run-gates.mjs` runs each part on its own and reports each on its own
+line, named by gate and folder:
+
+```
+  PASSED     required code-style in api           ["go","vet","./..."]
+  FAILED     required code-style in web           ["npm","run","lint"] (exit 1) — …
+```
+
+**The list is started as written, in the part's folder.** The program is the
+first item and every other item is one argument. No shell is involved at any
+point, so the report prints the list as JSON to show where each argument
+starts and ends. The command gets the runner's own environment, as every gate
+command does.
+
+**The folder is resolved on disk before anything starts.** A scope names a
+folder inside the repository, and a name is only inside the repository if
+what it _is_ on disk is: a committed link called `api` that leads somewhere
+else would start the command there. So the runner resolves the folder through
+every link and starts the command only when the result is a folder inside the
+repository.
+
+**A part that cannot start is not proved, and says why.** A folder that does
+not exist, a folder that leads outside the repository, and a program that is
+not installed each print `UNPROVABLE` against the part, with the folder or
+the program named. That blocks a required gate exactly as a failure does, and
+it is never a pass. The command of a part that cannot start is not run
+anywhere else instead.
+
+**A part is judged the way every gate is.** Exit 0 from a command that says it
+ran no tests is not proved; a command that was killed is `KILLED`, not
+failed; and a failure the classifier does not recognise is read against the
+part's `proof.failure_shape` before it is called unknown.
+
+**A gate is proved by all of its parts.** The commit and push hooks stand a
+built-in check down only against a gate the runner proved, and one part going
+unproved leaves the whole gate unproved. The evidence envelope records one
+row per part, with the folder in `scope`.
+
+Three things are not built for parts yet. A part's command has thirty minutes
+rather than two hours, which is the longest the process supervisor accepts for
+a command started this way. On Windows a part's output is not captured, so a
+failure there is reported from its exit code alone. And a part is never read
+from the push gate's pass cache or admitted through `pushGate.admission`: it
+runs every time and starts immediately.
+
 ## A declared threshold moves one way
 
 A parameter with a `direction` is a threshold, and `threshold-monotonicity`
@@ -1018,7 +1065,7 @@ held at least as tightly. Everything else follows from that one question:
 | the file stops being valid JSON while it held a threshold | refused |
 | a parameter with no `direction` changes or goes | not compared |
 | a new parameter, part or gate | allowed |
-| the base declares no thresholds, or has no such file | allowed: there is nothing to loosen |
+| the base declares no thresholds, has no such file, or has one that is not valid JSON | allowed: nothing readable was held |
 
 **A rename is refused on purpose.** A threshold is named by its gate, its
 folder and its parameter. Nothing in two versions of a file can tell a renamed
@@ -1044,9 +1091,30 @@ the register to the same list of thresholds for one declaration.
 **What still has to call it.** The files reach every repository Lisa is applied
 to, and the coding agent's after-edit hook runs them wherever the plugin is
 installed. The commit and pull-request callers are the TypeScript and Rails
-templates' hooks and the reusable quality workflows; a repository on neither
-has to name the command itself — `node scripts/check-threshold-ratchet.mjs
---base <ref>`.
+templates' hooks and the reusable quality workflows. The gate's default task,
+`check:thresholds`, is a package script, so a repository with no
+`package.json` declares the gate as a part instead:
+
+```json
+"threshold-monotonicity": {
+  "push": "required",
+  "parts": [
+    {
+      "scope": ".",
+      "command": ["node", "scripts/check-threshold-ratchet.mjs", "--base", "origin/main"],
+      "proof": { "failure_shape": ["blocked by the threshold ratchet"] }
+    }
+  ]
+}
+```
+
+The `failure_shape` is what lets the runner print `FAILED` for a loosened
+threshold. Without it the runner still blocks, but calls the result
+`UNPROVABLE`, because the registry declares no failure shape for this gate.
+`tests/integration/threshold-ratchet-declared-gate.test.ts` runs this
+declaration through the shipped runner in a repository with no `package.json`.
+What calls the runner there — a push hook in a repository the templates were
+never applied to — is separate work.
 
 ## The control register
 

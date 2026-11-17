@@ -55,7 +55,7 @@ export const scopesAreRepositoryFolders: AuditReportRule = (
       : [
           {
             rule: SCOPES_RULE,
-            message: `The report's "scopes" list must include "." so the repository as a whole is covered. Add it, with one finding for every requirement.`,
+            message: `The report's "scopes" list must include "." so the repository as a whole is covered. Add it: every requirement that is answered once for the repository has its finding there.`,
           },
         ]),
     ...repeated.map(scope => ({
