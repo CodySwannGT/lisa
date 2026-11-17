@@ -1,0 +1,236 @@
+/**
+ * Installing the carriers that call the gate runner, in any repository.
+ *
+ * A declared check only governs a repository when something runs it. On a
+ * supported project type the stack's hooks do. Everywhere else nothing does,
+ * so this is the step that makes git run the gate runner at commit and at
+ * push, through whoever already owns the repository's hooks.
+ *
+ * ## What a run does
+ *
+ * It plans everything first and writes afterwards, in this order: the gate
+ * runner under `scripts/`, Lisa's hook scripts, the record of those files,
+ * the ignore entry for the runner's push timings, and last the call that
+ * makes git start a hook. `--check` stops after the plan. A second run plans
+ * nothing, so it writes nothing.
+ *
+ * It never replaces a file it did not write. When one is in the way of the
+ * runner or of a hook script, nothing at all is written: a hook that called
+ * a runner that is not there would stop every commit.
+ *
+ * ## Adding a kind of carrier
+ *
+ * {@link CARRIER_PLANNERS} lists what is planned. A new kind is one more
+ * planner that returns its own points, scripts and writes; the runner, the
+ * record and the result are shared.
+ * @module controls/carriers
+ */
+import path from "node:path";
+
+import {
+  applyCarrierEdits,
+  blockedFolder,
+  fileEdit,
+  fileState,
+} from "./carrier-edits.js";
+import { createCarrierGit, type CarrierGit } from "./carrier-git.js";
+import { planGitHookCarriers } from "./carrier-git-hooks.js";
+import { planIgnore } from "./carrier-ignore.js";
+import {
+  carrierRecordText,
+  EACH_CHECKOUT,
+  planOwnedFiles,
+  readRecordedFiles,
+} from "./carrier-owned-files.js";
+import { describeCarrierRun } from "./carrier-result.js";
+import { runnerFiles } from "./carrier-runner-files.js";
+import {
+  CARRIER_RECORD_PATH,
+  CARRIER_RUNNER_PATH,
+  CARRIER_SCHEMA_VERSION,
+  STACK_HOOK,
+  type CarrierResult,
+  type FileEdit,
+  type KindPlan,
+  type PlacedFile,
+} from "./carrier-types.js";
+
+/** Plans every point of one kind of carrier. */
+export type CarrierPlanner = (
+  root: string,
+  git: CarrierGit
+) => Promise<KindPlan>;
+
+/** Every kind of carrier a run plans, in the order the result lists them. */
+export const CARRIER_PLANNERS: readonly CarrierPlanner[] = [
+  planGitHookCarriers,
+];
+
+/** The command's options. */
+export interface InstallCarriersOptions {
+  /** Write nothing: report what a run would write. */
+  readonly check?: boolean;
+}
+
+/** What a run needs from outside, each replaceable in a test. */
+export interface CarrierDependencies {
+  /** Git. */
+  readonly git?: CarrierGit;
+  /** Reads the runner and its files from the Lisa package. */
+  readonly runnerFiles?: () => Promise<readonly PlacedFile[]>;
+}
+
+/** The result of a run, or why there is none. */
+export type CarrierRun =
+  | { readonly problems: null; readonly result: CarrierResult }
+  | { readonly problems: readonly string[] };
+
+/** The writes for what the carriers share, or why nothing may be written. */
+type SharedPlan =
+  | { readonly problem: null; readonly edits: readonly FileEdit[] }
+  | { readonly problem: string };
+
+/**
+ * Plan the record of what a run places.
+ * @param root - Real path of the repository
+ * @param files - Every file the run places, from the repository root
+ * @returns The write, that none is needed, or what is in the way
+ */
+async function planRecord(
+  root: string,
+  files: readonly string[]
+): Promise<SharedPlan> {
+  const folder = await blockedFolder(root, CARRIER_RECORD_PATH);
+  if (folder !== null) {
+    return {
+      problem: `${folder} is not an ordinary folder (it may be a link), so nothing in it was read or written. Replace it with an ordinary folder, then run this again.`,
+    };
+  }
+  const absolute = path.join(root, CARRIER_RECORD_PATH);
+  const edit = fileEdit(
+    {
+      absolute,
+      content: carrierRecordText(files),
+      executable: false,
+      path: CARRIER_RECORD_PATH,
+    },
+    await fileState(absolute)
+  );
+  return { edits: edit === null ? [] : [edit], problem: null };
+}
+
+/**
+ * Plan everything the carriers share: the runner, the carrier scripts, the
+ * record of both, and the ignore entry.
+ * @param root - Real path of the repository
+ * @param git - Git
+ * @param files - The runner's files and the carrier scripts
+ * @returns The writes in order, or one sentence saying why nothing may be
+ *   written
+ */
+async function planShared(
+  root: string,
+  git: CarrierGit,
+  files: readonly PlacedFile[]
+): Promise<SharedPlan> {
+  const recorded = await readRecordedFiles(root);
+  if (recorded.problem !== null) return recorded;
+  const [owned, record, ignore] = await Promise.all([
+    planOwnedFiles(root, files, recorded.files),
+    planRecord(
+      root,
+      files.map(file => file.path)
+    ),
+    planIgnore(root, git),
+  ]);
+  if (owned.problem !== null) return owned;
+  if (record.problem !== null) return record;
+  if (ignore.problem !== null) return ignore;
+  return {
+    edits: [
+      ...owned.edits,
+      ...record.edits,
+      ...(ignore.edit === null ? [] : [ignore.edit]),
+    ],
+    problem: null,
+  };
+}
+
+/**
+ * The carrier scripts of every plan in which something calls one.
+ * @param plans - The plan of every kind of carrier
+ * @returns The scripts to place; none when every point is blocked before
+ *   anything is written, or is already carried by a project type's own hook
+ */
+function calledScripts(plans: readonly KindPlan[]): readonly PlacedFile[] {
+  return plans.flatMap(plan =>
+    plan.points.some(
+      point => point.through !== STACK_HOOK && point.call !== "absent"
+    )
+      ? plan.scripts
+      : []
+  );
+}
+
+/**
+ * Install the carriers of one repository, or under `check` say what a run
+ * would write.
+ * @param root - Real path of the repository
+ * @param options - Whether to check instead of write
+ * @param dependencies - Replaceable collaborators
+ * @returns The result, or why none could be produced
+ */
+export async function installCarriers(
+  root: string,
+  options: InstallCarriersOptions = {},
+  dependencies: CarrierDependencies = {}
+): Promise<CarrierRun> {
+  const git = dependencies.git ?? createCarrierGit();
+  if ((await git.topLevel(root)) !== root) {
+    return {
+      problems: [
+        `${root} is not the top folder of a git repository. Carriers are git hooks, so give the top folder of the repository to install them in.`,
+      ],
+    };
+  }
+  const plans = await Promise.all(
+    CARRIER_PLANNERS.map(planner => planner(root, git))
+  );
+  const scripts = calledScripts(plans);
+  const runner =
+    scripts.length === 0
+      ? []
+      : await (dependencies.runnerFiles ?? runnerFiles)();
+  const shared: SharedPlan =
+    scripts.length === 0
+      ? { edits: [], problem: null }
+      : await planShared(root, git, [...runner, ...scripts]);
+  const edits =
+    shared.problem === null
+      ? [...shared.edits, ...plans.flatMap(plan => plan.edits)]
+      : [];
+  if (options.check !== true) await applyCarrierEdits(root, edits, git);
+  const described = describeCarrierRun({
+    check: options.check === true,
+    edits,
+    plans,
+    runnerFiles: runner.map(file => file.path),
+    runnerNeeded: scripts.length > 0,
+    scripts: scripts.map(file => file.path),
+    stopped: shared.problem,
+  });
+  return {
+    problems: null,
+    result: {
+      schema_version: CARRIER_SCHEMA_VERSION,
+      ...described,
+      runner: {
+        files: runner.map(file => file.path),
+        path: CARRIER_RUNNER_PATH,
+        ...described.runner,
+      },
+      record: CARRIER_RECORD_PATH,
+      each_checkout: EACH_CHECKOUT,
+    },
+  };
+}

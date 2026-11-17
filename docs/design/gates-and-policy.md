@@ -1341,6 +1341,82 @@ derived check is required, 2 when an entry is blocked, 1 when it could produce
 no result. The handover file carries no date, so a second run that finds the
 same thing writes nothing; it is removed once nothing is left to hand over.
 
+## Carriers for a repository on no project type
+
+A declared check only governs a repository when something runs it. The hooks
+that call the gate runner ship with the stack templates, so on any other
+repository nothing does. `lisa controls install-carriers` is what makes git
+call the runner at commit and at push there:
+
+```
+lisa controls install-carriers [path]           # install, or change nothing
+lisa controls install-carriers [path] --check   # write nothing; say what a run would write
+```
+
+**The runner goes where `lisa apply` puts it.** `scripts/lisa-run-gates.mjs`,
+`scripts/lisa-gates.mjs` and the part of `scripts/lib/` the runner loads, found
+by following its relative imports from the package the command runs from. That
+is the destination `all/copy-overwrite/scripts/` already has, so a repository
+that later adopts a project type has one copy, which `lisa apply` then
+refreshes like any other file it owns. A private folder would have left a
+second copy that nothing updates.
+
+**It never replaces a file it did not write.** Every whole file it places is
+listed in `.lisa/controls/carriers.json`. A missing file is created, a file
+that is already byte for byte what would be written is left alone, and a file
+that differs is replaced only when the record lists it. Anything else belongs
+to the repository: the run stops and writes nothing at all, because a hook
+that called a runner that is not there would stop every commit. The record
+holds nothing that differs between two checkouts of the same commit, so it is
+committed.
+
+**The carrier is one short script per moment**, `.lisa/hooks/pre-commit` and
+`.lisa/hooks/pre-push`. It asks for Node first and, without it, stops the
+operation with one sentence naming Node; it never passes having checked
+nothing. Then it hands over to the runner with `--builtins=none`, passing the
+hook's arguments and standard input on untouched.
+
+**Whoever owns hooks keeps them.** The evidence is weighed in a fixed order,
+and the call to the carrier is added in the owner's own way:
+
+| Owner, in order of evidence | Where the call goes |
+| --- | --- |
+| `core.hooksPath` naming a folder of the repository | marked lines at the end of that folder's hook file |
+| Husky (`.husky/`) | marked lines at the end of `.husky/pre-commit` and `.husky/pre-push` |
+| Lefthook (`lefthook.yml` and its other names) | a `lisa-gates` command under the hook's `commands` |
+| the pre-commit framework (`.pre-commit-config.yaml`) | one `repo: local` entry at the end of `repos` |
+| a hook written by hand in git's hooks folder | marked lines at the end of that hook file |
+| nothing | `core.hooksPath` is set to `.lisa/hooks` in this checkout |
+
+In a shell hook the added lines begin by reading the exit status of whatever
+ran above them, so a hook that failed before still fails, with the same
+status, and the carrier does not run. A hook manager's YAML file is added to
+by line, never parsed and rewritten, and the result is kept only when it
+parses to exactly what the file meant before plus the one entry. A file that
+cannot be added to safely — not a shell script, ending in `exec` or `exit`,
+outside the repository, or replaced by Lisa on every update — is left as it
+is, and the point is reported `blocked` with what to add by hand.
+
+**Where a project type's own hook already calls the runner with
+`--coverage`, nothing is added.** A second call would run every gate twice.
+Those points are reported `already-wired`, through `lisa-stack-hook`.
+
+**`core.hooksPath` is not committed.** A new clone has the files and not the
+setting, so git runs no carrier there until the command has run once in that
+checkout. `--check` exits 3 in such a clone and names the setting, which is
+how a later reconcile step can tell. The same holds for a hook manager that
+is set up in the repository but not switched on in a checkout: the carrier is
+declared, and the point is `blocked` with the manager's own install command.
+
+The command prints one JSON document on stdout: one entry per enforcement
+point, carrying the `location` and `moment` the register uses for the same
+point and one of `installed`, `updated`, `already-wired` or `blocked` with a
+reason. It exits 0 when git runs the declared checks at both moments, 2 when
+a point is blocked, 3 under `--check` when a run would write something, and 1
+when it could produce no result. Edit-time carriers for coding agents are a
+further kind of carrier on the same command and result
+(`CARRIER_PLANNERS` in `src/controls/carriers.ts`).
+
 ## Open items
 
 - Tests are excluded from the typecheck program (`tsconfig.json` is
