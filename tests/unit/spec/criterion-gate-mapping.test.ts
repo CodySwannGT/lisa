@@ -89,6 +89,7 @@ function gateEntry(
     kind: "gate",
     minimum_rung: "exercised",
     not_applicable_when: "never",
+    answered: "part",
     ...mapping,
   };
 }

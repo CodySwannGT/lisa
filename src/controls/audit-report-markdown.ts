@@ -128,7 +128,7 @@ function findingLines(
 const titleSection: AuditReportMarkdownSection = () => [
   "# Audit report",
   "",
-  `Rendered by \`lisa controls report-check\` from \`${AUDIT_REPORT_JSON_PATH}\`, the checked record. Each requirement is shown as a plain question, once for every part of the repository.`,
+  `Rendered by \`lisa controls report-check\` from \`${AUDIT_REPORT_JSON_PATH}\`, the checked record. Each requirement is shown as a plain question. One that has a single answer for the whole repository is under "Whole repository"; one whose answer can differ from folder to folder is under each folder.`,
 ];
 
 /**

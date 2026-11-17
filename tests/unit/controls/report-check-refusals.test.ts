@@ -17,21 +17,98 @@ import {
 } from "../../../src/controls/audit-report.js";
 import {
   buildFEmpty,
+  buildFMixed,
   buildFNone,
 } from "../../helpers/control-audit-fixtures.js";
 import {
   completeAuditReport,
+  dropFinding,
+  sampleFinding,
   writeAuditReport,
 } from "../../helpers/control-audit-report.js";
-import { withFirst } from "./audit-report-facts.js";
+import {
+  CRITERIA,
+  FIRST,
+  PART_FIRST,
+  withFirst,
+} from "./audit-report-facts.js";
 import {
   check,
   checkOnFNone,
   keep,
   removeFixtures,
+  type Run,
 } from "./support/report-check-run.js";
 
 afterEach(removeFixtures);
+
+/** The parts of F-mixed: the whole repository and its two folders. */
+const MIXED_PARTS = [".", "api", "web"];
+
+/**
+ * The plain question the catalogue asks for a requirement.
+ * @param id - Criterion id
+ * @returns Its question
+ */
+function questionOf(id: string): string {
+  return CRITERIA.find(criterion => criterion.id === id)?.question ?? "";
+}
+
+/**
+ * Write a report into F-mixed, which has the parts api and web, and check it.
+ * @param report - The report to check
+ * @returns The run
+ */
+async function checkOnFMixed(report: unknown): Promise<Run> {
+  const { repoPath } = keep(buildFMixed());
+  writeAuditReport(repoPath, report);
+  return check(repoPath);
+}
+
+describe("a report for a repository with the parts api and web", () => {
+  it("is refused when a repository-wide requirement has a finding in the api part, naming the requirement and the part", async () => {
+    const complete = completeAuditReport(MIXED_PARTS);
+
+    const run = await checkOnFMixed({
+      ...complete,
+      findings: [...complete.findings, sampleFinding(FIRST, "api")],
+    });
+
+    expect(run.code).toBe(1);
+    expect(run.stdout).toEqual([]);
+    expect(run.stderr).toHaveLength(2);
+    expect(run.stderr[0]).toContain(`"${questionOf(FIRST)}"`);
+    expect(run.stderr[0]).toContain(
+      "is answered once, for the whole repository, but this finding files it under the folder api"
+    );
+    expect(run.stderr[0]).toMatch(
+      new RegExp(String.raw`\(requirement ${FIRST}, folder api\)$`, "u")
+    );
+    expect(run.stderr[1]).toMatch(/^report-check: FAIL\. 1 problem in /u);
+  });
+
+  it("is refused when a per-part requirement has a finding for api and none for web, naming the requirement and the web part", async () => {
+    const run = await checkOnFMixed(
+      dropFinding(completeAuditReport(MIXED_PARTS), {
+        criterion: PART_FIRST,
+        scope: "web",
+      })
+    );
+
+    expect(run.code).toBe(1);
+    expect(run.stdout).toEqual([]);
+    expect(run.stderr).toHaveLength(2);
+    expect(run.stderr[0]).toContain(
+      `No finding answers "${questionOf(PART_FIRST)}" for the folder web.`
+    );
+    expect(run.stderr[0]).toContain(
+      "answered once for each folder the report lists"
+    );
+    expect(run.stderr[0]).toMatch(
+      new RegExp(String.raw`\(requirement ${PART_FIRST}, folder web\)$`, "u")
+    );
+  });
+});
 
 describe("a refused report", () => {
   it("prints one line per violation, then how many there were", async () => {

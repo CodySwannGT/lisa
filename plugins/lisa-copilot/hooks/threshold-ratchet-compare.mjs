@@ -11,6 +11,7 @@ import {
   classifyAllowEntry,
   describeAllowScope,
   extractAllowEntries,
+  extractDeclaredThresholds,
   extractK6Constraints,
   extractLighthouseAssertions,
   extractNumericLeaves,
@@ -18,7 +19,9 @@ import {
   extractStrykerConstraints,
   extractStrykerMutate,
   familyFor,
+  findDeclaredParameter,
   globRoot,
+  isDeclaredDirection,
   parseJson,
 } from "./threshold-ratchet-families.mjs";
 
@@ -274,6 +277,200 @@ function compareAllowList(relPath, base, current) {
 }
 
 /**
+ * Say a part's folder the way an operator would.
+ * @param {string} scope The part's folder; `.` is the whole repository
+ * @returns {string} `the whole repository`, or the folder by name
+ */
+function folderInWords(scope) {
+  return scope === "." ? "the whole repository" : `the folder "${scope}"`;
+}
+
+/**
+ * Write a parameter's value so an operator can find it in the file.
+ *
+ * A number is written as a number even when it is too large to be one —
+ * `1e999` reads back as `Infinity`, which JSON would print as `null`.
+ * @param {unknown} value The value as parsed
+ * @returns {string} The number, the JSON text, or `nothing` when it is absent
+ */
+function valueInWords(value) {
+  if (value === undefined) return "nothing";
+  return typeof value === "number" ? String(value) : JSON.stringify(value);
+}
+
+/**
+ * What to tell an operator about a declared threshold that is no longer there.
+ *
+ * Removing a floor is lowering it all the way, so each of these is a
+ * loosening. A RENAMED gate or folder lands here too, on purpose: a threshold
+ * is named by its gate, its folder and its parameter, and nothing here can
+ * tell a rename from a removal beside an unrelated addition, or show that a
+ * floor under a new name covers the code the old one covered. A rename is a
+ * loosening a person approves.
+ * @param {string} relPath Repo-relative path of the file
+ * @param {{ gate: string, scope: string, value: number, direction: "floor"|"ceiling" }} held
+ *   The threshold as the baseline declares it
+ * @param {"file"|"gate"|"part"|"parameter"} missing The outermost thing that
+ *   is not there any more
+ * @returns {string} What happened and what to do, to follow the threshold's
+ *   name in a sentence
+ */
+function goneInWords(relPath, held, missing) {
+  const gone = `is gone (it was ${held.value}), because`;
+  switch (missing) {
+    case "file":
+      return `${gone} ${relPath} was deleted. Deleting the file drops every threshold declared in it: put the file back.`;
+    case "gate":
+      return `${gone} the ${held.gate} gate is no longer declared. Removing or renaming a gate drops every threshold it held: put the gate back under the same name.`;
+    case "part":
+      return `${gone} the gate no longer has a part for ${folderInWords(held.scope)}. Removing a part, or renaming its folder, drops every threshold it held: put the part back under the same folder.`;
+    default:
+      return `was removed (it was ${held.value}). Removing a ${held.direction} loosens it all the way: put it back.`;
+  }
+}
+
+/**
+ * What to tell an operator about a declared threshold that is still written
+ * down but is no longer held as tightly — or nothing, when it is.
+ *
+ * Four ways, checked in this order because each makes the next unanswerable:
+ *
+ *   unmarked      the direction was dropped, so the value is a setting again
+ *                 and nothing holds it, whatever the number now says.
+ *   turned round  a floor became a ceiling or the reverse. The two cannot be
+ *                 ordered against each other — `compareConstraints` says the
+ *                 same of a flipped bound — so the change cannot be shown to
+ *                 be safe, even at a number that looks stricter.
+ *   not a number  the value changed kind, or is too large to be one, and only
+ *                 a number can be ordered. `validateGates` draws the same
+ *                 line, with the same test.
+ *   loosened      a floor went down, or a ceiling went up. Equal is held.
+ * @param {{ value: number, direction: "floor"|"ceiling" }} held The threshold
+ *   as the baseline declares it
+ * @param {{ value: unknown, direction: unknown }} found The same parameter in
+ *   the change under review
+ * @returns {string | undefined} What happened and what to do, to follow the
+ *   threshold's name in a sentence; undefined when it is held as tightly
+ */
+function loosenedInWords(held, found) {
+  const now = `(it was ${held.value}, and is now ${valueInWords(found.value)})`;
+  if (!isDeclaredDirection(found.direction)) {
+    return `is no longer marked as a ${held.direction} ${now}. A value with no direction is held by nothing: put "direction": "${held.direction}" back.`;
+  }
+  if (found.direction !== held.direction) {
+    return `was changed from a ${held.direction} to a ${found.direction} ${now}. That turns the limit the other way round, so it cannot be shown to be as strict as it was: make it a ${held.direction} again.`;
+  }
+  const floor = held.direction === "floor";
+  const bound = `${held.value} or ${floor ? "higher" : "lower"}`;
+  if (!Number.isFinite(found.value)) {
+    return `is no longer a number ${now}. Only a number can be held: set it back to a number, ${bound}.`;
+  }
+  const value = /** @type {number} */ (found.value);
+  if (floor ? value >= held.value : value <= held.value) return undefined;
+  return floor
+    ? `was lowered from ${held.value} to ${value}. A floor may go up and never down: set it back to ${bound}, and fix the code so it meets the floor.`
+    : `was raised from ${held.value} to ${value}. A ceiling may go down and never up: set it back to ${bound}, and fix the code so it stays within the ceiling.`;
+}
+
+/**
+ * Compare one declared threshold with what the change makes of it.
+ * @param {string} relPath Repo-relative path of the file
+ * @param {{ gate: string, scope: string, name: string, value: number, direction: "floor"|"ceiling" }} held
+ *   The threshold as the baseline declares it
+ * @param {unknown} current Parsed current config; ignored when `deleted`
+ * @param {boolean} deleted Whether the change deletes the file
+ * @returns {{ type: "weakened"|"removed", told: string, current?: number|string } | undefined}
+ *   The verdict, or undefined when the threshold is held as tightly as it was
+ */
+function declaredVerdict(relPath, held, current, deleted) {
+  const found = deleted
+    ? { missing: "file" }
+    : findDeclaredParameter(current, held.gate, held.scope, held.name);
+  if (found.missing !== null) {
+    return { type: "removed", told: goneInWords(relPath, held, found.missing) };
+  }
+  const told = loosenedInWords(held, found);
+  if (told === undefined) return undefined;
+  return {
+    type: TYPE_WEAKENED,
+    told,
+    current:
+      typeof found.value === "number" ? found.value : valueInWords(found.value),
+  };
+}
+
+/**
+ * Compare the thresholds a repository declares for its own parts.
+ *
+ * Walks the BASELINE's thresholds and looks each one up in the change, so the
+ * only question asked is "is everything that was held still held at least as
+ * tightly". That is what makes the rest fall out without a rule of its own: a
+ * new parameter, part or gate has no baseline entry and is allowed; a
+ * parameter with no direction was never a threshold and is not compared; and a
+ * baseline that declares nothing — the first time a repository adopts this —
+ * has nothing to walk.
+ *
+ * There is no way through this function for a loosening. A deliberate one
+ * leaves the same way a loosened threshold file does, through
+ * `thresholdRatchet.allow` and `applyAllowList`; each message ends by naming
+ * the entry that would cover it. Nothing written beside the parameter is read
+ * as permission.
+ * @param {string} relPath Repo-relative path of the file
+ * @param {unknown} base Parsed baseline config
+ * @param {unknown} current Parsed current config; ignored when `deleted`
+ * @param {boolean} [deleted] Whether the change deletes the file
+ * @returns {Finding[]} One finding per threshold that is no longer held as
+ *   tightly, in the order the baseline declares them
+ */
+export function compareDeclaredThresholds(
+  relPath,
+  base,
+  current,
+  deleted = false
+) {
+  const findings = [];
+  for (const held of extractDeclaredThresholds(base)) {
+    const verdict = declaredVerdict(relPath, held, current, deleted);
+    if (!verdict) continue;
+    findings.push({
+      file: relPath,
+      key: held.key,
+      type: verdict.type,
+      base: held.value,
+      ...(verdict.current === undefined ? {} : { current: verdict.current }),
+      message: `${relPath}: the ${held.direction} "${held.name}" of the ${held.gate} gate, for ${folderInWords(held.scope)}, ${verdict.told} If a person decides this loosening is right, they record an exception under thresholdRatchet.allow with "file": "${relPath}" and "key": "${held.key}".`,
+    });
+  }
+  return findings;
+}
+
+/**
+ * Build the "declared thresholds can no longer be read" finding.
+ *
+ * `.lisa.config.json` that stops parsing used to pass in silence, and for the
+ * allow list alone that is right: a list nobody can read grants no exceptions.
+ * It is not right once the file also holds thresholds, because then the same
+ * breakage is how every one of them stops being held at once.
+ * @param {string} relPath Repo-relative path
+ * @param {unknown} base Parsed baseline config
+ * @returns {Finding[]} One finding when the baseline declared a threshold,
+ *   otherwise none
+ */
+function unreadableDeclaration(relPath, base) {
+  const held = extractDeclaredThresholds(base).length;
+  if (held === 0) return [];
+  const many = held === 1 ? "threshold" : "thresholds";
+  return [
+    {
+      file: relPath,
+      key: "*",
+      type: "unparseable",
+      message: `${relPath} is no longer valid JSON, so the ${held} declared ${many} in its gates block cannot be read and nothing holds ${held === 1 ? "it" : "them"}. Repair the file.`,
+    },
+  ];
+}
+
+/**
  * Compare Lighthouse assertions, including the shipped detail checker's default.
  * Only lighthouserc-config.json's top-level forced-reflow setting is read by
  * check-lighthouse-details.mjs. Other filenames and audits have no inferred
@@ -327,7 +524,16 @@ export function compareFile(relPath, baselineText, currentText) {
   if (!family || baselineText === null || baselineText === undefined) return [];
 
   if (currentText === null || currentText === undefined) {
-    if (family.kind === KIND_ALLOW_LIST) return [];
+    // Deleting an allow list grants nothing, so that half stays silent. The
+    // thresholds the file declared are another matter: they go with it.
+    if (family.kind === KIND_ALLOW_LIST) {
+      return compareDeclaredThresholds(
+        relPath,
+        parseJson(baselineText),
+        undefined,
+        true
+      );
+    }
     return [
       {
         file: relPath,
@@ -370,7 +576,9 @@ export function compareFile(relPath, baselineText, currentText) {
       : [unparseableBaseline(relPath)];
   }
   if (current === undefined) {
-    return family.kind === KIND_ALLOW_LIST ? [] : [unparseable(relPath)];
+    return family.kind === KIND_ALLOW_LIST
+      ? unreadableDeclaration(relPath, base)
+      : [unparseable(relPath)];
   }
   switch (family.kind) {
     case "json-num":
@@ -386,7 +594,10 @@ export function compareFile(relPath, baselineText, currentText) {
     case "lighthouse":
       return compareLighthouse(relPath, base, current);
     case KIND_ALLOW_LIST:
-      return compareAllowList(relPath, base, current);
+      return [
+        ...compareAllowList(relPath, base, current),
+        ...compareDeclaredThresholds(relPath, base, current),
+      ];
     default:
       return [];
   }

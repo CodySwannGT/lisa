@@ -26,9 +26,9 @@ import {
   EXISTS_NOT_ENFORCED,
   FIRST,
   LINTER,
+  PART_FIRST,
   PROVED,
   RULE,
-  SECOND,
   STALE,
   WHOLE,
   violationsOf,
@@ -224,13 +224,13 @@ describe("how a violation reads", () => {
     const [violation] = violationsOf(
       amendFinding(
         completeAuditReport([WHOLE, API]),
-        { criterion: SECOND, scope: API },
+        { criterion: PART_FIRST, scope: API },
         { why: "" }
       )
     );
 
     expect(violation && formatAuditReportViolation(violation)).toMatch(
-      new RegExp(String.raw`\(requirement ${SECOND}, folder api\)$`, "u")
+      new RegExp(String.raw`\(requirement ${PART_FIRST}, folder api\)$`, "u")
     );
   });
 

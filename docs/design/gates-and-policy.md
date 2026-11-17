@@ -153,6 +153,53 @@ pass `--coverage` is an older hook whose only lever is all-or-nothing, and for
 that one the runner still withholds the whole moment until the block is
 complete.
 
+### A caller with no built-in checks
+
+Everything above assumes the hook has checks of its own to keep. The hooks a
+stack template ships do. A repository on no supported project type has no such
+hook: whatever calls the runner there — the carrier the enforce step installs —
+has nothing behind it. For that caller, exit 78 ("run your own checks instead")
+is an instruction it cannot follow, and obeying it would let a commit through
+having checked nothing.
+
+So the caller says which kind it is. `--builtins=none` tells the runner there
+are no built-in checks behind this call, and the runner then answers with a
+verdict every time:
+
+| Exit | Meaning for the caller                                                                                           |
+| ---- | ---------------------------------------------------------------------------------------------------------------- |
+| `0`  | Let it through. Every required gate declared at this moment was proved, or nothing is declared at this moment.   |
+| `1`  | Stop it. A required gate was not proved, or the declaration is one the validator refuses.                        |
+| `70` | Stop it. The runner could not run (unreadable configuration, a flag it does not understand), so nothing was proved. |
+
+It never answers 78. Three things change under the flag, and nothing else:
+
+- **A half-written block is run, not withheld.** The floor lists what the
+  caller's built-in checks prove. With no built-in checks there is no floor,
+  so silence about `credential-leakage` deletes nothing — nothing was proving
+  it.
+- **No gates at all is a pass that says so.** The runner prints
+  `No gates are declared in .lisa.config.json, so nothing was checked at
+<moment>` and exits 0, and the evidence envelope still records `no-gates`.
+  It is the same answer a gates block that is silent at one moment has always
+  had.
+- **A gate left to a built-in check is not proved.** The registry resolves
+  some gates to `builtin`: the hook proves them with a step of its own. To a
+  caller with such a step they print `SKIPPED`. To a caller with none they
+  print `UNPROVABLE`, and a required one stops the commit, because otherwise a
+  required gate would read as settled while nothing anywhere had checked it.
+
+`--builtins=none` and `--coverage` say opposite things about the caller, so
+the runner refuses the two together (exit 70) rather than pick one.
+
+**No manifest is needed for any of it.** A part names its own command, so the
+runner resolves and starts it whether or not the repository has a
+`package.json`. A gate with _no_ parts still resolves to `<runner> <task>` as
+it always has; in a repository with no manifest that command has nothing to
+run, exits non-zero, and the gate is reported as not proved — at `required`,
+where it stops the commit, and at `optional`, where it is reported and stops
+nothing. It is never reported as passing.
+
 ## Requirements follow the work, not the surface
 
 A gate declares `needs: {tools, secrets}`. Whatever runs at a moment therefore
@@ -1041,6 +1088,81 @@ failure there is reported from its exit code alone. And a part is never read
 from the push gate's pass cache or admitted through `pushGate.admission`: it
 runs every time and starts immediately.
 
+## A declared threshold moves one way
+
+A parameter with a `direction` is a threshold, and `threshold-monotonicity`
+holds it: a `floor` may rise and never fall, a `ceiling` may fall and never
+rise. The prover is the one that already held Lisa's own threshold files
+(`plugins/src/base/hooks/threshold-ratchet*.mjs`, shipped to every repository
+as `scripts/check-threshold-ratchet.mjs` and its two siblings). It compares
+`.lisa.config.json` between the base and the change, so it needs no threshold
+file, no `package.json` and nothing installed — only `node` and git.
+
+It walks the thresholds the base declares and asks of each whether it is still
+held at least as tightly. Everything else follows from that one question:
+
+| the change | verdict |
+| --- | --- |
+| a floor goes down, or a ceiling goes up | refused |
+| a floor goes up, a ceiling goes down, or the value stays | allowed |
+| the parameter, its part, its gate or the file is removed | refused: removing a floor lowers it all the way |
+| the part's folder or the gate is renamed | refused, even when the threshold moved with it |
+| `direction` is dropped, or a floor becomes a ceiling or the reverse | refused |
+| the value stops being a number | refused |
+| the file stops being valid JSON while it held a threshold | refused |
+| a parameter with no `direction` changes or goes | not compared |
+| a new parameter, part or gate | allowed |
+| the base declares no thresholds, has no such file, or has one that is not valid JSON | allowed: nothing readable was held |
+
+**A rename is refused on purpose.** A threshold is named by its gate, its
+folder and its parameter. Nothing in two versions of a file can tell a renamed
+folder from a part that was removed beside an unrelated one that was added, or
+show that a floor under a new name covers the code the old one covered. So a
+rename leaves the way any deliberate loosening does.
+
+**There is one way out, and it is not new.** A person records a
+`thresholdRatchet.allow` entry in `.lisa.config.json` with a reason and an
+`until` day, in a change of its own; the check honours it only once it is on
+the base side, and only through that day. For a declared threshold `file` is
+`.lisa.config.json` and `key` is
+`gates.<gate>.parts[<folder>].parameters.<name>` — every refusal prints the
+exact pair. Nothing written beside the parameter is read as permission.
+
+**The prover reads the declaration and does not validate it.** `validate`
+decides what a valid `gates` block is. A shape it would refuse yields no
+threshold here rather than an error, because a comparison that throws on a
+hand-edited file compares nothing.
+`tests/unit/controls/declared-thresholds-register.test.ts` holds the prover and
+the register to the same list of thresholds for one declaration.
+
+**What still has to call it.** The files reach every repository Lisa is applied
+to, and the coding agent's after-edit hook runs them wherever the plugin is
+installed. The commit and pull-request callers are the TypeScript and Rails
+templates' hooks and the reusable quality workflows. The gate's default task,
+`check:thresholds`, is a package script, so a repository with no
+`package.json` declares the gate as a part instead:
+
+```json
+"threshold-monotonicity": {
+  "push": "required",
+  "parts": [
+    {
+      "scope": ".",
+      "command": ["node", "scripts/check-threshold-ratchet.mjs", "--base", "origin/main"],
+      "proof": { "failure_shape": ["blocked by the threshold ratchet"] }
+    }
+  ]
+}
+```
+
+The `failure_shape` is what lets the runner print `FAILED` for a loosened
+threshold. Without it the runner still blocks, but calls the result
+`UNPROVABLE`, because the registry declares no failure shape for this gate.
+`tests/integration/threshold-ratchet-declared-gate.test.ts` runs this
+declaration through the shipped runner in a repository with no `package.json`.
+What calls the runner there — a push hook in a repository the templates were
+never applied to — is separate work.
+
 ## The control register
 
 The `gates` block is the only thing a person or an agent writes. The control
@@ -1088,6 +1210,136 @@ package. Every object in it is closed, so a new fact about an entry is a new
 key in the schema and in `src/controls/register-types.ts` together;
 `tests/unit/controls/register-schema.test.ts` fails when one has a key or a
 value the other does not.
+
+## A pull-request executor Lisa did not write
+
+Lisa ships the file that runs the gates on a pull request for one hosting
+platform, GitHub. On any other the host's agent writes it, and the declaration
+says where it is, on the gate's `pull-request` entry:
+
+```json
+"code-style": {
+  "pull-request": {
+    "level": "required",
+    "executor": { "platform": "gitlab", "path": ".gitlab-ci.yml" }
+  }
+}
+```
+
+| key | meaning |
+| --- | --- |
+| `platform` | The hosting platform, in lower-case letters and digits with hyphens between words. `github` is the one Lisa ships the file for; anything else is a platform Lisa did not write the executor for. |
+| `path` | The file, from the repository root, under the spelling rules of a part's `scope`. `.` is refused: it names the repository, not a file. |
+
+**It sits on the moment entry, and only at `pull-request`.** `validate`
+refuses it at any other moment, and refuses any key in it but those two unless
+the key starts with `x-`. A moment-level key is one an older Lisa ignores; a
+gate-level key would make an older Lisa refuse the whole block. It changes
+nothing about what the moment resolves to.
+
+**Every gate checked at the pull-request moment names the same executor, or
+none does.** One command, `lisa-run-gates.mjs --moment=pull-request`, runs all
+of them, so they all run from one file. Generating the register refuses a
+declaration that names the file on some of those gates and not on others, or
+that names two. A gate that only awaits a check another system reports may
+leave it out.
+
+**The register records it and marks the entry unproved.** The entry's
+`pull-request` enforcement point carries `executor`. When the platform is not
+GitHub the entry also carries `"status": "unproved"`, until
+`.lisa/controls/evidence.json` holds a record of both halves of that entry's
+proof: a record with the entry's id as `entry_id` and `half` set to
+`violation`, and one with `half` set to `clean`. A record that names a
+`moment` counts only when it is `pull-request`. An entry with no `status` is
+not thereby proved; the verdict says what was proved.
+
+**So the register is generated from two committed files, and `--check` stays
+honest.** For a declaration that names such an executor, the same declaration
+and the same evidence give the same bytes, and `--check` regenerates from both.
+The committed register is out of date exactly when one of them changed since it
+was written, and the difference is reported against the entry, with a sentence
+saying the status comes from the evidence file. The clock is never read: how old
+a record is decides whether a verdict may rely on it, and a register that
+changed because time passed would fail its own check with nothing changed. For
+every other declaration the evidence file is not read at all, and the register
+is what it always was.
+
+The contract the file must meet is in the enforce skill, at
+`plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md`.
+
+## Required checks from the register
+
+A check is only a gate when the hosting platform refuses the merge without it.
+`lisa controls protect` holds the platform to the register:
+
+```
+lisa controls protect [path]           # read, compare, hand over; changes nothing
+lisa controls protect [path] --apply   # also change the setting, when allowed
+```
+
+**The safe result is the default.** Whether a tool may change what a
+repository requires before a merge is the owner's decision, and many
+organisations say no. So without `--apply` the command can only read: it
+compares the live rulesets with the register and writes
+`.lisa/controls/merge-protection-change.md` for an administrator. With
+`--apply` it sends a change only after a read of the repository says the
+signed-in account administers it — the flag alone is not enough, and neither is
+the permission. Permission is learned from that read, never from a write that
+failed. On any platform but github.com nothing is sent in either mode.
+
+**Only an authoritative, required pull-request entry derives a check.** The
+names come from `contextsFor`, called on the gates of those entries and no
+others, so an `advisory` gate is not made blocking here even where it is
+`required` on a pull request.
+
+**A gate with `parts` derives one check, not one per part.** `contextsFor`
+gives a gate one name however many parts it has, and that is right for a
+required check: the platform keeps one requirement per name and cannot hold
+the same name twice. It is sound only while one status is reported under that
+name and that status fails when any part fails. A carrier that reported one
+status per part under the shared name would let a passing part answer for a
+failing one, so the carrier owns that, not the ruleset.
+
+**Nothing about a ruleset is built twice.** Reading, comparing, planning and
+writing are `lisa-reconcile-policy.mjs` (`readLivePolicy`, `reconcileContexts`,
+`planRepairs`, `applyRepairs`); a ruleset that has to be created takes its
+branches, enforcement and bypass list from `lisa-ruleset-payload.mjs` and holds
+the status-check rule only; which rulesets are enforced on the branch is
+`lisa-ruleset-reach.mjs`. Repository settings and the shape of other rules are
+never touched: the plan is given no settings drift to repair.
+
+**What is reported is what was read back.** After a change the rulesets are
+read again through `lisa health`'s ruleset reader and compared again. A
+platform that accepted the change and did not keep it is `blocked`, with the
+difference, never `wired`.
+
+**A check is only made required once it has been reported.** A required check
+that never reports does not fail a pull request; the platform holds it waiting
+for ever, with no failure to read. So before a missing check is sent, the
+command reads the check runs and commit statuses on the head of the protected
+branch and, while a name is still unseen, on the heads of the five most
+recently updated pull requests into it — a pipeline that runs only on pull
+requests never reports on the branch itself. Whether a name counts is
+`verifyContextsPosted` in the registry. These are reads only. A name the
+platform shows no result for is `not-ready`; one it could not be asked about,
+because a read failed or a list came back incomplete, is `unknown`. Neither is
+in any write, and each carries a sentence saying what has to happen first.
+
+**Two more checks are held back without asking the platform.** One a pipeline
+job would report, in a repository with no `.github/workflows` folder: nothing
+can report it — the same rule the ruleset applier follows. And one the
+repository lists under `github.rulesets.dropRequiredChecks`.
+
+**Rulesets are the only merge protection it reads.** That is what the ruleset
+scripts it is built from read. A check required through a classic branch
+protection rule is enforced by the platform and is still reported here as not
+required, so the handover file asks for a ruleset and says why.
+
+The command prints one JSON document on stdout — per register entry and per
+requirement it serves, `wired` or `blocked` and why — and exits 0 when every
+derived check is required, 2 when an entry is blocked, 1 when it could produce
+no result. The handover file carries no date, so a second run that finds the
+same thing writes nothing; it is removed once nothing is left to hand over.
 
 ## Open items
 
