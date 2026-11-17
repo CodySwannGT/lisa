@@ -7,7 +7,7 @@
  * change that does not. The entry passes only when the first was rejected
  * and the second accepted. What a half showed and what the two together mean
  * are decided in `./proof-judgement.ts`; whether a proof can be run at all is
- * decided in `./proof-plan.ts`; one half is run in `./proof-half.ts`. This
+ * decided in `./proof-plan.ts`; one half is run in `./proof-half-run.ts`. This
  * module only does things in order and puts the results together.
  *
  * ## Why the same inputs always give the same results
@@ -34,7 +34,7 @@
  * nothing.
  * @module controls/proof-runner
  */
-import { runHalf, type HalfContext } from "./proof-half.js";
+import { runHalf, type HalfContext } from "./proof-half-run.js";
 import { entryVerdict } from "./proof-judgement.js";
 import { planProof, type RunnableProof } from "./proof-plan.js";
 import type { ProofJudge } from "./proof-tools.js";

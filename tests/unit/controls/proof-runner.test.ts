@@ -73,6 +73,7 @@ describe("a control whose check works", () => {
     expect(violation).toEqual({
       entry_id: ENTRY,
       half: "violation",
+      moment: "commit",
       patch: `${PROOFS}/lint.violation.patch`,
       command: WORKING,
       exit_status: 1,

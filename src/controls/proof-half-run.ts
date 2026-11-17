@@ -7,13 +7,18 @@
  * so nothing that goes wrong while reading it can leave a planted violation
  * behind.
  *
- * What is kept of a half is plain data: the patch that was planted, the
- * command that was started, its exit status, the two times read from the
- * clock handed in, the end of what it printed, and what that showed. The
+ * What is kept of a half is plain data: the moment it stood for, the patch
+ * that was planted, the command that was started, its exit status, the two
+ * times read from the clock handed in, the end of what it printed, and what
+ * that showed. It names its entry and its moment itself, so one half is
+ * everything an evidence record needs without the entry beside it. The
  * folder the half ran in is replaced by {@link WORKSPACE_PLACEHOLDER}
  * wherever it appears in kept text, because it is a temporary folder that
  * differs from run to run and says nothing about the control.
- * @module controls/proof-half
+ *
+ * Not to be confused with `./proof-halves.ts`, which reads which halves an
+ * evidence file already holds a record of.
+ * @module controls/proof-half-run
  */
 import { observeHalf } from "./proof-judgement.js";
 import type { RunnableProof } from "./proof-plan.js";
@@ -177,6 +182,7 @@ function unrun(
   return {
     entry_id: proof.entry.id,
     half,
+    moment: proof.moment,
     patch: proof.patches[half].file,
     command: null,
     exit_status: null,
@@ -214,6 +220,7 @@ function ran(
   return {
     entry_id: proof.entry.id,
     half,
+    moment: proof.moment,
     patch: proof.patches[half].file,
     command: [...answer.command],
     exit_status: answer.code,

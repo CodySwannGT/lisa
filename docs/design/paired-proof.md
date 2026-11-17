@@ -145,7 +145,8 @@ without asking the runner anything.
 Per entry: `entry_id`, `gate`, `scope`, `criteria`, `moment`, `outcome`,
 `failed_halves`, `reason`, `detail`, `time_limit_seconds`, `halves`.
 
-Per half that was run: `entry_id`, `half` (`violation` or `clean`), `patch`,
+Per half that was run: `entry_id`, `half` (`violation` or `clean`), `moment`,
+`patch`,
 `command` (the argument list, or `null` when no check was started),
 `exit_status`, `started_at`, `completed_at`, `output_excerpt`,
 `output_truncated`, `matched_lines`, `outcome`, `reason`, `detail`.

@@ -30,25 +30,21 @@
  * change was accepted has failed, whatever its clean half did.
  * @module controls/proof-types
  */
+import type { ProofHalf } from "./proof-halves.js";
 import type {
   CommandMechanism,
   ControlRegisterEntry,
 } from "./register-types.js";
 
+// The two halves, in the order they are run, are named once: where the
+// control register reads which of them are on record.
+export { PROOF_HALVES, type ProofHalf } from "./proof-halves.js";
+
 /** The format version of a proof run's results. */
 export const PROOF_RUN_SCHEMA_VERSION = 1;
 
-/** The two halves of a proof, in the order they are run. */
-export const PROOF_HALVES = ["violation", "clean"] as const;
-
-/** One half of a proof. */
-export type ProofHalf = (typeof PROOF_HALVES)[number];
-
 /** The moments this runner exercises, in the order a change reaches them. */
 export const PROOF_MOMENTS = ["commit", "push"] as const;
-
-/** The moment whose proofs belong to the hosting platform, not this runner. */
-export const PULL_REQUEST_MOMENT = "pull-request";
 
 /** What one half of a proof showed. */
 export const PROOF_HALF_OUTCOMES = ["rejected", "accepted", "unknown"] as const;
@@ -160,6 +156,8 @@ export interface ProofHalfResult {
   /** The register entry the half belongs to. */
   readonly entry_id: string;
   readonly half: ProofHalf;
+  /** The moment the half stood for: `commit` or `push`. */
+  readonly moment: string;
   /** The patch file that was planted, from the repository root. */
   readonly patch: string;
   /** What was started, or `null` when the half never got that far. */

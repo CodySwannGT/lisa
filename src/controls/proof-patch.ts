@@ -161,6 +161,28 @@ function oneLine(text: string): string {
 }
 
 /**
+ * The start of a git command that works in one folder and nowhere else.
+ *
+ * The program and the arguments that come before git's own: the variables
+ * that would point git at another repository are removed, git is told not to
+ * look above the folder for one, and the machine's own git settings are left
+ * out. Whatever is started with it must be started in that folder.
+ * @param directory - Real path of the folder the command will be started in
+ * @returns The program, then every argument up to and including `git`
+ */
+export function isolatedGit(directory: string): readonly string[] {
+  return [
+    ENV_PROGRAM,
+    ...REPOSITORY_VARIABLES.flatMap(name => ["-u", name]),
+    `GIT_CEILING_DIRECTORIES=${path.dirname(directory)}`,
+    `GIT_CONFIG_GLOBAL=${devNull}`,
+    "GIT_CONFIG_NOSYSTEM=1",
+    "LC_ALL=C",
+    "git",
+  ];
+}
+
+/**
  * Plant a patch in a folder, or take it back out.
  * @param directory - Real path of the folder to work in
  * @param patch - The content of the patch file
@@ -174,15 +196,11 @@ export function applyProofPatch(
   patch: string,
   options: { readonly reverse?: boolean } = {}
 ): PatchOutcome {
+  const [program = ENV_PROGRAM, ...git] = isolatedGit(directory);
   const child = spawnSync(
-    ENV_PROGRAM,
+    program,
     [
-      ...REPOSITORY_VARIABLES.flatMap(name => ["-u", name]),
-      `GIT_CEILING_DIRECTORIES=${path.dirname(directory)}`,
-      `GIT_CONFIG_GLOBAL=${devNull}`,
-      "GIT_CONFIG_NOSYSTEM=1",
-      "LC_ALL=C",
-      "git",
+      ...git,
       "apply",
       "--whitespace=nowarn",
       ...(options.reverse === true ? ["--reverse"] : []),

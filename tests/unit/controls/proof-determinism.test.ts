@@ -215,7 +215,7 @@ describe("what the runner is built from", () => {
     expect(files.map(file => path.basename(file))).toEqual(
       expect.arrayContaining([
         "proof-runner.ts",
-        "proof-half.ts",
+        "proof-half-run.ts",
         "proof-plan.ts",
         "proof-patch.ts",
         "proof-workspace.ts",

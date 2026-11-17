@@ -23,12 +23,12 @@ import { readProofPatch, type ProofPatchRead } from "./proof-patch.js";
 import {
   PROOF_HALVES,
   PROOF_MOMENTS,
-  PULL_REQUEST_MOMENT,
   type ProofEntryReason,
   type ProofEntryResult,
   type ProofHalf,
   type ProofOutcome,
 } from "./proof-types.js";
+import { PULL_REQUEST_MOMENT } from "./pull-request-executor.js";
 import {
   externalEffectsDetail,
   missingHalvesDetail,

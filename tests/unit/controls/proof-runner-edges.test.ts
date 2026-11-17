@@ -13,7 +13,7 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { OUTPUT_EXCERPT_LIMIT } from "../../../src/controls/proof-half.js";
+import { OUTPUT_EXCERPT_LIMIT } from "../../../src/controls/proof-half-run.js";
 import {
   ACCEPTS_EVERYTHING,
   API_SOURCE,
