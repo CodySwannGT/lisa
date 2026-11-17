@@ -101,16 +101,30 @@ exactly one PRD lifecycle label in the same pass as the ledger write.
 
 **CREATE** (no existing issue):
 
-1. Write the marker-normalized PRD body to a temp file.
-2. ```bash
+1. Write the marker-normalized PRD body to `/tmp/prd-body.md`.
+2. Declare the PRD a container in that file. Run this as its own command, **before** the create
+   command and never joined to it:
+   ```bash
+   grep -qF 'None — container: state rolls up from children' /tmp/prd-body.md || printf '\n## Target Backend Environment\n\nNone — container: state rolls up from children\n' >> /tmp/prd-body.md
+   ```
+   A PRD's lifecycle rolls up from the work generated from it (`prd-lifecycle-rollup`), so it is
+   neither build-ready nor held for a person: it carries the canonical container line that
+   `derived-branch-plan` defines, in place of a Target Backend Environment. The issue-filing guard
+   (`block-direct-issue-create.sh`, see `ready-role-filing`) refuses a `gh issue create` whose body
+   declares nothing, and a PRD lifecycle label is not a declaration. The guard reads the
+   `--body-file` before the command runs, by the path as typed. So the line must already be in the
+   file when the create command is submitted — appending it in the same command as the create is
+   refused — and the path must stay a literal path, not a shell variable. Never add a build label or
+   a `[lisa-human-gate]` marker to get a PRD past the guard: both are untrue for a PRD.
+3. ```bash
    gh issue create --repo "$ORG/$REPO" --title "$TITLE" --body-file /tmp/prd-body.md --label "$ROLE_LABEL"
    ```
-3. Capture the returned issue number/URL.
-4. Rewrite the PRD body with the managed `## Exploratory Ideation Run Ledger` section populated for
-   `outcome: created` when the caller supplied project-ideation ledger inputs, then
-   `gh issue edit <n> --body-file /tmp/prd-body.md`. This second write is allowed because the URL is
-   not known until after creation.
-5. If `github.projects.v2` is enabled, resolve the created PRD issue node id and invoke
+4. Capture the returned issue number/URL.
+5. Rewrite the PRD body with the managed `## Exploratory Ideation Run Ledger` section populated for
+   `outcome: created` when the caller supplied project-ideation ledger inputs, keeping the container
+   declaration from step 2, then `gh issue edit <n> --body-file /tmp/prd-body.md`. This second write
+   is allowed because the URL is not known until after creation.
+6. If `github.projects.v2` is enabled, resolve the created PRD issue node id and invoke
    `lisa-github-project-v2` with `operation: ensure-item` and `content_node_id: <issue-node-id>`.
    - `outcome: disabled` → continue normally.
    - `outcome: added` or `reused` → continue normally; membership is now present.
@@ -121,8 +135,9 @@ exactly one PRD lifecycle label in the same pass as the ledger write.
 
 1. `gh issue edit <n> --repo "$ORG/$REPO" --body-file /tmp/prd-body.md` with the **marker-normalized**
    body (regenerate in place; never drop the marker, the managed `## Exploratory Ideation Run Ledger`
-   section, or an existing managed `## Lisa Usage` section). When the caller supplied
-   project-ideation ledger inputs, replace the managed ledger content with an `outcome: reused` entry.
+   section, an existing managed `## Lisa Usage` section, or an existing container declaration). When
+   the caller supplied project-ideation ledger inputs, replace the managed ledger content with an
+   `outcome: reused` entry.
 2. Reconcile the lifecycle label to **exactly one**: add `$ROLE_LABEL`, remove every other label in
    the resolved `${ALL_PRD_LABELS[@]}` set (the config-resolved names — not a hard-coded list) via
    `gh issue edit <n> --add-label / --remove-label`. Never leave a PRD carrying two lifecycle labels.
@@ -150,6 +165,8 @@ outcome: created | reused
 - The PRD body's requirements MUST conform to `prd-definition-of-ready`: identified atoms (`R1`, `R2`, …), one behavior each in an EARS-pattern shape, each with a measurable fit criterion, plus the non-functional checklist. This governs factory-authored bodies; human-authored PRDs are validated at intake instead (`*-to-tracker` Phase 1.45).
 
 - Exactly one PRD lifecycle label at all times (leaf-only does not apply — PRDs are not build leaves).
+- A new PRD issue is filed with the container declaration already in its body file (CREATE step 2).
+  It is the only declaration that is true for a PRD and the one the issue-filing guard accepts.
 - Match dedupe by marker, never by title.
 - Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
   section or silently drop ledger rows.

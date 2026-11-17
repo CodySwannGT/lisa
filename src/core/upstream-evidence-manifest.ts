@@ -1503,7 +1503,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md":
       "4096d1ad29f4f2fb9f063a1029840a240cd3159efadbe237c6e8de822a7206cb",
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md":
-      "7437a76e5b58cb7a3b11ef9e53303ed519736cd12663fd581a23c1abc404190c",
+      "50f7a76edff8aeb7f35eaaabfe3e6e530eb4bddc78549bac98d60a6d68e23d83",
     "plugins/src/base/skills/lisa-health-drift-cron/SKILL.md":
       "146641c3a0114dba3e2ce63d347d2fa750ac8e9d0fbb5a301a0b0e0e030a1b92",
     "plugins/src/base/skills/lisa-health/SKILL.md":
@@ -12624,6 +12624,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-direct-issue-create-mcp-substrate.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-noexec.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-prd-writer.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-reader-fence.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-refusal-inverse.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-remediation-executability.test.ts": true,
