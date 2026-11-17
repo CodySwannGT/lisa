@@ -2719,7 +2719,7 @@
     "scripts/generate-devin-plugin-artifacts.mjs":
       "5f17f1d61f47793c7f196267e346baf590eb8efaafc7a80ecc98e5ce3acb7386",
     "scripts/generate-export-surface.mjs":
-      "13f3e7ff40d85bffe8d1969bbb69dd560de332acc77cb50e94c12057a5e7b1f1",
+      "a3d94f47a3cf11cb95e1bd1ec028f33f4deec13f8505023890e4117a817de081",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "b6709a0a2a7a0a3af3f8d753ae85aad289d187269217f826b95a1945c32f446f",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":

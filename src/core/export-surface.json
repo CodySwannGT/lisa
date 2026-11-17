@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 319,
-  "$names": 2346,
+  "$modules": 318,
+  "$names": 2344,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -2069,6 +2069,7 @@
     ],
     "scripts/generate-export-surface.mjs": [
       "changelogSection",
+      "confirmedRemovals",
       "currentSurface",
       "exportedNames",
       "parseArtifact",
@@ -2096,8 +2097,6 @@
       "runLedgerCli"
     ],
     "scripts/generate-nightly-e2e-guard-certificate.mjs": [
-      "NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES",
-      "NIGHTLY_E2E_GUARD_CERTIFICATE_SCHEMA_VERSION",
       "RETAINED_RELEASES",
       "certifyNightlyGuardPackageArtifact",
       "generateNightlyGuardBehaviorCertificate",
@@ -2658,9 +2657,6 @@
       "main",
       "parseArgs",
       "summarize"
-    ],
-    "scripts/verify-packed-learnings-contract.mjs": [
-      "invalid"
     ],
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs": [
       "ABSOLUTE_MAX_API_ATTEMPTS",
