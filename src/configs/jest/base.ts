@@ -2,8 +2,8 @@
  * Jest Configuration - Shared Base
  *
  * Exports shared configuration pieces that can be imported by
- * project-specific jest.config.ts files. Reduces duplication between
- * typescript, expo, nestjs, and other project type configurations.
+ * project-specific jest.config.ts files. Expo is the only stack that runs
+ * Jest; it builds on these.
  *
  * Published as part of the @codyswann/lisa npm package so downstream
  * projects can import these utilities directly from the package.
