@@ -1,0 +1,727 @@
+{
+  "$schema": "./tasc-criteria.schema.json",
+  "specification": "spec/tasc-0.1-draft.md",
+  "specification_version": "0.7.0-draft",
+  "level": 1,
+  "criteria": [
+    {
+      "id": "AC1.1",
+      "title": "Attribution",
+      "in_scope": true,
+      "question": "Is every action an agent takes recorded under the agent's own account rather than a person's?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC1.2",
+      "title": "Traceability of intent",
+      "in_scope": true,
+      "question": "Can any shipped line of code be followed back, step by step, to the request that asked for it?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never",
+      "level_note": "From Level 2, at least one link of the chain (from a change to its work item) must be enforced automatically at commit or merge time. At Level 3 the chain must also record the procedure, prompt version and model version that produced each change."
+    },
+    {
+      "id": "AC1.3",
+      "title": "Segregation of duties",
+      "in_scope": true,
+      "question": "Is every change reviewed, verified and approved for release by someone or something other than the agent that wrote it?",
+      "kind": "gate",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC1.4",
+      "title": "Access recertification",
+      "in_scope": true,
+      "question": "Are the accounts and permissions your agents hold reviewed on a set schedule?",
+      "kind": "human-attested",
+      "minimum_rung": "asserted",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC1.5",
+      "title": "Records",
+      "in_scope": true,
+      "question": "Are records of agent sessions kept for a stated length of time, with a stated limit on who may read them?",
+      "kind": "human-attested",
+      "minimum_rung": "asserted",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC1.6",
+      "title": "Resource governance",
+      "in_scope": true,
+      "question": "Is agent spending capped for every run and checked against the provider's own usage records?",
+      "kind": "human-attested",
+      "minimum_rung": "asserted",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC1.7",
+      "title": "Accountable party",
+      "in_scope": true,
+      "question": "Is there a named person, with a named backup, who answers for what the agents do?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC1.8",
+      "title": "Standing to accept risk",
+      "in_scope": true,
+      "question": "Is every decision to accept a risk instead of fixing it made and recorded by a named person who is allowed to make it?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC1.9",
+      "title": "Approval sampling",
+      "in_scope": true,
+      "question": "Does someone independent regularly re-check a sample of the approvals your agents give?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "No agent approves work: every review, merge approval and sign-off is given by a person."
+    },
+    {
+      "id": "AC2.1",
+      "title": "Boundary communications",
+      "in_scope": true,
+      "question": "Can someone who is not an engineer understand every message the agents send out, such as rejections, questions and results?",
+      "kind": "human-attested",
+      "minimum_rung": "asserted",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC2.2",
+      "title": "Named run outcomes",
+      "in_scope": true,
+      "question": "Does every scheduled agent run end by stating one outcome from a fixed list, with a one-line summary anyone can read?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "No agent job runs on a schedule or trigger: agents work only when a person starts them.",
+      "level_note": "Section 10 of the specification lists enforcement of named run outcomes under Level 2. The criterion itself sets no level on the requirement, so it is in scope at Level 1."
+    },
+    {
+      "id": "AC2.3",
+      "title": "Runbooks by registration",
+      "in_scope": true,
+      "question": "Does every scheduled agent job have a written guide in the repository saying what it is for, what starts it and what an operator should do?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "No agent job runs on a schedule or trigger: agents work only when a person starts them."
+    },
+    {
+      "id": "AC2.4",
+      "title": "Decision-ready escalation",
+      "in_scope": true,
+      "question": "When the agents ask a person for help, does the request say what is broken or what must be decided, and what to do about it?",
+      "kind": "human-attested",
+      "minimum_rung": "asserted",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC3.1",
+      "title": "Threat model",
+      "in_scope": true,
+      "question": "Is there a written list of the ways your agents could be attacked or misled, with a safeguard named for each one?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC3.2",
+      "title": "Untrusted content",
+      "in_scope": true,
+      "question": "Is content that agents fetch from outside treated as information to read, never as instructions to follow?",
+      "kind": "human-attested",
+      "minimum_rung": "asserted",
+      "not_applicable_when": "Agents cannot read anything from outside the organisation: no web pages, no outside repositories and no comments written by outsiders."
+    },
+    {
+      "id": "AC3.3",
+      "title": "Instruction-surface trust",
+      "in_scope": true,
+      "question": "Is a trust decision made before agents act on instruction files that arrive with outside code?",
+      "kind": "human-attested",
+      "minimum_rung": "asserted",
+      "not_applicable_when": "Agents never open code from outside the organisation, so no outside instruction file, hook or skill can reach them."
+    },
+    {
+      "id": "AC3.4",
+      "title": "Memory integrity",
+      "in_scope": true,
+      "question": "Is every lesson an agent saves for later checked before it is kept, labelled with where it came from, and removable?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Agents keep no memory or lessons from one run to the next."
+    },
+    {
+      "id": "AC3.5",
+      "title": "Blast radius",
+      "in_scope": true,
+      "question": "Is it written down what an agent could reach if it were taken over, with that reach kept to what the agent needs?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC3.6",
+      "title": "Agent-to-agent boundaries",
+      "in_scope": true,
+      "question": "Is it recorded which agents can ask which other agents to act, so that no agent can get another to do what it may not do itself?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Only one agent works here, and it has no way to ask another agent to act for it."
+    },
+    {
+      "id": "AC4.1",
+      "title": "Instrumentation",
+      "in_scope": true,
+      "question": "Do errors, logs, performance figures and problems reported by users all reach the agents as signals to act on?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Nothing built from this repository runs anywhere for users, so there is nothing to monitor."
+    },
+    {
+      "id": "AC4.2",
+      "title": "Sensor liveness",
+      "in_scope": true,
+      "question": "Would you find out if a monitor stopped working, rather than mistaking its silence for good news?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Nothing built from this repository runs anywhere for users, so there is nothing to monitor.",
+      "level_note": "At Level 3 every liveness mechanism must also carry continuously refreshed evidence that it fires."
+    },
+    {
+      "id": "AC4.3",
+      "title": "Findings become work",
+      "in_scope": true,
+      "question": "When monitoring spots a problem, does it become a tracked work item that passes the same entry checks as any other work?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Nothing built from this repository runs anywhere for users, so there is nothing to monitor."
+    },
+    {
+      "id": "AC4.4",
+      "title": "Cross-sensor consistency",
+      "in_scope": false,
+      "excluded_reason": "The specification states this criterion only as a recommendation (SHOULD): surfacing disagreement between sensors is not a requirement (MUST) at Level 1 or at any other level."
+    },
+    {
+      "id": "AC4.5",
+      "title": "Learning promotion",
+      "in_scope": true,
+      "question": "When an agent makes a mistake, is the lesson recorded and turned into a rule or check that stops the next agent repeating it?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC4.6",
+      "title": "Finding integrity",
+      "in_scope": true,
+      "question": "Is every automatic source of findings filtered before its findings become work, with its rate of false alarms measured?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Nothing produces findings for the work queue automatically: there is no monitor, audit job, test generator or reviewing agent."
+    },
+    {
+      "id": "AC4.7",
+      "title": "Measurement integrity",
+      "in_scope": true,
+      "question": "Are the numbers your decisions rest on produced by something other than the agents being judged, and checked against an independent record?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC4.8",
+      "title": "Root-cause closure",
+      "in_scope": true,
+      "question": "Is a defect closed only when its underlying cause is fixed, or when a named person has accepted the risk on the record?",
+      "kind": "human-attested",
+      "minimum_rung": "asserted",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC4.9",
+      "title": "Agent-capability monitoring",
+      "in_scope": true,
+      "question": "Do you regularly re-test your agents against your own set of tasks, so you would notice if they got worse?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never",
+      "level_note": "Section 10 of the specification lists capability monitoring against a baseline under Level 3. The criterion itself sets no level on the requirement, so it is in scope at Level 1."
+    },
+    {
+      "id": "AC5.1",
+      "title": "Server-side authority",
+      "in_scope": true,
+      "question": "Are the required checks enforced in a place the agents cannot skip, switch off or work around?",
+      "kind": "gate",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never",
+      "level_note": "Section 10 of the specification lists server-side enforcement of every authoritative gate under Level 2. The criterion itself sets no level on the requirement, so it is in scope at Level 1."
+    },
+    {
+      "id": "AC5.2",
+      "title": "Mirror consistency",
+      "in_scope": true,
+      "question": "Are the local copies of your checks generated from the same source as the required ones, with any difference caught automatically?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "The required checks run in one place only: no copy of them runs on a workstation or inside an agent."
+    },
+    {
+      "id": "AC5.3",
+      "title": "Staff parity",
+      "in_scope": true,
+      "question": "Does every kind of agent you use face the same checks, with any gap written down and covered elsewhere?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Only one kind of coding agent works in this repository."
+    },
+    {
+      "id": "AC5.4",
+      "title": "Threshold ratchet",
+      "in_scope": true,
+      "question": "Is a change that lowers a quality bar refused unless it is made on its own and separately approved?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC5.5",
+      "title": "Gate exercise",
+      "in_scope": true,
+      "question": "Has every required check been shown to stop a change that deliberately breaks its rule?",
+      "kind": "artifact",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "never",
+      "level_note": "The specification sets how often the demonstration must be repeated only for Type II attestations (at least once in the period) and Type C attestations (within each gate's freshness lifetime), which belong to Levels 2 and 3. The catalogue therefore asks for one demonstration."
+    },
+    {
+      "id": "AC5.6",
+      "title": "Instruction-level residual risk",
+      "in_scope": true,
+      "question": "When the agents' instructions change, is any new risk the change brings written down and reviewed before it takes effect?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC5.7",
+      "title": "Advisory-control adherence",
+      "in_scope": true,
+      "question": "Are the rules that exist only as instructions to agents listed, with a measurement of how often they are broken?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "No rule exists only as an instruction to agents: every rule is backed by an automatic check."
+    },
+    {
+      "id": "AC5.8",
+      "title": "Declared control obligations",
+      "in_scope": true,
+      "question": "Is every rule you hold yourselves to kept in a versioned file a program can read, with the checks produced from that file?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC5.9",
+      "title": "Control register",
+      "in_scope": true,
+      "question": "Is there one list of every rule, where it is enforced, what measures it and who answers for it, kept in step with what actually runs?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC6.1",
+      "title": "Agent-own identity",
+      "in_scope": true,
+      "question": "Do agents sign in to every outside system as themselves, with only the access they need, rather than with a person's login?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC6.2",
+      "title": "Bounded impersonation",
+      "in_scope": true,
+      "question": "When an agent acts with a person's permissions, is that explicit, limited in time and reach, and logged?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Agents never act with a person's login or permissions."
+    },
+    {
+      "id": "AC6.3",
+      "title": "Secret handling",
+      "in_scope": true,
+      "question": "Are passwords, keys and tokens kept in a dedicated store, out of the repository and out of the text agents read?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC6.4",
+      "title": "Per-surface credential paths",
+      "in_scope": true,
+      "question": "For every place agents run, is each sign-in they need written down and shown to work from that place?",
+      "kind": "artifact",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC6.5",
+      "title": "Egress control",
+      "in_scope": true,
+      "question": "Is what agents can reach over the network limited to what the work needs?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC7.1",
+      "title": "Scheduled operation",
+      "in_scope": true,
+      "question": "Is every scheduled agent job registered, with what starts it and what happens when a run is missed written down?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "No agent job runs on a schedule or trigger: agents work only when a person starts them."
+    },
+    {
+      "id": "AC7.2",
+      "title": "Incident and rollback",
+      "in_scope": true,
+      "question": "If an agent's change breaks production, is there a set way to undo it that has actually been tried?",
+      "kind": "artifact",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "Nothing built from this repository is deployed to a production environment."
+    },
+    {
+      "id": "AC7.3",
+      "title": "Self-recovery escalation",
+      "in_scope": true,
+      "question": "When the agents cannot carry on, do they stop and tell a person exactly what is needed instead of stalling in silence?",
+      "kind": "human-attested",
+      "minimum_rung": "asserted",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC7.4",
+      "title": "Autonomy measurement",
+      "in_scope": true,
+      "question": "Do you measure, and report internally, how much work is finished with no person stepping in?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never",
+      "level_note": "Level 3 systems must also publish the autonomy rate in their public summary report."
+    },
+    {
+      "id": "AC7.5",
+      "title": "Delivery effectiveness",
+      "in_scope": true,
+      "question": "Do you measure how good the delivered work is, including how much is rejected, redone or found faulty after release?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never",
+      "level_note": "Section 10 of the specification lists delivery effectiveness under Level 3, where the results must also be published with their definitions. The criterion itself sets no level on measuring it, so measurement is in scope at Level 1."
+    },
+    {
+      "id": "AC8.1",
+      "title": "Lifecycle gates",
+      "in_scope": true,
+      "question": "Must every change be independently reviewed, pass the required checks and have its review findings resolved before it can be merged?",
+      "kind": "gate",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC8.2",
+      "title": "The agent program is code",
+      "in_scope": true,
+      "question": "Are the agents' instructions kept under version control and put through the same checks as the code?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC8.3",
+      "title": "Model change is system change",
+      "in_scope": true,
+      "question": "Are the model version and its settings fixed, with any change to them tested on your own tasks before use and able to be undone?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC8.4",
+      "title": "Intake validation",
+      "in_scope": true,
+      "question": "Is work turned away before agents start it when the request is unclear or the tools and access it needs cannot be shown to work?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC8.5",
+      "title": "Deployment protection",
+      "in_scope": true,
+      "question": "Is a release to production blocked until someone or something other than the releasing agent approves it?",
+      "kind": "gate",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Nothing built from this repository is deployed to a production environment."
+    },
+    {
+      "id": "AC8.6",
+      "title": "Work-item readiness",
+      "in_scope": true,
+      "question": "Is each work item checked automatically against a definition of ready for its type before agents may build it?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC8.7",
+      "title": "Evaluation suite",
+      "in_scope": true,
+      "question": "Do you keep your own set of test tasks for judging agents, reviewed on a schedule and hidden from the agents it judges?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC8.8",
+      "title": "Risk tiers",
+      "in_scope": true,
+      "question": "Are the riskier parts of the system marked, with automatic limits on what agents may do there without a person?",
+      "kind": "gate",
+      "minimum_rung": "observed",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC8.9",
+      "title": "Staff introduction",
+      "in_scope": true,
+      "question": "Before a new agent's work is relied on, is it run on trial beside the existing checks and tested with deliberately faulty work?",
+      "kind": "artifact",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC9.1",
+      "title": "Model vendors as subservice organizations",
+      "in_scope": true,
+      "question": "For each company that supplies a model, are its availability, data retention and training-use terms written down, with a plan for an outage?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "The organisation runs every model its agents use itself: no outside company supplies one."
+    },
+    {
+      "id": "AC9.2",
+      "title": "Dependency introduction",
+      "in_scope": true,
+      "question": "Is a new outside package refused unless it passes a review or an automatic safety scan?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "AC9.3",
+      "title": "License compliance",
+      "in_scope": true,
+      "question": "Is a change refused when it brings in an outside package whose licence is not on your approved list?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "The software uses no outside packages."
+    },
+    {
+      "id": "AC9.4",
+      "title": "Connector vetting",
+      "in_scope": true,
+      "question": "Is every connector that gives agents access to outside tools fixed to a version, checked before use and listed?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Agents use no connectors to outside tools or services."
+    },
+    {
+      "id": "AC9.5",
+      "title": "Hosted runtimes",
+      "in_scope": true,
+      "question": "Was each vendor-hosted service your agents run on assessed for isolation, network access, secret storage and scheduling before real work ran there?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "No agent runs on a service hosted by a vendor: every agent runs on machines the organisation controls."
+    },
+    {
+      "id": "AC9.6",
+      "title": "Artifact provenance",
+      "in_scope": false,
+      "excluded_reason": "The specification recommends (SHOULD) a bill of materials and signed provenance for released artifacts at Levels 1 and 2. Its only requirement (MUST), a provenance chain that a machine can verify end to end, applies at Level 3."
+    },
+    {
+      "id": "SI1",
+      "title": "Unit behavior",
+      "in_scope": true,
+      "question": "Is a change refused when the automated tests of individual pieces of code fail?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+    },
+    {
+      "id": "SI2",
+      "title": "Coverage floors",
+      "in_scope": true,
+      "question": "Is a change refused when the share of code exercised by tests falls below a minimum you have set?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+    },
+    {
+      "id": "SI3",
+      "title": "Test efficacy",
+      "in_scope": true,
+      "question": "Do you measure whether your tests would actually catch a mistake, including the defects you have already fixed?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+    },
+    {
+      "id": "SI4",
+      "title": "End-to-end proof",
+      "in_scope": true,
+      "question": "Is a release blocked unless every user-facing requirement has an automated walk-through that passed against a running build?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "The software has no surface that its users interact with directly."
+    },
+    {
+      "id": "SI5",
+      "title": "Independent verification",
+      "in_scope": true,
+      "question": "After a change ships, does someone or something other than its author use the software and record whether it does what was asked?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+    },
+    {
+      "id": "SI6",
+      "title": "Verification codified",
+      "in_scope": true,
+      "question": "Is every check that passed after release turned into a permanent automated test?",
+      "kind": "human-attested",
+      "minimum_rung": "asserted",
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+    },
+    {
+      "id": "SI7",
+      "title": "Authorless output",
+      "in_scope": true,
+      "question": "Is a change refused when it breaks your limits on code size, complexity, structure, unused code or house style?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+    },
+    {
+      "id": "SI8",
+      "title": "Load and SLO conformance",
+      "in_scope": true,
+      "question": "Before release, is the software tested under load against response-time and capacity targets you have stated?",
+      "kind": "gate",
+      "minimum_rung": "observed",
+      "not_applicable_when": "The software offers no service that people or other systems call."
+    },
+    {
+      "id": "SI9",
+      "title": "Generative testing",
+      "in_scope": true,
+      "question": "Are automatically generated inputs, not only hand-written examples, used to test the rules your software must always obey?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "The repository produces no software that is released or run in production: for example, it holds only documents."
+    },
+    {
+      "id": "SI10",
+      "title": "Output provenance and licensing",
+      "in_scope": true,
+      "question": "Is a change refused when it contains code copied from elsewhere whose licence has not been identified and honoured?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "never"
+    },
+    {
+      "id": "DP1",
+      "title": "Context boundary",
+      "in_scope": true,
+      "question": "Is it defined which kinds of data agents may see, with production and personal data kept out or masked automatically?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Neither the software nor the agents working on it ever handle personal, confidential or regulated data."
+    },
+    {
+      "id": "DP2",
+      "title": "Transcript confidentiality",
+      "in_scope": true,
+      "question": "Are records of agent sessions protected as carefully as the most sensitive data that could appear in them?",
+      "kind": "human-attested",
+      "minimum_rung": "asserted",
+      "not_applicable_when": "Neither the software nor the agents working on it ever handle personal, confidential or regulated data."
+    },
+    {
+      "id": "DP3",
+      "title": "Vendor data handling",
+      "in_scope": true,
+      "question": "For every outside company that receives what agents read, is its data retention and training use written down and acceptable under your data duties?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "Neither the software nor the agents working on it ever handle personal, confidential or regulated data."
+    },
+    {
+      "id": "UX1",
+      "title": "Constrained construction",
+      "in_scope": true,
+      "question": "Are screens built by agents put together from an approved set of components rather than styled one by one?",
+      "kind": "artifact",
+      "minimum_rung": "observed",
+      "not_applicable_when": "The software has no screen, page or app that people use."
+    },
+    {
+      "id": "UX2",
+      "title": "Tokens as source of truth",
+      "in_scope": true,
+      "question": "Do colours, spacing and type come from one defined set of values, so that anything outside it is caught automatically?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "The software has no screen, page or app that people use."
+    },
+    {
+      "id": "UX3",
+      "title": "Design-code mapping",
+      "in_scope": false,
+      "excluded_reason": "The specification states this criterion only as a recommendation (SHOULD), and only where a design tool is in use: mapping design components to code is not a requirement (MUST) at Level 1 or at any other level."
+    },
+    {
+      "id": "UX4",
+      "title": "Visual conformance",
+      "in_scope": true,
+      "question": "Is every finished screen compared automatically with its approved design, within a difference limit you have set?",
+      "kind": "gate",
+      "minimum_rung": "observed",
+      "not_applicable_when": "The software has no screen, page or app that people use."
+    },
+    {
+      "id": "UX5",
+      "title": "Interaction conformance",
+      "in_scope": true,
+      "question": "Are the intended user journeys, including small screens and accessibility, run automatically against the working interface?",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "not_applicable_when": "The software has no screen, page or app that people use."
+    }
+  ]
+}

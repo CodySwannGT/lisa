@@ -137,7 +137,9 @@
     "eslint-plugin-code-organization",
     "eslint-plugin-component-structure",
     "eslint-plugin-ui-standards",
-    "eslint-plugin-phaser"
+    "eslint-plugin-phaser",
+    "spec/tasc-criteria.json",
+    "spec/tasc-criteria.schema.json"
   ],
   "trustedDependencies": [
     "@ast-grep/cli",
