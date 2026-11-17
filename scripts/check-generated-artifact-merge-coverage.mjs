@@ -113,6 +113,13 @@ export const GENERATED_ARTIFACTS = Object.freeze([
     reason:
       "nested: a `surface` sub-object mapping each module path to an array of exported names, which the driver's flat one-level parser rejects",
   }),
+  Object.freeze({
+    path: "docs/agentic-readiness-questionnaire.md",
+    check: "check:readiness-questionnaire",
+    disposition: DISPOSITION.UNSUPPORTED,
+    reason:
+      "Markdown prose: numbered questions under headings, with no flat `key: value` entry block, so the driver's flat one-level parser structures zero entries in it. A conflict is settled by regenerating the document from the merged catalogue",
+  }),
 ]);
 
 /**

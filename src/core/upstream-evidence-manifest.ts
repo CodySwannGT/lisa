@@ -2611,7 +2611,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-delivery-deletion-conflicts.mjs":
       "77eed58c9ff076c4438a5fe01c343f25c1a1c8f29a8f5861d1e1081b1739d300",
     "scripts/check-derived-artifacts.mjs":
-      "a87488146a658df4c835fc2af79fc13beb6cdd645dd671255c6564c947388944",
+      "543ba0ee59cb2c92f6db05448a79819e8709e3677516d4950169c28c12377d9b",
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-eager-rule-budget.mjs":
@@ -2621,7 +2621,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-engine-floor.mjs":
       "5df12d2fb8b2ef177b4951a95e8ef3248fdfa2bfb78e67a4fd5f80cdc88d1657",
     "scripts/check-generated-artifact-merge-coverage.mjs":
-      "bb7e708f1f6e00b503a9b885bb52c335c5b238b0dd76032e02301e8883f990b3",
+      "592c23698b84c055ba3c1e6e22f3c33403594f470f2ba4a3fd8b1de6e8be99eb",
     "scripts/check-guard-parity-notes.mjs":
       "3035043067ec7153d754cedf0eb51da22643fc0b2b744770b8ba93b0e6506092",
     "scripts/check-learnings-budget.ts":
@@ -2732,6 +2732,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "f128835f309f5a4b8d2015d57018da44fd558778efa4eed382747c6d6319260a",
     "scripts/generate-phrase-manifest.mjs":
       "4d3d0fa126dacaee166940d959ddfad1a67ec954ee1f8b8425beb27f791238d9",
+    "scripts/generate-readiness-questionnaire.mjs":
+      "7791e787f070c3c9637cce39a0759fd4d431d099fa8e0b0b4f7ecac209dd673d",
     "scripts/generate-two-channel-couplings.ts":
       "5fae0ab51a48e45748f5ffd1f5d5641b33e4bf0ebf014f61fdbfb6b66acae04f",
     "scripts/generate-upstream-evidence-manifest.mjs":
@@ -10751,6 +10753,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/generate-nightly-e2e-guard-certificate.mjs": true,
     "scripts/generate-npm-updater-helper-graph.mjs": true,
     "scripts/generate-phrase-manifest.mjs": true,
+    "scripts/generate-readiness-questionnaire.mjs": true,
     "scripts/generate-two-channel-couplings.ts": true,
     "scripts/generate-upstream-evidence-manifest.mjs": true,
     "scripts/github-status-check.sh": true,
@@ -12979,6 +12982,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/generate-copilot-plugin-artifacts.test.ts": true,
     "tests/unit/scripts/generate-cursor-plugin-artifacts.test.ts": true,
     "tests/unit/scripts/generate-devin-plugin-artifacts.test.ts": true,
+    "tests/unit/scripts/generate-readiness-questionnaire.test.ts": true,
     "tests/unit/scripts/generate-two-channel-couplings.test.ts": true,
     "tests/unit/scripts/generated-artifact-merge-coverage.test.ts": true,
     "tests/unit/scripts/github-attestation-verifier.test.ts": true,
