@@ -21,6 +21,15 @@
  * documented entries autonomously, and doctor readiness (B5) audits that
  * every entry carries a written decision.
  *
+ * Declared thresholds — the ones a repository on any stack writes for its own
+ * parts, as `gates.<gate>.parts[].parameters.<name> = { value, direction }` in
+ * `.lisa.config.json`. A `floor` may rise and never fall, a `ceiling` may fall
+ * and never rise, and a threshold that is removed, renamed away, turned round
+ * or no longer a number has loosened too. These need no threshold file and no
+ * `package.json`: the file is already watched for the allow list below, so
+ * every mode here compares them. See `extractDeclaredThresholds` and
+ * `compareDeclaredThresholds`.
+ *
  * Documented exception: `.lisa.config.json` → `thresholdRatchet.allow`
  * entries ({ file, key, reason, until }). An agent records one, with its
  * reason, only when the regression is justified; a person can reverse it by
@@ -28,7 +37,9 @@
  * merge-base), never from the change under review — an agent cannot grant
  * itself an exception in the same change that weakens a gate. `key: "*"`
  * allows every key in the file, and reports as file-wide so it is not mistaken
- * for a key-scoped one.
+ * for a key-scoped one. A declared threshold leaves by this same list and by
+ * nothing else: `file` is `.lisa.config.json` and `key` is
+ * `gates.<gate>.parts[<folder>].parameters.<name>`, which every refusal prints.
  *
  * Exemptions END (#3856). `until` is a `YYYY-MM-DD` day the entry is live
  * through; past it the entry stops exempting and the weakening it permitted is
