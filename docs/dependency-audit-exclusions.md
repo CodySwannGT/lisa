@@ -6,8 +6,11 @@ or a CI run. Prefer `paths` over an advisory-wide exception whenever the
 accepted vulnerable copy belongs only to a development tool.
 
 Lisa reads `audit.ignore.config.json` and `audit.ignore.local.json`. The managed
-file carries shared decisions; the local file carries repository decisions.
-Keep a repository-specific exception in the local file. Each file contains an
+file ships empty: Lisa carries no shared exceptions, and its own tree audits
+clean with both files empty (CodySwannGT/lisa#4931). When the audit names a
+vulnerable copy, fix it first: upgrade the dependency that pulls it, or refresh
+the lockfile so a semver-compatible patched release resolves. An exception is a
+repository decision of last resort and belongs in the local file. Each file contains an
 `exclusions` array:
 
 ```json

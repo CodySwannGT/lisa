@@ -32,7 +32,7 @@ Pure Rails has no TypeScript parent and receives no TypeScript tool defaults fro
 
 ## Residual availability risk
 
-Braces 3.0.3 has no published patched version for GHSA-vfj7-8cjw-p6xm. It remains behind glob consumers including Knip, Jest, jscodeshift and lint-staged. Deeply nested operator-supplied patterns can terminate a tool process. This is an unresolved availability risk, not a safe-library claim. Keep the raw finding visible and revisit when a patched release or an owner-supported replacement exists. The pre-existing repository-local exception is neither widened nor emitted into consumers.
+GitHub withdrew GHSA-vfj7-8cjw-p6xm (braces 3.0.3) on 2026-10-23, so registry audits no longer report it. The repository-local exception that covered it was removed with every other audit exclusion (CodySwannGT/lisa#4931).
 
 CDK advances from 2.260.0 to 2.272.0 with matching CDK/Amplify defaults. Actual local synthesis passes without a cloud operation. The new published vendor bundle still physically contains brace-expansion 5.0.9 and retains GHSA-qhr7-859c-m2p7, GHSA-6j4f-fj2g-mc7p and GHSA-q2hr-2g5m-vwhr. Untrusted brace patterns can exhaust the stack or consume excessive CPU. The vendor bundle cannot be repaired by root overrides. Keep these three findings visible and revisit when a published CDK bundle contains brace-expansion 5.0.12 or later. No vendor-source rewrite, suppression or deployment is part of this work.
 
@@ -72,7 +72,7 @@ Every row is scoped to the current local installed snapshot. Packed/generated co
 | [GHSA-rgw5-rvv9-x895](https://github.com/advisories/GHSA-rgw5-rvv9-x895) | brace-expansion | Fixed in this installed snapshot | bundled 5.0.6 replaced by 5.0.9 |
 | [GHSA-v2hh-gcrm-f6hx](https://github.com/advisories/GHSA-v2hh-gcrm-f6hx) | fast-uri | Fixed in this installed snapshot | 3.1.8 including the CDK bundle |
 | [GHSA-v39h-62p7-jpjc](https://github.com/advisories/GHSA-v39h-62p7-jpjc) | fast-uri | Fixed in this installed snapshot | 3.1.8 including the CDK bundle |
-| [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) | braces | Residual disposition | 3.0.3, no published fix |
+| [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) | braces | Withdrawn by GitHub 2026-10-23 | 3.0.3 |
 | [GHSA-w9m9-85wc-3x92](https://github.com/advisories/GHSA-w9m9-85wc-3x92) | postcss-selector-parser | Fixed in this installed snapshot | 6.1.4 |
 | [GHSA-x5fp-wj9c-mxmx](https://github.com/advisories/GHSA-x5fp-wj9c-mxmx) | qs | Fixed in this installed snapshot | 6.16.0 |
 
