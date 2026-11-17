@@ -1211,6 +1211,69 @@ key in the schema and in `src/controls/register-types.ts` together;
 `tests/unit/controls/register-schema.test.ts` fails when one has a key or a
 value the other does not.
 
+## Required checks from the register
+
+A check is only a gate when the hosting platform refuses the merge without it.
+`lisa controls protect` holds the platform to the register:
+
+```
+lisa controls protect [path]           # read, compare, hand over; changes nothing
+lisa controls protect [path] --apply   # also change the setting, when allowed
+```
+
+**The safe result is the default.** Whether a tool may change what a
+repository requires before a merge is the owner's decision, and many
+organisations say no. So without `--apply` the command can only read: it
+compares the live rulesets with the register and writes
+`.lisa/controls/merge-protection-change.md` for an administrator. With
+`--apply` it sends a change only after a read of the repository says the
+signed-in account administers it — the flag alone is not enough, and neither is
+the permission. Permission is learned from that read, never from a write that
+failed. On any platform but github.com nothing is sent in either mode.
+
+**Only an authoritative, required pull-request entry derives a check.** The
+names come from `contextsFor`, called on the gates of those entries and no
+others, so an `advisory` gate is not made blocking here even where it is
+`required` on a pull request.
+
+**A gate with `parts` derives one check, not one per part.** `contextsFor`
+gives a gate one name however many parts it has, and that is right for a
+required check: the platform keeps one requirement per name and cannot hold
+the same name twice. It is sound only while one status is reported under that
+name and that status fails when any part fails. A carrier that reported one
+status per part under the shared name would let a passing part answer for a
+failing one, so the carrier owns that, not the ruleset.
+
+**Nothing about a ruleset is built twice.** Reading, comparing, planning and
+writing are `lisa-reconcile-policy.mjs` (`readLivePolicy`, `reconcileContexts`,
+`planRepairs`, `applyRepairs`); a ruleset that has to be created takes its
+branches, enforcement and bypass list from `lisa-ruleset-payload.mjs` and holds
+the status-check rule only; which rulesets are enforced on the branch is
+`lisa-ruleset-reach.mjs`. Repository settings and the shape of other rules are
+never touched: the plan is given no settings drift to repair.
+
+**What is reported is what was read back.** After a change the rulesets are
+read again through `lisa health`'s ruleset reader and compared again. A
+platform that accepted the change and did not keep it is `blocked`, with the
+difference, never `wired`.
+
+**Two checks are held back rather than required.** One a pipeline job would
+report, in a repository with no `.github/workflows` folder: nothing can report
+it, and a required check that never reports holds every pull request waiting
+with no failure to read — the same rule the ruleset applier follows. And one
+the repository lists under `github.rulesets.dropRequiredChecks`.
+
+**Rulesets are the only merge protection it reads.** That is what the ruleset
+scripts it is built from read. A check required through a classic branch
+protection rule is enforced by the platform and is still reported here as not
+required, so the handover file asks for a ruleset and says why.
+
+The command prints one JSON document on stdout — per register entry and per
+requirement it serves, `wired` or `blocked` and why — and exits 0 when every
+derived check is required, 2 when an entry is blocked, 1 when it could produce
+no result. The handover file carries no date, so a second run that finds the
+same thing writes nothing; it is removed once nothing is left to hand over.
+
 ## Open items
 
 - Tests are excluded from the typecheck program (`tsconfig.json` is

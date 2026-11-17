@@ -160,52 +160,69 @@ function projectRuleset(candidate: unknown): HealthRuleset {
 }
 
 /**
- * Default fixed-argv detailed GitHub ruleset reader.
- * @param owner
- * @param repo
- * @param projectRoot
- * @param timeoutMs
- * @param signal
+ * One bounded JSON read of the hosting platform, as fixed `gh` arguments.
+ * Every argument list a ruleset reader passes is a `GET`.
  */
-export const readGithubRulesets: RulesetReader = async (
-  owner,
-  repo,
-  projectRoot,
-  timeoutMs,
-  signal
-) => {
-  const listed = await readGhJson(
-    ["api", "-X", "GET", `repos/${owner}/${repo}/rulesets`],
-    projectRoot,
-    timeoutMs,
-    signal
-  );
-  if (!Array.isArray(listed) || listed.length > MAX_RULESETS) {
-    throw new Error("Ruleset list exceeded its bounded contract");
-  }
-  const details = await Promise.all(
-    listed.map(async entry => {
-      if (entry === null || typeof entry !== "object") {
-        throw new Error("Ruleset list entry was not an object");
-      }
-      const id = Reflect.get(entry, "id");
-      if (!Number.isSafeInteger(id)) {
-        throw new Error("Ruleset list entry omitted its id");
-      }
-      return projectRuleset(
-        await readGhJson(
-          ["api", "-X", "GET", `repos/${owner}/${repo}/rulesets/${String(id)}`],
-          projectRoot,
-          timeoutMs,
-          signal
-        )
-      );
-    })
-  );
-  return sortedCopy(details, (left, right) =>
-    left.name.localeCompare(right.name)
-  );
-};
+export type RulesetJsonReader = (
+  argv: readonly string[],
+  cwd: string,
+  timeoutMs: number,
+  signal: AbortSignal
+) => Promise<unknown>;
+
+/**
+ * Build a detailed ruleset reader over one JSON read function.
+ *
+ * The walk — list the rulesets, read each one's detail, keep the material
+ * fields, sort by name — is the same whoever makes the requests. A caller
+ * that has to account for every request it sends (`lisa controls protect`
+ * reads the settings back after changing them) hands in its own read function
+ * and gets this walk rather than a second copy of it.
+ * @param readJson - Makes one read and answers the parsed document
+ */
+export function rulesetReaderOver(readJson: RulesetJsonReader): RulesetReader {
+  return async (owner, repo, projectRoot, timeoutMs, signal) => {
+    const listed = await readJson(
+      ["api", "-X", "GET", `repos/${owner}/${repo}/rulesets`],
+      projectRoot,
+      timeoutMs,
+      signal
+    );
+    if (!Array.isArray(listed) || listed.length > MAX_RULESETS) {
+      throw new Error("Ruleset list exceeded its bounded contract");
+    }
+    const details = await Promise.all(
+      listed.map(async entry => {
+        if (entry === null || typeof entry !== "object") {
+          throw new Error("Ruleset list entry was not an object");
+        }
+        const id = Reflect.get(entry, "id");
+        if (!Number.isSafeInteger(id)) {
+          throw new Error("Ruleset list entry omitted its id");
+        }
+        return projectRuleset(
+          await readJson(
+            [
+              "api",
+              "-X",
+              "GET",
+              `repos/${owner}/${repo}/rulesets/${String(id)}`,
+            ],
+            projectRoot,
+            timeoutMs,
+            signal
+          )
+        );
+      })
+    );
+    return sortedCopy(details, (left, right) =>
+      left.name.localeCompare(right.name)
+    );
+  };
+}
+
+/** Default fixed-argv detailed GitHub ruleset reader. */
+export const readGithubRulesets: RulesetReader = rulesetReaderOver(readGhJson);
 
 /**
  * Read configured required-check opt-outs without exposing their values.
