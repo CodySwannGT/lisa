@@ -80,7 +80,7 @@ const MAX_LISTED_PATHS = 10;
  * @param {string} exportName - Name of the exported constant to slice.
  * @returns {string} The block body, or an empty string when it is absent.
  */
-function blockFor(source, exportName) {
+export function blockFor(source, exportName) {
   const start = source.indexOf(`export const ${exportName}`);
   if (start === -1) return "";
   const open = source.indexOf("Object.freeze({", start);

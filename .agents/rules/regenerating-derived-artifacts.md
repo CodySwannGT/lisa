@@ -76,6 +76,33 @@ When the listed files include a `copy-overwrite` template, the refusal also
 tells you to regenerate the ledger, because that template's bytes are recorded
 in both.
 
+## The manifest's commit list is refreshed by the release, not by you
+
+The manifest also holds `UPSTREAM_PUBLIC_COMMITS`, the list of commits
+`lisa file-upstream` accepts as references. An ordinary regeneration carries
+that list forward unchanged — which is what keeps `--check` byte-reproducible on
+any clone — so between releases it is behind `HEAD`, and that is expected.
+
+The release extends it. The `postbump` hook in `.versionrc` stages the release
+build, runs `node scripts/generate-upstream-evidence-manifest.mjs
+--refresh-public-commits`, runs `node scripts/check-release-commit-listed.mjs`,
+and stages the manifest, so the release commit carries every commit reachable
+from `origin`'s refs at that moment. Until CodySwannGT/lisa#4960 nothing ran the
+refresh, and every commit made after the list was introduced was refused.
+
+Three refusals guard it, each naming its fix:
+
+- **the commit being released from is not on the refreshed list** — it was never
+  pushed, or `origin`'s refs were not fetched. The release stops.
+- **the clone is shallow** — a shallow clone would add its newest commit and
+  silently omit everything older, so the refresh refuses it. The release job
+  checks out with `fetch-depth: 0`; keep it that way.
+- **the new list would drop a recorded commit** — the list only ever grows, so a
+  shorter one means the generated file was reformatted or edited. Restore it.
+
+There is no need to refresh the list in an ordinary pull request: it adds
+thousands of lines that the next release writes anyway.
+
 ## Why regenerating twice can be right
 
 Both generators read the **working tree**, on purpose: an author who edits a

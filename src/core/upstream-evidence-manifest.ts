@@ -2642,6 +2642,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "36ba4bd73176e0dff13eaddf26b8c9ccb3f4faeb9548be9fa661c9a4d37c178c",
     "scripts/check-probe-absence-direction.mjs":
       "5dfb12c8ac9a23220219cc8748f1fea03f55bb42c0a9cf045bccfd04a4646652",
+    "scripts/check-release-commit-listed.mjs":
+      "6710fb1dcad0b586f57dc5f39b474d5bd6dbf80e04c0fcc79422a6ec913dc668",
     "scripts/check-release-package-identity.mjs":
       "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
     "scripts/check-required-check-promotions.mjs":
@@ -2733,7 +2735,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-two-channel-couplings.ts":
       "5fae0ab51a48e45748f5ffd1f5d5641b33e4bf0ebf014f61fdbfb6b66acae04f",
     "scripts/generate-upstream-evidence-manifest.mjs":
-      "8d75b7a6d8c4efe0e44d7d40e1143794c0d61c4f0c7c984bb270946618659e5b",
+      "c1647890fefb8d51458e061c7c1c1cc192374ec0ba9232933c014ee369a1da72",
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
@@ -2879,7 +2881,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/test-timings-reporter.mjs":
       "16eb180b5ff2a0c2d907da46910988d58f8b0719c2afdccf9d577ba0cb8795e5",
     "scripts/lib/upstream-manifest-staleness.mjs":
-      "c69fc5ba10228b7f4f8d0068db27ee8a289143094fa8718b14af83f4af31f76d",
+      "e2d74ed954c7ea9d9b434fbdf990877d2b3da216d8de3f1460f452d59c5f2cca",
+    "scripts/lib/upstream-public-commits.mjs":
+      "e0e317b515a8f91abe571e52138a6ce20eac34246d7311acf7f1e5b291b9af70",
     "scripts/lib/workflow-contract-probe.mjs":
       "73fee544253390b0e859090a23b9810bdcf14a19ca1dd17649d8d82d20ef69dc",
     "scripts/lib/worktree-dependencies.d.mts":
@@ -10702,6 +10706,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-pipeline-status-reads.mjs": true,
     "scripts/check-plugins-sync.sh": true,
     "scripts/check-probe-absence-direction.mjs": true,
+    "scripts/check-release-commit-listed.mjs": true,
     "scripts/check-release-package-identity.mjs": true,
     "scripts/check-required-check-promotions.mjs": true,
     "scripts/check-rules-pairing.sh": true,
@@ -10821,6 +10826,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/test-timings-reporter.d.mts": true,
     "scripts/lib/test-timings-reporter.mjs": true,
     "scripts/lib/upstream-manifest-staleness.mjs": true,
+    "scripts/lib/upstream-public-commits.mjs": true,
     "scripts/lib/workflow-contract-probe.mjs": true,
     "scripts/lib/worktree-dependencies.d.mts": true,
     "scripts/lib/worktree-dependencies.mjs": true,
@@ -11722,6 +11728,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/tracked-files.ts": true,
     "tests/helpers/unanswerable-grep.ts": true,
     "tests/helpers/unbounded-spawn-scan.ts": true,
+    "tests/helpers/upstream-commit-release-fixture.ts": true,
     "tests/helpers/verification-gate-fixtures.ts": true,
     "tests/helpers/verification-gate-harness.ts": true,
     "tests/helpers/workflow-job-graph.ts": true,
@@ -11963,6 +11970,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/release-rails-push-race.test.ts": true,
     "tests/integration/release-rails-tag-namespace.test.ts": true,
     "tests/integration/release-strategy-tag-namespace.test.ts": true,
+    "tests/integration/release-upstream-commit-refresh.test.ts": true,
     "tests/integration/release-version-injection.test.ts": true,
     "tests/integration/required-checks-drift-removed.test.ts": true,
     "tests/integration/retire-unmodified-deletion.test.ts": true,
@@ -12036,6 +12044,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/typescript-host-cleanup-sweep.test.ts": true,
     "tests/integration/typescript-host-fixture.ts": true,
     "tests/integration/typescript-host-smart-push.test.ts": true,
+    "tests/integration/upstream-public-commit-refresh-safety.test.ts": true,
     "tests/integration/usage-effectiveness-formatting.test.ts": true,
     "tests/integration/usage-effectiveness-public-api.test.ts": true,
     "tests/integration/vitest-local-runtime.test.ts": true,
@@ -12377,6 +12386,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/release-package-identity-workflows.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,
     "tests/unit/config/release-quality-secret-forwarding.test.ts": true,
+    "tests/unit/config/release-upstream-commit-refresh.test.ts": true,
     "tests/unit/config/repo-scan-exclusions.test.ts": true,
     "tests/unit/config/required-checks-declaration.test.ts": true,
     "tests/unit/config/required-checks-unit-tests-deferred.test.ts": true,
@@ -13291,6 +13301,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
     "tests/unit/scripts/upstream-manifest-staleness.test.ts": true,
+    "tests/unit/scripts/upstream-public-commits.test.ts": true,
     "tests/unit/scripts/vacuous-required-checks-wiring.test.ts": true,
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/vendored-script-defects.test.ts": true,
