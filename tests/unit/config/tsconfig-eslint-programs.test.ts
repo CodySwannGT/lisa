@@ -10,12 +10,18 @@
  * while lint passed. `bun run typecheck:eslint` now holds Lisa's copy at zero;
  * this suite holds the copies Lisa SHIPS, which no Lisa gate compiles:
  *
- *   - each stack's template declares its own test runner's globals, Node, and
- *     JS interop, and the packages behind those `types` are ones Lisa installs
- *     for that stack; and
- *   - a host-shaped fixture using test globals, `process` and a local `.mjs`
- *     import compiles with zero errors under each shipped template — and does
- *     NOT without those settings, so the assertion is about them.
+ *   - each stack's template gives a host its test runner's globals and JS
+ *     interop WITHOUT a `types` list. One here would override the `types` a
+ *     host sets in its own tsconfig.json / tsconfig.local.json and drop every
+ *     ambient-only package it names (`@types/google.maps`, say). Under
+ *     TypeScript 6 `types` defaults to `[]`, so a host names what it needs (or
+ *     `"*"`) there, and the template must inherit it. The runner's global
+ *     declarations are added through `files` instead; and
+ *   - a host-shaped fixture using test globals, `process`, a global declared
+ *     by an ambient-only `@types/*` package, and a local `.mjs` import
+ *     compiles with zero errors under each shipped template, whether the host
+ *     names its types or opts into all of them — and does NOT without those
+ *     settings, so the assertion is about them.
  *
  * It also compiles a NestJS host's spec files under the shipped
  * `tsconfig.spec.json`. Lisa's own root program's scope is pinned by the sibling
@@ -54,15 +60,39 @@ const TSGO = path.join(
   "tsgo"
 );
 
-/** The runner-global `types` entry each test runner needs. */
-const RUNNER_GLOBALS = { jest: "jest", vitest: "vitest/globals" } as const;
+/** The declaration file that puts Vitest's globals in a program. */
+const VITEST_GLOBALS = "node_modules/vitest/globals.d.ts";
 
-/** The package that provides each `types` entry a template may declare. */
-const TYPES_PACKAGE: Readonly<Record<string, string>> = {
-  jest: "@types/jest",
-  node: "@types/node",
-  "vitest/globals": "vitest",
-};
+/**
+ * Per test runner: the declaration file a template adds through `files`, the
+ * package that ships it, and the packages a fixture host installs.
+ */
+const RUNNERS = {
+  jest: {
+    globals: "node_modules/@types/jest/index.d.ts",
+    globalsFrom: "@types/jest",
+    installs: ["@types/jest", "@types/node"],
+  },
+  vitest: {
+    globals: VITEST_GLOBALS,
+    globalsFrom: "vitest",
+    installs: ["vitest", "@types/node"],
+  },
+} as const;
+
+/**
+ * The `types` a host's own tsconfig may set: naming each package it needs, or
+ * TypeScript 6's opt-in to every installed `@types/*` (`types` defaults to
+ * `[]` there, so a host that sets nothing loads none).
+ */
+const HOST_TYPES: readonly (readonly string[])[] = [
+  ["node", "lisa-ambient-probe"],
+  ["*"],
+];
+
+/** An ambient-only `@types/*` package a host might rely on, and its global. */
+const AMBIENT_PACKAGE = "@types/lisa-ambient-probe";
+const AMBIENT_GLOBAL = "lisaAmbientProbe";
 
 /** The `compilerOptions` this suite reads. */
 type CompilerOptions = {
@@ -75,6 +105,7 @@ type CompilerOptions = {
 type Tsconfig = {
   readonly compilerOptions?: CompilerOptions;
   readonly exclude?: readonly string[];
+  readonly files?: readonly string[];
 };
 
 const STACKS = fs
@@ -108,7 +139,7 @@ function readJson<T>(relative: string): T {
  * @param stack - Stack directory.
  * @returns The runner the stack's managed config files select.
  */
-function runnerOf(stack: string): keyof typeof RUNNER_GLOBALS {
+function runnerOf(stack: string): keyof typeof RUNNERS {
   const has = (file: string): boolean =>
     fs.existsSync(path.join(REPO_ROOT, stack, COPY_OVERWRITE, file));
   const jest = has("jest.config.ts");
@@ -158,17 +189,32 @@ function installedPackages(stack: string): ReadonlySet<string> {
 }
 
 /**
- * A disposable host root whose `node_modules` is Lisa's own, so `types`
- * entries resolve exactly as they would in a host that installed them.
+ * A disposable host root with its own `node_modules`: the runner's packages
+ * linked from Lisa's install, plus an ambient-only `@types/*` package that
+ * declares one global. Curated rather than Lisa's whole `node_modules`, because
+ * with no `types` list every `@types/*` there auto-loads, exactly as in a host.
  * @param prefix - Temp directory prefix.
+ * @param runner - The test runner whose packages the host installs.
  * @returns The realpath'd root.
  */
-function hostRoot(prefix: string): string {
+function hostRoot(prefix: string, runner: keyof typeof RUNNERS): string {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(tmpdir(), prefix)));
+  const ambient = path.join(root, "node_modules", AMBIENT_PACKAGE);
   fixtures.push(root);
-  fs.symlinkSync(
-    path.join(REPO_ROOT, "node_modules"),
-    path.join(root, "node_modules")
+  fs.mkdirSync(ambient, { recursive: true });
+  for (const pkg of RUNNERS[runner].installs) {
+    fs.symlinkSync(
+      path.join(REPO_ROOT, "node_modules", pkg),
+      path.join(root, "node_modules", pkg)
+    );
+  }
+  fs.writeFileSync(
+    path.join(ambient, "package.json"),
+    JSON.stringify({ name: AMBIENT_PACKAGE, types: "index.d.ts" })
+  );
+  fs.writeFileSync(
+    path.join(ambient, "index.d.ts"),
+    `declare const ${AMBIENT_GLOBAL}: string;\n`
   );
   return root;
 }
@@ -176,14 +222,20 @@ function hostRoot(prefix: string): string {
 /**
  * Write a host-shaped fixture around a given `tsconfig.eslint.json`.
  *
- * The host's own `tsconfig.json` is minimal on purpose: the program's test
- * globals, Node types and JS interop must come from the shipped template, not
- * from anything a host happens to have.
+ * The host's own `tsconfig.json` is minimal on purpose: it sets only the
+ * `types` the host chose, so the program's test globals and JS interop must
+ * come from the shipped template.
  * @param eslintProgram - The `tsconfig.eslint.json` body to install.
+ * @param runner - The host's test runner.
+ * @param hostTypes - The `types` the host's own tsconfig sets.
  * @returns The fixture root.
  */
-function writeHost(eslintProgram: string): string {
-  const root = hostRoot("lisa-4927-");
+function writeHost(
+  eslintProgram: string,
+  runner: keyof typeof RUNNERS,
+  hostTypes: readonly string[]
+): string {
+  const root = hostRoot("lisa-4927-", runner);
   fs.mkdirSync(path.join(root, "src"));
   fs.mkdirSync(path.join(root, "tests"));
   fs.writeFileSync(
@@ -194,6 +246,7 @@ function writeHost(eslintProgram: string): string {
         skipLibCheck: true,
         strict: true,
         target: "ES2022",
+        types: hostTypes,
       },
     })
   );
@@ -211,6 +264,7 @@ function writeHost(eslintProgram: string): string {
       '  it("adds one", () => {',
       "    expect(increment(1)).toBe(2);",
       '    expect(process.env["HOME"]).toBeDefined();',
+      `    expect(${AMBIENT_GLOBAL}.length).toBeGreaterThan(0);`,
       "  });",
       "});",
       "",
@@ -222,16 +276,22 @@ function writeHost(eslintProgram: string): string {
 /**
  * Compile a host-shaped fixture under a given `tsconfig.eslint.json`.
  * @param eslintProgram - The `tsconfig.eslint.json` body to compile.
+ * @param runner - The host's test runner.
+ * @param hostTypes - The `types` the host's own tsconfig sets.
  * @returns tsgo's exit status and output.
  */
-function compileHost(eslintProgram: string): {
+function compileHost(
+  eslintProgram: string,
+  runner: keyof typeof RUNNERS,
+  hostTypes: readonly string[]
+): {
   readonly status: number | null;
   readonly output: string;
 } {
   const result = boundedSpawnSync({
     args: [TSGO, "--noEmit", "--pretty", "false", "-p", ESLINT_PROGRAM],
     command: process.execPath,
-    cwd: writeHost(eslintProgram),
+    cwd: writeHost(eslintProgram, runner, hostTypes),
     label: `tsgo -p ${ESLINT_PROGRAM}`,
   });
   return {
@@ -253,37 +313,38 @@ describe("shipped tsconfig.eslint.json templates", () => {
   });
 
   it.each(STACKS)(
-    "%s declares its test runner's globals, Node and JS interop",
+    "%s gives its test runner's globals and JS interop without a types list",
     stack => {
-      const options =
-        readJson<Tsconfig>(path.join(stack, TEMPLATE)).compilerOptions ?? {};
+      const program = readJson<Tsconfig>(path.join(stack, TEMPLATE));
+      const options = program.compilerOptions ?? {};
 
-      expect(options.types).toEqual([RUNNER_GLOBALS[runnerOf(stack)], "node"]);
+      expect(options.types).toBeUndefined();
       expect(options.allowJs).toBe(true);
       expect(options.checkJs).toBe(false);
+      expect(program.files).toEqual([RUNNERS[runnerOf(stack)].globals]);
     }
   );
 
   it.each(STACKS)(
-    "%s only names types packages Lisa installs for the stack",
+    "%s gets its runner's globals from a package Lisa installs",
     stack => {
-      const installed = installedPackages(stack);
-      const types =
-        readJson<Tsconfig>(path.join(stack, TEMPLATE)).compilerOptions?.types ??
-        [];
-
-      const missing = types
-        .map(entry => TYPES_PACKAGE[entry] ?? `<unknown types entry ${entry}>`)
-        .filter(pkg => !installed.has(pkg));
-      expect(missing).toEqual([]);
+      expect(installedPackages(stack)).toContain(
+        RUNNERS[runnerOf(stack)].globalsFrom
+      );
     }
   );
 
-  it.each(STACKS)(
-    "%s compiles a host using test globals, process and a .mjs import",
-    stack => {
+  it.each(
+    STACKS.flatMap(stack =>
+      HOST_TYPES.map(hostTypes => [stack, hostTypes] as const)
+    )
+  )(
+    "%s compiles a host (types %j) using test globals, process, an ambient @types global and a .mjs import",
+    (stack, hostTypes) => {
       const { output, status } = compileHost(
-        fs.readFileSync(path.join(REPO_ROOT, stack, TEMPLATE), "utf8")
+        fs.readFileSync(path.join(REPO_ROOT, stack, TEMPLATE), "utf8"),
+        runnerOf(stack),
+        hostTypes
       );
 
       expect(output).toBe("");
@@ -297,19 +358,17 @@ describe("shipped tsconfig.eslint.json templates", () => {
     const shipped = readJson<Tsconfig & Record<string, unknown>>(
       path.join("typescript", TEMPLATE)
     );
-    const { allowJs, checkJs, types, ...stripped } =
-      shipped.compilerOptions ?? {};
-    expect([allowJs, checkJs, types]).toEqual([
+    const { allowJs, checkJs, ...stripped } = shipped.compilerOptions ?? {};
+    expect([allowJs, checkJs, shipped.files]).toEqual([
       true,
       false,
-      ["vitest/globals", "node"],
+      [VITEST_GLOBALS],
     ]);
 
     const { output, status } = compileHost(
-      JSON.stringify({
-        ...shipped,
-        compilerOptions: { ...stripped, types: [] },
-      })
+      JSON.stringify({ ...shipped, compilerOptions: stripped, files: [] }),
+      "vitest",
+      ["*"]
     );
 
     expect(status).not.toBe(0);
@@ -319,12 +378,17 @@ describe("shipped tsconfig.eslint.json templates", () => {
 });
 
 describe("shipped NestJS tsconfig.spec.json", () => {
-  it("compiles a host's spec files under Vitest globals with zero errors", () => {
+  it("passes no types list and compiles a host's spec files with zero errors", () => {
+    expect(
+      readJson<Tsconfig>(path.join("nestjs", COPY_OVERWRITE, SPEC_PROGRAM))
+        .compilerOptions?.types
+    ).toBeUndefined();
+
     // NestJS runs Vitest (nestjs/copy-overwrite/vitest.config.ts) and Lisa
     // deletes the old jest.config.ts, so spec files must see Vitest's globals.
     // The host's tsconfig.json is the shipped NestJS preset, copied beside it
     // because a fixture cannot resolve `@codyswann/lisa/tsconfig/nestjs`.
-    const root = hostRoot("lisa-4927-nestjs-");
+    const root = hostRoot("lisa-4927-nestjs-", "vitest");
     fs.copyFileSync(
       path.join(REPO_ROOT, "tsconfig", "base.json"),
       path.join(root, "base.json")
@@ -335,7 +399,10 @@ describe("shipped NestJS tsconfig.spec.json", () => {
     );
     fs.writeFileSync(
       path.join(root, "tsconfig.json"),
-      JSON.stringify({ extends: "./nestjs.json" })
+      JSON.stringify({
+        compilerOptions: { types: ["node", "lisa-ambient-probe"] },
+        extends: "./nestjs.json",
+      })
     );
     fs.copyFileSync(
       path.join(REPO_ROOT, "nestjs", COPY_OVERWRITE, SPEC_PROGRAM),
@@ -350,6 +417,7 @@ describe("shipped NestJS tsconfig.spec.json", () => {
         "    const spy = vi.fn();",
         "    spy(process.pid);",
         "    expect(spy).toHaveBeenCalledOnce();",
+        `    expect(${AMBIENT_GLOBAL}).toBeTypeOf("string");`,
         "  });",
         "});",
         "",

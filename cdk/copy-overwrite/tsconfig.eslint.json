@@ -1,5 +1,5 @@
 {
-  "//": "The program ESLint's type-aware rules read types from. It must resolve what the code really uses, or those rules see `any` and error types. This stack runs Vitest with `globals: true`, so `types` loads vitest/globals plus Node; allowJs without checkJs lets TypeScript files import local .js/.mjs modules with inferred types instead of `any`, without type-checking the JavaScript.",
+  "//": "The program ESLint's type-aware rules read types from. It must resolve what the code really uses, or those rules see `any` and error types. It sets no `types` list, so it inherits the host's own (tsconfig.json, tsconfig.local.json) instead of overriding it; one here would also drop any ambient @types package the host names. This stack runs Vitest with `globals: true`, so `files` adds Vitest's global declarations on top. allowJs without checkJs lets TypeScript files import local .js/.mjs modules with inferred types instead of `any`, without type-checking the JavaScript.",
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
@@ -8,9 +8,9 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "allowJs": true,
-    "checkJs": false,
-    "types": ["vitest/globals", "node"]
+    "checkJs": false
   },
+  "files": ["node_modules/vitest/globals.d.ts"],
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "dist", "cdk.out", "worktrees"]
 }
