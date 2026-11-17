@@ -190,8 +190,11 @@ The estimate is **not** a write-time or ready-time requirement. Deterministic
 sources (Sentry, New Relic, monitors) file items they cannot estimate, and a
 missing estimate never forces a human question, because the claiming agent
 writes one. So S21 at ready time refuses only an estimate that is present and
-wrong. It is `N/A` when the project turns the requirement off. Nobody is ever
-asked for an estimate.
+wrong. At claim time `lisa-track` reruns it with `--phase claim`, where a
+missing estimate fails: the claiming agent estimates the item, calibrated
+against comparable finished items, and writes it before any work. It is `N/A`
+when the project turns the requirement off. Nobody is ever asked for an
+estimate.
 
 ## Relationship to the lifecycle
 

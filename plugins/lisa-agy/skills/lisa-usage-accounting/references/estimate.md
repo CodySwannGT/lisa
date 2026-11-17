@@ -64,8 +64,27 @@ stored bytes.
   file items they cannot estimate. Validator gate S21 (`lisa-estimate.mjs check`) refuses only an
   estimate that is present and wrong: no parseable token, an inverted range, a model outside
   `models`, or a dollar range that disagrees with the price table the token names.
-- **Before work begins:** required. The claiming agent estimates a claimed item that lacks one and
-  writes it before doing any work. It never asks a person.
+- **Before work begins:** required. `lisa-track` step 4, which every dispatch path runs right
+  after the claim, checks with `lisa-estimate.mjs check --phase claim`. A claimed item without an
+  estimate fails that check, and the claiming agent estimates it and writes it before doing any
+  work. It never asks a person.
+
+## Calibration
+
+Estimates improve by learning from finished work. Before rendering, the claiming agent fetches up
+to 20 comparable finished items (same repository, same type, carrying a `## Lisa Estimate`
+section) as a JSON array of bodies and runs:
+
+```bash
+node scripts/lisa-estimate.mjs calibrate --tokens-low 1M --tokens-high 2M --history-file <items.json>
+```
+
+For each item with both an estimate and a complete actual (its `## Lisa Usage` rollup
+`total_tokens`), the ratio is the actual over the estimate's midpoint. The median ratio scales the
+new range, and the printed `basis` (for example "calibrated x2 (median actual/estimate) from 3
+comparable finished item(s)") goes into the section. Items whose actual is unknown — no ledger,
+`unavailable` telemetry, or a `measured-subset` total — are skipped, never counted as zero. With
+no usable history the range is unchanged and the basis says "no calibration history".
 - **When the config is off:** nothing about estimates blocks; the check reports `N/A`.
 
 The recommended model is recorded only. It does not choose which model or agent runs the work.

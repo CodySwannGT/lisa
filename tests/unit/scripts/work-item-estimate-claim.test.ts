@@ -1,0 +1,118 @@
+/**
+ * Claim-time token estimates (CodySwannGT/lisa#4955): a claimed item must
+ * carry an estimate before any work, and the estimate is calibrated against
+ * how comparable finished items actually ran.
+ * @module tests/unit/scripts/work-item-estimate-claim
+ */
+import { describe, expect, it } from "vitest";
+
+import { resolveEstimateConfig } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs";
+import {
+  calibrateEstimate,
+  historyBodies,
+  itemRatio,
+} from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs";
+import { checkEstimate } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs";
+import {
+  ESTIMATE_ON,
+  finishedItem,
+  PLAIN_BODY,
+  usageEntry,
+} from "../../support/work-item-estimate-fixtures.js";
+
+const OFF = resolveEstimateConfig({
+  workItem: { estimate: { required: false } },
+});
+const doubled = (id: string): string =>
+  finishedItem(1_000_000, 3_000_000, [usageEntry(id, 4_000_000)]);
+
+describe("gate S21 at claim time", () => {
+  it("fails a claimed item that has no estimate yet", () => {
+    const result = checkEstimate(PLAIN_BODY, ESTIMATE_ON, "claim");
+    expect(result.verdict).toBe("FAIL");
+    expect(result.lines.join("\n")).toMatch(
+      /Before any work, estimate it[\s\S]*Never ask a person/
+    );
+  });
+
+  it("passes a claimed item that carries a well-formed estimate", () => {
+    expect(
+      checkEstimate(finishedItem(1000, 2000, []), ESTIMATE_ON, "claim").verdict
+    ).toBe("PASS");
+  });
+
+  it("is N/A when the requirement is off", () => {
+    expect(checkEstimate(PLAIN_BODY, OFF, "claim").verdict).toBe("N/A");
+  });
+
+  it("still lets an item without an estimate reach ready", () => {
+    expect(checkEstimate(PLAIN_BODY, ESTIMATE_ON, "ready").verdict).toBe(
+      "PASS"
+    );
+  });
+});
+
+describe("calibration", () => {
+  it("scales a new range by the median actual-to-estimate ratio", () => {
+    const result = calibrateEstimate(
+      { tokensLow: 1_000_000, tokensHigh: 2_000_000 },
+      [doubled("a"), doubled("b"), doubled("c")]
+    );
+    expect(result).toEqual({
+      comparable: 3,
+      ratio: 2,
+      tokensLow: 2_000_000,
+      tokensHigh: 4_000_000,
+      basis:
+        "calibrated x2 (median actual/estimate) from 3 comparable finished item(s)",
+    });
+  });
+
+  it("uses the median, so one outlier does not swing the estimate", () => {
+    const outlier = finishedItem(1_000_000, 3_000_000, [
+      usageEntry("x", 40_000_000),
+    ]);
+    const exact = (id: string): string =>
+      finishedItem(1_000_000, 3_000_000, [usageEntry(id, 2_000_000)]);
+    expect(
+      calibrateEstimate({ tokensLow: 10, tokensHigh: 20 }, [
+        exact("a"),
+        exact("b"),
+        outlier,
+      ]).ratio
+    ).toBe(1);
+  });
+
+  it("reports no history honestly and leaves the range unchanged", () => {
+    expect(
+      calibrateEstimate({ tokensLow: 1_000_000, tokensHigh: 2_000_000 }, [])
+    ).toMatchObject({
+      comparable: 0,
+      ratio: null,
+      tokensLow: 1_000_000,
+      tokensHigh: 2_000_000,
+      basis: expect.stringMatching(/^no calibration history/),
+    });
+  });
+
+  it("never counts unknown actuals as zero", () => {
+    expect(itemRatio(finishedItem(1000, 3000, [usageEntry("u", null)]))).toBe(
+      null
+    );
+    expect(itemRatio(finishedItem(1000, 3000, []))).toBe(null);
+    expect(itemRatio(PLAIN_BODY)).toBe(null);
+    expect(
+      calibrateEstimate({ tokensLow: 5, tokensHigh: 6 }, [
+        finishedItem(1000, 3000, [usageEntry("u", null)]),
+      ]).comparable
+    ).toBe(0);
+  });
+
+  it("reads bodies the way gh issue list --json body prints them", () => {
+    expect(historyBodies([{ body: "a" }, "b", { title: "no body" }])).toEqual([
+      "a",
+      "b",
+    ]);
+    expect(() => historyBodies({ body: "a" })).toThrow(/JSON array/);
+  });
+});

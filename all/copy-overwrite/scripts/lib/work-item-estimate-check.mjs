@@ -4,20 +4,22 @@
 /**
  * The work-item estimate gate (CodySwannGT/lisa#4954): validator gate S21.
  *
- * It runs at ready time. An estimate is not required when an item is created
+ * It runs at ready time and again at claim time (CodySwannGT/lisa#4955).
+ * An estimate is not required when an item is created
  * or made ready, because deterministic sources (Sentry, New Relic, monitors)
  * cannot produce one; the claim step writes it before work begins. What this
  * gate refuses is an estimate that is present but wrong: unparseable, an
  * inverted range, a model the project does not allow, a dollar range that is
  * not a sound range of its own, or one that disagrees with the price table it
  * names. When `workItem.estimate.required`
- * is false the gate is `N/A` and blocks nothing.
+ * is false the gate is `N/A` and blocks nothing. At claim time a missing
+ * estimate is a FAIL: the claiming agent must write one before any work.
  * @module scripts/lib/work-item-estimate-check
  */
 import { costCents, priceFor } from "./work-item-estimate-config.mjs";
 import { parseEstimateSection } from "./work-item-estimate.mjs";
 
-const PHASES = new Set(["ready"]);
+const PHASES = new Set(["ready", "claim"]);
 
 /**
  * Problems with a parsed estimate's own fields.
@@ -113,13 +115,13 @@ function pricingProblems(estimate, settings) {
  * Run the estimate gate on an item body.
  * @param {string} body - Item body as stored.
  * @param {object} settings - Result of `resolveEstimateConfig`.
- * @param {string} [phase] - Lifecycle moment; only `ready` exists so far.
+ * @param {string} [phase] - Lifecycle moment: `ready` (default) or `claim`.
  * @returns {{verdict: "PASS" | "FAIL" | "N/A", lines: string[]}} Gate result.
  */
 export function checkEstimate(body, settings, phase = "ready") {
   if (!PHASES.has(phase))
     throw new RangeError(
-      `Unknown phase ${JSON.stringify(phase)}; expected ready.`
+      `Unknown phase ${JSON.stringify(phase)}; expected ready or claim.`
     );
   const warnings = settings.warnings ?? [];
   if (!settings.required)
@@ -134,6 +136,14 @@ export function checkEstimate(body, settings, phase = "ready") {
       lines: [
         ...warnings,
         `The body has ${count} Lisa Estimate sections; keep exactly one.`,
+      ],
+    };
+  if (count === 0 && phase === "claim")
+    return {
+      verdict: "FAIL",
+      lines: [
+        ...warnings,
+        "This claimed item has no estimate. Before any work, estimate it (lisa-estimate calibrate, then render) and write the Lisa Estimate section to the item. Never ask a person for it.",
       ],
     };
   if (count === 0)

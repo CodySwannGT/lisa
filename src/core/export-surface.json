@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 332,
-  "$names": 2460,
+  "$modules": 333,
+  "$names": 2463,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1136,6 +1136,11 @@
     ],
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs": [
       "startWindowsProcessJob"
+    ],
+    "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs": [
+      "calibrateEstimate",
+      "historyBodies",
+      "itemRatio"
     ],
     "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs": [
       "checkEstimate"
