@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "./process-environment.js";
 import { sanitizeEnvForReconciliation } from "./pm-env.js";
 import {
   type LockfileRegenPlan,

@@ -60,7 +60,8 @@
 import { randomBytes } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { env, pid } from "node:process";
+import { pid } from "node:process";
+import { processEnvironment as env } from "../../utils/process-environment.js";
 
 /** Prefix of every run directory name, `run-<pid>-<startedAt>-<suffix>`. */
 const RUN_DIRECTORY_PREFIX = "run-";

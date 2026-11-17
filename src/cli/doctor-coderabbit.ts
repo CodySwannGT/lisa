@@ -1,6 +1,6 @@
 /** Doctor check for a CodeRabbit CLI required by the project's gate policy. */
 import { execFile } from "node:child_process";
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "../utils/process-environment.js";
 import { promisify } from "node:util";
 import { importGateRegistry } from "./gate-registry-source.js";
 import type { GateRegistryModule } from "./gate-report-registry.js";

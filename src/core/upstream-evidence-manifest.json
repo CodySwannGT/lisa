@@ -2719,7 +2719,7 @@
     "scripts/generate-devin-plugin-artifacts.mjs":
       "5f17f1d61f47793c7f196267e346baf590eb8efaafc7a80ecc98e5ce3acb7386",
     "scripts/generate-export-surface.mjs":
-      "a3d94f47a3cf11cb95e1bd1ec028f33f4deec13f8505023890e4117a817de081",
+      "f83a0967044776e0db7f4b865b0970d6933e2e40d009f3c1b0e7934f169f253c",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "b6709a0a2a7a0a3af3f8d753ae85aad289d187269217f826b95a1945c32f446f",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
@@ -11110,6 +11110,7 @@
     "src/configs/eslint/index.ts": true,
     "src/configs/eslint/nestjs.ts": true,
     "src/configs/eslint/phaser.ts": true,
+    "src/configs/eslint/process-environment-bans.ts": true,
     "src/configs/eslint/shared-rules.ts": true,
     "src/configs/eslint/slow-expo.ts": true,
     "src/configs/eslint/slow.ts": true,
@@ -11447,6 +11448,7 @@
     "src/utils/postinstall-trampoline-report-source.ts": true,
     "src/utils/postinstall-trampoline-source.ts": true,
     "src/utils/postinstall-trampoline.ts": true,
+    "src/utils/process-environment.ts": true,
     "src/utils/resolve-executable.ts": true,
     "src/utils/usage-accounting-rollup.ts": true,
     "src/utils/usage-accounting-totals.ts": true,
@@ -12368,6 +12370,7 @@
     "tests/unit/config/deploy-workflow-naming.test.ts": true,
     "tests/unit/config/eslint-ignore-wiki.test.ts": true,
     "tests/unit/config/eslint-local-os-command-scope.test.ts": true,
+    "tests/unit/config/eslint-local-process-environment-scope.test.ts": true,
     "tests/unit/config/eslint-no-unused-vars.test.ts": true,
     "tests/unit/config/eslint-plugin-phaser.test.ts": true,
     "tests/unit/config/eslint-plugin-ui-standards-design-value.test.ts": true,
@@ -12502,6 +12505,7 @@
     "tests/unit/core/host-rules-pointer.test.ts": true,
     "tests/unit/core/instruction-files-migration.test.ts": true,
     "tests/unit/core/instruction-files-self-host.test.ts": true,
+    "tests/unit/core/kane-cli-process.test.ts": true,
     "tests/unit/core/kane-cli.test.ts": true,
     "tests/unit/core/kane-pilot.test.ts": true,
     "tests/unit/core/kane-readiness.test.ts": true,
@@ -13839,6 +13843,7 @@
     "tests/unit/transaction/backup-created-paths.test.ts": true,
     "tests/unit/transaction/backup.test.ts": true,
     "tests/unit/utils/atomic-file-write.test.ts": true,
+    "tests/unit/utils/bounded-stream.test.ts": true,
     "tests/unit/utils/directory-sync.test.ts": true,
     "tests/unit/utils/effectiveness.test.ts": true,
     "tests/unit/utils/fibonacci.test.ts": true,

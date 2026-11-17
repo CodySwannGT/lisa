@@ -2,7 +2,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "../utils/process-environment.js";
 import {
   readProjectConfig,
   validateProjectConfig,

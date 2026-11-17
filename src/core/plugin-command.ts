@@ -1,6 +1,6 @@
 /** Bounded subprocess lifecycle for optional project plugin registration. */
 import { type ChildProcess, spawn } from "node:child_process";
-import { resolveExecutable } from "../utils/resolve-executable.js";
+import { spawnTarget } from "../utils/resolve-executable.js";
 
 /** Existing short vendor CLI probe budget. */
 export const PLUGIN_PROBE_TIMEOUT_MS = 15_000;
@@ -175,11 +175,16 @@ export async function runPluginCommand(
   const maxCaptureBytes = options.maxCaptureBytes ?? MAX_CAPTURE_BYTES;
   return await new Promise((resolve, reject) => {
     const grouped = process.platform !== "win32";
-    // The vendor CLI is user-installed; argv is never evaluated by a shell.
-    const child = spawn(resolveExecutable("claude"), [...args], {
+    // The vendor CLI is user-installed; argv is never evaluated by a shell,
+    // except that a Windows npm `.cmd` shim runs through an absolute cmd.exe
+    // with every argument escaped (see spawnTarget). A missing CLI throws
+    // ENOENT here, which rejects this promise as the spawn error did.
+    const claude = spawnTarget("claude", args);
+    const child = spawn(claude.file, [...claude.args], {
       cwd: options.cwd,
       detached: grouped,
       stdio: ["ignore", "pipe", "pipe"],
+      windowsVerbatimArguments: claude.windowsVerbatimArguments,
     });
     const run = new PluginCommandRun(child, grouped, maxCaptureBytes);
     child.stdout.setEncoding("utf8");

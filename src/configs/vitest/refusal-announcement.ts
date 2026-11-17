@@ -8,7 +8,7 @@
  * @module configs/vitest/refusal-announcement
  */
 import { writeSync } from "node:fs";
-import { env } from "node:process";
+import { processEnvironment as env } from "../../utils/process-environment.js";
 
 /**
  * Renders the banner a refused run prints before vitest's own output.

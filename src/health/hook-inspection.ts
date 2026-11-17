@@ -4,7 +4,7 @@ import path from "node:path";
 import { inspectRailsHooks } from "../../scripts/lib/rails-hooks.mjs";
 
 import type { ProjectType } from "../core/config.js";
-import { resolveExecutable } from "../utils/resolve-executable.js";
+import { spawnTarget } from "../utils/resolve-executable.js";
 import { readProjectFile } from "./read-only-fs.js";
 
 const GIT_TIMEOUT_MS = 10_000;
@@ -46,10 +46,17 @@ export const readCoreHooksPath: HooksPathReader = async (
   signal
 ) =>
   new Promise((resolve, reject) => {
+    const target = spawnTarget("git", [
+      "config",
+      "--local",
+      "--get",
+      "core.hooksPath",
+    ]);
     execFile(
-      resolveExecutable("git"),
-      ["config", "--local", "--get", "core.hooksPath"],
+      target.file,
+      [...target.args],
       {
+        windowsVerbatimArguments: target.windowsVerbatimArguments,
         cwd: projectRoot,
         encoding: "utf8",
         maxBuffer: MAX_GIT_OUTPUT_BYTES,

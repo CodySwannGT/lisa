@@ -11,7 +11,7 @@
  * @module cli/admit-cmd
  */
 import { spawn } from "node:child_process";
-import { env } from "node:process";
+import { processEnvironment as env } from "../utils/process-environment.js";
 import type { Command } from "commander";
 
 import { ADMISSION_REFUSED_EXIT, requestAdmission } from "../core/admission.js";

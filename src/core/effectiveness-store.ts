@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { lstat, mkdir, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { writeFileAtomically } from "../utils/atomic-file-write.js";
-import { resolveExecutable } from "../utils/resolve-executable.js";
+import { requireExecutable } from "../utils/resolve-executable.js";
 import {
   invariantFingerprint,
   isEvidenceString,
@@ -142,7 +142,7 @@ async function safeTarget(root: string, relative: string): Promise<string> {
  */
 function assertUnionMerge(root: string): void {
   const attribute = execFileSync(
-    resolveExecutable("git"),
+    requireExecutable("git"),
     ["check-attr", "-z", "merge", "--", RECURRENCE_LEDGER],
     { cwd: root, encoding: "utf8" }
   );
@@ -225,7 +225,7 @@ export async function recordEffectiveness(
   const relative = `${EFFECTIVENESS_REPORTS}/${filename}.json`;
   const target = await safeTarget(root, relative);
   execFileSync(
-    resolveExecutable("git"),
+    requireExecutable("git"),
     ["check-ignore", "-q", "--", relative],
     { cwd: root }
   );

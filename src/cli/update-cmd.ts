@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "../utils/process-environment.js";
 
 const LISA_PACKAGE = "@codyswann/lisa";
 
@@ -32,8 +32,9 @@ const DEFAULT_DEPENDENCIES: UpdateCommandDependencies = {
 /**
  * Read the CLI process environment. Package-manager metadata is supplied by
  * the package manager that launched the CLI.
- * The binding is imported from `node:process` so the dependency is declared
- * at the top of the module rather than reached for mid-function.
+ * The binding comes from `utils/process-environment`, the one sanctioned
+ * accessor, so the dependency is declared at the top of the module rather than
+ * reached for mid-function.
  * @returns Current process environment
  */
 function getProcessEnv(): NodeJS.ProcessEnv {

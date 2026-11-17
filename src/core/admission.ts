@@ -19,7 +19,7 @@
  * @module core/admission
  */
 import { rmSync } from "node:fs";
-import { env } from "node:process";
+import { processEnvironment as env } from "../utils/process-environment.js";
 
 import {
   type AdmissionReservation,

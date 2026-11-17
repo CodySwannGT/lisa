@@ -35,7 +35,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "../utils/process-environment.js";
 
 import type { Command } from "commander";
 
@@ -123,10 +123,10 @@ export function parseMaxWait(value: string): string | null {
  * @returns Trimmed stdout, or null when git failed
  */
 function defaultGit(args: readonly string[], cwd: string): string | null {
-  const child = spawnSync(resolveExecutable("git"), [...args], {
-    cwd,
-    encoding: "utf8",
-  });
+  const git = resolveExecutable("git");
+  // Not installed is "git failed", as a spawn ENOENT was before.
+  if (!git.found) return null;
+  const child = spawnSync(git.path, [...args], { cwd, encoding: "utf8" });
   return child.status === 0 ? String(child.stdout).trim() : null;
 }
 

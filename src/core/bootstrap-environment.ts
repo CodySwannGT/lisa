@@ -1,4 +1,4 @@
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "../utils/process-environment.js";
 
 export const LISA_BOOTSTRAP_ENV = "LISA_BOOTSTRAP";
 
@@ -53,8 +53,9 @@ export interface BootstrapGuardOptions {
  * Read the process environment. Lisa's CLI bootstrap guard must inspect
  * externally supplied build-system fingerprints before any project config is
  * available.
- * The binding is imported from `node:process` so the dependency is declared
- * at the top of the module rather than reached for mid-function.
+ * The binding comes from `utils/process-environment`, the one sanctioned
+ * accessor, so the dependency is declared at the top of the module rather than
+ * reached for mid-function.
  * @returns The current process environment
  */
 function readProcessEnv(): NodeJS.ProcessEnv {

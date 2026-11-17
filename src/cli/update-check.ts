@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "../utils/process-environment.js";
 import { gt, valid } from "semver";
 import { getPackageVersion } from "./version.js";
 
@@ -83,8 +83,9 @@ export function getDefaultCachePath(cwd: string = process.cwd()): string {
 /**
  * Read the CLI process environment. The root opt-out is externally supplied,
  * so there is no config service to consult.
- * The binding is imported from `node:process` so the dependency is declared
- * at the top of the module rather than reached for mid-function.
+ * The binding comes from `utils/process-environment`, the one sanctioned
+ * accessor, so the dependency is declared at the top of the module rather than
+ * reached for mid-function.
  * @returns Current process environment
  */
 function getProcessEnv(): NodeJS.ProcessEnv {

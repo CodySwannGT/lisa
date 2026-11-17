@@ -21,44 +21,50 @@ export interface StreamBounds {
   readonly tooLargeMessage: string;
 }
 
+/** The chunks accepted so far and their running byte total. */
+interface Collected {
+  readonly chunks: readonly Buffer[];
+  readonly totalBytes: number;
+}
+
 /**
- * Accumulates chunks for one bounded read. The running totals live on the
- * instance because the stream is consumed incrementally and each chunk must be
- * checked against the caps before the next one is accepted.
+ * Accepts one chunk, or throws when it crosses a cap.
+ * @param collected - What has been accepted so far
+ * @param rawChunk - The chunk as the stream delivered it
+ * @param bounds - Caps and error messages for this read
+ * @returns What has been accepted including this chunk
  */
-class BoundedChunkCollector {
-  private readonly chunks: Buffer[] = [];
-  private totalBytes = 0;
-
-  /**
-   * Creates a collector for one read.
-   * @param bounds - Caps and error messages for this read
-   */
-  constructor(private readonly bounds: StreamBounds) {}
-
-  /**
-   * Accepts one chunk, or throws when it crosses a cap.
-   * @param rawChunk - The chunk as the stream delivered it
-   */
-  add(rawChunk: Buffer | string): void {
-    if (this.chunks.length + 1 > this.bounds.maxChunks) {
-      throw new Error(this.bounds.tooManyChunksMessage);
-    }
-    const chunk = Buffer.from(rawChunk);
-    this.totalBytes += chunk.byteLength;
-    if (this.totalBytes > this.bounds.maxBytes) {
-      throw new Error(this.bounds.tooLargeMessage);
-    }
-    this.chunks.push(chunk);
+function accept(
+  collected: Collected,
+  rawChunk: Buffer | string,
+  bounds: StreamBounds
+): Collected {
+  if (collected.chunks.length + 1 > bounds.maxChunks) {
+    throw new Error(bounds.tooManyChunksMessage);
   }
+  const chunk = Buffer.from(rawChunk);
+  const totalBytes = collected.totalBytes + chunk.byteLength;
+  if (totalBytes > bounds.maxBytes) throw new Error(bounds.tooLargeMessage);
+  return { chunks: [...collected.chunks, chunk], totalBytes };
+}
 
-  /**
-   * Joins every accepted chunk.
-   * @returns The collected bytes
-   */
-  bytes(): Buffer {
-    return Buffer.concat(this.chunks, this.totalBytes);
-  }
+/**
+ * Pulls chunks until the stream ends, carrying what was accepted as the
+ * argument. Each step resumes after an await, so the stack does not grow,
+ * and the chunk cap bounds how many steps there are.
+ * @param iterator - The stream's iterator
+ * @param collected - What has been accepted so far
+ * @param bounds - Caps and error messages for this read
+ * @returns Everything the stream delivered
+ */
+async function drain(
+  iterator: AsyncIterator<Buffer | string>,
+  collected: Collected,
+  bounds: StreamBounds
+): Promise<Collected> {
+  const next = await iterator.next();
+  if (next.done === true) return collected;
+  return drain(iterator, accept(collected, next.value, bounds), bounds);
 }
 
 /**
@@ -71,7 +77,17 @@ export async function readBoundedBytes(
   stream: AsyncIterable<Buffer | string>,
   bounds: StreamBounds
 ): Promise<Buffer> {
-  const collector = new BoundedChunkCollector(bounds);
-  for await (const rawChunk of stream) collector.add(rawChunk);
-  return collector.bytes();
+  const iterator = stream[Symbol.asyncIterator]();
+  try {
+    const { chunks, totalBytes } = await drain(
+      iterator,
+      { chunks: [], totalBytes: 0 },
+      bounds
+    );
+    return Buffer.concat(chunks, totalBytes);
+  } catch (error) {
+    // Release the source as `for await` did when the loop body threw.
+    await iterator.return?.();
+    throw error;
+  }
 }

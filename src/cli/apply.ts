@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "../utils/process-environment.js";
 import type { Harness, LisaConfig, RefreshTemplates } from "../core/config.js";
 import {
   type ApplyModeInputs,

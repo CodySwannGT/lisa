@@ -35,6 +35,7 @@ import {
   getExpoStructureOverrides,
   OXLINT_HANDED_OFF_A11Y_RULES,
 } from "./expo-overrides.js";
+import { processEnvironmentBans } from "./process-environment-bans.js";
 
 // Re-export for downstream configs
 export {
@@ -257,12 +258,9 @@ function getExpoPolicyRules() {
     // @see .claude/skills/expo-env-config/SKILL.md
     "no-restricted-syntax": [
       "error",
-      {
-        selector:
-          "MemberExpression[object.name='process'][property.name='env']",
-        message:
-          "Direct process.env access is forbidden. Import { env } from '@/lib/env' instead for type-safe, validated environment variables.",
-      },
+      ...processEnvironmentBans(
+        "Direct process.env access is forbidden. Import { env } from '@/lib/env' instead for type-safe, validated environment variables."
+      ),
     ],
 
     // Console warnings for Expo

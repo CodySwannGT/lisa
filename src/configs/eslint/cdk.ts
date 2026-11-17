@@ -28,6 +28,7 @@ import {
   getTsFilesOverride,
   getTsTestFilesOverride,
 } from "./typescript.js";
+import { processEnvironmentBans } from "./process-environment-bans.js";
 
 // Re-export for downstream configs
 export {
@@ -70,12 +71,9 @@ function getCdkAllFilesConfig(thresholds: typeof defaultThresholds) {
       // @see the host rules in .agents/rules/
       "no-restricted-syntax": [
         "error",
-        {
-          selector:
-            "MemberExpression[object.name='process'][property.name='env']",
-          message:
-            "Direct process.env access is forbidden. Use config module for type-safe configuration. See the host rules in .agents/rules/.",
-        },
+        ...processEnvironmentBans(
+          "Direct process.env access is forbidden. Use config module for type-safe configuration. See the host rules in .agents/rules/."
+        ),
       ],
 
       // CDK uses classes for constructs and stacks

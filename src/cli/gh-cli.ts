@@ -4,7 +4,7 @@
  */
 import { execFile } from "node:child_process";
 
-import { resolveExecutable } from "../utils/resolve-executable.js";
+import { spawnTarget } from "../utils/resolve-executable.js";
 
 /**
  * Run `gh` without a shell and return stdout.
@@ -25,11 +25,19 @@ export function runGh(
   signal: AbortSignal
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const ghExecutable = resolveExecutable("gh");
+    // Throws ExecutableNotFoundError (code ENOENT) when gh is not installed;
+    // inside the executor that rejects, exactly as execFile's ENOENT did.
+    const gh = spawnTarget("gh", args);
     execFile(
-      ghExecutable,
-      [...args],
-      { cwd, signal, timeout: timeoutMs, encoding: "utf8" },
+      gh.file,
+      [...gh.args],
+      {
+        cwd,
+        signal,
+        timeout: timeoutMs,
+        encoding: "utf8",
+        windowsVerbatimArguments: gh.windowsVerbatimArguments,
+      },
       (error, stdout) => {
         if (error !== null) {
           reject(error);

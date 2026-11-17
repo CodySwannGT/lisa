@@ -25,40 +25,44 @@ export async function prepareHealthEvaluation(
 ): Promise<HealthEvaluationRequestEnvelope | undefined> {
   const root = await resolveHealthProtocolProjectRoot(projectPath);
   const { timeoutMs, ...deterministicOptions } = options;
-  const capture = new RequestCapture();
-  await runHealth(root, {
-    ...deterministicOptions,
-    agentic: {
-      enabled: true,
-      ...(timeoutMs === undefined ? {} : { timeoutMs }),
-      evaluator: request => {
-        capture.record(request);
-        return Promise.resolve(Object.freeze({ status: "unavailable" }));
+  const request = await captureCallback<AgenticHealthRequest>(deliver =>
+    runHealth(root, {
+      ...deterministicOptions,
+      agentic: {
+        enabled: true,
+        ...(timeoutMs === undefined ? {} : { timeoutMs }),
+        evaluator: evaluated => {
+          deliver(evaluated);
+          return Promise.resolve(Object.freeze({ status: "unavailable" }));
+        },
       },
-    },
-  });
-  return capture.request === undefined
+    })
+  );
+  return request === undefined
     ? undefined
-    : createHealthEvaluationRequestEnvelope(root, capture.request);
+    : createHealthEvaluationRequestEnvelope(root, request);
 }
 
-/** Holds the one request the evaluator callback hands back to prepare. */
-class RequestCapture {
-  private captured: AgenticHealthRequest | undefined;
-
-  /**
-   * The request the evaluator received, if collection reached it.
-   * @returns The captured request, or undefined when it never arrived
-   */
-  get request(): AgenticHealthRequest | undefined {
-    return this.captured;
-  }
-
-  /**
-   * Keep the request the evaluator callback received.
-   * @param request - Bounded request produced by `runHealth`
-   */
-  record(request: AgenticHealthRequest): void {
-    this.captured = request;
-  }
+/**
+ * Runs `body` with a callback and reports the value the callback received, once
+ * `body` has settled. The value travels through a promise rather than a
+ * variable: after `body` settles, the promise is either already resolved or
+ * never will be, and racing it against an already-resolved `undefined` reads
+ * which.
+ * @param body - Work that may call the callback, at most meaningfully once
+ * @returns The first value the callback received, or undefined if never called
+ */
+function captureCallback<T>(
+  body: (deliver: (value: T) => void) => Promise<unknown>
+): Promise<T | undefined> {
+  return new Promise((resolve, reject) => {
+    const delivered = new Promise<T>(deliver => {
+      Promise.resolve()
+        .then(() => body(deliver))
+        .then(
+          () => resolve(Promise.race([delivered, Promise.resolve(undefined)])),
+          reject
+        );
+    });
+  });
 }

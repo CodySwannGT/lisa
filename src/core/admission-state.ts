@@ -33,8 +33,11 @@ export function processStartTimes(
   pids: readonly number[]
 ): ReadonlyMap<number, string> {
   if (pids.length === 0 || process.platform === "win32") return new Map();
+  const ps = resolveExecutable("ps");
+  // Without ps nothing can be confirmed running, as a failed spawn reported.
+  if (!ps.found) return new Map();
   const child = spawnSync(
-    resolveExecutable("ps"),
+    ps.path,
     ["-o", "pid=,lstart=", "-p", pids.join(",")],
     {
       encoding: "utf8",
@@ -181,8 +184,10 @@ export function availableMemoryMb(): number {
     return match?.[1] === undefined ? fallback : Number(match[1]) / 1024;
   }
   if (process.platform !== "darwin") return fallback;
-  const text =
-    spawnSync(resolveExecutable("vm_stat"), { encoding: "utf8" }).stdout ?? "";
+  const vmStat = resolveExecutable("vm_stat");
+  const text = vmStat.found
+    ? (spawnSync(vmStat.path, { encoding: "utf8" }).stdout ?? "")
+    : "";
   const page = Number(/page size of (\d+) bytes/u.exec(text)?.[1] ?? 0);
   const pages = ["free", "inactive", "speculative"].map(kind =>
     Number(new RegExp(`Pages ${kind}:\\s+(\\d+)`, "u").exec(text)?.[1] ?? 0)

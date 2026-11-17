@@ -20,6 +20,8 @@
  */
 import type { getTypescriptConfig } from "@codyswann/lisa/eslint/typescript";
 
+import { processEnvironmentBans } from "./src/configs/eslint/process-environment-bans.js";
+
 /**
  * The element type eslint.config.ts spreads this into. Annotated so rule
  * severities such as "off" keep their literal type instead of widening to
@@ -33,6 +35,34 @@ const localConfig: LocalConfig = [
   // file is the one list eslint.config.ts, eslint.slow.config.ts and
   // tsconfig.eslint.json's `exclude` all agree on (CodySwannGT/lisa#4927).
   // An ignore added here would reach the fast lint only.
+  {
+    // The shipped ban on every route to the process environment, applied to
+    // Lisa's own source now. Lisa lints itself with the installed release of
+    // @codyswann/lisa, so a ban added to src/configs/eslint reaches this repo
+    // only after it is published; applying the same factory here keeps Lisa
+    // under the rule it ships from the commit that adds it. Config files keep
+    // the shipped `**/*config.*` exemption.
+    files: ["src/**/*.ts"],
+    ignores: ["**/*config.*"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...processEnvironmentBans(
+          "Read the environment through src/utils/process-environment.ts, Lisa's one sanctioned accessor."
+        ),
+      ],
+    },
+  },
+  {
+    // Lisa is a CLI and a set of config factories with no config service; the
+    // process environment is genuinely their input. It is read in exactly one
+    // module, and every other source file imports that binding.
+    // Pinned by tests/unit/config/eslint-local-process-environment-scope.test.ts.
+    files: ["src/utils/process-environment.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
+    },
+  },
   {
     // Shared test fixtures. `**/*.test.ts` is already exempt from the app's
     // `process.env` restriction because a test must be able to construct the

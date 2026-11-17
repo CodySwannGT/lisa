@@ -6,7 +6,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, realpath, rmdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "../utils/process-environment.js";
 import { captureCommand, type CaptureCommand } from "./starter-provenance.js";
 
 /** Git writes stream their normal hooks; metadata reads remain bounded. */

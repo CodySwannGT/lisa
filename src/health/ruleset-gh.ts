@@ -5,7 +5,7 @@
  */
 import { execFile } from "node:child_process";
 
-import { resolveExecutable } from "../utils/resolve-executable.js";
+import { spawnTarget } from "../utils/resolve-executable.js";
 
 const GH_TIMEOUT_MS = 15_000;
 const MAX_GH_OUTPUT_BYTES = 256 * 1024;
@@ -84,10 +84,12 @@ export function readGhText(
   signal: AbortSignal
 ): Promise<string> {
   return new Promise((resolve, reject) => {
+    const target = spawnTarget("gh", [...argv]);
     execFile(
-      resolveExecutable("gh"),
-      [...argv],
+      target.file,
+      [...target.args],
       {
+        windowsVerbatimArguments: target.windowsVerbatimArguments,
         cwd,
         encoding: "utf8",
         maxBuffer: MAX_GH_OUTPUT_BYTES,

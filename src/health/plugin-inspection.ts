@@ -11,7 +11,7 @@ import {
 import { selectProjectLisaPluginsFromState } from "../core/lisa-plugin-selection.js";
 import { PLUGIN_LIST_MAX_CAPTURE_BYTES } from "../core/plugin-command.js";
 import { getPackageVersion } from "../cli/version.js";
-import { resolveExecutable } from "../utils/resolve-executable.js";
+import { spawnTarget } from "../utils/resolve-executable.js";
 import { readProjectJsonObject, readProjectText } from "./read-only-fs.js";
 
 // `claude plugin list --json` lists every project-scope registration on the
@@ -54,10 +54,12 @@ export const readInstalledClaudePlugins: InstalledPluginReader = async (
   signal
 ) =>
   new Promise((resolve, reject) => {
+    const target = spawnTarget("claude", ["plugin", "list", "--json"]);
     execFile(
-      resolveExecutable("claude"),
-      ["plugin", "list", "--json"],
+      target.file,
+      [...target.args],
       {
+        windowsVerbatimArguments: target.windowsVerbatimArguments,
         cwd: projectRoot,
         encoding: "utf8",
         maxBuffer: MAX_PLUGIN_OUTPUT_BYTES,

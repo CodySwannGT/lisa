@@ -364,6 +364,8 @@ function sourceAtRevision(ref, file, cwd) {
       stdio: ["ignore", "pipe", "ignore"],
     });
   } catch {
+    // probe-direction: fail-closed — an unreadable revision returns null, and
+    // confirmedRemovals keeps the removal it could not disprove.
     return null;
   }
 }

@@ -2,9 +2,11 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
-import { env as processEnvironment } from "node:process";
+import { text } from "node:stream/consumers";
+import { processEnvironment } from "../utils/process-environment.js";
 import type {
   ChromeAvailabilityProbe,
+  KaneCommandResult,
   KaneCommandRunner,
 } from "./kane-cli-types.js";
 
@@ -49,63 +51,6 @@ export const isChromeAvailable: ChromeAvailabilityProbe = () => {
 };
 
 /**
- * Output and timeout state for one Kane invocation. The child reports its
- * streams through events until it closes, so the state accumulates on this
- * instance and is read once, when the close event settles the run.
- */
-class KaneRunCapture {
-  private stdout = "";
-  private stderr = "";
-  private timedOut = false;
-
-  /**
-   * Append a standard-output chunk.
-   * @param chunk - Decoded output
-   */
-  appendStdout(chunk: string): void {
-    this.stdout += chunk;
-  }
-
-  /**
-   * Append a standard-error chunk.
-   * @param chunk - Decoded output
-   */
-  appendStderr(chunk: string): void {
-    this.stderr += chunk;
-  }
-
-  /**
-   * Record a spawn or process error on its own standard-error line.
-   * @param error - The error the child process emitted
-   */
-  recordError(error: Error): void {
-    this.stderr += `${this.stderr.length === 0 ? "" : "\n"}${error.message}`;
-  }
-
-  /** Note that the deadline killed the child. */
-  markTimedOut(): void {
-    this.timedOut = true;
-  }
-
-  /**
-   * Settle the run.
-   * @param code - Exit code the child closed with, or null when signalled
-   * @returns Captured exit code and streams
-   */
-  result(code: number | null): {
-    exitCode: number;
-    stdout: string;
-    stderr: string;
-  } {
-    return {
-      exitCode: this.timedOut ? 3 : (code ?? 2),
-      stdout: this.stdout,
-      stderr: this.stderr,
-    };
-  }
-}
-
-/**
  * Run a fixed-argv Kane child process without shell interpolation.
  * @param executable - Executable name
  * @param args - Fixed argument vector
@@ -124,18 +69,56 @@ export const runKaneCommand: KaneCommandRunner = async (
       env: options.env,
       stdio: ["ignore", "pipe", "pipe"],
     });
-    const capture = new KaneRunCapture();
-    child.stdout.setEncoding("utf8");
-    child.stderr.setEncoding("utf8");
-    child.stdout.on("data", (chunk: string) => capture.appendStdout(chunk));
-    child.stderr.on("data", (chunk: string) => capture.appendStderr(chunk));
-    child.on("error", error => capture.recordError(error));
-    const timeout = setTimeout(() => {
-      capture.markTimedOut();
-      child.kill("SIGKILL");
-    }, options.timeoutMs);
-    child.on("close", code => {
-      clearTimeout(timeout);
-      resolve(capture.result(code));
+    // Each piece of the result is a promise the child's own events settle, so
+    // nothing accumulates in mutable state between the events.
+    const stdout = text(child.stdout);
+    const stderr = text(child.stderr);
+    const failure = new Promise<string>(settle =>
+      child.once("error", error => settle(error.message))
+    );
+    const timedOut = new Promise<boolean>(settle => {
+      const timeout = setTimeout(() => {
+        settle(true);
+        child.kill("SIGKILL");
+      }, options.timeoutMs);
+      child.once("close", () => {
+        clearTimeout(timeout);
+        settle(false);
+      });
+    });
+    child.once("close", code => {
+      resolve(settleKaneRun(code, stdout, stderr, failure, timedOut));
     });
   });
+
+/**
+ * Assemble the result once the child has closed.
+ * @param code - Exit code the child closed with, or null when signalled
+ * @param stdout - The child's whole standard output
+ * @param stderr - The child's whole standard error
+ * @param failure - The spawn or process error's message, if one was emitted
+ * @param timedOut - Whether the deadline killed the child
+ * @returns Captured exit code and streams; a process error is appended to
+ * standard error on its own line
+ */
+async function settleKaneRun(
+  code: number | null,
+  stdout: Promise<string>,
+  stderr: Promise<string>,
+  failure: Promise<string>,
+  timedOut: Promise<boolean>
+): Promise<KaneCommandResult> {
+  const [out, err, message, killed] = await Promise.all([
+    stdout,
+    stderr,
+    // An error, when there is one, is emitted before close.
+    Promise.race([failure, Promise.resolve("")]),
+    timedOut,
+  ]);
+  const separator = err.length === 0 || message.length === 0 ? "" : "\n";
+  return {
+    exitCode: killed ? 3 : (code ?? 2),
+    stdout: out,
+    stderr: `${err}${separator}${message}`,
+  };
+}

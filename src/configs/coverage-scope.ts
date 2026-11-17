@@ -21,7 +21,7 @@
  * whose floor was written for what it actually runs.
  * @module configs/coverage-scope
  */
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "../utils/process-environment.js";
 
 /** The variable the unit-scoped coverage script sets. */
 export const COVERAGE_SCOPE_ENV = "LISA_COVERAGE_SCOPE";

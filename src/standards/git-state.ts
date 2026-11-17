@@ -1,7 +1,7 @@
 /** Bounded, no-shell Git observation for standards proof freshness. */
 import { execFile } from "node:child_process";
 import { realpath } from "node:fs/promises";
-import { env } from "node:process";
+import { processEnvironment as env } from "../utils/process-environment.js";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);

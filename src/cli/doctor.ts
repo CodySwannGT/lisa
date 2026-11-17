@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "../utils/process-environment.js";
 import { probeKaneReadiness } from "../core/kane-cli.js";
 import { probeSonarReadiness } from "../core/sonar-integration.js";
 import {
@@ -116,8 +116,9 @@ export interface DoctorDependencies {
 /**
  * Read the CLI process environment. GitHub authentication is supplied by the
  * surrounding agent or CI runtime, never by project configuration.
- * The binding is imported from `node:process` so the dependency is declared
- * at the top of the module rather than reached for mid-function.
+ * The binding comes from `utils/process-environment`, the one sanctioned
+ * accessor, so the dependency is declared at the top of the module rather than
+ * reached for mid-function.
  * @returns Current process environment
  */
 function readProcessEnvironment(): NodeJS.ProcessEnv {

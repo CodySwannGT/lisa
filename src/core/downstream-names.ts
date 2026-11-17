@@ -38,7 +38,7 @@
  * @module core/downstream-names
  */
 import { createHash } from "node:crypto";
-import { env as processEnvironment } from "node:process";
+import { processEnvironment } from "../utils/process-environment.js";
 
 import { Memo } from "../utils/memo.js";
 

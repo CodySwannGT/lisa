@@ -1,8 +1,10 @@
 /**
  * @file resolve-executable.test.ts
  * @description Pins how Lisa resolves user-installed tools before spawning
- * them: absolute PATH directories only, first executable match wins, and a
- * miss leaves the bare name for the spawn to report as before.
+ * them: absolute PATH directories only, first executable match wins, a miss is
+ * a not-found result (never the bare name), Windows never picks an
+ * extensionless file, and a Windows batch file runs through an absolute
+ * cmd.exe with every argument escaped.
  * @module utils
  */
 import {
@@ -15,22 +17,43 @@ import {
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
-import { resolveExecutable } from "../../../src/utils/resolve-executable.js";
+import {
+  ExecutableNotFoundError,
+  escapeBatchArgument,
+  requireExecutable,
+  resolveExecutable,
+  spawnTarget,
+} from "../../../src/utils/resolve-executable.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const roots: string[] = [];
+const TOOL = "tool";
+const LINUX = "linux";
+const WINDOWS = "win32";
 
 /**
- * Creates a directory holding one file, optionally executable.
- * @param name - File name to create
- * @param mode - Permission bits for the file
- * @returns The directory that holds the file
+ * Creates a fresh temporary directory, removed after each test.
+ * @returns The directory path
  */
-function dirWith(name: string, mode = 0o755): string {
+function freshDir(): string {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-resolve-exe-"));
-  const file = path.join(root, name);
   roots.push(root);
-  writeFileSync(file, "#!/bin/sh\n");
-  chmodSync(file, mode);
+  return root;
+}
+
+/**
+ * Creates a directory holding the named files, each optionally executable.
+ * @param names - File names to create
+ * @param mode - Permission bits for every file
+ * @returns The directory that holds the files
+ */
+function dirWith(names: readonly string[], mode = 0o755): string {
+  const root = freshDir();
+  for (const name of names) {
+    const file = path.join(root, name);
+    writeFileSync(file, "#!/bin/sh\necho planted\n");
+    chmodSync(file, mode);
+  }
   return root;
 }
 
@@ -41,74 +64,195 @@ afterEach(() => {
 
 describe("resolveExecutable", () => {
   it("returns the first executable match from an absolute PATH directory", () => {
-    const first = dirWith("tool");
-    const second = dirWith("tool");
+    const first = dirWith([TOOL]);
+    const second = dirWith([TOOL]);
     const environment = { PATH: [first, second].join(path.delimiter) };
-    expect(resolveExecutable("tool", { environment, platform: "linux" })).toBe(
-      path.join(first, "tool")
-    );
+    expect(resolveExecutable(TOOL, { environment, platform: LINUX })).toEqual({
+      found: true,
+      path: path.join(first, TOOL),
+    });
   });
 
   it("skips relative and empty PATH entries so a checked-in file cannot shadow the tool", () => {
-    const real = dirWith("tool");
+    const real = dirWith([TOOL]);
     const environment = { PATH: [".", "", "bin", real].join(path.delimiter) };
-    expect(resolveExecutable("tool", { environment, platform: "linux" })).toBe(
-      path.join(real, "tool")
+    expect(resolveExecutable(TOOL, { environment, platform: LINUX })).toEqual({
+      found: true,
+      path: path.join(real, TOOL),
+    });
+  });
+
+  it("skips files without the execute bit and directories with the tool's name", () => {
+    const plain = dirWith([TOOL], 0o644);
+    const shadowDir = freshDir();
+    const real = dirWith([TOOL]);
+    mkdirSync(path.join(shadowDir, TOOL));
+    const environment = {
+      PATH: [plain, shadowDir, real].join(path.delimiter),
+    };
+    expect(resolveExecutable(TOOL, { environment, platform: LINUX })).toEqual({
+      found: true,
+      path: path.join(real, TOOL),
+    });
+  });
+
+  it("reports not found, never the bare name, and lists the directories searched", () => {
+    const other = dirWith(["other"]);
+    const environment = { PATH: [".", other].join(path.delimiter) };
+    expect(resolveExecutable(TOOL, { environment, platform: LINUX })).toEqual({
+      found: false,
+      command: TOOL,
+      searched: [other],
+    });
+  });
+
+  it("never picks an extensionless file on Windows, even next to a .cmd", () => {
+    // npm installs a POSIX script `claude` beside `claude.cmd`; only the
+    // latter runs on Windows.
+    const root = dirWith([TOOL, `${TOOL}.CMD`]);
+    const environment = { Path: root, PATHEXT: ".EXE;.CMD" };
+    expect(resolveExecutable(TOOL, { environment, platform: WINDOWS })).toEqual(
+      {
+        found: true,
+        path: path.join(root, `${TOOL}.CMD`),
+      }
     );
   });
 
-  it("skips files without the execute bit", () => {
-    const plain = dirWith("tool", 0o644);
-    const real = dirWith("tool");
-    const environment = { PATH: [plain, real].join(path.delimiter) };
-    expect(resolveExecutable("tool", { environment, platform: "linux" })).toBe(
-      path.join(real, "tool")
-    );
-  });
-
-  it("skips a directory that shares the command's name", () => {
-    const root = mkdtempSync(path.join(tmpdir(), "lisa-resolve-exe-"));
-    const real = dirWith("tool");
-    roots.push(root);
-    mkdirSync(path.join(root, "tool"));
-    const environment = { PATH: [root, real].join(path.delimiter) };
-    expect(resolveExecutable("tool", { environment, platform: "linux" })).toBe(
-      path.join(real, "tool")
-    );
-  });
-
-  it("returns the bare name when no absolute directory holds the command", () => {
-    const environment = { PATH: dirWith("other") };
-    expect(resolveExecutable("tool", { environment, platform: "linux" })).toBe(
-      "tool"
-    );
-  });
-
-  it("returns the bare name when PATH is unset", () => {
+  it("reports an extensionless-only Windows install as not found", () => {
+    const root = dirWith([TOOL]);
+    const environment = { Path: root, PATHEXT: ".EXE;.CMD" };
     expect(
-      resolveExecutable("tool", { environment: {}, platform: "linux" })
-    ).toBe("tool");
-  });
-
-  it("leaves a command that already names a path untouched", () => {
-    expect(
-      resolveExecutable("./bin/tool", { environment: {}, platform: "linux" })
-    ).toBe("./bin/tool");
-  });
-
-  it("applies PATHEXT and the case-insensitive Path key on Windows", () => {
-    const root = dirWith("tool.EXE");
-    const environment = { Path: root, PATHEXT: ".COM;.EXE" };
-    expect(resolveExecutable("tool", { environment, platform: "win32" })).toBe(
-      path.join(root, "tool.EXE")
-    );
+      resolveExecutable(TOOL, { environment, platform: WINDOWS }).found
+    ).toBe(false);
   });
 
   it("uses the default Windows extensions when PATHEXT is unset", () => {
-    const root = dirWith("tool.CMD");
-    const environment = { Path: root };
-    expect(resolveExecutable("tool", { environment, platform: "win32" })).toBe(
-      path.join(root, "tool.CMD")
+    const root = dirWith([`${TOOL}.EXE`]);
+    expect(
+      resolveExecutable(TOOL, {
+        environment: { Path: root },
+        platform: WINDOWS,
+      })
+    ).toEqual({ found: true, path: path.join(root, `${TOOL}.EXE`) });
+  });
+});
+
+describe("requireExecutable", () => {
+  it("throws an ENOENT error that names the tool and the directories searched", () => {
+    const other = dirWith(["other"]);
+    const context = { environment: { PATH: other }, platform: LINUX } as const;
+    expect(() => requireExecutable(TOOL, context)).toThrow(
+      `${TOOL} not found on PATH (absolute directories searched: ${other})`
     );
+    expect(() => requireExecutable(TOOL, context)).toThrow(
+      expect.objectContaining({ code: "ENOENT" })
+    );
+    expect(() => requireExecutable(TOOL, context)).toThrow(
+      ExecutableNotFoundError
+    );
+  });
+
+  it("says so when no absolute directory is on PATH at all", () => {
+    expect(() =>
+      requireExecutable(TOOL, { environment: {}, platform: LINUX })
+    ).toThrow(
+      `${TOOL} not found on PATH (absolute directories searched: none)`
+    );
+  });
+});
+
+describe("a planted ./git in the repository is never run", () => {
+  it("refuses to spawn when git is not installed, even with . on PATH", () => {
+    const repo = dirWith(["git"]);
+    const environment = { PATH: "." };
+    const context = { environment, platform: LINUX } as const;
+    // The relative entry would find the planted file from cwd=repo; the
+    // resolver searches absolute directories only, so git is "not found".
+    expect(resolveExecutable("git", context).found).toBe(false);
+    expect(() => spawnTarget("git", ["status"], context)).toThrow(
+      ExecutableNotFoundError
+    );
+    // Control: the bare name WOULD have run the planted file from that cwd.
+    const bare = boundedSpawnSync({
+      command: "/bin/sh",
+      args: ["-c", "git status"],
+      cwd: repo,
+      env: { PATH: "." },
+    });
+    expect(bare.stdout).toContain("planted");
+  });
+});
+
+describe("spawnTarget", () => {
+  it("spawns a resolved POSIX executable directly with the caller's argv", () => {
+    const root = dirWith([TOOL]);
+    const context = { environment: { PATH: root }, platform: LINUX } as const;
+    expect(spawnTarget(TOOL, ["a b", "c"], context)).toEqual({
+      file: path.join(root, TOOL),
+      args: ["a b", "c"],
+      windowsVerbatimArguments: false,
+    });
+  });
+
+  it("runs a Windows .exe directly, without cmd.exe", () => {
+    const root = dirWith([`${TOOL}.EXE`]);
+    const context = {
+      environment: { Path: root, PATHEXT: ".EXE;.CMD" },
+      platform: WINDOWS,
+    } as const;
+    expect(spawnTarget(TOOL, ["x"], context)).toEqual({
+      file: path.join(root, `${TOOL}.EXE`),
+      args: ["x"],
+      windowsVerbatimArguments: false,
+    });
+  });
+
+  it("runs a Windows .cmd through an absolute cmd.exe with escaped arguments", () => {
+    const root = dirWith([TOOL, `${TOOL}.cmd`]);
+    const context = {
+      environment: {
+        Path: root,
+        PATHEXT: ".EXE;.CMD",
+        ComSpec: "C:\\Windows\\System32\\cmd.exe",
+      },
+      platform: WINDOWS,
+    } as const;
+    const target = spawnTarget(TOOL, ["plugin", "a&b"], context);
+    expect(target.file).toBe("C:\\Windows\\System32\\cmd.exe");
+    expect(target.windowsVerbatimArguments).toBe(true);
+    expect(target.args.slice(0, 3)).toEqual(["/d", "/s", "/c"]);
+    expect(target.args[3]).toContain(
+      `${escapeBatchArgument("plugin")} ${escapeBatchArgument("a&b")}`
+    );
+  });
+
+  it("falls back to SystemRoot's cmd.exe when ComSpec is not absolute", () => {
+    const root = dirWith([`${TOOL}.bat`]);
+    const context = {
+      environment: { Path: root, ComSpec: "cmd.exe", SystemRoot: "D:\\Win" },
+      platform: WINDOWS,
+    } as const;
+    expect(spawnTarget(TOOL, [], context).file).toBe(
+      "D:\\Win\\System32\\cmd.exe"
+    );
+  });
+});
+
+describe("escapeBatchArgument", () => {
+  it("quotes and double-escapes cmd metacharacters for a batch shim", () => {
+    expect(escapeBatchArgument("a&b")).toBe('^^^"a^^^&b^^^"');
+  });
+
+  it("doubles backslashes before a quote and escapes the quote", () => {
+    expect(escapeBatchArgument('x\\"y')).toBe('^^^"x\\\\\\^^^"y^^^"');
+  });
+
+  it("doubles trailing backslashes so the closing quote survives", () => {
+    expect(escapeBatchArgument("dir\\")).toBe('^^^"dir\\\\^^^"');
+  });
+
+  it("escapes spaces and percent signs so nothing expands or splits", () => {
+    expect(escapeBatchArgument("%PATH% x")).toBe('^^^"^^^%PATH^^^%^^^ x^^^"');
   });
 });

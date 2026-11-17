@@ -2,7 +2,7 @@
 /** Public entrypoint: sweep, shard, admit, then run the test payload. */
 import * as os from "node:os";
 import * as path from "node:path";
-import { env } from "node:process";
+import { processEnvironment as env } from "../utils/process-environment.js";
 
 import { invokedAsScript } from "../../scripts/lib/invoked-as-script.mjs";
 import { worktreeDependencyProblem } from "../../all/copy-overwrite/scripts/lib/worktree-dependencies.mjs";

@@ -22,7 +22,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { createRequire } from "node:module";
 import * as path from "node:path";
-import { env } from "node:process";
+import { processEnvironment as env } from "../utils/process-environment.js";
 
 import {
   checkJestThresholds,
