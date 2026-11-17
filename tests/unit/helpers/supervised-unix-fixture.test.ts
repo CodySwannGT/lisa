@@ -1,5 +1,12 @@
 /** The native Unix fixture directory is private, short enough, and removed on close. */
-import { existsSync, lstatSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -12,13 +19,32 @@ const CONTROLLER_SOCKET = "controller.sock";
 describe("native Unix fixtures", () => {
   it("creates a private shallow directory under the temp base and removes it on close", () => {
     const fixture = createSupervisedUnixFixture(CONTROLLER_SOCKET);
-    expect(dirname(fixture.root)).toBe(tmpdir());
+    expect(dirname(fixture.root)).toBe(realpathSync(tmpdir()));
     expect(lstatSync(fixture.root).mode & 0o077).toBe(0);
     expect(
       Buffer.byteLength(join(fixture.root, CONTROLLER_SOCKET))
     ).toBeLessThanOrEqual(UNIX_SOCKET_PATH_LIMIT);
     fixture.close();
     expect(existsSync(fixture.root)).toBe(false);
+  });
+
+  it("returns a canonical root when the temp base is reached through a symlink", () => {
+    // A short symlink to the real temp base, so the socket bound still fits
+    // whichever of the two paths the helper measures.
+    const holder = mkdtempSync(join(tmpdir(), "lisa-u-l-"));
+    try {
+      const linked = join(holder, "l");
+      symlinkSync(realpathSync(tmpdir()), linked, "dir");
+      const fixture = createSupervisedUnixFixture(CONTROLLER_SOCKET, linked);
+      try {
+        expect(realpathSync(fixture.root)).toBe(fixture.root);
+        expect(dirname(fixture.root)).toBe(realpathSync(tmpdir()));
+      } finally {
+        fixture.close();
+      }
+    } finally {
+      rmSync(holder, { recursive: true, force: true });
+    }
   });
 
   it("refuses a temp base too long to bind the socket, before creating anything", () => {
