@@ -96,6 +96,11 @@ export type LivePolicyRead =
 /** The slice of `lisa-reconcile-policy.mjs` the command calls. */
 export interface ReconcileModule {
   readonly ghRunner: GhRunner;
+  /** Why a read gave up, by the name the reconciler reports it under. */
+  readonly UNPROVEN: {
+    readonly NO_CLI: string;
+    readonly UNAUTHENTICATED: string;
+  };
   readonly readLivePolicy: (options: {
     readonly repo: string;
     readonly gh: GhRunner;

@@ -16,6 +16,7 @@
  * @module controls/audit-report-markdown
  */
 import { recordedAnswer } from "./audit-answers.js";
+import { unreachedSection } from "./audit-probes-markdown.js";
 import {
   OPEN_QUESTIONS_TITLE,
   questionsSection,
@@ -207,7 +208,13 @@ const partSections: AuditReportMarkdownSection = (report, criteria) =>
 
 /** The sections of the document, in the order they appear. */
 export const AUDIT_REPORT_MARKDOWN_SECTIONS: readonly AuditReportMarkdownSection[] =
-  [titleSection, summarySection, questionsSection, partSections];
+  [
+    titleSection,
+    summarySection,
+    questionsSection,
+    unreachedSection,
+    partSections,
+  ];
 
 /**
  * Render a validated report as Markdown.

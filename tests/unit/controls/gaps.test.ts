@@ -232,6 +232,7 @@ describe("listControlGaps", () => {
       ],
       questions: [],
       answers: [],
+      probes: [],
     } as const;
 
     expect(listControlGaps(report, CRITERIA)).toEqual([]);

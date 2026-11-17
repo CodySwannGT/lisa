@@ -151,13 +151,14 @@ describe("the report's shape", () => {
 });
 
 describe("the report's sections", () => {
-  it("are schema_version, scopes, findings, questions and answers", () => {
+  it("are schema_version, scopes, findings, questions, answers and probes", () => {
     expect(AUDIT_REPORT_SECTIONS.map(section => section.key)).toEqual([
       "schema_version",
       "scopes",
       "findings",
       "questions",
       "answers",
+      "probes",
     ]);
   });
 

@@ -17,6 +17,7 @@
  * @module controls/audit-report-shape
  */
 import { isJsonObject, type JsonObject } from "../sync/json-path.js";
+import { probesSectionProblems } from "./audit-report-probes-shape.js";
 import {
   answersSectionProblems,
   questionsSectionProblems,
@@ -326,6 +327,15 @@ export const AUDIT_REPORT_SECTIONS: readonly AuditReportSection[] = [
     parse: value => ({
       value: value ?? [],
       violations: answersSectionProblems(value).map(message =>
+        reportViolation(message)
+      ),
+    }),
+  },
+  {
+    key: "probes",
+    parse: value => ({
+      value: value ?? [],
+      violations: probesSectionProblems(value).map(message =>
         reportViolation(message)
       ),
     }),

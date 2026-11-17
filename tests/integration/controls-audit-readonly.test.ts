@@ -347,15 +347,23 @@ describe("the audit on F-mixed, which has two parts", () => {
           ...reportFor(criteria, example.scopes.map(String), example.findings),
           questions: example.questions,
           answers: example.answers,
+          probes: example.probes,
         });
       });
       const check = stepRunning(steps, REPORT_CHECK);
       const readable = readFileSync(path.join(repoPath, REPORT_MD), "utf8");
+      const probed = (example.probes ?? []) as readonly {
+        readonly system: string;
+      }[];
 
       expect(example.findings.length).toBeGreaterThan(0);
       expect(example.questions?.length).toBeGreaterThan(0);
+      expect(probed.length).toBeGreaterThan(0);
       expect(check.stderr).toBe("");
       expect(check.status).toBe(0);
+      expect(
+        probed.filter(probe => !readable.includes(`### ${probe.system}`))
+      ).toEqual([]);
       expect(
         (example.questions ?? []).filter(
           question => !readable.includes(String(question.text))

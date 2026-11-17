@@ -1,7 +1,7 @@
 ---
 name: lisa-audit
 description: "Audit any repository, on any stack, against the Level 1 requirements: read what already checks each one in each part of the repository and write a plain-language report to .lisa/audit. Read-only. Works where Lisa was never applied."
-allowed-tools: ["Bash", "Read", "Write", "Glob", "Grep"]
+allowed-tools: ["Bash", "Read", "Write", "Glob", "Grep", "Skill"]
 ---
 
 # Audit: $ARGUMENTS
@@ -38,11 +38,13 @@ These hold in every step.
    `git add`, commit, stash, branch switch or push. Do not create `.lisa.config.json` and do not
    run `lisa apply`. Anything you need to set aside while you work (the printed requirements,
    drafts of the report) goes in the system's temporary folder, outside the repository.
-2. **Read, never run.** Discover by reading files and by asking git what it already knows
-   (`git remote -v`, `git log`, `git config --get …`). Do not run the repository's own tests,
+2. **Read, never run, never write.** Discover by reading files and by asking git what it already
+   knows (`git remote -v`, `git log`, `git config --get …`). Do not run the repository's own tests,
    linters, builds, hooks or scripts: they leave caches and output behind, and running a check
-   proves nothing the audit is allowed to claim. This audit reads the repository only. It does not
-   ask the hosting platform, the tracker or any other outside system.
+   proves nothing the audit is allowed to claim. The audit goes outside the repository for one
+   thing only: the probes of step 4a, one harmless read of each outside system a requirement
+   depends on. There it sends read-only requests only, never a write, and it never prints a
+   credential.
 3. **You never decide `proved`.** A tool, a configuration file, a hook or a green pipeline shows
    that a control exists, not that it works. See "The one way a finding may say proved" in step 4.
 4. **Write for someone who does not code.** Everything the operator reads (the three plain-language
@@ -51,7 +53,10 @@ These hold in every step.
    appear, but the sentence must still make sense to someone who has never heard of it. Ids and
    file paths have their own fields and stay there.
 5. **Name a secret, never show it.** If a command or file you quote contains a password, key or
-   token, write the name it goes by and leave the value out.
+   token, write the name it goes by and leave the value out. The same holds for a probe: record
+   the request without its headers, and if an error you quote repeats a credential or a web
+   address with a password in it, put the name in its place. Never ask for a secret's value, never
+   print one, and never write one anywhere.
 6. **Code decides whether the report is acceptable.** You do not judge your own report. Step 6
    does, and an unchecked report is not an audit result.
 7. **Only a person answers a question.** When the audit cannot establish something, it asks, and
@@ -272,7 +277,7 @@ file it exactly as this table says. The check in step 6 refuses a finding filed 
 | --- | --- | --- |
 | `not-applicable` | The requirement's `not_applicable_when` condition is true here and you can name the fact that makes it true. Something missing from the repository is such a fact only when the condition is about what the repository holds (it has no screen, it uses no outside packages). When the condition is about how the organisation or its agents work, nothing in the repository can show it: that is a `question`. Whether the software is released, deployed or run for users is one of those, unless the repository itself shows it (a release script, a deployment pipeline). Never choose this state because a requirement is hard to answer, or because its answer is written up in another section. | The fact, in `what`. |
 | `exists-not-enforced` | Reading found something that checks or records this. This is the strongest thing an audit can say by itself, however well wired the mechanism looks. It is also the state when what you found covers only some of the requirement: say in `what` which part is covered and which is not. | At least one mechanism with a locator. |
-| `unknown` | The answer is a setting held by an outside system you can name from what you read (a hosting platform named by a remote or a pipeline file, a tracker, a monitoring service), and this audit does not read outside systems. A repository with no remote and no pipeline has no such system to name: that is `missing`. | In `next`, the system that holds the answer and the access needed to read it. |
+| `unknown` | The answer is a setting held by an outside system you can name from what you read (a hosting platform named by a remote or a pipeline file, a tracker, a monitoring service), and the probe of that system in step 4a got no answer: the read was refused, or could not be tried. When the probe did get an answer, the setting was read, and the finding takes whichever other row is true of what was read. A repository with no remote and no pipeline has no such system to name: that is `missing`. | In `what`, that Lisa could not reach the system, and the error it gave. In `next`, the access needed to read it, in the probe's own words. And the finding is listed in that probe's `needed_by` (step 4a). |
 | `question` | Only a person can say, and nobody has said yet: the requirement is of kind `human-attested` and nothing written down vouches for it; or nothing you can read shows whether its `not_applicable_when` condition holds; or two things you found contradict each other. Never choose it for a finding whose question already has an answer on record (see "Using an answer on record"). | In `what`, what you looked for and could not establish. In `next`, who is likely to know. And its question, in the record's `questions` list (see "Asking a question"). |
 | `missing` | Everything else: you read every source above and nothing does this. A requirement about keeping something in order (two copies of a check in step, a list up to date) is also `missing` when that thing does not exist at all. | An empty `mechanisms` list. |
 
@@ -295,7 +300,7 @@ it by typing in the report. There are two kinds, and neither has an id you make 
 
   | `id` | Ask it when |
   | --- | --- |
-  | `tracker` | The repository names no tracker for Lisa to file tickets in: `.lisa.config.json` is absent, or its `tracker` is not `jira`, `github` or `linear`. The check in step 6 refuses a report that does not ask it then. |
+  | `tracker` | The repository names no tracker for Lisa to file tickets in: `.lisa.config.json` is absent, or its `tracker` is not `jira`, `github` or `linear`. The check in step 6 refuses a report that does not ask it then. A tracker that answered a probe in step 4a is a candidate answer, never the answer: the question is still asked. |
   | `hosting-platform` | You cannot tell from the git remotes or the pipeline files where the repository is hosted and where its changes are merged. |
   | `repository-administrator` | A finding's next step needs someone who can change the hosting platform's settings, and nothing written names who that is. |
 
@@ -320,7 +325,8 @@ above, and give it any state but `question`:
   the answer as the fact in `what`;
 - the answer points at something written down that you can now read: read it, and file what you
   find, with its locator;
-- the answer names an outside system that holds the setting: `unknown`;
+- the answer names an outside system that holds the setting: probe that system in step 4a, and
+  file what the probe allows: what was read when it answered, `unknown` when it did not;
 - the answer states something that nothing in the repository records: `missing`. Say in `what`
   that the operator answered and nothing written down records it yet, and in `next` that the
   configure step writes it down.
@@ -340,9 +346,128 @@ answered.
   decide there, such as when a check should run. On a finding that does not apply, that nothing
   needs doing now.
 
+### Step 4a: Try one read of each outside system
+
+**Needs:** the findings of step 4, and the outside systems they turned up. **Hands on:** one probe
+for each of those systems, and every finding that depends on one settled.
+
+A tool being set up does not mean an agent can reach it. Before the report says anything about a
+setting an outside system holds, try one harmless read of that system and write down exactly what
+happened. That record is a **probe**.
+
+**Which systems.** One probe for each outside system that a finding's answer depends on, and that
+something you read names: the hosting platform (a git remote, a pipeline file), the tracker, an
+error or monitoring service, a code-quality service. Probe a system once, however many findings
+depend on it. Do not probe a system that nothing in the repository names.
+
+**What a probe may do.** These hold for every probe, without exception:
+
+- **Read-only requests only.** One request that fetches something and changes nothing. Never
+  create, update, delete, comment, label, assign or trigger anything, and never send a request
+  whose effect you are not sure of.
+- **Never a write to this machine either.** Do not sign in, install a tool, save a setting or
+  approve a prompt in order to reach a system. If a read is not possible with the access this
+  machine already has, that is the result to record.
+- **Never print a credential.** Do not display a token, do not run a command that prints the
+  environment, and do not put a credential, a header or a web address with a password in the
+  report.
+
+**The hosting platform.** Lisa makes this read itself:
+
+```bash
+lisa controls merge-protection
+```
+
+It only reads, takes no option that could change that, and writes no file. It prints one JSON
+document, and exits 0 whether or not the platform could be read:
+
+| Field | What it holds |
+| --- | --- |
+| `probe` | The probe entry for the hosting platform. Copy it into the record's `probes` exactly as printed. `null` when nothing says where the repository is hosted. |
+| `merge_protection` | What the platform enforces on the default branch, when it answered: `rulesets`, `required_checks` (each a `context`, the check's name, and the `ruleset` that requires it) and a `note` saying what was read. `null` when it did not answer. |
+| `branch` | The default branch, when the platform named it. |
+| `platform` | Where the repository is hosted and how that was learned. |
+| `requests` | Every request that was made, in order. All are reads. |
+
+Then settle the finding for the requirement about checks that cannot be skipped (`AC5.1`, always
+with the scope `.`), by the `result` of that probe:
+
+- **`probe` is `null`.** There is no outside system to probe and no entry to record. Leave the
+  finding as step 4 decided it.
+- **`reachable`.** Decide the finding from `merge_protection`. When `required_checks` is empty,
+  the state is `missing`: say in `what` that the platform was read and requires no check before a
+  change is merged into the default branch, and that branch protection of the older kind, if the
+  repository uses it, was not read. When it lists checks, the state is `exists-not-enforced`: say
+  in `what` which checks the platform requires, and point each mechanism at the line of the
+  pipeline file that produces one of them. If nothing in the repository produces any required
+  check, say so in `what` and choose `missing`.
+- **`unreachable` or `not-attempted`.** The state is `unknown`, whatever the pipeline files
+  suggest. The check in step 6 refuses any other state.
+
+**Every other system.** Reach it through the Lisa skill that owns access to it, loaded the way
+this agent loads a skill:
+
+| System | Skill |
+| --- | --- |
+| Jira or Confluence | `lisa-atlassian-access` |
+| Linear | `lisa-linear-access` |
+| Notion | `lisa-notion-access` |
+| Sentry | `lisa-sentry-access` |
+| SonarQube Cloud or Server | `lisa-sonarcloud-access` |
+| PostHog | `lisa-posthog-access` |
+
+Follow only the part of that skill that chooses a way in and confirms which account it is signed
+in as. That confirmation is the one harmless read. Stop there: run none of the skill's
+operations. Each of those skills fetches the credential it needs through `lisa-secrets-access`.
+Let it. Do not fetch one yourself.
+
+- The skill confirmed the account: the result is `reachable`, and `request` is the read it made,
+  as the skill names it, without headers.
+- The skill stopped because a credential is missing or was refused: the result is `unreachable`,
+  and `observed_error` is the message, as it was received.
+- No read could be tried: the result is `not-attempted`, with the `reason`. That is the case
+  when the repository does not say which account, site or project to read, when this agent cannot
+  load a skill, and when the system has no skill in the table.
+
+GitHub Issues is read with the hosting platform's own access: when the hosting platform's probe
+covers GitHub, do not probe GitHub a second time as the tracker.
+
+**What a probe records.** Each probe is one entry of the record's `probes` list:
+
+| Field | Value |
+| --- | --- |
+| `id` | `hosting-platform` for the hosting platform and `tracker` for the tracker. For any other system, its name in lower-case words joined by hyphens, such as `sentry`. Each id once. |
+| `system` | What the system is, in plain words on one line, such as `Sentry, where the pipeline sends its error reports`. |
+| `needed_by` | The findings whose answer depends on this system, each as its `criterion` and `scope`. An empty list when none does. The hosting platform's probe always lists `AC5.1` with the scope `.`. |
+| `result` | `reachable`, `unreachable` or `not-attempted`. |
+| `request` | The read-only request that was made, on one line: what was asked and where, with no header and no credential. Required when the result is `reachable`, because a system is never recorded as reached without one. Give it too when the result is `unreachable` and a request was sent. Leave it out when nothing was attempted. |
+| `observed_error` | Only when the result is `unreachable`, and required then: the error, quoted as it was received. |
+| `reason` | Only when the result is `not-attempted`, and required then: why not, in plain words on one line. |
+| `access_needed` | Whenever the result is not `reachable`: the access an agent needs to read this system, in plain words on one line. Name a secret by the name it goes by. |
+
+Write `system`, `reason` and `access_needed` for someone who does not code, with no requirement id
+in them.
+
+**Settle every finding that depends on a probe.** A finding listed in the `needed_by` of a probe
+that is not `reachable` cannot be answered, whatever you read in the repository:
+
+- its state is `unknown`;
+- its `what` says, in these words: `Lisa could not reach <system>: <error>.` For a probe that was
+  not attempted: `Lisa did not try to reach <system>: <reason>`;
+- its `next` says: `To check this requirement an agent needs <access>.`, where `<access>` is the
+  probe's `access_needed`, word for word.
+
+A finding whose system answered is decided from what was read, by the table in step 4.
+
+**A probe is not an answer.** What a probe establishes goes in `probes` and nowhere else. Never add
+it to `answers`: that list holds only what a person typed. When the tracker answered its probe,
+offer it as a candidate on the `tracker` question, saying in `found_in` that Lisa could read it
+with the access this machine has. The question is still asked whenever the repository names no
+tracker, and only the operator's answer settles it.
+
 ### Step 5: Write the report record
 
-**Needs:** every finding. **Hands on:** `.lisa/audit/report.json`.
+**Needs:** every finding and every probe. **Hands on:** `.lisa/audit/report.json`.
 
 Write the whole file new on every run, from what you found in this run. Do not edit an earlier
 report into shape. One thing is carried over and never rewritten: `answers`, the list you read in
@@ -386,6 +511,15 @@ step 1a, copied exactly as it was. The record has exactly these keys and no othe
       "why": "If an agent's change causes harm, nobody is on record as the one who decides what happens next.",
       "next": "Ask whoever runs this team to name that person and a backup.",
       "mechanisms": []
+    },
+    {
+      "criterion": "AC5.1",
+      "scope": ".",
+      "state": "unknown",
+      "what": "Lisa could not reach GitHub, where this repository is hosted and its merge settings are kept: To get started with GitHub CLI, please run: gh auth login.",
+      "why": "Until those settings can be read, nobody knows whether a change can be merged without passing its checks.",
+      "next": "To check this requirement an agent needs the GitHub command-line tool (gh) signed in with an account that can read this repository on GitHub.",
+      "mechanisms": []
     }
   ],
   "questions": [
@@ -406,12 +540,24 @@ step 1a, copied exactly as it was. The record has exactly these keys and no othe
       "no_candidates_reason": "The audit read the ownership files, the contribution guide and the agent instruction files, and none of them names a person."
     }
   ],
-  "answers": []
+  "answers": [],
+  "probes": [
+    {
+      "id": "hosting-platform",
+      "system": "GitHub, where this repository is hosted and its merge settings are kept",
+      "needed_by": [{ "criterion": "AC5.1", "scope": "." }],
+      "result": "unreachable",
+      "request": "GET repos/example-owner/example-repo/rulesets",
+      "observed_error": "To get started with GitHub CLI, please run:  gh auth login",
+      "access_needed": "the GitHub command-line tool (gh) signed in with an account that can read this repository on GitHub"
+    }
+  ]
 }
 ```
 
-The example shows three findings: a requirement answered per part (`SI7`), once under each folder
-and not under `.`, and a requirement with one answer for the repository (`AC1.7`), once under `.`.
+The example shows four findings: a requirement answered per part (`SI7`), once under each folder
+and not under `.`, and two requirements with one answer for the repository (`AC1.7` and `AC5.1`),
+each once under `.`.
 The real file has one finding for every requirement with the `answered` value `repository`, plus
 one for every requirement with the value `part` under each folder. When the list of parts is just
 `.`, that is one finding for every requirement.
@@ -442,7 +588,10 @@ tracker question, that question is gone and `answers` holds what step 1a recorde
   nothing to ask.
 - `answers` is the list from step 1a, unchanged: the same entries, the same words. An empty list
   when nobody has answered anything. Never add, reword or remove an entry.
-- The order of the findings, and of the questions, does not matter.
+- `probes` holds one entry for each outside system step 4a tried, or could not try, to read. An
+  empty list when no finding depends on an outside system. The example shows the hosting platform
+  refusing the read, and the finding that depends on it left `unknown`, naming the access needed.
+- The order of the findings, of the questions and of the probes does not matter.
 - The file is large. You may draft it in pieces in the system's temporary folder and put the
   pieces together, as long as every finding is your own judgment of what you read and the finished
   file is the only thing written inside the repository.
@@ -456,7 +605,8 @@ lisa controls report-check
 ```
 
 - **Exit 0.** The record is valid. The command wrote `.lisa/audit/report.md`, the readable report,
-  with the open questions near the top, each with a line for the operator's answer, then one
+  with the open questions near the top, each with a line for the operator's answer, then, when a
+  probe got no answer, a section named "What could not be reached", then one
   section for the whole repository and one for each part. Where the repository already has a
   `wiki` folder, it also copied the open questions into `wiki/gaps.md`, as one marked block, and
   left the rest of that file as it was. Never write or edit either file yourself.
@@ -471,13 +621,20 @@ lisa controls report-check
   the `answers` list was not copied over. Run the command of step 1a again, which puts it back,
   then this step again. The operator's answers are safe meanwhile: a failed check overwrites
   nothing.
+  A line saying a finding depends on an outside system the audit could not reach means the
+  finding must be `unknown` and its `next` must carry the probe's `access_needed`, word for word.
+  A line saying a probe holds something shaped like a credential names the probe and the field
+  and never repeats the value: take the value out and write the name it goes by.
   Never clear a problem by removing a requirement or a part, by pointing at a line that does not
-  show the control, by inventing an evidence record, or by writing an answer. If the report cannot
+  show the control, by inventing an evidence record, by writing an answer, by recording a system
+  as reached when it was not, or by removing a probe. If the report cannot
   be made to pass honestly, stop and tell the operator in plain words that the audit did not
   complete and why.
 
 The check holds the record to its shape, its coverage, where each requirement is filed, its
-pointers into the repository, its questions, and the answers people typed. It cannot tell whether
+pointers into the repository, its questions, the answers people typed, and its probes: a system
+is never recorded as reached without the request that was made, and a finding that depends on a
+system that did not answer is never accepted as in place. It cannot tell whether
 you chose the right state: that judgment stays yours.
 
 ### Step 7: Confirm nothing else changed
@@ -539,10 +696,16 @@ In plain language, for someone who does not code:
    other line is left as it is. Where the repository has a wiki, say that the same questions are
    in `wiki/gaps.md` and may be answered there instead. If this run took in answers the operator
    had given, say which questions are now settled and will not be asked again.
-5. Where the report is: `.lisa/audit/report.md` to read, `.lisa/audit/report.json` as the checked
+5. What could not be reached: each outside system that did not answer, as one plain sentence,
+   `Lisa could not reach <system>: <error>.`, then the access to arrange,
+   `To check this requirement an agent needs <access>.` Say that once the access is in place,
+   running the audit again reads the system. If every system answered, or none was needed, leave
+   this out.
+6. Where the report is: `.lisa/audit/report.md` to read, `.lisa/audit/report.json` as the checked
    record.
-6. That nothing else in the repository was changed, and that nothing was committed.
-7. The next step: `/lisa:configure` turns these findings, and the operator's answers, into the
+7. That nothing else in the repository was changed, that nothing was sent to an outside system
+   except harmless reads, and that nothing was committed.
+8. The next step: `/lisa:configure` turns these findings, and the operator's answers, into the
    record of what governs the repository.
 
 Say nothing is proved unless the report says so: an audit shows what exists, not what works.
