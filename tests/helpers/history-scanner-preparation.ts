@@ -44,12 +44,14 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import type { Readable } from "node:stream";
 
 import {
   PINS,
   VERSION,
   qualifyScanner,
 } from "../../all/copy-overwrite/scripts/lib/history-secret-scanner.mjs";
+import { latch } from "./latch.js";
 import { errorMessage, writeStderrSync } from "./stderr-sync.js";
 import { inheritedEnvironment } from "../support/process-environment.js";
 
@@ -253,69 +255,96 @@ export function qualificationFailure(path: string): string | undefined {
  * @param limits - The containing deadline and the child's environment
  * @param limits.deadlineMs - Kill the child with SIGKILL at this age
  * @param limits.env - Complete environment for the child
- * @param live - Holds the running child so a dispose can stop it
+ * @param live - Holds the running child so a dispose can stop it. The one
+ *   cell kept here on purpose: the process-exit dispose must reach a child
+ *   that is still running, so the handle cannot travel by return value.
  * @param live.current - The running child, while it runs
  * @returns What the child did
  */
-function runBounded(
+async function runBounded(
   argv: readonly [string, ...string[]],
   limits: { readonly deadlineMs: number; readonly env: NodeJS.ProcessEnv },
   live: { current?: ChildProcess | undefined }
 ): Promise<ChildRun> {
-  return new Promise(settle => {
-    const started = performance.now();
-    const [command, ...args] = argv;
-    const child = spawn(command, args, {
-      cwd: REPO_ROOT,
-      env: limits.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    // Cells over the live child's outcome, replaced as its streams arrive.
-    const captured: {
-      current: { readonly stdout: string; readonly stderr: string };
-    } = { current: { stdout: "", stderr: "" } };
-    const errorCode: { current: string | null } = { current: null };
-    const timer = setTimeout(() => {
-      if (child.exitCode !== null || child.signalCode !== null) return;
-      errorCode.current = TIMED_OUT;
-      child.kill("SIGKILL");
-    }, limits.deadlineMs);
-    const finish = (
-      status: number | null,
-      signal: NodeJS.Signals | null
-    ): void => {
+  const started = performance.now();
+  const [command, ...args] = argv;
+  const child = spawn(command, args, {
+    cwd: REPO_ROOT,
+    env: limits.env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  // The first cause recorded wins: the deadline, or the spawn error.
+  const errorCode = latch<string | null>();
+  const timer = setTimeout(() => {
+    if (child.exitCode !== null || child.signalCode !== null) return;
+    errorCode.set(TIMED_OUT);
+    child.kill("SIGKILL");
+  }, limits.deadlineMs);
+  const ended = new Promise<{
+    readonly status: number | null;
+    readonly signal: NodeJS.Signals | null;
+    readonly spawned: boolean;
+  }>(resolve => {
+    /**
+     * Stop the deadline, release the handle, and report how the child ended.
+     * @param outcome - Exit status and signal, and whether it ever spawned
+     * @param outcome.status - Exit status, if it exited
+     * @param outcome.signal - Terminating signal, if one killed it
+     * @param outcome.spawned - Whether the process ever started
+     */
+    const end = (outcome: {
+      readonly status: number | null;
+      readonly signal: NodeJS.Signals | null;
+      readonly spawned: boolean;
+    }): void => {
       clearTimeout(timer);
       live.current = undefined;
-      settle({
-        status,
-        signal,
-        // The deadline explains only a death it caused. A child that exited on
-        // its own in the turn the timer fired keeps its own outcome.
-        errorCode:
-          errorCode.current === TIMED_OUT && signal !== "SIGKILL"
-            ? null
-            : errorCode.current,
-        ...captured.current,
-        elapsedMs: Math.round(performance.now() - started),
-      });
+      resolve(outcome);
     };
     // Listen for a spawn failure before touching the streams: when the spawn
     // itself fails (EMFILE, ENOENT) they can be absent.
     child.once("error", (error: NodeJS.ErrnoException) => {
-      errorCode.current ??= error.code ?? "ERROR";
-      if (child.pid === undefined) finish(null, null);
+      errorCode.set(error.code ?? "ERROR");
+      if (child.pid === undefined)
+        end({ status: null, signal: null, spawned: false });
     });
+    child.once("close", (status, signal) =>
+      end({ status, signal, spawned: true })
+    );
     live.current = child;
-    for (const name of ["stdout", "stderr"] as const)
-      child[name]?.on("data", (chunk: Buffer) => {
-        if (captured.current[name].length < MAX_CAPTURE)
-          captured.current = {
-            ...captured.current,
-            [name]: captured.current[name] + chunk.toString("utf8"),
-          };
-      });
-    child.once("close", finish);
   });
+  const streams = Promise.all([
+    boundedText(child.stdout),
+    boundedText(child.stderr),
+  ]);
+  const { status, signal, spawned } = await ended;
+  // A child that never spawned has no streams that will ever end.
+  const [stdout, stderr] = spawned ? await streams : ["", ""];
+  const cause = await errorCode.read(null);
+  return {
+    status,
+    signal,
+    // The deadline explains only a death it caused. A child that exited on
+    // its own in the turn the timer fired keeps its own outcome.
+    errorCode: cause === TIMED_OUT && signal !== "SIGKILL" ? null : cause,
+    stdout,
+    stderr,
+    elapsedMs: Math.round(performance.now() - started),
+  };
+}
+
+/**
+ * A child stream's text, keeping chunks only while under {@link MAX_CAPTURE}.
+ * @param stream - The stream, absent when the spawn itself failed
+ * @returns The bounded text once the stream ends
+ */
+async function boundedText(stream: Readable | null): Promise<string> {
+  if (stream === null) return "";
+  return stream.reduce(
+    (text: string, chunk: Buffer) =>
+      text.length < MAX_CAPTURE ? text + chunk.toString("utf8") : text,
+    ""
+  );
 }
 
 /**

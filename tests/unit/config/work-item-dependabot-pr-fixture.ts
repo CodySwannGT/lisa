@@ -1,9 +1,9 @@
 /** Execute both workflow-owned adapters: PR-head code is never a proof source. */
 import { Evaluator, Lexer, Parser, data } from "@actions/expressions";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
-import { pathToFileURL } from "node:url";
 import { load } from "js-yaml";
 import { expect, vi } from "vitest";
 
@@ -18,7 +18,6 @@ export const URL = "https://github.com/example/project/pull/7";
 
 /** The named bindings `actions/github-script` hands a workflow script. */
 interface ScriptBindings {
-  readonly Buffer: typeof Buffer;
   readonly context: unknown;
   readonly github: unknown;
   readonly core: unknown;
@@ -26,28 +25,30 @@ interface ScriptBindings {
 
 /**
  * Load a workflow's inline script the way `actions/github-script` runs it: as
- * the body of an async function whose parameters are the named bindings.
+ * the body of a non-strict async function whose parameters are the named
+ * bindings (`Buffer` and the other Node globals are simply in scope).
  *
- * The committed workflow text is written to a private temporary module and
- * imported, so it runs as ordinary module code in the real runtime, not as a
- * string evaluated in a synthetic context.
+ * The committed workflow text is written to a private temporary CommonJS
+ * module and required. CommonJS keeps the body sloppy-mode, as github-script
+ * runs it, so a construct strict mode would reject fails here as it would in
+ * production rather than being hidden or invented by an ES module wrapper.
  * @param script - The step's `with.script`, read from committed workflow YAML.
  * @returns The script as a callable async function.
  */
-async function loadWorkflowScript(
+function loadWorkflowScript(
   script: string
-): Promise<(bindings: ScriptBindings) => Promise<unknown>> {
+): (bindings: ScriptBindings) => Promise<unknown> {
   const directory = mkdtempSync(path.join(tmpdir(), "lisa-github-script-"));
-  const file = path.join(directory, "script.mjs");
+  const file = path.join(directory, "script.cjs");
   writeFileSync(
     file,
-    `export default async ({ Buffer, context, github, core }) => {\n${script}\n};\n`,
+    `module.exports = async ({ github, context, core }) => {\n${script}\n};\n`,
     { mode: 0o600 }
   );
   try {
-    const loaded: { default: (bindings: ScriptBindings) => Promise<unknown> } =
-      await import(pathToFileURL(file).href);
-    return loaded.default;
+    return createRequire(import.meta.url)(file) as (
+      bindings: ScriptBindings
+    ) => Promise<unknown>;
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -195,9 +196,8 @@ export async function execute(file: string, input = fixture()) {
   const setOutput = vi.fn((_key: string, _value: string) => undefined);
   const info = vi.fn((_message: string) => undefined);
   const warning = vi.fn((_message: string) => undefined);
-  const run = await loadWorkflowScript(script);
+  const run = loadWorkflowScript(script);
   await run({
-    Buffer,
     context: input.context,
     github: { rest: { repos: { getContent }, pulls: { get } } },
     core: { setOutput, info, warning },

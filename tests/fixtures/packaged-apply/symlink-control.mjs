@@ -16,35 +16,10 @@ import {
   describeControllerFailure,
   readOptionalJson,
 } from "./controller-failure.mjs";
+import { resolveDockerCli } from "../../../scripts/lib/docker-cli.mjs";
 
 const CAPTURE_LIMIT = 256 * 1024;
 const SCENARIO = "owned-post-run-symlink";
-
-/**
- * Fixed Docker CLI locations, tried in order: Docker Desktop's links on
- * macOS, Homebrew, then the Linux package location. A fixed absolute path, not
- * a bare `docker`, so a writeable directory early on `PATH` cannot choose the
- * binary that removes the container.
- */
-const DOCKER_CANDIDATES = Object.freeze([
-  "/usr/local/bin/docker",
-  "/opt/homebrew/bin/docker",
-  "/Applications/Docker.app/Contents/Resources/bin/docker",
-  "/usr/bin/docker",
-]);
-
-/**
- * Resolve the Docker CLI to an absolute path.
- * @returns {string} The first installed Docker CLI.
- */
-function resolveDocker() {
-  const found = DOCKER_CANDIDATES.find(candidate => existsSync(candidate));
-  if (found === undefined)
-    throw new Error(
-      `Docker CLI not found at any of: ${DOCKER_CANDIDATES.join(", ")}`
-    );
-  return found;
-}
 
 /**
  * Keep a bounded tail of a child stream for failure diagnostics.
@@ -85,6 +60,46 @@ function createSentinels(output) {
 }
 
 /**
+ * Stop a controller that did not finish, print what it said, and remove the
+ * container it started.
+ * @param {object} run - The unfinished run.
+ * @param {import("node:child_process").ChildProcess} run.child - Controller process.
+ * @param {Promise<{status: number | null}>} run.closed - Settles when it closes.
+ * @param {string | null} run.containerId - Container its preflight named, if any.
+ * @param {string} run.dockerCli - The absolute Docker CLI the controller used.
+ * @param {string} run.directory - The run's output directory.
+ * @param {{text: string}} run.stdout - Captured controller stdout tail.
+ * @param {{text: string}} run.stderr - Captured controller stderr tail.
+ * @returns {Promise<Error | null>} The cleanup failure, or null when it succeeded.
+ */
+async function stopController(run) {
+  const early = await (run.child.kill("SIGTERM"),
+  run.closed.catch(() => ({ status: null })));
+  // A controller that stopped before (or during) preflight never reaches the
+  // control's own diagnostic; print what it said once it has closed.
+  console.error(
+    describeControllerFailure({
+      name: SCENARIO,
+      directory: run.directory,
+      status: early.status,
+      stdout: run.stdout.text,
+      stderr: run.stderr.text,
+    })
+  );
+  if (!run.containerId) return null;
+  try {
+    execFileSync(
+      run.dockerCli,
+      ["rm", "--force", "--volumes", run.containerId],
+      { timeout: 30_000, stdio: "ignore" }
+    );
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error : new Error(String(error));
+  }
+}
+
+/**
  * Observe the genuine controller rejecting two deliberate, owned outside changes.
  * @param {{controller:string, archive:string, image:string, output:string}} input - Qualified native inputs and a new owned directory.
  * @returns {Promise<object>} Reaching CLI/data observation, never a simulated apply.
@@ -93,12 +108,17 @@ export async function qualifySymlinkChange(input) {
   const { link, other, targetName, changed, directory } = createSentinels(
     input.output
   );
+  // Resolved once and handed to the controller, so the CLI that starts the
+  // container is the very one the cleanup below removes it with.
+  const dockerCli = resolveDockerCli();
   const child = spawn(
     process.execPath,
     [
       input.controller,
       "--backend",
       "docker",
+      "--docker",
+      dockerCli,
       "--archive",
       input.archive,
       "--image",
@@ -114,7 +134,7 @@ export async function qualifySymlinkChange(input) {
     ],
     { timeout: 25 * 60_000, stdio: ["ignore", "pipe", "pipe"] }
   );
-  const state = { finished: false, containerId: null, spawnError: null };
+  const state = { containerId: null, spawnError: null };
   const closed = new Promise(resolve => {
     child.once("error", error => {
       state.spawnError = error;
@@ -161,7 +181,6 @@ export async function qualifySymlinkChange(input) {
     symlinkSync(targetName, link);
     writeFileSync(other, changed);
     const result = await closed;
-    state.finished = true;
     assert.equal(result.error, undefined);
     assert.equal(result.signal, null);
     // Exit 1 is this control's expected outcome (owned outside changes), so it
@@ -219,30 +238,21 @@ export async function qualifySymlinkChange(input) {
       operator_files_preserved: true,
       native_agent_activation: "not established",
     };
-  } finally {
-    if (!state.finished) {
-      child.kill("SIGTERM");
-      const early = await closed.catch(() => ({ status: null }));
-      // A controller that stopped before (or during) preflight never reaches
-      // the diagnostic above; print what it said once it has closed.
-      console.error(
-        describeControllerFailure({
-          name: SCENARIO,
-          directory,
-          status: early.status,
-          stdout: stdout.text,
-          stderr: stderr.text,
-        })
-      );
-      if (state.containerId)
-        execFileSync(
-          resolveDocker(),
-          ["rm", "--force", "--volumes", state.containerId],
-          {
-            timeout: 30_000,
-            stdio: "ignore",
-          }
-        );
-    }
+  } catch (error) {
+    const cleanupError = await stopController({
+      child,
+      closed,
+      containerId: state.containerId,
+      dockerCli,
+      directory,
+      stdout,
+      stderr,
+    });
+    if (cleanupError === null) throw error;
+    // Never let a failed cleanup hide why the run failed: report both.
+    throw new AggregateError(
+      [error, cleanupError],
+      `${SCENARIO}: the control failed and removing its container also failed`
+    );
   }
 }

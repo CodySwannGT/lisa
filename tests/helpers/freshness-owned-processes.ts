@@ -4,6 +4,8 @@
  * @module tests/helpers/freshness-owned-processes
  */
 import { spawn } from "node:child_process";
+import type { ChildProcessByStdio } from "node:child_process";
+import type { Readable } from "node:stream";
 import {
   assertChildCompleted,
   ioLatencyBudgetMs,
@@ -47,209 +49,233 @@ function parseCensus(output: string): readonly Identity[] {
     });
 }
 
+/** Text a stream produced, and its size in bytes. */
+interface Captured {
+  readonly text: string;
+  readonly bytes: number;
+}
+
+/**
+ * Collect one census stream, refusing it whole once it passes its cap.
+ * The two streams share {@link MAX_CAPTURE_BYTES} as two equal halves, so
+ * together they never exceed it, and a valid prefix is never accepted.
+ * @param stream - The census child's stdout or stderr
+ * @returns Everything the stream carried, once it ends
+ */
+async function capped(stream: Readable): Promise<string> {
+  const limit = MAX_CAPTURE_BYTES / 2;
+  const captured = await stream.reduce(
+    (sofar: Captured, chunk: Buffer): Captured => {
+      if (sofar.bytes + chunk.length > limit)
+        throw new Error(
+          `${CENSUS_LABEL}: capture exceeded ${MAX_CAPTURE_BYTES} byte limit`
+        );
+      return {
+        text: sofar.text + chunk.toString(),
+        bytes: sofar.bytes + chunk.length,
+      };
+    },
+    { text: "", bytes: 0 }
+  );
+  return captured.text;
+}
+
+/**
+ * Settle with the census child's exit, or reject when it could not run.
+ * @param child - The running census child
+ * @returns Its exit status and signal
+ */
+function exited(child: ChildProcessByStdio<null, Readable, Readable>): Promise<{
+  readonly status: number | null;
+  readonly signal: NodeJS.Signals | null;
+}> {
+  return new Promise((resolve, reject) => {
+    child.once("error", error =>
+      reject(new Error(`${CENSUS_LABEL}: ${error.message}`))
+    );
+    child.once("close", (status, signal) => resolve({ status, signal }));
+  });
+}
+
+/**
+ * Reject once the census has run past its budget.
+ * @param child - The running census child; its close cancels the timer
+ * @param timeout - Budget in milliseconds
+ * @returns A promise that only ever rejects
+ */
+function expiry(
+  child: ChildProcessByStdio<null, Readable, Readable>,
+  timeout: number
+): Promise<never> {
+  return new Promise((_resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${CENSUS_LABEL}: timeout after ${timeout}ms`)),
+      timeout
+    );
+    child.once("close", () => clearTimeout(timer));
+  });
+}
+
 /**
  * Read the bounded native census without blocking marker timers.
  * @returns Complete identities; timeout, truncation and native errors reject.
  */
-function census(): Promise<readonly Identity[]> {
+export async function census(): Promise<readonly Identity[]> {
   const timeout = ioLatencyBudgetMs(1_000);
   const child = spawn("/bin/ps", ["-axo", "pid=,ppid=,pgid=,lstart=,stat="], {
     stdio: ["ignore", "pipe", "pipe"],
     timeout,
     killSignal: "SIGKILL",
   });
-  return new Promise((resolve, reject) => {
-    // A cell over immutable snapshots of the live child's capture.
-    const state: {
-      current: {
-        readonly output: string;
-        readonly stderr: string;
-        readonly bytes: number;
-        readonly failed: boolean;
-      };
-    } = { current: { output: "", stderr: "", bytes: 0, failed: false } };
-    /**
-     * Reject incomplete evidence and cancel only this live child handle.
-     * @param error Actual capture or native failure.
-     */
-    const fail = (error: Error): void => {
-      if (state.current.failed) return;
-      state.current = { ...state.current, failed: true };
-      clearTimeout(deadline);
-      child.kill("SIGKILL");
-      child.stdout.destroy();
-      child.stderr.destroy();
-      reject(error);
-    };
-    const deadline = setTimeout(() => {
-      fail(new Error(`${CENSUS_LABEL}: timeout after ${timeout}ms`));
-    }, timeout);
-    /**
-     * Both streams count against the same cap; never accept a valid prefix.
-     * @param chunk Actual stream bytes.
-     * @param stream Captured stream destination.
-     */
-    const capture = (chunk: Buffer, stream: "output" | "stderr"): void => {
-      state.current = {
-        ...state.current,
-        bytes: state.current.bytes + chunk.length,
-      };
-      if (state.current.bytes > MAX_CAPTURE_BYTES) {
-        fail(
-          new Error(
-            `${CENSUS_LABEL}: capture exceeded ${MAX_CAPTURE_BYTES} byte limit`
-          )
-        );
-        return;
-      }
-      state.current = {
-        ...state.current,
-        [stream]: state.current[stream] + chunk.toString(),
-      };
-    };
-    child.stdout.on("data", chunk => capture(chunk, "output"));
-    child.stderr.on("data", chunk => capture(chunk, "stderr"));
-    const nativeFailure = (error: Error): void =>
-      fail(new Error(`${CENSUS_LABEL}: ${error.message}`));
-    child.once("error", nativeFailure);
-    child.stdout.once("error", nativeFailure);
-    child.stderr.once("error", nativeFailure);
-    child.once("close", (status, signal) => {
-      clearTimeout(deadline);
-      if (state.current.failed) return;
-      try {
-        assertChildCompleted({ signal }, CENSUS_LABEL);
-        if (status !== 0)
-          throw new Error(
-            `${CENSUS_LABEL}: exit ${status}: ${state.current.stderr}`
-          );
-        resolve(parseCensus(state.current.output));
-      } catch (error) {
-        reject(error);
-      }
-    });
+  const completed = Promise.all([
+    capped(child.stdout),
+    capped(child.stderr),
+    exited(child),
+  ]).then(([output, stderr, { status, signal }]) => {
+    assertChildCompleted({ signal }, CENSUS_LABEL);
+    if (status !== 0)
+      throw new Error(`${CENSUS_LABEL}: exit ${status}: ${stderr}`);
+    return parseCensus(output);
+  });
+  try {
+    return await Promise.race([completed, expiry(child, timeout)]);
+  } catch (error) {
+    // Incomplete evidence: cancel only this live child handle.
+    child.kill("SIGKILL");
+    child.stdout.destroy();
+    child.stderr.destroy();
+    throw error;
+  }
+}
+
+/** Every process proven to descend from one fresh detached leader. */
+export interface Ownership {
+  readonly leader: number;
+  readonly owned: ReadonlyMap<number, Identity>;
+}
+
+/**
+ * Ownership of a leader before anything has been observed.
+ * @param leader - Detached process launched by this exact fixture
+ * @returns Empty ownership of that leader
+ */
+export function ownershipOf(leader: number): Ownership {
+  return { leader, owned: new Map() };
+}
+
+/**
+ * Walk the observed tree outward from the owned parents. Each step adds at
+ * least one new pid or stops, so it is bounded by the census size.
+ * @param processes - One complete census
+ * @param known - Pids already proven owned
+ * @param found - Descendant identities discovered so far
+ * @returns Every descendant reachable from the owned parents
+ */
+function descendants(
+  processes: readonly Identity[],
+  known: ReadonlySet<number>,
+  found: readonly Identity[]
+): readonly Identity[] {
+  const newlyOwned = processes.filter(
+    item => known.has(item.parent) && !known.has(item.pid)
+  );
+  return newlyOwned.length === 0
+    ? found
+    : descendants(
+        processes,
+        new Set([...known, ...newlyOwned.map(item => item.pid)]),
+        [...found, ...newlyOwned]
+      );
+}
+
+/**
+ * Extend ownership only through matching observed parent identities.
+ * @param ownership - What was proven owned before this census
+ * @param processes - One complete census
+ * @returns Ownership extended by this census
+ */
+export function extendOwnership(
+  ownership: Ownership,
+  processes: readonly Identity[]
+): Ownership {
+  const { leader } = ownership;
+  const root = processes.find(item => item.pid === leader);
+  if (
+    !ownership.owned.has(leader) &&
+    (!root || root.group !== leader || root.parent !== process.pid)
+  )
+    throw new Error(
+      `${CENSUS_LABEL}: fresh detached leader identity unavailable`
+    );
+  const known: ReadonlyMap<number, Identity> =
+    ownership.owned.has(leader) || root === undefined
+      ? ownership.owned
+      : new Map([...ownership.owned, [root.pid, root]]);
+  const parents = new Set(
+    processes
+      .filter(
+        item =>
+          known.get(item.pid)?.birth === item.birth &&
+          known.get(item.pid)?.group === item.group
+      )
+      .map(item => item.pid)
+  );
+  return {
+    leader,
+    owned: new Map([
+      ...known,
+      ...descendants(processes, parents, []).map(
+        item => [item.pid, item] as const
+      ),
+    ]),
+  };
+}
+
+/**
+ * Take a census and extend ownership with it.
+ * @param ownership - What was proven owned before
+ * @returns Ownership extended by a fresh census
+ */
+export async function observeOwnership(
+  ownership: Ownership
+): Promise<Ownership> {
+  return extendOwnership(ownership, await census());
+}
+
+/**
+ * A remembered PID proves life only when birth and group still match.
+ * @param ownership - What was proven owned
+ * @returns Still-live matching identities, excluding terminated zombies.
+ */
+export async function liveOwned(
+  ownership: Ownership
+): Promise<readonly Identity[]> {
+  return (await census()).filter(item => {
+    const prior = ownership.owned.get(item.pid);
+    return (
+      prior?.birth === item.birth &&
+      prior.group === item.group &&
+      !item.state.startsWith("Z")
+    );
   });
 }
 
 /**
- * Share one pending census and preserve its first terminal failure.
- * @returns A reader that never turns failed observation into empty proof.
+ * Kill every still-live owned process group, rechecking each group with a
+ * fresh census just before signalling it.
+ * @param ownership - What was proven owned
  */
-function sharedCensus(): () => Promise<readonly Identity[]> {
-  // Cells: the one pending census, and the first terminal failure.
-  const inFlight: { current: Promise<readonly Identity[]> | undefined } = {
-    current: undefined,
-  };
-  const failure: { current: unknown } = { current: undefined };
-  return async (): Promise<readonly Identity[]> => {
-    if (failure.current !== undefined) throw failure.current;
-    if (inFlight.current) return inFlight.current;
-    inFlight.current = census();
+export async function drainOwnership(ownership: Ownership): Promise<void> {
+  for (const group of new Set(
+    (await liveOwned(ownership)).map(item => item.group)
+  )) {
+    // Re-read just before signaling, and require a live matching member.
+    if (!(await liveOwned(ownership)).some(item => item.group === group))
+      continue;
     try {
-      return await inFlight.current;
-    } catch (error) {
-      failure.current = error;
-      throw error;
-    } finally {
-      inFlight.current = undefined;
+      process.kill(-group, "SIGKILL");
+    } catch {
+      /* terminal race */
     }
-  };
-}
-
-/**
- * Track actual descendants of one fresh detached fixture.
- * @param leader Detached process launched by this exact fixture.
- * @returns Read-only observations and identity-checked emergency cleanup.
- */
-export function ownedProcesses(leader: number): {
-  readonly observe: () => Promise<void>;
-  readonly active: () => Promise<readonly number[]>;
-  readonly drain: () => Promise<void>;
-  readonly captured: () => readonly number[];
-  readonly identities: () => readonly Identity[];
-} {
-  // A cell over immutable maps: each observation replaces the ownership map.
-  const owned: { current: ReadonlyMap<number, Identity> } = {
-    current: new Map(),
-  };
-  const read = sharedCensus();
-  /**
-   * Extend ownership only through matching observed parent identities.
-   * @returns Completion of the current descendant observation.
-   */
-  const observe = async (): Promise<void> => {
-    const processes = await read();
-    const root = processes.find(item => item.pid === leader);
-    if (!owned.current.has(leader)) {
-      if (!root || root.group !== leader || root.parent !== process.pid)
-        throw new Error(
-          `${CENSUS_LABEL}: fresh detached leader identity unavailable`
-        );
-      owned.current = new Map([...owned.current, [root.pid, root]]);
-    }
-    const parents = new Set(
-      processes
-        .filter(
-          item =>
-            owned.current.get(item.pid)?.birth === item.birth &&
-            owned.current.get(item.pid)?.group === item.group
-        )
-        .map(item => item.pid)
-    );
-    /**
-     * Walk the observed tree outward from the owned parents. Each step adds at
-     * least one new pid or stops, so it is bounded by the census size.
-     * @param known - Pids already proven owned.
-     * @param found - Descendant identities discovered so far.
-     * @returns Every descendant reachable from the owned parents.
-     */
-    const descendants = (
-      known: ReadonlySet<number>,
-      found: readonly Identity[]
-    ): readonly Identity[] => {
-      const newlyOwned = processes.filter(
-        item => known.has(item.parent) && !known.has(item.pid)
-      );
-      return newlyOwned.length === 0
-        ? found
-        : descendants(
-            new Set([...known, ...newlyOwned.map(item => item.pid)]),
-            [...found, ...newlyOwned]
-          );
-    };
-    owned.current = new Map([
-      ...owned.current,
-      ...descendants(parents, []).map(item => [item.pid, item] as const),
-    ]);
-  };
-  /**
-   * A remembered PID proves life only when birth and group still match.
-   * @returns Still-live matching identities, excluding terminated zombies.
-   */
-  const live = async (): Promise<readonly Identity[]> =>
-    (await read()).filter(item => {
-      const prior = owned.current.get(item.pid);
-      return (
-        prior?.birth === item.birth &&
-        prior.group === item.group &&
-        !item.state.startsWith("Z")
-      );
-    });
-  return {
-    observe,
-    active: async () => (await live()).map(item => item.pid),
-    captured: () => [...owned.current.keys()],
-    identities: () => [...owned.current.values()],
-    drain: async () => {
-      for (const group of new Set((await live()).map(item => item.group))) {
-        // Re-read just before signaling, and require a live matching member.
-        if (!(await live()).some(item => item.group === group)) continue;
-        try {
-          process.kill(-group, "SIGKILL");
-        } catch {
-          /* terminal race */
-        }
-      }
-    },
-  };
+  }
 }

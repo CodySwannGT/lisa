@@ -122,15 +122,19 @@ export const HOST_TREE = path.join("scripts", "lisa-hooks");
 /** Directory-relative location of the Lisa monorepo's own guards. */
 export const PLUGIN_TREE = path.join("plugins", "lisa", "hooks");
 
-/** Scratch roots made since the last cleanup; replaced, never mutated in place. */
-const temporaries: { current: readonly string[] } = { current: [] };
+/**
+ * Name prefix every scratch root of this worker shares. The process id keeps
+ * one worker's cleanup from touching another's roots, and the filesystem is
+ * the record of what was made: cleanup lists it rather than a module array.
+ */
+const SCRATCH_PREFIX = `lisa-fallback-copy-${process.pid}-`;
 
-/** Remove every scratch root made since the last call. */
+/** Remove every scratch root this worker made since the last call. */
 export function cleanupScratchRoots(): void {
-  const made = temporaries.current;
-  temporaries.current = [];
-  for (const dir of made) {
-    rmSync(dir, { recursive: true, force: true });
+  const parent = tmpdir();
+  for (const name of readdirSync(parent)) {
+    if (name.startsWith(SCRATCH_PREFIX))
+      rmSync(path.join(parent, name), { recursive: true, force: true });
   }
 }
 
@@ -139,10 +143,7 @@ export function cleanupScratchRoots(): void {
  * @returns Absolute path to the new directory.
  */
 export function scratchRoot(): string {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-fallback-copy-"));
-
-  temporaries.current = [...temporaries.current, root];
-  return root;
+  return mkdtempSync(path.join(tmpdir(), SCRATCH_PREFIX));
 }
 
 /**

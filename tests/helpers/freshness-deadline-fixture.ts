@@ -4,17 +4,31 @@
  * @module tests/helpers/freshness-deadline-fixture
  */
 import { spawn } from "node:child_process";
+import type { ChildProcessByStdio } from "node:child_process";
 import { lstatSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { PassThrough } from "node:stream";
+import { setTimeout as delay } from "node:timers/promises";
+import type { Readable } from "node:stream";
 import type { DeadlineFixture } from "./freshness-deadline-inputs.js";
 import {
   prepareDeadline,
   deadlineEnvironment,
 } from "./freshness-deadline-inputs.js";
-import { ownedProcesses } from "./freshness-owned-processes.js";
-import type { Identity } from "./freshness-owned-processes.js";
+import {
+  drainOwnership,
+  liveOwned,
+  observeOwnership,
+  ownershipOf,
+} from "./freshness-owned-processes.js";
+import type { Identity, Ownership } from "./freshness-owned-processes.js";
 import { hostState } from "./host-guard-freshness-fixtures.js";
 import { ioLatencyBudgetMs, workerSpawnSlowdown } from "./io-latency-budget.js";
+import { latch } from "./latch.js";
+import type { Latch } from "./latch.js";
+
+/** Sentinel for "no observer failure", distinct from any thrown value. */
+const NO_FAILURE: unique symbol = Symbol("no observer failure");
 
 /** A marker-backed real-process observation, including cleanup evidence. */
 export interface DeadlineObservation {
@@ -69,13 +83,12 @@ function diagnosticLeaves(scratch: string): readonly DiagnosticLeaf[] {
     });
 }
 
-/** Event state is necessarily updated while the real fixture runs. */
+/** What the run observed, read once the dispatcher has closed. */
 interface Capture {
-  output: string;
-  enteredAt: number | null;
-  guardAt: number | null;
-  timedOut: boolean;
-  observerFailure?: unknown;
+  readonly output: string;
+  readonly enteredAt: number | null;
+  readonly guardAt: number | null;
+  readonly timedOut: boolean;
 }
 
 /**
@@ -91,10 +104,11 @@ async function summarize(
   fixture: DeadlineFixture,
   state: Capture,
   status: number | null,
-  owned: ReturnType<typeof ownedProcesses>,
+  owned: Ownership,
   start: number
 ): Promise<DeadlineObservation> {
-  const survivors = await owned.active();
+  const survivors = (await liveOwned(owned)).map(item => item.pid);
+  const captured = [...owned.owned.keys()];
   const helperPids = readFileSync(fixture.entries, "utf8")
     .trim()
     .split("\n")
@@ -106,11 +120,9 @@ async function summarize(
     diagnosticScratchLeaves: diagnosticLeaves(fixture.scratch),
     watchdogMs: ioLatencyBudgetMs(5_000),
     spawnSlowdown: workerSpawnSlowdown(),
-    censusIntervalMs: 100,
+    censusIntervalMs: CENSUS_INTERVAL_MS,
     helperPids,
-    unobservedHelperPids: helperPids.filter(
-      pid => !owned.captured().includes(pid)
-    ),
+    unobservedHelperPids: helperPids.filter(pid => !captured.includes(pid)),
     entered: readFileSync(fixture.entries, "utf8").length > 0,
     timedOut: state.timedOut,
     elapsedMs: performance.now() - start,
@@ -123,8 +135,8 @@ async function summarize(
       .split("\n")
       .filter(Boolean),
     survivingPids: survivors,
-    ownedPids: owned.captured(),
-    ownedIdentities: owned.identities(),
+    ownedPids: captured,
+    ownedIdentities: [...owned.owned.values()],
     foreignSentinelUnchanged:
       readFileSync(path.join(fixture.scratch, "foreign-sentinel"), "utf8") ===
       "preserve unrelated fixture state\n",
@@ -136,8 +148,59 @@ async function summarize(
         ? null
         : state.guardAt - state.enteredAt,
   };
-  if (survivors.length) await owned.drain();
+  if (survivors.length) await drainOwnership(owned);
   return result;
+}
+
+/**
+ * Everything a child writes to stdout and stderr, in arrival order.
+ * Both streams feed one pipe, which ends once the child has closed and so
+ * has flushed both.
+ * @param child - Running child with piped stdout and stderr
+ * @returns The interleaved output, once the child has closed
+ */
+async function interleavedOutput(
+  child: ChildProcessByStdio<null, Readable, Readable>
+): Promise<string> {
+  const merged = new PassThrough();
+  child.stdout.pipe(merged, { end: false });
+  child.stderr.pipe(merged, { end: false });
+  child.once("close", () => merged.end());
+  return (await merged.toArray()).map(String).join("");
+}
+
+/** Census sampling interval while the dispatcher runs. */
+const CENSUS_INTERVAL_MS = 100;
+
+/**
+ * Census the dispatcher's process tree every {@link CENSUS_INTERVAL_MS} until
+ * it closes, draining the tree once after the watchdog has fired. Each
+ * census's ownership is handed to the next, so the tree's record is a value
+ * this returns, not one kept outside it. Shorter-lived children can evade the
+ * sampling interval; empty evidence is not universal proof.
+ * @param ownership - What earlier censuses proved owned
+ * @param closed - Settles when the dispatcher closes
+ * @param timedOut - Set once the outer watchdog fires
+ * @param drained - Whether the watchdog drain already ran
+ * @returns Ownership as of the last census before the dispatcher closed
+ */
+async function track(
+  ownership: Ownership,
+  closed: Promise<unknown>,
+  timedOut: Latch<boolean>,
+  drained: boolean
+): Promise<Ownership> {
+  const next = await observeOwnership(ownership);
+  const drainNow = !drained && (await timedOut.read(false));
+  if (drainNow) await drainOwnership(next);
+  const finished = await Promise.race([
+    closed.then(
+      () => true,
+      () => true
+    ),
+    delay(CENSUS_INTERVAL_MS).then(() => false),
+  ]);
+  return finished ? next : track(next, closed, timedOut, drained || drainNow);
 }
 
 /**
@@ -152,17 +215,9 @@ async function captureDeadline(
   mode: string
 ): Promise<DeadlineObservation> {
   const start = performance.now();
-  // A cell over immutable snapshots: each OS observation replaces the record.
-  const state: { current: Capture } = {
-    current: { output: "", enteredAt: null, guardAt: null, timedOut: false },
-  };
-  /**
-   * Replace the capture with a copy carrying new observations.
-   * @param change - Fields observed since the last snapshot.
-   */
-  const record = (change: Partial<Capture>): void => {
-    state.current = { ...state.current, ...change };
-  };
+  const entered = latch<number | null>();
+  const guarded = latch<number | null>();
+  const timedOut = latch<boolean>();
   const child = spawn("/bin/bash", [fixture.driver], {
     cwd: fixture.root,
     detached: true,
@@ -170,60 +225,48 @@ async function captureDeadline(
     env: deadlineEnvironment(fixture, mode),
   });
   if (child.pid === undefined) throw new Error("dispatcher did not launch");
-  const owned = ownedProcesses(child.pid);
+  const output = interleavedOutput(child);
   /** Capture real helper entry and first genuine guard execution. */
   const poll = (): void => {
-    if (
-      readFileSync(fixture.entries, "utf8") &&
-      state.current.enteredAt === null
-    )
-      record({ enteredAt: performance.now() });
-    if (readFileSync(fixture.guards, "utf8") && state.current.guardAt === null)
-      record({ guardAt: performance.now() });
+    if (readFileSync(fixture.entries, "utf8")) entered.set(performance.now());
+    if (readFileSync(fixture.guards, "utf8")) guarded.set(performance.now());
   };
   const interval = setInterval(poll, 20);
-  /** Keep native census work outside the fast marker-file timing loop. */
-  const observe = (): void => {
-    void owned.observe().catch(error => {
-      record({ observerFailure: error });
-      child.kill("SIGKILL");
-    });
-  };
-  // One pending census is shared inside ownedProcesses. Shorter-lived children
-  // can evade this 100ms sampling interval; empty evidence is not universal proof.
-  const censusInterval = setInterval(observe, 100);
   const detector = setTimeout(() => {
-    record({ timedOut: true });
+    timedOut.set(true);
     poll();
-    void owned.drain().catch(error => {
-      record({ observerFailure: error });
-      child.kill("SIGKILL");
-    });
   }, ioLatencyBudgetMs(5_000));
   const closed = new Promise<number | null>((resolve, reject) => {
     child.once("error", reject);
     child.once("close", resolve);
   });
-  child.stdout.on("data", chunk =>
-    record({ output: state.current.output + String(chunk) })
+  // A census failure stops the dispatcher it was watching and is reported
+  // once it has closed; settling it here keeps the rejection handled.
+  const tracked = track(ownershipOf(child.pid), closed, timedOut, false).then(
+    ownership => ({ ownership, failure: NO_FAILURE }) as const,
+    (failure: unknown) => {
+      child.kill("SIGKILL");
+      return { ownership: undefined, failure } as const;
+    }
   );
-  child.stderr.on("data", chunk =>
-    record({ output: state.current.output + String(chunk) })
-  );
-  observe();
   return closed
     .finally(() => {
       clearTimeout(detector);
       clearInterval(interval);
-      clearInterval(censusInterval);
     })
     .then(async status => {
-      // Wait for the last pending census, then take a fresh completion snapshot.
-      await owned.observe();
-      if (state.current.observerFailure !== undefined)
-        throw state.current.observerFailure;
+      const { ownership, failure } = await tracked;
+      if (ownership === undefined) throw failure;
+      // A fresh completion snapshot after the dispatcher has closed.
+      const final = await observeOwnership(ownership);
       poll();
-      return summarize(fixture, state.current, status, owned, start);
+      const capture: Capture = {
+        output: await output,
+        enteredAt: await entered.read(null),
+        guardAt: await guarded.read(null),
+        timedOut: await timedOut.read(false),
+      };
+      return summarize(fixture, capture, status, final, start);
     });
 }
 

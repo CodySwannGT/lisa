@@ -2760,6 +2760,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "ca3809b5b496c9184fbe162bcdf2716f7e4cc0e7369ecedf42b6925f685ee1c2",
     "scripts/lib/dependency-tree.mjs":
       "1b35c39d95f8654ee3c46325fbb1a4170582fd98b22e1e113ac0aa2967774d2e",
+    "scripts/lib/docker-cli.mjs":
+      "94830c0c569c158ab5c8064526f49c3d72aeb99f50317383d653588181f3d2ca",
     "scripts/lib/gitattributes-merge-drivers.mjs":
       "bf43913f423f5774a69b60f2541f7a49c173aabd4855e2c30cbe2984806a182b",
     "scripts/lib/history-scanner-suites.mjs":
@@ -2993,7 +2995,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-npm-advisories-4333.mjs":
       "1366afad9e987ab4bf04a87b0081cecd2691504e6c07268ee3296513887dca80",
     "scripts/verify-packaged-apply.mjs":
-      "e80fc05e447dd281c10cb7ed65e96a85ec64ce3746ba3737b1dca6a9d6242fc9",
+      "a01f0b503388d42010c22f2bf54c034f0f8eed027c1c9daf831e0345ce2e2e38",
     "scripts/verify-packed-learnings-contract.mjs":
       "2227b32f3b3dc2dc6817a60b4998b64881c03e30ecd15cb52b6d6f95a5870613",
     "scripts/verify-rails-tooling.rb":
@@ -10771,6 +10773,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/bounded-spawn.mjs": true,
     "scripts/lib/codex-shared-scripts.mjs": true,
     "scripts/lib/dependency-tree.mjs": true,
+    "scripts/lib/docker-cli.mjs": true,
     "scripts/lib/gitattributes-merge-drivers.mjs": true,
     "scripts/lib/history-scanner-suites.mjs": true,
     "scripts/lib/hook-registration-audit.mjs": true,
@@ -11501,6 +11504,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/edit-time-pre-facade/typescript-format-on-edit.sh": true,
     "tests/fixtures/edit-time-pre-facade/typescript-lint-on-edit.sh": true,
     "tests/fixtures/edit-time-pre-facade/typescript-sg-scan-on-edit.sh": true,
+    "tests/fixtures/expo-jest-pre-setup/probe.mjs": true,
     "tests/fixtures/freshness-native-timing/Dockerfile": true,
     "tests/fixtures/freshness-native-timing/README.md": true,
     "tests/fixtures/freshness-native-timing/evaluate.py": true,
@@ -11676,6 +11680,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/host-guard-freshness-fixtures.ts": true,
     "tests/helpers/inject-resolved-config-harness.ts": true,
     "tests/helpers/io-latency-budget.ts": true,
+    "tests/helpers/latch.ts": true,
     "tests/helpers/latest-review-identity-fixtures.ts": true,
     "tests/helpers/latest-review-reducer-harness.ts": true,
     "tests/helpers/learnings-overcap.ts": true,
@@ -12658,6 +12663,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/helpers/history-scanner-global-setup.test.ts": true,
     "tests/unit/helpers/history-scanner-preparation.test.ts": true,
     "tests/unit/helpers/io-latency-budget.test.ts": true,
+    "tests/unit/helpers/latch.test.ts": true,
     "tests/unit/helpers/mutation-kill-counts.test.ts": true,
     "tests/unit/helpers/staged-dependency-conformance.test.ts": true,
     "tests/unit/helpers/stderr-sync.test.ts": true,
@@ -12993,6 +12999,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/detect-stale-workflow-inputs-helpers.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs-pinned.test.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs.test.ts": true,
+    "tests/unit/scripts/docker-cli.test.ts": true,
     "tests/unit/scripts/downstream-name-digest.test.ts": true,
     "tests/unit/scripts/e2e-coverage-comment-navigation.test.ts": true,
     "tests/unit/scripts/e2e-coverage-interpolation-wildcard.test.ts": true,

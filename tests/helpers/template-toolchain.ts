@@ -38,8 +38,12 @@ import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
 /** Environment keys Node consults when resolving the platform temp root. */
 const TEMP_KEYS = ["TMPDIR", "TMP", "TEMP"] as const;
 
-/** Guard against overlapping process-environment mutations in one worker. */
-const platformTempGuard: { current: boolean } = { current: false };
+/**
+ * Variable that marks a platform-temp control as active. The guarded state is
+ * the process environment itself, so the marker lives there too: a nested
+ * control sees it and refuses, with no module-level flag to keep in step.
+ */
+const ACTIVE_CONTROL_KEY = "LISA_TEST_PLATFORM_TEMP_CONTROL";
 
 /**
  * Run one synchronous test after selecting its logical platform temp root.
@@ -52,11 +56,11 @@ export function withProcessPlatformTempRoot<T>(
   root: string,
   operation: () => T
 ): T {
-  if (platformTempGuard.current) {
+  if (Reflect.has(env, ACTIVE_CONTROL_KEY)) {
     throw new Error("Platform-temp test controls must not overlap");
   }
-  platformTempGuard.current = true;
   const previous = TEMP_KEYS.map(key => [key, Reflect.get(env, key)] as const);
+  Reflect.set(env, ACTIVE_CONTROL_KEY, root);
   for (const key of TEMP_KEYS) {
     Reflect.set(env, key, root);
   }
@@ -74,7 +78,7 @@ export function withProcessPlatformTempRoot<T>(
         Reflect.set(env, key, value);
       }
     }
-    platformTempGuard.current = false;
+    Reflect.deleteProperty(env, ACTIVE_CONTROL_KEY);
   }
 }
 

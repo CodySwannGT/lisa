@@ -107,27 +107,16 @@ type ModuleSuffixIndex = ReadonlyMap<string, readonly string[]>;
 const MODULE_SUFFIX_INDEX = new WeakMap<ModuleGraph, ModuleSuffixIndex>();
 
 /**
- * Structural children only, excluding the punctuation tokens `getChildren`
- * materializes. The detector reasons about expressions and declarations, not
- * commas or parentheses, so token traversal only multiplies corpus-scan work.
- * @param node - TypeScript syntax node
- * @returns Its direct structural children in source order
+ * Direct children in source order, as the parser's own `getChildren` returns
+ * them: node arrays wrapped in a SyntaxList, punctuation as token leaves. The
+ * walkers recurse through both and neither can be an offender. Measured
+ * against a structural-only walk on the four consuming suites, the corpus
+ * scan costs the same (35.9 s against 35.5 s), and this needs no accumulator.
+ * @param node - TypeScript syntax node, parsed with parent pointers set
+ * @returns Its direct children in source order
  */
 function syntaxChildren(node: ts.Node): readonly ts.Node[] {
-  // A cell over immutable arrays. A node array (statements, arguments) arrives
-  // whole through the second callback, so each copy is per field, not per
-  // child, and the collection stays linear in the node's fields.
-  const children: { current: readonly ts.Node[] } = { current: [] };
-  ts.forEachChild(
-    node,
-    child => {
-      children.current = [...children.current, child];
-    },
-    nodes => {
-      children.current = [...children.current, ...nodes];
-    }
-  );
-  return children.current;
+  return node.getChildren();
 }
 
 /** What one fixture stages, and which of those stagings are enumerations. */
