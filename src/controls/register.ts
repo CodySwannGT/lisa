@@ -42,6 +42,7 @@ import {
 import { entriesForGate } from "./register-entries.js";
 import { resolveEnforcementPoints } from "./register-points.js";
 import { CONTROL_REGISTER_RULES } from "./register-rules.js";
+import { declaredTiersHold } from "./register-tier-rule.js";
 import {
   CONTROL_REGISTER_SCHEMA_VERSION,
   type ControlRegister,
@@ -130,7 +131,13 @@ export function buildControlRegister(
         catalogue,
       })
     );
-  const problems = [...resolved.problems, ...sharedIdentifiers(entries)];
+  // The tier rule reads where each entry is enforced, which is known only
+  // once the entries are built, so it runs here and not with the rules above.
+  const problems = [
+    ...resolved.problems,
+    ...sharedIdentifiers(entries),
+    ...declaredTiersHold(entries, declaration),
+  ];
   return problems.length > 0
     ? { problems }
     : {
@@ -206,9 +213,10 @@ async function generated(
  * Generate the control register of a repository from its declaration.
  *
  * Nothing is written. A declaration the gate registry refuses, a requirement
- * id the catalogue does not list as in scope, a declaration that holds a
- * secret's value, and a declaration that cannot be read each come back as
- * problems instead of a register.
+ * id the catalogue does not list as in scope, a gate that declares itself
+ * authoritative while required only where its author can skip it, a
+ * declaration that holds a secret's value, and a declaration that cannot be
+ * read each come back as problems instead of a register.
  *
  * A problem line often quotes the declaration. Every line is passed through
  * the credential scanner before it is handed back, so no command that prints

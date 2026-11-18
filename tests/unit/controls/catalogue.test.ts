@@ -30,6 +30,7 @@ const IN_SCOPE_ENTRY = {
   title: "Attribution",
   in_scope: true,
   question: "Is it recorded?",
+  not_applicable_when: "never",
   answered: "part",
 } as const;
 
@@ -131,6 +132,18 @@ describe("the criterion catalogue the package ships", () => {
       name: "an in-scope entry that does not say where it is answered",
       document: {
         criteria: [{ ...IN_SCOPE_ENTRY, answered: undefined }],
+      },
+    },
+    {
+      name: "an in-scope entry that does not say when it does not apply",
+      document: {
+        criteria: [{ ...IN_SCOPE_ENTRY, not_applicable_when: undefined }],
+      },
+    },
+    {
+      name: "an in-scope entry whose not-applicable condition is empty",
+      document: {
+        criteria: [{ ...IN_SCOPE_ENTRY, not_applicable_when: " " }],
       },
     },
     {

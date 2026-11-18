@@ -17,7 +17,8 @@ import {
   reportMissing,
   writeConfig,
 } from "./support/gaps-run.js";
-import { removeFixtures } from "./support/report-check-run.js";
+import { absorb, answerInline } from "./support/report-answers-run.js";
+import { check, removeFixtures } from "./support/report-check-run.js";
 
 afterEach(removeFixtures);
 
@@ -177,24 +178,36 @@ describe("the tracker question", () => {
   });
 
   it("is not referenced once a person has answered it", async () => {
-    const output = printed(
-      await gaps(
-        mixedRepository({
-          ...reportMissing(TWO_MISSING),
-          questions: [],
-          answers: [
-            {
-              id: TRACKER_QUESTION_ID,
-              question: "Which tracker does the team plan its work in?",
-              answer: "GitHub Issues",
-            },
-          ],
-        })
-      )
-    );
+    const repoPath = mixedRepository(reportMissing(TWO_MISSING));
+    await check(repoPath);
+    answerInline(repoPath, TRACKER_QUESTION_ID, "GitHub Issues");
+    const absorbed = await absorb(repoPath);
 
+    const output = printed(await gaps(repoPath));
+
+    expect(absorbed.code).toBe(0);
     expect(output.tracker.question).toBeNull();
     expect(output.gaps.map(gap => gap.outcome)).toEqual(["blocked", "blocked"]);
+  });
+
+  it("is not settled by an answer nobody typed: such a report is refused", async () => {
+    const run = await gaps(
+      mixedRepository({
+        ...reportMissing(TWO_MISSING),
+        questions: [],
+        answers: [
+          {
+            id: TRACKER_QUESTION_ID,
+            question: "Which tracker does the team plan its work in?",
+            answer: "GitHub Issues",
+          },
+        ],
+      })
+    );
+
+    expect(run.code).toBe(1);
+    expect(run.stdout).toEqual([]);
+    expect(run.stderr[0]).toContain("so nothing shows that a person typed it");
   });
 
   it("must be asked: a report that does not ask it is refused while no tracker is configured", async () => {

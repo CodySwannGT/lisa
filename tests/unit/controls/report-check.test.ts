@@ -46,6 +46,21 @@ import {
 
 afterEach(removeFixtures);
 
+/**
+ * A record the attest step wrote for the first requirement, for the whole
+ * repository: a setting it read, which stands on its own.
+ */
+const OBSERVED_RECORD = {
+  id: "ev-0001",
+  criterion: FIRST,
+  entry_id: "code-style@.",
+  scope: ".",
+  rung: "observed",
+  moment: "pull-request",
+  completed_at: "2026-11-17T11:00:00.000Z",
+  freshness_seconds: 86_400,
+} as const;
+
 describe("a complete report passes", () => {
   it("exits 0 in a repository Lisa was never applied to", async () => {
     const run = await checkOnFNone(completeAuditReport());
@@ -62,7 +77,7 @@ describe("a complete report passes", () => {
     const run = await checkOnFNone(completeAuditReport());
 
     expect(run.stdout).toEqual([
-      `report-check: PASS. ${CRITERIA.length} findings across 1 part; wrote ${AUDIT_REPORT_MARKDOWN_PATH}`,
+      `report-check: PASS. ${CRITERIA.length} findings across 1 part, 0 filed as not applicable; wrote ${AUDIT_REPORT_MARKDOWN_PATH}`,
     ]);
   });
 
@@ -177,7 +192,53 @@ describe("presence is never accepted as proof", () => {
     expect(run.stderr[0]).toContain(FIRST);
   });
 
-  it("accepts proved once a fresh record for the criterion exists", async () => {
+  it("accepts proved once a fresh record for the criterion and the folder exists", async () => {
+    const { repoPath } = keep(buildFNone());
+    writeAuditReport(
+      repoPath,
+      withFirst({
+        state: PROVED,
+        evidence_id: "ev-0001",
+        mechanisms: [LINTER],
+      })
+    );
+    writeEvidenceRecords(repoPath, [OBSERVED_RECORD]);
+
+    expect((await check(repoPath)).code).toBe(0);
+  });
+
+  it("refuses proved on one half of a proof, and accepts it once the other half is on record", async () => {
+    const { repoPath } = keep(buildFNone());
+    const half = (which: string): Record<string, unknown> => ({
+      ...OBSERVED_RECORD,
+      id: `code-style@./commit/${which}/${FIRST}`,
+      rung: "exercised",
+      half: which,
+      moment: "commit",
+      result: "held",
+    });
+    writeAuditReport(
+      repoPath,
+      withFirst({
+        state: PROVED,
+        evidence_id: half("clean").id,
+        mechanisms: [LINTER],
+      })
+    );
+    writeEvidenceRecords(repoPath, [half("clean")]);
+    const alone = await check(repoPath);
+    writeEvidenceRecords(repoPath, [half("clean"), half("violation")]);
+    const paired = await check(repoPath);
+
+    expect(alone.code).toBe(1);
+    expect(alone.stderr[0]).toContain(
+      "is one half of a proof, and the other half (the change that breaks the rule and has to be refused) is not on record"
+    );
+    expect(paired.stderr).toEqual([]);
+    expect(paired.code).toBe(0);
+  });
+
+  it("refuses proved on a record that is about another folder", async () => {
     const { repoPath } = keep(buildFNone());
     writeAuditReport(
       repoPath,
@@ -188,15 +249,15 @@ describe("presence is never accepted as proof", () => {
       })
     );
     writeEvidenceRecords(repoPath, [
-      {
-        id: "ev-0001",
-        criterion: FIRST,
-        completed_at: "2026-11-17T11:00:00.000Z",
-        freshness_seconds: 86_400,
-      },
+      { ...OBSERVED_RECORD, entry_id: "code-style@api", scope: "api" },
     ]);
 
-    expect((await check(repoPath)).code).toBe(0);
+    const run = await check(repoPath);
+
+    expect(run.code).toBe(1);
+    expect(run.stderr[0]).toContain(
+      `Evidence record "ev-0001" is about the folder api, so it cannot prove the requirement for the whole repository.`
+    );
   });
 
   it("refuses proved once that record is past its lifetime", async () => {
@@ -210,12 +271,7 @@ describe("presence is never accepted as proof", () => {
       })
     );
     writeEvidenceRecords(repoPath, [
-      {
-        id: "ev-0001",
-        criterion: FIRST,
-        completed_at: "2026-11-01T11:00:00.000Z",
-        freshness_seconds: 86_400,
-      },
+      { ...OBSERVED_RECORD, completed_at: "2026-11-01T11:00:00.000Z" },
     ]);
 
     const run = await check(repoPath);

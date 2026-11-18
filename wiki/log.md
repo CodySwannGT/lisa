@@ -1,5 +1,16 @@
 # Lisa Wiki Log
 
+## 2026-11-18 - Control audit: what the report check refuses, and how an answer counts
+
+- Updated `wiki/documentation/workflows/control-audit.md` for `CodySwannGT/lisa#4978`:
+  - a requirement that always applies cannot be filed as not applicable, and the check counts the findings that are;
+  - a pointer may not lead into the audit's own report, Lisa's own records or git's own data, with the two places it still may;
+  - `proved` needs a record for the same part, and both halves of a paired proof;
+  - an answer is typed on its answer line only, a placeholder is not an answer, and the readable report has to be kept because an answer counts only while it stands on its line;
+  - a check declared authoritative has to be required somewhere its author does not control;
+  - `lisa controls seed` refuses a `package.json` it cannot read.
+- Provenance: a repository-sourced update, written from the code under `src/controls/` and the design notes under `docs/design/`. No separate source note was written.
+
 ## 2026-11-17 - Control audit: the four commands and the control register
 
 - Created `wiki/documentation/workflows/control-audit.md`, the operator-facing page for the four commands that find, declare, wire and prove the controls of any repository, whatever its stack: audit, configure, enforce and attest (epic `CodySwannGT/lisa#4961`, documentation leaf `CodySwannGT/lisa#5003`).

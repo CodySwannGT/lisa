@@ -1344,7 +1344,7 @@ taken from what `resolveMoment` returns for it today.
 | `gate` | The gate the entry was generated from. |
 | `criteria` | The gate's `criteria`, in catalogue order. A gate that declares none gets the requirements the criterion catalogue maps to it. |
 | `scope` | The part's folder, or `.`. |
-| `tier` | The gate's `tier`. A gate that declares none is `authoritative` when it is `required` on the hosting platform, in a deployment or in a scheduled run, and `advisory` otherwise. |
+| `tier` | The gate's `tier`. A gate that declares none is `authoritative` when it is `required` on the hosting platform, in a deployment or in a scheduled run, and `advisory` otherwise. A declared `authoritative` has to meet the same test (see below). |
 | `enforcement_points` | One `{ moment, level, location }` per moment the gate is declared at and not `off`, in the order the moments happen. `location` is `coding-agent`, `local-checkout`, `hosting-platform`, `deployment-pipeline` or `scheduled-run`. |
 | `measuring_mechanism` | `{ kind, … }`: a part's `command` (`argv`), a `task` (`task`, `command`), an awaited `external-check` (`name`, `posted_by`), a shipped `interceptor`, the workflow's `built-in` job, or `none`. An enforcement point measured differently carries its own. |
 | `parameters` | The part's `parameters`, or `{}`. |
@@ -1361,6 +1361,20 @@ byte and names each entry that differs.
 how a `criteria` id is written, because the registry ships to repositories
 that do not carry the criterion catalogue. Generating the register refuses an
 id the catalogue does not list as in scope.
+
+**A declared `authoritative` has to be true.** A gate may declare `advisory`
+whatever its moments: that only understates it. A gate that declares
+`authoritative` is refused unless its entry is `required` somewhere the author
+of a change does not control: on the hosting platform, in a deployment or in a
+scheduled run. A hook in the author's own checkout can be skipped and a coding
+agent's session is the author's own, so `required` at `commit` or `push` alone
+does not make a rule authoritative, and a register that said so would tell
+every reader that a rule cannot be skipped when one flag skips it. The check
+is made per entry, so a gate with `parts` is refused for each folder where it
+does not hold, and the line says what to change: require the gate at
+`pull-request` (or at a deployment or scheduled moment), or declare it
+`advisory`, or leave `tier` out. The working-out of an undeclared tier and
+this refusal share one test (`src/controls/register-tier-rule.ts`).
 
 The format is published as `schemas/control-register.schema.json` in the Lisa
 package. Every object in it is closed, so a new fact about an entry is a new

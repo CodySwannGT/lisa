@@ -171,9 +171,24 @@ describe("a question", () => {
 });
 
 describe("an answer on record", () => {
-  it("passes with the id, the question as asked and the answer", () => {
-    expect(violationsOf(withAnswer(ANSWER))).toEqual([]);
+  it("has a sound shape with the id, the question as asked and the answer", () => {
+    expect(shapeProblems(withAnswer(ANSWER))).toEqual([]);
   });
+
+  it("is still refused, sound shape and all, while nothing shows a person typed it", () => {
+    expect(violationsOf(withAnswer(ANSWER)).map(found => found.rule)).toEqual([
+      RULE.recordedAnswers,
+    ]);
+  });
+
+  it.each(["TBD", "?", "n/a", "*(human fills in)*", "(human fills in)"])(
+    "is refused when it is only the placeholder %s",
+    placeholder => {
+      expect(
+        shapeProblems(withAnswer({ ...ANSWER, answer: placeholder })).join("\n")
+      ).toMatch(/needs an "answer": what the person typed/u);
+    }
+  );
 
   it.each([
     {

@@ -154,7 +154,9 @@ It prints one JSON document. Read these fields:
   next step is `/lisa:audit`. Nothing was changed.
 
 If the command exits with an error, each line it prints is one problem in plain words. An audit
-report it cannot rely on means the audit has to be run again first.
+report it cannot rely on means the audit has to be run again first. A `package.json` it cannot
+read means that file has to be put right first: tell the operator which problem was printed, and
+do not edit the file yourself.
 
 ### Step 3: Read what the audit found
 

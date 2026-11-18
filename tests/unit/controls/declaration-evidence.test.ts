@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   validateAuditReport,
+  type AuditAnswer,
   type AuditReport,
 } from "../../../src/controls/audit-report.js";
 import {
@@ -32,7 +33,7 @@ import {
   F_PAVED_GATES,
   type GatesBlock,
 } from "../../helpers/control-register.js";
-import { CRITERIA, context } from "./audit-report-facts.js";
+import { CRITERIA, context, typedAnswers } from "./audit-report-facts.js";
 import { registerOf } from "./support/register-build.js";
 
 const STYLE = "SI7";
@@ -48,24 +49,24 @@ const FOUND = reportWith(["."], [foundAt(STYLE, ".", "ruff.toml")]);
  * @param id - The id of the question that was answered
  * @returns The answer as the report records it
  */
-function answerTo(id: string): Readonly<Record<string, string>> {
+function answerTo(id: string): AuditAnswer {
   return { id, question: ASKED, answer: "Hold it at eighty percent." };
 }
 
 /**
  * A report as the check reads it: validated, with the given answers on
- * record.
+ * record, each typed by a person on its question's answer line.
  * @param sample - The report as plain JSON
  * @param answers - The answers people have given
  * @returns The validated report
  */
 function validated(
   sample: SampleReport,
-  answers: readonly Readonly<Record<string, string>>[] = []
+  answers: readonly AuditAnswer[] = []
 ): AuditReport {
   const { report, violations } = validateAuditReport(
     { ...sample, answers },
-    context()
+    context({ inlineAnswers: typedAnswers(answers) })
   );
   if (report === null || violations.length > 0) {
     throw new Error(violations.map(violation => violation.message).join("\n"));

@@ -13,6 +13,13 @@
  * who has never read the specification can act on. Write it here, or in a
  * module of its own, and add it to {@link CONTROL_REGISTER_RULES}. Any problem
  * stops the register from being written or compared.
+ *
+ * A rule on this list sees the declaration only. One that depends on where a
+ * gate turns out to be enforced cannot be written that way, because that is
+ * known only once the entries are built: the rule that refuses a gate declared
+ * `authoritative` with no required point beyond its author's machine is such
+ * a rule, and lives in `./register-tier-rule.ts`. `./register.ts` runs it on
+ * the built entries, and its problems stop the register the same way.
  * @module controls/register-rules
  */
 import type { CatalogueCriterion, CriterionCatalogue } from "./catalogue.js";

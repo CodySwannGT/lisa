@@ -43,6 +43,12 @@ export const CRITERION_ANSWERED = ["repository", "part"] as const;
 /** One of the two places a requirement is answered. */
 export type CriterionAnswered = (typeof CRITERION_ANSWERED)[number];
 
+/**
+ * What a requirement's `not_applicable_when` holds when nothing makes it not
+ * apply. A finding may never file such a requirement as not applicable.
+ */
+export const NEVER_NOT_APPLICABLE = "never";
+
 /** A criterion the Level 1 verdict covers. */
 export interface InScopeCriterion {
   /** The id exactly as the specification writes it, for example `AC5.4`. */
@@ -52,6 +58,11 @@ export interface InScopeCriterion {
   readonly in_scope: true;
   /** The requirement as one plain-language question. */
   readonly question: string;
+  /**
+   * The one condition under which the requirement does not apply, in plain
+   * words, or {@link NEVER_NOT_APPLICABLE} when it always applies.
+   */
+  readonly not_applicable_when: string;
   /** Whether it has one answer for the repository or one for each part. */
   readonly answered: CriterionAnswered;
   /** Catalogue keys this module does not interpret. */
@@ -139,7 +150,9 @@ function isCriterion(entry: unknown): entry is CatalogueCriterion {
     return false;
   }
   return entry.in_scope === true
-    ? isText(entry.question) && isAnswered(entry.answered)
+    ? isText(entry.question) &&
+        isText(entry.not_applicable_when) &&
+        isAnswered(entry.answered)
     : entry.in_scope === false;
 }
 
@@ -159,7 +172,7 @@ export function loadCriterionCatalogue(
     !document.criteria.every(entry => isCriterion(entry))
   ) {
     throw new Error(
-      `${file} is not a usable criterion catalogue: every entry needs an id, a title and an in_scope flag, and every in-scope entry a question and an answered value of ${CRITERION_ANSWERED.join(" or ")}.`
+      `${file} is not a usable criterion catalogue: every entry needs an id, a title and an in_scope flag, and every in-scope entry a question, a not_applicable_when condition and an answered value of ${CRITERION_ANSWERED.join(" or ")}.`
     );
   }
   return document as CriterionCatalogue;

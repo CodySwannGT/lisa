@@ -19,6 +19,11 @@
  * report is not needed on the paved road; when one exists it is read to see
  * whether the audit found separate parts, and one that cannot be relied on is
  * refused rather than ignored.
+ *
+ * The same goes for `package.json`. Both the project type and the tasks a
+ * check can run are read from it, so one that is there and cannot be read is
+ * refused before anything is decided. Read as "this repository has no
+ * tasks", it would have the command declare nothing and report success.
  * @module controls/commands/seed
  */
 import { readFile } from "node:fs/promises";
@@ -43,9 +48,13 @@ import {
   readGatesDeclaration,
   type GatesModule,
 } from "../gates-declaration.js";
+import { parseProblemWithoutExcerpt } from "../secret-scan-json.js";
 
 /** The subcommand's name under `lisa controls`. */
 export const SEED_COMMAND = "seed";
+
+/** The file a repository's tasks are read from. */
+const MANIFEST_PATH = "package.json";
 
 /** The version of {@link SeedOutput}. A changed shape gets a new one. */
 export const SEED_SCHEMA_VERSION = 1;
@@ -179,19 +188,38 @@ async function readConfig(root: string): Promise<Read<JsonObject>> {
 
 /**
  * Read the scripts of the repository's `package.json`.
+ *
+ * A manifest that is not there has no scripts, and neither has one with no
+ * `scripts` entry. One that is there and cannot be read is a different
+ * thing: what tasks the repository has is then not known, and saying "none"
+ * would be a guess.
  * @param root - Real path of the repository
- * @returns The scripts; none when there is no manifest or it has none
+ * @returns The scripts, none when there is no manifest or it has none, or
+ *   why a manifest that exists cannot be used
  */
-async function readScripts(root: string): Promise<Record<string, string>> {
+async function readScripts(
+  root: string
+): Promise<Read<Record<string, string>>> {
+  const file = path.join(root, MANIFEST_PATH);
+  if ((await pathKind(file)) === "missing") {
+    return { problems: null, value: {} };
+  }
+  const refused = (why: string): Read<Record<string, string>> => ({
+    problems: [
+      `${MANIFEST_PATH} ${why}, so the tasks this repository has cannot be read from it.`,
+    ],
+  });
   try {
-    const manifest = JSON.parse(
-      await readFile(path.join(root, "package.json"), "utf8")
-    ) as unknown;
-    return isJsonObject(manifest) && isJsonObject(manifest.scripts)
-      ? (manifest.scripts as Record<string, string>)
-      : {};
-  } catch {
-    return {};
+    const manifest = JSON.parse(await readFile(file, "utf8")) as unknown;
+    if (!isJsonObject(manifest)) return refused("does not hold a JSON object");
+    if (manifest.scripts === undefined) return { problems: null, value: {} };
+    return isJsonObject(manifest.scripts)
+      ? { problems: null, value: manifest.scripts as Record<string, string> }
+      : refused(`has a "scripts" entry that is not an object`);
+  } catch (error) {
+    return refused(
+      `cannot be read as JSON (${parseProblemWithoutExcerpt(error)})`
+    );
   }
 }
 
@@ -208,11 +236,13 @@ interface Seeding {
  * when something was declared, so a second run leaves it as it is.
  * @param root - Real path of the repository
  * @param registry - The shipped gate registry
+ * @param scripts - The scripts of the repository's `package.json`
  * @returns What was declared, or why nothing could be
  */
 async function seedDeclaration(
   root: string,
-  registry: SeedingGatesModule
+  registry: SeedingGatesModule,
+  scripts: Record<string, string>
 ): Promise<Read<Seeding>> {
   const config = await readConfig(root);
   if (config.problems !== null) return config;
@@ -220,7 +250,7 @@ async function seedDeclaration(
   const gates = isJsonObject(config.value.gates) ? config.value.gates : {};
   const result = registry.seedGates({
     gates,
-    scripts: await readScripts(root),
+    scripts,
     runner:
       typeof gates.runner === "string"
         ? gates.runner
@@ -281,13 +311,22 @@ async function decideAndSeed(
       summary: `${AUDIT_REPORT_JSON_PATH} cannot be relied on, so nothing was decided or declared. Run the audit again, then run this again`,
     };
   }
+  // Read before the road is decided: the project type is detected from the
+  // same file, so nothing is decided from one that cannot be read.
+  const scripts = await readScripts(root);
+  if (scripts.problems !== null) {
+    return {
+      problems: scripts.problems,
+      summary: `${MANIFEST_PATH} cannot be relied on, so nothing was decided or declared. Correct it, then run this again`,
+    };
+  }
   const projectTypes = await (
     dependencies.detectProjectTypes ?? detectSupportedTypes
   )(root);
   const decision = decideConfigureRoad({ projectTypes, parts: parts.value });
   const seeding: Read<Seeding> =
     decision.road === "paved"
-      ? await seedDeclaration(root, registry)
+      ? await seedDeclaration(root, registry, scripts.value)
       : { problems: null, value: { wrote: false, seeded: [] } };
   if (seeding.problems !== null) {
     return {

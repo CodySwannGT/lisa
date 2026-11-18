@@ -9,9 +9,14 @@
  * exercised for a proof, observed for a record found where the audit
  * pointed, asserted for a person's word.
  */
+import { rmSync } from "node:fs";
+import path from "node:path";
+
 import { afterEach, describe, expect, it } from "vitest";
 
 import { ATTEST_CHECK_EXIT } from "../../../src/controls/attest-check.js";
+import { loadAuditReport } from "../../../src/controls/audit-report-file.js";
+import { AUDIT_REPORT_MARKDOWN_PATH } from "../../../src/controls/audit-report-types.js";
 import { loadCriterionCatalogue } from "../../../src/controls/catalogue.js";
 import type { ControlRegister } from "../../../src/controls/register-types.js";
 import { CONTROL_REGISTER_PATH } from "../../../src/controls/register-types.js";
@@ -222,5 +227,53 @@ describe("what meets a requirement, taken away in the repository itself", () => 
         `nothing is at ${RECORD_FILE} line 9999`
       ) as unknown,
     });
+  });
+
+  it("does not take a person's word from a report that passed earlier: the answer lines are read again when the findings are recorded", async () => {
+    const where = await conformingRepository();
+
+    const recorded = await record(
+      where,
+      {},
+      {
+        // The report passes its check, and only then does the file the
+        // answers were typed in go away.
+        loadReport: async (root, now) => {
+          const loaded = await loadAuditReport(root, now);
+          rmSync(path.join(root, AUDIT_REPORT_MARKDOWN_PATH));
+          return loaded;
+        },
+      }
+    );
+    const verdict = recorded.problems === null ? recorded.verdict : null;
+    const [vouched] = idsOf(isAttested);
+
+    expect(verdict?.result).toBe(NON_CONFORMING);
+    expect(verdict?.prevented_by).toEqual(idsOf(isAttested));
+    expect(
+      verdict?.criteria.find(each => each.criterion === vouched)
+    ).toMatchObject({
+      verdict: "unknown",
+      reason: "no-attestation",
+      detail: expect.stringContaining(
+        "so nothing shows that a person gave it"
+      ) as unknown,
+    });
+  });
+
+  it("records nothing from the audit once the readable report is deleted, because the report no longer passes its check", async () => {
+    const where = await conformingRepository();
+    rmSync(path.join(where.repoPath, AUDIT_REPORT_MARKDOWN_PATH));
+
+    const recorded = await record(where);
+    const verdict = recorded.problems === null ? recorded.verdict : null;
+
+    expect(verdict?.result).toBe(NON_CONFORMING);
+    expect(verdict?.prevented_by).toEqual(
+      REQUIREMENTS.filter(each => !needsControl(each)).map(each => each.id)
+    );
+    expect(
+      evidenceIn(where.repoPath).records.filter(each => each.entry_id === null)
+    ).toEqual([]);
   });
 });

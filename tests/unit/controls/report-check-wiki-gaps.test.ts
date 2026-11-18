@@ -131,7 +131,7 @@ describe("a repository with a wiki", () => {
     const run = await check(repoPath);
 
     expect(run.stdout).toEqual([
-      `report-check: PASS. ${CRITERIA.length} findings across 1 part; wrote ${AUDIT_REPORT_MARKDOWN_PATH} and 2 open questions to ${GAPS}`,
+      `report-check: PASS. ${CRITERIA.length} findings across 1 part, 0 filed as not applicable; wrote ${AUDIT_REPORT_MARKDOWN_PATH} and 2 open questions to ${GAPS}`,
     ]);
   });
 
@@ -173,14 +173,17 @@ describe("a repository with a wiki", () => {
 
   it("leaves the wiki alone when it has nothing to ask and never wrote there", async () => {
     const { repoPath } = keep(withWiki(AGENT_READY_GAPS)());
-    writeAuditReport(repoPath, {
-      ...completeAuditReport(),
-      questions: [],
-      answers: [{ id: "tracker", question: "Which tracker?", answer: "Jira" }],
-    });
+    // With a tracker configured, the audit has no question to ask at all.
+    writeFileOf(
+      repoPath,
+      ".lisa.config.json",
+      `${JSON.stringify({ tracker: "github" })}\n`
+    );
+    writeAuditReport(repoPath, { ...completeAuditReport(), questions: [] });
 
     const run = await check(repoPath);
 
+    expect(run.stderr).toEqual([]);
     expect(run.code).toBe(0);
     expect(fileOf(repoPath, GAPS)).toBe(AGENT_READY_GAPS);
   });
@@ -229,6 +232,31 @@ describe("an answer typed in wiki/gaps.md", () => {
       /^wiki\/gaps\.md line \d+ holds an answer to .* that the record does not carry/u
     );
     expect(fileOf(repoPath, GAPS)).toBe(typed);
+  });
+
+  it("is refused, and the file left as the person typed it, when it was typed on the question instead of the answer line", async () => {
+    const repoPath = await audited(TWO_QUESTIONS, withWiki(AGENT_READY_GAPS));
+    const question =
+      "- **Question**: Which tracker does the team plan and follow its work in?";
+    writeFileOf(
+      repoPath,
+      GAPS,
+      fileOf(repoPath, GAPS).replace(question, `${question} Linear`)
+    );
+    const typed = fileOf(repoPath, GAPS);
+    const rendered = fileOf(repoPath, REPORT_MD);
+
+    const run = await check(repoPath);
+    const absorbed = await absorb(repoPath);
+
+    expect(typed).toContain(`${question} Linear`);
+    expect(run.code).toBe(1);
+    expect(run.stderr[0]).toMatch(
+      /^wiki\/gaps\.md line \d+ is not as Lisa wrote it: it was typed on, or added\. Only the answer line is read, so what is typed there would be lost\./u
+    );
+    expect(absorbed.code).toBe(1);
+    expect(fileOf(repoPath, GAPS)).toBe(typed);
+    expect(fileOf(repoPath, REPORT_MD)).toBe(rendered);
   });
 
   it("is absorbed, and then shown as answered in the report and gone from the wiki", async () => {

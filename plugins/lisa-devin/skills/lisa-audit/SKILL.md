@@ -71,8 +71,12 @@ These hold in every step.
    does, and an unchecked report is not an audit result.
 7. **Only a person answers a question.** When the audit cannot establish something, it asks, and
    the operator answers by typing in the report. You never write an answer, guess one, pick one of
-   the candidates, or type on an answer line, and you never edit `.lisa/audit/report.md` or
-   `wiki/gaps.md`. The command in step 1a is the only thing that moves an answer into the record.
+   the candidates, or type on an answer line, and you never edit, move or delete
+   `.lisa/audit/report.md` or `wiki/gaps.md`. The command in step 1a is the only thing that moves
+   an answer into the record. An answer in the record counts only while its answer line in one of
+   those two files still holds the same words: the check in step 6 refuses a record that holds
+   answers with no `.lisa/audit/report.md` beside it, and the attest step reads the answer lines
+   again before it takes a person's word.
 
 ## How to run the Lisa commands
 
@@ -158,7 +162,8 @@ lisa controls report-check --absorb
   entry of `answers`, and its question is gone from `questions`. The files the operator typed in
   were left exactly as they were.
 - **Any other exit.** Nothing was changed. Each line printed names a file and a line number and
-  says what is wrong there: usually an answer typed under its answer line instead of on it. **Stop
+  says what is wrong there: usually an answer typed under its answer line instead of on it, or
+  text typed on another line of the question, such as the question itself or a candidate. **Stop
   here.** Tell the operator, in plain words, which line to correct and how, and that their answers
   are still where they typed them. Do not correct the file yourself.
 
@@ -256,7 +261,7 @@ place it is answered.
 | `tool` | The name the tool goes by, such as `ruff` or `eslint`. For a written record, what the document is, such as `written policy`. |
 | `command` | The command that runs it, exactly as written where you found it. `null` only when there is no command to quote: a tool that is set up but that no script, hook or pipeline runs. |
 | `moment` | When it runs: `commit`, `push`, `pull-request`, `session-start`, `pre-tool`, `post-tool`, or `pre-deploy`, `post-deploy` or `continuous`, each optionally followed by `:` and an environment name such as `pre-deploy:production`. `none` when nothing runs it by itself: a settings file alone (`command` is `null`), or a script that exists but that no hook or pipeline calls (`command` is the script's own line). |
-| `locators` | Where you saw it: one or more `{ "path", "line" }`, the path from the repository root and the line counted from 1. Point at a line that exists. |
+| `locators` | Where you saw it: one or more `{ "path", "line" }`, the path from the repository root and the line counted from 1. Point at a line that exists, in a file the repository itself holds. The check in step 6 refuses a pointer into `.lisa/audit/` (this audit's own report), into `.lisa/controls/` (Lisa's own records; the one file there you may point at is `.lisa/controls/register.json`), or into `.git` (git's own data; the one thing there you may point at is a hook installed in `.git/hooks/`, never a `*.sample`). |
 
 A mechanism's file may sit anywhere: a pipeline file at the root can run one folder's tests. What
 decides where a finding is filed is the requirement's `answered` value, below, and for a
@@ -285,7 +290,7 @@ file it exactly as this table says. The check in step 6 refuses a finding filed 
 
 | State | Choose it when | It must carry |
 | --- | --- | --- |
-| `not-applicable` | The requirement's `not_applicable_when` condition is true here and you can name the fact that makes it true. Something missing from the repository is such a fact only when the condition is about what the repository holds (it has no screen, it uses no outside packages). When the condition is about how the organisation or its agents work, nothing in the repository can show it: that is a `question`. Whether the software is released, deployed or run for users is one of those, unless the repository itself shows it (a release script, a deployment pipeline). Never choose this state because a requirement is hard to answer, or because its answer is written up in another section. | The fact, in `what`. |
+| `not-applicable` | The requirement's `not_applicable_when` condition is true here and you can name the fact that makes it true. Something missing from the repository is such a fact only when the condition is about what the repository holds (it has no screen, it uses no outside packages). When the condition is about how the organisation or its agents work, nothing in the repository can show it: that is a `question`. Whether the software is released, deployed or run for users is one of those, unless the repository itself shows it (a release script, a deployment pipeline). Never choose this state for a requirement whose `not_applicable_when` is `never`: it always applies, and the check in step 6 refuses the finding. Never choose it because a requirement is hard to answer, or because its answer is written up in another section. | The fact, in `what`. |
 | `exists-not-enforced` | Reading found something that checks or records this. This is the strongest thing an audit can say by itself, however well wired the mechanism looks. It is also the state when what you found covers only some of the requirement: say in `what` which part is covered and which is not. | At least one mechanism with a locator. |
 | `unknown` | The answer is a setting held by an outside system you can name from what you read (a hosting platform named by a remote or a pipeline file, a tracker, a monitoring service), and the probe of that system in step 4a got no answer: the read was refused, or could not be tried. When the probe did get an answer, the setting was read, and the finding takes whichever other row is true of what was read. A repository with no remote and no pipeline has no such system to name: that is `missing`. | In `what`, that Lisa could not reach the system, and the error it gave. In `next`, the access needed to read it, in the probe's own words. And the finding is listed in that probe's `needed_by` (step 4a). |
 | `question` | Only a person can say, and nobody has said yet: the requirement is of kind `human-attested` and nothing written down vouches for it; or nothing you can read shows whether its `not_applicable_when` condition holds; or two things you found contradict each other. Never choose it for a finding whose question already has an answer on record (see "Using an answer on record"). | In `what`, what you looked for and could not establish. In `next`, who is likely to know. And its question, in the record's `questions` list (see "Asking a question"). |
@@ -300,10 +305,12 @@ question's `candidates`.
 
 **The one way a finding may say `proved`.** You never choose it. If `.lisa/controls/evidence.json`
 exists, the attest step wrote it. A finding may say `proved` only by copying: the file holds a
-record for the same requirement, and you put that record's `id` in the finding's `evidence_id`. The
-check in step 6 refuses a `proved` finding that cites no record, cites a record made for another
-requirement, or cites one that is too old. When it refuses, change the state to what you actually
-found. Never hunt for another record id to make it pass.
+record for the same requirement and the same part (the record's `scope` is the finding's `scope`,
+or `.`), and you put that record's `id` in the finding's `evidence_id`. The check in step 6 refuses
+a `proved` finding that cites no record, cites a record made for another requirement or another
+part, cites one half of a paired proof whose other half is not on record, or cites one that is too
+old. It also refuses an `evidence_id` on a finding in any other state. When it refuses, change the
+state to what you actually found. Never hunt for another record id to make it pass.
 
 **Asking a question.** A question goes in the record's `questions` list, and the operator answers
 it by typing in the report. There are two kinds, and neither has an id you make up:
@@ -710,7 +717,10 @@ In plain language, for someone who does not code:
    sentence. Say how to answer: open `.lisa/audit/report.md`, find "Open questions" near the top,
    type each answer on its line that starts `- **Answer**:` in place of `_(human fills in)_`, save
    the file, and run the audit again. Say that an answer goes on that one line and that every
-   other line is left as it is. Where the repository has a wiki, say that the same questions are
+   other line is left as it is: text typed anywhere else in a question is refused, not read. Say
+   that a line holding only a placeholder, such as `TBD`, `?` or `n/a`, leaves the question open,
+   and that the file has to be kept, because an answer counts only while it stands on its line.
+   Where the repository has a wiki, say that the same questions are
    in `wiki/gaps.md` and may be answered there instead. If this run took in answers the operator
    had given, say which questions are now settled and will not be asked again.
 5. What could not be reached: each outside system that did not answer, as one plain sentence,

@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 
 import { mechanismAt } from "../../../src/controls/register-types.js";
 import { F_PAVED_GATES } from "../../helpers/control-register.js";
-import { entryOf, registerOf } from "./support/register-build.js";
+import { buildOf, entryOf, registerOf } from "./support/register-build.js";
 
 const PULL_REQUEST = "pull-request";
 const HOSTING_PLATFORM = "hosting-platform";
@@ -226,15 +226,100 @@ describe("what the declaration leaves out", () => {
     expect(entryOf(register, LINT).tier).toBe(tier);
   });
 
-  it("keeps the tier a gate declares, whatever its moments", async () => {
+  it("keeps the tier a gate declares when the gate is required where its author cannot skip it", async () => {
     const register = await registerOf({
-      "code-style": { commit: "required", tier: "authoritative" },
+      "code-style": {
+        commit: "required",
+        [PULL_REQUEST]: "required",
+        tier: "authoritative",
+      },
       "type-correctness": { [PULL_REQUEST]: "required", tier: "advisory" },
     });
 
     expect(register.entries.map(entry => entry.tier)).toEqual([
       "authoritative",
       "advisory",
+    ]);
+  });
+
+  it("keeps a declared advisory on a gate that is required only on the author's machine", async () => {
+    const register = await registerOf({
+      "code-style": { commit: "required", tier: "advisory" },
+    });
+
+    expect(entryOf(register, LINT).tier).toBe("advisory");
+  });
+});
+
+describe("a gate that declares itself authoritative", () => {
+  /**
+   * What refuses a gate that calls itself authoritative.
+   * @param where - Where the gate is required, as the sentence puts it
+   * @param folder - The folder the entry is for, when it is for one
+   * @returns The whole line
+   */
+  const refusal = (where: string, folder = ""): string =>
+    `The gate "code-style" in .lisa.config.json declares "tier": "authoritative"${folder}, but ${where}. An authoritative check is one that is required somewhere the author does not control. Either require it at "pull-request", before a deployment or on a schedule, or change its tier to "advisory" (leave "tier" out and the register works it out).`;
+  const ONLY_AT_COMMIT =
+    "it is required only at commit, where the author of a change can skip it";
+
+  it.each([
+    ["required only at commit", { commit: "required" }, ONLY_AT_COMMIT],
+    [
+      "required only at commit and push",
+      { commit: "required", push: "required" },
+      "it is required only at commit and push, where the author of a change can skip it",
+    ],
+    [
+      "required at commit and only optional on the pull request",
+      { commit: "required", [PULL_REQUEST]: "optional" },
+      ONLY_AT_COMMIT,
+    ],
+    [
+      "optional wherever it runs",
+      { commit: "optional", [PULL_REQUEST]: "optional" },
+      "it is not required at any moment",
+    ],
+  ])(
+    "is refused when it is %s, with what to change",
+    async (_when, moments, where) => {
+      const built = await buildOf({
+        "code-style": { ...moments, tier: "authoritative" },
+      });
+
+      expect(built.problems).toEqual([refusal(where)]);
+    }
+  );
+
+  it.each([
+    ["on the pull request", { [PULL_REQUEST]: "required" }],
+    ["before a deployment", { "pre-deploy:production": "required" }],
+    ["on a schedule", { "continuous:production": "required" }],
+  ])("is accepted when it is required %s", async (_where, moments) => {
+    const register = await registerOf({
+      "code-style": { commit: "required", ...moments, tier: "authoritative" },
+    });
+
+    expect(entryOf(register, LINT).tier).toBe("authoritative");
+  });
+
+  it("is refused for each folder it is not required in beyond the author's machine", async () => {
+    const built = await buildOf({
+      "code-style": {
+        commit: "required",
+        tier: "authoritative",
+        parts: [
+          {
+            scope: "api",
+            command: ["ruff", "check", "."],
+            evidence: { locators: [{ path: "api/ruff.toml", line: 1 }] },
+          },
+        ],
+      },
+    });
+
+    expect(built.problems).toEqual([
+      refusal(ONLY_AT_COMMIT, ' for the folder "api"'),
     ]);
   });
 });

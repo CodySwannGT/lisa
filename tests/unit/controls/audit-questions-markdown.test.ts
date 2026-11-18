@@ -11,6 +11,7 @@
 import { describe, expect, it } from "vitest";
 
 import { parseQuestionBlock } from "../../../src/controls/audit-inline-answers.js";
+import { entryMarksLine } from "../../../src/controls/audit-question-lines.js";
 import { renderGapsQuestionBlock } from "../../../src/controls/audit-questions-markdown.js";
 import { renderAuditReportMarkdown } from "../../../src/controls/audit-report-markdown.js";
 import {
@@ -31,6 +32,7 @@ import {
   CRITERIA,
   FIRST,
   PART_FIRST,
+  typedAnswers,
   WHOLE,
 } from "./audit-report-facts.js";
 
@@ -58,15 +60,34 @@ const TRACKER_WITH_CANDIDATES = {
 };
 
 /**
- * Validate a sample report and hand back the typed one.
+ * Validate a sample report and hand back the typed one. Its answers are
+ * taken as typed by a person, which is what makes them answers.
  * @param sample - A report expected to pass
  * @returns The report
  * @throws {Error} When the sample does not pass, so a case cannot render junk
  */
 function typed(sample: SampleReport): AuditReport {
-  const { report, violations } = validateAuditReport(sample, context());
+  const answers = (sample.answers ?? []).map(answer => ({
+    id: String(answer.id),
+    question: String(answer.question),
+    answer: String(answer.answer),
+  }));
+  const { report, violations } = validateAuditReport(
+    sample,
+    context({ inlineAnswers: typedAnswers(answers) })
+  );
   if (report === null) throw new Error(JSON.stringify(violations));
   return report;
+}
+
+/**
+ * An entry's lines followed by the comment line of marks Lisa writes under
+ * it. What that line holds is pinned in `audit-question-lines.test.ts`.
+ * @param lines - The entry's lines, from its heading on
+ * @returns The lines as rendered
+ */
+function withMarks(lines: readonly string[]): readonly string[] {
+  return [...lines, entryMarksLine(lines)];
 }
 
 /**
@@ -99,14 +120,16 @@ describe("an open question in the readable report", () => {
       "",
       "## Open questions (type each answer on its Answer line, then run the audit again)",
       "",
-      TRACKER_HEADING,
-      "",
-      TRACKER_LINE,
-      "- **Candidates**:",
-      "  - GitHub Issues. Found: The address of the remote named origin is on github.com.",
-      "  - Jira. Found: Two commit messages start with a key such as OPS-12.",
-      "- **Answer**: _(human fills in)_",
-      "- **Status**: open",
+      ...withMarks([
+        TRACKER_HEADING,
+        "",
+        TRACKER_LINE,
+        "- **Candidates**:",
+        "  - GitHub Issues. Found: The address of the remote named origin is on github.com.",
+        "  - Jira. Found: Two commit messages start with a key such as OPS-12.",
+        "- **Answer**: _(human fills in)_",
+        "- **Status**: open",
+      ]),
       "",
       END,
     ]);
@@ -182,17 +205,21 @@ describe("an answered question in the readable report", () => {
       "",
       "## Answered questions (to change an answer, edit its Answer line, then run the audit again)",
       "",
-      TRACKER_HEADING,
+      ...withMarks([
+        TRACKER_HEADING,
+        "",
+        TRACKER_LINE,
+        "- **Answer**: Jira, the OPS board",
+        "- **Status**: absorbed",
+      ]),
       "",
-      TRACKER_LINE,
-      "- **Answer**: Jira, the OPS board",
-      "- **Status**: absorbed",
-      "",
-      `### ${FIRST_ID}`,
-      "",
-      "- **Question**: Who decides what happens when this goes wrong?",
-      "- **Answer**: The head of engineering",
-      "- **Status**: absorbed",
+      ...withMarks([
+        `### ${FIRST_ID}`,
+        "",
+        "- **Question**: Who decides what happens when this goes wrong?",
+        "- **Answer**: The head of engineering",
+        "- **Status**: absorbed",
+      ]),
       "",
       END,
     ]);

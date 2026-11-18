@@ -124,6 +124,9 @@ describe("required checks derived from the control register", () => {
     const derived = derive({
       [CODE_STYLE]: {
         "pull-request": "optional",
+        // Required before a deployment, which is what lets the gate call
+        // itself authoritative; on a pull request it is only optional.
+        "pre-deploy:production": "required",
         tier: "authoritative",
         parts: [
           {

@@ -6,6 +6,13 @@
  * `exists-not-enforced`) must carry at least one such pointer, and every
  * pointer in the report, whatever the finding's state, must lead to an
  * existing line: a pointer that leads nowhere is a claim nobody can check.
+ *
+ * A pointer must also lead to something the repository itself holds. The
+ * audit's own report, the records Lisa's commands write and git's own data
+ * exist whatever the repository does, so a line in one of them shows nothing
+ * about a control, and the attest step would otherwise record a requirement
+ * as met on the strength of it. Which places those are, and the two
+ * exceptions, is decided in `../repository-reader.ts`.
  * @module controls/audit-report-rules/locators
  */
 import {
@@ -14,7 +21,10 @@ import {
   type AuditReportRule,
 } from "../audit-report-types.js";
 import { findingViolation } from "../audit-report-wording.js";
-import type { RepositoryReader } from "../repository-reader.js";
+import {
+  recordKeepingPlace,
+  type RepositoryReader,
+} from "../repository-reader.js";
 
 /** The name this rule's violations carry. */
 export const LOCATORS_RULE = "locators";
@@ -29,6 +39,10 @@ function dangling(
   locator: AuditLocator,
   repository: RepositoryReader
 ): string | null {
+  const place = recordKeepingPlace(locator.path);
+  if (place !== null) {
+    return `The pointer ${locator.path} line ${locator.line} leads into ${place}. A file there cannot show that a control is in place. Point at the file of the repository that does, or choose another state.`;
+  }
   const pointer = `The pointer ${locator.path} line ${locator.line} leads nowhere`;
   const lines = repository.lineCount(locator.path);
   if (lines === null) {

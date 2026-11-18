@@ -7,8 +7,15 @@
  * (the check alone, absorb and then a pass, absorb and then a failure, an
  * agent that rewrites the record without the answers) and show the answer is
  * still there at the end of every one (CodySwannGT/lisa#4980).
+ *
+ * The other direction is held as strictly: an answer in the record counts
+ * only while a file a person types in still holds the same words on that
+ * question's answer line. A record that holds answers with no readable
+ * report beside it used to pass, which let an agent write the answers
+ * itself, and let a deleted report be rendered again as if a person had just
+ * typed in it (CodySwannGT/lisa#4978).
  */
-import { rmSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -40,6 +47,7 @@ const GITHUB = "GitHub Issues";
 const HEAD = "The head of engineering";
 const TYPED = `- **Answer**: ${GITHUB}`;
 const ABSORB = "`lisa controls report-check --absorb`";
+const ASKED = "Which tracker is used?";
 
 /**
  * The lines of the readable report from one heading to the next.
@@ -246,16 +254,14 @@ describe("an answer nobody typed", () => {
     writeAuditReport(repoPath, {
       ...completeAuditReport(),
       questions: [],
-      answers: [
-        { id: "tracker", question: "Which tracker is used?", answer: "Jira" },
-      ],
+      answers: [{ id: "tracker", question: ASKED, answer: "Jira" }],
     });
 
     const run = await check(repoPath);
 
     expect(run.code).toBe(1);
     expect(run.stderr[0]).toBe(
-      `The record holds an answer to "Which tracker is used?" that is not written in ${REPORT_MD}. Only an answer a person typed in the report is recorded: remove it from "answers".`
+      `The record holds an answer to "${ASKED}" that is not written in ${REPORT_MD}. Only an answer a person typed in the report is recorded: remove it from "answers".`
     );
     expect(fileOf(repoPath, AUDIT_REPORT_JSON_PATH)).toContain(`"Jira"`);
   });
@@ -275,20 +281,22 @@ describe("an answer nobody typed", () => {
     );
   });
 
-  it("is accepted from a record that has no readable report beside it yet", async () => {
+  it("is refused from a record that has no readable report beside it, because nothing shows a person typed it", async () => {
     const repoPath = await audited(completeAuditReport());
     rmSync(path.join(repoPath, REPORT_MD));
     writeAuditReport(repoPath, {
       ...completeAuditReport(),
       questions: [],
-      answers: [
-        { id: "tracker", question: "Which tracker is used?", answer: "Jira" },
-      ],
+      answers: [{ id: "tracker", question: ASKED, answer: "Jira" }],
     });
 
     const run = await check(repoPath);
 
-    expect(run.code).toBe(0);
-    expect(fileOf(repoPath, REPORT_MD)).toContain("- **Answer**: Jira");
+    expect(run.code).toBe(1);
+    expect(run.stdout).toEqual([]);
+    expect(run.stderr[0]).toBe(
+      `The record holds an answer to "${ASKED}", but ${REPORT_MD} is not there, so nothing shows that a person typed it. Put the file back as it was, or remove the answer from "answers" so that the audit asks the question again.`
+    );
+    expect(existsSync(path.join(repoPath, REPORT_MD))).toBe(false);
   });
 });
