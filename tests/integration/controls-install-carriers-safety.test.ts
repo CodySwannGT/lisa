@@ -149,7 +149,7 @@ describe("install-carriers and files it did not write", () => {
     expect(readFileSync(hook, "utf8")).toBe(program);
   });
 
-  it("leaves a hook that ends by handing over as it is, and says why", async () => {
+  it("leaves a hook that hands over to another program as it is, and says why", async () => {
     const built = declared();
     const hook = path.join(gitHooksFolder(built.root), "pre-commit");
     const script = '#!/bin/sh\nexec some-other-program "$@"\n';
@@ -158,7 +158,7 @@ describe("install-carriers and files it did not write", () => {
     const run = await installCarriers(built.root);
 
     expect(run.result?.enforcement_points[0]?.reason).toMatch(
-      /ends with "exec", so anything added after its last line would never run/u
+      /can leave at line 2 before its end \(an "exec" there hands over to another program\), so lines added at its end might never run/u
     );
     expect(readFileSync(hook, "utf8")).toBe(script);
   });

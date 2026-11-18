@@ -258,3 +258,28 @@ describe("which agents a run carries", () => {
     });
   });
 });
+
+describe("how each agent is told a write failed, as the result records it", () => {
+  // Cursor's hook cannot stop the agent: it exits 0 and hands the failure
+  // over as added context, which the agent reads and may go on from. The
+  // result says so on the point itself (`refusal`), so that whatever reports
+  // on enforcement can tell an advisory refusal from one that stops the
+  // agent, without knowing the agents.
+  it("marks Cursor's as added context and the others as what stops the agent", async () => {
+    const built = declared();
+    const agents = ["claude", "cursor", "opencode"];
+
+    const run = await installForAgents(built.root, agents);
+
+    expect(
+      agents.map(agent => {
+        const point = agentPoint(run, agent);
+        return [agent, point.outcome, point.refusal, point.refusal_evidence];
+      })
+    ).toEqual([
+      ["claude", "installed", "exit-2", "documented"],
+      ["cursor", "installed", "additional-context", "documented"],
+      ["opencode", "installed", "thrown-error", "measured"],
+    ]);
+  });
+});

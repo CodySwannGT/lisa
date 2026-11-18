@@ -1594,11 +1594,23 @@ that called a runner that is not there would stop every commit. The record
 holds nothing that differs between two checkouts of the same commit, so it is
 committed.
 
+**A file it may not change is found before anything is written.** Every write
+is planned first. A file the person running the command has no permission to
+change is found while planning: a hook file like that is one `blocked` point
+with a sentence, and the rest of the run goes ahead; a file every carrier
+needs (the runner, the record, `.gitignore`) stops the run with nothing
+written. A write can still fail for a reason planning cannot see. The run
+then gives no result (exit 1), does not undo the writes it made, and its last
+line lists them. It says "nothing was written" only when that is so.
+
 **The carrier is one short script per moment**, `.lisa/hooks/pre-commit` and
 `.lisa/hooks/pre-push`. It asks for Node first and, without it, stops the
 operation with one sentence naming Node; it never passes having checked
-nothing. Then it hands over to the runner with `--builtins=none`, passing the
-hook's arguments and standard input on untouched.
+nothing. Then it goes to the top folder of the checkout, which is two folders
+above the script wherever it was started from, and hands over to the runner
+with `--builtins=none`, passing the hook's arguments and standard input on
+untouched. A hook that changed folder before it called the carrier therefore
+still runs the checks, from the folder the declaration is written for.
 
 **The push carrier tells the runner what is being pushed only where it is
 sure to have all of it.** The runner leaves out a part a push does not touch
@@ -1633,16 +1645,65 @@ and the call to the carrier is added in the owner's own way:
 | Lefthook (`lefthook.yml` and its other names) | a `lisa-gates` command under the hook's `commands` |
 | the pre-commit framework (`.pre-commit-config.yaml`) | one `repo: local` entry at the end of `repos` |
 | a hook written by hand in git's hooks folder | marked lines at the end of that hook file |
-| nothing | `core.hooksPath` is set to `.lisa/hooks` in this checkout |
+| nothing | `core.hooksPath` is set to `.lisa/hooks` in the repository's own configuration, which is not committed |
 
 In a shell hook the added lines begin by reading the exit status of whatever
 ran above them, so a hook that failed before still fails, with the same
 status, and the carrier does not run. A hook manager's YAML file is added to
 by line, never parsed and rewritten, and the result is kept only when it
 parses to exactly what the file meant before plus the one entry. A file that
-cannot be added to safely — not a shell script, ending in `exec` or `exit`,
-outside the repository, or replaced by Lisa on every update — is left as it
-is, and the point is reported `blocked` with what to add by hand.
+cannot be added to safely — not a shell script, not started by git, in a
+folder outside the checkout that `core.hooksPath` names, or replaced by Lisa
+on every update — is left as it is, and the point is reported `blocked`.
+
+**Lines added to a hook have to be reached.** A hook that leaves before its
+end takes the added lines with it: the result would say `installed` and every
+commit would pass unchecked. So every line above the place the call goes is
+read (`src/controls/carrier-hook-reach.ts`), and the hook is left as it is,
+with the point `blocked`, when one of them can end it:
+
+- `exec <program>` anywhere. An `exec` that only redirects (`exec < /dev/tty`)
+  is accepted.
+- any `exit`, except the last part of `|| exit <non-zero>` (`|| exit 1`,
+  `|| exit $?`, `|| exit`), which leaves only after a failure, with a failure.
+
+An `exit 1` inside an `if` is refused as well. It would be safe, but proving
+which exits are safe means following the shell's control flow, and a wrong
+proof is a commit that passes unchecked; refusing costs one paste. The reader
+follows quotes, comments and here-documents, so `npm exec` and an `exit` in a
+message are not taken for commands. It does not follow a file the hook reads
+in, `eval`, or a function called later. The blocked point names the line and
+carries the lines to add by hand, the two marker lines included: placed where
+they always run, a later run finds them by the markers and reports the point
+as wired, and `lisa controls reconcile` reads them as Lisa's.
+
+The same questions are asked of a hook that already holds the lines. A hook
+changes after it was wired: someone adds an `exit 0` above the lines, or the
+file loses its permission to be started. Such a point is `blocked`, not
+`already-wired`.
+
+**The call holds in a checkout it was not written for.** Git's own hooks
+folder serves every working tree of a repository and every branch checked out
+in one, so the lines added there outlive the commit they were added on. They
+depend on neither the folder the shell is in nor the carrier being there:
+
+- They ask git for the top folder of the checkout and start the carrier from
+  there. They ask twice. In a linked working tree git names its own folder to
+  the hook and not the top folder, so once the hook has changed folder git
+  answers with the folder the shell is in (measured on git 2.56); asked again
+  without what git named, it finds the top folder from where the shell is.
+  The first answer that holds the carrier is used.
+- The carrier is there: it runs, and its exit status is the hook's.
+- The carrier is not there, and the commit checked out does not contain it:
+  one sentence on standard error says the declared checks did not run in this
+  checkout and why, and the commit or push goes through. A branch that never
+  had Lisa's files has to stay usable.
+- The carrier is not there in any other case: the commit or push stops with a
+  sentence. That is a carrier removed from a checkout whose commit has it.
+
+The commit is what is asked because carrier files are committed: "this
+checkout never had the carrier" is "the checked-out commit does not contain
+`.lisa/hooks/pre-commit`".
 
 **Where a project type's own hook already calls the runner with
 `--coverage`, nothing is added.** A second call would run every gate twice.
@@ -1654,6 +1715,42 @@ checkout. `--check` exits 3 in such a clone and names the setting, which is
 how a later reconcile step can tell. The same holds for a hook manager that
 is set up in the repository but not switched on in a checkout: the carrier is
 declared, and the point is `blocked` with the manager's own install command.
+A manager counts as switched on when the hook git runs is the one the manager
+itself generates, told by what only the manager writes there: the line
+`File generated by pre-commit`, or Lefthook's `call_lefthook` (in its earliest
+versions `lefthook run`) on a line that is not a comment. The manager's name
+alone proves nothing: a hook written by hand can mention it in a comment.
+
+**What one checkout wires, every working tree of the repository may use.**
+Git's own hooks folder and the repository's configuration belong to the
+repository, not to one working tree. Installing through a linked working tree
+writes the hook in the main repository's hooks folder, and where nothing owns
+hooks `core.hooksPath` is set in the configuration all of them read. Both are
+still written, because the call holds in the other checkouts (above), and the
+result says so in one sentence whenever the repository has more than one
+working tree: that the hook is shared by every checkout of this repository,
+or that the setting is.
+
+**No path of the operator's machine is printed.** A result is saved, passed
+to the enforce report and shown to people. A path inside the checkout is
+written from the repository root. A hook in git's shared folder, which is
+outside the top folder in a linked working tree, is written
+`<git-common-dir>/hooks/pre-commit` (`git rev-parse --git-common-dir` prints
+the folder). Anything else outside the checkout is named by its file name
+alone, `<outside the checkout>/pre-commit`.
+
+**The pre-commit framework's stages are written in the names the file uses.**
+The framework renamed its stages in 3.2.0 (`commit` to `pre-commit`, `push`
+to `pre-push`), and a version before that refuses a whole configuration that
+names a stage it does not know. Which version each person runs cannot be seen
+from the file, so nothing is guessed. The old names are written when the file
+asks for a version before 3.2.0 (`minimum_pre_commit_version`) or already
+uses an old name (`commit` or `push` in `default_stages` or in a hook's
+`stages`): such a file works today with whatever version its people run, and
+the carriers are added in the names it already works with. In every other
+file the new names are written. Neither case was measured against an old
+version of the framework; the rule only keeps the carriers from being the
+first entry in a file to use a name the rest of it does not.
 
 The command prints one JSON document on stdout: one entry per enforcement
 point, carrying the `location` and `moment` the register uses for the same
@@ -1726,11 +1823,17 @@ carries the row's last two columns on every agent point (`refusal`,
 **A settings file is added to, never rewritten.** Claude Code, Codex, Cursor
 and Devin read a file the repository may already own. One entry is added to
 the one list it belongs in, in the file's own indentation, and every other
-byte stays: other keys, other hooks, comments. Lisa's entry is recognised by
-its command, compared exactly, so no marker key is added to a schema Lisa does
-not own. A file that is not JSON, or whose list is not a list, is left as it
-is; that agent's point is `blocked` and the reason holds the exact entry to
-add by hand. Copilot and OpenCode read a file of their own from a folder, so
+byte stays: other keys, other hooks, comments, and an entry beside Lisa's
+that the repository wrote on one line. The text is edited by position
+(`src/controls/carrier-json-place.ts`) and not through a JSON editor that
+formats what it writes, because such an editor formats whole lines and
+reflows whatever shares a line with the entry. The edited text is used only
+when it parses to exactly what the file meant before, with Lisa's own
+handlers taken out and the entry added. Lisa's entry is recognised by its
+command, compared exactly, so no marker key is added to a schema Lisa does
+not own. A file that is not JSON, whose list is not a list, or that cannot be
+added to without changing what it means, is left as it is; that agent's point
+is `blocked` and the reason holds the exact entry to add by hand. Copilot and OpenCode read a file of their own from a folder, so
 Lisa places a whole file there under its own name and lists it in the record.
 
 **What the carrier does.** It checks for Node and refuses, naming Node, when

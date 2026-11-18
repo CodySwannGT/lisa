@@ -16,18 +16,26 @@
  *
  * The file is refused, and left exactly as it is, whenever lines added at
  * its end would not do that: it is not a shell script, git does not run it,
- * or it ends by handing over to another program.
+ * or a line above the place can end the hook before the added lines are
+ * reached (`./carrier-hook-reach.ts`).
+ *
+ * The same questions are asked of a hook that already holds the lines. A
+ * hook changes after the day it was wired: someone adds an `exit 0` above
+ * the lines, or the file loses its permission to be started. Reporting such
+ * a hook as wired would be reporting checks that no longer run.
  * @module controls/carrier-shell-hook
  */
 import path from "node:path";
 
 import { fileEdit, fileState, type FileState } from "./carrier-edits.js";
-import { shownPath } from "./carrier-owner.js";
+import { earlyLeave, type EarlyLeave } from "./carrier-hook-reach.js";
 import {
   carrierCall,
-  carrierCallLine,
+  carrierCallBlock,
+  carrierMarkers,
   findMarkedBlock,
   withMarkedBlock,
+  type MarkedBlock,
 } from "./carrier-script.js";
 import {
   CARRIER_RUNNER_FILE,
@@ -50,8 +58,8 @@ const REPLACED_EACH_RUN = "managed by Lisa and IS replaced";
 
 /** One hook file to add the call to. */
 export interface ShellHook {
-  /** Real path of the repository. */
-  readonly root: string;
+  /** How the file is named to a person: never a path of the machine. */
+  readonly shown: string;
   /** The moment the hook runs at. */
   readonly moment: CarrierMoment;
   /** Who owns the file. */
@@ -126,62 +134,75 @@ function interpreter(text: string): string | null {
 }
 
 /**
- * The last line of a script that does something.
- * @param text - The script
- * @returns The line, trimmed; empty when the script does nothing
+ * Say that a line above the call can end the hook before the call runs.
+ * @param hook - The hook file
+ * @param leave - The line, and what is on it
+ * @param present - Whether the file already holds the call
+ * @returns The reason, ending with what a person does about it
  */
-function lastCommand(text: string): string {
-  return (
-    text
-      .split("\n")
-      .map(line => line.trim())
-      .filter(line => line !== "" && !line.startsWith("#"))
-      .at(-1) ?? ""
-  );
+function unreachable(
+  hook: ShellHook,
+  leave: EarlyLeave,
+  present: boolean
+): string {
+  const { begin, end } = carrierMarkers(hook.moment);
+  const lines = present
+    ? "the lines this command added there"
+    : "lines added at its end";
+  if (leave.word === "open") {
+    return `${hook.shown} opens a quote or a here-document at line ${leave.line} that is still open where the call goes, so ${lines} would be read as text and might never run. It was left as it is. Close it, then run this again.`;
+  }
+  const what =
+    leave.word === "exec"
+      ? 'an "exec" there hands over to another program'
+      : 'an "exit" there is not the last part of "|| exit <non-zero>"';
+  const left = `${hook.shown} can leave at line ${leave.line} before its end (${what}), so ${lines} might never run. It was left as it is.`;
+  return present
+    ? `${left} Move the lines from "${begin}" to "${end}", those two included, above line ${leave.line} by hand.`
+    : `${left} Add these lines to it by hand where they run before the hook can leave, the two marker lines included:\n${carrierCallBlock(hook.moment)}`;
 }
 
 /**
- * Say why the call cannot be added to an existing hook file.
+ * Say why git does not reach the call in an existing hook file, whether the
+ * call is in it already or is about to be added.
  * @param hook - The hook file
- * @param shown - How the file is named to a person
  * @param state - What is in the file
- * @param text - Its content
- * @returns The reason, or `null` when it can be added
+ * @param lines - Its content, one item per line
+ * @param marked - Where the call is in it, when it is
+ * @returns The reason, or `null` when the call is reached
  */
 function refusal(
   hook: ShellHook,
-  shown: string,
   state: FileState,
-  text: string
+  lines: readonly string[],
+  marked: MarkedBlock
 ): string | null {
-  const byHand = `Add this line to it by hand, where it will run after the existing checks: ${carrierCallLine(hook.moment)}`;
+  const text = lines.join("\n");
   if (isReplacedByLisa(text)) {
-    return `${shown} is replaced by Lisa on every update, so a line added to it would be lost. Nothing was added; this repository's project type has to call the gate runner itself.`;
+    return `${hook.shown} is replaced by Lisa on every update, so a line added to it would be lost. Nothing was added; this repository's project type has to call the gate runner itself.`;
   }
   const program = interpreter(text);
   if (program === null ? !hook.startedBySh : !SHELLS.includes(program)) {
-    return `${shown} is not a shell script, so the gate runner cannot be added after what it already does without changing it. It was left as it is. Start the existing program from a shell script, then run this again.`;
+    return `${hook.shown} is not a shell script, so the gate runner cannot be added after what it already does without changing it. It was left as it is. Start the existing program from a shell script, then run this again.`;
   }
   if (!state.executable && !hook.startedBySh) {
-    return `${shown} is not marked executable, so git does not run it. It was left as it is. Make it executable or remove it, then run this again.`;
+    return `${hook.shown} is not marked executable, so git does not run it. It was left as it is. Make it executable or remove it, then run this again.`;
   }
-  return /^(?:exec|exit)\b/u.test(lastCommand(text))
-    ? `${shown} ends with "${lastCommand(text).split(/\s+/u)[0] ?? ""}", so anything added after its last line would never run. It was left as it is. ${byHand}`
-    : null;
+  const present = marked.problem === null && marked.found;
+  const leave = earlyLeave(
+    present ? lines.slice(0, marked.start).join("\n") : text
+  );
+  return leave === null ? null : unreachable(hook, leave, present);
 }
 
 /**
  * Plan the call in a hook file that is not there yet or already holds text.
  * @param hook - The hook file
- * @param shown - How the file is named to a person
  * @param state - What is in the file
  * @returns The plan
  */
-function planCall(
-  hook: ShellHook,
-  shown: string,
-  state: FileState
-): ShellHookPlan {
+function planCall(hook: ShellHook, state: FileState): ShellHookPlan {
+  const { shown } = hook;
   const point = (
     call: PointPlan["call"],
     blocked: string | null,
@@ -200,11 +221,11 @@ function planCall(
       point: point("present", hook.notSwitchedOn, STACK_HOOK),
     };
   }
-  const marked = findMarkedBlock(text.split("\n"), hook.moment);
+  const lines = text.split("\n");
   const refused =
-    state.content === null || (marked.problem === null && marked.found)
+    state.content === null
       ? null
-      : refusal(hook, shown, state, text);
+      : refusal(hook, state, lines, findMarkedBlock(lines, hook.moment));
   if (refused !== null) return { edits: [], point: point("absent", refused) };
   const written = withMarkedBlock(
     state.content === null ? `${SHEBANG}\n` : text,
@@ -244,7 +265,7 @@ function planCall(
  * @returns What the point becomes and the write that makes it so
  */
 export async function wireShellHook(hook: ShellHook): Promise<ShellHookPlan> {
-  const shown = shownPath(hook.root, hook.file);
+  const { shown } = hook;
   const state = await fileState(hook.file);
   if (state.kind !== "missing" && state.kind !== "file") {
     return {
@@ -258,5 +279,5 @@ export async function wireShellHook(hook: ShellHook): Promise<ShellHookPlan> {
       },
     };
   }
-  return planCall(hook, shown, state);
+  return planCall(hook, state);
 }

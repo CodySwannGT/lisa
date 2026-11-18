@@ -2,15 +2,41 @@
  * The text of a carrier, and the markers that let it be found again.
  *
  * Two texts are written. The carrier itself is a short POSIX `sh` script, one
- * per moment, in Lisa's own hook folder: it checks that Node is there, then
- * hands over to the gate runner with the hook's arguments and standard input
- * untouched. The call is the few lines added to a hook file the repository
- * already has, so that file's own content keeps running first and keeps
- * deciding whether the hook fails.
+ * per moment, in Lisa's own hook folder: it checks that Node is there, goes
+ * to the top folder of the checkout, then hands over to the gate runner with
+ * the hook's arguments and standard input untouched. The call is the few
+ * lines added to a hook file the repository already has, so that file's own
+ * content keeps running first and keeps deciding whether the hook fails.
  *
  * Everything this command writes into a file it does not own sits between a
  * begin marker and an end marker. The markers are how a later run finds the
  * lines, replaces them in place, and how a person removes them.
+ *
+ * ## Where the call looks for the carrier
+ *
+ * The call runs at the end of somebody else's hook, and that hook file may
+ * outlive the checkout it was written for: git's own hooks folder serves
+ * every working tree of a repository and every branch checked out in one.
+ * So the call depends on neither the folder the shell is in nor the carrier
+ * being there:
+ *
+ * - It asks git for the top folder of the checkout and looks for the carrier
+ *   there. It asks twice, because both answers are wrong somewhere. In a
+ *   linked working tree git names its own folder to the hook and not the top
+ *   folder, so after the hook changed folder git answers with the folder the
+ *   shell is in (measured on git 2.56). Asked again without what git named,
+ *   it finds the top folder from where the shell is. The first answer that
+ *   holds the carrier is used.
+ * - The carrier is there: it is started, and its exit status is the hook's.
+ * - The carrier is not there, and the commit checked out does not contain
+ *   it: one sentence says the declared checks did not run, and the hook goes
+ *   on. A branch that never had Lisa's files has to stay usable.
+ * - The carrier is not there in any other case (it was removed from a
+ *   checkout whose commit has it, or git cannot say): the hook stops with a
+ *   sentence. Carrier files are committed, which is why the commit is what
+ *   is asked.
+ *
+ * Nothing of the host's is written into either text: every word is fixed.
  *
  * ## What the push carrier says about the push
  *
@@ -114,6 +140,11 @@ function changeLines(moment: CarrierMoment): readonly string[] {
  * It asks for Node before anything else, because the runner is a Node
  * program: without Node the operation must stop with a sentence that names
  * what is missing, never pass having checked nothing.
+ *
+ * Then it goes to the top folder of the checkout, which is two folders above
+ * the script wherever it was started from, and only there looks for the
+ * runner. A hook that changed folder before calling it would otherwise have
+ * every commit stopped for a runner that is in its place.
  * @param moment - The moment
  * @returns The script, ending with a newline
  */
@@ -126,15 +157,15 @@ export function carrierScript(moment: CarrierMoment): string {
     "#!/bin/sh",
     begin,
     `# Runs the checks this repository declares for a ${operation} (the "gates"`,
-    `# block of .lisa.config.json) and stops the ${operation} when a required`,
-    "# check is not proved.",
+    "# block of .lisa.config.json), from the top folder of the checkout, and",
+    `# stops the ${operation} when a required check is not proved.`,
     `# Written by "${INSTALL_CARRIERS_INVOCATION}". Run that again to change it.`,
     "if ! command -v node >/dev/null 2>&1; then",
     `  echo "${stopped} Node.js is missing (no \\"node\\" program on PATH), and ${checks} cannot run without it." >&2`,
     "  exit 1",
     "fi",
-    `if [ ! -f ${CARRIER_RUNNER_PATH} ]; then`,
-    `  echo "${stopped} ${CARRIER_RUNNER_PATH} is missing, so ${checks} cannot run; run \\"${INSTALL_CARRIERS_INVOCATION}\\" to put it back." >&2`,
+    `if ! CDPATH= cd -- "$(dirname -- "$0")/../.." || [ ! -f ${CARRIER_RUNNER_PATH} ]; then`,
+    `  echo "${stopped} ${CARRIER_RUNNER_PATH} is missing from the top folder of this checkout, so ${checks} cannot run; run \\"${INSTALL_CARRIERS_INVOCATION}\\" to put it back." >&2`,
     "  exit 1",
     "fi",
     ...changeLines(moment),
@@ -145,8 +176,8 @@ export function carrierScript(moment: CarrierMoment): string {
 }
 
 /**
- * The one line that starts the carrier from a hook file the repository owns,
- * after that file's own content.
+ * The one line that starts the carrier once the call has found it, from a
+ * hook file the repository owns, after that file's own content.
  *
  * At push, that content may have read part of what git wrote on standard
  * input, and nothing can put it back. So the line says so
@@ -156,11 +187,35 @@ export function carrierScript(moment: CarrierMoment): string {
  * @param moment - The moment
  * @returns The line, which fails the hook when the carrier fails
  */
-export function carrierCallLine(moment: CarrierMoment): string {
-  const script = carrierScriptPath(moment);
+export function carrierStartLine(moment: CarrierMoment): string {
   return moment === "push"
-    ? `${PUSH_STDIN_USED}=1 sh ${script} "$@" </dev/null || exit $?`
-    : `sh ${script} "$@" || exit $?`;
+    ? `${PUSH_STDIN_USED}=1 sh "$lisa_carrier" "$@" </dev/null || exit $?`
+    : 'sh "$lisa_carrier" "$@" || exit $?';
+}
+
+/**
+ * The lines that find the carrier from the top folder of the checkout.
+ *
+ * Git is asked for that folder twice: as it names the checkout to the hook,
+ * and again with what it named taken away, so that it searches from the
+ * folder the shell is in. The first answer that holds the carrier is used.
+ * @param script - The carrier, from the top folder
+ * @returns The lines, which leave the carrier's path in `lisa_carrier`, or
+ *   leave it empty
+ */
+function findCarrierLines(script: string): readonly string[] {
+  const asNamed = "git rev-parse --show-toplevel 2>/dev/null";
+  return [
+    "# The carrier is looked for from the top folder of this checkout, wherever",
+    "# the lines above left the shell: as git names that folder to this hook,",
+    "# then as git finds it from the folder the shell is in.",
+    "lisa_carrier=",
+    `for lisa_top in "$(${asNamed})" "$(unset GIT_DIR GIT_WORK_TREE; ${asNamed})"; do`,
+    `  if [ -z "$lisa_carrier" ] && [ -n "$lisa_top" ] && [ -f "$lisa_top/${script}" ]; then`,
+    `    lisa_carrier="$lisa_top/${script}"`,
+    "  fi",
+    "done",
+  ];
 }
 
 /**
@@ -169,13 +224,20 @@ export function carrierCallLine(moment: CarrierMoment): string {
  * The first command reads the exit status of whatever ran last above it. A
  * hook whose own content failed therefore still fails, with the same status,
  * and the carrier does not run.
+ *
+ * The rest finds the carrier and starts it, and says what happened when it
+ * is not there; the module's own description says why each case ends the way
+ * it does.
  * @param moment - The moment
  * @returns The lines between the markers
  */
 export function carrierCall(moment: CarrierMoment): readonly string[] {
+  const script = carrierScriptPath(moment);
+  const operation = OPERATION[moment];
+  const checks = `the checks this repository requires before a ${operation}`;
   return [
     `# Added by "${INSTALL_CARRIERS_INVOCATION}". When everything above has`,
-    `# passed, this runs the checks the repository declares for a ${OPERATION[moment]}.`,
+    `# passed, this runs the checks the repository declares for a ${operation}.`,
     ...(moment === "push"
       ? [
           "# What is above may have read some of what git said is being pushed, so",
@@ -184,8 +246,32 @@ export function carrierCall(moment: CarrierMoment): readonly string[] {
       : []),
     "lisa_status=$?",
     '[ "$lisa_status" -eq 0 ] || exit "$lisa_status"',
-    carrierCallLine(moment),
+    ...findCarrierLines(script),
+    'if [ -n "$lisa_carrier" ]; then',
+    `  ${carrierStartLine(moment)}`,
+    `elif git rev-parse --git-dir >/dev/null 2>&1 && ! git cat-file -e "HEAD:${script}" 2>/dev/null; then`,
+    "  # A branch that never had the carrier stays usable.",
+    `  echo "${capitalised(checks)} did not run in this checkout: the commit checked out here does not contain ${script}, the script that runs them." >&2`,
+    "else",
+    `  echo "${capitalised(operation)} stopped: ${script}, the script that runs ${checks}, could not be found in this checkout. Run \\"${INSTALL_CARRIERS_INVOCATION}\\" to put it back." >&2`,
+    "  exit 1",
+    "fi",
   ];
+}
+
+/**
+ * The call with its two marker lines, as a person adds it by hand to a hook
+ * this command will not write to.
+ *
+ * The markers are part of what is handed over: a later run finds the lines
+ * by them and reports the hook as wired, and `lisa controls reconcile` reads
+ * them as Lisa's and not as a check of the repository's own.
+ * @param moment - The moment
+ * @returns The lines, one per line, with no line break at the end
+ */
+export function carrierCallBlock(moment: CarrierMoment): string {
+  const { begin, end } = carrierMarkers(moment);
+  return [begin, ...carrierCall(moment), end].join("\n");
 }
 
 /** Where a marked block is in a file, or why it cannot be used. */

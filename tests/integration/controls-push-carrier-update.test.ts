@@ -39,7 +39,9 @@ import {
 const PUSH_SCRIPT = ".lisa/hooks/pre-push";
 const UPDATED = "updated";
 const ALREADY_WIRED = "already-wired";
-const HOST_HOOK = "#!/bin/sh\necho the repository's own push check\n";
+// Quoted: an apostrophe on its own opens a quote that nothing closes, and
+// the lines added after it would then be text, which the command refuses.
+const HOST_HOOK = '#!/bin/sh\necho "the repository\'s own push check"\n';
 const { begin: BEGIN, end: END } = carrierMarkers("push");
 
 const cleanups: Array<() => void> = [];

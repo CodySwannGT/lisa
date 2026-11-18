@@ -180,4 +180,17 @@ describe("agents read from the harness setting", () => {
     expect(read.problems?.[0]).toContain("cannot be read");
     expect(read.problems?.[0]).toContain(HOW_TO_NAME);
   });
+
+  it("say why the file is not JSON without repeating what it holds", async () => {
+    // A JSON parser quotes a few characters either side of the place it
+    // stopped. The file is the repository's and may hold anything, so none
+    // of it is printed.
+    const read = await fromHarness('{ "harness": "claude", "note": KEPT }');
+    const [problem = ""] = read.problems ?? [];
+
+    expect(problem).toContain("could not be read as JSON");
+    expect(problem).toContain("Unexpected token");
+    expect(problem).not.toContain("note");
+    expect(problem).not.toContain("KEPT");
+  });
 });

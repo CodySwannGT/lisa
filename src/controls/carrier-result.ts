@@ -23,6 +23,7 @@
  * @module controls/carrier-result
  */
 import { describeAgentPoints } from "./carrier-agent-result.js";
+import { HOOKS_PATH_SETTING } from "./carrier-git.js";
 import {
   ALREADY_WIRED,
   isAgentPlan,
@@ -31,6 +32,7 @@ import {
 } from "./carrier-outcome.js";
 import {
   CARRIER_HOOKS,
+  CARRIER_HOOKS_FOLDER,
   GIT_HOOK_LOCATION,
   STACK_HOOK,
   type CarrierOutcome,
@@ -187,17 +189,56 @@ function sentenceWithAgents(
   return [wrote(), git, agents].filter(part => part !== "").join(" ");
 }
 
+/** A git hook point as it was planned and as it is reported. */
+interface GitPair {
+  readonly planned: PointPlan;
+  readonly reported: CarrierPoint;
+}
+
+/**
+ * Say what a run wired that every other checkout of the repository uses too.
+ *
+ * Git's own hooks folder and the repository's configuration belong to the
+ * repository, not to one working tree. A person who wired one checkout has
+ * to be told the others now run the same hook, or look for hooks in the same
+ * folder.
+ * @param pairs - The git hook points, planned and reported
+ * @returns One sentence per thing that is shared; empty when nothing is
+ */
+function sharedSentence(pairs: readonly GitPair[]): string {
+  const wired = pairs.filter(pair => pair.reported.outcome !== "blocked");
+  const hooks = wired.flatMap(pair =>
+    pair.planned.shared === "hook" && pair.reported.hook !== null
+      ? [pair.reported.hook]
+      : []
+  );
+  const setting = wired.some(pair => pair.planned.shared === "setting");
+  return [
+    hooks.length === 0
+      ? ""
+      : `The ${hooks.join(" and ")} ${hooks.length === 1 ? "hook is" : "hooks are"} in git's own hooks folder, so ${hooks.length === 1 ? "it is" : "they are"} shared by every checkout of this repository.`,
+    setting
+      ? `${HOOKS_PATH_SETTING} lives in the configuration every checkout of this repository shares, so git looks for hooks in ${CARRIER_HOOKS_FOLDER} in each of them.`
+      : "",
+  ]
+    .filter(part => part !== "")
+    .join(" ");
+}
+
 /**
  * Work out the result of a run from its plan.
  * @param facts - What the run planned and did
  * @returns Everything in the result that depends on the plan
  */
 export function describeCarrierRun(facts: CarrierRunFacts): DescribedRun {
-  const gitPoints = facts.plans.flatMap(plan =>
-    plan.points.flatMap(point =>
-      isAgentPlan(point) ? [] : [reported(plan, point, facts)]
+  const gitPairs = facts.plans.flatMap(plan =>
+    plan.points.flatMap((point): readonly GitPair[] =>
+      isAgentPlan(point)
+        ? []
+        : [{ planned: point, reported: reported(plan, point, facts) }]
     )
   );
+  const gitPoints = gitPairs.map(pair => pair.reported);
   const agents = describeAgentPoints(facts);
   const points = [...gitPoints, ...agents.points];
   // An unenforceable point is in neither list: it is recorded, not failed.
@@ -214,10 +255,14 @@ export function describeCarrierRun(facts: CarrierRunFacts): DescribedRun {
     hook_owner: facts.plans[0]?.owner ?? "none",
     mode: facts.check ? "check" : "install",
     outcome,
-    reason:
+    reason: [
       agents.points.length === 0
         ? sentence(outcome, points, facts)
         : sentenceWithAgents(outcome, gitPoints, agents.sentence, facts),
+      sharedSentence(gitPairs),
+    ]
+      .filter(part => part !== "")
+      .join(" "),
     runner: runnerReport(facts),
   };
 }

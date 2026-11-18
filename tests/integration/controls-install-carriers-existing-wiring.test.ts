@@ -31,6 +31,7 @@ import { carrierCall } from "../../src/controls/carrier-script.js";
 import { CARRIERS_BLOCKED_EXIT_CODE } from "../../src/controls/commands/install-carriers.js";
 import { buildFPaved } from "../helpers/control-audit-fixtures.js";
 import {
+  gitHooksFolder,
   hostHookScript,
   installHusky,
   installManagerStandIn,
@@ -53,7 +54,9 @@ const SHIPPED_LEFTHOOK = path.join(
   REPO_ROOT,
   "rails/copy-overwrite/lefthook.yml"
 );
-const HOOKS = ["pre-commit", "pre-push"] as const;
+const COMMIT_HOOK = "pre-commit";
+const HOOKS = [COMMIT_HOOK, "pre-push"] as const;
+const LEFTHOOK_CONFIG = "lefthook.yml";
 const BLOCKED = ["blocked", "blocked"];
 const ALREADY_WIRED = "already-wired";
 const LEFTHOOK = "lefthook";
@@ -135,7 +138,7 @@ describe("install-carriers where a Lisa project type already calls the runner", 
 describe("install-carriers where a hook manager is not switched on", () => {
   it("declares the carrier, reports blocked, and passes once it is on", async () => {
     const built = owned();
-    const config = path.join(built.root, "lefthook.yml");
+    const config = path.join(built.root, LEFTHOOK_CONFIG);
     writeFileSync(
       config,
       `pre-commit:\n  commands:\n    host-check:\n      run: ${built.hostCommand}\n`
@@ -162,6 +165,45 @@ describe("install-carriers where a hook manager is not switched on", () => {
     expect(runs(built.commitRan)).toBe(before + 1);
   });
 
+  it.each([
+    {
+      config: ".pre-commit-config.yaml",
+      content:
+        "repos:\n  - repo: local\n    hooks:\n      - id: host-check\n        name: host check\n        entry: 'true'\n        language: system\n",
+      manager: "the pre-commit framework",
+      says: /The pre-commit framework is not switched on for the pre-commit hook in this checkout/u,
+    },
+    {
+      config: LEFTHOOK_CONFIG,
+      content: "pre-commit:\n  commands:\n    host-check:\n      run: 'true'\n",
+      manager: "Lefthook",
+      says: /Lefthook is not switched on for the pre-commit hook in this checkout/u,
+    },
+  ])(
+    "does not take a hook written by hand that only names $manager for the manager's own",
+    async ({ config, content, says }) => {
+      const built = owned();
+      writeFileSync(path.join(built.root, config), content);
+      // A hook someone wrote, which runs nothing of the manager's.
+      writeExecutable(
+        path.join(gitHooksFolder(built.root), COMMIT_HOOK),
+        "#!/bin/sh\n# our own pre-commit hook, kept from before lefthook\ntrue\n"
+      );
+
+      const run = await installCarriers(built.root);
+      commitInstalled(built.root);
+      const before = runs(built.commitRan);
+      const commit = commitLine(built.root, "# a harmless comment");
+
+      expect(run.code).toBe(CARRIERS_BLOCKED_EXIT_CODE);
+      expect(run.result?.enforcement_points[0]?.outcome).toBe("blocked");
+      expect(run.result?.enforcement_points[0]?.reason).toMatch(says);
+      // Nothing of the manager's runs at a commit here, so neither does the check.
+      expect(commit.status).toBe(0);
+      expect(runs(built.commitRan)).toBe(before);
+    }
+  );
+
   it("writes the call for Husky and says Husky is not switched on", async () => {
     const built = owned();
     const hook = path.join(built.root, HUSKY_HOOK);
@@ -175,7 +217,7 @@ describe("install-carriers where a hook manager is not switched on", () => {
       /Husky is not switched on in this checkout/u
     );
     expect(readFileSync(hook, "utf8")).toContain(
-      'sh .lisa/hooks/pre-commit "$@" || exit $?'
+      `# >>> lisa-carrier commit\n${carrierCall("commit").join("\n")}\n# <<< lisa-carrier commit\n`
     );
   });
 });
@@ -215,7 +257,7 @@ describe("install-carriers and hooks it may not write to", () => {
     const built = owned();
     const elsewhere = mkdtempSync(path.join(tmpdir(), "lisa-carrier-hooks-"));
     cleanups.push(() => rmSync(elsewhere, { force: true, recursive: true }));
-    const hook = path.join(elsewhere, "pre-commit");
+    const hook = path.join(elsewhere, COMMIT_HOOK);
     writeExecutable(hook, hostHookScript(built));
     operatorGit(built.root, ["config", "core.hooksPath", elsewhere]);
 
@@ -227,8 +269,9 @@ describe("install-carriers and hooks it may not write to", () => {
       BLOCKED
     );
     expect(run.result?.enforcement_points[0]?.reason).toMatch(
-      /which is outside the repository \(core\.hooksPath\).*by hand/u
+      /from a folder outside this checkout \(the one core\.hooksPath names;.*by hand/su
     );
+    expect(run.result?.enforcement_points[0]?.reason).not.toContain(elsewhere);
     expect(readFileSync(hook, "utf8")).toBe(hostHookScript(built));
     expect(run.result?.changes).toEqual([]);
     expect(dirt(built.root)).toBe("");
@@ -236,7 +279,7 @@ describe("install-carriers and hooks it may not write to", () => {
 
   it("adds nothing to a manager file Lisa replaces on every update", async () => {
     const built = owned();
-    const config = path.join(built.root, "lefthook.yml");
+    const config = path.join(built.root, LEFTHOOK_CONFIG);
     const shipped = readFileSync(SHIPPED_LEFTHOOK, "utf8");
     writeFileSync(config, shipped);
     installManagerStandIn(built.root, LEFTHOOK);

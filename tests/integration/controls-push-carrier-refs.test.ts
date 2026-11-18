@@ -24,7 +24,7 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { carrierCallLine } from "../../src/controls/carrier-script.js";
+import { carrierStartLine } from "../../src/controls/carrier-script.js";
 import {
   gitHooksFolder,
   writeExecutable,
@@ -204,14 +204,14 @@ describe.skipIf(process.platform === "win32")(
       const wired = readFileSync(hook, "utf8");
       if (
         installed.result?.hook_owner !== "git-hooks" ||
-        !wired.includes(carrierCallLine("push"))
+        !wired.includes(carrierStartLine("push"))
       ) {
         throw new Error(`the call was not added to the hook:\n${wired}`);
       }
       if (trusting) {
         writeFileSync(
           hook,
-          wired.replace(carrierCallLine("push"), PUSH_CALL_LINE_BEFORE)
+          wired.replace(carrierStartLine("push"), PUSH_CALL_LINE_BEFORE)
         );
       }
       commitInstalled(root);

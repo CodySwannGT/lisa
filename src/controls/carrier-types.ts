@@ -334,6 +334,13 @@ export interface PointPlan {
   readonly call: CallState;
   /** Why the point is blocked, or `null`. */
   readonly blocked: string | null;
+  /**
+   * What holds the call that every other working tree of the repository
+   * uses too: a `hook` file in git's own hooks folder, or the `setting` in
+   * the repository's configuration. Left off when the repository has one
+   * working tree, or the call is in a file of this checkout alone.
+   */
+  readonly shared?: "hook" | "setting";
 }
 
 /** A whole file this command places in the repository and may replace. */
