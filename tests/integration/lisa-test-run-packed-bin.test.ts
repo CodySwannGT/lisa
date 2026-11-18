@@ -13,6 +13,7 @@ import {
   ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import { borrowNodeModules } from "../helpers/borrowed-node-modules.js";
 import { fsLatencyBudgetMs } from "../helpers/fs-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
@@ -90,11 +91,7 @@ beforeAll(async () => {
       cwd: REPO_ROOT,
     });
     expect(indexed.status, indexed.stderr).toBe(0);
-    fs.symlinkSync(
-      path.join(REPO_ROOT, "node_modules"),
-      path.join(checkout, "node_modules"),
-      "dir"
-    );
+    borrowNodeModules(path.join(REPO_ROOT, "node_modules"), checkout);
     const built = boundedSpawnSync({
       label: "build immutable checkout for lisa-test-run bin proof",
       command: "bun",

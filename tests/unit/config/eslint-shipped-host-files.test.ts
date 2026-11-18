@@ -39,6 +39,7 @@ import { getNestjsConfig } from "../../../src/configs/eslint/nestjs.js";
 import { getPhaserConfig } from "../../../src/configs/eslint/phaser.js";
 import { getTypescriptConfig } from "../../../src/configs/eslint/typescript.js";
 import { PROJECT_TYPE_HIERARCHY } from "../../../src/core/config.js";
+import { borrowNodeModules } from "../../helpers/borrowed-node-modules.js";
 import {
   boundedSpawnSync,
   ioLatencyBudgetMs,
@@ -187,10 +188,7 @@ function createHost(stack: string): {
   const shipped = shippedRootFiles(stack, name => /\.tsx?$/u.test(name));
   const siblings = shippedRootFiles(stack, name => name in JSON_SIBLINGS);
   fixtures.push(root);
-  fs.symlinkSync(
-    path.join(REPO_ROOT, "node_modules"),
-    path.join(root, "node_modules")
-  );
+  borrowNodeModules(path.join(REPO_ROOT, "node_modules"), root);
   for (const [name, source] of shipped)
     fs.copyFileSync(source, path.join(root, name));
   for (const [name, fallback] of Object.entries(JSON_SIBLINGS)) {

@@ -25,13 +25,7 @@
  * that always passes.
  * @module tests/unit/config/coverage-include-guard
  */
-import {
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -51,6 +45,7 @@ import { getHarperFabricVitestConfig } from "../../../src/configs/vitest/harper-
 import { getNestjsVitestConfig } from "../../../src/configs/vitest/nestjs.js";
 import { getPhaserVitestConfig } from "../../../src/configs/vitest/phaser.js";
 import { getTypescriptVitestConfig } from "../../../src/configs/vitest/typescript.js";
+import { borrowNodeModules } from "../../helpers/borrowed-node-modules.js";
 import {
   boundedSpawnSync,
   useIoLatencyBudget,
@@ -312,9 +307,10 @@ function writeFixture(
   );
   // Borrowed rather than installed: the fixture needs the same vitest this
   // suite is running under, and resolving it from this checkout is what makes
-  // the run reproduce the consumer's situation exactly. A link rather than a
-  // copy, so the fixture never writes into the borrowed tree.
-  symlinkSync(path.resolve("node_modules"), path.join(root, "node_modules"));
+  // the run reproduce the consumer's situation exactly. Linked entry by entry
+  // rather than whole, so the fixture's Vitest keeps its module cache in the
+  // fixture and never clears this checkout's (CodySwannGT/lisa#5028).
+  borrowNodeModules(path.resolve("node_modules"), root);
   return root;
 }
 

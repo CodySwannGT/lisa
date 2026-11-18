@@ -34,7 +34,6 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -43,6 +42,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import { borrowNodeModules } from "../helpers/borrowed-node-modules.js";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 
@@ -120,7 +120,7 @@ function runConsumer(
         type: "module",
       })
     );
-    symlinkSync(NODE_MODULES, path.join(root, "node_modules"), "dir");
+    borrowNodeModules(NODE_MODULES, root);
     mkdirSync(path.join(root, "tests/integration"), { recursive: true });
     for (const [relative, contents] of Object.entries(tests)) {
       writeFileSync(path.join(root, relative), contents);

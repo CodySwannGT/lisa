@@ -9,6 +9,7 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { borrowNodeModules } from "../helpers/borrowed-node-modules.js";
 import {
   boundedExecFileSync,
   boundedSpawnSync,
@@ -86,11 +87,7 @@ describe("mutation source roots through the shipped CLI", () => {
             quality: { mutation: { sourceDirs: ["lib"] } },
           })
         );
-      fs.symlinkSync(
-        path.join(REPO_ROOT, "node_modules"),
-        path.join(root, "node_modules"),
-        "dir"
-      );
+      borrowNodeModules(path.join(REPO_ROOT, "node_modules"), root);
       boundedExecFileSync({
         label: "initialize source-roots fixture",
         command: "git",

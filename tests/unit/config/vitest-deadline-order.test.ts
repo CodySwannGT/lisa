@@ -5,6 +5,7 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { borrowNodeModules } from "../../helpers/borrowed-node-modules.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
@@ -33,11 +34,7 @@ const FIXTURES = [
 function writeFixture(root: string): { config: string; trace: string } {
   const trace = path.join(root, "order.jsonl");
   const config = path.join(root, "vitest.config.ts");
-  fs.symlinkSync(
-    path.join(REPO_ROOT, "node_modules"),
-    path.join(root, "node_modules"),
-    "dir"
-  );
+  borrowNodeModules(path.join(REPO_ROOT, "node_modules"), root);
   fs.writeFileSync(
     config,
     `import local from ${JSON.stringify(path.join(REPO_ROOT, "vitest.config.local.ts"))};\n` +
