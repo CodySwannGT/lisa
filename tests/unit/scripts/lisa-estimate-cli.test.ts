@@ -137,4 +137,11 @@ describe("lisa-estimate", () => {
       defaultPricing: { source: "anthropic-api-list-prices" },
     });
   });
+
+  it("prints the usage on --help and exits 0", () => {
+    expect(run(["--help"])).toMatchObject({
+      code: 0,
+      out: expect.stringMatching(/^Usage: lisa-estimate\.mjs/),
+    });
+  });
 });

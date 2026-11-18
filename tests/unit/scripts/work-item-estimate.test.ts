@@ -37,6 +37,7 @@ const OPUS_SECTION = renderEstimateSection(
   )
 );
 const withEstimate = upsertEstimateSection(BODY, OPUS_SECTION);
+const COST_LOW = "cost_low=3.14";
 
 describe("workItem.estimate config", () => {
   it("is required by default with the shipped model list", () => {
@@ -213,7 +214,7 @@ describe("gate S21 at ready time", () => {
 
   it("fails a dollar range that disagrees with the price table it names", () => {
     const result = checkEstimate(
-      withEstimate.replace("cost_high=6.28", "cost_high=1.00"),
+      withEstimate.replace("cost_high=6.28", "cost_high=9.00"),
       ON
     );
     expect(result.verdict).toBe("FAIL");
@@ -225,6 +226,29 @@ describe("gate S21 at ready time", () => {
       .replace("cost_high=6.28", "cost_high=9.00")
       .replace("%402026-11-03", "%402026-01-01");
     expect(checkEstimate(old, ON).verdict).toBe("PASS");
+  });
+
+  it.each([
+    ["an unreadable cost", COST_LOW, "cost_low=abc", /finite amounts/],
+    ["a negative cost", COST_LOW, "cost_low=-1.00", /finite amounts/],
+    ["an inverted cost range", COST_LOW, "cost_low=9.00", /above/],
+    ["an unknown currency", "currency=USD", "currency=dollars", /currency/],
+  ])(
+    "fails %s even when its price table has moved on",
+    (_label, from, to, message) => {
+      const stale = withEstimate
+        .replace("%402026-11-03", "%402026-01-01")
+        .replace(from, to);
+      const result = checkEstimate(stale, ON);
+      expect(result.verdict).toBe("FAIL");
+      expect(result.lines.join("\n")).toMatch(message);
+    }
+  );
+
+  it("ignores a section quoted inside a code fence", () => {
+    const quoted = `${withEstimate}\n\n\`\`\`markdown\n${OPUS_SECTION}\`\`\`\n`;
+    expect(parseEstimateSection(quoted).count).toBe(1);
+    expect(checkEstimate(quoted, ON).verdict).toBe("PASS");
   });
 
   it("fails a section with no parseable token, and duplicate sections", () => {

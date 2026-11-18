@@ -8,8 +8,9 @@
  * or made ready, because deterministic sources (Sentry, New Relic, monitors)
  * cannot produce one; the claim step writes it before work begins. What this
  * gate refuses is an estimate that is present but wrong: unparseable, an
- * inverted range, a model the project does not allow, or a dollar range that
- * disagrees with the price table it names. When `workItem.estimate.required`
+ * inverted range, a model the project does not allow, a dollar range that is
+ * not a sound range of its own, or one that disagrees with the price table it
+ * names. When `workItem.estimate.required`
  * is false the gate is `N/A` and blocks nothing.
  * @module scripts/lib/work-item-estimate-check
  */
@@ -43,6 +44,32 @@ function fieldProblems(estimate, settings) {
 }
 
 /**
+ * Problems a priced dollar range has on its own, whichever price table it
+ * names: each end a finite amount of at least zero, the low end not above the
+ * high end, and an ISO 4217 currency code.
+ * @param {object} estimate - Parsed estimate carrying both ends and a currency.
+ * @returns {string[]} Problems, empty when the range is sound.
+ */
+function rangeProblems(estimate) {
+  const { costLow, costHigh, currency } = estimate;
+  const amount = cents => Number.isFinite(cents) && cents >= 0;
+  if (!amount(costLow) || !amount(costHigh))
+    return ["The dollar range must be two finite amounts of at least 0."];
+  return [
+    ...(costLow > costHigh
+      ? [
+          `The low cost (${(costLow / 100).toFixed(2)}) is above the high cost (${(costHigh / 100).toFixed(2)}).`,
+        ]
+      : []),
+    ...(/^[A-Z]{3}$/.test(currency)
+      ? []
+      : [
+          `The currency ${JSON.stringify(currency)} is not a three-letter ISO 4217 code such as USD.`,
+        ]),
+  ];
+}
+
+/**
  * Problems with a parsed estimate's dollar range.
  * @param {object} estimate - Parsed estimate.
  * @param {object} settings - Effective estimate settings.
@@ -65,6 +92,8 @@ function pricingProblems(estimate, settings) {
     !estimate.currency
   )
     return ["A priced estimate needs a dollar range and a currency."];
+  const ownProblems = rangeProblems(estimate);
+  if (ownProblems.length) return ownProblems;
   const price = priceFor(settings, estimate.model);
   // A price table that has moved on since the estimate was written is not a
   // defect in the item; only a range that disagrees with its own table is.

@@ -143,18 +143,38 @@ export function renderEstimateSection(estimate) {
 }
 
 /**
- * Locate every `## Lisa Estimate` section in a body.
+ * Locate every `## Lisa Estimate` section in a body, outside code fences.
  * @param {string} body - Item body.
  * @returns {{start: number, end: number}[]} Line spans, end exclusive.
  */
 function estimateSpans(body) {
   const lines = body.split("\n");
+  const fenced = fencedLines(lines);
+  const heading = index => !fenced[index] && lines[index].startsWith("## ");
   return lines.flatMap((line, index) => {
-    if (line.trimEnd() !== ESTIMATE_HEADING) return [];
-    const next = lines.findIndex(
-      (other, at) => at > index && other.startsWith("## ")
-    );
+    if (fenced[index] || line.trimEnd() !== ESTIMATE_HEADING) return [];
+    const next = lines.findIndex((_, at) => at > index && heading(at));
     return [{ start: index, end: next === -1 ? lines.length : next }];
+  });
+}
+
+/**
+ * Which lines sit inside a fenced code block (fence lines included), so a
+ * section quoted in a fence is not mistaken for the managed one.
+ * @param {string[]} lines - Body lines.
+ * @returns {boolean[]} True for each line inside a fence.
+ */
+function fencedLines(lines) {
+  let fence = null;
+  return lines.map(line => {
+    const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+    if (fence === null) {
+      if (marker) fence = marker;
+      return fence !== null;
+    }
+    if (marker && marker[0] === fence[0] && marker.length >= fence.length)
+      fence = null;
+    return true;
   });
 }
 

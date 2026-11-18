@@ -311,13 +311,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1":
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
     "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs":
-      "4dcea21ae9fe5114964abda7dbadeb5365241893e7e96d83411c27e1b777f5b9",
+      "94e67b413ed4ec852bfa2d594a89deedf776f94d7fffde049a9fd6f2d4365bad",
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.d.mts":
       "68ba3eba29ed10a0ca3488e35722882413a85eaa2105b0266f3edfa121d9bb86",
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs":
       "dea9d7e5440646b8bd4122846bf587a2f7cfff95e720b43302dda98b91c58b5f",
     "all/copy-overwrite/scripts/lib/work-item-estimate.mjs":
-      "87339af7a7ae14f53994f817566d77434769f8000e8da869696bfe664f822166",
+      "aaedf6097e34404416cdb6eed186a34bf07f04b143df9e6ff5771e6e7420164f",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
       "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
@@ -345,7 +345,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "264dc09909dc6c2624d87fd3d342c4538bdc62654e7c804732cdee97218fbcd0",
     "all/copy-overwrite/scripts/lisa-estimate.mjs":
-      "3e154026f7308947f1d33305d9563d6fdd951ccbfc7f4372f4e48211092bc119",
+      "f5bcb51089ae8c0fb5f0a3e880a532f19ca7f9c5f0f7eadddb9c47cfccbf0965",
     "all/copy-overwrite/scripts/lisa-evidence-prune.mjs":
       "878b2014be5a0bedc8b4899d0e961dfea5b1147ff0a694a9fac00f77121f035a",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":

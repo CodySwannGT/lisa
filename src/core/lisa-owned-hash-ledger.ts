@@ -1540,6 +1540,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/work-item-estimate-check.mjs": Object.freeze([
     "4dcea21ae9fe5114964abda7dbadeb5365241893e7e96d83411c27e1b777f5b9",
+    "94e67b413ed4ec852bfa2d594a89deedf776f94d7fffde049a9fd6f2d4365bad",
   ]),
   "scripts/lib/work-item-estimate-config.d.mts": Object.freeze([
     "68ba3eba29ed10a0ca3488e35722882413a85eaa2105b0266f3edfa121d9bb86",
@@ -1550,6 +1551,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lib/work-item-estimate.mjs": Object.freeze([
     "2f97bd0765cb17b4831532e4fc03558d83533312a1e864cd10249f1bb2398f9f",
     "87339af7a7ae14f53994f817566d77434769f8000e8da869696bfe664f822166",
+    "aaedf6097e34404416cdb6eed186a34bf07f04b143df9e6ff5771e6e7420164f",
   ]),
   "scripts/lib/worktree-dependencies.d.mts": Object.freeze([
     "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
@@ -1685,6 +1687,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-estimate.mjs": Object.freeze([
     "3e154026f7308947f1d33305d9563d6fdd951ccbfc7f4372f4e48211092bc119",
+    "f5bcb51089ae8c0fb5f0a3e880a532f19ca7f9c5f0f7eadddb9c47cfccbf0965",
   ]),
   "scripts/lisa-evidence-prune.mjs": Object.freeze([
     "2a2862f78f8b50064bbd3a44133f2c8a4b4bb5715189b7218e4e0e8c30f51cb5",
@@ -4531,6 +4534,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/work-item-estimate-check.mjs": Object.freeze([
     "4dcea21ae9fe5114964abda7dbadeb5365241893e7e96d83411c27e1b777f5b9",
+    "94e67b413ed4ec852bfa2d594a89deedf776f94d7fffde049a9fd6f2d4365bad",
   ]),
   "scripts/lib/work-item-estimate-config.d.mts": Object.freeze([
     "68ba3eba29ed10a0ca3488e35722882413a85eaa2105b0266f3edfa121d9bb86",
@@ -4541,6 +4545,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/lib/work-item-estimate.mjs": Object.freeze([
     "2f97bd0765cb17b4831532e4fc03558d83533312a1e864cd10249f1bb2398f9f",
     "87339af7a7ae14f53994f817566d77434769f8000e8da869696bfe664f822166",
+    "aaedf6097e34404416cdb6eed186a34bf07f04b143df9e6ff5771e6e7420164f",
   ]),
   "scripts/lib/worktree-dependencies.d.mts": Object.freeze([
     "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
@@ -4675,6 +4680,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lisa-estimate.mjs": Object.freeze([
     "3e154026f7308947f1d33305d9563d6fdd951ccbfc7f4372f4e48211092bc119",
+    "f5bcb51089ae8c0fb5f0a3e880a532f19ca7f9c5f0f7eadddb9c47cfccbf0965",
   ]),
   "scripts/lisa-evidence-prune.mjs": Object.freeze([
     "2a2862f78f8b50064bbd3a44133f2c8a4b4bb5715189b7218e4e0e8c30f51cb5",

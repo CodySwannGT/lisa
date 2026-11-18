@@ -134,6 +134,9 @@ const COMMANDS = {
   },
 };
 
+const USAGE =
+  "Usage: lisa-estimate.mjs config | render --tokens-low <n> --tokens-high <n> --model <id> [--basis <text>] [--body-file <path>] | check [--phase ready] [--body-file <path>]\n";
+
 /**
  * Run the CLI.
  * @param {string[]} argv - Arguments after the script name.
@@ -142,10 +145,12 @@ const COMMANDS = {
  */
 export function runCli(argv = process.argv.slice(2), io = process) {
   const [command, ...rest] = argv;
+  if (command === "--help" || command === "help") {
+    io.stdout.write(USAGE);
+    return 0;
+  }
   if (!Object.hasOwn(COMMANDS, command ?? "")) {
-    io.stderr.write(
-      "Usage: lisa-estimate.mjs config | render --tokens-low <n> --tokens-high <n> --model <id> [--basis <text>] [--body-file <path>] | check [--phase ready] [--body-file <path>]\n"
-    );
+    io.stderr.write(USAGE);
     return 2;
   }
   try {
