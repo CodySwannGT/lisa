@@ -458,10 +458,12 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     // library is maintenance taken on indefinitely, and copy-overwrite ships
     // it to every host, so a person approves it in both modes. The pattern
     // names the act of maintaining our OWN copy; depending on someone else's
-    // fork is a decision, and so is every earlier rung of the ladder.
+    // fork is a decision, and so is every earlier rung of the ladder. A patch
+    // must name a dependency target (a package name, or a library, dependency
+    // or package phrase), so "add a patch to the README" stays a decision.
     label: "approve maintaining our own copy of an open-source library",
     pattern:
-      /\b((maintain\w*|keep\w*|carry\w*|own\w*) (our|its) own (patched |vendored |forked )?(copy|copies|fork|forks|patch|patches) of|(apply\w*|carry\w*|maintain\w*|keep\w*|add\w*) (a |an |our |the )?(local )?(patch|patches) (to|of|for|against|on)|(fork|forking|vendor|vendoring) (?!of\b)(a |an |our |the )?([a-z0-9]+ ){0,2}(library|libraries|dependency|dependencies|package|packages))\b/u,
+      /\b((maintain\w*|keep\w*|carry\w*|own\w*) (our|its) own (patched |vendored |forked )?(copy|copies|fork|forks|patch|patches) of|(apply\w*|carry\w*|maintain\w*|keep\w*|add\w*) (a |an |our |the )?(local )?(patch|patches) (to|of|for|against|on) ((the |a |an |our |this )?([a-z0-9]+ ){0,2}(library|libraries|dependency|dependencies|package|packages)|(?!(readme|docs?|documentation|files?|changelog|code|config|scripts?|tests?|branch|workflow|the|a|an|our|this|it)\b)[a-z0-9]+)|(fork|forking|vendor|vendoring) (?!of\b)(a |an |our |the )?([a-z0-9]+ ){0,2}(library|libraries|dependency|dependencies|package|packages))\b/u,
   }),
   Object.freeze({
     act: "compliance-signoff",

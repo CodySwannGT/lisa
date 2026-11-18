@@ -98,6 +98,7 @@ describe("classifyHumanGateReason under each humanGate.mode", () => {
     "approve maintaining our own patched copy of minimatch",
     "approve maintaining our own vendored copy of tar",
     "approve applying a patch to picomatch",
+    "approve applying a patch to the picomatch dependency",
     "approve carrying a local patch against minimatch",
     "approve forking the picomatch library",
     "approve vendoring the tar package",
@@ -115,6 +116,9 @@ describe("classifyHumanGateReason under each humanGate.mode", () => {
     "choose which fork of the library to depend on",
     "patch-notes-layout",
     "apply the upstream patch release",
+    "add a patch to the README",
+    "apply a patch to the docs",
+    "add a patch to readme",
   ])("does not read %j as our own dependency copy", reason => {
     expect(classifyHumanGateReason(reason).act).not.toBe("own-dependency-copy");
   });
