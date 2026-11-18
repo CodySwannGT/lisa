@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.0.4](https://github.com/CodySwannGT/lisa/compare/v6.0.3...v6.0.4) (2026-11-18)
+
+
+### Bug Fixes
+
+* **apply:** fit a fresh host's package-manager floor to the manager running apply ([5f62906](https://github.com/CodySwannGT/lisa/commit/5f62906914971b49358dad2ab29309a8be686ef2)), closes [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941) [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941)
+* **tests:** seed packed-journey hosts as the bun hosts they are ([45761c5](https://github.com/CodySwannGT/lisa/commit/45761c588cd4ff69f7ceb56854744cf956c450cc)), closes [#4848](https://github.com/CodySwannGT/lisa/issues/4848) [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941) [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941)
+
 ### [6.0.3](https://github.com/CodySwannGT/lisa/compare/v6.0.2...v6.0.3) (2026-11-18)
 
 
