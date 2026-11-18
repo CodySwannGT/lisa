@@ -83,6 +83,23 @@ the manager.
   entry, exactly as before. A plain all-digit entry is a login here but a numeric id to
   `item-answer`, so `validate` warns about it; write `login:<v>` or `id:<v>` instead. The `queue`
   output echoes the entries as `operators`.
+- **Taking an item: assign it to "me".** This is the one statement of the rule; every step below
+  that takes, files or moves an item follows it.
+  1. Every item the manager takes is assigned to "me" when it has no assignee: dispatching or
+     claiming it, releasing it (Blocked to Ready), re-dispatching or retrying it, or driving it
+     as the manager. Never replace an existing assignee: an item assigned to someone other than
+     "me" or an operator is never taken, and an operator's assignment is never overwritten.
+  2. Every item the manager files (a promotion ticket, a split child, a follow-up, the retirement
+     proposal) is created assigned to "me", unless an operator or another person was named as its
+     owner.
+  3. A state move the manager makes on an unassigned item sets the assignee to "me" in the same
+     `lisa-tracker-write` update, and the read-back confirms both.
+  4. Before `spawn`, re-read the item with `lisa-tracker-read` and pass its live assignees as
+     `--assignees '<json>'`: `[]` when unassigned, GitHub `[{"login":…,"id":…}]` with the REST
+     numeric `.assignees[].id`, Jira accountIds, Linear user ids. `spawn` refuses an unassigned
+     item, or one held by anyone but "me" or an operator, with exit 5 and launches nothing. An
+     unassigned item at that point is a failed claim: assign it to "me", read it back, and spawn
+     again; never dispatch it unassigned. `foreign` means someone else holds it: leave it.
 - **Workers** start only through `spawn`. The worker prompt is exactly
   `/lisa:implement <REF> managedBy=<manager-name>`; `lisa-implement` owns what `managedBy=` means.
   Never start a worker another way, and never reuse a worker for another item or a new attempt.
@@ -231,7 +248,8 @@ In this order, every time:
    leaves a pending question the next cycle finishes, never a marker nobody will remove.
 3. **Tracker.** One `lisa-tracker-write` update: apply `marker` (add the label, or, when
    `marker.type` is `role`, move the item to the `blocked` role), for `exhausted` also move the
-   item to the `blocked` role (`move`), and post `comment` as a comment. Use only the names
+   item to the `blocked` role (`move`), and post `comment` as a comment. When that update moves
+   an unassigned item, it also assigns it to "me" ("Taking an item"). Use only the names
    `mark-plan` returned; never hard-code one.
 4. **Read back** with `lisa-tracker-read`: the marker (and the move) landed and the comment is
    there. Never claim a mark you did not read back.
@@ -375,7 +393,8 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
 - **`[<REF>] DONE: …` / `[<REF>] FAILED: …` from a worker:**
   `ledger finish <ref> --status DONE|FAILED --sender <sender>` (reason on STDIN) and post one line
   to Telegram. On `FAILED`, also move the item to the `blocked`
-  role through `lisa-tracker-write` with a comment `[lisa-session-manager] Worker failed: <reason>`,
+  role through `lisa-tracker-write` with a comment `[lisa-session-manager] Worker failed: <reason>`
+  (assigning "me" in the same update when it is unassigned: "Taking an item"),
   and read both back with `lisa-tracker-read`. When the reason says a
   design or product decision is needed, mark it instead ("Mark and move on", `--kind decision`).
 
@@ -477,9 +496,9 @@ shows them.
 |---|---|
 | `working`, `waiting`, `finished` | Nothing. |
 | `requestion` | With Telegram: re-send the pending question once, then re-record it with `ledger set-question` (same text, new message id); that restarts the re-ping clock. With no channel: nothing to re-send; leave it pending. |
-| `stalled`, `dead` | Read the item. If it left the `claimed` role, a human moved it: do not retry or move it; `ledger finish <ref> --status FAILED` with reason "left the claimed role outside the manager". Otherwise check for a merged PR first (`gh pr list --state merged --search <ref>` in the item's repo dir). If merged, leave the state change to Lisa's lifecycle and `ledger finish <ref> --status DONE` with reason "PR merged". Otherwise `claude stop <worker>` if it is still listed, then `spawn` a **fresh** attempt when capacity allows (the CLI counts attempts). |
+| `stalled`, `dead` | Read the item. If it left the `claimed` role, a human moved it: do not retry or move it; `ledger finish <ref> --status FAILED` with reason "left the claimed role outside the manager". Otherwise check for a merged PR first (`gh pr list --state merged --search <ref>` in the item's repo dir). If merged, leave the state change to Lisa's lifecycle and `ledger finish <ref> --status DONE` with reason "PR merged". Otherwise `claude stop <worker>` if it is still listed, then `spawn` a **fresh** attempt when capacity allows, with the re-read's `--assignees` ("Taking an item"; the CLI counts attempts). |
 | `setup-gap` | The worker's first prompt never ran: `setupGap.kind` is `unknown-command` (Lisa's plugin is not visible in that repo, so `/lisa:implement` is unknown there) or `prompt-blocked` (a `UserPromptSubmit` hook rejected the prompt; `setupGap.detail` is what the hook said). Retrying cannot fix it. `claude stop <worker>` if it is still listed, `ledger finish <ref> --status FAILED --setup-gap` with reason "setup gap: <kind>: <detail>" (the spawn is not counted as an attempt). Then read the item: If it left the `claimed` role, a human moved it: respect that and do not move it back to the `ready` role. Otherwise move the item back to the `ready` role. Either way post one plain-language line naming the repo and the fix to Telegram, do not respawn it, do not dispatch to that repo again until the operator fixes it, and end the cycle `recovery-required` with that line as the summary. `classify` has already recorded the repo's setup gap, so later cycles' `queue` leaves that repo out and `spawn` refuses it until the operator fixes the repo and runs `ledger clear-setup-gap <repo>` (`.` on a single-repo project); include that command in the line. |
-| `blocked-on-prompt` | The live worker is stuck on a prompt nobody attached can answer: its agent row reports `waitingFor` (e.g. "permission prompt") other than waiting on its own subagent. It will never proceed on its own, however its logs change. `claude stop <worker>` if it is still listed, then `spawn` a **fresh** attempt when capacity allows (the CLI counts attempts; at `stall.maxAttempts` it classifies `exhausted` instead). Send the operator one plain-English line naming the item, the `waitingFor` text, and that the worker was stopped and a fresh attempt starts when capacity allows (Telegram when configured, else the cycle summary). This is once per occurrence: the fresh worker is not blocked, so the same occurrence never repeats. Not a `setup-gap`: the first prompt ran, so the attempt counts and the item stays claimed. |
+| `blocked-on-prompt` | The live worker is stuck on a prompt nobody attached can answer: its agent row reports `waitingFor` (e.g. "permission prompt") other than waiting on its own subagent. It will never proceed on its own, however its logs change. `claude stop <worker>` if it is still listed, then re-read the item and `spawn` a **fresh** attempt when capacity allows, with its `--assignees` ("Taking an item"; the CLI counts attempts; at `stall.maxAttempts` it classifies `exhausted` instead). Send the operator one plain-English line naming the item, the `waitingFor` text, and that the worker was stopped and a fresh attempt starts when capacity allows (Telegram when configured, else the cycle summary). This is once per occurrence: the fresh worker is not blocked, so the same occurrence never repeats. Not a `setup-gap`: the first prompt ran, so the attempt counts and the item stays claimed. |
 | `exhausted` | Attempts reached `stall.maxAttempts`. Stop the worker if listed, `ledger finish <ref> --status FAILED`, then follow "Mark and move on" with `--kind exhausted` and, as the reason, how many attempts failed and how each ended: it moves the item to the `blocked` role and marks it for a human. |
 
 Why a worker started with `--dangerously-skip-permissions` reaches a permission prompt at all is
@@ -537,11 +556,13 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
      or is in the `review` role; leave it where it is. A later cycle that still sees a recent refusal puts the item
      in `return`, or in `parked` when a person holds it or it is in the `review` role, and retries
      finishing once the refusal is more than 24 hours old.
-   - `return`: move it to the `ready` role with the entry's `comment`. A merged item whose
+   - `return`: move it to the `ready` role with the entry's `comment` (assigning "me" in the same
+     update when it is unassigned: "Taking an item", rule 3). A merged item whose
      completion was refused, and an item whose pull request was closed without merging, land here
      with a comment that names that pull request, so the next agent builds on the earlier work.
-   - `redispatch`: an open pull request and no worker. Claim it (`reused`) and `spawn` it exactly
-     as Dispatch steps 2.3 and 2.4, ahead of new items, while `capacity` says `can_spawn`. A
+   - `redispatch`: an open pull request and no worker. Claim it (`reused`), assigning it to "me"
+     when it is unassigned ("Taking an item"), and `spawn` it exactly as Dispatch steps 2.3 and
+     2.4, ahead of new items, while `capacity` says `can_spawn`. A
      spawn that reaches `stall.maxAttempts` follows the `exhausted` row above.
    - `parked`: post the entry's `comment` only when `reasonOnItem` is false. An item in the
      `review` role with an open pull request is parked, never re-dispatched: it is waiting on
@@ -567,12 +588,13 @@ queue below). For each:
    rule); never treat "blocker closed" as "unblocked".
 2. Pipe `{labels,body,comments,edges}` as JSON to `blocked-plan --ref <ref>`. Act on `action`:
    - `release`: dissolve the edges and move the item to the `ready` role in one `lisa-tracker-write`
-     update, with a comment `[lisa-session-manager] Released: <reason>`; read it back with `lisa-tracker-read` and confirm the
-     role changed before you claim it did. Notify Telegram.
+     update, with a comment `[lisa-session-manager] Released: <reason>`, setting the assignee to
+     "me" in that same update when the item is unassigned ("Taking an item"); read it back with
+     `lisa-tracker-read` and confirm the role (and the assignee) changed before you claim it did. Notify Telegram.
    - `decide` (access-only; a blocker was closed NOT PLANNED): relay nothing to the operator. Make
      the call from the item's and blocker's evidence: re-scope the item to build without the
      dependency (dissolve the edge and move it to the `ready` role), drop an edge that no longer applies, or
-     close the item. Post `[lisa-session-manager] Decision: <which> — <why>` in the same
+     close the item; a move of an unassigned item also assigns it to "me" ("Taking an item"). Post `[lisa-session-manager] Decision: <which> — <why>` in the same
      `lisa-tracker-write` update, and read it back before you claim it landed. Notify Telegram.
    - `keep` with a manager question pending: "Waiting on a human" above handles it.
    - `keep`, `escalate`, `skip-human-gate`: leave it. Gate self-blocks and clarification blocks
@@ -671,9 +693,11 @@ Skip while `capacity` reports `paused`. Otherwise:
       else means skip. Then
       re-read the item with `lisa-tracker-read`: if the re-read shows an assignee that is neither
       "me" nor an operator, or shows the state did not change to the `claimed` role, skip it
-      (someone else holds it, or the claim did not land).
+      (someone else holds it, or the claim did not land). If it shows no assignee at all, the
+      claim failed to assign: assign it to "me" ("Taking an item") and re-read before going on.
       Never spawn on the claim's word alone.
-   4. **Spawn.** `spawn <ref> [--repo <key>]`.
+   4. **Spawn.** `spawn <ref> --assignees '<json>' [--repo <key>]`, with the assignees the step 3
+      re-read showed ("Taking an item", rule 4).
       - exit 0: post `[<REF>] started in <repo> (<name>)` to Telegram.
       - exit 3 (no capacity): move the item back to the `ready` role and stop dispatching.
       - exit 4 (a live worker holds it): if the ledger has no item for it, record it with
@@ -694,6 +718,9 @@ Skip while `capacity` reports `paused`. Otherwise:
           message as the summary.
         - `already-recorded` (the operator was told when it was recorded): post nothing and
           continue with the next item.
+      - exit 5 (not taken; nothing launched): `reason` `unassigned` means assign the item to "me"
+        through `lisa-tracker-write`, read it back, and spawn again with the new assignees;
+        `foreign` means someone else holds it, so leave it where it is and continue.
       - any other exit: move the item back to the `ready` role, notify Telegram, continue.
 3. **Backlog tier, lowest priority.** Only when `backlogPickup` is on, every `ordered` item has been
    taken or skipped, and `capacity` still says `can_spawn`. Ready work always wins: never promote a
@@ -769,7 +796,8 @@ tracker-derived), it holds when BOTH: a date-filtered tracker search finds no it
 `claimed` role in the trailing 14 days, AND this cycle found zero Ready candidates. Then record
 `policy-obsolete` and file **one** proposal through `lisa-tracker-write`, deduped on the marker
 `[lisa-session-manager-retirement]` (search open and closed items for it first; never match on the
-title), proposing `/lisa:tear-down-automations session-manager` or a longer `interval`. Keep running.
+title), proposing `/lisa:tear-down-automations session-manager` or a longer `interval`, assigned to "me"
+("Taking an item", rule 2). Keep running.
 
 Record with the summary (one plain line, the contract's exemplar voice) on STDIN:
 

@@ -69,7 +69,11 @@ const MEASURE = { "max-workers": text, meminfo: text };
 /** Each subcommand: handler, accepted flags, and how many positionals. */
 const COMMANDS = {
   capacity: { run: capacity, options: MEASURE, positionals: 0 },
-  spawn: { run: spawn, options: { ...MEASURE, repo: text }, positionals: 1 },
+  spawn: {
+    run: spawn,
+    options: { ...MEASURE, repo: text, assignees: text },
+    positionals: 1,
+  },
   resume: { run: resume, options: {}, positionals: 1 },
   classify: { run: classify, options: {}, positionals: 1 },
   status: { run: status, options: {}, positionals: 0 },

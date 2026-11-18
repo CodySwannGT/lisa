@@ -5,7 +5,9 @@
  * `spawn` is the one that starts yolo-mode sessions, so its checks run in a
  * fixed order and each has its own exit code the manager skill branches on:
  * the repo must be a Lisa repo (2), there must be capacity (3), and no live
- * worker may already hold the ref (4). Only then does it run
+ * worker may already hold the ref (4), and the item must be taken: its
+ * read-back assignees (`--assignees`) name "me" or an operator and nobody
+ * else (5, take-check.mjs). Only then does it run
  * `claude --bg`, with the cwd set to the routed repo and every `TELEGRAM_*`
  * variable removed from the worker's environment. A repo whose workspace
  * trust was never accepted is exit 2 too (see worker-launch.mjs). So is a
@@ -25,6 +27,8 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 import { computeCapacity, readMachineStats } from "./capacity.mjs";
+import { parseJson } from "./json-input.mjs";
+import { judgeTake } from "./take-check.mjs";
 import {
   CliError,
   EXIT,
@@ -260,6 +264,7 @@ export async function spawn(ctx) {
   }
 
   const ledger = await readLedger(ctx.root);
+  refuseUntaken(ctx, config, ledger, ref);
   const repo = key ?? ".";
   refuseSetupGap(ledger, repo);
   // A spawn no longer clears a pending question (lisa#4571), and a worker
@@ -297,6 +302,47 @@ export async function spawn(ctx) {
     cwd: repoDir,
   });
   return { json: { ref, name, sessionId, repo, cwd: repoDir, firstPrompt } };
+}
+
+/**
+ * Refuse, with exit 5, an item that was not taken: the assign-on-take rule.
+ * `--assignees` is the JSON array of the item's live assignees as the
+ * manager read them back (`[]` when nobody is assigned): GitHub
+ * `{login, id}` objects, Jira accountIds, Linear user ids. Missing or not an
+ * array is exit 2, so no caller can skip the check by leaving it out.
+ * @param {object} ctx - CLI context
+ * @param {{operatorIds?: unknown}} config - Session-manager config
+ * @param {Awaited<ReturnType<typeof readLedger>>} ledger - Ledger
+ * @param {string} ref - Item ref
+ * @returns {void}
+ */
+function refuseUntaken(ctx, config, ledger, ref) {
+  const raw = ctx.values.assignees;
+  const assignees =
+    raw === undefined ? undefined : parseJson(raw, "--assignees");
+  if (!Array.isArray(assignees)) {
+    throw new CliError(
+      `spawn needs --assignees: the JSON array of ${ref}'s live assignees ` +
+        "as read back from the tracker ([] when unassigned).",
+      EXIT.SETUP
+    );
+  }
+  const me = ledger.control.me ?? null;
+  const verdict = judgeTake(assignees, { me, operatorIds: config.operatorIds });
+  if (verdict.ok) return;
+  const message =
+    verdict.reason === "unassigned"
+      ? `${ref} is unassigned; nothing was spawned. Assign it to "me" ` +
+        `(${me ?? "not recorded: run ledger control --me <id>"}), read it ` +
+        "back, and spawn again."
+      : `${ref} is assigned to someone other than "me" or an operator ` +
+        `(${verdict.foreign.join(", ")}); nothing was spawned. Leave it.`;
+  throw new CliError(message, EXIT.NOT_TAKEN, {
+    ref,
+    reason: verdict.reason,
+    me,
+    foreign: verdict.foreign,
+  });
 }
 
 /**
