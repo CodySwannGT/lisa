@@ -12138,6 +12138,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/controls-install-carriers-checkouts.test.ts": true,
     "tests/integration/controls-install-carriers-existing-wiring.test.ts": true,
     "tests/integration/controls-install-carriers-heeded.test.ts": true,
+    "tests/integration/controls-install-carriers-other-repository.test.ts": true,
     "tests/integration/controls-install-carriers-owners.test.ts": true,
     "tests/integration/controls-install-carriers-reachable.test.ts": true,
     "tests/integration/controls-install-carriers-safety.test.ts": true,

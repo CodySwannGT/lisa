@@ -1812,7 +1812,7 @@ depend on neither the folder the shell is in nor the carrier being there:
   the hook and not the top folder, so once the hook has changed folder git
   answers with the folder the shell is in (measured on git 2.56); asked again
   without what git named, it finds the top folder from where the shell is.
-  The first answer that holds the carrier is used.
+  The first answer that counts and holds the carrier is used.
 - The carrier is there: it runs, and its exit status is the hook's.
 - The carrier is not there, and the commit checked out does not contain it:
   one sentence on standard error says the declared checks did not run in this
@@ -1824,6 +1824,45 @@ depend on neither the folder the shell is in nor the carrier being there:
 The commit is what is asked because carrier files are committed: "this
 checkout never had the carrier" is "the checked-out commit does not contain
 `.lisa/hooks/pre-commit`".
+
+**An answer counts only when it is about the repository being committed
+to.** Git answers every one of those questions for whichever repository the
+shell is in, and a hook's own lines may end with `cd` into another one: a
+nested repository, a submodule. Asked there, "the commit checked out does not
+contain the carrier" is true of the nested repository, and the commit to the
+outer one went through unchecked with that sentence, whether or not it had
+the carrier. So before an answer is used, the lines establish which
+repository it is about, in the way git told the hook:
+
+| How the hook is started (measured on git 2.56, at commit and at push) | What tells the lines the repository | A folder git answers with counts when |
+| --- | --- | --- |
+| In a linked working tree, or where `.git` is a file: `GIT_DIR` is set to the repository's git folder, absolute | `GIT_DIR` | git, started in that folder with nothing named, finds the same repository |
+| In a main working tree, by a path from the top folder: `.git/hooks/pre-commit`, `.githooks/pre-commit`, `.husky/pre-commit` (Husky 8.0.3 and 9.1.7) | the hook file | the hook file is in that folder under the path it was started by, and holds the marker line |
+| In a main working tree, by an absolute path (an absolute `core.hooksPath`) | the hook file | it is the file git would run as that hook in that folder (`git rev-parse --git-path`) |
+
+Git starts every hook in the top folder, whichever folder the operation was
+started from. With that established:
+
+| Where the hook's own lines leave the shell | Branch with the carrier | Branch without it |
+| --- | --- | --- |
+| the top folder, or a folder of the checkout | the checks run | let through, with the sentence |
+| a nested repository or a submodule, main working tree | stopped | stopped |
+| a nested repository or a submodule, linked working tree | stopped | let through: `GIT_DIR` makes the answer one about this repository |
+| outside every repository | stopped | stopped (linked working tree: let through, as above) |
+
+A stop here says that the hook can no longer tell which repository the commit
+is made in, and what to change: go back to the folder the hook started in
+before the added lines, or run the commands that need another folder in a
+subshell. The carrier is looked for only in a folder that counts, so a nested
+repository's own carrier is not started in place of this one.
+
+One case is not told apart. A nested repository that has a hook file under
+the same path as this hook, itself holding Lisa's lines, looks from inside
+exactly like the repository that started the hook. A hook that ends there
+runs that repository's checks, or is let through on its commit. Stopping
+instead would stop every commit made in such a nested repository itself.
+Lefthook and the pre-commit framework are not affected by any of this: they
+start the carrier, which goes to its own top folder and asks git nothing.
 
 **Where a project type's own hook already calls the runner with
 `--coverage`, nothing is added.** A second call would run every gate twice.
