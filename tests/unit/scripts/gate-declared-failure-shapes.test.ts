@@ -130,6 +130,14 @@ const ARTIFACTS_SHAPE =
 const PLUGINS_SHAPE =
   "✗ Generated plugin artifacts are out of sync with plugins/src.";
 
+/**
+ * The first line `scripts/check-control-command-parity.mjs` prints when one of
+ * the four control commands is missing on a coding agent. `check:plugins`
+ * runs it at its end, so the same gate declares it (CodySwannGT/lisa#5002).
+ */
+const CONTROL_COMMANDS_SHAPE =
+  "✗ The four control commands are not in place on every coding agent.";
+
 /** A transcript from a real `check:artifacts` refusal. */
 const ARTIFACTS_OUTPUT = [
   "$ node scripts/check-generated-artifact-merge-coverage.mjs",
@@ -581,9 +589,14 @@ describe("this repository declares the shapes it measured", () => {
 
     // Hardcoded per the Test Isolation house rule. These are the three shapes
     // measured on this repository; `type-correctness` is absent because #3957
-    // recognises `tsc` in the shipped classifier already.
+    // recognises `tsc` in the shipped classifier already. The plugin gate has
+    // two because its prover asks two questions: do the built plugins
+    // reproduce, and are the four control commands on every agent.
     expect(shapeAt(config, ARTIFACTS_GATE, COMMIT)).toEqual([ARTIFACTS_SHAPE]);
-    expect(shapeAt(config, PLUGINS_GATE, "push")).toEqual([PLUGINS_SHAPE]);
+    expect(shapeAt(config, PLUGINS_GATE, "push")).toEqual([
+      PLUGINS_SHAPE,
+      CONTROL_COMMANDS_SHAPE,
+    ]);
     // At COMMIT and not at pull-request: `lint:staged` prints lint-staged's own
     // `✖ <task>` banner and `lint` does not, which is the concrete reason this
     // field is per-moment rather than per-gate.

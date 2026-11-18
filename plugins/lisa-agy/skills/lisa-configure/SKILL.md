@@ -23,6 +23,12 @@ configure the repository this session is in.
 has no slash commands: `$lisa-configure`. Devin has no plugin command surface:
 `/lisa:lisa-configure`. The skill comes with the Lisa plugin for the agent in use.
 
+**Where coding agents differ.** What an agent cannot do the way this skill describes it:
+
+- **Codex, Devin:** the skill is started directly there, with no command file in front of it to
+  pass on what the operator named. Wherever this skill says `$ARGUMENTS`, read what the operator
+  wrote when they started it.
+
 ## Ground rules
 
 These hold in every step.

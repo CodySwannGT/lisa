@@ -29,6 +29,28 @@ The operator may name the folder of the repository to enforce, and may add `buil
 no slash commands: `$lisa-enforce`. Devin has no plugin command surface: `/lisa:lisa-enforce`. The
 skill comes with the Lisa plugin for the agent in use.
 
+**Where coding agents differ.** What an agent cannot do the way this skill describes it:
+
+- **Codex, Devin:** the skill is started directly there, with no command file in front of it to
+  pass on what the operator named. Wherever this skill says `$ARGUMENTS`, read what the operator
+  wrote when they started it.
+- **Codex, Cursor, Antigravity, Copilot, OpenCode, Devin:** `Skill` in this skill's `allowed-tools`
+  is Claude Code's name for the tool that loads another skill. Load `lisa-tracker-write`, and the
+  other skills the ticket step names, the way this agent loads any skill. Where they cannot be
+  loaded, file no ticket another way: return each missing requirement as `blocked`, with that as
+  the reason.
+- **Antigravity:** it cannot refuse a file write, so the carriers step installs nothing for it and
+  records it on each check as `unenforceable_on`. Nothing is enforced there after an edit.
+- **Copilot, Devin:** the hook is installed, but that a failed check stops the agent after an edit
+  is assumed, not measured.
+- **Codex:** the installed hook runs only for a person who has approved the repository's hooks
+  once, with `/hooks` inside Codex.
+- **Cursor:** a failed check does not fail the write. The agent is told afterwards, through the
+  hook's `additional_context`.
+- **Copilot, OpenCode:** no entry is added to a settings file the repository shares with the agent.
+  The carriers step places a whole file that Lisa owns: `.github/hooks/lisa-controls.json` for
+  Copilot, `.opencode/plugin/lisa-controls-carrier.js` for OpenCode.
+
 ## Ground rules
 
 These hold in every step.

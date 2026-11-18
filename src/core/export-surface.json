@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 322,
-  "$names": 2406,
+  "$modules": 324,
+  "$names": 2422,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1763,6 +1763,10 @@
     "scripts/build-unless-marked.mjs": [
       "main"
     ],
+    "scripts/check-control-command-parity.mjs": [
+      "main",
+      "parseArguments"
+    ],
     "scripts/check-delivery-deletion-conflicts.mjs": [
       "DELIVERY_LANES",
       "ROOT_STACK",
@@ -2188,6 +2192,22 @@
     "scripts/lib/codex-shared-scripts.mjs": [
       "emitCodexSharedScripts",
       "extractRelativeSpecifiers"
+    ],
+    "scripts/lib/control-command-parity.mjs": [
+      "CONTROL_COMMANDS",
+      "DIFFERENCES_HEADING",
+      "FAILURE_HEADING",
+      "PARITY_FIXTURE",
+      "REPO_ROOT",
+      "RUNNING_HEADING",
+      "SUPPORTED_AGENTS",
+      "VIOLATION",
+      "auditControlCommandParity",
+      "controlCommandFiles",
+      "exitStatusOf",
+      "formatControlCommandParity",
+      "readParityFixture",
+      "skillNameOf"
     ],
     "scripts/lib/dependency-tree.mjs": [
       "CANNOT_MEASURE",

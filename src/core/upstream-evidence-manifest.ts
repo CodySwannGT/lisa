@@ -1431,11 +1431,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "5f8efd548866e586fc9c1dac2e069291ac48d45319670f62b2c22af3675efce7",
+      "4ca96036e58b3b605e14e57efa3143d5822075d90da632a48a96d316be5d852d",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
-      "7882660d25338f41ab1f6c1ba7b81a65fa2b5259812c17fbbaf255ba035aa18c",
+      "1ceabb27edcd3ba58093b84632f98c9a679a7e5943078316d810d29291ad3bec",
     "plugins/src/base/skills/lisa-automation-status/SKILL.md":
       "3af301b5b70cbe4ba9377ebfed0e397d1445d70b2edc0a001edfa4bd2d5802b0",
     "plugins/src/base/skills/lisa-bug-triage/SKILL.md":
@@ -1447,7 +1447,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "5c854bd1faccb2b33cb405757ac770347f9a3ae3b4d150648e473f07f430ad9f",
+      "4cb6ae88de6db0a725aae79668d0cd400152453fec72c07415c661f5579dd10b",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "c6128e80d6baeabd9c0ff4c092d094773fe7753b1fc0c3cd828b016a5c6c447f",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -1475,7 +1475,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
-      "1778a6096a9f5962bcb5cda5ab6b0551cf6bebf323e39d0d652d3ea00b23f49e",
+      "5dba01cdf90dbff4409d0c06506a0c39008273624c8835b0b16200a8ec6c1efc",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
@@ -2626,6 +2626,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "bcd527d98010cc77e544a4e71933a9d559e2064bfa836bf00453eaad8d23e222",
     "scripts/build-unless-marked.mjs":
       "8514c8aa1908efca45b40076590e7c493fd39e9bfe3ae96a123253c20b1d5e0f",
+    "scripts/check-control-command-parity.mjs":
+      "0375962c73153db6e93a7aaa12705bccc2db86bced22b84b44ce567a9494cc42",
     "scripts/check-cwd-resolution-corpus.mjs":
       "4f35dca2c3d42806e24211e7455d9aa64980eb1805416f0bbd63eaa8e981da91",
     "scripts/check-deletion-basis.mjs":
@@ -2661,7 +2663,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-pipeline-status-reads.mjs":
       "1fba15dfe50eb060bd229066a35a852679b23c11292981015b5746e1d639fb31",
     "scripts/check-plugins-sync.sh":
-      "36ba4bd73176e0dff13eaddf26b8c9ccb3f4faeb9548be9fa661c9a4d37c178c",
+      "be15811834fa1b85ba242a0ee114fe2c43459e50b3e02c726a9860014daa39d2",
     "scripts/check-probe-absence-direction.mjs":
       "5dfb12c8ac9a23220219cc8748f1fea03f55bb42c0a9cf045bccfd04a4646652",
     "scripts/check-release-commit-listed.mjs":
@@ -2784,6 +2786,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a37de43abd0c9840d0caab4e211a066c4dcf4fd76bbbf12a84b6a402300f99a1",
     "scripts/lib/codex-shared-scripts.mjs":
       "ca3809b5b496c9184fbe162bcdf2716f7e4cc0e7369ecedf42b6925f685ee1c2",
+    "scripts/lib/control-command-parity.mjs":
+      "796aea0912881051025ce6bffb02af125aedbfdd6fb662e388a458208a1d2cb8",
     "scripts/lib/dependency-tree.mjs":
       "1b35c39d95f8654ee3c46325fbb1a4170582fd98b22e1e113ac0aa2967774d2e",
     "scripts/lib/gitattributes-merge-drivers.mjs":
@@ -4404,6 +4408,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "package.lisa.json": true,
     "parity/DESIGN-plugin-parity-subsystem.md": true,
     "parity/FOLLOWUPS.md": true,
+    "parity/control-commands.json": true,
     "parity/fixtures/drift/skills/code-simplifier/SKILL.md": true,
     "parity/fixtures/drift/skills/coderabbit/SKILL.md": true,
     "parity/fixtures/drift/skills/plain/SKILL.md": true,
@@ -10791,6 +10796,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scratchpad/decision-points.sh": true,
     "scripts/build-plugins.sh": true,
     "scripts/build-unless-marked.mjs": true,
+    "scripts/check-control-command-parity.mjs": true,
     "scripts/check-cwd-resolution-corpus.mjs": true,
     "scripts/check-deletion-basis.mjs": true,
     "scripts/check-delivery-deletion-conflicts.mjs": true,
@@ -10870,6 +10876,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/internal-opencode-skill-policy.json": true,
     "scripts/lib/bounded-spawn.mjs": true,
     "scripts/lib/codex-shared-scripts.mjs": true,
+    "scripts/lib/control-command-parity.mjs": true,
     "scripts/lib/dependency-tree.mjs": true,
     "scripts/lib/gitattributes-merge-drivers.mjs": true,
     "scripts/lib/history-scanner-suites.mjs": true,
@@ -13413,6 +13420,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/block-suppress-directives-plugin.test.ts": true,
     "tests/unit/opencode/command-installer.test.ts": true,
     "tests/unit/opencode/command-transformer.test.ts": true,
+    "tests/unit/opencode/control-commands-install.test.ts": true,
     "tests/unit/opencode/discharge-work-item-gates-plugin.test.ts": true,
     "tests/unit/opencode/hooks-installer-retired-files.test.ts": true,
     "tests/unit/opencode/hooks-installer.test.ts": true,
@@ -13432,9 +13440,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/support/filing-parity.ts": true,
     "tests/unit/plugins/block-suppress-directives.test.ts": true,
     "tests/unit/plugins/container-view-pattern-parity.test.ts": true,
+    "tests/unit/plugins/control-command-differences.test.ts": true,
+    "tests/unit/plugins/control-command-parity-cli.test.ts": true,
+    "tests/unit/plugins/control-command-parity.test.ts": true,
     "tests/unit/plugins/description-length-budget.test.ts": true,
     "tests/unit/plugins/hook-registration-agreement.test.ts": true,
     "tests/unit/plugins/hook-registration.test.ts": true,
+    "tests/unit/plugins/support/control-command-fixture.ts": true,
     "tests/unit/plugins/support/hook-registration-fixture.ts": true,
     "tests/unit/scripts/absent-required-checks-by-branch.test.ts": true,
     "tests/unit/scripts/absent-required-checks.test.ts": true,
