@@ -10,7 +10,7 @@
 import type { Command } from "commander";
 
 /** What `lisa ui` prints now that the console no longer ships. */
-export const REMOVED_UI_MESSAGE =
+const REMOVED_UI_MESSAGE =
   "lisa ui was removed: the Lisa Console no longer ships. Edit .lisa.config.json directly, and run `lisa sync` to fill in missing settings.\n";
 
 /**

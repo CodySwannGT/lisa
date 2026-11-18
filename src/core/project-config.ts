@@ -49,8 +49,6 @@ import {
   type PushGateConfig,
 } from "./project-config-push-gate.js";
 
-export type { PushGateConfig } from "./project-config-push-gate.js";
-
 export {
   AUTO_LOADED_RULES_DIR_PREFIXES,
   DEFAULT_PROJECT_LEARNINGS_FILE,
@@ -67,22 +65,11 @@ export {
   type ResolvedLearningsSettings,
 } from "./project-config-learnings.js";
 
-export {
-  dependencySettingsWarning,
-  type DependenciesConfig,
-} from "./project-config-dependencies.js";
+export { dependencySettingsWarning } from "./project-config-dependencies.js";
 
-export {
-  humanGateSettingsWarnings,
-  type HumanGateConfig,
-} from "./project-config-human-gate.js";
+export { humanGateSettingsWarnings } from "./project-config-human-gate.js";
 
-export type {
-  KaneBrowserConfig,
-  VerificationConfig,
-} from "./project-config-kane.js";
-
-export type { NightlyE2EConfig } from "./project-config-nightly-e2e.js";
+export type { KaneBrowserConfig } from "./project-config-kane.js";
 
 /** Filename of the per-project config, relative to the destination root */
 export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";

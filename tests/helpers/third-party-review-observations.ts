@@ -27,7 +27,7 @@ export const PULL = 4618;
 
 /** The declared reviewer's context and app, as this repository declares them. */
 export const REVIEWER = "CodeRabbit";
-export const REVIEWER_APP = 347564;
+const REVIEWER_APP = 347564;
 
 /** The app GitHub Actions posts its own check runs under. */
 export const ACTIONS_APP = 15368;

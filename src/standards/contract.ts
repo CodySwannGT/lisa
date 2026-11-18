@@ -12,9 +12,9 @@ import {
 
 export const STANDARDS_PROOF_PATH = ".lisa/standards/latest.json";
 export const STANDARDS_PROOF_ARTIFACT = "lisa-standards-proof";
-export const STANDARDS_PROOF_SCHEMA_VERSION = 1;
+const STANDARDS_PROOF_SCHEMA_VERSION = 1;
 
-export const STANDARDS_CHECK_CATEGORIES = [
+const STANDARDS_CHECK_CATEGORIES = [
   "lint",
   "static-analysis",
   "test",
@@ -35,7 +35,7 @@ export interface StandardsProofResult {
 }
 
 /** Git artifact identity established by a standards run. */
-export interface StandardsRepositoryProof {
+interface StandardsRepositoryProof {
   readonly identity: string;
   readonly head: string;
   readonly tree: string;

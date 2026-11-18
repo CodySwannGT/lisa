@@ -48,7 +48,7 @@ const SPAWN_BASE_MS = 60_000;
  * @param value - What it returns
  * @returns Module source
  */
-export function moduleSource(name: string, value: number): string {
+function moduleSource(name: string, value: number): string {
   return `export function ${name}(): number {\n  return ${value};\n}\n`;
 }
 

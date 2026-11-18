@@ -44,11 +44,25 @@ export const DIRECT_DEPENDENCY_SECTIONS = [
   "peerDependencies",
 ] as const;
 
+/**
+ * Prereleases count when a host names one. A host on `7.71.0-rc.1` is above a
+ * `>=7.70.0` floor, and plain semver, which ignores prereleases, calls it below.
+ */
+const SEMVER_OPTIONS = { includePrerelease: true } as const;
+
+/**
+ * Direct sections Lisa may raise. A peer range is the host's promise to its
+ * own consumers, so Lisa never rewrites it and the guard refuses there.
+ */
+const RAISABLE_SECTIONS = DIRECT_DEPENDENCY_SECTIONS.filter(
+  section => section !== "peerDependencies"
+);
+
 /** package.json sections that carry npm-style version overrides. */
 export const OVERRIDE_SECTIONS = ["overrides", "resolutions"] as const;
 
 /** One of the two npm override sections. */
-export type OverrideSection = (typeof OVERRIDE_SECTIONS)[number];
+type OverrideSection = (typeof OVERRIDE_SECTIONS)[number];
 
 /**
  * What rewriting one literal override to `"$name"` would do to its floor.
@@ -140,23 +154,6 @@ export function collectDirectDependencyNames(
 }
 
 /**
- * Collect direct dependency ranges by package name.
- * @param pkg - Merged package.json object
- * @returns Package name to string range map
- */
-export function collectDirectDependencyRanges(
-  pkg: Record<string, unknown>
-): ReadonlyMap<string, string> {
-  return new Map(
-    DIRECT_DEPENDENCY_SECTIONS.flatMap(section =>
-      Object.entries(asRecord(pkg[section])).flatMap(([name, value]) =>
-        typeof value === "string" ? [[name, value] as const] : []
-      )
-    )
-  );
-}
-
-/**
  * Decide whether an override/resolution entry is a candidate for npm `$name`
  * normalization at all.
  * @param directDeps - Direct dependency names in the merged package
@@ -164,7 +161,7 @@ export function collectDirectDependencyRanges(
  * @param value - Override/resolution value
  * @returns True when the entry is a literal direct-dependency collision
  */
-export function needsSelfReferenceRewrite(
+function needsSelfReferenceRewrite(
   directDeps: ReadonlySet<string>,
   name: string,
   value: unknown
@@ -175,6 +172,23 @@ export function needsSelfReferenceRewrite(
     value.length > 0 &&
     !value.startsWith("$")
   );
+}
+
+/**
+ * Whether a range names a prerelease version, such as `7.71.0-rc.1`.
+ * @param range - A valid npm version range
+ * @returns True when any comparator carries a prerelease tag
+ */
+function namesPrerelease(range: string): boolean {
+  // Read as written: semver's own expansion of `^1.2.3` adds a `<2.0.0-0`
+  // bound, which carries a prerelease tag the host never wrote.
+  return range
+    .split(/[\s|]+/u)
+    .some(
+      token =>
+        (semver.parse(token.replace(/^[<>=~^]+/u, ""))?.prerelease.length ??
+          0) > 0
+    );
 }
 
 /**
@@ -198,7 +212,11 @@ export function classifySelfReferenceRewrite(
   if (!semver.validRange(floorRange) || !semver.validRange(directRange)) {
     return "unprovable";
   }
-  return semver.subset(directRange, floorRange) ? "safe" : "widening";
+  return semver.subset(directRange, floorRange) ||
+    (namesPrerelease(directRange) &&
+      semver.subset(directRange, floorRange, SEMVER_OPTIONS))
+    ? "safe"
+    : "widening";
 }
 
 /**
@@ -248,6 +266,32 @@ function rangeMinimum(range: string): string | null {
 }
 
 /**
+ * The direct range the guard judges for one name: the first section whose
+ * range does not satisfy the floor, else the first range found. Every section
+ * is judged on its own, so a satisfying `dependencies` range can never hide a
+ * `peerDependencies` range below the floor.
+ * @param pkg - Merged package.json
+ * @param name - Package name
+ * @param floorRange - The override's floor
+ * @returns The range to judge, or undefined when no section has a string range
+ */
+function judgedDirectRange(
+  pkg: Record<string, unknown>,
+  name: string,
+  floorRange: string
+): string | undefined {
+  const ranges = DIRECT_DEPENDENCY_SECTIONS.flatMap(section => {
+    const range = asRecord(pkg[section])[name];
+    return typeof range === "string" ? [range] : [];
+  });
+  return (
+    ranges.find(
+      range => classifySelfReferenceRewrite(floorRange, range) !== "safe"
+    ) ?? ranges[0]
+  );
+}
+
+/**
  * Judge every `$name`-rewrite candidate in a merged manifest, collecting ALL
  * conflicts rather than stopping at the first.
  * @remarks
@@ -262,7 +306,6 @@ export function auditSelfReferenceRewrites(
   pkg: Record<string, unknown>
 ): OverrideFloorAudit {
   const directDeps = collectDirectDependencyNames(pkg);
-  const directRanges = collectDirectDependencyRanges(pkg);
   const entries = OVERRIDE_SECTIONS.flatMap(section =>
     Object.entries(asRecord(pkg[section])).map(
       ([name, value]) => [section, name, value] as const
@@ -272,7 +315,7 @@ export function auditSelfReferenceRewrites(
     if (!needsSelfReferenceRewrite(directDeps, name, value)) {
       return [];
     }
-    const directRange = directRanges.get(name);
+    const directRange = judgedDirectRange(pkg, name, value as string);
     return directRange === undefined
       ? []
       : [{ section, name, floorRange: value as string, directRange }];
@@ -334,22 +377,107 @@ export function describeSelfReferenceRemedy(
 export interface DirectRangeRaise {
   /** Package name. */
   readonly name: string;
+  /** The dependency section whose range was raised. */
+  readonly section: (typeof DIRECT_DEPENDENCY_SECTIONS)[number];
   /** The host's direct range before the raise. */
   readonly from: string;
-  /** The verified range it was raised to. */
+  /** The range it was raised to. */
   readonly to: string;
   /** Lisa's floor that required it. */
   readonly floorRange: string;
 }
 
 /**
- * Raise a host's direct range to meet a floor Lisa itself forced into
+ * Upper-bound comparators of one comparator set, e.g. `<8.0.0-0` for `^7.0.0`.
+ * @param set - One `||`-free range
+ * @returns The `<`/`<=` comparators, space-joined
+ */
+function upperBounds(set: string): string {
+  return (new semver.Range(set, SEMVER_OPTIONS).set[0] ?? [])
+    .filter(comparator => comparator.operator.startsWith("<"))
+    .map(comparator => comparator.value)
+    .join(" ");
+}
+
+/**
+ * Whether two ranges admit exactly the same versions.
+ * @param a - First range
+ * @param b - Second range
+ * @returns True when each is a subset of the other
+ */
+function sameVersions(a: string, b: string): boolean {
+  return (
+    semver.subset(a, b, SEMVER_OPTIONS) && semver.subset(b, a, SEMVER_OPTIONS)
+  );
+}
+
+/**
+ * Raise one `||`-free comparator set to a floor, keeping its upper bound.
+ * @param set - The host's comparator set
+ * @param floorRange - Lisa's floor, a single comparator set
+ * @param minimum - The floor's minimum version
+ * @returns The set unchanged when it satisfies the floor, null when it admits
+ *   nothing above the floor, else the set with only its minimum raised
+ */
+function raiseSet(
+  set: string,
+  floorRange: string,
+  minimum: string
+): string | null {
+  if (semver.subset(set, floorRange, SEMVER_OPTIONS)) return set;
+  if (!semver.intersects(set, floorRange, SEMVER_OPTIONS)) return null;
+  const meet = `${set} ${floorRange}`;
+  const operator = /^[\^~]/u.exec(set)?.[0];
+  const candidates = [
+    ...(operator === undefined ? [] : [`${operator}${minimum}`]),
+    `>=${minimum} ${upperBounds(set)}`.trim(),
+    meet,
+  ];
+  return candidates.find(candidate => sameVersions(candidate, meet)) ?? null;
+}
+
+/**
+ * Raise only the minimum of a host's range to a floor, keeping every upper
+ * bound and every alternative already above the floor: `^7.0.0 || ^8.0.0`
+ * becomes `^7.70.0 || ^8.0.0` under `>=7.70.0`, and `*` becomes `>=7.70.0`.
+ * @param range - The host's direct range
+ * @param floorRange - Lisa's floor
+ * @returns The raised range, verified to satisfy the floor, or null when no
+ *   raise is provable
+ */
+function raiseRangeMinimum(range: string, floorRange: string): string | null {
+  const minimum = rangeMinimum(floorRange);
+  if (
+    minimum === null ||
+    floorRange.includes("||") ||
+    semver.validRange(range, SEMVER_OPTIONS) === null
+  )
+    return null;
+  const sets = range
+    .split("||")
+    .map(set => set.trim())
+    .flatMap(set => {
+      const raised = raiseSet(set === "" ? "*" : set, floorRange, minimum);
+      return raised === null ? [] : [raised];
+    });
+  const raised = sets.join(" || ");
+  return sets.length > 0 &&
+    classifySelfReferenceRewrite(floorRange, raised) === "safe"
+    ? raised
+    : null;
+}
+
+/**
+ * Raise a host's direct ranges to meet a floor Lisa itself forced into
  * `overrides`/`resolutions`, where the `$name` rewrite would otherwise widen.
  * @remarks
- * Only `widening` conflicts whose override value is exactly Lisa's forced value
- * and that have a verified remedy are raised. A floor the host wrote, an
- * `unprovable` range (`workspace:*`, a git spec) and a floor with no verified
- * remedy are left for {@link auditSelfReferenceRewrites} to refuse as before.
+ * Each section is judged on its own. A range that already satisfies the floor
+ * is left exactly as written, prereleases included. A range below it has only
+ * its minimum raised, so the host keeps its upper bound and any alternative
+ * already above the floor. `peerDependencies` are never rewritten. A floor the
+ * host wrote, a range Lisa cannot read (`workspace:*`, a git spec) and a raise
+ * that cannot be proven are left for {@link auditSelfReferenceRewrites} to
+ * refuse as before.
  * @param pkg - Merged package.json, as the apply would persist it
  * @param lisaForce - The applied template's `force` section
  * @returns The manifest with raised direct ranges, and each raise made
@@ -361,43 +489,50 @@ export function raiseDirectRangesToLisaFloors(
   readonly packageJson: Record<string, unknown>;
   readonly raises: readonly DirectRangeRaise[];
 } {
-  const targets = new Map(
-    auditSelfReferenceRewrites(pkg)
-      .conflicts.filter(
-        conflict =>
-          conflict.verdict === "widening" &&
-          conflict.suggestedDirectRange !== null &&
-          asRecord(lisaForce[conflict.section])[conflict.name] ===
-            conflict.floorRange
+  const directDeps = collectDirectDependencyNames(pkg);
+  const floors = new Map(
+    OVERRIDE_SECTIONS.flatMap(section =>
+      Object.entries(asRecord(pkg[section])).flatMap(([name, value]) =>
+        needsSelfReferenceRewrite(directDeps, name, value) &&
+        asRecord(lisaForce[section])[name] === value
+          ? [[name, value as string] as const]
+          : []
       )
-      .reverse()
-      .map(conflict => [conflict.name, conflict] as const)
+    )
   );
-  if (targets.size === 0) return { packageJson: pkg, raises: [] };
-  const sections = DIRECT_DEPENDENCY_SECTIONS.flatMap(section =>
-    section in pkg
+  const raises = RAISABLE_SECTIONS.flatMap(section =>
+    Object.entries(asRecord(pkg[section])).flatMap(([name, from]) => {
+      const floorRange = floors.get(name);
+      if (
+        floorRange === undefined ||
+        typeof from !== "string" ||
+        classifySelfReferenceRewrite(floorRange, from) !== "widening"
+      )
+        return [];
+      const to = raiseRangeMinimum(from, floorRange);
+      return to === null ? [] : [{ name, section, from, to, floorRange }];
+    })
+  );
+  if (raises.length === 0) return { packageJson: pkg, raises: [] };
+  const raisedSections = RAISABLE_SECTIONS.flatMap(section =>
+    raises.some(raise => raise.section === section)
       ? [
           [
             section,
-            Object.fromEntries(
-              Object.entries(asRecord(pkg[section])).map(([name, value]) => {
-                const target = targets.get(name);
-                return target === undefined || typeof value !== "string"
-                  ? [name, value]
-                  : [name, target.suggestedDirectRange];
-              })
-            ),
+            {
+              ...asRecord(pkg[section]),
+              ...Object.fromEntries(
+                raises
+                  .filter(raise => raise.section === section)
+                  .map(raise => [raise.name, raise.to])
+              ),
+            },
           ] as const,
         ]
       : []
   );
   return {
-    packageJson: { ...pkg, ...Object.fromEntries(sections) },
-    raises: [...targets.values()].map(conflict => ({
-      name: conflict.name,
-      from: conflict.directRange,
-      to: conflict.suggestedDirectRange ?? conflict.directRange,
-      floorRange: conflict.floorRange,
-    })),
+    packageJson: { ...pkg, ...Object.fromEntries(raisedSections) },
+    raises,
   };
 }

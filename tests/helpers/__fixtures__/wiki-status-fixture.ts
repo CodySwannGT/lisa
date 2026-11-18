@@ -18,7 +18,7 @@ export const FIXTURE_NOW = "2026-05-26T12:00:00.000Z";
 export const FIXTURE_DATE = "2026-05-25";
 export const GIT_SOURCE_NOTE =
   "wiki/sources/git/2026-05-25-lisa-monorepo-git.md";
-export const ROLES_SOURCE_NOTE = "wiki/sources/roles/2026-05-25-roles.md";
+const ROLES_SOURCE_NOTE = "wiki/sources/roles/2026-05-25-roles.md";
 export const NO_PROJECT_MEMORY_REASON =
   "no provably project-scoped memory directory";
 export const NO_ACTION_NEEDED = "No action needed.";

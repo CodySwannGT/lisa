@@ -63,7 +63,7 @@ async function readRawConfig(
  * @param projectRoot - Project root
  * @returns The contexts the templates require
  */
-export const defaultTemplateEnforcementReader: TemplateEnforcementReader =
+const defaultTemplateEnforcementReader: TemplateEnforcementReader =
   async projectRoot => {
     const lisaRoot = resolveLisaPackageRoot();
     if (lisaRoot === null) throw new Error("LISA_PACKAGE_NOT_FOUND");

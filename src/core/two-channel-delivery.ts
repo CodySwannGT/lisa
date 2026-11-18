@@ -101,12 +101,7 @@ import {
   type StalenessSignal,
 } from "./two-channel-staleness.js";
 
-export type {
-  StalenessDecision,
-  StalenessDetection,
-  StalenessRecord,
-  StalenessSignal,
-} from "./two-channel-staleness.js";
+export type { StalenessRecord } from "./two-channel-staleness.js";
 
 /**
  * How one artifact reaches a consumer that already exists.
@@ -158,7 +153,7 @@ const CREATE_ONLY_LANE = CHANNEL_CREATE_ONLY;
  * Four members rather than a drifted/clean pair, because the remedies differ
  * and one of the four is not a defect at all.
  */
-export type CouplingVerdict =
+type CouplingVerdict =
   /** The step also names a package candidate, so the fast channel covers it. */
   | "package-backed"
   /** Host-only, and a refreshing lane delivers it — arrives on the next apply. */
@@ -169,7 +164,7 @@ export type CouplingVerdict =
   | "undelivered";
 
 /** What to do about one verdict. */
-export type CouplingRemedy =
+type CouplingRemedy =
   | "none"
   | "run-lisa-apply"
   | "adopt-the-artifact"
@@ -274,7 +269,7 @@ export interface CouplingInput {
 }
 
 /** One coupling, its verdict, and the evidence behind it. */
-export interface CouplingEntry extends CouplingInput {
+interface CouplingEntry extends CouplingInput {
   /** Stable identity, `<workflow>::<path>`, used to key ratifications. */
   readonly key: string;
   /** The channel the path actually arrives on. */

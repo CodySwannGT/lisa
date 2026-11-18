@@ -50,10 +50,7 @@ const DETAILS: Readonly<Record<ContextOrigin, string>> = {
  * @param inputs - Everything the classification needs
  * @returns The origin
  */
-export function originOf(
-  context: string,
-  inputs: ContextOriginInputs
-): ContextOrigin {
+function originOf(context: string, inputs: ContextOriginInputs): ContextOrigin {
   if (inputs.declared.includes(context)) return "lisa-governed";
   if (inputs.lisaUniverse.includes(context)) return "lisa-undeclared";
   return inputs.projectContexts.has(context)

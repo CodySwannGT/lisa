@@ -24,7 +24,7 @@ import type { WorkflowStep } from "../helpers/workflow-test-utils.js";
 const BASH = "/bin/bash";
 
 /** What a step reports once it has run, skipped, or been continued over. */
-export type Outcome = "success" | "failure" | "skipped";
+type Outcome = "success" | "failure" | "skipped";
 
 /** The two contexts the façade's conditions read. */
 export interface StepContext {

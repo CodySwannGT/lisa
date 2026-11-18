@@ -29,7 +29,7 @@ import * as path from "node:path";
  * where they already were. On Linux neither promoted path exists, so CI
  * resolves `/usr/bin/git` exactly as before.
  */
-export const GIT_CANDIDATES: readonly string[] = Object.freeze([
+const GIT_CANDIDATES: readonly string[] = Object.freeze([
   "/Library/Developer/CommandLineTools/usr/bin/git",
   "/Applications/Xcode.app/Contents/Developer/usr/bin/git",
   "/usr/bin/git",

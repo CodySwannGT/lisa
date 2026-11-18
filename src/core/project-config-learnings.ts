@@ -53,7 +53,7 @@ export const STRICT_LOW_CONFIDENCE_ROUTING: LowConfidenceRouting = HUMAN_TRIAGE;
  * @param mode - The `humanGate.mode` in force
  * @returns The mode's default routing
  */
-export function defaultLowConfidenceRouting(
+function defaultLowConfidenceRouting(
   mode: HumanGateMode
 ): LowConfidenceRouting {
   return mode === "strict"
@@ -92,7 +92,7 @@ export type ResolvedLearningsSettings = Readonly<{
  * @param source - Config source for errors
  * @returns Validated project-relative learnings path
  */
-export function validateLearningsFile(value: unknown, source: string): string {
+function validateLearningsFile(value: unknown, source: string): string {
   return validateConfiguredLearningsFile(value, source);
 }
 

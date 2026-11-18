@@ -22,7 +22,7 @@ export interface VitestSpawnAnalysis {
 }
 
 /** One normalized child launch with inherited supervision bits. */
-export interface TestRunChildLaunch {
+interface TestRunChildLaunch {
   readonly callee: string;
   readonly arguments: readonly string[];
   readonly bits: number;

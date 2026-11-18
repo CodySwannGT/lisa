@@ -43,7 +43,7 @@ import { aliasCompatibleDefault, hasLegacyAlias } from "./legacy-aliases.js";
 import { applyLegacyMonitorThresholdMigration } from "./legacy-monitor-thresholds.js";
 import { recordedPopulation, recordPopulation } from "./sync-population.js";
 
-export type { SyncAction, SyncReadDependencies };
+export type { SyncReadDependencies };
 
 /** Result of one sync run. */
 export interface SyncReport {

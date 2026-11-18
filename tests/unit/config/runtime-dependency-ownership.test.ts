@@ -26,12 +26,22 @@
  * @module tests/unit/config/runtime-dependency-ownership
  */
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { PROJECT_TYPE_HIERARCHY } from "../../../src/core/config.js";
+import {
+  importedPackages,
+  lineage,
+  namedPackages,
+  REPO_ROOT,
+  shippedSources,
+  TEMPLATES,
+} from "../../helpers/stack-templates.js";
 
-const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
+/** The one package every host is given whatever its stack. */
+const LISA_PACKAGE = "@codyswann/lisa";
 
 /** Runtime libraries each stack forced before #4932, with the floor kept. */
 const DE_FORCED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
@@ -76,80 +86,14 @@ const DE_FORCED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   },
 };
 
-/** The sections of a stack template this suite reads. */
-interface Template {
-  readonly force?: Readonly<
-    Record<string, Readonly<Record<string, string>> | undefined>
-  >;
-  readonly defaults?: Readonly<
-    Record<string, Readonly<Record<string, string>> | undefined>
-  >;
-  readonly adopt?: Readonly<
-    Record<string, Readonly<Record<string, string>> | undefined>
-  >;
-}
-
-/** Template lanes whose files land in a host. */
-const LANES = ["create-only", "copy-overwrite"] as const;
-
-/** Source files a host runs or compiles. */
-const SOURCE_FILE = /\.[cm]?[jt]sx?$/u;
-
-/** Module specifiers in `import … from`, bare `import`, `import()` and `require()`. */
-const SPECIFIER =
-  /(?:\bfrom\s+|\bimport\s+|\bimport\(\s*|\brequire\(\s*)["']([^"'\s]+)["']/gu;
-
-/**
- * Every stack template in the repository.
- * @returns Stack name and parsed template
- */
-function templates(): readonly (readonly [string, Template])[] {
-  return fs
-    .readdirSync(REPO_ROOT, { withFileTypes: true })
-    .filter(entry => entry.isDirectory() && !entry.name.startsWith("."))
-    .map((entry): readonly [string, string] => [
-      entry.name,
-      path.join(REPO_ROOT, entry.name, "package-lisa", "package.lisa.json"),
-    ])
-    .filter(([, file]) => fs.existsSync(file))
-    .map(([stack, file]): readonly [string, Template] => [
-      stack,
-      JSON.parse(fs.readFileSync(file, "utf8")) as Template,
-    ]);
-}
-
-const TEMPLATES = new Map(templates());
-
-/**
- * A stack and its parents, nearest first.
- * @param stack - Stack directory
- * @returns The lineage
- */
-function lineage(stack: string): readonly string[] {
-  const parent = PROJECT_TYPE_HIERARCHY[stack];
-  return parent === undefined ? [stack] : [stack, ...lineage(parent)];
-}
-
-/**
- * Lisa's own runtime dependencies, which install with `@codyswann/lisa` into
- * every host — the reason a stack need not force them.
- */
-const LISA_DEPENDENCIES = Object.keys(
-  (
-    JSON.parse(
-      fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf8")
-    ) as { dependencies?: Record<string, string> }
-  ).dependencies ?? {}
-);
-
 /**
  * Packages a stack's hosts are still given.
  * @param stack - Stack directory
- * @returns Package names Lisa forces, defaults, or installs with itself
+ * @returns Lisa itself and the package names its lineage forces or defaults
  */
 function supplied(stack: string): ReadonlySet<string> {
   return new Set([
-    ...LISA_DEPENDENCIES,
+    LISA_PACKAGE,
     ...lineage(stack).flatMap(layer => {
       const template = TEMPLATES.get(layer);
       return [template?.force, template?.defaults].flatMap(section =>
@@ -176,48 +120,6 @@ function withdrawn(stack: string): ReadonlySet<string> {
         ...Object.keys(TEMPLATES.get(layer)?.adopt?.devDependencies ?? {}),
       ])
       .filter(name => !still.has(name))
-  );
-}
-
-/**
- * The package a module specifier loads.
- * @param specifier - Import or require specifier
- * @returns Package name, or undefined for a relative, absolute or builtin path
- */
-function packageOf(specifier: string): string | undefined {
-  if (/^(?:\.|\/|node:)/u.test(specifier)) return undefined;
-  const parts = specifier.split("/");
-  return specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
-}
-
-/**
- * Every package a source text imports or requires.
- * @param text - File contents
- * @returns Package names
- */
-function importedPackages(text: string): readonly string[] {
-  return [...text.matchAll(SPECIFIER)].flatMap(match => {
-    const name = packageOf(match[1] ?? "");
-    return name === undefined ? [] : [name];
-  });
-}
-
-/**
- * Every source file a stack's lineage ships into a host.
- * @param stack - Stack directory
- * @returns Absolute paths
- */
-function shippedSources(stack: string): readonly string[] {
-  return lineage(stack).flatMap(layer =>
-    LANES.flatMap(lane => {
-      const root = path.join(REPO_ROOT, layer, lane);
-      return fs.existsSync(root)
-        ? fs
-            .readdirSync(root, { recursive: true, encoding: "utf8" })
-            .filter(file => SOURCE_FILE.test(file) && !file.endsWith(".d.ts"))
-            .map(file => path.join(root, file))
-        : [];
-    })
   );
 }
 
@@ -281,4 +183,37 @@ describe("shipped host files and withdrawn libraries", () => {
       expect(offending).toEqual([]);
     }
   );
+
+  it.each(Object.keys(PROJECT_TYPE_HIERARCHY).filter(s => TEMPLATES.has(s)))(
+    "%s ships no file naming a package its templates do not supply",
+    stack => {
+      // Lisa's own dependencies do not count: under an isolated layout (pnpm)
+      // a host file resolves only what the host declares.
+      const given = supplied(stack);
+      const offending = shippedSources(stack).flatMap(file =>
+        namedPackages(file)
+          .filter(name => !given.has(name))
+          .map(name => `${path.relative(REPO_ROOT, file)} names ${name}`)
+      );
+      expect(offending).toEqual([]);
+    }
+  );
+
+  it("reads a Jest config loader and ignores what is not a package", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-named-"));
+    const file = path.join(dir, "jest.config.ts");
+    fs.writeFileSync(
+      file,
+      [
+        "/** @jest-config-loader esbuild-register */",
+        '// pulled from "malformed" input',
+        'import "@/lib/thing";',
+        'import { join } from "path";',
+        'import type { Config } from "jest";',
+      ].join("\n")
+    );
+    const named = namedPackages(file);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(named).toEqual(["jest", "esbuild-register"]);
+  });
 });

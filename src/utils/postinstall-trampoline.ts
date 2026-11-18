@@ -48,7 +48,6 @@ const SETTLE_DELAY_MS = 250;
 // package-manager-detect.ts) so existing importers/tests can keep importing it
 // from this module.
 export {
-  LOCKFILE_REGEN_PLANS,
   detectPackageManagers,
   enginesForbiddenManagers,
   getLockfileRegenPlan,

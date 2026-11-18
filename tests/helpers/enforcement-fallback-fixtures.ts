@@ -99,7 +99,7 @@ export const BLOCK_NO_VERIFY = "block-no-verify";
 export const BLOCK_SHELL_JSON = "block-shell-json-parsing";
 export const BLOCK_INSTRUCTION_FILES = "block-instruction-file-edits";
 export const BLOCK_ISSUE_CREATE = "block-direct-issue-create";
-export const BLOCK_MANAGED_FILES = "block-managed-file-edits";
+const BLOCK_MANAGED_FILES = "block-managed-file-edits";
 
 /** The guards the dispatcher replays a payload to, in dispatch order. */
 export const GUARDS = [

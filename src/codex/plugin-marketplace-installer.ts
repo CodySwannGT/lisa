@@ -13,7 +13,7 @@ export const CODEX_MARKETPLACE_PATH = path.join(
 );
 
 /** Lisa plugin names the reconciler owns and may remove when no longer selected. */
-export const LISA_CODEX_PLUGINS = [
+const LISA_CODEX_PLUGINS = [
   "lisa",
   "lisa-typescript",
   "lisa-expo",

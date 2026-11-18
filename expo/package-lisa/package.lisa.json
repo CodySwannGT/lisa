@@ -67,7 +67,8 @@
       "oxlint": ">=1.62.0 <1.86.0",
       "oxlint-tsgolint": "^0.24.0",
       "babel-jest": "^30.2.0",
-      "eas-cli": "^27.0.0"
+      "eas-cli": "^27.0.0",
+      "esbuild-register": "^3.6.0"
     },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",

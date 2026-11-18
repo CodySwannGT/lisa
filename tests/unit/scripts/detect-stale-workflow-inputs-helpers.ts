@@ -10,10 +10,10 @@ import process from "node:process";
 
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
-export const REPO_ROOT = path.resolve(__dirname, "../../..");
+const REPO_ROOT = path.resolve(__dirname, "../../..");
 const SCRIPT_NAME = "detect-stale-workflow-inputs.mjs";
-export const SCRIPT = path.join(REPO_ROOT, "scripts", SCRIPT_NAME);
-export const FIXTURES_ROOT = path.join(
+const SCRIPT = path.join(REPO_ROOT, "scripts", SCRIPT_NAME);
+const FIXTURES_ROOT = path.join(
   REPO_ROOT,
   "parity/fixtures/stale-workflow-inputs"
 );

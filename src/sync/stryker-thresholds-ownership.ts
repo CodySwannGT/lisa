@@ -48,13 +48,13 @@ import {
 export const MUTATION_FLOOR_CONFIG_KEY = "quality.mutation.strykerThresholds";
 
 /** Config file that owns the mutation-score floor. */
-export const MUTATION_FLOOR_CONFIG_FILE = ".lisa.config.json";
+const MUTATION_FLOOR_CONFIG_FILE = ".lisa.config.json";
 
 /** Artifact file that mirrors the mutation-score floor. */
 export const MUTATION_FLOOR_ARTIFACT_FILE = "stryker.conf.json";
 
 /** Dot path of the mirrored floor inside the artifact file. */
-export const MUTATION_FLOOR_ARTIFACT_POINTER = "thresholds";
+const MUTATION_FLOOR_ARTIFACT_POINTER = "thresholds";
 
 /** Artifact key stating, in the file itself, who owns `thresholds`. */
 export const MUTATION_FLOOR_OWNER_FIELD = "_thresholdsOwner";
@@ -97,7 +97,7 @@ function show(value: unknown): string {
  * @param artifactValue - Floor enforced by the artifact
  * @returns Multi-line failure message
  */
-export function describeMutationFloorDivergence(
+function describeMutationFloorDivergence(
   configValue: unknown,
   artifactValue: unknown
 ): string {

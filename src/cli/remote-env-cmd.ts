@@ -43,7 +43,7 @@ const SCRIPT_RELATIVE = path.join(
 );
 
 /** Injectable seams so the command is testable without provisioning anything. */
-export interface RemoteEnvDeps {
+interface RemoteEnvDeps {
   /** Resolve the installed package root. */
   readonly installPath?: () => string;
   /** Run the script. */
@@ -62,7 +62,7 @@ export interface RemoteEnvDeps {
  * @returns Absolute path to the runner.
  * @throws {Error} When the package is incomplete.
  */
-export function resolveRemoteEnvScript(
+function resolveRemoteEnvScript(
   installPath: () => string = getCliInstallPath
 ): string {
   const script = path.join(installPath(), SCRIPT_RELATIVE);
@@ -81,7 +81,7 @@ export function resolveRemoteEnvScript(
  * @param deps Injectable seams.
  * @returns The runner's exit code.
  */
-export function runRemoteEnv(
+function runRemoteEnv(
   flags: readonly string[] = [],
   deps: RemoteEnvDeps = {}
 ): number {

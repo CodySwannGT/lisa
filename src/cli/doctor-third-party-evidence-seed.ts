@@ -308,7 +308,7 @@ function remedyOf(reading: EvidenceSeedReading): string[] {
  * @param reading - What the copy does
  * @returns The detail for a stale copy
  */
-export function describeStaleSeed(reading: EvidenceSeedReading): string {
+function describeStaleSeed(reading: EvidenceSeedReading): string {
   return [
     `${THIRD_PARTY_EVIDENCE_WORKFLOW} is not ready for a reviewer that reports through a check run, or for its verdict to reach the pull request: ${gapsOf(reading).join("; and ")}. ` +
       "Lisa seeded this file once and will not rewrite it; the prover it runs is already current.",

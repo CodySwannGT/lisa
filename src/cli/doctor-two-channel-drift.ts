@@ -134,9 +134,7 @@ async function readLedger(ledgerPath: string): Promise<LedgerRead> {
  * @param targetPath - Project root
  * @returns Reusable workflow file names called at `@main`, sorted
  */
-export async function liveCallers(
-  targetPath: string
-): Promise<readonly string[]> {
+async function liveCallers(targetPath: string): Promise<readonly string[]> {
   const directory = path.join(targetPath, ".github", "workflows");
   const names = await readdir(directory).catch(() => undefined);
   if (names === undefined) return [];

@@ -1,27 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "index.tsx",
+    "index.{ts,tsx}",
     "app/**/*.{ts,tsx}",
-    "components/**/*.{ts,tsx}",
-    "features/**/*.{ts,tsx}",
-    "hooks/**/*.{ts,tsx}",
-    "utils/**/*.{ts,tsx}",
-    "stores/**/*.{ts,tsx}",
-    "providers/**/*.{ts,tsx}",
-    "constants/**/*.{ts,tsx}",
-    "types/**/*.{ts,tsx}",
-    "config/**/*.{ts,tsx}",
-    "src/app/**/*.{ts,tsx}",
-    "src/components/**/*.{ts,tsx}",
-    "src/features/**/*.{ts,tsx}",
-    "src/hooks/**/*.{ts,tsx}",
-    "src/utils/**/*.{ts,tsx}",
-    "src/stores/**/*.{ts,tsx}",
-    "src/providers/**/*.{ts,tsx}",
-    "src/constants/**/*.{ts,tsx}",
-    "src/types/**/*.{ts,tsx}",
-    "src/config/**/*.{ts,tsx}"
+    "src/app/**/*.{ts,tsx}"
   ],
   "project": [
     "index.tsx",
@@ -50,6 +32,5 @@
   ],
   "ignore": [
     "**/generated/**"
-  ],
-  "ignoreExportsUsedInFile": true
+  ]
 }

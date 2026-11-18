@@ -41,7 +41,6 @@ const config: KnipConfig = {
   entry: ["index.tsx", "src/app/**/*.{ts,tsx}"],
   project: ["index.tsx", "src/**/*.{ts,tsx}"],
   ignore: ["**/generated/**"],
-  ignoreExportsUsedInFile: true,
   ...expoKnipResolution(),
 };
 

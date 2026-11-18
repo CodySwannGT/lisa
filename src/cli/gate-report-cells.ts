@@ -117,7 +117,7 @@ function rawEntry(
  * @param id - Gate id
  * @returns The task, or null
  */
-export function gateLevelRun(
+function gateLevelRun(
   gates: Record<string, unknown>,
   id: string
 ): string | null {
@@ -151,7 +151,7 @@ export function gateLevelRun(
  *   manifest cannot establish that the concern-named script is absent.
  * @returns The winning source and its task
  */
-export function resolveProvenance(options: {
+function resolveProvenance(options: {
   entry: Record<string, unknown> | null;
   gateRun: string | null;
   definition: RegistryGate | undefined;
@@ -210,7 +210,7 @@ function shippedAsTask(
  * @param task - The resolved task
  * @returns A three-state finding, never a defaulted pass
  */
-export function commandExistsFinding(
+function commandExistsFinding(
   scripts: Readonly<Record<string, string>> | null,
   task: string | null
 ): Finding<boolean> {
@@ -249,7 +249,7 @@ export function commandExistsFinding(
  * @param options.facadeKnown - Whether this run could read the CI workflows
  * @returns A bucket, or an explicit refusal
  */
-export function classifyBucket(options: {
+function classifyBucket(options: {
   active: boolean;
   mode: ProofMode | null;
   commandExists: Finding<boolean>;

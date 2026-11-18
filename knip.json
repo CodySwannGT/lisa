@@ -3,16 +3,10 @@
   "workspaces": {
     ".": {
       "entry": [
+        "scripts/**/*.mjs",
+        "scripts/*.{ts,mts}",
         ".lisa/evidence/*/*.mjs",
         "evidence/*/*.{mjs,ts}",
-        "scripts/*.{ts,mts,mjs}",
-        "scripts/lib/markdown-assertions/record-setup.mjs",
-        "scripts/lib/markdown-assertions/record.vitest.config.mjs",
-        "scripts/lib/mutation-performance-reporter.mjs",
-        "scripts/lib/packaged-apply-driver.mjs",
-        "scripts/lib/shell-guard-{terminal-reporter,trace}.mjs",
-        "scripts/lib/test-access-map-{setup,tracer}.mjs",
-        "scripts/lisa-remote-env/materialized-env-authority.mjs",
         "src/opencode/plugin-templates/*.ts",
         "tests/fixtures/git-history-secrets/{journey,rails-prepush-hook,scanner-path}.mjs",
         "tests/fixtures/mutation-performance/jest/jest.config.ts",
@@ -32,6 +26,5 @@
         "evidence/*/*.{mjs,ts}"
       ]
     }
-  },
-  "ignoreExportsUsedInFile": true
+  }
 }

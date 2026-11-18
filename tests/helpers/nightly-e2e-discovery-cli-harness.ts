@@ -43,7 +43,7 @@ export function discoveryRun(id: number, ageHours = 1) {
 }
 
 /** Independent Actions run fixture. */
-export type DiscoveryRun = ReturnType<typeof discoveryRun>;
+type DiscoveryRun = ReturnType<typeof discoveryRun>;
 
 /** HTTP snapshot and independent-detail inputs. */
 interface DiscoveryOptions {

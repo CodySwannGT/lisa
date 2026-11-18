@@ -41,7 +41,7 @@ const FORMATTING_OPTIONS = {
 } as const;
 
 /** A stdio MCP server in OpenCode's shape (`command` is an argv array). */
-export interface OpencodeLocalMcpEntry {
+interface OpencodeLocalMcpEntry {
   readonly type: "local";
   readonly command: readonly string[];
   readonly environment?: Readonly<Record<string, string>>;
@@ -50,7 +50,7 @@ export interface OpencodeLocalMcpEntry {
 }
 
 /** An HTTP MCP server in OpenCode's shape (`url`, not `command`). */
-export interface OpencodeRemoteMcpEntry {
+interface OpencodeRemoteMcpEntry {
   readonly type: "remote";
   readonly url: string;
   readonly headers?: Readonly<Record<string, string>>;

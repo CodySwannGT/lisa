@@ -71,7 +71,7 @@ export const bypassBearingMapping = (...levels: readonly unknown[]): boolean =>
  * @param value - Parsed job/step `if` value
  * @returns Whether the condition can participate in nightly bypass behavior
  */
-export const conditionalBypass = (value: unknown): boolean =>
+const conditionalBypass = (value: unknown): boolean =>
   typeof value === "string" && hasNightlyBypassReference(value);
 
 const workflowShell = (workflow: NightlyGuardWorkflowRecord): unknown =>

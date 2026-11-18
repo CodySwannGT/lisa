@@ -29,7 +29,7 @@ export const RULE_ROOTS = [
   "plugins/lisa-copilot/rules",
 ] as const;
 
-export const SLUG = "derived-branch-plan";
+const SLUG = "derived-branch-plan";
 /** The three skills that persist the declaration onto a work item. */
 export const WRITERS = [
   "lisa-github-write-issue",

@@ -118,7 +118,7 @@ function executableLines(body: string): readonly string[] {
  * @param body - Shim file contents
  * @returns True when an executable line invokes the wrapper
  */
-export function invokesWrapper(body: string): boolean {
+function invokesWrapper(body: string): boolean {
   return executableLines(body).some(line => WRAPPER_INVOCATION.test(line));
 }
 
@@ -145,7 +145,7 @@ export function parseVendorShimEvent(body: string): string | undefined {
  * @param event - Vendor event name the wrapper forwards to `sonar hook`
  * @returns New shim body
  */
-export function renderRepointedShim(
+function renderRepointedShim(
   shebang: string | undefined,
   relWrapper: string,
   event: string
@@ -168,7 +168,7 @@ export function renderRepointedShim(
  * Called with each shim's absolute path just before it is replaced, so the
  * caller can back it up (apply registers it for rollback).
  */
-export type BeforeShimWrite = (absolute: string) => Promise<void>;
+type BeforeShimWrite = (absolute: string) => Promise<void>;
 
 /** Options for {@link repointSonarShims}. */
 export interface RepointSonarShimsOptions {

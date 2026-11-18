@@ -13,7 +13,7 @@ import * as path from "node:path";
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
 /** The skill an agent reads when knip reports unresolved platform files. */
-export const KNIP_PLATFORM_SKILL = path.join(
+const KNIP_PLATFORM_SKILL = path.join(
   REPO_ROOT,
   "plugins",
   "src",

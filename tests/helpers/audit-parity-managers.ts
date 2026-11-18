@@ -7,10 +7,10 @@
 import type { AuditManager } from "../../src/core/audit.js";
 
 export const PARITY_GHSA = "GHSA-aaaa-bbbb-cccc";
-export const PARITY_VULNERABLE = "3.25.76";
+const PARITY_VULNERABLE = "3.25.76";
 
 /** zod 4.5.0 is still below the 4.6.6 fix, but outside a zod 3.x scope. */
-export const PARITY_ZOD4 = "4.5.0";
+const PARITY_ZOD4 = "4.5.0";
 
 /**
  * The version the reviewed dev-only copy resolves to for a scenario.

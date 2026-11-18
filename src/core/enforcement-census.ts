@@ -43,7 +43,7 @@ import { readJsonOrNull } from "../utils/json-utils.js";
 import { pathExists } from "../utils/file-operations.js";
 
 /** Where a checkout on the roster came from. */
-export type RosterSource = "roster" | "scan" | "argument";
+type RosterSource = "roster" | "scan" | "argument";
 
 /** One checkout the census intends to look at. */
 export interface RosterEntry {

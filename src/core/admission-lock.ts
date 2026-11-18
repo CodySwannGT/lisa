@@ -35,7 +35,7 @@ import { createConnection, createServer, type Server } from "node:net";
 import { dirname, join } from "node:path";
 
 /** File name of the decision lock. */
-export const LOCK_FILE = "admission.sock";
+const LOCK_FILE = "admission.sock";
 
 /**
  * Longest Unix socket path every supported platform can bind. macOS caps
@@ -45,7 +45,7 @@ export const LOCK_FILE = "admission.sock";
 export const UNIX_SOCKET_PATH_LIMIT = 103;
 
 /** Mode of the per-user fallback lock directory. */
-export const PRIVATE_DIR_MODE = 0o700;
+const PRIVATE_DIR_MODE = 0o700;
 
 /** The longest a probe of the lock holder may take before it counts as held. */
 const PROBE_TIMEOUT_MS = 1_000;

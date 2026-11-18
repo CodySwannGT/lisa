@@ -1,7 +1,7 @@
 /**
  * Expo's shipped `jest.config.ts` names `esbuild-register` as its Jest config
- * loader, Lisa ships that package to every host, and a CommonJS host needs it
- * (CodySwannGT/lisa#4932).
+ * loader, the Expo template forces that package into every host, and a
+ * CommonJS host needs it (CodySwannGT/lisa#4932).
  *
  * The loader is invisible to knip: Jest names it in a docblock, and nothing
  * imports it. That made it look removable. It is not. Jest 30 first tries
@@ -11,8 +11,8 @@
  * CommonJS and refuses them. Removing the pragma broke every Expo host's unit
  * suite in the packed-host journey. This suite proves both halves — Node alone
  * cannot load the shipped config in a CommonJS host, and `esbuild-register`,
- * registered the way Jest registers it, can — and pins the dependency that
- * puts the loader in the host's tree.
+ * registered the way Jest registers it, can — and pins the forced
+ * devDependency that puts the loader in the host's own tree.
  * @module tests/unit/config/expo-jest-config-loader
  */
 import * as fs from "node:fs";
@@ -64,13 +64,24 @@ function commonJsHost(): string {
 }
 
 describe("Expo's Jest config loader", () => {
-  it("is named in the shipped config and shipped by Lisa", () => {
-    const docblock = fs.readFileSync(TEMPLATE, "utf8").split("*/")[0] ?? "";
+  it("is named in the shipped config and supplied to every Expo host", () => {
+    const source = fs.readFileSync(TEMPLATE, "utf8");
+    const docblock = source.split("*/")[0] ?? "";
     expect(docblock).toMatch(/@jest-config-loader esbuild-register\b/u);
-    const manifest = JSON.parse(
-      fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf8")
-    ) as { dependencies?: Record<string, string> };
-    expect(manifest.dependencies).toHaveProperty("esbuild-register");
+    // Declared where knip reads it, so the forced devDependency is not
+    // reported unused.
+    expect(source).toContain(
+      'import type {} from "esbuild-register/dist/node";'
+    );
+    // The host declares it: under an isolated (pnpm) layout a package Lisa
+    // depends on is not resolvable from the host's own config.
+    const template = JSON.parse(
+      fs.readFileSync(
+        path.join(REPO_ROOT, "expo", "package-lisa", "package.lisa.json"),
+        "utf8"
+      )
+    ) as { force: { devDependencies: Record<string, string> } };
+    expect(template.force.devDependencies).toHaveProperty("esbuild-register");
   });
 
   it("is needed: Node alone cannot load the config in a CommonJS host", () => {

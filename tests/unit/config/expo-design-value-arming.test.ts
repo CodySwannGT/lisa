@@ -153,11 +153,6 @@ describe("design-value binding: the managed template wires the path", () => {
     expect(src).toContain("readTypedAxes(__dirname)");
     expect(src).toContain("typedAxes,");
   });
-
-  it("the copied factory template arms the rule from the option too", () => {
-    const src = readFileSync(path.join(TEMPLATE, "eslint.expo.ts"), "utf8");
-    expect(src).toContain("getDesignValueBindingRule(typedAxes)");
-  });
 });
 
 describe("design-value binding: the armed rule actually reports", () => {

@@ -10,7 +10,7 @@ import { join } from "node:path";
  * Fault only the actual vendor Git log after proving real default-rule detection.
  * @param harness - Private disposable fixture operations
  */
-export function vendorErrorCases(harness) {
+function vendorErrorCases(harness) {
   try {
     const {
       initialize,

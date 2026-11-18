@@ -35,8 +35,6 @@ import { opencodeProjectPluginFilter } from "./project-plugin-gate.js";
 import { transformCommandToOpencode } from "./command-transformer.js";
 import { OPENCODE_CONFIG_DIR } from "./manifest.js";
 
-export type { LisaCommandSource } from "../core/lisa-skill-sources.js";
-
 /** Subdirectory inside `.opencode/` where Lisa-owned commands live */
 export const LISA_COMMANDS_SUBDIR = "commands";
 
@@ -44,13 +42,13 @@ export const LISA_COMMANDS_SUBDIR = "commands";
  * Filename prefix marking a command file as Lisa-owned. Native OpenCode command
  * names use Lisa's user-facing slash-command namespace (`/lisa:*`).
  */
-export const LISA_COMMAND_FILE_PREFIX = LISA_COMMAND_DISPLAY_PREFIX;
+const LISA_COMMAND_FILE_PREFIX = LISA_COMMAND_DISPLAY_PREFIX;
 
 /** Legacy filename prefix used before OpenCode native commands matched `/lisa:*`. */
 const LEGACY_LISA_COMMAND_FILE_PREFIX = "lisa-";
 
 /** Result of installing one command */
-export interface InstalledCommand {
+interface InstalledCommand {
   /** Command name (the `lisa:` prefixed, colon-scoped display name) */
   readonly name: string;
   /** Path written, relative to the destination project's `.opencode/` directory */
@@ -74,7 +72,7 @@ export interface CommandInstallResult {
  *   (relative to `.opencode/`); used to detect stale commands to delete
  * @returns Result describing installed/deleted/managedFiles
  */
-export async function installCommands(
+async function installCommands(
   sources: readonly LisaCommandSource[],
   destDir: string,
   previousManagedFiles: readonly string[]

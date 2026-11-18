@@ -47,7 +47,6 @@ import { getPackageVersion } from "./version.js";
 // Re-export the blocker-gate types (RRR-5, #1857) this collector's callers
 // read, even though the gate lives in a sibling module for file-size hygiene.
 export type {
-  DetectedBlocker,
   ReadinessDimensionInput,
   ReadinessVerdict,
 } from "./doctor-readiness-blockers.js";

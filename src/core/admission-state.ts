@@ -169,7 +169,7 @@ export function writeReservation(
  * `MemAvailable`.
  * @returns Megabytes
  */
-export function availableMemoryMb(): number {
+function availableMemoryMb(): number {
   const fallback = freemem() / 1_048_576;
   if (process.platform === "linux") {
     const match = /^MemAvailable:\s+(\d+) kB/mu.exec(

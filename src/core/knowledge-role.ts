@@ -16,7 +16,7 @@
 import type { SyncedSetting } from "../sync/registry.js";
 
 /** Every knowledge backend Lisa can serve, mapped to the plugin that implements it. */
-export const KNOWLEDGE_BACKEND_PLUGINS: Readonly<Record<string, string>> =
+const KNOWLEDGE_BACKEND_PLUGINS: Readonly<Record<string, string>> =
   Object.freeze({ "llm-wiki": "lisa-wiki" });
 
 /** The `knowledge` role's default backend, written by `lisa sync` when absent. */

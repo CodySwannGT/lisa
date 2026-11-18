@@ -48,7 +48,7 @@ export const PM_PATH_ENV_NAMES: readonly string[] = [
  * @param key - Environment variable name
  * @returns true when the variable could redirect a re-spawned package manager
  */
-export function isPackageManagerPathEnvVar(key: string): boolean {
+function isPackageManagerPathEnvVar(key: string): boolean {
   if (PM_PATH_ENV_NAMES.includes(key)) {
     return true;
   }

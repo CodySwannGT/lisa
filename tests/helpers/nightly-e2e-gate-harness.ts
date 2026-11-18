@@ -41,7 +41,6 @@ export {
 export type {
   BypassLabelState,
   IssuePlanEntry,
-  IssueResult,
   Requiredness,
   RulesetSource,
   TrackedIssue,
@@ -69,7 +68,7 @@ export interface Job {
 }
 
 /** The resolved bootstrap window. */
-export interface Bootstrap {
+interface Bootstrap {
   readonly active: boolean;
   readonly until: string | null;
   readonly expiresInDays: number | null;
@@ -81,7 +80,7 @@ export interface Bootstrap {
  * Same shape as `Bootstrap` plus the anchor it was computed from, because the
  * anchor is what makes the window bounded and the audit has to show it.
  */
-export interface SuiteGrace extends Bootstrap {
+interface SuiteGrace extends Bootstrap {
   readonly firstSeen: string | null;
 }
 
@@ -107,7 +106,7 @@ export interface Finding {
 }
 
 /** What a run recorded about its own scope, from its artifact names. */
-export interface SuiteScope {
+interface SuiteScope {
   readonly readable: boolean;
   readonly filtered: readonly string[];
   readonly full: readonly string[];

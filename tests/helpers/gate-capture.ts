@@ -350,7 +350,7 @@ export const gateRunFrom = (
  * synchronous child with no `timeout:` blocks the worker's event loop, so the
  * case budget it is billed against is a timer that cannot fire.
  */
-export const GATE_CHILD_DEADLINE_MS = 7_200_000;
+const GATE_CHILD_DEADLINE_MS = 7_200_000;
 
 export const captureGateRun = (options: GateCaptureOptions): GateRun => {
   const maxBuffer = options.maxBuffer ?? MAX_GATE_OUTPUT_BYTES;

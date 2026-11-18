@@ -43,6 +43,34 @@ const EXEMPTION_KEYS = [
 ] as const;
 
 /**
+ * Options that relax a check for every name at once. `ignoreExportsUsedInFile`
+ * stops reporting an export whose only user is its own module, which is
+ * exactly the dead surface the gate exists to find.
+ */
+const RELAXATION_KEYS = ["ignoreExportsUsedInFile"] as const;
+
+/**
+ * Ordinary modules in every layout a stack uses: code another module imports.
+ * An `entry` glob matching any of them makes every such file an entry point,
+ * so the gate can never call one unused and never reports its unused exports.
+ * Entries are a project's real starting points — its manifest's `main`,
+ * `bin` and `exports` (knip reads those itself), framework conventions such as
+ * routes, handlers and migrations, and runnable scripts.
+ */
+const ORDINARY_MODULE_PROBES = [
+  "src/services/user-service.ts",
+  "src/utils/format.ts",
+  "src/users/users.service.ts",
+  "lib/app-stack.ts",
+  "lib/util/format.ts",
+  "components/Button.tsx",
+  "src/components/Button.tsx",
+  "src/features/profile/hooks/useProfile.ts",
+  "hooks/useThing.ts",
+  "utils/date.ts",
+] as const;
+
+/**
  * Test-file paths in every layout a stack uses. An `ignore` glob matching any
  * of them takes tests out of the analysis the issue requires them to be in.
  */
@@ -134,6 +162,42 @@ function exemptions(config: KnipConfig): readonly string[] {
 }
 
 /**
+ * Every option a config sets that relaxes a check for all names.
+ * @param config - Parsed config
+ * @returns One `file: key` line per relaxation found, in any scope
+ */
+function relaxations(config: KnipConfig): readonly string[] {
+  return config.scopes.flatMap(scope =>
+    RELAXATION_KEYS.filter(key => key in scope).map(
+      key => `${config.file}: ${key}`
+    )
+  );
+}
+
+/**
+ * Every `entry` glob that turns an ordinary module into an entry point.
+ * @param config - Parsed config
+ * @returns One `file: glob` line per offending pattern
+ */
+function blanketEntries(config: KnipConfig): readonly string[] {
+  return config.scopes.flatMap(scope => {
+    const entry = scope.entry;
+    const patterns = Array.isArray(entry)
+      ? (entry as string[])
+      : typeof entry === "string"
+        ? [entry]
+        : [];
+    return patterns
+      .filter(pattern =>
+        ORDINARY_MODULE_PROBES.some(probe =>
+          minimatch(probe, pattern, { dot: true })
+        )
+      )
+      .map(pattern => `${config.file}: entry ${pattern}`);
+  });
+}
+
+/**
  * Every rule a config switches off.
  * @param config - Parsed config
  * @returns One `file: rules.name` line per disabled rule
@@ -182,6 +246,14 @@ describe("knip configs Lisa runs and ships are strict", () => {
     expect(CONFIGS.flatMap(disabledRules)).toEqual([]);
   });
 
+  it("relaxes no check for every name at once", () => {
+    expect(CONFIGS.flatMap(relaxations)).toEqual([]);
+  });
+
+  it("makes only real starting points entries, never every module", () => {
+    expect(CONFIGS.flatMap(blanketEntries)).toEqual([]);
+  });
+
   it("keeps every test file in the analysis", () => {
     expect(CONFIGS.flatMap(testIgnores)).toEqual([]);
   });
@@ -193,6 +265,8 @@ describe("knip configs Lisa runs and ships are strict", () => {
       expect.arrayContaining(["compilers", "paths"])
     );
     expect(exemptions(example)).toEqual([]);
+    expect(relaxations(example)).toEqual([]);
+    expect(blanketEntries(example)).toEqual([]);
     expect(disabledRules(example)).toEqual([]);
     expect(testIgnores(example)).toEqual([]);
   });
@@ -205,6 +279,8 @@ describe("knip configs Lisa runs and ships are strict", () => {
       scopes: [
         {
           ignoreBinaries: ["printf"],
+          ignoreExportsUsedInFile: true,
+          entry: ["src/**/*.ts", "src/main.ts"],
           rules: { devDependencies: "off" },
           ignore: ["**/*.test.ts", "**/dist/**"],
         },
@@ -219,5 +295,9 @@ describe("knip configs Lisa runs and ships are strict", () => {
       "control.json: rules.devDependencies",
     ]);
     expect(testIgnores(loose)).toEqual(["control.json: **/*.test.ts"]);
+    expect(relaxations(loose)).toEqual([
+      "control.json: ignoreExportsUsedInFile",
+    ]);
+    expect(blanketEntries(loose)).toEqual(["control.json: entry src/**/*.ts"]);
   });
 });

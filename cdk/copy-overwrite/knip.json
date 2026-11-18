@@ -1,14 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "bin/**/*.ts",
-    "lib/**/*.ts",
-    "config/**/*.ts",
-    "util/**/*.ts",
-    "utils/**/*.ts",
-    "lambda/**/*.ts",
-    "lambdas/**/*.ts",
-    "functions/**/*.ts"
+    "bin/*.ts",
+    "{lambda,lambdas,functions}/**/{index,handler}.ts"
   ],
   "project": [
     "bin/**/*.ts",
@@ -21,6 +15,5 @@
     "functions/**/*.ts",
     "test/**/*.ts",
     "tests/**/*.ts"
-  ],
-  "ignoreExportsUsedInFile": true
+  ]
 }

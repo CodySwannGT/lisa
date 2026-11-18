@@ -118,7 +118,7 @@ function disjunction(tokens: readonly string[], context: Context): Parsed {
  * @param context - Context values
  * @returns Whether the step runs
  */
-export function evaluate(expression: string, context: Context): boolean {
+function evaluate(expression: string, context: Context): boolean {
   const [value, rest] = disjunction(expression.match(TOKENS) ?? [], context);
   if (rest.length > 0) throw new Error(`unparsed tail in ${expression}`);
   return truthy(value);

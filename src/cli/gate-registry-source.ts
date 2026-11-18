@@ -47,7 +47,7 @@ function findPackageFileWalk(
  * Locate the shipped gate registry inside the running Lisa package.
  * @returns Absolute path to the registry, or null when it cannot be found
  */
-export function resolveGateRegistryPath(): string | null {
+function resolveGateRegistryPath(): string | null {
   const fromPackageRoot = path.join(
     __dirname,
     "..",

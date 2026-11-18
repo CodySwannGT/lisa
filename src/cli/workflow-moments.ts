@@ -19,7 +19,7 @@ import { readdir, readFile } from "node:fs/promises";
 import * as path from "node:path";
 
 /** The moment `quality.yml` resolves gates at when a caller declares none. */
-export const DEFAULT_MOMENT = "pull-request";
+const DEFAULT_MOMENT = "pull-request";
 
 /** A caller's `moment` input, whatever quoting style it uses. */
 const MOMENT_INPUT = /^([ \t]{0,64})moment:[ \t]{0,64}(.{0,4096})$/;

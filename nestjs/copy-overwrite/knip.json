@@ -1,17 +1,19 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "src/**/*.ts",
-    "lambdas/**/*.ts",
-    "lib/**/*.ts",
-    "scripts/**/*.ts"
+    "src/{index,main,cli,lambda,console}.ts",
+    "src/**/migrations/*.ts",
+    "src/**/seeds/*.ts",
+    "scripts/**/*.ts",
+    "test/**/*.e2e-spec.ts",
+    "lambdas/*/{index,handler}.ts"
   ],
   "project": [
     "src/**/*.ts",
     "lambdas/**/*.ts",
     "lib/**/*.ts",
+    "scripts/**/*.ts",
     "tests/**/*.ts",
     "test/**/*.ts"
-  ],
-  "ignoreExportsUsedInFile": true
+  ]
 }

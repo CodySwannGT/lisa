@@ -25,7 +25,7 @@ import { githubTemplate } from "../../helpers/github-expression.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /** The shipped reusable workflow under test. */
-export const LOAD_TEST_WORKFLOW = path.join(
+const LOAD_TEST_WORKFLOW = path.join(
   process.cwd(),
   ".github/workflows/load-test.yml"
 );
@@ -133,7 +133,7 @@ export function loadTestStep(id: string, file = LOAD_TEST_WORKFLOW): Step {
  * @param file - The workflow to read; the shipped one unless stated
  * @returns Every declared input with its effective value
  */
-export function resolveInputs(
+function resolveInputs(
   passed: Readonly<Record<string, InputValue>>,
   file = LOAD_TEST_WORKFLOW
 ): Record<string, InputValue> {
@@ -155,7 +155,7 @@ export function resolveInputs(
  * @param text - The file's contents
  * @returns Each key's last-written value
  */
-export function parseCommandFile(text: string): Record<string, string> {
+function parseCommandFile(text: string): Record<string, string> {
   return Object.fromEntries(
     text
       .split("\n")

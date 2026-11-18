@@ -343,7 +343,7 @@ function freezePlan(
  * @param config - Current merged Lisa config
  * @returns Canonical standards configuration digest
  */
-export function digestStandardsConfig(config: JsonObject): string {
+function digestStandardsConfig(config: JsonObject): string {
   return digest({
     quality: config.quality ?? null,
     thresholdRatchet: config.thresholdRatchet ?? null,

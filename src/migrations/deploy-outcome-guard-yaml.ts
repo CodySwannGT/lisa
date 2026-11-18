@@ -104,7 +104,7 @@ export function locateKey(
  * @param block - The job's block
  * @returns The first step's line index and indentation, or null when absent
  */
-export function locateFirstStep(
+function locateFirstStep(
   lines: readonly string[],
   block: JobBlock
 ): { readonly index: number; readonly indent: number } | null {
@@ -160,7 +160,7 @@ export function extractGuardStep(
  * not text. That case, a quoted or multi-line plain scalar, and a job with no
  * `if:` at all get a `>-` block, which reads the same and parses.
  */
-export type ConditionStyle =
+type ConditionStyle =
   | { readonly kind: "block"; readonly indicator: string }
   | { readonly kind: "expression" }
   | { readonly kind: "plain" };
@@ -174,7 +174,7 @@ const DEFAULT_STYLE: ConditionStyle = { kind: "block", indicator: ">-" };
  * @param continued - Whether the key carries content on further lines
  * @returns The style to render the rewrite in
  */
-export function conditionStyle(
+function conditionStyle(
   line: string | undefined,
   continued = false
 ): ConditionStyle {
@@ -240,7 +240,7 @@ function topLevelParts(condition: string): readonly string[] {
  * @param style - How the host wrote the original `if:`
  * @returns The lines to write in place of the job's old `if:`
  */
-export function renderCondition(
+function renderCondition(
   condition: string,
   keyIndent: number,
   style: ConditionStyle = DEFAULT_STYLE

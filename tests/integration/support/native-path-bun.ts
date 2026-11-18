@@ -12,7 +12,7 @@ import { deferToCi } from "../../support/ci-runtime.js";
  * @param pathValue - PATH to search
  * @returns True when the updater would accept the PATH's bun
  */
-export function pathBunIsNative(
+function pathBunIsNative(
   pathValue: string | undefined = process.env.PATH
 ): boolean {
   const candidate = (pathValue ?? "")

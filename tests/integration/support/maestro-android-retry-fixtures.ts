@@ -23,7 +23,7 @@ export const LEDGER_FILE = "maestro-android-retries.txt";
 export const SUITE_SIZE = 39;
 
 /** Flow basenames the fixture project contains. */
-export const FLOW_NAMES = Array.from(
+const FLOW_NAMES = Array.from(
   { length: SUITE_SIZE },
   (_unused, index) => `flow-${String(index).padStart(2, "0")}`
 );

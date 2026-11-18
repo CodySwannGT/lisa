@@ -479,7 +479,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
         ...forced.notes,
         ...raised.raises.map(
           raise =>
-            `Raised ${raise.name} from ${JSON.stringify(raise.from)} to ` +
+            `Raised ${raise.section}.${raise.name} from ${JSON.stringify(raise.from)} to ` +
             `${JSON.stringify(raise.to)} to meet Lisa's floor ` +
             `${JSON.stringify(raise.floorRange)}.`
         ),

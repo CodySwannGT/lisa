@@ -44,7 +44,7 @@ import { readProjectConfig } from "../core/project-config.js";
 import { resolveLearningsSettings } from "../core/project-config-learnings.js";
 
 /** Name of the merge-driver check as doctor reports it. */
-export const MERGE_DRIVERS_CHECK_NAME = "Merge drivers registered?";
+const MERGE_DRIVERS_CHECK_NAME = "Merge drivers registered?";
 
 /** Shape of one doctor check result (structurally identical to doctor's). */
 interface MergeDriverCheckResult {

@@ -27,7 +27,7 @@ const LEGACY_MONITOR_THRESHOLD_MIGRATIONS = [
 ] as const;
 
 /** Result of applying legacy monitor-threshold migration to one config. */
-export interface LegacyMonitorThresholdMigration {
+interface LegacyMonitorThresholdMigration {
   /** Updated committed config object */
   readonly committed: JsonObject;
   /** Reportable migration actions */
@@ -73,7 +73,7 @@ function removeAtPath(root: JsonObject, dotPath: string): JsonObject {
  * @param committed - Committed config object
  * @returns Updated config and migration actions
  */
-export function migrateLegacyMonitorThresholds(
+function migrateLegacyMonitorThresholds(
   committed: JsonObject
 ): LegacyMonitorThresholdMigration {
   return LEGACY_MONITOR_THRESHOLD_MIGRATIONS.reduce<LegacyMonitorThresholdMigration>(

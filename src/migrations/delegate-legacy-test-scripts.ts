@@ -124,7 +124,7 @@ interface PackageJson {
  * @param scripts - The host's scripts
  * @returns Alias names whose value should delegate to `<alias>:lisa`
  */
-export function legacyAliases(
+function legacyAliases(
   scripts: Readonly<Record<string, string>>
 ): readonly string[] {
   return Object.keys(LEGACY_TEST_SCRIPT_VALUES).filter(alias => {
