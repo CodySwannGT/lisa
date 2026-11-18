@@ -8,7 +8,13 @@
  * manager, the step then fails because it cannot find that manager's
  * lockfile. Because the key is forced, the host could not remove it for good.
  *
- * The floor stays in place when the host's manager is unknown, so a new
+ * When the host has neither a `packageManager` field nor a lockfile, the
+ * manager running this apply (`npm_config_user_agent`, as `bunx` or `npx`
+ * set it) decides (CodySwannGT/lisa#4941). Without it, a fresh host adopted
+ * through `bunx` received the npm floor and lost it on the next apply, once
+ * `bun install` had written `bun.lock`.
+ *
+ * The floor stays in place when the host's manager is still unknown, so a new
  * project still gets it. It is dropped only when the host clearly uses a
  * different manager. A copy Lisa wrote on an earlier apply is then removed,
  * and a value the host wrote itself is left alone.
@@ -39,23 +45,60 @@ export interface FittedDevEngines {
   readonly retire: boolean;
 }
 
+/** A package manager named by the process that invoked Lisa. */
+export interface InvokingPackageManager {
+  /** `bun`, `npm`, `pnpm` or `yarn`. */
+  readonly name: string;
+  /** Its version, as the user agent reports it. */
+  readonly version: string;
+}
+
 /**
- * Work out which package manager the host uses.
+ * The first product token of a package manager's user agent, e.g.
+ * `bun/1.4.4 npm/? node/v24.21.0 darwin arm64`: a known manager name, a
+ * slash, and a version that starts with a digit. Anything else is not a
+ * manager's user agent and says nothing.
+ */
+const USER_AGENT =
+  /^(bun|npm|pnpm|yarn)\/(\d+(?:\.\d+)*(?:[-+][0-9A-Za-z.+-]+)?)(?:\s|$)/u;
+
+/**
+ * Read the package manager that invoked this process from its user agent.
+ * @param userAgent - `npm_config_user_agent`, when the process has one
+ * @returns The manager and version, or undefined when it names none
+ */
+export function parseInvokingPackageManager(
+  userAgent: string | undefined
+): InvokingPackageManager | undefined {
+  const match = USER_AGENT.exec(userAgent?.trim() ?? "");
+  return match === null
+    ? undefined
+    : { name: match[1] ?? "", version: match[2] ?? "" };
+}
+
+/**
+ * Work out which package manager the host uses: its `packageManager` field,
+ * else its lockfile, else the manager running this apply.
  * @param projectDir - Host directory, or undefined when no tree is available
  * @param projectJson - Host package.json
+ * @param invoking - Manager that invoked this apply, when one did
  * @returns The manager name, or undefined when nothing says
  */
 export function detectHostPackageManager(
   projectDir: string | undefined,
-  projectJson: Readonly<Record<string, unknown>>
+  projectJson: Readonly<Record<string, unknown>>,
+  invoking?: string
 ): string | undefined {
   const field = projectJson.packageManager;
   if (typeof field === "string" && field.trim() !== "")
     return field.split("@")[0];
-  if (projectDir === undefined) return undefined;
-  return LOCKFILES.find(([file]) =>
-    existsSync(path.join(projectDir, file))
-  )?.[1];
+  const locked =
+    projectDir === undefined
+      ? undefined
+      : LOCKFILES.find(([file]) =>
+          existsSync(path.join(projectDir, file))
+        )?.[1];
+  return locked ?? invoking;
 }
 
 /**
