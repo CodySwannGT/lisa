@@ -1,4 +1,4 @@
 display_name: "Security Audit Handling"
-short_description: "What to do when a push or CI is blocked by the dependency security audit, in order: upgrade or override, evaluate reachability and record a…"
+short_description: "What to do when the dependency security audit blocks a push or CI, in order: upgrade or override, exclude an advisory that cannot reach the…"
 default_prompt:
-  - "Use $lisa-security-audit-handling: What to do when a push or CI is blocked by the dependency security audit, in order: upgrade or override, evaluate reachability and record a…."
+  - "Use $lisa-security-audit-handling: What to do when the dependency security audit blocks a push or CI, in order: upgrade or override, exclude an advisory that cannot reach the…."

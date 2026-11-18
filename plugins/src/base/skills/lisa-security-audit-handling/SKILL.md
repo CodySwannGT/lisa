@@ -1,6 +1,6 @@
 ---
 name: lisa-security-audit-handling
-description: "What to do when a push or CI is blocked by the dependency security audit, in order: upgrade or override, evaluate reachability and record a scoped exclusion if the advisory cannot affect the project, replace or remove the dependency, fix it upstream, and only last, behind a human gate, fork, patch or vendor the library. Never bypasses the hook."
+description: "What to do when the dependency security audit blocks a push or CI, in order: upgrade or override, exclude an advisory that cannot reach the project, replace or remove the dependency, fix upstream, and only last, behind a human gate, fork, patch or vendor it. Never bypasses the hook."
 ---
 
 # Security Audit Handling
