@@ -142,6 +142,7 @@ async function decideFindings(
     copies.length ? copies : readAuditCopies(root, manager);
   const patched = await decidePatchedFindings(
     root,
+    manager,
     findings,
     lockCopies,
     options

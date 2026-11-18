@@ -4,13 +4,19 @@ import { join, resolve, sep } from "node:path";
 import { gt, prerelease, satisfies, valid } from "semver";
 import { AuditCaptureError } from "./audit-capture.js";
 import { installedCopies } from "./audit-installed-copies.js";
+import { type PublishedVersions, registryVersions } from "./audit-registry.js";
 import { auditRecord } from "./audit-exclusions.js";
 import {
   patchedPathProblem,
   patchTargets,
   regressionProblems,
 } from "./audit-patch-proof.js";
-import type { AuditCopy, AuditFinding, AuditVerdict } from "./audit-types.js";
+import type {
+  AuditCopy,
+  AuditFinding,
+  AuditManager,
+  AuditVerdict,
+} from "./audit-types.js";
 
 /**
  * A vulnerable dependency can be accepted without an exclusion only when the
@@ -27,10 +33,11 @@ import type { AuditCopy, AuditFinding, AuditVerdict } from "./audit-types.js";
  * the regression test must pass on every installed copy and fail on the same
  * package with the patch reversed.
  *
- * Patches are found through the package manager's native declaration: Bun's
- * `patchedDependencies` in package.json. npm and Yarn classic have no native
- * patch mechanism, so a project on them gets no patch credit and the advisory
- * stays a finding.
+ * Patches are found through Bun's native declaration, `patchedDependencies`
+ * in package.json, and credited only when the audit runs for Bun. npm and
+ * Yarn classic ignore that field, so on them the patch was never applied:
+ * decidePatchedFindings leaves the finding undecided and audit-patch-hints
+ * names the real fix instead of asking for a reinstall that cannot work.
  */
 
 /** One declared patch that names at least one advisory. */
@@ -45,8 +52,7 @@ export interface AdvisoryPatch {
   readonly problems: readonly string[];
 }
 
-/** How the audit learns which versions the registry has published. */
-export type PublishedVersions = (name: string) => Promise<readonly string[]>;
+export type { PublishedVersions };
 
 /** Knobs for patch verification; tests replace the registry lookup. */
 export interface AuditPatchOptions {
@@ -60,7 +66,6 @@ export interface PatchedFindings {
 }
 
 const PATCHED_FILE = /^(\S+)\s+sha256:([0-9a-f]{64})$/u;
-const REGISTRY = "https://registry.npmjs.org";
 
 /**
  * Read the header lines above the first diff of a patch file.
@@ -143,24 +148,6 @@ export function readAdvisoryPatches(root: string): readonly AdvisoryPatch[] {
     return patch ? [patch] : [];
   });
 }
-
-/**
- * The registry's published versions of a package.
- * @param name - Package name
- * @returns Every published version
- */
-const registryVersions: PublishedVersions = async name => {
-  const url = `${REGISTRY}/${name.replace("/", "%2f")}`;
-  const response = await fetch(url, {
-    headers: { accept: "application/vnd.npm.install-v1+json" },
-  });
-  if (!response.ok)
-    throw new Error(`registry answered ${response.status} for ${name}`);
-  const body: unknown = await response.json();
-  if (!auditRecord(body) || !auditRecord(body.versions))
-    throw new Error(`registry returned no versions for ${name}`);
-  return Object.keys(body.versions);
-};
 
 /**
  * The SHA-256 of a file, or undefined when it is missing.
@@ -360,7 +347,10 @@ async function decidePatched(
 
 /**
  * Decide every finding a declared patch names; leave the rest to exclusions.
+ * Only Bun applies `patchedDependencies`, so on any other manager no patch is
+ * credited and every finding is left undecided.
  * @param root - Project root
+ * @param manager - Package manager the audit runs for
  * @param findings - Normalized high/critical advisories
  * @param copies - Reads the resolved lockfile copies, only when a patch applies
  * @param options - Registry lookup override
@@ -368,10 +358,12 @@ async function decidePatched(
  */
 export async function decidePatchedFindings(
   root: string,
+  manager: AuditManager,
   findings: readonly AuditFinding[],
   copies: () => readonly AuditCopy[],
   options: AuditPatchOptions = {}
 ): Promise<PatchedFindings> {
+  if (manager !== "bun") return { remaining: findings, verdicts: [] };
   const patches = readAdvisoryPatches(root);
   const claiming = (finding: AuditFinding) =>
     patches.filter(patch =>

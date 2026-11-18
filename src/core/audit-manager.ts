@@ -11,6 +11,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { unsupportedManagerPatchNote } from "./audit-patch-hints.js";
 import type { AuditManager } from "./audit-types.js";
 
 /** Managers whose production audits the canonical matcher understands. */
@@ -86,14 +87,15 @@ function manifestHints(root: string): ManifestHints {
 
 /**
  * Accept a selected manager only if its audit is one Lisa can evaluate.
+ * @param root - Project root, for the advisory-patch note
  * @param manager - The selected manager name
  * @param why - How it was selected, for the operator
  * @returns The manager
  */
-function auditable(manager: string, why: string): AuditManager {
+function auditable(root: string, manager: string, why: string): AuditManager {
   if (AUDITABLE.includes(manager)) return manager as AuditManager;
   throw new Error(
-    `This project uses ${manager} (${why}), whose audit Lisa's canonical matcher does not evaluate; declare a dependency-vulnerability task for it`
+    `This project uses ${manager} (${why}), whose audit Lisa's canonical matcher does not evaluate; declare a dependency-vulnerability task for it.${unsupportedManagerPatchNote(root, manager)}`
   );
 }
 
@@ -105,14 +107,14 @@ function auditable(manager: string, why: string): AuditManager {
 export function detectAuditManager(root: string): AuditManager {
   const hints = manifestHints(root);
   if (["bun", "npm", "yarn", "pnpm"].includes(hints.field))
-    return auditable(hints.field, "packageManager in package.json");
+    return auditable(root, hints.field, "packageManager in package.json");
   if (hints.forced !== "")
-    return auditable(hints.forced, "an engines please-use sentinel");
+    return auditable(root, hints.forced, "an engines please-use sentinel");
   const found = LOCKFILES.find(
     ([file, manager]) =>
       !hints.forbidden.has(manager) && existsSync(join(root, file))
   );
-  if (found) return auditable(found[1], `${found[0]} is present`);
+  if (found) return auditable(root, found[1], `${found[0]} is present`);
   throw new Error(
     "No supported audit lockfile found (bun.lock, package-lock.json or yarn.lock)"
   );

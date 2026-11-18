@@ -178,8 +178,8 @@ resolved only when all of these hold:
   one and outside the advisory's vulnerable range.
 
 When the last condition stops holding, the audit fails and names the fixed
-version: upgrade and delete the patch. A registry that cannot be reached fails
-the audit closed. `evaluateAuditReport` cannot query the registry, so it never
+version: upgrade and delete the patch. A registry that cannot be reached, or
+does not answer within 30 seconds, fails the audit closed. `evaluateAuditReport` cannot query the registry, so it never
 credits a patch.
 
 The header is a claim; running the test is the proof. Because the header
@@ -188,11 +188,14 @@ advisories to fall out of date.
 
 Lisa ships its own patches (currently picomatch, GHSA-fc5q-39xc-vjpf) to every
 TypeScript project through `.lisa/patches/` and `force.patchedDependencies`.
-npm and Yarn classic have no native patch mechanism, so a project on them gets
-no patch credit and the advisory remains a finding there. When a patch Lisa
-ships under `.lisa/patches/` covers that finding, the failing audit says so and
-names the fix: switch the project to Bun, or upgrade once a fixed release
-exists.
+Only Bun applies `patchedDependencies`, so the audit credits a patch only when
+it runs for Bun. npm and Yarn classic ignore the field Lisa forces, so the
+installed copy there is the unpatched one: the patch gets no credit, the
+advisory remains a finding, and the failing audit names the patch and the real
+fix (switch the project to Bun, or upgrade once a fixed release exists) rather
+than a reinstall that could never apply it. pnpm can apply patches natively,
+but Lisa's audit does not run for pnpm at all; its refusal names the same fix
+when the project carries advisory patches.
 
 ### What the picomatch patch changes
 
