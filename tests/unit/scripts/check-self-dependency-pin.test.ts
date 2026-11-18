@@ -217,6 +217,21 @@ describe("the self-dependency pin cannot rot unobserved (#3768)", () => {
       expect(run.stderr).toContain("NOT the session plugin cache");
     });
 
+    it("names the release job that fixes it, not a manual step (#4951)", async () => {
+      const run = await runCli(ROTTED_FLOOR);
+
+      expect(run.stderr).toContain("prepare_self_pin_raise");
+      expect(run.stderr).toContain("push_self_pin_raise");
+      expect(run.stderr).toContain("scripts/raise-self-dependency-pin.mjs");
+      // The hourly run is the recovery path that needs no later push.
+      expect(run.stderr).toContain("self-pin-raise workflow");
+      expect(run.stderr).toContain("every hour");
+      expect(run.stderr).toMatch(
+        new RegExp(`not landed for\\s+${PUBLISHED_NOW.replaceAll(".", "\\.")}`)
+      );
+      expect(run.stderr).not.toMatch(/by hand/i);
+    });
+
     it("passes once the floor admits the newest published release", async () => {
       const outcome = await decide("^4.33.1");
 

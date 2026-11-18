@@ -109,6 +109,33 @@ jobs:
       node_version: '24.21.0'
       package_manager: 'bun'
 
+  # Raise Lisa's own @codyswann/lisa pin once the release it cannot resolve has
+  # landed on npm (CodySwannGT/lisa#4951). The jobs, and why they are shaped
+  # the way they are, live in self-pin-raise.yml, which also runs hourly so a
+  # raise refused here (main moved, a publish that never proved itself) is
+  # retried with no one watching.
+  #
+  # WHY A RECONCILED PUBLISH COUNTS. If npm accepted the version but the publish
+  # job's own registry check failed, `reconcile_release` asks the registry
+  # again. A `published` verdict there is the same fact a successful publish
+  # job reports, and re-running the publish would only be rejected as a
+  # duplicate, so it triggers the raise too. `missing` and `unprovable` never do.
+  #
+  # `github.ref` as well as the environment: a manual dispatch from another
+  # branch can ask for `environment: main`, and this feeds the one push that
+  # bypasses main's rulesets.
+  self_pin_raise:
+    name: Raise the self-dependency pin
+    needs: [determine_environment, release, publish_npm, reconcile_release]
+    if: ${{ always() && github.ref == 'refs/heads/main' && needs.determine_environment.outputs.environment == 'main' && needs.release.result == 'success' && needs.release.outputs.version != '' && (needs.publish_npm.result == 'success' || needs.reconcile_release.outputs.verdict == 'published') }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/self-pin-raise.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+    secrets:
+      DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+
   # The deploy-outcome guard.
   #
   # `publish_npm` is a reusable-workflow call, so it cannot carry a guard step of
@@ -191,6 +218,9 @@ jobs:
   reconcile_release:
     name: Reconcile release against the registry
     runs-on: ubuntu-latest
+    outputs:
+      # Read by self_pin_raise: `published` is a landed release.
+      verdict: ${{ steps.landed.outputs.verdict }}
     # Must exceed the checker's own wait, or the job is killed mid-wait and the
     # widened window is inert — a control that reports a worse outcome than the
     # one it replaced, because a cancellation says even less than a failure.

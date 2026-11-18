@@ -28,6 +28,9 @@
     "quality.yml": { "major": 1 },
     "release-rails.yml": { "major": 1 },
     "release.yml": { "major": 1 },
+    "self-pin-raise.yml": {
+      "uncovered": "Lisa-only, and unreachable from a host: both jobs require github.repository == 'CodySwannGT/lisa' in their job-level `if:`, so a host that called it at @main would run nothing and has no contract to drift from. Its only caller is Lisa's own deploy.yml, by local ./.github/workflows reference at the same commit, which cannot be stale (see `notSeeded`); its schedule and workflow_dispatch triggers have no caller at all. A contract major would assert agreement with callers that cannot exist (CodySwannGT/lisa#4951)."
+    },
     "sentry-deploy.yml": { "major": 1 },
     "zap-baseline-expo.yml": { "major": 1 },
     "zap-baseline-nestjs.yml": { "major": 1 }

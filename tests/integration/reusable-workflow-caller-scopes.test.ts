@@ -167,6 +167,13 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
   "quality.yml": { contents: "read" },
   "release-rails.yml": { contents: "write" },
   "release.yml": { contents: "write", "pull-requests": "read" },
+  // A NEW workflow, added together with its only caller (#4951): Lisa's own
+  // deploy.yml `self_pin_raise` job, which runs on a grant of `contents: write`
+  // and narrows it to `contents: read`. No installed caller can predate it, and
+  // its prepare job runs only in this repository, so a host that called it
+  // would raise nothing. `contents: read` is the checkout floor. Frozen from
+  // here.
+  "self-pin-raise.yml": { contents: "read" },
   "sentry-deploy.yml": { contents: "read" },
   // `reusable-auto-update-pr-branches.yml` and its `-dispatch` counterpart were
   // removed with the whole subsystem (CodySwannGT/lisa#3590). Their entries go
