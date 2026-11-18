@@ -119,14 +119,17 @@ describe("lisa controls install-carriers wiring", () => {
     expect(shipped()).toBeDefined();
   });
 
-  it("takes one optional path and exactly one option", () => {
+  it("takes one optional path and exactly two options", () => {
     const command = shipped();
 
     expect(
       command?.registeredArguments.map(argument => argument.name())
     ).toEqual(["path"]);
     expect(command?.registeredArguments[0]?.required).toBe(false);
-    expect(command?.options.map(option => option.long)).toEqual(["--check"]);
+    expect(command?.options.map(option => option.long)).toEqual([
+      "--check",
+      "--agents",
+    ]);
   });
 
   it("writes unless --check is given", async () => {

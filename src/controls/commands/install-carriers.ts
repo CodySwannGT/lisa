@@ -1,7 +1,8 @@
 /**
- * `lisa controls install-carriers [path] [--check]`: make git run the gate
- * runner at commit and at push, in any repository, without taking hooks away
- * from whatever already runs them.
+ * `lisa controls install-carriers [path] [--check] [--agents[=<names>]]`:
+ * make git run the gate runner at commit and at push, in any repository,
+ * without taking hooks away from whatever already runs them; and, with
+ * `--agents`, make each coding agent run it after the agent writes a file.
  *
  * ## What it writes
  *
@@ -17,6 +18,17 @@
  * It never replaces a file it did not write, and where a project type's own
  * hooks already call the runner it writes nothing.
  *
+ * ## With `--agents`
+ *
+ * On its own the flag reads the agents from the `harness` setting of
+ * `.lisa.config.json`; `--agents=claude,codex` names them, which is the only
+ * form that works where that setting is missing. For each agent that has a
+ * hook after a file write, one entry is added to the hook settings the agent
+ * reads from the repository, merged into a file the repository already has
+ * and never written over it. For an agent with no such hook nothing is
+ * installed: `unenforceable_on` is added to the `post-tool` entry of each
+ * gate in `.lisa.config.json`, so the control register names the agent.
+ *
  * ## What it prints
  *
  * One JSON document on stdout (`../carrier-types.ts`), with one entry per
@@ -24,8 +36,9 @@
  *
  * ## Exit codes
  *
- * - 0: git runs the declared checks at every point, and under `--check`
- *   nothing would be written.
+ * - 0: the declared checks run at every point that can run them, and under
+ *   `--check` nothing would be written. A coding agent that has no hook is
+ *   reported `unenforceable`, which is not a failure.
  * - 2: at least one point is `blocked`. The JSON document is complete.
  * - 3: only under `--check`: nothing is blocked, and a run would write
  *   something. The JSON document lists what.
@@ -38,13 +51,16 @@ import type { Command } from "commander";
 
 import { resolveRepositoryRoot } from "../audit-report-file.js";
 import { createCarrierGit } from "../carrier-git.js";
+import { agentSelectionOf } from "../carrier-roster.js";
 import {
   CARRIER_HOOKS_FOLDER,
   CARRIER_RECORD_PATH,
   CARRIER_RUNNER_FOLDER,
   INSTALL_CARRIERS_INVOCATION,
+  type CarrierPoint,
   type CarrierResult,
 } from "../carrier-types.js";
+import { CODING_AGENTS, EVERY_AGENT } from "../coding-agents.js";
 import {
   installCarriers,
   type CarrierRun,
@@ -79,9 +95,22 @@ Makes git run the checks the repository declares (the "gates" block of
 Git does not copy hook settings into a new clone. In each new checkout, run
 "${INSTALL_CARRIERS_INVOCATION}" once; "--check" says whether a checkout is wired.
 
+With --agents, each coding agent also runs the checks declared for the moment
+after it writes a file ("post-tool").
+
+  --agents           the agents the "harness" setting of .lisa.config.json names
+  --agents=<names>   the agents named, separated by commas: ${CODING_AGENTS.join(", ")},
+                     or ${EVERY_AGENT} for all of them. The only form that works
+                     where there is no "harness" setting.
+  It adds    one hook entry to the settings each agent reads from the repository,
+             merged into a file that is already there, never written over it.
+  It records an agent that has no hook that can refuse a file write: it adds
+             "unenforceable_on" to each gate's "post-tool" entry in
+             .lisa.config.json, so the control register names the agent.
+
 Prints one JSON document on stdout. Exit codes:
-  0  git runs the declared checks at commit and at push
-  2  at least one of the two is blocked (the JSON says which and why)
+  0  the declared checks run at commit, at push, and on each agent that has a hook
+  2  at least one of those is blocked (the JSON says which and why)
   3  --check only: nothing is blocked, and a run would write something
   1  no result could be produced`;
 
@@ -115,6 +144,17 @@ function exitCodeFor(result: CarrierResult): number {
 }
 
 /**
+ * Name an enforcement point to a person.
+ * @param point - The point
+ * @returns The moment, and the coding agent when the point belongs to one
+ */
+function where(point: CarrierPoint): string {
+  return point.agent === undefined
+    ? point.moment
+    : `${point.moment} on ${point.agent}`;
+}
+
+/**
  * The lines a person reads about a result.
  * @param name - How the command is named at the start of a line
  * @param result - The result
@@ -131,13 +171,28 @@ function linesFor(name: string, result: CarrierResult): readonly string[] {
   const blocked = result.enforcement_points
     .filter(point => point.outcome === "blocked")
     .slice(1)
-    .map(point => `${name}: ${point.moment} is blocked. ${point.reason ?? ""}`);
+    .map(point => `${name}: ${where(point)} is blocked. ${point.reason ?? ""}`);
+  const unenforceable = result.enforcement_points
+    .filter(point => point.outcome === "unenforceable")
+    .map(
+      point =>
+        `${name}: ${where(point)} is unenforceable. ${point.reason ?? ""}`
+    );
+  const trust = result.enforcement_points.some(
+    point => point.agent === "codex" && point.outcome !== "blocked"
+  );
   const local = result.enforcement_points.some(
     point => point.outcome !== "blocked" && point.wired_through === "none"
   );
   return [
     `${name}: ${verdict}. ${result.reason}`,
     ...blocked,
+    ...unenforceable,
+    ...(trust
+      ? [
+          `${name}: Codex runs a repository's hooks only after each person has approved them once, with /hooks inside Codex.`,
+        ]
+      : []),
     ...(local
       ? [
           `${name}: core.hooksPath is a setting of this checkout only, and git does not copy it into a new clone. In each new checkout, run "${result.each_checkout.command}" once.`,
@@ -224,21 +279,31 @@ export function registerInstallCarriers(
   group
     .command(INSTALL_CARRIERS_COMMAND)
     .description(
-      "Make git run the gate runner at commit and at push, through whoever owns the repository's hooks, without replacing any hook that is already there"
+      "Make git run the gate runner at commit and at push, through whoever owns the repository's hooks, without replacing any hook that is already there; with --agents, also after a coding agent writes a file"
     )
     .argument("[path]", "Project path (default: current directory)")
     .option(
       "--check",
       "Write nothing: report what a run would write, and fail when it would write anything or when an enforcement point is blocked"
     )
+    .option(
+      "--agents [names]",
+      'Also make coding agents run the checks declared for the moment after a file write: on its own, the agents the "harness" setting names; with names separated by commas, those agents'
+    )
     .addHelpText("after", INSTALL_CARRIERS_HELP_AFTER)
     .action(
       async (
         targetPath: string | undefined,
-        options: { readonly check?: boolean }
+        options: {
+          readonly check?: boolean;
+          readonly agents?: true | string;
+        }
       ) => {
         const code = await dependencies.runInstallCarriers(targetPath, {
           check: options.check === true,
+          ...(options.agents === undefined
+            ? {}
+            : { agents: agentSelectionOf(options.agents) }),
         });
         if (code !== 0) process.exitCode = code;
       }
