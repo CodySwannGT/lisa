@@ -8,7 +8,13 @@
  * find it, replace it in place and leave everything else alone.
  */
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -16,13 +22,17 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   carrierCall,
+  carrierCallLine,
   carrierMarkers,
   carrierScript,
-  carrierScriptPath,
   findMarkedBlock,
+  PUSH_STDIN_USED,
   withMarkedBlock,
 } from "../../../src/controls/carrier-script.js";
-import { CARRIER_MOMENTS } from "../../../src/controls/carrier-types.js";
+import {
+  CARRIER_MOMENTS,
+  type CarrierMoment,
+} from "../../../src/controls/carrier-types.js";
 
 const SH = "/bin/sh";
 const HOST_HOOK = "#!/bin/sh\necho host check\n";
@@ -94,7 +104,7 @@ describe.each(CARRIER_MOMENTS)("the carrier for the %s moment", moment => {
   it("hands the hook's arguments and standard input to the runner", () => {
     const commands = lines.filter(line => !line.startsWith("#"));
 
-    expect(commands).toContain(
+    expect(commands.at(-2)).toBe(
       `exec node scripts/lisa-run-gates.mjs --moment=${moment} --builtins=none "$@"`
     );
     // Nothing redirects standard input, so the runner reads the hook's own.
@@ -108,9 +118,75 @@ describe.each(CARRIER_MOMENTS)("the carrier for the %s moment", moment => {
     expect(commands).toEqual([
       "lisa_status=$?",
       '[ "$lisa_status" -eq 0 ] || exit "$lisa_status"',
-      `sh ${carrierScriptPath(moment)} "$@" || exit $?`,
+      carrierCallLine(moment),
     ]);
     expect(syntaxErrors(`${call.join("\n")}\n`)).toBe("");
+  });
+});
+
+describe("what the carriers say about the change being checked", () => {
+  const TELLS_RUNNER = `[ -n "\${${PUSH_STDIN_USED}:-}" ] || set -- --push-refs=- "$@"`;
+
+  /**
+   * Start a carrier with a stand-in for Node that prints what it was given.
+   * @param moment - The carrier's moment
+   * @param env - Variables the caller sets
+   * @returns The arguments the runner would have been started with
+   */
+  function runnerArguments(
+    moment: CarrierMoment,
+    env: Readonly<Record<string, string>> = {}
+  ): string {
+    const folder = mkdtempSync(path.join(tmpdir(), "lisa-carrier-args-"));
+    cleanups.push(() => rmSync(folder, { force: true, recursive: true }));
+    mkdirSync(path.join(folder, "scripts"));
+    writeFileSync(path.join(folder, "scripts/lisa-run-gates.mjs"), "");
+    writeFileSync(path.join(folder, "node"), '#!/bin/sh\necho "$@"\n');
+    chmodSync(path.join(folder, "node"), 0o755);
+    writeFileSync(path.join(folder, "hook"), carrierScript(moment));
+    return spawnSync(SH, ["hook", "origin", "an address"], {
+      cwd: folder,
+      encoding: "utf8",
+      env: { PATH: `${folder}:/usr/bin:/bin`, ...env },
+      input: "",
+    }).stdout.trim();
+  }
+
+  it("has the push carrier tell the runner to read what git wrote", () => {
+    const commands = carrierScript("push")
+      .split("\n")
+      .filter(line => !line.startsWith("#"));
+
+    expect(commands.at(-3)).toBe(TELLS_RUNNER);
+    expect(runnerArguments("push")).toBe(
+      "scripts/lisa-run-gates.mjs --moment=push --builtins=none --push-refs=- origin an address"
+    );
+  });
+
+  it("says nothing about it once a hook that ran first may have read some", () => {
+    expect(runnerArguments("push", { [PUSH_STDIN_USED]: "1" })).toBe(
+      "scripts/lisa-run-gates.mjs --moment=push --builtins=none origin an address"
+    );
+  });
+
+  it("leaves the commit carrier as it was", () => {
+    expect(carrierScript("commit")).not.toContain("--push-refs");
+    expect(carrierScript("commit")).not.toContain(PUSH_STDIN_USED);
+    expect(runnerArguments("commit", { [PUSH_STDIN_USED]: "1" })).toBe(
+      "scripts/lisa-run-gates.mjs --moment=commit --builtins=none origin an address"
+    );
+  });
+
+  it("calls the commit carrier with the hook's own standard input", () => {
+    expect(carrierCallLine("commit")).toBe(
+      'sh .lisa/hooks/pre-commit "$@" || exit $?'
+    );
+  });
+
+  it("calls the push carrier with no standard input, and says some may be gone", () => {
+    expect(carrierCallLine("push")).toBe(
+      `${PUSH_STDIN_USED}=1 sh .lisa/hooks/pre-push "$@" </dev/null || exit $?`
+    );
   });
 });
 

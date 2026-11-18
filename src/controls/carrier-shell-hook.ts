@@ -7,6 +7,13 @@
  * first. The added lines start by reading the exit status of what ran above
  * them: a hook that failed before still fails, with the same status.
  *
+ * Running after that content has one cost at push. Git writes what is being
+ * pushed on the hook's standard input once, and the content above may have
+ * read some of it. Lines added at the end cannot take a copy before that
+ * happens, so the call does not pass standard input on: the carrier is
+ * started without it and the runner runs every part. See
+ * `./carrier-script.ts`.
+ *
  * The file is refused, and left exactly as it is, whenever lines added at
  * its end would not do that: it is not a shell script, git does not run it,
  * or it ends by handing over to another program.
@@ -18,7 +25,7 @@ import { fileEdit, fileState, type FileState } from "./carrier-edits.js";
 import { shownPath } from "./carrier-owner.js";
 import {
   carrierCall,
-  carrierScriptPath,
+  carrierCallLine,
   findMarkedBlock,
   withMarkedBlock,
 } from "./carrier-script.js";
@@ -147,7 +154,7 @@ function refusal(
   state: FileState,
   text: string
 ): string | null {
-  const byHand = `Add this line to it by hand, where it will run after the existing checks: sh ${carrierScriptPath(hook.moment)} "$@" || exit $?`;
+  const byHand = `Add this line to it by hand, where it will run after the existing checks: ${carrierCallLine(hook.moment)}`;
   if (isReplacedByLisa(text)) {
     return `${shown} is replaced by Lisa on every update, so a line added to it would be lost. Nothing was added; this repository's project type has to call the gate runner itself.`;
   }

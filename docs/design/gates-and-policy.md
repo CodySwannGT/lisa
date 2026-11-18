@@ -1535,6 +1535,29 @@ operation with one sentence naming Node; it never passes having checked
 nothing. Then it hands over to the runner with `--builtins=none`, passing the
 hook's arguments and standard input on untouched.
 
+**The push carrier tells the runner what is being pushed only where it is
+sure to have all of it.** The runner leaves out a part a push does not touch
+([A part the change does not touch](#a-part-the-change-does-not-touch)), and
+must be handed everything git wrote on the hook's standard input or nothing.
+So the push carrier passes `--push-refs=-` unless its caller sets
+`LISA_PUSH_STDIN_USED`, and who starts it decides:
+
+| Who starts the push carrier | What it is handed | At push |
+| --- | --- | --- |
+| git itself, where `core.hooksPath` is `.lisa/hooks` | everything git wrote | a part the push does not touch is left out |
+| Lefthook, through `use_stdin: true` | everything git wrote, even when another command read some first (measured on Lefthook 2.2.2) | the same |
+| the lines added after a hook's own content (Husky, a hooks folder, git's own) | nothing: the call sets `LISA_PUSH_STDIN_USED` and closes standard input (`</dev/null`) | every part runs |
+| the pre-commit framework | an empty standard input (measured on pre-commit 4.7.0) | every part runs |
+
+Lines added at the end of a hook run after its content, which may already
+have read a ref, and nothing can put that back. Taking a copy first would
+mean writing above that content, in the part of the file that belongs to the
+repository, so it is not done. A hook that keeps a whole copy of its own can
+still hand it over, by exporting `LISA_PUSHED_REFS_FILE` above the added
+lines. The framework names one ref of a push in its environment and no more,
+so that is not read either. A branch the remote has never seen runs every
+part whoever starts the carrier.
+
 **Whoever owns hooks keeps them.** The evidence is weighed in a fixed order,
 and the call to the carrier is added in the owner's own way:
 

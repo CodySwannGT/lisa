@@ -11,6 +11,22 @@
  * Everything this command writes into a file it does not own sits between a
  * begin marker and an end marker. The markers are how a later run finds the
  * lines, replaces them in place, and how a person removes them.
+ *
+ * ## What the push carrier says about the push
+ *
+ * At push the runner leaves out a part the push does not touch, and it works
+ * that out from what git writes on the push hook's standard input. It cannot
+ * tell a list that is short from one that something read part of first, so it
+ * must be handed everything git wrote or nothing (CodySwannGT/lisa#4988).
+ *
+ * The push carrier therefore tells the runner to read its standard input
+ * (`--push-refs=-`) unless its caller says some of it may be gone. That is
+ * right with nothing set, which is how git starts the carrier when it is the
+ * hook itself, and how Lefthook starts it with `use_stdin`. The one caller
+ * that cannot promise a whole standard input is the call added after a
+ * repository's own hook content, which may have read a line. That call sets
+ * {@link PUSH_STDIN_USED} and gives the carrier no standard input at all, so
+ * the runner is told nothing and runs every part.
  * @module controls/carrier-script
  */
 import {
@@ -26,6 +42,17 @@ const OPERATION: Readonly<Record<CarrierMoment, string>> = {
   commit: "commit",
   push: "push",
 };
+
+/**
+ * The variable a caller of the push carrier sets, to any value, when
+ * something that ran before the carrier may have read part of what git wrote
+ * on the hook's standard input.
+ *
+ * Set, the carrier tells the runner nothing about what is being pushed, so
+ * every part runs. Unset is the case where standard input is whole, so the
+ * carrier git runs directly needs nothing set to work.
+ */
+export const PUSH_STDIN_USED = "LISA_PUSH_STDIN_USED";
 
 /** The begin and end marker of one block. */
 export interface CarrierMarkers {
@@ -64,6 +91,24 @@ function capitalised(word: string): string {
 }
 
 /**
+ * The lines of a carrier that say what change is being checked.
+ *
+ * Only a push has any: a commit's change is the index, which the runner
+ * reads for itself.
+ * @param moment - The moment
+ * @returns The lines that go just before the runner is started
+ */
+function changeLines(moment: CarrierMoment): readonly string[] {
+  return moment === "push"
+    ? [
+        "# Git says what is being pushed on standard input, and the runner reads it",
+        `# there, unless a hook that ran first may have read some (${PUSH_STDIN_USED}).`,
+        `[ -n "\${${PUSH_STDIN_USED}:-}" ] || set -- --push-refs=- "$@"`,
+      ]
+    : [];
+}
+
+/**
  * The carrier for one moment: the whole content of its file.
  *
  * It asks for Node before anything else, because the runner is a Node
@@ -92,10 +137,30 @@ export function carrierScript(moment: CarrierMoment): string {
     `  echo "${stopped} ${CARRIER_RUNNER_PATH} is missing, so ${checks} cannot run; run \\"${INSTALL_CARRIERS_INVOCATION}\\" to put it back." >&2`,
     "  exit 1",
     "fi",
+    ...changeLines(moment),
     `exec node ${CARRIER_RUNNER_PATH} --moment=${moment} --builtins=none "$@"`,
     end,
     "",
   ].join("\n");
+}
+
+/**
+ * The one line that starts the carrier from a hook file the repository owns,
+ * after that file's own content.
+ *
+ * At push, that content may have read part of what git wrote on standard
+ * input, and nothing can put it back. So the line says so
+ * ({@link PUSH_STDIN_USED}) and starts the carrier with no standard input:
+ * the runner is told nothing about the push and runs every part. A commit
+ * hook is handed nothing on standard input, so its line is the plain call.
+ * @param moment - The moment
+ * @returns The line, which fails the hook when the carrier fails
+ */
+export function carrierCallLine(moment: CarrierMoment): string {
+  const script = carrierScriptPath(moment);
+  return moment === "push"
+    ? `${PUSH_STDIN_USED}=1 sh ${script} "$@" </dev/null || exit $?`
+    : `sh ${script} "$@" || exit $?`;
 }
 
 /**
@@ -111,9 +176,15 @@ export function carrierCall(moment: CarrierMoment): readonly string[] {
   return [
     `# Added by "${INSTALL_CARRIERS_INVOCATION}". When everything above has`,
     `# passed, this runs the checks the repository declares for a ${OPERATION[moment]}.`,
+    ...(moment === "push"
+      ? [
+          "# What is above may have read some of what git said is being pushed, so",
+          "# the checks are not told, and every part of the repository is checked.",
+        ]
+      : []),
     "lisa_status=$?",
     '[ "$lisa_status" -eq 0 ] || exit "$lisa_status"',
-    `sh ${carrierScriptPath(moment)} "$@" || exit $?`,
+    carrierCallLine(moment),
   ];
 }
 
