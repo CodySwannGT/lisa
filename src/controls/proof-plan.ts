@@ -240,6 +240,30 @@ function patchVerdict(
 }
 
 /**
+ * How long one half of an entry's proof may run: what the entry declares,
+ * and never more than {@link PROOF_TIME_LIMIT_CEILING_SECONDS}.
+ * @param entry - The register entry
+ * @returns The time limit, in seconds
+ */
+export function proofTimeLimitSeconds(entry: ControlRegisterEntry): number {
+  return Math.min(
+    entry.proof.timeout_seconds ?? PROOF_TIME_LIMIT_CEILING_SECONDS,
+    PROOF_TIME_LIMIT_CEILING_SECONDS
+  );
+}
+
+/**
+ * The failure text an entry declares for its proof.
+ * @param entry - The register entry
+ * @returns Each declared text that says something; empty when none does
+ */
+export function declaredFailureText(
+  entry: ControlRegisterEntry
+): readonly string[] {
+  return (entry.proof.failure_shape ?? []).filter(text => text !== "");
+}
+
+/**
  * Decide whether an entry's proof can be run, and gather what running it
  * needs.
  * @param entry - The register entry
@@ -272,11 +296,8 @@ export async function planProof(
     entry,
     moment: point.moment,
     mechanism: declared.mechanism,
-    timeLimitSeconds: Math.min(
-      entry.proof.timeout_seconds ?? PROOF_TIME_LIMIT_CEILING_SECONDS,
-      PROOF_TIME_LIMIT_CEILING_SECONDS
-    ),
-    shape: (entry.proof.failure_shape ?? []).filter(text => text !== ""),
+    timeLimitSeconds: proofTimeLimitSeconds(entry),
+    shape: declaredFailureText(entry),
     patches: {
       violation: { file: entry.proof.violation ?? "", text: violation ?? "" },
       clean: { file: entry.proof.clean ?? "", text: clean ?? "" },

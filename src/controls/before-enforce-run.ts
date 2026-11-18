@@ -35,8 +35,8 @@
 import {
   attemptOutcome,
   commandFields,
+  measureChange,
   observe,
-  toolRecord,
   type BeforeEnforceContext,
 } from "./before-enforce-observe.js";
 import {
@@ -187,21 +187,19 @@ async function measureTool(
   context: BeforeEnforceContext
 ): Promise<Exercised> {
   const named = namedEntry(proof.entry, proof.moment);
-  const seen = await observe(proof, context, request =>
-    context.workspace.measure(request)
-  );
-  if (!seen.planted) {
+  const measured = await measureChange(proof, context);
+  if (!measured.planted) {
     return {
       entry: unanswered(
         named,
         TOOL_NOT_RUN,
-        toolNotRunDetail(canary, seen.problem),
+        toolNotRunDetail(canary, measured.problem),
         canary
       ),
       spoiled: null,
     };
   }
-  const tool = toolRecord(proof, seen, context);
+  const { tool } = measured;
   return {
     entry: TOOL_SILENT.includes(tool.reason)
       ? {
@@ -221,7 +219,7 @@ async function measureTool(
           canary,
           tool,
         },
-    spoiled: seen.spoiled,
+    spoiled: measured.spoiled,
   };
 }
 

@@ -23,6 +23,7 @@ import { registerDeclarationCheck } from "../controls/commands/declaration-check
 import { registerGaps } from "../controls/commands/gaps.js";
 import { registerInstallCarriers } from "../controls/commands/install-carriers.js";
 import { registerMergeProtection } from "../controls/commands/merge-protection.js";
+import { registerProofCheck } from "../controls/commands/proof-check.js";
 import { registerProposeThreshold } from "../controls/commands/propose-threshold.js";
 import { registerProtect } from "../controls/commands/protect.js";
 import { registerReconcile } from "../controls/commands/reconcile.js";
@@ -44,6 +45,7 @@ export const CONTROLS_SUBCOMMANDS: readonly ControlsSubcommand[] = [
   registerSeed,
   registerProposeThreshold,
   registerDeclarationCheck,
+  registerProofCheck,
   registerRegister,
   registerProtect,
   registerAttest,
