@@ -30,7 +30,7 @@ export const BASH_PATH = "/bin/bash";
 // stops output there. Tests that only ever run the hook under bash therefore
 // cannot see any shell-portability defect, which is how #2143 survived.
 export const SH_PATH = "/bin/sh";
-export const GIT_PATH = resolveGit();
+const GIT_PATH = resolveGit();
 export const VALID_SUBJECT = "fix: clarify hook output";
 export const PASSING_COMMITLINT_BIN = "exit 0\n";
 export const CLAUDE_AGENT_TRAILER = "AI-Agent: Claude";
@@ -45,9 +45,9 @@ export const DEVIN_MODEL_TRAILER = "AI-Model: cognition/swe-2";
 export const DEVIN_EFFORT_TRAILER = "AI-Effort: not exposed by runtime";
 export const OPENCODE_MODEL_HINT = "AI-Model: <provider/model>";
 export const OPENCODE_EFFORT_HINT = "AI-Effort: <effort or runtime value>";
-export const WORK_ITEM_REF = "acme/widgets#42";
+const WORK_ITEM_REF = "acme/widgets#42";
 export const WORK_ITEM_TRAILER = `Work-Item: ${WORK_ITEM_REF}`;
-export const TRACKER_SCRIPT = path.resolve(
+const TRACKER_SCRIPT = path.resolve(
   "all/copy-overwrite/scripts/lisa-work-item.mjs"
 );
 /**
@@ -60,7 +60,7 @@ export const TRACKER_SCRIPT = path.resolve(
  * the published package missing a file rather than as the fixture naming what
  * it should have read. CodySwannGT/lisa#3082.
  */
-export const ENTRY_GUARD_DIR = path.resolve("all/copy-overwrite/scripts/lib");
+const ENTRY_GUARD_DIR = path.resolve("all/copy-overwrite/scripts/lib");
 
 /** Options for building a temporary commit-msg hook project. */
 export type ProjectOptions = {

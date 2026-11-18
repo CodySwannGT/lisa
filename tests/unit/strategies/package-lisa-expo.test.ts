@@ -177,8 +177,6 @@ describe("PackageLisaStrategy", () => {
         "expo-updates",
         "react-native-reanimated",
         "react-native-screens",
-        "@sentry/react-native",
-        "@shopify/react-native-skia",
       ];
       for (const pkg of sdkCoupled) {
         expect(template.defaults.dependencies[pkg]).toBeDefined();

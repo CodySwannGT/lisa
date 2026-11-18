@@ -8,6 +8,7 @@
         ".lisa/evidence/*/*.mjs",
         "evidence/*/*.{mjs,ts}",
         "src/opencode/plugin-templates/*.ts",
+        "tests/fixtures/expo-jest-pre-setup/probe.mjs",
         "tests/fixtures/git-history-secrets/{journey,rails-prepush-hook,scanner-path}.mjs",
         "tests/fixtures/mutation-performance/jest/jest.config.ts",
         "tests/fixtures/opencode/host-name-guard-callback.mjs",

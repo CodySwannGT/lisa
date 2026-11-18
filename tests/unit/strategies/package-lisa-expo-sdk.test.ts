@@ -123,23 +123,25 @@ describe("PackageLisaStrategy", () => {
 
     it("keeps non-SDK-coupled tooling/governance in force", () => {
       const template = readExpoTemplate();
-      // Pure JS tooling stays forced (governance-critical).
-      expect(template.force.dependencies["@apollo/client"]).toBeDefined();
-      // apollo-link-sentry must be pinned to EXACTLY 4.4.0 — it is the only
-      // release that satisfies BOTH forced majors simultaneously:
-      //   - @apollo/client v3 (forced): 4.5.0 bumped its peer to
-      //     `@apollo/client@^4.0.10`, so any >=4.5.0 (incl. a `^4.0.0` range)
-      //     makes SentryLink fail to typecheck against v3 (blocked expostarter).
-      //   - @sentry/react-native ~7.x (Sentry v8 SDK): the 3.x line imports and
-      //     calls `Sentry.configureScope`, which Sentry v8 REMOVED — so 3.3.0
-      //     throws `(0, t.configureScope) is not a function` on EVERY GraphQL
-      //     request at runtime (broke acmeorgb/frontend-v2 in dev and the
-      //     prod path of expostarter/acmeorgd where the Sentry DSN is set).
-      // 4.4.0 (Apollo v3 peer + Sentry v8 API) is the only compatible version,
-      // so it is pinned exactly — a range re-opens one failure mode or the other.
-      expect(template.force.dependencies["@apollo/client"]).toMatch(/^\^?3\./);
-      expect(template.force.dependencies["apollo-link-sentry"]).toBe("4.4.0");
-      expect(template.force.dependencies["zod"]).toBeDefined();
+      // Lisa no longer supplies application libraries nothing it ships
+      // imports (CodySwannGT/lisa#4932): a host's strict dead-code gate reported
+      // each one unused until the host wrote code for it. The Apollo/Sentry
+      // pair and the codegen toolchain go with them. Lisa never removes a runtime
+      // library from a host; a floor in `overrides` keeps the library line for
+      // any host that has it (runtime-dependency-ownership.test.ts).
+      for (const pkg of [
+        "@apollo/client",
+        "apollo-link-sentry",
+        "@sentry/react-native",
+        "@shopify/react-native-skia",
+      ]) {
+        expect(template.force.dependencies[pkg]).toBeUndefined();
+        expect(template.defaults.dependencies[pkg]).toBeUndefined();
+      }
+      // zod's version line is kept as a floor, which installs nothing in a
+      // new project that has not used it yet.
+      expect(template.force.dependencies["zod"]).toBeUndefined();
+      expect(template.force.overrides["zod"]).toBe(">=4.6.6");
       // tailwindcss must stay in defaults, NEVER force: the tailwind major is
       // coupled to the project's gluestack-ui generation (v3/v4 → tailwind ^3 +
       // nativewind 4; v5 → tailwind ^4.2 + nativewind 5 per
@@ -149,12 +151,6 @@ describe("PackageLisaStrategy", () => {
       // lockfile in CI.
       expect(template.force.dependencies["tailwindcss"]).toBeUndefined();
       expect(template.defaults.dependencies["tailwindcss"]).toBeDefined();
-      // @graphql-codegen/* must stay in defaults, NEVER force: the fleet is
-      // split across codegen generations (backend-v2 on cli 6/typescript 4,
-      // acmeorgd/acmeorgc/nestjsstarter on cli 7/typescript 6), and a forced
-      // pin downgrades whichever side the template doesn't match. Frontends
-      // can drift the same way, so the expo template gets the same treatment
-      // as the nestjs one.
       for (const pkg of [
         "@graphql-codegen/cli",
         "@graphql-codegen/typescript",
@@ -162,7 +158,7 @@ describe("PackageLisaStrategy", () => {
         "@graphql-codegen/typescript-react-apollo",
       ]) {
         expect(template.force.devDependencies[pkg]).toBeUndefined();
-        expect(template.defaults.devDependencies[pkg]).toBeDefined();
+        expect(template.defaults.devDependencies[pkg]).toBeUndefined();
       }
       expect(template.force.devDependencies["jest"]).toBeDefined();
       expect(template.force.devDependencies["oxlint"]).toBeDefined();
@@ -237,7 +233,6 @@ describe("PackageLisaStrategy", () => {
       const destPath = path.join(projectDir, PACKAGE_JSON);
       // Project tries to pin an older governance-critical tooling version.
       await fs.writeJson(destPath, {
-        dependencies: { zod: "^3.0.0" },
         devDependencies: { oxlint: "^1.0.0" },
         scripts: {},
       });
@@ -251,8 +246,31 @@ describe("PackageLisaStrategy", () => {
 
       const content = await fs.readJson(destPath);
       // Forced tooling wins over the project's pin.
-      expect(content.dependencies.zod).toBe("^4.6.6");
       expect(content.devDependencies.oxlint).toBe(">=1.62.0 <1.86.0");
+    });
+
+    it("refuses, rather than crosses a major, when a host's library sits wholly below Lisa's floor", async () => {
+      // zod is the host's library now, floored at Lisa's old minimum. Raising
+      // `^3.0.0` to meet `>=4.6.6` would move the host to another major behind
+      // its back, so the apply stops and names the raise to make.
+      await createExpoProject(projectDir);
+      const destPath = path.join(projectDir, PACKAGE_JSON);
+      await fs.writeJson(destPath, {
+        dependencies: { zod: "^3.0.0" },
+        scripts: {},
+      });
+
+      await expect(
+        strategy.apply(
+          expoSource,
+          destPath,
+          PACKAGE_JSON,
+          createContext({ lisaDir: repoRoot })
+        )
+      ).rejects.toThrow(
+        /overrides\.zod would widen[\s\S]*Raise the direct dependency zod/u
+      );
+      expect((await fs.readJson(destPath)).dependencies.zod).toBe("^3.0.0");
     });
 
     it("removes the inherited Vitest mutation runner from Expo projects", async () => {
