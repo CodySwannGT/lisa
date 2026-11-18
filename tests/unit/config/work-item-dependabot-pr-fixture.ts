@@ -1,8 +1,9 @@
 /** Execute both workflow-owned adapters: PR-head code is never a proof source. */
 import { Evaluator, Lexer, Parser, data } from "@actions/expressions";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import * as path from "node:path";
-import { runInNewContext } from "node:vm";
 import { load } from "js-yaml";
 import { expect, vi } from "vitest";
 
@@ -14,6 +15,44 @@ const REPOSITORY = { id: 123, full_name: "example/project" };
 const BOT = { id: 49699333, type: "Bot", login: "dependabot[bot]" };
 export const VALIDATE_STEP = "Validate Work-Item";
 export const URL = "https://github.com/example/project/pull/7";
+
+/** The named bindings `actions/github-script` hands a workflow script. */
+interface ScriptBindings {
+  readonly context: unknown;
+  readonly github: unknown;
+  readonly core: unknown;
+}
+
+/**
+ * Load a workflow's inline script the way `actions/github-script` runs it: as
+ * the body of a non-strict async function whose parameters are the named
+ * bindings (`Buffer` and the other Node globals are simply in scope).
+ *
+ * The committed workflow text is written to a private temporary CommonJS
+ * module and required. CommonJS keeps the body sloppy-mode, as github-script
+ * runs it, so a construct strict mode would reject fails here as it would in
+ * production rather than being hidden or invented by an ES module wrapper.
+ * @param script - The step's `with.script`, read from committed workflow YAML.
+ * @returns The script as a callable async function.
+ */
+function loadWorkflowScript(
+  script: string
+): (bindings: ScriptBindings) => Promise<unknown> {
+  const directory = mkdtempSync(path.join(tmpdir(), "lisa-github-script-"));
+  const file = path.join(directory, "script.cjs");
+  writeFileSync(
+    file,
+    `module.exports = async ({ github, context, core }) => {\n${script}\n};\n`,
+    { mode: 0o600 }
+  );
+  try {
+    return createRequire(import.meta.url)(file) as (
+      bindings: ScriptBindings
+    ) => Promise<unknown>;
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
 
 /** Only the workflow fields executed by these controls. */
 interface Step {
@@ -157,9 +196,8 @@ export async function execute(file: string, input = fixture()) {
   const setOutput = vi.fn((_key: string, _value: string) => undefined);
   const info = vi.fn((_message: string) => undefined);
   const warning = vi.fn((_message: string) => undefined);
-  // eslint-disable-next-line sonarjs/code-eval -- executes only committed workflow text, never fixture or provider text
-  await runInNewContext(`(async () => {${script}\n})()`, {
-    Buffer,
+  const run = loadWorkflowScript(script);
+  await run({
     context: input.context,
     github: { rest: { repos: { getContent }, pulls: { get } } },
     core: { setOutput, info, warning },

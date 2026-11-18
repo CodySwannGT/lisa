@@ -136,7 +136,6 @@ export function stubExec(codes: Record<string, number | null>): {
       // A recorder exists to accumulate. Rebinding a new array each call would
       // make `calls` a snapshot the caller already holds, so it would record
       // nothing — the mutation is the whole mechanism, confined to this stub.
-      // eslint-disable-next-line functional/immutable-data -- accumulating is the mechanism
       calls.push(command);
       const code = codes[command];
       // `=== undefined`, never `?? 0`: a stubbed `null` means "killed by a
@@ -154,6 +153,5 @@ export function stubExec(codes: Record<string, number | null>): {
 export function sink(): { lines: string[]; out: (line: string) => void } {
   const lines: string[] = [];
   // Accumulates for the same reason `stubExec` does; see the note there.
-  // eslint-disable-next-line functional/immutable-data -- accumulating is the mechanism
   return { lines, out: (line: string) => lines.push(line) };
 }

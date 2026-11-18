@@ -11,6 +11,7 @@ import {
   hostState,
   SOURCE_FALLBACK,
 } from "./host-guard-freshness-fixtures.js";
+import { inheritedEnvironment } from "../support/process-environment.js";
 
 const BUILTIN_FUNCTION_START = "builtin() {";
 const BUILTIN_DELEGATE = ' command builtin "$@"';
@@ -223,8 +224,7 @@ export function deadlineEnvironment(
   fixture: DeadlineFixture,
   mode: string
 ): NodeJS.ProcessEnv {
-  // eslint-disable-next-line no-restricted-syntax -- subprocess fixtures inherit real tools, not application configuration
-  const inherited = process.env;
+  const inherited = inheritedEnvironment();
   return {
     ...inherited,
     PATH: `${fixture.bin}:${inherited.PATH}`,

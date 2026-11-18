@@ -181,7 +181,6 @@ describe("commandTools", () => {
 });
 
 describe("the check itself", () => {
-  // eslint-disable-next-line functional/no-let -- Fixture root is created once
   let root = "";
 
   beforeAll(() => {

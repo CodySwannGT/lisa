@@ -1,4 +1,3 @@
-/* eslint-disable code-organization/enforce-statement-order -- Native CLI operations and proof captures are chronological. */
 /** Genuine five additional framework journeys through one immutable packed CLI. */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -22,16 +21,16 @@ import {
 import { nativeUnitDeadlineMs, run } from "./process.js";
 
 /**
- * Initialize genuine detector source and inspect the installed detector itself.
+ * Seed genuine detector source into a fresh repository and checkpoint it.
  * @param candidate - Exact immutable tool and explicit native environment
+ * @param host - Disposable host directory
  * @param stack - Additional supported route
- * @returns Initialized source-only host and actual native detector observation
  */
-async function prepareInheritedHost(
+async function seedInheritedRepository(
   candidate: Candidate,
+  host: string,
   stack: InheritedStack
-) {
-  const host = path.join(candidate.root, stack);
+): Promise<void> {
   const git = resolveGit();
   seedInheritedHost(host, stack);
   await run(
@@ -59,6 +58,35 @@ async function prepareInheritedHost(
     `${stack}-email`
   );
   await checkpoint(candidate, host, `${stack}-seed`);
+}
+
+/**
+ * Read the detector's single JSON observation line from its evidence log.
+ * @param candidate - Exact immutable tool and its evidence log directory
+ * @param stack - Additional supported route
+ * @returns Raw detector observation record
+ */
+function detectorRecord(candidate: Candidate, stack: InheritedStack): string {
+  const record = fs
+    .readFileSync(path.join(candidate.logs, `${stack}-detector.log`), "utf8")
+    .split("\n")
+    .find(line => line.startsWith('{"node":'));
+  expect(record).toBeDefined();
+  return record!;
+}
+
+/**
+ * Run the installed detector itself against the seeded host source.
+ * @param candidate - Exact immutable tool and explicit native environment
+ * @param host - Seeded source-only host
+ * @param stack - Additional supported route
+ * @returns Actual native detector observation
+ */
+async function observeDetector(
+  candidate: Candidate,
+  host: string,
+  stack: InheritedStack
+) {
   const detector = path.join(
     path.dirname(candidate.entry),
     "detection/index.js"
@@ -73,22 +101,59 @@ async function prepareInheritedHost(
     candidate.logs,
     `${stack}-detector`
   );
-  const record = fs
-    .readFileSync(path.join(candidate.logs, `${stack}-detector.log`), "utf8")
-    .split("\n")
-    .find(line => line.startsWith('{"node":'));
-  expect(record).toBeDefined();
-  const observation = JSON.parse(record!);
+  const observation = JSON.parse(detectorRecord(candidate, stack));
   expect(observation).toMatchObject({
     node: "24.21.0",
     abi: "137",
     expanded: ["typescript", stack],
   });
+  return observation;
+}
+
+/**
+ * Initialize genuine detector source and inspect the installed detector itself.
+ * @param candidate - Exact immutable tool and explicit native environment
+ * @param stack - Additional supported route
+ * @returns Initialized source-only host and actual native detector observation
+ */
+async function prepareInheritedHost(
+  candidate: Candidate,
+  stack: InheritedStack
+) {
+  const host = path.join(candidate.root, stack);
+  await seedInheritedRepository(candidate, host, stack);
+  const observation = await observeDetector(candidate, host, stack);
   await apply(candidate, host, stack, "bootstrap");
   await checkpoint(candidate, host, `${stack}-generated-baseline`);
   await apply(candidate, host, stack, "first-adoption");
   assertInheritedPolicy(host, stack);
   return { host, observation };
+}
+
+/**
+ * Run the host's genuine nonzero unit suite and confirm it actually executed.
+ * @param candidate - Immutable archive and its evidence log directory
+ * @param host - Built framework host
+ * @param stack - Supported inherited route
+ * @param nativeEnv - Native environment for the independent host runner
+ */
+async function runInheritedUnits(
+  candidate: Candidate,
+  host: string,
+  stack: InheritedStack,
+  nativeEnv: NodeJS.ProcessEnv
+): Promise<void> {
+  await run(
+    "bun",
+    ["run", "test:unit"],
+    host,
+    nativeEnv,
+    candidate.logs,
+    `${stack}-unit`,
+    60_000,
+    nativeUnitDeadlineMs()
+  );
+  assertInheritedUnitExecution(candidate, stack);
 }
 
 /**
@@ -166,17 +231,7 @@ async function runInheritedNative(
       `${stack}-framework-build`,
       60_000
     );
-  await run(
-    "bun",
-    ["run", "test:unit"],
-    host,
-    nativeEnv,
-    candidate.logs,
-    `${stack}-unit`,
-    60_000,
-    nativeUnitDeadlineMs()
-  );
-  assertInheritedUnitExecution(candidate, stack);
+  await runInheritedUnits(candidate, host, stack, nativeEnv);
   const observed = inheritedOutputs(candidate, host, stack);
   await verifyInheritedStability(candidate, host, stack, install, observed);
   return observed;
@@ -272,5 +327,3 @@ export async function verifyInheritedHost(
       "Native framework build/unit observations; no cloud deployment, mobile-device execution, Harper server boot or rendered Phaser gameplay claim",
   });
 }
-
-/* eslint-enable code-organization/enforce-statement-order -- End the native owned-framework observations. */

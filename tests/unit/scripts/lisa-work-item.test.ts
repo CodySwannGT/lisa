@@ -1,4 +1,3 @@
-/* eslint-disable sonarjs/no-duplicate-string, @eslint-community/eslint-comments/disable-enable-pair -- one hermetic fake-provider fixture exercises the full local tracking contract */
 /**
  * Hermetic tests for Lisa's provider-neutral work-item Git gate.
  *
@@ -42,6 +41,59 @@ import {
   cleanupFixtures as cleanupProofFixtures,
   cleanupTemplates as cleanupProofTemplates,
 } from "../../support/work-item-cli.js";
+
+const LISA_CONFIG_FILE = ".lisa.config.json";
+const TRACKED_BRANCH = "feature/tracked";
+const VALIDATE_PUSH = "validate-push";
+const CODE_PR_URL = "https://github.com/acme/code/pull/7";
+const WORK_ITEM_REF = "acme/widgets#42";
+const PREPARE_COMMIT_MSG = "prepare-commit-msg";
+const WORK_ITEM_TRAILER = "Work-Item: acme/widgets#42";
+const VALIDATE_COMMIT = "validate-commit";
+const IN_PROGRESS_STATUS = "In Progress";
+const ALLOW_EMPTY_FLAG = "--allow-empty";
+const GIT_PATH_FLAG = "--git-path";
+const SHARED_FILE = "shared.txt";
+const TRACKED_COMMIT_MESSAGE =
+  "feat: tracked change\n\nWork-Item: acme/widgets#42";
+const UPDATE_REF = "update-ref";
+const ORIGIN_MAIN_REF = "refs/remotes/origin/main";
+const VALIDATE_PR = "validate-pr";
+const LISA_LOCAL_CONFIG_FILE = ".lisa.config.local.json";
+const LOCAL_QUEUE_REPO_CONFIG = '{"github":{"queueRepo":"acme/widgets"}}\n';
+const QUEUE_REPO = "acme/widgets";
+const REPO_IDENTITY_LABEL = "repo:identity";
+const NOT_CLAIMED_MESSAGE = "is not claimed";
+const REPO_OTHER_LABEL = "repo:other";
+const IN_PROGRESS_LABEL = "status:in-progress";
+const CONTAINER_MESSAGE = "is a container";
+const WORK_ITEM_URL = "https://github.com/acme/widgets/issues/42";
+const TRACKING_OK_RELEASE = "WORK_ITEM_TRACKING_OK release";
+const TWO_WORK_ITEMS_MESSAGE = "This range names 2 work items";
+const OTHER_WORK_ITEM_REF = "acme/widgets#43";
+const NO_TRAILER_MESSAGE =
+  "No Work-Item trailer anywhere in the commit message";
+const PR_NUMBER_FLAG = "--pr-number";
+const NO_BACKLINK_MESSAGE = "no verified backlink";
+const TRACKING_OK_ZERO_COMMITS = "WORK_ITEM_TRACKING_OK 0 commit(s)";
+const JIRA_HOST = "acme.atlassian.net";
+const REPO_WIDGETS_LABEL = "repo:widgets";
+const NOT_SCOPED_MESSAGE = "not scoped to repository widgets";
+const BRANCH_WORK_COMMIT_MESSAGE =
+  "feat: branch work\n\nWork-Item: acme/widgets#42";
+const PR_VIEW_FIELDS = "url,body,state";
+const UNTRACKED_COMMIT_MESSAGE = "feat: untracked change";
+const MENTION_TICKET_HINT = "Mention the ticket";
+const PR_BODY_FILE = "pr-body.md";
+const BODY_FILE_FLAG = "--body-file";
+const VERIFY_LEVEL = "verify-level";
+const LINEAR_FALLBACK_BRANCH = "claude/lin-12-branch-fallback";
+const BUMP_DEPS_BRANCH = "chore/bump-deps";
+const BRANCH_MISMATCH_MESSAGE = "does not match this branch's work item";
+const UNRESOLVED_GATE_4 = "UNRESOLVED gate 4";
+const UNRESOLVED_GATE_5 = "UNRESOLVED gate 5";
+const DISCHARGE_PR_GATES = "discharge-pr-gates";
+const NO_LONGER_REACHABLE_MESSAGE = "no longer reachable";
 
 /**
  * Liveness bound for the SIGKILL-deadline case, calibrated to this machine.
@@ -291,7 +343,7 @@ printf '%s\\n' "$FAKE_CURL_JSON"`
 
   git(root, ["init", "-q", "-b", "main"], env);
   writeFileSync(
-    path.join(root, ".lisa.config.json"),
+    path.join(root, LISA_CONFIG_FILE),
     // Every case predating #2721 asserts the FULL contract — live tracker
     // lookup plus PR backlink — so that is what a fixture gets unless it says
     // otherwise. The SHIPPED default is trailer-only; the cases exercising it
@@ -299,9 +351,9 @@ printf '%s\\n' "$FAKE_CURL_JSON"`
     // tells the two apart at a glance.
     `${JSON.stringify({ workItem: { verify: "full" }, ...config }, null, 2)}\n`
   );
-  git(root, ["add", ".lisa.config.json"], env);
+  git(root, ["add", LISA_CONFIG_FILE], env);
   git(root, ["commit", "-q", "-m", "test fixture"], env);
-  git(root, ["switch", "-q", "-c", "feature/tracked"], env);
+  git(root, ["switch", "-q", "-c", TRACKED_BRANCH], env);
   return { bin, env, root };
 }
 
@@ -327,14 +379,14 @@ describe("qualified GitHub references through the actual push CLI", () => {
       refs,
       `refs/heads/feature/tracked ${localOid} refs/heads/feature/tracked ${remoteOid}\n`
     );
-    const result = command(fixture, ["validate-push", "origin"], {
+    const result = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: {
         LISA_PUSHED_REFS_FILE: refs,
         FAKE_GH_PR_JSON: JSON.stringify({
           body: "Work-Item: github/acme/widgets#42\n",
-          headRefName: "feature/tracked",
+          headRefName: TRACKED_BRANCH,
           state: "OPEN",
-          url: "https://github.com/acme/code/pull/7",
+          url: CODE_PR_URL,
         }),
       },
     });
@@ -354,21 +406,19 @@ describe("GitHub issue URLs through the actual CLI", () => {
     expect(linked.stderr).toBe("");
     expect(linked.status).toBe(0);
     expect(JSON.parse(readFileSync(stateFilePath(fixture), "utf8")).ref).toBe(
-      "acme/widgets#42"
+      WORK_ITEM_REF
     );
     const message = path.join(fixture.root, "MSG");
     writeFileSync(message, "fix: supported input\n");
     expect(
-      command(fixture, ["prepare-commit-msg", message, "message"]).status
+      command(fixture, [PREPARE_COMMIT_MSG, message, "message"]).status
     ).toBe(0);
-    expect(readFileSync(message, "utf8")).toContain(
-      "Work-Item: acme/widgets#42"
-    );
+    expect(readFileSync(message, "utf8")).toContain(WORK_ITEM_TRAILER);
     expect(readFileSync(message, "utf8")).not.toContain("https://github.com");
   });
 
   it.each([
-    "https://github.com/acme/widgets/issues/42".replace("https:", "http:"),
+    WORK_ITEM_URL.replace("https:", "http:"),
     "https://github.com.evil.test/acme/widgets/issues/42",
     "https://user@github.com/acme/widgets/issues/42",
     "https://github.com:443/acme/widgets/issues/42",
@@ -392,7 +442,7 @@ describe("GitHub issue URLs through the actual CLI", () => {
     });
     const message = path.join(fixture.root, "MSG");
     writeFileSync(message, `fix: unsupported input\n\nWork-Item: ${ref}\n`);
-    expect(command(fixture, ["validate-commit", message]).status).toBe(1);
+    expect(command(fixture, [VALIDATE_COMMIT, message]).status).toBe(1);
   });
 
   it.each([
@@ -418,9 +468,7 @@ describe("GitHub issue URLs through the actual CLI", () => {
       });
       const message = path.join(fixture.root, "MSG");
       writeFileSync(message, `fix: declaration boundary\n\n${declarations}\n`);
-      expect(command(fixture, ["validate-commit", message]).status).toBe(
-        status
-      );
+      expect(command(fixture, [VALIDATE_COMMIT, message]).status).toBe(status);
     }
   );
 
@@ -431,7 +479,7 @@ describe("GitHub issue URLs through the actual CLI", () => {
       message,
       "fix: closed\n\nWork-Item: https://github.com/acme/widgets/issues/99\n"
     );
-    const result = command(fixture, ["validate-commit", message]);
+    const result = command(fixture, [VALIDATE_COMMIT, message]);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("closed");
   });
@@ -454,14 +502,14 @@ describe("GitHub issue URLs through the actual CLI", () => {
       refs,
       `refs/heads/feature/tracked ${localOid} refs/heads/feature/tracked ${remoteOid}\n`
     );
-    const result = command(fixture, ["validate-push", "origin"], {
+    const result = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: {
         LISA_PUSHED_REFS_FILE: refs,
         FAKE_GH_PR_JSON: JSON.stringify({
           body: "Work-Item: acme/widgets#42\nWork-Item: acme/widgets#43\n",
-          headRefName: "feature/tracked",
+          headRefName: TRACKED_BRANCH,
           state: "OPEN",
-          url: "https://github.com/acme/code/pull/7",
+          url: CODE_PR_URL,
         }),
       },
     });
@@ -482,7 +530,7 @@ describe("GitHub issue URLs through the actual CLI", () => {
  */
 function linearIssueResponse(
   labels: string[],
-  stateName = "In Progress"
+  stateName = IN_PROGRESS_STATUS
 ): string {
   return JSON.stringify({
     data: {
@@ -504,7 +552,7 @@ function linearIssueResponse(
 function commit(fixture: Fixture, message: string): string {
   git(
     fixture.root,
-    ["commit", "-q", "--allow-empty", "-m", message],
+    ["commit", "-q", ALLOW_EMPTY_FLAG, "-m", message],
     fixture.env
   );
   return git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
@@ -514,7 +562,7 @@ function commit(fixture: Fixture, message: string): string {
 function rebaseHeadName(fixture: Fixture): string {
   const stateDir = git(
     fixture.root,
-    ["rev-parse", "--git-path", "rebase-merge"],
+    ["rev-parse", GIT_PATH_FLAG, "rebase-merge"],
     fixture.env
   );
   return readFileSync(
@@ -530,9 +578,9 @@ function rebaseHeadName(fixture: Fixture): string {
  * exact #1956 rebase-lane state.
  */
 function wedgeRebase(fixture: Fixture, branch: string): void {
-  const shared = path.join(fixture.root, "shared.txt");
+  const shared = path.join(fixture.root, SHARED_FILE);
   writeFileSync(shared, `${branch} change\n`);
-  git(fixture.root, ["add", "shared.txt"], fixture.env);
+  git(fixture.root, ["add", SHARED_FILE], fixture.env);
   git(
     fixture.root,
     ["commit", "-q", "-m", "feat: branch change\n\nWork-Item: acme/widgets#42"],
@@ -540,7 +588,7 @@ function wedgeRebase(fixture: Fixture, branch: string): void {
   );
   git(fixture.root, ["switch", "-q", "main"], fixture.env);
   writeFileSync(shared, "main change\n");
-  git(fixture.root, ["add", "shared.txt"], fixture.env);
+  git(fixture.root, ["add", SHARED_FILE], fixture.env);
   git(fixture.root, ["commit", "-q", "-m", "chore: base change"], fixture.env);
   git(fixture.root, ["switch", "-q", branch], fixture.env);
   if (
@@ -577,7 +625,7 @@ function stateFilePath(fixture: Fixture): string {
     fixture.root,
     git(
       fixture.root,
-      ["rev-parse", "--git-path", "lisa/work-item.json"],
+      ["rev-parse", GIT_PATH_FLAG, "lisa/work-item.json"],
       fixture.env
     )
   );
@@ -585,9 +633,9 @@ function stateFilePath(fixture: Fixture): string {
 
 /** Bind the work item on the current branch and add one tracked commit. */
 function bindThenCommitTracked(fixture: Fixture): string {
-  if (command(fixture, ["bind", "acme/widgets#42"]).status !== 0)
+  if (command(fixture, ["bind", WORK_ITEM_REF]).status !== 0)
     throw new Error("expected the bind to succeed");
-  return commit(fixture, "feat: tracked change\n\nWork-Item: acme/widgets#42");
+  return commit(fixture, TRACKED_COMMIT_MESSAGE);
 }
 
 /**
@@ -599,13 +647,13 @@ function mergeAdvancedBaseThenFollowUp(fixture: Fixture): string {
   git(
     fixture.root,
     [
-      "update-ref",
-      "refs/remotes/origin/main",
+      UPDATE_REF,
+      ORIGIN_MAIN_REF,
       commit(fixture, "feat: foreign base work\n\nWork-Item: acme/widgets#99"),
     ],
     fixture.env
   );
-  git(fixture.root, ["switch", "-q", "feature/tracked"], fixture.env);
+  git(fixture.root, ["switch", "-q", TRACKED_BRANCH], fixture.env);
   git(
     fixture.root,
     ["merge", "-q", "--no-ff", "-m", "Merge branch 'main'", "main"],
@@ -633,7 +681,7 @@ function setupMergeLane(fixture: Fixture): { head: string; pushedTip: string } {
 function setOriginHead(fixture: Fixture): void {
   git(
     fixture.root,
-    ["symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"],
+    ["symbolic-ref", "refs/remotes/origin/HEAD", ORIGIN_MAIN_REF],
     fixture.env
   );
 }
@@ -650,7 +698,7 @@ function setOriginHead(fixture: Fixture): void {
 function launderPushRange(fixture: Fixture, tip: string): void {
   git(
     fixture.root,
-    ["update-ref", "refs/remotes/origin/attacker", tip],
+    [UPDATE_REF, "refs/remotes/origin/attacker", tip],
     fixture.env
   );
   git(
@@ -667,12 +715,8 @@ function launderPushRange(fixture: Fixture, tip: string): void {
 /** Seed a bound branch whose base is already published as origin/main. */
 function publishedBase(fixture: Fixture): string {
   const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-  git(
-    fixture.root,
-    ["update-ref", "refs/remotes/origin/main", base],
-    fixture.env
-  );
-  if (command(fixture, ["bind", "acme/widgets#42"]).status !== 0)
+  git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
+  if (command(fixture, ["bind", WORK_ITEM_REF]).status !== 0)
     throw new Error("expected the bind to succeed");
   return base;
 }
@@ -684,7 +728,7 @@ function pushRange(
   head: string,
   env: NodeJS.ProcessEnv = {}
 ): CommandResult {
-  return command(fixture, ["validate-push", "origin"], {
+  return command(fixture, [VALIDATE_PUSH, "origin"], {
     env: { FAKE_GH_PR_MISSING: "1", ...env },
     input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
   });
@@ -697,7 +741,7 @@ function prRange(
   head: string,
   env: NodeJS.ProcessEnv = {}
 ): CommandResult {
-  return command(fixture, ["validate-pr"], {
+  return command(fixture, [VALIDATE_PR], {
     env: {
       LISA_PR_BASE_SHA: base,
       LISA_PR_HEAD_SHA: head,
@@ -726,7 +770,7 @@ describe("work-item binding and commit messages", () => {
       fixture.env
     );
 
-    expect(command(linked, ["bind", "acme/widgets#42"]).status).toBe(0);
+    expect(command(linked, ["bind", WORK_ITEM_REF]).status).toBe(0);
 
     const linkedState = stateFilePath(linked);
     expect(linkedState).toContain(path.join(".git", "worktrees", "linked"));
@@ -734,24 +778,24 @@ describe("work-item binding and commit messages", () => {
     expect(JSON.parse(readFileSync(linkedState, "utf8"))).toMatchObject({
       branch: "feature/linked",
       provider: "github",
-      ref: "acme/widgets#42",
+      ref: WORK_ITEM_REF,
     });
   });
 
   it("merges local config, writes worktree-private state atomically, and preserves the subject", () => {
     const fixture = createFixture(githubConfig("identity"));
     writeFileSync(
-      path.join(fixture.root, ".lisa.config.local.json"),
-      '{"github":{"queueRepo":"acme/widgets"}}\n'
+      path.join(fixture.root, LISA_LOCAL_CONFIG_FILE),
+      LOCAL_QUEUE_REPO_CONFIG
     );
 
-    const bound = command(fixture, ["bind", "acme/widgets#42"]);
+    const bound = command(fixture, ["bind", WORK_ITEM_REF]);
     expect(bound.status).toBe(0);
     const stateFile = stateFilePath(fixture);
     expect(JSON.parse(readFileSync(stateFile, "utf8"))).toMatchObject({
-      branch: "feature/tracked",
+      branch: TRACKED_BRANCH,
       provider: "github",
-      ref: "acme/widgets#42",
+      ref: WORK_ITEM_REF,
       version: 1,
     });
     expect(statSync(stateFile).mode & 0o777).toBe(0o600);
@@ -763,16 +807,16 @@ describe("work-item binding and commit messages", () => {
       "feat: preserve this subject\n\nLonger context.\n"
     );
     expect(
-      command(fixture, ["prepare-commit-msg", messageFile, "message"]).status
+      command(fixture, [PREPARE_COMMIT_MSG, messageFile, "message"]).status
     ).toBe(0);
     expect(
-      command(fixture, ["prepare-commit-msg", messageFile, "message"]).status
+      command(fixture, [PREPARE_COMMIT_MSG, messageFile, "message"]).status
     ).toBe(0);
 
     const prepared = readFileSync(messageFile, "utf8");
     expect(prepared.split("\n")[0]).toBe("feat: preserve this subject");
     expect(prepared.match(/^Work-Item: acme\/widgets#42$/gm)).toHaveLength(1);
-    const validated = command(fixture, ["validate-commit", messageFile]);
+    const validated = command(fixture, [VALIDATE_COMMIT, messageFile]);
     expect(validated.status).toBe(0);
     expect(validated.stdout).toContain("WORK_ITEM_TRACKING_OK acme/widgets#42");
   });
@@ -792,18 +836,18 @@ describe("work-item binding and commit messages", () => {
   it("accepts `link` as the collision-free spelling of `bind`", () => {
     const fixture = createFixture(githubConfig("identity"));
     writeFileSync(
-      path.join(fixture.root, ".lisa.config.local.json"),
-      '{"github":{"queueRepo":"acme/widgets"}}\n'
+      path.join(fixture.root, LISA_LOCAL_CONFIG_FILE),
+      LOCAL_QUEUE_REPO_CONFIG
     );
 
-    const linked = command(fixture, ["link", "acme/widgets#42"]);
+    const linked = command(fixture, ["link", WORK_ITEM_REF]);
     expect(linked.status).toBe(0);
     expect(
       JSON.parse(readFileSync(stateFilePath(fixture), "utf8"))
     ).toMatchObject({
-      branch: "feature/tracked",
+      branch: TRACKED_BRANCH,
       provider: "github",
-      ref: "acme/widgets#42",
+      ref: WORK_ITEM_REF,
       version: 1,
     });
   });
@@ -811,14 +855,14 @@ describe("work-item binding and commit messages", () => {
   it("still accepts the original `bind` spelling, so existing hooks keep working", () => {
     const fixture = createFixture(githubConfig("identity"));
     writeFileSync(
-      path.join(fixture.root, ".lisa.config.local.json"),
-      '{"github":{"queueRepo":"acme/widgets"}}\n'
+      path.join(fixture.root, LISA_LOCAL_CONFIG_FILE),
+      LOCAL_QUEUE_REPO_CONFIG
     );
 
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
     expect(
       JSON.parse(readFileSync(stateFilePath(fixture), "utf8"))
-    ).toMatchObject({ ref: "acme/widgets#42" });
+    ).toMatchObject({ ref: WORK_ITEM_REF });
   });
 
   it("names `link` in the usage text so a blocked agent is told the working spelling", () => {
@@ -830,7 +874,7 @@ describe("work-item binding and commit messages", () => {
 
   it("fails closed for missing, duplicate, mismatched, and closed GitHub work items", () => {
     const fixture = createFixture();
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
 
     // The duplicate case names two DIFFERENT items, which is the ambiguity
@@ -845,7 +889,7 @@ describe("work-item binding and commit messages", () => {
       "fix: wrong repo\n\nWork-Item: acme/elsewhere#42\n",
     ]) {
       writeFileSync(messageFile, message);
-      const result = command(fixture, ["validate-commit", messageFile]);
+      const result = command(fixture, [VALIDATE_COMMIT, messageFile]);
       expect(result.status).toBe(1);
       expect(result.stderr).toContain(
         "Mention the ticket this work relates to"
@@ -853,7 +897,7 @@ describe("work-item binding and commit messages", () => {
     }
 
     writeFileSync(messageFile, "fix: closed\n\nWork-Item: acme/widgets#42\n");
-    const closed = command(fixture, ["validate-commit", messageFile], {
+    const closed = command(fixture, [VALIDATE_COMMIT, messageFile], {
       env: {
         FAKE_GH_ISSUE_JSON:
           '{"number":42,"state":"CLOSED","comments":[],"closedByPullRequestsReferences":[]}',
@@ -867,13 +911,13 @@ describe("work-item binding and commit messages", () => {
     const fixture = createFixture();
     git(fixture.root, ["checkout", "-q", "--detach"], fixture.env);
 
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
     const current = command(fixture, ["current"]);
     expect(JSON.parse(current.stdout).branch).toBeNull();
 
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(messageFile, "fix: detached\n\nWork-Item: acme/widgets#42\n");
-    expect(command(fixture, ["validate-commit", messageFile]).status).toBe(1);
+    expect(command(fixture, [VALIDATE_COMMIT, messageFile]).status).toBe(1);
 
     git(
       fixture.root,
@@ -881,7 +925,7 @@ describe("work-item binding and commit messages", () => {
       fixture.env
     );
     expect(command(fixture, ["attach-branch"]).status).toBe(0);
-    expect(command(fixture, ["validate-commit", messageFile]).status).toBe(0);
+    expect(command(fixture, [VALIDATE_COMMIT, messageFile]).status).toBe(0);
   });
 
   it("honors an explicit trusted config without merging head-local overrides", () => {
@@ -889,11 +933,11 @@ describe("work-item binding and commit messages", () => {
     const trusted = path.join(fixture.root, "trusted-config.json");
     writeFileSync(trusted, `${JSON.stringify(githubConfig())}\n`);
     writeFileSync(
-      path.join(fixture.root, ".lisa.config.local.json"),
+      path.join(fixture.root, LISA_LOCAL_CONFIG_FILE),
       '{"github":{"queueRepo":"acme/attacker"}}\n'
     );
 
-    const result = command(fixture, ["bind", "acme/widgets#42"], {
+    const result = command(fixture, ["bind", WORK_ITEM_REF], {
       env: { LISA_TRACKING_CONFIG_FILE: trusted },
     });
     expect(result.status).toBe(0);
@@ -902,7 +946,7 @@ describe("work-item binding and commit messages", () => {
   it("accepts unclaimed and rejects cross-repo and container GitHub issues", () => {
     const fixture = createFixture({
       tracker: "github",
-      github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
+      github: { org: "acme", repo: "identity", queueRepo: QUEUE_REPO },
     });
     const issue = (labels: string[]) =>
       JSON.stringify({
@@ -916,23 +960,23 @@ describe("work-item binding and commit messages", () => {
     // Deliberately inverted: claim state is no longer enforced anywhere. The
     // sibling assertions below are what this case is now for — they prove the
     // checks that stood BESIDE the claim check are untouched by its removal.
-    const unclaimed = command(fixture, ["bind", "acme/widgets#42"], {
+    const unclaimed = command(fixture, ["bind", WORK_ITEM_REF], {
       env: {
         FAKE_GH_ISSUE_JSON: issue([
-          "repo:identity",
+          REPO_IDENTITY_LABEL,
           "status:ready",
           "type:Bug",
         ]),
       },
     });
     expect(unclaimed.status).toBe(0);
-    expect(unclaimed.stderr).not.toContain("is not claimed");
+    expect(unclaimed.stderr).not.toContain(NOT_CLAIMED_MESSAGE);
 
-    const wrongRepo = command(fixture, ["bind", "acme/widgets#42"], {
+    const wrongRepo = command(fixture, ["bind", WORK_ITEM_REF], {
       env: {
         FAKE_GH_ISSUE_JSON: issue([
-          "repo:other",
-          "status:in-progress",
+          REPO_OTHER_LABEL,
+          IN_PROGRESS_LABEL,
           "type:Bug",
         ]),
       },
@@ -940,23 +984,23 @@ describe("work-item binding and commit messages", () => {
     expect(wrongRepo.status).toBe(1);
     expect(wrongRepo.stderr).toContain("not scoped to repository identity");
 
-    const epic = command(fixture, ["bind", "acme/widgets#42"], {
+    const epic = command(fixture, ["bind", WORK_ITEM_REF], {
       env: {
         FAKE_GH_ISSUE_JSON: issue([
-          "repo:identity",
-          "status:in-progress",
+          REPO_IDENTITY_LABEL,
+          IN_PROGRESS_LABEL,
           "type:Epic",
         ]),
       },
     });
     expect(epic.status).toBe(1);
-    expect(epic.stderr).toContain("is a container");
+    expect(epic.stderr).toContain(CONTAINER_MESSAGE);
 
-    const parent = command(fixture, ["bind", "acme/widgets#42"], {
+    const parent = command(fixture, ["bind", WORK_ITEM_REF], {
       env: {
         FAKE_GH_ISSUE_JSON: issue([
-          "repo:identity",
-          "status:in-progress",
+          REPO_IDENTITY_LABEL,
+          IN_PROGRESS_LABEL,
           "type:Task",
         ]),
         FAKE_GH_HIERARCHY_JSON:
@@ -964,7 +1008,7 @@ describe("work-item binding and commit messages", () => {
       },
     });
     expect(parent.status).toBe(1);
-    expect(parent.stderr).toContain("is a container");
+    expect(parent.stderr).toContain(CONTAINER_MESSAGE);
   });
 
   it(
@@ -979,11 +1023,11 @@ describe("work-item binding and commit messages", () => {
       // the tracker could not be ASKED, not that the work item is invalid.
       const fixture = createFixture({
         tracker: "github",
-        github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
+        github: { org: "acme", repo: "identity", queueRepo: QUEUE_REPO },
       });
 
       const started = Date.now();
-      const result = command(fixture, ["bind", "acme/widgets#42"], {
+      const result = command(fixture, ["bind", WORK_ITEM_REF], {
         env: { FAKE_GH_HANG: "1", LISA_WORK_ITEM_TIMEOUT_MS: "1500" },
       });
       const elapsed = Date.now() - started;
@@ -1007,16 +1051,16 @@ describe("work-item binding and commit messages", () => {
     // children that the open one falls past the boundary.
     const fixture = createFixture({
       tracker: "github",
-      github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
+      github: { org: "acme", repo: "identity", queueRepo: QUEUE_REPO },
     });
-    const parent = command(fixture, ["bind", "acme/widgets#42"], {
+    const parent = command(fixture, ["bind", WORK_ITEM_REF], {
       env: {
         FAKE_GH_ISSUE_JSON: JSON.stringify({
           number: 42,
           state: "OPEN",
           labels: [
-            { name: "repo:identity" },
-            { name: "status:in-progress" },
+            { name: REPO_IDENTITY_LABEL },
+            { name: IN_PROGRESS_LABEL },
             { name: "type:Task" },
           ],
           comments: [],
@@ -1052,23 +1096,23 @@ describe("work-item binding and commit messages", () => {
     });
 
     expect(parent.status).toBe(1);
-    expect(parent.stderr).toContain("is a container");
+    expect(parent.stderr).toContain(CONTAINER_MESSAGE);
   });
 
   it("accepts a GitHub issue scoped by the bare repo-name label (#1957)", () => {
     const fixture = createFixture({
       tracker: "github",
-      github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
+      github: { org: "acme", repo: "identity", queueRepo: QUEUE_REPO },
     });
-    const bare = command(fixture, ["bind", "acme/widgets#42"], {
+    const bare = command(fixture, ["bind", WORK_ITEM_REF], {
       env: {
         FAKE_GH_ISSUE_JSON: JSON.stringify({
           number: 42,
-          url: "https://github.com/acme/widgets/issues/42",
+          url: WORK_ITEM_URL,
           state: "OPEN",
           labels: [
             { name: "identity" },
-            { name: "status:in-progress" },
+            { name: IN_PROGRESS_LABEL },
             { name: "type:Bug" },
           ],
           comments: [],
@@ -1083,12 +1127,12 @@ describe("work-item binding and commit messages", () => {
     const fixture = createFixture();
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(messageFile, "chore(release): 1.2.3 [skip ci]\n");
-    expect(command(fixture, ["validate-commit", messageFile]).stdout).toContain(
-      "WORK_ITEM_TRACKING_OK release"
+    expect(command(fixture, [VALIDATE_COMMIT, messageFile]).stdout).toContain(
+      TRACKING_OK_RELEASE
     );
 
     writeFileSync(messageFile, "chore(release): prepare 1.2.3 [skip ci]\n");
-    expect(command(fixture, ["validate-commit", messageFile]).status).toBe(1);
+    expect(command(fixture, [VALIDATE_COMMIT, messageFile]).status).toBe(1);
   });
 
   it("exempts the [skip-cd] release subject the release workflow now emits", () => {
@@ -1100,16 +1144,16 @@ describe("work-item binding and commit messages", () => {
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
 
     writeFileSync(messageFile, "chore(release): 1.2.3 [skip ci] [skip-cd]\n");
-    expect(command(fixture, ["validate-commit", messageFile]).stdout).toContain(
-      "WORK_ITEM_TRACKING_OK release"
+    expect(command(fixture, [VALIDATE_COMMIT, messageFile]).stdout).toContain(
+      TRACKING_OK_RELEASE
     );
 
     writeFileSync(
       messageFile,
       "chore(release): 1.2.3-rc.1 [skip ci] [skip-cd]\n"
     );
-    expect(command(fixture, ["validate-commit", messageFile]).stdout).toContain(
-      "WORK_ITEM_TRACKING_OK release"
+    expect(command(fixture, [VALIDATE_COMMIT, messageFile]).stdout).toContain(
+      TRACKING_OK_RELEASE
     );
   });
 
@@ -1126,7 +1170,7 @@ describe("work-item binding and commit messages", () => {
       "chore(release): 1.2.3 [skip-cd]",
     ]) {
       writeFileSync(messageFile, `${subject}\n`);
-      expect(command(fixture, ["validate-commit", messageFile]).status).toBe(1);
+      expect(command(fixture, [VALIDATE_COMMIT, messageFile]).status).toBe(1);
     }
   });
 });
@@ -1135,18 +1179,11 @@ describe("push and pull-request proof", () => {
   it("allows the first push for CI follow-up, and names a multi-item range", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", base],
-      fixture.env
-    );
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
     const pushLine = `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${ZERO_OID}\n`;
-    const firstPush = command(fixture, ["validate-push", "origin"], {
+    const firstPush = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: { FAKE_GH_PR_MISSING: "1" },
       input: pushLine,
     });
@@ -1162,16 +1199,16 @@ describe("push and pull-request proof", () => {
     // below is the enforcing half.
     commit(fixture, "fix: another ticket\n\nWork-Item: acme/widgets#43");
     const mixedHead = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
-    const mixed = command(fixture, ["validate-push", "origin"], {
+    const mixed = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: {
         FAKE_GH_PR_MISSING: "1",
       },
       input: `refs/heads/feature/tracked ${mixedHead} refs/heads/feature/tracked ${ZERO_OID}\n`,
     });
     expect(mixed.status).toBe(0);
-    expect(mixed.stdout).toContain("This range names 2 work items");
-    expect(mixed.stdout).toContain("acme/widgets#42");
-    expect(mixed.stdout).toContain("acme/widgets#43");
+    expect(mixed.stdout).toContain(TWO_WORK_ITEMS_MESSAGE);
+    expect(mixed.stdout).toContain(WORK_ITEM_REF);
+    expect(mixed.stdout).toContain(OTHER_WORK_ITEM_REF);
   });
 
   /**
@@ -1186,11 +1223,7 @@ describe("push and pull-request proof", () => {
   it("validates each pushed ref on its own, so a batch is not one range", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", base],
-      fixture.env
-    );
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
     setOriginHead(fixture);
     const one = commit(fixture, "feat: one\n\nWork-Item: acme/widgets#42");
     git(
@@ -1200,7 +1233,7 @@ describe("push and pull-request proof", () => {
     );
     const two = commit(fixture, "feat: two\n\nWork-Item: acme/widgets#43");
 
-    const result = command(fixture, ["validate-push", "origin"], {
+    const result = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: { FAKE_GH_PR_MISSING: "1" },
       input:
         `refs/heads/feature/tracked ${one} refs/heads/feature/tracked ${base}\n` +
@@ -1219,11 +1252,7 @@ describe("push and pull-request proof", () => {
     // push is refused for it.
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", base],
-      fixture.env
-    );
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
     setOriginHead(fixture);
     const one = commit(fixture, "feat: one\n\nWork-Item: acme/widgets#42");
     git(
@@ -1233,32 +1262,27 @@ describe("push and pull-request proof", () => {
     );
     const two = commit(fixture, "feat: two with no trailer");
 
-    const result = command(fixture, ["validate-push", "origin"], {
+    const result = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: { FAKE_GH_PR_MISSING: "1" },
       input:
         `refs/heads/feature/tracked ${one} refs/heads/feature/tracked ${base}\n` +
         `refs/heads/feature/second ${two} refs/heads/feature/second ${base}\n`,
     });
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      "No Work-Item trailer anywhere in the commit message"
-    );
+    expect(result.stderr).toContain(NO_TRAILER_MESSAGE);
   });
 
   it("fetches a numbered PR deterministically and requires body and tracker backlinks", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
     const log = path.join(fixture.root, "gh.log");
-    const prUrl = "https://github.com/acme/code/pull/7";
+    const prUrl = CODE_PR_URL;
     const issue = JSON.stringify({
       number: 42,
       state: "OPEN",
-      labels: [{ name: "status:in-progress" }, { name: "type:Bug" }],
+      labels: [{ name: IN_PROGRESS_LABEL }, { name: "type:Bug" }],
       comments: [{ body: `[lisa-pr-link] ${prUrl}` }],
       closedByPullRequestsReferences: [],
     });
@@ -1266,12 +1290,12 @@ describe("push and pull-request proof", () => {
     const validated = command(
       fixture,
       [
-        "validate-pr",
+        VALIDATE_PR,
         "--base",
         base,
         "--head",
         head,
-        "--pr-number",
+        PR_NUMBER_FLAG,
         "7",
         "--pr-url",
         prUrl,
@@ -1287,12 +1311,12 @@ describe("push and pull-request proof", () => {
     const absentBacklink = command(
       fixture,
       [
-        "validate-pr",
+        VALIDATE_PR,
         "--base",
         base,
         "--head",
         head,
-        "--pr-number",
+        PR_NUMBER_FLAG,
         "7",
         "--pr-url",
         prUrl,
@@ -1305,7 +1329,7 @@ describe("push and pull-request proof", () => {
       }
     );
     expect(absentBacklink.status).toBe(1);
-    expect(absentBacklink.stderr).toContain("no verified backlink");
+    expect(absentBacklink.stderr).toContain(NO_BACKLINK_MESSAGE);
   });
 
   it("permits an exact release-only PR without inventing a work item", () => {
@@ -1313,19 +1337,19 @@ describe("push and pull-request proof", () => {
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
     const head = commit(fixture, "chore(release): 1.2.3 [skip ci]");
     const result = command(fixture, [
-      "validate-pr",
+      VALIDATE_PR,
       "--base",
       base,
       "--head",
       head,
-      "--pr-number",
+      PR_NUMBER_FLAG,
       "7",
       "--pr-url",
-      "https://github.com/acme/code/pull/7",
+      CODE_PR_URL,
     ]);
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK 0 commit(s)");
+    expect(result.stdout).toContain(TRACKING_OK_ZERO_COMMITS);
   });
 
   it("rejects a merge-only PR with no linked non-merge commit", () => {
@@ -1346,15 +1370,15 @@ describe("push and pull-request proof", () => {
     expect(merge.status).toBe(0);
 
     const result = command(fixture, [
-      "validate-pr",
+      VALIDATE_PR,
       "--base",
       base,
       "--head",
       merge.stdout.trim(),
-      "--pr-number",
+      PR_NUMBER_FLAG,
       "7",
       "--pr-url",
-      "https://github.com/acme/code/pull/7",
+      CODE_PR_URL,
     ]);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("no non-merge commit linked");
@@ -1367,7 +1391,7 @@ describe("provider liveness", () => {
       tracker: "jira",
       repo: "widgets",
       jira: { project: "LAS" },
-      atlassian: { site: "acme.atlassian.net" },
+      atlassian: { site: JIRA_HOST },
     });
     expect(command(fixture, ["bind", "LAS-12"]).status).toBe(0);
     const done = command(fixture, ["bind", "LAS-12"], {
@@ -1385,7 +1409,7 @@ describe("provider liveness", () => {
       tracker: "jira",
       repo: "widgets",
       jira: { project: "LAS" },
-      atlassian: { site: "acme.atlassian.net" },
+      atlassian: { site: JIRA_HOST },
     });
     const fields = (overrides: object) =>
       JSON.stringify({
@@ -1393,10 +1417,10 @@ describe("provider liveness", () => {
         fields: {
           project: { key: "LAS" },
           status: {
-            name: "In Progress",
+            name: IN_PROGRESS_STATUS,
             statusCategory: { key: "indeterminate" },
           },
-          labels: ["repo:widgets"],
+          labels: [REPO_WIDGETS_LABEL],
           issuetype: { name: "Task" },
           subtasks: [],
           comment: { comments: [] },
@@ -1413,13 +1437,13 @@ describe("provider liveness", () => {
     });
     expect(identity.status).toBe(0);
     expect(identity.stderr).toContain("live validation SKIPPED");
-    expect(identity.stderr).toContain("acme.atlassian.net");
+    expect(identity.stderr).toContain(JIRA_HOST);
 
     const wrongRepo = command(fixture, ["bind", "LAS-12"], {
-      env: { FAKE_ACLI_JSON: fields({ labels: ["repo:other"] }) },
+      env: { FAKE_ACLI_JSON: fields({ labels: [REPO_OTHER_LABEL] }) },
     });
     expect(wrongRepo.status).toBe(1);
-    expect(wrongRepo.stderr).toContain("not scoped to repository widgets");
+    expect(wrongRepo.stderr).toContain(NOT_SCOPED_MESSAGE);
 
     // Inverted deliberately — see the GitHub sibling above. A Jira ticket
     // still sitting in Ready is committable; only the trailer's format, the
@@ -1435,13 +1459,13 @@ describe("provider liveness", () => {
       },
     });
     expect(unclaimed.status).toBe(0);
-    expect(unclaimed.stderr).not.toContain("is not claimed");
+    expect(unclaimed.stderr).not.toContain(NOT_CLAIMED_MESSAGE);
 
     const epic = command(fixture, ["bind", "LAS-12"], {
       env: { FAKE_ACLI_JSON: fields({ issuetype: { name: "Epic" } }) },
     });
     expect(epic.status).toBe(1);
-    expect(epic.stderr).toContain("is a container");
+    expect(epic.stderr).toContain(CONTAINER_MESSAGE);
   });
 
   // Test hardened to kill mutant M001 (Risk Factor: Data security / credential secrecy).
@@ -1504,7 +1528,7 @@ describe("provider liveness", () => {
       repo: "code",
       linear: { workspace: "acme", teamKey: "LIN" },
     };
-    const prUrl = "https://github.com/acme/code/pull/7";
+    const prUrl = CODE_PR_URL;
     const lookup = JSON.stringify({
       data: {
         issue: {
@@ -1514,12 +1538,12 @@ describe("provider liveness", () => {
             key: "LIN",
             states: {
               nodes: [
-                { id: "started", name: "In Progress", type: "started" },
+                { id: "started", name: IN_PROGRESS_STATUS, type: "started" },
                 { id: "done", name: "Done", type: "completed" },
               ],
             },
           },
-          state: { id: "started", name: "In Progress", type: "started" },
+          state: { id: "started", name: IN_PROGRESS_STATUS, type: "started" },
           attachments: { nodes: [] },
           comments: { nodes: [{ body: `[lisa-pr-link] ${prUrl}` }] },
         },
@@ -1638,7 +1662,7 @@ describe("provider liveness", () => {
     const response = (
       labels: string[],
       children: object[] = [],
-      stateName = "In Progress"
+      stateName = IN_PROGRESS_STATUS
     ) =>
       JSON.stringify({
         data: {
@@ -1658,34 +1682,38 @@ describe("provider liveness", () => {
     const wrongRepo = command(fixture, ["bind", "LIN-12"], {
       env: {
         FAKE_CURL_JSON: response([
-          "repo:other",
-          "status:in-progress",
+          REPO_OTHER_LABEL,
+          IN_PROGRESS_LABEL,
           "type:Task",
         ]),
       },
     });
     expect(wrongRepo.status).toBe(1);
-    expect(wrongRepo.stderr).toContain("not scoped to repository widgets");
+    expect(wrongRepo.stderr).toContain(NOT_SCOPED_MESSAGE);
 
     // Inverted deliberately — see the GitHub and Jira siblings above.
     const unclaimed = command(fixture, ["bind", "LIN-12"], {
       env: {
-        FAKE_CURL_JSON: response(["repo:widgets", "type:Task"], [], "Ready"),
+        FAKE_CURL_JSON: response(
+          [REPO_WIDGETS_LABEL, "type:Task"],
+          [],
+          "Ready"
+        ),
       },
     });
     expect(unclaimed.status).toBe(0);
-    expect(unclaimed.stderr).not.toContain("is not claimed");
+    expect(unclaimed.stderr).not.toContain(NOT_CLAIMED_MESSAGE);
 
     const parent = command(fixture, ["bind", "LIN-12"], {
       env: {
         FAKE_CURL_JSON: response(
-          ["repo:widgets", "status:in-progress", "type:Task"],
+          [REPO_WIDGETS_LABEL, IN_PROGRESS_LABEL, "type:Task"],
           [{ state: { type: "started" } }]
         ),
       },
     });
     expect(parent.status).toBe(1);
-    expect(parent.stderr).toContain("is a container");
+    expect(parent.stderr).toContain(CONTAINER_MESSAGE);
   });
 
   it("accepts a Linear issue scoped by the bare repo-name label (#1957)", () => {
@@ -1699,7 +1727,7 @@ describe("provider liveness", () => {
       env: {
         FAKE_CURL_JSON: linearIssueResponse([
           "widgets",
-          "status:in-progress",
+          IN_PROGRESS_LABEL,
           "type:Task",
         ]),
       },
@@ -1710,7 +1738,7 @@ describe("provider liveness", () => {
       env: {
         FAKE_CURL_JSON: linearIssueResponse([
           "Widgets",
-          "status:in-progress",
+          IN_PROGRESS_LABEL,
           "type:Task",
         ]),
       },
@@ -1727,73 +1755,68 @@ describe("provider liveness", () => {
 
     const unscoped = command(fixture, ["bind", "LIN-12"], {
       env: {
-        FAKE_CURL_JSON: linearIssueResponse([
-          "status:in-progress",
-          "type:Task",
-        ]),
+        FAKE_CURL_JSON: linearIssueResponse([IN_PROGRESS_LABEL, "type:Task"]),
       },
     });
     expect(unscoped.status).toBe(1);
-    expect(unscoped.stderr).toContain("not scoped to repository widgets");
+    expect(unscoped.stderr).toContain(NOT_SCOPED_MESSAGE);
 
     const wrongRepo = command(fixture, ["bind", "LIN-12"], {
       env: {
         FAKE_CURL_JSON: linearIssueResponse([
           "backend",
           "repo:backend",
-          "status:in-progress",
+          IN_PROGRESS_LABEL,
           "type:Task",
         ]),
       },
     });
     expect(wrongRepo.status).toBe(1);
-    expect(wrongRepo.stderr).toContain("not scoped to repository widgets");
+    expect(wrongRepo.stderr).toContain(NOT_SCOPED_MESSAGE);
 
     const unrelated = command(fixture, ["bind", "LIN-12"], {
       env: {
         FAKE_CURL_JSON: linearIssueResponse([
           "sentry",
-          "status:in-progress",
+          IN_PROGRESS_LABEL,
           "type:Task",
         ]),
       },
     });
     expect(unrelated.status).toBe(1);
-    expect(unrelated.stderr).toContain("not scoped to repository widgets");
+    expect(unrelated.stderr).toContain(NOT_SCOPED_MESSAGE);
   });
 });
 
 describe("rebase lane (#1956 R1): mid-rebase binding validation", () => {
   it("prepare-commit-msg validates against the rebase head-name instead of throwing on detached HEAD", () => {
     const fixture = createFixture();
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    wedgeRebase(fixture, "feature/tracked");
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    wedgeRebase(fixture, TRACKED_BRANCH);
 
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(messageFile, "feat: rebased pick\n");
     const prepared = command(fixture, [
-      "prepare-commit-msg",
+      PREPARE_COMMIT_MSG,
       messageFile,
       "message",
     ]);
     expect(prepared.stderr).not.toContain("detached HEAD");
     expect(prepared.status).toBe(0);
-    expect(readFileSync(messageFile, "utf8")).toContain(
-      "Work-Item: acme/widgets#42"
-    );
+    expect(readFileSync(messageFile, "utf8")).toContain(WORK_ITEM_TRAILER);
   });
 
   it("validate-commit (rebase --continue path) accepts the bound branch mid-rebase", () => {
     const fixture = createFixture();
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    wedgeRebase(fixture, "feature/tracked");
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    wedgeRebase(fixture, TRACKED_BRANCH);
 
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(
       messageFile,
       "feat: resolved pick\n\nWork-Item: acme/widgets#42\n"
     );
-    const validated = command(fixture, ["validate-commit", messageFile]);
+    const validated = command(fixture, [VALIDATE_COMMIT, messageFile]);
     expect(validated.stderr).not.toContain("detached HEAD");
     expect(validated.status).toBe(0);
     expect(validated.stdout).toContain("WORK_ITEM_TRACKING_OK acme/widgets#42");
@@ -1801,14 +1824,14 @@ describe("rebase lane (#1956 R1): mid-rebase binding validation", () => {
 
   it("still rejects a mid-rebase branch that does not match the binding", () => {
     const fixture = createFixture();
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
     git(fixture.root, ["switch", "-q", "-c", "feature/other"], fixture.env);
     wedgeRebase(fixture, "feature/other");
 
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(messageFile, "feat: wrong branch pick\n");
     const prepared = command(fixture, [
-      "prepare-commit-msg",
+      PREPARE_COMMIT_MSG,
       messageFile,
       "message",
     ]);
@@ -1825,7 +1848,7 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
     const { head, pushedTip } = setupMergeLane(fixture);
     setOriginHead(fixture);
 
-    const result = command(fixture, ["validate-push", "origin"], {
+    const result = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: { FAKE_GH_PR_MISSING: "1" },
       input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${pushedTip}\n`,
     });
@@ -1844,7 +1867,7 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
     const fixture = createFixture();
     const { head, pushedTip } = setupMergeLane(fixture);
 
-    const result = command(fixture, ["validate-push", "origin"], {
+    const result = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: { FAKE_GH_PR_MISSING: "1" },
       input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${pushedTip}\n`,
     });
@@ -1855,19 +1878,12 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
   it("still rejects a branch-authored commit referencing a closed work item", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", base],
-      fixture.env
-    );
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
     setOriginHead(fixture);
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: branch work\n\nWork-Item: acme/widgets#42"
-    );
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, BRANCH_WORK_COMMIT_MESSAGE);
 
-    const result = command(fixture, ["validate-push", "origin"], {
+    const result = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: {
         FAKE_GH_ISSUE_JSON:
           '{"number":42,"state":"CLOSED","comments":[],"closedByPullRequestsReferences":[]}',
@@ -1882,25 +1898,21 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
   it("names a multi-item branch-authored range with the exemption active", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", base],
-      fixture.env
-    );
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
     setOriginHead(fixture);
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
     commit(fixture, "feat: first ticket\n\nWork-Item: acme/widgets#42");
     const head = commit(
       fixture,
       "fix: second ticket\n\nWork-Item: acme/widgets#43"
     );
 
-    const result = command(fixture, ["validate-push", "origin"], {
+    const result = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: { FAKE_GH_PR_MISSING: "1" },
       input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
     });
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("This range names 2 work items");
+    expect(result.stdout).toContain(TWO_WORK_ITEMS_MESSAGE);
   });
 
   /**
@@ -1912,19 +1924,12 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
   it("names the gates it could not check when no pull request exists yet", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", base],
-      fixture.env
-    );
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
     setOriginHead(fixture);
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: branch work\n\nWork-Item: acme/widgets#42"
-    );
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, BRANCH_WORK_COMMIT_MESSAGE);
 
-    const result = command(fixture, ["validate-push", "origin"], {
+    const result = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: { FAKE_GH_PR_MISSING: "1" },
       input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
     });
@@ -1950,38 +1955,31 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
   it("checks gates 4 and 5 at push when a pull request does exist", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", base],
-      fixture.env
-    );
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
     setOriginHead(fixture);
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: branch work\n\nWork-Item: acme/widgets#42"
-    );
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, BRANCH_WORK_COMMIT_MESSAGE);
 
     // The fake pull request already declares the item (gate 4). Gate 5 needs a
     // managed backlink on the item, and supplying it here is the point: with
     // the lookup repaired, BOTH gates now actually run at push, so both have to
     // be satisfiable at push for this to pass.
-    const prUrl = "https://github.com/acme/code/pull/7";
+    const prUrl = CODE_PR_URL;
     const log = path.join(fixture.root, "gh.log");
     const branch = git(
       fixture.root,
       ["rev-parse", "--abbrev-ref", "HEAD"],
       fixture.env
     );
-    const result = command(fixture, ["validate-push", "origin"], {
+    const result = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: {
         FAKE_GH_ISSUE_JSON: JSON.stringify({
           closedByPullRequestsReferences: [],
           comments: [{ body: `[lisa-pr-link] ${prUrl}` }],
-          labels: [{ name: "status:in-progress" }, { name: "type:Bug" }],
+          labels: [{ name: IN_PROGRESS_LABEL }, { name: "type:Bug" }],
           number: 42,
           state: "OPEN",
-          url: "https://github.com/acme/widgets/issues/42",
+          url: WORK_ITEM_URL,
         }),
         FAKE_GH_LOG: log,
       },
@@ -2019,7 +2017,7 @@ describe("pullRequestViewArgs", () => {
       "--repo",
       "acme/code",
       "--json",
-      "url,body,state",
+      PR_VIEW_FIELDS,
     ]);
   });
 
@@ -2031,7 +2029,7 @@ describe("pullRequestViewArgs", () => {
       "--repo",
       "acme/code",
       "--json",
-      "url,body,state",
+      PR_VIEW_FIELDS,
     ]);
   });
 
@@ -2046,28 +2044,24 @@ describe("pullRequestViewArgs", () => {
       "pr",
       "view",
       "--json",
-      "url,body,state",
+      PR_VIEW_FIELDS,
     ]);
   });
 
   it("still rejects a branch-authored commit with no Work-Item trailer", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", base],
-      fixture.env
-    );
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
     setOriginHead(fixture);
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(fixture, "feat: untracked change");
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, UNTRACKED_COMMIT_MESSAGE);
 
-    const result = command(fixture, ["validate-push", "origin"], {
+    const result = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: { FAKE_GH_PR_MISSING: "1" },
       input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
     });
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("Mention the ticket");
+    expect(result.stderr).toContain(MENTION_TICKET_HINT);
   });
 });
 
@@ -2087,32 +2081,29 @@ describe("server-side backstop (#1978): validate-pr defeats the #1956 symref lau
   it("catches a branch-authored commit with no Work-Item trailer", () => {
     const fixture = createFixture();
     const base = publishedBase(fixture);
-    const head = commit(fixture, "feat: untracked change");
+    const head = commit(fixture, UNTRACKED_COMMIT_MESSAGE);
     launderPushRange(fixture, head);
 
     const pushed = pushRange(fixture, base, head);
     expect(pushed.status).toBe(0);
-    expect(pushed.stdout).toContain("WORK_ITEM_TRACKING_OK 0 commit(s)");
+    expect(pushed.stdout).toContain(TRACKING_OK_ZERO_COMMITS);
 
     const validated = prRange(fixture, base, head);
     expect(validated.status).toBe(1);
-    expect(validated.stderr).toContain("Mention the ticket");
+    expect(validated.stderr).toContain(MENTION_TICKET_HINT);
   });
 
   it("catches a branch-authored commit referencing a closed work item", () => {
     const fixture = createFixture();
     const base = publishedBase(fixture);
-    const head = commit(
-      fixture,
-      "feat: branch work\n\nWork-Item: acme/widgets#42"
-    );
+    const head = commit(fixture, BRANCH_WORK_COMMIT_MESSAGE);
     launderPushRange(fixture, head);
 
     const pushed = pushRange(fixture, base, head, {
       FAKE_GH_ISSUE_JSON: CLOSED_ISSUE,
     });
     expect(pushed.status).toBe(0);
-    expect(pushed.stdout).toContain("WORK_ITEM_TRACKING_OK 0 commit(s)");
+    expect(pushed.stdout).toContain(TRACKING_OK_ZERO_COMMITS);
 
     const validated = prRange(fixture, base, head, {
       FAKE_GH_ISSUE_JSON: CLOSED_ISSUE,
@@ -2133,7 +2124,7 @@ describe("server-side backstop (#1978): validate-pr defeats the #1956 symref lau
 
     const pushed = pushRange(fixture, base, head);
     expect(pushed.status).toBe(0);
-    expect(pushed.stdout).toContain("WORK_ITEM_TRACKING_OK 0 commit(s)");
+    expect(pushed.stdout).toContain(TRACKING_OK_ZERO_COMMITS);
 
     // The pull-request body (the fake's `FAKE_GH_PR_JSON`) declares only #42,
     // so #43 is work this pull request carries and does not admit to. That is
@@ -2149,7 +2140,7 @@ describe("server-side backstop (#1978): validate-pr defeats the #1956 symref lau
   it("ignores a crafted origin/HEAD symref even when it is present in CI", () => {
     const fixture = createFixture();
     const base = publishedBase(fixture);
-    const head = commit(fixture, "feat: untracked change");
+    const head = commit(fixture, UNTRACKED_COMMIT_MESSAGE);
     // Belt and braces: the symref lands in the checkout AND names the head.
     // validate-pr must not consult it at all.
     launderPushRange(fixture, head);
@@ -2158,7 +2149,7 @@ describe("server-side backstop (#1978): validate-pr defeats the #1956 symref lau
 
     const validated = prRange(fixture, base, head);
     expect(validated.status).toBe(1);
-    expect(validated.stderr).toContain("Mention the ticket");
+    expect(validated.stderr).toContain(MENTION_TICKET_HINT);
   });
 });
 
@@ -2170,11 +2161,11 @@ describe("server-side backstop (#1978): validate-pr defeats the #1956 symref lau
  * because the range starts at the CURRENT base-branch tip.
  */
 describe("server-side backstop (#1978): merge-synced pull requests still pass", () => {
-  const PR_URL = "https://github.com/acme/code/pull/7";
+  const PR_URL = CODE_PR_URL;
   const BACKLINKED_ISSUE = JSON.stringify({
     number: 42,
     state: "OPEN",
-    labels: [{ name: "status:in-progress" }, { name: "type:Bug" }],
+    labels: [{ name: IN_PROGRESS_LABEL }, { name: "type:Bug" }],
     comments: [{ body: `[lisa-pr-link] ${PR_URL}` }],
     closedByPullRequestsReferences: [],
   });
@@ -2184,7 +2175,7 @@ describe("server-side backstop (#1978): merge-synced pull requests still pass", 
     const { head } = setupMergeLane(fixture);
     const baseTip = git(
       fixture.root,
-      ["rev-parse", "refs/remotes/origin/main"],
+      ["rev-parse", ORIGIN_MAIN_REF],
       fixture.env
     );
 
@@ -2227,20 +2218,20 @@ describe("server-side backstop (#1978): merge-synced pull requests still pass", 
  * requirement at check time and released them one CI cycle apiece.
  */
 describe("trailer position and whole-run reporting (#2672, #2681)", () => {
-  const PR_URL = "https://github.com/acme/code/pull/7";
+  const PR_URL = CODE_PR_URL;
   const ATTRIBUTION =
     "\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\n";
   const BACKLINKED_ISSUE = JSON.stringify({
     number: 42,
     state: "OPEN",
-    labels: [{ name: "status:in-progress" }, { name: "type:Bug" }],
+    labels: [{ name: IN_PROGRESS_LABEL }, { name: "type:Bug" }],
     comments: [{ body: `[lisa-pr-link] ${PR_URL}` }],
     closedByPullRequestsReferences: [],
   });
 
   it("accepts a commit trailer sitting above the attribution block", () => {
     const fixture = createFixture();
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     // `git interpret-trailers --parse` reads only the FINAL block, so this
     // exact layout — the one Lisa's own commit convention asks for — parsed as
@@ -2251,28 +2242,28 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
       `fix: a change\n\nWork-Item: acme/widgets#42${ATTRIBUTION}`
     );
 
-    const result = command(fixture, ["validate-commit", messageFile]);
+    const result = command(fixture, [VALIDATE_COMMIT, messageFile]);
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
   });
 
   it("accepts the identical second trailer Lisa's own hook appends", () => {
     const fixture = createFixture();
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(
       messageFile,
       "fix: a change\n\nWork-Item: acme/widgets#42\nWork-Item: acme/widgets#42\n"
     );
 
-    const result = command(fixture, ["validate-commit", messageFile]);
+    const result = command(fixture, [VALIDATE_COMMIT, messageFile]);
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
   });
 
   it("rejects a commit naming two different items in two different blocks", () => {
     const fixture = createFixture();
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     // The fail-OPEN half of reading only the last block: #43 above the
     // attribution block was invisible, so this commit passed while claiming
@@ -2282,22 +2273,19 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
       `fix: a change\n\nWork-Item: acme/widgets#43${ATTRIBUTION}Work-Item: acme/widgets#42\n`
     );
 
-    const result = command(fixture, ["validate-commit", messageFile]);
+    const result = command(fixture, [VALIDATE_COMMIT, messageFile]);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("2 different work items");
-    expect(result.stderr).toContain("acme/widgets#43");
-    expect(result.stderr).toContain("acme/widgets#42");
+    expect(result.stderr).toContain(OTHER_WORK_ITEM_REF);
+    expect(result.stderr).toContain(WORK_ITEM_REF);
   });
 
   it("accepts a body trailer above an appended release-notes block", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
-    const bodyFile = path.join(fixture.root, "pr-body.md");
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
+    const bodyFile = path.join(fixture.root, PR_BODY_FILE);
     writeFileSync(
       bodyFile,
       "Some description.\n\nWork-Item: acme/widgets#42\n\n" +
@@ -2309,12 +2297,12 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
     const result = command(
       fixture,
       [
-        "validate-pr",
+        VALIDATE_PR,
         "--base",
         base,
         "--head",
         head,
-        "--body-file",
+        BODY_FILE_FLAG,
         bodyFile,
         "--pr-url",
         PR_URL,
@@ -2328,12 +2316,9 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
   it("accepts a body repeating the SAME Work-Item line", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
-    const bodyFile = path.join(fixture.root, "pr-body.md");
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
+    const bodyFile = path.join(fixture.root, PR_BODY_FILE);
     // This used to fail, on the reasoning that nothing appends a Work-Item
     // line to a BODY on Lisa's behalf, so a second one meant a person had
     // written two. The premise is false: a body that quotes its own commit
@@ -2354,12 +2339,12 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
     const result = command(
       fixture,
       [
-        "validate-pr",
+        VALIDATE_PR,
         "--base",
         base,
         "--head",
         head,
-        "--body-file",
+        BODY_FILE_FLAG,
         bodyFile,
         "--pr-url",
         PR_URL,
@@ -2375,12 +2360,9 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
     // stay strict: which of the two is this pull request actually about?
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
-    const bodyFile = path.join(fixture.root, "pr-body.md");
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
+    const bodyFile = path.join(fixture.root, PR_BODY_FILE);
     writeFileSync(
       bodyFile,
       "Work-Item: acme/widgets#42\n\nmore\n\nWork-Item: acme/widgets#43\n"
@@ -2389,12 +2371,12 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
     const result = command(
       fixture,
       [
-        "validate-pr",
+        VALIDATE_PR,
         "--base",
         base,
         "--head",
         head,
-        "--body-file",
+        BODY_FILE_FLAG,
         bodyFile,
         "--pr-url",
         PR_URL,
@@ -2410,8 +2392,8 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
   it("reports the commit trailer and the tracker backlink in one run", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(fixture, "feat: untracked change");
+    expect(command(fixture, ["bind", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, UNTRACKED_COMMIT_MESSAGE);
 
     // Two unmet requirements at once: no commit trailer, and an issue with no
     // backlink. The old gate stopped at the first and revealed the second a
@@ -2421,12 +2403,10 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
     expect(result.stderr).toContain(
       "2 work-item traceability requirements are unmet"
     );
-    expect(result.stderr).toContain("no verified backlink");
-    expect(result.stderr).toContain(
-      "No Work-Item trailer anywhere in the commit message"
-    );
+    expect(result.stderr).toContain(NO_BACKLINK_MESSAGE);
+    expect(result.stderr).toContain(NO_TRAILER_MESSAGE);
     // Unrecoverable first: the backlink cannot be fixed by editing this PR.
-    expect(result.stderr.indexOf("no verified backlink")).toBeLessThan(
+    expect(result.stderr.indexOf(NO_BACKLINK_MESSAGE)).toBeLessThan(
       result.stderr.indexOf("No Work-Item trailer anywhere")
     );
   });
@@ -2449,7 +2429,7 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
       }),
     });
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("no verified backlink");
+    expect(result.stderr).toContain(NO_BACKLINK_MESSAGE);
     expect(result.stderr).toContain(
       "[not fixable by editing this pull request]"
     );
@@ -2470,7 +2450,7 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
  * crash.
  */
 describe("backlink command", () => {
-  const PR_URL = "https://github.com/acme/code/pull/7";
+  const PR_URL = CODE_PR_URL;
   const OTHER_PR_URL = "https://github.com/acme/code/pull/8";
 
   /**
@@ -2543,7 +2523,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     const result = command(fixture, [
       "backlink",
       "--ref",
-      "acme/widgets#42",
+      WORK_ITEM_REF,
       "--pr-url",
       PR_URL,
     ]);
@@ -2562,7 +2542,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     const result = command(fixture, [
       "backlink",
       "--ref",
-      "acme/widgets#42",
+      WORK_ITEM_REF,
       "--pr-url",
       PR_URL,
     ]);
@@ -2579,7 +2559,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     // tracker HOLDS after two runs, not on the second run's exit status.
     const fixture = createFixture();
     const store = statefulGh(fixture);
-    const args = ["backlink", "--ref", "acme/widgets#42", "--pr-url", PR_URL];
+    const args = ["backlink", "--ref", WORK_ITEM_REF, "--pr-url", PR_URL];
 
     expect(command(fixture, args).status).toBe(0);
     const second = command(fixture, args);
@@ -2609,18 +2589,13 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     const store = statefulGh(fixture);
 
     expect(
-      command(fixture, [
-        "backlink",
-        "--ref",
-        "acme/widgets#42",
-        "--pr-url",
-        PR_URL,
-      ]).status
+      command(fixture, ["backlink", "--ref", WORK_ITEM_REF, "--pr-url", PR_URL])
+        .status
     ).toBe(0);
     const second = command(fixture, [
       "backlink",
       "--ref",
-      "acme/widgets#42",
+      WORK_ITEM_REF,
       "--pr-url",
       OTHER_PR_URL,
     ]);
@@ -2650,7 +2625,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
         command(fixture, [
           "backlink",
           "--ref",
-          "acme/widgets#42",
+          WORK_ITEM_REF,
           "--pr-url",
           OTHER_PR_URL,
         ]).status
@@ -2690,7 +2665,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     const result = command(fixture, [
       "backlink",
       "--ref",
-      "acme/widgets#42",
+      WORK_ITEM_REF,
       "--pr-url",
       PR_URL,
     ]);
@@ -2717,13 +2692,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
       `--pr-url ${PR_URL}\n\nwhich creates that comment.`;
     seed(store, [pasted]);
 
-    command(fixture, [
-      "backlink",
-      "--ref",
-      "acme/widgets#42",
-      "--pr-url",
-      PR_URL,
-    ]);
+    command(fixture, ["backlink", "--ref", WORK_ITEM_REF, "--pr-url", PR_URL]);
 
     expect(stored(store)[0]).toEqual({ body: pasted, id: 1 });
   });
@@ -2743,7 +2712,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     const result = command(fixture, [
       "backlink",
       "--ref",
-      "acme/widgets#42",
+      WORK_ITEM_REF,
       "--pr-url",
       third,
     ]);
@@ -2762,7 +2731,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     const result = command(fixture, [
       "backlink",
       "--ref",
-      "acme/widgets#42",
+      WORK_ITEM_REF,
       "--pr-url",
       PR_URL,
     ]);
@@ -2778,20 +2747,14 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     // the defect being fixed is precisely that nobody had checked they agree.
     const fixture = createFixture();
     const store = statefulGh(fixture);
-    command(fixture, [
-      "backlink",
-      "--ref",
-      "acme/widgets#42",
-      "--pr-url",
-      PR_URL,
-    ]);
+    command(fixture, ["backlink", "--ref", WORK_ITEM_REF, "--pr-url", PR_URL]);
 
     expect(textContainsBacklink(stored(store), PR_URL)).toBe(true);
   });
 
   it("falls back to the worktree binding when no --ref is given", () => {
     const fixture = createFixture();
-    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["link", WORK_ITEM_REF]).status).toBe(0);
     const store = statefulGh(fixture);
 
     const result = command(fixture, ["backlink", "--pr-url", PR_URL]);
@@ -2804,7 +2767,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     const fixture = createFixture();
     const store = statefulGh(fixture);
 
-    const result = command(fixture, ["backlink", "--ref", "acme/widgets#42"]);
+    const result = command(fixture, ["backlink", "--ref", WORK_ITEM_REF]);
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("requires --pr-url");
@@ -2816,16 +2779,13 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     // naming the remedy is what turned this into a multi-cycle rediscovery.
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
+    expect(command(fixture, ["link", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
 
     const result = prRange(fixture, base, head);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("no verified backlink");
+    expect(result.stderr).toContain(NO_BACKLINK_MESSAGE);
     expect(result.stderr).toContain(
       `node scripts/lisa-work-item.mjs backlink --ref acme/widgets#42 --pr-url ${PR_URL}`
     );
@@ -2840,7 +2800,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
  * believes the ticket is linked, and the required check still fails.
  */
 describe("backlink command refusals", () => {
-  const PR_URL = "https://github.com/acme/code/pull/7";
+  const PR_URL = CODE_PR_URL;
 
   it("refuses a Linear backlink with no API key rather than reporting success", () => {
     const fixture = createFixture({
@@ -2867,7 +2827,7 @@ describe("backlink command refusals", () => {
       tracker: "jira",
       repo: "widgets",
       jira: { project: "LAS" },
-      atlassian: { site: "acme.atlassian.net" },
+      atlassian: { site: JIRA_HOST },
     });
 
     const result = command(
@@ -2925,12 +2885,12 @@ describe("credential-free traceability (#2721)", () => {
 
   it("validates a commit with every tracker transport severed", () => {
     const fixture = createFixture(trailerOnlyConfig());
-    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["link", WORK_ITEM_REF]).status).toBe(0);
     severTrackerAccess(fixture);
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(messageFile, "fix: a change\n\nWork-Item: acme/widgets#42\n");
 
-    const result = command(fixture, ["validate-commit", messageFile]);
+    const result = command(fixture, [VALIDATE_COMMIT, messageFile]);
 
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
@@ -2942,7 +2902,7 @@ describe("credential-free traceability (#2721)", () => {
     const fixture = createFixture(trailerOnlyConfig());
     severTrackerAccess(fixture);
 
-    const result = command(fixture, ["link", "acme/widgets#42"]);
+    const result = command(fixture, ["link", WORK_ITEM_REF]);
 
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
@@ -2952,22 +2912,20 @@ describe("credential-free traceability (#2721)", () => {
     // The line between credential-free and vacuous. Nothing here can be
     // checked against a tracker, and the gate still has to refuse.
     const fixture = createFixture(trailerOnlyConfig());
-    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["link", WORK_ITEM_REF]).status).toBe(0);
     severTrackerAccess(fixture);
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(messageFile, "fix: no reference at all\n");
 
-    const result = command(fixture, ["validate-commit", messageFile]);
+    const result = command(fixture, [VALIDATE_COMMIT, messageFile]);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      "No Work-Item trailer anywhere in the commit message"
-    );
+    expect(result.stderr).toContain(NO_TRAILER_MESSAGE);
   });
 
   it("still FAILS a commit whose reference is outside the configured repo", () => {
     const fixture = createFixture(trailerOnlyConfig());
-    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["link", WORK_ITEM_REF]).status).toBe(0);
     severTrackerAccess(fixture);
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(
@@ -2975,7 +2933,7 @@ describe("credential-free traceability (#2721)", () => {
       "fix: wrong repo\n\nWork-Item: acme/elsewhere#42\n"
     );
 
-    const result = command(fixture, ["validate-commit", messageFile]);
+    const result = command(fixture, [VALIDATE_COMMIT, messageFile]);
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("outside configured tracker repository");
@@ -2984,22 +2942,19 @@ describe("credential-free traceability (#2721)", () => {
   it("validates a pull request with no tracker backlink and no tracker call", () => {
     const fixture = createFixture(trailerOnlyConfig());
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
+    expect(command(fixture, ["link", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
     severTrackerAccess(fixture);
-    const bodyFile = path.join(fixture.root, "pr-body.md");
+    const bodyFile = path.join(fixture.root, PR_BODY_FILE);
     writeFileSync(bodyFile, "Summary.\n\nWork-Item: acme/widgets#42\n");
 
     const result = command(fixture, [
-      "validate-pr",
+      VALIDATE_PR,
       "--base",
       base,
       "--head",
       head,
-      "--body-file",
+      BODY_FILE_FLAG,
       bodyFile,
     ]);
 
@@ -3010,22 +2965,19 @@ describe("credential-free traceability (#2721)", () => {
   it("still FAILS a pull request whose body names a different item", () => {
     const fixture = createFixture(trailerOnlyConfig());
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
+    expect(command(fixture, ["link", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
     severTrackerAccess(fixture);
-    const bodyFile = path.join(fixture.root, "pr-body.md");
+    const bodyFile = path.join(fixture.root, PR_BODY_FILE);
     writeFileSync(bodyFile, "Work-Item: acme/widgets#43\n");
 
     const result = command(fixture, [
-      "validate-pr",
+      VALIDATE_PR,
       "--base",
       base,
       "--head",
       head,
-      "--body-file",
+      BODY_FILE_FLAG,
       bodyFile,
     ]);
 
@@ -3038,26 +2990,24 @@ describe("credential-free traceability (#2721)", () => {
   it("still FAILS a pull request whose commits carry no reference", () => {
     const fixture = createFixture(trailerOnlyConfig());
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(fixture, "feat: untracked change");
+    expect(command(fixture, ["link", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, UNTRACKED_COMMIT_MESSAGE);
     severTrackerAccess(fixture);
-    const bodyFile = path.join(fixture.root, "pr-body.md");
-    writeFileSync(bodyFile, "Work-Item: acme/widgets#42\n");
+    const bodyFile = path.join(fixture.root, PR_BODY_FILE);
+    writeFileSync(bodyFile, `${WORK_ITEM_TRAILER}\n`);
 
     const result = command(fixture, [
-      "validate-pr",
+      VALIDATE_PR,
       "--base",
       base,
       "--head",
       head,
-      "--body-file",
+      BODY_FILE_FLAG,
       bodyFile,
     ]);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      "No Work-Item trailer anywhere in the commit message"
-    );
+    expect(result.stderr).toContain(NO_TRAILER_MESSAGE);
   });
 
   it("keeps every tracker check when the project declares verify: full", () => {
@@ -3065,16 +3015,13 @@ describe("credential-free traceability (#2721)", () => {
     // which one a project gets without saying anything.
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
+    expect(command(fixture, ["link", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
 
     const result = prRange(fixture, base, head);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("no verified backlink");
+    expect(result.stderr).toContain(NO_BACKLINK_MESSAGE);
   });
 
   it("degrades a verify: full project to trailer-only on the env override", () => {
@@ -3083,18 +3030,15 @@ describe("credential-free traceability (#2721)", () => {
     // having verified nothing, a completely absent trailer included.
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
+    expect(command(fixture, ["link", WORK_ITEM_REF]).status).toBe(0);
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
     severTrackerAccess(fixture);
-    const bodyFile = path.join(fixture.root, "pr-body.md");
-    writeFileSync(bodyFile, "Work-Item: acme/widgets#42\n");
+    const bodyFile = path.join(fixture.root, PR_BODY_FILE);
+    writeFileSync(bodyFile, `${WORK_ITEM_TRAILER}\n`);
 
     const result = command(
       fixture,
-      ["validate-pr", "--base", base, "--head", head, "--body-file", bodyFile],
+      [VALIDATE_PR, "--base", base, "--head", head, BODY_FILE_FLAG, bodyFile],
       { env: { LISA_WORK_ITEM_VERIFY: "trailer" } }
     );
 
@@ -3107,14 +3051,14 @@ describe("credential-free traceability (#2721)", () => {
     const defaulted = createFixture(githubConfig());
     // Same fixture shape, no `workItem` key at all — the shipped default.
     writeFileSync(
-      path.join(defaulted.root, ".lisa.config.json"),
+      path.join(defaulted.root, LISA_CONFIG_FILE),
       `${JSON.stringify(githubConfig(), null, 2)}\n`
     );
 
-    expect(command(declared, ["verify-level"]).stdout.trim()).toBe("full");
-    expect(command(defaulted, ["verify-level"]).stdout.trim()).toBe("trailer");
+    expect(command(declared, [VERIFY_LEVEL]).stdout.trim()).toBe("full");
+    expect(command(defaulted, [VERIFY_LEVEL]).stdout.trim()).toBe("trailer");
     expect(
-      command(declared, ["verify-level"], {
+      command(declared, [VERIFY_LEVEL], {
         env: { LISA_WORK_ITEM_VERIFY: "trailer" },
       }).stdout.trim()
     ).toBe("trailer");
@@ -3131,7 +3075,7 @@ describe("credential-free traceability (#2721)", () => {
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(messageFile, "fix: a change\n\nWork-Item: acme/widgets#42\n");
 
-    const result = command(fixture, ["validate-commit", messageFile]);
+    const result = command(fixture, [VALIDATE_COMMIT, messageFile]);
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("workItem.verify");
@@ -3162,7 +3106,7 @@ describe("credential-free traceability (#2721)", () => {
  * never contacted — a refusal that happens after the write is not a refusal.
  */
 describe("commands refuse a binding that belongs to another branch", () => {
-  const PR_URL = "https://github.com/acme/code/pull/7";
+  const PR_URL = CODE_PR_URL;
 
   /**
    * Bind a work item on one branch, then switch to another.
@@ -3171,7 +3115,7 @@ describe("commands refuse a binding that belongs to another branch", () => {
   function boundThenSwitched(): { fixture: Fixture; log: string } {
     const fixture = createFixture();
     git(fixture.root, ["checkout", "-b", "binding/bound-here"], fixture.env);
-    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    expect(command(fixture, ["link", WORK_ITEM_REF]).status).toBe(0);
     git(
       fixture.root,
       ["checkout", "-b", "binding/somewhere-else"],
@@ -3218,7 +3162,7 @@ describe("commands refuse a binding that belongs to another branch", () => {
 
     const result = command(
       fixture,
-      ["backlink", "--ref", "acme/widgets#42", "--pr-url", PR_URL],
+      ["backlink", "--ref", WORK_ITEM_REF, "--pr-url", PR_URL],
       { env: { FAKE_GH_LOG: log } }
     );
 
@@ -3268,8 +3212,10 @@ describe("commit identity fallback: the branch when no binding exists", () => {
           comments: { nodes: [] },
           id: `id-${identifier}`,
           identifier,
-          labels: { nodes: [{ name: "repo:widgets" }, { name: "type:Task" }] },
-          state: { name: "In Progress", type: "started" },
+          labels: {
+            nodes: [{ name: REPO_WIDGETS_LABEL }, { name: "type:Task" }],
+          },
+          state: { name: IN_PROGRESS_STATUS, type: "started" },
           team: { key: "LIN" },
         },
       },
@@ -3315,13 +3261,13 @@ describe("commit identity fallback: the branch when no binding exists", () => {
   ): CommandResult {
     const file = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(file, `chore: a change\n\nWork-Item: ${ref}\n`);
-    return command(fixture, ["validate-commit", file], {
+    return command(fixture, [VALIDATE_COMMIT, file], {
       env: { FAKE_CURL_JSON: liveIssue(ref), ...env },
     });
   }
 
   it("refuses a mis-attributed trailer and accepts the matching one, unbound", () => {
-    const fixture = fixtureOn("claude/lin-12-branch-fallback");
+    const fixture = fixtureOn(LINEAR_FALLBACK_BRANCH);
 
     // Before the fallback existed this exited 0 and printed
     // `WORK_ITEM_TRACKING_OK LIN-99` — a live, in-scope, perfectly valid
@@ -3359,13 +3305,13 @@ describe("commit identity fallback: the branch when no binding exists", () => {
   // further out: well formed, but another project's key, so this fallback has
   // nothing to say about it.
   it("fails open on every branch that encodes no work item for this project", () => {
-    const fixture = fixtureOn("claude/lin-12-branch-fallback");
+    const fixture = fixtureOn(LINEAR_FALLBACK_BRANCH);
 
     for (const branch of [
       "main",
       "dev",
       "staging",
-      "chore/bump-deps",
+      BUMP_DEPS_BRANCH,
       "feat/ABC-9-someone-elses-convention",
     ]) {
       git(fixture.root, ["switch", "-q", "-C", branch], fixture.env);
@@ -3389,7 +3335,7 @@ describe("commit identity fallback: the branch when no binding exists", () => {
     const file = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(file, "chore: a change\n\nWork-Item: acme/widgets#42\n");
 
-    expect(command(fixture, ["validate-commit", file]).status).toBe(0);
+    expect(command(fixture, [VALIDATE_COMMIT, file]).status).toBe(0);
   });
 
   it("keeps the binding authoritative over a disagreeing branch", () => {
@@ -3414,7 +3360,7 @@ describe("commit identity fallback: the branch when no binding exists", () => {
     // The exemption returns before the trailer is even parsed, so a merge
     // message carrying no reference must stay accepted on a branch that DOES
     // encode one — otherwise every `git pull` on a feature branch is wedged.
-    const fixture = fixtureOn("claude/lin-12-branch-fallback");
+    const fixture = fixtureOn(LINEAR_FALLBACK_BRANCH);
     // Written as a file rather than through `update-ref`, which refuses to
     // touch a pseudoref. This is the state a stopped merge leaves behind, and
     // it is what `isMergeInProgress` reads.
@@ -3423,7 +3369,7 @@ describe("commit identity fallback: the branch when no binding exists", () => {
         fixture.root,
         git(
           fixture.root,
-          ["rev-parse", "--git-path", "MERGE_HEAD"],
+          ["rev-parse", GIT_PATH_FLAG, "MERGE_HEAD"],
           fixture.env
         )
       ),
@@ -3432,7 +3378,7 @@ describe("commit identity fallback: the branch when no binding exists", () => {
     const file = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(file, "Merge branch 'theirs'\n");
 
-    const result = command(fixture, ["validate-commit", file]);
+    const result = command(fixture, [VALIDATE_COMMIT, file]);
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK merge");
@@ -3442,13 +3388,13 @@ describe("commit identity fallback: the branch when no binding exists", () => {
     // `FAKE_CURL_FAIL=1` is a transport that cannot answer. A branch-mismatch
     // verdict under it is only reachable if the comparison completed before any
     // tracker call — the property that lets this run on every single commit.
-    const fixture = fixtureOn("claude/lin-12-branch-fallback");
+    const fixture = fixtureOn(LINEAR_FALLBACK_BRANCH);
 
     const refused = validateCommitFor(fixture, "LIN-99", {
       FAKE_CURL_FAIL: "1",
     });
     expect(refused.status).toBe(1);
-    expect(refused.stderr).toContain("does not match this branch's work item");
+    expect(refused.stderr).toContain(BRANCH_MISMATCH_MESSAGE);
     expect(refused.stderr).not.toContain("Linear");
 
     // The counter-control: with the SAME dead transport and an AGREEING
@@ -3484,7 +3430,7 @@ describe("commit identity fallback: the branch when no binding exists", () => {
 // single passing case cannot show WHICH rule produced it.
 // ---------------------------------------------------------------------------
 describe("commit identity fallback on GitHub (#3861)", () => {
-  const REPOSITORY = "acme/widgets";
+  const REPOSITORY = QUEUE_REPO;
   const MATCHING = `${REPOSITORY}#42`;
 
   /** A GitHub fixture checked out on `branch`. */
@@ -3508,7 +3454,7 @@ describe("commit identity fallback on GitHub (#3861)", () => {
   ): CommandResult {
     const file = path.join(fixture.root, "COMMIT_EDITMSG");
     writeFileSync(file, `chore: a change\n\nWork-Item: ${ref}\n`);
-    return command(fixture, ["validate-commit", file], { env });
+    return command(fixture, [VALIDATE_COMMIT, file], { env });
   }
 
   it("refuses a trailer naming a different issue than the branch encodes", () => {
@@ -3520,7 +3466,7 @@ describe("commit identity fallback on GitHub (#3861)", () => {
     const refused = validateOn(fixture, MATCHING);
 
     expect(refused.status).toBe(1);
-    expect(refused.stderr).toContain("does not match this branch's work item");
+    expect(refused.stderr).toContain(BRANCH_MISMATCH_MESSAGE);
     expect(refused.stderr).toContain(`${REPOSITORY}#99`);
   });
 
@@ -3564,7 +3510,7 @@ describe("commit identity fallback on GitHub (#3861)", () => {
     // The deliberate fail-open. Replacing a comparison that silently did not
     // happen with a new class of blocked commit on every unnumbered branch
     // would trade one surprise for a louder one.
-    const fixture = githubOn("chore/bump-deps");
+    const fixture = githubOn(BUMP_DEPS_BRANCH);
 
     expect(validateOn(fixture, MATCHING).status).toBe(0);
   });
@@ -3602,7 +3548,7 @@ describe("commit identity fallback on GitHub (#3861)", () => {
     );
 
     expect(refused.status).toBe(1);
-    expect(refused.stderr).toContain("does not match this branch's work item");
+    expect(refused.stderr).toContain(BRANCH_MISMATCH_MESSAGE);
 
     // The counter-control: with the SAME dead payload and an AGREEING trailer,
     // the run gets far enough to ask GitHub and fails there instead. Without
@@ -3615,9 +3561,7 @@ describe("commit identity fallback on GitHub (#3861)", () => {
     );
 
     expect(reached.status).toBe(1);
-    expect(reached.stderr).not.toContain(
-      "does not match this branch's work item"
-    );
+    expect(reached.stderr).not.toContain(BRANCH_MISMATCH_MESSAGE);
   });
 });
 
@@ -3635,7 +3579,7 @@ describe("commit identity fallback on GitHub (#3861)", () => {
 // table is a list of decisions rather than a list of examples.
 // ---------------------------------------------------------------------------
 describe("githubBranchIssue, in process (#3861)", () => {
-  const CONTRACT = { provider: "github", repository: "acme/widgets" };
+  const CONTRACT = { provider: "github", repository: QUEUE_REPO };
 
   it.each([
     // Reads the number, and reads ALL of it — `\d*` collapsing to `\d` would
@@ -3672,7 +3616,7 @@ describe("githubBranchIssue, in process (#3861)", () => {
     // Another tracker's key. Whatever GitHub issue it maps to is not 7728.
     ["fix/se-7728-e2e-coverage-wildcard"],
     // Nothing numeric at all.
-    ["chore/bump-deps"],
+    [BUMP_DEPS_BRANCH],
     // No slash, so no segment to read — a bare branch name is not a number.
     ["main"],
     ["driveorph-3559-work"],
@@ -3720,7 +3664,7 @@ describe("githubBranchIssue, in process (#3861)", () => {
 // spawn nothing.
 // ---------------------------------------------------------------------------
 describe("branchWorkItemFrom, in process (#3930)", () => {
-  const GITHUB = { provider: "github", repository: "acme/widgets" };
+  const GITHUB = { provider: "github", repository: QUEUE_REPO };
   const JIRA = { provider: "jira", project: "SE" };
   const LINEAR = { provider: "linear", teamKey: "ENG" };
 
@@ -3804,16 +3748,13 @@ describe("branchWorkItemFrom, in process (#3930)", () => {
  * (CodySwannGT/lisa#3791).
  */
 describe("deferred gates 4 and 5 (#3791)", () => {
-  const PR_URL = "https://github.com/acme/code/pull/7";
+  const PR_URL = CODE_PR_URL;
 
   /** Seed a bound branch on a published base, and return its tracked head. */
   function trackedPush(fixture: Fixture): { base: string; head: string } {
     const base = publishedBase(fixture);
     setOriginHead(fixture);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
     return { base, head };
   }
 
@@ -3833,13 +3774,13 @@ describe("deferred gates 4 and 5 (#3791)", () => {
       closedByPullRequestsReferences: [],
       comments: [{ body: `[lisa-pr-link] ${PR_URL}` }],
       labels: [
-        { name: "repo:identity" },
-        { name: "status:in-progress" },
+        { name: REPO_IDENTITY_LABEL },
+        { name: IN_PROGRESS_LABEL },
         { name: "type:Bug" },
       ],
       number: 42,
       state: "OPEN",
-      url: "https://github.com/acme/widgets/issues/42",
+      url: WORK_ITEM_URL,
     });
   }
 
@@ -3858,15 +3799,15 @@ describe("deferred gates 4 and 5 (#3791)", () => {
       "WORK_ITEM_TRACKING_INCOMPLETE 1 commit(s)"
     );
     expect(pushed.stdout).toContain("2 of 5 gates NOT CHECKED");
-    expect(pushed.stdout).toContain("UNRESOLVED gate 4");
-    expect(pushed.stdout).toContain("UNRESOLVED gate 5");
+    expect(pushed.stdout).toContain(UNRESOLVED_GATE_4);
+    expect(pushed.stdout).toContain(UNRESOLVED_GATE_5);
     // The remedy is named, not described: an open item with no command against
     // it is a complaint.
     expect(pushed.stdout).toContain(
       "node scripts/lisa-work-item.mjs discharge-pr-gates"
     );
     // The exact line the body needs, so gate 4 is satisfiable by copying it.
-    expect(pushed.stdout).toContain("Work-Item: acme/widgets#42");
+    expect(pushed.stdout).toContain(WORK_ITEM_TRAILER);
   });
 
   it("keeps gate 5 off the checklist under the trailer level, where it is not required", () => {
@@ -3879,8 +3820,8 @@ describe("deferred gates 4 and 5 (#3791)", () => {
     const pushed = pushRange(fixture, base, head);
 
     expect(pushed.status).toBe(0);
-    expect(pushed.stdout).toContain("UNRESOLVED gate 4");
-    expect(pushed.stdout).not.toContain("UNRESOLVED gate 5");
+    expect(pushed.stdout).toContain(UNRESOLVED_GATE_4);
+    expect(pushed.stdout).not.toContain(UNRESOLVED_GATE_5);
     expect(pushed.stdout).toContain('workItem.verify is "trailer"');
   });
 
@@ -3897,7 +3838,7 @@ describe("deferred gates 4 and 5 (#3791)", () => {
     // something unchecked — and putting an unresolvable item on every release
     // push is how a checklist teaches its reader to skip it.
     expect(pushed.status).toBe(0);
-    expect(pushed.stdout).toContain("WORK_ITEM_TRACKING_OK 0 commit(s)");
+    expect(pushed.stdout).toContain(TRACKING_OK_ZERO_COMMITS);
     expect(pushed.stdout).toContain("names no work item");
     expect(pushed.stdout).not.toContain("UNRESOLVED");
   });
@@ -3912,12 +3853,12 @@ describe("deferred gates 4 and 5 (#3791)", () => {
     // what makes gate 5 depend on the posting AND on the re-read: the payload
     // cached by the first pass predates the comment, so validating against it
     // would report a backlink missing that this command had just created.
-    const discharged = command(fixture, ["discharge-pr-gates"], {
+    const discharged = command(fixture, [DISCHARGE_PR_GATES], {
       env: {
         FAKE_GH_ISSUE_AFTER_POST_JSON: issueWithBacklink(),
         FAKE_GH_LOG: log,
         FAKE_GH_POSTED_FILE: path.join(fixture.root, "posted"),
-        FAKE_GH_PR_JSON: prPayload("Work-Item: acme/widgets#42", [head]),
+        FAKE_GH_PR_JSON: prPayload(WORK_ITEM_TRAILER, [head]),
       },
     });
 
@@ -3939,7 +3880,7 @@ describe("deferred gates 4 and 5 (#3791)", () => {
     // `Refs #42` is the repository's own non-closing convention, and it is
     // exactly what gate 4 does not accept. Catching it here is the whole point:
     // this is the same refusal CI issues, one cycle earlier.
-    const discharged = command(fixture, ["discharge-pr-gates"], {
+    const discharged = command(fixture, [DISCHARGE_PR_GATES], {
       env: {
         FAKE_GH_ISSUE_JSON: issueWithBacklink(),
         FAKE_GH_PR_JSON: prPayload("Refs #42", [head]),
@@ -3961,17 +3902,14 @@ describe("deferred gates 4 and 5 (#3791)", () => {
     const fixture = createFixture();
     const base = publishedBase(fixture);
     setOriginHead(fixture);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
     const log = path.join(fixture.root, "gh.log");
 
-    const pushed = command(fixture, ["validate-push", "origin"], {
+    const pushed = command(fixture, [VALIDATE_PUSH, "origin"], {
       env: {
         FAKE_GH_ISSUE_JSON: issueWithBacklink(),
         FAKE_GH_LOG: log,
-        FAKE_GH_PR_JSON: prPayload("Work-Item: acme/widgets#42", [head]),
+        FAKE_GH_PR_JSON: prPayload(WORK_ITEM_TRAILER, [head]),
       },
       input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
     });
@@ -4003,7 +3941,7 @@ describe("deferred gates 4 and 5 (#3791)", () => {
     const fixture = createFixture();
     trackedPush(fixture);
 
-    const discharged = command(fixture, ["discharge-pr-gates"], {
+    const discharged = command(fixture, [DISCHARGE_PR_GATES], {
       env: { FAKE_GH_PR_MISSING: "1" },
     });
 
@@ -4023,10 +3961,10 @@ describe("deferred gates 4 and 5 (#3791)", () => {
     const { head } = trackedPush(fixture);
     const log = path.join(fixture.root, "gh.log");
 
-    const discharged = command(fixture, ["discharge-pr-gates"], {
+    const discharged = command(fixture, [DISCHARGE_PR_GATES], {
       env: {
         FAKE_GH_LOG: log,
-        FAKE_GH_PR_JSON: prPayload("Work-Item: acme/widgets#42", [head]),
+        FAKE_GH_PR_JSON: prPayload(WORK_ITEM_TRAILER, [head]),
       },
     });
 
@@ -4049,7 +3987,7 @@ describe("deferred gates 4 and 5 (#3791)", () => {
  */
 describe("unresolvedPushReport wording (#3791)", () => {
   const FULL = {
-    lifecycle: { claimed: "status:in-progress", ready: "status:ready" },
+    lifecycle: { claimed: IN_PROGRESS_LABEL, ready: "status:ready" },
     verify: "full",
   };
   const TRAILER = { ...FULL, verify: "trailer" };
@@ -4073,7 +4011,7 @@ describe("unresolvedPushReport wording (#3791)", () => {
   }
 
   it("opens with a token that is not a pass, and counts what went unchecked", () => {
-    const report = unresolvedPushReport(result(["acme/widgets#42"]), "");
+    const report = unresolvedPushReport(result([WORK_ITEM_REF]), "");
 
     expect(report.startsWith("WORK_ITEM_TRACKING_INCOMPLETE")).toBe(true);
     expect(report).not.toContain("WORK_ITEM_TRACKING_OK");
@@ -4082,13 +4020,13 @@ describe("unresolvedPushReport wording (#3791)", () => {
   });
 
   it("names both unmet gates, the line that satisfies gate 4, and the remedy", () => {
-    const report = unresolvedPushReport(result(["acme/widgets#42"]), "");
+    const report = unresolvedPushReport(result([WORK_ITEM_REF]), "");
 
-    expect(report).toContain("UNRESOLVED gate 4");
-    expect(report).toContain("UNRESOLVED gate 5");
+    expect(report).toContain(UNRESOLVED_GATE_4);
+    expect(report).toContain(UNRESOLVED_GATE_5);
     expect(report).toContain("on its own line:");
     expect(report).not.toContain("on its own lines:");
-    expect(report).toContain("Work-Item: acme/widgets#42");
+    expect(report).toContain(WORK_ITEM_TRAILER);
     expect(report).toContain("`Refs #n` and `Closes #n` do NOT satisfy it.");
     expect(report).toContain(
       "Discharge both the moment the pull request exists — it evaluates them and"
@@ -4108,19 +4046,19 @@ describe("unresolvedPushReport wording (#3791)", () => {
 
   it("states gate 5 as inapplicable under the trailer level, not as open work", () => {
     const report = unresolvedPushReport(
-      result(["acme/widgets#42"], { contract: TRAILER }),
+      result([WORK_ITEM_REF], { contract: TRAILER }),
       ""
     );
 
-    expect(report).toContain("UNRESOLVED gate 4");
-    expect(report).not.toContain("UNRESOLVED gate 5");
+    expect(report).toContain(UNRESOLVED_GATE_4);
+    expect(report).not.toContain(UNRESOLVED_GATE_5);
     expect(report).toContain("n/a         gate 5");
     expect(report).toContain('workItem.verify is "trailer"');
   });
 
   it("declares every item a multi-item range names, one line each", () => {
     const report = unresolvedPushReport(
-      result(["acme/widgets#42", "acme/widgets#43"]),
+      result([WORK_ITEM_REF, OTHER_WORK_ITEM_REF]),
       ""
     );
 
@@ -4133,12 +4071,12 @@ describe("unresolvedPushReport wording (#3791)", () => {
     expect(report).toContain(
       "not a clean bill of health for acme/widgets#42, acme/widgets#43"
     );
-    expect(report).toContain("This range names 2 work items");
+    expect(report).toContain(TWO_WORK_ITEMS_MESSAGE);
   });
 
   it("carries the ref label and the already-traced count when there is one", () => {
     const report = unresolvedPushReport(
-      result(["acme/widgets#42"], { protectedExempt: 3 }),
+      result([WORK_ITEM_REF], { protectedExempt: 3 }),
       "refs/heads/feature/x: "
     );
 
@@ -4161,7 +4099,7 @@ describe("unresolvedPushReport wording (#3791)", () => {
 describe("discharge decisions (#3791)", () => {
   const FULL = { provider: "github", verify: "full" };
   const TRAILER = { provider: "github", verify: "trailer" };
-  const PR = "https://github.com/acme/code/pull/7";
+  const PR = CODE_PR_URL;
 
   it("answers 3 for a missing pull request, which is not a violation code", () => {
     const error = noPullRequestToDischarge() as Error & {
@@ -4183,7 +4121,7 @@ describe("discharge decisions (#3791)", () => {
     const posted: string[] = [];
 
     const changed = postDischargeBacklinks(
-      ["acme/widgets#42", "acme/widgets#43"],
+      [WORK_ITEM_REF, OTHER_WORK_ITEM_REF],
       PR,
       FULL,
       (ref: string) => {
@@ -4195,22 +4133,17 @@ describe("discharge decisions (#3791)", () => {
       }
     );
 
-    expect(posted).toEqual(["acme/widgets#42", "acme/widgets#43"]);
+    expect(posted).toEqual([WORK_ITEM_REF, OTHER_WORK_ITEM_REF]);
     // One unchanged and one created is still a change: verifying gate 5 against
     // the payload cached before that write would report the backlink missing.
     expect(changed).toBe(true);
   });
 
   it("reports no change when every backlink was already correct", () => {
-    const changed = postDischargeBacklinks(
-      ["acme/widgets#42"],
-      PR,
-      FULL,
-      () => ({
-        change: "unchanged",
-        others: 0,
-      })
-    );
+    const changed = postDischargeBacklinks([WORK_ITEM_REF], PR, FULL, () => ({
+      change: "unchanged",
+      others: 0,
+    }));
 
     expect(changed).toBe(false);
   });
@@ -4219,7 +4152,7 @@ describe("discharge decisions (#3791)", () => {
     const posted: string[] = [];
 
     const changed = postDischargeBacklinks(
-      ["acme/widgets#42"],
+      [WORK_ITEM_REF],
       PR,
       TRAILER,
       (ref: string) => {
@@ -4258,17 +4191,13 @@ describe("a branch whose ancestry the remote no longer reaches", () => {
    */
   function afterRewrite(fixture: Fixture, ancestorMessage: string): string {
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", base],
-      fixture.env
-    );
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
     setOriginHead(fixture);
     // Authored BEFORE the rewrite and already published at the time; it is the
     // commit the author never touched and should never be re-validated.
     git(
       fixture.root,
-      ["commit", "-q", "--allow-empty", "-m", ancestorMessage],
+      ["commit", "-q", ALLOW_EMPTY_FLAG, "-m", ancestorMessage],
       fixture.env
     );
     const head = commit(
@@ -4280,16 +4209,12 @@ describe("a branch whose ancestry the remote no longer reaches", () => {
     git(fixture.root, ["switch", "-q", "--orphan", "rewritten"], fixture.env);
     git(
       fixture.root,
-      ["commit", "-q", "--allow-empty", "-m", "chore: rewritten history"],
+      ["commit", "-q", ALLOW_EMPTY_FLAG, "-m", "chore: rewritten history"],
       fixture.env
     );
     const rewritten = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", rewritten],
-      fixture.env
-    );
-    git(fixture.root, ["switch", "-q", "feature/tracked"], fixture.env);
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, rewritten], fixture.env);
+    git(fixture.root, ["switch", "-q", TRACKED_BRANCH], fixture.env);
     return head;
   }
 
@@ -4305,7 +4230,7 @@ describe("a branch whose ancestry the remote no longer reaches", () => {
     head: string,
     extra: NodeJS.ProcessEnv = {}
   ): CommandResult {
-    return command(fixture, ["validate-push", "origin"], {
+    return command(fixture, [VALIDATE_PUSH, "origin"], {
       env: { FAKE_GH_PR_MISSING: "1", ...extra },
       input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${ZERO_OID}\n`,
     });
@@ -4324,7 +4249,7 @@ describe("a branch whose ancestry the remote no longer reaches", () => {
     const result = pushNewBranch(fixture, head);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("no longer reachable");
+    expect(result.stderr).toContain(NO_LONGER_REACHABLE_MESSAGE);
     expect(result.stderr).toContain("cherry-pick");
     // The misdirection is the defect. A refusal that still argues about the old
     // commit's work item has not been fixed, it has been decorated.
@@ -4336,16 +4261,9 @@ describe("a branch whose ancestry the remote no longer reaches", () => {
     // that reported "unreachable ancestry" for every push would pass.
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", base],
-      fixture.env
-    );
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
     setOriginHead(fixture);
-    const head = commit(
-      fixture,
-      "feat: tracked change\n\nWork-Item: acme/widgets#42"
-    );
+    const head = commit(fixture, TRACKED_COMMIT_MESSAGE);
 
     const result = pushNewBranch(fixture, head);
 
@@ -4357,18 +4275,14 @@ describe("a branch whose ancestry the remote no longer reaches", () => {
     // The negative control. The diagnosis must not become a way past the gate.
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
-    git(
-      fixture.root,
-      ["update-ref", "refs/remotes/origin/main", base],
-      fixture.env
-    );
+    git(fixture.root, [UPDATE_REF, ORIGIN_MAIN_REF, base], fixture.env);
     setOriginHead(fixture);
     const head = commit(fixture, "feat: untraceable change");
 
     const result = pushNewBranch(fixture, head);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).not.toContain("no longer reachable");
+    expect(result.stderr).not.toContain(NO_LONGER_REACHABLE_MESSAGE);
   });
 
   it("does not diagnose a rewrite when the remote has no refs at all", () => {
@@ -4384,6 +4298,6 @@ describe("a branch whose ancestry the remote no longer reaches", () => {
 
     const result = pushNewBranch(fixture, head);
 
-    expect(result.stderr).not.toContain("no longer reachable");
+    expect(result.stderr).not.toContain(NO_LONGER_REACHABLE_MESSAGE);
   });
 });

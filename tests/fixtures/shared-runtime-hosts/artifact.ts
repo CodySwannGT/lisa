@@ -1,4 +1,3 @@
-/* eslint-disable code-organization/enforce-statement-order -- This operator harness deliberately records each chronological child boundary. */
 /** Immutable candidate packaging and an exact-artifact loopback npm boundary. */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -10,6 +9,7 @@ import { resolveGit } from "../../support/git-executable.js";
 import { files, write } from "./host.js";
 import { run } from "./process.js";
 import { freeCheckout } from "./teardown.js";
+import { inheritedEnvironment } from "../../support/process-environment.js";
 
 const MANIFEST = "package.json";
 
@@ -38,13 +38,11 @@ export interface Candidate {
 function childEnvironment(root: string, cache: string): NodeJS.ProcessEnv {
   return {
     ...Object.fromEntries(
-      // eslint-disable-next-line no-restricted-syntax -- Operator child environment, with live credentials removed.
-      Object.entries(process.env).filter(
+      Object.entries(inheritedEnvironment()).filter(
         ([name]) => !/^(AWS_|GIT_(DIR|WORK_TREE|INDEX_FILE)$)/.test(name)
       )
     ),
-    // eslint-disable-next-line no-restricted-syntax -- The child must use the current reviewed Node executable.
-    PATH: `${path.join(root, "fake-bin")}${path.delimiter}${path.dirname(process.execPath)}${path.delimiter}${process.env["PATH"] ?? ""}`,
+    PATH: `${path.join(root, "fake-bin")}${path.delimiter}${path.dirname(process.execPath)}${path.delimiter}${inheritedEnvironment()["PATH"] ?? ""}`,
     TMPDIR: path.join(root, "child-tmp"),
     TMP: path.join(root, "child-tmp"),
     TEMP: path.join(root, "child-tmp"),
@@ -57,24 +55,15 @@ function childEnvironment(root: string, cache: string): NodeJS.ProcessEnv {
 }
 
 /**
- * Copy and stamp an isolated immutable index snapshot.
+ * Copy an isolated immutable index snapshot beside a sentinel-only fake `gh`.
  * @param repo - Source checkout whose index is the candidate
  * @param root - Isolated fixture root
- * @returns Prepared immutable checkout paths, package provenance and child environment
+ * @returns Isolated checkout paths, index provenance and child environment
  */
-async function prepareCandidate(repo: string, root: string) {
+async function isolateCheckout(repo: string, root: string) {
   const checkout = path.join(root, "checkout");
   const logs = path.join(root, "evidence");
   const cache = path.join(root, "artifact-bun-cache");
-  [
-    checkout,
-    logs,
-    cache,
-    path.join(root, "pack"),
-    path.join(root, "oracle"),
-    path.join(root, "child-tmp"),
-    path.join(root, "fake-bin"),
-  ].forEach(dir => fs.mkdirSync(dir));
   const git = resolveGit();
   const head = boundedSpawnSync({
     label: "candidate provenance",
@@ -88,6 +77,16 @@ async function prepareCandidate(repo: string, root: string) {
     args: ["write-tree"],
     cwd: repo,
   }).stdout.trim();
+  const env = childEnvironment(root, cache);
+  [
+    checkout,
+    logs,
+    cache,
+    path.join(root, "pack"),
+    path.join(root, "oracle"),
+    path.join(root, "child-tmp"),
+    path.join(root, "fake-bin"),
+  ].forEach(dir => fs.mkdirSync(dir));
   expect(head).toMatch(/^[a-f0-9]{40}$/);
   expect(tree).toMatch(/^[a-f0-9]{40}$/);
   write(
@@ -96,7 +95,6 @@ async function prepareCandidate(repo: string, root: string) {
     '#!/bin/sh\ntouch "$LISA_RUNTIME_GH_SENTINEL"\nexit 99\n'
   );
   fs.chmodSync(path.join(root, "fake-bin", "gh"), 0o700);
-  const env = childEnvironment(root, cache);
   await run(
     git,
     ["checkout-index", "--all", `--prefix=${checkout}/`],
@@ -110,6 +108,23 @@ async function prepareCandidate(repo: string, root: string) {
     path.join(checkout, "node_modules"),
     "dir"
   );
+  return { checkout, root, env, logs, head, tree, cache };
+}
+
+/**
+ * Stamp the isolated candidate's manifest with its local release identity.
+ * @param checkout - Isolated immutable checkout
+ * @param logs - Evidence log directory
+ * @param head - Source commit the candidate was copied from
+ * @param tree - Index tree the candidate was copied from
+ * @returns The candidate's declared package version
+ */
+function stampIdentity(
+  checkout: string,
+  logs: string,
+  head: string,
+  tree: string
+): string {
   const manifest = JSON.parse(
     fs.readFileSync(path.join(checkout, MANIFEST), "utf8")
   );
@@ -128,7 +143,37 @@ async function prepareCandidate(repo: string, root: string) {
     version,
     publicPublication: false,
   });
-  return { checkout, root, env, logs, version, head, tree, cache };
+  return version;
+}
+
+/**
+ * Copy and stamp an isolated immutable index snapshot.
+ * @param repo - Source checkout whose index is the candidate
+ * @param root - Isolated fixture root
+ * @returns Prepared immutable checkout paths, package provenance and child environment
+ */
+async function prepareCandidate(repo: string, root: string) {
+  const isolated = await isolateCheckout(repo, root);
+  const version = stampIdentity(
+    isolated.checkout,
+    isolated.logs,
+    isolated.head,
+    isolated.tree
+  );
+  return { ...isolated, version };
+}
+
+/**
+ * Locate the single tarball the release identity check packed.
+ * @param root - Isolated fixture root
+ * @returns Path of the only packed tarball
+ */
+function packedTarball(root: string): string {
+  const packed = fs
+    .readdirSync(path.join(root, "pack"))
+    .filter(name => name.endsWith(".tgz"));
+  expect(packed).toHaveLength(1);
+  return path.join(root, "pack", packed[0]!);
 }
 
 /**
@@ -169,11 +214,7 @@ async function buildTarball(
     "validate-pack",
     60_000
   );
-  const packed = fs
-    .readdirSync(path.join(root, "pack"))
-    .filter(name => name.endsWith(".tgz"));
-  expect(packed).toHaveLength(1);
-  const tarball = path.join(root, "pack", packed[0]!);
+  const tarball = packedTarball(root);
   await run(
     "tar",
     ["-xzf", tarball, "-C", path.join(root, "oracle")],
@@ -273,8 +314,6 @@ export async function startRegistry(
     const dist = {
       tarball: `http://127.0.0.1:${address.port}/packed-lisa.tgz`,
       integrity: candidate.integrity,
-      // eslint-disable-next-line sonarjs/hashing -- npm legacy shasum metadata; SHA512 integrity and full bytes are separately asserted.
-      shasum: createHash("sha1").update(bytes).digest("hex"),
     };
     if (pathname === "/packed-lisa.tgz") {
       response.writeHead(200, { "Content-Type": "application/octet-stream" });
@@ -331,5 +370,3 @@ export async function startRegistry(
       }),
   };
 }
-
-/* eslint-enable code-organization/enforce-statement-order -- End the chronological fixture harness. */

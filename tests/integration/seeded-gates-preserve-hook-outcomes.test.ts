@@ -283,11 +283,6 @@ describe("seeding the gates block preserves what the pre-push hook proves", () =
       input: "",
       env: {
         ...process.env,
-        // eslint-disable-next-line sonarjs/no-os-command-from-path -- the
-        // prepended directory is a per-test mkdtemp the suite created and
-        // owns; putting the stub package manager on PATH is the ONLY way to
-        // run the shipped hook unmodified, and modifying it would mean this
-        // suite no longer tests the artifact that ships.
         PATH: `${binDir}:${process.env["PATH"] ?? ""}`,
       },
     });
