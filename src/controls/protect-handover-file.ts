@@ -16,6 +16,7 @@ import {
   MERGE_PROTECTION_CHANGE_PATH,
   type HandoverOutcome,
 } from "./protect-types.js";
+import { redactCredentials } from "./secret-scan.js";
 
 /** The folder the handover lives in, from the repository root. */
 const HANDOVER_FOLDER = path.posix.dirname(MERGE_PROTECTION_CHANGE_PATH);
@@ -76,10 +77,15 @@ export async function syncHandover(
     await rm(file);
     return done("removed");
   }
-  if (kind === "file" && (await readFile(file, "utf8")) === text) {
+  // The file is committed and sent to an administrator, and part of what it
+  // says was read from outside: the remote address, the branch, the names
+  // the hosting platform gave its checks. Anything shaped like a credential
+  // is taken out here, before the text is compared or written.
+  const safe = redactCredentials(text).text;
+  if (kind === "file" && (await readFile(file, "utf8")) === safe) {
     return done("unchanged");
   }
   await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, text);
+  await writeFile(file, safe);
   return done("written");
 }

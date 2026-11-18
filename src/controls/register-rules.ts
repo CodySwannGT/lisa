@@ -21,6 +21,7 @@ import {
   type GatesDeclaration,
 } from "./gates-declaration.js";
 import { partsAreEvidenced } from "./register-evidence-rule.js";
+import { declarationHoldsNoSecretValues } from "./register-secrets-rule.js";
 import { executorsAgree } from "./pull-request-executor.js";
 
 /** What a rule is given. */
@@ -86,4 +87,5 @@ export const CONTROL_REGISTER_RULES: readonly ControlRegisterRule[] = [
   criteriaAreCatalogued,
   partsAreEvidenced,
   executorsAgree,
+  declarationHoldsNoSecretValues,
 ];

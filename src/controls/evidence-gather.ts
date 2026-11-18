@@ -25,6 +25,7 @@ import {
   parseEvidenceDocument,
 } from "./evidence-document.js";
 import { findingRecords } from "./evidence-findings.js";
+import { echoedCredentialNote } from "./evidence-redact.js";
 import type {
   EvidenceBatch,
   EvidenceDocument,
@@ -160,9 +161,11 @@ export async function gatherEvidence(
     ? {
         problems: null,
         evidence,
-        notes: [earlier.note, findings.note].flatMap(note =>
-          note === null ? [] : [note]
-        ),
+        notes: [
+          earlier.note,
+          findings.note,
+          echoedCredentialNote(batches),
+        ].flatMap(note => (note === null ? [] : [note])),
       }
     : { problems: checked.problems };
 }

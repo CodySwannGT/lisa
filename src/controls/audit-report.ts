@@ -30,6 +30,7 @@ import { provedNeedsFreshEvidence } from "./audit-report-rules/proved-evidence.j
 import { questionsMatchFindings } from "./audit-report-rules/questions.js";
 import { answersAreWhatWasTyped } from "./audit-report-rules/recorded-answers.js";
 import { scopesAreRepositoryFolders } from "./audit-report-rules/scopes.js";
+import { reportHoldsNoSecretValues } from "./audit-report-rules/secret-values.js";
 import { serverSideAuthorityNeedsPlatformRead } from "./audit-report-rules/server-side-authority.js";
 import { trackerQuestionAsked } from "./audit-report-rules/tracker-question.js";
 import {
@@ -77,6 +78,7 @@ export const AUDIT_REPORT_RULES: readonly AuditReportRule[] = [
   dependentsOfUnreadSystemsAreUnknown,
   serverSideAuthorityNeedsPlatformRead,
   probesHoldNoCredentials,
+  reportHoldsNoSecretValues,
 ];
 
 /**

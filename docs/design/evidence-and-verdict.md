@@ -184,11 +184,21 @@ below it is handed the time.
 ### Output and secrets
 
 A record keeps the end of what a check printed, and a check can print
-anything. `prepareEvidenceExcerpt` in `src/controls/evidence-write.ts` is the
-one place that text enters a record. It does not look for secret values. The
-step that does belongs there, before the cut. `detail` on a record of an
-audit finding is the finding's `what`, word for word, and is covered by
-whatever checks the audit report.
+anything, including a token it was given. `prepareEvidenceExcerpt` in
+`src/controls/evidence-write.ts` is the one place that text enters a record.
+It takes every value shaped like a credential out first and cuts afterwards,
+so a cut can never leave half of one behind. The arguments a check was
+started with, and the sentence and reason of a result, have their values
+taken out the same way. A placeholder such as `[REDACTED:GITHUB_TOKEN]`
+stands where a value was, and the attest step tells the operator which
+results it was taken out of. Nothing is refused: a run keeps its result.
+
+This happens before the evidence file is written, so the digest below is
+computed from the text with the placeholder in it. `detail` on a record of
+an audit finding is the finding's `what`, word for word; the audit report's
+own check refuses a finding that holds a value, and the same step takes one
+out here. The whole of it, for every file the control commands write, is in
+[secret values](secret-values.md).
 
 ## The verdict
 

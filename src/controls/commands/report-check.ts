@@ -44,6 +44,7 @@ import {
   type AuditReport,
 } from "../audit-report.js";
 import type { InScopeCriterion } from "../catalogue.js";
+import { redactCredentials } from "../secret-scan.js";
 import { ABSORB_OPTION, runReportAbsorb } from "./report-absorb.js";
 
 /** The subcommand's name under `lisa controls`. */
@@ -86,7 +87,12 @@ async function writeMarkdown(
   criteria: readonly InScopeCriterion[]
 ): Promise<void> {
   const file = path.join(root, AUDIT_REPORT_MARKDOWN_PATH);
-  const markdown = renderAuditReportMarkdown(report, criteria);
+  // The report passed the credential rules field by field. The rendering
+  // goes through the same scanner once more, so that text put together
+  // from several fields cannot read as a value where no field did.
+  const markdown = redactCredentials(
+    renderAuditReportMarkdown(report, criteria)
+  ).text;
   if (
     (await pathKind(file)) === "missing" ||
     (await readFile(file, "utf8")) !== markdown

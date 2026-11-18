@@ -5,6 +5,10 @@
  * specification. A sentence says what is wrong and what to do; the criterion
  * id and the folder follow it in brackets, as the place to look and never as
  * the explanation.
+ *
+ * A line that reports a problem often quotes what it found. Every line is
+ * passed through the credential scanner on its way out, so no rule can
+ * repeat a secret's value, whatever it quotes.
  * @module controls/audit-report-wording
  */
 import {
@@ -12,6 +16,7 @@ import {
   type AuditFinding,
   type AuditReportViolation,
 } from "./audit-report-types.js";
+import { redactCredentials } from "./secret-scan.js";
 
 /**
  * Name a scope the way an operator would.
@@ -63,5 +68,5 @@ export function formatAuditReportViolation(
     place.length === 0
       ? violation.message
       : `${violation.message} (${place.join(", ")})`;
-  return line.replaceAll(/\s+/gu, " ").trim();
+  return redactCredentials(line.replaceAll(/\s+/gu, " ").trim()).text;
 }

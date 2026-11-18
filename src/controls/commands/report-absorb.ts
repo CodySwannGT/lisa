@@ -29,12 +29,17 @@ import {
   absorbInlineAnswers,
   type AbsorbedChange,
 } from "../audit-answers-absorb.js";
+import { typedAnswerProblems } from "../audit-answers-secrets.js";
 import {
   readInlineAnswers,
   readOrdinaryFile,
 } from "../audit-inline-answers-file.js";
 import { resolveRepositoryRoot } from "../audit-report-file.js";
 import { AUDIT_REPORT_JSON_PATH } from "../audit-report.js";
+import {
+  parseProblemWithoutExcerpt,
+  withoutCredentials,
+} from "../secret-scan-json.js";
 
 /** The option that turns `report-check` into this command. */
 export const ABSORB_OPTION = "--absorb";
@@ -117,7 +122,7 @@ function parseRecord(text: string): RecordRead {
           problem: `In ${AUDIT_REPORT_JSON_PATH}, ${malformed} must be a list, so no answer can be recorded there. ${KEPT} Correct the record, then run this again.`,
         };
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
+    const detail = parseProblemWithoutExcerpt(error);
     return {
       problem: `${AUDIT_REPORT_JSON_PATH} is not valid JSON, so no answer can be recorded in it. ${KEPT} Write the record again, then run this again. (${detail})`,
     };
@@ -157,7 +162,8 @@ function waiting(count: number): string {
  */
 async function absorbIn(root: string): Promise<AbsorbRun> {
   const inline = await readInlineAnswers(root);
-  if (inline.problems.length > 0) return { problems: inline.problems };
+  const refused = typedAnswerProblems(inline);
+  if (refused.length > 0) return { problems: refused };
   const typed = inline.entries.filter(entry => entry.answer !== null).length;
   const text = await readOrdinaryFile(root, AUDIT_REPORT_JSON_PATH);
   if (text === null) return unchanged(typed === 0 ? NOTHING : waiting(typed));
@@ -223,7 +229,7 @@ export async function runReportAbsorb(
     });
     return 0;
   }
-  run.problems.forEach(problem => {
+  withoutCredentials(run.problems).forEach(problem => {
     stderr(problem.replaceAll(/\s+/gu, " "));
   });
   stderr(
