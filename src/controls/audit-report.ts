@@ -22,6 +22,7 @@
  */
 import { everyCriterionOncePerScope } from "./audit-report-rules/coverage.js";
 import { locatorsResolve } from "./audit-report-rules/locators.js";
+import { notApplicableOnlyWhereItMayBe } from "./audit-report-rules/not-applicable.js";
 import { plainLanguageFields } from "./audit-report-rules/plain-language.js";
 import { dependentsOfUnreadSystemsAreUnknown } from "./audit-report-rules/probe-dependents.js";
 import { probesHoldNoCredentials } from "./audit-report-rules/probe-secrets.js";
@@ -69,6 +70,7 @@ export const AUDIT_REPORT_RULES: readonly AuditReportRule[] = [
   scopesAreRepositoryFolders,
   everyCriterionOncePerScope,
   plainLanguageFields,
+  notApplicableOnlyWhereItMayBe,
   provedNeedsFreshEvidence,
   locatorsResolve,
   questionsMatchFindings,

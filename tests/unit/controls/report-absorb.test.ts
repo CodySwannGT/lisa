@@ -65,6 +65,31 @@ describe("with nothing to absorb", () => {
     expect(run.stdout).toEqual([`${PASS} No answers to absorb`]);
     expect(fileOf(repoPath, AUDIT_REPORT_JSON_PATH)).toBe(before);
   });
+
+  it.each([
+    "TBD",
+    "?",
+    "n/a",
+    "*(human fills in)*",
+    String.raw`\_(human fills in)\_`,
+  ])(
+    "records nothing for an answer line that holds only %s, and the question stays open",
+    async placeholder => {
+      const repoPath = await audited(completeAuditReport());
+      answerInline(repoPath, "tracker", placeholder);
+      const before = fileOf(repoPath, AUDIT_REPORT_JSON_PATH);
+
+      const run = await absorb(repoPath);
+      const checked = await check(repoPath);
+
+      expect(run.stdout).toEqual([`${PASS} No answers to absorb`]);
+      expect(fileOf(repoPath, AUDIT_REPORT_JSON_PATH)).toBe(before);
+      expect(checked.stderr).toEqual([]);
+      expect(fileOf(repoPath, REPORT_MD)).toContain(
+        ["- **Answer**: _(human fills in)_", "- **Status**: open"].join("\n")
+      );
+    }
+  );
 });
 
 describe("an answer typed on an answer line", () => {
@@ -204,6 +229,24 @@ describe("a refusal changes nothing", () => {
       spoil: (text: string) =>
         text.replace("- **Status**: open", "GitHub Issues\n- **Status**: open"),
       says: /^\.lisa\/audit\/report\.md line \d+ is not part of a question/u,
+    },
+    {
+      name: "text typed on the question instead of on the answer line",
+      spoil: (text: string) =>
+        text.replace(
+          `- **Question**: ${TRACKER_TEXT}`,
+          `- **Question**: ${TRACKER_TEXT} GitHub Issues`
+        ),
+      says: /^\.lisa\/audit\/report\.md line \d+ is not as Lisa wrote it: it was typed on, or added\. Only the answer line is read/u,
+    },
+    {
+      name: "text typed on the line that says where the audit looked",
+      spoil: (text: string) =>
+        text.replace(
+          "- **Candidates**: none found",
+          "- **Candidates**: none found, but it is GitHub Issues"
+        ),
+      says: /^\.lisa\/audit\/report\.md line \d+ is not as Lisa wrote it/u,
     },
     {
       name: "a closing marker that was deleted",

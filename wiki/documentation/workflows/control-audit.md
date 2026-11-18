@@ -1,7 +1,7 @@
 ---
 type: documentation
 created: 2026-11-17
-updated: 2026-11-17
+updated: 2026-11-18
 ---
 
 # Control Audit: Audit, Configure, Enforce, Attest
@@ -54,14 +54,24 @@ Each finding is in one of six states.
 | --- | --- |
 | `exists-not-enforced` | Something is in place. Nothing has shown that it stops a bad change. |
 | `missing` | The repository has nothing for this. |
-| `not-applicable` | The requirement does not apply here, for a stated reason. |
+| `not-applicable` | The requirement does not apply here, for a stated reason. Refused for a requirement that always applies, which is about half of them. |
 | `unknown` | It could not be checked, usually because an outside system could not be read. |
 | `question` | Only a person knows. The audit asks. |
-| `proved` | An attest run has already proved it, and that evidence is still current. The audit never decides this itself. |
+| `proved` | An attest run has already proved it for this part, and that evidence is still current. The audit never decides this itself. |
 
 The audit also tries one harmless read of each outside system a requirement depends on, such as the hosting platform's merge protection or the ticket tracker. It records whether each could be reached and names the access that is missing when it could not. It never sends a write.
 
+**What the check refuses.** `lisa controls report-check` holds the agent's report to rules before anyone relies on it. Among them:
+
+- A requirement that always applies cannot be filed as `not-applicable`. For the others, whether the stated reason holds is the agent's judgement, so the line that says the check passed also says how many findings were filed that way.
+- A finding shows that something is in place by pointing at a file and a line. The pointer has to lead to something the repository itself holds. It may not lead into `.lisa/audit/` (the audit's own report), into `.lisa/controls/` (Lisa's own records, except the control register), or into `.git` (except a hook installed in `.git/hooks/`).
+- `proved` needs an evidence record for the same requirement and the same part. Where that record is one half of a paired proof, the other half has to be on record too. A finding in any other state cites no record.
+
 **Answering a question.** Open `.lisa/audit/report.md`, find "Open questions" near the top, type each answer on its `- **Answer**:` line, save, and run the audit again. The answer is taken into the record and the question is not asked again. The agent never answers a question for you.
+
+- **Type on the answer line only.** Text typed on any other line of a question, such as the question itself or one of the candidates, is refused with its line number. It is never taken as an answer and never dropped without a word.
+- **A placeholder is not an answer.** A line left as it was, or holding only `TBD`, `?` or `n/a`, leaves the question open.
+- **An answer counts only while it stands on its line.** Keep `.lisa/audit/report.md`. If the file is deleted, the answers in the record are refused until the file is put back or the answers are removed, because nothing then shows that a person typed them. Attest reads the answer lines again when it records a person's word.
 
 **It writes** `.lisa/audit/report.json` (the record, checked by `lisa controls report-check`) and `.lisa/audit/report.md` (rendered from it). In a repository that already has a `wiki/` folder it also lists the open questions in `wiki/gaps.md`. Nothing else is created or changed, and a `wiki/` folder is never created.
 
@@ -79,7 +89,7 @@ The register is generated from the `gates` block by `lisa controls register` and
 
 - which requirements it serves;
 - the folder it covers;
-- whether it is **authoritative** (required somewhere the author of a change does not control) or **advisory**;
+- whether it is **authoritative** (required somewhere the author of a change does not control) or **advisory**. A check that is declared authoritative but is required only at commit or push is refused, because its author can skip it there;
 - its **enforcement points**: each moment it runs at, and where;
 - what measures it, with which parameters;
 - its paired proof;
@@ -148,7 +158,7 @@ Codex and Devin have no command files. There the skill's name is the way in, and
 | Path | Written by | Notes |
 | --- | --- | --- |
 | `.lisa/audit/report.json` | The agent, in the audit | The checked record. Refused by `lisa controls report-check` when it is incomplete or unsupported. |
-| `.lisa/audit/report.md` | `lisa controls report-check` | For reading. A person types only on the answer lines. |
+| `.lisa/audit/report.md` | `lisa controls report-check` | For reading. A person types only on the answer lines, and the file is kept: the answers in the record count only while it holds them. |
 | `wiki/gaps.md` | `lisa controls report-check` | Only where a `wiki/` folder already exists. The open questions, in one marked block. |
 | `.lisa.config.json`, `gates` block | The agent, in configure, on the operator's decisions | The only authored source of what governs the repository. |
 | `.lisa/controls/proofs/` | The agent, in configure | Two patch files per check: `<check>.violation.patch` and `<check>.clean.patch`. |
@@ -185,7 +195,7 @@ The four commands are skills. The deterministic work is behind `lisa controls`, 
 | `lisa controls catalogue` | Audit, configure | Prints the 77 requirements with their plain questions. |
 | `lisa controls report-check` | Audit | Checks the audit report and renders `report.md`. `lisa controls report-check --absorb` takes in typed answers. |
 | `lisa controls merge-protection` | Audit | Reads the hosting platform's merge protection. Writes nothing. |
-| `lisa controls seed` | Configure | Says which road the repository takes and, on the paved road, declares the shipped checks. |
+| `lisa controls seed` | Configure | Says which road the repository takes and, on the paved road, declares the shipped checks. A `package.json` that is there and cannot be read is refused: the repository is never taken to have no tasks on a guess. |
 | `lisa controls propose-threshold` | Configure | Turns a value measured today into the threshold to propose. Writes nothing. |
 | `lisa controls declaration-check` | Configure, enforce | Checks that the audit report supports every declared part. Writes nothing. |
 | `lisa controls proof-check` | Configure | Says whether each check's two test changes are ready for attest. Writes nothing. |

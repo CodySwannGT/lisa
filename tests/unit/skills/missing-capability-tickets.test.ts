@@ -130,6 +130,7 @@ describe("the missing-capability ticket flow", () => {
           title: "A title",
           in_scope: true,
           question: "Is it done?",
+          not_applicable_when: "never",
           answered: "part",
         },
       ]

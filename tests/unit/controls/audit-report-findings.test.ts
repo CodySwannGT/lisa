@@ -150,22 +150,20 @@ describe("proved is never accepted on presence alone", () => {
 });
 
 describe("a claim that a control exists points at a real line", () => {
-  it.each([PROVED, EXISTS_NOT_ENFORCED])(
-    "refuses %s with nothing to point at",
-    state => {
-      expect(
-        violationsOf(
-          withFirst({ state, evidence_id: FRESH.id, mechanisms: [] })
-        )
-      ).toEqual([
-        expect.objectContaining({
-          rule: RULE.locators,
-          criterion: FIRST,
-          scope: WHOLE,
-        }),
-      ]);
-    }
-  );
+  it.each([
+    { state: PROVED, cited: { evidence_id: FRESH.id } },
+    { state: EXISTS_NOT_ENFORCED, cited: {} },
+  ])("refuses $state with nothing to point at", ({ state, cited }) => {
+    expect(
+      violationsOf(withFirst({ state, ...cited, mechanisms: [] }))
+    ).toEqual([
+      expect.objectContaining({
+        rule: RULE.locators,
+        criterion: FIRST,
+        scope: WHOLE,
+      }),
+    ]);
+  });
 
   it("refuses a mechanism that lists no pointer", () => {
     expect(

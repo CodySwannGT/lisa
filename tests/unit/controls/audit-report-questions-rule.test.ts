@@ -27,6 +27,7 @@ import {
   FIRST,
   PART_FIRST,
   RULE,
+  typedAnswers,
   violationsOf,
   WHOLE,
 } from "./audit-report-facts.js";
@@ -54,6 +55,23 @@ function problems(report: unknown, rule: string): readonly string[] {
   return violationsOf(report)
     .filter(violation => violation.rule === rule)
     .map(violation => violation.message);
+}
+
+/**
+ * Check a report whose answers a person typed on their answer lines, which
+ * is what makes them answers (CodySwannGT/lisa#4978).
+ * @param report - Candidate report
+ * @param answers - The answers it holds
+ * @returns The violations found
+ */
+function violationsOfAnswered(
+  report: SampleReport,
+  answers: readonly (typeof FIRST_ANSWER | typeof TRACKER_ANSWER)[]
+): ReturnType<typeof violationsOf> {
+  return validateAuditReport(
+    { ...report, answers },
+    context({ inlineAnswers: typedAnswers(answers) })
+  ).violations;
 }
 
 /**
@@ -186,9 +204,9 @@ describe("the words of a question", () => {
 
 describe("a question that was answered", () => {
   it("passes once it is on record and no longer asked", () => {
-    expect(
-      violationsOf({ ...completeAuditReport(), answers: [FIRST_ANSWER] })
-    ).toEqual([]);
+    expect(violationsOfAnswered(completeAuditReport(), [FIRST_ANSWER])).toEqual(
+      []
+    );
   });
 
   it("is refused when it is asked again", () => {
@@ -203,11 +221,10 @@ describe("a question that was answered", () => {
   });
 
   it("is refused while its finding still says it needs an answer, quoting the answer", () => {
-    const report = {
-      ...amendFinding(completeAuditReport(), AT_FIRST, { state: "question" }),
-      answers: [FIRST_ANSWER],
-    };
-    const violations = violationsOf(report);
+    const violations = violationsOfAnswered(
+      amendFinding(completeAuditReport(), AT_FIRST, { state: "question" }),
+      [FIRST_ANSWER]
+    );
 
     expect(violations).toHaveLength(1);
     expect(violations[0]).toMatchObject({
@@ -234,7 +251,12 @@ describe("a question that was answered", () => {
   it("stays on record for a folder the report no longer lists", () => {
     const answers = [{ ...FIRST_ANSWER, id: `${PART_FIRST}@retired` }];
 
-    expect(violationsOf({ ...completeAuditReport(), answers })).toEqual([]);
+    expect(
+      validateAuditReport(
+        { ...completeAuditReport(), answers },
+        context({ inlineAnswers: typedAnswers(answers) })
+      ).violations
+    ).toEqual([]);
   });
 });
 
@@ -260,6 +282,6 @@ describe("the question about the tracker", () => {
   });
 
   it("need not be asked once it has been answered", () => {
-    expect(violationsOf({ ...unasked, answers: [TRACKER_ANSWER] })).toEqual([]);
+    expect(violationsOfAnswered(unasked, [TRACKER_ANSWER])).toEqual([]);
   });
 });

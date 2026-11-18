@@ -10,9 +10,11 @@
  */
 import { describe, expect, it } from "vitest";
 
-import type {
-  AuditFinding,
-  AuditReport,
+import {
+  AUDIT_REPORT_MARKDOWN_PATH,
+  type AuditFinding,
+  type AuditReport,
+  type InlineAnswers,
 } from "../../../src/controls/audit-report-types.js";
 import type { InScopeCriterion } from "../../../src/controls/catalogue.js";
 import { parseEvidenceDocument } from "../../../src/controls/evidence-document.js";
@@ -34,6 +36,7 @@ const ARTIFACT = "AC1.1";
 const ATTESTED = "AC1.4";
 const GATE = "SI7";
 const NOT_APPLICABLE = "not-applicable";
+const NO_ATTESTATION = "no-attestation";
 const WHAT = "The access review is written down.";
 const RECORD = "docs/access.md";
 
@@ -86,17 +89,49 @@ function finding(
 }
 
 /**
+ * What stands on the answer lines of the rendered report when a person
+ * typed each of the given answers there.
+ * @param answers - The answers, as the report holds them
+ * @returns What reading the file gives
+ */
+function typedAs(answers: AuditReport["answers"]): InlineAnswers {
+  return {
+    rendered: true,
+    problems: [],
+    entries: answers.map((answer, index) => ({
+      id: answer.id,
+      question: answer.question,
+      answer: answer.answer,
+      answered: true,
+      file: AUDIT_REPORT_MARKDOWN_PATH,
+      line: 12 + index,
+    })),
+  };
+}
+
+/** A repository with no rendered report: nobody has typed anything. */
+const NOTHING_TYPED: InlineAnswers = {
+  rendered: false,
+  problems: [],
+  entries: [],
+};
+
+/**
  * The record one finding is written down as.
  * @param found - The finding
- * @param answers - The answers people gave, as the report holds them
+ * @param answers - The answers the report holds
+ * @param typed - What stands on the answer lines; by default, exactly the
+ *   answers the report holds, as when a person typed each one
  * @returns The record, or `undefined` when the finding gets none
  */
 function written(
   found: AuditFinding,
-  answers: AuditReport["answers"] = []
+  answers: AuditReport["answers"] = [],
+  typed: InlineAnswers = typedAs(answers)
 ): EvidenceRecord | undefined {
   const records = findingRecords({
     report: { findings: [found], answers },
+    inlineAnswers: typed,
     criteria: CRITERIA,
     repository: REPOSITORY,
     stamp: {
@@ -181,13 +216,12 @@ describe("a finding about a record that exists", () => {
 
 describe("a finding about something a person vouches for", () => {
   const where = [{ path: RECORD, line: 3 }];
-  const answers = [
-    {
-      id: `${ATTESTED}@.`,
-      question: "Who reviews the agents' access, and how often?",
-      answer: "The platform lead, every quarter.",
-    },
-  ];
+  const answer = {
+    id: `${ATTESTED}@.`,
+    question: "Who reviews the agents' access, and how often?",
+    answer: "The platform lead, every quarter.",
+  };
+  const answers = [answer];
 
   it("is written as asserted and held when a person's answer is on record, quoting it", () => {
     expect(written(finding(ATTESTED, FOUND, where), answers)).toMatchObject({
@@ -204,7 +238,7 @@ describe("a finding about something a person vouches for", () => {
     expect(record).toMatchObject({
       rung: "asserted",
       result: "unknown",
-      reason: "no-attestation",
+      reason: NO_ATTESTATION,
     });
     expect(record?.detail).toContain(
       `no person's answer to the audit's question "${ATTESTED}@." is on record`
@@ -214,7 +248,60 @@ describe("a finding about something a person vouches for", () => {
   it("is not helped by an answer to another folder's question", () => {
     expect(
       written(finding(ATTESTED, FOUND, where, "api"), answers)
-    ).toMatchObject({ result: "unknown", reason: "no-attestation" });
+    ).toMatchObject({ result: "unknown", reason: NO_ATTESTATION });
+  });
+
+  describe("when the report holds an answer nobody typed", () => {
+    const stillOpen: InlineAnswers = {
+      ...typedAs(answers),
+      entries: typedAs(answers).entries.map(entry => ({
+        ...entry,
+        answer: null,
+        answered: false,
+      })),
+    };
+    const unreadable: InlineAnswers = {
+      rendered: true,
+      problems: [".lisa/audit/report.md line 9 is not part of a question."],
+      entries: [],
+    };
+
+    it.each([
+      ["there is no rendered report to show a person typed it", NOTHING_TYPED],
+      ["the rendered report shows the question as still open", stillOpen],
+      [
+        "the answer line holds different words",
+        typedAs([{ ...answer, answer: "Nobody, yet." }]),
+      ],
+      [
+        "the answer is typed on another question's line",
+        typedAs([{ ...answer, id: `${ATTESTED}@api` }]),
+      ],
+      ["the rendered report cannot be read in the written form", unreadable],
+    ])("is written as unknown when %s", (_name, typed) => {
+      const record = written(finding(ATTESTED, FOUND, where), answers, typed);
+
+      expect(record).toMatchObject({
+        rung: "asserted",
+        result: "unknown",
+        reason: NO_ATTESTATION,
+      });
+      expect(record?.detail).toBe(
+        `Only a person can vouch for this requirement, and the answer the audit report holds to the question "${ATTESTED}@." is not written on that question's answer line in .lisa/audit/report.md, so nothing shows that a person gave it. A person has to type the answer on that line, and the audit has to be run again.`
+      );
+      expect(record?.detail).not.toContain(answer.answer);
+    });
+
+    it.each(["TBD", "?", "n/a", "_(human fills in)_", "*(human fills in)*"])(
+      "is written as unknown when the answer is only the placeholder %s",
+      placeholder => {
+        const held = [{ ...answer, answer: placeholder }];
+
+        expect(
+          written(finding(ATTESTED, FOUND, where), held, typedAs(held))
+        ).toMatchObject({ result: "unknown", reason: NO_ATTESTATION });
+      }
+    );
   });
 });
 

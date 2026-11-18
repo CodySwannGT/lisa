@@ -12,29 +12,19 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  SEED_SCHEMA_VERSION,
-  runSeed,
-  type SeedOutput,
-} from "../../../src/controls/commands/seed.js";
+import { SEED_SCHEMA_VERSION } from "../../../src/controls/commands/seed.js";
 import {
   CONFIGURE_ROADS,
   decideConfigureRoad,
 } from "../../../src/controls/configure-road.js";
-import {
-  buildControlAuditFixture,
-  runControlAuditGit,
-  type ControlAuditFixtureFiles,
-  type ControlAuditFixtureName,
-} from "../../helpers/control-audit-fixtures.js";
+import { runControlAuditGit } from "../../helpers/control-audit-fixtures.js";
 import {
   completeAuditReport,
   writeAuditReport,
 } from "../../helpers/control-audit-report.js";
-import { NOW } from "./audit-report-facts.js";
-import { keep, removeFixtures, type Run } from "./support/report-check-run.js";
+import { removeFixtures } from "./support/report-check-run.js";
+import { CONFIG, repository, seed, seeded } from "./support/seed-run.js";
 
-const CONFIG = ".lisa.config.json";
 const TYPES = "type-correctness";
 const MERGE = "pull-request";
 const STATUS = ["status", "--porcelain", "--untracked-files=all"];
@@ -52,52 +42,6 @@ const PACKAGE_WITH_TASKS = `${JSON.stringify(
   null,
   2
 )}\n`;
-
-/**
- * Build a fixture, removed after the case.
- * @param name - Which fixture
- * @param extraFiles - Files committed with it
- * @returns The repository root
- */
-function repository(
-  name: ControlAuditFixtureName,
-  extraFiles: ControlAuditFixtureFiles = {}
-): string {
-  return keep(buildControlAuditFixture(name, { extraFiles })).repoPath;
-}
-
-/**
- * Run the command in-process and capture what it prints.
- * @param target - The path argument, as an operator would type it
- * @returns Exit code and printed lines
- */
-async function seed(target: string): Promise<Run> {
-  const stdout: string[] = [];
-  const stderr: string[] = [];
-  const code = await runSeed(target, {
-    now: NOW,
-    stdout: line => {
-      stdout.push(line);
-    },
-    stderr: line => {
-      stderr.push(line);
-    },
-  });
-  return { code, stdout, stderr };
-}
-
-/**
- * Run the command and parse the document it printed.
- * @param target - The repository
- * @returns The document
- */
-async function seeded(target: string): Promise<SeedOutput> {
-  const run = await seed(target);
-  expect(run.stderr).toEqual([]);
-  expect(run.code).toBe(0);
-  expect(run.stdout).toHaveLength(1);
-  return JSON.parse(String(run.stdout[0])) as SeedOutput;
-}
 
 /**
  * Read the declaration a repository holds.

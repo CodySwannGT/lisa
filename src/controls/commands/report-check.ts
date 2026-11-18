@@ -41,6 +41,7 @@ import { renderAuditReportMarkdown } from "../audit-report-markdown.js";
 import {
   AUDIT_REPORT_JSON_PATH,
   AUDIT_REPORT_MARKDOWN_PATH,
+  NOT_APPLICABLE_STATE,
   type AuditReport,
 } from "../audit-report.js";
 import type { InScopeCriterion } from "../catalogue.js";
@@ -164,8 +165,14 @@ export async function runReportCheck(
   const copied = gaps.managed
     ? ` and ${counted(report.questions.length, "open question")} to ${WIKI_GAPS_PATH}`
     : "";
+  // Whether a requirement applies is the audit's judgement wherever the
+  // catalogue allows that it might not. The count is printed on every pass
+  // so that a reader sees how much of the report rests on that judgement.
+  const notApplicable = report.findings.filter(
+    finding => finding.state === NOT_APPLICABLE_STATE
+  ).length;
   stdout(
-    `report-check: PASS. ${counted(report.findings.length, "finding")} across ${counted(report.scopes.length, "part")}; wrote ${AUDIT_REPORT_MARKDOWN_PATH}${copied}`
+    `report-check: PASS. ${counted(report.findings.length, "finding")} across ${counted(report.scopes.length, "part")}, ${notApplicable} filed as not applicable; wrote ${AUDIT_REPORT_MARKDOWN_PATH}${copied}`
   );
   return 0;
 }

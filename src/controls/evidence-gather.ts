@@ -16,6 +16,7 @@
  */
 import path from "node:path";
 
+import { readInlineAnswers } from "./audit-inline-answers-file.js";
 import { pathKind, type AuditReportLoad } from "./audit-report-file.js";
 import { AUDIT_REPORT_JSON_PATH } from "./audit-report-types.js";
 import { readControlFile } from "./control-files.js";
@@ -115,8 +116,11 @@ async function auditFindings(request: EvidenceToGather): Promise<RecordsRead> {
     return {
       // The repository is read again here, at gather time: what a finding
       // points at is looked for now, whatever the report's own check found.
+      // The same goes for what people typed on the answer lines: an answer
+      // counts as a person's only while its line still holds it.
       records: findingRecords({
         report: loaded.report,
+        inlineAnswers: await readInlineAnswers(root),
         criteria: loaded.criteria,
         repository: createRepositoryReader(root),
         stamp,

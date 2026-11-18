@@ -30,6 +30,16 @@ const RECORD = {
   freshness_seconds: 3600,
 } as const;
 
+/** What reading {@link RECORD} gives: it does not say what it is a record of. */
+const READ = {
+  ...RECORD,
+  entry_id: null,
+  scope: null,
+  rung: null,
+  half: null,
+  moment: null,
+} as const;
+
 const fixtures: ControlAuditFixture[] = [];
 
 /**
@@ -61,7 +71,7 @@ describe("the evidence file", () => {
     const { repoPath } = fixture();
     writeEvidenceRecords(repoPath, [RECORD]);
 
-    expect(readEvidenceRecords(repoPath)).toEqual([RECORD]);
+    expect(readEvidenceRecords(repoPath)).toEqual([READ]);
   });
 
   it("is no evidence when the file cannot be parsed", () => {
@@ -75,20 +85,29 @@ describe("the evidence file", () => {
 });
 
 describe("parseEvidenceRecords", () => {
-  it("reads the four fields and ignores the rest of a record", () => {
+  it("reads the four fields a record must have, and what it is a record of, and ignores the rest", () => {
+    const about = {
+      entry_id: "lint@api",
+      scope: "api",
+      rung: "exercised",
+      half: "clean",
+      moment: "commit",
+    };
+
     expect(
       parseEvidenceRecords({
         schema_version: 1,
-        records: [
-          {
-            ...RECORD,
-            entry_id: "lint:api",
-            exit_status: 1,
-            rung: "exercised",
-          },
-        ],
+        records: [{ ...RECORD, ...about, exit_status: 1, result: "held" }],
       })
-    ).toEqual([RECORD]);
+    ).toEqual([{ ...RECORD, ...about }]);
+  });
+
+  it("reads as unsaid whatever a record does not say about itself", () => {
+    expect(
+      parseEvidenceRecords({
+        records: [{ ...RECORD, scope: "", half: 2, moment: null }],
+      })
+    ).toEqual([READ]);
   });
 
   it.each([
@@ -105,9 +124,7 @@ describe("parseEvidenceRecords", () => {
     { name: "a lifetime of zero", record: { ...RECORD, freshness_seconds: 0 } },
     { name: "a value that is not a record", record: "ev-0001" },
   ])("drops a record with $name: it can back nothing", ({ record }) => {
-    expect(parseEvidenceRecords({ records: [record, RECORD] })).toEqual([
-      RECORD,
-    ]);
+    expect(parseEvidenceRecords({ records: [record, RECORD] })).toEqual([READ]);
   });
 
   it.each([
@@ -117,7 +134,7 @@ describe("parseEvidenceRecords", () => {
   ])("drops a record of $name: it proves nothing", ({ result }) => {
     expect(
       parseEvidenceRecords({ records: [{ ...RECORD, result }, RECORD] })
-    ).toEqual([RECORD]);
+    ).toEqual([READ]);
   });
 
   it("keeps a record that says what it looked at held", () => {
@@ -125,7 +142,7 @@ describe("parseEvidenceRecords", () => {
       parseEvidenceRecords({
         records: [{ ...RECORD, entry_id: "lint@api", result: "held" }],
       })
-    ).toEqual([RECORD]);
+    ).toEqual([{ ...READ, entry_id: "lint@api" }]);
   });
 
   it("drops a record written from the audit's own finding: an audit cannot cite itself", () => {

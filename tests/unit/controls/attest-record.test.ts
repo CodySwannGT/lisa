@@ -43,6 +43,13 @@ const WORKING = provedGates([{ command: checks(F_NONE_SOURCE) }]);
 const BROKEN = provedGates([{ command: ACCEPTS_EVERYTHING }]);
 const ENTRY = "code-style@.";
 
+/**
+ * A requirement that may not apply: it asks about connectors to outside
+ * tools, and the catalogue allows that a repository's agents use none. A
+ * requirement that always applies cannot be filed as not applicable.
+ */
+const NO_CONNECTORS = "AC9.4";
+
 /** The word for a requirement, or a result, that is not met. */
 const NON_CONFORMING = "non-conforming";
 
@@ -178,10 +185,10 @@ describe("the findings of an audit report", () => {
       where.repoPath,
       amendFinding(
         completeAuditReport(),
-        { criterion: "AC1.4", scope: "." },
+        { criterion: NO_CONNECTORS, scope: "." },
         {
           state: "not-applicable",
-          what: "No agent holds an account in this repository.",
+          what: "Agents use no connectors to outside tools here.",
         }
       )
     );
@@ -194,11 +201,11 @@ describe("the findings of an audit report", () => {
       evidenceIn(where.repoPath).records.filter(each => each.entry_id === null)
     ).toHaveLength(77);
     expect(
-      verdict.criteria.find(each => each.criterion === "AC1.4")
+      verdict.criteria.find(each => each.criterion === NO_CONNECTORS)
     ).toMatchObject({
       verdict: "not-applicable",
-      fact: "No agent holds an account in this repository.",
-      evidence: ["audit-finding/AC1.4@."],
+      fact: "Agents use no connectors to outside tools here.",
+      evidence: [`audit-finding/${NO_CONNECTORS}@.`],
     });
     expect(
       verdict.criteria.find(each => each.criterion === "AC1.5")

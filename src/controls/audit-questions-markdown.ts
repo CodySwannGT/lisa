@@ -17,8 +17,13 @@
  * What is rendered here is read back by `./audit-inline-answers.ts`. Text that
  * comes from the record is put on one line and nothing else is done to it, so
  * the reader returns exactly what the record holds.
+ *
+ * Under each entry stands one comment line of marks
+ * (`./audit-question-lines.ts`), so the reader can refuse a line of the entry
+ * that a person typed on instead of the answer line.
  * @module controls/audit-questions-markdown
  */
+import { entryMarksLine } from "./audit-question-lines.js";
 import {
   ANSWER_PLACEHOLDER,
   ENTRY_LABEL,
@@ -123,12 +128,21 @@ function inOrder<Entry extends { readonly id: string }>(
 }
 
 /**
+ * Close an entry with the line that holds the marks of its lines.
+ * @param lines - The entry's lines, from its heading on
+ * @returns The lines, then the marks line
+ */
+function marked(lines: readonly string[]): readonly string[] {
+  return [...lines, entryMarksLine(lines)];
+}
+
+/**
  * Render one open question.
  * @param question - The question
  * @returns The entry's lines
  */
 function openEntry(question: AuditQuestion): readonly string[] {
-  return [
+  return marked([
     `### ${question.id}`,
     "",
     field(ENTRY_LABEL.question, oneLine(question.text)),
@@ -149,7 +163,7 @@ function openEntry(question: AuditQuestion): readonly string[] {
         ]),
     field(ENTRY_LABEL.answer, ANSWER_PLACEHOLDER),
     field(ENTRY_LABEL.status, STATUS_OPEN),
-  ];
+  ]);
 }
 
 /**
@@ -158,13 +172,13 @@ function openEntry(question: AuditQuestion): readonly string[] {
  * @returns The entry's lines
  */
 function answeredEntry(answer: AuditAnswer): readonly string[] {
-  return [
+  return marked([
     `### ${answer.id}`,
     "",
     field(ENTRY_LABEL.question, oneLine(answer.question)),
     field(ENTRY_LABEL.answer, answer.answer),
     field(ENTRY_LABEL.status, STATUS_ABSORBED),
-  ];
+  ]);
 }
 
 /**
@@ -185,7 +199,7 @@ function section(
  * @param sections - The lines of each section
  * @returns The block's lines
  */
-function marked(sections: readonly (readonly string[])[]): readonly string[] {
+function block(sections: readonly (readonly string[])[]): readonly string[] {
   return [
     QUESTIONS_START,
     ...sections.flatMap(lines => ["", ...lines]),
@@ -208,7 +222,7 @@ export function questionsSection(
   const open = inOrder(report.questions, criteria, report.scopes);
   const answered = inOrder(report.answers, criteria, report.scopes);
   if (open.length === 0 && answered.length === 0) return [];
-  return marked([
+  return block([
     ...(open.length === 0
       ? []
       : [section(OPEN_QUESTIONS_HEADING, open.map(openEntry))]),
@@ -229,7 +243,7 @@ export function renderGapsQuestionBlock(
   criteria: readonly InScopeCriterion[]
 ): readonly string[] {
   const open = inOrder(report.questions, criteria, report.scopes);
-  return marked([
+  return block([
     open.length === 0
       ? [GAPS_NONE_OPEN_HEADING]
       : section(GAPS_QUESTIONS_HEADING, open.map(openEntry)),

@@ -13,6 +13,7 @@ import { canonicalText, compareCodeUnits } from "./canonical-json.js";
 import { inScopeCriteria, type CriterionCatalogue } from "./catalogue.js";
 import type { DeclaredGate } from "./gates-declaration.js";
 import type { ResolvedPoint } from "./register-points.js";
+import { isRequiredBeyondTheAuthor } from "./register-tier-rule.js";
 import {
   WHOLE_REPOSITORY_SCOPE,
   controlEntryId,
@@ -21,7 +22,6 @@ import {
   type ControlProof,
   type ControlRegisterEntry,
   type ControlTier,
-  type EnforcementLocation,
   type EnforcementPoint,
   type MeasuringMechanism,
 } from "./register-types.js";
@@ -43,17 +43,6 @@ interface DeclaredPart {
   readonly proof?: DeclaredProof;
   readonly evidence?: Partial<ControlEvidence>;
 }
-
-/**
- * The places a rule is enforced that the author of a change does not control.
- * A git hook in the author's checkout can be skipped and a coding agent's
- * session is the author's own, so neither is here.
- */
-const BEYOND_THE_AUTHOR: ReadonlySet<EnforcementLocation> = new Set([
-  "hosting-platform",
-  "deployment-pipeline",
-  "scheduled-run",
-]);
 
 /**
  * The requirements a gate serves, in catalogue order.
@@ -89,7 +78,9 @@ function criteriaOf(
  * The tier the gate declares. Otherwise `authoritative` when the rule is
  * required somewhere the author of a change does not control, and `advisory`
  * when it is not: a rule the author can skip is feedback, whatever it is
- * called.
+ * called. A gate that declares `authoritative` without being required in
+ * such a place never becomes a register: `./register-tier-rule.ts` refuses
+ * it once the entries are built.
  * @param gate - The gate's declaration
  * @param points - The entry's enforcement points
  * @returns The tier
@@ -101,11 +92,7 @@ function tierOf(
   if (gate.tier === "authoritative" || gate.tier === "advisory") {
     return gate.tier;
   }
-  return points.some(
-    point => point.level === "required" && BEYOND_THE_AUTHOR.has(point.location)
-  )
-    ? "authoritative"
-    : "advisory";
+  return isRequiredBeyondTheAuthor(points) ? "authoritative" : "advisory";
 }
 
 /**

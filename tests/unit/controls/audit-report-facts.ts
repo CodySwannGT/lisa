@@ -9,9 +9,11 @@
  * @module tests/unit/controls/audit-report-facts
  */
 import {
+  AUDIT_REPORT_MARKDOWN_PATH,
   validateAuditReport,
   type AuditReportContext,
   type AuditReportViolation,
+  type InlineAnswers,
 } from "../../../src/controls/audit-report.js";
 import {
   inScopeCriteria,
@@ -83,12 +85,21 @@ const FILES: Readonly<Record<string, number>> = {
 };
 const FOLDERS = [WHOLE, API, "web"];
 
-/** A record for the first criterion, completed an hour before {@link NOW}. */
+/**
+ * A record for the first criterion, completed an hour before {@link NOW}. It
+ * is about the whole repository and stands on its own: a setting read from
+ * the hosting platform, not one half of a paired proof.
+ */
 export const FRESH: EvidenceRecordRef = {
   id: "ev-fresh",
   criterion: FIRST,
   completed_at: "2026-11-17T11:00:00.000Z",
   freshness_seconds: 86_400,
+  entry_id: "code-style@.",
+  scope: WHOLE,
+  rung: "observed",
+  half: null,
+  moment: "pull-request",
 };
 
 /** A record for the first criterion that expired weeks before {@link NOW}. */
@@ -112,6 +123,35 @@ export const LINTER = {
   moment: "none",
   locators: [{ path: "ruff.toml", line: 4 }],
 } as const;
+
+/**
+ * What reading the rendered report gives when a person typed each of the
+ * given answers on its question's answer line. An answer in a report counts
+ * only then, so a case that holds a report to its rules with answers on
+ * record has to say they were typed (CodySwannGT/lisa#4978).
+ * @param answers - The answers, as the report's `answers` holds them
+ * @returns The answer lines, as read from `.lisa/audit/report.md`
+ */
+export function typedAnswers(
+  answers: readonly {
+    readonly id: string;
+    readonly question: string;
+    readonly answer: string;
+  }[]
+): InlineAnswers {
+  return {
+    rendered: true,
+    problems: [],
+    entries: answers.map(({ id, question, answer }, index) => ({
+      id,
+      question,
+      answer,
+      answered: true,
+      file: AUDIT_REPORT_MARKDOWN_PATH,
+      line: 12 + index * 7,
+    })),
+  };
+}
 
 /**
  * The facts a report is checked against.

@@ -38,6 +38,9 @@ export const AUDIT_FINDING_STATES = [
 /** One of the six states. */
 export type AuditFindingState = (typeof AUDIT_FINDING_STATES)[number];
 
+/** The state that says a requirement does not apply where the finding is. */
+export const NOT_APPLICABLE_STATE: AuditFindingState = "not-applicable";
+
 /**
  * The states that claim a control exists, and so must point at the line that
  * shows it.

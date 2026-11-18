@@ -28,11 +28,17 @@
  * ## A requirement a person vouches for (`human-attested`)
  *
  * Only a person's answer meets it. The finding is written `held`, at the
- * `asserted` rung, when the audit found it written down *and* the report
- * holds a person's answer to the question for that requirement and folder.
- * The record quotes the question's id and the answer, which is the
- * attestation. With no answer on record it is written `unknown`: an agent
- * finding a document never stands in for a person saying so.
+ * `asserted` rung, when the audit found it written down *and* a person
+ * answered the question for that requirement and folder. The record quotes
+ * the question's id and the answer, which is the attestation. With no such
+ * answer it is written `unknown`: an agent finding a document never stands
+ * in for a person saying so.
+ *
+ * An entry in the report's `answers` is not taken as a person's answer on its
+ * own, and neither is the report having passed its check earlier. The attest
+ * step reads the files people type in again, when it records, and applies
+ * the one test of `personAnswer` (`./audit-answers.ts`): the answer counts
+ * only when the same question holds the same words on its answer line.
  *
  * ## A requirement answered by a check (`gate`)
  *
@@ -49,12 +55,14 @@
  * | `proved` | no record: the finding only repeats a record already here |
  * @module controls/evidence-findings
  */
-import { recordedAnswer } from "./audit-answers.js";
-import type {
-  AuditFinding,
-  AuditFindingState,
-  AuditLocator,
-  AuditReport,
+import { personAnswer, recordedAnswer } from "./audit-answers.js";
+import {
+  AUDIT_REPORT_MARKDOWN_PATH,
+  type AuditFinding,
+  type AuditFindingState,
+  type AuditLocator,
+  type AuditReport,
+  type InlineAnswers,
 } from "./audit-report-types.js";
 import type { InScopeCriterion } from "./catalogue.js";
 import {
@@ -92,6 +100,11 @@ export const FINDING_RESULTS: Readonly<
 export interface FindingsToRecord {
   /** A report that passed every check. */
   readonly report: Pick<AuditReport, "findings" | "answers">;
+  /**
+   * What stands on the answer lines of the files people type in, read when
+   * the findings are recorded and not taken from an earlier check.
+   */
+  readonly inlineAnswers: InlineAnswers;
   /** The in-scope requirements, which say what kind of thing answers each. */
   readonly criteria: readonly InScopeCriterion[];
   /** Reads the repository the report points into. */
@@ -176,28 +189,34 @@ function artifact(finding: AuditFinding, repository: RepositoryReader): Judged {
 /**
  * What a finding about something a person vouches for is written down as.
  * @param finding - The finding, in the state that says something is there
- * @param report - The report, which holds the answers people gave
+ * @param request - The report's answers, and what people typed
  * @returns The record's rung, result, reason and sentence
  */
 function attestation(
   finding: AuditFinding,
-  report: Pick<AuditReport, "answers">
+  request: Pick<FindingsToRecord, "report" | "inlineAnswers">
 ): Judged {
+  const { report, inlineAnswers } = request;
   const id = requirementQuestionId(finding.criterion, finding.scope);
-  const answer = recordedAnswer(report, id);
-  return answer === null
-    ? {
-        rung: "asserted",
-        result: "unknown",
-        reason: FINDING_REASONS.noAttestation,
-        detail: `Only a person can vouch for this requirement, and no person's answer to the audit's question "${id}" is on record. The audit has to ask that question, and a person has to answer it in the audit report.`,
-      }
-    : {
-        rung: "asserted",
-        result: "held",
-        reason: FINDING_REASONS.attested,
-        detail: `A person answered the audit's question "${id}" (${answer.question}): "${answer.answer}". ${finding.what}`,
-      };
+  const answer = personAnswer(report, inlineAnswers, id);
+  if (answer === null) {
+    const why =
+      recordedAnswer(report, id) === null
+        ? `no person's answer to the audit's question "${id}" is on record. The audit has to ask that question, and a person has to answer it in the audit report.`
+        : `the answer the audit report holds to the question "${id}" is not written on that question's answer line in ${AUDIT_REPORT_MARKDOWN_PATH}, so nothing shows that a person gave it. A person has to type the answer on that line, and the audit has to be run again.`;
+    return {
+      rung: "asserted",
+      result: "unknown",
+      reason: FINDING_REASONS.noAttestation,
+      detail: `Only a person can vouch for this requirement, and ${why}`,
+    };
+  }
+  return {
+    rung: "asserted",
+    result: "held",
+    reason: FINDING_REASONS.attested,
+    detail: `A person answered the audit's question "${id}" (${answer.question}): "${answer.answer}". ${finding.what}`,
+  };
 }
 
 /**
@@ -219,7 +238,7 @@ function judged(
     return artifact(finding, request.repository);
   }
   if (finding.state === FOUND_STATE && kind === HUMAN_ATTESTED_KIND) {
-    return attestation(finding, request.report);
+    return attestation(finding, request);
   }
   const rung: EvidenceRung = "asserted";
   return { rung, result, reason: finding.state, detail: finding.what };

@@ -15,12 +15,17 @@ import {
   AUDIT_REPORT_JSON_PATH,
   AUDIT_REPORT_MARKDOWN_PATH,
   AUDIT_REPORT_RULES,
+  NOT_APPLICABLE_STATE,
   PLAIN_LANGUAGE_FIELDS,
   validateAuditReport,
   type AuditReportRule,
 } from "../../../src/controls/audit-report.js";
-import { loadCriterionCatalogue } from "../../../src/controls/catalogue.js";
 import {
+  NEVER_NOT_APPLICABLE,
+  loadCriterionCatalogue,
+} from "../../../src/controls/catalogue.js";
+import {
+  amendFinding,
   completeAuditReport,
   sampleFinding,
 } from "../../helpers/control-audit-report.js";
@@ -88,10 +93,30 @@ describe("a complete report", () => {
 
   it.each(
     AUDIT_FINDING_STATES.filter(
-      state => state !== PROVED && state !== EXISTS_NOT_ENFORCED
+      state =>
+        state !== PROVED &&
+        state !== EXISTS_NOT_ENFORCED &&
+        state !== NOT_APPLICABLE_STATE
     )
   )("accepts the state %s with no mechanism", state => {
     expect(violationsOf(withFirst({ state }))).toEqual([]);
+  });
+
+  it("accepts the state not-applicable with no mechanism, for a requirement that may not apply", () => {
+    const conditional = REPOSITORY_WIDE.find(
+      criterion => criterion.not_applicable_when !== NEVER_NOT_APPLICABLE
+    );
+
+    expect(conditional).toBeDefined();
+    expect(
+      violationsOf(
+        amendFinding(
+          completeAuditReport(),
+          { criterion: conditional?.id ?? "", scope: WHOLE },
+          { state: NOT_APPLICABLE_STATE }
+        )
+      )
+    ).toEqual([]);
   });
 
   it("accepts a control that exists but is not enforced, with a pointer", () => {

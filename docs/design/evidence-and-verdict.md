@@ -138,8 +138,8 @@ says:
 
 | requirement's `kind` | the attest step | record |
 | --- | --- | --- |
-| `artifact` (a record that exists) | opens every file the finding points at and looks for the line, itself, at that moment. It does not rely on the report's own check having run. | Every line found: `observed`, `held`, reason `artifact-located`. The finding points nowhere, or a line is not there: `asserted`, `unknown`, reason `artifact-not-found`. |
-| `human-attested` (a person vouches for it) | looks for a person's answer on record to the question `<criterion>@<scope>`. | An answer is on record: `asserted`, `held`, reason `person-attested`, with the question's id and the answer quoted in `detail`. None: `asserted`, `unknown`, reason `no-attestation`. |
+| `artifact` (a record that exists) | opens every file the finding points at and looks for the line, itself, at that moment. It does not rely on the report's own check having run. A file in `.lisa/audit/`, in `.lisa/controls/` (other than the control register) or in `.git` (other than a hook installed in `.git/hooks/`) is not looked at: it is there whatever the repository does, so a line in it shows nothing. | Every line found: `observed`, `held`, reason `artifact-located`. The finding points nowhere, or a line is not there: `asserted`, `unknown`, reason `artifact-not-found`. |
+| `human-attested` (a person vouches for it) | looks for a person's answer to the question `<criterion>@<scope>`: an entry of the report's `answers` **and** the same words on that question's answer line in `.lisa/audit/report.md` or `wiki/gaps.md`, read again at that moment. An entry of `answers` alone is what an agent could have written, and a placeholder such as `TBD` is not an answer. | A person's answer: `asserted`, `held`, reason `person-attested`, with the question's id and the answer quoted in `detail`. None, or one nobody typed: `asserted`, `unknown`, reason `no-attestation`. |
 | `gate` (a check) | does nothing more. | `asserted`, `held`, with the finding's state as the reason. It never makes the requirement conforming. |
 
 A finding in any other state is written the same way for every kind, at the
@@ -162,6 +162,13 @@ A record of an audit finding cannot back a `proved` finding in a later
 audit: `lisa controls report-check` turns away a record whose `entry_id` is
 `null`, and any record whose `result` is not `held`. An audit that cited
 them would be citing itself, or citing a failure as proof.
+
+A record that can back a `proved` finding still backs only what it is a
+record of. The check also turns away a record about another folder (a record
+for the whole repository speaks for every folder, as it does in the verdict),
+and one half of a paired proof whose other half is not on record, held and
+current, for the same control at the same moment. A finding in any other
+state may not cite a record at all.
 
 ### Freshness
 

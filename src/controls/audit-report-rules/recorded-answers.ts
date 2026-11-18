@@ -12,17 +12,32 @@
  *
  * It holds the other way too. An answer in the record that nobody typed is
  * not a person's answer, and deciding an answer on a person's behalf is not
- * something an audit may do.
+ * something an audit may do. Every answer on record has to pass the one test
+ * of `personAnswer` (`../audit-answers.ts`): the same question holds the same
+ * words on its answer line in a file a person types in. That is so whether
+ * or not a rendered report exists. A record that holds answers with no
+ * `report.md` beside it is refused, because nothing then shows that a person
+ * typed them: the first audit of a repository has no answers to carry, and a
+ * report that was deleted cannot vouch for the ones it held.
  *
  * A file that cannot be read in the written form is refused here as well,
  * with its line named, for the same reason: a line that was skipped may be
  * the one the answer is on.
+ *
+ * ## What this rule cannot see
+ *
+ * An answer that was typed, never absorbed, and whose file was then deleted
+ * has left nothing behind to check. The audit is told never to remove or
+ * edit `report.md`; no code can notice that it did.
  * @module controls/audit-report-rules/recorded-answers
  */
+import { personAnswer } from "../audit-answers.js";
 import {
   AUDIT_REPORT_MARKDOWN_PATH,
+  type AuditAnswer,
   type AuditReportRule,
   type AuditReportViolation,
+  type InlineAnswers,
   type InlineEntry,
 } from "../audit-report-types.js";
 
@@ -51,6 +66,25 @@ function where(entry: InlineEntry): string {
 }
 
 /**
+ * Say why an answer on record is not a person's, when no answer line holds
+ * anything for its question.
+ * @param answer - The answer on record
+ * @param typed - What was read from the files people type in
+ * @returns What is wrong and what to do
+ */
+function nobodyTyped(answer: AuditAnswer, typed: InlineAnswers): string {
+  const emptied = typed.entries.find(
+    entry => entry.id === answer.id && entry.answered
+  );
+  if (emptied !== undefined) {
+    return `The answer line at ${where(emptied)} is empty, but the record still holds an answer to "${answer.question}". Run ${ABSORB} to withdraw the answer, or type it back on that line.`;
+  }
+  return typed.rendered
+    ? `The record holds an answer to "${answer.question}" that is not written in ${AUDIT_REPORT_MARKDOWN_PATH}. Only an answer a person typed in the report is recorded: remove it from "answers".`
+    : `The record holds an answer to "${answer.question}", but ${AUDIT_REPORT_MARKDOWN_PATH} is not there, so nothing shows that a person typed it. Put the file back as it was, or remove the answer from "answers" so that the audit asks the question again.`;
+}
+
+/**
  * The record carries every typed answer, and nothing that was not typed.
  * @param report - The report
  * @param context - The facts it is checked against
@@ -58,7 +92,8 @@ function where(entry: InlineEntry): string {
  *   then typed answers the record lacks, then recorded answers nobody typed
  */
 export const answersAreWhatWasTyped: AuditReportRule = (report, context) => {
-  const { entries, problems, rendered } = context.inlineAnswers;
+  const { inlineAnswers } = context;
+  const { entries, problems } = inlineAnswers;
   if (problems.length > 0) return problems.map(problem => violation(problem));
   const typed = entries.filter(entry => entry.answer !== null);
   return [
@@ -73,17 +108,14 @@ export const answersAreWhatWasTyped: AuditReportRule = (report, context) => {
         ),
       ];
     }),
-    ...(rendered ? report.answers : [])
-      .filter(answer => !typed.some(entry => entry.id === answer.id))
-      .map(answer => {
-        const emptied = entries.find(
-          entry => entry.id === answer.id && entry.answered
-        );
-        return violation(
-          emptied === undefined
-            ? `The record holds an answer to "${answer.question}" that is not written in ${AUDIT_REPORT_MARKDOWN_PATH}. Only an answer a person typed in the report is recorded: remove it from "answers".`
-            : `The answer line at ${where(emptied)} is empty, but the record still holds an answer to "${answer.question}". Run ${ABSORB} to withdraw the answer, or type it back on that line.`
-        );
-      }),
+    // An answer whose question has a typed line was dealt with above: the
+    // two agree, or the difference was reported from the line.
+    ...report.answers
+      .filter(
+        answer =>
+          personAnswer(report, inlineAnswers, answer.id) === null &&
+          !typed.some(entry => entry.id === answer.id)
+      )
+      .map(answer => violation(nobodyTyped(answer, inlineAnswers))),
   ];
 };
