@@ -1,6 +1,7 @@
 /**
  * `lisa controls attest [path] [--workspace <folder>] [--json] [--check]
- * [--pull-request-canaries] [--acknowledge-external-effects]`: run the
+ * [--pull-request-canaries] [--acknowledge-external-effects]
+ * [--before-enforce]`: run the
  * paired proof of every control in the register, say which ones work, and
  * write down what was found.
  *
@@ -46,6 +47,11 @@
  * `--acknowledge-external-effects`. Without it the entry is `unknown` and
  * the declared effect is quoted.
  *
+ * With `--before-enforce` it asks a different question, before anything is
+ * installed: which checks exist and are not enforced? It installs no
+ * carrier, writes none of the three files, and has its own result words and
+ * exit codes; see `./attest-before-enforce.ts`.
+ *
  * It works in a repository where Lisa was never applied. The requirements,
  * the gate registry and the gate runner come from the Lisa package the
  * command runs from; nothing is read from the host but `.lisa.config.json`,
@@ -75,6 +81,10 @@ import {
   generateControlRegister,
   type ControlRegisterGeneration,
 } from "../register.js";
+import {
+  BEFORE_ENFORCE_FLAG,
+  runAttestBeforeEnforce,
+} from "./attest-before-enforce.js";
 import { openAttestWorkspace } from "./attest-workspace.js";
 
 /** The subcommand's name under `lisa controls`. */
@@ -105,6 +115,11 @@ export interface AttestOptions {
   readonly pullRequestCanaries?: boolean;
   /** Let a proof that says it reaches outside the repository run. */
   readonly acknowledgeExternalEffects?: boolean;
+  /**
+   * Install nothing and write nothing: find the checks that exist and that
+   * nothing enforces yet. See `./attest-before-enforce.ts`.
+   */
+  readonly beforeEnforce?: boolean;
 }
 
 /** What the command needs from outside, each replaceable in a test. */
@@ -212,6 +227,36 @@ async function attempt(
 }
 
 /**
+ * Tell whether the operator asked for one of the two modes that prove no
+ * control and write nothing.
+ * @param options - What the operator asked for
+ * @returns Whether it is `--before-enforce` or `--check`
+ */
+function asksOther(options: AttestOptions): boolean {
+  return options.beforeEnforce === true || options.check === true;
+}
+
+/**
+ * Run the mode the operator asked for in place of the proofs. Each has its
+ * own exit codes.
+ * @param targetPath - The repository; the working directory when left out
+ * @param options - What the operator asked for
+ * @param dependencies - Replaceable collaborators
+ * @returns The mode's exit code
+ */
+function otherMode(
+  targetPath: string | undefined,
+  options: AttestOptions,
+  dependencies: AttestDependencies
+): Promise<number> {
+  // Before anything is installed: which checks exist and are not enforced?
+  // Asked together with --check, it refuses the pair itself.
+  return options.beforeEnforce === true
+    ? runAttestBeforeEnforce(targetPath, options, dependencies)
+    : runAttestCheck(targetPath, dependencies);
+}
+
+/**
  * Run the paired proof of every control of one repository and print the
  * results.
  * @param targetPath - The repository; the working directory when left out
@@ -229,7 +274,7 @@ export async function runAttest(
   const stderr =
     dependencies.stderr ?? (line => process.stderr.write(`${line}\n`));
   const cwd = dependencies.cwd ?? process.cwd();
-  if (options.check === true) return runAttestCheck(targetPath, dependencies);
+  if (asksOther(options)) return otherMode(targetPath, options, dependencies);
   const attempted = await attempt(
     path.resolve(cwd, targetPath ?? "."),
     options.workspace === undefined
@@ -342,8 +387,13 @@ export function registerAttest(
       "--acknowledge-external-effects",
       "Run proofs that declare an effect outside the repository. Without this option such an entry is unknown and its declared effect is quoted"
     )
+    .option(
+      BEFORE_ENFORCE_FLAG,
+      "Before anything is installed: commit or push each check's violating change for real in a fresh clone with no hook installed, and run the check's own command on it. A change that goes through is a check that exists and is not enforced. Writes nothing: no evidence, register or verdict. Exit 0 every entry was answered, 1 an entry gave no answer, 2 nothing was tried"
+    )
     .action(async (targetPath: string | undefined, options: AttestOptions) => {
       const code = await dependencies.runAttest(targetPath, {
+        ...(options.beforeEnforce === true ? { beforeEnforce: true } : {}),
         ...(typeof options.workspace === "string"
           ? { workspace: options.workspace }
           : {}),

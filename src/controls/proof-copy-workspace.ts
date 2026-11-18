@@ -36,6 +36,16 @@
  * optional there, which reports and never refuses. Neither falls back to
  * starting the check's command: that would be a different proof under the
  * same name.
+ *
+ * ## The same commit or push, answered by git alone
+ *
+ * Before anything is installed there is no carrier and no gate runner to
+ * report, and the question is a different one: does a bad change get
+ * through at all? Opened with `answeredBy: "git"`, the workspace makes the
+ * same real commit or push whatever is wired in the copy, and hands the
+ * answer on when the first two things above agree. It asks nothing of a
+ * runner's report. `./before-enforce-run.ts` reads those answers, and they
+ * are never read as a proof's.
  * @module controls/proof-copy-workspace
  */
 import { rmSync } from "node:fs";
@@ -73,6 +83,20 @@ const RUNNER_VERDICT = /^ {2}(PASSED|FAILED) +(?:required|optional) +/u;
 
 /** What the gate runner's report says of one check. */
 type RunnerVerdict = "PASSED" | "FAILED";
+
+/** Who is asked whether a commit or push went through. */
+export const PROOF_COPY_ANSWERERS = ["carriers", "git"] as const;
+
+/** How a workspace over a disposable copy answers. */
+export interface ProofCopyWorkspaceOptions {
+  /**
+   * `carriers`, the default: an answer counts only when the installed
+   * carrier's gate runner reports this check, and nothing is triggered at a
+   * moment no carrier runs at. `git`: the commit or push is made whatever is
+   * wired, and git's exit status together with what git did is the answer.
+   */
+  readonly answeredBy?: (typeof PROOF_COPY_ANSWERERS)[number];
+}
 
 /**
  * Let anything waiting on this process have its turn.
@@ -200,7 +224,8 @@ function landed(copy: ProofCopy, moment: CarrierMoment): boolean {
  * @param facts - What else is known about it
  * @param facts.moment - The moment
  * @param facts.landed - Whether the change got where the moment takes it
- * @param facts.name - What the gate runner calls the check
+ * @param facts.name - What the gate runner calls the check; `null` when
+ *   git alone answers and no runner's report is asked for
  * @returns The answer, or the same answer marked as one that says nothing
  *   about this check
  */
@@ -209,7 +234,7 @@ function attributed(
   facts: {
     readonly moment: CarrierMoment;
     readonly landed: boolean;
-    readonly name: string;
+    readonly name: string | null;
   }
 ): ProofAnswer {
   const { code } = answer;
@@ -218,6 +243,7 @@ function attributed(
   if (refused === facts.landed) {
     return { ...answer, notStarted: contradictionDetail(facts.moment, code) };
   }
+  if (facts.name === null) return answer;
   return runnerVerdictOf(answer.output, facts.name) ===
     (refused ? "FAILED" : "PASSED")
     ? answer
@@ -232,12 +258,14 @@ function attributed(
  * @param copy - The disposable copy, with the change already staged
  * @param tools - The gate runner's own parts
  * @param request - The entry, its moment and the time limit
+ * @param byGit - Whether git alone answers, whatever is wired in the copy
  * @returns What answered
  */
 function triggered(
   copy: ProofCopy,
   tools: ProofTools,
-  request: ProofTrigger
+  request: ProofTrigger,
+  byGit: boolean
 ): ProofAnswer {
   const { entry, moment, timeoutMs } = request;
   const inClone = copyGit(copy.clone);
@@ -258,7 +286,7 @@ function triggered(
     );
   }
   const command = momentCommand(copy, entry, moment);
-  const blocked = notThroughHook(copy, entry, moment);
+  const blocked = byGit ? null : notThroughHook(copy, entry, moment);
   if (blocked !== null) return unstarted(command, blocked);
   if (moment === "push") {
     // The push is the moment under proof. The commit that carries the change
@@ -292,7 +320,7 @@ function triggered(
     {
       landed: landed(copy, moment),
       moment,
-      name: `${entry.gate} in ${entry.scope}`,
+      name: byGit ? null : `${entry.gate} in ${entry.scope}`,
     }
   );
 }
@@ -341,13 +369,16 @@ function reset(copy: ProofCopy, inClone: RunGit): PatchOutcome {
  * disposable copy.
  * @param copy - The disposable copy
  * @param tools - The gate runner's own parts
+ * @param options - Who answers; the installed carriers when left out
  * @returns The workspace
  */
 export function proofCopyWorkspace(
   copy: ProofCopy,
-  tools: ProofTools
+  tools: ProofTools,
+  options: ProofCopyWorkspaceOptions = {}
 ): ProofWorkspace {
   const inClone = copyGit(copy.clone);
+  const byGit = options.answeredBy === "git";
   return {
     root: copy.clone,
     apply: async patch => {
@@ -364,7 +395,7 @@ export function proofCopyWorkspace(
     },
     trigger: async request => {
       await turn();
-      return triggered(copy, tools, request);
+      return triggered(copy, tools, request, byGit);
     },
     restore: async () => {
       await turn();

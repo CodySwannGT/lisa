@@ -97,7 +97,10 @@ export interface AuditOfferInputs {
  * @param start - What the line starts with, after its indentation
  * @returns The line's number counted from 1, or `null`
  */
-function lineStarting(text: string | null, start: string): number | null {
+export function lineStarting(
+  text: string | null,
+  start: string
+): number | null {
   const index =
     text === null
       ? -1

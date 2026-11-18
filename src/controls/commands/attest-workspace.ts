@@ -12,6 +12,10 @@
  *    there, and proves each check through a real commit or a real push. See
  *    `../proof-copy.ts` for what the copy is.
  *
+ * {@link openProofCopy} is the third case without the workspace: the copy
+ * and its removal. `--before-enforce` opens its own copy through it, built
+ * with no carriers, so every run's folder is made and removed in one place.
+ *
  * ## What happens to the temporary folder
  *
  * It is removed on every way out, and this module is the only place that
@@ -33,7 +37,7 @@ import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { buildProofCopy } from "../proof-copy.js";
+import { buildProofCopy, type ProofCopy } from "../proof-copy.js";
 import { proofCopyWorkspace } from "../proof-copy-workspace.js";
 import { uncommittedNotes } from "../proof-copy-wording.js";
 import {
@@ -78,17 +82,55 @@ export function proofScratchFolder(): string {
   return path.join(tmpdir(), `${PROOF_SCRATCH_PREFIX}${randomUUID()}`);
 }
 
+/** What opening a disposable copy takes, each replaceable. */
+export interface ProofCopyChoice extends Pick<
+  AttestWorkspaceChoice,
+  "notice" | "signals" | "scratch" | "build"
+> {
+  /**
+   * What the operator is told once the copy is built, before any result.
+   * When left out, a repository with uncommitted work gets the notes of a
+   * run that writes its results down.
+   */
+  readonly notes?: (copy: ProofCopy) => readonly string[];
+}
+
+/** A disposable copy and the way to remove it, or why there is none. */
+export type ProofCopyOpening =
+  | {
+      readonly problem: null;
+      readonly copy: ProofCopy;
+      /** Remove the run's folder. Safe to call any number of times. */
+      readonly close: () => Promise<void>;
+    }
+  | { readonly problem: string };
+
 /**
- * Open a disposable copy of the repository, made for this run and removed
- * with it.
- * @param request - The repository and the gate runner
- * @param choice - Replaceable collaborators
- * @returns The workspace, or why no proof will be run
+ * The notes of a run that writes its results into the repository.
+ * @param copy - The copy that was built
+ * @returns The notes; none when everything is committed
  */
-async function openDisposableCopy(
-  request: ProofWorkspaceRequest,
-  choice: AttestWorkspaceChoice
-): Promise<ProofWorkspaceOpening> {
+function recordingNotes(copy: ProofCopy): readonly string[] {
+  return copy.source.dirty
+    ? uncommittedNotes(copy.source.commit, copy.carried)
+    : [];
+}
+
+/**
+ * Build a disposable copy of a repository in a temporary folder of its own,
+ * and promise its removal on every way out.
+ *
+ * This is the only place the folder is created and the only place it is
+ * removed. Whoever calls it calls `close()` in a `finally`; a signal that
+ * arrives before then removes the folder too.
+ * @param root - Real path of the operator's repository
+ * @param choice - Replaceable collaborators
+ * @returns The copy and the way to remove it, or why there is none
+ */
+export async function openProofCopy(
+  root: string,
+  choice: ProofCopyChoice = {}
+): Promise<ProofCopyOpening> {
   const folder = (choice.scratch ?? proofScratchFolder)();
   const notice = choice.notice ?? (line => process.stderr.write(`${line}\n`));
   // Listening before the folder exists: a signal that arrives while the copy
@@ -115,26 +157,40 @@ async function openDisposableCopy(
     }
   };
   try {
-    const built = await (choice.build ?? buildProofCopy)(request.root, folder);
+    const built = await (choice.build ?? buildProofCopy)(root, folder);
     if (built.problem !== null) {
       await close();
       return built;
     }
-    const { copy } = built;
-    if (copy.source.dirty) {
-      uncommittedNotes(copy.source.commit, copy.carried).forEach(line => {
-        notice(`attest: note. ${line}`);
-      });
-    }
-    return {
-      problem: null,
-      workspace: proofCopyWorkspace(copy, request.tools),
-      close,
-    };
+    (choice.notes ?? recordingNotes)(built.copy).forEach(line => {
+      notice(`attest: note. ${line}`);
+    });
+    return { problem: null, copy: built.copy, close };
   } catch (error) {
     await close();
     throw error;
   }
+}
+
+/**
+ * Open a disposable copy of the repository, made for this run and removed
+ * with it, as a workspace that proves each check through its carrier.
+ * @param request - The repository and the gate runner
+ * @param choice - Replaceable collaborators
+ * @returns The workspace, or why no proof will be run
+ */
+async function openDisposableCopy(
+  request: ProofWorkspaceRequest,
+  choice: AttestWorkspaceChoice
+): Promise<ProofWorkspaceOpening> {
+  const opened = await openProofCopy(request.root, choice);
+  return opened.problem === null
+    ? {
+        problem: null,
+        workspace: proofCopyWorkspace(opened.copy, request.tools),
+        close: opened.close,
+      }
+    : opened;
 }
 
 /**

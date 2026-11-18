@@ -1,0 +1,4 @@
+display_name: "Attest"
+short_description: "Prove, by code, whether each…"
+default_prompt:
+  - "Use $lisa-attest: Prove, by code, whether each…."
