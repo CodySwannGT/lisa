@@ -47,7 +47,7 @@ const VERDICT_PREFIX = "raise-self-dependency-pin:";
  * Decide what the manifest's self-pin should become for one published version.
  * @param {Record<string, unknown>} manifest - Parsed package.json.
  * @param {string} version - The version the release just published.
- * @returns {{verdict: "raised" | "current" | "local-checkout" | "unprovable" | "no-pin", detail: string, manifest: Record<string, unknown>}} Outcome and the manifest to write.
+ * @returns {{verdict: "raised" | "current" | "local-checkout" | "unprovable" | "no-pin" | "below-floor", detail: string, manifest: Record<string, unknown>}} Outcome and the manifest to write.
  */
 export function raiseSelfPin(manifest, version) {
   if (semver.valid(version) === null || semver.prerelease(version) !== null) {
@@ -66,6 +66,21 @@ export function raiseSelfPin(manifest, version) {
   const { verdict, detail } = compareSpec(declared.spec, version);
   if (verdict !== "stale") {
     return { verdict, detail, manifest };
+  }
+  // `stale` means only "outside the range", and a version BELOW the floor is
+  // outside it too. The hourly run raises to the newest INSTALLABLE release,
+  // which skips one whose tarball 404s — so a pin of ^7.1.0 whose 7.1.0 is
+  // unservable would otherwise be "raised" to ^7.0.5. A raise never lowers.
+  const floor = semver.minVersion(declared.spec);
+  if (floor !== null && semver.lt(version, floor)) {
+    return {
+      verdict: "below-floor",
+      detail:
+        `${version} is below the declared floor ${floor.version} of ${declared.spec}; ` +
+        `a raise never lowers the pin, so nothing was written. The floor release itself ` +
+        `is not installable, which is what to fix`,
+      manifest,
+    };
   }
   const raised = `^${version}`;
   return {
@@ -107,9 +122,10 @@ function defaultManifestPath() {
  *
  * Exit 0 for `raised`, `current`, `local-checkout` and `no-pin` — the same
  * verdicts the check passes — and the workflow commits only on `raised`. Exit 1
- * on `unprovable` (a spec that is not a valid range), because the check fails
- * on it too and leaving it alone silently would hand the next pull request a
- * red check.
+ * on `unprovable` (a spec that is not a valid range) and on `below-floor` (the
+ * newest installable release is older than the declared floor), because the
+ * check fails on both too and leaving either alone silently would hand the
+ * next pull request a red check with no run that says why.
  * @param {string[]} argv - Arguments after the script path.
  * @returns {number} Process exit code.
  */
@@ -133,7 +149,9 @@ export function main(argv) {
   process.stdout.write(
     `${VERDICT_PREFIX} ${outcome.verdict} package=${SELF_PACKAGE} published=${version} — ${outcome.detail}\n`
   );
-  return outcome.verdict === "unprovable" ? 1 : 0;
+  return outcome.verdict === "unprovable" || outcome.verdict === "below-floor"
+    ? 1
+    : 0;
 }
 
 /* c8 ignore start -- CLI wiring, exercised through main() in tests */

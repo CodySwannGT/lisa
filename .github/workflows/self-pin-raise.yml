@@ -153,7 +153,13 @@ jobs:
           status=0
           node scripts/raise-self-dependency-pin.mjs --version "$VERSION" >"$RUNNER_TEMP/raise.txt" 2>&1 || status=$?
           cat "$RUNNER_TEMP/raise.txt"
-          [ "$status" -eq 0 ] || exit "$status"
+          # `unprovable` and `below-floor` (the newest installable release is
+          # older than the pin's floor, and a raise never lowers) both fail
+          # here, and the annotation carries the script's own reason.
+          if [ "$status" -ne 0 ]; then
+            echo "::error::$(grep -m 1 '^raise-self-dependency-pin: ' "$RUNNER_TEMP/raise.txt" || echo "the raise script exited $status without a verdict line")"
+            exit "$status"
+          fi
           verdict="$(sed -n 's/^raise-self-dependency-pin: \([a-z-]*\) .*/\1/p' "$RUNNER_TEMP/raise.txt" | head -n 1)"
           if [ -z "$verdict" ]; then
             echo "::error::The raise script printed no verdict line."

@@ -205,6 +205,21 @@ describe("the raise workflow runs after a release and every hour (#4951)", () =>
     expect(on("an-org/a-host", MAIN)).toBe(false);
   });
 
+  it("pushes only from Lisa's own repository, stating the guard itself", () => {
+    const guard = raiseJob("push_self_pin_raise").if ?? "";
+    const pushes = (repository: string, verdict: string): boolean =>
+      guardPasses(guard, {
+        github: { repository },
+        needs: { prepare_self_pin_raise: { outputs: { verdict } } },
+      });
+
+    expect(guard).toContain("github.repository == 'CodySwannGT/lisa'");
+    expect(pushes(LISA, "raised")).toBe(true);
+    expect(pushes("an-org/a-host", "raised")).toBe(false);
+    expect(pushes(LISA, "current")).toBe(false);
+    expect(pushes(LISA, "below-floor")).toBe(false);
+  });
+
   it("lets only one push run at a time", () => {
     const { concurrency } = raiseJob("push_self_pin_raise") as DeployJob;
 

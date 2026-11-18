@@ -91,6 +91,10 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
       /raise-self-dependency-pin\.mjs[^\n]*(?<!\|)\|(?!\|)/
     );
     expect(runs(PREPARE_JOB)[raise]).toContain("|| status=$?");
+    // A refused raise (unprovable, below-floor) says why in the run summary.
+    expect(runs(PREPARE_JOB)[raise]).toContain(
+      "echo \"::error::$(grep -m 1 '^raise-self-dependency-pin: '"
+    );
     expect(proof).toContain("bun run typecheck");
     expect(proof).toContain("bun run security:audit");
   });

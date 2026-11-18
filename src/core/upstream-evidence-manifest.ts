@@ -2955,7 +2955,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/push-self-pin-raise.sh":
       "8a8b16f992f8382ee0f6d953a2a5d0b17939ee42121d8e4165170c5f0432de80",
     "scripts/raise-self-dependency-pin.mjs":
-      "c950a7fae981ad682b6f1e4c5c3a28338b87d1b491dde17e49567b4865304db3",
+      "21375610a30c8caf01603cf90b6ecb3fa797bf4cbed7be2a55d3a389de881770",
     "scripts/reconcile-release-tags.mjs":
       "038e97bad361e1653f7c8d9842ab371d2dde62f02dc85c4e326a1b5aca06b178",
     "scripts/remedy-conformance.mjs":

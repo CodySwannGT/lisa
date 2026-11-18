@@ -171,6 +171,52 @@ describe("the release raises a self-pin it left behind (#4951)", () => {
     expect(result.stdout).toMatch(/^raise-self-dependency-pin: unprovable /);
   });
 
+  it("never lowers the pin to a release below its floor", () => {
+    // ^7.1.0 whose 7.1.0 tarball 404s: the hourly run's newest INSTALLABLE
+    // release is then 7.0.5, which is outside the range only because it is
+    // below it.
+    const floored = {
+      ...MANIFEST,
+      devDependencies: {
+        ...MANIFEST.devDependencies,
+        [SELF_PACKAGE]: "^7.1.0",
+      },
+    };
+
+    const outcome = raiseSelfPin(floored, "7.0.5");
+
+    expect(outcome.verdict).toBe("below-floor");
+    expect(outcome.manifest).toBe(floored);
+    expect(outcome.detail).toContain("below the declared floor 7.1.0");
+  });
+
+  it("fails the step and writes nothing when the target is below the floor", () => {
+    const file = writeManifest({
+      ...MANIFEST,
+      devDependencies: { [SELF_PACKAGE]: "^7.1.0" },
+    });
+    const before = readFileSync(file, "utf8");
+
+    const result = run(["--version", "7.0.5", MANIFEST_FLAG, file]);
+
+    expect(result.code).toBe(1);
+    expect(result.stdout).toMatch(/^raise-self-dependency-pin: below-floor /);
+    expect(result.stdout).toContain("never lowers the pin");
+    expect(readFileSync(file, "utf8")).toBe(before);
+  });
+
+  it("still raises across a major when the target is above the floor", () => {
+    const outcome = raiseSelfPin(
+      {
+        ...MANIFEST,
+        devDependencies: { [SELF_PACKAGE]: "^7.1.0" },
+      },
+      "8.0.0"
+    );
+
+    expect(outcome.verdict).toBe("raised");
+  });
+
   it("requires the published version", () => {
     expect(run([]).code).toBe(1);
   });
