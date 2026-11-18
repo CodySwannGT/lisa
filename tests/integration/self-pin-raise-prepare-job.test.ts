@@ -13,152 +13,61 @@ import { describe, expect, it } from "vitest";
 import {
   checkouts,
   type DeployJob,
-  deployJob,
-  guardPasses,
   installs,
   PREPARE_JOB,
   PUSH_JOB,
+  raiseJob,
   runs,
   secretReferences,
   secretReferencesIn,
   stepIndex,
 } from "./support/self-pin-raise-jobs.js";
 
+/** The flag that marks the target step: the bounded packument wait. */
+const AWAIT_LISTED = "--await-listed";
+
+/** The raise script's invocation in its own step. */
+const RAISE_RUN = 'scripts/raise-self-dependency-pin.mjs --version "$VERSION"';
+
 /** The package script every caller of the self-pin check goes through. */
 const SCRIPT_TASK = "check:self-pin";
 
 describe("the release raises the self-pin the check guards (#4951)", () => {
-  describe("prepares only when a release is on npm, on main", () => {
-    /**
-     * Whether prepare_self_pin_raise starts for one combination of outcomes.
-     * @param overrides - The outcomes that differ from a clean main release.
-     * @param overrides.environment - The deploy environment.
-     * @param overrides.ref - The ref the run is on.
-     * @param overrides.release - The release job's result.
-     * @param overrides.version - The version the release cut.
-     * @param overrides.publish - The publish job's result.
-     * @param overrides.reconciled - reconcile_release's verdict.
-     * @returns Whether the guard passes.
-     */
-    function prepares(
-      overrides: {
-        environment?: string;
-        ref?: string;
-        release?: string;
-        version?: string;
-        publish?: string;
-        reconciled?: string;
-      } = {}
-    ): boolean {
-      const outcome = {
-        environment: "main",
-        ref: "refs/heads/main",
-        release: "success",
-        version: "7.0.0",
-        publish: "success",
-        reconciled: "",
-        ...overrides,
-      };
-      return guardPasses(deployJob(PREPARE_JOB).if ?? "", {
-        github: { ref: outcome.ref },
-        needs: {
-          determine_environment: {
-            outputs: { environment: outcome.environment },
-          },
-          release: {
-            result: outcome.release,
-            outputs: { version: outcome.version },
-          },
-          publish_npm: { result: outcome.publish },
-          reconcile_release: { outputs: { verdict: outcome.reconciled } },
-        },
-      });
-    }
+  it("waits until npm lists the target before raising to it", () => {
+    const target = stepIndex(PREPARE_JOB, AWAIT_LISTED);
+    const step = runs(PREPARE_JOB)[target] ?? "";
+    const raise = stepIndex(PREPARE_JOB, RAISE_RUN);
 
-    it("waits on every job whose outcome it reads", () => {
-      expect(deployJob(PREPARE_JOB).needs).toEqual(
-        expect.arrayContaining([
-          "determine_environment",
-          "release",
-          "publish_npm",
-          "reconcile_release",
-        ])
-      );
-    });
+    expect(target).toBeGreaterThanOrEqual(0);
+    expect(raise).toBeGreaterThan(target);
+    expect(step).toContain(
+      'node scripts/check-self-dependency-pin.mjs --await-listed "$version"'
+    );
+    expect(step.indexOf(AWAIT_LISTED)).toBeGreaterThan(
+      step.indexOf("check-npm-publish-landed.mjs")
+    );
+  });
 
-    it("prepares after a successful publish on main", () => {
-      expect(prepares()).toBe(true);
-    });
+  it("raises to the requested release, or to the newest installable one when none was requested", () => {
+    const step = runs(PREPARE_JOB)[stepIndex(PREPARE_JOB, AWAIT_LISTED)] ?? "";
+    const env =
+      raiseJob(PREPARE_JOB).steps?.[stepIndex(PREPARE_JOB, AWAIT_LISTED)]?.env;
 
-    it("does not prepare off main, even after a successful publish", () => {
-      expect(prepares({ environment: "staging" })).toBe(false);
-      expect(prepares({ environment: "dev" })).toBe(false);
-    });
-
-    it("does not prepare from a run off main that asked for the main environment", () => {
-      expect(prepares({ ref: "refs/heads/staging" })).toBe(false);
-      expect(prepares({ ref: "refs/heads/dev" })).toBe(false);
-      expect(
-        prepares({
-          ref: "refs/heads/staging",
-          publish: "failure",
-          reconciled: "published",
-        })
-      ).toBe(false);
-    });
-
-    it("does not prepare when the publish failed and nothing proved it landed", () => {
-      expect(prepares({ publish: "failure" })).toBe(false);
-      expect(prepares({ publish: "cancelled" })).toBe(false);
-      expect(prepares({ publish: "skipped" })).toBe(false);
-      expect(prepares({ publish: "failure", reconciled: "missing" })).toBe(
-        false
-      );
-      expect(prepares({ publish: "failure", reconciled: "unprovable" })).toBe(
-        false
-      );
-    });
-
-    it("prepares when reconcile_release proved a failed-looking publish landed", () => {
-      expect(prepares({ publish: "failure", reconciled: "published" })).toBe(
-        true
-      );
-      expect(prepares({ publish: "cancelled", reconciled: "published" })).toBe(
-        true
-      );
-    });
-
-    it("does not prepare off main or without a release, even when reconciled", () => {
-      expect(
-        prepares({
-          environment: "staging",
-          publish: "failure",
-          reconciled: "published",
-        })
-      ).toBe(false);
-      expect(prepares({ release: "failure" })).toBe(false);
-      expect(prepares({ version: "" })).toBe(false);
-    });
-
-    it("lets reconcile_release hand its verdict on", () => {
-      const reconcile = deployJob("reconcile_release") as DeployJob & {
-        readonly outputs?: Record<string, string>;
-      };
-
-      expect(reconcile.outputs?.verdict).toBe(
-        "${{ steps.landed.outputs.verdict }}"
-      );
-    });
+    expect(env?.REQUESTED).toBe("${{ inputs.version }}");
+    expect(step).toContain('if [ -n "$REQUESTED" ]; then');
+    expect(step).toContain(
+      'version="$(node scripts/check-self-dependency-pin.mjs --newest-installable)"'
+    );
+    expect(raiseJob(PREPARE_JOB).outputs?.version).toBe(
+      "${{ steps.target.outputs.version }}"
+    );
   });
 
   it("installs main's locked dependencies before the raise script needs semver", () => {
     const install = runs(PREPARE_JOB).findIndex(
       run => run.trim() === "bun install --ignore-scripts --frozen-lockfile"
     );
-    const raise = stepIndex(
-      PREPARE_JOB,
-      'scripts/raise-self-dependency-pin.mjs --version "$VERSION"'
-    );
+    const raise = stepIndex(PREPARE_JOB, RAISE_RUN);
 
     expect(install).toBeGreaterThanOrEqual(0);
     expect(raise).toBeGreaterThan(install);
@@ -169,10 +78,7 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
       PREPARE_JOB,
       "scripts/check-npm-publish-landed.mjs"
     );
-    const raise = stepIndex(
-      PREPARE_JOB,
-      'scripts/raise-self-dependency-pin.mjs --version "$VERSION"'
-    );
+    const raise = stepIndex(PREPARE_JOB, RAISE_RUN);
     const prove = stepIndex(PREPARE_JOB, `bun run ${SCRIPT_TASK}`);
     const proof = runs(PREPARE_JOB)[prove] ?? "";
 
@@ -246,7 +152,7 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
 
   it("refuses to hand over anything but package.json and bun.lock", () => {
     const guard = stepIndex(PREPARE_JOB, "git status --porcelain");
-    const upload = (deployJob(PREPARE_JOB).steps ?? []).findIndex(step =>
+    const upload = (raiseJob(PREPARE_JOB).steps ?? []).findIndex(step =>
       (step.uses ?? "").startsWith("actions/upload-artifact@")
     );
 
@@ -255,7 +161,7 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
     );
     expect(upload).toBeGreaterThan(guard);
     expect(
-      String(deployJob(PREPARE_JOB).steps?.[upload]?.with?.path)
+      String(raiseJob(PREPARE_JOB).steps?.[upload]?.with?.path)
         .trim()
         .split(/\s+/)
         .sort((left, right) => left.localeCompare(right))

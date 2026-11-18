@@ -117,7 +117,11 @@ interface Fixture {
  * @returns The fixture.
  */
 function fixture(): Fixture {
-  const root = tracked(mkdtempSync(path.join(tmpdir(), "push-self-pin-")));
+  // The literal `$dollar` in the folder name is deliberate: TMPDIR may contain
+  // `$`, and the shim must treat fixture paths as data, not shell source.
+  const root = tracked(
+    mkdtempSync(path.join(tmpdir(), "push-self-pin-$dollar-"))
+  );
   const origin = bareMain(root);
   const work = cloneOf(root, origin, "work");
   const ancestor = commitAndPush(work, "README.md", "fixture\n");
@@ -174,17 +178,46 @@ function commitAndPush(cwd: string, file: string, content: string): string {
   return sha;
 }
 
+/** A `git` stand-in, and the environment that configures it. */
+interface FlakyGit {
+  readonly bin: string;
+  readonly log: string;
+  readonly env: Record<string, string>;
+}
+
+/**
+ * The shim's source. Every fixture path reaches it through the environment
+ * and is only ever expanded inside double quotes, so a temp folder whose name
+ * contains `$` or a space is used as data, never as shell source.
+ */
+const SHIM_SOURCE = [
+  "#!/bin/sh",
+  'for arg in "$@"; do',
+  '  case "$arg" in',
+  "    push|fetch)",
+  '      printf \'%s\\n\' "$arg" >> "$SHIM_LOG"',
+  '      case " $SHIM_FAIL_FIRST " in *" $arg "*)',
+  '        if [ ! -e "$SHIM_MARKS/failed-$arg" ]; then',
+  '          : > "$SHIM_MARKS/failed-$arg"',
+  '          echo "shim: transient $arg failure" >&2',
+  "          exit 128",
+  "        fi;;",
+  "      esac",
+  "      break;;",
+  "  esac",
+  "done",
+  'exec "$SHIM_REAL_GIT" "$@"',
+  "",
+].join("\n");
+
 /**
  * Put a `git` on PATH that fails the first call of each named subcommand and
- * logs every subcommand it sees.
+ * logs every push and fetch it sees.
  * @param root - The fixture root.
  * @param failFirst - Subcommands whose first call fails, e.g. `["push"]`.
- * @returns The folder to prepend to PATH, and the call log's path.
+ * @returns The folder to prepend to PATH, the call log and the shim's env.
  */
-function flakyGit(
-  root: string,
-  failFirst: readonly string[]
-): { bin: string; log: string } {
+function flakyGit(root: string, failFirst: readonly string[]): FlakyGit {
   const real = boundedSpawnSync({
     label: "locate the real git",
     command: "/bin/sh",
@@ -193,31 +226,16 @@ function flakyGit(
   const bin = path.join(root, "bin");
   const log = path.join(root, "calls.log");
   const shim = path.join(bin, "git");
+  const env = {
+    SHIM_LOG: log,
+    SHIM_MARKS: root,
+    SHIM_REAL_GIT: real,
+    SHIM_FAIL_FIRST: failFirst.join(" "),
+  };
   mkdirSync(bin);
-  writeFileSync(
-    shim,
-    [
-      "#!/bin/sh",
-      'for arg in "$@"; do',
-      '  case "$arg" in',
-      "    push|fetch)",
-      `      echo "$arg" >> "${log}"`,
-      `      case " ${failFirst.join(" ")} " in *" $arg "*)`,
-      `        if [ ! -e "${root}/failed-$arg" ]; then`,
-      `          : > "${root}/failed-$arg"`,
-      '          echo "shim: transient $arg failure" >&2',
-      "          exit 128",
-      "        fi;;",
-      "      esac",
-      "      break;;",
-      "  esac",
-      "done",
-      `exec "${real}" "$@"`,
-      "",
-    ].join("\n")
-  );
+  writeFileSync(shim, SHIM_SOURCE);
   chmodSync(shim, 0o755);
-  return { bin, log };
+  return { bin, log, env };
 }
 
 /**
@@ -225,14 +243,14 @@ function flakyGit(
  * @param work - The clone holding the raise.
  * @param remote - The remote to push to.
  * @param base - The proved base SHA.
- * @param pathPrefix - A folder to put ahead of PATH, for the git shim.
+ * @param shim - A git shim to put ahead of PATH, with its environment.
  * @returns Exit code and everything printed.
  */
 function push(
   work: string,
   remote: string,
   base: string,
-  pathPrefix?: string
+  shim?: FlakyGit
 ): { code: number | null; output: string } {
   const finished = boundedSpawnSync({
     label: "push-self-pin-raise.sh",
@@ -240,8 +258,9 @@ function push(
     args: [SCRIPT, remote, base, VERSION],
     cwd: work,
     env: gitEnv({
+      ...shim?.env,
       SELF_PIN_PUSH_RETRY_DELAY: "0",
-      PATH: [pathPrefix, process.env.PATH ?? ""].filter(Boolean).join(":"),
+      PATH: [shim?.bin, process.env.PATH ?? ""].filter(Boolean).join(":"),
     }),
   });
   return { code: finished.status, output: finished.stdout + finished.stderr };
@@ -253,7 +272,7 @@ function push(
  * @returns The SHA main points at.
  */
 function remoteMain(origin: string): string {
-  return git(origin, "rev-parse", "main");
+  return git(origin, "rev-parse", "refs/heads/main");
 }
 
 /**
@@ -285,11 +304,14 @@ describe("the deploy-key step pushes only onto the proved base (#4951)", () => {
     );
     const shim = flakyGit(root, []);
 
-    const result = push(work, origin, base, shim.bin);
+    const result = push(work, origin, base, shim);
 
     expect(result.code).toBe(1);
     expect(result.output).toContain(`main moved from ${base} to ${moved}`);
-    expect(result.output).toContain("prepare_self_pin_raise recomputes");
+    expect(result.output).toContain(
+      "hourly run of the self-pin-raise workflow recomputes"
+    );
+    expect(result.output).not.toContain("starts its own deploy run");
     expect(remoteMain(origin)).toBe(moved);
     expect(calls(shim.log)).toEqual(["push", "fetch"]);
     expect(git(work, "rev-parse", "HEAD^")).toBe(base);
@@ -300,7 +322,7 @@ describe("the deploy-key step pushes only onto the proved base (#4951)", () => {
     git(origin, "update-ref", "refs/heads/main", ancestor);
     const shim = flakyGit(root, []);
 
-    const result = push(work, origin, base, shim.bin);
+    const result = push(work, origin, base, shim);
 
     expect(result.code).toBe(1);
     expect(result.output).toContain(`main moved from ${base} to ${ancestor}`);
@@ -318,11 +340,21 @@ describe("the deploy-key step pushes only onto the proved base (#4951)", () => {
     expect(remoteMain(origin)).not.toBe(git(work, "rev-parse", "HEAD"));
   });
 
+  it("pushes the branch even when the remote also has a main tag", () => {
+    const { origin, work, base, raise } = fixture();
+    git(origin, "tag", "main", base);
+
+    const result = push(work, origin, base);
+
+    expect(result.code, result.output).toBe(0);
+    expect(remoteMain(origin)).toBe(raise);
+  });
+
   it("retries a push that failed while main stayed put", () => {
     const { root, origin, work, base, raise } = fixture();
     const shim = flakyGit(root, ["push"]);
 
-    const result = push(work, origin, base, shim.bin);
+    const result = push(work, origin, base, shim);
 
     expect(result.code, result.output).toBe(0);
     expect(remoteMain(origin)).toBe(raise);
@@ -333,7 +365,7 @@ describe("the deploy-key step pushes only onto the proved base (#4951)", () => {
     const { root, origin, work, base, raise } = fixture();
     const shim = flakyGit(root, ["push", "fetch"]);
 
-    const result = push(work, origin, base, shim.bin);
+    const result = push(work, origin, base, shim);
 
     expect(result.code, result.output).toBe(0);
     expect(result.output).toContain("Fetching main failed on attempt 1");
@@ -345,12 +377,7 @@ describe("the deploy-key step pushes only onto the proved base (#4951)", () => {
     const { root, work, base } = fixture();
     const shim = flakyGit(root, []);
 
-    const result = push(
-      work,
-      path.join(root, "unreachable.git"),
-      base,
-      shim.bin
-    );
+    const result = push(work, path.join(root, "unreachable.git"), base, shim);
 
     expect(result.code).toBe(1);
     expect(result.output).toContain("after 3 attempts; nothing was pushed");

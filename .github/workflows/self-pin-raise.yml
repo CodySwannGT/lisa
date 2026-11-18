@@ -1,0 +1,294 @@
+# Raise Lisa's own @codyswann/lisa pin once a release it cannot resolve has
+# landed on npm (CodySwannGT/lisa#4951).
+#
+# `check:self-pin` fails a REQUIRED check on every pull request the moment a
+# release leaves the self-pin's caret range — every major does. Before this
+# workflow, nothing on the release path moved the pin, so 6.0.0 turned every
+# open PR red until somebody raised the floor by hand.
+#
+# WHEN IT RUNS. Two triggers, one job graph:
+#   - `workflow_call` from deploy.yml, right after a release reaches npm, with
+#     the version that release published. This is the fast path.
+#   - `schedule`, hourly, with no version: the job asks the registry for the
+#     newest installable release and raises to it only if the pin is stale.
+#     This is what makes every refusal self-healing. The push refuses when
+#     main moved after the raise was proved (scripts/push-self-pin-raise.sh),
+#     and the commit that moved main does not always start a deploy run — a
+#     `[skip ci]` push starts none, and a later release whose publish never
+#     proves itself skips the raise. Whatever stopped a raise, the next hourly
+#     run recomputes and re-proves it against main as it is then. When the pin
+#     is current the run installs, reports `current`, and pushes nothing.
+#   - `workflow_dispatch` runs the scheduled path on demand.
+#
+# WHY A DIRECT PUSH, NOT A PULL REQUEST. A PR opened with GITHUB_TOKEN never
+# starts its own checks (the reason #4337 removed the old CI updater), so it
+# would sit unmergeable. The deploy key is already in the `base` and `quality
+# checks` ruleset bypass lists — it is how the release commit itself reaches
+# main.
+#
+# WHY TWO JOBS. That key can push to main past every ruleset, so it must never
+# share a runner with code this repository did not review. Raising the pin
+# needs `bun install`, the build and the checks, and all of them execute
+# dependency code, the just-published Lisa included. So:
+#   - `prepare_self_pin_raise` holds no secret at all: checkout with
+#     `persist-credentials: false`, install with `--ignore-scripts` so no
+#     lifecycle script runs, prove the raise (frozen lockfile, self-pin check,
+#     type-check, dependency audit), refuse if anything other than
+#     package.json and bun.lock changed, and hand those two files over as an
+#     artifact.
+#   - `push_self_pin_raise` runs on a fresh runner and runs no dependency code.
+#     It proves the candidate package.json is main's with only the self-pin
+#     value changed (scripts/verify-self-pin-raise.mjs is dependency-free),
+#     regenerates bun.lock itself from registry manifests and requires it to
+#     match the tested one byte for byte, refuses any other changed path, and
+#     loads the deploy key only in its final step.
+#
+# WHY BOTH JOBS RESOLVE THE EXACT RELEASE. The committed pin is a caret range,
+# and a caret range resolves the NEWEST matching release — a raise to ^7.0.0
+# computed after 7.0.1 shipped would lock 7.0.1. Both jobs therefore resolve
+# with the pin set to exactly the target version, then write the caret range
+# back into package.json and bun.lock's workspace specifier
+# (`verify-self-pin-raise.mjs spec`). Bun keeps a locked version that satisfies
+# the range, so the pair passes `--frozen-lockfile`.
+#
+# WHY IT WAITS FOR THE PACKUMENT. The exact-version endpoint can serve a
+# release before the packument lists it, and both `check:self-pin` and Bun's
+# resolver read the packument. Proving the raise before it lists the release
+# would fail on propagation lag alone, so the job waits, bounded, until both
+# the full and the abbreviated packument list the target.
+#
+# WHY IT CANNOT LOOP. The script raises only when the declared range can no
+# longer resolve the target — the exact predicate the check fails on. The push
+# is a normal commit, so it cuts a patch release; that release is inside the
+# raised range, so the next run reports `current` and pushes nothing.
+
+name: Raise the self-dependency pin
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'The version the calling release published; empty means the newest installable release'
+        type: string
+        required: false
+        default: ''
+    secrets:
+      DEPLOY_KEY:
+        required: true
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare_self_pin_raise:
+    name: Prepare the self-dependency pin raise
+    runs-on: ubuntu-latest
+    # The exact-version wait can take up to 62 minutes against a hanging
+    # registry, and the packument wait up to 10 more.
+    timeout-minutes: 90
+    # Only a run on Lisa's own main may feed the push that bypasses main's
+    # rulesets. A called run inherits its caller's ref and repository; a
+    # dispatch from another branch has that branch's; and a host repository
+    # that called this workflow must raise nothing.
+    if: ${{ github.repository == 'CodySwannGT/lisa' && github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: read
+    outputs:
+      verdict: ${{ steps.raise.outputs.verdict }}
+      version: ${{ steps.target.outputs.version }}
+      base_sha: ${{ steps.base.outputs.sha }}
+    steps:
+      - name: Checkout main without credentials
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Record the commit the raise is computed against
+        id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: '.nvmrc'
+
+      - name: '🍞 Setup Bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      # The scripts below import `semver`, and a fresh runner has no
+      # node_modules. main's own lockfile, frozen and with scripts off, is
+      # exactly what every pull request already installed.
+      - name: Install main's locked dependencies without lifecycle scripts
+        run: bun install --ignore-scripts --frozen-lockfile
+
+      - name: Decide the release to raise to, and wait until npm lists it
+        id: target
+        env:
+          REQUESTED: ${{ inputs.version }}
+        run: |
+          if [ -n "$REQUESTED" ]; then
+            version="$REQUESTED"
+            package_name="$(node -p "require('./package.json').name")"
+            node scripts/check-npm-publish-landed.mjs --package "$package_name" --version "$version"
+          else
+            version="$(node scripts/check-self-dependency-pin.mjs --newest-installable)"
+          fi
+          node scripts/check-self-dependency-pin.mjs --await-listed "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Raise the pin when the release left it behind
+        id: raise
+        env:
+          VERSION: ${{ steps.target.outputs.version }}
+        run: |
+          # The script's own status, not tee's: an `unprovable` spec exits 1 and
+          # must fail this step rather than reach the verdict parse below.
+          status=0
+          node scripts/raise-self-dependency-pin.mjs --version "$VERSION" >"$RUNNER_TEMP/raise.txt" 2>&1 || status=$?
+          cat "$RUNNER_TEMP/raise.txt"
+          [ "$status" -eq 0 ] || exit "$status"
+          verdict="$(sed -n 's/^raise-self-dependency-pin: \([a-z-]*\) .*/\1/p' "$RUNNER_TEMP/raise.txt" | head -n 1)"
+          if [ -z "$verdict" ]; then
+            echo "::error::The raise script printed no verdict line."
+            exit 1
+          fi
+          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+
+      - name: Re-resolve the lockfile and prove the raise
+        if: steps.raise.outputs.verdict == 'raised'
+        env:
+          VERSION: ${{ steps.target.outputs.version }}
+        run: |
+          node scripts/verify-self-pin-raise.mjs spec --form exact --version "$VERSION"
+          bun install --ignore-scripts
+          node scripts/verify-self-pin-raise.mjs spec --form caret --version "$VERSION"
+          bun install --ignore-scripts --frozen-lockfile
+          bun run build:dist
+          bun run check:self-pin
+          bun run typecheck
+          bun run security:audit
+
+      - name: Refuse any change beyond package.json and bun.lock
+        if: steps.raise.outputs.verdict == 'raised'
+        run: |
+          changed="$(git status --porcelain --untracked-files=all | sed 's/^...//' | sort)"
+          if [ "$changed" != "$(printf 'bun.lock\npackage.json')" ]; then
+            echo "::error::The raise changed more than package.json and bun.lock:"
+            printf '%s\n' "$changed"
+            exit 1
+          fi
+
+      - name: Hand the raised files to the push job
+        if: steps.raise.outputs.verdict == 'raised'
+        uses: actions/upload-artifact@v7
+        with:
+          name: self-pin-raise
+          path: |
+            package.json
+            bun.lock
+          if-no-files-found: error
+          retention-days: 1
+
+  push_self_pin_raise:
+    name: Push the self-dependency pin raise
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One push at a time: a release-triggered run and the hourly run can
+    # overlap, and the lease would refuse the loser anyway.
+    concurrency:
+      group: self-pin-raise-push
+      cancel-in-progress: false
+    needs: [prepare_self_pin_raise]
+    # The repository guard is repeated rather than inherited from the prepare
+    # job, so the job holding the deploy key states its own precondition.
+    if: ${{ github.repository == 'CodySwannGT/lisa' && needs.prepare_self_pin_raise.outputs.verdict == 'raised' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout the same main commit without credentials
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare_self_pin_raise.outputs.base_sha }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: '.nvmrc'
+
+      - name: '🍞 Setup Bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      - name: Receive the raised files
+        uses: actions/download-artifact@v8
+        with:
+          name: self-pin-raise
+          path: ${{ runner.temp }}/self-pin-raise
+
+      - name: Prove only the pin line changes in package.json
+        env:
+          VERSION: ${{ needs.prepare_self_pin_raise.outputs.version }}
+          RAISED: ${{ runner.temp }}/self-pin-raise
+        run: |
+          node scripts/verify-self-pin-raise.mjs --base package.json --candidate "$RAISED/package.json" --version "$VERSION"
+          cp "$RAISED/package.json" package.json
+
+      # The prepare job's bun.lock is never pushed. It ran dependency code
+      # after its own checks, so it could have been rewritten — an entry pointed
+      # at another tarball, a patched dependency swapped for an unpatched one.
+      # It cannot be checked entry by entry either: a major raise legitimately
+      # moves the self-dependency's transitive tree. So this job regenerates the
+      # lockfile itself from main's lockfile plus the verified package.json.
+      # `--lockfile-only` reads registry manifests only (no tarball, no
+      # node_modules, no package code), into an empty cache. The verifier then
+      # requires the TESTED lockfile to be byte-identical to the GENERATED one,
+      # and the self-dependency's entry to carry the registry's integrity for
+      # exactly the published version.
+      - name: Regenerate bun.lock and prove it is the one that was tested
+        env:
+          VERSION: ${{ needs.prepare_self_pin_raise.outputs.version }}
+          RAISED: ${{ runner.temp }}/self-pin-raise
+          BUN_INSTALL_CACHE_DIR: ${{ runner.temp }}/bun-manifest-cache
+        run: |
+          node scripts/verify-self-pin-raise.mjs spec --form exact --version "$VERSION"
+          timeout 300 bun install --lockfile-only --ignore-scripts
+          node scripts/verify-self-pin-raise.mjs spec --form caret --version "$VERSION"
+          cmp package.json "$RAISED/package.json"
+          node scripts/verify-self-pin-raise.mjs lockfile --regenerated bun.lock --candidate "$RAISED/bun.lock" --version "$VERSION"
+          changed="$(git status --porcelain --untracked-files=all | sed 's/^...//' | sort)"
+          if [ "$changed" != "$(printf 'bun.lock\npackage.json')" ]; then
+            echo "::error::Refusing to push: the raise does not change exactly package.json and bun.lock:"
+            printf '%s\n' "$changed"
+            exit 1
+          fi
+
+      - name: Commit and push the raise to main
+        env:
+          VERSION: ${{ needs.prepare_self_pin_raise.outputs.version }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          REPOSITORY: ${{ github.repository }}
+          BASE_SHA: ${{ needs.prepare_self_pin_raise.outputs.base_sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json bun.lock
+          git -c core.hooksPath=/dev/null commit -m "chore(deps): raise @codyswann/lisa self-pin to ^${VERSION}" \
+            -m "npm serves ${VERSION}, which the previous self-pin could not resolve. Raised by the self-pin-raise workflow (CodySwannGT/lisa#4951)."
+          key_dir="$(mktemp -d)"
+          trap 'rm -rf "$key_dir"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$key_dir/key"
+          chmod 600 "$key_dir/key"
+          # GitHub's published SSH host key, pinned rather than trusted on first use.
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > "$key_dir/known_hosts"
+          export GIT_SSH_COMMAND="ssh -i $key_dir/key -o IdentitiesOnly=yes -o UserKnownHostsFile=$key_dir/known_hosts -o StrictHostKeyChecking=yes"
+          bash scripts/push-self-pin-raise.sh "git@github.com:${REPOSITORY}.git" "$BASE_SHA" "$VERSION"

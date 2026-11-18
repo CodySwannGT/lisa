@@ -223,6 +223,9 @@ describe("the self-dependency pin cannot rot unobserved (#3768)", () => {
       expect(run.stderr).toContain("prepare_self_pin_raise");
       expect(run.stderr).toContain("push_self_pin_raise");
       expect(run.stderr).toContain("scripts/raise-self-dependency-pin.mjs");
+      // The hourly run is the recovery path that needs no later push.
+      expect(run.stderr).toContain("self-pin-raise workflow");
+      expect(run.stderr).toContain("every hour");
       expect(run.stderr).toMatch(
         new RegExp(`not landed for\\s+${PUBLISHED_NOW.replaceAll(".", "\\.")}`)
       );

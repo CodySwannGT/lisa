@@ -25,7 +25,7 @@ import { describe, expect, it } from "vitest";
 import {
   checkouts,
   DEPLOY_KEY,
-  deployJob,
+  raiseJob,
   PREPARE_JOB,
   PUSH_JOB,
   runs,
@@ -142,7 +142,7 @@ describe("the release pushes only the raise it proved (#4951)", () => {
       // A package-manager COMMAND, not the word inside `bun.lock`.
       .filter(line => /(?:^|[\s;&|(])(?:bun|npm|npx|yarn|pnpm)\s/.test(line));
 
-    expect(deployJob(PUSH_JOB).needs).toContain(PREPARE_JOB);
+    expect(raiseJob(PUSH_JOB).needs).toContain(PREPARE_JOB);
     expect(commands).toEqual([
       "timeout 300 bun install --lockfile-only --ignore-scripts",
     ]);
@@ -155,7 +155,7 @@ describe("the release pushes only the raise it proved (#4951)", () => {
   it("never pushes the prepare job's lockfile, only one it regenerated and matched", () => {
     const pushRuns = runs(PUSH_JOB);
     const regenerate = stepIndex(PUSH_JOB, "bun install --lockfile-only");
-    const step = deployJob(PUSH_JOB).steps?.[regenerate];
+    const step = raiseJob(PUSH_JOB).steps?.[regenerate];
     const proof = pushRuns[regenerate] ?? "";
     const manifestProof = stepIndex(
       PUSH_JOB,
@@ -195,7 +195,7 @@ describe("the release pushes only the raise it proved (#4951)", () => {
   });
 
   it("loads the deploy key only in the final push step, after the proofs", () => {
-    const steps = deployJob(PUSH_JOB).steps ?? [];
+    const steps = raiseJob(PUSH_JOB).steps ?? [];
     const last = steps.length - 1;
     const lockProof = stepIndex(PUSH_JOB, "verify-self-pin-raise.mjs lockfile");
 

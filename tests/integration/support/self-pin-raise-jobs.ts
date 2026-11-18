@@ -1,7 +1,7 @@
 /**
- * Read-only views of the deploy workflow's two self-pin raise jobs
- * (CodySwannGT/lisa#4951), shared by the suites that hold each job to its
- * security and correctness contract.
+ * Read-only views of the self-pin raise (CodySwannGT/lisa#4951): the two jobs
+ * of self-pin-raise.yml and the deploy.yml job that calls them, shared by the
+ * suites that hold each to its security and correctness contract.
  * @module tests/integration/support/self-pin-raise-jobs
  */
 import { readFileSync } from "node:fs";
@@ -15,8 +15,14 @@ import { evaluateIf } from "../../helpers/workflow-job-graph.js";
 /** Repository root, resolved from this file rather than the process cwd. */
 const ROOT = path.join(import.meta.dirname, "..", "..", "..");
 
-/** The workflow whose release job owns the self-pin raise. */
+/** The release workflow, whose `self_pin_raise` job calls the raise. */
 const DEPLOY_WORKFLOW = ".github/workflows/deploy.yml";
+
+/** The reusable workflow that holds the two raise jobs. */
+export const RAISE_WORKFLOW = ".github/workflows/self-pin-raise.yml";
+
+/** The deploy.yml job that calls the raise after a release. */
+export const CALLER_JOB = "self_pin_raise";
 
 /** One deploy-workflow step, with the inputs and env this test reads. */
 export interface DeployStep {
@@ -42,6 +48,16 @@ export interface DeployJob {
   readonly env?: Record<string, string>;
   /** The job's steps. */
   readonly steps?: readonly DeployStep[];
+  /** The reusable workflow a caller job runs. */
+  readonly uses?: string;
+  /** The inputs a caller job passes. */
+  readonly with?: Record<string, string>;
+  /** The secrets a caller job passes. */
+  readonly secrets?: Record<string, string> | string;
+  /** The job's outputs. */
+  readonly outputs?: Record<string, string>;
+  /** The job's concurrency setting. */
+  readonly concurrency?: { readonly group?: string } | string;
 }
 
 /** The job that computes and proves the raise, holding no secret. */
@@ -54,17 +70,48 @@ export const PUSH_JOB = "push_self_pin_raise";
 export const DEPLOY_KEY = "${{ secrets.DEPLOY_KEY }}";
 
 /**
- * One job of the deploy workflow.
+ * A workflow file, parsed.
+ * @param file - Path relative to the repository root.
+ * @returns Its triggers and jobs.
+ */
+export function workflow(file: string): {
+  readonly on?: Record<string, unknown>;
+  readonly jobs: Record<string, DeployJob>;
+} {
+  return loadYaml(readFileSync(path.join(ROOT, file), "utf8")) as {
+    readonly on?: Record<string, unknown>;
+    readonly jobs: Record<string, DeployJob>;
+  };
+}
+
+/**
+ * One job of a workflow, required to exist.
+ * @param file - The workflow file.
+ * @param name - The job id.
+ * @returns The job definition.
+ */
+function jobIn(file: string, name: string): DeployJob {
+  const job = workflow(file).jobs[name];
+  expect(job, `${file} has no ${name} job`).toBeDefined();
+  return job as DeployJob;
+}
+
+/**
+ * One job of the release workflow, deploy.yml.
  * @param name - The job id.
  * @returns The job definition.
  */
 export function deployJob(name: string): DeployJob {
-  const workflow = loadYaml(
-    readFileSync(path.join(ROOT, DEPLOY_WORKFLOW), "utf8")
-  ) as { jobs: Record<string, DeployJob> };
-  const job = workflow.jobs[name];
-  expect(job, `${DEPLOY_WORKFLOW} has no ${name} job`).toBeDefined();
-  return job as DeployJob;
+  return jobIn(DEPLOY_WORKFLOW, name);
+}
+
+/**
+ * One job of the raise workflow, self-pin-raise.yml.
+ * @param name - The job id.
+ * @returns The job definition.
+ */
+export function raiseJob(name: string): DeployJob {
+  return jobIn(RAISE_WORKFLOW, name);
 }
 
 /**
@@ -73,7 +120,7 @@ export function deployJob(name: string): DeployJob {
  * @returns One string per step, empty for action steps.
  */
 export function runs(name: string): readonly string[] {
-  return (deployJob(name).steps ?? []).map(step => step.run ?? "");
+  return (raiseJob(name).steps ?? []).map(step => step.run ?? "");
 }
 
 /**
@@ -119,7 +166,7 @@ export function secretReferencesIn(job: DeployJob): readonly string[] {
  * @returns Where secrets are referenced.
  */
 export function secretReferences(name: string): readonly string[] {
-  return secretReferencesIn(deployJob(name));
+  return secretReferencesIn(raiseJob(name));
 }
 
 /**
@@ -185,7 +232,7 @@ export function guardPasses(
  * @returns Every checkout step in that job.
  */
 export function checkouts(name: string): readonly DeployStep[] {
-  return (deployJob(name).steps ?? []).filter(step =>
+  return (raiseJob(name).steps ?? []).filter(step =>
     (step.uses ?? "").startsWith("actions/checkout@")
   );
 }

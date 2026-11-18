@@ -2651,7 +2651,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-security-floors.mjs":
       "a1abe6d2cbbef9243b9687c73d5c4497c069bc8d714e34be7375805fadbc4721",
     "scripts/check-self-dependency-pin.mjs":
-      "05a9615d87084232af7fc816e971d9cf3fe9822511436d1eff670aebf2ed8e07",
+      "caf6e33adc6bb620ccdaf674153eb2d2abdb41e593baafdf5851da61eecdd6f9",
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "82bc9fbd7537cfc30d359d75e4ce86efbcea6455d4854c8d1273a445feae253c",
     "scripts/check-shipped-surface-removals.mjs":
@@ -2953,7 +2953,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
     "scripts/push-self-pin-raise.sh":
-      "1426b638140f85c7daabbe123312baf14b6c15a8f54e4bbaa139b0f3c447e155",
+      "8a8b16f992f8382ee0f6d953a2a5d0b17939ee42121d8e4165170c5f0432de80",
     "scripts/raise-self-dependency-pin.mjs":
       "c950a7fae981ad682b6f1e4c5c3a28338b87d1b491dde17e49567b4865304db3",
     "scripts/reconcile-release-tags.mjs":
@@ -2973,7 +2973,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "1dc650c631a7ca339f3a225e47a314e7af448060d14bfd52c25e0c7192976335",
+      "cf83ba30039a040461689fbcf5df0ac582cc177e3d475986dcffe8177484d631",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3294,6 +3294,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/release.yml": true,
     ".github/workflows/review-evidence.yml": true,
     ".github/workflows/security-floors.yml": true,
+    ".github/workflows/self-pin-raise.yml": true,
     ".github/workflows/sentry-deploy.yml": true,
     ".github/workflows/third-party-review-evidence.yml": true,
     ".github/workflows/workflow-load-failure-sweep.yml": true,
@@ -11989,6 +11990,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
     "tests/integration/self-pin-drift-gate-wiring.test.ts": true,
     "tests/integration/self-pin-raise-prepare-job.test.ts": true,
+    "tests/integration/self-pin-raise-triggers.test.ts": true,
     "tests/integration/sentry-deploy-workflow.test.ts": true,
     "tests/integration/sentry-release-config.test.ts": true,
     "tests/integration/sentry-release-name.test.ts": true,
@@ -12906,6 +12908,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-pipeline-status-reads.test.ts": true,
     "tests/unit/scripts/check-probe-absence-direction.test.ts": true,
     "tests/unit/scripts/check-release-package-identity.test.ts": true,
+    "tests/unit/scripts/check-self-dependency-pin-listed.test.ts": true,
     "tests/unit/scripts/check-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/check-shell-guard-refusal-coverage.test.ts": true,
     "tests/unit/scripts/check-shipped-surface-removals.test.ts": true,

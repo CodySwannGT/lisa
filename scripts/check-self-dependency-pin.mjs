@@ -13,9 +13,9 @@
  * applying to itself — and it had a consequence nobody wrote down: **the one
  * repository whose pin no automation corrected was the one that ships the
  * automation.** The correction now lives on the release path instead:
- * `scripts/raise-self-dependency-pin.mjs`, run by the deploy workflow's
- * `prepare_self_pin_raise` and `push_self_pin_raise` jobs after every publish
- * (#4951). This check is what proves those jobs did their work.
+ * `scripts/raise-self-dependency-pin.mjs`, run by the self-pin-raise
+ * workflow's `prepare_self_pin_raise` and `push_self_pin_raise` jobs after
+ * every publish and hourly (#4951). This check is what proves those jobs did their work.
  *
  * The result was measured twice. #2279 (2026-08-04) moved the floor to
  * `^2.328.0` because it was 130 releases behind. #3662 (2026-09-03) moved it
@@ -315,6 +315,118 @@ export async function checkSelfPin({
   };
 }
 
+/**
+ * The two packument shapes a registry serves. The full document is what this
+ * check reads; the abbreviated install document is what Bun's resolver reads.
+ * They are cached separately, so one can list a release the other does not.
+ */
+const PACKUMENT_SHAPES = [
+  { name: "full", accept: "application/json" },
+  { name: "abbreviated", accept: "application/vnd.npm.install-v1+json" },
+];
+
+/** How many times the packument is read before the release is given up on. */
+const LISTED_POLLS = 40;
+
+/** Delay between packument reads: 40 polls span ten minutes. */
+const LISTED_POLL_DELAY_MS = 15_000;
+
+/**
+ * Whether one packument shape lists a version.
+ * @param {string} url - The packument URL.
+ * @param {string} accept - The shape's media type.
+ * @param {string} version - The release to look for.
+ * @param {typeof fetch} fetchImpl - Injected for tests.
+ * @returns {Promise<{listed: boolean, detail: string}>} The answer.
+ */
+async function shapeLists(url, accept, version, fetchImpl) {
+  try {
+    const response = await fetchImpl(url, { headers: { accept } });
+    if (!response.ok) {
+      return { listed: false, detail: `HTTP ${response.status} from ${url}` };
+    }
+    const packument = await response.json();
+    return packument?.versions?.[version] === undefined
+      ? { listed: false, detail: `the packument does not list ${version} yet` }
+      : { listed: true, detail: `the packument lists ${version}` };
+  } catch (error) {
+    return { listed: false, detail: `network: ${error.message} (${url})` };
+  }
+}
+
+/**
+ * Wait, with a bound, until both packument shapes list a release.
+ *
+ * The exact-version endpoint can serve a release before the packument lists
+ * it. Both `check:self-pin` (newest listed version) and Bun's resolver (the
+ * abbreviated packument) read the packument, so a raise proved before it lists
+ * the release would compare `^7.0.0` against 6.x and fail for a reason that is
+ * only propagation lag.
+ * @param {object} options - Version, registry, fetch seam, poll budget and sleep seam.
+ * @returns {Promise<{listed: boolean, detail: string}>} Whether both shapes list it.
+ */
+export async function awaitListed({
+  version,
+  registry = DEFAULT_REGISTRY,
+  fetchImpl = fetch,
+  polls = LISTED_POLLS,
+  sleep = () =>
+    new Promise(resolve => setTimeout(resolve, LISTED_POLL_DELAY_MS)),
+}) {
+  const url = `${registry}/${SELF_PACKAGE}`;
+  const poll = async number => {
+    const answers = await Promise.all(
+      PACKUMENT_SHAPES.map(shape =>
+        shapeLists(url, shape.accept, version, fetchImpl)
+      )
+    );
+    const missing = answers.flatMap((answer, index) =>
+      answer.listed ? [] : [`${PACKUMENT_SHAPES[index].name}: ${answer.detail}`]
+    );
+    if (missing.length === 0) {
+      return { listed: true, detail: `both packument shapes list ${version}` };
+    }
+    if (number >= polls) {
+      return {
+        listed: false,
+        detail: `after ${polls} reads, ${missing.join("; ")}`,
+      };
+    }
+    await sleep();
+    return poll(number + 1);
+  };
+  return poll(1);
+}
+
+/**
+ * The newest version the registry will actually serve, for a caller that
+ * needs a version to raise to rather than a verdict on a manifest.
+ * @param {object} options - Registry and the same seams as {@link checkSelfPin}.
+ * @returns {Promise<{version: string | null, detail: string}>} The newest installable release.
+ */
+export async function newestInstallableVersion({
+  registry = DEFAULT_REGISTRY,
+  fetchImpl = fetch,
+  attempts = 3,
+  sleep = () => new Promise(resolve => setTimeout(resolve, 2000)),
+  injected = {},
+}) {
+  const { packument, detail } = await fetchPackument({
+    registry,
+    packageName: SELF_PACKAGE,
+    fetchImpl,
+    attempts,
+    sleep,
+  });
+  if (packument === null) return { version: null, detail };
+  const found = await newestInstallable({
+    candidates: publishedVersionsDescending(packument),
+    registry,
+    injected: { fetchImpl, ...injected },
+  });
+  return { version: found.version, detail: found.detail };
+}
+
 /** Exit code for each verdict. `unprovable` blocks: nothing was proved. */
 const FAILING_VERDICTS = new Set(["stale", "unprovable"]);
 
@@ -352,12 +464,12 @@ function failureReport(outcome, registry) {
       `❌ ${SELF_PACKAGE} is pinned at "${outcome.spec}" and ${outcome.detail}.\n` +
       `   Compared against ${registry} — NOT the session plugin cache and NOT\n` +
       `   the marketplace clone, both of which can name a different version.\n` +
-      `   The release raises this pin itself: the Release and Deploy workflow's\n` +
+      `   The release raises this pin itself: the self-pin-raise workflow's\n` +
       `   prepare_self_pin_raise job runs scripts/raise-self-dependency-pin.mjs\n` +
-      `   right after the publish lands, and push_self_pin_raise pushes the raise\n` +
-      `   to main (#4951). Red here means those jobs have not landed for\n` +
-      `   ${outcome.newest} yet, or one failed — its run in that release is where\n` +
-      `   the cause is. Rebase once it lands.\n`
+      `   right after the publish lands and again every hour, and\n` +
+      `   push_self_pin_raise pushes the raise to main (#4951). Red here means\n` +
+      `   those jobs have not landed for ${outcome.newest} yet, or the last run\n` +
+      `   failed — that run is where the cause is. Rebase once it lands.\n`
     );
   }
   return (
@@ -375,6 +487,12 @@ function failureReport(outcome, registry) {
  */
 export async function main(argv, injected = {}) {
   const registry = option(argv, "--registry", DEFAULT_REGISTRY);
+  if (argv.includes("--await-listed")) {
+    return mainAwaitListed(argv, registry, injected);
+  }
+  if (argv.includes("--newest-installable")) {
+    return mainNewestInstallable(registry, injected);
+  }
   const manifestPath = option(argv, "--manifest", defaultManifestPath());
   const outcome = await checkSelfPin({
     manifest: JSON.parse(readFileSync(manifestPath, "utf8")),
@@ -392,6 +510,48 @@ export async function main(argv, injected = {}) {
   }
   process.stderr.write(failureReport(outcome, registry));
   return 1;
+}
+
+/**
+ * `--await-listed <version>`: exit 0 once both packument shapes list it.
+ * @param {string[]} argv - Arguments after the script path.
+ * @param {string} registry - The registry origin.
+ * @param {object} injected - Test seams forwarded to {@link awaitListed}.
+ * @returns {Promise<number>} Process exit code.
+ */
+async function mainAwaitListed(argv, registry, injected) {
+  const version = option(argv, "--await-listed", "");
+  if (!semver.valid(version) || semver.prerelease(version) !== null) {
+    process.stderr.write(
+      `❌ --await-listed needs a release version, not "${version}"\n`
+    );
+    return 1;
+  }
+  const outcome = await awaitListed({ version, registry, ...injected });
+  process.stdout.write(
+    `${VERDICT_PREFIX} ${outcome.listed ? "listed" : "not-listed"} ` +
+      `package=${SELF_PACKAGE} version=${version} — ${outcome.detail}\n`
+  );
+  return outcome.listed ? 0 : 1;
+}
+
+/**
+ * `--newest-installable`: print only the newest installable release, so a
+ * workflow step can capture it.
+ * @param {string} registry - The registry origin.
+ * @param {object} injected - Test seams forwarded to {@link newestInstallableVersion}.
+ * @returns {Promise<number>} Process exit code: 1 when nothing was proved.
+ */
+async function mainNewestInstallable(registry, injected) {
+  const found = await newestInstallableVersion({ registry, ...injected });
+  if (found.version === null) {
+    process.stderr.write(
+      `❌ Could not prove which ${SELF_PACKAGE} release is newest: ${found.detail}\n`
+    );
+    return 1;
+  }
+  process.stdout.write(`${found.version}\n`);
+  return 0;
 }
 
 /* c8 ignore start -- CLI wiring, exercised through main() in tests */
