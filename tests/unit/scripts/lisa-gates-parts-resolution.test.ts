@@ -458,3 +458,49 @@ describe("resolveMoment on malformed parts", () => {
     );
   });
 });
+
+describe("resolveMoment on a second prover declared at another moment", () => {
+  // `await` at pull-request beside parts is refused, at pull-request. The
+  // gate's parts are well formed, so commit has exactly one thing to run and
+  // nothing about it is in doubt.
+  const gates = {
+    [LINT]: {
+      [COMMIT]: "required",
+      [PULL_REQUEST]: { level: "required", await: "ci/style" },
+      parts: [API_PART],
+    },
+  };
+
+  it("resolves the moment the problem does not apply at", () => {
+    expect(
+      resolveAt(gates, COMMIT).map(({ argv, scope }) => ({ argv, scope }))
+    ).toEqual([{ argv: API_COMMAND, scope: "api" }]);
+  });
+
+  it("still refuses the moment it does apply at", () => {
+    expect(() => resolveAt(gates, PULL_REQUEST)).toThrow(
+      /Invalid gates configuration:\n {2}gates\."x-lint"\."pull-request"\.await is declared on a gate that has parts/u
+    );
+  });
+
+  it("is still a blocking problem in the reading validate prints", () => {
+    const { blocking } = configurationProblems({
+      gates,
+      policy: {},
+      scripts: {},
+      executedMoments: { moments: [], families: [] },
+    });
+
+    expect(blocking.join("\n")).toContain(
+      'gates."x-lint"."pull-request".await is declared on a gate that has parts'
+    );
+  });
+
+  it("still refuses a task named for the whole gate, at every moment", () => {
+    const wholeGate = {
+      [LINT]: { [COMMIT]: "required", run: "lint", parts: [API_PART] },
+    };
+
+    expect(() => resolveAt(wholeGate, PUSH)).toThrow(/gates\."x-lint"\.run/u);
+  });
+});

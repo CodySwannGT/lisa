@@ -92,8 +92,25 @@ describe("a proposed threshold", () => {
       question:
         "It measures 41 today. Shall 41 be the lowest it may go from now on?",
       yes_means:
-        "A change that takes it below 41 is refused. The number may be raised later and may not be lowered.",
+        "41 is written in .lisa.config.json as the lowest it may go. The threshold check refuses a change that lowers that written number; it may be raised later. Only the written number is watched: the limit your own tool enforces is set in that tool's settings, which are not watched, so keep that at 41 as well.",
     });
+  });
+
+  it("does not say a change to what is measured is refused: only the written number is held", () => {
+    // The check compares the number in `.lisa.config.json` between two
+    // versions of that file. It never runs the host's tool and never reads
+    // the tool's settings, so the sentence may promise neither.
+    for (const direction of ["floor", "ceiling"] as const) {
+      const { yes_means: said } = proposeThreshold({
+        name: COVERAGE,
+        measured: 41,
+        direction,
+      });
+
+      expect(said).not.toMatch(/takes it (?:below|above)/u);
+      expect(said).toContain("written in .lisa.config.json");
+      expect(said).toContain("that tool's settings, which are not watched");
+    }
   });
 
   it.each([0, 3, 41.37, 87.5, 99.99, 100])(
@@ -123,7 +140,7 @@ describe("a proposed threshold", () => {
       "It measures 12 today. Shall 12 be the highest it may go from now on?"
     );
     expect(proposal.yes_means).toBe(
-      "A change that takes it above 12 is refused. The number may be lowered later and may not be raised."
+      "12 is written in .lisa.config.json as the highest it may go. The threshold check refuses a change that raises that written number; it may be lowered later. Only the written number is watched: the limit your own tool enforces is set in that tool's settings, which are not watched, so keep that at 12 as well."
     );
   });
 });

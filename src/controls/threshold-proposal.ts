@@ -24,6 +24,22 @@ import {
 /** The direction proposed when none is named: a lowest allowed value. */
 export const DEFAULT_THRESHOLD_DIRECTION: ParameterDirection = "floor";
 
+/** The file a confirmed threshold is written in. */
+const DECLARATION_FILE = ".lisa.config.json";
+
+/**
+ * What agreeing does not get the operator, said before they agree.
+ *
+ * The threshold check compares the number written in the declaration between
+ * two versions of that file. It never runs the host's tool and never reads
+ * where that tool takes its limit from, so a limit lowered there while the
+ * written number stays is not refused. Telling the operator "a change that
+ * takes it below N is refused" promised the second thing on the strength of
+ * the first. The sentence finishes with the measured value.
+ */
+const ONLY_THE_WRITTEN_NUMBER =
+  "Only the written number is watched: the limit your own tool enforces is set in that tool's settings, which are not watched, so keep that at";
+
 /** A threshold as a part of a gate declares it. */
 export interface ThresholdParameter extends ControlParameter {
   readonly value: number;
@@ -98,7 +114,7 @@ export function proposeThreshold(input: {
       ? `It measures ${measured} today. Shall ${measured} be the lowest it may go from now on?`
       : `It measures ${measured} today. Shall ${measured} be the highest it may go from now on?`,
     yes_means: floor
-      ? `A change that takes it below ${measured} is refused. The number may be raised later and may not be lowered.`
-      : `A change that takes it above ${measured} is refused. The number may be lowered later and may not be raised.`,
+      ? `${measured} is written in ${DECLARATION_FILE} as the lowest it may go. The threshold check refuses a change that lowers that written number; it may be raised later. ${ONLY_THE_WRITTEN_NUMBER} ${measured} as well.`
+      : `${measured} is written in ${DECLARATION_FILE} as the highest it may go. The threshold check refuses a change that raises that written number; it may be lowered later. ${ONLY_THE_WRITTEN_NUMBER} ${measured} as well.`,
   };
 }

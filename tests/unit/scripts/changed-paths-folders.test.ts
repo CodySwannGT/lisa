@@ -9,13 +9,18 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { touchesFolder } from "../../../all/copy-overwrite/scripts/lib/changed-paths.mjs";
+import {
+  pathsOutside,
+  touchesFolder,
+} from "../../../all/copy-overwrite/scripts/lib/changed-paths.mjs";
 
 const API = "api";
 const NESTED_MAIN = "services/api/main.py";
 const NESTED = "services/api";
 const API_MAIN = "api/main.py";
 const UNUSUAL = "café menu";
+const NESTED_REPOSITORY = "vendor/engine";
+const INSIDE_NESTED = "vendor/engine/src";
 
 describe("whether a changed path is inside a part's folder", () => {
   it("counts a file directly in the folder and one deeper inside it", () => {
@@ -44,6 +49,20 @@ describe("whether a changed path is inside a part's folder", () => {
     expect(touchesFolder([API], [API])).toBe(true);
   });
 
+  it("counts a change to a path the folder lies below", () => {
+    // A nested repository, or a link above the folder: git names that one
+    // path, and says nothing about what moved underneath it.
+    expect(touchesFolder([NESTED_REPOSITORY], [INSIDE_NESTED])).toBe(true);
+    expect(touchesFolder(["vendor"], [INSIDE_NESTED])).toBe(true);
+    expect(touchesFolder(["VENDOR/Engine"], [INSIDE_NESTED])).toBe(true);
+  });
+
+  it("does not count a path that only starts the way the folder's own path does", () => {
+    expect(touchesFolder(["vendor/eng"], [INSIDE_NESTED])).toBe(false);
+    expect(touchesFolder(["vendor/engine-old"], [INSIDE_NESTED])).toBe(false);
+    expect(touchesFolder(["vend"], [INSIDE_NESTED])).toBe(false);
+  });
+
   it("matches a folder whose name holds a space and a non-ASCII character", () => {
     expect(touchesFolder([`${UNUSUAL}/today.md`], [UNUSUAL])).toBe(true);
     expect(touchesFolder(["café/today.md"], [UNUSUAL])).toBe(false);
@@ -70,5 +89,37 @@ describe("whether a changed path is inside a part's folder", () => {
 
   it("is not touched by a change that has no paths", () => {
     expect(touchesFolder([], [API])).toBe(false);
+  });
+});
+
+describe("which changed paths lie outside every one of a set of folders", () => {
+  it("leaves out a path inside a folder, and the folder's own path", () => {
+    expect(pathsOutside([API_MAIN, API, "api/src/deep.py"], [API])).toEqual([]);
+  });
+
+  it("keeps a path in no folder, in the order it was given", () => {
+    expect(
+      pathsOutside(["tools/b.js", API_MAIN, "README.md"], [API, NESTED])
+    ).toEqual(["tools/b.js", "README.md"]);
+  });
+
+  it("keeps a path the folder lies below: the folder is only part of it", () => {
+    // The other direction from `touchesFolder`, on purpose. A nested
+    // repository that moved may have changed outside the folder inside it.
+    expect(pathsOutside([NESTED_REPOSITORY], [INSIDE_NESTED])).toEqual([
+      NESTED_REPOSITORY,
+    ]);
+  });
+
+  it("compares the way `touchesFolder` does: whole segments, any letter case", () => {
+    const sameStart = "api-next/main.py";
+
+    expect(pathsOutside(["API/main.py", sameStart], [API])).toEqual([
+      sameStart,
+    ]);
+  });
+
+  it("keeps every path when there is no folder", () => {
+    expect(pathsOutside([API_MAIN], [])).toEqual([API_MAIN]);
   });
 });

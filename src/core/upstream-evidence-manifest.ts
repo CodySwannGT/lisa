@@ -43,7 +43,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/build-marker.mjs":
       "505519d9632ab86572cfdeca917d93599256cf8e798987ad593a82296a7d8175",
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
-      "7ee847191a62ff3a3a919ffc2480bc93f82c1c5e30a058815bdbfdbdad405325",
+      "c9599846bb658ee7de173ad0768f964366c9e27ee07f5baa30499ea20ee3b87f",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
       "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
@@ -343,7 +343,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "442eeec84af0c47d22270e20d49e60023e5092c410b8e29c9ccff36e3ffca99f",
+      "40e846e91e8f93a99424c81b98399e1fb73acbe59b5ab2a6467d8f1894ed250f",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -387,7 +387,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "5665d45b5d7e183137e00820d9f714f231909a7f8225793ff6f631d4412eb44a",
+      "6e31f367f2a8754d4e15ec235a64f90831710576a1bb640bb67088fcb09f2435",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -403,7 +403,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "08e1a624521bcf9cf42c5cb23c7c6db33974a5b75c84f7425ba8a6589098fffb",
+      "fe9d5afd29b0187281466822f5af4825ab467cc15189f4c486f6959419eb90a6",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -12122,6 +12122,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/controls-install-carriers.test.ts": true,
     "tests/integration/controls-no-manifest-runner.test.ts": true,
     "tests/integration/controls-part-argv-runner.test.ts": true,
+    "tests/integration/controls-part-scope-reach.test.ts": true,
     "tests/integration/controls-part-scope-skip.test.ts": true,
     "tests/integration/controls-proof-check-attest.test.ts": true,
     "tests/integration/controls-protect.test.ts": true,
@@ -12906,6 +12907,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/declaration-check-repository.test.ts": true,
     "tests/unit/controls/declaration-check.test.ts": true,
     "tests/unit/controls/declaration-evidence.test.ts": true,
+    "tests/unit/controls/declaration-not-an-object.test.ts": true,
     "tests/unit/controls/declared-thresholds-register.test.ts": true,
     "tests/unit/controls/enforce-claims.test.ts": true,
     "tests/unit/controls/enforce-head-run.test.ts": true,
@@ -13639,6 +13641,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-builtin-contract.test.ts": true,
     "tests/unit/scripts/lisa-gates-caller-chain-override.test.ts": true,
     "tests/unit/scripts/lisa-gates-caller-chain.test.ts": true,
+    "tests/unit/scripts/lisa-gates-config-shape.test.ts": true,
     "tests/unit/scripts/lisa-gates-declared-executors.test.ts": true,
     "tests/unit/scripts/lisa-gates-evidence.test.ts": true,
     "tests/unit/scripts/lisa-gates-executor.test.ts": true,
@@ -13710,6 +13713,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-parts-assertion.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-parts-fixtures.ts": true,
     "tests/unit/scripts/lisa-run-gates-parts-proof.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-parts-reach.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-parts-record.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-parts-scope.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-parts-spawn.test.ts": true,
