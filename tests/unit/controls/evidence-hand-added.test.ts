@@ -42,6 +42,7 @@ import {
   heldPair,
   observedRecord,
   registerOf,
+  SAMPLE_CHECKS,
 } from "./support/evidence-samples.js";
 import { removeCopies, setting } from "./support/proof-run.js";
 import { removeFixtures } from "./support/report-check-run.js";
@@ -85,6 +86,7 @@ function after(
     register: registerOf(entry),
     batches: [LOCAL],
     records: [],
+    checksDigest: SAMPLE_CHECKS.digest,
   });
 }
 

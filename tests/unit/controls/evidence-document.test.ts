@@ -27,6 +27,7 @@ import {
   heldPair,
   locatedRecord,
   observedRecord,
+  SAMPLE_CHECKS,
 } from "./support/evidence-samples.js";
 
 const API = "code-style@api";
@@ -39,6 +40,7 @@ const API = "code-style@api";
 function problemsWith(record: unknown): readonly string[] {
   const parsed = parseEvidenceDocument({
     schema_version: 1,
+    checks: SAMPLE_CHECKS,
     records: [record],
   });
   return parsed.problems ?? [];
@@ -61,9 +63,11 @@ describe("an evidence file", () => {
   });
 
   it("may hold no records", () => {
-    expect(parseEvidenceDocument({ schema_version: 1, records: [] })).toEqual({
+    const empty = { schema_version: 1, checks: SAMPLE_CHECKS, records: [] };
+
+    expect(parseEvidenceDocument(empty)).toEqual({
       problems: null,
-      document: { schema_version: 1, records: [] },
+      document: empty,
     });
   });
 
@@ -77,7 +81,12 @@ describe("an evidence file", () => {
     ],
     [
       "has a key the attest step does not write",
-      { schema_version: 1, records: [], verdict: "conforming" },
+      {
+        schema_version: 1,
+        checks: SAMPLE_CHECKS,
+        records: [],
+        verdict: "conforming",
+      },
       '"verdict"',
     ],
   ])("is refused when it %s", (_name, document, saying) => {
@@ -232,7 +241,9 @@ describe("the text of an evidence file", () => {
   ];
 
   it("orders the records by identifier, whatever order they came in", () => {
-    const ids = evidenceDocumentOf(records).records.map(record => record.id);
+    const ids = evidenceDocumentOf(records, SAMPLE_CHECKS).records.map(
+      record => record.id
+    );
 
     expect(ids).toEqual([
       "audit-finding/AC1.4@.",
@@ -240,23 +251,25 @@ describe("the text of an evidence file", () => {
       `${API}/commit/violation/SI7`,
       `${API}/pull-request/observed/SI7`,
     ]);
-    expect(evidenceDocumentOf([...records].reverse())).toEqual(
-      evidenceDocumentOf(records)
+    expect(evidenceDocumentOf([...records].reverse(), SAMPLE_CHECKS)).toEqual(
+      evidenceDocumentOf(records, SAMPLE_CHECKS)
     );
   });
 
   it("is the same bytes for the same records", () => {
-    const text = serializeEvidence(evidenceDocumentOf(records));
+    const text = serializeEvidence(evidenceDocumentOf(records, SAMPLE_CHECKS));
 
-    expect(serializeEvidence(evidenceDocumentOf([...records].reverse()))).toBe(
-      text
-    );
+    expect(
+      serializeEvidence(
+        evidenceDocumentOf([...records].reverse(), SAMPLE_CHECKS)
+      )
+    ).toBe(text);
     expect(text.endsWith("}\n")).toBe(true);
     expect(text).toContain('\n  "records": [\n');
   });
 
   it("is read back as what was written", () => {
-    const document = evidenceDocumentOf(records);
+    const document = evidenceDocumentOf(records, SAMPLE_CHECKS);
 
     expect(
       parseEvidenceDocument(JSON.parse(serializeEvidence(document)))
@@ -265,7 +278,7 @@ describe("the text of an evidence file", () => {
 
   it("holds what the report check and the register read a record by", () => {
     const document = JSON.parse(
-      serializeEvidence(evidenceDocumentOf(records))
+      serializeEvidence(evidenceDocumentOf(records, SAMPLE_CHECKS))
     ) as unknown;
 
     expect(parseEvidenceRecords(document).map(record => record.id)).toEqual([

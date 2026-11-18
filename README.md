@@ -470,7 +470,7 @@ Run them in this order. Each one tells you in plain language what it found and w
 3. **Enforce** (`/lisa:enforce`) makes the declared checks run: at commit, at push, and after a coding agent writes a file. It keeps every hook you already have. It files one ticket for each requirement the repository has nothing for, in your tracker when one is configured, and compares your merge protection with the register. It asks which coding agents your team uses when the repository does not say, and it asks before changing any merge setting. It writes the hook scripts and the program they run, a record of them at `.lisa/controls/carriers.json`, the tickets, and `.lisa/controls/merge-protection-change.md`, which tells an administrator exactly what to set.
 4. **Attest** (`/lisa:attest`) proves each check. In a temporary copy of your last commit it tries the change that breaks the rule and the change that does not, through a real commit or push. A check passes only when it refused the first, printing the failure text declared for it, and let the second through. It asks before opening pull requests on your hosting platform or running a proof that reaches outside the repository. It writes `.lisa/controls/evidence.json` (what happened) and `.lisa/controls/verdict.json` (the result), and brings the register up to date.
 
-Anyone can check a committed verdict later, without running a proof, with `lisa controls attest --check`. It also names the commit the proofs were run against and fails when a file that defines the checks has changed since then, so commit the declaration, the proof patches and the hook files before you attest, and commit the three result files after.
+Anyone can check a committed verdict later, without running a proof, with `lisa controls attest --check`. It also compares the content of everything that defines the checks (the `gates` declaration, the proof patches, the hook files and the program they run) with what the proofs ran against, and fails, naming the file, when one has changed. It reads the files and no version history, so you can commit in any order and check in any clone.
 
 ### How to start a command
 
@@ -502,7 +502,7 @@ The verdict measures the repository against Level 1 of the specification in [`sp
 - **Unknown is never a pass.** The result is "conforming" only when every requirement is met, or does not apply for a recorded reason.
 - **It says what each answer rests on.** A requirement is met by a check that was really exercised, by a document or platform setting that was observed, or by a person's recorded answer. The verdict names which, for every requirement.
 - **It goes out of date.** Evidence is good for 30 days. After that the requirement reads unknown until attest runs again.
-- **It is a local, unsigned check.** `lisa controls attest --check` shows that the verdict is what the register and the evidence give today. It cannot show that nobody rewrote all three files together. Version history, or running the proofs again, can.
+- **It is a local, unsigned check.** `lisa controls attest --check` shows that the verdict is what the register and the evidence give today, and that the files defining the checks hold what was proved. It does not see a change to a checked tool's own settings, and it cannot show that nobody rewrote all three files together. Version history, or running the proofs again, can.
 
 ### Limits to know before you start
 

@@ -22,6 +22,7 @@ import {
   EXPIRY,
   heldPair,
   observedRecord,
+  SAMPLE_CHECKS,
   SOON_AFTER,
 } from "./support/evidence-samples.js";
 import {
@@ -40,6 +41,12 @@ const NOT_REQUIRED = "not-required";
 const UNREAD = "merge-protection-unread";
 const CANARIES = "canaries";
 
+/** A minute after the samples were recorded, under the samples' digest. */
+const AT_SOON_AFTER = {
+  now: SOON_AFTER,
+  checksDigest: SAMPLE_CHECKS.digest,
+};
+
 /** Both halves of a canary proof that held, on record a minute ago. */
 const EARLIER_PROOF: readonly EvidenceRecord[] = [
   ...heldPair(SAMPLE_ENTRY, "SI7", { moment: PULL_REQUEST }),
@@ -57,7 +64,7 @@ describe("what the platform's settings said, as an evidence result", () => {
       const batch = pullRequestBatch(
         settled([point({ observed, reason, detail: `Why: ${reason}.` })]),
         [],
-        SOON_AFTER
+        AT_SOON_AFTER
       );
 
       expect(batch.entries).toEqual([SAMPLE_ENTRY]);
@@ -85,7 +92,7 @@ describe("what the platform's settings said, as an evidence result", () => {
     const [result] = pullRequestBatch(
       settled([point()]),
       [],
-      SOON_AFTER
+      AT_SOON_AFTER
     ).results;
 
     expect(result?.detail).toBe(
@@ -103,7 +110,7 @@ describe("what the platform's settings said, as an evidence result", () => {
         }),
       ]),
       [],
-      SOON_AFTER
+      AT_SOON_AFTER
     ).results;
 
     expect(result?.detail).toBe("The hosting platform does not require it.");
@@ -119,7 +126,7 @@ describe("what the platform's settings said, as an evidence result", () => {
         }),
       ]),
       [],
-      SOON_AFTER
+      AT_SOON_AFTER
     );
 
     expect(batch.results).toEqual([]);
@@ -132,7 +139,7 @@ describe("an exercised canary pair, as evidence results", () => {
     const batch = pullRequestBatch(
       settled([exercisedPoint()], CANARIES),
       [],
-      SOON_AFTER
+      AT_SOON_AFTER
     );
 
     expect(
@@ -153,7 +160,7 @@ describe("an exercised canary pair, as evidence results", () => {
     const [observed] = pullRequestBatch(
       settled([exercisedPoint()], CANARIES),
       [],
-      SOON_AFTER
+      AT_SOON_AFTER
     ).results;
 
     expect(observed).toMatchObject({
@@ -182,7 +189,7 @@ describe("an exercised canary pair, as evidence results", () => {
           CANARIES
         ),
         [],
-        SOON_AFTER
+        AT_SOON_AFTER
       );
 
       expect(batch.results.find(each => each.half === half)).toMatchObject({
@@ -208,7 +215,7 @@ describe("a run that only read the settings, and an earlier canary proof", () =>
     const batch = pullRequestBatch(
       settled([point()]),
       EARLIER_PROOF,
-      SOON_AFTER
+      AT_SOON_AFTER
     );
 
     expect(batch).toEqual({
@@ -222,7 +229,7 @@ describe("a run that only read the settings, and an earlier canary proof", () =>
     const batch = pullRequestBatch(
       settled([point({ observed: "unknown", reason: UNREAD })]),
       EARLIER_PROOF,
-      SOON_AFTER
+      AT_SOON_AFTER
     );
 
     expect(batch.entries).toEqual([]);
@@ -236,7 +243,7 @@ describe("a run that only read the settings, and an earlier canary proof", () =>
     );
 
     expect(
-      pullRequestBatch(settled([point()]), failure, SOON_AFTER).entries
+      pullRequestBatch(settled([point()]), failure, AT_SOON_AFTER).entries
     ).toEqual([]);
   });
 
@@ -274,7 +281,10 @@ describe("a run that only read the settings, and an earlier canary proof", () =>
   ] as const)(
     "replaces what is on record when %s",
     (_name, settlement, earlier, now) => {
-      const batch = pullRequestBatch(settlement, earlier, now);
+      const batch = pullRequestBatch(settlement, earlier, {
+        now,
+        checksDigest: SAMPLE_CHECKS.digest,
+      });
 
       expect(batch.entries).toEqual([SAMPLE_ENTRY]);
       expect(batch.results).toHaveLength(1);
@@ -285,7 +295,7 @@ describe("a run that only read the settings, and an earlier canary proof", () =>
 describe("the batches of a run", () => {
   it("are none when the register has no pull-request entry", () => {
     expect(
-      pullRequestBatches(proofRunOf([]), { root: "/nowhere", now: SOON_AFTER })
+      pullRequestBatches(proofRunOf([]), { root: "/nowhere", ...AT_SOON_AFTER })
     ).toEqual([]);
   });
 
@@ -293,7 +303,7 @@ describe("the batches of a run", () => {
     const run = { ...proofRunOf([]), pull_request: settled([point()]) };
 
     expect(
-      pullRequestBatches(run, { root: "/nowhere", now: SOON_AFTER })
+      pullRequestBatches(run, { root: "/nowhere", ...AT_SOON_AFTER })
     ).toEqual([
       expect.objectContaining({
         entries: [SAMPLE_ENTRY],

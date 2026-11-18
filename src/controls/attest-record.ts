@@ -19,6 +19,19 @@
  * Done in any other order, the digest would cover a register that the next
  * `lisa controls register --check` calls out of date.
  *
+ * ## What the evidence is bound to
+ *
+ * The evidence file also says what defined the checks when the proofs ran:
+ * one digest, and the list of what it covers (`./checks-binding.ts`). The
+ * run hands it over, taken in the copy the proofs ran in. A caller that
+ * hands none over ran no proof in a copy, and the digest is then taken from
+ * the repository itself. `lisa controls attest --check` takes it again later
+ * and compares.
+ *
+ * A file that is not the same in the repository as it was in that copy
+ * would make that check fail straight away, so it is said here, when the
+ * results are written: which files, and what puts each right.
+ *
  * Nothing here asks a model anything, and nothing is written outside the
  * three files. A file is left alone when it already holds what would be
  * written.
@@ -33,13 +46,18 @@ import {
   loadCriterionCatalogue,
   type CriterionCatalogue,
 } from "./catalogue.js";
+import {
+  bindChecks,
+  bindingDifferences,
+  hostHookFiles,
+} from "./checks-binding.js";
 import { writeControlFile, type ControlFileWrite } from "./control-files.js";
 import { EVIDENCE_PATH } from "./evidence.js";
 import { serializeEvidence } from "./evidence-document.js";
 import { gatherEvidence } from "./evidence-gather.js";
 import {
   DEFAULT_FRESHNESS_SECONDS,
-  MAX_FRESHNESS_SECONDS,
+  type ChecksBinding,
   type EvidenceBatch,
   type EvidenceDocument,
   type EvidenceRecord,
@@ -74,19 +92,24 @@ export interface AttestationToRecord {
    */
   readonly batches?: readonly EvidenceBatch[];
   /**
-   * How long each record written now may be relied on, in whole seconds.
-   * {@link DEFAULT_FRESHNESS_SECONDS} when left out.
+   * How long each record written now may be relied on, in whole seconds:
+   * {@link DEFAULT_FRESHNESS_SECONDS} when left out, and never more. A
+   * caller can only make it shorter.
    */
   readonly freshnessSeconds?: number;
   /**
-   * The commit the proofs were run against: the one the run's disposable
-   * copy was made from. Every record written now names it. A run takes
-   * time and the repository can move meanwhile, so this is not read again
-   * when the results are written. Left out when nothing was cloned (a
-   * register with no entries), and the records then name the commit the
-   * repository is at.
+   * The commit the run's disposable copy was cloned from. Every record
+   * written now names it, for a reader's information; nothing is decided by
+   * it. Left out when nothing was cloned (a register with no entries), and
+   * the records then name the commit the repository is at.
    */
   readonly commit?: string;
+  /**
+   * What defined the checks in the copy the proofs ran in. Every record
+   * written now carries its digest. Left out when no proof ran in a copy,
+   * and it is then taken from the repository itself.
+   */
+  readonly checks?: ChecksBinding;
 }
 
 /** What writing down needs from outside, each replaceable in a test. */
@@ -95,6 +118,15 @@ export interface RecordAttestationDependencies {
   readonly generate?: (root: string) => Promise<ControlRegisterGeneration>;
   /** Reads the commit the repository is at. */
   readonly readHead?: (root: string) => Promise<string | null>;
+  /**
+   * Takes the digest of what defines the checks in the repository as it
+   * is: over the paths a recorded binding covers when one is given, and
+   * with the repository's own hook files looked for when none is.
+   */
+  readonly bindChecks?: (
+    root: string,
+    recorded?: ChecksBinding
+  ) => Promise<ChecksBinding>;
   /** Reads the audit report and holds it to every rule. */
   readonly loadReport?: (root: string, now: Date) => Promise<AuditReportLoad>;
   /** Loads the requirements catalogue. */
@@ -113,6 +145,12 @@ export type RecordedAttestation =
       readonly problems: null;
       /** What to tell the operator, one line each. */
       readonly lines: readonly string[];
+      /**
+       * What the operator must be told whatever the output mode, one line
+       * each: results an earlier run recorded that were dropped, and files
+       * that are not the same here as where the proofs ran.
+       */
+      readonly warnings: readonly string[];
       readonly evidence: EvidenceDocument;
       readonly verdict: Verdict;
     }
@@ -126,9 +164,48 @@ export type RecordedAttestation =
 function lifetimeProblem(seconds: number): string | null {
   return Number.isInteger(seconds) &&
     seconds >= 1 &&
-    seconds <= MAX_FRESHNESS_SECONDS
+    seconds <= DEFAULT_FRESHNESS_SECONDS
     ? null
-    : `The freshness lifetime must be a whole number of seconds from 1 to ${MAX_FRESHNESS_SECONDS} (twelve months); it was ${String(seconds)}.`;
+    : `The freshness lifetime must be a whole number of seconds from 1 to ${DEFAULT_FRESHNESS_SECONDS} (thirty days, the longest a record is relied on); it was ${String(seconds)}.`;
+}
+
+/**
+ * Take the digest of what defines the checks in a repository as it is.
+ * @param root - Real path of the repository
+ * @param recorded - A binding whose paths are read again; left out, the
+ *   repository's own hook files are looked for instead
+ * @returns The digest, and what it covers
+ */
+function boundHere(
+  root: string,
+  recorded?: ChecksBinding
+): Promise<ChecksBinding> {
+  return recorded === undefined
+    ? bindChecks({ repository: root, hostHooks: hostHookFiles })
+    : bindChecks({
+        repository: root,
+        also: recorded.covered.map(file => file.path),
+      });
+}
+
+/**
+ * Say which files that define the checks are not the same in the
+ * repository as in the copy the proofs ran in.
+ * @param recorded - What defined the checks where the proofs ran
+ * @param here - The same paths as the repository holds them
+ * @returns One line, or none when the two agree
+ */
+function notAsProved(
+  recorded: ChecksBinding,
+  here: ChecksBinding
+): readonly string[] {
+  const { changed, gone, added } = bindingDifferences(recorded, here);
+  const files = [...changed, ...gone, ...added];
+  return files.length === 0
+    ? []
+    : [
+        `What defines the checks in this repository is not what the proofs ran against, so "lisa controls attest --check" will not pass yet: ${files.join(", ")}. The proofs ran in a copy of the last commit with the carriers freshly installed. Where the file is a hook script or the gate runner, run "lisa controls install-carriers" to bring this repository's copy up to date. Any other was changed since the last commit: commit it, or undo the change. Then run this again.`,
+      ];
 }
 
 /**
@@ -204,6 +281,8 @@ async function recorded(
   }
   const before = await (dependencies.generate ?? generateControlRegister)(root);
   if (before.problems !== null) return { problems: before.problems };
+  const bind = dependencies.bindChecks ?? boundHere;
+  const checks = attestation.checks ?? (await bind(root));
   const gathered = await gatherEvidence({
     root,
     register: before.register,
@@ -214,6 +293,7 @@ async function recorded(
         (await (dependencies.readHead ?? readHeadCommit)(root)),
       freshnessSeconds,
     },
+    checks,
     now,
     loadReport: dependencies.loadReport ?? loadAuditReport,
   });
@@ -223,6 +303,10 @@ async function recorded(
   if (written.problems !== null) return { problems: written.problems };
   return {
     problems: null,
+    warnings: [
+      ...gathered.warnings,
+      ...notAsProved(checks, await bind(root, checks)),
+    ],
     lines: [
       recordedLine(evidence.records),
       ...gathered.notes,

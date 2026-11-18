@@ -27,6 +27,7 @@
 import path from "node:path";
 
 import { resolveRepositoryRoot } from "./audit-report-file.js";
+import type { ChecksBinding } from "./evidence-types.js";
 import { applyProofPatch } from "./proof-patch.js";
 import type { ProofTools } from "./proof-tools.js";
 import type { ProofWorkspace } from "./proof-types.js";
@@ -39,12 +40,18 @@ export type ProofWorkspaceOpening =
       /** Remove whatever opening it created. Called once, on every way out. */
       readonly close: () => void | Promise<void>;
       /**
-       * The commit the workspace is a copy of, when it is a copy of one. It
-       * is what the run's evidence records name: the commit the proofs were
-       * run against, whatever the repository has moved to by the time the
+       * The commit the workspace was cloned from, when it is a clone of
+       * one. The run's evidence records name it, for a reader's
+       * information, whatever the repository has moved to by the time the
        * results are written down.
        */
       readonly commit?: string;
+      /**
+       * What defined the checks in the workspace, when it is the run's own
+       * copy: the digest the run's evidence is bound to
+       * (`./checks-binding.ts`).
+       */
+      readonly checks?: ChecksBinding;
     }
   | { readonly problem: string };
 

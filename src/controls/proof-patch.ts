@@ -27,6 +27,15 @@
  *
  * The patch is handed over on standard input and never as a path, and it is
  * never applied with an option that loosens any of this.
+ *
+ * ## Which paths a patch touches
+ *
+ * {@link patchPaths} asks git to read the patch, not to apply it, and to
+ * list every path it names. The patch is read forwards and backwards: read
+ * forwards, a rename is listed under its new name only, and read backwards
+ * under its old one. Nothing is asked of the index, so a path git would
+ * leave out of a commit because the repository ignores it is listed like
+ * any other. {@link ignoredPaths} then says which of some paths those are.
  * @module controls/proof-patch
  */
 import { spawnSync } from "node:child_process";
@@ -35,6 +44,7 @@ import { devNull } from "node:os";
 import path from "node:path";
 
 import { pathKind } from "./audit-report-file.js";
+import { compareCodeUnits } from "./canonical-json.js";
 import type { PatchOutcome } from "./proof-types.js";
 
 /** The folder every proof file lives in, from the repository root. */
@@ -180,6 +190,155 @@ export function isolatedGit(directory: string): readonly string[] {
     "LC_ALL=C",
     "git",
   ];
+}
+
+/** What git printed and how it ended, for one start with input. */
+interface GitWithInput {
+  /** The exit status; `null` when git could not be started or was stopped. */
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+  /** Why git could not be started, when it could not. */
+  readonly failure: string | null;
+}
+
+/**
+ * Start the isolated git in a folder with text on its standard input.
+ * @param directory - Real path of the folder to work in
+ * @param args - Arguments to git
+ * @param input - What git reads on standard input
+ * @returns What it printed and how it ended
+ */
+function gitWithInput(
+  directory: string,
+  args: readonly string[],
+  input: string
+): GitWithInput {
+  const [program = ENV_PROGRAM, ...git] = isolatedGit(directory);
+  const child = spawnSync(program, [...git, ...args], {
+    cwd: directory,
+    encoding: "utf8",
+    input,
+    maxBuffer: APPLY_OUTPUT_BYTES,
+    timeout: APPLY_BUDGET_MS,
+  });
+  return {
+    failure: child.error === undefined ? null : oneLine(child.error.message),
+    status: child.status,
+    stderr: child.stderr ?? "",
+    stdout: child.stdout ?? "",
+  };
+}
+
+/** Some paths, or why git could not name them. */
+export type PathsRead =
+  | { readonly problem: null; readonly paths: readonly string[] }
+  | { readonly problem: string };
+
+/** What a path is written behind so that git reads it as a name. */
+const FROM_HERE = "./";
+
+/** One line of `git apply --numstat -z`: two counts, then the path. */
+const NUMSTAT_RECORD = /^(?:\d+|-)\t(?:\d+|-)\t([\s\S]*)$/u;
+
+/**
+ * Read the paths out of what `git apply --numstat -z` printed.
+ *
+ * Each record is two counts and a path, ended by a NUL. Where the path is
+ * empty the record is a rename, and the next two NUL-ended names are the old
+ * path and the new one.
+ * @param printed - Git's output
+ * @returns Every path named, in git's order
+ */
+function numstatPaths(printed: string): readonly string[] {
+  return printed
+    .split("\0")
+    .filter(record => record !== "")
+    .map(record => NUMSTAT_RECORD.exec(record)?.[1] ?? record)
+    .filter(name => name !== "");
+}
+
+/**
+ * List every path a patch touches, read from the patch itself.
+ *
+ * Nothing is applied and the index is not asked, so the answer does not
+ * depend on what git would stage: a path the repository ignores is listed
+ * with the rest. A renamed file is listed under both of its names, and a
+ * deleted one under the name it had.
+ * @param directory - Real path of the folder the patch belongs to
+ * @param patch - The content of the patch file
+ * @returns The paths, from the repository root, each once and in order; or
+ *   why git could not read the patch
+ */
+export function patchPaths(directory: string, patch: string): PathsRead {
+  const read = (extra: readonly string[]): PathsRead => {
+    const child = gitWithInput(
+      directory,
+      ["apply", "--numstat", "-z", ...extra, "-"],
+      patch
+    );
+    if (child.failure !== null) {
+      return { problem: `git could not be run (${child.failure})` };
+    }
+    return child.status === 0
+      ? { problem: null, paths: numstatPaths(child.stdout) }
+      : {
+          problem:
+            oneLine(child.stderr + child.stdout) ||
+            `git exited ${String(child.status)}`,
+        };
+  };
+  const forwards = read([]);
+  if (forwards.problem !== null) return forwards;
+  const backwards = read(["--reverse"]);
+  if (backwards.problem !== null) return backwards;
+  return {
+    problem: null,
+    paths: [...new Set([...forwards.paths, ...backwards.paths])].sort(
+      compareCodeUnits
+    ),
+  };
+}
+
+/**
+ * Say which of some paths a repository ignores.
+ *
+ * Git is asked the way `git add` asks: a path that is already tracked is
+ * not ignored, whatever an ignore file says, and a path that is not tracked
+ * is ignored when an ignore file of the repository as it stands right now
+ * names it. Each path is handed over behind `./`, so one that begins the
+ * way a pattern's options do is still read as a name.
+ * @param directory - Real path of the repository, or of a copy of it
+ * @param paths - Paths from the repository root
+ * @returns The ignored ones, in the order given; or why git could not say
+ */
+export function ignoredPaths(
+  directory: string,
+  paths: readonly string[]
+): PathsRead {
+  if (paths.length === 0) return { problem: null, paths: [] };
+  const child = gitWithInput(
+    directory,
+    ["check-ignore", "-z", "--stdin"],
+    paths.map(name => `${FROM_HERE}${name}\0`).join("")
+  );
+  if (child.failure !== null) {
+    return { problem: `git could not be run (${child.failure})` };
+  }
+  // Exit 0: at least one is ignored. Exit 1: none is. Anything else: git
+  // could not answer.
+  if (child.status !== 0 && child.status !== 1) {
+    return {
+      problem:
+        oneLine(child.stderr + child.stdout) ||
+        `git exited ${String(child.status)}`,
+    };
+  }
+  const ignored = new Set(child.stdout.split("\0"));
+  return {
+    problem: null,
+    paths: paths.filter(name => ignored.has(`${FROM_HERE}${name}`)),
+  };
 }
 
 /**

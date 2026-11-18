@@ -6,11 +6,25 @@
  * for that folder. Each of those is one answer, worked out here from the
  * evidence records about it. `./verdict.ts` then takes the worst answer.
  *
+ * ## Which records are read at all
+ *
+ * The evidence file is on disk between runs, and anyone can type into it.
+ * The writer holds every earlier record it keeps to a short list of rules,
+ * and a record typed in after the last run has been through no writer. So
+ * the same rules are applied here, on every read (`./evidence-standing.ts`):
+ * a record about a control counts only when its moment is one a run writes
+ * records for, its entry is enforced at that moment, and it carries the
+ * digest the evidence file gives for what defines the checks. A record of
+ * an audit finding counts only when it carries that digest. A record that
+ * does not count is not read: it can neither make a requirement conforming
+ * nor fail it. And no record is relied on for longer than the default
+ * lifetime, whatever it states (`evidenceExpiry` in `./evidence.ts`).
+ *
  * ## One control
  *
  * In this order, and the first that applies decides:
  *
- * 1. No record of the control for this requirement: `unknown`.
+ * 1. No record of the control for this requirement that counts: `unknown`.
  * 2. A current record that shows a failure: `non-conforming`. A definite
  *    failure outranks a missing answer.
  * 3. A record that is not current (past its lifetime, or dated later than
@@ -40,6 +54,7 @@
  * @module controls/verdict-answers
  */
 import { isEvidenceFresh } from "./evidence.js";
+import { standingProblem } from "./evidence-standing.js";
 import {
   ARTIFACT_KIND,
   EVIDENCE_RUNGS,
@@ -50,12 +65,19 @@ import {
   type EvidenceRung,
 } from "./evidence-types.js";
 import { PROOF_HALVES } from "./proof-halves.js";
+import type { ControlRegisterEntry } from "./register-types.js";
 import {
   NOT_APPLICABLE,
   type CriterionVerdictWord,
   type VerdictReason,
 } from "./verdict-types.js";
-import { CONTROL_WORDS, FINDING_WORDS, notCurrent } from "./verdict-wording.js";
+import {
+  CONTROL_WORDS,
+  FINDING_WORDS,
+  notCurrent,
+  setAside,
+  whereOf,
+} from "./verdict-wording.js";
 
 /** What one control or one audit finding says about a requirement. */
 export interface Answer {
@@ -89,7 +111,18 @@ export interface AnswerContext {
   readonly kind: string;
   /** The current time. */
   readonly now: Date;
+  /**
+   * The digest the evidence file gives for what defines the checks. A
+   * record that carries another one does not count.
+   */
+  readonly checksDigest: string;
 }
+
+/** The part of a register entry a control's answer is worked out from. */
+export type AnsweredEntry = Pick<
+  ControlRegisterEntry,
+  "id" | "scope" | "enforcement_points"
+>;
 
 /** The verdict's reason for each reason a finding record gives for `unknown`. */
 const UNKNOWN_FINDING_REASONS: Readonly<Record<string, VerdictReason>> = {
@@ -171,29 +204,55 @@ function heldRung(records: readonly EvidenceRecord[]): EvidenceRung | null {
 }
 
 /**
+ * The answer for a control none of whose records counts.
+ * @param entry - The register entry
+ * @param onFile - Every record on file about it for this requirement
+ * @param context - The digest the evidence file gives for the checks
+ * @returns The answer: `unknown`, and why the records were set aside when
+ *   there are any
+ */
+function nothingCounts(
+  entry: AnsweredEntry,
+  onFile: readonly EvidenceRecord[],
+  context: AnswerContext
+): Answer {
+  const base = { entry_id: entry.id, scope: entry.scope, records: [] };
+  const [first] = onFile;
+  const problem =
+    first === undefined
+      ? null
+      : standingProblem(first, entry, context.checksDigest);
+  return short(
+    base,
+    "unknown",
+    "no-evidence",
+    first === undefined || problem === null
+      ? CONTROL_WORDS.noEvidence(entry.id)
+      : setAside(`the control ${entry.id}`, first, problem)
+  );
+}
+
+/**
  * What one control says about a requirement.
  * @param entry - The register entry
- * @param entry.id - Its identifier
- * @param entry.scope - The folder it covers
- * @param records - The evidence records about it for this requirement
- * @param context - The requirement's minimum rung and the current time
+ * @param onFile - Every evidence record on file about it for this
+ *   requirement, whether or not it counts
+ * @param context - The requirement's minimum rung, the current time and the
+ *   digest the evidence file gives for the checks
  * @returns The answer
  */
 export function controlAnswer(
-  entry: { readonly id: string; readonly scope: string },
-  records: readonly EvidenceRecord[],
+  entry: AnsweredEntry,
+  onFile: readonly EvidenceRecord[],
   context: AnswerContext
 ): Answer {
   const { minimum, now } = context;
+  // Read only what a run could have written about the checks as they are.
+  const records = onFile.filter(
+    record => standingProblem(record, entry, context.checksDigest) === null
+  );
   const base = { entry_id: entry.id, scope: entry.scope, records };
-  if (records.length === 0) {
-    return short(
-      base,
-      "unknown",
-      "no-evidence",
-      CONTROL_WORDS.noEvidence(entry.id)
-    );
-  }
+  if (records.length === 0) return nothingCounts(entry, onFile, context);
   const failed = records.find(
     record => record.result === "failed" && isEvidenceFresh(record, now)
   );
@@ -325,13 +384,26 @@ function currentFinding(
 /**
  * What one audit finding says about a requirement.
  * @param record - The record written from the finding
- * @param context - The requirement's kind, its minimum rung and the time
+ * @param context - The requirement's kind, its minimum rung, the time and
+ *   the digest the evidence file gives for the checks
  * @returns The answer
  */
 export function findingAnswer(
   record: EvidenceRecord,
   context: AnswerContext
 ): Answer {
+  if (record.checks_digest !== context.checksDigest) {
+    return short(
+      { entry_id: null, scope: record.scope, records: [] },
+      "unknown",
+      "no-evidence",
+      setAside(
+        `the audit's finding about ${whereOf(record.scope)}`,
+        record,
+        "other-checks"
+      )
+    );
+  }
   const base = { entry_id: null, scope: record.scope, records: [record] };
   return isEvidenceFresh(record, context.now)
     ? currentFinding(base, record, context)

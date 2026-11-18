@@ -50,6 +50,7 @@ import {
   context,
 } from "./audit-report-facts.js";
 import { check, keep, removeFixtures } from "./support/report-check-run.js";
+import { SAMPLE_CHECKS } from "./support/evidence-samples.js";
 
 afterEach(removeFixtures);
 
@@ -262,7 +263,11 @@ describe("the attest step", () => {
       inlineAnswers: { rendered: false, problems: [], entries: [] },
       criteria: CRITERIA,
       repository: createRepositoryReader(repoPath),
-      stamp: { commit: null, freshnessSeconds: DEFAULT_FRESHNESS_SECONDS },
+      stamp: {
+        commit: null,
+        freshnessSeconds: DEFAULT_FRESHNESS_SECONDS,
+        checksDigest: SAMPLE_CHECKS.digest,
+      },
       readAt: NOW,
     }).filter(each => each.criterion === FIRST);
     return {

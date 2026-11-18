@@ -37,7 +37,9 @@
  *
  * With `--check` it runs no proof and writes nothing: it computes the
  * verdict again from the committed register and evidence and exits non-zero
- * when the committed verdict differs; see `../attest-check.ts`.
+ * when the committed verdict differs, or when what defines the checks is no
+ * longer what the proofs ran against; see `../attest-check.ts`. That is
+ * asked of content, so no order of committing is required of the operator.
  *
  * Whether a pull request is stopped is the hosting platform's to say. By
  * default the command only reads the platform's merge-protection settings
@@ -48,7 +50,9 @@
  * See `../pull-request-settle.ts`. What the platform said is written to the
  * evidence file with everything else; see `../pull-request-evidence.ts`.
  * Whatever such a run could not remove is named on standard error, one line
- * each, in both output modes. A canary the platform says was merged, or a
+ * each, in both output modes, and on every way out once the proofs are in:
+ * also when the results could not be written down, and when the run's own
+ * copy could not be removed. A canary the platform says was merged, or a
  * protected branch that moved with a canary unaccounted for, exits 1
  * whatever the proofs showed; see `../pull-request-notices.ts`.
  *
@@ -200,26 +204,63 @@ export async function runAttest(
     })
   );
   if (attempted.problems !== null) {
+    // The proofs can be in before a run fails. A run that opened canary
+    // pull requests says what it left behind however it ends.
+    if (attempted.run !== undefined) reportCanaryNotices(attempted.run, stderr);
     attempted.problems.forEach(problem => {
       stderr(problem.replaceAll(/\s+/gu, " "));
     });
     stderr(`${ATTEST_COMMAND}: FAIL. ${attempted.summary}`);
     return ATTEST_EXIT.NOT_RUN;
   }
-  const { run } = attempted;
   // In a folder the operator named, each check's own command was started
   // and no commit or push was made. That is a report and not a proof:
   // nothing is written; see ./attest-report-only.ts.
   if (options.workspace !== undefined) {
-    return reportedOnly(run, options.json === true, { stdout, stderr });
+    return reportedOnly(attempted.run, options.json === true, {
+      stdout,
+      stderr,
+    });
   }
-  const named = path.resolve(cwd, targetPath ?? ".");
-  const now = (dependencies.clock ?? (() => new Date()))();
-  const recorded = await recordAttestation(
-    toRecord(named, attempted, now),
-    dependencies
+  return writtenDown(
+    path.resolve(cwd, targetPath ?? "."),
+    attempted,
+    options.json === true,
+    { ...dependencies, stdout, stderr }
   );
+}
+
+/**
+ * Write down what a run found, print it, and say how the run ended.
+ *
+ * Whatever a canary run could not undo on the hosting platform is put on
+ * standard error on both ways out: with the results, and when the results
+ * could not be written down.
+ * @param named - Absolute path of the repository the operator named
+ * @param attempted - The run's results, and what they are bound to
+ * @param json - Whether to print one JSON document instead of a table
+ * @param dependencies - Replaceable collaborators, and where lines go
+ * @returns The exit code; see {@link ATTEST_EXIT}
+ */
+async function writtenDown(
+  named: string,
+  attempted: Extract<Attempt, { readonly problems: null }>,
+  json: boolean,
+  dependencies: AttestDependencies & {
+    readonly stdout: (line: string) => void;
+    readonly stderr: (line: string) => void;
+  }
+): Promise<number> {
+  const { stdout, stderr } = dependencies;
+  const { run } = attempted;
+  const now = (dependencies.clock ?? (() => new Date()))();
+  const recorded = await toRecord(named, attempted, now)
+    .then(found => recordAttestation(found, dependencies))
+    .catch((error: unknown) => ({
+      problems: [error instanceof Error ? error.message : String(error)],
+    }));
   if (recorded.problems !== null) {
+    reportCanaryNotices(run, stderr);
     recorded.problems.forEach(problem => {
       stderr(problem.replaceAll(/\s+/gu, " "));
     });
@@ -228,17 +269,21 @@ export async function runAttest(
     );
     return ATTEST_EXIT.NOT_RUN;
   }
-  const lines =
-    options.json === true
-      ? [JSON.stringify(run, null, 2)]
-      : [
-          ...renderProofTable(run),
-          ...recorded.lines.map(line => `${ATTEST_COMMAND}: ${line}`),
-        ];
+  const lines = json
+    ? [JSON.stringify(run, null, 2)]
+    : [
+        ...renderProofTable(run),
+        ...recorded.lines.map(line => `${ATTEST_COMMAND}: ${line}`),
+      ];
   lines.forEach(line => {
     stdout(line);
   });
-  return conclude(run, options.json === true, { stdout, stderr });
+  // Said in both output modes: what an earlier run recorded and this one
+  // dropped, and any file that is not here as it was where the proofs ran.
+  recorded.warnings.forEach(line => {
+    stderr(`${ATTEST_COMMAND}: note. ${line}`);
+  });
+  return conclude(run, json, { stdout, stderr });
 }
 
 /**
@@ -306,7 +351,7 @@ export function registerAttest(
     )
     .option(
       "--check",
-      "Run no proof and write nothing: fail when the committed verdict differs from what the committed register and evidence give"
+      "Run no proof and write nothing: fail when the committed verdict differs from what the committed register and evidence give, or when a file that defines the checks no longer holds what the proofs ran against. Reads the files and no version history, so it answers the same in any clone"
     )
     .option(
       "--pull-request-canaries",

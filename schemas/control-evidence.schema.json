@@ -2,10 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/CodySwannGT/lisa/schemas/control-evidence.schema.json",
   "title": "Control evidence",
-  "description": "What the attest step recorded about each requirement: the result of each half of each control's paired proof, each setting read from the hosting platform, and each finding of the audit report. The file is written by `lisa controls attest` and is never edited by hand; `lisa controls attest --check` computes the verdict again from it and fails when the committed verdict differs.",
+  "description": "What the attest step recorded about each requirement: the result of each half of each control's paired proof, each setting read from the hosting platform, and each finding of the audit report, together with a digest of what defined the checks when it was recorded. The file is written by `lisa controls attest` and is never edited by hand; `lisa controls attest --check` computes the verdict again from it, takes the same digest from the repository as it is, and fails when the committed verdict differs or the checks are no longer what was proved.",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "checks",
     "schema_version",
     "records"
   ],
@@ -13,6 +14,10 @@
     "schema_version": {
       "const": 1,
       "description": "The version of this format. It changes only when a reader written for the previous version would misread the file."
+    },
+    "checks": {
+      "$ref": "#/$defs/checks",
+      "description": "What defined the checks at the run that wrote the file. A file without it was written before evidence was bound to what defines the checks, and is not read as evidence."
     },
     "records": {
       "type": "array",
@@ -33,6 +38,53 @@
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
       "description": "A time in UTC with milliseconds, `YYYY-MM-DDTHH:mm:ss.sssZ`."
     },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "A SHA-256 digest, in lower-case hexadecimal."
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One digest over everything that defines the checks, and the list of what it covers: the `gates` block of `.lisa.config.json`, every file under `.lisa/controls/proofs/`, `.lisa/controls/carriers.json` with every file it lists and every file under `.lisa/hooks/`, the gate runner under `scripts/`, and the repository's own hook files that hold Lisa's marked call. Each file is read in the copy the proofs ran in, so the digest is of what was proved. A checked tool's own configuration is not covered.",
+      "required": [
+        "covered",
+        "digest"
+      ],
+      "properties": {
+        "covered": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/covered_file"
+          },
+          "description": "Everything the digest covers, each file once, ordered by `path`."
+        },
+        "digest": {
+          "$ref": "#/$defs/sha256",
+          "description": "The SHA-256 digest of `covered` written as canonical JSON: object keys in code-unit order, no spaces, the list in its own order."
+        }
+      }
+    },
+    "covered_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One thing that defines the checks, and the digest of its content.",
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The file, from the repository root. For `.lisa.config.json` the digest is of its `gates` block in canonical form and not of the whole file, so a change to another setting there is not a change to a check."
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "The digest of the file's content."
+        }
+      }
+    },
     "record": {
       "oneOf": [
         {
@@ -52,6 +104,7 @@
       "additionalProperties": false,
       "description": "One half of a paired proof: a change was planted and the control's answer recorded.",
       "required": [
+        "checks_digest",
         "command",
         "commit",
         "completed_at",
@@ -72,6 +125,10 @@
         "started_at"
       ],
       "properties": {
+        "checks_digest": {
+          "$ref": "#/$defs/sha256",
+          "description": "The digest of what defined the checks when the record was made: the `digest` of the file's `checks` at the run that wrote it. A record that carries another digest counts for nothing."
+        },
         "command": {
           "anyOf": [
             {
@@ -97,7 +154,7 @@
               "type": "null"
             }
           ],
-          "description": "The commit the result is about: the one the attest run's disposable copy was made from. A record written when nothing was cloned names the commit the repository was at. `null` when the repository has no commit or is not a git repository."
+          "description": "The commit the attest run's disposable copy was cloned from. A record written when nothing was cloned names the commit the repository was at. `null` when the repository has no commit or is not a git repository. It is information for a reader: nothing is decided by it, and it need not exist in the clone the file is read in."
         },
         "completed_at": {
           "$ref": "#/$defs/utc_time",
@@ -132,7 +189,7 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 31536000,
-          "description": "How long after `completed_at` the record may be relied on, in whole seconds; never more than twelve months. Past that, the requirement reads `unknown`."
+          "description": "How long after `completed_at` the record states it may be relied on, in whole seconds; never more than twelve months. A record is relied on for thirty days at most, whatever it states. Past that, the requirement reads `unknown`."
         },
         "half": {
           "enum": [
@@ -193,6 +250,7 @@
       "additionalProperties": false,
       "description": "A setting read from the system that holds it, with nothing planted.",
       "required": [
+        "checks_digest",
         "command",
         "commit",
         "completed_at",
@@ -212,6 +270,10 @@
         "started_at"
       ],
       "properties": {
+        "checks_digest": {
+          "$ref": "#/$defs/sha256",
+          "description": "The digest of what defined the checks when the record was made: the `digest` of the file's `checks` at the run that wrote it. A record that carries another digest counts for nothing."
+        },
         "command": {
           "anyOf": [
             {
@@ -237,7 +299,7 @@
               "type": "null"
             }
           ],
-          "description": "The commit the result is about: the one the attest run's disposable copy was made from. A record written when nothing was cloned names the commit the repository was at. `null` when the repository has no commit or is not a git repository."
+          "description": "The commit the attest run's disposable copy was cloned from. A record written when nothing was cloned names the commit the repository was at. `null` when the repository has no commit or is not a git repository. It is information for a reader: nothing is decided by it, and it need not exist in the clone the file is read in."
         },
         "completed_at": {
           "$ref": "#/$defs/utc_time",
@@ -272,7 +334,7 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 31536000,
-          "description": "How long after `completed_at` the record may be relied on, in whole seconds; never more than twelve months. Past that, the requirement reads `unknown`."
+          "description": "How long after `completed_at` the record states it may be relied on, in whole seconds; never more than twelve months. A record is relied on for thirty days at most, whatever it states. Past that, the requirement reads `unknown`."
         },
         "id": {
           "type": "string",
@@ -326,6 +388,7 @@
       "additionalProperties": false,
       "description": "What the audit report said about a requirement, written down when the attest step read it.",
       "required": [
+        "checks_digest",
         "command",
         "commit",
         "completed_at",
@@ -345,6 +408,10 @@
         "started_at"
       ],
       "properties": {
+        "checks_digest": {
+          "$ref": "#/$defs/sha256",
+          "description": "The digest of what defined the checks when the record was made: the `digest` of the file's `checks` at the run that wrote it. A record that carries another digest counts for nothing."
+        },
         "command": {
           "anyOf": [
             {
@@ -370,7 +437,7 @@
               "type": "null"
             }
           ],
-          "description": "The commit the result is about: the one the attest run's disposable copy was made from. A record written when nothing was cloned names the commit the repository was at. `null` when the repository has no commit or is not a git repository."
+          "description": "The commit the attest run's disposable copy was cloned from. A record written when nothing was cloned names the commit the repository was at. `null` when the repository has no commit or is not a git repository. It is information for a reader: nothing is decided by it, and it need not exist in the clone the file is read in."
         },
         "completed_at": {
           "$ref": "#/$defs/utc_time",
@@ -404,7 +471,7 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 31536000,
-          "description": "How long after `completed_at` the record may be relied on, in whole seconds; never more than twelve months. Past that, the requirement reads `unknown`."
+          "description": "How long after `completed_at` the record states it may be relied on, in whole seconds; never more than twelve months. A record is relied on for thirty days at most, whatever it states. Past that, the requirement reads `unknown`."
         },
         "id": {
           "type": "string",

@@ -13,6 +13,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { PROOF_CHECK_EXIT } from "../../../src/controls/commands/proof-check.js";
+import { CONTROL_AUDIT_FIXTURE_FILES } from "../../helpers/control-audit-fixtures.js";
 import {
   ACCEPTS_EVERYTHING,
   API_SOURCE,
@@ -23,6 +24,7 @@ import {
   proofPatches,
   PROOFS,
   provedGates,
+  replaceFilePatch,
   WEB_SOURCE,
 } from "../../helpers/control-proofs.js";
 import { configFile } from "../../helpers/control-register.js";
@@ -208,12 +210,32 @@ describe("a change that cannot be used as it is", () => {
     ]);
   });
 
-  it("refuses a change that leaves nothing git would commit", async () => {
+  it("refuses a change that only adds a file at a path the repository ignores, and says the file is one git leaves out", async () => {
     const { part } = await checkedPart(provedGates([{ command: LINTER }]), {
       ".gitignore": "scratch/\n",
       ...proofFiles({
         violation: F_NONE_PATCHES.violation,
         clean: newFilePatch("scratch/notes.txt", "a harmless change"),
+      }),
+    });
+
+    expect(part).toMatchObject({ result: NOT_READY, reason: "ignored-path" });
+    expect(part.detail).toBe(
+      "The clean change touches scratch/notes.txt, a path this repository ignores. Git leaves an ignored file out of a commit, so the check would be shown a change without that file while its command finds the file on disk. Take that file out of the patch."
+    );
+  });
+
+  it("refuses a change that leaves nothing git would commit: only line endings the repository normalises", async () => {
+    const source = CONTROL_AUDIT_FIXTURE_FILES["F-none"][F_NONE_SOURCE] ?? "";
+    const { part } = await checkedPart(provedGates([{ command: LINTER }]), {
+      ".gitattributes": "* text=auto\n",
+      ...proofFiles({
+        violation: F_NONE_PATCHES.violation,
+        clean: replaceFilePatch(
+          F_NONE_SOURCE,
+          source,
+          source.replaceAll("\n", "\r\n")
+        ),
       }),
     });
 

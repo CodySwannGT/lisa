@@ -217,7 +217,7 @@ describe("lisa controls attest with no --workspace", () => {
     // The results name the last commit, which does not hold that file as it
     // was proved, and the operator is told what that leads to.
     expect(run.stderr.at(-1)).toMatch(
-      /^attest: note\. The results are recorded against commit [0-9a-f]{7}, which does not hold that file as it is now\. After you commit it, "lisa controls attest --check" will find that the checks changed since that commit and will not pass\. To have a verdict that stays checkable, commit that file first, then run this again and commit the three files of results\.$/u
+      /^attest: note\. The results are bound to what that file holds, not to a commit\. Commit it whenever you like, before the three files of results or with them: "lisa controls attest --check" passes for as long as it is not changed\.$/u
     );
   });
 

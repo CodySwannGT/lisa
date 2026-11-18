@@ -9,6 +9,11 @@
  * @module controls/proof-wording
  */
 import { GATES_DECLARATION_PATH } from "./gates-declaration.js";
+import type { ChangeFinding } from "./proof-change-rule.js";
+import {
+  TASK_RUNNER_KINDS,
+  TASK_RUNNER_PROGRAMS,
+} from "./proof-task-runners.js";
 import type {
   ProofEntryReason,
   ProofHalf,
@@ -131,34 +136,79 @@ export function verdictDetail(
 /** How every result that ran nothing begins. */
 const NOT_RUN = "No proof was run.";
 
+/** The reason of a pair one of whose changes edits what the check is. */
+export const DECLARATION_CHANGED_REASON = "declaration-changed";
+
+/** The reason of a pair one of whose changes touches an ignored path. */
+export const IGNORED_PATH_REASON = "ignored-path";
+
 /**
- * Say that a change edits a file that says what the checks are, or runs
- * them. `lisa controls proof-check` and `lisa controls attest` both say it
- * in these words.
- * @param half - Which half's change
- * @param file - The file it edits, from the repository root
- * @returns The sentence
+ * The reason a pair is turned away for what one of its changes touches.
+ * `lisa controls proof-check` and `lisa controls attest` give the same one.
+ * @param finding - What the change touches
+ * @returns `ignored-path` for a path the repository ignores, and
+ *   `declaration-changed` for everything that changes what the check is
  */
-export function declarationChangedDetail(
-  half: ProofHalf,
-  file: string
-): string {
-  const what =
-    file === GATES_DECLARATION_PATH
-      ? "the file that says what each check runs"
-      : "one of the files that start the checks at commit and push";
-  return `The ${HALF_NAMES[half]} change edits ${file}, ${what}. A proof never changes what the check is. Take that file out of the patch.`;
+export function changeFindingReason(
+  finding: ChangeFinding
+): typeof DECLARATION_CHANGED_REASON | typeof IGNORED_PATH_REASON {
+  return finding.kind === IGNORED_PATH_REASON
+    ? IGNORED_PATH_REASON
+    : DECLARATION_CHANGED_REASON;
 }
 
 /**
- * Say that an entry's proof was not run because one of its changes edits
- * what the check is.
+ * Say what a file a change may not edit is.
+ * @param finding - What the change touches, other than an ignored path
+ * @returns The words that follow the file's name
+ */
+function whatItIs(
+  finding: Exclude<ChangeFinding, { readonly kind: typeof IGNORED_PATH_REASON }>
+): string {
+  if (finding.kind === "program") {
+    return "the program this check's command starts";
+  }
+  if (finding.kind === "runner-manifest") {
+    const programs = TASK_RUNNER_PROGRAMS[finding.runner].join(", ");
+    return finding.runner === TASK_RUNNER_KINDS[0]
+      ? `whose scripts this check's command runs (the command goes through a package manager: ${programs})`
+      : `which says what this check's command runs (the command goes through ${programs})`;
+  }
+  return finding.file === GATES_DECLARATION_PATH
+    ? "the file that says what each check runs"
+    : "one of the files that start the checks at commit and push";
+}
+
+/**
+ * Say what a change touches that a proof's change may not.
+ * `lisa controls proof-check` and `lisa controls attest` both say it in
+ * these words.
  * @param half - Which half's change
- * @param file - The file it edits, from the repository root
+ * @param finding - What it touches
+ * @returns The sentence
+ */
+export function changeFindingDetail(
+  half: ProofHalf,
+  finding: ChangeFinding
+): string {
+  const change = `The ${HALF_NAMES[half]} change`;
+  return finding.kind === IGNORED_PATH_REASON
+    ? `${change} touches ${finding.file}, a path this repository ignores. Git leaves an ignored file out of a commit, so the check would be shown a change without that file while its command finds the file on disk. Take that file out of the patch.`
+    : `${change} edits ${finding.file}, ${whatItIs(finding)}. A proof never changes what the check is. Take that file out of the patch.`;
+}
+
+/**
+ * Say that an entry's proof was not run because of what one of its changes
+ * touches.
+ * @param half - Which half's change
+ * @param finding - What it touches
  * @returns The sentence for the operator
  */
-export function pairChangesCheckDetail(half: ProofHalf, file: string): string {
-  return `${NOT_RUN} ${declarationChangedDetail(half, file)}`;
+export function pairChangesCheckDetail(
+  half: ProofHalf,
+  finding: ChangeFinding
+): string {
+  return `${NOT_RUN} ${changeFindingDetail(half, finding)}`;
 }
 
 /** One half an entry cannot plant, and why. */

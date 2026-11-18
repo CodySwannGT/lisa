@@ -21,8 +21,10 @@
  * the check there.
  *
  * Whether a change edits what the check is (the declaration, a hook script,
- * the gate runner) is asked of `./proof-change-rule.ts`, the rule the attest
- * step holds a pair to as well.
+ * the gate runner, the script the part's command runs) or puts a file where
+ * git will not look is asked of `./proof-change-rule.ts`, the rule the
+ * attest step holds a pair to as well. That rule reads the patch itself and
+ * not what was staged.
  * @module controls/proof-check-workspace
  */
 import path from "node:path";
@@ -33,7 +35,12 @@ import {
   beforeEnforceWorkspace,
   type BeforeEnforceWorkspace,
 } from "./before-enforce-workspace.js";
-import { changedCheckFile, stagedPaths } from "./proof-change-rule.js";
+import {
+  changeFinding,
+  stagedPaths,
+  type ChangeFinding,
+  type CheckCommand,
+} from "./proof-change-rule.js";
 import { copyGit } from "./proof-copy-git.js";
 import type { ProofCopy } from "./proof-copy.js";
 import type { ProofTools } from "./proof-tools.js";
@@ -53,13 +60,16 @@ export interface ChangeRules {
 
 /** What a planted change is, as a commit or push hook would see it. */
 export interface PlantedChange {
-  /** The paths it touches, from the repository root, in git's order. */
+  /**
+   * The paths a commit of it would hold, from the repository root, in git's
+   * order.
+   */
   readonly paths: readonly string[];
   /**
-   * The first file it edits that says what the checks are or runs them
-   * (`./proof-change-rule.ts`); `null` when it edits none.
+   * What it touches that a proof's change may not
+   * (`./proof-change-rule.ts`); `null` when it leaves the check alone.
    */
-  readonly checkFile: string | null;
+  readonly finding: ChangeFinding | null;
   /** Whether a commit or push of it would start the part's check. */
   readonly startsCheck: boolean;
 }
@@ -68,10 +78,14 @@ export interface PlantedChange {
 export interface ProofCheckWorkspace extends BeforeEnforceWorkspace {
   /**
    * Describe the change that is planted right now.
-   * @param scope - The folder of the part the change belongs to
-   * @throws {Error} When git cannot list what is staged in the clone
+   * @param change - The patch that was planted, and the part's command
+   *   with the folder it is started in
+   * @throws {Error} When git cannot say what the change touches
    */
-  readonly planted: (scope: string) => PlantedChange;
+  readonly planted: (change: {
+    readonly patch: string;
+    readonly command: CheckCommand;
+  }) => PlantedChange;
 }
 
 /** The slice of the runner's changed-paths module this module calls. */
@@ -143,12 +157,17 @@ export function proofCheckWorkspace(
   const inClone = copyGit(copy.clone);
   return {
     ...beforeEnforceWorkspace(copy, tools),
-    planted: scope => {
+    planted: change => {
       const paths = stagedPaths(inClone);
-      const folders = folderSpellings(copy.clone, scope, tools);
+      const folders = folderSpellings(copy.clone, change.command.scope, tools);
       return {
         paths,
-        checkFile: changedCheckFile(paths, copy.checkFiles),
+        finding: changeFinding({
+          ...change,
+          checkFiles: copy.checkFiles,
+          directory: copy.clone,
+          git: inClone,
+        }),
         startsCheck: folders === null || rules.touches(paths, folders),
       };
     },

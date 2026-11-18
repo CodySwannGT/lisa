@@ -38,6 +38,7 @@ import {
   halfRecord,
   RECORDED_AT,
   registerOf,
+  SAMPLE_CHECKS,
   SAMPLE_COMMIT,
 } from "./support/evidence-samples.js";
 
@@ -93,6 +94,7 @@ function written(change: Partial<EvidenceResultInput>): EvidenceRecord {
   const built = batchRecords([batch(result(change))], REGISTER, {
     commit: SAMPLE_COMMIT,
     freshnessSeconds: DEFAULT_FRESHNESS_SECONDS,
+    checksDigest: SAMPLE_CHECKS.digest,
   });
   const [record] = built.problems === null ? built.records : [];
   if (record === undefined) throw new Error("no record was written");
@@ -201,6 +203,7 @@ describe("a record an earlier run left in the file", () => {
       register: REGISTER,
       batches: [],
       records: [],
+      checksDigest: SAMPLE_CHECKS.digest,
     });
 
     expect(kept).toHaveLength(1);

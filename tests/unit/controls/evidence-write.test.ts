@@ -35,6 +35,7 @@ import {
   evidenceOf,
   RECORDED_AT,
   registerOf,
+  SAMPLE_CHECKS,
   SAMPLE_COMMIT,
 } from "./support/evidence-samples.js";
 
@@ -45,6 +46,7 @@ const FAILURE_TEXT = "Found 1 error";
 const STAMP: EvidenceStamp = {
   commit: SAMPLE_COMMIT,
   freshnessSeconds: DEFAULT_FRESHNESS_SECONDS,
+  checksDigest: SAMPLE_CHECKS.digest,
 };
 
 /**
@@ -140,6 +142,7 @@ describe("the records of a paired proof", () => {
         reason: "rejected-as-declared",
         detail: "The violation change was rejected.",
         commit: SAMPLE_COMMIT,
+        checks_digest: SAMPLE_CHECKS.digest,
         command: ["ruff", "check", "."],
         exit_status: 1,
         started_at: "2026-11-17T11:59:58.000Z",
