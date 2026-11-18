@@ -13,7 +13,9 @@
  * risky: braces and ranges (`+({a,a})`, `+({a..b}|a)`), quotes (`+(a|"a")`),
  * POSIX classes (`+(a|[[:alpha:]])`), regex escapes (`+(\w|a)`), bare groups
  * (`+((a|a))`) and a bare `+`, which is a regex quantifier inside an extglob
- * (`+(a+)`).
+ * (`+(a+)`); and a `+` that is not an extglob (`+(?`, or `+` at the end)
+ * right after a closed glob group, which reaches the regex as a quantifier on
+ * that group (`!(a)+(?(c))`, `@(a|a)+`, `{a,a}+`).
  *
  * Usage: node picomatch-ghsa-fc5q-39xc-vjpf.regression.mjs [--budget=<ms>] <picomatch-dir>...
  *
@@ -64,6 +66,12 @@ const NAMED_PATTERNS = [
   "+(a+|b)",
   "+((a|a))",
   "+((a)|a)",
+  "!(a)+(?(c))",
+  "?(!(a)+(?(b)|c))",
+  "!(a)+",
+  "@(a|a)+",
+  "{a,a}+",
+  "+(a|aa)|+([a]b|a)",
 ];
 
 /** Branch bodies with an unbounded quantifier that a repeat must not nest. */
@@ -142,8 +150,46 @@ function syntaxFamily() {
   );
 }
 
+/** Closed glob groups a quantifier can follow. */
+const GROUPS = [
+  "!(a)",
+  "!(*)",
+  "!(a|b)",
+  "@(a|a)",
+  "@(a|aa)",
+  "@(*)",
+  "@(!(a))",
+  "{a,a}",
+  "{a,aa}",
+  "{,a}",
+  "+(a)",
+  "*(a)",
+  "?(a)",
+];
+
+/**
+ * The group family: each group followed by each extglob operator that does
+ * not open an extglob (`+(?`, `*(?`, a bare `+`), alone and inside another
+ * extglob, so a `+` that reaches the regex as a quantifier on the group is
+ * exercised, and `*`, `?`, `@` and `!` after a group are too.
+ * @returns {string[]} Every generated pattern
+ */
+function groupFamily() {
+  const tails = WRAPS.flatMap(op => [op, `${op}(?(c))`, `${op}(?(b)|c)`]);
+  const shapes = GROUPS.flatMap(group => tails.map(tail => group + tail));
+  return shapes.flatMap(shape => [
+    shape,
+    ...WRAPS.map(wrap => `${wrap}(${shape})`),
+  ]);
+}
+
 export const ATTACK_PATTERNS = [
-  ...new Set([...NAMED_PATTERNS, ...nestedFamily(), ...syntaxFamily()]),
+  ...new Set([
+    ...NAMED_PATTERNS,
+    ...nestedFamily(),
+    ...syntaxFamily(),
+    ...groupFamily(),
+  ]),
 ];
 
 /** Short inputs that never match, which forces a full backtracking search. */

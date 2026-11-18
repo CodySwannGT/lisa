@@ -2,8 +2,9 @@
  * GHSA-fc5q-39xc-vjpf, syntax the guard does not model: a repeated extglob
  * branch holding a brace or range, a quote, a POSIX class, a regex escape, a
  * bare group or a bare `+` (a regex quantifier inside an extglob) can hang
- * picomatch just like a `*` branch. The guard fails closed on whatever it
- * cannot read. These tests prove, against the installed copies and the
+ * picomatch just like a `*` branch, and so can a `+` that is not an extglob
+ * right after a closed glob group, which quantifies the group. The guard
+ * fails closed on whatever it cannot read. These tests prove, against the installed copies and the
  * upstream source the patch is reversed back to, that each such bypass hangs
  * upstream and not patched, that literalized patterns still match their own
  * text and the rest keep their meaning, and that every changed regex is
@@ -51,11 +52,31 @@ const SYNTAX_BYPASSES = [
 ];
 
 /**
- * picomatch 2.3.2 compiles these two to regexes that do not backtrack (it
- * drops the `a` branch of the first and expands the range of the second), so
- * they hang only 4.0.7.
+ * A `+` that does not open an extglob, right after a closed glob group,
+ * reaches the regex as a quantifier on that group; and 2.3.2 drops the text
+ * after a bracket once an earlier extglob was made literal, which turns
+ * `+([a]b|a)` into the ambiguous `+([a]|a)`.
  */
-const FAST_ON_2_3_2 = ["+(a|[[:alpha:]])", "+({a..b}|a)"];
+const DROPPED_TEXT = "+(a|aa)|+([a]b|a)";
+const GROUP_BYPASSES = [
+  "!(a)+(?(c))",
+  "?(!(a)+(?(b)|c))",
+  "!(a)+",
+  "@(a|a)+",
+  "{a,a}+",
+  DROPPED_TEXT,
+];
+const BYPASSES = [...SYNTAX_BYPASSES, ...GROUP_BYPASSES];
+
+/**
+ * Bypasses one version's upstream compiles to a regex that does not
+ * backtrack. 2.3.2 drops the `a` branch of `+(a|[[:alpha:]])` and expands the
+ * range of `+({a..b}|a)`; 4.0.7 keeps the `b` of `+([a]b|a)`.
+ */
+const FAST_UPSTREAM: Readonly<Record<string, readonly string[]>> = {
+  "2.3.2": ["+(a|[[:alpha:]])", "+({a..b}|a)"],
+  "4.0.7": [DROPPED_TEXT],
+};
 
 /**
  * What a pattern the guard turns into a literal must still match: its own
@@ -66,6 +87,13 @@ const LITERAL_MATCHES = SYNTAX_BYPASSES.filter(
 ).map(pattern => [pattern, pattern] as const);
 const KEPT_MATCHES = [
   ["+(a|b)", "abba"],
+  ["{ab,c}+", "abcab"],
+  ["@(js|ts)+", "jsts"],
+  ["(a|b)+c", "abac"],
+  ["!(a)+", "b+"],
+  ["@(a|a)+", "a+"],
+  ["{a,a}+", "a+"],
+  [DROPPED_TEXT, "abab"],
   ["+([[:alpha:].])", "a.c"],
   ["a+([^[:alnum:]])b", "a.b"],
   ["*((foo))", "foo"],
@@ -102,18 +130,16 @@ describe("picomatch GHSA-fc5q-39xc-vjpf patch on unmodelled syntax", () => {
       const pristine = upstream(scratch, patch.version, patch.file);
 
       it(
-        "fails each syntax bypass unpatched and passes it patched",
+        "fails each syntax and group bypass unpatched and passes it patched",
         async () => {
           const script = (await import(join(ROOT, SCRIPT))) as RegressionScript;
           expect(script.ATTACK_PATTERNS).toEqual(
-            expect.arrayContaining(SYNTAX_BYPASSES)
+            expect.arrayContaining(BYPASSES)
           );
-          for (const pattern of SYNTAX_BYPASSES) {
+          for (const pattern of BYPASSES) {
             const check = (dir: string) =>
               script.checkPicomatch(dir, 2000, [pattern]).passed;
-            const hangs = !(
-              patch.version === "2.3.2" && FAST_ON_2_3_2.includes(pattern)
-            );
+            const hangs = !FAST_UPSTREAM[patch.version]?.includes(pattern);
             expect({ pattern, upstream: check(pristine) }).toEqual({
               pattern,
               upstream: !hangs,

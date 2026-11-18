@@ -230,3 +230,45 @@ nothing. Unambiguous
 alternations such as `+(js|ts|jsx)`, `+(foo|far)` and `*(f*(o))` are unchanged,
 and `+(@(*(a)))` compiles to the same `a*` as `+(*(a))`. No Lisa
 configuration or default tool glob uses any of these shapes.
+
+**The literal fallback is a behaviour change, on purpose.** Failing closed
+means some patterns that never backtracked now match only their own text:
+`+({a,b})` matches a file named `+({a,b})` and no longer matches `a`, and
+`+("a b")` matches only `+("a b")`. The same is true for every branch with a
+brace, range, quote or regex escape, and for every branch the check can only
+overstate (a POSIX class or `[!a]` beside a branch it might overlap, as in
+`+([[:alpha:]]|1)`). Lisa's own source and shipped templates use none of
+these: a search of every tracked file outside `plugins/` and `tests/` for an
+extglob holding a brace, quote or bracket finds no glob, and the 270 tool
+config files (lint-staged, knip, vitest, vite, jest, tsconfig, eslint,
+sgconfig, `.prettierignore`, `package.json` and `package.lisa.json`, all
+stacks) hold no extglob at all.
+
+**A `+` right after a glob group.** Where `+(` is followed by `?`, or `+`
+ends the pattern or precedes anything but `(`, picomatch does not open an
+extglob and passes the `+` to the regex as a quantifier on whatever group
+came before. After a negation, `!(a)+(?(c))` became `(?:(?!a)[^/]*?)+` and
+hung. The patch keeps that `+` literal, as bash reads it, after a closed
+`!(...)`, `?(...)`, `+(...)` or `*(...)`, after an `@(...)` whose body is
+risky as a repeat (`@(a|a)+`), and after a brace group whose elements are
+(`{a,a}+`). A safe group keeps its quantifier: `@(js|ts)+` and the brace
+Kleene plus `{ab,c}+` match as before. `*`, `?`, `@` and `!` after a group
+never quantify it (`*` is a glob star, `?` makes it optional, `@` and `!` are
+text), and the regression script covers each of them after every group
+shape. picomatch 2.3.2 also lost the text after a bracket once an earlier
+extglob had been made literal, which turned `+(a|aa)|+([a]b|a)` into the
+ambiguous `+([a]|a)`; the 2.3.2 patch carries the 4.x fix for that.
+
+**Plain regex groups are out of scope.** picomatch passes a bare group such
+as `(a|a)+b` to the regex unchanged; that is its documented regex
+passthrough, not glob syntax, so this advisory does not cover it and the
+patch leaves it alone. A pattern author who writes regex syntax gets regex
+semantics. No Lisa code path gives picomatch or micromatch a pattern from
+outside the repository. Lisa never calls either library itself: its own
+matching uses minimatch (`src/utils/ignore-patterns.ts`) and `node:fs`
+`globSync`, which this advisory does not affect. Patterns reach picomatch
+only through the tools a project configures (vitest, vite, jest, knip,
+lint-staged), from config the repository itself holds, and through the
+vitest `--exclude` arguments `lisa-test-run` builds from repository paths,
+with every glob metacharacter escaped first
+(`src/cli/lisa-test-run-shard-files.ts`, `literalGlob`).
