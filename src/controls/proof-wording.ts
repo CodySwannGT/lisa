@@ -53,6 +53,13 @@ function quoted(texts: readonly string[]): string {
   return texts.map(text => JSON.stringify(text)).join(" or ");
 }
 
+/**
+ * How the sentence of a check that could not be started begins. What follows
+ * it is why, in the words of whatever stood in the way.
+ */
+export const NOT_STARTED_LEAD =
+  "The check could not be started, so nothing was checked: ";
+
 /** A half's sentence, by its reason. */
 const HALF_SENTENCES: Readonly<
   Record<ProofHalfReason, (facts: HalfFacts) => string>
@@ -63,7 +70,7 @@ const HALF_SENTENCES: Readonly<
   "patch-not-applied": facts =>
     `The change in ${facts.patch} could not be put in place, so the check was not run. ${facts.problem ?? ""}`.trim(),
   "not-started": facts =>
-    `The check could not be started, so nothing was checked: ${facts.problem ?? "no reason was given"}.`,
+    `${NOT_STARTED_LEAD}${facts.problem ?? "no reason was given"}.`,
   "timed-out": facts =>
     `The check was still running after ${inSeconds(facts.limitSeconds)}, the time one half of this proof is allowed, so it was stopped.`,
   killed: () =>

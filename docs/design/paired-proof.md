@@ -525,3 +525,141 @@ with canaries and passed.
 
 A run stopped by a signal ends by that signal, as any interrupted process
 does, after removing its copy.
+
+## Checking a pair before anything is installed
+
+```
+lisa controls proof-check [path]
+lisa controls proof-check [path] --acknowledge-external-effects
+```
+
+The two changes of a proof are patch files a repository keeps under
+`.lisa/controls/proofs/`. Writing a change that breaks one tool's rule takes
+knowledge of that tool, so the agent that configures a repository writes
+them, in the configure step. `proof-check` is how it finds out whether what
+it wrote is a pair `attest` can use. It is a feedback loop for whoever
+writes the patches: it writes nothing, records nothing, and a `ready` from it
+is not a proof of a control.
+
+For each check declared as a part of a gate, it asks these questions in
+order and stops at the first problem:
+
+1. Does the part name both patch files, are both there and readable, and do
+   they hold different changes?
+2. Is failure text declared (`proof.failure_shape`)? Without it `attest` can
+   never count a rejection.
+3. Does each change apply to the last commit?
+4. Does each change touch a file inside the part's own folder? A change that
+   edits `.lisa.config.json`, or that leaves nothing git would commit, is
+   turned away at the same point.
+5. Started on the violating change, does the part's own command fail and
+   print the declared failure text? Started on the clean change, does it
+   pass, without printing that text?
+
+It works in a disposable copy built with no carriers (see "The disposable
+copy"), one per run, put back to its starting commit after every change. So
+it runs before any hook exists and with uncommitted work in the tree, and
+the declaration and the patch files are taken from the working copy as they
+are, committed or not. The repository itself is never changed.
+
+Nothing in it is a second reading of a check's answer:
+
+- A change is planted with `applyProofPatch` and staged the way a proof's is.
+- "Inside the part's folder" is the gate runner's `touchesFolder`, asked of
+  the staged names git lists with the runner's own options.
+- The command is started and judged by `measureChange`
+  (`src/controls/before-enforce-observe.ts`), the function the
+  before-enforce run uses for the same thing: `judgePart`, then the declared
+  failure text, exactly as a half of a proof is read.
+
+### What it prints
+
+One JSON document on standard output, and one line per part on standard
+error.
+
+```
+{ schema_version: 1,
+  outcome: "ready" | "not-ready" | "nothing-to-check",
+  reason,                       // the same as a sentence
+  copy: { commit, uncommitted_work, carried } | null,
+  counts: { "ready", "not-ready", "no-proof" },
+  parts: [{ entry_id, gate, scope,
+            result: "ready" | "not-ready" | "no-proof",
+            reason,             // a code; see below
+            detail,             // one sentence: what is wrong, what to change
+            note,               // why attest will still not prove it locally, or null
+            proof: { violation, clean, failure_shape },
+            halves: [{ half, patch, changed_paths, run }] }] }
+```
+
+`halves` holds each change that applied, in order. `run` is what the part's
+command said about it: `command`, `exit_status`, `started_at`,
+`completed_at`, `output_excerpt`, `output_truncated`, `matched_lines`,
+`outcome`, `reason` and `detail`, or `null` when the command was not started
+on that change because an earlier question settled the part. What a tool
+printed is prepared the way an evidence record's excerpt is, and the whole
+document is scanned for credential shapes once more before it is printed.
+
+| `reason` of a part that is `not-ready` | the question it failed |
+| --- | --- |
+| `half-not-declared`, `patch-missing`, `patch-unreadable`, `patches-identical` | 1 |
+| `no-failure-text` | 2 |
+| `external-effects` | the proof says it reaches outside the repository and `--acknowledge-external-effects` was not given |
+| `not-a-command` | what measures the part is not a command that can be started |
+| `patch-not-applied` | 3 |
+| `declaration-changed`, `no-change`, `outside-folder` | 4 |
+| `violation-accepted`, `wrong-failure-text`, `clean-rejected`, `failure-text-on-clean` | 5 |
+| `not-started`, `timed-out`, `killed`, `nothing-measured` | 5: the command gave no answer on one of the changes |
+
+A part that names no patch file at all is `no-proof`. It is listed, it stays
+unproved, and it does not fail the command. A check that comes with a
+supported project type is not a part and is not listed: this release writes
+no proof for those.
+
+| exit code | means |
+| --- | --- |
+| 0 | Every part that declares a proof is ready, or no part declares one. |
+| 1 | At least one part's proof is not ready. The document is complete. |
+| 2 | Nothing could be checked: the path is not a folder, the gates declaration was refused, the copy could not be made, or the run could not finish. Nothing is printed on standard output. |
+
+### How it is held to `attest`
+
+`tests/integration/controls-proof-check-attest.test.ts` runs both built
+commands on the same repositories. A pair `proof-check` calls `ready` is one
+`attest` then passes through a real commit or push with the carriers
+installed in its copy; a pair it refuses is one `attest` does not pass.
+
+The two differ on purpose in three places:
+
+- `proof-check` is stricter about the failure text. A check that passes the
+  clean change and still prints the declared failure text is `not-ready`
+  (`failure-text-on-clean`), because text that appears either way does not
+  tell a failure from a pass. `attest` would pass that pair.
+- `proof-check` tries a pair whatever moment the check runs at. For a check
+  that is optional at commit or push, or that runs only before a merge, a
+  `ready` carries a `note` saying why `attest` will not prove it at commit or
+  push.
+- `proof-check` starts only the part's own command. In `attest` a commit or
+  push runs every required check declared at that moment, so a clean change
+  that another check at the same moment refuses reads `unknown` there. A
+  clean change should be one every check accepts.
+
+One limit is shared by both. The copy is a clone of the last commit, so
+nothing git ignores is in it. A tool that only runs with installed
+dependencies or built output from the working copy does not run there. In
+`proof-check` such a part reads `not-started`, or `clean-rejected` without
+its failure text; in `attest` its halves read `unknown`.
+
+### How the patch files are named
+
+The names are a convention the configure skill states; nothing reads meaning
+from them. A check's two files are `<check>.violation.patch` and
+`<check>.clean.patch` under `.lisa/controls/proofs/`. `<check>` is the
+gate's name, then `@`, then the part's folder with every `/` written as `-`
+(`code-style@api.violation.patch`); for a part that covers the whole
+repository it is the gate's name alone (`code-style.clean.patch`).
+
+The skill has the agent make each change in a scratch clone of the last
+commit and let git write the patch (`git diff --cached --binary`), so a test
+change is never in the operator's working copy and uncommitted work is never
+mixed into a patch.

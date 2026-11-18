@@ -121,7 +121,7 @@ export function notExercisedDetail(
 ): string {
   const said = `${NOT_EXERCISED} ${planned.replace(PLAN_OPENING, "")}`;
   return halfMissing
-    ? `${said} Until both test changes exist there is nothing to try. The enforce step writes them.`
+    ? `${said} Until both test changes exist there is nothing to try. The configure step writes them.`
     : said;
 }
 

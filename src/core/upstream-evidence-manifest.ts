@@ -1431,7 +1431,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "96f95fcb9e9dfd347467be49f2aa94aa28f057fb6ed0c6b7e93da0e0493c1086",
+      "5f8efd548866e586fc9c1dac2e069291ac48d45319670f62b2c22af3675efce7",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
@@ -1447,7 +1447,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "30cbfbfd4619498587c5ecc44c02269afed630cea287c60b0a8ba07b6ad0dfbb",
+      "5c854bd1faccb2b33cb405757ac770347f9a3ae3b4d150648e473f07f430ad9f",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "c6128e80d6baeabd9c0ff4c092d094773fe7753b1fc0c3cd828b016a5c6c447f",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -11331,6 +11331,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/controls/commands/gaps.ts": true,
     "src/controls/commands/install-carriers.ts": true,
     "src/controls/commands/merge-protection.ts": true,
+    "src/controls/commands/proof-check.ts": true,
     "src/controls/commands/propose-threshold.ts": true,
     "src/controls/commands/protect.ts": true,
     "src/controls/commands/reconcile.ts": true,
@@ -11365,6 +11366,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/controls/gates-declaration.ts": true,
     "src/controls/head-commit.ts": true,
     "src/controls/merge-protection-read.ts": true,
+    "src/controls/proof-check-plan.ts": true,
+    "src/controls/proof-check-report.ts": true,
+    "src/controls/proof-check-run.ts": true,
+    "src/controls/proof-check-types.ts": true,
+    "src/controls/proof-check-wording.ts": true,
+    "src/controls/proof-check-workspace.ts": true,
     "src/controls/proof-copy-files.ts": true,
     "src/controls/proof-copy-git.ts": true,
     "src/controls/proof-copy-wording.ts": true,
@@ -12085,6 +12092,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/controls-audit-questions.test.ts": true,
     "tests/integration/controls-audit-readonly.test.ts": true,
     "tests/integration/controls-configure-paved.test.ts": true,
+    "tests/integration/controls-configure-proofs.test.ts": true,
     "tests/integration/controls-configure.test.ts": true,
     "tests/integration/controls-enforce.test.ts": true,
     "tests/integration/controls-gaps.test.ts": true,
@@ -12098,6 +12106,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/controls-no-manifest-runner.test.ts": true,
     "tests/integration/controls-part-argv-runner.test.ts": true,
     "tests/integration/controls-part-scope-skip.test.ts": true,
+    "tests/integration/controls-proof-check-attest.test.ts": true,
     "tests/integration/controls-protect.test.ts": true,
     "tests/integration/controls-push-carrier-refs.test.ts": true,
     "tests/integration/controls-push-carrier-update.test.ts": true,
@@ -12501,6 +12510,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/controls-cmd-install-carriers-agents.test.ts": true,
     "tests/unit/cli/controls-cmd-install-carriers.test.ts": true,
     "tests/unit/cli/controls-cmd-merge-protection.test.ts": true,
+    "tests/unit/cli/controls-cmd-proof-check.test.ts": true,
     "tests/unit/cli/controls-cmd-protect.test.ts": true,
     "tests/unit/cli/controls-cmd-reconcile.test.ts": true,
     "tests/unit/cli/controls-cmd-report-absorb.test.ts": true,
@@ -12867,6 +12877,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/carrier-unenforceable.test.ts": true,
     "tests/unit/controls/catalogue-command.test.ts": true,
     "tests/unit/controls/catalogue.test.ts": true,
+    "tests/unit/controls/configure-skill-proofs.test.ts": true,
     "tests/unit/controls/configure-skill.test.ts": true,
     "tests/unit/controls/control-audit-fixtures.test.ts": true,
     "tests/unit/controls/control-gap-marker.test.ts": true,
@@ -12903,6 +12914,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/paved-road-regression.test.ts": true,
     "tests/unit/controls/paved-road-resolution.snapshot.json": true,
     "tests/unit/controls/paved-road-snapshot.ts": true,
+    "tests/unit/controls/proof-check-changes.test.ts": true,
+    "tests/unit/controls/proof-check-declaration.test.ts": true,
+    "tests/unit/controls/proof-check-repository.test.ts": true,
+    "tests/unit/controls/proof-check.test.ts": true,
     "tests/unit/controls/proof-copy-attribution.test.ts": true,
     "tests/unit/controls/proof-copy-no-carriers.test.ts": true,
     "tests/unit/controls/proof-copy-workspace.test.ts": true,
@@ -12985,6 +13000,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/support/fake-github-reports.ts": true,
     "tests/unit/controls/support/fake-github.ts": true,
     "tests/unit/controls/support/gaps-run.ts": true,
+    "tests/unit/controls/support/proof-check-run.ts": true,
     "tests/unit/controls/support/proof-copy-run.ts": true,
     "tests/unit/controls/support/proof-run.ts": true,
     "tests/unit/controls/support/protect-fixture.ts": true,

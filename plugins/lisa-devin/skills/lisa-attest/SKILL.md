@@ -135,7 +135,12 @@ does not. At commit and at push a check is only started when the change touches 
 folder. So each test change has to edit a file inside the check's own folder: one that edits a
 file anywhere else never starts the check, and that half reads `unknown` (not started), never a
 pass. When an entry is `unknown` for that reason, say so: the test change is in the wrong place,
-and the enforce step is where it is corrected.
+and the configure step (`/lisa:configure`) is where it is corrected.
+
+An entry that is `unproved` because a test change is missing (`reason` is `half-missing`) has
+nothing wrong with its check: the two test changes were never written for it, or only one was. The
+configure step writes them and has `lisa controls proof-check` confirm that they work. Send the
+operator back to `/lisa:configure` for that entry; nothing in this step can supply it.
 
 **What the exit code means, and what it does not.**
 
@@ -267,9 +272,9 @@ its entry in `criteria` and read `reason`:
 | --- | --- |
 | `nothing-found` | Nothing in the repository does this. Add a check or a record for it: the enforce step (`/lisa:enforce`) files a ticket for each such requirement. |
 | `no-evidence` with an empty `entries` | No check is declared for it. Declare one with the configure step (`/lisa:configure`), or run the audit (`/lisa:audit`) if it was never audited. |
-| `no-evidence` with `entries` | A check is declared and has no proof on record. The enforce step writes the test changes a proof needs; then run this step again. |
+| `no-evidence` with `entries` | A check is declared and has no proof on record, most often because it has no test changes yet. The configure step (`/lisa:configure`) writes the two test changes a proof needs and confirms they work; then run this step again. |
 | `control-failed` | The declared check let a bad change through, or stopped a good one. Fix the check or how it is wired, with the enforce step, then run this step again. The entry's `detail` in step 2 says which. |
-| `proof-incomplete` | The proof ran and gave no answer to rely on. Step 2's `detail` for the entry says why: a missing test change, a test change that edits a file outside the check's own folder (so the check never started), no failure text declared, or a hook that is not wired. The enforce step repairs these. |
+| `proof-incomplete` | The proof ran and gave no answer to rely on. Step 2's `detail` for the entry says why: a missing test change, a test change that edits a file outside the check's own folder (so the check never started), no failure text declared, or a hook that is not wired. The test changes and the failure text are corrected in the configure step (`/lisa:configure`), where `lisa controls proof-check` says what to change; a hook that is not wired is the enforce step's to repair. |
 | `rung-too-low` | It was observed and needs to be tried for real. For a check before a merge that means the real pull requests of step 3, which need the operator's yes and permission to push. |
 | `audit-unknown` | The audit could not find out, usually for lack of access. The finding's next step in `.lisa/audit/report.md` names the access to get; then run the audit again. |
 | `artifact-not-found` | The record is not where the audit pointed. Run the audit again. |
@@ -358,7 +363,7 @@ It prints one JSON document. Read `outcome`, `reason`, and for each of `entries`
 | --- | --- |
 | `not-enforced` | The bad change went through, and the check's own command ran on it. The tool exists and is not enforced. `canary` is the record of the change that went through: the git command, its exit status and what it printed. `tool` is what the check's own command said. |
 | `enforced` | Something in the fresh clone refused the bad change. Something already enforces this check. |
-| `not-exercised` | Nothing was tried. `detail` says why: most often the check has no test changes yet, which the enforce step writes. |
+| `not-exercised` | Nothing was tried. `detail` says why: most often the check has no test changes yet, which the configure step (`/lisa:configure`) writes. |
 | `unknown` | It was tried and gave no answer to rely on. `detail` says why. |
 
 | `outcome` | Meaning |
