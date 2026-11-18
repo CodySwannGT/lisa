@@ -20,6 +20,7 @@ import { ACTIONS_INTEGRATION_ID } from "../health/ruleset-inspection.js";
 import { compareCodeUnits } from "./canonical-json.js";
 import type { DerivedCheck } from "./protect-derive.js";
 import { rulesetsBlock } from "./protect-derive.js";
+import type { PinOrigin } from "./protect-held.js";
 import type {
   CheckRecord,
   ContextDrift,
@@ -33,6 +34,11 @@ import type { PermissionProbe } from "./protect-types.js";
 export interface LiveState {
   /** Every branch ruleset, in full. */
   readonly rulesets: readonly LiveRuleset[];
+  /**
+   * How many rulesets the platform listed, the ones for tags and pushes
+   * included. Creating one makes the list this much plus one.
+   */
+  readonly listed: number;
   /** The repository's default branch, when the platform named it. */
   readonly defaultBranch: string | null;
   readonly permission: PermissionProbe;
@@ -139,6 +145,7 @@ export function readLiveState(
     ok: true,
     state: {
       rulesets: live.rulesets,
+      listed: live.listed,
       defaultBranch:
         typeof branch === "string" && branch !== "" ? branch : null,
       permission: permissionOf(live.settings),
@@ -357,17 +364,23 @@ function requiredByName(
  * it can be known before a change is planned: the app a declaration names;
  * else none for a check another app reports; else GitHub Actions, which is
  * what reports a check a pipeline job runs.
+ *
+ * Which of the three it was is answered too, because it decides what an
+ * operator can do when the check turns out to be reported by something else
+ * ({@link PinOrigin}): an awaited check is opened to any source by leaving
+ * its app out, a check placed under a ruleset's required checks is not, and
+ * for a check a pipeline job reports there is nothing to declare.
  * @param record - One declaration the platform does not satisfy
  * @param requirement - The derived checks
  * @param awaitedRecords - The awaited declarations that were compared
- * @returns The app's id, or `null` when any source may report the check
+ * @returns The app's id, or `null` when any source may report the check,
+ *   and how it came to be chosen
  */
 export function appToRequire(
   record: CheckRecord,
   requirement: Requirement,
   awaitedRecords: readonly CheckRecord[]
-): number | null {
-  if (record.integration_id !== undefined) return record.integration_id;
+): { readonly appId: number | null; readonly origin: PinOrigin } {
   const awaited = awaitedRecords.some(
     candidate =>
       candidate.context === record.context &&
@@ -375,14 +388,24 @@ export function appToRequire(
         record.ruleset === undefined ||
         candidate.ruleset === record.ruleset)
   );
-  if (record.ruleset === undefined) {
-    const named = {
-      ...requirement.configured.pins,
-      ...requirement.awaitedPins,
-    }[record.context];
-    if (named !== undefined) return named;
+  const named =
+    record.integration_id ??
+    (record.ruleset === undefined
+      ? { ...requirement.configured.pins, ...requirement.awaitedPins }[
+          record.context
+        ]
+      : undefined);
+  if (named !== undefined) {
+    return { appId: named, origin: awaited ? "awaited" : "entry" };
   }
-  return awaited ? null : ACTIONS_INTEGRATION_ID;
+  if (awaited) return { appId: null, origin: "awaited" };
+  // No app is declared and no gate awaits this record. A name some gate does
+  // await got here through an entry under another ruleset's required checks,
+  // and that entry is what leaves it to GitHub Actions.
+  return {
+    appId: ACTIONS_INTEGRATION_ID,
+    origin: requirement.awaited.includes(record.context) ? "entry" : "pipeline",
+  };
 }
 
 /**

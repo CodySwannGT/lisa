@@ -37,6 +37,12 @@
  * run yet. A name that was not seen when a read failed, or returned only part
  * of its list, is not known — and a check that is not known to be reported is
  * not required either.
+ *
+ * The list of closed pull requests is one of those lists. The merged ones are
+ * found in a page of the most recently updated closed ones, which the ones
+ * closed without merging share. A full page that holds fewer merged ones than
+ * are looked at did not reach the rest, so a name still unseen after it is
+ * not known, and is not called never reported.
  * @module controls/protect-reported
  */
 import type { GhRunner, ProtectionModules } from "./protect-modules.js";
@@ -74,9 +80,25 @@ export interface ReportedProof {
   readonly unread: string | null;
   /**
    * For each name that was seen only from a source that does not count:
-   * who reported it, in words, for example `app 999` or `a commit status`.
+   * who reported it.
    */
-  readonly elsewhere: ReadonlyMap<string, readonly string[]>;
+  readonly elsewhere: ReadonlyMap<string, OtherReporters>;
+}
+
+/**
+ * Who reported a name, when none of them is the source that counts.
+ *
+ * The kinds are kept apart because what an operator can do differs: an app
+ * that reported a check run can be named in a declaration, and the other two
+ * cannot, because neither says which app wrote it.
+ */
+export interface OtherReporters {
+  /** The apps that reported a check run under the name. */
+  readonly apps: readonly number[];
+  /** Whether a check run that names no app was seen under the name. */
+  readonly unnamedRun: boolean;
+  /** Whether a commit status was seen under the name. */
+  readonly commitStatus: boolean;
 }
 
 /** One check run a commit shows. */
@@ -171,16 +193,47 @@ function readList(gh: GhRunner, path: string, list: string): ListRead {
 }
 
 /**
+ * Say why the merged pull requests that were found may not be the ones that
+ * should have been looked at.
+ *
+ * Closed pull requests that were never merged share the page with the merged
+ * ones. A page that came back full with fewer merged ones in it than are
+ * looked at was cut off before the rest were reached: the list goes on, or
+ * may, and a merged pull request further down could show the check. A page
+ * that is not full is the whole list, however few of them were merged.
+ * @param listed - How many closed pull requests the page held
+ * @param merged - How many of them were merged into the branch
+ * @returns The reason, or `null` when the page settles the question
+ */
+function cutOffBeforeEnough(listed: number, merged: number): string | null {
+  if (listed < CLOSED_PULL_REQUESTS || merged >= RECENT_PULL_REQUESTS) {
+    return null;
+  }
+  const found =
+    merged === 0
+      ? `none of the ${String(listed)} most recently updated closed pull requests into that branch was merged`
+      : `only ${String(merged)} of the ${String(listed)} most recently updated closed pull requests into that branch ${merged === 1 ? "was" : "were"} merged, and ${String(RECENT_PULL_REQUESTS)} merged ones are looked at`;
+  return `${found}, so merged pull requests further back were not read; once a pull request that runs this check has been merged, run this command again`;
+}
+
+/**
  * Read the head commits of the pull requests most recently merged into a
  * branch.
  *
  * The platform is asked for the closed pull requests into the branch, and
  * each answer is checked again here: only one the platform says was merged,
  * into exactly this branch, is kept, whatever list came back.
+ *
+ * The commits that are returned are always read. What is also returned is
+ * whether they are all of the ones that should have been: they are not when
+ * the page was cut off before enough merged pull requests were reached
+ * ({@link cutOffBeforeEnough}), or when one of the merged pull requests that
+ * would have been looked at is listed without a commit id that can be put in
+ * a request.
  * @param gh - A runner that only reads
  * @param repository - `owner/name`
  * @param branch - The protected branch
- * @returns The commit ids, or why they could not be read
+ * @returns The commit ids, and why they may not be all of them
  */
 function mergedPullHeads(
   gh: GhRunner,
@@ -195,18 +248,29 @@ function mergedPullHeads(
   if (!Array.isArray(read.value)) {
     return { heads: [], unread: "the pull request list was not a list" };
   }
-  const heads = read.value.flatMap((pull: unknown) => {
+  const merged = read.value.filter((pull: unknown) => {
     const mergedAt = field(pull, "merged_at");
-    const merged = typeof mergedAt === "string" && mergedAt !== "";
+    return (
+      typeof mergedAt === "string" &&
+      mergedAt !== "" &&
+      field(field(pull, "base"), "ref") === branch
+    );
+  });
+  const recent = merged.slice(0, RECENT_PULL_REQUESTS);
+  const heads = recent.flatMap((pull: unknown) => {
     const sha = field(field(pull, "head"), "sha");
-    return merged &&
-      field(field(pull, "base"), "ref") === branch &&
-      typeof sha === "string" &&
-      /^[0-9a-f]{7,64}$/u.test(sha)
+    return typeof sha === "string" && /^[0-9a-f]{7,64}$/u.test(sha)
       ? [sha]
       : [];
   });
-  return { heads: heads.slice(0, RECENT_PULL_REQUESTS), unread: null };
+  return {
+    heads,
+    unread:
+      cutOffBeforeEnough(read.value.length, merged.length) ??
+      (heads.length < recent.length
+        ? "a pull request merged into that branch was listed without a commit id that can be read"
+        : null),
+  };
 }
 
 /**
@@ -282,29 +346,28 @@ function postedBy(seen: Seen, appId: number | null): readonly string[] {
 function reportersOf(
   names: readonly string[],
   seen: Seen
-): ReadonlyMap<string, readonly string[]> {
+): ReadonlyMap<string, OtherReporters> {
   return new Map(
     names.flatMap(name => {
-      const apps = seen.runs
-        .filter(run => run.name === name)
-        .map(run =>
-          run.appId === null
-            ? "a check run that names no app"
-            : `app ${String(run.appId)}`
-        );
-      const who = [
-        ...new Set([
-          ...apps,
-          ...(seen.statuses.includes(name) ? ["a commit status"] : []),
-        ]),
-      ];
-      return who.length === 0 ? [] : [[name, who] as const];
+      const runs = seen.runs.filter(run => run.name === name);
+      const who: OtherReporters = {
+        apps: [
+          ...new Set(
+            runs.flatMap(run => (run.appId === null ? [] : [run.appId]))
+          ),
+        ],
+        unnamedRun: runs.some(run => run.appId === null),
+        commitStatus: seen.statuses.includes(name),
+      };
+      return who.apps.length === 0 && !who.unnamedRun && !who.commitStatus
+        ? []
+        : [[name, who] as const];
     })
   );
 }
 
 /** The answer when no read can be made for a branch name. */
-const NOTHING_SEEN: ReadonlyMap<string, readonly string[]> = new Map();
+const NOTHING_SEEN: ReadonlyMap<string, OtherReporters> = new Map();
 
 /**
  * Read which of some checks the platform shows a result for, from the source

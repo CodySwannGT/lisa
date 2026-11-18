@@ -227,6 +227,7 @@ import {
  * @typedef {object} LivePolicy
  * @property {true} ok Discriminator: the read succeeded.
  * @property {Ruleset[]} rulesets Branch-target rulesets, in full.
+ * @property {number} [listed] How many rulesets the index listed, whatever each one targets. Every read `readLivePolicy` makes carries it; a policy built by hand for planning may leave it out, because planning never reads it.
  * @property {LiveContext[]} contexts Every required context they carry.
  * @property {Record<string, *>} settings Repository settings.
  * @property {Record<string, unknown>} signals Ruleset-surface policy: boolean signals plus the policy ruleset's shape fields.
@@ -265,6 +266,13 @@ export const UNPROVEN = Object.freeze({
 /**
  * The largest page GitHub returns for a list. The ruleset index is read at
  * this size, and an answer this long is treated as incomplete.
+ *
+ * This is the only bound on how many rulesets are read. Lisa's own ruleset
+ * reader (`src/health/ruleset-inspection.ts` in the Lisa package) reads the
+ * same list after `lisa controls protect` changes a repository, and it draws
+ * the line at this same length. When it stopped sooner, a repository with a
+ * list the first read took and the second refused had its change sent and
+ * then reported as not confirmed. Change one and the other must follow.
  */
 const RULESET_PAGE_SIZE = 100;
 
@@ -661,6 +669,10 @@ export function readLivePolicy({ repo, gh }) {
   return {
     ok: true,
     rulesets,
+    // Every ruleset the index held, the ones skipped above included. A caller
+    // about to create a ruleset needs it to know whether the list would then
+    // fill a page, which no later read could take for the whole list.
+    listed: index.value.length,
     contexts: liveContexts(rulesets),
     settings: settings.value ?? {},
     signals: rulesetSignals(rulesets),

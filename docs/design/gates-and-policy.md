@@ -1549,7 +1549,15 @@ never touched: the plan is given no settings drift to repair.
 **What is reported is what was read back.** After a change the rulesets are
 read again through `lisa health`'s ruleset reader and compared again. A
 platform that accepted the change and did not keep it is `blocked`, with the
-difference, never `wired`.
+difference, never `wired`. The read before a change (`readLivePolicy`) and the
+read after it take the same lists for whole: any list shorter than the page of
+a hundred they both ask for. They once differed — the read-back stopped at
+thirty-two — and a repository in between had every change sent and then
+reported as not confirmed. A change that would create a ruleset on a
+repository one short of a full page is not sent, because the list it leaves
+behind could not be read back, by that run or any later one; the reason says to
+delete a ruleset or name an existing one with `--ruleset`. The reader takes
+the ruleset details thirty-two at a time, the most it ever started at once.
 
 **A check that is already required is never changed.** A required check is a
 name and, where the settings say so, the one app allowed to report it, and the
@@ -1588,6 +1596,28 @@ not be asked about, because a read failed or a list came back incomplete, is
 `unknown`. Neither is in any write, and each carries a sentence saying what has
 to happen first. A plan that would require a check from an app other than the
 one it was shown to be reported by is refused.
+
+The page of closed pull requests is one of the lists that can come back
+incomplete. Pull requests closed without being merged share it with the merged
+ones, so when the page is full and holds fewer than five merged ones, the
+merged pull requests that would have been looked at are further down a list
+that was not read. A name still unseen then is `unknown`, not `not-ready`, and
+the sentence says so and that merging a pull request which runs the check puts
+it at the top of that list. A page that is not full is the whole list, and so
+is a full one that holds the five. A merged pull request listed without a
+commit id that can be read is an incomplete read too.
+
+The step a `not-ready` sentence names is one that works for what was seen.
+An app that reported a check run can be named in the declaration, so for that
+the sentence says where: `posted_by` on the gate that awaits the check, or
+`integration_id` on its entry under `github.rulesets.requiredChecks`. A commit
+status cannot be named, because it does not say which app wrote it, so for
+that the sentence gives the two things that do work: declare the check without
+an app, which leaves it open to any source, or have the app report a check
+run. Leaving the app out only opens an awaited check; a check placed under a
+ruleset's required checks falls back to GitHub Actions, so that half is offered
+for an awaited check alone. For a check a pipeline job reports there is nothing
+to declare: the step is to merge the workflow and let it run.
 
 **A read that does not settle a question is "not known", never a guess.** The
 ruleset list is asked for a hundred at a time, the largest page the platform
