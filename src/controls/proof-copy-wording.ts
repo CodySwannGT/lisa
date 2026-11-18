@@ -10,10 +10,15 @@
  * was checked:", so none of them ends with a full stop.
  *
  * The notes at the end are what the command says before the results when the
- * operator has work that is not committed.
+ * operator has work that is not committed. They keep two things apart: the
+ * proofs, which change nothing in the operator's repository, and the results,
+ * which the command then writes there, to three files it names.
  * @module controls/proof-copy-wording
  */
 import { CARRIER_HOOKS, type CarrierMoment } from "./carrier-types.js";
+import { EVIDENCE_PATH } from "./evidence.js";
+import { CONTROL_REGISTER_PATH } from "./register-types.js";
+import { VERDICT_PATH } from "./verdict-types.js";
 
 /** What stands in for the stand-in remote's path in every kept text. */
 export const PROOF_REMOTE_PLACEHOLDER = "<proof-remote>";
@@ -128,7 +133,7 @@ export function uncommittedNotes(
   carried: readonly string[]
 ): readonly string[] {
   return [
-    `This repository has changes that are not committed. The proofs do not use them: they run in a temporary copy of the last commit (${commit.slice(0, SHORT_COMMIT)}), which is removed afterwards. Nothing in this repository is changed.`,
+    `This repository has changes that are not committed. The proofs do not use them: they run in a temporary copy of the last commit (${commit.slice(0, SHORT_COMMIT)}), which is removed afterwards. The proofs change nothing in this repository. What they find is then written here, to ${EVIDENCE_PATH}, ${CONTROL_REGISTER_PATH} and ${VERDICT_PATH}.`,
     ...(carried.length === 0
       ? []
       : [

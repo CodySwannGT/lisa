@@ -327,8 +327,12 @@ gets an `unknown` observed record (`platform-not-reached`) and no half.
 
 ## Where the changes are planted
 
-A proof changes files, and it must never change the operator's own. The
-runner therefore touches no folder itself. It is handed a workspace:
+A proof changes files, and it must never change the operator's own. What the
+proofs find is a different matter: when they have run, the command writes it
+into the operator's repository, to three files under `.lisa/controls/` and
+nothing else (see "Exit codes").
+
+The runner therefore touches no folder itself. It is handed a workspace:
 
 ```ts
 interface ProofWorkspace {

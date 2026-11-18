@@ -12833,6 +12833,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/report-check-refusals.test.ts": true,
     "tests/unit/controls/report-check-wiki-gaps.test.ts": true,
     "tests/unit/controls/report-check.test.ts": true,
+    "tests/unit/controls/repository-state.test.ts": true,
     "tests/unit/controls/seed.test.ts": true,
     "tests/unit/controls/support/attest-pull-request-run.ts": true,
     "tests/unit/controls/support/attest-record-run.ts": true,

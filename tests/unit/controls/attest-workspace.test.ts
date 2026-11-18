@@ -34,6 +34,8 @@ import {
   provedGates,
 } from "../../helpers/control-proofs.js";
 import {
+  ATTEST_RESULT_FILES,
+  pathStandings,
   repositoryState,
   withUncommittedWork,
 } from "../../support/repository-state.js";
@@ -160,7 +162,7 @@ describe("the disposable copy lisa controls attest opens for itself", () => {
 });
 
 describe("lisa controls attest with no --workspace", () => {
-  it("proves through a real commit in its own copy, leaves the repository and the temporary folder as they were, and leaves no listener", async () => {
+  it("proves through a real commit in its own copy, changes nothing in the repository but the three files of results, and leaves no folder and no listener", async () => {
     const repoPath = repository();
     withUncommittedWork(repoPath, F_NONE_SOURCE);
     const tmp = ownTemporaryFolder();
@@ -172,7 +174,16 @@ describe("lisa controls attest with no --workspace", () => {
     expect(run.code).toBe(ATTEST_EXIT.PASSED);
     const [entry] = (JSON.parse(run.stdout.join("\n")) as ProofRun).entries;
     expect(entry?.halves[0]?.command?.slice(0, 2)).toEqual(["git", "commit"]);
-    expect(repositoryState(repoPath)).toEqual(before);
+    // Everything but the three named files is as it was. `before` was taken
+    // with nothing left out, so none of the three was there to begin with.
+    expect(repositoryState(repoPath, { except: ATTEST_RESULT_FILES })).toEqual(
+      before
+    );
+    expect(pathStandings(repoPath, ATTEST_RESULT_FILES)).toEqual({
+      ".lisa/controls/evidence.json": "untracked",
+      ".lisa/controls/register.json": "untracked",
+      ".lisa/controls/verdict.json": "untracked",
+    });
     expect(readdirSync(tmp)).toEqual([]);
     expect(processSignalListeners()).toBe(listening);
   });
@@ -187,7 +198,7 @@ describe("lisa controls attest with no --workspace", () => {
     expect(run.code).toBe(ATTEST_EXIT.PASSED);
     expect(run.stderr).toEqual([
       expect.stringMatching(
-        /^attest: note\. This repository has changes that are not committed\. The proofs do not use them: they run in a temporary copy of the last commit \([0-9a-f]{7}\), which is removed afterwards\. Nothing in this repository is changed\.$/u
+        /^attest: note\. This repository has changes that are not committed\. The proofs do not use them: they run in a temporary copy of the last commit \([0-9a-f]{7}\), which is removed afterwards\. The proofs change nothing in this repository\. What they find is then written here, to \.lisa\/controls\/evidence\.json, \.lisa\/controls\/register\.json and \.lisa\/controls\/verdict\.json\.$/u
       ),
     ]);
   });
@@ -239,6 +250,10 @@ describe("lisa controls attest with no --workspace", () => {
 
     expect(code).toBe(ATTEST_EXIT.NOT_RUN);
     expect(stderr.join("\n")).toContain("the judge is broken");
+    // No results, so none of the three files of results is written.
+    expect(Object.values(pathStandings(repoPath, ATTEST_RESULT_FILES))).toEqual(
+      ["missing", "missing", "missing"]
+    );
     expect(readdirSync(tmp)).toEqual([]);
     expect(processSignalListeners()).toBe(listening);
   });

@@ -324,7 +324,7 @@ export function registerAttest(
     .argument("[path]", "Project path (default: current directory)")
     .option(
       "--workspace <folder>",
-      "A copy of the repository you made, to start each check's own command in. Without it, the command makes its own temporary copy, proves each check through a real commit or push there, and removes the copy afterwards. Nothing is planted in the repository itself either way"
+      "A copy of the repository you made, to start each check's own command in. Without it, the command makes its own temporary copy, proves each check through a real commit or push there, and removes the copy afterwards. Either way the proofs change nothing in the repository itself; when they have run, the results are written to three files under .lisa/controls/: evidence.json, register.json and verdict.json"
     )
     .option(
       "--json",
