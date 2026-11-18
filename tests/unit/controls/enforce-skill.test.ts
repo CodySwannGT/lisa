@@ -33,6 +33,7 @@ import {
 } from "../../helpers/enforce-skill.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
+const REPORT_COMMAND = "lisa controls enforce-report";
 const SKILL = "skills/lisa-enforce/SKILL.md";
 const REFERENCES = [
   "skills/lisa-enforce/references/missing-capability-tickets.md",
@@ -216,7 +217,7 @@ describe("the commands the enforce skill runs", () => {
       "lisa controls register",
       "lisa controls register --check",
       "lisa controls protect",
-      "lisa controls enforce-report",
+      REPORT_COMMAND,
     ].map(command => positionOf(command));
 
     expect(order.filter(position => position < 0)).toEqual([]);
@@ -232,7 +233,7 @@ describe("the commands the enforce skill runs", () => {
 
   it("hands each result to the report through a file in the results folder", () => {
     const report = enforceSkillShellBlocks().find(block =>
-      block.includes("lisa controls enforce-report")
+      block.includes(REPORT_COMMAND)
     );
 
     expect(
@@ -253,7 +254,53 @@ describe("the commands the enforce skill runs", () => {
   });
 });
 
+describe("what the enforce skill notes before it changes anything", () => {
+  const LISTING = "git status --porcelain --untracked-files=all";
+
+  it("lists the working tree before the first command that writes, and again at the end", () => {
+    const listings = enforceSkillShellBlocks().flatMap((block, index) =>
+      block.trim() === LISTING ? [index] : []
+    );
+
+    expect(listings).toHaveLength(2);
+    expect(listings[0]).toBeLessThan(
+      positionOf("lisa controls install-carriers --agents")
+    );
+    expect(listings[1]).toBeGreaterThan(positionOf(REPORT_COMMAND));
+  });
+
+  it("makes that first list in the preflight, and has the closing check read it", () => {
+    const [preflight] = steps();
+    const confirm = steps().find(step => step.body.includes("rm -r"));
+
+    expect(preflight?.body).toContain(LISTING);
+    expect(preflight?.body).toMatch(/already\s+changed\s+before\s+this\s+run/u);
+    expect(confirm?.body).toMatch(/the\s+list\s+step\s+1\s+kept/u);
+  });
+});
+
 describe("what the enforce skill teaches the agent to say and write", () => {
+  it("says how the runner read each failing check, and what an unproved one does not show", () => {
+    const skill = enforceSkill();
+
+    expect(skill).toContain("`judged`");
+    expect(skill).toContain("`unproved`");
+    expect(skill).toMatch(/not\s+a\s+statement\s+about\s+the\s+code/u);
+  });
+
+  it("does not let a run that measured nothing be told as nothing failing", () => {
+    const skill = enforceSkill();
+
+    expect(skill).toContain("`checked`");
+    expect(skill).toMatch(/never\s+say\s+that\s+nothing\s+fails/u);
+  });
+
+  it("does not offer the output of a check run as the carriers result", () => {
+    expect(enforceSkill()).toMatch(
+      /refuses\s+the\s+result\s+of\s+a\s+`--check`\s+run/u
+    );
+  });
+
   it("names every outcome the report can give", () => {
     expect(
       ENFORCE_OUTCOMES.filter(

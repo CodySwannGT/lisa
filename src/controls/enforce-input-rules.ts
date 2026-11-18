@@ -5,9 +5,17 @@
  * that prints more is still read. The ticket results are written by an
  * agent, so they are also checked for a result that contradicts itself: a
  * ticket with no reference, or a blocked requirement with no reason.
+ *
+ * The carriers result must be what an installing run printed. The same
+ * command run with `--check` prints a document of the same shape that lists
+ * what it would write and writes none of it, and the enforce step saves one
+ * beside the real result. Read as a result, it would report carriers that
+ * were never installed and changes that were never made, so it is refused
+ * by name.
  * @module controls/enforce-input-rules
  */
 import { CARRIER_KINDS, CARRIER_POINT_OUTCOMES } from "./carrier-types.js";
+import { CODING_AGENTS, isCodingAgent } from "./coding-agents.js";
 import {
   isText,
   isTextOrNull,
@@ -24,6 +32,12 @@ import {
   type HandedTicket,
 } from "./enforce-input-types.js";
 import { ENFORCEMENT_LOCATIONS } from "./register-types.js";
+
+/** The mode of a carriers run that wrote what it lists. */
+const INSTALL_MODE = "install";
+
+/** The mode of a carriers run that wrote nothing. */
+const CHECK_MODE = "check";
 
 const VERSION_RULE: FieldRule = {
   expected: String(HANDED_SCHEMA_VERSION),
@@ -46,8 +60,10 @@ const CARRIER_POINT_RULES: readonly FieldRule[] = [
   },
   { expected: "a sentence or null", holds: isTextOrNull, key: "reason" },
   {
-    expected: "a coding agent's name, when it is there",
-    holds: value => value === undefined || isText(value),
+    // The checkout is read again for exactly the agents named here, so a
+    // name that is no agent's has to be refused here, as a wrong result.
+    expected: `${listed(CODING_AGENTS)}, when it is there`,
+    holds: value => value === undefined || isCodingAgent(value),
     key: "agent",
   },
 ];
@@ -116,14 +132,19 @@ export function carriersProblems(
   document: JsonObject,
   where: string
 ): readonly string[] {
+  if (document.mode === CHECK_MODE) {
+    return [
+      `${where} is what "lisa controls install-carriers --check" printed, and a check installs nothing: every change it lists is one it did not make. Pass the file that holds what "lisa controls install-carriers" printed when it was run without --check. The enforce step saves that one as carriers.json, and the check's as carriers-check.json.`,
+    ];
+  }
   return [
     ...shapeProblems(
       document,
       [
         VERSION_RULE,
         {
-          expected: listed(["install", "check"]),
-          holds: oneOf(["install", "check"]),
+          expected: `${INSTALL_MODE}, the mode of a run that installs`,
+          holds: value => value === INSTALL_MODE,
           key: "mode",
         },
       ],

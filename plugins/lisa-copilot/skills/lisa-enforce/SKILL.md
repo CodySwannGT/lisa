@@ -107,7 +107,7 @@ Run the steps in order. Each one says what it **needs** from the steps before it
 ### Step 1: Preflight
 
 **Needs:** nothing. **Hands on:** the repository root, a way of running Lisa that is known to
-work, and the results folder.
+work, the results folder, and the list of what was already changed before this run.
 
 1. Find the root of the repository being enforced. Run this inside the folder the operator named,
    or inside the folder this session is in when none was named:
@@ -139,6 +139,16 @@ work, and the results folder.
    The path it prints is the **results folder**. Three of the commands below print their result
    and keep nothing, so you save each result there and name the files to the command of step 8.
    Remember the path. Never make this folder inside the repository.
+4. Note what the working copy holds now, before anything is installed, so that step 9 can tell
+   what this run changed from what was already there:
+
+   ```bash
+   git status --porcelain --untracked-files=all
+   ```
+
+   Keep the list it prints, exactly as printed. It is the only record of what was there before
+   this run: once the carriers are installed, nothing else can tell a file this run wrote from one
+   the operator had already changed.
 
 ### Step 2: Confirm there is something to enforce
 
@@ -205,7 +215,8 @@ lisa controls install-carriers --agents="<agents>" > "<results folder>/carriers.
 - **Exit 1.** There is no result. Show the operator the lines it printed, and stop.
 
 Never edit the saved file, and never save the result of the `--check` run as `carriers.json`: a
-check installs nothing.
+check installs nothing, and every change it lists is one it did not make. The command of step 8
+refuses the result of a `--check` run, so only `carriers.json` can be named to it.
 
 ### Step 4: Write the pipeline file, on a platform other than GitHub
 
@@ -329,6 +340,12 @@ in the results folder if you need to keep it. It also runs each required check o
 temporary copy of the main branch's last commit that it removes afterwards, so it can take as long
 as the checks do.
 
+It does not take `carriers.json` at its word. It looks at the repository again itself, without
+writing anything, and says a check runs at commit, at push or after an edit only when what runs
+it is there now. Where the saved result and the repository disagree, the repository is what the
+report goes by, and the `reason` says so. Pass that on as it is written: it means something
+changed after step 3, or the saved result was not this run's.
+
 - **Exit 0.** Every requirement has exactly one outcome.
 - **Any other exit.** There is no report. Each line printed names what could not be relied on: a
   result file that is absent or empty means the command behind it failed, so go back to that step;
@@ -342,7 +359,7 @@ Read these fields:
 | `criteria` | One entry for every requirement. `question` is the requirement in plain words, `outcome` is the one thing to say about it, `reason` says why, and `tickets` holds the tickets filed for it. `criterion` is the requirement's id: never say it to the operator. |
 | `counts` | How many requirements have each outcome. |
 | `entries` | One entry for every declared check, with each moment it is declared at and whether something runs it there. |
-| `currently_failing` | The required checks that do not pass on the main branch as it stands. `gates` lists each one with the `command` that was run and `output_excerpt`, the end of what it printed. `not_measured` lists the ones that gave no answer, and `reason` says how the checks were run or why they were not. |
+| `currently_failing` | The required checks that do not pass on the main branch as it stands. `checked` is how many checks ran to an answer. `gates` lists each one that does not pass, with the `command` that was run, `output_excerpt`, the end of what it printed, and `judged`: `failed` when the output shows a broken rule, `unproved` when the command ended with an error and nothing in its output says a rule is broken. `not_measured` lists the ones that gave no answer, each with why, and `reason` says how the checks were run or why they were not. |
 | `changes` | Everything the three steps said they changed in this run. An empty list means this run changed nothing. |
 | `limits` | What the result does not show, each as one plain sentence. |
 
@@ -353,7 +370,11 @@ The four outcomes:
 | `wired` | It is now checked automatically, and when. |
 | `ticketed` | Nothing does this yet; a ticket was opened for the work. Give the ticket. |
 | `blocked` | It is waiting on somebody. `reason` says who and exactly what for. |
-| `nothing-to-enforce` | Nothing needed switching on: it does not apply here, or it is met by a written record or a person's word. The attest step says whether what is there is enough. |
+| `nothing-to-enforce` | Nothing needed switching on. `reason` says which of three it is: the requirement does not apply here; it is met by a written record or a person's word; or what checks it is something Lisa's own project type already runs, which this step neither installs nor looks at. The attest step says whether what is there is enough. |
+
+A requirement that needs a check is never `nothing-to-enforce` because its check is declared with
+no moment to run at, or is one another system reports that nothing waits for. Those are `blocked`:
+nothing runs the check, and the operator has to choose in `/lisa:configure` when it runs.
 
 ### Step 9: Confirm what changed, and clear up
 
@@ -363,12 +384,15 @@ The four outcomes:
 git status --porcelain --untracked-files=all
 ```
 
-Every path listed that was not there before this run must be one ground rule 1 names. If anything
-else appears, this run changed something it must not: remove only what you yourself created, and
-never delete, restore or reset anything you did not create.
+Compare it with the list step 1 kept. A path is this run's when it is in this list and was not in
+that one, or is in both with a different status. Every such path must be one ground rule 1 names.
+If anything else appears, this run changed something it must not: remove only what you yourself
+created, and never delete, restore or reset anything you did not create. A path that was already
+in the list step 1 kept is the operator's, even when ground rule 1 names it: leave it as it is.
 
-When the report's `changes` is empty, the control register was already up to date, and nothing new
-is listed here, this run changed nothing: that is what a second run looks like.
+When the report's `changes` is empty, the control register was already up to date, and this list
+is the same as the one step 1 kept, this run changed nothing: that is what a second run looks
+like.
 
 Then remove the results folder:
 
@@ -394,16 +418,31 @@ never by its id:
    as `.lisa/controls/merge-protection-change.md` says, one decision in `/lisa:configure`.
 5. **What needed nothing switched on:** how many, and in one sentence why.
 6. **What does not pass today.** For each entry of `currently_failing.gates`: which check, in
-   which part of the repository, and the end of what it printed. Say that this is the code on the
-   main branch as it stands, that from now on a change is stopped until that check passes, and
-   that making it pass is separate work this step did not do. If the checks were not run, say why.
+   which part of the repository, and the end of what it printed. What you say next depends on its
+   `judged`:
+   - `failed`: the code on the main branch as it stands breaks that check's rule. From now on a
+     change is stopped until the check passes, and making it pass is separate work this step did
+     not do.
+   - `unproved`: the check could not be judged. It was run in a fresh copy of the main branch,
+     which holds no installed dependencies, and it ended with an error that does not show a
+     broken rule: a check that needs the project's dependencies ends that way there whatever the
+     code is like. Say exactly that, and that it is not a statement about the code. Do not tell
+     the operator that the code on the main branch fails this check. Say that the first commit or
+     push will show whether it passes where the dependencies are installed.
+
+   Then each entry of `currently_failing.not_measured`: which check gave no answer, and why. When
+   `checked` is 0, no check ran to an answer: say that nothing is known about whether the checks
+   pass on the main branch, and never say that nothing fails. If the checks were not run at all,
+   say why.
 7. **What changed in this run:** the files written, the tickets created, and any change to the
    merge settings. When nothing changed, say that plainly.
 8. **What this result does not show.** Say every sentence of `limits`, leaving none out. In
    particular, whenever they are there: that a check on a proposed change on a platform other
    than GitHub cannot be proved in this release and stays marked unproved; that on Copilot and
-   Devin it is assumed, not measured, that a failed check stops the agent; that Antigravity
-   cannot refuse a file write, so nothing is enforced there after an edit; and that git runs the
+   Devin it is assumed, not measured, that a failed check stops the agent; that on Cursor a
+   failed check does not fail the write, so the agent is told afterwards and nothing stops it
+   going on; that Antigravity cannot refuse a file write, so nothing is enforced there after an
+   edit; and that git runs the
    hooks in this checkout only, so each teammate runs `lisa controls install-carriers` once in
    their own.
 9. That nothing was committed: the files this run wrote are in the working copy for the operator

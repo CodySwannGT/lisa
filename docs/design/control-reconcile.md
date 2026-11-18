@@ -29,7 +29,7 @@ second time.
 | The checkout (`commit`, `push`) | `installCarriers(root, { check: true })` | Whether git starts the gate runner there in this checkout: the call is in place, the carrier script and the runner exist, and a file that was rewritten still starts the runner. Covers a new clone where `core.hooksPath` is not set and a hook manager that is not switched on. | That the declared command itself succeeds. That is the paired proof's job. |
 | The coding agent (`session-start`, `pre-tool`, `post-tool`) | The same carrier check, once it reports such points | The same, for whatever kind of carrier the check reports. A point is matched by `location` and `moment` and by nothing else. | Until the check reports a point there, the point is `not-verifiable`. It is not reported as missing. |
 | The hosting platform, pipeline file written by the host | The file the register names (`executor.path`) | That the file is in the checkout and one of its lines that is not a comment runs the gate runner for the pull-request moment. | That the platform runs the pipeline, or requires it before a merge. This is a reading of text, and the result says so. |
-| The hosting platform, GitHub | The platform's merge settings, only with `--platform` | For an entry that is `authoritative` and `required` on a pull request: whether every check derived for it is required on the default branch. | Whether the pipeline that reports the check runs the rule. For an entry that is advisory or optional there is nothing to look for: `not-verifiable`. |
+| The hosting platform, GitHub | The rulesets that govern the default branch, only with `--platform` | For an entry that is `authoritative` and `required` on a pull request: whether every check derived for it is required by a ruleset on the default branch. | Whether the pipeline that reports the check runs the rule. For an entry that is advisory or optional there is nothing to look for: `not-verifiable`. What a branch protection rule of the older kind requires: those are not read. |
 | A deployment pipeline, a scheduled run | Nobody | Nothing. | Everything: `not-verifiable`, stated as such. |
 
 A point ends in one of four states.
@@ -43,6 +43,24 @@ A point ends in one of four states.
 
 Not knowing is not absence. A platform that refuses the read, or that was
 never asked, produces `not-read` and never a finding.
+
+### Only rulesets are read on the hosting platform
+
+GitHub keeps required checks in two places: rulesets, and branch protection
+rules of the older kind. The read covers rulesets only (reading the older
+kind is CodySwannGT/lisa#5018). So what an answer that lists no check means
+depends on whether any ruleset governs the branch:
+
+| The rulesets that govern the default branch | The point is | The reason says |
+| --- | --- | --- |
+| Require every check derived for the entry | `wired` | which checks are required |
+| Exist, and do not require one of them | `not-wired` | which check, which rulesets were read, and that only rulesets were read |
+| There are none | `not-read` | that no ruleset governs the branch, that the older rules are not read, and that whether the check is required is not known |
+
+A repository with no ruleset on the branch may hold all its required checks
+in the older rules, where this command did not look. Calling its checks
+"not required" would be a finding about a place nobody read. The result's
+`limits` say the same for every run.
 
 ## Direction two: a command a hook runs that the register does not list
 
@@ -68,11 +86,36 @@ it reads the lines itself (`src/controls/reconcile-hook-lines.ts`).
 
 ### What is read, and what is left out
 
-- A shell hook is read line by line. Each line is split where shell chains
-  commands; the words shell puts in front of a command are dropped; what is
-  left is reported unless it only steers the shell (`set`, `cd`, `exit`,
-  `[`, `echo`), only tests for a program (`command -v`), or is Lisa's own
-  carrier.
+- A shell hook is read line by line. Each line is split where shell starts
+  another command: `&&`, `||`, `;`, a pipe, and a lone `&`
+  (`src/controls/reconcile-shell-words.ts`). From each piece the redirects
+  are left out, and so is what shell writes around a command: the words in
+  front of it, the bracket that opens a group and the one that closes it
+  (`src/controls/reconcile-shell-command.ts`). What is left is reported
+  unless it only steers the shell (`set`, `cd`, `exit`, `[`, `echo`), only
+  tests for a program (`command -v`), or is Lisa's own carrier.
+
+  | A hook line | Is read as |
+  | --- | --- |
+  | `{ npm test; } \|\| exit 1` | `npm test` |
+  | `( npx eslint . )`, `(npx eslint .)` | `npx eslint .` |
+  | `( cd api && ruff check . )` | `ruff check .` |
+  | `ruff check . \| tee ruff.log` | `ruff check .` and `tee ruff.log` |
+  | `npx lint-staged 2>&1`, `npm run lint > lint.log` | `npx lint-staged`, `npm run lint` |
+  | `*.py\|*.pyi) ruff check . ;;` | `ruff check .` |
+  | `[[ "$b" =~ ^(main\|master)$ ]] \|\| exit 0` | nothing: a test runs no program |
+
+  A command inside a group used to be dropped with its bracket, so a hook
+  could run a check the register does not declare and still be reported as
+  in step. A redirect or a pipe used to stay among the command's words, so a
+  declared command showed as undeclared.
+- Brackets are matched within one line. A closing bracket written against
+  the last word of a one-word command, on the last line of a group that spans
+  several lines, is read as a `case` label and the command is missed.
+- A quote that never closes is given up on once, however many command
+  substitutions it holds. Each `$(…)` in it used to be tried two ways, so the
+  time to read such a line doubled with every substitution, and one line with
+  about thirty of them stopped the command from ever finishing.
 - The lines between `# >>> lisa-carrier <moment>` and
   `# <<< lisa-carrier <moment>` are Lisa's and are left out. So is the block
   between `# BEGIN: AI GUARDRAILS` and `# END: AI GUARDRAILS` in a hook a

@@ -24,8 +24,11 @@ export const CONFIG = ".lisa.config.json";
 /** The file the register is written to, from the repository root. */
 export const REGISTER = ".lisa/controls/register.json";
 
-/** The skill's block that lists what a run changed. */
-export const CHANGED_BLOCK = "git status --porcelain";
+/**
+ * The skill's block that lists what the working copy holds. The skill runs
+ * it twice: in the preflight, before anything is written, and at the end.
+ */
+export const CHANGED_BLOCK = "git status --porcelain --untracked-files=all";
 
 /** A TypeScript package that has the tasks some of Lisa's checks run. */
 export const PACKAGE_WITH_TASKS = `${JSON.stringify(

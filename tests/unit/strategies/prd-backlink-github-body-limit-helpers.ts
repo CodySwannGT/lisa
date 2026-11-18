@@ -296,12 +296,14 @@ const readIfPresent = (file: string): string | null =>
  * @param program Program text lifted from the skill.
  * @param body Full PRD body with the standard-form section in place.
  * @param commentUrl URL of the managed coverage comment, once it exists.
+ * @param repo The PRD's repository, as `<owner>/<repo>`.
  * @returns The printed form and whatever files were written.
  */
 export const runFit = (
   program: string,
   body: string,
-  commentUrl?: string
+  commentUrl?: string,
+  repo: string = PRD_REPO
 ): FitRun => {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-backlink-fit-"));
   try {
@@ -316,7 +318,7 @@ export const runFit = (
       args: [
         programFile,
         bodyFile,
-        PRD_REPO,
+        repo,
         outDir,
         ...(commentUrl === undefined ? [] : [commentUrl]),
       ],

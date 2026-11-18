@@ -141,7 +141,7 @@ GitHub refuses an issue body longer than 65,536 characters. The standard section
         fi
         ```
 
-     2. Run the program again with `"$comment_url"` as a fourth argument. It now writes `<out-dir>/body.md` with the link in place, and the form this second run prints is the one that counts.
+     2. Run the program again with `"$comment_url"` as a fourth argument. It now writes `<out-dir>/body.md` with the link in place, and the form this second run prints is the one that counts. The first run held room for the longest comment URL the PRD's repository can give on github.com, worked out from `<owner>/<repo>`, so the link fits.
    - **`too-large`** — the PRD and the entry lines alone exceed the limit. The program exits 1 and writes nothing; do not write the body — see [Failures](#failures).
 4. For every form but `too-large`, write the body: `gh issue edit <n> --repo <owner>/<repo> --body-file <out-dir>/body.md`.
 5. When the form is `standard` or `compact`, run the same lookup for a managed coverage comment left by an earlier run and delete it with `gh api -X DELETE "repos/<owner>/<repo>/issues/comments/$comment_id"`, so a stale list never sits beside the current one.
@@ -234,8 +234,13 @@ function fit() {
     "",
   ].join("\n");
 
-  // Until the comment exists its URL is unknown, so the first run holds room for one.
-  const urlRoom = commentUrl ? 0 : 150;
+  // Until the comment exists its URL is unknown, so the first run holds room for the longest one
+  // this repository can give on github.com: its address with a 20-digit issue number and a
+  // 20-digit comment id. A flat allowance was shorter than the URL of a repository with a long
+  // owner and name, so a second run could find no room after the comment had been posted.
+  const urlRoom = commentUrl
+    ? 0
+    : chars(`https://github.com/${prdRepo}/issues/#issuecomment-`) + 2 * 20;
   const form =
     (chars(standard) <= LIMIT && "standard") ||
     (start >= 0 && chars(compact) <= LIMIT && "compact") ||

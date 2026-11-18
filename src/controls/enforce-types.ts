@@ -17,9 +17,12 @@
  * - `blocked`: the enforce step could not make it real, and somebody has to
  *   act first. The reason says who and what for.
  * - `nothing-to-enforce`: the enforce step has nothing to install, file or
- *   wait for. The requirement does not apply here, or it is met by a written
- *   record or a person's word, which no hook can run. Whether such a
- *   requirement is met is the attest step's to say.
+ *   wait for. The requirement does not apply here; or it is met by a written
+ *   record or a person's word, which no hook can run; or what checks it is
+ *   something a Lisa project type ships and runs where this step neither
+ *   installs nor looks. Whether such a requirement is met is the attest
+ *   step's to say. A requirement that needs a check never gets this outcome
+ *   because its check has no moment to run at: that is `blocked`.
  *
  * The product requirement names the first three. The fourth is here because
  * the three cannot be said truthfully of a requirement that needs nothing
@@ -73,8 +76,9 @@ export type EnforceOutcome = (typeof ENFORCE_OUTCOMES)[number];
 /**
  * Whether something runs a check at one enforcement point.
  *
- * - `wired`: one of the three steps reported that it does.
- * - `blocked`: one of them reported that it does not, and why.
+ * - `wired`: a read of the checkout's carriers made for this report, or
+ *   the merge-protection result, says that it does.
+ * - `blocked`: one of them says that it does not, and why.
  * - `not-checked`: the enforce step installs nothing at this moment and has
  *   no way to look there, so it says nothing.
  */
@@ -210,7 +214,11 @@ export interface CurrentlyFailing {
   /** How they were run, or why they were not. */
   readonly reason: string;
   readonly head: DefaultBranchHead | null;
-  /** How many checks were run to an answer. */
+  /**
+   * How many checks were run to an answer. Zero with `not_measured` not
+   * empty means nothing is known about whether the checks pass: it is never
+   * a clean result.
+   */
   readonly checked: number;
   /** The checks that fail there, each with its command's output. */
   readonly gates: readonly FailingGate[];

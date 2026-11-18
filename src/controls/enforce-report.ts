@@ -11,6 +11,10 @@
  * ## What is checked before anything is derived
  *
  * - the three results are there and of the right shape (`./enforce-inputs.ts`);
+ * - the carriers of the checkout can be read. The saved carriers result is
+ *   not believed on its own: the checkout is read again, writing nothing,
+ *   and that read decides whether a carrier is in place
+ *   (`./enforce-carriers.ts`);
  * - the audit report passes every rule `report-check` holds it to;
  * - the committed register is exactly what the declaration generates, so
  *   the report is never about a register nobody can read;
@@ -34,7 +38,15 @@ import path from "node:path";
 
 import { loadAuditReport } from "./audit-report-file.js";
 import { listControlGaps } from "./commands/gaps.js";
-import { deriveCriteria, outcomeProblems } from "./enforce-claims.js";
+import {
+  readInstalledCarriers,
+  type CarrierCheck,
+} from "./enforce-carriers.js";
+import {
+  GATE_KIND,
+  deriveCriteria,
+  outcomeProblems,
+} from "./enforce-claims.js";
 import {
   measureCurrentlyFailing,
   type HeadRunDependencies,
@@ -43,6 +55,7 @@ import {
   readEnforceInputs,
   type EnforceInputPaths,
   type HandedProtect,
+  type HandedTicket,
 } from "./enforce-inputs.js";
 import { enforcedEntries } from "./enforce-points.js";
 import {
@@ -78,6 +91,8 @@ export interface EnforceReportDependencies {
   readonly now?: Date;
   /** Generates the control register from the declaration. */
   readonly generate?: (root: string) => Promise<ControlRegisterGeneration>;
+  /** Runs the carrier check of the checkout, writing nothing. */
+  readonly checkCarriers?: CarrierCheck;
   /** Runs the required checks on the head of the default branch. */
   readonly measure?: (
     root: string,
@@ -151,6 +166,39 @@ function protectProblems(
   ];
 }
 
+/** An audit report that passed every rule it is held to. */
+type LoadedAudit = Extract<
+  Awaited<ReturnType<typeof loadAuditReport>>,
+  { readonly problems: null }
+>;
+
+/**
+ * Settle what the ticket flow answered against what the audit lists as
+ * missing.
+ * @param root - Real path of the repository
+ * @param loaded - The audit report
+ * @param handed - The ticket results that were handed in
+ * @returns The answers by requirement, or one line per problem
+ */
+async function ticketsOf(
+  root: string,
+  loaded: LoadedAudit,
+  handed: readonly HandedTicket[]
+): Promise<ReturnType<typeof settleTickets>> {
+  const tracker = await readConfiguredTracker(root);
+  return settleTickets({
+    gaps: listControlGaps(loaded.report, loaded.criteria),
+    handed,
+    tracker: {
+      configured: tracker.configured,
+      problem: tracker.problem,
+      question: tracker.configured
+        ? null
+        : openTrackerQuestionId(loaded.document),
+    },
+  });
+}
+
 /**
  * Build the enforce report of a repository.
  * @param root - Real path of the repository
@@ -178,23 +226,21 @@ export async function buildEnforceReport(
   if (stale !== null || mismatched.length > 0) {
     return { problems: [...(stale === null ? [] : [stale]), ...mismatched] };
   }
-  const tracker = await readConfiguredTracker(root);
-  const tickets = settleTickets({
-    gaps: listControlGaps(loaded.report, loaded.criteria),
-    handed: inputs.tickets,
-    tracker: {
-      configured: tracker.configured,
-      problem: tracker.problem,
-      question: tracker.configured
-        ? null
-        : openTrackerQuestionId(loaded.document),
-    },
-  });
+  const tickets = await ticketsOf(root, loaded, inputs.tickets);
   if (tickets.problems !== null) return tickets;
+  const installed = await readInstalledCarriers(
+    root,
+    inputs.carriers,
+    dependencies.checkCarriers
+  );
+  if (installed.problems !== null) return installed;
   const entries = await enforcedEntries(register, {
-    carriers: inputs.carriers,
     executorVerdict: executor =>
       (dependencies.executorVerdict ?? executorVerdict)(root, executor),
+    gateCriteria: loaded.criteria
+      .filter(criterion => criterion.kind === GATE_KIND)
+      .map(criterion => criterion.id),
+    installed: installed.carriers,
     protect: inputs.protect,
   });
   const criteria = deriveCriteria({
@@ -223,7 +269,7 @@ export async function buildEnforceReport(
       entries,
       currently_failing: failing,
       changes,
-      limits: reportLimits(register, inputs),
+      limits: reportLimits(register, installed.carriers),
     },
   };
 }

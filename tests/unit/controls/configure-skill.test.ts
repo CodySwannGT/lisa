@@ -204,6 +204,24 @@ describe("the commands the configure skill runs", () => {
       )
     ).toEqual([]);
   });
+
+  it("lists the working tree in the preflight, before anything is written, and again at the end", () => {
+    const listing = "git status --porcelain --untracked-files=all";
+    const blocks = configureSkillShellBlocks().map(block => block.trim());
+    const listings = blocks.flatMap((block, index) =>
+      block === listing ? [index] : []
+    );
+    const [preflight] = steps();
+    const confirm = steps().find(step => step.title.includes("Confirm"));
+
+    expect(listings).toHaveLength(2);
+    expect(listings[0]).toBeLessThan(blocks.indexOf("lisa controls seed"));
+    expect(listings[1]).toBeGreaterThan(
+      blocks.indexOf("lisa controls register --check")
+    );
+    expect(preflight?.body).toContain(listing);
+    expect(confirm?.body).toMatch(/the\s+list\s+step\s+1\s+kept/u);
+  });
 });
 
 describe("the declaration the configure skill teaches", () => {

@@ -24,8 +24,11 @@
  *
  * ## What an entry claims
  *
- * Its own outcome, as `./enforce-points.ts` adds its enforcement points up:
- * `wired`, `blocked` or `nothing-to-enforce`.
+ * Its own outcome, as `./enforce-entry-outcome.ts` adds its enforcement
+ * points up: `wired`, `blocked` or `nothing-to-enforce`. An entry that
+ * serves a requirement a check can refuse a change for is never
+ * `nothing-to-enforce` for having no moment to run at: it is `blocked`, so
+ * the finding it covers is not counted as answered by a check nothing runs.
  *
  * ## One outcome from many claims
  *
@@ -62,7 +65,7 @@ import {
 import { requirementQuestionId } from "./question-ids.js";
 
 /** The catalogue's word for a requirement a check can refuse a change for. */
-const GATE_KIND = "gate";
+export const GATE_KIND = "gate";
 
 /** What the outcomes are derived from. */
 export interface ClaimSources {

@@ -49,14 +49,23 @@ export const PROTECT_BLOCK = "lisa controls protect";
 /** The block that prints the outcome of every requirement. */
 export const REPORT_BLOCK = "lisa controls enforce-report";
 
-/** The block that lists what the working copy holds. */
-export const CHANGED_BLOCK = "git status --porcelain";
+/**
+ * The block that lists what the working copy holds. The skill runs it twice:
+ * in the preflight, before anything is installed, and at the end.
+ */
+export const CHANGED_BLOCK = "git status --porcelain --untracked-files=all";
 
 /** The skill's stand-in for the folder its results are saved in. */
 const RESULTS_FOLDER = "<results folder>";
 
 /** The option the skill has the agent fill in, or leave off. */
 const AGENTS_OPTION = ' --agents="<agents>"';
+
+/** The carriers result the skill has the agent name to the report. */
+const CARRIERS_RESULT = `--carriers "${RESULTS_FOLDER}/carriers.json"`;
+
+/** The file the skill saves the `--check` run's output in. */
+export const CARRIERS_CHECK_FILE = "carriers-check.json";
 
 /** The exit codes of a command that still printed a complete result. */
 const RESULT_PRINTED: readonly (number | null)[] = [0, 2, 3];
@@ -74,6 +83,12 @@ export interface EnforceAgent {
    * report is asked for. Nothing was filed when left out.
    */
   readonly tickets?: readonly unknown[];
+  /**
+   * The file in the results folder a careless agent names to the report as
+   * the carriers result, in place of the one the skill says to name. Left
+   * out, the stand-in names the file the skill names.
+   */
+  readonly carriersFile?: string;
 }
 
 /** Every block that ran, and the folder the results were saved in. */
@@ -99,7 +114,14 @@ interface RunState extends Omit<EnforceSkillRun, "cleared"> {
  * @returns The command to run
  */
 function filled(block: string, state: RunState, agent: EnforceAgent): string {
-  return block
+  const named =
+    agent.carriersFile === undefined
+      ? block
+      : block.replace(
+          CARRIERS_RESULT,
+          `--carriers "${RESULTS_FOLDER}/${agent.carriersFile}"`
+        );
+  return named
     .replaceAll(RESULTS_FOLDER, state.results)
     .replace(
       AGENTS_OPTION,
@@ -127,19 +149,25 @@ function stopsRun(step: SkillStep): boolean {
  *
  * A block that is exactly the command is preferred over one that only
  * contains it, so `lisa controls register` finds the plain command and not
- * the one with `--check`.
+ * the one with `--check`. When the skill runs the exact command more than
+ * once, the last run is the one meant, unless `occurrence` says otherwise:
+ * the listing of the working copy is made in the preflight and again at the
+ * end, and the one at the end is what a run changed.
  * @param steps - The steps of one run
  * @param command - The block, or text it contains
+ * @param occurrence - Which run of the exact command: `-1` the last, `0` the
+ *   first
  * @returns The step
  * @throws {Error} When the run has no such step, so a case can never pass by
  *   not running the command it is about
  */
 export function enforceStep(
   steps: readonly SkillStep[],
-  command: string
+  command: string,
+  occurrence = -1
 ): SkillStep {
   const found =
-    steps.find(step => step.block.trim() === command) ??
+    steps.filter(step => step.block.trim() === command).at(occurrence) ??
     steps.find(step => step.block.includes(command));
   if (found === undefined) {
     throw new Error(

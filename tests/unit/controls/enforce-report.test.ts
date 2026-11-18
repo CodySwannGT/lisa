@@ -32,6 +32,26 @@ const IN_SCOPE = inScopeCriteria(loadCriterionCatalogue());
 const STYLE = "SI7";
 const MERGE_GATES = lintGates({ "pull-request": "required" });
 
+/**
+ * One coding agent's point, as a saved carriers result lists it.
+ * @param agent - The agent
+ * @param outcome - What the saved result says became of it
+ * @returns The point
+ */
+function savedAgentPoint(
+  agent: string,
+  outcome = "installed"
+): Readonly<Record<string, unknown>> {
+  return {
+    kind: "agent-hook",
+    location: "coding-agent",
+    moment: "post-tool",
+    agent,
+    outcome,
+    reason: null,
+  };
+}
+
 describe("one outcome per requirement", () => {
   it("gives every in-scope requirement exactly one, in catalogue order", async () => {
     const report = await reportOfCase(await prepareEnforce());
@@ -81,6 +101,22 @@ describe("one outcome per requirement", () => {
     expect(report.criteria.find(row => row.criterion === STYLE)?.outcome).toBe(
       "wired"
     );
+  });
+
+  it("is blocked, never left with nothing to enforce, for a declared check that no moment runs", async () => {
+    const report = await reportOfCase(
+      await prepareEnforce({ gates: lintGates({ commit: "off" }) })
+    );
+    const style = report.criteria.find(row => row.criterion === STYLE);
+
+    expect(report.entries).toEqual([
+      expect.objectContaining({ id: "code-style@.", points: [] }),
+    ]);
+    expect(report.entries[0]?.outcome).toBe("blocked");
+    expect(style?.outcome).toBe("blocked");
+    expect(style?.reason).toContain("no moment to run at");
+    expect(style?.reason).toContain("run the configure step");
+    expect(report.counts["nothing-to-enforce"]).toBe(0);
   });
 
   it("blocks every missing requirement, pointing at the tracker question, when no tracker is configured", async () => {
@@ -208,25 +244,17 @@ describe("what the result does not show", () => {
   });
 
   it("names the agents whose refusal is assumed and the one that cannot refuse", async () => {
-    const prepared = await prepareEnforce();
+    const prepared = await prepareEnforce({
+      agents: ["copilot", "devin", "agy"],
+    });
     const carriers = carriersResult();
     saveResult(prepared, "carriers", {
       ...carriers,
       enforcement_points: [
         ...(carriers.enforcement_points as readonly unknown[]),
-        ...[
-          ["copilot", "installed", "assumed"],
-          ["devin", "installed", "assumed"],
-          ["agy", "unenforceable", undefined],
-        ].map(([agent, outcome, evidence]) => ({
-          kind: "agent-hook",
-          location: "coding-agent",
-          moment: "post-tool",
-          agent,
-          outcome,
-          reason: null,
-          refusal_evidence: evidence,
-        })),
+        savedAgentPoint("copilot"),
+        savedAgentPoint("devin"),
+        savedAgentPoint("agy", "unenforceable"),
       ],
     });
 
@@ -235,6 +263,40 @@ describe("what the result does not show", () => {
     expect(limits).toContain("On copilot and devin");
     expect(limits).toContain("It has not been measured");
     expect(limits).toContain("agy has no hook that can refuse a file write");
+  });
+
+  it("says that an agent which is only told of a failed check is not stopped by it", async () => {
+    const prepared = await prepareEnforce({ agents: ["cursor"] });
+    const carriers = carriersResult();
+    saveResult(prepared, "carriers", {
+      ...carriers,
+      enforcement_points: [
+        ...(carriers.enforcement_points as readonly unknown[]),
+        savedAgentPoint("cursor"),
+      ],
+    });
+
+    const limits = (await reportOfCase(prepared)).limits.join("\n");
+
+    expect(limits).toContain(
+      "On cursor, a failed check does not fail the file write."
+    );
+  });
+
+  it("names no agent the saved result claims and the checkout does not carry", async () => {
+    const prepared = await prepareEnforce();
+    const carriers = carriersResult();
+    saveResult(prepared, "carriers", {
+      ...carriers,
+      enforcement_points: [
+        ...(carriers.enforcement_points as readonly unknown[]),
+        savedAgentPoint("devin"),
+      ],
+    });
+
+    const limits = (await reportOfCase(prepared)).limits.join("\n");
+
+    expect(limits).not.toContain("On devin");
   });
 
   it("says a declared threshold has nothing that stops it being loosened", async () => {

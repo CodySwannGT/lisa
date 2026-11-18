@@ -137,6 +137,122 @@ describe("the commands a shell hook runs", () => {
   });
 });
 
+describe("a command inside a group, a pipeline or a redirect", () => {
+  it("reads the command inside braces", () => {
+    expect(commands(["{ npm test; } || exit 1"])).toEqual([
+      { command: "npm test", line: 1, words: ["npm", "test"] },
+    ]);
+  });
+
+  it("reads the command inside a subshell, spaced or not", () => {
+    expect(commands(["( npx eslint . )", "(npx eslint .)"])).toEqual([
+      { command: "npx eslint .", line: 1, words: ["npx", "eslint", "."] },
+      { command: "npx eslint .", line: 2, words: ["npx", "eslint", "."] },
+    ]);
+  });
+
+  it("takes the closing bracket of a group off the command before it", () => {
+    expect(commands([`( cd api && ${RUFF} )`, `(cd api && ${RUFF})`])).toEqual([
+      { command: RUFF, line: 1, words: ["ruff", "check", "."] },
+      { command: RUFF, line: 2, words: ["ruff", "check", "."] },
+    ]);
+  });
+
+  it("reads a one-word command inside a subshell", () => {
+    expect(texts(["(shellcheck)", "( shellcheck )"])).toEqual([
+      "shellcheck",
+      "shellcheck",
+    ]);
+  });
+
+  it("reads a group that spans several lines", () => {
+    expect(texts(["{", `  ${LINT}`, "}", "(", `  ${RUFF}`, ")"])).toEqual([
+      LINT,
+      RUFF,
+    ]);
+  });
+
+  it("reads each command of a pipeline", () => {
+    expect(commands([`${RUFF} | tee ruff.log`])).toEqual([
+      { command: RUFF, line: 1, words: ["ruff", "check", "."] },
+      { command: "tee ruff.log", line: 1, words: ["tee", "ruff.log"] },
+    ]);
+  });
+
+  it("leaves a redirect out of the command's words", () => {
+    expect(
+      commands([
+        "npx lint-staged 2>&1",
+        `${RUFF} >/dev/null 2>&1`,
+        `${LINT} > lint.log`,
+        "npm test 2>> errors.log < /dev/null",
+      ])
+    ).toEqual([
+      { command: "npx lint-staged", line: 1, words: ["npx", "lint-staged"] },
+      { command: RUFF, line: 2, words: ["ruff", "check", "."] },
+      { command: LINT, line: 3, words: ["npm", "run", "lint"] },
+      { command: "npm test", line: 4, words: ["npm", "test"] },
+    ]);
+  });
+
+  it("reads a command left running in the background", () => {
+    expect(texts([`${LINT} &`, "wait"])).toEqual([LINT]);
+  });
+
+  it("does not take a pattern of a case label for a command", () => {
+    expect(
+      texts([
+        'case "$1" in',
+        `  *.py|*.pyi) ${RUFF} ;;`,
+        "  *.md | *.txt)",
+        "    ;;",
+        "esac",
+      ])
+    ).toEqual([RUFF]);
+  });
+
+  it("does not take a test between double brackets for a command", () => {
+    expect(
+      texts([
+        'if [[ "$branch" =~ ^(main|master)$ ]]; then',
+        "fi",
+        "[[ -f a.txt && -f b.txt ]] || exit 0",
+      ])
+    ).toEqual([]);
+  });
+
+  it("keeps a pipe inside a quote or a substitution in its word", () => {
+    expect(
+      commands(['grep -E "a|b" notes.txt', "CHANGED=$(git diff | wc -l)"])
+    ).toEqual([
+      {
+        command: 'grep -E "a|b" notes.txt',
+        line: 1,
+        words: ["grep", "-E", "a|b", "notes.txt"],
+      },
+    ]);
+  });
+});
+
+describe("a line that cannot be read as shell", () => {
+  it("is read in bounded time when a quote holding many substitutions never closes", () => {
+    const line = `echo "${"$(date) ".repeat(40)}`;
+    const started = performance.now();
+
+    const read = readShellHook([SHEBANG, line, LINT].join("\n"));
+
+    expect(performance.now() - started).toBeLessThan(2000);
+    expect(read).toMatchObject({ problem: null });
+    expect(texts([SHEBANG, line, LINT])).toContain(LINT);
+  });
+
+  it("still reads a quote that holds an unfinished substitution", () => {
+    expect(commands(['npm run "$(lint"'])).toEqual([
+      { command: 'npm run "$(lint"', line: 1, words: ["npm", "run", "$(lint"] },
+    ]);
+  });
+});
+
 describe("what Lisa wrote in a hook", () => {
   it("leaves out the marked lines that call the carrier", () => {
     const { begin, end } = carrierMarkers("commit");

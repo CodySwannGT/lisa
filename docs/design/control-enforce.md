@@ -33,6 +33,12 @@ one line per problem and nothing on stdout:
 
 - a file that is absent, empty (the command behind it failed), not JSON, or
   of the wrong shape;
+- a carriers result that is what `lisa controls install-carriers --check`
+  printed. A check installs nothing and lists what it would write, so read as
+  a result it would report carriers that are not there and changes nobody
+  made. The refusal names the file to pass instead;
+- a checkout whose carriers cannot be read (see "The carriers result is not
+  believed on its own");
 - an audit report `report-check` would refuse;
 - a committed register that is not what the declaration generates;
 - a merge-protection result that does not list exactly the entries this
@@ -42,6 +48,26 @@ one line per problem and nothing on stdout:
   list, under a key it did not give, twice, or not at all where a tracker is
   configured; and a claimed ticket where no tracker is configured.
 
+## The carriers result is not believed on its own
+
+The carriers result is a file saved at one moment. It can be from an earlier
+run, and a hook can have been removed since. So the report reads the
+checkout's carriers again itself, with the read `lisa controls reconcile`
+makes: the carrier check, which writes nothing, run for the coding agents
+the saved result names (`src/controls/enforce-carriers.ts`).
+
+| The saved result says | Reading the checkout shows | The point is | The reason says |
+| --- | --- | --- | --- |
+| in place | in place | `wired` | nothing more |
+| in place | not in place | `blocked` | why it is not in place, and that the saved result said otherwise |
+| blocked, or nothing | in place | `wired` | that the saved result said otherwise |
+
+The read of the checkout always wins. The saved result is still where the
+run's `changes` come from. The `limits` about carriers (the per-checkout git
+setting, an agent that is only told of a failure, an agent whose refusal is
+assumed, an agent that cannot refuse) are taken from the carriers the
+checkout holds, not from the saved result.
+
 ## The outcomes
 
 | Outcome | It means |
@@ -49,7 +75,7 @@ one line per problem and nothing on stdout:
 | `wired` | A declared check serves the requirement, and every place the enforce step is answerable for now runs it. |
 | `ticketed` | The repository has nothing for the requirement, and a ticket for that work exists. |
 | `blocked` | Somebody has to act first. The reason says who and what for. |
-| `nothing-to-enforce` | Nothing to install, file or wait for: the requirement does not apply here, or it is met by a written record or a person's word. |
+| `nothing-to-enforce` | Nothing to install, file or wait for: the requirement does not apply here, it is met by a written record or a person's word, or what checks it is something a Lisa project type ships and runs, which this step neither installs nor looks at. |
 
 The product requirement names the first three. The fourth exists because
 the three cannot be said truthfully of a requirement that needs nothing from
@@ -85,8 +111,8 @@ inside it.
 
 | Where | Who answers | The point is |
 | --- | --- | --- |
-| The checkout, at commit and at push | The carriers result | `wired` when the carrier is installed or was already there; `blocked` when the result says it is, or says nothing about the moment |
-| The coding agent, after a file write | The carriers result's agent points | `blocked` when any named agent is blocked, when no named agent can refuse a write, and for a declared command when no agent was named; otherwise `wired`, naming the agents that cannot refuse and the ones whose refusal is assumed |
+| The checkout, at commit and at push | A read of the checkout's carriers, made for this report | `wired` when the carrier is in place now; `blocked` when it is not, or when the read reports no carrier for the moment |
+| The coding agent, after a file write | The same read, for the agents the saved carriers result names | `blocked` when any named agent's carrier is not in place, when no named agent can refuse a write, and for a declared command when no agent was named; otherwise `wired`, naming the agents that cannot refuse, the ones that are only told of a failed check afterwards (Cursor), and the ones whose refusal is assumed |
 | The coding agent, at any other moment | Nobody | `not-checked` |
 | The hosting platform, an entry merge protection is asked to require | The merge-protection result | `wired` or `blocked`, as it says |
 | The hosting platform, a pipeline file the host wrote | The file itself | `blocked` when it is absent or does not start the gate runner; otherwise as merge protection says, noted as unproved |
@@ -94,11 +120,25 @@ inside it.
 
 | The entry's points | The entry is |
 | --- | --- |
-| It has none | `nothing-to-enforce` |
+| It has none, and it serves a requirement of kind `gate` | `blocked`: no moment was chosen, or every one is switched off, so nothing runs the check; the configure step has to choose when it runs |
+| It has none, and it serves no requirement of kind `gate` | `nothing-to-enforce` |
 | Any point is `blocked` | `blocked` |
 | Otherwise, at least one is `wired` | `wired` |
 | None was checked, and the check is a command the repository declares | `blocked`: nothing Lisa installs starts a command there |
-| None was checked, and the check is one a Lisa project type ships | `nothing-to-enforce`: what Lisa ships runs it, and this step did not look |
+| None was checked, and the check is one a Lisa project type ships (a task, an interceptor, a built-in job) | `nothing-to-enforce`: what Lisa ships runs it, and this step did not look |
+| None was checked, the check is one another system reports or nothing measures it, and it serves a requirement of kind `gate` | `blocked`: nothing Lisa ships runs it and this step cannot see that anything waits for it; the configure step has to choose when it must pass |
+| None was checked, the same kind of check, and it serves no requirement of kind `gate` | `nothing-to-enforce` |
+
+A requirement of kind `gate` is met only by a check that can refuse a
+change. An entry that declares such a check and no moment to run it at used
+to be `nothing-to-enforce`, and because the entry covered the audit's
+finding, the requirement was too: the operator was told it needed nothing
+switched on while nothing ran. A check another system reports was given the
+same outcome with the reason that a Lisa project type ships it, which is not
+true of it. For an entry, `nothing-to-enforce` is now kept for a check Lisa
+ships and runs where this step cannot look, and for an entry that serves no
+`gate` requirement. A `gate` requirement still gets it from the audit when
+the requirement does not apply to that part of the repository.
 
 **From many claims to one outcome.** The strongest claim wins: `blocked`,
 then `ticketed`, then `wired`, then `nothing-to-enforce`. So a requirement is
@@ -152,9 +192,19 @@ and the ones that do not pass are listed with the end of what they printed.
 - **What counts.** A command that ran to an end and that the runner does not
   judge as passing is listed, because that is exactly when the gate stops a
   change. `judged` says whether the runner read a broken rule (`failed`) or
-  could not tell a broken rule from a broken command (`unproved`). A command
+  could not tell a broken rule from a broken command (`unproved`). An
+  `unproved` check is not a statement about the code: a command that needs
+  the project's dependencies ends with an error in a copy that has none,
+  whatever the code is like, and the skill has the agent say so. A command
   that could not be started, ran out of time or was killed is listed as not
   measured, never as failing. A check that runs through the project's task
   runner is not run: a fresh copy holds no installed dependencies.
+- **What is said when nothing gave an answer.** `checked` counts the checks
+  that ran to an answer. The summary sentence says how many ran, how many of
+  those do not pass and how many gave no answer, and stderr carries one line
+  for each check that gave no answer, with why. When no check ran to an
+  answer the summary says that nothing is known about whether they pass. It
+  never reads "0 required checks do not pass", which is what a clean run
+  would say.
 - **What is kept.** The end of what the command printed, through
   `prepareEvidenceExcerpt`, with the copy's own path replaced by `<copy>`.
