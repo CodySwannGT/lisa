@@ -86,6 +86,8 @@ export type LivePolicyRead =
   | {
       readonly ok: true;
       readonly rulesets: readonly LiveRuleset[];
+      /** How many rulesets the list held, whatever each one applies to. */
+      readonly listed: number;
       readonly settings: Readonly<Record<string, unknown>>;
     }
   | {

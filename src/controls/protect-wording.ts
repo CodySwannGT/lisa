@@ -61,6 +61,16 @@ export function unusableDefaultBranch(named: string): string {
 }
 
 /**
+ * Say that a change which creates a ruleset could not be read back.
+ * @param listed - How many rulesets the platform lists now
+ * @param page - The most the platform lists in one answer
+ * @returns The reason
+ */
+export function couldNotBeReadBack(listed: number, page: number): string {
+  return `The hosting platform lists ${String(listed)} rulesets for this repository (ones its organisation applies to it count), and requiring these checks would create one more. It lists at most ${String(page)} in one answer, and a full answer cannot be told from a list that goes on, so the change could not be confirmed once it was sent. Delete a ruleset that is no longer needed, or name an existing ruleset to hold these checks with --ruleset <name>.`;
+}
+
+/**
  * Say that the platform refused the change.
  * @param failures - What it answered, one per refused step
  * @returns The reason

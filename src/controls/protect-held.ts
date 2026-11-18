@@ -5,9 +5,18 @@
  * is one plain sentence or two, because it is printed as it stands in the
  * result document and in the file handed to an administrator: what was found,
  * what would go wrong, and what has to happen first.
+ *
+ * What has to happen first must be something that works. Naming an app in
+ * the declaration works for a reporter that is an app; it cannot work for a
+ * commit status, which does not say which app wrote it. So the step a
+ * sentence names is chosen from what was seen ({@link reportedByAnother}),
+ * never one sentence for every case.
  * @module controls/protect-held
  */
 import { ACTIONS_INTEGRATION_ID } from "../health/ruleset-inspection.js";
+import type { OtherReporters } from "./protect-reported.js";
+
+export type { OtherReporters } from "./protect-reported.js";
 
 /** A check that must not be required as things stand, and why. */
 export interface HeldBack {
@@ -63,22 +72,144 @@ function sourceName(appId: number | null): string {
 }
 
 /**
+ * How the app a held-back check would be required from came to be chosen.
+ *
+ * - `awaited`: another app reports the check and the configuration names
+ *   that app (`posted_by` on the gate that awaits it, or `integration_id` on
+ *   its entry under `github.rulesets.requiredChecks`). Left without an app,
+ *   the check would be open to any source.
+ * - `entry`: the check's entry under `github.rulesets.requiredChecks`
+ *   decides. Left without an app there, it is required from GitHub Actions,
+ *   not from any source.
+ * - `pipeline`: a pipeline job reports the check and nothing is declared
+ *   about its app, which is GitHub Actions.
+ */
+export type PinOrigin = "awaited" | "entry" | "pipeline";
+
+/**
+ * Pick the origin that speaks for a check several declarations ask for.
+ *
+ * The one that leaves the operator the fewest steps wins, so that no step is
+ * named that would not work for one of the declarations.
+ * @param origins - How the app of each declaration came to be chosen
+ * @returns The origin to word the remedy for
+ */
+export function leastOpen(origins: readonly PinOrigin[]): PinOrigin {
+  if (origins.includes("entry")) return "entry";
+  return origins.includes("awaited") ? "awaited" : "pipeline";
+}
+
+/** How a sentence names a check run the platform gives no app for. */
+const UNNAMED_RUN = "a check run that names no app";
+
+/** How a sentence names a commit status. */
+const COMMIT_STATUS = "a commit status";
+
+/** The last step of every remedy. */
+const RUN_AGAIN = "run this command again.";
+
+/** Where the app of a check is declared, by how it came to be chosen. */
+const WHERE_NAMED: Readonly<Record<Exclude<PinOrigin, "pipeline">, string>> = {
+  awaited:
+    "posted_by on the gate that awaits it, or integration_id under github.rulesets.requiredChecks",
+  entry: "integration_id under github.rulesets.requiredChecks",
+};
+
+/**
+ * Join names the way a sentence lists them.
+ * @param names - The names
+ * @returns The names with `and` between them
+ */
+function listed(names: readonly string[]): string {
+  return names.join(" and ");
+}
+
+/**
+ * Say what to do about the reporters that do not say which app they are.
+ *
+ * Naming an app in the declaration only helps for a reporter that has one.
+ * A commit status has none, so there are two things that work: declare the
+ * check without an app, which lets any source report it, or have the app
+ * report a check run. Only an awaited check is opened to any source by
+ * leaving its app out, so that half is offered for no other.
+ * @param from - The source that would be required, as a sentence names it
+ * @param unnamed - The reporters, as a sentence names them; never empty
+ * @param origin - How the app came to be chosen
+ * @returns The sentences
+ */
+function withoutAnApp(
+  from: string,
+  unnamed: readonly string[],
+  origin: PinOrigin
+): string {
+  const one = unnamed.length === 1;
+  const who = listed(unnamed);
+  const why = `${who.charAt(0).toUpperCase()}${who.slice(1)} ${one ? "does" : "do"} not say which app reported ${one ? "it" : "them"}, so ${one ? "it" : "they"} can never count for a check that names an app, and there is no app to name for ${one ? "it" : "them"}.`;
+  return origin === "awaited"
+    ? `${why} If ${who} ${one ? "is" : "are"} what reports this check, declare the check without an app in .lisa.config.json (remove posted_by from the gate that awaits it, and any integration_id for it under github.rulesets.requiredChecks), so that any source may report it; otherwise have ${from} report it as a check run. Then ${RUN_AGAIN}`
+    : `${why} Have ${from} report it as a check run, then ${RUN_AGAIN}`;
+}
+
+/**
+ * Say what has to happen before a check that something else reports can be
+ * required.
+ *
+ * Every step named here is one that works for what was seen. Which that is
+ * depends on who reported the name and on how the app the check is required
+ * from came to be chosen, so both are asked for.
+ * @param from - The source that would be required, as a sentence names it
+ * @param seen - Who did report it
+ * @param origin - How the app came to be chosen
+ * @returns The sentences
+ */
+function remedy(from: string, seen: OtherReporters, origin: PinOrigin): string {
+  if (origin === "pipeline") {
+    return `This check is one a pipeline job in this repository reports, so only GitHub Actions counts for it, and what was seen comes from something else that uses the same name. Merge the workflow that reports it and let it run once, then ${RUN_AGAIN}`;
+  }
+  const one = seen.apps.length === 1;
+  const naming = `If ${listed(seen.apps.map(sourceName))} ${one ? "is" : "are"} what reports this check, name ${one ? "it" : "the one that does"} for the check in .lisa.config.json (${WHERE_NAMED[origin]})`;
+  const unnamed = [
+    ...(seen.unnamedRun ? [UNNAMED_RUN] : []),
+    ...(seen.commitStatus ? [COMMIT_STATUS] : []),
+  ];
+  if (unnamed.length === 0) {
+    return `${naming}; otherwise let ${from} report it once, then ${RUN_AGAIN}`;
+  }
+  const rest = withoutAnApp(from, unnamed, origin);
+  return seen.apps.length === 0 ? rest : `${naming}. ${rest}`;
+}
+
+/**
  * A check the platform shows a result for, but not from the source the
  * change would require it from.
+ *
+ * The source named as missing is the app, or apps, the check would be pinned
+ * to. A declaration any source satisfies is left out of it: a result was
+ * seen, so that declaration is not what is missing.
  * @param on - The protected branch, as a sentence names it
  * @param wanted - The apps that would have to report it
- * @param seen - Who did report it, in words
+ * @param seen - Who did report it
+ * @param origin - How the app it is required from came to be chosen
  * @returns The reason
  */
 export function reportedByAnother(
   on: string,
   wanted: readonly (number | null)[],
-  seen: readonly string[]
+  seen: OtherReporters,
+  origin: PinOrigin
 ): HeldBack {
-  const from = wanted.map(sourceName).join(" and ");
+  const pinned = wanted.filter(app => app !== null);
+  const from = listed([
+    ...new Set((pinned.length === 0 ? wanted : pinned).map(sourceName)),
+  ]);
+  const who = listed([
+    ...seen.apps.map(sourceName),
+    ...(seen.unnamedRun ? [UNNAMED_RUN] : []),
+    ...(seen.commitStatus ? [COMMIT_STATUS] : []),
+  ]);
   return {
     state: "not-ready",
-    detail: `It has not been reported by the source that would be required: the hosting platform shows a result under this exact name on ${on} or on a pull request merged into it, but from ${seen.join(" and ")}, not from ${from}. Once required, only a result from ${from} would count, so requiring it now would leave every pull request waiting for a result that never arrives. If ${seen.join(" and ")} is what reports this check, name it in .lisa.config.json (posted_by on the gate that awaits it); otherwise let ${from} report it once, then run this command again.`,
+    detail: `It has not been reported by the source that would be required: the hosting platform shows a result under this exact name on ${on} or on a pull request merged into it, but from ${who}, not from ${from}. Once required, only a result from ${from} would count, so requiring it now would leave every pull request waiting for a result that never arrives. ${remedy(from, seen, origin)}`,
   };
 }
 

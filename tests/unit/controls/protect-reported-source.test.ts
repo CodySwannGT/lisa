@@ -146,6 +146,78 @@ describe("a check that something else reports under the same name", () => {
     expect(result.required_checks[0]?.detail).toMatch(
       /from a commit status, not from GitHub Actions/u
     );
+    // Nothing awaits a check a pipeline job reports, so there is no app to
+    // declare for it: the step is to let the pipeline run.
+    expect(result.required_checks[0]?.detail).not.toMatch(/posted_by/u);
+    expect(result.required_checks[0]?.detail).toMatch(
+      /Merge the workflow that reports it and let it run once/u
+    );
+  });
+
+  it.each([
+    ["on the gate that awaits it", { gates: F_PAVED_GATES }],
+    [
+      "under the required checks of a ruleset",
+      {
+        gates: AWAITED_FROM_ANYONE,
+        config: {
+          github: {
+            rulesets: {
+              requiredChecks: {
+                "quality checks": [{ context: REVIEW, integration_id: 4242 }],
+              },
+            },
+          },
+        },
+      },
+    ],
+  ] as const)(
+    "does not say to name a commit status for a check whose app is declared %s",
+    async (_where, options) => {
+      const repoPath = repository(options);
+      const github = fakeGithub({
+        repo: REPO,
+        admin: true,
+        reported: [LINT_CHECK],
+        reportedStatuses: [REVIEW],
+      });
+
+      const result = await protect(repoPath, github, APPLY);
+
+      expect(sentAsRequired(github)).toEqual([LINT_CHECK]);
+      const review = result.required_checks.find(
+        check => check.context === REVIEW
+      );
+      expect(review?.state).toBe(NOT_READY);
+      expect(review?.detail).toMatch(
+        /from a commit status, not from app 4242/u
+      );
+      expect(review?.detail).not.toMatch(/name it/u);
+      expect(review?.detail).toMatch(
+        /declare the check without an app in \.lisa\.config\.json/u
+      );
+      expect(review?.detail).toMatch(/have app 4242 report it as a check run/u);
+      expect(handover(repoPath)).toContain(
+        "declare the check without an app in .lisa.config.json"
+      );
+    }
+  );
+
+  it("is written once the operator does what the sentence says and declares it without an app", async () => {
+    const platform = {
+      repo: REPO,
+      admin: true,
+      reported: [LINT_CHECK],
+      reportedStatuses: [REVIEW],
+    } as const;
+    const pinned = fakeGithub(platform);
+    const open = fakeGithub(platform);
+
+    await protect(repository({ gates: F_PAVED_GATES }), pinned, APPLY);
+    await protect(repository({ gates: AWAITED_FROM_ANYONE }), open, APPLY);
+
+    expect(sentAsRequired(pinned)).not.toContain(REVIEW);
+    expect(sentChecks(open)).toContainEqual({ context: REVIEW });
   });
 
   it("is left out when the app the declaration names never reported the awaited check", async () => {

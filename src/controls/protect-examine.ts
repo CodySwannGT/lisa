@@ -23,8 +23,13 @@
  *    reported is what was read back, never what was sent.
  * @module controls/protect-examine
  */
+import {
+  RULESET_PAGE_SIZE,
+  isWholeRulesetList,
+} from "../health/ruleset-inspection.js";
 import { planChange, plannedApps, sendChange } from "./protect-apply.js";
 import {
+  leastOpen,
   neverReported,
   reachNotKnown,
   reportedByAnother,
@@ -52,6 +57,7 @@ import {
   NOT_ASKED_TO_APPLY,
   READ_BACK_DIFFERS,
   branchName,
+  couldNotBeReadBack,
   couldNotRead,
   unusableDefaultBranch,
   writeRefused,
@@ -118,7 +124,7 @@ function proveReported(
   // to, so that a name only another source reports is not made required.
   const wanted = comparison.drift.missingRecords.map(record => ({
     context: record.context,
-    appId: appToRequire(record, requirement, comparison.awaitedRecords),
+    ...appToRequire(record, requirement, comparison.awaitedRecords),
   }));
   const proof = readReported(repository, branch, wanted, log.read, modules);
   const on = branchName(branch);
@@ -127,14 +133,18 @@ function proveReported(
   const whyHeld = (name: string): HeldBack => {
     if (proof.unread !== null) return reportingNotRead(on, proof.unread);
     const seen = proof.elsewhere.get(name);
+    // Only a check pinned to an app can be seen and still not count, so the
+    // declarations any source satisfies say nothing about what to do.
+    const pinned = wanted.filter(
+      check => check.context === name && check.appId !== null
+    );
     return seen === undefined
       ? neverReported(on)
       : reportedByAnother(
           on,
-          wanted
-            .filter(check => check.context === name)
-            .map(check => check.appId),
-          seen
+          pinned.map(check => check.appId),
+          seen,
+          leastOpen(pinned.map(check => check.origin))
         );
   };
   return {
@@ -173,6 +183,31 @@ function unproved(
       planned =>
         `The change would require \`${planned.context}\` ${planned.appId === null ? "from any source" : `from app ${String(planned.appId)}`}, and it was not confirmed that this source has ever reported it.`
     );
+}
+
+/**
+ * Find a planned change whose result could not be read back.
+ *
+ * What is reported after a change is what was read back, and the ruleset
+ * list is only taken for the whole list while it is shorter than a page. A
+ * step that creates a ruleset makes the list longer. Sent on a repository
+ * one short of a full page, it would be reported as not confirmed, and every
+ * later run would then find a list it cannot read at all. So such a change
+ * is not sent.
+ * @param actions - The planned steps
+ * @param listed - How many rulesets the platform listed before the change
+ * @returns One sentence; empty when the change can be read back
+ */
+function unconfirmable(
+  actions: readonly RepairAction[],
+  listed: number
+): readonly string[] {
+  const created = actions.filter(
+    action => action.rulesetId === null || action.rulesetId === undefined
+  ).length;
+  return created === 0 || isWholeRulesetList(listed + created)
+    ? []
+    : [couldNotBeReadBack(listed, RULESET_PAGE_SIZE)];
 }
 
 /**
@@ -220,7 +255,10 @@ async function applyChange(
   const blockers =
     plan.blockers.length > 0
       ? plan.blockers
-      : unproved(plan.actions, proved.wanted);
+      : [
+          ...unproved(plan.actions, proved.wanted),
+          ...unconfirmable(plan.actions, live.listed),
+        ];
   if (blockers.length > 0) {
     return {
       required: new Set(comparison.drift.matched),

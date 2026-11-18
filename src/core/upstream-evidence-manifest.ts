@@ -383,7 +383,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs":
       "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "603aa2c9af37e8264855be7af520884001b27aa5f284f9dbb1b36cb09d51dbc1",
+      "c25580381493b05620b325960434e1edd57ff42e50f12ebf5701c5e908b6b4ff",
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
@@ -12997,12 +12997,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/protect-derive.test.ts": true,
     "tests/unit/controls/protect-handover-secrets.test.ts": true,
     "tests/unit/controls/protect-handover.test.ts": true,
+    "tests/unit/controls/protect-held.test.ts": true,
+    "tests/unit/controls/protect-many-rulesets.test.ts": true,
     "tests/unit/controls/protect-other-platforms.test.ts": true,
     "tests/unit/controls/protect-pinned.test.ts": true,
     "tests/unit/controls/protect-plan-guard.test.ts": true,
     "tests/unit/controls/protect-platform.test.ts": true,
     "tests/unit/controls/protect-read-only.test.ts": true,
     "tests/unit/controls/protect-reads.test.ts": true,
+    "tests/unit/controls/protect-reported-pages.test.ts": true,
     "tests/unit/controls/protect-reported-source.test.ts": true,
     "tests/unit/controls/protect-reported.test.ts": true,
     "tests/unit/controls/protect-requests.test.ts": true,
@@ -13260,6 +13263,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/plugin-finding-remediation.test.ts": true,
     "tests/unit/health/rails-hook-installation.test.ts": true,
     "tests/unit/health/ruleset-reach-inspection.test.ts": true,
+    "tests/unit/health/ruleset-reader.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
     "tests/unit/health/workflow-input-pinned-callers.test.ts": true,
     "tests/unit/helpers/bounded-bash.test.ts": true,

@@ -48,6 +48,11 @@ export interface ReportedPull {
   readonly merged?: boolean;
   /** The branch it asks to be merged into; the default branch by default. */
   readonly base?: string;
+  /**
+   * What the list gives as its head commit id, when not the one the
+   * stand-in makes up. `null` is a listing that names no commit.
+   */
+  readonly head?: string | null;
 }
 
 /** What the platform shows as reported. */
@@ -91,7 +96,8 @@ export function pullHead(index: number): string {
  */
 function pullOf(
   pull: readonly ReportedRun[] | ReportedPull
-): Required<Omit<ReportedPull, "base">> & { readonly base?: string } {
+): Required<Omit<ReportedPull, "base" | "head">> &
+  Pick<ReportedPull, "base" | "head"> {
   const full: ReportedPull = "checks" in pull ? pull : { checks: pull };
   const state = full.state ?? "closed";
   return {
@@ -99,6 +105,7 @@ function pullOf(
     state,
     merged: full.merged ?? state === "closed",
     ...(full.base === undefined ? {} : { base: full.base }),
+    ...(full.head === undefined ? {} : { head: full.head }),
   };
 }
 
@@ -137,8 +144,15 @@ function checkRunsOn(
   return pull === undefined ? undefined : pullOf(pull).checks;
 }
 
+/** The page of a list the platform returns when a request does not say. */
+const DEFAULT_PAGE_SIZE = 30;
+
+/** The largest page of a list the platform returns, whatever is asked for. */
+const LARGEST_PAGE_SIZE = 100;
+
 /**
- * The list of pull requests a query asks for.
+ * The first page of the list of pull requests a query asks for: thirty
+ * unless the request asks for more, and never more than a hundred.
  * @param options - What the platform shows
  * @param branch - The default branch
  * @param query - The query of the request
@@ -151,17 +165,24 @@ function listedPulls(
 ): readonly Readonly<Record<string, unknown>>[] {
   const asked = new URLSearchParams(query);
   const state = asked.get("state") ?? "open";
+  const perPage = Number(asked.get("per_page"));
+  const size = Math.min(
+    perPage > 0 ? perPage : DEFAULT_PAGE_SIZE,
+    LARGEST_PAGE_SIZE
+  );
   return (options.pulls ?? [])
     .map((pull, index) => ({ ...pullOf(pull), index }))
     .filter(pull => (pull.base ?? branch) === asked.get("base"))
     .filter(pull => state === "all" || pull.state === state)
+    .slice(0, size)
     .map(pull => ({
       number: pull.index + 1,
       state: pull.state,
       merged_at: pull.merged
         ? `2026-01-${String(pull.index + 1).padStart(2, "0")}T00:00:00Z`
         : null,
-      head: { sha: pullHead(pull.index) },
+      head:
+        pull.head === null ? {} : { sha: pull.head ?? pullHead(pull.index) },
       base: { ref: pull.base ?? branch },
     }));
 }
