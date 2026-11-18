@@ -1,25 +1,38 @@
 /**
  * Turning what a run planned into the result it reports.
  *
- * The result is the answer to one question per enforcement point: does git
- * now run the declared checks at this moment, in this checkout? Each point
- * carries the `location` and `moment` the control register uses for the same
- * point, so a reader can line the two up, and one of four outcomes:
+ * The result is the answer to one question per enforcement point: are the
+ * declared checks run at this moment, in this checkout? Each point carries
+ * the `location` and `moment` the control register uses for the same point,
+ * so a reader can line the two up, and one outcome:
  *
  * - `installed`: the call was not there and this run wrote it.
  * - `updated`: the call was there, and this run rewrote it or a file it
  *   starts.
  * - `already-wired`: nothing about the point changed.
- * - `blocked`: git does not run the checks at this point, with the reason.
+ * - `blocked`: the checks do not run at this point, with the reason.
+ * - `unenforceable`: only for a coding agent that has no hook that can
+ *   refuse a file write. Nothing was installed, and the gap is recorded in
+ *   the gates declaration. It is not a failure of the run.
  *
  * Under `--check` the outcomes say what a run would do; nothing was written.
+ *
+ * A run that was not asked to carry any coding agent reports exactly what it
+ * always did: the sentences about agents, and the agent keys, appear only
+ * when there is an agent point to report (`./carrier-agent-result.ts`).
  * @module controls/carrier-result
  */
+import { describeAgentPoints } from "./carrier-agent-result.js";
+import {
+  ALREADY_WIRED,
+  isAgentPlan,
+  settledOutcome,
+  type CarrierRunFacts,
+} from "./carrier-outcome.js";
 import {
   CARRIER_HOOKS,
   GIT_HOOK_LOCATION,
   STACK_HOOK,
-  type CarrierEdit,
   type CarrierOutcome,
   type CarrierPoint,
   type CarrierResult,
@@ -28,23 +41,7 @@ import {
   type PointPlan,
 } from "./carrier-types.js";
 
-/** What a run planned and did. */
-export interface CarrierRunFacts {
-  /** Whether nothing may be written. */
-  readonly check: boolean;
-  /** The plan of every kind of carrier. */
-  readonly plans: readonly KindPlan[];
-  /** Why nothing at all may be written, or `null`. */
-  readonly stopped: string | null;
-  /** Whether any point starts the runner this command places. */
-  readonly runnerNeeded: boolean;
-  /** The runner's files, from the repository root. */
-  readonly runnerFiles: readonly string[];
-  /** The carrier scripts the points start, from the repository root. */
-  readonly scripts: readonly string[];
-  /** Every write of the run, in order. */
-  readonly edits: readonly CarrierEdit[];
-}
+export type { CarrierRunFacts } from "./carrier-outcome.js";
 
 /** The part of the result that is worked out from the plan. */
 export type DescribedRun = Pick<
@@ -57,9 +54,6 @@ export type DescribedRun = Pick<
   | "changes"
 > & { readonly runner: Pick<CarrierRunner, "outcome" | "reason"> };
 
-/** The outcome of a point nothing changed for. */
-const ALREADY_WIRED: CarrierOutcome = "already-wired";
-
 /** The outcomes, worst first. */
 const WORST_FIRST: readonly CarrierOutcome[] = [
   "blocked",
@@ -69,7 +63,7 @@ const WORST_FIRST: readonly CarrierOutcome[] = [
 ];
 
 /**
- * Report one planned point.
+ * Report one planned git hook point.
  * @param plan - The plan the point belongs to
  * @param point - The planned point
  * @param facts - What the run planned and did
@@ -80,24 +74,18 @@ function reported(
   point: PointPlan,
   facts: CarrierRunFacts
 ): CarrierPoint {
-  const placed = new Set([...facts.runnerFiles, ...facts.scripts]);
-  const placedChanged = facts.edits.some(edit => placed.has(edit.path));
-  const wired = point.through === STACK_HOOK;
   // A hook that already calls the runner needs nothing this command places,
   // so a refusal to place it does not block that point.
-  const reason = wired ? point.blocked : (facts.stopped ?? point.blocked);
-  const settled = (): CarrierOutcome => {
-    if (point.call === "added") return "installed";
-    return point.call === "replaced" || (placedChanged && !wired)
-      ? "updated"
-      : ALREADY_WIRED;
-  };
+  const reason =
+    point.through === STACK_HOOK
+      ? point.blocked
+      : (facts.stopped ?? point.blocked);
   return {
     hook: CARRIER_HOOKS[point.moment],
     kind: plan.kind,
     location: GIT_HOOK_LOCATION,
     moment: point.moment,
-    outcome: reason === null ? settled() : "blocked",
+    outcome: reason === null ? settledOutcome(point, facts) : "blocked",
     path: point.path,
     reason,
     wired_through: point.through,
@@ -136,7 +124,7 @@ function moments(points: readonly CarrierPoint[]): string {
 }
 
 /**
- * Say the outcome of the run in one sentence.
+ * Say the outcome of a run that carries git hooks only, in one sentence.
  * @param outcome - The run's outcome
  * @param points - Every enforcement point
  * @param facts - What the run planned and did
@@ -164,14 +152,55 @@ function sentence(
 }
 
 /**
+ * Say the outcome of a run that also carries coding agents.
+ *
+ * Three parts, each said only when it has something to say: what the run
+ * wrote, where git stands, and where the agents stand.
+ * @param outcome - The run's outcome
+ * @param gitPoints - The git hook points
+ * @param agents - The sentence about the agent points
+ * @param facts - What the run planned and did
+ * @returns The sentences, joined
+ */
+function sentenceWithAgents(
+  outcome: CarrierOutcome,
+  gitPoints: readonly CarrierPoint[],
+  agents: string,
+  facts: CarrierRunFacts
+): string {
+  const count = facts.edits.length;
+  const blocked = gitPoints.filter(point => point.outcome === "blocked");
+  const wrote = (): string => {
+    if (outcome === "blocked") return "";
+    if (facts.check && count > 0) {
+      return `Nothing was written. A run would make ${count} ${count === 1 ? "change" : "changes"}.`;
+    }
+    if (outcome === "installed") return "Installed.";
+    return outcome === "updated"
+      ? "Updated what was already installed."
+      : "Nothing changed.";
+  };
+  const git =
+    blocked.length > 0
+      ? `Git does not run the declared checks at ${moments(blocked)} in this checkout. ${blocked[0]?.reason ?? ""}`
+      : `Git runs the checks this repository declares at ${moments(gitPoints)}.`;
+  return [wrote(), git, agents].filter(part => part !== "").join(" ");
+}
+
+/**
  * Work out the result of a run from its plan.
  * @param facts - What the run planned and did
  * @returns Everything in the result that depends on the plan
  */
 export function describeCarrierRun(facts: CarrierRunFacts): DescribedRun {
-  const points = facts.plans.flatMap(plan =>
-    plan.points.map(point => reported(plan, point, facts))
+  const gitPoints = facts.plans.flatMap(plan =>
+    plan.points.flatMap(point =>
+      isAgentPlan(point) ? [] : [reported(plan, point, facts)]
+    )
   );
+  const agents = describeAgentPoints(facts);
+  const points = [...gitPoints, ...agents.points];
+  // An unenforceable point is in neither list: it is recorded, not failed.
   const worst = WORST_FIRST.find(candidate =>
     points.some(point => point.outcome === candidate)
   );
@@ -185,7 +214,10 @@ export function describeCarrierRun(facts: CarrierRunFacts): DescribedRun {
     hook_owner: facts.plans[0]?.owner ?? "none",
     mode: facts.check ? "check" : "install",
     outcome,
-    reason: sentence(outcome, points, facts),
+    reason:
+      agents.points.length === 0
+        ? sentence(outcome, points, facts)
+        : sentenceWithAgents(outcome, gitPoints, agents.sentence, facts),
     runner: runnerReport(facts),
   };
 }

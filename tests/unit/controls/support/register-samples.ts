@@ -50,6 +50,7 @@ export const POINT: Required<EnforcementPoint> = {
   location: "hosting-platform",
   measuring_mechanism: MECHANISMS.task,
   executor: EXECUTOR,
+  unenforceable_on: ["agy"],
 };
 
 /** A parameter with every key. */
@@ -137,7 +138,11 @@ export const SHAPES: readonly (readonly [string, object, readonly string[]])[] =
     ["entry", ENTRY, ["evidence", "status"]],
     ["evidence", EVIDENCE, []],
     ["locator", LOCATOR, []],
-    ["enforcement_point", POINT, ["measuring_mechanism", "executor"]],
+    [
+      "enforcement_point",
+      POINT,
+      ["measuring_mechanism", "executor", "unenforceable_on"],
+    ],
     ["executor", EXECUTOR, []],
     ["parameter", PARAMETER, ["direction"]],
     ["proof", PROOF, []],

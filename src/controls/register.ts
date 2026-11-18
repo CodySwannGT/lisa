@@ -47,6 +47,7 @@ import {
   type ControlRegister,
   type ControlRegisterEntry,
 } from "./register-types.js";
+import { withUnenforceableAgents } from "./unenforceable-agents.js";
 
 /** What a register is built from. */
 export interface ControlRegisterInputs {
@@ -136,7 +137,10 @@ export function buildControlRegister(
         register: {
           schema_version: CONTROL_REGISTER_SCHEMA_VERSION,
           entries: withProofStatus(
-            withDeclaredExecutors(entries, declaration),
+            withDeclaredExecutors(
+              withUnenforceableAgents(entries, declaration),
+              declaration
+            ),
             inputs.evidenceDocument ?? (() => null)
           ),
         },

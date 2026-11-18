@@ -4584,6 +4584,92 @@ function validateExecutor(id, moment, executor) {
 }
 
 /**
+ * The moment field naming the coding agents a rule cannot be enforced on at
+ * that moment (CodySwannGT/lisa#4990).
+ *
+ * A check declared at an agent moment runs because the agent's own hook calls
+ * the gate runner. Some agents have no hook that can refuse what they just
+ * did, so on those nothing calls it, and that has to be written down rather
+ * than left for a reader to work out: `"post-tool": { "level": "required",
+ * "unenforceable_on": ["agy"] }`. The control register records the list on
+ * the entry's enforcement point at that moment.
+ *
+ * Nothing here checks which agents have such a hook; that is a fact about
+ * each agent, held where the carriers are installed. The key changes nothing
+ * about what the moment resolves to, and it sits on the MOMENT entry for the
+ * reason {@link EXECUTOR_FIELD} does: an older Lisa ignores a moment key it
+ * does not know, where a gate-level key would refuse the whole gates block.
+ */
+export const UNENFORCEABLE_ON_FIELD = "unenforceable_on";
+
+/**
+ * The coding agents Lisa supports, by the names the `harness` setting of
+ * `.lisa.config.json` uses for them. A suite holds this list to that setting's
+ * own values, so the two cannot drift apart.
+ */
+export const CODING_AGENTS = Object.freeze([
+  "claude",
+  "codex",
+  "cursor",
+  "agy",
+  "copilot",
+  "opencode",
+  "devin",
+]);
+
+/**
+ * The moments a coding agent's own hooks carry: the start of a session, and
+ * before and after one of its tools runs. Every other moment is carried by
+ * something that is not an agent (git, the hosting platform, a pipeline), so
+ * "cannot be enforced on this agent" would say nothing there.
+ */
+export const AGENT_MOMENTS = Object.freeze([SESSION_START, ...TOOL_MOMENTS]);
+
+/**
+ * Validate the agents a moment says it cannot be enforced on.
+ * @param {string} id Gate id.
+ * @param {string} moment Moment key.
+ * @param {*} agents The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateUnenforceableOn(id, moment, agents) {
+  if (agents === undefined) return [];
+  const where = `gates."${id}"."${moment}".${UNENFORCEABLE_ON_FIELD}`;
+  if (!AGENT_MOMENTS.includes(momentFamily(moment))) {
+    return [
+      `${where} names coding agents, but no coding agent's hook runs at ` +
+        `"${moment}", so there is nothing an agent could fail to enforce ` +
+        `there. The key belongs to these moments: ${AGENT_MOMENTS.join(", ")}. ` +
+        `Move it to one of them, or remove it.`,
+    ];
+  }
+  if (!Array.isArray(agents) || agents.length === 0) {
+    return [
+      `${where} is ${JSON.stringify(agents)}; expected a list of the coding ` +
+        `agents this moment cannot be enforced on, for example ["agy"]. ` +
+        `Remove the key when there are none.`,
+    ];
+  }
+  const unknown = agents.flatMap((agent, index) =>
+    CODING_AGENTS.includes(agent)
+      ? []
+      : [
+          `${where}[${index}] is ${JSON.stringify(agent)}, which is not a ` +
+            `coding agent Lisa knows. Write one of: ` +
+            `${CODING_AGENTS.join(", ")}.`,
+        ]
+  );
+  const repeated = [
+    ...new Set(
+      agents.filter((agent, index) => agents.indexOf(agent) !== index)
+    ),
+  ]
+    .filter(agent => CODING_AGENTS.includes(agent))
+    .map(agent => `${where} names "${agent}" twice. Name each agent once.`);
+  return [...unknown, ...repeated];
+}
+
+/**
  * Validate one moment entry on a gate.
  * @param {string} id Gate id.
  * @param {string} moment The moment key.
@@ -4646,6 +4732,9 @@ function validateMoment(id, moment, value, known, interceptor, gateProver) {
   );
   problems.push(...validateCacheFlag(id, moment, entry[CACHE_FIELD]));
   problems.push(...validateExecutor(id, moment, entry[EXECUTOR_FIELD]));
+  problems.push(
+    ...validateUnenforceableOn(id, moment, entry[UNENFORCEABLE_ON_FIELD])
+  );
   problems.push(...validatePostedBy(id, moment, entry));
   problems.push(...validateCallerChain(id, moment, entry));
   if (!known && !interceptor && !entry.await && !entry.run && !gateProver) {

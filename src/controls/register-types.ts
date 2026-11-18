@@ -21,6 +21,7 @@
  * writer. Nothing existing has to move.
  * @module controls/register-types
  */
+import type { CodingAgent } from "./coding-agents.js";
 
 /** Where the register is written, from the repository root. */
 export const CONTROL_REGISTER_PATH = ".lisa/controls/register.json";
@@ -164,6 +165,12 @@ export interface EnforcementPoint {
    * `pull-request` point has it.
    */
   readonly executor?: PullRequestExecutor;
+  /**
+   * The coding agents the rule cannot be enforced on at this moment, because
+   * they have no hook that can refuse what they did. Only a point enforced by
+   * a coding agent has it, and only when the declaration names an agent.
+   */
+  readonly unenforceable_on?: readonly CodingAgent[];
 }
 
 /** One named setting of a check. */

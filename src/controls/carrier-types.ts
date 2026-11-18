@@ -2,20 +2,23 @@
  * The shape of what `lisa controls install-carriers` installs and reports.
  *
  * A carrier is the small piece that calls the gate runner at a moment: a git
- * hook at commit and at push. In a repository on a supported project type the
- * stack's own hooks are the carriers. In any other repository nothing calls
- * the runner, so the declared checks never run; this command installs the
- * carriers there.
+ * hook at commit and at push, and a coding agent's own hook after the agent
+ * writes a file. In a repository on a supported project type the stack's own
+ * hooks are the carriers. In any other repository nothing calls the runner,
+ * so the declared checks never run; this command installs the carriers there.
  *
  * ## Adding a kind of carrier
  *
  * Every carrier is reported as one enforcement point: a `kind`, the
  * `location` and `moment` the control register uses for the same point, and
- * an outcome. A new kind (a coding agent's edit-time hook, for example) adds
- * a value to {@link CARRIER_KINDS}, a module that plans its points, and one
- * entry in the list `./carriers.ts` runs. Nothing existing has to move.
+ * an outcome. A new kind adds a value to {@link CARRIER_KINDS}, a module that
+ * plans its points, and one entry in the list `./carriers.ts` runs. Nothing
+ * existing has to move. The agent kind was added that way.
  * @module controls/carrier-types
  */
+import type { Harness } from "../core/config.js";
+
+import type { CodingAgent, EDIT_TIME_MOMENT } from "./coding-agents.js";
 import type { EnforcementLocation } from "./register-types.js";
 
 /** The format version of the result document and of the record. */
@@ -36,8 +39,14 @@ export const CARRIER_HOOKS: Readonly<Record<CarrierMoment, string>> = {
 /** Where a git hook enforces a rule, as the control register names it. */
 export const GIT_HOOK_LOCATION: EnforcementLocation = "local-checkout";
 
+/** Where a coding agent's hook enforces a rule, as the register names it. */
+export const AGENT_HOOK_LOCATION: EnforcementLocation = "coding-agent";
+
+/** The moment a coding agent's hook carries: after it wrote a file. */
+export type AgentCarrierMoment = typeof EDIT_TIME_MOMENT;
+
 /** The kinds of carrier this command installs. */
-export const CARRIER_KINDS = ["git-hook"] as const;
+export const CARRIER_KINDS = ["git-hook", "agent-hook"] as const;
 
 /** One kind of carrier. */
 export type CarrierKind = (typeof CARRIER_KINDS)[number];
@@ -101,8 +110,65 @@ export type HookOwner = (typeof HOOK_OWNERS)[number];
 /** A hook a Lisa project type ships, which already calls the runner. */
 export const STACK_HOOK = "lisa-stack-hook";
 
+/** A coding agent's own hook configuration, held in the repository. */
+export const AGENT_CONFIG = "agent-config";
+
+/** Nothing: the coding agent has no hook that can refuse a file write. */
+export const NO_HOOK_SURFACE = "no-hook-surface";
+
 /** What calls the carrier at an enforcement point. */
-export type WiredThrough = HookOwner | typeof STACK_HOOK;
+export type WiredThrough =
+  | HookOwner
+  | typeof STACK_HOOK
+  | typeof AGENT_CONFIG
+  | typeof NO_HOOK_SURFACE;
+
+/**
+ * What a coding agent's hook does to refuse a file write that failed a check.
+ *
+ * - `exit-2`: the hook exits with status 2 and the failure is on its standard
+ *   error, which the agent is shown.
+ * - `additional-context`: the hook exits 0 and prints one JSON object whose
+ *   `additional_context` holds the failure, which the agent adds to the
+ *   conversation.
+ * - `thrown-error`: the agent's plugin throws an error holding the failure,
+ *   and the agent marks the tool call failed.
+ */
+export const AGENT_REFUSALS = [
+  "exit-2",
+  "additional-context",
+  "thrown-error",
+] as const;
+
+/** How one coding agent is told a write failed a check. */
+export type AgentRefusal = (typeof AGENT_REFUSALS)[number];
+
+/**
+ * How it is known that an agent acts on a refusal after a file write.
+ *
+ * - `measured`: a run of the agent, recorded in this repository's wiki.
+ * - `documented`: the agent's own documentation or shipped program says so.
+ * - `assumed`: Lisa's other hooks for this agent rely on it; nobody has
+ *   measured it after a file write.
+ */
+export const REFUSAL_EVIDENCE = ["measured", "documented", "assumed"] as const;
+
+/** One level of {@link REFUSAL_EVIDENCE}. */
+export type RefusalEvidence = (typeof REFUSAL_EVIDENCE)[number];
+
+/**
+ * What became of one enforcement point: a {@link CarrierOutcome}, or
+ * `unenforceable` for a coding agent that has no hook that can refuse a file
+ * write. Such a point is not a failure of the run; the gap is written into
+ * the gates declaration so the control register carries it.
+ */
+export const CARRIER_POINT_OUTCOMES = [
+  ...CARRIER_OUTCOMES,
+  "unenforceable",
+] as const;
+
+/** The outcome of one enforcement point. */
+export type CarrierPointOutcome = (typeof CARRIER_POINT_OUTCOMES)[number];
 
 /** One enforcement point and what became of it. */
 export interface CarrierPoint {
@@ -111,17 +177,48 @@ export interface CarrierPoint {
   /** Where it enforces, as the control register's enforcement points say. */
   readonly location: EnforcementLocation;
   /** The moment it carries, as the control register's points say. */
-  readonly moment: CarrierMoment;
-  /** The git hook that runs at that moment. */
-  readonly hook: string;
+  readonly moment: CarrierMoment | AgentCarrierMoment;
+  /**
+   * The hook that runs at that moment: the git hook, or the coding agent's
+   * own name for its hook. `null` for an agent that has none.
+   */
+  readonly hook: string | null;
   /** What became of it. */
-  readonly outcome: CarrierOutcome;
-  /** Why it is blocked, in a sentence; `null` for every other outcome. */
+  readonly outcome: CarrierPointOutcome;
+  /**
+   * Why it is blocked or unenforceable, in a sentence; `null` for every
+   * other outcome.
+   */
   readonly reason: string | null;
   /** What calls the carrier. */
   readonly wired_through: WiredThrough;
-  /** The file or setting that holds the call; `null` when there is none. */
+  /**
+   * The file or setting that holds the call; for an unenforceable point, the
+   * file that records the gap. `null` when there is none.
+   */
   readonly path: string | null;
+  /** The coding agent the point belongs to. Only an agent point has it. */
+  readonly agent?: CodingAgent;
+  /** How the agent is told a write failed. Only a wired agent point has it. */
+  readonly refusal?: AgentRefusal;
+  /** How that is known. Only a wired agent point has it. */
+  readonly refusal_evidence?: RefusalEvidence;
+  /**
+   * The gates whose entry at this moment names the agent as unenforceable,
+   * in name order. Only an unenforceable point has it; empty when nothing is
+   * declared at the moment yet.
+   */
+  readonly recorded_on?: readonly string[];
+}
+
+/** The coding agents a run was asked to carry, and how they were chosen. */
+export interface CarrierRoster {
+  /** `harness`: read from `.lisa.config.json`. `named`: given on the flag. */
+  readonly source: "harness" | "named";
+  /** The `harness` setting that was read; `null` when the flag named them. */
+  readonly harness: Harness | null;
+  /** The agents, in the order the harness setting lists them. */
+  readonly agents: readonly CodingAgent[];
 }
 
 /** What became of the runner's files. */
@@ -168,7 +265,10 @@ export interface CarrierResult {
   readonly reason: string;
   /** Who owns git hooks in this checkout. */
   readonly hook_owner: HookOwner;
-  /** One entry per enforcement point, commit before push. */
+  /**
+   * One entry per enforcement point: commit, then push, then one per coding
+   * agent the run was asked to carry.
+   */
   readonly enforcement_points: readonly CarrierPoint[];
   /** The gate runner. */
   readonly runner: CarrierRunner;
@@ -178,6 +278,11 @@ export interface CarrierResult {
   readonly record: string;
   /** What a teammate runs in a new checkout. */
   readonly each_checkout: CarrierCloneSetup;
+  /**
+   * The coding agents the run was asked to carry. Left off a run that was
+   * not asked to carry any.
+   */
+  readonly roster?: CarrierRoster;
 }
 
 /** A file to write. */
@@ -241,14 +346,44 @@ export interface PlacedFile {
   readonly executable: boolean;
 }
 
+/** The plan for one coding agent's enforcement point. */
+export interface AgentPointPlan {
+  readonly moment: AgentCarrierMoment;
+  /** The agent the point belongs to. */
+  readonly agent: CodingAgent;
+  /** The agent's own name for its hook; `null` when it has none. */
+  readonly hook: string | null;
+  /** What calls the carrier. */
+  readonly through: typeof AGENT_CONFIG | typeof NO_HOOK_SURFACE;
+  /** The file that holds the call, or the record of the gap. */
+  readonly path: string | null;
+  /**
+   * How the call stands. For an agent with no hook: how the record of the
+   * gap stands.
+   */
+  readonly call: CallState;
+  /** Why the point is blocked, or `null`. */
+  readonly blocked: string | null;
+  /** How the agent is told a write failed; left off an agent with no hook. */
+  readonly refusal?: {
+    readonly signal: AgentRefusal;
+    readonly evidence: RefusalEvidence;
+  };
+  /** For an agent with no hook: why, and where the gap is recorded. */
+  readonly unenforceable?: {
+    readonly reason: string;
+    readonly recordedOn: readonly string[];
+  };
+}
+
 /** The plan for every point of one kind of carrier. */
 export interface KindPlan {
   /** The kind of carrier the points are. */
   readonly kind: CarrierKind;
-  /** Who owns the hooks. */
-  readonly owner: HookOwner;
-  /** One plan per moment. */
-  readonly points: readonly PointPlan[];
+  /** Who owns git hooks; left off a kind that is not a git hook. */
+  readonly owner?: HookOwner;
+  /** One plan per enforcement point. */
+  readonly points: readonly (PointPlan | AgentPointPlan)[];
   /** The carrier scripts the calls start, placed when any call is. */
   readonly scripts: readonly PlacedFile[];
   /** The writes that put the calls in place. */

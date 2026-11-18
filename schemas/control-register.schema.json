@@ -163,6 +163,23 @@
         "executor": {
           "$ref": "#/$defs/executor",
           "description": "The file that runs the rule at this moment, when the `gates` block names one. Only a `pull-request` enforcement point has it."
+        },
+        "unenforceable_on": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "claude",
+              "codex",
+              "cursor",
+              "agy",
+              "copilot",
+              "opencode",
+              "devin"
+            ]
+          },
+          "description": "The coding agents the rule cannot be enforced on at this moment, because they have no hook that can refuse what they did, by the names the `harness` setting uses and in that setting's order. Only a `coding-agent` enforcement point has it, and only when the `gates` block names an agent. The rule is still enforced on every other agent, and at every later moment."
         }
       }
     },
