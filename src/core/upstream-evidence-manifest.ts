@@ -401,7 +401,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "c44ad834962bb5f2f4af0a261d648759e4dfe5e4ddb8e15389facac938417340",
+      "6febc6c890dbb154b37e71bc1aec207c4cf259d74f1d8a000eb8a352f85b38be",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1369,7 +1369,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "a3b530e0053774f62aa768377e672388b586b1456fa59f33bc3553babf1a576d",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
-      "9a7518b9ae4fb31efd5b9e344c7c989bcb74c9eff39142b78d7724557ba7b229",
+      "576214af3e6b1bebac9386691561cadf44857e96c5faa033d3d74dfd7f188bac",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
       "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
     "plugins/src/base/scripts/learnings-projection.mjs":

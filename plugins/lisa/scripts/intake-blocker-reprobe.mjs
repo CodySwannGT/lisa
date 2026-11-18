@@ -459,11 +459,14 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     // it to every host, so a person approves it in both modes. The pattern
     // names the act of maintaining our OWN copy; depending on someone else's
     // fork is a decision, and so is every earlier rung of the ladder. A patch
-    // must name a dependency target (a package name, or a library, dependency
-    // or package phrase), so "add a patch to the README" stays a decision.
+    // must name a dependency target. After "to" or "for" that target is a
+    // library, dependency or package noun, because a bare word there is as
+    // often a verb ("a patch to fix the crash"). A bare package name counts
+    // only after "against", "on" or "of", and never a repository word, so
+    // "add a patch to the README" stays a decision.
     label: "approve maintaining our own copy of an open-source library",
     pattern:
-      /\b((maintain\w*|keep\w*|carry\w*|own\w*) (our|its) own (patched |vendored |forked )?(copy|copies|fork|forks|patch|patches) of|(apply\w*|carry\w*|maintain\w*|keep\w*|add\w*) (a |an |our |the )?(local )?(patch|patches) (to|of|for|against|on) ((the |a |an |our |this )?([a-z0-9]+ ){0,2}(library|libraries|dependency|dependencies|package|packages)|(?!(readme|docs?|documentation|files?|changelog|code|config|scripts?|tests?|branch|workflow|the|a|an|our|this|it)\b)[a-z0-9]+)|(fork|forking|vendor|vendoring) (?!of\b)(a |an |our |the )?([a-z0-9]+ ){0,2}(library|libraries|dependency|dependencies|package|packages))\b/u,
+      /\b((maintain\w*|keep\w*|carry\w*|own\w*) (our|its) own (patched |vendored |forked )?(copy|copies|fork|forks|patch|patches) of|(apply\w*|carry\w*|maintain\w*|keep\w*|add\w*) (a |an |our |the )?(local )?(patch|patches) ((to|for|of|against|on) (the |a |an |our |this )?([a-z0-9]+ ){0,2}(library|libraries|dependency|dependencies|package|packages)|(against|on|of) (the |our )?(?!(readme|docs?|documentation|files?|changelog|code|config|scripts?|tests?|branch|workflow|the|our|a|an|this|it)\b)[a-z0-9]+)|(fork|forking|vendor|vendoring) (?!of\b)(a |an |our |the )?([a-z0-9]+ ){0,2}(library|libraries|dependency|dependencies|package|packages))\b/u,
   }),
   Object.freeze({
     act: "compliance-signoff",
