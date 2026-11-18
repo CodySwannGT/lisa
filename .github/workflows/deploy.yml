@@ -173,7 +173,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     needs: [determine_environment, release, publish_npm, reconcile_release]
-    if: ${{ always() && needs.determine_environment.outputs.environment == 'main' && needs.release.result == 'success' && needs.release.outputs.version != '' && (needs.publish_npm.result == 'success' || needs.reconcile_release.outputs.verdict == 'published') }}
+    # `github.ref` as well as the environment: a manual dispatch from another
+    # branch can ask for `environment: main`, and this job feeds the one push
+    # that bypasses main's rulesets.
+    if: ${{ always() && github.ref == 'refs/heads/main' && needs.determine_environment.outputs.environment == 'main' && needs.release.result == 'success' && needs.release.outputs.version != '' && (needs.publish_npm.result == 'success' || needs.reconcile_release.outputs.verdict == 'published') }}
     permissions:
       contents: read
     outputs:

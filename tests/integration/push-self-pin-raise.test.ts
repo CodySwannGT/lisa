@@ -105,6 +105,7 @@ function commit(cwd: string, file: string, content: string): string {
 interface Fixture {
   readonly root: string;
   readonly origin: string;
+  readonly ancestor: string;
   readonly work: string;
   readonly base: string;
   readonly raise: string;
@@ -119,9 +120,10 @@ function fixture(): Fixture {
   const root = tracked(mkdtempSync(path.join(tmpdir(), "push-self-pin-")));
   const origin = bareMain(root);
   const work = cloneOf(root, origin, "work");
+  const ancestor = commitAndPush(work, "README.md", "fixture\n");
   const base = commitAndPush(work, "package.json", '{ "pin": "^6.0.0" }\n');
   const raise = commit(work, "package.json", `{ "pin": "^${VERSION}" }\n`);
-  return { root, origin, work, base, raise };
+  return { root, origin, ancestor, work, base, raise };
 }
 
 /**
@@ -291,6 +293,29 @@ describe("the deploy-key step pushes only onto the proved base (#4951)", () => {
     expect(remoteMain(origin)).toBe(moved);
     expect(calls(shim.log)).toEqual(["push", "fetch"]);
     expect(git(work, "rev-parse", "HEAD^")).toBe(base);
+  });
+
+  it("refuses to restore a main rolled back to an ancestor of the base", () => {
+    const { root, origin, ancestor, work, base } = fixture();
+    git(origin, "update-ref", "refs/heads/main", ancestor);
+    const shim = flakyGit(root, []);
+
+    const result = push(work, origin, base, shim.bin);
+
+    expect(result.code).toBe(1);
+    expect(result.output).toContain(`main moved from ${base} to ${ancestor}`);
+    expect(remoteMain(origin)).toBe(ancestor);
+    expect(calls(shim.log)).toEqual(["push", "fetch"]);
+  });
+
+  it("refuses a HEAD that is not one commit on top of the proved base", () => {
+    const { origin, ancestor, work } = fixture();
+
+    const result = push(work, origin, ancestor);
+
+    expect(result.code).toBe(2);
+    expect(result.output).toContain("not a single raise commit");
+    expect(remoteMain(origin)).not.toBe(git(work, "rev-parse", "HEAD"));
   });
 
   it("retries a push that failed while main stayed put", () => {

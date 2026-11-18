@@ -33,6 +33,7 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
      * Whether prepare_self_pin_raise starts for one combination of outcomes.
      * @param overrides - The outcomes that differ from a clean main release.
      * @param overrides.environment - The deploy environment.
+     * @param overrides.ref - The ref the run is on.
      * @param overrides.release - The release job's result.
      * @param overrides.version - The version the release cut.
      * @param overrides.publish - The publish job's result.
@@ -42,6 +43,7 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
     function prepares(
       overrides: {
         environment?: string;
+        ref?: string;
         release?: string;
         version?: string;
         publish?: string;
@@ -50,6 +52,7 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
     ): boolean {
       const outcome = {
         environment: "main",
+        ref: "refs/heads/main",
         release: "success",
         version: "7.0.0",
         publish: "success",
@@ -57,6 +60,7 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
         ...overrides,
       };
       return guardPasses(deployJob(PREPARE_JOB).if ?? "", {
+        github: { ref: outcome.ref },
         needs: {
           determine_environment: {
             outputs: { environment: outcome.environment },
@@ -89,6 +93,18 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
     it("does not prepare off main, even after a successful publish", () => {
       expect(prepares({ environment: "staging" })).toBe(false);
       expect(prepares({ environment: "dev" })).toBe(false);
+    });
+
+    it("does not prepare from a run off main that asked for the main environment", () => {
+      expect(prepares({ ref: "refs/heads/staging" })).toBe(false);
+      expect(prepares({ ref: "refs/heads/dev" })).toBe(false);
+      expect(
+        prepares({
+          ref: "refs/heads/staging",
+          publish: "failure",
+          reconciled: "published",
+        })
+      ).toBe(false);
     });
 
     it("does not prepare when the publish failed and nothing proved it landed", () => {

@@ -6,8 +6,9 @@
 # the only step that holds the deploy key. The raise commit is already made on
 # top of the commit the raise was proved against (BASE_SHA).
 #
-# It pushes ONLY onto that exact commit. A push is never forced, so if main has
-# moved the remote rejects it; this script then fetches main and, when the tip
+# It pushes ONLY onto that exact commit: the push carries an explicit lease on
+# refs/heads/main at BASE_SHA, so any other tip — a newer main, or one rolled
+# back to an ancestor — is rejected; this script then fetches main and, when the tip
 # is no longer BASE_SHA, refuses. It never rebases: a rebased raise would
 # combine the raised dependency graph with source nobody tested it against.
 #
@@ -42,8 +43,18 @@ version="$3"
 attempts=3
 delay="${SELF_PIN_PUSH_RETRY_DELAY:-5}"
 
+# The raise must be exactly one commit on top of the proved base, or the lease
+# below would vouch for a commit it never inspected.
+if [ "$(git rev-parse HEAD^ 2>/dev/null || true)" != "$base_sha" ] || [ "$(git rev-list --parents -n 1 HEAD | wc -w | tr -d ' ')" != "2" ]; then
+  echo "::error::HEAD is not a single raise commit on top of $base_sha; refusing to push." >&2
+  exit 2
+fi
+
 for attempt in $(seq 1 "$attempts"); do
-  if git -c core.hooksPath=/dev/null push "$remote" HEAD:main; then
+  # A plain push accepts any fast-forward, including one from an ANCESTOR of
+  # BASE_SHA — so a main rolled back to an older commit would be quietly
+  # restored. The explicit lease accepts only a main that is still BASE_SHA.
+  if git -c core.hooksPath=/dev/null push --force-with-lease="refs/heads/main:$base_sha" "$remote" HEAD:main; then
     echo "✅ Raised the self-pin to ^${version} on main."
     exit 0
   fi

@@ -2953,7 +2953,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
     "scripts/push-self-pin-raise.sh":
-      "3aa8a5be8872a4431a9fd43c7688309add695bf2a6b992872b5bbc326f8bdeae",
+      "1426b638140f85c7daabbe123312baf14b6c15a8f54e4bbaa139b0f3c447e155",
     "scripts/raise-self-dependency-pin.mjs":
       "c950a7fae981ad682b6f1e4c5c3a28338b87d1b491dde17e49567b4865304db3",
     "scripts/reconcile-release-tags.mjs":
