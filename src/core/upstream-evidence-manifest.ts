@@ -11890,6 +11890,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/cli-smoke.test.ts": true,
     "tests/integration/codex-active-hooks.test.ts": true,
     "tests/integration/continuous-gates-empty.test.ts": true,
+    "tests/integration/controls-attest-pull-request.test.ts": true,
     "tests/integration/controls-attest.test.ts": true,
     "tests/integration/controls-audit-questions.test.ts": true,
     "tests/integration/controls-audit-readonly.test.ts": true,
