@@ -7,7 +7,6 @@
  * arguments to the runner, and it sits between markers that let a later run
  * find it, replace it in place and leave everything else alone.
  */
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   mkdirSync,
@@ -33,6 +32,7 @@ import {
   CARRIER_MOMENTS,
   type CarrierMoment,
 } from "../../../src/controls/carrier-types.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const SH = "/bin/sh";
 const HOST_HOOK = "#!/bin/sh\necho host check\n";
@@ -53,7 +53,27 @@ function syntaxErrors(script: string): string {
   const file = path.join(folder, "hook");
   cleanups.push(() => rmSync(folder, { force: true, recursive: true }));
   writeFileSync(file, script);
-  return spawnSync(SH, ["-n", file], { encoding: "utf8" }).output.join("");
+  return shSaid(
+    boundedSpawnSync({
+      label: "sh -n on a carrier script",
+      command: SH,
+      args: ["-n", file],
+    })
+  );
+}
+
+/**
+ * Everything a finished `sh` printed, on either stream.
+ * @param finished - The finished child
+ * @param finished.stdout - What it printed on standard output
+ * @param finished.stderr - What it printed on standard error
+ * @returns Both streams, joined
+ */
+function shSaid(finished: {
+  readonly stdout?: string | null;
+  readonly stderr?: string | null;
+}): string {
+  return `${finished.stdout ?? ""}${finished.stderr ?? ""}`;
 }
 
 /**
@@ -144,12 +164,16 @@ describe("what the carriers say about the change being checked", () => {
     writeFileSync(path.join(folder, "node"), '#!/bin/sh\necho "$@"\n');
     chmodSync(path.join(folder, "node"), 0o755);
     writeFileSync(path.join(folder, "hook"), carrierScript(moment));
-    return spawnSync(SH, ["hook", "origin", "an address"], {
-      cwd: folder,
-      encoding: "utf8",
-      env: { PATH: `${folder}:/usr/bin:/bin`, ...env },
-      input: "",
-    }).stdout.trim();
+    return (
+      boundedSpawnSync({
+        label: "a carrier script started as a hook",
+        command: SH,
+        args: ["hook", "origin", "an address"],
+        cwd: folder,
+        env: { PATH: `${folder}:/usr/bin:/bin`, ...env },
+        input: "",
+      }).stdout ?? ""
+    ).trim();
   }
 
   it("has the push carrier tell the runner to read what git wrote", () => {

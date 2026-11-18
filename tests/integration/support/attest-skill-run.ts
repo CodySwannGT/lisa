@@ -50,8 +50,12 @@ import type { SkillStep } from "./audit-skill-run.js";
 
 const BASH = "/bin/bash";
 
-/** How long one block may take before the case gives up on it. */
-const BLOCK_BUDGET_MS = 60_000;
+/**
+ * How long one block may take before the case gives up on it. It stays under
+ * half of a case's own budget, so a block that hangs is reported by name and
+ * not as a bare case timeout.
+ */
+const BLOCK_BUDGET_MS = 25_000;
 
 /** The block that runs the proofs. */
 export const PROOFS_BLOCK = "lisa controls attest --json";
