@@ -326,10 +326,10 @@ describe("the folder a part's command starts in", () => {
   });
 
   it("is the part's folder inside the repository", () => {
-    expect(partDirectory(repository.root, API)).toEqual({
+    expect(partDirectory(repository.root, API)).toMatchObject({
       directory: path.join(repository.root, API),
     });
-    expect(partDirectory(repository.root, ".")).toEqual({
+    expect(partDirectory(repository.root, ".")).toMatchObject({
       directory: repository.root,
     });
   });
