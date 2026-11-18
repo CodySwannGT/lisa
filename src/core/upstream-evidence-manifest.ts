@@ -317,7 +317,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-affected-tests.mjs":
       "31a4b1adac29014ba8997daf60e3ee4f2a948e1c915924bae35c0d43872d632c",
     "all/copy-overwrite/scripts/lisa-audit.mjs":
-      "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
+      "cd4666690dad10cfd2e9f59a03bc067fa88472b8f2640650c11febbbfe7147b2",
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs":
       "69b45495c3b3ec81b64ab8aacb97921dde014e537bfd8655625bec053293870a",
     "all/copy-overwrite/scripts/lisa-clean-git-env.sh":
@@ -1719,7 +1719,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
       "8687d794603742e83f3b7d7b1d21a56c98422e4301eef99f0d05eacc26d955b8",
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md":
-      "42fa1f7456a4511dede443da16875337e19f4185bad4ba1808143fb05f425b74",
+      "6fdb0f845da1525c9590faaabf239d62ef0a39c53d0dcc45981c08b3234b98be",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "6878641d8ae3c0b1e6bab736e46dd5b0fd32a5e25ca9a0eecd1e66a5fb0bfdd2",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -2889,7 +2889,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-audit.mjs":
-      "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
+      "cd4666690dad10cfd2e9f59a03bc067fa88472b8f2640650c11febbbfe7147b2",
     "scripts/lisa-ci-failure-redispatch.mjs":
       "6ebd9a3b70d47fa8706a1e2e94865537e41efc104b6a9ec185f65ab0a7f014ee",
     "scripts/lisa-ci-rework-route.mjs":
@@ -3153,7 +3153,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "5dee9b811ee57acfe65f3572c0fafc5207d57997216460415f534ad60a276d71",
+      "a87a7fb1c5500cea7492aeeca44eb62ff2aaacce4229df3ffeac4675ed96056d",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -11145,6 +11145,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/audit-lockfile.ts": true,
     "src/core/audit-manager.ts": true,
     "src/core/audit-matcher.ts": true,
+    "src/core/audit-patches.ts": true,
     "src/core/audit-report.ts": true,
     "src/core/audit-types.ts": true,
     "src/core/audit.ts": true,
@@ -12428,6 +12429,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/apply-receipt-deletion-record.test.ts": true,
     "tests/unit/core/audit-lockfile-formats.test.ts": true,
     "tests/unit/core/audit-lockfile-sources.test.ts": true,
+    "tests/unit/core/audit-patches.test.ts": true,
     "tests/unit/core/audit-report-completeness.test.ts": true,
     "tests/unit/core/audit-review-4693.test.ts": true,
     "tests/unit/core/audit-scope-hardening.test.ts": true,
@@ -12829,6 +12831,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/skills-installer.test.ts": true,
     "tests/unit/opencode/support-file-parity.test.ts": true,
     "tests/unit/opencode/support/filing-parity.ts": true,
+    "tests/unit/patches/picomatch-ghsa-fc5q-39xc-vjpf.test.ts": true,
     "tests/unit/plugins/block-suppress-directives.test.ts": true,
     "tests/unit/plugins/container-view-pattern-parity.test.ts": true,
     "tests/unit/plugins/description-length-budget.test.ts": true,

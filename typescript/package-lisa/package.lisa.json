@@ -68,6 +68,10 @@
       "systeminformation": ">=5.33.16",
       "qs": "^6.16.0",
       "deepmerge-ts": "^8.0.1"
+    },
+    "patchedDependencies": {
+      "picomatch@4.0.7": ".lisa/patches/picomatch@4.0.7.patch",
+      "picomatch@2.3.2": ".lisa/patches/picomatch@2.3.2.patch"
     }
   },
   "defaults": {

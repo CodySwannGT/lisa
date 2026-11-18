@@ -453,7 +453,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
 
   /**
    * Reduce a resolved template to only the security-critical sections —
-   * `force.resolutions` and `force.overrides`, plus the retirements aimed at
+   * `force.resolutions`, `force.overrides` and `force.patchedDependencies`,
+   * plus the retirements aimed at
    * those same two sections — dropping force.scripts, defaults, merge, and
    * every other retirement. Used during skip-git-check (postinstall) applies so
    * dependency pins still apply without clobbering host config.
@@ -487,6 +488,12 @@ export class PackageLisaStrategy implements ICopyStrategy {
     }
     if (template.force.overrides !== undefined) {
       force.overrides = template.force.overrides;
+    }
+    // An advisory patch is a security write like a pin: it is how a host
+    // fixes a vulnerable copy no upstream release fixes yet. deepMerge keeps
+    // the host's own entries beside Lisa's.
+    if (template.force.patchedDependencies !== undefined) {
+      force.patchedDependencies = template.force.patchedDependencies;
     }
     this.includeBackingDirectDeps(template, force);
     const remove = Object.fromEntries(

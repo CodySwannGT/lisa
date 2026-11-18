@@ -16,7 +16,7 @@ try {
     manifest.name === "@codyswann/lisa"
       ? pathToFileURL(resolve(root, "dist/core/audit.js")).href
       : "@codyswann/lisa/audit";
-  const { evaluateAuditReport, runDependencyAudit, detectAuditManager } =
+  const { verifyCapturedAudit, runDependencyAudit, detectAuditManager } =
     await import(source);
   const managerIndex = process.argv.indexOf("--manager");
   const manager =
@@ -26,7 +26,7 @@ try {
   if (!["bun", "npm", "yarn"].includes(manager))
     throw new Error("Unsupported audit package manager");
   const verdict = process.argv.includes("--stdin")
-    ? evaluateAuditReport(root, manager, readFileSync(0, "utf8"))
+    ? await verifyCapturedAudit(root, manager, readFileSync(0, "utf8"))
     : await runDependencyAudit(root, manager, {
         attempts: process.env.LISA_AUDIT_ATTEMPTS,
         retryDelay: process.env.LISA_AUDIT_RETRY_DELAY,

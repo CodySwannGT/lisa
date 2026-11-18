@@ -144,3 +144,37 @@ process.exitCode = verdict.passed ? 0 : 1;
 manager report with the same exclusions and lockfile checks. Controlled report
 fixtures prove matcher behavior only; a project still needs a successful live
 audit query to claim that its dependency tree was audited.
+
+## Advisory patches
+
+An advisory that no published release fixes can be resolved by patching the
+vulnerable copy instead of excluding it. This is not an exclusion: the audit
+proves the fix on every run. A Bun project declares the patch in
+`patchedDependencies`, and the patch file's own header names what it fixes:
+
+```
+Lisa-Advisory: GHSA-xxxx-xxxx-xxxx
+Lisa-Regression-Test: .lisa/patches/<name>.regression.mjs
+Lisa-Patched-File: lib/parse.js sha256:<hex of the file after patching>
+```
+
+The canonical audit (`runDependencyAudit`, `verifyCapturedAudit`, the
+`security:audit:lisa` task and the pre-push hook) treats such an advisory as
+resolved only when all of these hold:
+
+- every vulnerable copy in the lockfile and in `node_modules` has a declared
+  patch whose header names the advisory;
+- every installed copy's patched files hash to the declared SHA-256;
+- the named regression test exists;
+- the npm registry publishes no non-prerelease version newer than the patched
+  one and outside the advisory's vulnerable range.
+
+When the last condition stops holding, the audit fails and names the fixed
+version: upgrade and delete the patch. A registry that cannot be reached fails
+the audit closed. `evaluateAuditReport` cannot query the registry, so it never
+credits a patch.
+
+Lisa ships its own patches (currently picomatch, GHSA-fc5q-39xc-vjpf) to every
+TypeScript project through `.lisa/patches/` and `force.patchedDependencies`.
+npm and Yarn classic have no native patch mechanism, so a project on them gets
+no patch credit and the advisory remains a finding there.

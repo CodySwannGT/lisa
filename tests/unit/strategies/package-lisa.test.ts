@@ -353,6 +353,47 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies.oxlint).toBe("^0.1.0");
     });
 
+    it("applies force.patchedDependencies beside the host's own patches under postinstall-safe", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          patchedDependencies: {
+            "picomatch@4.0.7": ".lisa/patches/picomatch@4.0.7.patch",
+          },
+          scripts: { test: "lisa test" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        scripts: { test: "host test" },
+        patchedDependencies: {
+          "left-pad@1.3.0": "patches/left-pad@1.3.0.patch",
+        },
+      });
+
+      await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext({ skipGitCheck: true, postinstall: true })
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.patchedDependencies).toEqual({
+        "left-pad@1.3.0": "patches/left-pad@1.3.0.patch",
+        "picomatch@4.0.7": ".lisa/patches/picomatch@4.0.7.patch",
+      });
+      expect(content.scripts.test).toBe("host test");
+    });
+
     it("keeps forced direct deps that back literal override normalization under postinstall-safe", async () => {
       await createPackageLisaTemplate("typescript", {
         force: {

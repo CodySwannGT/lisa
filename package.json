@@ -348,5 +348,9 @@
     "doc": "docs",
     "test": "tests"
   },
-  "types": "./dist/index.d.ts"
+  "types": "./dist/index.d.ts",
+  "patchedDependencies": {
+    "picomatch@4.0.7": ".lisa/patches/picomatch@4.0.7.patch",
+    "picomatch@2.3.2": ".lisa/patches/picomatch@2.3.2.patch"
+  }
 }

@@ -1558,6 +1558,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
     "68bc4a842c6f8138d0d8a923809032eba5ef7e39b22949580d1bfdfa74aded8a",
     "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
+    "cd4666690dad10cfd2e9f59a03bc067fa88472b8f2640650c11febbbfe7147b2",
     "e8eb9c90ed906fb9b95bf788dc06fe3fa7ee339c526c62f54fd3556de67e8442",
   ]),
   "scripts/lisa-automation-provenance.mjs": Object.freeze([
@@ -4531,6 +4532,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
     "68bc4a842c6f8138d0d8a923809032eba5ef7e39b22949580d1bfdfa74aded8a",
     "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
+    "cd4666690dad10cfd2e9f59a03bc067fa88472b8f2640650c11febbbfe7147b2",
     "e8eb9c90ed906fb9b95bf788dc06fe3fa7ee339c526c62f54fd3556de67e8442",
   ]),
   "scripts/lisa-automation-provenance.mjs": Object.freeze([

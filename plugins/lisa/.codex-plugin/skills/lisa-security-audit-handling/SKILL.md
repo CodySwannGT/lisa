@@ -43,6 +43,21 @@ Every step is autonomous by default. Take step 4 only after you have genuinely a
      ```
      Then any other vulnerable copy — on an unlisted path or through an npm alias — still fails the audit and is named by its lockfile path. An empty `paths` array, an invalid range, or an unreadable lockfile fails the audit with a diagnostic; it never widens into an ID-wide exclusion. The pre-push hook, the gate registry, and CI use the same matcher. `lisa doctor` checks the scope fields and that the lockfile is readable, and reports any remaining exclusion without `versions` or `paths`, but it does not match advisories against lockfile copies — a valid-looking path that names the wrong copy can pass doctor and still be rejected by the audit. Doctor also does not reject an entry with no `id` or an exclusion file that does not parse; the audit does. Only the audit proves the exclusion files are accepted. In CI, the reusable workflow audits the manager its `package_manager` input names (default `npm`), so set that input to the project's manager. A scoped entry always wins over a wider entry for the same advisory and package. Full contract: https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md
 
+### When no release fixes it: a verified advisory patch (Bun)
+
+When no fixed version exists, a Bun project can fix the vulnerable copy itself instead of excusing it. Lisa already ships such patches through `.lisa/patches/` and `patchedDependencies`; write a new one the same way:
+
+1. `bun patch <pkg>@<version>`, fix the code, `bun patch --commit <dir> --patches-dir .lisa/patches`. Patch **every** vulnerable version in the tree.
+2. Add a regression test that fails on the unpatched copy and passes on the patched one.
+3. Put a header above the first `diff --git` line of each patch file:
+   ```
+   Lisa-Advisory: GHSA-xxxx-xxxx-xxxx
+   Lisa-Regression-Test: <path of the regression test>
+   Lisa-Patched-File: <file in the package> sha256:<hash of the file after patching>
+   ```
+
+The audit then accepts the advisory **only** while every vulnerable copy in the lockfile and `node_modules` has a patch naming it, every installed copy hashes to the patched content, the regression test exists, and the registry publishes no version outside the vulnerable range. The day a fix is published the audit fails again: upgrade the package and delete the patch. npm and Yarn classic have no native patch mechanism, so this route is Bun-only; on them, continue with step 3.
+
 ### Critical: Override the vulnerable package, not its parent
 
 When the audit output shows a dependency chain like `@expo/cli › glob › minimatch`, the vulnerable package is **minimatch**, not glob. Always override the **leaf package** that has the actual vulnerability.
