@@ -21,6 +21,10 @@ import type { LisaConfig } from "../../src/core/config.js";
 import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
 import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 import {
+  enclosingAdmissionEnv,
+  statesOwnAdmission,
+} from "../helpers/enclosing-admission.js";
+import {
   boundedExecFileSync,
   boundedSpawnSync,
 } from "../helpers/io-latency-budget.js";
@@ -166,6 +170,10 @@ async function applyPackageTemplate(cwd: string): Promise<void> {
 /**
  * The environment of a push on a developer machine: no CI, nothing the
  * enclosing Lisa or Vitest run exported, private cache and admission state.
+ * The one thing kept from the enclosing run is its admission decision, so the
+ * host runs inside the parent's reservation instead of queueing for it again
+ * (see `enclosing-admission.ts`). A case that states its own admission inputs
+ * is testing the host's admission and keeps it.
  * @param cwd - Host root
  * @param extra - Additional variables
  * @returns Environment
@@ -184,6 +192,7 @@ function pushEnv(
   return {
     ...inherited,
     ...sweepAlreadyRanEnv(),
+    ...(statesOwnAdmission(extra) ? {} : enclosingAdmissionEnv()),
     XDG_CACHE_HOME: path.join(state, "cache"),
     LISA_ADMISSION_STATE_DIR: path.join(state, "admission"),
     LISA_ADMISSION_POLL_MS: "100",

@@ -1,0 +1,15 @@
+=== outer admission: lisa admission: admitted `vitest run tests/integration/typescript-host-cleanup-sweep.test.ts tests/integration/typescript-host-smart-push.test.ts` with 9 worker(s)
+=== load started 09:00:52: 18 yes processes;  9:00  up 25 days, 15:17, 8 users, load averages: 44.26 66.52 57.35
+09:00:52 load averages: 44.26 66.52 57.35
+09:01:12 load averages: 82.10 73.68 60.13
+=== load stopped 09:01:15; suite exit 0
+ Test Files  2 passed (2)
+      Tests  13 passed (13)
+# outer admission off, same load
+=== outer admission: lisa admission: admission is off (LISA_ADMISSION=off); starting now
+=== load started 09:01:37: 18 yes processes;  9:01  up 25 days, 15:17, 8 users, load averages: 57.75 68.63 58.70
+09:01:37 load averages: 57.75 68.63 58.70
+09:01:57 load averages: 66.73 70.08 59.46
+=== load stopped 09:02:00; suite exit 0
+ Test Files  2 passed (2)
+      Tests  13 passed (13)

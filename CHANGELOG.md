@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.0.5](https://github.com/CodySwannGT/lisa/compare/v6.0.4...v6.0.5) (2026-11-18)
+
+
+### Bug Fixes
+
+* **ci:** defer the sharded integration-test aggregate's registration ([a75cee7](https://github.com/CodySwannGT/lisa/commit/a75cee717721552d22104fa2999108bdf24982f6)), closes [#4675](https://github.com/CodySwannGT/lisa/issues/4675) [CodySwannGT/lisa#5031](https://github.com/CodySwannGT/lisa/issues/5031) [CodySwannGT/lisa#5031](https://github.com/CodySwannGT/lisa/issues/5031)
+
+### [6.0.4](https://github.com/CodySwannGT/lisa/compare/v6.0.3...v6.0.4) (2026-11-18)
+
+
+### Bug Fixes
+
+* **apply:** fit a fresh host's package-manager floor to the manager running apply ([5f62906](https://github.com/CodySwannGT/lisa/commit/5f62906914971b49358dad2ab29309a8be686ef2)), closes [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941) [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941)
+* **tests:** seed packed-journey hosts as the bun hosts they are ([45761c5](https://github.com/CodySwannGT/lisa/commit/45761c588cd4ff69f7ceb56854744cf956c450cc)), closes [#4848](https://github.com/CodySwannGT/lisa/issues/4848) [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941) [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941)
+
+### [6.0.3](https://github.com/CodySwannGT/lisa/compare/v6.0.2...v6.0.3) (2026-11-18)
+
+
+### Bug Fixes
+
+* **tests:** run TypeScript-host fixtures inside the parent run's admission ([39b2799](https://github.com/CodySwannGT/lisa/commit/39b2799c4a1223d3fbe68078934882752e79b714)), closes [CodySwannGT/lisa#4938](https://github.com/CodySwannGT/lisa/issues/4938) [CodySwannGT/lisa#4938](https://github.com/CodySwannGT/lisa/issues/4938)
+
+### [6.0.2](https://github.com/CodySwannGT/lisa/compare/v6.0.1...v6.0.2) (2026-11-18)
+
+
+### Bug Fixes
+
+* **tests:** return canonical supervised Unix fixture roots ([7cbb382](https://github.com/CodySwannGT/lisa/commit/7cbb3826797d2d6b309b77d1912332443dc9f4fd)), closes [CodySwannGT/lisa#4937](https://github.com/CodySwannGT/lisa/issues/4937) [CodySwannGT/lisa#4937](https://github.com/CodySwannGT/lisa/issues/4937)
+
 ### [6.0.1](https://github.com/CodySwannGT/lisa/compare/v6.0.0...v6.0.1) (2026-11-18)
 
 
