@@ -27,6 +27,17 @@
  *
  * The rule is applied to the path as written and again to the real path
  * behind any link, so a link elsewhere in the tree does not get around it.
+ *
+ * ## The real path is the one the file system holds
+ *
+ * Whether two spellings name one file is the file system's decision, not
+ * this code's. A file system that ignores case also folds letters that
+ * lower-casing a text leaves alone: on such a volume `.liſa/audit`, written
+ * with the long s (U+017F), opens `.lisa/audit`. No rule written here can
+ * list every such letter for every file system. So the real path is asked
+ * for in the spelling the file system itself holds ({@link heldPath}), and
+ * the rule above is applied to that. Whatever a pointer is spelled like, the
+ * folder it lands in is then named the way it is on disk.
  * @module controls/repository-reader
  */
 import { readFileSync, realpathSync, statSync } from "node:fs";
@@ -105,11 +116,28 @@ export interface RepositoryReader {
 }
 
 /**
+ * Resolve a path to the real path it names, in the spelling the file system
+ * holds.
+ *
+ * `realpathSync` follows links but keeps each name as it was written, so on
+ * a file system that ignores case it hands back `.LISA`, or `.liſa`, for a
+ * folder that is `.lisa` on disk. The native call asks the file system, which
+ * answers with the name it holds.
+ * @param absolutePath - An absolute path that exists
+ * @returns The real path, every name spelled as it is on disk
+ * @throws {Error} When nothing is at the path
+ */
+function heldPath(absolutePath: string): string {
+  return realpathSync.native(absolutePath);
+}
+
+/**
  * Resolve a repository-relative path to the real path it names.
- * @param root - Real, absolute path of the repository root
+ * @param root - Real, absolute path of the repository root, as the file
+ *   system holds it
  * @param relativePath - Repository-relative path
- * @returns The real path, or `null` when it is missing or leaves the
- *   repository
+ * @returns The real path as the file system holds it, or `null` when it is
+ *   missing or leaves the repository
  */
 function confinedRealPath(root: string, relativePath: string): string | null {
   if (relativePath === "" || path.isAbsolute(relativePath)) return null;
@@ -118,7 +146,7 @@ function confinedRealPath(root: string, relativePath: string): string | null {
     return null;
   }
   try {
-    const real = realpathSync(lexical);
+    const real = heldPath(lexical);
     return real === root || real.startsWith(`${root}${path.sep}`) ? real : null;
   } catch {
     return null;
@@ -145,7 +173,7 @@ function countLines(text: string): number {
 export function createRepositoryReader(
   repositoryRoot: string
 ): RepositoryReader {
-  const root = realpathSync(repositoryRoot);
+  const root = heldPath(repositoryRoot);
   return {
     lineCount: relativePath => {
       const file = confinedRealPath(root, relativePath);

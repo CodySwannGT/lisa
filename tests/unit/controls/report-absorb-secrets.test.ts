@@ -29,6 +29,7 @@ afterEach(removeFixtures);
 
 const TOKEN = fakeGithubToken();
 const TRACKER = "tracker";
+const STATUS_OPEN_LINE = "- **Status**: open";
 
 describe("an answer that holds something shaped like a credential", () => {
   it("is not recorded, and the line to correct is named without the value", async () => {
@@ -81,8 +82,51 @@ describe("an answer that holds something shaped like a credential", () => {
     const run = await absorb(repoPath);
     const said = [...run.stdout, ...run.stderr].join("\n");
 
+    // The question's id is read from the comment line under it, so the
+    // refusal names the heading's line and repeats nothing typed on it.
     expect(run.code).toBe(1);
-    expect(said).toContain("[REDACTED:GITHUB_TOKEN]");
+    expect(run.stderr[0]).toMatch(/ line \d+ is not as Lisa wrote it/u);
+    expect(said).not.toContain(TOKEN);
+  });
+
+  it("takes the value out of a refusal that quotes what was typed", async () => {
+    const repoPath = await audited(completeAuditReport());
+    writeFileOf(
+      repoPath,
+      REPORT_MD,
+      fileOf(repoPath, REPORT_MD).replace(
+        STATUS_OPEN_LINE,
+        `${STATUS_OPEN_LINE}\n- **${TOKEN}**: yes`
+      )
+    );
+
+    const run = await absorb(repoPath);
+    const said = [...run.stdout, ...run.stderr].join("\n");
+
+    expect(run.code).toBe(1);
+    expect(said).toContain('has the label "[REDACTED:GITHUB_TOKEN]"');
+    expect(said).not.toContain(TOKEN);
+  });
+
+  it("takes the value out of the comment line a refusal gives back", async () => {
+    // A question that holds an answer and has lost its comment line is given
+    // the line to put back, and that line carries the id from the heading.
+    const repoPath = await audited(completeAuditReport());
+    answerInline(repoPath, TRACKER, "GitHub Issues");
+    writeFileOf(
+      repoPath,
+      REPORT_MD,
+      fileOf(repoPath, REPORT_MD)
+        .replace(`### ${TRACKER}`, `### AC1.1@${TOKEN}`)
+        .replace(/^<!-- lisa:audit-question-lines:.*\n/mu, "")
+    );
+
+    const run = await absorb(repoPath);
+    const said = [...run.stdout, ...run.stderr].join("\n");
+
+    expect(run.code).toBe(1);
+    expect(said).toContain("Put this line back under its Status line instead");
+    expect(said).toContain("id=AC1.1@[REDACTED:GITHUB_TOKEN]");
     expect(said).not.toContain(TOKEN);
   });
 

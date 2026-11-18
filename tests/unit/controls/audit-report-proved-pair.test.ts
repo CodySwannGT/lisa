@@ -25,6 +25,7 @@ import {
 import {
   API,
   AT_FIRST,
+  CRITERIA,
   EXISTS_NOT_ENFORCED,
   FIRST,
   FRESH,
@@ -65,6 +66,21 @@ function halfRecord(
     moment: "commit",
     ...change,
   };
+}
+
+/**
+ * A record of a merge setting read from the hosting platform for the control
+ * that covers `web`: something looked at, with no halves, where nothing was
+ * tried.
+ * @returns The record
+ */
+function settingRecord(): EvidenceRecordRef {
+  return halfRecord(WEB, CLEAN, {
+    id: `code-style@${WEB}/pull-request/observed/${PART_FIRST}`,
+    rung: "observed",
+    half: null,
+    moment: "pull-request",
+  });
 }
 
 /**
@@ -249,6 +265,77 @@ describe("a proved finding that cites a record which stands on its own", () => {
     });
 
     expect(checked(report, [FRESH])).toEqual([]);
+  });
+
+  it("has a requirement that only a tried change proves, and one a look is enough for", () => {
+    expect(CRITERIA.find(each => each.id === PART_FIRST)).toMatchObject({
+      kind: "gate",
+      minimum_rung: "exercised",
+    });
+    expect(CRITERIA.find(each => each.id === FIRST)).toMatchObject({
+      minimum_rung: "observed",
+    });
+  });
+
+  it("is refused when the requirement needs a change to have been tried and the record only looked at a setting", () => {
+    const looked = settingRecord();
+
+    expect(onlyLine(checked(provedInWeb(looked.id), [looked]))).toBe(
+      `Evidence record "${looked.id}" is observed (something was looked at where it is: a setting read from the system that holds it, or a file found where the audit pointed). This requirement is proved only by evidence that is exercised (a change was planted and the control's answer recorded). Cite a record of that strength for this requirement, or choose another state. (requirement ${PART_FIRST}, folder web)`
+    );
+  });
+
+  it("is refused on the same record when both halves of the proof are on record beside it", () => {
+    const looked = settingRecord();
+
+    expect(
+      onlyLine(checked(provedInWeb(looked.id), [looked, ...pair(WEB)]))
+    ).toContain(
+      "This requirement is proved only by evidence that is exercised"
+    );
+  });
+
+  it("is refused when the record is weaker than a requirement that a look is enough for", () => {
+    const said = { ...FRESH, id: "ev-said", rung: "asserted" };
+    const report = withFirst({
+      state: "proved",
+      evidence_id: said.id,
+      mechanisms: [LINTER],
+    });
+
+    expect(onlyLine(checked(report, [said]))).toBe(
+      `Evidence record "${said.id}" is asserted (it was said, and nothing checked it). This requirement is proved only by evidence that is observed (something was looked at where it is: a setting read from the system that holds it, or a file found where the audit pointed). Cite a record of that strength for this requirement, or choose another state. (requirement ${FIRST}, whole repository)`
+    );
+  });
+
+  it.each([
+    { name: "does not say how strongly it is known", rung: null },
+    { name: "names a strength that is not one of the three", rung: "seen" },
+  ])("is refused when the record $name", ({ rung }) => {
+    const vague = { ...FRESH, id: "ev-vague", rung };
+    const report = withFirst({
+      state: "proved",
+      evidence_id: vague.id,
+      mechanisms: [LINTER],
+    });
+
+    expect(onlyLine(checked(report, [vague]))).toBe(
+      `Evidence record "${vague.id}" does not say how strongly it is known, so it cannot prove anything. Run the attest step again, or choose another state. (requirement ${FIRST}, whole repository)`
+    );
+  });
+
+  it("passes on a stronger record than the requirement asks for", () => {
+    const records = [
+      halfRecord(WHOLE, VIOLATION, { criterion: FIRST }),
+      halfRecord(WHOLE, CLEAN, { criterion: FIRST }),
+    ];
+    const report = withFirst({
+      state: "proved",
+      evidence_id: records[0]?.id ?? "",
+      mechanisms: [LINTER],
+    });
+
+    expect(checked(report, records)).toEqual([]);
   });
 });
 

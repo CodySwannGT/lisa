@@ -38,6 +38,11 @@ const TRACKER = "tracker";
 const GAPS = "wiki/gaps.md";
 const STATUS_OPEN_LINE = "- **Status**: open";
 
+const TRACKER_HEADING = "### tracker";
+
+/** How the id of the tracker question stands on the comment line. */
+const ID_ON_LINE = "id=tracker";
+
 /**
  * What the reader says about one line that is not as Lisa wrote it.
  * @param line - The line's number
@@ -50,27 +55,49 @@ function refused(line: number, file = FILE): string {
 
 /**
  * The mark of a line, worked out here and not by the code under test.
- * @param line - The line
- * @returns The first eight characters of the SHA-256 digest of the line with
- *   its white space evened out
+ * @param line - The line, which opens with no bullet but `-`
+ * @returns The first eight characters of the SHA-256 digest of the line
+ *   without the characters a formatter adds or swaps (`\`, `*`, `_` and the
+ *   backtick) and with its white space evened out
  */
 function markOf(line: string): string {
   return createHash("sha256")
-    .update(line.replaceAll(/\s+/gu, " ").trim())
+    .update(
+      line
+        .replaceAll(/[\\*_`]/gu, "")
+        .replaceAll(/\s+/gu, " ")
+        .trim()
+    )
     .digest("hex")
     .slice(0, 8);
 }
 
 describe("the comment line under a question", () => {
-  it("holds one mark for each line of the entry but the blank ones and the answer line", () => {
+  it("holds the question's id, then one mark for each line of the entry but the blank ones and the answer line", () => {
     const [heading, , question, candidates, candidate, , status, marks] =
       entry(TRACKER);
 
     expect(marks).toBe(
-      `${ENTRY_MARKS_START} ${[heading, question, candidates, candidate, status]
+      `${ENTRY_MARKS_START} ${ID_ON_LINE} ${[
+        heading,
+        question,
+        candidates,
+        candidate,
+        status,
+      ]
         .map(line => markOf(line ?? ""))
         .join(" ")} -->`
     );
+  });
+
+  it("writes an id as one word that cannot close the comment, and reads it back whole", () => {
+    const id = "AC1.1@my app/__generated__/a*b/50%/-->/é";
+    const line = entryMarksLine([`### ${id}`, STATUS_OPEN_LINE]);
+
+    expect(line).toContain(
+      " id=AC1.1@my%20app/__generated__/a*b/50%25/--%3E/%C3%A9 "
+    );
+    expect(entryMarksOf(line)?.id).toBe(id);
   });
 
   it("gives a line the same mark however it is spaced, and another when a word changes", () => {
@@ -86,15 +113,31 @@ describe("the comment line under a question", () => {
     expect(entry(TRACKER, " Jira").at(-1)).toBe(entry(TRACKER).at(-1));
   });
 
-  it("reads back as the marks it was written with, and as nothing when it is damaged", () => {
-    const line = entryMarksLine(["### tracker", STATUS_OPEN_LINE]);
+  it("reads back as the id and the marks it was written with, and as nothing when it is damaged", () => {
+    const line = entryMarksLine([TRACKER_HEADING, STATUS_OPEN_LINE]);
 
-    expect(entryMarksOf(line)).toEqual([
-      markOf("### tracker"),
-      markOf(STATUS_OPEN_LINE),
-    ]);
+    expect(entryMarksOf(line)).toEqual({
+      id: TRACKER,
+      marks: [markOf(TRACKER_HEADING), markOf(STATUS_OPEN_LINE)],
+    });
     expect(entryMarksOf(line.replace("-->", "Jira -->"))).toBeNull();
     expect(entryMarksOf(STATUS_OPEN_LINE)).toBeNull();
+  });
+
+  it.each([
+    { name: "none", id: "id=" },
+    { name: "one that is not in the written form", id: "id=%zz" },
+    {
+      name: "one holding a character Lisa would have written out",
+      id: "id=my<app",
+    },
+    { name: "one written out where Lisa would not have", id: "id=%74racker" },
+    { name: "no label", id: TRACKER },
+  ])("reads as nothing when the id on it is $name", ({ id }) => {
+    const line = entryMarksLine([TRACKER_HEADING, STATUS_OPEN_LINE]);
+
+    expect(line).toContain(` ${ID_ON_LINE} `);
+    expect(entryMarksOf(line.replace(ID_ON_LINE, id))).toBeNull();
   });
 
   it("is written under every question Lisa renders", () => {
@@ -104,7 +147,7 @@ describe("the comment line under a question", () => {
     const status = lines.indexOf(STATUS_OPEN_LINE);
 
     expect(status).toBeGreaterThan(0);
-    expect(entryMarksOf(lines[status + 1] ?? "")).toHaveLength(5);
+    expect(entryMarksOf(lines[status + 1] ?? "")?.marks).toHaveLength(5);
     expect(
       parseQuestionBlock(lines.join("\n"), GAPS, { lisaRendered: false })
         .problems

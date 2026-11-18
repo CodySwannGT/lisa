@@ -310,8 +310,9 @@ exists, the attest step wrote it. A finding may say `proved` only by copying: th
 record for the same requirement and the same part (the record's `scope` is the finding's `scope`,
 or `.`), and you put that record's `id` in the finding's `evidence_id`. The check in step 6 refuses
 a `proved` finding that cites no record, cites a record made for another requirement or another
-part, cites one half of a paired proof whose other half is not on record, or cites one that is too
-old. It also refuses an `evidence_id` on a finding in any other state. When it refuses, change the
+part, cites a record weaker than the requirement asks for (a setting that was only read, where a
+change has to have been tried), cites one half of a paired proof whose other half is not on
+record, or cites one that is too old. It also refuses an `evidence_id` on a finding in any other state. When it refuses, change the
 state to what you actually found. Never hunt for another record id to make it pass.
 
 **Asking a question.** A question goes in the record's `questions` list, and the operator answers

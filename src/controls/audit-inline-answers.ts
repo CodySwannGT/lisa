@@ -16,24 +16,34 @@
  *   not as Lisa wrote it: text typed on the question, on a candidate or on
  *   the status, or a line added under the candidates. Each entry carries the
  *   marks of its own lines (`./audit-question-lines.ts`), and a line that
- *   does not match one is refused with its number.
+ *   does not match one is refused with its number. A mark is made from the
+ *   words of a line, so a Markdown formatter run over the file changes none;
+ * - a question's id is taken from the comment line under its entry, where
+ *   Lisa wrote it beside the marks. The heading shows the same id to a
+ *   person, but a formatter may spell it another way (`_private` becomes
+ *   `\_private`), and an answer must never be filed under an id Lisa did not
+ *   give;
+ * - no refusal ever asks for an answer to be given up. A question that holds
+ *   an answer is put right by restoring its lines, never by deleting it
+ *   (`./audit-question-repair.ts`).
  *
  * The functions are pure: they take the text of a file and return what it
  * holds. `./audit-inline-answers-file.ts` does the reading from disk.
  * @module controls/audit-inline-answers
  */
-import {
-  ENTRY_MARKS_START,
-  compareEntryLines,
-  entryMarksOf,
-  type NumberedLine,
-} from "./audit-question-lines.js";
+import { entryMarksOf, type NumberedLine } from "./audit-question-lines.js";
 import {
   locateRegion,
   numberedLines,
   strayAnswerLines,
   type QuestionRegion,
 } from "./audit-question-region.js";
+import {
+  HOW_TO_ANSWER,
+  writtenLineProblems,
+  type LabelledValue,
+  type MarksLine,
+} from "./audit-question-repair.js";
 import {
   ANSWER_PLACEHOLDER,
   ENTRY_LABEL,
@@ -68,20 +78,13 @@ export interface QuestionBlockOptions {
 }
 
 /** One labelled line of an entry. */
-interface EntryField {
+interface EntryField extends LabelledValue {
   readonly label: string;
-  readonly value: string;
-  readonly line: number;
-}
-
-/** The marks written under an entry, and the line they stand on. */
-interface EntryMarks {
-  readonly marks: readonly string[];
-  readonly line: number;
 }
 
 /** An entry while its lines are being collected. */
 interface EntryDraft {
+  /** The id as the heading spells it, which a formatter may have changed. */
   readonly id: string;
   /** The number of the entry's heading line. */
   readonly heading: number;
@@ -92,7 +95,7 @@ interface EntryDraft {
    */
   readonly written: readonly NumberedLine[];
   /** Every comment line of marks found in the entry. */
-  readonly marks: readonly EntryMarks[];
+  readonly marks: readonly MarksLine[];
 }
 
 /** What reading the lines of a block has collected so far. */
@@ -107,12 +110,6 @@ const SECTION_HEADING = /^## /u;
 const SUB_BULLET = /^\s+- /u;
 const KNOWN_LABELS: readonly string[] = Object.values(ENTRY_LABEL);
 
-/** What every refusal of a stray line tells the person to do. */
-const HOW_TO_ANSWER = `Type the answer on the line that starts "${answerLineStart()}", and leave every other line as it was.`;
-
-/** The way out when an entry cannot be put back line by line. */
-const START_OVER = `delete the whole question, from its "###" line to the comment line under its Status line, and run the audit again: Lisa writes the question again`;
-
 /**
  * Take one line into the entry it belongs to.
  * @param draft - The entry the line follows
@@ -125,7 +122,7 @@ function extendDraft(draft: EntryDraft, line: NumberedLine): EntryDraft | null {
   if (marks !== null) {
     return {
       ...draft,
-      marks: [...draft.marks, { marks, line: line.number }],
+      marks: [...draft.marks, { ...marks, line: line.number }],
     };
   }
   const field = FIELD.exec(line.text);
@@ -192,39 +189,37 @@ function placeLine(
 }
 
 /**
- * Say which lines of an entry are not as Lisa wrote them.
+ * The id of an entry: the one Lisa wrote on the comment line under it. The
+ * heading's spelling stands in only for an entry that has lost that line,
+ * which is refused for the loss.
+ * @param draft - The entry's lines
+ * @returns The id
+ */
+function idOf(draft: EntryDraft): string {
+  return draft.marks[0]?.id ?? draft.id;
+}
+
+/**
+ * Hand the lines of an entry that is in the written form to the code that
+ * holds them to their marks.
  * @param draft - The entry's lines
  * @param file - The file's name, for the messages
- * @returns One problem per line that was typed on or added, or one for the
- *   entry when a line or its marks are gone
+ * @returns What is wrong with the lines Lisa wrote, if anything
  */
-function writtenLineProblems(
-  draft: EntryDraft,
-  file: string
-): readonly string[] {
-  const named = `The question "${draft.id}", which starts on line ${draft.heading},`;
-  const [first, ...more] = draft.marks;
-  if (first === undefined) {
-    return [
-      `${file}: ${named} has lost the comment line that starts "${ENTRY_MARKS_START}". Lisa writes it under each question so that text typed on the wrong line is noticed. To put the question right, ${START_OVER}.`,
-    ];
-  }
-  const { changed, gone } = compareEntryLines(draft.written, first.marks);
-  return [
-    ...more.map(
-      extra =>
-        `${file} line ${extra.line} is a second comment line of marks for the question "${draft.id}". Keep the one Lisa wrote, or ${START_OVER}.`
-    ),
-    ...changed.map(
-      line =>
-        `${file} line ${line.number} is not as Lisa wrote it: it was typed on, or added. Only the answer line is read, so what is typed there would be lost. ${HOW_TO_ANSWER} If the line cannot be put back, ${START_OVER}.`
-    ),
-    ...(gone > 0 && changed.length === 0
-      ? [
-          `${file}: ${named} has lost a line Lisa wrote. To put the question right, ${START_OVER}.`,
-        ]
-      : []),
-  ];
+function heldToMarks(draft: EntryDraft, file: string): readonly string[] {
+  const of = (label: string): readonly EntryField[] =>
+    draft.fields.filter(field => field.label === label);
+  return writtenLineProblems(
+    {
+      id: idOf(draft),
+      heading: draft.heading,
+      written: draft.written,
+      marks: draft.marks,
+      statuses: of(ENTRY_LABEL.status),
+      answers: of(ENTRY_LABEL.answer),
+    },
+    file
+  );
 }
 
 /**
@@ -242,20 +237,21 @@ function readDraft(
   readonly entry: InlineEntry | null;
   readonly problems: readonly string[];
 } {
-  const named = `The question "${draft.id}", which starts on line ${draft.heading},`;
+  const id = idOf(draft);
+  const named = `The question "${id}", which starts on line ${draft.heading},`;
   const of = (label: string): readonly EntryField[] =>
     draft.fields.filter(field => field.label === label);
   const [question] = of(ENTRY_LABEL.question);
   const [answer, ...moreAnswers] = of(ENTRY_LABEL.answer);
   const malformed = [
-    ...(parseQuestionId(draft.id) === null
+    ...(parseQuestionId(id) === null
       ? [
-          `${file} line ${draft.heading}: "${draft.id}" is not the id of a question. Put the heading back as Lisa wrote it.`,
+          `${file} line ${draft.heading}: "${id}" is not the id of a question. Put the heading back as Lisa wrote it.`,
         ]
       : []),
-    ...(earlier.includes(draft.id)
+    ...(earlier.includes(id)
       ? [
-          `${file} line ${draft.heading} repeats the question "${draft.id}". Keep one entry for it, with the answer on its answer line.`,
+          `${file} line ${draft.heading} repeats the question "${id}". Keep one entry for it, with the answer on its answer line.`,
         ]
       : []),
     ...draft.fields
@@ -276,20 +272,19 @@ function readDraft(
       : []),
     ...moreAnswers.map(
       extra =>
-        `${file} line ${extra.line} is a second answer line for the question "${draft.id}". Keep one answer line for each question.`
+        `${file} line ${extra.line} is a second answer line for the question "${id}". Keep one answer line for each question.`
     ),
   ];
   // An entry that is not in the written form is refused for that alone. One
   // that is in the form is then held to the marks of its own lines.
-  const problems =
-    malformed.length > 0 ? malformed : writtenLineProblems(draft, file);
+  const problems = malformed.length > 0 ? malformed : heldToMarks(draft, file);
   return {
     problems,
     entry:
       problems.length > 0 || question === undefined || answer === undefined
         ? null
         : {
-            id: draft.id,
+            id,
             question: question.value.trim(),
             answer: normaliseInlineAnswer(answer.value) || null,
             answered: of(ENTRY_LABEL.status).some(
@@ -335,7 +330,7 @@ export function parseQuestionBlock(
   const read = scanned.drafts.map((draft, index) =>
     readDraft(
       draft,
-      scanned.drafts.slice(0, index).map(earlier => earlier.id),
+      scanned.drafts.slice(0, index).map(earlier => idOf(earlier)),
       file
     )
   );

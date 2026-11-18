@@ -10,16 +10,42 @@
  * Reading the entry cannot tell such a line from one Lisa wrote: the record
  * may have changed since the entry was rendered, so there is nothing to
  * compare it with. The entry therefore carries its own reference. Under each
- * one, Lisa writes one comment line holding a short mark for each line of the
- * entry other than the answer line. The reader works out the same marks from
- * the lines it finds, and a line whose mark is not there was changed or
- * added. It is refused with its line number, like every other line that is
- * not in the written form.
+ * one, Lisa writes one comment line holding the question's id and a short
+ * mark for each line of the entry other than the answer line. The reader
+ * works out the same marks from the lines it finds, and a line whose mark is
+ * not there was changed or added. It is refused with its line number, like
+ * every other line that is not in the written form.
  *
- * The comment is invisible where Markdown is rendered. A mark is the start of
- * a SHA-256 digest of the line with its white space evened out, so indenting
- * a line again does not count as changing it. The marks are not a seal
- * against tampering: they exist so that a person's words are never lost
+ * ## What a mark is made from
+ *
+ * A mark is the start of a SHA-256 digest of the words of a line: the line
+ * with everything taken out that a Markdown formatter puts in, takes out or
+ * swaps without changing a word ({@link wordsOf}). Without that, a formatter
+ * run over the file made every line holding such a character read as typed
+ * on. Prettier, for one, writes `*` as `\*`, `__name__` as `**name**`,
+ * `*word*` as `_word_`, doubled backticks around code as single ones, a `+`
+ * or `*` bullet as `-`, and `1)` as `1.`.
+ *
+ * The cost is stated plainly: a person who only adds or removes a `\`, a
+ * `*`, a `_` or a backtick on a line Lisa wrote, or changes how it is spaced
+ * or bulleted, is not noticed. Any other character they type is.
+ *
+ * Two things a formatter can do are still refused, because undoing them
+ * would mean reading a question some other way than line by line: wrapping a
+ * long line onto a second one (Prettier does so only when told to, with
+ * `proseWrap`), and writing out a character reference (`&#42;` as `\*`).
+ *
+ * ## Why the id is on the comment line
+ *
+ * The heading of an entry is the question's id, and a formatter rewrites the
+ * heading like any other line: `_private` becomes `\_private`. The heading
+ * still has the mark Lisa gave it, but it no longer spells the id. A
+ * formatter leaves a comment alone, so the id is written there as well, and
+ * that is the one the reader takes. Only what would break the line itself is
+ * written out there as `%` and its bytes: white space, `%`, `<` and `>`.
+ *
+ * The comment is invisible where Markdown is rendered. The marks are not a
+ * seal against tampering: they exist so that a person's words are never lost
  * silently, and anyone can work them out again.
  *
  * A leaf module on purpose, shared by the code that writes an entry and the
@@ -36,32 +62,129 @@ export const ENTRY_MARKS_START = "<!-- lisa:audit-question-lines:";
 /** What closes it. */
 const ENTRY_MARKS_END = "-->";
 
+/** What opens the heading line of an entry, before the question's id. */
+export const ENTRY_HEADING_START = "### ";
+
+/** What stands before the id on the comment line. */
+const ID_LABEL = "id=";
+
 /** How many characters of the digest make one mark. */
 const MARK_LENGTH = 8;
 
 const MARK = /^[0-9a-f]{8}$/u;
 
+/** The characters a formatter adds, drops or swaps around words. */
+const EMPHASIS_AND_ESCAPES = /[\\*_`]/gu;
+
+/** Every list marker a line opens with: bullets, and numbers. */
+const LEADING_LIST_MARKERS = /^(?:(?:[-+*]|\d+[.)]) )+/u;
+
+/**
+ * The characters of an id that are written as they are on the comment line:
+ * every printable ASCII character but the space, which ends a word of the
+ * line, `%`, which opens a written-out character, and `<` and `>`, which
+ * could close the comment early.
+ *
+ * As much as possible is left as it is on purpose. A refusal may quote this
+ * line, and whatever takes credential-shaped values out of a message has to
+ * be able to see one that was typed over a heading.
+ */
+const PLAIN_IN_ID = /^[!-$&-;=?-~]$/u;
+
+/**
+ * Put every run of white space as one space, and none at either end.
+ * @param text - Any text
+ * @returns The text, evenly spaced
+ */
+function evenlySpaced(text: string): string {
+  return text.replaceAll(/\s+/gu, " ").trim();
+}
+
+/**
+ * Write the list markers a line opens with in one spelling: every bullet as
+ * `-`, and every number with a full stop after it.
+ * @param markers - The markers, each followed by one space
+ * @returns The same markers, spelled one way
+ */
+function oneSpelling(markers: string): string {
+  return markers.replaceAll(/[+*]/gu, "-").replaceAll(")", ".");
+}
+
+/**
+ * Reduce a line to its words: what is left when everything a Markdown
+ * formatter may change without changing a word is taken out.
+ * @param line - The line, as written or as found
+ * @returns The line evenly spaced, its opening list markers in one spelling,
+ *   and without any `\`, `*`, `_` or backtick
+ */
+export function wordsOf(line: string): string {
+  return evenlySpaced(
+    evenlySpaced(line)
+      .replace(LEADING_LIST_MARKERS, oneSpelling)
+      .replaceAll(EMPHASIS_AND_ESCAPES, "")
+  );
+}
+
 /**
  * The mark of one line.
  * @param line - The line, as written or as found
- * @returns The mark: the same for the same words however they are spaced
+ * @returns The mark: the same for the same words, however a formatter has
+ *   spaced, bulleted, emphasised or escaped them
  */
 export function lineMark(line: string): string {
   return createHash("sha256")
-    .update(line.replaceAll(/\s+/gu, " ").trim())
+    .update(wordsOf(line))
     .digest("hex")
     .slice(0, MARK_LENGTH);
 }
 
 /**
+ * Write an id so that it is one word of the comment line and cannot close
+ * the comment: printable ASCII as it is, and white space, `%`, `<`, `>` and
+ * every other character as `%` and its bytes.
+ * @param id - A question's id
+ * @returns The id, as it stands on the comment line
+ */
+function writtenId(id: string): string {
+  return [...id]
+    .map(character =>
+      PLAIN_IN_ID.test(character)
+        ? character
+        : [...new TextEncoder().encode(character)]
+            .map(byte => `%${byte.toString(16).toUpperCase().padStart(2, "0")}`)
+            .join("")
+    )
+    .join("");
+}
+
+/**
+ * Read an id back off the comment line.
+ * @param written - What stands after the id label
+ * @returns The id, or `null` when it is empty or not in the written form
+ */
+function readId(written: string): string | null {
+  try {
+    const id = decodeURIComponent(written);
+    return id !== "" && writtenId(id) === written ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The comment line Lisa writes under an entry.
  * @param lines - The entry's lines, from its heading on
- * @returns The line holding a mark for each of them that is neither blank
- *   nor the answer line
+ * @returns The line holding the id from the heading, then a mark for each
+ *   line that is neither blank nor the answer line
  */
 export function entryMarksLine(lines: readonly string[]): string {
+  const heading = lines[0] ?? "";
+  const id = heading.startsWith(ENTRY_HEADING_START)
+    ? heading.slice(ENTRY_HEADING_START.length).trim()
+    : "";
   return [
     ENTRY_MARKS_START,
+    `${ID_LABEL}${writtenId(id)}`,
     ...lines
       .filter(line => line.trim() !== "" && !line.startsWith(answerLineStart()))
       .map(line => lineMark(line)),
@@ -111,19 +234,32 @@ export function compareEntryLines(
   return { changed: scan.changed, gone: scan.unmatched.length };
 }
 
+/** What the comment line under an entry holds. */
+export interface EntryMarks {
+  /** The question's id, as Lisa wrote it in the heading. */
+  readonly id: string;
+  /** One mark for each line Lisa wrote, the heading's first. */
+  readonly marks: readonly string[];
+}
+
 /**
- * Read the marks off a comment line.
+ * Read the id and the marks off a comment line.
  * @param line - Any line of a file
- * @returns The marks, or `null` when the line is not a whole marks line
+ * @returns What the line holds, or `null` when it is not a whole marks line
  */
-export function entryMarksOf(line: string): readonly string[] | null {
+export function entryMarksOf(line: string): EntryMarks | null {
   const text = line.trim();
   if (!text.startsWith(ENTRY_MARKS_START) || !text.endsWith(ENTRY_MARKS_END)) {
     return null;
   }
-  const marks = text
+  const [first = "", ...marks] = text
     .slice(ENTRY_MARKS_START.length, -ENTRY_MARKS_END.length)
     .split(/\s+/u)
-    .filter(mark => mark !== "");
-  return marks.every(mark => MARK.test(mark)) ? marks : null;
+    .filter(word => word !== "");
+  const id = first.startsWith(ID_LABEL)
+    ? readId(first.slice(ID_LABEL.length))
+    : null;
+  return id !== null && marks.every(mark => MARK.test(mark))
+    ? { id, marks }
+    : null;
 }

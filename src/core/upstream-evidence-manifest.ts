@@ -1435,7 +1435,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
-      "8a69c8b433a44a44e4142a4cd1a743c9b82c7984793781fae9979bdb805d955f",
+      "b047ce05c6f91d4c6aefbf07c4742aa0fd713f47d05906d13ccd33edfe41fdb2",
     "plugins/src/base/skills/lisa-automation-status/SKILL.md":
       "3af301b5b70cbe4ba9377ebfed0e397d1445d70b2edc0a001edfa4bd2d5802b0",
     "plugins/src/base/skills/lisa-bug-triage/SKILL.md":
@@ -11277,6 +11277,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/controls/audit-probes.ts": true,
     "src/controls/audit-question-lines.ts": true,
     "src/controls/audit-question-region.ts": true,
+    "src/controls/audit-question-repair.ts": true,
     "src/controls/audit-questions-format.ts": true,
     "src/controls/audit-questions-markdown.ts": true,
     "src/controls/audit-report-file.ts": true,
@@ -12894,7 +12895,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/audit-inline-answers.test.ts": true,
     "tests/unit/controls/audit-inline-placeholders.test.ts": true,
     "tests/unit/controls/audit-probes-markdown.test.ts": true,
+    "tests/unit/controls/audit-question-formatting.test.ts": true,
     "tests/unit/controls/audit-question-lines.test.ts": true,
+    "tests/unit/controls/audit-question-way-out.test.ts": true,
     "tests/unit/controls/audit-questions-markdown.test.ts": true,
     "tests/unit/controls/audit-report-coverage.test.ts": true,
     "tests/unit/controls/audit-report-facts.ts": true,
