@@ -19,6 +19,12 @@ anything, so the same repository always gets the same results. It builds on
 under "The control register", and the check it starts is a part's command,
 described under "How the runner runs a part".
 
+One more mode of the command is not a proof and is described in its own note.
+`lisa controls attest --before-enforce` uses the same register, patches and
+disposable copy, installs nothing in the copy, and reports each check that
+exists and that nothing enforces yet. It writes no evidence and no verdict.
+See [before enforce](before-enforce.md).
+
 ## The words
 
 One half of a proof shows one of three things.
