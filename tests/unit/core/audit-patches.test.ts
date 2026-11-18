@@ -241,6 +241,56 @@ describe("advisory patches in the audit gate", () => {
     ]);
   });
 
+  it("names the fix when npm cannot apply a patch Lisa ships", async () => {
+    const root = fixture({ installed: PRISTINE });
+    // npm reads no patchedDependencies, so nothing declares the patch.
+    put(root, "package.json", JSON.stringify({ name: "host" }));
+    put(
+      root,
+      "package-lock.json",
+      JSON.stringify({
+        lockfileVersion: 3,
+        packages: {
+          "": { name: "host" },
+          "node_modules/glob": { version: "1.0.0" },
+        },
+      })
+    );
+    const npmReport = JSON.stringify({
+      vulnerabilities: {
+        glob: {
+          severity: "high",
+          via: [
+            {
+              source: 1,
+              url: `https://github.com/advisories/${GHSA}`,
+              severity: "high",
+              range: "<=1.0.0",
+            },
+          ],
+        },
+      },
+    });
+    const verdict = await verifyCapturedAudit(root, "npm", npmReport, {
+      publishedVersions: UNPATCHED_ONLY,
+    });
+    expect(verdict.passed).toBe(false);
+    expect(verdict.messages.join("\n")).toContain(
+      `Lisa ships a verified patch for glob (${PATCH_FILE}), but npm has no native patch mechanism`
+    );
+    expect(verdict.messages.join("\n")).toContain("switch this project to Bun");
+  });
+
+  it("adds no hint for Bun, which applies the patch itself", async () => {
+    const verdict = await verifyCapturedAudit(
+      fixture({ installed: PRISTINE }),
+      "bun",
+      report(),
+      { publishedVersions: UNPATCHED_ONLY }
+    );
+    expect(verdict.messages.join("\n")).not.toContain("native patch mechanism");
+  });
+
   it("never credits a patch in the registry-free evaluator", () => {
     expect(evaluateAuditReport(fixture(), "bun", report()).passed).toBe(false);
   });

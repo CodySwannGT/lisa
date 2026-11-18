@@ -11145,6 +11145,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/audit-lockfile.ts": true,
     "src/core/audit-manager.ts": true,
     "src/core/audit-matcher.ts": true,
+    "src/core/audit-patch-hints.ts": true,
     "src/core/audit-patches.ts": true,
     "src/core/audit-report.ts": true,
     "src/core/audit-types.ts": true,

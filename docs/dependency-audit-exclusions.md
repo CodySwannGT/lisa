@@ -177,4 +177,7 @@ credits a patch.
 Lisa ships its own patches (currently picomatch, GHSA-fc5q-39xc-vjpf) to every
 TypeScript project through `.lisa/patches/` and `force.patchedDependencies`.
 npm and Yarn classic have no native patch mechanism, so a project on them gets
-no patch credit and the advisory remains a finding there.
+no patch credit and the advisory remains a finding there. When a patch Lisa
+ships under `.lisa/patches/` covers that finding, the failing audit says so and
+names the fix: switch the project to Bun, or upgrade once a fixed release
+exists.

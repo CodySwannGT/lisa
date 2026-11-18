@@ -10,6 +10,7 @@ import {
   decidePatchedFindings,
   type AuditPatchOptions,
 } from "./audit-patches.js";
+import { unappliedPatchHints } from "./audit-patch-hints.js";
 import {
   AuditCaptureError,
   captureAudit,
@@ -145,7 +146,16 @@ async function decideFindings(
     lockCopies,
     options
   );
-  const rest = matchAuditFindings(patched.remaining, exclusions, copies);
+  const matched = matchAuditFindings(patched.remaining, exclusions, copies);
+  const rest = matched.passed
+    ? matched
+    : {
+        passed: false,
+        messages: [
+          ...matched.messages,
+          ...unappliedPatchHints(root, manager, patched.remaining),
+        ],
+      };
   const verdicts = [...patched.verdicts, rest];
   return {
     passed: verdicts.every(verdict => verdict.passed),

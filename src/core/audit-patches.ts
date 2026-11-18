@@ -54,7 +54,9 @@ const REGISTRY = "https://registry.npmjs.org";
  * @param text - Complete patch file text
  * @returns Each `Lisa-<Key>: value` pair, in order
  */
-function headerPairs(text: string): readonly (readonly [string, string])[] {
+export function headerPairs(
+  text: string
+): readonly (readonly [string, string])[] {
   const lines = text.split(/\r?\n/u);
   const end = lines.findIndex(line => line.startsWith("diff --git "));
   return (end < 0 ? [] : lines.slice(0, end)).flatMap(line => {
