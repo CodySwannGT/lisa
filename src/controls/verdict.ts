@@ -52,6 +52,7 @@ import {
   type Answer,
   type AnswerContext,
 } from "./verdict-answers.js";
+import { redactJsonCredentials } from "./secret-scan-json.js";
 import { digestOf, verdictDigest } from "./verdict-digest.js";
 import {
   CRITERION_VERDICTS,
@@ -324,7 +325,12 @@ export function computeVerdict(inputs: VerdictInputs): Verdict {
     )
     .map(each => each.criterion);
   const relied = new Set(criteria.flatMap(each => each.evidence));
-  return {
+  // A verdict copies sentences out of evidence records. The attest step
+  // takes credential-shaped values out of a record before it writes it, but
+  // a verdict can also be computed from an evidence file someone edited, so
+  // the copies go through the same scanner. It is a pure step: computing the
+  // verdict again gives the same text.
+  return redactJsonCredentials<Verdict>({
     schema_version: VERDICT_SCHEMA_VERSION,
     requirements: {
       specification: String(catalogue.specification ?? ""),
@@ -347,7 +353,7 @@ export function computeVerdict(inputs: VerdictInputs): Verdict {
       Math.min
     ),
     digest: verdictDigest(register, evidence),
-  };
+  });
 }
 
 /**

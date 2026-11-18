@@ -32,6 +32,7 @@ import {
 } from "./catalogue.js";
 import { readEvidenceRecords } from "./evidence.js";
 import { createRepositoryReader } from "./repository-reader.js";
+import { parseProblemWithoutExcerpt } from "./secret-scan-json.js";
 import { readConfiguredTracker } from "./tracker-config.js";
 
 /** What is at a path, without following a link in its last step. */
@@ -122,7 +123,7 @@ async function readReport(root: string): Promise<ReportRead> {
       document: JSON.parse(await readFile(file, "utf8")) as unknown,
     };
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
+    const detail = parseProblemWithoutExcerpt(error);
     return {
       problem: `${AUDIT_REPORT_JSON_PATH} is not valid JSON, so it cannot be checked. Write it again. (${detail})`,
     };

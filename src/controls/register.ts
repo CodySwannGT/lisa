@@ -47,6 +47,7 @@ import {
   type ControlRegister,
   type ControlRegisterEntry,
 } from "./register-types.js";
+import { withoutCredentials } from "./secret-scan-json.js";
 
 /** What a register is built from. */
 export interface ControlRegisterInputs {
@@ -166,18 +167,15 @@ export interface ControlRegisterSources {
 }
 
 /**
- * Generate the control register of a repository from its declaration.
- *
- * Nothing is written. A declaration the gate registry refuses, a requirement
- * id the catalogue does not list as in scope, and a declaration that cannot
- * be read each come back as problems instead of a register.
+ * Generate the control register of a repository, with problems as they were
+ * written by whatever found them.
  * @param root - Real path of the repository
  * @param sources - Replaceable collaborators
  * @returns The register and its file content, or one line per problem
  */
-export async function generateControlRegister(
+async function generated(
   root: string,
-  sources: ControlRegisterSources = {}
+  sources: ControlRegisterSources
 ): Promise<ControlRegisterGeneration> {
   try {
     const registry = await (sources.loadGates ?? loadGatesModule)();
@@ -198,4 +196,29 @@ export async function generateControlRegister(
       problems: [error instanceof Error ? error.message : String(error)],
     };
   }
+}
+
+/**
+ * Generate the control register of a repository from its declaration.
+ *
+ * Nothing is written. A declaration the gate registry refuses, a requirement
+ * id the catalogue does not list as in scope, a declaration that holds a
+ * secret's value, and a declaration that cannot be read each come back as
+ * problems instead of a register.
+ *
+ * A problem line often quotes the declaration. Every line is passed through
+ * the credential scanner before it is handed back, so no command that prints
+ * these problems can repeat a secret's value.
+ * @param root - Real path of the repository
+ * @param sources - Replaceable collaborators
+ * @returns The register and its file content, or one line per problem
+ */
+export async function generateControlRegister(
+  root: string,
+  sources: ControlRegisterSources = {}
+): Promise<ControlRegisterGeneration> {
+  const generation = await generated(root, sources);
+  return generation.problems === null
+    ? generation
+    : { problems: withoutCredentials(generation.problems) };
 }

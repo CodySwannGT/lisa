@@ -33,9 +33,19 @@
  *
  * A record keeps the end of what a check printed, and a check can print
  * anything. {@link prepareEvidenceExcerpt} is the one place that text is
- * made ready for the file; whatever takes secret values out belongs there.
+ * made ready for the file, and it takes credential-shaped values out before
+ * it cuts. The rest of a record's captured text (the arguments the check
+ * was started with, and the sentence and reason, which can quote why it
+ * could not be started) has its values taken out as each record is made,
+ * and again over every record that stands, old or new
+ * (`./evidence-redact.ts`). Nothing is refused: a run keeps its result, and
+ * a placeholder marks where a value was.
  * @module controls/evidence-write
  */
+import {
+  outputWithoutSecretValues,
+  recordWithoutSecretValues,
+} from "./evidence-redact.js";
 import {
   EVIDENCE_EXCERPT_LIMIT,
   evidenceRecordId,
@@ -80,18 +90,20 @@ const HALF_RESULTS: Readonly<
 /**
  * Make what a check printed ready to be kept in the evidence file.
  *
- * This is the only place output text enters a record. It keeps the end of
- * the text, cut at the start of a line, up to {@link EVIDENCE_EXCERPT_LIMIT}
- * characters. It does not look for secret values: the step that does must
- * do it here, before the cut, so nothing reaches the file unexamined.
- * @param output - What was kept of the check's output
+ * This is the only place output text enters a record. Every value shaped
+ * like a credential is taken out first, leaving a placeholder that says
+ * what was there. Then it keeps the end of the text, cut at the start of a
+ * line, up to {@link EVIDENCE_EXCERPT_LIMIT} characters. The values go
+ * before the cut so that a cut can never leave half of one behind.
+ * @param captured - What was kept of the check's output
  * @param alreadyTruncated - Whether that already leaves out earlier output
  * @returns The excerpt, and whether it leaves anything out
  */
 export function prepareEvidenceExcerpt(
-  output: string,
+  captured: string,
   alreadyTruncated: boolean
 ): Pick<EvidenceRecord, "output_excerpt" | "output_truncated"> {
+  const output = outputWithoutSecretValues(captured);
   if (output.length <= EVIDENCE_EXCERPT_LIMIT) {
     return { output_excerpt: output, output_truncated: alreadyTruncated };
   }
@@ -196,31 +208,33 @@ function recordsOf(
   stamp: EvidenceStamp
 ): readonly EvidenceRecord[] {
   const half = result.half === undefined ? {} : { half: result.half };
-  return entry.criteria.map(criterion => ({
-    id: evidenceRecordId({
-      entry_id: entry.id,
-      moment: result.moment,
-      rung: result.rung,
+  return entry.criteria.map(criterion =>
+    recordWithoutSecretValues({
+      id: evidenceRecordId({
+        entry_id: entry.id,
+        moment: result.moment,
+        rung: result.rung,
+        criterion,
+        ...half,
+      }),
       criterion,
+      entry_id: entry.id,
+      scope: entry.scope,
+      rung: result.rung,
       ...half,
-    }),
-    criterion,
-    entry_id: entry.id,
-    scope: entry.scope,
-    rung: result.rung,
-    ...half,
-    moment: result.moment,
-    result: result.result,
-    reason: result.reason,
-    detail: result.detail,
-    commit: stamp.commit,
-    command: result.command === null ? null : [...result.command],
-    exit_status: result.exit_status,
-    started_at: result.started_at,
-    completed_at: result.completed_at,
-    freshness_seconds: stamp.freshnessSeconds,
-    ...prepareEvidenceExcerpt(result.output_excerpt, result.output_truncated),
-  }));
+      moment: result.moment,
+      result: result.result,
+      reason: result.reason,
+      detail: result.detail,
+      commit: stamp.commit,
+      command: result.command === null ? null : [...result.command],
+      exit_status: result.exit_status,
+      started_at: result.started_at,
+      completed_at: result.completed_at,
+      freshness_seconds: stamp.freshnessSeconds,
+      ...prepareEvidenceExcerpt(result.output_excerpt, result.output_truncated),
+    })
+  );
 }
 
 /**
@@ -284,7 +298,8 @@ function stillStands(
  * @param parts.register - The control register now
  * @param parts.batches - What this run spoke for
  * @param parts.records - The records this run wrote
- * @returns Every record that stands, in no particular order
+ * @returns Every record that stands, in no particular order, each with any
+ *   credential-shaped value taken out of its captured text
  */
 export function mergedEvidence(parts: {
   readonly earlier: readonly EvidenceRecord[];
@@ -300,5 +315,5 @@ export function mergedEvidence(parts: {
         stillStands(record, parts.register, parts.batches)
     ),
     ...parts.records,
-  ];
+  ].map(record => recordWithoutSecretValues(record));
 }

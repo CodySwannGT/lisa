@@ -6,6 +6,12 @@
  * by accident. The check refuses the obvious shapes at that one place, and
  * says which field without repeating what it found there.
  *
+ * What counts as a credential's shape is decided by the scanner every control
+ * command shares, so a probe is held to the same rule as the rest of the
+ * report, the register and the evidence: a long random-looking string is
+ * refused only beside a name that says it is a secret, and a commit hash on
+ * its own is not (CodySwannGT/lisa#4999).
+ *
  * Every credential-shaped value in this suite is made up when the test runs.
  * None is written in this file (CodySwannGT/lisa#4981).
  */
@@ -21,6 +27,7 @@ import {
   type SampleProbe,
 } from "../../helpers/audit-probes.js";
 import { completeAuditReport } from "../../helpers/control-audit-report.js";
+import { fakeGithubToken, fakeHex } from "../../helpers/fake-credentials.js";
 import { violationsOf } from "./audit-report-facts.js";
 
 const TOKEN = fakeCredential();
@@ -65,7 +72,14 @@ const WITH_PASSWORD = addressWith([USER, TOKEN].join(":"));
 
 const ADDRESS_SHAPE = "a web address with a user name or password in it";
 const HEADER_SHAPE = "the value of an authorization header";
-const RANDOM_SHAPE = "a long random-looking string";
+const NAMED_SHAPE =
+  "a long random-looking value beside a name such as token, secret or password";
+const TEXT_FIELDS = [
+  ["request"],
+  ["observed_error"],
+  ["system"],
+  ["access_needed"],
+] as const;
 
 describe("the made-up credential these cases use", () => {
   it("is built when the test runs and mixes digits, capitals and small letters", () => {
@@ -78,18 +92,16 @@ describe("the made-up credential these cases use", () => {
 });
 
 describe("a probe that holds something shaped like a credential", () => {
-  it.each([["request"], ["observed_error"], ["system"], ["access_needed"]])(
+  it.each(TEXT_FIELDS)(
     "is refused for a web address with a password in its %s",
     field => {
       const probe = unreachableProbe({
         [field]: `git ls-remote ${WITH_PASSWORD}`,
       });
 
-      expect(found(probe).map(violation => violation.message)).toEqual(
-        field === "request"
-          ? [refusal(field, ADDRESS_SHAPE), refusal(field, RANDOM_SHAPE)]
-          : [refusal(field, ADDRESS_SHAPE)]
-      );
+      expect(found(probe).map(violation => violation.message)).toEqual([
+        refusal(field, ADDRESS_SHAPE),
+      ]);
     }
   );
 
@@ -133,13 +145,26 @@ describe("a probe that holds something shaped like a credential", () => {
     ]);
   });
 
-  it("is refused for a long random-looking string in its request", () => {
-    const probe = reachableProbe({
-      request: `GET ${SCHEME}//${HOST}/api/projects?key=${TOKEN}`,
+  it.each(TEXT_FIELDS)(
+    "is refused for a long random-looking value beside a name that says it is a secret, in its %s",
+    field => {
+      const probe = unreachableProbe({
+        [field]: `GET ${SCHEME}//${HOST}/api/projects?api_key=${TOKEN}`,
+      });
+
+      expect(found(probe).map(violation => violation.message)).toEqual([
+        refusal(field, NAMED_SHAPE),
+      ]);
+    }
+  );
+
+  it("is refused for a token only a provider issues, wherever it stands", () => {
+    const probe = unreachableProbe({
+      observed_error: `remote: invalid credentials ${fakeGithubToken()}`,
     });
 
     expect(found(probe).map(violation => violation.message)).toEqual([
-      refusal("request", RANDOM_SHAPE),
+      refusal("observed_error", "a GitHub token"),
     ]);
   });
 
@@ -151,7 +176,10 @@ describe("a probe that holds something shaped like a credential", () => {
       .map(violation => violation.message)
       .join("\n");
 
-    expect(found(probe)).toHaveLength(3);
+    expect(found(probe).map(violation => violation.message)).toEqual([
+      refusal("request", ADDRESS_SHAPE),
+      refusal("request", HEADER_SHAPE),
+    ]);
     expect(said).not.toContain(TOKEN);
     expect(said).not.toContain(TOKEN.slice(0, 8));
     expect(said).not.toContain(USER);
@@ -179,6 +207,11 @@ describe("a probe that names things without showing them", () => {
     [
       "a long word with a number in it",
       "GET repos/example/widgets/requiredStatusChecksPolicyVersion2ForBranches",
+    ],
+    ["a commit hash", `GET repos/example/widgets/commits/${fakeHex()}/status`],
+    [
+      "a long random-looking string with no name beside it",
+      `GET repos/example/widgets/check-runs/${TOKEN}`,
     ],
   ])("accepts %s as a request", (_name, request) => {
     expect(found(reachableProbe({ request }))).toEqual([]);

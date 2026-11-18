@@ -12,12 +12,21 @@
  * A file is written only when its content would change, so running the
  * attest step twice on the same inputs leaves the second run with nothing to
  * write.
+ *
+ * These files are committed, so {@link writeControlFile} is also the last
+ * check that none of them holds a secret's value: content with something
+ * shaped like a credential in it is refused, naming the file and the place
+ * and never the value. Everything that reaches a file has been refused or
+ * had its values taken out where it came in, so this only stops a way in
+ * that nothing else covers. A step that writes a new file here gets the
+ * check by writing it with this function.
  * @module controls/control-files
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { pathKind } from "./audit-report-file.js";
+import { credentialProblemIn } from "./secret-scan-json.js";
 
 /** What reading one of the files found. */
 export type ControlFileRead =
@@ -101,6 +110,10 @@ export async function writeControlFile(
       ),
     };
   }
+  // The last check before a write: these files are committed, so one that
+  // would hold something shaped like a credential is not written at all.
+  const secret = credentialProblemIn(file, text);
+  if (secret !== null) return { problem: secret };
   if (read.kind === "text" && read.text === text) {
     return { problem: null, wrote: false };
   }
