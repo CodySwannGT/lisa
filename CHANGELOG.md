@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.0.3](https://github.com/CodySwannGT/lisa/compare/v6.0.2...v6.0.3) (2026-11-18)
+
+
+### Bug Fixes
+
+* **tests:** run TypeScript-host fixtures inside the parent run's admission ([39b2799](https://github.com/CodySwannGT/lisa/commit/39b2799c4a1223d3fbe68078934882752e79b714)), closes [CodySwannGT/lisa#4938](https://github.com/CodySwannGT/lisa/issues/4938) [CodySwannGT/lisa#4938](https://github.com/CodySwannGT/lisa/issues/4938)
+
 ### [6.0.2](https://github.com/CodySwannGT/lisa/compare/v6.0.1...v6.0.2) (2026-11-18)
 
 
