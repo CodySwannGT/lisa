@@ -4,8 +4,9 @@
  * and an aggregate byte cap, failing as soon as either is exceeded.
  *
  * The CLI entry points that read JSON from standard input share this so the
- * bounds are enforced the same way everywhere: linear in the input, with no
- * re-copying of what has already been read.
+ * bounds are enforced the same way everywhere. Each byte is copied once, into
+ * the final buffer; the list of chunk references is rebuilt per chunk, which
+ * is quadratic in the chunk count but bounded by the chunk cap.
  * @module utils
  */
 
@@ -50,8 +51,9 @@ function accept(
 
 /**
  * Pulls chunks until the stream ends, carrying what was accepted as the
- * argument. Each step resumes after an await, so the stack does not grow,
- * and the chunk cap bounds how many steps there are.
+ * argument. Each step continues after an await, so the call stack does not
+ * build up across chunks; what does grow, by one pending promise per chunk, is
+ * the chain of awaiting steps, and the chunk cap bounds it.
  * @param iterator - The stream's iterator
  * @param collected - What has been accepted so far
  * @param bounds - Caps and error messages for this read

@@ -9,7 +9,7 @@
 import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
-import { env as processEnv } from "node:process";
+import { currentEnvironment } from "../../src/utils/process-environment.js";
 
 import { stepsIn } from "./quality-gate-facade-fixture.js";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
@@ -83,7 +83,7 @@ export function executeStep(
     command: "bash",
     args: ["--noprofile", "--norc", "-c", body ?? ""],
     cwd: root,
-    env: { ...processEnv, ...files, ...env },
+    env: { ...currentEnvironment(), ...files, ...env },
   });
   return {
     status: result.status,

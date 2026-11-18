@@ -19,7 +19,7 @@
  * @module core/admission
  */
 import { rmSync } from "node:fs";
-import { processEnvironment as env } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
 
 import {
   type AdmissionReservation,
@@ -115,7 +115,7 @@ function machineReader(environment: NodeJS.ProcessEnv): () => MachineReading {
  * @returns Seams bound to this machine
  */
 export function defaultAdmissionRuntime(
-  environment: NodeJS.ProcessEnv = env
+  environment: NodeJS.ProcessEnv = currentEnvironment()
 ): AdmissionRuntime {
   return {
     pid: process.pid,

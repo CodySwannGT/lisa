@@ -21,7 +21,7 @@
  * whose floor was written for what it actually runs.
  * @module configs/coverage-scope
  */
-import { processEnvironment } from "../utils/process-environment.js";
+import { readEnv } from "../utils/process-environment.js";
 
 /** The variable the unit-scoped coverage script sets. */
 export const COVERAGE_SCOPE_ENV = "LISA_COVERAGE_SCOPE";
@@ -40,4 +40,4 @@ export const UNIT_COVERAGE_SCOPE = "unit";
  * @returns True when the unit scope is in force.
  */
 export const isUnitCoverageScope = (): boolean =>
-  processEnvironment[COVERAGE_SCOPE_ENV]?.trim() === UNIT_COVERAGE_SCOPE;
+  readEnv(COVERAGE_SCOPE_ENV)?.trim() === UNIT_COVERAGE_SCOPE;

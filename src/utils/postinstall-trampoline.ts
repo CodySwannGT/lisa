@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { processEnvironment } from "./process-environment.js";
+import { currentEnvironment, readEnv } from "./process-environment.js";
 import { sanitizeEnvForReconciliation } from "./pm-env.js";
 import {
   type LockfileRegenPlan,
@@ -57,20 +57,6 @@ export {
   getLockfileRegenPlan,
 };
 export type { LockfileRegenPlan, PackageManager, TrampolineReporting };
-
-/**
- * Read an env var by name from the process environment.
- * Lisa's CLI isn't a Lambda handler or Nest service; it has to introspect its
- * own package-manager lifecycle context (which, by construction, is supplied
- * via externally set env vars) to decide whether to trampoline. Routing these
- * presence checks through ConfigService/getStandaloneConfig would not add
- * type-safety.
- * @param name - Name of the env variable to read
- * @returns Value or undefined
- */
-function readEnv(name: string): string | undefined {
-  return processEnvironment[name];
-}
 
 /**
  * Determine whether this Lisa invocation is running as a package-manager lifecycle
@@ -321,5 +307,5 @@ export async function scheduleReconciliationChild(
  * @returns Shallow copy of the current environment
  */
 function inheritedEnv(): NodeJS.ProcessEnv {
-  return { ...processEnvironment };
+  return { ...currentEnvironment() };
 }

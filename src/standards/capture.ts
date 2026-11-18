@@ -1,6 +1,6 @@
 /** Explicit standards-proof capture orchestration. */
 import { execFile } from "node:child_process";
-import { processEnvironment as env } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
 import { promisify } from "node:util";
 import type { ProjectType } from "../core/config.js";
 import { getPackageVersion } from "../cli/version.js";
@@ -343,5 +343,5 @@ export async function runStandardsCommand(
  * @returns Current process environment
  */
 function getProcessEnvironment(): NodeJS.ProcessEnv {
-  return env;
+  return currentEnvironment();
 }

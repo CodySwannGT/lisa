@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
-import { processEnvironment } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
 import { gt, valid } from "semver";
 import { getPackageVersion } from "./version.js";
 
@@ -89,7 +89,7 @@ export function getDefaultCachePath(cwd: string = process.cwd()): string {
  * @returns Current process environment
  */
 function getProcessEnv(): NodeJS.ProcessEnv {
-  return processEnvironment;
+  return currentEnvironment();
 }
 
 /**

@@ -8,24 +8,13 @@
  * @module utils
  */
 
-/** The subset of `Map`/`WeakMap` a memo table stores its answers in. */
-export interface MemoStore<K, V> {
-  /** Returns the remembered value for a key, if any. */
-  get(key: K): V | undefined;
-  /** Remembers a value for a key. */
-  set(key: K, value: V): unknown;
-}
-
 /**
  * Remembers the result of a pure computation per key. A computation that
  * returns `undefined` is never remembered, so it runs again on the next call.
  */
 export class Memo<K, V> {
-  /**
-   * Creates a memo table.
-   * @param store - Where answers are kept; a `WeakMap` lets object keys be collected
-   */
-  constructor(private readonly store: MemoStore<K, V> = new Map<K, V>()) {}
+  /** Where answers are kept. */
+  private readonly store = new Map<K, V>();
 
   /**
    * Returns the remembered answer for a key, computing and remembering it on a miss.

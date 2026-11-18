@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
-import { processEnvironment } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
 
 const LISA_PACKAGE = "@codyswann/lisa";
 
@@ -38,7 +38,7 @@ const DEFAULT_DEPENDENCIES: UpdateCommandDependencies = {
  * @returns Current process environment
  */
 function getProcessEnv(): NodeJS.ProcessEnv {
-  return processEnvironment;
+  return currentEnvironment();
 }
 
 /**

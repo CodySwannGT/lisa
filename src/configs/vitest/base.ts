@@ -12,7 +12,7 @@
  */
 import { existsSync } from "node:fs";
 import { availableParallelism } from "node:os";
-import { processEnvironment as env } from "../../utils/process-environment.js";
+import { currentEnvironment } from "../../utils/process-environment.js";
 import { fileURLToPath } from "node:url";
 
 import type { ViteUserConfig } from "vitest/config";
@@ -277,7 +277,7 @@ export function fleetShare(cores: number, fleet: number): number {
  * @returns A value for Vitest's `maxWorkers` — a worker count, or a percentage.
  */
 export function resolveMaxWorkers(
-  environment: NodeJS.ProcessEnv = env,
+  environment: NodeJS.ProcessEnv = currentEnvironment(),
   cores: number = availableParallelism(),
   discover: () => number = () => 1
 ): number | string {
@@ -340,7 +340,7 @@ export function scratchSetupFiles(): readonly string[] {
  * @returns Setup files to spread into `test.setupFiles`.
  */
 export function accessMapSetupFiles(): readonly string[] {
-  return testAccessMapSetupFiles(env);
+  return testAccessMapSetupFiles(currentEnvironment());
 }
 
 /**

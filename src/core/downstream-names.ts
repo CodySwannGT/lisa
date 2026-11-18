@@ -38,7 +38,7 @@
  * @module core/downstream-names
  */
 import { createHash } from "node:crypto";
-import { processEnvironment } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
 
 import { Memo } from "../utils/memo.js";
 
@@ -174,7 +174,7 @@ export interface NameMatcher {
  * @returns The current process environment.
  */
 function readProcessEnv(): NodeJS.ProcessEnv {
-  return processEnvironment;
+  return currentEnvironment();
 }
 
 /**
@@ -237,9 +237,7 @@ const WORD = /[A-Za-z0-9]+/gu;
  * loaded — one shared cache would let a matcher answer another matcher's
  * question, which is how a guard starts reporting a stale verdict.
  */
-const answered = new Memo<NameMatcher, Memo<string, boolean>>(
-  new WeakMap<NameMatcher, Memo<string, boolean>>()
-);
+const answered = new Memo<NameMatcher, Memo<string, boolean>>();
 
 /**
  * Whether a candidate spelling is one of the known names.

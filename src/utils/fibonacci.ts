@@ -42,8 +42,11 @@ function ahead(current: bigint, following: bigint, offset: number): bigint {
  * Yields the sequence from a pair of consecutive values onward. The pair is
  * the recurrence's whole state, so it travels as the parameters: each step
  * yields one block derived from the pair, then continues from the pair that
- * follows the block. Expanding a block per step keeps delegation depth at
- * n / BLOCK, so no reachable position overflows the stack.
+ * follows the block. Each block adds one level of `yield*` delegation, so the
+ * depth at position n is about n / BLOCK. One value per level overflowed the
+ * stack near 5,000 values when measured; a block of 1,024 moves that limit out
+ * about a thousandfold, to positions in the millions, which are values of
+ * millions of bits. The bound is real but far beyond any practical use.
  * @param current - F(k)
  * @param following - F(k + 1)
  * @yields F(k), F(k + 1), …

@@ -64,29 +64,22 @@ const localConfig: LocalConfig = [
     },
   },
   {
-    // The test tree. `**/*.test.ts` is already exempt from the app's
+    // Shared test fixtures. `**/*.test.ts` is already exempt from the app's
     // `process.env` restriction because a test must be able to construct the
-    // environment it puts a subject under; a helper, fixture or `.test.mjs`
-    // runner in tests/ is the same code doing the same job (tests/platform runs
-    // under bare `node --test` on Windows and cannot import src/ TypeScript).
-    // The rule is aimed at application configuration access, and nothing in
-    // tests/ is application code. Pinned by
-    // tests/unit/config/eslint-local-process-environment-scope.test.ts.
-    files: ["tests/**"],
-    rules: {
-      "no-restricted-syntax": "off",
-    },
-  },
-  {
-    // Shared test fixtures.
+    // environment it puts a subject under; a helper extracted OUT of a test file
+    // to stop three suites drifting onto different environments is the same code
+    // doing the same job, and should not be pushed back inline to satisfy a rule
+    // aimed at application configuration access.
     files: ["tests/**/support/**", "tests/support/**"],
     rules: {
-      // The shipped `**/*.test.ts` override turns this rule off. A harness that hands
+      // Same argument as `no-restricted-syntax` below, for the other rule the
+      // shipped `**/*.test.ts` override already turns off. A harness that hands
       // out disposable fixtures has to remember which ones it made so it can
       // remove them; that bookkeeping is the mutation the rule forbids, and it
       // is exactly as legitimate in a shared harness as it is inline in the
       // suite the harness was extracted from.
       "functional/immutable-data": "off",
+      "no-restricted-syntax": "off",
     },
   },
   {
@@ -109,20 +102,6 @@ const localConfig: LocalConfig = [
     files: ["scripts/**", "**/scripts/**"],
     rules: {
       "code-organization/enforce-statement-order": "off",
-    },
-  },
-  {
-    // `sonarjs/os-command` is a security hotspot whose threat is untrusted
-    // input reaching a shell. `lisa admit -- "<command line>"` exists to run
-    // the operator's own command line under headroom admission, exactly as the
-    // operator's shell would run it unadmitted: the command arrives from the
-    // same argv, at the same trust level, as the shell that launched Lisa. The
-    // rule is wrong for that one entry point and right everywhere else, so it
-    // is turned off for this file alone (CodySwannGT/lisa#4929), pinned by
-    // tests/unit/config/eslint-local-os-command-scope.test.ts.
-    files: ["src/cli/admit-cmd.ts"],
-    rules: {
-      "sonarjs/os-command": "off",
     },
   },
 ];

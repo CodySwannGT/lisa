@@ -22,7 +22,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { createRequire } from "node:module";
 import * as path from "node:path";
-import { processEnvironment as env } from "../utils/process-environment.js";
+import { readEnv } from "../utils/process-environment.js";
 
 import {
   checkJestThresholds,
@@ -114,7 +114,7 @@ function showJestConfig(
 function executablePath(command: string): string | undefined {
   const candidates = command.includes(path.sep)
     ? [command]
-    : (env.PATH ?? "")
+    : (readEnv("PATH") ?? "")
         .split(path.delimiter)
         .map(directory => path.join(directory, command));
   const found = candidates.find(candidate => fs.existsSync(candidate));
@@ -212,10 +212,10 @@ function jestWatermarks(
  */
 function jestMaxCols(): number {
   if (process.stdout.columns) return process.stdout.columns;
-  const columns = Number.parseInt(env.COLUMNS ?? "", 10);
+  const columns = Number.parseInt(readEnv("COLUMNS") ?? "", 10);
   if (columns) return columns;
-  const ci = env.CI === "true" || env.GITHUB_ACTIONS === "true";
-  return ci && !env.JEST_WORKER_ID ? 80 : Number.POSITIVE_INFINITY;
+  const ci = readEnv("CI") === "true" || readEnv("GITHUB_ACTIONS") === "true";
+  return ci && !readEnv("JEST_WORKER_ID") ? 80 : Number.POSITIVE_INFINITY;
 }
 
 /**

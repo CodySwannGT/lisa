@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
-import { processEnvironment } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
 import { probeKaneReadiness } from "../core/kane-cli.js";
 import { probeSonarReadiness } from "../core/sonar-integration.js";
 import {
@@ -122,7 +122,7 @@ export interface DoctorDependencies {
  * @returns Current process environment
  */
 function readProcessEnvironment(): NodeJS.ProcessEnv {
-  return processEnvironment;
+  return currentEnvironment();
 }
 
 const DEFAULT_DEPENDENCIES: DoctorDependencies = {

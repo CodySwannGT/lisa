@@ -25,7 +25,7 @@
 import { accessSync, constants, statSync } from "node:fs";
 import * as path from "node:path";
 import { platform } from "node:process";
-import { processEnvironment as env } from "./process-environment.js";
+import { currentEnvironment } from "./process-environment.js";
 
 /** Extensions Windows tries when `PATHEXT` is unset. */
 const DEFAULT_WINDOWS_EXTENSIONS = [".COM", ".EXE", ".BAT", ".CMD"];
@@ -77,16 +77,24 @@ export class ExecutableNotFoundError extends Error {
     readonly command: string,
     readonly searched: readonly string[]
   ) {
+    // The directories stay on the error for a caller that wants them; the
+    // message names only how many, so it never reprints the whole PATH.
     super(
-      `${command} not found on PATH (absolute directories searched: ${
-        searched.length === 0 ? "none" : searched.join(", ")
-      })`
+      `${command} not found on PATH (searched ${searched.length} absolute ${
+        searched.length === 1 ? "directory" : "directories"
+      }; relative entries are never searched)`
     );
     this.name = "ExecutableNotFoundError";
   }
 }
 
-const DEFAULT_CONTEXT: ExecutableSearchContext = { environment: env, platform };
+/**
+ * This process's search context, read at call time.
+ * @returns The current environment and platform
+ */
+function processContext(): ExecutableSearchContext {
+  return { environment: currentEnvironment(), platform };
+}
 
 /**
  * Reads an environment variable, tolerating Windows' case-insensitive keys.
@@ -164,7 +172,7 @@ function absoluteSearchDirectories(
  */
 export function resolveExecutable(
   command: string,
-  context: ExecutableSearchContext = DEFAULT_CONTEXT
+  context: ExecutableSearchContext = processContext()
 ): ExecutableResolution {
   const directories = absoluteSearchDirectories(context);
   const names = candidateNames(command, context);
@@ -186,7 +194,7 @@ export function resolveExecutable(
  */
 export function requireExecutable(
   command: string,
-  context: ExecutableSearchContext = DEFAULT_CONTEXT
+  context: ExecutableSearchContext = processContext()
 ): string {
   const resolution = resolveExecutable(command, context);
   if (!resolution.found) {
@@ -240,7 +248,7 @@ export function escapeBatchArgument(argument: string): string {
  * @param environment - Environment to read `ComSpec` and `SystemRoot` from
  * @returns Absolute path of the command interpreter
  */
-function commandInterpreter(environment: NodeJS.ProcessEnv): string {
+export function commandInterpreter(environment: NodeJS.ProcessEnv): string {
   const comspec = readVariable(environment, "COMSPEC");
   if (path.win32.isAbsolute(comspec)) return comspec;
   const systemRoot = readVariable(environment, "SYSTEMROOT") || "C:\\Windows";
@@ -259,7 +267,7 @@ function commandInterpreter(environment: NodeJS.ProcessEnv): string {
 export function spawnTarget(
   command: string,
   args: readonly string[],
-  context: ExecutableSearchContext = DEFAULT_CONTEXT
+  context: ExecutableSearchContext = processContext()
 ): SpawnTarget {
   const file = requireExecutable(command, context);
   if (context.platform !== "win32" || !BATCH_EXTENSION.test(file)) {

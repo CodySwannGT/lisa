@@ -26,7 +26,7 @@
 import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
-import { env as processEnv } from "node:process";
+import { currentEnvironment } from "../../src/utils/process-environment.js";
 
 /**
  * grep's "an error occurred" status. Deliberately 2 rather than something
@@ -46,7 +46,7 @@ export const GREP_ERROR_STATUS = 2;
  * @returns The same environment with the shim first on PATH.
  */
 export function withUnanswerableGrep(
-  base: NodeJS.ProcessEnv = processEnv
+  base: NodeJS.ProcessEnv = currentEnvironment()
 ): NodeJS.ProcessEnv {
   const dir = mkdtempSync(path.join(tmpdir(), "lisa-unanswerable-grep-"));
   const bin = path.join(dir, "bin");

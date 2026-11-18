@@ -15,7 +15,7 @@
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
-import { processEnvironment } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
 
 /** Receipt filename inside a worktree's git admin directory. */
 export const OWNER_RECEIPT_FILENAME = "lisa-worktree-owner.json";
@@ -86,7 +86,7 @@ export function resolveCallerOwnerId(
  * @returns Current process environment
  */
 function readProcessEnvironment(): NodeJS.ProcessEnv {
-  return processEnvironment;
+  return currentEnvironment();
 }
 
 /**

@@ -143,10 +143,13 @@ describe("requireExecutable", () => {
     const other = dirWith(["other"]);
     const context = { environment: { PATH: other }, platform: LINUX } as const;
     expect(() => requireExecutable(TOOL, context)).toThrow(
-      `${TOOL} not found on PATH (absolute directories searched: ${other})`
+      `${TOOL} not found on PATH (searched 1 absolute directory; relative entries are never searched)`
     );
     expect(() => requireExecutable(TOOL, context)).toThrow(
       expect.objectContaining({ code: "ENOENT" })
+    );
+    expect(() => requireExecutable(TOOL, context)).toThrow(
+      expect.objectContaining({ searched: [other] })
     );
     expect(() => requireExecutable(TOOL, context)).toThrow(
       ExecutableNotFoundError
@@ -157,7 +160,7 @@ describe("requireExecutable", () => {
     expect(() =>
       requireExecutable(TOOL, { environment: {}, platform: LINUX })
     ).toThrow(
-      `${TOOL} not found on PATH (absolute directories searched: none)`
+      `${TOOL} not found on PATH (searched 0 absolute directories; relative entries are never searched)`
     );
   });
 });
@@ -255,5 +258,72 @@ describe("escapeBatchArgument", () => {
 
   it("escapes spaces and percent signs so nothing expands or splits", () => {
     expect(escapeBatchArgument("%PATH% x")).toBe('^^^"^^^%PATH^^^%^^^ x^^^"');
+  });
+});
+
+/**
+ * One cmd.exe parsing pass: `^` escapes the next character.
+ * @param text - Text cmd.exe reads
+ * @returns The text after cmd.exe removes one level of escapes
+ */
+function cmdPass(text: string): string {
+  return [...text].reduce(
+    (state, character) =>
+      state.escaped || character !== "^"
+        ? { out: state.out + character, escaped: false }
+        : { out: state.out, escaped: true },
+    { out: "", escaped: false }
+  ).out;
+}
+
+/**
+ * The MSVCRT rule a program uses to read one double-quoted argument.
+ * @param quoted - The argument including its surrounding quotes
+ * @returns The value the program receives
+ */
+function msvcrtArgument(quoted: string): string {
+  const end = [...quoted].reduce(
+    (state, character) => {
+      if (character === "\\") {
+        return { out: state.out, slashes: state.slashes + 1 };
+      }
+      const kept = "\\".repeat(
+        character === '"' ? Math.floor(state.slashes / 2) : state.slashes
+      );
+      // An odd run escapes the quote; an even run leaves it a delimiter.
+      const literal =
+        character !== '"' || state.slashes % 2 === 1 ? character : "";
+      return { out: state.out + kept + literal, slashes: 0 };
+    },
+    { out: "", slashes: 0 }
+  );
+  return end.out + "\\".repeat(end.slashes);
+}
+
+describe("escapeBatchArgument round trip", () => {
+  it.each([
+    "a&b",
+    "a|b",
+    "^",
+    "100%",
+    "%PATH%",
+    "two words",
+    'say "hi"',
+    "C:\\dir with space\\",
+    'x & y | z ^ %p% "q" end\\',
+    "<in >out (group) !bang!",
+    "",
+  ])("survives both cmd passes and MSVCRT parsing unchanged: %j", value => {
+    const escaped = escapeBatchArgument(value);
+    // No metacharacter reaches cmd.exe unescaped on either pass.
+    expect(cmdPass(escaped)).toMatch(/^\^"/u);
+    expect(msvcrtArgument(cmdPass(cmdPass(escaped)))).toBe(value);
+  });
+
+  it("pins the exact escaping for each metacharacter", () => {
+    expect(escapeBatchArgument("a|b")).toBe('^^^"a^^^|b^^^"');
+    expect(escapeBatchArgument("^")).toBe('^^^"^^^^^^^"');
+    expect(escapeBatchArgument("100%")).toBe('^^^"100^^^%^^^"');
+    expect(escapeBatchArgument("two words")).toBe('^^^"two^^^ words^^^"');
   });
 });

@@ -11,7 +11,8 @@
  * @module cli/admit-cmd
  */
 import { spawn } from "node:child_process";
-import { processEnvironment as env } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
+import { shellCommandLine } from "../utils/shell-command-line.js";
 import type { Command } from "commander";
 
 import { ADMISSION_REFUSED_EXIT, requestAdmission } from "../core/admission.js";
@@ -57,12 +58,18 @@ function runAdmitted(
   environment: NodeJS.ProcessEnv,
   onExit: () => void
 ): Promise<{ code: number | null; signal: NodeJS.Signals | null }> {
-  const [file, ...args] = argv;
-  const child =
+  const [file = "", ...args] = argv;
+  // One argument is the caller's own command line, run through the shell
+  // exactly as it would run unadmitted; several are an argv, run directly.
+  const target =
     args.length === 0
-      ? // The caller's own command line, run exactly as it would run unadmitted.
-        spawn(file ?? "", { shell: true, stdio: "inherit", env: environment })
-      : spawn(file ?? "", args, { stdio: "inherit", env: environment });
+      ? shellCommandLine(file)
+      : { file, args, windowsVerbatimArguments: false };
+  const child = spawn(target.file, [...target.args], {
+    stdio: "inherit",
+    env: environment,
+    windowsVerbatimArguments: target.windowsVerbatimArguments,
+  });
   const forward = (signal: NodeJS.Signals): void => {
     child.kill(signal);
   };
@@ -103,9 +110,9 @@ export async function runAdmit(
         : positiveInt(options.minWorkers, "--min-workers"),
     command: argv.join(" "),
     cwd: process.cwd(),
-    environment: env,
+    environment: currentEnvironment(),
     settings: resolveAdmissionSettings({
-      environment: env,
+      environment: currentEnvironment(),
       cwd: process.cwd(),
       ...(options.maxWait === undefined
         ? {}
@@ -120,7 +127,7 @@ export async function runAdmit(
     argv,
     outcome.kind === "admitted" ? outcome.release : () => {},
     {
-      ...env,
+      ...currentEnvironment(),
       [ADMITTED_WORKERS_ENV]: String(outcome.granted),
       ...(outcome.kind === "admitted"
         ? { [ADMISSION_HOLDER_ENV]: String(process.pid) }

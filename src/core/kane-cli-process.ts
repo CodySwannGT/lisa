@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { text } from "node:stream/consumers";
-import { processEnvironment } from "../utils/process-environment.js";
+import { readEnv } from "../utils/process-environment.js";
 import type {
   ChromeAvailabilityProbe,
   KaneCommandResult,
@@ -15,9 +15,9 @@ import type {
  * @returns True when a supported browser path exists
  */
 export const isChromeAvailable: ChromeAvailabilityProbe = () => {
-  const configured = processEnvironment.CHROME_PATH;
-  const programFiles = processEnvironment.PROGRAMFILES;
-  const programFilesX86 = processEnvironment["PROGRAMFILES(X86)"];
+  const configured = readEnv("CHROME_PATH");
+  const programFiles = readEnv("PROGRAMFILES");
+  const programFilesX86 = readEnv("PROGRAMFILES(X86)");
   const candidates = [
     configured,
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -74,7 +74,7 @@ export const runKaneCommand: KaneCommandRunner = async (
     const stdout = text(child.stdout);
     const stderr = text(child.stderr);
     const failure = new Promise<string>(settle =>
-      child.once("error", error => settle(error.message))
+      child.on("error", error => settle(error.message))
     );
     const timedOut = new Promise<boolean>(settle => {
       const timeout = setTimeout(() => {

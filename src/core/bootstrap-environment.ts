@@ -1,4 +1,4 @@
-import { processEnvironment } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
 
 export const LISA_BOOTSTRAP_ENV = "LISA_BOOTSTRAP";
 
@@ -59,7 +59,7 @@ export interface BootstrapGuardOptions {
  * @returns The current process environment
  */
 function readProcessEnv(): NodeJS.ProcessEnv {
-  return processEnvironment;
+  return currentEnvironment();
 }
 
 /**

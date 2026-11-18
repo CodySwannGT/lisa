@@ -35,7 +35,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { processEnvironment } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
 
 import type { Command } from "commander";
 
@@ -286,7 +286,7 @@ export async function runCheck(
   options: CheckOptions,
   dependencies: CheckDependencies = {}
 ): Promise<number> {
-  const env = dependencies.env ?? processEnvironment;
+  const env = dependencies.env ?? currentEnvironment();
   const log = dependencies.log ?? ((line: string) => console.log(line));
   const error = dependencies.error ?? ((line: string) => console.error(line));
   const git = dependencies.git ?? defaultGit;

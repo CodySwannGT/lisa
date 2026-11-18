@@ -8,7 +8,7 @@
  * @module configs/vitest/refusal-announcement
  */
 import { writeSync } from "node:fs";
-import { processEnvironment as env } from "../../utils/process-environment.js";
+import { readEnv } from "../../utils/process-environment.js";
 
 /**
  * Renders the banner a refused run prints before vitest's own output.
@@ -66,7 +66,7 @@ export const POOL_WORKER_ENV = "VITEST_POOL_ID";
  * Whether this process is a pool worker rather than the run's main process.
  * @returns True inside a worker running a test file.
  */
-const inPoolWorker = (): boolean => env[POOL_WORKER_ENV] !== undefined;
+const inPoolWorker = (): boolean => readEnv(POOL_WORKER_ENV) !== undefined;
 
 /**
  * Arms the summary line to be written when the process finally exits.

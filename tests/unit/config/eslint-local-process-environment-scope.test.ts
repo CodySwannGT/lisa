@@ -76,11 +76,14 @@ describe("processEnvironmentBans", () => {
 });
 
 describe("process environment scope in eslint.config.local.ts", () => {
-  it("turns the ban off only for the accessor and the test tree", () => {
+  it("turns the ban off only for the accessor and the shared test fixtures", () => {
     const off = localConfig
       .filter(entry => entry.rules?.[RULE] === "off")
       .map(entry => entry.files);
-    expect(off).toEqual([[ACCESSOR], ["tests/**"]]);
+    expect(off).toEqual([
+      [ACCESSOR],
+      ["tests/**/support/**", "tests/support/**"],
+    ]);
   });
 
   it(
@@ -89,7 +92,7 @@ describe("process environment scope in eslint.config.local.ts", () => {
       expect(await severityFor(ACCESSOR)).toBe(0);
       expect(await severityFor("src/core/admission.ts")).toBe(2);
       expect(await severityFor("src/configs/vitest/base.ts")).toBe(2);
-      expect(await severityFor("tests/helpers/template-toolchain.ts")).toBe(0);
+      expect(await severityFor("tests/helpers/template-toolchain.ts")).toBe(2);
     },
     ioLatencyBudgetMs(120_000)
   );

@@ -18,7 +18,7 @@
  * name.
  * @module tests/helpers/enclosing-admission
  */
-import { env } from "node:process";
+import { currentEnvironment } from "../../src/utils/process-environment.js";
 
 import {
   ADMISSION_HOLDER_ENV,
@@ -34,7 +34,7 @@ const ADMISSION_INPUT_PREFIX = "LISA_ADMISSION";
  * @returns The parent's reservation, or the switch that says it holds none
  */
 export function enclosingAdmissionEnv(
-  environment: NodeJS.ProcessEnv = env
+  environment: NodeJS.ProcessEnv = currentEnvironment()
 ): Record<string, string> {
   const holder = environment[ADMISSION_HOLDER_ENV];
   const workers = environment[ADMITTED_WORKERS_ENV];

@@ -1,7 +1,7 @@
 /** Bounded, no-shell Git observation for standards proof freshness. */
 import { execFile } from "node:child_process";
 import { realpath } from "node:fs/promises";
-import { processEnvironment as env } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -227,5 +227,5 @@ async function git(
  * @returns Current process environment
  */
 function getProcessEnvironment(): NodeJS.ProcessEnv {
-  return env;
+  return currentEnvironment();
 }

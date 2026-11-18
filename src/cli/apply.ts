@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { processEnvironment } from "../utils/process-environment.js";
+import { currentEnvironment } from "../utils/process-environment.js";
 import type { Harness, LisaConfig, RefreshTemplates } from "../core/config.js";
 import {
   type ApplyModeInputs,
@@ -334,7 +334,7 @@ function readInvocationEnvironment(): NodeJS.ProcessEnv {
   // Lisa's CLI is not a Nest service or a Lambda handler; it must introspect
   // the environment its launcher hands it, and routing these reads through a
   // config service would add indirection rather than type-safety.
-  return processEnvironment;
+  return currentEnvironment();
 }
 
 /**

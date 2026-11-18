@@ -12,11 +12,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { env } from "node:process";
 import { fileURLToPath } from "node:url";
-import { supervise } from "../../all/copy-overwrite/scripts/lib/process-tree-runner.mjs";
+import { supervise } from "../../../all/copy-overwrite/scripts/lib/process-tree-runner.mjs";
 
 export const supervisor = fileURLToPath(
   new URL(
-    "../../all/copy-overwrite/scripts/lib/process-tree-runner.mjs",
+    "../../../all/copy-overwrite/scripts/lib/process-tree-runner.mjs",
     import.meta.url
   )
 );
@@ -25,6 +25,18 @@ export const windowsOnly = {
   timeout: 60000,
 };
 export const windowsRoot = env.SystemRoot || "C:\\Windows";
+/** The command interpreter the Windows probes run. */
+export const commandInterpreter =
+  env.ComSpec || path.join(windowsRoot, "System32", "cmd.exe");
+
+/**
+ * This process's environment with overrides, for a probe's child.
+ * @param {Record<string, string>} overrides Variables the child sees instead.
+ * @returns {NodeJS.ProcessEnv} A fresh environment object.
+ */
+export function inheritedEnvironment(overrides) {
+  return { ...env, ...overrides };
+}
 export const SUPERVISOR_DEADLINE = "--timeout-ms=20000";
 
 /**
