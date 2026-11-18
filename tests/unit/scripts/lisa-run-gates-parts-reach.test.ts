@@ -176,6 +176,27 @@ describe("a change that reaches outside the parts that ran", () => {
     );
   });
 
+  it("does not take a path in `API` for covered by a part for `api`", () => {
+    const otherCase = "API/a.go";
+
+    const { gates, run } = styleRun(FOLDER_PARTS, touching([otherCase]));
+
+    // Read generously, the change may touch `api`, so that part runs. Read
+    // strictly, `API` may be another folder, which no part looked at.
+    expect(run.started).toEqual([API]);
+    expect(provenFloor({ gates, moment: COMMIT, result: run.result })).toEqual(
+      []
+    );
+    expect(
+      unreachedFloor({ gates, moment: COMMIT, result: run.result })
+    ).toEqual([
+      {
+        id: STYLE,
+        reason: `${STYLE} has no part for 1 path(s) this change touches ("${otherCase}"), ${STILL_RUNS}`,
+      },
+    ]);
+  });
+
   it("counts a changed path where a linked folder really is", () => {
     mkdirSync(path.join(repository.root, "links"));
     symlinkSync(

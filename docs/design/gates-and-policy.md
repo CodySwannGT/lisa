@@ -1234,7 +1234,12 @@ one.
 
 "Inside" is read strictly here, where "touches" above is read generously. A
 nested repository that moved is one changed path; a part for a folder inside
-it runs, and does not make that path covered.
+it runs, and does not make that path covered. Letter case and the composition
+of an accented letter are compared exactly here, where "touches" ignores
+them: a change to `API/x.js` runs the part for `api`, and is still a path no
+part covers, because on a filesystem that tells the two apart `API` is
+another folder. Where the filesystem treats them as one and git recorded the
+other spelling, that only keeps a built-in check that could have stood down.
 
 A hook that does not pass `--coverage` cannot keep one built-in check on its
 own. When a gate would be withheld for one of these reasons and nothing

@@ -98,7 +98,7 @@
       "children": []
     },
     "lib/changed-paths.mjs": {
-      "sha256": "c9599846bb658ee7de173ad0768f964366c9e27ee07f5baa30499ea20ee3b87f",
+      "sha256": "bcf755d8c1905cddd84622c9a520f7bcc16b19379b9f933a8b5657bb6df9f391",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "node:fs",
@@ -1600,7 +1600,7 @@
       "children": []
     },
     "lisa-run-gates.mjs": {
-      "sha256": "6e31f367f2a8754d4e15ec235a64f90831710576a1bb640bb67088fcb09f2435",
+      "sha256": "c8d581ffa7c7a34b1d4d5c7ac8618f47af9a705fe14cae6b8ce3bba158a1405a",
       "staticImports": [
         "lib/affected-tests.mjs",
         "lib/bounded-spawn.mjs",
