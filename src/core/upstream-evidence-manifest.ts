@@ -13170,6 +13170,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/detection/detectors.test.ts": true,
     "tests/unit/devin/enforcement-fallback-installer.test.ts": true,
     "tests/unit/devin/plugin-installer.test.ts": true,
+    "tests/unit/docs/control-audit-docs.test.ts": true,
     "tests/unit/docs/onboarding-walkthrough.test.ts": true,
     "tests/unit/docs/required-phrases.test.ts": true,
     "tests/unit/fixtures/shared-runtime-checkout.test.ts": true,
