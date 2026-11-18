@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.0.5](https://github.com/CodySwannGT/lisa/compare/v6.0.4...v6.0.5) (2026-11-18)
+
+
+### Bug Fixes
+
+* **ci:** defer the sharded integration-test aggregate's registration ([a75cee7](https://github.com/CodySwannGT/lisa/commit/a75cee717721552d22104fa2999108bdf24982f6)), closes [#4675](https://github.com/CodySwannGT/lisa/issues/4675) [CodySwannGT/lisa#5031](https://github.com/CodySwannGT/lisa/issues/5031) [CodySwannGT/lisa#5031](https://github.com/CodySwannGT/lisa/issues/5031)
+
 ### [6.0.4](https://github.com/CodySwannGT/lisa/compare/v6.0.3...v6.0.4) (2026-11-18)
 
 
