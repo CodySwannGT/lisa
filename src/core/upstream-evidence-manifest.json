@@ -2649,7 +2649,7 @@
     "scripts/check-security-floors.mjs":
       "a1abe6d2cbbef9243b9687c73d5c4497c069bc8d714e34be7375805fadbc4721",
     "scripts/check-self-dependency-pin.mjs":
-      "1136196fa82ea949bdb5f9b96c3a52f21a51630784d775d6933ba28bc509f4b4",
+      "50cef9e3dd1c0d6b573e3692cf6ccff6dac6fe446cd15ae9225b0203ead826fb",
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "82bc9fbd7537cfc30d359d75e4ce86efbcea6455d4854c8d1273a445feae253c",
     "scripts/check-shipped-surface-removals.mjs":
@@ -2952,6 +2952,10 @@
       "b688c899549cfcd10660c0154f01e5bedb9d1baaaa27958c9d8f436bc45c87e6",
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
+    "scripts/push-self-pin-raise.sh":
+      "8a8b16f992f8382ee0f6d953a2a5d0b17939ee42121d8e4165170c5f0432de80",
+    "scripts/raise-self-dependency-pin.mjs":
+      "da477a71afa9e55acbf60abf038702baec4ea7342b5738404fd23658a1d48ceb",
     "scripts/reconcile-release-tags.mjs":
       "038e97bad361e1653f7c8d9842ab371d2dde62f02dc85c4e326a1b5aca06b178",
     "scripts/remedy-conformance.mjs":
@@ -2969,7 +2973,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "1dc650c631a7ca339f3a225e47a314e7af448060d14bfd52c25e0c7192976335",
+      "cf83ba30039a040461689fbcf5df0ac582cc177e3d475986dcffe8177484d631",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -2994,6 +2998,8 @@
       "c1a02bd5c6b822044f4959aa969290b53967a9595184f53f9ea188cdac3dd129",
     "scripts/verify-rails-tooling.rb":
       "5e7a52c1929c9eba873d2fc1f0baa1cc684e9913d4b27c5c42819bb1ac0539cf",
+    "scripts/verify-self-pin-raise.mjs":
+      "dec6ec0f0321f1482326bd8faf646d97b014fae3a50b1a0f98aca51314b739ac",
     "scripts/workflow-contract-assertion.sh":
       "191b5e766e1defb3bee3befbc8354abd9a46d3989eede7a420cd8893885df137",
     "tsconfig/base.json":
@@ -3285,6 +3291,7 @@
     ".github/workflows/release.yml": true,
     ".github/workflows/review-evidence.yml": true,
     ".github/workflows/security-floors.yml": true,
+    ".github/workflows/self-pin-raise.yml": true,
     ".github/workflows/sentry-deploy.yml": true,
     ".github/workflows/third-party-review-evidence.yml": true,
     ".github/workflows/workflow-load-failure-sweep.yml": true,
@@ -10855,6 +10862,8 @@
     "scripts/plugin-parity-drift.mjs": true,
     "scripts/plugin-routing-validate.mjs": true,
     "scripts/probes/wave3-verification.sh": true,
+    "scripts/push-self-pin-raise.sh": true,
+    "scripts/raise-self-dependency-pin.mjs": true,
     "scripts/reconcile-release-tags.mjs": true,
     "scripts/remedy-conformance.mjs": true,
     "scripts/remote-agent-aws-setup.sh": true,
@@ -10876,6 +10885,7 @@
     "scripts/verify-packaged-apply.mjs": true,
     "scripts/verify-packed-learnings-contract.mjs": true,
     "scripts/verify-rails-tooling.rb": true,
+    "scripts/verify-self-pin-raise.mjs": true,
     "scripts/workflow-contract-assertion.sh": true,
     "sgconfig.yml": true,
     "shipped-removals.json": true,
@@ -11944,6 +11954,7 @@
     "tests/integration/publish-npm-injection.test.ts": true,
     "tests/integration/push-collects-integration-tree-once.test.ts": true,
     "tests/integration/push-destination-inheritance.test.ts": true,
+    "tests/integration/push-self-pin-raise.test.ts": true,
     "tests/integration/quality-audit-fail-closed.test.ts": true,
     "tests/integration/quality-combined-planning.test.ts": true,
     "tests/integration/quality-declaration-required-jobs.test.ts": true,
@@ -12026,6 +12037,8 @@
     "tests/integration/security-floors-gate.test.ts": true,
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
     "tests/integration/self-pin-drift-gate-wiring.test.ts": true,
+    "tests/integration/self-pin-raise-prepare-job.test.ts": true,
+    "tests/integration/self-pin-raise-triggers.test.ts": true,
     "tests/integration/sentry-deploy-workflow.test.ts": true,
     "tests/integration/sentry-release-config.test.ts": true,
     "tests/integration/sentry-release-name.test.ts": true,
@@ -12067,6 +12080,7 @@
     "tests/integration/support/rails-partial-selector.ts": true,
     "tests/integration/support/recording-gh-stub.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
+    "tests/integration/support/self-pin-raise-jobs.ts": true,
     "tests/integration/support/shell-guard-refusal-fixture.ts": true,
     "tests/integration/test-access-map-tracer.test.ts": true,
     "tests/integration/third-party-evidence-seed-apply.test.ts": true,
@@ -12945,6 +12959,7 @@
     "tests/unit/scripts/check-pipeline-status-reads.test.ts": true,
     "tests/unit/scripts/check-probe-absence-direction.test.ts": true,
     "tests/unit/scripts/check-release-package-identity.test.ts": true,
+    "tests/unit/scripts/check-self-dependency-pin-listed.test.ts": true,
     "tests/unit/scripts/check-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/check-shell-guard-refusal-coverage.test.ts": true,
     "tests/unit/scripts/check-shipped-surface-removals.test.ts": true,
@@ -13283,6 +13298,7 @@
     "tests/unit/scripts/push-admission.test.ts": true,
     "tests/unit/scripts/push-gate-defaults.test.ts": true,
     "tests/unit/scripts/push-timing.test.ts": true,
+    "tests/unit/scripts/raise-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/ready-queue-order-backlog.test.ts": true,
     "tests/unit/scripts/ready-queue-order-human-gate-policy.test.ts": true,
     "tests/unit/scripts/ready-queue-order-id-kinds.test.ts": true,
@@ -13347,6 +13363,7 @@
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/vendored-script-defects.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
+    "tests/unit/scripts/verify-self-pin-raise.test.ts": true,
     "tests/unit/scripts/windows-process-job.test.ts": true,
     "tests/unit/scripts/work-item-accepted-proof.test.ts": true,
     "tests/unit/scripts/work-item-amended-merge-exemption.test.ts": true,
