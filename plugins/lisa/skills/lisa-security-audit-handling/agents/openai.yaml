@@ -1,4 +1,4 @@
 display_name: "Security Audit Handling"
-short_description: "What to do when a push or CI is blocked by the dependency security audit: fix the vulnerable copy by refreshing the lockfile, upgrading the…"
+short_description: "What to do when a push or CI is blocked by the dependency security audit, in order: refresh the lockfile, upgrade the direct dependency…"
 default_prompt:
-  - "Use $lisa-security-audit-handling: What to do when a push or CI is blocked by the dependency security audit: fix the vulnerable copy by refreshing the lockfile, upgrading the…."
+  - "Use $lisa-security-audit-handling: What to do when a push or CI is blocked by the dependency security audit, in order: refresh the lockfile, upgrade the direct dependency…."

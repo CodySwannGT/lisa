@@ -67,8 +67,7 @@ const END = HOOK.findIndex(
 );
 const HOOK_BODY = HOOK.slice(DISPATCH, END + 4).join("\n");
 /** The operator next step printed whenever a real finding fails the audit. */
-const NEXT_STEP =
-  "add a targeted override to the fixed version; 4) replace or remove the dependency when no fix exists";
+const NEXT_STEP = "3) add a targeted override to the fixed version; 4)";
 /** The precise fail-closed diagnostic for a scoped entry without bun.lock. */
 const NO_BUN_LOCK = "Cannot evaluate scoped audit exclusions from bun.lock";
 /** The real npm, so a stubbed `npm` can still run the registry's `npm run`. */
@@ -277,8 +276,10 @@ function expectParity(
     // A real finding (not a fail-closed input) always says what to do next.
     if (status === 1 && !helper.threw) {
       expect(result.output).toContain(NEXT_STEP);
-      // The remedy is a fix; an exclusion file is never advertised as one.
-      expect(result.output).not.toContain("audit.ignore.local.json");
+      // Reachability comes after the fixes and before replacing the package.
+      expect(result.output).toMatch(
+        /override to the fixed version; 4\) before any code change, evaluate reachability[^\n]*audit\.ignore\.local\.json[^\n]*5\) replace or remove the dependency/u
+      );
     }
   }
 }

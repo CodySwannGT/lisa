@@ -9,6 +9,35 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+/**
+ * The remediation order (CodySwannGT/lisa#4931, matching #5024's
+ * reachability-before-code-change rung): how the skill and the failure
+ * message write each step.
+ */
+const LADDER = [
+  {
+    skill: "**Refresh the lockfile within the current range.**",
+    message: "refresh the lockfile within its current range",
+  },
+  {
+    skill: "**Upgrade the direct dependency**",
+    message: "upgrade the direct dependency",
+  },
+  {
+    skill: "**Add a targeted override**",
+    message: "add a targeted override to the fixed version",
+  },
+  {
+    skill:
+      "**Evaluate reachability, and exclude with a stated reason if unaffected**",
+    message: "evaluate reachability",
+  },
+  {
+    skill: "**Replace or remove the dependency**",
+    message: "replace or remove the dependency",
+  },
+] as const;
+
 describe("security-audit-handling is named by the audit", () => {
   it("is named by the audit's failure message", () => {
     for (const script of [
@@ -20,19 +49,23 @@ describe("security-audit-handling is named by the audit", () => {
       );
   });
 
-  it("teaches the four fixes and never an exclusion as the remedy", () => {
+  it("teaches the five steps in order, reachability before replace", () => {
     const skill = readFileSync(
       "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md",
       "utf8"
     );
-    for (const step of [
-      "Refresh the lockfile within the current range",
-      "Upgrade the direct dependency",
-      "Add a targeted override",
-      "Replace or remove the dependency",
-    ])
-      expect(skill).toContain(step);
-    expect(skill).not.toMatch(/add (?:it|an exclusion entry) to/iu);
+    const offsets = LADDER.map(step => skill.indexOf(step.skill));
+    expect(
+      offsets.filter(offset => offset < 0),
+      "steps missing"
+    ).toEqual([]);
+    expect(
+      [...offsets].sort((x, y) => x - y),
+      "steps out of order"
+    ).toEqual(offsets);
+    expect(skill).toContain(
+      "add a scoped exclusion with a concrete reason to `audit.ignore.local.json`"
+    );
   });
 
   it("files a build-ready ticket instead of assuming a human", () => {
@@ -42,7 +75,7 @@ describe("security-audit-handling is named by the audit", () => {
     );
     expect(skill).toContain("**file a build-ready ticket**");
     expect(skill).toContain(
-      "the advisory, the dependency path that reaches the vulnerable copy, and what was tried at each of the four steps"
+      "the advisory, the dependency path that reaches the vulnerable copy, and what was tried at each of the five steps"
     );
     expect(skill).toContain(
       "Stop only when the next act needs access you do not have, and then say exactly what is missing."
@@ -50,17 +83,26 @@ describe("security-audit-handling is named by the audit", () => {
     expect(skill).not.toMatch(/stop for a human/iu);
   });
 
-  it("never advertises an exclusion file in the failure message", () => {
+  it("prints the five steps in order in every failure message", () => {
     for (const script of [
       "all/copy-overwrite/scripts/lisa-audit.mjs",
       "scripts/lisa-audit.mjs",
       ".github/actions/dependency-audit/run.mjs",
     ]) {
-      const nextStep = readFileSync(script, "utf8")
+      const lines = readFileSync(script, "utf8")
         .split("\n")
         .filter(line => line.includes("Next step:"));
-      expect(nextStep, script).toHaveLength(1);
-      expect(nextStep[0], script).not.toContain("audit.ignore");
+      expect(lines, script).toHaveLength(1);
+      const offsets = LADDER.map(step => lines[0]!.indexOf(step.message));
+      expect(
+        offsets.filter(offset => offset < 0),
+        script
+      ).toEqual([]);
+      expect(
+        [...offsets].sort((x, y) => x - y),
+        script
+      ).toEqual(offsets);
+      expect(lines[0], script).toContain("audit.ignore.local.json");
     }
   });
 });
