@@ -110,6 +110,44 @@ describe("the Plugin artifacts job's checks also run before a push (#5023)", () 
     expect(ciOnly).toEqual([]);
   });
 
+  it("declares, for every job check run at push, a failure shape its prover prints", () => {
+    const { gates } = readGates(ROOT) as {
+      gates: Record<
+        string,
+        { push?: { run?: string; failure_shape?: readonly string[] } }
+      >;
+    };
+    const manifest = JSON.parse(
+      readFileSync(path.join(ROOT, "package.json"), "utf8")
+    ) as { scripts: Record<string, string> };
+    const job = new Set(jobChecks());
+    const wired = Object.entries(gates).filter(
+      ([id, gate]) =>
+        id.startsWith("x-") &&
+        gate.push?.run !== undefined &&
+        job.has(gate.push.run) &&
+        gate.push.run !== "check:plugins"
+    );
+    // Without a shape, a real failure is classified UNPROVABLE ("re-run it
+    // somewhere quieter") instead of FAILED — measured on the first push of
+    // this change, when check:self-pin found main's pin stale.
+    const problems = wired.flatMap(([id, gate]) => {
+      const shapes = gate.push?.failure_shape ?? [];
+      const script = /(?:node|bash) (scripts\/\S+)/u.exec(
+        manifest.scripts[gate.push?.run ?? ""] ?? ""
+      )?.[1];
+      if (shapes.length === 0) return [`${id}: no failure_shape`];
+      if (script === undefined) return [`${id}: prover script not found`];
+      const source = readFileSync(path.join(ROOT, script), "utf8");
+      return shapes
+        .filter(shape => !source.includes(shape))
+        .map(shape => `${id}: ${JSON.stringify(shape)} is not in ${script}`);
+    });
+
+    expect(wired.length).toBeGreaterThanOrEqual(15);
+    expect(problems).toEqual([]);
+  });
+
   it("runs the registry-dependent checks uncached, since the tree cannot key them", () => {
     const { gates } = readGates(ROOT) as {
       gates: Record<string, { push?: { run?: string; cache?: boolean } }>;
