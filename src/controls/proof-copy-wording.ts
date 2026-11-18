@@ -121,6 +121,30 @@ export function unattributedDetail(
 }
 
 /**
+ * Shorten a commit id to what a person is shown.
+ * @param commit - The full id
+ * @returns Its first characters
+ */
+export function shortCommit(commit: string): string {
+  return commit.slice(0, SHORT_COMMIT);
+}
+
+/**
+ * Name the files the copy took from the working copy although they are not
+ * committed.
+ * @param carried - The files that differ from the last commit
+ * @returns One sentence; none when there are no such files
+ */
+export function carriedNotes(carried: readonly string[]): readonly string[] {
+  const one = carried.length === 1;
+  return carried.length === 0
+    ? []
+    : [
+        `The copy does take ${one ? "this file" : "these files"} as ${one ? "it is" : "they are"} in your working copy, because ${one ? "it describes" : "they describe"} the checks themselves: ${carried.join(", ")}.`,
+      ];
+}
+
+/**
  * What the operator is told before the results when the working copy holds
  * work that is not committed.
  * @param commit - The commit the proofs run against
@@ -133,11 +157,7 @@ export function uncommittedNotes(
   carried: readonly string[]
 ): readonly string[] {
   return [
-    `This repository has changes that are not committed. The proofs do not use them: they run in a temporary copy of the last commit (${commit.slice(0, SHORT_COMMIT)}), which is removed afterwards. The proofs change nothing in this repository. What they find is then written here, to ${EVIDENCE_PATH}, ${CONTROL_REGISTER_PATH} and ${VERDICT_PATH}.`,
-    ...(carried.length === 0
-      ? []
-      : [
-          `The copy does take ${carried.length === 1 ? "this file" : "these files"} as ${carried.length === 1 ? "it is" : "they are"} in your working copy, because ${carried.length === 1 ? "it describes" : "they describe"} the checks themselves: ${carried.join(", ")}.`,
-        ]),
+    `This repository has changes that are not committed. The proofs do not use them: they run in a temporary copy of the last commit (${shortCommit(commit)}), which is removed afterwards. The proofs change nothing in this repository. What they find is then written here, to ${EVIDENCE_PATH}, ${CONTROL_REGISTER_PATH} and ${VERDICT_PATH}.`,
+    ...carriedNotes(carried),
   ];
 }

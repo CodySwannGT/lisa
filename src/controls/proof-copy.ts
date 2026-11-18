@@ -36,6 +36,15 @@
  * `lisa controls install-carriers` uses. Building it only reads the
  * operator's repository.
  *
+ * ## The copy with no carriers
+ *
+ * Asked for with `carriers: "none"`, the copy is left the way a fresh clone
+ * of the repository is: nothing is installed in it and no hook folder is
+ * set. Git does not copy hook settings into a clone, so in such a copy git
+ * runs no hook at commit or push. `lisa controls attest --before-enforce`
+ * uses it to show what happens to a bad change before anything is installed;
+ * see `./before-enforce-run.ts`.
+ *
  * Whoever calls {@link buildProofCopy} names the folder and removes it on
  * every way out, whatever is returned or thrown.
  * @module controls/proof-copy
@@ -115,11 +124,30 @@ export type ProofCopyBuild =
   | { readonly problem: null; readonly copy: ProofCopy }
   | { readonly problem: string };
 
-/** What building a copy needs from outside, replaceable in a test. */
+/** Whether a copy gets Lisa's carriers: the two ways one can be built. */
+export const PROOF_COPY_CARRIERS = ["installed", "none"] as const;
+
+/** One of the two ways a copy can be built. */
+export type ProofCopyCarriers = (typeof PROOF_COPY_CARRIERS)[number];
+
+/** Why git runs no carrier in a copy that was built with none. */
+export const NO_CARRIERS_REASON =
+  "no carrier was installed in the copy: it was left the way a fresh clone of this repository is";
+
+/** How a copy is built, and what building it needs from outside. */
 export interface ProofCopyDependencies {
-  /** Installs the carriers in the copy. */
+  /** Installs the carriers in the copy. Replaceable in a test. */
   readonly install?: typeof installCarriers;
+  /**
+   * `installed`, the default, installs the commit and push carriers in the
+   * copy. `none` installs nothing and sets no hook folder, so the copy is
+   * wired exactly as a fresh clone of the repository is.
+   */
+  readonly carriers?: ProofCopyCarriers;
 }
+
+/** Per moment, why git runs no carrier in a copy; `null` where it runs one. */
+type Unwired = ProofCopy["unwired"];
 
 /** One git command of the build, and what it is for. */
 interface Step {
@@ -327,9 +355,7 @@ function baseCommit(
  * @returns The installer's reason for each moment, or `null` where git runs
  *   one
  */
-function unwiredMoments(
-  result: CarrierResult
-): Readonly<Record<CarrierMoment, string | null>> {
+function unwiredMoments(result: CarrierResult): Unwired {
   const reasonAt = (moment: CarrierMoment): string | null => {
     const point = result.enforcement_points.find(
       candidate => candidate.moment === moment
@@ -341,12 +367,45 @@ function unwiredMoments(
 }
 
 /**
+ * Install the carriers in the copy, unless it is to be left as a fresh clone
+ * is.
+ * @param clone - The copy's working copy
+ * @param dependencies - How the copy is built
+ * @returns Per moment, why git runs no carrier there; or why none could be
+ *   installed
+ */
+async function wireCopy(
+  clone: string,
+  dependencies: ProofCopyDependencies
+): Promise<
+  | { readonly problem: null; readonly unwired: Unwired }
+  | { readonly problem: string }
+> {
+  if (dependencies.carriers === "none") {
+    return {
+      problem: null,
+      unwired: { commit: NO_CARRIERS_REASON, push: NO_CARRIERS_REASON },
+    };
+  }
+  const installed = await (dependencies.install ?? installCarriers)(
+    clone,
+    {},
+    { git: copyCarrierGit() }
+  );
+  return installed.problems === null
+    ? { problem: null, unwired: unwiredMoments(installed.result) }
+    : {
+        problem: `The commit and push carriers could not be installed in the temporary copy, so no proof was run: ${installed.problems.join(" ")}`,
+      };
+}
+
+/**
  * Build the disposable copy of a repository in a folder that does not exist
  * yet.
  * @param root - Real path of the operator's repository
  * @param folder - The folder to create; the caller removes it on every way
  *   out
- * @param dependencies - Replaceable collaborators
+ * @param dependencies - How the copy is built, and replaceable collaborators
  * @returns The copy, or why no proof can be run
  */
 export async function buildProofCopy(
@@ -380,16 +439,8 @@ export async function buildProofCopy(
   if (cloned !== null) return { problem: cloned };
   const carried = await carryFiles(root, layout.clone, paths.paths);
   if (carried.problem !== null) return carried;
-  const installed = await (dependencies.install ?? installCarriers)(
-    layout.clone,
-    {},
-    { git: copyCarrierGit() }
-  );
-  if (installed.problems !== null) {
-    return {
-      problem: `The commit and push carriers could not be installed in the temporary copy, so no proof was run: ${installed.problems.join(" ")}`,
-    };
-  }
+  const wired = await wireCopy(layout.clone, dependencies);
+  if (wired.problem !== null) return wired;
   const based = baseCommit(layout);
   if (based.problem !== null) return based;
   return {
@@ -399,7 +450,7 @@ export async function buildProofCopy(
       base: based.base,
       carried: carried.carried,
       source: read.source,
-      unwired: unwiredMoments(installed.result),
+      unwired: wired.unwired,
     },
   };
 }
