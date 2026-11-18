@@ -284,10 +284,55 @@ entry:
 result: its own `rung` when it has one, `exercised` for a commit or push
 result whose halves were run, and `null` when nothing was obtained.
 
+### What is written down
+
+What the platform said goes into `.lisa/controls/evidence.json` with the
+rest of the run, as records at the `pull-request` moment
+(`pull-request-evidence.ts`). Each point gives one record per requirement its
+entry serves, at the `observed` rung:
+
+| the settings say | record's `result` | `reason` |
+| --- | --- | --- |
+| every check of the entry is required | `held` | `observed-required` |
+| a check of the entry is not required | `failed` | `observed-not-required` |
+| nothing, because they were not read | `unknown` | `merge-protection-unread`, `platform-not-reached` |
+| nothing, because the platform was not asked | no record | |
+
+An entry whose canaries were run also gets one record per half per
+requirement, at the `exercised` rung, with `result` decided the way a commit
+or push half is. A canary half is handed to the writer from this one place:
+the batch made from the run's `entries` takes commit and push halves only.
+
+So after a default run a requirement that accepts `observed` evidence reads
+conforming when the platform requires the entry's check, a requirement that
+needs `exercised` evidence reads `unknown`, and a check the platform does not
+require reads non-conforming. After a passing canary run both read
+conforming. See [evidence and the verdict](evidence-and-verdict.md).
+
+A run that was asked for canaries replaces everything on record for every
+pull-request entry. A run that only read the settings leaves an entry's
+records alone, writing nothing new about it, while the evidence file holds
+an answer a canary gave for it (a half that held or failed), every record of
+the entry at this moment is still within its lifetime, and the settings did
+not say today that its check is not required. Reading a setting plants
+nothing, so it does not take the place of a canary proof that is still
+current. When the settings say the check is no longer required, the `failed`
+record replaces the earlier proof.
+
+The register's `status: "unproved"` mark is read from these records too, but
+no run can clear it yet. The mark is carried only by an entry whose
+pull-request check runs from a file Lisa did not write, on a platform other
+than github.com, and canaries are opened on github.com only. Such an entry
+gets an `unknown` observed record (`platform-not-reached`) and no half.
+
 ## Where the changes are planted
 
-A proof changes files, and it must never change the operator's own. The
-runner therefore touches no folder itself. It is handed a workspace:
+A proof changes files, and it must never change the operator's own. What the
+proofs find is a different matter: when they have run, the command writes it
+into the operator's repository, to three files under `.lisa/controls/` and
+nothing else (see "Exit codes").
+
+The runner therefore touches no folder itself. It is handed a workspace:
 
 ```ts
 interface ProofWorkspace {

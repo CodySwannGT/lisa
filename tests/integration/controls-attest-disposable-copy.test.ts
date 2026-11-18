@@ -3,11 +3,17 @@
  * a repository that has work in progress (CodySwannGT/lisa#4996).
  *
  * The promise under test: an operator can run the command in a repository
- * with uncommitted work and a stash, and afterwards the working tree, the
- * index, the refs, the stash and the checkout's own git settings are exactly
- * as they were, and nothing is left in the temporary folder. That holds for
- * a run that finishes and for one that is stopped by a signal part-way
- * through a proof.
+ * with uncommitted work and a stash, and the proofs change nothing there.
+ * Afterwards the index, the refs, the stash, the checkout's own settings and
+ * every path of the working tree are exactly as they were, and nothing is
+ * left in the temporary folder.
+ *
+ * A run that finishes then writes its results, to three files and no
+ * others: the evidence, the control register and the verdict, under
+ * `.lisa/controls/` (CodySwannGT/lisa#4998). So after such a run everything
+ * is identical except those three paths, which are named one by one. A run
+ * stopped by a signal part-way through a proof writes none of them, and the
+ * repository is identical with no exception.
  */
 import { spawn } from "node:child_process";
 import {
@@ -41,6 +47,8 @@ import {
 } from "../helpers/io-latency-budget.js";
 import { operatorEnv } from "../support/carrier-install.js";
 import {
+  ATTEST_RESULT_FILES,
+  pathStandings,
   repositoryState,
   withUncommittedWork,
   type RepositoryState,
@@ -213,7 +221,7 @@ afterEach(() => {
 });
 
 describe("built lisa controls attest with no --workspace", () => {
-  it("proves through a real commit and a real push and leaves the repository exactly as it was", () => {
+  it("proves through a real commit and a real push and changes nothing in the repository but the three files of results", () => {
     const where = setting(() => AT_COMMIT_AND_PUSH);
 
     const child = boundedSpawnSync({
@@ -241,7 +249,17 @@ describe("built lisa controls attest with no --workspace", () => {
     expect(child.stderr).toContain(
       "attest: note. This repository has changes that are not committed. The proofs do not use them"
     );
-    expect(repositoryState(where.repoPath)).toEqual(where.before);
+    // Index, refs, stash, settings and every path but the three named ones
+    // are as they were. `before` was taken with nothing left out, so this
+    // also says none of the three was there to begin with.
+    expect(
+      repositoryState(where.repoPath, { except: ATTEST_RESULT_FILES })
+    ).toEqual(where.before);
+    expect(pathStandings(where.repoPath, ATTEST_RESULT_FILES)).toEqual({
+      ".lisa/controls/evidence.json": "untracked",
+      ".lisa/controls/register.json": "untracked",
+      ".lisa/controls/verdict.json": "untracked",
+    });
     expect(readdirSync(where.tmp)).toEqual([]);
   });
 
@@ -265,7 +283,12 @@ describe("built lisa controls attest with no --workspace", () => {
         "attest: interrupted. The temporary copy the proofs ran in was removed. Your repository was not changed."
       );
       expect(readdirSync(where.tmp)).toEqual([]);
+      // No exception here: a run that is stopped before its proofs are over
+      // has no results, so it writes none of the three files either.
       expect(repositoryState(where.repoPath)).toEqual(where.before);
+      expect(
+        Object.values(pathStandings(where.repoPath, ATTEST_RESULT_FILES))
+      ).toEqual(["missing", "missing", "missing"]);
     }
   );
 });

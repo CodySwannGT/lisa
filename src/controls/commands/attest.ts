@@ -39,7 +39,8 @@
  * nothing there. With `--pull-request-canaries` it opens real pull requests
  * under the reserved branch prefix `lisa-attest/`, reads whether the
  * platform would let each through, and removes them. It never merges one.
- * See `../pull-request-settle.ts`.
+ * See `../pull-request-settle.ts`. What the platform said is written to the
+ * evidence file with everything else; see `../pull-request-evidence.ts`.
  *
  * A proof that declares an effect outside the repository is run only with
  * `--acknowledge-external-effects`. Without it the entry is `unknown` and
@@ -65,6 +66,7 @@ import { proofRunOf, runPairedProofs } from "../proof-runner.js";
 import { loadProofTools, type ProofTools } from "../proof-tools.js";
 import type { ProofRun } from "../proof-types.js";
 import type { OpenProofWorkspace } from "../proof-workspace.js";
+import { pullRequestBatches } from "../pull-request-evidence.js";
 import {
   settlePullRequests,
   type PullRequestDependencies,
@@ -249,11 +251,16 @@ export async function runAttest(
     return ATTEST_EXIT.NOT_RUN;
   }
   const { run } = attempted;
+  const named = path.resolve(cwd, targetPath ?? ".");
+  const now = (dependencies.clock ?? (() => new Date()))();
   const recorded = await recordAttestation(
     {
-      named: path.resolve(cwd, targetPath ?? "."),
+      named,
       run,
-      now: (dependencies.clock ?? (() => new Date()))(),
+      now,
+      // What the hosting platform said about the pull-request moment; none
+      // when the register has no pull-request entry.
+      batches: pullRequestBatches(run, { root: named, now }),
     },
     dependencies
   );
@@ -317,7 +324,7 @@ export function registerAttest(
     .argument("[path]", "Project path (default: current directory)")
     .option(
       "--workspace <folder>",
-      "A copy of the repository you made, to start each check's own command in. Without it, the command makes its own temporary copy, proves each check through a real commit or push there, and removes the copy afterwards. Nothing is planted in the repository itself either way"
+      "A copy of the repository you made, to start each check's own command in. Without it, the command makes its own temporary copy, proves each check through a real commit or push there, and removes the copy afterwards. Either way the proofs change nothing in the repository itself; when they have run, the results are written to three files under .lisa/controls/: evidence.json, register.json and verdict.json"
     )
     .option(
       "--json",
