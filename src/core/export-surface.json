@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 324,
-  "$names": 2422,
+  "$modules": 326,
+  "$names": 2434,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1963,10 +1963,12 @@
     ],
     "scripts/check-self-dependency-pin.mjs": [
       "SELF_PACKAGE",
+      "awaitListed",
       "checkSelfPin",
       "compareSpec",
       "locateSelfPin",
       "main",
+      "newestInstallableVersion",
       "publishedVersionsDescending"
     ],
     "scripts/check-shell-guard-refusal-coverage.mjs": [
@@ -2706,6 +2708,10 @@
       "parseArgs",
       "validateArtifact"
     ],
+    "scripts/raise-self-dependency-pin.mjs": [
+      "main",
+      "raiseSelfPin"
+    ],
     "scripts/reconcile-release-tags.mjs": [
       "VERDICT",
       "classifyProbe",
@@ -2741,6 +2747,16 @@
       "main",
       "parseArgs",
       "summarize"
+    ],
+    "scripts/verify-self-pin-raise.mjs": [
+      "fetchRegistryIntegrity",
+      "main",
+      "mainLockfile",
+      "mainSpec",
+      "setSelfSpec",
+      "verifyLockfileMatch",
+      "verifySelfLockEntry",
+      "verifySelfPinRaise"
     ],
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs": [
       "ABSOLUTE_MAX_API_ATTEMPTS",

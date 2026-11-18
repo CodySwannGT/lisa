@@ -2677,7 +2677,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-security-floors.mjs":
       "a1abe6d2cbbef9243b9687c73d5c4497c069bc8d714e34be7375805fadbc4721",
     "scripts/check-self-dependency-pin.mjs":
-      "f517c44a1058a87051b6bb9520e8596a37521f475ca67e0d47159163999ff692",
+      "caf6e33adc6bb620ccdaf674153eb2d2abdb41e593baafdf5851da61eecdd6f9",
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "82bc9fbd7537cfc30d359d75e4ce86efbcea6455d4854c8d1273a445feae253c",
     "scripts/check-shipped-surface-removals.mjs":
@@ -2984,6 +2984,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "b688c899549cfcd10660c0154f01e5bedb9d1baaaa27958c9d8f436bc45c87e6",
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
+    "scripts/push-self-pin-raise.sh":
+      "8a8b16f992f8382ee0f6d953a2a5d0b17939ee42121d8e4165170c5f0432de80",
+    "scripts/raise-self-dependency-pin.mjs":
+      "21375610a30c8caf01603cf90b6ecb3fa797bf4cbed7be2a55d3a389de881770",
     "scripts/reconcile-release-tags.mjs":
       "038e97bad361e1653f7c8d9842ab371d2dde62f02dc85c4e326a1b5aca06b178",
     "scripts/remedy-conformance.mjs":
@@ -3001,7 +3005,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "86faeaed40bc1db927cb5824c29397fb1d3e1f8b12d0d7a3065a34e900ec224f",
+      "9a49aa48e77367296d674537eef8e00a0a60f772d42d08fa45b79651b316e0fa",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3026,6 +3030,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2227b32f3b3dc2dc6817a60b4998b64881c03e30ecd15cb52b6d6f95a5870613",
     "scripts/verify-rails-tooling.rb":
       "5e7a52c1929c9eba873d2fc1f0baa1cc684e9913d4b27c5c42819bb1ac0539cf",
+    "scripts/verify-self-pin-raise.mjs":
+      "adbe5a8e66ffaf6ecdfae5812fe08cbd6fbcb377c80c6752fcc284eb4ffe8768",
     "scripts/workflow-contract-assertion.sh":
       "191b5e766e1defb3bee3befbc8354abd9a46d3989eede7a420cd8893885df137",
     "tsconfig/base.json":
@@ -3320,6 +3326,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/release.yml": true,
     ".github/workflows/review-evidence.yml": true,
     ".github/workflows/security-floors.yml": true,
+    ".github/workflows/self-pin-raise.yml": true,
     ".github/workflows/sentry-deploy.yml": true,
     ".github/workflows/third-party-review-evidence.yml": true,
     ".github/workflows/workflow-load-failure-sweep.yml": true,
@@ -10975,6 +10982,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/plugin-parity-drift.mjs": true,
     "scripts/plugin-routing-validate.mjs": true,
     "scripts/probes/wave3-verification.sh": true,
+    "scripts/push-self-pin-raise.sh": true,
+    "scripts/raise-self-dependency-pin.mjs": true,
     "scripts/reconcile-release-tags.mjs": true,
     "scripts/remedy-conformance.mjs": true,
     "scripts/remote-agent-aws-setup.sh": true,
@@ -10996,6 +11005,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/verify-packaged-apply.mjs": true,
     "scripts/verify-packed-learnings-contract.mjs": true,
     "scripts/verify-rails-tooling.rb": true,
+    "scripts/verify-self-pin-raise.mjs": true,
     "scripts/workflow-contract-assertion.sh": true,
     "sgconfig.yml": true,
     "shipped-removals.json": true,
@@ -12273,6 +12283,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/publish-npm-injection.test.ts": true,
     "tests/integration/push-collects-integration-tree-once.test.ts": true,
     "tests/integration/push-destination-inheritance.test.ts": true,
+    "tests/integration/push-self-pin-raise.test.ts": true,
     "tests/integration/quality-audit-fail-closed.test.ts": true,
     "tests/integration/quality-combined-planning.test.ts": true,
     "tests/integration/quality-declaration-required-jobs.test.ts": true,
@@ -12356,6 +12367,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/security-floors-gate.test.ts": true,
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
     "tests/integration/self-pin-drift-gate-wiring.test.ts": true,
+    "tests/integration/self-pin-raise-prepare-job.test.ts": true,
+    "tests/integration/self-pin-raise-triggers.test.ts": true,
     "tests/integration/sentry-deploy-workflow.test.ts": true,
     "tests/integration/sentry-release-config.test.ts": true,
     "tests/integration/sentry-release-name.test.ts": true,
@@ -12405,6 +12418,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/rails-partial-selector.ts": true,
     "tests/integration/support/recording-gh-stub.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
+    "tests/integration/support/self-pin-raise-jobs.ts": true,
     "tests/integration/support/shell-guard-refusal-fixture.ts": true,
     "tests/integration/support/shipped-threshold-check.ts": true,
     "tests/integration/support/signed-out-gh-stub.ts": true,
@@ -13511,6 +13525,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-pipeline-status-reads.test.ts": true,
     "tests/unit/scripts/check-probe-absence-direction.test.ts": true,
     "tests/unit/scripts/check-release-package-identity.test.ts": true,
+    "tests/unit/scripts/check-self-dependency-pin-listed.test.ts": true,
     "tests/unit/scripts/check-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/check-shell-guard-refusal-coverage.test.ts": true,
     "tests/unit/scripts/check-shipped-surface-removals.test.ts": true,
@@ -13868,6 +13883,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/push-admission.test.ts": true,
     "tests/unit/scripts/push-gate-defaults.test.ts": true,
     "tests/unit/scripts/push-timing.test.ts": true,
+    "tests/unit/scripts/raise-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/ready-queue-order-backlog.test.ts": true,
     "tests/unit/scripts/ready-queue-order-human-gate-policy.test.ts": true,
     "tests/unit/scripts/ready-queue-order-id-kinds.test.ts": true,
@@ -13937,6 +13953,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/vendored-script-defects.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
+    "tests/unit/scripts/verify-self-pin-raise.test.ts": true,
     "tests/unit/scripts/windows-process-job.test.ts": true,
     "tests/unit/scripts/work-item-accepted-proof.test.ts": true,
     "tests/unit/scripts/work-item-amended-merge-exemption.test.ts": true,
