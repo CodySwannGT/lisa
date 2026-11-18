@@ -8,6 +8,8 @@ what the check did with each.
 ```
 lisa controls attest [path] --workspace <folder>          # a table
 lisa controls attest [path] --workspace <folder> --json   # one JSON document
+lisa controls attest ... --pull-request-canaries          # exercise pull-request controls
+lisa controls attest ... --acknowledge-external-effects   # run proofs that reach outside
 ```
 
 This is the only code allowed to say a control works. It asks no model
@@ -97,9 +99,160 @@ result is the one reported. No file is touched for an entry settled here.
 | Are both patch files there? | `unproved` when one is missing; otherwise `unknown` when one is there and is a link | `half-missing`, `patch-unreadable` |
 
 A proof stands for one moment: the entry's first enforcement point at commit
-or push. An entry enforced only on pull requests is never reported as
-passing here. Whether a pull request is stopped is decided by the hosting
-platform, and that is a later step's work.
+or push. An entry enforced only on pull requests is not settled by the
+runner. Whether a pull request is stopped is decided by the hosting platform,
+and the next section says how that is asked.
+
+A proof that declares `proof.external_effects` runs only when the operator
+passes `--acknowledge-external-effects`. Without it the entry is `unknown`
+and the declared effect is quoted, at commit, at push and for a canary alike.
+
+## The pull-request moment
+
+Nothing that runs in a checkout can say whether a pull request would be
+stopped. The hosting platform says, and there are two ways to ask it. Each
+result carries a `rung` that says which was used.
+
+| rung | how the result was obtained | creates anything |
+| --- | --- | --- |
+| `observed` | The platform's merge-protection settings were read. | No |
+| `exercised` | Two canary pull requests were opened, one per half, and the platform said whether each could be merged. | Yes, and removes it |
+
+### By default: read the settings, create nothing
+
+Without `--pull-request-canaries` the command sends reads only. It reads the
+settings through the same functions `lisa controls protect` reads them with
+(`pull-request-observe.ts`), and for each entry that is enforced on pull
+requests it records whether the platform requires the entry's check on the
+protected branch. Reading a setting is not a proof, so a result at this rung
+is never `passed`:
+
+| the settings say | `observed` | result | reason |
+| --- | --- | --- | --- |
+| Every check that proves the entry is required. | `required` | `unproved` | `observed-required` |
+| A check that proves the entry is not required. | `not-required` | `failed` | `observed-not-required` |
+| Nothing: they could not be read. | `unknown` | `unknown` | `merge-protection-unread` |
+| Nothing: the repository is not on github.com. | `unknown` | `unknown` | `platform-not-reached` |
+| Not asked: the entry is advisory, or optional on pull requests. | `not-asked` | `unproved` | `not-asked-of-platform` |
+| Not asked: the entry reports no check on a pull request. | `not-asked` | `unproved` | `no-check-derived` |
+
+The requests, in order: `GET repos/{owner}/{name}/rulesets`, one
+`GET .../rulesets/{id}` per branch ruleset, `GET repos/{owner}/{name}`. A
+repository that is not on github.com is asked nothing.
+
+### With `--pull-request-canaries`: open, read, remove
+
+A canary is a branch and a pull request made only to be read and removed.
+Only an entry that is enforced on pull requests and **not** at commit or
+push, and whose check the platform already requires, gets canaries: one
+carrying its violating change and one carrying its clean change. An entry
+passes only when the platform would not let the violating canary through
+because the entry's own required check failed on it, and the same check
+passed on the clean canary.
+
+**A canary is never merged.** Every canary request goes through one door
+(`canary-door.ts`) that knows a short closed list of writes: create a blob,
+a tree or a commit; create a branch under `lisa-attest/`; open a pull request
+whose head is under `lisa-attest/`; change a pull request by exactly
+`{"state": "closed"}`; delete a branch under `lisa-attest/`. Anything else is
+refused without being sent. The door has no rule a merge could match, and no
+rule that touches a branch outside the prefix.
+
+What the platform is asked about a canary is its `mergeable` and
+`mergeable_state`, and what each of the entry's checks concluded on the
+canary commit. The checks are read because the platform's one word covers
+everything at once: a draft is always `draft`, and a repository that requires
+a review holds every pull request at `blocked`. A half is decided by the
+entry's own checks:
+
+| the platform showed | the half | reason |
+| --- | --- | --- |
+| One of the entry's required checks failed. | `rejected` | `rejected-as-declared` |
+| ... but it reports the pull request as mergeable anyway (`clean`, `unstable`, `has_hooks`). | `accepted` | `accepted` |
+| Every one of the entry's checks passed. | `accepted` | `accepted` |
+| A check had not reported at the time limit. | `unknown` | `timed-out` |
+| A check was cancelled. | `unknown` | `killed` |
+| A check was skipped, or neither passed nor failed. | `unknown` | `nothing-measured` |
+| The canary could not be built from the patch. | `unknown` | `patch-not-applied` |
+| The branch or the pull request could not be created. | `unknown` | `not-started` |
+
+The steps, each of which can only narrow what the run may do:
+
+1. **The platform.** Canaries are opened on github.com only. Anywhere else
+   nothing is asked, nothing is created, and the entry stays at the
+   `observed` rung.
+2. **Write access, learned by reading.** `GET repos/{owner}/{name}` says
+   whether the signed-in account has the `push` permission. Unless it says
+   yes, nothing is created and the entry is `unknown`
+   (`canary-permission-missing`), naming the access that is needed.
+3. **The sweep.** Canaries an earlier run left behind are removed; see below.
+4. **The base.** The head of the protected branch is read. It is read again
+   at the end, and both are kept in `pull_request.base_head`.
+5. **Each half, one at a time.** The canary commit is the head of the
+   protected branch with the half's patch applied, built through the
+   platform's object API and never pushed from a checkout. The branch is
+   created, the pull request is opened as a draft (as an ordinary pull
+   request where the repository is not offered drafts), the answer is waited
+   for no longer than the half's time limit, and the pull request is closed
+   and the branch deleted before the next half begins.
+
+A canary branch is named `lisa-attest/<run>/<made>-<number>-<half>`: the run's
+identifier, the time the canary was made in UTC to the second, its number in
+the run, and `violation` or `clean`. Its pull request is titled
+`[lisa-attest] <entry> <half> half (do not merge)` and says in its
+description what it is and that it must not be merged.
+
+### Canaries are removed however the run ends
+
+| the run ends because | what removes the canary |
+| --- | --- |
+| A half finished or failed. | The half itself, before the next begins. |
+| Something threw. | The half, and again the run, in a `finally`. |
+| The process was told to stop (`SIGINT`, `SIGTERM`, `SIGHUP`). | A handler, before it lets the signal end the process. |
+| The process was killed outright. | The sweep at the start of the next run that opens canaries. |
+
+A branch is tracked for removal before the request that creates it is sent.
+Deleting the branch is tried even when closing the pull request failed,
+because the platform closes a pull request whose branch is gone. What could
+not be removed is in the canary's record (`cleanup_problem`).
+
+**The sweep never guesses.** It removes a branch under `lisa-attest/` only
+when its name says another run made it more than two hours ago
+(`canary_lifetime_seconds`). No run keeps a canary open longer than one
+half's time limit, which is at most thirty minutes, so a canary that old
+belongs to no run that is still going. A younger one is left alone: it may
+be a concurrent run's. So is a branch whose name does not say when it was
+made.
+
+### Where the results go
+
+A run still holds exactly one result per register entry.
+
+- An entry enforced on pull requests and not at commit or push gets its one
+  result from the platform. In `entries` it has `moment: "pull-request"` and
+  a `rung`.
+- An entry enforced at commit or push and also on pull requests keeps the
+  result its local proof gave it, unchanged and with no `rung` of its own.
+  What was read about its pull-request point is an additional result, at the
+  `observed` rung, in `pull_request.points` only. It is not exercised a
+  second time.
+
+`pull_request` is added to the run whenever the register has a pull-request
+entry:
+
+| key | holds |
+| --- | --- |
+| `mode` | `observed` or `canaries`. |
+| `platform`, `branch` | Where the repository is hosted and the protected branch that was read. |
+| `points` | One per entry with a pull-request enforcement point: the entry result's keys, plus `rung` (always), `settles_entry` (whether it is the entry's one result), `observed`, `checks` and `completed_at`. |
+| `run_id`, `permission`, `sweep`, `base_head` | What canary mode did; `null` otherwise. |
+| `canaries` | One record per canary: its branch, pull request, commit, what the platform said, and whether it was removed. |
+| `requests` | Every request, in order, each `{ method, path, sent }`. |
+| `canary_lifetime_seconds` | How old a canary must be before a later run removes it. |
+
+`rungOf(entry)` in `pull-request-types.ts` gives the rung of any entry
+result: its own `rung` when it has one, `exercised` for a commit or push
+result whose halves were run, and `null` when nothing was obtained.
 
 ## Where the changes are planted
 
@@ -143,7 +296,8 @@ Results are plain data, so a later step can write them down as evidence
 without asking the runner anything.
 
 Per entry: `entry_id`, `gate`, `scope`, `criteria`, `moment`, `outcome`,
-`failed_halves`, `reason`, `detail`, `time_limit_seconds`, `halves`.
+`failed_halves`, `reason`, `detail`, `time_limit_seconds`, `halves`, and
+`rung` on an entry the hosting platform settled.
 
 Per half that was run: `entry_id`, `half` (`violation` or `clean`), `moment`,
 `patch`,
@@ -151,8 +305,13 @@ Per half that was run: `entry_id`, `half` (`violation` or `clean`), `moment`,
 `exit_status`, `started_at`, `completed_at`, `output_excerpt`,
 `output_truncated`, `matched_lines`, `outcome`, `reason`, `detail`.
 
-The whole run: `schema_version`, `passed`, `counts`, `entries`. `passed` is
-true only when there is at least one entry and every entry passed.
+A canary half has the same keys. Its `moment` is `pull-request`, its
+`command` and `exit_status` are `null`, and its `output_excerpt` holds what
+the platform said.
+
+The whole run: `schema_version`, `passed`, `counts`, `entries`, and
+`pull_request` when the register has a pull-request entry. `passed` is true
+only when there is at least one entry and every entry passed.
 
 ## Why two runs agree
 
@@ -166,6 +325,11 @@ true only when there is at least one entry and every entry passed.
 Two runs therefore differ only in `started_at` and `completed_at`, as long as
 the checks themselves print the same thing twice.
 
+That holds for commit and push. A pull-request result is what the hosting
+platform said at the time, reached through the `gh` command, so it changes
+when the platform's settings do. A canary run also differs in its run
+identifier, its branch names and its pull-request numbers.
+
 ## Time limits
 
 One half may run for `proof.timeout_seconds`. With none declared it gets
@@ -173,6 +337,10 @@ thirty minutes, the time the same command has when the gate runs it, and a
 declared limit above thirty minutes is held to thirty. A half still running
 at its limit is stopped with its whole process tree and reported
 `timed-out`.
+
+A canary half has the same limit. It is how long the command waits for the
+entry's check to report on the canary, looking every fifteen seconds; at the
+limit the canary is closed and the half is `timed-out`.
 
 ## Exit codes
 
@@ -182,4 +350,6 @@ at its limit is stopped with its whole process tree and reported
 | 1 | The proofs ran and some entry did not pass, or the register has no entries. |
 | 2 | There are no results: the path is not a folder, the gates declaration was refused, no disposable copy was named, or the run could not finish. |
 
-The command writes no file.
+The command writes no file. A result at the `observed` rung is never
+`passed`, so a register with an entry enforced only on pull requests exits 1
+unless that entry was exercised with canaries and passed.
