@@ -2626,6 +2626,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "bcd527d98010cc77e544a4e71933a9d559e2064bfa836bf00453eaad8d23e222",
     "scripts/build-unless-marked.mjs":
       "8514c8aa1908efca45b40076590e7c493fd39e9bfe3ae96a123253c20b1d5e0f",
+    "scripts/check-control-command-parity.mjs":
+      "0375962c73153db6e93a7aaa12705bccc2db86bced22b84b44ce567a9494cc42",
     "scripts/check-cwd-resolution-corpus.mjs":
       "4f35dca2c3d42806e24211e7455d9aa64980eb1805416f0bbd63eaa8e981da91",
     "scripts/check-deletion-basis.mjs":
@@ -2784,6 +2786,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a37de43abd0c9840d0caab4e211a066c4dcf4fd76bbbf12a84b6a402300f99a1",
     "scripts/lib/codex-shared-scripts.mjs":
       "ca3809b5b496c9184fbe162bcdf2716f7e4cc0e7369ecedf42b6925f685ee1c2",
+    "scripts/lib/control-command-parity.mjs":
+      "796aea0912881051025ce6bffb02af125aedbfdd6fb662e388a458208a1d2cb8",
     "scripts/lib/dependency-tree.mjs":
       "1b35c39d95f8654ee3c46325fbb1a4170582fd98b22e1e113ac0aa2967774d2e",
     "scripts/lib/gitattributes-merge-drivers.mjs":
@@ -4404,6 +4408,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "package.lisa.json": true,
     "parity/DESIGN-plugin-parity-subsystem.md": true,
     "parity/FOLLOWUPS.md": true,
+    "parity/control-commands.json": true,
     "parity/fixtures/drift/skills/code-simplifier/SKILL.md": true,
     "parity/fixtures/drift/skills/coderabbit/SKILL.md": true,
     "parity/fixtures/drift/skills/plain/SKILL.md": true,
@@ -10791,6 +10796,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scratchpad/decision-points.sh": true,
     "scripts/build-plugins.sh": true,
     "scripts/build-unless-marked.mjs": true,
+    "scripts/check-control-command-parity.mjs": true,
     "scripts/check-cwd-resolution-corpus.mjs": true,
     "scripts/check-deletion-basis.mjs": true,
     "scripts/check-delivery-deletion-conflicts.mjs": true,
@@ -10870,6 +10876,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/internal-opencode-skill-policy.json": true,
     "scripts/lib/bounded-spawn.mjs": true,
     "scripts/lib/codex-shared-scripts.mjs": true,
+    "scripts/lib/control-command-parity.mjs": true,
     "scripts/lib/dependency-tree.mjs": true,
     "scripts/lib/gitattributes-merge-drivers.mjs": true,
     "scripts/lib/history-scanner-suites.mjs": true,
@@ -13397,6 +13404,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/block-suppress-directives-plugin.test.ts": true,
     "tests/unit/opencode/command-installer.test.ts": true,
     "tests/unit/opencode/command-transformer.test.ts": true,
+    "tests/unit/opencode/control-commands-install.test.ts": true,
     "tests/unit/opencode/discharge-work-item-gates-plugin.test.ts": true,
     "tests/unit/opencode/hooks-installer-retired-files.test.ts": true,
     "tests/unit/opencode/hooks-installer.test.ts": true,
@@ -13416,9 +13424,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/support/filing-parity.ts": true,
     "tests/unit/plugins/block-suppress-directives.test.ts": true,
     "tests/unit/plugins/container-view-pattern-parity.test.ts": true,
+    "tests/unit/plugins/control-command-differences.test.ts": true,
+    "tests/unit/plugins/control-command-parity-cli.test.ts": true,
+    "tests/unit/plugins/control-command-parity.test.ts": true,
     "tests/unit/plugins/description-length-budget.test.ts": true,
     "tests/unit/plugins/hook-registration-agreement.test.ts": true,
     "tests/unit/plugins/hook-registration.test.ts": true,
+    "tests/unit/plugins/support/control-command-fixture.ts": true,
     "tests/unit/plugins/support/hook-registration-fixture.ts": true,
     "tests/unit/scripts/absent-required-checks-by-branch.test.ts": true,
     "tests/unit/scripts/absent-required-checks.test.ts": true,
