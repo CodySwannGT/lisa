@@ -175,6 +175,7 @@ describe("a planted ./git in the repository is never run", () => {
     );
     // Control: the bare name WOULD have run the planted file from that cwd.
     const bare = boundedSpawnSync({
+      label: "bare-name git from a repository with . on PATH",
       command: "/bin/sh",
       args: ["-c", "git status"],
       cwd: repo,
