@@ -22,7 +22,7 @@
  * registry resolves it today.
  * @module controls/register
  */
-import { canonicalize, compareCodeUnits } from "./canonical-json.js";
+import { canonicalFileText, compareCodeUnits } from "./canonical-json.js";
 import {
   loadCriterionCatalogue,
   type CriterionCatalogue,
@@ -164,7 +164,7 @@ export function buildControlRegister(
  * @returns The file content
  */
 export function serializeControlRegister(register: ControlRegister): string {
-  return `${JSON.stringify(canonicalize(register), null, 2)}\n`;
+  return canonicalFileText(register);
 }
 
 /** What generating needs from outside, each replaceable in a test. */

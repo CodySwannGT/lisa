@@ -19,7 +19,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { pathKind } from "./audit-report-file.js";
-import { canonicalize, compareCodeUnits } from "./canonical-json.js";
+import { canonicalFileText, compareCodeUnits } from "./canonical-json.js";
 import { blockedFolder, fileEdit, fileState } from "./carrier-edits.js";
 import {
   CARRIER_HOOKS_FOLDER,
@@ -49,7 +49,7 @@ export function carrierRecordText(files: readonly string[]): string {
     files: [...files].sort(compareCodeUnits),
     schema_version: CARRIER_SCHEMA_VERSION,
   };
-  return `${JSON.stringify(canonicalize(record), null, 2)}\n`;
+  return canonicalFileText(record);
 }
 
 /** The files an earlier run recorded, or why the record cannot be used. */

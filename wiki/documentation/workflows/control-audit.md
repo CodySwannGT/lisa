@@ -112,7 +112,7 @@ Then `lisa controls enforce-report` gives every requirement exactly one outcome.
 | `wired` | A declared check serves it, and something now runs that check everywhere enforce is answerable for. |
 | `ticketed` | The repository has nothing for it, and a ticket exists. |
 | `blocked` | Somebody has to act first. The reason says who and what. |
-| `nothing-to-enforce` | Nothing to install, file or wait for: it does not apply, or it is met by a written record or a person's word. |
+| `nothing-to-enforce` | Nothing to install, file or wait for: it does not apply, it is met by a written record or a person's word, or it is a check a supported project type ships where enforce cannot look. A declared check that nothing runs yet is never here: it is `blocked` until configure says when it runs. |
 
 The report also lists every required check that fails on the default branch as it stands today, with what it printed. Enforce fixes nothing and adds no check of its own.
 
@@ -250,7 +250,7 @@ Each of these is something an operator will meet. They are stated here so that a
 
 **Merge protection is changed only when asked, and only with permission.** `lisa controls protect` reads and writes a handover for an administrator. It changes a setting only with `--apply`, only on GitHub, and only after a read confirms the signed-in account administers the repository. The enforce step never adds `--apply` on its own.
 
-**Only rulesets are read.** A check required through a classic branch protection rule is enforced by the platform and is still reported here as not required. The handover asks for a ruleset and says why.
+**Only rulesets are read.** A check required through a classic branch protection rule is enforced by the platform, and `lisa controls protect` still reports it as not required; the handover asks for a ruleset and says why. `lisa controls reconcile --platform` does not call such a check missing: where no ruleset governs the branch it reports the point as not read.
 
 **Edit-time enforcement differs by coding agent.**
 
