@@ -7,7 +7,6 @@
  * 2. the patched matcher gives upstream's answer for every pattern it rewrites;
  * 3. each patch header's hash is the patched file, and hosts get the same bytes.
  */
-import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -16,6 +15,11 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { readAdvisoryPatches } from "../../../src/core/audit-patches.js";
 import { resolveGit } from "../../support/git-executable.js";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 
 /** The matcher surface these tests use. */
 interface Picomatch {
@@ -47,7 +51,12 @@ const installed = (version: string) =>
 function upstream(version: string, file: string): string {
   const dir = join(scratch, `picomatch@${version}`);
   cpSync(installed(version), dir, { recursive: true });
-  execFileSync(resolveGit(), ["apply", "-R", join(ROOT, file)], { cwd: dir });
+  boundedExecFileSync({
+    label: "reverse the picomatch patch",
+    command: resolveGit(),
+    args: ["apply", "-R", join(ROOT, file)],
+    cwd: dir,
+  });
   return dir;
 }
 
@@ -57,9 +66,12 @@ function upstream(version: string, file: string): string {
  * @returns The script's exit status
  */
 const regression = (...dirs: string[]) =>
-  spawnSync(process.execPath, [SCRIPT, "--budget=3000", ...dirs], {
+  boundedSpawnSync({
+    label: "run the picomatch regression script",
+    command: process.execPath,
+    args: [SCRIPT, "--budget=3000", ...dirs],
     cwd: ROOT,
-    encoding: "utf8",
+    baseMs: 6000,
   }).status;
 
 /**
@@ -134,43 +146,51 @@ describe("picomatch GHSA-fc5q-39xc-vjpf patch", () => {
     describe(`picomatch@${patch.version}`, () => {
       const pristine = upstream(patch.version, patch.file);
 
-      it("fails the regression script unpatched and passes it patched", () => {
-        expect(regression(pristine)).toBe(1);
-        expect(regression(installed(patch.version))).toBe(0);
-      }, 30_000);
+      it(
+        "fails the regression script unpatched and passes it patched",
+        () => {
+          expect(regression(pristine)).toBe(1);
+          expect(regression(installed(patch.version))).toBe(0);
+        },
+        ioLatencyBudgetMs(30_000)
+      );
 
-      it("matches what upstream matches for every rewritten pattern", () => {
-        const load = (dir: string) =>
-          createRequire(join(dir, "index.js"))(dir) as Picomatch;
-        const before = load(pristine);
-        const after = load(installed(patch.version));
-        const strings = inputs();
-        const results = OPTIONS.flatMap(options =>
-          FORMS.map(form => {
-            const old = before.makeRe(form, options);
-            const now = after.makeRe(form, options);
-            if (old.source === now.source) return "unchanged";
-            if (/\\[+*]\\\(/u.test(now.source)) return "literal";
-            return strings.every(value => old.test(value) === now.test(value))
-              ? "same"
-              : `mismatch: ${form} ${JSON.stringify(options)}`;
-          })
-        );
-        // Every form is rewritten except the two new literals, `*|a` and
-        // `**|a` (literal upstream already) and `?*` (upstream does not parse
-        // `+(?` as an extglob).
-        expect(results.filter(result => result === "same")).toHaveLength(
-          OPTIONS.length * 2 * 6 * (BODIES.length - 5)
-        );
-        expect(results.filter(result => result.startsWith("mismatch"))).toEqual(
-          []
-        );
-        // Only the mixed-star shapes, which have no equivalent flat form,
-        // become literals, as other risky repeated extglobs already do.
-        expect(results.filter(result => result === "literal")).toHaveLength(
-          OPTIONS.length * 2 * 6 * 2
-        );
-      }, 60_000);
+      it(
+        "matches what upstream matches for every rewritten pattern",
+        () => {
+          const load = (dir: string) =>
+            createRequire(join(dir, "index.js"))(dir) as Picomatch;
+          const before = load(pristine);
+          const after = load(installed(patch.version));
+          const strings = inputs();
+          const results = OPTIONS.flatMap(options =>
+            FORMS.map(form => {
+              const old = before.makeRe(form, options);
+              const now = after.makeRe(form, options);
+              if (old.source === now.source) return "unchanged";
+              if (/\\[+*]\\\(/u.test(now.source)) return "literal";
+              return strings.every(value => old.test(value) === now.test(value))
+                ? "same"
+                : `mismatch: ${form} ${JSON.stringify(options)}`;
+            })
+          );
+          // Every form is rewritten except the two new literals, `*|a` and
+          // `**|a` (literal upstream already) and `?*` (upstream does not parse
+          // `+(?` as an extglob).
+          expect(results.filter(result => result === "same")).toHaveLength(
+            OPTIONS.length * 2 * 6 * (BODIES.length - 5)
+          );
+          expect(
+            results.filter(result => result.startsWith("mismatch"))
+          ).toEqual([]);
+          // Only the mixed-star shapes, which have no equivalent flat form,
+          // become literals, as other risky repeated extglobs already do.
+          expect(results.filter(result => result === "literal")).toHaveLength(
+            OPTIONS.length * 2 * 6 * 2
+          );
+        },
+        ioLatencyBudgetMs(60_000)
+      );
 
       it("declares the hash of the file the patch produces", () => {
         const [file] = patch.files;

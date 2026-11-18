@@ -67,6 +67,8 @@ export const PUBLIC_ORGS: readonly string[] = [
   "prettier",
   "vitest-dev",
   "jestjs",
+  // Upstream of picomatch, which Lisa patches and links a fix PR for.
+  "micromatch",
   "typescript-eslint",
   "biomejs",
   "astral-sh",
