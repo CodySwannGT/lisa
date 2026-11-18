@@ -156,6 +156,7 @@ describe("a run that is killed outright", () => {
     const platform = canaryPlatform();
     const left = await killedMidProof(platform);
     expect(platform.pulls().map(pull => pull.state)).toEqual(["open"]);
+    const sent = platform.log.length;
 
     const settled = await settleWithCanaries(PULL_ONLY_GATES, platform, {
       inputs: { clock: steppingClock(after(CANARY_LIFETIME_SECONDS + 60)) },
@@ -167,6 +168,17 @@ describe("a run that is killed outright", () => {
       kept: [],
       problems: [],
     });
+    // The stale pull request is closed, then its branch is deleted.
+    expect(
+      platform.log
+        .slice(sent)
+        .filter(request => request.method !== "GET")
+        .slice(0, 2)
+        .map(request => `${request.method} ${request.path}`)
+    ).toEqual([
+      "PATCH repos/example-owner/example-repo/pulls/1",
+      `DELETE repos/example-owner/example-repo/git/refs/heads/${left}`,
+    ]);
     expect(entryOf(settled, PULL_ONLY_ENTRY).outcome).toBe("passed");
     // Zero canaries older than the lifetime remain, and none at all.
     expectNothingLeft(platform);

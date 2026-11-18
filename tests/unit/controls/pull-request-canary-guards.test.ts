@@ -127,6 +127,43 @@ describe("canaries on a platform other than GitHub", () => {
   });
 });
 
+describe("canaries when the platform cannot be read", () => {
+  it("creates nothing and is unknown, quoting what the platform answered", async () => {
+    const platform = canaryPlatform({ refuse: () => "Bad credentials" });
+
+    const settled = await settleWithCanaries(PULL_ONLY_GATES, platform);
+
+    expect(writes(platform.log)).toEqual([]);
+    expect(entryOf(settled, PULL_ONLY_ENTRY)).toMatchObject({
+      outcome: "unknown",
+      reason: "merge-protection-unread",
+      rung: "observed",
+    });
+    expect(entryOf(settled, PULL_ONLY_ENTRY).detail).toContain(
+      "Bad credentials"
+    );
+    expect(settled.pullRequest).toMatchObject({
+      permission: { can_write: null },
+      sweep: null,
+    });
+  });
+});
+
+describe("a run identifier that could not name a branch", () => {
+  it("is refused before anything is asked for canaries", async () => {
+    const platform = canaryPlatform();
+
+    await expect(
+      settleWithCanaries(PULL_ONLY_GATES, platform, {
+        dependencies: { runId: () => "Not/A Run" },
+      })
+    ).rejects.toThrow("cannot identify a run");
+
+    expect(writes(platform.log)).toEqual([]);
+    expectNothingLeft(platform);
+  });
+});
+
 describe("an entry whose canaries cannot be opened", () => {
   it("is failed from the settings alone when the platform does not require its check", async () => {
     const platform = canaryPlatform({ required: ["some other check"] });
