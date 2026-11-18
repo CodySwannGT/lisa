@@ -134,11 +134,12 @@ jobs:
   #     type-check, dependency audit), refuse if anything other than
   #     package.json and bun.lock changed, and hand those two files over as an
   #     artifact.
-  #   - `push_self_pin_raise` runs on a fresh runner, installs nothing and runs
-  #     no dependency code. It proves the candidate package.json is main's with
-  #     only the self-pin value changed (scripts/verify-self-pin-raise.mjs is
-  #     dependency-free), refuses any other changed path, and loads the deploy
-  #     key only in its final push step.
+  #   - `push_self_pin_raise` runs on a fresh runner and runs no dependency
+  #     code. It proves the candidate package.json is main's with only the
+  #     self-pin value changed (scripts/verify-self-pin-raise.mjs is
+  #     dependency-free), regenerates bun.lock itself from registry manifests
+  #     and requires it to match the tested one byte for byte, refuses any
+  #     other changed path, and loads the deploy key only in its final step.
   #
   # WHY IT CANNOT LOOP. The script raises only when the declared range can no
   # longer resolve the published version — the exact predicate the check fails
@@ -252,20 +253,44 @@ jobs:
           package-manager-cache: false
           node-version-file: '.nvmrc'
 
+      - name: '🍞 Setup Bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
       - name: Receive the raised files
         uses: actions/download-artifact@v8
         with:
           name: self-pin-raise
           path: ${{ runner.temp }}/self-pin-raise
 
-      - name: Prove only the pin line and the lockfile change
+      - name: Prove only the pin line changes in package.json
         env:
           VERSION: ${{ needs.release.outputs.version }}
           RAISED: ${{ runner.temp }}/self-pin-raise
         run: |
           node scripts/verify-self-pin-raise.mjs --base package.json --candidate "$RAISED/package.json" --version "$VERSION"
           cp "$RAISED/package.json" package.json
-          cp "$RAISED/bun.lock" bun.lock
+
+      # The prepare job's bun.lock is never pushed. It ran dependency code
+      # after its own checks, so it could have been rewritten — an entry pointed
+      # at another tarball, the patched picomatch swapped for an unpatched one.
+      # It cannot be checked entry by entry either: a major raise legitimately
+      # moves the self-dependency's transitive tree. So this job regenerates the
+      # lockfile itself from main's lockfile plus the verified package.json.
+      # `--lockfile-only` reads registry manifests only (no tarball, no
+      # node_modules, no package code), into an empty cache. The verifier then
+      # requires the TESTED lockfile to be byte-identical to the GENERATED one,
+      # and the self-dependency's entry to carry the registry's integrity for
+      # exactly the published version.
+      - name: Regenerate bun.lock and prove it is the one that was tested
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+          RAISED: ${{ runner.temp }}/self-pin-raise
+          BUN_INSTALL_CACHE_DIR: ${{ runner.temp }}/bun-manifest-cache
+        run: |
+          timeout 300 bun install --lockfile-only --ignore-scripts
+          node scripts/verify-self-pin-raise.mjs lockfile --regenerated bun.lock --candidate "$RAISED/bun.lock" --version "$VERSION"
           changed="$(git status --porcelain --untracked-files=all | sed 's/^...//' | sort)"
           if [ "$changed" != "$(printf 'bun.lock\npackage.json')" ]; then
             echo "::error::Refusing to push: the raise does not change exactly package.json and bun.lock:"
@@ -278,6 +303,7 @@ jobs:
           VERSION: ${{ needs.release.outputs.version }}
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
           REPOSITORY: ${{ github.repository }}
+          BASE_SHA: ${{ needs.prepare_self_pin_raise.outputs.base_sha }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -299,6 +325,13 @@ jobs:
             fi
             echo "::warning::Push attempt $attempt failed; rebasing onto a fresh main"
             git fetch "$remote" main
+            # The lockfile was regenerated against BASE_SHA. If main has since
+            # touched package.json or bun.lock, a rebased lockfile would be one
+            # nobody generated or tested, so refuse rather than merge it.
+            if ! git diff --quiet "$BASE_SHA" FETCH_HEAD -- package.json bun.lock; then
+              echo "::error::main changed package.json or bun.lock after the raise was computed; refusing to push a lockfile nobody regenerated. The next release recomputes it."
+              exit 1
+            fi
             if ! git -c core.hooksPath=/dev/null rebase FETCH_HEAD; then
               git rebase --abort 2>/dev/null || true
               echo "::error::Rebasing the self-pin raise onto main conflicted; package.json or bun.lock moved underneath it."

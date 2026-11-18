@@ -293,29 +293,65 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
     ).toEqual(["bun.lock", "package.json"]);
   });
 
-  it("pushes from a job that installs nothing and runs no dependency code", () => {
-    const pushRuns = runs(PUSH_JOB).join("\n");
+  it("pushes from a job whose only package-manager call reads manifests", () => {
+    const commands = runs(PUSH_JOB)
+      .flatMap(run => run.split("\n"))
+      .map(line => line.trim())
+      // A package-manager COMMAND, not the word inside `bun.lock`.
+      .filter(line => /(?:^|[\s;&|(])(?:bun|npm|npx|yarn|pnpm)\s/.test(line));
 
     expect(deployJob(PUSH_JOB).needs).toContain(PREPARE_JOB);
-    // A package-manager COMMAND, not the word inside `bun.lock`.
-    expect(pushRuns).not.toMatch(/(?:^|[\s;&|(])(?:bun|npm|npx|yarn|pnpm)\s/m);
-    expect(pushRuns).toContain("scripts/verify-self-pin-raise.mjs");
+    expect(commands).toEqual([
+      "timeout 300 bun install --lockfile-only --ignore-scripts",
+    ]);
     checkouts(PUSH_JOB).forEach(step => {
       expect(step.with?.["persist-credentials"]).toBe(false);
       expect(step.with?.["ssh-key"]).toBeUndefined();
     });
   });
 
-  it("loads the deploy key only in the final push step, after the proof", () => {
+  it("never pushes the prepare job's lockfile, only one it regenerated and matched", () => {
+    const pushRuns = runs(PUSH_JOB);
+    const regenerate = stepIndex(PUSH_JOB, "bun install --lockfile-only");
+    const step = deployJob(PUSH_JOB).steps?.[regenerate];
+    const proof = pushRuns[regenerate] ?? "";
+
+    expect(pushRuns.join("\n")).not.toContain('"$RAISED/bun.lock" bun.lock');
+    expect(proof.indexOf("bun install --lockfile-only")).toBeLessThan(
+      proof.indexOf(
+        'verify-self-pin-raise.mjs lockfile --regenerated bun.lock --candidate "$RAISED/bun.lock" --version "$VERSION"'
+      )
+    );
+    expect(
+      proof.indexOf("verify-self-pin-raise.mjs lockfile")
+    ).toBeGreaterThanOrEqual(0);
+    expect(step?.env?.BUN_INSTALL_CACHE_DIR).toContain("runner.temp");
+    expect(stepIndex(PUSH_JOB, "--base package.json --candidate")).toBeLessThan(
+      regenerate
+    );
+  });
+
+  it("refuses to rebase a lockfile onto a main that moved it", () => {
+    const push = runs(PUSH_JOB).at(-1) ?? "";
+
+    expect(push).toContain(
+      'git diff --quiet "$BASE_SHA" FETCH_HEAD -- package.json bun.lock'
+    );
+    expect(push.indexOf("git diff --quiet")).toBeLessThan(
+      push.indexOf("rebase FETCH_HEAD")
+    );
+  });
+
+  it("loads the deploy key only in the final push step, after the proofs", () => {
     const steps = deployJob(PUSH_JOB).steps ?? [];
     const last = steps.length - 1;
-    const verify = stepIndex(PUSH_JOB, "scripts/verify-self-pin-raise.mjs");
+    const lockProof = stepIndex(PUSH_JOB, "verify-self-pin-raise.mjs lockfile");
 
     expect(secretReferences(PUSH_JOB)).toEqual([`${last}`]);
     expect(steps[last]?.env?.DEPLOY_KEY).toBe(DEPLOY_KEY);
     expect(steps[last]?.run).toContain("HEAD:main");
-    expect(verify).toBeGreaterThanOrEqual(0);
-    expect(verify).toBeLessThan(last);
-    expect(runs(PUSH_JOB)[verify]).toContain("git status --porcelain");
+    expect(lockProof).toBeGreaterThanOrEqual(0);
+    expect(lockProof).toBeLessThan(last);
+    expect(runs(PUSH_JOB)[lockProof]).toContain("git status --porcelain");
   });
 });

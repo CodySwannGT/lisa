@@ -2997,7 +2997,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-rails-tooling.rb":
       "5e7a52c1929c9eba873d2fc1f0baa1cc684e9913d4b27c5c42819bb1ac0539cf",
     "scripts/verify-self-pin-raise.mjs":
-      "7c53f7e1a1c39849b857d866604df0175cf4f15ff0d0dd2e740a004ef2a1b8ce",
+      "91e3b4bfa2aedaae28dc16fca6ea85cfa8427969170c361ea48e17944e4035a7",
     "scripts/workflow-contract-assertion.sh":
       "191b5e766e1defb3bee3befbc8354abd9a46d3989eede7a420cd8893885df137",
     "tsconfig/base.json":
