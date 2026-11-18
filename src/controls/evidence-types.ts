@@ -36,6 +36,22 @@
  * the same identifier on every run, and a later run replaces the record
  * instead of adding one beside it.
  *
+ * ## What the records are bound to
+ *
+ * A verdict is about the checks as they were proved. So the file says what
+ * defined them: `checks` holds one digest, taken over the `gates` block of
+ * the declaration, the proofs' patch files, the carrier and hook files and
+ * the gate runner, and lists each thing the digest covers with its own
+ * digest (`./checks-binding.ts`). Every record carries that digest as
+ * `checks_digest`, the digest it was recorded under. A record that carries
+ * another one was not written by the run that wrote the file, and counts
+ * for nothing.
+ *
+ * `commit` on a record is information: the commit the run's copy was cloned
+ * from. Nothing is decided by it. A squash or rebase merge replaces that
+ * commit and a shallow clone never has it, and neither changes what defines
+ * the checks.
+ *
  * The published contract is the JSON Schema at
  * {@link EVIDENCE_SCHEMA_PACKAGE_PATH}; `tests/unit/controls/
  * evidence-schema.test.ts` holds this file and that one to each other.
@@ -83,19 +99,27 @@ export type EvidenceResult = (typeof EVIDENCE_RESULTS)[number];
 export type EntryEvidenceResult = Exclude<EvidenceResult, "not-applicable">;
 
 /**
- * How long a record may be relied on when nothing says otherwise: 30 days.
+ * How long a record may be relied on: 30 days, and never longer.
  *
  * The specification asks for a lifetime that is finite and no longer than
  * twelve months, and reasonable for the kind of control. A check wired into a
  * repository changes whenever its configuration does, so a month is long
  * enough that an attest run on a monthly schedule keeps a verdict current,
  * and short enough that a control nobody has run since last quarter stops
- * counting. The gates declaration cannot change it: the attest step's caller
- * can, through `freshnessSeconds`.
+ * counting. The gates declaration cannot change it. The attest step's caller
+ * can make it shorter, through `freshnessSeconds`, and nothing makes it
+ * longer: a record that claims more is relied on for this long
+ * (`evidenceExpiry` in `./evidence.ts`), so a lifetime typed into the file
+ * buys nothing.
  */
 export const DEFAULT_FRESHNESS_SECONDS = 30 * 24 * 60 * 60;
 
-/** The longest lifetime a record may be given: twelve months. */
+/**
+ * The longest lifetime a record's `freshness_seconds` may state and still be
+ * a well-formed record: twelve months, the specification's own bound. It is
+ * a bound on the format. How long a record is relied on is
+ * {@link DEFAULT_FRESHNESS_SECONDS} at most.
+ */
 export const MAX_FRESHNESS_SECONDS = 365 * 24 * 60 * 60;
 
 /** The most of a check's output a record keeps, in characters. */
@@ -152,11 +176,17 @@ export interface EvidenceRecord {
   /** The same as a sentence; on a `not-applicable` record, the fact. */
   readonly detail: string;
   /**
-   * The commit the result is about: the one the run's disposable copy was
-   * made from. A record written when nothing was cloned names the commit
-   * the repository was at; `null` when it has none.
+   * The commit the run's disposable copy was cloned from. A record written
+   * when nothing was cloned names the commit the repository was at; `null`
+   * when it has none. It is information for a reader: nothing is decided by
+   * it, and it need not exist in the clone the file is read in.
    */
   readonly commit: string | null;
+  /**
+   * The digest of what defined the checks when the record was made: the
+   * `digest` of the file's `checks` at the run that wrote it.
+   */
+  readonly checks_digest: string;
   /** What was started, one item per argument, or `null` when nothing was. */
   readonly command: readonly string[] | null;
   /** Its exit status, or `null` when nothing ran to an end. */
@@ -173,9 +203,33 @@ export interface EvidenceRecord {
   readonly output_truncated: boolean;
 }
 
+/** One thing that defines the checks, and the digest of its content. */
+export interface CoveredCheckFile {
+  /**
+   * The file, from the repository root. For `.lisa.config.json` the digest
+   * is of its `gates` block in canonical form, not of the whole file.
+   */
+  readonly path: string;
+  /** The SHA-256 digest, in lower-case hexadecimal. */
+  readonly sha256: string;
+}
+
+/** What defined the checks when a run recorded its results. */
+export interface ChecksBinding {
+  /**
+   * The SHA-256 digest of `covered` in canonical form, in lower-case
+   * hexadecimal.
+   */
+  readonly digest: string;
+  /** Everything the digest covers, ordered by `path`. */
+  readonly covered: readonly CoveredCheckFile[];
+}
+
 /** The evidence file. */
 export interface EvidenceDocument {
   readonly schema_version: typeof EVIDENCE_SCHEMA_VERSION;
+  /** What defined the checks at the run that wrote the file. */
+  readonly checks: ChecksBinding;
   /** Every record, ordered by `id`. */
   readonly records: readonly EvidenceRecord[];
 }
@@ -187,8 +241,9 @@ export interface EvidenceDocument {
  * This is the whole contract between a step that judges controls and the
  * writer: the paired-proof runner's halves are turned into it, and a step
  * that judges the pull-request moment produces it directly. The writer adds
- * everything else a record carries — the requirement, the folder, the commit
- * and the freshness lifetime — from the register and the run.
+ * everything else a record carries — the requirement, the folder, the
+ * commit, the digest of what defined the checks and the freshness lifetime
+ * — from the register and the run.
  */
 export interface EvidenceResultInput {
   /** The register entry the result is about. */

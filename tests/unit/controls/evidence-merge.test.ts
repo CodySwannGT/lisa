@@ -22,6 +22,7 @@ import {
   heldPair,
   observedRecord,
   registerOf,
+  SAMPLE_CHECKS,
 } from "./support/evidence-samples.js";
 
 const API = "code-style@api";
@@ -38,7 +39,13 @@ describe("the evidence file after a run", () => {
     records: readonly EvidenceRecord[] = [],
     batches: readonly EvidenceBatch[] = [local]
   ): readonly string[] =>
-    mergedEvidence({ earlier, register, batches, records })
+    mergedEvidence({
+      earlier,
+      register,
+      batches,
+      records,
+      checksDigest: SAMPLE_CHECKS.digest,
+    })
       .map(record => record.id)
       .sort(compareCodeUnits);
 
@@ -53,6 +60,7 @@ describe("the evidence file after a run", () => {
         register,
         batches: [local],
         records: newer,
+        checksDigest: SAMPLE_CHECKS.digest,
       })
     ).toEqual(newer);
   });
@@ -81,6 +89,7 @@ describe("the evidence file after a run", () => {
         register: onPullRequests,
         batches: [local],
         records: [],
+        checksDigest: SAMPLE_CHECKS.digest,
       }).map(record => record.id)
     ).toEqual([`${API}/pull-request/observed/SI7`]);
   });

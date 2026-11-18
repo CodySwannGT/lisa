@@ -116,14 +116,11 @@ work, and what was already changed before this run.
    Keep the list it prints. If it lists anything, tell the operator now that the proofs run
    against the last commit and not against uncommitted work.
 
-   Look in that list for the files that define the checks: `.lisa.config.json`, anything under
-   `.lisa/controls/proofs/` or `.lisa/hooks/`, `.lisa/controls/carriers.json`, and
-   `scripts/lisa-run-gates.mjs` with the files beside it. The proofs do use those as they are on
-   disk, but the evidence names the last commit, which does not hold them yet. If any is listed,
-   tell the operator this before going on: once those files are committed, the check of step 5
-   will find that the checks changed after the recorded commit and will no longer pass for anyone,
-   and the way to avoid that is for the operator to commit those files first and start this step
-   again. Then go on with whichever the operator chooses. You still commit nothing yourself.
+   The files that define the checks are the exception: `.lisa.config.json`, anything under
+   `.lisa/controls/proofs/`, `.lisa/controls/carriers.json` and the files it lists. The proofs do
+   use those as they are on disk, committed or not. The results are tied to what those files
+   hold, not to a commit, so there is no order the operator has to commit in: before the
+   results, with them or after them all work. You commit nothing yourself.
 
 For a before-enforce run, go from here to "The before-enforce run".
 
@@ -157,6 +154,20 @@ nothing wrong with its check: the two test changes were never written for it, or
 configure step writes them and has `lisa controls proof-check` confirm that they work. Send the
 operator back to `/lisa:configure` for that entry; nothing in this step can supply it.
 
+A test change has to break the check's rule, not rewrite the check. An entry is `unknown`, and
+nothing was run for it, when one of its test changes does either of these:
+
+- **It edits what the check is** (`reason` is `declaration-changed`): the file that declares the
+  checks, a hook file, the program the check's command starts, or the script or target that
+  command runs. For a check declared as `npm run lint`, `make lint` or the like, that means the
+  `scripts` in `package.json`, the Makefile or the justfile.
+- **It leaves a file where the repository ignores files** (`reason` is `ignored-path`), for
+  example under `node_modules/`. Git leaves such a file out of a commit, so the check would see
+  a file the commit does not hold.
+
+Either way the `detail` names the file. The test change has to be written again without it, and
+the configure step is where that is done.
+
 **What the exit code means, and what it does not.**
 
 | Exit | Meaning | What you do |
@@ -171,7 +182,19 @@ most requirements are not checks at all. Do not report a Level 1 result from thi
 **Read standard error on every run, whatever the exit code.** With `--json` the results are on
 standard output and anything the command has to tell a person is on standard error, one line each,
 beginning `attest:`. A run can exit 0 and still have lines there. Keep them: step 3 says what to do
-with the ones about test pull requests.
+with the ones about test pull requests. Two more kinds matter later:
+
+- **`attest: note. What defines the checks in this repository is not what the proofs ran
+  against …`** names files that are not the same here as in the copy the proofs ran in. The check
+  of step 5 will fail on exactly those files. The line says what puts each right: for a hook file
+  or the program that runs the checks, the enforce step (`/lisa:enforce`) brings this
+  repository's copy up to date; any other was changed since the last commit, and the operator
+  either commits the change or undoes it. Tell the operator, then run this step again once it is
+  put right. Do not go on to present a verdict while that line is there.
+- **`attest: note. … earlier pull-request records were made when the checks were defined
+  differently, so they were dropped …`** says an earlier run's test pull requests no longer
+  count, because the checks have changed since. Nothing is wrong. Tell the operator in step 8,
+  and that running the test pull requests again (step 3) produces those results anew.
 
 ### Step 3: Ask about the two things that need a yes
 
@@ -217,7 +240,8 @@ nothing more: the entry stays as it is, and step 8 says what was left unproved a
 pull requests, which GitHub does not merge, and it removes each one. When it could not, it says so
 on standard error, one line for each thing, naming the branch or the pull request. Pass every such
 line on to the operator in plain language, in the same message as the results, even when the run
-exited 0:
+exited 0. The command prints them when it exits 2 as well, because its results could not be
+written down or its temporary copy could not be removed: pass them on there too, before you stop.
 
 | The line says | Tell the operator |
 | --- | --- |
@@ -268,15 +292,22 @@ lisa controls attest --check
 ```
 
 It runs no proof and writes nothing. It computes the verdict again from the register and the
-evidence, at the current time, and compares it with the file. It also names the commit the proofs
-were run against, and compares the files that define the checks at that commit with the same
-files at the commit the repository is at now.
+evidence, at the current time, and compares it with the file. It also asks whether the checks
+that were proved are the checks that are here: the evidence holds a fingerprint of the content of
+every file that defines the checks, taken where the proofs ran, and the command takes the same
+fingerprint from the repository as it is now and compares the two. Those files are the `gates`
+block of `.lisa.config.json`, the test changes under `.lisa/controls/proofs/`, the hook files, the
+program that runs the checks, and the repository's own hook files that call it.
+
+It reads the files as they are and nothing from version history. So it gives the same answer in
+any copy of the repository, however that copy was made, and whatever order things were committed
+in. It prints the commit the proofs' copy was made from, for information; it never fails on it.
 
 | Exit | Meaning | What you do |
 | --- | --- | --- |
-| 0 | The verdict file is exactly what the register and the evidence give today, and the files that define the checks are as they were at the commit the evidence names. | Go on to step 6. |
-| 1 | The files do not agree, the evidence has gone out of date, or a file that defines the checks has changed since the commit the evidence names. Each line printed is one difference. | **Present no verdict.** Run step 2 again, once, then this step again. If it still differs, stop and tell the operator the files do not agree and what the differences are. |
-| 2 | Nothing could be compared. That includes a clone that does not have the commit the evidence names, such as a shallow clone: the line printed says so and how to fetch the history. | **Present no verdict.** Tell the operator why. |
+| 0 | The verdict file is exactly what the register and the evidence give today, and what defines the checks is what the proofs ran against. | Go on to step 6. |
+| 1 | The files do not agree, the evidence has gone out of date, a file that defines the checks is not what the proofs ran against, or the evidence was written by an older Lisa that did not record that fingerprint. Each line printed is one difference, and names the file. | **Present no verdict.** Run step 2 again, once, then this step again. If it still differs, stop and tell the operator what the differences are. A file that keeps differing is one of the files a line of step 2 named: what that line says puts it right. |
+| 2 | Nothing could be compared: the folder is not a repository's root, or the declaration of the checks was refused. | **Present no verdict.** Tell the operator why. |
 
 Exit 0 means the verdict is authentic and current. It does **not** mean Level 1 is met: a verdict
 that says "not met" passes this check too.
@@ -364,14 +395,13 @@ Otherwise, in plain language, for someone who does not code:
    - A check that runs before a merge on a platform other than GitHub stays unproved in this
      release: nothing can try it there yet, so its mark does not clear.
    - The proofs ran against the last commit, not against uncommitted work.
-   - The files that define the checks were not committed when the proofs ran (step 1 found them
-     in the list). The verdict stands in this checkout as it is now. After those files are
-     committed, the check of step 5 no longer passes, and this step has to be run again and its
-     three files committed again before someone else can check the verdict.
+   - The check in step 5 covers the files that define the checks and not the settings of the
+     tools those checks run. A rule switched off in a linter's own settings after the proofs ran
+     is not noticed by that check. It is noticed when the proofs are run again.
+   - Earlier test pull requests no longer count, when step 2 said their results were dropped.
    - The check in step 5 shows that the three files agree with each other today. It is local and
      unsigned, so it cannot show they were not rewritten together by someone who changed all
-     three consistently. Version history, or running the proofs again at the recorded commit,
-     can.
+     three consistently. Version history, or running the proofs again, can.
 8. **The three files** of ground rule 1 were changed and are meant to be committed, and you have
    not committed them.
 

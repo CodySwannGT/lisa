@@ -15,6 +15,14 @@
  * shape added to, changed in or removed from either one alone fails it.
  *
  * Change the two together, or not at all.
+ *
+ * ## Every shape is linear
+ *
+ * A check's whole output is scanned before any of it is kept, and a check
+ * can print a megabyte with no blank in it. So no shape may take time that
+ * grows faster than the text: each repeated part is either bounded or cannot
+ * be started again inside itself. `tests/unit/controls/
+ * secret-scan-time.test.ts` holds every shape to that on a megabyte.
  * @module controls/secret-shapes
  */
 
@@ -50,11 +58,24 @@ export const NAMED_SECRET_KIND = "SECRET";
 export const CREDENTIAL_SHAPES: readonly CredentialShape[] = Object.freeze([
   {
     kind: PRIVATE_KEY_KIND,
-    re: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----(?:[\s\S]*?-----END (?:[A-Z]+ )*PRIVATE KEY-----)?/gu,
+    // A key runs from its first line to its last line, or, when another
+    // block's first line comes before that, up to that line. The body never
+    // reads past the start of another block: read to the end of the text
+    // from each first line, a megabyte of first lines with no last line took
+    // ten seconds, and the time grew with the square of the length. A first
+    // line with nothing after it but another block, or with no last line
+    // anywhere after it, is taken out alone.
+    re: /-----BEGIN [A-Z ]*PRIVATE KEY-----(?:(?:(?!-----BEGIN )[\s\S])+?(?:-----END [A-Z ]*PRIVATE KEY-----|(?=-----BEGIN )))?/gu,
   },
   {
     kind: URL_CREDENTIALS_KIND,
-    re: /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/:@]+:[^\s/@]+@/giu,
+    // The scheme is at most 64 characters. Without a bound, every word in a
+    // long run of letters, digits, dots and signs is tried as the start of a
+    // scheme and read to the end of the run, so the time grows with the
+    // square of the run's length: a megabyte of `a.a.a.` took about a
+    // hundred seconds. No scheme in use is that long, and an address whose
+    // scheme is longer is still found from a later word of it.
+    re: /\b([a-z][a-z0-9+.-]{0,63}:\/\/)[^\s/:@]+:[^\s/@]+@/giu,
     replace: "$1[REDACTED:URL_CREDENTIALS]@",
   },
   { kind: "API_KEY", re: /\b(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{8,}/gu },

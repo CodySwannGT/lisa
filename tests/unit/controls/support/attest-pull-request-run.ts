@@ -14,6 +14,7 @@ import {
   runAttest,
   type AttestOptions,
 } from "../../../../src/controls/commands/attest.js";
+import type { OpenProofWorkspace } from "../../../../src/controls/proof-workspace.js";
 import type { PullRequestDependencies } from "../../../../src/controls/pull-request-settle.js";
 import type { GatesBlock } from "../../../helpers/control-register.js";
 import { standInCopy } from "./attest-run.js";
@@ -48,13 +49,15 @@ export function pullRequestSetting(gates: GatesBlock): ProofSetting {
  * @param options - The command's options
  * @param pullRequests - Collaborators for the pull-request moment
  * @param start - The first reading of the run's clock
+ * @param open - Opens the workspace; the case's own copy when left out
  * @returns Exit code and printed lines
  */
 export async function attestIn(
   where: ProofSetting,
   options: AttestOptions,
   pullRequests: PullRequestDependencies = {},
-  start: string = FIRST_RUN
+  start: string = FIRST_RUN,
+  open: OpenProofWorkspace = standInCopy(where)
 ): Promise<Run> {
   const signals = fakeSignals();
   const stdout: string[] = [];
@@ -64,7 +67,7 @@ export async function attestIn(
   // command would build.
   const code = await runAttest(where.repoPath, options, {
     clock: steppingClock(start),
-    openWorkspace: standInCopy(where),
+    openWorkspace: open,
     stdout: text => {
       stdout.push(text);
     },

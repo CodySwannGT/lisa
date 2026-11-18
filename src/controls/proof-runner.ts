@@ -49,7 +49,12 @@ import {
   type ProofRun,
   type ProofWorkspace,
 } from "./proof-types.js";
-import { pairChangesCheckDetail, verdictDetail } from "./proof-wording.js";
+import type { ChangeFinding } from "./proof-change-rule.js";
+import {
+  changeFindingReason,
+  pairChangesCheckDetail,
+  verdictDetail,
+} from "./proof-wording.js";
 import type { ControlRegister } from "./register-types.js";
 
 /** What a run of paired proofs is given. */
@@ -109,17 +114,17 @@ async function runProof(
 }
 
 /**
- * The result of an entry whose proof was not run because one of its changes
- * edits what the check is.
+ * The result of an entry whose proof was not run because of what one of its
+ * changes touches.
  * @param proof - The proof
- * @param found - Which change, and the file it edits
+ * @param found - Which change, and what it touches
  * @param found.half - The half the change belongs to
- * @param found.file - The file, from the repository root
+ * @param found.finding - What the change touches that it may not
  * @returns The entry's result
  */
 function changesCheck(
   proof: RunnableProof,
-  found: { readonly half: ProofHalf; readonly file: string }
+  found: { readonly half: ProofHalf; readonly finding: ChangeFinding }
 ): ProofEntryResult {
   const { entry } = proof;
   return {
@@ -130,8 +135,8 @@ function changesCheck(
     moment: proof.moment,
     outcome: "unknown",
     failed_halves: [],
-    reason: "declaration-changed",
-    detail: pairChangesCheckDetail(found.half, found.file),
+    reason: changeFindingReason(found.finding),
+    detail: pairChangesCheckDetail(found.half, found.finding),
     time_limit_seconds: null,
     halves: [],
   };

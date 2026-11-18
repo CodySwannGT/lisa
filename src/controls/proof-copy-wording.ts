@@ -159,30 +159,29 @@ export function uncommittedNotes(
   return [
     `This repository has changes that are not committed. The proofs do not use them: they run in a temporary copy of the last commit (${shortCommit(commit)}), which is removed afterwards. The proofs change nothing in this repository. What they find is then written here, to ${EVIDENCE_PATH}, ${CONTROL_REGISTER_PATH} and ${VERDICT_PATH}.`,
     ...carriedNotes(carried),
-    ...recordedAgainstNotes(commit, carried),
+    ...boundToContentNotes(carried),
   ];
 }
 
 /**
- * Say what follows from proving checks whose own files are not committed.
+ * Say what follows from proving checks whose own files are not committed:
+ * nothing the operator has to do in any order.
  *
- * The results name the last commit, and that commit does not hold the files
- * the proofs were run with. Once those files are committed,
- * `lisa controls attest --check` finds that they changed after the recorded
- * commit and fails. The operator is told while there is still a choice.
- * @param commit - The commit the results are recorded against
+ * The results are bound to what those files hold and not to a commit
+ * (`./checks-binding.ts`). So they can be committed before the results or
+ * with them, and `lisa controls attest --check` passes for as long as their
+ * content is what the proofs ran against.
  * @param carried - The files taken from the working copy because they differ
- *   from that commit
+ *   from the last commit
  * @returns One sentence; none when no such file was taken
  */
-export function recordedAgainstNotes(
-  commit: string,
+export function boundToContentNotes(
   carried: readonly string[]
 ): readonly string[] {
   const one = carried.length === 1;
   return carried.length === 0
     ? []
     : [
-        `The results are recorded against commit ${shortCommit(commit)}, which does not hold ${one ? "that file" : "those files"} as ${one ? "it is" : "they are"} now. After you commit ${one ? "it" : "them"}, "lisa controls attest --check" will find that the checks changed since that commit and will not pass. To have a verdict that stays checkable, commit ${one ? "that file" : "those files"} first, then run this again and commit the three files of results.`,
+        `The results are bound to what ${one ? "that file holds" : "those files hold"}, not to a commit. Commit ${one ? "it" : "them"} whenever you like, before the three files of results or with them: "lisa controls attest --check" passes for as long as ${one ? "it is" : "they are"} not changed.`,
       ];
 }

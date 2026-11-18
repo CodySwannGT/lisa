@@ -39,6 +39,7 @@ import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { bindChecks, hostHookFiles } from "../checks-binding.js";
 import { buildProofCopy, type ProofCopy } from "../proof-copy.js";
 import { proofCopyWorkspace } from "../proof-copy-workspace.js";
 import { uncommittedNotes } from "../proof-copy-wording.js";
@@ -74,6 +75,8 @@ export interface AttestWorkspaceChoice {
   readonly scratch?: () => string;
   /** Builds the disposable copy. */
   readonly build?: typeof buildProofCopy;
+  /** Takes the digest of what defines the checks in the copy. */
+  readonly bind?: typeof bindChecks;
 }
 
 /**
@@ -186,15 +189,27 @@ async function openDisposableCopy(
   choice: AttestWorkspaceChoice
 ): Promise<ProofWorkspaceOpening> {
   const opened = await openProofCopy(request.root, choice);
-  return opened.problem === null
-    ? {
-        problem: null,
-        workspace: proofCopyWorkspace(opened.copy, request.tools),
-        close: opened.close,
-        // The commit that was cloned: what the proofs are run against.
-        commit: opened.copy.source.commit,
-      }
-    : opened;
+  if (opened.problem !== null) return opened;
+  try {
+    return {
+      problem: null,
+      workspace: proofCopyWorkspace(opened.copy, request.tools),
+      close: opened.close,
+      // The commit that was cloned, for a reader's information.
+      commit: opened.copy.source.commit,
+      // What defines the checks, read in the copy before any proof runs:
+      // this is what the proofs are run against, and what the run's
+      // evidence is bound to.
+      checks: await (choice.bind ?? bindChecks)({
+        repository: request.root,
+        copy: opened.copy.clone,
+        hostHooks: hostHookFiles,
+      }),
+    };
+  } catch (error) {
+    await opened.close();
+    throw error;
+  }
 }
 
 /**

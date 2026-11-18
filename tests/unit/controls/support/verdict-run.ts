@@ -17,6 +17,7 @@ import {
   evidenceOf,
   findingRecord,
   heldPair,
+  onPullRequests,
   registerOf,
   SMALL_CATALOGUE,
   SOON_AFTER,
@@ -38,7 +39,7 @@ export const OTHERS_SETTLED: readonly EvidenceRecord[] = [
 ];
 
 /** A control for the whole repository that serves `AC1.3`. */
-export const REVIEW = entryServing("review@.", ["AC1.3"]);
+export const REVIEW = onPullRequests(entryServing("review@.", ["AC1.3"]));
 
 /**
  * Compute a verdict over the small catalogue.
@@ -82,5 +83,5 @@ export function si7(
   records: readonly EvidenceRecord[],
   now: Date = SOON_AFTER
 ): CriterionVerdict {
-  return of(verdictOf([entryServing(API)], records, now));
+  return of(verdictOf([onPullRequests(entryServing(API))], records, now));
 }

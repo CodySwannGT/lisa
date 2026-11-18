@@ -30,6 +30,7 @@
  * change was accepted has failed, whatever its clean half did.
  * @module controls/proof-types
  */
+import type { ChangeFinding, CheckCommand } from "./proof-change-rule.js";
 import type { ProofHalf } from "./proof-halves.js";
 import type {
   CommandMechanism,
@@ -118,6 +119,12 @@ export const PROOF_ENTRY_REASONS = [
    * `lisa controls proof-check` gives the same pair.
    */
   "declaration-changed",
+  /**
+   * `unknown`: one of the proof's changes touches a path the repository
+   * ignores, which git leaves out of a commit, so no check was started. The
+   * word is the one `lisa controls proof-check` gives the same pair.
+   */
+  "ignored-path",
   /**
    * `unproved`: the hosting platform's settings require the entry's check
    * before a merge. They were read; nothing was exercised.
@@ -268,6 +275,14 @@ export type PatchOutcome =
   | { readonly problem: null }
   | { readonly problem: string };
 
+/** A change the runner planted, as the workspace is asked about it. */
+export interface PlantedProofChange {
+  /** The content of the patch file that was planted. */
+  readonly patch: string;
+  /** The check's command, and the folder it is started in. */
+  readonly command: CheckCommand;
+}
+
 /** What the runner asks a workspace to trigger for one half. */
 export interface ProofTrigger {
   readonly entry: ControlRegisterEntry;
@@ -296,17 +311,20 @@ export interface ProofWorkspace {
    */
   readonly apply: (patch: string) => PatchOutcome | Promise<PatchOutcome>;
   /**
-   * Name a file the change planted right now edits that says what the
-   * checks are or runs them, or `null` when it edits none
+   * Say what the change planted right now touches that a proof's change
+   * may not, or `null` when it leaves the check alone
    * (`./proof-change-rule.ts`). The runner asks this of each change of a
-   * pair before it starts any check, and runs no proof for a pair that
-   * edits one.
+   * pair before it starts any check, and runs no proof for a pair one of
+   * whose changes touches such a thing.
    *
    * A workspace leaves it out only when nothing that decides what a check
    * is, or whether it runs, is read from the folder the change is planted
    * in.
+   * @param change - The patch that was planted, and the check's command
    */
-  readonly changedCheckFile?: () => string | null | Promise<string | null>;
+  readonly changeFinding?: (
+    change: PlantedProofChange
+  ) => ChangeFinding | null | Promise<ChangeFinding | null>;
   /**
    * Trigger the moment and say what answered.
    * @param request - The entry, its moment, its mechanism and the time limit

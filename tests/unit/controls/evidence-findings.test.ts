@@ -28,6 +28,7 @@ import {
   evidenceOf,
   RECORDED_AT,
   requirement,
+  SAMPLE_CHECKS,
   SAMPLE_COMMIT,
 } from "./support/evidence-samples.js";
 
@@ -137,6 +138,7 @@ function written(
     stamp: {
       commit: SAMPLE_COMMIT,
       freshnessSeconds: DEFAULT_FRESHNESS_SECONDS,
+      checksDigest: SAMPLE_CHECKS.digest,
     },
     readAt: new Date(RECORDED_AT),
   });
@@ -165,6 +167,7 @@ describe("a finding about a record that exists", () => {
       detail:
         "The access review is written down. The attest step found every line the audit pointed at: docs/access.md line 1, docs/access.md line 10.",
       commit: SAMPLE_COMMIT,
+      checks_digest: SAMPLE_CHECKS.digest,
       command: null,
       exit_status: null,
       started_at: RECORDED_AT,

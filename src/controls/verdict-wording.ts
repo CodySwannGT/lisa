@@ -9,6 +9,7 @@
  * @module controls/verdict-wording
  */
 import { evidenceExpiry } from "./evidence.js";
+import type { StandingProblem } from "./evidence-standing.js";
 import type { EvidenceRecord, EvidenceRung } from "./evidence-types.js";
 import { WHOLE_REPOSITORY_SCOPE } from "./register-types.js";
 
@@ -79,6 +80,31 @@ export function tooWeak(
   minimum: EvidenceRung
 ): string {
   return `${subject} is ${rungInWords(rung)}, and this requirement needs evidence that is at least ${rungInWords(minimum)}. ${HOW_TO_REACH[minimum]}`;
+}
+
+/** Why a record on file does not count, as the end of a sentence. */
+const SET_ASIDE: Readonly<Record<StandingProblem, string>> = {
+  "unknown-moment":
+    "it names a moment at which no attest run records anything about a control",
+  "not-enforced-there":
+    "it names a moment at which this control is not enforced",
+  "other-checks":
+    "it was recorded when the checks were defined differently from what the evidence file now says defines them",
+};
+
+/**
+ * Say that records are on file and none of them counts.
+ * @param subject - What the records are about, to follow the word `for`
+ * @param record - One of the records
+ * @param problem - Why it does not count
+ * @returns The sentence
+ */
+export function setAside(
+  subject: string,
+  record: EvidenceRecord,
+  problem: StandingProblem
+): string {
+  return `Evidence is on file for ${subject} and none of it counts: record "${record.id}" does not, because ${SET_ASIDE[problem]}. A record counts only when an attest run could have written it about the checks as they are. ${RUN_ATTEST_AGAIN}`;
 }
 
 /** The sentences about one control. */

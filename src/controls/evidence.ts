@@ -7,6 +7,9 @@
  * evidence file is, which fields of a record the lookup depends on, and when a
  * record is too old to rely on.
  *
+ * A record is relied on for the default lifetime at most, whatever it
+ * states; see {@link reliedOnSeconds}.
+ *
  * It needs four fields of a record, so the attest step can record whatever
  * else it needs (the command, the exit status, the commit) without this
  * module changing. It hands on five more when a record has them, because a
@@ -35,6 +38,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { isJsonObject } from "../sync/json-path.js";
+import { DEFAULT_FRESHNESS_SECONDS } from "./evidence-types.js";
 
 /** Where the attest step writes evidence, relative to the repository root. */
 export const EVIDENCE_PATH = ".lisa/controls/evidence.json";
@@ -195,13 +199,26 @@ export function readEvidenceRecords(
 }
 
 /**
+ * How long a record is relied on, whatever lifetime it states.
+ *
+ * The evidence file is on disk between runs and anyone can type into it. A
+ * run never stamps more than the default lifetime, so a record that claims
+ * more is held to the default: a year typed into the file is thirty days.
+ * @param record - The record
+ * @returns The lifetime, in whole seconds
+ */
+export function reliedOnSeconds(record: RecordTiming): number {
+  return Math.min(record.freshness_seconds, DEFAULT_FRESHNESS_SECONDS);
+}
+
+/**
  * When a record stops being reliable.
  * @param record - The record
  * @returns The first instant at which it is too old
  */
 export function evidenceExpiry(record: RecordTiming): Date {
   return new Date(
-    Date.parse(record.completed_at) + record.freshness_seconds * 1000
+    Date.parse(record.completed_at) + reliedOnSeconds(record) * 1000
   );
 }
 

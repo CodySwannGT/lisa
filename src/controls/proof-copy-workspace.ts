@@ -41,10 +41,12 @@
  *
  * Everything that answers here is read from the copy: the declaration, the
  * hook scripts, the gate runner. A planted change that edits one of them
- * changes what answers, so the workspace can say which such file the change
- * staged right now touches (`changedCheckFile`), and the paired-proof runner
- * asks before it starts any check (`./proof-preflight.ts`). The rule itself
- * is in `./proof-change-rule.ts`.
+ * changes what answers, and so does one that edits the script the check's
+ * command runs or puts a file at a path git leaves out of a commit. So the
+ * workspace can say what the change planted right now touches that it may
+ * not (`changeFinding`), and the paired-proof runner asks before it starts
+ * any check (`./proof-preflight.ts`). The rule itself is in
+ * `./proof-change-rule.ts`.
  *
  * ## The same commit or push, answered by git alone
  *
@@ -61,7 +63,7 @@ import { rmSync } from "node:fs";
 import path from "node:path";
 
 import { CARRIER_MOMENTS, type CarrierMoment } from "./carrier-types.js";
-import { changedCheckFile, stagedPaths } from "./proof-change-rule.js";
+import { changeFinding } from "./proof-change-rule.js";
 import {
   copyGit,
   gitSaid,
@@ -403,9 +405,14 @@ export function proofCopyWorkspace(
         problem: `The change was put in place but could not be staged, so it was taken back out: ${gitSaid(staged)}${after}`,
       };
     },
-    changedCheckFile: async () => {
+    changeFinding: async change => {
       await turn();
-      return changedCheckFile(stagedPaths(inClone), copy.checkFiles);
+      return changeFinding({
+        ...change,
+        checkFiles: copy.checkFiles,
+        directory: copy.clone,
+        git: inClone,
+      });
     },
     trigger: async request => {
       await turn();

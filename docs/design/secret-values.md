@@ -83,6 +83,18 @@ and the last line of a private key (`PRIVATE_KEY_LAST_LINE` in
 key whose first line is gone only happens to output that was cut, and the
 shipped list is used on text that never is.
 
+**Every shape takes time in proportion to the text.** A check's whole
+output is scanned before any of it is cut, and a check can print a megabyte
+with no blank in it. Two shapes once took time that grew with the square of
+the length: the web address, whose scheme was read to the end of a run of
+letters and dots from every word in it (a megabyte of `a.a.a.` took about a
+hundred seconds), and the private key, read to the end of the text from
+each first line that had no last line. The scheme is now at most 64
+characters, and a key's body stops at its own last line or at the first
+line of the next block. Both lists carry the change.
+`tests/unit/controls/secret-scan-time.test.ts` holds every shape to it on a
+megabyte.
+
 ## Refused or taken out
 
 Two behaviours, chosen by where the text came from.

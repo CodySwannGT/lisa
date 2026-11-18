@@ -9,10 +9,13 @@
  * @module tests/unit/controls/support/evidence-samples
  */
 import type { CriterionCatalogue } from "../../../../src/controls/catalogue.js";
+import { digestOfCovered } from "../../../../src/controls/checks-binding.js";
 import {
   DEFAULT_FRESHNESS_SECONDS,
   evidenceRecordId,
   findingRecordId,
+  type ChecksBinding,
+  type CoveredCheckFile,
   type EvidenceDocument,
   type EvidenceRecord,
   type EvidenceResult,
@@ -24,6 +27,9 @@ import type {
   ControlRegisterEntry,
 } from "../../../../src/controls/register-types.js";
 import { BARE_ENTRY } from "./register-samples.js";
+
+/** The moment a setting read from the hosting platform speaks for. */
+const PULL_REQUEST_MOMENT = "pull-request";
 
 /** When every sample record was completed. */
 export const RECORDED_AT = "2026-11-17T12:00:00.000Z";
@@ -39,6 +45,20 @@ export const EXPIRY = new Date(
 /** A commit hash the samples were recorded at. */
 export const SAMPLE_COMMIT = "0123456789abcdef0123456789abcdef01234567";
 
+/** What the samples say defined the checks: one file, the declaration. */
+const SAMPLE_COVERED: readonly CoveredCheckFile[] = [
+  { path: ".lisa.config.json", sha256: "a".repeat(64) },
+];
+
+/** The binding every sample file carries, with the digest its list gives. */
+export const SAMPLE_CHECKS: ChecksBinding = {
+  covered: SAMPLE_COVERED,
+  digest: digestOfCovered(SAMPLE_COVERED),
+};
+
+/** The digest of a run made when the checks were defined differently. */
+export const OTHER_CHECKS_DIGEST = "b".repeat(64);
+
 /** One half of a paired proof, with every key a record can carry. */
 export const HALF_RECORD: Required<EvidenceRecord> = {
   id: "code-style@api/commit/violation/SI7",
@@ -52,6 +72,7 @@ export const HALF_RECORD: Required<EvidenceRecord> = {
   reason: "rejected-as-declared",
   detail: "The check turned the violating change away.",
   commit: SAMPLE_COMMIT,
+  checks_digest: SAMPLE_CHECKS.digest,
   command: ["ruff", "check", "."],
   exit_status: 1,
   started_at: "2026-11-17T11:59:58.000Z",
@@ -64,6 +85,7 @@ export const HALF_RECORD: Required<EvidenceRecord> = {
 /** An evidence file with every key. */
 export const EVIDENCE: Required<EvidenceDocument> = {
   schema_version: 1,
+  checks: SAMPLE_CHECKS,
   records: [HALF_RECORD],
 };
 
@@ -140,7 +162,7 @@ export function observedRecord(
     ...rest,
     id: evidenceRecordId({
       entry_id: entryId,
-      moment: "pull-request",
+      moment: PULL_REQUEST_MOMENT,
       rung: "observed",
       criterion,
     }),
@@ -148,7 +170,7 @@ export function observedRecord(
     entry_id: entryId,
     scope: entryId.slice(entryId.indexOf("@") + 1),
     rung: "observed",
-    moment: "pull-request",
+    moment: PULL_REQUEST_MOMENT,
     reason: "check-required",
     detail: "The hosting platform requires this check before a merge.",
     command: null,
@@ -234,7 +256,7 @@ export function attestedRecord(
 export function evidenceOf(
   ...records: readonly (EvidenceRecord | readonly EvidenceRecord[])[]
 ): EvidenceDocument {
-  return { schema_version: 1, records: records.flat() };
+  return { schema_version: 1, checks: SAMPLE_CHECKS, records: records.flat() };
 }
 
 /**
@@ -254,6 +276,28 @@ export function entryServing(
     gate: id.slice(0, at),
     scope: id.slice(at + 1),
     criteria,
+  };
+}
+
+/**
+ * The same entry, enforced on pull requests as well as where it already is.
+ * A record at the pull-request moment counts only for such an entry.
+ * @param entry - The entry
+ * @returns The entry with a pull-request point added
+ */
+export function onPullRequests(
+  entry: ControlRegisterEntry
+): ControlRegisterEntry {
+  return {
+    ...entry,
+    enforcement_points: [
+      ...entry.enforcement_points,
+      {
+        moment: PULL_REQUEST_MOMENT,
+        level: "required",
+        location: "hosting-platform",
+      },
+    ],
   };
 }
 

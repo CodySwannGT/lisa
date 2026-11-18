@@ -273,6 +273,7 @@ export function findingRecords(
               ...written,
               moment: null,
               commit: stamp.commit,
+              checks_digest: stamp.checksDigest,
               command: null,
               exit_status: null,
               started_at: at,

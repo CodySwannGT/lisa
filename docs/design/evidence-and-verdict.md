@@ -27,9 +27,11 @@ at any step, so the same inputs always give the same files.
 
 ## The evidence file
 
-`{ "schema_version": 1, "records": [...] }`, records ordered by `id`, keys
-in a fixed order, two-space indent. The published contract is
-`schemas/control-evidence.schema.json`.
+`{ "schema_version": 1, "checks": {...}, "records": [...] }`, records
+ordered by `id`, keys in a fixed order, two-space indent. The published
+contract is `schemas/control-evidence.schema.json`. `checks` says what
+defined the checks when the records were made; see "What the records are
+bound to" below.
 
 ### One record per result per requirement
 
@@ -54,12 +56,61 @@ record, because there is no requirement for it to be evidence of.
 | `result` | `held`, `failed`, `unknown`, or (audit findings only) `not-applicable`. |
 | `reason` | A short fixed word: the proof's reason, or the audit finding's state. |
 | `detail` | The same as a sentence. On a `not-applicable` record it is the fact. |
-| `commit` | The commit the proofs were run against: the one the run's disposable copy was made from. A record written when nothing was cloned names the commit the repository was at. `null` with no commit or no git. |
+| `commit` | The commit the run's disposable copy was cloned from. A record written when nothing was cloned names the commit the repository was at. `null` with no commit or no git. It is information for a reader. Nothing is decided by it. |
+| `checks_digest` | The digest of what defined the checks when the record was made: the `digest` of the file's `checks` at the run that wrote it. |
 | `command` | What was started, one item per argument, or `null`. |
 | `exit_status` | Its exit status, or `null`. |
 | `started_at`, `completed_at` | UTC, `YYYY-MM-DDTHH:mm:ss.sssZ`. |
-| `freshness_seconds` | How long after `completed_at` the record may be relied on. |
+| `freshness_seconds` | How long after `completed_at` the record states it may be relied on. It is relied on for 30 days at most, whatever it states. |
 | `output_excerpt`, `output_truncated` | The last 1000 characters of what the check printed, cut at a line start. |
+
+### What the records are bound to
+
+A verdict is about the checks as they were proved. So the file says what
+defined them. `checks` holds:
+
+| key | meaning |
+| --- | --- |
+| `covered` | One entry per file that defines the checks: its `path` from the repository root and the `sha256` of its content. Ordered by `path`. |
+| `digest` | The SHA-256 digest of `covered`, written as canonical JSON. One value that changes when anything in the list does. |
+
+What is covered (`src/controls/checks-binding.ts`):
+
+- the `gates` block of `.lisa.config.json`, in canonical form. The entry's
+  `path` is the file and its digest is of that block alone, so a change to
+  another setting in the file, or to its layout, is not a change to a check;
+- every file under `.lisa/controls/proofs/`, the changes the proofs plant;
+- `.lisa/controls/carriers.json`, every file it lists, and every file under
+  `.lisa/hooks/`;
+- the gate runner under `scripts/` and every file it loads;
+- the repository's own hook files that hold Lisa's marked call, where
+  something else owns the hooks: `.husky/pre-commit`, a hooks folder the
+  repository commits, a hook manager's configuration. They are the files the
+  read-only carrier check (`lisa controls install-carriers --check`) names.
+
+**Each file is read in the copy the proofs ran in**, before the first proof,
+so the digest is of what was proved. Which files are covered is decided by
+the repository: a file the copy holds only because the run installed its
+carriers there, in a repository that has none of its own, is the run's
+equipment and is left out. The repository's own hook files are the one
+exception and are read in the repository, because they are what starts the
+checks there and not in the copy: git copies no hook setting into a clone,
+so the copy is wired by its own install.
+
+Every record carries the digest as `checks_digest`. A record that carries
+another one was not written by the run that wrote the file.
+
+Not covered, and why:
+
+- **The checked tool's own configuration**: a linter's rule file, a test
+  runner's settings, the scripts in `package.json`. They belong to the
+  project and there is no list of them. A rule switched off there after the
+  proofs ran is not seen by `--check`. Running the proofs again sees it.
+- **A hook in git's own folder, and the `core.hooksPath` setting.** Neither
+  is committed and no clone has either, so a digest that covered them could
+  match nowhere else. `lisa controls install-carriers --check` and
+  `lisa controls reconcile` say whether a checkout is wired.
+- **A file's permission to be started.** Only content is read.
 
 ### The three rungs
 
@@ -122,34 +173,53 @@ canary half is written from one place, once per requirement.
 
 That batch names every pull-request entry when canaries were asked for. When
 the run only read the settings, it leaves out an entry for which a canary's
-answer is on record and still within its lifetime, unless the settings now
-say the entry's check is not required: an observation plants nothing, so it
-does not remove a current exercised proof, and the earlier records stay to
-age. A register with no pull-request entry gets no such batch, and those
-records, if any, are left in place too.
+answer is on record, still within its lifetime and recorded under this
+run's digest of what defines the checks, unless the settings now say the
+entry's check is not required: an observation plants nothing, so it does not
+remove a current exercised proof of the same checks, and the earlier records
+stay to age. A register with no pull-request entry gets no such batch, and
+those records, if any, are left in place too.
 
 Records are also removed when the register no longer holds their entry, or
 the entry no longer serves their requirement. Records of audit findings are
 replaced as one set on every run.
 
-### What is kept from before was written by a run
+### What is kept from before was written by a run, about these checks
 
 The file is on disk between runs, and anyone can type into it. A record a
 run did not speak for is therefore kept only when a run could have written
-it:
+it, about the checks as this run found them
+(`src/controls/evidence-standing.ts`):
 
 - its `moment` is one a run writes records for: `commit`, `push` or
   `pull-request`;
-- its entry is enforced at that moment, according to the register now.
+- its entry is enforced at that moment, according to the register now;
+- its `checks_digest` is the digest this run took of what defines the
+  checks.
 
 Every other earlier record is removed, whatever it says. A pair typed in at
 `nightly`, or at `pull-request` for a check that does not run on pull
 requests, does not survive the next run.
 
+The third rule is what keeps a plain run from carrying an earlier canary
+proof across a change to the checks. Without it, a verdict written after
+the declaration or a proof file changed still rested on canary results from
+before, failed its own `--check`, and running attest again did not clear
+it. Now those results are dropped, and one line on standard error says how
+many and that `lisa controls attest --pull-request-canaries` produces them
+again. An evidence file written before records carried a digest holds
+nothing that can be kept, and is counted the same way.
+
 A record that is kept is relied on for the default lifetime at most. If the
-file gives it a longer one, the run writes it back with the default. A run
-stamps its own records with the lifetime it was given; a record it only keeps
-was stamped by something else, and that is taken as an upper bound.
+file gives it a longer one, the run writes it back with the default.
+
+**The same rules are applied when a record is read**, not only when one is
+kept. A record typed into the file after the last run has been through no
+writer, so the verdict asks the three questions above of every record about
+a control, and asks the third of every record of an audit finding
+(`src/controls/verdict-answers.ts`). A record that does not pass is not
+read: it cannot make a requirement conforming and it cannot fail one. The
+requirement's sentence says a record is on file and why it does not count.
 
 ### What the audit report contributes
 
@@ -203,21 +273,25 @@ cite a record at all.
 
 ### Freshness
 
-Every record carries `freshness_seconds`. The default is **30 days**
-(2 592 000 seconds). A check wired into a repository changes whenever its
-configuration does, so a month is long enough that an attest run on a
-monthly schedule keeps a verdict current, and short enough that a control
-nobody has run since last quarter stops counting. No lifetime may be longer
-than twelve months, which is the specification's ceiling.
+Every record carries `freshness_seconds`. A run stamps **30 days**
+(2 592 000 seconds), and that is also the longest a record is relied on. A
+check wired into a repository changes whenever its configuration does, so a
+month is long enough that an attest run on a monthly schedule keeps a
+verdict current, and short enough that a control nobody has run since last
+quarter stops counting.
 
 The gates declaration cannot change the lifetime. The code that calls the
-writer can (`freshnessSeconds` on `recordAttestation`); the command does not
-yet offer a flag for it.
+writer can make it shorter (`freshnessSeconds` on `recordAttestation`), and
+is refused a longer one; the command does not offer a flag for it.
 
 A record is current from `completed_at` up to, and not including,
-`completed_at + freshness_seconds`. The current time is a parameter
-everywhere it is used: the command reads the machine's clock, and everything
-below it is handed the time.
+`completed_at + freshness_seconds`, or `completed_at` + 30 days when the
+record states more. The format lets a record state up to twelve months, the
+specification's ceiling, and every reader holds it to 30 days all the same
+(`evidenceExpiry` in `src/controls/evidence.ts`): a year typed into the file
+buys nothing, in the verdict or anywhere else a record is relied on. The
+current time is a parameter everywhere it is used: the command reads the
+machine's clock, and everything below it is handed the time.
 
 ### Output and secrets
 
@@ -293,11 +367,13 @@ control that serves the requirement covers its own folder, a control for the
 whole repository covers every folder, and the audit's finding for the whole
 repository is set aside as soon as any control serves the requirement.
 
-One control's answer, first row that applies:
+Only records that count are read; see "What is kept from before was
+written by a run, about these checks" above. One control's answer, first row
+that applies:
 
 | the evidence on record for this control and this requirement | answer | `reason` |
 | --- | --- | --- |
-| There is none. | `unknown` | `no-evidence` |
+| There is none that counts. | `unknown` | `no-evidence` |
 | A current record says `failed`. | `non-conforming` | `control-failed` |
 | A record is past its lifetime. | `unknown` | `stale-evidence` |
 | A record is dated later than now. | `unknown` | `evidence-dated-later` |
@@ -413,62 +489,77 @@ In any other order the digest would cover a register that
 | The Level 1 result | The result computed now. | `.lisa/controls/verdict.json says the Level 1 result is "conforming"; the register and the evidence give non-conforming.` |
 | Each requirement's verdict | The verdict computed now, at the current time. | `SI7: .lisa/controls/verdict.json says "conforming"; the register and the evidence give unknown. Evidence record "…" is too old to rely on: it stopped being current at …` |
 | Everything else in the verdict | The same value computed now. | `.lisa/controls/verdict.json says "current_until" is …; the register and the evidence give ….` |
-| The files that define the checks, at the commit the evidence names | The same files at the commit the repository is at. | `The evidence was recorded at commit 1a2b3c4, and this repository is now at 5d6e7f8. Between the two, a file that says what the checks are or runs them has changed: .lisa.config.json. …` |
+| The digest of what defined the checks, in the evidence file | The same digest, taken from the repository as it is. | `What defines the checks is not what the proofs ran against. Changed since: .lisa/controls/proofs/lint.violation.patch. …` |
 
 | exit | means |
 | --- | --- |
-| 0 | The committed verdict is what the register and the evidence give, and the files that define the checks are as they were at the commit the evidence names. This says the verdict is authentic and current, not that the result is conforming; the line it prints says which, and names the commit. |
-| 1 | Something differs. Each difference was named. |
-| 2 | Nothing could be compared: the path is not a folder, or the gates declaration was refused. Also when the three files agree and the commit the evidence names could not be compared with this repository. |
+| 0 | The committed verdict is what the register and the evidence give, and what defines the checks is what the proofs ran against. This says the verdict is authentic and current, not that the result is conforming; the line it prints says which. |
+| 1 | Something differs. Each difference was named. That includes an evidence file written before evidence was bound to what defines the checks. |
+| 2 | Nothing could be compared: the path is not a folder, the gates declaration was refused, or the check could not finish. |
 
-### The commit the evidence names
+### What defines the checks, compared by content
 
-A verdict says the checks worked when they were proved. Every record names
-the commit the proofs were run against, and the check holds the verdict to
-it (`src/controls/attest-commit-check.ts`).
+A verdict says the checks worked when they were proved. The evidence file
+holds a digest of what defined them where the proofs ran, and the list of
+what that digest covers; see "What the records are bound to". The check
+takes the same digest from the repository as it is
+(`src/controls/checks-binding.ts`): it reads every path the list names
+again, and every path that defines the checks now. Then it compares.
 
-When the repository is at that commit, there is nothing to ask. When it is at
-another one, git is asked which of these differ between the two commits:
+| the repository, against the list | the check says |
+| --- | --- |
+| holds every listed file with the same content, and no other file that defines the checks | nothing: this part passes |
+| holds a listed file with other content | `Changed since:` and the files |
+| no longer holds a listed file | `No longer here:` and the files |
+| holds a file that defines the checks and is not in the list | `Here now and not there then:` and the files |
 
-- `.lisa.config.json`, which declares the checks;
-- everything under `.lisa/controls/proofs/`, the changes the proofs plant;
-- the hook scripts under `.lisa/hooks/`, `.lisa/controls/carriers.json` and
-  every file it lists, and the gate runner under `scripts/`.
+Any of the last three fails the check with exit 1.
 
-If any differs, the check exits 1 and names the files: the verdict is about
-the checks as they were. If none differs it passes, whatever else changed.
-Committing the three result files moves the repository to a new commit, and
-that alone changes none of the files above.
+**It reads content and never history.** Git is not started. So the answer
+is the same:
 
-**A commit that cannot be found is not "current".** A clone that does not
-hold the recorded commit has nothing to compare with. A shallow clone, which
-is what many pipelines check out, is one. The check says the two could not
-be compared, says how to get the history (`git fetch --unshallow`), and
-exits 2. It does not pass.
+- in a shallow clone, which is what many pipelines check out;
+- after a squash or rebase merge has replaced the commit the proofs ran on;
+- in a checkout another user owns, where git refuses to answer;
+- whatever order the operator commits in.
 
-**Commit the files that define the checks before proving them.** The
-disposable copy takes the declaration, the proof files and the hook files
-from the working copy as they are, committed or not, so a run in a
-repository that is still being set up proves them as they are on disk. Its
-records still name the last commit, which does not hold them. Once they are
-committed, this check finds that they changed after the recorded commit and
-fails, correctly: no commit holds what was proved. `lisa controls attest`
-says so on standard error when it takes such a file. The order that gives a
-verdict someone else can check is: commit the declaration, the proof files
-and the hook files; run `lisa controls attest`; commit the three result
-files.
+An earlier version compared the commit the evidence named with the commit
+the repository was at, and failed in each of those four places. The commit
+is still in every record, as the commit the run's copy was cloned from. The
+check prints it for the reader and decides nothing by it.
 
-Three things this comparison does not see:
+**No order of committing is required.** The copy the proofs run in takes
+the declaration, the proof files and the files the carrier record lists
+from the working copy as they are, committed or not. So those are read as
+the repository holds them, and committing them before the results, with
+them or after them changes nothing the check compares.
 
-- **A change to the checked tool's own files.** A linter's rule file, a test
-  runner's settings and the like belong to the project, and there is no list
-  of them to compare. A rule switched off in a tool's own configuration
-  after the proofs ran is not detected here. It is detected when the proofs
-  are run again.
-- **Work that is not committed.** The comparison is between two commits. A
-  declaration edited and not committed is caught by the register comparison
-  above, which reads the working copy.
-- **A record that names no commit.** There is nothing to compare.
+**A file that is not here as it was where the proofs ran fails the check,
+and the run that wrote the evidence already said so.** Two things make a
+file differ:
+
+- A hook script or the gate runner that is older in the repository than the
+  one the run installed in its copy. `lisa controls install-carriers` brings
+  the repository's copy up to date.
+- A file the copy took from the last commit that has since been changed in
+  the working copy and is not one the copy carries over: the gate runner in
+  a repository that has no carrier record, for one. Committing the change,
+  or undoing it, and running attest again puts it right.
+
+`lisa controls attest` names every such file on standard error when it
+writes its results (`attest: note. What defines the checks in this
+repository is not what the proofs ran against …`).
+
+**Evidence from before the binding is not called current.** An evidence
+file with no `checks` was written before evidence was bound to what defines
+the checks, so nothing in it says which checks its records are about. The
+check says the evidence predates the binding and exits 1. Running
+`lisa controls attest` writes it anew.
+
+What this comparison does not see is what the digest does not cover: the
+checked tool's own configuration, a hook in git's own folder, the
+`core.hooksPath` setting, and a file's permission to be started. "What the
+records are bound to" says why for each.
 
 ### What each kind of edit runs into
 
@@ -481,28 +572,32 @@ Three things this comparison does not see:
 | lengthens a record's lifetime, or moves its time | finds the evidence digest no longer matches |
 | edits the register | finds the register differs from what the declaration and the evidence produce |
 | waits until a record's lifetime is over | finds the requirement is now `unknown` |
-| rewrites a proof's patch file, a hook script or the declaration and commits it, leaving the verdict as it was | finds that a file defining the checks differs from the commit the evidence names |
-| adds a pair of records at a moment no run covers, and then runs attest so the digest is fresh | nothing: the attest run itself removes those records before it writes (see "What is kept from before was written by a run") |
+| rewrites a proof's patch file, a hook script, the gate runner or the `gates` block, committed or not, leaving the verdict as it was | finds that what defines the checks is not what the proofs ran against, and names the file |
+| takes Lisa's call out of `.husky/pre-commit`, or puts an `exit 0` above it | finds that file changed, when the run that wrote the evidence found the call in it |
+| edits `checks` in the evidence file so that it lists what is here now | finds the evidence digest in the verdict no longer matches; and when the list was edited without its digest, that the two do not add up |
+| types a pair of records into the evidence file, at a moment no run covers or under another digest, and edits the verdict's digests to match | nothing changes in what the verdict says: such a record is not read (see "What is kept from before was written by a run, about these checks") |
+| adds a pair of records at a moment no run covers, and then runs attest so the digest is fresh | nothing: the attest run itself removes those records before it writes |
 
 ### What a local check cannot show
 
 The check shows that the three files agree with each other, with the gates
-declaration, with the clock, and with the files that define the checks at
-the recorded commit. It cannot show that the evidence records are
-what a run really produced. Someone who rewrites the evidence, the register
-and the verdict together, consistently, leaves three files that agree, and
-nothing checked on the same machine with no secret can tell that from a real
-run. A clock set back makes old evidence current again in the same way.
+declaration, with the clock, and that what defines the checks is what the
+proofs ran against. It cannot show that the evidence records are what a run
+really produced. Someone who rewrites the evidence, the register and the
+verdict together, consistently, leaves three files that agree, and nothing
+checked on the same machine with no secret can tell that from a real run. A
+pair of records typed in at a moment the entry is enforced at, under the
+file's own digest, is read like any other for up to 30 days. A clock set
+back makes old evidence current again in the same way.
 
 What can tell the difference lies outside this command: running
-`lisa controls attest` again at the commit the records name and comparing;
-the history of the three files in version control, where a change to the
-evidence with no attest run behind it is visible; or a signature made
-somewhere the author of the change cannot reach.
+`lisa controls attest` again and comparing; the history of the three files
+in version control, where a change to the evidence with no attest run
+behind it is visible; or a signature made somewhere the author of the
+change cannot reach.
 
-`commit` on a record is the commit the run's disposable copy was made from.
-It is read when the copy is made and not again, so a commit the operator
-makes while the proofs are running does not change it. It does not say the
-working tree was clean. A run in a repository with uncommitted changes
-records the commit underneath them, and where those changes are to the files
-that define the checks, the section above says what follows.
+`commit` on a record is the commit the run's disposable copy was cloned
+from. It is read when the copy is made and not again, so a commit the
+operator makes while the proofs are running does not change it. It does not
+say the working tree was clean, and it is not what the verdict is held to:
+that is the digest in `checks`.

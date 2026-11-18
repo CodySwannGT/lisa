@@ -64,7 +64,7 @@ import {
   PROOF_TIME_LIMIT_CEILING_SECONDS,
   type RunnableProof,
 } from "./proof-plan.js";
-import { declarationChangedDetail } from "./proof-wording.js";
+import { changeFindingDetail, changeFindingReason } from "./proof-wording.js";
 
 /** What trying the planned parts needs. */
 export interface ProofCheckContext extends BeforeEnforceContext {
@@ -128,7 +128,10 @@ async function plantEach(
       if (planted.problem !== null) {
         return { ...sofar, refused: { half, problem: planted.problem } };
       }
-      const change = workspace.planted(proof.entry.scope);
+      const change = workspace.planted({
+        patch: proof.patches[half].text,
+        command: { argv: proof.mechanism.argv, scope: proof.entry.scope },
+      });
       const restored = await workspace.restore();
       if (restored.problem !== null) spoiled(restored.problem);
       return { tried: [...sofar.tried, { half, change }], refused: null };
@@ -153,11 +156,11 @@ function misplaced(
   ): Tried | undefined => tried.find(({ change }) => wrong(change));
   // The rule the attest step holds a pair to as well; see
   // ./proof-change-rule.ts.
-  const edits = first(change => change.checkFile !== null);
-  if (edits !== undefined && edits.change.checkFile !== null) {
+  const edits = first(change => change.finding !== null);
+  if (edits !== undefined && edits.change.finding !== null) {
     return {
-      reason: "declaration-changed",
-      detail: declarationChangedDetail(edits.half, edits.change.checkFile),
+      reason: changeFindingReason(edits.change.finding),
+      detail: changeFindingDetail(edits.half, edits.change.finding),
     };
   }
   const empty = first(change => change.paths.length === 0);

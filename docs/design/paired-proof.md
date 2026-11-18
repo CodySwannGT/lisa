@@ -107,8 +107,9 @@ result is the one reported. No file is touched for an entry settled here.
 
 One more question is asked of an entry that gets this far, after its changes
 have been planted and before any check is started: does either change edit
-what the check is? If so the entry is `unknown` (`declaration-changed`). See
-"A proof never changes what the check is" below.
+what the check is, or put a file where git will not look? If so the entry is
+`unknown` (`declaration-changed` or `ignored-path`). See "A proof never
+changes what the check is" below.
 
 A proof stands for one moment: the entry's first enforcement point at commit
 or push. An entry enforced only on pull requests is not settled by the
@@ -128,26 +129,101 @@ for one that always fails. The hook then refuses the commit, the declared
 failure text is printed, the clean change goes through, and a check that
 enforces nothing would read as proved.
 
-So a pair is not run when either of its changes touches one of the files
-that say what the checks are, or run them:
+So a pair is not run when either of its changes touches one of four things.
+The entry is `unknown`, its sentence names the change and the file, and no
+check is started for it.
+
+| a change that | reason |
+| --- | --- |
+| edits a file that says what the checks are, or runs them | `declaration-changed` |
+| edits the program the check's command starts | `declaration-changed` |
+| edits the script or target the check's command runs through a package manager or task runner | `declaration-changed` |
+| leaves a file at a path the repository ignores | `ignored-path` |
+
+**The files that say what the checks are, or run them:**
 
 - `.lisa.config.json`;
 - `.lisa/controls/carriers.json` and every file it lists;
 - anything under `.lisa/hooks/`;
 - the gate runner and every file it loads, under `scripts/`.
 
-The entry is `unknown` with the reason `declaration-changed`, its sentence
-names the change and the file, and no check is started for it. Both changes
-are looked at before either check is started: each is planted and staged in
-the disposable copy, git is asked which paths it touches, and it is taken
-back out. Git is asked, and the patch's own text is not parsed, because git
-is what applies it: a rename's old name and a deleted file are in its answer.
+**The program the command starts.** When the command names its program by a
+path into the repository (`./scripts/lint.sh`, `bin/check`), that file is
+the check.
 
-This is one rule in one place (`src/controls/proof-change-rule.ts`), and
+**The script or target the command runs.** `npm run lint` runs whatever
+`package.json` says `lint` is. A check declared that way, with a script that
+lets everything through, was proved by a "violating change" that edited
+`package.json` so the script printed the failure text and exited 1. So when
+a command goes through one of the runners below, a change to the file that
+says what it runs is a change to the check. These are the runners that are
+recognised, and no others:
+
+| the command starts | the file that says what runs | what counts as changing it |
+| --- | --- | --- |
+| `npm`, `pnpm`, `yarn`, `bun` (any subcommand), `node --run` | any `package.json` in the repository | its `scripts` differ, or the file is added or removed |
+| `make`, `gmake` | `Makefile`, `makefile`, `GNUmakefile`, any `*.mk`, and the file named by `-f`, `--file` or `--makefile` | any change to the file |
+| `just` | `justfile`, `.justfile` (in any letter case), any `*.just`, and the file named by `-f` or `--justfile` | any change to the file |
+
+A runner is also recognised behind the three ways a command is commonly
+wrapped: `env` with its options and `NAME=value` settings in front,
+`corepack` in front, and a shell (`sh`, `bash`, `dash`, `zsh`, `ksh`, `ash`)
+given its script with `-c`. Every word of a shell's script is looked at, so
+a script that only mentions `make` is treated as running it. That errs
+toward refusing a change, never toward letting one through.
+
+Any `package.json` counts, not only the one nearest the check's folder: a
+package manager can be pointed at another one by an option or a workspace
+setting, and an argument list does not always say which. A change to
+`package.json` that leaves its `scripts` as they were, such as a dependency
+added to show a dependency check failing, is left alone.
+
+This is decided by reading the argument list and, for a `package.json`, the
+file before and after the change. Nothing is started.
+
+**A path the repository ignores.** Git leaves an ignored file out of a
+commit. A patch that drops a program at `node_modules/.bin/eslint`, or a
+marker file under an ignored folder, changes what the check's command finds
+on disk while the hook is shown a change that does not hold it, and no list
+of changed files names it. So a change that leaves a file at an ignored path
+is not a proof's change. Whether a path is ignored is asked once the change
+is planted, so an ignore rule the same patch adds counts. A file that is
+already tracked is not ignored, whatever an ignore file says, and a change
+to it or its removal is one git shows.
+
+**How the paths are found.** From the patch itself: git is asked to read
+the patch, not to apply it, and to list every path it names, forwards and
+backwards, so a renamed file is listed under both of its names and a
+deleted one under the name it had. What git staged is not asked, because
+git stages nothing at an ignored path, and that is the path this rule has
+to see. Both changes of a pair are looked at before either check is
+started: each is planted in the disposable copy, held to the rule, and
+taken back out.
+
+This is one rule in one place (`src/controls/proof-change-rule.ts`, with the
+runners in `src/controls/proof-task-runners.ts`), and
 `lisa controls proof-check` holds a pair to the same one with the same
-reason. It covers the files above and no others. A change to the checked
-tool's own configuration, such as a linter's rule file, is for all it can
-tell a change the linter is there to judge.
+reasons.
+
+**What it does not cover, and why:**
+
+- **The checked tool's own configuration**: a linter's rule file, a test
+  runner's settings. A change that edits one is, for all that can be read
+  from an argument list, a change the tool is there to judge. A proof of a
+  linter often has to plant exactly such a file's subject.
+- **A file a script or a target goes on to start.** `"lint": "node
+  tools/lint.js"` is covered as far as the script's own text, and
+  `tools/lint.js` is not.
+- **A file handed to an interpreter as an argument** (`node check.mjs`,
+  `sh lint.sh`). An argument list does not say whether such a file is the
+  program or the thing the program is asked to look at.
+- **Any other task runner.**
+
+A pair that gets past this rule by one of those routes still has to be
+turned away by its check for the declared reason and let its clean change
+through. What the rule closes is the cheap way to make a check that
+enforces nothing read as proved; it is not a proof that no such way is
+left.
 
 ## The pull-request moment
 
@@ -296,7 +372,11 @@ which says what the last try found.
 **What a run could not undo is said on standard error.** The results say
 whether each control works, not whether the run cleaned up, so
 `lisa controls attest` prints one line for each of these, in the table and the
-JSON mode alike, naming the branch or the pull request (`pull-request-notices.ts`):
+JSON mode alike, naming the branch or the pull request (`pull-request-notices.ts`).
+They are printed on every way out of a run once its proofs are in: with the
+results, and also when the results could not be written down or the run's
+own copy could not be removed. Those two runs exit 2 as they always did; the
+lines come before the one that says nothing was written.
 
 | what was found | the line names | the exit code |
 | --- | --- | --- |
@@ -656,9 +736,9 @@ order and stops at the first problem:
    never count a rejection.
 3. Does each change apply to the last commit?
 4. Does each change touch a file inside the part's own folder? A change that
-   edits a file that says what the checks are or runs them (see "A proof
-   never changes what the check is"), or that leaves nothing git would
-   commit, is turned away at the same point.
+   edits what the check is or leaves a file at a path the repository ignores
+   (see "A proof never changes what the check is"), or that leaves nothing
+   git would commit, is turned away at the same point.
 5. Started on the violating change, does the part's own command fail and
    print the declared failure text? Started on the clean change, does it
    pass, without printing that text?
@@ -714,7 +794,7 @@ document is scanned for credential shapes once more before it is printed.
 | `external-effects` | the proof says it reaches outside the repository and `--acknowledge-external-effects` was not given |
 | `not-a-command` | what measures the part is not a command that can be started |
 | `patch-not-applied` | 3 |
-| `declaration-changed`, `no-change`, `outside-folder` | 4 |
+| `declaration-changed`, `ignored-path`, `no-change`, `outside-folder` | 4 |
 | `violation-accepted`, `wrong-failure-text`, `clean-rejected`, `failure-text-on-clean` | 5 |
 | `not-started`, `timed-out`, `killed`, `nothing-measured` | 5: the command gave no answer on one of the changes |
 
@@ -743,6 +823,12 @@ reads `not-ready` with `declaration-changed`; `attest` settles the entry
 `unknown` with the same reason, exits 1, and the requirement the check
 serves reads `unknown` in the verdict it writes. The two commands reach that
 answer through the same function.
+
+`tests/integration/controls-proof-change-rule.test.ts` does the same for the
+two ways round that rule that were found afterwards: a check declared as
+`npm run lint` (and as `make lint`) whose "violating change" swaps the
+script, and a "violating change" that drops a file at an ignored path. Both
+commands refuse each, with `declaration-changed` and `ignored-path`.
 
 The two differ on purpose in three places:
 

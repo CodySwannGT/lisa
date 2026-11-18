@@ -12,12 +12,17 @@
  * The file's text is one fixed arrangement of its values: records ordered by
  * identifier, keys in code-unit order at every depth, two-space indent, one
  * trailing newline. The same records always give the same bytes.
+ *
+ * A file with no `checks` was written before evidence was bound to what
+ * defines the checks. It is not read: nothing in it says which checks its
+ * records are about. `./evidence-binding.ts` holds that part of the reading.
  * @module controls/evidence-document
  */
 import { isJsonObject } from "../sync/json-path.js";
 import { canonicalFileText, compareCodeUnits } from "./canonical-json.js";
 import { CRITERION_ID_SOURCE } from "./catalogue.js";
 import { EVIDENCE_PATH, isCanonicalUtc } from "./evidence.js";
+import { bindingProblems, isSha256 } from "./evidence-binding.js";
 import {
   EVIDENCE_EXCERPT_LIMIT,
   EVIDENCE_RESULTS,
@@ -26,6 +31,7 @@ import {
   evidenceRecordId,
   findingRecordId,
   MAX_FRESHNESS_SECONDS,
+  type ChecksBinding,
   type EvidenceDocument,
   type EvidenceRecord,
 } from "./evidence-types.js";
@@ -43,7 +49,7 @@ const CRITERION_ID = new RegExp(`^(?:${CRITERION_ID_SOURCE})$`, "u");
 const COMMIT_HASH = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u;
 
 /** The keys of the file itself. */
-const DOCUMENT_KEYS = ["records", "schema_version"] as const;
+const DOCUMENT_KEYS = ["checks", "records", "schema_version"] as const;
 
 /**
  * Tell whether a value is text with something in it.
@@ -111,6 +117,10 @@ const RECORD_FIELDS: Readonly<
   commit: {
     test: orNull(value => typeof value === "string" && COMMIT_HASH.test(value)),
     holds: "a full commit hash, or null",
+  },
+  checks_digest: {
+    test: isSha256,
+    holds: "a SHA-256 digest in lower-case hexadecimal",
   },
   command: {
     test: orNull(
@@ -306,6 +316,7 @@ function documentProblems(
     ...(document.schema_version === EVIDENCE_SCHEMA_VERSION
       ? []
       : [`"schema_version" must be ${EVIDENCE_SCHEMA_VERSION}.`]),
+    ...bindingProblems(document),
     ...(Array.isArray(document.records) ? [] : ['"records" is not a list.']),
   ];
 }
@@ -337,20 +348,33 @@ export function parseEvidenceDocument(
     ? { problems }
     : {
         problems: null,
-        document: { schema_version: EVIDENCE_SCHEMA_VERSION, records },
+        document: {
+          schema_version: EVIDENCE_SCHEMA_VERSION,
+          // Held to its shape just above, with every other problem.
+          checks: document.checks as unknown as ChecksBinding,
+          records,
+        },
       };
 }
 
 /**
  * An evidence file holding some records, in the file's one order.
  * @param records - The records, in any order
+ * @param checks - What defined the checks at the run that wrote them
  * @returns The file
  */
 export function evidenceDocumentOf(
-  records: readonly EvidenceRecord[]
+  records: readonly EvidenceRecord[],
+  checks: ChecksBinding
 ): EvidenceDocument {
   return {
     schema_version: EVIDENCE_SCHEMA_VERSION,
+    checks: {
+      covered: [...checks.covered].sort((left, right) =>
+        compareCodeUnits(left.path, right.path)
+      ),
+      digest: checks.digest,
+    },
     records: [...records].sort((left, right) =>
       compareCodeUnits(left.id, right.id)
     ),

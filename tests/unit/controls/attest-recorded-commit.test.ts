@@ -1,18 +1,17 @@
 /**
  * The commit an evidence record names, and what `lisa controls attest
- * --check` does with it.
+ * --check` does with it: prints it, and decides nothing by it.
  *
- * A record names the commit the proofs were run against. That is the commit
- * the run's copy was made from, which is not always the commit the
- * repository is at when the results are written: a run takes time, and the
- * operator can commit meanwhile.
+ * A record names the commit the run's copy was cloned from. That is not
+ * always the commit the repository is at when the results are written: a
+ * run takes time, and the operator can commit meanwhile.
  *
- * The check then holds the verdict to that commit. A verdict is about the
- * checks as they were when they were proved. If the repository has moved on
- * and a file that says what the checks are, or runs them, has changed since,
- * the verdict no longer describes what is here, and the check says so. If
- * the commit is not in this clone, nothing can be compared, and the check
- * says that instead of calling the verdict current.
+ * The check once held the verdict to that commit, and that could not pass
+ * in ordinary use: a squash or rebase merge replaces the commit, and a
+ * shallow clone never has it. What is compared now is the content of what
+ * defines the checks (`tests/unit/controls/attest-check-binding.test.ts`).
+ * The commit stays in the records for a reader, and these cases hold the
+ * check to never failing on it.
  */
 import { appendFileSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -156,6 +155,13 @@ describe("the commit an evidence record names", () => {
     await opening.close();
 
     expect(opening.commit).toBe(headOf(where.repoPath));
+    // With it, what defined the checks in that copy: what the run's
+    // evidence is bound to.
+    expect(opening.checks?.covered.map(file => file.path)).toEqual([
+      DECLARATION,
+      `${PROOFS}/lint.clean.patch`,
+      VIOLATION_PATCH,
+    ]);
   });
 
   it("is the commit the repository is at when nothing was cloned", async () => {
@@ -170,7 +176,7 @@ describe("the commit an evidence record names", () => {
 });
 
 describe("lisa controls attest --check and the commit the evidence names", () => {
-  it("names the commit, and passes while the repository is still at it", async () => {
+  it("names the commit, for the reader, and passes while the repository is still at it", async () => {
     const where = setting(WORKING);
     await record(where);
 
@@ -178,63 +184,24 @@ describe("lisa controls attest --check and the commit the evidence names", () =>
 
     expect(run.code).toBe(ATTEST_CHECK_EXIT.MATCHES);
     expect(run.stdout.join("\n")).toContain(
-      `The evidence was recorded at commit ${headOf(where.repoPath).slice(0, SHORT)}, the commit this repository is at.`
+      `The proofs ran in a copy cloned from commit ${headOf(where.repoPath).slice(0, SHORT)}; that is for your information, and nothing was compared with it.`
     );
   });
 
-  it("passes after the results are committed, because no file that defines the checks changed", async () => {
+  it("passes after the repository has moved on, and still names the commit the records hold", async () => {
     const where = await attestedAndCommitted();
 
     const run = await checkVerdict(where.repoPath);
 
     expect(run.stderr).toEqual([]);
     expect(run.code).toBe(ATTEST_CHECK_EXIT.MATCHES);
+    expect(headOf(where.repoPath)).not.toBe(where.proved);
     expect(run.stdout.join("\n")).toContain(
-      `The evidence was recorded at commit ${where.proved.slice(0, SHORT)}. This repository is now at ${headOf(where.repoPath).slice(0, SHORT)}, and no file that says what the checks are or runs them has changed since.`
+      `cloned from commit ${where.proved.slice(0, SHORT)};`
     );
   });
 
-  it("fails when a proof's change was rewritten after the proofs ran", async () => {
-    const where = await attestedAndCommitted();
-    appendFileSync(path.join(where.repoPath, VIOLATION_PATCH), "\n");
-    const now = commitAll(where.repoPath, "test: weaken the violating change");
-
-    const run = await checkVerdict(where.repoPath);
-
-    expect(run.code).toBe(ATTEST_CHECK_EXIT.DIFFERS);
-    expect(run.stdout).toEqual([]);
-    expect(run.stderr).toContain(
-      `The evidence was recorded at commit ${where.proved.slice(0, SHORT)}, and this repository is now at ${now.slice(0, SHORT)}. Between the two, a file that says what the checks are or runs them has changed: ${VIOLATION_PATCH}. The verdict is about the checks as they were, so it no longer describes what is here.`
-    );
-    expect(run.stderr.at(-1)).toMatch(
-      /^attest --check: FAIL\. 1 difference .* Run "lisa controls attest"/u
-    );
-  });
-
-  it("fails when the file that declares the checks changed, even in a way the register does not show", async () => {
-    const where = await attestedAndCommitted();
-    appendFileSync(path.join(where.repoPath, DECLARATION), "\n");
-    commitAll(where.repoPath, "chore: touch the declaration");
-
-    const run = await checkVerdict(where.repoPath);
-
-    expect(run.code).toBe(ATTEST_CHECK_EXIT.DIFFERS);
-    expect(run.stderr.join("\n")).toContain(
-      `a file that says what the checks are or runs them has changed: ${DECLARATION}.`
-    );
-  });
-
-  it("does not see a change to the checked tool's own files: that is outside what it compares", async () => {
-    const where = await attestedAndCommitted();
-    appendFileSync(path.join(where.repoPath, "Makefile"), "\n# changed\n");
-    commitAll(where.repoPath, "build: change the tool's set-up");
-
-    expect((await checkVerdict(where.repoPath)).code).toBe(
-      ATTEST_CHECK_EXIT.MATCHES
-    );
-  });
-
-  it("says it could not compare, and exits non-zero, in a clone that does not have the commit", async () => {
+  it("passes in a clone that does not have the commit: nothing is asked of history", async () => {
     const where = await attestedAndCommitted();
     const shallow = path.join(
       realpathSync(mkdtempSync(path.join(tmpdir(), "lisa-shallow-"))),
@@ -252,16 +219,41 @@ describe("lisa controls attest --check and the commit the evidence names", () =>
 
     const run = await checkVerdict(shallow);
 
-    expect(run.code).toBe(ATTEST_CHECK_EXIT.NOT_CHECKED);
-    expect(run.stdout).toEqual([]);
-    expect(run.stderr).toEqual([
-      `The evidence was recorded at commit ${where.proved}, and this clone does not have that commit (a shallow clone leaves history out), so what has changed since could not be compared. Fetch the full history (git fetch --unshallow), or run "lisa controls attest" again.`,
-      "attest --check: FAIL. The three files agree with each other, but the commit the evidence was recorded at could not be compared with this repository, so the verdict is not shown to be current",
-    ]);
+    expect(run.stderr).toEqual([]);
+    expect(run.code).toBe(ATTEST_CHECK_EXIT.MATCHES);
+    expect(run.stdout.join("\n")).toContain(
+      `cloned from commit ${where.proved.slice(0, SHORT)};`
+    );
     WRITTEN_FILES.forEach(file => {
       expect(
         runControlAuditGit(shallow, ["status", "--short", "--", file])
       ).toBe("");
     });
+  });
+
+  it("passes when the declaration file is touched and its gates block is not: a commit that changes the file is not a change to a check", async () => {
+    const where = await attestedAndCommitted();
+    appendFileSync(path.join(where.repoPath, DECLARATION), "\n");
+    commitAll(where.repoPath, "chore: touch the declaration");
+
+    const run = await checkVerdict(where.repoPath);
+
+    expect(run.stderr).toEqual([]);
+    expect(run.code).toBe(ATTEST_CHECK_EXIT.MATCHES);
+  });
+
+  it("fails on the content of a proof's change that was rewritten, and says nothing of commits", async () => {
+    const where = await attestedAndCommitted();
+    appendFileSync(path.join(where.repoPath, VIOLATION_PATCH), "\n");
+    commitAll(where.repoPath, "test: weaken the violating change");
+
+    const run = await checkVerdict(where.repoPath);
+
+    expect(run.code).toBe(ATTEST_CHECK_EXIT.DIFFERS);
+    expect(run.stdout).toEqual([]);
+    expect(run.stderr.join("\n")).toContain(
+      `Changed since: ${VIOLATION_PATCH}.`
+    );
+    expect(run.stderr.join("\n")).not.toMatch(/commit [0-9a-f]{7}/u);
   });
 });

@@ -62,8 +62,13 @@ export const PROOF_CHECK_REASONS = [
   "external-effects",
   /** A change does not apply to the last commit. */
   "patch-not-applied",
-  /** A change edits the file that declares the checks. */
+  /**
+   * A change edits what the check is: the file that declares the checks, a
+   * file that starts them, or the script the part's command runs.
+   */
   "declaration-changed",
+  /** A change touches a path the repository ignores. */
+  "ignored-path",
   /** A change leaves nothing git would commit. */
   "no-change",
   /** A change touches no file inside the part's own folder. */

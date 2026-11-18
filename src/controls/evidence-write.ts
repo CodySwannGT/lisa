@@ -30,14 +30,20 @@
  * their requirement. Records of audit findings are replaced as one set on
  * every run.
  *
- * ## What is kept from before was written by a run
+ * ## What is kept from before was written by a run, about these checks
  *
  * The file is on disk between runs, and anyone can type into it. So an
  * earlier record is kept only when a run could have written it: its moment
  * is one a run writes records for, and its entry is enforced at that moment.
- * A record that is kept is relied on for the default lifetime at most,
- * whatever the file says. Without both, a pair typed in at a moment no run
- * speaks for, with a year's lifetime, would outlive every real run.
+ * And it is kept only when it was recorded under the digest this run took
+ * of what defines the checks (`./checks-binding.ts`): a record made when the
+ * checks were defined differently, or before records carried a digest at
+ * all, says how other checks behaved, and a verdict written from it would
+ * fail its own check. `./evidence-standing.ts` holds those rules, for the
+ * verdict as well. A record that is kept is relied on for the default
+ * lifetime at most, whatever the file says. Without all of this, a pair
+ * typed in at a moment no run speaks for, with a year's lifetime, would
+ * outlive every real run.
  *
  * ## Where a secret could get in
  *
@@ -56,6 +62,7 @@ import {
   outputWithoutSecretValues,
   recordWithoutSecretValues,
 } from "./evidence-redact.js";
+import { standingProblem } from "./evidence-standing.js";
 import {
   DEFAULT_FRESHNESS_SECONDS,
   EVIDENCE_EXCERPT_LIMIT,
@@ -78,16 +85,7 @@ import type {
   ControlRegisterEntry,
 } from "./register-types.js";
 
-/**
- * The moments an attest run can write a record about a control for: the two
- * the paired-proof runner exercises, and the one the hosting platform
- * answers for. No step writes a record at any other moment, so a record that
- * names another one was not written by a run.
- */
-export const EVIDENCE_MOMENTS: readonly string[] = [
-  ...PROOF_MOMENTS,
-  PULL_REQUEST_MOMENT,
-];
+export { EVIDENCE_MOMENTS } from "./evidence-standing.js";
 
 /** What every record of one run carries beyond its own result. */
 export interface EvidenceStamp {
@@ -99,6 +97,11 @@ export interface EvidenceStamp {
   readonly commit: string | null;
   /** How long each record may be relied on, in whole seconds. */
   readonly freshnessSeconds: number;
+  /**
+   * The digest of what defined the checks at this run
+   * (`./checks-binding.ts`). Every record the run writes carries it.
+   */
+  readonly checksDigest: string;
 }
 
 /** Records, or one line per result that could not be written as one. */
@@ -267,6 +270,7 @@ function recordsOf(
       reason: result.reason,
       detail: result.detail,
       commit: stamp.commit,
+      checks_digest: stamp.checksDigest,
       command: result.command === null ? null : [...result.command],
       exit_status: result.exit_status,
       started_at: result.started_at,
@@ -309,31 +313,30 @@ export function batchRecords(
 /**
  * Tell whether an earlier record still stands after this run.
  *
- * A record is kept only when a run could have written it: it names a moment
- * a run writes records for ({@link EVIDENCE_MOMENTS}), and its entry is
- * enforced at that moment. Anything else was put in the file by hand. Kept
- * without that test, a pair typed in at a moment no run ever speaks for
- * would survive every later run and be read as a proof.
+ * A record is kept only when a run could have written it, about the checks
+ * as this run found them: it names a moment a run writes records for, its
+ * entry is enforced at that moment, and it carries this run's digest of
+ * what defines the checks (`./evidence-standing.ts`). Anything else was put
+ * in the file by hand, or says how other checks behaved. Kept without that
+ * test, a pair typed in at a moment no run ever speaks for would survive
+ * every later run and be read as a proof.
  * @param record - A record the evidence file held before this run
- * @param register - The control register now
- * @param batches - What this run spoke for
+ * @param parts - The register now, what this run spoke for, and its digest
  * @returns Whether it is kept
  */
 function stillStands(
   record: EvidenceRecord,
-  register: ControlRegister,
-  batches: readonly EvidenceBatch[]
+  parts: Pick<MergeParts, "register" | "batches" | "checksDigest">
 ): boolean {
   const { entry_id: entryId, moment } = record;
   // Records of audit findings are replaced as one set on every run.
   if (entryId === null || moment === null) return false;
-  const entry = register.entries.find(each => each.id === entryId);
+  const entry = parts.register.entries.find(each => each.id === entryId);
   return (
     entry !== undefined &&
     entry.criteria.includes(record.criterion) &&
-    EVIDENCE_MOMENTS.includes(moment) &&
-    entry.enforcement_points.some(point => point.moment === moment) &&
-    !batches.some(
+    standingProblem(record, entry, parts.checksDigest) === null &&
+    !parts.batches.some(
       batch => batch.entries.includes(entryId) && batch.moments.includes(moment)
     )
   );
@@ -356,31 +359,75 @@ function withinDefaultLifetime(record: EvidenceRecord): EvidenceRecord {
     : record;
 }
 
+/** What goes into the evidence file a run leaves behind. */
+export interface MergeParts {
+  /** The records the file held before. */
+  readonly earlier: readonly EvidenceRecord[];
+  /** The control register now. */
+  readonly register: ControlRegister;
+  /** What this run spoke for. */
+  readonly batches: readonly EvidenceBatch[];
+  /** The records this run wrote. */
+  readonly records: readonly EvidenceRecord[];
+  /** This run's digest of what defines the checks. */
+  readonly checksDigest: string;
+}
+
 /**
  * The records the evidence file holds after a run.
  * @param parts - What goes into it
- * @param parts.earlier - The records the file held before
- * @param parts.register - The control register now
- * @param parts.batches - What this run spoke for
- * @param parts.records - The records this run wrote
  * @returns Every record that stands, in no particular order, each with any
  *   credential-shaped value taken out of its captured text
  */
-export function mergedEvidence(parts: {
-  readonly earlier: readonly EvidenceRecord[];
-  readonly register: ControlRegister;
-  readonly batches: readonly EvidenceBatch[];
-  readonly records: readonly EvidenceRecord[];
-}): readonly EvidenceRecord[] {
+export function mergedEvidence(parts: MergeParts): readonly EvidenceRecord[] {
   const written = new Set(parts.records.map(record => record.id));
   return [
     ...parts.earlier
-      .filter(
-        record =>
-          !written.has(record.id) &&
-          stillStands(record, parts.register, parts.batches)
-      )
+      .filter(record => !written.has(record.id) && stillStands(record, parts))
       .map(record => withinDefaultLifetime(record)),
     ...parts.records,
   ].map(record => recordWithoutSecretValues(record));
+}
+
+/**
+ * Count the canary results an earlier run recorded that this run let go
+ * because the checks are no longer defined as they were then.
+ *
+ * Only the pull-request moment has such records: a run replaces everything
+ * at commit and push whatever it finds, and it keeps an earlier canary
+ * proof only when it planted nothing against it. A result this run
+ * exercised again is not counted; it was replaced, not dropped.
+ * @param parts - What goes into the evidence file
+ * @returns How many exercised pull-request records were dropped for having
+ *   been recorded under another digest
+ */
+export function droppedForOtherChecks(parts: MergeParts): number {
+  const written = new Set(parts.records.map(record => record.id));
+  return parts.earlier.filter(record => {
+    const entry = parts.register.entries.find(
+      each => each.id === record.entry_id
+    );
+    return (
+      entry !== undefined &&
+      record.moment === PULL_REQUEST_MOMENT &&
+      record.rung === "exercised" &&
+      !written.has(record.id) &&
+      entry.criteria.includes(record.criterion) &&
+      standingProblem(record, entry, parts.checksDigest) === "other-checks"
+    );
+  }).length;
+}
+
+/**
+ * Say that canary results were dropped because the checks have changed.
+ * @param count - How many records were dropped
+ * @returns The line, or `null` when none was
+ */
+export function droppedForOtherChecksLine(count: number): string | null {
+  if (count === 0) return null;
+  const [records, were, them] =
+    count === 1
+      ? ["record was", "it was", "it"]
+      : ["records were", "they were", "them"];
+  return `${String(count)} earlier pull-request ${records} made when the checks were defined differently, so ${were} dropped: a record counts only for the checks it was made against. Run "lisa controls attest --pull-request-canaries" to produce ${them} again.`;
 }

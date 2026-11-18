@@ -64,7 +64,7 @@ type CarriedFile =
  * @returns Whether it names a place below the repository root, outside git's
  *   own folder, with no step that climbs out
  */
-function isPlainPath(file: string): boolean {
+export function isPlainPath(file: string): boolean {
   const segments = file.split("/");
   return (
     !file.includes("\\") &&
@@ -85,7 +85,7 @@ function isPlainPath(file: string): boolean {
  * @param folder - The folder, from the repository root
  * @returns The files, from the repository root
  */
-async function ordinaryFiles(
+export async function ordinaryFiles(
   root: string,
   folder: string
 ): Promise<readonly string[]> {

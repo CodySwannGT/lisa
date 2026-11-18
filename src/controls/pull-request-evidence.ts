@@ -57,6 +57,10 @@
  *   pull-request moment — a half that held or a half that failed;
  * - every record it holds for the entry at that moment is still within its
  *   lifetime;
+ * - every one of them was recorded under the digest this run took of what
+ *   defines the checks (`./checks-binding.ts`). A canary proof of checks
+ *   that have since been redefined is not kept by the writer either, so an
+ *   entry left out for its sake would end with no record at all;
  * - the settings did not say today that a check of the entry is not
  *   required.
  *
@@ -165,14 +169,15 @@ function observedResults(
  * @param point - The entry's pull-request point from this run
  * @param settlement - What this run did about the pull-request moment
  * @param earlier - The records the evidence file held before this run
- * @param now - The current time
+ * @param current - The current time, and this run's digest of what defines
+ *   the checks
  * @returns Whether the entry is left out of the batch
  */
 function standsOnEarlierProof(
   point: PullRequestPoint,
   settlement: PullRequestSettlement,
   earlier: readonly EvidenceRecord[],
-  now: Date
+  current: BatchContext
 ): boolean {
   if (settlement.mode !== "observed" || point.observed === "not-required") {
     return false;
@@ -185,24 +190,38 @@ function standsOnEarlierProof(
   return (
     onRecord.some(
       record => record.rung === "exercised" && record.result !== "unknown"
-    ) && onRecord.every(record => isEvidenceFresh(record, now))
+    ) &&
+    onRecord.every(
+      record =>
+        record.checks_digest === current.checksDigest &&
+        isEvidenceFresh(record, current.now)
+    )
   );
+}
+
+/** What decides which earlier records a run may leave in place. */
+export interface BatchContext {
+  /** The current time, which decides which records are still current. */
+  readonly now: Date;
+  /** This run's digest of what defines the checks. */
+  readonly checksDigest: string;
 }
 
 /**
  * Everything a run found out about the pull-request moment, as one batch.
  * @param settlement - What the run did and learned about pull requests
  * @param earlier - The records the evidence file held before this run
- * @param now - The current time, which decides which of them are current
+ * @param current - The current time, and this run's digest of what defines
+ *   the checks
  * @returns The batch for the `pull-request` moment
  */
 export function pullRequestBatch(
   settlement: PullRequestSettlement,
   earlier: readonly EvidenceRecord[],
-  now: Date
+  current: BatchContext
 ): EvidenceBatch {
   const spokenFor = settlement.points.filter(
-    point => !standsOnEarlierProof(point, settlement, earlier, now)
+    point => !standsOnEarlierProof(point, settlement, earlier, current)
   );
   return {
     entries: spokenFor.map(point => point.entry_id),
@@ -222,17 +241,17 @@ export function pullRequestBatch(
  *
  * The evidence file is read here, before the writer reads it again, only to
  * learn which canary proofs are still current. A file that is missing, is
- * reached through a link, or is not what the attest step writes counts as
- * holding nothing: the writer keeps nothing of such a file either.
+ * reached through a link, was written before records carried a digest, or
+ * is not what the attest step writes counts as holding nothing: the writer
+ * keeps nothing of such a file either.
  * @param run - The run, with its pull-request moment settled or not
- * @param context - Where the evidence file is, and the current time
- * @param context.root - Path of the repository the operator named
- * @param context.now - The current time
+ * @param context - Where the evidence file is, the current time, and this
+ *   run's digest of what defines the checks
  * @returns One batch, or none when the register has no pull-request entry
  */
 export function pullRequestBatches(
   run: ProofRun,
-  context: { readonly root: string; readonly now: Date }
+  context: BatchContext & { readonly root: string }
 ): readonly EvidenceBatch[] {
   const settlement = pullRequestSettlementOf(run);
   if (settlement === null) return [];
@@ -241,7 +260,7 @@ export function pullRequestBatches(
     pullRequestBatch(
       settlement,
       held.problems === null ? held.document.records : [],
-      context.now
+      context
     ),
   ];
 }
