@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CodySwannGT/lisa/schemas/control-verdict.schema.json",
+  "title": "Control verdict",
+  "type": "object",
+  "additionalProperties": false,
+  "description": "The Level 1 verdict of a repository: one of four words for every requirement, one overall result, and a digest of the control register and the evidence file it was computed from. The file is written by `lisa controls attest` and is never edited by hand; `lisa controls attest --check` computes it again and fails when the two differ.",
+  "required": [
+    "schema_version",
+    "requirements",
+    "result",
+    "prevented_by",
+    "counts",
+    "criteria",
+    "evidence_as_of",
+    "current_until",
+    "digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "description": "The version of this format."
+    },
+    "requirements": {
+      "$ref": "#/$defs/requirements"
+    },
+    "result": {
+      "enum": [
+        "conforming",
+        "non-conforming"
+      ],
+      "description": "`conforming` only when every requirement is `conforming` or `not-applicable`. A requirement that is `unknown` prevents it."
+    },
+    "prevented_by": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/criterion_id"
+      },
+      "description": "The requirements that prevent a conforming result, in the catalogue's order. Empty exactly when `result` is `conforming`."
+    },
+    "counts": {
+      "$ref": "#/$defs/counts"
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/criterion"
+      },
+      "description": "One verdict per in-scope requirement, in the catalogue's order."
+    },
+    "evidence_as_of": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/utc_time"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "When the newest evidence record was completed, or `null` when there is no evidence."
+    },
+    "current_until": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/utc_time"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The first instant an evidence record this verdict rests on stops being current, or `null` when it rests on none. From then on the verdict is out of date and the check fails."
+    },
+    "digest": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "$defs": {
+    "criterion_id": {
+      "type": "string",
+      "pattern": "^(?:AC[1-9]\\d*\\.[1-9]\\d*|(?:SI|DP|UX)[1-9]\\d*)$",
+      "description": "A requirement id as the specification writes it, for example `AC5.4` or `SI7`."
+    },
+    "utc_time": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+      "description": "A time in UTC with milliseconds, `YYYY-MM-DDTHH:mm:ss.sssZ`."
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "A SHA-256 digest in lower-case hexadecimal, taken over the canonical text of a JSON value: object keys in code-unit order at every depth, no spaces, lists in their own order."
+    },
+    "rung": {
+      "enum": [
+        "asserted",
+        "observed",
+        "exercised"
+      ],
+      "description": "How strongly something is known, weakest first: `asserted` (said, not checked), `observed` (a setting read from the system that holds it, or a file found where the audit pointed), `exercised` (a change was planted and the control's answer recorded)."
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Which requirements the verdict was computed against.",
+      "required": [
+        "specification",
+        "specification_version",
+        "level",
+        "sha256"
+      ],
+      "properties": {
+        "specification": {
+          "type": "string",
+          "description": "The specification the requirements were taken from."
+        },
+        "specification_version": {
+          "type": "string",
+          "description": "The version of that specification."
+        },
+        "level": {
+          "type": "integer",
+          "description": "The conformance level the verdict is for."
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "The digest of the requirements catalogue itself."
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How many requirements came out as each word.",
+      "required": [
+        "conforming",
+        "non-conforming",
+        "unknown",
+        "not-applicable"
+      ],
+      "properties": {
+        "conforming": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "non-conforming": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not-applicable": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What binds the verdict to the files it was computed from.",
+      "required": [
+        "algorithm",
+        "register",
+        "evidence",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "sha256",
+          "description": "The digest algorithm."
+        },
+        "register": {
+          "$ref": "#/$defs/sha256",
+          "description": "The digest of `.lisa/controls/register.json` alone."
+        },
+        "evidence": {
+          "$ref": "#/$defs/sha256",
+          "description": "The digest of `.lisa/controls/evidence.json` alone."
+        },
+        "value": {
+          "$ref": "#/$defs/sha256",
+          "description": "The digest of the two together: of the object `{ \"evidence\": <the evidence file>, \"register\": <the register> }`."
+        }
+      }
+    },
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One requirement's verdict.",
+      "required": [
+        "criterion",
+        "verdict",
+        "reason",
+        "detail",
+        "kind",
+        "minimum_rung",
+        "rung",
+        "entries",
+        "evidence",
+        "fact"
+      ],
+      "properties": {
+        "criterion": {
+          "$ref": "#/$defs/criterion_id",
+          "description": "The requirement."
+        },
+        "verdict": {
+          "enum": [
+            "non-conforming",
+            "unknown",
+            "conforming",
+            "not-applicable"
+          ],
+          "description": "`conforming`: everything that answers it held, on evidence strong enough for it; `rung` says how strong, so a reader can tell a proof from a located file from a person's word. `non-conforming`: a control that serves it failed, or the audit found nothing that does it. `unknown`: there is no evidence, the evidence is out of date, or it is weaker than the requirement needs. `not-applicable`: it does not apply, and `fact` says why."
+        },
+        "reason": {
+          "enum": [
+            "control-proved",
+            "artifact-located",
+            "person-attested",
+            "not-applicable",
+            "control-failed",
+            "nothing-found",
+            "no-evidence",
+            "stale-evidence",
+            "evidence-dated-later",
+            "proof-incomplete",
+            "rung-too-low",
+            "audit-unknown",
+            "artifact-not-found",
+            "no-attestation"
+          ],
+          "description": "A short, fixed word for why."
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The same as a sentence for the operator, with what to do about it where something can be done."
+        },
+        "kind": {
+          "type": "string",
+          "description": "What sort of thing answers the requirement, from the catalogue: `gate`, `artifact` or `human-attested`."
+        },
+        "minimum_rung": {
+          "$ref": "#/$defs/rung",
+          "description": "The weakest evidence the requirement accepts, from the catalogue."
+        },
+        "rung": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/rung"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The weakest rung a `conforming` verdict rests on; `null` on any other verdict."
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          },
+          "description": "The register entries that serve the requirement, in register order."
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "The identifiers of the evidence records the verdict was read from, in order."
+        },
+        "fact": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The fact that makes the requirement `not-applicable`, as the audit gave it; `null` on any other verdict."
+        }
+      }
+    }
+  }
+}

@@ -283,6 +283,13 @@ file it exactly as this table says. The check in step 6 refuses a finding filed 
 | `question` | Only a person can say, and nobody has said yet: the requirement is of kind `human-attested` and nothing written down vouches for it; or nothing you can read shows whether its `not_applicable_when` condition holds; or two things you found contradict each other. Never choose it for a finding whose question already has an answer on record (see "Using an answer on record"). | In `what`, what you looked for and could not establish. In `next`, who is likely to know. And its question, in the record's `questions` list (see "Asking a question"). |
 | `missing` | Everything else: you read every source above and nothing does this. A requirement about keeping something in order (two copies of a check in step, a list up to date) is also `missing` when that thing does not exist at all. | An empty `mechanisms` list. |
 
+**A requirement of kind `human-attested` is met only by a person's answer.** Decide this before the
+table above. Something written down that you found does not meet it: the attest step counts such a
+requirement as met only when a person's answer to its question is on record. So unless `answers`
+already holds an answer under the finding's `criterion` and `scope`, file the finding as `question`
+and ask, even when you found a document that seems to cover it; say what you found in the
+question's `candidates`.
+
 **The one way a finding may say `proved`.** You never choose it. If `.lisa/controls/evidence.json`
 exists, the attest step wrote it. A finding may say `proved` only by copying: the file holds a
 record for the same requirement, and you put that record's `id` in the finding's `evidence_id`. The

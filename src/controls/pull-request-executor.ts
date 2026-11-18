@@ -17,7 +17,8 @@
  * The register records the executor on the entry's pull-request enforcement
  * point. Lisa did not write a file on another platform and has never seen it
  * refuse a change, so every entry it runs carries `status: "unproved"` until
- * the evidence file holds a record of both halves of that entry's proof.
+ * the evidence file holds a record of both halves of that entry's proof,
+ * each saying the half held.
  *
  * ## Why the register may depend on the evidence file
  *
@@ -274,7 +275,7 @@ function unwrittenExecutor(
 
 /**
  * Mark every entry whose pull-request check runs from a file Lisa did not
- * write as unproved, until both halves of its proof are on record.
+ * write as unproved, until both halves of its proof are on record and held.
  * @param entries - The entries, their executors already recorded
  * @param evidence - Reads the parsed evidence file. Called once, and only
  *   when some entry's status depends on it
@@ -309,7 +310,7 @@ export function unprovedNote(register: ControlRegister): string | null {
   if (executor === undefined || executor === null) return null;
   const one = unproved.length === 1;
   const ids = unproved.map(entry => entry.id).join(", ");
-  return `${unproved.length} ${one ? "entry reads" : "entries read"} unproved: ${ids}. The ${PULL_REQUEST_MOMENT} check for ${one ? "it" : "them"} runs from ${located(executor)}, a file Lisa did not write, and ${EVIDENCE_PATH} holds no record of both halves of ${one ? "its" : "their"} proof yet. ${one ? "It stays" : "They stay"} unproved until the attest step records both.`;
+  return `${unproved.length} ${one ? "entry reads" : "entries read"} unproved: ${ids}. The ${PULL_REQUEST_MOMENT} check for ${one ? "it" : "them"} runs from ${located(executor)}, a file Lisa did not write, and ${EVIDENCE_PATH} holds no record that both halves of ${one ? "its" : "their"} proof held yet. ${one ? "It stays" : "They stay"} unproved until the attest step records that both held.`;
 }
 
 /** What a drift report adds when an entry's status is what differs. */

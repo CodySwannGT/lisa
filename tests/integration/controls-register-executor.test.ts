@@ -130,7 +130,7 @@ describe("built lisa controls register with a pull-request executor Lisa did not
     expect(run.stderr).toBe("");
     expect(run.status).toBe(0);
     expect(run.stdout.split("\n")[0]).toBe(
-      `register: 2 entries read unproved: ${LINT}, ${COVERAGE}. The pull-request check for them runs from .gitlab-ci.yml on gitlab, a file Lisa did not write, and ${EVIDENCE} holds no record of both halves of their proof yet. They stay unproved until the attest step records both.`
+      `register: 2 entries read unproved: ${LINT}, ${COVERAGE}. The pull-request check for them runs from .gitlab-ci.yml on gitlab, a file Lisa did not write, and ${EVIDENCE} holds no record that both halves of their proof held yet. They stay unproved until the attest step records that both held.`
     );
     expect(unproved).toEqual([LINT, COVERAGE]);
     expect(registerSchemaErrors(document)).toEqual([]);

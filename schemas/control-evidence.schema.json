@@ -1,0 +1,460 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CodySwannGT/lisa/schemas/control-evidence.schema.json",
+  "title": "Control evidence",
+  "description": "What the attest step recorded about each requirement: the result of each half of each control's paired proof, each setting read from the hosting platform, and each finding of the audit report. The file is written by `lisa controls attest` and is never edited by hand; `lisa controls attest --check` computes the verdict again from it and fails when the committed verdict differs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "description": "The version of this format. It changes only when a reader written for the previous version would misread the file."
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/record"
+      },
+      "description": "One record per result per requirement, ordered by `id`. A result about a control that serves two requirements is two records."
+    }
+  },
+  "$defs": {
+    "criterion_id": {
+      "type": "string",
+      "pattern": "^(?:AC[1-9]\\d*\\.[1-9]\\d*|(?:SI|DP|UX)[1-9]\\d*)$",
+      "description": "A requirement id as the specification writes it, for example `AC5.4` or `SI7`."
+    },
+    "utc_time": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+      "description": "A time in UTC with milliseconds, `YYYY-MM-DDTHH:mm:ss.sssZ`."
+    },
+    "record": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/exercised_record"
+        },
+        {
+          "$ref": "#/$defs/observed_record"
+        },
+        {
+          "$ref": "#/$defs/finding_record"
+        }
+      ],
+      "description": "One of three kinds of record, told apart by `rung`."
+    },
+    "exercised_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One half of a paired proof: a change was planted and the control's answer recorded.",
+      "required": [
+        "command",
+        "commit",
+        "completed_at",
+        "criterion",
+        "detail",
+        "entry_id",
+        "exit_status",
+        "freshness_seconds",
+        "half",
+        "id",
+        "moment",
+        "output_excerpt",
+        "output_truncated",
+        "reason",
+        "result",
+        "rung",
+        "scope",
+        "started_at"
+      ],
+      "properties": {
+        "command": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What was started, one item per argument, or `null` when nothing was."
+        },
+        "commit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The commit the repository's HEAD was at when the record was made, or `null` when the repository has no commit or is not a git repository."
+        },
+        "completed_at": {
+          "$ref": "#/$defs/utc_time",
+          "description": "When its answer was in, in UTC. The freshness lifetime is counted from here."
+        },
+        "criterion": {
+          "$ref": "#/$defs/criterion_id",
+          "description": "The requirement the record is evidence for."
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The same as a sentence. On a `not-applicable` record it is the fact that makes the requirement not apply."
+        },
+        "entry_id": {
+          "type": "string",
+          "minLength": 3,
+          "description": "The identifier of the register entry the record is about, for example `code-style@api`."
+        },
+        "exit_status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The exit status of what was started, or `null` when nothing ran to an end."
+        },
+        "freshness_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 31536000,
+          "description": "How long after `completed_at` the record may be relied on, in whole seconds; never more than twelve months. Past that, the requirement reads `unknown`."
+        },
+        "half": {
+          "enum": [
+            "violation",
+            "clean"
+          ],
+          "description": "Which half: the change that breaks the rule, or the one that does not. Only an exercised record names a half."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The record's identifier, unique in the file. It is made only of what the record is about: `<entry id>/<moment>/<half or rung>/<requirement>` for a record about a control, `audit-finding/<requirement>@<folder>` for a record of an audit finding. No time and no counter goes into it, so the same proof of the same control has the same identifier on every run."
+        },
+        "moment": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The moment the record speaks for: `commit`, `push`, `pull-request`."
+        },
+        "output_excerpt": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "The end of what the check printed; empty when nothing ran."
+        },
+        "output_truncated": {
+          "type": "boolean",
+          "description": "Whether the excerpt leaves out earlier output."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A short, fixed word for why the record shows what it does: the proof's reason, or the audit finding's state."
+        },
+        "result": {
+          "enum": [
+            "held",
+            "failed",
+            "unknown"
+          ],
+          "description": "`held`: the control did what the requirement asks. `failed`: it did not. `unknown`: there is no answer that can be relied on."
+        },
+        "rung": {
+          "const": "exercised",
+          "description": "A change was planted and the control's answer recorded."
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The folder the record is about, written from the repository root, or `.` for the whole repository."
+        },
+        "started_at": {
+          "$ref": "#/$defs/utc_time",
+          "description": "When the record's check began, in UTC."
+        }
+      }
+    },
+    "observed_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A setting read from the system that holds it, with nothing planted.",
+      "required": [
+        "command",
+        "commit",
+        "completed_at",
+        "criterion",
+        "detail",
+        "entry_id",
+        "exit_status",
+        "freshness_seconds",
+        "id",
+        "moment",
+        "output_excerpt",
+        "output_truncated",
+        "reason",
+        "result",
+        "rung",
+        "scope",
+        "started_at"
+      ],
+      "properties": {
+        "command": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What was started, one item per argument, or `null` when nothing was."
+        },
+        "commit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The commit the repository's HEAD was at when the record was made, or `null` when the repository has no commit or is not a git repository."
+        },
+        "completed_at": {
+          "$ref": "#/$defs/utc_time",
+          "description": "When its answer was in, in UTC. The freshness lifetime is counted from here."
+        },
+        "criterion": {
+          "$ref": "#/$defs/criterion_id",
+          "description": "The requirement the record is evidence for."
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The same as a sentence. On a `not-applicable` record it is the fact that makes the requirement not apply."
+        },
+        "entry_id": {
+          "type": "string",
+          "minLength": 3,
+          "description": "The identifier of the register entry the record is about, for example `code-style@api`."
+        },
+        "exit_status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The exit status of what was started, or `null` when nothing ran to an end."
+        },
+        "freshness_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 31536000,
+          "description": "How long after `completed_at` the record may be relied on, in whole seconds; never more than twelve months. Past that, the requirement reads `unknown`."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The record's identifier, unique in the file. It is made only of what the record is about: `<entry id>/<moment>/<half or rung>/<requirement>` for a record about a control, `audit-finding/<requirement>@<folder>` for a record of an audit finding. No time and no counter goes into it, so the same proof of the same control has the same identifier on every run."
+        },
+        "moment": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The moment the record speaks for: `commit`, `push`, `pull-request`."
+        },
+        "output_excerpt": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "The end of what the check printed; empty when nothing ran."
+        },
+        "output_truncated": {
+          "type": "boolean",
+          "description": "Whether the excerpt leaves out earlier output."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A short, fixed word for why the record shows what it does: the proof's reason, or the audit finding's state."
+        },
+        "result": {
+          "enum": [
+            "held",
+            "failed",
+            "unknown"
+          ],
+          "description": "`held`: the control did what the requirement asks. `failed`: it did not. `unknown`: there is no answer that can be relied on."
+        },
+        "rung": {
+          "const": "observed",
+          "description": "A setting was read from the system that holds it. Nothing was planted, so the record names no half."
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The folder the record is about, written from the repository root, or `.` for the whole repository."
+        },
+        "started_at": {
+          "$ref": "#/$defs/utc_time",
+          "description": "When the record's check began, in UTC."
+        }
+      }
+    },
+    "finding_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What the audit report said about a requirement, written down when the attest step read it.",
+      "required": [
+        "command",
+        "commit",
+        "completed_at",
+        "criterion",
+        "detail",
+        "entry_id",
+        "exit_status",
+        "freshness_seconds",
+        "id",
+        "moment",
+        "output_excerpt",
+        "output_truncated",
+        "reason",
+        "result",
+        "rung",
+        "scope",
+        "started_at"
+      ],
+      "properties": {
+        "command": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What was started, one item per argument, or `null` when nothing was."
+        },
+        "commit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The commit the repository's HEAD was at when the record was made, or `null` when the repository has no commit or is not a git repository."
+        },
+        "completed_at": {
+          "$ref": "#/$defs/utc_time",
+          "description": "When its answer was in, in UTC. The freshness lifetime is counted from here."
+        },
+        "criterion": {
+          "$ref": "#/$defs/criterion_id",
+          "description": "The requirement the record is evidence for."
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The same as a sentence. On a `not-applicable` record it is the fact that makes the requirement not apply."
+        },
+        "entry_id": {
+          "type": "null",
+          "description": "Always `null`: the record is about no register entry."
+        },
+        "exit_status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The exit status of what was started, or `null` when nothing ran to an end."
+        },
+        "freshness_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 31536000,
+          "description": "How long after `completed_at` the record may be relied on, in whole seconds; never more than twelve months. Past that, the requirement reads `unknown`."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The record's identifier, unique in the file. It is made only of what the record is about: `<entry id>/<moment>/<half or rung>/<requirement>` for a record about a control, `audit-finding/<requirement>@<folder>` for a record of an audit finding. No time and no counter goes into it, so the same proof of the same control has the same identifier on every run."
+        },
+        "moment": {
+          "type": "null",
+          "description": "Always `null`: an audit finding speaks for no moment."
+        },
+        "output_excerpt": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "The end of what the check printed; empty when nothing ran."
+        },
+        "output_truncated": {
+          "type": "boolean",
+          "description": "Whether the excerpt leaves out earlier output."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A short, fixed word for why the record shows what it does: the proof's reason, or the audit finding's state."
+        },
+        "result": {
+          "enum": [
+            "held",
+            "failed",
+            "unknown",
+            "not-applicable"
+          ],
+          "description": "`held`: the record was found where the audit pointed, or a person's answer vouches for it, or (for a requirement a check answers, which this never satisfies) the audit found something. `failed`: the audit found nothing that does it. `unknown`: the audit could not establish it, the record was not where it pointed, or no person has answered. `not-applicable`: the requirement does not apply, and `detail` is the fact that makes it so."
+        },
+        "rung": {
+          "enum": [
+            "asserted",
+            "observed"
+          ],
+          "description": "`asserted`: the finding, or a person's answer to the audit's question, is said and not checked. `observed`: the finding is about a record that exists, and the attest step found the file and line the audit pointed at. That shows the record is there, not that it says what the requirement asks."
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The folder the record is about, written from the repository root, or `.` for the whole repository."
+        },
+        "started_at": {
+          "$ref": "#/$defs/utc_time",
+          "description": "When the record's check began, in UTC."
+        }
+      }
+    }
+  }
+}

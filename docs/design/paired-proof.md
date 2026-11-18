@@ -180,6 +180,10 @@ at its limit is stopped with its whole process tree and reported
 | --- | --- |
 | 0 | There is at least one entry and every entry passed. |
 | 1 | The proofs ran and some entry did not pass, or the register has no entries. |
-| 2 | There are no results: the path is not a folder, the gates declaration was refused, no disposable copy was named, or the run could not finish. |
+| 2 | There are no results: the path is not a folder, the gates declaration was refused, no disposable copy was named, the run could not finish, or what it found could not be written down. |
 
-The command writes no file.
+When the proofs have run (exit 0 or 1), the command writes three files in the
+repository: the evidence, the control register and the verdict. What they
+hold, and how `lisa controls attest --check` holds them to each other, is in
+[evidence and verdict](evidence-and-verdict.md). When no proof was run
+(exit 2), it writes nothing.

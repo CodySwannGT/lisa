@@ -142,7 +142,9 @@
     "eslint-plugin-phaser",
     "spec/tasc-criteria.json",
     "spec/tasc-criteria.schema.json",
-    "schemas/control-register.schema.json"
+    "schemas/control-register.schema.json",
+    "schemas/control-evidence.schema.json",
+    "schemas/control-verdict.schema.json"
   ],
   "trustedDependencies": [
     "@ast-grep/cli",

@@ -11,7 +11,7 @@
  *
  * One thing in it comes from a second committed file. An entry whose
  * pull-request check runs from a file Lisa did not write reads `unproved`
- * until the evidence file holds both halves of its proof; see
+ * until the evidence file holds both halves of its proof, each held; see
  * `pull-request-executor.ts`. For such a declaration the same declaration and
  * the same evidence produce the same bytes. For every other declaration the
  * evidence file is not read at all.

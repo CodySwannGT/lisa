@@ -43,15 +43,25 @@ describe("a record of one half of a proof", () => {
     expect(PROOF_HALVES).toEqual(["violation", "clean"]);
   });
 
-  it("is read as the entry, the half and the moment it was run at", () => {
+  it("is read as the entry, the half, the moment it was run at and whether it held", () => {
     expect(
       kept([
         proofRecord(ENTRY, "violation"),
         proofRecord(ENTRY, "clean", { moment: PULL_REQUEST, commit: "abc" }),
       ])
     ).toEqual([
-      { entry_id: ENTRY, half: "violation", moment: null },
-      { entry_id: ENTRY, half: "clean", moment: PULL_REQUEST },
+      { entry_id: ENTRY, half: "violation", moment: null, held: true },
+      { entry_id: ENTRY, half: "clean", moment: PULL_REQUEST, held: true },
+    ]);
+  });
+
+  it.each([
+    ["says the half failed", { result: "failed" }],
+    ["says the half gave no answer", { result: "unknown" }],
+    ["does not say what the half showed", { result: undefined }],
+  ])("is read as a half that did not hold when it %s", (_name, change) => {
+    expect(kept([proofRecord(ENTRY, "violation", change)])).toEqual([
+      { entry_id: ENTRY, half: "violation", moment: null, held: false },
     ]);
   });
 
@@ -87,8 +97,45 @@ describe("both halves of an entry's proof", () => {
     extra?: Readonly<Record<string, unknown>>
   ): readonly ProofHalfRecord[] => kept(bothHalves(ENTRY, extra));
 
-  it("are on record when each has a record", () => {
+  it("are on record when each has a record that says it held", () => {
     expect(hasBothProofHalves(records(), ENTRY, PULL_REQUEST)).toBe(true);
+  });
+
+  it.each(PROOF_HALVES)(
+    "are not when the %s half was run and did not hold",
+    half => {
+      const other = PROOF_HALVES.find(each => each !== half) ?? half;
+
+      expect(
+        hasBothProofHalves(
+          kept([
+            proofRecord(ENTRY, half, { result: "failed" }),
+            proofRecord(ENTRY, other),
+          ]),
+          ENTRY,
+          PULL_REQUEST
+        )
+      ).toBe(false);
+    }
+  );
+
+  it("are not when the records do not say what each half showed", () => {
+    expect(
+      hasBothProofHalves(records({ result: undefined }), ENTRY, PULL_REQUEST)
+    ).toBe(false);
+  });
+
+  it("are when a half that failed has a record that held beside it", () => {
+    expect(
+      hasBothProofHalves(
+        kept([
+          proofRecord(ENTRY, "violation", { result: "failed" }),
+          ...bothHalves(ENTRY),
+        ]),
+        ENTRY,
+        PULL_REQUEST
+      )
+    ).toBe(true);
   });
 
   it.each(PROOF_HALVES)("are not when only the %s half has", half => {
