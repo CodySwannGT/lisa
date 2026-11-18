@@ -12,7 +12,7 @@
  * for, and a hook installed in `.git/hooks`, which is a check that really
  * runs (CodySwannGT/lisa#4978).
  */
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -59,6 +59,15 @@ const SAMPLE_HOOK = ".git/hooks/pre-commit.sample";
 const PROOF_PATCH = ".lisa/controls/proofs/lint.clean.patch";
 const LINK_TO_GIT = "docs/settings";
 const LINK_TO_REPORT = "docs/earlier-report.json";
+
+/** A file of the repository that a pointer may name. */
+const README = "docs/readme.md";
+
+/**
+ * The long s (U+017F), which a file system that ignores case reads as "s".
+ * Written by its number so that it cannot be mistaken for an "f" here.
+ */
+const LONG_S = String.fromCodePoint(0x17f);
 
 /** Every place a pointer may not lead, as a report might write it. */
 const REFUSED = [
@@ -136,7 +145,7 @@ function repository(): string {
     [PROOF_PATCH]: "--- a\n+++ b\n",
     [INSTALLED_HOOK]: "#!/bin/sh\nruff check .\n",
     [SAMPLE_HOOK]: "#!/bin/sh\n",
-    "docs/readme.md": "one\n",
+    [README]: "one\n",
   };
   Object.entries(files).forEach(([relative, content]) => {
     const file = path.join(repoPath, relative);
@@ -241,7 +250,52 @@ describe("reading the repository", () => {
 
     expect(reader.lineCount(CONTROL_REGISTER_PATH)).toBe(3);
     expect(reader.lineCount(INSTALLED_HOOK)).toBe(2);
-    expect(reader.lineCount("docs/readme.md")).toBe(1);
+    expect(reader.lineCount(README)).toBe(1);
+  });
+
+  it.each([
+    ".LISA/AUDIT/report.md",
+    ".Lisa/Controls/evidence.json",
+    ".git/HOOKS/pre-commit.SAMPLE",
+  ])(
+    "finds no line at %s, which differs from such a place only by case",
+    file => {
+      expect(createRepositoryReader(repository()).lineCount(file)).toBeNull();
+    }
+  );
+
+  it("finds no line at a spelling the file system folds onto such a place", () => {
+    // U+017F, the long s. A file system that ignores case folds it onto "s",
+    // and lower-casing the text does not, so comparing the path as written
+    // lets `.liſa/audit` through. Only the spelling the file system itself
+    // holds tells the two apart. Where the file system does not fold the
+    // letter the spelling names no file, and the answer is the same.
+    const root = repository();
+    const reader = createRepositoryReader(root);
+    const folded = existsSync(path.join(root, `doc${LONG_S}/readme.md`));
+
+    expect(reader.lineCount(`.li${LONG_S}a/audit/report.md`)).toBeNull();
+    expect(
+      reader.lineCount(`.li${LONG_S}a/control${LONG_S}/evidence.json`)
+    ).toBeNull();
+    expect(reader.lineCount(`.git/hooks/pre-commit.${LONG_S}ample`)).toBeNull();
+    // The same letter in a path a pointer may name is followed wherever the
+    // file system folds it, so the refusals above are not for a missing file.
+    expect(reader.lineCount(`doc${LONG_S}/readme.md`)).toBe(folded ? 1 : null);
+    expect(reader.isFolder(`doc${LONG_S}`)).toBe(folded);
+  });
+
+  it("answers the same when the repository is named in another letter case", () => {
+    const root = repository();
+    const shouted = path.join(
+      path.dirname(root),
+      path.basename(root).toUpperCase()
+    );
+    const reader = createRepositoryReader(existsSync(shouted) ? shouted : root);
+
+    expect(reader.lineCount(README)).toBe(1);
+    expect(reader.lineCount(AUDIT_REPORT_MARKDOWN_PATH)).toBeNull();
+    expect(reader.isFolder("docs")).toBe(true);
   });
 });
 
@@ -291,7 +345,7 @@ describe("the attest step", () => {
   );
 
   it("records it as observed and held on a pointer at a file of the repository", () => {
-    expect(recorded(repository(), "docs/readme.md")).toEqual({
+    expect(recorded(repository(), README)).toEqual({
       rung: "observed",
       result: "held",
       reason: "artifact-located",

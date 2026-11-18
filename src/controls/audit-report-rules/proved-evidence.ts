@@ -12,6 +12,13 @@
  *   every folder, as it does when the verdict is worked out; a record about
  *   one folder says nothing about another, or about the repository as a
  *   whole;
+ * - at least as strongly known as the requirement asks for. Each requirement
+ *   names the weakest rung that meets it, and the verdict holds evidence to
+ *   it. A record that only looked at something (a merge setting read from
+ *   the hosting platform is `observed`) cannot make the report say `proved`
+ *   for a requirement that needs a change to have been tried (`exercised`),
+ *   when the verdict would not count it as met. A record that does not say
+ *   how strongly it is known reaches no rung;
  * - and, when it is one half of a paired proof, with the other half on
  *   record too, held and still current, for the same control at the same
  *   moment. A control is proved by refusing a change that breaks the rule
@@ -37,7 +44,10 @@ import {
   isEvidenceFresh,
   type EvidenceRecordRef,
 } from "../evidence.js";
+import { EVIDENCE_RUNGS, rungAtLeast } from "../evidence-types.js";
 import { PROOF_HALVES } from "../proof-halves.js";
+import { minimumRungOf } from "../verdict.js";
+import { rungInWords } from "../verdict-wording.js";
 
 /** The name this rule's violations carry. */
 export const PROVED_EVIDENCE_RULE = "proved-evidence";
@@ -55,6 +65,37 @@ const HALF_IN_WORDS: Readonly<Record<string, string>> = {
   violation: "the change that breaks the rule and has to be refused",
   clean: "the change that keeps the rule and has to be accepted",
 };
+
+/**
+ * Say why a record is too weakly known to prove a finding's requirement.
+ *
+ * A finding whose requirement the catalogue does not hold is refused by
+ * another rule. Here it is held to the strongest rung, like a requirement
+ * that names none: nothing is made easier to prove by being unknown.
+ * @param record - The cited record, already fresh and for the right place
+ * @param finding - The finding that cites it
+ * @param context - The facts it is checked against
+ * @returns The reason, or `null` when the record's rung reaches the weakest
+ *   one the requirement accepts
+ */
+function tooWeak(
+  record: EvidenceRecordRef,
+  finding: AuditFinding,
+  context: AuditReportContext
+): string | null {
+  const requirement = context.criteria.find(
+    criterion => criterion.id === finding.criterion
+  );
+  const minimum =
+    requirement === undefined ? EXERCISED : minimumRungOf(requirement);
+  const rung = EVIDENCE_RUNGS.find(each => each === record.rung);
+  if (rung === undefined) {
+    return `Evidence record "${record.id}" does not say how strongly it is known, so it cannot prove anything. Run the attest step again, ${OR_CHOOSE}.`;
+  }
+  return rungAtLeast(rung, minimum)
+    ? null
+    : `Evidence record "${record.id}" is ${rungInWords(rung)}. This requirement is proved only by evidence that is ${rungInWords(minimum)}. Cite a record of that strength for this requirement, ${OR_CHOOSE}.`;
+}
 
 /**
  * Say why a record is not a whole proof, when it is one half of a pair.
@@ -120,7 +161,7 @@ function unbacked(
       ? `Evidence record "${id}" is dated later than the current time, so it cannot be relied on. Run the attest step again, ${OR_CHOOSE}.`
       : `Evidence record "${id}" is too old to rely on: it stopped being current at ${evidenceExpiry(record).toISOString()}. Run the attest step again, ${OR_CHOOSE}.`;
   }
-  return unpaired(record, context);
+  return tooWeak(record, finding, context) ?? unpaired(record, context);
 }
 
 /**
@@ -142,8 +183,8 @@ function miscited(
 
 /**
  * Every `proved` finding cites fresh evidence of its own requirement and
- * folder, both halves when it is a paired proof, and no other finding cites
- * a record.
+ * folder, as strong as the requirement asks for, both halves when it is a
+ * paired proof, and no other finding cites a record.
  * @param report - The report
  * @param context - The facts it is checked against
  * @returns The violations found

@@ -87,10 +87,13 @@ export interface VerdictInputs {
  *
  * A catalogue entry that does not say is held to the strongest rung: a
  * requirement is never made easier to meet by a missing word.
+ *
+ * Exported so that the audit report's check holds a `proved` finding to the
+ * same rung the verdict will (`./audit-report-rules/proved-evidence.ts`).
  * @param criterion - The catalogue entry
  * @returns The rung
  */
-function minimumRungOf(criterion: InScopeCriterion): EvidenceRung {
+export function minimumRungOf(criterion: InScopeCriterion): EvidenceRung {
   return (
     EVIDENCE_RUNGS.find(rung => rung === criterion.minimum_rung) ?? "exercised"
   );
