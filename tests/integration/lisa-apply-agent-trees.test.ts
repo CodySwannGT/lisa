@@ -15,7 +15,6 @@ import {
 import {
   buildConfig,
   CODEX_DIR,
-  COPY_OVERWRITE,
   createDeps,
   LISA_MANAGED_JSON,
 } from "./lisa-fixtures.js";
