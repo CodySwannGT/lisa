@@ -25,6 +25,7 @@ import {
 } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate.mjs";
 import { checkEstimate } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs";
 
+const OPUS = "claude-opus-5-5";
 const ON = resolveEstimateConfig({});
 const OFF = resolveEstimateConfig({
   workItem: { estimate: { required: false } },
@@ -32,7 +33,7 @@ const OFF = resolveEstimateConfig({
 const BODY = "## Context\n\nFix the thing.\n";
 const OPUS_SECTION = renderEstimateSection(
   buildEstimate(
-    { tokensLow: 2_000_000, tokensHigh: 4_000_000, model: "claude-opus-5-5" },
+    { tokensLow: 2_000_000, tokensHigh: 4_000_000, model: OPUS },
     ON
   )
 );
@@ -104,7 +105,7 @@ describe("estimate section", () => {
       costHigh: 628,
       currency: "USD",
       pricingSource: "anthropic-api-list-prices@2026-11-03",
-      model: "claude-opus-5-5",
+      model: OPUS,
       basis: "no calibration history",
     });
   });
@@ -171,6 +172,23 @@ describe("estimate section", () => {
     );
     expect(parseEstimateSection(again).count).toBe(1);
     expect(again).toContain("## Lisa Usage\n\nrows");
+    expect(parseEstimateSection(again).estimate?.model).toBe("haiku");
+  });
+
+  it("keeps text a person added inside the section when re-rendering", () => {
+    const edited = withEstimate.replace(
+      "Basis:",
+      "Also cover the admin screen.\n\nBasis:"
+    );
+    const again = upsertEstimateSection(
+      edited,
+      renderEstimateSection(
+        buildEstimate({ tokensLow: 1000, tokensHigh: 1000, model: "haiku" }, ON)
+      )
+    );
+    expect(again).toContain("Also cover the admin screen.");
+    expect(again).not.toContain(OPUS);
+    expect(again.match(/^Basis:/gm)).toHaveLength(1);
     expect(parseEstimateSection(again).estimate?.model).toBe("haiku");
   });
 
@@ -244,6 +262,24 @@ describe("gate S21 at ready time", () => {
       expect(result.lines.join("\n")).toMatch(message);
     }
   );
+
+  it("fails a currency that differs from the price table it names", () => {
+    const result = checkEstimate(
+      withEstimate.replace("currency=USD", "currency=EUR"),
+      ON
+    );
+    expect(result.verdict).toBe("FAIL");
+    expect(result.lines.join("\n")).toMatch(/USD/);
+  });
+
+  it("fails, rather than throws, on a malformed percent escape", () => {
+    const result = checkEstimate(
+      withEstimate.replace(/basis=\S+/, "basis=%ZZ"),
+      ON
+    );
+    expect(result.verdict).toBe("FAIL");
+    expect(result.lines.join("\n")).toMatch(/no parseable/);
+  });
 
   it("ignores a section quoted inside a code fence", () => {
     const quoted = `${withEstimate}\n\n\`\`\`markdown\n${OPUS_SECTION}\`\`\`\n`;

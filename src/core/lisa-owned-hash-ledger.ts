@@ -1539,6 +1539,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
   ]),
   "scripts/lib/work-item-estimate-check.mjs": Object.freeze([
+    "445732d190b31aec81594bd5fb5a82bc5b1ed16d3a6ff6fa0fe5fb287706a878",
     "4dcea21ae9fe5114964abda7dbadeb5365241893e7e96d83411c27e1b777f5b9",
     "94e67b413ed4ec852bfa2d594a89deedf776f94d7fffde049a9fd6f2d4365bad",
   ]),
@@ -1552,6 +1553,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "2f97bd0765cb17b4831532e4fc03558d83533312a1e864cd10249f1bb2398f9f",
     "87339af7a7ae14f53994f817566d77434769f8000e8da869696bfe664f822166",
     "aaedf6097e34404416cdb6eed186a34bf07f04b143df9e6ff5771e6e7420164f",
+    "d936f38602d428ef26d41a09458c61b896106763255b2f6d475a7b963b917079",
   ]),
   "scripts/lib/worktree-dependencies.d.mts": Object.freeze([
     "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
@@ -4533,6 +4535,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
   ]),
   "scripts/lib/work-item-estimate-check.mjs": Object.freeze([
+    "445732d190b31aec81594bd5fb5a82bc5b1ed16d3a6ff6fa0fe5fb287706a878",
     "4dcea21ae9fe5114964abda7dbadeb5365241893e7e96d83411c27e1b777f5b9",
     "94e67b413ed4ec852bfa2d594a89deedf776f94d7fffde049a9fd6f2d4365bad",
   ]),
@@ -4546,6 +4549,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "2f97bd0765cb17b4831532e4fc03558d83533312a1e864cd10249f1bb2398f9f",
     "87339af7a7ae14f53994f817566d77434769f8000e8da869696bfe664f822166",
     "aaedf6097e34404416cdb6eed186a34bf07f04b143df9e6ff5771e6e7420164f",
+    "d936f38602d428ef26d41a09458c61b896106763255b2f6d475a7b963b917079",
   ]),
   "scripts/lib/worktree-dependencies.d.mts": Object.freeze([
     "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",

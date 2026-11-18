@@ -100,7 +100,9 @@ function pricingProblems(estimate, settings) {
   if (!price || price.source !== estimate.pricingSource) return [];
   const low = costCents(estimate.tokensLow, price.rates, settings.tokenMix);
   const high = costCents(estimate.tokensHigh, price.rates, settings.tokenMix);
-  return low === estimate.costLow && high === estimate.costHigh
+  return low === estimate.costLow &&
+    high === estimate.costHigh &&
+    estimate.currency === price.currency
     ? []
     : [
         `The dollar range does not match ${price.source}: expected ${(low / 100).toFixed(2)}–${(high / 100).toFixed(2)} ${price.currency}. Re-render it with lisa-estimate render.`,

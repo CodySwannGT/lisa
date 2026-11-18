@@ -184,6 +184,21 @@ function fencedLines(lines) {
  * @returns {Estimate | null} Parsed estimate, or null when no token parses.
  */
 function parseToken(section) {
+  try {
+    return parseTokenFields(section);
+  } catch (error) {
+    // A malformed percent escape makes the token unparseable, not the gate.
+    if (error instanceof URIError) return null;
+    throw error;
+  }
+}
+
+/**
+ * Decode the estimate token's fields; throws URIError on a bad escape.
+ * @param {string} section - Section text.
+ * @returns {Estimate | null} Parsed estimate, or null when no token matches.
+ */
+function parseTokenFields(section) {
   const match = TOKEN_PATTERN.exec(section);
   if (!match) return null;
   const fields = Object.fromEntries(
@@ -225,7 +240,55 @@ export function parseEstimateSection(body) {
 }
 
 /**
+ * The lines Lisa itself wrote in a section: exactly what rendering its own
+ * token produces. Anything else in the section is a person's text. A section
+ * with no parseable token has no Lisa-written lines but its heading.
+ * @param {string} section - Section text, heading first.
+ * @returns {string[]} Trimmed, non-empty managed lines (a multiset).
+ */
+export function managedEstimateLines(section) {
+  const estimate = parseToken(section);
+  const rendered = estimate
+    ? renderEstimateSection(estimate)
+    : ESTIMATE_HEADING;
+  return rendered
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean);
+}
+
+/**
+ * The lines of a section that Lisa did not write, in order.
+ * @param {string} section - Section text, heading first.
+ * @returns {string[]} A person's lines, blank lines dropped.
+ */
+export function humanLines(section) {
+  const managed = managedEstimateLines(section);
+  return section.split("\n").filter(line => {
+    const at = managed.indexOf(line.trim());
+    if (at !== -1) managed.splice(at, 1);
+    return at === -1 && line.trim() !== "";
+  });
+}
+
+/**
+ * Put a person's lines back into a freshly rendered section, before the
+ * machine tokens.
+ * @param {string[]} rendered - Rendered section lines.
+ * @param {string[]} human - A person's lines from the old section.
+ * @returns {string[]} Section lines.
+ */
+function withHumanLines(rendered, human) {
+  if (!human.length) return rendered;
+  const token = rendered.findIndex(line => line.startsWith("<!-- lisa:"));
+  const at = token === -1 ? rendered.length : token;
+  return [...rendered.slice(0, at), ...human, "", ...rendered.slice(at)];
+}
+
+/**
  * Put the estimate section into a body, replacing an existing one in place.
+ * Lines a person added inside the old section are kept; only the lines Lisa
+ * wrote are replaced.
  * @param {string} body - Item body.
  * @param {string} section - Rendered section.
  * @returns {string} Updated body.
@@ -238,9 +301,10 @@ export function upsertEstimateSection(body, section) {
     );
   const lines = body.split("\n");
   if (spans.length === 0) return `${body.trimEnd()}\n\n${section}`;
+  const previous = lines.slice(spans[0].start, spans[0].end).join("\n");
   const replaced = [
     ...lines.slice(0, spans[0].start),
-    ...section.trimEnd().split("\n"),
+    ...withHumanLines(section.trimEnd().split("\n"), humanLines(previous)),
     ...(spans[0].end < lines.length
       ? ["", ...lines.slice(spans[0].end)]
       : [""]),
