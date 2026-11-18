@@ -166,7 +166,9 @@ resolved only when all of these hold:
   patch whose header names the advisory;
 - every `Lisa-Patched-File` is a file the patch's `diff --git` lines change,
   as a relative path inside the package, and every installed copy's file
-  hashes to the declared SHA-256;
+  hashes to the declared SHA-256. Every copy is found, including one under a
+  linked workspace package: symlinks are followed and each copy is checked
+  once by its real path;
 - the patch's `name@version` is the advisory's package and inside its
   vulnerable range, and at least one locked or installed copy is in that range;
 - the named regression test (a relative path inside the project) is **run**:
@@ -208,12 +210,23 @@ that can split the same text into copies in two ways (`+([ab]|b)`,
 `+(a*([ab]))`, and `+(b|B)` under `nocase`). Branches inside a whole-branch `@(...)` are checked as if
 written directly in the repeat.
 
+The check fails closed. It reads only the syntax picomatch is known to
+compile to itself: plain characters, `?`, escaped symbols, brackets, `/`,
+POSIX classes and groups. Any branch holding something else is treated as
+risky, even when it would not backtrack: a brace or range (`+({a,a})`,
+`+({a..b}|a)`), a quote (`+(a|"a")`), a regex escape (`+(\w|a)`, since `\w`
+reaches the regex as a class), or a bare `+` (`+(a+)`, since inside an extglob
+`a+` is a regex quantifier). A POSIX class and `[!a]` count as any character,
+so `+(a|[[:alpha:]])` is caught; that overstates, which only ever makes a
+pattern literal, never lets one through.
+
 Where an equivalent flat regex exists it is used, so `+(*a|b)`, `+(@(*))` and
 `+(!(a))` match exactly what they matched before. Where none exists the
 pattern is compiled as a **literal**, as picomatch already does for other
 risky repeated extglobs such as `+(a|aa)`: `+(a*|*b)`, `+(a*b|a)`, `+(*(a)a)`,
-`+([ab]|b)`, `+(a|b|ab)` and `+(a*([ab]))` then match only a file literally
-named `+(a*|*b)` and so on, which in practice is nothing. Unambiguous
+`+([ab]|b)`, `+(a|b|ab)`, `+(a*([ab]))`, `+({a,b})` and `+(a|"a")` then match
+only a file literally named `+(a*|*b)` and so on, which in practice is
+nothing. Unambiguous
 alternations such as `+(js|ts|jsx)`, `+(foo|far)` and `*(f*(o))` are unchanged,
 and `+(@(*(a)))` compiles to the same `a*` as `+(*(a))`. No Lisa
 configuration or default tool glob uses any of these shapes.

@@ -3,13 +3,13 @@ Do not edit directly — durable changes belong upstream in Lisa.
 Lisa-Advisory: GHSA-fc5q-39xc-vjpf
 Lisa-Upstream: https://github.com/micromatch/picomatch/pull/259 (delete this patch once a fixed picomatch is published)
 Lisa-Regression-Test: .lisa/patches/picomatch-ghsa-fc5q-39xc-vjpf.regression.mjs
-Lisa-Patched-File: lib/parse.js sha256:0c6281e727bde7779f6354de71896c1274f89079ef379dc3d1fe41408dab52d0
+Lisa-Patched-File: lib/parse.js sha256:6288c8107308fdf327754fc02bd83043493a9e45feb5114bbe5a9aaaaf51444e
 
 diff --git a/lib/parse.js b/lib/parse.js
-index caa2b86..bdcf46f 100644
+index caa2b86..54541e1 100644
 --- a/lib/parse.js
 +++ b/lib/parse.js
-@@ -266,6 +266,418 @@ const getStarExtglobSequenceOutput = pattern => {
+@@ -266,6 +266,480 @@ const getStarExtglobSequenceOutput = pattern => {
    return `${source}*`;
  };
  
@@ -203,12 +203,13 @@ index caa2b86..bdcf46f 100644
 +const ANY_CHAR = 'any';
 +
 +/**
-+ * The characters a bracket expression matches, or any character when it is
-+ * negated, holds a class or escape, or spans more than 256 characters.
++ * The characters a bracket expression's body matches, or any character when
++ * it is negated or spans more than 256 characters. Undefined for a reversed
++ * range, which picomatch does not compile to a character class.
 + */
 +
 +const bracketChars = (inner, fold) => {
-+  if (/^[!^]/.test(inner) || /[[\\]/.test(inner)) {
++  if (/^[!^]/.test(inner)) {
 +    return ANY_CHAR;
 +  }
 +
@@ -218,6 +219,7 @@ index caa2b86..bdcf46f 100644
 +    if (inner[j + 1] === '-' && j + 2 < inner.length) {
 +      const from = inner.charCodeAt(j);
 +      const to = inner.charCodeAt(j + 2);
++      if (to < from) return;
 +      if (to - from > 256) return ANY_CHAR;
 +      for (let code = from; code <= to; code++) set.add(fold(String.fromCharCode(code)));
 +      j += 2;
@@ -227,6 +229,55 @@ index caa2b86..bdcf46f 100644
 +  }
 +
 +  return set;
++};
++
++/**
++ * What the bracket expression starting at `start` can match, and the index of
++ * its `]`. picomatch compiles a body without regex characters, such as
++ * `[ab]`, to the literal text `[ab]` or the class, so both are options.
++ * A POSIX class such as `[[:alpha:]]` matches some one character. A `[`
++ * without a `]` in the branch is literal. Undefined when the bracket is not
++ * modelled: an escape, a `/`, a `]` first, a nested `[`, an unknown POSIX
++ * name, an astral character under the `u` flag, or `nobracket`.
++ */
++
++const bracketOptions = (branch, start, model) => {
++  if (model.nobracket) {
++    return;
++  }
++
++  let inner = '';
++  let posix = false;
++
++  for (let j = start + 1; j < branch.length; j++) {
++    const ch = branch[j];
++
++    if (ch === ']' && inner !== '') {
++      const chars = posix ? ANY_CHAR : bracketChars(inner, model.fold);
++      if (chars === undefined || chars.size === 0) return;
++      if (utils.hasRegexChars(inner) || model.literalBrackets === false) return { end: j, options: [[chars]] };
++      if (posix) return;
++      const literal = [...`[${inner}]`].map(c => new Set([model.fold(c)]));
++      return { end: j, options: [[chars], literal] };
++    }
++
++    if (ch === '[' && branch[j + 1] === ':' && model.posix) {
++      const close = branch.indexOf(':]', j + 2);
++      if (close < 0 || !POSIX_REGEX_SOURCE[branch.slice(j + 2, close)]) return;
++      inner += POSIX_REGEX_SOURCE[branch.slice(j + 2, close)];
++      posix = true;
++      j = close + 1;
++      continue;
++    }
++
++    if (/[[\]\\/]/.test(ch) || (model.unicode && /[\ud800-\udfff]/.test(ch))) {
++      return;
++    }
++
++    inner += ch;
++  }
++
++  return { end: start, options: [[new Set(['['])]] };
 +};
 +
 +const overlaps = (a, b) => a === ANY_CHAR || b === ANY_CHAR || [...a].some(ch => b.has(ch));
@@ -266,62 +317,73 @@ index caa2b86..bdcf46f 100644
 +  return false;
 +};
 +
-+/** Most texts kept per branch; any subset is enough to prove an ambiguity. */
++/** Most texts modelled per branch; a branch with more is not modelled. */
 +const MAX_CODES = 64;
 +
 +/**
-+ * Some of the texts a branch can match, as character sets per position,
-+ * lowercased under `nocase`. A nested `@(x)` contributes each alternative,
-+ * `?(x)` also nothing, `+(x)` one or two copies and `*(x)` none, one or two:
-+ * `a*(b)` gives `a`, `ab` and `abb`. When `nested` is false, because
-+ * maxExtglobRecursion allows nested repeats, `+(x)` and `*(x)` count once.
-+ * Undefined for a branch with a `*` wildcard, a negation, a brace, a quote or
-+ * a `/`, which other checks cover.
++ * The texts a branch can match, as character sets per position, case-folded
++ * under `nocase`. A nested `@(x)` or bare `(x)` group contributes each
++ * alternative, `?(x)` also nothing, `+(x)` one or two copies and `*(x)` none,
++ * one or two: `a*(b)` gives `a`, `ab` and `abb`. When `model.nested` is
++ * false, because maxExtglobRecursion allows nested repeats, `+(x)` and `*(x)`
++ * count once. Only characters picomatch is known to compile to themselves
++ * are modelled.
++ * Undefined when the branch is not modelled: a `*` wildcard or a negation
++ * (which scanBranch covers), a brace, a quote, a bare `+` or `@` (`a+` is a
++ * regex quantifier inside an extglob), an escaped letter or digit (`\d`
++ * reaches the regex as a class), a bracket bracketOptions does not model, an
++ * astral character under the `u` flag, any other syntax, or more than
++ * MAX_CODES texts. The caller treats an unmodelled branch as risky, so
++ * nothing the model misses is let through.
 + */
 +
-+const branchCodes = (branch, fold, nested) => {
++const branchCodes = (branch, model) => {
 +  let codes = [[]];
 +
 +  for (let i = 0; i < branch.length; i++) {
 +    const ch = branch[i];
-+    const end = groupEnd(branch.slice(i), '*?+@');
++    const bare = ch === '(' ? 1 : 0;
++    const end = bare ? groupEnd(`@${branch.slice(i)}`, '@') : groupEnd(branch.slice(i), '*?+@');
 +    let options;
 +
 +    if (end !== undefined) {
-+      const alts = splitTopLevel(branch.slice(i + 2, i + end))
-+        .map(part => branchCodes(part.trim(), fold, nested))
-+        .filter(Boolean)
-+        .flat();
-+      const twice = nested ? alts.flatMap(first => alts.map(second => [...first, ...second])) : [];
++      const parts = splitTopLevel(branch.slice(i + 2 - bare, i + end - bare)).map(part => branchCodes(part.trim(), model));
++      if (parts.some(part => part === undefined)) return;
++      const alts = parts.flat();
++      const twice = model.nested ? alts.flatMap(first => alts.map(second => [...first, ...second])) : [];
 +      options = {
++        '(': alts,
 +        '@': alts,
 +        '?': [[], ...alts],
 +        '+': [...alts, ...twice],
 +        '*': [[], ...alts, ...twice]
 +      }[ch];
-+      i += end;
-+    } else if (ch === '\\' && i + 1 < branch.length) {
-+      options = [[new Set([fold(branch[++i])])]];
++      i += end - bare;
++    } else if (ch === '\\') {
++      // `\*` is a literal `*`, but `\d`, `\w` or `\x61` reach the regex as escapes.
++      if (model.unescape || !/^[^a-zA-Z0-9\\]$/.test(branch[i + 1] || '')) return;
++      options = [[new Set([model.fold(branch[++i])])]];
 +    } else if (ch === '?') {
 +      options = [[ANY_CHAR]];
++    } else if (ch === '/') {
++      options = [[new Set(['/', '\\'])]];
 +    } else if (ch === '[') {
-+      const close = branch.indexOf(']', i + 2);
-+      if (close < 0) return;
-+      options = [[bracketChars(branch.slice(i + 1, close), fold)]];
-+      i = close;
-+    } else if (/[*+@!(){}|"/\]]/.test(ch)) {
-+      return;
++      const bracket = bracketOptions(branch, i, model);
++      if (!bracket) return;
++      options = bracket.options;
++      i = bracket.end;
++    } else if (/[a-zA-Z0-9_.,:;=~#%&'<>$^ -]/.test(ch) || (ch > '\x7f' && !(model.unicode && /[\ud800-\udfff]/.test(ch)))) {
++      options = [[new Set([model.fold(ch)])]];
 +    } else {
-+      options = [[new Set([fold(ch)])]];
++      return;
 +    }
 +
-+    if (options.length === 0) return;
++    if (options.length === 0 || codes.length * options.length > MAX_CODES) return;
 +
-+    // Past the cap only the first option is kept, so long branches stay linear.
-+    if (options.length === 1 || codes.length >= MAX_CODES) {
++    if (options.length === 1) {
 +      for (const code of codes) code.push(...options[0]);
 +    } else {
-+      codes = codes.flatMap(code => options.map(option => [...code, ...option])).slice(0, MAX_CODES);
++      codes = codes.flatMap(code => options.map(option => [...code, ...option]));
 +    }
 +  }
 +
@@ -428,7 +490,7 @@ index caa2b86..bdcf46f 100644
  const repeatedExtglobRecursion = pattern => {
    let depth = 0;
    let value = pattern.trim();
-@@ -290,18 +702,20 @@ const analyzeRepeatedExtglob = (body, options) => {
+@@ -290,18 +764,20 @@ const analyzeRepeatedExtglob = (body, options) => {
        ? options.maxExtglobRecursion
        : constants.DEFAULT_MAX_EXTGLOB_RECURSION;
  
@@ -454,7 +516,7 @@ index caa2b86..bdcf46f 100644
    for (const branch of branches) {
      const safeOutput = getStarExtglobSequenceOutput(branch);
      if (safeOutput) {
-@@ -313,6 +727,26 @@ const analyzeRepeatedExtglob = (body, options) => {
+@@ -313,6 +789,43 @@ const analyzeRepeatedExtglob = (body, options) => {
      }
    }
  
@@ -462,17 +524,34 @@ index caa2b86..bdcf46f 100644
 +  // nests an unbounded quantifier inside the repeat.
 +  // Branches that can split the same text into copies in two ways make every
 +  // copy ambiguous.
-+  const fold = options.nocase ? ch => ch.toLowerCase() : ch => ch;
-+  const codes = branches.flatMap(branch => {
-+    const key = sets => sets.map(set => (set === ANY_CHAR ? '?' : [...set].join(''))).join('|');
-+    const own = (branchCodes(branch, fold, max === 0) || []).filter(sets => sets.length > 0);
-+    return own.filter((sets, i) => own.findIndex(other => key(other) === key(sets)) === i);
-+  });
++  // A branch the model cannot read, and that no star check covers, is risky:
++  // the check fails closed rather than trusting what it did not model.
++  // Case folds through upper case, which joins at least every pair of
++  // characters the `i` flag does (`σ` and `ς`, `ſ` and `s`).
++  const flags = typeof options.flags === 'string' ? options.flags : '';
++  const fold = options.nocase || flags.includes('i') ? ch => ch.toUpperCase().toLowerCase() : ch => ch;
++  const model = {
++    fold,
++    nested: max === 0,
++    unicode: /[uv]/.test(flags),
++    posix: options.posix !== false,
++    literalBrackets: options.literalBrackets,
++    nobracket: options.nobracket === true,
++    unescape: options.unescape === true
++  };
++  const scans = branches.map(scanBranch);
++  const modelled = branches.map(branch => branchCodes(branch, model));
++  if (modelled.some((own, i) => own === undefined && !scans[i].star)) {
++    return { risky: true };
++  }
++
++  // Two texts of one branch that are the same, as with `(a|a)`, are two ways
++  // to match it, so they are kept.
++  const codes = modelled.flatMap(own => (own || []).filter(sets => sets.length > 0));
 +  if (codes.length > 1 && isAmbiguous(codes)) {
 +    return { risky: true };
 +  }
 +
-+  const scans = branches.map(scanBranch);
 +  if (scans.some(scan => scan.star)) {
 +    const absorb = absorbRepeat(scans);
 +    return absorb ? { risky: true, absorb } : { risky: true };
@@ -481,7 +560,7 @@ index caa2b86..bdcf46f 100644
    return { risky: false };
  };
  
-@@ -512,6 +946,16 @@ const parse = (input, options) => {
+@@ -512,6 +1025,16 @@ const parse = (input, options) => {
      const body = input.slice(token.startIndex + 2, state.index);
      const analysis = analyzeRepeatedExtglob(body, opts);
  

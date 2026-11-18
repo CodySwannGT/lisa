@@ -4,103 +4,34 @@
  * copy through `.lisa/patches/`. These tests prove, against the real installed
  * copies and against the upstream source the patch is reversed back to:
  * 1. the regression script fails on upstream and passes on the patched copy,
- *    and each nested bypass (`+(@(*))`, `+(!(*))`, ...) does on its own;
+ *    and each nested bypass (`+(@(*))`, `+(!(*))`, ...) does on its own
+ *    (the syntax bypasses are in picomatch-ghsa-fc5q-39xc-vjpf-syntax.test.ts);
  * 2. the patched matcher gives upstream's answer for every pattern it rewrites;
  * 3. each patch header's hash is the patched file, and hosts get the same bytes.
  */
 import { createHash } from "node:crypto";
-import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { createRequire } from "node:module";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { readAdvisoryPatches } from "../../../src/core/audit-patches.js";
-import { resolveGit } from "../../support/git-executable.js";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import {
-  boundedExecFileSync,
-  boundedSpawnSync,
-  ioLatencyBudgetMs,
-} from "../../helpers/io-latency-budget.js";
+  OPTIONS,
+  PATCHES,
+  ROOT,
+  SCRIPT,
+  TEMPLATE,
+  compare,
+  formsOf,
+  installed,
+  load,
+  regression,
+  upstream,
+  tally,
+  type RegressionScript,
+} from "../../helpers/picomatch-patch.js";
 
-/** The regression script's exports these tests use. */
-interface RegressionScript {
-  readonly ATTACK_PATTERNS: readonly string[];
-  checkPicomatch(
-    dir: string,
-    budget: number,
-    patterns: readonly string[]
-  ): { readonly passed: boolean };
-}
-
-/** The matcher surface these tests use. */
-interface Picomatch {
-  makeRe(pattern: string, options?: Record<string, unknown>): RegExp;
-}
-
-const ROOT = process.cwd();
-const SCRIPT = ".lisa/patches/picomatch-ghsa-fc5q-39xc-vjpf.regression.mjs";
-const TEMPLATE = "typescript/copy-overwrite";
-const PATCHES = readAdvisoryPatches(ROOT).filter(
-  patch => patch.name === "picomatch"
-);
 const scratch = mkdtempSync(join(tmpdir(), "lisa-picomatch-redos-"));
-
-/**
- * The installed (patched) copy of one picomatch version.
- * @param version - Exact version
- * @returns Package directory
- */
-const installed = (version: string) =>
-  join(ROOT, `node_modules/.bun/picomatch@${version}/node_modules/picomatch`);
-
-/**
- * Rebuild the upstream package by reversing the patch on a copy.
- * @param version - Exact version
- * @param file - The patch file
- * @returns Directory of the unpatched package
- */
-function upstream(version: string, file: string): string {
-  const dir = join(scratch, `picomatch@${version}`);
-  cpSync(installed(version), dir, { recursive: true });
-  boundedExecFileSync({
-    label: "reverse the picomatch patch",
-    command: resolveGit(),
-    args: ["apply", "-R", join(ROOT, file)],
-    cwd: dir,
-  });
-  return dir;
-}
-
-/**
- * Run the shipped regression script against picomatch copies.
- * @param dirs - Package directories
- * @returns The script's exit status
- */
-const regression = (...dirs: string[]) =>
-  boundedSpawnSync({
-    label: "run the picomatch regression script",
-    command: process.execPath,
-    args: [SCRIPT, "--budget=3000", ...dirs],
-    cwd: ROOT,
-    baseMs: 6000,
-  }).status;
-
-/**
- * Every string of length 0..5 over characters that exercise the rewrites.
- * @returns Input strings
- */
-function inputs(): readonly string[] {
-  const alphabet = ["a", "b", ".", "/", "x", "[", "]"];
-  return Array.from({ length: 5 }).reduce<readonly string[]>(
-    (all, _, index) => [
-      ...all,
-      ...all
-        .filter(value => value.length === index)
-        .flatMap(value => alphabet.map(char => value + char)),
-    ],
-    [""]
-  );
-}
 
 const BODIES = [
   "*",
@@ -129,7 +60,6 @@ const BODIES = [
   "a*|*b",
   "a*b|a",
 ];
-const OPTIONS = [{}, { dot: true }, { capture: true }, { nocase: true }];
 
 /**
  * Shapes the first patch missed: a `*` or negation hidden in a nested group,
@@ -193,63 +123,6 @@ const ALTERNATIONS = [
   "*(ab?)[ab]|b",
 ];
 
-/**
- * Every wrapped form of each body, repeated by `+` and `*`.
- * @param bodies - Extglob bodies
- * @returns Patterns
- */
-const formsOf = (bodies: readonly string[]) =>
-  bodies.flatMap(body =>
-    ["+", "*"].flatMap(type =>
-      [
-        ["", ""],
-        ["x", ""],
-        ["", "b"],
-        ["a/", ""],
-        ["", "/a"],
-        [".", ""],
-      ].map(([before, after]) => `${before}${type}(${body})${after}`)
-    )
-  );
-
-/**
- * Compare the patched matcher with upstream on every form and option set.
- * @param before - Upstream picomatch
- * @param after - Patched picomatch
- * @param forms - Patterns to compare
- * @returns "unchanged", "literal", "same" or a mismatch, per form and option set
- */
-function compare(
-  before: Picomatch,
-  after: Picomatch,
-  forms: readonly string[]
-): readonly string[] {
-  const strings = inputs();
-  return OPTIONS.flatMap(options =>
-    forms.map(form => {
-      const old = before.makeRe(form, options);
-      const now = after.makeRe(form, options);
-      if (old.source === now.source) return "unchanged";
-      if (/\\[+*]\\\(/u.test(now.source)) return "literal";
-      return strings.every(value => old.test(value) === now.test(value))
-        ? "same"
-        : `mismatch: ${form} ${JSON.stringify(options)}`;
-    })
-  );
-}
-
-/**
- * Count each outcome kind.
- * @param results - Outcomes from compare
- * @returns Count per kind, with every mismatch listed
- */
-const tally = (results: readonly string[]) => ({
-  same: results.filter(result => result === "same").length,
-  literal: results.filter(result => result === "literal").length,
-  unchanged: results.filter(result => result === "unchanged").length,
-  mismatches: results.filter(result => result.startsWith("mismatch")),
-});
-
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
 describe("picomatch GHSA-fc5q-39xc-vjpf patch", () => {
@@ -262,7 +135,7 @@ describe("picomatch GHSA-fc5q-39xc-vjpf patch", () => {
 
   for (const patch of PATCHES) {
     describe(`picomatch@${patch.version}`, () => {
-      const pristine = upstream(patch.version, patch.file);
+      const pristine = upstream(scratch, patch.version, patch.file);
 
       it(
         "fails the regression script unpatched and passes it patched",
@@ -299,8 +172,6 @@ describe("picomatch GHSA-fc5q-39xc-vjpf patch", () => {
       it(
         "matches what upstream matches for every rewritten pattern",
         () => {
-          const load = (dir: string) =>
-            createRequire(join(dir, "index.js"))(dir) as Picomatch;
           const before = load(pristine);
           const after = load(installed(patch.version));
           const flat = tally(compare(before, after, formsOf(BODIES)));

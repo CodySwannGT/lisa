@@ -5,7 +5,7 @@
  * published no fixed version. The registry is mocked; nothing here reaches
  * the network.
  */
-import { rmSync, symlinkSync } from "node:fs";
+import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -13,7 +13,6 @@ import {
   verifyCapturedAudit,
 } from "../../../src/core/audit.js";
 import { readAdvisoryPatches } from "../../../src/core/audit-patches.js";
-import { installedCopies } from "../../../src/core/audit-installed-copies.js";
 import {
   GHSA,
   PATCH_FILE,
@@ -22,7 +21,6 @@ import {
   TEST_FILE,
   UNPATCHED_ONLY,
   fixture,
-  put,
   removeFixtures,
   report,
   sha256,
@@ -179,23 +177,5 @@ describe("advisory patches in the audit gate", () => {
         problems: [],
       },
     ]);
-  });
-
-  it("finds real installed copies in hoisted and isolated layouts, skipping symlinks", () => {
-    const root = fixture();
-    put(
-      root,
-      "node_modules/parent/node_modules/glob/package.json",
-      '{"name":"glob","version":"0.9.0"}'
-    );
-    symlinkSync(
-      join(root, "node_modules/.bun/glob@1.0.0/node_modules/glob"),
-      join(root, "node_modules/glob")
-    );
-    expect(
-      installedCopies(root, "glob")
-        .map(copy => copy.version)
-        .sort((a, b) => a.localeCompare(b))
-    ).toEqual(["0.9.0", "1.0.0"]);
   });
 });

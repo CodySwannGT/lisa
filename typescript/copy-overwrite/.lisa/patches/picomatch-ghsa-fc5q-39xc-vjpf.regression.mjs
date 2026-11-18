@@ -8,7 +8,12 @@
  * hidden inside a nested group, such as `+(@(*))` and `+(!(*))`), plus the
  * other nested-quantifier shapes the same guard covers: a repeat hidden in
  * `@(...)`, as in `+(@(+([ab])))`, and branches that split the same text into
- * copies in two ways, as in `+([ab]|b)`, `+(a|b|ab)` and `+(a*([ab]))`.
+ * copies in two ways, as in `+([ab]|b)`, `+(a|b|ab)` and `+(a*([ab]))`,
+ * including branches whose syntax the guard does not model and so treats as
+ * risky: braces and ranges (`+({a,a})`, `+({a..b}|a)`), quotes (`+(a|"a")`),
+ * POSIX classes (`+(a|[[:alpha:]])`), regex escapes (`+(\w|a)`), bare groups
+ * (`+((a|a))`) and a bare `+`, which is a regex quantifier inside an extglob
+ * (`+(a+)`).
  *
  * Usage: node picomatch-ghsa-fc5q-39xc-vjpf.regression.mjs [--budget=<ms>] <picomatch-dir>...
  *
@@ -46,6 +51,19 @@ const NAMED_PATTERNS = [
   "+(@(*(ab?)[ab])|b)",
   "+(a*([ab]))",
   "*(ab*(ab))",
+  "+({a,a})",
+  "+({a,b}|b)",
+  "+(a|a{b,})",
+  '+(a|"a")',
+  "+(a|[[:alpha:]])",
+  "+({a..b}|a)",
+  "+([a-b]{,a})",
+  "+(\\w|a)",
+  "+(\\x61|a)",
+  "+(a+)",
+  "+(a+|b)",
+  "+((a|a))",
+  "+((a)|a)",
 ];
 
 /** Branch bodies with an unbounded quantifier that a repeat must not nest. */
@@ -83,13 +101,55 @@ function nestedFamily() {
   );
 }
 
+/**
+ * Syntax that matches `a` (or an `a` prefix) other than a plain character:
+ * braces, ranges, quotes, POSIX classes, regex escapes, bare groups and a bare
+ * `+`, which inside an extglob reaches the regex as a quantifier.
+ */
+const SYNTAX = [
+  "{a,a}",
+  "{a,b}",
+  "a{b,}",
+  "{,a}",
+  "{a..b}",
+  '"a"',
+  "[[:alpha:]]",
+  "[[:alnum:]b]",
+  "\\w",
+  "\\x61",
+  "(a|a)",
+  "(a)",
+  "a+",
+  "[ab]",
+];
+
+/**
+ * The syntax family: each syntax atom beside `a` or `b`, and inside each
+ * extglob operator, repeated by `+(...)` and `*(...)`.
+ * @returns {string[]} Every generated pattern
+ */
+function syntaxFamily() {
+  const bodies = SYNTAX.flatMap(atom => [
+    atom,
+    `${atom}|a`,
+    `a|${atom}`,
+    `${atom}|b`,
+    `@(${atom})|a`,
+    ...WRAPS.flatMap(wrap => [`${wrap}(${atom})`, `${wrap}(${atom}|a)`]),
+  ]);
+  return [...new Set(bodies)].flatMap(body =>
+    ["+", "*"].map(op => `${op}(${body})`)
+  );
+}
+
 export const ATTACK_PATTERNS = [
-  ...new Set([...NAMED_PATTERNS, ...nestedFamily()]),
+  ...new Set([...NAMED_PATTERNS, ...nestedFamily(), ...syntaxFamily()]),
 ];
 
 /** Short inputs that never match, which forces a full backtracking search. */
-export const ATTACK_INPUTS = ["a", "b", "ab", "aba", "abc"].flatMap(run =>
-  ["/", "!", "c"].map(end => run.repeat(Math.ceil(90 / run.length)) + end)
+export const ATTACK_INPUTS = ["a", "b", "ab", "aba", "abc", "[ab]"].flatMap(
+  run =>
+    ["/", "!", "c"].map(end => run.repeat(Math.ceil(90 / run.length)) + end)
 );
 
 /** Unpatched picomatch needs minutes on these inputs; patched needs milliseconds. */
