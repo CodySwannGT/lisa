@@ -63,6 +63,12 @@
  * a moment other than commit and push, a part for the whole repository, a
  * part that could not have started anyway.
  *
+ * The same care is owed in the other direction, to a caller that stands a
+ * check of its own down on this runner's word. A part that ran says nothing
+ * about a changed path outside its folder, so a gate with parts is reported
+ * as proved for a change only when the parts that ran reached every path the
+ * change touches. See `provenFloor`.
+ *
  * ## Exit codes are the hook's control flow
  *
  * The hooks fall back to their hardcoded steps unless this runner positively
@@ -81,7 +87,9 @@
  * That caller passes `--builtins=none`, and gets a verdict every time:
  *
  * - `0` — let it through. Every required gate declared at this moment was
- *   proved, or nothing is declared at this moment (the runner says which).
+ *   proved; or nothing is declared at this moment; or every part declared at
+ *   this moment is for a folder the change does not touch, so no command ran.
+ *   The runner says which.
  * - `1` — stop it. A required gate was not proved, or the declaration is one
  *   the validator refuses.
  * - `70` — stop it. The runner could not run, so nothing was proved.
@@ -136,6 +144,7 @@ import {
 import { BUILD_ONCE_ID, runBuildOnce } from "./lib/build-marker.mjs";
 import {
   changeAt,
+  pathsOutside,
   PUSH_REFS_STDIN,
   readPushRefs,
   touchesFolder,
@@ -194,7 +203,11 @@ export const EXIT = Object.freeze({
   PROVED: 0,
   /** At least one required gate failed. Stop the commit or push. */
   BLOCKED: 1,
-  /** No gates block in config: this project has not migrated. Fall back. */
+  /**
+   * Fall back to the built-in checks. No gates block in config (this project
+   * has not migrated), a half-written one, or — for a caller that did not
+   * pass `--coverage` — parts that did not reach every path of the change.
+   */
   NO_GATES: 78,
   /** The runner itself could not run. Nothing was proved. Fall back. */
   RUNNER_FAILED: 70,
@@ -335,6 +348,10 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @property {boolean} [untouched] True on a part that was left out because
  *   the change touches nothing in its folder (CodySwannGT/lisa#4988). Its
  *   state is SKIPPED and its command never started. Absent everywhere else.
+ * @property {string} [resolved] Where a part's folder really is, written from
+ *   the repository root the way git writes a path; empty for the root itself.
+ *   It differs from `scope` only when the declared name is a link. Present on
+ *   a part whose folder was found, and read by `unreachedFloor`.
  */
 
 /**
@@ -357,6 +374,11 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @property {GateOutcome[]} skipped Gates with nothing to run locally, and
  *   parts the change does not touch (those carry `untouched: true`).
  * @property {GateOutcome[]} notRun Gates queued behind a blocking failure.
+ * @property {{paths: string[]|null}} [change] The paths this run was told the
+ *   change touches. `null` when they are not known, which includes a run
+ *   that never had to ask because no part for a folder was reached.
+ *   `runGates` always sets it. A result put together by hand may leave it
+ *   out, and is then read as a change that is not known.
  */
 
 /** Per-gate outcomes, in the order an operator reads them. */
@@ -1338,7 +1360,10 @@ function summarise(result, priorKills = []) {
  * and before any shared result are looked at, so it is never read from either
  * and never written to either.
  * @param {GateOutcome} gate The resolved gate.
- * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function, execArgv: Function, root: string, builtins: boolean, change: Function}} ctx Run state.
+ * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function, execArgv: Function, start: {directory: string, resolved: string}|{problem: string}|null, builtins: boolean, change: Function}} ctx
+ *   Run state. `start` is `partStart`'s answer for a part, and null for a
+ *   gate with no parts; the caller asks, because it records where the part's
+ *   folder really is beside the verdict.
  * @returns {{outcome: object, shared: object|undefined, ran: boolean}} The verdict.
  */
 function verdictFor(
@@ -1348,7 +1373,7 @@ function verdictFor(
     blockedBy,
     exec,
     execArgv,
-    root,
+    start,
     builtins,
     siblings,
     declarations,
@@ -1356,7 +1381,6 @@ function verdictFor(
     change,
   }
 ) {
-  const start = isPart(gate) ? partStart(gate, root) : null;
   const own =
     classifyStatic(gate, builtins) ??
     (start !== null && "problem" in start
@@ -1618,12 +1642,13 @@ export function runGates({
     }
     const began = clock();
     const key = proverKey(gate);
+    const start = isPart(gate) ? partStart(gate, root) : null;
     const verdict = verdictFor(gate, {
       proved,
       blockedBy: blocker,
       exec,
       execArgv,
-      root,
+      start,
       builtins,
       siblings: sharers.get(key) ?? new Set(),
       declarations: declaredShapes.get(key) ?? [],
@@ -1684,6 +1709,12 @@ export function runGates({
     results.push({
       ...gate,
       ...outcome,
+      // Where the part's folder really is, kept beside its verdict: whether
+      // the parts that ran reached the whole change is worked out from the
+      // rows afterwards (`unreachedFloor`), under both of a folder's names.
+      ...(start !== null && "resolved" in start
+        ? { resolved: start.resolved }
+        : {}),
       provedBy: shared?.id ?? null,
       startedAt: new Date(began).toISOString(),
       durationMs: shared ? 0 : elapsedMs,
@@ -1735,6 +1766,10 @@ export function runGates({
     killed: bucket(STATE.KILLED),
     skipped: bucket(STATE.SKIPPED),
     notRun: bucket(STATE.NOT_RUN),
+    // What this run was told the change touches, kept for whoever decides
+    // afterwards what the run covered. Never asked is "not known": a run
+    // with no part for a folder had no reason to find out.
+    change: { paths: known?.paths ?? null },
   };
   // Left for a LATER run, because this one already knows. The note only ever
   // helps a different run whose own output carries no trace of the machine.
@@ -1844,15 +1879,17 @@ const UNPROVED_STATES = new Set([
  * function and is deliberately left alone here — it is a design question about
  * whether a CI signal may retire a local step, not the errored-leg defect.)
  *
- * ## A gate whose parts were all left out is not covered
+ * ## A gate with parts is covered only when they reached the whole change
  *
- * A part the change does not touch is SKIPPED, and keeps its gate covered as
- * long as another part of that gate ran: the parts that ran checked what the
- * change touched. When NO part ran, nothing in the registry looked at this
- * change at all — it touched only files outside every folder the gate names,
- * a shared configuration file at the root for one. The caller's built-in
- * check is then the only thing left that can look, so the gate is withheld
- * and that check runs (CodySwannGT/lisa#4988). See `untouchedFloor`.
+ * The hook stands its check down for the WHOLE commit or push, and a part
+ * looks at one folder. So a gate with parts is named here only when every
+ * path the change touches is inside the folder of a part that ran. A change
+ * to `api/a.go` and `tools/b.js`, with parts for `api` and `web`, runs the
+ * `api` part and leaves `tools/b.js` to nobody: the caller's built-in check
+ * is the only thing left that can look at it, so the gate is withheld and
+ * that check runs. The same holds when no part ran at all, and when the
+ * change is not known and no part covers the whole repository
+ * (CodySwannGT/lisa#4988). See `unreachedFloor`, which says why for each.
  *
  * Fail-safe on the input: no result means no run, and no run proves nothing.
  * @param {object} options Inputs.
@@ -1874,28 +1911,121 @@ export function provenFloor({ gates, moment, wired = [], result = null }) {
       )
       .map(entry => entry.id)
   );
-  const leftOut = new Set(untouchedFloor({ gates, moment, wired, result }));
-  return declared.filter(id => !unproved.has(id) && !leftOut.has(id));
+  const unreached = new Set(
+    unreachedFloor({ gates, moment, wired, result }).map(entry => entry.id)
+  );
+  return declared.filter(id => !unproved.has(id) && !unreached.has(id));
+}
+
+/** How every reason `unreachedFloor` gives ends: what the caller does next. */
+const BUILT_IN_STILL_RUNS = "so the built-in check for it still runs.";
+
+/** The most changed paths one reason names before it counts the rest. */
+const PATHS_NAMED = 3;
+
+/**
+ * Changed paths as an operator reads them in one line: the first few, each
+ * quoted so a space or an odd character in a name cannot be misread, and a
+ * count of the rest.
+ * @param {string[]} paths Changed paths; at least one.
+ * @returns {string} The paths, for the middle of a sentence.
+ */
+function namedPaths(paths) {
+  const named = paths
+    .slice(0, PATHS_NAMED)
+    .map(path => JSON.stringify(path))
+    .join(", ");
+  const rest = paths.length - PATHS_NAMED;
+  return rest > 0 ? `${named} and ${rest} more` : named;
 }
 
 /**
- * Floor properties whose every part this change left untouched.
+ * Why the parts of one gate did not reach the whole change, or null when
+ * they did.
  *
- * Each of these is declared, was not found wanting, and proved nothing about
- * this change, because no part of it ran. `provenFloor` withholds them, and
- * `main` names them so the operator knows why a built-in check still ran.
+ * Three answers keep the caller's built-in check, and each is the same fact
+ * seen from a different side — some path of this change was looked at by no
+ * part:
+ *
+ * - No part ran. The change touches none of the gate's folders.
+ * - A changed path is inside no part that ran.
+ * - The change is not known, and no part that ran covers the whole
+ *   repository. Every part ran, and nothing says their folders are all of
+ *   the change: a commit that edits `.lisa.config.json` is "not known", and
+ *   that file is outside every folder a part can name except `.`.
+ *
+ * A part for the whole repository that ran reaches every path there is, so
+ * with one the answer is null whatever the change touches, known or not.
+ *
+ * A path is covered only when it is a part's folder or lies inside it —
+ * `pathsOutside`, read strictly, and under both names a linked folder has.
+ * A row that does not say where its folder really is (one a caller wrote by
+ * hand) is matched under its declared name alone, which can only keep a
+ * built-in check that could have stood down.
+ * @param {string} id The gate id.
+ * @param {GateOutcome[]} parts The gate's rows, one per part.
+ * @param {string[]|null} paths The changed paths, or null when not known.
+ * @returns {string|null} The reason, finishing `BUILT_IN_STILL_RUNS`, or null.
+ */
+function unreachedReason(id, parts, paths) {
+  const ran = parts.filter(part => part.untouched !== true);
+  if (ran.length === 0) {
+    return `No part of ${id} applies to this change, ${BUILT_IN_STILL_RUNS}`;
+  }
+  const whole = ran.some(
+    part => part.scope === WHOLE_REPOSITORY || part.resolved === ""
+  );
+  if (whole) return null;
+  if (paths === null) {
+    return (
+      `What this change touches is not known and ${id} has no part for the ` +
+      `whole repository, ${BUILT_IN_STILL_RUNS}`
+    );
+  }
+  const folders = ran.flatMap(part =>
+    [part.scope, part.resolved].filter(folder => typeof folder === "string")
+  );
+  const outside = pathsOutside(paths, folders);
+  return outside.length === 0
+    ? null
+    : `${id} has no part for ${outside.length} path(s) this change touches ` +
+        `(${namedPaths(outside)}), ${BUILT_IN_STILL_RUNS}`;
+}
+
+/**
+ * Floor properties whose parts did not reach every path of this change, and
+ * why.
+ *
+ * Each of these is declared and was not found wanting by the parts that ran,
+ * and still proved nothing about some path the change touches. `provenFloor`
+ * withholds them, and `main` prints each reason so the operator knows why a
+ * built-in check still ran. A gate with no parts is never listed: its one
+ * command is the project's check for the whole repository.
+ *
+ * A gate that failed or went unproved may be listed too. `provenFloor`
+ * withholds it on either count, and `main` blocks before it prints these.
  * @param {object} options Inputs.
  * @param {object} options.gates The gates block.
  * @param {string} options.moment The moment being run.
  * @param {string[]} [options.wired] Conditional floor ids this project wired.
- * @param {GateRun|null} [options.result] What `runGates` produced.
- * @returns {string[]} Floor gate ids with no part that applied to the change.
+ * @param {GateRun|null} [options.result] What `runGates` produced. Read for
+ *   its rows and for `change.paths`; a result with no `change` is read as a
+ *   change that is not known.
+ * @returns {Array<{id: string, reason: string}>} One entry per floor gate
+ *   whose built-in check is kept, in floor order.
  */
-export function untouchedFloor({ gates, moment, wired = [], result = null }) {
+export function unreachedFloor({ gates, moment, wired = [], result = null }) {
   const results = result?.results ?? [];
-  return coveredFloor({ gates, moment, wired }).filter(id => {
-    const entries = results.filter(entry => entry.id === id);
-    return entries.length > 0 && entries.every(entry => entry.untouched);
+  const told = result?.change?.paths;
+  const paths =
+    Array.isArray(told) && told.every(path => typeof path === "string")
+      ? told
+      : null;
+  return coveredFloor({ gates, moment, wired }).flatMap(id => {
+    const parts = results.filter(entry => entry.id === id && isPart(entry));
+    if (parts.length === 0) return [];
+    const reason = unreachedReason(id, parts, paths);
+    return reason === null ? [] : [{ id, reason }];
   });
 }
 
@@ -2479,7 +2609,12 @@ export const EVIDENCE_VERDICT = Object.freeze({
   REFUSED: "refused",
   /** The project has no gates block; the registry governs nothing here. */
   NO_GATES: "no-gates",
-  /** The block is half-written, so the caller's built-in steps still run. */
+  /**
+   * The caller's built-in steps still run: the block is half-written, or the
+   * parts that ran did not reach every path of the change and the caller
+   * cannot keep one step on its own. In the second case the rows of what did
+   * run are recorded beside it.
+   */
   FELL_BACK: "fell-back",
   /** The runner could not run. Nothing was proved. */
   RUNNER_FAILED: "runner-failed",
@@ -3198,18 +3333,32 @@ export function main(argv = process.argv.slice(2)) {
   // errored retired the fallback that would have caught the error. See
   // `provenFloor`. A write failure keeps its old meaning: the record the caller
   // asked for does not exist, so no verdict may be reported off it.
-  if (coveragePath) {
-    for (const id of untouchedFloor({
+  //
+  // A gate whose parts did not reach every path of the change is withheld
+  // from that file, and the operator is told which and why. Asked only of a
+  // caller with built-in checks to keep, and said only on a run that is about
+  // to report success: a blocked run stops the commit whatever this says.
+  const unreached =
+    standalone || result.blocked
+      ? []
+      : unreachedFloor({ gates: config.gates, moment, wired, result });
+  for (const { reason } of unreached) console.log(`ℹ️  ${reason}`);
+  // A caller that did not pass `--coverage` cannot keep ONE built-in check:
+  // exit 0 makes it skip them all. So the answer it gets is the one a
+  // half-written block gets, for the same reason — some path of this change
+  // would otherwise be checked by nothing. The parts that ran stay on the
+  // record; only the verdict says the caller's own checks still have to run.
+  if (!coveragePath && unreached.length) {
+    console.log(
+      `   This caller did not pass --coverage, so it cannot keep one ` +
+        `built-in check on its own: every built-in check runs.`
+    );
+    return settle(EXIT.NO_GATES, EVIDENCE_VERDICT.FELL_BACK, {
       gates: config.gates,
-      moment,
-      wired,
       result,
-    })) {
-      console.log(
-        `ℹ️  No part of ${id} applies to this change, so the built-in check ` +
-          `for it still runs.`
-      );
-    }
+      runner: config.runner,
+      scripts,
+    });
   }
   if (
     coveragePath &&

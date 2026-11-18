@@ -586,6 +586,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/changed-paths.mjs": Object.freeze([
     "7ee847191a62ff3a3a919ffc2480bc93f82c1c5e30a058815bdbfdbdad405325",
+    "c9599846bb658ee7de173ad0768f964366c9e27ee07f5baa30499ea20ee3b87f",
   ]),
   "scripts/lib/completion-authorization.mjs": Object.freeze([
     "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
@@ -1733,6 +1734,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "3de54eb9268bef53e73672e782a04c014664c71e030a2442849089b8b6e0b757",
     "407799d7eef3c61902cce4a9d4e194176453a28d8b562b327a75ec843da51684",
     "40ad2fbf5be600ad81bd864f500a8e68bb1ea4163b02af1dd85c1243af7f0c95",
+    "40e846e91e8f93a99424c81b98399e1fb73acbe59b5ab2a6467d8f1894ed250f",
     "442eeec84af0c47d22270e20d49e60023e5092c410b8e29c9ccff36e3ffca99f",
     "444ed4b879ef7af5dc409ae48743ad06354e47b727ddb5be0877cab52ddd0b64",
     "45d1e52bbe453068298715ea4f25e3990589dd20d2adc8e61c05fbe79a023c78",
@@ -2362,6 +2364,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "5c65c8db73c5465cef810789ef71abe405df4d5d5db64f78923e5050656f13c8",
     "62f3b3b78419a53ca3d9c0ed2e2ce2d8952a54674ab11bfe77cdf02b61115e74",
     "670f7059a0694b5f829252c056eec31f18e926a5137b652cb77f9e29a5a7ab73",
+    "6e31f367f2a8754d4e15ec235a64f90831710576a1bb640bb67088fcb09f2435",
     "6e419a489d0605cc0743af207ff4ff3428d8bcdfbabb7207d164593b9644dfa5",
     "774b3f9f830ff1ec70089913b652074ff544369a888813df50ef03833f90f156",
     "79055f89eb9c5bf1739867c12dc2d9e30320f86a2a3dd470300ba706c3c9d85e",
@@ -2953,6 +2956,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "fdb4437f15a0be6a5a14377d1efcd93b2fc7b0d86d780200a4df249ec1b8f3d1",
     "fe29a7b692576d3a3fbfacaf0f6e92d13958daf7c11bbcdbfe3256559f5e11f4",
     "fe96d8b0227ca76e2ee92bcc233fa60b011d0990e69c35e80fc752ca7977e6b9",
+    "fe9d5afd29b0187281466822f5af4825ab467cc15189f4c486f6959419eb90a6",
   ]),
   "scripts/reconcile-nightly-e2e-tracking-cli.mjs": Object.freeze([
     "0ca6615153c300a12ac0ec08fc0bc8bc3c5b488bad4b4802f0d9a7eb81e09a49",
@@ -3592,6 +3596,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/changed-paths.mjs": Object.freeze([
     "7ee847191a62ff3a3a919ffc2480bc93f82c1c5e30a058815bdbfdbdad405325",
+    "c9599846bb658ee7de173ad0768f964366c9e27ee07f5baa30499ea20ee3b87f",
   ]),
   "scripts/lib/completion-authorization.mjs": Object.freeze([
     "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
@@ -4723,6 +4728,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "37c2c3642c3c8ea92b9d53d9c10e2b7365e4c5e757af54396ef0af06720a89c6",
     "3de54eb9268bef53e73672e782a04c014664c71e030a2442849089b8b6e0b757",
     "407799d7eef3c61902cce4a9d4e194176453a28d8b562b327a75ec843da51684",
+    "40e846e91e8f93a99424c81b98399e1fb73acbe59b5ab2a6467d8f1894ed250f",
     "442eeec84af0c47d22270e20d49e60023e5092c410b8e29c9ccff36e3ffca99f",
     "45da57518c77b0a8029c745f2c495f9183ed7df394b616da5b78f0bb2eaf64ff",
     "4634a1012f1c9ef991ce99ee98eb85a57d207e99b1da1bc760a67a09b5017946",
@@ -5304,6 +5310,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "5c65c8db73c5465cef810789ef71abe405df4d5d5db64f78923e5050656f13c8",
     "62f3b3b78419a53ca3d9c0ed2e2ce2d8952a54674ab11bfe77cdf02b61115e74",
     "670f7059a0694b5f829252c056eec31f18e926a5137b652cb77f9e29a5a7ab73",
+    "6e31f367f2a8754d4e15ec235a64f90831710576a1bb640bb67088fcb09f2435",
     "6e419a489d0605cc0743af207ff4ff3428d8bcdfbabb7207d164593b9644dfa5",
     "774b3f9f830ff1ec70089913b652074ff544369a888813df50ef03833f90f156",
     "79055f89eb9c5bf1739867c12dc2d9e30320f86a2a3dd470300ba706c3c9d85e",
@@ -5888,6 +5895,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "fdb4437f15a0be6a5a14377d1efcd93b2fc7b0d86d780200a4df249ec1b8f3d1",
     "fe29a7b692576d3a3fbfacaf0f6e92d13958daf7c11bbcdbfe3256559f5e11f4",
     "fe96d8b0227ca76e2ee92bcc233fa60b011d0990e69c35e80fc752ca7977e6b9",
+    "fe9d5afd29b0187281466822f5af4825ab467cc15189f4c486f6959419eb90a6",
   ]),
   "scripts/reconcile-nightly-e2e-tracking-cli.mjs": Object.freeze([
     "0ca6615153c300a12ac0ec08fc0bc8bc3c5b488bad4b4802f0d9a7eb81e09a49",

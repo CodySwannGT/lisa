@@ -117,6 +117,9 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  */
 const PACKAGE_MANIFEST = "package.json";
 
+/** The file the gates are declared in, as `readGates` names it to a person. */
+const CONFIG_FILE = ".lisa.config.json";
+
 /** Enforcement levels a moment may carry. */
 export const LEVELS = ["required", "optional", "off"];
 
@@ -3552,6 +3555,24 @@ export function isRunner(value) {
 }
 
 /**
+ * What a parsed JSON value is, in the words an operator would use for it.
+ *
+ * `typeof` calls a list and `null` both "object", which is the one word that
+ * would mislead here: the sentence this finishes is telling someone their
+ * file is NOT an object.
+ * @param {unknown} value A value `JSON.parse` returned.
+ * @returns {string} What it is, for the middle of a sentence.
+ */
+function jsonKind(value) {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "a list";
+  if (typeof value === "string") return "text";
+  if (typeof value === "number") return "a number";
+  if (typeof value === "boolean") return "true or false";
+  return "an object";
+}
+
+/**
  * Read the config, splitting the runner out of the gates block.
  *
  * Refuses a runner that cannot run a task, rather than passing it through.
@@ -3563,12 +3584,24 @@ export function isRunner(value) {
  * `gates."unproven" is not a gate Lisa knows` — a BLOCKING problem — so a
  * project that set the control would have `validate` refuse it and get no
  * enforcement either.
+ *
+ * Refuses a file that is valid JSON and is not a configuration, for the same
+ * reason. The file holds one JSON object, and so does its `gates` key. A
+ * list, a number or `null` in either place parses without complaint, and
+ * read loosely it is a project that declares no gates: `[]` has no `gates`
+ * key, and spreading a list or a number yields no gate. Every reader then
+ * reports "nothing declared" about a file somebody damaged — the runner lets
+ * the commit through, and the register is rewritten empty. `"gates": null`
+ * and a missing key stay what they have always been, a project that declares
+ * none.
  * @param {string} [cwd] Directory to look in.
  * @returns {{runner: string, unproven: string, gates: object, policy: object, config: object}} Parsed config.
- * @throws {Error} When `gates.runner` is not a runner, or `gates.unproven` is not a permitted response.
+ * @throws {Error} When the file or its `gates` key is not a JSON object,
+ *   `gates.runner` is not a runner, or `gates.unproven` is not a permitted
+ *   response.
  */
 export function readGates(cwd = process.cwd()) {
-  const path = join(cwd, ".lisa.config.json");
+  const path = join(cwd, CONFIG_FILE);
   if (!existsSync(path)) {
     return {
       runner: DEFAULT_RUNNER,
@@ -3582,7 +3615,21 @@ export function readGates(cwd = process.cwd()) {
   try {
     config = JSON.parse(readFileSync(path, "utf8"));
   } catch (err) {
-    throw new Error(`.lisa.config.json is not readable: ${err.message}`);
+    throw new Error(`${CONFIG_FILE} is not readable: ${err.message}`);
+  }
+  if (!isKeyed(config)) {
+    throw new Error(
+      `${CONFIG_FILE} holds ${jsonKind(config)}. It has to hold one JSON ` +
+        `object: { ... }. Nothing was read from it.`
+    );
+  }
+  const declaredGates = config.gates ?? null;
+  if (declaredGates !== null && !isKeyed(declaredGates)) {
+    throw new Error(
+      `"gates" in ${CONFIG_FILE} is ${jsonKind(declaredGates)}. It has to ` +
+        `be one JSON object holding a gate per key: { ... }. No gate was ` +
+        `read from it.`
+    );
   }
   const {
     runner: declared,
@@ -4230,13 +4277,28 @@ function verdictFor({
  * the resolver refuses sees all of them in one run. The parts check costs
  * nothing for a block with no `parts`: `validateParts` returns at its first
  * line for every gate that does not declare the key.
+ *
+ * The parts are checked as the block reads AT THE MOMENT BEING RESOLVED,
+ * through `declarationsAt`, for the reason the gate runner narrows its own
+ * validity check that way. One of the parts rules is about a single moment:
+ * a `run` or an `await` written on one moment of a gate that has parts. That
+ * is a real problem at that moment, and no reason to refuse every other one —
+ * the runner had already said "this run continued" about it, and then
+ * stopped here with a crash. Everything about a part itself (its scope, its
+ * command, its proof) and a task named for the whole gate sit on the gate,
+ * survive the narrowing, and are refused at every moment as before.
+ * `validate` reads the whole block and still lists the problem.
+ *
+ * The moment-key check reads the whole block on purpose. A misspelt moment
+ * is a problem at no moment in particular, so no narrowing may drop it.
  * @param {object} gates The gates block.
+ * @param {string} moment The moment being resolved.
  */
-function assertResolvable(gates) {
+function assertResolvable(gates, moment) {
   const problems = [
     ...validateGateMomentKeys(gates),
-    ...Object.entries(gates ?? {}).flatMap(([id, gate]) =>
-      isKeyed(gate) ? validateParts(id, gate) : []
+    ...Object.entries(declarationsAt({ gates, moment })).flatMap(
+      ([id, gate]) => (isKeyed(gate) ? validateParts(id, gate) : [])
     ),
   ];
   if (!problems.length) return;
@@ -6075,7 +6137,7 @@ export function resolveMoment({
       `"${moment}" ${unknownMomentMessage(moment)} ${knownMomentsMessage()}`
     );
   }
-  assertResolvable(gates);
+  assertResolvable(gates, moment);
 
   const resolved = [];
   for (const [id, gate] of Object.entries(gates ?? {})) {

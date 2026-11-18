@@ -201,6 +201,53 @@ describe.each(CALLERS)(
   }
 );
 
+describe("a declaration that is wrong at another moment only", () => {
+  const OWN = "x-style";
+  const REFUSAL = `gates."${OWN}"."pull-request".await is declared on a gate that has parts`;
+
+  /**
+   * A gate with a part, and a second prover at pull-request that the
+   * validator refuses there.
+   * @returns The repository
+   */
+  const wrongAtPullRequest = (): NoManifestRepository =>
+    declaring({
+      [OWN]: {
+        [COMMIT]: "required",
+        "pull-request": { level: "required", await: "ci/style" },
+        parts: [wholeRepositoryPart([NODE, "-e", "0"])],
+      },
+    });
+
+  it("runs the commit moment, and says a problem waits at another one", () => {
+    const repository = wrongAtPullRequest();
+
+    const child = runShipped(repository, RUNNER_SCRIPT, [
+      AT_COMMIT,
+      NO_BUILTINS,
+      `--evidence=${path.join(repository.scratch, "evidence.json")}`,
+    ]);
+
+    expect(child.stdout).toContain(
+      "apply at other moments, so this run continued"
+    );
+    expect(child.stderr).toBe("");
+    expect(child.status).toBe(EXIT.PROVED);
+    expect(child.stdout).toContain(`PASSED     required ${OWN} in .`);
+  });
+
+  it("refuses the moment the problem belongs to", () => {
+    const child = runShipped(wrongAtPullRequest(), RUNNER_SCRIPT, [
+      "--moment=pull-request",
+      NO_BUILTINS,
+    ]);
+
+    expect(child.status).toBe(EXIT.BLOCKED);
+    expect(child.stderr).toContain(REFUSAL);
+    expect(child.stdout).not.toContain("PASSED");
+  });
+});
+
 describe("the same repository, reached other ways", () => {
   it("is not proved for an older hook either, once the rest of the commit floor is declared", () => {
     const repository = declaring({

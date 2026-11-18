@@ -25,9 +25,11 @@ import { EXIT } from "../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
 import {
   buildFMixed,
   type ControlAuditFixture,
+  controlAuditGitEnv,
   runControlAuditGit,
 } from "../helpers/control-audit-fixtures.js";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import { stage } from "../support/part-scope-change.js";
 
 const RUNNER_SCRIPT = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -112,6 +114,9 @@ function runAtCommit(
     command: NODE,
     args: [RUNNER_SCRIPT, `--moment=${COMMIT}`, `--coverage=${coverage}`],
     cwd: repoPath,
+    // The fixture's own environment: none of the variables a hook exports,
+    // so a suite started from a hook still asks git about the fixture.
+    env: controlAuditGitEnv(),
   });
   const proved = existsSync(coverage)
     ? readFileSync(coverage, "utf8").split("\n").filter(Boolean)
@@ -170,10 +175,15 @@ describe.skipIf(process.platform === "win32")(
   "the gate runner on a gate with parts",
   () => {
     it("starts each part in its own folder and reports each on its own line", () => {
-      const { child, fixture, proved } = runWithParts([
-        { scope: "api", command: [NODE, "-e", RECORD, "api-argument"] },
-        { scope: "web", command: [NODE, "-e", RECORD, "web-argument"] },
-      ]);
+      const { child, fixture, proved } = runWithParts(
+        [
+          { scope: "api", command: [NODE, "-e", RECORD, "api-argument"] },
+          { scope: "web", command: [NODE, "-e", RECORD, "web-argument"] },
+        ],
+        // A change inside both folders and nowhere else, so both parts run
+        // and between them they look at all of it.
+        ({ repoPath }) => stage(repoPath, ["api/src/new.py", "web/src/new.ts"])
+      );
 
       expect(child.status).toBe(EXIT.PROVED);
       expect(received(fixture, "api")).toEqual({
@@ -187,8 +197,25 @@ describe.skipIf(process.platform === "win32")(
       expect(child.stdout).toMatch(/PASSED\s+required\s+code-style in api /u);
       expect(child.stdout).toMatch(/PASSED\s+required\s+code-style in web /u);
       expect(child.stdout).toContain("2 proved");
-      // Both folders passed, so the hook's own style check may stand down.
+      // Both folders passed and the change is inside them, so the hook's own
+      // style check may stand down.
       expect(proved).toEqual([GATE]);
+    });
+
+    it("leaves the hook's own check in place when the change is not known", () => {
+      // Nothing is staged, so every part runs and passes. Nothing says the
+      // two folders are all a change would touch, so the hook keeps its check.
+      const { child, proved } = runWithParts([
+        { scope: "api", command: [NODE, "-e", RECORD] },
+        { scope: "web", command: [NODE, "-e", RECORD] },
+      ]);
+
+      expect(child.status).toBe(EXIT.PROVED);
+      expect(child.stdout).toContain("2 proved");
+      expect(proved).toEqual([]);
+      expect(child.stdout).toContain(
+        `What this change touches is not known and ${GATE} has no part for the whole repository, so the built-in check for it still runs.`
+      );
     });
 
     it("hands shell syntax to the program as text and runs none of it", () => {

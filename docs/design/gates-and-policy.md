@@ -151,7 +151,10 @@ Every route to "I do not know" — no coverage file, an empty one, a runner that
 could not run, an inexact match — runs the built-in step. A caller that does not
 pass `--coverage` is an older hook whose only lever is all-or-nothing, and for
 that one the runner still withholds the whole moment until the block is
-complete.
+complete. The same caller is answered 78 after a run in which a gate's parts
+did not reach every path the change touches: it cannot keep one built-in
+check on its own, so it keeps all of them. See "A part the change does not
+touch".
 
 ### A caller with no built-in checks
 
@@ -168,9 +171,17 @@ verdict every time:
 
 | Exit | Meaning for the caller                                                                                           |
 | ---- | ---------------------------------------------------------------------------------------------------------------- |
-| `0`  | Let it through. Every required gate declared at this moment was proved, or nothing is declared at this moment.   |
+| `0`  | Let it through. One of three things happened, and the runner says which: every required gate declared at this moment was proved; nothing is declared at this moment; or every part declared at this moment is for a folder the change does not touch, so no command ran. |
 | `1`  | Stop it. A required gate was not proved, or the declaration is one the validator refuses.                        |
 | `70` | Stop it. The runner could not run (unreadable configuration, a flag it does not understand), so nothing was proved. |
+
+**Exit 0 can mean no command ran.** Where a gate is declared with a part for
+`api` and a part for `web` and nothing else, a commit that changes only
+`tools/b.js` touches neither folder. Both parts print `NOT APPLICABLE`, the
+tally reads `0 proved … 2 part(s) this change does not touch were not run`,
+and the exit is 0: nothing the declaration covers changed, and this caller has
+no check of its own to fall back to. A repository that wants every change
+checked declares a part with scope `.`, which always runs.
 
 It never answers 78. Three things change under the flag, and nothing else:
 
@@ -1031,6 +1042,10 @@ holds that.
 **With parts, the parts are the only prover.** A `run` or an `await` beside
 them is refused, for the reason a moment may not declare both: one declaration
 with two things claiming to prove it has to be resolved by picking, silently.
+A second prover written for one moment is refused by `validate` and at that
+moment. The runner at any other moment says a problem waits elsewhere and
+runs, because there the gate has exactly one thing to run. A task named for
+the whole gate and a malformed part are refused at every moment.
 
 **Two parts of one gate may not cover the same folder**, and a folder has one
 spelling — `api`, not `api/` or `./api` — so every reader can compare two
@@ -1079,7 +1094,9 @@ part's `proof.failure_shape` before it is called unknown.
 
 **A gate is proved by all of its parts.** The commit and push hooks stand a
 built-in check down only against a gate the runner proved, and one part going
-unproved leaves the whole gate unproved. The evidence envelope records one
+unproved leaves the whole gate unproved. Passing parts are needed and are not
+enough: the parts must also reach every path the change touches, which "A
+part the change does not touch" sets out. The evidence envelope records one
 row per part, with the folder in `scope`.
 
 Three things are not built for parts yet. A part's command has thirty minutes
@@ -1171,7 +1188,10 @@ folder with a space or a non-ASCII letter in its name matches like any other.
 Letter case and the two ways of composing an accented letter are ignored,
 because a filesystem may ignore them too; that can only run a part that was
 not touched. A folder that is a link is matched under its declared name and
-under the folder it leads to.
+under the folder it leads to. A changed path that the folder lies below
+counts as well: a nested repository (a submodule) or a link above the folder
+is one path to git, which says nothing about what moved underneath it, so a
+part for `vendor/engine/src` runs when `vendor/engine` changed.
 
 **`.` always applies**, and a part for it is never left out.
 
@@ -1189,13 +1209,40 @@ written to the pass cache, and never shared with another gate that names the
 same command. The evidence envelope records it with `status: "unknown"` and
 `applicable: false`. The tally counts it under "not applicable here".
 
-**A gate whose parts were all left out is not reported as covered.** The
-commit and push hooks of a stack template stand a built-in check down against
-each gate the runner names in the `--coverage` file. When at least one part
-of a gate ran and passed, the gate is named: the parts that ran checked what
-the change touched. When no part ran, nothing in the registry looked at the
-change at all — it touched only files outside every folder the gate names —
-so the gate is withheld, the runner says so, and the built-in check runs.
+**A gate is reported as covered only when its parts reached the whole
+change.** The commit and push hooks of a stack template stand a built-in
+check down against each gate the runner names in the `--coverage` file, and
+they stand it down for the whole commit or push. So a gate with parts is
+named only when every path the change touches is inside the folder of a part
+that ran. Otherwise the gate is withheld, the runner says why, and the
+built-in check runs. With parts for `api` and `web`:
+
+| the change | the gate in `--coverage` | what the runner prints |
+| --- | --- | --- |
+| `api/a.go` | named | nothing more |
+| `api/a.go` and `tools/b.js` | withheld | `code-style has no part for 1 path(s) this change touches ("tools/b.js"), so the built-in check for it still runs.` |
+| `tools/b.js` | withheld | `No part of code-style applies to this change, so the built-in check for it still runs.` |
+| not known | withheld | `What this change touches is not known and code-style has no part for the whole repository, so the built-in check for it still runs.` |
+
+The last row is the same rule, not a second one. When the change is not known
+every part runs, and nothing says the folders they cover are all of it: a
+commit that edits `.lisa.config.json` is "not known", and that file is by
+definition outside `api` and `web`. A gate with a part for scope `.` is named
+whatever the change touches, because that part reaches every path. A project
+whose parts are meant to replace the built-in check for every change declares
+one.
+
+"Inside" is read strictly here, where "touches" above is read generously. A
+nested repository that moved is one changed path; a part for a folder inside
+it runs, and does not make that path covered.
+
+A hook that does not pass `--coverage` cannot keep one built-in check on its
+own. When a gate would be withheld for one of these reasons and nothing
+failed, it is answered 78 and runs every built-in check it has. The parts
+that ran stay on record: the evidence envelope carries their rows under the
+verdict `fell-back`. A caller that passed `--builtins=none` has no built-in
+check to keep, and the table under "A caller with no built-in checks" says
+what its exit 0 means.
 
 ## A part says what supports it
 
@@ -1270,6 +1317,20 @@ held at least as tightly. Everything else follows from that one question:
 | a new parameter, part or gate | allowed |
 | the base declares no thresholds, has no such file, or has one that is not valid JSON | allowed: nothing readable was held |
 
+**What is held is the declared number, and only that.** The check compares
+`value` as it is written in `.lisa.config.json`. It never runs the host's tool
+and never reads where that tool takes its limit from — a `fail_under` in
+`.coveragerc`, a number in a script, an argument in the part's own `command`
+— so a limit lowered there while the declared number stays the same is not
+refused. The parameter records the number; the part's command is what applies
+it, and keeping the two equal is the host's to do. `lisa controls
+propose-threshold` says this to the operator in `yes_means`, and the
+configure step tells them to put the same number in the command where the
+tool takes it as an argument.
+`tests/integration/threshold-ratchet-declared-parameters.test.ts` holds both
+halves: a lowered declared floor is refused, and a limit lowered in the tool's
+own settings is not seen.
+
 **A rename is refused on purpose.** A threshold is named by its gate, its
 folder and its parameter. Nothing in two versions of a file can tell a renamed
 folder from a part that was removed beside an unrelated one that was added, or
@@ -1332,7 +1393,11 @@ lisa controls register [path] --check  # write nothing; fail when it differs
 
 Both read the declaration through the shipped registry — `readGates`,
 `validateGates`, `resolveMoment` — and restate none of it. A declaration
-`validate` refuses is refused here with the same lines.
+`validate` refuses is refused here with the same lines. So is a
+`.lisa.config.json` that is valid JSON and is not an object — a list, `null`,
+a number — and one whose `gates` is not an object: `readGates` refuses each in
+one sentence rather than read it as a file that declares nothing, so no empty
+register is written from a damaged file.
 
 **One entry per gate and folder.** A gate with `parts` gets an entry per part;
 a gate with none gets one entry for the whole repository (`scope` is `.`),

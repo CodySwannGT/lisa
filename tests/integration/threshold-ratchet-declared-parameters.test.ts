@@ -191,6 +191,24 @@ describe("the shipped threshold check in a repository on no supported stack", ()
     expect(result).toEqual({ status: 0, stdout: "", stderr: "" });
   });
 
+  it("holds the declared number only: a limit lowered in the tool's own settings passes", () => {
+    // What is watched is `.lisa.config.json`. The file the host's tool reads
+    // its limit from is not, so the declared number and the enforced limit
+    // can part company without this check saying anything. The operator is
+    // told so when the threshold is proposed (`lisa controls
+    // propose-threshold`), and the design note says the same.
+    const repoPath = host(declaring(60));
+    const toolSettings = path.join(repoPath, ".coveragerc");
+    writeFileSync(toolSettings, "[report]\nfail_under = 60\n");
+    commit(repoPath, declaring(60));
+    writeFileSync(toolSettings, "[report]\nfail_under = 10\n");
+    commit(repoPath, declaring(60));
+
+    const result = check(repoPath, ["--base", "HEAD^"]);
+
+    expect(result).toEqual({ status: 0, stdout: "", stderr: "" });
+  });
+
   it("accepts the commit that declares thresholds for the first time", () => {
     const repoPath = host('{ "tracker": "github" }\n');
     commit(repoPath, declaring(1));

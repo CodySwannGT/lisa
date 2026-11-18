@@ -74,15 +74,20 @@ describe("what a run with parts records", () => {
   });
 
   it("stands the built-in check down only when every part passed", () => {
+    // A change inside both folders, so both parts run and between them they
+    // reach all of it: what is left to decide is whether they passed.
+    const touching = ["api/main.py", "web/index.ts"];
     const proved = runParts({
       execArgv: failingIn(null),
       gates: STYLE_PARTS,
       root: repository.root,
+      touching,
     });
     const oneFailed = runParts({
       execArgv: failingIn(WEB),
       gates: STYLE_PARTS,
       root: repository.root,
+      touching,
     });
     const floorAfter = (result: GateRun): string[] =>
       provenFloor({ gates: STYLE_PARTS, moment: COMMIT, result });
@@ -91,6 +96,21 @@ describe("what a run with parts records", () => {
     // The last part to run is the one that failed here; the first passed. A
     // gate is proved by all of its parts or it is not proved.
     expect(floorAfter(oneFailed.result)).toEqual([]);
+  });
+
+  it("does not stand it down on passing parts alone, when the change is not known", () => {
+    // Both parts ran and passed. Nothing says those two folders are all the
+    // change touches, so the caller keeps its own check.
+    const { result } = runParts({
+      execArgv: failingIn(null),
+      gates: STYLE_PARTS,
+      root: repository.root,
+    });
+
+    expect(result.passed.map(entry => entry.scope)).toEqual([API, WEB]);
+    expect(provenFloor({ gates: STYLE_PARTS, moment: COMMIT, result })).toEqual(
+      []
+    );
   });
 
   it("records one evidence row per part, each naming its folder", () => {

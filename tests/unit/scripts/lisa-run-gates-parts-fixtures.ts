@@ -133,6 +133,8 @@ export interface PartsRun {
  * @param options.root - The repository root
  * @param options.execArgv - The part executor
  * @param options.exec - The executor for a gate with no parts
+ * @param options.touching - The paths the change touches; left out, the
+ *   change is not known and every part runs
  * @returns The run and what it printed
  */
 export function runParts(options: {
@@ -140,9 +142,14 @@ export function runParts(options: {
   readonly root: string;
   readonly execArgv: ArgvExecutor;
   readonly exec?: (command: string) => number | null;
+  readonly touching?: readonly string[];
 }): PartsRun {
   const { lines, out } = sink();
+  const { touching } = options;
   const result = runGates({
+    ...(touching === undefined
+      ? {}
+      : { change: () => ({ note: null, paths: [...touching] }) }),
     exec: options.exec ?? (() => 0),
     execArgv: options.execArgv,
     gates: options.gates,

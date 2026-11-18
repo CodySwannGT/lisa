@@ -138,11 +138,33 @@ function fold(path) {
 }
 
 /**
- * Whether any changed path is inside one of a folder's spellings.
+ * Whether one path, already folded, is a folder or lies inside it.
  *
  * Whole path segments are compared: `api` holds `api/main.py` and not
- * `api-v2/main.py`. A path equal to the folder counts too, which is what git
- * reports when the folder itself is a link or a nested repository.
+ * `api-v2/main.py`.
+ * @param {string} path A folded path.
+ * @param {string} folder A folded folder.
+ * @returns {boolean} True when the path is the folder or is inside it.
+ */
+function isInside(path, folder) {
+  return path === folder || path.startsWith(`${folder}/`);
+}
+
+/**
+ * Whether any changed path may have changed something in a folder, under any
+ * of the folder's spellings.
+ *
+ * A path inside the folder counts, and so does the folder's own path, which
+ * is what git reports when the folder itself is a link or a nested
+ * repository.
+ *
+ * A path the folder lies BELOW counts as well. Git names a nested repository
+ * (a submodule) and a link as one path each, and says nothing about what
+ * moved underneath. A part for `vendor/engine/src` where `vendor/engine` is a
+ * nested repository would otherwise be left out of every change to that
+ * repository: the one path git reports is not inside the part's folder. A
+ * part left out by mistake is a folder nothing checked, so the doubt runs
+ * the part.
  * @param {readonly string[]} paths Changed paths, written from the root.
  * @param {readonly string[]} folders Every way the folder is written from the
  *   root: as declared, and as it resolves on disk.
@@ -153,8 +175,31 @@ export function touchesFolder(paths, folders) {
   return paths.some(path => {
     const changed = fold(path);
     return names.some(
-      name => changed === name || changed.startsWith(`${name}/`)
+      name => isInside(changed, name) || isInside(name, changed)
     );
+  });
+}
+
+/**
+ * The changed paths that are inside none of the given folders.
+ *
+ * This is the question `touchesFolder` does not answer, asked in the other
+ * direction and strictly. That one decides whether a part RUNS, where the
+ * safe mistake is to run it. This one decides whether the parts that ran
+ * looked at the WHOLE change, where the safe mistake is to say they did not:
+ * a caller stands its own check down on the answer. So a path counts as
+ * covered only when it is a folder or lies inside one. A nested repository
+ * that moved is one path, and a folder inside it is only part of it.
+ * @param {readonly string[]} paths Changed paths, written from the root.
+ * @param {readonly string[]} folders Folders, written from the root, under
+ *   every spelling each one has.
+ * @returns {string[]} The paths no folder holds, in the order given.
+ */
+export function pathsOutside(paths, folders) {
+  const names = folders.map(fold);
+  return paths.filter(path => {
+    const changed = fold(path);
+    return !names.some(name => isInside(changed, name));
   });
 }
 
