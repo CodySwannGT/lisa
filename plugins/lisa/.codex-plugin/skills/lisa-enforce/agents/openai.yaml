@@ -1,0 +1,4 @@
+display_name: "Enforce"
+short_description: "Make the declared checks of a…"
+default_prompt:
+  - "Use $lisa-enforce: Make the declared checks of a…."
