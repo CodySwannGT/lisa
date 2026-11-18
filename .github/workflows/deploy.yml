@@ -141,6 +141,28 @@ jobs:
   #     and requires it to match the tested one byte for byte, refuses any
   #     other changed path, and loads the deploy key only in its final step.
   #
+  # WHY BOTH JOBS RESOLVE THE EXACT RELEASE. The committed pin is a caret
+  # range, and a caret range resolves the NEWEST matching release — a raise to
+  # ^7.0.0 computed after 7.0.1 shipped would lock 7.0.1. Both jobs therefore
+  # resolve with the pin set to exactly the published version, then write the
+  # caret range back into package.json and bun.lock's workspace specifier
+  # (`verify-self-pin-raise.mjs spec`). Bun keeps a locked version that
+  # satisfies the range, so the pair passes `--frozen-lockfile`.
+  #
+  # WHY A MOVED MAIN NEEDS NO ONE. The push lands only on the exact commit the
+  # raise was proved against; it never rebases (a rebase would push a graph
+  # nobody tested against the new source). If main moved, the commit that moved
+  # it started its own deploy run — runs on main are serialized, and only the
+  # release's own `[skip ci]` commits skip one — and that run's release
+  # recomputes and re-proves the raise. scripts/push-self-pin-raise.sh holds
+  # that logic and its tests.
+  #
+  # WHY A RECONCILED PUBLISH COUNTS. If npm accepted the version but the publish
+  # job's own registry check failed, `reconcile_release` asks the registry
+  # again. A `published` verdict there is the same fact a successful publish
+  # job reports, and re-running the publish would only be rejected as a
+  # duplicate, so it triggers the raise too. `missing` and `unprovable` never do.
+  #
   # WHY IT CANNOT LOOP. The script raises only when the declared range can no
   # longer resolve the published version — the exact predicate the check fails
   # on. The push is a normal commit, so it cuts a patch release; that release is
@@ -150,8 +172,8 @@ jobs:
     name: Prepare the self-dependency pin raise
     runs-on: ubuntu-latest
     timeout-minutes: 75
-    needs: [determine_environment, release, publish_npm]
-    if: ${{ needs.determine_environment.outputs.environment == 'main' && needs.publish_npm.result == 'success' && needs.release.outputs.version != '' }}
+    needs: [determine_environment, release, publish_npm, reconcile_release]
+    if: ${{ always() && needs.determine_environment.outputs.environment == 'main' && needs.release.result == 'success' && needs.release.outputs.version != '' && (needs.publish_npm.result == 'success' || needs.reconcile_release.outputs.verdict == 'published') }}
     permissions:
       contents: read
     outputs:
@@ -186,6 +208,12 @@ jobs:
           package_name="$(node -p "require('./package.json').name")"
           node scripts/check-npm-publish-landed.mjs --package "$package_name" --version "$VERSION"
 
+      # The raise script imports `semver`, and a fresh runner has no
+      # node_modules. main's own lockfile, frozen and with scripts off, is
+      # exactly what every pull request already installed.
+      - name: Install main's locked dependencies without lifecycle scripts
+        run: bun install --ignore-scripts --frozen-lockfile
+
       - name: Raise the pin when the release left it behind
         id: raise
         env:
@@ -206,8 +234,12 @@ jobs:
 
       - name: Re-resolve the lockfile and prove the raise
         if: steps.raise.outputs.verdict == 'raised'
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
         run: |
+          node scripts/verify-self-pin-raise.mjs spec --form exact --version "$VERSION"
           bun install --ignore-scripts
+          node scripts/verify-self-pin-raise.mjs spec --form caret --version "$VERSION"
           bun install --ignore-scripts --frozen-lockfile
           bun run build:dist
           bun run check:self-pin
@@ -248,8 +280,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare_self_pin_raise.outputs.base_sha }}
-          # Full history, so a rebase onto a moved main has a merge base.
-          fetch-depth: 0
           persist-credentials: false
 
       - name: Setup Node.js
@@ -294,7 +324,10 @@ jobs:
           RAISED: ${{ runner.temp }}/self-pin-raise
           BUN_INSTALL_CACHE_DIR: ${{ runner.temp }}/bun-manifest-cache
         run: |
+          node scripts/verify-self-pin-raise.mjs spec --form exact --version "$VERSION"
           timeout 300 bun install --lockfile-only --ignore-scripts
+          node scripts/verify-self-pin-raise.mjs spec --form caret --version "$VERSION"
+          cmp package.json "$RAISED/package.json"
           node scripts/verify-self-pin-raise.mjs lockfile --regenerated bun.lock --candidate "$RAISED/bun.lock" --version "$VERSION"
           changed="$(git status --porcelain --untracked-files=all | sed 's/^...//' | sort)"
           if [ "$changed" != "$(printf 'bun.lock\npackage.json')" ]; then
@@ -322,34 +355,7 @@ jobs:
           # GitHub's published SSH host key, pinned rather than trusted on first use.
           echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > "$key_dir/known_hosts"
           export GIT_SSH_COMMAND="ssh -i $key_dir/key -o IdentitiesOnly=yes -o UserKnownHostsFile=$key_dir/known_hosts -o StrictHostKeyChecking=yes"
-          remote="git@github.com:${REPOSITORY}.git"
-          for attempt in 1 2 3; do
-            if git -c core.hooksPath=/dev/null push "$remote" HEAD:main; then
-              echo "✅ Raised the self-pin to ^${VERSION} on main."
-              exit 0
-            fi
-            echo "::warning::Push attempt $attempt failed; rebasing onto a fresh main"
-            git fetch "$remote" main
-            # The lockfile was regenerated against BASE_SHA. If main has since
-            # touched package.json or bun.lock, a rebased lockfile would be one
-            # nobody generated or tested, so refuse rather than merge it.
-            if ! git diff --quiet "$BASE_SHA" FETCH_HEAD -- package.json bun.lock; then
-              echo "::error::main changed package.json or bun.lock after the raise was computed; refusing to push a lockfile nobody regenerated. The next release recomputes it."
-              exit 1
-            fi
-            if ! git -c core.hooksPath=/dev/null rebase FETCH_HEAD; then
-              git rebase --abort 2>/dev/null || true
-              echo "::error::Rebasing the self-pin raise onto main conflicted; package.json or bun.lock moved underneath it."
-              exit 1
-            fi
-            if [ "$(git diff --name-only FETCH_HEAD HEAD | sort)" != "$(printf 'bun.lock\npackage.json')" ]; then
-              echo "::error::After rebasing, the raise no longer changes exactly package.json and bun.lock."
-              exit 1
-            fi
-            sleep $((attempt * 5))
-          done
-          echo "::error::Could not push the self-pin raise to main after 3 attempts."
-          exit 1
+          bash scripts/push-self-pin-raise.sh "git@github.com:${REPOSITORY}.git" "$BASE_SHA" "$VERSION"
 
   # The deploy-outcome guard.
   #
@@ -433,6 +439,9 @@ jobs:
   reconcile_release:
     name: Reconcile release against the registry
     runs-on: ubuntu-latest
+    outputs:
+      # Read by prepare_self_pin_raise: `published` is a landed release.
+      verdict: ${{ steps.landed.outputs.verdict }}
     # Must exceed the checker's own wait, or the job is killed mid-wait and the
     # widened window is inert — a control that reports a worse outcome than the
     # one it replaced, because a cancellation says even less than a failure.

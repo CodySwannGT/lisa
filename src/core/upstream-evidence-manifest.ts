@@ -2952,6 +2952,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "b688c899549cfcd10660c0154f01e5bedb9d1baaaa27958c9d8f436bc45c87e6",
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
+    "scripts/push-self-pin-raise.sh":
+      "3aa8a5be8872a4431a9fd43c7688309add695bf2a6b992872b5bbc326f8bdeae",
     "scripts/raise-self-dependency-pin.mjs":
       "c950a7fae981ad682b6f1e4c5c3a28338b87d1b491dde17e49567b4865304db3",
     "scripts/reconcile-release-tags.mjs":
@@ -2997,7 +2999,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-rails-tooling.rb":
       "5e7a52c1929c9eba873d2fc1f0baa1cc684e9913d4b27c5c42819bb1ac0539cf",
     "scripts/verify-self-pin-raise.mjs":
-      "91e3b4bfa2aedaae28dc16fca6ea85cfa8427969170c361ea48e17944e4035a7",
+      "adbe5a8e66ffaf6ecdfae5812fe08cbd6fbcb377c80c6752fcc284eb4ffe8768",
     "scripts/workflow-contract-assertion.sh":
       "191b5e766e1defb3bee3befbc8354abd9a46d3989eede7a420cd8893885df137",
     "tsconfig/base.json":
@@ -10861,6 +10863,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/plugin-parity-drift.mjs": true,
     "scripts/plugin-routing-validate.mjs": true,
     "scripts/probes/wave3-verification.sh": true,
+    "scripts/push-self-pin-raise.sh": true,
     "scripts/raise-self-dependency-pin.mjs": true,
     "scripts/reconcile-release-tags.mjs": true,
     "scripts/remedy-conformance.mjs": true,
@@ -11902,6 +11905,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/publish-npm-injection.test.ts": true,
     "tests/integration/push-collects-integration-tree-once.test.ts": true,
     "tests/integration/push-destination-inheritance.test.ts": true,
+    "tests/integration/push-self-pin-raise.test.ts": true,
     "tests/integration/quality-audit-fail-closed.test.ts": true,
     "tests/integration/quality-combined-planning.test.ts": true,
     "tests/integration/quality-declaration-required-jobs.test.ts": true,
@@ -11984,6 +11988,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/security-floors-gate.test.ts": true,
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
     "tests/integration/self-pin-drift-gate-wiring.test.ts": true,
+    "tests/integration/self-pin-raise-prepare-job.test.ts": true,
     "tests/integration/sentry-deploy-workflow.test.ts": true,
     "tests/integration/sentry-release-config.test.ts": true,
     "tests/integration/sentry-release-name.test.ts": true,
@@ -12025,6 +12030,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/rails-partial-selector.ts": true,
     "tests/integration/support/recording-gh-stub.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
+    "tests/integration/support/self-pin-raise-jobs.ts": true,
     "tests/integration/support/shell-guard-refusal-fixture.ts": true,
     "tests/integration/test-access-map-tracer.test.ts": true,
     "tests/integration/third-party-evidence-seed-apply.test.ts": true,

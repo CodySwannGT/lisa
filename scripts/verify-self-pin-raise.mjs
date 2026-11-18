@@ -26,11 +26,20 @@
  *    version with the integrity the npm registry reports for it, fetched here
  *    with a deadline and failing closed.
  *
+ * 3. **Exact resolution** (`spec` mode): a caret range can resolve a NEWER
+ *    release than the one being raised to — a retried 7.0.0 raise after 7.0.1
+ *    shipped would lock 7.0.1 and fail the lockfile check. So both jobs resolve
+ *    with the pin set to the exact published version (`spec --form exact`),
+ *    then write the committed caret range back into package.json and the
+ *    lockfile's workspace specifier (`spec --form caret`). Bun keeps a locked
+ *    version that satisfies the declared range, so the resulting pair passes
+ *    `--frozen-lockfile` and locks exactly the published release.
+ *
  * Deliberately dependency-free (no `semver`, no repository imports), because
  * the privileged job has no `node_modules` and must not need any.
  * @module scripts/verify-self-pin-raise
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import process from "node:process";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
@@ -50,6 +59,12 @@ const DEFAULT_REGISTRY = "https://registry.npmjs.org";
 /** How long the registry may take before the push is refused. */
 const REGISTRY_TIMEOUT_MS = 30_000;
 
+/** How many times a transient registry failure is tried before refusing. */
+const REGISTRY_ATTEMPTS = 3;
+
+/** Base delay between registry attempts; attempt n waits n times this. */
+const REGISTRY_RETRY_DELAY_MS = 2_000;
+
 /** How much of a differing lockfile line a refusal prints. */
 const EXCERPT_LENGTH = 160;
 
@@ -61,6 +76,86 @@ const EXCERPT_LENGTH = 160;
  */
 const SELF_LOCK_ENTRY =
   /^ {4}"@codyswann\/lisa": \["@codyswann\/lisa@([^"]+)", "", \{.*\}, "(sha512-[A-Za-z0-9+/=]+)"\],$/gm;
+
+/**
+ * The root workspace's declared self-pin in a bun.lock, eight spaces deep
+ * under `workspaces[""].devDependencies`. Package entries sit at four spaces
+ * and start with `[`, so they never match.
+ * @param {string} spec - The exact specifier text expected on the line.
+ * @returns {RegExp} A global, multiline matcher for that line.
+ */
+function workspaceSpecLine(spec) {
+  const escaped = spec.replace(/[.^]/g, character => `\\${character}`);
+  return new RegExp(`^( {8}"@codyswann/lisa": )"${escaped}"(,?)$`, "gm");
+}
+
+/**
+ * Serialize a manifest the way the raise script writes it.
+ * @param {object} manifest - Parsed package.json.
+ * @returns {string} Two-space JSON with a trailing newline.
+ */
+function serialize(manifest) {
+  return `${JSON.stringify(manifest, null, 2)}\n`;
+}
+
+/**
+ * Switch the self-pin between the exact published version (to resolve) and
+ * the committed caret range (to commit).
+ *
+ * `exact` requires the manifest to declare `^version` and sets it to
+ * `version`; the lockfile is left for the install to rewrite. `caret` requires
+ * the manifest AND the lockfile's workspace specifier to declare exactly
+ * `version` — proof the exact resolution ran — and sets both to `^version`.
+ * @param {object} input - The current texts and the requested form.
+ * @param {string} input.manifestText - package.json text.
+ * @param {string} input.lockText - bun.lock text.
+ * @param {string} input.version - The published release version.
+ * @param {"exact" | "caret"} input.form - Which specifier to write.
+ * @returns {{ok: boolean, detail: string, manifestText?: string, lockText?: string}} The verdict and, when ok, the new texts.
+ */
+export function setSelfSpec({ manifestText, lockText, version, form }) {
+  if (!RELEASE_VERSION.test(version)) {
+    return { ok: false, detail: `"${version}" is not a release version` };
+  }
+  if (form !== "exact" && form !== "caret") {
+    return { ok: false, detail: `"${form}" is not exact or caret` };
+  }
+  const manifest = JSON.parse(manifestText);
+  const from = form === "exact" ? `^${version}` : version;
+  const to = form === "exact" ? version : `^${version}`;
+  const declared = manifest?.devDependencies?.[SELF_PACKAGE];
+  if (declared !== from) {
+    return {
+      ok: false,
+      detail: `package.json declares ${SELF_PACKAGE} ${JSON.stringify(declared)}, not "${from}"`,
+    };
+  }
+  const nextManifest = serialize({
+    ...manifest,
+    devDependencies: { ...manifest.devDependencies, [SELF_PACKAGE]: to },
+  });
+  if (form === "exact") {
+    return {
+      ok: true,
+      detail: `resolving ${SELF_PACKAGE} at exactly ${version}`,
+      manifestText: nextManifest,
+      lockText,
+    };
+  }
+  const lines = [...lockText.matchAll(workspaceSpecLine(from))];
+  if (lines.length !== 1) {
+    return {
+      ok: false,
+      detail: `bun.lock has ${lines.length} workspace specifiers "${from}" for ${SELF_PACKAGE}, not exactly one`,
+    };
+  }
+  return {
+    ok: true,
+    detail: `committing ${SELF_PACKAGE} as ^${version}, locked at ${version}`,
+    manifestText: nextManifest,
+    lockText: lockText.replace(workspaceSpecLine(from), `$1"${to}"$2`),
+  };
+}
 
 /**
  * Decide whether the candidate manifest is the base with only the pin raised.
@@ -170,24 +265,28 @@ export function verifySelfLockEntry(lockText, version, registryIntegrity) {
 }
 
 /**
- * Ask the registry for the published tarball's integrity, failing closed.
- * @param {object} options - Version, registry, fetch seam and deadline.
- * @returns {Promise<{integrity: string | null, detail: string}>} The answer.
+ * One registry request. `retry` is true only for a failure that says nothing
+ * about the document — a network error, a deadline, or a 5xx. A 404, any other
+ * 4xx, and a document that does not describe the version are answers, and an
+ * answer is never asked again.
+ * @param {string} url - The exact-version registry URL.
+ * @param {string} version - The version the document must describe.
+ * @param {typeof fetch} fetchImpl - The fetch seam.
+ * @param {number} timeoutMs - The per-request deadline.
+ * @returns {Promise<{integrity: string | null, detail: string, retry: boolean}>} The answer.
  */
-export async function fetchRegistryIntegrity({
-  version,
-  registry = DEFAULT_REGISTRY,
-  fetchImpl = fetch,
-  timeoutMs = REGISTRY_TIMEOUT_MS,
-}) {
-  const url = `${registry}/${SELF_PACKAGE}/${version}`;
+async function requestIntegrity(url, version, fetchImpl, timeoutMs) {
   try {
     const response = await fetchImpl(url, {
       headers: { accept: "application/json" },
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) {
-      return { integrity: null, detail: `HTTP ${response.status} from ${url}` };
+      return {
+        integrity: null,
+        detail: `HTTP ${response.status} from ${url}`,
+        retry: response.status >= 500,
+      };
     }
     const body = await response.json();
     const integrity = body?.dist?.integrity;
@@ -195,12 +294,50 @@ export async function fetchRegistryIntegrity({
       return {
         integrity: null,
         detail: `${url} did not describe ${version} with a dist.integrity`,
+        retry: false,
       };
     }
-    return { integrity, detail: "ok" };
+    return { integrity, detail: "ok", retry: false };
   } catch (error) {
-    return { integrity: null, detail: `${url}: ${error.message}` };
+    return { integrity: null, detail: `${url}: ${error.message}`, retry: true };
   }
+}
+
+/**
+ * Ask the registry for the published tarball's integrity, failing closed.
+ *
+ * A transient failure (network error, deadline, 5xx) is retried a bounded
+ * number of times; when every attempt fails the answer is still `null`, so the
+ * push is refused. A 404 or a wrong document is returned at once.
+ * @param {object} options - Version, registry, fetch seam, deadline, attempts and sleep seam.
+ * @returns {Promise<{integrity: string | null, detail: string}>} The answer.
+ */
+export async function fetchRegistryIntegrity({
+  version,
+  registry = DEFAULT_REGISTRY,
+  fetchImpl = fetch,
+  timeoutMs = REGISTRY_TIMEOUT_MS,
+  attempts = REGISTRY_ATTEMPTS,
+  sleep = milliseconds =>
+    new Promise(resolve => {
+      setTimeout(resolve, milliseconds);
+    }),
+}) {
+  const url = `${registry}/${SELF_PACKAGE}/${version}`;
+  const attempt = async number => {
+    const answer = await requestIntegrity(url, version, fetchImpl, timeoutMs);
+    if (!answer.retry || number >= attempts) {
+      const suffix =
+        answer.retry && attempts > 1 ? ` (after ${attempts} attempts)` : "";
+      return {
+        integrity: answer.integrity,
+        detail: `${answer.detail}${suffix}`,
+      };
+    }
+    await sleep(number * REGISTRY_RETRY_DELAY_MS);
+    return attempt(number + 1);
+  };
+  return attempt(1);
 }
 
 /**
@@ -295,11 +432,42 @@ export async function mainLockfile(argv, injected = {}) {
   );
 }
 
+/**
+ * Switch the pin between exact and caret for a workflow step, in place.
+ * @param {string[]} argv - `--form exact|caret --version <v> [--manifest <file>] [--lockfile <file>]`.
+ * @returns {number} Process exit code: 0 only when the switch was written.
+ */
+export function mainSpec(argv) {
+  const form = option(argv, "--form");
+  const version = option(argv, "--version");
+  if (form === undefined || version === undefined) {
+    process.stderr.write(
+      "❌ usage: verify-self-pin-raise.mjs spec --form exact|caret --version <version> [--manifest <file>] [--lockfile <file>]\n"
+    );
+    return 1;
+  }
+  const manifest = option(argv, "--manifest") ?? "package.json";
+  const lockfile = option(argv, "--lockfile") ?? "bun.lock";
+  const result = setSelfSpec({
+    manifestText: readFileSync(manifest, "utf8"),
+    lockText: readFileSync(lockfile, "utf8"),
+    version,
+    form,
+  });
+  if (result.ok) {
+    writeFileSync(manifest, result.manifestText);
+    writeFileSync(lockfile, result.lockText);
+  }
+  return report(result);
+}
+
 /* c8 ignore start -- CLI wiring, exercised through main() in tests */
 if (invokedAsScript(import.meta.url)) {
   try {
     const argv = process.argv.slice(2);
-    if (argv[0] === "lockfile") {
+    if (argv[0] === "spec") {
+      process.exitCode = mainSpec(argv.slice(1));
+    } else if (argv[0] === "lockfile") {
       mainLockfile(argv.slice(1))
         .then(code => {
           process.exitCode = code;

@@ -19,6 +19,8 @@ import {
   fetchRegistryIntegrity,
   main,
   mainLockfile,
+  mainSpec,
+  setSelfSpec,
   verifyLockfileMatch,
   verifySelfLockEntry,
   verifySelfPinRaise,
@@ -182,6 +184,33 @@ const INTEGRITY = (/^ {4}"@codyswann\/lisa": \[.*"(sha512-[^"]+)"\],$/m.exec(
   LOCK
 ) ?? [])[1] as string;
 
+/** A patched dependency's line in {@link PATCHED_LOCK}. */
+const PATCH_LINE = '    "picomatch@4.0.3": "patches/picomatch@4.0.3.patch",';
+
+/**
+ * A small, fixed bun.lock with a patchedDependencies section. The patch-path
+ * cases use it rather than the real lockfile, so they keep testing the
+ * verifier after the repository drops its last dependency patch.
+ */
+const PATCHED_LOCK = [
+  "{",
+  '  "lockfileVersion": 1,',
+  '  "workspaces": {',
+  '    "": {',
+  '      "name": "fixture",',
+  "    },",
+  "  },",
+  '  "patchedDependencies": {',
+  PATCH_LINE,
+  '    "semver@7.8.1": "patches/semver@7.8.1.patch",',
+  "  },",
+  '  "packages": {',
+  '    "picomatch": ["picomatch@4.0.3", "", {}, "sha512-AAAA"],',
+  "  }",
+  "}",
+  "",
+].join("\n");
+
 /** A different, well-formed integrity value. */
 const FORGED = `sha512-${"A".repeat(86)}==`;
 
@@ -218,19 +247,16 @@ describe("the push job pushes only the lockfile it regenerated (#4951)", () => {
   });
 
   it("refuses a changed patchedDependencies entry or patch path", () => {
-    const lines = LOCK.split("\n");
-    const header = lines.indexOf('  "patchedDependencies": {');
-    const patch = lines[header + 1] as string;
-    const dropped = LOCK.replace(`${patch}\n`, "");
-    const repointed = LOCK.replace(
-      patch,
-      patch.replace(/\.patch"/, '.other.patch"')
+    const dropped = PATCHED_LOCK.replace(`${PATCH_LINE}\n`, "");
+    const repointed = PATCHED_LOCK.replace(
+      PATCH_LINE,
+      PATCH_LINE.replace(/\.patch"/, '.other.patch"')
     );
 
-    expect(header).toBeGreaterThanOrEqual(0);
-    expect(patch).toMatch(/\.patch",$/);
-    expect(verifyLockfileMatch(LOCK, dropped).ok).toBe(false);
-    expect(verifyLockfileMatch(LOCK, repointed).ok).toBe(false);
+    expect(dropped).not.toBe(PATCHED_LOCK);
+    expect(repointed).not.toBe(PATCHED_LOCK);
+    expect(verifyLockfileMatch(PATCHED_LOCK, dropped).ok).toBe(false);
+    expect(verifyLockfileMatch(PATCHED_LOCK, repointed).ok).toBe(false);
   });
 
   it("refuses a missing or added trailing newline", () => {
@@ -300,6 +326,32 @@ function registryAnswering(
   }) as unknown as typeof fetch;
 }
 
+/**
+ * A sleep stand-in, so retry cases do not wait out the real back-off.
+ * @returns A resolved promise.
+ */
+async function noSleep(): Promise<void> {
+  // Deliberately waits for nothing.
+}
+
+/**
+ * A fetch that gives each answer in turn, repeating the last.
+ * @param answers - Status-and-body answers or errors, in order.
+ * @returns A stand-in for global fetch.
+ */
+function sequence(
+  answers: readonly ({ status: number; body?: unknown } | Error)[]
+): typeof fetch {
+  const calls = { count: 0 };
+  return ((...args: Parameters<typeof fetch>) => {
+    const answer = answers[Math.min(calls.count, answers.length - 1)] as
+      | { status: number; body?: unknown }
+      | Error;
+    calls.count += 1;
+    return registryAnswering(answer)(...args);
+  }) as typeof fetch;
+}
+
 describe("the registry integrity is fetched and fails closed (#4951)", () => {
   it("returns dist.integrity for exactly the requested version", async () => {
     const answer = await fetchRegistryIntegrity({
@@ -324,7 +376,9 @@ describe("the registry integrity is fetched and fails closed (#4951)", () => {
           body: { version: `${LOCKED}9`, dist: { integrity: INTEGRITY } },
         }),
         registryAnswering({ status: 200, body: { version: LOCKED } }),
-      ].map(fetchImpl => fetchRegistryIntegrity({ version: LOCKED, fetchImpl }))
+      ].map(fetchImpl =>
+        fetchRegistryIntegrity({ version: LOCKED, fetchImpl, sleep: noSleep })
+      )
     );
 
     answers.forEach(answer => expect(answer.integrity).toBeNull());
@@ -337,9 +391,94 @@ describe("the registry integrity is fetched and fails closed (#4951)", () => {
       return { ok: false, status: 500, json: async () => ({}) };
     }) as unknown as typeof fetch;
 
-    await fetchRegistryIntegrity({ version: LOCKED, fetchImpl });
+    await fetchRegistryIntegrity({
+      version: LOCKED,
+      fetchImpl,
+      sleep: noSleep,
+    });
 
     expect(seen[0]).toBeInstanceOf(AbortSignal);
+  });
+
+  it("retries a network error, a deadline or a 5xx, then answers", async () => {
+    const failures = [
+      new Error("ECONNRESET"),
+      new DOMException("timed out", "TimeoutError"),
+      { status: 503 },
+    ];
+    const answers = await Promise.all(
+      failures.map(failure => {
+        const fetchImpl = sequence([
+          failure,
+          {
+            status: 200,
+            body: { version: LOCKED, dist: { integrity: INTEGRITY } },
+          },
+        ]);
+        return fetchRegistryIntegrity({
+          version: LOCKED,
+          fetchImpl,
+          sleep: noSleep,
+        });
+      })
+    );
+
+    answers.forEach(answer => expect(answer.integrity).toBe(INTEGRITY));
+  });
+
+  it("still fails closed when every bounded attempt is transient", async () => {
+    const fetchImpl = vi.fn(registryAnswering(new Error("ECONNRESET")));
+    const delays: number[] = [];
+
+    const answer = await fetchRegistryIntegrity({
+      version: LOCKED,
+      fetchImpl,
+      sleep: async (milliseconds: number) => {
+        delays.push(milliseconds);
+      },
+    });
+
+    expect(answer.integrity).toBeNull();
+    expect(answer.detail).toContain("after 3 attempts");
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(delays).toHaveLength(2);
+    expect(delays[1]).toBeGreaterThan(delays[0] as number);
+  });
+
+  it("never asks again after a 404, another 4xx or a wrong document", async () => {
+    const answers = [
+      { status: 404 },
+      { status: 403 },
+      {
+        status: 200,
+        body: { version: `${LOCKED}9`, dist: { integrity: INTEGRITY } },
+      },
+      { status: 200, body: { version: LOCKED } },
+    ];
+    const calls = await Promise.all(
+      answers.map(async first => {
+        const fetchImpl = vi.fn(
+          sequence([
+            first,
+            {
+              status: 200,
+              body: { version: LOCKED, dist: { integrity: INTEGRITY } },
+            },
+          ])
+        );
+        const answer = await fetchRegistryIntegrity({
+          version: LOCKED,
+          fetchImpl,
+          sleep: noSleep,
+        });
+        return { answer, count: fetchImpl.mock.calls.length };
+      })
+    );
+
+    calls.forEach(({ answer, count }) => {
+      expect(answer.integrity).toBeNull();
+      expect(count).toBe(1);
+    });
   });
 });
 
@@ -370,7 +509,7 @@ describe("the lockfile CLI exits 0 only when both checks pass (#4951)", () => {
         "--version",
         LOCKED,
       ],
-      { fetchImpl }
+      { fetchImpl, sleep: noSleep }
     );
     stdout.mockRestore();
     stderr.mockRestore();
@@ -423,5 +562,157 @@ describe("the lockfile CLI exits 0 only when both checks pass (#4951)", () => {
 
     expect(missing).toBe(1);
     expect(prerelease).toBe(1);
+  });
+});
+
+/** main's manifest once the raise script has written the caret range. */
+const CARET_MANIFEST = RAISED;
+
+/** The same manifest with the pin set to exactly the published version. */
+const EXACT_MANIFEST = text({
+  ...BASE,
+  devDependencies: { ...BASE.devDependencies, [SELF]: PUBLISHED },
+});
+
+/**
+ * A bun.lock whose root workspace declares the self-pin as `spec`.
+ * @param spec - The declared specifier.
+ * @returns The lockfile text.
+ */
+function workspaceLock(spec: string): string {
+  return [
+    "{",
+    '  "workspaces": {',
+    '    "": {',
+    '      "devDependencies": {',
+    `        "${SELF}": "${spec}",`,
+    "      },",
+    "    },",
+    "  },",
+    '  "packages": {',
+    `    "${SELF}": ["${SELF}@${PUBLISHED}", "", {}, "sha512-AAAA"],`,
+    "  }",
+    "}",
+    "",
+  ].join("\n");
+}
+
+describe("both jobs resolve exactly the published release (#4951)", () => {
+  it("sets the caret range to the exact version for resolution", () => {
+    const result = setSelfSpec({
+      manifestText: CARET_MANIFEST,
+      lockText: workspaceLock("^5.0.1"),
+      version: PUBLISHED,
+      form: "exact",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.manifestText).toBe(EXACT_MANIFEST);
+  });
+
+  it("writes the committed caret range back to the manifest and the lockfile", () => {
+    const result = setSelfSpec({
+      manifestText: EXACT_MANIFEST,
+      lockText: workspaceLock(PUBLISHED),
+      version: PUBLISHED,
+      form: "caret",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.manifestText).toBe(CARET_MANIFEST);
+    expect(result.lockText).toBe(workspaceLock(`^${PUBLISHED}`));
+    expect(
+      verifySelfPinRaise(text(BASE), result.manifestText ?? "", PUBLISHED).ok
+    ).toBe(true);
+  });
+
+  it("refuses to commit the caret range before the exact resolution ran", () => {
+    expect(
+      setSelfSpec({
+        manifestText: EXACT_MANIFEST,
+        lockText: workspaceLock("^5.0.1"),
+        version: PUBLISHED,
+        form: "caret",
+      }).ok
+    ).toBe(false);
+    expect(
+      setSelfSpec({
+        manifestText: CARET_MANIFEST,
+        lockText: workspaceLock(PUBLISHED),
+        version: PUBLISHED,
+        form: "caret",
+      }).ok
+    ).toBe(false);
+  });
+
+  it("refuses a manifest that does not declare the raised range", () => {
+    expect(
+      setSelfSpec({
+        manifestText: text(BASE),
+        lockText: workspaceLock("^5.0.1"),
+        version: PUBLISHED,
+        form: "exact",
+      }).ok
+    ).toBe(false);
+  });
+
+  it("refuses a non-release version or an unknown form", () => {
+    const input = {
+      manifestText: CARET_MANIFEST,
+      lockText: workspaceLock("^5.0.1"),
+    };
+
+    expect(
+      setSelfSpec({ ...input, version: "6.0.0-rc.1", form: "exact" }).ok
+    ).toBe(false);
+    expect(
+      setSelfSpec({ ...input, version: PUBLISHED, form: "tilde" as "exact" }).ok
+    ).toBe(false);
+  });
+
+  it("switches the files in place through the CLI and exits 0 only on success", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "verify-self-spec-"));
+    const manifest = path.join(dir, "package.json");
+    const lockfile = path.join(dir, "bun.lock");
+    writeFileSync(manifest, CARET_MANIFEST);
+    writeFileSync(lockfile, workspaceLock("^5.0.1"));
+    const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const stderr = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const files = ["--manifest", manifest, "--lockfile", lockfile];
+
+    const exact = mainSpec([
+      "--form",
+      "exact",
+      "--version",
+      PUBLISHED,
+      ...files,
+    ]);
+    const afterExact = readFileSync(manifest, "utf8");
+    writeFileSync(lockfile, workspaceLock(PUBLISHED));
+    const caret = mainSpec([
+      "--form",
+      "caret",
+      "--version",
+      PUBLISHED,
+      ...files,
+    ]);
+    const again = mainSpec([
+      "--form",
+      "caret",
+      "--version",
+      PUBLISHED,
+      ...files,
+    ]);
+    const missing = mainSpec(["--form", "caret"]);
+    stdout.mockRestore();
+    stderr.mockRestore();
+
+    expect(exact).toBe(0);
+    expect(afterExact).toBe(EXACT_MANIFEST);
+    expect(caret).toBe(0);
+    expect(readFileSync(manifest, "utf8")).toBe(CARET_MANIFEST);
+    expect(readFileSync(lockfile, "utf8")).toBe(workspaceLock(`^${PUBLISHED}`));
+    expect(again).toBe(1);
+    expect(missing).toBe(1);
   });
 });

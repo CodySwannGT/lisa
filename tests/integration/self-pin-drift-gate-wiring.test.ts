@@ -22,6 +22,17 @@ import { fileURLToPath } from "node:url";
 import { load as loadYaml } from "js-yaml";
 import { describe, expect, it } from "vitest";
 
+import {
+  checkouts,
+  DEPLOY_KEY,
+  deployJob,
+  PREPARE_JOB,
+  PUSH_JOB,
+  runs,
+  secretReferences,
+  stepIndex,
+} from "./support/self-pin-raise-jobs.js";
+
 /** Repository root, resolved from this file rather than the process cwd. */
 const ROOT = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -123,181 +134,7 @@ describe("the self-pin drift check is wired where it blocks (#3768)", () => {
   });
 });
 
-/** The workflow whose release job owns the self-pin raise. */
-const DEPLOY_WORKFLOW = ".github/workflows/deploy.yml";
-
-/** One deploy-workflow step, with the inputs and env this test reads. */
-interface DeployStep extends Step {
-  /** The action the step uses, when it uses one. */
-  readonly uses?: string;
-  /** The action's inputs. */
-  readonly with?: Record<string, string | number | boolean>;
-  /** The step's environment. */
-  readonly env?: Record<string, string>;
-  /** The step's run condition. */
-  readonly if?: string;
-}
-
-/** One deploy-workflow job, as far as the raise wiring needs to see it. */
-interface DeployJob {
-  /** Jobs this one waits for. */
-  readonly needs?: readonly string[];
-  /** The job's run condition. */
-  readonly if?: string;
-  /** The job's environment. */
-  readonly env?: Record<string, string>;
-  /** The job's steps. */
-  readonly steps?: readonly DeployStep[];
-}
-
-/** The job that computes and proves the raise, holding no secret. */
-const PREPARE_JOB = "prepare_self_pin_raise";
-
-/** The job that pushes the raise with the deploy key. */
-const PUSH_JOB = "push_self_pin_raise";
-
-/** The only secret reference either job may carry, and only in one place. */
-const DEPLOY_KEY = "${{ secrets.DEPLOY_KEY }}";
-
-/**
- * One job of the deploy workflow.
- * @param name - The job id.
- * @returns The job definition.
- */
-function deployJob(name: string): DeployJob {
-  const workflow = loadYaml(
-    readFileSync(path.join(ROOT, DEPLOY_WORKFLOW), "utf8")
-  ) as { jobs: Record<string, DeployJob> };
-  const job = workflow.jobs[name];
-  expect(job, `${DEPLOY_WORKFLOW} has no ${name} job`).toBeDefined();
-  return job as DeployJob;
-}
-
-/**
- * The `run:` bodies of a job's steps, in order.
- * @param name - The job id.
- * @returns One string per step, empty for action steps.
- */
-function runs(name: string): readonly string[] {
-  return (deployJob(name).steps ?? []).map(step => step.run ?? "");
-}
-
-/**
- * Index of the first step whose `run:` contains the text.
- * @param name - The job id.
- * @param text - The text to find.
- * @returns The step index, or -1.
- */
-function stepIndex(name: string, text: string): number {
-  return runs(name).findIndex(run => run.includes(text));
-}
-
-/**
- * Every place a job mentions a secret, as `step-index:field` strings.
- * @param name - The job id.
- * @returns Where secrets are referenced.
- */
-function secretReferences(name: string): readonly string[] {
-  const job = deployJob(name);
-  const jobLevel = Object.values(job.env ?? {}).some(value =>
-    value.includes("secrets.")
-  )
-    ? ["job:env"]
-    : [];
-  const stepLevel = (job.steps ?? []).flatMap((step, index) =>
-    JSON.stringify({ with: step.with, env: step.env, run: step.run }).includes(
-      "secrets."
-    )
-      ? [`${index}`]
-      : []
-  );
-  return [...jobLevel, ...stepLevel];
-}
-
-/**
- * The `actions/checkout` steps of a job.
- * @param name - The job id.
- * @returns Every checkout step in that job.
- */
-function checkouts(name: string): readonly DeployStep[] {
-  return (deployJob(name).steps ?? []).filter(step =>
-    (step.uses ?? "").startsWith("actions/checkout@")
-  );
-}
-
-describe("the release raises the self-pin the check guards (#4951)", () => {
-  it("prepares only after a successful npm publish on main", () => {
-    const job = deployJob(PREPARE_JOB);
-
-    expect(job.needs).toEqual(
-      expect.arrayContaining(["release", "publish_npm"])
-    );
-    expect(job.if).toContain("needs.publish_npm.result == 'success'");
-    expect(job.if).toContain("== 'main'");
-  });
-
-  it("waits for npm, raises, then proves the lockfile, check, types and audit", () => {
-    const landed = stepIndex(
-      PREPARE_JOB,
-      "scripts/check-npm-publish-landed.mjs"
-    );
-    const raise = stepIndex(
-      PREPARE_JOB,
-      'scripts/raise-self-dependency-pin.mjs --version "$VERSION"'
-    );
-    const prove = stepIndex(PREPARE_JOB, `bun run ${SCRIPT_TASK}`);
-    const proof = runs(PREPARE_JOB)[prove] ?? "";
-
-    expect(landed).toBeGreaterThanOrEqual(0);
-    expect(raise).toBeGreaterThan(landed);
-    expect(prove).toBeGreaterThan(raise);
-    expect(proof).toContain("bun install --ignore-scripts --frozen-lockfile");
-    // The raise step fails on the script's status, not a pipe's.
-    expect(runs(PREPARE_JOB)[raise]).not.toMatch(
-      /raise-self-dependency-pin\.mjs[^\n]*(?<!\|)\|(?!\|)/
-    );
-    expect(runs(PREPARE_JOB)[raise]).toContain("|| status=$?");
-    expect(proof).toContain("bun run typecheck");
-    expect(proof).toContain("bun run security:audit");
-  });
-
-  it("never runs a lifecycle script during the install", () => {
-    const installs = runs(PREPARE_JOB)
-      .flatMap(run => run.split("\n"))
-      .map(line => line.trim())
-      .filter(line => line.startsWith("bun install"));
-
-    expect(installs.length).toBeGreaterThan(0);
-    installs.forEach(line => expect(line).toContain("--ignore-scripts"));
-  });
-
-  it("holds no secret and persists no credential while dependency code runs", () => {
-    expect(secretReferences(PREPARE_JOB)).toEqual([]);
-    expect(checkouts(PREPARE_JOB)).not.toHaveLength(0);
-    checkouts(PREPARE_JOB).forEach(step => {
-      expect(step.with?.["persist-credentials"]).toBe(false);
-      expect(step.with?.["ssh-key"]).toBeUndefined();
-    });
-  });
-
-  it("refuses to hand over anything but package.json and bun.lock", () => {
-    const guard = stepIndex(PREPARE_JOB, "git status --porcelain");
-    const upload = (deployJob(PREPARE_JOB).steps ?? []).findIndex(step =>
-      (step.uses ?? "").startsWith("actions/upload-artifact@")
-    );
-
-    expect(guard).toBeGreaterThan(
-      stepIndex(PREPARE_JOB, `bun run ${SCRIPT_TASK}`)
-    );
-    expect(upload).toBeGreaterThan(guard);
-    expect(
-      String(deployJob(PREPARE_JOB).steps?.[upload]?.with?.path)
-        .trim()
-        .split(/\s+/)
-        .sort((left, right) => left.localeCompare(right))
-    ).toEqual(["bun.lock", "package.json"]);
-  });
-
+describe("the release pushes only the raise it proved (#4951)", () => {
   it("pushes from a job whose only package-manager call reads manifests", () => {
     const commands = runs(PUSH_JOB)
       .flatMap(run => run.split("\n"))
@@ -320,7 +157,13 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
     const regenerate = stepIndex(PUSH_JOB, "bun install --lockfile-only");
     const step = deployJob(PUSH_JOB).steps?.[regenerate];
     const proof = pushRuns[regenerate] ?? "";
+    const manifestProof = stepIndex(
+      PUSH_JOB,
+      "--base package.json --candidate"
+    );
 
+    expect(regenerate).toBeGreaterThanOrEqual(0);
+    expect(manifestProof).toBeGreaterThanOrEqual(0);
     expect(pushRuns.join("\n")).not.toContain('"$RAISED/bun.lock" bun.lock');
     expect(proof.indexOf("bun install --lockfile-only")).toBeLessThan(
       proof.indexOf(
@@ -331,19 +174,23 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
       proof.indexOf("verify-self-pin-raise.mjs lockfile")
     ).toBeGreaterThanOrEqual(0);
     expect(step?.env?.BUN_INSTALL_CACHE_DIR).toContain("runner.temp");
-    expect(stepIndex(PUSH_JOB, "--base package.json --candidate")).toBeLessThan(
-      regenerate
-    );
+    expect(manifestProof).toBeLessThan(regenerate);
+    // The regenerated manifest must be the verified one, byte for byte.
+    expect(proof).toContain('cmp package.json "$RAISED/package.json"');
   });
 
-  it("refuses to rebase a lockfile onto a main that moved it", () => {
+  it("pushes only onto the proved commit, through the tested push script", () => {
     const push = runs(PUSH_JOB).at(-1) ?? "";
+    const checkout = checkouts(PUSH_JOB)[0];
 
+    // tests/integration/push-self-pin-raise.test.ts runs this script against
+    // a moved main, a flaky push and a flaky fetch.
     expect(push).toContain(
-      'git diff --quiet "$BASE_SHA" FETCH_HEAD -- package.json bun.lock'
+      'bash scripts/push-self-pin-raise.sh "git@github.com:${REPOSITORY}.git" "$BASE_SHA" "$VERSION"'
     );
-    expect(push.indexOf("git diff --quiet")).toBeLessThan(
-      push.indexOf("rebase FETCH_HEAD")
+    expect(runs(PUSH_JOB).join("\n")).not.toContain("rebase");
+    expect(checkout?.with?.ref).toBe(
+      "${{ needs.prepare_self_pin_raise.outputs.base_sha }}"
     );
   });
 
@@ -354,7 +201,7 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
 
     expect(secretReferences(PUSH_JOB)).toEqual([`${last}`]);
     expect(steps[last]?.env?.DEPLOY_KEY).toBe(DEPLOY_KEY);
-    expect(steps[last]?.run).toContain("HEAD:main");
+    expect(steps[last]?.run).toContain("scripts/push-self-pin-raise.sh");
     expect(lockProof).toBeGreaterThanOrEqual(0);
     expect(lockProof).toBeLessThan(last);
     expect(runs(PUSH_JOB)[lockProof]).toContain("git status --porcelain");
