@@ -159,19 +159,20 @@ async function closeDriver(child, closed) {
  * @param {object} tools Original qualified browser and driver paths.
  * @param {function(object):void} publish Closed diagnostic progress writer.
  * @param {string} purpose Source-owned diagnostic or qualification request.
+ * @param {number} deadlineMs Inner deadline, already bounded by {@link probeDeadlineMs}.
  * @returns {Promise<object>} Closed native facts with the declared purpose.
  */
 export async function probeDriver(
   profile,
   tools,
   publish = () => {},
-  purpose = "diagnostic"
+  purpose = "diagnostic",
+  deadlineMs = PROBE_DEADLINE_MS
 ) {
   if (!["diagnostic", "qualification"].includes(purpose))
     throw new Error(REFUSAL);
   const identity = profileIdentity(profile);
-  // eslint-disable-next-line no-restricted-syntax -- the probe is a standalone child process; its environment is the only channel its supervisor has
-  const deadline = Date.now() + probeDeadlineMs(process.env);
+  const deadline = Date.now() + deadlineMs;
   const state = { stage: DRIVER_START, session: null, endpoint: null };
   const phase = stage => {
     state.stage = stage;
@@ -303,7 +304,10 @@ if (invokedAsScript(import.meta.url)) {
         driver: process.argv[4],
       },
       publish,
-      process.argv[5]
+      process.argv[5],
+      // The supervisor forwards its requested deadline as an argument, so the
+      // probe's whole configuration arrives on one explicit channel.
+      probeDeadlineMs({ LISA_DRIVER_PROBE_DEADLINE_MS: process.argv[6] })
     );
     publish({ result: report });
     if (report.failureStage) process.exitCode = 1;

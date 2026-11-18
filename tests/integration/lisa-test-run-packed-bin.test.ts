@@ -140,8 +140,9 @@ beforeAll(async () => {
     path.relative(PACKAGE_ROOT, PACKED_ENTRY)
   );
   fs.mkdirSync(BIN_ROOT, { recursive: true });
-  // eslint-disable-next-line sonarjs/file-permissions -- npm bin targets must be executable in the real packed-layout boundary.
-  fs.chmodSync(PACKED_ENTRY, 0o755);
+  // Owner-only execute: npm's bin link needs the target executable by the
+  // user who runs it, and nobody else touches this private fixture tree.
+  fs.chmodSync(PACKED_ENTRY, 0o700);
   fs.symlinkSync(path.relative(BIN_ROOT, PACKED_ENTRY), BIN);
   fs.writeFileSync(
     PAYLOAD,

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.0.7](https://github.com/CodySwannGT/lisa/compare/v6.0.6...v6.0.7) (2026-11-18)
+
+
+### Bug Fixes
+
+* **tests:** bound the Sonar kill case's close wait and watch the hook from spawn ([e46dd87](https://github.com/CodySwannGT/lisa/commit/e46dd87be6dfeb892bf0536c0930f879c35621c6)), closes [#4945](https://github.com/CodySwannGT/lisa/issues/4945) [CodySwannGT/lisa#5034](https://github.com/CodySwannGT/lisa/issues/5034) [CodySwannGT/lisa#5034](https://github.com/CodySwannGT/lisa/issues/5034)
+
+### [6.0.6](https://github.com/CodySwannGT/lisa/compare/v6.0.5...v6.0.6) (2026-11-18)
+
 ### [6.0.5](https://github.com/CodySwannGT/lisa/compare/v6.0.4...v6.0.5) (2026-11-18)
 
 

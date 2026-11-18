@@ -6,6 +6,7 @@ import { load } from "js-yaml";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { runBoundedBash } from "../../helpers/bounded-bash.js";
+import { GIT_BIN } from "../../support/git-executable.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const ROOT = resolve(__dirname, "../../..");
@@ -65,8 +66,7 @@ function workflow(stack: string): Workflow {
  */
 function git(cwd: string, ...args: string[]): string {
   return execFileSync(
-    // eslint-disable-next-line sonarjs/no-os-command-from-path -- Git is the required fixture tool, with arguments controlled by this suite.
-    "git",
+    GIT_BIN,
     ["-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false", ...args],
     {
       cwd,

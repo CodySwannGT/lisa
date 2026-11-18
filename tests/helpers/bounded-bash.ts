@@ -24,6 +24,10 @@
  * @module tests/helpers/bounded-bash
  */
 import { spawn } from "node:child_process";
+import { latch } from "./latch.js";
+
+/** Absolute bash, so a writeable `PATH` entry cannot choose the shell. */
+const BASH = "/bin/bash";
 
 /** Default wall-clock bound for a single fixture script run. */
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -31,8 +35,17 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 /** Grace period between the group SIGTERM and the group SIGKILL. */
 const KILL_GRACE_MS = 2_000;
 
-/** Process groups spawned by this module that have not yet been reaped. */
-const liveGroups = new Set<number>();
+/**
+ * Process groups spawned by this module that have not yet been reaped.
+ *
+ * The one mutable cell this module keeps, deliberately: it is the registry of
+ * live OS process groups, which the process-exit and signal handlers below
+ * must reach after every caller's stack has gone. Nothing returned from a run
+ * can carry it there. The cell is replaced with a new immutable set on every
+ * change rather than mutated in place.
+ */
+// Owner: the process exit/SIGINT/SIGTERM/SIGHUP handlers below (reapLiveGroups).
+const liveGroups: { current: ReadonlySet<number> } = { current: new Set() };
 
 /** Options accepted by {@link runBoundedBash}. */
 export type BoundedBashOptions = {
@@ -82,11 +95,10 @@ function terminateGroup(pid: number): void {
  * process-exit signals below so an interrupted run still cleans up.
  */
 export function reapLiveGroups(): void {
-  for (const pid of liveGroups) {
+  for (const pid of liveGroups.current) {
     killGroup(pid, "SIGKILL");
   }
-  // eslint-disable-next-line functional/immutable-data -- a live OS process registry is mutable by nature
-  liveGroups.clear();
+  liveGroups.current = new Set();
 }
 
 /**
@@ -94,7 +106,7 @@ export function reapLiveGroups(): void {
  * @returns Count of spawned groups not yet reaped. A test-visible leak counter.
  */
 export function liveGroupCount(): number {
-  return liveGroups.size;
+  return liveGroups.current.size;
 }
 
 process.once("exit", reapLiveGroups);
@@ -120,75 +132,62 @@ export async function runBoundedBash(
   options: BoundedBashOptions = {}
 ): Promise<BoundedBashResult> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-
-  return new Promise<BoundedBashResult>((resolve, reject) => {
-    // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed executable and argv
-    const child = spawn("bash", [scriptPath], {
-      cwd: options.cwd,
-      // `detached` makes the child a process-group leader, so a single
-      // `kill(-pid)` reaches its grandchildren. Without it, jq/node/git
-      // survive as PPID-1 orphans.
-      detached: true,
-      env: options.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    const pid = child.pid;
-    if (pid === undefined) {
-      reject(new Error(`failed to spawn bash for ${scriptPath}`));
-      return;
-    }
-    // eslint-disable-next-line functional/immutable-data -- a live OS process registry is mutable by nature
-    liveGroups.add(pid);
-
-    /* eslint-disable functional/no-let -- child streams accumulate until the close event */
-    let stdout = "";
-    let stderr = "";
-    let timedOut = false;
-    /* eslint-enable functional/no-let -- accumulation ends with this promise */
-    child.stdout.on("data", chunk => (stdout += String(chunk)));
-    child.stderr.on("data", chunk => (stderr += String(chunk)));
-
-    const timer = setTimeout(() => {
-      timedOut = true;
-      terminateGroup(pid);
-    }, timeoutMs);
-
-    /** Clear the timer and drop the group from the live set. */
-    const settle = (): void => {
-      clearTimeout(timer);
-      // eslint-disable-next-line functional/immutable-data -- a live OS process registry is mutable by nature
-      liveGroups.delete(pid);
-      // Sweep the group even on a clean exit: bash may have left a background
-      // grandchild behind. One immediate signal only — a *deferred* SIGKILL
-      // here could land on a pid the OS has recycled since the child exited.
-      killGroup(pid, "SIGTERM");
-    };
-
-    child.once("error", error => {
-      settle();
-      reject(error);
-    });
-
-    child.once("close", code => {
-      settle();
-      if (timedOut) {
-        reject(
-          new Error(
-            `bash ${scriptPath} exceeded ${timeoutMs}ms and its process group was killed`
-          )
-        );
-        return;
-      }
-      if (code === 0) {
-        resolve({ stderr, stdout });
-        return;
-      }
-      const failure = new Error(
-        `bash ${scriptPath} exited with code ${String(code)}\n${stderr}`
-      );
-      Object.assign(failure, { code, stderr, stdout });
-      reject(failure);
-    });
+  const child = spawn(BASH, [scriptPath], {
+    cwd: options.cwd,
+    // `detached` makes the child a process-group leader, so a single
+    // `kill(-pid)` reaches its grandchildren. Without it, jq/node/git
+    // survive as PPID-1 orphans.
+    detached: true,
+    env: options.env,
+    stdio: ["ignore", "pipe", "pipe"],
   });
+  const closed = new Promise<number | null>((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", resolve);
+  });
+  // Settled, never rejected, so a run that fails to spawn leaves no unhandled
+  // stream rejection behind.
+  const output = Promise.allSettled([
+    child.stdout.toArray(),
+    child.stderr.toArray(),
+  ]);
+  const pid = child.pid;
+  if (pid === undefined) {
+    await closed;
+    throw new Error(`failed to spawn bash for ${scriptPath}`);
+  }
+  liveGroups.current = new Set([...liveGroups.current, pid]);
+  const timedOut = latch<boolean>();
+  const timer = setTimeout(() => {
+    timedOut.set(true);
+    terminateGroup(pid);
+  }, timeoutMs);
+  try {
+    const code = await closed;
+    const [stdout, stderr] = (await output).map(streamed => {
+      if (streamed.status === "rejected") throw streamed.reason;
+      return streamed.value.map(String).join("");
+    });
+    if (await timedOut.read(false))
+      throw new Error(
+        `bash ${scriptPath} exceeded ${timeoutMs}ms and its process group was killed`
+      );
+    if (code !== 0)
+      throw Object.assign(
+        new Error(
+          `bash ${scriptPath} exited with code ${String(code)}\n${stderr}`
+        ),
+        { code, stderr, stdout }
+      );
+    return { stderr: stderr ?? "", stdout: stdout ?? "" };
+  } finally {
+    clearTimeout(timer);
+    liveGroups.current = new Set(
+      [...liveGroups.current].filter(live => live !== pid)
+    );
+    // Sweep the group even on a clean exit: bash may have left a background
+    // grandchild behind. One immediate signal only — a *deferred* SIGKILL
+    // here could land on a pid the OS has recycled since the child exited.
+    killGroup(pid, "SIGTERM");
+  }
 }

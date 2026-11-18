@@ -59,7 +59,6 @@ const BROKEN_FILE = "tests/unit/broken.test.ts";
 function steppingClock(step: number): () => number {
   const state = { now: 1_000_000 };
   return () => {
-    // eslint-disable-next-line functional/immutable-data -- a clock advances
     state.now += step;
     return state.now;
   };

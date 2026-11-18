@@ -19,16 +19,25 @@ const BEGIN = "# BEGIN: AI GUARDRAILS";
 const END = "# END: AI GUARDRAILS";
 const OLD = "export const version = 'old';\n";
 const NEW = "export const version = 'new';\n";
-// eslint-disable-next-line functional/no-let -- fixture setup reassigns the disposable root
-let root: string;
-// eslint-disable-next-line functional/no-let -- fixture setup reassigns the source path
-let starter: string;
-// eslint-disable-next-line functional/no-let -- fixture setup reassigns the consumer path
-let project: string;
-// eslint-disable-next-line functional/no-let -- fixture setup records each initial revision
-let baseline: string;
-// eslint-disable-next-line functional/no-let -- fixture setup records each successor revision
-let head: string;
+
+/**
+ * Paths and revisions of the current test's disposable repositories.
+ *
+ * One record that `beforeEach` fills in, read by the suite through the export,
+ * so every test sees the values its own setup produced.
+ */
+const fixture = {
+  /** Owned temporary root holding both repositories. */
+  root: "",
+  /** Source starter repository. */
+  starter: "",
+  /** Consumer project receiving the starter's changes. */
+  project: "",
+  /** Revision the consumer last synchronized from. */
+  baseline: "",
+  /** Newest starter revision. */
+  head: "",
+};
 
 /**
  * Execute real Git against only the disposable source repository.
@@ -40,7 +49,7 @@ function git(...args: string[]): string {
     label: "starter fixture Git",
     command: GIT,
     args,
-    cwd: starter,
+    cwd: fixture.starter,
   }).trim();
 }
 
@@ -58,7 +67,7 @@ function gitFile(revision: string, name: string) {
       label: "starter fixture file",
       command: GIT,
       args: ["show", `${revision}:${name}`],
-      cwd: starter,
+      cwd: fixture.starter,
     })
   );
   return { bytes, mode: entry.split(" ")[0]! };
@@ -118,7 +127,7 @@ async function readChanges(
  * @returns Persisted fixture configuration.
  */
 async function config() {
-  return JSON.parse(await readFile(path.join(project, CONFIG), "utf8"));
+  return JSON.parse(await readFile(path.join(fixture.project, CONFIG), "utf8"));
 }
 
 /**
@@ -128,7 +137,7 @@ async function config() {
 function sync() {
   return syncStarterTemplates({
     lisaRoot: process.cwd(),
-    projectRoot: project,
+    projectRoot: fixture.project,
     readChanges,
   });
 }
@@ -144,12 +153,12 @@ async function extendHistory(
   before: string,
   after: string
 ): Promise<void> {
-  await put(starter, name, before);
-  await put(project, name, before);
+  await put(fixture.starter, name, before);
+  await put(fixture.project, name, before);
   git("add", ".");
   git("commit", "--quiet", "-m", "Stack baseline");
   await updateBaseline();
-  await put(starter, name, after);
+  await put(fixture.starter, name, after);
   git("add", ".");
   git("commit", "--quiet", "-m", "Stack update");
 }
@@ -158,19 +167,19 @@ async function extendHistory(
 async function updateBaseline(): Promise<void> {
   const initial = await config();
   initial.starter.templates[0].lastSync.sha = git("rev-parse", "HEAD");
-  await put(project, CONFIG, JSON.stringify(initial));
+  await put(fixture.project, CONFIG, JSON.stringify(initial));
 }
 
 beforeEach(async () => {
-  root = await mkdtemp(path.join(tmpdir(), "lisa-starter-sync-"));
-  starter = path.join(root, "source");
-  project = path.join(root, "consumer");
-  await mkdir(starter);
-  await mkdir(project);
+  fixture.root = await mkdtemp(path.join(tmpdir(), "lisa-starter-sync-"));
+  fixture.starter = path.join(fixture.root, "source");
+  fixture.project = path.join(fixture.root, "consumer");
+  await mkdir(fixture.starter);
+  await mkdir(fixture.project);
   git("init", "--quiet");
   git("config", "user.name", "Fixture");
   git("config", "user.email", "fixture@example.com");
-  for (const directory of [starter, project]) {
+  for (const directory of [fixture.starter, fixture.project]) {
     await put(directory, OWNED, OLD);
     await put(directory, SECOND, OLD);
     await put(directory, PROJECT_OWNED, "project workflow\n");
@@ -182,20 +191,20 @@ beforeEach(async () => {
   }
   git("add", ".");
   git("commit", "--quiet", "-m", "Initial fixture");
-  baseline = git("rev-parse", "HEAD");
-  await put(starter, OWNED, NEW);
-  await put(starter, SECOND, NEW);
-  await put(starter, PROJECT_OWNED, "starter workflow\n");
+  fixture.baseline = git("rev-parse", "HEAD");
+  await put(fixture.starter, OWNED, NEW);
+  await put(fixture.starter, SECOND, NEW);
+  await put(fixture.starter, PROJECT_OWNED, "starter workflow\n");
   await put(
-    starter,
+    fixture.starter,
     IGNORE,
     `starter prefix\n${BEGIN}\nnew-cache/\n${END}\nstarter suffix\n`
   );
   git("add", ".");
   git("commit", "--quiet", "-m", "Updated fixture");
-  head = git("rev-parse", "HEAD");
+  fixture.head = git("rev-parse", "HEAD");
   await put(
-    project,
+    fixture.project,
     CONFIG,
     JSON.stringify({
       extension: "retain me",
@@ -205,7 +214,7 @@ beforeEach(async () => {
           {
             repo: "example/first",
             ref: "main",
-            lastSync: { sha: baseline, at: "2026-09-15T00:00:00Z" },
+            lastSync: { sha: fixture.baseline, at: "2026-09-15T00:00:00Z" },
           },
         ],
       },
@@ -214,15 +223,11 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await rm(root, { recursive: true, force: true });
+  await rm(fixture.root, { recursive: true, force: true });
 });
 
 export {
-  root,
-  starter,
-  project,
-  baseline,
-  head,
+  fixture,
   CONFIG,
   OWNED,
   SECOND,

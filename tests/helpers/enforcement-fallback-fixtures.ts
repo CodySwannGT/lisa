@@ -24,6 +24,7 @@ import path from "node:path";
 
 import { runBoundedBash } from "./bounded-bash.js";
 import { boundedSpawnSync } from "./io-latency-budget.js";
+import { inheritedEnvironment } from "../support/process-environment.js";
 
 /** Absolute, so the interpreter is never resolved through a writeable PATH. */
 const BASH = "/bin/bash";
@@ -121,13 +122,26 @@ export const HOST_TREE = path.join("scripts", "lisa-hooks");
 /** Directory-relative location of the Lisa monorepo's own guards. */
 export const PLUGIN_TREE = path.join("plugins", "lisa", "hooks");
 
-const temporaries: string[] = [];
+/**
+ * Name prefix every scratch root of this worker shares. The process id keeps
+ * one worker's cleanup from touching another's roots, and the filesystem is
+ * the record of what was made: cleanup lists it rather than a module array.
+ */
+const SCRATCH_PREFIX = `lisa-fallback-copy-${process.pid}-`;
 
-/** Remove every scratch root made since the last call. */
+/**
+ * The one directory every scratch root of this worker is made in, resolved
+ * once when the module loads. Creation and cleanup both use it, so a test
+ * that changes `TMPDIR` in between cannot strand a root where cleanup no
+ * longer looks.
+ */
+const SCRATCH_BASE = tmpdir();
+
+/** Remove every scratch root this worker made since the last call. */
 export function cleanupScratchRoots(): void {
-  // eslint-disable-next-line functional/immutable-data -- a registry of live temp directories is mutable by nature
-  for (const dir of temporaries.splice(0)) {
-    rmSync(dir, { recursive: true, force: true });
+  for (const name of readdirSync(SCRATCH_BASE)) {
+    if (name.startsWith(SCRATCH_PREFIX))
+      rmSync(path.join(SCRATCH_BASE, name), { recursive: true, force: true });
   }
 }
 
@@ -136,11 +150,7 @@ export function cleanupScratchRoots(): void {
  * @returns Absolute path to the new directory.
  */
 export function scratchRoot(): string {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-fallback-copy-"));
-
-  // eslint-disable-next-line functional/immutable-data -- a registry of live temp directories is mutable by nature
-  temporaries.push(root);
-  return root;
+  return mkdtempSync(path.join(SCRATCH_BASE, SCRATCH_PREFIX));
 }
 
 /**
@@ -304,8 +314,7 @@ export function runFallback(
     input: JSON.stringify(payload),
     cwd: projectDir,
     env: {
-      // eslint-disable-next-line no-restricted-syntax -- a subprocess harness inherits the real environment; there is no ConfigService in a hook fixture
-      ...process.env,
+      ...inheritedEnvironment(),
       CLAUDE_PROJECT_DIR: projectDir,
       CLAUDE_CONFIG_DIR: NO_CONFIG,
       TMPDIR: tmpDir,
@@ -364,8 +373,7 @@ export async function runFallbackConcurrently(
     const result = await runBoundedBash(driver, {
       cwd: projectDir,
       env: {
-        // eslint-disable-next-line no-restricted-syntax -- a real hook process inherits the host environment; fixed overrides isolate its external inputs
-        ...process.env,
+        ...inheritedEnvironment(),
         CLAUDE_PROJECT_DIR: projectDir,
         CLAUDE_CONFIG_DIR: NO_CONFIG,
         TMPDIR: tmpDir,
