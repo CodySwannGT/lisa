@@ -16,8 +16,11 @@
  * no disposable copy to work in, or the run could not finish.
  *
  * It writes no file. The changes are planted in a disposable copy of the
- * repository and taken back out, never in the repository itself; see
- * `../proof-workspace.ts`.
+ * repository and never in the repository itself. With no `--workspace`, the
+ * command makes that copy in a temporary folder, proves each check through a
+ * real commit or push there, and removes the folder on every way out; see
+ * `./attest-workspace.ts`. With `--workspace`, it starts each check's own
+ * command in the folder named; see `../proof-workspace.ts`.
  *
  * It works in a repository where Lisa was never applied. The requirements,
  * the gate registry and the gate runner come from the Lisa package the
@@ -36,14 +39,12 @@ import { proofSummary, renderProofTable } from "../proof-report.js";
 import { proofRunOf, runPairedProofs } from "../proof-runner.js";
 import { loadProofTools, type ProofTools } from "../proof-tools.js";
 import type { ProofRun } from "../proof-types.js";
-import {
-  openDirectProofWorkspace,
-  type OpenProofWorkspace,
-} from "../proof-workspace.js";
+import type { OpenProofWorkspace } from "../proof-workspace.js";
 import {
   generateControlRegister,
   type ControlRegisterGeneration,
 } from "../register.js";
+import { openAttestWorkspace } from "./attest-workspace.js";
 
 /** The subcommand's name under `lisa controls`. */
 export const ATTEST_COMMAND = "attest";
@@ -123,9 +124,12 @@ async function attempt(
     return { problems: null, run: proofRunOf([]) };
   }
   const tools = await (dependencies.loadTools ?? loadProofTools)();
-  const opening = await (
-    dependencies.openWorkspace ?? openDirectProofWorkspace
-  )({ root, named: workspace, tools });
+  // With no folder named, this makes the run's own disposable copy and
+  // removes it on every way out, a signal included; see ./attest-workspace.ts.
+  const opening = await openAttestWorkspace(
+    { root, named: workspace, tools },
+    { open: dependencies.openWorkspace, notice: dependencies.stderr }
+  );
   if (opening.problem !== null) {
     return {
       problems: [opening.problem],
@@ -236,7 +240,7 @@ export function registerAttest(
     .argument("[path]", "Project path (default: current directory)")
     .option(
       "--workspace <folder>",
-      "A disposable copy of the repository to plant the proof changes in; nothing is planted in the repository itself"
+      "A copy of the repository you made, to start each check's own command in. Without it, the command makes its own temporary copy, proves each check through a real commit or push there, and removes the copy afterwards. Nothing is planted in the repository itself either way"
     )
     .option(
       "--json",

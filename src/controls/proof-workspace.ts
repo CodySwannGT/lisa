@@ -16,12 +16,12 @@
  * back out with the reverse of the same patch. It installs nothing and makes
  * no commit, so it needs no carrier and works in a copy with no `.git`.
  *
- * It does not make the copy. Making a disposable copy of the repository, and
- * removing it on every way out, belongs to the step that runs commit and push
- * proofs through the installed carriers. Until that step supplies its own
- * workspace, the command refuses to run without a folder it is told is
- * disposable, and {@link disposableFolder} refuses the repository itself and
- * any folder that holds it.
+ * It does not make the copy. The workspace that makes its own disposable
+ * copy, runs commit and push proofs through the installed carriers and
+ * removes the copy on every way out is `./proof-copy-workspace.ts`; the
+ * command uses that one when no folder is named. This one is for a copy the
+ * operator made, and {@link disposableFolder} refuses the repository itself
+ * and any folder that holds it.
  * @module controls/proof-workspace
  */
 import path from "node:path";
@@ -148,7 +148,7 @@ export const openDirectProofWorkspace: OpenProofWorkspace = async request => {
   if (request.named === undefined) {
     return {
       problem:
-        "No proof was run. A proof plants a change that breaks a rule and then runs the check, and it never does that in your own working copy. This version does not make its own disposable copy yet, so make one (for example: git clone . ../proof-copy) and pass it with --workspace <folder>.",
+        "No proof was run. A proof plants a change that breaks a rule and then runs the check, and it never does that in your own working copy. Name a disposable copy of the repository with --workspace <folder> (for example one made with: git clone . ../proof-copy).",
     };
   }
   const folder = await disposableFolder(request.root, request.named);
