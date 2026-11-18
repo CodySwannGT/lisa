@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.0.2](https://github.com/CodySwannGT/lisa/compare/v6.0.1...v6.0.2) (2026-11-18)
+
+
+### Bug Fixes
+
+* **tests:** return canonical supervised Unix fixture roots ([7cbb382](https://github.com/CodySwannGT/lisa/commit/7cbb3826797d2d6b309b77d1912332443dc9f4fd)), closes [CodySwannGT/lisa#4937](https://github.com/CodySwannGT/lisa/issues/4937) [CodySwannGT/lisa#4937](https://github.com/CodySwannGT/lisa/issues/4937)
+
 ### [6.0.1](https://github.com/CodySwannGT/lisa/compare/v6.0.0...v6.0.1) (2026-11-18)
 
 
