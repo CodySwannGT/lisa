@@ -5,4 +5,12 @@ alwaysApply: false
 
 # Security Audit Handling
 
-The procedure for a push or CI run blocked by the dependency security audit lives in the `lisa-security-audit-handling` skill: upgrade the package, override the vulnerable leaf, evaluate real impact, then either record a scoped exclusion, or mitigate or accept the risk yourself with the reasoning and an expiry recorded (under `humanGate.mode: "strict"`, stop for a human instead). The audit's failure message names that skill, so it loads when it is needed instead of in every session. Never bypass the hook.
+The procedure for a push or CI run blocked by the dependency security audit lives in the `lisa-security-audit-handling` skill. Its ladder runs in this order:
+
+1. (a) `upgrade` — upgrade or override to a fixed version, including a transitive dependency's leaf.
+2. (b) `exclude-unreachable` — evaluate reachability before any code change. An advisory that cannot affect the project gets a scoped exclusion with a concrete reason, with no human needed. If reachability cannot be proven, the advisory affects the project.
+3. (c) `replace-or-remove` — replace or remove the dependency, or switch to an alternative.
+4. (d) `fix-upstream` — contribute the fix upstream, in parallel if useful.
+5. (e) `own-copy` — last: fork, patch or vendor the library, only through a declared human gate (`own-dependency-copy` in `ready-role-filing`), with no code before a person releases it.
+
+`own-copy` is a gate, not a decision, because our own copy is maintenance we take on indefinitely, and copy-overwrite ships it to every host. The audit's failure message prints the same order, so the skill loads when it is needed instead of in every session. Never bypass the hook.

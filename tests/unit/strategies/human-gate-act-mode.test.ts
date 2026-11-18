@@ -87,6 +87,32 @@ describe("classifyHumanGateReason under each humanGate.mode", () => {
     }
   });
 
+  // Our own fork, patch or vendored copy of an open-source library is the
+  // last rung of the security-audit ladder and a declared gate in both modes
+  // (CodySwannGT/lisa#5024): it is maintenance taken on indefinitely, and
+  // copy-overwrite ships it to every host.
+  it.each([
+    "approve maintaining our own copy of picomatch",
+    "approve-maintaining-our-own-copy-of-picomatch",
+    "approve maintaining our own fork of left-pad",
+    "approve maintaining our own patched copy of minimatch",
+    "approve maintaining our own vendored copy of tar",
+  ])("holds %j in both modes as our own dependency copy", reason => {
+    for (const options of [{}, STRICT]) {
+      const verdict = classifyHumanGateReason(reason, options);
+      expect(verdict.valid).toBe(true);
+      expect(verdict.act).toBe("own-dependency-copy");
+    }
+  });
+
+  it.each([
+    "dependency-copy-cleanup",
+    "fork-strategy",
+    "choose which fork of the library to depend on",
+  ])("does not read %j as our own dependency copy", reason => {
+    expect(classifyHumanGateReason(reason).act).not.toBe("own-dependency-copy");
+  });
+
   it("does not read a slug about human-authored docs as the authorship hold", () => {
     expect(classifyHumanGateReason("human-authored-docs-layout").valid).toBe(
       false

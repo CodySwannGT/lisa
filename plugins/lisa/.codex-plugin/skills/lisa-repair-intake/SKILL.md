@@ -1127,8 +1127,8 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    re-classifying the hold, not from who wrote the comment, so a lift naming a valid hold discharges
    nothing. **Valid holds plan nothing.** In both modes those are the access acts (`credential`,
    `spend`, `external-account`, `legal-signoff`, `person-only-account`, `unreachable-system`,
-   `operator-hold`), `human-authored-surface`, and any project-declared `humanGate.humanOnly`
-   class. Under `humanGate.mode: "strict"` the strict-only acts (`compliance-signoff`,
+   `operator-hold`), `human-authored-surface`, `own-dependency-copy`, and any project-declared
+   `humanGate.humanOnly` class. Under `humanGate.mode: "strict"` the strict-only acts (`compliance-signoff`,
    `accountable-person`, `lisa-policy`) are valid too; under the default access-only mode a hold
    that names only one of them is invalid and is lifted. **Label-only holds plan nothing** — an access block or blocked verdict
    declares no reason to judge. A mixed item lifts its invalid reasons and stays held for the valid

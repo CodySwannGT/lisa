@@ -21,7 +21,10 @@
  * so only an act it genuinely lacks access to is a gate: an interactive login
  * or a credential only a person holds, spending money, opening an external
  * account, a legal signature, an account only a person holds, a system the
- * agent cannot reach, or a hold the operator explicitly asked for. `strict`
+ * agent cannot reach, or a hold the operator explicitly asked for. Two more
+ * hold in both modes without being access gates: an edit to a human-authored
+ * surface, and approving our own fork, patch or vendored copy of an
+ * open-source library (CodySwannGT/lisa#5024). `strict`
  * also holds a compliance judgement, naming an accountable person, and Lisa's
  * own policy calls. `humanGate.humanOnly` widens the gate in either mode.
  *

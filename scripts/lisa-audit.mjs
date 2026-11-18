@@ -39,7 +39,7 @@ try {
   );
   if (!verdict.passed)
     console.log(
-      "   Next step: follow the lisa-security-audit-handling skill — upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json; if it affects the project and cannot be fixed, stop for a human. Never bypass this hook. See https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md"
+      "   Next step: follow the lisa-security-audit-handling skill, in order: (a) upgrade or override the named copy; (b) before any code change, evaluate reachability, and if the advisory cannot affect this project add a scoped exclusion with the reason (for a dev-only copy, add its lockfile path to `paths` in audit.ignore.local.json), no human needed; (c) replace or remove the dependency; (d) contribute the fix upstream; (e) last, fork, patch or vendor the library, only after a person releases a human gate filed for it. Never bypass this hook. See https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md"
     );
   process.exitCode = verdict.passed ? 0 : 1;
 } catch (error) {

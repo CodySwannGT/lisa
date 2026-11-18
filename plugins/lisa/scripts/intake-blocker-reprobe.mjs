@@ -344,7 +344,9 @@ export function isStrictHumanGateMode(mode) {
  * reach, and a hold the operator explicitly asked for. One more entry is valid
  * in both modes without being an access gate: a change to a surface the
  * project declared human-authored, which the authorship rule keeps free of
- * automated writes.
+ * automated writes. Another is valid in both modes for the same reason: our
+ * own fork, patch or vendored copy of an open-source library, the last rung of
+ * the security-audit ladder, which a person approves.
  *
  * The patterns run over a normalized reason (lower case, hyphens and
  * underscores read as spaces) so a slug and its prose spelling match alike.
@@ -447,6 +449,19 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     label: "edit a file the project says only people write",
     pattern:
       /\b(declared human authored|human authored (surfaces?|files?|rules?)|project rules( md)?|agents md|agents rules|claude rules)\b/u,
+  }),
+  Object.freeze({
+    act: "own-dependency-copy",
+    // Not missing access: the last rung of the security-audit ladder
+    // (CodySwannGT/lisa#5024). Our own fork, patch (patch-package, Bun or pnpm
+    // `patchedDependencies`, yarn patch) or vendored copy of an open-source
+    // library is maintenance taken on indefinitely, and copy-overwrite ships
+    // it to every host, so a person approves it in both modes. The pattern
+    // names the act of maintaining our OWN copy; depending on someone else's
+    // fork is a decision, and so is every earlier rung of the ladder.
+    label: "approve maintaining our own copy of an open-source library",
+    pattern:
+      /\b(maintain\w*|keep\w*|carry\w*|own\w*) (our|its) own (patched |vendored |forked )?(copy|copies|fork|forks|patch|patches) of\b/u,
   }),
   Object.freeze({
     act: "compliance-signoff",
