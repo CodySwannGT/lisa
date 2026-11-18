@@ -957,7 +957,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/doctor.md":
       "01e7d9f6ca1dd9a8ad77e62b3b38a8ddfe483551e8f25f7a48f28888eb9e25e8",
     "plugins/src/base/commands/enforce.md":
-      "c1a55eaa2a0a82c90ef506c1d25fe811c24560fecf2de9d3c8be321a7ddbb129",
+      "c0d1c136bc90af572dc8d57bd58469a6b413da51f97ddc22ba7473b1af734d9b",
     "plugins/src/base/commands/exploratory-qa.md":
       "20baba83d26dfa9e97e187fa6bbcd3d62c358671354c13221995f47130141683",
     "plugins/src/base/commands/fix/linter-error.md":
@@ -1471,7 +1471,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
-      "ff1745211cc9de9a8ff59448467db65b377db70e40c599daf4f2eb8724d3d316",
+      "1778a6096a9f5962bcb5cda5ab6b0551cf6bebf323e39d0d652d3ea00b23f49e",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":

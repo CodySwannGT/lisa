@@ -1,4 +1,4 @@
 display_name: "Enforce"
-short_description: "Make the declared checks of a…"
+short_description: "Make a repository's declared…"
 default_prompt:
-  - "Use $lisa-enforce: Make the declared checks of a…."
+  - "Use $lisa-enforce: Make a repository's declared…."

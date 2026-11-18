@@ -1,9 +1,9 @@
 ---
 name: lisa-enforce
-description: "Make the declared checks of a…"
+description: "Make a repository's declared…"
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "Skill"]
 ---
-Make the declared checks of a repository actually run: install what runs them at commit, at push and after a coding agent edits a file, file a ticket for each requirement the repository has nothing for, compare the hosting platform's merge settings with the control register, and report one outcome for every Level 1 requirement. Adds no check of its own and proves nothing.
+Make a repository's declared checks actually run: install what runs them at commit, at push and after an agent edits a file, file a ticket for each missing capability, compare merge settings with the control register, and report one outcome per Level 1 requirement. Adds no check and proves nothing.
 
 
 # Enforce: $ARGUMENTS

@@ -1,5 +1,5 @@
 ---
-description: "Make this repository's declared checks actually run: install what runs them at commit, at push and after a coding agent edits a file, file a ticket for each requirement the repository has nothing for, compare the merge settings with the control register, and report one outcome for every Level 1 requirement. Never changes merge settings without asking."
+description: "Make this repository's declared checks actually run, file a ticket for each requirement it has nothing for, compare the merge settings with the control register, and report one outcome for every Level 1 requirement. Never changes merge settings without asking."
 argument-hint: "[path] [build_ready=true]"
 ---
 
