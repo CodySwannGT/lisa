@@ -25,6 +25,7 @@ import { registerInstallCarriers } from "../controls/commands/install-carriers.j
 import { registerMergeProtection } from "../controls/commands/merge-protection.js";
 import { registerProposeThreshold } from "../controls/commands/propose-threshold.js";
 import { registerProtect } from "../controls/commands/protect.js";
+import { registerReconcile } from "../controls/commands/reconcile.js";
 import { registerRegister } from "../controls/commands/register.js";
 import { registerReportCheck } from "../controls/commands/report-check.js";
 import { registerSeed } from "../controls/commands/seed.js";
@@ -48,6 +49,7 @@ export const CONTROLS_SUBCOMMANDS: readonly ControlsSubcommand[] = [
   registerAttest,
   registerMergeProtection,
   registerInstallCarriers,
+  registerReconcile,
 ];
 
 /**
