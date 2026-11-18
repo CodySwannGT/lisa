@@ -15,16 +15,18 @@ import { WHOLE_REPOSITORY_SCOPE } from "./register-types.js";
 /** What each rung means, in a few words. */
 const RUNG_MEANING: Readonly<Record<EvidenceRung, string>> = {
   asserted: "asserted (it was said, and nothing checked it)",
-  observed: "observed (a setting was read from the system that holds it)",
+  observed:
+    "observed (something was looked at where it is: a setting read from the system that holds it, or a file found where the audit pointed)",
   exercised:
     "exercised (a change was planted and the control's answer recorded)",
 };
 
 /** What gets a requirement to the rung it needs. */
 const HOW_TO_REACH: Readonly<Record<EvidenceRung, string>> = {
-  asserted: "Have the audit record where it is written down.",
+  asserted:
+    "Run the audit so that it asks a person, and answer its question in the audit report.",
   observed:
-    "Declare a control for it in the gates block, so that the attest step can read its setting or prove it.",
+    "Run the audit again so that it points at the file and line where this is recorded, or declare a control for it in the gates block.",
   exercised:
     "Declare a control for it in the gates block, with a change that breaks the rule and one that does not, so that the attest step can prove it.",
 };
@@ -113,6 +115,10 @@ export const FINDING_WORDS = {
       record.rung,
       minimum
     ),
+  needsControl: (record: EvidenceRecord): string =>
+    `No control in the register covers ${whereOf(record.scope)} for this requirement. It is met by a check that can turn a change away, so the audit finding a tool or a file does not show it. ${HOW_TO_REACH.exercised}`,
+  noAttestation: (record: EvidenceRecord): string =>
+    `Only a person can vouch for this requirement, and no person's answer to the audit's question about ${whereOf(record.scope)} is on record. Run the audit so that it asks, and answer the question in the audit report.`,
 } as const;
 
 /** The sentence for a requirement nothing is on record about. */
@@ -123,7 +129,9 @@ export const NOTHING_ON_RECORD =
  * Say why a requirement is conforming.
  * @param parts - What it rests on
  * @param parts.controls - The controls that held
- * @param parts.recorded - The folders the audit recorded it for
+ * @param parts.located - The folders whose record was found where the audit
+ *   pointed
+ * @param parts.attested - The folders a person vouched for
  * @param parts.notApplicable - The folders it does not apply in
  * @param parts.rung - The weakest rung it rests on
  * @param parts.minimum - The rung it needs
@@ -131,7 +139,8 @@ export const NOTHING_ON_RECORD =
  */
 export function conformingBecause(parts: {
   readonly controls: readonly string[];
-  readonly recorded: readonly string[];
+  readonly located: readonly string[];
+  readonly attested: readonly string[];
   readonly notApplicable: readonly string[];
   readonly rung: EvidenceRung;
   readonly minimum: EvidenceRung;
@@ -142,10 +151,15 @@ export function conformingBecause(parts: {
       : [
           `Every control that serves this requirement held when it was checked: ${parts.controls.join(", ")}.`,
         ]),
-    ...(parts.recorded.length === 0
+    ...(parts.located.length === 0
       ? []
       : [
-          `The audit recorded it for ${parts.recorded.map(whereOf).join(" and ")}.`,
+          `The audit pointed at where this is recorded for ${parts.located.map(whereOf).join(" and ")}, and the attest step found the file and line there. That shows the record exists, not that it says what the requirement asks.`,
+        ]),
+    ...(parts.attested.length === 0
+      ? []
+      : [
+          `A person vouched for it for ${parts.attested.map(whereOf).join(" and ")}, in answer to the audit's question.`,
         ]),
     ...(parts.notApplicable.length === 0
       ? []

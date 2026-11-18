@@ -11,7 +11,8 @@
  * 1. Every register entry that lists the requirement serves it, and is one
  *    answer (`./verdict-answers.ts`).
  * 2. Every record written from an audit finding for the requirement is one
- *    answer too, unless a control already covers its folder: a control that
+ *    answer too (what it is worth depends on the requirement's kind; see
+ *    `./evidence-findings.ts`), unless a control already covers its folder: a control that
  *    serves the requirement covers its own folder, and one for the whole
  *    repository covers every folder. The audit's finding for the whole
  *    repository is set aside as soon as any control serves the requirement,
@@ -175,8 +176,11 @@ function conformingDetail(
     controls: conforming.flatMap(answer =>
       answer.entry_id === null ? [] : [answer.entry_id]
     ),
-    recorded: conforming.flatMap(answer =>
-      answer.entry_id === null ? [answer.scope] : []
+    located: conforming.flatMap(answer =>
+      answer.reason === "artifact-located" ? [answer.scope] : []
+    ),
+    attested: conforming.flatMap(answer =>
+      answer.reason === "person-attested" ? [answer.scope] : []
     ),
     notApplicable: answers
       .filter(answer => answer.verdict === NOT_APPLICABLE)
@@ -241,13 +245,14 @@ function criterionVerdict(
   inputs: VerdictInputs
 ): CriterionVerdict {
   const minimum = minimumRungOf(criterion);
+  const kind = typeof criterion.kind === "string" ? criterion.kind : "";
   const serving = inputs.register.entries.filter(entry =>
     entry.criteria.includes(criterion.id)
   );
   const answers = answersFor(
     serving,
     inputs.evidence.records.filter(record => record.criterion === criterion.id),
-    { minimum, now: inputs.now }
+    { minimum, kind, now: inputs.now }
   );
   const word =
     CRITERION_VERDICTS.find(each =>
@@ -267,7 +272,7 @@ function criterionVerdict(
           fact: null,
         }
       : settled(word, answers, minimum)),
-    kind: typeof criterion.kind === "string" ? criterion.kind : "",
+    kind,
     minimum_rung: minimum,
     entries: serving.map(entry => entry.id),
     evidence: [...read].sort(compareCodeUnits),

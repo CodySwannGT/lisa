@@ -58,8 +58,13 @@ export type LevelResult = (typeof LEVEL_RESULTS)[number];
 export const VERDICT_REASONS = [
   /** `conforming`: every control that serves it held, at a rung it accepts. */
   "control-proved",
-  /** `conforming`: the audit recorded it, and asserted evidence is enough. */
-  "audit-recorded",
+  /**
+   * `conforming`: the audit pointed at the record and the attest step found
+   * it there. A located file, not a proof.
+   */
+  "artifact-located",
+  /** `conforming`: a person's answer to the audit's question is on record. */
+  "person-attested",
   /** `not-applicable`: the audit gave the fact that makes it so. */
   NOT_APPLICABLE,
   /** `non-conforming`: a control that serves it did not work. */
@@ -78,6 +83,10 @@ export const VERDICT_REASONS = [
   "rung-too-low",
   /** `unknown`: the audit could not establish it. */
   "audit-unknown",
+  /** `unknown`: the record is not where the audit pointed. */
+  "artifact-not-found",
+  /** `unknown`: only a person can vouch for it, and nobody has. */
+  "no-attestation",
 ] as const;
 
 /** One of the reasons. */

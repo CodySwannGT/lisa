@@ -193,6 +193,40 @@ export function findingRecord(
 }
 
 /**
+ * A record of an audit finding about a record that exists, whose file and
+ * line the attest step found where the audit pointed.
+ * @param criterion - The requirement
+ * @param change - What differs from one about the whole repository
+ * @returns The record
+ */
+export function locatedRecord(
+  criterion: string,
+  change: RecordChange = {}
+): EvidenceRecord {
+  return findingRecord(criterion, "held", {
+    rung: "observed",
+    reason: "artifact-located",
+    ...change,
+  });
+}
+
+/**
+ * A record of an audit finding a person's answer vouches for.
+ * @param criterion - The requirement
+ * @param change - What differs from one about the whole repository
+ * @returns The record
+ */
+export function attestedRecord(
+  criterion: string,
+  change: RecordChange = {}
+): EvidenceRecord {
+  return findingRecord(criterion, "held", {
+    reason: "person-attested",
+    ...change,
+  });
+}
+
+/**
  * An evidence file holding the given records.
  * @param records - The records, in any order and nesting
  * @returns The file
@@ -241,7 +275,7 @@ export function registerOf(
  * @param minimum - The weakest evidence it accepts
  * @returns The entry
  */
-function inScope(
+export function requirement(
   id: string,
   kind: string,
   minimum: EvidenceRung
@@ -267,15 +301,15 @@ export const SMALL_CATALOGUE: CriterionCatalogue = {
   specification_version: "0.0.1",
   level: 1,
   criteria: [
-    inScope("AC1.3", "gate", "observed"),
-    inScope("AC1.4", "human-attested", "asserted"),
-    inScope("AC1.1", "artifact", "observed"),
+    requirement("AC1.3", "gate", "observed"),
+    requirement("AC1.4", "human-attested", "asserted"),
+    requirement("AC1.1", "artifact", "observed"),
     {
       id: "UX3",
       title: "Left out",
       in_scope: false,
       excluded_reason: "Not at this level.",
     },
-    inScope("SI7", "gate", "exercised"),
+    requirement("SI7", "gate", "exercised"),
   ],
 };

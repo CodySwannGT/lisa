@@ -36,6 +36,7 @@ import {
   type EvidenceStamp,
 } from "./evidence-write.js";
 import type { ControlRegister } from "./register-types.js";
+import { createRepositoryReader } from "./repository-reader.js";
 
 /** What putting the evidence together needs. */
 export interface EvidenceToGather {
@@ -111,7 +112,15 @@ async function auditFindings(request: EvidenceToGather): Promise<RecordsRead> {
   const loaded = await request.loadReport(root, now);
   if (loaded.problems === null) {
     return {
-      records: findingRecords(loaded.report.findings, stamp, now),
+      // The repository is read again here, at gather time: what a finding
+      // points at is looked for now, whatever the report's own check found.
+      records: findingRecords({
+        report: loaded.report,
+        criteria: loaded.criteria,
+        repository: createRepositoryReader(root),
+        stamp,
+        readAt: now,
+      }),
       note: null,
     };
   }

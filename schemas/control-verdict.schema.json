@@ -96,7 +96,7 @@
         "observed",
         "exercised"
       ],
-      "description": "How strongly something is known, weakest first: `asserted` (said, not checked), `observed` (a setting read from the system that holds it), `exercised` (a change was planted and the control's answer recorded)."
+      "description": "How strongly something is known, weakest first: `asserted` (said, not checked), `observed` (a setting read from the system that holds it, or a file found where the audit pointed), `exercised` (a change was planted and the control's answer recorded)."
     },
     "requirements": {
       "type": "object",
@@ -213,12 +213,13 @@
             "conforming",
             "not-applicable"
           ],
-          "description": "`conforming`: everything that answers it held, on evidence strong enough for it. `non-conforming`: a control that serves it failed, or the audit found nothing that does it. `unknown`: there is no evidence, the evidence is out of date, or it is weaker than the requirement needs. `not-applicable`: it does not apply, and `fact` says why."
+          "description": "`conforming`: everything that answers it held, on evidence strong enough for it; `rung` says how strong, so a reader can tell a proof from a located file from a person's word. `non-conforming`: a control that serves it failed, or the audit found nothing that does it. `unknown`: there is no evidence, the evidence is out of date, or it is weaker than the requirement needs. `not-applicable`: it does not apply, and `fact` says why."
         },
         "reason": {
           "enum": [
             "control-proved",
-            "audit-recorded",
+            "artifact-located",
+            "person-attested",
             "not-applicable",
             "control-failed",
             "nothing-found",
@@ -227,7 +228,9 @@
             "evidence-dated-later",
             "proof-incomplete",
             "rung-too-low",
-            "audit-unknown"
+            "audit-unknown",
+            "artifact-not-found",
+            "no-attestation"
           ],
           "description": "A short, fixed word for why."
         },

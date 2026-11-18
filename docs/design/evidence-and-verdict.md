@@ -58,8 +58,8 @@ record, because there is no requirement for it to be evidence of.
 
 | rung | means | written from |
 | --- | --- | --- |
-| `asserted` | It was said, and nothing checked it. | An audit finding. |
-| `observed` | A setting was read from the system that holds it. Nothing was planted. | A step that reads the hosting platform's settings. |
+| `asserted` | It was said, and nothing checked it. | A person's answer to the audit's question; an audit finding nothing confirmed. |
+| `observed` | Something was looked at where it is. Nothing was planted. | A step that reads the hosting platform's settings; an audit finding whose file and line the attest step found. |
 | `exercised` | A change was planted and the control's answer recorded. | One half of a paired proof. |
 
 An exercised record is one half of a pair, so it always names its `half`. A
@@ -115,12 +115,24 @@ Records of audit findings are replaced as one set on every run.
 Most requirements are served by no control, so no proof can be run for them.
 What is known about them is what the audit found. When
 `.lisa/audit/report.json` passes its check, each finding is copied into the
-evidence file as one record at the `asserted` rung, dated when the attest
-step read the report:
+evidence file as one record, dated when the attest step read the report.
+
+What a finding that says "this is there" (`exists-not-enforced`) is worth
+depends on what kind of thing answers the requirement, which the catalogue
+says:
+
+| requirement's `kind` | the attest step | record |
+| --- | --- | --- |
+| `artifact` (a record that exists) | opens every file the finding points at and looks for the line, itself, at that moment. It does not rely on the report's own check having run. | Every line found: `observed`, `held`, reason `artifact-located`. The finding points nowhere, or a line is not there: `asserted`, `unknown`, reason `artifact-not-found`. |
+| `human-attested` (a person vouches for it) | looks for a person's answer on record to the question `<criterion>@<scope>`. | An answer is on record: `asserted`, `held`, reason `person-attested`, with the question's id and the answer quoted in `detail`. None: `asserted`, `unknown`, reason `no-attestation`. |
+| `gate` (a check) | does nothing more. | `asserted`, `held`, with the finding's state as the reason. It never makes the requirement conforming. |
+
+A finding in any other state is written the same way for every kind, at the
+`asserted` rung, with the state as the reason and the finding's `what` as
+the detail:
 
 | finding's state | record's `result` |
 | --- | --- |
-| `exists-not-enforced` | `held` |
 | `missing` | `failed` |
 | `unknown`, `question` | `unknown` |
 | `not-applicable` | `not-applicable`, with the finding's `what` as the fact |
@@ -225,10 +237,15 @@ One audit finding's answer, first row that applies:
 | --- | --- | --- |
 | It is not current. | `unknown` | `stale-evidence` or `evidence-dated-later` |
 | `failed` (the audit found nothing). | `non-conforming` | `nothing-found` |
-| `unknown` (an outside system holds the answer, or a person has to say). | `unknown` | `audit-unknown` |
+| `unknown`, because the record was not where the audit pointed. | `unknown` | `artifact-not-found` |
+| `unknown`, because no person's answer is on record. | `unknown` | `no-attestation` |
+| `unknown` for any other reason (an outside system holds the answer, or a question is open). | `unknown` | `audit-unknown` |
 | `not-applicable`. | `not-applicable`, citing the record's `detail` as the fact | `not-applicable` |
-| `held`, and the requirement's `minimum_rung` is `asserted`. | `conforming` | `audit-recorded` |
-| `held`, and the requirement needs `observed` or `exercised`. | `unknown` | `rung-too-low` |
+| `held`, the requirement is `human-attested`, and the record says a person's answer is on record. | `conforming`, rung `asserted` | `person-attested` |
+| `held`, the requirement is `human-attested`, and the record does not say so. | `unknown` | `no-attestation` |
+| `held`, the requirement is `artifact`, and the record's rung is at least its `minimum_rung`. | `conforming`, rung `observed` | `artifact-located` |
+| `held`, the requirement is `artifact`, and the record's rung is below its `minimum_rung`. | `unknown` | `rung-too-low` |
+| `held`, the requirement is a `gate` (or of a kind the catalogue does not name). | `unknown` | `rung-too-low` |
 
 The requirement's verdict:
 
@@ -247,18 +264,33 @@ record carries the fact.
 
 What this means for each kind of requirement in the catalogue:
 
-| `kind` | `minimum_rung` | how it becomes conforming |
-| --- | --- | --- |
-| `gate` | `exercised` | A register entry serves it and its paired proof held. |
-| `gate` | `observed` | A register entry serves it, and either its paired proof held or a setting read from the platform held. |
-| `artifact` | `observed` or `exercised` | Only through a register entry that serves it. The audit's finding alone leaves it `unknown`. |
-| `human-attested` | `asserted` | The audit recorded where it is written down, or a register entry serves it. |
+| `kind` | `minimum_rung` | how it becomes conforming | `rung` the verdict shows |
+| --- | --- | --- | --- |
+| `gate` | `exercised` | A register entry serves it and its paired proof held. | `exercised` |
+| `gate` | `observed` | A register entry serves it, and either its paired proof held or a setting read from the platform held. | `exercised` or `observed` |
+| `artifact` | `exercised` | A register entry serves it and its paired proof held. A located file is not enough. | `exercised` |
+| `artifact` | `observed` | The audit points at where it is recorded and the attest step finds every line; or a register entry serves it. | `observed`, or the entry's rung |
+| `human-attested` | `asserted` | The audit found it written down and a person answered the audit's question for it; or a register entry serves it. | `asserted`, or the entry's rung |
 
-An audit reads and runs nothing, and its own instructions say that finding a
-file shows it exists, not that it answers the requirement. So the audit's
-word is never stronger than asserted. A repository that wants an `artifact`
-requirement to read conforming declares a control for it: a command that
-checks the record, with a change that breaks it and one that does not.
+A requirement that is conforming always carries the weakest rung it rests
+on, so a reader can see which answers rest on a proof and which on something
+weaker. The three rungs do not mean the same thing, and each has a limit:
+
+- `exercised` is a proof: a change that breaks the rule was planted and
+  turned away, and a clean one was let through.
+- `observed`, on a requirement of kind `artifact`, is a located file. Code
+  confirmed that the file and line the audit pointed at exist. That the file
+  is the record the requirement asks for, and that it says what it should,
+  is the judgement of the agent that ran the audit. Nobody and nothing
+  checked that judgement.
+- `asserted`, on a requirement of kind `human-attested`, is a person's word.
+  It is as good as the person who gave it. An agent's finding alone never
+  produces it: with no answer on record the requirement is `unknown`.
+
+A finding never makes a `gate` requirement conforming, and never makes an
+`artifact` requirement that needs exercised evidence conforming. Those are
+met only by a control declared in the gates block, with a change that breaks
+its rule and one that does not.
 
 ### The Level 1 result
 

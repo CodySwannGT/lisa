@@ -179,9 +179,9 @@ function fieldProblems(record: Readonly<Record<string, unknown>>): string[] {
  */
 function findingProblems(record: EvidenceRecord): string[] {
   return [
-    ...(record.rung === "asserted"
-      ? []
-      : ['"rung" must be asserted on a record of an audit finding']),
+    ...(record.rung === "exercised"
+      ? ['"rung" must be asserted or observed on a record of an audit finding']
+      : []),
     ...(record.moment === null
       ? []
       : ['"moment" must be null on a record of an audit finding']),

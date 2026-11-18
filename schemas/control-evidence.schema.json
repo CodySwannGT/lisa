@@ -436,11 +436,14 @@
             "unknown",
             "not-applicable"
           ],
-          "description": "`held`: the audit found it written down or checked. `failed`: the audit found nothing that does it. `unknown`: the audit could not establish it. `not-applicable`: the requirement does not apply, and `detail` is the fact that makes it so."
+          "description": "`held`: the record was found where the audit pointed, or a person's answer vouches for it, or (for a requirement a check answers, which this never satisfies) the audit found something. `failed`: the audit found nothing that does it. `unknown`: the audit could not establish it, the record was not where it pointed, or no person has answered. `not-applicable`: the requirement does not apply, and `detail` is the fact that makes it so."
         },
         "rung": {
-          "const": "asserted",
-          "description": "The audit read the repository and ran nothing, so its finding is said and not checked."
+          "enum": [
+            "asserted",
+            "observed"
+          ],
+          "description": "`asserted`: the finding, or a person's answer to the audit's question, is said and not checked. `observed`: the finding is about a record that exists, and the attest step found the file and line the audit pointed at. That shows the record is there, not that it says what the requirement asks."
         },
         "scope": {
           "type": "string",

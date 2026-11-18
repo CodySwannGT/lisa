@@ -1,6 +1,6 @@
 /**
- * What the evidence file holds after an attest run, and what the audit
- * report contributes to it (CodySwannGT/lisa#4998).
+ * What the evidence file holds after an attest run
+ * (CodySwannGT/lisa#4998).
  *
  * The latest run always wins, including when it has nothing to put in an
  * earlier record's place: evidence says what the last run showed, never what
@@ -9,91 +9,22 @@
 import { describe, expect, it } from "vitest";
 
 import { compareCodeUnits } from "../../../src/controls/canonical-json.js";
-import { parseEvidenceDocument } from "../../../src/controls/evidence-document.js";
-import { findingRecords } from "../../../src/controls/evidence-findings.js";
 import {
   DEFAULT_FRESHNESS_SECONDS,
   MAX_FRESHNESS_SECONDS,
   type EvidenceBatch,
   type EvidenceRecord,
 } from "../../../src/controls/evidence-types.js";
-import {
-  mergedEvidence,
-  type EvidenceStamp,
-} from "../../../src/controls/evidence-write.js";
+import { mergedEvidence } from "../../../src/controls/evidence-write.js";
 import {
   entryServing,
-  evidenceOf,
   findingRecord,
   heldPair,
   observedRecord,
-  RECORDED_AT,
   registerOf,
-  SAMPLE_COMMIT,
 } from "./support/evidence-samples.js";
 
 const API = "code-style@api";
-const STAMP: EvidenceStamp = {
-  commit: SAMPLE_COMMIT,
-  freshnessSeconds: DEFAULT_FRESHNESS_SECONDS,
-};
-
-describe("the records of an audit report's findings", () => {
-  const finding = (
-    state: string,
-    scope = "."
-  ): Parameters<typeof findingRecords>[0][number] =>
-    ({
-      criterion: "AC1.4",
-      scope,
-      state,
-      what: `What was found (${state}).`,
-      why: "Why it matters.",
-      next: "What to do next.",
-      mechanisms: [],
-    }) as Parameters<typeof findingRecords>[0][number];
-  const READ_AT = new Date(RECORDED_AT);
-
-  it.each([
-    ["exists-not-enforced", "held"],
-    ["missing", "failed"],
-    ["unknown", "unknown"],
-    ["question", "unknown"],
-    ["not-applicable", "not-applicable"],
-  ])(
-    "say a finding in the state %s shows %s, at the asserted rung",
-    (state, result) => {
-      const records = findingRecords([finding(state, "api")], STAMP, READ_AT);
-
-      expect(records).toEqual([
-        {
-          id: "audit-finding/AC1.4@api",
-          criterion: "AC1.4",
-          entry_id: null,
-          scope: "api",
-          rung: "asserted",
-          moment: null,
-          result,
-          reason: state,
-          detail: `What was found (${state}).`,
-          commit: SAMPLE_COMMIT,
-          command: null,
-          exit_status: null,
-          started_at: RECORDED_AT,
-          completed_at: RECORDED_AT,
-          freshness_seconds: DEFAULT_FRESHNESS_SECONDS,
-          output_excerpt: "",
-          output_truncated: false,
-        },
-      ]);
-      expect(parseEvidenceDocument(evidenceOf(records)).problems).toBeNull();
-    }
-  );
-
-  it("leave out a finding that only repeats a record already on file", () => {
-    expect(findingRecords([finding("proved")], STAMP, READ_AT)).toEqual([]);
-  });
-});
 
 describe("the evidence file after a run", () => {
   const register = registerOf(entryServing(API));

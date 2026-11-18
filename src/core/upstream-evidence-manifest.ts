@@ -1425,7 +1425,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
-      "b97c99ab8092765e82ec0c20460a0f2556afb203e225bbf57bfcde70632975be",
+      "a014d8b4b26a587a113b54119bfe21474d38efea97309b7d26a81ca48b5e69ef",
     "plugins/src/base/skills/lisa-automation-status/SKILL.md":
       "3af301b5b70cbe4ba9377ebfed0e397d1445d70b2edc0a001edfa4bd2d5802b0",
     "plugins/src/base/skills/lisa-bug-triage/SKILL.md":
@@ -12617,6 +12617,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/control-gap-marker.test.ts": true,
     "tests/unit/controls/declared-thresholds-register.test.ts": true,
     "tests/unit/controls/evidence-document.test.ts": true,
+    "tests/unit/controls/evidence-findings.test.ts": true,
     "tests/unit/controls/evidence-fixtures.test.ts": true,
     "tests/unit/controls/evidence-merge.test.ts": true,
     "tests/unit/controls/evidence-schema.test.ts": true,
@@ -12626,6 +12627,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/gaps-tracker.test.ts": true,
     "tests/unit/controls/gaps.test.ts": true,
     "tests/unit/controls/head-commit.test.ts": true,
+    "tests/unit/controls/level-one-conforming.test.ts": true,
     "tests/unit/controls/paved-road-configurations.ts": true,
     "tests/unit/controls/paved-road-drift.ts": true,
     "tests/unit/controls/paved-road-registry-pin.ts": true,
@@ -12668,6 +12670,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/report-check.test.ts": true,
     "tests/unit/controls/support/attest-record-run.ts": true,
     "tests/unit/controls/support/attest-run.ts": true,
+    "tests/unit/controls/support/conforming-repository.ts": true,
     "tests/unit/controls/support/evidence-samples.ts": true,
     "tests/unit/controls/support/executor-fixtures.ts": true,
     "tests/unit/controls/support/fake-github-reports.ts": true,

@@ -25,6 +25,7 @@ import {
   HALF_RECORD,
   halfRecord,
   heldPair,
+  locatedRecord,
   observedRecord,
 } from "./support/evidence-samples.js";
 
@@ -200,13 +201,18 @@ describe("a record in an evidence file", () => {
     ).toContain("only a record of an audit finding");
   });
 
-  it("is refused when it is of an audit finding and claims more than asserted", () => {
+  it("is refused when it is of an audit finding and claims to be exercised", () => {
     expect(
       problemsWith({
         ...findingRecord("AC1.4", "held"),
-        rung: "observed",
+        rung: "exercised",
+        half: "clean",
       }).join("\n")
-    ).toContain('"rung"');
+    ).toContain('"rung" must be asserted or observed');
+  });
+
+  it("may be of an audit finding at the observed rung: a record found where the audit pointed", () => {
+    expect(problemsWith(locatedRecord("AC1.1"))).toEqual([]);
   });
 
   it("is named by its place and its identifier", () => {

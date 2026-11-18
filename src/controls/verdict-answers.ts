@@ -23,15 +23,28 @@
  * ## One audit finding
  *
  * A finding that is not current is `unknown`. Otherwise its result decides:
- * `not-applicable` with the fact it gives, `failed` is `non-conforming`,
- * `unknown` is `unknown`, and `held` is `conforming` only when the record's
- * rung is at least the requirement's minimum. An audit reads and runs
- * nothing, so its record is asserted evidence.
+ * `not-applicable` with the fact it gives, `failed` is `non-conforming`, and
+ * `unknown` is `unknown`. A finding that `held` is judged by what kind of
+ * thing answers the requirement:
+ *
+ * - a record that exists (`artifact`): `conforming` when the record's rung
+ *   is at least the requirement's minimum. The attest step writes such a
+ *   record at the observed rung only after finding the file and line the
+ *   audit pointed at, so this is a located file, not a proof, and it never
+ *   reaches a requirement that needs exercised evidence;
+ * - something a person vouches for (`human-attested`): `conforming` only
+ *   when the record says a person's answer is on record. An agent's finding
+ *   alone never is;
+ * - a check (`gate`), or a kind the catalogue does not name: never
+ *   `conforming`. Only a control in the register can show it.
  * @module controls/verdict-answers
  */
 import { isEvidenceFresh } from "./evidence.js";
 import {
+  ARTIFACT_KIND,
   EVIDENCE_RUNGS,
+  FINDING_REASONS,
+  HUMAN_ATTESTED_KIND,
   rungAtLeast,
   type EvidenceRecord,
   type EvidenceRung,
@@ -62,6 +75,9 @@ export interface Answer {
   readonly fact: string | null;
 }
 
+/** Why evidence that held still leaves a requirement unknown. */
+const RUNG_TOO_LOW = "rung-too-low";
+
 /** What an answer is about, and the records it was read from. */
 type AnswerSubject = Pick<Answer, "entry_id" | "scope" | "records">;
 
@@ -69,9 +85,17 @@ type AnswerSubject = Pick<Answer, "entry_id" | "scope" | "records">;
 export interface AnswerContext {
   /** The weakest evidence the requirement accepts. */
   readonly minimum: EvidenceRung;
+  /** What kind of thing answers the requirement, from the catalogue. */
+  readonly kind: string;
   /** The current time. */
   readonly now: Date;
 }
+
+/** The verdict's reason for each reason a finding record gives for `unknown`. */
+const UNKNOWN_FINDING_REASONS: Readonly<Record<string, VerdictReason>> = {
+  [FINDING_REASONS.notFound]: "artifact-not-found",
+  [FINDING_REASONS.noAttestation]: "no-attestation",
+};
 
 /**
  * An answer that is not conforming.
@@ -207,8 +231,55 @@ export function controlAnswer(
     : short(
         base,
         "unknown",
-        "rung-too-low",
+        RUNG_TOO_LOW,
         CONTROL_WORDS.tooWeak(entry.id, rung, minimum)
+      );
+}
+
+/**
+ * What a current audit finding that held says about a requirement.
+ * @param base - What the answer is about and was read from
+ * @param record - The record written from the finding
+ * @param context - The requirement's kind and minimum rung
+ * @returns The answer
+ */
+function heldFinding(
+  base: AnswerSubject,
+  record: EvidenceRecord,
+  context: AnswerContext
+): Answer {
+  const { kind, minimum } = context;
+  const attested = kind === HUMAN_ATTESTED_KIND;
+  if (attested && record.reason !== FINDING_REASONS.attested) {
+    return short(
+      base,
+      "unknown",
+      "no-attestation",
+      FINDING_WORDS.noAttestation(record)
+    );
+  }
+  if (!attested && kind !== ARTIFACT_KIND) {
+    return short(
+      base,
+      "unknown",
+      RUNG_TOO_LOW,
+      FINDING_WORDS.needsControl(record)
+    );
+  }
+  return rungAtLeast(record.rung, minimum)
+    ? {
+        ...base,
+        verdict: "conforming",
+        reason: attested ? "person-attested" : "artifact-located",
+        detail: "",
+        rung: record.rung,
+        fact: null,
+      }
+    : short(
+        base,
+        "unknown",
+        RUNG_TOO_LOW,
+        FINDING_WORDS.tooWeak(record, minimum)
       );
 }
 
@@ -216,13 +287,13 @@ export function controlAnswer(
  * What a current audit finding says about a requirement.
  * @param base - What the answer is about and was read from
  * @param record - The record written from the finding
- * @param minimum - The weakest evidence the requirement accepts
+ * @param context - The requirement's kind and minimum rung
  * @returns The answer
  */
 function currentFinding(
   base: AnswerSubject,
   record: EvidenceRecord,
-  minimum: EvidenceRung
+  context: AnswerContext
 ): Answer {
   if (record.result === "failed") {
     return short(
@@ -233,12 +304,10 @@ function currentFinding(
     );
   }
   if (record.result === "unknown") {
-    return short(
-      base,
-      "unknown",
-      "audit-unknown",
-      FINDING_WORDS.unknown(record)
-    );
+    const known = UNKNOWN_FINDING_REASONS[record.reason];
+    return known === undefined
+      ? short(base, "unknown", "audit-unknown", FINDING_WORDS.unknown(record))
+      : short(base, "unknown", known, record.detail);
   }
   if (record.result === NOT_APPLICABLE) {
     return {
@@ -250,27 +319,13 @@ function currentFinding(
       fact: record.detail,
     };
   }
-  return rungAtLeast(record.rung, minimum)
-    ? {
-        ...base,
-        verdict: "conforming",
-        reason: "audit-recorded",
-        detail: "",
-        rung: record.rung,
-        fact: null,
-      }
-    : short(
-        base,
-        "unknown",
-        "rung-too-low",
-        FINDING_WORDS.tooWeak(record, minimum)
-      );
+  return heldFinding(base, record, context);
 }
 
 /**
  * What one audit finding says about a requirement.
  * @param record - The record written from the finding
- * @param context - The requirement's minimum rung and the current time
+ * @param context - The requirement's kind, its minimum rung and the time
  * @returns The answer
  */
 export function findingAnswer(
@@ -279,6 +334,6 @@ export function findingAnswer(
 ): Answer {
   const base = { entry_id: null, scope: record.scope, records: [record] };
   return isEvidenceFresh(record, context.now)
-    ? currentFinding(base, record, context.minimum)
+    ? currentFinding(base, record, context)
     : outOfDate(base, record, context.now);
 }

@@ -39,6 +39,7 @@ import {
   findingRecord,
   HALF_RECORD,
   heldPair,
+  locatedRecord,
   observedRecord,
   registerOf,
   SMALL_CATALOGUE,
@@ -111,10 +112,13 @@ describe("the evidence schema and the types allow the same values", () => {
 
   it("for a rung, a half and a result", () => {
     expect(
-      ["finding_record", "observed_record", "exercised_record"].map(
+      ["observed_record", "exercised_record"].map(
         name => defs[name]?.properties?.rung?.const
       )
-    ).toEqual(EVIDENCE_RUNGS);
+    ).toEqual(EVIDENCE_RUNGS.slice(1));
+    expect(defs.finding_record?.properties?.rung?.enum).toEqual(
+      EVIDENCE_RUNGS.slice(0, 2)
+    );
     expect(defs.exercised_record?.properties?.half?.enum).toEqual(PROOF_HALVES);
     expect(defs.finding_record?.properties?.result?.enum).toEqual(
       EVIDENCE_RESULTS
@@ -142,6 +146,13 @@ describe("the evidence schema and the reader accept and refuse the same files", 
     findingRecord("AC1.4", NOT_APPLICABLE)
   );
 
+  it("accept a finding's record at the observed rung", () => {
+    const located = evidenceOf(locatedRecord("AC1.1"));
+
+    expect(schemaErrors(EVIDENCE_SCHEMA_PACKAGE_PATH, located)).toEqual([]);
+    expect(parseEvidenceDocument(located).problems).toBeNull();
+  });
+
   it("accept one record of each kind", () => {
     expect(schemaErrors(EVIDENCE_SCHEMA_PACKAGE_PATH, good)).toEqual([]);
     expect(parseEvidenceDocument(good).problems).toBeNull();
@@ -163,8 +174,8 @@ describe("the evidence schema and the reader accept and refuse the same files", 
       { ...HALF_RECORD, result: NOT_APPLICABLE },
     ],
     [
-      "a finding's record that claims to be observed",
-      { ...findingRecord("AC1.4", "held"), rung: "observed" },
+      "a finding's record that claims to be exercised",
+      { ...findingRecord("AC1.4", "held"), rung: "exercised", half: "clean" },
     ],
     ["a time in another form", { ...HALF_RECORD, completed_at: "2026-11-17" }],
     [

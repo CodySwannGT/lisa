@@ -19,10 +19,12 @@
  *
  * `rung` is how strongly a record is known, weakest first:
  *
- * - `asserted` — someone or something said so and nothing checked it. A
- *   record written from an audit finding is always this.
- * - `observed` — a setting was read from the system that holds it, and
- *   nothing was planted.
+ * - `asserted` — someone or something said so and nothing checked it: a
+ *   person's answer to the audit's question, or an audit finding nothing
+ *   confirmed.
+ * - `observed` — something was looked at where it is and nothing was
+ *   planted: a setting read from the system that holds it, or a file and
+ *   line the audit pointed at and the attest step found there.
  * - `exercised` — a change was planted and the control's answer recorded. An
  *   exercised record is one half of a pair, so it always carries `half`; a
  *   record at any other rung never does.
@@ -98,6 +100,27 @@ export const MAX_FRESHNESS_SECONDS = 365 * 24 * 60 * 60;
 
 /** The most of a check's output a record keeps, in characters. */
 export const EVIDENCE_EXCERPT_LIMIT = 1000;
+
+/** The kind of a requirement answered by a record that exists. */
+export const ARTIFACT_KIND = "artifact";
+
+/** The kind of a requirement only a person can vouch for. */
+export const HUMAN_ATTESTED_KIND = "human-attested";
+
+/**
+ * Why a record written from an audit finding shows what it does, where the
+ * finding's own state does not say it all.
+ */
+export const FINDING_REASONS = {
+  /** `held`, observed: every line the audit pointed at is there. */
+  located: "artifact-located",
+  /** `unknown`: the audit pointed nowhere, or at a line that is not there. */
+  notFound: "artifact-not-found",
+  /** `held`, asserted: a person's answer is on record. */
+  attested: "person-attested",
+  /** `unknown`: no person's answer is on record. */
+  noAttestation: "no-attestation",
+} as const;
 
 /** What a record's id uses between its parts. */
 export const EVIDENCE_ID_SEPARATOR = "/";

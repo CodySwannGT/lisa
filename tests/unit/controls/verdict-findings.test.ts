@@ -3,22 +3,34 @@
  * it: the audit's own finding decides, at the strength an audit can give
  * (CodySwannGT/lisa#4998).
  *
- * An audit reads; it does not run anything. So its word is asserted
- * evidence, and it makes a requirement conforming only when asserted
- * evidence is all that requirement needs.
+ * What a finding is worth depends on what kind of thing answers the
+ * requirement. A record that exists counts when the attest step found it
+ * where the audit pointed; something a person vouches for counts only on a
+ * person's answer; a check never counts without a control.
  */
 import { describe, expect, it } from "vitest";
 
+import { computeVerdict } from "../../../src/controls/verdict.js";
 import {
+  attestedRecord,
   entryServing,
+  evidenceOf,
   EXPIRY,
   findingRecord,
   heldPair,
+  locatedRecord,
+  registerOf,
+  requirement,
+  SMALL_CATALOGUE,
+  SOON_AFTER,
 } from "./support/evidence-samples.js";
 import { API, of, verdictOf } from "./support/verdict-run.js";
 
 /** The word for a requirement that does not apply. */
 const NOT_APPLICABLE = "not-applicable";
+const RUNG_TOO_LOW = "rung-too-low";
+const NO_ATTESTATION = "no-attestation";
+const NON_CONFORMING = "non-conforming";
 
 describe("a requirement no control serves", () => {
   it("is unknown when there is no audit finding about it either", () => {
@@ -27,23 +39,6 @@ describe("a requirement no control serves", () => {
       reason: "no-evidence",
       entries: [],
     });
-  });
-
-  it("is conforming on the audit's word when asserted evidence is all it needs", () => {
-    expect(
-      of(verdictOf([], [findingRecord("AC1.4", "held")]), "AC1.4")
-    ).toMatchObject({
-      verdict: "conforming",
-      reason: "audit-recorded",
-      rung: "asserted",
-      evidence: ["audit-finding/AC1.4@."],
-    });
-  });
-
-  it("is unknown on the audit's word when it needs stronger evidence", () => {
-    expect(
-      of(verdictOf([], [findingRecord("AC1.1", "held")]), "AC1.1")
-    ).toMatchObject({ verdict: "unknown", reason: "rung-too-low" });
   });
 
   it("is non-conforming when the audit found nothing that does it", () => {
@@ -55,7 +50,7 @@ describe("a requirement no control serves", () => {
         ),
         "AC1.4"
       )
-    ).toMatchObject({ verdict: "non-conforming", reason: "nothing-found" });
+    ).toMatchObject({ verdict: NON_CONFORMING, reason: "nothing-found" });
   });
 
   it("is unknown when the audit could not establish it", () => {
@@ -95,8 +90,140 @@ describe("a requirement no control serves", () => {
 
   it("is unknown once the audit finding is too old", () => {
     expect(
-      of(verdictOf([], [findingRecord("AC1.4", "held")], EXPIRY), "AC1.4")
+      of(verdictOf([], [attestedRecord("AC1.4")], EXPIRY), "AC1.4")
     ).toMatchObject({ verdict: "unknown", reason: "stale-evidence" });
+  });
+});
+
+describe("a requirement a person vouches for", () => {
+  it("is conforming when a person's answer is on record, and says it rests on that", () => {
+    const verdict = of(verdictOf([], [attestedRecord("AC1.4")]), "AC1.4");
+
+    expect(verdict).toMatchObject({
+      verdict: "conforming",
+      reason: "person-attested",
+      kind: "human-attested",
+      rung: "asserted",
+      evidence: ["audit-finding/AC1.4@."],
+    });
+    expect(verdict.detail).toContain("A person vouched for it");
+  });
+
+  it("is unknown on an agent's finding alone, however well written down it is", () => {
+    const verdict = of(
+      verdictOf([], [findingRecord("AC1.4", "held")]),
+      "AC1.4"
+    );
+
+    expect(verdict).toMatchObject({
+      verdict: "unknown",
+      reason: NO_ATTESTATION,
+      rung: null,
+    });
+    expect(verdict.detail).toContain("Only a person can vouch");
+  });
+
+  it("is unknown, in the record's own words, when the attest step found no answer on record", () => {
+    const detail = "No person's answer is on record.";
+
+    expect(
+      of(
+        verdictOf(
+          [],
+          [
+            findingRecord("AC1.4", "unknown", {
+              reason: NO_ATTESTATION,
+              detail,
+            }),
+          ]
+        ),
+        "AC1.4"
+      )
+    ).toMatchObject({ verdict: "unknown", reason: NO_ATTESTATION, detail });
+  });
+});
+
+describe("a requirement answered by a record that exists", () => {
+  it("is conforming at the observed rung when the attest step found the record where the audit pointed", () => {
+    const verdict = of(verdictOf([], [locatedRecord("AC1.1")]), "AC1.1");
+
+    expect(verdict).toMatchObject({
+      verdict: "conforming",
+      reason: "artifact-located",
+      kind: "artifact",
+      rung: "observed",
+    });
+    expect(verdict.detail).toContain(
+      "That shows the record exists, not that it says what the requirement asks."
+    );
+  });
+
+  it("is unknown when the finding was never confirmed", () => {
+    expect(
+      of(verdictOf([], [findingRecord("AC1.1", "held")]), "AC1.1")
+    ).toMatchObject({ verdict: "unknown", reason: RUNG_TOO_LOW });
+  });
+
+  it("is unknown, in the record's own words, when the record was not where the audit pointed", () => {
+    const detail = "Nothing is at docs/access.md line 40.";
+
+    expect(
+      of(
+        verdictOf(
+          [],
+          [
+            findingRecord("AC1.1", "unknown", {
+              reason: "artifact-not-found",
+              detail,
+            }),
+          ]
+        ),
+        "AC1.1"
+      )
+    ).toMatchObject({
+      verdict: "unknown",
+      reason: "artifact-not-found",
+      detail,
+    });
+  });
+
+  it("stays unknown on a located record when it needs exercised evidence", () => {
+    const verdict = computeVerdict({
+      catalogue: {
+        ...SMALL_CATALOGUE,
+        criteria: [requirement("AC5.5", "artifact", "exercised")],
+      },
+      register: registerOf(),
+      evidence: evidenceOf(locatedRecord("AC5.5")),
+      now: SOON_AFTER,
+    });
+
+    expect(of(verdict, "AC5.5")).toMatchObject({
+      verdict: "unknown",
+      reason: RUNG_TOO_LOW,
+      minimum_rung: "exercised",
+    });
+    expect(verdict.result).toBe(NON_CONFORMING);
+  });
+});
+
+describe("a requirement answered by a check, with no control in the register", () => {
+  it.each([
+    ["an asserted finding", findingRecord("AC1.3", "held")],
+    ["a finding written as if it had been located", locatedRecord("AC1.3")],
+    [
+      "a finding written as if a person had vouched for it",
+      attestedRecord("AC1.3"),
+    ],
+  ])("is never conforming on %s", (_name, record) => {
+    const verdict = of(verdictOf([], [record]), "AC1.3");
+
+    expect(verdict).toMatchObject({
+      verdict: "unknown",
+      reason: RUNG_TOO_LOW,
+      kind: "gate",
+    });
+    expect(verdict.detail).toContain("Declare a control");
   });
 });
 
@@ -131,7 +258,7 @@ describe("a requirement answered folder by folder", () => {
     ];
 
     expect(of(verdictOf([api], records))).toMatchObject({
-      verdict: "non-conforming",
+      verdict: NON_CONFORMING,
       reason: "nothing-found",
     });
   });

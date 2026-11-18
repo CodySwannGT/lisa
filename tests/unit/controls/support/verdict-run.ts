@@ -12,6 +12,7 @@ import type {
   Verdict,
 } from "../../../../src/controls/verdict-types.js";
 import {
+  attestedRecord,
   entryServing,
   evidenceOf,
   findingRecord,
@@ -29,7 +30,7 @@ export const WEB = "code-style@web";
 /** Records that make every requirement but `SI7` conforming or not applicable. */
 export const OTHERS_SETTLED: readonly EvidenceRecord[] = [
   ...heldPair("review@.", "AC1.3"),
-  findingRecord("AC1.4", "held"),
+  attestedRecord("AC1.4"),
   findingRecord("AC1.1", "not-applicable", {
     reason: "not-applicable",
     detail: "No agent acts in this repository.",
