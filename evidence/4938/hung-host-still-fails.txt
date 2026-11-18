@@ -1,0 +1,40 @@
+# scratch control (not committed): host suite with 'for (;;) {}'; case asserts unitSuite throws /did not complete: .*ETIMEDOUT/
+/**
+ * Scratch control for CodySwannGT/lisa#4938 (never committed): a host whose
+ * suite never finishes must still be killed by the spawn budget, now that the
+ * host runs inside the parent's admission instead of queueing for it.
+ */
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+import { afterAll, describe, expect, it } from "vitest";
+
+import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
+import { removeHosts, typescriptHost, unitSuite } from "./typescript-host-fixture.js";
+
+useIoLatencyBudget(240_000);
+afterAll(removeHosts);
+
+describe("a hung TypeScript host", () => {
+  it("is killed by the spawn budget and fails by name", async () => {
+    const cwd = await typescriptHost({ map: false });
+    fs.writeFileSync(
+      path.join(cwd, "tests", "hang.test.ts"),
+      'import { it } from "vitest";\n\nit("never ends", () => {\n  for (;;) {}\n});\n'
+    );
+    expect(() => unitSuite(cwd, {})).toThrow(/did not complete: .*ETIMEDOUT/su);
+  });
+});
+=== outer admission: lisa admission: admitted `vitest run tests/integration/zz-hung-host-scratch.test.ts` with 9 worker(s)
+=== load started 09:02:23: 18 yes processes;  9:02  up 25 days, 15:18, 8 users, load averages: 49.16 65.68 58.18
+09:02:23 load averages: 49.16 65.68 58.18
+09:02:43 load averages: 51.09 65.05 58.12
+09:03:03 load averages: 46.90 63.22 57.63
+09:03:23 load averages: 44.75 61.70 57.21
+09:03:43 load averages: 54.17 62.67 57.66
+09:04:03 load averages: 51.17 61.43 57.33
+=== load stopped 09:04:06; suite exit 0
+lisa admission: admitted `vitest run tests/integration/zz-hung-host-scratch.test.ts` with 9 worker(s)
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Duration  102.73s (tests 100%)
