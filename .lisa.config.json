@@ -255,6 +255,98 @@
           "✗ The four control commands are not in place on every coding agent."
         ]
       }
+    },
+    "x-template-workflow-refs": {
+      "push": {
+        "level": "required",
+        "run": "check:template-workflow-refs"
+      }
+    },
+    "x-workflow-contract-assertions": {
+      "push": {
+        "level": "required",
+        "run": "check:workflow-contract-assertions"
+      }
+    },
+    "x-third-party-action-pins": {
+      "push": {
+        "level": "required",
+        "run": "check:third-party-action-pins"
+      }
+    },
+    "x-delivery-deletion-conflicts": {
+      "push": {
+        "level": "required",
+        "run": "check:delivery-deletion-conflicts"
+      }
+    },
+    "x-shipped-surface-removals": {
+      "push": {
+        "level": "required",
+        "run": "check:shipped-surface-removals"
+      }
+    },
+    "x-workflow-package-paths": {
+      "push": {
+        "level": "required",
+        "run": "check:workflow-package-paths",
+        "cache": false
+      }
+    },
+    "x-rules-pairing": {
+      "push": {
+        "level": "required",
+        "run": "check:rules-pairing"
+      }
+    },
+    "x-eager-rule-budget": {
+      "push": {
+        "level": "required",
+        "run": "check:eager-rule-budget"
+      }
+    },
+    "x-pipeline-status-reads": {
+      "push": {
+        "level": "required",
+        "run": "check:pipeline-status-reads"
+      }
+    },
+    "x-whole-output-guards": {
+      "push": {
+        "level": "required",
+        "run": "check:whole-output-guards"
+      }
+    },
+    "x-probe-absence-direction": {
+      "push": {
+        "level": "required",
+        "run": "check:probe-absence-direction"
+      }
+    },
+    "x-guard-parity-notes": {
+      "push": {
+        "level": "required",
+        "run": "check:guard-parity-notes"
+      }
+    },
+    "x-empty-subject-guards": {
+      "push": {
+        "level": "required",
+        "run": "check:empty-subject-guards"
+      }
+    },
+    "x-cwd-resolution-corpus": {
+      "push": {
+        "level": "required",
+        "run": "check:cwd-resolution-corpus"
+      }
+    },
+    "x-self-dependency-pin": {
+      "push": {
+        "level": "required",
+        "run": "check:self-pin",
+        "cache": false
+      }
     }
   },
   "policy": {
