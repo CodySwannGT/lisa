@@ -136,6 +136,22 @@ describe(`zod security floor (${ADVISORY})`, () => {
     }
   });
 
+  it("carries the same zod floor in the root package.lisa.json template", () => {
+    const template = JSON.parse(read("package.lisa.json")) as {
+      force?: {
+        overrides?: Record<string, string>;
+        resolutions?: Record<string, string>;
+      };
+    };
+    const manifest = JSON.parse(read(MANIFEST)) as {
+      overrides?: Record<string, string>;
+    };
+    for (const field of ["overrides", "resolutions"] as const)
+      expect(template.force?.[field]?.zod, `force.${field}.zod`).toBe(
+        manifest.overrides?.zod
+      );
+  });
+
   it("floors the root zod past the advisory", () => {
     const manifest = JSON.parse(read(MANIFEST)) as {
       devDependencies?: Record<string, string>;
