@@ -2122,6 +2122,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "ff15992834e3bb911a560a6f65be76a791a8cd262f36b18972f25a8dc36d7c00",
   ]),
   "scripts/lisa-hooks/sonar-secrets.sh": Object.freeze([
+    "18e1d963d4416ccd247158e6a4bfcf43234f47faeb3a4654b5a6c78001ab8ef5",
     "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
     "7a408788975a6351d53e14aa32bb9a5d161f33df9dfea59ba32784ae33a62e67",
     "853bcf0bc455e78326186463287e32cc5906a40323c630a8e63935315197fd2f",
@@ -5048,6 +5049,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "ff15992834e3bb911a560a6f65be76a791a8cd262f36b18972f25a8dc36d7c00",
   ]),
   "scripts/lisa-hooks/sonar-secrets.sh": Object.freeze([
+    "18e1d963d4416ccd247158e6a4bfcf43234f47faeb3a4654b5a6c78001ab8ef5",
     "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
     "7a408788975a6351d53e14aa32bb9a5d161f33df9dfea59ba32784ae33a62e67",
     "853bcf0bc455e78326186463287e32cc5906a40323c630a8e63935315197fd2f",

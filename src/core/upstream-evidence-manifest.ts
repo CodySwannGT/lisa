@@ -363,7 +363,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
-      "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
+      "18e1d963d4416ccd247158e6a4bfcf43234f47faeb3a4654b5a6c78001ab8ef5",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
       "9b9a8aab8de5daa8a2ccd014911be696ca0671e602b9d7e33bc8f2dd14fb1d31",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
@@ -1151,7 +1151,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/shell-write-nudge.sh":
       "69839af423f8792b1e52c71097316c3264425553031627c0a2f9409a9d5becd0",
     "plugins/src/base/hooks/sonar-secrets.sh":
-      "8ec9d8eab090fd8aed69b6378160ae607b4341923ed076d9a5d08bf44d238064",
+      "554fb65766d617c8b57411b0d53906b7358c219dd2031708370ffc91e97f7381",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
       "5ef0d96ccf71eaba0e2eff64c0c17f3d61df36f05a0e97924ba3a72ca71e60b8",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
@@ -12796,6 +12796,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/secrets-preflight-hook.test.ts": true,
     "tests/unit/hooks/shellcheck-directives.test.ts": true,
     "tests/unit/hooks/shipped-hook-companions.test.ts": true,
+    "tests/unit/hooks/sonar-hook-bounds.test.ts": true,
     "tests/unit/hooks/sonar-resolver-deadline.test.ts": true,
     "tests/unit/hooks/sonar-secrets.test.ts": true,
     "tests/unit/hooks/support/blind-automerge.ts": true,
