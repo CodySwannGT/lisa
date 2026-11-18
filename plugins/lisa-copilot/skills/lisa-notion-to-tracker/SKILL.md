@@ -333,7 +333,7 @@ Capture each returned story key — Phase 5 needs it as the parent for sub-tasks
 | Infrastructure | `ops`, `reference` |
 | Mixed / setup ("X.0") | All domains |
 
-When classification is ambiguous, err on the side of inclusion — a developer can ignore a link, but they can't inherit one that wasn't attached. Classification mistakes are caught by the preservation gate in Phase 5.5.
+When classification is ambiguous, err on the side of inclusion — a developer can ignore a link, but they can't inherit one that wasn't attached. The preservation gate in Phase 5.5 catches an artifact missing from the epic, not a wrong domain: an artifact attached under the wrong domain still passes it. So check each sub-task's domains against the source artifact before Phase 5, and treat a misroute found there as a fix to make before writing.
 
 ### Phase 5: Create Sub-tasks
 

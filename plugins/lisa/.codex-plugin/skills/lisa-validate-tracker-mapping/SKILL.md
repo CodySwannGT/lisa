@@ -17,10 +17,10 @@ It is the audit/repair counterpart to `/lisa:setup:jira` (and the other `setup:*
 ## Confirmation policy
 
 - **Default mode is read-only.** Detect drift and report. Never mutate config or the tracker.
-- **`repair=true` enables writes — to the config, plus one tracker write: re-creating a MISSING label or state.** Within repair mode:
+- **`repair=true` enables writes — to the config, plus one tracker write: re-creating a MISSING label.** Within repair mode:
   - **Case drift** (the live workflow has the same name with different casing — the configured name resolves case-insensitively but the canonical case differs) is repaired automatically: rewrite the config value to the live canonical name. This is non-destructive and unambiguous.
   - **Missing name** (no case-insensitive match exists in the live set — renamed beyond recognition or deleted) is never repointed at a guessed near-match. See "MISSING" in Step 6: create the configured name when access allows, or stop as missing access. Only an operator running this skill interactively is offered the near-matches via `AskUserQuestion`.
-- This skill never renames or deletes anything in the tracker/source. Apart from re-creating a MISSING label or state under its configured name, repair fixes the Lisa config to match reality. This matches `config-resolution`, "Defaults vs. requirements".
+- This skill never renames or deletes anything in the tracker/source. Apart from re-creating a MISSING label under its configured name, repair fixes the Lisa config to match reality. This matches `config-resolution`, "Defaults vs. requirements".
 
 ## Arguments
 
@@ -391,7 +391,7 @@ jq --arg v "$CANONICAL" '.github.labels.<lane>.<role> = $v' \
 
 The configured name is the one the queue already reads, so the safe repair puts that name back. Do not repoint the role at a near-match on your own: a near-match may be another lane the team fills.
 
-- **Unattended, or `repair=true` with no operator present:** create the missing label or state under its configured name — a GitHub label (`gh label create`), or a Linear issue label or project label through `lisa-linear-access`. Then re-run the audit and report VALID. A Jira workflow status cannot be created this way, because `lisa-atlassian-access` does not edit workflows, and any tracker can refuse for lack of permission. Either case is **missing access**: keep the project `DRIFTED` and stop, naming the exact status or label, the project, and the permission that is missing.
+- **Unattended, or `repair=true` with no operator present:** create the missing label under its configured name — a GitHub label (`gh label create`), or a Linear issue label or project label through `lisa-linear-access`. Then re-run the audit and report VALID. A Jira workflow status cannot be created this way, because `lisa-atlassian-access` does not edit workflows, and any tracker can refuse for lack of permission. Either case is **missing access**: keep the project `DRIFTED` and stop, naming the exact status or label, the project, and the permission that is missing. A missing Linear workflow **state** is never re-created here: its `type` and board position are team configuration, and a guessed value can route Issues into a human-only lane. Keep the project `DRIFTED`, report the role and its expected state name, and point to `/lisa:setup:linear`, which creates states with an explicit name and type.
 - **An operator running this skill interactively** may instead be offered the closest live candidates (case-insensitive token/substring overlap, then edit distance) via `AskUserQuestion`:
 
   > Role `<role>` maps to `<configured>`, which no longer exists in `<vendor>`. Closest live names: `<c1>`, `<c2>`, `<c3>`. Re-create `<configured>`, pick a replacement, or enter a name manually.
@@ -459,7 +459,7 @@ Re-print the project section showing the post-repair mapping and the new verdict
 
 - Compare status/label names **case-sensitively** against the live canonical set. A case-insensitive tracker query (e.g. JQL) that resolves is not proof the casing matches.
 - Verify the access substrate is authenticated to the **configured** account before trusting any enumeration. An audit run against the wrong instance is `UNRESOLVABLE`, not `VALID`.
-- Repair fixes the **config**. Its only tracker write is re-creating a MISSING label or state under its configured name. Do not rename or delete tracker statuses, labels, or options.
+- Repair fixes the **config**. Its only tracker write is re-creating a MISSING label under its configured name; a missing Linear workflow state stays `DRIFTED` for `/lisa:setup:linear`. Do not rename or delete tracker statuses, labels, or options.
 - Never repoint a `MISSING` mapping at a guessed near-match. Re-create it, stop as missing access, or (interactive only) take the operator's explicit pick.
 - Use `jq` for all JSON reads/writes; write only changed keys via `jq … > tmp && mv`.
 - In batch mode, audit each project independently — one project's `UNRESOLVABLE` (e.g. an auth mismatch) must not abort the rest of the sweep.

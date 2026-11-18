@@ -29,7 +29,7 @@ Once you have a repo, RUN. Do not ask the caller whether to proceed, do not prev
 
 The invoking caller (a slash command or a future schedule wrapper) hands you a GitHub `org/repo` token, a full GitHub repo URL, or the literal token `github` (which falls back to `.lisa.config.json`). You do not pick the repo yourself.
 
-If no repo is provided and none is configured, exit `recovery-required` naming the missing input and the `/lisa:setup:*` skill that configures it. Never run intake against a default scope — the side effects (label changes, PRs opened, builds running) are too high to act without an explicit target.
+If no repo is provided and none is configured, first file the decision-ready escalation packet (`automation-runbook-contract`, "Escalation") through `lisa-tracker-write`, labeled `status:blocked` and `human-needed` with `human_gate` set, naming the missing input and the `/lisa:setup:*` skill that configures it; then exit `recovery-required` citing that item. If the tracker itself is unconfigured so nothing can be filed, put the same packet in the exit summary. Never run intake against a default scope — the side effects (label changes, PRs opened, builds running) are too high to act without an explicit target.
 
 ### 2. Run the intake skill
 

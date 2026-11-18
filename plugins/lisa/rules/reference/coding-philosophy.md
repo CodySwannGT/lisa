@@ -172,7 +172,7 @@ Right: create the label. Stop only if the tracker refuses for lack of permission
 **When you would normally ask:**
 - A choice with a reasonable default is yours. Decide it and record it on the item as a `Decision:` line, where a person can reverse it later
 - Work outside this change's scope becomes one build-ready ticket through the tracker, not a suggestion in a report
-- A question the code, tracker, wiki, git history and standing decisions cannot answer goes back through the gate: the flow's blocked exit with a specific clarifying comment and your recommended answer, not a mid-session question
+- A material question that the code, tracker, wiki, git history and standing decisions cannot answer, and that has no reasonable default, goes back through the gate: the flow's blocked exit with a specific clarifying comment and your recommended answer, not a mid-session question
 
 **The gates that legitimately wait for a person.** This list only restates two sources and must match them: [`when-to-stop`](../eager/when-to-stop.md) (when a flow stops) and [`ready-role-filing`, "What a human gate is"](ready-role-filing.md) (which acts a held item may wait on). Where this summary and those two differ, they win; fix this list. Name the gate when you stop at one:
 - **Missing access** — a repository, secret, API or tool stays out of reach after `lisa-secrets-access` and the matching `*-access` probe; a login or credential only a person holds; a system the agent cannot reach. Say exactly what is missing and stop (`when-to-stop`, `tool-access-gate`)

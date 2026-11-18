@@ -91,7 +91,7 @@ When: Working on a specific ticket (story, task, bug, spike), implementing a wel
 Gate:
 - A well-defined work item with acceptance criteria must be provided (ticket URL, file spec, or detailed description)
 - The work item must have clear scope, expected behavior, and verification method
-- If acceptance criteria are missing or ambiguous, resolve them yourself from the code, tracker, wiki and git history, and record what you derived on the item. What you genuinely cannot resolve goes back through the gate (the flow's blocked exit with a specific clarifying comment and your recommended answer), not a mid-session question
+- If acceptance criteria are missing or ambiguous, resolve them yourself from the code, tracker, wiki and git history, and record what you derived on the item. Where those sources are silent but a reasonable default exists (a page size of 50, say), choose it and record it as a `Decision:` line. Only a material gap with no reasonable default goes back through the gate (the flow's blocked exit with a specific clarifying comment and your recommended answer), not a mid-session question
 - If the work item is too large (epic-level), stop and suggest running the **Plan** flow first
 
 Determine the work type and execute the matching variant:
