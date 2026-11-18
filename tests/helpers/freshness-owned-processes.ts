@@ -6,10 +6,12 @@
 import { spawn } from "node:child_process";
 import type { ChildProcessByStdio } from "node:child_process";
 import type { Readable } from "node:stream";
+import { setTimeout as delay } from "node:timers/promises";
 import {
   assertChildCompleted,
   ioLatencyBudgetMs,
 } from "./io-latency-budget.js";
+import type { Latch } from "./latch.js";
 
 const CENSUS_LABEL = "birth-bound freshness fixture process census";
 const MAX_CAPTURE_BYTES = 2 * 1024 * 1024;
@@ -278,4 +280,85 @@ export async function drainOwnership(ownership: Ownership): Promise<void> {
       /* terminal race */
     }
   }
+}
+
+/** Census sampling interval while a tracked dispatcher runs, start to start. */
+export const CENSUS_INTERVAL_MS = 100;
+
+/** What {@link trackOwnership} watches, and the seams its tests replace. */
+export interface TrackOptions {
+  /** Settles when the dispatcher closes. */
+  readonly closed: Promise<unknown>;
+  /** Set once the outer watchdog fires. */
+  readonly timedOut: Latch<boolean>;
+  /** Take one census and extend ownership; the real census by default. */
+  readonly observe?: (ownership: Ownership) => Promise<Ownership>;
+  /** Kill the owned tree; the real drain by default. */
+  readonly drain?: (ownership: Ownership) => Promise<void>;
+  /** Monotonic clock in milliseconds; `performance.now` by default. */
+  readonly now?: () => number;
+  /** Wait this many milliseconds; a real timer by default. */
+  readonly wait?: (ms: number) => Promise<unknown>;
+}
+
+/**
+ * Census the dispatcher's process tree on a fixed
+ * {@link CENSUS_INTERVAL_MS} cadence until it closes, draining the tree once
+ * after the watchdog has fired.
+ *
+ * Censuses start a fixed interval apart, measured start to start, so a slow
+ * census never stretches the gap that a short-lived helper could slip
+ * through. A census that outlasts the interval is followed by the next one
+ * at once, never by a second one alongside it. Each census's ownership is
+ * handed to the next, so the tree's record is a value this returns. A census
+ * failure rejects, and the caller stops the dispatcher: observation fails
+ * closed. Shorter-lived children can still evade sampling; empty evidence is
+ * not universal proof.
+ * @param ownership - What earlier censuses proved owned
+ * @param options - What to watch, and replaceable seams
+ * @returns Ownership as of the last census before the dispatcher closed
+ */
+export function trackOwnership(
+  ownership: Ownership,
+  options: TrackOptions
+): Promise<Ownership> {
+  const now = options.now ?? (() => performance.now());
+  return trackFrom(ownership, options, now(), false);
+}
+
+/**
+ * One census tick of {@link trackOwnership}.
+ * @param ownership - What earlier censuses proved owned
+ * @param options - What to watch, and replaceable seams
+ * @param startedAt - When this tick's census started
+ * @param drained - Whether the watchdog drain already ran
+ * @returns Ownership as of the last census before the dispatcher closed
+ */
+async function trackFrom(
+  ownership: Ownership,
+  options: TrackOptions,
+  startedAt: number,
+  drained: boolean
+): Promise<Ownership> {
+  const now = options.now ?? (() => performance.now());
+  const next = await (options.observe ?? observeOwnership)(ownership);
+  const drainNow = !drained && (await options.timedOut.read(false));
+  if (drainNow) await (options.drain ?? drainOwnership)(next);
+  const finished = await Promise.race([
+    options.closed.then(
+      () => true,
+      () => true
+    ),
+    (options.wait ?? delay)(
+      Math.max(0, startedAt + CENSUS_INTERVAL_MS - now())
+    ).then(() => false),
+  ]);
+  return finished
+    ? next
+    : trackFrom(
+        next,
+        options,
+        Math.max(startedAt + CENSUS_INTERVAL_MS, now()),
+        drained || drainNow
+      );
 }

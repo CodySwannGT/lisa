@@ -44,6 +44,7 @@ const KILL_GRACE_MS = 2_000;
  * can carry it there. The cell is replaced with a new immutable set on every
  * change rather than mutated in place.
  */
+// Owner: the process exit/SIGINT/SIGTERM/SIGHUP handlers below (reapLiveGroups).
 const liveGroups: { current: ReadonlySet<number> } = { current: new Set() };
 
 /** Options accepted by {@link runBoundedBash}. */

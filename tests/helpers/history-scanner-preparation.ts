@@ -439,6 +439,7 @@ function ownedScope(parent: string): {
   readonly dispose: () => void;
 } {
   const scope = mkdtempSync(join(parent, "lisa-history-scanner-preparation-"));
+  // Owner: the process "exit" listener `dispose`, which kills the running child.
   const live: { current?: ChildProcess | undefined } = {};
   const dispose = (): void => {
     process.off("exit", dispose);

@@ -1,6 +1,6 @@
 /** @module tests/unit/helpers/freshness-owned-processes */
 import { spawn } from "node:child_process";
-import { EventEmitter } from "node:events";
+import { EventEmitter, once } from "node:events";
 import { PassThrough } from "node:stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -9,7 +9,10 @@ import {
   liveOwned,
   observeOwnership,
   ownershipOf,
+  trackOwnership,
 } from "../../helpers/freshness-owned-processes.js";
+import type { Ownership } from "../../helpers/freshness-owned-processes.js";
+import { latch } from "../../helpers/latch.js";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 
 vi.mock("node:child_process", async importOriginal => ({
@@ -188,5 +191,70 @@ describe("freshness process census", () => {
     complete(recheck, row(101, process.pid, 101));
     await drained;
     expect(kill).toHaveBeenCalledExactlyOnceWith(-101, "SIGKILL");
+  });
+});
+
+describe("tracking a dispatcher's process tree", () => {
+  /**
+   * A virtual clock the census and the wait both advance, recording when
+   * each census starts.
+   * @param censusMs - How long every census takes
+   * @param closeAfter - Close the dispatcher after this many censuses
+   * @returns Seams for trackOwnership and the recorded start times
+   */
+  function virtualRun(censusMs: number, closeAfter: number) {
+    const clock = { now: 0, starts: [] as number[] };
+    const dispatcher = new EventEmitter();
+    return {
+      starts: clock.starts,
+      options: {
+        closed: once(dispatcher, "close"),
+        timedOut: latch<boolean>(),
+        now: () => clock.now,
+        wait: async (ms: number) => {
+          clock.now += ms;
+        },
+        observe: async (ownership: Ownership) => {
+          clock.starts.push(clock.now);
+          clock.now += censusMs;
+          if (clock.starts.length === closeAfter) dispatcher.emit("close");
+          return ownership;
+        },
+      },
+    };
+  }
+
+  it("starts censuses a fixed interval apart, however long each takes", async () => {
+    const run = virtualRun(60, 4);
+    await trackOwnership(ownershipOf(101), run.options);
+    expect(run.starts).toEqual([0, 100, 200, 300]);
+  });
+
+  it("starts the next census at once when one outlasts the interval", async () => {
+    const run = virtualRun(150, 3);
+    await trackOwnership(ownershipOf(101), run.options);
+    expect(run.starts).toEqual([0, 150, 300]);
+  });
+
+  it("still rejects after a census failure, and takes no census after it", async () => {
+    const run = virtualRun(10, 99);
+    const observe = vi
+      .fn(run.options.observe)
+      .mockImplementationOnce(run.options.observe)
+      .mockRejectedValueOnce(new Error("freshness census: timeout after 1ms"));
+    await expect(
+      trackOwnership(ownershipOf(101), { ...run.options, observe })
+    ).rejects.toThrow(/census.*timeout/u);
+    expect(observe).toHaveBeenCalledTimes(2);
+  });
+
+  it("still rejects when the very first census fails", async () => {
+    const run = virtualRun(10, 99);
+    await expect(
+      trackOwnership(ownershipOf(101), {
+        ...run.options,
+        observe: () => Promise.reject(new Error("capture exceeded limit")),
+      })
+    ).rejects.toThrow(/capture exceeded limit/u);
   });
 });

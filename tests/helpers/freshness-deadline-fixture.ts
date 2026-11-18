@@ -8,7 +8,6 @@ import type { ChildProcessByStdio } from "node:child_process";
 import { lstatSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { PassThrough } from "node:stream";
-import { setTimeout as delay } from "node:timers/promises";
 import type { Readable } from "node:stream";
 import type { DeadlineFixture } from "./freshness-deadline-inputs.js";
 import {
@@ -16,16 +15,17 @@ import {
   deadlineEnvironment,
 } from "./freshness-deadline-inputs.js";
 import {
+  CENSUS_INTERVAL_MS,
   drainOwnership,
   liveOwned,
   observeOwnership,
   ownershipOf,
+  trackOwnership,
 } from "./freshness-owned-processes.js";
 import type { Identity, Ownership } from "./freshness-owned-processes.js";
 import { hostState } from "./host-guard-freshness-fixtures.js";
 import { ioLatencyBudgetMs, workerSpawnSlowdown } from "./io-latency-budget.js";
 import { latch } from "./latch.js";
-import type { Latch } from "./latch.js";
 
 /** Sentinel for "no observer failure", distinct from any thrown value. */
 const NO_FAILURE: unique symbol = Symbol("no observer failure");
@@ -169,40 +169,6 @@ async function interleavedOutput(
   return (await merged.toArray()).map(String).join("");
 }
 
-/** Census sampling interval while the dispatcher runs. */
-const CENSUS_INTERVAL_MS = 100;
-
-/**
- * Census the dispatcher's process tree every {@link CENSUS_INTERVAL_MS} until
- * it closes, draining the tree once after the watchdog has fired. Each
- * census's ownership is handed to the next, so the tree's record is a value
- * this returns, not one kept outside it. Shorter-lived children can evade the
- * sampling interval; empty evidence is not universal proof.
- * @param ownership - What earlier censuses proved owned
- * @param closed - Settles when the dispatcher closes
- * @param timedOut - Set once the outer watchdog fires
- * @param drained - Whether the watchdog drain already ran
- * @returns Ownership as of the last census before the dispatcher closed
- */
-async function track(
-  ownership: Ownership,
-  closed: Promise<unknown>,
-  timedOut: Latch<boolean>,
-  drained: boolean
-): Promise<Ownership> {
-  const next = await observeOwnership(ownership);
-  const drainNow = !drained && (await timedOut.read(false));
-  if (drainNow) await drainOwnership(next);
-  const finished = await Promise.race([
-    closed.then(
-      () => true,
-      () => true
-    ),
-    delay(CENSUS_INTERVAL_MS).then(() => false),
-  ]);
-  return finished ? next : track(next, closed, timedOut, drained || drainNow);
-}
-
 /**
  * Capture the actual process with a calibrated five-second base completion
  * watchdog. The diagnostic boundary retains its unscaled three-second assertion.
@@ -242,7 +208,10 @@ async function captureDeadline(
   });
   // A census failure stops the dispatcher it was watching and is reported
   // once it has closed; settling it here keeps the rejection handled.
-  const tracked = track(ownershipOf(child.pid), closed, timedOut, false).then(
+  const tracked = trackOwnership(ownershipOf(child.pid), {
+    closed,
+    timedOut,
+  }).then(
     ownership => ({ ownership, failure: NO_FAILURE }) as const,
     (failure: unknown) => {
       child.kill("SIGKILL");

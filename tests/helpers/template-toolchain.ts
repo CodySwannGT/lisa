@@ -29,58 +29,10 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { env } from "node:process";
 
 import type { ProjectType } from "../../src/core/config.js";
 import { PROJECT_TYPE_HIERARCHY } from "../../src/core/config.js";
 import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
-
-/** Environment keys Node consults when resolving the platform temp root. */
-const TEMP_KEYS = ["TMPDIR", "TMP", "TEMP"] as const;
-
-/**
- * Variable that marks a platform-temp control as active. The guarded state is
- * the process environment itself, so the marker lives there too: a nested
- * control sees it and refuses, with no module-level flag to keep in step.
- */
-const ACTIVE_CONTROL_KEY = "LISA_TEST_PLATFORM_TEMP_CONTROL";
-
-/**
- * Run one synchronous test after selecting its logical platform temp root.
- * Production still calls `os.tmpdir()` and enforces uid/mode/inode authority.
- * @param root - Existing platform-temp fixture root
- * @param operation - Synchronous test operation
- * @returns Test result
- */
-export function withProcessPlatformTempRoot<T>(
-  root: string,
-  operation: () => T
-): T {
-  if (Reflect.has(env, ACTIVE_CONTROL_KEY)) {
-    throw new Error("Platform-temp test controls must not overlap");
-  }
-  const previous = TEMP_KEYS.map(key => [key, Reflect.get(env, key)] as const);
-  Reflect.set(env, ACTIVE_CONTROL_KEY, root);
-  for (const key of TEMP_KEYS) {
-    Reflect.set(env, key, root);
-  }
-  try {
-    const result = operation();
-    if (result instanceof Promise) {
-      throw new Error("Platform-temp test controls must remain synchronous");
-    }
-    return result;
-  } finally {
-    for (const [key, value] of previous) {
-      if (value === undefined) {
-        Reflect.deleteProperty(env, key);
-      } else {
-        Reflect.set(env, key, value);
-      }
-    }
-    Reflect.deleteProperty(env, ACTIVE_CONTROL_KEY);
-  }
-}
 
 /** A stack's shipped scripts and the packages it receives. */
 interface ResolvedStack {
