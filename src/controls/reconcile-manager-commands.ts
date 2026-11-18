@@ -29,7 +29,7 @@ import {
   type CarrierMoment,
 } from "./carrier-types.js";
 import { blockEnd, keyLine, parseMapping } from "./carrier-yaml-lines.js";
-import { commandsInLine, type ShellCommand } from "./reconcile-hook-lines.js";
+import { readShellLine, type ShellCommand } from "./reconcile-shell-line.js";
 
 /** One configured command, and the moment its hook runs at. */
 export interface ManagerCommand extends ShellCommand {
@@ -140,23 +140,54 @@ function lefthookRuns(settings: JsonObject): readonly Configured[] {
 }
 
 /**
+ * Put several reads together.
+ * @param reads - What each part of a configuration came to
+ * @returns Every command, in order; or the first reason a part was not
+ *   read, because a configuration read in part would pass over the rest in
+ *   silence
+ */
+function together(reads: readonly ManagerRead[]): ManagerRead {
+  return (
+    reads.find(read => read.problem !== null) ?? {
+      commands: reads.flatMap(read =>
+        read.problem === null ? read.commands : []
+      ),
+      problem: null,
+    }
+  );
+}
+
+/**
  * Report what a configuration runs as commands on a line.
  * @param configured - What is run
  * @param line - The line it is written on
  * @param moment - The moment its hook runs at
- * @returns One command per program the text starts; none for Lisa's carrier
+ * @returns One command per program the text starts, none for Lisa's
+ *   carrier; or why the text was not read
  */
 function reported(
   configured: Configured,
   line: number,
   moment: CarrierMoment
-): readonly ManagerCommand[] {
-  const commands = configured.shell
-    ? configured.text
-        .split("\n")
-        .flatMap(piece => commandsInLine(piece.trim(), line))
-    : [{ command: configured.text, line, words: [configured.text] }];
-  return commands.map(command => ({ ...command, moment }));
+): ManagerRead {
+  if (!configured.shell) {
+    const { text } = configured;
+    return {
+      commands: [{ command: text, line, moment, words: [text] }],
+      problem: null,
+    };
+  }
+  return together(
+    configured.text.split("\n").map((piece): ManagerRead => {
+      const read = readShellLine(piece.trim(), line);
+      return read.problem === null
+        ? {
+            commands: read.commands.map(command => ({ ...command, moment })),
+            problem: null,
+          }
+        : read;
+    })
+  );
 }
 
 /**
@@ -168,20 +199,19 @@ export const lefthookCommands: ManagerReader = text => {
   const document = parseMapping(text);
   if (document === null) return { problem: NOT_READABLE };
   const lines = text.split(/\r?\n/u);
-  return {
-    commands: CARRIER_MOMENTS.flatMap(moment => {
+  return together(
+    CARRIER_MOMENTS.flatMap(moment => {
       const hook = CARRIER_HOOKS[moment];
       const key = keyLine(lines, hook, 0);
       const [from, to] =
         typeof key === "number"
           ? [key, blockEnd(lines, key, 0)]
           : [0, lines.length];
-      return lefthookRuns(mappingOf(document[hook])).flatMap(configured =>
+      return lefthookRuns(mappingOf(document[hook])).map(configured =>
         reported(configured, lineOf(lines, configured.text, from, to), moment)
       );
-    }),
-    problem: null,
-  };
+    })
+  );
 };
 
 /**
@@ -258,19 +288,18 @@ export const preCommitCommands: ManagerReader = text => {
     };
   }
   const lines = text.split(/\r?\n/u);
-  return {
-    commands: frameworkHooks(listOf(document.repos), lines).flatMap(
+  return together(
+    frameworkHooks(listOf(document.repos), lines).flatMap(
       ({ hook, line, local }) => {
         const named =
           local && typeof hook.entry === "string" ? hook.entry : hook.id;
         const run = [named, ...listOf(hook.args)]
           .filter(part => typeof part === "string" || typeof part === "number")
           .join(" ");
-        return momentsOf(hook, document.default_stages).flatMap(moment =>
+        return momentsOf(hook, document.default_stages).map(moment =>
           reported({ shell: true, text: run }, line, moment)
         );
       }
-    ),
-    problem: null,
-  };
+    )
+  );
 };

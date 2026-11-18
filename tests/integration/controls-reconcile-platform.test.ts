@@ -197,7 +197,6 @@ describe("reconcile --platform", () => {
       point => point.moment === PULL_REQUEST
     );
 
-    expect(run.code).toBe(0);
     expect(pullRequestStates(run)).toEqual({
       "code-style@api": "not-read",
       "code-style@web": "not-read",
@@ -209,6 +208,25 @@ describe("reconcile --platform", () => {
     expect(points[0]?.reason).toContain("is not known");
     expect(points[0]?.reason).not.toContain("can be merged without it");
     expect(github.writes()).toEqual([]);
+  });
+
+  it("does not pass a run that asked the platform and found no ruleset to read", async () => {
+    // A repository with no merge protection of any kind looks exactly like
+    // this, so a run that passed here would lose that finding.
+    const github = fakeGithub({ admin: null, repo: REPO, rulesets: [] });
+
+    const run = await reconcile(repository(), ASK, reaching(github.gh));
+    const said = run.said.join("\n");
+
+    expect(run.code).toBe(2);
+    expect(resultOf(run).outcome).toBe("incomplete");
+    expect(platformState(run)).toBe("could-not-read");
+    expect(said).toContain("INCOMPLETE");
+    expect(said).not.toContain("PASS");
+    expect(said).toContain("No ruleset governs main on GitHub");
+    expect(said).toContain("rulesets are the only merge settings");
+    expect(said).toContain("CodySwannGT/lisa#5018");
+    expect(said).toContain(`"${LINT_CHECK}"`);
   });
 
   it("treats a platform that would not answer as not read, never as absent", async () => {
@@ -246,23 +264,36 @@ describe("reconcile --platform", () => {
     );
   });
 
-  it("does not ask for a rule the platform is not asked to require", async () => {
-    const advisory = {
-      "code-style": {
-        ...(F_MIXED_GATES["code-style"] as object),
-        tier: "advisory",
-      },
-    };
-    const github = requiring([]);
+  it.each([
+    ["a ruleset governs the branch", requiring([])],
+    [
+      "no ruleset governs the branch",
+      fakeGithub({ admin: null, repo: REPO, rulesets: [] }),
+    ],
+  ])(
+    "does not ask for a rule the platform is not asked to require, and passes, when %s",
+    async (_rulesets, github) => {
+      const advisory = {
+        "code-style": {
+          ...(F_MIXED_GATES["code-style"] as object),
+          tier: "advisory",
+        },
+      };
 
-    const run = await reconcile(repository(advisory), ASK, reaching(github.gh));
+      const run = await reconcile(
+        repository(advisory),
+        ASK,
+        reaching(github.gh)
+      );
 
-    expect(run.code).toBe(0);
-    expect(pullRequestStates(run)).toEqual({
-      "code-style@api": "not-verifiable",
-      "code-style@web": "not-verifiable",
-    });
-  });
+      expect(run.code).toBe(0);
+      expect(platformState(run)).toBe("read");
+      expect(pullRequestStates(run)).toEqual({
+        "code-style@api": "not-verifiable",
+        "code-style@web": "not-verifiable",
+      });
+    }
+  );
 
   it("sends nothing when no register entry depends on the platform", async () => {
     const built = declaredRepository();

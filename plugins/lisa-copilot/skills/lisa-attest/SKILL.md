@@ -227,9 +227,12 @@ exited 0:
 | The head of the protected branch moved while canaries were open. | What the line says: whether a test pull request was merged into it, whether that could not be ruled out (the run exits 1), or that something else moved it. |
 
 Where GitHub does not offer draft pull requests for the repository, the command opens none: the
-entry is `unknown`, its `detail` quotes GitHub's reason, and nothing was created. Say that the
-check could not be exercised here and why. Do not suggest opening an ordinary pull request in its
-place.
+entry is `unknown`, its `detail` quotes GitHub's reason, and no pull request was created. A branch
+was: for each test change the command pushed a branch under `lisa-attest/` to open the pull
+request from, and removed it again when GitHub refused. Say that the check could not be exercised
+here and why, and that a test branch was pushed to the repository and removed. If a branch could
+not be removed, a line on standard error names it: pass it on as the table above says. Do not
+suggest opening an ordinary pull request in its place.
 
 ### Step 4: Compare the record with what is installed
 

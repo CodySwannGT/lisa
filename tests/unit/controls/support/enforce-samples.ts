@@ -92,7 +92,8 @@ export function reportOf(findings: readonly AuditFinding[]): AuditReport {
 }
 
 /**
- * A register entry as the enforce step judged it.
+ * A register entry as the enforce step judged it. It is declared at commit,
+ * so it is an entry something can run.
  * @param id - The entry's id, `<gate>@<scope>`
  * @param criteria - The requirements it serves
  * @param outcome - What its enforcement points added up to
@@ -111,7 +112,33 @@ export function judgedEntry(
     criteria,
     outcome,
     reason: `The entry ${id} is ${outcome}.`,
+    points: [
+      {
+        level: "required",
+        location: "local-checkout",
+        moment: "commit",
+        reason: `The entry ${id} is ${outcome} at commit.`,
+        state: outcome === "nothing-to-enforce" ? "not-checked" : outcome,
+      },
+    ],
+  };
+}
+
+/**
+ * A register entry the declaration gives no moment to run at, as the enforce
+ * step judged it: switched off everywhere, so nothing runs it.
+ * @param id - The entry's id, `<gate>@<scope>`
+ * @param criteria - The requirements it is declared for
+ * @returns The entry
+ */
+export function idleEntry(
+  id: string,
+  criteria: readonly string[]
+): EnforcedEntry {
+  return {
+    ...judgedEntry(id, criteria, "nothing-to-enforce"),
     points: [],
+    reason: `The entry ${id} has no moment to run at.`,
   };
 }
 

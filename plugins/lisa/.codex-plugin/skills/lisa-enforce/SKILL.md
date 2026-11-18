@@ -61,6 +61,13 @@ These hold in every step.
    `.lisa/controls/carriers.json`, one ignore entry for that program's timing files, one hook
    entry in each coding agent's own settings file, the git setting that makes git run the hooks in
    this checkout, `.lisa/controls/register.json`, and `.lisa/controls/merge-protection-change.md`.
+   Where the repository already runs hooks of its own, the carriers command also adds one call to
+   the hook the repository owns, so that the checks run from there: a hook file in Husky's folder
+   (`.husky/pre-commit`, `.husky/pre-push`) or in the folder git is set to read hooks from, or the
+   configuration of Lefthook (`lefthook.yml`) or of the pre-commit framework
+   (`.pre-commit-config.yaml`). That is an edit to a file the repository already had, and this run
+   makes it on purpose: the result of step 3 names each such file in `changes`, and step 9 expects
+   it.
    In `.lisa.config.json` two things may change and no others: the carriers command may record a
    coding agent that cannot be enforced on, and step 4 may name the pipeline file it writes.
    Nothing is committed, pushed or staged. Everything you set aside while you work goes in a
@@ -361,7 +368,7 @@ Read these fields:
 | `criteria` | One entry for every requirement. `question` is the requirement in plain words, `outcome` is the one thing to say about it, `reason` says why, and `tickets` holds the tickets filed for it. `criterion` is the requirement's id: never say it to the operator. |
 | `counts` | How many requirements have each outcome. |
 | `entries` | One entry for every declared check, with each moment it is declared at and whether something runs it there. |
-| `currently_failing` | The required checks that do not pass on the main branch as it stands. `checked` is how many checks ran to an answer. `gates` lists each one that does not pass, with the `command` that was run, `output_excerpt`, the end of what it printed, and `judged`: `failed` when the output shows a broken rule, `unproved` when the command ended with an error and nothing in its output says a rule is broken. `not_measured` lists the ones that gave no answer, each with why, and `reason` says how the checks were run or why they were not. |
+| `currently_failing` | The required checks that do not pass on the main branch as it stands. `checked` is how many checks ran to an answer. `gates` lists each one that does not pass, with the `command` that was run, `output_excerpt`, the end of what it printed, and `judged`: `failed` when the output shows a broken rule, `unproved` when the command ended with an error and nothing in its output tells a broken rule from a command that could not run. `not_measured` lists the ones that gave no answer, each with why, and `reason` says how the checks were run or why they were not. |
 | `changes` | Everything the three steps said they changed in this run. An empty list means this run changed nothing. |
 | `limits` | What the result does not show, each as one plain sentence. |
 
@@ -372,11 +379,14 @@ The four outcomes:
 | `wired` | It is now checked automatically, and when. |
 | `ticketed` | Nothing does this yet; a ticket was opened for the work. Give the ticket. |
 | `blocked` | It is waiting on somebody. `reason` says who and exactly what for. |
-| `nothing-to-enforce` | Nothing needed switching on. `reason` says which of three it is: the requirement does not apply here; it is met by a written record or a person's word; or what checks it is something Lisa's own project type already runs, which this step neither installs nor looks at. The attest step says whether what is there is enough. |
+| `nothing-to-enforce` | Nothing needed switching on. `reason` says which of three it is: the requirement does not apply here; it is met by a written record or a person's word; or what checks it is something Lisa itself ships and its project type already runs, which this step neither installs nor looks at. The attest step says whether what is there is enough. |
 
 A requirement that needs a check is never `nothing-to-enforce` because its check is declared with
-no moment to run at, or is one another system reports that nothing waits for. Those are `blocked`:
-nothing runs the check, and the operator has to choose in `/lisa:configure` when it runs.
+no moment to run at, or because its check is one another system reports, or a task the repository
+declares under a gate of its own, that this step cannot see anything run. Those are `blocked`:
+nothing is known to run the check, and the operator has to choose in `/lisa:configure` when it
+runs. A check that is switched off at every moment counts for nothing either way: when another
+declared check serves the same requirement, the requirement takes that check's outcome.
 
 ### Step 9: Confirm what changed, and clear up
 
@@ -388,6 +398,9 @@ git status --porcelain --untracked-files=all
 
 Compare it with the list step 1 kept. A path is this run's when it is in this list and was not in
 that one, or is in both with a different status. Every such path must be one ground rule 1 names.
+That includes a hook the repository already had, or the configuration of its hook manager, when
+the carriers command added its call there: the result saved in step 3 lists that file in
+`changes`, so seeing it changed here is expected and is not a fault. Leave the call in place.
 If anything else appears, this run changed something it must not: remove only what you yourself
 created, and never delete, restore or reset anything you did not create. A path that was already
 in the list step 1 kept is the operator's, even when ground rule 1 names it: leave it as it is.
@@ -425,12 +438,16 @@ never by its id:
    - `failed`: the code on the main branch as it stands breaks that check's rule. From now on a
      change is stopped until the check passes, and making it pass is separate work this step did
      not do.
-   - `unproved`: the check could not be judged. It was run in a fresh copy of the main branch,
-     which holds no installed dependencies, and it ended with an error that does not show a
-     broken rule: a check that needs the project's dependencies ends that way there whatever the
-     code is like. Say exactly that, and that it is not a statement about the code. Do not tell
-     the operator that the code on the main branch fails this check. Say that the first commit or
-     push will show whether it passes where the dependencies are installed.
+   - `unproved`: the check ended with an error, and Lisa cannot tell a broken rule from a
+     command that could not run. Two things end this way and look the same from here. The check
+     was run in a fresh copy of the main branch, which holds no installed dependencies, so a
+     check that needs them ends with an error there whatever the code is like. And a check whose
+     declaration does not say what its failure looks like, or says it of a different rule, ends
+     with an error when the code really does break its rule. Say exactly that: Lisa could not
+     tell which it is. Quote `output_excerpt`, so the operator can see for themselves. Say that
+     if the failure is real, the next commit or push is stopped until the check passes. Do not
+     tell the operator that the code on the main branch fails this check, and do not tell them
+     that it passes.
 
    Then each entry of `currently_failing.not_measured`: which check gave no answer, and why. When
    `checked` is 0, no check ran to an answer: say that nothing is known about whether the checks

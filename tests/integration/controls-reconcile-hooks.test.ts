@@ -260,4 +260,63 @@ describe("reconcile on a hook it cannot read reliably", () => {
       /^reconcile: INCOMPLETE\. This comparison is not complete: hooks could not be read\./u
     );
   });
+
+  it("exits 2 and says which line, without throwing, for a line longer than it reads", async () => {
+    const root = declared();
+    writeExecutable(
+      path.join(gitHooksFolder(root), PRE_COMMIT),
+      `#!/bin/sh\n${SCAN}\nx${")".repeat(100_000)}\n`
+    );
+    await install(root);
+
+    const run = await reconcile(root);
+
+    expect(run.code).toBe(2);
+    expect(resultOf(run).outcome).toBe("incomplete");
+    expect(undeclared(run)).toEqual([]);
+    expect(
+      resultOf(run).surfaces.find(surface => surface.surface === "hooks")
+    ).toMatchObject({
+      detail: expect.stringMatching(
+        /^In \.git\/hooks\/pre-commit, line 3 is 100001 characters long, and this command reads lines of up to \d+\. Its commands were not read\.$/u
+      ),
+      state: "could-not-read",
+    });
+  });
+});
+
+describe("reconcile on a hook that runs a check inside another command", () => {
+  const ESLINT = "npx eslint .";
+
+  it.each([
+    [
+      "captures its output",
+      `OUTPUT=$(${ESLINT} 2>&1) || { echo "$OUTPUT"; exit 1; }`,
+    ],
+    ["tests what it captured", `if ! out=$(${ESLINT}); then exit 1; fi`],
+    [
+      "captures it between backticks",
+      `if ! out=\`${ESLINT}\`; then exit 1; fi`,
+    ],
+    ["runs it in one arm of a case", `case "$1" in *.js) ${ESLINT} ;; esac`],
+    ["runs it through command", `command ${ESLINT}`],
+  ])(
+    "reports the check, and is not in step, when the hook %s",
+    async (_how, line) => {
+      const root = declared();
+      writeExecutable(
+        path.join(gitHooksFolder(root), PRE_COMMIT),
+        `#!/bin/sh\n${line}\n`
+      );
+      await install(root);
+
+      const run = await reconcile(root);
+
+      expect(run.code).toBe(0);
+      expect(resultOf(run).outcome).toBe("findings");
+      expect(
+        undeclared(run).map(finding => [finding.command, finding.line])
+      ).toEqual([[ESLINT, 2]]);
+    }
+  );
 });

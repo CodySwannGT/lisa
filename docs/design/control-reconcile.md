@@ -42,7 +42,9 @@ A point ends in one of four states.
 | `not-read` | The place that holds the answer was not asked, or was asked and did not answer. |
 
 Not knowing is not absence. A platform that refuses the read, or that was
-never asked, produces `not-read` and never a finding.
+never asked, produces `not-read` and never a finding. Not knowing is not a
+pass either: when `--platform` asked and the answer could not be had, the
+run is incomplete and exits 2 (see "The result").
 
 ### Only rulesets are read on the hosting platform
 
@@ -51,16 +53,26 @@ rules of the older kind. The read covers rulesets only (reading the older
 kind is CodySwannGT/lisa#5018). So what an answer that lists no check means
 depends on whether any ruleset governs the branch:
 
-| The rulesets that govern the default branch | The point is | The reason says |
-| --- | --- | --- |
-| Require every check derived for the entry | `wired` | which checks are required |
-| Exist, and do not require one of them | `not-wired` | which check, which rulesets were read, and that only rulesets were read |
-| There are none | `not-read` | that no ruleset governs the branch, that the older rules are not read, and that whether the check is required is not known |
+| The rulesets that govern the default branch | The point is | The read of the platform is | The reason says |
+| --- | --- | --- | --- |
+| Require every check derived for the entry | `wired` | `read` | which checks are required |
+| Exist, and do not require one of them | `not-wired` | `read` | which check, which rulesets were read, and that only rulesets were read |
+| There are none | `not-read` | `could-not-read`: the run is `incomplete` and exits 2 | that no ruleset governs the branch, that rulesets are the only merge settings read, which checks could not be looked for, and that reading the older rules is CodySwannGT/lisa#5018 |
 
 A repository with no ruleset on the branch may hold all its required checks
 in the older rules, where this command did not look. Calling its checks
 "not required" would be a finding about a place nobody read. The result's
 `limits` say the same for every run.
+
+Calling the run a pass would be worse. A repository with no merge
+protection of either kind also has no ruleset on the branch, and from here
+the two cannot be told apart. With the point `not-read` and the platform
+marked `read`, such a run came out `in-step`, printed PASS and exited 0, so
+the one repository where a check is certainly not required was the one that
+passed. So an answer that leaves a listed check unlooked-for is not a read:
+the platform is `could-not-read`, with the reason above, and the run is
+incomplete. A branch with no ruleset passes only when the register asks the
+platform to require nothing, because then there was nothing to look for.
 
 ## Direction two: a command a hook runs that the register does not list
 
@@ -86,14 +98,22 @@ it reads the lines itself (`src/controls/reconcile-hook-lines.ts`).
 
 ### What is read, and what is left out
 
-- A shell hook is read line by line. Each line is split where shell starts
-  another command: `&&`, `||`, `;`, a pipe, and a lone `&`
-  (`src/controls/reconcile-shell-words.ts`). From each piece the redirects
-  are left out, and so is what shell writes around a command: the words in
-  front of it, the bracket that opens a group and the one that closes it
+- A shell hook is read line by line (`src/controls/reconcile-shell-line.ts`).
+  First every command written inside another one is found: a `$(…)`, a span
+  between backticks, a `<(…)` or a `>(…)`
+  (`src/controls/reconcile-shell-spans.ts`). What is inside is read as a
+  line of its own, eight levels deep, and in the line around it the span is
+  replaced by filler so that nothing in it is taken for that line's words.
+  Then the line is split where shell starts another command: `&&`, `||`,
+  `;`, a pipe, and a lone `&` (`src/controls/reconcile-shell-words.ts`).
+  From each piece the redirects are left out, and so is what shell writes
+  around a command: the words in front of it (`if`, `!`, `exec`, `command`,
+  the head of a `case`, the name a function is defined under), the bracket
+  that opens a group and the one that closes it
   (`src/controls/reconcile-shell-command.ts`). What is left is reported
   unless it only steers the shell (`set`, `cd`, `exit`, `[`, `echo`), only
-  tests for a program (`command -v`), or is Lisa's own carrier.
+  tests for a program (`command -v`, `type`, `which`), or is Lisa's own
+  carrier.
 
   | A hook line | Is read as |
   | --- | --- |
@@ -104,14 +124,36 @@ it reads the lines itself (`src/controls/reconcile-hook-lines.ts`).
   | `npx lint-staged 2>&1`, `npm run lint > lint.log` | `npx lint-staged`, `npm run lint` |
   | `*.py\|*.pyi) ruff check . ;;` | `ruff check .` |
   | `[[ "$b" =~ ^(main\|master)$ ]] \|\| exit 0` | nothing: a test runs no program |
+  | `OUT=$(npx eslint . 2>&1) \|\| { echo "$OUT"; exit 1; }` | `npx eslint .` |
+  | ``if ! out=`npm test`; then``, `if ! out=$(npm test); then` | `npm test` |
+  | `echo "$(npx eslint .)"`, `[ -z "$(npx eslint .)" ]` | `npx eslint .` |
+  | `diff <(npx eslint .) expected` | `diff <(npx eslint .) expected` and `npx eslint .` |
+  | `case "$1" in *.py) ruff check . ;; esac` | `ruff check .` |
+  | `command npm test`, `command -p npm test` | `npm test` |
+  | `command -v node`, `command -V node` | nothing: it asks whether a program is there |
+  | `check() { npm test; }`, `function check { npm test; }` | `npm test` |
+  | `trap 'npm run cleanup' EXIT` | `npm run cleanup` |
+  | `echo '$(date)'`, `n=$((1 + 2))` | nothing: single quotes and arithmetic run no program |
 
   A command inside a group used to be dropped with its bracket, so a hook
   could run a check the register does not declare and still be reported as
   in step. A redirect or a pipe used to stay among the command's words, so a
-  declared command showed as undeclared.
-- Brackets are matched within one line. A closing bracket written against
-  the last word of a one-word command, on the last line of a group that spans
-  several lines, is read as a `case` label and the command is missed.
+  declared command showed as undeclared. And a command inside another one
+  was part of one word, a one-line `case` and a one-line function were
+  dropped at their first word, and `command` was always taken for a test:
+  a hook that captured a check's output and acted on it, the usual way of
+  writing one, ran that check unseen.
+- The line that starts Husky (`. "$(dirname -- "$0")/_/husky.sh"`) is
+  Husky's. Neither it nor what it finds its own folder with is reported.
+- **The reader never throws and never runs on, whatever a hook holds.** A
+  word ending in a hundred thousand closing brackets used to end the command
+  with a stack overflow. Now nothing in the reader calls itself once per
+  character, and the work is bounded: a line longer than 8,192 characters
+  (with the lines it continues onto), commands nested more than eight deep,
+  or a hook of more than 10,000 lines or 262,144 characters is not read. It
+  is not passed over either: the hooks are marked `could-not-read`, the
+  reason names the file and the line, and the run fails. The same holds for
+  a line of a Lefthook or pre-commit framework configuration.
 - A quote that never closes is given up on once, however many command
   substitutions it holds. Each `$(…)` in it used to be tried two ways, so the
   time to read such a line doubled with every substitution, and one line with
@@ -130,6 +172,35 @@ it reads the lines itself (`src/controls/reconcile-hook-lines.ts`).
   `pre-commit` and `pre-push` are reported; for the pre-commit framework each
   hook at the stages it runs at, by its `entry` when it is local and by its
   `id` otherwise. A configuration another file extends is read as written.
+
+### What the reader still does not follow
+
+It reads text and is not a shell. "Nothing differs" means nothing differs in
+what it follows, and this is what it does not:
+
+- **A script, a function or an alias a hook calls.** It is reported as that
+  call. The script is not opened, and a function's body is read where it is
+  written, not where it is called.
+- **Code handed to a program as text**: `eval "…"`, `sh -c "…"`,
+  `xargs …`, `find … -exec …`. The call is reported and the text is not
+  read.
+- **Conditions.** Every branch is read, whether or not it would run.
+- **A here-document.** Each of its lines is read as a line of shell, so text
+  that is only data can be reported as a command.
+- **A `case` inside a `$(…)`.** The `)` of its first label is taken for the
+  end of the substitution.
+- **A `case` arm whose label opens with a bracket**, as in `(*.py) ruff`. It
+  is reported with the label in it.
+- **Brackets across lines.** They are matched within one line. A closing
+  bracket written against the last word of a one-word command, on the last
+  line of a group that spans several lines, is read as a `case` label and
+  the command is missed.
+- **What a manager's own files add**: a configuration another file extends,
+  and a hook of the pre-commit framework that comes from another
+  repository, which is reported by its `id`.
+
+The list is in the reader's own module doc too, and a line added to one
+belongs in the other.
 
 ### What "declared" means
 
@@ -170,7 +241,11 @@ Exit codes: 0 when everything that was needed was read, whether or not there
 are findings; 2 when a hook file or, under `--platform`, the hosting platform
 could not be read (the document is complete for everything else and says
 which); 1 when the register or the checkout's hooks could not be read at all
-and there is no document.
+and there is no document. The hosting platform counts as not read when it
+gave no answer, and when it answered but no ruleset governs the branch while
+the register lists a check for a pull request. A hook counts as not read
+when its markers do not pair up and when it is more than the reader takes
+on.
 
 ## Why the findings are offered to the audit report and not written into it
 
