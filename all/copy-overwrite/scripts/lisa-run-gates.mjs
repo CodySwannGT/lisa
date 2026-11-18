@@ -47,6 +47,22 @@
  *
  * A gate with no parts takes none of this path.
  *
+ * ## A part the change does not touch
+ *
+ * In a repository with two parts, a change to one should not run the other's
+ * check — and must not be reported as having passed it. At commit and at
+ * push the runner learns which paths the change touches (`lib/changed-paths`)
+ * and leaves out a part whose folder holds none of them. That part prints as
+ * NOT APPLICABLE with its folder, its command is never started, and it is
+ * counted among the gates that were not applicable here, never among the
+ * ones that were proved.
+ *
+ * The mistake that matters is the other one: a part left out that the change
+ * did touch is a folder nothing checked. So a part is left out only when the
+ * runner is sure, and everything else runs it — a change that is not known,
+ * a moment other than commit and push, a part for the whole repository, a
+ * part that could not have started anyway.
+ *
  * ## Exit codes are the hook's control flow
  *
  * The hooks fall back to their hardcoded steps unless this runner positively
@@ -117,6 +133,12 @@ import {
   openSelectionReports,
 } from "./lib/affected-tests.mjs";
 import { BUILD_ONCE_ID, runBuildOnce } from "./lib/build-marker.mjs";
+import {
+  changeAt,
+  PUSH_REFS_STDIN,
+  readPushRefs,
+  touchesFolder,
+} from "./lib/changed-paths.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { runStartOfRunSweep } from "./lib/lisa-cleanup-sweep.mjs";
 import {
@@ -146,6 +168,7 @@ import {
   projectScripts,
   readGates,
   resolveMoment,
+  WHOLE_REPOSITORY,
 } from "./lisa-gates.mjs";
 
 // Re-exported rather than dropped. `compareCodeUnits` was this module's public
@@ -308,6 +331,9 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @property {string[]|null} [argv] The argument list that checks that part.
  *   Present only beside `scope`. `task` and `command` are null on a part: its
  *   command is started directly and is never joined into one line of text.
+ * @property {boolean} [untouched] True on a part that was left out because
+ *   the change touches nothing in its folder (CodySwannGT/lisa#4988). Its
+ *   state is SKIPPED and its command never started. Absent everywhere else.
  */
 
 /**
@@ -327,7 +353,8 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @property {GateOutcome[]} unprovable Gates that ran and proved nothing.
  * @property {GateOutcome[]} killed Gates whose command was terminated by a
  *   signal, so it never reached a verdict.
- * @property {GateOutcome[]} skipped Gates with nothing to run locally.
+ * @property {GateOutcome[]} skipped Gates with nothing to run locally, and
+ *   parts the change does not touch (those carry `untouched: true`).
  * @property {GateOutcome[]} notRun Gates queued behind a blocking failure.
  */
 
@@ -434,13 +461,16 @@ function shownArgv(argv) {
  * scripts. Two scripts can now back one gate, so "what proved this" stops
  * being answerable from the gate id alone — and a reader who has to open the
  * registry to find out is back where #2916 started.
- * @param {string} state A `STATE` value.
+ * @param {string} state A `STATE` value, or the words `shownState` gives a
+ *   part the change does not touch.
  * @param {GateOutcome} gate The resolved gate.
  * @param {string} detail Command, reason, or failure note.
  * @returns {string} The formatted line.
  */
 function formatLine(state, gate, detail) {
-  const token = `${state.toUpperCase()}`.padEnd(STATE_WIDTH);
+  // The space is for a token as wide as the column, which would otherwise
+  // run into the level beside it. It changes nothing for a shorter one.
+  const token = `${state.toUpperCase()} `.padEnd(STATE_WIDTH);
   // A name has no fixed width: a part's carries its folder, and a gate id may
   // be longer than the column. The space keeps a long one from running into
   // the detail beside it, and changes nothing for a name that fits.
@@ -901,7 +931,8 @@ function argvProblem(argv) {
  * spellings to keep complete.
  * @param {string} root The repository root.
  * @param {unknown} scope The part's folder, written from the root.
- * @returns {{directory: string}|{problem: string}} The folder, or the reason,
+ * @returns {{directory: string, resolved: string}|{problem: string}} The
+ *   folder and its own path from the repository root, or the reason,
  *   finishing `NOTHING_RAN`.
  */
 function partDirectory(root, scope) {
@@ -937,7 +968,9 @@ function partDirectory(root, scope) {
     };
   }
   if (!isFolder(directory)) return { problem: `${named} is not a folder` };
-  return { directory };
+  // Where the folder really is, written the way git writes a path. It
+  // differs from the declared name only when that name is a link.
+  return { directory, resolved: path.split(sep).join("/") };
 }
 
 /**
@@ -963,7 +996,8 @@ function isFolder(path) {
  * itself rather than wait behind another gate or borrow a sibling's result.
  * @param {GateOutcome} gate One part of a gate.
  * @param {string} root The repository root.
- * @returns {{directory: string}|{problem: string}} Where to start, or why not.
+ * @returns {{directory: string, resolved: string}|{problem: string}} Where to
+ *   start, or why not.
  */
 function partStart(gate, root) {
   const problem = argvProblem(gate.argv);
@@ -983,6 +1017,107 @@ function partNotStarted(problem) {
   return {
     state: STATE.UNPROVABLE,
     detail: `${NOTHING_RAN}: ${problem}`,
+    code: null,
+  };
+}
+
+/** What an operator reads in place of the state on a part left out. */
+const NOT_APPLICABLE = "not applicable";
+
+/**
+ * The words a result's line starts with.
+ *
+ * A state's own name, except for a part the change does not touch. That part
+ * is SKIPPED to everything that counts results, and says NOT APPLICABLE to
+ * the person reading, because "skipped" does not say why and the reason is
+ * the whole point: nothing in that folder changed.
+ * @param {{state: string, untouched?: boolean}} outcome A verdict.
+ * @returns {string} What `formatLine` prints as the state.
+ */
+function shownState(outcome) {
+  return outcome.untouched === true ? NOT_APPLICABLE : outcome.state;
+}
+
+/**
+ * What the runner was told about the change, read strictly.
+ *
+ * A list is believed only when it is a list of text. Anything else — a
+ * caller that answered with nothing, a list holding something that is not a
+ * path — is "not known", which runs every part.
+ * @param {unknown} told What the `change` function answered.
+ * @returns {{paths: string[]|null, note: string|null}} The change.
+ */
+function readChange(told) {
+  const paths = /** @type {{paths?: unknown}|null|undefined} */ (told)?.paths;
+  const note = /** @type {{note?: unknown}|null|undefined} */ (told)?.note;
+  return {
+    paths:
+      Array.isArray(paths) && paths.every(path => typeof path === "string")
+        ? paths
+        : null,
+    note: typeof note === "string" && note !== "" ? note : null,
+  };
+}
+
+/**
+ * Ask what the change touches, and treat any failure to answer as "not
+ * known".
+ *
+ * Working out the change is there to save time, and it must never cost a
+ * verdict. If the question itself breaks, the run goes on with every part,
+ * and says why: stopping here would refuse every commit over a fault in the
+ * narrowing, and guessing would leave a part out.
+ * @param {() => unknown} change The `change` function `runGates` was given.
+ * @param {string} moment The moment being run.
+ * @returns {{paths: string[]|null, note: string|null}} The change.
+ */
+function askChange(change, moment) {
+  try {
+    return readChange(change());
+  } catch (error) {
+    // probe-direction: fail-closed — a change that could not be worked out,
+    // for whatever reason, is not known, and every part runs.
+    return {
+      paths: null,
+      note:
+        `Every part runs at ${moment}: what the change touches could not ` +
+        `be worked out (${error instanceof Error ? error.message : String(error)}).`,
+    };
+  }
+}
+
+/**
+ * The verdict of a part the change does not touch, or null to run it.
+ *
+ * Asked only of a part that could start: one that could not says so itself,
+ * whatever the change touches, so a broken declaration is not hidden until
+ * somebody edits that folder.
+ *
+ * A part for the whole repository always applies, and is answered without
+ * asking what changed at all. A folder that resolves to the repository root
+ * is the same thing under another name.
+ *
+ * The folder is matched under both of its spellings — the one declared, and
+ * the one it resolves to on disk. They differ only when the declared name is
+ * a link, and a change made where the link leads is a change to that part.
+ * @param {GateOutcome} gate One part of a gate.
+ * @param {{directory: string, resolved: string}} start Where it would start.
+ * @param {() => {paths: string[]|null, note: string|null}} change Asks what
+ *   the change touches. Called at most once per run, by `runGates`.
+ * @returns {{state: string, untouched: true, detail: string, code: null}|null}
+ *   The verdict, or null when the part must run.
+ */
+function untouchedOutcome(gate, start, change) {
+  if (gate.scope === WHOLE_REPOSITORY || start.resolved === "") return null;
+  const { paths } = change();
+  if (paths === null) return null;
+  if (touchesFolder(paths, [gate.scope, start.resolved])) return null;
+  return {
+    state: STATE.SKIPPED,
+    untouched: true,
+    detail:
+      `the change touches nothing inside ${JSON.stringify(gate.scope)}, so ` +
+      `${shownArgv(gate.argv)} was not run. Not counted as proved`,
     code: null,
   };
 }
@@ -1121,6 +1256,7 @@ function summarise(result, priorKills = []) {
   // These five are exhaustive on this path, so they sum to `total`: a required
   // FAILED/UNPROVABLE/KILLED gate would have blocked and returned above, and
   // `notRun` is populated only once something has blocked.
+  const untouched = result.skipped.filter(entry => entry.untouched).length;
   const counts =
     `${result.passed.length} proved, ${failedOptional.length} failed ` +
     `(optional), ${result.unprovable.length} not proved, ` +
@@ -1136,6 +1272,13 @@ function summarise(result, priorKills = []) {
         // the project declared.
         result.results.some(isPart)
           ? " Each part of a gate is counted on its own."
+          : ""
+      }${
+        // Said in the tally itself, because the tally is what gets quoted: a
+        // part left out is in the last number, and never in the first.
+        untouched
+          ? ` ${untouched} part(s) this change does not touch were not run, ` +
+            `and are counted as not applicable, never as proved.`
           : ""
       }`
   );
@@ -1156,10 +1299,13 @@ function summarise(result, priorKills = []) {
  * would understate what was proved — the mirror image of overstating it, and
  * just as untrue.
  *
- * A part adds one question in front of all of that: may its command start at
- * all, and where. See `partStart`.
+ * A part adds two questions in front of all of that. May its command start at
+ * all, and where: see `partStart`. And does the change touch its folder: see
+ * `untouchedOutcome`. A part left out is settled there, before the pass cache
+ * and before any shared result are looked at, so it is never read from either
+ * and never written to either.
  * @param {GateOutcome} gate The resolved gate.
- * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function, execArgv: Function, root: string, builtins: boolean}} ctx Run state.
+ * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function, execArgv: Function, root: string, builtins: boolean, change: Function}} ctx Run state.
  * @returns {{outcome: object, shared: object|undefined, ran: boolean}} The verdict.
  */
 function verdictFor(
@@ -1174,6 +1320,7 @@ function verdictFor(
     siblings,
     declarations,
     cache,
+    change,
   }
 ) {
   const start = isPart(gate) ? partStart(gate, root) : null;
@@ -1183,6 +1330,9 @@ function verdictFor(
       ? partNotStarted(start.problem)
       : null);
   if (own) return { outcome: own, shared: undefined, ran: false };
+
+  const leftOut = start === null ? null : untouchedOutcome(gate, start, change);
+  if (leftOut) return { outcome: leftOut, shared: undefined, ran: false };
 
   // A remembered pass for this exact content (CodySwannGT/lisa#4594). It is a
   // known verdict, so it is honoured even once the run is blocked, exactly as
@@ -1320,6 +1470,12 @@ function verdictFor(
  *   True by default, which is every hook a stack template ships. False for a
  *   caller with none (`--builtins=none`): a gate resolved to `builtin` is then
  *   reported as not proved, because nothing is left to prove it.
+ * @param {() => ({paths: string[]|null, note: string|null})} [options.change]
+ *   Says which paths the change touches (CodySwannGT/lisa#4988), as
+ *   `changeAt` in `lib/changed-paths` answers it. `paths: null` means "not
+ *   known", and is the default: every part runs. Called at most once, and
+ *   only when the moment has a part for a folder, so a gates block with no
+ *   parts never asks. `note` is printed once, before the first such part.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -1338,8 +1494,20 @@ export function runGates({
   cache = null,
   selection = null,
   builtins = true,
+  change = () => ({ paths: null, note: null }),
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
+  // What the change touches, asked for when the first part for a folder is
+  // reached and never again. Said once, where it is first used, so the
+  // reader of a NOT APPLICABLE line has already been told what the change is.
+  let known = null;
+  const changeOnce = () => {
+    if (known === null) {
+      known = askChange(change, moment);
+      if (known.note !== null) out(`  🔎 ${known.note}`);
+    }
+    return known;
+  };
   const results = [];
   // The id of the first required gate to go unproved, not merely a boolean:
   // every gate queued behind it has to be able to say WHAT stopped it, or its
@@ -1427,6 +1595,7 @@ export function runGates({
       siblings: sharers.get(key) ?? new Set(),
       declarations: declaredShapes.get(key) ?? [],
       cache,
+      change: changeOnce,
     });
     const { shared, ran, raw } = verdict;
     // What the command said it selected (CodySwannGT/lisa#4600). A partial
@@ -1486,7 +1655,7 @@ export function runGates({
       startedAt: new Date(began).toISOString(),
       durationMs: shared ? 0 : elapsedMs,
     });
-    out(formatLine(outcome.state, gate, outcome.detail));
+    out(formatLine(shownState(outcome), gate, outcome.detail));
     for (const line of outcome.evidence ?? []) out(`${" ".repeat(6)}↳ ${line}`);
     const unproved =
       outcome.state === STATE.FAILED ||
@@ -1642,6 +1811,16 @@ const UNPROVED_STATES = new Set([
  * function and is deliberately left alone here — it is a design question about
  * whether a CI signal may retire a local step, not the errored-leg defect.)
  *
+ * ## A gate whose parts were all left out is not covered
+ *
+ * A part the change does not touch is SKIPPED, and keeps its gate covered as
+ * long as another part of that gate ran: the parts that ran checked what the
+ * change touched. When NO part ran, nothing in the registry looked at this
+ * change at all — it touched only files outside every folder the gate names,
+ * a shared configuration file at the root for one. The caller's built-in
+ * check is then the only thing left that can look, so the gate is withheld
+ * and that check runs (CodySwannGT/lisa#4988). See `untouchedFloor`.
+ *
  * Fail-safe on the input: no result means no run, and no run proves nothing.
  * @param {object} options Inputs.
  * @param {object} options.gates The gates block.
@@ -1662,7 +1841,29 @@ export function provenFloor({ gates, moment, wired = [], result = null }) {
       )
       .map(entry => entry.id)
   );
-  return declared.filter(id => !unproved.has(id));
+  const leftOut = new Set(untouchedFloor({ gates, moment, wired, result }));
+  return declared.filter(id => !unproved.has(id) && !leftOut.has(id));
+}
+
+/**
+ * Floor properties whose every part this change left untouched.
+ *
+ * Each of these is declared, was not found wanting, and proved nothing about
+ * this change, because no part of it ran. `provenFloor` withholds them, and
+ * `main` names them so the operator knows why a built-in check still ran.
+ * @param {object} options Inputs.
+ * @param {object} options.gates The gates block.
+ * @param {string} options.moment The moment being run.
+ * @param {string[]} [options.wired] Conditional floor ids this project wired.
+ * @param {GateRun|null} [options.result] What `runGates` produced.
+ * @returns {string[]} Floor gate ids with no part that applied to the change.
+ */
+export function untouchedFloor({ gates, moment, wired = [], result = null }) {
+  const results = result?.results ?? [];
+  return coveredFloor({ gates, moment, wired }).filter(id => {
+    const entries = results.filter(entry => entry.id === id);
+    return entries.length > 0 && entries.every(entry => entry.untouched);
+  });
 }
 
 /**
@@ -2231,8 +2432,13 @@ function evidenceSubject() {
  * records one row per part, all under one `gate`, and without the folder a
  * reader could not tell the row that failed from the row that passed. A gate
  * with no parts records exactly the four keys it always has.
+ *
+ * A part the change does not touch adds `applicable: false`. Its `status` is
+ * `unknown`, as it is for everything that was not measured, so a reader that
+ * knows only the three statuses still cannot take it for a pass; the extra
+ * key is what tells it apart from a part that ran and proved nothing.
  * @param {GateOutcome} outcome One resolved gate and its verdict.
- * @returns {{gate: string, status: string, level: string, label: string, scope?: string|null}} The gate's record.
+ * @returns {{gate: string, status: string, level: string, label: string, scope?: string|null, applicable?: false}} The gate's record.
  */
 function gateEvidence(outcome) {
   return {
@@ -2241,6 +2447,7 @@ function gateEvidence(outcome) {
     level: outcome.level,
     label: outcome.label ?? outcome.id,
     ...(isPart(outcome) ? { scope: outcome.scope ?? null } : {}),
+    ...(outcome.untouched === true ? { applicable: false } : {}),
   };
 }
 
@@ -2321,7 +2528,47 @@ function readFlag(argv, name) {
 /** How the command line is written. */
 const USAGE =
   "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>] " +
-  "[--evidence=<file>] [--builtins=none]";
+  "[--evidence=<file>] [--builtins=none] [--push-refs=<file>|-] [--parts=all]";
+
+/**
+ * The flag a push hook uses to hand over what git told it is being pushed.
+ *
+ * Its value is a file holding the hook's standard input exactly as git wrote
+ * it — one `<local ref> <local object> <remote ref> <remote object>` line per
+ * ref — or `-` to have this runner read its own standard input. Read only at
+ * push. Without it (and without the file the shipped push hook names in
+ * `LISA_PUSHED_REFS_FILE`) the runner does not know what is being pushed, and
+ * runs every part.
+ *
+ * With `-`, standard input is read to its end before any gate starts, so a
+ * gate's command then finds it empty. A caller whose gates read the pushed
+ * refs themselves hands over a file instead.
+ */
+const PUSH_REFS_FLAG = "push-refs";
+
+/** The flag that runs every part, whatever the change touches. */
+const PARTS_FLAG = "parts";
+
+/** The one value that flag takes. */
+const ALL_PARTS = "all";
+
+/**
+ * Why the `--parts` flag cannot be honoured as given, or null when it can.
+ *
+ * Refused rather than guessed at, for the reason `--builtins` is: a caller
+ * that wrote `--parts=api` meant something, and running a different set of
+ * parts than it asked for is not a favour.
+ * @param {string|null} value The flag's value, or null when it was not given.
+ * @returns {string|null} The problem, in a sentence, or null.
+ */
+function partsFlagProblem(value) {
+  if (value === null || value === ALL_PARTS) return null;
+  return (
+    `--${PARTS_FLAG}=${JSON.stringify(value)} is not something this runner ` +
+    `understands. The only value is --${PARTS_FLAG}=${ALL_PARTS}, which runs ` +
+    `every part whatever the change touches.`
+  );
+}
 
 /** The flag a caller uses to say what checks of its own it has. */
 const BUILTINS_FLAG = "builtins";
@@ -2459,7 +2706,12 @@ export function main(argv = process.argv.slice(2)) {
   const builtinsFlag = argv.includes(`--${BUILTINS_FLAG}`)
     ? ""
     : readFlag(argv, BUILTINS_FLAG);
-  const flagProblem = builtinsFlagProblem(builtinsFlag, coveragePath);
+  const partsFlag = argv.includes(`--${PARTS_FLAG}`)
+    ? ""
+    : readFlag(argv, PARTS_FLAG);
+  const flagProblem =
+    builtinsFlagProblem(builtinsFlag, coveragePath) ??
+    partsFlagProblem(partsFlag);
   if (flagProblem) {
     console.error(`⚠️  ${flagProblem}`);
     console.error(USAGE);
@@ -2467,6 +2719,16 @@ export function main(argv = process.argv.slice(2)) {
     return EXIT.RUNNER_FAILED;
   }
   const standalone = builtinsFlag === NO_BUILTINS;
+  // Standard input is read NOW, before anything else is started. Every gate
+  // command inherits it, and git writes the pushed refs there exactly once:
+  // read lazily, whichever of the runner and a gate got there first would
+  // leave the other nothing, and the answer would depend on the order the
+  // gates happen to run in.
+  const pushRefsFlag = readFlag(argv, PUSH_REFS_FLAG);
+  const stdinRefs =
+    moment === "push" && pushRefsFlag === PUSH_REFS_STDIN
+      ? readPushRefs(PUSH_REFS_STDIN)
+      : undefined;
 
   // PRINTED BEFORE ANY GATE RUNS, so it is present whether they pass, fail,
   // are optional, or never run at all. Every early return below is a report an
@@ -2759,6 +3021,22 @@ export function main(argv = process.argv.slice(2)) {
     cache,
     selection,
     builtins: !standalone,
+    // What the change touches is read HERE and handed down, for the reason
+    // the manifest is: `runGates` stays a function of its inputs. It is asked
+    // only if this moment has a part for a folder, so a gates block with no
+    // parts starts no git and prints nothing new.
+    change: () =>
+      partsFlag === ALL_PARTS
+        ? {
+            paths: null,
+            note: `Every part runs at ${moment}: --${PARTS_FLAG}=${ALL_PARTS} was given.`,
+          }
+        : changeAt({
+            moment,
+            root: process.cwd(),
+            pushRefs: pushRefsFlag,
+            ...(stdinRefs === undefined ? {} : { read: () => stdinRefs }),
+          }),
     // The manifest is read HERE and handed down, rather than read inside the
     // resolver, so that `runGates` stays a pure function of its inputs and
     // every test above can state what this project ships instead of writing a
@@ -2791,6 +3069,19 @@ export function main(argv = process.argv.slice(2)) {
   // errored retired the fallback that would have caught the error. See
   // `provenFloor`. A write failure keeps its old meaning: the record the caller
   // asked for does not exist, so no verdict may be reported off it.
+  if (coveragePath) {
+    for (const id of untouchedFloor({
+      gates: config.gates,
+      moment,
+      wired,
+      result,
+    })) {
+      console.log(
+        `ℹ️  No part of ${id} applies to this change, so the built-in check ` +
+          `for it still runs.`
+      );
+    }
+  }
   if (
     coveragePath &&
     !writeCoverage(

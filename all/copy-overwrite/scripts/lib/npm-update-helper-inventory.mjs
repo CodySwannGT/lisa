@@ -42,6 +42,7 @@ const COMMON = [
   "lib/lisa-cleanup-sweep.mjs",
   "lib/lisa-cleanup-sweep-processes.mjs",
   "lib/build-marker.mjs",
+  "lib/changed-paths.mjs",
   "lib/gate-pass-cache.mjs",
   "lib/affected-tests.mjs",
   "lisa-rspec-select.mjs",
