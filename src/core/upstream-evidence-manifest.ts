@@ -1719,7 +1719,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
       "8687d794603742e83f3b7d7b1d21a56c98422e4301eef99f0d05eacc26d955b8",
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md":
-      "6fdb0f845da1525c9590faaabf239d62ef0a39c53d0dcc45981c08b3234b98be",
+      "e5cff20977f04cd875bbd2c1f8c2cd8b40d5291585d1d34cb4dfb4fab3a98fce",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "6878641d8ae3c0b1e6bab736e46dd5b0fd32a5e25ca9a0eecd1e66a5fb0bfdd2",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -11142,10 +11142,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/audit-capture.ts": true,
     "src/core/audit-exclusions.ts": true,
     "src/core/audit-field-names.ts": true,
+    "src/core/audit-installed-copies.ts": true,
     "src/core/audit-lockfile.ts": true,
     "src/core/audit-manager.ts": true,
     "src/core/audit-matcher.ts": true,
     "src/core/audit-patch-hints.ts": true,
+    "src/core/audit-patch-proof.ts": true,
     "src/core/audit-patches.ts": true,
     "src/core/audit-report.ts": true,
     "src/core/audit-types.ts": true,
@@ -11637,6 +11639,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
     "tests/helpers/audit-action-fixture.ts": true,
     "tests/helpers/audit-parity-managers.ts": true,
+    "tests/helpers/audit-patch-fixture.ts": true,
     "tests/helpers/auto-update-fixture.ts": true,
     "tests/helpers/bounded-bash.ts": true,
     "tests/helpers/child-bound-scan.ts": true,
@@ -12430,6 +12433,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/apply-receipt-deletion-record.test.ts": true,
     "tests/unit/core/audit-lockfile-formats.test.ts": true,
     "tests/unit/core/audit-lockfile-sources.test.ts": true,
+    "tests/unit/core/audit-patch-proof.test.ts": true,
     "tests/unit/core/audit-patches.test.ts": true,
     "tests/unit/core/audit-report-completeness.test.ts": true,
     "tests/unit/core/audit-review-4693.test.ts": true,

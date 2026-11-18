@@ -1,122 +1,34 @@
 /**
  * A project's own advisory patch resolves a finding only while every proof
- * holds: the installed files match the patched content, the patch names a
- * regression test that exists, and the registry has published no fixed
- * version. The registry is mocked; nothing here reaches the network.
+ * holds: the installed files match the patched content, the regression test
+ * proves the fix (see audit-patch-proof.test.ts), and the registry has
+ * published no fixed version. The registry is mocked; nothing here reaches
+ * the network.
  */
-import { createHash } from "node:crypto";
-import {
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { rmSync, symlinkSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   evaluateAuditReport,
   verifyCapturedAudit,
 } from "../../../src/core/audit.js";
+import { readAdvisoryPatches } from "../../../src/core/audit-patches.js";
+import { installedCopies } from "../../../src/core/audit-installed-copies.js";
 import {
-  installedCopies,
-  readAdvisoryPatches,
-} from "../../../src/core/audit-patches.js";
+  GHSA,
+  PATCH_FILE,
+  PATCHED,
+  PRISTINE,
+  TEST_FILE,
+  UNPATCHED_ONLY,
+  fixture,
+  put,
+  removeFixtures,
+  report,
+  sha256,
+} from "../../helpers/audit-patch-fixture.js";
 
-const GHSA = "GHSA-aaaa-bbbb-cccc";
-const PATCHED = "module.exports = 'patched';\n";
-const PRISTINE = "module.exports = 'pristine';\n";
-const PATCH_FILE = ".lisa/patches/glob@1.0.0.patch";
-const TEST_FILE = ".lisa/patches/glob.regression.mjs";
-/**
- * A registry that has published only vulnerable versions.
- * @returns Published versions
- */
-const UNPATCHED_ONLY = async () => ["0.9.0", "1.0.0"];
-const roots: string[] = [];
-
-/**
- * A Bun report with one high advisory for glob.
- * @param range - The advisory's vulnerable range
- * @returns Report JSON
- */
-const report = (range = "<=1.0.0") =>
-  JSON.stringify({
-    glob: [
-      {
-        id: 1,
-        severity: "high",
-        url: `https://github.com/advisories/${GHSA}`,
-        vulnerable_versions: range,
-      },
-    ],
-  });
-
-const sha256 = (text: string) =>
-  createHash("sha256").update(text).digest("hex");
-
-/**
- * Write a file, creating its directory.
- * @param root - Fixture root
- * @param file - Path relative to the root
- * @param text - File content
- */
-function put(root: string, file: string, text: string): void {
-  mkdirSync(dirname(join(root, file)), { recursive: true });
-  writeFileSync(join(root, file), text);
-}
-
-/**
- * A Bun project whose glob@1.0.0 is patched by a header-carrying patch.
- * @param overrides - Fixture variations
- * @param overrides.installed - Content of the installed lib/index.js
- * @param overrides.header - Header lines above the diff
- * @param overrides.regressionTest - Whether the regression test file exists
- * @param overrides.copies - Lockfile packages map
- * @returns Fixture root
- */
-function fixture({
-  installed = PATCHED,
-  header = [
-    `Lisa-Advisory: ${GHSA}`,
-    `Lisa-Regression-Test: ${TEST_FILE}`,
-    `Lisa-Patched-File: lib/index.js sha256:${sha256(PATCHED)}`,
-  ],
-  regressionTest = true,
-  copies = { glob: ["glob@1.0.0"] } as Record<string, unknown>,
-} = {}): string {
-  const root = mkdtempSync(join(tmpdir(), "lisa-audit-patches-"));
-  const store = "node_modules/.bun/glob@1.0.0/node_modules/glob";
-  roots.push(root);
-  put(
-    root,
-    "package.json",
-    JSON.stringify({
-      name: "host",
-      patchedDependencies: { "glob@1.0.0": PATCH_FILE },
-    })
-  );
-  put(
-    root,
-    "bun.lock",
-    `// JSONC fixture\n${JSON.stringify({ packages: copies })}`
-  );
-  put(
-    root,
-    PATCH_FILE,
-    `${header.join("\n")}\n\ndiff --git a/lib/index.js b/lib/index.js\n`
-  );
-  if (regressionTest) put(root, TEST_FILE, "// proof\n");
-  put(root, `${store}/package.json`, '{"name":"glob","version":"1.0.0"}');
-  put(root, `${store}/lib/index.js`, installed);
-  return root;
-}
-
-afterEach(() => {
-  for (const root of roots.splice(0))
-    rmSync(root, { recursive: true, force: true });
-});
+afterEach(removeFixtures);
 
 describe("advisory patches in the audit gate", () => {
   it("accepts a finding when every proof holds", async () => {
@@ -144,7 +56,7 @@ describe("advisory patches in the audit gate", () => {
 
   it("fails when the named regression test does not exist", async () => {
     const verdict = await verifyCapturedAudit(
-      fixture({ regressionTest: false }),
+      fixture({ regressionTest: null }),
       "bun",
       report(),
       { publishedVersions: UNPATCHED_ONLY }
@@ -304,6 +216,7 @@ describe("advisory patches in the audit gate", () => {
         advisories: [GHSA],
         regressionTest: TEST_FILE,
         files: [{ path: "lib/index.js", sha256: sha256(PATCHED) }],
+        problems: [],
       },
     ]);
   });

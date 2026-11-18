@@ -164,8 +164,16 @@ resolved only when all of these hold:
 
 - every vulnerable copy in the lockfile and in `node_modules` has a declared
   patch whose header names the advisory;
-- every installed copy's patched files hash to the declared SHA-256;
-- the named regression test exists;
+- every `Lisa-Patched-File` is a file the patch's `diff --git` lines change,
+  as a relative path inside the package, and every installed copy's file
+  hashes to the declared SHA-256;
+- the patch's `name@version` is the advisory's package and inside its
+  vulnerable range, and at least one locked or installed copy is in that range;
+- the named regression test (a relative path inside the project) is **run**:
+  it must exit 0 against every installed copy and exit non-zero against the
+  same package with the patch reversed, each run bounded to two minutes. A
+  test that passes either way (an empty test, a patch that changes no code)
+  proves nothing and fails the audit;
 - the npm registry publishes no non-prerelease version newer than the patched
   one and outside the advisory's vulnerable range.
 
@@ -174,6 +182,10 @@ version: upgrade and delete the patch. A registry that cannot be reached fails
 the audit closed. `evaluateAuditReport` cannot query the registry, so it never
 credits a patch.
 
+The header is a claim; running the test is the proof. Because the header
+travels with the patch, there is no separate list mapping patches to
+advisories to fall out of date.
+
 Lisa ships its own patches (currently picomatch, GHSA-fc5q-39xc-vjpf) to every
 TypeScript project through `.lisa/patches/` and `force.patchedDependencies`.
 npm and Yarn classic have no native patch mechanism, so a project on them gets
@@ -181,3 +193,24 @@ no patch credit and the advisory remains a finding there. When a patch Lisa
 ships under `.lisa/patches/` covers that finding, the failing audit says so and
 names the fix: switch the project to Bun, or upgrade once a fixed release
 exists.
+
+### What the picomatch patch changes
+
+The picomatch patch keeps every repeated extglob (`+(...)`, `*(...)`) from
+backtracking catastrophically: a `*` at any depth (`+(*a)`, `+(@(*))`), a
+negation (`+(!(a))`), a run of `*(c)` groups whose copies can overlap
+(`+(*(a)a)`), a repeat hidden inside `@(...)` (`+(@(+([ab])))`), and branches
+that can split the same text into copies in two ways (`+([ab]|b)`,
+`+(a|b|ab)`, `+(*(ab)c|abc)`, a nested group overlapping its own branch as in
+`+(a*([ab]))`, and `+(b|B)` under `nocase`). Branches inside a whole-branch `@(...)` are checked as if
+written directly in the repeat.
+
+Where an equivalent flat regex exists it is used, so `+(*a|b)`, `+(@(*))` and
+`+(!(a))` match exactly what they matched before. Where none exists the
+pattern is compiled as a **literal**, as picomatch already does for other
+risky repeated extglobs such as `+(a|aa)`: `+(a*|*b)`, `+(a*b|a)`, `+(*(a)a)`,
+`+([ab]|b)`, `+(a|b|ab)` and `+(a*([ab]))` then match only a file literally
+named `+(a*|*b)` and so on, which in practice is nothing. Unambiguous
+alternations such as `+(js|ts|jsx)`, `+(foo|far)` and `*(f*(o))` are unchanged,
+and `+(@(*(a)))` compiles to the same `a*` as `+(*(a))`. No Lisa
+configuration or default tool glob uses any of these shapes.

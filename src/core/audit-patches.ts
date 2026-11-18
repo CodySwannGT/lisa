@@ -1,9 +1,15 @@
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { gt, prerelease, satisfies, valid } from "semver";
 import { AuditCaptureError } from "./audit-capture.js";
+import { installedCopies } from "./audit-installed-copies.js";
 import { auditRecord } from "./audit-exclusions.js";
+import {
+  patchedPathProblem,
+  patchTargets,
+  regressionProblems,
+} from "./audit-patch-proof.js";
 import type { AuditCopy, AuditFinding, AuditVerdict } from "./audit-types.js";
 
 /**
@@ -15,6 +21,11 @@ import type { AuditCopy, AuditFinding, AuditVerdict } from "./audit-types.js";
  *   Lisa-Advisory: GHSA-xxxx-xxxx-xxxx
  *   Lisa-Regression-Test: .lisa/patches/<name>.regression.mjs
  *   Lisa-Patched-File: lib/parse.js sha256:<hex of the file after patching>
+ *
+ * The header is only a claim. The audit executes it (see audit-patch-proof):
+ * every hashed file must be one the patch changes, inside the package, and
+ * the regression test must pass on every installed copy and fail on the same
+ * package with the patch reversed.
  *
  * Patches are found through the package manager's native declaration: Bun's
  * `patchedDependencies` in package.json. npm and Yarn classic have no native
@@ -30,6 +41,8 @@ export interface AdvisoryPatch {
   readonly advisories: readonly string[];
   readonly regressionTest: string;
   readonly files: readonly { readonly path: string; readonly sha256: string }[];
+  /** Header claims that fail on their face, such as a hash of an unchanged file. */
+  readonly problems: readonly string[];
 }
 
 /** How the audit learns which versions the registry has published. */
@@ -83,7 +96,9 @@ function readAdvisoryPatch(
   const name = spec.slice(0, at);
   const version = spec.slice(at + 1);
   const path = resolve(root, file);
-  const pairs = existsSync(path) ? headerPairs(readFileSync(path, "utf8")) : [];
+  const text = existsSync(path) ? readFileSync(path, "utf8") : "";
+  const pairs = headerPairs(text);
+  const targets = patchTargets(text);
   const values = (key: string) =>
     pairs.filter(([found]) => found === key).map(([, value]) => value);
   const advisories = values("Advisory");
@@ -99,7 +114,11 @@ function readAdvisoryPatch(
     return { path: match[1] ?? "", sha256: match[2] ?? "" };
   });
   const [regressionTest = ""] = values("Regression-Test");
-  return { name, version, file, advisories, regressionTest, files };
+  const problems = files.flatMap(entry => {
+    const problem = patchedPathProblem(entry.path, targets);
+    return problem ? [`${file}: ${problem}`] : [];
+  });
+  return { name, version, file, advisories, regressionTest, files, problems };
 }
 
 /**
@@ -122,62 +141,6 @@ export function readAdvisoryPatches(root: string): readonly AdvisoryPatch[] {
       throw new Error(`patchedDependencies.${spec} is not a path`);
     const patch = readAdvisoryPatch(root, spec, file);
     return patch ? [patch] : [];
-  });
-}
-
-/**
- * Child node_modules directories of one node_modules directory, including
- * the isolated stores Bun and pnpm keep under `.bun` and `.pnpm`.
- * @param modules - A node_modules directory
- * @returns The node_modules directories nested one level below it
- */
-function nestedModules(modules: string): readonly string[] {
-  return readdirSync(modules, { withFileTypes: true }).flatMap(entry => {
-    if (!entry.isDirectory()) return [];
-    const base = join(modules, entry.name);
-    const children =
-      entry.name.startsWith("@") || [".bun", ".pnpm"].includes(entry.name)
-        ? readdirSync(base, { withFileTypes: true })
-            .filter(child => child.isDirectory())
-            .map(child => join(base, child.name))
-        : [base];
-    return children
-      .map(child => join(child, "node_modules"))
-      .filter(child => existsSync(child) && lstatSync(child).isDirectory());
-  });
-}
-
-/**
- * Every real (non-symlinked) installed directory of a package, at any depth.
- * @param root - Project root whose node_modules is searched
- * @param name - Package name
- * @returns Each installed directory with the version its manifest declares
- */
-export function installedCopies(
-  root: string,
-  name: string
-): readonly { readonly dir: string; readonly version: string }[] {
-  const start = join(root, "node_modules");
-  const walk = (
-    queue: readonly string[],
-    seen: ReadonlySet<string>
-  ): readonly string[] => {
-    const fresh = queue.filter(dir => !seen.has(dir));
-    if (!fresh.length) return [...seen];
-    const next = new Set([...seen, ...fresh]);
-    return walk(fresh.flatMap(nestedModules), next);
-  };
-  const modules = existsSync(start) ? walk([start], new Set()) : [];
-  return modules.flatMap(dir => {
-    const pkg = join(dir, ...name.split("/"));
-    const manifest = join(pkg, "package.json");
-    if (!existsSync(manifest) || lstatSync(pkg).isSymbolicLink()) return [];
-    const parsed: unknown = JSON.parse(readFileSync(manifest, "utf8"));
-    return auditRecord(parsed) &&
-      parsed.name === name &&
-      typeof parsed.version === "string"
-      ? [{ dir: pkg, version: parsed.version }]
-      : [];
   });
 }
 
@@ -231,22 +194,16 @@ function localProblems(
       return [
         `${finding.name}@${version} is vulnerable and no patch names ${finding.ids[0]} for it`,
       ];
-    const test = patch.regressionTest;
-    const testProblem =
-      test && existsSync(resolve(root, test))
-        ? []
-        : [
-            `${patch.file} names regression test "${test}", which does not exist`,
-          ];
+    const headerProblems = patch.problems;
     const copies = installed.filter(copy => copy.version === version);
     if (!copies.length)
       return [
-        ...testProblem,
+        ...headerProblems,
         `${finding.name}@${version} is not installed, so ${patch.file} cannot be verified; install dependencies first`,
       ];
     if (!patch.files.length)
       return [
-        ...testProblem,
+        ...headerProblems,
         `${patch.file} declares no Lisa-Patched-File hash`,
       ];
     const mismatched = copies.flatMap(copy =>
@@ -256,11 +213,42 @@ function localProblems(
     );
     return mismatched.length
       ? [
-          ...testProblem,
+          ...headerProblems,
           `installed files do not match ${patch.file}: ${mismatched.join(", ")}; reinstall so the patch is applied`,
         ]
-      : testProblem;
+      : headerProblems;
   });
+}
+
+/**
+ * Run each patch's regression test against the installed copies it covers.
+ * @param root - Project root
+ * @param finding - The advisory being decided
+ * @param patches - The patches naming this advisory for this package
+ * @param versions - The vulnerable versions, each with a verified patch
+ * @returns One message per patch whose test does not prove the fix
+ */
+async function executedProof(
+  root: string,
+  finding: AuditFinding,
+  patches: readonly AdvisoryPatch[],
+  versions: readonly string[]
+): Promise<readonly string[]> {
+  const installed = installedCopies(root, finding.name);
+  const results = await Promise.all(
+    patches
+      .filter(patch => versions.includes(patch.version))
+      .map(patch =>
+        regressionProblems(
+          root,
+          patch,
+          installed
+            .filter(copy => copy.version === patch.version)
+            .map(copy => copy.dir)
+        )
+      )
+  );
+  return results.flat().map(problem => `${finding.ids[0]}: ${problem}`);
 }
 
 /**
@@ -312,6 +300,12 @@ async function decidePatched(
     };
   const vulnerable = (version: string) =>
     satisfies(version, range, { includePrerelease: true });
+  const outOfRange = patches
+    .filter(patch => !vulnerable(patch.version))
+    .map(
+      patch =>
+        `${id}: ${patch.file} names ${id} for ${patch.name}@${patch.version}, which is outside the advisory's vulnerable range ${range}`
+    );
   const versions = [
     ...new Set([
       ...copies
@@ -320,12 +314,24 @@ async function decidePatched(
       ...installedCopies(root, finding.name).map(copy => copy.version),
     ]),
   ].filter(vulnerable);
-  const local = localProblems(root, finding, patches, versions);
-  if (local.length)
+  if (!versions.length)
     return {
       passed: false,
-      messages: local.map(problem => `${id}: ${problem}`),
+      messages: [
+        ...outOfRange,
+        `${id}: no locked or installed ${finding.name} is in the vulnerable range ${range}, so there is no copy ${patches[0]?.file} can be verified against`,
+      ],
     };
+  const local = [
+    ...outOfRange,
+    ...localProblems(root, finding, patches, versions).map(
+      problem => `${id}: ${problem}`
+    ),
+  ];
+  const proof = local.length
+    ? local
+    : await executedProof(root, finding, patches, versions);
+  if (proof.length) return { passed: false, messages: proof };
   const published = await publishedVersions(finding.name).catch(
     (error: unknown) => {
       throw new AuditCaptureError(
@@ -367,27 +373,36 @@ export async function decidePatchedFindings(
   options: AuditPatchOptions = {}
 ): Promise<PatchedFindings> {
   const patches = readAdvisoryPatches(root);
-  const naming = (finding: AuditFinding) =>
-    patches.filter(
-      patch =>
-        patch.name === finding.name &&
-        patch.advisories.some(id => finding.ids.includes(id))
+  const claiming = (finding: AuditFinding) =>
+    patches.filter(patch =>
+      patch.advisories.some(id => finding.ids.includes(id))
     );
   const verdicts = await Promise.all(
     findings
-      .filter(finding => naming(finding).length > 0)
-      .map(finding =>
-        decidePatched(
-          root,
-          finding,
-          naming(finding),
-          copies(),
-          options.publishedVersions ?? registryVersions
-        )
-      )
+      .filter(finding => claiming(finding).length > 0)
+      .map(finding => {
+        const foreign = claiming(finding).filter(
+          patch => patch.name !== finding.name
+        );
+        return foreign.length
+          ? Promise.resolve({
+              passed: false,
+              messages: foreign.map(
+                patch =>
+                  `${finding.ids[0]}: ${patch.file} names ${finding.ids[0]}, an advisory for ${finding.name}, but patches ${patch.name}`
+              ),
+            })
+          : decidePatched(
+              root,
+              finding,
+              claiming(finding),
+              copies(),
+              options.publishedVersions ?? registryVersions
+            );
+      })
   );
   return {
-    remaining: findings.filter(finding => naming(finding).length === 0),
+    remaining: findings.filter(finding => claiming(finding).length === 0),
     verdicts,
   };
 }

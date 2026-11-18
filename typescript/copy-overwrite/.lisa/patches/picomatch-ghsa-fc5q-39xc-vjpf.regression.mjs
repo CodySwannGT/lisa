@@ -4,7 +4,11 @@
 
 /**
  * Regression proof for GHSA-fc5q-39xc-vjpf (picomatch ReDoS through repeated
- * extglobs with a `*` branch, such as `+(*)` and `+(*a)`).
+ * extglobs with a `*` branch, such as `+(*)` and `+(*a)`, including a `*`
+ * hidden inside a nested group, such as `+(@(*))` and `+(!(*))`), plus the
+ * other nested-quantifier shapes the same guard covers: a repeat hidden in
+ * `@(...)`, as in `+(@(+([ab])))`, and branches that split the same text into
+ * copies in two ways, as in `+([ab]|b)`, `+(a|b|ab)` and `+(a*([ab]))`.
  *
  * Usage: node picomatch-ghsa-fc5q-39xc-vjpf.regression.mjs [--budget=<ms>] <picomatch-dir>...
  *
@@ -18,7 +22,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** The advisory's attack patterns plus the shapes the same fix covers. */
-export const ATTACK_PATTERNS = [
+const NAMED_PATTERNS = [
   "+(*)",
   "*(*)",
   "+(*a)",
@@ -27,10 +31,66 @@ export const ATTACK_PATTERNS = [
   "+(*a*)",
   "+(*a|b)",
   "*(a*|b)",
+  "+(@(*))",
+  "*(@(*))",
+  "+(@(*a))",
+  "+(@(*)|b)",
+  "+(!(*))",
+  "*(!(a))",
+  "+(*(a)a)",
+  "+(@(+([ab])))",
+  "+([ab]|b)",
+  "*(@([ab])|b)",
+  "+(a|b|ab)",
+  "+(*(ab)c|abc)",
+  "+(@(*(ab?)[ab])|b)",
+  "+(a*([ab]))",
+  "*(ab*(ab))",
+];
+
+/** Branch bodies with an unbounded quantifier that a repeat must not nest. */
+const ATOMS = [
+  "*",
+  "*a",
+  "a*",
+  "**",
+  "*(a)",
+  "*(a)a",
+  "+(a)",
+  "+(a)a",
+  "a|*",
+  "?(a)*",
+];
+
+/** Every extglob operator, which may hide an atom up to two groups deep. */
+const WRAPS = ["@", "!", "?", "+", "*"];
+
+/**
+ * The generated class: each atom bare, inside one group and inside two,
+ * repeated by `+(...)` and `*(...)`, alone and beside a plain branch.
+ * @returns {string[]} Every generated pattern
+ */
+function nestedFamily() {
+  const bodies = ATOMS.flatMap(atom => [
+    atom,
+    ...WRAPS.flatMap(outer => [
+      `${outer}(${atom})`,
+      ...WRAPS.map(inner => `${inner}(${outer}(${atom}))`),
+    ]),
+  ]);
+  return [...new Set(bodies)].flatMap(body =>
+    ["+", "*"].flatMap(op => [`${op}(${body})`, `${op}(${body}|b)`])
+  );
+}
+
+export const ATTACK_PATTERNS = [
+  ...new Set([...NAMED_PATTERNS, ...nestedFamily()]),
 ];
 
 /** Short inputs that never match, which forces a full backtracking search. */
-export const ATTACK_INPUTS = ["/", "!", "b"].map(end => "a".repeat(40) + end);
+export const ATTACK_INPUTS = ["a", "b", "ab", "aba", "abc"].flatMap(run =>
+  ["/", "!", "c"].map(end => run.repeat(Math.ceil(90 / run.length)) + end)
+);
 
 /** Unpatched picomatch needs minutes on these inputs; patched needs milliseconds. */
 export const BUDGET_MS = 5000;
@@ -49,9 +109,14 @@ for (const pattern of patterns) {
  * Run every attack against one picomatch copy inside the budget.
  * @param {string} dir - Directory of an installed picomatch package
  * @param {number} [budget] - Milliseconds before the copy counts as vulnerable
+ * @param {readonly string[]} [patterns] - Attack patterns to run
  * @returns {{ passed: boolean, elapsedMs: number }} Whether it finished in time
  */
-export function checkPicomatch(dir, budget = BUDGET_MS) {
+export function checkPicomatch(
+  dir,
+  budget = BUDGET_MS,
+  patterns = ATTACK_PATTERNS
+) {
   const started = Date.now();
   const result = spawnSync(
     process.execPath,
@@ -59,7 +124,7 @@ export function checkPicomatch(dir, budget = BUDGET_MS) {
       "-e",
       CHILD,
       resolve(dir),
-      JSON.stringify(ATTACK_PATTERNS),
+      JSON.stringify(patterns),
       JSON.stringify(ATTACK_INPUTS),
     ],
     { timeout: budget, encoding: "utf8" }

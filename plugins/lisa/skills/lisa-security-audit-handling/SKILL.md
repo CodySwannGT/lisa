@@ -54,7 +54,7 @@ When no fixed version exists, a Bun project can fix the vulnerable copy itself i
    Lisa-Patched-File: <file in the package> sha256:<hash of the file after patching>
    ```
 
-The audit then accepts the advisory **only** while every vulnerable copy in the lockfile and `node_modules` has a patch naming it, every installed copy hashes to the patched content, the regression test exists, and the registry publishes no version outside the vulnerable range. The day a fix is published the audit fails again: upgrade the package and delete the patch. npm and Yarn classic have no native patch mechanism, so this route is Bun-only; on them, continue with step 3.
+The audit then accepts the advisory **only** while every vulnerable copy in the lockfile and `node_modules` has a patch naming it, every hashed file is one the patch changes inside the package and hashes to the patched content on every installed copy, the patch's package and version match the advisory, the regression test **passes when the audit runs it** against every installed copy **and fails** against the package with the patch reversed, and the registry publishes no version outside the vulnerable range. A test that cannot tell patched from unpatched fails the audit. The day a fix is published the audit fails again: upgrade the package and delete the patch. npm and Yarn classic have no native patch mechanism, so this route is Bun-only; on them, continue with step 3.
 
 ### Critical: Override the vulnerable package, not its parent
 
