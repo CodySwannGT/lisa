@@ -461,7 +461,7 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     // fork is a decision, and so is every earlier rung of the ladder.
     label: "approve maintaining our own copy of an open-source library",
     pattern:
-      /\b(maintain\w*|keep\w*|carry\w*|own\w*) (our|its) own (patched |vendored |forked )?(copy|copies|fork|forks|patch|patches) of\b/u,
+      /\b((maintain\w*|keep\w*|carry\w*|own\w*) (our|its) own (patched |vendored |forked )?(copy|copies|fork|forks|patch|patches) of|(apply\w*|carry\w*|maintain\w*|keep\w*|add\w*) (a |an |our |the )?(local )?(patch|patches) (to|of|for|against|on)|(fork|forking|vendor|vendoring) (?!of\b)(a |an |our |the )?([a-z0-9]+ ){0,2}(library|libraries|dependency|dependencies|package|packages))\b/u,
   }),
   Object.freeze({
     act: "compliance-signoff",

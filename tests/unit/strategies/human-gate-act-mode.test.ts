@@ -97,6 +97,10 @@ describe("classifyHumanGateReason under each humanGate.mode", () => {
     "approve maintaining our own fork of left-pad",
     "approve maintaining our own patched copy of minimatch",
     "approve maintaining our own vendored copy of tar",
+    "approve applying a patch to picomatch",
+    "approve carrying a local patch against minimatch",
+    "approve forking the picomatch library",
+    "approve vendoring the tar package",
   ])("holds %j in both modes as our own dependency copy", reason => {
     for (const options of [{}, STRICT]) {
       const verdict = classifyHumanGateReason(reason, options);
@@ -109,6 +113,8 @@ describe("classifyHumanGateReason under each humanGate.mode", () => {
     "dependency-copy-cleanup",
     "fork-strategy",
     "choose which fork of the library to depend on",
+    "patch-notes-layout",
+    "apply the upstream patch release",
   ])("does not read %j as our own dependency copy", reason => {
     expect(classifyHumanGateReason(reason).act).not.toBe("own-dependency-copy");
   });
