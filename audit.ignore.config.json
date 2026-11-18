@@ -167,6 +167,12 @@
       "id": "GHSA-h67p-54hq-rp68",
       "package": "js-yaml",
       "reason": "Quadratic-complexity DoS in merge key handling — dev tooling and direct helper dependency, no untrusted YAML parsing path"
+    },
+    {
+      "id": "GHSA-fc5q-39xc-vjpf",
+      "cve": "CVE-2026-112366",
+      "package": "picomatch",
+      "reason": "ReDoS via repeated extglobs (including a star branch) — dev tooling only (vitest, vite, jest, knip, lint-staged, tinyglobby, @parcel/watcher) on repo-owned glob patterns; no runtime code path passes untrusted globs to picomatch; no patched release exists"
     }
   ]
 }

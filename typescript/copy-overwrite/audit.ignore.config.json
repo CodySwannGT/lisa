@@ -137,6 +137,12 @@
       "id": "GHSA-j759-j44w-7fr8",
       "package": "@xmldom/xmldom",
       "reason": "XML node injection via unvalidated comment serialization. Transitive via expo > @expo/config-plugins > @expo/plist; only serializes developer-authored plist files at build/prebuild time, no runtime code path serializes attacker-controlled XML."
+    },
+    {
+      "id": "GHSA-fc5q-39xc-vjpf",
+      "cve": "CVE-2026-112366",
+      "package": "picomatch",
+      "reason": "ReDoS via repeated extglobs (including a star branch) — dev tooling only (vitest, vite, jest, knip, lint-staged, tinyglobby, @parcel/watcher) on repo-owned glob patterns; no runtime code path passes untrusted globs to picomatch; no patched release exists"
     }
   ]
 }
