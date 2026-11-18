@@ -1136,6 +1136,114 @@ propose-threshold` turns a value measured with the host's own tool into the
 parameter to propose, `{ value: <measured>, direction }`, and nothing else
 goes into it: there is no default in that code to fall back on.
 
+### A part the change does not touch
+
+In a repository with two parts, a change to one should not run the other's
+check, and must not be reported as having passed it. So at commit and at push
+the runner works out which paths the change touches, and leaves out a part
+whose folder holds none of them:
+
+```
+  🔎 This commit changes 1 path(s). A part runs only when one of them is inside its folder; a part for the whole repository always runs.
+  PASSED     required code-style in api           ["go","vet","./..."]
+  NOT APPLICABLE required code-style in web       the change touches nothing inside "web", so ["npm","run","lint"] was not run. Not counted as proved
+✅ commit: 1 proved, 0 failed (optional), 0 not proved, 0 killed, 1 not applicable here, of 2 gate(s) declared. Each part of a gate is counted on its own. 1 part(s) this change does not touch were not run, and are counted as not applicable, never as proved.
+```
+
+**A part left out by mistake is a folder nothing checked.** That is the
+mistake that matters, so the rule has one direction: a part is left out only
+when the runner is sure the change does not touch it. Everything it is not
+sure about runs the part.
+
+| Moment            | What "the change" is                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| `commit`          | The staged paths, read from the index git names for this commit. A rename counts at its old and its new path, and a deletion counts. |
+| `push`            | For each ref being pushed, what differs between the commit the remote holds and the commit being sent.   |
+| every other moment | Not worked out. Every part runs.                                                                        |
+
+The change is **not known**, and every part runs, when:
+
+- there is no git, or the runner was not started at the top of a repository;
+- git is set up to answer for some other repository (an inherited `GIT_DIR`
+  or `GIT_INDEX_FILE`), or fails, or is killed;
+- nothing is staged — which is also what a runner started by hand sees, and
+  a run to check the repository must not report every folder as untouched;
+- the caller did not say what is being pushed, or the list is empty or is not
+  written the way git writes it;
+- a ref is new on the remote (a first push of a branch, a new tag), because
+  there is nothing to compare it with;
+- git does not hold the commit the remote has;
+- more than 100 refs are pushed at once;
+- the push changes no file at all;
+- the change edits `.lisa.config.json`, the file that says what each part
+  runs.
+
+An amended commit is read like any other: the paths staged on top of the
+commit being amended. Amending only the message stages nothing, so every part
+runs.
+
+A push of several refs adds their paths together, and one ref that cannot be
+compared makes the whole push "not known". A ref being deleted sends no
+commit and adds no path. A forced push is read like any other: the two ends
+are compared as they are.
+
+**The pushed range comes from the push hook, and only from there.** Git
+writes `<local ref> <local object> <remote ref> <remote object>` for every
+ref on the hook's standard input, and nothing else knows both ends. The
+caller hands that text to the runner with `--push-refs=<file>`, or
+`--push-refs=-` to have the runner read its own standard input. When the flag
+is absent the runner reads the file named by `LISA_PUSHED_REFS_FILE`, which
+the push hook of a stack template has exported since it began keeping a copy
+of that text. The runner never guesses a range from the branch that happens to
+be checked out.
+
+With `-`, standard input is read to its end before any gate starts: every
+gate command inherits it and git writes it once, so whichever read it first
+would leave the other nothing. A gate's command then finds it empty, and a
+caller whose gates read the pushed refs themselves hands over a file instead.
+
+**The caller must hand over everything git wrote, or nothing.** The runner
+cannot tell a list that is short because few refs are pushed from one that is
+short because something read part of it first. A hook that runs after other
+hook content — which may have read one line of standard input and left the
+rest — must not pass `-`: the runner would narrow to the refs it was left
+with, and could leave out a part that only a consumed ref touches. Such a
+caller either keeps its own complete copy and passes the file, or passes
+nothing, so that every part runs.
+
+**How a path is matched to a folder.** Paths are compared from the repository
+root, one whole segment at a time: `api` holds `api/main.py` and not
+`api-v2/main.py`. Git is asked for names in a form it never quotes, so a
+folder with a space or a non-ASCII letter in its name matches like any other.
+Letter case and the two ways of composing an accented letter are ignored,
+because a filesystem may ignore them too; that can only run a part that was
+not touched. A folder that is a link is matched under its declared name and
+under the folder it leads to.
+
+**`.` always applies**, and a part for it is never left out.
+
+**A shared file at the root does not trigger a folder's part.** A change to a
+lint configuration in the repository root touches no path inside `api`, so the
+`api` part is left out even though that file changes what its command does.
+The runner cannot know which root files a command reads. A project that needs
+the check to run for such a change declares a part with scope `.`, which
+always runs. `--parts=all` runs every part whatever the change touches, for a
+run by hand.
+
+**What a part left out is, to everything that reads a run.** Its state is
+`SKIPPED` with `untouched: true`. It is never started, never read from or
+written to the pass cache, and never shared with another gate that names the
+same command. The evidence envelope records it with `status: "unknown"` and
+`applicable: false`. The tally counts it under "not applicable here".
+
+**A gate whose parts were all left out is not reported as covered.** The
+commit and push hooks of a stack template stand a built-in check down against
+each gate the runner names in the `--coverage` file. When at least one part
+of a gate ran and passed, the gate is named: the parts that ran checked what
+the change touched. When no part ran, nothing in the registry looked at the
+change at all — it touched only files outside every folder the gate names —
+so the gate is withheld, the runner says so, and the built-in check runs.
+
 ## A declared threshold moves one way
 
 A parameter with a `direction` is a threshold, and `threshold-monotonicity`
