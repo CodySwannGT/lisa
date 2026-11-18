@@ -3621,6 +3621,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/ci-efficiency.md": true,
     "docs/dependency-audit-exclusions.md": true,
     "docs/deploy-stale-run-guard.md": true,
+    "docs/design/control-enforce.md": true,
     "docs/design/control-reconcile.md": true,
     "docs/design/e2e-environment-reset-plan.md": true,
     "docs/design/e2e-wiring-contract.md": true,
