@@ -5,8 +5,10 @@
  * command survives is its configuration. The carrier becomes a command named
  * `lisa-gates` under the hook's `commands`, beside the ones already there:
  * Lefthook runs them all and fails the hook when any of them fails. At push
- * the command asks for the hook's standard input, which is where git says
- * what is being pushed.
+ * the command asks for the hook's standard input (`use_stdin`), which is
+ * where git says what is being pushed. Lefthook hands a command that asks the
+ * whole of it, so the carrier is started as git would start it and tells the
+ * runner to read it there.
  *
  * The lines sit between this command's markers, so a later run finds and
  * replaces them, and a person can remove them.

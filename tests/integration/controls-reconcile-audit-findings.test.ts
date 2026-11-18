@@ -16,6 +16,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { AuditFinding } from "../../src/controls/audit-report.js";
+import { carrierScript } from "../../src/controls/carrier-script.js";
 import {
   inScopeCriteria,
   loadCriterionCatalogue,
@@ -37,6 +38,8 @@ import {
 import { check } from "../unit/controls/support/report-check-run.js";
 
 const SCAN = "npm audit --omit=dev";
+/** The line a command added after the push carrier lands on. */
+const SCAN_LINE = carrierScript("push").split("\n").length;
 const STYLE = "SI7";
 const REGISTER = ".lisa/controls/register.json";
 const DECLARATION = ".lisa.config.json";
@@ -119,7 +122,7 @@ describe("the findings reconcile offers the audit report", () => {
       },
       {
         command: SCAN,
-        locators: [{ line: 17, path: ".lisa/hooks/pre-push" }],
+        locators: [{ line: SCAN_LINE, path: ".lisa/hooks/pre-push" }],
         moment: "push",
         tool: "npm",
       },

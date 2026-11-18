@@ -12,6 +12,17 @@
  * - Nothing: Lisa's own hook folder becomes the hooks folder, by setting
  *   `core.hooksPath` in this checkout. That setting is not committed, so
  *   every other checkout has to run the command once as well.
+ *
+ * The owner also decides whether the push carrier can tell the runner what
+ * is being pushed, because only some owners hand it everything git wrote on
+ * the hook's standard input:
+ *
+ * | Who starts the push carrier | Standard input it gets | The runner is told |
+ * | --- | --- | --- |
+ * | git itself (`core.hooksPath` is Lisa's folder) | everything git wrote | what is pushed |
+ * | Lefthook, with `use_stdin` | everything git wrote | what is pushed |
+ * | lines after a hook's own content (Husky, a hooks folder, git's own) | none: what is above may have read some | nothing, so every part runs |
+ * | the pre-commit framework | none: the framework hands a hook an empty one | nothing it can use, so every part runs |
  * @module controls/carrier-git-hooks
  */
 import path from "node:path";
@@ -27,7 +38,11 @@ import {
   type HookFacts,
 } from "./carrier-owner.js";
 import { preCommitWith } from "./carrier-pre-commit.js";
-import { carrierScript, carrierScriptPath } from "./carrier-script.js";
+import {
+  carrierCallLine,
+  carrierScript,
+  carrierScriptPath,
+} from "./carrier-script.js";
 import { wireShellHook, type ShellHook } from "./carrier-shell-hook.js";
 import {
   CARRIER_HOOKS,
@@ -140,7 +155,7 @@ async function throughHooksFolder(
     return {
       edits: [],
       points: CARRIER_MOMENTS.map(moment => ({
-        blocked: `Git runs this repository's hooks from ${facts.hooksFolder}, which is outside the repository (${HOOKS_PATH_SETTING}), and this command writes nothing outside it. Add this line to ${hookFile(moment)} by hand, after the existing checks: sh ${carrierScriptPath(moment)} "$@" || exit $?`,
+        blocked: `Git runs this repository's hooks from ${facts.hooksFolder}, which is outside the repository (${HOOKS_PATH_SETTING}), and this command writes nothing outside it. Add this line to ${hookFile(moment)} by hand, after the existing checks: ${carrierCallLine(moment)}`,
         call: "absent",
         moment,
         path: hookFile(moment),

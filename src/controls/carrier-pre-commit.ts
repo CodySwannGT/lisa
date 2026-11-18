@@ -12,7 +12,9 @@
  * The framework does not hand a hook git's standard input. At push it puts
  * what is being pushed in the environment instead (`PRE_COMMIT_FROM_REF`,
  * `PRE_COMMIT_TO_REF`, `PRE_COMMIT_REMOTE_NAME`), and the carrier passes its
- * environment on unchanged.
+ * environment on unchanged. The gate runner does not read those, and the
+ * standard input the carrier is started with holds nothing, which the runner
+ * reads as "not known": under the framework every part runs at every push.
  * @module controls/carrier-pre-commit
  */
 import { isDeepStrictEqual } from "node:util";
