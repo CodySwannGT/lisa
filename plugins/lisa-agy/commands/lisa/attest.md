@@ -1,0 +1,6 @@
+---
+description: "Prove whether each declared check really stops a bad change, and report the Level 1 verdict that code computes; the agent never edits it. With --before-enforce, find the checks that exist and that nothing enforces yet."
+argument-hint: "[path] [--before-enforce]"
+---
+
+Use the /lisa-attest skill to run the paired proof of every declared check with `lisa controls attest`, compare the control register with what is installed in this checkout with `lisa controls reconcile`, have the verdict checked with `lisa controls attest --check`, and only then report in plain language the Level 1 result read from .lisa/controls/verdict.json: what is met and on what basis, what prevents a pass and who can act on it, and when the evidence goes out of date. Ask the operator before opening pull requests on the hosting platform or running a proof that reaches outside the repository, never edit the verdict, the evidence or the register, and commit nothing. When the operator asks for a before-enforce run, use `lisa controls attest --before-enforce` instead to find each check whose tool is present and whose bad change still goes through, and record those findings in the audit report. $ARGUMENTS
