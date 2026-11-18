@@ -1,6 +1,7 @@
 /**
- * `lisa controls attest [path] [--workspace <folder>] [--json]`: run the
- * paired proof of every control in the register and say which ones work.
+ * `lisa controls attest [path] [--workspace <folder>] [--json] [--check]`:
+ * run the paired proof of every control in the register, say which ones
+ * work, and write down what was found.
  *
  * A control works when its check turns away a change that breaks its rule
  * and lets a clean change through. This command plants both changes, one at
@@ -15,9 +16,17 @@
  * all: the path is not a folder, the gates declaration is refused, there is
  * no disposable copy to work in, or the run could not finish.
  *
- * It writes no file. The changes are planted in a disposable copy of the
- * repository and taken back out, never in the repository itself; see
- * `../proof-workspace.ts`.
+ * The changes are planted in a disposable copy of the repository and taken
+ * back out, never in the repository itself; see `../proof-workspace.ts`.
+ *
+ * When the proofs have run, three files are written in the repository, in
+ * this order: the evidence, the control register, and the verdict with a
+ * digest of the other two; see `../attest-record.ts`. When no proof was run
+ * (exit 2), nothing is written.
+ *
+ * With `--check` it runs no proof and writes nothing: it computes the
+ * verdict again from the committed register and evidence and exits non-zero
+ * when the committed verdict differs; see `../attest-check.ts`.
  *
  * It works in a repository where Lisa was never applied. The requirements,
  * the gate registry and the gate runner come from the Lisa package the
@@ -30,6 +39,8 @@ import path from "node:path";
 
 import type { Command } from "commander";
 
+import { runAttestCheck } from "../attest-check.js";
+import { recordAttestation } from "../attest-record.js";
 import { resolveRepositoryRoot } from "../audit-report-file.js";
 import { GATES_DECLARATION_PATH } from "../gates-declaration.js";
 import { proofSummary, renderProofTable } from "../proof-report.js";
@@ -64,6 +75,8 @@ export interface AttestOptions {
   readonly workspace?: string;
   /** Print the results as one JSON document instead of a table. */
   readonly json?: boolean;
+  /** Run no proof: check the committed verdict against what produces it. */
+  readonly check?: boolean;
 }
 
 /** What the command needs from outside, each replaceable in a test. */
@@ -168,6 +181,7 @@ export async function runAttest(
   const stderr =
     dependencies.stderr ?? (line => process.stderr.write(`${line}\n`));
   const cwd = dependencies.cwd ?? process.cwd();
+  if (options.check === true) return runAttestCheck(targetPath, dependencies);
   const attempted = await attempt(
     path.resolve(cwd, targetPath ?? "."),
     options.workspace === undefined
@@ -188,10 +202,30 @@ export async function runAttest(
     return ATTEST_EXIT.NOT_RUN;
   }
   const { run } = attempted;
+  const recorded = await recordAttestation(
+    {
+      named: path.resolve(cwd, targetPath ?? "."),
+      run,
+      now: (dependencies.clock ?? (() => new Date()))(),
+    },
+    dependencies
+  );
+  if (recorded.problems !== null) {
+    recorded.problems.forEach(problem => {
+      stderr(problem.replaceAll(/\s+/gu, " "));
+    });
+    stderr(
+      `${ATTEST_COMMAND}: FAIL. The proofs ran, but what they found could not be written down, so there is no verdict`
+    );
+    return ATTEST_EXIT.NOT_RUN;
+  }
   const lines =
     options.json === true
       ? [JSON.stringify(run, null, 2)]
-      : renderProofTable(run);
+      : [
+          ...renderProofTable(run),
+          ...recorded.lines.map(line => `${ATTEST_COMMAND}: ${line}`),
+        ];
   lines.forEach(line => {
     stdout(line);
   });
@@ -242,12 +276,17 @@ export function registerAttest(
       "--json",
       "Print the results as one JSON document instead of a table"
     )
+    .option(
+      "--check",
+      "Run no proof and write nothing: fail when the committed verdict differs from what the committed register and evidence give"
+    )
     .action(async (targetPath: string | undefined, options: AttestOptions) => {
       const code = await dependencies.runAttest(targetPath, {
         ...(typeof options.workspace === "string"
           ? { workspace: options.workspace }
           : {}),
         json: options.json === true,
+        ...(options.check === true ? { check: true } : {}),
       });
       if (code !== 0) process.exitCode = code;
     });

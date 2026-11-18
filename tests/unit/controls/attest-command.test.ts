@@ -3,7 +3,9 @@
  *
  * The command prints one result per control and exits 0 only when every one
  * passed. It plants its changes in a disposable copy, never in the
- * repository it is pointed at, and writes no file anywhere.
+ * repository it is pointed at. What it writes in the repository is the
+ * evidence, the control register and the verdict, and nothing else
+ * (CodySwannGT/lisa#4998).
  * @module tests/unit/controls/attest-command
  */
 import { mkdirSync, symlinkSync } from "node:fs";
@@ -41,6 +43,16 @@ const BROKEN = {
   ),
 };
 
+/** What the command says about the files it wrote, after the table. */
+const WRITTEN_DOWN = [
+  expect.stringMatching(/^attest: Recorded \d+ evidence records? in /u),
+  expect.stringMatching(/^attest: No audit report is at /u),
+  expect.stringMatching(
+    /^attest: Wrote \.lisa\/controls\/register\.json again /u
+  ),
+  expect.stringMatching(/^attest: Level 1 result: non-conforming\. /u),
+] as const;
+
 afterEach(() => {
   removeCopies();
   removeFixtures();
@@ -58,6 +70,7 @@ describe("lisa controls attest", () => {
       "RESULT  ENTRY         MOMENT  HALVES",
       "passed  code-style@.  commit  violation rejected (exit 1); clean accepted (exit 0)",
       "        The check turned the violating change away with the declared failure text and let the clean change through.",
+      ...WRITTEN_DOWN,
       "attest: PASS. 1 of 1 entry proved: 1 passed, 0 failed, 0 unproved, 0 unknown",
     ]);
   });
@@ -114,12 +127,24 @@ describe("lisa controls attest", () => {
     expect((JSON.parse(run.stdout.join("\n")) as ProofRun).passed).toBe(true);
   });
 
-  it("writes no file in the repository or in the copy", async () => {
+  it("writes its three files in the repository, and nothing in the copy", async () => {
     const where = setting(BROKEN);
 
     await attest(where.repoPath, { workspace: where.workspace });
 
-    expect(runControlAuditGit(where.repoPath, ["status", "--short"])).toBe("");
+    expect(
+      runControlAuditGit(where.repoPath, [
+        "status",
+        "--short",
+        "--untracked-files=all",
+      ])
+        .trim()
+        .split("\n")
+    ).toEqual([
+      "?? .lisa/controls/evidence.json",
+      "?? .lisa/controls/register.json",
+      "?? .lisa/controls/verdict.json",
+    ]);
     expect(runControlAuditGit(where.workspace, ["status", "--short"])).toBe("");
   });
 
@@ -143,7 +168,7 @@ describe("lisa controls attest", () => {
     const run = await attest(repoPath);
 
     expect(run.code).toBe(ATTEST_EXIT.NOT_PASSED);
-    expect(run.stdout).toEqual([]);
+    expect(run.stdout).toEqual(WRITTEN_DOWN);
     expect(run.stderr).toEqual([
       expect.stringContaining("The control register has no entries"),
     ]);
