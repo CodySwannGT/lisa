@@ -210,11 +210,13 @@ describe("built lisa controls attest in a repository without Lisa", () => {
   it("refuses to run a proof in the repository it is standing in", () => {
     const where = setting(WORKING);
 
-    const run = attest(where, []);
+    // Naming the repository as its own copy. With no folder named the command
+    // makes a copy of its own: see controls-attest-disposable-copy.test.ts.
+    const run = attest(where, [WORKSPACE_FLAG, "."]);
 
     expect(run.status).toBe(2);
     expect(run.stdout).toBe("");
-    expect(run.stderr).toContain(WORKSPACE_FLAG);
+    expect(run.stderr).toContain("is the repository itself");
     expect(readFileSync(path.join(where.repoPath, F_NONE_SOURCE), "utf8")).toBe(
       readFileSync(path.join(where.workspace, F_NONE_SOURCE), "utf8")
     );

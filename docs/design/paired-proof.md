@@ -6,8 +6,9 @@ plants a change that breaks the rule and a change that does not, and records
 what the check did with each.
 
 ```
-lisa controls attest [path] --workspace <folder>          # a table
-lisa controls attest [path] --workspace <folder> --json   # one JSON document
+lisa controls attest [path]                               # a table
+lisa controls attest [path] --json                        # one JSON document
+lisa controls attest [path] --workspace <folder> [--json] # in a copy you made
 lisa controls attest ... --pull-request-canaries          # exercise pull-request controls
 lisa controls attest ... --acknowledge-external-effects   # run proofs that reach outside
 ```
@@ -303,14 +304,94 @@ read. If it cannot be taken back out, every later half is reported
 `workspace-not-restored` without being run: a check run on files nobody can
 vouch for proves nothing.
 
-The workspace shipped with this command works in a folder the caller names.
-It plants a change with `git apply`, starts the entry's own command in the
-entry's own folder, and takes the change back out with the reverse of the
-same patch. It makes no commit and needs no carrier.
+There are two workspaces. Which one a run gets depends only on whether
+`--workspace` was given.
 
-**The command refuses to run without `--workspace`.** It does not make its
-own disposable copy yet. It also refuses a folder that is the repository, is
-a link to it, or holds it.
+### The disposable copy (no `--workspace`)
+
+The command makes its own copy of the repository, proves each check through
+a real commit or a real push in it, and removes it.
+
+**What the copy is.** A clone of the last commit, in a temporary folder that
+belongs to this run alone (`lisa-attest-<random>` in the machine's temporary
+folder). The control being proved is "a change that breaks the rule is
+rejected at commit, or at push", and a hook judges a change against committed
+content, so the last commit is the base. Work that is not committed is not
+part of what a proof says, and the command says so on standard error when the
+working copy has any.
+
+It is a clone and never a linked working copy of the repository: a linked
+working copy shares refs, settings and the stash with the repository it came
+from, and those are exactly what must not be touched. The folder holds a bare
+repository that stands in for the remote (`remote.git`) and the working copy
+the changes are planted in (`clone`), on the operator's branch.
+
+**What it takes from the working copy.** A repository that is still being set
+up has the files the proof is about uncommitted. Exactly these are made the
+same in the copy as in the working copy, each by its own path:
+
+- `.lisa.config.json`;
+- `.lisa/controls/carriers.json` and every file it lists (the gate runner
+  under `scripts/` and Lisa's hook scripts);
+- every ordinary file under `.lisa/controls/proofs/`.
+
+Nothing else is copied, and nothing is read or written through a link. A path
+in the record that is not a plain path inside the repository stops the run.
+
+**What it inherits.** Nothing from the machine and nothing from the
+operator's own git settings. Its only remote is the stand-in, so a push
+cannot leave the machine. It has no credential helper and no signing, and its
+hooks folder is set only by installing the carriers there with the installer
+`lisa controls install-carriers` uses. Making it only reads the operator's
+repository.
+
+**How a half is triggered.** The planted change is staged. At `commit` the
+command runs `git commit`. At `push` it commits with no hook, because that
+commit is set-up, and runs `git push` to the stand-in remote. So what answers
+is the installed chain: git's hook, the carrier, the gate runner, the check.
+Afterwards the copy is reset to its starting commit, the stand-in remote
+included.
+
+**What counts as an answer.** A hook refuses for many reasons, and only one
+of them is this check finding its rule broken. An answer is judged only when
+three things agree:
+
+| | a refusal | a change let through |
+| --- | --- | --- |
+| git's exit status | non-zero | zero |
+| what git did | no new commit; the remote's branch has not moved | a new commit; the remote's branch is that commit |
+| the gate runner's line for this check | `FAILED` | `PASSED` |
+
+Where they disagree, or the gate runner printed no line for this check (Node
+is missing, the carrier cannot find the runner, another check refused the
+commit first), the half is `not-started` and its sentence says which. The
+declared failure text is then matched as usual.
+
+**What is not proved this way.** A moment at which git runs no carrier in the
+copy is `not-started`, quoting what the carrier installer said. That includes
+a repository whose hooks belong to a hook manager that has to be switched on
+per checkout, such as Husky before its own install has run. A check declared
+`optional` at its moment is `not-started` too: it reports and never refuses.
+Neither case falls back to starting the check's command on its own, which
+would be a different proof under the same name.
+
+**When the copy is removed.** On every way out: when the run finishes, when
+it cannot finish, when the copy cannot be built, and when the process is told
+to stop (`SIGINT`, `SIGTERM`, `SIGHUP`). The signal handler is listening
+before the folder is created and is taken off again when the run ends. A
+signal that reaches only this process is acted on when the check that is
+running returns, which is no later than that half's time limit; Ctrl-C at a
+terminal reaches the check as well, so the folder goes at once. A process
+killed outright (`SIGKILL`) cannot remove anything.
+
+### A folder the operator names (`--workspace`)
+
+This workspace works in a copy somebody else made. It plants a change with
+`git apply`, starts the entry's own command in the entry's own folder, and
+takes the change back out with the reverse of the same patch. It makes no
+commit and needs no carrier, so it shows that the check works and says
+nothing about whether anything runs it. The command refuses a folder that is
+the repository, is a link to it, or holds it.
 
 **A patch cannot write outside the workspace.** `git apply` refuses a path
 that climbs out of the folder, a path into `.git`, and a path through a link,
@@ -347,7 +428,8 @@ only when there is at least one entry and every entry passed.
 - Entries are proved one at a time, in register order.
 - The only clock read is the one handed in, twice per half.
 - The workspace folder is replaced by `<workspace>` in every piece of kept
-  text, because it differs from run to run.
+  text, because it differs from run to run. In the disposable copy the
+  stand-in remote's path is replaced by `<proof-remote>` for the same reason.
 - Nothing in the runner, or in the gate runner it calls, imports a model
   client or anything that opens a connection.
 
@@ -358,6 +440,12 @@ That holds for commit and push. A pull-request result is what the hosting
 platform said at the time, reached through the `gh` command, so it changes
 when the platform's settings do. A canary run also differs in its run
 identifier, its branch names and its pull-request numbers.
+
+In the disposable copy the kept output is the hook's, so it also holds what
+the gate runner prints around the check: a note about earlier runs on the
+machine, the machine's load, and at push the name of a timing file. Those
+lines differ from run to run. The outcomes, the reasons, the exit statuses
+and the commands do not.
 
 ## Time limits
 
@@ -377,14 +465,18 @@ limit the canary is closed and the half is `timed-out`.
 | --- | --- |
 | 0 | There is at least one entry and every entry passed. |
 | 1 | The proofs ran and some entry did not pass, or the register has no entries. |
-| 2 | There are no results: the path is not a folder, the gates declaration was refused, no disposable copy was named, the run could not finish, or what it found could not be written down. |
+| 2 | There are no results: the path is not a folder, the gates declaration was refused, the disposable copy could not be made or the folder named was refused, the run could not finish, or what it found could not be written down. |
 
 When the proofs have run (exit 0 or 1), the command writes three files in the
 repository: the evidence, the control register and the verdict. What they
 hold, and how `lisa controls attest --check` holds them to each other, is in
 [evidence and verdict](evidence-and-verdict.md). When no proof was run
-(exit 2), it writes nothing.
+(exit 2), it writes nothing. Nothing else in the repository is changed: the
+changes are planted in the disposable copy only.
 
-The command writes no file. A result at the `observed` rung is never
-`passed`, so a register with an entry enforced only on pull requests exits 1
-unless that entry was exercised with canaries and passed.
+A result at the `observed` rung is never `passed`, so a register with an
+entry enforced only on pull requests exits 1 unless that entry was exercised
+with canaries and passed.
+
+A run stopped by a signal ends by that signal, as any interrupted process
+does, after removing its copy.
