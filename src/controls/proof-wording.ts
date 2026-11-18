@@ -8,6 +8,7 @@
  * about it.
  * @module controls/proof-wording
  */
+import { GATES_DECLARATION_PATH } from "./gates-declaration.js";
 import type {
   ProofEntryReason,
   ProofHalf,
@@ -129,6 +130,36 @@ export function verdictDetail(
 
 /** How every result that ran nothing begins. */
 const NOT_RUN = "No proof was run.";
+
+/**
+ * Say that a change edits a file that says what the checks are, or runs
+ * them. `lisa controls proof-check` and `lisa controls attest` both say it
+ * in these words.
+ * @param half - Which half's change
+ * @param file - The file it edits, from the repository root
+ * @returns The sentence
+ */
+export function declarationChangedDetail(
+  half: ProofHalf,
+  file: string
+): string {
+  const what =
+    file === GATES_DECLARATION_PATH
+      ? "the file that says what each check runs"
+      : "one of the files that start the checks at commit and push";
+  return `The ${HALF_NAMES[half]} change edits ${file}, ${what}. A proof never changes what the check is. Take that file out of the patch.`;
+}
+
+/**
+ * Say that an entry's proof was not run because one of its changes edits
+ * what the check is.
+ * @param half - Which half's change
+ * @param file - The file it edits, from the repository root
+ * @returns The sentence for the operator
+ */
+export function pairChangesCheckDetail(half: ProofHalf, file: string): string {
+  return `${NOT_RUN} ${declarationChangedDetail(half, file)}`;
+}
 
 /** One half an entry cannot plant, and why. */
 export interface MissingHalf {

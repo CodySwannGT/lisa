@@ -9,8 +9,9 @@
  * 1. Does each change apply to the last commit?
  * 2. Does each change touch a file inside the part's own folder? A change
  *    that touches nothing there never starts the part's check at commit or
- *    push. A change that edits the file declaring the checks, or that leaves
- *    nothing git would commit, is turned away at the same point.
+ *    push. A change that edits a file that says what the checks are or runs
+ *    them (`./proof-change-rule.ts`), or that leaves nothing git would
+ *    commit, is turned away at the same point.
  * 3. Started on the violating change, does the part's own command fail and
  *    print the declared failure text? Started on the clean change, does it
  *    pass, without printing that text?
@@ -42,7 +43,6 @@ import type {
 } from "./proof-check-types.js";
 import {
   cleanRejectedDetail,
-  declarationChangedDetail,
   failureTextOnCleanDetail,
   killedDetail,
   noChangeDetail,
@@ -64,6 +64,7 @@ import {
   PROOF_TIME_LIMIT_CEILING_SECONDS,
   type RunnableProof,
 } from "./proof-plan.js";
+import { declarationChangedDetail } from "./proof-wording.js";
 
 /** What trying the planned parts needs. */
 export interface ProofCheckContext extends BeforeEnforceContext {
@@ -150,11 +151,13 @@ function misplaced(
   const first = (
     wrong: (change: PlantedChange) => boolean
   ): Tried | undefined => tried.find(({ change }) => wrong(change));
-  const edits = first(change => change.editsDeclaration);
-  if (edits !== undefined) {
+  // The rule the attest step holds a pair to as well; see
+  // ./proof-change-rule.ts.
+  const edits = first(change => change.checkFile !== null);
+  if (edits !== undefined && edits.change.checkFile !== null) {
     return {
       reason: "declaration-changed",
-      detail: declarationChangedDetail(edits.half),
+      detail: declarationChangedDetail(edits.half, edits.change.checkFile),
     };
   }
   const empty = first(change => change.paths.length === 0);

@@ -26,16 +26,26 @@ In this order:
 
 1. **A shape only a credential has.** A provider's own prefix or structure: a
    private key block, a GitHub, GitLab, npm or cloud token, a signed web
-   token. These are found anywhere.
+   token. These are found anywhere. A private key is found by the line that
+   starts it. When that line is missing, because the text is the end of a
+   longer output, the key is found by its last line, and the lines of base64
+   straight above that line are taken out with it.
 2. **A web address that carries a user name or password**, and the value
    after `Bearer` or `Basic`.
 3. **A long random-looking run, only beside a name that says it is a
    secret.** The names are `token`, `secret`, `password`, `passphrase`,
-   `credential`, `authorization`, `api_key`, `access_key` and `private_key`.
+   `credential`, `authorization`, `api_key`, `access_key`, `account_key` and
+   `private_key`, wherever they stand in a longer name (`SecretAccessKey`,
+   `AccountKey`, `_authToken`).
    "Beside" means `name=value`, `name: value`, `--name value` as one piece of
    text or as two arguments in a list, or the JSON key the text sits under.
    A parameter is written `{ "<name>": { "value": … } }`, so its value takes
    the parameter's name.
+
+   The run may be base64, which uses `/` and `+`. A value is taken out whole
+   wherever a `/` falls in it, in its first characters or later. Beside such
+   a name a UUID counts as well, because some registries and services give a
+   token in that form.
 
 What does not count matters as much, because a refusal stops the operator.
 A long random-looking run with no such name beside it is left alone: a
@@ -43,6 +53,14 @@ commit hash, a SHA-256 digest, a UUID, a file path, an encoded image, an
 evidence record's id. A provider prefix followed only by lower-case words and
 short numbers is a name (`pypi-internal-mirror-01`), and so is a secret's own
 name (`Bearer GITHUB_TOKEN`, `${{ secrets.DEPLOY_TOKEN }}`, `<token>`).
+
+A file path beside a name that says secret is left alone too
+(`token_file=/run/secrets/app2/key`). A path and a base64 value both hold
+`/`, and they are told apart by what is between the slashes: the folders of
+a path are words, which stay in one class of character, and the pieces of a
+base64 value change between digits, capitals and small letters every few
+characters. A path whose folders are themselves random-looking is taken for
+a value. That errs on the side of taking out too much.
 
 It is a guard for the shapes that can be recognised. A short password, or a
 random value with nothing beside it that says what it is, passes. The
@@ -58,8 +76,12 @@ restates the list, and `tests/unit/controls/secret-shapes-parity.test.ts`
 holds the two equal: a shape added to, changed in or removed from either one
 alone fails it. Change both, or neither.
 
-The control scanner adds two things that list does not have: the rule about
-names in point 3, and the exemption for a prefix followed by plain words.
+The control scanner adds three things that list does not have: the rule
+about names in point 3, the exemption for a prefix followed by plain words,
+and the last line of a private key (`PRIVATE_KEY_LAST_LINE` in
+`secret-shapes.ts`). The last is kept out of the restated list on purpose: a
+key whose first line is gone only happens to output that was cut, and the
+shipped list is used on text that never is.
 
 ## Refused or taken out
 
@@ -91,7 +113,7 @@ so it is a digest of the text with the placeholder in it.
 | `.lisa/audit/report.md` | rendered from the checked record and the requirements catalogue | the record is refused first; the rendered text then passes through the scanner as it is written, which changes nothing unless closing up white space made text read as a value |
 | `wiki/gaps.md` (only where the repository keeps a wiki) | the open questions, copied from the checked record into one marked block | the record is refused first; the file is not scanned as it is written, because the rest of it belongs to the people who type in it |
 | `.lisa/controls/register.json` | everything in it is copied from the `gates` block of `.lisa.config.json` | the declaration is refused by `lisa controls register`, in write and `--check` mode, and by every command that generates the register; the place is named as `gates.<gate>.parts[0]…` |
-| `.lisa/controls/evidence.json` | what a check printed (`output_excerpt`) | taken out, before the excerpt is cut |
+| `.lisa/controls/evidence.json` | what a check printed (`output_excerpt`) | taken out of everything the check printed, before any of it is cut: first by the step that ran the check (`proof-half-run.ts`), which then keeps the last 4000 characters, and again by the evidence writer, which keeps the last 1000 of those |
 | `.lisa/controls/evidence.json` | the arguments a check was started with (`command`), and `detail` and `reason`, which can quote why it could not be started | taken out as each record is made, and again over every record that stands, including ones an earlier run left |
 | `.lisa/controls/evidence.json` | an audit finding's `what` and a person's answer, copied into `detail` | refused upstream by the report's rules; taken out here as well |
 | `.lisa/controls/evidence.json` | the fields that name what a record is about (`id`, `entry_id`, `scope`, `criterion`, `commit`) | they come from the register, which is refused upstream; the last check before the write refuses the file if one ever holds a credential shape |
@@ -131,9 +153,17 @@ is added to its list.
 
 ## What is not covered
 
-- `lisa controls attest --json` and the table it prints show a check's
-  output as it was captured. That goes to the terminal, not to a file, and
-  is not filtered.
+- `lisa controls attest --json` prints what each half kept. The end of the
+  check's output and the lines that carried the failure text have their
+  values taken out, as above. The arguments a check was started with and
+  the sentence of a result are printed as they were captured: those go to
+  the terminal, and are filtered only on their way into a file.
+- A token that reached the scan already cut in two. Everything a check
+  prints is scanned whole before any of it is cut, so the control commands
+  do not produce such text themselves. A record an earlier version wrote,
+  or text another program cut, can hold one: a private key in that position
+  is still found by its last line; a token that has lost the prefix that
+  makes it recognisable is not.
 - Problems about `.lisa.config.json` or the register that are not valid JSON
   still carry the parser's own message.
 - The source of the repository itself. The credential-leakage gate covers

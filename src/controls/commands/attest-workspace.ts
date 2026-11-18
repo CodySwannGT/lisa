@@ -6,7 +6,9 @@
  * 1. A caller handed in its own way to open a workspace. It is used as it
  *    is. Tests do this.
  * 2. The operator named a folder with `--workspace`. That folder is used,
- *    and each check's own command is started there, as before.
+ *    and each check's own command is started there. Nothing is committed or
+ *    pushed, so that run is a report and the command writes nothing after
+ *    it; see `./attest-report-only.ts`.
  * 3. Neither. The command makes a disposable copy of the repository in a
  *    temporary folder of its own, installs the commit and push carriers
  *    there, and proves each check through a real commit or a real push. See
@@ -189,6 +191,8 @@ async function openDisposableCopy(
         problem: null,
         workspace: proofCopyWorkspace(opened.copy, request.tools),
         close: opened.close,
+        // The commit that was cloned: what the proofs are run against.
+        commit: opened.copy.source.commit,
       }
     : opened;
 }

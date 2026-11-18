@@ -61,10 +61,32 @@ describe("the evidence file after a run", () => {
     expect(after(heldPair(API))).toEqual([]);
   });
 
-  it("keeps a record for a moment the run did not speak for", () => {
-    expect(after([observedRecord(API)])).toEqual([
-      `${API}/pull-request/observed/SI7`,
-    ]);
+  it("keeps a record for a moment the run did not speak for, when the entry is enforced at that moment", () => {
+    const entry = entryServing(API);
+    const onPullRequests = registerOf({
+      ...entry,
+      enforcement_points: [
+        ...entry.enforcement_points,
+        {
+          moment: "pull-request",
+          level: "required",
+          location: "hosting-platform",
+        },
+      ],
+    });
+
+    expect(
+      mergedEvidence({
+        earlier: [observedRecord(API)],
+        register: onPullRequests,
+        batches: [local],
+        records: [],
+      }).map(record => record.id)
+    ).toEqual([`${API}/pull-request/observed/SI7`]);
+  });
+
+  it("drops a record for a moment the entry is not enforced at", () => {
+    expect(after([observedRecord(API)])).toEqual([]);
   });
 
   it("drops a record of an entry the register no longer holds", () => {

@@ -78,6 +78,15 @@ export interface AttestationToRecord {
    * {@link DEFAULT_FRESHNESS_SECONDS} when left out.
    */
   readonly freshnessSeconds?: number;
+  /**
+   * The commit the proofs were run against: the one the run's disposable
+   * copy was made from. Every record written now names it. A run takes
+   * time and the repository can move meanwhile, so this is not read again
+   * when the results are written. Left out when nothing was cloned (a
+   * register with no entries), and the records then name the commit the
+   * repository is at.
+   */
+  readonly commit?: string;
 }
 
 /** What writing down needs from outside, each replaceable in a test. */
@@ -200,7 +209,9 @@ async function recorded(
     register: before.register,
     batches: [proofRunBatch(run), ...(attestation.batches ?? [])],
     stamp: {
-      commit: await (dependencies.readHead ?? readHeadCommit)(root),
+      commit:
+        attestation.commit ??
+        (await (dependencies.readHead ?? readHeadCommit)(root)),
       freshnessSeconds,
     },
     now,

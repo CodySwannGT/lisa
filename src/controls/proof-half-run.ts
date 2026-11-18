@@ -16,6 +16,15 @@
  * wherever it appears in kept text, because it is a temporary folder that
  * differs from run to run and says nothing about the control.
  *
+ * A check can print anything, a token it was given included. The answer is
+ * judged on everything the check printed, and nothing else sees that. What a
+ * half keeps of the output, and of the lines that carried the failure text,
+ * has every credential-shaped value taken out first (`./secret-scan.ts`) and
+ * is cut to its last {@link OUTPUT_EXCERPT_LIMIT} characters afterwards. In
+ * the other order a cut could fall inside a value: a private key would keep
+ * its body with the line that marks its start gone, and a token would keep
+ * its end with the prefix that makes it recognisable gone.
+ *
  * Not to be confused with `./proof-halves.ts`, which reads which halves an
  * evidence file already holds a record of.
  * @module controls/proof-half-run
@@ -32,6 +41,7 @@ import type {
   ProofWorkspace,
 } from "./proof-types.js";
 import { halfDetail } from "./proof-wording.js";
+import { redactCredentials } from "./secret-scan.js";
 
 /** The most of a check's output that is kept with a half, in characters. */
 export const OUTPUT_EXCERPT_LIMIT = 4000;
@@ -212,6 +222,11 @@ function ran(
   judge: ProofJudge
 ): ProofHalfResult {
   const { proof, half, startedAt, plain } = started;
+  // The check's answer is read from everything it printed. What is kept of
+  // it is another matter: every credential-shaped value comes out of the
+  // whole output first, and only then is the end of it cut off, so the cut
+  // can never fall inside a value and leave the rest of it behind.
+  const kept = (text: string): string => redactCredentials(plain(text)).text;
   const judgement = judge(answer, {
     gate: proof.entry.gate,
     shape: proof.shape,
@@ -226,8 +241,8 @@ function ran(
     exit_status: answer.code,
     started_at: startedAt,
     completed_at: completedAt,
-    ...excerpt(plain(answer.output ?? "")),
-    matched_lines: judgement.matched.map(line => plain(line)),
+    ...excerpt(kept(answer.output ?? "")),
+    matched_lines: judgement.matched.map(line => kept(line)),
     outcome,
     reason,
     detail: detailOf(started, reason, answer.notStarted),

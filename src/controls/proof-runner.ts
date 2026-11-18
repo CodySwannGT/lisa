@@ -7,8 +7,9 @@
  * change that does not. The entry passes only when the first was rejected
  * and the second accepted. What a half showed and what the two together mean
  * are decided in `./proof-judgement.ts`; whether a proof can be run at all is
- * decided in `./proof-plan.ts`; one half is run in `./proof-half-run.ts`. This
- * module only does things in order and puts the results together.
+ * decided in `./proof-plan.ts`; whether its changes leave the check alone is
+ * asked in `./proof-preflight.ts`; one half is run in `./proof-half-run.ts`.
+ * This module only does things in order and puts the results together.
  *
  * ## Why the same inputs always give the same results
  *
@@ -37,16 +38,18 @@
 import { runHalf, type HalfContext } from "./proof-half-run.js";
 import { entryVerdict } from "./proof-judgement.js";
 import { planProof, type RunnableProof } from "./proof-plan.js";
+import { pairStanding, type PairStanding } from "./proof-preflight.js";
 import type { ProofJudge } from "./proof-tools.js";
 import {
   PROOF_OUTCOMES,
   PROOF_RUN_SCHEMA_VERSION,
   type ProofCounts,
   type ProofEntryResult,
+  type ProofHalf,
   type ProofRun,
   type ProofWorkspace,
 } from "./proof-types.js";
-import { verdictDetail } from "./proof-wording.js";
+import { pairChangesCheckDetail, verdictDetail } from "./proof-wording.js";
 import type { ControlRegister } from "./register-types.js";
 
 /** What a run of paired proofs is given. */
@@ -81,6 +84,68 @@ interface Progress {
  * @returns The entry's result, and whether the workspace is still fit to use
  */
 async function runProof(
+  proof: RunnableProof,
+  context: HalfContext,
+  spoiled: string | null
+): Promise<{
+  readonly result: ProofEntryResult;
+  readonly spoiled: string | null;
+}> {
+  // Both changes are looked at before either check is started: a proof
+  // never changes what the check is. A workspace that is already unfit is
+  // not asked; its halves say so below.
+  const standing: PairStanding =
+    spoiled === null
+      ? await pairStanding(proof, context.workspace)
+      : { kind: "clear" };
+  if (standing.kind === "changes-check") {
+    return { result: changesCheck(proof, standing), spoiled: null };
+  }
+  return runHalves(
+    proof,
+    context,
+    standing.kind === "spoiled" ? standing.why : spoiled
+  );
+}
+
+/**
+ * The result of an entry whose proof was not run because one of its changes
+ * edits what the check is.
+ * @param proof - The proof
+ * @param found - Which change, and the file it edits
+ * @param found.half - The half the change belongs to
+ * @param found.file - The file, from the repository root
+ * @returns The entry's result
+ */
+function changesCheck(
+  proof: RunnableProof,
+  found: { readonly half: ProofHalf; readonly file: string }
+): ProofEntryResult {
+  const { entry } = proof;
+  return {
+    entry_id: entry.id,
+    gate: entry.gate,
+    scope: entry.scope,
+    criteria: entry.criteria,
+    moment: proof.moment,
+    outcome: "unknown",
+    failed_halves: [],
+    reason: "declaration-changed",
+    detail: pairChangesCheckDetail(found.half, found.file),
+    time_limit_seconds: null,
+    halves: [],
+  };
+}
+
+/**
+ * Run the two halves of one entry's proof, in order.
+ * @param proof - The proof to run
+ * @param context - The workspace, the judge and the clock
+ * @param spoiled - Why the workspace can no longer be vouched for, if it
+ *   cannot
+ * @returns The entry's result, and whether the workspace is still fit to use
+ */
+async function runHalves(
   proof: RunnableProof,
   context: HalfContext,
   spoiled: string | null

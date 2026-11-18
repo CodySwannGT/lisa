@@ -22,13 +22,18 @@
  * in the repository itself. With no `--workspace`, the command makes that
  * copy in a temporary folder, proves each check through a real commit or
  * push there, and removes the folder on every way out; see
- * `./attest-workspace.ts`. With `--workspace`, it starts each check's own
- * command in the folder named; see `../proof-workspace.ts`.
+ * `./attest-workspace.ts`.
  *
  * When the proofs have run, three files are written in the repository, in
  * this order: the evidence, the control register, and the verdict with a
  * digest of the other two; see `../attest-record.ts`. When no proof was run
  * (exit 2), nothing is written.
+ *
+ * With `--workspace <folder>` the command is a report and writes nothing. It
+ * starts each check's own command in the folder named
+ * (`../proof-workspace.ts`) and makes no commit or push, which shows that a
+ * check works and not that anything runs it. It prints the same results and
+ * one line that says nothing was written; see `./attest-report-only.ts`.
  *
  * With `--check` it runs no proof and writes nothing: it computes the
  * verdict again from the committed register and evidence and exits non-zero
@@ -64,7 +69,10 @@ import path from "node:path";
 import type { Command } from "commander";
 
 import { runAttestCheck } from "../attest-check.js";
-import { recordAttestation } from "../attest-record.js";
+import {
+  recordAttestation,
+  type AttestationToRecord,
+} from "../attest-record.js";
 import { resolveRepositoryRoot } from "../audit-report-file.js";
 import { GATES_DECLARATION_PATH } from "../gates-declaration.js";
 import { proofSummary, renderProofTable } from "../proof-report.js";
@@ -85,6 +93,10 @@ import {
   BEFORE_ENFORCE_FLAG,
   runAttestBeforeEnforce,
 } from "./attest-before-enforce.js";
+import {
+  printReportOnly,
+  type ReportOnlyOutput,
+} from "./attest-report-only.js";
 import { openAttestWorkspace } from "./attest-workspace.js";
 
 /** The subcommand's name under `lisa controls`. */
@@ -102,7 +114,10 @@ export const ATTEST_EXIT = {
 
 /** The command's options. */
 export interface AttestOptions {
-  /** A disposable copy of the repository to plant the changes in. */
+  /**
+   * A copy of the repository the operator made, to start each check's own
+   * command in. Naming one makes the run a report: nothing is written.
+   */
   readonly workspace?: string;
   /** Print the results as one JSON document instead of a table. */
   readonly json?: boolean;
@@ -144,7 +159,15 @@ export interface AttestDependencies {
 
 /** The proofs' results, or one line per reason none was run. */
 type Attempt =
-  | { readonly problems: null; readonly run: ProofRun }
+  | {
+      readonly problems: null;
+      readonly run: ProofRun;
+      /**
+       * The commit the proofs were run against: the one the run's copy was
+       * made from. Left out when no copy was made.
+       */
+      readonly commit?: string;
+    }
   | { readonly problems: readonly string[]; readonly summary: string };
 
 /**
@@ -202,6 +225,7 @@ async function attempt(
   try {
     return {
       problems: null,
+      ...(opening.commit === undefined ? {} : { commit: opening.commit }),
       // Commit and push are exercised here; the pull-request moment is the
       // hosting platform's to answer (`../pull-request-settle.ts`).
       run: await settlePullRequests(
@@ -257,6 +281,59 @@ function otherMode(
 }
 
 /**
+ * Print the results of a run in a folder the operator named, which records
+ * nothing, and give its exit code.
+ * @param run - The results
+ * @param json - Whether to print one JSON document instead of a table
+ * @param output - Where the lines go
+ * @returns The exit code: what the checks did, as without the option
+ */
+function reportedOnly(
+  run: ProofRun,
+  json: boolean,
+  output: ReportOnlyOutput
+): number {
+  printReportOnly(run, json, output, ATTEST_COMMAND);
+  return run.passed ? ATTEST_EXIT.PASSED : ATTEST_EXIT.NOT_PASSED;
+}
+
+/**
+ * What a run that proved the controls hands over to be written down.
+ * @param named - Absolute path of the repository the operator named
+ * @param attempted - The run's results, and the commit they are about
+ * @param now - The current time
+ * @returns What the writer takes
+ */
+function toRecord(
+  named: string,
+  attempted: Extract<Attempt, { readonly problems: null }>,
+  now: Date
+): AttestationToRecord {
+  const { run, commit } = attempted;
+  return {
+    named,
+    run,
+    now,
+    // The commit that was cloned, not the one the repository is at now.
+    ...(commit === undefined ? {} : { commit }),
+    // What the hosting platform said about the pull-request moment; none
+    // when the register has no pull-request entry.
+    batches: pullRequestBatches(run, { root: named, now }),
+  };
+}
+
+/**
+ * The line that says a run's proofs did not all pass.
+ * @param run - The results
+ * @returns The line
+ */
+function notPassedLine(run: ProofRun): string {
+  return run.entries.length === 0
+    ? `${ATTEST_COMMAND}: FAIL. The control register has no entries, so there is nothing to prove. Declare the controls in the gates block of ${GATES_DECLARATION_PATH} first`
+    : `${ATTEST_COMMAND}: FAIL. ${proofSummary(run)}. Every entry has to pass`;
+}
+
+/**
  * Run the paired proof of every control of one repository and print the
  * results.
  * @param targetPath - The repository; the working directory when left out
@@ -296,17 +373,16 @@ export async function runAttest(
     return ATTEST_EXIT.NOT_RUN;
   }
   const { run } = attempted;
+  // In a folder the operator named, each check's own command was started
+  // and no commit or push was made. That is a report and not a proof:
+  // nothing is written; see ./attest-report-only.ts.
+  if (options.workspace !== undefined) {
+    return reportedOnly(run, options.json === true, { stdout, stderr });
+  }
   const named = path.resolve(cwd, targetPath ?? ".");
   const now = (dependencies.clock ?? (() => new Date()))();
   const recorded = await recordAttestation(
-    {
-      named,
-      run,
-      now,
-      // What the hosting platform said about the pull-request moment; none
-      // when the register has no pull-request entry.
-      batches: pullRequestBatches(run, { root: named, now }),
-    },
+    toRecord(named, attempted, now),
     dependencies
   );
   if (recorded.problems !== null) {
@@ -334,11 +410,7 @@ export async function runAttest(
     }
     return ATTEST_EXIT.PASSED;
   }
-  stderr(
-    run.entries.length === 0
-      ? `${ATTEST_COMMAND}: FAIL. The control register has no entries, so there is nothing to prove. Declare the controls in the gates block of ${GATES_DECLARATION_PATH} first`
-      : `${ATTEST_COMMAND}: FAIL. ${proofSummary(run)}. Every entry has to pass`
-  );
+  stderr(notPassedLine(run));
   return ATTEST_EXIT.NOT_PASSED;
 }
 
@@ -369,7 +441,7 @@ export function registerAttest(
     .argument("[path]", "Project path (default: current directory)")
     .option(
       "--workspace <folder>",
-      "A copy of the repository you made, to start each check's own command in. Without it, the command makes its own temporary copy, proves each check through a real commit or push there, and removes the copy afterwards. Either way the proofs change nothing in the repository itself; when they have run, the results are written to three files under .lisa/controls/: evidence.json, register.json and verdict.json"
+      "Report only: start each check's own command in a copy of the repository you made, print the results, and write nothing. No commit or push is made there, so this shows whether a check works and not whether anything runs it, and it never counts as a proof. Without this option the command makes its own temporary copy, proves each check through a real commit or push there, removes the copy, and writes the results to three files under .lisa/controls/: evidence.json, register.json and verdict.json. Either way the proofs change nothing else in the repository itself"
     )
     .option(
       "--json",

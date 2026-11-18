@@ -123,7 +123,11 @@ For a check that runs on pull requests, the default is to read the hosting platf
 
 A proof that says it does something outside the repository is not run unless the operator agrees (`lisa controls attest --acknowledge-external-effects`).
 
-**It writes** three files, when the proofs have run: `.lisa/controls/evidence.json` (one record per result per requirement), `.lisa/controls/register.json` again (new evidence can change it), and `.lisa/controls/verdict.json`. They are meant to be committed. `lisa controls attest --check` runs no proof and writes nothing: it computes the verdict again from the committed register and evidence, at the current time, and names every difference. A verdict edited by hand fails it.
+**It writes** three files, when the proofs have run: `.lisa/controls/evidence.json` (one record per result per requirement), `.lisa/controls/register.json` again (new evidence can change it), and `.lisa/controls/verdict.json`. They are meant to be committed. `lisa controls attest --check` runs no proof and writes nothing: it computes the verdict again from the committed register and evidence, at the current time, and names every difference. A verdict edited by hand fails it. It also names the commit the proofs were run against, and fails when a file that defines the checks (the `gates` declaration, a proof's patch files, the hook scripts, the program that runs the checks) has changed since that commit.
+
+**Commit what defines the checks before you attest.** Configure and enforce leave the declaration, the patch files and the hook files in the working copy for you to commit. Attest proves them as they are on disk, but its evidence names the last commit, which does not hold them yet. If you commit them afterwards, `lisa controls attest --check` finds that the checks changed after the recorded commit and does not pass. Attest says so when it happens. The order that gives a verdict someone else can check: commit those files, run attest, then commit the three result files.
+
+`lisa controls attest --workspace <folder>` is a report and writes none of the three files. It runs each check's own command in a copy you made and makes no commit or push, so it shows that a check works and not that anything runs it.
 
 The attest step also runs `lisa controls reconcile`, which compares the register with what is installed in this checkout, in both directions: a place the register says a check runs where nothing runs it, and a command a hook runs that the register does not list.
 
@@ -208,7 +212,7 @@ The four commands are skills. The deterministic work is behind `lisa controls`, 
   - An agent's say-so alone never meets any of them: code runs the proof, finds the line, or finds the person's answer.
 - **It rests on judgement in two places.** For a located record, code confirmed the file and line exist. That the file is the right record, and says what it should, is the judgement of the agent that ran the audit. A person's answer is as good as the person who gave it.
 - **It goes out of date.** Every evidence record is current for 30 days. After that its requirement reads unknown, and `current_until` in the verdict says when that first happens. Running attest again renews it.
-- **It is a local, unsigned check.** `lisa controls attest --check` shows that the verdict, the register and the evidence agree with each other, with the declaration and with the clock. It cannot show that the evidence is what a run really produced: someone who rewrites all three files together, consistently, leaves three files that agree. Version history, running the proofs again at the recorded commit, or a signature made somewhere the author cannot reach can tell the difference. This release makes no signature.
+- **It is a local, unsigned check.** `lisa controls attest --check` shows that the verdict, the register and the evidence agree with each other, with the declaration and with the clock, and that the files defining the checks are as they were at the commit the evidence names. It does not see a change to a checked tool's own configuration, such as a rule switched off in a linter's settings; running attest again does. It cannot show that the evidence is what a run really produced: someone who rewrites all three files together, consistently, leaves three files that agree. Version history, running the proofs again at the recorded commit, or a signature made somewhere the author cannot reach can tell the difference. This release makes no signature.
 - **An exit code is not the verdict.** `lisa controls attest` exits 0 when every declared check passed its proof. That can be true with Level 1 far from met, because most requirements are not checks at all.
 
 ## Requirements
@@ -267,7 +271,7 @@ In every case the write has already happened: a refusal tells the agent the file
 - Run attest again before `current_until`. Evidence lasts 30 days, so a run a little more often than that keeps a verdict standing.
 - After a new clone, run `lisa controls install-carriers` once in it.
 - After changing the `gates` block, run `lisa controls register`, and attest again.
-- To check someone else's verdict, run `lisa controls attest --check` in a checkout of the commit that holds it.
+- To check someone else's verdict, run `lisa controls attest --check` in a checkout of the commit that holds it. The checkout needs the history back to the commit the evidence names: in a shallow clone, which many pipelines make, the check says it could not compare and does not pass. Fetch the full history first (`git fetch --unshallow`).
 
 ## Where the detail lives
 

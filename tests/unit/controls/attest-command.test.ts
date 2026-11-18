@@ -5,7 +5,9 @@
  * passed. It plants its changes in a disposable copy, never in the
  * repository it is pointed at. What it writes in the repository is the
  * evidence, the control register and the verdict, and nothing else
- * (CodySwannGT/lisa#4998).
+ * (CodySwannGT/lisa#4998). In a folder the operator named with
+ * `--workspace` it writes nothing at all: that run is a report, and
+ * `attest-report-only.test.ts` holds it to that.
  * @module tests/unit/controls/attest-command
  */
 import { mkdirSync, symlinkSync } from "node:fs";
@@ -29,7 +31,7 @@ import {
   provedGates,
   REJECTS_EVERYTHING,
 } from "../../helpers/control-proofs.js";
-import { attest } from "./support/attest-run.js";
+import { attest, attestAndRecord } from "./support/attest-run.js";
 import { removeCopies, setting } from "./support/proof-run.js";
 import { keep, removeFixtures } from "./support/report-check-run.js";
 
@@ -62,7 +64,7 @@ describe("lisa controls attest", () => {
   it("prints a table and exits 0 when every control passed", async () => {
     const where = setting(WORKING);
 
-    const run = await attest(where.repoPath, { workspace: where.workspace });
+    const run = await attestAndRecord(where);
 
     expect(run.code).toBe(ATTEST_EXIT.PASSED);
     expect(run.stderr).toEqual([]);
@@ -78,7 +80,7 @@ describe("lisa controls attest", () => {
   it("names the half each failing control failed on, and exits 1", async () => {
     const where = setting(BROKEN);
 
-    const run = await attest(where.repoPath, { workspace: where.workspace });
+    const run = await attestAndRecord(where);
 
     expect(run.code).toBe(ATTEST_EXIT.NOT_PASSED);
     expect(run.stdout.filter(line => line.startsWith("failed"))).toEqual([
@@ -93,10 +95,7 @@ describe("lisa controls attest", () => {
   it("prints one JSON document and nothing else with --json", async () => {
     const where = setting(BROKEN);
 
-    const run = await attest(where.repoPath, {
-      workspace: where.workspace,
-      json: true,
-    });
+    const run = await attestAndRecord(where, { json: true });
     const document = JSON.parse(run.stdout.join("\n")) as ProofRun;
 
     expect(run.code).toBe(ATTEST_EXIT.NOT_PASSED);
@@ -117,10 +116,7 @@ describe("lisa controls attest", () => {
   it("prints only the JSON document when every control passed", async () => {
     const where = setting(WORKING);
 
-    const run = await attest(where.repoPath, {
-      workspace: where.workspace,
-      json: true,
-    });
+    const run = await attestAndRecord(where, { json: true });
 
     expect(run.code).toBe(ATTEST_EXIT.PASSED);
     expect(run.stderr).toEqual([]);
@@ -130,7 +126,7 @@ describe("lisa controls attest", () => {
   it("writes its three files in the repository, and nothing in the copy", async () => {
     const where = setting(BROKEN);
 
-    await attest(where.repoPath, { workspace: where.workspace });
+    await attestAndRecord(where);
 
     expect(
       runControlAuditGit(where.repoPath, [

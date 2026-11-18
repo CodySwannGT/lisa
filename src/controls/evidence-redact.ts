@@ -29,7 +29,7 @@ import type {
   EvidenceResultInput,
 } from "./evidence-types.js";
 import { redactArguments, redactCredentials } from "./secret-scan.js";
-import { describeCredentialKind } from "./secret-shapes.js";
+import { describeCredentialKind, placeholderKinds } from "./secret-shapes.js";
 
 /**
  * Take every credential-shaped value out of what a check printed.
@@ -70,7 +70,12 @@ export function recordWithoutSecretValues(
 
 /**
  * Say what the captured text of one result is shaped like, where it holds a
- * credential shape.
+ * credential shape, or held one.
+ *
+ * The step that ran a check takes the values out of what the check printed
+ * before it cuts the output down, so that text reaches this point with
+ * placeholders in it and no value. A placeholder says a value was there as
+ * surely as the value would, and the operator is told either way.
  * @param result - One result a step handed to the evidence writer
  * @returns Each kind once; empty when the result holds none
  */
@@ -81,6 +86,7 @@ function kindsIn(result: EvidenceResultInput): readonly string[] {
       ...redactCredentials(result.detail).kinds,
       ...redactArguments(result.command ?? []).kinds,
       ...redactCredentials(result.output_excerpt).kinds,
+      ...placeholderKinds(result.output_excerpt),
     ]),
   ];
 }

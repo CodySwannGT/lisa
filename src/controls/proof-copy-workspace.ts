@@ -37,6 +37,15 @@
  * starting the check's command: that would be a different proof under the
  * same name.
  *
+ * ## A change that rewrites the check
+ *
+ * Everything that answers here is read from the copy: the declaration, the
+ * hook scripts, the gate runner. A planted change that edits one of them
+ * changes what answers, so the workspace can say which such file the change
+ * staged right now touches (`changedCheckFile`), and the paired-proof runner
+ * asks before it starts any check (`./proof-preflight.ts`). The rule itself
+ * is in `./proof-change-rule.ts`.
+ *
  * ## The same commit or push, answered by git alone
  *
  * Before anything is installed there is no carrier and no gate runner to
@@ -52,6 +61,7 @@ import { rmSync } from "node:fs";
 import path from "node:path";
 
 import { CARRIER_MOMENTS, type CarrierMoment } from "./carrier-types.js";
+import { changedCheckFile, stagedPaths } from "./proof-change-rule.js";
 import {
   copyGit,
   gitSaid,
@@ -392,6 +402,10 @@ export function proofCopyWorkspace(
       return {
         problem: `The change was put in place but could not be staged, so it was taken back out: ${gitSaid(staged)}${after}`,
       };
+    },
+    changedCheckFile: async () => {
+      await turn();
+      return changedCheckFile(stagedPaths(inClone), copy.checkFiles);
     },
     trigger: async request => {
       await turn();

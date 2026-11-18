@@ -113,6 +113,12 @@ export const PROOF_ENTRY_REASONS = [
   /** `unknown`: a patch file is there and could not be read safely. */
   "patch-unreadable",
   /**
+   * `unknown`: one of the proof's changes edits a file that says what the
+   * check is or runs it, so no check was started. The word is the one
+   * `lisa controls proof-check` gives the same pair.
+   */
+  "declaration-changed",
+  /**
    * `unproved`: the hosting platform's settings require the entry's check
    * before a merge. They were read; nothing was exercised.
    */
@@ -198,11 +204,17 @@ export interface ProofHalfResult {
   readonly started_at: string;
   /** When the half's answer was in, in UTC, from the injected clock. */
   readonly completed_at: string;
-  /** The end of what the check printed, with the workspace path taken out. */
+  /**
+   * The end of what the check printed, with the workspace path and every
+   * credential-shaped value taken out before it was cut.
+   */
   readonly output_excerpt: string;
   /** Whether the excerpt leaves out earlier output. */
   readonly output_truncated: boolean;
-  /** The output lines that carry the declared failure text. */
+  /**
+   * The output lines that carry the declared failure text, with the same
+   * taken out of them.
+   */
   readonly matched_lines: readonly string[];
   readonly outcome: ProofHalfOutcome;
   readonly reason: ProofHalfReason;
@@ -283,6 +295,18 @@ export interface ProofWorkspace {
    * @param patch - The content of the patch file
    */
   readonly apply: (patch: string) => PatchOutcome | Promise<PatchOutcome>;
+  /**
+   * Name a file the change planted right now edits that says what the
+   * checks are or runs them, or `null` when it edits none
+   * (`./proof-change-rule.ts`). The runner asks this of each change of a
+   * pair before it starts any check, and runs no proof for a pair that
+   * edits one.
+   *
+   * A workspace leaves it out only when nothing that decides what a check
+   * is, or whether it runs, is read from the folder the change is planted
+   * in.
+   */
+  readonly changedCheckFile?: () => string | null | Promise<string | null>;
   /**
    * Trigger the moment and say what answered.
    * @param request - The entry, its moment, its mechanism and the time limit

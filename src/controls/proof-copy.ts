@@ -55,6 +55,7 @@ import path from "node:path";
 import { isWithin, realPathOf } from "./carrier-owner.js";
 import type { CarrierMoment, CarrierResult } from "./carrier-types.js";
 import { installCarriers } from "./carriers.js";
+import { checkFilesOf, type CheckFiles } from "./proof-change-rule.js";
 import { carriedPaths, carryFiles } from "./proof-copy-files.js";
 import {
   copyCarrierGit,
@@ -117,6 +118,13 @@ export interface ProofCopy {
    * one.
    */
   readonly unwired: Readonly<Record<CarrierMoment, string | null>>;
+  /**
+   * The files in the copy that say what the checks are, or run them. A
+   * proof's change may touch none of them; see `./proof-change-rule.ts`.
+   * Read once the carriers are in place, so the files they brought are
+   * among them.
+   */
+  readonly checkFiles: CheckFiles;
 }
 
 /** A copy, or the one-line reason there is none. */
@@ -441,6 +449,7 @@ export async function buildProofCopy(
   if (carried.problem !== null) return carried;
   const wired = await wireCopy(layout.clone, dependencies);
   if (wired.problem !== null) return wired;
+  const checkFiles = await checkFilesOf(layout.clone);
   const based = baseCommit(layout);
   if (based.problem !== null) return based;
   return {
@@ -449,6 +458,7 @@ export async function buildProofCopy(
       ...layout,
       base: based.base,
       carried: carried.carried,
+      checkFiles,
       source: read.source,
       unwired: wired.unwired,
     },

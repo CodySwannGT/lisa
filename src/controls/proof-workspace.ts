@@ -20,8 +20,8 @@
  * copy, runs commit and push proofs through the installed carriers and
  * removes the copy on every way out is `./proof-copy-workspace.ts`; the
  * command uses that one when no folder is named. This one is for a copy the
- * operator made, and {@link disposableFolder} refuses the repository itself
- * and any folder that holds it.
+ * operator made, and {@link disposableFolder} refuses the repository itself,
+ * any folder that holds it and any folder inside it.
  * @module controls/proof-workspace
  */
 import path from "node:path";
@@ -38,6 +38,13 @@ export type ProofWorkspaceOpening =
       readonly workspace: ProofWorkspace;
       /** Remove whatever opening it created. Called once, on every way out. */
       readonly close: () => void | Promise<void>;
+      /**
+       * The commit the workspace is a copy of, when it is a copy of one. It
+       * is what the run's evidence records name: the commit the proofs were
+       * run against, whatever the repository has moved to by the time the
+       * results are written down.
+       */
+      readonly commit?: string;
     }
   | { readonly problem: string };
 
@@ -131,9 +138,16 @@ export async function disposableFolder(
       problem: `The workspace ${named} is the repository itself. A proof plants a change that breaks a rule, so it only runs in a disposable copy. Copy the repository to another folder and name that.`,
     };
   }
-  return holds(directory, root)
+  if (holds(directory, root)) {
+    return {
+      problem: `The workspace ${named} holds the repository, so a change planted there could land in it. Name a folder that holds only a disposable copy of the repository.`,
+    };
+  }
+  // A folder of the repository is part of the operator's working tree, and
+  // so is everything planted in it.
+  return holds(root, directory)
     ? {
-        problem: `The workspace ${named} holds the repository, so a change planted there could land in it. Name a folder that holds only a disposable copy of the repository.`,
+        problem: `The workspace ${named} is inside the repository, so a change planted there would land in your own working tree. Copy the repository to a folder outside it and name that.`,
       }
     : { problem: null, directory };
 }

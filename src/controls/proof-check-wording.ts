@@ -8,7 +8,6 @@
  * stay consistent with each other.
  * @module controls/proof-check-wording
  */
-import { GATES_DECLARATION_PATH } from "./gates-declaration.js";
 import type { ProofHalf } from "./proof-halves.js";
 import { PROOF_FOLDER } from "./proof-patch.js";
 import { HALF_NAMES, NOT_STARTED_LEAD } from "./proof-wording.js";
@@ -131,15 +130,6 @@ export function notAppliedDetail(
   problem: string
 ): string {
   return `The ${HALF_NAMES[half]} change (${file}) does not apply to the last commit. ${problem} Make the patch again from the last commit, with nothing else changed.`;
-}
-
-/**
- * Say that a change edits the file that declares the checks.
- * @param half - Which half
- * @returns The sentence
- */
-export function declarationChangedDetail(half: ProofHalf): string {
-  return `The ${HALF_NAMES[half]} change edits ${GATES_DECLARATION_PATH}, the file that says what each check runs. A proof never changes what the check is. Take that file out of the patch.`;
 }
 
 /**
