@@ -16,8 +16,10 @@
  *
  * The file is refused, and left exactly as it is, whenever lines added at
  * its end would not do that: it is not a shell script, git does not run it,
- * or a line above the place can end the hook before the added lines are
- * reached (`./carrier-hook-reach.ts`).
+ * a line above the place can end the hook before the added lines are
+ * reached, or the hook could not be read as far as the place
+ * (`./carrier-hook-reach.ts`). The last two say which line, and carry the
+ * lines to add by hand.
  *
  * The same questions are asked of a hook that already holds the lines. A
  * hook changes after the day it was wired: someone adds an `exit 0` above
@@ -133,8 +135,36 @@ function interpreter(text: string): string | null {
   return named === undefined ? null : path.basename(named);
 }
 
+/** What a line that can end a hook holds, said to a person. */
+const LEAVES: Readonly<Record<Exclude<EarlyLeave["word"], "unread">, string>> =
+  {
+    exec: 'an "exec" there hands over to another program',
+    exit: 'an "exit" there can leave without a failure: it is neither given a status written as a number other than 0 nor the last part of "|| exit"',
+    return:
+      'a "return" there ends a hook that dash, ksh or zsh runs, and can do so without a failure: it is neither given a status written as a number other than 0 nor the last part of "|| return"',
+    trap: 'a "trap" there runs when the hook ends or a command fails, and what it runs can end the hook with success after a check has failed',
+  };
+
 /**
- * Say that a line above the call can end the hook before the call runs.
+ * Say where lines added by hand are reached and heeded.
+ * @param leave - The line that stands in the way, and what is on it
+ * @returns The place, as the end of "Add these lines to it by hand ..."
+ */
+function placeFor(leave: EarlyLeave): string {
+  if (leave.word === "unread") return `above line ${leave.line}`;
+  return leave.word === "trap"
+    ? "where they run before that trap is set"
+    : "where they run before the hook can leave";
+}
+
+/**
+ * Say that a line above the call can end the hook before the call runs, or
+ * that the hook could not be read as far as the call.
+ *
+ * Every such reason ends the same way: the lines to add by hand, or, where
+ * the hook already holds them, where to move them. Above the line named
+ * they are reached and heeded whatever that line does, and a later run then
+ * reads only what is above them.
  * @param hook - The hook file
  * @param leave - The line, and what is on it
  * @param present - Whether the file already holds the call
@@ -149,17 +179,14 @@ function unreachable(
   const lines = present
     ? "the lines this command added there"
     : "lines added at its end";
-  if (leave.word === "open") {
-    return `${hook.shown} opens a quote or a here-document at line ${leave.line} that is still open where the call goes, so ${lines} would be read as text and might never run. It was left as it is. Close it, then run this again.`;
+  const left =
+    leave.word === "unread"
+      ? `${hook.shown} could not be read from line ${leave.line} on: either a quote, a here-document or a parenthesis that starts there is still open where the call goes, or the line is written in a way this command does not follow. So it cannot tell whether ${lines} would be run as commands of the hook itself, and they might never run. It was left as it is.`
+      : `${hook.shown} can leave at line ${leave.line} before its end (${LEAVES[leave.word]}), so ${lines} might never run. It was left as it is.`;
+  if (present) {
+    return `${left} Move the lines from "${begin}" to "${end}", those two included, above line ${leave.line} by hand.`;
   }
-  const what =
-    leave.word === "exec"
-      ? 'an "exec" there hands over to another program'
-      : 'an "exit" there is not the last part of "|| exit <non-zero>"';
-  const left = `${hook.shown} can leave at line ${leave.line} before its end (${what}), so ${lines} might never run. It was left as it is.`;
-  return present
-    ? `${left} Move the lines from "${begin}" to "${end}", those two included, above line ${leave.line} by hand.`
-    : `${left} Add these lines to it by hand where they run before the hook can leave, the two marker lines included:\n${carrierCallBlock(hook.moment)}`;
+  return `${left} Add these lines to it by hand ${placeFor(leave)}, the two marker lines included:\n${carrierCallBlock(hook.moment)}`;
 }
 
 /**

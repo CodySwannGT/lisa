@@ -1719,11 +1719,12 @@ cannot be added to safely — not a shell script, not started by git, in a
 folder outside the checkout that `core.hooksPath` names, or replaced by Lisa
 on every update — is left as it is, and the point is reported `blocked`.
 
-**Lines added to a hook have to be reached.** A hook that leaves before its
-end takes the added lines with it: the result would say `installed` and every
-commit would pass unchecked. So every line above the place the call goes is
-read (`src/controls/carrier-hook-reach.ts`), and the hook is left as it is,
-with the point `blocked`, when one of them can end it:
+**Lines added to a hook have to be reached, and heeded.** A hook that leaves
+before its end takes the added lines with it: the result would say
+`installed` and every commit would pass unchecked. So every line above the
+place the call goes is read (`src/controls/carrier-hook-reach.ts`), and the
+hook is left as it is, with the point `blocked`, when one of them can end it
+with success:
 
 - `exec <program>` anywhere. An `exec` that only redirects (`exec < /dev/tty`)
   is accepted.
@@ -1731,19 +1732,70 @@ with the point `blocked`, when one of them can end it:
   is a variable, and an `exit` with no status or with `$?` anywhere but the
   last part of `|| exit` (`|| exit $?`, `|| exit`), where the status it
   carries is a failure.
+- any `return`, judged exactly as an `exit` is. Outside every function a
+  `return` ends a script that dash, ksh or zsh runs (measured; bash reports
+  it and carries on), and dash is `sh` on most Linux systems, so
+  `[ -n "$RUN_ALL" ] || return 0` above the call ends such a hook with
+  success. A `return` inside a function is refused too, as an `exit` there
+  is: where a function starts and ends is not followed.
+- a `trap` that can turn a failure into success. What a trap on `EXIT` (or
+  `0`) runs is run after the added lines have failed, and an `exit 0` in it
+  is the status git sees: the check runs, fails, and the commit goes through
+  (measured in sh, dash, bash, ksh and zsh). Such a trap is refused when what
+  it runs holds an `exit` or a `return` this list refuses, an `exec` of a
+  program, or text that cannot be read. So is one on a condition the shell
+  raises itself while the hook runs: `ERR` and `ZERR` (a command failed),
+  `DEBUG` (before each command) and `RETURN`. A condition that is not known
+  to be a signal, such as one held in a variable, is taken for one of these.
+  A trap on a signal (`INT`, `TERM`, a number) is accepted, and so is one
+  that only cleans up, or exits with a written non-zero status.
 
-An `exit` with a written non-zero status (`exit 1`) is accepted wherever it
-stands, inside an `if` included: every way it leaves fails the hook, so git
-stops the commit itself and nothing passes unchecked. An `exit $?` inside an
-`if` is refused. It may be safe, but proving it means following the shell's
-control flow, and a wrong proof is a commit that passes unchecked; refusing
-costs one paste. The reader
-follows quotes, comments and here-documents, so `npm exec` and an `exit` in a
-message are not taken for commands. It does not follow a file the hook reads
-in, `eval`, or a function called later. The blocked point names the line and
-carries the lines to add by hand, the two marker lines included: placed where
-they always run, a later run finds them by the markers and reports the point
-as wired, and `lisa controls reconcile` reads them as Lisa's.
+An `exit` or a `return` with a written non-zero status (`exit 1`) is accepted
+wherever it stands, inside an `if` included: every way it leaves fails the
+hook, so git stops the commit itself and nothing passes unchecked. An
+`exit $?` inside an `if` is refused. It may be safe, but proving it means
+following the shell's control flow, and a wrong proof is a commit that passes
+unchecked; refusing costs one paste. One of these words with something the
+shell works out written into it (`exit$1`, `$1exit`, `ex${x}it`) is taken for
+that word and refused: it is the word itself whenever what the shell works
+out holds nothing.
+
+The reader follows quotes, comments and here-documents, so `npm exec` and an
+`exit` in a message are not taken for commands. It follows a command
+substitution inside double quotes when that is written on one line, with the
+quotes inside it, so the double quote in `"$(sed 's/"//g' file)"` does not
+end the outer one; and it does not take `<<` for a here-document inside
+`$(( ))` written on one line, or on a comment line. It does not follow a file
+the hook reads in, `eval`, a function called later, a trap whose action is
+held in a variable, or a command whose name a command substitution works out
+or completes (`$(printf exit)`, `ex$(true)it`).
+
+**A hook it cannot read is refused as not read.** The reason names the line
+the reader lost track on, and says that either a quote, a here-document or a
+parenthesis that starts there is still open where the call goes, or the line
+is written in a way the reader does not follow. These end that way:
+
+- a quote, a here-document or a parenthesis that really is left open. Lines
+  added inside one are text, or run in a shell of their own.
+- a dollar sign directly in front of a quote, where the hook's text does not
+  say what the word is. `$'it\'s'` is a quote left open to dash and a
+  finished one to bash, and `$'exit' 0` is `exit 0` to bash, ksh and zsh and
+  a program called `$exit` to dash. That matters, and is refused, where the
+  word names the command or is given to `exit`, `return`, `exec` or `trap`;
+  as a value (`IFS=$'\n'`) or an argument of another command it is accepted.
+- a `<<` the reader cannot be sure about, which is one that stands inside a
+  quote or after a `#` further along a line, has no closing word on its
+  line, or has a closing word of nothing. It is not guessed at: read as a
+  here-document it would blank out the lines under it, an `exit 0` among
+  them, and read as text it would take a here-document's body for commands.
+- a blank other than a space or a tab outside quotes and comments (a form
+  feed, a no-break space), which a shell takes for part of a word.
+
+Every blocked point of this kind names the line and carries the lines to add
+by hand, the two marker lines included. Placed above that line they are
+reached and heeded whatever it does, a later run finds them by the markers,
+reads only what stands above them, and reports the point as wired, and
+`lisa controls reconcile` reads them as Lisa's.
 
 The same questions are asked of a hook that already holds the lines. A hook
 changes after it was wired: someone adds an `exit 0` above the lines, or the

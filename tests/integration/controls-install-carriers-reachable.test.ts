@@ -79,6 +79,16 @@ const LEAVING: readonly LeavingHook[] = [
     lines: ["exec true", "echo never reached"],
     name: "a line that hands over to another program before the last one",
   },
+  {
+    line: 2,
+    lines: ['[ -n "${RUN_ALL:-}" ] || return 0', "echo checked"],
+    name: "a return outside every function, which ends a hook dash runs",
+  },
+  {
+    line: 3,
+    lines: ["echo checked", 'trap "exit 0" EXIT'],
+    name: "a trap that ends the hook with success whatever ran before",
+  },
 ];
 
 describe.each(LEAVING)("a commit hook with $name", leaving => {

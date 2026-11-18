@@ -7,67 +7,16 @@
  * run after it. The first group is the wrong outcome this reader exists to
  * prevent: a hook that leaves with success before its last line.
  */
-import {
-  chmodSync,
-  existsSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-
 import { afterEach, describe, expect, it } from "vitest";
 
 import { earlyLeave } from "../../../src/controls/carrier-hook-reach.js";
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
-
-const SH = "/bin/sh";
+import { hook, ranToTheEnd } from "../../support/carrier-hook-run.js";
 
 const cleanups: Array<() => void> = [];
 
 afterEach(() => {
   for (const cleanup of cleanups.splice(0)) cleanup();
 });
-
-/**
- * Join the lines of a hook.
- * @param lines - The lines
- * @returns The hook's text
- */
-function hook(...lines: readonly string[]): string {
-  return `${lines.join("\n")}\n`;
-}
-
-/**
- * Run a hook with one line added at its end, and say whether that line ran.
- * @param text - The hook
- * @returns Whether the added line was reached, and how the hook ended
- */
-function ranToTheEnd(text: string): {
-  readonly reached: boolean;
-  readonly status: number | null;
-} {
-  const folder = mkdtempSync(path.join(tmpdir(), "lisa-carrier-reach-"));
-  const file = path.join(folder, "hook");
-  const mark = path.join(folder, "reached");
-  cleanups.push(() => rmSync(folder, { force: true, recursive: true }));
-  writeFileSync(file, `${text}echo reached > "${mark}"\n`);
-  chmodSync(file, 0o755);
-  // Worked out in the order written: the hook runs, then the mark is looked
-  // for.
-  return {
-    status: boundedSpawnSync({
-      args: [file],
-      command: SH,
-      cwd: folder,
-      env: { PATH: "/usr/bin:/bin" },
-      input: "",
-      label: "a hook with a line added at its end",
-    }).status,
-    reached: existsSync(mark),
-  };
-}
 
 describe("a hook that can leave with success before its end", () => {
   const LEAVES: ReadonlyArray<
@@ -136,7 +85,10 @@ describe("a hook that can leave with success before its end", () => {
   it.each(LEAVES)("is refused: %s", (_name, text, leave) => {
     expect(earlyLeave(text)).toEqual(leave);
     // The hook really does skip a line added at its end, and reports success.
-    expect(ranToTheEnd(text)).toEqual({ reached: false, status: 0 });
+    expect(ranToTheEnd(text, {}, cleanups)).toEqual({
+      reached: false,
+      status: 0,
+    });
   });
 });
 
@@ -166,14 +118,14 @@ describe("a hook the reader cannot prove safe", () => {
   it("is refused where a quote is still open at the place lines would go", () => {
     expect(earlyLeave(hook("#!/bin/sh", "echo 'never closed"))).toEqual({
       line: 2,
-      word: "open",
+      word: "unread",
     });
   });
 
-  it("is refused where a here-document is still open there", () => {
-    expect(earlyLeave(hook("#!/bin/sh", "cat <<EOF", "text"))?.word).toBe(
-      "open"
-    );
+  it("is refused where a here-document is still open there, at the line that opens it", () => {
+    expect(
+      earlyLeave(hook("#!/bin/sh", "true", "cat <<EOF", "text", "more"))
+    ).toEqual({ line: 3, word: "unread" });
   });
 });
 
@@ -237,7 +189,10 @@ describe("a hook whose end is reached whenever what is above it passed", () => {
 
   it.each(REACHED)("is accepted: %s", (_name, text) => {
     expect(earlyLeave(text)).toBeNull();
-    expect(ranToTheEnd(text)).toEqual({ reached: true, status: 0 });
+    expect(ranToTheEnd(text, {}, cleanups)).toEqual({
+      reached: true,
+      status: 0,
+    });
   });
 
   it("is accepted for the line Husky's older versions start a hook with", () => {
