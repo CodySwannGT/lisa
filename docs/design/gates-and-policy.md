@@ -1892,7 +1892,13 @@ carries the row's last two columns on every agent point (`refusal`,
 and Devin read a file the repository may already own. One entry is added to
 the one list it belongs in, in the file's own indentation, and every other
 byte stays: other keys, other hooks, comments, and an entry beside Lisa's
-that the repository wrote on one line. The text is edited by position
+that the repository wrote on one line. The entry goes after everything the
+repository wrote in that list, a comment after its last entry included, and
+the comma it needs is written directly after the entry before it, in front
+of such a comment. Where an older entry of Lisa's is replaced, what is taken
+out is that entry, one comma, and the whitespace only it needed (the line it
+stood alone on); a comment between it and a neighbour stays where it is. The
+text is edited by position
 (`src/controls/carrier-json-place.ts`) and not through a JSON editor that
 formats what it writes, because such an editor formats whole lines and
 reflows whatever shares a line with the entry. The edited text is used only

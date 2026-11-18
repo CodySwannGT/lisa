@@ -12923,6 +12923,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/carrier-agent-settings.test.ts": true,
     "tests/unit/controls/carrier-agent-surfaces.test.ts": true,
     "tests/unit/controls/carrier-hook-reach.test.ts": true,
+    "tests/unit/controls/carrier-json-place.test.ts": true,
     "tests/unit/controls/carrier-manager-yaml.test.ts": true,
     "tests/unit/controls/carrier-roster.test.ts": true,
     "tests/unit/controls/carrier-runner-files.test.ts": true,
