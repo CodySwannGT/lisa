@@ -8,10 +8,11 @@
  * the `no-restricted-syntax` ban the TypeScript profile ships. Lisa is a CLI
  * and a set of config factories with no config service, and the environment
  * genuinely is their input (CI fingerprints, agent-runtime ids, package-manager
- * lifecycle variables). So every read goes through one of these two functions,
+ * lifecycle variables). So every read and write goes through these functions,
  * each call explicit and greppable, and Lisa's lint (`eslint.config.local.ts`)
- * refuses every other route — `process.env`, the `env` export of
- * `node:process`, a renamed or namespace import of it, and destructuring.
+ * refuses every other direct route — `process.env` (plain, computed or through
+ * `globalThis`), the `env` export of `node:process`, a renamed or namespace
+ * import of it, and destructuring.
  *
  * Both read `process.env` at call time, never at import: a host whose test
  * setup reassigns `process.env = {...}` is read correctly afterwards.

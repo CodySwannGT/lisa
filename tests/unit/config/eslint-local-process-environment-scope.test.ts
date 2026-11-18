@@ -1,5 +1,5 @@
 /**
- * Pins the ban on every route to the process environment, and the one module
+ * Pins the ban on every direct route to the process environment, and the one module
  * Lisa's own source may read it from.
  *
  * The shipped `no-restricted-syntax` ban exists so configuration flows through
@@ -61,6 +61,13 @@ describe("processEnvironmentBans", () => {
     ["a namespace import", 'import * as p from "node:process";'],
     ["a renamed default import", 'import p from "node:process";'],
     ["destructuring", "const { env } = process;"],
+    ["computed process access", 'export const a = process["env"].HOME;'],
+    ["globalThis.process.env", "export const a = globalThis.process.env.HOME;"],
+    [
+      "computed globalThis access",
+      'export const a = globalThis["process"]["env"];',
+    ],
+    ["global.process.env", "export const a = global.process.env;"],
   ])("rejects %s", (_route, code) => {
     expect(violations(code)).toBe(1);
   });
@@ -70,18 +77,24 @@ describe("processEnvironmentBans", () => {
     ["the default import named process", 'import process from "node:process";'],
     ["other process properties", "export const a = process.argv;"],
     ["other modules' env exports", 'import { env } from "./config.js";'],
+    ["an unrelated object's env", "export const a = settings.env;"],
+    [
+      "another process property via globalThis",
+      "export const a = globalThis.process.argv;",
+    ],
   ])("allows %s", (_route, code) => {
     expect(violations(code)).toBe(0);
   });
 });
 
 describe("process environment scope in eslint.config.local.ts", () => {
-  it("turns the ban off only for the accessor and the shared test fixtures", () => {
+  it("turns the ban off only for the two single readers and the shared test fixtures", () => {
     const off = localConfig
       .filter(entry => entry.rules?.[RULE] === "off")
       .map(entry => entry.files);
     expect(off).toEqual([
       [ACCESSOR],
+      [".agents/skills/harness-parity-council/council-environment.mjs"],
       ["tests/**/support/**", "tests/support/**"],
     ]);
   });
@@ -93,6 +106,11 @@ describe("process environment scope in eslint.config.local.ts", () => {
       expect(await severityFor("src/core/admission.ts")).toBe(2);
       expect(await severityFor("src/configs/vitest/base.ts")).toBe(2);
       expect(await severityFor("tests/helpers/template-toolchain.ts")).toBe(2);
+      expect(
+        await severityFor(
+          ".agents/skills/harness-parity-council/runtime-adapters.mjs"
+        )
+      ).toBe(2);
     },
     ioLatencyBudgetMs(120_000)
   );

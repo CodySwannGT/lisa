@@ -5,6 +5,7 @@ import {
   probeRuntimeAdapter,
   RUNTIME_ADAPTERS,
 } from "./runtime-adapters.mjs";
+import { councilEnvironment } from "./council-environment.mjs";
 import {
   normalizeCouncilContext,
   resolveCouncilRuntimes,
@@ -861,7 +862,7 @@ async function main() {
   const executionPolicy = resolveCouncilFirstRoundExecutionPolicy({
     writeMode: parsed.writeMode,
     runtime: parsed.runtime,
-    env: globalThis.process?.env ?? {},
+    env: councilEnvironment(),
   });
 
   if (parsed.dryRun) {

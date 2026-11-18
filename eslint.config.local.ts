@@ -36,7 +36,7 @@ const localConfig: LocalConfig = [
   // tsconfig.eslint.json's `exclude` all agree on (CodySwannGT/lisa#4927).
   // An ignore added here would reach the fast lint only.
   {
-    // The shipped ban on every route to the process environment, applied to
+    // The shipped ban on every direct route to the process environment, applied to
     // Lisa's own source now. Lisa lints itself with the installed release of
     // @codyswann/lisa, so a ban added to src/configs/eslint reaches this repo
     // only after it is published; applying the same factory here keeps Lisa
@@ -59,6 +59,16 @@ const localConfig: LocalConfig = [
     // module, and every other source file imports that binding.
     // Pinned by tests/unit/config/eslint-local-process-environment-scope.test.ts.
     files: ["src/utils/process-environment.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
+    },
+  },
+  {
+    // The harness-parity council skill runs as standalone node scripts that
+    // cannot import src/ TypeScript, so it has its own single reader,
+    // `councilEnvironment()`, which every other council module imports.
+    // Pinned by tests/unit/config/eslint-local-process-environment-scope.test.ts.
+    files: [".agents/skills/harness-parity-council/council-environment.mjs"],
     rules: {
       "no-restricted-syntax": "off",
     },

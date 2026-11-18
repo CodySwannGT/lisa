@@ -1,4 +1,5 @@
 import { RUNTIME_ADAPTERS } from "./runtime-adapters.mjs";
+import { councilEnvironment } from "./council-environment.mjs";
 
 export const SUPPORTED_COUNCIL_RUNTIMES = Object.freeze(
   Object.keys(RUNTIME_ADAPTERS)
@@ -26,14 +27,6 @@ const WORKTREE_PATH_PATTERNS = Object.freeze([
 ]);
 
 /**
- * Read council environment values without assuming a Node global exists.
- * @returns {NodeJS.ProcessEnv} Process environment values when available.
- */
-function defaultEnv() {
-  return globalThis.process?.env ?? {};
-}
-
-/**
  * Read a boolean-like feature flag from an environment mapping.
  * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env Environment values to inspect.
  * @param {string} name Environment variable name to read.
@@ -56,7 +49,7 @@ function readEnvFlag(env, name) {
  */
 export function detectGuardedWorkspace(
   cwd = process.cwd(),
-  env = defaultEnv()
+  env = councilEnvironment()
 ) {
   if (readEnvFlag(env, COUNCIL_GUARDED_WORKSPACE_ENV)) {
     return {
@@ -97,7 +90,7 @@ export function detectGuardedWorkspace(
  */
 export function resolveCouncilExecutionPolicy(
   { writeMode = null, cwd = process.cwd() } = {},
-  env = defaultEnv()
+  env = councilEnvironment()
 ) {
   const normalizedWriteMode = writeMode?.trim() ?? null;
   const workspace = detectGuardedWorkspace(cwd, env);

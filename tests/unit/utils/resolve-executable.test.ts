@@ -261,19 +261,31 @@ describe("escapeBatchArgument", () => {
   });
 });
 
+/** Characters cmd.exe acts on when it meets them unescaped. */
+const CMD_SPECIAL = new Set(["&", "|", "<", ">", "(", ")", "%", "!", '"']);
+
 /**
- * One cmd.exe parsing pass: `^` escapes the next character.
+ * One cmd.exe parsing pass: `^` escapes the next character, and any special
+ * character met unescaped would be acted on (a pipe, a redirect, a group, a
+ * variable expansion, a quote toggle), so the model refuses it.
  * @param text - Text cmd.exe reads
  * @returns The text after cmd.exe removes one level of escapes
+ * @throws {Error} When a special character or a trailing `^` is unescaped
  */
 function cmdPass(text: string): string {
-  return [...text].reduce(
-    (state, character) =>
-      state.escaped || character !== "^"
-        ? { out: state.out + character, escaped: false }
-        : { out: state.out, escaped: true },
+  const end = [...text].reduce(
+    (state, character) => {
+      if (state.escaped) return { out: state.out + character, escaped: false };
+      if (character === "^") return { out: state.out, escaped: true };
+      if (CMD_SPECIAL.has(character)) {
+        throw new Error(`cmd.exe would act on an unescaped ${character}`);
+      }
+      return { out: state.out + character, escaped: false };
+    },
     { out: "", escaped: false }
-  ).out;
+  );
+  if (end.escaped) throw new Error("cmd.exe line ends in a lone ^");
+  return end.out;
 }
 
 /**
@@ -315,8 +327,7 @@ describe("escapeBatchArgument round trip", () => {
     "",
   ])("survives both cmd passes and MSVCRT parsing unchanged: %j", value => {
     const escaped = escapeBatchArgument(value);
-    // No metacharacter reaches cmd.exe unescaped on either pass.
-    expect(cmdPass(escaped)).toMatch(/^\^"/u);
+    // cmdPass throws if either pass meets a metacharacter unescaped.
     expect(msvcrtArgument(cmdPass(cmdPass(escaped)))).toBe(value);
   });
 
@@ -325,5 +336,9 @@ describe("escapeBatchArgument round trip", () => {
     expect(escapeBatchArgument("^")).toBe('^^^"^^^^^^^"');
     expect(escapeBatchArgument("100%")).toBe('^^^"100^^^%^^^"');
     expect(escapeBatchArgument("two words")).toBe('^^^"two^^^ words^^^"');
+    expect(escapeBatchArgument("a<b")).toBe('^^^"a^^^<b^^^"');
+    expect(escapeBatchArgument("a>b")).toBe('^^^"a^^^>b^^^"');
+    expect(escapeBatchArgument("(a)")).toBe('^^^"^^^(a^^^)^^^"');
+    expect(escapeBatchArgument("a!b")).toBe('^^^"a^^^!b^^^"');
   });
 });

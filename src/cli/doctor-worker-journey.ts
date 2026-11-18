@@ -19,7 +19,7 @@
 import { existsSync } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
-import process from "node:process";
+import { currentEnvironment } from "../utils/process-environment.js";
 
 /** One worker entry from `.lisa/worker-config.json`. */
 export interface WorkerEpochAgentRecord {
@@ -130,7 +130,7 @@ export async function resolveWorkerJourneyEvidence(
  * @returns Current runtime signature
  */
 export function currentRuntimeWorkerSignature(): RuntimeWorkerSignature {
-  const env = process["env"];
+  const env = currentEnvironment();
   const host =
     env.LISA_WORKER_HOST ??
     env.LISA_REMOTE_AGENT ??
