@@ -35,7 +35,7 @@ import {
 export const EACH_CHECKOUT: CarrierCloneSetup = {
   check: `${INSTALL_CARRIERS_INVOCATION} --check`,
   command: INSTALL_CARRIERS_INVOCATION,
-  why: `Git does not copy hook settings into a new clone. Where nothing else owns the hooks, the command sets core.hooksPath to ${CARRIER_HOOKS_FOLDER} in that checkout; until it has run there, git runs no carrier.`,
+  why: `Git does not copy hook settings into a new clone. Where nothing else owns the hooks, the command sets core.hooksPath to ${CARRIER_HOOKS_FOLDER} in the clone's own configuration, which every working tree of that clone shares; until it has run in a clone, git runs no carrier there.`,
 };
 
 /**

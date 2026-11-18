@@ -273,3 +273,95 @@ describe("the carriers in a pre-commit framework configuration", () => {
     );
   });
 });
+
+describe("the stage names the carriers are written with", () => {
+  const HOOKS = [
+    "repos:",
+    "  - repo: https://example.test/hooks",
+    "    rev: v1.0.0",
+    "    hooks:",
+    "      - id: trailing-whitespace",
+  ];
+
+  /**
+   * The stages of the two hooks this command wrote into a configuration.
+   * @param text - The configuration before the carriers
+   * @returns The stages of the commit hook, then of the push hook
+   */
+  function stagesWritten(text: string): unknown {
+    const once = done(preCommitWith(text, "commit"));
+    const twice = preCommitWith(once.text, "push");
+    const parsed = loadYaml(once.text) as {
+      repos: { hooks: { id: string; stages?: unknown }[] }[];
+    };
+
+    expect(lost(text, once.text)).toEqual([]);
+    // One entry carries both moments, in the names the file already uses.
+    expect(twice).toEqual({ problem: null, state: "present", text: once.text });
+    return parsed.repos
+      .flatMap(repo => repo.hooks)
+      .filter(hook => hook.id.startsWith("lisa-gates-"))
+      .map(hook => hook.stages);
+  }
+
+  // Before pre-commit 3.2.0 a stage was named `commit` or `push`, and a
+  // version that old refuses a whole configuration that names a stage it
+  // does not know. So a file that speaks the old names is answered in them.
+  it.each([
+    [
+      "asks for a pre-commit older than 3.2.0",
+      ['minimum_pre_commit_version: "2.9.0"', ...HOOKS],
+    ],
+    [
+      "asks for one older than 3.2.0 without quotes",
+      ["minimum_pre_commit_version: 3.1.1", ...HOOKS],
+    ],
+    ["names an old stage by default", ["default_stages: [commit]", ...HOOKS]],
+    [
+      "names the old push stage by default",
+      ["default_stages:", "  - push", ...HOOKS],
+    ],
+    [
+      "has a hook at the old commit stage",
+      [...HOOKS, "        stages: [commit]"],
+    ],
+    ["has a hook at the old push stage", [...HOOKS, "        stages: [push]"]],
+  ])("are the old ones in a file that %s", (_name, lines) => {
+    expect(stagesWritten(`${lines.join("\n")}\n`)).toEqual([
+      ["commit"],
+      ["push"],
+    ]);
+  });
+
+  it.each([
+    ["says nothing about versions or stages", HOOKS],
+    [
+      "asks for pre-commit 3.2.0",
+      ['minimum_pre_commit_version: "3.2.0"', ...HOOKS],
+    ],
+    [
+      "asks for a later pre-commit",
+      ["minimum_pre_commit_version: '4.0.1'", ...HOOKS],
+    ],
+    [
+      "names the new stages",
+      [
+        "default_stages: [pre-commit, pre-push]",
+        ...HOOKS,
+        "        stages: [pre-commit, manual]",
+      ],
+    ],
+  ])("are the new ones in a file that %s", (_name, lines) => {
+    expect(stagesWritten(`${lines.join("\n")}\n`)).toEqual([
+      ["pre-commit"],
+      ["pre-push"],
+    ]);
+  });
+
+  it("says the entry to add by hand in the names the file uses", () => {
+    expect(
+      preCommitWith("default_stages: [commit]\nexclude: ^vendor/\n", "commit")
+        .problem
+    ).toMatch(/Add this entry to "repos" by hand: .*"stages":\["commit"\]/u);
+  });
+});

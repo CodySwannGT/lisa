@@ -59,7 +59,24 @@ export interface HookFacts {
   readonly hooksPathSet: boolean;
   /** The hook manager's configuration file, from the repository root. */
   readonly managerFile: string | null;
+  /**
+   * The folder every working tree of the repository shares (git's own
+   * folder), as a real path; `null` when git was not asked for it.
+   */
+  readonly commonFolder: string | null;
+  /**
+   * Whether the repository has another working tree. Git's own hooks folder
+   * and the repository's configuration are then shared with it: a hook
+   * written there, or `core.hooksPath` set there, takes effect in every one.
+   */
+  readonly sharedByCheckouts: boolean;
 }
+
+/** How git's shared folder is named in a path shown to a person. */
+export const GIT_COMMON_FOLDER_SHOWN = "<git-common-dir>";
+
+/** How any other folder outside the checkout is named. */
+export const OUTSIDE_SHOWN = "<outside the checkout>";
 
 /**
  * Resolve a path that may not exist yet to the real path it would have.
@@ -88,16 +105,31 @@ export function isWithin(folder: string, target: string): boolean {
 }
 
 /**
- * Name a path the way a person reads it: from the repository root when it is
- * inside the repository, in full when it is not.
+ * Name a path the way a person reads it, never as a path of the machine.
+ *
+ * A result is printed, saved and passed on, and a path outside the checkout
+ * holds the operator's own folder names. So a path is named from the
+ * repository root when it is inside the checkout; from git's shared folder,
+ * written {@link GIT_COMMON_FOLDER_SHOWN}, when it is inside that (a hook of
+ * a linked working tree is; `git rev-parse --git-common-dir` prints the
+ * folder); and otherwise by its file name alone, after
+ * {@link OUTSIDE_SHOWN}.
  * @param root - Real path of the repository
  * @param absolute - The path
+ * @param commonFolder - Real path of git's shared folder, when it is known
  * @returns The path as it is shown
  */
-export function shownPath(root: string, absolute: string): string {
-  return isWithin(root, absolute)
-    ? path.relative(root, absolute).split(path.sep).join("/")
-    : absolute;
+export function shownPath(
+  root: string,
+  absolute: string,
+  commonFolder: string | null = null
+): string {
+  const from = (folder: string): string =>
+    path.relative(folder, absolute).split(path.sep).join("/");
+  if (isWithin(root, absolute)) return from(root);
+  return commonFolder !== null && isWithin(commonFolder, absolute)
+    ? `${GIT_COMMON_FOLDER_SHOWN}/${from(commonFolder)}`
+    : `${OUTSIDE_SHOWN}/${path.basename(absolute)}`;
 }
 
 /**
@@ -155,11 +187,14 @@ export async function detectHookOwner(
   root: string,
   git: CarrierGit
 ): Promise<HookFacts> {
-  const [hooksPath, folder] = await Promise.all([
+  const [hooksPath, folder, common, workingTrees] = await Promise.all([
     git.hooksPath(root),
     git.hooksFolder(root),
+    git.commonFolder?.(root) ?? null,
+    git.workingTrees?.(root) ?? 1,
   ]);
   const hooksFolder = await realPathOf(folder);
+  const commonFolder = common === null ? null : await realPathOf(common);
   const hooksPathSet = hooksPath !== null;
   const [husky, lefthook, preCommit, byHand] = await Promise.all([
     pathKind(path.join(root, HUSKY_FOLDER)),
@@ -168,10 +203,12 @@ export async function detectHookOwner(
     holdsHooks(hooksFolder),
   ]);
   const found = (owner: HookOwner, managerFile: string | null): HookFacts => ({
+    commonFolder,
     hooksFolder,
     hooksPathSet,
     managerFile,
     owner,
+    sharedByCheckouts: workingTrees > 1,
   });
   if (hooksPathSet) return found(ownerOfHooksPath(root, hooksFolder), null);
   if (husky === "folder") return found("husky", null);

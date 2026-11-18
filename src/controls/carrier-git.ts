@@ -69,11 +69,32 @@ export interface CarrierGit {
    */
   readonly isIgnored: (root: string, relativePath: string) => Promise<boolean>;
   /**
-   * Set `core.hooksPath` in this checkout's own configuration.
+   * Set `core.hooksPath` in the repository's own configuration. Every
+   * working tree of the repository reads that configuration, so the setting
+   * is shared by all of them; it is not committed, and not copied to a clone.
    * @param root - The repository
    * @param value - The folder, from the repository root
    */
   readonly setHooksPath: (root: string, value: string) => Promise<void>;
+  /**
+   * The folder every working tree of the repository shares: git's own
+   * folder, where its hooks folder and its configuration are. In a linked
+   * working tree it is outside the top folder.
+   *
+   * Optional, so that a git which only ever sees one working tree (the
+   * isolated one a proof copy uses) does not have to answer. Without it a
+   * path outside the top folder is named by a neutral description.
+   * @param root - The repository
+   * @returns Its absolute path
+   */
+  readonly commonFolder?: (root: string) => Promise<string>;
+  /**
+   * How many working trees the repository has, this one included. Optional
+   * for the same reason; without it the answer is taken to be one.
+   * @param root - The repository
+   * @returns The count
+   */
+  readonly workingTrees?: (root: string) => Promise<number>;
 }
 
 /**
@@ -158,5 +179,11 @@ export function createCarrierGit(env?: NodeJS.ProcessEnv): CarrierGit {
     setHooksPath: async (root, value) => {
       await answer(root, ["config", "--local", HOOKS_PATH_SETTING, value]);
     },
+    commonFolder: async root =>
+      path.resolve(root, await answer(root, ["rev-parse", "--git-common-dir"])),
+    workingTrees: async root =>
+      (await answer(root, ["worktree", "list", "--porcelain"]))
+        .split("\n")
+        .filter(line => line.startsWith("worktree ")).length,
   };
 }

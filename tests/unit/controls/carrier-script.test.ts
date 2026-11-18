@@ -3,12 +3,14 @@
  *
  * The carrier is read by operators and run by `sh` on machines Lisa knows
  * nothing about, so its text is held to what it must say and do: it is valid
- * POSIX shell, it asks for Node before anything else, it hands the hook's
+ * POSIX shell, it asks for Node before anything else, it goes to the top
+ * folder of the checkout before it looks for the runner, it hands the hook's
  * arguments to the runner, and it sits between markers that let a later run
  * find it, replace it in place and leave everything else alone.
  */
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -21,9 +23,11 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   carrierCall,
-  carrierCallLine,
+  carrierCallBlock,
   carrierMarkers,
   carrierScript,
+  carrierScriptPath,
+  carrierStartLine,
   findMarkedBlock,
   PUSH_STDIN_USED,
   withMarkedBlock,
@@ -37,6 +41,11 @@ import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 const SH = "/bin/sh";
 const HOST_HOOK = "#!/bin/sh\necho host check\n";
 
+/** Every shell on this machine a repository's hook may be written for. */
+const SHELLS = [SH, "/bin/dash", "/bin/bash", "/bin/zsh"].filter(shell =>
+  existsSync(shell)
+);
+
 const cleanups: Array<() => void> = [];
 
 afterEach(() => {
@@ -44,19 +53,20 @@ afterEach(() => {
 });
 
 /**
- * Ask `sh` whether a text is a script it can read, without running it.
+ * Ask a shell whether a text is a script it can read, without running it.
  * @param script - The text
+ * @param shell - The shell to ask; `sh` when left out
  * @returns What `sh -n` said; empty when the script is valid
  */
-function syntaxErrors(script: string): string {
+function syntaxErrors(script: string, shell = SH): string {
   const folder = mkdtempSync(path.join(tmpdir(), "lisa-carrier-script-"));
   const file = path.join(folder, "hook");
   cleanups.push(() => rmSync(folder, { force: true, recursive: true }));
   writeFileSync(file, script);
   return shSaid(
     boundedSpawnSync({
-      label: "sh -n on a carrier script",
-      command: SH,
+      label: `${shell} -n on a carrier script`,
+      command: shell,
       args: ["-n", file],
     })
   );
@@ -131,16 +141,40 @@ describe.each(CARRIER_MOMENTS)("the carrier for the %s moment", moment => {
     expect(commands.filter(line => line.includes("<"))).toEqual([]);
   });
 
+  it("goes to the top folder of the checkout before it looks for the runner", () => {
+    const goes = lines.findIndex(line => line.includes('cd -- "$(dirname'));
+    const starts = lines.findIndex(line => line.startsWith("exec node "));
+
+    // Two folders above the script, whatever folder it was started from.
+    expect(lines[goes]).toBe(
+      'if ! CDPATH= cd -- "$(dirname -- "$0")/../.." || [ ! -f scripts/lisa-run-gates.mjs ]; then'
+    );
+    expect(carrierScriptPath(moment).split("/")).toHaveLength(3);
+    expect(starts).toBeGreaterThan(goes);
+  });
+
   it("is called from an existing hook only after that hook passed", () => {
     const call = carrierCall(moment);
-    const commands = call.filter(line => !line.startsWith("#"));
+    const commands = call.filter(line => !line.trimStart().startsWith("#"));
 
-    expect(commands).toEqual([
+    expect(commands.slice(0, 2)).toEqual([
       "lisa_status=$?",
       '[ "$lisa_status" -eq 0 ] || exit "$lisa_status"',
-      carrierCallLine(moment),
     ]);
-    expect(syntaxErrors(`${call.join("\n")}\n`)).toBe("");
+    expect(commands).toContain(`  ${carrierStartLine(moment)}`);
+  });
+
+  it.each(SHELLS)("is called by lines %s accepts", shell => {
+    expect(syntaxErrors(`${carrierCallBlock(moment)}\n`, shell)).toBe("");
+  });
+
+  it("is handed to a person with its two marker lines", () => {
+    const { begin, end } = carrierMarkers(moment);
+    const block = carrierCallBlock(moment).split("\n");
+
+    expect(block[0]).toBe(begin);
+    expect(block.at(-1)).toBe(end);
+    expect(block.slice(1, -1)).toEqual(carrierCall(moment));
   });
 });
 
@@ -158,18 +192,23 @@ describe("what the carriers say about the change being checked", () => {
     env: Readonly<Record<string, string>> = {}
   ): string {
     const folder = mkdtempSync(path.join(tmpdir(), "lisa-carrier-args-"));
+    const script = path.join(folder, carrierScriptPath(moment));
+    // The folder a hook above the call may have left the shell in.
+    const elsewhere = path.join(folder, "packages/web");
     cleanups.push(() => rmSync(folder, { force: true, recursive: true }));
     mkdirSync(path.join(folder, "scripts"));
+    mkdirSync(path.dirname(script), { recursive: true });
+    mkdirSync(elsewhere, { recursive: true });
     writeFileSync(path.join(folder, "scripts/lisa-run-gates.mjs"), "");
     writeFileSync(path.join(folder, "node"), '#!/bin/sh\necho "$@"\n');
     chmodSync(path.join(folder, "node"), 0o755);
-    writeFileSync(path.join(folder, "hook"), carrierScript(moment));
+    writeFileSync(script, carrierScript(moment));
     return (
       boundedSpawnSync({
         label: "a carrier script started as a hook",
         command: SH,
-        args: ["hook", "origin", "an address"],
-        cwd: folder,
+        args: [script, "origin", "an address"],
+        cwd: elsewhere,
         env: { PATH: `${folder}:/usr/bin:/bin`, ...env },
         input: "",
       }).stdout ?? ""
@@ -202,14 +241,14 @@ describe("what the carriers say about the change being checked", () => {
   });
 
   it("calls the commit carrier with the hook's own standard input", () => {
-    expect(carrierCallLine("commit")).toBe(
-      'sh .lisa/hooks/pre-commit "$@" || exit $?'
+    expect(carrierStartLine("commit")).toBe(
+      'sh "$lisa_carrier" "$@" || exit $?'
     );
   });
 
   it("calls the push carrier with no standard input, and says some may be gone", () => {
-    expect(carrierCallLine("push")).toBe(
-      `${PUSH_STDIN_USED}=1 sh .lisa/hooks/pre-push "$@" </dev/null || exit $?`
+    expect(carrierStartLine("push")).toBe(
+      `${PUSH_STDIN_USED}=1 sh "$lisa_carrier" "$@" </dev/null || exit $?`
     );
   });
 });

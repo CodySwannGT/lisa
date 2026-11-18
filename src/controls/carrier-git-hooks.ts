@@ -10,8 +10,10 @@
  * - Lefthook and the pre-commit framework: an entry in the manager's
  *   committed configuration.
  * - Nothing: Lisa's own hook folder becomes the hooks folder, by setting
- *   `core.hooksPath` in this checkout. That setting is not committed, so
- *   every other checkout has to run the command once as well.
+ *   `core.hooksPath` in the repository's own configuration. Every working
+ *   tree of the repository reads that configuration, so the setting is
+ *   shared by all of them, and the result says so. It is not committed, so
+ *   every new clone has to run the command once as well.
  *
  * The owner also decides whether the push carrier can tell the runner what
  * is being pushed, because only some owners hand it everything git wrote on
@@ -30,16 +32,21 @@ import path from "node:path";
 import { pathKind } from "./audit-report-file.js";
 import { HOOKS_PATH_SETTING, type CarrierGit } from "./carrier-git.js";
 import { lefthookWith } from "./carrier-lefthook.js";
-import { wireManagerFile } from "./carrier-manager-file.js";
+import {
+  isLefthookHook,
+  isPreCommitHook,
+  wireManagerFile,
+} from "./carrier-manager-file.js";
 import {
   detectHookOwner,
   HUSKY_FOLDER,
   isWithin,
+  shownPath,
   type HookFacts,
 } from "./carrier-owner.js";
 import { preCommitWith } from "./carrier-pre-commit.js";
 import {
-  carrierCallLine,
+  carrierCallBlock,
   carrierScript,
   carrierScriptPath,
 } from "./carrier-script.js";
@@ -131,14 +138,35 @@ async function throughHusky(root: string, facts: HookFacts): Promise<Wiring> {
     notSwitchedOn: facts.hooksPathSet
       ? null
       : `Husky is not switched on in this checkout (${HOOKS_PATH_SETTING} is not set), so git does not run ${HUSKY_FOLDER}/${CARRIER_HOOKS[moment]} here. Install the project's dependencies so that Husky's own setup runs, then run this again.`,
-    root,
+    shown: `${HUSKY_FOLDER}/${CARRIER_HOOKS[moment]}`,
     startedBySh,
     through: "husky",
   }));
 }
 
 /**
+ * Tell whether a hooks folder is one every working tree of the repository
+ * runs its hooks from.
+ * @param facts - What was found out about hooks
+ * @returns Whether a hook written there takes effect in another checkout
+ */
+function isSharedFolder(facts: HookFacts): boolean {
+  return (
+    facts.sharedByCheckouts &&
+    facts.commonFolder !== null &&
+    isWithin(facts.commonFolder, facts.hooksFolder)
+  );
+}
+
+/**
  * Plan the calls in a hooks folder that holds one script per hook.
+ *
+ * Git's own hooks folder is written to even where it is outside the top
+ * folder, which is where it is in a linked working tree: it is the
+ * repository's, and the call added there holds in every checkout that
+ * shares it (`./carrier-script.ts`). The points then say the hook is shared.
+ * A folder `core.hooksPath` names outside the checkout is somebody else's,
+ * and is left alone.
  * @param root - Real path of the repository
  * @param facts - What was found out about hooks
  * @param owner - Whether the folder is the repository's own or git's
@@ -151,26 +179,34 @@ async function throughHooksFolder(
 ): Promise<Wiring> {
   const hookFile = (moment: CarrierMoment): string =>
     path.join(facts.hooksFolder, CARRIER_HOOKS[moment]);
+  const shown = (moment: CarrierMoment): string =>
+    shownPath(root, hookFile(moment), facts.commonFolder);
   if (owner === "hooks-path" && !isWithin(root, facts.hooksFolder)) {
     return {
       edits: [],
       points: CARRIER_MOMENTS.map(moment => ({
-        blocked: `Git runs this repository's hooks from ${facts.hooksFolder}, which is outside the repository (${HOOKS_PATH_SETTING}), and this command writes nothing outside it. Add this line to ${hookFile(moment)} by hand, after the existing checks: ${carrierCallLine(moment)}`,
+        blocked: `Git runs this repository's hooks from a folder outside this checkout (the one ${HOOKS_PATH_SETTING} names; "git config ${HOOKS_PATH_SETTING}" prints it), and this command writes no hook file there. Add these lines to the ${CARRIER_HOOKS[moment]} file in that folder by hand, after the existing checks, the two marker lines included:\n${carrierCallBlock(moment)}`,
         call: "absent",
         moment,
-        path: hookFile(moment),
+        path: shown(moment),
         through: owner,
       })),
     };
   }
-  return shellHooks(moment => ({
+  const wiring = await shellHooks(moment => ({
     file: hookFile(moment),
     moment,
     notSwitchedOn: null,
-    root,
+    shown: shown(moment),
     startedBySh: false,
     through: owner,
   }));
+  return isSharedFolder(facts)
+    ? {
+        ...wiring,
+        points: wiring.points.map(point => ({ ...point, shared: "hook" })),
+      }
+    : wiring;
 }
 
 /**
@@ -192,7 +228,7 @@ function throughManager(
         hooksFolder: facts.hooksFolder,
         install: "lefthook install",
         label: "Lefthook",
-        ownHook: /lefthook/iu,
+        ownHook: isLefthookHook,
         root,
         through: "lefthook",
       })
@@ -203,7 +239,7 @@ function throughManager(
         install:
           "pre-commit install --hook-type pre-commit --hook-type pre-push",
         label: "The pre-commit framework",
-        ownHook: /pre[-_]commit/iu,
+        ownHook: isPreCommitHook,
         root,
         through: "pre-commit",
       });
@@ -216,7 +252,6 @@ function throughManager(
  * @returns The points and the writes
  */
 function wiringFor(root: string, facts: HookFacts): Promise<Wiring> {
-  const setting = (): string => HOOKS_PATH_SETTING;
   if (facts.owner === "husky") return throughHusky(root, facts);
   if (facts.owner === "hooks-path" || facts.owner === "git-hooks") {
     return throughHooksFolder(root, facts, facts.owner);
@@ -224,9 +259,18 @@ function wiringFor(root: string, facts: HookFacts): Promise<Wiring> {
   if (facts.managerFile !== null) {
     return throughManager(root, facts, facts.managerFile);
   }
+  // The setting is written to the repository's own configuration, which
+  // every working tree of the repository reads.
+  const throughSetting = (
+    owner: "lisa" | "none",
+    call: PointPlan["call"]
+  ): readonly PointPlan[] =>
+    everyMoment(owner, call, null, () => HOOKS_PATH_SETTING).map(point =>
+      facts.sharedByCheckouts ? { ...point, shared: "setting" } : point
+    );
   return Promise.resolve(
     facts.owner === "lisa"
-      ? { edits: [], points: everyMoment("lisa", "present", null, setting) }
+      ? { edits: [], points: throughSetting("lisa", "present") }
       : {
           edits: [
             {
@@ -236,7 +280,7 @@ function wiringFor(root: string, facts: HookFacts): Promise<Wiring> {
               value: CARRIER_HOOKS_FOLDER,
             },
           ],
-          points: everyMoment("none", "added", null, setting),
+          points: throughSetting("none", "added"),
         }
   );
 }

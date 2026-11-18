@@ -42,7 +42,9 @@
  * - 2: at least one point is `blocked`. The JSON document is complete.
  * - 3: only under `--check`: nothing is blocked, and a run would write
  *   something. The JSON document lists what.
- * - 1: no result could be produced; nothing is printed on stdout.
+ * - 1: no result could be produced; nothing is printed on stdout. The last
+ *   line on stderr says whether anything was written before the run
+ *   stopped, and lists it when something was.
  * @module controls/commands/install-carriers
  */
 import path from "node:path";
@@ -195,7 +197,7 @@ function linesFor(name: string, result: CarrierResult): readonly string[] {
       : []),
     ...(local
       ? [
-          `${name}: core.hooksPath is a setting of this checkout only, and git does not copy it into a new clone. In each new checkout, run "${result.each_checkout.command}" once.`,
+          `${name}: core.hooksPath is not committed, and git does not copy it into a new clone. In each new checkout, run "${result.each_checkout.command}" once.`,
         ]
       : []),
   ];
@@ -220,12 +222,20 @@ export async function runInstallCarriers(
     options.check === true
       ? `${INSTALL_CARRIERS_COMMAND} --check`
       : INSTALL_CARRIERS_COMMAND;
-  const fail = (problems: readonly string[]): number => {
+  // A run that stopped at a write it could not make has already made the
+  // ones before it. They are listed, so the last line is never a claim that
+  // nothing was written when something was.
+  const fail = (
+    problems: readonly string[],
+    written: readonly string[] = []
+  ): number => {
     problems.forEach(problem => {
       stderr(problem.replaceAll(/\s+/gu, " "));
     });
     stderr(
-      `${name}: FAIL. No result could be produced, and nothing was written`
+      written.length === 0
+        ? `${name}: FAIL. No result could be produced, and nothing was written`
+        : `${name}: FAIL. No result could be produced. Before it stopped, this run wrote: ${written.join(", ")}. Those were left in place; run this again once the cause is fixed.`
     );
     return 1;
   };
@@ -245,7 +255,7 @@ export async function runInstallCarriers(
       }));
   try {
     const run = await install(root, options);
-    if (run.problems !== null) return fail(run.problems);
+    if (run.problems !== null) return fail(run.problems, run.written);
     stdout(JSON.stringify(run.result, null, 2));
     linesFor(name, run.result).forEach(line => {
       stderr(line);

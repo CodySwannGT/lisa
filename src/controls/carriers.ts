@@ -20,6 +20,11 @@
  * runner or of a hook script, nothing at all is written: a hook that called
  * a runner that is not there would stop every commit.
  *
+ * A file the run has no permission to change is found while planning, and
+ * is a blocked point like any other, so the writes that are made are ones
+ * that can be. If a write fails all the same, the run gives no result and
+ * says which writes it had already made; it does not undo them.
+ *
  * ## Adding a kind of carrier
  *
  * {@link CARRIER_PLANNERS} lists what is planned. A new kind is one more
@@ -34,6 +39,8 @@ import {
   blockedFolder,
   fileEdit,
   fileState,
+  isWritable,
+  notWritable,
 } from "./carrier-edits.js";
 import { AGENT_PLACED_PATHS, planAgentCarriers } from "./carrier-agents.js";
 import { createCarrierGit, type CarrierGit } from "./carrier-git.js";
@@ -54,6 +61,7 @@ import {
   CARRIER_SCHEMA_VERSION,
   NO_HOOK_SURFACE,
   STACK_HOOK,
+  type CarrierEdit,
   type CarrierResult,
   type FileEdit,
   type KindPlan,
@@ -123,7 +131,14 @@ export interface CarrierDependencies {
 /** The result of a run, or why there is none. */
 export type CarrierRun =
   | { readonly problems: null; readonly result: CarrierResult }
-  | { readonly problems: readonly string[] };
+  | {
+      readonly problems: readonly string[];
+      /**
+       * What the run had already written when it stopped, as each is named
+       * in a result. Left off, or empty, when it stopped before any write.
+       */
+      readonly written?: readonly string[];
+    };
 
 /** The writes for what the carriers share, or why nothing may be written. */
 type SharedPlan =
@@ -190,13 +205,65 @@ async function planShared(
   if (owned.problem !== null) return owned;
   if (record.problem !== null) return record;
   if (ignore.problem !== null) return ignore;
+  const edits = [
+    ...owned.edits,
+    ...record.edits,
+    ...(ignore.edit === null ? [] : [ignore.edit]),
+  ];
+  const [readOnly] = await unwritable(edits);
+  return readOnly === undefined
+    ? { edits, problem: null }
+    : {
+        problem: `${notWritable(readOnly)}, and every carrier needs it, so nothing was written. Make it writable, then run this again.`,
+      };
+}
+
+/**
+ * Find the files among some writes that this user may not change.
+ * @param edits - The writes
+ * @returns The files, as they are named to a person, in order
+ */
+async function unwritable(
+  edits: readonly CarrierEdit[]
+): Promise<readonly string[]> {
+  const files = edits.flatMap(edit => (edit.kind === "file" ? [edit] : []));
+  const writable = await Promise.all(
+    files.map(file => isWritable(file.absolute))
+  );
+  return files.flatMap((file, index) =>
+    writable[index] === true ? [] : [file.path]
+  );
+}
+
+/**
+ * Take out of a plan every write this user may not make, and block the
+ * points that needed it.
+ *
+ * Found here, a read-only hook file is one blocked point with a sentence,
+ * and the rest of the run goes ahead. Found while writing, it would stop the
+ * run halfway.
+ * @param plan - The plan of one kind of carrier
+ * @returns The plan with only writes that can be made
+ */
+async function withoutUnwritable(plan: KindPlan): Promise<KindPlan> {
+  const readOnly = new Set(await unwritable(plan.edits));
+  if (readOnly.size === 0) return plan;
   return {
-    edits: [
-      ...owned.edits,
-      ...record.edits,
-      ...(ignore.edit === null ? [] : [ignore.edit]),
-    ],
-    problem: null,
+    ...plan,
+    edits: plan.edits.filter(edit => !readOnly.has(edit.path)),
+    points: plan.points.map(point =>
+      point.path !== null &&
+      readOnly.has(point.path) &&
+      point.call !== "present"
+        ? {
+            ...point,
+            blocked:
+              point.blocked ??
+              `${notWritable(point.path)}, so it was left as it is. Make it writable, then run this again.`,
+            call: "absent",
+          }
+        : point
+    ),
   };
 }
 
@@ -219,6 +286,31 @@ function calledScripts(plans: readonly KindPlan[]): readonly PlacedFile[] {
       ? plan.scripts
       : []
   );
+}
+
+/**
+ * Make the writes of a run, unless it only checks.
+ * @param root - Real path of the repository
+ * @param edits - The writes, in order
+ * @param git - Git, for a setting
+ * @param check - Whether nothing may be written
+ * @returns `null` when every write was made or none was asked for; when one
+ *   failed, the run that has no result, with what it had already written
+ */
+async function madeWrites(
+  root: string,
+  edits: readonly CarrierEdit[],
+  git: CarrierGit,
+  check: boolean
+): Promise<CarrierRun | null> {
+  if (check) return null;
+  const applied = await applyCarrierEdits(root, edits, git);
+  return applied.failed === null
+    ? null
+    : {
+        problems: [applied.failed.why],
+        written: applied.written.map(edit => edit.path),
+      };
 }
 
 /**
@@ -255,7 +347,9 @@ export async function installCarriers(
       planner(root, git, { agents: roster?.agents ?? [] })
     )
   );
-  const plans = planned.flatMap(plan => (plan === null ? [] : [plan]));
+  const plans = await Promise.all(
+    planned.flatMap(plan => (plan === null ? [] : [withoutUnwritable(plan)]))
+  );
   const scripts = calledScripts(plans);
   const runner =
     scripts.length === 0
@@ -269,7 +363,8 @@ export async function installCarriers(
     shared.problem === null
       ? [...shared.edits, ...plans.flatMap(plan => plan.edits)]
       : [];
-  if (options.check !== true) await applyCarrierEdits(root, edits, git);
+  const failed = await madeWrites(root, edits, git, options.check === true);
+  if (failed !== null) return failed;
   const described = describeCarrierRun({
     check: options.check === true,
     edits,

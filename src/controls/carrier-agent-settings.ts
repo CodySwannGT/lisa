@@ -6,7 +6,11 @@
  * the repository may already have and may have filled with its own settings.
  * That file is the repository's, so it is never rewritten: the carrier's
  * entry is added to the one list it belongs in, and every other byte of the
- * file stays as it was, including keys this code has never heard of.
+ * file stays as it was, including keys this code has never heard of and an
+ * entry beside Lisa's that the repository wrote on one line. The text is
+ * edited by position (`./carrier-json-place.ts`), and the result is used
+ * only when it parses to exactly what the file meant before with Lisa's
+ * handlers taken out and the entry added.
  *
  * ## How Lisa's entry is told from the repository's
  *
@@ -25,23 +29,22 @@
  *   handlers of the repository's): Lisa's handlers are taken out and the
  *   entry is appended once.
  *
- * A file that is not JSON, or whose list is something other than a list, is
- * not touched; the caller reports the entry to add by hand.
+ * A file that is not JSON, whose list is something other than a list, or
+ * that cannot be added to without changing what it means, is not touched;
+ * the caller reports the entry to add by hand.
  * @module controls/carrier-agent-settings
  */
-import {
-  applyEdits,
-  modify,
-  parse,
-  type FormattingOptions,
-  type ParseError,
-} from "jsonc-parser";
+import { parse, type JSONPath, type ParseError } from "jsonc-parser";
 
 import {
   isJsonObject,
   jsonEquals,
+  setAtPath,
   type JsonObject,
+  type JsonValue,
 } from "../sync/json-path.js";
+
+import { withAppended, withoutItem } from "./carrier-json-place.js";
 
 import {
   AGENT_HOOK_TIMEOUT_SECONDS,
@@ -106,17 +109,17 @@ function freshFile(registration: MergedRegistration, command: string): string {
 }
 
 /**
- * How a file is indented, so what is added to it is indented the same way.
- * @param text - The file's content
- * @returns The options the editor formats an added value with
+ * Tell whether a handler runs one of Lisa's commands.
+ * @param handler - A handler, or a flat entry
+ * @param owned - Every command Lisa has written for this agent
+ * @returns Whether its command is one of them, compared exactly
  */
-function formattingOf(text: string): FormattingOptions {
-  const indent = /^([ \t]+)\S/mu.exec(text)?.[1] ?? "  ";
-  return {
-    eol: text.includes("\r\n") ? "\r\n" : "\n",
-    insertSpaces: !indent.startsWith("\t"),
-    tabSize: indent.startsWith("\t") ? 1 : indent.length,
-  };
+function runsLisa(handler: unknown, owned: readonly string[]): boolean {
+  return (
+    isJsonObject(handler) &&
+    typeof handler.command === "string" &&
+    owned.includes(handler.command)
+  );
 }
 
 /**
@@ -131,20 +134,16 @@ function lisaHandlers(
   shape: MergedRegistration["shape"],
   owned: readonly string[]
 ): readonly Found[] {
-  const runsLisa = (handler: unknown): boolean =>
-    isJsonObject(handler) &&
-    typeof handler.command === "string" &&
-    owned.includes(handler.command);
   const found = list.flatMap((entry, index): readonly Found[] => {
     if (shape === "flat") {
-      return runsLisa(entry)
+      return runsLisa(entry, owned)
         ? [{ emptiesEntry: true, entry: index, handler: null }]
         : [];
     }
     const handlers =
       isJsonObject(entry) && Array.isArray(entry.hooks) ? entry.hooks : [];
     const ours = handlers.flatMap((handler, at) =>
-      runsLisa(handler) ? [at] : []
+      runsLisa(handler, owned) ? [at] : []
     );
     return ours.map(at => ({
       emptiesEntry: ours.length === handlers.length,
@@ -167,10 +166,9 @@ function withoutHandlers(
   registration: MergedRegistration,
   found: readonly Found[]
 ): string {
-  const formattingOptions = formattingOf(text);
   // Last first, so taking one out never moves one still to be taken out. An
   // entry left with no handler goes as a whole, once.
-  const targets = found.flatMap((each, index) => {
+  const targets = found.flatMap((each, index): readonly JSONPath[] => {
     if (each.handler !== null && !each.emptiesEntry) {
       return [[...registration.path, each.entry, "hooks", each.handler]];
     }
@@ -179,13 +177,36 @@ function withoutHandlers(
       : [];
   });
   return targets.reduce(
-    (current, target) =>
-      applyEdits(
-        current,
-        modify(current, target, undefined, { formattingOptions })
-      ),
+    (current, target) => withoutItem(current, target),
     text
   );
+}
+
+/**
+ * The list of hooks as it must read once Lisa's handlers are out of it and
+ * the entry is at its end: what the edited file is held to.
+ * @param entries - The list as the file has it
+ * @param registration - How an entry of the list is written
+ * @param owned - Every command Lisa has written for this agent
+ * @param wanted - The entry to add
+ * @returns The list the edited file must parse to
+ */
+function expectedList(
+  entries: readonly unknown[],
+  registration: MergedRegistration,
+  owned: readonly string[],
+  wanted: JsonObject
+): readonly unknown[] {
+  const kept = entries.flatMap((entry): readonly unknown[] => {
+    if (registration.shape === "flat") {
+      return runsLisa(entry, owned) ? [] : [entry];
+    }
+    if (!isJsonObject(entry) || !Array.isArray(entry.hooks)) return [entry];
+    const theirs = entry.hooks.filter(handler => !runsLisa(handler, owned));
+    if (theirs.length === entry.hooks.length) return [entry];
+    return theirs.length === 0 ? [] : [{ ...entry, hooks: theirs }];
+  });
+  return [...kept, wanted];
 }
 
 /** The list of hooks for the event, as a settings file holds it. */
@@ -273,21 +294,30 @@ export function mergeHookEntry(
   ) {
     return { problem: null, state: "present", text };
   }
-  const cleared = withoutHandlers(text, registration, found);
-  const next = applyEdits(
-    cleared,
-    list.entries === null
-      ? modify(cleared, [...registration.path], [wanted], {
-          formattingOptions: formattingOf(cleared),
-        })
-      : modify(cleared, [...registration.path, -1], wanted, {
-          formattingOptions: formattingOf(cleared),
-          isArrayInsertion: true,
-        })
+  const next = withAppended(
+    withoutHandlers(text, registration, found),
+    registration.path,
+    wanted
   );
-  return {
-    problem: null,
-    state: found.length === 0 ? "added" : "replaced",
-    text: next,
-  };
+  // The file is edited by position, so the edit is held to its meaning: what
+  // it now parses to must be what it was, with exactly this change.
+  const expected = setAtPath(
+    document,
+    registration.path.join("."),
+    expectedList(entries, registration, owned, wanted) as JsonValue
+  );
+  const reread: ParseError[] = [];
+  const kept =
+    next !== null &&
+    jsonEquals(parse(next, reread, { allowTrailingComma: true }), expected) &&
+    reread.length === 0;
+  return kept
+    ? {
+        problem: null,
+        state: found.length === 0 ? "added" : "replaced",
+        text: next,
+      }
+    : {
+        problem: `${registration.file} could not be added to without changing something else in it, so it was left untouched.`,
+      };
 }

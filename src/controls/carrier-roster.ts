@@ -43,6 +43,7 @@ import {
   type CodingAgent,
 } from "./coding-agents.js";
 import { GATES_DECLARATION_PATH } from "./gates-declaration.js";
+import { parseProblemWithoutExcerpt } from "./secret-scan-json.js";
 
 /** How a run was asked for its agents. */
 export type AgentSelection =
@@ -143,8 +144,10 @@ async function writtenHarness(
           problem: `${GATES_DECLARATION_PATH} does not hold a JSON object, so its "harness" setting cannot be read.`,
         };
   } catch (error) {
+    // A parser's message quotes the file around the place it stopped, and
+    // the file is the repository's: none of it is repeated.
     return {
-      problem: `${GATES_DECLARATION_PATH} could not be read as JSON (${error instanceof Error ? error.message : String(error)}), so its "harness" setting cannot be read.`,
+      problem: `${GATES_DECLARATION_PATH} could not be read as JSON (${parseProblemWithoutExcerpt(error)}), so its "harness" setting cannot be read.`,
     };
   }
 }
