@@ -5,7 +5,8 @@
  * and must be refused, and one that does not and must be accepted. The attest
  * step runs them and writes one evidence record per half. This module is the
  * reading side of that for the control register, which asks one question:
- * does the evidence file hold a record of both halves for this entry?
+ * does the evidence file hold a record of both halves for this entry, each
+ * of which held?
  *
  * ## The fields a record is read by
  *
@@ -16,12 +17,19 @@
  * - `entry_id` is the register entry's identifier, for example
  *   `code-style@api`;
  * - `half` is `violation` or `clean`;
+ * - `result` is `held`: the violating change was turned away as declared, or
+ *   the clean change was let through. A record with any other result, or
+ *   with none, is a record that the half was run and not that it held, and a
+ *   control that let its violating change through is not proved by having
+ *   been tried;
  * - `moment`, when the record has one, is the moment asked about. A record
  *   that names no moment is a record of the entry's proof wherever it is
  *   enforced; one that names another moment says nothing about this one.
  *
  * Every other key is ignored, so the attest step can record whatever else it
- * needs without this module changing.
+ * needs without this module changing. A record that is not exercised (a
+ * setting read from the hosting platform, an audit finding) names no half,
+ * so it is never one.
  *
  * ## What is deliberately not read
  *
@@ -29,10 +37,6 @@
  * the verdict is where that is judged. The register is compared byte for byte
  * with what generating it again would write, so nothing in it may change
  * because time passed.
- *
- * Not the result. Whether each half did what it was planted to do is the
- * verdict's to say. The register only says whether an attestation of the
- * entry is on record at all.
  *
  * A missing or unreadable file, a file reached through a link, and a record
  * missing one of the fields above all mean the same thing: no record. That is
@@ -44,7 +48,7 @@ import { lstatSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { isJsonObject } from "../sync/json-path.js";
-import { EVIDENCE_PATH, parseEvidenceRecords } from "./evidence.js";
+import { EVIDENCE_PATH, hasRecordFields, HELD_RESULT } from "./evidence.js";
 
 /** The two halves of a paired proof, as a proof declares them. */
 export const PROOF_HALVES = ["violation", "clean"] as const;
@@ -60,6 +64,8 @@ export interface ProofHalfRecord {
   readonly half: ProofHalf;
   /** The moment the half was run at, or `null` when the record names none. */
   readonly moment: string | null;
+  /** Whether the half did what it was planted to show. */
+  readonly held: boolean;
 }
 
 /**
@@ -79,15 +85,22 @@ function isProofHalf(value: unknown): value is ProofHalf {
  */
 function proofHalfRecord(entry: unknown): readonly ProofHalfRecord[] {
   if (!isJsonObject(entry)) return [];
-  const { entry_id, half, moment } = entry;
+  const { entry_id, half, moment, result } = entry;
   const usable =
-    parseEvidenceRecords({ records: [entry] }).length === 1 &&
+    hasRecordFields(entry) &&
     typeof entry_id === "string" &&
     entry_id !== "" &&
     isProofHalf(half) &&
     (moment === undefined || typeof moment === "string");
   return usable
-    ? [{ entry_id, half, moment: typeof moment === "string" ? moment : null }]
+    ? [
+        {
+          entry_id,
+          half,
+          moment: typeof moment === "string" ? moment : null,
+          held: result === HELD_RESULT,
+        },
+      ]
     : [];
 }
 
@@ -105,11 +118,13 @@ export function parseProofHalfRecords(
 }
 
 /**
- * Tell whether both halves of an entry's proof are on record for a moment.
+ * Tell whether both halves of an entry's proof are on record for a moment,
+ * and each of them held.
  * @param records - The proof-half records of the evidence file
  * @param entryId - The register entry's identifier
  * @param moment - The moment the proof must speak for
- * @returns Whether each half has a record that speaks for that moment
+ * @returns Whether each half has a record that speaks for that moment and
+ *   says the half held
  */
 export function hasBothProofHalves(
   records: readonly ProofHalfRecord[],
@@ -121,6 +136,7 @@ export function hasBothProofHalves(
       record =>
         record.entry_id === entryId &&
         record.half === half &&
+        record.held &&
         (record.moment === null || record.moment === moment)
     )
   );

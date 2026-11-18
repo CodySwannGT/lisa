@@ -111,6 +111,32 @@ describe("parseEvidenceRecords", () => {
   });
 
   it.each([
+    { name: "a violating change that was let through", result: "failed" },
+    { name: "a check that gave no answer", result: "unknown" },
+    { name: "a requirement that does not apply", result: "not-applicable" },
+  ])("drops a record of $name: it proves nothing", ({ result }) => {
+    expect(
+      parseEvidenceRecords({ records: [{ ...RECORD, result }, RECORD] })
+    ).toEqual([RECORD]);
+  });
+
+  it("keeps a record that says what it looked at held", () => {
+    expect(
+      parseEvidenceRecords({
+        records: [{ ...RECORD, entry_id: "lint@api", result: "held" }],
+      })
+    ).toEqual([RECORD]);
+  });
+
+  it("drops a record written from the audit's own finding: an audit cannot cite itself", () => {
+    expect(
+      parseEvidenceRecords({
+        records: [{ ...RECORD, entry_id: null, result: "held" }],
+      })
+    ).toEqual([]);
+  });
+
+  it.each([
     { name: "a bare list", document: [RECORD] },
     { name: "no records key", document: { evidence: [RECORD] } },
     { name: "nothing", document: null },

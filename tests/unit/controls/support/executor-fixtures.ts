@@ -73,8 +73,8 @@ export function withExecutor(
 }
 
 /**
- * An evidence record for one half of one entry's proof, as the attest step
- * writes it.
+ * An evidence record for one half of one entry's proof that held, carrying
+ * the keys the register reads it by.
  * @param entryId - The register entry the proof is of
  * @param half - Which half
  * @param extra - Further keys, or replacements for the ones written here
@@ -90,6 +90,7 @@ export function proofRecord(
     criterion: "SI7",
     entry_id: entryId,
     half,
+    result: "held",
     completed_at: "2026-11-17T12:00:00.000Z",
     freshness_seconds: 3600,
     ...extra,

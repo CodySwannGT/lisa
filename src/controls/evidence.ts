@@ -7,12 +7,21 @@
  * evidence file is, which fields of a record the lookup depends on, and when a
  * record is too old to rely on.
  *
- * It reads four fields and ignores every other key, so the attest step can
- * record whatever else it needs (the command, the exit status, the commit)
- * without this module changing. A missing or unreadable file, and a record
- * missing one of the four fields, all mean the same thing to a caller: nothing
- * there backs a claim. That is the safe direction, because the only thing
- * evidence can do here is permit `proved`.
+ * It reads four fields of a record, so the attest step can record whatever
+ * else it needs (the command, the exit status, the commit) without this
+ * module changing. Two more keys are looked at only to turn a record away,
+ * because the attest step also records what did not hold:
+ *
+ * - `result`, when a record has one, must be `held`. A record of a violating
+ *   change that was let through is evidence, and it proves nothing.
+ * - `entry_id` must not be `null`. That marks a record the attest step wrote
+ *   from the audit's own finding, and an audit that cited it would be citing
+ *   itself.
+ *
+ * A missing or unreadable file, a record missing one of the four fields, and
+ * a record turned away for either reason above all mean the same thing to a
+ * caller: nothing there backs a claim. That is the safe direction, because
+ * the only thing evidence can do here is permit `proved`.
  * @module controls/evidence
  */
 import { readFileSync } from "node:fs";
@@ -22,6 +31,9 @@ import { isJsonObject } from "../sync/json-path.js";
 
 /** Where the attest step writes evidence, relative to the repository root. */
 export const EVIDENCE_PATH = ".lisa/controls/evidence.json";
+
+/** What a record's `result` says when what it looked at held. */
+export const HELD_RESULT = "held";
 
 /** Canonical UTC time with milliseconds, the form `Date#toISOString` writes. */
 const CANONICAL_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
@@ -48,7 +60,7 @@ export interface EvidenceRecordRef {
  * @param value - Candidate
  * @returns Whether it can be compared with the clock
  */
-function isCanonicalUtc(value: unknown): value is string {
+export function isCanonicalUtc(value: unknown): value is string {
   return (
     typeof value === "string" &&
     CANONICAL_UTC.test(value) &&
@@ -78,6 +90,29 @@ function recordRef(entry: unknown): readonly EvidenceRecordRef[] {
 }
 
 /**
+ * Tell whether an entry of the evidence file carries the four fields every
+ * reader of a record depends on.
+ * @param entry - Candidate record
+ * @returns Whether it is a record at all
+ */
+export function hasRecordFields(entry: unknown): boolean {
+  return recordRef(entry).length === 1;
+}
+
+/**
+ * Tell whether a record shows something that held, about a control.
+ * @param entry - A record of the evidence file
+ * @returns Whether a finding may cite it as proof
+ */
+function showsAControlHeld(entry: unknown): boolean {
+  return (
+    isJsonObject(entry) &&
+    entry.entry_id !== null &&
+    (entry.result === undefined || entry.result === HELD_RESULT)
+  );
+}
+
+/**
  * Read the usable records out of a parsed evidence file.
  * @param document - The parsed file, of any shape
  * @returns The records that can back a claim, in file order
@@ -86,7 +121,9 @@ export function parseEvidenceRecords(
   document: unknown
 ): readonly EvidenceRecordRef[] {
   if (!isJsonObject(document) || !Array.isArray(document.records)) return [];
-  return document.records.flatMap(entry => recordRef(entry));
+  return document.records.flatMap(entry =>
+    showsAControlHeld(entry) ? recordRef(entry) : []
+  );
 }
 
 /**
