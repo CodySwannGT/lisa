@@ -16,6 +16,7 @@ import {
   awaitEligibility,
   judgeEligibility,
   readEligibility,
+  type RequiredRun,
 } from "../../../src/controls/canary-eligibility.js";
 import type { MergeEligibility } from "../../../src/controls/pull-request-types.js";
 import { steppingClock } from "./support/proof-run.js";
@@ -23,6 +24,15 @@ import { steppingClock } from "./support/proof-run.js";
 const LINT = "Lint";
 const TESTS = "Tests";
 const SHA = "a".repeat(40);
+
+/**
+ * A check any source may report.
+ * @param context - The check's name
+ * @returns The check, pinned to no app
+ */
+function anySource(context: string): RequiredRun {
+  return { context, app_ids: [] };
+}
 
 /** Why a half is `rejected`: the entry's own check failed. */
 const AS_DECLARED = "rejected-as-declared";
@@ -142,7 +152,7 @@ describe("one look at a canary", () => {
       "/status": { statuses: [{ context: LINT, state: "failure" }] },
     });
 
-    expect(readEligibility(door, 7, SHA, [LINT])).toEqual({
+    expect(readEligibility(door, 7, SHA, [anySource(LINT)])).toEqual({
       ok: true,
       eligibility: {
         mergeable: null,
@@ -163,7 +173,7 @@ describe("one look at a canary", () => {
       },
     });
 
-    const read = readEligibility(door, 7, SHA, [LINT]);
+    const read = readEligibility(door, 7, SHA, [anySource(LINT)]);
 
     expect(read.ok ? read.eligibility.checks : []).toEqual([
       { context: LINT, conclusion: "success" },
@@ -181,7 +191,10 @@ describe("one look at a canary", () => {
       "/status": { statuses: [{ context: TESTS, state: "pending" }] },
     });
 
-    const read = readEligibility(door, 7, SHA, [LINT, TESTS]);
+    const read = readEligibility(door, 7, SHA, [
+      anySource(LINT),
+      anySource(TESTS),
+    ]);
 
     expect(read.ok ? read.eligibility.checks : []).toEqual([
       { context: LINT, conclusion: null },
@@ -192,7 +205,7 @@ describe("one look at a canary", () => {
   it("says why when the pull request cannot be read", () => {
     const { door } = readingDoor({});
 
-    expect(readEligibility(door, 7, SHA, [LINT])).toEqual({
+    expect(readEligibility(door, 7, SHA, [anySource(LINT)])).toEqual({
       ok: false,
       problem: "Not Found",
     });

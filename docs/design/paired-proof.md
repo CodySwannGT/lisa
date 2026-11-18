@@ -176,6 +176,16 @@ entry's own checks:
 | The canary could not be built from the patch. | `unknown` | `patch-not-applied` |
 | The branch or the pull request could not be created. | `unknown` | `not-started` |
 
+**Only the required check's own result counts.** A required check is a name
+and, where the platform's settings say so, the one app allowed to report it.
+Where the settings pin a check to an app, only that app's check run is read
+as the entry's check; a result under the same name from anything else is
+ignored, exactly as the platform ignores it. A commit status does not say
+which app wrote it, so it is never counted for a pinned check. A pinned check
+that nothing but another source reports therefore ends `timed-out`, never
+passed. The apps a check is pinned to are in `pull_request.points[].checks[]`
+as `app_ids`.
+
 The steps, each of which can only narrow what the run may do:
 
 1. **The platform.** Canaries are opened on github.com only. Anywhere else
@@ -212,9 +222,14 @@ description what it is and that it must not be merged.
 | The process was killed outright. | The sweep at the start of the next run that opens canaries. |
 
 A branch is tracked for removal before the request that creates it is sent.
-Deleting the branch is tried even when closing the pull request failed,
-because the platform closes a pull request whose branch is gone. What could
-not be removed is in the canary's record (`cleanup_problem`).
+Deleting the branch is tried even when closing the pull request failed or
+threw, because the platform closes a pull request whose branch is gone. A
+canary stays tracked until the platform answers that its branch is deleted
+or that the reference does not exist; any other refusal is a failed removal
+and is tried again when the run ends. The stop handler tries a removal that
+failed once more before it lets the process go, because a second interrupt
+can kill the request that was doing the removing. What could not be removed
+is in the canary's record (`cleanup_problem`).
 
 **The sweep never guesses.** It removes a branch under `lisa-attest/` only
 when its name says another run made it more than two hours ago
@@ -222,7 +237,21 @@ when its name says another run made it more than two hours ago
 half's time limit, which is at most thirty minutes, so a canary that old
 belongs to no run that is still going. A younger one is left alone: it may
 be a concurrent run's. So is a branch whose name does not say when it was
-made.
+made. Before it closes a stale canary's pull request it checks that the pull
+request's head is exactly that branch, whatever list the platform returned,
+so it cannot close anybody's own pull request. It lists at most a thousand
+branches under the prefix.
+
+Three limits are known and accepted:
+
+- The time in a canary's name comes from the clock of the machine that made
+  it, and its age is judged by the clock of the machine that sweeps. The
+  rule holds while the two agree to within an hour and a half.
+- A third interrupt during the stop handler's second attempt leaves the
+  canary for the next run's sweep, two hours later at the earliest.
+- If the request that creates a branch is cut off and the platform creates
+  the branch after the run asked for it to be deleted, the branch is left
+  for the next run's sweep.
 
 ### Where the results go
 
@@ -244,7 +273,7 @@ entry:
 | --- | --- |
 | `mode` | `observed` or `canaries`. |
 | `platform`, `branch` | Where the repository is hosted and the protected branch that was read. |
-| `points` | One per entry with a pull-request enforcement point: the entry result's keys, plus `rung` (always), `settles_entry` (whether it is the entry's one result), `observed`, `checks` and `completed_at`. |
+| `points` | One per entry with a pull-request enforcement point: the entry result's keys, plus `rung` (always), `settles_entry` (whether it is the entry's one result), `observed`, `checks` (each `{ context, state, app_ids }`) and `completed_at`. |
 | `run_id`, `permission`, `sweep`, `base_head` | What canary mode did; `null` otherwise. |
 | `canaries` | One record per canary: its branch, pull request, commit, what the platform said, and whether it was removed. |
 | `requests` | Every request, in order, each `{ method, path, sent }`. |

@@ -27,6 +27,17 @@
  * | a check was cancelled | `unknown` (`killed`) |
  * | a check was skipped or reported nothing either way | `unknown` (`nothing-measured`) |
  *
+ * ## Which result counts as the entry's check
+ *
+ * A required check is a name and, where the platform's settings say so, the
+ * one app allowed to report it. A result under the right name from another
+ * app does not satisfy the requirement, so it is not read as the entry's
+ * check either: where the settings pin a check to an app, only that app's
+ * check run counts. A commit status does not say which app wrote it, so for
+ * a pinned check a commit status is never counted. A pinned check that only
+ * ever reports as a commit status therefore ends `timed-out`, which is
+ * `unknown` and never a pass.
+ *
  * The wait is bounded. The clock and the pause between two looks are handed
  * in, so a test waits no real time and a run never waits past its limit.
  * @module controls/canary-eligibility
@@ -79,37 +90,109 @@ const WOULD_MERGE: ReadonlySet<string> = new Set([
   "has_hooks",
 ]);
 
+/** One check an entry is proved by, as the platform requires it. */
+export interface RequiredRun {
+  /** The exact name the platform matches on. */
+  readonly context: string;
+  /** The apps the settings pin the check to; empty when any source counts. */
+  readonly app_ids: readonly number[];
+}
+
+/** One check run of a commit. */
+interface CheckRun {
+  readonly id: number;
+  readonly name: string;
+  /** The app that reported it, or `null` when the platform did not say. */
+  readonly app: number | null;
+  /** What it concluded, or `null` while it has not finished. */
+  readonly conclusion: string | null;
+}
+
 /**
  * Read the check runs of a commit, every page.
  * @param door - The canary door
  * @param sha - The commit
  * @param page - The page to read, from 1
- * @returns Each completed run's name and conclusion, newest last
+ * @returns Every run, oldest first within a page
  */
 function checkRuns(
   door: CanaryDoor,
   sha: string,
   page = 1
-): readonly (readonly [string, string | null])[] {
+): readonly CheckRun[] {
   const read = door.get(
     `commits/${sha}/check-runs?per_page=${String(PAGE_SIZE)}&page=${String(page)}`
   );
   const runs = read.ok ? fieldOf(read.value, "check_runs") : undefined;
   const items: readonly unknown[] = Array.isArray(runs) ? runs : [];
-  const here = [...items]
-    .sort(
-      (left, right) =>
-        Number(fieldOf(left, "id") ?? 0) - Number(fieldOf(right, "id") ?? 0)
-    )
-    .map((run): readonly [string, string | null] => [
-      textOf(run, "name"),
-      textOf(run, "status") === "completed"
-        ? textOf(run, "conclusion") || null
-        : null,
-    ]);
+  const here = items.map((run): CheckRun => {
+    const app = fieldOf(run, "app", "id");
+    return {
+      id: Number(fieldOf(run, "id") ?? 0),
+      name: textOf(run, "name"),
+      app: typeof app === "number" ? app : null,
+      conclusion:
+        textOf(run, "status") === "completed"
+          ? textOf(run, "conclusion") || null
+          : null,
+    };
+  });
   return items.length < PAGE_SIZE || page >= PAGE_LIMIT
     ? here
     : [...here, ...checkRuns(door, sha, page + 1)];
+}
+
+/**
+ * What the newest run under a name concluded.
+ * @param runs - The commit's check runs
+ * @param name - The check's name
+ * @param app - The one app whose run counts, or `null` for any
+ * @returns Its conclusion; `null` when there is none or it has not finished
+ */
+function newestConclusion(
+  runs: readonly CheckRun[],
+  name: string,
+  app: number | null
+): string | null {
+  const newest = runs
+    .filter(run => run.name === name && (app === null || run.app === app))
+    .reduce<CheckRun | null>(
+      (latest, run) => (latest === null || run.id >= latest.id ? run : latest),
+      null
+    );
+  return newest?.conclusion ?? null;
+}
+
+/**
+ * What one required check concluded on a commit.
+ *
+ * A check pinned to several apps is required from each of them, so it has
+ * failed when any of them failed, and has passed only when all of them did.
+ * @param check - The check, and the apps it is pinned to
+ * @param runs - The commit's check runs
+ * @param statuses - The commit's statuses by name; used only for a check
+ *   that is pinned to no app
+ * @returns The conclusion, or `null` while it has not fully reported
+ */
+function requiredConclusion(
+  check: RequiredRun,
+  runs: readonly CheckRun[],
+  statuses: ReadonlyMap<string, string | null>
+): string | null {
+  if (check.app_ids.length === 0) {
+    return (
+      newestConclusion(runs, check.context, null) ??
+      statuses.get(check.context) ??
+      null
+    );
+  }
+  const each = check.app_ids.map(app =>
+    newestConclusion(runs, check.context, app)
+  );
+  const failing = each.find(conclusion => FAILING.has(conclusion ?? ""));
+  if (failing !== undefined) return failing;
+  if (each.includes(null)) return null;
+  return each.find(conclusion => conclusion !== "success") ?? "success";
 }
 
 /**
@@ -152,35 +235,38 @@ function isSettled(eligibility: MergeEligibility): boolean {
  * @param door - The canary door
  * @param pullRequest - The pull request's number
  * @param sha - The canary commit
- * @param contexts - The entry's checks
+ * @param checks - The entry's checks, each with the apps it is pinned to
  * @returns What the platform showed, or why it could not be read
  */
 export function readEligibility(
   door: CanaryDoor,
   pullRequest: number,
   sha: string,
-  contexts: readonly string[]
+  checks: readonly RequiredRun[]
 ):
   | { readonly ok: true; readonly eligibility: MergeEligibility }
   | { readonly ok: false; readonly problem: string } {
   const pull = door.get(`pulls/${String(pullRequest)}`);
   if (!pull.ok) return { ok: false, problem: pull.reason };
-  const runs = new Map(checkRuns(door, sha));
-  // A check may report as a commit status instead of a check run.
-  const concluded = (context: string): boolean =>
-    (runs.get(context) ?? null) !== null;
-  const statuses = contexts.every(concluded)
-    ? new Map<string, string | null>()
-    : new Map(commitStatuses(door, sha));
+  const runs = checkRuns(door, sha);
+  const none: ReadonlyMap<string, string | null> = new Map();
+  // A check pinned to no app may report as a commit status instead of a
+  // check run. The statuses are read only while such a check is unreported.
+  const wanted = checks.some(
+    check =>
+      check.app_ids.length === 0 &&
+      requiredConclusion(check, runs, none) === null
+  );
+  const statuses = wanted ? new Map(commitStatuses(door, sha)) : none;
   const mergeable = fieldOf(pull.value, "mergeable");
   return {
     ok: true,
     eligibility: {
       mergeable: typeof mergeable === "boolean" ? mergeable : null,
       mergeable_state: textOf(pull.value, "mergeable_state") || null,
-      checks: contexts.map(context => ({
-        context,
-        conclusion: runs.get(context) ?? statuses.get(context) ?? null,
+      checks: checks.map(check => ({
+        context: check.context,
+        conclusion: requiredConclusion(check, runs, statuses),
       })),
     },
   };

@@ -48,6 +48,16 @@ export interface FakeCanaryOptions {
   ) => Readonly<Record<string, string | null>>;
   /** Whether the repository is offered draft pull requests. Default true. */
   readonly drafts?: boolean;
+  /**
+   * The app every check run is reported by. By default the one the required
+   * checks are pinned to, so a case about anything else need not say.
+   */
+  readonly reportedBy?: number;
+  /**
+   * Answer a list of pull requests with every open one, whatever head was
+   * asked for: a platform that ignored the filter.
+   */
+  readonly ignoresHeadFilter?: boolean;
   /** Called with each request before it is answered; may throw. */
   readonly onRequest?: (request: RecordedRequest) => void;
   /** Refuse a request: return the platform's message, or nothing to allow. */

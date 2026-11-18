@@ -54,6 +54,11 @@ export interface Observation {
   /** Why the settings were not read, or `null` when they were. */
   readonly unread: Unread | null;
   /**
+   * The apps the platform's settings pin each required check to, by check
+   * name. A check with no entry here may be reported by any source.
+   */
+  readonly pins: ReadonlyMap<string, readonly number[]>;
+  /**
    * The checks that prove an entry on a pull request.
    * @param entryId - The register entry's identifier
    * @returns The check names, which may be none; `undefined` when they are
@@ -76,18 +81,26 @@ function said(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** The part of an observation that comes from reading the settings. */
+type SettingsRead = Pick<
+  Observation,
+  "branch" | "required" | "unread" | "pins"
+>;
+
+/** No check is known to be pinned to an app. */
+const NO_PINS: ReadonlyMap<string, readonly number[]> = new Map();
+
 /**
  * Say that the settings were not read.
  * @param detail - Why
  * @returns The part of an observation that says so
  */
-function notRead(
-  detail: string
-): Pick<Observation, "branch" | "required" | "unread"> {
+function notRead(detail: string): SettingsRead {
   return {
     branch: null,
     required: null,
     unread: { reason: "merge-protection-unread", detail },
+    pins: NO_PINS,
   };
 }
 
@@ -118,10 +131,7 @@ function unprepared(problem: string): Observation {
  * @param repository - `owner/name`
  * @returns The branch and the checks it requires, or why they were not read
  */
-function readRequired(
-  prepared: Prepared,
-  repository: string
-): Pick<Observation, "branch" | "required" | "unread"> {
+function readRequired(prepared: Prepared, repository: string): SettingsRead {
   const { modules, log, derived, requirement } = prepared;
   const read = readLiveState(repository, log.read, modules);
   if (!read.ok) return notRead(read.reason);
@@ -135,16 +145,25 @@ function readRequired(
   const compared = compareWithLive(requirement, enforced, null, modules);
   // A check the comparison leaves out, because this repository holds it
   // back, is still required when the platform's settings name it.
-  const named = new Set(
-    modules.reconcile.liveContexts(enforced).map(live => live.context)
-  );
+  const live = modules.reconcile.liveContexts(enforced);
+  const named = new Set(live.map(context => context.context));
   const held = derived.checks
     .filter(check => check.held !== null && named.has(check.context))
     .map(check => check.context);
+  const pinsOf = (name: string): readonly number[] => [
+    ...new Set(
+      live.flatMap(context =>
+        context.context === name && context.integration_id !== null
+          ? [context.integration_id]
+          : []
+      )
+    ),
+  ];
   return {
     branch: defaultBranch,
     required: new Set([...compared.drift.matched, ...held]),
     unread: null,
+    pins: new Map([...named].map(name => [name, pinsOf(name)])),
   };
 }
 
@@ -186,14 +205,14 @@ export async function observeMergeProtection(
       prepared,
     };
     // Nothing the register asks the platform to enforce: nothing to read.
+    const unasked = { branch: null, required: null, pins: NO_PINS };
     if (derived.entries.length === 0) {
-      return { ...shared, branch: null, required: null, unread: null };
+      return { ...shared, ...unasked, unread: null };
     }
     if (!platform.reachable || platform.repository === null) {
       return {
         ...shared,
-        branch: null,
-        required: null,
+        ...unasked,
         unread: {
           reason: "platform-not-reached",
           detail: platformNotReached(platform),

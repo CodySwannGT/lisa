@@ -28,6 +28,12 @@
  * minutes, so a canary older than {@link CANARY_LIFETIME_SECONDS} belongs to
  * no run that is still going. Anything younger is left alone, and so is any
  * branch under the prefix whose name does not say when it was made.
+ *
+ * The time in a name is read from the clock of the machine that made the
+ * canary, and its age is judged by the clock of the machine that sweeps. The
+ * rule therefore assumes the two clocks agree to within the difference
+ * between the lifetime and the longest a canary is kept open: an hour and a
+ * half. A name whose time is ahead of the sweeper's clock is never stale.
  * @module controls/canary-names
  */
 import { randomBytes } from "node:crypto";

@@ -17,7 +17,7 @@ import {
   type Route,
   type State,
 } from "./fake-canary-state.js";
-import type { FakeGhResult } from "./fake-github.js";
+import { ACTIONS_APP_ID, type FakeGhResult } from "./fake-github.js";
 
 /** What a route answers: nothing when the path is not its own. */
 type Answer = FakeGhResult | undefined;
@@ -115,7 +115,12 @@ function readPulls(state: State, call: Call): Answer {
   return ok(
     state.pulls
       .filter(pull => pull.state === "open")
-      .filter(pull => head === "" || head.endsWith(`:${pull.head}`))
+      .filter(
+        pull =>
+          state.options.ignoresHeadFilter === true ||
+          head === "" ||
+          head.endsWith(`:${pull.head}`)
+      )
       .map(pull => pullDocument(state, pull))
   );
 }
@@ -151,6 +156,7 @@ function readChecks(state: State, call: Call): Answer {
     ([name, conclusion], index) => ({
       id: index + 1,
       name,
+      app: { id: state.options.reportedBy ?? ACTIONS_APP_ID },
       status: finished ? "completed" : "in_progress",
       conclusion: finished ? conclusion : null,
     })

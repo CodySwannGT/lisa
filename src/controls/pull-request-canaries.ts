@@ -154,7 +154,10 @@ async function exercise(
         entryId: point.entry_id,
         half: name,
         patch: plan.patches[name],
-        contexts: point.checks.map(check => check.context),
+        checks: point.checks.map(({ context, app_ids }) => ({
+          context,
+          app_ids,
+        })),
         timeLimitSeconds: plan.timeLimitSeconds,
         sequence,
       },

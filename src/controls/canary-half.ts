@@ -26,6 +26,7 @@ import {
   judgeEligibility,
   readEligibility,
   type EligibilityAnswer,
+  type RequiredRun,
 } from "./canary-eligibility.js";
 import type { CanaryKeeper, Removal } from "./canary-lifecycle.js";
 import {
@@ -65,7 +66,7 @@ export interface CanaryHalfRequest {
   /** The patch file and its content. */
   readonly patch: { readonly file: string; readonly text: string };
   /** The entry's checks. */
-  readonly contexts: readonly string[];
+  readonly checks: readonly RequiredRun[];
   readonly timeLimitSeconds: number;
   /** The canary's number among the run's canaries, from 1. */
   readonly sequence: number;
@@ -296,7 +297,7 @@ export async function runCanaryHalf(
     if (!opened.ok) return { opened, answer: null };
     const answer = await awaitEligibility(
       () =>
-        readEligibility(door, opened.pullRequest, opened.sha, request.contexts),
+        readEligibility(door, opened.pullRequest, opened.sha, request.checks),
       {
         clock,
         sleep: context.sleep,

@@ -58,6 +58,11 @@ export interface ObservedCheck {
   /** The exact name the platform matches on. */
   readonly context: string;
   readonly state: Exclude<ObservedState, "not-asked">;
+  /**
+   * The apps the platform's settings pin the check to; empty when any
+   * source may report it, and when the settings were not read.
+   */
+  readonly app_ids: readonly number[];
 }
 
 /** What the platform said about one canary pull request. */

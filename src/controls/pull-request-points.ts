@@ -60,16 +60,21 @@ export function hasPullRequestPoint(entry: ControlRegisterEntry): boolean {
 /**
  * Say what the settings show for an entry's checks.
  * @param checks - The entry's checks
- * @param required - The checks the platform requires, or `null` when unread
- * @returns Each check with its state
+ * @param observation - What the settings showed
+ * @returns Each check with its state and the apps it is pinned to
  */
 function standing(
   checks: readonly string[],
-  required: ReadonlySet<string> | null
+  observation: Observation
 ): readonly ObservedCheck[] {
+  const { required, pins } = observation;
   return checks.map(context => {
     const held = required?.has(context) === true ? "required" : "not-required";
-    return { context, state: required === null ? "unknown" : held };
+    return {
+      context,
+      state: required === null ? "unknown" : held,
+      app_ids: pins.get(context) ?? [],
+    };
   });
 }
 
@@ -105,7 +110,7 @@ function decide(
       checks: [],
     };
   }
-  const checks = standing(names ?? [], observation.required);
+  const checks = standing(names ?? [], observation);
   if (observation.unread !== null || observation.required === null) {
     return {
       outcome: "unknown",

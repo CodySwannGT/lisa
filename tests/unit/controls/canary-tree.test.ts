@@ -38,6 +38,12 @@ const CHANGES_SCRIPT = appendLinePatch(SCRIPT, SCRIPT_TEXT, "echo changed");
 /** What building gives for a patch that cannot be put on a canary. */
 const NOT_APPLIED = { ok: false, reason: "patch-not-applied" };
 
+/** The line of a patch that says the file did not exist before. */
+const NEW_FILE = "--- /dev/null";
+
+/** The line of a patch that says one line is added to an empty file. */
+const ONE_LINE = "@@ -0,0 +1 @@";
+
 /** A patch that removes {@link NOTES} and adds a new file beside it. */
 const REPLACES_NOTES = [
   `--- a/${NOTES}`,
@@ -45,9 +51,9 @@ const REPLACES_NOTES = [
   "@@ -1,2 +0,0 @@",
   "-one",
   "-two",
-  "--- /dev/null",
+  NEW_FILE,
   "+++ b/docs/added.md",
-  "@@ -0,0 +1 @@",
+  ONE_LINE,
   "+brand new",
   "",
 ].join("\n");
@@ -146,7 +152,7 @@ describe("a patch that cannot be put on a canary", () => {
     "is refused when it names %s, before anything is fetched or written",
     name => {
       const { commit, platform } = build(
-        ["--- /dev/null", `+++ b/${name}`, "@@ -0,0 +1 @@", "+x", ""].join("\n")
+        [NEW_FILE, `+++ b/${name}`, ONE_LINE, "+x", ""].join("\n")
       );
 
       expect(commit).toMatchObject(NOT_APPLIED);
@@ -160,6 +166,26 @@ describe("a patch that cannot be put on a canary", () => {
     const { commit } = build("this is not a patch\n");
 
     expect(commit).toMatchObject(NOT_APPLIED);
+  });
+
+  it("is refused when it adds a link, and nothing is stored for it", () => {
+    const { commit, platform } = build(
+      [
+        "diff --git a/docs/link b/docs/link",
+        "new file mode 120000",
+        NEW_FILE,
+        "+++ b/docs/link",
+        ONE_LINE,
+        "+/etc/hosts",
+        "\\ No newline at end of file",
+        "",
+      ].join("\n")
+    );
+
+    expect(commit).toMatchObject(NOT_APPLIED);
+    expect(platform.log.filter(request => request.method !== "GET")).toEqual(
+      []
+    );
   });
 
   it("is reported as the platform's failure when a file cannot be stored", () => {

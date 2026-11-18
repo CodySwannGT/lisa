@@ -20,11 +20,26 @@
  * A branch is tracked before the request that creates it is sent, so there
  * is no moment at which a canary exists and nothing knows to remove it.
  * Removing a canary closes its pull request and deletes its branch. Deleting
- * the branch is tried even when closing failed, because the platform closes
- * a pull request whose branch is gone.
+ * the branch is tried even when closing failed or threw, because the
+ * platform closes a pull request whose branch is gone. A canary stays
+ * tracked until the platform has said its branch is gone, in so many words:
+ * any other refusal is a failed removal, to be tried again.
+ *
+ * The sweep removes other runs' canaries, so it checks twice. It asks the
+ * platform for the pull requests opened from a stale branch, and then closes
+ * only the ones whose head is exactly that branch, whatever list came back.
+ *
+ * Known limit: if the request that creates a branch is cut off and the
+ * platform creates the branch after this run has asked for it to be deleted,
+ * the branch is left for a later run's sweep.
  * @module controls/canary-lifecycle
  */
-import { textOf, fieldOf, type CanaryDoor } from "./canary-door.js";
+import {
+  fieldOf,
+  textOf,
+  type Answered,
+  type CanaryDoor,
+} from "./canary-door.js";
 import { CANARY_BRANCH_PREFIX, canaryStanding } from "./canary-names.js";
 import type { CanarySweep } from "./pull-request-types.js";
 
@@ -79,8 +94,32 @@ export const STOP_SIGNALS: readonly NodeJS.Signals[] = [
 /** How many refs or pull requests one page of a list holds. */
 const PAGE_SIZE = 100;
 
-/** What the platform says when asked to delete a branch that is not there. */
-const ALREADY_GONE = /reference does not exist|not found/iu;
+/** The most pages of branches under the prefix that a sweep lists. */
+const REF_PAGE_LIMIT = 10;
+
+/**
+ * What the platform says when asked to delete a branch that is not there.
+ * Only this exact answer counts as "already gone"; any other refusal,
+ * including a plain "Not Found", leaves the canary tracked.
+ */
+const ALREADY_GONE = /reference does not exist/iu;
+
+/**
+ * Send one request, turning a throw into a refusal, so that one failed step
+ * of a removal never skips the next.
+ * @param send - Sends the request
+ * @returns What it answered
+ */
+function attempt(send: () => Answered): Answered {
+  try {
+    return send();
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
 
 /**
  * Close a pull request and delete its branch.
@@ -95,9 +134,13 @@ function removeCanary(
   pullRequests: readonly number[]
 ): Removal {
   const closing = pullRequests.map(number =>
-    door.send("PATCH", `pulls/${String(number)}`, { state: "closed" })
+    attempt(() =>
+      door.send("PATCH", `pulls/${String(number)}`, { state: "closed" })
+    )
   );
-  const deleted = door.send("DELETE", `git/refs/heads/${branch}`);
+  const deleted = attempt(() =>
+    door.send("DELETE", `git/refs/heads/${branch}`)
+  );
   const branchRemoved =
     deleted.ok || (!deleted.ok && ALREADY_GONE.test(deleted.reason));
   const notClosed = closing.flatMap(answer =>
@@ -196,6 +239,9 @@ export function removeOnStop(
     signal,
     handler: () => {
       keeper.removeAll();
+      // A second interrupt can kill the request that was removing a canary.
+      // Whatever is still tracked is tried once more before the process goes.
+      if (keeper.open().length > 0) keeper.removeAll();
       release();
       terminate(signal);
     },
@@ -227,9 +273,37 @@ function canaryBranches(
       ? [name.slice("refs/heads/".length)]
       : [];
   });
-  if (refs.length < PAGE_SIZE) return names;
+  // Bounded: a list that never ends must not keep the run from starting.
+  if (refs.length < PAGE_SIZE || page >= REF_PAGE_LIMIT) return names;
   const more = canaryBranches(door, page + 1);
   return "problem" in more ? more : [...names, ...more];
+}
+
+/**
+ * The open pull requests that were opened from one branch.
+ *
+ * The platform is asked for the pull requests of that head, and each answer
+ * is checked again here: only one whose head is exactly the branch is
+ * returned. A list that came back unfiltered must never get somebody's own
+ * pull request closed.
+ * @param door - The canary door
+ * @param branch - The canary branch
+ * @returns Their numbers
+ */
+function pullRequestsFrom(door: CanaryDoor, branch: string): readonly number[] {
+  const [owner = ""] = door.repository.split("/");
+  const head = encodeURIComponent(`${owner}:${branch}`);
+  const pulls = door.get(
+    `pulls?state=open&head=${head}&per_page=${String(PAGE_SIZE)}`
+  );
+  const listed: readonly unknown[] =
+    pulls.ok && Array.isArray(pulls.value) ? pulls.value : [];
+  return listed.flatMap((pull: unknown) => {
+    const number = fieldOf(pull, "number");
+    return typeof number === "number" && textOf(pull, "head", "ref") === branch
+      ? [number]
+      : [];
+  });
 }
 
 /**
@@ -253,27 +327,17 @@ export function sweepCanaries(
     readonly lifetimeSeconds: number;
   }
 ): CanarySweep {
-  const branches = canaryBranches(door);
-  if ("problem" in branches) {
-    return { removed: [], kept: [], problems: [branches.problem] };
+  const listed = canaryBranches(door);
+  if ("problem" in listed) {
+    return { removed: [], kept: [], problems: [listed.problem] };
   }
-  const [owner = ""] = door.repository.split("/");
+  const branches = [...new Set(listed)];
   const stale = branches.filter(
     branch => canaryStanding(branch, context) === "stale"
   );
-  const removals = stale.map(branch => {
-    const head = encodeURIComponent(`${owner}:${branch}`);
-    const pulls = door.get(
-      `pulls?state=open&head=${head}&per_page=${String(PAGE_SIZE)}`
-    );
-    const numbers = (
-      pulls.ok && Array.isArray(pulls.value) ? pulls.value : []
-    ).flatMap((pull: unknown) => {
-      const number = fieldOf(pull, "number");
-      return typeof number === "number" ? [number] : [];
-    });
-    return removeCanary(door, branch, numbers);
-  });
+  const removals = stale.map(branch =>
+    removeCanary(door, branch, pullRequestsFrom(door, branch))
+  );
   return {
     removed: removals
       .filter(removal => removal.branchRemoved)
