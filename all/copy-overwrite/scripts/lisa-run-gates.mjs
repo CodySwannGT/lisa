@@ -1958,7 +1958,8 @@ function namedPaths(paths) {
  * with one the answer is null whatever the change touches, known or not.
  *
  * A path is covered only when it is a part's folder or lies inside it —
- * `pathsOutside`, read strictly, and under both names a linked folder has.
+ * `pathsOutside`, read strictly and compared exactly (`API` is not `api`),
+ * and under both names a linked folder has.
  * A row that does not say where its folder really is (one a caller wrote by
  * hand) is matched under its declared name alone, which can only keep a
  * built-in check that could have stood down.

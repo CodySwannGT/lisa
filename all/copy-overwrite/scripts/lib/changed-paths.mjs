@@ -122,14 +122,17 @@ const NARROWED =
   "whole repository always runs.";
 
 /**
- * A path as it is compared: without regard to letter case or to how an
- * accented letter is composed.
+ * A path as `touchesFolder` compares it: without regard to letter case or to
+ * how an accented letter is composed.
  *
  * A filesystem may treat `API` and `api`, or the two ways of writing `é`, as
  * one folder, and git and the declaration may each have recorded a different
  * one. Compared exactly, a change in that folder would look like a change
  * somewhere else and the part would be left out. Compared this way, the only
  * possible mistake is running a part that was not touched.
+ *
+ * That is the safe mistake only for "does this part run". `pathsOutside`
+ * asks the opposite question and must not use this: see there.
  * @param {string} path A path or a folder.
  * @returns {string} The form to compare.
  */
@@ -138,12 +141,13 @@ function fold(path) {
 }
 
 /**
- * Whether one path, already folded, is a folder or lies inside it.
+ * Whether one path is a folder or lies inside it, as the two are written.
  *
  * Whole path segments are compared: `api` holds `api/main.py` and not
- * `api-v2/main.py`.
- * @param {string} path A folded path.
- * @param {string} folder A folded folder.
+ * `api-v2/main.py`. Nothing is folded here; a caller that wants letter case
+ * ignored folds both sides first.
+ * @param {string} path A path.
+ * @param {string} folder A folder.
  * @returns {boolean} True when the path is the folder or is inside it.
  */
 function isInside(path, folder) {
@@ -190,17 +194,22 @@ export function touchesFolder(paths, folders) {
  * a caller stands its own check down on the answer. So a path counts as
  * covered only when it is a folder or lies inside one. A nested repository
  * that moved is one path, and a folder inside it is only part of it.
+ *
+ * For the same reason the two are compared exactly as they are written.
+ * Where a filesystem tells `API` from `api`, they are two folders, and a
+ * change in `API` is in no part declared for `api`. Ignoring letter case, or
+ * how an accented letter is composed, would call that change covered and
+ * stand a secret scan or a lint down for a folder nothing looked at. Where
+ * the filesystem does treat them as one folder and git recorded the other
+ * spelling, the exact comparison only keeps a built-in check that could have
+ * stood down.
  * @param {readonly string[]} paths Changed paths, written from the root.
  * @param {readonly string[]} folders Folders, written from the root, under
  *   every spelling each one has.
  * @returns {string[]} The paths no folder holds, in the order given.
  */
 export function pathsOutside(paths, folders) {
-  const names = folders.map(fold);
-  return paths.filter(path => {
-    const changed = fold(path);
-    return !names.some(name => isInside(changed, name));
-  });
+  return paths.filter(path => !folders.some(name => isInside(path, name)));
 }
 
 /**

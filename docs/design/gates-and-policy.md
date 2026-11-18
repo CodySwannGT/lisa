@@ -1234,7 +1234,12 @@ one.
 
 "Inside" is read strictly here, where "touches" above is read generously. A
 nested repository that moved is one changed path; a part for a folder inside
-it runs, and does not make that path covered.
+it runs, and does not make that path covered. Letter case and the composition
+of an accented letter are compared exactly here, where "touches" ignores
+them: a change to `API/x.js` runs the part for `api`, and is still a path no
+part covers, because on a filesystem that tells the two apart `API` is
+another folder. Where the filesystem treats them as one and git recorded the
+other spelling, that only keeps a built-in check that could have stood down.
 
 A hook that does not pass `--coverage` cannot keep one built-in check on its
 own. When a gate would be withheld for one of these reasons and nothing
@@ -1744,11 +1749,12 @@ cannot be added to safely — not a shell script, not started by git, in a
 folder outside the checkout that `core.hooksPath` names, or replaced by Lisa
 on every update — is left as it is, and the point is reported `blocked`.
 
-**Lines added to a hook have to be reached.** A hook that leaves before its
-end takes the added lines with it: the result would say `installed` and every
-commit would pass unchecked. So every line above the place the call goes is
-read (`src/controls/carrier-hook-reach.ts`), and the hook is left as it is,
-with the point `blocked`, when one of them can end it:
+**Lines added to a hook have to be reached, and heeded.** A hook that leaves
+before its end takes the added lines with it: the result would say
+`installed` and every commit would pass unchecked. So every line above the
+place the call goes is read (`src/controls/carrier-hook-reach.ts`), and the
+hook is left as it is, with the point `blocked`, when one of them can end it
+with success:
 
 - `exec <program>` anywhere. An `exec` that only redirects (`exec < /dev/tty`)
   is accepted.
@@ -1756,19 +1762,70 @@ with the point `blocked`, when one of them can end it:
   is a variable, and an `exit` with no status or with `$?` anywhere but the
   last part of `|| exit` (`|| exit $?`, `|| exit`), where the status it
   carries is a failure.
+- any `return`, judged exactly as an `exit` is. Outside every function a
+  `return` ends a script that dash, ksh or zsh runs (measured; bash reports
+  it and carries on), and dash is `sh` on most Linux systems, so
+  `[ -n "$RUN_ALL" ] || return 0` above the call ends such a hook with
+  success. A `return` inside a function is refused too, as an `exit` there
+  is: where a function starts and ends is not followed.
+- a `trap` that can turn a failure into success. What a trap on `EXIT` (or
+  `0`) runs is run after the added lines have failed, and an `exit 0` in it
+  is the status git sees: the check runs, fails, and the commit goes through
+  (measured in sh, dash, bash, ksh and zsh). Such a trap is refused when what
+  it runs holds an `exit` or a `return` this list refuses, an `exec` of a
+  program, or text that cannot be read. So is one on a condition the shell
+  raises itself while the hook runs: `ERR` and `ZERR` (a command failed),
+  `DEBUG` (before each command) and `RETURN`. A condition that is not known
+  to be a signal, such as one held in a variable, is taken for one of these.
+  A trap on a signal (`INT`, `TERM`, a number) is accepted, and so is one
+  that only cleans up, or exits with a written non-zero status.
 
-An `exit` with a written non-zero status (`exit 1`) is accepted wherever it
-stands, inside an `if` included: every way it leaves fails the hook, so git
-stops the commit itself and nothing passes unchecked. An `exit $?` inside an
-`if` is refused. It may be safe, but proving it means following the shell's
-control flow, and a wrong proof is a commit that passes unchecked; refusing
-costs one paste. The reader
-follows quotes, comments and here-documents, so `npm exec` and an `exit` in a
-message are not taken for commands. It does not follow a file the hook reads
-in, `eval`, or a function called later. The blocked point names the line and
-carries the lines to add by hand, the two marker lines included: placed where
-they always run, a later run finds them by the markers and reports the point
-as wired, and `lisa controls reconcile` reads them as Lisa's.
+An `exit` or a `return` with a written non-zero status (`exit 1`) is accepted
+wherever it stands, inside an `if` included: every way it leaves fails the
+hook, so git stops the commit itself and nothing passes unchecked. An
+`exit $?` inside an `if` is refused. It may be safe, but proving it means
+following the shell's control flow, and a wrong proof is a commit that passes
+unchecked; refusing costs one paste. One of these words with something the
+shell works out written into it (`exit$1`, `$1exit`, `ex${x}it`) is taken for
+that word and refused: it is the word itself whenever what the shell works
+out holds nothing.
+
+The reader follows quotes, comments and here-documents, so `npm exec` and an
+`exit` in a message are not taken for commands. It follows a command
+substitution inside double quotes when that is written on one line, with the
+quotes inside it, so the double quote in `"$(sed 's/"//g' file)"` does not
+end the outer one; and it does not take `<<` for a here-document inside
+`$(( ))` written on one line, or on a comment line. It does not follow a file
+the hook reads in, `eval`, a function called later, a trap whose action is
+held in a variable, or a command whose name a command substitution works out
+or completes (`$(printf exit)`, `ex$(true)it`).
+
+**A hook it cannot read is refused as not read.** The reason names the line
+the reader lost track on, and says that either a quote, a here-document or a
+parenthesis that starts there is still open where the call goes, or the line
+is written in a way the reader does not follow. These end that way:
+
+- a quote, a here-document or a parenthesis that really is left open. Lines
+  added inside one are text, or run in a shell of their own.
+- a dollar sign directly in front of a quote, where the hook's text does not
+  say what the word is. `$'it\'s'` is a quote left open to dash and a
+  finished one to bash, and `$'exit' 0` is `exit 0` to bash, ksh and zsh and
+  a program called `$exit` to dash. That matters, and is refused, where the
+  word names the command or is given to `exit`, `return`, `exec` or `trap`;
+  as a value (`IFS=$'\n'`) or an argument of another command it is accepted.
+- a `<<` the reader cannot be sure about, which is one that stands inside a
+  quote or after a `#` further along a line, has no closing word on its
+  line, or has a closing word of nothing. It is not guessed at: read as a
+  here-document it would blank out the lines under it, an `exit 0` among
+  them, and read as text it would take a here-document's body for commands.
+- a blank other than a space or a tab outside quotes and comments (a form
+  feed, a no-break space), which a shell takes for part of a word.
+
+Every blocked point of this kind names the line and carries the lines to add
+by hand, the two marker lines included. Placed above that line they are
+reached and heeded whatever it does, a later run finds them by the markers,
+reads only what stands above them, and reports the point as wired, and
+`lisa controls reconcile` reads them as Lisa's.
 
 The same questions are asked of a hook that already holds the lines. A hook
 changes after it was wired: someone adds an `exit 0` above the lines, or the
@@ -1785,7 +1842,7 @@ depend on neither the folder the shell is in nor the carrier being there:
   the hook and not the top folder, so once the hook has changed folder git
   answers with the folder the shell is in (measured on git 2.56); asked again
   without what git named, it finds the top folder from where the shell is.
-  The first answer that holds the carrier is used.
+  The first answer that counts and holds the carrier is used.
 - The carrier is there: it runs, and its exit status is the hook's.
 - The carrier is not there, and the commit checked out does not contain it:
   one sentence on standard error says the declared checks did not run in this
@@ -1797,6 +1854,45 @@ depend on neither the folder the shell is in nor the carrier being there:
 The commit is what is asked because carrier files are committed: "this
 checkout never had the carrier" is "the checked-out commit does not contain
 `.lisa/hooks/pre-commit`".
+
+**An answer counts only when it is about the repository being committed
+to.** Git answers every one of those questions for whichever repository the
+shell is in, and a hook's own lines may end with `cd` into another one: a
+nested repository, a submodule. Asked there, "the commit checked out does not
+contain the carrier" is true of the nested repository, and the commit to the
+outer one went through unchecked with that sentence, whether or not it had
+the carrier. So before an answer is used, the lines establish which
+repository it is about, in the way git told the hook:
+
+| How the hook is started (measured on git 2.56, at commit and at push) | What tells the lines the repository | A folder git answers with counts when |
+| --- | --- | --- |
+| In a linked working tree, or where `.git` is a file: `GIT_DIR` is set to the repository's git folder, absolute | `GIT_DIR` | git, started in that folder with nothing named, finds the same repository |
+| In a main working tree, by a path from the top folder: `.git/hooks/pre-commit`, `.githooks/pre-commit`, `.husky/pre-commit` (Husky 8.0.3 and 9.1.7) | the hook file | the hook file is in that folder under the path it was started by, and holds the marker line |
+| In a main working tree, by an absolute path (an absolute `core.hooksPath`) | the hook file | it is the file git would run as that hook in that folder (`git rev-parse --git-path`) |
+
+Git starts every hook in the top folder, whichever folder the operation was
+started from. With that established:
+
+| Where the hook's own lines leave the shell | Branch with the carrier | Branch without it |
+| --- | --- | --- |
+| the top folder, or a folder of the checkout | the checks run | let through, with the sentence |
+| a nested repository or a submodule, main working tree | stopped | stopped |
+| a nested repository or a submodule, linked working tree | stopped | let through: `GIT_DIR` makes the answer one about this repository |
+| outside every repository | stopped | stopped (linked working tree: let through, as above) |
+
+A stop here says that the hook can no longer tell which repository the commit
+is made in, and what to change: go back to the folder the hook started in
+before the added lines, or run the commands that need another folder in a
+subshell. The carrier is looked for only in a folder that counts, so a nested
+repository's own carrier is not started in place of this one.
+
+One case is not told apart. A nested repository that has a hook file under
+the same path as this hook, itself holding Lisa's lines, looks from inside
+exactly like the repository that started the hook. A hook that ends there
+runs that repository's checks, or is let through on its commit. Stopping
+instead would stop every commit made in such a nested repository itself.
+Lefthook and the pre-commit framework are not affected by any of this: they
+start the carrier, which goes to its own top folder and asks git nothing.
 
 **Where a project type's own hook already calls the runner with
 `--coverage`, nothing is added.** A second call would run every gate twice.
@@ -1917,7 +2013,13 @@ carries the row's last two columns on every agent point (`refusal`,
 and Devin read a file the repository may already own. One entry is added to
 the one list it belongs in, in the file's own indentation, and every other
 byte stays: other keys, other hooks, comments, and an entry beside Lisa's
-that the repository wrote on one line. The text is edited by position
+that the repository wrote on one line. The entry goes after everything the
+repository wrote in that list, a comment after its last entry included, and
+the comma it needs is written directly after the entry before it, in front
+of such a comment. Where an older entry of Lisa's is replaced, what is taken
+out is that entry, one comma, and the whitespace only it needed (the line it
+stood alone on); a comment between it and a neighbour stays where it is. The
+text is edited by position
 (`src/controls/carrier-json-place.ts`) and not through a JSON editor that
 formats what it writes, because such an editor formats whole lines and
 reflows whatever shares a line with the entry. The edited text is used only

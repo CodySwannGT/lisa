@@ -42,8 +42,8 @@ const SH = "/bin/sh";
 const HOST_HOOK = "#!/bin/sh\necho host check\n";
 
 /** Every shell on this machine a repository's hook may be written for. */
-const SHELLS = [SH, "/bin/dash", "/bin/bash", "/bin/zsh"].filter(shell =>
-  existsSync(shell)
+const SHELLS = [SH, "/bin/dash", "/bin/bash", "/bin/zsh", "/bin/ksh"].filter(
+  shell => existsSync(shell)
 );
 
 const cleanups: Array<() => void> = [];
@@ -166,6 +166,23 @@ describe.each(CARRIER_MOMENTS)("the carrier for the %s moment", moment => {
 
   it.each(SHELLS)("is called by lines %s accepts", shell => {
     expect(syntaxErrors(`${carrierCallBlock(moment)}\n`, shell)).toBe("");
+  });
+
+  it("lets the operation through only on an answer about its own repository", () => {
+    const call = carrierCall(moment);
+    const letsThrough = call.findIndex(line => line.includes("git cat-file"));
+
+    // The sentence that lets a commit through is reached only when git named
+    // the repository to the hook, or the hook file was found in the folder
+    // git answered for. The integration suite holds this with real commits.
+    expect(call[letsThrough]).toMatch(
+      /^elif \[ -n "\$lisa_named\$lisa_ours" \] && /u
+    );
+    expect(call.join("\n")).toContain(
+      `grep -qF -- "${carrierMarkers(moment).begin}" "$lisa_top/$0"`
+    );
+    expect(call.at(-3)).toMatch(/stopped: this hook can no longer tell/u);
+    expect(call.slice(-2)).toEqual(["  exit 1", "fi"]);
   });
 
   it("is handed to a person with its two marker lines", () => {

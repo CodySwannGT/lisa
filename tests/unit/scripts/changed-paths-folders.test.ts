@@ -18,6 +18,7 @@ const API = "api";
 const NESTED_MAIN = "services/api/main.py";
 const NESTED = "services/api";
 const API_MAIN = "api/main.py";
+const UPPER_MAIN = "API/main.py";
 const UNUSUAL = "café menu";
 const NESTED_REPOSITORY = "vendor/engine";
 const INSIDE_NESTED = "vendor/engine/src";
@@ -77,7 +78,7 @@ describe("whether a changed path is inside a part's folder", () => {
   });
 
   it("ignores letter case, so a filesystem that does cannot hide a change", () => {
-    expect(touchesFolder(["API/main.py"], [API])).toBe(true);
+    expect(touchesFolder([UPPER_MAIN], [API])).toBe(true);
     expect(touchesFolder([API_MAIN], ["Api"])).toBe(true);
     expect(touchesFolder(["Straße/x"], ["STRASSE"])).toBe(true);
   });
@@ -111,12 +112,31 @@ describe("which changed paths lie outside every one of a set of folders", () => 
     ]);
   });
 
-  it("compares the way `touchesFolder` does: whole segments, any letter case", () => {
+  it("compares whole segments, the way `touchesFolder` does", () => {
     const sameStart = "api-next/main.py";
 
-    expect(pathsOutside(["API/main.py", sameStart], [API])).toEqual([
-      sameStart,
-    ]);
+    expect(pathsOutside([API_MAIN, sameStart], [API])).toEqual([sameStart]);
+  });
+
+  it("compares letter case exactly: `API` may be another folder than `api`", () => {
+    // The other direction from `touchesFolder`, on purpose. Where a file
+    // system tells the two apart, a path in `API` is in no part for `api`,
+    // and calling it covered would stand a built-in check down for it.
+    expect(pathsOutside([UPPER_MAIN], [API])).toEqual([UPPER_MAIN]);
+    expect(pathsOutside([API_MAIN], ["Api"])).toEqual([API_MAIN]);
+    expect(pathsOutside(["Straße/x"], ["STRASSE"])).toEqual(["Straße/x"]);
+  });
+
+  it("compares an accented letter exactly, however it is composed", () => {
+    const composed = `${UNUSUAL.normalize("NFC")}/today.md`;
+    const decomposed = UNUSUAL.normalize("NFD");
+
+    expect(pathsOutside([composed], [decomposed])).toEqual([composed]);
+    expect(pathsOutside([composed], [UNUSUAL.normalize("NFC")])).toEqual([]);
+  });
+
+  it("leaves out a path under any spelling the folder was given", () => {
+    expect(pathsOutside([UPPER_MAIN, API_MAIN], [API, "API"])).toEqual([]);
   });
 
   it("keeps every path when there is no folder", () => {

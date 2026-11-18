@@ -26,17 +26,58 @@
  *   folder, so after the hook changed folder git answers with the folder the
  *   shell is in (measured on git 2.56). Asked again without what git named,
  *   it finds the top folder from where the shell is. The first answer that
- *   holds the carrier is used.
+ *   counts and holds the carrier is used.
+ * - An answer counts only when it is about the repository git started the
+ *   hook for. Git answers for whichever repository the shell is in, and the
+ *   hook's own lines may have ended with `cd` into another one: a nested
+ *   repository, a submodule. See "Which repository an answer is about".
  * - The carrier is there: it is started, and its exit status is the hook's.
  * - The carrier is not there, and the commit checked out does not contain
  *   it: one sentence says the declared checks did not run, and the hook goes
- *   on. A branch that never had Lisa's files has to stay usable.
+ *   on. A branch that never had Lisa's files has to stay usable. This is the
+ *   one case that lets a commit through unchecked, so it is taken only when
+ *   the answer is known to be about the repository being committed to.
  * - The carrier is not there in any other case (it was removed from a
  *   checkout whose commit has it, or git cannot say): the hook stops with a
  *   sentence. Carrier files are committed, which is why the commit is what
  *   is asked.
+ * - No answer counts: the hook stops, and says that it can no longer tell
+ *   which repository the commit is made in.
  *
  * Nothing of the host's is written into either text: every word is fixed.
+ *
+ * ## Which repository an answer is about
+ *
+ * A hook is told which repository it runs for in one of two ways, and the
+ * lines use whichever git used (measured on git 2.56 with real commits and
+ * pushes, in a main and a linked working tree, started from the top folder
+ * and from a folder below it):
+ *
+ * | The hook is | `GIT_DIR` | `$0` |
+ * | --- | --- | --- |
+ * | in git's hooks folder, main working tree | not set | `.git/hooks/pre-commit` |
+ * | in a `core.hooksPath` folder written from the top, main working tree | not set | `.githooks/pre-commit` |
+ * | in a `core.hooksPath` folder written as an absolute path, main working tree | not set | that absolute path |
+ * | Husky's (8.0.3 and 9.1.7), main working tree | not set | `.husky/pre-commit` |
+ * | any of these in a linked working tree, or where `.git` is a file | the repository's git folder, absolute | absolute, or from the top as above |
+ *
+ * Git always starts the hook in the top folder. So:
+ *
+ * - `GIT_DIR` set to an absolute path: git named the repository, and every
+ *   question asked with it is about that repository wherever the shell is.
+ *   A folder git answers with counts when git, started there with nothing
+ *   named, finds the same repository.
+ * - Otherwise the repository is the one whose top folder the hook was
+ *   started in, which nothing names once the shell has left it. A folder
+ *   counts when the hook file is there under the path it was started by and
+ *   holds these lines; a hook started by an absolute path has to be the
+ *   file git would run for that folder.
+ *
+ * One case is not told apart: a nested repository that has a hook file under
+ * the same path, itself holding these lines. A hook that ends there runs
+ * that repository's checks, or is let through on its commit. Nothing in the
+ * shell says which of the two repositories started the hook, and stopping
+ * instead would stop every commit made in such a nested repository itself.
  *
  * ## What the push carrier says about the push
  *
@@ -198,20 +239,58 @@ export function carrierStartLine(moment: CarrierMoment): string {
  *
  * Git is asked for that folder twice: as it names the checkout to the hook,
  * and again with what it named taken away, so that it searches from the
- * folder the shell is in. The first answer that holds the carrier is used.
+ * folder the shell is in. Each answer is then held to the repository git
+ * started the hook for, because the lines above may have left the shell in
+ * another one (a nested repository, a submodule), and git answers for
+ * whichever repository the shell is in:
+ *
+ * - Git named the repository to the hook (`GIT_DIR`, an absolute path): the
+ *   answer counts when git, started in that folder with nothing named, finds
+ *   the same repository.
+ * - Git named none, which it does only in a checkout whose `.git` is a
+ *   folder: the answer counts when the hook file is in it. Git starts such a
+ *   hook by its path from the top folder (`.git/hooks/pre-commit`,
+ *   `.husky/pre-commit`), so the file has to be there under that path, and
+ *   has to hold these lines, which is what tells it from another
+ *   repository's hook of the same name. A hook started by an absolute path,
+ *   which is what an absolute `core.hooksPath` gives, has to be the file
+ *   git would run for that folder.
+ *
+ * The first answer that counts and holds the carrier is used.
  * @param script - The carrier, from the top folder
- * @returns The lines, which leave the carrier's path in `lisa_carrier`, or
- *   leave it empty
+ * @param begin - The marker line these lines stand under
+ * @returns The lines, which leave the carrier's path in `lisa_carrier` or
+ *   leave it empty, and leave `lisa_ours` set when an answer counted and
+ *   `lisa_named` set when git named the repository
  */
-function findCarrierLines(script: string): readonly string[] {
+function findCarrierLines(script: string, begin: string): readonly string[] {
   const asNamed = "git rev-parse --show-toplevel 2>/dev/null";
+  const gitFolder = "git rev-parse --absolute-git-dir 2>/dev/null";
+  const from = 'CDPATH= cd -- "$lisa_top" 2>/dev/null &&';
   return [
     "# The carrier is looked for from the top folder of this checkout, wherever",
     "# the lines above left the shell: as git names that folder to this hook,",
-    "# then as git finds it from the folder the shell is in.",
+    "# then as git finds it from the folder the shell is in. An answer counts",
+    "# only when it is about the repository git started this hook for: the one",
+    "# git named to the hook (GIT_DIR), or else the one this hook file is in.",
     "lisa_carrier=",
+    "lisa_ours=",
+    "lisa_named=",
+    'case "${GIT_DIR:-}" in',
+    `  /*) lisa_named=$(${gitFolder}) || lisa_named= ;;`,
+    "esac",
     `for lisa_top in "$(${asNamed})" "$(unset GIT_DIR GIT_WORK_TREE; ${asNamed})"; do`,
-    `  if [ -z "$lisa_carrier" ] && [ -n "$lisa_top" ] && [ -f "$lisa_top/${script}" ]; then`,
+    '  [ -n "$lisa_top" ] || continue',
+    '  if [ -n "$lisa_named" ]; then',
+    `    [ "$(unset GIT_DIR GIT_WORK_TREE; ${from} ${gitFolder})" = "$lisa_named" ] || continue`,
+    "  else",
+    '    case "$0" in',
+    `      /*) [ "$(${from} git rev-parse --git-path "hooks/\${0##*/}" 2>/dev/null)" = "$0" ] || continue ;;`,
+    `      *) grep -qF -- "${begin}" "$lisa_top/$0" 2>/dev/null || continue ;;`,
+    "    esac",
+    "  fi",
+    "  lisa_ours=1",
+    `  if [ -z "$lisa_carrier" ] && [ -f "$lisa_top/${script}" ]; then`,
     `    lisa_carrier="$lisa_top/${script}"`,
     "  fi",
     "done",
@@ -246,14 +325,17 @@ export function carrierCall(moment: CarrierMoment): readonly string[] {
       : []),
     "lisa_status=$?",
     '[ "$lisa_status" -eq 0 ] || exit "$lisa_status"',
-    ...findCarrierLines(script),
+    ...findCarrierLines(script, carrierMarkers(moment).begin),
     'if [ -n "$lisa_carrier" ]; then',
     `  ${carrierStartLine(moment)}`,
-    `elif git rev-parse --git-dir >/dev/null 2>&1 && ! git cat-file -e "HEAD:${script}" 2>/dev/null; then`,
+    `elif [ -n "$lisa_named$lisa_ours" ] && git rev-parse --git-dir >/dev/null 2>&1 && ! git cat-file -e "HEAD:${script}" 2>/dev/null; then`,
     "  # A branch that never had the carrier stays usable.",
     `  echo "${capitalised(checks)} did not run in this checkout: the commit checked out here does not contain ${script}, the script that runs them." >&2`,
-    "else",
+    'elif [ -n "$lisa_ours" ]; then',
     `  echo "${capitalised(operation)} stopped: ${script}, the script that runs ${checks}, could not be found in this checkout. Run \\"${INSTALL_CARRIERS_INVOCATION}\\" to put it back." >&2`,
+    "  exit 1",
+    "else",
+    `  echo "${capitalised(operation)} stopped: this hook can no longer tell which repository the ${operation} is made in, so ${checks} were not run. That happens when the lines above these change folder into another repository or out of this one: change back before these lines, or run those commands in a subshell." >&2`,
     "  exit 1",
     "fi",
   ];

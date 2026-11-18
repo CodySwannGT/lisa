@@ -43,7 +43,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/build-marker.mjs":
       "505519d9632ab86572cfdeca917d93599256cf8e798987ad593a82296a7d8175",
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
-      "c9599846bb658ee7de173ad0768f964366c9e27ee07f5baa30499ea20ee3b87f",
+      "bcf755d8c1905cddd84622c9a520f7bcc16b19379b9f933a8b5657bb6df9f391",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
       "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
@@ -387,7 +387,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "6e31f367f2a8754d4e15ec235a64f90831710576a1bb640bb67088fcb09f2435",
+      "c8d581ffa7c7a34b1d4d5c7ac8618f47af9a705fe14cae6b8ce3bba158a1405a",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -403,7 +403,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "fe9d5afd29b0187281466822f5af4825ab467cc15189f4c486f6959419eb90a6",
+      "4f89b933161bc8d7c3c7d50f333ac6ce44c642505e8f620768ca6a7ac558cde2",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -11327,7 +11327,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/controls/carrier-edits.ts": true,
     "src/controls/carrier-git-hooks.ts": true,
     "src/controls/carrier-git.ts": true,
+    "src/controls/carrier-hook-here-documents.ts": true,
     "src/controls/carrier-hook-reach.ts": true,
+    "src/controls/carrier-hook-words.ts": true,
     "src/controls/carrier-ignore.ts": true,
     "src/controls/carrier-json-place.ts": true,
     "src/controls/carrier-lefthook.ts": true,
@@ -12146,6 +12148,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/controls-install-carriers-agents.test.ts": true,
     "tests/integration/controls-install-carriers-checkouts.test.ts": true,
     "tests/integration/controls-install-carriers-existing-wiring.test.ts": true,
+    "tests/integration/controls-install-carriers-heeded.test.ts": true,
+    "tests/integration/controls-install-carriers-other-repository.test.ts": true,
     "tests/integration/controls-install-carriers-owners.test.ts": true,
     "tests/integration/controls-install-carriers-reachable.test.ts": true,
     "tests/integration/controls-install-carriers-safety.test.ts": true,
@@ -12493,6 +12497,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/platform/windows-process-fixture.mjs": true,
     "tests/support/carrier-agents.ts": true,
     "tests/support/carrier-hook-owners.ts": true,
+    "tests/support/carrier-hook-run.ts": true,
     "tests/support/carrier-install.ts": true,
     "tests/support/carrier-push.ts": true,
     "tests/support/ci-runtime.ts": true,
@@ -12940,7 +12945,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/carrier-agent-settings-bytes.test.ts": true,
     "tests/unit/controls/carrier-agent-settings.test.ts": true,
     "tests/unit/controls/carrier-agent-surfaces.test.ts": true,
+    "tests/unit/controls/carrier-hook-reach-forms.test.ts": true,
+    "tests/unit/controls/carrier-hook-reach-leaves.test.ts": true,
     "tests/unit/controls/carrier-hook-reach.test.ts": true,
+    "tests/unit/controls/carrier-json-place.test.ts": true,
     "tests/unit/controls/carrier-manager-yaml.test.ts": true,
     "tests/unit/controls/carrier-roster.test.ts": true,
     "tests/unit/controls/carrier-runner-files.test.ts": true,
