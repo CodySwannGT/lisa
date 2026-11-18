@@ -31,6 +31,13 @@
  * the repository requires sits where this command did not look, and the
  * point is `not-read`. Either way the reason says that only rulesets were
  * read.
+ *
+ * A point left `not-read` for that reason also makes the read of the
+ * platform one that could not be made ({@link unreadWithoutRuleset}), so the
+ * run is incomplete and fails. A repository with no merge protection of
+ * either kind has no ruleset on the branch either, and a run that passed
+ * there would lose the one finding that matters most. Reading the older
+ * rules, which would tell the two apart, is CodySwannGT/lisa#5018.
  * @module controls/reconcile-platform
  */
 import type { AuditProbe } from "./audit-probe-types.js";
@@ -198,6 +205,39 @@ function quoted(names: readonly string[]): string {
 }
 
 /**
+ * Say that no ruleset governs the branch an answer is about.
+ * @param answer - What the platform requires
+ * @returns The opening of a reason, ending with a full stop
+ */
+function noRuleset(answer: PlatformAnswer): string {
+  return `No ruleset governs ${answer.branch} on ${answer.label}, and rulesets are the only merge settings this command reads.`;
+}
+
+/**
+ * Say why an answer from the platform still leaves the comparison
+ * incomplete, when it does.
+ *
+ * The platform answered, and no ruleset governs the branch. A repository
+ * that keeps its required checks in the older branch protection rules looks
+ * like that, and so does one with no merge protection at all, and the two
+ * cannot be told apart from here. So a check the register lists for a pull
+ * request was not looked for anywhere it could be. That is a place that was
+ * needed and could not be read, never a clean read.
+ * @param answer - What the platform requires
+ * @returns What could not be read and why, or `null` when every check the
+ *   register lists was looked for
+ */
+export function unreadWithoutRuleset(answer: PlatformAnswer): string | null {
+  if (answer.rulesets.length > 0) return null;
+  const unread = [...new Set(Object.values(answer.checks).flat())].filter(
+    check => !answer.required.includes(check)
+  );
+  return unread.length === 0
+    ? null
+    : `${noRuleset(answer)} So whether ${answer.label} requires ${quoted(unread)} before a merge into ${answer.branch} could not be read: a branch protection rule of the older kind may require it, or nothing may. Reading those rules is not built yet (CodySwannGT/lisa#5018).`;
+}
+
+/**
  * Say what an answered platform shows about one entry.
  * @param entry - The register entry
  * @param answer - What the platform requires
@@ -234,7 +274,7 @@ function fromAnswer(
   return answer.rulesets.length === 0
     ? {
         checked: checks.join(", "),
-        reason: `No ruleset governs ${answer.branch} on ${answer.label}, and rulesets are the only merge settings this command reads. ${OLDER_RULES} So whether ${answer.label} requires ${quoted(missing)} ${merge} is not known.`,
+        reason: `${noRuleset(answer)} ${OLDER_RULES} So whether ${answer.label} requires ${quoted(missing)} ${merge} is not known.`,
         state: "not-read",
       }
     : {

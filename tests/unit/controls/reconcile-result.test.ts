@@ -9,6 +9,7 @@
  */
 import { describe, expect, it } from "vitest";
 
+import type { PlatformAnswer } from "../../../src/controls/reconcile-platform.js";
 import {
   describeReconcile,
   surfacesOf,
@@ -197,5 +198,69 @@ describe("what became of each read", () => {
     expect(platformOf({ ...needed, platform: { answer, asked: true } })).toBe(
       "read"
     );
+  });
+
+  describe("when the platform answered and no ruleset governs the branch", () => {
+    const LINT = "Lint";
+    const governed: PlatformAnswer = {
+      branch: "main",
+      checks: { "code-style@.": [LINT] },
+      label: "GitHub",
+      required: [LINT],
+      rulesets: ["main checks"],
+    };
+    const platformOf = (answer: PlatformAnswer): SurfaceRead | undefined =>
+      surfacesOf(
+        facts({ needsPlatform: true, platform: { answer, asked: true } })
+      ).find(surface => surface.surface === "hosting-platform");
+
+    it("is not a read when a check the register lists could not be looked for", () => {
+      const surface = platformOf({ ...governed, required: [], rulesets: [] });
+
+      expect(surface?.state).toBe(NOT_READ);
+      expect(surface?.detail).toContain("No ruleset governs main on GitHub");
+      expect(surface?.detail).toContain(
+        "rulesets are the only merge settings this command reads"
+      );
+      expect(surface?.detail).toContain(`"${LINT}"`);
+      expect(surface?.detail).toContain("CodySwannGT/lisa#5018");
+    });
+
+    it("makes the run incomplete, so it cannot pass", () => {
+      const surface = platformOf({ ...governed, required: [], rulesets: [] });
+
+      expect(
+        describeReconcile(
+          [point("not-read")],
+          [],
+          surface === undefined ? [] : [surface]
+        )
+      ).toMatchObject({
+        outcome: "incomplete",
+        reason: expect.stringContaining(
+          "hosting-platform could not be read"
+        ) as string,
+      });
+    });
+
+    it("is a read when no check was to be looked for there", () => {
+      expect(
+        platformOf({ ...governed, checks: {}, required: [], rulesets: [] })
+          ?.state
+      ).toBe("read");
+      expect(
+        platformOf({
+          ...governed,
+          checks: { "code-style@.": [] },
+          required: [],
+          rulesets: [],
+        })?.state
+      ).toBe("read");
+    });
+
+    it("is a read when a ruleset governs the branch, whatever it requires", () => {
+      expect(platformOf(governed)?.state).toBe("read");
+      expect(platformOf({ ...governed, required: [] })?.state).toBe("read");
+    });
   });
 });

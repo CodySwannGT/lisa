@@ -15,7 +15,8 @@
  * | `unknown` | — | `blocked`: waiting on the access the audit named |
  * | `not-applicable` | — | `nothing-to-enforce` |
  * | `exists-not-enforced` or `proved` | the requirement is met by a record or a person's word | `nothing-to-enforce`: no hook can run a document |
- * | `exists-not-enforced` or `proved` | it is a check, and an entry that serves it covers that part | none: the entry speaks for it |
+ * | `exists-not-enforced` or `proved` | it is a check, and an entry that serves it and has a moment to run at covers that part | none: the entry speaks for it |
+ * | `exists-not-enforced` or `proved` | it is a check, and the only entries that cover that part have no moment to run at | `blocked`: no check is declared to run there; waiting on the operator to choose when in the configure step |
  * | `exists-not-enforced` or `proved` | it is a check, and no entry covers that part | `blocked`: waiting on the operator to declare it in the configure step |
  *
  * An entry covers a finding's part when the finding is about the whole
@@ -25,10 +26,19 @@
  * ## What an entry claims
  *
  * Its own outcome, as `./enforce-entry-outcome.ts` adds its enforcement
- * points up: `wired`, `blocked` or `nothing-to-enforce`. An entry that
- * serves a requirement a check can refuse a change for is never
- * `nothing-to-enforce` for having no moment to run at: it is `blocked`, so
- * the finding it covers is not counted as answered by a check nothing runs.
+ * points up: `wired`, `blocked` or `nothing-to-enforce`.
+ *
+ * An entry with no moment to run at (none was chosen, or every one is
+ * switched off) claims nothing and covers nothing. Nothing runs it, so it
+ * cannot answer a finding; and it asks nothing of anybody, so it cannot hold
+ * back a requirement another entry serves. What follows from that:
+ *
+ * | The requirement is served by | Its outcome comes from |
+ * | --- | --- |
+ * | Such an entry and another entry with a moment | The other entry, and the findings |
+ * | Only such entries, and the audit found a check in place (`exists-not-enforced` or `proved`) | The finding: `blocked`, as the table above says |
+ * | Only such entries, and the audit found anything else | The finding alone: a requirement that does not apply stays `nothing-to-enforce`, a missing capability keeps its ticket |
+ * | Only such entries, and the audit says nothing of it | The entries, so that the requirement still has an outcome: `blocked` when a check can refuse a change for it, else `nothing-to-enforce` |
  *
  * ## One outcome from many claims
  *
@@ -53,6 +63,7 @@ import {
 } from "./audit-report.js";
 import { compareCodeUnits } from "./canonical-json.js";
 import type { InScopeCriterion } from "./catalogue.js";
+import { hasNoMoment } from "./enforce-entry-outcome.js";
 import type { TicketLookup } from "./enforce-tickets.js";
 import {
   ENFORCE_OUTCOMES,
@@ -84,8 +95,10 @@ interface FindingContext {
   readonly finding: AuditFinding;
   readonly criterion: InScopeCriterion;
   readonly report: AuditReport;
-  /** The judged entries that serve the requirement. */
+  /** The judged entries that serve the requirement and have a moment. */
   readonly serving: readonly EnforcedEntry[];
+  /** The judged entries declared for it that have no moment to run at. */
+  readonly idle: readonly EnforcedEntry[];
   readonly ticketFor: TicketLookup;
 }
 
@@ -105,6 +118,18 @@ function covers(entryScope: string, findingScope: string): boolean {
     entryScope === findingScope ||
     entryScope.startsWith(`${findingScope}/`)
   );
+}
+
+/**
+ * Say that the only checks declared for a requirement have no moment to run
+ * at.
+ * @param entries - Those entries, at least one
+ * @returns The rest of a sentence that names them, and what the operator is
+ *   asked for
+ */
+function noCheckRuns(entries: readonly EnforcedEntry[]): string {
+  const ids = entries.map(entry => entry.id).join(", ");
+  return `no check is declared to run for it: the declaration gives ${ids} no moment to run at (none was chosen, or every one is switched off). Waiting on you: run the configure step and choose when this check has to pass.`;
 }
 
 /**
@@ -146,7 +171,7 @@ function questionClaim(context: FindingContext): Claimed {
  * @returns The claim, or `null` when a register entry speaks for that part
  */
 function inPlaceClaim(context: FindingContext): Claimed | null {
-  const { criterion, finding, serving } = context;
+  const { criterion, finding, idle, serving } = context;
   const part = describeScope(finding.scope);
   if (criterion.kind !== GATE_KIND) {
     return {
@@ -155,13 +180,16 @@ function inPlaceClaim(context: FindingContext): Claimed | null {
       ticket: null,
     };
   }
-  return serving.some(entry => covers(entry.scope, finding.scope))
-    ? null
-    : {
-        outcome: "blocked",
-        reason: `Something that checks this exists in the ${part}, but no check is declared for it there, so nothing was wired. Waiting on you: run the configure step and decide when it should run.`,
-        ticket: null,
-      };
+  if (serving.some(entry => covers(entry.scope, finding.scope))) return null;
+  const switchedOff = idle.filter(entry => covers(entry.scope, finding.scope));
+  return {
+    outcome: "blocked",
+    reason:
+      switchedOff.length > 0
+        ? `Something that checks this exists in the ${part}, but ${noCheckRuns(switchedOff)}`
+        : `Something that checks this exists in the ${part}, but no check is declared for it there, so nothing was wired. Waiting on you: run the configure step and decide when it should run.`,
+    ticket: null,
+  };
 }
 
 /** What a finding in each state claims. */
@@ -202,6 +230,33 @@ function byStrength(left: EnforceClaim, right: EnforceClaim): number {
 }
 
 /**
+ * The claims of the entries with no moment to run at, for a requirement
+ * nothing else speaks for.
+ * @param criterion - The requirement
+ * @param idle - The entries declared for it that have no moment
+ * @returns One claim per entry: `blocked` when a check can refuse a change
+ *   for the requirement, else `nothing-to-enforce`
+ */
+function idleClaims(
+  criterion: InScopeCriterion,
+  idle: readonly EnforcedEntry[]
+): readonly EnforceClaim[] {
+  const gate = criterion.kind === GATE_KIND;
+  return idle.map(
+    (entry): EnforceClaim => ({
+      id: entry.id,
+      outcome: gate ? "blocked" : NOTHING_TO_ENFORCE,
+      reason: gate
+        ? `Nothing checks this, and ${noCheckRuns([entry])}`
+        : entry.reason,
+      scope: entry.scope,
+      source: "register-entry",
+      ticket: null,
+    })
+  );
+}
+
+/**
  * Collect every claim about one requirement.
  * @param criterion - The requirement
  * @param sources - The report, the judged entries and the ticket answers
@@ -211,15 +266,18 @@ function claimsAbout(
   criterion: InScopeCriterion,
   sources: ClaimSources
 ): readonly EnforceClaim[] {
-  const serving = sources.entries.filter(entry =>
+  const declared = sources.entries.filter(entry =>
     entry.criteria.includes(criterion.id)
   );
+  const serving = declared.filter(entry => !hasNoMoment(entry));
+  const idle = declared.filter(entry => hasNoMoment(entry));
   const fromFindings = sources.report.findings
     .filter(finding => finding.criterion === criterion.id)
     .flatMap((finding): readonly EnforceClaim[] => {
       const claimed = FINDING_CLAIMS[finding.state]({
         criterion,
         finding,
+        idle,
         report: sources.report,
         serving,
         ticketFor: sources.ticketFor,
@@ -245,7 +303,10 @@ function claimsAbout(
       ticket: null,
     })
   );
-  return [...fromFindings, ...fromEntries].sort(byStrength);
+  const spoken = [...fromFindings, ...fromEntries];
+  return [...(spoken.length > 0 ? spoken : idleClaims(criterion, idle))].sort(
+    byStrength
+  );
 }
 
 /**

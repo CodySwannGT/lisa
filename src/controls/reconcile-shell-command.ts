@@ -15,6 +15,12 @@
  * | `ruff check . )` | the bracket that closes a group opened earlier | `ruff check .` |
  * | `npx lint-staged 2>&1` | the redirect | `npx lint-staged` |
  * | `*.py) ruff check .` | the `case` label | `ruff check .` |
+ * | `case "$1" in *.py) ruff check .` | the head of a `case` written on one line, then the label | `ruff check .` |
+ * | `check() { npm test`, `function check { npm test` | the name a function is defined under | `npm test` |
+ * | `command npm test`, `command -p npm test` | `command`, which only says not to look for a function of that name | `npm test` |
+ *
+ * `command -v node` and `command -V node` run nothing: they ask whether a
+ * program is there, so nothing is left of them.
  *
  * ## Telling a closing bracket from a `case` label
  *
@@ -65,6 +71,21 @@ const CLOSERS = /^(?:\)+|\})$/u;
 /** A setting written in front of a command, such as `CI=1`. */
 const ASSIGNMENT = /^[A-Za-z_]\w*=/u;
 
+/** A word that names a function being defined, such as `check()`. */
+const FUNCTION_NAME = /^[A-Za-z_][\w-]*\(\)$/u;
+
+/** The word that says a function is being defined. */
+const FUNCTION = "function";
+
+/** The word that runs a program and never a function of the same name. */
+const COMMAND = "command";
+
+/** An option that makes `command` say where a program is, and run nothing. */
+const PROBE_OPTION = /^-[A-Za-z]*[vV]/u;
+
+/** An option of `command` that is still followed by the program to run. */
+const COMMAND_OPTION = /^-[p-]$/u;
+
 /**
  * Tell whether a word is a `case` label: a pattern closed by a bracket that
  * nothing in the word opened.
@@ -102,11 +123,75 @@ function count(word: Word, character: string): number {
 
 /**
  * Count the closing round brackets a word ends with.
+ *
+ * The word is cut at every `)`, and each bracket at its end leaves an empty
+ * part behind it. Nothing here calls itself, so a word that ends in any
+ * number of brackets is counted without running out of stack.
  * @param raw - The word as it is written
  * @returns How many `)` stand at its end
  */
 function closingEnd(raw: string): number {
-  return raw.endsWith(")") ? 1 + closingEnd(raw.slice(0, -1)) : 0;
+  const parts = raw.split(")");
+  const lastWritten = parts.reduce(
+    (last, part, index) => (part === "" ? last : index),
+    0
+  );
+  return parts.length - 1 - lastWritten;
+}
+
+/**
+ * Count the words at the start of some words that stand in front of a
+ * command.
+ * @param words - Some words of a piece
+ * @returns How many of the first words are not the command
+ */
+function prefixCount(words: readonly Word[]): number {
+  const at = words.findIndex(
+    (word, index) => !isPrefix(word, index === words.length - 1)
+  );
+  return at === -1 ? words.length : at;
+}
+
+/**
+ * Count the words at the start of some words that name a function being
+ * defined: `check()`, `check ()`, `function check`, `function check()`.
+ * @param words - Some words of a piece
+ * @returns How many words the name takes; 0 when no function is defined
+ */
+function definitionLength(words: readonly Word[]): number {
+  const keyword = words[0]?.raw === FUNCTION ? 1 : 0;
+  const name = words[keyword];
+  if (name === undefined) return keyword;
+  if (FUNCTION_NAME.test(name.raw)) return keyword + 1;
+  if (words[keyword + 1]?.raw === "()") return keyword + 2;
+  return keyword === 1 ? 2 : 0;
+}
+
+/**
+ * Count the words in front of the command of a piece: the words shell puts
+ * there, and the name of a function when the piece defines one.
+ * @param words - The words of a piece, redirects left out
+ * @returns How many words to look past
+ */
+function leading(words: readonly Word[]): number {
+  const before = prefixCount(words);
+  const defined = before + definitionLength(words.slice(before));
+  return defined + prefixCount(words.slice(defined));
+}
+
+/**
+ * Take `command` off the front of a command.
+ * @param words - The command's words
+ * @returns The program `command` runs, with its arguments; nothing when it
+ *   only asks whether a program is there
+ */
+function unwrapped(words: readonly Word[]): readonly Word[] {
+  const [first, second] = words;
+  if (first?.raw !== COMMAND) return words;
+  if (second !== undefined && PROBE_OPTION.test(second.raw)) return [];
+  const rest = words.slice(1);
+  const at = rest.findIndex(word => !COMMAND_OPTION.test(word.raw));
+  return at === -1 ? [] : rest.slice(at);
 }
 
 /**
@@ -187,12 +272,10 @@ export function commandOfPiece(
   depth: number
 ): PieceCommand {
   const kept = withoutRedirects(piece);
-  const from = kept.findIndex(
-    (word, index) => !isPrefix(word, index === kept.length - 1)
-  );
-  const front = from === -1 ? kept : kept.slice(0, from);
+  const from = leading(kept);
+  const front = kept.slice(0, from);
   const open = depth + front.filter(word => word.raw === "(").length;
-  const body = from === -1 ? [] : kept.slice(from);
+  const body = kept.slice(from);
   const closers = closersAtEnd(body);
   const shut = body
     .slice(body.length - closers)
@@ -202,26 +285,57 @@ export function commandOfPiece(
   if (inside[0]?.raw.startsWith("((") === true) return { depth, words: [] };
   const start = opened(inside, open);
   const end = closed(start.words, start.depth);
-  return { depth: Math.max(end.depth - shut, 0), words: end.words };
+  return {
+    depth: Math.max(end.depth - shut, 0),
+    words: unwrapped(end.words),
+  };
 }
 
 /**
- * Tell whether a piece is one pattern of a `case` label that lists several,
- * as in `*.py|*.pyi) ruff check .`.
- * @param all - Every piece of the line
- * @param at - The piece asked about
- * @returns Whether it is one word, ends at a `|`, and a label follows it
+ * Take the head of a `case` off a piece that holds one, as in
+ * `case "$1" in *.py) ruff check .`, so that what follows is read as the
+ * first arm.
+ * @param words - The words of one piece
+ * @returns The words without `case`, the word it tests and `in`; the words
+ *   in front of them are kept
  */
-export function isCasePattern(all: readonly Piece[], at: number): boolean {
-  const piece = all[at];
-  const [word, more] = piece?.words ?? [];
-  if (piece?.piped !== true || word === undefined || more !== undefined) {
-    return false;
-  }
-  const [following] = all[at + 1]?.words ?? [];
+export function withoutCaseHead(words: readonly Word[]): readonly Word[] {
+  const at = prefixCount(words);
+  return words[at]?.raw === "case" && words[at + 2]?.raw === "in"
+    ? [...words.slice(0, at), ...words.slice(at + 3)]
+    : words;
+}
+
+/**
+ * Tell whether a piece could be one pattern of a `case` label that lists
+ * several: one word that ends at a `|`.
+ * @param piece - A piece of a line
+ * @returns Whether it has that shape
+ */
+function isPatternPiece(piece: Piece): boolean {
+  const [word, more] = piece.words;
   return (
-    !word.raw.startsWith("(") &&
-    ((following !== undefined && isLabel(following)) ||
-      isCasePattern(all, at + 1))
+    piece.piped &&
+    word !== undefined &&
+    more === undefined &&
+    !word.raw.startsWith("(")
   );
+}
+
+/**
+ * Say of each piece of a line whether it is one pattern of a `case` label
+ * that lists several, as in `*.py|*.pyi) ruff check .`.
+ *
+ * The line is gone through once, from its end, so the time taken grows with
+ * the number of pieces and not with its square.
+ * @param all - Every piece of the line
+ * @returns For each piece, whether it and every piece up to a label is one
+ *   word that ends at a `|`
+ */
+export function casePatterns(all: readonly Piece[]): readonly boolean[] {
+  return all.reduceRight<readonly boolean[]>((flags, piece, at) => {
+    const [following] = all[at + 1]?.words ?? [];
+    const labelled = following !== undefined && isLabel(following);
+    return [isPatternPiece(piece) && (labelled || flags[0] === true), ...flags];
+  }, []);
 }

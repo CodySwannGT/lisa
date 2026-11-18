@@ -121,7 +121,13 @@ describe("a required check that fails on the default branch", () => {
       judged: "failed",
       matched_failure_shape: true,
     });
-    expect(other.failing.gates[0]?.matched_failure_shape).toBe(false);
+    // The code really breaks the rule here, and the entry names the text of
+    // a different failure. The runner cannot name the rule, so the check is
+    // `unproved`: that word is no statement that the code passes.
+    expect(other.failing.gates[0]).toMatchObject({
+      judged: "unproved",
+      matched_failure_shape: false,
+    });
   });
 
   it("is still listed when the fix is in the working copy and not committed", async () => {

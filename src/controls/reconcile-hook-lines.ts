@@ -20,34 +20,31 @@
  * ## What counts as a command
  *
  * Every line that is not blank, not a comment and not inside a block Lisa
- * wrote is split where shell starts another command (`&&`, `||`, `;`, a
- * pipe), outside quotes (`./reconcile-shell-words.ts`). From each piece the
- * redirects are left out, and so is what shell puts around a command: the
- * words in front of it (`if`, `!`, `then`, `exec`, a `NAME=value` setting, a
- * `case` label), the bracket that opens a group (`{`, `(`) and the one that
- * closes it. What is left is a command unless its first word only steers the
- * shell (`set`, `cd`, `exit`, `[`, `echo` and the like), only tests whether a
- * program is there (`command -v`), or is the call to Lisa's own carrier.
+ * wrote is read by `./reconcile-shell-line.ts`, which says what a command
+ * is, which commands written inside another one it finds, and what it does
+ * not follow. A line that ends with a backslash is joined to the next one
+ * first.
  *
- * So `{ npm test; } || exit 1` and `( cd api && npm test ) 2>&1 | tee log`
- * both run `npm test`, and the second also runs `tee log`.
+ * ## What it gives up on, without throwing
  *
- * ## What it cannot see
+ * A hook is somebody else's text, and reading it must never bring the
+ * command down or leave it running. So the work is bounded, and a hook past
+ * a bound is reported as not read, which makes the run incomplete. Its
+ * commands are never passed over in silence:
  *
- * It is not a shell. It does not follow a call into the script it starts, it
- * does not evaluate conditions, and it does not read a here-document as
- * data. A hook that calls a script is reported as that call. Brackets are
- * matched within one line: the last line of a group that spans several is
- * read right when its closing bracket stands on its own or after a command
- * of more than one word.
+ * - more than {@link MAX_HOOK_LINES} lines, or more than
+ *   {@link MAX_HOOK_CHARACTERS} characters;
+ * - a line the line reader gives up on: too long, or commands nested too
+ *   deep inside commands;
+ * - markers of a block Lisa wrote that do not pair up, so that Lisa's lines
+ *   cannot be told from the hook's own.
  * @module controls/reconcile-hook-lines
  */
-import path from "node:path";
+import { findMarkedBlock } from "./carrier-script.js";
+import { CARRIER_MOMENTS } from "./carrier-types.js";
+import { readShellLine, type ShellCommand } from "./reconcile-shell-line.js";
 
-import { carrierScriptPath, findMarkedBlock } from "./carrier-script.js";
-import { CARRIER_MOMENTS, CARRIER_RUNNER_FILE } from "./carrier-types.js";
-import { commandOfPiece, isCasePattern } from "./reconcile-shell-command.js";
-import { pieces, type Word } from "./reconcile-shell-words.js";
+export type { ShellCommand } from "./reconcile-shell-line.js";
 
 /** The line that opens the block a Lisa project type manages in a hook. */
 export const MANAGED_BLOCK_BEGIN = "# BEGIN: AI GUARDRAILS";
@@ -55,17 +52,17 @@ export const MANAGED_BLOCK_BEGIN = "# BEGIN: AI GUARDRAILS";
 /** The line that closes it. */
 export const MANAGED_BLOCK_END = "# END: AI GUARDRAILS";
 
-/** One command a hook runs. */
-export interface ShellCommand {
-  /** The line it starts on, counted from 1. */
-  readonly line: number;
-  /** The command as it is written, without the shell words in front of it. */
-  readonly command: string;
-  /** Its words, with the quotes around them taken off. */
-  readonly words: readonly string[];
-}
+/** The most lines a hook may have and still be read. */
+export const MAX_HOOK_LINES = 10_000;
 
-/** The commands of a hook, or why its text cannot be relied on. */
+/** The most characters a hook may hold and still be read. */
+export const MAX_HOOK_CHARACTERS = 262_144;
+
+/** What is said of markers that cannot be trusted. */
+const NOT_TOLD_APART =
+  "so the lines Lisa wrote there cannot be told from the hook's own";
+
+/** The commands of a hook, or why its text was not read. */
 export type ShellHookRead =
   | {
       readonly problem: null;
@@ -79,131 +76,6 @@ export type ShellHookRead =
 interface LineRange {
   readonly start: number;
   readonly end: number;
-}
-
-/** First words of a piece that steers the shell and starts no program. */
-const SHELL_ONLY = new Set([
-  "}",
-  ")",
-  "[",
-  "[[",
-  ":",
-  "fi",
-  "for",
-  "select",
-  "done",
-  "case",
-  "esac",
-  "function",
-  "test",
-  "true",
-  "false",
-  "set",
-  "unset",
-  "export",
-  "local",
-  "readonly",
-  "declare",
-  "typeset",
-  "return",
-  "exit",
-  "break",
-  "continue",
-  "shift",
-  "trap",
-  "cd",
-  "pushd",
-  "popd",
-  "echo",
-  "printf",
-  "read",
-  "wait",
-  "umask",
-]);
-
-/** First words of a piece that asks whether a program is there. */
-const PROBES = new Set(["command", "type", "which", "hash"]);
-
-/** The words that read another file into the shell. */
-const SOURCING = new Set([".", "source"]);
-
-/** The file Husky's own first line reads, in the versions that have one. */
-const HUSKY_BOOTSTRAP = "husky.sh";
-
-/** A word that names a function being defined, such as `check()`. */
-const FUNCTION_NAME = /^[A-Za-z_][\w-]*\(\)$/u;
-
-/**
- * Tell whether some words call Lisa's own carrier or the gate runner.
- * @param words - The words of a command, quotes taken off
- * @returns Whether the command is the carrier, not a check of the host's
- */
-export function isCarrierCall(words: readonly string[]): boolean {
-  const carriers = CARRIER_MOMENTS.map(moment => carrierScriptPath(moment));
-  return words.some(
-    word =>
-      carriers.includes(word) || path.basename(word) === CARRIER_RUNNER_FILE
-  );
-}
-
-/**
- * Tell whether the words left of a piece start a program of the host's.
- * @param words - The words after the ones shell puts in front
- * @returns Whether to report them as a command
- */
-function runsSomething(words: readonly Word[]): boolean {
-  const [first, second] = words;
-  if (first === undefined) return false;
-  const texts = words.map(word => word.text);
-  const defines = FUNCTION_NAME.test(first.raw) || second?.raw === "()";
-  const bootstrap =
-    SOURCING.has(first.raw) &&
-    texts.some(text => text.endsWith(HUSKY_BOOTSTRAP));
-  return !(
-    SHELL_ONLY.has(first.raw) ||
-    PROBES.has(first.raw) ||
-    defines ||
-    bootstrap ||
-    isCarrierCall(texts)
-  );
-}
-
-/** The commands of a line read so far. */
-interface LineRead {
-  readonly commands: readonly ShellCommand[];
-  /** How many round brackets the line has open. */
-  readonly depth: number;
-}
-
-/**
- * Read the commands of one line of shell.
- * @param text - The line, continuations already joined
- * @param line - The line's number, counted from 1
- * @returns Each command it runs, in order
- */
-export function commandsInLine(
-  text: string,
-  line: number
-): readonly ShellCommand[] {
-  const all = pieces(text);
-  return all.reduce<LineRead>(
-    (so, piece, at) => {
-      if (so.depth === 0 && isCasePattern(all, at)) return so;
-      const { depth, words } = commandOfPiece(piece.words, so.depth);
-      const first = words[0];
-      const last = words.at(-1);
-      if (first === undefined || last === undefined || !runsSomething(words)) {
-        return { ...so, depth };
-      }
-      const command: ShellCommand = {
-        command: text.slice(first.start, last.start + last.raw.length),
-        line,
-        words: words.map(word => word.text),
-      };
-      return { commands: [...so.commands, command], depth };
-    },
-    { commands: [], depth: 0 }
-  ).commands;
 }
 
 /**
@@ -296,30 +168,84 @@ function logicalLines(lines: readonly string[]): readonly LogicalLine[] {
 }
 
 /**
- * Read the commands a shell hook runs, leaving out what Lisa wrote in it.
- * @param text - The hook file's content
- * @returns The commands with their lines, or why the file's markers cannot
- *   be trusted to say which lines are Lisa's
+ * Read the commands of a hook's lines, the lines Lisa wrote already taken
+ * out.
+ * @param lines - The hook's lines; a line Lisa wrote is empty
+ * @returns The commands with their lines, or why a line was not read
  */
-export function readShellHook(text: string): ShellHookRead {
+function commandsOf(
+  lines: readonly string[]
+):
+  | { readonly problem: null; readonly commands: readonly ShellCommand[] }
+  | { readonly problem: string } {
+  const read = logicalLines(lines).flatMap(logical =>
+    logical.text.trim() === "" || logical.text.trim().startsWith("#")
+      ? []
+      : [readShellLine(logical.text, logical.line)]
+  );
+  const unread = read.find(each => each.problem !== null);
+  return unread?.problem !== undefined && unread.problem !== null
+    ? { problem: unread.problem }
+    : {
+        commands: read.flatMap(each =>
+          each.problem === null ? each.commands : []
+        ),
+        problem: null,
+      };
+}
+
+/**
+ * Read a hook within the bounds this reader keeps to.
+ * @param text - The hook file's content
+ * @returns The commands with their lines, or why the file was not read
+ */
+function readWithinBounds(text: string): ShellHookRead {
+  if (text.length > MAX_HOOK_CHARACTERS) {
+    return {
+      problem: `it holds ${text.length} characters, and this command reads hooks of up to ${MAX_HOOK_CHARACTERS}`,
+    };
+  }
   const lines = text.split(/\r?\n/u);
+  if (lines.length > MAX_HOOK_LINES) {
+    return {
+      problem: `it has ${lines.length} lines, and this command reads hooks of up to ${MAX_HOOK_LINES}`,
+    };
+  }
   const blocks = lisaBlocks(lines);
-  if (blocks.problem !== null) return { problem: blocks.problem };
+  if (blocks.problem !== null) {
+    return { problem: `${blocks.problem}, ${NOT_TOLD_APART}` };
+  }
   const inBlock = (index: number): boolean =>
     blocks.ranges.some(range => index >= range.start && index <= range.end);
   const isMarker = (index: number): boolean =>
     blocks.ranges.some(range => index === range.start || index === range.end);
-  return {
-    commands: logicalLines(
-      lines.map((line, index) => (inBlock(index) ? "" : line))
-    ).flatMap(logical =>
-      logical.text.trim() === "" || logical.text.trim().startsWith("#")
-        ? []
-        : commandsInLine(logical.text, logical.line)
-    ),
-    lisaText: lines
-      .filter((_, index) => inBlock(index) && !isMarker(index))
-      .join("\n"),
-    problem: null,
-  };
+  const read = commandsOf(
+    lines.map((line, index) => (inBlock(index) ? "" : line))
+  );
+  return read.problem === null
+    ? {
+        commands: read.commands,
+        lisaText: lines
+          .filter((_, index) => inBlock(index) && !isMarker(index))
+          .join("\n"),
+        problem: null,
+      }
+    : read;
+}
+
+/**
+ * Read the commands a shell hook runs, leaving out what Lisa wrote in it.
+ * @param text - The hook file's content
+ * @returns The commands with their lines; or why the file was not read: its
+ *   markers cannot be trusted to say which lines are Lisa's, or it is more
+ *   than this reader takes on. Never throws
+ */
+export function readShellHook(text: string): ShellHookRead {
+  try {
+    return readWithinBounds(text);
+  } catch (error) {
+    return {
+      problem: `it could not be read as shell (${error instanceof Error ? error.message : String(error)})`,
+    };
+  }
 }

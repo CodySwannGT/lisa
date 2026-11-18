@@ -280,12 +280,17 @@ describe("what the enforce skill notes before it changes anything", () => {
 });
 
 describe("what the enforce skill teaches the agent to say and write", () => {
-  it("says how the runner read each failing check, and what an unproved one does not show", () => {
+  it("says how the runner read each failing check, and that an unproved one is not known either way", () => {
     const skill = enforceSkill();
 
     expect(skill).toContain("`judged`");
     expect(skill).toContain("`unproved`");
-    expect(skill).toMatch(/not\s+a\s+statement\s+about\s+the\s+code/u);
+    expect(skill).toMatch(
+      /cannot\s+tell\s+a\s+broken\s+rule\s+from\s+a\s+command\s+that\s+could\s+not\s+run/u
+    );
+    // An unproved check can be one the code really fails, so the skill may
+    // not call it a result that says nothing about the code.
+    expect(skill).not.toMatch(/not\s+a\s+statement\s+about\s+the\s+code/u);
   });
 
   it("does not let a run that measured nothing be told as nothing failing", () => {

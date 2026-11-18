@@ -129,7 +129,7 @@ async function shellFile(
     : {
         ...NOTHING,
         file: shown,
-        problem: `In ${shown}, ${read.problem}, so the lines Lisa wrote there cannot be told from the hook's own and its commands were not read.`,
+        problem: `In ${shown}, ${read.problem}. Its commands were not read.`,
       };
 }
 

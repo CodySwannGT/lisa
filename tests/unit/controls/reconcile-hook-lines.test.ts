@@ -62,7 +62,7 @@ describe("the commands a shell hook runs", () => {
       texts([
         "set -e",
         "export CI=1",
-        "STAGED=$(git diff --cached --name-only)",
+        "STAGED=staged.txt",
         "cd web",
         'if [ -f "package.json" ]; then',
         "fi",
@@ -221,7 +221,7 @@ describe("a command inside a group, a pipeline or a redirect", () => {
     ).toEqual([]);
   });
 
-  it("keeps a pipe inside a quote or a substitution in its word", () => {
+  it("keeps a pipe inside a quote in its word, and reads a pipe inside a substitution as that substitution's own", () => {
     expect(
       commands(['grep -E "a|b" notes.txt', "CHANGED=$(git diff | wc -l)"])
     ).toEqual([
@@ -230,6 +230,8 @@ describe("a command inside a group, a pipeline or a redirect", () => {
         line: 1,
         words: ["grep", "-E", "a|b", "notes.txt"],
       },
+      { command: "git diff", line: 2, words: ["git", "diff"] },
+      { command: "wc -l", line: 2, words: ["wc", "-l"] },
     ]);
   });
 });

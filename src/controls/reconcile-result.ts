@@ -7,10 +7,19 @@
  * differs, and neither is a failure. `incomplete` means a place that was
  * needed could not be read, so silence about it proves nothing. That is the
  * only outcome the command fails on, and the result says which place.
+ *
+ * The hosting platform counts as not read in two cases: it gave no answer,
+ * or it answered and no ruleset governs the branch while the register lists
+ * a check for a pull request. In the second the only place this command
+ * reads holds nothing, so the check was looked for nowhere
+ * (`./reconcile-platform.ts`).
  * @module controls/reconcile-result
  */
 import type { HooksRead } from "./reconcile-hooks.js";
-import type { PlatformRead } from "./reconcile-platform.js";
+import {
+  unreadWithoutRuleset,
+  type PlatformRead,
+} from "./reconcile-platform.js";
 import {
   PLATFORM_FLAG,
   RECONCILE_INVOCATION,
@@ -66,13 +75,17 @@ function platformSurface(facts: SurfaceFacts): SurfaceRead {
       surface,
     };
   }
-  return facts.platform.answer === null
-    ? { detail: facts.platform.detail, state: COULD_NOT_READ, surface }
-    : {
+  if (facts.platform.answer === null) {
+    return { detail: facts.platform.detail, state: COULD_NOT_READ, surface };
+  }
+  const unread = unreadWithoutRuleset(facts.platform.answer);
+  return unread === null
+    ? {
         detail: `Read the checks ${facts.platform.answer.label} requires before a merge into ${facts.platform.answer.branch}.`,
         state: "read",
         surface,
-      };
+      }
+    : { detail: unread, state: COULD_NOT_READ, surface };
 }
 
 /**

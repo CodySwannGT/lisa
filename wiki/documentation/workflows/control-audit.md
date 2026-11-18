@@ -112,7 +112,7 @@ Then `lisa controls enforce-report` gives every requirement exactly one outcome.
 | `wired` | A declared check serves it, and something now runs that check everywhere enforce is answerable for. |
 | `ticketed` | The repository has nothing for it, and a ticket exists. |
 | `blocked` | Somebody has to act first. The reason says who and what. |
-| `nothing-to-enforce` | Nothing to install, file or wait for: it does not apply, it is met by a written record or a person's word, or it is a check a supported project type ships where enforce cannot look. A declared check that nothing runs yet is never here: it is `blocked` until configure says when it runs. |
+| `nothing-to-enforce` | Nothing to install, file or wait for: it does not apply, it is met by a written record or a person's word, or it is a check Lisa itself ships, which a supported project type runs where enforce cannot look. A declared check that nothing runs yet never puts a requirement here: the requirement takes the outcome of another declared check that serves it, and when there is none it is `blocked` until configure says when the check runs. |
 
 The report also lists every required check that fails on the default branch as it stands today, with what it printed. Enforce fixes nothing and adds no check of its own.
 
@@ -250,7 +250,7 @@ Each of these is something an operator will meet. They are stated here so that a
 
 **Merge protection is changed only when asked, and only with permission.** `lisa controls protect` reads and writes a handover for an administrator. It changes a setting only with `--apply`, only on GitHub, and only after a read confirms the signed-in account administers the repository. The enforce step never adds `--apply` on its own.
 
-**Only rulesets are read.** A check required through a classic branch protection rule is enforced by the platform, and `lisa controls protect` still reports it as not required; the handover asks for a ruleset and says why. `lisa controls reconcile --platform` does not call such a check missing: where no ruleset governs the branch it reports the point as not read.
+**Only rulesets are read.** A check required through a classic branch protection rule is enforced by the platform, and `lisa controls protect` still reports it as not required; the handover asks for a ruleset and says why. `lisa controls reconcile --platform` does not call such a check missing: where no ruleset governs the branch it reports the point as not read. It does not pass either. A repository with no merge protection at all looks the same from there, so the run is incomplete and exits 2, and says that only rulesets are read and none governs the branch.
 
 **Edit-time enforcement differs by coding agent.**
 
@@ -268,7 +268,7 @@ In every case the write has already happened: a refusal tells the agent the file
 
 **Hook wiring is per checkout.** Where Lisa sets git's `core.hooksPath`, that setting lives in one checkout and is not copied into a clone. In each new checkout, run `lisa controls install-carriers` once. `lisa controls install-carriers --check` says whether a checkout is wired, and `lisa controls reconcile` reports a checkout where it is not.
 
-**Reconcile cannot see everywhere.** It can establish what git and the coding agents run in this checkout, and, with `lisa controls reconcile --platform`, what GitHub requires. It reads a pipeline file as text. It cannot look inside a deployment pipeline or a scheduled run, and says so instead of reporting them as missing.
+**Reconcile cannot see everywhere.** It can establish what git and the coding agents run in this checkout, and, with `lisa controls reconcile --platform`, what GitHub requires. It reads a pipeline file as text. It cannot look inside a deployment pipeline or a scheduled run, and says so instead of reporting them as missing. It reads a hook as text too: a command written inside another one (`OUT=$(npx eslint .)`) is found, but a script a hook calls is reported as that call and not opened, and a hook too large to read makes the run incomplete instead of being passed over.
 
 **A terminal is not filtered for secrets.** The files attest writes have credential-shaped values taken out. The table and the JSON it prints to the terminal show a check's output as it was captured.
 

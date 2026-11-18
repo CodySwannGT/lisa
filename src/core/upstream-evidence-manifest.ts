@@ -1431,7 +1431,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "d5095df1130b7ed48d9f586131c1dfa0885615b0245fb54462e8870e9cde02fd",
+      "1b404c68b92e42919734442165facbf07e7ff8fd89d69bff7fd2ceeac402049d",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
@@ -1475,7 +1475,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
-      "b0ae561aa5d06dde005c043de408b9245fc86f5293d4829c42176785dee7bd38",
+      "1dda5441f57a3eb791d151d6356ce559646f346cde7bfe76fe54f8aa0f843d87",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
@@ -11455,6 +11455,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/controls/reconcile-points.ts": true,
     "src/controls/reconcile-result.ts": true,
     "src/controls/reconcile-shell-command.ts": true,
+    "src/controls/reconcile-shell-line.ts": true,
+    "src/controls/reconcile-shell-spans.ts": true,
     "src/controls/reconcile-shell-words.ts": true,
     "src/controls/reconcile-types.ts": true,
     "src/controls/reconcile.ts": true,
@@ -12941,6 +12943,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/declaration-evidence.test.ts": true,
     "tests/unit/controls/declaration-not-an-object.test.ts": true,
     "tests/unit/controls/declared-thresholds-register.test.ts": true,
+    "tests/unit/controls/enforce-claims-idle.test.ts": true,
     "tests/unit/controls/enforce-claims.test.ts": true,
     "tests/unit/controls/enforce-entry-outcome.test.ts": true,
     "tests/unit/controls/enforce-head-run.test.ts": true,
@@ -13015,10 +13018,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/question-ids.test.ts": true,
     "tests/unit/controls/reconcile-carrier-points.test.ts": true,
     "tests/unit/controls/reconcile-declared.test.ts": true,
+    "tests/unit/controls/reconcile-hook-bounds.test.ts": true,
     "tests/unit/controls/reconcile-hook-lines.test.ts": true,
     "tests/unit/controls/reconcile-manager-commands.test.ts": true,
     "tests/unit/controls/reconcile-points.test.ts": true,
     "tests/unit/controls/reconcile-result.test.ts": true,
+    "tests/unit/controls/reconcile-shell-line.test.ts": true,
     "tests/unit/controls/register-build.test.ts": true,
     "tests/unit/controls/register-check.test.ts": true,
     "tests/unit/controls/register-command.test.ts": true,
@@ -13050,6 +13055,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/secret-shapes-parity.test.ts": true,
     "tests/unit/controls/seed-manifest.test.ts": true,
     "tests/unit/controls/seed.test.ts": true,
+    "tests/unit/controls/skill-statements.test.ts": true,
     "tests/unit/controls/support/attest-pull-request-run.ts": true,
     "tests/unit/controls/support/attest-record-run.ts": true,
     "tests/unit/controls/support/attest-run.ts": true,

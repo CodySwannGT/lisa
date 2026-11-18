@@ -73,9 +73,10 @@ about every Level 1 requirement:
                       it is met by a written record or a person's word, or
                       what checks it is something a Lisa project type runs
 
-A check with no moment to run at is never nothing-to-enforce for a
-requirement that needs a check: it is blocked until the configure step
-chooses when it runs.
+A check with no moment to run at counts for nothing. A requirement that
+needs a check takes the outcome of another declared check that serves it;
+when there is none, it is blocked until the configure step chooses when the
+check runs. It is never nothing-to-enforce for having a check nothing runs.
 
 It also runs each required check once in a temporary copy of the default
 branch's last commit, and lists the ones that fail there with their output

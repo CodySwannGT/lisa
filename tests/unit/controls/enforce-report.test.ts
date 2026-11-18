@@ -10,6 +10,7 @@ import {
   loadCriterionCatalogue,
 } from "../../../src/controls/catalogue.js";
 import { ENFORCE_OUTCOMES } from "../../../src/controls/enforce-types.js";
+import { foundAt, reportWith } from "../../helpers/control-audit-findings.js";
 import { askAbout } from "../../helpers/control-audit-report.js";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import { repositoryState } from "../../support/repository-state.js";
@@ -30,6 +31,8 @@ useEnforceCases();
 
 const IN_SCOPE = inScopeCriteria(loadCriterionCatalogue());
 const STYLE = "SI7";
+const UNIT_TESTS = "SI1";
+const STYLE_ENTRY = "code-style@.";
 const MERGE_GATES = lintGates({ "pull-request": "required" });
 
 /**
@@ -74,7 +77,7 @@ describe("one outcome per requirement", () => {
 
     expect(style?.outcome).toBe("wired");
     expect(report.entries.map(entry => [entry.id, entry.outcome])).toEqual([
-      ["code-style@.", "wired"],
+      [STYLE_ENTRY, "wired"],
     ]);
   });
 
@@ -110,13 +113,50 @@ describe("one outcome per requirement", () => {
     const style = report.criteria.find(row => row.criterion === STYLE);
 
     expect(report.entries).toEqual([
-      expect.objectContaining({ id: "code-style@.", points: [] }),
+      expect.objectContaining({ id: STYLE_ENTRY, points: [] }),
     ]);
-    expect(report.entries[0]?.outcome).toBe("blocked");
     expect(style?.outcome).toBe("blocked");
-    expect(style?.reason).toContain("no moment to run at");
+    expect(style?.reason).toContain("no check is declared to run");
+    expect(style?.reason).toContain(STYLE_ENTRY);
     expect(style?.reason).toContain("run the configure step");
     expect(report.counts["nothing-to-enforce"]).toBe(0);
+  });
+
+  it("is wired when one check is switched off everywhere and another check serves the same requirement", async () => {
+    // The shape of Lisa's own declaration: the unit suites run through one
+    // gate at push and on a proposed change, and a second gate that serves
+    // the same requirement is switched off at both.
+    const prepared = await prepareEnforce({
+      gates: {
+        ...lintGates(),
+        "test-correctness": { push: "required", "pull-request": "required" },
+        "test-node-suites": { push: "off", "pull-request": "off" },
+      },
+      report: reportWith(
+        ["."],
+        [
+          foundAt(STYLE, ".", "ruff.toml"),
+          foundAt(UNIT_TESTS, ".", "ruff.toml"),
+        ]
+      ),
+    });
+    saveResult(
+      prepared,
+      "protect",
+      await protectResult(prepared.repoPath, "wired")
+    );
+
+    const report = await reportOfCase(prepared);
+    const tests = report.criteria.find(row => row.criterion === UNIT_TESTS);
+    const off = report.entries.find(entry => entry.id === "test-node-suites@.");
+
+    expect(off?.points).toEqual([]);
+    expect(off?.criteria).toEqual([UNIT_TESTS]);
+    expect(tests?.outcome).toBe("wired");
+    expect(tests?.reason).not.toContain("run the configure step");
+    expect(tests?.claims.map(claim => claim.id)).toEqual([
+      "test-correctness@.",
+    ]);
   });
 
   it("blocks every missing requirement, pointing at the tracker question, when no tracker is configured", async () => {

@@ -75,7 +75,7 @@ checkout holds, not from the saved result.
 | `wired` | A declared check serves the requirement, and every place the enforce step is answerable for now runs it. |
 | `ticketed` | The repository has nothing for the requirement, and a ticket for that work exists. |
 | `blocked` | Somebody has to act first. The reason says who and what for. |
-| `nothing-to-enforce` | Nothing to install, file or wait for: the requirement does not apply here, it is met by a written record or a person's word, or what checks it is something a Lisa project type ships and runs, which this step neither installs nor looks at. |
+| `nothing-to-enforce` | Nothing to install, file or wait for: the requirement does not apply here, it is met by a written record or a person's word, or what checks it is something Lisa itself ships and a Lisa project type runs, which this step neither installs nor looks at. |
 
 The product requirement names the first three. The fourth exists because
 the three cannot be said truthfully of a requirement that needs nothing from
@@ -100,12 +100,13 @@ A requirement is spoken for by two kinds of source, and each makes a claim.
 | `unknown` | | `blocked`: waiting on the access the audit named |
 | `not-applicable` | | `nothing-to-enforce` |
 | `exists-not-enforced` or `proved` | the requirement is of kind `artifact` or `human-attested` | `nothing-to-enforce` |
-| `exists-not-enforced` or `proved` | kind `gate`, and an entry that serves it covers that part | none: the entry speaks for it |
+| `exists-not-enforced` or `proved` | kind `gate`, and an entry that serves it and has a moment to run at covers that part | none: the entry speaks for it |
+| `exists-not-enforced` or `proved` | kind `gate`, and the only entries that cover that part have no moment to run at | `blocked`: no check is declared to run there, naming those entries; the configure step has to choose when |
 | `exists-not-enforced` or `proved` | kind `gate`, and no entry covers that part | `blocked`: waiting on the operator to declare it in the configure step |
 
 An entry covers a finding's part when the finding is about the whole
 repository, when the entry is, or when the entry's folder is that part or
-inside it.
+inside it. An entry with no moment to run at covers nothing.
 
 **Each register entry that serves it**, from its enforcement points:
 
@@ -120,25 +121,44 @@ inside it.
 
 | The entry's points | The entry is |
 | --- | --- |
-| It has none, and it serves a requirement of kind `gate` | `blocked`: no moment was chosen, or every one is switched off, so nothing runs the check; the configure step has to choose when it runs |
-| It has none, and it serves no requirement of kind `gate` | `nothing-to-enforce` |
+| It has none: no moment was chosen, or every one is switched off | `nothing-to-enforce`, and it makes no claim about any requirement (see below) |
 | Any point is `blocked` | `blocked` |
 | Otherwise, at least one is `wired` | `wired` |
-| None was checked, and the check is a command the repository declares | `blocked`: nothing Lisa installs starts a command there |
-| None was checked, and the check is one a Lisa project type ships (a task, an interceptor, a built-in job) | `nothing-to-enforce`: what Lisa ships runs it, and this step did not look |
-| None was checked, the check is one another system reports or nothing measures it, and it serves a requirement of kind `gate` | `blocked`: nothing Lisa ships runs it and this step cannot see that anything waits for it; the configure step has to choose when it must pass |
-| None was checked, the same kind of check, and it serves no requirement of kind `gate` | `nothing-to-enforce` |
+| None was checked, and at one of them the check is one Lisa itself ships: an interceptor, a built-in job, or a task under one of the gate registry's own ids | `nothing-to-enforce`: what Lisa ships runs it, and this step did not look |
+| None was checked, none is one Lisa ships, and at one of them the check is a command the repository declares | `blocked`: nothing Lisa installs starts a command there |
+| None was checked, the check is a task under a gate the repository invented (an `x-` gate), one another system reports, or nothing measures it, and it serves a requirement of kind `gate` | `blocked`: nothing Lisa ships runs it and this step cannot see that anything does; the configure step has to choose when it must pass |
+| None was checked, the same kinds of check, and it serves no requirement of kind `gate` | `nothing-to-enforce` |
 
-A requirement of kind `gate` is met only by a check that can refuse a
-change. An entry that declares such a check and no moment to run it at used
-to be `nothing-to-enforce`, and because the entry covered the audit's
-finding, the requirement was too: the operator was told it needed nothing
-switched on while nothing ran. A check another system reports was given the
-same outcome with the reason that a Lisa project type ships it, which is not
-true of it. For an entry, `nothing-to-enforce` is now kept for a check Lisa
-ships and runs where this step cannot look, and for an entry that serves no
-`gate` requirement. A `gate` requirement still gets it from the audit when
-the requirement does not apply to that part of the repository.
+The rows about unchecked points go by the check at every point, not at the
+first one: a gate can be measured differently at different moments.
+
+**What counts as a check Lisa ships.** Any gate that names a task to run is
+recorded as a task. So going by that alone, a repository on no Lisa project
+type that declares its own lint script under `x-lint-check`, optional on a
+proposed change, was told that a Lisa project type runs it, while nothing
+did; the same check written as a command was `blocked`. A task counts as
+shipped only under one of the registry's own gate ids, which is what a Lisa
+project type brings pipelines for. The registry decides what an `x-` gate is
+(`CUSTOM_PREFIX`), and a suite holds this code to it.
+
+**An entry with no moment makes no claim.** A requirement of kind `gate` is
+met only by a check that can refuse a change, and an entry nothing runs is
+not one. It is left out of the claims altogether:
+
+| The requirement is served by | Its outcome comes from |
+| --- | --- |
+| Such an entry and another entry with a moment | The other entry, and the findings |
+| Only such entries, and the audit found a check in place | The finding: `blocked`, saying no check is declared to run and that the configure step chooses when |
+| Only such entries, and the audit found anything else | The finding alone: a requirement that does not apply stays `nothing-to-enforce`, a missing capability keeps its ticket |
+| Only such entries, and the audit says nothing of it | The entries, so that it still has an outcome: `blocked` for a `gate` requirement, else `nothing-to-enforce` |
+
+Two wrong outcomes are closed by that. Counted as an answer, the entry made
+the requirement `nothing-to-enforce` while nothing ran. Counted as
+`blocked`, it held back a requirement another check serves: Lisa's own
+declaration switches `test-node-suites` off at every moment and runs the
+same requirement through `test-correctness` at push and on a proposed
+change, and that requirement read "run the configure step and choose when
+this check has to pass" although its check was wired.
 
 **From many claims to one outcome.** The strongest claim wins: `blocked`,
 then `ticketed`, then `wired`, then `nothing-to-enforce`. So a requirement is
@@ -192,13 +212,20 @@ and the ones that do not pass are listed with the end of what they printed.
 - **What counts.** A command that ran to an end and that the runner does not
   judge as passing is listed, because that is exactly when the gate stops a
   change. `judged` says whether the runner read a broken rule (`failed`) or
-  could not tell a broken rule from a broken command (`unproved`). An
-  `unproved` check is not a statement about the code: a command that needs
-  the project's dependencies ends with an error in a copy that has none,
-  whatever the code is like, and the skill has the agent say so. A command
-  that could not be started, ran out of time or was killed is listed as not
-  measured, never as failing. A check that runs through the project's task
-  runner is not run: a fresh copy holds no installed dependencies.
+  could not tell a broken rule from a broken command (`unproved`). A check
+  is `unproved` whenever it ends with an error and nothing in its output is
+  a failure the runner knows or the entry declares: an entry with no
+  `failure_shape`, or with one that names a different rule than the one the
+  branch breaks, lands there when the code really does fail it, and so does
+  a command that could not run for want of the project's dependencies. The
+  report cannot say which, so the skill does not either: it has the agent
+  say that Lisa could not tell, quote `output_excerpt`, and say that the
+  next commit or push is stopped if the failure is real. It never tells the
+  operator that the code fails the check, and never that it does not. A
+  command that could not be started, ran out of time or was killed is
+  listed as not measured, never as failing. A check that runs through the
+  project's task runner is not run: a fresh copy holds no installed
+  dependencies.
 - **What is said when nothing gave an answer.** `checked` counts the checks
   that ran to an answer. The summary sentence says how many ran, how many of
   those do not pass and how many gave no answer, and stderr carries one line

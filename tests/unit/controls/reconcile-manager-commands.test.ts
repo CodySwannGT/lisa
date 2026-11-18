@@ -151,6 +151,33 @@ describe("the commands a Lefthook configuration runs", () => {
 
     expect(lefthookCommands(toml).problem).toMatch(/YAML or JSON/u);
   });
+
+  /**
+   * A Lefthook configuration that runs one line at commit.
+   * @param run - The line
+   * @returns The configuration, with the line on its fourth line
+   */
+  const running = (run: string): string =>
+    `pre-commit:\n  commands:\n    lint:\n      run: ${run}\n`;
+
+  it("reads the command a configured line captures the output of", () => {
+    const captured = running(
+      'OUT=$(npx eslint . 2>&1) || { echo "$OUT"; exit 1; }'
+    );
+
+    expect(commandsOf(lefthookCommands(captured))).toEqual([
+      at("commit", 4, "npx eslint ."),
+    ]);
+  });
+
+  it("says the configuration was not read, and does not throw, when a configured line is more than it takes on", () => {
+    const endless = running(`npm test && x${")".repeat(100_000)}`);
+
+    const read = lefthookCommands(endless);
+
+    expect(read.problem).toContain("characters long");
+    expect(read).not.toHaveProperty("commands");
+  });
 });
 
 describe("the hooks a pre-commit framework configuration runs", () => {
