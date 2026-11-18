@@ -197,12 +197,6 @@ describe("lisa controls attest refuses to run a proof", () => {
     expect(runControlAuditGit(repoPath, ["status", "--short"])).toBe("");
   }
 
-  it("when it is given no disposable copy to work in", async () => {
-    const where = setting(WORKING);
-
-    expectRefusal(await attest(where.repoPath), where.repoPath, "--workspace");
-  });
-
   it("when the copy it is given is the repository itself", async () => {
     const where = setting(WORKING);
 

@@ -48,7 +48,7 @@ export const PROOF_FOLDER = ".lisa/controls/proofs";
  * named by its fixed place on Linux and macOS rather than looked up, and it
  * is `env` that then finds git on the operator's `PATH`, as a git hook does.
  */
-const ENV_PROGRAM = "/usr/bin/env";
+export const ENV_PROGRAM = "/usr/bin/env";
 
 /** How long one `git apply` may take, in milliseconds. */
 const APPLY_BUDGET_MS = 60_000;
@@ -64,7 +64,7 @@ const REASON_LIMIT = 600;
  * folder it is started in. This is the list `git rev-parse --local-env-vars`
  * prints.
  */
-const REPOSITORY_VARIABLES = [
+export const REPOSITORY_VARIABLES = [
   "GIT_ALTERNATE_OBJECT_DIRECTORIES",
   "GIT_COMMON_DIR",
   "GIT_CONFIG",
