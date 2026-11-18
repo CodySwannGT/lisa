@@ -114,6 +114,16 @@ export const RESOLVER_DEADLINE_S = Math.ceil(ioLatencyBudgetMs(10_000) / 1_000);
  */
 export const HOOK_RUN_BUDGET_MS = 30_000;
 
+/**
+ * Quiet-box bound for the hook to close after SIGKILL to its group, in ms.
+ *
+ * A killed group closes in a few milliseconds (1-18ms measured at load ~40).
+ * Scaled by the same factor as the case, ten seconds stays far under the case's
+ * sixty, so a close that never arrives fails naming the hook's exit, signal and
+ * output rather than as an anonymous case timeout (CodySwannGT/lisa#5034).
+ */
+export const KILL_CLOSE_BASE_MS = 10_000;
+
 const temporaries: string[] = [];
 
 /** Hard bounds for scanning one controlled resolver directory after SIGKILL. */
