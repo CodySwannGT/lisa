@@ -1089,53 +1089,6 @@ failure there is reported from its exit code alone. And a part is never read
 from the push gate's pass cache or admitted through `pushGate.admission`: it
 runs every time and starts immediately.
 
-## A part says what supports it
-
-A register entry is a statement that a rule governs a folder, and it may be
-written only where something supports it. A part records that in `evidence`:
-
-```json
-{
-  "scope": "api",
-  "command": ["ruff", "check", "."],
-  "evidence": {
-    "locators": [{ "path": "api/ruff.toml", "line": 1 }],
-    "questions": ["SI2@api"]
-  }
-}
-```
-
-`locators` are the places the audit found the check, each the audit report's
-own `{ path, line }`. `questions` are the ids of the audit questions a person
-answered, each the id the report records the answer under: `<requirement>@<scope>`.
-Either may be left off; one of them must be there.
-
-The other examples in this note show a part without `evidence`. Each is a
-valid declaration, and the runner runs it. The register refuses it until the
-part names what supports it.
-
-Three pieces of code each hold a different part of that, because each can see
-a different thing:
-
-| where | what it refuses | why there |
-| --- | --- | --- |
-| `validate` (the shipped registry) | `evidence` that is written wrongly: not an object, an unknown key, an empty list, a path outside the repository, a line below 1, the same place twice, or neither list. | It ships to every repository and reads no report. `evidence` is optional here, because nothing that runs a part reads it. |
-| `lisa controls register` | A part with no `evidence` at all. | The register is where "this rule governs this folder" becomes a record. It never reads the audit report, so it stays the same bytes on every machine. |
-| `lisa controls declaration-check` | A place the audit did not report for a requirement the gate serves, in that folder or in the report's whole-repository section; a question the report holds no answer to, or whose answer is about another requirement or another folder; and a part for a requirement the audit still asks about. | It is the one place the declaration and the audit report are both in reach. |
-
-**A gate with no parts is outside all three.** Its one entry comes from the
-declarations Lisa ships for a supported project type, it has no part to carry
-evidence, and it generates exactly as before. `lisa controls seed` is what
-declares those: it says whether the whole repository is one piece of software
-on a supported type and, when it is, runs the same `seedGates` that
-`lisa apply` runs. Everywhere else the configure step declares parts from the
-audit's findings, one decision at a time.
-
-**A threshold on an unsupported stack is the host's.** `lisa controls
-propose-threshold` turns a value measured with the host's own tool into the
-parameter to propose, `{ value: <measured>, direction }`, and nothing else
-goes into it: there is no default in that code to fall back on.
-
 ### A part the change does not touch
 
 In a repository with two parts, a change to one should not run the other's
@@ -1243,6 +1196,53 @@ of a gate ran and passed, the gate is named: the parts that ran checked what
 the change touched. When no part ran, nothing in the registry looked at the
 change at all — it touched only files outside every folder the gate names —
 so the gate is withheld, the runner says so, and the built-in check runs.
+
+## A part says what supports it
+
+A register entry is a statement that a rule governs a folder, and it may be
+written only where something supports it. A part records that in `evidence`:
+
+```json
+{
+  "scope": "api",
+  "command": ["ruff", "check", "."],
+  "evidence": {
+    "locators": [{ "path": "api/ruff.toml", "line": 1 }],
+    "questions": ["SI2@api"]
+  }
+}
+```
+
+`locators` are the places the audit found the check, each the audit report's
+own `{ path, line }`. `questions` are the ids of the audit questions a person
+answered, each the id the report records the answer under: `<requirement>@<scope>`.
+Either may be left off; one of them must be there.
+
+The other examples in this note show a part without `evidence`. Each is a
+valid declaration, and the runner runs it. The register refuses it until the
+part names what supports it.
+
+Three pieces of code each hold a different part of that, because each can see
+a different thing:
+
+| where | what it refuses | why there |
+| --- | --- | --- |
+| `validate` (the shipped registry) | `evidence` that is written wrongly: not an object, an unknown key, an empty list, a path outside the repository, a line below 1, the same place twice, or neither list. | It ships to every repository and reads no report. `evidence` is optional here, because nothing that runs a part reads it. |
+| `lisa controls register` | A part with no `evidence` at all. | The register is where "this rule governs this folder" becomes a record. It never reads the audit report, so it stays the same bytes on every machine. |
+| `lisa controls declaration-check` | A place the audit did not report for a requirement the gate serves, in that folder or in the report's whole-repository section; a question the report holds no answer to, or whose answer is about another requirement or another folder; and a part for a requirement the audit still asks about. | It is the one place the declaration and the audit report are both in reach. |
+
+**A gate with no parts is outside all three.** Its one entry comes from the
+declarations Lisa ships for a supported project type, it has no part to carry
+evidence, and it generates exactly as before. `lisa controls seed` is what
+declares those: it says whether the whole repository is one piece of software
+on a supported type and, when it is, runs the same `seedGates` that
+`lisa apply` runs. Everywhere else the configure step declares parts from the
+audit's findings, one decision at a time.
+
+**A threshold on an unsupported stack is the host's.** `lisa controls
+propose-threshold` turns a value measured with the host's own tool into the
+parameter to propose, `{ value: <measured>, direction }`, and nothing else
+goes into it: there is no default in that code to fall back on.
 
 ## A declared threshold moves one way
 
