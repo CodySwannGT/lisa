@@ -12,7 +12,6 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   ATTEST_EXIT,
-  runAttest,
   type AttestOptions,
 } from "../../../src/controls/commands/attest.js";
 import type { PullRequestDependencies } from "../../../src/controls/pull-request-settle.js";
@@ -20,19 +19,19 @@ import type { SettledProofRun } from "../../../src/controls/pull-request-types.j
 import { provedGates } from "../../helpers/control-proofs.js";
 import type { GatesBlock } from "../../helpers/control-register.js";
 import {
-  RUN_ID,
+  attestIn,
+  pullRequestSetting,
+} from "./support/attest-pull-request-run.js";
+import {
   canaryPlatform,
   expectNoMerge,
   expectNothingLeft,
-  fakeSignals,
 } from "./support/canary-run.js";
-import { removeCopies, setting, steppingClock } from "./support/proof-run.js";
-import { GITHUB_REMOTE } from "./support/protect-fixture.js";
+import { removeCopies } from "./support/proof-run.js";
 import {
   PULL_ONLY_CHECK,
   PULL_ONLY_ENTRY,
   PULL_ONLY_GATES,
-  REPOSITORY_FILES,
   WORKING,
 } from "./support/pull-request-run.js";
 import { removeFixtures, type Run } from "./support/report-check-run.js";
@@ -56,37 +55,12 @@ afterEach(() => {
  * @param pullRequests - Collaborators for the pull-request moment
  * @returns Exit code and printed lines
  */
-async function attest(
+function attest(
   gates: GatesBlock,
   options: AttestOptions,
   pullRequests: PullRequestDependencies = {}
 ): Promise<Run> {
-  const where = setting(gates, { files: REPOSITORY_FILES });
-  const signals = fakeSignals();
-  const stdout: string[] = [];
-  const stderr: string[] = [];
-  const code = await runAttest(
-    where.repoPath,
-    { workspace: where.workspace, ...options },
-    {
-      clock: steppingClock("2026-02-01T00:00:00.000Z"),
-      stdout: text => {
-        stdout.push(text);
-      },
-      stderr: text => {
-        stderr.push(text);
-      },
-      pullRequests: {
-        readRemoteUrl: () => Promise.resolve(GITHUB_REMOTE),
-        runId: () => RUN_ID,
-        sleep: () => Promise.resolve(),
-        signals: signals.source,
-        terminate: signals.terminate,
-        ...pullRequests,
-      },
-    }
-  );
-  return { code, stdout, stderr };
+  return attestIn(pullRequestSetting(gates), options, pullRequests);
 }
 
 describe("lisa controls attest, without the canary option", () => {
@@ -127,10 +101,18 @@ describe("lisa controls attest, without the canary option", () => {
 
     const run = await attest(PULL_ONLY_GATES, {}, { gh: platform.gh });
 
+    // The table, then what was written down: the one observed record, the
+    // register and the verdict, and the Level 1 result.
     expect(run.stdout).toEqual([
       "RESULT    ENTRY         MOMENT        HALVES",
       "unproved  code-style@.  pull-request  not run",
       `          Observed, not exercised. The hosting platform requires "${PULL_ONLY_CHECK}" on main before a pull request can be merged. No pull request was opened to show that the check turns a violating change away; run again with --pull-request-canaries to exercise it.`,
+      "attest: Recorded 1 evidence record in .lisa/controls/evidence.json: 1 about controls, 0 from the audit report.",
+      "attest: No audit report is at .lisa/audit/report.json, so nothing is on record for a requirement that no control serves, and each one reads unknown. Run the audit, then run this again.",
+      "attest: Wrote .lisa/controls/register.json again from the gates declaration and the evidence, then the verdict in .lisa/controls/verdict.json.",
+      expect.stringMatching(
+        /^attest: Level 1 result: non-conforming\. Conforming or not applicable: 0 of 77 requirements\. /u
+      ),
     ]);
     expect(run.stderr).toEqual([
       "attest: FAIL. 0 of 1 entry proved: 0 passed, 0 failed, 1 unproved, 0 unknown. Every entry has to pass",
@@ -149,6 +131,8 @@ describe("lisa controls attest --pull-request-canaries", () => {
       { gh: platform.gh }
     );
 
+    // Nothing was refused on the way to writing the results down.
+    expect(run.stderr).toEqual([]);
     const document = JSON.parse(run.stdout.join("\n")) as SettledProofRun;
     expect(run.code).toBe(ATTEST_EXIT.PASSED);
     expect(document.entries[0]).toMatchObject({

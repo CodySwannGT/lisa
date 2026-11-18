@@ -103,12 +103,27 @@ the run has a result to put in its place. An entry whose proof could not be
 run this time is left with no record, and its requirement reads `unknown`,
 rather than with last month's pass.
 
-A paired-proof run covers every register entry at `commit` and `push`. A step
-that judges the pull-request moment covers the entries it names at
-`pull-request`, so a run that does not look at pull requests leaves those
-records in place to age. Records are also removed when the register no
-longer holds their entry, or the entry no longer serves their requirement.
-Records of audit findings are replaced as one set on every run.
+A paired-proof run covers every register entry at `commit` and `push`, and
+takes only the halves run at those two moments. The step that settles the
+pull-request moment hands over its own batch for `pull-request`
+(`pull-request-evidence.ts`): one `observed` result per entry from what the
+hosting platform's merge-protection settings said (`held` when every check
+of the entry is required, `failed` when one is not, `unknown` when they
+could not be read, nothing when the platform was not asked), and the two
+`exercised` halves of an entry whose canary pull requests were run. So a
+canary half is written from one place, once per requirement.
+
+That batch names every pull-request entry when canaries were asked for. When
+the run only read the settings, it leaves out an entry for which a canary's
+answer is on record and still within its lifetime, unless the settings now
+say the entry's check is not required: an observation plants nothing, so it
+does not remove a current exercised proof, and the earlier records stay to
+age. A register with no pull-request entry gets no such batch, and those
+records, if any, are left in place too.
+
+Records are also removed when the register no longer holds their entry, or
+the entry no longer serves their requirement. Records of audit findings are
+replaced as one set on every run.
 
 ### What the audit report contributes
 

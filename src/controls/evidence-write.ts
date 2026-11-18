@@ -8,7 +8,8 @@
  *   {@link proofRunBatch};
  * - any other step's results about register entries — a setting read from
  *   the hosting platform, a canary on a pull request — as an
- *   `EvidenceBatch` of `EvidenceResultInput`;
+ *   `EvidenceBatch` of `EvidenceResultInput` (`./pull-request-evidence.ts`
+ *   builds the one for the pull-request moment);
  * - the audit's findings, through `./evidence-findings.ts`.
  *
  * ## One record per result per requirement
@@ -108,10 +109,14 @@ export function prepareEvidenceExcerpt(
 
 /**
  * One half of a paired proof, as a result the writer takes.
- * @param half - The half, as the runner reports it
+ *
+ * Every step that plants a change reports its halves in the same shape, so
+ * this is the one place a half's answer becomes `held`, `failed` or
+ * `unknown`, whichever moment it was run at.
+ * @param half - The half, as the step that ran it reports it
  * @returns The result
  */
-function halfResult(half: ProofHalfResult): EvidenceResultInput {
+export function proofHalfResult(half: ProofHalfResult): EvidenceResultInput {
   return {
     entry_id: half.entry_id,
     moment: half.moment,
@@ -134,15 +139,24 @@ function halfResult(half: ProofHalfResult): EvidenceResultInput {
  *
  * The run speaks for every entry it lists at the moments the runner
  * exercises, including the entries it could not prove.
+ *
+ * A run whose pull-request moment was settled also carries the halves of
+ * the canaries the hosting platform answered. Those are not the runner's:
+ * the step that settled that moment hands them over in its own batch
+ * (`./pull-request-evidence.ts`), so they are left out here and each half is
+ * written from one place only.
  * @param run - The runner's results
  * @returns The batch
  */
 export function proofRunBatch(run: ProofRun): EvidenceBatch {
+  const moments: readonly string[] = PROOF_MOMENTS;
   return {
     entries: run.entries.map(entry => entry.entry_id),
-    moments: PROOF_MOMENTS,
+    moments,
     results: run.entries.flatMap(entry =>
-      entry.halves.map(half => halfResult(half))
+      entry.halves
+        .filter(half => moments.includes(half.moment))
+        .map(half => proofHalfResult(half))
     ),
   };
 }
