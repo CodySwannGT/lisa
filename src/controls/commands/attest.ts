@@ -42,6 +42,10 @@
  * platform would let each through, and removes them. It never merges one.
  * See `../pull-request-settle.ts`. What the platform said is written to the
  * evidence file with everything else; see `../pull-request-evidence.ts`.
+ * Whatever such a run could not remove is named on standard error, one line
+ * each, in both output modes. A canary the platform says was merged, or a
+ * protected branch that moved with a canary unaccounted for, exits 1
+ * whatever the proofs showed; see `../pull-request-notices.ts`.
  *
  * A proof that declares an effect outside the repository is run only with
  * `--acknowledge-external-effects`. Without it the entry is `unknown` and
@@ -73,6 +77,7 @@ import { loadProofTools, type ProofTools } from "../proof-tools.js";
 import type { ProofRun } from "../proof-types.js";
 import type { OpenProofWorkspace } from "../proof-workspace.js";
 import { pullRequestBatches } from "../pull-request-evidence.js";
+import { reportCanaryNotices } from "../pull-request-notices.js";
 import {
   settlePullRequests,
   type PullRequestDependencies,
@@ -328,13 +333,36 @@ export async function runAttest(
   lines.forEach(line => {
     stdout(line);
   });
+  return conclude(run, options.json === true, { stdout, stderr });
+}
+
+/**
+ * Say how a run whose results were printed ended, and give its exit code.
+ *
+ * Before the verdict, in either output mode, whatever a canary run could
+ * not undo on the hosting platform is put on standard error, and that can
+ * fail the run by itself; see `../pull-request-notices.ts`.
+ * @param run - The finished run
+ * @param json - Whether the results were printed as one JSON document
+ * @param io - Where a line for a person goes
+ * @param io.stdout - Prints one line on standard output
+ * @param io.stderr - Prints one line on standard error
+ * @returns The exit code; see {@link ATTEST_EXIT}
+ */
+function conclude(
+  run: ProofRun,
+  json: boolean,
+  io: {
+    readonly stdout: (line: string) => void;
+    readonly stderr: (line: string) => void;
+  }
+): number {
+  if (reportCanaryNotices(run, io.stderr)) return ATTEST_EXIT.NOT_PASSED;
   if (run.passed) {
-    if (options.json !== true) {
-      stdout(`${ATTEST_COMMAND}: PASS. ${proofSummary(run)}`);
-    }
+    if (!json) io.stdout(`${ATTEST_COMMAND}: PASS. ${proofSummary(run)}`);
     return ATTEST_EXIT.PASSED;
   }
-  stderr(
+  io.stderr(
     run.entries.length === 0
       ? `${ATTEST_COMMAND}: FAIL. The control register has no entries, so there is nothing to prove. Declare the controls in the gates block of ${GATES_DECLARATION_PATH} first`
       : `${ATTEST_COMMAND}: FAIL. ${proofSummary(run)}. Every entry has to pass`

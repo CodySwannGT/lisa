@@ -191,7 +191,7 @@ describe("the hosting platform with no credentials on the machine", () => {
         "GitHub, where this repository is hosted and its merge settings are kept",
       needed_by: [AUTHORITY],
       result: "unreachable",
-      request: `GET repos/${REPO}/rulesets`,
+      request: `GET repos/${REPO}/rulesets?per_page=100`,
       observed_error: SIGNED_OUT_MESSAGE,
       access_needed:
         "the GitHub command-line tool (gh) signed in with an account that can read this repository on GitHub",
@@ -199,7 +199,9 @@ describe("the hosting platform with no credentials on the machine", () => {
     expect(ran.stderr).toMatch(
       /^merge-protection: NOT REACHED\. Lisa could not reach GitHub, .*: To get started with GitHub CLI, please run: gh auth login .* To check this requirement an agent needs the GitHub command-line tool \(gh\) signed in /u
     );
-    expect(recordedGhCalls(gh)).toEqual([`api repos/${REPO}/rulesets`]);
+    expect(recordedGhCalls(gh)).toEqual([
+      `api --hostname github.com repos/${REPO}/rulesets?per_page=100`,
+    ]);
     expect(runControlAuditGit(repoPath, EVERY_FILE)).toBe("");
   });
 

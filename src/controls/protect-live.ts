@@ -10,9 +10,14 @@
  *
  * Comparing is the reconciler's `reconcileContexts`, over the rulesets that
  * are actually enforced on the branch. A ruleset that is disabled, or that
- * covers other branches, requires nothing there and is left out.
+ * covers other branches, requires nothing there and is left out. One whose
+ * reach could not be worked out is left out too, and kept apart
+ * ({@link unsettled}): what it requires is not known to be required on the
+ * branch, and not known not to be.
  * @module controls/protect-live
  */
+import { ACTIONS_INTEGRATION_ID } from "../health/ruleset-inspection.js";
+import { compareCodeUnits } from "./canonical-json.js";
 import type { DerivedCheck } from "./protect-derive.js";
 import { rulesetsBlock } from "./protect-derive.js";
 import type {
@@ -155,16 +160,97 @@ export function governing<T>(
   defaultBranch: string | null,
   modules: ProtectionModules
 ): readonly T[] {
-  const branches =
-    defaultBranch === null ? [branch] : [...new Set([branch, defaultBranch])];
   return rulesets.filter(ruleset => {
-    const reach = modules.reach.rulesetReach({
-      ruleset,
-      branches,
-      defaultBranch: defaultBranch ?? undefined,
-    });
+    const reach = reachOf(ruleset, branch, defaultBranch, modules);
     return reach.verdict === "governs" && reach.matched.includes(branch);
   });
+}
+
+/**
+ * Ask the shipped matcher what one ruleset covers.
+ * @param ruleset - A ruleset as the platform returned it
+ * @param branch - The branch
+ * @param defaultBranch - The repository's default branch, when known
+ * @param modules - The shipped scripts
+ * @returns The matcher's answer
+ */
+function reachOf(
+  ruleset: unknown,
+  branch: string,
+  defaultBranch: string | null,
+  modules: ProtectionModules
+): ReturnType<ProtectionModules["reach"]["rulesetReach"]> {
+  return modules.reach.rulesetReach({
+    ruleset,
+    branches:
+      defaultBranch === null ? [branch] : [...new Set([branch, defaultBranch])],
+    defaultBranch: defaultBranch ?? undefined,
+  });
+}
+
+/** A ruleset that may or may not be enforced on the branch. */
+export interface UnsettledRuleset {
+  /** The ruleset's name, or `""` when it has none that could be read. */
+  readonly name: string;
+  /** Why it could not be worked out whether it covers the branch. */
+  readonly reason: string;
+  /** The check names it would require there. */
+  readonly checks: readonly string[];
+}
+
+/**
+ * Find the rulesets whose reach could not be worked out.
+ *
+ * {@link governing} leaves such a ruleset out, because nothing shows that it
+ * is enforced on the branch. Nothing shows that it is not, either. So a
+ * check it requires is neither "required" nor "not required" there: it is
+ * not known, and this is where that is kept from being lost.
+ * @param rulesets - Rulesets as the platform returned them
+ * @param branch - The branch
+ * @param defaultBranch - The repository's default branch, when known
+ * @param modules - The shipped scripts
+ * @returns Each such ruleset with the checks it holds
+ */
+export function unsettled(
+  rulesets: readonly LiveRuleset[],
+  branch: string,
+  defaultBranch: string | null,
+  modules: ProtectionModules
+): readonly UnsettledRuleset[] {
+  return rulesets.flatMap(ruleset => {
+    const reach = reachOf(ruleset, branch, defaultBranch, modules);
+    if (reach.verdict !== "undetermined") return [];
+    return [
+      {
+        name: reach.name,
+        reason: reach.reason,
+        // Read as if it were enforced: the question is what it would
+        // require if it does cover the branch.
+        checks: modules.reconcile
+          .liveContexts([{ ...ruleset, enforcement: "active" }])
+          .map(context => context.context),
+      },
+    ];
+  });
+}
+
+/**
+ * Say which checks a ruleset of unknown reach may already require.
+ * @param names - The check names in question
+ * @param doubtful - The rulesets whose reach could not be worked out
+ * @returns For each such check, the ruleset that holds it and why its reach
+ *   is not known
+ */
+export function possiblyRequired(
+  names: readonly string[],
+  doubtful: readonly UnsettledRuleset[]
+): ReadonlyMap<string, UnsettledRuleset> {
+  return new Map(
+    names.flatMap(name => {
+      const holder = doubtful.find(ruleset => ruleset.checks.includes(name));
+      return holder === undefined ? [] : [[name, holder] as const];
+    })
+  );
 }
 
 /**
@@ -211,11 +297,102 @@ export function requirementOf(
 }
 
 /**
+ * Tell whether two declarations are about the same check in the same place.
+ * @param left - One declaration
+ * @param right - Another
+ * @returns Whether both name the same check and the same ruleset, or none
+ */
+function samePair(left: CheckRecord, right: CheckRecord): boolean {
+  return left.context === right.context && left.ruleset === right.ruleset;
+}
+
+/**
+ * Count an awaited check that declares no app as required wherever an
+ * enforced ruleset requires its name, whatever app that ruleset pins it to.
+ *
+ * The reconciler compares an awaited check that names no app with an
+ * unpinned check in the ruleset it would write to, and calls anything else
+ * missing. That is right for a tool that rewrites a ruleset to match a
+ * declaration. It is wrong here: the platform's own settings page pins a
+ * check to an app by default, so a host that already requires the check
+ * read as not requiring it, and the repair replaced the host's pinned check
+ * with one any source may report. A declaration that names no app has no
+ * opinion about the app, so the name is the whole comparison, and a check
+ * found this way is in no change.
+ * @param drift - The reconciler's comparison
+ * @param awaitedRecords - The awaited declarations that were compared
+ * @param liveNames - Every check name an enforced ruleset requires
+ * @returns The comparison, with those checks moved from missing to matched
+ */
+function requiredByName(
+  drift: ContextDrift,
+  awaitedRecords: readonly CheckRecord[],
+  liveNames: ReadonlySet<string>
+): ContextDrift {
+  const anyApp = awaitedRecords.filter(
+    record => record.integration_id === undefined
+  );
+  const missingRecords = drift.missingRecords.filter(
+    record =>
+      !(
+        record.integration_id === undefined &&
+        liveNames.has(record.context) &&
+        anyApp.some(awaited => samePair(awaited, record))
+      )
+  );
+  const stillMissing = new Set(missingRecords.map(record => record.context));
+  const found = drift.missing.filter(name => !stillMissing.has(name));
+  return {
+    ...drift,
+    missingRecords,
+    missing: drift.missing.filter(name => stillMissing.has(name)),
+    matched: [...drift.matched, ...found].sort(compareCodeUnits),
+  };
+}
+
+/**
+ * Say which app the change would require a missing check from.
+ *
+ * This is the reconciler's own rule for writing a check, restated so that
+ * it can be known before a change is planned: the app a declaration names;
+ * else none for a check another app reports; else GitHub Actions, which is
+ * what reports a check a pipeline job runs.
+ * @param record - One declaration the platform does not satisfy
+ * @param requirement - The derived checks
+ * @param awaitedRecords - The awaited declarations that were compared
+ * @returns The app's id, or `null` when any source may report the check
+ */
+export function appToRequire(
+  record: CheckRecord,
+  requirement: Requirement,
+  awaitedRecords: readonly CheckRecord[]
+): number | null {
+  if (record.integration_id !== undefined) return record.integration_id;
+  const awaited = awaitedRecords.some(
+    candidate =>
+      candidate.context === record.context &&
+      (candidate.ruleset === undefined ||
+        record.ruleset === undefined ||
+        candidate.ruleset === record.ruleset)
+  );
+  if (record.ruleset === undefined) {
+    const named = {
+      ...requirement.configured.pins,
+      ...requirement.awaitedPins,
+    }[record.context];
+    if (named !== undefined) return named;
+  }
+  return awaited ? null : ACTIONS_INTEGRATION_ID;
+}
+
+/**
  * Compare the requirement with the rulesets enforced on the branch.
  *
- * An awaited check is compared in the ruleset the reconciler would write it
- * to, with its declared pin, exactly as `lisa-reconcile-policy.mjs` does; a
- * check a pipeline job reports is satisfied by any enforced ruleset.
+ * An awaited check that names its app is compared in the ruleset the
+ * reconciler would write it to, with that app, exactly as
+ * `lisa-reconcile-policy.mjs` does. One that names no app is satisfied by
+ * its name in any enforced ruleset ({@link requiredByName}), and so is a
+ * check a pipeline job reports.
  * @param requirement - The derived checks
  * @param enforced - The rulesets enforced on the branch
  * @param rulesetName - The ruleset the operator named, or `null`
@@ -249,15 +426,20 @@ export function compareWithLive(
             explicit.ruleset === record.ruleset
         )
     );
+  const live = reconcile.liveContexts(enforced);
   return {
-    drift: reconcile.reconcileContexts({
-      declared: requirement.declared,
-      live: reconcile.liveContexts(enforced),
-      homes: configured.homes,
-      pins: configured.pins,
-      records: configured.records,
-      awaited: awaitedRecords,
-    }),
+    drift: requiredByName(
+      reconcile.reconcileContexts({
+        declared: requirement.declared,
+        live,
+        homes: configured.homes,
+        pins: configured.pins,
+        records: configured.records,
+        awaited: awaitedRecords,
+      }),
+      awaitedRecords,
+      new Set(live.map(context => context.context))
+    ),
     awaitedRecords,
     awaitedHomes:
       home === null

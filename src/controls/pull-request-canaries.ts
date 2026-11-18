@@ -37,6 +37,7 @@ import {
   canaryKeeper,
   removeOnStop,
   sweepCanaries,
+  type Removal,
   type SignalSource,
 } from "./canary-lifecycle.js";
 import { CANARY_LIFETIME_SECONDS, isRunId, newRunId } from "./canary-names.js";
@@ -225,10 +226,8 @@ async function openCanaries(
         })),
     pollMs: CANARY_POLL_SECONDS * 1000,
   };
-  try {
-    const done = await runnable.reduce<
-      Promise<Pick<CanaryOutcome, "points" | "canaries">>
-    >(
+  const done = await runnable
+    .reduce<Promise<Pick<CanaryOutcome, "points" | "canaries">>>(
       async (earlier, item, index) => {
         const sofar = await earlier;
         const exercised = await exercise(item, index, context);
@@ -238,11 +237,22 @@ async function openCanaries(
         };
       },
       Promise.resolve({ points: [], canaries: [] })
-    );
+    )
+    .catch((error: unknown) => {
+      keeper.removeAll();
+      release();
+      throw error;
+    });
+  try {
+    // Whatever a half could not remove is tried once more, and its record
+    // then says what this second try found, so that what is reported as
+    // left behind is what is left behind.
+    const retried = keeper.removeAll();
     const before = based.ok ? based.base.sha : null;
     const after = readHead(door, branch);
     return {
-      ...done,
+      points: done.points,
+      canaries: done.canaries.map(canary => afterRetry(canary, retried)),
       baseHead: {
         before,
         after,
@@ -250,9 +260,31 @@ async function openCanaries(
       },
     };
   } finally {
-    keeper.removeAll();
     release();
   }
+}
+
+/**
+ * Bring a canary's record up to date with a second try at removing it.
+ * @param canary - The record as the half wrote it
+ * @param retried - What the second try did, for each canary it reached
+ * @returns The record; unchanged when its canary was already removed
+ */
+function afterRetry(
+  canary: CanaryRecord,
+  retried: readonly Removal[]
+): CanaryRecord {
+  const again = retried.find(removal => removal.branch === canary.branch);
+  return again === undefined
+    ? canary
+    : {
+        ...canary,
+        closed: again.closed,
+        branch_removed: again.branchRemoved,
+        // An answer the first try had is not lost to a second that had none.
+        merged: again.merged ?? canary.merged,
+        cleanup_problem: again.problem,
+      };
 }
 
 /**

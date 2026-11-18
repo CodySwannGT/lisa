@@ -9,6 +9,7 @@
  * | every check of the entry is required | `unproved` | `observed-required` |
  * | a check of the entry is not required | `failed` | `observed-not-required` |
  * | nothing, because they were not read | `unknown` | `merge-protection-unread`, `platform-not-reached` |
+ * | nothing certain: a ruleset of unknown reach requires a check of the entry, and none is known not to be required | `unknown` | `merge-protection-unread` |
  *
  * `observed` on the result says the same thing as a single word, so a reader
  * does not have to decode the reason. Two more cases never reach the
@@ -32,10 +33,14 @@ import {
   NO_CHECK_DETAIL,
   notAskedDetail,
   notRequiredDetail,
+  reachUnknownDetail,
   requiredDetail,
   unreadDetail,
 } from "./pull-request-wording.js";
 import type { ControlRegisterEntry } from "./register-types.js";
+
+/** What the settings say of a check, or an entry, the platform lets through. */
+const NOT_REQUIRED = "not-required";
 
 /** What deciding a point needs beside the entry. */
 export interface PointContext {
@@ -67,12 +72,14 @@ function standing(
   checks: readonly string[],
   observation: Observation
 ): readonly ObservedCheck[] {
-  const { required, pins } = observation;
+  const { required, pins, unsettled } = observation;
   return checks.map(context => {
-    const held = required?.has(context) === true ? "required" : "not-required";
+    const held = required?.has(context) === true ? "required" : NOT_REQUIRED;
     return {
       context,
-      state: required === null ? "unknown" : held,
+      // A check a ruleset of unknown reach requires is not known to be
+      // required or not, whatever the rulesets that were matched say.
+      state: required === null || unsettled.has(context) ? "unknown" : held,
       app_ids: pins.get(context) ?? [],
     };
   });
@@ -124,8 +131,24 @@ function decide(
     };
   }
   const missing = checks
-    .filter(check => check.state !== "required")
+    .filter(check => check.state === NOT_REQUIRED)
     .map(check => check.context);
+  const [doubtful] = checks.filter(check => check.state === "unknown");
+  const holder =
+    doubtful === undefined
+      ? undefined
+      : observation.unsettled.get(doubtful.context);
+  // A check known not to be required settles the entry. Only when none is
+  // does one of unknown standing leave it unknown.
+  if (missing.length === 0 && doubtful !== undefined && holder !== undefined) {
+    return {
+      outcome: "unknown",
+      reason: "merge-protection-unread",
+      detail: reachUnknownDetail(doubtful.context, holder, observation.branch),
+      observed: "unknown",
+      checks,
+    };
+  }
   return missing.length === 0
     ? {
         outcome: "unproved",

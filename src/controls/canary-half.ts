@@ -8,13 +8,16 @@
  * 1. The canary commit is made (`./canary-tree.ts`). Until a branch points
  *    at it, nothing on the platform shows it.
  * 2. The branch is tracked for removal, and only then created.
- * 3. The pull request is opened as a draft. Where the platform does not
- *    offer drafts for the repository, it is opened as an ordinary pull
- *    request instead, and the record says so.
+ * 3. The pull request is opened as a draft, which cannot be merged. Where
+ *    the platform does not offer drafts for the repository, none is opened
+ *    and the half is `not-started` with the platform's reason: an ordinary
+ *    pull request is never opened in its place.
  * 4. The platform's answer is waited for, no longer than the half's time
  *    limit (`./canary-eligibility.ts`).
  * 5. The pull request is closed and the branch deleted, whether the answer
- *    came, the wait ran out, or something threw.
+ *    came, the wait ran out, or something threw. Before it is closed the
+ *    platform is asked whether it was merged, and the record keeps the
+ *    answer (`./canary-lifecycle.ts`).
  *
  * No step accepts the pull request into its base branch, and the door the
  * requests go through has no rule that would let one (`./canary-door.ts`).
@@ -77,42 +80,64 @@ type Opened =
   | {
       readonly ok: true;
       readonly sha: string;
+      /** The draft pull request. */
       readonly pullRequest: number;
-      readonly draft: boolean;
     }
   | {
       readonly ok: false;
       readonly reason: "patch-not-applied" | "not-started";
       readonly problem: string;
       readonly sha: string | null;
+      /**
+       * A pull request the platform opened as something other than a draft,
+       * which is closed without being read; `null` when none was opened.
+       */
+      readonly pullRequest: number | null;
     };
 
 /** The removal of a canary that was never created. */
-const NEVER_CREATED = { closed: true, branchRemoved: true, problem: null };
+const NEVER_CREATED = {
+  closed: true,
+  branchRemoved: true,
+  merged: null,
+  mergedPullRequests: [],
+  problem: null,
+};
 
 /**
- * Open a pull request from a canary branch, as a draft where that is offered.
+ * Open a draft pull request from a canary branch.
+ *
+ * A draft and nothing else. Where the platform does not offer drafts for
+ * the repository, no pull request is opened: an ordinary one can be merged,
+ * and automation that merges pull requests whose checks are green would
+ * take a canary carrying the clean change for one of them.
  * @param door - The canary door
  * @param fields - The pull request's title, description, head and base
- * @returns Its number and whether it is a draft, or why it was not opened
+ * @returns Its number; or why none was opened, with the number of one the
+ *   platform opened as something other than a draft, so that it is removed
  */
 function openPullRequest(
   door: CanaryDoor,
   fields: Readonly<Record<string, unknown>>
 ):
-  | { readonly number: number; readonly draft: boolean }
-  | { readonly problem: string } {
-  const asDraft = door.send("POST", "pulls", { ...fields, draft: true });
-  const drafted = asDraft.ok ? fieldOf(asDraft.value, "number") : undefined;
-  if (typeof drafted === "number") return { number: drafted, draft: true };
-  if (asDraft.ok) return { problem: "The platform did not number it." };
-  // Some repositories are not offered drafts; the platform says so.
-  if (!/draft/iu.test(asDraft.reason)) return { problem: asDraft.reason };
-  const plain = door.send("POST", "pulls", fields);
-  const number = plain.ok ? fieldOf(plain.value, "number") : undefined;
-  return typeof number === "number"
-    ? { number, draft: false }
-    : { problem: plain.ok ? "The platform did not number it." : plain.reason };
+  | { readonly number: number }
+  | { readonly problem: string; readonly opened?: number } {
+  const sent = door.send("POST", "pulls", { ...fields, draft: true });
+  if (!sent.ok) {
+    return {
+      problem: `A canary is only ever opened as a draft pull request, which cannot be merged, and the platform did not open one: ${sent.reason}`,
+    };
+  }
+  const number = fieldOf(sent.value, "number");
+  if (typeof number !== "number") {
+    return { problem: "The platform did not number it." };
+  }
+  return fieldOf(sent.value, "draft") === true
+    ? { number }
+    : {
+        problem: `A draft pull request was asked for, and the platform opened #${String(number)} as an ordinary one, which could be merged. It is closed without being read.`,
+        opened: number,
+      };
 }
 
 /**
@@ -130,6 +155,15 @@ function openCanary(
   facts: CanaryFacts
 ): Opened {
   const { door, keeper, base } = context;
+  // Something on the platform merged a canary of this run. Whatever did it
+  // would take the next one too, so no more are opened.
+  const merged = keeper.merged();
+  if (merged.length > 0) {
+    return notStarted(
+      `${merged.map(number => `#${String(number)}`).join(" and ")}, a canary pull request of this run, was merged into ${context.baseBranch}. That must never happen, so no further canary was opened.`,
+      null
+    );
+  }
   if ("problem" in base) return notStarted(base.problem, null);
   const commit = buildCanaryCommit(
     door,
@@ -137,7 +171,7 @@ function openCanary(
     request.patch.text,
     `${canaryTitle(facts)}\n\n${canaryBody(facts)}`
   );
-  if (!commit.ok) return { ...commit, sha: null };
+  if (!commit.ok) return { ...commit, sha: null, pullRequest: null };
   // Tracked first, so nothing can exist that is not known to be removed.
   keeper.track(branch);
   return publishCanary(context, branch, facts, commit.sha);
@@ -147,10 +181,15 @@ function openCanary(
  * Say that a canary was not opened because of the platform.
  * @param problem - Why
  * @param sha - The canary commit, when one was made
+ * @param pullRequest - A pull request the platform opened as the wrong kind
  * @returns What opening gave
  */
-function notStarted(problem: string, sha: string | null): Opened {
-  return { ok: false, reason: "not-started", problem, sha };
+function notStarted(
+  problem: string,
+  sha: string | null,
+  pullRequest: number | null = null
+): Opened {
+  return { ok: false, reason: "not-started", problem, sha, pullRequest };
 }
 
 /**
@@ -186,13 +225,17 @@ function publishCanary(
     maintainer_can_modify: false,
   });
   if ("problem" in pull) {
+    // One the platform opened as the wrong kind is still tracked, so that
+    // the removal that follows closes it.
+    if (pull.opened !== undefined) keeper.opened(branch, pull.opened);
     return notStarted(
       `The canary pull request could not be opened: ${pull.problem}`,
-      sha
+      sha,
+      pull.opened
     );
   }
   keeper.opened(branch, pull.number);
-  return { ok: true, sha, pullRequest: pull.number, draft: pull.draft };
+  return { ok: true, sha, pullRequest: pull.number };
 }
 
 /**
@@ -247,7 +290,6 @@ function halfResult(
   const shown = observation(opened, answer, request.timeLimitSeconds);
   const eligibility = answer?.eligibility ?? null;
   const conclusions = conclusionsText(eligibility?.checks ?? []);
-  const draft = opened.ok && opened.draft ? " (draft)" : "";
   return {
     entry_id: request.entryId,
     half: request.half,
@@ -257,7 +299,7 @@ function halfResult(
     exit_status: null,
     ...times,
     output_excerpt: opened.ok
-      ? `pull request #${String(opened.pullRequest)}${draft} from ${branch}: mergeable=${String(eligibility?.mergeable ?? null)}, mergeable_state=${String(eligibility?.mergeable_state ?? null)}; ${conclusions}`
+      ? `pull request #${String(opened.pullRequest)} (draft) from ${branch}: mergeable=${String(eligibility?.mergeable ?? null)}, mergeable_state=${String(eligibility?.mergeable_state ?? null)}; ${conclusions}`
       : opened.problem,
     output_truncated: false,
     matched_lines: shown.outcome === "rejected" ? [conclusions] : [],
@@ -323,13 +365,16 @@ export async function runCanaryHalf(
       entry_id: request.entryId,
       half: request.half,
       branch,
-      pull_request: opened.ok ? opened.pullRequest : null,
-      draft: opened.ok ? opened.draft : null,
+      pull_request: opened.pullRequest,
+      // Only a draft is ever read. `false` is a pull request the platform
+      // opened as an ordinary one, which was closed without being read.
+      draft: opened.pullRequest === null ? null : opened.ok,
       head_sha: opened.sha,
       created_at: times.started_at,
       eligibility,
       closed: removal.closed,
       branch_removed: removal.branchRemoved,
+      merged: removal.merged,
       cleanup_problem: removal.problem,
     },
   };

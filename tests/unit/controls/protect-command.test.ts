@@ -134,16 +134,19 @@ describe("lisa controls protect, as a command", () => {
     expect(github.log).toEqual([]);
   });
 
-  it("exits 1 and sends nothing when the branch name is not one", async () => {
-    const github = fakeGithub({ repo: REPO, admin: true });
+  it.each(["--force", "main/../../other-owner/other-repo", "main?x=1"])(
+    "exits 1 and sends nothing when the branch name is not one: %j",
+    async branch => {
+      const github = fakeGithub({ repo: REPO, admin: true });
 
-    const ran = await run(github, { apply: true, branch: "--force" });
+      const ran = await run(github, { apply: true, branch });
 
-    expect(ran.code).toBe(1);
-    expect(ran.stdout).toEqual([]);
-    expect(ran.stderr[0]).toMatch(/--branch takes a branch name/u);
-    expect(github.log).toEqual([]);
-  });
+      expect(ran.code).toBe(1);
+      expect(ran.stdout).toEqual([]);
+      expect(ran.stderr[0]).toMatch(/--branch takes a branch name/u);
+      expect(github.log).toEqual([]);
+    }
+  );
 
   it("exits 1 and sends nothing when the gates declaration is refused", async () => {
     const built = keep(

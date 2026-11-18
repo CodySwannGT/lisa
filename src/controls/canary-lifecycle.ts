@@ -25,6 +25,14 @@
  * tracked until the platform has said its branch is gone, in so many words:
  * any other refusal is a failed removal, to be tried again.
  *
+ * Before a pull request is closed the platform is asked whether it was
+ * merged. This command never merges one and opens only drafts, which cannot
+ * be merged, so the answer should always be no. It is asked all the same,
+ * because a canary that went into its base branch is the one outcome that
+ * must not pass unnoticed: closing it unread would leave no trace of that.
+ * The answer is kept with the removal, and an answer that could not be had
+ * is kept as "not known", never as "no".
+ *
  * The sweep removes other runs' canaries, so it checks twice. It asks the
  * platform for the pull requests opened from a stale branch, and then closes
  * only the ones whose head is exactly that branch, whatever list came back.
@@ -50,6 +58,14 @@ export interface Removal {
   readonly closed: boolean;
   /** Whether the branch is gone. */
   readonly branchRemoved: boolean;
+  /**
+   * Whether the platform says a pull request of the canary was merged,
+   * asked before it was closed. `null` when none was opened, or when the
+   * platform could not be asked.
+   */
+  readonly merged: boolean | null;
+  /** The pull requests the platform says were merged. */
+  readonly mergedPullRequests: readonly number[];
   /** Why something was left behind, or `null` when nothing was. */
   readonly problem: string | null;
 }
@@ -76,6 +92,11 @@ export interface CanaryKeeper {
   readonly removeAll: () => readonly Removal[];
   /** The branches still tracked. */
   readonly open: () => readonly string[];
+  /**
+   * The pull requests of this run that the platform said were merged when
+   * they came to be removed. Empty in every run that goes as it should.
+   */
+  readonly merged: () => readonly number[];
 }
 
 /** Where termination signals come from, replaceable in a test. */
@@ -133,11 +154,19 @@ function removeCanary(
   branch: string,
   pullRequests: readonly number[]
 ): Removal {
-  const closing = pullRequests.map(number =>
-    attempt(() =>
-      door.send("PATCH", `pulls/${String(number)}`, { state: "closed" })
-    )
-  );
+  // Asked before anything is closed: a pull request that was merged is
+  // already closed, and closing it would only hide that it went in.
+  const standing = pullRequests.map(number => ({
+    number,
+    merged: wasMerged(door, number),
+  }));
+  const closing = standing
+    .filter(pull => pull.merged !== true)
+    .map(pull =>
+      attempt(() =>
+        door.send("PATCH", `pulls/${String(pull.number)}`, { state: "closed" })
+      )
+    );
   const deleted = attempt(() =>
     door.send("DELETE", `git/refs/heads/${branch}`)
   );
@@ -151,12 +180,48 @@ function removeCanary(
   const problems = branchRemoved
     ? []
     : [...notClosed, ...(deleted.ok ? [] : [deleted.reason])];
+  const mergedPullRequests = standing
+    .filter(pull => pull.merged === true)
+    .map(pull => pull.number);
+  const unread = standing.some(pull => pull.merged === null);
   return {
     branch,
     closed: notClosed.length === 0 || branchRemoved,
     branchRemoved,
+    merged: mergedState(standing.length, mergedPullRequests.length, unread),
+    mergedPullRequests,
     problem: problems.length === 0 ? null : problems.join(" | "),
   };
+}
+
+/**
+ * Ask the platform whether a pull request was merged.
+ * @param door - The canary door
+ * @param number - The pull request's number
+ * @returns What the platform said; `null` when it could not be asked or did
+ *   not say, which is never read as "not merged"
+ */
+function wasMerged(door: CanaryDoor, number: number): boolean | null {
+  const read = attempt(() => door.get(`pulls/${String(number)}`));
+  const merged = read.ok ? fieldOf(read.value, "merged") : undefined;
+  return typeof merged === "boolean" ? merged : null;
+}
+
+/**
+ * Put what was learned about a canary's pull requests in one answer.
+ * @param opened - How many pull requests the canary had
+ * @param merged - How many of them the platform says were merged
+ * @param unread - Whether any of them could not be asked about
+ * @returns `true` when one was merged; `false` when the platform said of
+ *   every one that it was not; otherwise `null`
+ */
+function mergedState(
+  opened: number,
+  merged: number,
+  unread: boolean
+): boolean | null {
+  if (merged > 0) return true;
+  return opened === 0 || unread ? null : false;
 }
 
 /**
@@ -171,6 +236,8 @@ export function canaryKeeper(door: CanaryDoor): CanaryKeeper {
       readonly pull: number | null;
     }[];
   } = { current: [] };
+  /** The pull requests of this run the platform said were merged. */
+  const merged: { current: readonly number[] } = { current: [] };
   const remove = (branch: string): Removal => {
     const tracked = state.current.filter(item => item.branch === branch);
     const removal = removeCanary(
@@ -178,6 +245,9 @@ export function canaryKeeper(door: CanaryDoor): CanaryKeeper {
       branch,
       tracked.flatMap(item => (item.pull === null ? [] : [item.pull]))
     );
+    merged.current = [
+      ...new Set([...merged.current, ...removal.mergedPullRequests]),
+    ];
     // A canary that could not be removed stays tracked, to be tried again.
     if (removal.problem === null) {
       state.current = state.current.filter(item => item.branch !== branch);
@@ -203,11 +273,14 @@ export function canaryKeeper(door: CanaryDoor): CanaryKeeper {
             branch: item.branch,
             closed: false,
             branchRemoved: false,
+            merged: null,
+            mergedPullRequests: [],
             problem: error instanceof Error ? error.message : String(error),
           };
         }
       }),
     open: () => state.current.map(item => item.branch),
+    merged: () => merged.current,
   };
 }
 
@@ -353,8 +426,14 @@ export function sweepCanaries(
             },
           ];
     }),
-    problems: removals.flatMap(removal =>
-      removal.problem === null ? [] : [`${removal.branch}: ${removal.problem}`]
-    ),
+    problems: removals.flatMap(removal => [
+      ...(removal.problem === null
+        ? []
+        : [`${removal.branch}: ${removal.problem}`]),
+      ...removal.mergedPullRequests.map(
+        number =>
+          `${removal.branch}: pull request #${String(number)}, a canary an earlier run left behind, was merged into its base branch. A canary must never be merged: look at what that pull request changed and undo it.`
+      ),
+    ]),
   };
 }

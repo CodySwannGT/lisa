@@ -35,6 +35,7 @@ import path from "node:path";
 
 import { fieldOf, textOf, type CanaryDoor } from "./canary-door.js";
 import { applyProofPatch, isolatedGit } from "./proof-patch.js";
+import { isBranchName } from "./protect-types.js";
 
 /** The commit a canary is built on. */
 export interface CanaryBase {
@@ -94,9 +95,11 @@ function notStarted(problem: string): CanaryCommit {
  * Read the commit a branch points at.
  * @param door - The canary door
  * @param branch - The branch name
- * @returns The commit id, or `null` when it could not be read
+ * @returns The commit id, or `null` when it could not be read. A name that
+ *   is not a branch name is never put in a request, and reads as `null`
  */
 export function readHead(door: CanaryDoor, branch: string): string | null {
+  if (!isBranchName(branch)) return null;
   const ref = door.get(`git/ref/heads/${branch}`);
   const sha = ref.ok ? textOf(ref.value, "object", "sha") : "";
   return OBJECT_ID.test(sha) ? sha : null;

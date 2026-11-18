@@ -32,7 +32,7 @@ import {
   SERVER_SIDE_AUTHORITY,
   type AuditProbe,
 } from "./audit-probe-types.js";
-import { governing } from "./protect-live.js";
+import { governing, unsettled, type UnsettledRuleset } from "./protect-live.js";
 import {
   loadProtectionModules,
   type GhRunner,
@@ -40,6 +40,7 @@ import {
   type ProtectionModules,
 } from "./protect-modules.js";
 import {
+  GITHUB_HOST,
   detectPlatform,
   platformLabel,
   readOriginUrl,
@@ -241,6 +242,10 @@ function githubRead(
     );
   }
   const enforced = governing(live.rulesets, branch, branch, modules);
+  // A ruleset whose reach could not be worked out is in neither list. The
+  // note says so, so that "nothing requires this check" is not read off a
+  // list that may be missing the ruleset that does.
+  const doubtful = unsettled(live.rulesets, branch, branch, modules);
   return {
     ...base,
     branch,
@@ -250,9 +255,26 @@ function githubRead(
       required_checks: modules.reconcile
         .liveContexts(enforced)
         .map(({ context, ruleset }) => ({ context, ruleset })),
-      note: MERGE_PROTECTION_NOTE,
+      note:
+        doubtful.length === 0
+          ? MERGE_PROTECTION_NOTE
+          : `${MERGE_PROTECTION_NOTE} ${doubtful.map(ruleset => reachNote(ruleset, branch)).join(" ")}`,
     },
   };
+}
+
+/**
+ * Say that a ruleset was left out because its reach is not known.
+ * @param ruleset - The ruleset, with why and the checks it holds
+ * @param branch - The default branch
+ * @returns The sentence
+ */
+function reachNote(ruleset: UnsettledRuleset, branch: string): string {
+  const holds =
+    ruleset.checks.length === 0
+      ? "It requires no check."
+      : `It requires ${ruleset.checks.map(check => JSON.stringify(check)).join(", ")}, so it is not known whether those are required on ${branch}.`;
+  return `The ruleset ${JSON.stringify(ruleset.name)} is not listed: it could not be worked out whether it covers ${branch} (${ruleset.reason}). ${holds}`;
 }
 
 /**
@@ -302,7 +324,11 @@ export async function readMergeProtection(
       requests: [],
     };
   }
-  const log = recordRequests(dependencies.gh ?? modules.reconcile.ghRunner);
+  // Reached only for a repository on this host, which every request names.
+  const log = recordRequests(
+    dependencies.gh ?? modules.reconcile.ghRunner,
+    GITHUB_HOST
+  );
   const live = modules.reconcile.readLivePolicy({
     repo: platform.repository,
     gh: log.read,

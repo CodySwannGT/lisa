@@ -57,16 +57,24 @@ const READ_ONLY_REPOSITORY = {
 const HEAD = `${API}/commits/heads/main`;
 const RUNS = `${HEAD}/check-runs?per_page=100`;
 const STATUSES = `${HEAD}/status?per_page=100`;
-const PULLS = `${API}/pulls?state=all&base=main&sort=updated&direction=desc&per_page=5`;
+const PULLS = `${API}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=30`;
+const RULESETS = `${API}/rulesets?per_page=100`;
+/** How the stub records a call: every one names the host it is for. */
+const CALL = "api --hostname github.com";
+/** The id GitHub gives its own Actions app, which reports workflow checks. */
+const ACTIONS_APP = 15_368;
 /** A repository with no ruleset, where the lint check has run on `main`. */
 const READ_ONLY_REPORTED = {
-  [`${API}/rulesets`]: [],
+  [RULESETS]: [],
   [API]: READ_ONLY_REPOSITORY,
-  [RUNS]: { total_count: 1, check_runs: [{ name: LINT_CHECK }] },
+  [RUNS]: {
+    total_count: 1,
+    check_runs: [{ name: LINT_CHECK, app: { id: ACTIONS_APP } }],
+  },
 };
 /** The same repository, where nothing has ever run. */
 const READ_ONLY_NEVER_REPORTED = {
-  [`${API}/rulesets`]: [],
+  [RULESETS]: [],
   [API]: READ_ONLY_REPOSITORY,
   [RUNS]: { total_count: 0, check_runs: [] },
   [STATUSES]: { total_count: 0, statuses: [] },
@@ -164,9 +172,9 @@ describe("built lisa controls protect with read-only credentials", () => {
         LINT_CHECK
       );
       expect(recordedGhCalls(gh)).toEqual([
-        `api ${API}/rulesets`,
-        `api ${API}`,
-        `api ${RUNS}`,
+        `${CALL} ${RULESETS}`,
+        `${CALL} ${API}`,
+        `${CALL} ${RUNS}`,
       ]);
       expect(result.requests.map(request => request.method)).toEqual([
         "GET",
@@ -195,14 +203,31 @@ describe("built lisa controls protect with read-only credentials", () => {
     ]);
     expect(result.required_checks[0]?.detail).toMatch(/^It has not run yet:/u);
     expect(recordedGhCalls(gh)).toEqual([
-      `api ${API}/rulesets`,
-      `api ${API}`,
-      `api ${RUNS}`,
-      `api ${STATUSES}`,
-      `api ${PULLS}`,
+      `${CALL} ${RULESETS}`,
+      `${CALL} ${API}`,
+      `${CALL} ${RUNS}`,
+      `${CALL} ${STATUSES}`,
+      `${CALL} ${PULLS}`,
     ]);
     expect(readFileSync(path.join(repoPath, HANDOVER), "utf8")).toContain(
       "| GitHub Actions | Not yet |"
+    );
+  });
+
+  it("names github.com in every call, though the environment points gh at another host", () => {
+    // The stub's environment sets GH_HOST to a host that does not exist, the
+    // way a machine signed in to another GitHub has it set to that one. The
+    // repository was found on github.com, so that is where every call says
+    // it is going, whatever gh would have chosen.
+    const repoPath = repository(`https://github.com/${REPO}.git`);
+    const gh = stub(READ_ONLY_NEVER_REPORTED);
+
+    protect(repoPath, gh, ["--apply"]);
+
+    const calls = recordedGhCalls(gh);
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls.filter(call => !call.startsWith(`${CALL} repos/`))).toEqual(
+      []
     );
   });
 
@@ -225,9 +250,7 @@ describe("built lisa controls protect with read-only credentials", () => {
     const repoPath = repository(`https://github.com/${REPO}.git`);
     const ruleset = statusCheckRuleset(7, "quality checks", [LINT_CHECK]);
     const gh = stub({
-      [`${API}/rulesets`]: [
-        { id: 7, name: "quality checks", target: "branch" },
-      ],
+      [RULESETS]: [{ id: 7, name: "quality checks", target: "branch" }],
       [`${API}/rulesets/7`]: ruleset,
       [API]: READ_ONLY_REPOSITORY,
     });

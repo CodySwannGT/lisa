@@ -383,7 +383,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs":
       "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "f181f4ebb932867ed2cfc2d995286fc9b9bd9bf220a93af1d1d86dc97f144edb",
+      "603aa2c9af37e8264855be7af520884001b27aa5f284f9dbb1b36cb09d51dbc1",
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
@@ -1431,7 +1431,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "4ca96036e58b3b605e14e57efa3143d5822075d90da632a48a96d316be5d852d",
+      "6deea33ab158e090006f09bccc5bd8fc57cd3abf844d08c9a88f698b2301acf9",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
@@ -11427,6 +11427,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/controls/pull-request-canaries.ts": true,
     "src/controls/pull-request-evidence.ts": true,
     "src/controls/pull-request-executor.ts": true,
+    "src/controls/pull-request-notices.ts": true,
     "src/controls/pull-request-observe.ts": true,
     "src/controls/pull-request-points.ts": true,
     "src/controls/pull-request-settle.ts": true,
@@ -12860,6 +12861,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/configs/lintstaged-matcher-ordering.test.ts": true,
     "tests/unit/controls/attest-before-enforce-command.test.ts": true,
     "tests/unit/controls/attest-before-enforce.test.ts": true,
+    "tests/unit/controls/attest-canary-notices.test.ts": true,
     "tests/unit/controls/attest-check-time.test.ts": true,
     "tests/unit/controls/attest-check.test.ts": true,
     "tests/unit/controls/attest-command.test.ts": true,
@@ -12974,12 +12976,17 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/protect-handover-secrets.test.ts": true,
     "tests/unit/controls/protect-handover.test.ts": true,
     "tests/unit/controls/protect-other-platforms.test.ts": true,
+    "tests/unit/controls/protect-pinned.test.ts": true,
+    "tests/unit/controls/protect-plan-guard.test.ts": true,
     "tests/unit/controls/protect-platform.test.ts": true,
     "tests/unit/controls/protect-read-only.test.ts": true,
+    "tests/unit/controls/protect-reads.test.ts": true,
+    "tests/unit/controls/protect-reported-source.test.ts": true,
     "tests/unit/controls/protect-reported.test.ts": true,
     "tests/unit/controls/protect-requests.test.ts": true,
     "tests/unit/controls/pull-request-canaries.test.ts": true,
     "tests/unit/controls/pull-request-canary-cleanup.test.ts": true,
+    "tests/unit/controls/pull-request-canary-draft.test.ts": true,
     "tests/unit/controls/pull-request-canary-guards.test.ts": true,
     "tests/unit/controls/pull-request-evidence.test.ts": true,
     "tests/unit/controls/pull-request-observed.test.ts": true,

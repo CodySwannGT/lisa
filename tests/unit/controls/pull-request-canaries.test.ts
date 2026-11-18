@@ -7,6 +7,10 @@
  * removes them. It never merges one. Every case here runs against a platform
  * that lives in memory and could be merged into, so finding the default
  * branch where it was shows something.
+ *
+ * That a canary is only ever a draft, and what happens when something on
+ * the platform merges one all the same, is in
+ * `./pull-request-canary-draft.test.ts`.
  * @module tests/unit/controls/pull-request-canaries
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -160,13 +164,15 @@ describe("a pull-request entry exercised with canaries", () => {
       `POST ${BASE}/pulls`,
       `GET ${BASE}/pulls/${String(pull)}`,
       `GET ${BASE}/commits/<sha>/check-runs?per_page=100&page=1`,
+      // Whether it was merged, asked before it is closed.
+      `GET ${BASE}/pulls/${String(pull)}`,
       `PATCH ${BASE}/pulls/${String(pull)}`,
       `DELETE ${BASE}/git/refs/heads/${branch}`,
     ];
     const [violation, clean] = settled.pullRequest?.canaries ?? [];
     expect(platform.log.map(line)).toEqual([
       // Reading the merge-protection settings, as the default does.
-      `GET ${BASE}/rulesets`,
+      `GET ${BASE}/rulesets?per_page=100`,
       `GET ${BASE}/rulesets/1`,
       `GET ${BASE}`,
       // Whether the account may write.
@@ -236,20 +242,6 @@ describe("a pull-request entry exercised with canaries", () => {
       "timed-out",
     ]);
     expect(entry.detail).toContain("after 3 seconds");
-    expectNothingLeft(platform);
-  });
-
-  it("opens an ordinary pull request where the repository is not offered drafts", async () => {
-    const platform = canaryPlatform({ drafts: false });
-
-    const settled = await settleWithCanaries(PULL_ONLY_GATES, platform);
-
-    expect(settled.pullRequest?.canaries.map(canary => canary.draft)).toEqual([
-      false,
-      false,
-    ]);
-    expect(entryOf(settled, PULL_ONLY_ENTRY).outcome).toBe("passed");
-    expectNoMerge(platform.log);
     expectNothingLeft(platform);
   });
 });

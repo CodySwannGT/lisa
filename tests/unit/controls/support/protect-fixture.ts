@@ -26,6 +26,7 @@ import {
 } from "../../../helpers/control-audit-fixtures.js";
 import {
   F_MIXED_GATES,
+  F_PAVED_GATES,
   configFile,
   type GatesBlock,
 } from "../../../helpers/control-register.js";
@@ -39,6 +40,56 @@ export const GITHUB_REMOTE = `https://github.com/${REPO}.git`;
 
 /** The check the F-mixed declaration derives for a pull request. */
 export const LINT_CHECK = "🔍 Quality Checks / 🧹 Lint";
+
+/** The check the paved-road declaration awaits from another app. */
+export const REVIEW_CHECK = "Review Bot";
+
+/**
+ * The paved-road declaration, awaiting its review check from any source: the
+ * gate names the check and no app that has to report it.
+ */
+export const AWAITED_FROM_ANYONE: GatesBlock = {
+  ...F_PAVED_GATES,
+  "code-review": {
+    "pull-request": { level: "required", await: REVIEW_CHECK },
+  },
+};
+
+/** One check a write asked the platform to require. */
+export interface SentCheck {
+  readonly context: string;
+  /** The app it is pinned to; absent when any source may report it. */
+  readonly integration_id?: number;
+}
+
+/**
+ * The checks every write asked the platform to require.
+ * @param github - The in-memory platform
+ * @returns The checks in each write, in order; nothing when none was sent
+ */
+export function sentChecks(github: FakeGithub): readonly SentCheck[] {
+  return github.writes().flatMap(write => {
+    const body = write.body as {
+      readonly rules: readonly {
+        readonly parameters?: {
+          readonly required_status_checks?: readonly SentCheck[];
+        };
+      }[];
+    };
+    return body.rules.flatMap(
+      rule => rule.parameters?.required_status_checks ?? []
+    );
+  });
+}
+
+/**
+ * The check names every write asked the platform to require.
+ * @param github - The in-memory platform
+ * @returns The names, in order; nothing when no write was sent
+ */
+export function sentAsRequired(github: FakeGithub): readonly string[] {
+  return sentChecks(github).map(check => check.context);
+}
 
 /** A workflow file, so the repository has something that can report a check. */
 const WORKFLOW_FILES = {
