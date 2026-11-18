@@ -2651,7 +2651,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-security-floors.mjs":
       "a1abe6d2cbbef9243b9687c73d5c4497c069bc8d714e34be7375805fadbc4721",
     "scripts/check-self-dependency-pin.mjs":
-      "accff490dbf6ef4cb4fee6f14386edd969de04f5e9f2dbc2ace00a2a5b740ba2",
+      "05a9615d87084232af7fc816e971d9cf3fe9822511436d1eff670aebf2ed8e07",
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "82bc9fbd7537cfc30d359d75e4ce86efbcea6455d4854c8d1273a445feae253c",
     "scripts/check-shipped-surface-removals.mjs":
@@ -2996,6 +2996,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2227b32f3b3dc2dc6817a60b4998b64881c03e30ecd15cb52b6d6f95a5870613",
     "scripts/verify-rails-tooling.rb":
       "5e7a52c1929c9eba873d2fc1f0baa1cc684e9913d4b27c5c42819bb1ac0539cf",
+    "scripts/verify-self-pin-raise.mjs":
+      "7c53f7e1a1c39849b857d866604df0175cf4f15ff0d0dd2e740a004ef2a1b8ce",
     "scripts/workflow-contract-assertion.sh":
       "191b5e766e1defb3bee3befbc8354abd9a46d3989eede7a420cd8893885df137",
     "tsconfig/base.json":
@@ -10881,6 +10883,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/verify-packaged-apply.mjs": true,
     "scripts/verify-packed-learnings-contract.mjs": true,
     "scripts/verify-rails-tooling.rb": true,
+    "scripts/verify-self-pin-raise.mjs": true,
     "scripts/workflow-contract-assertion.sh": true,
     "sgconfig.yml": true,
     "shipped-removals.json": true,
@@ -13299,6 +13302,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/vendored-script-defects.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
+    "tests/unit/scripts/verify-self-pin-raise.test.ts": true,
     "tests/unit/scripts/windows-process-job.test.ts": true,
     "tests/unit/scripts/work-item-accepted-proof.test.ts": true,
     "tests/unit/scripts/work-item-amended-merge-exemption.test.ts": true,

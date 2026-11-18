@@ -220,9 +220,12 @@ describe("the self-dependency pin cannot rot unobserved (#3768)", () => {
     it("names the release job that fixes it, not a manual step (#4951)", async () => {
       const run = await runCli(ROTTED_FLOOR);
 
-      expect(run.stderr).toContain("raise_self_pin");
+      expect(run.stderr).toContain("prepare_self_pin_raise");
+      expect(run.stderr).toContain("push_self_pin_raise");
       expect(run.stderr).toContain("scripts/raise-self-dependency-pin.mjs");
-      expect(run.stderr).toContain(`not landed for ${PUBLISHED_NOW}`);
+      expect(run.stderr).toMatch(
+        new RegExp(`not landed for\\s+${PUBLISHED_NOW.replaceAll(".", "\\.")}`)
+      );
       expect(run.stderr).not.toMatch(/by hand/i);
     });
 

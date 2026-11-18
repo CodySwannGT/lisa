@@ -14,8 +14,8 @@
  * repository whose pin no automation corrected was the one that ships the
  * automation.** The correction now lives on the release path instead:
  * `scripts/raise-self-dependency-pin.mjs`, run by the deploy workflow's
- * `raise_self_pin` job after every publish (#4951). This check is what proves
- * that job did its work.
+ * `prepare_self_pin_raise` and `push_self_pin_raise` jobs after every publish
+ * (#4951). This check is what proves those jobs did their work.
  *
  * The result was measured twice. #2279 (2026-08-04) moved the floor to
  * `^2.328.0` because it was 130 releases behind. #3662 (2026-09-03) moved it
@@ -353,10 +353,11 @@ function failureReport(outcome, registry) {
       `   Compared against ${registry} — NOT the session plugin cache and NOT\n` +
       `   the marketplace clone, both of which can name a different version.\n` +
       `   The release raises this pin itself: the Release and Deploy workflow's\n` +
-      `   raise_self_pin job runs scripts/raise-self-dependency-pin.mjs right\n` +
-      `   after the publish lands and pushes the raise to main (#4951). Red here\n` +
-      `   means that job has not landed for ${outcome.newest} yet, or it failed —\n` +
-      `   its run in that release is where the cause is. Rebase once it lands.\n`
+      `   prepare_self_pin_raise job runs scripts/raise-self-dependency-pin.mjs\n` +
+      `   right after the publish lands, and push_self_pin_raise pushes the raise\n` +
+      `   to main (#4951). Red here means those jobs have not landed for\n` +
+      `   ${outcome.newest} yet, or one failed — its run in that release is where\n` +
+      `   the cause is. Rebase once it lands.\n`
     );
   }
   return (

@@ -126,36 +126,108 @@ describe("the self-pin drift check is wired where it blocks (#3768)", () => {
 /** The workflow whose release job owns the self-pin raise. */
 const DEPLOY_WORKFLOW = ".github/workflows/deploy.yml";
 
+/** One deploy-workflow step, with the inputs and env this test reads. */
+interface DeployStep extends Step {
+  /** The action the step uses, when it uses one. */
+  readonly uses?: string;
+  /** The action's inputs. */
+  readonly with?: Record<string, string | number | boolean>;
+  /** The step's environment. */
+  readonly env?: Record<string, string>;
+  /** The step's run condition. */
+  readonly if?: string;
+}
+
 /** One deploy-workflow job, as far as the raise wiring needs to see it. */
-interface DeployJob extends Job {
+interface DeployJob {
   /** Jobs this one waits for. */
   readonly needs?: readonly string[];
   /** The job's run condition. */
   readonly if?: string;
-  /** Steps, with the action inputs the checkout carries. */
-  readonly steps?: readonly (Step & {
-    readonly uses?: string;
-    readonly with?: Record<string, string>;
-    readonly if?: string;
-  })[];
+  /** The job's environment. */
+  readonly env?: Record<string, string>;
+  /** The job's steps. */
+  readonly steps?: readonly DeployStep[];
 }
 
+/** The job that computes and proves the raise, holding no secret. */
+const PREPARE_JOB = "prepare_self_pin_raise";
+
+/** The job that pushes the raise with the deploy key. */
+const PUSH_JOB = "push_self_pin_raise";
+
+/** The only secret reference either job may carry, and only in one place. */
+const DEPLOY_KEY = "${{ secrets.DEPLOY_KEY }}";
+
 /**
- * The deploy workflow's raise job.
+ * One job of the deploy workflow.
+ * @param name - The job id.
  * @returns The job definition.
  */
-function raiseJob(): DeployJob {
+function deployJob(name: string): DeployJob {
   const workflow = loadYaml(
     readFileSync(path.join(ROOT, DEPLOY_WORKFLOW), "utf8")
   ) as { jobs: Record<string, DeployJob> };
-  const job = workflow.jobs.raise_self_pin;
-  expect(job, `${DEPLOY_WORKFLOW} has no raise_self_pin job`).toBeDefined();
+  const job = workflow.jobs[name];
+  expect(job, `${DEPLOY_WORKFLOW} has no ${name} job`).toBeDefined();
   return job as DeployJob;
 }
 
+/**
+ * The `run:` bodies of a job's steps, in order.
+ * @param name - The job id.
+ * @returns One string per step, empty for action steps.
+ */
+function runs(name: string): readonly string[] {
+  return (deployJob(name).steps ?? []).map(step => step.run ?? "");
+}
+
+/**
+ * Index of the first step whose `run:` contains the text.
+ * @param name - The job id.
+ * @param text - The text to find.
+ * @returns The step index, or -1.
+ */
+function stepIndex(name: string, text: string): number {
+  return runs(name).findIndex(run => run.includes(text));
+}
+
+/**
+ * Every place a job mentions a secret, as `step-index:field` strings.
+ * @param name - The job id.
+ * @returns Where secrets are referenced.
+ */
+function secretReferences(name: string): readonly string[] {
+  const job = deployJob(name);
+  const jobLevel = Object.values(job.env ?? {}).some(value =>
+    value.includes("secrets.")
+  )
+    ? ["job:env"]
+    : [];
+  const stepLevel = (job.steps ?? []).flatMap((step, index) =>
+    JSON.stringify({ with: step.with, env: step.env, run: step.run }).includes(
+      "secrets."
+    )
+      ? [`${index}`]
+      : []
+  );
+  return [...jobLevel, ...stepLevel];
+}
+
+/**
+ * The `actions/checkout` steps of a job.
+ * @param name - The job id.
+ * @returns Every checkout step in that job.
+ */
+function checkouts(name: string): readonly DeployStep[] {
+  return (deployJob(name).steps ?? []).filter(step =>
+    (step.uses ?? "").startsWith("actions/checkout@")
+  );
+}
+
 describe("the release raises the self-pin the check guards (#4951)", () => {
-  it("runs only after a successful npm publish on main", () => {
-    const job = raiseJob();
+  it("prepares only after a successful npm publish on main", () => {
+    const job = deployJob(PREPARE_JOB);
 
     expect(job.needs).toEqual(
       expect.arrayContaining(["release", "publish_npm"])
@@ -164,40 +236,86 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
     expect(job.if).toContain("== 'main'");
   });
 
-  it("raises with the published version and proves the check before pushing", () => {
-    const runs = (raiseJob().steps ?? []).map(step => step.run ?? "");
-    const raise = runs.findIndex(run =>
-      run.includes('scripts/raise-self-dependency-pin.mjs --version "$VERSION"')
+  it("waits for npm, raises, then proves the lockfile, check, types and audit", () => {
+    const landed = stepIndex(
+      PREPARE_JOB,
+      "scripts/check-npm-publish-landed.mjs"
     );
-    const prove = runs.findIndex(run => run.includes(`bun run ${SCRIPT_TASK}`));
-    const push = runs.findIndex(run =>
-      run.includes("git push origin HEAD:main")
+    const raise = stepIndex(
+      PREPARE_JOB,
+      'scripts/raise-self-dependency-pin.mjs --version "$VERSION"'
     );
-
-    expect(raise).toBeGreaterThanOrEqual(0);
-    expect(prove).toBeGreaterThan(raise);
-    expect(push).toBeGreaterThan(prove);
-    expect(runs[prove]).toContain("bun install --frozen-lockfile");
-  });
-
-  it("pushes with the deploy key the rulesets already let bypass", () => {
-    const checkout = (raiseJob().steps ?? []).find(step =>
-      (step.uses ?? "").startsWith("actions/checkout@")
-    );
-
-    expect(checkout?.with?.["ssh-key"]).toBe("${{ secrets.DEPLOY_KEY }}");
-  });
-
-  it("waits for npm to serve the version before re-resolving the lockfile", () => {
-    const runs = (raiseJob().steps ?? []).map(step => step.run ?? "");
-    const landed = runs.findIndex(run =>
-      run.includes("scripts/check-npm-publish-landed.mjs")
-    );
-    const raise = runs.findIndex(run =>
-      run.includes("scripts/raise-self-dependency-pin.mjs")
-    );
+    const prove = stepIndex(PREPARE_JOB, `bun run ${SCRIPT_TASK}`);
+    const proof = runs(PREPARE_JOB)[prove] ?? "";
 
     expect(landed).toBeGreaterThanOrEqual(0);
-    expect(landed).toBeLessThan(raise);
+    expect(raise).toBeGreaterThan(landed);
+    expect(prove).toBeGreaterThan(raise);
+    expect(proof).toContain("bun install --ignore-scripts --frozen-lockfile");
+    expect(proof).toContain("bun run typecheck");
+    expect(proof).toContain("bun run security:audit");
+  });
+
+  it("never runs a lifecycle script during the install", () => {
+    const installs = runs(PREPARE_JOB)
+      .flatMap(run => run.split("\n"))
+      .map(line => line.trim())
+      .filter(line => line.startsWith("bun install"));
+
+    expect(installs.length).toBeGreaterThan(0);
+    installs.forEach(line => expect(line).toContain("--ignore-scripts"));
+  });
+
+  it("holds no secret and persists no credential while dependency code runs", () => {
+    expect(secretReferences(PREPARE_JOB)).toEqual([]);
+    expect(checkouts(PREPARE_JOB)).not.toHaveLength(0);
+    checkouts(PREPARE_JOB).forEach(step => {
+      expect(step.with?.["persist-credentials"]).toBe(false);
+      expect(step.with?.["ssh-key"]).toBeUndefined();
+    });
+  });
+
+  it("refuses to hand over anything but package.json and bun.lock", () => {
+    const guard = stepIndex(PREPARE_JOB, "git status --porcelain");
+    const upload = (deployJob(PREPARE_JOB).steps ?? []).findIndex(step =>
+      (step.uses ?? "").startsWith("actions/upload-artifact@")
+    );
+
+    expect(guard).toBeGreaterThan(
+      stepIndex(PREPARE_JOB, `bun run ${SCRIPT_TASK}`)
+    );
+    expect(upload).toBeGreaterThan(guard);
+    expect(
+      String(deployJob(PREPARE_JOB).steps?.[upload]?.with?.path)
+        .trim()
+        .split(/\s+/)
+        .sort((left, right) => left.localeCompare(right))
+    ).toEqual(["bun.lock", "package.json"]);
+  });
+
+  it("pushes from a job that installs nothing and runs no dependency code", () => {
+    const pushRuns = runs(PUSH_JOB).join("\n");
+
+    expect(deployJob(PUSH_JOB).needs).toContain(PREPARE_JOB);
+    // A package-manager COMMAND, not the word inside `bun.lock`.
+    expect(pushRuns).not.toMatch(/(?:^|[\s;&|(])(?:bun|npm|npx|yarn|pnpm)\s/m);
+    expect(pushRuns).toContain("scripts/verify-self-pin-raise.mjs");
+    checkouts(PUSH_JOB).forEach(step => {
+      expect(step.with?.["persist-credentials"]).toBe(false);
+      expect(step.with?.["ssh-key"]).toBeUndefined();
+    });
+  });
+
+  it("loads the deploy key only in the final push step, after the proof", () => {
+    const steps = deployJob(PUSH_JOB).steps ?? [];
+    const last = steps.length - 1;
+    const verify = stepIndex(PUSH_JOB, "scripts/verify-self-pin-raise.mjs");
+
+    expect(secretReferences(PUSH_JOB)).toEqual([`${last}`]);
+    expect(steps[last]?.env?.DEPLOY_KEY).toBe(DEPLOY_KEY);
+    expect(steps[last]?.run).toContain("HEAD:main");
+    expect(verify).toBeGreaterThanOrEqual(0);
+    expect(verify).toBeLessThan(last);
+    expect(runs(PUSH_JOB)[verify]).toContain("git status --porcelain");
   });
 });
