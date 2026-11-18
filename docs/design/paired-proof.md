@@ -8,7 +8,7 @@ what the check did with each.
 ```
 lisa controls attest [path]                               # a table
 lisa controls attest [path] --json                        # one JSON document
-lisa controls attest [path] --workspace <folder> [--json] # in a copy you made
+lisa controls attest [path] --workspace <folder> [--json] # report only, in a copy you made
 lisa controls attest ... --pull-request-canaries          # exercise pull-request controls
 lisa controls attest ... --acknowledge-external-effects   # run proofs that reach outside
 ```
@@ -105,6 +105,11 @@ result is the one reported. No file is touched for an entry settled here.
 | Does the proof stay inside the repository, or has reaching outside been agreed to? | `unknown` | `external-effects`, quoting `proof.external_effects` |
 | Are both patch files there? | `unproved` when one is missing; otherwise `unknown` when one is there and is a link | `half-missing`, `patch-unreadable` |
 
+One more question is asked of an entry that gets this far, after its changes
+have been planted and before any check is started: does either change edit
+what the check is? If so the entry is `unknown` (`declaration-changed`). See
+"A proof never changes what the check is" below.
+
 A proof stands for one moment: the entry's first enforcement point at commit
 or push. An entry enforced only on pull requests is not settled by the
 runner. Whether a pull request is stopped is decided by the hosting platform,
@@ -113,6 +118,36 @@ and the next section says how that is asked.
 A proof that declares `proof.external_effects` runs only when the operator
 passes `--acknowledge-external-effects`. Without it the entry is `unknown`
 and the declared effect is quoted, at commit, at push and for a canary alike.
+
+## A proof never changes what the check is
+
+A paired proof shows that a check turns away a change that breaks its rule.
+It shows nothing when the "violating change" rewrites the check instead. A
+patch that edits `.lisa.config.json` can swap a command that always passes
+for one that always fails. The hook then refuses the commit, the declared
+failure text is printed, the clean change goes through, and a check that
+enforces nothing would read as proved.
+
+So a pair is not run when either of its changes touches one of the files
+that say what the checks are, or run them:
+
+- `.lisa.config.json`;
+- `.lisa/controls/carriers.json` and every file it lists;
+- anything under `.lisa/hooks/`;
+- the gate runner and every file it loads, under `scripts/`.
+
+The entry is `unknown` with the reason `declaration-changed`, its sentence
+names the change and the file, and no check is started for it. Both changes
+are looked at before either check is started: each is planted and staged in
+the disposable copy, git is asked which paths it touches, and it is taken
+back out. Git is asked, and the patch's own text is not parsed, because git
+is what applies it: a rename's old name and a deleted file are in its answer.
+
+This is one rule in one place (`src/controls/proof-change-rule.ts`), and
+`lisa controls proof-check` holds a pair to the same one with the same
+reason. It covers the files above and no others. A change to the checked
+tool's own configuration, such as a linter's rule file, is for all it can
+tell a change the linter is there to judge.
 
 ## The pull-request moment
 
@@ -390,7 +425,8 @@ read. If it cannot be taken back out, every later half is reported
 vouch for proves nothing.
 
 There are two workspaces. Which one a run gets depends only on whether
-`--workspace` was given.
+`--workspace` was given. Only a run in the first one is a proof and writes
+its results down. A run in the second is a report.
 
 ### The disposable copy (no `--workspace`)
 
@@ -469,14 +505,37 @@ running returns, which is no later than that half's time limit; Ctrl-C at a
 terminal reaches the check as well, so the folder goes at once. A process
 killed outright (`SIGKILL`) cannot remove anything.
 
-### A folder the operator names (`--workspace`)
+### A folder the operator names (`--workspace`): a report, not a proof
 
 This workspace works in a copy somebody else made. It plants a change with
 `git apply`, starts the entry's own command in the entry's own folder, and
 takes the change back out with the reverse of the same patch. It makes no
 commit and needs no carrier, so it shows that the check works and says
-nothing about whether anything runs it. The command refuses a folder that is
-the repository, is a link to it, or holds it.
+nothing about whether anything runs it. A repository with no hook installed
+at all gets the same answers.
+
+**So a run with `--workspace` writes nothing.** It prints the same table or
+JSON document, then one line on standard error that begins
+`attest: REPORT ONLY.` and says that no evidence, no register and no verdict
+was written. Written down, its answers would read as exercised evidence at
+the commit moment and make a requirement conforming, which is the different
+proof under the same name that the disposable copy refuses to fall back to.
+It cannot raise the rung of any requirement, and it leaves whatever an
+earlier run recorded exactly as it was. Its exit code says what the checks
+did, as without the option: 0 when every entry passed, 1 when one did not,
+2 when nothing was run.
+
+What it is for: seeing what a check's own command does with the two changes
+in a copy that has what the command needs, such as installed dependencies or
+built output, which the disposable copy does not have (see the shared limit
+under "How it is held to `attest`"). Proving a check that needs those is not
+possible in this release. It is tracked as CodySwannGT/lisa#5012, and until
+then such a check's requirement reads `unknown`, never conforming on the
+strength of a `--workspace` run.
+
+The command refuses a folder that is the repository, is a link to it, holds
+it, or is inside it. A folder inside the repository is part of the
+operator's own working tree, and so is everything planted in it.
 
 **A patch cannot write outside the workspace.** `git apply` refuses a path
 that climbs out of the folder, a path into `.git`, and a path through a link,
@@ -499,6 +558,12 @@ Per half that was run: `entry_id`, `half` (`violation` or `clean`), `moment`,
 `command` (the argument list, or `null` when no check was started),
 `exit_status`, `started_at`, `completed_at`, `output_excerpt`,
 `output_truncated`, `matched_lines`, `outcome`, `reason`, `detail`.
+
+`output_excerpt` is the last 4000 characters of what the check printed, and
+`matched_lines` the lines that carried the failure text. Every value shaped
+like a credential is taken out of the whole output before it is cut, so a
+cut cannot leave part of one behind; see
+[secret values](secret-values.md).
 
 A canary half has the same keys. Its `moment` is `pull-request`, its
 `command` and `exit_status` are `null`, and its `output_excerpt` holds what
@@ -556,8 +621,9 @@ When the proofs have run (exit 0 or 1), the command writes three files in the
 repository: the evidence, the control register and the verdict. What they
 hold, and how `lisa controls attest --check` holds them to each other, is in
 [evidence and verdict](evidence-and-verdict.md). When no proof was run
-(exit 2), it writes nothing. Nothing else in the repository is changed: the
-changes are planted in the disposable copy only.
+(exit 2), it writes nothing. With `--workspace` it writes nothing whatever
+the exit code: that run is a report. Nothing else in the repository is
+changed: the changes are planted in the disposable copy only.
 
 A result at the `observed` rung is never `passed`, so a register with an
 entry enforced only on pull requests exits 1 unless that entry was exercised
@@ -590,8 +656,9 @@ order and stops at the first problem:
    never count a rejection.
 3. Does each change apply to the last commit?
 4. Does each change touch a file inside the part's own folder? A change that
-   edits `.lisa.config.json`, or that leaves nothing git would commit, is
-   turned away at the same point.
+   edits a file that says what the checks are or runs them (see "A proof
+   never changes what the check is"), or that leaves nothing git would
+   commit, is turned away at the same point.
 5. Started on the violating change, does the part's own command fail and
    print the declared failure text? Started on the clean change, does it
    pass, without printing that text?
@@ -668,6 +735,14 @@ no proof for those.
 commands on the same repositories. A pair `proof-check` calls `ready` is one
 `attest` then passes through a real commit or push with the carriers
 installed in its copy; a pair it refuses is one `attest` does not pass.
+
+One of its cases is the pair this would otherwise be weakest against: a
+check that lets everything through, with a "violating change" that edits
+`.lisa.config.json` to swap its command for one that fails. `proof-check`
+reads `not-ready` with `declaration-changed`; `attest` settles the entry
+`unknown` with the same reason, exits 1, and the requirement the check
+serves reads `unknown` in the verdict it writes. The two commands reach that
+answer through the same function.
 
 The two differ on purpose in three places:
 

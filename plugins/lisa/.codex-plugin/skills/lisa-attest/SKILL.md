@@ -118,6 +118,15 @@ work, and what was already changed before this run.
    Keep the list it prints. If it lists anything, tell the operator now that the proofs run
    against the last commit and not against uncommitted work.
 
+   Look in that list for the files that define the checks: `.lisa.config.json`, anything under
+   `.lisa/controls/proofs/` or `.lisa/hooks/`, `.lisa/controls/carriers.json`, and
+   `scripts/lisa-run-gates.mjs` with the files beside it. The proofs do use those as they are on
+   disk, but the evidence names the last commit, which does not hold them yet. If any is listed,
+   tell the operator this before going on: once those files are committed, the check of step 5
+   will find that the checks changed after the recorded commit and will no longer pass for anyone,
+   and the way to avoid that is for the operator to commit those files first and start this step
+   again. Then go on with whichever the operator chooses. You still commit nothing yourself.
+
 For a before-enforce run, go from here to "The before-enforce run".
 
 ### Step 2: Run the proofs
@@ -258,13 +267,15 @@ lisa controls attest --check
 ```
 
 It runs no proof and writes nothing. It computes the verdict again from the register and the
-evidence, at the current time, and compares it with the file.
+evidence, at the current time, and compares it with the file. It also names the commit the proofs
+were run against, and compares the files that define the checks at that commit with the same
+files at the commit the repository is at now.
 
 | Exit | Meaning | What you do |
 | --- | --- | --- |
-| 0 | The verdict file is exactly what the register and the evidence give today. | Go on to step 6. |
-| 1 | The files do not agree, or the evidence has gone out of date. Each line printed is one difference. | **Present no verdict.** Run step 2 again, once, then this step again. If it still differs, stop and tell the operator the files do not agree and what the differences are. |
-| 2 | Nothing could be compared. | **Present no verdict.** Tell the operator why. |
+| 0 | The verdict file is exactly what the register and the evidence give today, and the files that define the checks are as they were at the commit the evidence names. | Go on to step 6. |
+| 1 | The files do not agree, the evidence has gone out of date, or a file that defines the checks has changed since the commit the evidence names. Each line printed is one difference. | **Present no verdict.** Run step 2 again, once, then this step again. If it still differs, stop and tell the operator the files do not agree and what the differences are. |
+| 2 | Nothing could be compared. That includes a clone that does not have the commit the evidence names, such as a shallow clone: the line printed says so and how to fetch the history. | **Present no verdict.** Tell the operator why. |
 
 Exit 0 means the verdict is authentic and current. It does **not** mean Level 1 is met: a verdict
 that says "not met" passes this check too.
@@ -352,6 +363,10 @@ Otherwise, in plain language, for someone who does not code:
    - A check that runs before a merge on a platform other than GitHub stays unproved in this
      release: nothing can try it there yet, so its mark does not clear.
    - The proofs ran against the last commit, not against uncommitted work.
+   - The files that define the checks were not committed when the proofs ran (step 1 found them
+     in the list). The verdict stands in this checkout as it is now. After those files are
+     committed, the check of step 5 no longer passes, and this step has to be run again and its
+     three files committed again before someone else can check the verdict.
    - The check in step 5 shows that the three files agree with each other today. It is local and
      unsigned, so it cannot show they were not rewritten together by someone who changed all
      three consistently. Version history, or running the proofs again at the recorded commit,

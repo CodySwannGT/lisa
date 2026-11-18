@@ -15,7 +15,7 @@
  * @module controls/evidence-document
  */
 import { isJsonObject } from "../sync/json-path.js";
-import { canonicalize, compareCodeUnits } from "./canonical-json.js";
+import { canonicalFileText, compareCodeUnits } from "./canonical-json.js";
 import { CRITERION_ID_SOURCE } from "./catalogue.js";
 import { EVIDENCE_PATH, isCanonicalUtc } from "./evidence.js";
 import {
@@ -363,5 +363,5 @@ export function evidenceDocumentOf(
  * @returns The file content
  */
 export function serializeEvidence(document: EvidenceDocument): string {
-  return `${JSON.stringify(canonicalize(document), null, 2)}\n`;
+  return canonicalFileText(document);
 }

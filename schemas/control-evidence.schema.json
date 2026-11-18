@@ -97,7 +97,7 @@
               "type": "null"
             }
           ],
-          "description": "The commit the repository's HEAD was at when the record was made, or `null` when the repository has no commit or is not a git repository."
+          "description": "The commit the result is about: the one the attest run's disposable copy was made from. A record written when nothing was cloned names the commit the repository was at. `null` when the repository has no commit or is not a git repository."
         },
         "completed_at": {
           "$ref": "#/$defs/utc_time",
@@ -237,7 +237,7 @@
               "type": "null"
             }
           ],
-          "description": "The commit the repository's HEAD was at when the record was made, or `null` when the repository has no commit or is not a git repository."
+          "description": "The commit the result is about: the one the attest run's disposable copy was made from. A record written when nothing was cloned names the commit the repository was at. `null` when the repository has no commit or is not a git repository."
         },
         "completed_at": {
           "$ref": "#/$defs/utc_time",
@@ -370,7 +370,7 @@
               "type": "null"
             }
           ],
-          "description": "The commit the repository's HEAD was at when the record was made, or `null` when the repository has no commit or is not a git repository."
+          "description": "The commit the result is about: the one the attest run's disposable copy was made from. A record written when nothing was cloned names the commit the repository was at. `null` when the repository has no commit or is not a git repository."
         },
         "completed_at": {
           "$ref": "#/$defs/utc_time",

@@ -81,6 +81,25 @@ export const CREDENTIAL_SHAPES: readonly CredentialShape[] = Object.freeze([
 ]);
 
 /**
+ * The last line of a private key.
+ *
+ * {@link CREDENTIAL_SHAPES} finds a key by the line that starts it. Output a
+ * program printed can reach the scan with that line already gone, because
+ * only the end of a long output is kept, and then the key's body and its
+ * last line are all that is left. The scan finds those by this line; see
+ * `./secret-scan.ts`.
+ *
+ * It is not in {@link CREDENTIAL_SHAPES}, which restates the repository's
+ * shipped list entry for entry: text that starts part-way through a key is a
+ * thing that happens to captured output, and the shipped list is used on
+ * text that was never cut.
+ */
+export const PRIVATE_KEY_LAST_LINE = /-----END (?:[A-Z]+ )*PRIVATE KEY-----/gu;
+
+/** A placeholder, wherever one stands in a piece of text. */
+const PLACEHOLDER = /\[REDACTED:([A-Z_]+)\]/gu;
+
+/**
  * What each kind is called in a sentence an operator reads. Every kind a
  * scan can report is here; a suite fails when one is missing.
  */
@@ -122,4 +141,26 @@ export function describeCredentialKind(kind: string): string {
  */
 export function credentialPlaceholder(kind: string): string {
   return `[REDACTED:${kind}]`;
+}
+
+/**
+ * Say what the placeholders in a piece of text stand for.
+ *
+ * Text that has already had its values taken out no longer shows a scan
+ * what was there. Its placeholders still do.
+ * @param text - Text a value may already have been taken out of
+ * @returns Each kind a placeholder names, once, in the order found; only
+ *   kinds a scan can report
+ */
+export function placeholderKinds(text: string): readonly string[] {
+  return [
+    ...new Set(
+      [...text.matchAll(PLACEHOLDER)].flatMap(match => {
+        const kind = match[1];
+        return kind !== undefined && CREDENTIAL_KIND_NAMES[kind] !== undefined
+          ? [kind]
+          : [];
+      })
+    ),
+  ];
 }

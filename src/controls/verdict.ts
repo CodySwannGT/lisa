@@ -28,7 +28,7 @@
  * `conforming` or `not-applicable`. Unknown is never conforming.
  * @module controls/verdict
  */
-import { canonicalize, compareCodeUnits } from "./canonical-json.js";
+import { canonicalFileText, compareCodeUnits } from "./canonical-json.js";
 import {
   inScopeCriteria,
   type CriterionCatalogue,
@@ -365,5 +365,5 @@ export function computeVerdict(inputs: VerdictInputs): Verdict {
  * @returns The file content
  */
 export function serializeVerdict(verdict: Verdict): string {
-  return `${JSON.stringify(canonicalize(verdict), null, 2)}\n`;
+  return canonicalFileText(verdict);
 }

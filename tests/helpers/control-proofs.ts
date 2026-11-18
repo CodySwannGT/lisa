@@ -113,6 +113,31 @@ export function appendLinePatch(
 }
 
 /**
+ * A patch that replaces the whole content of a file that is already there.
+ * @param file - The file, from the repository root
+ * @param before - The file's current content
+ * @param after - What it holds once the patch is applied
+ * @returns The patch file's content
+ */
+export function replaceFilePatch(
+  file: string,
+  before: string,
+  after: string
+): string {
+  const lines = (content: string): readonly string[] =>
+    content.replace(/\n$/u, "").split("\n");
+  const [old, replaced] = [lines(before), lines(after)];
+  return [
+    `--- a/${file}`,
+    `+++ b/${file}`,
+    `@@ -1,${old.length} +1,${replaced.length} @@`,
+    ...old.map(line => `-${line}`),
+    ...replaced.map(line => `+${line}`),
+    "",
+  ].join("\n");
+}
+
+/**
  * The two patches of a proof for one fixture file.
  * @param fixture - The fixture the file belongs to
  * @param file - The file, from the repository root

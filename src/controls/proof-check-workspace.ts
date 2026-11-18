@@ -19,6 +19,10 @@
  * runner, and asks git for the staged names with the same options the runner
  * uses. So what is called "inside the folder" here is exactly what starts
  * the check there.
+ *
+ * Whether a change edits what the check is (the declaration, a hook script,
+ * the gate runner) is asked of `./proof-change-rule.ts`, the rule the attest
+ * step holds a pair to as well.
  * @module controls/proof-check-workspace
  */
 import path from "node:path";
@@ -29,29 +33,14 @@ import {
   beforeEnforceWorkspace,
   type BeforeEnforceWorkspace,
 } from "./before-enforce-workspace.js";
-import { copyGit, gitSaid } from "./proof-copy-git.js";
+import { changedCheckFile, stagedPaths } from "./proof-change-rule.js";
+import { copyGit } from "./proof-copy-git.js";
 import type { ProofCopy } from "./proof-copy.js";
 import type { ProofTools } from "./proof-tools.js";
 import { WHOLE_REPOSITORY_SCOPE } from "./register-types.js";
 
 /** The runner's module that says what a change touches. */
 const CHANGED_PATHS_FILE = path.join("lib", "changed-paths.mjs");
-
-/**
- * How the gate runner asks git for the names a commit changes: one name per
- * NUL, a rename as a removal and an arrival, and a moved nested repository
- * reported whatever the project configured.
- */
-const STAGED_NAMES = [
-  "diff",
-  "--cached",
-  "--name-only",
-  "-z",
-  "--no-renames",
-  "--ignore-submodules=none",
-  "--no-ext-diff",
-  "--",
-] as const;
 
 /** The gate runner's own rules about what a change touches. */
 export interface ChangeRules {
@@ -60,16 +49,17 @@ export interface ChangeRules {
     paths: readonly string[],
     folders: readonly string[]
   ) => boolean;
-  /** The file that declares the gates, from the repository root. */
-  readonly declarationFile: string;
 }
 
 /** What a planted change is, as a commit or push hook would see it. */
 export interface PlantedChange {
   /** The paths it touches, from the repository root, in git's order. */
   readonly paths: readonly string[];
-  /** Whether it edits the file that declares the checks. */
-  readonly editsDeclaration: boolean;
+  /**
+   * The first file it edits that says what the checks are or runs them
+   * (`./proof-change-rule.ts`); `null` when it edits none.
+   */
+  readonly checkFile: string | null;
   /** Whether a commit or push of it would start the part's check. */
   readonly startsCheck: boolean;
 }
@@ -86,7 +76,6 @@ export interface ProofCheckWorkspace extends BeforeEnforceWorkspace {
 
 /** The slice of the runner's changed-paths module this module calls. */
 interface ChangedPathsModule {
-  readonly DECLARATION_FILE: string;
   readonly touchesFolder: (
     paths: readonly string[],
     folders: readonly string[]
@@ -110,7 +99,6 @@ export async function loadChangeRules(): Promise<ChangeRules> {
     pathToFileURL(path.join(path.dirname(registry), CHANGED_PATHS_FILE)).href
   )) as ChangedPathsModule;
   return {
-    declarationFile: rules.DECLARATION_FILE,
     touches: (paths, folders) => rules.touchesFolder([...paths], [...folders]),
   };
 }
@@ -156,17 +144,11 @@ export function proofCheckWorkspace(
   return {
     ...beforeEnforceWorkspace(copy, tools),
     planted: scope => {
-      const listed = inClone(STAGED_NAMES);
-      if (listed.code !== 0) {
-        throw new Error(
-          `The temporary copy could not say what a change touches, so nothing more was checked: ${gitSaid(listed)}`
-        );
-      }
-      const paths = listed.stdout.split("\0").filter(name => name !== "");
+      const paths = stagedPaths(inClone);
       const folders = folderSpellings(copy.clone, scope, tools);
       return {
         paths,
-        editsDeclaration: rules.touches(paths, [rules.declarationFile]),
+        checkFile: changedCheckFile(paths, copy.checkFiles),
         startsCheck: folders === null || rules.touches(paths, folders),
       };
     },

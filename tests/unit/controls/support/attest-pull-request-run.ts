@@ -16,6 +16,7 @@ import {
 } from "../../../../src/controls/commands/attest.js";
 import type { PullRequestDependencies } from "../../../../src/controls/pull-request-settle.js";
 import type { GatesBlock } from "../../../helpers/control-register.js";
+import { standInCopy } from "./attest-run.js";
 import { RUN_ID, fakeSignals } from "./canary-run.js";
 import { setting, steppingClock, type ProofSetting } from "./proof-run.js";
 import { GITHUB_REMOTE } from "./protect-fixture.js";
@@ -58,26 +59,26 @@ export async function attestIn(
   const signals = fakeSignals();
   const stdout: string[] = [];
   const stderr: string[] = [];
-  const code = await runAttest(
-    where.repoPath,
-    { workspace: where.workspace, ...options },
-    {
-      clock: steppingClock(start),
-      stdout: text => {
-        stdout.push(text);
-      },
-      stderr: text => {
-        stderr.push(text);
-      },
-      pullRequests: {
-        readRemoteUrl: () => Promise.resolve(GITHUB_REMOTE),
-        runId: () => RUN_ID,
-        sleep: () => Promise.resolve(),
-        signals: signals.source,
-        terminate: signals.terminate,
-        ...pullRequests,
-      },
-    }
-  );
+  // No folder is named: a run in a folder the operator named is a report
+  // and writes nothing. The case's own copy stands in for the one the
+  // command would build.
+  const code = await runAttest(where.repoPath, options, {
+    clock: steppingClock(start),
+    openWorkspace: standInCopy(where),
+    stdout: text => {
+      stdout.push(text);
+    },
+    stderr: text => {
+      stderr.push(text);
+    },
+    pullRequests: {
+      readRemoteUrl: () => Promise.resolve(GITHUB_REMOTE),
+      runId: () => RUN_ID,
+      sleep: () => Promise.resolve(),
+      signals: signals.source,
+      terminate: signals.terminate,
+      ...pullRequests,
+    },
+  });
   return { code, stdout, stderr };
 }

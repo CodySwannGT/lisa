@@ -8,6 +8,11 @@
  * whose check rejects everything or accepts everything is reported as
  * failing, and a control that works gets the same results on every run, with
  * no connection opened by anything the command starts.
+ *
+ * Every case names a copy with `--workspace`, so each check's own command is
+ * started there and the run is a report that writes nothing. What a run in
+ * the command's own copy writes is in controls-attest-verdict.test.ts and
+ * controls-attest-disposable-copy.test.ts.
  */
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -166,7 +171,7 @@ describe("built lisa controls attest in a repository without Lisa", () => {
       /^failed \(clean\) +test-correctness@\. +push /mu
     );
     expect(run.stderr).toContain(
-      "attest: FAIL. 0 of 2 entries proved: 0 passed, 2 failed, 0 unproved, 0 unknown"
+      "attest: REPORT ONLY. 0 passed, 2 failed, 0 unproved, 0 unknown."
     );
   });
 
@@ -181,7 +186,11 @@ describe("built lisa controls attest in a repository without Lisa", () => {
     );
 
     expect([first.status, second.status]).toEqual([0, 0]);
-    expect([first.stderr, second.stderr]).toEqual(["", ""]);
+    // All either run says beside its results is that it recorded nothing.
+    expect(first.stderr).toMatch(
+      /^attest: REPORT ONLY\. 1 passed, 0 failed, 0 unproved, 0 unknown\. [^\n]+\n$/u
+    );
+    expect(second.stderr).toBe(first.stderr);
     expect(documents[0]?.entries.map(entry => entry.outcome)).toEqual([
       "passed",
     ]);

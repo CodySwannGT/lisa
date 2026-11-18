@@ -17,7 +17,7 @@
  * share how a check is started and how its answer is read, and nothing
  * else, which is what makes the comparison a test.
  */
-import { mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -25,6 +25,10 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import type { ProofCheckRun } from "../../src/controls/proof-check-types.js";
 import type { ProofRun } from "../../src/controls/proof-types.js";
+import {
+  VERDICT_PATH,
+  type Verdict,
+} from "../../src/controls/verdict-types.js";
 import type { ControlAuditFixtureName } from "../helpers/control-audit-fixtures.js";
 import {
   ACCEPTS_EVERYTHING,
@@ -38,9 +42,10 @@ import {
   type ProofFiles,
   provedGates,
   REJECTS_EVERYTHING,
+  replaceFilePatch,
   WEB_SOURCE,
 } from "../helpers/control-proofs.js";
-import type { GatesBlock } from "../helpers/control-register.js";
+import { configFile, type GatesBlock } from "../helpers/control-register.js";
 import {
   boundedSpawnSync,
   useIoLatencyBudget,
@@ -65,6 +70,12 @@ const READY = "ready";
 const NOT_READY = "not-ready";
 const PASSED = "passed";
 
+/** The requirement every check in these cases serves. */
+const REQUIREMENT = "SI7";
+
+/** Why a pair is turned away when one of its changes rewrites the check. */
+const DECLARATION_CHANGED = "declaration-changed";
+
 const cleanups: (() => void)[] = [];
 
 /** What the two commands said about one repository. */
@@ -79,6 +90,10 @@ interface Compared {
   readonly attested: Readonly<Record<string, string>>;
   /** Whether `proof-check` left the repository exactly as it found it. */
   readonly untouched: boolean;
+  /** Per check: why `attest` gave its proof that result. */
+  readonly attestedBecause: Readonly<Record<string, string>>;
+  /** What the verdict `attest` wrote says of the requirement the checks serve. */
+  readonly requirement: string | undefined;
 }
 
 /**
@@ -156,6 +171,14 @@ function compare(
       attested.entries.map(entry => [entry.entry_id, entry.outcome])
     ),
     untouched,
+    attestedBecause: Object.fromEntries(
+      attested.entries.map(entry => [entry.entry_id, entry.reason])
+    ),
+    requirement: (
+      JSON.parse(
+        readFileSync(path.join(repoPath, VERDICT_PATH), "utf8")
+      ) as Verdict
+    ).criteria.find(each => each.criterion === REQUIREMENT)?.verdict,
   };
 }
 
@@ -200,6 +223,37 @@ describe("a pair proof-check calls ready", () => {
       "test-correctness@.": PASSED,
     });
     expect(held.attestCode).toBe(0);
+  });
+});
+
+describe("a pair whose violating change rewrites the check instead of breaking its rule", () => {
+  it("is refused by proof-check and settles unknown in attest, for the same reason, and the requirement is not read as met", () => {
+    // The check lets every change through, so it enforces nothing. Its
+    // "violating change" edits the file that declares it, swapping the
+    // command for one that fails with the declared failure text.
+    const enforcesNothing = provedGates([{ command: ACCEPTS_EVERYTHING }]);
+    const held = compare(
+      enforcesNothing,
+      proofFiles({
+        violation: replaceFilePatch(
+          ".lisa.config.json",
+          configFile(enforcesNothing),
+          configFile(provedGates([{ command: REJECTS_EVERYTHING }]))
+        ),
+        clean: F_NONE_PATCHES.clean,
+      })
+    );
+
+    expect(held.checked).toEqual({
+      [WHOLE_ENTRY]: [NOT_READY, DECLARATION_CHANGED],
+    });
+    expect(held.checkCode).toBe(1);
+    expect(held.attested).toEqual({ [WHOLE_ENTRY]: "unknown" });
+    expect(held.attestedBecause).toEqual({
+      [WHOLE_ENTRY]: DECLARATION_CHANGED,
+    });
+    expect(held.attestCode).toBe(1);
+    expect(held.requirement).toBe("unknown");
   });
 });
 

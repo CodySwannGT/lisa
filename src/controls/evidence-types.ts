@@ -151,7 +151,11 @@ export interface EvidenceRecord {
   readonly reason: string;
   /** The same as a sentence; on a `not-applicable` record, the fact. */
   readonly detail: string;
-  /** The repository's HEAD commit when it was recorded, or `null` when it has none. */
+  /**
+   * The commit the result is about: the one the run's disposable copy was
+   * made from. A record written when nothing was cloned names the commit
+   * the repository was at; `null` when it has none.
+   */
   readonly commit: string | null;
   /** What was started, one item per argument, or `null` when nothing was. */
   readonly command: readonly string[] | null;

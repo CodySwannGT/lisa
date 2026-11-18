@@ -30,6 +30,15 @@
  * their requirement. Records of audit findings are replaced as one set on
  * every run.
  *
+ * ## What is kept from before was written by a run
+ *
+ * The file is on disk between runs, and anyone can type into it. So an
+ * earlier record is kept only when a run could have written it: its moment
+ * is one a run writes records for, and its entry is enforced at that moment.
+ * A record that is kept is relied on for the default lifetime at most,
+ * whatever the file says. Without both, a pair typed in at a moment no run
+ * speaks for, with a year's lifetime, would outlive every real run.
+ *
  * ## Where a secret could get in
  *
  * A record keeps the end of what a check printed, and a check can print
@@ -48,6 +57,7 @@ import {
   recordWithoutSecretValues,
 } from "./evidence-redact.js";
 import {
+  DEFAULT_FRESHNESS_SECONDS,
   EVIDENCE_EXCERPT_LIMIT,
   evidenceRecordId,
   type EntryEvidenceResult,
@@ -62,14 +72,30 @@ import {
   type ProofHalfResult,
   type ProofRun,
 } from "./proof-types.js";
+import { PULL_REQUEST_MOMENT } from "./pull-request-executor.js";
 import type {
   ControlRegister,
   ControlRegisterEntry,
 } from "./register-types.js";
 
+/**
+ * The moments an attest run can write a record about a control for: the two
+ * the paired-proof runner exercises, and the one the hosting platform
+ * answers for. No step writes a record at any other moment, so a record that
+ * names another one was not written by a run.
+ */
+export const EVIDENCE_MOMENTS: readonly string[] = [
+  ...PROOF_MOMENTS,
+  PULL_REQUEST_MOMENT,
+];
+
 /** What every record of one run carries beyond its own result. */
 export interface EvidenceStamp {
-  /** The repository's HEAD commit, or `null` when it has none. */
+  /**
+   * The commit the run's results are about: the one its disposable copy
+   * was made from, or the repository's HEAD when nothing was cloned; `null`
+   * when the repository has none.
+   */
   readonly commit: string | null;
   /** How long each record may be relied on, in whole seconds. */
   readonly freshnessSeconds: number;
@@ -282,7 +308,13 @@ export function batchRecords(
 
 /**
  * Tell whether an earlier record still stands after this run.
- * @param record - A record an earlier run wrote
+ *
+ * A record is kept only when a run could have written it: it names a moment
+ * a run writes records for ({@link EVIDENCE_MOMENTS}), and its entry is
+ * enforced at that moment. Anything else was put in the file by hand. Kept
+ * without that test, a pair typed in at a moment no run ever speaks for
+ * would survive every later run and be read as a proof.
+ * @param record - A record the evidence file held before this run
  * @param register - The control register now
  * @param batches - What this run spoke for
  * @returns Whether it is kept
@@ -299,10 +331,29 @@ function stillStands(
   return (
     entry !== undefined &&
     entry.criteria.includes(record.criterion) &&
+    EVIDENCE_MOMENTS.includes(moment) &&
+    entry.enforcement_points.some(point => point.moment === moment) &&
     !batches.some(
       batch => batch.entries.includes(entryId) && batch.moments.includes(moment)
     )
   );
+}
+
+/**
+ * Hold an earlier record to the default lifetime.
+ *
+ * A run stamps its own records with the lifetime it was given. A record it
+ * only keeps was stamped by something else, and what the file says about its
+ * lifetime is taken as an upper bound and never as more than the default: a
+ * record kept from an earlier run is not relied on for longer than one this
+ * run could have written.
+ * @param record - A record that is kept
+ * @returns The record, relied on for the default lifetime at most
+ */
+function withinDefaultLifetime(record: EvidenceRecord): EvidenceRecord {
+  return record.freshness_seconds > DEFAULT_FRESHNESS_SECONDS
+    ? { ...record, freshness_seconds: DEFAULT_FRESHNESS_SECONDS }
+    : record;
 }
 
 /**
@@ -323,11 +374,13 @@ export function mergedEvidence(parts: {
 }): readonly EvidenceRecord[] {
   const written = new Set(parts.records.map(record => record.id));
   return [
-    ...parts.earlier.filter(
-      record =>
-        !written.has(record.id) &&
-        stillStands(record, parts.register, parts.batches)
-    ),
+    ...parts.earlier
+      .filter(
+        record =>
+          !written.has(record.id) &&
+          stillStands(record, parts.register, parts.batches)
+      )
+      .map(record => withinDefaultLifetime(record)),
     ...parts.records,
   ].map(record => recordWithoutSecretValues(record));
 }

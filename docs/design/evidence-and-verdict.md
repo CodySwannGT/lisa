@@ -5,9 +5,16 @@ note covers what is written down afterwards, and what an operator can show to
 someone else: one evidence file, and one verdict computed from it.
 
 ```
-lisa controls attest [path] --workspace <folder>   # prove, then write three files
-lisa controls attest [path] --check                # write nothing: is the verdict still right?
+lisa controls attest [path]           # prove, then write three files
+lisa controls attest [path] --check   # write nothing: is the verdict still right?
 ```
+
+Only a run that proves each check through a real commit or push in the
+command's own copy writes them. `lisa controls attest --workspace <folder>`
+starts each check's command directly in a folder the operator made, which
+shows that a check works and not that anything runs it. That run is a report:
+it prints its results and writes no evidence, no register and no verdict. See
+"A folder the operator names" in [paired proof](paired-proof.md).
 
 | file | what it is | who writes it |
 | --- | --- | --- |
@@ -47,7 +54,7 @@ record, because there is no requirement for it to be evidence of.
 | `result` | `held`, `failed`, `unknown`, or (audit findings only) `not-applicable`. |
 | `reason` | A short fixed word: the proof's reason, or the audit finding's state. |
 | `detail` | The same as a sentence. On a `not-applicable` record it is the fact. |
-| `commit` | The repository's HEAD commit when the record was made; `null` with no commit or no git. |
+| `commit` | The commit the proofs were run against: the one the run's disposable copy was made from. A record written when nothing was cloned names the commit the repository was at. `null` with no commit or no git. |
 | `command` | What was started, one item per argument, or `null`. |
 | `exit_status` | Its exit status, or `null`. |
 | `started_at`, `completed_at` | UTC, `YYYY-MM-DDTHH:mm:ss.sssZ`. |
@@ -125,6 +132,25 @@ Records are also removed when the register no longer holds their entry, or
 the entry no longer serves their requirement. Records of audit findings are
 replaced as one set on every run.
 
+### What is kept from before was written by a run
+
+The file is on disk between runs, and anyone can type into it. A record a
+run did not speak for is therefore kept only when a run could have written
+it:
+
+- its `moment` is one a run writes records for: `commit`, `push` or
+  `pull-request`;
+- its entry is enforced at that moment, according to the register now.
+
+Every other earlier record is removed, whatever it says. A pair typed in at
+`nightly`, or at `pull-request` for a check that does not run on pull
+requests, does not survive the next run.
+
+A record that is kept is relied on for the default lifetime at most. If the
+file gives it a longer one, the run writes it back with the default. A run
+stamps its own records with the lifetime it was given; a record it only keeps
+was stamped by something else, and that is taken as an upper bound.
+
 ### What the audit report contributes
 
 Most requirements are served by no control, so no proof can be run for them.
@@ -191,12 +217,23 @@ below it is handed the time.
 ### Output and secrets
 
 A record keeps the end of what a check printed, and a check can print
-anything, including a token it was given. `prepareEvidenceExcerpt` in
-`src/controls/evidence-write.ts` is the one place that text enters a record.
-It takes every value shaped like a credential out first and cuts afterwards,
-so a cut can never leave half of one behind. The arguments a check was
-started with, and the sentence and reason of a result, have their values
-taken out the same way. A placeholder such as `[REDACTED:GITHUB_TOKEN]`
+anything, including a token it was given. The output is cut twice on its way
+into a record, and each time every value shaped like a credential is taken
+out first and the cut is made afterwards, so a cut can never leave half of
+one behind:
+
+1. The step that ran the check takes the values out of everything the check
+   printed and keeps the last 4000 characters (`proof-half-run.ts`).
+2. `prepareEvidenceExcerpt` in `src/controls/evidence-write.ts`, the one
+   place that text enters a record, takes values out again and keeps the
+   last 1000.
+
+In the other order the first cut could fall inside a value: a private key
+would keep its body with the line that marks its start gone, and a token
+would keep its end with the prefix that makes it recognisable gone. A private
+key that reaches the scan with its first line already missing is still found
+by its last line. The arguments a check was started with, and the sentence
+and reason of a result, have their values taken out the same way. A placeholder such as `[REDACTED:GITHUB_TOKEN]`
 stands where a value was, and the attest step tells the operator which
 results it was taken out of. Nothing is refused: a run keeps its result.
 
@@ -340,8 +377,12 @@ value    = sha256(canonical({ "evidence": <evidence.json>, "register": <register
 
 `canonical` is the JSON value written with object keys in code-unit order at
 every depth, no spaces, and lists in their own order
-(`src/controls/canonical-json.ts`). Two files that hold the same values give
-the same digest however they are indented. `requirements.sha256` is the same
+(`canonicalText` in `src/controls/canonical-json.ts`). That holds whatever a
+key looks like: the text is written key by key, so a key such as `"10"`
+comes before `"9"`, as code units order them, and not after it as a
+JavaScript object would list them. Two files that hold the same values give
+the same digest however they are indented. The evidence file and the verdict
+are written with their keys in the same order (`canonicalFileText`). `requirements.sha256` is the same
 digest of the requirements catalogue the verdict was computed against.
 
 ### The order of writing
@@ -367,12 +408,62 @@ In any other order the digest would cover a register that
 | The Level 1 result | The result computed now. | `.lisa/controls/verdict.json says the Level 1 result is "conforming"; the register and the evidence give non-conforming.` |
 | Each requirement's verdict | The verdict computed now, at the current time. | `SI7: .lisa/controls/verdict.json says "conforming"; the register and the evidence give unknown. Evidence record "…" is too old to rely on: it stopped being current at …` |
 | Everything else in the verdict | The same value computed now. | `.lisa/controls/verdict.json says "current_until" is …; the register and the evidence give ….` |
+| The files that define the checks, at the commit the evidence names | The same files at the commit the repository is at. | `The evidence was recorded at commit 1a2b3c4, and this repository is now at 5d6e7f8. Between the two, a file that says what the checks are or runs them has changed: .lisa.config.json. …` |
 
 | exit | means |
 | --- | --- |
-| 0 | The committed verdict is what the register and the evidence give. This says the verdict is authentic and current, not that the result is conforming; the line it prints says which. |
+| 0 | The committed verdict is what the register and the evidence give, and the files that define the checks are as they were at the commit the evidence names. This says the verdict is authentic and current, not that the result is conforming; the line it prints says which, and names the commit. |
 | 1 | Something differs. Each difference was named. |
-| 2 | Nothing could be compared: the path is not a folder, or the gates declaration was refused. |
+| 2 | Nothing could be compared: the path is not a folder, or the gates declaration was refused. Also when the three files agree and the commit the evidence names could not be compared with this repository. |
+
+### The commit the evidence names
+
+A verdict says the checks worked when they were proved. Every record names
+the commit the proofs were run against, and the check holds the verdict to
+it (`src/controls/attest-commit-check.ts`).
+
+When the repository is at that commit, there is nothing to ask. When it is at
+another one, git is asked which of these differ between the two commits:
+
+- `.lisa.config.json`, which declares the checks;
+- everything under `.lisa/controls/proofs/`, the changes the proofs plant;
+- the hook scripts under `.lisa/hooks/`, `.lisa/controls/carriers.json` and
+  every file it lists, and the gate runner under `scripts/`.
+
+If any differs, the check exits 1 and names the files: the verdict is about
+the checks as they were. If none differs it passes, whatever else changed.
+Committing the three result files moves the repository to a new commit, and
+that alone changes none of the files above.
+
+**A commit that cannot be found is not "current".** A clone that does not
+hold the recorded commit has nothing to compare with. A shallow clone, which
+is what many pipelines check out, is one. The check says the two could not
+be compared, says how to get the history (`git fetch --unshallow`), and
+exits 2. It does not pass.
+
+**Commit the files that define the checks before proving them.** The
+disposable copy takes the declaration, the proof files and the hook files
+from the working copy as they are, committed or not, so a run in a
+repository that is still being set up proves them as they are on disk. Its
+records still name the last commit, which does not hold them. Once they are
+committed, this check finds that they changed after the recorded commit and
+fails, correctly: no commit holds what was proved. `lisa controls attest`
+says so on standard error when it takes such a file. The order that gives a
+verdict someone else can check is: commit the declaration, the proof files
+and the hook files; run `lisa controls attest`; commit the three result
+files.
+
+Three things this comparison does not see:
+
+- **A change to the checked tool's own files.** A linter's rule file, a test
+  runner's settings and the like belong to the project, and there is no list
+  of them to compare. A rule switched off in a tool's own configuration
+  after the proofs ran is not detected here. It is detected when the proofs
+  are run again.
+- **Work that is not committed.** The comparison is between two commits. A
+  declaration edited and not committed is caught by the register comparison
+  above, which reads the working copy.
+- **A record that names no commit.** There is nothing to compare.
 
 ### What each kind of edit runs into
 
@@ -385,11 +476,14 @@ In any other order the digest would cover a register that
 | lengthens a record's lifetime, or moves its time | finds the evidence digest no longer matches |
 | edits the register | finds the register differs from what the declaration and the evidence produce |
 | waits until a record's lifetime is over | finds the requirement is now `unknown` |
+| rewrites a proof's patch file, a hook script or the declaration and commits it, leaving the verdict as it was | finds that a file defining the checks differs from the commit the evidence names |
+| adds a pair of records at a moment no run covers, and then runs attest so the digest is fresh | nothing: the attest run itself removes those records before it writes (see "What is kept from before was written by a run") |
 
 ### What a local check cannot show
 
 The check shows that the three files agree with each other, with the gates
-declaration, and with the clock. It cannot show that the evidence records are
+declaration, with the clock, and with the files that define the checks at
+the recorded commit. It cannot show that the evidence records are
 what a run really produced. Someone who rewrites the evidence, the register
 and the verdict together, consistently, leaves three files that agree, and
 nothing checked on the same machine with no secret can tell that from a real
@@ -401,6 +495,9 @@ the history of the three files in version control, where a change to the
 evidence with no attest run behind it is visible; or a signature made
 somewhere the author of the change cannot reach.
 
-`commit` on a record is the HEAD commit when the run's results were written
-down. It does not say the working tree was clean. A proof run on uncommitted
-changes records the commit underneath them.
+`commit` on a record is the commit the run's disposable copy was made from.
+It is read when the copy is made and not again, so a commit the operator
+makes while the proofs are running does not change it. It does not say the
+working tree was clean. A run in a repository with uncommitted changes
+records the commit underneath them, and where those changes are to the files
+that define the checks, the section above says what follows.

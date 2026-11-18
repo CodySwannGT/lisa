@@ -13,14 +13,19 @@
  *
  * 1. **A shape only a credential has.** A provider's own prefix or
  *    structure: a private key block, a GitHub or cloud token, a signed web
- *    token, and the rest of `./secret-shapes.ts`. Found anywhere.
+ *    token, and the rest of `./secret-shapes.ts`. Found anywhere. A private
+ *    key whose first line is missing, because the text is the end of a
+ *    longer output, is found by its last line, and the lines of base64 above
+ *    that line go with it.
  * 2. **A web address that carries a user name or a password**, and the value
  *    after `Bearer` or `Basic`.
  * 3. **A long random-looking run, only beside a name that says it is a
  *    secret**: `token`, `secret`, `password`, `passphrase`, `credential`,
- *    `authorization`, `api_key`, `access_key`, `private_key`, written as
- *    `name=value`, `name: value`, `--name value`, or as the JSON key the
- *    text is the value of.
+ *    `authorization`, `api_key`, `access_key`, `account_key`, `private_key`,
+ *    written as `name=value`, `name: value`, `--name value`, or as the JSON
+ *    key the text is the value of. The run may be base64, which uses `/` and
+ *    `+`: a value is taken out whole wherever a `/` falls in it. Beside such
+ *    a name a UUID counts too, because some tokens are one.
  *
  * ## What does not count
  *
@@ -30,6 +35,9 @@
  * evidence record's id. A provider prefix followed only by lower-case words
  * and short numbers is a name, not a value (`pypi-internal-mirror-01`), and
  * so is a secret's own name (`Bearer GITHUB_TOKEN`, `${{ secrets.TOKEN }}`).
+ * A file path beside a name that says secret (`token_file=/run/secrets/key`)
+ * is a path: its folders are words, where the pieces of a base64 value
+ * change between digits, capitals and small letters every few characters.
  *
  * It is a guard for the shapes that are recognisable, not a proof that
  * nothing secret is left: a short password, or a random value with no name
@@ -48,6 +56,7 @@ import {
   CREDENTIAL_SHAPES,
   NAMED_SECRET_KIND,
   PRIVATE_KEY_KIND,
+  PRIVATE_KEY_LAST_LINE,
   URL_CREDENTIALS_KIND,
   credentialPlaceholder,
   type CredentialShape,
@@ -89,7 +98,7 @@ type Decide = (match: RegExpMatchArray, start: number) => Replacement | null;
 
 /** The names that say the value beside them is a secret. */
 const SECRET_NAME_SOURCE =
-  "authorization|passw(?:or)?d|passphrase|secret|token|credential|api[_-]?key|access[_-]?key|private[_-]?key";
+  "authorization|passw(?:or)?d|passphrase|secret|token|credential|(?:api|access|account|private)[_-]?key";
 
 /** A name that says its value is a secret, anywhere in a word. */
 const SECRET_NAME = new RegExp(SECRET_NAME_SOURCE, "iu");
@@ -101,8 +110,12 @@ const SECRET_NAME = new RegExp(SECRET_NAME_SOURCE, "iu");
  */
 const GAP = 40;
 
-/** The characters a credential's value is made of. */
-const VALUE_SOURCE = "[A-Za-z0-9+=_.~-]{16,}";
+/**
+ * The characters a credential's value is made of. `/` is one of them: base64
+ * uses it, and a value matched only up to its first `/` would be left half
+ * in the text, or not matched at all when the `/` comes early.
+ */
+const VALUE_SOURCE = "[A-Za-z0-9+/=_.~-]{16,}";
 
 /** `name=value`, `name: value` and `"name": "value"`, with an optional scheme. */
 const NAMED_VALUE = new RegExp(
@@ -135,11 +148,27 @@ const WEB_ADDRESS_USER: CredentialShape = {
 /** A whole value that is nothing but the characters a credential is made of. */
 const WHOLE_VALUE = /^[A-Za-z0-9+/=_.~-]{16,}$/u;
 
-/** A run of the characters a random token is made of. */
-const TOKEN_RUN = /[A-Za-z0-9+=]{16,}/gu;
+/** The shortest run of token characters that can count as a credential. */
+const SHORTEST_RUN = 16;
+
+/** A run of the characters a random token is made of: the base64 alphabet. */
+const TOKEN_RUN = /[A-Za-z0-9+/=]{16,}/gu;
+
+/** A UUID, the form some registries and services give a token. */
+const UUID = /\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b/iu;
 
 /** A hexadecimal number as long as the shortest common token of that form. */
 const LONG_HEXADECIMAL = /^[0-9a-f]{32,}$/iu;
+
+/** One line of a private key's body: base64 and nothing else, indented or not. */
+const KEY_BODY_LINE = /^[ \t]*[A-Za-z0-9+/=]+[ \t]*\r?$/u;
+
+/**
+ * How far above a key's last line its body is looked for, in characters. A
+ * key of the largest size in use is shorter than this, and the bound keeps
+ * the scan linear however many such lines a piece of text holds.
+ */
+const KEY_BODY_WINDOW = 16_384;
 
 /** One piece of a name: a lower-case or upper-case word, or a short number. */
 const NAME_PIECE = /^(?:[a-z]{0,15}|[A-Z]{1,15}|\d{1,4})$/u;
@@ -209,17 +238,26 @@ function looksRandom(run: string): boolean {
 }
 
 /**
- * Tell whether a value holds a long random-looking run.
+ * Tell whether a value holds a long random-looking run, or is a UUID.
  *
  * The run is looked for between separators, so a version, a date or a dotted
  * file name, which are short pieces joined together, never counts.
+ *
+ * `/` is not a separator, because base64 uses it. So that a file path does
+ * not count, a run is judged with its slashes taken out: the folders of a
+ * path are words, which stay in one class of character, and the pieces of a
+ * base64 value still change class every few characters once joined.
  * @param value - The value beside a name that says it is a secret
  * @returns Whether it does
  */
 function holdsRandomRun(value: string): boolean {
-  return (value.match(TOKEN_RUN) ?? []).some(
-    run => looksRandom(run) || isLongHexadecimal(run)
-  );
+  if (UUID.test(value)) return true;
+  return (value.match(TOKEN_RUN) ?? []).some(found => {
+    const run = found.replaceAll("/", "");
+    return (
+      run.length >= SHORTEST_RUN && (looksRandom(run) || isLongHexadecimal(run))
+    );
+  });
 }
 
 /**
@@ -332,6 +370,38 @@ function shapeDecision(shape: CredentialShape): Decide {
 }
 
 /**
+ * Decide what to take out when the last line of a private key is found with
+ * no first line before it.
+ *
+ * A whole key has already been taken out by the time this is asked, so a
+ * last line that is still there belongs to a key whose start was cut off.
+ * What is left of that key is the lines of base64 straight above it, and
+ * they go with it.
+ * @param match - The last line of a key
+ * @param start - Where it begins
+ * @returns The replacement: the key's remaining body and its last line
+ */
+function keyTail(match: RegExpMatchArray, start: number): Replacement {
+  const windowStart = Math.max(0, start - KEY_BODY_WINDOW);
+  const lines = (match.input ?? "").slice(windowStart, start).split("\n");
+  // The last piece is what stands on the key's own last line before it:
+  // nothing, or the indent of a key printed inside something else.
+  const indent = lines.at(-1) ?? "";
+  const above = indent.trim() === "" ? lines.slice(0, -1) : [];
+  const other = [...above]
+    .reverse()
+    .findIndex(line => !KEY_BODY_LINE.test(line));
+  const body = other === -1 ? above : above.slice(above.length - other);
+  const length = body.reduce((sum, line) => sum + line.length + 1, 0);
+  return {
+    start: start - length - (body.length > 0 ? indent.length : 0),
+    end: start + match[0].length,
+    kind: PRIVATE_KEY_KIND,
+    put: credentialPlaceholder(PRIVATE_KEY_KIND),
+  };
+}
+
+/**
  * Take out every run a pattern finds and a decision accepts.
  * @param state - The text so far, and the kinds already taken out
  * @param pattern - Finds candidate runs; global
@@ -403,7 +473,10 @@ export function redactCredentials(
     (state, shape) => rewrite(state, shape.re, shapeDecision(shape)),
     { text, kinds: [] }
   );
-  const schemed = rewrite(shaped, SCHEME_VALUE, (match, start) =>
+  // After the whole keys are gone: what is left of one whose first line was
+  // cut off before the text got here.
+  const untailed = rewrite(shaped, PRIVATE_KEY_LAST_LINE, keyTail);
+  const schemed = rewrite(untailed, SCHEME_VALUE, (match, start) =>
     isSchemeValue(match[1] ?? "")
       ? lastGroup(match, start, AUTHORIZATION_KIND)
       : null

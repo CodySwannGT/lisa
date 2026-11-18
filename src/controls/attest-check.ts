@@ -19,10 +19,18 @@
  *    longer matches; so does one whose evidence has gone out of date,
  *    because the requirement now reads unknown.
  *
+ * Then it asks whether what was proved is still what is here. The evidence
+ * names the commit the proofs were run against. When the repository is at
+ * another commit and a file that says what the checks are or runs them
+ * differs between the two, the check fails. When this clone does not hold
+ * the recorded commit, it says the two could not be compared and exits
+ * non-zero: that is not a pass. See `./attest-commit-check.ts`.
+ *
  * ## What this can and cannot show
  *
  * It shows that the three files agree with each other and with the gates
- * declaration, now. It cannot show that the evidence records are what a run
+ * declaration, now, and that the files defining the checks are as they were
+ * at the recorded commit. It cannot show that the evidence records are what a run
  * really produced: someone who rewrites the evidence, the register and the
  * verdict together, consistently, leaves three files that agree. Nothing
  * checked on the same machine with no secret can tell that apart from a real
@@ -33,6 +41,7 @@
  */
 import path from "node:path";
 
+import { checkRecordedCommits } from "./attest-commit-check.js";
 import { resolveRepositoryRoot } from "./audit-report-file.js";
 import {
   loadCriterionCatalogue,
@@ -68,7 +77,10 @@ export const ATTEST_CHECK_EXIT = {
   DIFFERS: 1,
   /**
    * Nothing could be compared: no repository, a refused declaration, or a
-   * check that could not finish.
+   * check that could not finish. Also when the three files agree and the
+   * commit the evidence names could not be compared with this repository,
+   * as in a clone that does not hold it: the verdict is then not shown to
+   * be current.
    */
   NOT_CHECKED: 2,
 } as const;
@@ -170,7 +182,18 @@ interface Comparison {
   readonly differences: readonly string[];
   /** The verdict the files give now, when it could be computed. */
   readonly verdict: Verdict | null;
+  /**
+   * One line per commit the evidence names that could not be compared with
+   * this repository; see `./attest-commit-check.ts`.
+   */
+  readonly uncompared: readonly string[];
+  /** Where the commits the evidence names stand, when nothing is wrong. */
+  readonly standing: string;
 }
+
+/** What is said when the three files agree and a commit cannot be compared. */
+const NOT_SHOWN_CURRENT =
+  "The three files agree with each other, but the commit the evidence was recorded at could not be compared with this repository, so the verdict is not shown to be current";
 
 /**
  * Compare the three committed files with what produces each.
@@ -198,6 +221,12 @@ async function compare(
           now,
         })
       : null;
+  // Is what was proved still what is here? Asked of the commits the
+  // evidence names.
+  const commits =
+    evidence.problems === null
+      ? await checkRecordedCommits(root, evidence.evidence)
+      : { differences: [], uncompared: [], standing: "" };
   return {
     differences: [
       ...registerLines,
@@ -207,8 +236,11 @@ async function compare(
           ? []
           : verdictDrift(committed.value, verdict)
         : [committed.problem]),
+      ...commits.differences,
     ],
     verdict,
+    uncompared: commits.uncompared,
+    standing: commits.standing,
   };
 }
 
@@ -280,16 +312,36 @@ export async function runAttestCheck(
       ATTEST_CHECK_EXIT.NOT_CHECKED
     );
   }
-  const { differences, verdict } = compared;
+  return concluded(compared, fail, stdout);
+}
+
+/**
+ * Say what a finished comparison comes to, and give the exit code.
+ * @param compared - What comparing found
+ * @param fail - Prints the problems and a summary, and gives back the code
+ * @param stdout - Where the pass line goes
+ * @returns The exit code; see {@link ATTEST_CHECK_EXIT}
+ */
+function concluded(
+  compared: Comparison,
+  fail: (problems: readonly string[], summary: string, code: number) => number,
+  stdout: (line: string) => void
+): number {
+  const { differences, verdict, uncompared, standing } = compared;
   if (differences.length > 0 || verdict === null) {
     return fail(
-      differences,
-      `${differences.length} ${differences.length === 1 ? "difference" : "differences"} between ${VERDICT_PATH} and what ${CONTROL_REGISTER_PATH} and ${EVIDENCE_PATH} give now. ${HOW_TO_FIX}`,
+      [...differences, ...uncompared],
+      `${differences.length} ${differences.length === 1 ? "difference" : "differences"} between ${VERDICT_PATH} and what ${CONTROL_REGISTER_PATH}, ${EVIDENCE_PATH} and this repository give now. ${HOW_TO_FIX}`,
       ATTEST_CHECK_EXIT.DIFFERS
     );
   }
+  // Agreeing files are not enough: a commit that could not be compared
+  // leaves it unknown whether the checks are still the ones that were proved.
+  if (uncompared.length > 0) {
+    return fail(uncompared, NOT_SHOWN_CURRENT, ATTEST_CHECK_EXIT.NOT_CHECKED);
+  }
   stdout(
-    `${ATTEST_CHECK_NAME}: PASS. ${VERDICT_PATH} is what ${CONTROL_REGISTER_PATH} and ${EVIDENCE_PATH} give. ${levelSummary(verdict)}`
+    `${ATTEST_CHECK_NAME}: PASS. ${VERDICT_PATH} is what ${CONTROL_REGISTER_PATH} and ${EVIDENCE_PATH} give. ${levelSummary(verdict)}${standing === "" ? "" : ` ${standing}`}`
   );
   return ATTEST_CHECK_EXIT.MATCHES;
 }
