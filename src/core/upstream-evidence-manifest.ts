@@ -1429,7 +1429,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "96f95fcb9e9dfd347467be49f2aa94aa28f057fb6ed0c6b7e93da0e0493c1086",
+      "5f8efd548866e586fc9c1dac2e069291ac48d45319670f62b2c22af3675efce7",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
@@ -1445,7 +1445,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "30cbfbfd4619498587c5ecc44c02269afed630cea287c60b0a8ba07b6ad0dfbb",
+      "5c854bd1faccb2b33cb405757ac770347f9a3ae3b4d150648e473f07f430ad9f",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "c6128e80d6baeabd9c0ff4c092d094773fe7753b1fc0c3cd828b016a5c6c447f",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -12056,6 +12056,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/controls-audit-questions.test.ts": true,
     "tests/integration/controls-audit-readonly.test.ts": true,
     "tests/integration/controls-configure-paved.test.ts": true,
+    "tests/integration/controls-configure-proofs.test.ts": true,
     "tests/integration/controls-configure.test.ts": true,
     "tests/integration/controls-gaps.test.ts": true,
     "tests/integration/controls-install-carriers-agents-record.test.ts": true,
@@ -12837,6 +12838,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/carrier-unenforceable.test.ts": true,
     "tests/unit/controls/catalogue-command.test.ts": true,
     "tests/unit/controls/catalogue.test.ts": true,
+    "tests/unit/controls/configure-skill-proofs.test.ts": true,
     "tests/unit/controls/configure-skill.test.ts": true,
     "tests/unit/controls/control-audit-fixtures.test.ts": true,
     "tests/unit/controls/control-gap-marker.test.ts": true,

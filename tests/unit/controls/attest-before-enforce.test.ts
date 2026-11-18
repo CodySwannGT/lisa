@@ -186,7 +186,7 @@ describe("an entry that cannot be exercised yet", () => {
       "has no proof patches",
       provedGates([{ command: LINTER, without: ["violation", "clean"] }]),
       "half-missing",
-      "The enforce step writes them",
+      "The configure step writes them",
     ],
     [
       "is checked only on pull requests",

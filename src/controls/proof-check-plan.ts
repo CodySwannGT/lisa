@@ -96,7 +96,7 @@ export function declaredProof(entry: ControlRegisterEntry): DeclaredProof {
  * @param entry - The register entry of the part
  * @returns The note, or `null` when the attest step proves it there
  */
-export function attestNote(entry: ControlRegisterEntry): string | null {
+function attestNote(entry: ControlRegisterEntry): string | null {
   const point = proofPoint(entry);
   if (point !== undefined) {
     return point.level === "optional" ? optionalNote(point.moment) : null;
