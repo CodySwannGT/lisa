@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.0.1](https://github.com/CodySwannGT/lisa/compare/v6.0.0...v6.0.1) (2026-11-18)
+
+
+### Bug Fixes
+
+* **audit:** exclude picomatch GHSA-fc5q-39xc-vjpf, which no untrusted glob reaches ([6674be4](https://github.com/CodySwannGT/lisa/commit/6674be46c635e79cdf96d5fa969adacc1d98ba62)), closes [CodySwannGT/lisa#4957](https://github.com/CodySwannGT/lisa/issues/4957) [CodySwannGT/lisa#4957](https://github.com/CodySwannGT/lisa/issues/4957)
+* **audit:** keep the picomatch GHSA-fc5q-39xc-vjpf exclusion out of the host template ([92d717e](https://github.com/CodySwannGT/lisa/commit/92d717e882e837fa1b7c28b73497fd63470e2046)), closes [CodySwannGT/lisa#4957](https://github.com/CodySwannGT/lisa/issues/4957) [CodySwannGT/lisa#4957](https://github.com/CodySwannGT/lisa/issues/4957)
+* **release:** fail the raise step on the script's status, not tee's ([b86e23b](https://github.com/CodySwannGT/lisa/commit/b86e23bbb86a2c9d2f5b33c804cb04756fd7e592)), closes [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951)
+* **release:** keep the deploy key away from dependency code in the self-pin raise ([f8f91dc](https://github.com/CodySwannGT/lisa/commit/f8f91dcc7f9d5514f11f842d153c2617e056f752)), closes [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951)
+* **release:** lease the raise push on the proved base, and raise only from main's ref ([5ebebca](https://github.com/CodySwannGT/lisa/commit/5ebebca4317a1a2268d7caa63bbbd071812af51c)), closes [#5010](https://github.com/CodySwannGT/lisa/issues/5010) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951)
+* **release:** never lower the self-pin, and test the push job's own repository guard ([9f741ff](https://github.com/CodySwannGT/lisa/commit/9f741ffdfe95d126ee7f4cd86e6c11da87cf07b3)), closes [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951)
+* **release:** push only a bun.lock the push job regenerated and verified ([a3bf048](https://github.com/CodySwannGT/lisa/commit/a3bf04850faa44eb2383449ec4b8596b8d9cb7d0)), closes [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951)
+* **release:** raise Lisa's self-pin to ^6.0.0 and have the release raise it ([b780a88](https://github.com/CodySwannGT/lisa/commit/b780a88a8596f1ae96b8837a07b0c32b0c06c446)), closes [#4337](https://github.com/CodySwannGT/lisa/issues/4337) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951)
+* **release:** re-prove a moved main, resolve the exact release, raise after a reconciled publish ([69abd54](https://github.com/CodySwannGT/lisa/commit/69abd54590bb3a31388b98b35fd282e8b6c86598)), closes [#5010](https://github.com/CodySwannGT/lisa/issues/5010) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951)
+* **release:** record self-pin-raise.yml in the reusable-workflow contract registry ([0e28368](https://github.com/CodySwannGT/lisa/commit/0e2836891b41121a5e97cc212ddc0688ff721844)), closes [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951)
+* **release:** wait for the packument, push full refs, and re-prove a refused raise every hour ([84bd5fd](https://github.com/CodySwannGT/lisa/commit/84bd5fdf7dc09752959ec21851f9756f3ab9e290)), closes [#5010](https://github.com/CodySwannGT/lisa/issues/5010) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951) [CodySwannGT/lisa#4951](https://github.com/CodySwannGT/lisa/issues/4951)
+
 ## [6.0.0](https://github.com/CodySwannGT/lisa/compare/v5.14.3...v6.0.0) (2026-11-17)
 
 
