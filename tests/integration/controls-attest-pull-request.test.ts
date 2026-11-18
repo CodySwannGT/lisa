@@ -57,6 +57,9 @@ const API = `repos/${REPO}`;
 const CANARIES = "--pull-request-canaries";
 
 /** The three reads the default makes, as the stub records them. */
+/** The option that names a folder to run in, which makes the run a report. */
+const WORKSPACE = "--workspace";
+
 const SETTINGS_READS = [
   `api --hostname github.com ${API}/rulesets?per_page=100`,
   `api --hostname github.com ${API}/rulesets/1`,
@@ -140,7 +143,17 @@ function attest(
   const child = boundedSpawnSync({
     label: "lisa controls attest (built CLI, stubbed gh)",
     command: process.execPath,
-    args: [DIST_CLI, "controls", "attest", "--workspace", workspace, ...flags],
+    // A run that opens canaries records what it finds, so it cannot be the
+    // report-only run a named folder gives: it makes its own copy.
+    args: [
+      DIST_CLI,
+      "controls",
+      "attest",
+      ...(flags.includes(CANARIES) && !flags.includes(WORKSPACE)
+        ? []
+        : [WORKSPACE, workspace]),
+      ...flags.filter(flag => flag !== WORKSPACE),
+    ],
     cwd: repoPath,
     env: protectGhEnv(stub, {
       ...controlAuditGitEnv(),
@@ -237,6 +250,17 @@ describe("built lisa controls attest and the pull-request moment", () => {
       rung: "observed",
     });
     expect(run.calls).toEqual([]);
+  });
+
+  it("opens no pull request for a run in a folder the operator named", () => {
+    const run = attest([WORKSPACE, "--json", CANARIES], platform(true));
+
+    expect(run.stdout).toBe("");
+    expect(run.stderr).toContain(
+      "--workspace cannot be combined with --pull-request-canaries"
+    );
+    expect(run.calls).toEqual([]);
+    expect(run.status).toBe(2);
   });
 
   it("lists both options in its help", () => {
