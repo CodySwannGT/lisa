@@ -21,8 +21,9 @@
  * One declaration makes it read one more file. When a gate's pull-request
  * moment names an executor on a platform Lisa ships no pull-request file for,
  * the entries it runs read `unproved` until `.lisa/controls/evidence.json`
- * holds both halves of their proof, and the command says which entries those
- * are. The register is then generated from the declaration and that file
+ * holds both halves of their proof, each held, and the command says which
+ * entries those are. The register is then generated from the declaration and
+ * that file
  * together, in both modes, so `--check` fails exactly when one of the two
  * changed since the register was written. The clock is never read.
  * @module controls/commands/register

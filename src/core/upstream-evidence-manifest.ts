@@ -1465,7 +1465,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
-      "c93ead6b5f20f7126c6843daf1b6c20d1812345536bee25bc75cff9d88295003",
+      "fd00f4ce3c0da18e19473e6c4a9e95df51b1366acd8f81953367e22da12996e2",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":

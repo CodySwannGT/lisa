@@ -185,7 +185,7 @@ lisa controls register
 The command names the rules that read unproved, for example:
 
 ```text
-register: 2 entries read unproved: code-style@api, code-style@web. The pull-request check for them runs from .gitlab-ci.yml on gitlab, a file Lisa did not write, and .lisa/controls/evidence.json holds no record of both halves of their proof yet. They stay unproved until the attest step records both.
+register: 2 entries read unproved: code-style@api, code-style@web. The pull-request check for them runs from .gitlab-ci.yml on gitlab, a file Lisa did not write, and .lisa/controls/evidence.json holds no record that both halves of their proof held yet. They stay unproved until the attest step records that both held.
 ```
 
 Each of those entries now carries `"status": "unproved"` in `.lisa/controls/register.json`. That is
@@ -196,7 +196,8 @@ together in one change.
 
 Only one thing clears the mark: `.lisa/controls/evidence.json` holding a record of **both** halves
 of that entry's proof, the change that breaks the rule (`violation`) and the change that does not
-(`clean`). The attest step writes those records. When it has, `lisa controls register` writes the
+(`clean`), each saying the half held. A half that was run and did not hold leaves the mark in
+place. The attest step writes those records. When it has, `lisa controls register` writes the
 register again without the mark.
 
 The register is generated from the declaration and the evidence file together. So after either one

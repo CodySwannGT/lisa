@@ -39,7 +39,7 @@ const LINT_API = "code-style@api";
 const LINT_WEB = "code-style@web";
 
 const UNPROVED_NOTE =
-  /^register(?: --check)?: 2 entries read unproved: code-style@api, code-style@web\. The pull-request check for them runs from \.gitlab-ci\.yml on gitlab, a file Lisa did not write, and \.lisa\/controls\/evidence\.json holds no record of both halves of their proof yet\. They stay unproved until the attest step records both\.$/u;
+  /^register(?: --check)?: 2 entries read unproved: code-style@api, code-style@web\. The pull-request check for them runs from \.gitlab-ci\.yml on gitlab, a file Lisa did not write, and \.lisa\/controls\/evidence\.json holds no record that both halves of their proof held yet\. They stay unproved until the attest step records that both held\.$/u;
 
 const STATUS_DRIFT = `The entry "${LINT_API}" in ${CONTROL_REGISTER_PATH} does not match the gates declaration: status differs. The status is worked out from the proof records in ${EVIDENCE_PATH}, so it changes when a proof is recorded or removed.`;
 

@@ -83,7 +83,7 @@
         },
         "status": {
           "enum": ["unproved"],
-          "description": "Present only while the entry is unproved: its pull-request check runs from a file Lisa did not write (see `executor` on the enforcement point), and the evidence file at `.lisa/controls/evidence.json` holds no record of both halves of the entry's proof. Left off every other entry, so its absence is not a claim that the rule was proved."
+          "description": "Present only while the entry is unproved: its pull-request check runs from a file Lisa did not write (see `executor` on the enforcement point), and the evidence file at `.lisa/controls/evidence.json` holds no record that both halves of the entry's proof held. Left off every other entry, so its absence is not a claim that the rule was proved."
         }
       }
     },

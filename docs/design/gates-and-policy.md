@@ -1248,9 +1248,11 @@ leave it out.
 `pull-request` enforcement point carries `executor`. When the platform is not
 GitHub the entry also carries `"status": "unproved"`, until
 `.lisa/controls/evidence.json` holds a record of both halves of that entry's
-proof: a record with the entry's id as `entry_id` and `half` set to
-`violation`, and one with `half` set to `clean`. A record that names a
-`moment` counts only when it is `pull-request`. An entry with no `status` is
+proof, each saying the half held: a record with the entry's id as `entry_id`,
+`half` set to `violation` and `result` set to `held`, and one with `half` set
+to `clean` and `result` set to `held`. A half that was run and did not hold
+does not count. A record that names a `moment` counts only when it is
+`pull-request`. An entry with no `status` is
 not thereby proved; the verdict says what was proved.
 
 **So the register is generated from two committed files, and `--check` stays

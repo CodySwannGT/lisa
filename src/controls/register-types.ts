@@ -85,8 +85,8 @@ export type ParameterDirection = (typeof PARAMETER_DIRECTIONS)[number];
  * What the register says about an entry beyond what the declaration states.
  *
  * `unproved`: the entry's pull-request check runs from a file Lisa did not
- * write, and the evidence file holds no record of both halves of the entry's
- * proof. The key is left off every other entry, so its absence is not a claim
+ * write, and the evidence file holds no record that both halves of the
+ * entry's proof held. The key is left off every other entry, so its absence is not a claim
  * that the rule was proved; that is the verdict's to say.
  */
 export const CONTROL_ENTRY_STATUSES = ["unproved"] as const;
