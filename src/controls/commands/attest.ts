@@ -1,7 +1,8 @@
 /**
- * `lisa controls attest [path] [--workspace <folder>] [--json] [--check]`:
- * run the paired proof of every control in the register, say which ones
- * work, and write down what was found.
+ * `lisa controls attest [path] [--workspace <folder>] [--json] [--check]
+ * [--pull-request-canaries] [--acknowledge-external-effects]`: run the
+ * paired proof of every control in the register, say which ones work, and
+ * write down what was found.
  *
  * A control works when its check turns away a change that breaks its rule
  * and lets a clean change through. This command plants both changes, one at
@@ -28,6 +29,18 @@
  * verdict again from the committed register and evidence and exits non-zero
  * when the committed verdict differs; see `../attest-check.ts`.
  *
+ * Whether a pull request is stopped is the hosting platform's to say. By
+ * default the command only reads the platform's merge-protection settings
+ * and records each pull-request entry at the `observed` rung; it creates
+ * nothing there. With `--pull-request-canaries` it opens real pull requests
+ * under the reserved branch prefix `lisa-attest/`, reads whether the
+ * platform would let each through, and removes them. It never merges one.
+ * See `../pull-request-settle.ts`.
+ *
+ * A proof that declares an effect outside the repository is run only with
+ * `--acknowledge-external-effects`. Without it the entry is `unknown` and
+ * the declared effect is quoted.
+ *
  * It works in a repository where Lisa was never applied. The requirements,
  * the gate registry and the gate runner come from the Lisa package the
  * command runs from; nothing is read from the host but `.lisa.config.json`,
@@ -51,6 +64,10 @@ import {
   openDirectProofWorkspace,
   type OpenProofWorkspace,
 } from "../proof-workspace.js";
+import {
+  settlePullRequests,
+  type PullRequestDependencies,
+} from "../pull-request-settle.js";
 import {
   generateControlRegister,
   type ControlRegisterGeneration,
@@ -77,6 +94,13 @@ export interface AttestOptions {
   readonly json?: boolean;
   /** Run no proof: check the committed verdict against what produces it. */
   readonly check?: boolean;
+  /**
+   * Open canary pull requests on the hosting platform to exercise the
+   * pull-request moment. Off by default: the platform is only read.
+   */
+  readonly pullRequestCanaries?: boolean;
+  /** Let a proof that says it reaches outside the repository run. */
+  readonly acknowledgeExternalEffects?: boolean;
 }
 
 /** What the command needs from outside, each replaceable in a test. */
@@ -95,6 +119,8 @@ export interface AttestDependencies {
   readonly loadTools?: () => Promise<ProofTools>;
   /** Opens the workspace the changes are planted in. */
   readonly openWorkspace?: OpenProofWorkspace;
+  /** What settling the pull-request moment needs from outside. */
+  readonly pullRequests?: PullRequestDependencies;
 }
 
 /** The proofs' results, or one line per reason none was run. */
@@ -107,12 +133,14 @@ type Attempt =
  * @param named - Absolute path of the repository the operator named
  * @param workspace - Absolute path of the disposable copy, when one was named
  * @param dependencies - Replaceable collaborators
+ * @param options - What the operator asked for
  * @returns The results, or why no proof was run
  */
 async function attempt(
   named: string,
   workspace: string | undefined,
-  dependencies: AttestDependencies
+  dependencies: AttestDependencies,
+  options: AttestOptions = {}
 ): Promise<Attempt> {
   const root = await resolveRepositoryRoot(named);
   if (root === null) {
@@ -145,18 +173,31 @@ async function attempt(
       summary: "No disposable copy of the repository to run the proofs in",
     };
   }
+  const asked = {
+    acknowledgeExternalEffects: options.acknowledgeExternalEffects === true,
+    ...(dependencies.clock === undefined ? {} : { clock: dependencies.clock }),
+  };
   try {
     return {
       problems: null,
-      run: await runPairedProofs({
-        register,
-        root,
-        workspace: opening.workspace,
-        judge: tools.judge,
-        ...(dependencies.clock === undefined
-          ? {}
-          : { clock: dependencies.clock }),
-      }),
+      // Commit and push are exercised here; the pull-request moment is the
+      // hosting platform's to answer (`../pull-request-settle.ts`).
+      run: await settlePullRequests(
+        await runPairedProofs({
+          register,
+          root,
+          workspace: opening.workspace,
+          judge: tools.judge,
+          ...asked,
+        }),
+        {
+          root,
+          register,
+          canaries: options.pullRequestCanaries === true,
+          ...asked,
+        },
+        dependencies.pullRequests
+      ),
     };
   } finally {
     await opening.close();
@@ -187,7 +228,8 @@ export async function runAttest(
     options.workspace === undefined
       ? undefined
       : path.resolve(cwd, options.workspace),
-    dependencies
+    dependencies,
+    options
   ).catch(
     (error: unknown): Attempt => ({
       problems: [error instanceof Error ? error.message : String(error)],
@@ -280,6 +322,14 @@ export function registerAttest(
       "--check",
       "Run no proof and write nothing: fail when the committed verdict differs from what the committed register and evidence give"
     )
+    .option(
+      "--pull-request-canaries",
+      "Exercise pull-request controls with real pull requests on the hosting platform: each is opened from a branch under lisa-attest/, read, closed and removed, and is never merged. Without this option the platform's merge-protection settings are only read and nothing is created"
+    )
+    .option(
+      "--acknowledge-external-effects",
+      "Run proofs that declare an effect outside the repository. Without this option such an entry is unknown and its declared effect is quoted"
+    )
     .action(async (targetPath: string | undefined, options: AttestOptions) => {
       const code = await dependencies.runAttest(targetPath, {
         ...(typeof options.workspace === "string"
@@ -287,6 +337,12 @@ export function registerAttest(
           : {}),
         json: options.json === true,
         ...(options.check === true ? { check: true } : {}),
+        ...(options.pullRequestCanaries === true
+          ? { pullRequestCanaries: true }
+          : {}),
+        ...(options.acknowledgeExternalEffects === true
+          ? { acknowledgeExternalEffects: true }
+          : {}),
       });
       if (code !== 0) process.exitCode = code;
     });

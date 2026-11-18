@@ -112,12 +112,42 @@ export const PROOF_ENTRY_REASONS = [
   "mechanism-not-a-command",
   /** `unknown`: a patch file is there and could not be read safely. */
   "patch-unreadable",
+  /**
+   * `unproved`: the hosting platform's settings require the entry's check
+   * before a merge. They were read; nothing was exercised.
+   */
+  "observed-required",
+  /** `failed`: the hosting platform's settings do not require the check. */
+  "observed-not-required",
+  /** `unknown`: the hosting platform's settings could not be read. */
+  "merge-protection-unread",
+  /** `unknown`: the repository is not hosted where the settings are read. */
+  "platform-not-reached",
+  /** `unproved`: the register does not ask the platform to stop a merge. */
+  "not-asked-of-platform",
+  /** `unproved`: no check name derives from the entry for pull requests. */
+  "no-check-derived",
+  /** `unknown`: a canary pull request needs write access the run lacks. */
+  "canary-permission-missing",
 ] as const;
 
 /** Why an entry got its result. An `unknown` half's reason is one too. */
 export type ProofEntryReason =
   | (typeof PROOF_ENTRY_REASONS)[number]
   | ProofHalfReason;
+
+/**
+ * How a result was obtained, weakest first.
+ *
+ * - `observed` — a setting was read that says the control is in force.
+ *   Nothing was planted and nothing was run.
+ * - `exercised` — both changes were planted and what stopped them, or did
+ *   not, was recorded.
+ */
+export const PROOF_RUNGS = ["observed", "exercised"] as const;
+
+/** How a result was obtained. */
+export type ProofRung = (typeof PROOF_RUNGS)[number];
 
 /** What the check answered when a half's moment was triggered. */
 export interface ProofAnswer {
@@ -198,6 +228,14 @@ export interface ProofEntryResult {
   readonly time_limit_seconds: number | null;
   /** The halves that were run, in the order they were run. */
   readonly halves: readonly ProofHalfResult[];
+  /**
+   * How the result was obtained. Present only on an entry that is enforced
+   * on pull requests and not at commit or push, whose result comes from the
+   * hosting platform (`./pull-request-settle.ts`). A commit or push result
+   * carries no rung of its own: it is exercised whenever `halves` holds the
+   * two halves, and nothing was obtained when it holds none.
+   */
+  readonly rung?: ProofRung;
 }
 
 /** How many entries got each result. */
