@@ -90,8 +90,46 @@ implementation and the fastest path to green. No layer requires another; see
 the [three-layer trust play decision](../decisions/2026-07-25-three-layer-trust-play.md).
 The spec's Annex B self-assessment instrument lived in the Lisa console as a
 122-question readiness questionnaire. It was removed with the console on
-2026-11-12 (CodySwannGT/lisa#4804), so Lisa currently ships no Annex B
-instrument; the questions remain in this repository's git history.
+2026-11-12 (CodySwannGT/lisa#4804); those questions remain in this
+repository's git history. The operator questionnaire Lisa keeps today is the
+generated one described in the next section.
+
+## The Criterion Catalogue
+
+The requirements are also held as data, in
+[`spec/tasc-criteria.json`](../../spec/tasc-criteria.json) (format:
+[`spec/tasc-criteria.schema.json`](../../spec/tasc-criteria.schema.json)).
+Every criterion id in the draft appears there exactly once, either in scope for
+Level 1 or excluded with a stated reason. Level 1 comes to 77 requirements.
+
+Each in-scope entry carries:
+
+- the plain-language **question** it puts to an operator;
+- its **kind**: a check (`gate`), a record that must exist (`artifact`), or
+  something only a person can vouch for (`human-attested`);
+- the weakest evidence it accepts (`asserted`, `observed` or `exercised`);
+- when it does not apply;
+- whether it is answered once for the repository or once per part of it;
+- for a check, which of Lisa's gates can satisfy it, or that none does.
+
+The catalogue is the single source for everything that asks or judges a
+requirement:
+
+- **The operator questionnaire is generated from it.**
+  [`docs/agentic-readiness-questionnaire.md`](../../docs/agentic-readiness-questionnaire.md)
+  is rendered from each in-scope entry's question, under the specification's
+  own section titles, by `bun run build:readiness-questionnaire`. It is never
+  edited by hand: to change a question, edit the catalogue and regenerate.
+  `bun run check:readiness-questionnaire` fails when the two disagree. The
+  hand-written version it replaced had drifted to 122 questions, far more than
+  there are requirements.
+- **The four control commands read it.** Audit, configure, enforce and attest
+  measure a repository against these 77 requirements and compute a Level 1
+  verdict from them. See
+  [Control Audit](../documentation/workflows/control-audit.md).
+
+The catalogue ships in the Lisa package, so those commands work in a
+repository that has no `spec/` folder of its own.
 
 ## Revision 0.7.0 — operator copy and outcome proof
 

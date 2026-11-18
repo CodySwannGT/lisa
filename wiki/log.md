@@ -1,5 +1,30 @@
 # Lisa Wiki Log
 
+## 2026-11-17 - Control audit: the four commands and the control register
+
+- Created `wiki/documentation/workflows/control-audit.md`, the operator-facing page for the four commands that find, declare, wire and prove the controls of any repository, whatever its stack: audit, configure, enforce and attest (epic `CodySwannGT/lisa#4961`, documentation leaf `CodySwannGT/lisa#5003`).
+- The page covers:
+  - what each command does, asks and writes;
+  - how to start one on each of the seven coding agents;
+  - the control register and the other files under `.lisa/`;
+  - the vocabulary;
+  - the `lisa controls` commands underneath;
+  - what the Level 1 verdict means and does not mean;
+  - the requirements (Node, git, macOS, Linux or WSL).
+- Recorded the limits an operator will meet, each checked against the code:
+  - proofs run on a clone of the last commit, without the files git ignores;
+  - supported project types have no paired proofs in this release;
+  - pull-request checks can be exercised only on GitHub;
+  - merge protection is changed only when asked, and only rulesets are read;
+  - edit-time enforcement differs by coding agent;
+  - hook wiring is per checkout;
+  - Windows without WSL is not supported.
+- Updated `wiki/concepts/tasc-specification.md` with a section on the criterion catalogue (`spec/tasc-criteria.json`): what each entry carries, that `docs/agentic-readiness-questionnaire.md` is now generated from it, and that the four commands compute a Level 1 verdict against it.
+- Added the four commands to the command table in `wiki/documentation/overview.md`, and the new page to `wiki/documentation/index.md`.
+- Indexed the new page under `## Documentation` in `wiki/index.md`, and extended the Concepts entry for the specification to point at the catalogue.
+- Added the matching section to `README.md` ("Checking the controls of any repository") and a pointer from `docs/design/paired-proof.md` to `docs/design/before-enforce.md`.
+- Provenance: a repository-sourced update, written from the merged code under `src/controls/`, the four skills under `plugins/src/base/skills/`, each command's `--help`, and the design notes under `docs/design/`. Those remain in the repository as the detailed source, so no separate source note was written. Asserted by `tests/unit/docs/control-audit-docs.test.ts`.
+
 ## 2026-11-13 - Dependency sign-off off by default
 
 - Updated `wiki/playbooks/dependency-ownership-operator-guide.md` for `CodySwannGT/lisa#4687`: agents now perform every act they have access to, so `dependencies.humanSignOff` resolves to `"none"` by default and the agent ratifies dependencies, recording its reasoning in the entry.

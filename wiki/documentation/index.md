@@ -39,6 +39,7 @@ Root package landing content can remain in `README.md`, local ingestion inbox fi
 - [Claude Code Web Notifications](workflows/claude-code-web-notifications.md)
 - [PRD To Ticket Intake](workflows/prd-to-ticket-intake.md)
 - [Wiki Ingestion Safety](workflows/wiki-ingestion-safety.md)
+- [Control Audit: Audit, Configure, Enforce, Attest](workflows/control-audit.md) — finding, declaring, wiring and proving the controls of any repository, and what the Level 1 verdict means.
 
 ## Assets
 

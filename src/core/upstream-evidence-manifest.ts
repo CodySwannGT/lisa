@@ -14598,6 +14598,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "wiki/documentation/testing/strategy-tests-visual-guide.md": true,
     "wiki/documentation/testing/tasks-test-plan.md": true,
     "wiki/documentation/workflows/claude-code-web-notifications.md": true,
+    "wiki/documentation/workflows/control-audit.md": true,
     "wiki/documentation/workflows/prd-to-ticket-intake.md": true,
     "wiki/documentation/workflows/task-management-system.md": true,
     "wiki/documentation/workflows/wiki-ingestion-safety.md": true,

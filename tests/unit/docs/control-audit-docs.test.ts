@@ -13,6 +13,7 @@
  *   to;
  * - every `lisa controls` subcommand and option a document names is one the
  *   CLI registers;
+ * - the number of Level 1 requirements they state is the catalogue's count;
  * - the wiki page exists, every link in it leads somewhere, and the wiki's
  *   index and log both lead to it.
  * @module tests/unit/docs/control-audit-docs
@@ -37,6 +38,10 @@ import {
   AUDIT_REPORT_MARKDOWN_PATH,
 } from "../../../src/controls/audit-report-types.js";
 import { CARRIER_RECORD_PATH } from "../../../src/controls/carrier-types.js";
+import {
+  inScopeCriteria,
+  loadCriterionCatalogue,
+} from "../../../src/controls/catalogue.js";
 import { EVIDENCE_PATH } from "../../../src/controls/evidence.js";
 import { GATES_DECLARATION_PATH } from "../../../src/controls/gates-declaration.js";
 import { PROOF_FOLDER } from "../../../src/controls/proof-patch.js";
@@ -265,6 +270,20 @@ describe("the wiki page on the four control commands", () => {
       `(${path.relative("wiki/documentation", WIKI_PAGE)})`
     );
   });
+});
+
+describe("the number of Level 1 requirements", () => {
+  it.each(["README.md", WIKI_PAGE, SPECIFICATION_PAGE])(
+    "is the catalogue's own count in %s",
+    document => {
+      // The count is the one number all three state. It is read from the
+      // catalogue, so a requirement added or dropped there fails here.
+      const count = inScopeCriteria(loadCriterionCatalogue()).length;
+
+      expect(count).toBeGreaterThan(0);
+      expect(read(document)).toContain(`${String(count)} requirements`);
+    }
+  );
 });
 
 describe("the wiki page on the specification", () => {
