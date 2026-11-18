@@ -191,7 +191,12 @@ jobs:
         env:
           VERSION: ${{ needs.release.outputs.version }}
         run: |
-          node scripts/raise-self-dependency-pin.mjs --version "$VERSION" | tee "$RUNNER_TEMP/raise.txt"
+          # The script's own status, not tee's: an `unprovable` spec exits 1 and
+          # must fail this step rather than reach the verdict parse below.
+          status=0
+          node scripts/raise-self-dependency-pin.mjs --version "$VERSION" >"$RUNNER_TEMP/raise.txt" 2>&1 || status=$?
+          cat "$RUNNER_TEMP/raise.txt"
+          [ "$status" -eq 0 ] || exit "$status"
           verdict="$(sed -n 's/^raise-self-dependency-pin: \([a-z-]*\) .*/\1/p' "$RUNNER_TEMP/raise.txt" | head -n 1)"
           if [ -z "$verdict" ]; then
             echo "::error::The raise script printed no verdict line."

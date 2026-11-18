@@ -252,6 +252,11 @@ describe("the release raises the self-pin the check guards (#4951)", () => {
     expect(raise).toBeGreaterThan(landed);
     expect(prove).toBeGreaterThan(raise);
     expect(proof).toContain("bun install --ignore-scripts --frozen-lockfile");
+    // The raise step fails on the script's status, not a pipe's.
+    expect(runs(PREPARE_JOB)[raise]).not.toMatch(
+      /raise-self-dependency-pin\.mjs[^\n]*(?<!\|)\|(?!\|)/
+    );
+    expect(runs(PREPARE_JOB)[raise]).toContain("|| status=$?");
     expect(proof).toContain("bun run typecheck");
     expect(proof).toContain("bun run security:audit");
   });
