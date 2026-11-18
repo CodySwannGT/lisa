@@ -2,6 +2,7 @@
 import {
   existsSync,
   lstatSync,
+  mkdirSync,
   mkdtempSync,
   realpathSync,
   rmSync,
@@ -29,16 +30,18 @@ describe("native Unix fixtures", () => {
   });
 
   it("returns a canonical root when the temp base is reached through a symlink", () => {
-    // A short symlink to the real temp base, so the socket bound still fits
-    // whichever of the two paths the helper measures.
-    const holder = mkdtempSync(join(tmpdir(), "lisa-u-l-"));
+    // The alias lives under its own short base, not the run's temp base, so a
+    // valid but long TMPDIR cannot push the aliased socket path over the bound.
+    const holder = realpathSync(mkdtempSync(join("/tmp", "lisa-u-l-")));
     try {
+      const target = join(holder, "r");
+      mkdirSync(target);
       const linked = join(holder, "l");
-      symlinkSync(realpathSync(tmpdir()), linked, "dir");
+      symlinkSync(target, linked, "dir");
       const fixture = createSupervisedUnixFixture(CONTROLLER_SOCKET, linked);
       try {
         expect(realpathSync(fixture.root)).toBe(fixture.root);
-        expect(dirname(fixture.root)).toBe(realpathSync(tmpdir()));
+        expect(dirname(fixture.root)).toBe(target);
       } finally {
         fixture.close();
       }
