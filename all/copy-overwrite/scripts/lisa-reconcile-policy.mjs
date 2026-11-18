@@ -262,6 +262,12 @@ export const UNPROVEN = Object.freeze({
   MALFORMED: "unreadable-response",
 });
 
+/**
+ * The largest page GitHub returns for a list. The ruleset index is read at
+ * this size, and an answer this long is treated as incomplete.
+ */
+const RULESET_PAGE_SIZE = 100;
+
 /** How to respond to measured drift. Mirrors `DRIFT_RESPONSES` in lisa-gates. */
 export const ON_DRIFT = Object.freeze(["repair", "report", "block"]);
 
@@ -605,19 +611,39 @@ export function liveContexts(rulesets) {
  * index that was readable while a detail fetch failed still leaves the required
  * list unknown, and half a list compared against a whole declaration reports
  * drift that may not exist.
+ *
+ * The same holds for the index itself. GitHub returns a list one page at a
+ * time, thirty entries unless the request asks for more. Read without a page
+ * size, the first thirty were taken for the whole list, so a repository's
+ * thirty-first ruleset required nothing as far as this script knew. The
+ * largest page is asked for, and a page that comes back full is UNPROVEN: a
+ * full page cannot be told from a list that goes on.
  * @param {object} options Read inputs.
  * @param {string} options.repo `OWNER/NAME`.
  * @param {Function} options.gh Injected `gh` runner.
  * @returns {LivePolicy|FailedRead} Live state, or why it could not be read.
  */
 export function readLivePolicy({ repo, gh }) {
-  const index = ghJson(gh, ["api", `repos/${repo}/rulesets`]);
+  const indexArgs = [
+    "api",
+    `repos/${repo}/rulesets?per_page=${RULESET_PAGE_SIZE}`,
+  ];
+  const index = ghJson(gh, indexArgs);
   if (!index.ok) return index;
   if (!Array.isArray(index.value)) {
     return unproven(
       UNPROVEN.MALFORMED,
       `expected an array of rulesets, got ${typeof index.value}`,
-      ["api", `repos/${repo}/rulesets`]
+      indexArgs
+    );
+  }
+  if (index.value.length >= RULESET_PAGE_SIZE) {
+    return unproven(
+      UNPROVEN.MALFORMED,
+      `the ruleset list came back as a full page of ${index.value.length}, ` +
+        `so there may be more rulesets than were read, and a partial list ` +
+        `is not compared`,
+      indexArgs
     );
   }
 

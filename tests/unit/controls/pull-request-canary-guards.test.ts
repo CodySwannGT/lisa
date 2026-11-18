@@ -247,7 +247,23 @@ describe("the door canary requests go through", () => {
       "open a pull request from another branch",
       "POST",
       "pulls",
-      { head: "feature", base: "main" },
+      { head: "feature", base: "main", draft: true },
+    ],
+    [
+      "open a canary pull request that is not a draft",
+      "POST",
+      "pulls",
+      { head: "lisa-attest/run0000a/20260201T000000Z-1-clean", base: "main" },
+    ],
+    [
+      "open a canary pull request that says it is not a draft",
+      "POST",
+      "pulls",
+      {
+        head: "lisa-attest/run0000a/20260201T000000Z-1-clean",
+        base: "main",
+        draft: false,
+      },
     ],
     ["reopen or retitle a pull request", "PATCH", "pulls/1", { state: "open" }],
     [
@@ -259,7 +275,7 @@ describe("the door canary requests go through", () => {
     ["change a setting", "PATCH", "", { default_branch: "x" }],
   ])("refuses to %s, without sending it", (_, method, target, body) => {
     const platform = canaryPlatform();
-    const log = recordRequests(platform.gh);
+    const log = recordRequests(platform.gh, "github.com");
     const door = canaryDoor(log, REPO, true);
 
     const answer = door.send(method as "POST", target, body);
@@ -273,7 +289,11 @@ describe("the door canary requests go through", () => {
 
   it("passes on reads only until a read has shown the account may write", () => {
     const platform = canaryPlatform();
-    const door = canaryDoor(recordRequests(platform.gh), REPO, false);
+    const door = canaryDoor(
+      recordRequests(platform.gh, "github.com"),
+      REPO,
+      false
+    );
 
     const answer = door.send("POST", "git/refs", {
       ref: "refs/heads/lisa-attest/run0000a/20260201T000000Z-1-clean",

@@ -11,7 +11,9 @@
  * holds the status-check rule only.
  *
  * The plan is all or nothing: any step the reconciler could not place stops
- * the whole change before a request is sent.
+ * the whole change before a request is sent. So does any step that would
+ * change which app may satisfy a check the host already requires: this
+ * command adds what is missing and never alters what is there.
  * @module controls/protect-apply
  */
 import {
@@ -174,14 +176,127 @@ export function planChange(inputs: PlanInputs): ChangePlan {
     pins: { ...requirement.configured.pins, ...requirement.awaitedPins },
     homes,
   });
-  const blockers = planned
-    .filter(action => action.kind !== "contexts")
-    .map(
-      action => action.message ?? "A step of the change could not be planned."
-    );
+  const blockers = [
+    ...planned
+      .filter(action => action.kind !== "contexts")
+      .map(
+        action => action.message ?? "A step of the change could not be planned."
+      ),
+    ...planned.flatMap(action => pinChanges(action, inputs.enforced)),
+  ];
   return blockers.length > 0
     ? { actions: [], blockers }
     : { actions: planned, blockers: [] };
+}
+
+/** One check a ruleset requires, with the app it is pinned to, if any. */
+export interface RequiredApp {
+  readonly context: string;
+  /** The one app that may report it, or `null` when any source may. */
+  readonly appId: number | null;
+}
+
+/**
+ * Read the checks a ruleset, or a payload for one, requires.
+ * @param ruleset - A ruleset as the platform returned it, or as it is sent
+ * @returns Each required check with the app it is pinned to
+ */
+export function requiredApps(ruleset: unknown): readonly RequiredApp[] {
+  const rules: unknown =
+    ruleset !== null && typeof ruleset === "object"
+      ? Reflect.get(ruleset, "rules")
+      : undefined;
+  return (Array.isArray(rules) ? rules : []).flatMap((rule: unknown) => {
+    const isChecks =
+      rule !== null &&
+      typeof rule === "object" &&
+      Reflect.get(rule, "type") === "required_status_checks";
+    const parameters: unknown = isChecks
+      ? Reflect.get(rule, "parameters")
+      : undefined;
+    const checks: unknown =
+      parameters !== null && typeof parameters === "object"
+        ? Reflect.get(parameters, "required_status_checks")
+        : undefined;
+    return (Array.isArray(checks) ? checks : []).flatMap((check: unknown) => {
+      const context: unknown =
+        check !== null && typeof check === "object"
+          ? Reflect.get(check, "context")
+          : undefined;
+      const app: unknown =
+        check !== null && typeof check === "object"
+          ? Reflect.get(check, "integration_id")
+          : undefined;
+      return typeof context === "string"
+        ? [{ context, appId: typeof app === "number" ? app : null }]
+        : [];
+    });
+  });
+}
+
+/**
+ * Name an app the way a sentence does.
+ * @param appId - The app's id, or `null` for none
+ * @returns For example `only from app 4242`, or `from any source`
+ */
+function accepted(appId: number | null): string {
+  return appId === null ? "from any source" : `only from app ${String(appId)}`;
+}
+
+/**
+ * Find every check a step would take away from a ruleset, or stop accepting
+ * from the app the host pinned it to.
+ *
+ * Which checks a ruleset requires, and which app may satisfy each, is the
+ * protection the host already has, and often one an administrator set by
+ * hand. A step that dropped a check would stop requiring it; one that
+ * dropped its pin would let any source report it; one that swapped the pin
+ * would name an app the host never chose. None of that is this command's to
+ * decide: it adds what is missing. So a plan that holds such a step is
+ * refused whole, before any request is sent. Pinning a check the host left
+ * open to any source is not such a step: it narrows who may report a check
+ * and takes nothing away.
+ * @param action - One planned step
+ * @param enforced - The rulesets enforced on the branch, as they were read
+ * @returns One sentence per such check; empty when the step keeps them all
+ */
+function pinChanges(
+  action: RepairAction,
+  enforced: readonly LiveRuleset[]
+): readonly string[] {
+  if (action.kind !== "contexts") return [];
+  const held = enforced.find(ruleset => ruleset.name === action.ruleset);
+  const planned = requiredApps(action.payload);
+  const ruleset = JSON.stringify(String(action.ruleset));
+  return requiredApps(held).flatMap(before => {
+    const has = `The ruleset ${ruleset} already requires \`${before.context}\` and accepts it ${accepted(before.appId)}.`;
+    const after = planned.find(check => check.context === before.context);
+    if (after === undefined) {
+      return [
+        `${has} The change would stop requiring it, and this command never takes away a check that is already required.`,
+      ];
+    }
+    return before.appId === null || after.appId === before.appId
+      ? []
+      : [
+          `${has} The change would accept it ${accepted(after.appId)} instead, and this command never changes who may satisfy a check that is already required. To keep the setting as it is, name app ${String(before.appId)} for the check in .lisa.config.json (posted_by on the gate that awaits it, or integration_id under github.rulesets.requiredChecks). To change it, an administrator has to do that on the hosting platform.`,
+        ];
+  });
+}
+
+/**
+ * Read the app each check a plan adds would be required from.
+ * @param actions - The planned steps
+ * @returns Each added check with its app
+ */
+export function plannedApps(
+  actions: readonly RepairAction[]
+): readonly RequiredApp[] {
+  return actions.flatMap(action =>
+    requiredApps(action.payload).filter(
+      check => action.add?.includes(check.context) === true
+    )
+  );
 }
 
 /**

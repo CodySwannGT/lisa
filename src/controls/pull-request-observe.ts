@@ -16,7 +16,14 @@
  * anything on the platform whatever it is handed.
  * @module controls/pull-request-observe
  */
-import { compareWithLive, governing, readLiveState } from "./protect-live.js";
+import {
+  compareWithLive,
+  governing,
+  possiblyRequired,
+  readLiveState,
+  unsettled,
+  type UnsettledRuleset,
+} from "./protect-live.js";
 import {
   prepare,
   type Prepared,
@@ -24,6 +31,7 @@ import {
 } from "./protect-prepare.js";
 import {
   UNKNOWN_PLATFORM,
+  isBranchName,
   type PlatformFacts,
   type SentRequest,
 } from "./protect-types.js";
@@ -59,6 +67,12 @@ export interface Observation {
    */
   readonly pins: ReadonlyMap<string, readonly number[]>;
   /**
+   * The checks it is not known to be required or not: each reads as not
+   * required, while a ruleset whose reach could not be worked out requires
+   * it. By check name, with that ruleset.
+   */
+  readonly unsettled: ReadonlyMap<string, UnsettledRuleset>;
+  /**
    * The checks that prove an entry on a pull request.
    * @param entryId - The register entry's identifier
    * @returns The check names, which may be none; `undefined` when they are
@@ -84,11 +98,14 @@ function said(error: unknown): string {
 /** The part of an observation that comes from reading the settings. */
 type SettingsRead = Pick<
   Observation,
-  "branch" | "required" | "unread" | "pins"
+  "branch" | "required" | "unread" | "pins" | "unsettled"
 >;
 
 /** No check is known to be pinned to an app. */
 const NO_PINS: ReadonlyMap<string, readonly number[]> = new Map();
+
+/** No check is of unknown standing. */
+const NONE_UNSETTLED: ReadonlyMap<string, UnsettledRuleset> = new Map();
 
 /**
  * Say that the settings were not read.
@@ -101,6 +118,7 @@ function notRead(detail: string): SettingsRead {
     required: null,
     unread: { reason: "merge-protection-unread", detail },
     pins: NO_PINS,
+    unsettled: NONE_UNSETTLED,
   };
 }
 
@@ -141,6 +159,13 @@ function readRequired(prepared: Prepared, repository: string): SettingsRead {
       "the platform did not name the repository's default branch."
     );
   }
+  // The name goes into request paths when canaries are opened, so it gets
+  // the check an operator's own --branch gets.
+  if (!isBranchName(defaultBranch)) {
+    return notRead(
+      `the platform names ${JSON.stringify(defaultBranch)} as the repository's default branch, which is not a branch name that can be put in a request.`
+    );
+  }
   const enforced = governing(rulesets, defaultBranch, defaultBranch, modules);
   const compared = compareWithLive(requirement, enforced, null, modules);
   // A check the comparison leaves out, because this repository holds it
@@ -164,6 +189,12 @@ function readRequired(prepared: Prepared, repository: string): SettingsRead {
     required: new Set([...compared.drift.matched, ...held]),
     unread: null,
     pins: new Map([...named].map(name => [name, pinsOf(name)])),
+    // A check that reads as not required while a ruleset of unknown reach
+    // requires it is not known to be either.
+    unsettled: possiblyRequired(
+      compared.drift.missing,
+      unsettled(rulesets, defaultBranch, defaultBranch, modules)
+    ),
   };
 }
 
@@ -205,7 +236,12 @@ export async function observeMergeProtection(
       prepared,
     };
     // Nothing the register asks the platform to enforce: nothing to read.
-    const unasked = { branch: null, required: null, pins: NO_PINS };
+    const unasked = {
+      branch: null,
+      required: null,
+      pins: NO_PINS,
+      unsettled: NONE_UNSETTLED,
+    };
     if (derived.entries.length === 0) {
       return { ...shared, ...unasked, unread: null };
     }

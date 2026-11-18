@@ -119,7 +119,7 @@ Attest is the only step allowed to say a control works, and it says so by code a
 | `unproved` | No proof was run: a patch is missing, or the check does not run at commit or push. |
 | `unknown` | A proof was called for and gave no answer that can be trusted. |
 
-For a check that runs on pull requests, the default is to read the hosting platform's merge protection and create nothing. With the operator's yes (`lisa controls attest --pull-request-canaries`), it opens real draft pull requests on GitHub from branches under `lisa-attest/`, reads whether the platform would block each one, closes them and deletes the branches. None is ever merged.
+For a check that runs on pull requests, the default is to read the hosting platform's merge protection and create nothing. With the operator's yes (`lisa controls attest --pull-request-canaries`), it opens real draft pull requests on GitHub from branches under `lisa-attest/`, reads whether the platform would block each one, closes them and deletes the branches. None is ever merged. Only drafts are opened, because GitHub does not merge a draft: where it does not offer drafts for the repository, no pull request is opened in their place and the check reads unknown, with GitHub's reason. Before closing each one the command asks whether it was merged. Anything it could not remove is named on standard error, and a test pull request that something else merged fails the run and is named with its number.
 
 A proof that says it does something outside the repository is not run unless the operator agrees (`lisa controls attest --acknowledge-external-effects`).
 
@@ -228,7 +228,7 @@ Each of these is something an operator will meet. They are stated here so that a
 
 **A hook manager that is switched on per checkout is not switched on in the clone.** Where the repository's hooks belong to a manager such as Husky, the fresh clone attest makes has not run that manager's own install step, so git runs no carrier there and the check's proof reads unknown. Attest never falls back to running the check's command on its own, because that would be a different proof under the same name.
 
-**Pull-request checks can be exercised only on GitHub.** It is opt-in, uses real draft pull requests that are never merged, needs permission to push, and people who watch the repository may be notified. Only a check that runs on pull requests and not at commit or push, and that the platform already requires, gets canaries. Without the opt-in the setting is only read, and a setting that was read is never counted as a proof.
+**Pull-request checks can be exercised only on GitHub.** It is opt-in, uses real draft pull requests that are never merged, needs permission to push, and people who watch the repository may be notified. A repository GitHub does not offer draft pull requests for cannot be exercised at all: an ordinary pull request could be merged, so none is opened. Only a check that runs on pull requests and not at commit or push, and that the platform already requires, gets canaries. Without the opt-in the setting is only read, and a setting that was read is never counted as a proof.
 
 **On another hosting platform, the pipeline file is yours.** Lisa ships the pull-request pipeline for GitHub only, as part of its supported project types. Elsewhere the operator's agent writes the file to a stated contract, and every check it runs stays marked unproved in the register. Nothing in this release can exercise a check there, so that mark does not clear.
 

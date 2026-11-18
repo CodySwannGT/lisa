@@ -139,13 +139,17 @@ is never `passed`:
 | Every check that proves the entry is required. | `required` | `unproved` | `observed-required` |
 | A check that proves the entry is not required. | `not-required` | `failed` | `observed-not-required` |
 | Nothing: they could not be read. | `unknown` | `unknown` | `merge-protection-unread` |
+| Nothing certain: a ruleset whose branch conditions could not be matched requires a check of the entry, and no check of the entry is known not to be required. | `unknown` | `unknown` | `merge-protection-unread` |
 | Nothing: the repository is not on github.com. | `unknown` | `unknown` | `platform-not-reached` |
 | Not asked: the entry is advisory, or optional on pull requests. | `not-asked` | `unproved` | `not-asked-of-platform` |
 | Not asked: the entry reports no check on a pull request. | `not-asked` | `unproved` | `no-check-derived` |
 
-The requests, in order: `GET repos/{owner}/{name}/rulesets`, one
-`GET .../rulesets/{id}` per branch ruleset, `GET repos/{owner}/{name}`. A
-repository that is not on github.com is asked nothing.
+The requests, in order: `GET repos/{owner}/{name}/rulesets?per_page=100`, one
+`GET .../rulesets/{id}` per branch ruleset, `GET repos/{owner}/{name}`. Each
+is sent as `gh api --hostname github.com …`, so none goes to whichever host
+`gh` would pick by itself. A ruleset list that comes back as a full page may
+not be the whole list, so it is treated as not read. A repository that is not
+on github.com is asked nothing.
 
 ### With `--pull-request-canaries`: open, read, remove
 
@@ -159,11 +163,26 @@ passed on the clean canary.
 
 **A canary is never merged.** Every canary request goes through one door
 (`canary-door.ts`) that knows a short closed list of writes: create a blob,
-a tree or a commit; create a branch under `lisa-attest/`; open a pull request
-whose head is under `lisa-attest/`; change a pull request by exactly
+a tree or a commit; create a branch under `lisa-attest/`; open a **draft** pull
+request whose head is under `lisa-attest/`; change a pull request by exactly
 `{"state": "closed"}`; delete a branch under `lisa-attest/`. Anything else is
 refused without being sent. The door has no rule a merge could match, and no
 rule that touches a branch outside the prefix.
+
+**A canary is only ever a draft.** The platform does not merge a draft, for a
+person or for automation that merges pull requests whose checks are green, and
+the clean half of a proof is exactly such a pull request. Where the platform
+does not offer drafts for the repository, no pull request is opened in its
+place: the half is `not-started` with the platform's own reason, and the entry
+is `unknown`. A pull request the platform opened as an ordinary one although a
+draft was asked for is closed without being read.
+
+**Whether a canary was merged is read, not assumed.** Before a canary's pull
+request is closed the platform is asked whether it was merged, and the answer
+is kept in the canary's record as `merged`: `true`, `false`, or `null` when it
+could not be asked, which is never read as "no". A merged pull request is not
+closed over. Once one canary of a run was merged no further canary is opened,
+because whatever merged it would take the next one too.
 
 What the platform is asked about a canary is its `mergeable` and
 `mergeable_state`, and what each of the entry's checks concluded on the
@@ -208,10 +227,10 @@ The steps, each of which can only narrow what the run may do:
 5. **Each half, one at a time.** The canary commit is the head of the
    protected branch with the half's patch applied, built through the
    platform's object API and never pushed from a checkout. The branch is
-   created, the pull request is opened as a draft (as an ordinary pull
-   request where the repository is not offered drafts), the answer is waited
-   for no longer than the half's time limit, and the pull request is closed
-   and the branch deleted before the next half begins.
+   created, the pull request is opened as a draft, the answer is waited for
+   no longer than the half's time limit, the platform is asked whether the
+   pull request was merged, and the pull request is closed and the branch
+   deleted before the next half begins.
 
 A canary branch is named `lisa-attest/<run>/<made>-<number>-<half>`: the run's
 identifier, the time the canary was made in UTC to the second, its number in
@@ -236,7 +255,22 @@ or that the reference does not exist; any other refusal is a failed removal
 and is tried again when the run ends. The stop handler tries a removal that
 failed once more before it lets the process go, because a second interrupt
 can kill the request that was doing the removing. What could not be removed
-is in the canary's record (`cleanup_problem`).
+is in the canary's record (`closed`, `branch_removed`, `cleanup_problem`),
+which says what the last try found.
+
+**What a run could not undo is said on standard error.** The results say
+whether each control works, not whether the run cleaned up, so
+`lisa controls attest` prints one line for each of these, in the table and the
+JSON mode alike, naming the branch or the pull request (`pull-request-notices.ts`):
+
+| what was found | the line names | the exit code |
+| --- | --- | --- |
+| A canary whose pull request is still open or whose branch still exists. | The pull request and the branch. | Unchanged. |
+| A canary of an earlier run that the sweep could not list or remove. | The branch, with the platform's answer. | Unchanged. |
+| A canary pull request the platform says was merged. | The pull request, its branch and the protected branch. | 1, whatever the proofs showed. |
+| The protected branch moved (`base_head.unchanged` is `false`) and a canary was merged, or it is not known whether one was. | Both commits, and the canaries not accounted for. | 1, whatever the proofs showed. |
+| The protected branch moved and the platform said no canary was merged. | Both commits. | Unchanged: something else moved it. |
+| The head of the protected branch could not be read before or after. | The branch. | Unchanged. |
 
 **The sweep never guesses.** It removes a branch under `lisa-attest/` only
 when its name says another run made it more than two hours ago
@@ -282,7 +316,7 @@ entry:
 | `platform`, `branch` | Where the repository is hosted and the protected branch that was read. |
 | `points` | One per entry with a pull-request enforcement point: the entry result's keys, plus `rung` (always), `settles_entry` (whether it is the entry's one result), `observed`, `checks` (each `{ context, state, app_ids }`) and `completed_at`. |
 | `run_id`, `permission`, `sweep`, `base_head` | What canary mode did; `null` otherwise. |
-| `canaries` | One record per canary: its branch, pull request, commit, what the platform said, and whether it was removed. |
+| `canaries` | One record per canary: its branch, pull request, commit, what the platform said, whether it was removed, and whether the platform says it was merged (`merged`, which must never be `true`). |
 | `requests` | Every request, in order, each `{ method, path, sent }`. |
 | `canary_lifetime_seconds` | How old a canary must be before a later run removes it. |
 

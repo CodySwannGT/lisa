@@ -10,7 +10,7 @@
  * | any read | always |
  * | create a blob, a tree or a commit | always; none of them is reachable from a branch until one is created |
  * | create a branch | its name is under the reserved prefix |
- * | open a pull request | its head branch is under the reserved prefix |
+ * | open a pull request | its head branch is under the reserved prefix, and it is a draft |
  * | change a pull request | the change is exactly "close it" |
  * | delete a branch | its name is under the reserved prefix |
  *
@@ -109,7 +109,12 @@ const WRITE_RULES: readonly WriteRule[] = [
   {
     method: "POST",
     path: /^pulls$/u,
-    body: body => textOf(body, "head").startsWith(CANARY_BRANCH_PREFIX),
+    // A draft cannot be merged, by a person or by automation that merges
+    // pull requests whose checks are green. So a canary is only ever opened
+    // as one, and a request to open any other kind is not sent.
+    body: body =>
+      textOf(body, "head").startsWith(CANARY_BRANCH_PREFIX) &&
+      fieldOf(body, "draft") === true,
   },
   {
     method: "PATCH",

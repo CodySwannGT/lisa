@@ -20,6 +20,8 @@ import { canaryPlatform } from "./support/canary-run.js";
 import type { FakeCanaryPlatform } from "./support/fake-canary-platform.js";
 import { REPO } from "./support/protect-fixture.js";
 
+/** The host every request of the door is for. No request is ever sent. */
+const HOST = "github.com";
 const SCRIPT = "tools/deep/run.sh";
 const SCRIPT_TEXT = "#!/bin/sh\necho ok\n";
 const NOTES = "docs/notes.md";
@@ -65,7 +67,7 @@ const REPLACES_NOTES = [
  * @returns What building gave, and the platform it was built on
  */
 function build(patch: string, platform = canaryPlatform({ files: FILES })) {
-  const door = canaryDoor(recordRequests(platform.gh), REPO, true);
+  const door = canaryDoor(recordRequests(platform.gh, HOST), REPO, true);
   const based = readBase(door, "main");
   if (!based.ok) throw new Error(based.problem);
   return {
@@ -205,7 +207,7 @@ describe("a patch that cannot be put on a canary", () => {
 describe("the commit a canary is built on", () => {
   it("is the head of the protected branch", () => {
     const platform = canaryPlatform({ files: FILES });
-    const door = canaryDoor(recordRequests(platform.gh), REPO, false);
+    const door = canaryDoor(recordRequests(platform.gh, HOST), REPO, false);
 
     expect(readBase(door, "main")).toMatchObject({
       ok: true,
@@ -215,8 +217,19 @@ describe("the commit a canary is built on", () => {
 
   it("is reported as unreadable when the branch is not there", () => {
     const platform = canaryPlatform({ files: FILES });
-    const door = canaryDoor(recordRequests(platform.gh), REPO, false);
+    const door = canaryDoor(recordRequests(platform.gh, HOST), REPO, false);
 
     expect(readBase(door, "no-such-branch")).toMatchObject({ ok: false });
   });
+
+  it.each(["main?per_page=1#", "main/../../other", "", "-main"])(
+    "is never asked for under a name that is not a branch name: %j",
+    named => {
+      const platform = canaryPlatform({ files: FILES });
+      const door = canaryDoor(recordRequests(platform.gh, HOST), REPO, false);
+
+      expect(readBase(door, named)).toMatchObject({ ok: false });
+      expect(platform.log).toEqual([]);
+    }
+  );
 });

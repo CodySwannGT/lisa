@@ -49,6 +49,17 @@ export interface FakeCanaryOptions {
   /** Whether the repository is offered draft pull requests. Default true. */
   readonly drafts?: boolean;
   /**
+   * Take a request for a draft pull request and open an ordinary one all
+   * the same, saying so in the answer.
+   */
+  readonly draftsBecomeOrdinary?: boolean;
+  /**
+   * Merge every pull request into its base branch the first time it is
+   * read, which moves that branch: something on the platform that merges
+   * pull requests by itself. The command asked for none of it.
+   */
+  readonly mergedByTheHost?: boolean;
+  /**
    * The app every check run is reported by. By default the one the required
    * checks are pinned to, so a case about anything else need not say.
    */

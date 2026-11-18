@@ -77,6 +77,24 @@ export function unreadDetail(why: string): string {
 }
 
 /**
+ * Say that it is not known whether a check is required, because the ruleset
+ * that requires it may or may not cover the branch.
+ * @param check - The check
+ * @param ruleset - The ruleset that requires it
+ * @param ruleset.name - Its name
+ * @param ruleset.reason - Why its reach could not be worked out
+ * @param branch - The protected branch
+ * @returns The sentence
+ */
+export function reachUnknownDetail(
+  check: string,
+  ruleset: { readonly name: string; readonly reason: string },
+  branch: string | null
+): string {
+  return `It is not known whether the hosting platform requires ${quoted([check])} on ${on(branch)}. The ruleset ${JSON.stringify(ruleset.name)} requires it, and it could not be worked out whether that ruleset covers ${on(branch)}: ${ruleset.reason}. Look at that ruleset's branch conditions on the hosting platform.`;
+}
+
+/**
  * Say why a repository's platform was not asked anything.
  * @param platform - Where the repository is hosted
  * @returns The sentence

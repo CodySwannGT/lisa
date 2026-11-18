@@ -1472,17 +1472,61 @@ read again through `lisa health`'s ruleset reader and compared again. A
 platform that accepted the change and did not keep it is `blocked`, with the
 difference, never `wired`.
 
-**A check is only made required once it has been reported.** A required check
-that never reports does not fail a pull request; the platform holds it waiting
-for ever, with no failure to read. So before a missing check is sent, the
-command reads the check runs and commit statuses on the head of the protected
-branch and, while a name is still unseen, on the heads of the five most
-recently updated pull requests into it — a pipeline that runs only on pull
-requests never reports on the branch itself. Whether a name counts is
-`verifyContextsPosted` in the registry. These are reads only. A name the
-platform shows no result for is `not-ready`; one it could not be asked about,
-because a read failed or a list came back incomplete, is `unknown`. Neither is
-in any write, and each carries a sentence saying what has to happen first.
+**A check that is already required is never changed.** A required check is a
+name and, where the settings say so, the one app allowed to report it, and the
+platform's own settings page pins a check to an app by default. An awaited
+check that declares no app (`await` with no `posted_by`) has no opinion about
+the app, so it is required as soon as an enforced ruleset requires its name,
+whatever app that ruleset pins it to, and it is in no change. The reconciler's
+own comparison is stricter there — it wants such a check unpinned in the
+ruleset it would write to — which is right for a tool that rewrites a ruleset
+to match a declaration and wrong for one that only adds what is missing: the
+host's pinned check read as missing, and the repair replaced it with one any
+source may report. Beyond that case the rule is general. Before anything is
+sent, every planned payload is compared with the ruleset as it was read, and a
+plan that would drop a required check, drop its app, or name another app for it
+is refused whole, with a sentence naming the check and both apps.
+
+**A check is only made required once it has been reported, where the branch
+runs it and by the source that would be required.** A required check that never
+reports does not fail a pull request; the platform holds it waiting for ever,
+with no failure to read. So before a missing check is sent, the command reads
+the check runs and commit statuses on the head of the protected branch and,
+while a name is still unseen, on the heads of the five pull requests most
+recently **merged** into it, found among the thirty most recently updated
+closed ones — a pipeline that runs only on pull requests never reports on the
+branch itself. An open pull request, one closed without being merged, and one
+from a fork that never landed show what somebody proposed, not what the branch
+runs, and are not read. A result counts only from the source the change would
+pin the check to: GitHub Actions for a check a pipeline job runs, the declared
+app for an awaited check that names one, any check run or commit status for an
+awaited check that names none. A commit status does not say which app wrote
+it, so it never counts for a pinned check. Among the results that qualify,
+whether a name counts is `verifyContextsPosted` in the registry. These are
+reads only. A name the platform shows no qualifying result for is `not-ready`,
+and when it was seen from another source the sentence says which; one it could
+not be asked about, because a read failed or a list came back incomplete, is
+`unknown`. Neither is in any write, and each carries a sentence saying what has
+to happen first. A plan that would require a check from an app other than the
+one it was shown to be reported by is refused.
+
+**A read that does not settle a question is "not known", never a guess.** The
+ruleset list is asked for a hundred at a time, the largest page the platform
+gives, and a page that comes back full is an incomplete read: nothing is
+compared and nothing is changed. A ruleset whose branch conditions the matcher
+does not model may or may not cover the branch, so a check that reads as
+missing while such a ruleset requires it is `unknown`, is not listed as a
+difference, and is not made required a second time. The default branch name
+the platform gives is checked the way `--branch` is before it is put in a
+request path; one that is not a branch name ends the run with nothing compared.
+
+**Every request names its host.** Where a repository is hosted is decided from
+its remote address, and a request is sent only for github.com. `gh` decides
+for itself where a call goes — `GH_HOST`, else the host its configuration puts
+first — so every call from the one door the requests go through
+(`protect-requests.ts`) is `gh api --hostname github.com …`. That covers
+`lisa controls protect`, the merge-protection read of the audit, and the
+canary requests of the attest step, which all go through that door.
 
 **Two more checks are held back without asking the platform.** One a pipeline
 job would report, in a repository with no `.github/workflows` folder: nothing

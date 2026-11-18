@@ -153,11 +153,16 @@ operator back to `/lisa:configure` for that entry; nothing in this step can supp
 | Exit | Meaning | What you do |
 | --- | --- | --- |
 | 0 | The proofs ran and every declared check passed its proof. | Go on. |
-| 1 | The proofs ran and at least one check did not pass, or nothing is declared. The three files were still written. | Go on. This is a result, not a breakdown. |
+| 1 | The proofs ran and at least one check did not pass, or nothing is declared. The three files were still written. After a run with test pull requests it can also mean one of them was merged; see step 3. | Go on. This is a result, not a breakdown. |
 | 2 | Nothing ran, and nothing was written. Each line on standard error is one reason. | Stop. Tell the operator the reasons in plain language, and that there is no verdict. |
 
 Neither 0 nor 1 says whether Level 1 is met. A run can exit 0 with Level 1 far from met, because
 most requirements are not checks at all. Do not report a Level 1 result from this step.
+
+**Read standard error on every run, whatever the exit code.** With `--json` the results are on
+standard output and anything the command has to tell a person is on standard error, one line each,
+beginning `attest:`. A run can exit 0 and still have lines there. Keep them: step 3 says what to do
+with the ones about test pull requests.
 
 ### Step 3: Ask about the two things that need a yes
 
@@ -198,6 +203,24 @@ lisa controls attest --json --pull-request-canaries
 When the operator said yes to both, pass both options in one run. A second run replaces the three
 files, and its exit code and results are read exactly as in step 2. On a no, or no answer, run
 nothing more: the entry stays as it is, and step 8 says what was left unproved and why.
+
+**After a run with test pull requests, relay what it left behind.** The command opens only draft
+pull requests, which GitHub does not merge, and it removes each one. When it could not, it says so
+on standard error, one line for each thing, naming the branch or the pull request. Pass every such
+line on to the operator in plain language, in the same message as the results, even when the run
+exited 0:
+
+| The line says | Tell the operator |
+| --- | --- |
+| A canary could not be removed, naming a pull request that is still open or a branch that still exists. | That pull request or branch is still in the repository and has to be closed or deleted by hand on GitHub. It must not be merged. |
+| A canary an earlier run left behind needs attention, naming a branch under `lisa-attest/`. | The same: it is left over from an earlier run and has to be removed by hand. |
+| A canary pull request was merged, naming its number. The run exits 1 and its last line begins `attest: FAIL.` | Stop and say this first. A test change is now in the protected branch. Name the pull request, say that the merge has to be undone, and that something on GitHub merges pull requests by itself and must be found before test pull requests are run again. Run nothing more with `--pull-request-canaries`. |
+| The head of the protected branch moved while canaries were open. | What the line says: whether a test pull request was merged into it, whether that could not be ruled out (the run exits 1), or that something else moved it. |
+
+Where GitHub does not offer draft pull requests for the repository, the command opens none: the
+entry is `unknown`, its `detail` quotes GitHub's reason, and nothing was created. Say that the
+check could not be exercised here and why. Do not suggest opening an ordinary pull request in its
+place.
 
 ### Step 4: Compare the record with what is installed
 

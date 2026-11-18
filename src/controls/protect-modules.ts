@@ -159,7 +159,15 @@ export interface ReachModule {
     readonly ruleset: unknown;
     readonly branches: readonly string[];
     readonly defaultBranch: string | undefined;
-  }) => { readonly verdict: string; readonly matched: readonly string[] };
+  }) => {
+    /** The ruleset's name, or `""` when the payload has none. */
+    readonly name: string;
+    /** `governs`, `undetermined`, or a word for why it governs nothing. */
+    readonly verdict: string;
+    readonly matched: readonly string[];
+    /** Why, for every verdict but `governs`. */
+    readonly reason: string;
+  };
 }
 
 /** The gate registry, with the two functions the register does not use. */

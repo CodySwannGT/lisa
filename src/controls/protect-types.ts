@@ -24,6 +24,29 @@ export const GITHUB_PLATFORM = "github";
 /** The platform name used when nothing says where the repository is hosted. */
 export const UNKNOWN_PLATFORM = "unknown";
 
+/**
+ * The characters of a branch name that can be put in a request path and a
+ * sentence: letters, digits, `_`, `.`, `/` and `-`, not starting with `/` or
+ * `-`.
+ */
+const BRANCH_NAME = /^[\w.][\w./-]*$/u;
+
+/**
+ * Tell whether a name may be used as a branch in a request path.
+ *
+ * Every branch name goes through this before it reaches a path, wherever it
+ * came from: the operator's `--branch`, or the default branch the hosting
+ * platform named. A name from the platform is checked for the same reason
+ * one from the operator is: it is text this command did not write. A name
+ * holding `..` is refused too. Git allows no such branch, and a request path
+ * would read it as "go up one level".
+ * @param name - The candidate
+ * @returns Whether it is a usable branch name
+ */
+export function isBranchName(name: string): boolean {
+  return BRANCH_NAME.test(name) && !name.includes("..");
+}
+
 /** Whether the platform refuses a merge without an entry's checks. */
 export type ProtectOutcome = "wired" | "blocked";
 

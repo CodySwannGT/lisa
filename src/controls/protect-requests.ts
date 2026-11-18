@@ -7,6 +7,10 @@
  * and, until writing has been allowed, refuses to pass on anything that is not
  * a read. A run without `--apply`, or one whose permission probe did not say
  * yes, therefore cannot send a write even if a later step asked for one.
+ *
+ * It is also where a request learns where it is going. Every call is given
+ * the host that was decided on from the repository's remote address, so
+ * none is left to wherever `gh` would send it by default.
  * @module controls/protect-requests
  */
 import {
@@ -58,12 +62,38 @@ function requestPath(args: readonly string[]): string {
   return args.find(arg => arg.startsWith("repos/")) ?? args.join(" ");
 }
 
+/** The `gh` subcommand every request of this command is made with. */
+const API_SUBCOMMAND = "api";
+
 /**
- * Wrap a `gh` runner so every call is recorded and a write needs permission.
+ * Name the host in a `gh api` call.
+ *
+ * Where a repository is hosted is decided from its remote address, and a
+ * request is sent only when that is one known host. `gh` decides for itself
+ * where a call goes: to `GH_HOST` when that is set, else to the host its own
+ * configuration puts first. Left to that, a machine signed in to another
+ * GitHub would send this repository's name there, and what came back would
+ * be read as this repository's settings. So the host that was decided on is
+ * written into every call, where it outranks both.
+ * @param args - The arguments after `gh`, beginning with `api`
+ * @param host - The host the request is for
+ * @returns The arguments with the host named
+ */
+export function onHost(
+  args: readonly string[],
+  host: string
+): readonly string[] {
+  return [API_SUBCOMMAND, "--hostname", host, ...args.slice(1)];
+}
+
+/**
+ * Wrap a `gh` runner so every call is recorded, names its host, and needs
+ * permission when it is a write.
  * @param gh - The runner that really sends requests
+ * @param host - The host every request is for, for example `github.com`
  * @returns The recording runners and what they recorded
  */
-export function recordRequests(gh: GhRunner): RequestLog {
+export function recordRequests(gh: GhRunner, host: string): RequestLog {
   const log: { current: readonly SentRequest[] } = { current: [] };
   const record = (request: SentRequest): void => {
     log.current = [...log.current, request];
@@ -75,6 +105,15 @@ export function recordRequests(gh: GhRunner): RequestLog {
   ): GhResult => {
     const method = requestMethod(args);
     const path = requestPath(args);
+    // Only `gh api` takes a host, so nothing else goes through this door.
+    if (args[0] !== API_SUBCOMMAND) {
+      record({ method, path, sent: false });
+      return {
+        ok: false,
+        stdout: "",
+        stderr: `Not sent: gh ${path} is not a request to the hosting platform's API, and only those are made here.`,
+      };
+    }
     if (method !== "GET" && !mayWrite) {
       record({ method, path, sent: false });
       return {
@@ -84,7 +123,7 @@ export function recordRequests(gh: GhRunner): RequestLog {
       };
     }
     record({ method, path, sent: true });
-    return gh(args, options);
+    return gh(onHost(args, host), options);
   };
   return {
     read: (args, options) => send(args, options, false),

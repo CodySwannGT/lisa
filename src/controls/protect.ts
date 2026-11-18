@@ -73,10 +73,14 @@ async function report(
   const checks = checkStates(
     derived.checks,
     finding?.required ?? null,
-    finding?.unreported
+    finding?.heldBack
   );
   const entries = derived.entries.map(entry =>
-    entryOutcome(entry, checks, branch, runReason)
+    entryOutcome(entry, checks, {
+      branch,
+      runReason,
+      unconfirmed: finding?.unconfirmed,
+    })
   );
   const blocked = entries.find(entry => entry.outcome === "blocked");
   const open = checks.some(check => check.state !== "required");
@@ -111,7 +115,7 @@ async function report(
       branch,
       permission: finding?.permission ?? PERMISSION_NOT_READ,
       required_checks: checks,
-      differences: differencesOf(checks, branch),
+      differences: differencesOf(checks, branch, finding?.unconfirmed),
       requests: prepared.log.requests(),
       handover: synced.handover,
       entries,

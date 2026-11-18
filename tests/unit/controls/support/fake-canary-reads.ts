@@ -134,7 +134,14 @@ function readPulls(state: State, call: Call): Answer {
 function readPull(state: State, call: Call): Answer {
   if (!/^pulls\/\d+$/u.test(call.resource)) return undefined;
   const pull = pullAt(state, call.resource);
-  return pull === undefined ? NOT_FOUND : ok(pullDocument(state, pull));
+  if (pull === undefined) return NOT_FOUND;
+  if (state.options.mergedByTheHost === true && !pull.merged) {
+    // The platform's own doing, not a request anybody sent.
+    state.refs.set(pull.base, pull.sha);
+    pull.state = "closed";
+    pull.merged = true;
+  }
+  return ok(pullDocument(state, pull));
 }
 
 /**

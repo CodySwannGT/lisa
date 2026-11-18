@@ -15,7 +15,10 @@ import { projectPathKind } from "./read-only-fs.js";
 const GH_TIMEOUT_MS = 15_000;
 const MAX_GH_OUTPUT_BYTES = 256 * 1024;
 const MAX_RULESETS = 32;
-const ACTIONS_INTEGRATION_ID = 15_368;
+/** The largest page the platform returns; it must stay above the bound. */
+const RULESET_PAGE_SIZE = 100;
+/** The id GitHub gives its own Actions app, which reports workflow checks. */
+export const ACTIONS_INTEGRATION_ID = 15_368;
 const QUALITY_RULESET_NAME = "quality checks";
 const QUALITY_WORKFLOW_NAME = "🔍 Quality Checks";
 const REPOSITORY_PART = /^[A-Za-z0-9_.-]{1,100}$/u;
@@ -182,14 +185,26 @@ export type RulesetJsonReader = (
  */
 export function rulesetReaderOver(readJson: RulesetJsonReader): RulesetReader {
   return async (owner, repo, projectRoot, timeoutMs, signal) => {
+    // The platform lists thirty rulesets unless a request asks for more, so
+    // a read without a page size could never reach the bound below: the
+    // thirty-first ruleset was dropped and the list read as whole. The
+    // largest page is asked for, and it is larger than the bound, so a list
+    // that is cut off by the page is always refused by the bound.
     const listed = await readJson(
-      ["api", "-X", "GET", `repos/${owner}/${repo}/rulesets`],
+      [
+        "api",
+        "-X",
+        "GET",
+        `repos/${owner}/${repo}/rulesets?per_page=${String(RULESET_PAGE_SIZE)}`,
+      ],
       projectRoot,
       timeoutMs,
       signal
     );
     if (!Array.isArray(listed) || listed.length > MAX_RULESETS) {
-      throw new Error("Ruleset list exceeded its bounded contract");
+      throw new Error(
+        "Ruleset list exceeded its bounded contract, so it may not be the whole list"
+      );
     }
     const details = await Promise.all(
       listed.map(async entry => {

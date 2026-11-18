@@ -58,9 +58,9 @@ const CANARIES = "--pull-request-canaries";
 
 /** The three reads the default makes, as the stub records them. */
 const SETTINGS_READS = [
-  `api ${API}/rulesets`,
-  `api ${API}/rulesets/1`,
-  `api ${API}`,
+  `api --hostname github.com ${API}/rulesets?per_page=100`,
+  `api --hostname github.com ${API}/rulesets/1`,
+  `api --hostname github.com ${API}`,
 ];
 
 const cleanups: (() => void)[] = [];
@@ -74,7 +74,7 @@ const cleanups: (() => void)[] = [];
 function platform(push: boolean): Readonly<Record<string, unknown>> {
   const ruleset = statusCheckRuleset(1, "main-checks", [PULL_ONLY_CHECK]);
   return {
-    [`${API}/rulesets`]: [
+    [`${API}/rulesets?per_page=100`]: [
       { id: 1, name: ruleset.name, target: "branch", enforcement: "active" },
     ],
     [`${API}/rulesets/1`]: ruleset,
@@ -220,7 +220,10 @@ describe("built lisa controls attest and the pull-request moment", () => {
       canaries: [],
     });
     // The three reads of the settings, then the probe of write access.
-    expect(run.calls).toEqual([...SETTINGS_READS, `api ${API}`]);
+    expect(run.calls).toEqual([
+      ...SETTINGS_READS,
+      `api --hostname github.com ${API}`,
+    ]);
     expect(run.status).toBe(1);
   });
 

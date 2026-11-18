@@ -46,6 +46,15 @@ const STALE = canaryBranch({
   half: "violation",
 });
 
+/** Asking whether pull request 7 was merged. */
+const ASKS = "GET pulls/7";
+
+/** Closing pull request 7. */
+const CLOSES = "PATCH pulls/7";
+
+/** Deleting the stale canary's branch. */
+const DELETES = `DELETE git/refs/heads/${STALE}`;
+
 /** This run, sweeping long after. */
 const SWEEPER = {
   runId: "run0000a",
@@ -95,7 +104,7 @@ function openFrom(platform: FakeCanaryPlatform, branch: string): void {
  * @returns The door
  */
 function doorOver(platform: FakeCanaryPlatform): CanaryDoor {
-  return canaryDoor(recordRequests(platform.gh), REPO, true);
+  return canaryDoor(recordRequests(platform.gh, "github.com"), REPO, true);
 }
 
 /**
@@ -191,9 +200,84 @@ describe("removing one canary", () => {
 
     const removal = keeper.remove(STALE);
 
-    expect(sent).toEqual(["PATCH pulls/7", `DELETE git/refs/heads/${STALE}`]);
+    expect(sent).toEqual([CLOSES, DELETES]);
     expect(removal).toMatchObject({ branchRemoved: true, problem: null });
     expect(keeper.open()).toEqual([]);
+  });
+
+  /**
+   * A door that answers the read of a pull request with a document, and
+   * records every request, reads included, in the order it was made.
+   * @param pull - What the platform says of the pull request, or a refusal
+   * @returns The door and what it was asked
+   */
+  function reading(pull: Answered): {
+    readonly door: CanaryDoor;
+    readonly asked: string[];
+  } {
+    const asked: string[] = [];
+    return {
+      asked,
+      door: {
+        repository: REPO,
+        get: path => {
+          asked.push(`GET ${path}`);
+          return pull;
+        },
+        send: (method, path) => {
+          asked.push(`${method} ${path}`);
+          return { ok: true, value: null };
+        },
+      },
+    };
+  }
+
+  it("asks whether the pull request was merged before it closes it", () => {
+    const { door, asked } = reading({ ok: true, value: { merged: false } });
+    const keeper = canaryKeeper(door);
+    keeper.track(STALE);
+    keeper.opened(STALE, 7);
+
+    const removal = keeper.remove(STALE);
+
+    expect(asked).toEqual([ASKS, CLOSES, DELETES]);
+    expect(removal).toMatchObject({ merged: false, mergedPullRequests: [] });
+    expect(keeper.merged()).toEqual([]);
+  });
+
+  it("does not close a pull request that was merged, and remembers its number", () => {
+    const { door, asked } = reading({ ok: true, value: { merged: true } });
+    const keeper = canaryKeeper(door);
+    keeper.track(STALE);
+    keeper.opened(STALE, 7);
+
+    const removal = keeper.remove(STALE);
+
+    expect(asked).toEqual([ASKS, DELETES]);
+    expect(removal).toMatchObject({ merged: true, mergedPullRequests: [7] });
+    expect(keeper.merged()).toEqual([7]);
+  });
+
+  it("keeps 'not known' apart from 'not merged' when the platform cannot be asked", () => {
+    const { door, asked } = reading({ ok: false, reason: "gh was killed" });
+    const keeper = canaryKeeper(door);
+    keeper.track(STALE);
+    keeper.opened(STALE, 7);
+
+    const removal = keeper.remove(STALE);
+
+    // It is still closed and its branch still deleted.
+    expect(asked).toEqual([ASKS, CLOSES, DELETES]);
+    expect(removal.merged).toBeNull();
+  });
+
+  it("says nothing of a merge for a canary that never had a pull request", () => {
+    const { door, asked } = reading({ ok: true, value: { merged: false } });
+    const keeper = canaryKeeper(door);
+    keeper.track(STALE);
+
+    expect(keeper.remove(STALE).merged).toBeNull();
+    expect(asked).toEqual([DELETES]);
   });
 
   it("counts a branch as gone when the platform says the reference does not exist", () => {

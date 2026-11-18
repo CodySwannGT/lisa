@@ -20,9 +20,17 @@ import {
   type GhRunner,
   type ProtectionModules,
 } from "./protect-modules.js";
-import { detectPlatform, readOriginUrl } from "./protect-platform.js";
+import {
+  GITHUB_HOST,
+  detectPlatform,
+  readOriginUrl,
+} from "./protect-platform.js";
 import { recordRequests, type RequestLog } from "./protect-requests.js";
-import { GITHUB_PLATFORM, type PlatformFacts } from "./protect-types.js";
+import {
+  GITHUB_PLATFORM,
+  isBranchName,
+  type PlatformFacts,
+} from "./protect-types.js";
 import {
   generateControlRegister,
   type ControlRegisterGeneration,
@@ -68,9 +76,6 @@ export type Preparation =
   | { readonly problems: null; readonly prepared: Prepared }
   | { readonly problems: readonly string[] };
 
-/** A branch name that can be put in a request path and a sentence. */
-const BRANCH_NAME = /^[\w.][\w./-]*$/u;
-
 /**
  * Gather everything that can be known without asking the platform.
  * @param root - Real path of the repository
@@ -83,7 +88,7 @@ export async function prepare(
   options: ProtectOptions,
   dependencies: ProtectDependencies
 ): Promise<Preparation> {
-  if (options.branch !== undefined && !BRANCH_NAME.test(options.branch)) {
+  if (options.branch !== undefined && !isBranchName(options.branch)) {
     return {
       problems: [
         `--branch takes a branch name such as main; "${options.branch}" is not one.`,
@@ -120,7 +125,12 @@ export async function prepare(
       requirement: requirementOf(derived.checks, declaration.config, modules),
       policy: declaration.policy,
       platform,
-      log: recordRequests(dependencies.gh ?? modules.reconcile.ghRunner),
+      // A request is only ever sent for a repository on this host
+      // (`detectPlatform`), so this is the host every request names.
+      log: recordRequests(
+        dependencies.gh ?? modules.reconcile.ghRunner,
+        GITHUB_HOST
+      ),
     },
   };
 }

@@ -111,7 +111,7 @@ describe("reading merge protection on GitHub", () => {
       system: SYSTEM,
       needed_by: [SERVER_SIDE_AUTHORITY],
       result: "reachable",
-      request: `GET repos/${REPO}/rulesets; GET repos/${REPO}/rulesets/7; GET repos/${REPO}`,
+      request: `GET repos/${REPO}/rulesets?per_page=100; GET repos/${REPO}/rulesets/7; GET repos/${REPO}`,
     });
     expect(result.branch).toBe("main");
     expect(result.merge_protection).toEqual({
@@ -194,14 +194,16 @@ describe("reading merge protection without access to GitHub", () => {
       system: SYSTEM,
       needed_by: [SERVER_SIDE_AUTHORITY],
       result: "unreachable",
-      request: `GET repos/${REPO}/rulesets`,
+      request: `GET repos/${REPO}/rulesets?per_page=100`,
       observed_error: SIGNED_OUT_ERROR,
       access_needed:
         "the GitHub command-line tool (gh) signed in with an account that can read this repository on GitHub",
     });
     expect(result.merge_protection).toBeNull();
     expect(result.branch).toBeNull();
-    expect(sent).toEqual([`api repos/${REPO}/rulesets`]);
+    expect(sent).toEqual([
+      `api --hostname github.com repos/${REPO}/rulesets?per_page=100`,
+    ]);
   });
 
   it("says the tool is needed when it is not installed", async () => {

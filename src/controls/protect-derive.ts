@@ -155,8 +155,10 @@ export function deriveRequiredChecks(inputs: DeriveInputs): DerivedProtection {
  * @param checks - The derived checks
  * @param required - The names the platform requires on the branch, or `null`
  *   when the platform was not read
- * @param unreported - The checks the platform does not show as ever
- *   reported, or could not be asked about, each with its reason
+ * @param unreported - The checks that were held back after the platform was
+ *   read, each with its reason: nothing shows it reported by the source that
+ *   counts, it could not be asked about, or it is not known whether a
+ *   ruleset already requires it
  * @returns The checks as the result document lists them
  */
 export function checkStates(

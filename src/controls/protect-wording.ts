@@ -52,6 +52,15 @@ export function couldNotRead(detail: string): string {
 }
 
 /**
+ * Say that the default branch the platform named cannot be used.
+ * @param named - The name the platform gave
+ * @returns The reason
+ */
+export function unusableDefaultBranch(named: string): string {
+  return `The platform names ${JSON.stringify(named)} as the repository's default branch, and that is not a branch name this command can put in a request, so nothing was compared and nothing was changed. Say which branch to protect with --branch <name>.`;
+}
+
+/**
  * Say that the platform refused the change.
  * @param failures - What it answered, one per refused step
  * @returns The reason
@@ -73,27 +82,38 @@ export function allRequired(branch: string | null, changed: boolean): string {
   return `Every check the control register derives is required on ${branchName(branch)}. ${how}`;
 }
 
+/** What the run found, beside the checks themselves. */
+export interface RunFacts {
+  /** The branch that was compared, when one is known. */
+  readonly branch: string | null;
+  /** Why this run did not require what is missing; empty when nothing is. */
+  readonly runReason: string;
+  /**
+   * The checks it is not known to be required or not, because a ruleset
+   * whose reach could not be worked out holds them.
+   */
+  readonly unconfirmed?: ReadonlySet<string> | undefined;
+}
+
 /**
  * Say why one check leaves an entry blocked.
  * @param check - The check
- * @param branch - The branch that was compared
- * @param runReason - Why this run did not make it required
+ * @param facts - What the run found
  * @returns The reason
  */
-function checkReason(
-  check: RequiredCheck,
-  branch: string | null,
-  runReason: string
-): string {
+function checkReason(check: RequiredCheck, facts: RunFacts): string {
   const name = quoted(check.context);
-  const on = branchName(branch);
+  const on = branchName(facts.branch);
   if (check.state === "required") return "";
+  const notConfirmed = `It could not be confirmed that ${name} is required on ${on}.`;
   if (check.detail !== null) {
-    return `${name} is not required on ${on}. ${check.detail}`;
+    return facts.unconfirmed?.has(check.context) === true
+      ? `${notConfirmed} ${check.detail}`
+      : `${name} is not required on ${on}. ${check.detail}`;
   }
   return check.state === "unknown"
-    ? `It could not be confirmed that ${name} is required on ${on}. ${runReason}`
-    : `${name} is not required on ${on}. ${runReason}`;
+    ? `${notConfirmed} ${facts.runReason}`
+    : `${name} is not required on ${on}. ${facts.runReason}`;
 }
 
 /**
@@ -114,16 +134,16 @@ function noCheckReason(protectedEntry: ProtectedEntry): string {
  * Report the outcome of one register entry.
  * @param protectedEntry - The entry and the names of its checks
  * @param checks - Every derived check, with where it stands
- * @param branch - The branch that was compared
- * @param runReason - Why this run did not require what is missing
+ * @param facts - The branch that was compared, why this run did not require
+ *   what is missing, and the checks of unknown standing
  * @returns The entry's outcome, once for the entry and once per requirement
  */
 export function entryOutcome(
   protectedEntry: ProtectedEntry,
   checks: readonly RequiredCheck[],
-  branch: string | null,
-  runReason: string
+  facts: RunFacts
 ): EntryOutcome {
+  const { branch } = facts;
   const { entry } = protectedEntry;
   const own = checks.filter(check =>
     protectedEntry.checks.includes(check.context)
@@ -135,7 +155,7 @@ export function entryOutcome(
     ? `The hosting platform requires ${names} on ${branchName(branch)}.`
     : own.length === 0
       ? noCheckReason(protectedEntry)
-      : open.map(check => checkReason(check, branch, runReason)).join(" ");
+      : open.map(check => checkReason(check, facts)).join(" ");
   const outcome = wired ? "wired" : "blocked";
   return {
     id: entry.id,
@@ -154,18 +174,23 @@ export function entryOutcome(
  * List what the platform does not require as derived.
  * @param checks - Every derived check, with where it stands
  * @param branch - The branch that was compared
+ * @param unconfirmed - The checks it is not known to be required or not,
+ *   because a ruleset whose reach could not be worked out holds them
  * @returns One line per check that is known not to be required. A check
- *   whose required state was never read is left out; one that was read as
- *   not required is listed even when it is unknown whether it has ever run
+ *   whose required state was never read, or is not known, is left out; one
+ *   that was read as not required is listed even when it is unknown whether
+ *   it has ever run
  */
 export function differencesOf(
   checks: readonly RequiredCheck[],
-  branch: string | null
+  branch: string | null,
+  unconfirmed: ReadonlySet<string> = new Set()
 ): readonly string[] {
   return checks
     .filter(
       check =>
         check.state !== "required" &&
+        !unconfirmed.has(check.context) &&
         !(check.state === "unknown" && check.detail === null)
     )
     .map(

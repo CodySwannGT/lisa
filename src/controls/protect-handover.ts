@@ -174,7 +174,7 @@ function readinessNotes(open: readonly RequiredCheck[]): readonly string[] {
         ]),
     ...(unread
       ? [
-          '"Not confirmed" means it could not be read whether the check is already required, or whether it has ever run. If it is already required, leave it as it is. Before requiring one, confirm that it appears on a recent pull request: a required check that never reports leaves every pull request waiting.',
+          '"Not confirmed" means it could not be read whether the check is already required, or whether it has ever run. If it is already required, leave it as it is. Before requiring one, confirm that it has run on the branch itself or on a pull request that was merged into it: a required check that never reports leaves every pull request waiting.',
           "",
         ]
       : []),

@@ -86,7 +86,11 @@ export interface CanaryRecord {
   readonly branch: string;
   /** The pull request's number, or `null` when none was opened. */
   readonly pull_request: number | null;
-  /** Whether it was opened as a draft; `null` when none was opened. */
+  /**
+   * Whether it was opened as a draft; `null` when none was opened. Only a
+   * draft is ever read: `false` is a pull request the platform opened as an
+   * ordinary one although a draft was asked for, closed without being read.
+   */
   readonly draft: boolean | null;
   /** The canary commit, or `null` when none was made. */
   readonly head_sha: string | null;
@@ -97,6 +101,12 @@ export interface CanaryRecord {
   readonly closed: boolean;
   /** Whether the branch is gone. True when none was created. */
   readonly branch_removed: boolean;
+  /**
+   * Whether the platform says the pull request was merged, asked before it
+   * was closed. It must never be `true`: this command merges nothing.
+   * `null` when none was opened, or when the platform could not be asked.
+   */
+  readonly merged: boolean | null;
   /** Why something was left behind, or `null` when nothing was. */
   readonly cleanup_problem: string | null;
 }

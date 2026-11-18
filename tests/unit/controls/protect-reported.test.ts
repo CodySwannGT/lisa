@@ -4,26 +4,30 @@
  * A required check that never reports does not fail a pull request: the
  * platform holds it waiting for ever, with no failure to read. So before a
  * check is sent as required, the platform must show a result under that
- * exact name — on the protected branch, or on a recent pull request into it.
- * One it shows nothing for is `not-ready`; one it could not be asked about is
- * `unknown`; neither is ever in a write. The proof costs reads only
+ * exact name, from the source the write would require it from — on the head
+ * of the protected branch, or on the head of a pull request that was merged
+ * into it. An open pull request, or one closed without being merged, shows
+ * what somebody proposed, not what the branch runs. One the platform shows
+ * nothing for is `not-ready`; one it could not be asked about is `unknown`;
+ * neither is ever in a write. The proof costs reads only
  * (CodySwannGT/lisa#4993).
+ *
+ * Where a result counts, and from whom, is in
+ * `./protect-reported-source.test.ts`.
  */
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { ControlAuditFixture } from "../../helpers/control-audit-fixtures.js";
 import { F_PAVED_GATES } from "../../helpers/control-register.js";
-import {
-  fakeGithub,
-  statusCheckRuleset,
-  type FakeGithub,
-} from "./support/fake-github.js";
+import { fakeGithub, statusCheckRuleset } from "./support/fake-github.js";
 import {
   LINT_CHECK,
   REPO,
+  REVIEW_CHECK as REVIEW,
   handover,
   protect,
   protectFixture,
+  sentAsRequired,
   type ProtectFixtureOptions,
 } from "./support/protect-fixture.js";
 
@@ -31,7 +35,9 @@ const APPLY = { apply: true } as const;
 const COMMITS = `repos/${REPO}/commits`;
 const HEAD_RUNS = `${COMMITS}/heads/main/check-runs?per_page=100`;
 const HEAD_STATUS = `${COMMITS}/heads/main/status?per_page=100`;
-const REVIEW = "Review Bot";
+const MERGED_PULLS = `repos/${REPO}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=30`;
+const FIRST_PULL = `${COMMITS}/01c0ffee${"0".repeat(32)}`;
+
 const fixtures: ControlAuditFixture[] = [];
 
 /**
@@ -43,30 +49,6 @@ function repository(options: ProtectFixtureOptions = {}): string {
   const built = protectFixture(options);
   fixtures.push(built);
   return built.repoPath;
-}
-
-/**
- * The check names a write asked the platform to require.
- * @param github - The in-memory platform
- * @returns The names in the only write, or nothing when none was sent
- */
-function sentAsRequired(github: FakeGithub): readonly string[] {
-  return github.writes().flatMap(write => {
-    const body = write.body as {
-      readonly rules: readonly {
-        readonly parameters?: {
-          readonly required_status_checks?: readonly {
-            readonly context: string;
-          }[];
-        };
-      }[];
-    };
-    return body.rules.flatMap(rule =>
-      (rule.parameters?.required_status_checks ?? []).map(
-        check => check.context
-      )
-    );
-  });
 }
 
 afterEach(() => {
@@ -111,7 +93,7 @@ describe("a check the platform has never shown a result for", () => {
     );
   });
 
-  it("is looked for on the branch, then on the recent pull requests, with reads only", async () => {
+  it("is looked for on the branch, then on the pull requests merged into it, with reads only", async () => {
     const github = fakeGithub({
       repo: REPO,
       admin: true,
@@ -128,9 +110,9 @@ describe("a check the platform has never shown a result for", () => {
     expect(proving.map(request => request.path)).toEqual([
       HEAD_RUNS,
       HEAD_STATUS,
-      `repos/${REPO}/pulls?state=all&base=main&sort=updated&direction=desc&per_page=5`,
-      `${COMMITS}/01c0ffee${"0".repeat(32)}/check-runs?per_page=100`,
-      `${COMMITS}/01c0ffee${"0".repeat(32)}/status?per_page=100`,
+      MERGED_PULLS,
+      `${FIRST_PULL}/check-runs?per_page=100`,
+      `${FIRST_PULL}/status?per_page=100`,
     ]);
     expect(github.writes()).toEqual([]);
   });
@@ -174,35 +156,21 @@ describe("a check the platform shows a result for", () => {
     expect(sentAsRequired(github)).toEqual([LINT_CHECK]);
     expect(result.outcome).toBe("wired");
     expect(github.log.map(({ method, path }) => `${method} ${path}`)).toEqual([
-      `GET repos/${REPO}/rulesets`,
+      `GET repos/${REPO}/rulesets?per_page=100`,
       `GET repos/${REPO}`,
       `GET ${HEAD_RUNS}`,
       `POST repos/${REPO}/rulesets`,
-      `GET repos/${REPO}/rulesets`,
+      `GET repos/${REPO}/rulesets?per_page=100`,
       `GET repos/${REPO}/rulesets/1`,
     ]);
   });
 
-  it("is written when it has only run on a recent pull request", async () => {
+  it("is written when it has only run on a pull request that was merged into the branch", async () => {
     const github = fakeGithub({
       repo: REPO,
       admin: true,
       reported: [],
       pulls: [["Unrelated"], [LINT_CHECK]],
-    });
-
-    const result = await protect(repository(), github, APPLY);
-
-    expect(sentAsRequired(github)).toEqual([LINT_CHECK]);
-    expect(result.outcome).toBe("wired");
-  });
-
-  it("is written when it was reported as a commit status, not a check run", async () => {
-    const github = fakeGithub({
-      repo: REPO,
-      admin: true,
-      reported: [],
-      reportedStatuses: [LINT_CHECK],
     });
 
     const result = await protect(repository(), github, APPLY);

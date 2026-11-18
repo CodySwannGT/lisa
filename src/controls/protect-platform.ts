@@ -29,8 +29,11 @@ export const GITHUB_ENTERPRISE_PLATFORM = "github-enterprise";
 /** How long reading the remote address may take. */
 const GIT_TIMEOUT_MS = 5000;
 
-/** The only host this command sends requests for. */
-const GITHUB_HOST = "github.com";
+/**
+ * The only host this command sends requests for. A platform is `reachable`
+ * only when the remote address is on this host, and every request names it.
+ */
+export const GITHUB_HOST = "github.com";
 
 /** One owner or repository name, as the platform allows it. */
 const REPOSITORY_PART = /^[\w.-]{1,100}$/u;

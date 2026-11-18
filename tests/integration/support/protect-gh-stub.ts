@@ -10,8 +10,8 @@
  * asked for, and a write could not succeed even if one were sent.
  *
  * {@link protectGhEnv} also points the real `gh`, should it ever be reached,
- * at a host that cannot exist and at an empty configuration folder with no
- * token.
+ * at a host that cannot exist, at a proxy nothing listens on, and at an
+ * empty configuration folder with no token.
  * @module tests/integration/support/protect-gh-stub
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -41,6 +41,9 @@ if [ ! -f "$file" ]; then
 fi
 cat "$file"
 `;
+
+/** A local address nothing listens on: the discard port of this machine. */
+const NOWHERE = "http://127.0.0.1:9";
 
 /** The stub's folders. */
 export interface ProtectGhStub {
@@ -93,6 +96,17 @@ export function protectGhEnv(
     GH_CONFIG_DIR: path.join(stub.stateDir, "gh-config"),
     GH_TOKEN: "",
     GITHUB_TOKEN: "",
+    // The command names the host in each call, which outranks GH_HOST. So a
+    // real `gh` is also given a proxy nothing listens on: whatever host a
+    // call names, no connection can be made.
+    HTTPS_PROXY: NOWHERE,
+    HTTP_PROXY: NOWHERE,
+    ALL_PROXY: NOWHERE,
+    https_proxy: NOWHERE,
+    http_proxy: NOWHERE,
+    all_proxy: NOWHERE,
+    NO_PROXY: "",
+    no_proxy: "",
   };
 }
 

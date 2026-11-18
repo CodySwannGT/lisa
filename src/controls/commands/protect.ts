@@ -61,8 +61,13 @@ Reads only, unless --apply is given:
   any other hosting platform: nothing is sent; the file is written.
 
 A check is only ever made required once the platform shows a result under its
-name, on the branch or on a recent pull request into it. One that has not run
-yet is reported as not-ready and is left out of the change.
+name, from the source that would be required to report it, on the branch
+itself or on a pull request that was merged into it. An open pull request, or
+one closed without being merged, does not count. One that has not run yet is
+reported as not-ready and is left out of the change.
+
+A check that is already required is never changed: when the platform accepts
+it only from one app, no change this command sends drops or swaps that app.
 
 Prints one JSON document on stdout. Exit codes:
   0  every derived check is required, or the register asks for none

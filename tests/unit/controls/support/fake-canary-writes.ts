@@ -126,7 +126,7 @@ function openPull(state: State, call: Call): Answer {
     head: String(body.head),
     base: String(body.base),
     sha: state.refs.get(String(body.head)) ?? "",
-    draft: body.draft === true,
+    draft: body.draft === true && state.options.draftsBecomeOrdinary !== true,
     title: String(body.title),
     body: String(body.body),
     state: "open",

@@ -36,6 +36,9 @@ import { removeFixtures } from "./support/report-check-run.js";
 
 const BASE = `repos/${REPO}`;
 
+/** The reason of an entry whose settings gave no answer that can be used. */
+const UNREAD = "merge-protection-unread";
+
 /**
  * A platform whose default branch requires some checks.
  * @param contexts - The check names it requires
@@ -89,7 +92,7 @@ describe("an entry enforced only on pull requests, without canaries", () => {
     const settled = await settle(PULL_ONLY_GATES, github.gh);
 
     expect(github.log).toEqual([
-      { method: "GET", path: `${BASE}/rulesets` },
+      { method: "GET", path: `${BASE}/rulesets?per_page=100` },
       { method: "GET", path: `${BASE}/rulesets/1` },
       { method: "GET", path: BASE },
     ]);
@@ -138,7 +141,7 @@ describe("an entry enforced only on pull requests, without canaries", () => {
 
     expect(entryOf(settled, PULL_ONLY_ENTRY)).toMatchObject({
       outcome: "unknown",
-      reason: "merge-protection-unread",
+      reason: UNREAD,
       rung: "observed",
     });
     expect(entryOf(settled, PULL_ONLY_ENTRY).detail).toContain(
@@ -149,6 +152,56 @@ describe("an entry enforced only on pull requests, without canaries", () => {
       checks: [{ context: PULL_ONLY_CHECK, state: "unknown" }],
     });
     expect(github.writes()).toEqual([]);
+  });
+
+  it("is unknown, not failed, when the ruleset that requires its check may or may not cover the branch", async () => {
+    // Branches named by a pattern the matcher does not model.
+    const github = fakeGithub({
+      repo: REPO,
+      admin: false,
+      rulesets: [
+        statusCheckRuleset(1, "main and release", [PULL_ONLY_CHECK], {
+          conditions: {
+            ref_name: { include: ["refs/heads/{main,release}"], exclude: [] },
+          },
+        }),
+      ],
+    });
+
+    const settled = await settle(PULL_ONLY_GATES, github.gh);
+
+    expect(entryOf(settled, PULL_ONLY_ENTRY)).toMatchObject({
+      outcome: "unknown",
+      reason: UNREAD,
+      rung: "observed",
+    });
+    expect(entryOf(settled, PULL_ONLY_ENTRY).detail).toMatch(
+      /^It is not known whether the hosting platform requires "[^"]+" on main\. The ruleset "main and release" requires it/u
+    );
+    expect(pointOf(settled, PULL_ONLY_ENTRY)).toMatchObject({
+      observed: "unknown",
+      checks: [{ context: PULL_ONLY_CHECK, state: "unknown" }],
+    });
+  });
+
+  it("is unknown when the platform names a default branch that cannot be put in a request", async () => {
+    const github = fakeGithub({
+      repo: REPO,
+      admin: false,
+      defaultBranch: "main?per_page=1#",
+      rulesets: [statusCheckRuleset(1, "main-checks", [PULL_ONLY_CHECK])],
+    });
+
+    const settled = await settle(PULL_ONLY_GATES, github.gh);
+
+    expect(entryOf(settled, PULL_ONLY_ENTRY)).toMatchObject({
+      outcome: "unknown",
+      reason: UNREAD,
+    });
+    expect(entryOf(settled, PULL_ONLY_ENTRY).detail).toContain(
+      '"main?per_page=1#"'
+    );
+    expect(settled.pullRequest?.branch).toBeNull();
   });
 
   it.each([

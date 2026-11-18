@@ -10,7 +10,13 @@
  * only what the command concluded but exactly what it sent.
  * @module tests/unit/controls/support/fake-github
  */
-import { reportedAnswer, type ReportedOptions } from "./fake-github-reports.js";
+import {
+  ACTIONS_APP_ID,
+  reportedAnswer,
+  type ReportedOptions,
+} from "./fake-github-reports.js";
+
+export { ACTIONS_APP_ID } from "./fake-github-reports.js";
 
 /** What one call of the `gh` function answers. */
 export interface FakeGhResult {
@@ -67,21 +73,33 @@ export interface FakeGithub {
   readonly rulesets: () => readonly FakeRuleset[];
 }
 
-/** The id GitHub gives its own Actions app. */
-export const ACTIONS_APP_ID = 15_368;
+/** The page of a list the platform returns when a request does not say. */
+const DEFAULT_PAGE_SIZE = 30;
+
+/** The largest page of a list the platform returns, whatever is asked for. */
+const LARGEST_PAGE_SIZE = 100;
+
+/**
+ * One check a ruleset requires. A bare name is pinned to GitHub Actions, as
+ * the ruleset applier writes it; `integration_id: null` is a check any
+ * source may report.
+ */
+export type FakeRequiredCheck =
+  | string
+  | { readonly context: string; readonly integration_id: number | null };
 
 /**
  * A ruleset that requires status checks on the default branch.
  * @param id - The ruleset's id
  * @param name - The ruleset's name
- * @param contexts - The check names it requires
+ * @param contexts - The checks it requires
  * @param overrides - Fields to replace, for example `enforcement`
  * @returns The ruleset
  */
 export function statusCheckRuleset(
   id: number,
   name: string,
-  contexts: readonly string[],
+  contexts: readonly FakeRequiredCheck[],
   overrides: Readonly<Record<string, unknown>> = {}
 ): FakeRuleset {
   return {
@@ -97,10 +115,14 @@ export function statusCheckRuleset(
         parameters: {
           strict_required_status_checks_policy: false,
           do_not_enforce_on_create: true,
-          required_status_checks: contexts.map(context => ({
-            context,
-            integration_id: ACTIONS_APP_ID,
-          })),
+          required_status_checks: contexts.map(check => {
+            if (typeof check === "string") {
+              return { context: check, integration_id: ACTIONS_APP_ID };
+            }
+            return check.integration_id === null
+              ? { context: check.context }
+              : check;
+          }),
         },
       },
     ],
@@ -215,20 +237,38 @@ function read(
       ? answer(reports.value)
       : refusal(reports.message, 404);
   }
-  if (path === `${base}/rulesets`) {
-    return answer(
-      state.rulesets.map(({ id, name, target, enforcement }) => ({
-        id,
-        name,
-        target,
-        enforcement,
-      }))
-    );
+  const [resource = "", query = ""] = path.split("?");
+  if (resource === `${base}/rulesets`) {
+    return answer(rulesetPage(state.rulesets, query));
   }
   const held = state.rulesets.find(
     ruleset => path === `${base}/rulesets/${String(ruleset.id)}`
   );
   return held === undefined ? refusal("Not Found", 404) : answer(held);
+}
+
+/**
+ * One page of the list of rulesets, as the platform gives it: thirty unless
+ * the request asks for more, and never more than a hundred.
+ * @param rulesets - Every ruleset the platform holds
+ * @param query - The query of the request
+ * @returns The first page, each ruleset in the short form a list uses
+ */
+function rulesetPage(
+  rulesets: readonly FakeRuleset[],
+  query: string
+): readonly Readonly<Record<string, unknown>>[] {
+  const asked = Number(new URLSearchParams(query).get("per_page"));
+  const size = Math.min(
+    asked > 0 ? asked : DEFAULT_PAGE_SIZE,
+    LARGEST_PAGE_SIZE
+  );
+  return rulesets.slice(0, size).map(({ id, name, target, enforcement }) => ({
+    id,
+    name,
+    target,
+    enforcement,
+  }));
 }
 
 /**

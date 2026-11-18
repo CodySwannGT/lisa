@@ -194,6 +194,10 @@ describe("a probe that names things without showing them", () => {
       "GET repos/example/widgets/rulesets; GET repos/example/widgets",
     ],
     [
+      "a read that asks for a page size, as the merge-protection read does",
+      "GET repos/example/widgets/rulesets?per_page=100; GET repos/example/widgets/rulesets/7; GET repos/example/widgets",
+    ],
+    [
       "the name of a secret",
       "GET /api/0/projects/ with the token named SENTRY_AUTH_TOKEN",
     ],
