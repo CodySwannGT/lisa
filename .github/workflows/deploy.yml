@@ -312,7 +312,7 @@ jobs:
 
       # The prepare job's bun.lock is never pushed. It ran dependency code
       # after its own checks, so it could have been rewritten — an entry pointed
-      # at another tarball, the patched picomatch swapped for an unpatched one.
+      # at another tarball, a patched dependency swapped for an unpatched one.
       # It cannot be checked entry by entry either: a major raise legitimately
       # moves the self-dependency's transitive tree. So this job regenerates the
       # lockfile itself from main's lockfile plus the verified package.json.

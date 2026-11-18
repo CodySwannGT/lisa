@@ -162,8 +162,10 @@ describe("the push job accepts only the self-pin line (#4951)", () => {
 
 /**
  * The repository's real lockfile, which pins the self-dependency at
- * its current release — the shape a regenerated lockfile actually has, with the
- * patchedDependencies section, nested `@codyswann/lisa/<dep>` entries and all.
+ * its current release — the shape a regenerated lockfile actually has, nested
+ * `@codyswann/lisa/<dep>` entries and all. Patch-section behaviour is tested
+ * against {@link PATCHED_LOCK} instead, which does not depend on this
+ * repository carrying a dependency patch.
  */
 const LOCK = readFileSync(
   path.join(import.meta.dirname, "..", "..", "..", "bun.lock"),
@@ -185,7 +187,8 @@ const INTEGRITY = (/^ {4}"@codyswann\/lisa": \[.*"(sha512-[^"]+)"\],$/m.exec(
 ) ?? [])[1] as string;
 
 /** A patched dependency's line in {@link PATCHED_LOCK}. */
-const PATCH_LINE = '    "picomatch@4.0.3": "patches/picomatch@4.0.3.patch",';
+const PATCH_LINE =
+  '    "example-dep@1.0.0": "patches/example-dep@1.0.0.patch",';
 
 /**
  * A small, fixed bun.lock with a patchedDependencies section. The patch-path
@@ -202,10 +205,10 @@ const PATCHED_LOCK = [
   "  },",
   '  "patchedDependencies": {',
   PATCH_LINE,
-  '    "semver@7.8.1": "patches/semver@7.8.1.patch",',
+  '    "other-dep@2.0.0": "patches/other-dep@2.0.0.patch",',
   "  },",
   '  "packages": {',
-  '    "picomatch": ["picomatch@4.0.3", "", {}, "sha512-AAAA"],',
+  '    "example-dep": ["example-dep@1.0.0", "", {}, "sha512-AAAA"],',
   "  }",
   "}",
   "",
