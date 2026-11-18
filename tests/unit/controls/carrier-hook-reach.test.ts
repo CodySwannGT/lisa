@@ -141,9 +141,18 @@ describe("a hook that can leave with success before its end", () => {
 });
 
 describe("a hook the reader cannot prove safe", () => {
-  it("is refused for an exit with a failure inside an if", () => {
+  it("is refused for an exit inside an if that carries the last status", () => {
     expect(
-      earlyLeave(hook("#!/bin/sh", "if ! true; then", "  exit 1", "fi"))
+      earlyLeave(hook("#!/bin/sh", "if ! true; then", "  exit $?", "fi"))
+    ).toEqual({ line: 3, word: "exit" });
+    expect(
+      earlyLeave(hook("#!/bin/sh", "if ! true; then", "  exit", "fi"))
+    ).toEqual({ line: 3, word: "exit" });
+  });
+
+  it("is refused for an exit with success inside an if", () => {
+    expect(
+      earlyLeave(hook("#!/bin/sh", "if true; then", "  exit 0", "fi"))
     ).toEqual({ line: 3, word: "exit" });
   });
 
@@ -174,6 +183,15 @@ describe("a hook whose end is reached whenever what is above it passed", () => {
     [
       "a failure that exits with a failure",
       hook("#!/bin/sh", "true || exit 1"),
+    ],
+    [
+      "an exit with a written failure inside an if that is not taken",
+      hook(
+        "#!/bin/sh",
+        "if ! command -v sh >/dev/null; then",
+        "  exit 1",
+        "fi"
+      ),
     ],
     [
       "a failure that exits with its own status",

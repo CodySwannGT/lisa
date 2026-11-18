@@ -1664,12 +1664,17 @@ with the point `blocked`, when one of them can end it:
 
 - `exec <program>` anywhere. An `exec` that only redirects (`exec < /dev/tty`)
   is accepted.
-- any `exit`, except the last part of `|| exit <non-zero>` (`|| exit 1`,
-  `|| exit $?`, `|| exit`), which leaves only after a failure, with a failure.
+- any `exit` that could leave with success: `exit 0`, an `exit` whose status
+  is a variable, and an `exit` with no status or with `$?` anywhere but the
+  last part of `|| exit` (`|| exit $?`, `|| exit`), where the status it
+  carries is a failure.
 
-An `exit 1` inside an `if` is refused as well. It would be safe, but proving
-which exits are safe means following the shell's control flow, and a wrong
-proof is a commit that passes unchecked; refusing costs one paste. The reader
+An `exit` with a written non-zero status (`exit 1`) is accepted wherever it
+stands, inside an `if` included: every way it leaves fails the hook, so git
+stops the commit itself and nothing passes unchecked. An `exit $?` inside an
+`if` is refused. It may be safe, but proving it means following the shell's
+control flow, and a wrong proof is a commit that passes unchecked; refusing
+costs one paste. The reader
 follows quotes, comments and here-documents, so `npm exec` and an `exit` in a
 message are not taken for commands. It does not follow a file the hook reads
 in, `eval`, or a function called later. The blocked point names the line and

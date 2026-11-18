@@ -271,18 +271,21 @@ function replacesShell(args: readonly string[]): boolean {
 }
 
 /**
- * Tell whether an `exit` leaves only after a failure, with a failure.
+ * Tell whether an `exit` can only leave with a failure.
+ *
+ * A written non-zero status fails the hook wherever the `exit` stands, so git
+ * stops the commit itself and nothing passes unchecked. An `exit` with no
+ * status, or with `$?`, carries the last status, which is a failure only as
+ * the last part of `|| exit`.
  * @param piece - The piece whose command is `exit`
  * @param args - The words after `exit`
- * @returns Whether it is the last part of `|| exit <non-zero>`
+ * @returns Whether every way this `exit` leaves is a failure
  */
 function leavesFailed(piece: Piece, args: readonly string[]): boolean {
   const [status, ...more] = args;
-  return (
-    piece.after === "||" &&
-    more.length === 0 &&
-    (status === undefined || status === "$?" || NON_ZERO.test(status))
-  );
+  if (more.length > 0) return false;
+  if (status !== undefined && NON_ZERO.test(status)) return true;
+  return piece.after === "||" && (status === undefined || status === "$?");
 }
 
 /**
