@@ -181,6 +181,7 @@ describe("what became of each read", () => {
       checks: {},
       label: "GitHub",
       required: [],
+      rulesets: [],
     };
     const platformOf = (change: Partial<SurfaceFacts>): string | undefined =>
       states(surfacesOf(facts(change)))["hosting-platform"];

@@ -220,3 +220,43 @@ describe("what the carrier check says about one enforcement point", () => {
     expect(verdict.state).toBe("wired");
   });
 });
+
+describe("what the carrier check says about a coding agent's point", () => {
+  const AGENT_SETTINGS = ".claude/settings.json";
+  const AGENT_SCRIPT = ".lisa/hooks/post-tool";
+  const agentPoint = point({
+    agent: "claude",
+    hook: "PostToolUse",
+    kind: "agent-hook",
+    location: "coding-agent",
+    moment: "post-tool",
+    outcome: "updated",
+    path: AGENT_SETTINGS,
+    wired_through: "agent-config",
+  });
+
+  it("is not wired when the carrier the agent's hook starts is missing", async () => {
+    const verdict = await carrierVerdict(
+      agentPoint,
+      result([{ action: "create", path: AGENT_SCRIPT }]),
+      reader()
+    );
+
+    expect(verdict).toEqual({
+      checked: AGENT_SETTINGS,
+      reason:
+        ".lisa/hooks/post-tool is missing, so the PostToolUse hook cannot start the gate runner at post-tool.",
+      state: "not-wired",
+    });
+  });
+
+  it("is wired when the hook entry and the carrier it starts are in place", async () => {
+    const verdict = await carrierVerdict(
+      { ...agentPoint, outcome: ALREADY_WIRED },
+      result(),
+      reader()
+    );
+
+    expect(verdict.state).toBe("wired");
+  });
+});

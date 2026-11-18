@@ -208,6 +208,20 @@ describe("a check that gives no answer", () => {
     expect(failing.not_measured.map(gate => gate.entry_id)).toEqual([ENTRY]);
   });
 
+  it("says that nothing was measured when no check gave an answer", async () => {
+    const { failing } = await measure(
+      repository(
+        VIOLATION,
+        lintGates({}, { command: ["lisa-no-such-program-anywhere"] })
+      )
+    );
+
+    expect(failing.reason).toContain(
+      "None of the 1 gave an answer, so nothing is known about whether they pass there."
+    );
+    expect(failing.reason).not.toContain("0 of 0");
+  });
+
   it("is not run at all when nothing is required", async () => {
     const { failing, copy } = await measure(
       repository(VIOLATION, lintGates({ commit: "optional" }))

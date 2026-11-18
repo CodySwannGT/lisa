@@ -20,24 +20,34 @@
  * ## What counts as a command
  *
  * Every line that is not blank, not a comment and not inside a block Lisa
- * wrote is split where shell chains commands (`&&`, `||`, `;`), outside
- * quotes. From each piece the words shell puts in front of a command are
- * dropped (`if`, `!`, `then`, `exec`, a `NAME=value` setting, a `case`
- * label). What is left is a command unless its first word only steers the
+ * wrote is split where shell starts another command (`&&`, `||`, `;`, a
+ * pipe), outside quotes (`./reconcile-shell-words.ts`). From each piece the
+ * redirects are left out, and so is what shell puts around a command: the
+ * words in front of it (`if`, `!`, `then`, `exec`, a `NAME=value` setting, a
+ * `case` label), the bracket that opens a group (`{`, `(`) and the one that
+ * closes it. What is left is a command unless its first word only steers the
  * shell (`set`, `cd`, `exit`, `[`, `echo` and the like), only tests whether a
  * program is there (`command -v`), or is the call to Lisa's own carrier.
+ *
+ * So `{ npm test; } || exit 1` and `( cd api && npm test ) 2>&1 | tee log`
+ * both run `npm test`, and the second also runs `tee log`.
  *
  * ## What it cannot see
  *
  * It is not a shell. It does not follow a call into the script it starts, it
  * does not evaluate conditions, and it does not read a here-document as
- * data. A hook that calls a script is reported as that call.
+ * data. A hook that calls a script is reported as that call. Brackets are
+ * matched within one line: the last line of a group that spans several is
+ * read right when its closing bracket stands on its own or after a command
+ * of more than one word.
  * @module controls/reconcile-hook-lines
  */
 import path from "node:path";
 
 import { carrierScriptPath, findMarkedBlock } from "./carrier-script.js";
 import { CARRIER_MOMENTS, CARRIER_RUNNER_FILE } from "./carrier-types.js";
+import { commandOfPiece, isCasePattern } from "./reconcile-shell-command.js";
+import { pieces, type Word } from "./reconcile-shell-words.js";
 
 /** The line that opens the block a Lisa project type manages in a hook. */
 export const MANAGED_BLOCK_BEGIN = "# BEGIN: AI GUARDRAILS";
@@ -65,49 +75,15 @@ export type ShellHookRead =
     }
   | { readonly problem: string };
 
-/** One word of a line, and where it starts. */
-interface Word {
-  /** The word with its quotes taken off. */
-  readonly text: string;
-  /** The word as it is written. */
-  readonly raw: string;
-  /** Where it starts in the line. */
-  readonly start: number;
-}
-
-/** The pieces of a line read so far. */
-interface Pieces {
-  readonly done: readonly (readonly Word[])[];
-  readonly current: readonly Word[];
-  /** Whether a comment was reached, so the rest of the line is ignored. */
-  readonly ended: boolean;
-}
-
 /** A range of lines, both ends included. */
 interface LineRange {
   readonly start: number;
   readonly end: number;
 }
 
-/** Words that stand in front of a command without being one. */
-const PREFIXES = new Set([
-  "!",
-  "if",
-  "then",
-  "elif",
-  "else",
-  "while",
-  "until",
-  "do",
-  "exec",
-  "time",
-]);
-
 /** First words of a piece that steers the shell and starts no program. */
 const SHELL_ONLY = new Set([
-  "{",
   "}",
-  "(",
   ")",
   "[",
   "[[",
@@ -154,99 +130,8 @@ const SOURCING = new Set([".", "source"]);
 /** The file Husky's own first line reads, in the versions that have one. */
 const HUSKY_BOOTSTRAP = "husky.sh";
 
-/** The older spelling of a command substitution's delimiter. */
-const TICK = "`";
-
-/** A command substitution, with one level of brackets inside it. */
-const SUBSTITUTION = String.raw`\$\((?:[^()]|\([^()]*\))*\)`;
-
-/** What a double-quoted span holds: text, escapes and substitutions. */
-const DOUBLE_QUOTED = String.raw`(?:[^"\\$]|\\.|${SUBSTITUTION}|\$)*`;
-
-/**
- * One token of a line: a gap, a place where shell chains commands, a comment
- * that runs to the end of the line, or a word. A quoted span and a command
- * substitution belong to the word they are in, spaces and all.
- */
-const TOKEN = new RegExp(
-  [
-    String.raw`\s+|&&|\|\||;+|#.*$`,
-    String.raw`(?:[^\s'"\\;&|$${TICK}]|\\.|'[^']*'|"${DOUBLE_QUOTED}"|${SUBSTITUTION}|\$|${TICK}[^${TICK}]*${TICK}|&(?!&)|\|(?!\|))+`,
-  ].join("|"),
-  "gu"
-);
-
-/** Where shell chains one command to the next. */
-const CHAIN = /^(?:&&|\|\||;+)$/u;
-
-/** A quoted span or an escaped character inside a word. */
-const QUOTED = new RegExp(
-  String.raw`'([^']*)'|"(${DOUBLE_QUOTED})"|\\(.)`,
-  "gsu"
-);
-
-/** A setting written in front of a command, such as `CI=1`. */
-const ASSIGNMENT = /^[A-Za-z_]\w*=/u;
-
 /** A word that names a function being defined, such as `check()`. */
 const FUNCTION_NAME = /^[A-Za-z_][\w-]*\(\)$/u;
-
-/**
- * Take the quotes off a word.
- * @param raw - The word as it is written
- * @returns The word as the shell would hand it to a program
- */
-function unquoted(raw: string): string {
-  return raw.replaceAll(
-    QUOTED,
-    (
-      _all,
-      single: string | undefined,
-      double: string | undefined,
-      escaped: string | undefined
-    ) => single ?? double?.replaceAll(/\\(.)/gsu, "$1") ?? escaped ?? ""
-  );
-}
-
-/**
- * Split a line where shell chains commands, outside quotes.
- * @param text - The line
- * @returns The words of each piece, in order
- */
-function pieces(text: string): readonly (readonly Word[])[] {
-  const read = [...text.matchAll(TOKEN)].reduce<Pieces>(
-    (so, match) => {
-      const [raw] = match;
-      if (so.ended || raw.trim() === "") return so;
-      if (raw.startsWith("#")) return { ...so, ended: true };
-      return CHAIN.test(raw)
-        ? { ...so, current: [], done: [...so.done, so.current] }
-        : {
-            ...so,
-            current: [
-              ...so.current,
-              { raw, start: match.index, text: unquoted(raw) },
-            ],
-          };
-    },
-    { current: [], done: [], ended: false }
-  );
-  return [...read.done, read.current];
-}
-
-/**
- * Tell whether a word stands in front of a command without being one.
- * @param word - The word
- * @param last - Whether it is the last word of its piece
- * @returns Whether to look past it for the command
- */
-function isPrefix(word: Word, last: boolean): boolean {
-  return (
-    PREFIXES.has(word.raw) ||
-    ASSIGNMENT.test(word.raw) ||
-    (!last && word.raw.endsWith(")") && !word.raw.includes("("))
-  );
-}
 
 /**
  * Tell whether some words call Lisa's own carrier or the gate runner.
@@ -283,6 +168,13 @@ function runsSomething(words: readonly Word[]): boolean {
   );
 }
 
+/** The commands of a line read so far. */
+interface LineRead {
+  readonly commands: readonly ShellCommand[];
+  /** How many round brackets the line has open. */
+  readonly depth: number;
+}
+
 /**
  * Read the commands of one line of shell.
  * @param text - The line, continuations already joined
@@ -293,24 +185,25 @@ export function commandsInLine(
   text: string,
   line: number
 ): readonly ShellCommand[] {
-  return pieces(text).flatMap(piece => {
-    const from = piece.findIndex(
-      (word, index) => !isPrefix(word, index === piece.length - 1)
-    );
-    const words = from === -1 ? [] : piece.slice(from);
-    const first = words[0];
-    const last = words.at(-1);
-    if (first === undefined || last === undefined || !runsSomething(words)) {
-      return [];
-    }
-    return [
-      {
+  const all = pieces(text);
+  return all.reduce<LineRead>(
+    (so, piece, at) => {
+      if (so.depth === 0 && isCasePattern(all, at)) return so;
+      const { depth, words } = commandOfPiece(piece.words, so.depth);
+      const first = words[0];
+      const last = words.at(-1);
+      if (first === undefined || last === undefined || !runsSomething(words)) {
+        return { ...so, depth };
+      }
+      const command: ShellCommand = {
         command: text.slice(first.start, last.start + last.raw.length),
         line,
         words: words.map(word => word.text),
-      },
-    ];
-  });
+      };
+      return { commands: [...so.commands, command], depth };
+    },
+    { commands: [], depth: 0 }
+  ).commands;
 }
 
 /**

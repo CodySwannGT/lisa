@@ -14,15 +14,25 @@
  * wrote; the report requires that file to be current before it says
  * anything.
  *
+ * ## What the summary says of the checks run on the default branch
+ *
+ * How many ran to an answer, how many of those do not pass, and how many
+ * gave no answer. A check that could not be started, ran out of time or runs
+ * through the project's task runner says nothing about the code, so a run in
+ * which no check gave an answer is said to have measured nothing. It is
+ * never written as a count of zero failing checks.
+ *
  * ## What the result does not show
  *
  * A carrier being in place is not proof that a check stops a bad change, and
  * some places a check runs cannot be measured in this release. Each such
  * limit is one plain sentence, added only when it applies to this
- * repository.
+ * repository. The ones about carriers are read from the carriers the
+ * checkout holds now (`./enforce-carriers.ts`), not from the saved result.
  * @module controls/enforce-summary
  */
-import type { EnforceInputs, HandedCarrierPoint } from "./enforce-inputs.js";
+import type { InstalledCarrier } from "./enforce-carriers.js";
+import type { EnforceInputs } from "./enforce-inputs.js";
 import {
   ENFORCE_OUTCOMES,
   type CriterionEnforcement,
@@ -33,9 +43,6 @@ import {
 import { platformLabel } from "./protect-platform.js";
 import { isWrittenByLisa } from "./pull-request-executor.js";
 import type { ControlRegister, PullRequestExecutor } from "./register-types.js";
-
-/** The carrier outcomes that mean a carrier is in place. */
-const IN_PLACE: readonly string[] = ["installed", "updated", "already-wired"];
 
 /**
  * The hook owners for which git runs the hooks only because of a setting of
@@ -128,6 +135,27 @@ export function countOutcomes(
 }
 
 /**
+ * Say what running the required checks on the default branch came to.
+ * @param failing - What running them found
+ * @returns The sentence, with a space in front; empty when they were not run
+ */
+function measuredSentence(failing: CurrentlyFailing): string {
+  if (!failing.measured) return "";
+  const branch = failing.head?.branch ?? "the default branch";
+  const failed = failing.gates.length;
+  const unanswered = failing.not_measured.length;
+  if (failing.checked === 0 && unanswered > 0) {
+    return unanswered === 1
+      ? ` The 1 required check gave no answer on ${branch} as it stands, so whether it passes there is not known.`
+      : ` None of the ${unanswered} required checks gave an answer on ${branch} as it stands, so whether they pass there is not known.`;
+  }
+  const ran = ` ${failing.checked} required ${failing.checked === 1 ? "check" : "checks"} ran on ${branch} as it stands: ${failed} ${failed === 1 ? "does" : "do"} not pass.`;
+  return unanswered === 0
+    ? ran
+    : `${ran} ${unanswered} more gave no answer, so nothing is known about ${unanswered === 1 ? "it" : "them"}.`;
+}
+
+/**
  * Say the whole result in one sentence.
  * @param counts - How many requirements have each outcome
  * @param changes - What the steps changed
@@ -143,34 +171,30 @@ export function summaryOf(
     (sum, outcome) => sum + counts[outcome],
     0
   );
-  const red = failing.measured
-    ? ` ${failing.gates.length} required ${failing.gates.length === 1 ? "check does" : "checks do"} not pass on ${failing.head?.branch ?? "the default branch"} as it stands.`
-    : "";
-  return `${total} requirements: ${counts.wired} wired, ${counts.ticketed} ticketed, ${counts.blocked} waiting on somebody, ${counts["nothing-to-enforce"]} with nothing to enforce. The steps of this run reported ${changes.length} ${changes.length === 1 ? "change" : "changes"}.${red}`;
+  return `${total} requirements: ${counts.wired} wired, ${counts.ticketed} ticketed, ${counts.blocked} waiting on somebody, ${counts["nothing-to-enforce"]} with nothing to enforce. The steps of this run reported ${changes.length} ${changes.length === 1 ? "change" : "changes"}.${measuredSentence(failing)}`;
 }
 
 /**
- * Name the agents of some carrier points.
- * @param points - Agent points
+ * Name the agents of some carriers.
+ * @param points - Agent carriers
  * @returns The agents, as a sentence lists them
  */
-function agentsOf(points: readonly HandedCarrierPoint[]): string {
+function agentsOf(points: readonly InstalledCarrier[]): string {
   return sentenceList(points.flatMap(point => point.agent ?? []));
 }
 
 /**
- * The limits that come from the carriers result.
- * @param points - Its enforcement points
+ * The limits that come from the carriers the checkout holds.
+ * @param points - The carriers, as a read of the checkout found them
  * @returns One sentence per limit that applies
  */
-function carrierLimits(
-  points: readonly HandedCarrierPoint[]
-): readonly string[] {
-  const wired = points.filter(point => IN_PLACE.includes(point.outcome));
+function carrierLimits(points: readonly InstalledCarrier[]): readonly string[] {
+  const wired = points.filter(point => point.state === "in-place");
   const assumed = wired.filter(point => point.refusal_evidence === "assumed");
-  const cannot = points.filter(point => point.outcome === "unenforceable");
+  const told = wired.filter(point => point.refusal === "additional-context");
+  const cannot = points.filter(point => point.state === "no-hook");
   return [
-    ...(wired.some(point => SETTING_OWNERS.includes(point.wired_through ?? ""))
+    ...(wired.some(point => SETTING_OWNERS.includes(point.wired_through))
       ? [
           'Git is set to run these hooks in this checkout only: the setting (core.hooksPath) is not copied into a new clone. In every other checkout, run "lisa controls install-carriers" once.',
         ]
@@ -178,6 +202,11 @@ function carrierLimits(
     ...(assumed.length > 0
       ? [
           `On ${agentsOf(assumed)}, that a failed check stops the agent after it writes a file is assumed from how the agent's hooks are described. It has not been measured.`,
+        ]
+      : []),
+    ...(told.length > 0
+      ? [
+          `On ${agentsOf(told)}, a failed check does not fail the file write. The agent is told afterwards, and nothing stops it going on.`,
         ]
       : []),
     ...(cannot.length > 0
@@ -230,16 +259,16 @@ function registerLimits(register: ControlRegister): readonly string[] {
 /**
  * Say what the result does not show.
  * @param register - The control register
- * @param inputs - The three results
+ * @param installed - The carriers the checkout holds now
  * @returns One plain sentence per limit, the general one first
  */
 export function reportLimits(
   register: ControlRegister,
-  inputs: EnforceInputs
+  installed: readonly InstalledCarrier[]
 ): readonly string[] {
   return [
     "Wired means that what runs a check is in place. Whether the check really stops a bad change is what the attest step proves.",
-    ...carrierLimits(inputs.carriers.enforcement_points),
+    ...carrierLimits(installed),
     ...registerLimits(register),
   ];
 }

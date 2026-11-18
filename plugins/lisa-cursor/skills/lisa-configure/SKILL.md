@@ -95,8 +95,8 @@ Run the steps in order. Each one says what it **needs** from the steps before it
 
 ### Step 1: Preflight
 
-**Needs:** nothing. **Hands on:** the repository root, and a way of running Lisa that is known to
-work.
+**Needs:** nothing. **Hands on:** the repository root, a way of running Lisa that is known to
+work, and the list of what was already changed before this run.
 
 1. Find the root of the repository being configured. Run this inside the folder the operator
    named, or inside the folder this session is in when none was named:
@@ -118,6 +118,15 @@ work.
    `controls` for the name of a folder to set Lisa up in. Move to the next way of running Lisa in
    "How to run the Lisa commands" and check that one the same way. If none passes, stop and tell
    the operator that configuring needs a newer Lisa and that nothing was changed.
+3. Note what the working copy holds now, before anything is written, so that step 10 can tell
+   what this run changed from what was already there:
+
+   ```bash
+   git status --porcelain --untracked-files=all
+   ```
+
+   Keep the list it prints, exactly as printed. It is the only record of what was there before
+   this run.
 
 ### Step 2: Find out which road this repository takes
 
@@ -493,9 +502,11 @@ and the register changed.
 git status --porcelain --untracked-files=all
 ```
 
-Apart from anything that was already there before this run (the audit's own report under
-`.lisa/audit/`, for one), the only paths listed may be `.lisa.config.json`, the patch files under
-`.lisa/controls/proofs/` and `.lisa/controls/register.json`. If anything else appears, this run
+Compare it with the list step 1 kept. A path is this run's when it is in this list and was not in
+that one, or is in both with a different status. Anything that was already in the list step 1
+kept was there before this run (the audit's own report under `.lisa/audit/`, for one). The only
+paths that may be this run's are `.lisa.config.json`, the patch files under
+`.lisa/controls/proofs/` and `.lisa/controls/register.json`. If anything else is, this run
 changed something it must not: a test change left in a source file is the one to look for first.
 Remove only what you yourself created, and run this step again. Never delete, restore or reset
 anything you did not create.

@@ -8,7 +8,6 @@ import type {
   CarrierChange,
   CarrierKind,
   CarrierPointOutcome,
-  RefusalEvidence,
 } from "./carrier-types.js";
 import type {
   HandoverOutcome,
@@ -33,15 +32,16 @@ export interface HandedCarrierPoint {
   readonly reason: string | null;
   /** The coding agent the point belongs to; only an agent point has it. */
   readonly agent?: string;
-  /** How it is known the agent acts on a refusal; only a wired agent point. */
-  readonly refusal_evidence?: RefusalEvidence;
-  /** What calls the carrier there. */
-  readonly wired_through?: string;
 }
 
-/** The carriers result, as far as it is read. */
+/**
+ * The carriers result, as far as it is read. It is what an installing run
+ * printed: the output of a `--check` run is refused before it gets here.
+ * What it says of a point is set beside a fresh read of the checkout
+ * (`./enforce-carriers.ts`), and the read is what the report believes.
+ */
 export interface HandedCarriers {
-  readonly mode: "install" | "check";
+  readonly mode: "install";
   readonly enforcement_points: readonly HandedCarrierPoint[];
   readonly changes: readonly CarrierChange[];
 }

@@ -9,7 +9,13 @@
  * each and keep nothing, and an agent carries out the ticket flow. The
  * enforce step saves each result in a file outside the repository and names
  * the three files here. A file that is absent, empty or of the wrong shape
- * stops the command (`../enforce-inputs.ts`).
+ * stops the command (`../enforce-inputs.ts`), and so does a carriers result
+ * that is the output of a `--check` run, which installed nothing.
+ *
+ * The carriers result is not believed on its own. The command reads the
+ * checkout's carriers again, writing nothing, and a check is reported as
+ * running at commit, at push or after an edit only when that read finds what
+ * runs it in place now (`../enforce-carriers.ts`).
  *
  * ## What it prints
  *
@@ -18,7 +24,10 @@
  * register entries behind them, the required checks that fail on the head
  * of the default branch with what their commands printed, what the steps of
  * this run changed, and what the result does not show. Lines for a person
- * go to stderr.
+ * go to stderr: the summary, one line for each check that fails on the
+ * default branch, and one line for each check that gave no answer there,
+ * so that a run which measured nothing is never read as a run that found
+ * nothing failing.
  *
  * ## What it changes
  *
@@ -61,13 +70,21 @@ about every Level 1 requirement:
   ticketed            the repository has nothing for it, and a ticket exists
   blocked             somebody has to act first; the reason says who and what
   nothing-to-enforce  nothing to install, file or wait for: it does not apply,
-                      or it is met by a written record or a person's word
+                      it is met by a written record or a person's word, or
+                      what checks it is something a Lisa project type runs
+
+A check with no moment to run at is never nothing-to-enforce for a
+requirement that needs a check: it is blocked until the configure step
+chooses when it runs.
 
 It also runs each required check once in a temporary copy of the default
-branch's last commit, and lists the ones that fail there with their output.
+branch's last commit, and lists the ones that fail there with their output
+and the ones that gave no answer there.
 
 It writes nothing in the repository and sends no request. Save the result of
-each step in a file outside the repository and name the three files.
+each step in a file outside the repository and name the three files. The
+carriers file must be what "lisa controls install-carriers" printed without
+--check, and the checkout is read again to confirm what it says.
 
 Prints one JSON document on stdout. Exit codes:
   0  every requirement has exactly one outcome
@@ -92,15 +109,20 @@ export interface EnforceReportIo {
  * The lines a person reads about a report.
  * @param report - The report
  * @returns The summary, then one line per check that fails on the default
- *   branch
+ *   branch, then one line per check that gave no answer there
  */
 function linesFor(report: EnforceReport): readonly string[] {
   const { currently_failing: failing } = report;
+  const branch = failing.head?.branch ?? "the default branch";
   return [
     `${ENFORCE_REPORT_COMMAND}: PASS. ${report.reason}`,
     ...failing.gates.map(
       gate =>
-        `${ENFORCE_REPORT_COMMAND}: ${gate.gate} in ${gate.scope === "." ? "the whole repository" : gate.scope} does not pass on ${failing.head?.branch ?? "the default branch"} as it stands (exit ${String(gate.exit_status)}). Its output is in the report.`
+        `${ENFORCE_REPORT_COMMAND}: ${gate.gate} in ${gate.scope === "." ? "the whole repository" : gate.scope} does not pass on ${branch} as it stands (exit ${String(gate.exit_status)}). Its output is in the report.`
+    ),
+    ...failing.not_measured.map(
+      gate =>
+        `${ENFORCE_REPORT_COMMAND}: ${gate.entry_id} gave no answer on ${branch}, so it is not known whether it passes there. ${gate.reason}`
     ),
     ...(failing.measured
       ? []

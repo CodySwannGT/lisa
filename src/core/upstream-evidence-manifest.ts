@@ -1447,7 +1447,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "4cb6ae88de6db0a725aae79668d0cd400152453fec72c07415c661f5579dd10b",
+      "b42b02a9852fc2d015af5efc60aac09746c2e71081b6d3822d3348aaa802ad42",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "c6128e80d6baeabd9c0ff4c092d094773fe7753b1fc0c3cd828b016a5c6c447f",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -1475,7 +1475,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
-      "5dba01cdf90dbff4409d0c06506a0c39008273624c8835b0b16200a8ec6c1efc",
+      "b0ae561aa5d06dde005c043de408b9245fc86f5293d4829c42176785dee7bd38",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
@@ -1525,7 +1525,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md":
       "4096d1ad29f4f2fb9f063a1029840a240cd3159efadbe237c6e8de822a7206cb",
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md":
-      "50f7a76edff8aeb7f35eaaabfe3e6e530eb4bddc78549bac98d60a6d68e23d83",
+      "9beb1af0314ab3e9cdcac6c2a7c2d9028e57695e9e140e92f64e863904a2313f",
     "plugins/src/base/skills/lisa-health-drift-cron/SKILL.md":
       "146641c3a0114dba3e2ce63d347d2fa750ac8e9d0fbb5a301a0b0e0e030a1b92",
     "plugins/src/base/skills/lisa-health/SKILL.md":
@@ -1651,7 +1651,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-posthog-access/SKILL.md":
       "f4d1a8f0a1d3094ad22d49ed8967a60b619d964b05745b783347536c746e8f92",
     "plugins/src/base/skills/lisa-prd-backlink/SKILL.md":
-      "867b063f4d6a06f370e7aaf4328657ac3ee0fd959fa21db4e3012e884d04f5e7",
+      "77cc1fe1afeabb0832bf6b4d664bd163544771665c75c3f0a1aa6dc85d5e8084",
     "plugins/src/base/skills/lisa-prd-source-write/SKILL.md":
       "a228e5fb2fcb140d419d86534a82aa02f79817f5377f3baf591b0033d05a52e0",
     "plugins/src/base/skills/lisa-prd-ticket-coverage/SKILL.md":
@@ -11360,7 +11360,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/controls/control-files.ts": true,
     "src/controls/control-gap-marker.ts": true,
     "src/controls/declaration-evidence.ts": true,
+    "src/controls/enforce-carriers.ts": true,
     "src/controls/enforce-claims.ts": true,
+    "src/controls/enforce-entry-outcome.ts": true,
     "src/controls/enforce-head-copy.ts": true,
     "src/controls/enforce-head-run.ts": true,
     "src/controls/enforce-head.ts": true,
@@ -11440,6 +11442,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/controls/reconcile-platform.ts": true,
     "src/controls/reconcile-points.ts": true,
     "src/controls/reconcile-result.ts": true,
+    "src/controls/reconcile-shell-command.ts": true,
+    "src/controls/reconcile-shell-words.ts": true,
     "src/controls/reconcile-types.ts": true,
     "src/controls/reconcile.ts": true,
     "src/controls/register-drift.ts": true,
@@ -12908,11 +12912,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/declaration-evidence.test.ts": true,
     "tests/unit/controls/declared-thresholds-register.test.ts": true,
     "tests/unit/controls/enforce-claims.test.ts": true,
+    "tests/unit/controls/enforce-entry-outcome.test.ts": true,
     "tests/unit/controls/enforce-head-run.test.ts": true,
     "tests/unit/controls/enforce-points.test.ts": true,
+    "tests/unit/controls/enforce-report-carriers.test.ts": true,
     "tests/unit/controls/enforce-report-refusals.test.ts": true,
     "tests/unit/controls/enforce-report.test.ts": true,
     "tests/unit/controls/enforce-skill.test.ts": true,
+    "tests/unit/controls/enforce-summary.test.ts": true,
     "tests/unit/controls/enforce-tickets.test.ts": true,
     "tests/unit/controls/evidence-document.test.ts": true,
     "tests/unit/controls/evidence-findings.test.ts": true,
@@ -13008,6 +13015,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/support/canary-run.ts": true,
     "tests/unit/controls/support/conforming-repository.ts": true,
     "tests/unit/controls/support/declaration-check-run.ts": true,
+    "tests/unit/controls/support/enforce-points-samples.ts": true,
     "tests/unit/controls/support/enforce-repository.ts": true,
     "tests/unit/controls/support/enforce-run.ts": true,
     "tests/unit/controls/support/enforce-samples.ts": true,
@@ -14356,6 +14364,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/prd-backlink-generated-work-section.test.ts": true,
     "tests/unit/strategies/prd-backlink-github-body-limit-helpers.ts": true,
     "tests/unit/strategies/prd-backlink-github-body-limit.test.ts": true,
+    "tests/unit/strategies/prd-backlink-github-comment-url-room.test.ts": true,
     "tests/unit/strategies/prd-backlink-native-linking.test.ts": true,
     "tests/unit/strategies/prd-intake-rollup-vendors.test.ts": true,
     "tests/unit/strategies/prd-lifecycle-rollup.test.ts": true,

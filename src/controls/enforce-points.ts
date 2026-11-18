@@ -8,42 +8,26 @@
  *
  * | Where | Who answers | The point is |
  * | --- | --- | --- |
- * | The checkout, at commit and at push | The carriers result | `wired` when the carrier is installed or was already there; `blocked` when the result says it is, or says nothing about the moment |
- * | The coding agent, after a file write | The carriers result's agent points | `blocked` when any named agent is blocked, when no agent that can refuse a write was named, and for a declared command when no agent was named at all; otherwise `wired`, naming the agents that cannot refuse and the ones whose refusal is assumed |
+ * | The checkout, at commit and at push | A read of the checkout's carriers, made for this report | `wired` when the carrier is in place now; `blocked` when it is not, or when the read reports no carrier for the moment |
+ * | The coding agent, after a file write | The same read, for the agents the saved carriers result names | `blocked` when any named agent's carrier is not in place, when no agent that can refuse a write was named, and for a declared command when no agent was named at all; otherwise `wired`, naming the agents that cannot refuse, the ones that are only told afterwards, and the ones whose refusal is assumed |
  * | The coding agent, at any other moment | Nobody | `not-checked`: Lisa's plugin runs those, and the enforce step installs nothing there |
  * | The hosting platform, an entry merge protection is asked to require | The merge-protection result | `wired` or `blocked`, as it says |
  * | The hosting platform, a pipeline file the host wrote | The file itself | `blocked` when it is absent or does not start the gate runner; otherwise as merge protection says, and `wired` with a note that it is unproved when merge protection says nothing |
  * | The hosting platform, anything else | Nobody | `not-checked` |
  * | A deployment pipeline, a scheduled run | Nobody | `not-checked` |
  *
- * ## What an entry's points add up to
+ * The saved carriers result is never believed on its own
+ * (`./enforce-carriers.ts`): where it and the read of the checkout disagree,
+ * the read wins and the point's reason says so.
  *
- * | The entry's points | The entry is |
- * | --- | --- |
- * | It has none: every moment is switched off | `nothing-to-enforce` |
- * | Any point is `blocked` | `blocked` |
- * | Otherwise, at least one is `wired` | `wired` |
- * | None was checked, and the check is a command the repository declares | `blocked`: nothing Lisa ships starts a command there |
- * | None was checked, and the check is one a Lisa project type ships | `nothing-to-enforce`: what Lisa ships runs it, and this step did not look |
- *
- * `wired` therefore always rests on a result a step reported, never on
- * silence.
+ * What an entry's points add up to is `./enforce-entry-outcome.ts`.
  * @module controls/enforce-points
  */
-import { CARRIER_RUNNER_PATH } from "./carrier-types.js";
 import { EDIT_TIME_MOMENT } from "./coding-agents.js";
-import type {
-  HandedCarrierPoint,
-  HandedCarriers,
-  HandedProtect,
-} from "./enforce-inputs.js";
-import {
-  NOTHING_TO_ENFORCE,
-  type EnforcedEntry,
-  type EnforcedEntryOutcome,
-  type EnforcedPoint,
-  type EnforcedPointState,
-} from "./enforce-types.js";
+import type { InstalledCarrier } from "./enforce-carriers.js";
+import { NOT_CHECKED, entryOutcome } from "./enforce-entry-outcome.js";
+import type { HandedProtect } from "./enforce-inputs.js";
+import type { EnforcedEntry, EnforcedPoint } from "./enforce-types.js";
 import { platformLabel } from "./protect-platform.js";
 import { isWrittenByLisa } from "./pull-request-executor.js";
 import type { PointVerdict } from "./reconcile-types.js";
@@ -58,27 +42,26 @@ import {
 
 /** Everything the points are judged from. */
 export interface EnforcedPointSources {
-  /** The result of installing the carriers. */
-  readonly carriers: HandedCarriers;
+  /** The carriers of the checkout as a read made for this report found them. */
+  readonly installed: readonly InstalledCarrier[];
   /** The comparison of merge protection with the register. */
   readonly protect: HandedProtect;
   /** Reads the pipeline file a register names and says whether it is wired. */
   readonly executorVerdict: (
     executor: PullRequestExecutor
   ) => Promise<PointVerdict>;
+  /**
+   * The ids of the requirements a check can refuse a change for: the ones
+   * the catalogue calls a gate.
+   */
+  readonly gateCriteria: readonly string[];
 }
 
 /** What was reported of one point, before it is tied to the point. */
 type PointFinding = Pick<EnforcedPoint, "state" | "reason">;
 
-/** The state of a point the enforce step neither installs nor looks at. */
-const NOT_CHECKED = "not-checked";
-
 /** How an agent point with no agent's name on it is spoken of. */
 const SOME_AGENT = "an agent";
-
-/** The carrier outcomes that mean a carrier is in place. */
-const IN_PLACE: readonly string[] = ["installed", "updated", "already-wired"];
 
 /** What runs a check at each place nobody in the enforce step answers for. */
 const UNCHECKED_PLACE: Readonly<Record<EnforcementLocation, string>> = {
@@ -101,6 +84,15 @@ function sentenceList(names: readonly string[]): string {
 }
 
 /**
+ * Join the sentences that are there.
+ * @param parts - Sentences, and `null` for one that does not apply
+ * @returns The ones that apply, one space apart
+ */
+function sentences(parts: readonly (string | null)[]): string {
+  return parts.filter(part => part !== null && part !== "").join(" ");
+}
+
+/**
  * Say that the enforce step neither installs nor looks at a point.
  * @param point - The enforcement point
  * @returns The finding
@@ -113,77 +105,96 @@ function notChecked(point: EnforcementPoint): PointFinding {
 }
 
 /**
- * Judge a commit or push point from the carriers result.
+ * Judge a commit or push point from the read of the checkout's carriers.
  * @param point - The enforcement point
- * @param carriers - The carriers result
+ * @param installed - The carriers of the checkout as they are now
  * @returns The finding
  */
 function checkoutPoint(
   point: EnforcementPoint,
-  carriers: HandedCarriers
+  installed: readonly InstalledCarrier[]
 ): PointFinding {
-  const carried = carriers.enforcement_points.find(
+  const carrier = installed.find(
     each => each.location === point.location && each.moment === point.moment
   );
-  if (carried === undefined) {
+  if (carrier === undefined) {
     return {
-      reason: `The carriers result says nothing about ${point.moment}, so nothing is known to run this check there. Run "lisa controls install-carriers" again.`,
+      reason: `Reading this checkout found no carrier for ${point.moment}, so nothing is known to run this check there. Run "lisa controls install-carriers" again.`,
       state: "blocked",
     };
   }
-  return IN_PLACE.includes(carried.outcome)
+  return carrier.state === "in-place"
     ? {
-        reason: `Git starts the declared checks at ${point.moment} in this checkout.`,
+        reason: sentences([
+          `Git starts the declared checks at ${point.moment} in this checkout.`,
+          carrier.contradicts,
+        ]),
         state: "wired",
       }
     : {
-        reason:
-          carried.reason ??
-          `Git does not start the declared checks at ${point.moment} in this checkout.`,
+        reason: sentences([
+          carrier.reason === ""
+            ? `Git does not start the declared checks at ${point.moment} in this checkout.`
+            : carrier.reason,
+          carrier.contradicts,
+        ]),
         state: "blocked",
       };
 }
 
 /**
- * Say what holds for an edit-time point where at least one agent is wired.
- * @param agents - The agent points of the carriers result
- * @returns The sentence, naming the agents that cannot refuse a write and
- *   the ones whose refusal nobody has measured
+ * Name the agents of some carriers.
+ * @param carriers - Agent carriers
+ * @returns The agents, as a sentence lists them
  */
-function wiredAgentsReason(agents: readonly HandedCarrierPoint[]): string {
-  const names = (points: readonly HandedCarrierPoint[]): string =>
-    sentenceList(points.map(point => point.agent ?? SOME_AGENT));
-  const wired = agents.filter(point => IN_PLACE.includes(point.outcome));
-  const cannot = agents.filter(point => point.outcome === "unenforceable");
-  const assumed = wired.filter(point => point.refusal_evidence === "assumed");
-  return [
-    `After a file write, the declared checks run on ${names(wired)}.`,
-    ...(cannot.length > 0
-      ? [
-          `${names(cannot)} ${cannot.length === 1 ? "has" : "have"} no hook that can refuse a file write, so the check is not enforced there; the control register records that.`,
-        ]
-      : []),
-    ...(assumed.length > 0
-      ? [
-          `On ${names(assumed)}, that a failed check stops the agent is assumed, not measured.`,
-        ]
-      : []),
-  ].join(" ");
+function agentsOf(carriers: readonly InstalledCarrier[]): string {
+  return sentenceList(carriers.map(carrier => carrier.agent ?? SOME_AGENT));
 }
 
 /**
- * Judge an edit-time point from the carriers result's agent points.
+ * Say what holds for an edit-time point where at least one agent is wired.
+ * @param agents - The agent carriers of the checkout
+ * @returns The sentence, naming the agents that cannot refuse a write, the
+ *   ones that are only told of a failure, and the ones whose refusal nobody
+ *   has measured
+ */
+function wiredAgentsReason(agents: readonly InstalledCarrier[]): string {
+  const wired = agents.filter(carrier => carrier.state === "in-place");
+  const cannot = agents.filter(carrier => carrier.state === "no-hook");
+  const told = wired.filter(
+    carrier => carrier.refusal === "additional-context"
+  );
+  const assumed = wired.filter(
+    carrier => carrier.refusal_evidence === "assumed"
+  );
+  return sentences([
+    `After a file write, the declared checks run on ${agentsOf(wired)}.`,
+    cannot.length > 0
+      ? `${agentsOf(cannot)} ${cannot.length === 1 ? "has" : "have"} no hook that can refuse a file write, so the check is not enforced there; the control register records that.`
+      : null,
+    told.length > 0
+      ? `On ${agentsOf(told)}, a failed check does not fail the write: the agent is told afterwards, and nothing stops it going on.`
+      : null,
+    assumed.length > 0
+      ? `On ${agentsOf(assumed)}, that a failed check stops the agent is assumed, not measured.`
+      : null,
+    ...agents.map(carrier => carrier.contradicts),
+  ]);
+}
+
+/**
+ * Judge an edit-time point from the read of the checkout's agent carriers.
  * @param entry - The register entry
  * @param point - The enforcement point
- * @param carriers - The carriers result
+ * @param installed - The carriers of the checkout as they are now
  * @returns The finding
  */
 function editTimePoint(
   entry: ControlRegisterEntry,
   point: EnforcementPoint,
-  carriers: HandedCarriers
+  installed: readonly InstalledCarrier[]
 ): PointFinding {
-  const agents = carriers.enforcement_points.filter(
+  const agents = installed.filter(
     each => each.location === point.location && each.moment === point.moment
   );
   if (agents.length === 0) {
@@ -194,41 +205,26 @@ function editTimePoint(
         }
       : notChecked(point);
   }
-  const blocked = agents.filter(each => each.outcome === "blocked");
+  const blocked = agents.filter(each => each.state === "not-in-place");
   if (blocked.length > 0) {
     return {
       reason: blocked
-        .map(
-          each =>
-            `On ${each.agent ?? SOME_AGENT}: ${each.reason ?? "the check does not run after a file write."}`
+        .map(each =>
+          sentences([
+            `On ${each.agent ?? SOME_AGENT}: ${each.reason === "" ? "the check does not run after a file write." : each.reason}`,
+            each.contradicts,
+          ])
         )
         .join(" "),
       state: "blocked",
     };
   }
-  return agents.some(each => IN_PLACE.includes(each.outcome))
+  return agents.some(each => each.state === "in-place")
     ? { reason: wiredAgentsReason(agents), state: "wired" }
     : {
-        reason: `None of the coding agents named (${sentenceList(agents.map(each => each.agent ?? SOME_AGENT))}) has a hook that can refuse a file write, so nothing can enforce this check after an edit.`,
+        reason: `None of the coding agents named (${agentsOf(agents)}) has a hook that can refuse a file write, so nothing can enforce this check after an edit.`,
         state: "blocked",
       };
-}
-
-/**
- * Judge a point enforced by a coding agent.
- * @param entry - The register entry
- * @param point - The enforcement point
- * @param sources - What the points are judged from
- * @returns The finding
- */
-function agentPoint(
-  entry: ControlRegisterEntry,
-  point: EnforcementPoint,
-  sources: EnforcedPointSources
-): PointFinding {
-  return point.moment === EDIT_TIME_MOMENT
-    ? editTimePoint(entry, point, sources.carriers)
-    : notChecked(point);
 }
 
 /**
@@ -284,90 +280,16 @@ function judgePoint(
   sources: EnforcedPointSources
 ): Promise<PointFinding> | PointFinding {
   if (point.location === "local-checkout") {
-    return checkoutPoint(point, sources.carriers);
+    return checkoutPoint(point, sources.installed);
   }
   if (point.location === "coding-agent") {
-    return agentPoint(entry, point, sources);
+    return point.moment === EDIT_TIME_MOMENT
+      ? editTimePoint(entry, point, sources.installed)
+      : notChecked(point);
   }
   return point.location === "hosting-platform"
     ? platformPoint(entry, point, sources)
     : notChecked(point);
-}
-
-/**
- * Name the moments of some points.
- * @param points - The points
- * @returns Their moments, as a sentence lists them
- */
-function momentsOf(points: readonly EnforcedPoint[]): string {
-  return sentenceList(points.map(point => point.moment));
-}
-
-/**
- * Say what an entry whose points were all left unchecked comes to.
- * @param entry - The register entry
- * @param points - Its points, none of them checked
- * @returns The outcome and the reason
- */
-function uncheckedEntry(
-  entry: ControlRegisterEntry,
-  points: readonly EnforcedPoint[]
-): Pick<EnforcedEntry, "outcome" | "reason"> {
-  const [first] = entry.enforcement_points;
-  const declared =
-    first !== undefined && mechanismAt(entry, first).kind === "command";
-  return declared
-    ? {
-        outcome: "blocked",
-        reason: `This check is declared only at ${momentsOf(points)}, where nothing Lisa installs starts it. Whoever maintains that pipeline has to make it run "node ${CARRIER_RUNNER_PATH} --moment=<moment>" and stop when that fails, or a different moment has to be chosen in the configure step.`,
-      }
-    : {
-        outcome: NOTHING_TO_ENFORCE,
-        reason: `This check runs at ${momentsOf(points)} through what a Lisa project type ships (its plugin and its pipelines). The enforce step installs nothing for it and did not check it.`,
-      };
-}
-
-/**
- * Add an entry's points up.
- * @param entry - The register entry
- * @param points - What was reported of each of its points
- * @returns The outcome and the reason
- */
-function entryOutcome(
-  entry: ControlRegisterEntry,
-  points: readonly EnforcedPoint[]
-): Pick<EnforcedEntry, "outcome" | "reason"> {
-  const having = (state: EnforcedPointState): readonly EnforcedPoint[] =>
-    points.filter(point => point.state === state);
-  if (points.length === 0) {
-    return {
-      outcome: NOTHING_TO_ENFORCE,
-      reason:
-        "The declaration switches this check off at every moment, so there is nothing to run.",
-    };
-  }
-  const blocked = having("blocked");
-  if (blocked.length > 0) {
-    const outcome: EnforcedEntryOutcome = "blocked";
-    return {
-      outcome,
-      reason: blocked
-        .map(point => `At ${point.moment}: ${point.reason}`)
-        .join(" "),
-    };
-  }
-  const wired = having("wired");
-  if (wired.length === 0) return uncheckedEntry(entry, points);
-  const unchecked = having(NOT_CHECKED);
-  return {
-    outcome: "wired",
-    reason: [
-      ...wired.map(point => point.reason),
-      ...(unchecked.length > 0
-        ? [`Not checked by the enforce step: ${momentsOf(unchecked)}.`]
-        : []),
-    ].join(" "),
-  };
 }
 
 /**
@@ -396,7 +318,11 @@ export async function enforcedEntries(
         gate: entry.gate,
         id: entry.id,
         scope: entry.scope,
-        ...entryOutcome(entry, points),
+        ...entryOutcome(
+          entry,
+          points,
+          entry.criteria.some(id => sources.gateCriteria.includes(id))
+        ),
         points,
       };
     })

@@ -3,8 +3,10 @@
  * three results saved the way the skill saves them, for the suites about
  * `lisa controls enforce-report` (CodySwannGT/lisa#4994).
  *
- * The results are written by hand here, not by running the commands that
- * print them, so a case can hand over any result, right or wrong. The
+ * The carriers are installed for real, because the report reads the
+ * checkout's carriers itself and believes that read over any saved result.
+ * The three saved results are written by hand, not by running the commands
+ * that print them, so a case can hand over any result, right or wrong. The
  * commands themselves are run for real by
  * `tests/integration/controls-enforce.test.ts`.
  * @module tests/unit/controls/support/enforce-run
@@ -15,6 +17,7 @@ import path from "node:path";
 import { afterEach } from "vitest";
 
 import { loadAuditReport } from "../../../../src/controls/audit-report-file.js";
+import { installCarriers } from "../../../../src/controls/carriers.js";
 import { listControlGaps } from "../../../../src/controls/commands/gaps.js";
 import type {
   EnforceInputPaths,
@@ -78,6 +81,14 @@ export interface EnforceCaseOptions {
   readonly report?: SampleReport;
   /** The `tracker` setting of `.lisa.config.json`, when there is one. */
   readonly tracker?: string;
+  /**
+   * `absent` leaves the checkout with no carrier at all, whatever the saved
+   * carriers result goes on to claim. Left out, the carriers are installed
+   * as the enforce step installs them.
+   */
+  readonly carriers?: "absent";
+  /** The coding agents the carriers are installed for; none by default. */
+  readonly agents?: readonly string[];
 }
 
 /** A repository ready for the report, and where its results are saved. */
@@ -220,6 +231,23 @@ async function writeRegister(repoPath: string): Promise<void> {
 }
 
 /**
+ * Install the carriers of a fixture, as the carriers step would.
+ * @param repoPath - The repository
+ * @param agents - The coding agents to carry the edit-time moment for
+ * @throws {Error} When the carriers could not be installed
+ */
+async function installFixtureCarriers(
+  repoPath: string,
+  agents: readonly string[]
+): Promise<void> {
+  const run = await installCarriers(
+    repoPath,
+    agents.length === 0 ? {} : { agents: { from: "named", names: agents } }
+  );
+  if (run.problems !== null) throw new Error(run.problems.join("\n"));
+}
+
+/**
  * Build a repository the enforce step has run in, with its three results
  * saved outside it.
  * @param options - What differs from the plain case
@@ -249,6 +277,9 @@ export async function prepareEnforce(
     );
   }
   writeAuditReport(repoPath, options.report ?? FOUND_STYLE);
+  if (options.carriers !== "absent") {
+    await installFixtureCarriers(repoPath, options.agents ?? []);
+  }
   await writeRegister(repoPath);
   saveResult(prepared, "carriers", carriersResult());
   saveResult(prepared, "tickets", { schema_version: 1, results: [] });

@@ -231,5 +231,6 @@ export const RECONCILE_LIMITS: readonly string[] = [
   "A hook is read as text, one line at a time, and nothing in it is ever run. A hook that calls a script is reported as that call: the script itself is not opened.",
   "A command counts as declared only when a register entry's check at the same moment is that command, word for word. The folder it runs in is not compared.",
   "A pull-request pipeline file is checked for the gate runner's pull-request command as text. That cannot show that the hosting platform runs the pipeline or requires it before a merge.",
+  "On the hosting platform only rulesets are read. Branch protection rules of the older kind are not, so a check that only such a rule requires is reported as not required by any ruleset, or as not read when no ruleset governs the branch.",
   "Deployment pipelines and scheduled runs are not looked at.",
 ];

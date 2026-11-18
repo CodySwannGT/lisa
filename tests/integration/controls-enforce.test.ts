@@ -40,6 +40,7 @@ import {
 import { FOUND_STYLE } from "../unit/controls/support/enforce-run.js";
 import { installLisaCommand } from "./support/audit-skill-run.js";
 import {
+  CARRIERS_CHECK_FILE,
   CHANGED_BLOCK,
   AUDIT_BLOCK,
   DECLARATION_CHECK_BLOCK,
@@ -242,6 +243,21 @@ describe("what an enforce run leaves outside the repository", () => {
     const run = enforce(repoPath);
 
     expect(run.results.startsWith(`${repoPath}${path.sep}`)).toBe(false);
+  });
+});
+
+describe("enforce when the output of the check run is named as the carriers result", () => {
+  it("gets no report: the command refuses a result that installed nothing", () => {
+    const run = runEnforceSkillCommands(configured(CLEAN), lisa.folder, {
+      agents: AGENTS,
+      carriersFile: CARRIERS_CHECK_FILE,
+    });
+    const report = enforceStep(run.steps, REPORT_BLOCK);
+
+    expect(report.status).toBe(1);
+    expect(report.stdout).toBe("");
+    expect(report.stderr).toContain("a check installs nothing");
+    expect(report.stderr).toContain("carriers.json");
   });
 });
 

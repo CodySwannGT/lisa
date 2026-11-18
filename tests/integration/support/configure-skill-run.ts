@@ -303,19 +303,25 @@ export function proposalsOf(
  *
  * A block that is exactly the command is preferred over one that only
  * contains it, so `lisa controls register` finds the plain command and not
- * the one with `--check`.
+ * the one with `--check`. When the skill runs the exact command more than
+ * once, the last run is the one meant, unless `occurrence` says otherwise:
+ * the listing of the working copy is made in the preflight and again at the
+ * end, and the one at the end is what a run changed.
  * @param steps - The steps of one run
  * @param command - The block, or text it contains
+ * @param occurrence - Which run of the exact command: `-1` the last, `0` the
+ *   first
  * @returns The step
  * @throws {Error} When the run has no such step, so a case can never pass by
  *   not running the command it is about
  */
 export function configureStep(
   steps: readonly SkillStep[],
-  command: string
+  command: string,
+  occurrence = -1
 ): SkillStep {
   const found =
-    steps.find(step => step.block.trim() === command) ??
+    steps.filter(step => step.block.trim() === command).at(occurrence) ??
     steps.find(step => step.block.includes(command));
   if (found === undefined) {
     throw new Error(

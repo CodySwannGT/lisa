@@ -23,6 +23,12 @@
  * `--body-file` before the command runs, so a declaration appended in the same
  * command as the create is not there yet when the guard looks. The last case
  * pins that, because it is the reason the skill uses a separate step.
+ *
+ * The same read is why the body file's path has to be typed out, and why it
+ * must not be one path every run shares: two writers on one machine would
+ * each write the body another is about to file. So the skill has each run
+ * name its own file, and these cases follow it as two runs at once
+ * (CodySwannGT/lisa#4994).
  * @module tests/unit/hooks/block-direct-issue-create-prd-writer
  */
 import { readFileSync, writeFileSync } from "node:fs";
@@ -80,6 +86,22 @@ const PRD_BODY = [
   "  within five seconds.",
   "",
 ].join("\n");
+
+/** A second PRD, filed by another writer on the same machine. */
+const OTHER_PRD_BODY = [
+  "<!-- [lisa-research] prd=audit-log -->",
+  "# PRD: Keep an audit log",
+  "",
+].join("\n");
+
+/**
+ * The one path every run used to share. Put together here, so that this
+ * suite holds no fixed path in a folder anybody can write to.
+ */
+const SHARED_BODY_FILE = path.posix.join(path.posix.sep, "tmp", "prd-body.md");
+
+/** The part of the body file's name the skill has each run fill in. */
+const RUN_PLACEHOLDER = /<[^<>\s]+>/u;
 
 /** The executable part of the writer's CREATE phase, in document order. */
 type CreatePhase = {
@@ -238,6 +260,87 @@ describe("block-direct-issue-create.sh and the PRD writer's create command", () 
     });
   });
 
+  describe.each(SURFACES)("the body file of %s", surface => {
+    it("is named by each run for itself, not one path every run shares", () => {
+      const phase = createPhase(surface);
+
+      expect(phase.bodyFile).toMatch(RUN_PLACEHOLDER);
+      expect(
+        readFileSync(path.resolve(surface, SKILL, "SKILL.md"), "utf8")
+      ).not.toContain(SHARED_BODY_FILE);
+    });
+
+    it("is typed as the same literal path in every command, with no variable in it", () => {
+      const phase = createPhase(surface);
+      const commands = [...phase.prepare, phase.create];
+
+      expect(
+        commands.filter(command => !command.includes(phase.bodyFile))
+      ).toEqual([]);
+      expect(phase.bodyFile).not.toMatch(/[$`]/u);
+    });
+  });
+
+  describe("two writers on one machine", () => {
+    /**
+     * Follow the skill as one run: name the body file for the run, write the
+     * body, and run the preparation commands on that file.
+     * @param phase - The CREATE phase being followed
+     * @param cwd - The folder both runs write in
+     * @param run - What this run puts in its file's name
+     * @param body - The PRD body this run files
+     * @returns The path of this run's body file
+     */
+    const followAs = (
+      phase: CreatePhase,
+      cwd: string,
+      run: string,
+      body: string
+    ): string => {
+      const bodyPath = path.join(
+        cwd,
+        path.basename(phase.bodyFile).replace(RUN_PLACEHOLDER, run)
+      );
+      writeFileSync(bodyPath, body, "utf8");
+      prepareBody(phase, {
+        bodyPath,
+        cwd,
+        relocate: command => command.replaceAll(phase.bodyFile, bodyPath),
+      });
+      return bodyPath;
+    };
+
+    it("each file their own body, because each names its own file", () => {
+      const phase = createPhase(SURFACES[0]);
+      const cwd = projectWithTracker(GITHUB_PRD_PROJECT);
+
+      const first = followAs(phase, cwd, "report-export-1", PRD_BODY);
+      const second = followAs(phase, cwd, "audit-log-2", OTHER_PRD_BODY);
+
+      expect(first).not.toBe(second);
+      expect(readFileSync(first, "utf8").startsWith(PRD_BODY)).toBe(true);
+      expect(readFileSync(second, "utf8").startsWith(OTHER_PRD_BODY)).toBe(
+        true
+      );
+      expect(
+        [first, second].map(
+          file =>
+            readFileSync(file, "utf8").split(CONTAINER_DECLARATION).length - 1
+        )
+      ).toEqual([1, 1]);
+    });
+
+    it("are told what makes the name their own, and to type it out in full", () => {
+      const skill = readFileSync(
+        path.resolve(SURFACES[0], SKILL, "SKILL.md"),
+        "utf8"
+      );
+
+      expect(skill).toMatch(/unique\s+to\s+this\s+run/u);
+      expect(skill).toMatch(/same\s+literal\s+path/u);
+    });
+  });
+
   describe("the declaration is written once", () => {
     it("leaves one declaration when the preparation runs twice", () => {
       const phase = createPhase(SURFACES[0]);
@@ -273,6 +376,24 @@ describe("block-direct-issue-create.sh and the PRD writer's create command", () 
         bash(
           'gh issue create --repo example-org/example-repo --title "PRD" ' +
             `--body-file ${filing.bodyPath} --label prd-ready`
+        ),
+        { cwd: filing.cwd }
+      );
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("refuses a create whose body file is named through a shell variable", () => {
+      const phase = createPhase(SURFACES[0]);
+      const filing = startFiling(phase);
+      prepareBody(phase, filing);
+
+      const { status } = runHook(
+        bash(
+          withResolvedVariables(phase.create).replaceAll(
+            phase.bodyFile,
+            '"$PRD_BODY_FILE"'
+          )
         ),
         { cwd: filing.cwd }
       );

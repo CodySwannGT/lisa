@@ -19,7 +19,8 @@
  * The files a point depends on are the file that holds the call, the carrier
  * script for its hook, and the gate runner. A hook that a Lisa project type
  * ships calls the runner itself, so it depends on none of the files this
- * command places.
+ * command places. A coding agent's hook depends on the edit-time carrier it
+ * starts, which is a script and the program beside it.
  *
  * The check reports a point by `location` and `moment`, the same two words
  * the control register uses. Nothing here assumes the point is a git hook,
@@ -28,8 +29,13 @@
  * hooks, because only their invocation is known here.
  * @module controls/reconcile-carrier-points
  */
+import {
+  AGENT_CARRIER_PATH,
+  AGENT_CARRIER_PROGRAM_PATH,
+} from "./carrier-agent-script.js";
 import { HOOKS_PATH_SETTING } from "./carrier-git.js";
 import {
+  AGENT_CONFIG,
   CARRIER_HOOKS_FOLDER,
   CARRIER_RUNNER_FILE,
   GIT_HOOK_LOCATION,
@@ -87,6 +93,11 @@ function callingFiles(point: CarrierPoint): readonly string[] {
     point.path === null || point.path === HOOKS_PATH_SETTING
       ? []
       : [point.path];
+  if (point.wired_through === AGENT_CONFIG) {
+    // A coding agent's hook starts Lisa's edit-time carrier, which is two
+    // files. With either gone the hook entry is there and starts nothing.
+    return [...holdsCall, AGENT_CARRIER_PATH, AGENT_CARRIER_PROGRAM_PATH];
+  }
   const ownScript =
     point.location === GIT_HOOK_LOCATION && point.wired_through !== STACK_HOOK
       ? [`${CARRIER_HOOKS_FOLDER}/${point.hook}`]

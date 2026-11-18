@@ -99,6 +99,24 @@ describe("a result file that cannot be used", () => {
       '"changes" must be a list',
     ],
     [
+      "a carriers result that names a coding agent Lisa does not know",
+      "carriers",
+      {
+        ...carriersResult(),
+        enforcement_points: [
+          {
+            kind: "agent-hook",
+            location: "coding-agent",
+            moment: "post-tool",
+            outcome: "installed",
+            reason: null,
+            agent: "some-other-agent",
+          },
+        ],
+      },
+      '"agent" must be one of',
+    ],
+    [
       "a merge-protection result with no entries",
       "protect",
       { schema_version: 1, mode: "read-only", branch: null },

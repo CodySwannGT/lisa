@@ -20,6 +20,17 @@
  * - It was asked and did not answer. That is "could not be read", with the
  *   access that is missing. It is never a finding that a check is absent.
  * - It answered. Only then can a point be `wired` or `not-wired`.
+ *
+ * ## Only rulesets are read
+ *
+ * GitHub keeps required checks in two places: rulesets, and branch
+ * protection rules of the older kind. The read covers rulesets only. So an
+ * answer that lists no check is a finding only when a ruleset governs the
+ * branch: then the repository uses rulesets, and the one that should require
+ * the check does not. When no ruleset governs the branch at all, whatever
+ * the repository requires sits where this command did not look, and the
+ * point is `not-read`. Either way the reason says that only rulesets were
+ * read.
  * @module controls/reconcile-platform
  */
 import type { AuditProbe } from "./audit-probe-types.js";
@@ -49,7 +60,9 @@ export interface PlatformAnswer {
   readonly label: string;
   /** The branch whose protection was read. */
   readonly branch: string;
-  /** Every check the platform requires on that branch. */
+  /** The rulesets that govern that branch, by name. */
+  readonly rulesets: readonly string[];
+  /** Every check those rulesets require on that branch. */
   readonly required: readonly string[];
   /** The checks the register derives for each protected entry, by entry id. */
   readonly checks: Readonly<Record<string, readonly string[]>>;
@@ -139,6 +152,7 @@ function answered(
           required: read.merge_protection.required_checks.map(
             check => check.context
           ),
+          rulesets: read.merge_protection.rulesets,
         },
         asked: true,
       };
@@ -169,6 +183,10 @@ export async function readPlatform(
     )
   );
 }
+
+/** What is said wherever the rules this command does not read matter. */
+const OLDER_RULES =
+  "Branch protection rules of the older kind, if this repository uses them, are not read.";
 
 /**
  * Quote some check names for a sentence.
@@ -206,15 +224,22 @@ function fromAnswer(
       state: "not-verifiable",
     };
   }
-  return missing.length === 0
+  if (missing.length === 0) {
+    return {
+      checked: checks.join(", "),
+      reason: `${answer.label} requires ${quoted(checks)} ${merge}.`,
+      state: "wired",
+    };
+  }
+  return answer.rulesets.length === 0
     ? {
         checked: checks.join(", "),
-        reason: `${answer.label} requires ${quoted(checks)} ${merge}.`,
-        state: "wired",
+        reason: `No ruleset governs ${answer.branch} on ${answer.label}, and rulesets are the only merge settings this command reads. ${OLDER_RULES} So whether ${answer.label} requires ${quoted(missing)} ${merge} is not known.`,
+        state: "not-read",
       }
     : {
         checked: checks.join(", "),
-        reason: `${answer.label} does not require ${quoted(missing)} ${merge}, so a change can be merged without it.`,
+        reason: `${answer.label} does not require ${quoted(missing)} ${merge} in the ${answer.rulesets.length === 1 ? "ruleset that governs" : "rulesets that govern"} it (${answer.rulesets.join(", ")}), so a change can be merged without it unless a branch protection rule of the older kind requires it. Only rulesets were read.`,
         state: "not-wired",
       };
 }

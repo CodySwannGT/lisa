@@ -99,11 +99,18 @@ exactly one PRD lifecycle label in the same pass as the ledger write.
 
 **CREATE** (no existing issue):
 
-1. Write the marker-normalized PRD body to `/tmp/prd-body.md`.
+1. Choose a body file of your own for this run, and write the marker-normalized PRD body to it.
+   Name it `/tmp/prd-body-<unique>.md`, where `<unique>` is something unique to this run: the PRD's
+   dedupe marker slug followed by the time to the second, for example
+   `/tmp/prd-body-report-export-20260314T091502.md`. Never use a name another run could also pick:
+   two PRD writers on one machine that share a path overwrite each other's body between this step
+   and the create command, and one of them files the other's PRD. Everywhere below, replace
+   `/tmp/prd-body-<unique>.md` with the path you chose, typed out in full: the same literal path
+   in every command of this phase.
 2. Declare the PRD a container in that file. Run this as its own command, **before** the create
    command and never joined to it:
    ```bash
-   grep -qF 'None — container: state rolls up from children' /tmp/prd-body.md || printf '\n## Target Backend Environment\n\nNone — container: state rolls up from children\n' >> /tmp/prd-body.md
+   grep -qF 'None — container: state rolls up from children' /tmp/prd-body-<unique>.md || printf '\n## Target Backend Environment\n\nNone — container: state rolls up from children\n' >> /tmp/prd-body-<unique>.md
    ```
    A PRD's lifecycle rolls up from the work generated from it (`prd-lifecycle-rollup`), so it is
    neither build-ready nor held for a person: it carries the canonical container line that
@@ -112,16 +119,19 @@ exactly one PRD lifecycle label in the same pass as the ledger write.
    declares nothing, and a PRD lifecycle label is not a declaration. The guard reads the
    `--body-file` before the command runs, by the path as typed. So the line must already be in the
    file when the create command is submitted — appending it in the same command as the create is
-   refused — and the path must stay a literal path, not a shell variable. Never add a build label or
-   a `[lisa-human-gate]` marker to get a PRD past the guard: both are untrue for a PRD.
+   refused — and the path must stay a literal path: the one you chose in step 1, written out, not a
+   shell variable and not a command substitution. The guard refuses a body file it cannot read by
+   the path as typed, so keeping the unique name in a variable does not work. Never add a build
+   label or a `[lisa-human-gate]` marker to get a PRD past the guard: both are untrue for a PRD.
 3. ```bash
-   gh issue create --repo "$ORG/$REPO" --title "$TITLE" --body-file /tmp/prd-body.md --label "$ROLE_LABEL"
+   gh issue create --repo "$ORG/$REPO" --title "$TITLE" --body-file /tmp/prd-body-<unique>.md --label "$ROLE_LABEL"
    ```
 4. Capture the returned issue number/URL.
 5. Rewrite the PRD body with the managed `## Exploratory Ideation Run Ledger` section populated for
    `outcome: created` when the caller supplied project-ideation ledger inputs, keeping the container
-   declaration from step 2, then `gh issue edit <n> --body-file /tmp/prd-body.md`. This second write
-   is allowed because the URL is not known until after creation.
+   declaration from step 2, then `gh issue edit <n> --body-file /tmp/prd-body-<unique>.md`, with
+   the path from step 1. This second write is allowed because the URL is not known until after
+   creation.
 6. If `github.projects.v2` is enabled, resolve the created PRD issue node id and invoke
    `lisa-github-project-v2` with `operation: ensure-item` and `content_node_id: <issue-node-id>`.
    - `outcome: disabled` → continue normally.
@@ -131,7 +141,8 @@ exactly one PRD lifecycle label in the same pass as the ledger write.
 
 **UPDATE** (existing issue or `source_ref`):
 
-1. `gh issue edit <n> --repo "$ORG/$REPO" --body-file /tmp/prd-body.md` with the **marker-normalized**
+1. `gh issue edit <n> --repo "$ORG/$REPO" --body-file /tmp/prd-body-<unique>.md` (a body file named
+   for this run, as in CREATE step 1, never one path every run shares) with the **marker-normalized**
    body (regenerate in place; never drop the marker, the managed `## Exploratory Ideation Run Ledger`
    section, an existing managed `## Lisa Usage` section, or an existing container declaration). When
    the caller supplied project-ideation ledger inputs, replace the managed ledger content with an

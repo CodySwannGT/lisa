@@ -245,13 +245,18 @@ function measured(
     result.kind === "not-measured" ? [result.gate] : []
   );
   const checked = results.length - unanswered.length;
+  const silent = unanswered.length;
+  const answered =
+    checked === 0
+      ? `None of the ${results.length} gave an answer, so nothing is known about whether they pass there.`
+      : `${checked} ran to an answer, and ${gates.length} of ${checked === 1 ? "it" : "them"} ${gates.length === 1 ? "does" : "do"} not pass there.${silent === 0 ? "" : ` ${silent} gave no answer.`}`;
   return {
     checked,
     gates,
     head,
     measured: true,
     not_measured: [...unanswered, ...left],
-    reason: `Each required check that is a command of this repository was run once in a fresh copy of ${head.branch} at commit ${head.commit.slice(0, 12)}, read from ${head.ref} as this checkout last saw it. ${gates.length} of ${checked} ${gates.length === 1 ? "does" : "do"} not pass there. Work that is not committed is not in that copy, and neither are installed dependencies.`,
+    reason: `Each required check that is a command of this repository was run once in a fresh copy of ${head.branch} at commit ${head.commit.slice(0, 12)}, read from ${head.ref} as this checkout last saw it. ${answered} Work that is not committed is not in that copy, and neither are installed dependencies.`,
   };
 }
 

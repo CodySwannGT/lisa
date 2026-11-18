@@ -176,6 +176,41 @@ describe("reconcile --platform", () => {
     expect(github.writes()).toEqual([]);
   });
 
+  it("says only rulesets were read when one governs the branch and does not require the check", async () => {
+    const github = requiring(["Another check"]);
+
+    const run = await reconcile(repository(), ASK, reaching(github.gh));
+    const [missing] = missingPoints(run).filter(
+      finding => finding.moment === PULL_REQUEST
+    );
+
+    expect(missing?.message).toContain("Only rulesets were read");
+    expect(missing?.message).toContain("branch protection rule");
+    expect(resultOf(run).limits.join("\n")).toContain("only rulesets are read");
+  });
+
+  it("treats a branch no ruleset governs as not read, never as a missing check", async () => {
+    const github = fakeGithub({ admin: null, repo: REPO, rulesets: [] });
+
+    const run = await reconcile(repository(), ASK, reaching(github.gh));
+    const points = resultOf(run).enforcement_points.filter(
+      point => point.moment === PULL_REQUEST
+    );
+
+    expect(run.code).toBe(0);
+    expect(pullRequestStates(run)).toEqual({
+      "code-style@api": "not-read",
+      "code-style@web": "not-read",
+    });
+    expect(
+      missingPoints(run).filter(finding => finding.moment === PULL_REQUEST)
+    ).toEqual([]);
+    expect(points[0]?.reason).toContain("No ruleset governs main on GitHub");
+    expect(points[0]?.reason).toContain("is not known");
+    expect(points[0]?.reason).not.toContain("can be merged without it");
+    expect(github.writes()).toEqual([]);
+  });
+
   it("treats a platform that would not answer as not read, never as absent", async () => {
     const github = fakeGithub({
       admin: null,
