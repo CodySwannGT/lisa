@@ -1431,11 +1431,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "96f95fcb9e9dfd347467be49f2aa94aa28f057fb6ed0c6b7e93da0e0493c1086",
+      "b0a7bf7f024f11027bfa68d34f7e7e047a888e434062b31d39f64670034a54c0",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
-      "7882660d25338f41ab1f6c1ba7b81a65fa2b5259812c17fbbaf255ba035aa18c",
+      "1ceabb27edcd3ba58093b84632f98c9a679a7e5943078316d810d29291ad3bec",
     "plugins/src/base/skills/lisa-automation-status/SKILL.md":
       "3af301b5b70cbe4ba9377ebfed0e397d1445d70b2edc0a001edfa4bd2d5802b0",
     "plugins/src/base/skills/lisa-bug-triage/SKILL.md":
@@ -1447,7 +1447,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "30cbfbfd4619498587c5ecc44c02269afed630cea287c60b0a8ba07b6ad0dfbb",
+      "9a4030c11a5e42974dec5990173c2f72207aed873e70e7aaef01251cc1e0f48f",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "c6128e80d6baeabd9c0ff4c092d094773fe7753b1fc0c3cd828b016a5c6c447f",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -1475,7 +1475,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
-      "1778a6096a9f5962bcb5cda5ab6b0551cf6bebf323e39d0d652d3ea00b23f49e",
+      "5dba01cdf90dbff4409d0c06506a0c39008273624c8835b0b16200a8ec6c1efc",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
@@ -2661,7 +2661,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-pipeline-status-reads.mjs":
       "1fba15dfe50eb060bd229066a35a852679b23c11292981015b5746e1d639fb31",
     "scripts/check-plugins-sync.sh":
-      "36ba4bd73176e0dff13eaddf26b8c9ccb3f4faeb9548be9fa661c9a4d37c178c",
+      "be15811834fa1b85ba242a0ee114fe2c43459e50b3e02c726a9860014daa39d2",
     "scripts/check-probe-absence-direction.mjs":
       "5dfb12c8ac9a23220219cc8748f1fea03f55bb42c0a9cf045bccfd04a4646652",
     "scripts/check-release-commit-listed.mjs":

@@ -24,6 +24,16 @@ slash commands: `$lisa-audit`. Devin has no plugin command surface: `/lisa:lisa-
 comes with the Lisa plugin for the agent in use. The repository being audited needs nothing from
 Lisa.
 
+**Where coding agents differ.** What an agent cannot do the way this skill describes it:
+
+- **Codex, Devin:** the skill is started directly there, with no command file in front of it to
+  pass on what the operator named. Wherever this skill says `$ARGUMENTS`, read what the operator
+  wrote when they started it.
+- **Codex, Cursor, Antigravity, Copilot, OpenCode, Devin:** `Skill` in this skill's `allowed-tools`
+  is Claude Code's name for the tool that loads another skill. Load the access skills of step 4a
+  the way this agent loads any skill. Where one cannot be loaded, that read is `not-attempted`, as
+  step 4a says.
+
 ## Ground rules
 
 These hold in every step.
