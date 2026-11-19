@@ -8,7 +8,7 @@
  * quote is only useful while it matches the code that decides it. This suite
  * holds the document to that code, on every agent surface it ships to
  * (CodySwannGT/lisa#4991).
- * @module tests/unit/skills/pull-request-executor-reference
+ * @module tests/unit/controls/pull-request-executor-reference
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";

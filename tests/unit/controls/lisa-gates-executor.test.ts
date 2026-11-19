@@ -7,7 +7,7 @@
  * the fact. Every refusal here is read by an operator, so each assertion
  * checks that the message names the gate and the key at fault
  * (CodySwannGT/lisa#4991).
- * @module tests/unit/scripts/lisa-gates-executor
+ * @module tests/unit/controls/lisa-gates-executor
  */
 import { describe, expect, it } from "vitest";
 
