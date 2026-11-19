@@ -1,4 +1,4 @@
-import { mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -17,6 +17,7 @@ import {
   deterministicResult,
   writeFixture,
 } from "./agentic-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const mocks = vi.hoisted(() => ({
   deterministic: undefined as unknown,
@@ -106,7 +107,7 @@ describe("runHealth confined evidence collection", () => {
     );
     await writeFile(outside, "private outside evidence");
     await rm(path.join(projectRoot, ESLINT_LOCAL_CONFIG_FILE));
-    await symlink(outside, path.join(projectRoot, ESLINT_LOCAL_CONFIG_FILE));
+    createSymlink(outside, path.join(projectRoot, ESLINT_LOCAL_CONFIG_FILE));
 
     try {
       expect(await collect(projectRoot, evaluator)).toBe(mocks.deterministic);

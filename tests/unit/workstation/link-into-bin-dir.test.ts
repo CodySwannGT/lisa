@@ -14,13 +14,7 @@
  * @module tests/unit/workstation/link-into-bin-dir
  */
 
-import {
-  existsSync,
-  mkdirSync,
-  readlinkSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readlinkSync, writeFileSync } from "node:fs";
 import { mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -28,6 +22,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { linkIntoBinDir } from "../../../plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /** A catalogue entry shaped like the one that exposed this. */
 const SONAR = {
@@ -90,7 +85,7 @@ describe("linkIntoBinDir", () => {
     place(INSTALLED);
     place(".local/old/sonar");
     mkdirSync(path.join(home, ".local", "bin"), { recursive: true });
-    symlinkSync(path.join(home, ".local/old/sonar"), linkPath());
+    createSymlink(path.join(home, ".local/old/sonar"), linkPath());
 
     linkIntoBinDir(SONAR, { home });
 
@@ -105,7 +100,7 @@ describe("linkIntoBinDir", () => {
     // place — repaired by nothing, and silent because the throw is swallowed.
     place(INSTALLED);
     mkdirSync(path.join(home, ".local", "bin"), { recursive: true });
-    symlinkSync(path.join(home, ".local/gone/sonar"), linkPath());
+    createSymlink(path.join(home, ".local/gone/sonar"), linkPath());
     expect(existsSync(linkPath())).toBe(false);
 
     linkIntoBinDir(SONAR, { home });

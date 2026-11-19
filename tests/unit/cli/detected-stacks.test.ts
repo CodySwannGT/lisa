@@ -2,11 +2,12 @@
  * Tests for bounded, no-follow project stack detection.
  * @module tests/unit/cli/detected-stacks
  */
-import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { readConfinedDetectedStacks } from "../../../src/cli/detected-stacks.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /** Holder for per-test temp resources. */
 interface TestResources {
@@ -31,7 +32,7 @@ describe("readConfinedDetectedStacks", () => {
     try {
       const target = path.join(outside, "package.json");
       await writeFile(target, '{"dependencies":{"expo":"latest"}}\n');
-      await symlink(target, path.join(resources.dir, "package.json"));
+      createSymlink(target, path.join(resources.dir, "package.json"));
 
       await expect(readConfinedDetectedStacks(resources.dir)).rejects.toThrow(
         /Unsafe/u

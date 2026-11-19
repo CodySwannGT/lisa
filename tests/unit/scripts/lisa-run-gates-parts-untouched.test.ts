@@ -10,7 +10,7 @@
  * the runner cannot be sure therefore runs the part.
  * @module tests/unit/scripts/lisa-run-gates-parts-untouched
  */
-import { mkdirSync, symlinkSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -33,6 +33,7 @@ import {
   runWithChange,
   touching,
 } from "./lisa-run-gates-untouched-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const WHOLE = ".";
 const API_MAIN = "api/main.py";
@@ -219,7 +220,7 @@ describe("a change the runner cannot be sure about", () => {
     mkdirSync(path.join(repository.root, "services", "billing"), {
       recursive: true,
     });
-    symlinkSync(
+    createSymlink(
       path.join("services", "billing"),
       path.join(repository.root, "billing")
     );

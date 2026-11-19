@@ -15,6 +15,7 @@ import {
   resolveArtifactPath,
   validateMeasurement,
 } from "../../../scripts/mutation-performance-measure.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -335,7 +336,7 @@ describe("measurement evidence", () => {
     const sibling = `${root}-sibling`;
     fs.mkdirSync(root);
     fs.mkdirSync(sibling);
-    fs.symlinkSync(sibling, path.join(root, "escape"), "dir");
+    createSymlink(sibling, path.join(root, "escape"), "dir");
 
     expect(() =>
       resolveArtifactPath(root, path.join("escape", SUMMARY_JSON))
@@ -348,7 +349,7 @@ describe("measurement evidence", () => {
     const root = path.join(base, "root");
     const real = path.join(root, "real");
     fs.mkdirSync(real, { recursive: true });
-    fs.symlinkSync(real, path.join(root, "alias"), "dir");
+    createSymlink(real, path.join(root, "alias"), "dir");
 
     expect(resolveArtifactPath(root, path.join("alias", SUMMARY_JSON))).toBe(
       path.join(root, "alias", SUMMARY_JSON)

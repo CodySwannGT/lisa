@@ -17,6 +17,7 @@ import {
   mergeDevinFallback,
 } from "../../../src/devin/enforcement-fallback-installer.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const HOOKS_FILE = path.join(".devin", "hooks.v1.json");
 const HOST_COMMAND = "./host-hook.sh";
@@ -212,8 +213,8 @@ describe("DEVIN_FALLBACK_COMMAND", () => {
     try {
       // A PATH holding only what the command needs: on usr-merged Linux
       // /bin IS /usr/bin, which carries jq, so /bin cannot stand for "no jq".
-      await fs.symlink("/usr/bin/sed", path.join(bin, "sed"));
-      await fs.symlink("/bin/cat", path.join(bin, "cat"));
+      createSymlink("/usr/bin/sed", path.join(bin, "sed"));
+      createSymlink("/bin/cat", path.join(bin, "cat"));
       const result = boundedSpawnSync({
         label: "devin fallback command (no jq)",
         command: "/bin/sh",

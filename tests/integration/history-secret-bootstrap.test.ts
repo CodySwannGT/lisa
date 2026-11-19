@@ -9,7 +9,6 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -20,6 +19,7 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 useIoLatencyBudget();
 const root = resolve(import.meta.dirname, "../..");
 const sourceScripts = join(root, "all/copy-overwrite/scripts");
@@ -189,7 +189,7 @@ describe("managed history bootstrap redaction", () => {
         }).status
       ).toBe(0);
       const link = join(cwd, "scripts/history-alias.mjs");
-      symlinkSync(SCANNER_ENTRY, link);
+      createSymlink(SCANNER_ENTRY, link);
       for (const flags of [[], ["--preserve-symlinks-main"]]) {
         const result = boundedSpawnSync({
           label: "actual symlink scanner bootstrap",

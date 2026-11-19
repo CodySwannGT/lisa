@@ -6,7 +6,6 @@ import {
   readdirSync,
   renameSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,6 +28,7 @@ import {
   assertRecoveryAttestation,
   validateRecovery,
 } from "../../../all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const NOW = Date.parse("2026-10-05T12:00:00Z");
 const EXPIRED_TIME = "2026-10-05T11:00:00Z";
@@ -237,7 +237,7 @@ describe("bounded pinned official-verifier process contract", () => {
   it("refuses a symlink in place of the pinned executable", () => {
     const policy = verifierProgram();
     renameSync(policy.ghExecutable, `${policy.ghExecutable}-original`);
-    symlinkSync(`${policy.ghExecutable}-original`, policy.ghExecutable);
+    createSymlink(`${policy.ghExecutable}-original`, policy.ghExecutable);
     expect(() => ghJson(policy, [])).toThrow();
   });
 

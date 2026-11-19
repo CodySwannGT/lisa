@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   MANAGER,
   MEMINFO,
+  TAKEN,
   makeSandbox,
   removeSandboxes,
   runCli,
@@ -32,6 +33,7 @@ const REF = "DEMO-12";
 const WORKER_NAME = /^wk-DEMO-12-\d{4}-\d{4}$/;
 const WORKER_SETTINGS = '{"crossSessionInbound":"accept"}';
 const MEM = ["--meminfo", MEMINFO];
+const OWNED = [...TAKEN, ...MEM];
 const LIVE_WORKER = "wk-DEMO-12-1012-0900";
 const TELEGRAM_KEYS = ["TELEGRAM_STATE_DIR", "TELEGRAM_BOT_TOKEN"];
 
@@ -99,7 +101,7 @@ describe("capacity", () => {
 describe("spawn", () => {
   it("starts one worker with the exact argv, the repo cwd and no TELEGRAM_* env", () => {
     const sandbox = makeSandbox();
-    const result = runCli(sandbox, ["spawn", REF, ...MEM]);
+    const result = runCli(sandbox, ["spawn", REF, ...OWNED]);
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
     expect(result.json.name).toMatch(WORKER_NAME);
@@ -122,7 +124,7 @@ describe("spawn", () => {
 
   it("records the spawn in the ledger and sessions.jsonl", () => {
     const sandbox = makeSandbox();
-    const result = runCli(sandbox, ["spawn", REF, ...MEM]);
+    const result = runCli(sandbox, ["spawn", REF, ...OWNED]);
     const item = readLedgerFile(sandbox).items[REF];
     expect(item).toMatchObject({
       worker: result.json.name,
@@ -140,7 +142,7 @@ describe("spawn", () => {
 
   it("starts a multi-repo worker in the routed child repo", () => {
     const sandbox = makeSandbox({ repos: ["api", "web"] });
-    const result = runCli(sandbox, ["spawn", REF, "--repo", "api", ...MEM]);
+    const result = runCli(sandbox, ["spawn", REF, "--repo", "api", ...OWNED]);
     expect(result.status).toBe(0);
     const [bg] = callsOf(result.calls, "claude", "--bg");
     expect(bg?.cwd).toBe(path.join(sandbox.root, "projects/api"));
@@ -149,8 +151,8 @@ describe("spawn", () => {
 
   it("names a retry differently from a known worker name", () => {
     const sandbox = makeSandbox();
-    const first = runCli(sandbox, ["spawn", REF, ...MEM]);
-    const second = runCli(sandbox, ["spawn", REF, ...MEM], {
+    const first = runCli(sandbox, ["spawn", REF, ...OWNED]);
+    const second = runCli(sandbox, ["spawn", REF, ...OWNED], {
       agents: [finishedAgent(first.json.name)],
     });
     expect(second.status).toBe(0);
@@ -161,7 +163,7 @@ describe("spawn", () => {
   describe("exit 2: bad repo or config", () => {
     it("refuses a repo dir with no .lisa.config.json", () => {
       const sandbox = makeSandbox({ repos: ["api"], bareRepos: ["web"] });
-      const result = runCli(sandbox, ["spawn", REF, "--repo", "web", ...MEM]);
+      const result = runCli(sandbox, ["spawn", REF, "--repo", "web", ...OWNED]);
       expect(result.status).toBe(2);
       expect(result.stderr).toContain(".lisa.config.json");
       expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
@@ -169,14 +171,20 @@ describe("spawn", () => {
 
     it("refuses an unknown repo key", () => {
       const sandbox = makeSandbox({ repos: ["api"] });
-      const result = runCli(sandbox, ["spawn", REF, "--repo", "nope", ...MEM]);
+      const result = runCli(sandbox, [
+        "spawn",
+        REF,
+        "--repo",
+        "nope",
+        ...OWNED,
+      ]);
       expect(result.status).toBe(2);
       expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
     });
 
     it("refuses a project with no sessionManager block", () => {
       const sandbox = makeSandbox({ sessionManager: null });
-      const result = runCli(sandbox, ["spawn", REF, ...MEM]);
+      const result = runCli(sandbox, ["spawn", REF, ...OWNED]);
       expect(result.status).toBe(2);
       expect(result.stderr).toContain("sessionManager");
     });
@@ -185,7 +193,7 @@ describe("spawn", () => {
       const sandbox = makeSandbox({
         sessionManager: { name: "Bad Name", notify: { provider: "telegram" } },
       });
-      const result = runCli(sandbox, ["spawn", REF, ...MEM]);
+      const result = runCli(sandbox, ["spawn", REF, ...OWNED]);
       expect(result.status).toBe(2);
       expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
     });
@@ -201,7 +209,7 @@ describe("spawn", () => {
     const result = runCli(sandbox, [
       "spawn",
       REF,
-      ...MEM,
+      ...OWNED,
       "--max-workers",
       "0",
     ]);
@@ -212,7 +220,7 @@ describe("spawn", () => {
 
   it("exits 4 when a live worker already holds the ref", () => {
     const sandbox = makeSandbox();
-    const result = runCli(sandbox, ["spawn", REF, ...MEM], {
+    const result = runCli(sandbox, ["spawn", REF, ...OWNED], {
       agents: [activeAgent(LIVE_WORKER)],
     });
     expect(result.status).toBe(4);
@@ -225,7 +233,7 @@ describe("spawn", () => {
     // judged stalled or dead, so the question must be cleared first.
     const sandbox = makeSandbox();
     runCli(sandbox, ["ledger", "set-question", REF], { input: "Which one?" });
-    const result = runCli(sandbox, ["spawn", REF, ...MEM]);
+    const result = runCli(sandbox, ["spawn", REF, ...OWNED]);
     expect(result.status).toBe(2);
     expect(result.stderr).toContain("pending question");
     expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
@@ -233,7 +241,7 @@ describe("spawn", () => {
 
   it("does not treat a worker for a longer ref as live (exact token)", () => {
     const sandbox = makeSandbox();
-    const result = runCli(sandbox, ["spawn", "DEMO-1", ...MEM], {
+    const result = runCli(sandbox, ["spawn", "DEMO-1", ...OWNED], {
       agents: [activeAgent(LIVE_WORKER)],
     });
     expect(result.status).toBe(0);
@@ -241,7 +249,7 @@ describe("spawn", () => {
 
   it("exits 1 and records nothing when claude --bg fails", () => {
     const sandbox = makeSandbox();
-    const result = runCli(sandbox, ["spawn", REF, ...MEM], {
+    const result = runCli(sandbox, ["spawn", REF, ...OWNED], {
       env: { STUB_BG_EXIT: "1" },
     });
     expect(result.status).toBe(1);
@@ -268,7 +276,7 @@ describe("resume", () => {
 
   it("passes stdin text as one argv element in the worker's repo, env scrubbed", () => {
     const sandbox = makeSandbox({ repos: ["api"] });
-    runCli(sandbox, ["spawn", REF, "--repo", "api", ...MEM]);
+    runCli(sandbox, ["spawn", REF, "--repo", "api", ...OWNED]);
     const { worker } = readLedgerFile(sandbox).items[REF];
     const result = runCli(sandbox, ["resume", REF], {
       input: ANSWER,
@@ -294,7 +302,7 @@ describe("resume", () => {
 
   it("never resumes by short id, which would start a copy instead of the worker", () => {
     const sandbox = makeSandbox();
-    runCli(sandbox, ["spawn", REF, ...MEM]);
+    runCli(sandbox, ["spawn", REF, ...OWNED]);
     const result = runCli(sandbox, ["resume", REF], { input: "yes" });
     expect(result.status).toBe(2);
     expect(result.stderr).toMatch(/full session id/);
@@ -303,7 +311,7 @@ describe("resume", () => {
 
   it("exits 2 on empty stdin", () => {
     const sandbox = makeSandbox();
-    runCli(sandbox, ["spawn", REF, ...MEM]);
+    runCli(sandbox, ["spawn", REF, ...OWNED]);
     const result = runCli(sandbox, ["resume", REF], { input: "  \n" });
     expect(result.status).toBe(2);
     expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
@@ -319,7 +327,7 @@ describe("resume", () => {
     "never resumes a worker that reported %s, even with its full session id listed (#4571)",
     status => {
       const sandbox = makeSandbox();
-      runCli(sandbox, ["spawn", REF, ...MEM]);
+      runCli(sandbox, ["spawn", REF, ...OWNED]);
       const { worker } = readLedgerFile(sandbox).items[REF];
       const finish = runCli(
         sandbox,

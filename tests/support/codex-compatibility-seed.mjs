@@ -1,5 +1,5 @@
 /** Materialize the exact saved command fixture before migration. */
-import { mkdir, symlink, unlink, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { installHooks } from "../../dist/codex/hooks-installer.js";
 import {
@@ -12,6 +12,7 @@ import {
   run,
   INSTALLED_LISA,
 } from "./codex-compatibility-state.mjs";
+import { createSymlink } from "./borrowed-node-modules.mjs";
 /** Seed one anonymous supported-stack host and save its loaded commands. */
 export async function seedCompatibilityHost() {
   await output(
@@ -39,7 +40,7 @@ export async function seedCompatibilityHost() {
   );
   await output("sample.rb", "puts 'anonymous fixture'\n");
   await mkdir(path.join(host, "node_modules/@codyswann"), { recursive: true });
-  await symlink(candidate, path.join(host, INSTALLED_LISA), "dir");
+  createSymlink(candidate, path.join(host, INSTALLED_LISA), "dir");
   await installHooks(candidate, host, ["rails"]);
   for (const command of commands) {
     const destination = path.join(
@@ -48,7 +49,7 @@ export async function seedCompatibilityHost() {
       `${command.id}.sh`
     );
     await unlink(destination);
-    await symlink(
+    createSymlink(
       path.join(
         host,
         "node_modules/@codyswann/lisa/dist/codex/scripts",

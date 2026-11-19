@@ -41,6 +41,7 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { borrowNodeModules } from "../support/borrowed-node-modules.mjs";
 import type { GateRun } from "../helpers/gate-capture.js";
 import { captureGateRun } from "../helpers/gate-capture.js";
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
@@ -135,10 +136,12 @@ const write = (root: string, rel: string, body: string): void => {
 /**
  * A throwaway project that runs Lisa's shipped mutation gate for real.
  *
- * `node_modules` is a symlink to this repository's, which is what makes a real
+ * `node_modules` is borrowed from this repository's, which is what makes a real
  * Stryker run affordable here: the fixture resolves the same Stryker, the same
  * vitest and the same runner plugin, and Stryker symlinks it onward into its own
- * sandbox.
+ * sandbox. It is borrowed entry by entry, never linked whole, so the vitest
+ * inside the sandbox cannot clear this checkout's module cache
+ * (CodySwannGT/lisa#5028).
  * @param suite - The test file the fixture commits on its topic branch
  * @param changed - Whether the topic branch touches the mutate target or a doc
  * @returns The project root
@@ -149,10 +152,7 @@ const fixture = (suite: string, changed: "guard" | "doc"): string => {
   );
   created.push(root);
 
-  fs.symlinkSync(
-    path.join(ROOT, "node_modules"),
-    path.join(root, "node_modules")
-  );
+  borrowNodeModules(path.join(ROOT, "node_modules"), root);
   write(root, "package.json", JSON.stringify({ name: "f", type: "module" }));
   write(root, "vitest.config.mjs", "export default { test: {} };\n");
   write(root, "mutation.gate.json", '{"enabled":true,"since":"main"}');

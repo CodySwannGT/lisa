@@ -12,7 +12,7 @@
  * for, and a hook installed in `.git/hooks`, which is a check that really
  * runs (CodySwannGT/lisa#4978).
  */
-import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -51,6 +51,7 @@ import {
 } from "./audit-report-facts.js";
 import { check, keep, removeFixtures } from "./support/report-check-run.js";
 import { SAMPLE_CHECKS } from "./support/evidence-samples.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 afterEach(removeFixtures);
 
@@ -153,11 +154,11 @@ function repository(): string {
     mkdirSync(path.dirname(file), { recursive: true });
     writeFileSync(file, content);
   });
-  symlinkSync(
+  createSymlink(
     path.join(repoPath, GIT_CONFIG),
     path.join(repoPath, LINK_TO_GIT)
   );
-  symlinkSync(
+  createSymlink(
     path.join(repoPath, AUDIT_REPORT_MARKDOWN_PATH),
     path.join(repoPath, LINK_TO_REPORT)
   );

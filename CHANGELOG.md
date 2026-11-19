@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.1.0](https://github.com/CodySwannGT/lisa/compare/v7.0.4...v7.1.0) (2026-11-19)
+
+
+### Features
+
+* **session-manager:** assign every item it takes to itself, and refuse to spawn an unassigned one ([4634486](https://github.com/CodySwannGT/lisa/commit/4634486ce5e4d8c0ea68f5e3b12d4d36c07c51b4)), closes [CodySwannGT/lisa#5029](https://github.com/CodySwannGT/lisa/issues/5029) [CodySwannGT/lisa#5029](https://github.com/CodySwannGT/lisa/issues/5029)
+* **work-item:** estimate a claimed item before work, calibrated from past items ([eafe42e](https://github.com/CodySwannGT/lisa/commit/eafe42e01ddd73f3d2fc91a1223b28805a725792)), closes [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955) [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955)
+
+
+### Bug Fixes
+
+* **estimate:** skip partial actuals, never block claimed work on an estimate ([5966573](https://github.com/CodySwannGT/lisa/commit/5966573d0ceec675808cc0bba12885353827846d)), closes [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955) [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955)
+* **session-manager:** match plain tracker ids by tracker, and re-read before a retry spawn ([5fbe28f](https://github.com/CodySwannGT/lisa/commit/5fbe28fcedd291b272abfbb058217342bb146fcb)), closes [#5064](https://github.com/CodySwannGT/lisa/issues/5064) [CodySwannGT/lisa#5029](https://github.com/CodySwannGT/lisa/issues/5029) [CodySwannGT/lisa#5029](https://github.com/CodySwannGT/lisa/issues/5029)
+* **usage:** mark a child rollup incomplete when a child run has no total ([242a0a8](https://github.com/CodySwannGT/lisa/commit/242a0a836b98f7f2a8b5adea54fb08e84069c889)), closes [#5030](https://github.com/CodySwannGT/lisa/issues/5030) [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955) [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955)
+
+
+### Documentation
+
+* **estimate:** scope Jira and Linear calibration searches to this repo ([e5b4f3a](https://github.com/CodySwannGT/lisa/commit/e5b4f3a4187fd8386c3a51e0d79b474ab360be45)), closes [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955) [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955)
+
+### [7.0.4](https://github.com/CodySwannGT/lisa/compare/v7.0.3...v7.0.4) (2026-11-19)
+
+
+### Bug Fixes
+
+* **tests:** borrow node_modules entry by entry so fixtures never clear the checkout's Vitest cache ([9b7a307](https://github.com/CodySwannGT/lisa/commit/9b7a307190c69b0de405935b15134f3596135cad)), closes [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028) [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** keep this checkout's boundary when a caller names another, and close the scan's gaps ([a5d54c6](https://github.com/CodySwannGT/lisa/commit/a5d54c6132f7961ffa6c979bcaa8c64f0b3e00bc)), closes [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** make one module own every test symlink and resolve a foreign source itself ([42884e1](https://github.com/CodySwannGT/lisa/commit/42884e17dfed97a6ad608234cbcd7c65d7fafcc7)), closes [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** read only a `..` path segment as outside the checkout in linkForeignNodeModules ([991b014](https://github.com/CodySwannGT/lisa/commit/991b0142c210877e70b93deab4082ecf222ed301)), closes [#5036](https://github.com/CodySwannGT/lisa/issues/5036) [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028) [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** refuse every spelling of a link made outside the helper module ([c385fa9](https://github.com/CodySwannGT/lisa/commit/c385fa909860b80d390405b62d936ba5a6aae5e3)), closes [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** refuse every whole node_modules link and borrow the last two checkout links ([af315c5](https://github.com/CodySwannGT/lisa/commit/af315c56892c4a443840b0a78b0b499f3531263d)), closes [#5036](https://github.com/CodySwannGT/lisa/issues/5036) [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028) [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** refuse FileUtils.symlink, fork, execa and a verbatim-link copy outside the helper ([5c60730](https://github.com/CodySwannGT/lisa/commit/5c60730c4122c55febf89d99bf9a4a8ea2b5b3d2)), closes [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+
+### [7.0.3](https://github.com/CodySwannGT/lisa/compare/v7.0.2...v7.0.3) (2026-11-19)
+
+
+### Documentation
+
+* **wiki:** add the source note for the control-audit pages ([a2f1e86](https://github.com/CodySwannGT/lisa/commit/a2f1e86935d25085d8c98c16b375f4bd078cb4f2)), closes [CodySwannGT/lisa#5003](https://github.com/CodySwannGT/lisa/issues/5003) [CodySwannGT/lisa#5003](https://github.com/CodySwannGT/lisa/issues/5003)
+
 ### [7.0.2](https://github.com/CodySwannGT/lisa/compare/v7.0.1...v7.0.2) (2026-11-19)
 
 ### [7.0.1](https://github.com/CodySwannGT/lisa/compare/v7.0.0...v7.0.1) (2026-11-19)

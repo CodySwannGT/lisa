@@ -74,7 +74,6 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -90,6 +89,10 @@ import {
 } from "../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../support/git-executable.js";
 import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
+import {
+  createSymlink,
+  isInstalledEntry,
+} from "../support/borrowed-node-modules.mjs";
 
 // The bounded children below are handed a base that only fits under a case
 // budget scaling with the same machine they do. Without this call the case
@@ -269,15 +272,16 @@ function stageNodeModules(root: string): void {
   const currentLisa = path.join(targetScope, SELF_PACKAGE);
   mkdirSync(targetScope, { recursive: true });
   for (const entry of readdirSync(source)) {
-    if (entry === SELF_SCOPE) continue;
-    symlinkSync(path.join(source, entry), path.join(target, entry), "dir");
+    // A tool's state (`.vitest-cache`) is never lent (CodySwannGT/lisa#5028).
+    if (entry === SELF_SCOPE || !isInstalledEntry(entry)) continue;
+    createSymlink(path.join(source, entry), path.join(target, entry), "dir");
   }
   // The scope survives; only the self-dependency inside it does not. The other
   // packages under it are ordinary workspace dependencies with no bearing on
   // which gate script the hook resolves.
   for (const entry of readdirSync(sourceScope)) {
     if (entry === SELF_PACKAGE) continue;
-    symlinkSync(
+    createSymlink(
       path.join(sourceScope, entry),
       path.join(targetScope, entry),
       "dir"
@@ -288,7 +292,7 @@ function stageNodeModules(root: string): void {
     path.join(ROOT, PACKAGE_MANIFEST),
     path.join(currentLisa, PACKAGE_MANIFEST)
   );
-  symlinkSync(path.join(ROOT, "dist"), path.join(currentLisa, "dist"), "dir");
+  createSymlink(path.join(ROOT, "dist"), path.join(currentLisa, "dist"), "dir");
 }
 
 /**

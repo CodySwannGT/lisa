@@ -3,7 +3,6 @@ import {
   mkdirSync,
   linkSync,
   readFileSync,
-  symlinkSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -28,6 +27,7 @@ import {
   runProcess,
   withPrivateRoot,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 const PACKAGE_FILE = "package.json";
@@ -147,7 +147,7 @@ describe("committed optional Bun baseline", () => {
       if (["removed", "symlink", "dangling", "hardlink"].includes(mutation))
         unlinkSync(file);
       if (mutation === "dangling") {
-        symlinkSync(join(root, "absent.lock"), file);
+        createSymlink(join(root, "absent.lock"), file);
         await expect(baseline(cwd, env)).rejects.toThrow();
         return;
       }
@@ -162,7 +162,7 @@ describe("committed optional Bun baseline", () => {
       if (mutation === "symlink") {
         const foreign = join(root, FOREIGN_LOCK);
         writeFileSync(foreign, ORIGINAL_BUN);
-        symlinkSync(foreign, file);
+        createSymlink(foreign, file);
         await expect(baseline(cwd, env)).rejects.toThrow();
         expect(readFileSync(foreign, "utf8")).toBe(ORIGINAL_BUN);
       } else {
@@ -180,7 +180,7 @@ describe("committed optional Bun baseline", () => {
         { env }
       );
       const alias = join(root, "bun-alias");
-      symlinkSync(actual.stdout.toString().trim(), alias);
+      createSymlink(actual.stdout.toString().trim(), alias);
       await expect(qualifiedBun(env, { executable: alias })).rejects.toThrow(
         /aliased/
       );
@@ -239,7 +239,7 @@ describe("signed optional lock scope protocol", () => {
           writeFileSync(join(cwd, "bun.lock"), "late lock");
         else {
           if (mutation === "symlink") writeFileSync(foreign, "foreign bytes");
-          symlinkSync(foreign, join(cwd, "bun.lock"));
+          createSymlink(foreign, join(cwd, "bun.lock"));
         }
         const refused = await stagedReadback(
           cwd,
@@ -439,7 +439,7 @@ describe("signed optional lock scope protocol", () => {
       const foreign = join(root, FOREIGN_LOCK);
       writeFileSync(foreign, proposal.files["bun.lock"]);
       unlinkSync(join(cwd, "bun.lock"));
-      symlinkSync(foreign, join(cwd, "bun.lock"));
+      createSymlink(foreign, join(cwd, "bun.lock"));
       const aliased = await validate(preview.descriptor);
       expect(aliased.code).toBe(1);
       expect(readFileSync(foreign, "utf8")).toBe(proposal.files["bun.lock"]);

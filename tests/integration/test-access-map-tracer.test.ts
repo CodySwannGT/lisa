@@ -14,6 +14,7 @@ import { pathToFileURL } from "node:url";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { borrowNodeModules } from "../support/borrowed-node-modules.mjs";
 import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
@@ -108,11 +109,7 @@ beforeAll(() => {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, content);
   });
-  fs.symlinkSync(
-    path.join(ROOT, "node_modules"),
-    path.join(fixture.root, "node_modules"),
-    "dir"
-  );
+  borrowNodeModules(path.join(ROOT, "node_modules"), fixture.root);
 });
 
 afterAll(() => {

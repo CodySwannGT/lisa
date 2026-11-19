@@ -3,7 +3,7 @@
  * provider reads/write recording. No tracker write leaves the fixture.
  * Production code and the existing lifecycle controls remain unchanged.
  */
-import { mkdirSync, readFileSync, symlinkSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { load } from "js-yaml";
@@ -24,6 +24,7 @@ import {
   type Fixture,
 } from "../../support/work-item-cli.js";
 import { installStatefulProvider } from "../../support/work-item-stateful-provider.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const ISSUE_RESOURCE = "repos/acme/code/issues/42";
 const UNKNOWN_READ = "unknown read";
@@ -74,7 +75,7 @@ function workflowFixture(): Fixture {
     deploy: { branches: { production: "main" } },
   });
   mkdirSync(path.join(fixture.root, "scripts"));
-  symlinkSync(
+  createSymlink(
     path.join(REPOSITORY_ROOT, "scripts/lisa-work-item.mjs"),
     path.join(fixture.root, "scripts/lisa-work-item.mjs")
   );

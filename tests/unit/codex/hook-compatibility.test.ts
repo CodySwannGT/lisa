@@ -12,6 +12,7 @@ import { writeManagedManifest } from "../../../src/codex/manifest.js";
 import { checkLegacyCodexOverlay } from "../../../src/cli/doctor-legacy-overlay.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const HOOKS_CONFIG = ".codex/hooks.json";
 const GUARD_FILE = "block-no-verify.sh";
@@ -91,7 +92,7 @@ describe("Codex active hook compatibility", () => {
     const filename = "rubocop-on-edit.sh";
     const destination = path.join(host, HOOK_DIR, filename);
     await fs.ensureDir(path.dirname(destination));
-    await fs.symlink(
+    createSymlink(
       path.join(
         host,
         "node_modules/@codyswann/lisa/dist/codex/scripts",
@@ -163,7 +164,7 @@ describe("Codex active hook compatibility", () => {
         name: "anonymous-host-hooks",
       });
       await fs.ensureDir(path.dirname(script));
-      await fs.symlink(target, script);
+      createSymlink(target, script);
       expect(await installHookCompatibility(ROOT, host, [], [])).toEqual([]);
       const result = boundedSpawnSync({
         command: "bash",
@@ -186,9 +187,9 @@ describe("Codex active hook compatibility", () => {
     const rule = path.join(host, ".codex/lisa-rules/eager/base-rules.md");
     await fs.outputFile(target, "HOST_RULE_MARKER\n");
     await fs.ensureDir(path.dirname(script));
-    await fs.symlink(path.join(ROOT, "src/codex/scripts", INJECT_FILE), script);
+    createSymlink(path.join(ROOT, "src/codex/scripts", INJECT_FILE), script);
     await fs.ensureDir(path.dirname(rule));
-    await fs.symlink(target, rule);
+    createSymlink(target, rule);
     await installHookCompatibility(ROOT, host, [], []);
     const result = boundedSpawnSync({
       command: "bash",
@@ -208,14 +209,14 @@ describe("Codex active hook compatibility", () => {
       const script = path.join(host, HOOK_DIR, "rubocop-on-edit.sh");
       const source = path.join(ROOT, "src/codex/scripts/rubocop-on-edit.sh");
       await fs.ensureDir(path.dirname(script));
-      await fs.symlink(source, script);
+      createSymlink(source, script);
       const helper = path.join(host, HOOK_DIR, "_extract-edit-paths.sh");
       const target =
         representation === "symlink"
           ? path.join(host, "host-owned/codex/scripts/_extract-edit-paths.sh")
           : helper;
       await fs.outputFile(target, "#!/bin/sh\nprintf HOST_HELPER_MARKER\n");
-      if (representation === "symlink") await fs.symlink(target, helper);
+      if (representation === "symlink") createSymlink(target, helper);
       await expect(
         installHookCompatibility(ROOT, host, [], [])
       ).rejects.toThrow("contains host-owned content");

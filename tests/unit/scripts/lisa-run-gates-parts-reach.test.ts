@@ -7,7 +7,7 @@
  * change touches. One changed path outside them is a path nothing checked.
  * @module tests/unit/scripts/lisa-run-gates-parts-reach
  */
-import { mkdirSync, symlinkSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -34,6 +34,7 @@ import {
   touching,
   type UntouchedRun,
 } from "./lisa-run-gates-untouched-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const WHOLE = ".";
 const API_FILE = "api/a.go";
@@ -199,7 +200,7 @@ describe("a change that reaches outside the parts that ran", () => {
 
   it("counts a changed path where a linked folder really is", () => {
     mkdirSync(path.join(repository.root, "links"));
-    symlinkSync(
+    createSymlink(
       path.join(repository.root, REAL_API),
       path.join(repository.root, "links", "api")
     );
@@ -238,7 +239,7 @@ describe("a change that is not known", () => {
   });
 
   it("stands the check down for a link that leads to the whole repository", () => {
-    symlinkSync(repository.root, path.join(repository.root, "everything"));
+    createSymlink(repository.root, path.join(repository.root, "everything"));
 
     expect(
       standsDown([{ scope: "everything", command: API_ARGV }], NOT_KNOWN)

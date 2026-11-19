@@ -8,7 +8,6 @@ import {
   mkdirSync,
   readFileSync,
   realpathSync,
-  symlinkSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -50,6 +49,7 @@ vi.mock(
   })
 );
 import { qualifiedControllerGraph } from "../../all/copy-overwrite/scripts/lib/npm-update-helper.mjs";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 const ENTRIES = [
   "lisa-work-item.mjs",
@@ -190,7 +190,7 @@ describe("all-only npm host controller materialization", () => {
       else {
         unlinkSync(target);
         if (mode === "symlink")
-          symlinkSync(
+          createSymlink(
             join(
               owner.root,
               managedTemplateMembers().get("lisa-clean-git-env.sh")!

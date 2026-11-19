@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   MEMINFO,
+  TAKEN,
   makeSandbox,
   removeSandboxes,
   writeJson,
@@ -121,7 +122,7 @@ describe("a cycle with one human-needed item", () => {
         reason: "pending-question",
       });
 
-      const spawn = run(sandbox, ["spawn", B, "--meminfo", MEMINFO]);
+      const spawn = run(sandbox, ["spawn", B, ...TAKEN, "--meminfo", MEMINFO]);
       expect(spawn.stderr).toBe("");
       expect(spawn.status).toBe(0);
       expect(callsOf(spawn.calls, "claude", "--bg")).toHaveLength(1);

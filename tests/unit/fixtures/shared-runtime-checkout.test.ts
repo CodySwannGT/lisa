@@ -2,7 +2,7 @@
  * Freeing the packed-host journey's checkout without reaching through its
  * `node_modules` link (CodySwannGT/lisa#4636).
  *
- * The candidate's checkout links the repository's own `node_modules`, and
+ * The candidate's checkout borrows the repository's own `node_modules`, and
  * packing now frees the checkout as soon as the tarball is proven instead of
  * leaving its 17,053 entries to the teardown. A removal that followed that link
  * would delete the repository's dependencies, so both the removal and the
@@ -20,6 +20,11 @@ import {
   countTreeEntries,
   freeCheckout,
 } from "../../fixtures/shared-runtime-hosts/teardown.js";
+import {
+  borrowNodeModules,
+  createSymlink,
+  linkForeignNodeModules,
+} from "../../support/borrowed-node-modules.mjs";
 
 const scratch: string[] = [];
 
@@ -67,11 +72,21 @@ describe("freeCheckout", () => {
     const checkout = scratchCheckoutPath();
     fs.mkdirSync(path.join(checkout, "src"), { recursive: true });
     fs.writeFileSync(path.join(checkout, "src", "index.ts"), "x");
-    fs.symlinkSync(
-      sentinel.directory,
-      path.join(checkout, "node_modules"),
-      "dir"
-    );
+    linkForeignNodeModules(sentinel.directory, checkout);
+
+    await freeCheckout(checkout);
+
+    expect(fs.existsSync(checkout)).toBe(false);
+    expect(fs.readFileSync(sentinel.file, "utf8")).toBe("keep");
+  });
+
+  it("removes a borrowed node_modules without following its entry links", async () => {
+    // The shape the packed-host checkout now has: a real directory of
+    // per-entry links into the lender (CodySwannGT/lisa#5028).
+    const sentinel = seedSentinel();
+    const checkout = scratchCheckoutPath();
+    fs.mkdirSync(checkout);
+    borrowNodeModules(sentinel.directory, checkout);
 
     await freeCheckout(checkout);
 
@@ -85,7 +100,7 @@ describe("freeCheckout", () => {
     const link = path.join(checkout, "node_modules");
     const seen: boolean[] = [];
     fs.mkdirSync(checkout);
-    fs.symlinkSync(sentinel.directory, link, "dir");
+    linkForeignNodeModules(sentinel.directory, checkout);
 
     await freeCheckout(checkout, async directory => {
       seen.push(fs.existsSync(link));
@@ -114,7 +129,13 @@ describe("countTreeEntries", () => {
     const area = scratchArea("lisa-count-");
     fs.mkdirSync(path.join(area, "package"));
     fs.writeFileSync(path.join(area, "package", "index.js"), "x");
-    fs.symlinkSync(sentinel.directory, path.join(area, "linked"), "dir");
+    // The sentinel tree's root, not its node_modules: no link may stand for
+    // a whole node_modules (#5028), and following either would count more.
+    createSymlink(
+      path.dirname(sentinel.directory),
+      path.join(area, "linked"),
+      "dir"
+    );
 
     expect(countTreeEntries(area)).toBe(3);
   });

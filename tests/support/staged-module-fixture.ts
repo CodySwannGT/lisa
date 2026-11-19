@@ -4,6 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import { createSymlink } from "./borrowed-node-modules.mjs";
 
 const ROOT = path.resolve(__dirname, "../..");
 const FIXTURE_IDENTITY = {
@@ -74,7 +75,7 @@ function linkNamespace(
   fs.mkdirSync(destination);
   for (const name of fs.readdirSync(source)) {
     if (scope === "@codyswann" && name === "lisa") continue;
-    fs.symlinkSync(
+    createSymlink(
       fs.realpathSync(path.join(source, name)),
       path.join(destination, name),
       "junction"
@@ -96,11 +97,11 @@ function linkDependencies(directory: string): void {
     if (entry.startsWith("@")) {
       linkNamespace(source, destination, entry);
     } else {
-      fs.symlinkSync(fs.realpathSync(source), destination, "junction");
+      createSymlink(fs.realpathSync(source), destination, "junction");
     }
   }
   fs.mkdirSync(path.join(modules, "@codyswann"), { recursive: true });
-  fs.symlinkSync(ROOT, path.join(modules, "@codyswann/lisa"), "junction");
+  createSymlink(ROOT, path.join(modules, "@codyswann/lisa"), "junction");
 }
 
 /**

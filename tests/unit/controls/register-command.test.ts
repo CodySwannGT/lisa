@@ -6,7 +6,7 @@
  * fixture repository where Lisa was never applied, and for F-none and F-mixed
  * one with no `package.json` at its root (CodySwannGT/lisa#4983).
  */
-import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -26,6 +26,7 @@ import {
 } from "../../helpers/control-register.js";
 import { declared, readRegister, register } from "./support/register-run.js";
 import { keep, removeFixtures } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 afterEach(removeFixtures);
 
@@ -190,7 +191,7 @@ describe("refusing to generate", () => {
     const repoPath = declared("F-none");
     const { repoPath: elsewhere } = keep(buildFEmpty());
     mkdirSync(path.join(repoPath, ".lisa"));
-    symlinkSync(elsewhere, path.join(repoPath, ".lisa", "controls"));
+    createSymlink(elsewhere, path.join(repoPath, ".lisa", "controls"));
 
     const run = await register(repoPath);
 
@@ -206,7 +207,7 @@ describe("refusing to generate", () => {
     const repoPath = declared("F-none");
     const { repoPath: elsewhere } = keep(buildFEmpty());
     mkdirSync(path.join(repoPath, ".lisa", "controls"), { recursive: true });
-    symlinkSync(
+    createSymlink(
       path.join(elsewhere, "target.json"),
       path.join(repoPath, CONTROL_REGISTER_PATH)
     );

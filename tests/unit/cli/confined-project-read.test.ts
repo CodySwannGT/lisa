@@ -1,10 +1,11 @@
 /** Red-leg coverage for bounded project reads. */
-import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { readConfinedMergedConfig } from "../../../src/cli/confined-project-read.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const roots: string[] = [];
 const CONFIG_RELATIVE = ".lisa.config.json";
@@ -32,7 +33,7 @@ describe("confined UI project reads", () => {
     const outside = await temporaryRoot("lisa-confined-outside-");
     const target = path.join(outside, "config.json");
     await writeFile(target, '{"tracker":"github"}\n');
-    await symlink(target, path.join(project, CONFIG_RELATIVE));
+    createSymlink(target, path.join(project, CONFIG_RELATIVE));
 
     await expect(readConfinedMergedConfig(project)).rejects.toThrow(/Unsafe/u);
   });

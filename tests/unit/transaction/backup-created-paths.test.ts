@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { BackupService } from "../../../src/transaction/backup.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /** Host file several cases modify. */
 const MODIFIED = "modified.txt";
@@ -159,7 +160,7 @@ describe("BackupService created-path rollback (#4459)", () => {
 
   it("keeps a dangling symlink the host already had", async () => {
     const link = path.join(destDir, "link.txt");
-    await fs.symlink("missing-target.txt", link);
+    createSymlink("missing-target.txt", link);
 
     await service.backup(link);
     await service.rollback();
@@ -197,7 +198,7 @@ describe("BackupService created-path rollback (#4459)", () => {
   it("never records a path that escapes through a symlinked ancestor", async () => {
     const outsideDir = path.join(tempDir, "elsewhere");
     await fs.ensureDir(outsideDir);
-    await fs.symlink(outsideDir, path.join(destDir, "link"));
+    createSymlink(outsideDir, path.join(destDir, "link"));
     const viaLink = path.join(destDir, "link", "new.txt");
     await service.backup(viaLink);
     await fs.writeFile(viaLink, "lands outside");
