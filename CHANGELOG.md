@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.0.3](https://github.com/CodySwannGT/lisa/compare/v7.0.2...v7.0.3) (2026-11-19)
+
+
+### Documentation
+
+* **wiki:** add the source note for the control-audit pages ([a2f1e86](https://github.com/CodySwannGT/lisa/commit/a2f1e86935d25085d8c98c16b375f4bd078cb4f2)), closes [CodySwannGT/lisa#5003](https://github.com/CodySwannGT/lisa/issues/5003) [CodySwannGT/lisa#5003](https://github.com/CodySwannGT/lisa/issues/5003)
+
 ### [7.0.2](https://github.com/CodySwannGT/lisa/compare/v7.0.1...v7.0.2) (2026-11-19)
 
 ### [7.0.1](https://github.com/CodySwannGT/lisa/compare/v7.0.0...v7.0.1) (2026-11-19)
