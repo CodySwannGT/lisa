@@ -17,7 +17,6 @@
  * a literal one.
  * @module tests/unit/config/no-whole-node-modules-link
  */
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -25,6 +24,7 @@ import * as path from "node:path";
 import ts from "typescript";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { checkoutFiles } from "../../helpers/tracked-files.js";
 import {
   createSymlink,
@@ -194,11 +194,11 @@ describe("no whole node_modules link in a test", () => {
     // it with `ln` rather than through a back door in the accessor.
     const owner = scratch("lisa-foreign-alias-");
     const alias = path.join(owner, "node_modules");
-    execFileSync("/bin/ln", [
-      "-s",
-      path.join(REPO_ROOT, "node_modules"),
-      alias,
-    ]);
+    boundedExecFileSync({
+      label: "foreign node_modules alias",
+      command: "/bin/ln",
+      args: ["-s", path.join(REPO_ROOT, "node_modules"), alias],
+    });
     const root = scratch("lisa-foreign-host-");
     expect(() => linkForeignNodeModules(alias, root)).toThrow(
       /inside this checkout/u
