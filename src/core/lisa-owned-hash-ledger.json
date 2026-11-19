@@ -1537,7 +1537,8 @@
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba"
     ],
     "scripts/lib/work-item-estimate-calibration.mjs": [
-      "1f8b96f438995da18a2e8cab7160c6dfc38c597550839ca4e1694b47e3314893"
+      "1f8b96f438995da18a2e8cab7160c6dfc38c597550839ca4e1694b47e3314893",
+      "f46576760d27e71b29742fb25a3f9faf5f1c43032f7d2815bc968d0e5c9c15d2"
     ],
     "scripts/lib/work-item-estimate-check.mjs": [
       "445732d190b31aec81594bd5fb5a82bc5b1ed16d3a6ff6fa0fe5fb287706a878",
@@ -4569,7 +4570,8 @@
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba"
     ],
     "scripts/lib/work-item-estimate-calibration.mjs": [
-      "1f8b96f438995da18a2e8cab7160c6dfc38c597550839ca4e1694b47e3314893"
+      "1f8b96f438995da18a2e8cab7160c6dfc38c597550839ca4e1694b47e3314893",
+      "f46576760d27e71b29742fb25a3f9faf5f1c43032f7d2815bc968d0e5c9c15d2"
     ],
     "scripts/lib/work-item-estimate-check.mjs": [
       "445732d190b31aec81594bd5fb5a82bc5b1ed16d3a6ff6fa0fe5fb287706a878",
