@@ -17,6 +17,11 @@ Replace inline `//lisa-*` tags with separate `package.lisa.json` template files 
   `knip` script renamed to `knip:check`)
 - **adopt**: Values Lisa itself previously wrote into a key it has since handed
   back to the host, so `defaults` can refresh an uncustomised one
+- **minimums**: The lowest range a host's own direct dependency on a library
+  may hold. A host that lists the library is raised inside its own major; a
+  host that does not list it is not changed. Nothing is written to
+  `overrides`/`resolutions`, so transitive copies keep their own ranges
+  (CodySwannGT/lisa#4932)
 
 The project's `package.json` remains 100% clean - no Lisa artifacts.
 
@@ -49,6 +54,9 @@ The project's `package.json` remains 100% clean - no Lisa artifacts.
   },
   "adopt": {
     "scripts": { "lint": ["eslint . --quiet"] }
+  },
+  "minimums": {
+    "zod": ">=4.6.6"
   }
 }
 ```
@@ -73,6 +81,7 @@ all/package-lisa/package.lisa.json
 - `remove`: Key lists are concatenated across the chain
 - `adopt`: Per-key value lists are UNIONed across the chain — every layer's
   Lisa-authored values stay recognised
+- `minimums`: Child values override parent values per package name
 
 ### Application Logic
 
@@ -89,6 +98,12 @@ When Lisa applies `package.lisa.json` to a project:
 6. **Apply merge** - Concatenate arrays, deduplicate
 7. **Apply remove** - Delete retired keys from their sections (runs last so an
    earlier phase cannot reintroduce a removed key)
+7b. **Hold minimums** - Raise each direct range below a `minimums` entry, in
+   `dependencies`, `devDependencies` or `optionalDependencies`, inside its own
+   major: an exact pin becomes the minimum exactly, a tilde or caret moves to
+   it. A raise that would cross a major refuses the apply and names every such
+   range to set, in one message. `peerDependencies` are never read. The
+   postinstall path, which applies only security pins, skips this step.
 8. **Write package.json** - Output clean JSON with no Lisa metadata
 
 ## Implementation Tasks

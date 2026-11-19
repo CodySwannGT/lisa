@@ -16,7 +16,7 @@ import path from "node:path";
 import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
 
 /** The guard under test, as it lives in the plugin source. */
-export const SCRIPT_PATH = path.resolve(
+const SCRIPT_PATH = path.resolve(
   "plugins/src/base/hooks/block-direct-issue-create.sh"
 );
 export const BASH_PATH = "/bin/bash";
@@ -44,7 +44,7 @@ export const CONTAINER_DECLARATION =
   "None — container: state rolls up from children";
 
 /** The default config: a GitHub tracker with the stock build-ready label. */
-export const DEFAULT_CONFIG: Record<string, unknown> = {
+const DEFAULT_CONFIG: Record<string, unknown> = {
   tracker: "github",
   github: { labels: { build: { ready: "status:ready" } } },
 };

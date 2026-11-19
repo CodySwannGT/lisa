@@ -33,7 +33,7 @@ export const SELECTED_GUARDS = [
 ] as const;
 
 export const INSTALLED_VERSION = "4.72.7";
-export const HISTORICAL_VERSION = "4.33.1";
+const HISTORICAL_VERSION = "4.33.1";
 
 /**
  * A host with current real guards/templates and an independently old receipt.

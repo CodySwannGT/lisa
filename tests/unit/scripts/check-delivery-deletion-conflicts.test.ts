@@ -198,19 +198,20 @@ describe("the live repository", () => {
   });
 
   it("still ships the deliberate child-overrides-parent overrides", () => {
-    // CDK inherits typescript/create-only, which ships jest.config.local.ts,
-    // and cdk/deletions.json then removes it. That override is the documented
-    // design (see loadPendingDeletions), so the gate must REPORT it without
-    // failing. A gate that could not tell it apart from a real conflict would
-    // have to be switched off on its first day.
+    // Expo inherits typescript/copy-overwrite, which ships vitest.config.ts,
+    // and expo/deletions.json then removes it because Expo runs Jest. That
+    // override is the documented design (see loadPendingDeletions), so the
+    // gate must REPORT it without failing. A gate that could not tell it
+    // apart from a real conflict would have to be switched off on its first
+    // day.
     const report = JSON.parse(run(["--root", REPO_ROOT, "--json"]).stdout);
     expect(report.summary.violations).toBe(0);
     expect(
       report.conflicts.some(
         (row: Record<string, string>) =>
           row.shipper === TYPESCRIPT &&
-          row.deleter === CDK &&
-          row.destination === INHERITED_JEST_LOCAL &&
+          row.deleter === EXPO &&
+          row.destination === "vitest.config.ts" &&
           row.relation === "descendant-deletes"
       )
     ).toBe(true);

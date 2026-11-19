@@ -95,7 +95,7 @@ export type AdmissionOutcome =
  * is whatever the host happens to carry. Only the reading is replaced — the
  * lock, the reservation files and the liveness probes stay real.
  */
-export const FAKE_MACHINE_ENV = "LISA_ADMISSION_FAKE_MACHINE";
+const FAKE_MACHINE_ENV = "LISA_ADMISSION_FAKE_MACHINE";
 
 /**
  * The reading source: real, or the stated test reading.

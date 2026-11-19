@@ -212,7 +212,7 @@ describe("shared runtime patch policy", () => {
       path.join(ROOT, TEMPLATE_NAME)
     )) as Record<string, Manifest>;
     expect(root.engines?.node).toBe(NODE_PATCH);
-    expectFloor(root.dependencies?.knip, "5.0.0", 5);
+    expectFloor(root.dependencies?.knip, "6.0.0", 6);
     expect(source.defaults?.engines?.node).toBe(NODE_PATCH);
     expectFloor(root.devDependencies?.vite, VITE_FLOOR, 8);
     expect(root.devDependencies?.vite).toBe(

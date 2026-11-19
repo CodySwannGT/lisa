@@ -29,10 +29,10 @@ import {
 } from "../catalogue.js";
 
 /** The subcommand's name under `lisa controls`. */
-export const CATALOGUE_COMMAND = "catalogue";
+const CATALOGUE_COMMAND = "catalogue";
 
 /** The document the command prints. */
-export interface CatalogueListing {
+interface CatalogueListing {
   /** The specification the requirements come from, as the catalogue names it. */
   readonly specification: unknown;
   /** The version of that specification. */
@@ -61,9 +61,7 @@ export interface CatalogueDependencies {
  * @param catalogue - The catalogue
  * @returns Where the requirements come from, and the in-scope ones
  */
-export function catalogueListing(
-  catalogue: CriterionCatalogue
-): CatalogueListing {
+function catalogueListing(catalogue: CriterionCatalogue): CatalogueListing {
   return {
     specification: catalogue.specification,
     specification_version: catalogue.specification_version,

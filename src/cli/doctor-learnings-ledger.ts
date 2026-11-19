@@ -16,7 +16,7 @@ import {
 } from "../core/learnings-stray-ledger.js";
 
 /** Name of the ledger check as doctor reports it. */
-export const LEARNINGS_LEDGER_CHECK_NAME = "Single learnings ledger?";
+const LEARNINGS_LEDGER_CHECK_NAME = "Single learnings ledger?";
 
 /** Shape of one doctor check result (structurally identical to doctor's). */
 interface LedgerCheckResult {

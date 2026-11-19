@@ -37,10 +37,10 @@ import { deterministicFinding } from "./finding-utils.js";
 import { readProjectJsonObject, readProjectText } from "./read-only-fs.js";
 
 /** The health check id. */
-export const SPLASH_EXIT_CHECK = "expo.splash-exit";
+const SPLASH_EXIT_CHECK = "expo.splash-exit";
 
 /** The plugin file Lisa ships into the Expo template. */
-export const SPLASH_PLUGIN_BASENAME = "withAndroidSplashNoClientExit";
+const SPLASH_PLUGIN_BASENAME = "withAndroidSplashNoClientExit";
 
 /** The Expo package whose registration creates the exposure. */
 const SPLASH_PACKAGE = "expo-splash-screen";

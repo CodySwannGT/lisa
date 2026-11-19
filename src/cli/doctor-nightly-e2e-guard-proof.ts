@@ -26,7 +26,7 @@ import { readNightlyGuardFile } from "./doctor-nightly-e2e-guard-io.js";
 const VERSION = /^1\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
 
 /** One digest whose actual Lisa package handler passed the behavior suite. */
-export interface NightlyGuardBehaviorCertificate {
+interface NightlyGuardBehaviorCertificate {
   /** Major-1 contract emitted by the behavior-proven handler. */
   readonly contractVersion: string;
 }

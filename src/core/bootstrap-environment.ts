@@ -1,6 +1,6 @@
 import { currentEnvironment } from "../utils/process-environment.js";
 
-export const LISA_BOOTSTRAP_ENV = "LISA_BOOTSTRAP";
+const LISA_BOOTSTRAP_ENV = "LISA_BOOTSTRAP";
 
 export const BUILD_ENV_FINGERPRINTS: readonly string[] = [
   "CI",
@@ -28,7 +28,7 @@ const INSTALL_SKIP_NOTICE =
 /**
  * Runtime state used by the bootstrap guard.
  */
-export interface BootstrapEnvironment {
+interface BootstrapEnvironment {
   /** Environment variables visible to the current process. */
   readonly env: NodeJS.ProcessEnv;
   /** Whether stdin is attached to an interactive TTY. */

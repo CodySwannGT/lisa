@@ -33,11 +33,7 @@ export {
   MAX_NIGHTLY_GUARD_FILES,
   MAX_NIGHTLY_GUARD_TARGETS,
 };
-export type {
-  NightlyGuardCaller,
-  NightlyGuardScanFailure,
-  NightlyGuardScanResult,
-} from "./doctor-nightly-e2e-guard-contract.js";
+export type { NightlyGuardScanResult } from "./doctor-nightly-e2e-guard-contract.js";
 
 /** Optional shared deadline used by the top-level doctor operation. */
 export interface NightlyGuardScanDependencies {

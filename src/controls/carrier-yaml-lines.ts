@@ -19,7 +19,7 @@ import { loadYaml } from "../utils/yaml.js";
 import { findMarkedBlock } from "./carrier-script.js";
 
 /** A file's lines, and how to put them back together. */
-export interface YamlLines {
+interface YamlLines {
   /** The lines, without line endings and without a last empty item. */
   readonly lines: readonly string[];
   /** The line ending the file uses. */
@@ -31,7 +31,7 @@ export interface YamlLines {
  * @param text - The file's content
  * @returns The lines and the line ending
  */
-export function splitLines(text: string): YamlLines {
+function splitLines(text: string): YamlLines {
   const eol = text.includes("\r\n") ? "\r\n" : "\n";
   const body = text.endsWith(eol) ? text.slice(0, -eol.length) : text;
   return { eol, lines: body === "" ? [] : body.split(eol) };
@@ -43,7 +43,7 @@ export function splitLines(text: string): YamlLines {
  * @param eol - The line ending
  * @returns The file's content
  */
-export function joinLines(lines: readonly string[], eol: string): string {
+function joinLines(lines: readonly string[], eol: string): string {
   return lines.length === 0 ? "" : `${lines.join(eol)}${eol}`;
 }
 
@@ -61,7 +61,7 @@ export function indentOf(line: string): number {
  * @param line - The line
  * @returns False for a blank line and for a comment
  */
-export function isContent(line: string): boolean {
+function isContent(line: string): boolean {
   const trimmed = line.trim();
   return trimmed !== "" && !trimmed.startsWith("#");
 }

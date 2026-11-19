@@ -18,7 +18,7 @@ import {
 import type { ControlRegisterEntry } from "./register-types.js";
 
 /** The option that asks for canary pull requests. */
-export const CANARIES_FLAG = "--pull-request-canaries";
+const CANARIES_FLAG = "--pull-request-canaries";
 
 /** How every result that read the settings and ran nothing begins. */
 const OBSERVED = "Observed, not exercised.";

@@ -182,9 +182,17 @@ const stripPriorBlocks = contents => {
 };
 
 const mergeOrThrow = contents => {
-  const {
-    mergeContents,
-  } = require("@expo/config-plugins/build/utils/generateCode");
+  // `@expo/config-plugins` is expo's dependency, not the host's: resolve it
+  // from expo so an isolated (pnpm) layout finds it too.
+  const generateCode = require.resolve(
+    "@expo/config-plugins/build/utils/generateCode",
+    {
+      paths: [
+        require("node:path").dirname(require.resolve("expo/package.json")),
+      ],
+    }
+  );
+  const { mergeContents } = require(generateCode);
   try {
     return mergeContents({
       src: contents,

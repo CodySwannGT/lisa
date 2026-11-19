@@ -43,7 +43,7 @@ export const BEFORE_ENFORCE_RESULTS = [
 ] as const;
 
 /** What one register entry comes out as. */
-export type BeforeEnforceResult = (typeof BEFORE_ENFORCE_RESULTS)[number];
+type BeforeEnforceResult = (typeof BEFORE_ENFORCE_RESULTS)[number];
 
 /** Why an entry was not exercised: nothing was touched for it. */
 export const NOT_EXERCISED_REASONS = [
@@ -64,33 +64,28 @@ export const NOT_EXERCISED_REASONS = [
 ] as const;
 
 /** Why an entry that was tried gave no answer. */
-export const UNANSWERED_REASONS = [
+type UnansweredReason =
   /** The violating change could not be put in place. */
-  "patch-not-applied",
+  | "patch-not-applied"
   /** The commit or push did not run to an end that can be believed. */
-  "not-started",
+  | "not-started"
   /** The commit or push was stopped at the time limit. */
-  "timed-out",
+  | "timed-out"
   /** The commit or push was killed before it answered. */
-  "killed",
+  | "killed"
   /** An earlier change could not be taken back out of the copy. */
-  "workspace-not-restored",
+  | "workspace-not-restored"
   /** The change went through, but the tool's own command gave no answer. */
-  "tool-not-run",
-] as const;
+  | "tool-not-run";
 
 /** Why an entry came out as it did. */
-export const BEFORE_ENFORCE_REASONS = [
+export type BeforeEnforceReason =
   /** `not-enforced`. */
-  "violation-accepted",
+  | "violation-accepted"
   /** `enforced`. */
-  "violation-rejected",
-  ...NOT_EXERCISED_REASONS,
-  ...UNANSWERED_REASONS,
-] as const;
-
-/** Why an entry came out as it did. */
-export type BeforeEnforceReason = (typeof BEFORE_ENFORCE_REASONS)[number];
+  | "violation-rejected"
+  | (typeof NOT_EXERCISED_REASONS)[number]
+  | UnansweredReason;
 
 /** What a whole run comes to. */
 export const BEFORE_ENFORCE_OUTCOMES = [

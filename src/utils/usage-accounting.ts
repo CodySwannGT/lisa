@@ -7,23 +7,13 @@ import type {
   LisaUsageEntry,
   LisaUsageRollup,
   LisaUsageChildArtifact,
-  ParsedLisaUsageSection,
-  LisaUsageSectionIntegrityIssue,
-  LisaUsageSectionIntegrityResult,
 } from "../../all/copy-overwrite/scripts/lib/usage-ledger.mjs";
 export {
   LISA_USAGE_HEADING,
   parseLisaUsageSection,
   verifyLisaUsageSectionIntegrity,
 };
-export type {
-  LisaUsageEntry,
-  LisaUsageRollup,
-  LisaUsageChildArtifact,
-  ParsedLisaUsageSection,
-  LisaUsageSectionIntegrityIssue,
-  LisaUsageSectionIntegrityResult,
-};
+export type { LisaUsageEntry, LisaUsageRollup, LisaUsageChildArtifact };
 
 import { createLisaUsageRollup } from "./usage-accounting-totals.js";
 import { renderEffectivenessToken } from "./effectiveness.js";
@@ -139,7 +129,7 @@ function formatCost(value: number | null, currency: string | null): string {
  * @param nextEntries Newly observed direct usage entries to apply.
  * @returns The merged direct-entry set in deterministic document order.
  */
-export function mergeLisaUsageEntries(
+function mergeLisaUsageEntries(
   existingEntries: readonly LisaUsageEntry[],
   nextEntries: readonly LisaUsageEntry[]
 ): readonly LisaUsageEntry[] {
@@ -204,7 +194,7 @@ export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
  * @param rollup Rollup values to serialize.
  * @returns The canonical `lisa:usage-rollup` token line.
  */
-export function renderLisaUsageRollupToken(rollup: LisaUsageRollup): string {
+function renderLisaUsageRollupToken(rollup: LisaUsageRollup): string {
   const primaryToken = `<!-- lisa:usage-rollup direct_entry_ids=${renderCsv(rollup.directEntryIds)} child_entry_ids=${renderCsv(rollup.childEntryIds)} child_refs=${renderCsv(rollup.childRefs)} direct_tokens=${renderNullable(rollup.directTokens)} child_tokens=${renderNullable(rollup.childTokens)} total_tokens=${renderNullable(rollup.totalTokens)} direct_cost=${renderNullable(rollup.directCost)} child_cost=${renderNullable(rollup.childCost)} total_cost=${renderNullable(rollup.totalCost)} currency=${renderNullable(rollup.currency)} child_currency=${renderNullable(rollup.childCurrency)} -->`;
   return rollup.childTokensIncomplete === true
     ? `${primaryToken} <!-- lisa:usage-rollup-token-status child_tokens_incomplete=true -->`

@@ -209,17 +209,32 @@ describe("Phaser templates", () => {
     expect(opts["exactOptionalPropertyTypes"]).toBe(true);
   });
 
-  it("ships the Phaser 4 toolchain (PWA, packing, bundle budget) in defaults", () => {
-    const template = readJson(PHASER_PACKAGE_LISA_TEMPLATE) as {
-      readonly defaults?: {
-        readonly devDependencies?: Record<string, string>;
-      };
+  it("ships the bundle budget, and leaves PWA and packing tools to the change that wires them", () => {
+    // A package no host file imports yet is what the strict dead-code gate
+    // reports, so the toolchain a game adds step by step is installed by the
+    // skill step that uses it rather than preinstalled (CodySwannGT/lisa#4932).
+    const template = readJson(PHASER_PACKAGE_LISA_TEMPLATE) as Record<
+      "force" | "defaults",
+      { readonly devDependencies?: Record<string, string> } | undefined
+    >;
+    const dev = {
+      ...template.force?.devDependencies,
+      ...template.defaults?.devDependencies,
     };
-    const dev = template.defaults?.devDependencies ?? {};
+    const assetPipeline = "phaser-asset-pipeline";
+    const installedBy = {
+      "vite-plugin-pwa": "phaser-build-deploy",
+      "free-tex-packer-core": assetPipeline,
+      audiosprite: assetPipeline,
+    };
 
-    expect(dev["vite-plugin-pwa"]).toBeDefined();
-    expect(dev["free-tex-packer-core"]).toBeDefined();
     expect(dev["size-limit"]).toBeDefined();
+    for (const [tool, skill] of Object.entries(installedBy)) {
+      expect(dev[tool], tool).toBeUndefined();
+      expect(readText(`plugins/src/phaser/skills/${skill}/SKILL.md`)).toContain(
+        `bun add -d ${tool}`
+      );
+    }
   });
 
   it("defers to Phaser's official skills and drops duplicative lisa skills", () => {

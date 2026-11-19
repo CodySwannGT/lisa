@@ -10,6 +10,7 @@ import { worktreeDependencyProblem } from "../../all/copy-overwrite/scripts/lib/
 import { socketSafeTempBase } from "../configs/vitest/socket-safe-temp-base.js";
 import { admitTestRun } from "./lisa-test-run-admission.js";
 import { mergeJestShards } from "./lisa-test-run-jest-merge.js";
+import { missingToolMessage } from "./lisa-test-run-missing-tool.js";
 import { planFilesShard } from "./lisa-test-run-shard-files.js";
 import {
   gatherVitestBlobs,
@@ -188,7 +189,7 @@ async function main(): Promise<void> {
     process.exit(outcome.code ?? OPERATIONAL_FAILURE_EXIT);
   } catch (error) {
     process.stderr.write(
-      `lisa-test-run failed: ${error instanceof Error ? error.message : String(error)}\n`
+      `lisa-test-run failed: ${missingToolMessage(error) ?? (error instanceof Error ? error.message : String(error))}\n`
     );
     process.exit(OPERATIONAL_FAILURE_EXIT);
   }

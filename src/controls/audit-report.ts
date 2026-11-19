@@ -44,24 +44,14 @@ import type {
 } from "./audit-report-types.js";
 
 export * from "./audit-probe-types.js";
-export {
-  isNeededBy,
-  isReached,
-  probeOf,
-  unreachedProbesOf,
-} from "./audit-probes.js";
 export * from "./audit-report-types.js";
 export {
   AUDIT_REPORT_SECTIONS,
-  SHAPE_RULE,
   parseAuditReport,
-  type AuditReportSection,
-  type AuditReportSectionResult,
   type ParsedAuditReport,
 } from "./audit-report-shape.js";
 export {
   describeScope,
-  findingViolation,
   formatAuditReportViolation,
 } from "./audit-report-wording.js";
 

@@ -7,7 +7,6 @@
 import path from "node:path";
 
 import type { ProjectType } from "../core/config.js";
-import { DEFAULT_PROJECT_LEARNINGS_FILE } from "../core/project-config.js";
 import { PackageLisaStrategy } from "../strategies/package-lisa.js";
 import { projectPathKind, readProjectJsonObject } from "./read-only-fs.js";
 import { destinationConforms } from "./template-compose.js";
@@ -30,10 +29,7 @@ export {
   detectHealthProjectTypes,
   type HealthProjectShape,
 } from "./template-shape.js";
-export {
-  inspectWorkflowInputs,
-  type WorkflowInputInspection,
-} from "./workflow-inputs-inspection.js";
+export { inspectWorkflowInputs } from "./workflow-inputs-inspection.js";
 
 /**
  * Inspect one category using Lisa's shared ownership and pure comparators.
@@ -139,5 +135,3 @@ export async function packageJsonConforms(
     JSON.stringify(planned, null, 2) === JSON.stringify(safePackage, null, 2)
   );
 }
-
-export { DEFAULT_PROJECT_LEARNINGS_FILE };

@@ -128,7 +128,7 @@ export interface AuditFinding {
 }
 
 /** An answer the audit found evidence for, offered to the person answering. */
-export interface AuditQuestionCandidate {
+interface AuditQuestionCandidate {
   /** The candidate answer, in plain words. */
   readonly answer: string;
   /** Where the audit found it, in plain words. */

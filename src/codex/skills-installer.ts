@@ -19,7 +19,6 @@ import {
 } from "../core/lisa-plugin-selection.js";
 
 export { convertCommandToSkill } from "./command-skill-transformer.js";
-export { LISA_COMMAND_SKILL_PREFIX } from "../core/lisa-skill-sources.js";
 
 /** Subdirectory inside `.codex/skills/` wholly owned by Lisa. */
 export const LISA_SKILLS_SUBDIR = path.join("skills", "lisa");
@@ -32,7 +31,7 @@ const INTERNAL_CODEX_SKILL_POLICY_RELATIVE_PATH = path.join(
 );
 
 /** Result of cataloging one plugin skill. */
-export interface InstalledSkill {
+interface InstalledSkill {
   readonly name: string;
   readonly source: "bundled";
   /** Plugin source path relative to the Lisa package root. */

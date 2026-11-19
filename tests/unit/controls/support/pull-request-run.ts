@@ -44,7 +44,7 @@ export const PULL_ONLY_ENTRY = "code-style@.";
 export const PULL_ONLY_CHECK = "🔍 Quality Checks / 🧹 Lint";
 
 /** The gate the cases enforce at push and on pull requests. */
-export const BOTH_GATE = "test-correctness";
+const BOTH_GATE = "test-correctness";
 
 /** The entry that gate gives. */
 export const BOTH_ENTRY = "test-correctness@.";

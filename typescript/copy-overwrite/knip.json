@@ -1,59 +1,18 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/**/*.ts","lambdas/**/*.ts", "lib/**/*.ts", "scripts/**/*.ts"],
-  "project": ["src/**/*.ts","lambdas/**/*.ts", "lib/**/*.ts"],
-  "ignore": [
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "**/__tests__/**",
-    "**/__mocks__/**",
-    "**/tests/**",
-    "**/test/**",
-    "**/dist/**",
-    "**/build/**",
-    "**/coverage/**",
-    "**/node_modules/**"
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "{index,main,cli}.ts",
+    "src/{index,main,cli}.ts",
+    "scripts/**/*.ts",
+    "lambdas/*/{index,handler}.ts"
   ],
-  "ignoreDependencies": [
-    "langsmith", 
-    "graphql",
-    "@as-integrations/express5",
-    "@aws-sdk/client-apigatewaymanagementapi",
-    "@aws-sdk/client-appconfig",
-    "@aws-sdk/client-cloudwatch",
-    "@aws-sdk/client-dynamodb",
-    "@aws-sdk/client-lambda",
-    "@aws-sdk/lib-dynamodb",
-    "@nestjs/axios",
-    "@nestjs/terminus",
-    "@sentry/profiling-node",
-    "aws-xray-sdk-core",
-    "cache-manager",
-    "csv-parse",
-    "graphql-query-complexity",
-    "graphql-request",
-    "graphql-scalars",
-    "graphql-subscriptions",
-    "graphql-ws",
-    "lodash"
-  ],
-  "ignoreBinaries": [
-    "expo",
-    "playwright",
-    "audit",
-    "docker",
-    "eval",
-    "ast-grep",
-    "eslint",
-    "husky",
-    "knip",
-    "prettier",
-    "printf",
-    "tsc",
-    "vitest"
-  ],
-  "ignoreExportsUsedInFile": true,
-  "rules": {
-    "devDependencies": "off"
-  }
+  "project": [
+    "{index,main,cli}.ts",
+    "src/**/*.ts",
+    "lambdas/**/*.ts",
+    "lib/**/*.ts",
+    "scripts/**/*.ts",
+    "tests/**/*.ts",
+    "test/**/*.ts"
+  ]
 }

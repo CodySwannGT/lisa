@@ -13,7 +13,7 @@ import { compareRulesets, requiredContextDrift } from "./ruleset-compare.js";
 import { expectedRulesets } from "./ruleset-expected.js";
 import type { RulesetReader } from "./ruleset-gh.js";
 
-export { compareRulesets, type RulesetDrift } from "./ruleset-compare.js";
+export { compareRulesets } from "./ruleset-compare.js";
 export {
   expectedRequiredContexts,
   expectedRulesets,

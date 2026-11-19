@@ -36,7 +36,7 @@ import { NODE, RUNNER_SCRIPT } from "./no-manifest-run.js";
 export const RAN = "ran.txt";
 
 /** A command that records that it ran, in the folder it was started in. */
-export const RECORD: readonly string[] = [
+const RECORD: readonly string[] = [
   NODE,
   "-e",
   `require('node:fs').writeFileSync('${RAN}', 'ran')`,

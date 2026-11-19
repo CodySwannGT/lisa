@@ -59,7 +59,7 @@ import {
 } from "./register-types.js";
 
 /** The state every offered finding is in. */
-export const OFFERED_STATE = "exists-not-enforced";
+const OFFERED_STATE = "exists-not-enforced";
 
 /** Why a tool that nothing runs matters. */
 const WHY =

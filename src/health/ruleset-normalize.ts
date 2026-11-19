@@ -9,7 +9,7 @@ import type { HealthRuleset } from "./ruleset-gh.js";
 /** GitHub Actions' integration id, the default author of a required check. */
 export const ACTIONS_INTEGRATION_ID = 15_368;
 /** The ruleset that owns the quality workflow's contexts. */
-export const QUALITY_RULESET_NAME = "quality checks";
+const QUALITY_RULESET_NAME = "quality checks";
 const REQUIRED_STATUS_CHECKS = "required_status_checks";
 
 /** One required-status-check declaration. */
@@ -80,7 +80,7 @@ function mergeIntoRequiredRule(
  * @param added - Checks the repository adds
  * @returns The rules with the additions merged
  */
-export function withAddedChecks(
+function withAddedChecks(
   rules: unknown,
   added: readonly RequiredCheck[]
 ): unknown {
@@ -130,7 +130,7 @@ function withDerivedRunGateChecks(
  * @param dropped - Contexts the repository explicitly drops
  * @returns The normalized rules, without required-check rules left empty
  */
-export function normalizeExpectedRules(
+function normalizeExpectedRules(
   rules: unknown,
   hasWorkflows: boolean,
   dropped: ReadonlySet<string>

@@ -57,7 +57,7 @@ const INTERNAL_OPENCODE_SKILL_POLICY_RELATIVE_PATH = path.join(
 );
 
 /** Result of one skill copy */
-export interface InstalledSkill {
+interface InstalledSkill {
   /** Skill name (matches the SKILL.md `name` frontmatter) */
   readonly name: string;
   /** Source kind: bundled skill folder or generated from command */

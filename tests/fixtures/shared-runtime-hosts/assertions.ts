@@ -108,7 +108,7 @@ export function installedVersions(
     vite: 8,
     typescript: 6,
     eslint: 9,
-    knip: 5,
+    knip: 6,
     husky: 8,
   };
   const versions = Object.fromEntries(

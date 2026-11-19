@@ -85,7 +85,7 @@ export interface FakeOptions {
 }
 
 /** One recorded `gh` invocation. */
-export interface FakeCall {
+interface FakeCall {
   args: string[];
   write: boolean;
 }

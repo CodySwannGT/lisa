@@ -40,9 +40,8 @@ export type SpawnFn = typeof import("node:child_process").spawn;
  * path/schema the child writes and the pre-apply package.json baseline it
  * compares against — the gate CodySwannGT/lisa#2750 turned on.
  */
-export const FAKE_REPORT_PATH =
-  "./fake/project/.lisa/reconciliation-report.json";
-export const FAKE_BASELINE_HASH = "baseline-sha256-of-package-json";
+const FAKE_REPORT_PATH = "./fake/project/.lisa/reconciliation-report.json";
+const FAKE_BASELINE_HASH = "baseline-sha256-of-package-json";
 export const FAKE_REPORTING = {
   reportPath: FAKE_REPORT_PATH,
   reportSchemaVersion: 1,

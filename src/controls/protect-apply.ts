@@ -29,7 +29,7 @@ import type {
 } from "./protect-modules.js";
 
 /** The ruleset the ruleset applier keeps pipeline-reported checks in. */
-export const DEFAULT_RULESET_NAME = "quality checks";
+const DEFAULT_RULESET_NAME = "quality checks";
 
 /** What planning needs to know. */
 export interface PlanInputs {
@@ -201,7 +201,7 @@ export interface RequiredApp {
  * @param ruleset - A ruleset as the platform returned it, or as it is sent
  * @returns Each required check with the app it is pinned to
  */
-export function requiredApps(ruleset: unknown): readonly RequiredApp[] {
+function requiredApps(ruleset: unknown): readonly RequiredApp[] {
   const rules: unknown =
     ruleset !== null && typeof ruleset === "object"
       ? Reflect.get(ruleset, "rules")

@@ -17,17 +17,17 @@ import path from "node:path";
 import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
 
 /** The guard under test, as it lives in the plugin source. */
-export const SCRIPT_PATH = path.resolve(
+const SCRIPT_PATH = path.resolve(
   "plugins/src/base/hooks/block-blind-automerge.sh"
 );
-export const BASH_PATH = "/bin/bash";
+const BASH_PATH = "/bin/bash";
 
 /** Claude's refusal code. Anything else lets the command through. */
 export const EXIT_BLOCKED = 2;
 export const EXIT_ALLOWED = 0;
 
 /** The PR every fixture below describes, as GitHub names it. */
-export const PR_URL = "https://github.com/o/r/pull/3720";
+const PR_URL = "https://github.com/o/r/pull/3720";
 
 /** The arming command every caller in the fleet runs. */
 export const ARM = "gh pr merge 3720 --auto --merge";

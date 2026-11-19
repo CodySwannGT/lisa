@@ -16,7 +16,7 @@ import type { AuditReportRule } from "../audit-report-types.js";
 import { TRACKER_QUESTION_ID } from "../tracker-question.js";
 
 /** The name this rule's violations carry. */
-export const TRACKER_QUESTION_RULE = "tracker-question";
+const TRACKER_QUESTION_RULE = "tracker-question";
 
 /**
  * The tracker question is asked while no tracker is configured and nobody has

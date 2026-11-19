@@ -78,7 +78,7 @@ export function readLedgerFile(
 }
 
 /** The stub's `claude --bg` prints short id 1a2b3c4d; this is its full id. */
-export const STUB_FULL_SESSION_ID = "1a2b3c4d-0000-4000-8000-000000000001";
+const STUB_FULL_SESSION_ID = "1a2b3c4d-0000-4000-8000-000000000001";
 
 const TRANSCRIPTS = path.resolve(
   import.meta.dirname,

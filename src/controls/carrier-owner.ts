@@ -28,10 +28,10 @@ import { CARRIER_HOOKS_FOLDER, type HookOwner } from "./carrier-types.js";
 export const HUSKY_FOLDER = ".husky";
 
 /** The pre-commit framework's configuration, from the repository root. */
-export const PRE_COMMIT_CONFIG = ".pre-commit-config.yaml";
+const PRE_COMMIT_CONFIG = ".pre-commit-config.yaml";
 
 /** Every name Lefthook reads its configuration from, YAML first. */
-export const LEFTHOOK_CONFIGS = [
+const LEFTHOOK_CONFIGS = [
   "lefthook.yml",
   "lefthook.yaml",
   ".lefthook.yml",

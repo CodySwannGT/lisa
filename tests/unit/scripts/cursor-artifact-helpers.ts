@@ -16,8 +16,8 @@ export const MCP_JSON = "mcp.json";
 export const DOT_MCP_JSON = ".mcp.json";
 export const BLOCK_NO_VERIFY = "block-no-verify.sh";
 export const INJECT_RULES = "inject-rules.sh";
-export const INSTALL_PKGS = "install-pkgs.sh";
-export const SETUP_JIRA = "setup-jira-cli.sh";
+const INSTALL_PKGS = "install-pkgs.sh";
+const SETUP_JIRA = "setup-jira-cli.sh";
 
 const ROOT = "${CLAUDE_PLUGIN_ROOT}/hooks/";
 

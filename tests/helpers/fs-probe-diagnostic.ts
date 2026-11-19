@@ -199,7 +199,7 @@ export function timeRemovalUs(directory: string, entries: number): number {
 }
 
 /** Discard deltas read straight after a removal and once more after a wait. */
-export interface RemovalDiscards {
+interface RemovalDiscards {
   readonly immediate: DeviceCounters | null;
   readonly settled: DeviceCounters | null;
 }

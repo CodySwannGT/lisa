@@ -66,7 +66,7 @@ import {
 import type { ControlRegisterEntry } from "./register-types.js";
 
 /** How long to pause between two looks at a canary, in seconds. */
-export const CANARY_POLL_SECONDS = 15;
+const CANARY_POLL_SECONDS = 15;
 
 /** What a canary run needs from outside, each replaceable in a test. */
 export interface CanaryDependencies {

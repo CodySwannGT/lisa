@@ -37,7 +37,7 @@ export const CONTROL_REGISTER_SCHEMA_VERSION = 1;
 export const WHOLE_REPOSITORY_SCOPE = ".";
 
 /** What joins the gate and the scope in an entry's identifier. */
-export const ENTRY_ID_SEPARATOR = "@";
+const ENTRY_ID_SEPARATOR = "@";
 
 /** The enforcement tiers, strictest first. */
 export const CONTROL_TIERS = ["authoritative", "advisory"] as const;
@@ -93,7 +93,7 @@ export type ParameterDirection = (typeof PARAMETER_DIRECTIONS)[number];
 export const CONTROL_ENTRY_STATUSES = ["unproved"] as const;
 
 /** The status of an entry that has one. */
-export type ControlEntryStatus = (typeof CONTROL_ENTRY_STATUSES)[number];
+type ControlEntryStatus = (typeof CONTROL_ENTRY_STATUSES)[number];
 
 /** The file that runs the gates on a pull request, and the platform it is for. */
 export interface PullRequestExecutor {
@@ -111,7 +111,7 @@ export interface CommandMechanism {
 }
 
 /** A named task run through the repository's task runner. */
-export interface TaskMechanism {
+interface TaskMechanism {
   readonly kind: "task";
   /** The task's name in the task runner. */
   readonly task: string;
@@ -120,7 +120,7 @@ export interface TaskMechanism {
 }
 
 /** A check another system reports on the pull request. */
-export interface ExternalCheckMechanism {
+interface ExternalCheckMechanism {
   readonly kind: "external-check";
   /** The name the check reports under. */
   readonly name: string;
@@ -129,17 +129,17 @@ export interface ExternalCheckMechanism {
 }
 
 /** A shipped hook that stops the action before it happens. */
-export interface InterceptorMechanism {
+interface InterceptorMechanism {
   readonly kind: "interceptor";
 }
 
 /** A job of the shipped pull-request workflow that measures the rule itself. */
-export interface BuiltInMechanism {
+interface BuiltInMechanism {
   readonly kind: "built-in";
 }
 
 /** Nothing measures the rule. */
-export interface NoMechanism {
+interface NoMechanism {
   readonly kind: "none";
 }
 

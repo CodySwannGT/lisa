@@ -14,7 +14,7 @@ import path from "node:path";
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
-export const GIT = resolveGit();
+const GIT = resolveGit();
 export const PROOF_PATH = ".lisa/standards/latest.json";
 export const TYPESCRIPT_CHECKS = [
   "typescript.lint",

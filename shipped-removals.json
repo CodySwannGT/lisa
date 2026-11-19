@@ -90,6 +90,11 @@
       "path": "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh",
       "issue": "CodySwannGT/lisa#4803",
       "note": "Removed with the parity-safety-net hook, which had been a no-op that read its input and exited 0 since CodySwannGT/lisa#4672. No agent registers it any more and nothing Lisa ships calls it. all/deletions.json retires a host's copy only while it is byte-identical to a version Lisa shipped and no package.json script or workflow names it; an edited or still-wired copy is kept, with a notice in the apply output. A host that wired it into its own hooks or automation should delete that wiring and the script; it enforced nothing."
+    },
+    {
+      "path": "typescript/create-only/jest.config.local.ts",
+      "issue": "CodySwannGT/lisa#4932",
+      "note": "The TypeScript stack runs Vitest, so new TypeScript hosts no longer receive a Jest local config that imports types from the jest package their template does not supply. Expo hosts, which run Jest, still receive expo/create-only/jest.config.local.ts unchanged. The file is create-only and host-owned, so it is not deleted: a TypeScript host that still runs Jest keeps its copy, and a host on Vitest that no longer reads it may delete jest.config.local.ts itself."
     }
   ]
 }

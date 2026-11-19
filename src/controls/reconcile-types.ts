@@ -42,24 +42,8 @@ export const CONTROL_REGISTER_CRITERION = "AC5.9";
 /** The flag that asks for the one read that leaves this machine. */
 export const PLATFORM_FLAG = "--platform";
 
-/**
- * What was established about one enforcement point.
- *
- * - `wired`: something was found that runs the gate runner there.
- * - `not-wired`: it was looked for and is not there. This is a finding.
- * - `not-verifiable`: this command has no way to look there.
- * - `not-read`: the place that holds the answer was not asked, or was asked
- *   and did not answer. Never a finding: not knowing is not absence.
- */
-export const POINT_STATES = [
-  "wired",
-  "not-wired",
-  "not-verifiable",
-  "not-read",
-] as const;
-
 /** The state of one enforcement point. */
-export type PointState = (typeof POINT_STATES)[number];
+type PointState = "wired" | "not-wired" | "not-verifiable" | "not-read";
 
 /** What was established about one point, before it is tied to its entry. */
 export interface PointVerdict {
@@ -102,16 +86,8 @@ export interface HookCommand {
   readonly declared_by: readonly string[];
 }
 
-/** The places the command reads. */
-export const RECONCILE_SURFACES = [
-  "register",
-  "carriers",
-  "hooks",
-  "hosting-platform",
-] as const;
-
 /** One place the command reads. */
-export type ReconcileSurface = (typeof RECONCILE_SURFACES)[number];
+type ReconcileSurface = "register" | "carriers" | "hooks" | "hosting-platform";
 
 /**
  * What became of one read.
@@ -122,11 +98,7 @@ export type ReconcileSurface = (typeof RECONCILE_SURFACES)[number];
  * - `could-not-read`: it was needed and could not be read. The run exits
  *   non-zero and `detail` says what was in the way.
  */
-export type SurfaceState =
-  | "read"
-  | "not-asked"
-  | "not-needed"
-  | "could-not-read";
+type SurfaceState = "read" | "not-asked" | "not-needed" | "could-not-read";
 
 /** One place the command reads, and what became of the read. */
 export interface SurfaceRead {
@@ -179,7 +151,7 @@ export type ReconcileFinding = PointFinding | CommandFinding;
 export type CommittedRegister = "current" | "stale" | "absent";
 
 /** The register the points were read from. */
-export interface ReconciledRegister {
+interface ReconciledRegister {
   /** Where the register is committed, from the repository root. */
   readonly path: string;
   /** How many entries the declaration generates. */

@@ -46,7 +46,7 @@ import * as path from "node:path";
  * (`tests/unit/config/workspace-suite-collection.test.ts`), plus the two paths
  * that only exist here: the mutation sandbox and sibling worktrees.
  */
-export const UNWALKED_DIRECTORIES: ReadonlySet<string> = new Set([
+const UNWALKED_DIRECTORIES: ReadonlySet<string> = new Set([
   ".git",
   ".stryker-tmp",
   ".worktrees",

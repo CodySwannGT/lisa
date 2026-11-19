@@ -30,10 +30,7 @@ import { boundedSpawnSync } from "./io-latency-budget.js";
 import { trackedHookCopies } from "./hook-roster.js";
 
 export const ROOT = process.cwd();
-export const RUNNER = path.join(
-  ROOT,
-  "all/copy-overwrite/scripts/lisa-run-gates.mjs"
-);
+const RUNNER = path.join(ROOT, "all/copy-overwrite/scripts/lisa-run-gates.mjs");
 
 /**
  * Every hook that hands its steps over, and the moment each runs at.
@@ -119,7 +116,7 @@ export function runRunner(
  * @param scripts - Package scripts to stage, for a gate that must really run
  * @returns The project root and the path to hand `--coverage`
  */
-export function stageProject(
+function stageProject(
   gates: object | null,
   scripts?: Record<string, string>
 ): { root: string; file: string } {
@@ -145,7 +142,7 @@ export function stageProject(
  * @param file - Path the runner was given
  * @returns One id per line, or none when the file was never written
  */
-export function readCovered(file: string): string[] {
+function readCovered(file: string): string[] {
   try {
     return readFileSync(file, "utf8").split("\n").filter(Boolean);
   } catch {

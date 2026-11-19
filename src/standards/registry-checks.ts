@@ -209,7 +209,7 @@ export function direct(
  * @param command - Fixed no-shell argv
  * @returns Frozen standards test check
  */
-export function directTest(
+function directTest(
   id: string,
   timeoutMs: number,
   testEvidence: TestEvidenceFormat,

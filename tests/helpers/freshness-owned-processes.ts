@@ -196,7 +196,7 @@ function descendants(
  * @param processes - One complete census
  * @returns Ownership extended by this census
  */
-export function extendOwnership(
+function extendOwnership(
   ownership: Ownership,
   processes: readonly Identity[]
 ): Ownership {

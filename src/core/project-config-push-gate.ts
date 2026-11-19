@@ -41,10 +41,10 @@
  */
 
 /** How a partial push-time selection treats coverage-adequacy. */
-export type AffectedCoverageMode = "full" | "changed-files" | "skip";
+type AffectedCoverageMode = "full" | "changed-files" | "skip";
 
 /** Every coverage mode, default first. */
-export const AFFECTED_COVERAGE_MODES: readonly AffectedCoverageMode[] = [
+const AFFECTED_COVERAGE_MODES: readonly AffectedCoverageMode[] = [
   "full",
   "changed-files",
   "skip",

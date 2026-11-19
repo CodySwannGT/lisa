@@ -33,15 +33,15 @@ const GATE_RUNNER_FILE = "lisa-run-gates.mjs";
 const DIAGNOSIS_FILE = path.join("lib", "gate-failure-diagnosis.mjs");
 
 /** What a started command answered, before it is known what was started. */
-export type StartedAnswer = Omit<ProofAnswer, "command" | "cwd">;
+type StartedAnswer = Omit<ProofAnswer, "command" | "cwd">;
 
 /** The folder a command starts in, or why there is none. */
-export type StartFolder =
+type StartFolder =
   | { readonly directory: string }
   | { readonly problem: string };
 
 /** The failure text an entry declares, and the gate it belongs to. */
-export interface DeclaredShape {
+interface DeclaredShape {
   readonly gate: string;
   /** The declared failure text; empty when the entry declares none. */
   readonly shape: readonly string[];

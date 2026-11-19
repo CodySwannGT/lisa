@@ -25,11 +25,11 @@ import path from "node:path";
 import { boundedSpawnSync } from "./io-latency-budget.js";
 
 /** The shipped hook, as a harness invokes it. */
-export const HOOK = "plugins/src/base/hooks/enforcement-vintage.sh";
+const HOOK = "plugins/src/base/hooks/enforcement-vintage.sh";
 /** The renderer the hook delegates to. */
-export const RENDERER = "plugins/src/base/hooks/enforcement-vintage.mjs";
+const RENDERER = "plugins/src/base/hooks/enforcement-vintage.mjs";
 /** The renderer's sibling for the project-pin and npm-latest rows. */
-export const NPM_MODULE = "plugins/src/base/hooks/enforcement-vintage-npm.mjs";
+const NPM_MODULE = "plugins/src/base/hooks/enforcement-vintage-npm.mjs";
 /** Directory every plugin payload keeps its hooks in. */
 const HOOKS = "hooks";
 /** Manifest directory a Claude plugin dates itself from. */
@@ -44,7 +44,7 @@ const PLUGIN_TREE = ["plugins", "lisa"];
 const NO_OP_GUARD = "#!/usr/bin/env bash\nexit 0\n";
 
 /** The envelope a context-injection hook emits. */
-export type HookOutput = {
+type HookOutput = {
   hookSpecificOutput?: {
     hookEventName?: string;
     additionalContext?: string;
@@ -52,7 +52,7 @@ export type HookOutput = {
 };
 
 /** What one hook invocation produced. */
-export type HookRun = {
+type HookRun = {
   output: HookOutput;
   status: number | null;
   stdout: string;

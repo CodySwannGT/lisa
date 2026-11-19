@@ -47,10 +47,10 @@ import { readShellLine, type ShellCommand } from "./reconcile-shell-line.js";
 export type { ShellCommand } from "./reconcile-shell-line.js";
 
 /** The line that opens the block a Lisa project type manages in a hook. */
-export const MANAGED_BLOCK_BEGIN = "# BEGIN: AI GUARDRAILS";
+const MANAGED_BLOCK_BEGIN = "# BEGIN: AI GUARDRAILS";
 
 /** The line that closes it. */
-export const MANAGED_BLOCK_END = "# END: AI GUARDRAILS";
+const MANAGED_BLOCK_END = "# END: AI GUARDRAILS";
 
 /** The most lines a hook may have and still be read. */
 export const MAX_HOOK_LINES = 10_000;

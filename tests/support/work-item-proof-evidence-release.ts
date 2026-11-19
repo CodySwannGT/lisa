@@ -18,7 +18,7 @@ import {
 export type ProofFixture = ReturnType<typeof proofFixture>;
 
 export const REPO = "repos/acme/code";
-export const PAGINATE = "--paginate";
+const PAGINATE = "--paginate";
 const NOT_FOUND = "gh: Not Found (HTTP 404)\n";
 const NOTES =
   "Evidence storage only — not a product release. Completion-proof and verification evidence assets, managed by Lisa.";
@@ -84,7 +84,7 @@ export function publish(fixture: ProofFixture) {
  * @param tag - The release being created.
  * @returns The argument vector.
  */
-export function createArgs(tag: string): string[] {
+function createArgs(tag: string): string[] {
   return [
     "release",
     "create",

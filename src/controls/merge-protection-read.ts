@@ -61,7 +61,7 @@ export const MERGE_PROTECTION_NOTE =
   "These are the rulesets enforced on the branch, the same settings the enforce step compares and changes. Branch protection rules of the older kind, if this repository uses them, are not read.";
 
 /** One check the platform requires before a merge. */
-export interface RequiredCheckRead {
+interface RequiredCheckRead {
   /** The exact name the platform matches on. */
   readonly context: string;
   /** The ruleset that requires it. */
@@ -69,7 +69,7 @@ export interface RequiredCheckRead {
 }
 
 /** What the platform enforces on the branch. */
-export interface MergeProtectionSettings {
+interface MergeProtectionSettings {
   /** The rulesets enforced on the branch, by name. */
   readonly rulesets: readonly string[];
   /** Every check those rulesets require. Empty when they require none. */

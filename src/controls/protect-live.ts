@@ -90,7 +90,7 @@ export const PERMISSION_NOT_READ: PermissionProbe = {
  * @param settings - The repository as the platform returned it
  * @returns The probe's answer
  */
-export function permissionOf(
+function permissionOf(
   settings: Readonly<Record<string, unknown>>
 ): PermissionProbe {
   const permissions = settings.permissions;

@@ -9,7 +9,7 @@ import {
 } from "./test-run-child-process-bindings.js";
 
 /** Executable source extensions admitted to the closure. */
-export const EXECUTABLE_MODULE_EXTENSIONS = [
+const EXECUTABLE_MODULE_EXTENSIONS = [
   ".ts",
   ".mts",
   ".cts",
@@ -19,13 +19,13 @@ export const EXECUTABLE_MODULE_EXTENSIONS = [
 ] as const;
 
 /** One unresolved relative dependency that invalidates the proof. */
-export interface UnresolvedModuleEdge {
+interface UnresolvedModuleEdge {
   readonly importer: string;
   readonly specifier: string;
 }
 
 /** One source-level closure gap tied to its executable module. */
-export interface ExecutableModuleFinding {
+interface ExecutableModuleFinding {
   readonly file: string;
   readonly message: string;
 }

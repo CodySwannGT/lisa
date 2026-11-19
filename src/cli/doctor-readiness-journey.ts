@@ -41,7 +41,7 @@ import {
 // Re-export the mutation-policy resolver so `.lisa/readiness.json` readers and
 // tests keep one import path even though the gate lives in a sibling module for
 // file-size hygiene.
-export { resolveMutationPolicy, type MutationPolicy };
+export { resolveMutationPolicy };
 
 /** The execution/proof readiness dimension id (readiness-rubric, RRR-1). */
 export const EXECUTION_PROOF_DIMENSION_ID = "execution-proof";
@@ -72,16 +72,14 @@ export type JourneyOutcome =
     };
 
 /** Context handed to a representative-journey runner. */
-export interface JourneyRunContext {
+interface JourneyRunContext {
   readonly targetPath: string;
   readonly signature: RuntimeWorkerSignature;
   readonly mutationPolicy: MutationPolicy;
 }
 
 /** Runs one representative journey through `lisa-use-the-product`. */
-export type JourneyRunner = (
-  context: JourneyRunContext
-) => Promise<JourneyOutcome>;
+type JourneyRunner = (context: JourneyRunContext) => Promise<JourneyOutcome>;
 
 /** The build-ready ticket a failing journey files through the #1742 path. */
 export interface JourneyTicketRequest {
@@ -91,9 +89,7 @@ export interface JourneyTicketRequest {
 }
 
 /** Files a build-ready ticket and returns its reference. */
-export type JourneyTicketFiler = (
-  request: JourneyTicketRequest
-) => Promise<string>;
+type JourneyTicketFiler = (request: JourneyTicketRequest) => Promise<string>;
 
 /** Options for {@link assessExecutionProofDimension}. */
 export interface ExecutionProofOptions {

@@ -44,7 +44,9 @@ official `loading-assets` skill covers loading those keys at runtime).
 ## Step 1: texture atlases with free-tex-packer-core
 
 `free-tex-packer-core` packs many PNGs into atlas pages plus a JSON manifest, in
-a Node script (no GUI, runs in CI):
+a Node script (no GUI, runs in CI). Lisa does not preinstall it, so a game that
+never packs atlases carries no package its dead-code gate reports as unused: add
+it with `bun add -d free-tex-packer-core` in the change that adds the script.
 
 ```js
 // scripts/pack-assets.mjs (excerpt)
@@ -90,7 +92,9 @@ deterministic and can be committed + `git diff --exit-code`-checked in CI.
 ## Step 2: audio sprites with audiosprite
 
 `audiosprite` concatenates short SFX into one file (in multiple codecs) plus a
-JSON map of `{ start, end }` per clip — one request, one decode, instead of dozens:
+JSON map of `{ start, end }` per clip — one request, one decode, instead of dozens.
+Add it with `bun add -d audiosprite` in the change that adds the script; Lisa
+does not preinstall it:
 
 ```jsonc
 // package.json script

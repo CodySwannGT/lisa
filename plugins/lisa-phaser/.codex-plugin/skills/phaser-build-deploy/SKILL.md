@@ -83,6 +83,9 @@ env var so the same build config serves every host.
 ## PWA: vite-plugin-pwa (on by default)
 
 The PWA is on by default: install-to-home-screen, offline play, and auto-update.
+Add the plugin with `bun add -d vite-plugin-pwa` in the change that wires it into
+`vite.config.ts`. Lisa does not preinstall it, because a package nothing imports
+yet is exactly what the dead-code gate reports.
 `registerType: "autoUpdate"` ships new versions without a manual prompt; the
 critical part is extending `globPatterns` to precache **game assets** (atlases,
 audio sprites, fonts) — the Workbox default only catches JS/CSS/HTML and would

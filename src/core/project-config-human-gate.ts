@@ -71,7 +71,7 @@ export interface ConfigWithHumanGate {
 }
 
 /** One declared value the resolver could not use. */
-export type RejectedHumanGateValue = Readonly<{
+type RejectedHumanGateValue = Readonly<{
   /** Dotted config key the value was declared at. */
   key: "humanGate" | "humanGate.mode" | "humanGate.humanOnly";
   /** JSON spelling of the declared value. */

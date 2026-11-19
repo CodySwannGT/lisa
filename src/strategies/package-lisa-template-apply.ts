@@ -24,6 +24,60 @@ import type {
 /** The manifest name used in error messages. */
 const PACKAGE_JSON = "package.json";
 
+/** Sections whose keys name packages a host's code may import. */
+const DEPENDENCY_SECTIONS: ReadonlySet<string> = new Set([
+  "dependencies",
+  "devDependencies",
+  "optionalDependencies",
+  "peerDependencies",
+]);
+
+/**
+ * Every package a manifest declares, in any dependency section.
+ * @param projectJson - Host package.json as read
+ * @returns Package names, each at most once
+ */
+export function declaredDependencies(
+  projectJson: Record<string, unknown>
+): readonly string[] {
+  return [
+    ...new Set(
+      [...DEPENDENCY_SECTIONS].flatMap(section =>
+        Object.keys(asRecord(projectJson[section]))
+      )
+    ),
+  ];
+}
+
+/**
+ * Dependencies an `adopt` entry would delete, before the mention check runs.
+ * @remarks
+ * Only these are worth asking git about: a key the template forces is never
+ * reclaimed, and one holding a value Lisa did not write is the host's own.
+ * @param projectJson - Host package.json as read
+ * @param template - Resolved template carrying the adopt section
+ * @returns Package names, each at most once
+ */
+export function adoptableDependencies(
+  projectJson: Record<string, unknown>,
+  template: ResolvedPackageLisaTemplate
+): readonly string[] {
+  const names = Object.entries(template.adopt)
+    .filter(([sectionName]) => DEPENDENCY_SECTIONS.has(sectionName))
+    .flatMap(([sectionName, recognised]) => {
+      const forcedHere = asRecord(asRecord(template.force)[sectionName]);
+      return Object.entries(asRecord(projectJson[sectionName])).flatMap(
+        ([key, value]) =>
+          typeof value === "string" &&
+          !(key in forcedHere) &&
+          (recognised[key] ?? []).includes(value)
+            ? [key]
+            : []
+      );
+    });
+  return [...new Set(names)];
+}
+
 /**
  * Apply the template after fitting its forced package-manager floor to the
  * host's manager, so a bun host never receives an npm floor (#4848).
@@ -33,6 +87,8 @@ const PACKAGE_JSON = "package.json";
  * @param projectDir - Host directory, or undefined when no tree is available
  * @param readApplyingVersion - Reports the Lisa version performing the apply
  * @param invokingPackageManager - Manager that launched this apply, if any
+ * @param mentioned - Packages the host names outside its manifest, which a
+ *   dependency `adopt` entry must never delete
  * @returns Modified package.json plus operator-visible notes
  */
 export function applyHostFittedTemplate(
@@ -41,7 +97,8 @@ export function applyHostFittedTemplate(
   restricted: boolean,
   projectDir: string | undefined,
   readApplyingVersion: () => string,
-  invokingPackageManager?: string
+  invokingPackageManager: string | undefined,
+  mentioned: ReadonlySet<string>
 ): PackageJsonPlan {
   const fitted = fitDevEnginesToHost(
     template,
@@ -53,7 +110,8 @@ export function applyHostFittedTemplate(
     fitted.template,
     PACKAGE_JSON,
     restricted,
-    readApplyingVersion
+    readApplyingVersion,
+    mentioned
   );
   return fitted.retire
     ? { ...applied, packageJson: retireDevEnginesFloor(applied.packageJson) }
@@ -76,6 +134,8 @@ export function applyHostFittedTemplate(
  *   which is the postinstall path and Lisa's own repository
  * @param readApplyingVersion - Reports the Lisa version performing the apply;
  *   only called on an unrestricted apply
+ * @param mentioned - Packages the host names outside its manifest. Omitted,
+ *   every package counts as mentioned and no dependency is reclaimed.
  * @returns Modified package.json plus operator-visible notes
  */
 export function applyTemplate(
@@ -83,7 +143,8 @@ export function applyTemplate(
   template: ResolvedPackageLisaTemplate,
   fileName: string,
   restricted: boolean,
-  readApplyingVersion: () => string
+  readApplyingVersion: () => string,
+  mentioned?: ReadonlySet<string>
 ): PackageJsonPlan {
   // Phase 1: Apply force (Lisa's values completely replace project's), then
   // restore any dependency pin the host had raised ABOVE Lisa's floor.
@@ -96,7 +157,11 @@ export function applyTemplate(
   // Phase 1.5: Reclaim keys still carrying a value Lisa itself wrote, so the
   // defaults phase can install the current one. A host value Lisa does not
   // recognise as its own is left alone — that is the whole point.
-  const afterAdopt = applyAdoptSections(afterForce.packageJson, template);
+  const afterAdopt = applyAdoptSections(
+    afterForce.packageJson,
+    template,
+    name => mentioned === undefined || mentioned.has(name)
+  );
 
   // Phase 2: Apply defaults (project's values preserved, Lisa provides fallback)
   const afterDefaults = deepMerge(
@@ -136,13 +201,20 @@ export function applyTemplate(
  * a key Lisa used to force. Nothing else is touched: a value absent from the
  * adopt list is the host's own work by definition, and keeping it is the entire
  * behaviour this exists to provide.
+ *
+ * A dependency needs one more proof than a script. Keeping the version Lisa
+ * wrote says nothing about whether the host imports the package, so a
+ * dependency key is cleared only when the host also never mentions it
+ * (CodySwannGT/lisa#4932, `package-mentions.ts`).
  * @param packageJson - The document as the force phase left it
  * @param template - Resolved template carrying the adopt section
+ * @param isMentioned - Whether the host names a package outside its manifest
  * @returns The document with Lisa-authored values cleared
  */
 function applyAdoptSections(
   packageJson: Record<string, unknown>,
-  template: ResolvedPackageLisaTemplate
+  template: ResolvedPackageLisaTemplate,
+  isMentioned: (name: string) => boolean
 ): Record<string, unknown> {
   return Object.entries(template.adopt).reduce<Record<string, unknown>>(
     (document, [sectionName, recognised]) => {
@@ -155,12 +227,14 @@ function applyAdoptSections(
       // whatever `defaults` happens to carry — so force wins, and adopt is a
       // no-op there. Adopt only has meaning for a key Lisa has handed back.
       const forcedHere = asRecord(asRecord(template.force)[sectionName]);
+      const guarded = DEPENDENCY_SECTIONS.has(sectionName);
       const entries = Object.entries(section);
       const kept = entries.filter(
         ([key, value]) =>
           typeof value !== "string" ||
           key in forcedHere ||
-          !(recognised[key] ?? []).includes(value)
+          !(recognised[key] ?? []).includes(value) ||
+          (guarded && isMentioned(key))
       );
       if (kept.length === entries.length) {
         return document;

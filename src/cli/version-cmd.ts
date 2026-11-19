@@ -51,7 +51,7 @@ export function getCliInstallPath(): string {
  * @param cwd - Project directory to inspect
  * @returns Harness string used by Lisa when no flag overrides it
  */
-export async function readDefaultHarness(cwd = process.cwd()): Promise<string> {
+async function readDefaultHarness(cwd = process.cwd()): Promise<string> {
   for (const fileName of [".lisa.config.local.json", ".lisa.config.json"]) {
     const configPath = path.join(cwd, fileName);
     try {

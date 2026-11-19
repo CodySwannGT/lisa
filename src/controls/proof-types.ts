@@ -48,37 +48,34 @@ export const PROOF_RUN_SCHEMA_VERSION = 1;
 export const PROOF_MOMENTS = ["commit", "push"] as const;
 
 /** What one half of a proof showed. */
-export const PROOF_HALF_OUTCOMES = ["rejected", "accepted", "unknown"] as const;
 
 /** What one half of a proof showed. */
-export type ProofHalfOutcome = (typeof PROOF_HALF_OUTCOMES)[number];
+export type ProofHalfOutcome = "rejected" | "accepted" | "unknown";
 
 /** Why one half of a proof showed what it did. */
-export const PROOF_HALF_REASONS = [
+
+/** Why one half of a proof showed what it did. */
+export type ProofHalfReason =
   /** `rejected`: the check failed with the declared failure text. */
-  "rejected-as-declared",
+  | "rejected-as-declared"
   /** `accepted`: the check passed. */
-  "accepted",
+  | "accepted"
   /** The change could not be put in place, so no check was run. */
-  "patch-not-applied",
+  | "patch-not-applied"
   /** The check could not be started at all. */
-  "not-started",
+  | "not-started"
   /** The check was stopped at the proof's time limit. */
-  "timed-out",
+  | "timed-out"
   /** The check was killed before it answered. */
-  "killed",
+  | "killed"
   /** The check answered, and the answer measured nothing. */
-  "nothing-measured",
+  | "nothing-measured"
   /** The check said no without the declared failure text. */
-  "wrong-reason",
+  | "wrong-reason"
   /** The check said no and the entry declares no failure text to match. */
-  "no-failure-shape",
+  | "no-failure-shape"
   /** An earlier change could not be undone, so this half was not run. */
-  "workspace-not-restored",
-] as const;
-
-/** Why one half of a proof showed what it did. */
-export type ProofHalfReason = (typeof PROOF_HALF_REASONS)[number];
+  | "workspace-not-restored";
 
 /** The result an entry gets. */
 export const PROOF_OUTCOMES = [
@@ -92,62 +89,59 @@ export const PROOF_OUTCOMES = [
 export type ProofOutcome = (typeof PROOF_OUTCOMES)[number];
 
 /** Why an entry got its result, beyond what one of its halves says. */
-export const PROOF_ENTRY_REASONS = [
+type ProofEntryOwnReason =
   /** `passed`. */
-  "proved",
+  | "proved"
   /** `failed` on the violating half. */
-  "violation-accepted",
+  | "violation-accepted"
   /** `failed` on the clean half. */
-  "clean-rejected",
+  | "clean-rejected"
   /** `failed` on both halves. */
-  "violation-accepted-clean-rejected",
+  | "violation-accepted-clean-rejected"
   /** `unproved`: the declaration names no patch for a half, or it is gone. */
-  "half-missing",
+  | "half-missing"
   /** `unproved`: enforced only where the hosting platform decides. */
-  "pull-request-moment",
+  | "pull-request-moment"
   /** `unproved`: not enforced at any moment this runner exercises. */
-  "no-proof-moment",
+  | "no-proof-moment"
   /** `unknown`: the proof reaches outside the repository and was not allowed to. */
-  "external-effects",
+  | "external-effects"
   /** `unknown`: what measures the entry is not a command this runner can start. */
-  "mechanism-not-a-command",
+  | "mechanism-not-a-command"
   /** `unknown`: a patch file is there and could not be read safely. */
-  "patch-unreadable",
+  | "patch-unreadable"
   /**
    * `unknown`: one of the proof's changes edits a file that says what the
    * check is or runs it, so no check was started. The word is the one
    * `lisa controls proof-check` gives the same pair.
    */
-  "declaration-changed",
+  | "declaration-changed"
   /**
    * `unknown`: one of the proof's changes touches a path the repository
    * ignores, which git leaves out of a commit, so no check was started. The
    * word is the one `lisa controls proof-check` gives the same pair.
    */
-  "ignored-path",
+  | "ignored-path"
   /**
    * `unproved`: the hosting platform's settings require the entry's check
    * before a merge. They were read; nothing was exercised.
    */
-  "observed-required",
+  | "observed-required"
   /** `failed`: the hosting platform's settings do not require the check. */
-  "observed-not-required",
+  | "observed-not-required"
   /** `unknown`: the hosting platform's settings could not be read. */
-  "merge-protection-unread",
+  | "merge-protection-unread"
   /** `unknown`: the repository is not hosted where the settings are read. */
-  "platform-not-reached",
+  | "platform-not-reached"
   /** `unproved`: the register does not ask the platform to stop a merge. */
-  "not-asked-of-platform",
+  | "not-asked-of-platform"
   /** `unproved`: no check name derives from the entry for pull requests. */
-  "no-check-derived",
+  | "no-check-derived"
   /** `unknown`: a canary pull request needs write access the run lacks. */
-  "canary-permission-missing",
-] as const;
+  | "canary-permission-missing";
 
 /** Why an entry got its result. An `unknown` half's reason is one too. */
-export type ProofEntryReason =
-  | (typeof PROOF_ENTRY_REASONS)[number]
-  | ProofHalfReason;
+export type ProofEntryReason = ProofEntryOwnReason | ProofHalfReason;
 
 /**
  * How a result was obtained, weakest first.
@@ -157,10 +151,9 @@ export type ProofEntryReason =
  * - `exercised` — both changes were planted and what stopped them, or did
  *   not, was recorded.
  */
-export const PROOF_RUNGS = ["observed", "exercised"] as const;
 
 /** How a result was obtained. */
-export type ProofRung = (typeof PROOF_RUNGS)[number];
+export type ProofRung = "observed" | "exercised";
 
 /** What the check answered when a half's moment was triggered. */
 export interface ProofAnswer {
@@ -276,7 +269,7 @@ export type PatchOutcome =
   | { readonly problem: string };
 
 /** A change the runner planted, as the workspace is asked about it. */
-export interface PlantedProofChange {
+interface PlantedProofChange {
   /** The content of the patch file that was planted. */
   readonly patch: string;
   /** The check's command, and the folder it is started in. */

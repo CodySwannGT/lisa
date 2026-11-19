@@ -27,7 +27,7 @@ import { findingViolation } from "../audit-report-wording.js";
 import { NEVER_NOT_APPLICABLE } from "../catalogue.js";
 
 /** The name this rule's violations carry. */
-export const NOT_APPLICABLE_RULE = "not-applicable";
+const NOT_APPLICABLE_RULE = "not-applicable";
 
 /** What a finding about a requirement that always applies is told. */
 const ALWAYS_APPLIES = `This finding says the requirement does not apply here, but this requirement always applies: nothing about a repository makes it not apply. Say what was found instead: "missing" when nothing does it, "exists-not-enforced" when something does, "unknown" or "question" when that cannot be told.`;

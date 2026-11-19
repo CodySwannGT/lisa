@@ -27,7 +27,7 @@ const DEVIN_DIR = ".devin";
 const HOOKS_FILENAME = "hooks.v1.json";
 
 /** Dispatcher path that identifies the Lisa-owned handler. */
-export const DEVIN_FALLBACK_DISPATCHER = "scripts/lisa-enforcement-fallback.sh";
+const DEVIN_FALLBACK_DISPATCHER = "scripts/lisa-enforcement-fallback.sh";
 
 /** Devin tools whose calls the dispatcher's guards evaluate. */
 export const DEVIN_FALLBACK_MATCHER = "^(exec|write|edit|apply_patch)$";

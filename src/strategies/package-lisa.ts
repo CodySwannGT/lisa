@@ -20,8 +20,10 @@ import {
   planSelfReferencingOverrideNormalization,
 } from "./package-lisa-manifest-guards.js";
 import {
+  adoptableDependencies,
   applyHostFittedTemplate,
   applyTemplate,
+  declaredDependencies,
 } from "./package-lisa-template-apply.js";
 import {
   loadAndMergeTemplates,
@@ -31,6 +33,8 @@ import type {
   PackageJsonPlan,
   ResolvedPackageLisaTemplate,
 } from "./package-lisa-types.js";
+import { fitDirectRangesToLisaFloors } from "./package-lisa-direct-floors.js";
+import { findMentionedPackages } from "./package-mentions.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 
 /**
@@ -141,10 +145,19 @@ export class PackageLisaStrategy implements ICopyStrategy {
       restricted,
       projectDir,
       this.readApplyingVersion,
-      invokingPackageManager
+      invokingPackageManager,
+      await findMentionedPackages(
+        projectDir,
+        adoptableDependencies(projectJson, effective),
+        declaredDependencies(projectJson)
+      )
     );
     const result = planSelfReferencingOverrideNormalization(
-      forced.packageJson,
+      fitDirectRangesToLisaFloors(
+        forced.packageJson,
+        effective,
+        this.PACKAGE_JSON
+      ).packageJson,
       this.PACKAGE_JSON
     );
     assertManifestIsInstallable(result.packageJson, this.PACKAGE_JSON);
@@ -217,7 +230,13 @@ export class PackageLisaStrategy implements ICopyStrategy {
       );
       return {
         applyPath,
-        audit: auditSelfReferenceRewrites(forced.packageJson),
+        audit: auditSelfReferenceRewrites(
+          fitDirectRangesToLisaFloors(
+            forced.packageJson,
+            effective,
+            this.PACKAGE_JSON
+          ).packageJson
+        ),
         error: null,
       };
     } catch (error) {
@@ -427,13 +446,26 @@ export class PackageLisaStrategy implements ICopyStrategy {
       restricted,
       projectDir,
       this.readApplyingVersion,
-      context.config.invokingPackageManager
+      context.config.invokingPackageManager,
+      await findMentionedPackages(
+        projectDir,
+        adoptableDependencies(projectJson, effective),
+        declaredDependencies(projectJson)
+      )
+    );
+    const fitted = fitDirectRangesToLisaFloors(
+      forced.packageJson,
+      effective,
+      this.PACKAGE_JSON
     );
     const plan = planSelfReferencingOverrideNormalization(
-      forced.packageJson,
+      fitted.packageJson,
       this.PACKAGE_JSON
     );
     assertManifestIsInstallable(plan.packageJson, this.PACKAGE_JSON);
-    return { ...plan, notes: [...forced.notes, ...plan.notes] };
+    return {
+      ...plan,
+      notes: [...forced.notes, ...fitted.notes, ...plan.notes],
+    };
   }
 }

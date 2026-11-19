@@ -54,8 +54,6 @@ import {
 import type { InlineEntry } from "./audit-report-types.js";
 import { parseQuestionId } from "./question-ids.js";
 
-export type { QuestionRegion } from "./audit-question-region.js";
-
 /** What one file holds. */
 export interface QuestionBlock {
   /** Every question entry of the block, in the order written. */

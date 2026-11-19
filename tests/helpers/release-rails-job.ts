@@ -64,7 +64,7 @@ const SKIP_STEP = "Check for skip conditions";
 const RELEASE_STEP = "Create GitHub Release";
 
 /** Hermetic git environment: no inherited GIT_* state, no developer config. */
-export const GIT_ENV: NodeJS.ProcessEnv = {
+const GIT_ENV: NodeJS.ProcessEnv = {
   ...cleanGitEnv(),
   GIT_CONFIG_GLOBAL: "/dev/null",
   GIT_CONFIG_SYSTEM: "/dev/null",

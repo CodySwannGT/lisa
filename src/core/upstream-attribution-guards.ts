@@ -61,7 +61,7 @@ export function reject(field: string, detail: string): never {
  * @param field - Field name reported on rejection
  * @returns The value typed as a record
  */
-export function requirePlainRecord(
+function requirePlainRecord(
   value: unknown,
   field: string
 ): Record<string, unknown> {

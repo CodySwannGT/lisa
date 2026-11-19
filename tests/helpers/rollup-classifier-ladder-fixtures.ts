@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 /** Fixed suffix that a trusted plugin root may contribute. */
-export const CLASSIFIER_SUFFIX = "scripts/rollup-blocker-classification.mjs";
+const CLASSIFIER_SUFFIX = "scripts/rollup-blocker-classification.mjs";
 
 /** Exact child graph that must cross the resolver without rewriting. */
 export const EXACT_CHILD_GRAPH = `${JSON.stringify({

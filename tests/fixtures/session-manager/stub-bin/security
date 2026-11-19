@@ -1,11 +1,4 @@
-#!/usr/bin/env node
-/**
- * Stub `security` (the macOS keychain CLI) for the session-manager CLI tests.
- * It records that it ran, with only its subcommand, and exits 44 ("item not
- * found"). A test can then prove the real keychain was never consulted: the
- * test configs read the secrets bootstrap from the environment only.
- */
-import { record } from "../support/stub-record.mjs";
-
-record("security", { argv: process.argv.slice(2, 3) });
-process.exitCode = 44;
+#!/bin/sh
+# Stub `security` for the session-manager CLI tests. The stub itself is
+# ../support/stubs/security.mjs, kept as a module so the dead-code gate can follow its imports.
+exec node "$(dirname "$0")/../support/stubs/security.mjs" "$@"

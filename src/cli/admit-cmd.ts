@@ -93,7 +93,7 @@ function runAdmitted(
  * @param options - Parsed options
  * @returns Exit status
  */
-export async function runAdmit(
+async function runAdmit(
   argv: readonly string[],
   options: AdmitOptions
 ): Promise<number> {

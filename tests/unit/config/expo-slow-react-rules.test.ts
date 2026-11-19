@@ -278,7 +278,6 @@ describe("the Expo configs keep every React Compiler rule", () => {
     for (const file of [
       "src/configs/eslint/expo.ts",
       "src/configs/eslint/slow-expo.ts",
-      "expo/copy-overwrite/eslint.expo.ts",
     ])
       expect(
         fs.readFileSync(path.join(REPO_ROOT, file), "utf8"),

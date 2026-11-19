@@ -49,14 +49,14 @@ import type { GhRunner, ProtectionModules } from "./protect-modules.js";
 import { isBranchName } from "./protect-types.js";
 
 /** How many merged pull requests into the branch are looked at. */
-export const RECENT_PULL_REQUESTS = 5;
+const RECENT_PULL_REQUESTS = 5;
 
 /**
  * How many closed pull requests are listed to find the merged ones. Closed
  * ones that were never merged are in the same list, so more are asked for
  * than are looked at.
  */
-export const CLOSED_PULL_REQUESTS = 30;
+const CLOSED_PULL_REQUESTS = 30;
 
 /** The largest page the platform returns; a longer list is incomplete. */
 const PAGE_SIZE = 100;

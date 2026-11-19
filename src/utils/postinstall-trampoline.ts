@@ -6,8 +6,6 @@ import { fileURLToPath } from "node:url";
 import { currentEnvironment, readEnv } from "./process-environment.js";
 import { sanitizeEnvForReconciliation } from "./pm-env.js";
 import {
-  type LockfileRegenPlan,
-  type PackageManager,
   LOCKFILE_REGEN_PLANS,
   detectPackageManagers,
   enginesForbiddenManagers,
@@ -51,12 +49,11 @@ const SETTLE_DELAY_MS = 250;
 // package-manager-detect.ts) so existing importers/tests can keep importing it
 // from this module.
 export {
-  LOCKFILE_REGEN_PLANS,
   detectPackageManagers,
   enginesForbiddenManagers,
   getLockfileRegenPlan,
 };
-export type { LockfileRegenPlan, PackageManager, TrampolineReporting };
+export type { TrampolineReporting };
 
 /**
  * Determine whether this Lisa invocation is running as a package-manager lifecycle

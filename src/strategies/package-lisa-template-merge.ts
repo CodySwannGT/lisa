@@ -27,6 +27,7 @@ const EMPTY_TEMPLATE: ResolvedPackageLisaTemplate = {
   merge: {},
   remove: {},
   adopt: {},
+  minimums: {},
 };
 
 /**
@@ -100,6 +101,7 @@ function mergeTemplates(
       string[]
     >,
     adopt: mergeAdoptSections(parent.adopt, child.adopt || {}),
+    minimums: { ...parent.minimums, ...child.minimums },
   };
 }
 
@@ -210,7 +212,16 @@ export function restrictToSecurityPins(
   // `adopt` reclaims a key so `defaults` can rewrite it, and `defaults` is
   // dropped here — carrying it alone would delete a host script and put
   // nothing back.
-  return { force, defaults: {}, merge: {}, remove, adopt: {} };
+  // A minimum is a library choice, not a security pin, so the postinstall
+  // path leaves it to the full apply.
+  return {
+    force,
+    defaults: {},
+    merge: {},
+    remove,
+    adopt: {},
+    minimums: {},
+  };
 }
 
 /**

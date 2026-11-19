@@ -89,7 +89,7 @@ interface ReachEntry {
 }
 
 /** The shipped detector's sweep result. */
-export interface ReachSweep {
+interface ReachSweep {
   readonly zeroReach: readonly ReachEntry[];
   readonly undetermined: readonly ReachEntry[];
   readonly governing: readonly ReachEntry[];
@@ -217,7 +217,7 @@ async function loadDetector(
  * @param sweep - The completed classification
  * @returns The finding
  */
-export function rulesetReachFindingFor(sweep: ReachSweep): HealthFinding {
+function rulesetReachFindingFor(sweep: ReachSweep): HealthFinding {
   if (sweep.zeroReach.length > 0) {
     return deterministicFinding(
       CHECK,

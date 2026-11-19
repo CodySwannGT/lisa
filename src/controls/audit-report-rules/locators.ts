@@ -27,7 +27,7 @@ import {
 } from "../repository-reader.js";
 
 /** The name this rule's violations carry. */
-export const LOCATORS_RULE = "locators";
+const LOCATORS_RULE = "locators";
 
 /**
  * Say why a pointer leads nowhere.

@@ -20,7 +20,6 @@ export const GUARD = `${HOOK_DIRECTORY}/${GUARD_NAME}`;
 export const DEDUPE_NAME = "guard-dedupe.bash";
 export const DEDUPE = `${HOOK_DIRECTORY}/${DEDUPE_NAME}`;
 export const OLD_GUARD = "# old block-no-verify.sh\n";
-export const OLD_DEDUPE = "# old guard-dedupe.bash\n";
 export const CONFIG_TEXT = '{"harness":"codex"}\n';
 export const hookNames = [GUARD_NAME, "guard-dedupe.bash"];
 

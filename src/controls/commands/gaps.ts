@@ -49,7 +49,7 @@ export const GAPS_SCHEMA_VERSION = 1;
 const MISSING = "missing";
 
 /** The outcome of a requirement that cannot be ticketed. */
-export const BLOCKED_OUTCOME = "blocked";
+const BLOCKED_OUTCOME = "blocked";
 
 /** One requirement with nothing behind it, in one part of the repository. */
 export interface ControlGap {
@@ -80,7 +80,7 @@ export interface ControlGap {
 }
 
 /** Where tickets are filed, or why they cannot be. */
-export interface ControlGapsTracker {
+interface ControlGapsTracker {
   /** Whether a tracker Lisa can file in is configured. */
   readonly configured: boolean;
   /** `jira`, `github` or `linear`; `null` when none is configured. */

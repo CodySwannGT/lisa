@@ -19,7 +19,7 @@ import { findingViolation } from "../audit-report-wording.js";
 import { criterionIdsIn } from "../catalogue.js";
 
 /** The name this rule's violations carry. */
-export const PLAIN_LANGUAGE_RULE = "plain-language";
+const PLAIN_LANGUAGE_RULE = "plain-language";
 
 /** What each field is for, said as an instruction. */
 const ASK: Readonly<Record<PlainLanguageField, string>> = {

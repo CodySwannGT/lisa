@@ -99,7 +99,7 @@ export const MIN_NAME_LENGTH = 5;
  * @param raw - A name or a candidate span of source text.
  * @returns Lowercased, alphanumerics only.
  */
-export function normalizeName(raw: string): string {
+function normalizeName(raw: string): string {
   return raw.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "");
 }
 

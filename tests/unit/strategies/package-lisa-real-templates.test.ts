@@ -226,13 +226,15 @@ describe("PackageLisaStrategy", () => {
       return fs.readJsonSync(nestSource);
     }
 
-    it("keeps class-validator in defaults, not force", () => {
+    it("leaves class-validator to the host: never forced, no longer defaulted", () => {
+      // Split-major across hosts, so it was never forced; and unused until a
+      // host writes a DTO, so Lisa stopped defaulting it (CodySwannGT/lisa#4932).
       const template = readNestTemplate();
       expect(template.force.dependencies["class-validator"]).toBeUndefined();
-      expect(template.defaults.dependencies["class-validator"]).toBeDefined();
+      expect(template.defaults.dependencies["class-validator"]).toBeUndefined();
     });
 
-    it("keeps @graphql-codegen/* in defaults, not force", () => {
+    it("leaves @graphql-codegen/* to the host: never forced, no longer defaulted", () => {
       const template = readNestTemplate();
       for (const pkg of [
         "@graphql-codegen/cli",
@@ -240,7 +242,7 @@ describe("PackageLisaStrategy", () => {
         "@graphql-codegen/typescript-operations",
       ]) {
         expect(template.force.devDependencies[pkg]).toBeUndefined();
-        expect(template.defaults.devDependencies[pkg]).toBeDefined();
+        expect(template.defaults.devDependencies[pkg]).toBeUndefined();
       }
     });
 

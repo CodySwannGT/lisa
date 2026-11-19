@@ -33,10 +33,10 @@ export const DEFAULT_MAX_WAIT_MS = 30 * 60_000;
 export const DEFAULT_PUSH_MAX_WAIT_MS = 5 * 60_000;
 
 /** How often a waiting run re-checks the machine. */
-export const DEFAULT_POLL_MS = 3_000;
+const DEFAULT_POLL_MS = 3_000;
 
 /** Value of `LISA_ADMISSION_CONTEXT` a push sets for its children. */
-export const PUSH_CONTEXT = "push";
+const PUSH_CONTEXT = "push";
 
 /** Granted worker count handed to an admitted run. */
 export const ADMITTED_WORKERS_ENV = "LISA_ADMITTED_WORKERS";
@@ -141,7 +141,7 @@ function positiveNumber(
  * @param cwd - Project root
  * @returns Validated block (empty when absent)
  */
-export function readLocalAdmissionConfig(cwd: string): LocalAdmissionConfig {
+function readLocalAdmissionConfig(cwd: string): LocalAdmissionConfig {
   const local = readJson(join(cwd, ".lisa.config.local.json")) as
     | Record<string, unknown>
     | undefined;

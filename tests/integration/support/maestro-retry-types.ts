@@ -40,7 +40,7 @@ export interface GateResult {
 }
 
 /** How the stubbed runner behaves once the suite has failed. */
-export type RetryMode =
+type RetryMode =
   | "retry-passes"
   | "retry-fails"
   | "retry-executes-nothing"
