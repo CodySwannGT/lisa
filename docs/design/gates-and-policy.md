@@ -1332,7 +1332,7 @@ it, and keeping the two equal is the host's to do. `lisa controls
 propose-threshold` says this to the operator in `yes_means`, and the
 configure step tells them to put the same number in the command where the
 tool takes it as an argument.
-`tests/integration/threshold-ratchet-declared-parameters.test.ts` holds both
+`tests/integration/controls-threshold-ratchet-declared-parameters.test.ts` holds both
 halves: a lowered declared floor is refused, and a limit lowered in the tool's
 own settings is not seen.
 
@@ -1380,7 +1380,7 @@ templates' hooks and the reusable quality workflows. The gate's default task,
 The `failure_shape` is what lets the runner print `FAILED` for a loosened
 threshold. Without it the runner still blocks, but calls the result
 `UNPROVABLE`, because the registry declares no failure shape for this gate.
-`tests/integration/threshold-ratchet-declared-gate.test.ts` runs this
+`tests/integration/controls-threshold-ratchet-declared-gate.test.ts` runs this
 declaration through the shipped runner in a repository with no `package.json`.
 What calls the runner there — a push hook in a repository the templates were
 never applied to — is separate work.
