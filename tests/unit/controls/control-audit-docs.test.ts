@@ -16,7 +16,7 @@
  * - the number of Level 1 requirements they state is the catalogue's count;
  * - the wiki page exists, every link in it leads somewhere, and the wiki's
  *   index and log both lead to it.
- * @module tests/unit/docs/control-audit-docs
+ * @module tests/unit/controls/control-audit-docs
  */
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";

@@ -6,7 +6,7 @@
  * writer, and each quote is only useful while it matches the code that decides
  * it. This suite holds the document to that code, on every agent surface the
  * document ships to (CodySwannGT/lisa#4992).
- * @module tests/unit/skills/missing-capability-tickets
+ * @module tests/unit/controls/missing-capability-tickets
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";

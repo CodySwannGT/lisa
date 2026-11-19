@@ -7,7 +7,7 @@
  * outside the repository. Both must be off unless the operator types them,
  * so this file checks what the command hands on when they are typed and,
  * above all, when they are not.
- * @module tests/unit/cli/controls-cmd-attest-pull-request
+ * @module tests/unit/controls/controls-cmd-attest-pull-request
  */
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

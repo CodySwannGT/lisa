@@ -10,7 +10,7 @@
  *
  * Every refusal here is read by an operator, so each assertion checks that the
  * message names the gate and the key at fault.
- * @module tests/unit/scripts/lisa-gates-parts-evidence
+ * @module tests/unit/controls/lisa-gates-parts-evidence
  */
 import { describe, expect, it, vi } from "vitest";
 

@@ -9,7 +9,7 @@
  * runs, and its judgement of an answer as something another module can ask
  * for. Nothing here changes what a gate does when none of the three is asked
  * for.
- * @module tests/unit/scripts/lisa-run-gates-parts-proof
+ * @module tests/unit/controls/lisa-run-gates-parts-proof
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -34,7 +34,7 @@ import {
   type PartsRepository,
   partsRepository,
   runParts,
-} from "../controls/support/lisa-run-gates-parts-fixtures.js";
+} from "./support/lisa-run-gates-parts-fixtures.js";
 
 const NODE = process.execPath;
 

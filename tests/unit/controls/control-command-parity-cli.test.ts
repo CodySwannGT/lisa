@@ -7,7 +7,7 @@
  * must exit 0 and list the four skills under each of the seven agents, and on
  * a copy with one skill removed it must exit 1 naming the agent and the skill.
  * The removal is always made in a copy, never in the working tree.
- * @module tests/unit/plugins/control-command-parity-cli
+ * @module tests/unit/controls/control-command-parity-cli
  */
 import fs from "node:fs";
 import path from "node:path";

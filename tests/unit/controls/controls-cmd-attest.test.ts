@@ -5,7 +5,7 @@
  * `tests/unit/controls/attest-command.test.ts`. This file checks only that
  * the command is on the group, takes what its help says it takes, and hands
  * the exit code back to the process.
- * @module tests/unit/cli/controls-cmd-attest
+ * @module tests/unit/controls/controls-cmd-attest
  */
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

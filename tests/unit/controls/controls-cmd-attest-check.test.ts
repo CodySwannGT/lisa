@@ -5,7 +5,7 @@
  * `tests/unit/controls/attest-check.test.ts`. This file checks only that the
  * flag is on the command, reaches the command's function, and that its exit
  * code reaches the process.
- * @module tests/unit/cli/controls-cmd-attest-check
+ * @module tests/unit/controls/controls-cmd-attest-check
  */
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

@@ -12,7 +12,7 @@
  *
  * The program is lifted out of the shipped skill and run, as the rest of the
  * body-limit suite does.
- * @module tests/unit/strategies/prd-backlink-github-comment-url-room
+ * @module tests/unit/controls/prd-backlink-github-comment-url-room
  */
 import { describe, expect, it } from "vitest";
 
@@ -23,7 +23,7 @@ import {
   chars,
   liftProgram,
   runFit,
-} from "./prd-backlink-github-body-limit-helpers.js";
+} from "../strategies/prd-backlink-github-body-limit-helpers.js";
 
 /** An owner and a repository name as long as GitHub allows. */
 const LONG_REPO = `${"o".repeat(39)}/${"r".repeat(100)}`;

@@ -11,7 +11,7 @@
  * real installer over a copy of the real files. Where they land is read from
  * `parity/control-commands.json`, so the recorded paths and the installer
  * cannot disagree unnoticed.
- * @module tests/unit/opencode/control-commands-install
+ * @module tests/unit/controls/control-commands-install
  */
 import fs from "node:fs";
 import path from "node:path";

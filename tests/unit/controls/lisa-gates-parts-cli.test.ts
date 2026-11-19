@@ -5,7 +5,7 @@
  * what every hook and workflow reads. This drives the real script against a
  * real settings file in a throwaway repository with no `package.json`, so the
  * verdict is the one a repository on any stack would get.
- * @module tests/unit/scripts/lisa-gates-parts-cli
+ * @module tests/unit/controls/lisa-gates-parts-cli
  */
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -48,6 +48,31 @@ const TWO_PARTS = {
   },
 };
 
+/** The exit status and both output streams of one CLI invocation. */
+interface Outcome {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}
+
+/**
+ * Keep only what the assertions read from a finished invocation.
+ * @param result - The finished invocation
+ * @param result.status - Its exit status
+ * @param result.stdout - What it printed to standard output
+ * @param result.stderr - What it printed to standard error
+ * @returns The exit status and both output streams
+ */
+const outcome = (result: {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}): Outcome => ({
+  status: result.status,
+  stdout: result.stdout,
+  stderr: result.stderr,
+});
+
 describe("lisa-gates.mjs on a declaration with parts", () => {
   let directory = "";
 
@@ -73,16 +98,13 @@ describe("lisa-gates.mjs on a declaration with parts", () => {
       path.join(directory, ".lisa.config.json"),
       JSON.stringify({ gates }, null, 2)
     );
-    const result = spawnSync(process.execPath, [GATES, ...args], {
-      cwd: directory,
-      encoding: "utf8",
-      timeout: CLI_TIMEOUT_MS,
-    });
-    return {
-      status: result.status,
-      stdout: result.stdout,
-      stderr: result.stderr,
-    };
+    return outcome(
+      spawnSync(process.execPath, [GATES, ...args], {
+        cwd: directory,
+        encoding: "utf8",
+        timeout: CLI_TIMEOUT_MS,
+      })
+    );
   };
 
   it("validate accepts two parts with different scopes", () => {

@@ -7,7 +7,7 @@
  * control register carries it. Every refusal here is read by an operator, so
  * each assertion checks that the message names the gate and the key at fault
  * (CodySwannGT/lisa#4990).
- * @module tests/unit/scripts/lisa-gates-unenforceable-on
+ * @module tests/unit/controls/lisa-gates-unenforceable-on
  */
 import { describe, expect, it } from "vitest";
 

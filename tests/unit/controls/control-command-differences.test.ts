@@ -10,7 +10,7 @@
  * agent writes a file are also held against the table the carriers command
  * installs from, so the record cannot go on saying something the code no
  * longer does.
- * @module tests/unit/plugins/control-command-differences
+ * @module tests/unit/controls/control-command-differences
  */
 import fs from "node:fs";
 

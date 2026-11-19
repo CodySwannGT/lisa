@@ -16,7 +16,7 @@
  * that skill. What the skills say about agents that differ is in
  * `./control-command-differences.test.ts`, and the command an operator and CI
  * run is in `./control-command-parity-cli.test.ts`.
- * @module tests/unit/plugins/control-command-parity
+ * @module tests/unit/controls/control-command-parity
  */
 import fs from "node:fs";
 import path from "node:path";

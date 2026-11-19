@@ -7,7 +7,7 @@
  * from what is shipped. Every suite asserts the untouched copy is clean before
  * it perturbs one, so a failure can never be read off a copy that was already
  * broken (CodySwannGT/lisa#5002).
- * @module tests/unit/plugins/support/control-command-fixture
+ * @module tests/unit/controls/support/control-command-fixture
  */
 import fs from "node:fs";
 import os from "node:os";

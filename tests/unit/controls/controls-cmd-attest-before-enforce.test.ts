@@ -6,7 +6,7 @@
  * only that the option is on the command, that it is handed on, that it is
  * never handed on unasked, and that the run's own exit codes reach the
  * process.
- * @module tests/unit/cli/controls-cmd-attest-before-enforce
+ * @module tests/unit/controls/controls-cmd-attest-before-enforce
  */
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
