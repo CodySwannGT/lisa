@@ -35,18 +35,19 @@ const COST_SCALE = 12;
 /**
  * A document's usage ledger, when it has a readable one that records any run:
  * a direct entry, or child work its rollup carries (a parent whose only spend
- * is its children's has no direct entries of its own).
+ * is its children's has no direct entries of its own). A section without a
+ * rollup token still has its direct entries counted, so no run vanishes from
+ * the actual; it simply has no child aggregate.
  * @param {unknown} document - Item body or comment.
- * @returns {{entries: object[], rollup: object} | null} The ledger, or null.
+ * @returns {{entries: object[], children: object | null} | null} Direct entries and the rollup when it carries child work, or null.
  */
 function readLedger(document) {
   if (typeof document !== "string" || !document.includes(LISA_USAGE_HEADING))
     return null;
   try {
     const { entries, rollup } = parseLisaUsageSection(document);
-    return rollup && (entries.length || rollup.childEntryIds.length)
-      ? { entries, rollup }
-      : null;
+    const children = rollup?.childEntryIds.length ? rollup : null;
+    return entries.length || children ? { entries, children } : null;
   } catch {
     return null;
   }
@@ -88,7 +89,7 @@ function addAmounts(amounts) {
  * a ledger's child runs are counted once when none was counted before,
  * skipped when every one was, and make the total ambiguous only when some
  * were counted and some were not.
- * @param {{entries: object[], rollup: object}[]} ledgers - Parsed ledgers, body first.
+ * @param {{entries: object[], children: object | null}[]} ledgers - Parsed ledgers, body first.
  * @returns {{runs: object[], children: object[], ids: Set<string>, ambiguous: boolean}} Distinct direct runs, child aggregates, every run id, and whether the total is ambiguous.
  */
 function distinctRuns(ledgers) {
@@ -102,8 +103,8 @@ function distinctRuns(ledgers) {
         ids.add(entry.entryId);
         runs.push(entry);
       }
-  for (const { rollup } of ledgers) {
-    const own = rollup.childEntryIds;
+  for (const { children: rollup } of ledgers) {
+    const own = rollup?.childEntryIds ?? [];
     const repeated = own.filter(id => ids.has(id)).length;
     if (own.length === 0 || repeated === own.length) continue;
     ambiguous ||= repeated > 0;

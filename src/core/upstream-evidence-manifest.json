@@ -323,7 +323,7 @@
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs":
       "b803106384f35ed85bfa7541c994601cee1523b2010981075eb3244960fae7c5",
     "all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs":
-      "807e9c3afec051b29affc371cd6eea8403ba53bd89d00129f5ec0235a19d89d0",
+      "ad54c187fa1ffa15244c67adbbe1912895b288d9472e2e351d6ad4006a930055",
     "all/copy-overwrite/scripts/lib/work-item-estimate.mjs":
       "ac27c325a912e54f5f92a02651495a28152987af4368aab95ef68f42dad17313",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
@@ -419,7 +419,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "9e1d8759638ab28c92414ed8c917da9569270c0a7e63a6ea63a11d0dbbe8427e",
+      "9c89977a982c73f903a5f92015f63c07a3fa175dd59355cd8bfd323953bc0b00",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":

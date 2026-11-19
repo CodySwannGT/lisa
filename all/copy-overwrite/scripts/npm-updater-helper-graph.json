@@ -1509,7 +1509,7 @@
       "children": []
     },
     "lib/work-item-estimate-tally.mjs": {
-      "sha256": "807e9c3afec051b29affc371cd6eea8403ba53bd89d00129f5ec0235a19d89d0",
+      "sha256": "ad54c187fa1ffa15244c67adbbe1912895b288d9472e2e351d6ad4006a930055",
       "staticImports": [
         "lib/usage-ledger.mjs",
         "lib/work-item-estimate-actual.mjs",

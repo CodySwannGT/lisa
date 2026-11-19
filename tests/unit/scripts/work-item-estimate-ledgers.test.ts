@@ -194,3 +194,30 @@ describe("done-time staleness", () => {
     expect(doneProblems(tallied, [tallied, copy])).toEqual([]);
   });
 });
+
+describe("a usage section without a rollup token", () => {
+  /**
+   * A comment ledger whose rollup token was lost, keeping its entry rows.
+   * @param entries - The comment's runs.
+   * @returns Comment text with the entries and no rollup token.
+   */
+  const rollupLess = (entries: readonly LisaUsageEntry[]): string =>
+    comment(entries).replace(/<!-- lisa:usage-rollup [^\n]*-->\n?/, "");
+  const body = finishedItem(1000, 2000, [usageEntry("implement", 4_000, 3)]);
+
+  it("adds the comment's runs to the total", () => {
+    const verify = rollupLess([usageEntry("verify", 1_000, 1)]);
+    expect(verify).not.toContain("lisa:usage-rollup ");
+    expect(ledgerActual([body, verify])).toMatchObject({
+      tokens: 5_000,
+      cost: 4,
+      entries: 2,
+    });
+  });
+
+  it("keeps the total unknown when one of its runs is unavailable", () => {
+    expect(
+      ledgerActual([body, rollupLess([usageEntry("verify", null)])])
+    ).toMatchObject({ tokens: null, cost: null, entries: 2 });
+  });
+});
