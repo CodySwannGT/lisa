@@ -23,8 +23,9 @@ name: 📦 Packed-host journey
 # eight paired samples of the filesystem budget probe, an allocated-file
 # variant and a real 5,000-file removal, with the device's discard counters,
 # then a decomposition of one removal into the cost it pays once and the cost
-# it pays per entry, then the unit agreement case repeated idle and under CPU
-# and IO load. It runs in its own job, once on the ubuntu-24.04 image the
+# it pays per entry, then the old sequential and the paired agreement
+# comparisons under a short injected CPU burst, then the unit agreement case
+# repeated idle and under CPU and IO load. It runs in its own job, once on the ubuntu-24.04 image the
 # journey's teardown runs on and once on `ubuntu-latest`, the image the unit
 # shards run on: the probe budgets both, and #5066 failed on an image the
 # journey's image alone could not see. `-f journey=false` skips the journey
