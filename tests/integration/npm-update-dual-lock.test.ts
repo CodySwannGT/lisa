@@ -1,13 +1,29 @@
 /** Native registry installations expose lock coherence independently of provider fixtures. */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { EventEmitter, once } from "node:events";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
 import { cleanupTempDir } from "../helpers/test-utils.js";
+import { suiteDeferral } from "../support/ci-runtime.js";
 import { bunFreeNodeBin } from "./support/bun-free-node-bin.js";
 import { prepareNativeUpdate as prepareUpdate } from "./support/npm-update-native-prepare.js";
-import { requireNativeBun } from "./support/native-path-bun.js";
+import {
+  pathBunIsNative,
+  requireNativeBun,
+} from "./support/native-path-bun.js";
+import {
+  baseline,
+  BUN_LOCK_FILE,
+  copyCheckout,
+  FILES,
+  FROZEN,
+  INSTALL_FLAGS,
+  NPM_LOCK_FILE,
+  PACKAGE_FILE,
+  parseBunLock,
+} from "./support/npm-update-dual-lock-fixture.js";
 import {
   qualifiedBun,
   verifyBunLock,
@@ -19,14 +35,7 @@ import {
 } from "../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 
 useIoLatencyBudget();
-const BUN_LOCK_FILE = "bun.lock";
-const PACKAGE_FILE = "package.json";
-const NPM_LOCK_FILE = "package-lock.json";
-const FILES = [BUN_LOCK_FILE, NPM_LOCK_FILE, PACKAGE_FILE];
-const IGNORE_SCRIPTS = "--ignore-scripts";
-const FROZEN = ["install", "--frozen-lockfile", IGNORE_SCRIPTS];
 const VERSION = "7.0.0";
-const INSTALL_FLAGS = [IGNORE_SCRIPTS, "--no-audit", "--no-fund"];
 const config = { tracker: "github", github: { org: "fixture", repo: "host" } };
 const policy = {
   version: 1,
@@ -37,71 +46,58 @@ const policy = {
   lisaOwner: "absent",
   packages: [{ name: "is-number", version: VERSION }],
 };
-
-/**
- * Commit genuine installer output; no lock or registry response is synthesized.
- * @param root - Positively owned native fixture root.
- * @param env - Original sanitized candidate environment.
- * @param dual - Whether the host actually commits both locks.
- * @param aliases - Genuine root aliases and their registry parent fixture.
- * @returns Actual checkout and its native Bun runner.
- */
-async function baseline(
-  root: string,
-  env: NodeJS.ProcessEnv,
-  dual = true,
-  aliases: Record<string, string> = {}
-) {
-  const cwd = join(root, "host");
-  const npm = (args: string[]) => runNpm(args, { cwd, env, timeout: 120_000 });
-  const bun = (args: string[], allowed = [0]) =>
-    runProcess("bun", args, { cwd, env, timeout: 120_000, allowed });
-  const git = (args: string[]) => runProcess("git", args, { cwd, env });
-  mkdirSync(cwd, { mode: 0o700 });
-  writeFileSync(
-    join(cwd, PACKAGE_FILE),
-    JSON.stringify({
-      name: "anonymous-dual-lock-host",
-      version: "1.0.0",
-      private: true,
-      devDependencies: { "is-number": "6.0.0", ...aliases },
-    }),
-    { mode: 0o600 }
-  );
-  await npm(["install", "--package-lock-only", ...INSTALL_FLAGS]);
-  if (dual) {
-    expect((await bun(["--version"])).stdout.toString().trim()).toBe("1.4.4");
-    await bun(["install", "--lockfile-only", IGNORE_SCRIPTS]);
-    await bun(FROZEN);
-  }
-  await git(["init"]);
-  await git([
-    "add",
-    "--",
-    ...FILES.filter(file => dual || file !== BUN_LOCK_FILE),
-  ]);
-  await git([
-    "-c",
-    "user.name=Fixture",
-    "-c",
-    "user.email=fixture@example.test",
-    "commit",
-    "-m",
-    "Committed native dual locks",
-  ]);
-  return { cwd, bun };
+/** Genuine root alias and a registry parent whose own dependencies are aliases. */
+const ALIASES = {
+  "fixture-react-is": "npm:react-is@18.3.1",
+  "pretty-format": "30.5.1",
+};
+/** The shared alias baseline: its private root, environment and checkout. */
+interface AliasBaseline {
+  root: string;
+  env: NodeJS.ProcessEnv;
+  cwd: string;
 }
 
-describe("native optional Bun lock preparation", () => {
-  it("preserves genuine root and transitive registry aliases and refuses corrupted identities", async () => {
-    requireNativeBun();
-    let fixtureRoot = "";
-    const observed = await withPrivateRoot(async (root, env) => {
-      fixtureRoot = root;
-      const { cwd, bun } = await baseline(root, env, true, {
-        "fixture-react-is": "npm:react-is@18.3.1",
-        "pretty-format": "30.5.1",
-      });
+// Both alias cases need the same genuine baseline, so it is installed once and
+// each case works on its own copy. The corrupted-identity probes need only that
+// coherent lock, not an update or frozen installs, so they are a case of their
+// own (CodySwannGT/lisa#5040).
+describe.skipIf(
+  suiteDeferral(
+    pathBunIsNative,
+    "a native (non-symlinked) Bun first on PATH",
+    "Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`."
+  ) !== undefined
+)("native registry alias locks", () => {
+  const owner = new EventEmitter();
+  let shared: AliasBaseline;
+  let held: Promise<void>;
+
+  beforeAll(async () => {
+    const ready = once(owner, "ready");
+    held = withPrivateRoot(async (root, env) => {
+      const { cwd } = await baseline(root, env, true, ALIASES);
+      owner.emit("ready", { root, env, cwd });
+      await once(owner, "release");
+    });
+    held.catch((error: unknown) => owner.emit("error", error));
+    [shared] = (await ready) as [AliasBaseline];
+  });
+
+  afterAll(async () => {
+    owner.emit("release");
+    await held;
+    expect(existsSync(shared.root)).toBe(false);
+  });
+
+  it("preserves genuine root and transitive registry aliases", async () => {
+    const { env } = shared;
+    const observed = await (async () => {
+      const { cwd, bun } = copyCheckout(
+        shared.cwd,
+        join(shared.root, "preserve"),
+        env
+      );
       const originalBun = readFileSync(join(cwd, BUN_LOCK_FILE));
       const originalNpm = JSON.parse(
         readFileSync(join(cwd, NPM_LOCK_FILE), "utf8")
@@ -121,18 +117,7 @@ describe("native optional Bun lock preparation", () => {
           "react-is"
         );
       const native = await qualifiedBun(env);
-      const parse = async () =>
-        JSON.parse(
-          (
-            await native(
-              [
-                "--eval",
-                "process.stdout.write(JSON.stringify(Bun.JSONC.parse(await Bun.stdin.text())))",
-              ],
-              { cwd, input: readFileSync(join(cwd, BUN_LOCK_FILE)) }
-            )
-          ).stdout.toString()
-        );
+      const parse = () => parseBunLock(native, cwd);
       const before = await parse();
       expect(before.packages["fixture-react-is"][0]).toBe("react-is@18.3.1");
       const prepared = await prepareUpdate({ cwd, policy, config }, env);
@@ -188,50 +173,46 @@ describe("native optional Bun lock preparation", () => {
         npmLock.packages["node_modules/fixture-react-is"].resolved;
       writeFileSync(join(cwd, BUN_LOCK_FILE), JSON.stringify(resolved));
       await verifyBunLock(native, cwd);
-      writeFileSync(
-        join(cwd, BUN_LOCK_FILE),
-        prepared.proposal.files[BUN_LOCK_FILE]
-      );
-      const rejected = [];
-      for (const [field, index, replacement] of [
-        ["name", 0, "definitely-absent-registry-identity@18.3.1"],
-        ["version", 0, "react-is@0.0.0"],
-        ["integrity", 3, `sha512-${Buffer.alloc(64).toString("base64")}`],
-        ["resolved", 1, "https://example.invalid/react-is-18.3.1.tgz"],
-      ] as const) {
-        const corrupt = await parse();
-        corrupt.packages["fixture-react-is"][index] = replacement;
-        writeFileSync(join(cwd, BUN_LOCK_FILE), JSON.stringify(corrupt));
-        await expect(verifyBunLock(native, cwd)).rejects.toThrow(
-          "Bun package identity differs from public npm lock"
-        );
-        rejected.push(field);
-        writeFileSync(
-          join(cwd, BUN_LOCK_FILE),
-          prepared.proposal.files[BUN_LOCK_FILE]
-        );
-        await verifyBunLock(native, cwd);
-      }
       const result = {
         files,
         frozenNpmExit: frozenNpm.code,
         frozenBunExit: frozen.code,
-        rejected,
         producerCleanup: prepared.cleanup.absent,
       };
       console.log("native-registry-alias-observation", JSON.stringify(result));
       return result;
-    });
-    expect(existsSync(fixtureRoot)).toBe(false);
+    })();
     expect(observed.producerCleanup).toBe(true);
-    expect(observed.rejected).toEqual([
-      "name",
-      "version",
-      "integrity",
-      "resolved",
-    ]);
   });
 
+  it("refuses a Bun lock whose alias identity differs from the npm lock", async () => {
+    const { env } = shared;
+    const { cwd } = copyCheckout(shared.cwd, join(shared.root, "corrupt"), env);
+    const committed = readFileSync(join(cwd, BUN_LOCK_FILE));
+    const native = await qualifiedBun(env);
+    await verifyBunLock(native, cwd);
+    const rejected = [];
+    for (const [field, index, replacement] of [
+      ["name", 0, "definitely-absent-registry-identity@18.3.1"],
+      ["version", 0, "react-is@0.0.0"],
+      ["integrity", 3, `sha512-${Buffer.alloc(64).toString("base64")}`],
+      ["resolved", 1, "https://example.invalid/react-is-18.3.1.tgz"],
+    ] as const) {
+      const corrupt = await parseBunLock(native, cwd);
+      corrupt.packages["fixture-react-is"][index] = replacement;
+      writeFileSync(join(cwd, BUN_LOCK_FILE), JSON.stringify(corrupt));
+      await expect(verifyBunLock(native, cwd)).rejects.toThrow(
+        "Bun package identity differs from public npm lock"
+      );
+      rejected.push(field);
+      writeFileSync(join(cwd, BUN_LOCK_FILE), committed);
+      await verifyBunLock(native, cwd);
+    }
+    expect(rejected).toEqual(["name", "version", "integrity", "resolved"]);
+  });
+});
+
+describe("native optional Bun lock preparation", () => {
   it("preserves a coherent three-file proposal for both genuine frozen installers", async () => {
     requireNativeBun();
     let fixtureRoot = "";
