@@ -367,6 +367,9 @@ export function planStaleLinkSweep(input) {
   const candidates = judged
     .filter(
       entry =>
+        // An item whose blocker list could not be read (a failed native
+        // dependency read) plans nothing: it is reported, never touched.
+        entry.item.relationsRead &&
         entry.item.statusKnown &&
         !entry.inBlocked &&
         entry.sorted.stale.length > 0

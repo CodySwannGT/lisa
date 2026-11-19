@@ -6,8 +6,12 @@
  *   they post.
  * - `stale-links-failures.json`: items whose planned removals did not
  *   happen, so the planner puts them after every other candidate.
+ * - `stale-links-inflight.json`: plans confirmed before their deletes, until
+ *   a read-back succeeds, so a failed read-back is retried, not lost.
+ * - `stale-links-restores.json`: links put back after a blocker reopened,
+ *   until a read-back shows them present; the queue holds those items.
  *
- * Both are replaced atomically. Only a missing file reads as empty. Every
+ * All are replaced atomically. Only a missing file reads as empty. Every
  * read-change-write of either file runs inside {@link withStateLock}, the
  * ledger's cross-process lock, so two overlapping commands on one project
  * root never drop each other's owed comment or failure count.
@@ -123,3 +127,47 @@ export const readFailures = root => readState(failuresPath(root), isRecord, {});
  */
 export const writeFailures = (root, failures) =>
   writeState(failuresPath(root), failures);
+
+/**
+ * @param {string} root - Project root
+ * @returns {string} The in-flight file: plans confirmed whose read-back has
+ *   not succeeded yet
+ */
+export const inFlightPath = root =>
+  stateFile(root, "stale-links-inflight.json");
+
+/**
+ * @param {string} root - Project root
+ * @returns {string} The owed-restores file: links put back whose read-back
+ *   has not shown them present yet
+ */
+export const restoresPath = root =>
+  stateFile(root, "stale-links-restores.json");
+
+/**
+ * @param {string} root
+ * @returns {import("../../../scripts/stale-blocker-pending.mjs").InFlight}
+ */
+export const readInFlight = root => readState(inFlightPath(root), isRecord, {});
+
+/**
+ * @param {string} root
+ * @param {object} inflight
+ * @returns {void}
+ */
+export const writeInFlight = (root, inflight) =>
+  writeState(inFlightPath(root), inflight);
+
+/**
+ * @param {string} root
+ * @returns {import("../../../scripts/stale-blocker-pending.mjs").OwedRestores}
+ */
+export const readRestores = root => readState(restoresPath(root), isRecord, {});
+
+/**
+ * @param {string} root
+ * @param {object} restores
+ * @returns {void}
+ */
+export const writeRestores = (root, restores) =>
+  writeState(restoresPath(root), restores);

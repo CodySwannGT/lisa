@@ -41,9 +41,12 @@ const size = list => list.length;
 const pairs = (ref, edges) =>
   edges.map(edge => ({ ref, blocker: edge.blockerRef }));
 
+/** How an item whose own blocker list could not be read is reported. */
+export const UNREAD_LIST = "its blocker list";
+
 /**
  * Tally the sweep over every judged item.
- * @param {readonly { item: { ref: string, statusKnown?: boolean }, inBlocked: boolean, sorted: Record<string, object[]> }[]} judged
+ * @param {readonly { item: { ref: string, statusKnown?: boolean, relationsRead?: boolean }, inBlocked: boolean, sorted: Record<string, object[]> }[]} judged
  * @param {readonly { removed: string[], becomesClaimable: boolean, ref: string }[]} plans
  * @param {readonly string[]} deferred
  * @returns {StaleLinkReport}
@@ -66,7 +69,12 @@ export function tallySweep(judged, plans, deferred) {
     realBlockers: open.reduce((sum, e) => sum + size(e.sorted.real), 0),
     itemsWithRealBlockers: open.filter(e => size(e.sorted.real) > 0).length,
     crossProject: open.reduce((sum, e) => sum + size(e.sorted.crossProject), 0),
-    inaccessible: open.flatMap(e => pairs(e.item.ref, e.sorted.inaccessible)),
+    inaccessible: [
+      ...open
+        .filter(e => e.item.relationsRead === false)
+        .map(e => ({ ref: e.item.ref, blocker: UNREAD_LIST })),
+      ...open.flatMap(e => pairs(e.item.ref, e.sorted.inaccessible)),
+    ],
     keptByPerson: open.flatMap(e => pairs(e.item.ref, e.sorted.keptByPerson)),
     landed: open.reduce((sum, e) => sum + size(e.sorted.landed ?? []), 0),
   };
@@ -138,7 +146,7 @@ export function summarizeStaleLinkSweep(report) {
  * confirmed. Planned removals that did not happen and items deferred to the
  * next cycle are counted separately, never as cleared.
  * @param {StaleLinkReport} report - The plan's report
- * @param {readonly { confirmed: string[], stillPresent: string[], becameReady: boolean, restored?: readonly object[] }[]} results - One per item acted on
+ * @param {readonly { ref?: string, confirmed: string[], stillPresent: string[], becameReady: boolean, restored?: readonly object[], blockersBefore?: { real: number, inaccessible: string[] }, blockersAfter?: { real: number, inaccessible: string[] } }[]} results - One per item acted on
  * @param {{ planned?: number }} [counts] - Planned removals, when they differ
  *   from the report (a plan entry confirmed down to fewer links)
  * @returns {string}
@@ -167,5 +175,45 @@ export function summarizeVerifiedSweep(report, results, counts = {}) {
       `${plural(notDone, "planned removal", "planned removals")} not done (retried next cycle)`
     );
   }
-  return `stale links: ${[...parts, ...tail(report)].join("; ")}.`;
+  return `stale links: ${[...parts, ...tail(refreshed(report, results))].join("; ")}.`;
+}
+
+/**
+ * The plan's report with each acted-on item's blocker totals replaced by its
+ * read-back's (`blockersBefore` -> `blockersAfter`): a blocker that finished,
+ * or reopened, since the plan is counted as it is now. Items with no newer
+ * observation keep their planning-time contribution.
+ * @param {StaleLinkReport} report
+ * @param {readonly { ref?: string, blockersBefore?: { real: number, inaccessible: string[] }, blockersAfter?: { real: number, inaccessible: string[] } }[]} results
+ * @returns {StaleLinkReport}
+ */
+function refreshed(report, results) {
+  const seen = results.filter(
+    r => r.ref && r.blockersBefore && r.blockersAfter
+  );
+  if (seen.length === 0) return report;
+  const acted = new Set(seen.map(r => r.ref));
+  const sum = (pick, list) => list.reduce((total, r) => total + pick(r), 0);
+  const holds = side => r => (r[side].real > 0 ? 1 : 0);
+  return {
+    ...report,
+    realBlockers: Math.max(
+      0,
+      report.realBlockers -
+        sum(r => r.blockersBefore.real, seen) +
+        sum(r => r.blockersAfter.real, seen)
+    ),
+    itemsWithRealBlockers: Math.max(
+      0,
+      report.itemsWithRealBlockers -
+        sum(holds("blockersBefore"), seen) +
+        sum(holds("blockersAfter"), seen)
+    ),
+    inaccessible: [
+      ...report.inaccessible.filter(pair => !acted.has(pair.ref)),
+      ...seen.flatMap(r =>
+        r.blockersAfter.inaccessible.map(blocker => ({ ref: r.ref, blocker }))
+      ),
+    ],
+  };
 }

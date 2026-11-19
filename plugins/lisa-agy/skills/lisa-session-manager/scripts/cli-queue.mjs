@@ -17,7 +17,10 @@
  * Both tiers leave out items routed to a repo with a recorded setup gap
  * (#4820) and list every gap once as `setupGaps`, with the command that
  * clears it, so the manager reports it in plain language instead of
- * re-dispatching there every cycle.
+ * re-dispatching there every cycle. They also leave out an item owed a
+ * stale-link restore (`restore-owed`, CodySwannGT/lisa#5065): a blocker link
+ * put back after its blocker reopened, not yet read back present, so the
+ * item would otherwise look unblocked while that blocker is open.
  *
  * The GitHub fetches live in queue-github.mjs and JSON input in
  * json-input.mjs (re-exported here), to keep each module under the line
@@ -47,6 +50,7 @@ import { readJsonFile } from "./json-input.mjs";
 import { readLedger } from "./ledger.mjs";
 import { blockingGapRepo, listSetupGaps } from "./ledger-setup-gaps.mjs";
 import { fetchGithubBacklog, fetchGithubQueue } from "./queue-github.mjs";
+import { readRestores } from "./stale-links-state.mjs";
 
 export { parseJson, readJsonFile } from "./json-input.mjs";
 
@@ -149,6 +153,28 @@ function withoutPending(order, waiting) {
 }
 
 /**
+ * Move items owed a stale-link restore out of `ordered` into `excluded` with
+ * reason `restore-owed`. Only those items wait, until `stale-links-restored`
+ * reads their links back present; every other item still dispatches.
+ * @param {{ordered: {ref: string}[], excluded: {ref: string, reason: string}[]}} order - Ordered tier
+ * @param {Set<string>} owed - Lower-cased refs with an owed restore
+ * @returns {{ordered: {ref: string}[], excluded: {ref: string, reason: string}[]}} Filtered tier
+ */
+function withoutOwedRestores(order, owed) {
+  const isOwed = item => owed.has(String(item.ref).toLowerCase());
+  return {
+    ...order,
+    ordered: order.ordered.filter(item => !isOwed(item)),
+    excluded: [
+      ...order.excluded,
+      ...order.ordered
+        .filter(isOwed)
+        .map(item => ({ ref: item.ref, reason: "restore-owed" })),
+    ],
+  };
+}
+
+/**
  * Move items routed to a repo with a recorded setup gap out of `ordered` into
  * `excluded` with reason `setup-gap:<repo>` (#4820). Retrying cannot fix a
  * setup gap, so dispatching there would only fail the same way every cycle.
@@ -217,10 +243,16 @@ export async function queue(ctx) {
   const waiting = pendingRefs(ledger);
   const gaps = ledger.control.setupGaps;
   const multiRepo = Boolean(config?.repos);
-  const order = withoutSetupGaps(
-    withoutPending(orderReadyQueue(items, policy), waiting),
-    gaps,
-    multiRepo
+  const owed = new Set(
+    Object.keys(readRestores(ctx.root)).map(ref => ref.toLowerCase())
+  );
+  const order = withoutOwedRestores(
+    withoutSetupGaps(
+      withoutPending(orderReadyQueue(items, policy), waiting),
+      gaps,
+      multiRepo
+    ),
+    owed
   );
   const json = {
     tracker,
@@ -236,16 +268,19 @@ export async function queue(ctx) {
   // An item both Ready and in the backlog fetch is Ready work; never twice.
   const readyRefs = new Set(items.map(item => item.ref));
   const backlogItems = backlog.items.filter(item => !readyRefs.has(item.ref));
-  const tier = withoutSetupGaps(
-    withoutPending(
-      orderBacklogQueue(backlogItems, {
-        ...policy,
-        validationFailures: ledger.validationFailures,
-      }),
-      waiting
+  const tier = withoutOwedRestores(
+    withoutSetupGaps(
+      withoutPending(
+        orderBacklogQueue(backlogItems, {
+          ...policy,
+          validationFailures: ledger.validationFailures,
+        }),
+        waiting
+      ),
+      gaps,
+      multiRepo
     ),
-    gaps,
-    multiRepo
+    owed
   );
   return {
     json: {

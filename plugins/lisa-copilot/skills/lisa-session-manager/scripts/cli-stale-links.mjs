@@ -25,7 +25,13 @@ import {
   loadProject,
 } from "./cli-runtime.mjs";
 import { readJsonFile } from "./json-input.mjs";
-import { readFailures } from "./stale-links-state.mjs";
+import { recordInFlight } from "../../../scripts/stale-blocker-pending.mjs";
+import {
+  readFailures,
+  readInFlight,
+  withStateLock,
+  writeInFlight,
+} from "./stale-links-state.mjs";
 import {
   collectGithubStaleLinkInput,
   readGithubStaleLinkItem,
@@ -198,10 +204,10 @@ export function freshItem(ctx, tracker, plan) {
  * the writes. GitHub re-reads itself; Jira and Linear take the fresh raw item
  * (with each blocker's current status, and the comments) in `--input`.
  * @param {object} ctx - CLI context
- * @returns {{ json: object }} `{tracker,plan,skipped}`; plan is null when
+ * @returns {Promise<{ json: object }>} `{tracker,plan,skipped}`; plan is null when
  *   nothing is still safe to remove
  */
-export function staleLinksConfirm(ctx) {
+export async function staleLinksConfirm(ctx) {
   const project = loadProject(ctx.root);
   const tracker = trackerOf(ctx, project);
   if (!ctx.values.plan) {
@@ -209,15 +215,27 @@ export function staleLinksConfirm(ctx) {
   }
   const plan = readJsonFile(ctx.values.plan);
   const fresh = freshItem(ctx, tracker, plan);
-  return {
-    json: asSetupError(() => ({
+  const confirmed = asSetupError(() => ({
+    tracker,
+    ...confirmStaleLinkPlan({
       tracker,
-      ...confirmStaleLinkPlan({
-        tracker,
-        plan,
-        fresh,
-        ...judgingContext(project, tracker),
-      }),
-    })),
-  };
+      plan,
+      fresh,
+      ...judgingContext(project, tracker),
+    }),
+  }));
+  // Recorded BEFORE any delete runs: until a verify reads the item back,
+  // the entry stays in flight, so a read-back that fails after the deletes
+  // is retried rather than leaving removed links with no comment and no
+  // restore check.
+  if (confirmed.plan !== null) {
+    const now = new Date().toISOString();
+    await withStateLock(ctx.root, () =>
+      writeInFlight(
+        ctx.root,
+        recordInFlight(readInFlight(ctx.root), confirmed.plan, now)
+      )
+    );
+  }
+  return { json: confirmed };
 }

@@ -124,3 +124,128 @@ export function recordRemovalResult(failures, result, now) {
     },
   };
 }
+
+/**
+ * Confirmed plan entries whose writes are about to run, by item ref. A
+ * confirm records its entry here BEFORE any delete, and only a verify that
+ * read the item back settles it. So a read-back that fails after the
+ * deletes ran (or a writer stopped in between) leaves the removals
+ * recoverable: the entry is verified again on the next cycle instead of its
+ * links vanishing with no comment and no restore check.
+ * @typedef {Record<string, { plan: object, since: string, attempts: number }>} InFlight
+ */
+
+/**
+ * @param {unknown} value
+ * @returns {Record<string, any>}
+ */
+const recordOf = value =>
+  value && typeof value === "object" && !Array.isArray(value) ? value : {};
+
+/**
+ * Record one confirmed plan entry as in flight (replacing an older one).
+ * @param {InFlight | undefined} inflight
+ * @param {{ ref: string }} plan - The confirmed plan entry
+ * @param {string} now - ISO time
+ * @returns {InFlight}
+ */
+export function recordInFlight(inflight, plan, now) {
+  return {
+    ...recordOf(inflight),
+    [plan.ref]: { plan, since: now, attempts: 0 },
+  };
+}
+
+/**
+ * Settle an item's in-flight entry after a verify read it back.
+ * @param {InFlight | undefined} inflight
+ * @param {string} ref
+ * @returns {InFlight}
+ */
+export function settleInFlight(inflight, ref) {
+  const { [ref]: _settled, ...rest } = recordOf(inflight);
+  return rest;
+}
+
+/**
+ * Count one more failed verify for an item's in-flight entry.
+ * @param {InFlight | undefined} inflight
+ * @param {string} ref
+ * @returns {InFlight}
+ */
+export function failedInFlight(inflight, ref) {
+  const current = recordOf(inflight);
+  if (!Object.hasOwn(current, ref)) return current;
+  return {
+    ...current,
+    [ref]: {
+      ...current[ref],
+      attempts: Number(current[ref].attempts ?? 0) + 1,
+    },
+  };
+}
+
+/**
+ * Links owed back to an item, by ref: removed links whose blocker reopened
+ * before the delete. Each stays owed until a read-back shows it present
+ * again, and the queue holds its item from dispatch meanwhile, because the
+ * item would otherwise look unblocked while its blocker is open.
+ * Only the links are kept: the actions that put them back are computed from
+ * a fresh read each time (`restoreActions`), so a re-added `Blocked by` line
+ * never overwrites a body edited since.
+ * @typedef {Record<string, { links: { blockerRef: string, source: string, actionId: string, linkType?: string }[], since: string, attempts: number }>} OwedRestores
+ */
+
+/**
+ * Record the restores one verify result owes (merging with any already owed
+ * for the item).
+ * @param {OwedRestores | undefined} owed
+ * @param {{ ref: string, restored: readonly { blockerRef: string }[] }} result
+ * @param {readonly { blockerRef: string, source: string, actionId: string, linkType?: string }[]} links - The plan's links
+ * @param {string} now - ISO time
+ * @returns {OwedRestores}
+ */
+export function recordRestores(owed, result, links, now) {
+  const current = recordOf(owed);
+  if ((result.restored ?? []).length === 0) return current;
+  const back = new Set(result.restored.map(one => one.blockerRef));
+  const previous = current[result.ref];
+  const merged = [
+    ...(previous?.links ?? []).filter(link => !back.has(link.blockerRef)),
+    ...links.filter(link => back.has(link.blockerRef)),
+  ];
+  return {
+    ...current,
+    [result.ref]: {
+      links: merged,
+      since: previous?.since ?? now,
+      attempts: Number(previous?.attempts ?? 0),
+    },
+  };
+}
+
+/**
+ * Settle the owed restores a read-back shows done: each owed link whose
+ * blocker is linked again is dropped; the item's entry goes once none is
+ * left, and otherwise counts one more failed try.
+ * @param {OwedRestores | undefined} owed
+ * @param {string} ref
+ * @param {ReadonlySet<string>} present - Blocker refs linked on the item now
+ * @returns {OwedRestores}
+ */
+export function settleRestores(owed, ref, present) {
+  const current = recordOf(owed);
+  const entry = current[ref];
+  if (!entry) return current;
+  const { [ref]: _entry, ...rest } = current;
+  const left = entry.links.filter(link => !present.has(link.blockerRef));
+  if (left.length === 0) return rest;
+  return {
+    ...rest,
+    [ref]: {
+      ...entry,
+      links: left,
+      attempts: Number(entry.attempts ?? 0) + 1,
+    },
+  };
+}

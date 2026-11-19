@@ -622,6 +622,9 @@ item held back only by them is claimable in this same cycle:
    and the GitHub `body` is rebuilt from the fresh
    body, so a concurrent edit survives. When `plan` is null, write nothing for that item. Also
    skip it (one transcript line, no write) when it gained a person's assignee since the plan.
+   A non-null `plan` is recorded in flight (`.lisa/session-manager/stale-links-inflight.json`)
+   before you write anything, and stays there until a verify reads the item back, so a read-back
+   that fails after the deletes is retried in step 3 instead of being lost.
    Then perform each of the confirmed plan's `actions` and nothing else, straight away. No tracker
    offers a conditional delete ("remove this link only if its blocker is still finished"), so a
    blocker can still reopen between this re-read and the write; verify below catches that and
@@ -637,8 +640,8 @@ item held back only by them is claimable in this same cycle:
    Then **verify**: write the confirmed entry to `.lisa/session-manager/stale-links-entry.json` and
    run `stale-links-verify --tracker <t> --plan .lisa/session-manager/stale-links-entry.json --project-root "$ROOT"`
    (GitHub reads the item back itself; Jira and Linear take the item as read back now in
-   `--input`; the read-back must carry the item's blocker relation list, or verify refuses it and
-   nothing is confirmed). It also reads every removed blocker again: GitHub itself; for Jira and
+   `--input`, with its blocker relation list and its comments; without the relation list verify
+   refuses it, nothing is confirmed, and the entry stays in flight for step 3). It also reads every removed blocker again: GitHub itself; for Jira and
    Linear, write `{"<ref>": <the blocker as read now, with its status / state and team>}` for
    each planned removal to `.lisa/session-manager/stale-links-blockers.json` and add
    `--blockers` with that path. A removed link whose blocker is no longer finished (reopened,
@@ -647,8 +650,12 @@ item held back only by them is claimable in this same cycle:
    issue_id=<issueId>`; `body`: write it through `lisa-tracker-write`; `link` (Jira):
    `lisa-atlassian-access` `operation: link from:<from> to:<to> type:<type>`; `create-relation`
    (Linear): `lisa-linear-access` `operation: create-relation issue:<issue> related:<relatedIssue>
-   type:blocks`), read the item back to confirm each link is there again, and name it in the
-   cycle's transcript line. Its `confirmed` lists the removals the read-back shows gone and `stillPresent` the
+   type:blocks`), then read the item back with
+   `stale-links-restored --ref <ref> --tracker <t> --project-root "$ROOT"` (GitHub reads it itself;
+   Jira and Linear add `--input` with the item as read now). Verify recorded those links as owed in
+   `.lisa/session-manager/stale-links-restores.json`, and `queue` holds the item (reason
+   `restore-owed`) until this read-back shows every one present; its `restore` lists fresh actions
+   for any still missing. Name each restored link in the cycle's transcript line. Its `confirmed` lists the removals the read-back shows gone and `stillPresent` the
    ones that did not happen. Its `comment` (Jira: `commentAdf`, the same text as an ADF document,
    because Jira Cloud's REST v3 comment body is ADF) covers ONLY the confirmed removals, so a
    `[lisa-stale-blocker-link] blocker=<ref>` marker is never posted for a link that is still there:
@@ -660,7 +667,14 @@ item held back only by them is claimable in this same cycle:
    Keep every verify output for step 4. A link that comes back after its marker
    was posted was put back by a person; the plan reports it in `report.keptByPerson` and never
    removes it again.
-3. **Retry owed comments.** Run `stale-links-pending --project-root "$ROOT"`. For each entry, post its `comment` (Jira:
+3. **Retry what is owed.** Run `stale-links-pending --project-root "$ROOT"`, before Dispatch.
+   - For each `unverified` entry (a confirmed plan whose read-back failed), write its `plan` to
+     `.lisa/session-manager/stale-links-entry.json` and run the step 2 verify again (never the
+     deletes); a removal whose comment already posted is never owed twice.
+   - For each item in `restores`, run `stale-links-restored` as in step 2 and perform any
+     `restore` actions it returns, then run it again; the item stays held from Dispatch
+     (`restore-owed`) until it reports nothing owed. Every other item still dispatches.
+   - For each `pending` entry, post its `comment` (Jira:
    `commentAdf`) on its `ref` through `lisa-tracker-write`, on its own, whatever the new plan
    says, and settle that one entry with `stale-links-posted --ref <ref> --removed <its removed, comma-separated> --project-root "$ROOT"` (`--failed` when it fails again). An item can owe more than one comment; each settles on its own. Its
    links are already gone, so no plan will ever see them again; this is the only place the
@@ -676,8 +690,11 @@ item held back only by them is claimable in this same cycle:
    summary. Send Telegram nothing for this sweep unless `report.inaccessible` is non-empty and its
    list changed since the last cycle: then one line naming the blockers that could not be opened.
 
-A failure anywhere in this sweep is one transcript line: it never holds dispatch and never makes
-the cycle `recovery-required`. Other runtimes have no session manager, so build intake runs the
+A failure anywhere in this sweep is one transcript line and never makes the cycle
+`recovery-required`. It holds dispatch for one item only: an item owed a restore (a blocker link
+put back, not yet read back present) is held with reason `restore-owed`, and an item whose blocker
+list could not be read with `blockers-unreadable`, until a later read clears it. A failed plan,
+confirm, verify or comment holds nothing, and every other item still dispatches. Other runtimes have no session manager, so build intake runs the
 same shared rule on the item it is about to claim (each `lisa-*-build-intake` skill's "Stale blocker
 links" step); the rule itself lives in `scripts/stale-blocker-edges.mjs` and
 `scripts/stale-blocker-sweep.mjs`, plain Node any agent can run.

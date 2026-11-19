@@ -252,6 +252,7 @@ export function normalizeGithubIssue(issue, options = {}) {
     authorIntegration: null,
     isContainer: Number(summary?.total ?? 0) > Number(summary?.completed ?? 0),
     openBlockers: githubOpenBlockers(issue, repo, options),
+    blockersUnreadable: issue.blockersUnreadable === true,
   });
 }
 
@@ -398,7 +399,7 @@ export function normalizeLinearIssue(issue, options = {}) {
  * none) and `assigneeAccountId` the assignee's account id, for kind-keyed
  * entries (#4623). `authorIntegration` names the integration that filed an
  * item no person authored, for `integration:` entries (#4895).
- * @param {{ ref: string, title: string, assigneeId: string | null, assigneeLogin: string | null, assigneeAccountId: string | null, priorityRank: number, createdAt: string, updatedAt: string, labels: string[], body: string, authorId: string | null, authorLogin: string | null, authorIntegration: string | null, isContainer: boolean, openBlockers: number }} input
+ * @param {{ ref: string, title: string, assigneeId: string | null, assigneeLogin: string | null, assigneeAccountId: string | null, priorityRank: number, createdAt: string, updatedAt: string, labels: string[], body: string, authorId: string | null, authorLogin: string | null, authorIntegration: string | null, isContainer: boolean, openBlockers: number, blockersUnreadable?: boolean }} input
  */
 function shape(input) {
   return {
@@ -417,6 +418,9 @@ function shape(input) {
     authorIntegration: input.authorIntegration,
     isContainer: input.isContainer,
     openBlockers: input.openBlockers,
+    // The item's blocker list could not be read this fetch (GitHub only;
+    // Jira and Linear fetch blockers with the item, or the envelope fails).
+    blockersUnreadable: input.blockersUnreadable === true,
     repoLabels: repoLabelsOf(input.labels),
   };
 }
@@ -527,13 +531,34 @@ function compareWithinGroup(left, right) {
  * normalized assignee id: GitHub login, Jira accountId, Linear user id. A
  * `login:` entry matches only a GitHub assignee login, an `id:` entry only
  * the assignee's account id (#4623).
+ *
+ * An item whose blocker list could not be read is excluded with reason
+ * `blockers-unreadable` (CodySwannGT/lisa#5065); every other item is still
+ * offered.
  * @param {readonly Record<string, any>[]} items - Normalized items
  * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown }} [options]
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
  */
 export function orderReadyQueue(items, options = {}) {
   const context = orderingContext(options);
-  return rank(items, item => exclusionReason(item, context), context);
+  return rank(
+    items,
+    item => exclusionReason(item, context) ?? unreadableBlockers(item),
+    context
+  );
+}
+
+/**
+ * An item whose blocker list could not be read is held in both tiers: it
+ * might be blocked by open work, so dispatching it is not known safe. Only
+ * that item waits; the next fetch reads it again.
+ * @param {Record<string, any>} item - Normalized item
+ * @returns {"blockers-unreadable" | null}
+ */
+function unreadableBlockers(item) {
+  // probe-direction: fail-closed — an unread blocker list never reads as
+  // "nothing blocks this".
+  return item.blockersUnreadable === true ? "blockers-unreadable" : null;
 }
 
 /**
@@ -556,7 +581,7 @@ export function orderBacklogQueue(items, options = {}) {
   return rank(
     items,
     item => {
-      const reason = exclusionReason(item, context);
+      const reason = exclusionReason(item, context) ?? unreadableBlockers(item);
       if (reason !== null) return reason;
       if (count(item.openBlockers) > 0) return "blocked-by-open-item";
       const failed = Object.hasOwn(failures, item.ref)

@@ -343,7 +343,9 @@ Per cycle
       rebuilt from the fresh body, so a concurrent edit survives. stdout
       {tracker,plan,skipped:[{blocker,reason}]}; reason is
       blocker-not-resolved, link-already-gone or blocked-role; plan is null
-      when nothing is still safe to remove.
+      when nothing is still safe to remove. A non-null plan is recorded in
+      .lisa/session-manager/stale-links-inflight.json BEFORE the writes, and
+      stays there until stale-links-verify reads the item back.
   stale-links-verify [--tracker <t>] --plan <file> [--input <file>]
                      [--blockers <file>]
       Reads one item back after its stale-link writes, and each removed
@@ -353,10 +355,19 @@ Per cycle
       blocker reopened is in restored, with restore the actions that put it
       back; comment covers ONLY the confirmed removals (null when none) and
       is recorded as pending in .lisa/session-manager/stale-links-pending.json
-      until posted.
+      until posted (never when its marker is already live). Links in
+      restored are owed in stale-links-restores.json until
+      stale-links-restored reads them back; queue holds those items with
+      reason restore-owed. A failed read-back leaves the in-flight entry.
   stale-links-pending
-      Lists the stale-link comments still owed (confirmed removals whose
-      comment has not posted yet). stdout {pending:[...]}.
+      Lists what earlier stale-link writes still owe. stdout {pending:[...],
+      unverified:[{plan,since,attempts}],restores:{ref:{links,...}}}:
+      comments not yet posted, confirmed plans to verify again, and links
+      owed back.
+  stale-links-restored --ref <ref> [--tracker <t>] [--input <file>]
+      Reads the item back after its restores (GitHub itself; Jira/Linear from
+      --input) and settles each owed link now present. stdout {ref,owed,
+      restore}: restore is the fresh actions for the links still missing.
   stale-links-posted --ref <ref> --removed <blocker,...> [--failed]
       Settles the ONE pending comment with that ref and removed set after it
       posts (an item can owe more than one); --failed instead counts one more

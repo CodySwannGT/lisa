@@ -57,6 +57,7 @@ import {
   staleLinksPending,
   staleLinksPosted,
   staleLinksReport,
+  staleLinksRestored,
   staleLinksVerify,
 } from "./cli-stale-links-results.mjs";
 import { CliError, EXIT } from "./cli-runtime.mjs";
@@ -170,6 +171,11 @@ const COMMANDS = {
   "stale-links-posted": {
     run: staleLinksPosted,
     options: { ref: text, removed: text, failed: flag },
+    positionals: 0,
+  },
+  "stale-links-restored": {
+    run: staleLinksRestored,
+    options: { tracker: text, input: text, ref: text, "github-repo": text },
     positionals: 0,
   },
   "stale-links-report": {

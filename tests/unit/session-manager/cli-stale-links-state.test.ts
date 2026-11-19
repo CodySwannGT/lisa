@@ -82,8 +82,9 @@ describe("the GitHub queue", () => {
     expect(
       queue.json.backlogOrdered.map((entry: { ref: string }) => entry.ref)
     ).toEqual([`${REPO}#6`]);
+    // Held for its unread list, by name, not as an ordinary open blocker.
     expect(queue.json.backlogExcluded).toEqual([
-      { ref: `${REPO}#5`, reason: "blocked-by-open-item" },
+      { ref: `${REPO}#5`, reason: "blockers-unreadable" },
     ]);
   });
 });
@@ -206,7 +207,7 @@ describe("stale-links-verify reads each removed blocker again", () => {
     expect(result.json).toMatchObject({
       confirmed: [],
       restored: [{ blockerRef: `${REPO}#7`, verdict: "open" }],
-      restore: [{ op: "body", body: "Context.\n\nBlocked by #7" }],
+      restore: [{ op: "body", body: "Blocked by #7\n\nContext." }],
       comment: null,
       pending: false,
     });

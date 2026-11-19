@@ -20,9 +20,11 @@
 
 import {
   formatStaleLinkComment,
+  markedBlockers,
   staleLinkCommentAdf,
 } from "./stale-blocker-comment.mjs";
-import { splitReopened } from "./stale-blocker-restore.mjs";
+import { isResolved } from "./stale-blocker-edges.mjs";
+import { splitReopened, verdictNow } from "./stale-blocker-restore.mjs";
 import {
   itemRoles,
   normalizeStaleLinkItem,
@@ -41,7 +43,50 @@ import {
  * @property {string | null} comment - The comment for the confirmed removals only, or null
  * @property {object | null} commentAdf - The same as ADF for Jira, else null
  * @property {boolean} becameReady - A ready leaf item that nothing holds any more
+ * @property {{ real: number, inaccessible: string[] }} blockersBefore - The plan's view of what still held the item
+ * @property {{ real: number, inaccessible: string[] }} blockersAfter - The read-back's view, with the later blocker reads applied
  */
+
+/** Buckets whose edges a later, unresolved verdict moves into `real`. */
+const KEPT_BUCKETS = ["stale", "crossProject", "keptByPerson", "landed"];
+
+/**
+ * Apply the blocker reads taken AFTER the item read-back to the links still
+ * on the item: a planned removal whose delete failed may have reopened since
+ * the read-back, and then it holds the item again. Membership stays as the
+ * read-back shows it; only verdicts move.
+ * @param {ReturnType<typeof sortEdges>} sorted
+ * @param {Map<string, string>} later - Blocker ref -> verdict now
+ * @returns {ReturnType<typeof sortEdges>}
+ */
+function withLaterVerdicts(sorted, later) {
+  const moved = { real: [], inaccessible: [] };
+  const out = { ...sorted };
+  for (const bucket of KEPT_BUCKETS) {
+    out[bucket] = (sorted[bucket] ?? []).filter(edge => {
+      const verdict = later.get(edge.blockerRef);
+      if (verdict === undefined || isResolved(verdict)) return true;
+      const judged = { ...edge, verdict };
+      if (verdict === "inaccessible") moved.inaccessible.push(judged);
+      else moved.real.push(judged);
+      return false;
+    });
+  }
+  return {
+    ...out,
+    real: [...sorted.real, ...moved.real],
+    inaccessible: [...sorted.inaccessible, ...moved.inaccessible],
+  };
+}
+
+/**
+ * @param {{ real?: readonly object[], inaccessible?: readonly { blockerRef: string }[] }} groups
+ * @returns {{ real: number, inaccessible: string[] }}
+ */
+const holding = groups => ({
+  real: (groups.real ?? []).length,
+  inaccessible: (groups.inaccessible ?? []).map(edge => edge.blockerRef),
+});
 
 /**
  * Read one item back after its writes and say what is confirmed.
@@ -92,14 +137,28 @@ export function verifyStaleLinkRemoval(input) {
     doneRoles: input.doneRoles,
     landedRoles: input.landedRoles,
   });
-  const done = new Set(confirmed);
+  // A comment already posted for a removal (its marker is live on the item:
+  // a saved plan verified again after it posted) is never owed twice.
+  const marked = markedBlockers(item.comments);
+  const done = new Set(confirmed.filter(ref => !marked.has(ref)));
   const render = input.plan.render ?? {};
+  const later = new Map(
+    stillPresent
+      .filter(ref => Object.hasOwn(input.blockersNow, ref))
+      .map(ref => [
+        ref,
+        verdictNow(input.tracker, item, ref, input.blockersNow[ref], input),
+      ])
+  );
   // The removed links keep their planned reasons; everything still on the
-  // item is described as the read-back shows it now, the same read that
-  // decides `becameReady`.
-  const sorted = sortEdges(item, input.doneRoles, input.landedRoles);
+  // item is described as the read-back shows it now, with the later blocker
+  // reads applied: the same view that decides `becameReady`.
+  const sorted = withLaterVerdicts(
+    sortEdges(item, input.doneRoles, input.landedRoles),
+    later
+  );
   const comment =
-    confirmed.length === 0
+    done.size === 0
       ? null
       : formatStaleLinkComment(
           {
@@ -128,5 +187,7 @@ export function verifyStaleLinkRemoval(input) {
       !item.container &&
       restored.length === 0 &&
       unresolvedCount(sorted) === 0,
+    blockersBefore: holding(render),
+    blockersAfter: holding(sorted),
   };
 }

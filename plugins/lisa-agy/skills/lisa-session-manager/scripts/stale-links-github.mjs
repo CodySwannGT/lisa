@@ -116,7 +116,18 @@ export function withBlockers(ctx, repo, row, blocker) {
  * @returns {Record<string, any>}
  */
 function staleLinkItem(ctx, repo, row, blocker) {
-  const enriched = withBlockers(ctx, repo, row, blocker);
+  const enriched = readOrUnreadable(() =>
+    withBlockers(ctx, repo, row, blocker)
+  );
+  const comments = readOrUnreadable(() =>
+    listAll(ctx, `repos/${repo}/issues/${row.number}/comments?per_page=100`)
+  );
+  // probe-direction: fail-closed — a candidate whose dependency list or
+  // comments could not be read gets `nativeBlockers: null`, which the plan
+  // reads as "blocker list not read": it is reported and nothing of it is
+  // removed (without its comments, a link a person put back could not be
+  // told apart). Every other candidate is still planned.
+  const unreadable = enriched === null || comments === null;
   return {
     repo: repo.toLowerCase(),
     number: row.number,
@@ -126,15 +137,29 @@ function staleLinkItem(ctx, repo, row, blocker) {
     sub_issues_summary: row.sub_issues_summary ?? null,
     body: row.body ?? "",
     labels: row.labels ?? [],
-    nativeBlockers: enriched.nativeBlockers,
-    bodyBlockers: enriched.bodyBlockers,
+    nativeBlockers: unreadable ? null : enriched.nativeBlockers,
+    bodyBlockers: unreadable ? {} : enriched.bodyBlockers,
     // Every candidate can hold a stale link, so its comments are read for
     // the marker dedupe; issues with no blocker are never read.
-    comments: listAll(
-      ctx,
-      `repos/${repo}/issues/${row.number}/comments?per_page=100`
-    ),
+    comments: comments ?? [],
   };
+}
+
+/**
+ * Run one read, or return null when it fails (the caller decides what an
+ * unread result means; here it always holds the candidate back).
+ * @template T
+ * @param {() => T} read
+ * @returns {T | null}
+ */
+function readOrUnreadable(read) {
+  try {
+    return read();
+  } catch {
+    // probe-direction: fail-closed — see staleLinkItem: null means "not
+    // read", which removes nothing.
+    return null;
+  }
 }
 
 /**

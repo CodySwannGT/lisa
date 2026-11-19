@@ -202,7 +202,7 @@ describe("restore actions for the other trackers", () => {
         endpoint: `repos/${REPO}/issues/1/dependencies/blocked_by`,
         issueId: "801",
       },
-      { op: "body", body: "Context.\n\nBlocked by #7" },
+      { op: "body", body: "Blocked by #7\n\nContext." },
     ]);
   });
 });

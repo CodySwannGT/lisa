@@ -40,7 +40,7 @@ const text = value => (typeof value === "string" ? value : "");
  * @param {{ doneRoles: readonly string[], landedRoles?: readonly string[] }} roles
  * @returns {string} Verdict
  */
-function verdictNow(tracker, item, ref, raw, roles) {
+export function verdictNow(tracker, item, ref, raw, roles) {
   const [edge] =
     tracker === "github"
       ? githubBlockerEdges({
@@ -74,7 +74,10 @@ function verdictNow(tracker, item, ref, raw, roles) {
 }
 
 /**
- * The `Blocked by` line that names these refs again, short where local.
+ * The `Blocked by` line that names these refs again, short where local. It
+ * goes FIRST: the top of a body is always outside any code fence, while the
+ * end may sit inside an unclosed one, where the line would be literal text
+ * and the relationship would not come back. The existing body is kept as is.
  * @param {string} body - The body as read back
  * @param {readonly string[]} refs - Canonical refs
  * @param {string} repo - The item's own repo
@@ -85,7 +88,7 @@ function bodyWithRefs(body, refs, repo) {
   const line = `Blocked by ${refs
     .map(ref => (ref.startsWith(own) ? `#${ref.slice(own.length)}` : ref))
     .join(", ")}`;
-  return body.trim() === "" ? line : `${body.replace(/\s+$/u, "")}\n\n${line}`;
+  return body.trim() === "" ? line : `${line}\n\n${body}`;
 }
 
 /**
@@ -95,7 +98,7 @@ function bodyWithRefs(body, refs, repo) {
  * @param {readonly { blockerRef: string, source: string, actionId: string, linkType?: string }[]} links
  * @returns {object[]}
  */
-function restoreActions(tracker, item, links) {
+export function restoreActions(tracker, item, links) {
   if (tracker === "jira") {
     return links.map(link => ({
       op: "link",
