@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.1.5](https://github.com/CodySwannGT/lisa/compare/v7.1.4...v7.1.5) (2026-11-19)
+
+
+### Bug Fixes
+
+* **fs-probe:** compare the probe with real removal in the same window ([d0f9495](https://github.com/CodySwannGT/lisa/commit/d0f9495f1fab0309ddc05f16d2130f3d984284fa)), closes [CodySwannGT/lisa#5066](https://github.com/CodySwannGT/lisa/issues/5066) [CodySwannGT/lisa#5066](https://github.com/CodySwannGT/lisa/issues/5066)
+
+
+### Documentation
+
+* **fs-probe:** describe the burst comparison in the diagnostic workflow ([f83b907](https://github.com/CodySwannGT/lisa/commit/f83b9073913440c4b0f6ee0677c142df988188e6)), closes [CodySwannGT/lisa#5066](https://github.com/CodySwannGT/lisa/issues/5066) [CodySwannGT/lisa#5066](https://github.com/CodySwannGT/lisa/issues/5066)
+
 ### [7.1.4](https://github.com/CodySwannGT/lisa/compare/v7.1.3...v7.1.4) (2026-11-19)
 
 ### [7.1.3](https://github.com/CodySwannGT/lisa/compare/v7.1.2...v7.1.3) (2026-11-19)

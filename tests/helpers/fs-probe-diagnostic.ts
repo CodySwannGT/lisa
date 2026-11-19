@@ -23,12 +23,22 @@
  * so every sample still carries its timings there.
  * @module tests/helpers/fs-probe-diagnostic
  */
-import { existsSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmdirSync,
+  rmSync,
+  unlinkSync,
+} from "node:fs";
+import path from "node:path";
 
 import {
   fillProbeDirectory,
   FS_PROBE_ENTRIES,
   measureUnlinkLatencyUs,
+  timeOneUnlinkCycle,
 } from "./fs-latency-budget.js";
 
 /** Linux block-device counters, in the kernel's `stat` field order. */
@@ -317,5 +327,145 @@ export async function pairedSample(
       variant: variant.discards,
       real: real.discards,
     },
+  };
+}
+
+/**
+ * Corpus sizes the decomposition removes. Two sizes far apart are enough to
+ * separate a cost every removal pays once from the cost it pays per entry:
+ * the probe's own twenty, and fifty times that.
+ */
+export const DECOMPOSITION_SIZES = [FS_PROBE_ENTRIES, 1000] as const;
+
+/** One allocated removal, split into the operations `rmSync` performs. */
+export interface SplitRemoval {
+  readonly entries: number;
+  readonly settleMs: number;
+  /** The whole `rmSync`, as the probe and the agreement case time it. */
+  readonly rmSyncMs: number;
+  /** The same files removed by hand: the first unlink on its own. */
+  readonly firstUnlinkMs: number;
+  /** Every later unlink, together. */
+  readonly restUnlinkMs: number;
+  /** The emptied directory's own removal. */
+  readonly rmdirMs: number;
+}
+
+/**
+ * Time a callback in milliseconds.
+ * @param run - The timed operation
+ * @returns Its wall time
+ */
+function elapsedMs(run: () => void): number {
+  const startedAt = performance.now();
+  run();
+  return performance.now() - startedAt;
+}
+
+/**
+ * Remove one freshly written allocated corpus twice over — once by `rmSync`,
+ * once by hand — so a cost the removal pays once can be told apart from what
+ * it pays per entry, and placed inside it.
+ *
+ * Each half fills its own directory and then waits `settleMs` before its
+ * timed window opens. A cost that vanishes with the wait is one the removal
+ * pays for the fill that ran just before it, not for the removal itself.
+ * @param entries - Files in each corpus
+ * @param settleMs - Wait between the fill and the timed removal
+ * @returns The split timings
+ */
+export async function splitRemoval(
+  entries: number,
+  settleMs: number
+): Promise<SplitRemoval> {
+  const whole = fillProbeDirectory(entries);
+  await settle(settleMs);
+  const rmSyncMs = elapsedMs(() =>
+    rmSync(whole, { force: true, recursive: true })
+  );
+  const byHand = fillProbeDirectory(entries);
+  await settle(settleMs);
+  const [first = "", ...rest] = readdirSync(byHand);
+  const firstUnlinkMs = elapsedMs(() => unlinkSync(path.join(byHand, first)));
+  const restUnlinkMs = elapsedMs(() =>
+    rest.forEach(name => unlinkSync(path.join(byHand, name)))
+  );
+  const rmdirMs = elapsedMs(() => rmdirSync(byHand));
+  return {
+    entries,
+    settleMs,
+    rmSyncMs,
+    firstUnlinkMs,
+    restUnlinkMs,
+    rmdirMs,
+  };
+}
+
+/** A removal's cost as one fixed part plus a part per entry. */
+export interface RemovalFit {
+  readonly fixedMs: number;
+  readonly perEntryUs: number;
+}
+
+/**
+ * Fit `cost = fixed + perEntry * entries` through two removals of different
+ * sizes.
+ * @param small - The smaller removal: entries and its `rmSync` wall time
+ * @param large - The larger removal
+ * @returns The fixed and per-entry parts
+ */
+export function fitRemoval(
+  small: Readonly<{ entries: number; rmSyncMs: number }>,
+  large: Readonly<{ entries: number; rmSyncMs: number }>
+): RemovalFit {
+  const perEntryMs =
+    (large.rmSyncMs - small.rmSyncMs) / (large.entries - small.entries);
+  return {
+    fixedMs: small.rmSyncMs - perEntryMs * small.entries,
+    perEntryUs: perEntryMs * 1000,
+  };
+}
+
+/** What one agreement comparison read: its ratio and the figures behind it. */
+export interface Agreement {
+  /** Probe per-entry cost over real per-entry cost. */
+  readonly ratio: number;
+  readonly probeUs: readonly number[];
+  readonly realUs: readonly number[];
+}
+
+/**
+ * Median of a non-empty list.
+ * @param values - Readings
+ * @returns The middle reading after sorting
+ */
+const medianOf = (values: readonly number[]): number =>
+  [...values].sort((left, right) => left - right)[
+    Math.floor(values.length / 2)
+  ] ?? Number.NaN;
+
+/**
+ * Compare the probe with real removal in the same window: each pair writes a
+ * real corpus first, then takes one probe cycle and the corpus's removal back
+ * to back, so both readings of a pair see the same machine. The verdict is the
+ * median of the per-pair ratios, as the probe itself is a median of cycles.
+ * @param pairs - Paired readings to take
+ * @param corpusEntries - Files in each real corpus
+ * @returns The median ratio and every reading
+ */
+export function pairedAgreement(
+  pairs: number,
+  corpusEntries: number
+): Agreement {
+  const readings = Array.from({ length: pairs }, () => {
+    const corpus = fillProbeDirectory(corpusEntries);
+    const probeUs = timeOneUnlinkCycle();
+    const realUs = timeRemovalUs(corpus, corpusEntries);
+    return { probeUs, realUs };
+  });
+  return {
+    ratio: medianOf(readings.map(({ probeUs, realUs }) => probeUs / realUs)),
+    probeUs: readings.map(reading => reading.probeUs),
+    realUs: readings.map(reading => reading.realUs),
   };
 }
