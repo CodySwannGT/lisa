@@ -313,7 +313,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1":
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
     "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs":
-      "f46576760d27e71b29742fb25a3f9faf5f1c43032f7d2815bc968d0e5c9c15d2",
+      "1f8b96f438995da18a2e8cab7160c6dfc38c597550839ca4e1694b47e3314893",
     "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs":
       "8335b3f9d15243dff3e6eb74a5352c9ef8e8f3c667cc81996452855274a9ca73",
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.d.mts":
@@ -1941,7 +1941,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "8bbee6b63650115190991947a5ceed8f5a7654f8bf32b616a701c36e1b1cee93",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "7b34d2a69d6a6441256ae5c67c5e32f6f6077c08e3f9849ae0c3e8d9a42be040",
+      "b4fa9dcab542ae475ebc49e2870f5ca9df2e608ca90f9a96ac8681e08cedcce3",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "5e250f235e91a6f72a7ebee93560d6c6fd7c5c47aabefe341fba05c6b88c4b25",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
@@ -1973,7 +1973,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md":
       "d34e7b4951bc26caf15625e081e8273a11ee8ca1bde6137750f4b687fca7e8bf",
     "plugins/src/base/skills/lisa-usage-accounting/references/estimate.md":
-      "cf0786fc5ad548885c2523c4cab9dcbd8f332a4e55b5f7d09363441be6033eff",
+      "11e9551b88b8449e6c19df16d2a2a70380ccd41b4241bb6a5d9664f2bed13c0f",
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "9605cce9b30a5a4db04ce936b5dddcaaf05368ddcd91ce4067956071a481db63",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
@@ -14411,6 +14411,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/workers-name-roundtrip.test.ts": true,
     "tests/unit/session-manager/workers-setup-gap.test.ts": true,
     "tests/unit/session-manager/workers.test.ts": true,
+    "tests/unit/skills/lisa-track-estimate-contract.test.ts": true,
     "tests/unit/skills/missing-capability-tickets.test.ts": true,
     "tests/unit/skills/pull-request-executor-reference.test.ts": true,
     "tests/unit/skills/pushing-skills-run-lisa-check.test.ts": true,

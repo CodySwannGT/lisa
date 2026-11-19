@@ -8,12 +8,14 @@
  * complete actual, the ratio is the actual token total (the item's
  * `## Lisa Usage` rollup, the same ledger the completion tally reads) over the
  * estimate's midpoint. The median ratio scales the new range. Items whose
- * actual is unknown (no ledger, `unavailable` telemetry, or a measured subset)
- * are skipped, never counted as zero. With no usable history the range is
+ * actual is unknown or partial (no ledger, or any run with `unavailable`
+ * telemetry or a measured subset) are skipped, never counted as zero or as the
+ * sum of only the known runs. With no usable history the range is
  * returned unchanged and the basis says so.
  * @module scripts/lib/work-item-estimate-calibration
  */
 import { parseLisaUsageSection } from "./usage-ledger.mjs";
+import { EstimateConfigError } from "./work-item-estimate-config.mjs";
 import { parseEstimateSection } from "./work-item-estimate.mjs";
 
 /**
@@ -22,6 +24,17 @@ import { parseEstimateSection } from "./work-item-estimate.mjs";
  * @returns {boolean} True for a finite count above zero.
  */
 const isPositive = value => Number.isFinite(value) && value > 0;
+
+/**
+ * Whether a usage entry lacks a full token count: `unavailable` telemetry or
+ * a measured subset of the run.
+ * @param {{totalTokens: number | null, source: string, measuredSubsetTokens?: number | null}} entry - Parsed usage entry.
+ * @returns {boolean} True when the run's tokens are unknown or partial.
+ */
+const isPartialRun = entry =>
+  entry.totalTokens === null ||
+  entry.source === "measured-subset" ||
+  (entry.measuredSubsetTokens ?? null) !== null;
 
 /**
  * The actual-to-estimate ratio one finished item shows, if it shows one.
@@ -36,14 +49,22 @@ export function itemRatio(body) {
     !isPositive(estimate.tokensHigh)
   )
     return null;
-  let rollup;
+  let ledger;
   try {
-    rollup = parseLisaUsageSection(body).rollup;
+    ledger = parseLisaUsageSection(body);
   } catch {
     return null;
   }
+  const { entries, rollup } = ledger;
   const actual = rollup?.totalTokens;
-  if (rollup?.childTokensIncomplete || !Number.isFinite(actual) || actual <= 0)
+  // The rollup adds up only the runs it knows, so one run without a full
+  // token count makes its total a partial sum, not the actual.
+  if (
+    entries.some(isPartialRun) ||
+    rollup?.childTokensIncomplete ||
+    !Number.isFinite(actual) ||
+    actual <= 0
+  )
     return null;
   return actual / ((estimate.tokensLow + estimate.tokensHigh) / 2);
 }
@@ -68,6 +89,10 @@ function median(values) {
  * @returns {{comparable: number, ratio: number | null, tokensLow: number, tokensHigh: number, basis: string}} Calibrated range.
  */
 export function calibrateEstimate(proposed, bodies) {
+  if (proposed.tokensLow > proposed.tokensHigh)
+    throw new EstimateConfigError(
+      `The low end (${proposed.tokensLow}) is above the high end (${proposed.tokensHigh}).`
+    );
   const ratios = bodies.map(itemRatio).filter(ratio => ratio !== null);
   if (ratios.length === 0)
     return {

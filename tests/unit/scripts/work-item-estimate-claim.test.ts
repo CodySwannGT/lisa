@@ -108,6 +108,41 @@ describe("calibration", () => {
     ).toBe(0);
   });
 
+  it("skips an item whose actual is only the sum of its known runs", () => {
+    // An observed 2M implement run beside a verify run with no telemetry is
+    // not a 2M actual; counting it would shrink every later estimate.
+    const partial = finishedItem(1_000_000, 3_000_000, [
+      usageEntry("implement", 2_000_000),
+      usageEntry("verify", null),
+    ]);
+    expect(itemRatio(partial)).toBe(null);
+    expect(
+      calibrateEstimate({ tokensLow: 10, tokensHigh: 20 }, [
+        partial,
+        doubled("a"),
+      ])
+    ).toMatchObject({ comparable: 1, ratio: 2 });
+  });
+
+  it("takes the mean of the middle two ratios for an even sample", () => {
+    const ratioOf = (id: string, actual: number): string =>
+      finishedItem(1_000_000, 3_000_000, [usageEntry(id, actual)]);
+    expect(
+      calibrateEstimate({ tokensLow: 10, tokensHigh: 20 }, [
+        ratioOf("a", 2_000_000),
+        ratioOf("b", 4_000_000),
+        ratioOf("c", 8_000_000),
+        ratioOf("d", 40_000_000),
+      ]).ratio
+    ).toBe(3);
+  });
+
+  it("refuses an inverted range at its own boundary", () => {
+    expect(() =>
+      calibrateEstimate({ tokensLow: 20, tokensHigh: 10 }, [doubled("a")])
+    ).toThrow(/The low end \(20\) is above the high end \(10\)/);
+  });
+
   it("reads bodies the way gh issue list --json body prints them", () => {
     expect(historyBodies([{ body: "a" }, "b", { title: "no body" }])).toEqual([
       "a",
