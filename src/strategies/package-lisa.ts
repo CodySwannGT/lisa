@@ -19,7 +19,7 @@ import { JsonMergeError } from "../errors/index.js";
 import { raiseDirectRangesToLisaFloors } from "../core/direct-range-raise.js";
 import {
   applyDirectMinimums,
-  describeDirectMinimumConflict,
+  describeDirectMinimumConflicts,
   describeDirectMinimumRaise,
 } from "../core/direct-minimums.js";
 import {
@@ -1843,7 +1843,7 @@ function rangeFloor(range: string): string | null {
  * @param pkg - Merged package.json about to be persisted
  * @param minimums - The merged template's minimums
  * @param fileName - Basename used in error messages
- * @throws JsonMergeError naming the first range no same-major raise reaches
+ * @throws {JsonMergeError} naming every range no same-major raise reaches
  * @returns The manifest with raised ranges, and each raise made
  */
 function holdDirectMinimums(
@@ -1852,9 +1852,12 @@ function holdDirectMinimums(
   fileName: string
 ): ReturnType<typeof applyDirectMinimums> {
   const held = applyDirectMinimums(pkg, minimums);
-  const refused = held.conflicts[0];
-  if (refused !== undefined) {
-    throw new JsonMergeError(fileName, describeDirectMinimumConflict(refused));
+  const [first, ...rest] = held.conflicts;
+  if (first !== undefined) {
+    throw new JsonMergeError(
+      fileName,
+      describeDirectMinimumConflicts([first, ...rest])
+    );
   }
   return held;
 }

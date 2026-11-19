@@ -101,9 +101,9 @@ When Lisa applies `package.lisa.json` to a project:
 7b. **Hold minimums** - Raise each direct range below a `minimums` entry, in
    `dependencies`, `devDependencies` or `optionalDependencies`, inside its own
    major: an exact pin becomes the minimum exactly, a tilde or caret moves to
-   it. A raise that would cross a major refuses the apply and names the range
-   to set. `peerDependencies` are never read. The postinstall path, which
-   applies only security pins, skips this step.
+   it. A raise that would cross a major refuses the apply and names every such
+   range to set, in one message. `peerDependencies` are never read. The
+   postinstall path, which applies only security pins, skips this step.
 8. **Write package.json** - Output clean JSON with no Lisa metadata
 
 ## Implementation Tasks

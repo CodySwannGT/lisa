@@ -101,6 +101,25 @@ describe("Expo library minimums", () => {
     );
   });
 
+  it("names every range it will not raise in one refusal, so one pass fixes them all", async () => {
+    const destPath = path.join(projectDir, PACKAGE_JSON);
+    const refusal = applyExpo({
+      dependencies: { "date-fns": "^2.30.0", "react-hook-form": "^6.15.0" },
+      scripts: {},
+    });
+
+    await expect(refusal).rejects.toThrow(
+      /2 direct dependencies are below Lisa's minimums/u
+    );
+    await expect(refusal).rejects.toThrow(
+      /dependencies\.date-fns is "\^2\.30\.0"[\s\S]*dependencies\.react-hook-form is "\^6\.15\.0"/u
+    );
+    expect((await fs.readJson(destPath)).dependencies).toEqual({
+      "date-fns": "^2.30.0",
+      "react-hook-form": "^6.15.0",
+    });
+  });
+
   it("never reads or rewrites a peer range", async () => {
     const written = await applyExpo({
       peerDependencies: { "react-hook-form": "^7.0.0" },

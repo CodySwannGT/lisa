@@ -94,7 +94,7 @@ const DE_FORCED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
 /**
  * Libraries Lisa stopped forcing whose floor answers a security advisory, so it
  * stays in `overrides`/`resolutions` for every copy: tar's predates #4932, zod
- * answers GHSA-mrhx-c7xc-m3w5 and @graphql-tools/utils GHSA-c4qx-w738-7hr3.
+ * answers GHSA-mrhx-c7xc-m3w5 and `@graphql-tools/utils` GHSA-c4qx-w738-7hr3.
  */
 const SECURITY_FLOORS: Readonly<
   Record<string, Readonly<Record<string, string>>>
@@ -153,6 +153,25 @@ describe("runtime libraries Lisa stopped forcing", () => {
       .map(([stack]) => stack);
     expect(reclaiming).toEqual([]);
   });
+
+  // A dev tool a stack reclaims is one Lisa stopped supplying. A minimum for
+  // it would either reach nothing (the host still held Lisa's value, which the
+  // apply takes back) or hold the host to a tool Lisa no longer has a stake in.
+  it.each([...TEMPLATES.keys()])(
+    "%s holds no minimum for a dev tool it reclaims",
+    stack => {
+      const chain = lineage(stack).map(each => TEMPLATES.get(each));
+      const reclaimed = new Set(
+        chain.flatMap(template =>
+          Object.keys(template?.adopt?.devDependencies ?? {})
+        )
+      );
+      const held = chain
+        .flatMap(template => Object.keys(template?.minimums ?? {}))
+        .filter(name => reclaimed.has(name));
+      expect(held).toEqual([]);
+    }
+  );
 
   it.each(Object.entries(DE_FORCED))(
     "%s forces none of them and keeps each one's minimum for direct ranges only",

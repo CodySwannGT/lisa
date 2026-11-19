@@ -23,7 +23,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
-import { minimatch } from "minimatch";
+import { braceExpand, minimatch } from "minimatch";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -189,6 +189,37 @@ function relaxations(config: KnipConfig): readonly string[] {
 }
 
 /**
+ * A file each glob names: braces expanded, every wildcard filled in.
+ * @param pattern - An `entry` glob
+ * @returns One concrete path per brace alternative
+ */
+function filesNamedBy(pattern: string): readonly string[] {
+  return braceExpand(pattern).map(each =>
+    each.replaceAll("**/", "x/").replaceAll("*", "x")
+  );
+}
+
+/**
+ * Every file an `entry` glob names that the scope's `project` leaves out.
+ * Knip analyses only project files, so such an entry starts nothing.
+ * @param config - Parsed config
+ * @returns One `file: path` line per entry file outside the project
+ */
+function entriesOutsideProject(config: KnipConfig): readonly string[] {
+  return config.scopes.flatMap(scope => {
+    if (!Array.isArray(scope.entry) || !Array.isArray(scope.project)) {
+      return [];
+    }
+    const project = scope.project as string[];
+    return (scope.entry as string[])
+      .filter(pattern => !pattern.startsWith("!"))
+      .flatMap(filesNamedBy)
+      .filter(file => !project.some(glob => minimatch(file, glob)))
+      .map(file => `${config.file}: ${file}`);
+  });
+}
+
+/**
  * Every `entry` glob that turns an ordinary module into an entry point.
  * @param config - Parsed config
  * @returns One `file: glob` line per offending pattern
@@ -282,6 +313,10 @@ describe("knip configs Lisa runs and ships are strict", () => {
     }
   );
 
+  it("keeps every entry inside the files it analyses", () => {
+    expect(CONFIGS.flatMap(entriesOutsideProject)).toEqual([]);
+  });
+
   it("keeps every test file in the analysis", () => {
     expect(CONFIGS.flatMap(testIgnores)).toEqual([]);
   });
@@ -313,6 +348,7 @@ describe("knip configs Lisa runs and ships are strict", () => {
           ignore: ["**/*.test.ts", "**/dist/**"],
         },
         { ignoreDependencies: ["zod"] },
+        { entry: ["index.{ts,tsx}"], project: ["index.tsx"] },
       ],
     };
     expect(exemptions(loose)).toEqual([
@@ -327,5 +363,6 @@ describe("knip configs Lisa runs and ships are strict", () => {
       "control.json: ignoreExportsUsedInFile",
     ]);
     expect(blanketEntries(loose)).toEqual(["control.json: entry src/**/*.ts"]);
+    expect(entriesOutsideProject(loose)).toEqual(["control.json: index.ts"]);
   });
 });

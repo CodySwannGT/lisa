@@ -569,7 +569,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/jest.setup.ts":
       "826ab9387f73b19f1faa2ee4263344a64f6fa34fa872ba1162fef9d81406e556",
     "expo/copy-overwrite/knip.json":
-      "573887f87463b4e35b8a6025ad989cf25cb04811a93a298efbfe8e36458f84fa",
+      "0f341b77c12aca4617737574092407217599c4fbfc332913211775d7ad30eedb",
     "expo/copy-overwrite/plugins/withAndroidSplashNoClientExit.js":
       "eeec78d335e6db75e58bd2116ba51f3bd6dc519e61d586f8bfa3821e8ff9448c",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
@@ -691,7 +691,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "a40ab5d15dba02fa706478b8a7825393b30c5144fcbcf69da0aa866e2972a150",
+      "ad6a4eab10a9870d6cfd607ea1d9bb948a933820c8637ca6394b4a77d7adb688",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -3129,7 +3129,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/eslint.slow.config.ts":
       "9f0efef2d1012e21a1d5e03eb98634bfeb459e3427147d75ad6905acbbab8466",
     "typescript/copy-overwrite/knip.json":
-      "839a7468918284c7def9f69706c625043f5148a33d43a7e43eee0d73b57ed846",
+      "7157e57bfe01b8e750bb789a5ec15713dacdfa29c1f913b5d2d09416f2359b46",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "df39aa29b19817f67726107fec45078ce639f14a682cf6d5587ba37617f31ac9",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":

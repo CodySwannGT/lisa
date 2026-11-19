@@ -6,7 +6,7 @@
     "src/app/**/*.{ts,tsx}"
   ],
   "project": [
-    "index.tsx",
+    "index.{ts,tsx}",
     "app/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",
     "features/**/*.{ts,tsx}",

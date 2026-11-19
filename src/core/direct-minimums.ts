@@ -147,6 +147,25 @@ export function describeDirectMinimumConflict(
 }
 
 /**
+ * The refusal for every direct range Lisa will not raise, in one message, so
+ * the host fixes them all in one pass instead of one per run.
+ * @param conflicts - Every range a same-major raise cannot reach; not empty
+ * @returns One sentence per range, under a count when there is more than one
+ */
+export function describeDirectMinimumConflicts(
+  conflicts: readonly [DirectMinimumConflict, ...DirectMinimumConflict[]]
+): string {
+  const [only] = conflicts;
+  if (conflicts.length === 1) return describeDirectMinimumConflict(only);
+  return [
+    `${conflicts.length} direct dependencies are below Lisa's minimums:`,
+    ...conflicts.map(
+      conflict => `- ${describeDirectMinimumConflict(conflict)}`
+    ),
+  ].join("\n");
+}
+
+/**
  * The note an apply prints for one raise.
  * @param raise - The raise made
  * @returns One operator-readable sentence
