@@ -32,6 +32,7 @@ export const EXIT = Object.freeze({
   SETUP: 2,
   NO_CAPACITY: 3,
   LIVE_WORKER: 4,
+  NOT_TAKEN: 5,
 });
 
 /** The config files Lisa reads, local over global per key. */

@@ -88,7 +88,11 @@ function resolveChildRollupParts(
     );
     const deduped = collected.childEntries;
     const childCurrency = resolveDirectCostCurrency(deduped);
-    const childTokensIncomplete = deduped.some(hasMeasuredSubset);
+    // A child run with no token total (unavailable telemetry) leaves the sum
+    // partial just as a measured subset does, so both mark it incomplete.
+    const childTokensIncomplete = deduped.some(
+      entry => hasMeasuredSubset(entry) || entry.totalTokens === null
+    );
     const rawChildCost = sumNullableDecimals(deduped.map(entry => entry.cost));
     return {
       childEntryIds: deduped.map(entry => entry.entryId),
