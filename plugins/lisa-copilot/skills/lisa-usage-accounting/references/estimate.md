@@ -95,8 +95,10 @@ no usable history the range is unchanged and the basis says "no calibration hist
 
 When the work is done, the section also shows what it really cost (CodySwannGT/lisa#4956). The
 actual is the item's `## Lisa Usage` ledgers, on the body and on any comment — the same ledger
-every flow already records into, not a second one. Runs recorded in both places are added together;
-a ledger copied whole into a comment is counted once:
+every flow already records into, not a second one. Each distinct run is counted once, by its entry
+id, wherever it is recorded: a comment that repeats the body's runs and adds its own Verify run adds
+only that run. Child work arrives as each ledger's aggregate; the total is `unknown` only when two
+ledgers share some, but not all, of the same child runs, because that aggregate cannot be split:
 
 ```markdown
 | Estimate | 2M–4M | $3.14–$6.28 USD | claude-opus-5-5 |
@@ -111,13 +113,14 @@ After the Verify usage entry is written (`lisa-tracker-evidence` step 3) and bef
 completion proof is published, tally it and write the body back:
 
 ```bash
-node scripts/lisa-estimate.mjs tally --body-file <body.md> [--usage-file <comment.md>]
-node scripts/lisa-estimate.mjs check --phase done --body-file <stored-body.md> [--usage-file <comment.md>]
+node scripts/lisa-estimate.mjs tally --body-file <body.md> [--usage-file <comment.md>]...
+node scripts/lisa-estimate.mjs check --phase done --body-file <stored-body.md> [--usage-file <comment.md>]...
 ```
 
-Pass `--usage-file` to both commands whenever a ledger lives in an evidence comment, alone or beside
-the body's: the check then reads the same ledgers the tally counted. A total that any run leaves
-unknown (`unavailable` telemetry, a `measured-subset` entry, incomplete child totals) is shown as
+Pass every comment that holds a ledger, each with its own `--usage-file`, to both commands. `complete`
+reads every comment, so the check must read the same ledgers the tally counted. A total that any run
+leaves unknown (`unavailable` telemetry, a `measured-subset` entry, a child run with no token count
+or no cost) is shown as
 `unknown`, never as zero, never as the sum of only the known runs, and never guessed. An item that
 reached done with no estimate shows `none recorded` in the estimate row rather than an invented
 range.

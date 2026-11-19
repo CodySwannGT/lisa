@@ -122,7 +122,7 @@
       "children": []
     },
     "lib/completion-proof-adapters.mjs": {
-      "sha256": "802b2670739af58d1edcf02dec5142914bb0f05126d065bdc74fe7e8fc64ed37",
+      "sha256": "10e812829458c9b02f6cb012dc1714ad8b03388ced71a103130517150036f832",
       "staticImports": [
         "lib/completion-proof-shape.mjs",
         "lib/work-item-estimate-config.mjs"
@@ -1495,13 +1495,13 @@
       "children": []
     },
     "lib/work-item-estimate-config.mjs": {
-      "sha256": "dea9d7e5440646b8bd4122846bf587a2f7cfff95e720b43302dda98b91c58b5f",
+      "sha256": "b803106384f35ed85bfa7541c994601cee1523b2010981075eb3244960fae7c5",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
     },
     "lib/work-item-estimate-tally.mjs": {
-      "sha256": "2edea8755d3e276489d509e23d49674f2dfeb1702dcfe1ffa1a88aacd9d29dcc",
+      "sha256": "8d057a30722fb105b2a55567770cb27c65d53f00b44f5b72989e0c6f9f458950",
       "staticImports": [
         "lib/usage-ledger.mjs",
         "lib/work-item-estimate-actual.mjs",

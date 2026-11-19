@@ -49,39 +49,14 @@ function readLedger(document) {
 }
 
 /**
- * One ledger's complete token total. It is unknown when any run it counts has
- * no token count (`unavailable` telemetry) or only part of one (a measured
- * subset): the rollup's own total adds up only the runs it knows, which is a
- * partial sum, not the actual.
- * @param {{entries: object[], rollup: object}} ledger - Parsed ledger.
- * @returns {number | null} Total, or null when unknown.
+ * Whether a run's token count is unknown or only part of the run.
+ * @param {object} entry - Parsed usage entry.
+ * @returns {boolean} True when the run has no full token count.
  */
-function ledgerTokens({ entries, rollup }) {
-  const unknownRun = entries.some(
-    entry =>
-      entry.totalTokens === null ||
-      entry.source === "measured-subset" ||
-      (entry.measuredSubsetTokens ?? null) !== null
-  );
-  const unknownChildren =
-    rollup.childTokensIncomplete === true ||
-    (rollup.childEntryIds.length > 0 && rollup.childTokens === null);
-  return unknownRun || unknownChildren ? null : rollup.totalTokens;
-}
-
-/**
- * One ledger's complete cost, unknown when any run it counts is unpriced.
- * @param {{entries: object[], rollup: object}} ledger - Parsed ledger.
- * @returns {number | null} Total cost, or null when unknown.
- */
-function ledgerCost({ entries, rollup }) {
-  const unpricedRun = entries.some(entry => entry.cost === null);
-  const unpricedChildren =
-    rollup.childEntryIds.length > 0 && rollup.childCost === null;
-  return unpricedRun || unpricedChildren || rollup.currency === MIXED_CURRENCY
-    ? null
-    : rollup.totalCost;
-}
+const partialTokens = entry =>
+  entry.totalTokens === null ||
+  entry.source === "measured-subset" ||
+  (entry.measuredSubsetTokens ?? null) !== null;
 
 /**
  * Add decimal amounts without binary floating-point drift.
@@ -101,67 +76,87 @@ function addAmounts(amounts) {
 }
 
 /**
- * The ledgers that hold distinct runs. A ledger whose runs were all counted
- * already is a copy and is skipped; one that repeats only some of them makes
- * the total ambiguous.
+ * Every distinct run the item's ledgers record, by run identity (entry id).
+ * The same run written in two places (the body's ledger and an evidence
+ * comment that repeats it) is counted once, so a comment that repeats the
+ * body's runs and adds its own Verify run is an ordinary, complete layout.
+ * Child work arrives only as each ledger's aggregate, which cannot be split:
+ * a ledger's child runs are counted once when none was counted before,
+ * skipped when every one was, and make the total ambiguous only when some
+ * were counted and some were not.
  * @param {{entries: object[], rollup: object}[]} ledgers - Parsed ledgers, body first.
- * @returns {{ledgers: object[], ids: Set<string>, ambiguous: boolean}} Distinct ledgers and the run ids they cover.
+ * @returns {{runs: object[], children: object[], ids: Set<string>, ambiguous: boolean}} Distinct direct runs, child aggregates, every run id, and whether the total is ambiguous.
  */
-function distinctLedgers(ledgers) {
+function distinctRuns(ledgers) {
   const ids = new Set();
-  const kept = [];
+  const runs = [];
+  const children = [];
   let ambiguous = false;
-  for (const ledger of ledgers) {
-    const own = [
-      ...ledger.entries.map(entry => entry.entryId),
-      ...ledger.rollup.childEntryIds,
-    ];
+  for (const { entries } of ledgers)
+    for (const entry of entries)
+      if (!ids.has(entry.entryId)) {
+        ids.add(entry.entryId);
+        runs.push(entry);
+      }
+  for (const { rollup } of ledgers) {
+    const own = rollup.childEntryIds;
     const repeated = own.filter(id => ids.has(id)).length;
-    if (repeated === own.length) continue;
+    if (own.length === 0 || repeated === own.length) continue;
     ambiguous ||= repeated > 0;
     for (const id of own) ids.add(id);
-    kept.push(ledger);
+    children.push(rollup);
   }
-  return { ledgers: kept, ids, ambiguous };
+  return { runs, children, ids, ambiguous };
 }
 
 /**
  * The actual spend across every usage ledger the item carries: the body's and
  * any comment's. Completion accepts a run recorded in either place, so the
- * actual counts both. A total is unknown, never a partial sum, when any run
- * behind it is unknown.
+ * actual counts every distinct run once. A total is unknown, never a partial
+ * sum, when any run behind it is unknown or the runs cannot be told apart.
  * @param {string[]} documents - Item body, then its comments.
  * @returns {import("./work-item-estimate-actual.mjs").Actual | null} The actual, or null when no ledger has an entry.
  */
 export function ledgerActual(documents) {
-  const { ledgers, ids, ambiguous } = distinctLedgers(
-    documents.map(readLedger).filter(ledger => ledger !== null)
-  );
+  const ledgers = documents.map(readLedger).filter(ledger => ledger !== null);
   if (ledgers.length === 0) return null;
-  const tokens = ledgers.map(ledgerTokens);
-  const costs = ledgers.map(ledgerCost);
-  const currencies = new Set(
-    ledgers.map(ledger => ledger.rollup.currency).filter(Boolean)
-  );
+  const { runs, children, ids, ambiguous } = distinctRuns(ledgers);
+  const tokensKnown =
+    !ambiguous &&
+    !runs.some(partialTokens) &&
+    children.every(
+      child =>
+        child.childTokensIncomplete !== true && child.childTokens !== null
+    );
+  const currencies = new Set([
+    ...runs.map(entry => entry.currency).filter(Boolean),
+    ...children.map(child => child.childCurrency).filter(Boolean),
+  ]);
+  const costKnown =
+    !ambiguous &&
+    currencies.size <= 1 &&
+    !currencies.has(MIXED_CURRENCY) &&
+    runs.every(entry => entry.cost !== null) &&
+    children.every(child => child.childCost !== null);
   const currency =
     currencies.size > 1
       ? MIXED_CURRENCY
       : (currencies.values().next().value ?? null);
   return {
-    tokens:
-      ambiguous || tokens.includes(null)
-        ? null
-        : tokens.reduce((sum, value) => sum + value, 0),
-    cost:
-      ambiguous || costs.includes(null) || currencies.size > 1
-        ? null
-        : addAmounts(costs),
+    tokens: tokensKnown
+      ? [
+          ...runs.map(entry => entry.totalTokens),
+          ...children.map(child => child.childTokens),
+        ].reduce((sum, value) => sum + value, 0)
+      : null,
+    cost: costKnown
+      ? addAmounts([
+          ...runs.map(entry => entry.cost),
+          ...children.map(child => child.childCost),
+        ])
+      : null,
     currency,
-    sources: [
-      ...new Set(
-        ledgers.flatMap(ledger => ledger.entries.map(entry => entry.source))
-      ),
-    ].sort(),
+    sources: [...new Set(runs.map(entry => entry.source))].sort(),
     entries: ids.size,
   };
 }

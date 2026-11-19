@@ -17,18 +17,18 @@
  *     --model claude-opus-5-5 [--basis <text>] [--body-file <path>]
  *   node scripts/lisa-estimate.mjs calibrate --tokens-low 1M --tokens-high 2M
  *     --history-file <comparable-items.json>
- *   node scripts/lisa-estimate.mjs tally [--body-file <path>] [--usage-file <path>]
+ *   node scripts/lisa-estimate.mjs tally [--body-file <path>] [--usage-file <path>]...
  *   node scripts/lisa-estimate.mjs check [--phase ready|claim|done]
- *     [--body-file <path>] [--usage-file <path>]
+ *     [--body-file <path>] [--usage-file <path>]...
  *
  * `calibrate` scales a first estimate by how comparable finished items
  * actually ran (their `## Lisa Usage` totals against their estimates) and
  * prints the calibrated range and a basis line to pass to `render`.
  *
  * `tally` rewrites the estimate section with the actual tokens and cost from
- * the item's `## Lisa Usage` ledger and prints the whole body. When the
- * ledger lives in a comment instead of the body, pass that comment as
- * `--usage-file`.
+ * the item's `## Lisa Usage` ledgers and prints the whole body. Pass every
+ * comment that holds a ledger with its own `--usage-file`, as many times as
+ * needed, to both `tally` and `check --phase done`.
  *
  * `check` exits 0 on PASS or N/A and 1 on FAIL; any usage or config error
  * exits 2. Without `--body-file`, the body is read from standard input.
@@ -42,6 +42,7 @@ import {
   DEFAULT_ESTIMATE_PRICING,
   EstimateConfigError,
   resolveEstimateConfig,
+  resolveEstimateGate,
 } from "./lib/work-item-estimate-config.mjs";
 import {
   buildEstimate,
@@ -68,10 +69,14 @@ const VALUE_FLAGS = new Set([
   "--cwd",
 ]);
 
+// Every comment that holds a usage ledger is passed with its own --usage-file.
+const REPEATABLE_FLAGS = new Set(["usage-file"]);
+
 /**
- * Parse `--flag value` pairs.
+ * Parse `--flag value` pairs. A repeatable flag's value is the list of every
+ * value it was given, in order.
  * @param {string[]} args - Arguments after the subcommand.
- * @returns {Record<string, string>} Flag values keyed without the dashes.
+ * @returns {Record<string, string | string[]>} Flag values keyed without the dashes.
  */
 function parseFlags(args) {
   if (
@@ -81,8 +86,26 @@ function parseFlags(args) {
     throw new EstimateConfigError(
       `Unrecognised arguments ${JSON.stringify(args)}. Run with --help for the options.`
     );
+  const pairs = args.flatMap((arg, i) =>
+    i % 2 === 0 ? [[arg.slice(2), args[i + 1]]] : []
+  );
+  const repeated = pairs
+    .map(([name]) => name)
+    .filter(
+      (name, i, names) =>
+        !REPEATABLE_FLAGS.has(name) && names.indexOf(name) !== i
+    );
+  if (repeated.length)
+    throw new EstimateConfigError(
+      `--${repeated[0]} was given more than once; only --usage-file may repeat.`
+    );
   return Object.fromEntries(
-    args.flatMap((arg, i) => (i % 2 === 0 ? [[arg.slice(2), args[i + 1]]] : []))
+    pairs.map(([name, value]) => [
+      name,
+      REPEATABLE_FLAGS.has(name)
+        ? pairs.filter(([other]) => other === name).map(([, each]) => each)
+        : value,
+    ])
   );
 }
 
@@ -119,10 +142,10 @@ const readBody = flags =>
     ? readFileSync(0, "utf8")
     : readFileSync(flags["body-file"], "utf8");
 
-const ledgerDocuments = (body, flags) =>
-  flags["usage-file"] === undefined
-    ? [body]
-    : [body, readFileSync(flags["usage-file"], "utf8")];
+const ledgerDocuments = (body, flags) => [
+  body,
+  ...(flags["usage-file"] ?? []).map(file => readFileSync(file, "utf8")),
+];
 
 const COMMANDS = {
   config: (_flags, settings) => ({
@@ -184,7 +207,7 @@ const COMMANDS = {
 };
 
 const USAGE =
-  "Usage: lisa-estimate.mjs config | render --tokens-low <n> --tokens-high <n> --model <id> [--basis <text>] [--body-file <path>] | calibrate --tokens-low <n> --tokens-high <n> --history-file <path> | tally [--body-file <path>] [--usage-file <path>] | check [--phase ready|claim|done] [--body-file <path>] [--usage-file <path>]\n";
+  "Usage: lisa-estimate.mjs config | render --tokens-low <n> --tokens-high <n> --model <id> [--basis <text>] [--body-file <path>] | calibrate --tokens-low <n> --tokens-high <n> --history-file <path> | tally [--body-file <path>] [--usage-file <path>]... | check [--phase ready|claim|done] [--body-file <path>] [--usage-file <path>]...\n";
 
 /**
  * Run the CLI.
@@ -204,9 +227,13 @@ export function runCli(argv = process.argv.slice(2), io = process) {
   }
   try {
     const flags = parseFlags(rest);
-    const settings = resolveEstimateConfig(
-      readProjectConfig(flags.cwd ?? process.cwd())
-    );
+    const config = readProjectConfig(flags.cwd ?? process.cwd());
+    // `check` honours a disabled gate before it reads the rest of the
+    // settings, so it reports N/A instead of failing on settings it ignores.
+    const settings =
+      command === "check"
+        ? resolveEstimateGate(config)
+        : resolveEstimateConfig(config);
     const { out, code } = COMMANDS[command](flags, settings);
     io.stdout.write(out);
     return code;

@@ -114,20 +114,6 @@ describe("tally", () => {
     expect(ledgerActual([body, copy])).toEqual(ledgerActual([body]));
   });
 
-  it("keeps the total unknown when ledgers repeat only some runs", () => {
-    const body = finishedItem(1000, 2000, [usageEntry("implement", 4_000, 3)]);
-    const comment = upsertLisaUsageSection("", {
-      entries: [
-        usageEntry("implement", 4_000, 3),
-        usageEntry("verify", 1_000, 1),
-      ],
-    });
-    expect(ledgerActual([body, comment])).toMatchObject({
-      tokens: null,
-      cost: null,
-    });
-  });
-
   it("refuses to tally without a usage entry", () => {
     expect(() => tallyEstimate(PLAIN_BODY)).toThrow(/No Lisa Usage entry/);
   });

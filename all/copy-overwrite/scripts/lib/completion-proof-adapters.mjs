@@ -4,7 +4,7 @@
 /** Provider-native proof discovery/publication adapters; credentials stay in CLI. */
 import {
   EstimateConfigError,
-  resolveEstimateConfig,
+  resolveEstimateGate,
 } from "./work-item-estimate-config.mjs";
 import {
   CompletionProofError,
@@ -25,12 +25,10 @@ const WRITE_ERROR = "write-error";
  */
 function estimateSettings(config) {
   try {
-    return resolveEstimateConfig(config);
+    return resolveEstimateGate(config);
   } catch (error) {
     if (!(error instanceof EstimateConfigError)) throw error;
-    return config?.workItem?.estimate?.required === false
-      ? { required: false, warnings: [] }
-      : { required: true, error: error.message };
+    return { required: true, error: error.message };
   }
 }
 

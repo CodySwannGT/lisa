@@ -5,9 +5,10 @@
  * Calibrate a new token estimate against finished work (CodySwannGT/lisa#4955).
  *
  * For each comparable finished item that carries both an estimate and a
- * complete actual, the ratio is the actual token total (read from the item's
- * `## Lisa Usage` ledger by the same reader the completion tally uses) over the
- * estimate's midpoint. The median ratio scales the new range. Items whose
+ * complete actual, the ratio is the actual token total over the estimate's
+ * midpoint. The actual is the item's recorded done tally, which counted every
+ * usage ledger it carried, comments included; an item finished before tallies
+ * were recorded falls back to its body's `## Lisa Usage` ledger. The median ratio scales the new range. Items whose
  * actual is unknown or partial (no ledger, or any run with `unavailable`
  * telemetry or a measured subset) are skipped, never counted as zero or as the
  * sum of only the known runs. With no usable history the range is
@@ -15,6 +16,7 @@
  * @module scripts/lib/work-item-estimate-calibration
  */
 import { EstimateConfigError } from "./work-item-estimate-config.mjs";
+import { parseActualToken } from "./work-item-estimate-actual.mjs";
 import { parseEstimateSection } from "./work-item-estimate.mjs";
 import { ledgerActual } from "./work-item-estimate-tally.mjs";
 
@@ -31,14 +33,21 @@ const isPositive = value => Number.isFinite(value) && value > 0;
  * @returns {number | null} Ratio, or null when the item cannot calibrate.
  */
 export function itemRatio(body) {
-  const { estimate } = parseEstimateSection(body);
+  const { estimate, section } = parseEstimateSection(body);
   if (
     !estimate ||
     !isPositive(estimate.tokensLow) ||
     !isPositive(estimate.tokensHigh)
   )
     return null;
-  const actual = ledgerActual([body])?.tokens ?? null;
+  // The done tally already counted every ledger the item carried, comments
+  // included, which a history fetch of bodies never sees. Trust its recorded
+  // actual (an unknown one stays unknown); read the body's ledger only for an
+  // item finished before tallies were recorded.
+  const recorded = parseActualToken(section);
+  const actual = recorded
+    ? recorded.tokens
+    : (ledgerActual([body])?.tokens ?? null);
   if (actual === null || !isPositive(actual)) return null;
   return actual / ((estimate.tokensLow + estimate.tokensHigh) / 2);
 }
