@@ -192,6 +192,13 @@ token parsing or markdown rendering in each caller.
 If the host write fails, preserve the exact error text in `error.message`. Do not collapse write
 failures into a generic "usage update failed."
 
+## Work-item estimates
+
+A work item's token estimate and recommended model live in their own managed `## Lisa Estimate`
+section, beside this ledger, never inside it. The contract, config (`workItem.estimate`) and
+pricing are in the [estimate reference](references/estimate.md); render and check the section
+with `node scripts/lisa-estimate.mjs`.
+
 ## Rules
 
 - Never invent a per-flow usage format. All usage-ledger writes go through this skill and the
