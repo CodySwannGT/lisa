@@ -98,6 +98,9 @@ describe("classifyHumanGateReason under each humanGate.mode", () => {
     "approve maintaining our own patched copy of minimatch",
     "approve maintaining our own vendored copy of tar",
     "approve applying a patch against picomatch",
+    "approve applying a patch to the @eslint-community/eslint-plugin-eslint-comments package",
+    "approve applying a patch to the eslint-plugin-react package",
+    "approve carrying a patch against @scope/some-lib",
     "approve applying a patch against the picomatch",
     "approve carrying a patch on minimatch",
     "approve applying a patch to the picomatch dependency",
@@ -128,6 +131,7 @@ describe("classifyHumanGateReason under each humanGate.mode", () => {
     "approve applying a patch to the picomatch",
     "approve applying a patch to picomatch",
     "apply a patch against the README",
+    "apply a patch to fix the package build",
   ])("does not read %j as our own dependency copy", reason => {
     expect(classifyHumanGateReason(reason).act).not.toBe("own-dependency-copy");
   });
