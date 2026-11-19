@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.0.4](https://github.com/CodySwannGT/lisa/compare/v7.0.3...v7.0.4) (2026-11-19)
+
+
+### Bug Fixes
+
+* **tests:** borrow node_modules entry by entry so fixtures never clear the checkout's Vitest cache ([9b7a307](https://github.com/CodySwannGT/lisa/commit/9b7a307190c69b0de405935b15134f3596135cad)), closes [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028) [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** keep this checkout's boundary when a caller names another, and close the scan's gaps ([a5d54c6](https://github.com/CodySwannGT/lisa/commit/a5d54c6132f7961ffa6c979bcaa8c64f0b3e00bc)), closes [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** make one module own every test symlink and resolve a foreign source itself ([42884e1](https://github.com/CodySwannGT/lisa/commit/42884e17dfed97a6ad608234cbcd7c65d7fafcc7)), closes [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** read only a `..` path segment as outside the checkout in linkForeignNodeModules ([991b014](https://github.com/CodySwannGT/lisa/commit/991b0142c210877e70b93deab4082ecf222ed301)), closes [#5036](https://github.com/CodySwannGT/lisa/issues/5036) [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028) [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** refuse every spelling of a link made outside the helper module ([c385fa9](https://github.com/CodySwannGT/lisa/commit/c385fa909860b80d390405b62d936ba5a6aae5e3)), closes [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** refuse every whole node_modules link and borrow the last two checkout links ([af315c5](https://github.com/CodySwannGT/lisa/commit/af315c56892c4a443840b0a78b0b499f3531263d)), closes [#5036](https://github.com/CodySwannGT/lisa/issues/5036) [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028) [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+* **tests:** refuse FileUtils.symlink, fork, execa and a verbatim-link copy outside the helper ([5c60730](https://github.com/CodySwannGT/lisa/commit/5c60730c4122c55febf89d99bf9a4a8ea2b5b3d2)), closes [CodySwannGT/lisa#5028](https://github.com/CodySwannGT/lisa/issues/5028)
+
 ### [7.0.3](https://github.com/CodySwannGT/lisa/compare/v7.0.2...v7.0.3) (2026-11-19)
 
 
