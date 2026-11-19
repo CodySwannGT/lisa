@@ -73,6 +73,20 @@ describe.each(SURFACES)("lisa-track estimate step on %s", surface => {
     expect(step).not.toContain("the equivalent search");
   });
 
+  it("scopes the Jira and Linear searches to this repository", () => {
+    expect(step).toContain('AND labels = \\"repo:<name>\\"');
+    expect(step).toContain(
+      "operation: list-issues team:<ID> label:repo:<name>"
+    );
+  });
+
+  it("reads each Linear candidate's full description before matching", () => {
+    expect(step).toContain("`operation: get-issue id:<ID>`");
+    expect(step).toMatch(
+      /a `## Lisa Estimate` section in that full description/
+    );
+  });
+
   it("reports the failed outcome and its reason in the result", () => {
     const skill = readFileSync(
       path.join(REPO_ROOT, surface, "lisa-track", "SKILL.md"),
@@ -94,9 +108,12 @@ describe("the operations the step names exist in their access layers", () => {
     expect(access("lisa-atlassian-access")).toContain("search-issues jql:");
   });
 
-  it("finds list-issues with label and state_type in lisa-linear-access", () => {
+  it("finds list-issues with label and state_type, and get-issue, in lisa-linear-access", () => {
     expect(access("lisa-linear-access")).toMatch(
       /operation: list-issues .*\[label:<NAME>\].*\[state_type:<arr>\]/
+    );
+    expect(access("lisa-linear-access")).toContain(
+      "operation: get-issue id:<ID>"
     );
   });
 });
