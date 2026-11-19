@@ -210,6 +210,7 @@ describe(CONFIRM, () => {
     writeJson(planFile, {
       ref: `${REPO}#1`,
       removed: [`${REPO}#9`, `${REPO}#11`],
+      edges: [`github-body||${REPO}#9`, `github-body||${REPO}#11`],
     });
     const result = run(
       sandbox,

@@ -352,9 +352,10 @@ Per cycle
   stale-links-pending
       Lists the stale-link comments still owed (confirmed removals whose
       comment has not posted yet). stdout {pending:[...]}.
-  stale-links-posted --ref <ref> [--failed]
-      Settles an item's pending comments after they post; --failed instead
-      counts one more failed try.
+  stale-links-posted --ref <ref> --removed <blocker,...> [--failed]
+      Settles the ONE pending comment with that ref and removed set after it
+      posts (an item can owe more than one); --failed instead counts one more
+      failed try for that comment.
   stale-links-report --input <file>
       {report,results[,planned]} -> {summary}: the cycle's stale-link line,
       built from verified results; planned-but-not-done and deferred items

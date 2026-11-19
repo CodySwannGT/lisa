@@ -191,6 +191,10 @@ export function adfText(node) {
  * @returns {number}
  */
 function githubOpenBlockers(issue, repo, options) {
+  // Blockers that could not be read hold the item: at least one.
+  if (issue.blockersUnreadable === true) {
+    return Math.max(1, count(issue.issue_dependencies_summary?.blocked_by));
+  }
   if (!Array.isArray(issue.nativeBlockers) && !issue.bodyBlockers) {
     return count(issue.issue_dependencies_summary?.blocked_by);
   }

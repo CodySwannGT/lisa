@@ -205,8 +205,8 @@ describe("verifyStaleLinkRemoval", () => {
       },
     ]);
     expect(addPending(owed, result, NOW)).toHaveLength(1);
-    expect(failedPending(owed, "ABC-1")[0]?.attempts).toBe(1);
-    expect(settlePending(owed, "ABC-1")).toEqual([]);
+    expect(failedPending(owed, "ABC-1", ["ABC-9"])[0]?.attempts).toBe(1);
+    expect(settlePending(owed, "ABC-1", ["ABC-9"])).toEqual([]);
     expect(addPending([], verify(before), NOW)).toEqual([]);
   });
 });

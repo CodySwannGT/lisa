@@ -163,7 +163,7 @@ const COMMANDS = {
   },
   "stale-links-posted": {
     run: staleLinksPosted,
-    options: { ref: text, failed: flag },
+    options: { ref: text, removed: text, failed: flag },
     positionals: 0,
   },
   "stale-links-report": {

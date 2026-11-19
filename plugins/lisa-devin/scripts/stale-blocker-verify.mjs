@@ -37,7 +37,7 @@ import {
  * @property {string[]} stillPresent - Planned removals still on the item
  * @property {string | null} comment - The comment for the confirmed removals only, or null
  * @property {object | null} commentAdf - The same as ADF for Jira, else null
- * @property {boolean} becameReady - A ready item that nothing holds any more
+ * @property {boolean} becameReady - A ready leaf item that nothing holds any more
  */
 
 /**
@@ -61,25 +61,36 @@ export function verifyStaleLinkRemoval(input) {
       `The read-back is ${item.ref}, but the plan is for ${input.plan.ref}.`
     );
   }
+  if (!item.relationsRead) {
+    // probe-direction: fail-closed — a read-back with no relation list would
+    // make every planned link look gone, so nothing is confirmed from it and
+    // the next cycle plans the removals again.
+    throw new Error(
+      `The read-back of ${item.ref} has no blocker relation list; read it with its links.`
+    );
+  }
   const present = new Set(item.edges.map(edge => edge.blockerRef));
   const confirmed = input.plan.removed.filter(ref => !present.has(ref));
   const stillPresent = input.plan.removed.filter(ref => present.has(ref));
   const done = new Set(confirmed);
   const render = input.plan.render ?? {};
+  // The removed links keep their planned reasons; everything still on the
+  // item is described as the read-back shows it now, the same read that
+  // decides `becameReady`.
+  const sorted = sortEdges(item, input.doneRoles, input.landedRoles);
   const comment =
     confirmed.length === 0
       ? null
       : formatStaleLinkComment(
           {
             stale: (render.stale ?? []).filter(e => done.has(e.blockerRef)),
-            real: render.real ?? [],
-            crossProject: render.crossProject ?? [],
-            inaccessible: render.inaccessible ?? [],
+            real: sorted.real,
+            crossProject: sorted.crossProject,
+            inaccessible: sorted.inaccessible,
           },
           input.poster,
           input.posterName
         );
-  const sorted = sortEdges(item, input.doneRoles, input.landedRoles);
   return {
     ref: item.ref,
     confirmed,
@@ -92,6 +103,7 @@ export function verifyStaleLinkRemoval(input) {
     becameReady:
       confirmed.length > 0 &&
       itemRoles(item, input.roles).ready &&
+      !item.container &&
       unresolvedCount(sorted) === 0,
   };
 }

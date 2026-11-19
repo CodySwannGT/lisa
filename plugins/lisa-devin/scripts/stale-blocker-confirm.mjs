@@ -25,6 +25,7 @@ import {
   itemPlan,
   itemRoles,
   normalizeStaleLinkItem,
+  edgeIdentity,
   sortEdges,
 } from "./stale-blocker-sweep.mjs";
 
@@ -32,9 +33,14 @@ import {
  * Why a planned removal is no longer made.
  * @param {string} blockerRef
  * @param {ReturnType<typeof sortEdges>} sorted
- * @returns {"blocker-not-resolved" | "link-already-gone"}
+ * @returns {"blocker-not-resolved" | "link-changed" | "link-already-gone"}
  */
 function skipReason(blockerRef, sorted) {
+  // Still stale, but not the relationship the plan named (a new native
+  // dependency in place of a planned body ref, say): left for the next plan.
+  if (sorted.stale.some(edge => edge.blockerRef === blockerRef)) {
+    return "link-changed";
+  }
   const present = [
     ...sorted.real,
     ...sorted.crossProject,
@@ -47,10 +53,24 @@ function skipReason(blockerRef, sorted) {
 }
 
 /**
+ * Why the whole item is left alone now, or "" when it is not.
+ * @param {ReturnType<typeof normalizeStaleLinkItem>} item
+ * @param {{ inBlocked: boolean }} roles
+ * @returns {"" | "item-closed" | "status-unknown" | "blocked-role"}
+ */
+function holdReason(item, roles) {
+  // The sweep is scoped to open items: one closed since the plan is not
+  // edited.
+  if (item.closed) return "item-closed";
+  if (!item.statusKnown) return "status-unknown";
+  return roles.inBlocked ? "blocked-role" : "";
+}
+
+/**
  * Rebuild one item's plan from a fresh read of the item and its blockers.
  * @param {{
  *   tracker: "github" | "jira" | "linear",
- *   plan: { ref: string, removed: readonly string[] },
+ *   plan: { ref: string, removed: readonly string[], edges?: readonly string[] },
  *   fresh: Record<string, any>,
  *   doneRoles: readonly string[],
  *   landedRoles?: readonly string[],
@@ -67,17 +87,30 @@ export function confirmStaleLinkPlan(input) {
       `The fresh read is ${item.ref}, but the plan is for ${input.plan.ref}.`
     );
   }
+  if (!item.relationsRead) {
+    // probe-direction: fail-closed — a read with no relation list cannot say
+    // which links are still there, so nothing is confirmed from it.
+    throw new Error(
+      `The fresh read of ${item.ref} has no blocker relation list; read it with its links.`
+    );
+  }
   const planned = new Set(input.plan.removed);
   const roles = itemRoles(item, input.roles);
-  if (!item.statusKnown || roles.inBlocked) {
-    const reason = item.statusKnown ? "blocked-role" : "status-unknown";
+  const hold = holdReason(item, roles);
+  if (hold) {
     return {
       plan: null,
-      skipped: [...planned].map(blocker => ({ blocker, reason })),
+      skipped: [...planned].map(blocker => ({ blocker, reason: hold })),
     };
   }
   const sorted = sortEdges(item, input.doneRoles, input.landedRoles);
-  const stale = sorted.stale.filter(edge => planned.has(edge.blockerRef));
+  // Only the planned relationships: a link added since the plan, even to the
+  // same blocker (a native dependency beside a planned body ref), was never
+  // authorized and stays.
+  const identities = new Set(input.plan.edges ?? []);
+  const stale = sorted.stale.filter(
+    edge => planned.has(edge.blockerRef) && identities.has(edgeIdentity(edge))
+  );
   const kept = new Set(stale.map(edge => edge.blockerRef));
   const skipped = [...planned]
     .filter(blocker => !kept.has(blocker))

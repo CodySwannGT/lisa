@@ -81,9 +81,10 @@ describe("stale-links-verify, pending, posted and report", () => {
     expect(owed.json.pending).toMatchObject([
       { ref: "ABC-1", removed: ["ABC-9"] },
     ]);
-    const failed = run(sandbox, [POSTED, "--ref", "ABC-1", "--failed"]);
+    const one = ["--ref", "ABC-1", "--removed", "ABC-9"];
+    const failed = run(sandbox, [POSTED, ...one, "--failed"]);
     expect(failed.json.pending[0].attempts).toBe(1);
-    run(sandbox, [POSTED, "--ref", "ABC-1"]);
+    run(sandbox, [POSTED, ...one]);
     expect(run(sandbox, ["stale-links-pending"]).json.pending).toEqual([]);
 
     const report = run(sandbox, [
@@ -103,6 +104,7 @@ describe("stale-links-verify, pending, posted and report", () => {
     const sandbox = makeSandbox({ extraConfig: { tracker: "jira" } });
     expect(run(sandbox, ["stale-links-verify"]).status).toBe(2);
     expect(run(sandbox, [POSTED]).status).toBe(2);
+    expect(run(sandbox, [POSTED, "--ref", "ABC-1"]).status).toBe(2);
     expect(run(sandbox, ["stale-links-report"]).status).toBe(2);
   });
 });

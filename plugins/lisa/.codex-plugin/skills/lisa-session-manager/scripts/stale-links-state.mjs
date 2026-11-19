@@ -7,13 +7,17 @@
  * - `stale-links-failures.json`: items whose planned removals did not
  *   happen, so the planner puts them after every other candidate.
  *
- * Both are replaced atomically. Only a missing file reads as empty.
+ * Both are replaced atomically. Only a missing file reads as empty. Every
+ * read-change-write of either file runs inside {@link withStateLock}, the
+ * ledger's cross-process lock, so two overlapping commands on one project
+ * root never drop each other's owed comment or failure count.
  * @module session-manager/stale-links-state
  */
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { CliError } from "./cli-runtime.mjs";
+import { withLedgerLock } from "./ledger-lock.mjs";
 
 /**
  * @param {string} root - Project root
@@ -22,6 +26,20 @@ import { CliError } from "./cli-runtime.mjs";
  */
 const stateFile = (root, name) =>
   path.join(root, ".lisa", "session-manager", name);
+
+/**
+ * Run one whole read-change-write of the stale-link state under the
+ * project root's lock.
+ * @template T
+ * @param {string} root - Project root
+ * @param {() => T | Promise<T>} operation - Reads, changes and writes
+ * @returns {Promise<T>}
+ */
+export async function withStateLock(root, operation) {
+  const target = stateFile(root, "stale-links-state");
+  mkdirSync(path.dirname(target), { recursive: true });
+  return withLedgerLock(target, undefined, async () => operation());
+}
 
 /**
  * @param {string} root - Project root

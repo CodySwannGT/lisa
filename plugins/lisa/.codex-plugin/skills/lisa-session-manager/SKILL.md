@@ -595,7 +595,7 @@ item held back only by them is claimable in this same cycle:
    own status is required: an item whose status is missing could be Blocked, so the plan leaves
    all its links alone and lists it in `report.unknownStatus`. Write `{"complete":true,"items":[...]}` to
    `.lisa/session-manager/stale-links-input.json` and run
-   `stale-links-plan --tracker jira|linear --input .lisa/session-manager/stale-links-input.json`.
+   `stale-links-plan --tracker jira|linear --input .lisa/session-manager/stale-links-input.json --project-root "$ROOT"`.
    The plan writes nothing. A blocker is stale when it is closed in its tracker or sits in the
    configured terminal done role (`.lisa.config.json`, never a hardcoded name). A blocker in an
    intermediate done rung (`status:on-dev`, `On Stg`) has merged to a non-production environment:
@@ -613,45 +613,52 @@ item held back only by them is claimable in this same cycle:
    reopened, or a person can edit the item, before you write. So first re-read the item **and
    every blocker it names**, then write that one entry to
    `.lisa/session-manager/stale-links-entry.json` and run
-   `stale-links-confirm --tracker github --plan .lisa/session-manager/stale-links-entry.json`
+   `stale-links-confirm --tracker github --plan .lisa/session-manager/stale-links-entry.json --project-root "$ROOT"`
    (GitHub re-reads the issue, each blocker and the comments itself). For Jira and Linear, put the
    fresh raw item, with its own status, each blocker's current status and the comments, in
    `.lisa/session-manager/stale-links-fresh.json` and add `--input` with that path. Its `plan`
    keeps only the links that are still stale: a reopened blocker is in `skipped` as
    `blocker-not-resolved` and keeps its link, a missing item status skips every link as
-   `status-unknown`, and the GitHub `body` is rebuilt from the fresh
+   `status-unknown`, an item closed since the plan skips as `item-closed`, only the planned links
+   themselves are kept (a link added since the plan, even to the same blocker, is never removed),
+   and the GitHub `body` is rebuilt from the fresh
    body, so a concurrent edit survives. When `plan` is null, write nothing for that item. Also
    skip it (one transcript line, no write) when it gained a person's assignee since the plan.
-   Then perform each of the confirmed plan's `actions` and nothing else:
+   Then perform each of the confirmed plan's `actions` and nothing else, straight away: no tracker
+   offers a conditional delete ("remove this link only if its blocker is still finished"), so the
+   seconds between this re-read and the write are the one window left in which a blocker reopened
+   by a person can lose its link. The comment then names what was true at the re-read, and a person
+   who puts the link back is never overruled (`report.keptByPerson`).
    - `delete-dependency` (GitHub): `gh api -X DELETE <endpoint>`.
    - `body` (GitHub, when not null): write it as the issue body through `lisa-tracker-write`. It
      differs from the fresh body only in the `Blocked by` refs it removes.
    - `unlink` (Jira): `lisa-atlassian-access` `operation: unlink link-id:<linkId>`.
    - `delete-relation` (Linear): `lisa-linear-access` `operation: delete-relation id:<relationId>`.
    Then **verify**: write the confirmed entry to `.lisa/session-manager/stale-links-entry.json` and
-   run `stale-links-verify --tracker <t> --plan .lisa/session-manager/stale-links-entry.json`
+   run `stale-links-verify --tracker <t> --plan .lisa/session-manager/stale-links-entry.json --project-root "$ROOT"`
    (GitHub reads the item back itself; Jira and Linear take the item as read back now in
-   `--input`). Its `confirmed` lists the removals the read-back shows gone and `stillPresent` the
+   `--input`; the read-back must carry the item's blocker relation list, or verify refuses it and
+   nothing is confirmed). Its `confirmed` lists the removals the read-back shows gone and `stillPresent` the
    ones that did not happen. Its `comment` (Jira: `commentAdf`, the same text as an ADF document,
    because Jira Cloud's REST v3 comment body is ADF) covers ONLY the confirmed removals, so a
    `[lisa-stale-blocker-link] blocker=<ref>` marker is never posted for a link that is still there:
    a failed or impossible deletion (for example an MCP-only substrate) leaves no marker, and the
    next cycle plans it again. When `comment` is null, post nothing. Otherwise the CLI has already
    recorded it as pending; post it through `lisa-tracker-write`, then run
-   `stale-links-posted --ref <ref>` (on a failed post, `stale-links-posted --ref <ref> --failed`;
+   `stale-links-posted --ref <ref> --removed <its confirmed, comma-separated> --project-root "$ROOT"` (on a failed post, add `--failed`;
    it stays pending). It also records any `stillPresent` removal for the next plan's ordering.
    Keep every verify output for step 4. A link that comes back after its marker
    was posted was put back by a person; the plan reports it in `report.keptByPerson` and never
    removes it again.
-3. **Retry owed comments.** Run `stale-links-pending`. For each entry, post its `comment` (Jira:
+3. **Retry owed comments.** Run `stale-links-pending --project-root "$ROOT"`. For each entry, post its `comment` (Jira:
    `commentAdf`) on its `ref` through `lisa-tracker-write`, on its own, whatever the new plan
-   says, and settle it with `stale-links-posted --ref <ref>` (`--failed` when it fails again). Its
+   says, and settle that one entry with `stale-links-posted --ref <ref> --removed <its removed, comma-separated> --project-root "$ROOT"` (`--failed` when it fails again). An item can owe more than one comment; each settles on its own. Its
    links are already gone, so no plan will ever see them again; this is the only place the
    operator's explanation for them still comes from.
 4. **Report.** The plan's `summary` describes intentions only ("planned", "would become ready"),
    so never report it as done. Write `{"report":<the plan's report>,"results":[<each verify
    output>]}` to `.lisa/session-manager/stale-links-results.json` and run
-   `stale-links-report --input .lisa/session-manager/stale-links-results.json`. Its `summary` is
+   `stale-links-report --input .lisa/session-manager/stale-links-results.json --project-root "$ROOT"`. Its `summary` is
    built from the verified results, with planned-but-not-done removals and deferred items counted
    separately, e.g. `stale links: cleared 12 stale blocker links on 7 items; 3 now ready to start;
    2 planned removals not done (retried next cycle); 4 items left for the next cycle; 29 real

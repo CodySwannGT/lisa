@@ -29,6 +29,7 @@ import { readJsonFile } from "./json-input.mjs";
 import {
   readFailures,
   readPending,
+  withStateLock,
   writeFailures,
   writePending,
 } from "./stale-links-state.mjs";
@@ -38,7 +39,7 @@ import {
  * @param {object} ctx - CLI context
  * @returns {{ json: object }} The verified result, plus `pending`
  */
-export function staleLinksVerify(ctx) {
+export async function staleLinksVerify(ctx) {
   const project = loadProject(ctx.root);
   const tracker = trackerOf(ctx, project);
   if (!ctx.values.plan) {
@@ -51,12 +52,15 @@ export function staleLinksVerify(ctx) {
     verifyStaleLinkRemoval({ tracker, plan, after, ...context })
   );
   const now = new Date().toISOString();
-  writeFailures(
-    ctx.root,
-    recordRemovalResult(readFailures(ctx.root), result, now)
-  );
-  const pending = addPending(readPending(ctx.root), result, now);
-  if (result.comment !== null) writePending(ctx.root, pending);
+  await withStateLock(ctx.root, () => {
+    writeFailures(
+      ctx.root,
+      recordRemovalResult(readFailures(ctx.root), result, now)
+    );
+    if (result.comment !== null) {
+      writePending(ctx.root, addPending(readPending(ctx.root), result, now));
+    }
+  });
   return { json: { ...result, pending: result.comment !== null } };
 }
 
@@ -74,15 +78,27 @@ export function staleLinksPending(ctx) {
  * @param {object} ctx - CLI context
  * @returns {{ json: object }} `{ref,pending}` after the update
  */
-export function staleLinksPosted(ctx) {
+export async function staleLinksPosted(ctx) {
   const ref = ctx.values.ref;
-  if (!ref) throw new CliError("stale-links-posted needs --ref <ref>.", 2);
-  const current = readPending(ctx.root);
-  const next = ctx.values.failed
-    ? failedPending(current, ref)
-    : settlePending(current, ref);
-  writePending(ctx.root, next);
-  return { json: { ref, pending: next } };
+  const removed = String(ctx.values.removed ?? "")
+    .split(",")
+    .map(one => one.trim())
+    .filter(Boolean);
+  if (!ref || removed.length === 0) {
+    throw new CliError(
+      "stale-links-posted needs --ref <ref> --removed <blocker,...> (the entry's `removed`).",
+      2
+    );
+  }
+  const next = await withStateLock(ctx.root, () => {
+    const current = readPending(ctx.root);
+    const updated = ctx.values.failed
+      ? failedPending(current, ref, removed)
+      : settlePending(current, ref, removed);
+    writePending(ctx.root, updated);
+    return updated;
+  });
+  return { json: { ref, removed, pending: next } };
 }
 
 /**

@@ -120,6 +120,10 @@ function staleLinkItem(ctx, repo, row, blocker) {
   return {
     repo: repo.toLowerCase(),
     number: row.number,
+    // Carried so confirm can skip an issue closed since the plan, and the
+    // ready claim can apply the queue's own container rule.
+    state: row.state ?? "",
+    sub_issues_summary: row.sub_issues_summary ?? null,
     body: row.body ?? "",
     labels: row.labels ?? [],
     nativeBlockers: enriched.nativeBlockers,

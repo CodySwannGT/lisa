@@ -326,16 +326,16 @@ export function canonicalGithubRef(token, repo) {
  * @returns {string[]} Unique refs, in body order
  */
 export function parseBlockedByRefs(body, repo) {
-  const refs = text(body)
-    .split("\n")
-    .flatMap(line => {
-      const match = BLOCKED_BY_LINE.exec(line);
-      if (!match) return [];
-      return match[2]
-        .split(REF_SEPARATOR)
-        .map(token => canonicalGithubRef(token, repo))
-        .filter(Boolean);
-    });
+  const lines = text(body).split("\n");
+  const fenced = fencedLines(lines);
+  const refs = lines.flatMap((line, index) => {
+    const match = fenced[index] ? null : BLOCKED_BY_LINE.exec(line);
+    if (!match) return [];
+    return match[2]
+      .split(REF_SEPARATOR)
+      .map(token => canonicalGithubRef(token, repo))
+      .filter(Boolean);
+  });
   return [...new Set(refs)];
 }
 
@@ -349,10 +349,11 @@ export function parseBlockedByRefs(body, repo) {
  */
 export function removeBlockedByRefs(body, refs, repo) {
   const drop = new Set(refs);
-  return text(body)
-    .split("\n")
-    .flatMap(line => {
-      const match = BLOCKED_BY_LINE.exec(line);
+  const lines = text(body).split("\n");
+  const fenced = fencedLines(lines);
+  return lines
+    .flatMap((line, index) => {
+      const match = fenced[index] ? null : BLOCKED_BY_LINE.exec(line);
       if (!match) return [line];
       const tokens = match[2].split(REF_SEPARATOR);
       const kept = tokens.filter(
@@ -362,6 +363,31 @@ export function removeBlockedByRefs(body, refs, repo) {
       return kept.length === 0 ? [] : [`${match[1]}${kept.join(", ")}`];
     })
     .join("\n");
+}
+
+/** A Markdown code-fence line: three or more backticks or tildes. */
+const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+
+/**
+ * Which lines sit inside a Markdown code fence (the fence lines included).
+ * Text in a fence is literal, so a `Blocked by` example there is neither a
+ * blocker nor something the sweep may edit. A fence closes on a line of the
+ * same character at least as long; an unclosed fence runs to the end, as
+ * GitHub renders it.
+ * @param {readonly string[]} lines
+ * @returns {boolean[]}
+ */
+function fencedLines(lines) {
+  let open = "";
+  return lines.map(line => {
+    const fence = FENCE.exec(line)?.[1] ?? "";
+    if (open === "") {
+      if (fence !== "") open = fence;
+      return fence !== "";
+    }
+    if (fence[0] === open[0] && fence.length >= open.length) open = "";
+    return true;
+  });
 }
 
 /**

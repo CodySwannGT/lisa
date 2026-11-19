@@ -42,6 +42,11 @@ import {
   markedBlockers,
   staleLinkCommentAdf,
 } from "./stale-blocker-comment.mjs";
+import {
+  normalizeGithubIssue,
+  normalizeJiraIssue,
+  normalizeLinearIssue,
+} from "./ready-queue-order.mjs";
 import { tallySweep } from "./stale-blocker-summary.mjs";
 
 export {
@@ -66,7 +71,8 @@ export {
  * @property {string} comment - The one operator comment, posted after read-back
  * @property {{ type: "doc", version: 1, content: object[] } | null} commentAdf - The same comment as ADF, for Jira; null elsewhere
  * @property {number} remainingBlockers - Links left that still hold the item (open or unreadable)
- * @property {boolean} becomesClaimable - A ready item with nothing left holding it
+ * @property {boolean} becomesClaimable - A ready leaf item with nothing left holding it
+ * @property {string[]} edges - The planned links by identity ({@link edgeIdentity})
  * @property {{ stale: {blockerRef: string, verdict: string}[], real: {blockerRef: string, verdict: string}[], crossProject: {blockerRef: string, verdict: string}[], inaccessible: {blockerRef: string, verdict: string}[] }} render - The judged links the comment describes
  */
 
@@ -83,9 +89,68 @@ const text = value => (typeof value === "string" ? value : "");
  * One raw item in the shape the plan judges.
  * @param {string} tracker - `github`, `jira` or `linear`
  * @param {Record<string, any>} raw
- * @returns {{ ref: string, project: string, names: string[], edges: object[], body: string, repo: string, comments: object[] }}
+ * @returns {{ ref: string, project: string, names: string[], edges: object[], body: string, repo: string, comments: object[], statusKnown: boolean, closed: boolean, relationsRead: boolean, container: boolean }}
  */
 export function normalizeStaleLinkItem(tracker, raw) {
+  return { ...itemShape(tracker, raw), ...itemFacts(tracker, raw) };
+}
+
+/** Linear state types that mean the item itself is finished. */
+const LINEAR_CLOSED_TYPES = new Set(["completed", "canceled"]);
+
+/**
+ * What the sweep needs to know about the item itself, beyond its links:
+ * - `closed`: finished since it was listed; confirm writes nothing to it.
+ * - `relationsRead`: the read carried its blocker relation list at all. A
+ *   read without one cannot show a link is gone, so nothing is confirmed
+ *   from it (a present but empty list is a real "none left").
+ * - `container`: the queue's own container rule, so "ready to start" means
+ *   what the queue will actually offer.
+ * @param {string} tracker
+ * @param {Record<string, any>} raw
+ * @returns {{ closed: boolean, relationsRead: boolean, container: boolean }}
+ */
+function itemFacts(tracker, raw) {
+  if (tracker === "github") {
+    const repo = text(raw?.repo).toLowerCase();
+    return {
+      closed: text(raw?.state).toLowerCase() === "closed",
+      relationsRead:
+        isList(raw?.nativeBlockers) &&
+        Boolean(raw?.bodyBlockers) &&
+        typeof raw.bodyBlockers === "object",
+      container:
+        normalizeGithubIssue(raw ?? {}, { repo })?.isContainer === true,
+    };
+  }
+  if (tracker === "jira") {
+    return {
+      closed: raw?.fields?.status?.statusCategory?.key === "done",
+      relationsRead: Array.isArray(raw?.fields?.issuelinks),
+      container: normalizeJiraIssue(raw ?? {}).isContainer === true,
+    };
+  }
+  return {
+    closed: LINEAR_CLOSED_TYPES.has(text(raw?.state?.type).toLowerCase()),
+    relationsRead: isList(raw?.inverseRelations),
+    container: normalizeLinearIssue(raw ?? {}).isContainer === true,
+  };
+}
+
+/**
+ * @param {unknown} value
+ * @returns {boolean} An array, or a `{nodes: [...]}` connection
+ */
+const isList = value =>
+  Array.isArray(value) || Array.isArray(/** @type {any} */ (value)?.nodes);
+
+/**
+ * The item's ref, project, status names, edges, body and comments.
+ * @param {string} tracker
+ * @param {Record<string, any>} raw
+ * @returns {{ ref: string, project: string, names: string[], edges: object[], body: string, repo: string, comments: object[], statusKnown: boolean }}
+ */
+function itemShape(tracker, raw) {
   if (tracker === "github") {
     const repo = text(raw?.repo).toLowerCase();
     return {
@@ -178,6 +243,14 @@ function removalAction(tracker, edge, item) {
 }
 
 /**
+ * One link's identity: where it lives and, for a vendor relation, its id.
+ * @param {{ blockerRef: string, source?: string, actionId?: string }} edge
+ * @returns {string}
+ */
+export const edgeIdentity = edge =>
+  [text(edge.source), text(edge.actionId), edge.blockerRef].join("|");
+
+/**
  * The parts of a judged edge the comment needs.
  * @param {{ blockerRef: string, verdict: string }} edge
  * @returns {{ blockerRef: string, verdict: string }}
@@ -233,7 +306,10 @@ export function itemPlan({ tracker, item, sorted, ready, poster, posterName }) {
       crossProject: sorted.crossProject.map(edge => judgedRef(edge)),
       inaccessible: sorted.inaccessible.map(edge => judgedRef(edge)),
     },
-    becomesClaimable: ready && holds === 0,
+    // The removals the confirm step may still make, by relationship, so a
+    // link added since the plan to the same blocker is never swept up.
+    edges: sorted.stale.map(edgeIdentity),
+    becomesClaimable: ready && holds === 0 && !item.container,
   };
 }
 

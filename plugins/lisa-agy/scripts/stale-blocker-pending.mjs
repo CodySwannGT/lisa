@@ -36,7 +36,8 @@
  * @param {{ ref: string, removed: readonly string[] }} entry
  * @returns {string} Identity of a pending comment
  */
-const keyOf = entry => `${entry.ref}|${[...entry.removed].sort().join(",")}`;
+const keyOf = entry =>
+  `${entry.ref}|${[...(entry.removed ?? [])].sort().join(",")}`;
 
 /**
  * Record the comment owed for one verified result. A result with nothing
@@ -63,24 +64,36 @@ export function addPending(pending, result, now) {
 }
 
 /**
- * Drop the comments now posted for an item.
+ * Drop the ONE comment that just posted: an item can owe more than one (a
+ * post failed, then a later cycle confirmed other removals), and each is
+ * identified by its item and its removed set, as {@link addPending} keys it.
  * @param {readonly PendingComment[]} pending
  * @param {string} ref
+ * @param {readonly string[]} removed - The posted comment's `removed`
  * @returns {PendingComment[]}
  */
-export const settlePending = (pending, ref) =>
-  (Array.isArray(pending) ? pending : []).filter(one => one.ref !== ref);
+export const settlePending = (pending, ref, removed) => {
+  const key = keyOf({ ref, removed });
+  return (Array.isArray(pending) ? pending : []).filter(
+    one => keyOf(one) !== key
+  );
+};
 
 /**
- * Count one more failed post for an item's pending comments.
+ * Count one more failed post for that one comment.
  * @param {readonly PendingComment[]} pending
  * @param {string} ref
+ * @param {readonly string[]} removed - The comment's `removed`
  * @returns {PendingComment[]}
  */
-export const failedPending = (pending, ref) =>
-  (Array.isArray(pending) ? pending : []).map(one =>
-    one.ref === ref ? { ...one, attempts: Number(one.attempts ?? 0) + 1 } : one
+export const failedPending = (pending, ref, removed) => {
+  const key = keyOf({ ref, removed });
+  return (Array.isArray(pending) ? pending : []).map(one =>
+    keyOf(one) === key
+      ? { ...one, attempts: Number(one.attempts ?? 0) + 1 }
+      : one
   );
+};
 
 /**
  * Items whose planned removals did not happen, by ref.

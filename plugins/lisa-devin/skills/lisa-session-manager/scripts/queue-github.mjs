@@ -70,10 +70,29 @@ function normalizeRows(ctx, project, repo, rows, keep = () => true) {
   return rows
     .filter(row => !row.pull_request && keep(row))
     .map(row =>
-      hasBlockers(row, repo) ? withBlockers(ctx, repo, row, blocker) : row
+      hasBlockers(row, repo) ? enrichOrHold(ctx, repo, row, blocker) : row
     )
     .map(row => normalizeGithubIssue(row, { repo, doneRoles, landedRoles }))
     .filter(Boolean);
+}
+
+/**
+ * Attach one row's blockers. A failed blocker read holds THAT row only: the
+ * rest of the queue is still offered.
+ * @param {object} ctx - CLI context
+ * @param {string} repo - `owner/repo`
+ * @param {Record<string, any>} row - REST issue
+ * @param {(ref: string) => object | null} blocker - Body-ref reader
+ * @returns {Record<string, any>} The enriched row, or the row marked unreadable
+ */
+function enrichOrHold(ctx, repo, row, blocker) {
+  try {
+    return withBlockers(ctx, repo, row, blocker);
+  } catch {
+    // probe-direction: fail-closed — an item whose blockers could not be read
+    // is held (`blockersUnreadable`), never released as unblocked.
+    return { ...row, blockersUnreadable: true };
+  }
 }
 
 /**
