@@ -94,7 +94,7 @@ describe("Jira", () => {
   it("writes one comment an operator can read, with a marker", () => {
     expect(plan.plans[0]?.comment).toBe(
       [
-        "[lisa-session-manager] Cleared waiting-on links. This was marked as waiting on ABC-9, which is finished. I removed the link. Nothing else changed. It is still waiting on ABC-8, which is not finished yet. I could not open ABC-7, so I left that link alone.",
+        "[lisa-session-manager] Cleared waiting-on links. This was marked as waiting on ABC-9, which is done or closed, so it cannot hold this up. I removed the link. Nothing else changed. It is still waiting on ABC-8, which is not finished yet. I could not open ABC-7, so I left that link alone.",
         "",
         `${STALE_LINK_MARKER} blocker=ABC-9`,
       ].join("\n")

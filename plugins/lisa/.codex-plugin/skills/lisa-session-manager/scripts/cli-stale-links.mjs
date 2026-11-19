@@ -27,6 +27,12 @@ import {
   readGithubStaleLinkItem,
 } from "./stale-links-github.mjs";
 
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+const text = value => (typeof value === "string" ? value : "");
+
 const TRACKERS = new Set(["github", "jira", "linear"]);
 const OWNER_REPO = /^[\w.-]+\/[\w.-]+$/;
 
@@ -114,7 +120,7 @@ function trackerOf(ctx, project) {
  * The configured roles and done names every sweep judges against.
  * @param {ReturnType<typeof loadProject>} project
  * @param {string} tracker
- * @returns {{ doneRoles: string[], roles: { ready: string, blocked: string } }}
+ * @returns {{ doneRoles: string[], roles: { ready: string, blocked: string }, posterName: string }}
  */
 function judgingContext(project, tracker) {
   return {
@@ -127,6 +133,8 @@ function judgingContext(project, tracker) {
       ready: roleValue(project, tracker, "ready"),
       blocked: roleValue(project, tracker, "blocked"),
     },
+    // The comment names the configured manager; the prefix stays the marker.
+    posterName: text(project.config?.name),
   };
 }
 

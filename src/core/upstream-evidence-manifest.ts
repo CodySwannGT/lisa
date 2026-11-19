@@ -1429,15 +1429,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/scoping-label-audit.mjs":
       "033f6f36dc4287a61f6af67d003b6f49b061af9c0944586a14832c64621905dd",
     "plugins/src/base/scripts/stale-blocker-comment.mjs":
-      "33190a8ee197dbe05861be54bf6bdf29685367b0479791797ee9a46ba76d5b93",
+      "45e2e264ed8d9db75c8f5e0e27abe792a1be64c8d9a23dcddab10324175ea295",
     "plugins/src/base/scripts/stale-blocker-confirm.mjs":
-      "8d5cdb4c8be8dcc05471f237625d5c2dbc3cfabe799c53f6f9a698a391f6590a",
+      "72af6d9e23bf0e2bfc76db8106538075a8d7b493611ff988b57535d157f8afac",
     "plugins/src/base/scripts/stale-blocker-edges.mjs":
       "650030b68a712dff988fe33770822b4319bfe5ba0492c0f9d6231ee99efea7f3",
     "plugins/src/base/scripts/stale-blocker-summary.mjs":
       "6fded304cc5c618beda57e62b6398cdd5a51cab6d17cd662e60d12e6cb082e5e",
     "plugins/src/base/scripts/stale-blocker-sweep.mjs":
-      "27d4415ff10236856bf9d8b5cd87aadb6de7e3bf701e185f47c3ccb89cdaa130",
+      "4bef9c55c33885aec053a1783075a3037d6152b844db0257c8bf6b05f9f68c91",
     "plugins/src/base/skills/lisa-acceptance-criteria/SKILL.md":
       "ddcb4f10b092f27bbff67782cc4472c3a3c8b8fa08507ee67ca5d1ea4f0f1a20",
     "plugins/src/base/skills/lisa-agent-design-best-practices/SKILL.md":
@@ -1519,7 +1519,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "08debbcc141242cd82f502286845e7d1ee63f86d06b8184e24ed9d9565d4ae7a",
+      "2c07a23f419442fc02dc5606ccd40692317e2b2886f19ebe86328e53f4b20c21",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1573,7 +1573,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
       "a00606cc7927f034e847f34d7e44e72fa7f3a14ddf6a469deb7eae1e06531fd7",
     "plugins/src/base/skills/lisa-jira-build-intake/SKILL.md":
-      "8f40cabbc27a0005563d0aaa4e1ed4e9a7a105670929496c0212a96aaa34751d",
+      "eb29f0d767450ae2ee472efbec8b3569066a1c19aae49168e7d2994a86d967ec",
     "plugins/src/base/skills/lisa-jira-claim/SKILL.md":
       "9c4935441a4e6b55df0949178f96e927184c4909bffff8929b39a304bc5ac00a",
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
@@ -1769,7 +1769,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "bee35b5e5290824f4d35bbea8ffec8b815c9c914b711f76e683d315820c9aee0",
+      "700e5105500aca76039695bd1e0cdb9373b4e4c8161b26db9bb92b037e6b5739",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f8a63378cdeb2acc70b53fa5b7c9e4510b2806b98eb27004d94b97817172d6db",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1797,7 +1797,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
       "4b125971939f6e99863930a109315038520c1bc8e0543d1e34476c9987d30605",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-stale-links.mjs":
-      "4276068206df3c4236ece5e710a06af7951416334bc0a96e94ea6175c7429943",
+      "ad416058b33a6526f4cf340f884d18ef7b504485838be7364aa625440604e739",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
@@ -14449,6 +14449,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli-setup.test.ts": true,
     "tests/unit/session-manager/cli-spawn-take.test.ts": true,
     "tests/unit/session-manager/cli-spawn-trust.test.ts": true,
+    "tests/unit/session-manager/cli-stale-links-readiness.test.ts": true,
     "tests/unit/session-manager/cli-stale-links.test.ts": true,
     "tests/unit/session-manager/cli-start-survival.test.ts": true,
     "tests/unit/session-manager/cli-status-other-cyclers.test.ts": true,

@@ -619,7 +619,8 @@ item held back only by them is claimable in this same cycle:
    - `unlink` (Jira): `lisa-atlassian-access` `operation: unlink link-id:<linkId>`.
    - `delete-relation` (Linear): `lisa-linear-access` `operation: delete-relation id:<relationId>`.
    Read the item back and confirm every ref in the confirmed `removed` is gone. Only then post its `comment` through
-   `lisa-tracker-write`: it is one plain-English comment carrying one
+   `lisa-tracker-write` (on Jira post `commentAdf`, the same text as an ADF document, because Jira
+   Cloud's REST v3 comment body is ADF): it is one plain-English comment carrying one
    `[lisa-stale-blocker-link] blocker=<ref>` marker per removed link, so a later cycle never comments
    twice. Post nothing when the read-back still shows a link; the next cycle retries it. A link
    that comes back after its marker was posted was put back by a person; the plan reports it in

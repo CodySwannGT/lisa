@@ -53,6 +53,7 @@ function skipReason(blockerRef, sorted) {
  *   doneRoles: readonly string[],
  *   roles: { ready?: string, blocked?: string },
  *   poster?: "session-manager" | "build-intake",
+ *   posterName?: string,
  * }} input - `fresh` is the raw item in the same shape the plan read it
  * @returns {{ plan: import("./stale-blocker-sweep.mjs").StaleLinkPlan | null, skipped: { blocker: string, reason: string }[] }}
  */
@@ -88,6 +89,7 @@ export function confirmStaleLinkPlan(input) {
       sorted: { ...sorted, stale },
       ready: roles.ready,
       poster: input.poster,
+      posterName: input.posterName,
     }),
     skipped,
   };

@@ -81,7 +81,7 @@ function removedSentences(stale) {
   const lines = [];
   if (finished.length > 0) {
     lines.push(
-      `This was marked as waiting on ${listOf(finished)}, which ${agree(finished, "is", "are")} finished.`
+      `This was marked as waiting on ${listOf(finished)}, which ${agree(finished, "is", "are")} done or closed, so ${agree(finished, "it", "they")} cannot hold this up.`
     );
   }
   if (cancelled.length > 0) {
@@ -101,16 +101,23 @@ function removedSentences(stale) {
  * The one comment an operator reads for this item's clean-up.
  * @param {{ stale: object[], real: object[], crossProject: object[], inaccessible: object[] }} sorted
  * @param {string} [poster] - A key of {@link STALE_LINK_POSTERS}
+ * @param {string} [posterName] - The configured name of who posts it (the
+ *   session manager's `sessionManager.name`), so the operator sees which
+ *   manager acted; the prefix stays the machine-read marker
  * @returns {string}
  */
-export function formatStaleLinkComment(sorted, poster = "session-manager") {
+export function formatStaleLinkComment(
+  sorted,
+  poster = "session-manager",
+  posterName = ""
+) {
   if (!Object.hasOwn(STALE_LINK_POSTERS, poster)) {
     throw new Error(
       `Unknown stale-link poster '${poster}'. Expected one of: ${Object.keys(STALE_LINK_POSTERS).join(", ")}.`
     );
   }
   const lines = [
-    `${STALE_LINK_POSTERS[poster]} Cleared waiting-on links.`,
+    `${STALE_LINK_POSTERS[poster]} ${posterName.trim() ? `${posterName.trim()} cleared` : "Cleared"} waiting-on links.`,
     ...removedSentences(sorted.stale),
   ];
   const open = unique([
@@ -131,4 +138,26 @@ export function formatStaleLinkComment(sorted, poster = "session-manager") {
   return [lines.join(" "), "", ...unique(sorted.stale).map(markerLine)].join(
     "\n"
   );
+}
+
+/**
+ * The comment as an Atlassian Document Format document. Jira Cloud's REST v3
+ * comment endpoint takes ADF, not a string, so a Jira plan posts this: one
+ * paragraph per non-empty line, so each marker stays on its own line and
+ * {@link markedBlockers} finds it again through `adfText`.
+ * @param {string} comment - From {@link formatStaleLinkComment}
+ * @returns {{ type: "doc", version: 1, content: object[] }}
+ */
+export function staleLinkCommentAdf(comment) {
+  return {
+    type: "doc",
+    version: 1,
+    content: comment
+      .split("\n")
+      .filter(line => line.trim() !== "")
+      .map(line => ({
+        type: "paragraph",
+        content: [{ type: "text", text: line }],
+      })),
+  };
 }

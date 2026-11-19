@@ -38,6 +38,7 @@ import {
 import {
   formatStaleLinkComment,
   markedBlockers,
+  staleLinkCommentAdf,
 } from "./stale-blocker-comment.mjs";
 import { tallySweep } from "./stale-blocker-summary.mjs";
 
@@ -46,6 +47,7 @@ export {
   STALE_LINK_POSTERS,
   formatStaleLinkComment,
   markerLine,
+  staleLinkCommentAdf,
 } from "./stale-blocker-comment.mjs";
 export { summarizeStaleLinkSweep } from "./stale-blocker-summary.mjs";
 
@@ -57,6 +59,7 @@ export { summarizeStaleLinkSweep } from "./stale-blocker-summary.mjs";
  * @property {string | null} body - GitHub body with the stale refs taken out, or null
  * @property {string[]} removed - Blocker refs whose links go
  * @property {string} comment - The one operator comment, posted after read-back
+ * @property {{ type: "doc", version: 1, content: object[] } | null} commentAdf - The same comment as ADF, for Jira; null elsewhere
  * @property {number} remainingBlockers - Links left that still hold the item (open or unreadable)
  * @property {boolean} becomesClaimable - A ready item with nothing left holding it
  */
@@ -166,14 +169,15 @@ export const unresolvedCount = sorted =>
 
 /**
  * The plan for one item with at least one stale edge.
- * @param {{ tracker: string, item: ReturnType<typeof normalizeStaleLinkItem>, sorted: ReturnType<typeof sortEdges>, ready: boolean, poster?: string }} input
+ * @param {{ tracker: string, item: ReturnType<typeof normalizeStaleLinkItem>, sorted: ReturnType<typeof sortEdges>, ready: boolean, poster?: string, posterName?: string }} input
  * @returns {StaleLinkPlan}
  */
-export function itemPlan({ tracker, item, sorted, ready, poster }) {
+export function itemPlan({ tracker, item, sorted, ready, poster, posterName }) {
   const bodyRefs = sorted.stale
     .filter(edge => edge.source === "github-body")
     .map(edge => edge.blockerRef);
   const holds = unresolvedCount(sorted);
+  const comment = formatStaleLinkComment(sorted, poster, posterName);
   return {
     ref: item.ref,
     actions: sorted.stale
@@ -184,7 +188,9 @@ export function itemPlan({ tracker, item, sorted, ready, poster }) {
         ? removeBlockedByRefs(item.body, bodyRefs, item.repo)
         : null,
     removed: [...new Set(sorted.stale.map(edge => edge.blockerRef))],
-    comment: formatStaleLinkComment(sorted, poster),
+    comment,
+    // Jira Cloud's REST v3 comment body is ADF; the other trackers take text.
+    commentAdf: tracker === "jira" ? staleLinkCommentAdf(comment) : null,
     remainingBlockers: holds,
     becomesClaimable: ready && holds === 0,
   };
@@ -214,6 +220,7 @@ export function itemRoles(item, roles) {
  *   roles: { ready?: string, blocked?: string },
  *   max?: number,
  *   poster?: "session-manager" | "build-intake",
+ *   posterName?: string,
  * }} input
  * @returns {{ plans: StaleLinkPlan[], deferred: string[], report: import("./stale-blocker-summary.mjs").StaleLinkReport }}
  */
@@ -235,7 +242,12 @@ export function planStaleLinkSweep(input) {
     );
   const taken = candidates.slice(0, Math.max(0, max));
   const plans = taken.map(entry =>
-    itemPlan({ tracker: input.tracker, ...entry, poster: input.poster })
+    itemPlan({
+      tracker: input.tracker,
+      ...entry,
+      poster: input.poster,
+      posterName: input.posterName,
+    })
   );
   const deferred = candidates.slice(taken.length).map(entry => entry.item.ref);
   return { plans, deferred, report: tallySweep(judged, plans, deferred) };
