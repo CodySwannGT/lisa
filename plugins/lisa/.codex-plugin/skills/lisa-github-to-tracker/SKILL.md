@@ -158,7 +158,7 @@ This skill is a **PRD source** (GitHub Issues). Destination tracker resolution i
 | `E2E_BASE_URL` | Frontend base URL for Playwright tests | `https://dev.example.io/` |
 | `E2E_GRAPHQL_URL` | GraphQL API URL for curl verification | `https://gql.dev.example.io/graphql` |
 
-If env vars are not available, ask the user to provide them explicitly before proceeding. Do not retrieve credentials from repository files or local agent settings.
+If env vars are not available, resolve them through `lisa-secrets-access`. One that still does not resolve is missing access: stop and name each missing variable. Do not retrieve credentials from repository files or local agent settings.
 
 ## Workflow
 
@@ -391,7 +391,7 @@ Invoke `lisa-prd-backlink` with:
 - `tickets`: the full list created in Phases 3–5, each entry as `{ key, title, type, url, parent_key, requirements }` — `requirements` is the list of Phase 1.4 register ids the ticket satisfies (empty for derived work)
 - `requirement_register`: the Phase 1.4 register (`{ id, verbatim_text, section_heading }` entries), so the back-link section can render the requirement → tickets view
 
-If `lisa-prd-backlink` fails (permission denied, GitHub unreachable, issue locked), surface the error in the Phase 6 report rather than aborting — the tickets are already created. Recommend the user re-run `lisa-prd-backlink` standalone once the source is reachable.
+If `lisa-prd-backlink` fails (permission denied, GitHub unreachable, issue locked), surface the error in the Phase 6 report rather than aborting — the tickets are already created. File one build-ready ticket to re-run `lisa-prd-backlink` standalone for this PRD once the source is reachable (it is idempotent) and link it in the report; when the cause is missing access, name exactly what is unreachable.
 
 ## Handling Ambiguities and Blockers
 

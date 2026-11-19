@@ -68,7 +68,7 @@ Resolve the team ID for `linear.teamKey` via `lisa-linear-access operation: list
 
 ## Phase 2 — Gather Required Inputs
 
-Required fields (stop and ask if missing — never invent values):
+Required fields. Derive a missing one from config, the caller's spec and the evidence, and record any default you choose; never invent a value nothing grounds. If one still cannot be grounded, refuse the write naming the field, so the caller's blocked exit carries it — do not stop to ask a person:
 
 | Field | Required For | Notes |
 |-------|--------------|-------|
@@ -453,7 +453,7 @@ searching the repository you happen to be standing in is the wrong search.
 - Never skip relationship discovery — both the git history search AND the Linear MCP search must run, and their outcomes must be recorded on the item. "None found" is acceptable only when it's documented.
 - Never create a Bug, Task, or Sub-task that spans multiple repos. Split it before creating.
 - Never include a runtime-behavior item without a target backend environment, and never include an authenticated-surface item without sign-in credentials in the description.
-- Never invent custom field values. If the team requires a field you don't have, stop and ask.
+- Never invent custom field values. If the team requires a field you don't have, use its configured default or the value the item's evidence grounds; otherwise refuse the write naming the field.
 - Never overwrite a description without reading the current version first.
 - Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
   section or silently drop ledger rows.

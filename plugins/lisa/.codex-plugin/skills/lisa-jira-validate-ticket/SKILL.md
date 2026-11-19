@@ -524,7 +524,7 @@ The verdict is `PASS` if and only if every applicable gate is `PASS`. Any `FAIL`
 ## Rules
 
 - Never write to JIRA. This skill only invokes `lisa-atlassian-access` with read-only operations (`read-ticket`, `search-issues`, `list-sites`); it never calls write operations (`write-ticket`, `transition`, `comment`, `link`).
-- Never auto-fix the spec. This skill reports gaps; callers decide what to do (block, ask the human, regenerate the spec).
+- Never auto-fix the spec. This skill reports gaps; callers decide what to do (fix and regenerate the spec, or block it at the gate).
 - Never silently skip a gate. If a gate genuinely doesn't apply, return `N/A` with the reason; never omit it.
 - The `what` and `recommendation` fields must be concrete and product-readable — the dry-run path turns each failure into a Notion comment, and the audience for those comments is the product team, not engineers. Vague guidance ("clarify this", "decide how to handle X") is useless; always give 1–3 candidate resolutions.
 - Never emit a category outside the fixed set. If a new gate doesn't fit, propose adding the category to the taxonomy in this skill rather than inventing one inline.
