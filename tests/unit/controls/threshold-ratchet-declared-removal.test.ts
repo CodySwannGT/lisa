@@ -16,7 +16,7 @@
  *
  * Imported STATICALLY and by relative path for the reason
  * `threshold-ratchet.test.ts` documents.
- * @module tests/unit/scripts/threshold-ratchet-declared-removal
+ * @module tests/unit/controls/threshold-ratchet-declared-removal
  */
 import { describe, expect, it } from "vitest";
 

@@ -11,7 +11,7 @@
  *
  * Imported STATICALLY and by relative path for the reason
  * `threshold-ratchet.test.ts` documents.
- * @module tests/unit/scripts/threshold-ratchet-declared-exception
+ * @module tests/unit/controls/threshold-ratchet-declared-exception
  */
 import { describe, expect, it } from "vitest";
 
@@ -42,7 +42,11 @@ const AFTER_EXPIRY = Date.UTC(2026, 5, 16, 0, 0, 0);
 
 const REASON = "Coverage tool being replaced; resolved when the new one lands.";
 
-/** How every refusal says which exception entry would cover it. */
+/**
+ * How every refusal says which exception entry would cover it.
+ * @param key - The key the exception entry would carry
+ * @returns The sentence every refusal ends with
+ */
 const exceptionFor = (key: string): string =>
   ` If a person decides this loosening is right, they record an exception under thresholdRatchet.allow with "file": "${LISA_CONFIG_FILE}" and "key": "${key}".`;
 
@@ -55,7 +59,10 @@ function entry(key: string = thresholdKey()) {
   return { file: LISA_CONFIG_FILE, key, reason: REASON, until: UNTIL_DAY };
 }
 
-/** The floor lowered from 60 to 55: one finding. */
+/**
+ * The floor lowered from 60 to 55: one finding.
+ * @returns The findings the comparison reports
+ */
 function loweredFloor() {
   return compareFile(LISA_CONFIG_FILE, floorAt(60), floorAt(55));
 }

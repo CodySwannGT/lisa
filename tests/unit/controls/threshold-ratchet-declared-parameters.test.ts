@@ -15,7 +15,7 @@
  * Imported STATICALLY and by relative path for the reason
  * `threshold-ratchet.test.ts` documents: a runtime-assembled URL is invisible
  * to Vite's module graph and drops the ratchet's mutants out of the gate.
- * @module tests/unit/scripts/threshold-ratchet-declared-parameters
+ * @module tests/unit/controls/threshold-ratchet-declared-parameters
  */
 import { describe, expect, it } from "vitest";
 
