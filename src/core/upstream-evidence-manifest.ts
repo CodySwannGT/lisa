@@ -457,7 +457,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/eslint.slow.config.ts":
       "6e12ea8f0a7847a2552e398e626b718ae26ebde22f252abfb95381cc529c5733",
     "cdk/copy-overwrite/knip.json":
-      "6f493393033c7585b35bfdb94bb278006dc4c91799431b84114cadb85e158b4d",
+      "40336295aaffb49b06bf94f309bc827e589ee82c1b7454eeea37548eaa8f7d56",
     "cdk/copy-overwrite/tsconfig.cdk.json":
       "7d62683ed6f67dd3453ef577e0e0251a22d82159b5b5c0e79a0315059bf36571",
     "cdk/copy-overwrite/tsconfig.eslint.json":
@@ -558,12 +558,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "1d30dac09405c41e23f6212553abacea478d7759b69c18edac0c0053f00e0d37",
     "expo/copy-overwrite/eslint.config.ts":
       "bb02718e1a809151c282d5fc54a1b570fe1cc86236dc1e5f2bcb570b06a22baa",
-    "expo/copy-overwrite/eslint.expo.ts":
-      "ddb517c107220214bf893c84b405ca65b7476102fed82a15617ad82002544eca",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "3189a36471d596f5d4c3ed43484a9b7a5d33ef27b4d0fdb93007b823cec6cad0",
     "expo/copy-overwrite/jest.config.ts":
-      "b58454a9cf55cf5c1449457fe8eae8390471c57787bdee05b5e34710aa89950a",
+      "5d956842719e38c6fe775b0ab6a5a284ba689f2864a8774948dbaf4d0b0fa93d",
     "expo/copy-overwrite/jest.expo.ts":
       "e6d7dffc4c83fccc02e0b2d2a52e10de30c8c00a12de44184e960bd6155edcd6",
     "expo/copy-overwrite/jest.setup.pre.js":
@@ -571,9 +569,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/jest.setup.ts":
       "826ab9387f73b19f1faa2ee4263344a64f6fa34fa872ba1162fef9d81406e556",
     "expo/copy-overwrite/knip.json":
-      "a9b709d8018453179467ec0ebf2855dd84d2de0e77c55a3e6bcb368482d791de",
+      "573887f87463b4e35b8a6025ad989cf25cb04811a93a298efbfe8e36458f84fa",
     "expo/copy-overwrite/plugins/withAndroidSplashNoClientExit.js":
-      "8e3cad4fcbd7e0a97b30cd2f68882740c74b690dd44473d925479ca5d3754a84",
+      "eeec78d335e6db75e58bd2116ba51f3bd6dc519e61d586f8bfa3821e8ff9448c",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
       "70cc3e07214450b50376274629870eac8b37b16f2a0c26fc1e02bfc33aba8169",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
@@ -683,7 +681,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/tsconfig.local.json":
       "dad4b4a00c890ce8c30db87ad3f8e92e2273e31c2c2a6436d0ab327b47f72758",
     "expo/deletions.json":
-      "23a96024eafeb4405588c3f39c1c9325f45bd94d365b4a3919f6c7646c561035",
+      "d968e902b82b35202d22e7513b4647a4298ac76185872234bcbe13a1a9c2715f",
     "expo/github-rulesets/bdd-coverage.json":
       "e97e53f48abc255a1a200c63fcea0cf2353b795248d126155041347908815386",
     "expo/github-rulesets/nightly-e2e-health.json":
@@ -693,7 +691,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "01f5c9478d6546d9ec39a7f4cc097e4980328f427dc3d3dd0976b7b91fc5dec4",
+      "8e55b9ea051bb648b669174458b37607fcf8221e819083ea70b7c67a9e7630e8",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -741,7 +739,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/copy-overwrite/eslint.slow.config.ts":
       "602a21f47370a0a947e92bced1b93bf8fa4c146e07c944ffe1d56ef50914a688",
     "nestjs/copy-overwrite/knip.json":
-      "a20cb616264cf63e5792c84bd8a03cde5f5013d822cbc5cd2a246cfa807c7a7f",
+      "edcd604d52cefcf584a4c15bb20eb474b4e2e989c4ffe04c04fd60d4e21c90fe",
     "nestjs/copy-overwrite/tsconfig.build.json":
       "c914ee7550d89c0946253bf5002086a306d061b150f4d4519ba8fecd78a63c87",
     "nestjs/copy-overwrite/tsconfig.eslint.json":
@@ -2163,7 +2161,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/journey-guidance/SKILL.md":
       "50fd01dcc177c0992b39d49f97a0a39c480422ec3c4547c26f402b28544b637a",
     "plugins/src/expo/skills/knip-platform-files/SKILL.md":
-      "aec02970fe14a8cf72c6c5fde7349df9a9973b38b20b15b21efb75dcda4ccecf",
+      "0acef71e3dbcea4ca175897f74a6d2ee985d3a9f309305e05cd06a21fca664ac",
     "plugins/src/expo/skills/local-state/SKILL.md":
       "39a16fdeab3c96f236376e587d060790e0c52c8689553c53dc9e1284e5155d46",
     "plugins/src/expo/skills/local-state/references/async-storage.md":
@@ -3127,7 +3125,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/eslint.slow.config.ts":
       "9f0efef2d1012e21a1d5e03eb98634bfeb459e3427147d75ad6905acbbab8466",
     "typescript/copy-overwrite/knip.json":
-      "a20cb616264cf63e5792c84bd8a03cde5f5013d822cbc5cd2a246cfa807c7a7f",
+      "839a7468918284c7def9f69706c625043f5148a33d43a7e43eee0d73b57ed846",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "df39aa29b19817f67726107fec45078ce639f14a682cf6d5587ba37617f31ac9",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
@@ -3186,8 +3184,6 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9194ea9f5d7696a5354022475774813aebde504bbf53a4fecbe1e97f2af75b2b",
     "typescript/create-only/eslint.thresholds.json":
       "a89afdbd12c2e2a2564e83cfe7a5c5ba8d4da3eb02bc476b19f18c2a0bda7228",
-    "typescript/create-only/jest.config.local.ts":
-      "5d5603e5b79ab0379cda135159ad83aef3ec914fa037c83fc7176363b64c8422",
     "typescript/create-only/jest.thresholds.json":
       "ce04fe30ad6139f734dbc56d92a801c11cfd86a0d9e49c06c1c2d0a137beeffd",
     "typescript/create-only/mutation.gate.json":
@@ -4296,7 +4292,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/cursor-rule-probe-1055.md": true,
     "expo/copy-overwrite/.easignore.extra": true,
     "expo/copy-overwrite/eslint.config.ts": true,
-    "expo/copy-overwrite/eslint.expo.ts": true,
     "expo/copy-overwrite/eslint.slow.config.ts": true,
     "expo/copy-overwrite/jest.config.ts": true,
     "expo/copy-overwrite/jest.expo.ts": true,
@@ -12127,6 +12122,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/rollup-classifier-ladder-harness.ts": true,
     "tests/helpers/sentry-release-harness.ts": true,
     "tests/helpers/shipped-mjs-roster.ts": true,
+    "tests/helpers/stack-templates.ts": true,
     "tests/helpers/staged-dependency-scan.ts": true,
     "tests/helpers/stderr-sync.ts": true,
     "tests/helpers/supervised-unix-fixture.ts": true,
@@ -14798,7 +14794,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/create-only/audit.ignore.local.json": true,
     "typescript/create-only/eslint.config.local.ts": true,
     "typescript/create-only/eslint.thresholds.json": true,
-    "typescript/create-only/jest.config.local.ts": true,
     "typescript/create-only/jest.thresholds.json": true,
     "typescript/create-only/mutation.gate.json": true,
     "typescript/create-only/stryker.conf.json": true,
