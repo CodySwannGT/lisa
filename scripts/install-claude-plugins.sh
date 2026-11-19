@@ -12,7 +12,7 @@ if [[ "${npm_lifecycle_event:-}" = "postinstall" ||
   # Say plainly that no Claude Code plugin was registered (#4504): install is
   # hands-off by design (#4135), so a fresh clone has no Lisa commands until
   # an explicit `lisa apply .` registers them for this folder.
-  echo 'lisa: installation leaves unrelated project templates unchanged, and Claude Code plugins are not registered by dependency install. Run `lisa apply .` in this project to register them and apply updates, or `lisa doctor` to check freshness.'
+  echo "lisa: installation leaves unrelated project templates unchanged, and Claude Code plugins are not registered by dependency install. Run \`lisa apply .\` in this project to register them and apply updates, or \`lisa doctor\` to check freshness."
   exit 0
 fi
 
@@ -71,7 +71,9 @@ detect_lisa_stack() {
 CODEX_RETIRE_MARKER="$HOME/.codex/.lisa-legacy-plugins-retired"
 
 write_codex_retire_marker() {
-  mkdir -p "$HOME/.codex" 2>/dev/null && touch "$CODEX_RETIRE_MARKER" 2>/dev/null || true
+  if mkdir -p "$HOME/.codex" 2>/dev/null; then
+    touch "$CODEX_RETIRE_MARKER" 2>/dev/null || true
+  fi
 }
 
 remove_user_wide_codex_lisa_plugins() {
@@ -405,9 +407,9 @@ fi
 # own marker is recorded so repeat installs (and health's root-confined
 # marker probe) see the settled state without reaching outside the project.
 if [ "$IS_LINKED_WORKTREE" = "true" ] && [ "$FORCE_PLUGIN_SYNC" != "true" ]; then
-  mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null \
-    && printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null \
-    || true
+  if mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null; then
+    printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null || true
+  fi
   echo "Lisa plugins already in sync for ${LISA_VERSION} (primary checkout: ${PRIMARY_ROOT}); deferring worktree plugin registration to the coding agent's startup."
   exit 0
 fi
@@ -632,9 +634,9 @@ fi
 # the primary checkout would let the primary skip the forced reinstall it
 # still needs after a version bump.
 if [ -n "$LISA_VERSION" ]; then
-  mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null \
-    && printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null \
-    || true
+  if mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null; then
+    printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null || true
+  fi
 fi
 
 # A failed template apply fails this lifecycle script (CodySwannGT/lisa#3466).

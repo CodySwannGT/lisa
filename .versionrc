@@ -41,6 +41,6 @@
   ],
   "commit-all": true,
   "scripts": {
-    "postbump": "bash scripts/build-plugins.sh && node scripts/generate-nightly-e2e-guard-certificate.mjs && git add plugins/lisa plugins/lisa-* src/core/nightly-e2e-guard-behavior-certificate.ts && node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits && node scripts/check-release-commit-listed.mjs && git add src/core/upstream-evidence-manifest.ts"
+    "postbump": "bash scripts/build-plugins.sh && node scripts/generate-nightly-e2e-guard-certificate.mjs && git add plugins/lisa plugins/lisa-* src/core/nightly-e2e-guard-behavior-certificate.ts && node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits && node scripts/check-release-commit-listed.mjs && git add src/core/upstream-evidence-manifest.json"
   }
 }

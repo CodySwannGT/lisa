@@ -60,7 +60,8 @@
 import { randomBytes } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { env, pid } from "node:process";
+import { pid } from "node:process";
+import { currentEnvironment } from "../../utils/process-environment.js";
 
 /** Prefix of every run directory name, `run-<pid>-<startedAt>-<suffix>`. */
 const RUN_DIRECTORY_PREFIX = "run-";
@@ -316,7 +317,7 @@ const pinned: { current: string | undefined } = { current: undefined };
  * @returns A value for Vitest's `coverage.reportsDirectory`.
  */
 export function coverageReportsDirectory(
-  environment: NodeJS.ProcessEnv = env
+  environment: NodeJS.ProcessEnv = currentEnvironment()
 ): string {
   const override = environment[COVERAGE_REPORTS_DIR_ENV];
   if (override !== undefined && override.trim() !== "") return override;

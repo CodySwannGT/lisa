@@ -4,12 +4,14 @@
  */
 import { execFile } from "node:child_process";
 
+import { spawnTarget } from "../utils/resolve-executable.js";
+
 /**
  * Run `gh` without a shell and return stdout.
  *
  * Exported so every `gh` read in the CLI goes through one shell-free call site.
- * A second one would mean a second place to get argument handling and the
- * command-from-PATH exemption right.
+ * A second one would mean a second place to get argument handling and
+ * executable resolution right.
  * @param args - gh argv after the executable
  * @param cwd - Working directory
  * @param timeoutMs - Child-process timeout
@@ -23,12 +25,19 @@ export function runGh(
   signal: AbortSignal
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const ghExecutable = "gh";
+    // Throws ExecutableNotFoundError (code ENOENT) when gh is not installed;
+    // inside the executor that rejects, exactly as execFile's ENOENT did.
+    const gh = spawnTarget("gh", args);
     execFile(
-      // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed gh executable
-      ghExecutable,
-      [...args],
-      { cwd, signal, timeout: timeoutMs, encoding: "utf8" },
+      gh.file,
+      [...gh.args],
+      {
+        cwd,
+        signal,
+        timeout: timeoutMs,
+        encoding: "utf8",
+        windowsVerbatimArguments: gh.windowsVerbatimArguments,
+      },
       (error, stdout) => {
         if (error !== null) {
           reject(error);

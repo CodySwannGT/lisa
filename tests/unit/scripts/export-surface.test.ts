@@ -9,6 +9,7 @@ import { resolveGit } from "../../support/git-executable.js";
 
 import {
   changelogSection,
+  confirmedRemovals,
   currentSurface,
   exportedNames,
   parseArtifact,
@@ -71,10 +72,10 @@ describe("reading exports out of a module", () => {
     ]);
   });
 
-  it("ignores an export that is not a declaration at line start", () => {
+  it("ignores an export that is text, not a declaration", () => {
     // A mention inside a string or a comment is not part of the surface, and
     // counting it would make the artifact drift from the module for reasons no
-    // reader could see.
+    // reader could see. Indentation is irrelevant: the syntax tree decides.
     const source = [
       "// export const Commented = 1;",
       'const doc = "export const Quoted = 1;";',
@@ -82,22 +83,51 @@ describe("reading exports out of a module", () => {
       "export const Real = 1;",
     ].join("\n");
 
-    expect(exportedNames(source)).toEqual(["Real"]);
+    expect(exportedNames(source)).toEqual(["Indented", "Real"]);
   });
 
-  it("ignores a BRACE LIST that is not at line start", () => {
-    // Found by mutation: the line-start case above covered only the
-    // declaration regex, so dropping the anchor from the brace-list regex
-    // survived. An indented or quoted `export { … }` is not part of the
-    // surface either, and counting it would put names in the artifact that no
-    // consumer can import.
+  it("ignores an export written at line start inside a template string", () => {
+    // The regex reader counted these: a generator that renders a module from
+    // a template put the RENDERED module's names on its own surface, and a
+    // later rewrite of that template then read as a removed public export
+    // (CodySwannGT/lisa#4929).
+    const source = [
+      "export function render(rows) {",
+      "  return `",
+      "export const UPSTREAM_MANIFEST = Object.freeze({",
+      "${rows}",
+      "});",
+      "export { Rendered };",
+      "`;",
+      "}",
+    ].join("\n");
+
+    expect(exportedNames(source)).toEqual(["render"]);
+  });
+
+  it("reads destructured bindings and drops default", () => {
+    const source = [
+      "export const { first, second: renamed } = config;",
+      "export const [head, , tail] = list;",
+      "export default function main() {}",
+      "const local = 1;",
+      "export { local as default };",
+    ].join("\n");
+
+    expect(exportedNames(source)).toEqual(["first", "head", "renamed", "tail"]);
+  });
+
+  it("ignores a BRACE LIST that is text, not a declaration", () => {
+    // A quoted or commented `export { … }` is not part of the surface, and
+    // counting it would put names in the artifact that no consumer can import.
     const source = [
       'const doc = "export { Quoted };";',
+      "// export { Commented };",
       "  export { Indented };",
       "export { Real };",
     ].join("\n");
 
-    expect(exportedNames(source)).toEqual(["Real"]);
+    expect(exportedNames(source)).toEqual(["Indented", "Real"]);
   });
 
   it("reads a MULTILINE brace list, which the line-at-a-time reader could not see", () => {
@@ -148,13 +178,13 @@ describe("reading exports out of a module", () => {
     expect(exportedNames(source)).toEqual(["kept"]);
   });
 
-  it("ignores a MULTILINE brace list that is not at line start", () => {
-    // Same anchor rule as the single-line form: an indented or quoted block is
-    // not a declaration, and the multiline reader must not relax that.
+  it("ignores a MULTILINE brace list inside a template string", () => {
     const source = [
-      "  export {",
-      "    Indented,",
-      "  };",
+      "const doc = `",
+      "export {",
+      "  Rendered,",
+      "};",
+      "`;",
       "export {",
       "  Real,",
       "};",
@@ -185,6 +215,36 @@ describe("reading exports out of a module", () => {
       "a",
       "b",
     ]);
+  });
+});
+
+describe("confirming a removal against the earlier source", () => {
+  const GENERATOR = "scripts/gen.mjs";
+  const DELETED = "scripts/gone.mjs";
+  const removals = [
+    { file: GENERATOR, name: "PHANTOM" },
+    { file: GENERATOR, name: "real" },
+    { file: DELETED, name: "lost" },
+  ];
+  const sources: Record<string, string | null> = {
+    [GENERATOR]:
+      "export function real() {}\nconst t = `\nexport const PHANTOM = 1;\n`;",
+    [DELETED]: null,
+  };
+
+  it("drops a name the earlier source never really exported", () => {
+    // An artifact recorded by the regex reader listed template-string text as
+    // exports; reporting it as removed would announce a break that never was.
+    expect(confirmedRemovals(removals, file => sources[file] ?? null)).toEqual([
+      { file: GENERATOR, name: "real" },
+      { file: DELETED, name: "lost" },
+    ]);
+  });
+
+  it("keeps a removal whose earlier source cannot be read, failing closed", () => {
+    expect(
+      confirmedRemovals([{ file: "x.mjs", name: "y" }], () => null)
+    ).toEqual([{ file: "x.mjs", name: "y" }]);
   });
 });
 

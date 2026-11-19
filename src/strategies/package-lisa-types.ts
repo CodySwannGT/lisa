@@ -149,3 +149,9 @@ export interface ResolvedPackageLisaTemplate extends PackageLisaTemplate {
   adopt: Record<string, Record<string, string[]>>;
   minimums: Record<string, string>;
 }
+
+/** Planned package.json content plus messages the operator should see. */
+export interface PackageJsonPlan {
+  readonly packageJson: Record<string, unknown>;
+  readonly notes: readonly string[];
+}

@@ -67,22 +67,21 @@ fi
 echo "    Server is ready"
 
 echo "==> Running OWASP ZAP baseline scan..."
-ZAP_ARGS="-t $TARGET_URL"
+ZAP_ARGS=(-t "$TARGET_URL")
+MOUNT_RULES=()
 
 if [ -f "$ZAP_RULES_FILE" ]; then
   echo "    Using rules file: $ZAP_RULES_FILE"
-  ZAP_ARGS="$ZAP_ARGS -c /zap/wrk/$(basename "$ZAP_RULES_FILE")"
-  MOUNT_RULES="-v $(dirname "$(realpath "$ZAP_RULES_FILE")"):/zap/wrk:ro"
-else
-  MOUNT_RULES=""
+  ZAP_ARGS+=(-c "/zap/wrk/$(basename "$ZAP_RULES_FILE")")
+  MOUNT_RULES=(-v "$(dirname "$(realpath "$ZAP_RULES_FILE")"):/zap/wrk:ro")
 fi
 
 docker run --rm \
   --add-host=host.docker.internal:host-gateway \
   -v "$(pwd)":/zap/wrk/:rw \
-  $MOUNT_RULES \
+  ${MOUNT_RULES[@]+"${MOUNT_RULES[@]}"} \
   ghcr.io/zaproxy/zaproxy:stable \
-  zap-baseline.py $ZAP_ARGS \
+  zap-baseline.py "${ZAP_ARGS[@]}" \
   -r "$REPORT_FILE" \
   -J zap-report.json \
   -w zap-report.md \

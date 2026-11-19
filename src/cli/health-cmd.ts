@@ -1,6 +1,8 @@
 /** CLI adapter for the shared Health v1 prepare/finalize consumer. */
 import path from "node:path";
 
+import { readBoundedBytes } from "../utils/bounded-stream.js";
+
 import {
   HEALTH_EVALUATION_PROTOCOL_VERSION,
   MAX_HEALTH_EVALUATION_RESPONSE_BYTES,
@@ -45,26 +47,13 @@ const DEFAULT_DEPENDENCIES: HealthCliDependencies = {
 export async function readBoundedHealthInput(
   stream: AsyncIterable<Buffer | string>
 ): Promise<string> {
-  const chunks: Buffer[] = [];
-  // eslint-disable-next-line functional/no-let -- bounded stream accounting is iterative
-  let totalBytes = 0;
-  // eslint-disable-next-line functional/no-let -- bounded stream accounting is iterative
-  let chunkCount = 0;
-  for await (const rawChunk of stream) {
-    chunkCount += 1;
-    if (chunkCount > MAX_EVALUATION_CHUNKS) {
-      throw new Error("health evaluation contains too many chunks");
-    }
-    const chunk = Buffer.from(rawChunk);
-    totalBytes += chunk.byteLength;
-    if (totalBytes > MAX_HEALTH_EVALUATION_RESPONSE_BYTES) {
-      throw new Error("health evaluation exceeds 128 KiB");
-    }
-    // eslint-disable-next-line functional/immutable-data -- bounded local buffering avoids quadratic copies
-    chunks.push(chunk);
-  }
   return new TextDecoder("utf-8", { fatal: true }).decode(
-    Buffer.concat(chunks, totalBytes)
+    await readBoundedBytes(stream, {
+      maxChunks: MAX_EVALUATION_CHUNKS,
+      maxBytes: MAX_HEALTH_EVALUATION_RESPONSE_BYTES,
+      tooManyChunksMessage: "health evaluation contains too many chunks",
+      tooLargeMessage: "health evaluation exceeds 128 KiB",
+    })
   );
 }
 

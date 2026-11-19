@@ -265,14 +265,17 @@ scripts/lib/push-timing.mjs
 scripts/lib/reusable-workflow-load-adapter.mjs
 scripts/lib/reusable-workflow-load-failure.mjs
 scripts/lib/reusable-workflow-load-scan.mjs
+scripts/lib/tracker-row-fold.mjs
 scripts/lib/usage-artifact-ref.mjs
 scripts/lib/usage-effectiveness.mjs
 scripts/lib/usage-ledger-integrity.mjs
 scripts/lib/usage-ledger.mjs
 scripts/lib/windows-process-job.mjs
+scripts/lib/work-item-estimate-actual.mjs
 scripts/lib/work-item-estimate-calibration.mjs
 scripts/lib/work-item-estimate-check.mjs
 scripts/lib/work-item-estimate-config.mjs
+scripts/lib/work-item-estimate-tally.mjs
 scripts/lib/work-item-estimate.mjs
 scripts/lib/worktree-dependencies.mjs
 scripts/lisa-hooks/worktree-binding-guard.mjs

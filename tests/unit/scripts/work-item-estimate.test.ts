@@ -15,9 +15,9 @@ import {
   resolveEstimateConfig,
   validateEstimateConfig,
 } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs";
+import { formatTokens } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-actual.mjs";
 import {
   buildEstimate,
-  formatTokens,
   parseEstimateSection,
   parseTokenCount,
   renderEstimateSection,

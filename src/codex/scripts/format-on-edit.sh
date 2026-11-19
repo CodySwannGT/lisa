@@ -13,7 +13,7 @@ JSON_INPUT="$(cat)"
 command -v jq >/dev/null 2>&1 || exit 0
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=/dev/null
+# shellcheck source=_extract-edit-paths.sh
 . "${SCRIPT_DIR}/_extract-edit-paths.sh"
 
 # ---------------------------------------------------------------------------
@@ -29,7 +29,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # that proves more than one stands down only when EVERY one is declared, or it
 # would silently stop proving the others.
 # ---------------------------------------------------------------------------
-# shellcheck source=/dev/null
+# shellcheck source=lisa-edit-gate.sh
 . "${SCRIPT_DIR}/lisa-edit-gate.sh"
 if LISA_GATE_COMMANDS="$(lisa_edit_gate_tasks post-tool format-conformance)"; then
   LISA_GATE_STATUS=0

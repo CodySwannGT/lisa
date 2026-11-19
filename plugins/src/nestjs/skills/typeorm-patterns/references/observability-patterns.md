@@ -4,37 +4,14 @@ Detailed patterns for TypeORM observability including the X-Ray logger implement
 
 ## Custom X-Ray Logger
 
-The custom logger provides distributed tracing in production while working gracefully in local environments where X-Ray is unavailable.
+The custom logger provides distributed tracing in production while working gracefully in local environments where no X-Ray segment is active. `aws-xray-sdk-core` is a regular dependency of every Lisa NestJS project, so it is imported statically; outside a traced Lambda invocation there is simply no current segment, and the logger skips tracing.
 
 ### typeorm-xray-logger.ts
 
 ```typescript
 import { Logger as NestLogger } from "@nestjs/common";
+import { getSegment, type Subsegment } from "aws-xray-sdk-core";
 import type { Logger as TypeOrmLogger, QueryRunner } from "typeorm";
-
-/**
- * X-Ray segment interface for type safety.
- */
-interface XRaySegment {
-  addNewSubsegment(name: string): XRaySubsegment;
-}
-
-/**
- * X-Ray subsegment interface for type safety.
- */
-interface XRaySubsegment {
-  addAnnotation(key: string, value: string | number | boolean): void;
-  addMetadata(key: string, value: unknown): void;
-  addError(error: Error): void;
-  close(): void;
-}
-
-/**
- * X-Ray SDK namespace interface.
- */
-interface XRayNamespace {
-  getSegment(): XRaySegment | null;
-}
 
 /**
  * Query type extracted from SQL.
@@ -91,23 +68,6 @@ const sanitizeParameters = (
 };
 
 /**
- * Attempt to get X-Ray namespace with graceful fallback.
- *
- * @returns X-Ray namespace or null if unavailable
- */
-const getXRayNamespace = (): XRayNamespace | null => {
-  try {
-    // Dynamic import to avoid hard dependency on X-Ray SDK
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Dynamic require for optional dependency
-    const AWSXRay = require("aws-xray-sdk-core");
-    return AWSXRay.getNamespace() as XRayNamespace;
-  } catch {
-    // X-Ray SDK not available (local development)
-    return null;
-  }
-};
-
-/**
  * TypeORM logger with AWS X-Ray distributed tracing integration.
  *
  * @remarks
@@ -129,11 +89,10 @@ export class TypeOrmXRayLogger implements TypeOrmLogger {
    * @param name - The subsegment name
    * @returns The subsegment or null if X-Ray unavailable
    */
-  private createSubsegment(name: string): XRaySubsegment | null {
+  private createSubsegment(name: string): Subsegment | null {
     try {
-      const namespace = getXRayNamespace();
-      const segment = namespace?.getSegment();
-      return segment?.addNewSubsegment(name) ?? null;
+      // No current segment outside a traced invocation (local development).
+      return getSegment()?.addNewSubsegment(name) ?? null;
     } catch {
       // Silently fail - X-Ray tracing is optional
       return null;
@@ -145,7 +104,7 @@ export class TypeOrmXRayLogger implements TypeOrmLogger {
    *
    * @param subsegment - The subsegment to close
    */
-  private closeSubsegment(subsegment: XRaySubsegment | null): void {
+  private closeSubsegment(subsegment: Subsegment | null): void {
     try {
       subsegment?.close();
     } catch {
@@ -465,9 +424,9 @@ describe("TypeOrmXRayLogger", () => {
   });
 
   describe("graceful degradation", () => {
-    it("should work without X-Ray SDK installed", () => {
-      // X-Ray SDK is not installed in test environment
-      // Logger should fall back to NestJS Logger
+    it("should work without an active X-Ray segment", () => {
+      // Tests run outside a traced Lambda invocation, so there is no segment;
+      // the logger should fall back to NestJS Logger
       expect(() => {
         logger.logQuery("SELECT 1", []);
         logger.logQueryError("Test error", "SELECT 1", []);
@@ -482,23 +441,24 @@ describe("TypeOrmXRayLogger", () => {
 
 For production environments with X-Ray:
 
-### Install X-Ray SDK (production only)
+### X-Ray SDK
 
-```bash
-bun add aws-xray-sdk-core
-```
+`aws-xray-sdk-core` is already a dependency of every Lisa NestJS project; no install step is needed.
 
 ### Lambda Handler Integration
 
 ```typescript
+import * as http from "node:http";
+import * as https from "node:https";
+import { S3Client } from "@aws-sdk/client-s3";
 import * as AWSXRay from "aws-xray-sdk-core";
 
-// Capture all AWS SDK calls
-AWSXRay.captureAWS(require("aws-sdk"));
+// Capture AWS SDK v3 calls, one client at a time
+const s3 = AWSXRay.captureAWSv3Client(new S3Client({}));
 
 // Capture HTTP calls
-AWSXRay.captureHTTPsGlobal(require("http"));
-AWSXRay.captureHTTPsGlobal(require("https"));
+AWSXRay.captureHTTPsGlobal(http);
+AWSXRay.captureHTTPsGlobal(https);
 ```
 
 ### serverless.yml Configuration

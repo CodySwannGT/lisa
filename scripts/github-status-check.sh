@@ -86,14 +86,14 @@ log_header() {
 time_ago() {
   local timestamp="$1"
   local now
-  local then
+  local then_epoch
   local diff_seconds
   local diff_hours
   local diff_days
 
   now=$(date +%s)
-  then=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$timestamp" +%s 2>/dev/null || date -d "$timestamp" +%s 2>/dev/null)
-  diff_seconds=$((now - then))
+  then_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$timestamp" +%s 2>/dev/null || date -d "$timestamp" +%s 2>/dev/null)
+  diff_seconds=$((now - then_epoch))
   diff_hours=$((diff_seconds / 3600))
   diff_days=$((diff_hours / 24))
 
@@ -111,26 +111,6 @@ time_ago() {
     fi
   else
     echo "just now"
-  fi
-}
-
-is_older_than_days() {
-  local timestamp="$1"
-  local days="$2"
-  local now
-  local then
-  local diff_seconds
-  local threshold_seconds
-
-  now=$(date +%s)
-  then=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$timestamp" +%s 2>/dev/null || date -d "$timestamp" +%s 2>/dev/null)
-  diff_seconds=$((now - then))
-  threshold_seconds=$((days * 86400))
-
-  if [[ $diff_seconds -gt $threshold_seconds ]]; then
-    return 0  # true - older than threshold
-  else
-    return 1  # false - newer than threshold
   fi
 }
 
@@ -206,7 +186,7 @@ for REPO in "${REPOS[@]}"; do
   assigned_prs_count=$(echo "$assigned_prs" | grep -c . || true)
 
   # Get PRs where current user is requested for review (excluding dependabot)
-  review_prs=$(gh pr list --repo "$REPO" --state open --json number,title,author,reviewRequests,url,createdAt --jq '.[] | select(.author.login != "dependabot[bot]" and .author.login != "app/dependabot") | select(.reviewRequests | length > 0) | select(.reviewRequests[].requestedReviewer.login == "'$CURRENT_USER'") | "\(.number)|\(.title)|\(.author.login)|\(.url)|\(.createdAt)"' 2>/dev/null || echo "")
+  review_prs=$(gh pr list --repo "$REPO" --state open --json number,title,author,reviewRequests,url,createdAt --jq '.[] | select(.author.login != "dependabot[bot]" and .author.login != "app/dependabot") | select(.reviewRequests | length > 0) | select(.reviewRequests[].requestedReviewer.login == "'"$CURRENT_USER"'") | "\(.number)|\(.title)|\(.author.login)|\(.url)|\(.createdAt)"' 2>/dev/null || echo "")
   review_prs_count=$(echo "$review_prs" | grep -c . || true)
 
   # Get failed GitHub Actions where no subsequent success exists for the same workflow+branch
@@ -283,7 +263,7 @@ for REPO in "${REPOS[@]}"; do
     # Display failed actions
     if [[ $failed_actions_count -gt 0 ]]; then
       echo -e "${RED}Failed GitHub Actions ($failed_actions_count):${NC}"
-      echo "$failed_actions" | while IFS='|' read -r action_id action_name branch url created_at; do
+      echo "$failed_actions" | while IFS='|' read -r _ action_name branch url created_at; do
         age=$(time_ago "$created_at")
         echo "  • $action_name (branch: $branch) - $age"
         echo "    🔗 $url"

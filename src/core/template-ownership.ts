@@ -1,5 +1,4 @@
 /** Pure ownership decision shared by Lisa apply and deterministic health. */
-/* eslint-disable jsdoc/require-param-description, jsdoc/require-returns -- typed private helpers are self-describing */
 import type { CopyStrategy } from "./config.js";
 
 const CREATE_ONLY = "create-only";
@@ -179,4 +178,3 @@ function isMoreSpecific(
 ): boolean {
   return orderedTypes.indexOf(candidate) > orderedTypes.indexOf(current);
 }
-/* eslint-enable jsdoc/require-param-description, jsdoc/require-returns -- restore repository documentation defaults */

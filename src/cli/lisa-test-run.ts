@@ -2,7 +2,7 @@
 /** Public entrypoint: sweep, shard, admit, then run the test payload. */
 import * as os from "node:os";
 import * as path from "node:path";
-import { env } from "node:process";
+import { currentEnvironment, writeEnv } from "../utils/process-environment.js";
 
 import { invokedAsScript } from "../../scripts/lib/invoked-as-script.mjs";
 import { worktreeDependencyProblem } from "../../all/copy-overwrite/scripts/lib/worktree-dependencies.mjs";
@@ -113,8 +113,9 @@ function invocationOrExit(): TestRunInvocation | undefined {
 function applyShardPlan(
   argv: readonly [string, ...string[]]
 ): readonly [string, ...string[]] | number {
+  const env = currentEnvironment();
   const plan = shardPlanFrom(env);
-  for (const name of SHARD_ENV_NAMES) delete env[name];
+  for (const name of SHARD_ENV_NAMES) writeEnv(name, undefined);
   if (plan.kind === "none") return argv;
   const runner = shardRunnerOf(argv);
   if (plan.kind === "shard") {
@@ -157,7 +158,7 @@ function selectSocketSafeTempBase(): void {
   const current = os.tmpdir();
   const replacement = socketSafeTempBase(current);
   if (replacement === undefined) return;
-  env.TMPDIR = replacement;
+  writeEnv("TMPDIR", replacement);
   process.stderr.write(
     `lisa-test-run: TMPDIR ${current} is too long for native Unix socket fixtures; using ${replacement}.\n`
   );
@@ -172,7 +173,9 @@ async function main(): Promise<void> {
     if (dependencyProblem) throw new Error(dependencyProblem);
     selectSocketSafeTempBase();
     // After the temp base is final, so the sweep reads the TMPDIR the run uses.
-    Object.assign(env, await startOfRunSweep(env));
+    const swept = await startOfRunSweep(currentEnvironment());
+    for (const [name, value] of Object.entries(swept)) writeEnv(name, value);
+    const env = currentEnvironment();
     const payload = applyShardPlan(invocation.argv);
     if (typeof payload === "number") process.exit(payload);
     const release = await admitTestRun(payload, env, process.cwd());

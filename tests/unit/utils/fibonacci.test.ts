@@ -181,3 +181,17 @@ describe("fibonacci utilities", () => {
     });
   });
 });
+
+describe("fibonacciGenerator depth", () => {
+  it("keeps the recurrence far past one block without overflowing the stack", () => {
+    const values = fibonacciSequence(5_000);
+    expect(
+      values.every(
+        (value, index) =>
+          index < 2 ||
+          value === (values[index - 1] ?? 0n) + (values[index - 2] ?? 0n)
+      )
+    ).toBe(true);
+    expect(fibonacci(4_999)).toBe(values[4_999]);
+  });
+});

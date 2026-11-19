@@ -26,8 +26,26 @@ import {
   parseManifestInputs,
 } from "../../../scripts/lib/upstream-manifest-staleness.mjs";
 
-const MANIFEST_PATH = "src/core/upstream-evidence-manifest.ts";
+const MANIFEST_PATH = "src/core/upstream-evidence-manifest.json";
 const currentManifest = readFileSync(path.resolve(MANIFEST_PATH), "utf8");
+
+/** The manifest's records, as the generator writes them. */
+interface ManifestDocument {
+  UPSTREAM_EVIDENCE_MANIFEST: Record<string, string>;
+  UPSTREAM_SURFACE_MANIFEST: Record<string, true>;
+  UPSTREAM_PUBLIC_COMMITS: Record<string, true>;
+}
+
+/**
+ * The real manifest with one edit applied, rendered the way the generator does.
+ * @param edit - Mutates a private copy of the parsed manifest
+ * @returns The edited manifest text
+ */
+function editedManifest(edit: (document: ManifestDocument) => void): string {
+  const document = JSON.parse(currentManifest) as ManifestDocument;
+  edit(document);
+  return `${JSON.stringify(document, null, 2)}\n`;
+}
 
 /** A hash-pinned evidence path that the real manifest is known to record. */
 const PINNED_EVIDENCE = "scripts/generate-upstream-evidence-manifest.mjs";
@@ -54,9 +72,9 @@ describe("upstream manifest staleness: parsing the generated file", () => {
   it("does not mistake public commit SHAs for tracked paths", () => {
     const inputs = parseManifestInputs(currentManifest);
 
-    // The commit section renders `<sha>: true,` — the same shape as a surface
-    // entry. A parser that reads the whole file with one regex swallows 40-char
-    // SHAs as file paths and then reports thousands of phantom removals.
+    // The commit record holds `"<sha>": true` — the same shape as a surface
+    // entry. A parser that reads every record as one swallows 40-char SHAs as
+    // file paths and then reports thousands of phantom removals.
     const shaShaped = [...inputs.surface].filter(entry =>
       /^[a-f0-9]{40}$/u.test(entry)
     );
@@ -66,10 +84,9 @@ describe("upstream manifest staleness: parsing the generated file", () => {
 
 describe("upstream manifest staleness: classifying what moved", () => {
   it("reports an input whose bytes moved, not the manifest itself", () => {
-    const stale = currentManifest.replace(
-      /("scripts\/generate-upstream-evidence-manifest\.mjs":\n {6}")[a-f0-9]{64}/u,
-      `$1${"0".repeat(64)}`
-    );
+    const stale = editedManifest(document => {
+      document.UPSTREAM_EVIDENCE_MANIFEST[PINNED_EVIDENCE] = "0".repeat(64);
+    });
     expect(stale).not.toBe(currentManifest);
 
     const diagnosis = diagnoseStaleManifest(stale, currentManifest);
@@ -80,10 +97,9 @@ describe("upstream manifest staleness: classifying what moved", () => {
   });
 
   it("reports a path staged after generation as an addition", () => {
-    const stale = currentManifest.replace(
-      /^ {4}"src\/core\/lisa-owned-hash-ledger\.ts": true,\n/mu,
-      ""
-    );
+    const stale = editedManifest(document => {
+      delete document.UPSTREAM_SURFACE_MANIFEST[LEDGER_PATH];
+    });
     expect(stale).not.toBe(currentManifest);
 
     const diagnosis = diagnoseStaleManifest(stale, currentManifest);
@@ -95,10 +111,9 @@ describe("upstream manifest staleness: classifying what moved", () => {
   it("reports a path removed after generation as a removal", () => {
     const diagnosis = diagnoseStaleManifest(
       currentManifest,
-      currentManifest.replace(
-        /^ {4}"src\/core\/lisa-owned-hash-ledger\.ts": true,\n/mu,
-        ""
-      )
+      editedManifest(document => {
+        delete document.UPSTREAM_SURFACE_MANIFEST[LEDGER_PATH];
+      })
     );
 
     expect(diagnosis.removed).toEqual([LEDGER_PATH]);
@@ -107,7 +122,8 @@ describe("upstream manifest staleness: classifying what moved", () => {
 
   it("finds nothing to blame when only the generated file's own bytes differ", () => {
     const diagnosis = diagnoseStaleManifest(
-      `${currentManifest}\n// reformatted by hand\n`,
+      // Same records, different bytes: a formatter reaching the artifact.
+      JSON.stringify(JSON.parse(currentManifest), null, 4),
       currentManifest
     );
 

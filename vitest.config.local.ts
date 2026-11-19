@@ -71,7 +71,6 @@ const config: ViteUserConfig = {
 
         // Resolution concatenates inherited arrays and omits CLI exclusions
         // from child overrides. Use the normalized root before collection.
-        /* eslint-disable functional/immutable-data -- native configuration hook assigns each resolved project's scheduling and discovery */
         project.config.include = bulkProject
           ? rootInclude
           : deadlineProject
@@ -106,7 +105,6 @@ const config: ViteUserConfig = {
               ),
             ]
           : [];
-        /* eslint-enable functional/immutable-data -- remaining configuration is immutable */
       },
     },
   ],

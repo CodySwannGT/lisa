@@ -33,8 +33,8 @@ import { boundedExecFileSync, boundedSpawnSync } from "./io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(__dirname, "../..");
 
-/** The generated module, relative to a repository root. */
-export const MANIFEST_PATH = "src/core/upstream-evidence-manifest.ts";
+/** The generated manifest data, relative to a repository root. */
+export const MANIFEST_PATH = "src/core/upstream-evidence-manifest.json";
 
 /** The generator, relative to a repository root. */
 export const GENERATOR = "scripts/generate-upstream-evidence-manifest.mjs";
@@ -78,9 +78,18 @@ const STAGED_PLACEHOLDERS = Object.freeze([
   "src/core/nightly-e2e-guard-behavior-certificate.ts",
 ]);
 
-/** Source files that make the fixture a miniature of the published package. */
+/**
+ * Source files that make the fixture a miniature of the published package:
+ * the command, every module it imports, and the loader that reads the
+ * manifest data the fixture generates.
+ */
 const PACKAGE_SOURCES = Object.freeze([
   "src/core/upstream-attribution-body.ts",
+  "src/core/upstream-attribution-fields.ts",
+  "src/core/upstream-attribution-files.ts",
+  "src/core/upstream-attribution-guards.ts",
+  "src/core/upstream-evidence-manifest.ts",
+  "src/utils/bounded-stream.ts",
   "src/cli/file-upstream-cmd.ts",
 ]);
 
@@ -302,16 +311,16 @@ export function createReleaseFixture(): ReleaseFixture {
 }
 
 /**
- * Every full SHA in a generated module's public-commit block.
+ * Every full SHA in a generated manifest's public-commit record.
  *
  * Read with a pattern of this helper's own rather than the generator's parser,
  * so a test that asks "is this commit shipped" is not answered by the code
  * under test.
- * @param source - Contents of a generated manifest module
+ * @param source - Contents of a generated manifest
  * @returns Listed SHAs, in file order
  */
 export function shippedCommits(source: string): readonly string[] {
-  const start = source.indexOf("export const UPSTREAM_PUBLIC_COMMITS");
+  const start = source.indexOf('"UPSTREAM_PUBLIC_COMMITS"');
   return start === -1
     ? []
     : (source.slice(start).match(/\b[a-f0-9]{40}\b/gu) ?? []);

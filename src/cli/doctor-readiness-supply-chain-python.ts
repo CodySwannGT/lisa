@@ -3,7 +3,6 @@
  * (B5, PRD #1739, #1896).
  * @module cli/doctor-readiness-supply-chain-python
  */
-/* eslint-disable jsdoc/require-param, jsdoc/require-returns -- typed scanner helpers are self-describing */
 import { readdir } from "node:fs/promises";
 import * as path from "node:path";
 import { parse as parseToml } from "smol-toml";
@@ -69,7 +68,12 @@ export type PythonManifestOutcome =
       readonly specs: readonly PythonDependencySpec[];
     };
 
-/** Check whether a repo-relative file can be read. */
+/**
+ * Check whether a repo-relative file can be read.
+ * @param root - Repository root
+ * @param relativePath - Path relative to the root
+ * @returns True when the file exists and is readable
+ */
 async function fileExists(
   root: string,
   relativePath: string
@@ -77,7 +81,12 @@ async function fileExists(
   return (await readFileOrNull(root, relativePath)) !== null;
 }
 
-/** List direct files under a repo-relative directory. */
+/**
+ * List direct files under a repo-relative directory.
+ * @param root - Repository root
+ * @param relativeDir - Directory relative to the root
+ * @returns Sorted repo-relative file paths, or an empty list when unreadable
+ */
 async function listDirectory(
   root: string,
   relativeDir: string
@@ -95,7 +104,12 @@ async function listDirectory(
   }
 }
 
-/** Read a nested record by path. */
+/**
+ * Read a nested record by path.
+ * @param value - Parsed value to descend into
+ * @param keys - Keys to follow, outermost first
+ * @returns The record at that path, or null when any step is not a record
+ */
 function nestedRecord(
   value: unknown,
   keys: readonly string[]
@@ -110,7 +124,11 @@ function nestedRecord(
   return key === undefined ? null : nestedRecord(value[key], rest);
 }
 
-/** Extract the version-bearing part of a Poetry dependency declaration. */
+/**
+ * Extract the version-bearing part of a Poetry dependency declaration.
+ * @param value - The declaration: a version string or an inline table
+ * @returns The version spec, `local`/`git-ref` for pinned sources, or null
+ */
 function poetrySpec(value: unknown): string | null {
   if (typeof value === "string") {
     return value;
@@ -136,7 +154,11 @@ function poetrySpec(value: unknown): string | null {
   return null;
 }
 
-/** Flatten one Poetry dependency table, excluding the Python runtime. */
+/**
+ * Flatten one Poetry dependency table, excluding the Python runtime.
+ * @param table - A Poetry dependency table, or null when absent
+ * @returns One spec per declared dependency
+ */
 function collectPoetrySpecs(
   table: Record<string, unknown> | null
 ): readonly PythonDependencySpec[] {
@@ -211,14 +233,23 @@ export async function findPythonLockfile(root: string): Promise<string | null> {
   return (await fileExists(root, POETRY_LOCK)) ? POETRY_LOCK : null;
 }
 
-/** Check whether an update-bot config watches Python dependencies. */
+/**
+ * Check whether an update-bot config watches Python dependencies.
+ * @param botFile - Repo-relative path of the bot config
+ * @param source - The config's text
+ * @returns True when the config covers the Python tree
+ */
 function coversPythonTree(botFile: string, source: string): boolean {
   return botFile.includes("dependabot")
     ? PYTHON_ECOSYSTEM_PATTERN.test(source)
     : RENOVATE_PYTHON_PATTERN.test(source);
 }
 
-/** Extract an executable command-shaped line from CI/hook text. */
+/**
+ * Extract an executable command-shaped line from CI/hook text.
+ * @param line - One line of CI or hook text
+ * @returns The command text, or null for blanks, comments and block markers
+ */
 function executableCommandCandidate(line: string): string | null {
   const trimmed = line.trim();
   if (trimmed === "" || trimmed.startsWith("#")) {
@@ -269,9 +300,11 @@ export async function findPythonAuditGate(
   return null;
 }
 
-/** Check whether a Poetry dependency spec floats. */
+/**
+ * Check whether a Poetry dependency spec floats.
+ * @param spec - The declared spec, or null when none was readable
+ * @returns True when the spec resolves to whatever is newest
+ */
 export function isFloatingPythonSpec(spec: string | null): boolean {
   return spec === null || FLOATING_SPECS.has(spec.trim().toLowerCase());
 }
-
-/* eslint-enable jsdoc/require-param, jsdoc/require-returns -- restore repository documentation defaults */

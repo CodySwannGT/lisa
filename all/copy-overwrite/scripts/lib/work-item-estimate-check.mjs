@@ -13,13 +13,16 @@
  * not a sound range of its own, or one that disagrees with the price table it
  * names. When `workItem.estimate.required`
  * is false the gate is `N/A` and blocks nothing. At claim time a missing
- * estimate is a FAIL: the claiming agent must write one before any work.
+ * estimate is a FAIL: the claiming agent must write one before any work. At
+ * done time (CodySwannGT/lisa#4956) the item needs a usage-ledger entry and an
+ * up-to-date actual tally beside the estimate.
  * @module scripts/lib/work-item-estimate-check
  */
 import { costCents, priceFor } from "./work-item-estimate-config.mjs";
 import { parseEstimateSection } from "./work-item-estimate.mjs";
+import { doneProblems } from "./work-item-estimate-tally.mjs";
 
-const PHASES = new Set(["ready", "claim"]);
+const PHASES = new Set(["ready", "claim", "done"]);
 
 /**
  * Problems with a parsed estimate's own fields.
@@ -115,13 +118,19 @@ function pricingProblems(estimate, settings) {
  * Run the estimate gate on an item body.
  * @param {string} body - Item body as stored.
  * @param {object} settings - Result of `resolveEstimateConfig`.
- * @param {string} [phase] - Lifecycle moment: `ready` (default) or `claim`.
+ * @param {string} [phase] - Lifecycle moment: `ready` (default), `claim` or `done`.
+ * @param {string[]} [documents] - At done: where the usage ledger may live (body, then comments).
  * @returns {{verdict: "PASS" | "FAIL" | "N/A", lines: string[]}} Gate result.
  */
-export function checkEstimate(body, settings, phase = "ready") {
+export function checkEstimate(
+  body,
+  settings,
+  phase = "ready",
+  documents = [body]
+) {
   if (!PHASES.has(phase))
     throw new RangeError(
-      `Unknown phase ${JSON.stringify(phase)}; expected ready or claim.`
+      `Unknown phase ${JSON.stringify(phase)}; expected ready, claim or done.`
     );
   const warnings = settings.warnings ?? [];
   if (!settings.required)
@@ -129,6 +138,18 @@ export function checkEstimate(body, settings, phase = "ready") {
       verdict: "N/A",
       lines: ["workItem.estimate.required is false; no estimate is required."],
     };
+  if (phase === "done") {
+    const problems = doneProblems(body, documents);
+    return problems.length
+      ? { verdict: "FAIL", lines: [...warnings, ...problems] }
+      : {
+          verdict: "PASS",
+          lines: [
+            ...warnings,
+            "The actual tokens and cost are tallied beside the estimate.",
+          ],
+        };
+  }
   const { count, estimate } = parseEstimateSection(body);
   if (count > 1)
     return {

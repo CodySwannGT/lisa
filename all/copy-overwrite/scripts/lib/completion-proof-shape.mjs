@@ -9,6 +9,7 @@ import {
 } from "./completion-proof-markdown.mjs";
 import {
   canonicalCompletionBlock,
+  estimateSpecRemainder,
   usageSpecRemainder,
 } from "./completion-proof-projection.mjs";
 import {
@@ -75,6 +76,27 @@ export const isTime = value =>
   /(?:Z|\+00:00)$/.test(value) &&
   Number.isFinite(Date.parse(value));
 
+/**
+ * Drop the machine-written lines of the `## Lisa Estimate` section
+ * (CodySwannGT/lisa#4956), keeping any prose a person added there.
+ */
+function withoutEstimateMetadata(body) {
+  const headings = topLevelLines(body).filter(row => row.heading);
+  const estimate = headings.filter(row => row.text === "## Lisa Estimate");
+  requireProof(
+    estimate.length <= 1,
+    "Duplicate token-estimate sections make the primary specification ambiguous."
+  );
+  if (!estimate.length) return body;
+  const start = estimate[0].start;
+  const end = headings.find(row => row.start > start)?.start ?? body.length;
+  return (
+    body.slice(0, start) +
+    estimateSpecRemainder(body.slice(start, end)) +
+    body.slice(end)
+  );
+}
+
 /** Remove only exact canonical machine-owned sections, retaining unknown prose. */
 export function primarySpecProjection(body) {
   requireProof(
@@ -96,6 +118,7 @@ export function primarySpecProjection(body) {
       usageSpecRemainder(body.slice(start, end)) +
       body.slice(end);
   }
+  result = withoutEstimateMetadata(result);
   for (const name of ["authorization", "postcondition"]) {
     const start = `<!-- lisa:completion-${name}:start -->`;
     const end = `<!-- lisa:completion-${name}:end -->`;

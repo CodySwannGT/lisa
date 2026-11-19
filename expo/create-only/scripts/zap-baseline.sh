@@ -27,17 +27,6 @@ if ! docker info &> /dev/null 2>&1; then
   exit 1
 fi
 
-# Detect package manager
-if [ -f "bun.lockb" ]; then
-  PKG_MGR="bun"
-elif [ -f "yarn.lock" ]; then
-  PKG_MGR="yarn"
-elif [ -f "pnpm-lock.yaml" ]; then
-  PKG_MGR="pnpm"
-else
-  PKG_MGR="npm"
-fi
-
 echo "==> Building Expo web export..."
 npx expo export --platform web
 
@@ -60,22 +49,21 @@ if ! curl -sf http://localhost:3000 > /dev/null 2>&1; then
 fi
 
 echo "==> Running OWASP ZAP baseline scan..."
-ZAP_ARGS="-t $TARGET_URL"
+ZAP_ARGS=(-t "$TARGET_URL")
+MOUNT_RULES=()
 
 if [ -f "$ZAP_RULES_FILE" ]; then
   echo "    Using rules file: $ZAP_RULES_FILE"
-  ZAP_ARGS="$ZAP_ARGS -c /zap/wrk/$(basename "$ZAP_RULES_FILE")"
-  MOUNT_RULES="-v $(dirname "$(realpath "$ZAP_RULES_FILE")"):/zap/wrk:ro"
-else
-  MOUNT_RULES=""
+  ZAP_ARGS+=(-c "/zap/wrk/$(basename "$ZAP_RULES_FILE")")
+  MOUNT_RULES=(-v "$(dirname "$(realpath "$ZAP_RULES_FILE")"):/zap/wrk:ro")
 fi
 
 docker run --rm \
   --add-host=host.docker.internal:host-gateway \
   -v "$(pwd)":/zap/wrk/:rw \
-  $MOUNT_RULES \
+  ${MOUNT_RULES[@]+"${MOUNT_RULES[@]}"} \
   ghcr.io/zaproxy/zaproxy:stable \
-  zap-baseline.py $ZAP_ARGS \
+  zap-baseline.py "${ZAP_ARGS[@]}" \
   -r "$REPORT_FILE" \
   -J zap-report.json \
   -w zap-report.md \

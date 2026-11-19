@@ -29,7 +29,7 @@ if [ -z "${CLAUDE_PROJECT_DIR:-}" ]; then
 fi
 
 # Check if file is in a source directory
-RELATIVE_PATH="${FILE_PATH#$CLAUDE_PROJECT_DIR/}"
+RELATIVE_PATH="${FILE_PATH#"$CLAUDE_PROJECT_DIR"/}"
 case "$RELATIVE_PATH" in
     src/*|apps/*|libs/*|test/*|tests/*|features/*|components/*|hooks/*|screens/*|app/*|constants/*|utils/*|providers/*|stores/*) ;;
     *) exit 0 ;;
@@ -51,7 +51,7 @@ cd "$CLAUDE_PROJECT_DIR" || exit 0
 # would silently stop proving the others.
 # ---------------------------------------------------------------------------
 if [ -f "$LISA_HOOK_DIR/lisa-edit-gate.sh" ]; then
-    # shellcheck source=/dev/null
+    # shellcheck source=lisa-edit-gate.sh
     . "$LISA_HOOK_DIR/lisa-edit-gate.sh"
     if LISA_GATE_COMMANDS="$(lisa_edit_gate_tasks post-tool structural-rules)"; then
         lisa_edit_gate_run "$FILE_PATH" "$LISA_GATE_COMMANDS"
@@ -66,7 +66,7 @@ if [ ! -f "sgconfig.yml" ]; then
 fi
 
 # Verify rules are defined
-RULE_COUNT=$(find ast-grep/rules -name "*.yml" -o -name "*.yaml" 2>/dev/null | grep -v ".gitkeep" | wc -l | tr -d ' ')
+RULE_COUNT=$(find ast-grep/rules -name "*.yml" -o -name "*.yaml" 2>/dev/null | grep -vc ".gitkeep")
 if [ "$RULE_COUNT" -eq 0 ]; then
     exit 0
 fi

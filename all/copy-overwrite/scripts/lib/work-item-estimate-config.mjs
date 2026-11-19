@@ -161,6 +161,27 @@ export function resolveEstimateConfig(config) {
 }
 
 /**
+ * The estimate gate's settings, tolerating settings the gate never reads: a
+ * project that turned the gate off (`required: false`) gets the disabled gate
+ * even when its `models` or `tokenMix` would not validate, so a disabled gate
+ * can never refuse anything. With the gate on, unusable settings still throw.
+ * @param {unknown} config - Project config (`.lisa.config.json` content).
+ * @returns {{required: boolean, warnings: string[]}} Settings for `checkEstimate`.
+ */
+export function resolveEstimateGate(config) {
+  try {
+    return resolveEstimateConfig(config);
+  } catch (error) {
+    if (
+      error instanceof EstimateConfigError &&
+      config?.workItem?.estimate?.required === false
+    )
+      return { required: false, warnings: [] };
+    throw error;
+  }
+}
+
+/**
  * Find a model's rates in one price table. Keys are `<provider>/<model>`, as
  * in the usage-accounting pricing schema; a bare `<model>` key also matches.
  * @param {unknown} table - A pricing object with `models`.

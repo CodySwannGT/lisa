@@ -741,10 +741,8 @@ export async function main(argv, injected = {}) {
   return rollback(options, deps);
 }
 
-/* c8 ignore start -- CLI wiring, exercised through main() in tests */
 if (invokedAsScript(import.meta.url)) {
   main(process.argv.slice(2)).then(code => {
     process.exitCode = code;
   });
 }
-/* c8 ignore stop */

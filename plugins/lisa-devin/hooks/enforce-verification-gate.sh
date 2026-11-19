@@ -379,8 +379,7 @@ V2_VIOLATIONS=""
 # exit becomes its own, named violation.
 v2_evaluate_contract() {
   local structural digests
-  structural=$(v2_contract_violations)
-  if [ "$?" -ne 0 ]; then
+  if ! structural=$(v2_contract_violations); then
     V2_VIOLATIONS="the v2 claim/evidence structure could not be evaluated - \"claims\" and \"evidence\" must be arrays of objects and \"artifact\" an object. A verdict the gate cannot read is not a verdict with no violations"
     return 0
   fi

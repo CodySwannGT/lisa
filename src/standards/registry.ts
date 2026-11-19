@@ -4,21 +4,16 @@ import { realpath } from "node:fs/promises";
 import type { ProjectType } from "../core/config.js";
 import { projectPathKind, readProjectText } from "../health/read-only-fs.js";
 import { isJsonObject, type JsonObject } from "../sync/json-path.js";
-import type { StandardsCheckCategory } from "./contract.js";
 import {
-  inferTestEvidenceFormat,
-  type TestEvidenceFormat,
-} from "./test-evidence.js";
+  direct,
+  RAILS_CHECKS,
+  type ScriptCheck,
+  type StandardsCheckSpec,
+  TYPESCRIPT_SCRIPT_CHECKS,
+} from "./registry-checks.js";
+import { inferTestEvidenceFormat } from "./test-evidence.js";
 
-/** One fixed, no-shell command in the current standards registry. */
-export interface StandardsCheckSpec {
-  readonly id: string;
-  readonly category: StandardsCheckCategory;
-  readonly argv: readonly [string, ...string[]];
-  readonly timeoutMs: number;
-  readonly testEvidence?: TestEvidenceFormat;
-  readonly environment?: Readonly<Record<string, string>>;
-}
+export type { StandardsCheckSpec } from "./registry-checks.js";
 
 /** Fully resolved current check plan and its tamper-evident registry digest. */
 export interface StandardsCheckPlan {
@@ -26,173 +21,6 @@ export interface StandardsCheckPlan {
   readonly registryDigest: string;
   readonly configDigest: string;
 }
-
-/** One package-script-backed standards check before runner resolution. */
-type ScriptCheck = Readonly<{
-  id: string;
-  script: string;
-  category: StandardsCheckCategory;
-  timeoutMs: number;
-  requiresTestEvidence?: boolean;
-  optional?: boolean;
-  mutation?: boolean;
-}>;
-
-const STATIC_ANALYSIS = "static-analysis";
-
-const TYPESCRIPT_SCRIPT_CHECKS: readonly ScriptCheck[] = [
-  {
-    id: "typescript.lint",
-    script: "lint",
-    category: "lint",
-    timeoutMs: 180_000,
-  },
-  {
-    id: "typescript.lint-slow",
-    script: "lint:slow",
-    category: "lint",
-    timeoutMs: 180_000,
-  },
-  {
-    id: "typescript.typecheck",
-    script: "typecheck",
-    category: STATIC_ANALYSIS,
-    timeoutMs: 180_000,
-  },
-  {
-    id: "typescript.build",
-    script: "build",
-    category: "guardrail",
-    timeoutMs: 600_000,
-  },
-  {
-    id: "typescript.test",
-    script: "test",
-    category: "test",
-    timeoutMs: 600_000,
-    requiresTestEvidence: true,
-  },
-  {
-    id: "typescript.test-unit",
-    script: "test:unit",
-    category: "test",
-    timeoutMs: 600_000,
-    requiresTestEvidence: true,
-  },
-  {
-    id: "typescript.test-coverage",
-    script: "test:cov",
-    category: "threshold",
-    timeoutMs: 900_000,
-    requiresTestEvidence: true,
-  },
-  {
-    id: "typescript.test-integration",
-    script: "test:integration",
-    category: "test",
-    timeoutMs: 600_000,
-    requiresTestEvidence: true,
-  },
-  {
-    id: "typescript.test-e2e",
-    script: "test:e2e",
-    category: "test",
-    timeoutMs: 900_000,
-    requiresTestEvidence: true,
-    optional: true,
-  },
-  {
-    id: "typescript.test-contract",
-    script: "test:contract",
-    category: "test",
-    timeoutMs: 600_000,
-    requiresTestEvidence: true,
-    optional: true,
-  },
-  {
-    id: "typescript.format",
-    script: "format:check",
-    category: "guardrail",
-    timeoutMs: 180_000,
-  },
-  {
-    id: "typescript.dead-code",
-    script: "knip:check",
-    category: STATIC_ANALYSIS,
-    timeoutMs: 300_000,
-  },
-  {
-    id: "typescript.ast-grep",
-    script: "sg:scan",
-    category: "guardrail",
-    timeoutMs: 180_000,
-  },
-  {
-    id: "typescript.mutation",
-    script: "test:mutation",
-    category: "guardrail",
-    timeoutMs: 1_800_000,
-    mutation: true,
-  },
-] as const;
-
-const RAILS_CHECKS: readonly StandardsCheckSpec[] = [
-  direct("rails.rubocop", "lint", 300_000, "bundle", "exec", "rubocop"),
-  directTest("rails.rspec", 900_000, "rspec", "bundle", "exec", "rspec"),
-  direct(
-    "rails.reek",
-    STATIC_ANALYSIS,
-    300_000,
-    "bundle",
-    "exec",
-    "reek",
-    "app/",
-    "lib/"
-  ),
-  direct(
-    "rails.flog",
-    STATIC_ANALYSIS,
-    300_000,
-    "bundle",
-    "exec",
-    "flog",
-    "--all",
-    "--group",
-    "app/",
-    "lib/"
-  ),
-  direct(
-    "rails.flay",
-    STATIC_ANALYSIS,
-    300_000,
-    "bundle",
-    "exec",
-    "flay",
-    "app/",
-    "lib/"
-  ),
-  direct(
-    "rails.brakeman",
-    "guardrail",
-    300_000,
-    "bundle",
-    "exec",
-    "brakeman",
-    "--no-pager",
-    "--quiet"
-  ),
-  direct(
-    "rails.bundler-audit",
-    "guardrail",
-    300_000,
-    "bundle",
-    "exec",
-    "bundler-audit",
-    "check",
-    "--update"
-  ),
-  direct("rails.ast-grep", "guardrail", 180_000, "sg", "scan"),
-] as const;
 
 /**
  * Resolve the exact ordered union of checks for current detected stacks.
@@ -202,8 +30,7 @@ const RAILS_CHECKS: readonly StandardsCheckSpec[] = [
  * @param config - Current bounded merged Lisa config
  * @returns Closed current check plan
  */
-// eslint-disable-next-line sonarjs/cognitive-complexity -- explicit stack gates preserve fail-closed requirements and command order
-export async function resolveStandardsCheckPlan( // eslint-disable-line max-lines-per-function -- the closed multi-stack registry is one auditable ordered plan
+export async function resolveStandardsCheckPlan(
   projectRoot: string,
   projectTypes: readonly ProjectType[],
   config: JsonObject
@@ -212,87 +39,152 @@ export async function resolveStandardsCheckPlan( // eslint-disable-line max-line
   if (projectTypes.length === 0) {
     throw new Error("No supported Lisa project type was detected.");
   }
-  const checks: StandardsCheckSpec[] = [];
-  if (projectTypes.includes("typescript")) {
-    const manifest = await readPackageManifest(root);
-    const scripts = isJsonObject(manifest.scripts) ? manifest.scripts : {};
-    const packageManager = await resolvePackageManager(root);
-    for (const check of TYPESCRIPT_SCRIPT_CHECKS) {
-      if (check.mutation === true && !mutationGateEnabled(config)) continue;
-      const script = scripts[check.script];
-      if (typeof script !== "string" || script.trim().length === 0) {
-        if (check.optional === true) continue;
-        throw new Error(`Required package script is missing: ${check.script}.`);
-      }
-      // eslint-disable-next-line functional/immutable-data -- the private ordered plan is frozen before it leaves this resolver
-      checks.push(
-        Object.freeze({
-          id: check.id,
-          category: check.category,
-          argv: Object.freeze([
-            packageManager,
-            "run",
-            check.script,
-          ]) as readonly [string, ...string[]],
-          timeoutMs: check.timeoutMs,
-          ...(check.requiresTestEvidence === true
-            ? { testEvidence: inferTestEvidenceFormat(script) }
-            : {}),
-        })
-      );
-    }
+  // Each stack's checks resolve in turn, so the first missing requirement in
+  // registry order is the one reported — exactly as a single sequential pass.
+  const typescriptChecks = projectTypes.includes("typescript")
+    ? await resolveTypescriptChecks(root, config)
+    : [];
+  const railsChecks = projectTypes.includes("rails")
+    ? await resolveRailsChecks(root, config)
+    : [];
+  const phaserChecks = projectTypes.includes("phaser")
+    ? await resolvePhaserChecks(root)
+    : [];
+  const sharedChecks = await resolveSharedChecks(root);
+  const checks = [
+    ...typescriptChecks,
+    ...railsChecks,
+    ...phaserChecks,
+    ...sharedChecks,
+  ];
+  if (new Set(checks.map(check => check.id)).size !== checks.length) {
+    throw new Error("Standards registry produced duplicate check identifiers.");
   }
-  if (projectTypes.includes("rails")) {
-    // eslint-disable-next-line functional/immutable-data -- the private ordered plan is frozen before it leaves this resolver
-    checks.push(...RAILS_CHECKS);
-    if (mutationGateEnabled(config)) {
-      if (
-        (await projectPathKind(root, "scripts/lisa-mutation.sh")) !== "file"
-      ) {
-        throw new Error(
-          "Required Rails mutation command is missing: scripts/lisa-mutation.sh."
-        );
-      }
-      // eslint-disable-next-line functional/immutable-data -- the private ordered plan is frozen before it leaves this resolver
-      checks.push(
-        direct(
-          "rails.mutation",
-          "guardrail",
-          1_800_000,
-          "bash",
-          "scripts/lisa-mutation.sh"
-        )
-      );
-    }
+  return freezePlan(checks, config);
+}
+
+/**
+ * Resolve the package-script-backed TypeScript checks in registry order.
+ * @param root - Canonical project root
+ * @param config - Current bounded merged Lisa config
+ * @returns Frozen TypeScript checks
+ */
+async function resolveTypescriptChecks(
+  root: string,
+  config: JsonObject
+): Promise<readonly StandardsCheckSpec[]> {
+  const manifest = await readPackageManifest(root);
+  const scripts = isJsonObject(manifest.scripts) ? manifest.scripts : {};
+  const packageManager = await resolvePackageManager(root);
+  const mutationEnabled = mutationGateEnabled(config);
+  return TYPESCRIPT_SCRIPT_CHECKS.flatMap(check =>
+    check.mutation === true && !mutationEnabled
+      ? []
+      : scriptCheck(check, scripts[check.script], packageManager)
+  );
+}
+
+/**
+ * Resolve one package-script check against the manifest's script entry.
+ * @param check - Registry entry for the script
+ * @param script - The manifest's value for the script name
+ * @param packageManager - Package runner selected by lockfile
+ * @returns The frozen check, or nothing when an optional script is absent
+ */
+function scriptCheck(
+  check: ScriptCheck,
+  script: unknown,
+  packageManager: string
+): readonly StandardsCheckSpec[] {
+  if (typeof script !== "string" || script.trim().length === 0) {
+    if (check.optional === true) return [];
+    throw new Error(`Required package script is missing: ${check.script}.`);
   }
-  if (projectTypes.includes("phaser")) {
-    if (
-      (await projectPathKind(
-        root,
-        "scripts/check-verification-coverage.mjs"
-      )) !== "file"
-    ) {
-      throw new Error(
-        "Required verification-coverage command is missing: scripts/check-verification-coverage.mjs."
-      );
-    }
-    // eslint-disable-next-line functional/immutable-data -- the private ordered plan is frozen before it leaves this resolver
-    checks.push(
-      Object.freeze({
-        ...direct(
-          "phaser.verification-coverage",
-          "guardrail",
-          180_000,
-          "node",
-          "scripts/check-verification-coverage.mjs"
-        ),
-        environment: Object.freeze({
-          VERIFY_BASE_SHA: "HEAD^",
-          VERIFY_HEAD_SHA: "HEAD",
-        }),
-      })
+  return [
+    Object.freeze({
+      id: check.id,
+      category: check.category,
+      argv: Object.freeze([packageManager, "run", check.script]) as readonly [
+        string,
+        ...string[],
+      ],
+      timeoutMs: check.timeoutMs,
+      ...(check.requiresTestEvidence === true
+        ? { testEvidence: inferTestEvidenceFormat(script) }
+        : {}),
+    }),
+  ];
+}
+
+/**
+ * Resolve the Rails checks, adding the mutation command when the gate is on.
+ * @param root - Canonical project root
+ * @param config - Current bounded merged Lisa config
+ * @returns Rails checks in registry order
+ */
+async function resolveRailsChecks(
+  root: string,
+  config: JsonObject
+): Promise<readonly StandardsCheckSpec[]> {
+  if (!mutationGateEnabled(config)) return RAILS_CHECKS;
+  if ((await projectPathKind(root, "scripts/lisa-mutation.sh")) !== "file") {
+    throw new Error(
+      "Required Rails mutation command is missing: scripts/lisa-mutation.sh."
     );
   }
+  return [
+    ...RAILS_CHECKS,
+    direct(
+      "rails.mutation",
+      "guardrail",
+      1_800_000,
+      "bash",
+      "scripts/lisa-mutation.sh"
+    ),
+  ];
+}
+
+/**
+ * Resolve the Phaser verification-coverage check.
+ * @param root - Canonical project root
+ * @returns The Phaser check
+ */
+async function resolvePhaserChecks(
+  root: string
+): Promise<readonly StandardsCheckSpec[]> {
+  if (
+    (await projectPathKind(root, "scripts/check-verification-coverage.mjs")) !==
+    "file"
+  ) {
+    throw new Error(
+      "Required verification-coverage command is missing: scripts/check-verification-coverage.mjs."
+    );
+  }
+  return [
+    Object.freeze({
+      ...direct(
+        "phaser.verification-coverage",
+        "guardrail",
+        180_000,
+        "node",
+        "scripts/check-verification-coverage.mjs"
+      ),
+      environment: Object.freeze({
+        VERIFY_BASE_SHA: "HEAD^",
+        VERIFY_HEAD_SHA: "HEAD",
+      }),
+    }),
+  ];
+}
+
+/**
+ * Resolve the threshold-ratchet check every stack shares.
+ * @param root - Canonical project root
+ * @returns The shared threshold check
+ */
+async function resolveSharedChecks(
+  root: string
+): Promise<readonly StandardsCheckSpec[]> {
   if (
     (await projectPathKind(root, "scripts/check-threshold-ratchet.mjs")) !==
     "file"
@@ -301,8 +193,7 @@ export async function resolveStandardsCheckPlan( // eslint-disable-line max-line
       "Required threshold command is missing: scripts/check-threshold-ratchet.mjs."
     );
   }
-  // eslint-disable-next-line functional/immutable-data -- the private ordered plan is frozen before it leaves this resolver
-  checks.push(
+  return [
     direct(
       "shared.threshold-ratchet",
       "threshold",
@@ -311,12 +202,8 @@ export async function resolveStandardsCheckPlan( // eslint-disable-line max-line
       "scripts/check-threshold-ratchet.mjs",
       "--base",
       "HEAD^"
-    )
-  );
-  if (new Set(checks.map(check => check.id)).size !== checks.length) {
-    throw new Error("Standards registry produced duplicate check identifiers.");
-  }
-  return freezePlan(checks, config);
+    ),
+  ];
 }
 
 /**
@@ -330,7 +217,6 @@ function freezePlan(
   config: JsonObject
 ): StandardsCheckPlan {
   const frozen = Object.freeze(checks.map(check => Object.freeze(check)));
-  // eslint-disable-next-line max-lines -- this single closed registry keeps every supported stack command reviewable together
   return Object.freeze({
     checks: frozen,
     registryDigest: digest({ version: 1, checks: frozen }),
@@ -347,48 +233,6 @@ function digestStandardsConfig(config: JsonObject): string {
   return digest({
     quality: config.quality ?? null,
     thresholdRatchet: config.thresholdRatchet ?? null,
-  });
-}
-
-/**
- * Construct one fixed direct-command check.
- * @param id - Stable check identifier
- * @param category - Standards category
- * @param timeoutMs - Command deadline in milliseconds
- * @param command - Fixed no-shell argv
- * @returns Frozen standards check
- */
-function direct(
-  id: string,
-  category: StandardsCheckCategory,
-  timeoutMs: number,
-  ...command: readonly string[]
-): StandardsCheckSpec {
-  return Object.freeze({
-    id,
-    category,
-    argv: Object.freeze(command) as readonly [string, ...string[]],
-    timeoutMs,
-  });
-}
-
-/**
- * Construct one direct test check with positive runner-evidence semantics.
- * @param id - Stable check identifier
- * @param timeoutMs - Command deadline in milliseconds
- * @param testEvidence - Positive test-evidence parser
- * @param command - Fixed no-shell argv
- * @returns Frozen standards test check
- */
-function directTest(
-  id: string,
-  timeoutMs: number,
-  testEvidence: TestEvidenceFormat,
-  ...command: readonly string[]
-): StandardsCheckSpec {
-  return Object.freeze({
-    ...direct(id, "test", timeoutMs, ...command),
-    testEvidence,
   });
 }
 

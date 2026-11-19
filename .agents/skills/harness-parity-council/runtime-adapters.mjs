@@ -1,6 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { councilEnvironment } from "./council-environment.mjs";
+
 export const DEFAULT_TIMEOUT_MS = 45_000;
 
 /**
@@ -118,14 +120,6 @@ const runtimeSpecs = {
 export const RUNTIME_ADAPTERS = Object.freeze(runtimeSpecs);
 
 /**
- * Return a safe environment mapping without assuming a Node global exists.
- * @returns {NodeJS.ProcessEnv} Process environment values when available.
- */
-function defaultEnv() {
-  return globalThis.process?.env ?? {};
-}
-
-/**
  * Return the canonical council runtime spec for a supported runtime id.
  * @param {keyof typeof runtimeSpecs} runtimeId Supported council runtime id.
  * @returns {(typeof runtimeSpecs)[keyof typeof runtimeSpecs]} Normalized runtime spec.
@@ -144,7 +138,7 @@ export function getRuntimeSpec(runtimeId) {
  * @param {NodeJS.ProcessEnv} [env] Optional environment override map.
  * @returns {string} Executable name to invoke for this runtime.
  */
-export function resolveRuntimeCommand(runtimeId, env = defaultEnv()) {
+export function resolveRuntimeCommand(runtimeId, env = councilEnvironment()) {
   const spec = getRuntimeSpec(runtimeId);
   const override = env[spec.envVar]?.trim();
   return override && override.length > 0 ? override : spec.defaultCommand;
@@ -177,7 +171,7 @@ export function detectAuthMissing(output) {
  *   docsEvidence: string;
  * }} Runtime planning metadata.
  */
-export function describeRuntimePlan(runtimeId, env = defaultEnv()) {
+export function describeRuntimePlan(runtimeId, env = councilEnvironment()) {
   const spec = getRuntimeSpec(runtimeId);
   return {
     runtime: runtimeId,
@@ -257,7 +251,7 @@ function capture(command, args, timeoutMs, runner = spawnSync) {
  */
 export function probeRuntimeAdapter(
   runtimeId,
-  env = defaultEnv(),
+  env = councilEnvironment(),
   runner = spawnSync
 ) {
   const plan = describeRuntimePlan(runtimeId, env);
@@ -296,7 +290,7 @@ export function probeRuntimeAdapter(
  * @returns {ReturnType<typeof probeRuntimeAdapter>[]} Probe results for every runtime.
  */
 export function probeAllRuntimeAdapters(
-  env = defaultEnv(),
+  env = councilEnvironment(),
   runner = spawnSync
 ) {
   return Object.keys(runtimeSpecs).map(runtimeId =>

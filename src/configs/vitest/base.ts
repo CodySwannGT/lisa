@@ -12,7 +12,7 @@
  */
 import { existsSync } from "node:fs";
 import { availableParallelism } from "node:os";
-import { env } from "node:process";
+import { currentEnvironment } from "../../utils/process-environment.js";
 import { fileURLToPath } from "node:url";
 
 import type { ViteUserConfig } from "vitest/config";
@@ -263,8 +263,8 @@ export function fleetShare(cores: number, fleet: number): number {
  * are coming, even if only two have started.
  * ## Why the environment is imported rather than reached for
  *
- * The default comes from `node:process`'s `env` binding, not from the ambient
- * `process.env`. The project's `no-restricted-syntax` rule sends application
+ * The default comes from Lisa's one sanctioned environment accessor
+ * (`utils/process-environment`), not from the ambient `process.env`. The project's `no-restricted-syntax` rule sends application
  * code to a config service for its configuration, and a Vitest config factory
  * cannot use one: the runner loads this module to decide how to run, before any
  * such service exists — the same reason `isUnitCoverageScope` gives for reading
@@ -277,7 +277,7 @@ export function fleetShare(cores: number, fleet: number): number {
  * @returns A value for Vitest's `maxWorkers` — a worker count, or a percentage.
  */
 export function resolveMaxWorkers(
-  environment: NodeJS.ProcessEnv = env,
+  environment: NodeJS.ProcessEnv = currentEnvironment(),
   cores: number = availableParallelism(),
   discover: () => number = () => 1
 ): number | string {
@@ -340,7 +340,7 @@ export function scratchSetupFiles(): readonly string[] {
  * @returns Setup files to spread into `test.setupFiles`.
  */
 export function accessMapSetupFiles(): readonly string[] {
-  return testAccessMapSetupFiles(env);
+  return testAccessMapSetupFiles(currentEnvironment());
 }
 
 /**

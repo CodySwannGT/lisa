@@ -63,12 +63,13 @@ if ! need jq; then
 fi
 if ! need gh; then
   echo "Installing gh..."
-  apt_get update -y && apt_get install -y gh \
-    || { type -p curl >/dev/null && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-         | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-         && echo "deb [signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-         | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null \
-         && apt_get update -y && apt_get install -y gh; }
+  if ! { apt_get update -y && apt_get install -y gh; }; then
+    type -p curl >/dev/null && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+      | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+      && echo "deb [signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+      | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null \
+      && apt_get update -y && apt_get install -y gh
+  fi
 fi
 require jq
 require gh
@@ -120,7 +121,11 @@ case "$PM" in
 esac
 if [ ! -d node_modules ]; then
   echo "Installing project dependencies (${PM_INSTALL})..."
-  for i in 1 2 3; do $PM_INSTALL && break || { echo "${PM_INSTALL} attempt $i failed; retrying..."; sleep 5; }; done
+  for i in 1 2 3; do
+    if $PM_INSTALL; then break; fi
+    echo "${PM_INSTALL} attempt $i failed; retrying..."
+    sleep 5
+  done
 fi
 [ -d node_modules ] || { echo "FATAL: ${PM_INSTALL} failed after retries" >&2; exit 1; }
 

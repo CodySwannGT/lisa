@@ -54,7 +54,7 @@ MSG
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=/dev/null
+# shellcheck source=_extract-edit-paths.sh
 . "${SCRIPT_DIR}/_extract-edit-paths.sh"
 
 # Comment-syntax-only match: // or /* opener, optional whitespace, directive.
@@ -99,7 +99,7 @@ MSG
 # ONE PROPERTY, so there is no all-or-nothing question here: this hook proves
 # `suppression-residue` and nothing else.
 # ---------------------------------------------------------------------------
-# shellcheck source=/dev/null
+# shellcheck source=lisa-edit-gate.sh
 . "${SCRIPT_DIR}/lisa-edit-gate.sh"
 if LISA_GATE_COMMANDS="$(lisa_edit_gate_tasks pre-tool suppression-residue)"; then
   # FAIL CLOSED on a missing extractor. Without it the path list is EMPTY, the
@@ -205,7 +205,7 @@ read_before() {
 }
 
 # The edit object $1: tool_input itself for Edit, edits[$1] for MultiEdit.
-EDIT_AT='.tool_input | (if (.edits // null) != null then .edits[$i] else . end)'
+EDIT_AT=".tool_input | (if (.edits // null) != null then .edits[\$i] else . end)"
 
 # One string field ($2) of edit $1, empty when absent.
 edit_field() {

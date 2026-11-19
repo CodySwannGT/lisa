@@ -47,6 +47,14 @@ describe("harness parity council first-round flow", () => {
     });
   });
 
+  it("strips colour and style codes without touching the text around them", () => {
+    expect(
+      council.normalizeCouncilOutput(
+        "\u001b[1;31mred\u001b[0m and \u001b[38;5;208morange\u001b[39m text"
+      )
+    ).toBe("red and orange text");
+  });
+
   it("redacts token-like material and annotates unsafe downstream suggestions", () => {
     const capture = council.normalizeFirstRoundCapture({
       invocation: council.buildFirstRoundInvocation({
