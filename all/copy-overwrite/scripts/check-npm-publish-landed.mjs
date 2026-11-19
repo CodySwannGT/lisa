@@ -363,7 +363,6 @@ export async function main(argv, injected = {}) {
   return 1;
 }
 
-/* c8 ignore start -- CLI wiring, exercised through main() in tests */
 if (invokedAsScript(import.meta.url)) {
   main(process.argv.slice(2))
     .then(code => {
@@ -374,4 +373,3 @@ if (invokedAsScript(import.meta.url)) {
       process.exitCode = 1;
     });
 }
-/* c8 ignore stop */

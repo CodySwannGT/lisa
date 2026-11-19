@@ -17,8 +17,11 @@ import {
   type DarwinBirthBatchingTrace,
   type TmpdirGrowthPerformanceTrace,
 } from "./tmpdir-growth-performance-types.js";
+import {
+  currentEnvironment,
+  readEnv,
+} from "../../src/utils/process-environment.js";
 
-const { env: PROCESS_ENVIRONMENT } = process;
 /** Predeclared from prior real command trials 169.97/170.94/527.62ms. */
 const CALIBRATION_MS = [169.97, 170.94, 527.62] as const;
 const MEASURED_ROOT_SCHEDULE = [0, 1, 2, 0, 1] as const;
@@ -94,10 +97,10 @@ function runDarwinBatchCommand(
   const shim = path.join(container, "ps");
   const log = path.join(container, "batches.log");
   const environment = {
-    ...PROCESS_ENVIRONMENT,
+    ...currentEnvironment(),
     LISA_BATCH_SCRIPT: script,
     LISA_PS_BATCH_LOG: log,
-    PATH: `${container}:${PROCESS_ENVIRONMENT.PATH ?? ""}`,
+    PATH: `${container}:${readEnv("PATH") ?? ""}`,
   };
   register(container);
   fs.writeFileSync(

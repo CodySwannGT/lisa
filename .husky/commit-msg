@@ -1,3 +1,5 @@
+# shellcheck shell=sh
+# Git runs this hook with no shebang through /bin/sh, without -e.
 # BEGIN: AI GUARDRAILS 
 
 # --- lisa:pm-detect ---
@@ -54,6 +56,9 @@ case "$PACKAGE_MANAGER" in
   *) RUNNER="npm run"; EXECUTOR="npx" ;;
 esac
 # --- end lisa:pm-detect ---
+# RUNNER and EXECUTOR are handed on to the commands this hook runs, as the
+# pre-push hook hands them to its extension files.
+export RUNNER EXECUTOR
 
 # Get the commit message file path
 COMMIT_MSG_FILE=$1

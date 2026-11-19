@@ -156,15 +156,15 @@ module.exports = {
       }
 
       const statements = node.body.body;
-      // eslint-disable-next-line functional/no-let -- ESLint plugin requires mutable tracking variable for order validation
-      let maxOrderSeen = 0;
 
-      statements.forEach(statement => {
+      // Carry the highest order seen so far through the fold instead of a
+      // mutable tracking variable.
+      statements.reduce((maxOrderSeen, statement) => {
         const currentOrder = getStatementOrder(statement);
 
         // Skip statements that don't affect order (e.g., if statements)
         if (currentOrder === null) {
-          return;
+          return maxOrderSeen;
         }
 
         if (currentOrder < maxOrderSeen) {
@@ -179,10 +179,8 @@ module.exports = {
         }
 
         // Track the highest order we've seen so far
-        if (currentOrder > maxOrderSeen) {
-          maxOrderSeen = currentOrder;
-        }
-      });
+        return Math.max(maxOrderSeen, currentOrder);
+      }, 0);
     }
 
     if (checkAllFunctionBodies) {

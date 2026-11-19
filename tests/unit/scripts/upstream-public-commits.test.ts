@@ -21,7 +21,7 @@ import {
 import { UPSTREAM_PUBLIC_COMMITS } from "../../../src/core/upstream-evidence-manifest.js";
 
 const currentManifest = readFileSync(
-  path.resolve("src/core/upstream-evidence-manifest.ts"),
+  path.resolve("src/core/upstream-evidence-manifest.json"),
   "utf8"
 );
 const LETTER_FIRST = "a".repeat(40);
@@ -30,26 +30,25 @@ const REFORMATTED = "c".repeat(40);
 const TRACKED_HEX_NAMED_FILE = "d".repeat(40);
 
 /**
- * A generated module holding the given public-commit lines.
- * @param commitLines - Lines of the public-commit block, already indented
- * @returns Module source in the generator's layout
+ * A generated manifest holding the given public-commit lines.
+ * @param commitLines - Lines of the public-commit record, already indented
+ * @returns Manifest text in the generator's layout
  */
 const manifestWith = (commitLines: readonly string[]): string =>
   [
-    "export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =",
-    "  Object.freeze({",
-    `    ${TRACKED_HEX_NAMED_FILE}: true,`,
-    "  });",
-    "",
-    "export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =",
-    "  Object.freeze({",
+    "{",
+    '  "UPSTREAM_SURFACE_MANIFEST": {',
+    `    "${TRACKED_HEX_NAMED_FILE}": true`,
+    "  },",
+    '  "UPSTREAM_PUBLIC_COMMITS": {',
     ...commitLines,
-    "  });",
+    "  }",
+    "}",
     "",
   ].join("\n");
 
 describe("listedPublicCommits", () => {
-  it("reads exactly the commits the checked-in module exports", () => {
+  it("reads exactly the commits the checked-in manifest records", () => {
     expect(listedPublicCommits(currentManifest)).toEqual(
       new Set(Object.keys(UPSTREAM_PUBLIC_COMMITS))
     );
@@ -58,9 +57,9 @@ describe("listedPublicCommits", () => {
   it("reads a commit however its key is spelled", () => {
     const listed = listedPublicCommits(
       manifestWith([
-        `    ${LETTER_FIRST}: true,`,
-        `    "${DIGIT_FIRST}": true,`,
-        `    '${REFORMATTED}': true,`,
+        `    "${LETTER_FIRST}": true,`,
+        `    ${DIGIT_FIRST}: true,`,
+        `    '${REFORMATTED}': true`,
       ])
     );
 
@@ -69,22 +68,22 @@ describe("listedPublicCommits", () => {
 
   it("does not read a 40-character path in another block as a commit", () => {
     expect(
-      listedPublicCommits(manifestWith([`    ${LETTER_FIRST}: true,`])).has(
+      listedPublicCommits(manifestWith([`    "${LETTER_FIRST}": true`])).has(
         TRACKED_HEX_NAMED_FILE
       )
     ).toBe(false);
   });
 
-  it("reads nothing from a module with no public-commit block", () => {
-    expect(listedPublicCommits("export const OTHER = 1;\n").size).toBe(0);
+  it("reads nothing from a manifest with no public-commit record", () => {
+    expect(listedPublicCommits('{ "OTHER": { "x": 1 } }\n').size).toBe(0);
   });
 });
 
 describe("droppedPublicCommits", () => {
   it("names every recorded commit a new list would leave out", () => {
     const recorded = manifestWith([
-      `    ${LETTER_FIRST}: true,`,
-      `    '${REFORMATTED}': true,`,
+      `    "${LETTER_FIRST}": true,`,
+      `    '${REFORMATTED}': true`,
     ]);
 
     expect(droppedPublicCommits(recorded, [LETTER_FIRST])).toEqual([
@@ -93,7 +92,7 @@ describe("droppedPublicCommits", () => {
   });
 
   it("is empty when the new list only grew", () => {
-    const recorded = manifestWith([`    ${LETTER_FIRST}: true,`]);
+    const recorded = manifestWith([`    "${LETTER_FIRST}": true`]);
 
     expect(droppedPublicCommits(recorded, [DIGIT_FIRST, LETTER_FIRST])).toEqual(
       []

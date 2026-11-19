@@ -72,11 +72,24 @@ values_file="$(
 # Match the managed block's AWS poison removal, then export the artifact's
 # values only for this session-start process and its project-hook child.
 unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
-set -a
-# The authority process proved this exact path and its complete writer format.
-# shellcheck disable=SC1090
-. "${values_file}"
-set +a
+# The authority process proved this exact path and its complete writer format:
+# two comment lines, then one `export NAME='value'` line per variable, where a
+# quote inside the value is written `'\''`. That format is read here as data
+# rather than sourced as code, so no byte of the artifact is executed, and the
+# result is exactly what sourcing it would export.
+values_quote="'\\''"
+values_apostrophe="'"
+while IFS= read -r values_line; do
+  case "${values_line}" in
+    "#"*) continue ;;
+  esac
+  values_name="${values_line#export }"
+  values_name="${values_name%%=*}"
+  values_value="${values_line#export "${values_name}"="${values_apostrophe}"}"
+  values_value="${values_value%"${values_apostrophe}"}"
+  export "${values_name}=${values_value//"${values_quote}"/${values_apostrophe}}"
+done <"${values_file}"
+unset values_quote values_apostrophe values_line values_name values_value
 
 # A project hook is part of the remote toolchain contract too. It covers tools
 # that cannot be expressed by the pinned manifest, so skipping it on a cached

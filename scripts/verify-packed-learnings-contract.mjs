@@ -112,10 +112,28 @@ const configs: ProjectConfig[] = [
   { learnings: withFile },
 ];
 for (const config of configs) resolveLearningsSettings(config);
-// @ts-expect-error mergeDriver is a boolean opt-out, never a string
-const invalid: LearningsConfig = { mergeDriver: "false" };
-void invalid;
 `,
+    "utf8"
+  );
+  // The negative case compiles on its own and must FAIL: mergeDriver is a
+  // boolean opt-out, never a string. Asserting tsc's actual diagnostic (rather
+  // than marking the line expected-to-error inside the passing project) proves
+  // the published type rejects the value for the stated reason.
+  await writeFile(
+    path.join(typeConsumer, "invalid-consumer.ts"),
+    `import type { LearningsConfig } from "@codyswann/lisa/learnings";
+
+export const invalid: LearningsConfig = { mergeDriver: "false" };
+`,
+    "utf8"
+  );
+  await writeFile(
+    path.join(typeConsumer, "tsconfig.invalid.json"),
+    `${JSON.stringify(
+      { extends: "./tsconfig.json", include: ["invalid-consumer.ts"] },
+      null,
+      2
+    )}\n`,
     "utf8"
   );
   await executeFile(
@@ -126,6 +144,21 @@ void invalid;
       typeConsumer,
     ],
     { cwd: typeConsumer }
+  );
+  await assert.rejects(
+    executeFile(
+      process.execPath,
+      [
+        path.join(root, "node_modules", "typescript", "bin", "tsc"),
+        "-p",
+        path.join(typeConsumer, "tsconfig.invalid.json"),
+      ],
+      { cwd: typeConsumer }
+    ),
+    error =>
+      /invalid-consumer\.ts\(3,\d+\): error TS2322: Type 'string' is not assignable to type 'boolean( \| undefined)?'/u.test(
+        String(error.stdout)
+      )
   );
 
   const packedVictim = "packed-victim";

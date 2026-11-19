@@ -278,7 +278,9 @@ describe("maestro-native-e2e reusable workflow", () => {
     );
     expect(driver).toBeDefined();
     expect(driver?.run).toContain("--format junit");
-    expect(driver?.run).toContain("$MAESTRO_E2E_ARGS");
+    expect(driver?.run).toContain(
+      'read -r -a maestro_args <<<"${MAESTRO_E2E_ARGS:-}"'
+    );
     expect(driver?.run).toContain('"$FLOWS_DIR"');
     expect(driver?.run).not.toContain("${{");
   });

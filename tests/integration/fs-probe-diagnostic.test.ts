@@ -47,9 +47,13 @@ import { describe, expect, it } from "vitest";
 
 import { fsLatencyBudgetMs } from "../helpers/fs-latency-budget.js";
 import {
+  DECOMPOSITION_SIZES,
+  fitRemoval,
   mountOf,
   pairedSample,
   readDeviceCounters,
+  splitRemoval,
+  type SplitRemoval,
 } from "../helpers/fs-probe-diagnostic.js";
 
 /** Whether the diagnostic runs: only when asked, and only on Linux. */
@@ -74,6 +78,16 @@ const SETTLE_MS = 6000;
  * so it scales on the filesystem proxy.
  */
 const SAMPLE_BASE_MS = 240_000;
+
+/**
+ * Waits the decomposition opens its timed window after: none, as the probe
+ * does, and one long enough for a journal commit begun by the fill's last
+ * `fsync` to have finished.
+ */
+const DECOMPOSITION_SETTLES_MS = [0, 1000] as const;
+
+/** Removals timed per size and settle; the record keeps each one. */
+const DECOMPOSITION_REPEATS = 3;
 
 /**
  * Print one diagnostic record, and keep it when a file is named for it.
@@ -116,6 +130,37 @@ describe("fs probe diagnostic", () => {
       expect(sample.probeUs).toBeGreaterThan(0);
       expect(sample.variantUs).toBeGreaterThan(0);
       expect(sample.realUs).toBeGreaterThan(0);
+    },
+    fsLatencyBudgetMs(SAMPLE_BASE_MS)
+  );
+
+  it.runIf(ENABLED).each([...DECOMPOSITION_SETTLES_MS])(
+    "decomposes a removal into fixed and per-entry cost, settled %ims",
+    async settleMs => {
+      const removals: SplitRemoval[] = [];
+      for (const entries of DECOMPOSITION_SIZES) {
+        for (const _repeat of Array.from({ length: DECOMPOSITION_REPEATS })) {
+          removals.push(await splitRemoval(entries, settleMs));
+        }
+      }
+      const median = (entries: number): number => {
+        const sorted = removals
+          .filter(removal => removal.entries === entries)
+          .map(removal => removal.rmSyncMs)
+          .sort((left, right) => left - right);
+        return sorted[Math.floor(sorted.length / 2)] ?? Number.NaN;
+      };
+      const [small, large] = DECOMPOSITION_SIZES;
+      const fit = fitRemoval(
+        { entries: small, rmSyncMs: median(small) },
+        { entries: large, rmSyncMs: median(large) }
+      );
+      emit({ kind: "decomposition", settleMs, fit, removals });
+
+      expect(removals).toHaveLength(
+        DECOMPOSITION_SIZES.length * DECOMPOSITION_REPEATS
+      );
+      expect(removals.every(removal => removal.rmSyncMs > 0)).toBe(true);
     },
     fsLatencyBudgetMs(SAMPLE_BASE_MS)
   );

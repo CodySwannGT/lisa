@@ -93,9 +93,9 @@ lisa_edit_gate_tasks() {
     # not.
     LISA_GATE_IDS="$*"
     export LISA_GATE_IDS
-    _lisa_out="$(
-        node "$_lisa_registry" list \
-            --moment="$_lisa_moment" --json 2>/dev/null | node -e '
+    # The filter is read from a quoted heredoc so its JavaScript reaches node
+    # byte for byte: no shell expansion applies to it.
+    _lisa_filter="$(cat <<'LISA_EDIT_GATE_FILTER'
 let raw = "";
 process.stdin.on("data", chunk => { raw += chunk }).on("end", () => {
   let resolved;
@@ -113,18 +113,22 @@ process.stdin.on("data", chunk => { raw += chunk }).on("end", () => {
   if (commands.length === 0) process.exit(1);
   process.stdout.write(commands.join("\n"));
 });
-'
+LISA_EDIT_GATE_FILTER
+)"
+    _lisa_out="$(
+        node "$_lisa_registry" list \
+            --moment="$_lisa_moment" --json 2>/dev/null | node -e "$_lisa_filter"
     )" || {
-        unset _lisa_moment _lisa_registry _lisa_out
+        unset _lisa_moment _lisa_registry _lisa_filter _lisa_out
         return 1
     }
 
     [ -n "$_lisa_out" ] || {
-        unset _lisa_moment _lisa_registry _lisa_out
+        unset _lisa_moment _lisa_registry _lisa_filter _lisa_out
         return 1
     }
     printf '%s' "$_lisa_out"
-    unset _lisa_moment _lisa_registry _lisa_out
+    unset _lisa_moment _lisa_registry _lisa_filter _lisa_out
     return 0
 }
 
@@ -138,15 +142,15 @@ lisa_edit_gate_run() {
     shift
     LISA_EDITED_FILE="$_lisa_file"
     export LISA_EDITED_FILE
-    printf '%s\n' "$*" | while IFS= read -r _lisa_command; do
-        [ -n "$_lisa_command" ] || continue
-        echo "Running declared gate task: $_lisa_command"
-        # Deliberate word split: the resolver validated both halves as plain
-        # words, so no shell metacharacter reaches argv.
-        # shellcheck disable=SC2086
-        $_lisa_command || exit 2
+    # Each line is split into words by `read -a`, never by an unquoted
+    # expansion: the resolver validated every word as plain, and reading them
+    # into an array keeps them from being glob-expanded as well.
+    printf '%s\n' "$*" | while read -r -a _lisa_words; do
+        [ "${#_lisa_words[@]}" -gt 0 ] || continue
+        echo "Running declared gate task: ${_lisa_words[*]}"
+        "${_lisa_words[@]}" || exit 2
     done
     _lisa_status=$?
-    unset _lisa_file _lisa_command
+    unset _lisa_file _lisa_words
     return $_lisa_status
 }

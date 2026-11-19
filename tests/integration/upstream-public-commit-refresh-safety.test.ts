@@ -66,16 +66,16 @@ function fixture(): ReleaseFixture {
 /**
  * Record one more commit in a fixture's checked-in list, spelled by `entry`.
  * @param root - Fixture root
- * @param entry - The full line to insert into the public-commit block
+ * @param entry - The full line to insert at the top of the public-commit record
  */
 function recordCommitLine(root: string, entry: string): void {
   const file = path.join(root, MANIFEST_PATH);
   const source = readFileSync(file, "utf8");
-  const block = source.indexOf("export const UPSTREAM_PUBLIC_COMMITS");
-  const close = source.indexOf("\n  });", block);
+  const record = source.indexOf('"UPSTREAM_PUBLIC_COMMITS"');
+  const open = source.indexOf("{", record) + 1;
   writeFileSync(
     file,
-    `${source.slice(0, close)}\n${entry}${source.slice(close)}`
+    `${source.slice(0, open)}\n${entry}${source.slice(open)}`
   );
 }
 
@@ -122,7 +122,7 @@ describe("refreshing the public-commit list", () => {
 
   it("keeps a recorded commit that history no longer reaches", () => {
     const { root, commits } = fixture();
-    recordCommitLine(root, `    ${UNREACHABLE}: true,`);
+    recordCommitLine(root, `    "${UNREACHABLE}": true,`);
 
     const refresh = runNode(root, GENERATOR, REFRESH_FLAG);
 
@@ -134,8 +134,8 @@ describe("refreshing the public-commit list", () => {
 
   it("refuses to write a list that drops a recorded commit", () => {
     const { root } = fixture();
-    // Still a listed commit to any reader, but no longer spelled the way the
-    // generator spells one — what a reformat of the generated file would do.
+    // Still a listed commit to any reader, but no longer JSON the generator can
+    // parse — what a hand edit or a stray reformat of the generated file does.
     recordCommitLine(root, `    '${UNREACHABLE}': true,`);
     const before = readFileSync(path.join(root, MANIFEST_PATH), "utf8");
 
@@ -153,12 +153,12 @@ describe("refreshing the public-commit list", () => {
     // refresh would find nothing, and an empty list would refuse every
     // commit reference `lisa file-upstream` is given.
     const file = path.join(root, MANIFEST_PATH);
-    const recorded = readFileSync(file, "utf8");
-    const block = recorded.indexOf("export const UPSTREAM_PUBLIC_COMMITS");
+    const recorded: Record<string, unknown> = JSON.parse(
+      readFileSync(file, "utf8")
+    );
     writeFileSync(
       file,
-      recorded.slice(0, block) +
-        recorded.slice(block).replace(/^ {4}"?[a-f0-9]{40}"?: true,\n/gmu, "")
+      `${JSON.stringify({ ...recorded, UPSTREAM_PUBLIC_COMMITS: {} }, null, 2)}\n`
     );
     git(root, "update-ref", "-d", "refs/remotes/origin/main");
     expect(git(root, "rev-list", "--remotes=origin")).toBe("");

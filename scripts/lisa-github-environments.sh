@@ -57,7 +57,11 @@ log_info() { echo -e "${BLUE}ℹ${NC} $1"; }
 log_success() { echo -e "${GREEN}✓${NC} $1"; }
 log_warning() { echo -e "${YELLOW}⚠${NC} $1"; }
 log_error() { echo -e "${RED}✗${NC} $1" >&2; }
-log_verbose() { [[ "$VERBOSE" == "true" ]] && echo -e "  $1" || true; }
+log_verbose() {
+  if [[ "$VERBOSE" == "true" ]]; then
+    echo -e "  $1" || true
+  fi
+}
 
 show_help() {
   sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'

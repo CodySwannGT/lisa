@@ -21,7 +21,7 @@ const REPO_ROOT = path.resolve(__dirname, "../../..");
 const REFRESH =
   "node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits";
 const RELEASE_COMMIT_CHECK = "node scripts/check-release-commit-listed.mjs";
-const MANIFEST = "src/core/upstream-evidence-manifest.ts";
+const MANIFEST = "src/core/upstream-evidence-manifest.json";
 const OTHER_OUTPUTS_STAGED = "git add plugins/lisa plugins/lisa-*";
 
 /** The parts of `.versionrc` these cases read. */

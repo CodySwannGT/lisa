@@ -82,7 +82,7 @@ write_materialized_manifest() {
     process.stdin.on("data", chunk => { raw += chunk; });
     process.stdin.on("end", () => {
       const paths = [...new Set(raw.split("\n").filter(Boolean))].sort();
-      fs.writeFileSync(process.argv[1], `${JSON.stringify(paths, null, 2)}\n`);
+      fs.writeFileSync(process.argv[1], JSON.stringify(paths, null, 2) + "\n");
     });
   ' "$MATERIALIZED_MANIFEST"
 }

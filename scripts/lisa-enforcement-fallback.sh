@@ -208,6 +208,25 @@ note_version() {
 
 plugin_tree_version=""
 
+# The EXIT trap of run_optional_freshness, running inside its subshell and
+# reading that subshell's state. If the anchor is still set, send the private stop handshake and wait for it
+# before closing descriptors. Remove scratch only while its captured identity
+# and trusted parent still match, preserving replaced or unrelated resources.
+cleanup_diagnostic() {
+  if [ -n "$anchor" ]; then
+    printf 'stop\n' >&8
+    wait "$anchor" 2>/dev/null || true
+  fi
+  exec 8>&- 9>&-
+  current_identity="$(stat -f '%d:%i:%Lp' "$scratch" 2>/dev/null)" ||
+    current_identity="$(stat -c '%d:%i:%a' "$scratch" 2>/dev/null)" || current_identity=""
+  if [ "$current_identity" = "$scratch_identity" ] &&
+    [ -d "$scratch" ] && [ ! -L "$scratch" ] && [ -O "$scratch" ] &&
+    notice_parent_chain_trusted "$notice_temp_base"; then
+    rm -rf "$scratch"
+  fi
+}
+
 # Node cannot supervise its own stalled startup. A directly forked Bash job owns
 # a live group anchor and an independent builtin-read timer. No second Bash is
 # exec'd, so its BASH_ENV and native ps startup cannot precede that timer. The
@@ -220,6 +239,7 @@ run_optional_freshness() (
   # Bash 3.2 unwinds function locals before EXIT on an explicit exit inside
   # command substitution. This function already isolates all state in a subshell.
   scratch="" anchor="" scratch_identity="" current_identity="" helper_status=1
+  output_status=0
   [ -n "$notice_temp_base" ] && notice_parent_chain_trusted "$notice_temp_base" || exit 1
   scratch="$(umask 077 && mktemp -d "$notice_temp_base/lisa-freshness.XXXXXX")" || exit 1
   case "$scratch" in "$notice_temp_base"/lisa-freshness.*) ;; *) exit 1 ;; esac
@@ -227,23 +247,6 @@ run_optional_freshness() (
   scratch_identity="$(stat -f '%d:%i:%Lp' "$scratch" 2>/dev/null)" ||
     scratch_identity="$(stat -c '%d:%i:%a' "$scratch" 2>/dev/null)" || exit 1
   [ "${scratch_identity##*:}" = 700 ] || exit 1
-  # If the anchor is still set, send the private stop handshake and wait for it
-  # before closing descriptors. Remove scratch only while its captured identity
-  # and trusted parent still match, preserving replaced or unrelated resources.
-  cleanup_diagnostic() {
-    if [ -n "$anchor" ]; then
-      printf 'stop\n' >&8
-      wait "$anchor" 2>/dev/null || true
-    fi
-    exec 8>&- 9>&-
-    current_identity="$(stat -f '%d:%i:%Lp' "$scratch" 2>/dev/null)" ||
-      current_identity="$(stat -c '%d:%i:%a' "$scratch" 2>/dev/null)" || current_identity=""
-    if [ "$current_identity" = "$scratch_identity" ] &&
-      [ -d "$scratch" ] && [ ! -L "$scratch" ] && [ -O "$scratch" ] &&
-      notice_parent_chain_trusted "$notice_temp_base"; then
-      rm -rf "$scratch"
-    fi
-  }
   trap cleanup_diagnostic EXIT
   trap 'exit 1' HUP INT TERM
   mkfifo "$scratch/start" "$scratch/done" || exit 1
@@ -267,9 +270,9 @@ run_optional_freshness() (
     ) &
     # Bash 3.2 accepts integer timeouts. One second leaves headroom beneath
     # the two-second diagnostic ceiling without delaying real enforcement.
-    if builtin read -r -t 1 -u 9 done && [ "$done" = done ]; then
+    if builtin read -r -t 1 -u 9 helper_signal && [ "$helper_signal" = "done" ]; then
       builtin printf "complete\n" >"$scratch/complete"
-      builtin read -r -t 1 -u 8 stop || true
+      builtin read -r -t 1 -u 8 _ || true
     fi
     builtin kill -KILL -- -"$group"
   ) &
@@ -294,7 +297,12 @@ run_optional_freshness() (
   [ -f "$scratch/complete" ] && [ -f "$scratch/status" ] || exit 1
   read -r helper_status <"$scratch/status"
   [ "$helper_status" = 0 ] || exit 1
-  cat "$scratch/output"
+  output_status=0
+  cat "$scratch/output" || output_status=$?
+  # The success path cleans up in line; the EXIT trap covers every early exit.
+  trap - EXIT
+  cleanup_diagnostic
+  exit "$output_status"
 )
 
 # Do not promote even one partial fact. Successful exit plus a terminal protocol
@@ -352,7 +360,7 @@ resolve_vintages() {
         channel_path) plugin_channel_path="$value" ;;
         guard[0-7])
           state_index="${key#guard}"
-          case "$value" in matching|different|unknown) host_guard_states[$state_index]="$value" ;; esac
+          case "$value" in matching|different|unknown) host_guard_states[state_index]="$value" ;; esac
           ;;
       esac
     done <<< "$result"
@@ -410,7 +418,8 @@ plugin_channel_path=""
 # The bounded helper reads the runtime record for exactly lisa@lisa and this
 # project. It reports installed version/path, never whether hooks are live.
 
-# Verdict of the last classify_channel_skew call: agree | skew | undetermined.
+# What the last classify_channel_skew call found, as channel_skew_line: a SKEW
+# line, an UNDETERMINED line, or nothing when every compared channel agreed.
 #
 # Three answers, never two. "The channels agree" and "I could not read one of
 # them" are DIFFERENT facts, and collapsing them is how a probe reports success
@@ -438,7 +447,6 @@ plugin_channel_path=""
 #
 # Pinned by the test named "lets a permitted command through whatever the
 # verdict is", which asserts exit 0 on both the skew and undetermined arms.
-channel_skew_verdict="undetermined"
 channel_skew_line=""
 
 # Compare the vintage of the channel this dispatcher runs against the vintage
@@ -448,9 +456,7 @@ classify_channel_skew() {
   local source=""
   local tree
   local channel_repair=""
-  local compared=0
   channel_skew_line=""
-  channel_skew_verdict="undetermined"
   for tree in host plugin; do
     if [ "$tree" = host ] && [ "$host_tree_used" -eq 1 ]; then
       mine="$installed_version"
@@ -467,7 +473,6 @@ classify_channel_skew() {
     missing version evidence does not establish either channel's age or liveness.
 "
     elif [ "$mine" != "$plugin_channel_version" ]; then
-      channel_skew_verdict="skew"
       if version_older "$plugin_channel_version" "$mine"; then
         channel_repair="update the installed plugin for this project"
       elif version_older "$mine" "$plugin_channel_version"; then
@@ -488,14 +493,8 @@ classify_channel_skew() {
       repair: $channel_repair;
       host content differences, if any, are reported separately below.
 "
-      compared=1
-    else
-      compared=1
     fi
   done
-  if [ "$compared" -eq 1 ] && [ -z "$channel_skew_line" ]; then
-    channel_skew_verdict="agree"
-  fi
 }
 
 # Description of the last describe_vintage call.

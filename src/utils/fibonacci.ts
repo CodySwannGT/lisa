@@ -7,13 +7,71 @@
  * @module utils
  */
 
+/** How many values each step of the generator expands at once. */
+const BLOCK = 1024;
+
+/**
+ * F(-1), F(0), F(1), … F(BLOCK + 1): the coefficients that expand a pair of
+ * consecutive Fibonacci values into the block that follows it.
+ * @param row - The coefficients built so far, starting from F(-1), F(0)
+ * @returns The full coefficient row
+ */
+function coefficientRow(row: readonly bigint[] = [1n, 0n]): readonly bigint[] {
+  if (row.length === BLOCK + 3) return row;
+  return coefficientRow([...row, (row.at(-1) ?? 0n) + (row.at(-2) ?? 0n)]);
+}
+
+const COEFFICIENTS = coefficientRow();
+
+/**
+ * The value `offset` places after a pair of consecutive Fibonacci values:
+ * F(k + offset) = F(k)·F(offset − 1) + F(k + 1)·F(offset).
+ * @param current - F(k)
+ * @param following - F(k + 1)
+ * @param offset - Distance from k, between 0 and BLOCK + 1
+ * @returns F(k + offset)
+ */
+function ahead(current: bigint, following: bigint, offset: number): bigint {
+  return (
+    current * (COEFFICIENTS[offset] ?? 0n) +
+    following * (COEFFICIENTS[offset + 1] ?? 0n)
+  );
+}
+
+/**
+ * Yields the sequence from a pair of consecutive values onward. The pair is
+ * the recurrence's whole state, so it travels as the parameters: each step
+ * yields one block derived from the pair, then continues from the pair that
+ * follows the block. Each block adds one level of `yield*` delegation, so the
+ * depth at position n is about n / BLOCK. One value per level overflowed the
+ * stack near 5,000 values when measured; a block of 1,024 moves that limit out
+ * about a thousandfold, to positions in the millions, which are values of
+ * millions of bits. The bound is real but far beyond any practical use.
+ * @param current - F(k)
+ * @param following - F(k + 1)
+ * @yields F(k), F(k + 1), …
+ * @returns Never; the sequence is infinite
+ */
+function* fibonacciFrom(
+  current: bigint,
+  following: bigint
+): Generator<bigint, never, unknown> {
+  yield* Array.from({ length: BLOCK }, (_, offset) =>
+    ahead(current, following, offset)
+  );
+  return yield* fibonacciFrom(
+    ahead(current, following, BLOCK),
+    ahead(current, following, BLOCK + 1)
+  );
+}
+
 /**
  * Infinite generator yielding the Fibonacci sequence as BigInts.
  *
- * Uses a two-element pair to track consecutive values, yielding the leading
- * element on each iteration and advancing the pair forward. Each call returns
- * an independent iterator, so multiple consumers never interfere.
+ * Each call returns an independent iterator, so multiple consumers never
+ * interfere.
  * @yields The next Fibonacci number (0n, 1n, 1n, 2n, 3n, 5n, …)
+ * @returns Never; the sequence is infinite
  * @example
  * ```typescript
  * const gen = fibonacciGenerator();
@@ -22,14 +80,7 @@
  * ```
  */
 export function* fibonacciGenerator(): Generator<bigint, never, unknown> {
-  /* eslint-disable functional/no-let -- generator requires mutable pair to track consecutive Fibonacci values */
-  let pair: readonly [bigint, bigint] = [0n, 1n];
-  /* eslint-enable functional/no-let -- re-enable after generator state declaration */
-
-  for (;;) {
-    yield pair[0];
-    pair = [pair[1], pair[0] + pair[1]];
-  }
+  return yield* fibonacciFrom(0n, 1n);
 }
 
 /**

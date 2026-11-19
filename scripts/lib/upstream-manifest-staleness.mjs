@@ -3,7 +3,7 @@
  * what moved underneath it".
  *
  * @remarks
- * `src/core/upstream-evidence-manifest.ts` is derived from two things: the set
+ * `src/core/upstream-evidence-manifest.json` is derived from two things: the set
  * of TRACKED files (`git ls-files`, so the git index), and the working-tree
  * bytes of every tracked file under a packaged-evidence prefix. Its `--check`
  * regenerates and compares byte-for-byte, so it can say *that* the file is out
@@ -39,7 +39,7 @@
  *
  * The obvious story — "the manifest hashes the ledger, so a stale manifest means
  * a stale ledger" — is false, and was measured false while fixing #2852:
- * `src/core/lisa-owned-hash-ledger.ts` lives outside every packaged-evidence
+ * `src/core/lisa-owned-hash-ledger.json` lives outside every packaged-evidence
  * prefix, so the manifest records its PATH and never its bytes. Mutating the
  * ledger's contents leaves the manifest check passing. The two artifacts are
  * independent in content; what couples them is a shared INPUT. Editing a
@@ -70,46 +70,50 @@ const MAX_LISTED_PATHS = 10;
  */
 
 /**
- * The body of one `Object.freeze({ … })` block in the generated module.
+ * One named record of the manifest JSON, or an empty one when it is absent.
  *
- * Sliced by export name rather than matched with one regex over the whole file,
- * because the public-commit block renders `<sha>: true,` — the same shape as a
- * tracked-surface entry. A single sweep reads 40-character SHAs as file paths
- * and then reports thousands of phantom removals.
- * @param {string} source - Generated module source.
- * @param {string} exportName - Name of the exported constant to slice.
- * @returns {string} The block body, or an empty string when it is absent.
+ * Read by record name rather than swept across the whole file, because the
+ * public-commit record has the same `"<key>": true` shape as the tracked-surface
+ * record: a single sweep reads 40-character SHAs as file paths and then reports
+ * thousands of phantom removals.
+ * @param {unknown} document - Parsed manifest JSON.
+ * @param {string} name - Record name.
+ * @returns {Record<string, unknown>} The record, or an empty object.
  */
-export function blockFor(source, exportName) {
-  const start = source.indexOf(`export const ${exportName}`);
-  if (start === -1) return "";
-  const open = source.indexOf("Object.freeze({", start);
-  if (open === -1) return "";
-  const close = source.indexOf("\n  });", open);
-  if (close === -1) return "";
-  return source.slice(open, close);
+function recordFor(document, name) {
+  const record =
+    typeof document === "object" && document !== null ? document[name] : null;
+  return typeof record === "object" && record !== null && !Array.isArray(record)
+    ? record
+    : {};
 }
 
 /**
  * The inputs a generated manifest says it was built from.
- * @param {string} source - Contents of `src/core/upstream-evidence-manifest.ts`.
+ *
+ * Unparseable text records nothing, so every path in a fresh regeneration then
+ * reads as added — the diagnosis still names the inputs the fresh file holds.
+ * @param {string} source - Contents of `src/core/upstream-evidence-manifest.json`.
  * @returns {ManifestInputs} Recorded evidence digests and tracked-surface paths.
  */
 export function parseManifestInputs(source) {
-  const evidence = new Map();
-  for (const match of blockFor(source, "UPSTREAM_EVIDENCE_MANIFEST").matchAll(
-    /^ {4}"([^"]+)":\n {6}"([a-f0-9]{64})",$/gmu
-  )) {
-    evidence.set(match[1], match[2]);
+  let document;
+  try {
+    document = JSON.parse(source);
+  } catch {
+    document = null;
   }
-
-  const surface = new Set();
-  for (const match of blockFor(source, "UPSTREAM_SURFACE_MANIFEST").matchAll(
-    /^ {4}(?:"([^"]+)"|([A-Za-z_$][A-Za-z0-9_$]*)): true,$/gmu
-  )) {
-    surface.add(match[1] ?? match[2]);
-  }
-
+  const evidence = new Map(
+    Object.entries(recordFor(document, "UPSTREAM_EVIDENCE_MANIFEST")).filter(
+      ([, digest]) =>
+        typeof digest === "string" && /^[a-f0-9]{64}$/u.test(digest)
+    )
+  );
+  const surface = new Set(
+    Object.entries(recordFor(document, "UPSTREAM_SURFACE_MANIFEST"))
+      .filter(([, member]) => member === true)
+      .map(([file]) => file)
+  );
   return { evidence, surface };
 }
 
@@ -168,7 +172,7 @@ function listPaths(paths) {
  * @returns {string} Multi-line refusal text.
  */
 export function describeStaleManifest(diagnosis) {
-  const sections = ["src/core/upstream-evidence-manifest.ts is stale."];
+  const sections = ["src/core/upstream-evidence-manifest.json is stale."];
 
   if (diagnosis.changed.length > 0) {
     sections.push(
@@ -215,7 +219,7 @@ export function describeStaleManifest(diagnosis) {
 
   sections.push(
     "  Fix: bun run build:upstream-evidence-manifest\n" +
-      "  Then: git add src/core/upstream-evidence-manifest.ts"
+      "  Then: git add src/core/upstream-evidence-manifest.json"
   );
 
   if (

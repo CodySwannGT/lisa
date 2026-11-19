@@ -3,21 +3,22 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { env } from "node:process";
 import { test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   assertDirectRefusal,
+  commandInterpreter,
   fixture,
   fixtureProcess,
   observe,
   runSupervisor,
   runNode,
   supervisor,
+  inheritedEnvironment,
   windowsOnly,
   windowsRoot,
   SUPERVISOR_DEADLINE,
-} from "./windows-process-fixture.mjs";
+} from "./support/windows-process-fixture.mjs";
 
 test(
   "direct mode refuses Windows before starting a native job",
@@ -31,7 +32,7 @@ test(
   t => {
     const f = fixture(t);
     const result = spawnSync(
-      env.ComSpec || path.join(windowsRoot, "System32", "cmd.exe"),
+      commandInterpreter,
       ["/d", "/s", "/c", f.command],
       {
         cwd: f.root,
@@ -117,7 +118,7 @@ for (const absent of [0, -1]) {
         {
           encoding: "utf8",
           timeout: 30000,
-          env: { ...env, TEMP: root, TMP: root },
+          env: inheritedEnvironment({ TEMP: root, TMP: root }),
         }
       );
       assert.ifError(result.error);
@@ -155,7 +156,10 @@ process.stdin.on('end', () => {
     const result = runNode([supervisor, SUPERVISOR_DEADLINE, "--", command], {
       cwd: root,
       input,
-      env: { ...env, TEMP: root, LISA_TEST_JOB_MARKER: "preserved" },
+      env: inheritedEnvironment({
+        TEMP: root,
+        LISA_TEST_JOB_MARKER: "preserved",
+      }),
     });
     assert.ifError(result.error);
     assert.equal(result.status, 17, result.stderr);
@@ -289,7 +293,7 @@ writeFileSync(${JSON.stringify(receipt)}, JSON.stringify({ blocked, failure, ali
     );
     const result = runNode([probe], {
       cwd: f.root,
-      env: { ...env, TEMP: f.root, TMP: f.root },
+      env: inheritedEnvironment({ TEMP: f.root, TMP: f.root }),
     });
     assert.ifError(result.error);
     assert.equal(result.status, 0, result.stderr);

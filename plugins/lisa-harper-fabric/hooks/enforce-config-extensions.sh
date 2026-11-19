@@ -28,7 +28,7 @@ run_check() {
 }
 
 if [ -f "$SCRIPT_DIR/_extract-edit-paths.sh" ]; then
-  # shellcheck source=/dev/null
+  # shellcheck source=_extract-edit-paths.sh
   . "$SCRIPT_DIR/_extract-edit-paths.sh"
   FILE_PATHS=$(lisa_extract_edit_paths "$JSON_INPUT")
   if [ -n "$FILE_PATHS" ]; then

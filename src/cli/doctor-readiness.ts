@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { rename, rm, writeFile } from "node:fs/promises";
 import { mkdir } from "node:fs/promises";
 import * as path from "node:path";
-import process from "node:process";
+import { currentEnvironment } from "../utils/process-environment.js";
 import type { DoctorCheck } from "./doctor.js";
 import {
   assessReadiness,
@@ -451,7 +451,7 @@ function resolveLisaVersion(): string {
  * @returns `host/model/version` signature string
  */
 function currentWorkerSignature(): string {
-  const env = process["env"];
+  const env = currentEnvironment();
   const host = (
     env.LISA_WORKER_HOST ??
     env.LISA_REMOTE_AGENT ??

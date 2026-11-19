@@ -13,10 +13,10 @@ import {
   type TmpdirGrowthRootIdentity,
   type TmpdirGrowthTrial,
 } from "./tmpdir-growth-performance-types.js";
+import { currentEnvironment } from "../../src/utils/process-environment.js";
 
 export const TMPDIR_GROWTH_ENTRY_COUNT = 100_000;
 export const TMPDIR_GROWTH_COMMAND_BUDGET_MS = 5_000;
-const { env: PROCESS_ENVIRONMENT } = process;
 
 /** Paths and immutable identity for one independently populated root. */
 export interface PopulatedTmpdirRoot {
@@ -120,7 +120,7 @@ export function timedTmpdirMeasurement(
       killSignal: "SIGKILL",
       maxBuffer: 64 * 1024 * 1024,
       timeout: TMPDIR_GROWTH_COMMAND_BUDGET_MS,
-      env: { ...PROCESS_ENVIRONMENT, TMPDIR: root, TMP: root, TEMP: root },
+      env: { ...currentEnvironment(), TMPDIR: root, TMP: root, TEMP: root },
     }
   );
   return {

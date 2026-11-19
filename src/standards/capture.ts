@@ -1,5 +1,6 @@
 /** Explicit standards-proof capture orchestration. */
 import { execFile } from "node:child_process";
+import { currentEnvironment } from "../utils/process-environment.js";
 import { promisify } from "node:util";
 import type { ProjectType } from "../core/config.js";
 import { getPackageVersion } from "../cli/version.js";
@@ -82,39 +83,112 @@ export async function captureStandardsProof(
     );
   }
   await deps.requireBaseCommit(before.git.root);
-  const results: StandardsProofResult[] = [];
-  for (const check of before.plan.checks) {
-    deps.onProgress(`standards-proof: running ${check.id}`);
-    const startedAt = deps.now().toISOString();
-    const outcome = await deps.runCommand(before.git.root, check);
-    const completedAt = deps.now().toISOString();
-    if (outcome.exitCode !== 0) {
-      throw new Error(`Standards check failed: ${check.id}.`);
-    }
-    if (
-      check.testEvidence !== undefined &&
-      !hasPositiveTestEvidence(check.testEvidence, outcome.output)
-    ) {
-      throw new Error(
-        `Standards check did not prove any executed tests: ${check.id}.`
-      );
-    }
-    // eslint-disable-next-line functional/immutable-data -- bounded ordered check ledger is private until validation and atomic publication
-    results.push(
-      Object.freeze({
-        check: check.id,
-        category: check.category,
-        status: "pass",
-        startedAt,
-        completedAt,
-      })
+  const results = await runChecksInOrder(
+    before.git.root,
+    before.plan.checks,
+    deps
+  );
+  return await publishProof(before, results, deps);
+}
+
+/**
+ * Run each check in plan order, stopping at the first failure.
+ * @param root - Canonical repository root the checks run in
+ * @param checks - Remaining checks, in plan order
+ * @param deps - Injectable process boundaries
+ * @returns One passing result per check, in plan order
+ */
+async function runChecksInOrder(
+  root: string,
+  checks: readonly StandardsCheckSpec[],
+  deps: StandardsCaptureDependencies
+): Promise<readonly StandardsProofResult[]> {
+  const [check, ...remaining] = checks;
+  if (check === undefined) return [];
+  const result = await runCheck(root, check, deps);
+  return [result, ...(await runChecksInOrder(root, remaining, deps))];
+}
+
+/**
+ * Run one check and require a zero exit plus any positive test evidence.
+ * @param root - Canonical repository root the check runs in
+ * @param check - The check to run
+ * @param deps - Injectable process boundaries
+ * @returns The frozen passing result
+ */
+async function runCheck(
+  root: string,
+  check: StandardsCheckSpec,
+  deps: StandardsCaptureDependencies
+): Promise<StandardsProofResult> {
+  const startedAt = announceCheck(check, deps);
+  const outcome = await deps.runCommand(root, check);
+  const completedAt = deps.now().toISOString();
+  if (outcome.exitCode !== 0) {
+    throw new Error(`Standards check failed: ${check.id}.`);
+  }
+  if (
+    check.testEvidence !== undefined &&
+    !hasPositiveTestEvidence(check.testEvidence, outcome.output)
+  ) {
+    throw new Error(
+      `Standards check did not prove any executed tests: ${check.id}.`
     );
   }
+  return Object.freeze({
+    check: check.id,
+    category: check.category,
+    status: "pass",
+    startedAt,
+    completedAt,
+  });
+}
+
+/**
+ * Report that a check is starting, then read its start time.
+ * @param check - The check about to run
+ * @param deps - Injectable process boundaries
+ * @returns The check's start timestamp
+ */
+function announceCheck(
+  check: StandardsCheckSpec,
+  deps: StandardsCaptureDependencies
+): string {
+  deps.onProgress(`standards-proof: running ${check.id}`);
+  return deps.now().toISOString();
+}
+
+/**
+ * Re-observe every bound input and publish the proof only when none changed.
+ * @param before - Inputs observed before any check ran
+ * @param results - Passing results, in plan order
+ * @param deps - Injectable process boundaries
+ * @returns Strict proof written for the unchanged artifact
+ */
+async function publishProof(
+  before: BoundInputs,
+  results: readonly StandardsProofResult[],
+  deps: StandardsCaptureDependencies
+): Promise<StandardsProof> {
   const after = await observeBoundInputs(before.git.root, deps);
   assertUnchanged(before, after);
-  // eslint-disable-next-line code-organization/enforce-statement-order -- capture time must be read only after unchanged-input validation
+  return await writeCapturedProof(before, results, deps);
+}
+
+/**
+ * Assemble and write the proof; capture time is read only here, after the
+ * unchanged-input validation has passed.
+ * @param before - Inputs the proof binds
+ * @param results - Passing results, in plan order
+ * @param deps - Injectable process boundaries
+ * @returns Strict proof written for the unchanged artifact
+ */
+async function writeCapturedProof(
+  before: BoundInputs,
+  results: readonly StandardsProofResult[],
+  deps: StandardsCaptureDependencies
+): Promise<StandardsProof> {
   const capturedAt = deps.now().toISOString();
-  // eslint-disable-next-line code-organization/enforce-statement-order -- immutable proof assembly intentionally follows unchanged-input validation
   const proof = {
     schemaVersion: 1,
     artifact: STANDARDS_PROOF_ARTIFACT,
@@ -269,6 +343,5 @@ export async function runStandardsCommand(
  * @returns Current process environment
  */
 function getProcessEnvironment(): NodeJS.ProcessEnv {
-  // eslint-disable-next-line no-restricted-syntax -- explicit operator command must inherit the configured project toolchain
-  return process.env;
+  return currentEnvironment();
 }

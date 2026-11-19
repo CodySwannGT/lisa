@@ -37,7 +37,7 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=/dev/null
+# shellcheck source=_extract-edit-paths.sh
 . "${SCRIPT_DIR}/_extract-edit-paths.sh"
 
 # A missing extractor means no path can be resolved: permit, for the same
@@ -59,7 +59,7 @@ fi
 # there is no `cd` here — the Claude copy needs one because a PreToolUse hook
 # there establishes none.
 # ---------------------------------------------------------------------------
-# shellcheck source=/dev/null
+# shellcheck source=lisa-edit-gate.sh
 . "${SCRIPT_DIR}/lisa-edit-gate.sh"
 if LISA_GATE_COMMANDS="$(lisa_edit_gate_tasks pre-tool migration-provenance)"; then
   LISA_GATE_STATUS=0
