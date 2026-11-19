@@ -17,6 +17,11 @@
  * ShellCheck is a CI-provisioned tool: on a developer machine without it the
  * suite is deferred with the remedy named, and in CI a missing binary fails.
  *
+ * Findings depend on the ShellCheck version, and the runner's is older than a
+ * current Homebrew one: 0.11 stopped reporting SC2015 on `A && B || true`,
+ * which 0.10 and CI still report. A script has to be clean under both, so
+ * every failure names the version that produced it.
+ *
  * Each script's `source=` hint names the sibling it sources at runtime. Two of
  * those siblings only exist once installed — the Codex installer places
  * `_extract-edit-paths.sh` beside the Harper hooks, and a host's `.husky` gets
@@ -125,6 +130,23 @@ const deferred = suiteDeferral(
   "Install it: brew install shellcheck, or apt-get install shellcheck."
 );
 
+/**
+ * The first line of `shellcheck --version` that names the version.
+ * @returns For example `version: 0.10.0`
+ */
+function shellcheckVersion(): string {
+  const result = boundedSpawnSync({
+    label: "shellcheck --version",
+    command: "shellcheck",
+    args: ["--version"],
+    cwd: REPO_ROOT,
+  });
+  return (
+    result.stdout.split("\n").find(line => line.startsWith("version:")) ??
+    "version: unknown"
+  );
+}
+
 const SCRIPTS = shippedScripts();
 const DEFAULT_SHELL = SCRIPTS.filter(script => !(script in HOST_SHELL));
 
@@ -148,7 +170,7 @@ describe("every shipped shell script passes ShellCheck", () => {
           args: ["-x", "-P", SOURCE_PATH, "-f", "gcc", ...batch],
           cwd: REPO_ROOT,
         });
-        expect(result.stdout).toBe("");
+        expect(result.stdout, `ShellCheck ${shellcheckVersion()}`).toBe("");
         expect(result.status).toBe(0);
       }
     );
@@ -162,7 +184,7 @@ describe("every shipped shell script passes ShellCheck", () => {
           args: ["-s", shell, "-f", "gcc", script],
           cwd: REPO_ROOT,
         });
-        expect(result.stdout).toBe("");
+        expect(result.stdout, `ShellCheck ${shellcheckVersion()}`).toBe("");
         expect(result.status).toBe(0);
       }
     );

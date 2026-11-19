@@ -2785,7 +2785,7 @@
     "scripts/github-status-check.sh":
       "5302dadecadc66f23ae7b5965b489d3b8cf99a0dd6de5ebdaa85400f71536f26",
     "scripts/install-claude-plugins.sh":
-      "612107eaa0dbf91a8d8ea5fc0cbe54c0d2af8be53c3e132a3a33da502cebedf2",
+      "e4aa6911ca6351cd5d50b3a46a432b3cba0e0199176a6ba4bef2d45ab39e410b",
     "scripts/install-generated-artifact-merge-driver.mjs":
       "61e2b4fc532e8b356cb751b1ff42eb712376728eec76f8edf2c3dec19acf1bd4",
     "scripts/integration-shard-build.mjs":
@@ -2967,9 +2967,9 @@
     "scripts/lisa-estimate.mjs":
       "2334e384ec77ba5d85b6547d1cb714002b9a44ec8945747f694310a52dd68ae8",
     "scripts/lisa-github-environments.sh":
-      "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
+      "6b027c59dee2d6ec045b372db74f2638f2f53b1ae11a679dad6ef8a01451649d",
     "scripts/lisa-github-repo-settings.sh":
-      "f32a058244c0035861577db2f4c1700f1b5f616e5bd78ecf808e41fa4292b9b4",
+      "a9f0dab140dbea13b5780bbf2795af58be8e4527535b73cc96452ec7d3a39d43",
     "scripts/lisa-github-repo-setup.sh":
       "f19b63c157a8a2a0a9a4c338616d1506da83f88aad323d892c9ba3b139f0eab0",
     "scripts/lisa-github-rulesets.sh":
