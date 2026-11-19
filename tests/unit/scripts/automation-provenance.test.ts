@@ -5,7 +5,6 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -46,6 +45,7 @@ const RECOVERY_FILE = "recovery.json";
 const LEAF_BODY = "immutable leaf";
 import { predictedCommit } from "../../../all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs";
 import { resolverTimeoutMs } from "../../../all/copy-overwrite/scripts/lib/automation-provenance-local.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 const ROOT_HOOK = ".husky/commit-msg";
 const HOOKS = [ROOT_HOOK, "typescript/copy-contents/.husky/commit-msg"];
 const CLAIM_ENDPOINT = "repos/acme/widgets/issues/comments/77";
@@ -111,7 +111,7 @@ describe("focused provenance module boundaries", () => {
       "invalid regular bounded proof file"
     );
     const alias = path.join(f.root, "private-proof-alias");
-    symlinkSync(file, alias);
+    createSymlink(file, alias);
     expect(() => local.privateBytes(alias, bytes.length)).toThrow();
   });
 });
@@ -636,7 +636,7 @@ describe("full hook and checkout transport fixtures (not live issuance)", () => 
       const file = path.join(directory, DESCRIPTOR_FILE);
       const original = path.join(directory, "original.json");
       renameSync(file, original);
-      symlinkSync(original, file);
+      createSymlink(original, file);
     }
     if (boundary === "undeclared") {
       p.descriptor.updates[0]!.to = "8.0.0";

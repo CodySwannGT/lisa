@@ -312,8 +312,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "599628647c03ac22fe7cd5df22219a70b67e449cc893cc85564a93d658df2c2d",
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1":
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
+    "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs":
+      "1f8b96f438995da18a2e8cab7160c6dfc38c597550839ca4e1694b47e3314893",
     "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs":
-      "445732d190b31aec81594bd5fb5a82bc5b1ed16d3a6ff6fa0fe5fb287706a878",
+      "8335b3f9d15243dff3e6eb74a5352c9ef8e8f3c667cc81996452855274a9ca73",
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.d.mts":
       "68ba3eba29ed10a0ca3488e35722882413a85eaa2105b0266f3edfa121d9bb86",
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs":
@@ -347,7 +349,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "264dc09909dc6c2624d87fd3d342c4538bdc62654e7c804732cdee97218fbcd0",
     "all/copy-overwrite/scripts/lisa-estimate.mjs":
-      "f5bcb51089ae8c0fb5f0a3e880a532f19ca7f9c5f0f7eadddb9c47cfccbf0965",
+      "205e859724157edd928095623de95f70fe7b7e5d192ab386282df8ba2644d1de",
     "all/copy-overwrite/scripts/lisa-evidence-prune.mjs":
       "878b2014be5a0bedc8b4899d0e961dfea5b1147ff0a694a9fac00f77121f035a",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -1347,7 +1349,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
       "34afe0413fce11872ac99b87e6323c59a754db7992c5fb054a56845af0723785",
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
-      "21b833ba64aa122a6295f48f39eb23522ba6d032c028ee2a49075338fcc3eb31",
+      "9f9b9e42d437aafe82a153414dcf335a35a5ea30be88c427e5044fdc8d112935",
     "plugins/src/base/rules/reference/work-item-trailer-definition.md":
       "2997766dc8ab61bf63891781dc9e86339a47ca35eddd4ca387bd7cc0ce85f2a5",
     "plugins/src/base/scripts/automation-run-record.mjs":
@@ -1533,7 +1535,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "e068c078a79015af58b8faed193f1f736ff18d32ed1a677b0ee9cddf635d71b6",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
-      "476bc4d9d926461f0edddbaf5c71df5c43b87ce9e6754768232a8b71db70f42b",
+      "c35c1e017211b4ba209ba4fc612b7a445e0afc0be0d4ccf31323076f06dd6f61",
     "plugins/src/base/skills/lisa-github-verify/SKILL.md":
       "7264fbb02cdc6e8059d2130f19e16fadd36f5defff64621a1d95fc24565abc15",
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md":
@@ -1589,7 +1591,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
       "943a89c2fd70b7cd1f13badc8ce0018f9f5ff18a0a7443440ba68a309bf4685f",
     "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md":
-      "7e89ebf3e9ee13728b9a9d573b372af4091d7fd62a181d8ee2b4c929aaa0e19c",
+      "e3f21c20804f5805bed3dce9f43f6136d838220e7b4d7a310ca3fd7a475f0821",
     "plugins/src/base/skills/lisa-jira-verify/SKILL.md":
       "55484ce81b43a167db9bbeed62edf8b204676827b7ef7bf1892c17453027c7b6",
     "plugins/src/base/skills/lisa-jira-write-ticket/SKILL.md":
@@ -1623,7 +1625,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "af8efdcd13d0e30f729938a8c70674be58fd7113f2ad723ab5ebad7ea42ac5ce",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
-      "57440decb644afe7852241e6496f1d89bb2ab9a2666fe94762746de0108c4a8f",
+      "4abbb8fcf321e89931f29cc260f6365370025b6f17d2d1cf1f5024746e9630f6",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
@@ -1787,7 +1789,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
       "c1d3d38c031285925f8d802575a31708919a9c2595af9af9c7dd6c76412a1d8f",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
-      "b43edfe70f30a75ae95b74040c4efe30d0d359f71f1ca8bd43dbc293c6705bc6",
+      "aab705023d16ae42d6994450da0c914230ccab92823babb81697941c3760e8a8",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
       "4b125971939f6e99863930a109315038520c1bc8e0543d1e34476c9987d30605",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-stale-links.mjs":
@@ -1797,7 +1799,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
       "9403e9eb1a778252c5066da1aa7ab4101ead9417730c7000ad844ff611fa6ca0",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
-      "65beec4da7ea3917765b96ed920e630627955f6a053e9305de28056b8c6b2886",
+      "c1f0329e5f3aeb58a91a5caceb54161cadcf9e5c12ad30d44a66026b0533b29f",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
@@ -1837,7 +1839,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-holds.mjs":
       "c13b75e56464c87e7f394061b2b1a8d55385c1a7f8ce2d7d8a79c4b9f28eca4e",
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
-      "e4f119df2902b96ad40939fc5b1cab18bc5ef1353d0091389d80e6afc2ef910d",
+      "332bebf7a73c1d95bafe0e82239c18838dd53df7ca043c5cf4c3bb1043497324",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
       "9af014661873a2971fbc29946739088fc3e089deb8d94e78af651647450f2999",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
@@ -1852,6 +1854,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3ddaf09b8ac47948a38a50a338448a59d19714003d05e8c45ec81418769afe44",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
       "e1c3f0386249afc187b9711b3631ed58b23467e1e88d22c628167b5d3af45318",
+    "plugins/src/base/skills/lisa-session-manager/scripts/take-check.mjs":
+      "dc2fa0dd478eee819640db121648b3725166af0d79d63b2c0a48551eff5a4f13",
     "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs":
       "af176e882c928ce16fc51352035e06b13fb3eecd3edb40b20f17fc22fe1049d5",
     "plugins/src/base/skills/lisa-session-manager/scripts/token-migrate.mjs":
@@ -1949,13 +1953,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "8bbee6b63650115190991947a5ceed8f5a7654f8bf32b616a701c36e1b1cee93",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "1547b41cb12d2ff7eae2f90a2cd13d3d2cb69a509ee1f09ccbab3154fb341b6e",
+      "046bff24c56a53c7609b569364d49834ea0c42fd92491a08a74620fbb770ed4d",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "5e250f235e91a6f72a7ebee93560d6c6fd7c5c47aabefe341fba05c6b88c4b25",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
       "272f1c20b30a024dcaa4547eb7ee32712d9c9a448e68e48cdb1b1033fdf8e422",
     "plugins/src/base/skills/lisa-tracker-claim/SKILL.md":
-      "5b1c9bb54f1fc5b6f865ae71caaae5da7c6b5ef91dd2a2e9b445429923306532",
+      "deacddef796cc8689b0eb6f4f0114891aeb5795a5e4147992cb74b268bd30abf",
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "e37b751782fe53c0cb6e8b682ca12e61b96635edf9fbe4d19990a22d897b88e3",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
@@ -1981,7 +1985,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md":
       "d34e7b4951bc26caf15625e081e8273a11ee8ca1bde6137750f4b687fca7e8bf",
     "plugins/src/base/skills/lisa-usage-accounting/references/estimate.md":
-      "ced0798230291b4eb8ed87bd0b3b172710cd2cf6456aa92451c2b30d4ed97a84",
+      "11e9551b88b8449e6c19df16d2a2a70380ccd41b4241bb6a5d9664f2bed13c0f",
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "9605cce9b30a5a4db04ce936b5dddcaaf05368ddcd91ce4067956071a481db63",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
@@ -3035,7 +3039,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "63a77578febe9c8e68ef67e0daeb7cc297d3b524022151747f54eaef9ea63370",
+      "5340d136f333cd717f12c8e7d10fd44755829754ed702176c07c2276a94cad64",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3105,7 +3109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "03d3483fa9636df6bafd8927c664f79a85bd9e1744369ca71466183b4cd0f2b4",
+      "6dbea710f7ee2feecc84e714a8014ae928e5895d2d7fb01a3662702040b56996",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3536,6 +3540,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/windows-process-job.cs": true,
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs": true,
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1": true,
+    "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs": true,
     "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs": true,
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.d.mts": true,
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs": true,
@@ -5272,6 +5277,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/state-dir.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/token-migrate.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/token-provider.mjs": true,
@@ -5837,6 +5843,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/state-dir.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/token-migrate.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/token-provider.mjs": true,
@@ -6386,6 +6393,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/state-dir.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/token-migrate.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/token-provider.mjs": true,
@@ -6864,6 +6872,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/state-dir.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/token-migrate.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/token-provider.mjs": true,
@@ -9085,6 +9094,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/state-dir.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/token-migrate.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/token-provider.mjs": true,
@@ -9818,6 +9828,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/state-dir.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/token-migrate.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/token-provider.mjs": true,
@@ -10421,6 +10432,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/token-migrate.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/token-provider.mjs": true,
@@ -11952,6 +11964,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/freshness-native-timing/run-linux.py": true,
     "tests/fixtures/freshness-native-timing/run.py": true,
     "tests/fixtures/git-history-secrets/errors.mjs": true,
+    "tests/fixtures/git-history-secrets/evidence-scans.mjs": true,
     "tests/fixtures/git-history-secrets/graphs.mjs": true,
     "tests/fixtures/git-history-secrets/harness.mjs": true,
     "tests/fixtures/git-history-secrets/journey.mjs": true,
@@ -12144,6 +12157,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/latest-review-identity-fixtures.ts": true,
     "tests/helpers/latest-review-reducer-harness.ts": true,
     "tests/helpers/learnings-overcap.ts": true,
+    "tests/helpers/link-call-scan.ts": true,
     "tests/helpers/lintstaged-globs.ts": true,
     "tests/helpers/lisa-test-run-process.ts": true,
     "tests/helpers/mutation-gate-arms.ts": true,
@@ -12223,6 +12237,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/audit-workflow-action.test.ts": true,
     "tests/integration/auto-update-pr-branches-removed.test.ts": true,
     "tests/integration/bootstrap-keychain.test.ts": true,
+    "tests/integration/borrowed-node-modules.test.ts": true,
     "tests/integration/build-once-per-push.test.ts": true,
     "tests/integration/cdk-ci-role-selection.test.ts": true,
     "tests/integration/ci-concurrency-policy.test.ts": true,
@@ -12609,6 +12624,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/platform/process-tree-runner.test.mjs": true,
     "tests/platform/windows-missing-handles.ps1": true,
     "tests/platform/windows-process-fixture.mjs": true,
+    "tests/support/borrowed-node-modules.mjs": true,
     "tests/support/carrier-agents.ts": true,
     "tests/support/carrier-hook-owners.ts": true,
     "tests/support/carrier-hook-run.ts": true,
@@ -12645,6 +12661,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/staged-module-fixture.ts": true,
     "tests/support/work-item-cli.ts": true,
     "tests/support/work-item-coherent-related.ts": true,
+    "tests/support/work-item-estimate-fixtures.ts": true,
     "tests/support/work-item-fake-aws.mjs": true,
     "tests/support/work-item-fake-transports.ts": true,
     "tests/support/work-item-inprocess-gh.ts": true,
@@ -12957,6 +12974,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/mutation-performance-baseline-wired.test.ts": true,
     "tests/unit/config/mutation-sigterm-control-wired.test.ts": true,
     "tests/unit/config/nightly-slow-suites.test.ts": true,
+    "tests/unit/config/no-whole-node-modules-link.test.ts": true,
     "tests/unit/config/npm-publish-verification-workflows.test.ts": true,
     "tests/unit/config/orphan-process-gate-wired.test.ts": true,
     "tests/unit/config/oxlint-expo.test.ts": true,
@@ -14237,6 +14255,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-comment-projection.test.ts": true,
     "tests/unit/scripts/work-item-completion-authorization.test.ts": true,
     "tests/unit/scripts/work-item-contract-version.test.ts": true,
+    "tests/unit/scripts/work-item-estimate-claim.test.ts": true,
     "tests/unit/scripts/work-item-estimate.test.ts": true,
     "tests/unit/scripts/work-item-evidence-release-cli.test.ts": true,
     "tests/unit/scripts/work-item-gate-scope-advice.test.ts": true,
@@ -14398,6 +14417,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli-setup-gap-edges.test.ts": true,
     "tests/unit/session-manager/cli-setup-gap-persist.test.ts": true,
     "tests/unit/session-manager/cli-setup.test.ts": true,
+    "tests/unit/session-manager/cli-spawn-take.test.ts": true,
     "tests/unit/session-manager/cli-spawn-trust.test.ts": true,
     "tests/unit/session-manager/cli-stale-links.test.ts": true,
     "tests/unit/session-manager/cli-start-survival.test.ts": true,
@@ -14441,6 +14461,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/support/orphan-fixtures.ts": true,
     "tests/unit/session-manager/support/provider-sandbox.ts": true,
     "tests/unit/session-manager/support/setup-gap-queue.ts": true,
+    "tests/unit/session-manager/take-check.test.ts": true,
     "tests/unit/session-manager/telegram-route-short-forms.test.ts": true,
     "tests/unit/session-manager/telegram-route.test.ts": true,
     "tests/unit/session-manager/token-clipboard.test.ts": true,
@@ -14454,6 +14475,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/workers-name-roundtrip.test.ts": true,
     "tests/unit/session-manager/workers-setup-gap.test.ts": true,
     "tests/unit/session-manager/workers.test.ts": true,
+    "tests/unit/skills/lisa-track-estimate-contract.test.ts": true,
     "tests/unit/skills/missing-capability-tickets.test.ts": true,
     "tests/unit/skills/pull-request-executor-reference.test.ts": true,
     "tests/unit/skills/pushing-skills-run-lisa-check.test.ts": true,
@@ -14768,6 +14790,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/postinstall-trampoline.test.ts": true,
     "tests/unit/utils/usage-accounting-artifact-ref.test.ts": true,
     "tests/unit/utils/usage-accounting-backward-compatibility.test.ts": true,
+    "tests/unit/utils/usage-accounting-child-incomplete.test.ts": true,
     "tests/unit/utils/usage-accounting-child-rollups.test.ts": true,
     "tests/unit/utils/usage-accounting-fixtures.ts": true,
     "tests/unit/utils/usage-accounting-integrity.test.ts": true,
@@ -14995,6 +15018,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "wiki/sources/memory/2026-05-28-memory.md": true,
     "wiki/sources/repository/.gitkeep": true,
     "wiki/sources/repository/2026-05-14-monorepo-baseline.md": true,
+    "wiki/sources/repository/2026-11-17-control-audit-docs.md": true,
     "wiki/sources/roles/2026-05-25-roles.md": true,
     "wiki/sources/roles/2026-05-26-roles.md": true,
     "wiki/sources/roles/2026-05-27-roles.md": true,
@@ -17168,6 +17192,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "1ea2bae4012e367c5a51de4464714e874b6e3a96": true,
     "1ea5666b20c090286261231e173b961137bc9393": true,
     "1eaf7ac6825fc35c62d477bdc5317f527e235dc3": true,
+    "1eb2aded6cecddcb44ee2732e3342efe4c9c2c93": true,
     "1eb367ded86f901adceea342f143108949ada93e": true,
     "1eb640747b0bf48e7df39924a4d59b5efe887df8": true,
     "1eb6a7e59099dd524ff15dcda7191db6e811e4b5": true,
@@ -17525,6 +17550,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "241b8a987b1d110721dff4a5ee6c2c35801eb25b": true,
     "241e0f5d2c1d83e746bdbf54b9f8a008925e66e2": true,
     "2429738b9e72ab89aaf81b71c6470cf13c0c2862": true,
+    "242a0a836b98f7f2a8b5adea54fb08e84069c889": true,
     "242a28deda611c4773d45fb00b2ab8cb4eeef00f": true,
     "24317fca0a822af2eb2c1215a3edd315f9ace47d": true,
     "2433dee8a2d213f5cae9b1d63ea5dd368da21db2": true,
@@ -19129,6 +19155,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "3d4d55ea0ac810e9ad76a33e6a11e305db56b601": true,
     "3d4e4ea08cf567cc2931c24cf3cb37b1df7d7fa4": true,
     "3d559aa9ad98660e9f7aa31fa791d4c2840d3c57": true,
+    "3d55e4b0a206dfefc8e0d9a04143346eaaf745e5": true,
     "3d5e9897f4d4859dde2edf0291d9b56cefbc4a92": true,
     "3d5f5c49d388594a2f0e5313fbf906d12b96b913": true,
     "3d5f89a8100541d68ed6a4d2af8dd4ea38ada1cf": true,
@@ -19298,6 +19325,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "3fd713715389735ab4a670a239f420201ea16906": true,
     "3fd9ec6143a8274ae1cc8c418322f53f9fb81be1": true,
     "3fe092b9365725e7474c10cc66eb5b7a6cbb9227": true,
+    "3fe84feae4ff6d9b3d43e423dccd160193ad7d8e": true,
     "3fe9368b976e58fba1f7140eaab114a969d2811e": true,
     "3fed4e0680b155dba829fc071d16de51b0e4e304": true,
     "3fed4f391b9a6f13a80fcd6c11cb5c16837269c9": true,
@@ -19621,6 +19649,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "453cd91e08ebe69fe8faf88d38f2b0194ee518f1": true,
     "4540cff01af92146fbe0b574d317bc85577cabf6": true,
     "4542eb75e2b34830211e9aa6df057435f34963b0": true,
+    "454f87855a529a5a62b569ceb773366dbc9227fe": true,
     "454ff6aa0188a8933ce0b8f382668d2fd29f2879": true,
     "4551ece1c9333041ad616b2109a4454e93a4171b": true,
     "455483fe7043ec63af5e6cdd3268a7780a418af8": true,
@@ -19698,6 +19727,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "4626e41160342dd8aa23e177baac4ed6a3ffc934": true,
     "462ad20172ba3fbc567b7dfdfa7647edf0023e9e": true,
     "463065699372f451532e3fe1696e9298e360d508": true,
+    "4634486ce5e4d8c0ea68f5e3b12d4d36c07c51b4": true,
     "46369323bebe10dd9c169f3677c9c2f054246f30": true,
     "46371734ad5a5d2bbce845ccd0864721c97667e4": true,
     "463a1fae93f5a715c191ff04362e9cfa9a44ca99": true,
@@ -20924,6 +20954,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "5950ad4bc19da5eccd4813dee8c0793481996b47": true,
     "595f35894dad594532806dd9f2e7b66b4ba7875b": true,
     "59606bf4b919f20026d80c3cbf514938080107d8": true,
+    "5966573d0ceec675808cc0bba12885353827846d": true,
     "5969713b7fbdd2d3ff6c2c7a26e321e1e5ff141b": true,
     "596f8d8e653a6ba8f8d915555e07fd43712513f1": true,
     "597236a44cfcf0782ce75e8161cd7a0e8fdc30a4": true,
@@ -21120,6 +21151,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "5c51732f50189c2fa0a798109a805de6cfc59c35": true,
     "5c543ee597f5510b2cb926e95c03eb37a167c2e6": true,
     "5c55bbac8f37207ef4d0477a75ce43bf76b7507a": true,
+    "5c60730c4122c55febf89d99bf9a4a8ea2b5b3d2": true,
     "5c66e2e36f5d51731a5fe517c7defd847d3b4b82": true,
     "5c67eb33f92bb76e47023e4588b92dd9bd178cfd": true,
     "5c6bf93ea1c38dfee86d925944a9b591203cf4d6": true,
@@ -21339,6 +21371,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "5fb5d9ee71f896b266beeb8cf84aeb12006ac18a": true,
     "5fb7d7a807af7c0009b73f00fe870e4dcbcd84a6": true,
     "5fbb5b21fb56da2248cf253a08880b27ba2cf92e": true,
+    "5fbe28fcedd291b272abfbb058217342bb146fcb": true,
     "5fbe69ce9ff0a88bc9b04828e4e18724924eb9b9": true,
     "5fc7284b1346508289895ba07d0de49c6a31707a": true,
     "5fcb9a97f6c773d9d5632293bea55f0c1a97e6df": true,
@@ -23873,6 +23906,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "85c989ccc9e1f72e6f731f3ba0363b9fc0ce5335": true,
     "85ce0ac0ebda83d5aedf17317132a78e9ca64579": true,
     "85ce58b696f3a6af013b07b667d2ae43c4f74ba9": true,
+    "85d0897aa78fc9edd87050593dcd99e0dff4e347": true,
     "85d494ffcaf17a817994d44bd371c0fc7401300b": true,
     "85d50bd4aa8cf92ecbaaf49b13539bcbbdee9ad2": true,
     "85d5441d7947533947f53eeb44251f22b99d835b": true,
@@ -25132,6 +25166,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "99d9520626329b1823844c02fbcf55aaff516791": true,
     "99dc19625cf4c93b0ee0940fdaa0286d5e6485b6": true,
     "99dc71ecc71e4ce2a91d5301187c808c0d89984f": true,
+    "99dd0b2a2859569b880f5ad248128df2a2c07e19": true,
     "99df05744a006c168f16319b7fc4ab910b60ba95": true,
     "99df54a54f0c66d8478a08b026e35ea306472c96": true,
     "99e1a5965afb462ab213867c604a155afbd9ee88": true,
@@ -25457,6 +25492,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "9efa4a8584e9b311b42c64d0b1ca6bf63ccdf8a9": true,
     "9efaca74c1bd2f67cf9dc1f860c89cdf363777d3": true,
     "9efe3d8605f61c4670ec7492cef37be1592f4191": true,
+    "9f00ced110b209f70c66cdc53e7eb2557441b482": true,
     "9f028c01633816925982759338b786614b2e7787": true,
     "9f15d9132b87544dd0bfad3319820ce7436d4057": true,
     "9f19092615d8b0f602a74f06435b0e4b02ea844c": true,
@@ -25544,6 +25580,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     a0573be869e26022ea959b19fef65f290a282f88: true,
     a06e9bd671db656ce06ee4e482f817097a6be69c: true,
     a06f9b9907f544b7650895e342c553ebff8b1cc1: true,
+    a07052b04e1da5f5cec5fe33a6013c373de144e3: true,
     a0708b77534d3d0af9f8a182f807c6d449774be7: true,
     a0728f640b39db2ae12f18ea36e4d6689489e8e3: true,
     a079748ce90c42ea617ea16a769fd044331a38f1: true,
@@ -25735,6 +25772,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     a2d408e73d5c2ccaa5936be824b73a77f8a2bb93: true,
     a2e467f9218e60e05ed37be1d45a74053d267bab: true,
     a2f0df1dc1d816f556ea08892623c9feb3d88bd4: true,
+    a2f1e86935d25085d8c98c16b375f4bd078cb4f2: true,
     a2f857b0c87418f59ab977269ff2e14b311c4a80: true,
     a2f97b827b87e91db42aa2fc6352751c8b52a000: true,
     a2fb92b2522ada779833fdcdcc7340f0c661f82d: true,
@@ -25923,6 +25961,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     a5cf043c899e3090211e609c1b5be51df2d890f0: true,
     a5d05bbe6954780a8d42035932a001479ada6b93: true,
     a5d4165bac743369232c339c4bd4c93655621cb5: true,
+    a5d54c6132f7961ffa6c979bcaa8c64f0b3e00bc: true,
     a5d78de76a32d9649669594ccb22b43636ec719e: true,
     a5e2ab2707a9f9bcd8345491ef13a667c1716cd5: true,
     a5e609f29632f354e7f7888d2079b55504d2841e: true,
@@ -26905,6 +26944,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     b424610543917166237cac5c68ab5ad7f8c5a42e: true,
     b4255252e38a814cdfa82c40cef4b86a51e02eab: true,
     b428c9f83f1deab12108dbe0033cb31f25e310e9: true,
+    b42bcb54f01d7cb84af0ce185d006fdb42543729: true,
     b42cee3e1a216e0030ebacf130473b8cda03fff2: true,
     b42d4833692cf774fd30c55086c846e2b0a1bddb: true,
     b42f9bfc67c34f37d8baa79a390f1d75c46ce85d: true,
@@ -27926,6 +27966,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     c3662b646cb3ba14a4af9ce3298eb877be8f07ba: true,
     c36a7bc1c9c4c458c214a5f1ccd9769e582f2ba1: true,
     c36a894ac37be0c7fccdd68d78a93a74be170de3: true,
+    c36c338cb6552340560bcf7f0a3a66663ca8c80d: true,
     c37315ea4e95799895415e31410f96705908556a: true,
     c3744f29a0f598a84d9095b0cc71e08847c69cde: true,
     c375f64137141b88065203890ea84ce58b91ad82: true,
@@ -27935,6 +27976,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     c3829f8965b137398c5dcb2599e2c2fdfac6805a: true,
     c383e1209118e9d46e061ed90d28d176444c9a40: true,
     c3857053885672c8bd0c5f1cee6be797792b6e64: true,
+    c385fa909860b80d390405b62d936ba5a6aae5e3: true,
     c387727440e457762a00e4b5fc93b53cff0d2e89: true,
     c3886a417cb769626ad1239004214439da8957a8: true,
     c38b3fda554fefde443c3f553210ec9bb0ddbac5: true,
@@ -28219,6 +28261,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     c7ce209d9fbb48da25aea2546991dbb2730627d5: true,
     c7dbb8c8240a0c08b7b60edb76fd9556a8812c80: true,
     c7dd5ce4a65ebc311fcc67397846a58f812e757f: true,
+    c7e1013069223daaa02bce47cb3b37f870eeb7fa: true,
     c7e372f093069ddc6fbf314f1cde3acaeaa4dc76: true,
     c7e47ada415aa01a2c387cc4c1fb7aeb7ec215bf: true,
     c7efd6d40040f94fc636df93ebf1f773088f2c2c: true,
@@ -28782,6 +28825,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     cf790d36e5e2b395dbd6c6e065b0a171d85926d2: true,
     cf7a99ce8efe65f8ba2e82c35bc41c8dd390f40f: true,
     cf81383005e638c1a27cc764d92b6cf81f882f5b: true,
+    cf82bd360fb193a287db0939b815e59af52d9541: true,
     cf83c89db6fcd1156a1a3f3a0e99969ece5170a6: true,
     cf887192e5c17bbd9e9e5d2affd0ecb3f848701a: true,
     cf8bc4b759af7884f7f7cc1a093384afd0cbb45c: true,
@@ -28981,6 +29025,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     d29f3830aedbc590551ed8652b9aeb53c7934ac6: true,
     d2a38d201d43f066af5d4c1339a7d0ea7cc8961c: true,
     d2a498ac9b80b4b3566e10f0ac783535f12a8acd: true,
+    d2a59187703a1695a8059cd3a1ef61c51ca53659: true,
     d2b2047173473417c4e8a700f77407cdd093d1bd: true,
     d2b492d7fb48720f3c891a50e87e2387362b3c3c: true,
     d2c5f94b4d53d0d061cacfe286c257b7c9cab1f6: true,
@@ -29461,6 +29506,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     da0b967fab1702e8b79b09304869e91d037745c0: true,
     da0c2c700ba82f07e9818db9bbf6d73506fbb992: true,
     da0d617143d11375efab7f5d0c5904e5cfd96e35: true,
+    da0dee6257df63b7fa2a9efe1e712f47e933a610: true,
     da0ebcc8d8c3aa73ba62ce0bc22bd0cb26919b2c: true,
     da10897c9d12444c6b1a18d196eefb9ad16682f0: true,
     da12bfab2327fbde1a24608c0e456b2ddf524427: true,
@@ -30214,6 +30260,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     e5aa30756e7d2bb7d991aa9136761b52781ab021: true,
     e5aae2f2c74ea8e97bb0026f611765d94a1d1d61: true,
     e5ac9849e930020c2cc18e0cb0f8da8e84bb5830: true,
+    e5b4f3a4187fd8386c3a51e0d79b474ab360be45: true,
     e5b5f86e4372b175ce13c4dabbc7657359b204a7: true,
     e5b6c3b0611fb006deece1dfb35f55199283bb20: true,
     e5ba9f7cd51cbdedb6793c168b77b9bbe5518e64: true,
@@ -30731,6 +30778,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     ede30d798b39ae631302748831666ee5e94c742f: true,
     ede7addcb5f37a297c6b8eaefb6cb3a528ef0b29: true,
     ede96641bcbcc13a53f990fdb042c3735fdefca0: true,
+    edec1a3d84a366674cec0f91e46d2198057a7716: true,
     edee0815fefd065fdceb27c6658b0632c33a4c42: true,
     edfb1e0b500f6778711548995e527aca6a09056b: true,
     ee0a412fb1eefd0832a891ee18a0d458c54e5262: true,
@@ -31218,6 +31266,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     f57ba02c306456f690605ab8d273ca7e4f3c44d8: true,
     f57d1abba755fa928289f97b0626a38009ac0d38: true,
     f580069eb46151711458b88c66d4c40f46b8e847: true,
+    f58052671a884731873ec7aa90de2a5457991dd0: true,
     f5839df8c193be290949d5e518ef918a5e7af190: true,
     f587c7f6f8ef30b87312c948265555a033a89e7d: true,
     f58ba9b7a79bb0d27acd707790526a38c73b4adc: true,
@@ -31341,6 +31390,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     f739511486657c58bd7706a341983092fbcafa2c: true,
     f73b7edb20a80a7dc0307d2dcdf33c2c1b9e0ca9: true,
     f73bf2d97f4bb5a8e8feb5a9ec6e78873a0dedb5: true,
+    f73c1b3acdc1bea7c7d8437610afcb7038f4371c: true,
     f73c722be8a94e7c0ec4c4c4012ac872d7959fec: true,
     f73ca03fc25aa7c36df724b02513dd6d4f08a5ee: true,
     f73e43076ae428e0ea1bf360ad59fe90c974a142: true,
@@ -31547,6 +31597,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     f9eac18e9f6c2240ddb0e45970e193d654d2060e: true,
     f9ebe8f3c6247d4e166486b940dff95e41bf3686: true,
     f9ecc72c66badaf99d94cacae4c103430817a132: true,
+    f9eef306f003a2677f5e62b38d8b37936e8f20f3: true,
     f9f061f4d86b1f10c378f95c46fc6ceb731f8c48: true,
     f9f5694e946e398acc977ed7d39f32037054743c: true,
     f9f6e94b40636182fbc2b87551f8760f9d00c09d: true,

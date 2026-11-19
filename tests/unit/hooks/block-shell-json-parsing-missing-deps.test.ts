@@ -20,13 +20,14 @@
  * @module tests/unit/hooks/block-shell-json-parsing-missing-deps
  */
 
-import { existsSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /** The hook as it is installed into a project. */
 const HOOK = path.resolve(
@@ -85,7 +86,7 @@ for (const omitted of ["jq", "python3"]) {
   for (const tool of ALL_TOOLS) {
     if (tool === omitted) continue;
     const found = locate(tool);
-    if (found) symlinkSync(found, path.join(dir, tool));
+    if (found) createSymlink(found, path.join(dir, tool));
   }
   shims.set(omitted, dir);
 }

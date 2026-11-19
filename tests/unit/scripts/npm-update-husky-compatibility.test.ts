@@ -6,7 +6,6 @@ import {
   readFileSync,
   writeFileSync,
   unlinkSync,
-  symlinkSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
 import * as native from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
@@ -14,6 +13,7 @@ import * as helper from "../../../all/copy-overwrite/scripts/lib/npm-update-help
 import * as controller from "../../../all/copy-overwrite/scripts/lib/npm-update-controller-factory.mjs";
 import * as broker from "../../../all/copy-overwrite/scripts/lib/npm-update-hook-provider.mjs";
 import { createHostedGate } from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 const REPOSITORY = "acme/widgets";
 const PARENT = "b".repeat(40);
 const DECLARED_BIN = "lib/bin.js";
@@ -185,7 +185,7 @@ describe("declared Husky installer compatibility", () => {
       const cwd = await huskyCheckout(root, env);
       const bin = join(cwd, BIN_PATH);
       unlinkSync(bin);
-      symlinkSync(resolve(BIN_PATH), bin);
+      createSymlink(resolve(BIN_PATH), bin);
       const context = hostedAuthority(cwd);
       await hostedPlatform(async () => {
         await expect(createHostedGate(context, root, env)).rejects.toThrow(

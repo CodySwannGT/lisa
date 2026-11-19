@@ -5,13 +5,13 @@ import {
   mkdirSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { sha256 } from "../../../all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs";
 import { originalHookInstallation } from "../../../all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const hooks = ["pre-commit", "prepare-commit-msg", "commit-msg", "pre-push"];
 const CONFIGURATION_FILE = "lefthook.yml";
@@ -94,7 +94,7 @@ describe("original hook installation readback", () => {
         originalHookInstallation(state.cwd, state.command)
       ).rejects.toThrow(/qualification/);
       rmSync(join(state.directory, "pre-push"));
-      symlinkSync(
+      createSymlink(
         join(state.directory, "pre-commit"),
         join(state.directory, "pre-push")
       );

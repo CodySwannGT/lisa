@@ -7,12 +7,12 @@ import {
   mkdirSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
 
 import { proofFixture } from "./work-item-proof-fixture.js";
+import { createSymlink } from "./borrowed-node-modules.mjs";
 
 export const PIPELINE = "host-delivery";
 export const REGION = "us-east-1";
@@ -143,7 +143,7 @@ export function removeAws(fixture: PipelineFixture): void {
   // no longer holds an aws and stays on PATH.
   rmSync(path.join(fixture.root, "fake-bin/aws"));
   mkdirSync(nodeOnly);
-  symlinkSync(process.execPath, path.join(nodeOnly, "node"));
+  createSymlink(process.execPath, path.join(nodeOnly, "node"));
   fixture.env.PATH = [
     ...(fixture.env.PATH ?? "")
       .split(path.delimiter)

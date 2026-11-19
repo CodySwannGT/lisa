@@ -7,7 +7,7 @@
  * a file it cannot read in the written form is refused whole, with nothing
  * changed (CodySwannGT/lisa#4980).
  */
-import { rmSync, symlinkSync } from "node:fs";
+import { rmSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -33,6 +33,7 @@ import {
   writeFileOf,
 } from "./support/report-answers-run.js";
 import { check, keep, removeFixtures } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 afterEach(removeFixtures);
 
@@ -312,7 +313,7 @@ describe("a readable report that is a link", () => {
       fileOf(repoPath, REPORT_MD)
     );
     rmSync(path.join(repoPath, REPORT_MD));
-    symlinkSync(elsewhere, path.join(repoPath, REPORT_MD));
+    createSymlink(elsewhere, path.join(repoPath, REPORT_MD));
 
     const run = await absorb(repoPath);
 

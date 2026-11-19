@@ -2,7 +2,7 @@
  * Two-phase Health consumer: hostile responses, canonical roots, and storage outcomes.
  * @module tests/unit/health/consumer-boundaries.test
  */
-import { mkdtemp, realpath, rm, symlink } from "node:fs/promises";
+import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -38,6 +38,7 @@ import {
   fakeWriteLatestHealthResult,
   LATEST_HEALTH_PATH,
 } from "./consumer-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 let projectRoot = "";
 let currentRequest = evaluationRequest();
@@ -132,12 +133,12 @@ describe("two-phase Health consumer", () => {
       tmpdir(),
       `lisa-health-alias-${path.basename(projectRoot)}`
     );
-    await symlink(projectRoot, alias);
+    createSymlink(projectRoot, alias);
     const canonicalRoot = await realpath(projectRoot);
     mocks.runHealth.mockImplementationOnce(async receivedRoot => {
       expect(receivedRoot).toBe(canonicalRoot);
       await rm(alias);
-      await symlink(otherRoot, alias);
+      createSymlink(otherRoot, alias);
       return deterministicResult();
     });
     try {

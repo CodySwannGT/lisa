@@ -10,11 +10,12 @@
  * Not named `*.test.ts`, so vitest collects nothing from it.
  * @module tests/unit/hooks/support/blind-automerge
  */
-import { chmodSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../../support/borrowed-node-modules.mjs";
 
 /** The guard under test, as it lives in the plugin source. */
 const SCRIPT_PATH = path.resolve(
@@ -158,7 +159,7 @@ export const pathWith = (tools: readonly string[]): string => {
       command: "/usr/bin/env",
       args: ["which", tool],
     }).stdout.trim();
-    if (resolved) symlinkSync(resolved, path.join(bin, tool));
+    if (resolved) createSymlink(resolved, path.join(bin, tool));
   }
   return bin;
 };

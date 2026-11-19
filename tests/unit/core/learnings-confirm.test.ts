@@ -18,6 +18,7 @@ import {
   persistLearningEntry,
 } from "../../../src/core/learnings-writer.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
 const APPLIED_ID = "learning-applied";
@@ -198,7 +199,7 @@ describe("confirmLearningEntry", () => {
   it("rejects a symlinked learnings file before reading it", async () => {
     const external = path.join(tempDir, "external.md");
     await fs.move(learningsPath, external);
-    await fs.symlink(external, learningsPath);
+    createSymlink(external, learningsPath);
     await expect(
       confirmLearningEntry(tempDir, APPLIED_ID, CONFIRM_DATE)
     ).rejects.toThrow(/not a regular file/i);

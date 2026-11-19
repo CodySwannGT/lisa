@@ -15,7 +15,13 @@
  *   node scripts/lisa-estimate.mjs config
  *   node scripts/lisa-estimate.mjs render --tokens-low 2M --tokens-high 4M
  *     --model claude-opus-5-5 [--basis <text>] [--body-file <path>]
- *   node scripts/lisa-estimate.mjs check [--phase ready] [--body-file <path>]
+ *   node scripts/lisa-estimate.mjs calibrate --tokens-low 1M --tokens-high 2M
+ *     --history-file <comparable-items.json>
+ *   node scripts/lisa-estimate.mjs check [--phase ready|claim] [--body-file <path>]
+ *
+ * `calibrate` scales a first estimate by how comparable finished items
+ * actually ran (their `## Lisa Usage` totals against their estimates) and
+ * prints the calibrated range and a basis line to pass to `render`.
  *
  * `check` exits 0 on PASS or N/A and 1 on FAIL; any usage or config error
  * exits 2. Without `--body-file`, the body is read from standard input.
@@ -36,6 +42,10 @@ import {
   renderEstimateSection,
   upsertEstimateSection,
 } from "./lib/work-item-estimate.mjs";
+import {
+  calibrateEstimate,
+  historyBodies,
+} from "./lib/work-item-estimate-calibration.mjs";
 import { checkEstimate } from "./lib/work-item-estimate-check.mjs";
 
 const VALUE_FLAGS = new Set([
@@ -45,6 +55,7 @@ const VALUE_FLAGS = new Set([
   "--basis",
   "--body-file",
   "--phase",
+  "--history-file",
   "--cwd",
 ]);
 
@@ -124,6 +135,20 @@ const COMMANDS = {
       code: 0,
     };
   },
+  calibrate: flags => {
+    if (flags["history-file"] === undefined)
+      throw new EstimateConfigError(
+        "calibrate needs --history-file: a JSON array of comparable finished items (gh issue list --json body prints one)."
+      );
+    const result = calibrateEstimate(
+      {
+        tokensLow: parseTokenCount(flags["tokens-low"] ?? ""),
+        tokensHigh: parseTokenCount(flags["tokens-high"] ?? ""),
+      },
+      historyBodies(JSON.parse(readFileSync(flags["history-file"], "utf8")))
+    );
+    return { out: `${JSON.stringify(result, null, 2)}\n`, code: 0 };
+  },
   check: (flags, settings) => {
     const result = checkEstimate(readBody(flags), settings, flags.phase);
     const lines = [`S21 token estimate: ${result.verdict}`, ...result.lines];
@@ -135,7 +160,7 @@ const COMMANDS = {
 };
 
 const USAGE =
-  "Usage: lisa-estimate.mjs config | render --tokens-low <n> --tokens-high <n> --model <id> [--basis <text>] [--body-file <path>] | check [--phase ready] [--body-file <path>]\n";
+  "Usage: lisa-estimate.mjs config | render --tokens-low <n> --tokens-high <n> --model <id> [--basis <text>] [--body-file <path>] | calibrate --tokens-low <n> --tokens-high <n> --history-file <path> | check [--phase ready|claim] [--body-file <path>]\n";
 
 /**
  * Run the CLI.
@@ -166,7 +191,8 @@ export function runCli(argv = process.argv.slice(2), io = process) {
       !(
         error instanceof EstimateConfigError ||
         error instanceof RangeError ||
-        error instanceof SyntaxError
+        error instanceof SyntaxError ||
+        error?.code === "ENOENT"
       )
     )
       throw error;

@@ -23,6 +23,7 @@ import {
   parseSweepArgs,
   sweep,
 } from "../../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const HOUR_MS = 60 * 60 * 1000;
 const NOW = Date.parse("2026-11-07T12:00:00Z");
@@ -160,7 +161,7 @@ describe("temp sweep selection", () => {
     const outside = privateRoot();
     const target = agedDir(outside, "lisa-target", 48);
     const link = path.join(root, "lisa-link-to-target");
-    fs.symlinkSync(target, link);
+    createSymlink(target, link);
     const when = new Date(NOW - 48 * HOUR_MS);
     fs.lutimesSync(link, when, when);
     expect((await sweepRoot(root)).removed).toEqual([]);

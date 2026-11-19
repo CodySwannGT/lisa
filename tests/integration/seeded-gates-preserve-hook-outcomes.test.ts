@@ -43,6 +43,7 @@ import type { ProjectType } from "../../src/core/config.js";
 import { SilentLogger } from "../../src/logging/silent-logger.js";
 import { EnsureSeededGatesMigration } from "../../src/migrations/ensure-seeded-gates.js";
 import type { MigrationContext } from "../../src/migrations/migration.interface.js";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -218,7 +219,7 @@ describe("seeding the gates block preserves what the pre-push hook proves", () =
       path.join(REPO_ROOT, PACKAGE_MANIFEST),
       path.join(currentLisa, PACKAGE_MANIFEST)
     );
-    await fs.symlink(
+    createSymlink(
       path.join(REPO_ROOT, "dist"),
       path.join(currentLisa, "dist"),
       "dir"

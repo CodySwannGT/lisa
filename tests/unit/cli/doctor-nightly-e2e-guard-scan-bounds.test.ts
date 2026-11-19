@@ -5,14 +5,7 @@
  * `doctor-nightly-e2e-guard-scan-fixtures.ts`.
  * @module tests/unit/cli/doctor-nightly-e2e-guard-scan-bounds.test
  */
-import {
-  chmod,
-  mkdir,
-  mkdtemp,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 
@@ -31,6 +24,7 @@ import {
   directCaller,
   writeWorkflow,
 } from "./doctor-nightly-e2e-guard-scan-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 let projectRoot = "";
 
@@ -126,7 +120,7 @@ describe("nightly guard scanner: availability and traversal bounds", () => {
   it("fails unavailable on a symlinked workflow", async () => {
     const outside = path.join(projectRoot, "outside.yml");
     await writeFile(outside, directCaller());
-    await symlink(
+    createSymlink(
       outside,
       path.join(projectRoot, ".github", "workflows", ACTIVE_NAME)
     );
@@ -142,7 +136,7 @@ describe("nightly guard scanner: availability and traversal bounds", () => {
     await rm(path.join(projectRoot, ".github", "workflows"), {
       recursive: true,
     });
-    await symlink(external, path.join(projectRoot, ".github", "workflows"));
+    createSymlink(external, path.join(projectRoot, ".github", "workflows"));
 
     const result = await scanNightlyE2eGuardCallers(projectRoot);
     await rm(external, { force: true, recursive: true });

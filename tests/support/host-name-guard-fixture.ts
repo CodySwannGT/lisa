@@ -1,5 +1,5 @@
 /** Shared actual-wrapper fixtures; inspected commands are never executed. */
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -7,6 +7,7 @@ import {
   boundedSpawnSync,
 } from "../helpers/io-latency-budget.js";
 import { resolveGit } from "./git-executable.js";
+import { createSymlink } from "./borrowed-node-modules.mjs";
 
 /** git, resolved to a fixed path rather than through a writeable PATH. */
 const GIT = resolveGit();
@@ -100,7 +101,7 @@ export const hostCheckout = (origin: string | undefined): string => {
   mkdirSync(path.join(dir, "node_modules", "@codyswann", "lisa"), {
     recursive: true,
   });
-  symlinkSync(
+  createSymlink(
     path.join(PROJECT_DIR, "dist"),
     path.join(dir, "node_modules", "@codyswann", "lisa", "dist")
   );

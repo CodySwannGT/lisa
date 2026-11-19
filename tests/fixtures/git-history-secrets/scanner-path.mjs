@@ -12,12 +12,12 @@ import {
   mkdirSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { delimiter, join } from "node:path";
 import { createHarness } from "./harness.mjs";
 import { emitArtifacts } from "./package.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const args = process.argv.slice(2);
 const h = createHarness(args);
@@ -40,14 +40,14 @@ try {
   mkdirSync(tools, { mode: 0o700 });
   const actualGit = h.command("which", ["git"], fixture.cwd);
   h.requireFact(actualGit.status === 0, "Native Git discovery failed.");
-  symlinkSync(actualGit.stdout.trim(), join(tools, "git"));
+  createSymlink(actualGit.stdout.trim(), join(tools, "git"));
   const directory = name => {
     const path = join(h.scratch, name);
     mkdirSync(path, { mode: 0o700 });
     return path;
   };
   const qualified = directory("official");
-  symlinkSync(executable, join(qualified, "gitleaks"));
+  createSymlink(executable, join(qualified, "gitleaks"));
   const poison = directory("unqualified");
   const marker = join(h.scratch, "unqualified-was-executed");
   const bad = join(poison, "gitleaks");
@@ -118,10 +118,10 @@ try {
       finding
     );
     const later = directory("later-unqualified");
-    symlinkSync(bad, join(later, "gitleaks"));
+    createSymlink(bad, join(later, "gitleaks"));
     scan("official-first-poison-later", [qualified, later], 0);
     const secondQualified = directory("second-official");
-    symlinkSync(executable, join(secondQualified, "gitleaks"));
+    createSymlink(executable, join(secondQualified, "gitleaks"));
     const selection = h.command(
       "env",
       [
@@ -182,7 +182,7 @@ console.log(qualifyScanner());`,
     cpSync(executable, join(unreadable, "gitleaks"));
     chmodSync(join(unreadable, "gitleaks"), 0o100);
     const broken = directory("broken-symlink");
-    symlinkSync(join(h.scratch, "absent-target"), join(broken, "gitleaks"));
+    createSymlink(join(h.scratch, "absent-target"), join(broken, "gitleaks"));
     for (const [name, first] of [
       ["missing-candidate", missing],
       ["directory-candidate", nonregular],

@@ -1,7 +1,8 @@
 /** A PATH directory with Node's own tools and no Bun, on any machine. */
-import { existsSync, mkdirSync, readdirSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createTempDir } from "../../helpers/test-utils.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /**
  * Node's bin dir is not Bun-free: a global `npm i -g bun`, or a version
@@ -22,7 +23,7 @@ export async function bunFreeNodeBin(
   mkdirSync(bin);
   for (const entry of readdirSync(sourceBin))
     if (entry !== "bun" && entry !== "bunx")
-      symlinkSync(join(sourceBin, entry), join(bin, entry));
-  if (existsSync(lib)) symlinkSync(lib, join(root, "lib"));
+      createSymlink(join(sourceBin, entry), join(bin, entry));
+  if (existsSync(lib)) createSymlink(lib, join(root, "lib"));
   return { root, bin };
 }

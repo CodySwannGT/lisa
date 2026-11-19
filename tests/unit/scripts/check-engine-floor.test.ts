@@ -44,7 +44,6 @@ import {
   mkdtempSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -53,6 +52,7 @@ import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const SCRIPT = path.resolve("scripts/check-engine-floor.mjs");
 /** The compiler the gate spawns: the TypeScript native compiler (`tsgo`). */
@@ -159,7 +159,7 @@ function fixture({
     mkdirSync(path.join(root, "node_modules/@typescript"), {
       recursive: true,
     });
-    symlinkSync(
+    createSymlink(
       TYPESCRIPT,
       path.join(root, "node_modules/@typescript/native-preview")
     );

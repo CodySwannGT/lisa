@@ -1,12 +1,6 @@
 /** Private proof transport fixtures grant no attestation or provider authority. */
 import { describe, expect, it } from "vitest";
-import {
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  existsSync,
-  symlinkSync,
-} from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -21,6 +15,7 @@ import {
   leafRoles,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs";
 import { runGateStreams } from "../../../all/copy-overwrite/scripts/lib/npm-update-gate-hooks.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const PROOF_PREFIX = "lisa-gate-proof-";
 const BUNDLE_FILE = "bundle.json";
@@ -155,7 +150,7 @@ describe("complete gate proof transport", () => {
     const root = mkdtempSync(join(tmpdir(), PROOF_PREFIX));
     try {
       writeJson(join(root, BUNDLE_FILE), { origin: true });
-      symlinkSync(join(root, "missing"), join(root, RECOVERY_FILE));
+      createSymlink(join(root, "missing"), join(root, RECOVERY_FILE));
       expect(() => readGateProof(root)).toThrow();
     } finally {
       rmSync(root, { recursive: true });

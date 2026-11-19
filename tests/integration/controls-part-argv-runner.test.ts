@@ -8,13 +8,7 @@
  * @module tests/integration/controls-part-argv-runner
  */
 import { type SpawnSyncReturns } from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  symlinkSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,6 +24,7 @@ import {
 } from "../helpers/control-audit-fixtures.js";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { stage } from "../support/part-scope-change.js";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 const RUNNER_SCRIPT = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -271,7 +266,11 @@ describe.skipIf(process.platform === "win32")(
       const { child } = runWithParts(
         [{ scope: "elsewhere", command: [NODE, "-e", RECORD] }],
         fixture =>
-          symlinkSync(outside, path.join(fixture.repoPath, "elsewhere"), "dir")
+          createSymlink(
+            outside,
+            path.join(fixture.repoPath, "elsewhere"),
+            "dir"
+          )
       );
 
       expect(child.status).toBe(EXIT.BLOCKED);

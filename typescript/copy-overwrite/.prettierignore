@@ -270,6 +270,7 @@ scripts/lib/usage-effectiveness.mjs
 scripts/lib/usage-ledger-integrity.mjs
 scripts/lib/usage-ledger.mjs
 scripts/lib/windows-process-job.mjs
+scripts/lib/work-item-estimate-calibration.mjs
 scripts/lib/work-item-estimate-check.mjs
 scripts/lib/work-item-estimate-config.mjs
 scripts/lib/work-item-estimate.mjs

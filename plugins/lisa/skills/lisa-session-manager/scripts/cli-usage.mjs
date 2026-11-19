@@ -14,7 +14,8 @@ prints a bare path); errors go to stderr. Untrusted text (answers, questions,
 reasons, Telegram messages, summaries) is read from STDIN, never from argv.
 
 Exit codes: 0 ok; 1 a command failed (claude, tmux or gh error); 2 bad repo,
-bad config or bad usage; 3 no capacity; 4 a live worker already holds the ref.
+bad config or bad usage; 3 no capacity; 4 a live worker already holds the ref;
+5 spawn refused an item that was not taken (unassigned or someone else's).
 
 Workers and capacity
   capacity [--max-workers <n>]
@@ -24,10 +25,16 @@ Workers and capacity
       (capacity and spawn also take --meminfo <file>, a TEST-ONLY flag that
       reads memory from a Linux meminfo file instead of this host. Skills
       never pass it.)
-  spawn <ref> [--repo <key>] [--max-workers <n>]
+  spawn <ref> --assignees <json> [--repo <key>] [--max-workers <n>]
+      --assignees is required: the JSON array of the item's live assignees
+      as read back from the tracker, [] when unassigned (GitHub [{login,id}]
+      with the REST numeric id; Jira accountIds; Linear user ids).
       Checks, in order: repo dir resolves and has .lisa.config.json (exit 2);
       capacity (exit 3, stdout = capacity report); no live wk- worker for the
-      ref (exit 4, stdout = {ref,worker,sessionId}); no recorded setup gap
+      ref (exit 4, stdout = {ref,worker,sessionId}); --assignees present (exit
+      2) and the item taken: at least one assignee, every one "me" (ledger
+      control.me) or a sessionManager.operatorIds entry (exit 5, stdout =
+      {ref,reason:"unassigned"|"foreign",me,foreign}); no recorded setup gap
       for the repo (exit 2, nothing launched or recorded: fix the repo, then
       ledger clear-setup-gap <repo>); no pending question in
       the ledger for the ref (exit 2: clear it first). Then runs, with cwd = repo
