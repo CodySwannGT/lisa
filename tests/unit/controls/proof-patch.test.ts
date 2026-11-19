@@ -16,7 +16,6 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -30,6 +29,7 @@ import {
 } from "../../../src/controls/proof-patch.js";
 import { runControlAuditGit } from "../../helpers/control-audit-fixtures.js";
 import { appendLinePatch, PROOFS } from "../../helpers/control-proofs.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const SOURCE = "src/thing.txt";
 const BEFORE = "one\ntwo\n";
@@ -135,7 +135,7 @@ describe("planting a change", () => {
   });
 
   it("refuses a path that goes through a link out of the folder", () => {
-    symlinkSync(outside, path.join(workspace, "link"));
+    createSymlink(outside, path.join(workspace, "link"));
 
     const outcome = applyProofPatch(workspace, creates("b/link/planted.txt"));
 
@@ -242,7 +242,7 @@ describe("reading a proof's patch file", () => {
   it("does not read a link in place of the file", async () => {
     const elsewhere = path.join(root, "elsewhere.patch");
     writeFileSync(elsewhere, ADDS_THREE);
-    symlinkSync(elsewhere, path.join(root, file));
+    createSymlink(elsewhere, path.join(root, file));
 
     expect(await readProofPatch(root, file)).toMatchObject({
       kind: "unreadable",
@@ -255,7 +255,7 @@ describe("reading a proof's patch file", () => {
     mkdirSync(elsewhere);
     writeFileSync(path.join(elsewhere, "lint.violation.patch"), ADDS_THREE);
     rmSync(path.join(root, PROOFS), { recursive: true });
-    symlinkSync(elsewhere, path.join(root, PROOFS));
+    createSymlink(elsewhere, path.join(root, PROOFS));
 
     expect(await readProofPatch(root, file)).toMatchObject({
       kind: "unreadable",

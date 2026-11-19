@@ -71,6 +71,7 @@ import * as path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 const ROOT = path.resolve(__dirname, "..", "..");
 
@@ -192,7 +193,7 @@ function consumerRepo(): string {
   );
   tempDirs.push(dir);
   fs.mkdirSync(parent, { recursive: true });
-  fs.symlinkSync(path.join(PLUGINS_DIR, "lisa"), path.join(parent, "lisa"));
+  createSymlink(path.join(PLUGINS_DIR, "lisa"), path.join(parent, "lisa"));
   return dir;
 }
 

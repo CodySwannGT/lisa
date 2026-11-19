@@ -7,13 +7,13 @@ import {
   readdirSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 const NAMESPACE_PREFIX = "namespace-";
 
 const fixture = vi.hoisted(() => ({
@@ -578,7 +578,7 @@ describe("fixed MySQL runtime ownership (synthetic native protocol)", () => {
   });
   it("refuses aliased roots before any daemon mutation", async () => {
     const alias = join(root, "alias");
-    symlinkSync(root, alias);
+    createSymlink(root, alias);
     await expect(open({ root: alias })).rejects.toThrow(/aliased/);
     expect(fixture.calls).toHaveLength(0);
   });

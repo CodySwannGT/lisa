@@ -43,13 +43,7 @@
  * included — writing into a closed pipe.
  * @module tests/unit/hooks/hook-stdin-epipe
  */
-import {
-  chmodSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -58,6 +52,7 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 // Spawns `/bin/bash` against real hook scripts, once per stand-aside path.
 useIoLatencyBudget();
@@ -117,7 +112,7 @@ function binDir(withSonar: boolean): string {
   const dir = mkdtempSync(path.join(tmpdir(), "lisa-epipe-bin-"));
 
   temporaries.push(dir);
-  symlinkSync("/bin/cat", path.join(dir, "cat"));
+  createSymlink("/bin/cat", path.join(dir, "cat"));
   if (withSonar) {
     const stub = path.join(dir, "sonar");
 

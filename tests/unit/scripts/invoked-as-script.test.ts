@@ -27,6 +27,7 @@ import {
   boundedSpawnSync,
   ioLatencyBudgetMs,
 } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /**
  * Liveness bound for the case that runs the real gate twice, calibrated to
@@ -173,7 +174,7 @@ const symlinkedModule = (): { real: string; link: string } => {
   const real = path.join(dir, "real.mjs");
   const link = path.join(dir, "link.mjs");
   fs.writeFileSync(real, "export default 1;\n");
-  fs.symlinkSync(real, link);
+  createSymlink(real, link);
   return { real, link };
 };
 
@@ -234,7 +235,7 @@ describe("invokedAsScript", () => {
       `import { invokedAsScript } from ${JSON.stringify(pathToFileURL(helper).href)};\n` +
         `if (invokedAsScript(import.meta.url)) console.log("RAN");\n`
     );
-    fs.symlinkSync(script, link);
+    createSymlink(script, link);
 
     for (const argv of [[link], ["--preserve-symlinks-main", link]]) {
       const run = boundedSpawnSync({
@@ -356,7 +357,7 @@ describe("shared entry guard wiring", () => {
         "check-derived-artifacts.mjs"
       );
       const link = path.join(dir, "check-derived-artifacts.mjs");
-      fs.symlinkSync(gate, link);
+      createSymlink(gate, link);
 
       const direct = boundedSpawnSync({
         label: "check-derived-artifacts.mjs (direct)",

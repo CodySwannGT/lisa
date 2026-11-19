@@ -8,7 +8,6 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -77,6 +76,7 @@ vi.mock(
 import { runNpm } from "../../../all/copy-overwrite/scripts/lib/npm-update-npm.mjs";
 import { canonicalClassifier } from "../../../all/copy-overwrite/scripts/lib/npm-update-helper.mjs";
 import { CLASSIFIER_MEMBERS } from "../../../all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 describe("invocation-local authenticated classifier reuse", () => {
   let root: string;
@@ -234,7 +234,7 @@ describe("invocation-local authenticated classifier reuse", () => {
     await canonicalClassifier(config);
     const member = join(fixture.root, CLASSIFIER_MEMBERS[0]!);
     unlinkSync(member);
-    symlinkSync(join(root, "package", CLASSIFIER_MEMBERS[0]!), member);
+    createSymlink(join(root, "package", CLASSIFIER_MEMBERS[0]!), member);
     await expect(canonicalClassifier(config)).rejects.toThrow(
       /aliased|changed/
     );

@@ -12,7 +12,6 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -39,7 +38,10 @@ import {
   seedPendingMarker,
   sessionStart,
 } from "../../helpers/auto-update-fixture.js";
-import { linkForeignNodeModules } from "../../support/borrowed-node-modules.mjs";
+import {
+  createSymlink,
+  linkForeignNodeModules,
+} from "../../support/borrowed-node-modules.mjs";
 
 /**
  * Whether any recorded command starts with a prefix.
@@ -142,7 +144,7 @@ describe("auto-update: a session start", () => {
 
   it("records a symlink by its target and an executable by its mode", async () => {
     const root = project({});
-    symlinkSync(MANIFEST_FILE, path.join(root, "link.json"));
+    createSymlink(MANIFEST_FILE, path.join(root, "link.json"));
     chmodSync(path.join(root, "bun.lock"), 0o755);
     const digests = await workingTreeDigests(async () => "b".repeat(40), root, [
       "link.json",

@@ -2,13 +2,7 @@
  * Native-shaped synthetic provider data around a real disposable Git merge.
  * These payloads test authorization; they are not claimed as hosted evidence.
  */
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -29,6 +23,7 @@ import { putAsset, PUBLISHER } from "./work-item-proof-assets.js";
 import { prepareProofProvider } from "./work-item-proof-resources.js";
 import { makeProofRecord } from "./work-item-proof-payload.js";
 import { SPEC } from "./work-item-proof-spec.js";
+import { createSymlink } from "./borrowed-node-modules.mjs";
 export { SPEC } from "./work-item-proof-spec.js";
 export {
   digest,
@@ -99,7 +94,7 @@ function configureFixture(fixture: Fixture): string {
   writeFileSync(configFile, JSON.stringify(config));
   mkdirSync(path.join(fixture.root, "scripts"), { recursive: true });
   if (!existsSync(entrypoint))
-    symlinkSync(path.join(process.cwd(), ENTRYPOINT), entrypoint);
+    createSymlink(path.join(process.cwd(), ENTRYPOINT), entrypoint);
   return branch;
 }
 /**

@@ -6,7 +6,7 @@
  * command also never reads or writes outside the repository it was pointed at
  * (CodySwannGT/lisa#4978).
  */
-import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -39,6 +39,7 @@ import {
   removeFixtures,
   type Run,
 } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 afterEach(removeFixtures);
 
@@ -169,7 +170,7 @@ describe("a refused report", () => {
     const outside = keep(buildFEmpty());
     writeAuditReport(outside.repoPath, completeAuditReport());
     mkdirSync(path.join(repoPath, ".lisa"));
-    symlinkSync(
+    createSymlink(
       path.join(outside.repoPath, ".lisa", "audit"),
       path.join(repoPath, ".lisa", "audit")
     );
@@ -188,7 +189,7 @@ describe("a refused report", () => {
     const outside = keep(buildFEmpty());
     const target = path.join(outside.repoPath, "elsewhere.md");
     writeAuditReport(repoPath, completeAuditReport());
-    symlinkSync(target, path.join(repoPath, AUDIT_REPORT_MARKDOWN_PATH));
+    createSymlink(target, path.join(repoPath, AUDIT_REPORT_MARKDOWN_PATH));
 
     const run = await check(repoPath);
 

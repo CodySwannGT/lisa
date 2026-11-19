@@ -10,7 +10,6 @@ import {
   readFile,
   readdir,
   rm,
-  symlink,
   unlink,
   utimes,
   writeFile,
@@ -31,6 +30,7 @@ import {
 } from "../../../src/health/storage.js";
 import { withFileTargetLock } from "../../../src/core/learnings-lock.js";
 import { NEWER_COMPLETED_AT, validResult } from "./storage-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 let projectRoot = "";
 beforeEach(async () => {
@@ -73,7 +73,7 @@ describe("health result storage", () => {
 
   it("reports a dangling storage-parent symlink as unreadable", async () => {
     await mkdir(path.join(projectRoot, ".lisa"));
-    await symlink(
+    createSymlink(
       path.join(projectRoot, "missing-health"),
       path.join(projectRoot, ".lisa", "health")
     );
@@ -193,7 +193,7 @@ describe("health result storage", () => {
     const outside = await mkdtemp(path.join(tmpdir(), "lisa-health-outside-"));
     try {
       await mkdir(path.join(projectRoot, ".lisa"));
-      await symlink(outside, path.join(projectRoot, ".lisa", "health"));
+      createSymlink(outside, path.join(projectRoot, ".lisa", "health"));
       await expect(
         writeLatestHealthResult(projectRoot, validResult())
       ).rejects.toThrow(/Unsafe/);

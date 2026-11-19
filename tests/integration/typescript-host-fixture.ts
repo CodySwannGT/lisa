@@ -19,7 +19,10 @@ import { stripVTControlCharacters } from "node:util";
 
 import type { LisaConfig } from "../../src/core/config.js";
 import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
-import { borrowNodeModules } from "../support/borrowed-node-modules.mjs";
+import {
+  borrowNodeModules,
+  createSymlink,
+} from "../support/borrowed-node-modules.mjs";
 import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 import {
   enclosingAdmissionEnv,
@@ -133,7 +136,7 @@ function linkModules(cwd: string): void {
   borrowNodeModules(source, cwd, [".bin", SCOPE]);
   fs.mkdirSync(path.join(target, ".bin"), { recursive: true });
   fs.mkdirSync(path.join(target, SCOPE), { recursive: true });
-  fs.symlinkSync(REPO_ROOT, path.join(target, SCOPE, "lisa"));
+  createSymlink(REPO_ROOT, path.join(target, SCOPE, "lisa"));
   for (const [name, script] of Object.entries(bins)) {
     const launcher = `#!/bin/sh\nexec "${process.execPath}" "${script}" "$@"\n`;
     fs.writeFileSync(path.join(target, ".bin", name), launcher, {

@@ -1,18 +1,12 @@
 import { existsSync } from "node:fs";
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import ts from "typescript";
 import { afterEach, beforeEach, expect, it } from "vitest";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 let root = "";
 const HOST_MANIFEST = "package.json";
@@ -80,7 +74,7 @@ async function prepare(compatible = false): Promise<void> {
     "dist/cli/index.js",
     "import 'minimatch'; export function createProgram() { return { exitOverride() {}, async parseAsync() { console.log('CLI ran'); } }; }"
   );
-  await symlink(
+  createSymlink(
     path.dirname(require.resolve("commander")),
     path.join(root, "node_modules/commander")
   );

@@ -22,6 +22,7 @@ import {
   ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 
@@ -112,7 +113,7 @@ describe("shared Rails hook engine", () => {
 
   it("reports missing Bundler through the actual spawn failure", async () => {
     const git = path.join(fixture.bin, "git");
-    await fs.symlink(GIT_BIN, git);
+    createSymlink(GIT_BIN, git);
     await fs.remove(path.join(fixture.bin, "bundle"));
     const result = await ensureRailsHooks(fixture.project, {
       env: { ...fixture.env, PATH: fixture.bin },
@@ -195,7 +196,7 @@ describe("shared Rails hook engine", () => {
       await fs.writeFile(file, "#!/bin/sh\nexit 1\n");
     if (kind === "symlink") {
       await fs.move(file, `${file}-target`);
-      await fs.symlink(`${file}-target`, file);
+      createSymlink(`${file}-target`, file);
     }
     if (kind === "oversized")
       await fs.writeFile(file, `lefthook${"x".repeat(512 * 1024)}`);

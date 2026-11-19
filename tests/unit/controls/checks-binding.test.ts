@@ -8,7 +8,7 @@
  * repository as it is. It is taken from content alone: no folder in this
  * suite is a git repository, and none needs to be.
  */
-import { rmSync, symlinkSync } from "node:fs";
+import { rmSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -37,6 +37,7 @@ import {
   sha256Of,
   VIOLATION_PATCH,
 } from "./support/binding-folders.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const HUSKY_HOOK = ".husky/pre-commit";
 
@@ -195,7 +196,7 @@ describe("the digest of what defines the checks", () => {
     const outside = emptyFolder();
     put(outside, OUTSIDE_FILE, RUNNER_CONTENT);
     rmSync(path.join(root, RUNNER));
-    symlinkSync(path.join(outside, OUTSIDE_FILE), path.join(root, RUNNER));
+    createSymlink(path.join(outside, OUTSIDE_FILE), path.join(root, RUNNER));
 
     const linked = await digestAt(root, RUNNER);
     put(outside, OUTSIDE_FILE, "something else entirely\n");

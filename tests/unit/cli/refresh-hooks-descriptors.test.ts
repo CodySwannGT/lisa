@@ -1,12 +1,5 @@
 /** Native descriptor failure, permission and shared read-only cache contracts. */
-import {
-  chmod,
-  link,
-  readFile,
-  stat,
-  symlink,
-  realpath,
-} from "node:fs/promises";
+import { chmod, link, readFile, stat, realpath } from "node:fs/promises";
 import { constants } from "node:fs";
 import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
@@ -20,6 +13,7 @@ import {
   COPY_DIRECTORY,
   OLD_GUARD,
 } from "./refresh-hooks-fixture.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const observation = vi.hoisted(() => {
   const state: {
@@ -104,7 +98,7 @@ describe("native scoped refresh descriptors", () => {
     const input = await fixture();
     const parent = path.dirname(input.host);
     const alias = path.join(parent, "temporary-alias");
-    await symlink(parent, alias);
+    createSymlink(parent, alias);
     const nested = await fixture(alias);
     expect(nested.host).toBe(await realpath(nested.host));
     expect(nested.packageDir).toBe(await realpath(nested.packageDir));

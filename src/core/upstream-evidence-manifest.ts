@@ -11906,6 +11906,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/freshness-native-timing/run-linux.py": true,
     "tests/fixtures/freshness-native-timing/run.py": true,
     "tests/fixtures/git-history-secrets/errors.mjs": true,
+    "tests/fixtures/git-history-secrets/evidence-scans.mjs": true,
     "tests/fixtures/git-history-secrets/graphs.mjs": true,
     "tests/fixtures/git-history-secrets/harness.mjs": true,
     "tests/fixtures/git-history-secrets/journey.mjs": true,

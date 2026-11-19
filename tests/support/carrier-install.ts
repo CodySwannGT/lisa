@@ -20,7 +20,6 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -42,6 +41,7 @@ import {
   type NoManifestRepository,
   wholeRepositoryPart,
 } from "./no-manifest-run.js";
+import { createSymlink } from "./borrowed-node-modules.mjs";
 
 /** The file of F-none the declared check reads. */
 export const CHECKED_FILE = "src/fixture_none/greeting.py";
@@ -174,7 +174,7 @@ export function withoutNode(env: NodeJS.ProcessEnv): NodeFreePath {
       mkdirSync(shadow);
       for (const name of readdirSync(folder)) {
         if (name !== "node") {
-          symlinkSync(path.join(folder, name), path.join(shadow, name));
+          createSymlink(path.join(folder, name), path.join(shadow, name));
         }
       }
       return shadow;

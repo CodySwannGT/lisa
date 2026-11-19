@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, writeFile, rm, symlink } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -18,6 +18,7 @@ import {
   RECURRENCE_LEDGER,
   type FailureRecurrence,
 } from "../../../src/core/effectiveness-store.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const directories: string[] = [];
 const PORCELAIN = "--porcelain";
@@ -218,7 +219,7 @@ describe("durable recurrence history", () => {
   it("refuses escaped storage parents", async () => {
     const root = await repository();
     const outside = await repository();
-    await symlink(outside, path.join(root, ".lisa"));
+    createSymlink(outside, path.join(root, ".lisa"));
     await expect(recordRecurrence(root, RECURRENCE)).rejects.toThrow("escapes");
     expect(git(outside, "status", PORCELAIN)).toBe("");
   });

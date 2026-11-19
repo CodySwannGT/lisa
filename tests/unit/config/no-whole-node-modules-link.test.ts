@@ -5,127 +5,166 @@
  * `node_modules/.vitest-cache`. The fixture has no lockfile, so Vitest's
  * lockfile-hash check never matches, and it clears the lender's cache. When
  * the lender is this checkout, that happens in the middle of the suite, and
- * every sibling test file still reading the cache fails with ENOENT. Whether
- * a source variable names this checkout cannot be told from its spelling, so
- * the rule does not try. Every whole-directory link is refused, and fixtures
- * go through `tests/support/borrowed-node-modules.mjs` instead:
- * `borrowNodeModules` links installed entries one by one, and
- * `linkForeignNodeModules` (for a case whose subject is a linked
- * `node_modules`) refuses at runtime a source inside this checkout.
+ * every sibling test file still reading the cache fails with ENOENT.
+ *
+ * Whether a path held in a variable names a whole `node_modules` cannot be
+ * told from the source text, so the rule does not read arguments at all. It
+ * is structural: no file under tests/ calls `symlink` or `symlinkSync`
+ * itself. Links go through `tests/support/borrowed-node-modules.mjs`, the one
+ * module that creates them, the same single-accessor shape as one module
+ * owning `process.env`. That module checks both ends of every link on
+ * resolved paths at runtime, so a variable-bound path is refused as surely as
+ * a literal one.
  * @module tests/unit/config/no-whole-node-modules-link
  */
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
+import { tmpdir } from "node:os";
 import * as path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import ts from "typescript";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { checkoutFiles } from "../../helpers/tracked-files.js";
-import { linkForeignNodeModules } from "../../support/borrowed-node-modules.mjs";
+import {
+  createSymlink,
+  linkForeignNodeModules,
+  linkPackage,
+} from "../../support/borrowed-node-modules.mjs";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
 
-/** A call that creates a link: `symlinkSync(`, `symlink(`, `fs.symlink(`. */
-const LINK_CALL = /\bsymlink(?:Sync)?\(/gu;
+/** The one module under tests/ allowed to create links. */
+const ACCESSOR = "tests/support/borrowed-node-modules.mjs";
 
-/** An argument naming a whole `node_modules` directory, whitespace removed. */
-const WHOLE_MODULES_ARGUMENT: readonly RegExp[] = [
-  /["'`]node_modules["'`]\)$/u,
-  /^["'`][^"'`]*node_modules["'`]$/u,
-  /NODE_MODULES$/u,
-];
-
-/** Each opening bracket and the character that closes it. */
-const CLOSERS: Readonly<Record<string, string>> = {
-  "(": ")",
-  "[": "]",
-  "{": "}",
-};
+/** Call names that create a link. */
+const LINK_CALLS = new Set(["symlink", "symlinkSync"]);
 
 /**
- * Where one argument ends: the next top-level `,` or the call's `)`.
+ * The called name of a call expression: `f(` or `object.f(`.
+ * @param call - A call expression
+ * @returns The name, or an empty string for any other callee
+ */
+function calledName(call: ts.CallExpression): string {
+  const callee = call.expression;
+  if (ts.isIdentifier(callee)) return callee.text;
+  if (ts.isPropertyAccessExpression(callee)) return callee.name.text;
+  return "";
+}
+
+/**
+ * Direct link calls in a file's syntax tree. Text inside strings and comments
+ * is not a call, so a script embedded in a string is not counted.
+ * @param file - Name used for the syntax tree
  * @param source - File text
- * @param from - Index where the argument starts
- * @returns The index of the terminating character
+ * @returns Each direct call's text, whitespace collapsed
  */
-function argumentEnd(source: string, from: number): number {
-  const stack: string[] = [];
-  for (let index = from; index < source.length; index++) {
-    const char = source.charAt(index);
-    if (char in CLOSERS) stack.push(CLOSERS[char] ?? "");
-    else if (stack.length > 0 && char === stack.at(-1)) stack.pop();
-    else if (stack.length === 0 && (char === "," || char === ")")) return index;
-  }
-  return source.length;
+function directLinks(file: string, source: string): readonly string[] {
+  const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
+  const found: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node) && LINK_CALLS.has(calledName(node))) {
+      found.push(node.getText(tree).replaceAll(/\s+/gu, " "));
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  return found;
 }
 
 /**
- * The call's first two arguments.
- * @param source - File text
- * @param start - Index just past the call's opening parenthesis
- * @returns The arguments' text, whitespace removed
- */
-function leadingArguments(source: string, start: number): readonly string[] {
-  const firstEnd = argumentEnd(source, start);
-  const first = source.slice(start, firstEnd).replaceAll(/\s+/gu, "");
-  if (source.charAt(firstEnd) !== ",") return [first];
-  const second = source.slice(firstEnd + 1, argumentEnd(source, firstEnd + 1));
-  return [first, second.replaceAll(/\s+/gu, "")];
-}
-
-/**
- * Whether an argument names a whole `node_modules` directory.
- * @param argument - The argument's text, whitespace removed
- * @returns True for a whole-directory path
- */
-function namesWholeModules(argument: string): boolean {
-  return WHOLE_MODULES_ARGUMENT.some(pattern => pattern.test(argument));
-}
-
-/**
- * Link calls in a file whose source or destination is a whole `node_modules`.
- * @param source - File text
- * @returns Each offending call's first two arguments
- */
-function wholeModulesLinks(source: string): readonly string[] {
-  return [...source.matchAll(LINK_CALL)]
-    .map(match => leadingArguments(source, match.index + match[0].length))
-    .filter(args => args.some(namesWholeModules))
-    .map(args => args.join(", "));
-}
-
-/**
- * The call name, spelled so the samples below are not themselves links in
+ * The call name, spelled so the samples below are not themselves calls in
  * this file's text, which the corpus case scans like any other.
  */
 const LINK = ["sym", "link", "Sync"].join("");
 
+const roots: string[] = [];
+
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+/**
+ * A fresh directory outside this checkout.
+ * @param prefix - Directory name prefix
+ * @returns Its resolved path
+ */
+function scratch(prefix: string): string {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(tmpdir(), prefix)));
+  roots.push(root);
+  return root;
+}
+
 describe("no whole node_modules link in a test", () => {
-  it("recognises each form the fixtures used before the fix", () => {
-    // The detector's own red: every shape that linked a whole node_modules,
-    // including the two whose source was this checkout under a lower-case
-    // local name (`repo`, `source`) and the fixture-to-fixture form.
+  it("recognises every direct link call, however its paths are spelled", () => {
+    // The detector's own red. The last sample is the variable-bound shape a
+    // reading of the arguments missed: the path is in a local, not the call.
     const before = [
       `${LINK}(NODE_MODULES, path.join(root, "node_modules"), "dir");`,
       `fs.${LINK}(\n  path.join(REPO_ROOT, "node_modules"),\n  path.join(root, "node_modules"),\n  "dir"\n);`,
-      `${LINK}(path.resolve("node_modules"), path.join(root, "node_modules"));`,
-      `fs.${LINK}(\n    path.join(repo, "node_modules"),\n    path.join(checkout, "node_modules"),\n    "dir"\n  );`,
       `await ${LINK.replace("Sync", "")}(\n    path.join(source, "node_modules"),\n    path.join(destination, "node_modules"),\n    "dir"\n  );`,
-      `${LINK}(\n  path.join(other, "node_modules"),\n  path.join(root, "node_modules")\n);`,
+      `fs.${LINK}(path.join(source, entry), path.join(target, entry));`,
+      `const source = path.join(REPO_ROOT, "node_modules");\nfs.${LINK}(source, target, "dir");`,
     ];
     for (const sample of before) {
-      expect(wholeModulesLinks(sample), sample).toHaveLength(1);
+      expect(directLinks("sample.ts", sample), sample).toHaveLength(1);
     }
   });
 
-  it("allows links to single entries inside node_modules", () => {
+  it("does not count a call name inside a string or a comment", () => {
     const allowed = [
-      `fs.${LINK}(REPO_ROOT, path.join(cwd, "node_modules/@codyswann/lisa"));`,
-      `fs.${LINK}(path.join(REPO_ROOT, "node_modules/vitest"), path.join(cwd, "node_modules/vitest"));`,
-      `fs.${LINK}(path.join(source, entry), path.join(target, entry));`,
+      `const script = "${LINK}(a, b)";`,
+      `// ${LINK}(a, b)`,
+      `createSymlink(path.join(source, entry), path.join(target, entry));`,
     ];
     for (const sample of allowed) {
-      expect(wholeModulesLinks(sample), sample).toEqual([]);
+      expect(directLinks("sample.ts", sample), sample).toEqual([]);
     }
+  });
+
+  it("refuses a variable-bound whole node_modules at runtime", () => {
+    const root = scratch("lisa-link-whole-");
+    const source = path.join(REPO_ROOT, "node_modules");
+    const target = path.join(root, "node_modules");
+    expect(() => createSymlink(source, target, "dir")).toThrow(
+      /whole node_modules/u
+    );
+    expect(() =>
+      createSymlink(path.join(REPO_ROOT, "package.json"), target)
+    ).toThrow(/whole node_modules/u);
+    expect(fs.existsSync(target)).toBe(false);
+  });
+
+  it("refuses a tool's state directory inside node_modules", () => {
+    const root = scratch("lisa-link-state-");
+    fs.mkdirSync(path.join(root, "node_modules"));
+    expect(() =>
+      createSymlink(
+        path.join(REPO_ROOT, "node_modules", ".vitest-cache"),
+        path.join(root, "node_modules", ".vitest-cache"),
+        "dir"
+      )
+    ).toThrow(/tool's state/u);
+  });
+
+  it("links one package entry, and refuses a whole node_modules as one", () => {
+    const root = scratch("lisa-link-package-");
+    const linked = linkPackage(
+      path.join(REPO_ROOT, "node_modules", "vitest"),
+      root,
+      "vitest"
+    );
+    expect(fs.realpathSync(linked)).toBe(
+      fs.realpathSync(path.join(REPO_ROOT, "node_modules", "vitest"))
+    );
+    expect(() =>
+      linkPackage(path.join(REPO_ROOT, "node_modules"), root, "whole")
+    ).toThrow(/whole node_modules/u);
+    expect(() => linkPackage(REPO_ROOT, root, "..")).toThrow(
+      /not a package name/u
+    );
   });
 
   it("refuses a foreign link whose source is inside this checkout", () => {
@@ -148,13 +187,38 @@ describe("no whole node_modules link in a test", () => {
     }
   });
 
-  it("finds none in any tracked test, fixture or support file", () => {
+  it("refuses a link outside this checkout that points at its node_modules", () => {
+    // The link itself stands outside, so only resolving the source (not just
+    // its parent) shows it is this checkout's node_modules. Every helper here
+    // refuses to make such a link, which is the point, so the fixture makes
+    // it with `ln` rather than through a back door in the accessor.
+    const owner = scratch("lisa-foreign-alias-");
+    const alias = path.join(owner, "node_modules");
+    execFileSync("/bin/ln", [
+      "-s",
+      path.join(REPO_ROOT, "node_modules"),
+      alias,
+    ]);
+    const root = scratch("lisa-foreign-host-");
+    expect(() => linkForeignNodeModules(alias, root)).toThrow(
+      /inside this checkout/u
+    );
+    expect(fs.existsSync(path.join(root, "node_modules"))).toBe(false);
+  });
+
+  it("finds no direct link call in any tracked test, fixture or support file", () => {
     const offenders = checkoutFiles(REPO_ROOT)
-      .filter(file => file.startsWith("tests/") && /\.[cm]?[jt]s$/u.test(file))
+      .filter(
+        file =>
+          file.startsWith("tests/") &&
+          file !== ACCESSOR &&
+          /\.[cm]?[jt]s$/u.test(file)
+      )
       .flatMap(file =>
-        wholeModulesLinks(
+        directLinks(
+          file,
           fs.readFileSync(path.join(REPO_ROOT, file), "utf8")
-        ).map(args => `${file}: symlink(${args}, …)`)
+        ).map(call => `${file}: ${call}`)
       );
 
     expect(offenders).toEqual([]);

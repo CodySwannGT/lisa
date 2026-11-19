@@ -22,6 +22,7 @@ import {
 } from "../../fixtures/shared-runtime-hosts/teardown.js";
 import {
   borrowNodeModules,
+  createSymlink,
   linkForeignNodeModules,
 } from "../../support/borrowed-node-modules.mjs";
 
@@ -128,7 +129,13 @@ describe("countTreeEntries", () => {
     const area = scratchArea("lisa-count-");
     fs.mkdirSync(path.join(area, "package"));
     fs.writeFileSync(path.join(area, "package", "index.js"), "x");
-    fs.symlinkSync(sentinel.directory, path.join(area, "linked"), "dir");
+    // The sentinel tree's root, not its node_modules: no link may stand for
+    // a whole node_modules (#5028), and following either would count more.
+    createSymlink(
+      path.dirname(sentinel.directory),
+      path.join(area, "linked"),
+      "dir"
+    );
 
     expect(countTreeEntries(area)).toBe(3);
   });

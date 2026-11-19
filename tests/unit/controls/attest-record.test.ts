@@ -3,7 +3,7 @@
  * register and the verdict, written in that order so each is computed from
  * the one before (CodySwannGT/lisa#4998).
  */
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -38,6 +38,7 @@ import {
 } from "./support/attest-record-run.js";
 import { removeCopies, setting } from "./support/proof-run.js";
 import { removeFixtures } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const WORKING = provedGates([{ command: checks(F_NONE_SOURCE) }]);
 const BROKEN = provedGates([{ command: ACCEPTS_EVERYTHING }]);
@@ -273,7 +274,7 @@ describe("an attest run that cannot be written down", () => {
     const elsewhere = path.join(where.workspace, "elsewhere.json");
     writeFileSync(elsewhere, "{}\n");
     mkdirSync(path.dirname(file), { recursive: true });
-    symlinkSync(elsewhere, file);
+    createSymlink(elsewhere, file);
 
     const recorded = await record(where);
 

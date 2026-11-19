@@ -22,14 +22,7 @@
  * once per session, and every refusal keeps its full attribution regardless.
  * @module tests/unit/hooks/enforcement-fallback-notice-rate
  */
-import {
-  chmodSync,
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  statSync,
-  symlinkSync,
-} from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -51,6 +44,7 @@ import {
   scratchRoot,
   scratchTmpdir,
 } from "../../helpers/enforcement-fallback-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 afterEach(cleanupScratchRoots);
 
@@ -204,7 +198,7 @@ describe("the proactive notice, across one session", () => {
       path.join(tmp, `lisa-enforcement-notice-${uid()}`),
     ]) {
       mkdirSync(stateDir, { recursive: true });
-      symlinkSync(target, path.join(stateDir, SESSION));
+      createSymlink(target, path.join(stateDir, SESSION));
     }
 
     const { output } = runFallback(bash("ls -la", SESSION), root, tmp);

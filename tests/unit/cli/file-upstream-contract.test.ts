@@ -2,7 +2,7 @@
  * RED contract for the executable `lisa file-upstream` projection (#1826).
  * @module tests/unit/cli/file-upstream-contract
  */
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
 
@@ -13,6 +13,7 @@ import {
   runFileUpstream,
 } from "../../../src/cli/file-upstream-cmd.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const SURFACE = "plugins/src/base/skills/lisa-persist-learning/SKILL.md";
 const OWNED_TEXT =
@@ -160,7 +161,7 @@ describe("lisa file-upstream executable projection", () => {
     const oversized = path.join(root, "private-customer-oversized.json");
     const symlink = path.join(root, "private-customer-link.json");
     writeFileSync(oversized, Buffer.alloc(64 * 1024 + 1));
-    symlinkSync(oversized, symlink);
+    createSymlink(oversized, symlink);
 
     for (const input of [oversized, symlink]) {
       const out: string[] = [];

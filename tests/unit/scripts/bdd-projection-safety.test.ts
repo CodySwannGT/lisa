@@ -39,6 +39,7 @@ import {
   emptyProject,
   runGate,
 } from "./bdd/support.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 
@@ -340,7 +341,7 @@ describe("BDD projection output ownership", () => {
       fs.writeFileSync(sentinel, "foreign content\n");
       const link = path.join(root, directory);
       fs.mkdirSync(path.dirname(link), { recursive: true });
-      fs.symlinkSync(outside, link, "dir");
+      createSymlink(outside, link, "dir");
       const foreign = treeSnapshot(outside);
       unchangedRefusal(
         root,

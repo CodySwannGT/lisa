@@ -6,7 +6,7 @@
  * setting, the exact value, and why — and it has to say the same thing every
  * time it is written from the same facts (CodySwannGT/lisa#4993).
  */
-import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -27,6 +27,7 @@ import {
   type RequiredCheck,
 } from "../../../src/controls/protect-types.js";
 import type { ControlRegisterEntry } from "../../../src/controls/register-types.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const LINT = "🔍 Quality Checks / 🧹 Lint";
 const REVIEW = "Review Bot";
@@ -281,7 +282,7 @@ describe("keeping the handover file", () => {
 
   it("refuses to write through a link", async () => {
     const root = emptyRoot();
-    symlinkSync(emptyRoot(), path.join(root, ".lisa"));
+    createSymlink(emptyRoot(), path.join(root, ".lisa"));
 
     const synced = await syncHandover(root, "one\n");
 

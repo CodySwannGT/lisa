@@ -9,7 +9,7 @@
  * all is listed and does not fail the command.
  * @module tests/unit/controls/proof-check-declaration
  */
-import { symlinkSync, unlinkSync } from "node:fs";
+import { unlinkSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -33,6 +33,7 @@ import {
 } from "./support/proof-check-run.js";
 import { removeScratch } from "./support/proof-copy-run.js";
 import { removeFixtures } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const LINTER = checks(F_NONE_SOURCE);
 const NOT_READY = "not-ready";
@@ -129,7 +130,7 @@ describe("a part whose pair cannot be read", () => {
   it("does not follow a patch file that is a link", async () => {
     const repo = declared(provedGates([{ command: LINTER }]));
     unlinkSync(path.join(repo, CLEAN_PATCH));
-    symlinkSync(path.join(repo, F_NONE_SOURCE), path.join(repo, CLEAN_PATCH));
+    createSymlink(path.join(repo, F_NONE_SOURCE), path.join(repo, CLEAN_PATCH));
 
     const part = onlyPart(await proofCheck(repo));
 

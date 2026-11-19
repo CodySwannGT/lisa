@@ -16,7 +16,6 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -33,6 +32,7 @@ import {
   parseTranscript,
   readFirstPrompt,
 } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/first-prompt.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const FIXTURES = path.resolve(
   import.meta.dirname,
@@ -210,7 +210,7 @@ describe("transcript location", () => {
     const real = tempDir();
     const link = path.join(tempDir(), "link");
     // A symlinked cwd (macOS /tmp is /private/tmp) is filed by its real path.
-    symlinkSync(real, link);
+    createSymlink(real, link);
     const file = plant(configDir, real, "healthy");
     expect(findTranscript({ configDir, cwd: link, sessionId: FULL_ID })).toBe(
       file

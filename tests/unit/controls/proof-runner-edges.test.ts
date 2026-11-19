@@ -8,7 +8,7 @@
  * reads. None of them may stop the entries after it from being reported.
  * @module tests/unit/controls/proof-runner-edges
  */
-import { appendFileSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { appendFileSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -34,6 +34,7 @@ import {
   setting,
 } from "./support/proof-run.js";
 import { removeFixtures } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const NODE = process.execPath;
 const WORKING = checks(F_NONE_SOURCE);
@@ -151,7 +152,7 @@ describe("a proof whose answer cannot be trusted", () => {
     const where = setting(provedGates([{ command: WORKING }]));
     const file = path.join(where.repoPath, PROOFS, "lint.clean.patch");
     rmSync(file);
-    symlinkSync(path.join(where.repoPath, F_NONE_SOURCE), file);
+    createSymlink(path.join(where.repoPath, F_NONE_SOURCE), file);
 
     expect(only(await prove(where))).toMatchObject({
       outcome: "unknown",
@@ -164,7 +165,7 @@ describe("a proof whose answer cannot be trusted", () => {
     const where = setting(provedGates([{ command: WORKING }]));
     const clean = path.join(where.repoPath, PROOFS, "lint.clean.patch");
     rmSync(clean);
-    symlinkSync(path.join(where.repoPath, F_NONE_SOURCE), clean);
+    createSymlink(path.join(where.repoPath, F_NONE_SOURCE), clean);
     rmSync(path.join(where.repoPath, PROOFS, "lint.violation.patch"));
 
     expect(only(await prove(where))).toMatchObject({

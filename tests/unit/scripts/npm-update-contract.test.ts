@@ -2,7 +2,7 @@ import { qualifiedUpdaterNode } from "../../support/qualified-updater-node.js";
 /** Closed proposal controls keep candidate data out of privileged execution. */
 import { describe, expect, it, vi } from "vitest";
 import { downloadRuntimeArchive } from "../../../all/copy-overwrite/scripts/lib/npm-update-runtime-transport.mjs";
-import { writeFileSync, linkSync, symlinkSync } from "node:fs";
+import { writeFileSync, linkSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
@@ -50,6 +50,7 @@ import {
   nativeHooksEnabled,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-owner.mjs";
 import { boundedSpawnSync as boundedTestSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const NODE_TOOL = "/opt/node/bin/node";
 const HELPER_GRAPH_FILE =
@@ -657,7 +658,7 @@ describe.skipIf(!["linux", "darwin"].includes(process.platform))(
           dispatch([join(root, "unknown-caller.mjs")])
         ).rejects.toThrow(/unmatched candidate workspace mapping/);
         const alias = join(root, "aliased-helper.mjs");
-        symlinkSync(fixture.entry, alias);
+        createSymlink(fixture.entry, alias);
         await expect(
           dispatchTool(
             {
@@ -1252,7 +1253,7 @@ describe("complete authenticated helper closure", () => {
         `sha512-${createHash("sha512").update(bytes).digest("base64")}`
       );
       const alias = join(root, "alias.tgz");
-      symlinkSync(file, alias);
+      createSymlink(file, alias);
       expect(() => archiveIntegrity(alias)).toThrow();
       const linked = join(root, "linked.tgz");
       linkSync(file, linked);
@@ -1444,7 +1445,7 @@ describe("closed npm proposal", () => {
       expect(() => readBytes(file, Infinity)).toThrow(/bound/);
       expect(() => readBytes(file, 2)).toThrow();
       const alias = join(root, "alias");
-      symlinkSync(file, alias);
+      createSymlink(file, alias);
       expect(() => readBytes(alias)).toThrow();
       linkSync(file, join(root, "hard-link"));
       expect(() => readBytes(file)).toThrow(/private/);

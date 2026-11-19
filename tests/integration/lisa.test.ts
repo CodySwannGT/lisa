@@ -22,6 +22,7 @@ import {
   LISA_STATE_DIR,
   PROJECT_LEARNINGS,
 } from "./lisa-fixtures.js";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 // Marketplace installation is outside this suite's file-generation assertions.
 // Never install into the operator's real agents while generating test projects.
@@ -252,7 +253,7 @@ describe("Lisa Integration Tests", () => {
       await createTypeScriptProject(destDir);
       const externalDir = path.join(tempDir, "external-ledger");
       await fs.ensureDir(externalDir);
-      await fs.symlink(externalDir, path.join(destDir, "data"), "dir");
+      createSymlink(externalDir, path.join(destDir, "data"), "dir");
       await fs.writeJson(path.join(destDir, LISA_CONFIG_JSON), {
         harness: "claude",
         learnings: { file: "data/PROJECT_LEARNINGS.md" },

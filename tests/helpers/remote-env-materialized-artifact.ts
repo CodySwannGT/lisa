@@ -5,8 +5,9 @@
  * both helpers reviewable while retaining one exact writer-shaped fixture.
  * @module tests/helpers/remote-env-materialized-artifact
  */
-import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 /** Artifact states the SessionStart reader must adjudicate. */
 export type MaterializedArtifactKind =
@@ -85,7 +86,7 @@ export function writeMaterializedArtifact(
       validArtifact(fixture.value),
       { mode: 0o600 }
     );
-    symlinkSync(target, namespaceDir);
+    createSymlink(target, namespaceDir);
     return;
   }
   mkdirSync(namespaceDir, { recursive: true, mode: 0o700 });
@@ -97,7 +98,7 @@ export function writeMaterializedArtifact(
   if (kind === "file-symlink") {
     const target = path.join(fixture.root, "foreign-secrets.env");
     writeFileSync(target, validArtifact(fixture.value), { mode: 0o600 });
-    symlinkSync(target, fixture.valuesFile);
+    createSymlink(target, fixture.valuesFile);
     return;
   }
   writeFileSync(fixture.valuesFile, content, { mode: 0o600 });

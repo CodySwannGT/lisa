@@ -20,7 +20,6 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -52,6 +51,7 @@ import {
   stubSonar,
   waitForStubLinuxMktempRoot,
 } from "./support/sonar-secrets-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 // Spawns `/bin/bash` against the real generated shim. Failed 4 of 12 full-suite
 // runs measured at load ~115 with 38 agent worktrees present, without being
@@ -140,7 +140,7 @@ describe("the resolved value never reaches the filesystem", () => {
       mkdirSync(path.join(root, "nested"));
       writeFileSync(path.join(root, "nested", "token.txt"), "nested-token");
       writeFileSync(path.join(outside, "token.txt"), "outside-token");
-      symlinkSync(outside, path.join(root, "ignored-link"));
+      createSymlink(outside, path.join(root, "ignored-link"));
 
       expect(resolverRootContainsToken(root, "nested-token")).toBe(true);
       expect(resolverRootContainsToken(root, "outside-token")).toBe(false);

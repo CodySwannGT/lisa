@@ -18,7 +18,7 @@
  */
 
 import type { SpawnSyncReturns } from "node:child_process";
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -27,6 +27,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { invokedAsScript } from "../../../plugins/src/base/scripts/design-source-gate.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const LANE = "plugins/src/base/scripts";
 const DESIGN_GATE = "design-source-gate.mjs";
@@ -60,7 +61,7 @@ function linkedLane(): string {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-payload-link-"));
   const link = path.join(root, "scripts");
   temps.push(root);
-  symlinkSync(path.resolve(LANE), link);
+  createSymlink(path.resolve(LANE), link);
   return link;
 }
 
