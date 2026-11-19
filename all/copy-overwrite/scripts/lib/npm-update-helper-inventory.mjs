@@ -32,6 +32,7 @@ const COMMON = [
   "lib/usage-ledger-integrity.mjs",
   "lib/usage-ledger.mjs",
   "lib/work-item-estimate.mjs",
+  "lib/work-item-estimate-actual.mjs",
   "lib/work-item-estimate-check.mjs",
   "lib/work-item-estimate-config.mjs",
   "lib/work-item-estimate-tally.mjs",

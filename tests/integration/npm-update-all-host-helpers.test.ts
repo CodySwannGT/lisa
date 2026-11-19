@@ -170,9 +170,9 @@ describe("all-only npm host controller materialization", () => {
       // 139: CodySwannGT/lisa#4873 adds npm-update-tracker-cancel;
       // 140: CodySwannGT/lisa#4988 adds lib/changed-paths, which the gate
       // runner imports;
-      // 144: CodySwannGT/lisa#4956 adds the four work-item-estimate modules
+      // 145: CodySwannGT/lisa#4956 adds the five work-item-estimate modules
       // completion imports for its done gate.
-      expect(managedTemplateMembers().size).toBe(144);
+      expect(managedTemplateMembers().size).toBe(145);
     },
     ioLatencyBudgetMs(30_000)
   );

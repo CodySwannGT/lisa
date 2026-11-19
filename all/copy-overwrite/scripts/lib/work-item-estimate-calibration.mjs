@@ -5,16 +5,16 @@
  * Calibrate a new token estimate against finished work (CodySwannGT/lisa#4955).
  *
  * For each comparable finished item that carries both an estimate and a
- * complete actual, the ratio is the actual token total (the item's
- * `## Lisa Usage` rollup, the same ledger the completion tally reads) over the
+ * complete actual, the ratio is the actual token total (read from the item's
+ * `## Lisa Usage` ledger by the same reader the completion tally uses) over the
  * estimate's midpoint. The median ratio scales the new range. Items whose
  * actual is unknown (no ledger, `unavailable` telemetry, or a measured subset)
  * are skipped, never counted as zero. With no usable history the range is
  * returned unchanged and the basis says so.
  * @module scripts/lib/work-item-estimate-calibration
  */
-import { parseLisaUsageSection } from "./usage-ledger.mjs";
 import { parseEstimateSection } from "./work-item-estimate.mjs";
+import { ledgerActual } from "./work-item-estimate-tally.mjs";
 
 /**
  * Whether a parsed token count is a usable positive number (NaN is not).
@@ -36,15 +36,8 @@ export function itemRatio(body) {
     !isPositive(estimate.tokensHigh)
   )
     return null;
-  let rollup;
-  try {
-    rollup = parseLisaUsageSection(body).rollup;
-  } catch {
-    return null;
-  }
-  const actual = rollup?.totalTokens;
-  if (rollup?.childTokensIncomplete || !Number.isFinite(actual) || actual <= 0)
-    return null;
+  const actual = ledgerActual([body])?.tokens ?? null;
+  if (actual === null || !isPositive(actual)) return null;
   return actual / ((estimate.tokensLow + estimate.tokensHigh) / 2);
 }
 

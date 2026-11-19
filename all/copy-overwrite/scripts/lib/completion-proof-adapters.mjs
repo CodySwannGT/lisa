@@ -19,14 +19,18 @@ const WRITE_ERROR = "write-error";
 /**
  * The project's token-estimate settings for the done gate
  * (CodySwannGT/lisa#4956). An unusable `workItem.estimate` is carried as an
- * error so completion refuses with the reason instead of crashing.
+ * error so completion refuses with the reason instead of crashing, unless the
+ * project turned the gate off: then the gate never reads those settings, so
+ * they cannot refuse completion either.
  */
 function estimateSettings(config) {
   try {
     return resolveEstimateConfig(config);
   } catch (error) {
     if (!(error instanceof EstimateConfigError)) throw error;
-    return { required: true, error: error.message };
+    return config?.workItem?.estimate?.required === false
+      ? { required: false, warnings: [] }
+      : { required: true, error: error.message };
   }
 }
 

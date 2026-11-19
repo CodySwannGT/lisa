@@ -84,6 +84,50 @@ describe("tally", () => {
     expect(tallyEstimate(body, [body, comment])).toContain("| Actual | 5k |");
   });
 
+  it("keeps the total unknown when one run is known and another is not", () => {
+    const mixed = finishedItem(1000, 2000, [
+      usageEntry("implement", 4_000, 3),
+      usageEntry("verify", null),
+    ]);
+    expect(ledgerActual([mixed])).toMatchObject({ tokens: null, cost: null });
+    expect(tallyEstimate(mixed)).toContain(
+      "| Actual | unknown | unknown | — |"
+    );
+  });
+
+  it("adds a comment ledger's runs to the body's", () => {
+    const body = finishedItem(1000, 2000, [usageEntry("implement", 4_000, 3)]);
+    const comment = upsertLisaUsageSection("", {
+      entries: [usageEntry("verify", 1_000, 1.25)],
+    });
+    expect(ledgerActual([body, comment])).toMatchObject({
+      tokens: 5_000,
+      cost: 4.25,
+      currency: "USD",
+      entries: 2,
+    });
+  });
+
+  it("counts a ledger copied into a comment once", () => {
+    const body = finishedItem(1000, 2000, [usageEntry("implement", 4_000, 3)]);
+    const copy = body.slice(body.indexOf("## Lisa Usage"));
+    expect(ledgerActual([body, copy])).toEqual(ledgerActual([body]));
+  });
+
+  it("keeps the total unknown when ledgers repeat only some runs", () => {
+    const body = finishedItem(1000, 2000, [usageEntry("implement", 4_000, 3)]);
+    const comment = upsertLisaUsageSection("", {
+      entries: [
+        usageEntry("implement", 4_000, 3),
+        usageEntry("verify", 1_000, 1),
+      ],
+    });
+    expect(ledgerActual([body, comment])).toMatchObject({
+      tokens: null,
+      cost: null,
+    });
+  });
+
   it("refuses to tally without a usage entry", () => {
     expect(() => tallyEstimate(PLAIN_BODY)).toThrow(/No Lisa Usage entry/);
   });
@@ -115,6 +159,18 @@ describe("gate S21 at done time", () => {
     expect(checkEstimate(spent, ESTIMATE_ON, "done").lines[0]).toMatch(
       /does not yet show the actual/
     );
+  });
+
+  it("fails a tally that left out a comment's recorded runs", () => {
+    const comment = upsertLisaUsageSection("", {
+      entries: [usageEntry("review", 1_000, 1)],
+    });
+    const result = checkEstimate(tallyEstimate(spent), ESTIMATE_ON, "done", [
+      tallyEstimate(spent),
+      comment,
+    ]);
+    expect(result.verdict).toBe("FAIL");
+    expect(result.lines[0]).toMatch(/tally is stale/);
   });
 
   it("fails a stale tally after more usage was recorded", () => {
@@ -149,6 +205,18 @@ describe("completion proof specification digest", () => {
     expect(primarySpecProjection(edited)).toContain(
       "Also cover the admin screen."
     );
+  });
+
+  it("counts a person's line even when it starts like a managed one", () => {
+    const withLine = (line: string): string =>
+      tallyEstimate(spent).replace("Basis:", `${line}\n\nBasis:`);
+    for (const prefix of ["Actual:", "Basis:", "| Actual |"]) {
+      const admin = primarySpecProjection(withLine(`${prefix} cover admin.`));
+      expect(admin).toContain(`${prefix} cover admin.`);
+      expect(
+        primarySpecProjection(withLine(`${prefix} cover billing.`))
+      ).not.toBe(admin);
+    }
   });
 
   it("refuses duplicate estimate sections as ambiguous", () => {

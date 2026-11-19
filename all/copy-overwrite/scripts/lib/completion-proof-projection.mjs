@@ -5,6 +5,7 @@
 import { parseLisaUsageSection } from "./usage-ledger.mjs";
 import { isLisaUsageLedgerIntact } from "./usage-ledger-integrity.mjs";
 import { requireProof } from "./completion-proof-errors.mjs";
+import { humanLines } from "./work-item-estimate.mjs";
 
 /** Stable presentation matching; this does not parse or authorize usage data. */
 const normalizedRow = line =>
@@ -128,33 +129,17 @@ export function usageSpecRemainder(document) {
 }
 
 /**
- * The machine-written lines of a `## Lisa Estimate` section
+ * A `## Lisa Estimate` section without the lines Lisa wrote
  * (CodySwannGT/lisa#4956). The estimate and its actual tally are rewritten as
  * work is claimed and completed, so they are metadata, like the usage ledger,
- * not requirements: rewriting them must not invalidate an accepted proof.
- */
-const ESTIMATE_MANAGED_LINE = [
-  /^## Lisa Estimate$/,
-  /^_Managed by Lisa\. Rewritten in place on each estimate or tally; do not edit by hand\._$/,
-  /^\| Row \| Tokens \| Cost \| Model \|$/,
-  /^\|---\|---:\|---:\|---\|$/,
-  /^\| (?:Estimate|Actual) \|.*\|$/,
-  /^(?:Basis|Actual): /,
-  /^<!-- lisa:estimate(?:-actual)? [^\r\n]*-->$/,
-];
-
-/**
- * Unknown lines within the estimate section remain part of the spec digest;
- * the heading and the machine-written lines do not, exactly as for usage.
+ * not requirements: rewriting them must not invalidate an accepted proof. Only
+ * the exact lines re-rendering the section's own tokens produces are dropped;
+ * every other line, whatever it starts with, is a person's and stays in the
+ * spec digest.
  */
 export function estimateSpecRemainder(document) {
-  return document
-    .split(/(?<=\n)/)
-    .filter(raw => {
-      const line = raw.trim();
-      return line && !ESTIMATE_MANAGED_LINE.some(pattern => pattern.test(line));
-    })
-    .join("");
+  const human = humanLines(document);
+  return human.length ? `${human.join("\n")}\n` : "";
 }
 
 /** Only a closed canonical metadata schema can be omitted from the primary spec. */

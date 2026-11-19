@@ -90,8 +90,9 @@ no usable history the range is unchanged and the basis says "no calibration hist
 ## Done: the actual beside the estimate
 
 When the work is done, the section also shows what it really cost (CodySwannGT/lisa#4956). The
-actual is the item's `## Lisa Usage` rollup — the same ledger every flow already records into, not
-a second one:
+actual is the item's `## Lisa Usage` ledgers, on the body and on any comment — the same ledger
+every flow already records into, not a second one. Runs recorded in both places are added together;
+a ledger copied whole into a comment is counted once:
 
 ```markdown
 | Estimate | 2M–4M | $3.14–$6.28 USD | claude-opus-5-5 |
@@ -110,15 +111,18 @@ node scripts/lisa-estimate.mjs tally --body-file <body.md> [--usage-file <commen
 node scripts/lisa-estimate.mjs check --phase done --body-file <stored-body.md> [--usage-file <comment.md>]
 ```
 
-Pass `--usage-file` when the ledger lives in an evidence comment rather than the body. An unknown
-total (`unavailable` telemetry, a `measured-subset` rollup, incomplete child totals) is shown as
-`unknown`, never as zero and never guessed. An item that reached done with no estimate shows
+Pass `--usage-file` to both commands whenever a ledger lives in an evidence comment, alone or beside
+the body's: the check then reads the same ledgers the tally counted. A total that any run leaves
+unknown (`unavailable` telemetry, a `measured-subset` entry, incomplete child totals) is shown as
+`unknown`, never as zero, never as the sum of only the known runs, and never guessed. An item that reached done with no estimate shows
 `none recorded` in the estimate row rather than an invented range.
 
 `lisa-work-item complete` enforces it: when `required` is true, it refuses (as `pending-proof`) an
 item with no usage entry, with no tally, or with a tally that no longer matches the ledger. The
 estimate section is machine-owned metadata, so rewriting it does not change the specification
-digest the accepted completion proof is bound to; prose a person adds inside it still does.
+digest the accepted completion proof is bound to. Only the exact lines `lisa-estimate` writes are
+left out; every other line a person adds inside it still counts, even one that starts with
+`Actual:` or `Basis:`.
 
 ## When the config is off
 

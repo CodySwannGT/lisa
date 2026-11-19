@@ -47,7 +47,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
       "f93221c4b8ddca27c7a78b6e6b7eceb4555ec1e2d5cd8fd128c1380cd310c81f",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
-      "185f54b254f59d20d0fd2283d041eeb2d7badadaf774a518e8dfd7aa0c88aae4",
+      "802b2670739af58d1edcf02dec5142914bb0f05126d065bdc74fe7e8fc64ed37",
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.d.mts":
       "9d951f9a095264b33f527dd65eb41c8d6617b3b1c572d13c22332773ac99dca5",
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.mjs":
@@ -63,7 +63,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
       "8ff9efc772463c3fccf5d6e5a42c73df324babd2e02e66228f2d9a0b1896cbf4",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
-      "6a853b16a10f4a88f82257d29d4553b22faeebc94432a0c5a7edd9b88fe937ea",
+      "4fc15dff279a1bea95617b9763e637c21ed20477b8191b8270604847a53cabf3",
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
       "9554fff85ed510f75058614c9ad8535806d52293e1de012900bae7e14db61eb1",
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
@@ -167,7 +167,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "4bfa589aaeda81f29c800409e5e66fab6e6d735135c1a075213ee6d2e007773b",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "3f792d06b75b7b57579902d083b4b9db1d86bd10db8fbed8e9c543c12265b489",
+      "5c6291258de98b2d213b1d1892b0c1bad542b5ec0d02708ee819ea845c3f2e3e",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -312,8 +312,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "599628647c03ac22fe7cd5df22219a70b67e449cc893cc85564a93d658df2c2d",
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1":
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
+    "all/copy-overwrite/scripts/lib/work-item-estimate-actual.mjs":
+      "0c081f8db35ebfa9e85c123f073e16634061efea88e9b5f4028e99908b7a70c0",
     "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs":
-      "f46576760d27e71b29742fb25a3f9faf5f1c43032f7d2815bc968d0e5c9c15d2",
+      "0028f4289e25ba7cb119ed036192784657897b1258832adb42c7258e3994c6aa",
     "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs":
       "094da46c296984cd42d706e60a8fef7956c8c663950bb3d4def768f386b8a53c",
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.d.mts":
@@ -321,9 +323,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs":
       "dea9d7e5440646b8bd4122846bf587a2f7cfff95e720b43302dda98b91c58b5f",
     "all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs":
-      "8e6525a49770f2c380d776a1b96ee6666ea4af79bbd1ba56193374855594917e",
+      "2edea8755d3e276489d509e23d49674f2dfeb1702dcfe1ffa1a88aacd9d29dcc",
     "all/copy-overwrite/scripts/lib/work-item-estimate.mjs":
-      "c8d850bf76542a86ce7246a1b2702ea33a3cf15d2fee00a4b7dc555e6ac47d1d",
+      "8b466d9775b94e40725f808e80bfe6bdc9b71272492f227efd897832b97f4d54",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
       "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
@@ -417,7 +419,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "9e51b4e2c240cfe1f0f761305bc86af39512f0ebcc0d435206bc13f7d85423dd",
+      "56ec7a7b08ee83e9718c7a44b2fca527e66f4754603a265598c7613d2b8f2a5d",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1953,7 +1955,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "e37b751782fe53c0cb6e8b682ca12e61b96635edf9fbe4d19990a22d897b88e3",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "b6c1063a00f840b1a246379973441d73ed3138b83b6111cfc0da8a0523c4ff44",
+      "6960c7ebf9bcb075762b6b496dc67705a5a8bdc090108a6b2fc1e24338395519",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "c4656c11936ca8f2f05091ba5d4922cadca293cf822b644e5ee46cbf22103706",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
@@ -1975,7 +1977,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md":
       "d34e7b4951bc26caf15625e081e8273a11ee8ca1bde6137750f4b687fca7e8bf",
     "plugins/src/base/skills/lisa-usage-accounting/references/estimate.md":
-      "e5da3bbe4bf375e01268e416719495f20a35a808f94d74ee42012e731b894894",
+      "00427efe4c652cc6f127133ad1acec42bbe9d0e2ba29964fa628575005f05209",
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "9605cce9b30a5a4db04ce936b5dddcaaf05368ddcd91ce4067956071a481db63",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
@@ -3029,7 +3031,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "2fa5d8eb9e50d1f5ea70a6e9ac83fc6a49bf6693d74562f03f96a58d2fc504fb",
+      "468a4166c1cee9d3e73554852a6b3b08b50281c151daf5c94b247d452cf8b441",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3530,6 +3532,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/windows-process-job.cs": true,
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs": true,
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1": true,
+    "all/copy-overwrite/scripts/lib/work-item-estimate-actual.mjs": true,
     "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs": true,
     "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs": true,
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.d.mts": true,

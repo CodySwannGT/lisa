@@ -36,6 +36,8 @@ useIoLatencyBudget();
 afterEach(cleanupFixtures);
 afterAll(cleanupTemplates);
 
+const COMPLETED = "work-item completed:";
+
 const complete = (fixture: ReturnType<typeof proofFixture>): string =>
   proofCli(fixture, ["complete", "--ref", PROOF_REF]).stdout;
 
@@ -52,11 +54,28 @@ function untallied(): ReturnType<typeof proofFixture> {
   return fixture;
 }
 
+/**
+ * Replace the fixture project's `workItem.estimate` settings.
+ * @param fixture - Fixture to edit.
+ * @param estimate - The new `workItem.estimate` value.
+ */
+function withEstimateConfig(
+  fixture: ReturnType<typeof proofFixture>,
+  estimate: Record<string, unknown>
+): void {
+  const configFile = path.join(fixture.root, ".lisa.config.json");
+  const config = JSON.parse(readFileSync(configFile, "utf8"));
+  writeFileSync(
+    configFile,
+    JSON.stringify({ ...config, workItem: { ...config.workItem, estimate } })
+  );
+}
+
 describe("token-estimate done gate in completion", () => {
   it("completes an item whose estimate shows its tallied actual", () => {
     const fixture = proofFixture();
     attachRecord(fixture);
-    expect(complete(fixture)).toContain("work-item completed:");
+    expect(complete(fixture)).toContain(COMPLETED);
   });
 
   it("refuses, as pending, an item whose actual is not tallied", () => {
@@ -67,15 +86,21 @@ describe("token-estimate done gate in completion", () => {
 
   it("does not gate completion when the project turns the requirement off", () => {
     const fixture = untallied();
-    const configFile = path.join(fixture.root, ".lisa.config.json");
-    const config = JSON.parse(readFileSync(configFile, "utf8"));
-    writeFileSync(
-      configFile,
-      JSON.stringify({
-        ...config,
-        workItem: { ...config.workItem, estimate: { required: false } },
-      })
+    withEstimateConfig(fixture, { required: false });
+    expect(complete(fixture)).toContain(COMPLETED);
+  });
+
+  it("does not refuse over unusable estimate settings the disabled gate never reads", () => {
+    const fixture = untallied();
+    withEstimateConfig(fixture, { required: false, models: "opus" });
+    expect(complete(fixture)).toContain(COMPLETED);
+  });
+
+  it("refuses over unusable estimate settings while the gate is on", () => {
+    const fixture = untallied();
+    withEstimateConfig(fixture, { models: "opus" });
+    expect(complete(fixture)).toMatch(
+      /workItem\.estimate in \.lisa\.config\.json cannot be used/
     );
-    expect(complete(fixture)).toContain("work-item completed:");
   });
 });
