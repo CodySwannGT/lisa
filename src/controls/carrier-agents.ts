@@ -28,6 +28,7 @@ import {
   AGENT_CARRIER_PROGRAM_PATH,
   agentCarrierEntry,
   agentHookCommand,
+  agentHookCommandsWritten,
 } from "./carrier-agent-script.js";
 import { hookEntry, mergeHookEntry } from "./carrier-agent-settings.js";
 import {
@@ -158,7 +159,11 @@ async function throughSettings(
       `${registration.file} is not an ordinary file, so it was left untouched.`
     );
   }
-  const merged = mergeHookEntry(textOf(state), registration, [command]);
+  const merged = mergeHookEntry(
+    textOf(state),
+    registration,
+    agentHookCommandsWritten(agent)
+  );
   if (merged.problem !== null) return refuse(merged.problem);
   return {
     edit: fileEdit(
