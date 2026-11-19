@@ -6,8 +6,11 @@ or a CI run. Prefer `paths` over an advisory-wide exception whenever the
 accepted vulnerable copy belongs only to a development tool.
 
 Lisa reads `audit.ignore.config.json` and `audit.ignore.local.json`. The managed
-file carries shared decisions; the local file carries repository decisions.
-Keep a repository-specific exception in the local file. Each file contains an
+file Lisa ships to hosts is empty: Lisa's template cannot vouch for a host's
+reachability, so each project records its own decisions in
+`audit.ignore.local.json`. An advisory that cannot affect the project is not
+debt; excluding it with a concrete reachability reason is the correct remedy.
+Exclude only after the fixes have been tried (CodySwannGT/lisa#4931). Each file contains an
 `exclusions` array:
 
 ```json
@@ -77,8 +80,16 @@ changes the accepted dependency layout.
 
 A path-scoped match reports `excluded GHSA-… for <paths> (reason)`. A finding
 outside the scope fails and names the vulnerable lockfile paths. The failure
-also says what to do next. Upgrade or override the named copy. If it is
-dev-only and reviewed, add its lockfile path to `paths`. Empty `paths`, invalid
+also says what to do next, in order: refresh the lockfile within the current
+range, upgrade the direct dependency that pulls the copy, add a targeted
+override to the fixed version, then, before any code change, evaluate
+reachability and, if the advisory cannot affect the project, add a scoped
+exclusion with the reason to `audit.ignore.local.json`; otherwise replace or
+remove the dependency. When none of these works in the change at hand, the agent files a
+build-ready ticket in the tracker with the evidence (the advisory, the
+dependency path, and what was tried at each step), so the factory carries the
+replacement or removal as work. It stops only when the next act needs access
+it does not have, and then says exactly what is missing. Empty `paths`, invalid
 or unknown scope fields, missing or unreadable lockfiles, malformed lockfile
 data, and unknown resolved package data fail with a diagnostic. They never
 turn into an advisory-wide exclusion. A present scope requires readable

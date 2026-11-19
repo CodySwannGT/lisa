@@ -19,7 +19,6 @@
  * @module eslint.expo
  */
 import react from "eslint-plugin-react";
-import reactCompiler from "eslint-plugin-react-compiler";
 import { readFileSync } from "fs";
 import { createRequire } from "module";
 import path from "path";
@@ -236,7 +235,6 @@ export function getExpoConfig({
       plugins: {
         "component-structure": componentStructure,
         "code-organization": codeOrganization,
-        "react-compiler": reactCompiler,
         "ui-standards": uiStandards,
       },
       rules: {
@@ -291,10 +289,20 @@ export function getExpoConfig({
         "react-hooks/preserve-manual-memoization": "error",
         "react-hooks/refs": "error",
         "react-hooks/immutability": "error",
+        // React Compiler diagnostics, replacing react-compiler/react-compiler
+        // (its plugin pins zod 3, unfixed for GHSA-mrhx-c7xc-m3w5).
+        "react-hooks/use-memo": "error",
+        "react-hooks/globals": "error",
+        "react-hooks/error-boundaries": "error",
+        "react-hooks/purity": "error",
+        "react-hooks/set-state-in-render": "error",
+        "react-hooks/config": "error",
+        "react-hooks/gating": "error",
         // Slow rules - disabled by default, run via `lint:slow` script
         // @see eslint.slow.config.ts
-        "react-compiler/react-compiler": "off",
         "react-hooks/static-components": "off",
+        // react-hooks/rule-suppression and react-hooks/void-use-memo stay unset
+        // here; they run in lint:slow (getExpoSlowConfig).
         // End Slow rules - disabled by default, run via `lint:slow` script
         // Environment variables - enforce validated env module usage
         // @see .claude/skills/expo-env-config/SKILL.md

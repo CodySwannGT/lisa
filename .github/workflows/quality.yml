@@ -7260,7 +7260,7 @@ jobs:
 
       - name: 🔒 Run security audit
         if: steps.gate.outputs.configured == 'false'
-        uses: CodySwannGT/lisa/.github/actions/dependency-audit@9a6a589083095d0cb5d4d4335ed80cf9b9c17222
+        uses: CodySwannGT/lisa/.github/actions/dependency-audit@c08a3b4a71cc248bcdb7329135c85636ce6e80f8
         with:
           package-manager: ${{ inputs.package_manager }}
           working-directory: ${{ inputs.working_directory || '.' }}

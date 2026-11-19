@@ -317,7 +317,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-affected-tests.mjs":
       "31a4b1adac29014ba8997daf60e3ee4f2a948e1c915924bae35c0d43872d632c",
     "all/copy-overwrite/scripts/lisa-audit.mjs":
-      "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
+      "9978d1b7f59338f5a53f20900b5370723176731513089d0ee3b8c57931ef6e93",
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs":
       "69b45495c3b3ec81b64ab8aacb97921dde014e537bfd8655625bec053293870a",
     "all/copy-overwrite/scripts/lisa-clean-git-env.sh":
@@ -547,7 +547,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/eslint.config.ts":
       "bb02718e1a809151c282d5fc54a1b570fe1cc86236dc1e5f2bcb570b06a22baa",
     "expo/copy-overwrite/eslint.expo.ts":
-      "c024470992f717d768275bd055936300ce43a3b29eed2659bd15940e27be0cd3",
+      "ddb517c107220214bf893c84b405ca65b7476102fed82a15617ad82002544eca",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "3189a36471d596f5d4c3ed43484a9b7a5d33ef27b4d0fdb93007b823cec6cad0",
     "expo/copy-overwrite/jest.config.ts":
@@ -681,7 +681,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "57295685c94073612c67c0db0d0d3b31ebd9ea222fb403fbab030389fb628016",
+      "01f5c9478d6546d9ec39a7f4cc097e4980328f427dc3d3dd0976b7b91fc5dec4",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -1305,7 +1305,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/reset-seed-coverage.md":
       "cfbb50fc9fdb6f0a354255802392adc717ea18af65aca92cc866416bf9256d91",
     "plugins/src/base/rules/reference/security-audit-handling.md":
-      "06b574fd6e74d2a92c0cbe950c96ebcf2520f62fb335852b8f5da90ea0ebdabf",
+      "89cee6cfae2846c8996ed8b850ac46db6ffb3f0a80158eeaa8eef3e8e146e5c3",
     "plugins/src/base/rules/reference/session-status-updates.md":
       "dc4d782da9428c90fbb419787c937f4a08bdee894eff3acfe3fffa942e2438d0",
     "plugins/src/base/rules/reference/settled-decisions.md":
@@ -1719,7 +1719,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
       "8687d794603742e83f3b7d7b1d21a56c98422e4301eef99f0d05eacc26d955b8",
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md":
-      "42fa1f7456a4511dede443da16875337e19f4185bad4ba1808143fb05f425b74",
+      "1a5e41690814382fc67d7f87b076f189908273be46acf5efb10f062b19c0b700",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "6878641d8ae3c0b1e6bab736e46dd5b0fd32a5e25ca9a0eecd1e66a5fb0bfdd2",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -2891,7 +2891,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-audit.mjs":
-      "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
+      "9978d1b7f59338f5a53f20900b5370723176731513089d0ee3b8c57931ef6e93",
     "scripts/lisa-ci-failure-redispatch.mjs":
       "6ebd9a3b70d47fa8706a1e2e94865537e41efc104b6a9ec185f65ab0a7f014ee",
     "scripts/lisa-ci-rework-route.mjs":
@@ -3069,7 +3069,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/ast-grep/utils/.gitkeep":
       "6792ca57f00ff5a84a4713a08308a8ab3144858b0b0d9f8251b8c26c48948fb7",
     "typescript/copy-overwrite/audit.ignore.config.json":
-      "72ada89cb0744a92bcf574493c8bb6efac8eae650f943c5ab90fd784dba6251a",
+      "096eba7c600446a2f906369a6ff747804a51b9ad3153ca10d9a1d673e416b337",
     "typescript/copy-overwrite/commitlint.config.cjs":
       "a9f07b7097eee82e531dedfe3c1011ec61dc8c85c26d5430314a5999dc0675cc",
     "typescript/copy-overwrite/eslint.config.ts":
@@ -11310,7 +11310,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/delegate-legacy-test-scripts.ts": true,
     "src/migrations/deploy-outcome-guard-edit.ts": true,
     "src/migrations/deploy-outcome-guard-yaml.ts": true,
-    "src/migrations/ensure-audit-ignore-local-exclusions.ts": true,
     "src/migrations/ensure-deploy-outcome-guard.ts": true,
     "src/migrations/ensure-jest-rn-mock-accessibility-manager.ts": true,
     "src/migrations/ensure-knowledge-role.ts": true,
@@ -12353,6 +12352,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/artifact-staleness-moments.test.ts": true,
     "tests/unit/config/ast-grep-rule-tests.test.ts": true,
     "tests/unit/config/ast-grep-template.test.ts": true,
+    "tests/unit/config/audit-exclusion-lists-empty.test.ts": true,
     "tests/unit/config/audit-ignore-package-names.test.ts": true,
     "tests/unit/config/bite-exclusion-vs-env-gate.test.ts": true,
     "tests/unit/config/brace-expansion-security-floor.test.ts": true,
@@ -12837,8 +12837,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/correct-lisa-coderabbit-labeling.test.ts": true,
     "tests/unit/migrations/delegate-legacy-test-scripts.test.ts": true,
     "tests/unit/migrations/deploy-outcome-guard-render.test.ts": true,
-    "tests/unit/migrations/ensure-audit-ignore-local-exclusions-esbuild.test.ts": true,
-    "tests/unit/migrations/ensure-audit-ignore-local-exclusions.test.ts": true,
     "tests/unit/migrations/ensure-deploy-outcome-guard.test.ts": true,
     "tests/unit/migrations/ensure-jest-rn-mock-accessibility-manager.test.ts": true,
     "tests/unit/migrations/ensure-knowledge-role.test.ts": true,

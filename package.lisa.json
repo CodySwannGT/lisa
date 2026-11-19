@@ -78,13 +78,15 @@
       "nanoid": "^3.3.18",
       "vite": "$vite",
       "esbuild": "$esbuild",
-      "qs": "^6.16.0"
+      "qs": "^6.16.0",
+      "zod": "^4.6.7"
     },
     "resolutions": {
       "vite": "$vite",
       "esbuild": "$esbuild",
       "nanoid": "^3.3.18",
-      "qs": "^6.16.0"
+      "qs": "^6.16.0",
+      "zod": "^4.6.7"
     },
     "dependencies": {
       "@yarnpkg/lockfile": "^1.1.0"
