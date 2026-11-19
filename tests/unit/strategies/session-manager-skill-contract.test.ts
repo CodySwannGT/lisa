@@ -135,6 +135,19 @@ describe.each(ALL_ROOTS)("lisa-session-manager contract (%s)", root => {
     );
   });
 
+  it("never replaces an assignee when promoting a backlog item (#5029)", () => {
+    const promote = skill.slice(
+      skill.indexOf("4. **Promote**"),
+      skill.indexOf("5. Continue with steps 2.3 and 2.4")
+    );
+    expect(promote).toContain("never replaces an assignee");
+    expect(promote).toContain(
+      'an\n      unassigned item is assigned to "me" (rule 3)'
+    );
+    expect(promote).toContain("the unchanged existing assignee");
+    expect(promote).not.toContain("the first `operatorIds` entry");
+  });
+
   it("claims through lisa-tracker-claim, never a vendor claim skill", () => {
     expect(section(skill, FACTS)).toContain(
       "claims go through `lisa-tracker-claim`"

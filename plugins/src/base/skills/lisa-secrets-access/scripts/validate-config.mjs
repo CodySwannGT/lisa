@@ -1097,9 +1097,11 @@ export function validateSessionManager(block) {
 
 /**
  * Validate `sessionManager.backlogPickup`: opt-in promotion of validated
- * backlog items to Ready, assigned to `operatorIds[0]`. Without an operator
- * there is nobody to assign the promoted item to, so it is refused rather
- * than promoting work into the agent's own name.
+ * backlog items to Ready. A promoted item keeps any assignee it has; an
+ * unassigned one is assigned to the manager ("me"), as every item it takes is
+ * (CodySwannGT/lisa#5029). The pickup still needs an operator: it starts work
+ * nobody marked Ready, so it stays off until the config names the people the
+ * manager works for.
  * @param {unknown} value The value, if present.
  * @param {unknown} operatorIds `sessionManager.operatorIds`, if present.
  * @returns {string[]} Problems found.
@@ -1116,8 +1118,9 @@ function validateBacklogPickup(value, operatorIds) {
     operatorIds.some(id => typeof id === "string" && id.trim() !== "");
   return value && !hasOperator
     ? [
-        `sessionManager.backlogPickup needs sessionManager.operatorIds: a ` +
-          `promoted backlog item is assigned to the first operator.`,
+        `sessionManager.backlogPickup needs sessionManager.operatorIds: it ` +
+          `starts work nobody marked Ready, so it needs the people the ` +
+          `manager works for.`,
       ]
     : [];
 }
