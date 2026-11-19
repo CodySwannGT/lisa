@@ -13,6 +13,8 @@ import {
   requireNativeBun,
 } from "./support/native-path-bun.js";
 import {
+  ALIAS_LOCK,
+  ALIASES,
   baseline,
   BUN_LOCK_FILE,
   copyCheckout,
@@ -23,6 +25,13 @@ import {
   NPM_LOCK_FILE,
   PACKAGE_FILE,
   parseBunLock,
+  ROOT_ALIAS,
+  ROOT_IDENTITY,
+  ROOT_TARGET,
+  ROOT_VERSION,
+  seeded,
+  SEEDED,
+  VERSION,
 } from "./support/npm-update-dual-lock-fixture.js";
 import {
   qualifiedBun,
@@ -35,22 +44,6 @@ import {
 } from "../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 
 useIoLatencyBudget();
-const VERSION = "7.0.0";
-const config = { tracker: "github", github: { org: "fixture", repo: "host" } };
-const policy = {
-  version: 1,
-  repository: "fixture/host",
-  directory: ".",
-  target: "main",
-  maintainer: "Fixture",
-  lisaOwner: "absent",
-  packages: [{ name: "is-number", version: VERSION }],
-};
-/** Genuine root alias and a registry parent whose own dependencies are aliases. */
-const ALIASES = {
-  "fixture-react-is": "npm:react-is@18.3.1",
-  "pretty-format": "30.5.1",
-};
 /** The shared alias baseline: its private root, environment and checkout. */
 interface AliasBaseline {
   root: string;
@@ -91,8 +84,9 @@ describe.skipIf(
     const release = deferred<void>();
     releaseRoot = () => release.resolve();
     const ready = deferred<AliasBaseline>();
-    held = withPrivateRoot(async (root, env) => {
-      const { cwd } = await baseline(root, env, true, ALIASES);
+    held = withPrivateRoot(async (root, privateEnv) => {
+      const env = seeded(root, privateEnv);
+      const { cwd } = await baseline(root, env, true, ALIASES, ALIAS_LOCK);
       ready.resolve({ root, env, cwd });
       await release.promise;
     });
@@ -123,8 +117,8 @@ describe.skipIf(
       const originalNpm = JSON.parse(
         readFileSync(join(cwd, NPM_LOCK_FILE), "utf8")
       );
-      expect(originalNpm.packages["node_modules/fixture-react-is"].name).toBe(
-        "react-is"
+      expect(originalNpm.packages[`node_modules/${ROOT_ALIAS}`].name).toBe(
+        ROOT_TARGET
       );
       const parent = originalNpm.packages["node_modules/pretty-format"];
       expect(parent.dependencies["@jest/react-is-18"]).toBe(
@@ -140,8 +134,8 @@ describe.skipIf(
       const native = await qualifiedBun(env);
       const parse = () => parseBunLock(native, cwd);
       const before = await parse();
-      expect(before.packages["fixture-react-is"][0]).toBe("react-is@18.3.1");
-      const prepared = await prepareUpdate({ cwd, policy, config }, env);
+      expect(before.packages[ROOT_ALIAS][0]).toBe(ROOT_IDENTITY);
+      const prepared = await prepareUpdate({ cwd, ...SEEDED }, env);
       expect(prepared.status).toBe("prepared");
       if (!("proposal" in prepared) || !("installedAfter" in prepared.npm))
         throw new Error("native alias preparation did not produce an update");
@@ -176,7 +170,7 @@ describe.skipIf(
         )
       ).toBe(true);
       const valid = await parse();
-      expect(valid.packages["fixture-react-is"][0]).toBe("react-is@18.3.1");
+      expect(valid.packages[ROOT_ALIAS][0]).toBe(ROOT_IDENTITY);
       expect(
         Object.values(valid.packages).some(
           (row: unknown) =>
@@ -190,8 +184,8 @@ describe.skipIf(
       const npmLock = JSON.parse(
         readFileSync(join(cwd, NPM_LOCK_FILE), "utf8")
       );
-      resolved.packages["fixture-react-is"][1] =
-        npmLock.packages["node_modules/fixture-react-is"].resolved;
+      resolved.packages[ROOT_ALIAS][1] =
+        npmLock.packages[`node_modules/${ROOT_ALIAS}`].resolved;
       writeFileSync(join(cwd, BUN_LOCK_FILE), JSON.stringify(resolved));
       await verifyBunLock(native, cwd);
       const result = {
@@ -215,13 +209,17 @@ describe.skipIf(
     await verifyBunLock(native, cwd);
     const rejected = [];
     for (const [field, index, replacement] of [
-      ["name", 0, "definitely-absent-registry-identity@18.3.1"],
-      ["version", 0, "react-is@0.0.0"],
+      ["name", 0, `definitely-absent-registry-identity@${ROOT_VERSION}`],
+      ["version", 0, `${ROOT_TARGET}@0.0.0`],
       ["integrity", 3, `sha512-${Buffer.alloc(64).toString("base64")}`],
-      ["resolved", 1, "https://example.invalid/react-is-18.3.1.tgz"],
+      [
+        "resolved",
+        1,
+        `https://example.invalid/${ROOT_TARGET}-${ROOT_VERSION}.tgz`,
+      ],
     ] as const) {
       const corrupt = await parseBunLock(native, cwd);
-      corrupt.packages["fixture-react-is"][index] = replacement;
+      corrupt.packages[ROOT_ALIAS][index] = replacement;
       writeFileSync(join(cwd, BUN_LOCK_FILE), JSON.stringify(corrupt));
       await expect(verifyBunLock(native, cwd)).rejects.toThrow(
         "Bun package identity differs from public npm lock"
@@ -238,11 +236,12 @@ describe("native optional Bun lock preparation", () => {
   it("preserves a coherent three-file proposal for both genuine frozen installers", async () => {
     requireNativeBun();
     let fixtureRoot = "";
-    const observed = await withPrivateRoot(async (root, env) => {
+    const observed = await withPrivateRoot(async (root, privateEnv) => {
       fixtureRoot = root;
+      const env = seeded(root, privateEnv);
       const { cwd, bun } = await baseline(root, env);
       const oldBun = readFileSync(join(cwd, BUN_LOCK_FILE));
-      const prepared = await prepareUpdate({ cwd, policy, config }, env);
+      const prepared = await prepareUpdate({ cwd, ...SEEDED }, env);
       expect(prepared.status).toBe("prepared");
       if (!("proposal" in prepared) || !("installedAfter" in prepared.npm))
         throw new Error("native preparation did not produce an update");
@@ -284,8 +283,9 @@ describe("native optional Bun lock preparation", () => {
     const nodeOnly = await bunFreeNodeBin(node.stdout.toString().trim());
     try {
       process.env.PATH = `${nodeOnly.bin}:/usr/bin:/bin`;
-      const observed = await withPrivateRoot(async (root, env) => {
+      const observed = await withPrivateRoot(async (root, privateEnv) => {
         fixtureRoot = root;
+        const env = seeded(root, privateEnv);
         const { cwd } = await baseline(root, env, false);
         const unavailable = await runProcess("bun", ["--version"], {
           cwd,
@@ -294,7 +294,7 @@ describe("native optional Bun lock preparation", () => {
         });
         expect(unavailable.code).toBe(1);
         expect(unavailable.stderr.toString()).toContain("ENOENT");
-        const prepared = await prepareUpdate({ cwd, policy, config }, env);
+        const prepared = await prepareUpdate({ cwd, ...SEEDED }, env);
         expect(prepared.status).toBe("prepared");
         if (!("proposal" in prepared) || !("installedAfter" in prepared.npm))
           throw new Error("native preparation did not produce an update");

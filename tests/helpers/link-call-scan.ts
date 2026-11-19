@@ -424,7 +424,8 @@ export function textLinks(
 }
 
 /** Extensions of files that hold data, not code. */
-const DATA_FILE = /\.(?:json|jsonl|lock|md|sql|txt|ya?ml)$/u;
+// A gzip archive is compressed bytes, not a language: it cannot call a link.
+const DATA_FILE = /\.(?:json|jsonl|lock|md|sql|tgz|txt|ya?ml)$/u;
 
 /** How the scan reads one file. */
 export type Reading = "script" | TextLanguage | "data" | "unscannable";

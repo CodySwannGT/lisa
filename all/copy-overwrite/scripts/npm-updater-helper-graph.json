@@ -443,13 +443,23 @@
       "children": []
     },
     "lib/npm-update-bun.mjs": {
-      "sha256": "5f570618702708473c4bb7c79475b6eef6e43adce613dbc0a3ae109d67608a3d",
+      "sha256": "6c4448fcbcd55cdf523e4e126e987d8f25782f2cd6dd75842da0834088e91ec5",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-invariants.mjs",
         "lib/npm-update-process-core.mjs",
         "lib/npm-update-worker-lifecycle.mjs",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-cache-seed.mjs": {
+      "sha256": "2d508ea4519ddc15c1ea3a84ac5a50d442c9b9f1e931de740b75b619a78c7149",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
         "node:fs",
         "node:path"
       ],
@@ -740,7 +750,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "9577f00418e2aa6458737297efb01fc06bf6e77a221f72d344d4f11775ea8fa8",
+      "sha256": "f466c926c30087baddc8bce95ace6506f5808977e519a5c7a98329b4eca35045",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -997,11 +1007,12 @@
       "children": []
     },
     "lib/npm-update-prepare.mjs": {
-      "sha256": "f3a73f543898f7946e28e4ec8788eddb88b736a22d7bfdeed67dbb2456fd9796",
+      "sha256": "894bdf9d98152828deac190398e5c4e8a65506e76b666a0fafe3838f6d5582ba",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-bun.mjs",
+        "lib/npm-update-cache-seed.mjs",
         "lib/npm-update-contract.mjs",
         "lib/npm-update-owner.mjs",
         "lib/npm-update-process.mjs",

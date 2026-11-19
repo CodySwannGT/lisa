@@ -76,6 +76,7 @@ const PRODUCER = [
   "authorization",
   "broker-client",
   "bun",
+  "cache-seed",
   "cancel-origin",
   "cancellation",
   "cancellation-proof",
