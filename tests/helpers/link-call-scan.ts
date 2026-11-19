@@ -8,15 +8,22 @@
  * syntax tree, so text inside strings and comments is not a call, and it
  * follows the spellings that reach the same function under another name:
  * - a direct call: `symlinkSync(`, `fs.symlink(`
- * - a renamed import or destructure: `import { symlinkSync as mk }`,
- *   `const { symlink: s } = fsp`
+ * - a renamed import, a destructure or a plain alias, an alias of an alias
+ *   included: `import { symlinkSync as mk }`, `const { symlink: s } = fsp`,
+ *   `const s = fs.symlinkSync`
  * - a bracket access with a string key: `fs["symlinkSync"](`
- * - a process that runs `ln`: `execFileSync("ln", …)`,
- *   `boundedExecFileSync({ command: "/bin/ln", … })`, `execSync("ln -s …")`,
- *   `` Bun.$`ln -sf …` ``
+ * - `.call`, `.apply` and `.bind` on any of those
+ * - a process start, under its own name or any alias of it, that runs `ln`
+ *   with a symbolic option: `execFileSync("ln", ["-s", …])`,
+ *   `boundedExecFileSync({ command: "/bin/ln", … })`, `execSync("ln -f -s …")`,
+ *   `` Bun.$`ln --symbolic …` ``
  *
- * Shell scripts have no syntax tree here, so a shell line (comments dropped)
- * that runs `ln -s` is refused by its text.
+ * Shell, Ruby, Python and PowerShell have no syntax tree here, so a line
+ * (comments dropped) is refused by its text: `ln -s`, `File.symlink`,
+ * `FileUtils.ln_s`, `os.symlink`, `symlink_to`, `New-Item -ItemType
+ * SymbolicLink`, `mklink`. A tracked file in any other language is not
+ * skipped: the guard fails on it until the scan can read it. Data files
+ * (JSON, Markdown, YAML, SQL, text, lockfiles) make no links.
  * @module tests/helpers/link-call-scan
  */
 import ts from "typescript";
@@ -36,8 +43,35 @@ const PROCESS_STARTS = new Set([
   "spawnSync",
 ]);
 
-/** A shell command that makes a symbolic link: `ln -s`, `ln -sf`, `ln -fs`. */
-const LN_SYMBOLIC = /\bln\s+-\w*s/u;
+/** Separators between shell words: whitespace, quotes, `;`, `&`, `|`. */
+const SHELL_SEPARATORS = /[\s"'`;&|()]+/u;
+
+/**
+ * Whether an `ln` option makes the link symbolic: `-s`, `-sf`, `-fs`,
+ * `--symbolic`. `--force` and a hard link's `-f` do not.
+ * @param option - One option word
+ * @returns True for a symbolic option
+ */
+function isSymbolicOption(option: string): boolean {
+  if (option === "--symbolic") return true;
+  return /^-[a-zA-Z]+$/u.test(option) && option.includes("s");
+}
+
+/**
+ * Whether shell text runs `ln` with a symbolic option among the options that
+ * follow it: `ln -s`, `ln -sf`, `ln -f -s`, `ln --force --symbolic`.
+ * @param text - Shell text
+ * @returns True when it makes a symbolic link
+ */
+function runsLnSymbolic(text: string): boolean {
+  const words = text.split(SHELL_SEPARATORS);
+  return words.some((word, index) => {
+    if (!isLn(word)) return false;
+    const after = words.slice(index + 1);
+    const end = after.findIndex(option => !option.startsWith("-"));
+    return after.slice(0, end < 0 ? after.length : end).some(isSymbolicOption);
+  });
+}
 
 /** Bracket keys and `ln` spellings are read from string-like literals only. */
 type Literal = ts.StringLiteral | ts.NoSubstitutionTemplateLiteral;
@@ -63,20 +97,81 @@ function isLn(command: string): boolean {
   return command === "ln" || command.endsWith("/ln");
 }
 
+/** Methods that reach a function through another call shape. */
+const INDIRECT_CALLS = new Set(["apply", "bind", "call"]);
+
 /**
- * The local name a declaration binds to a link function, if it does.
- * @param node - Any node
- * @returns The local name, or undefined
+ * An expression without the parentheses and type-only wrappers around it:
+ * `(f)`, `f as T`, `f!`, `f satisfies T`.
+ * @param expression - Any expression
+ * @returns The wrapped expression
  */
-function boundLinkName(node: ts.Node): string | undefined {
+function unwrap(expression: ts.Expression): ts.Expression {
+  if (
+    ts.isParenthesizedExpression(expression) ||
+    ts.isAsExpression(expression) ||
+    ts.isNonNullExpression(expression) ||
+    ts.isSatisfiesExpression(expression) ||
+    ts.isTypeAssertionExpression(expression)
+  ) {
+    return unwrap(expression.expression);
+  }
+  return expression;
+}
+
+/**
+ * The name a callee or value reaches: `f`, `object.f`, `object["f"]`, and
+ * the function behind `f.call`, `f.apply` or `f.bind(…)`.
+ * @param expression - A callee or an initializer
+ * @returns Every name it may reach, nearest first
+ */
+function reachedNames(expression: ts.Expression): readonly string[] {
+  const inner = unwrap(expression);
+  if (ts.isIdentifier(inner)) return [inner.text];
+  if (ts.isCallExpression(inner)) {
+    // `f.bind(this)` evaluates to `f`.
+    const callee = unwrap(inner.expression);
+    return ts.isPropertyAccessExpression(callee) && callee.name.text === "bind"
+      ? reachedNames(callee.expression)
+      : [];
+  }
+  if (ts.isPropertyAccessExpression(inner)) {
+    const through = INDIRECT_CALLS.has(inner.name.text)
+      ? reachedNames(inner.expression)
+      : [];
+    return [inner.name.text, ...through];
+  }
+  if (
+    ts.isElementAccessExpression(inner) &&
+    isLiteral(inner.argumentExpression)
+  ) {
+    return [inner.argumentExpression.text];
+  }
+  return [];
+}
+
+/**
+ * The local name a declaration binds, and the name it binds it to.
+ * @param node - Any node
+ * @returns `[local, reached names]`, or undefined for any other node
+ */
+function binding(
+  node: ts.Node
+): readonly [string, readonly string[]] | undefined {
   if (ts.isImportSpecifier(node)) {
-    const imported = (node.propertyName ?? node.name).text;
-    return LINK_FUNCTIONS.has(imported) ? node.name.text : undefined;
+    return [node.name.text, [(node.propertyName ?? node.name).text]];
   }
   if (ts.isBindingElement(node) && ts.isIdentifier(node.name)) {
     const key = node.propertyName ?? node.name;
-    const bound = ts.isIdentifier(key) || isLiteral(key) ? key.text : "";
-    return LINK_FUNCTIONS.has(bound) ? node.name.text : undefined;
+    const bound = ts.isIdentifier(key) || isLiteral(key) ? [key.text] : [];
+    return [node.name.text, bound];
+  }
+  if (
+    ts.isVariableDeclaration(node) &&
+    ts.isIdentifier(node.name) &&
+    node.initializer
+  ) {
+    return [node.name.text, reachedNames(node.initializer)];
   }
   return undefined;
 }
@@ -91,30 +186,23 @@ function descendants(node: ts.Node): readonly ts.Node[] {
 }
 
 /**
- * Every local name bound to a link function by an import or a destructure.
- * @param nodes - Every node of the file
- * @returns The local names, plus the functions' own names
+ * Every local name that reaches one of `targets`, through imports,
+ * destructures and plain aliases, an alias of an alias included.
+ * @param bindings - The file's declarations
+ * @param targets - Function names
+ * @returns The targets and every local alias of them
  */
-function linkBindings(nodes: readonly ts.Node[]): ReadonlySet<string> {
-  const bound = nodes.map(boundLinkName).filter(name => name !== undefined);
-  return new Set([...LINK_FUNCTIONS, ...bound]);
-}
-
-/**
- * The name a call reaches: `f(`, `object.f(`, `object["f"](`.
- * @param callee - The call's callee
- * @returns The name, or an empty string when it cannot be read
- */
-function calleeName(callee: ts.Expression): string {
-  if (ts.isIdentifier(callee)) return callee.text;
-  if (ts.isPropertyAccessExpression(callee)) return callee.name.text;
-  if (
-    ts.isElementAccessExpression(callee) &&
-    isLiteral(callee.argumentExpression)
-  ) {
-    return callee.argumentExpression.text;
-  }
-  return "";
+function aliasesOf(
+  bindings: readonly (readonly [string, readonly string[]])[],
+  targets: ReadonlySet<string>
+): ReadonlySet<string> {
+  const grown = new Set([
+    ...targets,
+    ...bindings
+      .filter(([, reached]) => reached.some(name => targets.has(name)))
+      .map(([local]) => local),
+  ]);
+  return grown.size === targets.size ? targets : aliasesOf(bindings, grown);
 }
 
 /**
@@ -175,12 +263,12 @@ function commandOf(first: ts.Expression | undefined): string | undefined {
  * @returns True when some literal text matches
  */
 function mentionsLnSymbolic(node: ts.Node): boolean {
-  if (isLiteral(node) && LN_SYMBOLIC.test(node.text)) return true;
+  if (isLiteral(node) && runsLnSymbolic(node.text)) return true;
   if (
     (ts.isTemplateHead(node) ||
       ts.isTemplateMiddle(node) ||
       ts.isTemplateTail(node)) &&
-    LN_SYMBOLIC.test(node.text)
+    runsLnSymbolic(node.text)
   ) {
     return true;
   }
@@ -188,29 +276,36 @@ function mentionsLnSymbolic(node: ts.Node): boolean {
 }
 
 /**
- * Whether a process start runs `ln`.
+ * Whether a process start runs `ln`. For `.call`/`.apply` the first
+ * argument is the receiver, so every argument is read.
  * @param call - A call that starts a process
  * @returns True when its command is `ln` or its text runs `ln -s`
  */
 function startsLn(call: ts.CallExpression): boolean {
-  const command = commandOf(call.arguments[0]);
-  if (command !== undefined && isLn(command)) return true;
+  const named = call.arguments.slice(0, 2).map(commandOf);
+  if (named.some(command => command !== undefined && isLn(command))) {
+    return true;
+  }
   return call.arguments.some(mentionsLnSymbolic);
 }
 
+/** What a file binds to a link function and to a process start. */
+interface Reach {
+  readonly links: ReadonlySet<string>;
+  readonly starts: ReadonlySet<string>;
+}
+
 /**
- * Whether a call creates a link, given the file's link bindings.
+ * Whether a call creates a link.
  * @param call - Any call expression
- * @param bindings - Local names bound to a link function
+ * @param reach - The file's link and process-start names
  * @returns True for a link call or a process start that runs `ln`
  */
-function isLinkCall(
-  call: ts.CallExpression,
-  bindings: ReadonlySet<string>
-): boolean {
-  const name = calleeName(call.expression);
-  if (bindings.has(name) || LINK_FUNCTIONS.has(name)) return true;
-  const starts = PROCESS_STARTS.has(name) || isBunStart(call.expression);
+function isLinkCall(call: ts.CallExpression, reach: Reach): boolean {
+  const names = reachedNames(call.expression);
+  if (names.some(name => reach.links.has(name))) return true;
+  const starts =
+    names.some(name => reach.starts.has(name)) || isBunStart(call.expression);
   return starts && startsLn(call);
 }
 
@@ -221,13 +316,24 @@ function isLinkCall(
  * @returns Each call's text, whitespace collapsed
  */
 export function scriptLinks(file: string, source: string): readonly string[] {
-  const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
+  const kind = /\.[cm]?[jt]sx?$/u.test(file) ? undefined : ts.ScriptKind.JS;
+  const tree = ts.createSourceFile(
+    file,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    kind
+  );
   const nodes = descendants(tree);
-  const bindings = linkBindings(nodes);
+  const bindings = nodes.map(binding).filter(entry => entry !== undefined);
+  const reach: Reach = {
+    links: aliasesOf(bindings, LINK_FUNCTIONS),
+    starts: aliasesOf(bindings, PROCESS_STARTS),
+  };
   return nodes
     .filter(
       node =>
-        (ts.isCallExpression(node) && isLinkCall(node, bindings)) ||
+        (ts.isCallExpression(node) && isLinkCall(node, reach)) ||
         (ts.isTaggedTemplateExpression(node) &&
           isBunStart(node.tag) &&
           mentionsLnSymbolic(node.template))
@@ -235,29 +341,106 @@ export function scriptLinks(file: string, source: string): readonly string[] {
     .map(node => node.getText(tree).replaceAll(/\s+/gu, " "));
 }
 
+/** Line tests that make a link, per language read as text. */
+const TEXT_LANGUAGES = {
+  shell: [runsLnSymbolic],
+  ruby: [
+    runsLnSymbolic,
+    (line: string) => /\bFile\.symlink\b/u.test(line),
+    (line: string) => /\bln_sf?\b/u.test(line),
+  ],
+  python: [
+    runsLnSymbolic,
+    (line: string) => /\bos\.symlink\b/u.test(line),
+    (line: string) => /\.symlink_to\b/u.test(line),
+  ],
+  powershell: [
+    runsLnSymbolic,
+    (line: string) =>
+      /\bNew-Item\b/iu.test(line) &&
+      /-ItemType\s+["']?SymbolicLink\b/iu.test(line),
+    (line: string) => /\bmklink\b/iu.test(line),
+  ],
+} as const;
+
+/** A language the scan reads as text. */
+export type TextLanguage = keyof typeof TEXT_LANGUAGES;
+
 /**
- * Shell lines that run `ln -s`, comments dropped.
+ * Lines that make a link in a script read as text, `#` comments dropped.
  * @param source - Script text
+ * @param language - Which patterns apply
  * @returns Each offending line, trimmed
  */
-export function shellLinks(source: string): readonly string[] {
+export function textLinks(
+  source: string,
+  language: TextLanguage = "shell"
+): readonly string[] {
+  const tests: readonly ((line: string) => boolean)[] =
+    TEXT_LANGUAGES[language];
   return source
     .split("\n")
     .map(line => line.replace(/(^|\s)#.*$/u, "").trim())
-    .filter(line => LN_SYMBOLIC.test(line));
+    .filter(line => tests.some(test => test(line)));
 }
 
-/** File names the syntax-tree scan reads. */
-export const SCRIPT_FILE = /\.(?:[cm]?[jt]s|[jt]sx)$/u;
+/** Extensions of files that hold data, not code. */
+const DATA_FILE = /\.(?:json|jsonl|lock|md|sql|txt|ya?ml)$/u;
+
+/** How the scan reads one file. */
+export type Reading = "script" | TextLanguage | "data" | "unscannable";
+
+/** Language by extension or bare file name, before any shebang. */
+const BY_NAME: readonly (readonly [RegExp, Reading])[] = [
+  [/\.(?:[cm]?[jt]s|[jt]sx)$/u, "script"],
+  [/(?:\.(?:sh|bash|zsh)|(?:^|\/)Dockerfile)$/u, "shell"],
+  [/(?:\.rb|(?:^|\/)(?:Gemfile|Rakefile))$/u, "ruby"],
+  [/\.py$/u, "python"],
+  [/\.psm?1$/u, "powershell"],
+  [DATA_FILE, "data"],
+];
+
+/** Language by the interpreter a shebang names. */
+const BY_SHEBANG: readonly (readonly [RegExp, Reading])[] = [
+  [/\bnode$|\bbun$|\bdeno$/u, "script"],
+  [/\b(?:ba|z|da)?sh$/u, "shell"],
+  [/\bruby$/u, "ruby"],
+  [/\bpython\d*(?:\.\d+)?$/u, "python"],
+  [/\bpwsh$/u, "powershell"],
+];
 
 /**
- * Whether a tracked file is a shell script: a `.sh`/`.bash` name, or a
- * shebang naming a shell.
- * @param file - Path, for the extension
- * @param source - File text, for the shebang
- * @returns True for a shell script
+ * How the scan reads a tracked file: by its name, else by its shebang. A
+ * file with neither a known name nor a known shebang is unscannable, and the
+ * guard fails on it rather than skipping it.
+ * @param file - Path
+ * @param source - File text
+ * @returns The reading
  */
-export function isShellScript(file: string, source: string): boolean {
-  if (/\.(?:sh|bash)$/u.test(file)) return true;
-  return /^#!\S*(?:\/|\s)(?:ba|z|da)?sh\b/u.test(source);
+export function readingOf(file: string, source: string): Reading {
+  const named = BY_NAME.find(([pattern]) => pattern.test(file));
+  if (named) return named[1];
+  const shebang = /^#!\s*(\S+)(?:\s+(\S+))?/u.exec(source);
+  if (!shebang) return "unscannable";
+  const interpreter =
+    shebang[1]?.endsWith("/env") && shebang[2] ? shebang[2] : shebang[1];
+  const known = BY_SHEBANG.find(([pattern]) => pattern.test(interpreter ?? ""));
+  return known ? known[1] : "unscannable";
+}
+
+/**
+ * Every link a tracked file under tests/ makes, or the reason it cannot be
+ * read.
+ * @param file - Path
+ * @param source - File text
+ * @returns Offending calls or lines; empty for a clean or data file
+ */
+export function fileLinks(file: string, source: string): readonly string[] {
+  const reading = readingOf(file, source);
+  if (reading === "script") return scriptLinks(file, source);
+  if (reading === "data") return [];
+  if (reading === "unscannable") {
+    return ["cannot be scanned: no known language for its name or shebang"];
+  }
+  return textLinks(source, reading);
 }

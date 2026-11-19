@@ -24,10 +24,10 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  isShellScript,
-  SCRIPT_FILE,
+  fileLinks,
+  readingOf,
   scriptLinks,
-  shellLinks,
+  textLinks,
 } from "../../helpers/link-call-scan.js";
 import { checkoutFiles } from "../../helpers/tracked-files.js";
 import {
@@ -87,15 +87,40 @@ describe("no whole node_modules link in a test", () => {
       `spawn("sh", ["-c", "ln -fs a b"]);`,
       `Bun.spawn(["ln", "-s", a, b]);`,
       `await Bun.$\`ln -s \${a} \${b}\`;`,
+      `const s = fs.${LINK};\ns(source, target);`,
+      `const s = fs["${LINK}"];\nconst t = s;\nt(source, target);`,
+      `fs.${LINK}.call(fs, source, target);`,
+      `fs.${LINK}.apply(fs, [source, target]);`,
+      `const bound = fs.${LINK}.bind(fs);`,
+      `import { execFileSync as run } from "node:child_process";\nrun("ln", ["-s", a, b]);`,
+      `const { spawnSync: go } = cp;\ngo("/bin/ln", ["-s", a, b]);`,
+      `execSync("ln -f -s a b");`,
+      `execSync("ln --symbolic a b");`,
+      `execFileSync.call(null, "ln", ["-s", a, b]);`,
     ];
     for (const sample of before) {
       expect(scriptLinks("sample.ts", sample), sample).toHaveLength(1);
     }
-    expect(shellLinks('ln -s "$a" "$b"\nln -sf a b # relink\n')).toHaveLength(
-      2
-    );
-    expect(isShellScript("tools/stub", "#!/usr/bin/env bash\n")).toBe(true);
-    expect(isShellScript("tools/run.sh", "")).toBe(true);
+    const shell =
+      'ln -s "$a" "$b"\nln -sf a b # relink\nln -f -s a b\nln --force --symbolic a b\n';
+    expect(textLinks(shell)).toHaveLength(4);
+    expect(
+      textLinks("File.symlink(a, b)\nFileUtils.ln_s(a, b)\n", "ruby")
+    ).toHaveLength(2);
+    expect(
+      textLinks("os.symlink(a, b)\nPath(b).symlink_to(a)\n", "python")
+    ).toHaveLength(2);
+    expect(
+      textLinks(
+        "New-Item -ItemType SymbolicLink -Path b -Target a\ncmd /c mklink b a\n",
+        "powershell"
+      )
+    ).toHaveLength(2);
+    expect(readingOf("tools/stub", "#!/usr/bin/env bash\n")).toBe("shell");
+    expect(readingOf("bin/rails", "#!/usr/bin/env ruby\n")).toBe("ruby");
+    expect(readingOf("bin/tool", "#!/usr/bin/env node\n")).toBe("script");
+    expect(readingOf("tools/run.ps1", "")).toBe("powershell");
+    expect(readingOf("x/Dockerfile", "FROM node\n")).toBe("shell");
   });
 
   it("does not count a call name inside a string or a comment", () => {
@@ -105,11 +130,15 @@ describe("no whole node_modules link in a test", () => {
       `createSymlink(path.join(source, entry), path.join(target, entry));`,
       `execFileSync("git", ["log", "--oneline"]);`,
       `execSync("ls -s");`,
+      `execSync("ln -f a b");`,
+      `execSync("ln --force a b");`,
+      `const s = fs.readFileSync;\ns(file);`,
     ];
     for (const sample of allowed) {
       expect(scriptLinks("sample.ts", sample), sample).toEqual([]);
     }
-    expect(shellLinks("# ln -s a b\nls -s\n")).toEqual([]);
+    expect(textLinks("# ln -s a b\nls -s\n")).toEqual([]);
+    expect(textLinks("# File.symlink(a, b)\n", "ruby")).toEqual([]);
   });
 
   it("refuses a variable-bound whole node_modules at runtime", () => {
@@ -175,6 +204,22 @@ describe("no whole node_modules link in a test", () => {
     }
   });
 
+  it("refuses this checkout's node_modules whatever checkout the caller names", () => {
+    // The checkout argument adds a boundary; it never lifts this one.
+    const root = scratch("lisa-foreign-other-");
+    const modules = path.join(REPO_ROOT, "node_modules");
+    expect(() => linkForeignNodeModules(modules, root, tmpdir())).toThrow(
+      /inside the checkout/u
+    );
+    expect(fs.existsSync(path.join(root, "node_modules"))).toBe(false);
+  });
+
+  it("fails on a file whose language it cannot scan", () => {
+    expect(fileLinks("tests/x/tool.pl", "print 1;\n")).toHaveLength(1);
+    expect(fileLinks("tests/x/stub", "#!/usr/bin/env perl\n")).toHaveLength(1);
+    expect(fileLinks("tests/x/data.json", "{}\n")).toEqual([]);
+  });
+
   it("refuses a link outside the checkout that points at its node_modules", () => {
     // The alias stands outside the checkout, so only resolving the source
     // (not just its parent) shows it is the checkout's node_modules. A scratch
@@ -199,12 +244,7 @@ describe("no whole node_modules link in a test", () => {
         const absolute = path.join(REPO_ROOT, file);
         if (!fs.lstatSync(absolute).isFile()) return [];
         const source = fs.readFileSync(absolute, "utf8");
-        const calls = SCRIPT_FILE.test(file)
-          ? scriptLinks(file, source)
-          : isShellScript(file, source)
-            ? shellLinks(source)
-            : [];
-        return calls.map(call => `${file}: ${call}`);
+        return fileLinks(file, source).map(call => `${file}: ${call}`);
       });
 
     expect(offenders).toEqual([]);

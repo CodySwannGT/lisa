@@ -172,26 +172,40 @@ export function borrowNodeModules(source, root, except = []) {
 }
 
 /**
- * Link `root/node_modules` whole to another fixture's tree, for a case whose
- * subject is a linked `node_modules`.
- * @param {string} source - Another fixture's `node_modules`, never the
- *   checkout's
- * @param {string} root - Fixture project root that receives the link
- * @param {string} [checkout] - The checkout the source must lie outside;
- *   this one by default, a scratch stand-in for a case that proves the rule
- * @returns {string} The link's path
+ * Whether a resolved source lies in a checkout or in that checkout's resolved
+ * `node_modules`, which may itself be a link elsewhere.
+ * @param {string} checkout - A checkout root
+ * @param {string} resolved - The resolved source
+ * @returns {boolean} True when the source belongs to the checkout
  */
-export function linkForeignNodeModules(source, root, checkout = CHECKOUT_ROOT) {
-  // Resolve the source itself when it exists, so a link standing outside the
-  // checkout that points back at its node_modules is still refused; a source
-  // not created yet resolves through its parent. The checkout's own
-  // node_modules is resolved too, since it may itself be a link elsewhere.
-  const resolved = resolveExisting(path.resolve(source));
+function insideCheckout(checkout, resolved) {
   const home = resolveExisting(path.resolve(checkout));
   const modules = resolveExisting(path.join(home, NODE_MODULES));
-  if (within(home, resolved) || within(modules, resolved)) {
+  return within(home, resolved) || within(modules, resolved);
+}
+
+/**
+ * Link `root/node_modules` whole to another fixture's tree, for a case whose
+ * subject is a linked `node_modules`.
+ * @param {string} source - Another fixture's `node_modules`, never this
+ *   checkout's
+ * @param {string} root - Fixture project root that receives the link
+ * @param {string} [checkout] - A further checkout the source must lie
+ *   outside, for a case that proves the rule on a scratch stand-in. It adds
+ *   to this checkout's boundary; it never replaces it.
+ * @returns {string} The link's path
+ */
+export function linkForeignNodeModules(source, root, checkout) {
+  // Resolve the source itself when it exists, so a link standing outside the
+  // checkout that points back at its node_modules is still refused; a source
+  // not created yet resolves through its parent.
+  const resolved = resolveExisting(path.resolve(source));
+  const boundaries =
+    checkout === undefined ? [CHECKOUT_ROOT] : [CHECKOUT_ROOT, checkout];
+  const owner = boundaries.find(boundary => insideCheckout(boundary, resolved));
+  if (owner !== undefined) {
     throw new Error(
-      `linkForeignNodeModules: ${source} is inside the checkout ${home}; borrow it with borrowNodeModules instead`
+      `linkForeignNodeModules: ${source} is inside the checkout ${owner}; borrow it with borrowNodeModules instead`
     );
   }
   const target = path.join(root, NODE_MODULES);
