@@ -111,7 +111,7 @@ export interface EnforcedEntry {
 }
 
 /** Where one statement about a requirement comes from. */
-export type EnforceClaimSource = "register-entry" | "audit-finding";
+type EnforceClaimSource = "register-entry" | "audit-finding";
 
 /** One source's statement about a requirement. */
 export interface EnforceClaim {

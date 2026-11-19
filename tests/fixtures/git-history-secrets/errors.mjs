@@ -180,7 +180,7 @@ export const retainBudgetInventory = (
  * @param hash - Existing fixture SHA256 operation
  * @returns Distinct native source paths and expected preimage digests
  */
-export const createBudgetSources = (harness, cwd, fixture, hash) => {
+const createBudgetSources = (harness, cwd, fixture, hash) => {
   const [, kind, count] = fixture;
   return Array.from(
     { length: kind === "bytes" ? count : count + 1 },
@@ -207,7 +207,7 @@ export const createBudgetSources = (harness, cwd, fixture, hash) => {
  * @param companion - Fixed mismatching detection arm
  * @returns Genuine original document coordinates and bytes
  */
-export const createBudgetLegacy = (harness, cwd, sources, companion) => {
+const createBudgetLegacy = (harness, cwd, sources, companion) => {
   return sources.slice(1).map((row, index) => {
     const file = `evidence/legacy-${index}.json`;
     const text = JSON.stringify(

@@ -15,10 +15,6 @@
  * numeric order and not code-unit order. {@link canonicalText} and
  * {@link canonicalFileText} therefore write the text themselves, key by key,
  * and the order is code-unit order whatever a key looks like.
- *
- * {@link canonicalize} returns an object, so it is bound by the language's
- * rule: every key in code-unit order, except that keys that look like array
- * indexes come first, in numeric order.
  * @module controls/canonical-json
  */
 
@@ -34,28 +30,6 @@ const FILE_INDENT = "  ";
 export function compareCodeUnits(left: string, right: string): number {
   if (left === right) return 0;
   return left < right ? -1 : 1;
-}
-
-/**
- * The same JSON value with the keys of every object sorted by code unit.
- * Lists keep their order: the order of a list is part of what it says.
- *
- * Text written from the result by `JSON.stringify` has its keys in code-unit
- * order with one exception, which is the language's and not this function's:
- * keys that look like array indexes come first, in numeric order. Use
- * {@link canonicalText} or {@link canonicalFileText} for text that has no
- * such exception.
- * @param value - Any JSON value
- * @returns The value, key-ordered at every depth
- */
-export function canonicalize(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(item => canonicalize(item));
-  if (value === null || typeof value !== "object") return value;
-  return Object.fromEntries(
-    Object.entries(value)
-      .sort(([left], [right]) => compareCodeUnits(left, right))
-      .map(([key, item]) => [key, canonicalize(item)])
-  );
 }
 
 /**

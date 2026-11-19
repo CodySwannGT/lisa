@@ -343,20 +343,11 @@ function freezePlan(
  * @param config - Current merged Lisa config
  * @returns Canonical standards configuration digest
  */
-export function digestStandardsConfig(config: JsonObject): string {
+function digestStandardsConfig(config: JsonObject): string {
   return digest({
     quality: config.quality ?? null,
     thresholdRatchet: config.thresholdRatchet ?? null,
   });
-}
-
-/**
- * Return a canonical SHA-256 digest without retaining config values.
- * @param value - JSON-like value to digest
- * @returns Canonical SHA-256 digest
- */
-export function digestStandardsValue(value: unknown): string {
-  return digest(value);
 }
 
 /**

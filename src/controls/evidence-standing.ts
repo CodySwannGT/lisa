@@ -38,18 +38,14 @@ export const EVIDENCE_MOMENTS: readonly string[] = [
   PULL_REQUEST_MOMENT,
 ];
 
-/** Why a record about a control does not count. */
-export const STANDING_PROBLEMS = [
-  /** It names a moment no run writes records for, or none at all. */
-  "unknown-moment",
-  /** Its entry is not enforced at the moment it names. */
-  "not-enforced-there",
-  /** It was recorded when the checks were defined differently. */
-  "other-checks",
-] as const;
-
 /** One reason a record about a control does not count. */
-export type StandingProblem = (typeof STANDING_PROBLEMS)[number];
+export type StandingProblem =
+  /** It names a moment no run writes records for, or none at all. */
+  | "unknown-moment"
+  /** Its entry is not enforced at the moment it names. */
+  | "not-enforced-there"
+  /** It was recorded when the checks were defined differently. */
+  | "other-checks";
 
 /**
  * Say why a record about a control does not count, when it does not.

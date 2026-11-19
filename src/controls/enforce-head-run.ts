@@ -71,10 +71,10 @@ import {
 export const HEAD_SCRATCH_PREFIX = "lisa-enforce-head-";
 
 /** What stands in for the copy's own path in what a command printed. */
-export const COPY_PLACEHOLDER = "<copy>";
+const COPY_PLACEHOLDER = "<copy>";
 
 /** How long one check may run when its entry declares no time limit. */
-export const HEAD_CHECK_SECONDS = 10 * 60;
+const HEAD_CHECK_SECONDS = 10 * 60;
 
 /** How often removing the folder is tried again when it is busy. */
 const REMOVE_RETRIES = 5;

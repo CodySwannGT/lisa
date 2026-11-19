@@ -37,7 +37,7 @@ import {
 export const SHARD_PLAN_SCHEMA = "lisa.test-shard-plan/v1";
 
 /** Files that must share one leg, e.g. suites behind one global setup. */
-export interface ShardFileGroup {
+interface ShardFileGroup {
   readonly files: readonly string[];
   readonly shard: number;
 }
@@ -277,7 +277,7 @@ export type ListSelection = (
  * @param env - Environment the payload will run with
  * @returns Repository-relative selected files
  */
-export const listVitestSelection: ListSelection = (argv, env) => {
+const listVitestSelection: ListSelection = (argv, env) => {
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-shard-list-"));
   try {
     const json = path.join(scratch, "files.json");

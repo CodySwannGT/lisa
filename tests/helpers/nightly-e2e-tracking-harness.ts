@@ -46,13 +46,13 @@ export interface ExistingConditionTracker {
 }
 
 /** Validated public tracking settings. */
-export interface NightlyTrackingSettings {
+interface NightlyTrackingSettings {
   readonly destination: TrackingDestination;
   readonly provider: Readonly<Record<string, unknown>> | null;
 }
 
 /** A destination-neutral reconciliation plan. */
-export interface CombinedTrackingPlan {
+interface CombinedTrackingPlan {
   readonly action: "create" | "refresh" | "close" | "none";
   readonly marker: string;
   readonly trackerId: string | null;
@@ -63,7 +63,7 @@ export interface CombinedTrackingPlan {
 }
 
 /** Input supplied to a destination adapter when a condition is red. */
-export interface ConditionTrackerDraft {
+interface ConditionTrackerDraft {
   readonly marker: string;
   readonly title: string;
   readonly body: string;
@@ -83,7 +83,7 @@ export interface TrackingProviderAdapter {
 }
 
 /** Result of one combined reconciliation. */
-export interface CombinedTrackingResult {
+interface CombinedTrackingResult {
   readonly destination: TrackingDestination;
   readonly action: CombinedTrackingPlan["action"] | "skipped";
   readonly trackerId: string | null;
@@ -132,7 +132,7 @@ export interface NightlyProviderSupportModule {
 }
 
 /** Executable handoff from the common planner to one provider workflow. */
-export interface ProviderDispatch {
+interface ProviderDispatch {
   readonly destination: Exclude<TrackingDestination, "none">;
   readonly workflow: string;
   readonly inputs: Readonly<Record<string, string>>;
@@ -160,7 +160,7 @@ export interface NightlyTrackingModule {
 }
 
 /** Canonical copy-overwrite implementation path. */
-export const TRACKING_MODULE_REL =
+const TRACKING_MODULE_REL =
   "typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking.mjs";
 
 /** Canonical combined condition marker. */

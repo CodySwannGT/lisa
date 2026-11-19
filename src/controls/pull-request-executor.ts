@@ -90,9 +90,7 @@ function pullRequestEntry(
  * @param gate - The gate, from a validated declaration
  * @returns The platform and the file, or `null` when the gate names none
  */
-export function declaredExecutor(
-  gate: DeclaredGate
-): PullRequestExecutor | null {
+function declaredExecutor(gate: DeclaredGate): PullRequestExecutor | null {
   const executor = pullRequestEntry(gate)?.[EXECUTOR_KEY];
   if (!isJsonObject(executor)) return null;
   const { platform, path } = executor;

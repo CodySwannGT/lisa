@@ -16,8 +16,7 @@ export const SOURCE_TRACKER_SYNC =
   "plugins/src/base/skills/lisa-tracker-sync/SKILL.md";
 
 /** Authored GitHub rollup skill containing the real classifier call site. */
-export const SOURCE_GITHUB_SYNC =
-  "plugins/src/base/skills/lisa-github-sync/SKILL.md";
+const SOURCE_GITHUB_SYNC = "plugins/src/base/skills/lisa-github-sync/SKILL.md";
 
 /** Every authored or generated tracker-sync skill surface. */
 export const TRACKER_SYNC_SURFACES = Object.freeze([

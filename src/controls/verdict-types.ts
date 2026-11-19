@@ -52,7 +52,7 @@ export type CriterionVerdictWord = (typeof CRITERION_VERDICTS)[number];
 export const LEVEL_RESULTS = ["conforming", "non-conforming"] as const;
 
 /** One of the two results. */
-export type LevelResult = (typeof LEVEL_RESULTS)[number];
+type LevelResult = (typeof LEVEL_RESULTS)[number];
 
 /** Why a requirement came out as it did. */
 export const VERDICT_REASONS = [
@@ -118,7 +118,7 @@ export interface CriterionVerdict {
 }
 
 /** Which requirements a verdict was computed against. */
-export interface VerdictRequirements {
+interface VerdictRequirements {
   /** The specification the catalogue was taken from. */
   readonly specification: string;
   readonly specification_version: string;

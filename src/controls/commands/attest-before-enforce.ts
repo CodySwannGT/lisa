@@ -86,7 +86,7 @@ import { openProofCopy, type ProofCopyChoice } from "./attest-workspace.js";
 export const BEFORE_ENFORCE_FLAG = "--before-enforce";
 
 /** The name the run's summary lines carry. */
-export const BEFORE_ENFORCE_NAME = `attest ${BEFORE_ENFORCE_FLAG}`;
+const BEFORE_ENFORCE_NAME = `attest ${BEFORE_ENFORCE_FLAG}`;
 
 /** What the run's exit code says. */
 export const BEFORE_ENFORCE_EXIT = {

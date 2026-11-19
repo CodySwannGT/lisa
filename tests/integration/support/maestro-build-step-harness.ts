@@ -25,7 +25,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
 /** The reusable workflow under test. */
-export const REUSABLE_YML = path.join(
+const REUSABLE_YML = path.join(
   REPO_ROOT,
   ".github",
   "workflows",
@@ -54,7 +54,7 @@ export const DOWNLOAD_SUBCOMMAND = "build:download";
 export const LIST_SUBCOMMAND = "build:list";
 
 /** Shape of a single step inside a workflow job's `steps:` list. */
-export interface WorkflowStep {
+interface WorkflowStep {
   id?: string;
   name?: string;
   run?: string;
@@ -75,13 +75,13 @@ export interface ReusableWorkflow {
 }
 
 /** How the stubbed `eas fingerprint:generate` should behave. */
-export type FingerprintMode = "hit" | "fail" | "empty";
+type FingerprintMode = "hit" | "fail" | "empty";
 
 /** How a stubbed `eas build:download` should behave. */
-export type DownloadMode = "hit" | "miss";
+type DownloadMode = "hit" | "miss";
 
 /** How the stubbed `eas build:list` should behave. */
-export type ListMode = "hit" | "miss";
+type ListMode = "hit" | "miss";
 
 /** How the stubbed `eas build` should behave. */
 export type BuildMode = "ok" | "quota" | "error";

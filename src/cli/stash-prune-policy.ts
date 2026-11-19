@@ -21,7 +21,7 @@ export type StashBlocker =
   | "unreadable";
 
 /** Why one stash entry may be dropped. */
-export type StashRedundancy = "empty-and-published" | "machine-debris";
+type StashRedundancy = "empty-and-published" | "machine-debris";
 
 /** Everything the rule is allowed to consider about one stash entry. */
 export interface StashFacts {

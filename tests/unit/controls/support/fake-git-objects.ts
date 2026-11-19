@@ -12,7 +12,7 @@
 import { createHash } from "node:crypto";
 
 /** One item of a tree. */
-export interface TreeItem {
+interface TreeItem {
   readonly path: string;
   readonly mode: string;
   readonly type: "blob" | "tree";

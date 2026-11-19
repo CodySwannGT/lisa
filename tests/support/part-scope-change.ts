@@ -73,7 +73,7 @@ export function stageDeletion(repoPath: string, relative: string): void {
  * @param message - The commit subject
  * @returns The new commit's object name
  */
-export function commitStaged(repoPath: string, message = "change"): string {
+function commitStaged(repoPath: string, message = "change"): string {
   runControlAuditGit(repoPath, [
     "commit",
     "--quiet",

@@ -44,7 +44,7 @@ import type { ProofHalf } from "./proof-halves.js";
 export const CANARY_BRANCH_PREFIX = "lisa-attest/";
 
 /** The word that marks a canary pull request's title and body. */
-export const CANARY_MARKER = "lisa-attest";
+const CANARY_MARKER = "lisa-attest";
 
 /**
  * How old a canary must be before a later run may remove it, in seconds.

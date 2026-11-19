@@ -92,7 +92,7 @@ const CHILD_ENV: NodeJS.ProcessEnv = {
 };
 
 /** The commits a fixture starts with, oldest first. */
-export interface FixtureCommits {
+interface FixtureCommits {
   /** On the recorded list. */
   readonly first: string;
   /** On the recorded list. */
@@ -113,7 +113,7 @@ export interface ReleaseFixture {
  * The release hook as this repository configures it.
  * @returns The `postbump` command, or an empty string when there is none
  */
-export function configuredPostbump(): string {
+function configuredPostbump(): string {
   const config = JSON.parse(
     readFileSync(path.join(REPO_ROOT, VERSION_CONFIG), "utf8")
   ) as { readonly scripts?: Readonly<Record<string, string>> };
@@ -125,7 +125,7 @@ export function configuredPostbump(): string {
  * @param postbump - A `&&`-joined shell command
  * @returns Each step, trimmed
  */
-export function hookSteps(postbump: string): readonly string[] {
+function hookSteps(postbump: string): readonly string[] {
   return postbump
     .split("&&")
     .map(step => step.trim())
@@ -186,7 +186,7 @@ function write(root: string, file: string, contents: string): void {
  * @param subject - Commit subject
  * @returns The new commit's full SHA
  */
-export function commitUnpinnedChange(root: string, subject: string): string {
+function commitUnpinnedChange(root: string, subject: string): string {
   write(root, UNPINNED_FILE, `# Scratch\n\n${subject}\n`);
   git(root, "add", UNPINNED_FILE);
   git(root, "commit", "-m", subject);

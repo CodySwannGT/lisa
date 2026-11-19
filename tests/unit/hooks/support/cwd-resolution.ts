@@ -39,9 +39,9 @@ const NODE_GUARD = path.resolve(
 );
 
 /** The relative name every candidate directory holds a copy of. */
-export const SCRIPT = "run.sh";
+const SCRIPT = "run.sh";
 /** A nested script whose own `cd` must not leak into the outer walk. */
-export const NESTED = "nested.sh";
+const NESTED = "nested.sh";
 
 /**
  * The recursive-delete syntax, assembled rather than written out, for the same

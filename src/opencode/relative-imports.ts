@@ -50,7 +50,7 @@ const LINE_OPENING_LINE_COMMENT = /^[ \t]*\/\/.*$/gm;
  * @param source - JavaScript module source.
  * @returns Source with line-opening comments blanked.
  */
-export function stripLineOpeningComments(source: string): string {
+function stripLineOpeningComments(source: string): string {
   return source
     .replace(LINE_OPENING_BLOCK_COMMENT, "")
     .replace(LINE_OPENING_LINE_COMMENT, "");

@@ -32,7 +32,6 @@
       "pre-build:eas": "cat .gitignore > .easignore && cat .easignore.extra >> .easignore",
       "security:zap": "bash scripts/zap-baseline.sh",
       "setup:deploy-key": "setup-deploy-key",
-      "start:atlas": "cp .env.development .env.local && STAGE=development EXPO_ATLAS=true expo start",
       "start:dev": "cp .env.development .env.local && STAGE=development expo start",
       "start:local": "cp .env.localhost .env.local && STAGE=local expo start",
       "start:production": "cp .env.production .env.local && STAGE=production expo start",
@@ -54,44 +53,22 @@
       "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
       "test:watch:lisa": "node scripts/lib/worktree-dependencies.mjs && NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --watch"
     },
-    "dependencies": {
-      "@apollo/client": "^3.10.8",
-      "@hookform/resolvers": "^3.9.0",
-      "apollo-link-sentry": "4.4.0",
-      "base-64": "^1.0.0",
-      "date-fns": "^3.6.0",
-      "date-fns-tz": "^3.1.3",
-      "events": "^3.3.0",
-      "graphql": "^16.12.0",
-      "i18n-js": "^4.5.1",
-      "patch-package": "^8.0.0",
-      "react-hook-form": "^7.70.0",
-      "tar": ">=7.5.21",
-      "text-encoding-polyfill": "^0.6.7",
-      "usehooks-ts": "^3.1.1",
-      "zod": "^4.6.6"
-    },
+    "dependencies": {},
     "devDependencies": {
       "@babel/core": "^7.20.0",
-      "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
       "@lhci/cli": "^0.15.1",
       "@playwright/test": "^1.57.0",
-      "@types/base-64": "^1.0.2",
-      "@types/eslint-plugin-jsx-a11y": "^6.10.1",
-      "@types/eslint-plugin-tailwindcss": "^3.17.0",
-      "babel-plugin-module-resolver": "^5.0.2",
-      "baseline-browser-mapping": "^2.9.2",
       "jest": "^30.0.0",
-      "ts-jest": "^29.4.6",
       "@types/jest": "^30.0.0",
-      "@jest/test-sequencer": "^30.2.0",
       "jest-environment-jsdom": "^30.2.0",
       "@stryker-mutator/core": "^9.0.0",
       "@stryker-mutator/jest-runner": "^9.0.0",
-      "serve": "^14.2.0",
       "eslint-plugin-oxlint": ">=1.62.0 <1.86.0",
       "oxlint": ">=1.62.0 <1.86.0",
-      "oxlint-tsgolint": "^0.24.0"
+      "oxlint-tsgolint": "^0.24.0",
+      "babel-jest": "^30.2.0",
+      "eas-cli": "^27.0.0",
+      "esbuild-register": "^3.6.0"
     },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",
@@ -99,7 +76,8 @@
       "zod-validation-error": "^4.0.0",
       "fast-xml-parser": "^5.10.1",
       "tar": ">=7.5.21",
-      "websocket-driver": ">=0.7.5"
+      "websocket-driver": ">=0.7.5",
+      "zod": ">=4.6.6"
     },
     "overrides": {
       "@isaacs/brace-expansion": "^5.0.1",
@@ -107,76 +85,43 @@
       "fast-xml-parser": "^5.10.1",
       "zod-validation-error": "^4.0.0",
       "tar": ">=7.5.21",
-      "websocket-driver": ">=0.7.5"
+      "websocket-driver": ">=0.7.5",
+      "zod": ">=4.6.6"
     }
   },
   "defaults": {
     "dependencies": {
-      "@expo/html-elements": "^0.12.5",
       "@expo/metro-runtime": "~57.0.3",
-      "@gluestack-ui/core": "^3.0.10",
-      "@gluestack-ui/utils": "^3.0.7",
-      "@gorhom/bottom-sheet": "^5.2.6",
-      "@legendapp/motion": "^2.4.0",
-      "@react-native-async-storage/async-storage": "2.2.0",
-      "@react-native-masked-view/masked-view": "^0.3.2",
-      "@sentry/react-native": "~7.11.0",
-      "@shopify/flash-list": "2.0.2",
-      "@shopify/react-native-skia": "2.6.2",
       "expo": "~57.0.0",
-      "expo-application": "~57.0.0",
-      "expo-battery": "~57.0.0",
-      "expo-build-properties": "~57.0.3",
-      "expo-clipboard": "~57.0.0",
       "expo-constants": "~57.0.3",
-      "expo-crypto": "~57.0.0",
       "expo-dev-client": "~57.0.5",
-      "expo-device": "~57.0.0",
-      "expo-font": "~57.0.0",
-      "expo-linear-gradient": "~57.0.0",
       "expo-linking": "~57.0.2",
-      "expo-localization": "~57.0.0",
-      "expo-network": "~57.0.0",
-      "expo-notifications": "~57.0.3",
       "expo-router": "~57.0.4",
-      "expo-secure-store": "~57.0.0",
-      "expo-splash-screen": "~57.0.2",
-      "expo-status-bar": "~57.0.0",
-      "expo-system-ui": "~57.0.0",
       "expo-updates": "~57.0.6",
-      "lucide-react-native": "^0.562.0",
       "nativewind": "^4.2.1",
       "react": "19.2.3",
       "react-dom": "19.2.3",
       "react-native": "0.86.0",
       "react-native-gesture-handler": "~2.32.0",
-      "react-native-keyboard-controller": "1.21.9",
       "react-native-reanimated": "4.5.0",
       "react-native-safe-area-context": "~5.7.0",
       "react-native-screens": "4.25.2",
-      "react-native-svg": "15.15.4",
       "react-native-web": "^0.21.2",
       "react-native-worklets": "0.10.0",
       "tailwindcss": "^3.4.19"
     },
     "devDependencies": {
-      "@graphql-codegen/cli": "^6.1.0",
-      "@graphql-codegen/typescript": "^4.1.6",
-      "@graphql-codegen/typescript-operations": "^4.4.2",
-      "@graphql-codegen/typescript-react-apollo": "^4.3.4",
       "@react-native-community/cli": "^20.0.2",
       "@react-native-community/cli-platform-android": "^20.0.2",
       "@react-native-community/cli-platform-ios": "^20.0.2",
       "@testing-library/react-native": "^13.3.3",
       "@types/react": "~19.2.15",
       "@types/react-dom": "~19.2.3",
-      "expo-atlas": "^0.4.0",
       "jest-expo": "~57.0.1"
     },
     "scripts": {
       "lighthouse:check": "lhci autorun --collect.settings.chromeFlags='--no-sandbox --disable-gpu --headless' --assert.assertions.forced-reflow-insight=off && node scripts/check-lighthouse-details.mjs",
       "lint": "$npm_execpath run lint:lisa",
-      "maestro:studio": "maestro studio",
       "maestro:test": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile expo --adapter direct -- maestro test .maestro/flows",
       "maestro:test:android": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile expo --adapter direct -- maestro test -p android .maestro/flows",
       "maestro:test:ios": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile expo --adapter direct -- maestro test -p ios .maestro/flows",
@@ -220,16 +165,20 @@
         "maestro studio"
       ],
       "maestro:test": [
-        "lisa-test-run --profile expo --adapter direct -- maestro test .maestro/flows"
+        "lisa-test-run --profile expo --adapter direct -- maestro test .maestro/flows",
+        "maestro test .maestro/flows"
       ],
       "maestro:test:android": [
-        "lisa-test-run --profile expo --adapter direct -- maestro test -p android .maestro/flows"
+        "lisa-test-run --profile expo --adapter direct -- maestro test -p android .maestro/flows",
+        "maestro test -p android .maestro/flows"
       ],
       "maestro:test:ios": [
-        "lisa-test-run --profile expo --adapter direct -- maestro test -p ios .maestro/flows"
+        "lisa-test-run --profile expo --adapter direct -- maestro test -p ios .maestro/flows",
+        "maestro test -p ios .maestro/flows"
       ],
       "maestro:test:smoke": [
-        "lisa-test-run --profile expo --adapter direct -- maestro test -p ios --include-tags=smoke .maestro/flows"
+        "lisa-test-run --profile expo --adapter direct -- maestro test -p ios --include-tags=smoke .maestro/flows",
+        "maestro test -p ios --include-tags=smoke .maestro/flows"
       ],
       "playwright:build": [
         "expo export --platform web"
@@ -271,7 +220,93 @@
         "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --watch",
         "NODE_ENV=test lisa-test-run --profile expo -- jest --watch",
         "NODE_ENV=test lisa-test-run -- jest --watch"
+      ],
+      "start:atlas": [
+        "cp .env.development .env.local && STAGE=development EXPO_ATLAS=true expo start"
+      ]
+    },
+    "devDependencies": {
+      "@babel/plugin-proposal-export-namespace-from": [
+        "^7.18.9"
+      ],
+      "@graphql-codegen/cli": [
+        "^6.1.0"
+      ],
+      "@graphql-codegen/typescript": [
+        "^4.1.6"
+      ],
+      "@graphql-codegen/typescript-operations": [
+        "^4.4.2"
+      ],
+      "@graphql-codegen/typescript-react-apollo": [
+        "^4.3.4"
+      ],
+      "@jest/test-sequencer": [
+        "^30.2.0"
+      ],
+      "@types/base-64": [
+        "^1.0.2"
+      ],
+      "@types/eslint-plugin-jsx-a11y": [
+        "^6.10.1"
+      ],
+      "@types/eslint-plugin-tailwindcss": [
+        "^3.17.0"
+      ],
+      "babel-plugin-module-resolver": [
+        "^5.0.2"
+      ],
+      "baseline-browser-mapping": [
+        "^2.9.2"
+      ],
+      "eslint-config-expo": [
+        "^10.0.0"
+      ],
+      "eslint-plugin-jsx-a11y": [
+        "^6.10.0"
+      ],
+      "eslint-plugin-react": [
+        "^7.37.0"
+      ],
+      "eslint-plugin-react-compiler": [
+        "^19.1.0-rc.2"
+      ],
+      "eslint-plugin-react-hooks": [
+        "^7.0.0"
+      ],
+      "eslint-plugin-react-perf": [
+        "^3.3.0"
+      ],
+      "eslint-plugin-tailwindcss": [
+        "^3.18.0"
+      ],
+      "expo-atlas": [
+        "^0.4.0"
+      ],
+      "globals": [
+        "^16.0.0"
+      ],
+      "serve": [
+        "^14.2.0"
+      ],
+      "ts-jest": [
+        "^29.4.6"
       ]
     }
+  },
+  "minimums": {
+    "@apollo/client": ">=3.10.8",
+    "@hookform/resolvers": ">=3.9.0",
+    "apollo-link-sentry": ">=4.4.0",
+    "base-64": ">=1.0.0",
+    "date-fns": ">=3.6.0",
+    "date-fns-tz": ">=3.1.3",
+    "events": ">=3.3.0",
+    "graphql": ">=16.12.0",
+    "i18n-js": ">=4.5.1",
+    "patch-package": ">=8.0.0",
+    "react-hook-form": ">=7.70.0",
+    "text-encoding-polyfill": ">=0.6.7",
+    "usehooks-ts": ">=3.1.1"
   }
 }

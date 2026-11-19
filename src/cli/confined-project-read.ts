@@ -10,7 +10,7 @@ import { deepMerge } from "../utils/index.js";
  * @param relativePath - Strict project-relative path
  * @returns Bounded UTF-8 text, or undefined when absent
  */
-export async function readConfinedProjectText(
+async function readConfinedProjectText(
   projectRoot: string,
   relativePath: string
 ): Promise<string | undefined> {
@@ -24,7 +24,7 @@ export async function readConfinedProjectText(
  * @param relativePath - Strict project-relative JSON path
  * @returns Parsed JSON, or undefined when absent
  */
-export async function readConfinedProjectJson(
+async function readConfinedProjectJson(
   projectRoot: string,
   relativePath: string
 ): Promise<unknown | undefined> {

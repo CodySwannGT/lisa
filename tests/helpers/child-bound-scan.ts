@@ -206,7 +206,7 @@ function moduleTarget(from: string, specifier: string): string {
  * @param read - How to obtain a module's text
  * @returns Local name to repository-relative path of its source module
  */
-export function importedFrom(
+function importedFrom(
   name: string,
   read: ReadSource
 ): ReadonlyMap<string, string> {

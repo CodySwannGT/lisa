@@ -113,7 +113,7 @@ export async function listWorktrees(
 }
 
 /** The half of the facts that only git and the filesystem can answer. */
-export interface WorktreeGitState {
+interface WorktreeGitState {
   /** Ownership verdict from the receipt check. */
   readonly ownership: WorktreeFacts["ownership"];
   /** Seconds since the worktree last showed activity. */
@@ -149,7 +149,7 @@ export interface GatherContext {
  * @param context - Shared run inputs
  * @returns Facts for the entitlement rule
  */
-export async function gatherWorktreeFacts(
+async function gatherWorktreeFacts(
   entry: WorktreeEntry,
   context: GatherContext
 ): Promise<WorktreeFacts> {

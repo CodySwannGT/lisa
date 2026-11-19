@@ -11,7 +11,7 @@ export interface LinearComment {
 }
 
 /** One state change in an issue's history. */
-export interface LinearStateChange {
+interface LinearStateChange {
   actorId: string;
   createdAt: string;
   stateId: string;

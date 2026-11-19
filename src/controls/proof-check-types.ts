@@ -36,76 +36,64 @@ export const PROOF_CHECK_RESULTS = ["ready", "not-ready", "no-proof"] as const;
 /** The result one part gets. */
 export type ProofCheckResult = (typeof PROOF_CHECK_RESULTS)[number];
 
-/**
- * Why a part got its result. The reasons of a part that is `not-ready` are
- * listed in the order the questions are asked, and the first that applies is
- * the one reported.
- */
-export const PROOF_CHECK_REASONS = [
+/** Why a part got its result. */
+export type ProofCheckReason =
   /** `ready`. */
-  "ready",
+  | "ready"
   /** `no-proof`: the part names no patch file. */
-  "no-proof",
+  | "no-proof"
   /** One half names a patch file and the other names none. */
-  "half-not-declared",
+  | "half-not-declared"
   /** A declared patch file is not there. */
-  "patch-missing",
+  | "patch-missing"
   /** A declared patch file is there and could not be read safely. */
-  "patch-unreadable",
+  | "patch-unreadable"
   /** Both patch files hold the same change. */
-  "patches-identical",
+  | "patches-identical"
   /** No failure text is declared, so a rejection could never be counted. */
-  "no-failure-text",
+  | "no-failure-text"
   /** What measures the part is not a command that can be started. */
-  "not-a-command",
+  | "not-a-command"
   /** The proof says it reaches outside the repository and was not allowed to. */
-  "external-effects",
+  | "external-effects"
   /** A change does not apply to the last commit. */
-  "patch-not-applied",
+  | "patch-not-applied"
   /**
    * A change edits what the check is: the file that declares the checks, a
    * file that starts them, or the script the part's command runs.
    */
-  "declaration-changed",
+  | "declaration-changed"
   /** A change touches a path the repository ignores. */
-  "ignored-path",
+  | "ignored-path"
   /** A change leaves nothing git would commit. */
-  "no-change",
+  | "no-change"
   /** A change touches no file inside the part's own folder. */
-  "outside-folder",
+  | "outside-folder"
   /** The command could not be started on a change. */
-  "not-started",
+  | "not-started"
   /** The command was still running at the time limit. */
-  "timed-out",
+  | "timed-out"
   /** The command was stopped before it answered. */
-  "killed",
+  | "killed"
   /** The command ran and its own output says it measured nothing. */
-  "nothing-measured",
+  | "nothing-measured"
   /** The command passed on the violating change. */
-  "violation-accepted",
+  | "violation-accepted"
   /** The command failed on the violating change without the declared text. */
-  "wrong-failure-text",
+  | "wrong-failure-text"
   /** The command failed on the clean change. */
-  "clean-rejected",
+  | "clean-rejected"
   /** The command passed on the clean change and still printed the declared text. */
-  "failure-text-on-clean",
-] as const;
-
-/** Why a part got its result. */
-export type ProofCheckReason = (typeof PROOF_CHECK_REASONS)[number];
+  | "failure-text-on-clean";
 
 /** What a whole run comes to. */
-export const PROOF_CHECK_OUTCOMES = [
+export type ProofCheckOutcome =
   /** At least one part declares a proof, and every one that does is ready. */
-  "ready",
+  | "ready"
   /** At least one part's proof is not ready. */
-  "not-ready",
+  | "not-ready"
   /** No part declares a proof, so there was nothing to check. */
-  "nothing-to-check",
-] as const;
-
-/** What a whole run comes to. */
-export type ProofCheckOutcome = (typeof PROOF_CHECK_OUTCOMES)[number];
+  | "nothing-to-check";
 
 /** What a part's declaration says about its proof. */
 export interface DeclaredProof {

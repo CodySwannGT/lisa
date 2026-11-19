@@ -29,7 +29,7 @@ import type { SkillStep } from "./audit-skill-run.js";
 const BASH = "/bin/bash";
 
 /** The block that makes the folder the results are saved in. */
-export const RESULTS_FOLDER_BLOCK = "mktemp -d";
+const RESULTS_FOLDER_BLOCK = "mktemp -d";
 
 /** The block that reads the audit report before anything is installed. */
 export const AUDIT_BLOCK = "lisa controls gaps";
@@ -44,7 +44,7 @@ export const INSTALL_BLOCK = "lisa controls install-carriers --agents";
 export const REGISTER_BLOCK = "lisa controls register";
 
 /** The block that compares the merge settings with the register. */
-export const PROTECT_BLOCK = "lisa controls protect";
+const PROTECT_BLOCK = "lisa controls protect";
 
 /** The block that prints the outcome of every requirement. */
 export const REPORT_BLOCK = "lisa controls enforce-report";

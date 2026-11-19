@@ -25,6 +25,11 @@ import {
 } from "@codyswann/lisa/jest/expo";
 
 import localConfig from "./jest.config.local.ts";
+// Jest loads this file through the `@jest-config-loader` named above, and a
+// docblock is invisible to dependency tooling. This erased, type-only import
+// states the same dependency where knip and an isolated (pnpm) install can see
+// that the host needs `esbuild-register` itself.
+import type {} from "esbuild-register/dist/node";
 import thresholdsOverrides from "./jest.thresholds.json" with { type: "json" };
 
 // Auto-detect the Expo SDK 55+/56 `/src` convention. When source lives under

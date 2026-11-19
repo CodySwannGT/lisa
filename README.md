@@ -663,6 +663,41 @@ native wrapper when running Unix-socket fixtures. Inherited Harper and Phaser
 native host checks run on Lisa's own Bun1.4.4, which meets their >=1.3.11
 floor; set `LISA_TEST_HOST_BUN` only to test against a different Bun.
 
+### Package.lisa.json
+
+Each stack's `package-lisa/package.lisa.json` decides what Lisa does to a host's
+`package.json`. The host's file stays clean: it never carries a Lisa marker.
+Templates inherit `all` → `typescript` → the specific stack, and the child
+wins.
+
+| Section | What Lisa does | Use it for |
+| --- | --- | --- |
+| `force` | Lisa's value replaces the host's on every apply. | Governance-critical settings: lint and test scripts, required tooling, commit hooks, security floors in `overrides`/`resolutions`. |
+| `defaults` | Lisa's value is written only when the host has none. | Starting points a host may change, such as an engine version. |
+| `merge` | Arrays are concatenated and deduplicated. | Lists both sides add to, such as `trustedDependencies`. |
+| `minimums` | Package name to the lowest range a host's own direct dependency may hold. | Libraries Lisa no longer installs, whose version line it still keeps. |
+
+A `minimums` entry follows four rules:
+
+- It raises a range the host itself lists in `dependencies`, `devDependencies`
+  or `optionalDependencies`, inside that range's major: an exact pin becomes the
+  minimum exactly (`5.2.0` → `5.4.0`), and a tilde or caret moves to it
+  (`~7.50.0` → `~7.70.0`).
+- It never adds a dependency. A host that does not list the package is not
+  changed.
+- It refuses rather than crosses a major. The apply stops and names the range
+  to set, and the host decides when to move.
+- It never touches transitive copies or `peerDependencies`. Nothing is written
+  to `overrides` or `resolutions`, because those replace the range of every copy
+  in the tree.
+
+A security floor is the opposite case. An advisory reaches every copy, so it
+belongs in `force.overrides` and `force.resolutions`, not in `minimums`. Two
+more sections handle keys Lisa has stopped owning: `remove` deletes a retired
+key, and `adopt` reclaims a key only while it still holds a value Lisa itself
+wrote. The full specification is
+[wiki/documentation/specs/package-lisa-json.md](wiki/documentation/specs/package-lisa-json.md).
+
 > **Prompt for your coding agent**
 > "I want to add or change a skill, rule, hook, or agent in Lisa. Show me the source location, the build step, what I must commit alongside it, and the CI check that fails if I edit a generated artifact directly. Then check my change against those rules before I commit."
 

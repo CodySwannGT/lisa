@@ -21,7 +21,7 @@ import path from "node:path";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 
 /** The shell a hook is run by when a case names none. */
-export const SH = "/bin/sh";
+const SH = "/bin/sh";
 
 /**
  * The shells on this machine in which a `return` outside every function ends

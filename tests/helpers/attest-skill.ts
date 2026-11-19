@@ -20,7 +20,7 @@ import { fencedBlocks } from "./audit-skill.js";
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
 /** The skill, as authored. Every agent's copy is built from this file. */
-export const ATTEST_SKILL_SOURCE = path.join(
+const ATTEST_SKILL_SOURCE = path.join(
   "plugins",
   "src",
   "base",
@@ -30,7 +30,7 @@ export const ATTEST_SKILL_SOURCE = path.join(
 );
 
 /** The heading the before-enforce run starts at. */
-export const BEFORE_ENFORCE_HEADING = "## The before-enforce run";
+const BEFORE_ENFORCE_HEADING = "## The before-enforce run";
 
 /** How a line begins when it starts a list item, a table row or a quote. */
 const STARTS_A_BLOCK: readonly RegExp[] = [/^[-*>|] /u, /^\d{1,2}\. /u];

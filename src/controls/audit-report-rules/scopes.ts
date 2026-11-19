@@ -14,7 +14,7 @@ import {
 } from "../audit-report-types.js";
 
 /** The name this rule's violations carry. */
-export const SCOPES_RULE = "scopes";
+const SCOPES_RULE = "scopes";
 
 /**
  * Tell whether a scope is written the one way a folder path may be written:

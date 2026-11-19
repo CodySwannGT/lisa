@@ -417,10 +417,10 @@ export class Lisa {
    * strategies can skip creating files that are about to be deleted anyway.
    *
    * Motivating case: CDK inherits typescript/create-only, which ships
-   * `jest.config.local.ts` + `jest.thresholds.json`. CDK's own `deletions.json`
-   * then removes them. Without this gate, Lisa would create them and delete
-   * them in the same apply, which causes ENOENT errors for any concurrent
-   * file-watcher/linter that observed the briefly-existing files.
+   * `jest.thresholds.json`. CDK's own `deletions.json` then removes it.
+   * Without this gate, Lisa would create it and delete it in the same apply,
+   * which causes ENOENT errors for any concurrent file-watcher/linter that
+   * observed the briefly-existing file.
    *
    * The `keep` list in a deletions.json (e.g., expo keeps
    * `zap-baseline-expo.yml`) is honored — paths in `keep` are not treated as

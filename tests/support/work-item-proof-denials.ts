@@ -2,8 +2,7 @@
 
 import { editAsset, editNative } from "./work-item-proof-mutations.js";
 import type { Denial } from "./work-item-proof-mutations.js";
-export type { Denial, ProofFixture } from "./work-item-proof-mutations.js";
-export { editNative } from "./work-item-proof-mutations.js";
+export type { Denial } from "./work-item-proof-mutations.js";
 import { commit } from "./work-item-cli.js";
 import {
   putAsset,

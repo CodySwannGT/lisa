@@ -1,0 +1,112 @@
+#!/usr/bin/env node
+/**
+ * Stub `tmux` for the session-manager CLI tests.
+ *
+ * - `new-session` creates a session, recorded in `<STUB_LOG>.tmux-session`
+ *   with its `-c` dir, unless STUB_TMUX_SESSION_DIES=1: then the session's
+ *   command "exits at once" and no session is left behind, the way tmux
+ *   closes a window whose command failed to start.
+ * - `start-server ; source-file -` reads one tmux command line from stdin
+ *   (single- and double-quoted words, the way tmux's config parser reads
+ *   them) and runs it as above when it is a `new-session`. That is how
+ *   `start` passes the Telegram bot token: the line never reaches argv. The
+ *   record keeps only the `-e` variable NAMES, the sha256 of
+ *   TELEGRAM_BOT_TOKEN's value (so a test proves the right value arrived
+ *   without the log holding it) and the command after the variables.
+ *   STUB_TMUX_SOURCE_FAILS=1 makes it fail with the line echoed on stderr,
+ *   so a test proves `start` never passes that stderr through.
+ * - `has-session` and `kill-session` exit 0 when STUB_TMUX_HAS_SESSION=1 or a
+ *   session was created, else 1. `kill-session` removes a created session.
+ * - `display-message` prints STUB_TMUX_SESSION_PATH, else the created
+ *   session's dir, else an empty line, and exits 0 either way, which is what
+ *   tmux 3.6 does even for a session that does not exist.
+ * - `display-message … #{session_name}` (the caller's own session, #4496)
+ *   prints STUB_TMUX_CURRENT_SESSION, or exits 1 with "no current client"
+ *   when it is unset, the way tmux answers outside any session.
+ * - Every other command exits 0. Every call is recorded through
+ *   ../stub-record.mjs.
+ */
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+
+import { record } from "../stub-record.mjs";
+
+/**
+ * Split one tmux command line into words: whitespace separates, and quoted
+ * runs (single quotes literal, double quotes literal here) join the word.
+ * @param {string} line - Command line
+ * @returns {string[]} Words
+ */
+function words(line) {
+  return [...line.matchAll(/(?:'[^']*'|"[^"]*"|[^\s'"])+/gu)].map(([word]) =>
+    word.replace(
+      /'([^']*)'|"([^"]*)"/gu,
+      (_, single, double) => single ?? double
+    )
+  );
+}
+
+/**
+ * What a sourced `new-session` line carried, names and hashes only.
+ * @param {string[]} line - Its words
+ * @returns {object} Record detail
+ */
+function sourcedDetail(line) {
+  const vars = line.filter((_, at) => line[at - 1] === "-e");
+  const token = vars.find(entry => entry.startsWith("TELEGRAM_BOT_TOKEN="));
+  const claudeAt = line.indexOf("claude");
+  return {
+    sourced: line[0],
+    envNames: vars.map(entry => entry.slice(0, entry.indexOf("="))),
+    tokenSha256:
+      token === undefined
+        ? null
+        : createHash("sha256")
+            .update(token.slice(token.indexOf("=") + 1))
+            .digest("hex"),
+    command: claudeAt === -1 ? [] : line.slice(claudeAt),
+  };
+}
+
+const raw = process.argv.slice(2);
+const sourcing =
+  raw[0] === "start-server" && raw[1] === ";" && raw[2] === "source-file";
+const sourcedLine = sourcing ? words(readFileSync(0, "utf8").trim()) : null;
+record("tmux", sourcedLine ? { extra: sourcedDetail(sourcedLine) } : {});
+if (sourcing && process.env.STUB_TMUX_SOURCE_FAILS === "1") {
+  process.stderr.write(`-:1: ${sourcedLine?.join(" ")}\n`);
+  process.exit(1);
+}
+const argv = sourcedLine ?? raw;
+const [command] = argv;
+const sessionFile = process.env.STUB_LOG
+  ? `${process.env.STUB_LOG}.tmux-session`
+  : null;
+const created = sessionFile !== null && existsSync(sessionFile);
+const running = process.env.STUB_TMUX_HAS_SESSION === "1" || created;
+
+if (command === "new-session" && sessionFile !== null) {
+  if (process.env.STUB_TMUX_SESSION_DIES !== "1") {
+    writeFileSync(sessionFile, argv[argv.indexOf("-c") + 1] ?? "");
+  }
+}
+if (command === "has-session" || command === "kill-session") {
+  process.exitCode = running ? 0 : 1;
+}
+if (command === "kill-session" && created) {
+  rmSync(sessionFile, { force: true });
+}
+if (command === "display-message" && argv.at(-1) === "#{session_name}") {
+  const current = process.env.STUB_TMUX_CURRENT_SESSION;
+  if (current === undefined) {
+    process.stderr.write("no current client\n");
+    process.exitCode = 1;
+  } else {
+    process.stdout.write(`${current}\n`);
+  }
+} else if (command === "display-message") {
+  const where =
+    process.env.STUB_TMUX_SESSION_PATH ??
+    (created ? readFileSync(sessionFile, "utf8") : "");
+  process.stdout.write(`${where}\n`);
+}

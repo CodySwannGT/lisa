@@ -22,7 +22,7 @@ const LOCAL_CONFIG_FILE = ".lisa.config.local.json";
 export const SUPPORTED_TRACKERS = ["jira", "github", "linear"] as const;
 
 /** One tracker Lisa can file in. */
-export type SupportedTracker = (typeof SUPPORTED_TRACKERS)[number];
+type SupportedTracker = (typeof SUPPORTED_TRACKERS)[number];
 
 /** Whether tickets can be filed, and when they cannot, why not. */
 export type ConfiguredTracker =

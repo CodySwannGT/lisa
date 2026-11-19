@@ -26,15 +26,15 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 /** `<index>/<total>` for one shard leg, e.g. `2/4`. */
-export const SHARD_ENV = "LISA_TEST_SHARD";
+const SHARD_ENV = "LISA_TEST_SHARD";
 /** Directory a shard leg writes its receipt and results into. */
-export const SHARD_OUTPUT_ENV = "LISA_TEST_SHARD_OUTPUT";
+const SHARD_OUTPUT_ENV = "LISA_TEST_SHARD_OUTPUT";
 /** Directory the merge leg downloaded every shard's results into. */
-export const SHARD_MERGE_ENV = "LISA_TEST_SHARD_MERGE";
+const SHARD_MERGE_ENV = "LISA_TEST_SHARD_MERGE";
 /** How many shards the merge leg must find. */
-export const SHARD_TOTAL_ENV = "LISA_TEST_SHARD_TOTAL";
+const SHARD_TOTAL_ENV = "LISA_TEST_SHARD_TOTAL";
 /** A leg's file-list plan (#4599); unset, it runs the runner's `--shard`. */
-export const SHARD_PLAN_ENV = "LISA_TEST_SHARD_PLAN";
+const SHARD_PLAN_ENV = "LISA_TEST_SHARD_PLAN";
 /** Every variable above, for stripping before the payload starts. */
 export const SHARD_ENV_NAMES = [
   SHARD_ENV,
@@ -45,7 +45,7 @@ export const SHARD_ENV_NAMES = [
 ] as const;
 
 /** File a shard leg leaves in its output directory. */
-export const SHARD_RECEIPT = "lisa-shard-receipt.json";
+const SHARD_RECEIPT = "lisa-shard-receipt.json";
 
 /** The test runners this wrapper knows how to shard. */
 export type ShardRunner = "jest" | "vitest";
@@ -60,7 +60,7 @@ export interface ShardLeg {
 }
 
 /** The merge leg. */
-export interface ShardMerge {
+interface ShardMerge {
   readonly kind: "merge";
   readonly directory: string;
   readonly total: number;
@@ -413,7 +413,7 @@ export function gatherVitestBlobs(
 }
 
 /** One coverage metric's totals, as istanbul summarises it. */
-export interface CoverageMetric {
+interface CoverageMetric {
   readonly total: number;
   readonly covered: number;
   readonly pct: number;

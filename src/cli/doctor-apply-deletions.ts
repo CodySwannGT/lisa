@@ -74,7 +74,7 @@ function isRemovalNotice(notice: string): boolean {
  * @param paths - Recorded removed paths
  * @returns Lines describing what went
  */
-export function describeRemovals(
+function describeRemovals(
   notices: readonly string[],
   paths: readonly string[]
 ): readonly string[] {
@@ -89,7 +89,7 @@ export function describeRemovals(
  * @param when - When the removals happened, or null when unrecorded
  * @returns The detail string
  */
-export function summariseRemovals(
+function summariseRemovals(
   lines: readonly string[],
   when: string | null
 ): string {

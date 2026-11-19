@@ -77,7 +77,7 @@ export function ownWorkflow(step = "npm run house:check"): string {
 }
 
 /** The manifest of a plugin that enforces on every edit. */
-export const EDIT_PLUGIN = {
+const EDIT_PLUGIN = {
   name: "lisa-typescript",
   hooks: {
     PreToolUse: [

@@ -51,7 +51,7 @@ import ts from "typescript";
  * to the event loop, so the per-case budget can still fire over them and they
  * are a different problem with a different remedy.
  */
-export const SYNCHRONOUS_CHILD_STARTS: readonly string[] = [
+const SYNCHRONOUS_CHILD_STARTS: readonly string[] = [
   "spawnSync",
   "execFileSync",
   "execSync",

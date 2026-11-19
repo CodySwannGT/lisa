@@ -19,7 +19,7 @@ import { withMarkedBlock } from "./carrier-script.js";
 import type { FileEdit } from "./carrier-types.js";
 
 /** The folder the runner writes push timings to, as an ignore entry. */
-export const PUSH_TIMING_IGNORE_ENTRY = ".lisa/push-timing/";
+const PUSH_TIMING_IGNORE_ENTRY = ".lisa/push-timing/";
 
 /** The file the entry is added to, from the repository root. */
 const IGNORE_FILE = ".gitignore";

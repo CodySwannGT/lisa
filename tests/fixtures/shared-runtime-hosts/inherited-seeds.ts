@@ -167,6 +167,9 @@ function seedNest(root: string): void {
     scripts: {
       build: "node scripts/lib/worktree-dependencies.mjs && nest build",
     },
+    // A project that builds with `nest` declares the Nest CLI itself, as
+    // `nest new` does; Lisa's own scripts never call it (#4932).
+    devDependencies: { "@nestjs/cli": "^11.0.14" },
   });
   write(root, "nest-cli.json", {
     collection: "@nestjs/schematics",

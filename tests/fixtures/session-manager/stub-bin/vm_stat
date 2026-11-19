@@ -1,13 +1,4 @@
-#!/usr/bin/env node
-/**
- * Stub `vm_stat` for the session-manager CLI tests: prints the macOS fixture
- * beside this directory, and records the call through ../support/stub-record.mjs.
- */
-import { readFileSync } from "node:fs";
-
-import { record } from "../support/stub-record.mjs";
-
-record("vm_stat");
-process.stdout.write(
-  readFileSync(new URL("../vm_stat.txt", import.meta.url), "utf8")
-);
+#!/bin/sh
+# Stub `vm_stat` for the session-manager CLI tests. The stub itself is
+# ../support/stubs/vm_stat.mjs, kept as a module so the dead-code gate can follow its imports.
+exec node "$(dirname "$0")/../support/stubs/vm_stat.mjs" "$@"

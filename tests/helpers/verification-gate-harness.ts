@@ -52,10 +52,10 @@ export const FIXTURE_TIMESTAMP = "2026-07-20T00:00:00Z";
 export const FIXTURE_HEAD_SHA = "bbbb222";
 
 /** Result of one hook invocation. */
-export type HookResult = { status: number | null; stderr: string };
+type HookResult = { status: number | null; stderr: string };
 
 /** Options controlling how a verdict file is written. */
-export type WriteVerdictOptions = { stale?: boolean };
+type WriteVerdictOptions = { stale?: boolean };
 
 /** One isolated gate scenario, bound to its own temp directories. */
 export type GateScenario = {

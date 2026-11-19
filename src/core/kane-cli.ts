@@ -19,17 +19,14 @@ import type {
 } from "./kane-cli-types.js";
 
 export { parseKaneResult } from "./kane-cli-parser.js";
-export { isChromeAvailable, runKaneCommand } from "./kane-cli-process.js";
 export type {
   ChromeAvailabilityProbe,
-  KaneCommandResult,
   KaneCommandRunner,
   KaneMutationLevel,
   KaneOutcome,
   KaneReadiness,
   KaneRunRequest,
   KaneRunResult,
-  KaneTerminalEvent,
 } from "./kane-cli-types.js";
 
 /** Kane CLI version covered by Lisa's adapter contract tests. */

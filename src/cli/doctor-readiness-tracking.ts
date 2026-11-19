@@ -25,8 +25,7 @@ import * as path from "node:path";
 import { resolveReadinessReportPath } from "./doctor-readiness.js";
 
 /** Name of the readiness-tracking check as doctor reports it. */
-export const READINESS_REPORT_TRACKING_CHECK_NAME =
-  "Readiness report untracked?";
+const READINESS_REPORT_TRACKING_CHECK_NAME = "Readiness report untracked?";
 
 /** Pinned PATH for the git probes, matching the merge-driver install probe. */
 const GIT_COMMAND_ENV: NodeJS.ProcessEnv = {

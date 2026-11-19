@@ -23,9 +23,15 @@
  *   the guard being broken rather than the range being wrong. A suggestion that
  *   does not verify is withheld, not printed hopefully.
  *
- * Nothing here rewrites a host range or lowers a floor. Raising a dependency is
- * a version decision with its own blast radius; this module names the raise and
- * the operator makes it.
+ * Nothing here lowers a floor, and nothing rewrites a range the host wrote to
+ * satisfy a floor the host wrote. The one raise Lisa makes itself is
+ * {@link raiseDirectRangesToLisaFloors}: when the floor is Lisa's own forced
+ * value and the host's direct range starts below it, Lisa raises that direct
+ * range to the verified remedy (CodySwannGT/lisa#4932). That is what forcing the
+ * dependency did before Lisa stopped installing libraries a host may not use;
+ * the floor now reaches only hosts that list the package, and refusing there
+ * would stop an apply over a value Lisa itself chose. No human is waiting at
+ * the gate to make the raise by hand.
  * @module core/override-floors
  */
 import semver from "semver";
@@ -38,11 +44,25 @@ export const DIRECT_DEPENDENCY_SECTIONS = [
   "peerDependencies",
 ] as const;
 
+/**
+ * Prereleases count when a host names one. A host on `7.71.0-rc.1` is above a
+ * `>=7.70.0` floor, and plain semver, which ignores prereleases, calls it below.
+ */
+export const SEMVER_OPTIONS = { includePrerelease: true } as const;
+
+/**
+ * Direct sections Lisa may raise. A peer range is the host's promise to its
+ * own consumers, so Lisa never rewrites it and the guard refuses there.
+ */
+export const RAISABLE_SECTIONS = DIRECT_DEPENDENCY_SECTIONS.filter(
+  section => section !== "peerDependencies"
+);
+
 /** package.json sections that carry npm-style version overrides. */
 export const OVERRIDE_SECTIONS = ["overrides", "resolutions"] as const;
 
 /** One of the two npm override sections. */
-export type OverrideSection = (typeof OVERRIDE_SECTIONS)[number];
+type OverrideSection = (typeof OVERRIDE_SECTIONS)[number];
 
 /**
  * What rewriting one literal override to `"$name"` would do to its floor.
@@ -134,23 +154,6 @@ export function collectDirectDependencyNames(
 }
 
 /**
- * Collect direct dependency ranges by package name.
- * @param pkg - Merged package.json object
- * @returns Package name to string range map
- */
-export function collectDirectDependencyRanges(
-  pkg: Record<string, unknown>
-): ReadonlyMap<string, string> {
-  return new Map(
-    DIRECT_DEPENDENCY_SECTIONS.flatMap(section =>
-      Object.entries(asRecord(pkg[section])).flatMap(([name, value]) =>
-        typeof value === "string" ? [[name, value] as const] : []
-      )
-    )
-  );
-}
-
-/**
  * Decide whether an override/resolution entry is a candidate for npm `$name`
  * normalization at all.
  * @param directDeps - Direct dependency names in the merged package
@@ -169,6 +172,23 @@ export function needsSelfReferenceRewrite(
     value.length > 0 &&
     !value.startsWith("$")
   );
+}
+
+/**
+ * Whether a range names a prerelease version, such as `7.71.0-rc.1`.
+ * @param range - A valid npm version range
+ * @returns True when any comparator carries a prerelease tag
+ */
+function namesPrerelease(range: string): boolean {
+  // Read as written: semver's own expansion of `^1.2.3` adds a `<2.0.0-0`
+  // bound, which carries a prerelease tag the host never wrote.
+  return range
+    .split(/[\s|]+/u)
+    .some(
+      token =>
+        (semver.parse(token.replace(/^[<>=~^]+/u, ""))?.prerelease.length ??
+          0) > 0
+    );
 }
 
 /**
@@ -192,7 +212,11 @@ export function classifySelfReferenceRewrite(
   if (!semver.validRange(floorRange) || !semver.validRange(directRange)) {
     return "unprovable";
   }
-  return semver.subset(directRange, floorRange) ? "safe" : "widening";
+  return semver.subset(directRange, floorRange) ||
+    (namesPrerelease(directRange) &&
+      semver.subset(directRange, floorRange, SEMVER_OPTIONS))
+    ? "safe"
+    : "widening";
 }
 
 /**
@@ -233,12 +257,38 @@ export function suggestSatisfyingDirectRange(
  * @param range - An npm version range
  * @returns The minimum version, or null when the range is not comparable
  */
-function rangeMinimum(range: string): string | null {
+export function rangeMinimum(range: string): string | null {
   try {
     return semver.minVersion(range)?.version ?? null;
   } catch {
     return null;
   }
+}
+
+/**
+ * The direct range the guard judges for one name: the first section whose
+ * range does not satisfy the floor, else the first range found. Every section
+ * is judged on its own, so a satisfying `dependencies` range can never hide a
+ * `peerDependencies` range below the floor.
+ * @param pkg - Merged package.json
+ * @param name - Package name
+ * @param floorRange - The override's floor
+ * @returns The range to judge, or undefined when no section has a string range
+ */
+function judgedDirectRange(
+  pkg: Record<string, unknown>,
+  name: string,
+  floorRange: string
+): string | undefined {
+  const ranges = DIRECT_DEPENDENCY_SECTIONS.flatMap(section => {
+    const range = asRecord(pkg[section])[name];
+    return typeof range === "string" ? [range] : [];
+  });
+  return (
+    ranges.find(
+      range => classifySelfReferenceRewrite(floorRange, range) !== "safe"
+    ) ?? ranges[0]
+  );
 }
 
 /**
@@ -256,7 +306,6 @@ export function auditSelfReferenceRewrites(
   pkg: Record<string, unknown>
 ): OverrideFloorAudit {
   const directDeps = collectDirectDependencyNames(pkg);
-  const directRanges = collectDirectDependencyRanges(pkg);
   const entries = OVERRIDE_SECTIONS.flatMap(section =>
     Object.entries(asRecord(pkg[section])).map(
       ([name, value]) => [section, name, value] as const
@@ -266,7 +315,7 @@ export function auditSelfReferenceRewrites(
     if (!needsSelfReferenceRewrite(directDeps, name, value)) {
       return [];
     }
-    const directRange = directRanges.get(name);
+    const directRange = judgedDirectRange(pkg, name, value as string);
     return directRange === undefined
       ? []
       : [{ section, name, floorRange: value as string, directRange }];

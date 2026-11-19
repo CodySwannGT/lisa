@@ -19,7 +19,7 @@ export interface CiWorkflowInputs {
  * @param cwd - Project root
  * @returns File contents
  */
-export async function readCiYmlFile(cwd: string): Promise<string> {
+async function readCiYmlFile(cwd: string): Promise<string> {
   return await readFile(
     path.join(cwd, ".github", "workflows", "ci.yml"),
     "utf8"

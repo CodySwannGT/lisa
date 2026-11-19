@@ -123,6 +123,13 @@ To use platform-specific components in routes:
 export { default } from "../components/about";
 ```
 
+### Dead-code gate
+
+Knip 6 does not resolve `./DatePickerView` to `DatePickerView.web.tsx` on its
+own and reports it as an unresolved import. The fix is a `knip.ts` that
+spreads Lisa's `expoKnipResolution()`; the `knip-platform-files` skill has
+the steps and a worked example. Never silence the report with an ignore list.
+
 ## Common Cross-Platform Issues
 
 ### 1. Web-Incompatible APIs

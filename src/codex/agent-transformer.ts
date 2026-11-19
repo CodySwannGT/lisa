@@ -91,7 +91,7 @@ export function parseAgentMarkdown(source: string): ParsedAgent {
  * @param options - Transform options
  * @returns Serialized TOML matching Codex's `RawAgentRoleFileToml` schema
  */
-export function transformAgentToToml(
+function transformAgentToToml(
   parsed: ParsedAgent,
   options: AgentTransformOptions = {}
 ): string {

@@ -41,7 +41,7 @@ const ONLY_THE_WRITTEN_NUMBER =
   "Only the written number is watched: the limit your own tool enforces is set in that tool's settings, which are not watched, so keep that at";
 
 /** A threshold as a part of a gate declares it. */
-export interface ThresholdParameter extends ControlParameter {
+interface ThresholdParameter extends ControlParameter {
   readonly value: number;
   readonly direction: ParameterDirection;
 }

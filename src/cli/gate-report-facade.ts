@@ -61,7 +61,7 @@ export interface FacadeFacts {
 }
 
 /** One CI job, as the merge-verdict join reads it. */
-export interface JobSite {
+interface JobSite {
   /** The job's id. */
   readonly id: string;
   /** The job's `name:`, which is what a ruleset matches by string. */

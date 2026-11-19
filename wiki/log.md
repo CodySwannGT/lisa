@@ -11,6 +11,12 @@
   - `lisa controls seed` refuses a `package.json` it cannot read.
 - Provenance: a repository-sourced update, written from the code under `src/controls/` and the design notes under `docs/design/`. No separate source note was written.
 
+## 2026-11-18 - package.lisa.json minimums
+
+- Updated `wiki/documentation/specs/package-lisa-json.md` for `CodySwannGT/lisa#4932`: a template's new `minimums` section holds the lowest range a host's own direct dependency on a library may hold. Lisa raises a lower range inside its own major and refuses a raise that would cross one. It writes nothing to `overrides`/`resolutions`, so transitive copies keep their own ranges.
+- Added `minimums` to the semantic-behaviors table in `wiki/documentation/overview.md` (Part 5), and a matching "Package.lisa.json" section to `README.md`.
+- `wiki/index.md` is unchanged: the page's description still fits.
+
 ## 2026-11-17 - Control audit: the four commands and the control register
 
 - Created `wiki/documentation/workflows/control-audit.md`, the operator-facing page for the four commands that find, declare, wire and prove the controls of any repository, whatever its stack: audit, configure, enforce and attest (epic `CodySwannGT/lisa#4961`, documentation leaf `CodySwannGT/lisa#5003`).

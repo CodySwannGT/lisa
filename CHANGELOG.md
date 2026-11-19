@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.0.0](https://github.com/CodySwannGT/lisa/compare/v6.3.5...v7.0.0) (2026-11-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **knip:** hosts no longer receive the packages listed above from
+Lisa. A host that imports one keeps it at the version it holds; a host
+that only had Lisa's value and never used the package loses it on the
+next apply. The unused export isPathy is removed from
+scripts/lib/phrase-tests/doc-taint.mjs.
+
+### Features
+
+* **knip:** resolve Expo platform files, retire forced tools on binary use ([da7ef66](https://github.com/CodySwannGT/lisa/commit/da7ef665d9d0bf5087c637f300a258f66d6e9c43)), closes [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932)
+* **knip:** run the dead-code gate strict and stop supplying unused packages ([e5f731d](https://github.com/CodySwannGT/lisa/commit/e5f731daec08dfa2d73f854cd20cd28fa9cafbef)), closes [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932)
+
+
+### Bug Fixes
+
+* **apply:** raise a host's direct range to a floor Lisa forced ([03d2e14](https://github.com/CodySwannGT/lisa/commit/03d2e149f231634e40b1bdcd0a1eb9ab64c571d4)), closes [#2642](https://github.com/CodySwannGT/lisa/issues/2642) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932)
+* **knip:** close the review findings on strict knip ([da755eb](https://github.com/CodySwannGT/lisa/commit/da755eb839875e210df9d4e2c001f7943893fd53)), closes [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932)
+* **knip:** close the third review's findings on minimums and knip entries ([cbe33c1](https://github.com/CodySwannGT/lisa/commit/cbe33c1e26541276ac780bf8d49c495e252d1cb9)), closes [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932)
+* **knip:** hold library minimums on direct ranges only, raise pins in their major ([5df5f90](https://github.com/CodySwannGT/lisa/commit/5df5f90184f82f1b182880aaea8c5544610ce2b6)), closes [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932)
+* **knip:** hold the control-audit code to strict knip ([8cfc9ee](https://github.com/CodySwannGT/lisa/commit/8cfc9ee5e59eeec8d3d689021e3b14da6d36191f)), closes [#5026](https://github.com/CodySwannGT/lisa/issues/5026) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932)
+* **package-lisa:** keep packages a host uses without naming them ([88ba934](https://github.com/CodySwannGT/lisa/commit/88ba9344974d3e1687f4f15efdea9be8c97bceff)), closes [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932)
+* **templates:** keep library choices as floors, never reclaim runtime libraries ([5b5108d](https://github.com/CodySwannGT/lisa/commit/5b5108dcd1f2474c4d8117e38c7274254c0df457)), closes [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932)
+
+
+### Documentation
+
+* **package-lisa:** document minimums beside force, defaults and merge ([b06bd8c](https://github.com/CodySwannGT/lisa/commit/b06bd8cbcec74d06141f169a7f868856556406f7)), closes [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932) [CodySwannGT/lisa#4932](https://github.com/CodySwannGT/lisa/issues/4932)
+
 ### [6.3.5](https://github.com/CodySwannGT/lisa/compare/v6.3.4...v6.3.5) (2026-11-19)
 
 ### [6.3.4](https://github.com/CodySwannGT/lisa/compare/v6.3.3...v6.3.4) (2026-11-19)

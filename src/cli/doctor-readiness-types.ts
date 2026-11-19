@@ -11,7 +11,7 @@
  */
 
 /** Per-dimension status, mirroring the shared doctor `DOCTOR_STATUSES`. */
-export type ReadinessStatus = "PASS" | "WARN" | "FAIL" | "SKIP";
+type ReadinessStatus = "PASS" | "WARN" | "FAIL" | "SKIP";
 
 /** A persisted per-dimension record inside `.lisa/readiness.json`. */
 export interface ReadinessDimensionRecord {

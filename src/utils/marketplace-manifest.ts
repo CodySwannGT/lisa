@@ -10,7 +10,7 @@
 import { readFile } from "node:fs/promises";
 
 /** One plugin entry from a marketplace catalog. */
-export interface MarketplaceCatalogPlugin {
+interface MarketplaceCatalogPlugin {
   readonly name: string;
   readonly description: string;
 }

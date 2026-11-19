@@ -40,7 +40,7 @@ const LISA_SUFFIX = "@lisa";
 const MAX_REPORTED_COMMANDS = 3;
 
 /** Runs `claude <args>` in `cwd`; rejects when the command fails. */
-export type ClaudeRunner = (
+type ClaudeRunner = (
   args: readonly string[],
   cwd: string
 ) => Promise<{ readonly stdout?: unknown }>;

@@ -105,7 +105,8 @@
     "check:eager-rule-budget": "node scripts/check-eager-rule-budget.mjs",
     "security:audit": "$npm_execpath run security:audit:lisa",
     "security:audit:lisa": "node scripts/lisa-audit.mjs",
-    "push:timing": "node all/copy-overwrite/scripts/lisa-push-timing-report.mjs"
+    "push:timing": "node all/copy-overwrite/scripts/lisa-push-timing-report.mjs",
+    "lisa:self-apply": "lisa apply ."
   },
   "engines": {
     "npm": "please-use-bun",
@@ -198,7 +199,7 @@
     "zod": "^4.6.7"
   },
   "name": "@codyswann/lisa",
-  "version": "6.3.5",
+  "version": "7.0.0",
   "description": "Governance-as-code for AI coding agents: turns a repository into agent-operated software factories with guardrails, guidance and automated enforcement for Claude Code, Codex, Cursor, OpenCode, Antigravity, Copilot and Devin",
   "main": "dist/index.js",
   "exports": {
@@ -218,6 +219,7 @@
     "./jest": "./dist/configs/jest/index.js",
     "./jest/base": "./dist/configs/jest/base.js",
     "./jest/expo": "./dist/configs/jest/expo.js",
+    "./knip": "./dist/configs/knip/index.js",
     "./vitest": "./dist/configs/vitest/index.js",
     "./vitest/base": "./dist/configs/vitest/base.js",
     "./vitest/typescript": "./dist/configs/vitest/typescript.js",
@@ -272,18 +274,14 @@
     "@commitlint/config-conventional": "^20.5.0",
     "@decimalturn/toml-patch": "^1.1.1",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
-    "@eslint/eslintrc": "^3.3.7",
     "@eslint/js": "^9.39.5",
     "@inquirer/prompts": "^7.0.0",
-    "@jest/globals": "^30.0.0",
-    "@jest/test-sequencer": "^30.2.0",
     "@types/fs-extra": "^11.0.0",
     "@types/jest": "^30.0.0",
     "@types/lodash.merge": "^4.6.0",
     "@types/node": "^24.0.0",
     "@vitest/coverage-v8": "^5.1.0",
     "commander": "^12.0.0",
-    "esbuild-register": "^3.6.0",
     "eslint": "^9.39.5",
     "eslint-config-expo": "^10.0.0",
     "eslint-config-prettier": "^10.0.0",
@@ -306,7 +304,7 @@
     "js-yaml": "^4.3.1",
     "jscodeshift": "0.15.2",
     "jsonc-parser": "^3.3.1",
-    "knip": "5.82.1",
+    "knip": "6.44.1",
     "lint-staged": "^16.2.7",
     "lodash.merge": "^4.6.2",
     "minimatch": "^10.2.5",
@@ -315,8 +313,6 @@
     "semver": "^7.8.1",
     "smol-toml": "1.7.1",
     "standard-version": "^9.5.0",
-    "ts-jest": "^29.4.9",
-    "ts-morph": "^27.0.2",
     "tsx": "^4.0.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.0.0",
@@ -339,6 +335,7 @@
     "constructs": "^10.5.0",
     "eslint-plugin-oxlint": ">=1.62.0 <1.86.0",
     "esbuild": "^0.28.2",
+    "esbuild-register": "^3.6.0",
     "fast-check": "^4.9.0",
     "glob": "^13.0.6",
     "graceful-fs": "^4.2.11",
@@ -356,5 +353,21 @@
     "doc": "docs",
     "test": "tests"
   },
-  "types": "./dist/index.d.ts"
+  "types": "./dist/index.d.ts",
+  "peerDependencies": {
+    "eslint-plugin-oxlint": ">=1.62.0 <1.86.0",
+    "fast-check": "^4.9.0",
+    "standard-version": "^9.5.0"
+  },
+  "peerDependenciesMeta": {
+    "eslint-plugin-oxlint": {
+      "optional": true
+    },
+    "fast-check": {
+      "optional": true
+    },
+    "standard-version": {
+      "optional": true
+    }
+  }
 }

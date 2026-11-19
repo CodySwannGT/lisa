@@ -16,7 +16,6 @@ import {
   pendingDeletionPaths,
 } from "../core/template-ownership.js";
 import {
-  DEFAULT_PROJECT_LEARNINGS_FILE,
   resolveLegacyProjectLearningsFile,
   resolveProjectLearningsFile,
   type ProjectConfig,
@@ -760,5 +759,4 @@ export async function packageJsonConforms(
   );
 }
 
-export { DEFAULT_PROJECT_LEARNINGS_FILE };
 /* eslint-enable jsdoc/require-param-description, jsdoc/require-returns, max-lines -- restore repository defaults */

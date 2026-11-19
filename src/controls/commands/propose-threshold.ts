@@ -30,7 +30,7 @@ import {
 export const PROPOSE_THRESHOLD_COMMAND = "propose-threshold";
 
 /** The version of the printed document. A changed shape gets a new one. */
-export const THRESHOLD_PROPOSAL_SCHEMA_VERSION = 1;
+const THRESHOLD_PROPOSAL_SCHEMA_VERSION = 1;
 
 /** What `lisa controls propose-threshold` prints on stdout. */
 export interface ThresholdProposalOutput extends ThresholdProposal {

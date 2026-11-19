@@ -58,7 +58,7 @@ export type ShownFileReader = (shown: string) => Promise<string | null>;
  * @param point - The enforcement point the file serves
  * @returns Whether such a line is there
  */
-export function startsRunner(text: string, point: CarrierPoint): boolean {
+function startsRunner(text: string, point: CarrierPoint): boolean {
   const script = `${CARRIER_HOOKS_FOLDER}/${point.hook}`;
   return text
     .split("\n")

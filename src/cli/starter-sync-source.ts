@@ -8,7 +8,7 @@ import {
 } from "./starter-provenance.js";
 
 /** Exact regular-file or link bytes at one immutable starter revision. */
-export interface StarterFile {
+interface StarterFile {
   readonly bytes: Buffer;
   readonly mode: string;
 }

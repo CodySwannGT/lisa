@@ -92,7 +92,7 @@ export type PlatformRead =
  * @returns Whether it is enforced on the hosting platform by a pipeline Lisa
  *   ships, rather than by a file the register names
  */
-export function isPlatformPoint(point: EnforcementPoint): boolean {
+function isPlatformPoint(point: EnforcementPoint): boolean {
   return (
     point.location === "hosting-platform" &&
     (point.executor === undefined || isWrittenByLisa(point.executor))

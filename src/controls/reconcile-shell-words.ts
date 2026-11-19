@@ -114,7 +114,7 @@ const REDIRECT = /^(?:\d+|&)?(?:>>|>&|>|<<<|<<-|<<|<&|<>|<)(.*)$/u;
  * @param raw - The word as it is written
  * @returns The word as the shell would hand it to a program
  */
-export function unquoted(raw: string): string {
+function unquoted(raw: string): string {
   return raw.replaceAll(
     QUOTED,
     (

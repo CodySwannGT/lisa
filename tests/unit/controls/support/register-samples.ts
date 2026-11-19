@@ -69,7 +69,7 @@ export const PROOF: Required<ControlProof> = {
 };
 
 /** A place the audit found a check, with every key. */
-export const LOCATOR: Required<EvidenceLocator> = {
+const LOCATOR: Required<EvidenceLocator> = {
   path: "api/ruff.toml",
   line: 1,
 };

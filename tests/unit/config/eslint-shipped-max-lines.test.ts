@@ -13,6 +13,7 @@
  * @module tests/unit/config/eslint-shipped-max-lines
  */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 import { ESLint } from "eslint";
@@ -81,9 +82,77 @@ function disablesMaxLines(line: string): boolean {
   return rules.split(/[\s,]+/).includes("max-lines");
 }
 
+/**
+ * Lint one file the way a consumer whose thresholds pin the floor would.
+ * @param file - Absolute path of the file to lint
+ * @returns Findings as `line:column rule — message`
+ */
+async function lintAtFloor(file: string): Promise<readonly string[]> {
+  const eslint = new ESLint({
+    // Rooted at the file's directory, so a control outside the repository is
+    // linted rather than skipped as outside the base path.
+    cwd: path.dirname(file),
+    overrideConfigFile: true,
+    overrideConfig: {
+      files: ["**/*.ts", "**/*.tsx"],
+      languageOptions: { parser: tseslint.parser },
+      // Unused disables are errors HERE so the exemption cannot rot: if a
+      // managed file shrinks back under the floor, its file-level
+      // `eslint-disable max-lines` fails this lint instead of sitting
+      // silently.
+      linterOptions: { reportUnusedDisableDirectives: "error" },
+      rules: {
+        "max-lines": ["error", { max: FLOOR_MAX_LINES }],
+        // Enabled so the file-level disable that also names this rule is a
+        // USED directive — the consumer profile ships it, and an unused
+        // disable is itself an error under reportUnusedDisableDirectives.
+        "max-lines-per-function": ["error", { max: 1 }],
+      },
+    },
+  });
+  const results = await eslint.lintFiles([file]);
+  return results.flatMap(result =>
+    result.messages.map(
+      message =>
+        `${message.line}:${message.column} ${message.ruleId} — ${message.message}`
+    )
+  );
+}
+
 describe("oversized managed templates exempt themselves from max-lines", () => {
-  it("discovers at least one template over the floor, or this suite is vacuous", () => {
-    expect(oversizedManagedSources().length).toBeGreaterThan(0);
+  it("discovers the managed sources it scans, or this suite is vacuous", () => {
+    expect(managedSources().length).toBeGreaterThan(0);
+  });
+
+  it("fails a file over the floor without the exemption and passes it with one", async () => {
+    // The over-floor lint below iterates only the templates that are over the
+    // floor today, which may be none. This control proves the lint itself
+    // still catches an over-floor file and still accepts the exemption.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "max-lines-"));
+    const lines = Array.from(
+      { length: FLOOR_MAX_LINES + 1 },
+      (_, index) => `export const value${index} = ${index};`
+    );
+    const bare = path.join(dir, "bare.ts");
+    const exempt = path.join(dir, "exempt.ts");
+    fs.writeFileSync(bare, lines.join("\n"));
+    fs.writeFileSync(
+      exempt,
+      [
+        "/* eslint-disable max-lines, max-lines-per-function -- control */",
+        "function control(): number {",
+        "  return 1;",
+        "}",
+        "export { control };",
+        ...lines,
+      ].join("\n")
+    );
+    try {
+      expect((await lintAtFloor(bare)).join("\n")).toMatch(/max-lines /u);
+      expect(await lintAtFloor(exempt)).toEqual([]);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it.each(managedSources().map(file => [path.basename(file), file] as const))(
@@ -109,33 +178,7 @@ describe("oversized managed templates exempt themselves from max-lines", () => {
   it.each(oversizedManagedSources().map(file => [path.basename(file), file]))(
     "%s lints clean under a consumer's maxLines floor",
     async (_name, file) => {
-      const eslint = new ESLint({
-        overrideConfigFile: true,
-        overrideConfig: {
-          files: ["**/*.ts", "**/*.tsx"],
-          languageOptions: { parser: tseslint.parser },
-          // Unused disables are errors HERE so the exemption cannot rot: if a
-          // managed file shrinks back under the floor, its file-level
-          // `eslint-disable max-lines` fails this lint instead of sitting
-          // silently.
-          linterOptions: { reportUnusedDisableDirectives: "error" },
-          rules: {
-            "max-lines": ["error", { max: FLOOR_MAX_LINES }],
-            // Enabled so the file-level disable that also names this rule is a
-            // USED directive — the consumer profile ships it, and an unused
-            // disable is itself an error under reportUnusedDisableDirectives.
-            "max-lines-per-function": ["error", { max: 1 }],
-          },
-        },
-      });
-      const results = await eslint.lintFiles([file as string]);
-      const findings = results.flatMap(result =>
-        result.messages.map(
-          message =>
-            `${message.line}:${message.column} ${message.ruleId} — ${message.message}`
-        )
-      );
-      expect(findings).toEqual([]);
+      expect(await lintAtFloor(file as string)).toEqual([]);
     }
   );
 });

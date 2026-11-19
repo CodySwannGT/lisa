@@ -344,7 +344,7 @@ async function mergeOpencodeConfig(destDir: string): Promise<boolean> {
  * @param existingJsonc - Current contents of `opencode.json` (or "").
  * @returns Merged JSON/JSONC string with host content preserved.
  */
-export function mergeNoVerifyDenyRules(existingJsonc: string): string {
+function mergeNoVerifyDenyRules(existingJsonc: string): string {
   if (existingJsonc.trim().length === 0) {
     const fresh = {
       $schema: OPENCODE_SCHEMA_URL,

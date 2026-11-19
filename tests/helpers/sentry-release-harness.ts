@@ -23,14 +23,14 @@ export const SENTRY_CREDENTIALS = {
 };
 
 /** The version job outputs every case shares unless it overrides them. */
-export const VERSION_OUTPUTS = {
+const VERSION_OUTPUTS = {
   version: "1.2.3",
   tag: "v1.2.3",
   release_commit: "c0ffee1234567890c0ffee1234567890c0ffee12",
 };
 
 /** The pushed commit the caller's run was triggered by. */
-export const TRIGGER_SHA = "56f04b8d0123456789abcdef0123456789abcdef";
+const TRIGGER_SHA = "56f04b8d0123456789abcdef0123456789abcdef";
 
 /**
  * Resolve expressions using GitHub's interpreter, including actual env bindings.

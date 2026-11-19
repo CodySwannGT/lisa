@@ -34,7 +34,7 @@ const DIST_CLI = path.join(REPO_ROOT, "dist", "index.js");
 const cleanups: (() => void)[] = [];
 
 /** What one check came to in each command. */
-export interface HeldPart {
+interface HeldPart {
   /** What `proof-check` called its pair. */
   readonly checked: string;
   /** Why `proof-check` called it that. */

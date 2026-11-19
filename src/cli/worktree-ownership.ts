@@ -50,7 +50,7 @@ export const OWNER_ID_VARIABLES: readonly string[] = Object.freeze([
 export type OwnershipVerdict = "mine" | "theirs" | "unclaimed";
 
 /** Persisted claim on one worktree. */
-export interface OwnerReceipt {
+interface OwnerReceipt {
   /** Opaque id of the agent that claimed the worktree. */
   readonly ownerId: string;
   /** ISO timestamp the claim was written. */

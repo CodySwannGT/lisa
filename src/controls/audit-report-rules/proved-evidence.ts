@@ -50,7 +50,7 @@ import { minimumRungOf } from "../verdict.js";
 import { rungInWords } from "../verdict-wording.js";
 
 /** The name this rule's violations carry. */
-export const PROVED_EVIDENCE_RULE = "proved-evidence";
+const PROVED_EVIDENCE_RULE = "proved-evidence";
 
 /** The state whose findings cite a record. */
 const PROVED = "proved";

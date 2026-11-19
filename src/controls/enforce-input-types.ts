@@ -47,7 +47,7 @@ export interface HandedCarriers {
 }
 
 /** One register entry of the merge-protection result, as far as it is read. */
-export interface HandedProtectEntry {
+interface HandedProtectEntry {
   readonly id: string;
   readonly outcome: ProtectOutcome;
   readonly reason: string;

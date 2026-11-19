@@ -25,7 +25,7 @@ const SETTINGS_REL_PATH = path.join(".claude", "settings.json");
  * - `skill-creator@claude-plugins-official` — retired by the owner, along
  *   with Lisa's `lisa-parity-skill-creator` reimplementation.
  */
-export const RETIRED_THIRD_PARTY_PLUGIN_KEYS: readonly string[] = [
+const RETIRED_THIRD_PARTY_PLUGIN_KEYS: readonly string[] = [
   "impeccable@impeccable",
   "cc-safety-net@cc-marketplace",
   "safety-net@cc-marketplace",
@@ -35,7 +35,7 @@ export const RETIRED_THIRD_PARTY_PLUGIN_KEYS: readonly string[] = [
 ];
 
 /** The marketplaces registered only to serve those plugins. */
-export const RETIRED_THIRD_PARTY_MARKETPLACES: readonly string[] = [
+const RETIRED_THIRD_PARTY_MARKETPLACES: readonly string[] = [
   "pbakaus/impeccable",
   "kenryu42/cc-marketplace",
 ];
@@ -58,7 +58,7 @@ interface Removal {
  * @param settings - Parsed `.claude/settings.json`
  * @returns The plugin keys and marketplace keys to remove, in file order
  */
-export function retiredEntries(settings: ClaudeSettings): Removal {
+function retiredEntries(settings: ClaudeSettings): Removal {
   return {
     plugins: Object.keys(settings.enabledPlugins ?? {}).filter(key =>
       RETIRED_THIRD_PARTY_PLUGIN_KEYS.includes(key)

@@ -96,9 +96,6 @@ const RUNNER_VERDICT = /^ {2}(PASSED|FAILED) +(?:required|optional) +/u;
 /** What the gate runner's report says of one check. */
 type RunnerVerdict = "PASSED" | "FAILED";
 
-/** Who is asked whether a commit or push went through. */
-export const PROOF_COPY_ANSWERERS = ["carriers", "git"] as const;
-
 /** How a workspace over a disposable copy answers. */
 export interface ProofCopyWorkspaceOptions {
   /**
@@ -107,7 +104,7 @@ export interface ProofCopyWorkspaceOptions {
    * moment no carrier runs at. `git`: the commit or push is made whatever is
    * wired, and git's exit status together with what git did is the answer.
    */
-  readonly answeredBy?: (typeof PROOF_COPY_ANSWERERS)[number];
+  readonly answeredBy?: "carriers" | "git";
 }
 
 /**

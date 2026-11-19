@@ -32,7 +32,7 @@ import { declarationHoldsNoSecretValues } from "./register-secrets-rule.js";
 import { executorsAgree } from "./pull-request-executor.js";
 
 /** What a rule is given. */
-export interface ControlRegisterRuleContext {
+interface ControlRegisterRuleContext {
   /** The declaration, already valid as far as the gate registry can tell. */
   readonly declaration: GatesDeclaration;
   /** The criterion catalogue of the running Lisa package. */
@@ -74,7 +74,7 @@ function criterionProblem(
  * @param context - The declaration and the catalogue
  * @returns One line per id that is not
  */
-export const criteriaAreCatalogued: ControlRegisterRule = context => {
+const criteriaAreCatalogued: ControlRegisterRule = context => {
   const { declaration, catalogue } = context;
   const byId = new Map(
     catalogue.criteria.map(criterion => [criterion.id, criterion])
