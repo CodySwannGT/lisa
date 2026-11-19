@@ -103,13 +103,16 @@ function toolIdentity(path) {
  * Only the original trusted PATH may select a supported native Bun installation.
  * Each call is capped at `ceiling` (two minutes by default); a whole-root install
  * passes its remaining phase budget instead, as the npm path does.
+ *
+ * `offline` adds `--offline` to every `bun install`, for a private root given
+ * a cache seed (`./npm-update-cache-seed.mjs`); it is never set otherwise.
  * @param {NodeJS.ProcessEnv} env - Trusted environment whose PATH selects Bun.
- * @param {{ executable?: string, deadline?: number, ceiling?: number }} [options] - Explicit executable, phase deadline and per-call ceiling.
+ * @param {{ executable?: string, deadline?: number, ceiling?: number, offline?: boolean }} [options] - Explicit executable, phase deadline, per-call ceiling and offline installs.
  * @returns {Promise<(args: string[], options?: Record<string, any>) => Promise<any>>} A bounded Bun invoker.
  */
 export async function qualifiedBun(
   env,
-  { executable, deadline, ceiling = 120_000 } = {}
+  { executable, deadline, ceiling = 120_000, offline = false } = {}
 ) {
   const path =
     executable ??
@@ -135,7 +138,9 @@ export async function qualifiedBun(
       Number.isSafeInteger(timeout) && timeout > 0,
       "original Bun operation deadline expired"
     );
-    const result = await runProcess(absolute, args, {
+    const installArgs =
+      offline && args[0] === "install" ? [...args, "--offline"] : args;
+    const result = await runProcess(absolute, installArgs, {
       ...options,
       env: { ...env, BUN_FEATURE_FLAG_DISABLE_NATIVE_DEPENDENCY_LINKER: "1" },
       timeout,

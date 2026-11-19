@@ -10,6 +10,8 @@ interface NativeUpdateInput {
   readonly cwd: string;
   readonly policy: Readonly<Record<string, unknown>>;
   readonly config: Readonly<Record<string, unknown>>;
+  /** Recorded registry caches for the updater's private root. */
+  readonly cacheSeed?: { readonly npm: string; readonly bun?: string };
 }
 
 const ENTRY = new URL(
@@ -19,7 +21,10 @@ const ENTRY = new URL(
 const SCRIPT = `
 import { readFileSync } from 'node:fs';
 const { prepareUpdate } = await import(process.argv[1]);
-const result = await prepareUpdate(JSON.parse(readFileSync(0, 'utf8')));
+const result = await prepareUpdate(JSON.parse(readFileSync(0, 'utf8'))).catch(error => {
+  process.stderr.write(String(error?.stderr ?? '') + String(error?.stack ?? error));
+  process.exit(1);
+});
 process.stdout.write(JSON.stringify({node:process.versions.node,abi:process.versions.modules,result}));
 `;
 

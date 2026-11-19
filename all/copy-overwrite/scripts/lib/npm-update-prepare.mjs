@@ -35,6 +35,7 @@ export { qualifyLisaOwner } from "./npm-update-owner.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import { directoryBun, qualifiedBun, frozenBun } from "./npm-update-bun.mjs";
 import { npmPath } from "./automation-provenance-contract.mjs";
+import { seedPrivateRoot, validCacheSeed } from "./npm-update-cache-seed.mjs";
 
 const NPM_FLAGS = ["--ignore-scripts", "--no-audit", "--no-fund"];
 
@@ -94,7 +95,7 @@ export async function baseline(
   return { parent, files };
 }
 
-/** Installed evidence and genuine selected registry metadata define the update set. */
+/** Installed evidence and selected registry metadata define the update set; under a cache seed that metadata is the seed's. */
 async function findUpdates(
   before,
   policy,
@@ -227,12 +228,24 @@ async function preparedProposal({
   };
 }
 
-/** The private resource lifecycle remains outside the prepared proposal's npm checks; the baseline proves the directory before npm reads its config. */
-export async function prepareUpdate({ cwd, policy: input, config }) {
+/**
+ * The private resource lifecycle remains outside the prepared proposal's npm checks; the baseline proves the directory before npm reads its config.
+ *
+ * `cacheSeed` is an explicit option, never read from the environment: it
+ * pre-fills the private root's npm (and Bun) cache and puts npm and every Bun
+ * install offline, for a caller that serves recorded registry data (see
+ * `./npm-update-cache-seed.mjs`). A seed without a Bun folder is refused for
+ * a host that commits bun.lock, before any install runs.
+ * The production caller passes none, and a seeded proposal is marked so no
+ * later phase accepts it.
+ */
+export async function prepareUpdate({ cwd, policy: input, config, cacheSeed }) {
   const policy = validatePolicy(input, config);
+  const seed = validCacheSeed(cacheSeed);
   let privatePath;
-  const result = await withPrivateRoot(async (root, env) => {
+  const result = await withPrivateRoot(async (root, privateEnv) => {
     privatePath = root;
+    const env = seedPrivateRoot(root, privateEnv, seed);
     const app = join(root, "app");
     mkdirSync(app, { mode: 0o700 });
     required(process.versions.node === "22.23.3", "Node22.23.3 is required");
@@ -244,6 +257,14 @@ export async function prepareUpdate({ cwd, policy: input, config }) {
       "supported npm10.9.9 or11.21.0 is required"
     );
     const original = await baseline(cwd, env, undefined, policy.directory);
+    // A seed puts Bun offline too, so a Bun host needs Bun's cache in it: say
+    // so here, before any install, rather than as a cache miss later.
+    required(
+      seed === undefined ||
+        seed.bun !== undefined ||
+        original.files["bun.lock"] === undefined,
+      "cache seed has no Bun folder, and this host commits bun.lock"
+    );
     const strict = await effectiveEngineStrict(join(cwd, policy.directory));
     const npmFlags = [...NPM_FLAGS, ...(strict ? ["--engine-strict"] : [])];
     const before = JSON.parse(original.files["package.json"]);
@@ -260,7 +281,7 @@ export async function prepareUpdate({ cwd, policy: input, config }) {
     const bun =
       original.files["bun.lock"] === undefined
         ? undefined
-        : await qualifiedBun(env);
+        : await qualifiedBun(env, { offline: seed !== undefined });
     const npm = (args, allowed = [0]) =>
       runNpm(args, { cwd: app, env, timeout: 120_000, allowed });
     await npm(["ci", ...npmFlags]);
@@ -296,5 +317,12 @@ export async function prepareUpdate({ cwd, policy: input, config }) {
     });
   });
   required(!existsSync(privatePath), "private npm resources remain");
-  return { ...result, cleanup: { absent: true } };
+  // A seed decides the registry metadata, and so the lock integrity, of every
+  // package the host's lock does not already pin. `validateProposal` accepts
+  // only its exact fields, so every phase after prepare refuses this mark.
+  const marked =
+    seed !== undefined && "proposal" in result
+      ? { ...result, proposal: { ...result.proposal, seeded: true } }
+      : result;
+  return { ...marked, cleanup: { absent: true } };
 }

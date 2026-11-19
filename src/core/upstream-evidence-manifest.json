@@ -123,7 +123,9 @@
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs":
       "bb785fc64de1dfeb09241d228c11eaf7aaf3821bafa96da4bc37f2bac28cd8d0",
     "all/copy-overwrite/scripts/lib/npm-update-bun.mjs":
-      "5f570618702708473c4bb7c79475b6eef6e43adce613dbc0a3ae109d67608a3d",
+      "f8ecfe4161ad7c7d615a5d0941fb6eaa0961104beeb38a51334149b4c414e39b",
+    "all/copy-overwrite/scripts/lib/npm-update-cache-seed.mjs":
+      "472c468e09f4a987c54c07135657f8f59d98eacba255e897a4631ead0b161faa",
     "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs":
       "16c73749985e79a4ec5a06d198514867b03e7e9a279511ce803236784c0c852a",
     "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs":
@@ -165,7 +167,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "4bfa589aaeda81f29c800409e5e66fab6e6d735135c1a075213ee6d2e007773b",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "9577f00418e2aa6458737297efb01fc06bf6e77a221f72d344d4f11775ea8fa8",
+      "f466c926c30087baddc8bce95ace6506f5808977e519a5c7a98329b4eca35045",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -203,7 +205,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-policy.mjs":
       "84bad0db7211c7046dc028c6862568a81222deab38606754771fcefffd86d134",
     "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs":
-      "f3a73f543898f7946e28e4ec8788eddb88b736a22d7bfdeed67dbb2456fd9796",
+      "cad3c670c60b92b4f673ca55037563446b032e827d654b466f2cd579bf74a2ab",
     "all/copy-overwrite/scripts/lib/npm-update-process-core.mjs":
       "5ee6e914ff039968ef327d00e66aaa2637fbca725150c11a331d2bcba6c60b64",
     "all/copy-overwrite/scripts/lib/npm-update-process.mjs":
@@ -419,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "21bb0e98ed8040c5eded17384374fcf950a2ac36de073cc28aef35fae53ad184",
+      "7aed270e8266d828900d58c2731fd66e5a1fa00ea6263e7853b684bcad8fe44a",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -3026,6 +3028,8 @@
       "da477a71afa9e55acbf60abf038702baec4ea7342b5738404fd23658a1d48ceb",
     "scripts/reconcile-release-tags.mjs":
       "038e97bad361e1653f7c8d9842ab371d2dde62f02dc85c4e326a1b5aca06b178",
+    "scripts/record-npm-update-dual-lock-seed.mjs":
+      "d6de4a9a528fc32f9c3129fc1462188cb62cda0eace85c0b7ae3cbda9a649a01",
     "scripts/remedy-conformance.mjs":
       "6668c723f7f1335628eea41ea0c88d8beb2b85dff7591dd485579b6d486f9aff",
     "scripts/remote-agent-aws-setup.sh":
@@ -3041,7 +3045,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "588b880644124841ea2985ad8eca8b4a52f9d2506e1138f4e4416f9020811755",
+      "acbd0b9e5094f4b4d336a11446a8369b164643f0881ac08a2d672b45488d5034",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3111,7 +3115,7 @@
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "c12fbdbf74dcec97fcdadbec4b30e4e9a5f944e253a48280e347504e6ce29680",
+      "d2ccdac51cc0ef73d8073db7da01e099d2d770dd58fab86d8956a026a95eadc9",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3451,6 +3455,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-bun.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-cache-seed.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-cancellation.mjs": true,
@@ -11066,6 +11071,7 @@
     "scripts/push-self-pin-raise.sh": true,
     "scripts/raise-self-dependency-pin.mjs": true,
     "scripts/reconcile-release-tags.mjs": true,
+    "scripts/record-npm-update-dual-lock-seed.mjs": true,
     "scripts/remedy-conformance.mjs": true,
     "scripts/remote-agent-aws-setup.sh": true,
     "scripts/run-artifact-checks.mjs": true,
@@ -12025,6 +12031,7 @@
     "tests/fixtures/mutation-performance/vitest/src/grade.ts": true,
     "tests/fixtures/mutation-performance/vitest/tests/grade.test.ts": true,
     "tests/fixtures/mutation-performance/vitest/tsconfig.json": true,
+    "tests/fixtures/npm-update-dual-lock/registry-record.tgz": true,
     "tests/fixtures/npm-update-hosted-runtime/application.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/browser-process-observation.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/components.mjs": true,
@@ -12451,6 +12458,7 @@
     "tests/integration/node-suites-pr-only.test.ts": true,
     "tests/integration/npm-update-all-host-helpers.test.ts": true,
     "tests/integration/npm-update-bun-root.test.ts": true,
+    "tests/integration/npm-update-cache-seed.test.ts": true,
     "tests/integration/npm-update-dual-lock.test.ts": true,
     "tests/integration/npm-update-subdirectory.test.ts": true,
     "tests/integration/npm-updater-download-https.test.ts": true,

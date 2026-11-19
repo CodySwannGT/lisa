@@ -172,8 +172,9 @@ describe("all-only npm host controller materialization", () => {
       // runner imports;
       // 145: CodySwannGT/lisa#4956 adds the five work-item-estimate modules
       // completion imports for its done gate, and 146 the tracker-row-fold
-      // the usage and estimate projections share.
-      expect(managedTemplateMembers().size).toBe(146);
+      // the usage and estimate projections share; 147: CodySwannGT/lisa#5092
+      // adds npm-update-cache-seed, which prepare imports.
+      expect(managedTemplateMembers().size).toBe(147);
     },
     ioLatencyBudgetMs(30_000)
   );
