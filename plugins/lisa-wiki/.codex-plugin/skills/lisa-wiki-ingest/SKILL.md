@@ -61,8 +61,12 @@ writes nothing). The point is to ingest on top of fresh state, never stale state
    with sensitive findings are the exception — open the PR **without** auto-merge so a human reviews
    them before it lands. The PR summary must include the policy's safe review summary: counts and
    entity types only, never raw values, ranges, tokens, source snippets, or scanner output. If
-   auto-merge cannot be enabled (the host doesn't support it, branch protection forbids it, or the
-   policy requires review), leave the PR open and note that a human must merge.
+   the host does not support auto-merge, hand the PR to `lisa-drive-pr-to-merge`, whose direct-merge
+   fallback merges only after its review gate clears for the head (green checks alone do not); a
+   vacuous review context leaves the PR open. The exception above holds on every host:
+   `external-write`, redacted and sensitive runs are never merged directly. If branch protection
+   forbids merging, the policy requires review, or the review gate has not cleared, leave the PR
+   open and name the gate that holds it.
 
 ## Rules
 - **Bookend every ingest with git hygiene:** sync the branch with the default remote branch *before*

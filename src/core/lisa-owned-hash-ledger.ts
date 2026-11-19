@@ -1563,8 +1563,10 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lisa-audit.mjs": Object.freeze([
     "0c386b25ec8f91de3a0182014b65703a5041e59400360ece40f376937ba53d80",
     "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
+    "350075ce70c63bb3e71fba6b22550b25b4672f70d69d39cb1a73db7533247c8e",
     "68bc4a842c6f8138d0d8a923809032eba5ef7e39b22949580d1bfdfa74aded8a",
     "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
+    "9978d1b7f59338f5a53f20900b5370723176731513089d0ee3b8c57931ef6e93",
     "e8eb9c90ed906fb9b95bf788dc06fe3fa7ee339c526c62f54fd3556de67e8442",
   ]),
   "scripts/lisa-automation-provenance.mjs": Object.freeze([
@@ -2135,6 +2137,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "ff15992834e3bb911a560a6f65be76a791a8cd262f36b18972f25a8dc36d7c00",
   ]),
   "scripts/lisa-hooks/sonar-secrets.sh": Object.freeze([
+    "18e1d963d4416ccd247158e6a4bfcf43234f47faeb3a4654b5a6c78001ab8ef5",
     "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
     "7a408788975a6351d53e14aa32bb9a5d161f33df9dfea59ba32784ae33a62e67",
     "853bcf0bc455e78326186463287e32cc5906a40323c630a8e63935315197fd2f",
@@ -4577,8 +4580,10 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/lisa-audit.mjs": Object.freeze([
     "0c386b25ec8f91de3a0182014b65703a5041e59400360ece40f376937ba53d80",
     "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
+    "350075ce70c63bb3e71fba6b22550b25b4672f70d69d39cb1a73db7533247c8e",
     "68bc4a842c6f8138d0d8a923809032eba5ef7e39b22949580d1bfdfa74aded8a",
     "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
+    "9978d1b7f59338f5a53f20900b5370723176731513089d0ee3b8c57931ef6e93",
     "e8eb9c90ed906fb9b95bf788dc06fe3fa7ee339c526c62f54fd3556de67e8442",
   ]),
   "scripts/lisa-automation-provenance.mjs": Object.freeze([
@@ -5102,6 +5107,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "ff15992834e3bb911a560a6f65be76a791a8cd262f36b18972f25a8dc36d7c00",
   ]),
   "scripts/lisa-hooks/sonar-secrets.sh": Object.freeze([
+    "18e1d963d4416ccd247158e6a4bfcf43234f47faeb3a4654b5a6c78001ab8ef5",
     "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
     "7a408788975a6351d53e14aa32bb9a5d161f33df9dfea59ba32784ae33a62e67",
     "853bcf0bc455e78326186463287e32cc5906a40323c630a8e63935315197fd2f",

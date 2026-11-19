@@ -62,8 +62,38 @@ set -uo pipefail
 # the drain at exactly the moment this wrapper is proving `sonar` is absent
 # (CodySwannGT/lisa#3308). An empty delimiter means "read through NUL or EOF";
 # hook envelopes contain no NUL, so the non-zero EOF result is expected.
+#
+# Every wait in this file has a ceiling (CodySwannGT/lisa#5038). This one waited
+# for EOF with none, so a caller that gave up on the hook without closing its end
+# of the pipe left the hook blocked in `read` forever: four were found on one
+# workstation, orphaned to PID 1 with no children, 2h, 2h, 5h and 146h old. A
+# real caller writes the whole envelope at once (a 1MB payload drains in ~0.6s
+# at a load average of 20), so the ceiling only ever ends a wait nobody is going
+# to finish. When EOF arrives in time nothing changes: every exit below still
+# follows it. When it does not, the hook stops waiting and steps aside — Bash
+# discards a partial read on timeout, so there is no complete payload to scan.
+#
+# `read -t` cannot tell its caller which happened (Bash 3.2 returns 1 for both
+# EOF and a timeout), so the clock decides: a read that lasted the whole ceiling
+# timed out. A value that is not a positive whole number falls back to the
+# shipped ten seconds rather than to `read -t 0`, which would skip the drain.
+bound_s() {
+  case "$1" in
+    '' | *[!0-9]* | 0*) printf '10' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
 payload=""
-IFS= read -r -d '' payload || true
+stdin_bound="$(bound_s "${LISA_SONAR_STDIN_TIMEOUT_S:-}")"
+stdin_started=$SECONDS
+IFS= read -r -d '' -t "$stdin_bound" payload || true
+if (( SECONDS - stdin_started >= stdin_bound )); then
+  echo "sonar: the hook's input did not finish arriving within ${stdin_bound}s;" >&2
+  echo "  skipping the local secret scan. Commit-time and CI secret scanning" >&2
+  echo "  still gate this repository." >&2
+  exit 0
+fi
 
 event="${1:-}"
 [[ -n "$event" ]] || exit 0
@@ -81,8 +111,94 @@ command -v sonar >/dev/null 2>&1 || exit 0
 # exit code carries no information and the reason text is the only channel.
 inactive_marker='secret scanning is inactive'
 
+# Run one command with a ceiling and capture its stdout into `captured`.
+#
+# Usage: capture_bounded <seconds> <delimiter> <label> <stdin> <command...>
+# Returns 0 when the command answered in time, 1 when the ceiling expired (and
+# `captured` is then empty), and 2 when the private FIFO could not be made.
+#
+# `read -t` supplies the ceiling. `timeout` is absent on a stock macOS and
+# `coproc` needs Bash 4 (the hooks run under /bin/bash 3.2 there), so this is the
+# portable form. Stopping the wait is not stopping the work, so when the read
+# returns the command is killed and reaped; that requires its PID, which is why
+# the command is backgrounded explicitly and its output goes through a FIFO.
+# On /bin/bash 3.2, `$!` after `< <(cmd)` is the SHELL'S OWN PID, not the
+# substitution's child (verified: the child's PPID is the shell, and `$!` equals
+# the shell), so `kill -9 "$!"` there would tell the hook to kill itself. For a
+# background pipeline `$!` is its last command, so the kill lands on the command
+# itself; its stdin writer then dies on the closed pipe.
+#
+# The FIFO's OPEN is bounded too, not only the read (CodySwannGT/lisa#5038). A
+# read-only open of a FIFO blocks until a writer opens the other end, and a
+# writer that dies first would leave it blocked for good with `read -t` never
+# reached. So the hook opens the FIFO read-write first, which never blocks, and
+# the command inherits that end at fork instead of opening the path later. The
+# read-only end is then opened while a writer is guaranteed to exist, and the
+# hook's own write end is closed, so EOF arrives exactly when the command (and
+# anything it handed its stdout to) is done.
+#
+# The FIFO is a rendezvous, not storage: a named pipe holds no data at rest, so a
+# value carried through it never lands on disk (CWE-922) and a kill at any point
+# leaves an empty pipe behind rather than a readable token. The directory is
+# `mktemp -d`, which is 0700. Its explicit Lisa prefix makes an interrupted run
+# attributable to the owning scratch lifecycle instead of anonymous `tmp.*`.
+# Descriptors 3 and 4 are used for nothing else in this file.
+captured=""
+capture_bounded() {
+  local seconds="$1" delim="$2" label="$3" feed="$4" dir="" fifo="" child=""
+  local started=0 status=0
+  shift 4
+  captured=""
+  dir="$(mktemp -d "${TMPDIR:-/tmp}/lisa-sonar-${label}.XXXXXXXX")" || return 2
+  fifo="$dir/$label"
+  if ! mkfifo -m 600 "$fifo" 2>/dev/null; then
+    rm -rf "$dir"
+    return 2
+  fi
+  exec 3<>"$fifo"
+  { printf '%s' "$feed"; } 3>&- | "$@" >&3 3>&- 2>/dev/null &
+  child=$!
+  exec 4<"$fifo"
+  exec 3>&-
+  started=$SECONDS
+  IFS= read -r -d "$delim" -t "$seconds" captured <&4
+  exec 4<&-
+  # The clock decides, as for stdin above: Bash 3.2 returns 1 for EOF and for a
+  # timeout alike, and Bash 4+ keeps a timed-out partial read, which must never
+  # pass for a verdict or a token.
+  if (( SECONDS - started >= seconds )); then
+    captured=""
+    status=1
+  fi
+  kill -9 "$child" 2>/dev/null
+  wait "$child" 2>/dev/null
+  rm -rf "$dir"
+  return "$status"
+}
+
+# `sonar hook` is a call with no ceiling of its own, in front of every prompt and
+# every file read (CodySwannGT/lisa#5038). Ten seconds by default, like the
+# resolver below; `LISA_SONAR_SCAN_TIMEOUT_S` lets a caller that is not a session
+# say otherwise. A scanner that does not answer is a degraded layer, not a
+# finding, so the hook warns and steps aside.
+scan_bound="$(bound_s "${LISA_SONAR_SCAN_TIMEOUT_S:-}")"
 run_scanner() {
-  printf '%s' "$payload" | sonar hook "$event" 2>/dev/null
+  capture_bounded "$scan_bound" '' scan "$payload" sonar hook "$event"
+  case $? in
+    0) out="$captured" ;;
+    1)
+      echo "sonar: the secret scanner did not answer within ${scan_bound}s;" >&2
+      echo "  skipping the local secret scan. Commit-time and CI secret scanning" >&2
+      echo "  still gate this repository." >&2
+      exit 0
+      ;;
+    *)
+      echo "sonar: could not make a private pipe for the secret scanner;" >&2
+      echo "  skipping the local secret scan. Commit-time and CI secret scanning" >&2
+      echo "  still gate this repository." >&2
+      exit 0
+      ;;
+  esac
 }
 
 is_inactive() {
@@ -92,21 +208,15 @@ is_inactive() {
   esac
 }
 
-# Run the resolver with a ceiling, because the provider call crosses the network
+# Resolve a secret with a ceiling, because the provider call crosses the network
 # and this sits in front of every prompt and every file read.
 #
 # The value never touches the filesystem. An earlier version captured it through
 # `mktemp` and deleted the file afterwards, which is a race, not a cleanup: a
 # kill between the write and the `rm` leaves the token readable on disk (CWE-922)
 # — the precise failure the one-store rule in lisa-secrets-access exists to
-# prevent, reintroduced by the code enforcing it. Process substitution gives a
-# `/dev/fd` pipe instead, so there is no path on disk to leak and nothing to
-# clean up on any exit path, signalled or not.
-#
-# `read -t` supplies the ceiling. `timeout` is absent on a stock macOS and
-# `coproc` needs Bash 4 (the hooks run under /bin/bash 3.2 there), so this is the
-# portable form. A timeout leaves `value` empty, which the caller treats as "the
-# provider had nothing" — the warn path, never a block.
+# prevent, reintroduced by the code enforcing it. `capture_bounded` carries it
+# over a FIFO instead, which holds nothing at rest.
 #
 # Ten seconds is the ceiling a consumer gets, and that is a product decision, not
 # a tuning constant: this runs in front of every prompt and every file read, so
@@ -119,44 +229,17 @@ is_inactive() {
 # (CodySwannGT/lisa#2905). The suite scales this the same way it scales its own
 # budgets, and stages a hang by shrinking it.
 #
-# Unset, empty, or unparseable all end in the warn path: `:-10` covers the first
-# two, and `read -t garbage` fails immediately, which leaves `value` empty. There
-# is no value of this variable that turns a warn into a block.
-#
-# Giving up on the read is not the same as stopping the work: a resolver blocked
-# on the network otherwise outlives the hook that started it, and this runs in
-# front of every prompt and every file read. So the child is killed and reaped,
-# which requires knowing its PID — and that is why the transport is a FIFO and
-# not the process substitution this function used to read from.
-#
-# On /bin/bash 3.2, `$!` after `< <(cmd)` is the SHELL'S OWN PID, not the
-# substitution's child (verified: the child's PPID is the shell, and `$!` equals
-# the shell). A `kill -9 "$!"` there tells the hook to kill itself. Backgrounding
-# the resolver explicitly is what makes `$!` mean the resolver.
-#
-# The FIFO is a rendezvous, not storage: a named pipe holds no data at rest, so
-# the value still never lands on disk (CWE-922) and a kill at any point leaves an
-# empty pipe behind rather than a readable token. The directory is `mktemp -d`,
-# which is 0700. Its explicit Lisa prefix makes an interrupted resolver
-# attributable to the owning scratch lifecycle instead of anonymous `tmp.*`.
+# A timeout leaves the value empty, which the caller treats as "the provider had
+# nothing" — the warn path, never a block. Unset, empty, or unparseable all fall
+# back to the shipped ten seconds, so there is no value of this variable that
+# turns a warn into a block.
 resolve_secret() {
-  local resolver="$1" name="$2" value="" child="" dir="" fifo=""
-  dir="$(mktemp -d "${TMPDIR:-/tmp}/lisa-sonar-resolver.XXXXXXXX")" || return 0
-  fifo="$dir/resolver"
-  if ! mkfifo -m 600 "$fifo" 2>/dev/null; then
-    rm -rf "$dir"
-    return 0
-  fi
-  node "$resolver" get "$name" >"$fifo" 2>/dev/null &
-  child=$!
-  IFS= read -r -t "${LISA_SONAR_RESOLVER_TIMEOUT_S:-10}" value < "$fifo" || true
-  kill -9 "$child" 2>/dev/null
-  wait "$child" 2>/dev/null
-  rm -rf "$dir"
-  printf '%s' "$value"
+  capture_bounded "$(bound_s "${LISA_SONAR_RESOLVER_TIMEOUT_S:-10}")" $'\n' resolver "" \
+    node "$1" get "$2"
+  printf '%s' "$captured"
 }
 
-out="$(run_scanner)"
+run_scanner
 
 if is_inactive "$out"; then
   # Where lisa-secrets-access lives depends on how the project receives Lisa.
@@ -187,7 +270,7 @@ if is_inactive "$out"; then
       export SONARQUBE_CLI_TOKEN="$token"
       org="$(resolve_secret "$resolver" SONARQUBE_CLI_ORG)"
       [[ -n "$org" ]] && export SONARQUBE_CLI_ORG="$org"
-      out="$(run_scanner)"
+      run_scanner
     fi
     unset token org
   fi

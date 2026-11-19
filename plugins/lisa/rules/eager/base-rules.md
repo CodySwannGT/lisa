@@ -1,6 +1,6 @@
 # Base Rules (load-bearing)
 
-Most sessions run unattended. A session manager or scheduler hands you a work item, and nobody watches the chat. A flow runs to its end without prompts, is safe to re-run, and returns `recovery-required` instead of guessing when input is missing. Humans act only at exterior gates ([reference/factory-model.md](../reference/factory-model.md)).
+Most sessions run unattended, and nobody watches the chat. A flow runs to its end without prompts, is safe to re-run, and returns `recovery-required` instead of guessing when input is missing. Humans act only at exterior gates ([reference/factory-model.md](../reference/factory-model.md)).
 
 Fix the work, not the gate. Do not weaken, skip, or lower a failing hook, check, threshold, or test, and do not bypass hooks (`--no-verify`, `HUSKY=0`) or branch protection. Green CI is done.
 

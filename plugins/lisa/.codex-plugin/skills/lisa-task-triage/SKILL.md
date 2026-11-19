@@ -11,8 +11,8 @@ Follow this 8-step triage process before implementing any task. Do not skip tria
 
 ## Triage Steps
 
-1. Verify you have all information needed to implement this task (acceptance criteria, design specs, environment information, dependencies, etc.). Do not make assumptions. If anything is missing, stop and ask before proceeding.
-2. Verify you have a clear understanding of the expected behavior or outcome when the task is complete. If not, stop and clarify before starting.
+1. Verify you have all information needed to implement this task (acceptance criteria, design specs, environment information, dependencies, etc.). Do not make unrecorded assumptions. If anything is missing, find it in the item, its linked work, the code, the wiki and git history, and where a reasonable default exists, take it and record it on the item. Stop only for what that cannot settle — missing access, or a product question with no reasonable default — through the flow's blocked exit, with a specific question and your recommended answer.
+2. Verify you have a clear understanding of the expected behavior or outcome when the task is complete. If not, settle it the same way as step 1 before starting.
 3. Identify all dependencies (other tasks, services, APIs, data) that must be in place before you can complete this task. If any are unresolved, stop and raise them before starting implementation.
 4. Verify you have access to the tools, environments, and permissions needed to deploy and verify this task (e.g. CI/CD pipelines, deployment targets, logging/monitoring systems, API access, database access). If any are missing or inaccessible, stop and raise them before starting implementation.
 5. Define the tests you will write to confirm the task is implemented correctly and prevent regressions.

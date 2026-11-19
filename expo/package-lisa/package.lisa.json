@@ -203,7 +203,8 @@
     "devDependencies": [
       "@stryker-mutator/vitest-runner",
       "@vitest/coverage-v8",
-      "vitest"
+      "vitest",
+      "eslint-plugin-react-compiler"
     ]
   },
   "adopt": {
