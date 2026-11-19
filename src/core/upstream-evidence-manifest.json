@@ -323,7 +323,7 @@
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs":
       "b803106384f35ed85bfa7541c994601cee1523b2010981075eb3244960fae7c5",
     "all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs":
-      "ad54c187fa1ffa15244c67adbbe1912895b288d9472e2e351d6ad4006a930055",
+      "d47e86213164c0d45fb5827281c539c0071e53173b63926e91e89e80da4b2d3a",
     "all/copy-overwrite/scripts/lib/work-item-estimate.mjs":
       "ac27c325a912e54f5f92a02651495a28152987af4368aab95ef68f42dad17313",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
@@ -419,7 +419,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "9c89977a982c73f903a5f92015f63c07a3fa175dd59355cd8bfd323953bc0b00",
+      "21bb0e98ed8040c5eded17384374fcf950a2ac36de073cc28aef35fae53ad184",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1985,7 +1985,7 @@
     "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md":
       "d34e7b4951bc26caf15625e081e8273a11ee8ca1bde6137750f4b687fca7e8bf",
     "plugins/src/base/skills/lisa-usage-accounting/references/estimate.md":
-      "426f78f2ef367a801e1e6f1499eabda62d3075a41d4a64d0fe7d61fdbce8753e",
+      "164737e1249881ba583e2b8fc76b489685719685e93f6231f2af00b8767f3f0c",
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "9605cce9b30a5a4db04ce936b5dddcaaf05368ddcd91ce4067956071a481db63",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":

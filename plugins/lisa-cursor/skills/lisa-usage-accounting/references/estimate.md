@@ -121,7 +121,11 @@ Pass every comment that holds a ledger, each with its own `--usage-file`, to bot
 reads every comment, so the check must read the same ledgers the tally counted. A total that any run
 leaves unknown (`unavailable` telemetry, a `measured-subset` entry, a child run with no token count
 or no cost) is shown as
-`unknown`, never as zero, never as the sum of only the known runs, and never guessed. An item that
+`unknown`, never as zero, never as the sum of only the known runs, and never guessed. A `## Lisa
+Usage` section that cannot be read in full (an entry or rollup token the parser refuses or cannot
+match) is never dropped: it makes every total `unknown` and names `unreadable-ledger` among the
+sources, until the section is repaired through `lisa-usage-accounting`. A section without a rollup
+token still has its direct entries counted. An item that
 reached done with no estimate shows `none recorded` in the estimate row rather than an invented
 range.
 

@@ -221,3 +221,38 @@ describe("a usage section without a rollup token", () => {
     ).toMatchObject({ tokens: null, cost: null, entries: 2 });
   });
 });
+
+describe("a usage section that cannot be read in full", () => {
+  const body = finishedItem(1000, 2000, [usageEntry("implement", 1_000, 1)]);
+  const verify = comment([usageEntry("verify", 2_000, 2)]);
+  /** A comment whose entry token the parser refuses. */
+  const refused = verify.replace(" flow=", " flaw=");
+  /** A comment whose entry token is too damaged for the parser to match. */
+  const skipped = verify.replace(
+    /(<!-- lisa:usage-entry [^\n]*?) -->/,
+    "$1 --"
+  );
+
+  it.each([
+    ["refuses", refused],
+    ["would skip", skipped],
+  ])(
+    "makes the actual unknown when the parser %s a comment's entry",
+    (_label, damaged) => {
+      expect(ledgerActual([body, damaged])).toMatchObject({
+        tokens: null,
+        cost: null,
+        currency: null,
+        sources: ["observed", "unreadable-ledger"],
+      });
+    }
+  );
+
+  it("refuses at done a known total recorded without the damaged comment", () => {
+    const tallied = tallyEstimate(body);
+    expect(doneProblems(tallied, [tallied])).toEqual([]);
+    expect(doneProblems(tallied, [tallied, refused])[0]).toMatch(
+      /tally is stale: it records 1000 tokens.*now totals null tokens/
+    );
+  });
+});

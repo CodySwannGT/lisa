@@ -30,6 +30,12 @@ import {
 const NO_LEDGER =
   "No Lisa Usage entry is recorded on this item. It cannot reach done without one: record each run through lisa-usage-accounting (source unavailable is the honest value when the runtime gives no telemetry), then run lisa-estimate tally.";
 const MIXED_CURRENCY = "mixed";
+/** A usage section that has the heading but cannot be read in full. */
+const UNREADABLE = Object.freeze({ unreadable: true });
+/** The source the actual names for a section it could not read. */
+const UNREADABLE_SOURCE = "unreadable-ledger";
+const LOOSE_ENTRY_TOKEN = /<!-- lisa:usage-entry\s/g;
+const LOOSE_ROLLUP_TOKEN = /<!-- lisa:usage-rollup\s/;
 const COST_SCALE = 12;
 
 /**
@@ -38,19 +44,32 @@ const COST_SCALE = 12;
  * is its children's has no direct entries of its own). A section without a
  * rollup token still has its direct entries counted, so no run vanishes from
  * the actual; it simply has no child aggregate.
+ *
+ * A section that cannot be read in full is UNREADABLE, never dropped: a token
+ * the parser refuses, and also one it would skip (an entry or rollup token too
+ * damaged to match at all), since either way some of the item's spend is
+ * missing and any total over the rest would be a partial sum.
  * @param {unknown} document - Item body or comment.
- * @returns {{entries: object[], children: object | null} | null} Direct entries and the rollup when it carries child work, or null.
+ * @returns {{entries: object[], children: object | null} | typeof UNREADABLE | null} Direct entries and the rollup when it carries child work, UNREADABLE, or null when the document has no usage section.
  */
 function readLedger(document) {
   if (typeof document !== "string" || !document.includes(LISA_USAGE_HEADING))
     return null;
+  let parsed;
   try {
-    const { entries, rollup } = parseLisaUsageSection(document);
-    const children = rollup?.childEntryIds.length ? rollup : null;
-    return entries.length || children ? { entries, children } : null;
+    parsed = parseLisaUsageSection(document);
   } catch {
-    return null;
+    return UNREADABLE;
   }
+  const { entries, rollup, range } = parsed;
+  if (!range) return null;
+  const section = document.slice(range.start, range.end);
+  const skipped =
+    (section.match(LOOSE_ENTRY_TOKEN) ?? []).length !== entries.length ||
+    (LOOSE_ROLLUP_TOKEN.test(section) && !rollup);
+  if (skipped) return UNREADABLE;
+  const children = rollup?.childEntryIds.length ? rollup : null;
+  return entries.length || children ? { entries, children } : null;
 }
 
 /**
@@ -120,14 +139,19 @@ function distinctRuns(ledgers) {
  * actual counts every distinct run once. A total is unknown, never a partial
  * sum, when any run behind it is unknown or the runs cannot be told apart.
  * @param {string[]} documents - Item body, then its comments.
- * @returns {import("./work-item-estimate-actual.mjs").Actual | null} The actual, or null when no ledger has an entry.
+ * A usage section that cannot be read in full makes every total unknown and
+ * is named among the sources.
+ * @returns {import("./work-item-estimate-actual.mjs").Actual | null} The actual, or null when no document has a usage section with a run.
  */
 export function ledgerActual(documents) {
-  const ledgers = documents.map(readLedger).filter(ledger => ledger !== null);
-  if (ledgers.length === 0) return null;
+  const found = documents.map(readLedger).filter(ledger => ledger !== null);
+  if (found.length === 0) return null;
+  const unreadable = found.includes(UNREADABLE);
+  const ledgers = found.filter(ledger => ledger !== UNREADABLE);
   const { runs, children, ids, ambiguous } = distinctRuns(ledgers);
+  const unknown = ambiguous || unreadable;
   const tokensKnown =
-    !ambiguous &&
+    !unknown &&
     !runs.some(partialTokens) &&
     children.every(
       child =>
@@ -138,13 +162,14 @@ export function ledgerActual(documents) {
     ...children.map(child => child.childCurrency).filter(Boolean),
   ]);
   const costKnown =
-    !ambiguous &&
+    !unknown &&
     currencies.size <= 1 &&
     !currencies.has(MIXED_CURRENCY) &&
     runs.every(entry => entry.cost !== null) &&
     children.every(child => child.childCost !== null);
-  const currency =
-    currencies.size > 1
+  const currency = unreadable
+    ? null
+    : currencies.size > 1
       ? MIXED_CURRENCY
       : (currencies.values().next().value ?? null);
   return {
@@ -161,7 +186,12 @@ export function ledgerActual(documents) {
         ])
       : null,
     currency,
-    sources: [...new Set(runs.map(entry => entry.source))].sort(),
+    sources: [
+      ...new Set([
+        ...runs.map(entry => entry.source),
+        ...(unreadable ? [UNREADABLE_SOURCE] : []),
+      ]),
+    ].sort(),
     entries: ids.size,
   };
 }
