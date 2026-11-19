@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.3.0](https://github.com/CodySwannGT/lisa/compare/v6.2.0...v6.3.0) (2026-11-19)
+
+
+### Features
+
+* **security-audit:** make our own copy of a library a human-gated last resort ([f99176d](https://github.com/CodySwannGT/lisa/commit/f99176de7d3ab415b1b850dde2470965458ab9ba)), closes [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024) [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024)
+
+
+### Bug Fixes
+
+* **security-audit:** accept patch and fork wording as the own-copy gate ([2355d66](https://github.com/CodySwannGT/lisa/commit/2355d6656f2d6abf5198ea87b5fc55c8ff45a6e7)), closes [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024) [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024)
+* **security-audit:** keep the skill description inside the length budget ([217d1f2](https://github.com/CodySwannGT/lisa/commit/217d1f2a4d76ab6001293dcde0879eb38707d2f0)), closes [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024) [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024)
+* **security-audit:** put own-dependency-copy under the slug topic veto and trim the eager rule ([c6b77e8](https://github.com/CodySwannGT/lisa/commit/c6b77e8808013d0e65a3ad0b0d0e09ccb572b12d)), closes [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024) [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024)
+* **security-audit:** read a patch target structurally, not a verb as a package ([068dc6a](https://github.com/CodySwannGT/lisa/commit/068dc6ad7b5984d94b1883bfcf76999f5c3f7a10)), closes [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024) [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024)
+* **security-audit:** read a scoped or hyphenated package name as one patch target ([4f8352c](https://github.com/CodySwannGT/lisa/commit/4f8352ce6c85a283761360469e518588ebc549e0)), closes [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024) [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024)
+* **security-audit:** require a dependency target for the patch gate and scope the example ([4c9c8e7](https://github.com/CodySwannGT/lisa/commit/4c9c8e7f13d01f4ddc397d3919e3220505305a75)), closes [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024) [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024)
+
+
+### Documentation
+
+* **security-audit:** make the reachability exclusion the project's own call ([52f985f](https://github.com/CodySwannGT/lisa/commit/52f985ff28a93c9e875a6b42d566b92a119656b2)), closes [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024) [CodySwannGT/lisa#5024](https://github.com/CodySwannGT/lisa/issues/5024)
+
 ## [6.2.0](https://github.com/CodySwannGT/lisa/compare/v6.1.0...v6.2.0) (2026-11-19)
 
 
