@@ -134,6 +134,20 @@ describe("no whole node_modules link in a test", () => {
     ).toThrow(/inside this checkout/u);
   });
 
+  it("refuses a source in a checkout child whose name begins with ..", () => {
+    // `..probe-x` is a child of this checkout, not a step out of it; a test
+    // of the relative path's first two characters read it as outside.
+    const child = fs.mkdtempSync(path.join(REPO_ROOT, "..lisa-foreign-probe-"));
+    try {
+      expect(() =>
+        linkForeignNodeModules(path.join(child, "node_modules"), child)
+      ).toThrow(/inside this checkout/u);
+      expect(fs.existsSync(path.join(child, "node_modules"))).toBe(false);
+    } finally {
+      fs.rmSync(child, { recursive: true, force: true });
+    }
+  });
+
   it("finds none in any tracked test, fixture or support file", () => {
     const offenders = checkoutFiles(REPO_ROOT)
       .filter(file => file.startsWith("tests/") && /\.[cm]?[jt]s$/u.test(file))

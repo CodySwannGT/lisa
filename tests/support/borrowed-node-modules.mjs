@@ -79,7 +79,13 @@ export function borrowNodeModules(source, root, except = []) {
 export function linkForeignNodeModules(source, root) {
   const resolved = fs.realpathSync(path.dirname(source));
   const relative = path.relative(CHECKOUT_ROOT, resolved);
-  if (!relative.startsWith("..") && !path.isAbsolute(relative)) {
+  // Outside means a `..` path SEGMENT (or another root), never a name that
+  // merely begins with `..`: `..cache/x` is a child of this checkout.
+  const outside =
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative);
+  if (!outside) {
     throw new Error(
       `linkForeignNodeModules: ${source} is inside this checkout; borrow it with borrowNodeModules instead`
     );
