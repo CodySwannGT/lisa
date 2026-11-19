@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.1.0](https://github.com/CodySwannGT/lisa/compare/v6.0.10...v6.1.0) (2026-11-19)
+
+
+### Features
+
+* **work-item:** add the token estimate config, section and ready-time gate ([b148f55](https://github.com/CodySwannGT/lisa/commit/b148f55af9bcf963411cad0779d3323885ade28f)), closes [CodySwannGT/lisa#4954](https://github.com/CodySwannGT/lisa/issues/4954) [CodySwannGT/lisa#4954](https://github.com/CodySwannGT/lisa/issues/4954)
+
+
+### Bug Fixes
+
+* **estimate:** match the price currency, survive bad escapes, keep human text ([7c58498](https://github.com/CodySwannGT/lisa/commit/7c58498cc957ffd4c8ac5c95de9de6b338198a4d)), closes [CodySwannGT/lisa#4954](https://github.com/CodySwannGT/lisa/issues/4954) [CodySwannGT/lisa#4954](https://github.com/CodySwannGT/lisa/issues/4954)
+* **estimate:** validate a priced range on its own, skip fenced sections ([691e03e](https://github.com/CodySwannGT/lisa/commit/691e03ecbb284f3ccc9efb48c1e7c67316bf4dc3)), closes [CodySwannGT/lisa#4954](https://github.com/CodySwannGT/lisa/issues/4954) [CodySwannGT/lisa#4954](https://github.com/CodySwannGT/lisa/issues/4954)
+
 ### [6.0.10](https://github.com/CodySwannGT/lisa/compare/v6.0.9...v6.0.10) (2026-11-19)
 
 
