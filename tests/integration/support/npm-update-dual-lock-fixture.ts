@@ -127,3 +127,21 @@ export async function parseBunLock(
     ).stdout.toString()
   );
 }
+
+/**
+ * A promise with its resolver, for a fixture whose lifetime spans hooks.
+ * @returns The promise and the function that resolves it.
+ */
+export function deferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+} {
+  const settle: { resolve?: (value: T) => void } = {};
+  const promise = new Promise<T>(resolve => {
+    settle.resolve = resolve;
+  });
+  return {
+    promise,
+    resolve: value => (settle.resolve as (value: T) => void)(value),
+  };
+}

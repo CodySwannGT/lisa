@@ -1,5 +1,4 @@
 /** Native registry installations expose lock coherence independently of provider fixtures. */
-import { EventEmitter, once } from "node:events";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
@@ -17,6 +16,7 @@ import {
   baseline,
   BUN_LOCK_FILE,
   copyCheckout,
+  deferred,
   FILES,
   FROZEN,
   INSTALL_FLAGS,
@@ -69,33 +69,54 @@ describe.skipIf(
     "Put the real Bun executable ahead of any npm-global or shim `bun`, e.g. `mise use bun@1.4.4`."
   ) !== undefined
 )("native registry alias locks", () => {
-  const owner = new EventEmitter();
-  let shared: AliasBaseline;
-  let held: Promise<void>;
+  let shared: AliasBaseline | undefined;
+  let held: Promise<void> | undefined;
+  let releaseRoot: () => void = () => undefined;
 
+  /**
+   * The shared baseline, or the reason it is missing.
+   * @returns The baseline beforeAll installed.
+   */
+  function current(): AliasBaseline {
+    if (shared === undefined)
+      throw new Error("alias baseline unavailable: its beforeAll failed");
+    return shared;
+  }
+
+  // Promises rather than events, so neither side depends on which runs first:
+  // a release that arrives before the root is ready (a timed-out beforeAll)
+  // still lets the root close, and a failure after ready reaches afterAll's
+  // `await held` instead of an emitter with no listener.
   beforeAll(async () => {
-    const ready = once(owner, "ready");
+    const release = deferred<void>();
+    releaseRoot = () => release.resolve();
+    const ready = deferred<AliasBaseline>();
     held = withPrivateRoot(async (root, env) => {
       const { cwd } = await baseline(root, env, true, ALIASES);
-      owner.emit("ready", { root, env, cwd });
-      await once(owner, "release");
+      ready.resolve({ root, env, cwd });
+      await release.promise;
     });
-    held.catch((error: unknown) => owner.emit("error", error));
-    [shared] = (await ready) as [AliasBaseline];
+    shared = await Promise.race([
+      ready.promise,
+      held.then(() => {
+        throw new Error("alias baseline root closed before it was ready");
+      }),
+    ]);
   });
 
   afterAll(async () => {
-    owner.emit("release");
+    releaseRoot();
     await held;
-    expect(existsSync(shared.root)).toBe(false);
+    if (shared !== undefined) expect(existsSync(shared.root)).toBe(false);
   });
 
   it("preserves genuine root and transitive registry aliases", async () => {
-    const { env } = shared;
+    const base = current();
+    const { env } = base;
     const observed = await (async () => {
       const { cwd, bun } = copyCheckout(
-        shared.cwd,
-        join(shared.root, "preserve"),
+        base.cwd,
+        join(base.root, "preserve"),
         env
       );
       const originalBun = readFileSync(join(cwd, BUN_LOCK_FILE));
@@ -186,8 +207,9 @@ describe.skipIf(
   });
 
   it("refuses a Bun lock whose alias identity differs from the npm lock", async () => {
-    const { env } = shared;
-    const { cwd } = copyCheckout(shared.cwd, join(shared.root, "corrupt"), env);
+    const base = current();
+    const { env } = base;
+    const { cwd } = copyCheckout(base.cwd, join(base.root, "corrupt"), env);
     const committed = readFileSync(join(cwd, BUN_LOCK_FILE));
     const native = await qualifiedBun(env);
     await verifyBunLock(native, cwd);
