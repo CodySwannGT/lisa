@@ -103,10 +103,10 @@ function toolIdentity(path) {
  * Only the original trusted PATH may select a supported native Bun installation.
  * Each call is capped at `ceiling` (two minutes by default); a whole-root install
  * passes its remaining phase budget instead, as the npm path does.
+ *
+ * `offline` adds `--offline` to every `bun install`, for a private root given
+ * a cache seed (`./npm-update-cache-seed.mjs`); it is never set otherwise.
  * @param {NodeJS.ProcessEnv} env - Trusted environment whose PATH selects Bun.
- * `offline` adds `--offline` to every `bun install`, for a private root whose
- * Bun cache was seeded (`./npm-update-cache-seed.mjs`); it is never set
- * otherwise.
  * @param {{ executable?: string, deadline?: number, ceiling?: number, offline?: boolean }} [options] - Explicit executable, phase deadline, per-call ceiling and offline installs.
  * @returns {Promise<(args: string[], options?: Record<string, any>) => Promise<any>>} A bounded Bun invoker.
  */

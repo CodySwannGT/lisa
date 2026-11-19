@@ -167,6 +167,23 @@ describe("prepareUpdate cacheSeed", () => {
     expect(outcome.installed).toBe("6.0.0");
   });
 
+  it("refuses an npm-only seed for a host that commits bun.lock", async () => {
+    requireNativeBun();
+    const { npm } = seedCopy();
+    const failure = await withPrivateRoot(async (root, privateEnv) => {
+      const env = seeded(root, privateEnv);
+      const { cwd } = await baseline(root, env);
+      return prepareUpdate({ cwd, ...SEEDED, cacheSeed: { npm } }, env).then(
+        () => undefined,
+        (error: { stderr?: Buffer }) => error
+      );
+    });
+    expect(failure, "prepare ran Bun without a Bun cache").toBeDefined();
+    expect(failure?.stderr?.toString()).toContain(
+      "cache seed has no Bun folder, and this host commits bun.lock"
+    );
+  });
+
   it("refuses a Bun manifest whose integrity differs from npm's", async () => {
     requireNativeBun();
     const forged = seedCopy();

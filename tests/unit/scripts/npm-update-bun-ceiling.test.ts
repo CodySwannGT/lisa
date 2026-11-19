@@ -81,3 +81,30 @@ describe("qualified Bun ceiling", () => {
     expect(calls.at(-1)).toEqual({ args: ["install"], timeout: TWO_MINUTES });
   });
 });
+
+const LOCK_ONLY = ["install", "--lockfile-only", "--ignore-scripts"];
+const FROZEN = ["install", "--frozen-lockfile", "--ignore-scripts"];
+
+describe("qualified Bun offline", () => {
+  it("adds --offline to every install, and to nothing else, when offline", async () => {
+    const bun = await qualifiedBun(
+      {},
+      { executable: stubExecutable(), offline: true }
+    );
+    await bun(LOCK_ONLY);
+    await bun(FROZEN);
+    await bun(["--eval", "0"]);
+    expect(calls.map(call => call.args)).toEqual([
+      ["--version"],
+      [...LOCK_ONLY, "--offline"],
+      [...FROZEN, "--offline"],
+      ["--eval", "0"],
+    ]);
+  });
+
+  it("adds --offline to nothing when not offline", async () => {
+    const bun = await qualifiedBun({}, { executable: stubExecutable() });
+    await bun(FROZEN);
+    expect(calls.map(call => call.args)).toEqual([["--version"], FROZEN]);
+  });
+});

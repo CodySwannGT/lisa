@@ -232,8 +232,10 @@ async function preparedProposal({
  * The private resource lifecycle remains outside the prepared proposal's npm checks; the baseline proves the directory before npm reads its config.
  *
  * `cacheSeed` is an explicit option, never read from the environment: it
- * pre-fills the private root's npm (and Bun) cache and puts both offline, for
- * a caller that serves recorded registry data (see `./npm-update-cache-seed.mjs`).
+ * pre-fills the private root's npm (and Bun) cache and puts npm and every Bun
+ * install offline, for a caller that serves recorded registry data (see
+ * `./npm-update-cache-seed.mjs`). A seed without a Bun folder is refused for
+ * a host that commits bun.lock, before any install runs.
  * The production caller passes none, and a seeded proposal is marked so no
  * later phase accepts it.
  */
@@ -255,6 +257,14 @@ export async function prepareUpdate({ cwd, policy: input, config, cacheSeed }) {
       "supported npm10.9.9 or11.21.0 is required"
     );
     const original = await baseline(cwd, env, undefined, policy.directory);
+    // A seed puts Bun offline too, so a Bun host needs Bun's cache in it: say
+    // so here, before any install, rather than as a cache miss later.
+    required(
+      seed === undefined ||
+        seed.bun !== undefined ||
+        original.files["bun.lock"] === undefined,
+      "cache seed has no Bun folder, and this host commits bun.lock"
+    );
     const strict = await effectiveEngineStrict(join(cwd, policy.directory));
     const npmFlags = [...NPM_FLAGS, ...(strict ? ["--engine-strict"] : [])];
     const before = JSON.parse(original.files["package.json"]);
@@ -271,7 +281,7 @@ export async function prepareUpdate({ cwd, policy: input, config, cacheSeed }) {
     const bun =
       original.files["bun.lock"] === undefined
         ? undefined
-        : await qualifiedBun(env, { offline: seed?.bun !== undefined });
+        : await qualifiedBun(env, { offline: seed !== undefined });
     const npm = (args, allowed = [0]) =>
       runNpm(args, { cwd: app, env, timeout: 120_000, allowed });
     await npm(["ci", ...npmFlags]);

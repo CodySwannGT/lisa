@@ -111,6 +111,10 @@ export function validCacheSeed(seed) {
 /**
  * Copy a checked seed into a private root and put npm offline there.
  *
+ * Bun is put offline by `prepareUpdate`, which passes `offline` to every Bun
+ * install whenever a seed is given, and refuses a seed with no Bun folder for
+ * a host that commits bun.lock.
+ *
  * Without a seed the environment comes back unchanged, so an updater run that
  * was given none behaves exactly as before.
  * @param {string} root - The private root.
