@@ -14945,6 +14945,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "wiki/sources/memory/2026-05-28-memory.md": true,
     "wiki/sources/repository/.gitkeep": true,
     "wiki/sources/repository/2026-05-14-monorepo-baseline.md": true,
+    "wiki/sources/repository/2026-11-17-control-audit-docs.md": true,
     "wiki/sources/roles/2026-05-25-roles.md": true,
     "wiki/sources/roles/2026-05-26-roles.md": true,
     "wiki/sources/roles/2026-05-27-roles.md": true,
