@@ -14,7 +14,7 @@ import { pathToFileURL } from "node:url";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { borrowNodeModules } from "../helpers/borrowed-node-modules.js";
+import { borrowNodeModules } from "../support/borrowed-node-modules.mjs";
 import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");

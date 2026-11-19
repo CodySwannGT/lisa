@@ -39,6 +39,7 @@ import {
   seedPendingMarker,
   sessionStart,
 } from "../../helpers/auto-update-fixture.js";
+import { linkForeignNodeModules } from "../../support/borrowed-node-modules.mjs";
 
 /**
  * Whether any recorded command starts with a prefix.
@@ -205,10 +206,7 @@ describe("auto-update: a session start", () => {
       path.join(root, "package.json"),
       JSON.stringify({ name: "host", devDependencies: { [LISA]: OLD } })
     );
-    symlinkSync(
-      path.join(other, "node_modules"),
-      path.join(root, "node_modules")
-    );
+    linkForeignNodeModules(path.join(other, "node_modules"), root);
     const { text, seen } = await sessionStart(root);
     expect(ran(seen, BUMP)).toBe(false);
     expect(text).toContain("link to another checkout");

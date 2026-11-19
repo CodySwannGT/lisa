@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { expect } from "vitest";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { borrowNodeModules } from "../../support/borrowed-node-modules.mjs";
 import { resolveGit } from "../../support/git-executable.js";
 import { files, write } from "./host.js";
 import { run } from "./process.js";
@@ -103,11 +104,7 @@ async function isolateCheckout(repo: string, root: string) {
     logs,
     "immutable-index"
   );
-  fs.symlinkSync(
-    path.join(repo, "node_modules"),
-    path.join(checkout, "node_modules"),
-    "dir"
-  );
+  borrowNodeModules(path.join(repo, "node_modules"), checkout);
   return { checkout, root, env, logs, head, tree, cache };
 }
 

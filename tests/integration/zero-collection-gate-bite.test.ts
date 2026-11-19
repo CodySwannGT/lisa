@@ -42,7 +42,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { borrowNodeModules } from "../helpers/borrowed-node-modules.js";
+import { borrowNodeModules } from "../support/borrowed-node-modules.mjs";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 

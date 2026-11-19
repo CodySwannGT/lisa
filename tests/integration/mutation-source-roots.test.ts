@@ -9,7 +9,7 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { borrowNodeModules } from "../helpers/borrowed-node-modules.js";
+import { borrowNodeModules } from "../support/borrowed-node-modules.mjs";
 import {
   boundedExecFileSync,
   boundedSpawnSync,

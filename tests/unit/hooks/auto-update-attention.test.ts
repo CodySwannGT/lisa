@@ -9,7 +9,7 @@
  * and context asking the agent to raise it and offer to finish the update.
  * @module tests/unit/hooks/auto-update-attention
  */
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -24,6 +24,7 @@ import {
   seedPendingMarker,
   sessionStart,
 } from "../../helpers/auto-update-fixture.js";
+import { linkForeignNodeModules } from "../../support/borrowed-node-modules.mjs";
 
 /** A release newer than the one a pending update holds. */
 const NEWER = "4.70.0";
@@ -81,10 +82,7 @@ describe("auto-update: telling the developer", () => {
         path.join(root, "package.json"),
         JSON.stringify({ name: "host", devDependencies: { [LISA]: installed } })
       );
-      symlinkSync(
-        path.join(other, "node_modules"),
-        path.join(root, "node_modules")
-      );
+      linkForeignNodeModules(path.join(other, "node_modules"), root);
       return root;
     };
     const behind = await sessionStart(linked(OLD));

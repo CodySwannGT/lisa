@@ -45,7 +45,7 @@ import { getHarperFabricVitestConfig } from "../../../src/configs/vitest/harper-
 import { getNestjsVitestConfig } from "../../../src/configs/vitest/nestjs.js";
 import { getPhaserVitestConfig } from "../../../src/configs/vitest/phaser.js";
 import { getTypescriptVitestConfig } from "../../../src/configs/vitest/typescript.js";
-import { borrowNodeModules } from "../../helpers/borrowed-node-modules.js";
+import { borrowNodeModules } from "../../support/borrowed-node-modules.mjs";
 import {
   boundedSpawnSync,
   useIoLatencyBudget,

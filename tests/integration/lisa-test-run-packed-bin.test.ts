@@ -13,7 +13,7 @@ import {
   ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
-import { borrowNodeModules } from "../helpers/borrowed-node-modules.js";
+import { borrowNodeModules } from "../support/borrowed-node-modules.mjs";
 import { fsLatencyBudgetMs } from "../helpers/fs-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 

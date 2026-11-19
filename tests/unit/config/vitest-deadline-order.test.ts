@@ -5,7 +5,7 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { borrowNodeModules } from "../../helpers/borrowed-node-modules.js";
+import { borrowNodeModules } from "../../support/borrowed-node-modules.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");

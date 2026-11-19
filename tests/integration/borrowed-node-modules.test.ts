@@ -18,7 +18,10 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { borrowNodeModules } from "../helpers/borrowed-node-modules.js";
+import {
+  borrowNodeModules,
+  linkForeignNodeModules,
+} from "../support/borrowed-node-modules.mjs";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
@@ -111,14 +114,15 @@ describe("a fixture borrowing this checkout's node_modules", () => {
   });
 
   it("clears the lender's cache when the directory is linked whole (the defect)", () => {
-    // The control: the same run through a whole-directory link, the way four
+    // The control: the same run through a whole-directory link, the way the
     // fixtures borrowed it before this fix. Without it, the case above could
-    // pass because the run never touched any cache at all.
+    // pass because the run never touched any cache at all. The stand-in lives
+    // outside this checkout, so the foreign-link helper accepts it.
     const modules = standInModules();
 
-    runFixture(root =>
-      fs.symlinkSync(modules, path.join(root, "node_modules"), "dir")
-    );
+    runFixture(root => {
+      linkForeignNodeModules(modules, root);
+    });
 
     expect(cacheAfter(modules)).not.toEqual({
       metadata: METADATA,

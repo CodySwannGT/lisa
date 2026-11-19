@@ -41,7 +41,7 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { borrowNodeModules } from "../helpers/borrowed-node-modules.js";
+import { borrowNodeModules } from "../support/borrowed-node-modules.mjs";
 import type { GateRun } from "../helpers/gate-capture.js";
 import { captureGateRun } from "../helpers/gate-capture.js";
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";

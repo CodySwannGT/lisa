@@ -19,7 +19,7 @@ import { stripVTControlCharacters } from "node:util";
 
 import type { LisaConfig } from "../../src/core/config.js";
 import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
-import { borrowNodeModules } from "../helpers/borrowed-node-modules.js";
+import { borrowNodeModules } from "../support/borrowed-node-modules.mjs";
 import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 import {
   enclosingAdmissionEnv,

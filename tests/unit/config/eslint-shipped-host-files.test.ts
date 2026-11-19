@@ -39,7 +39,7 @@ import { getNestjsConfig } from "../../../src/configs/eslint/nestjs.js";
 import { getPhaserConfig } from "../../../src/configs/eslint/phaser.js";
 import { getTypescriptConfig } from "../../../src/configs/eslint/typescript.js";
 import { PROJECT_TYPE_HIERARCHY } from "../../../src/core/config.js";
-import { borrowNodeModules } from "../../helpers/borrowed-node-modules.js";
+import { borrowNodeModules } from "../../support/borrowed-node-modules.mjs";
 import {
   boundedSpawnSync,
   ioLatencyBudgetMs,
