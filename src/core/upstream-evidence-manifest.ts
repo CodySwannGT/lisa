@@ -1765,7 +1765,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "5eb520ec9e048d3a278493745ae1007315d933995ebd20ab0d4089510eef000f",
+      "6e5115c2530bb318c79ebd75a4888ad78101381ae605a1eb2edf1cd319af5d8a",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f77f80a5e649c57b40d87aa789b0fb2dd62870b1dee84248bfa0eaa413966e1d",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1797,7 +1797,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "9403e9eb1a778252c5066da1aa7ab4101ead9417730c7000ad844ff611fa6ca0",
+      "ef12721cde5bb34bd4780083b39d7d007b255cb36019f828a7d6f0bb27d7fec1",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "c1f0329e5f3aeb58a91a5caceb54161cadcf9e5c12ad30d44a66026b0533b29f",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1847,7 +1847,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
       "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
-      "c4f7e5c5a090cf652b1a9c01c3500434b774b745bf0d788b666e6550783f3311",
+      "06a7d84d4a26d2a82509657e17e4013c5a27e42817059a7f1622e2546ef462dc",
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-github.mjs":
