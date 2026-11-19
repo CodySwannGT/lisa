@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.3.4](https://github.com/CodySwannGT/lisa/compare/v6.3.3...v6.3.4) (2026-11-19)
+
+
+### Bug Fixes
+
+* **controls:** read the event before a carrier hook refuses ([455cd06](https://github.com/CodySwannGT/lisa/commit/455cd0606c2755cd38813f89ac8524d1b137711b)), closes [CodySwannGT/lisa#5057](https://github.com/CodySwannGT/lisa/issues/5057) [CodySwannGT/lisa#5057](https://github.com/CodySwannGT/lisa/issues/5057)
+* **parity:** scope the MCP exclusion per route and name the staged-scope diff ([71ccd19](https://github.com/CodySwannGT/lisa/commit/71ccd195c17f4a0eba56ff3c388efd8a0ee3e041)), closes [#5058](https://github.com/CodySwannGT/lisa/issues/5058) [CodySwannGT/lisa#5056](https://github.com/CodySwannGT/lisa/issues/5056) [CodySwannGT/lisa#5056](https://github.com/CodySwannGT/lisa/issues/5056)
+* **plugins:** publish rebuilt plugin trees without removing live hooks ([34ecc52](https://github.com/CodySwannGT/lisa/commit/34ecc52a312066c58c3d57431ac17523a1162443)), closes [CodySwannGT/lisa#4583](https://github.com/CodySwannGT/lisa/issues/4583) [CodySwannGT/lisa#4583](https://github.com/CodySwannGT/lisa/issues/4583)
+* **plugins:** serialize plugin publication and clear stale stages only on ESRCH ([fbbd601](https://github.com/CodySwannGT/lisa/commit/fbbd6015f0a99173d4da8e6ec469b71f0e9ab9f6)), closes [CodySwannGT/lisa#4583](https://github.com/CodySwannGT/lisa/issues/4583) [CodySwannGT/lisa#4583](https://github.com/CodySwannGT/lisa/issues/4583)
+
 ### [6.3.3](https://github.com/CodySwannGT/lisa/compare/v6.3.2...v6.3.3) (2026-11-19)
 
 
