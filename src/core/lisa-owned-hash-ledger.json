@@ -1526,6 +1526,22 @@
       "5b978f201be9a035001f0cc4a7e8da76a67f26e6f99da91907747c4d65d58f1b",
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba"
     ],
+    "scripts/lib/work-item-estimate-check.mjs": [
+      "445732d190b31aec81594bd5fb5a82bc5b1ed16d3a6ff6fa0fe5fb287706a878",
+      "4dcea21ae9fe5114964abda7dbadeb5365241893e7e96d83411c27e1b777f5b9",
+      "94e67b413ed4ec852bfa2d594a89deedf776f94d7fffde049a9fd6f2d4365bad"
+    ],
+    "scripts/lib/work-item-estimate-config.d.mts": [
+      "68ba3eba29ed10a0ca3488e35722882413a85eaa2105b0266f3edfa121d9bb86"
+    ],
+    "scripts/lib/work-item-estimate-config.mjs": [
+      "dea9d7e5440646b8bd4122846bf587a2f7cfff95e720b43302dda98b91c58b5f"
+    ],
+    "scripts/lib/work-item-estimate.mjs": [
+      "87339af7a7ae14f53994f817566d77434769f8000e8da869696bfe664f822166",
+      "aaedf6097e34404416cdb6eed186a34bf07f04b143df9e6ff5771e6e7420164f",
+      "d936f38602d428ef26d41a09458c61b896106763255b2f6d475a7b963b917079"
+    ],
     "scripts/lib/worktree-dependencies.d.mts": [
       "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
       "acc2b7a00f1e6f806359c6609e58743b6293f17f3a5ac30abd18b1a22fab8bfc"
@@ -1544,8 +1560,10 @@
     "scripts/lisa-audit.mjs": [
       "0c386b25ec8f91de3a0182014b65703a5041e59400360ece40f376937ba53d80",
       "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
+      "350075ce70c63bb3e71fba6b22550b25b4672f70d69d39cb1a73db7533247c8e",
       "68bc4a842c6f8138d0d8a923809032eba5ef7e39b22949580d1bfdfa74aded8a",
       "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
+      "9978d1b7f59338f5a53f20900b5370723176731513089d0ee3b8c57931ef6e93",
       "e8eb9c90ed906fb9b95bf788dc06fe3fa7ee339c526c62f54fd3556de67e8442"
     ],
     "scripts/lisa-automation-provenance.mjs": [
@@ -1655,6 +1673,10 @@
       "f82f3af91663988d003d30542f96189ad65210e0aa4dcc1b42e6c7c8752d5618",
       "f8c8e276fa6d68ed661f07882f20ee095d18a5e8a90136f78f1ed2b032ce33d4",
       "f936bc8a038a7901ade1ba58cc52e5f5a8b8b2a52a9f0c1516567cc80eb02ccb"
+    ],
+    "scripts/lisa-estimate.mjs": [
+      "3e154026f7308947f1d33305d9563d6fdd951ccbfc7f4372f4e48211092bc119",
+      "f5bcb51089ae8c0fb5f0a3e880a532f19ca7f9c5f0f7eadddb9c47cfccbf0965"
     ],
     "scripts/lisa-evidence-prune.mjs": [
       "2a2862f78f8b50064bbd3a44133f2c8a4b4bb5715189b7218e4e0e8c30f51cb5",
@@ -2111,6 +2133,7 @@
       "ff15992834e3bb911a560a6f65be76a791a8cd262f36b18972f25a8dc36d7c00"
     ],
     "scripts/lisa-hooks/sonar-secrets.sh": [
+      "18e1d963d4416ccd247158e6a4bfcf43234f47faeb3a4654b5a6c78001ab8ef5",
       "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
       "7a408788975a6351d53e14aa32bb9a5d161f33df9dfea59ba32784ae33a62e67",
       "853bcf0bc455e78326186463287e32cc5906a40323c630a8e63935315197fd2f",
@@ -4481,6 +4504,22 @@
       "5b978f201be9a035001f0cc4a7e8da76a67f26e6f99da91907747c4d65d58f1b",
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba"
     ],
+    "scripts/lib/work-item-estimate-check.mjs": [
+      "445732d190b31aec81594bd5fb5a82bc5b1ed16d3a6ff6fa0fe5fb287706a878",
+      "4dcea21ae9fe5114964abda7dbadeb5365241893e7e96d83411c27e1b777f5b9",
+      "94e67b413ed4ec852bfa2d594a89deedf776f94d7fffde049a9fd6f2d4365bad"
+    ],
+    "scripts/lib/work-item-estimate-config.d.mts": [
+      "68ba3eba29ed10a0ca3488e35722882413a85eaa2105b0266f3edfa121d9bb86"
+    ],
+    "scripts/lib/work-item-estimate-config.mjs": [
+      "dea9d7e5440646b8bd4122846bf587a2f7cfff95e720b43302dda98b91c58b5f"
+    ],
+    "scripts/lib/work-item-estimate.mjs": [
+      "87339af7a7ae14f53994f817566d77434769f8000e8da869696bfe664f822166",
+      "aaedf6097e34404416cdb6eed186a34bf07f04b143df9e6ff5771e6e7420164f",
+      "d936f38602d428ef26d41a09458c61b896106763255b2f6d475a7b963b917079"
+    ],
     "scripts/lib/worktree-dependencies.d.mts": [
       "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
       "acc2b7a00f1e6f806359c6609e58743b6293f17f3a5ac30abd18b1a22fab8bfc"
@@ -4499,8 +4538,10 @@
     "scripts/lisa-audit.mjs": [
       "0c386b25ec8f91de3a0182014b65703a5041e59400360ece40f376937ba53d80",
       "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
+      "350075ce70c63bb3e71fba6b22550b25b4672f70d69d39cb1a73db7533247c8e",
       "68bc4a842c6f8138d0d8a923809032eba5ef7e39b22949580d1bfdfa74aded8a",
       "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
+      "9978d1b7f59338f5a53f20900b5370723176731513089d0ee3b8c57931ef6e93",
       "e8eb9c90ed906fb9b95bf788dc06fe3fa7ee339c526c62f54fd3556de67e8442"
     ],
     "scripts/lisa-automation-provenance.mjs": [
@@ -4609,6 +4650,10 @@
       "f82f3af91663988d003d30542f96189ad65210e0aa4dcc1b42e6c7c8752d5618",
       "f8c8e276fa6d68ed661f07882f20ee095d18a5e8a90136f78f1ed2b032ce33d4",
       "f936bc8a038a7901ade1ba58cc52e5f5a8b8b2a52a9f0c1516567cc80eb02ccb"
+    ],
+    "scripts/lisa-estimate.mjs": [
+      "3e154026f7308947f1d33305d9563d6fdd951ccbfc7f4372f4e48211092bc119",
+      "f5bcb51089ae8c0fb5f0a3e880a532f19ca7f9c5f0f7eadddb9c47cfccbf0965"
     ],
     "scripts/lisa-evidence-prune.mjs": [
       "2a2862f78f8b50064bbd3a44133f2c8a4b4bb5715189b7218e4e0e8c30f51cb5",
@@ -5019,6 +5064,7 @@
       "ff15992834e3bb911a560a6f65be76a791a8cd262f36b18972f25a8dc36d7c00"
     ],
     "scripts/lisa-hooks/sonar-secrets.sh": [
+      "18e1d963d4416ccd247158e6a4bfcf43234f47faeb3a4654b5a6c78001ab8ef5",
       "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
       "7a408788975a6351d53e14aa32bb9a5d161f33df9dfea59ba32784ae33a62e67",
       "853bcf0bc455e78326186463287e32cc5906a40323c630a8e63935315197fd2f",
