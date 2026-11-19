@@ -34,7 +34,7 @@ import {
   type PartsRepository,
   partsRepository,
   runParts,
-} from "./lisa-run-gates-parts-fixtures.js";
+} from "../controls/support/lisa-run-gates-parts-fixtures.js";
 
 const NODE = process.execPath;
 

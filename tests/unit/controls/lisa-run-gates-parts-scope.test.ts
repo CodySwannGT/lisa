@@ -6,7 +6,7 @@
  * disk, links included, and the command starts only when what it resolves to
  * is a folder inside the repository. Anything else is reported against the
  * part, blocks like any other unproved gate, and starts nothing.
- * @module tests/unit/scripts/lisa-run-gates-parts-scope
+ * @module tests/unit/controls/lisa-run-gates-parts-scope
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,7 +29,7 @@ import {
   runParts,
   WEB,
   WEB_ARGV,
-} from "./lisa-run-gates-parts-fixtures.js";
+} from "./support/lisa-run-gates-parts-fixtures.js";
 import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /** A folder name the fixture repository never holds. */

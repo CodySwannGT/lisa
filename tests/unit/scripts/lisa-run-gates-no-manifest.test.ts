@@ -27,7 +27,7 @@ import {
   buildFNone,
 } from "../../helpers/control-audit-fixtures.js";
 import { type GateRun, sink } from "./lisa-run-gates-fixtures.js";
-import { type ArgvExecutor } from "./lisa-run-gates-parts-fixtures.js";
+import { type ArgvExecutor } from "../controls/support/lisa-run-gates-parts-fixtures.js";
 
 const COMMIT = "commit";
 const PUSH = "push";

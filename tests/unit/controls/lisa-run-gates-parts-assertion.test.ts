@@ -9,7 +9,7 @@
  *
  * The call that starts a process is replaced here so each case can state that
  * it was never reached, and so the options it is given can be read.
- * @module tests/unit/scripts/lisa-run-gates-parts-assertion
+ * @module tests/unit/controls/lisa-run-gates-parts-assertion
  */
 import path from "node:path";
 
@@ -20,14 +20,14 @@ import {
   type GateRun,
   RUNNER,
   sink,
-} from "./lisa-run-gates-fixtures.js";
+} from "../scripts/lisa-run-gates-fixtures.js";
 import {
   API,
   type ArgvExecutor,
   LINT,
   type PartsRepository,
   partsRepository,
-} from "./lisa-run-gates-parts-fixtures.js";
+} from "./support/lisa-run-gates-parts-fixtures.js";
 
 const { boundedSpawnSync, resolveMoment } = vi.hoisted(() => ({
   boundedSpawnSync: vi.fn(),
@@ -93,7 +93,10 @@ const forgedPart = (argv: unknown): Record<string, unknown> => ({
   argv,
 });
 
-/** The error Node attaches to a child it killed at its deadline. */
+/**
+ * The error Node attaches to a child it killed at its deadline.
+ * @returns The error, carrying Node's timeout code
+ */
 const killedError = (): Error =>
   Object.assign(new Error("spawnSync ETIMEDOUT"), { code: "ETIMEDOUT" });
 

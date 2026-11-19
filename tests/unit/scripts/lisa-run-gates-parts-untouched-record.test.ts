@@ -23,7 +23,7 @@ import {
   partsRepository,
   WEB,
   WEB_ARGV,
-} from "./lisa-run-gates-parts-fixtures.js";
+} from "../controls/support/lisa-run-gates-parts-fixtures.js";
 import {
   lineFor,
   runWithChange,

@@ -6,7 +6,7 @@
  * the declaration and the program to read `;` or `$(…)` as an instruction; the
  * part's own folder as its working directory; and the runner's environment.
  * A program that cannot be found is named and is never a pass.
- * @module tests/unit/scripts/lisa-run-gates-parts-spawn
+ * @module tests/unit/controls/lisa-run-gates-parts-spawn
  */
 import {
   chmodSync,
@@ -25,7 +25,7 @@ import {
   spawnArgv,
   STATE,
 } from "../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
-import { COMMIT, RUNNER, sink } from "./lisa-run-gates-fixtures.js";
+import { COMMIT, RUNNER, sink } from "../scripts/lisa-run-gates-fixtures.js";
 import {
   API,
   type ArgvAnswer,
@@ -35,7 +35,7 @@ import {
   type PartsRepository,
   partsRepository,
   WEB,
-} from "./lisa-run-gates-parts-fixtures.js";
+} from "./support/lisa-run-gates-parts-fixtures.js";
 
 const NODE = process.execPath;
 

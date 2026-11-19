@@ -8,7 +8,7 @@
  *
  * The executor is injected here, so nothing is started. Starting a real
  * process is `lisa-run-gates-parts-spawn.test.ts`.
- * @module tests/unit/scripts/lisa-run-gates-parts
+ * @module tests/unit/controls/lisa-run-gates-parts
  */
 import path from "node:path";
 
@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DIAGNOSIS } from "../../../all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs";
 import { STATE } from "../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
-import { COMMIT, STYLE } from "./lisa-run-gates-fixtures.js";
+import { COMMIT, STYLE } from "../scripts/lisa-run-gates-fixtures.js";
 import {
   API,
   API_ARGV,
@@ -31,7 +31,7 @@ import {
   runParts,
   WEB,
   WEB_ARGV,
-} from "./lisa-run-gates-parts-fixtures.js";
+} from "./support/lisa-run-gates-parts-fixtures.js";
 
 const API_PART = { scope: API, command: API_ARGV };
 const WEB_PART = { scope: WEB, command: WEB_ARGV };

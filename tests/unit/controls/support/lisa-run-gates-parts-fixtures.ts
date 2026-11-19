@@ -5,20 +5,20 @@
  * every case here needs a repository on disk with folders in it. The executor
  * is still injected wherever a case is about the verdict rather than about
  * starting a process.
- * @module tests/unit/scripts/lisa-run-gates-parts-fixtures
+ * @module tests/unit/controls/support/lisa-run-gates-parts-fixtures
  */
 import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { runGates } from "../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
+import { runGates } from "../../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
 import {
   COMMIT,
   type GateOutcome,
   type GateRun,
   RUNNER,
   sink,
-} from "./lisa-run-gates-fixtures.js";
+} from "../../scripts/lisa-run-gates-fixtures.js";
 
 /** A gate this project invented, checked by a different command per folder. */
 export const LINT = "x-lint";

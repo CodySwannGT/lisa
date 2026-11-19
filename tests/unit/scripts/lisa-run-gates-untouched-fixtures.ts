@@ -14,7 +14,7 @@ import {
   type ArgvExecutor,
   type PartOutcome,
   type PartsGateRun,
-} from "./lisa-run-gates-parts-fixtures.js";
+} from "../controls/support/lisa-run-gates-parts-fixtures.js";
 
 /** What the runner is told about the change it was started for. */
 export interface StatedChange {

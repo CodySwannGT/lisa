@@ -5,7 +5,7 @@
  * stands a built-in check down against the coverage file, whatever reads the
  * evidence envelope, and an operator reading the tally. Each has to be able
  * to tell that one folder went unproved while another passed.
- * @module tests/unit/scripts/lisa-run-gates-parts-record
+ * @module tests/unit/controls/lisa-run-gates-parts-record
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -22,7 +22,7 @@ import {
   RUNNER,
   sink,
   STYLE,
-} from "./lisa-run-gates-fixtures.js";
+} from "../scripts/lisa-run-gates-fixtures.js";
 import {
   API,
   API_ARGV,
@@ -33,7 +33,7 @@ import {
   runParts,
   WEB,
   WEB_ARGV,
-} from "./lisa-run-gates-parts-fixtures.js";
+} from "./support/lisa-run-gates-parts-fixtures.js";
 
 /** `code-style` is one of the checks the commit hook proves on its own. */
 const STYLE_PARTS = partGates(
