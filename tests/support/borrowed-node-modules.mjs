@@ -27,6 +27,8 @@
  *   `.cache`) is a tool's state rather than an installed package, so it is
  *   left behind. A tool run in the fixture writes its own copy inside the
  *   fixture, and the fixture's teardown deletes it with the rest.
+ * - `copyKeepingLinks` copies a tree with its links as written, checking
+ *   each one it recreates.
  * - `linkForeignNodeModules` is for the one case whose subject IS a
  *   whole-directory `node_modules` link: a project linked into another
  *   fixture's tree. It refuses a source that resolves into this checkout, so
@@ -167,6 +169,49 @@ export function borrowNodeModules(source, root, except = []) {
   for (const entry of fs.readdirSync(source)) {
     if (!isInstalledEntry(entry) || skipped.has(entry)) continue;
     createSymlink(path.join(source, entry), path.join(target, entry));
+  }
+  return target;
+}
+
+/**
+ * Every symbolic link under a directory, without following any.
+ * @param {string} directory - A copied tree
+ * @returns {string[]} The links' paths
+ */
+function linksUnder(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isSymbolicLink()) return [entryPath];
+    return entry.isDirectory() ? linksUnder(entryPath) : [];
+  });
+}
+
+/**
+ * Copy a tree and recreate its links exactly as written, for a fixture whose
+ * relative links (`node_modules/.bin`) would point back into the source if
+ * resolved. Each recreated link is checked like one `createSymlink` makes,
+ * and the copy is refused if any stands for a whole `node_modules` or a
+ * tool's state.
+ * @param {string} source - Tree to copy
+ * @param {string} target - Where the copy goes
+ * @returns {string} `target`
+ */
+export function copyKeepingLinks(source, target) {
+  fs.cpSync(source, target, { recursive: true, verbatimSymlinks: true });
+  for (const linkPath of linksUnder(target)) {
+    const at = path.join(
+      resolveExisting(path.dirname(linkPath)),
+      path.basename(linkPath)
+    );
+    const pointsAt = resolveExisting(
+      path.resolve(path.dirname(at), fs.readlinkSync(linkPath))
+    );
+    for (const end of [at, pointsAt]) {
+      const reason = refusal(end);
+      if (reason) {
+        throw new Error(`copyKeepingLinks: ${linkPath} -> ${end} ${reason}`);
+      }
+    }
   }
   return target;
 }

@@ -31,6 +31,7 @@ import {
 } from "../../helpers/link-call-scan.js";
 import { checkoutFiles } from "../../helpers/tracked-files.js";
 import {
+  copyKeepingLinks,
   createSymlink,
   linkForeignNodeModules,
   linkPackage,
@@ -97,6 +98,11 @@ describe("no whole node_modules link in a test", () => {
       `execSync("ln -f -s a b");`,
       `execSync("ln --symbolic a b");`,
       `execFileSync.call(null, "ln", ["-s", a, b]);`,
+      `fork("ln", ["-s", a, b]);`,
+      `await execa("ln", ["-s", a, b]);`,
+      `fs.cpSync(source, target, { recursive: true, verbatimSymlinks: true });`,
+      `await cp(source, target, { verbatimSymlinks });`,
+      `import { cpSync as copy } from "node:fs";\ncopy(a, b, { verbatimSymlinks: true });`,
     ];
     for (const sample of before) {
       expect(scriptLinks("sample.ts", sample), sample).toHaveLength(1);
@@ -105,8 +111,11 @@ describe("no whole node_modules link in a test", () => {
       'ln -s "$a" "$b"\nln -sf a b # relink\nln -f -s a b\nln --force --symbolic a b\n';
     expect(textLinks(shell)).toHaveLength(4);
     expect(
-      textLinks("File.symlink(a, b)\nFileUtils.ln_s(a, b)\n", "ruby")
-    ).toHaveLength(2);
+      textLinks(
+        "File.symlink(a, b)\nFileUtils.ln_s(a, b)\nFileUtils.symlink(a, b)\n",
+        "ruby"
+      )
+    ).toHaveLength(3);
     expect(
       textLinks("os.symlink(a, b)\nPath(b).symlink_to(a)\n", "python")
     ).toHaveLength(2);
@@ -133,6 +142,8 @@ describe("no whole node_modules link in a test", () => {
       `execSync("ln -f a b");`,
       `execSync("ln --force a b");`,
       `const s = fs.readFileSync;\ns(file);`,
+      `fs.cpSync(source, target, { recursive: true });`,
+      `fs.cpSync(source, target, { verbatimSymlinks: false });`,
     ];
     for (const sample of allowed) {
       expect(scriptLinks("sample.ts", sample), sample).toEqual([]);
@@ -212,6 +223,23 @@ describe("no whole node_modules link in a test", () => {
       /inside the checkout/u
     );
     expect(fs.existsSync(path.join(root, "node_modules"))).toBe(false);
+  });
+
+  it("copies links as written, and refuses a copy that recreates a whole node_modules", () => {
+    const tree = scratch("lisa-copy-tree-");
+    const written = "bin-target";
+    fs.mkdirSync(path.join(tree, written));
+    createSymlink(written, path.join(tree, "relative"));
+    const kept = copyKeepingLinks(tree, path.join(scratch("lisa-copy-"), "c"));
+    expect(fs.readlinkSync(path.join(kept, "relative"))).toBe(written);
+
+    const other = scratch("lisa-copy-other-");
+    fs.mkdirSync(path.join(other, "node_modules"));
+    linkForeignNodeModules(path.join(other, "node_modules"), tree);
+    const refused = path.join(scratch("lisa-copy-refused-"), "c");
+    expect(() => copyKeepingLinks(tree, refused)).toThrow(
+      /whole node_modules/u
+    );
   });
 
   it("fails on a file whose language it cannot scan", () => {

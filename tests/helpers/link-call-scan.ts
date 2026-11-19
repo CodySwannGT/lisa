@@ -13,6 +13,7 @@
  *   `const s = fs.symlinkSync`
  * - a bracket access with a string key: `fs["symlinkSync"](`
  * - `.call`, `.apply` and `.bind` on any of those
+ * - `cp`/`cpSync` asked to keep links verbatim: `{ verbatimSymlinks: true }`
  * - a process start, under its own name or any alias of it, that runs `ln`
  *   with a symbolic option: `execFileSync("ln", ["-s", …])`,
  *   `boundedExecFileSync({ command: "/bin/ln", … })`, `execSync("ln -f -s …")`,
@@ -20,7 +21,7 @@
  *
  * Shell, Ruby, Python and PowerShell have no syntax tree here, so a line
  * (comments dropped) is refused by its text: `ln -s`, `File.symlink`,
- * `FileUtils.ln_s`, `os.symlink`, `symlink_to`, `New-Item -ItemType
+ * `FileUtils.ln_s`, `FileUtils.symlink`, `os.symlink`, `symlink_to`, `New-Item -ItemType
  * SymbolicLink`, `mklink`. A tracked file in any other language is not
  * skipped: the guard fails on it until the scan can read it. Data files
  * (JSON, Markdown, YAML, SQL, text, lockfiles) make no links.
@@ -31,6 +32,9 @@ import ts from "typescript";
 /** Names of the Node functions that create a link. */
 const LINK_FUNCTIONS = new Set(["symlink", "symlinkSync"]);
 
+/** Copies that recreate links when asked to keep them verbatim. */
+const COPY_FUNCTIONS = new Set(["cp", "cpSync"]);
+
 /** Calls that start a process, by the called name. */
 const PROCESS_STARTS = new Set([
   "boundedExecFileSync",
@@ -39,6 +43,8 @@ const PROCESS_STARTS = new Set([
   "execFile",
   "execFileSync",
   "execSync",
+  "execa",
+  "fork",
   "spawn",
   "spawnSync",
 ]);
@@ -289,8 +295,36 @@ function startsLn(call: ts.CallExpression): boolean {
   return call.arguments.some(mentionsLnSymbolic);
 }
 
-/** What a file binds to a link function and to a process start. */
+/**
+ * Whether a copy's options ask it to recreate links as they are:
+ * `{ verbatimSymlinks }` with any value but a literal `false`.
+ * @param call - A call to `cp` or `cpSync`
+ * @returns True when an options object sets `verbatimSymlinks`
+ */
+function keepsLinks(call: ts.CallExpression): boolean {
+  return call.arguments.some(
+    argument =>
+      ts.isObjectLiteralExpression(argument) &&
+      argument.properties.some(property => {
+        const name = property.name;
+        const named =
+          name !== undefined &&
+          (ts.isIdentifier(name) || isLiteral(name)) &&
+          name.text === "verbatimSymlinks";
+        return (
+          named &&
+          !(
+            ts.isPropertyAssignment(property) &&
+            property.initializer.kind === ts.SyntaxKind.FalseKeyword
+          )
+        );
+      })
+  );
+}
+
+/** What a file binds to a link function, a copy and a process start. */
 interface Reach {
+  readonly copies: ReadonlySet<string>;
   readonly links: ReadonlySet<string>;
   readonly starts: ReadonlySet<string>;
 }
@@ -304,6 +338,9 @@ interface Reach {
 function isLinkCall(call: ts.CallExpression, reach: Reach): boolean {
   const names = reachedNames(call.expression);
   if (names.some(name => reach.links.has(name))) return true;
+  if (names.some(name => reach.copies.has(name)) && keepsLinks(call)) {
+    return true;
+  }
   const starts =
     names.some(name => reach.starts.has(name)) || isBunStart(call.expression);
   return starts && startsLn(call);
@@ -328,6 +365,7 @@ export function scriptLinks(file: string, source: string): readonly string[] {
   const bindings = nodes.map(binding).filter(entry => entry !== undefined);
   const reach: Reach = {
     links: aliasesOf(bindings, LINK_FUNCTIONS),
+    copies: aliasesOf(bindings, COPY_FUNCTIONS),
     starts: aliasesOf(bindings, PROCESS_STARTS),
   };
   return nodes
@@ -348,6 +386,7 @@ const TEXT_LANGUAGES = {
     runsLnSymbolic,
     (line: string) => /\bFile\.symlink\b/u.test(line),
     (line: string) => /\bln_sf?\b/u.test(line),
+    (line: string) => /\bFileUtils\.symlink\b/u.test(line),
   ],
   python: [
     runsLnSymbolic,
