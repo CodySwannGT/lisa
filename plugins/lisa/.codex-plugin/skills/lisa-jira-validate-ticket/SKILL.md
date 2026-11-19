@@ -412,6 +412,8 @@ Enforces the token-estimate part of the vendor-neutral `work-item-definition-of-
 
 **What it checks.** An item with **no** `## Lisa Estimate` section PASSes: an estimate is not required at creation or at ready, because deterministic sources (Sentry, New Relic, monitors) cannot produce one, and the claiming agent writes it before any work begins. A section that **is** present FAILs when its `<!-- lisa:estimate ... -->` token is missing or unparseable, the token range is inverted, the recommended model is not in `workItem.estimate.models`, or the dollar range disagrees with the price table the token names. There is never more than one section.
 
+At claim time `lisa-track` reruns the same check with `--phase claim`, where a missing estimate fails and the claiming agent writes one before any work; this validator runs the ready-time form.
+
 Remediation: re-render the section with `node scripts/lisa-estimate.mjs render --tokens-low <n> --tokens-high <n> --model <allowed value> --body-file <file>` and write the result back. Never ask a person for the estimate.
 
 `product_relevant: false` — the estimate is produced by agents, not by whoever wrote the item.

@@ -11,6 +11,10 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../../../all/copy-overwrite/scripts/lisa-estimate.mjs";
+import {
+  finishedItem,
+  usageEntry,
+} from "../../support/work-item-estimate-fixtures.js";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -59,6 +63,12 @@ function run(argv: string[]): { code: number; out: string; err: string } {
   return { code, out: out.join(""), err: err.join("") };
 }
 
+const LOW = "--tokens-low";
+const HIGH = "--tokens-high";
+const CWD = "--cwd";
+const BODY_FILE = "--body-file";
+const HISTORY_FILE = "--history-file";
+
 const render = (
   root: string,
   body: string,
@@ -66,20 +76,20 @@ const render = (
 ): ReturnType<typeof run> =>
   run([
     "render",
-    "--tokens-low",
+    LOW,
     "2M",
-    "--tokens-high",
+    HIGH,
     "4M",
     "--model",
     model,
-    "--body-file",
+    BODY_FILE,
     body,
-    "--cwd",
+    CWD,
     root,
   ]);
 
 const check = (root: string, body: string): ReturnType<typeof run> =>
-  run(["check", "--body-file", body, "--cwd", root]);
+  run(["check", BODY_FILE, body, CWD, root]);
 
 describe("lisa-estimate", () => {
   it("renders an estimate into the body and passes S21 on it", () => {
@@ -130,7 +140,7 @@ describe("lisa-estimate", () => {
 
   it("prints the effective settings and the shipped price table", () => {
     const { root } = project({});
-    const result = run(["config", "--cwd", root]);
+    const result = run(["config", CWD, root]);
     expect(result.code).toBe(0);
     expect(JSON.parse(result.out)).toMatchObject({
       required: true,
@@ -143,5 +153,88 @@ describe("lisa-estimate", () => {
       code: 0,
       out: expect.stringMatching(/^Usage: lisa-estimate\.mjs/),
     });
+  });
+
+  it("calibrates a first estimate from a history file", () => {
+    const { root } = project({});
+    const history = path.join(root, "history.json");
+    writeFileSync(
+      history,
+      JSON.stringify([
+        {
+          body: finishedItem(1_000_000, 3_000_000, [
+            usageEntry("a", 4_000_000),
+          ]),
+        },
+      ])
+    );
+    const result = run([
+      "calibrate",
+      LOW,
+      "1M",
+      HIGH,
+      "2M",
+      HISTORY_FILE,
+      history,
+      CWD,
+      root,
+    ]);
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.out)).toMatchObject({
+      comparable: 1,
+      ratio: 2,
+      tokensLow: 2_000_000,
+      tokensHigh: 4_000_000,
+    });
+  });
+
+  it("refuses calibrate without a history file, and a missing file, with exit 2", () => {
+    const { root } = project({});
+    const base = ["calibrate", LOW, "1M", HIGH, "2M"];
+    expect(run([...base, CWD, root]).err).toMatch(/needs --history-file/);
+    expect(
+      run([...base, HISTORY_FILE, path.join(root, "absent.json")]).code
+    ).toBe(2);
+  });
+
+  it("exits 0 with N/A at claim time when the project turns the requirement off", () => {
+    const { root, body } = project({
+      workItem: { estimate: { required: false } },
+    });
+    expect(
+      run(["check", "--phase", "claim", BODY_FILE, body, CWD, root])
+    ).toMatchObject({
+      code: 0,
+      out: expect.stringMatching(/^S21 token estimate: N\/A/),
+    });
+  });
+
+  it("refuses calibrate on an inverted range with exit 2", () => {
+    const { root } = project({});
+    const history = path.join(root, "history.json");
+    writeFileSync(history, "[]");
+    expect(
+      run([
+        "calibrate",
+        LOW,
+        "2M",
+        HIGH,
+        "1M",
+        HISTORY_FILE,
+        history,
+        CWD,
+        root,
+      ])
+    ).toMatchObject({
+      code: 2,
+      err: expect.stringMatching(/low end \(2000000\) is above the high end/),
+    });
+  });
+
+  it("fails the claim-time check on a body without an estimate", () => {
+    const { root, body } = project({});
+    expect(
+      run(["check", "--phase", "claim", BODY_FILE, body, CWD, root])
+    ).toMatchObject({ code: 1, out: expect.stringMatching(/FAIL/) });
   });
 });
