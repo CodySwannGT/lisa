@@ -29,6 +29,10 @@ function listAll(ctx, endpoint) {
 
 /**
  * One issue by canonical ref, or null when it cannot be read.
+ *
+ * probe-direction: fail-closed — a null blocker is judged inaccessible, so its
+ * link is kept and reported, never removed; a failed read can only shrink what
+ * the sweep clears.
  * @param {object} ctx - CLI context
  * @param {string} ref - `owner/repo#n`
  * @returns {object | null}
