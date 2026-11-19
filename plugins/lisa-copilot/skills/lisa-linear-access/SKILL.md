@@ -22,6 +22,7 @@ operation: list-issues [team:<ID>] [project:<ID>] [label:<NAME>] [state:<NAME>] 
 operation: get-issue id:<ID>
 operation: save-issue payload:{...} [lifecycle_role:<ROLE>] [env:<KEY>]
 operation: list-workflow-states team:<ID>
+operation: delete-relation id:<ID>
 operation: create-workflow-state payload:{...}
 operation: list-comments (issue_id:<ID> | project_id:<ID>)
 operation: save-comment (issue_id:<ID> | project_id:<ID>) body:"..."
@@ -292,6 +293,24 @@ Set `isTeamDefault` per node by comparing `node.id` against
 `team.defaultIssueState.id`. On the MCP substrate, which exposes states without
 the team's default, resolve the default through the team record and join on `id`
 the same way.
+
+## `delete-relation` — remove one relation by its own id
+
+`delete-relation id:<ID>` deletes one issue relation by the relation's `id` (the
+`inverseRelations` / `relations` node id, never an issue id). The session
+manager's stale-blocker-link sweep uses it to drop a `blocks` relation whose
+blocker is already finished (CodySwannGT/lisa#5065). Delete by relation id
+only: never "update" a relation to remove it, because `issueRelationCreate`
+converts an existing relation instead of adding one (CodySwannGT/lisa#3605).
+
+```graphql
+mutation($id:String!){ issueRelationDelete(id:$id){ success } }
+```
+
+Read the issue back and confirm the relation is gone before reporting success.
+The Linear MCP exposes no relation delete, so on an MCP-only substrate report
+`Error: delete-relation needs the LINEAR_API_KEY GraphQL path` and leave the
+relation in place.
 
 ## `save-comment` / `list-comments` — an Issue **or** a Project
 

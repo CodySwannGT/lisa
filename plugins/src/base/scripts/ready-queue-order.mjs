@@ -53,6 +53,11 @@ import {
   isHumanGated,
 } from "./intake-blocker-reprobe.mjs";
 import { entryMatches, parseIdEntries } from "./operator-id-kinds.mjs";
+import {
+  countUnresolvedBlockers,
+  jiraBlockerEdges,
+  linearBlockerEdges,
+} from "./stale-blocker-edges.mjs";
 
 /** Rank for GitHub `priority:<value>` labels; no label ranks 4. */
 const GITHUB_PRIORITY_RANKS = Object.freeze({
@@ -83,9 +88,6 @@ const LINEAR_NO_PRIORITY = 4;
 
 /** Linear workflow state types that leave a child finished. */
 const LINEAR_FINISHED_STATE_TYPES = new Set(["completed", "canceled"]);
-
-/** Jira link types whose inward side reads as "this item is blocked by". */
-const JIRA_BLOCKED_BY = /blocked by/i;
 
 /**
  * @param {unknown} value
@@ -223,9 +225,11 @@ export function normalizeGithubIssue(issue, options = {}) {
  * Normalize one Jira REST/MCP issue. An epic (hierarchy level above 0) or an
  * issue with any subtask not yet in the done category is a container.
  * @param {Record<string, any>} issue - Issue with `key` and `fields`
+ * @param {{ doneRoles?: readonly string[] }} [options] - Configured terminal
+ *   done names (`terminalDoneRoles`), so a blocker there is finished
  * @returns {ReturnType<typeof shape>}
  */
-export function normalizeJiraIssue(issue) {
+export function normalizeJiraIssue(issue, options = {}) {
   const fields = issue?.fields ?? {};
   const labels = labelNames(fields.labels);
   const priority = text(fields.priority?.name).trim().toLowerCase();
@@ -233,12 +237,12 @@ export function normalizeJiraIssue(issue) {
   const openSubtasks = (Array.isArray(fields.subtasks) ? fields.subtasks : [])
     .map(sub => sub?.fields?.status?.statusCategory?.key)
     .filter(category => category !== "done");
-  const openBlockers = nodesOf(fields.issuelinks).filter(
-    link =>
-      link?.inwardIssue &&
-      JIRA_BLOCKED_BY.test(text(link.type?.inward)) &&
-      link.inwardIssue.fields?.status?.statusCategory?.key !== "done"
-  ).length;
+  // One rule with the stale-link sweep (#5065): a blocker in the configured
+  // done status is finished even where its status category is not `done`.
+  const openBlockers = countUnresolvedBlockers(
+    jiraBlockerEdges(issue),
+    options.doneRoles ?? []
+  );
 
   return shape({
     ref: text(issue?.key),
@@ -299,9 +303,11 @@ function linearIntegrationAuthor(issue) {
  * Normalize one Linear GraphQL issue. An issue with any child not completed
  * or canceled is a container.
  * @param {Record<string, any>} issue - Issue node
+ * @param {{ doneRoles?: readonly string[] }} [options] - Configured terminal
+ *   done names (`terminalDoneRoles`), so a blocker there is finished
  * @returns {ReturnType<typeof shape>}
  */
-export function normalizeLinearIssue(issue) {
+export function normalizeLinearIssue(issue, options = {}) {
   const native = Number(issue?.priority ?? 0);
   const children = Array.isArray(issue?.children?.nodes)
     ? issue.children.nodes
@@ -310,12 +316,14 @@ export function normalizeLinearIssue(issue) {
       : [];
   const labels = labelNames(issue?.labels);
   // Linear has no "blocked by" relation type: B blocked by A is A's `blocks`
-  // relation, read from B as an inverse relation.
-  const openBlockers = nodesOf(issue?.inverseRelations).filter(
-    relation =>
-      relation?.type === "blocks" &&
-      !LINEAR_FINISHED_STATE_TYPES.has(relation.issue?.state?.type)
-  ).length;
+  // relation, read from B as an inverse
+  // relation. One rule with the stale-link sweep (#5065): a promotion
+  // workflow can type its configured done state `started`, so the configured
+  // name also counts as finished.
+  const openBlockers = countUnresolvedBlockers(
+    linearBlockerEdges(issue),
+    options.doneRoles ?? []
+  );
 
   return shape({
     ref: text(issue?.identifier),

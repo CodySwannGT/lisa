@@ -557,6 +557,54 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
 A failure anywhere in this sweep is one transcript line: it never holds dispatch and never makes
 the cycle `recovery-required`.
 
+**Stale blocker links** (CodySwannGT/lisa#5065). A "blocked by" link to work that is already
+finished makes the item look stuck when it is not, and an operator who sees every item waiting on
+something cannot tell which ones really are. Clear those links every cycle, before Dispatch, so an
+item held back only by them is claimable in this same cycle:
+
+1. **Plan.** GitHub: `node "$SM/session-manager.mjs" stale-links-plan --tracker github --project-root "$ROOT"`
+   (it reads open issues, their native `blocked_by` dependencies and their `Blocked by` body lines
+   through `gh`). Jira / Linear: fetch every open item that has a blocker through
+   `lisa-atlassian-access` (`issuelinks`, with each linked issue's status and status category) or
+   `lisa-linear-access` (`inverseRelations` with `id`, `type`, and the blocking issue's
+   `identifier`, `team.key` and `state { name type }`), with each item's comments, **paging until
+   the last page**. Write `{"complete":true,"items":[...]}` to
+   `.lisa/session-manager/stale-links-input.json` and run
+   `stale-links-plan --tracker jira|linear --input .lisa/session-manager/stale-links-input.json`.
+   The plan writes nothing. A blocker is stale when it is closed in its tracker or sits in the
+   configured terminal done role (`.lisa.config.json`, never a hardcoded name). A cancelled
+   blocker (GitHub `not_planned` or `duplicate`, Linear `canceled`) is treated as resolved, because
+   intake already ignores it, and the comment says it was cancelled. A blocker that is still open,
+   in another project or repository, or could not be read is never touched; an unreadable one is
+   listed in `report.inaccessible`. Items in the `blocked` role are left to the Blocked sweep
+   below, which decides by branch containment. `--max` caps the items per cycle (default 10); the
+   rest are `deferred` to the next cycle.
+2. **Act** on each entry of `plans`. Re-read the item with `lisa-tracker-read` first and skip it
+   (one transcript line, no write) when its role changed or it gained a person's assignee since
+   the plan. Then perform each `actions` entry and nothing else:
+   - `delete-dependency` (GitHub): `gh api -X DELETE <endpoint>`.
+   - `body` (GitHub, when not null): write it as the issue body through `lisa-tracker-write`. It
+     differs from the current body only in the `Blocked by` refs it removes.
+   - `unlink` (Jira): `lisa-atlassian-access` `operation: unlink link-id:<linkId>`.
+   - `delete-relation` (Linear): `lisa-linear-access` `operation: delete-relation id:<relationId>`.
+   Read the item back and confirm every ref in `removed` is gone. Only then post `comment` through
+   `lisa-tracker-write`: it is one plain-English comment carrying one
+   `[lisa-stale-blocker-link] blocker=<ref>` marker per removed link, so a later cycle never comments
+   twice. Post nothing when the read-back still shows a link; the next cycle retries it. A link
+   that comes back after its marker was posted was put back by a person; the plan reports it in
+   `report.keptByPerson` and never removes it again.
+3. **Report.** Put the plan's `summary` in the cycle's transcript line and in the recorded run
+   summary, e.g. `stale links: cleared 12 stale blocker links on 7 items; 3 now ready to start; 29
+   real blockers remain on 18 items.` Send Telegram nothing for this sweep unless
+   `report.inaccessible` is non-empty and its list changed since the last cycle: then one line
+   naming the blockers that could not be opened.
+
+A failure anywhere in this sweep is one transcript line: it never holds dispatch and never makes
+the cycle `recovery-required`. Other runtimes have no session manager, so build intake runs the
+same shared rule on the item it is about to claim (each `lisa-*-build-intake` skill's "Stale blocker
+links" step); the rule itself lives in `scripts/stale-blocker-edges.mjs` and
+`scripts/stale-blocker-sweep.mjs`, plain Node any agent can run.
+
 **Blocked.** List the items in the `blocked` role (paged to completion, same access paths as the
 queue below). For each:
 
@@ -726,7 +774,7 @@ Skip while `capacity` reports `paused`. Otherwise:
 ### 3. Report and record
 
 If anything changed, write one transcript line, e.g.
-`cycle: 2 running/4 cap, dispatched <TEAM>-124, released <TEAM>-125, 1 question pending`. Then record
+`cycle: 2 running/4 cap, dispatched <TEAM>-124, released <TEAM>-125, 1 question pending; stale links: cleared 2 stale blocker links on 1 item; 4 real blockers remain on 3 items`. Then record
 the run outcome (next section).
 
 ## Run outcome
@@ -737,7 +785,7 @@ session `start` creates), every cycle ends in **exactly one** of the six outcome
 | This cycle | Run outcome |
 |---|---|
 | No dispatch, no state change, no question relayed or newly pending. The summary still states the denominator: "swept N ready, 0 dispatchable; R running/C cap". | `nothing-needed` |
-| At least one of: a worker spawned and seen live in `status`; a Blocked→Ready release written and read back; an orphan finished, returned or re-dispatched, or a hold lifted, written and read back; an answer delivered and its marker removed (`SendMessage` acknowledged, or `resume` returned a session id), or recorded on the item and read back before its marker was removed; a stalled or `blocked-on-prompt` item retried. | `change-proved` |
+| At least one of: a worker spawned and seen live in `status`; a Blocked→Ready release written and read back; a stale blocker link removed and read back; an orphan finished, returned or re-dispatched, or a hold lifted, written and read back; an answer delivered and its marker removed (`SendMessage` acknowledged, or `resume` returned a session id), or recorded on the item and read back before its marker was removed; a stalled or `blocked-on-prompt` item retried. | `change-proved` |
 | An item was marked human-needed ("Mark and move on": marker and question comment written and read back), in any of the four cases, including an `exhausted` item moved to the `blocked` role, or a marked item whose question comment was re-posted after `item-answer` reported `no-question-comment`; or a worker `FAILED` moved the item to the `blocked` role with its reason comment, both read back. The summary names each ref and where to answer it. | `candidate-proposed` |
 | No item was newly marked, but a pending question was re-sent on Telegram (`requestion`) and awaits the operator, and nothing else changed. | `approval-requested` |
 | The tracker, a configured Telegram or `claude` was unreachable; Telegram is configured but was unavailable or unpaired (a question stayed pending with no Telegram message id); a human-needed mark could not be written or read back, or no marker is configured; an answer for a finished worker, an `exhausted` item or a `decision` no worker has picked up could not be posted on the item or read back (its question stays pending); a worker `FAILED`'s move to the `blocked` role could not be written or read back; a spawn failed after the claim (the item went back to Ready); a worker classified `setup-gap` (the item went back to Ready); the capacity probe failed. | `recovery-required` |

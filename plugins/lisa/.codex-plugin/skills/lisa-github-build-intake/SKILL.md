@@ -491,14 +491,11 @@ This gate never blocks a legitimate flat Task/Bug: those have no open children a
 
 Resolve local `#123` references against the candidate issue's repo. Resolve qualified refs and GitHub issue URLs against their named repo. For each blocker, read the blocker issue's status labels with `gh issue view <number> --repo <owner>/<repo> --json labels,state`.
 
-Default cleared blocker labels for GitHub build intake are:
-
-- `status:code-review`
-- `status:on-dev`
-- `status:on-stg`
-- `status:done`
+The cleared blocker labels are read from config, never hardcoded: every rung of `github.labels.build.done` (with no config, the defaults `config-resolution` gives: `status:on-dev`, `status:on-stg`, `status:done`) and the `review` role when `github.labels.build.review` is bound. A blocker on a cleared label has landed where the dependent needs it; only the terminal done rung makes its link stale (see "Stale blocker links" below).
 
 A blocker is active if it is open and has no cleared status label. Treat `status:ready`, `status:in-progress`, missing status labels, and inaccessible blockers as active. Closed blockers are cleared. If any blocker is active, skip the candidate without changing lifecycle labels, without posting "Claimed", and without dispatching the lifecycle. Record it under "Skipped (active blockers)" in the summary and include the active blocker refs. Keep any dependency-hold comment idempotent with a `[claude-build-intake]` prefix.
+
+**Stale blocker links** (CodySwannGT/lisa#5065). Still before the claim, judge each "blocked by" edge of this item with the shared rule in `scripts/stale-blocker-edges.mjs` (`blockerResolution` against `terminalDoneRoles`, which reads the configured terminal done role from `.lisa.config.json`; never a hardcoded name). A blocker closed in the tracker, in that done role, or cancelled never holds the claim. On a runtime with the session manager running, its Reconcile step removes those links every cycle. Every other runtime (Codex, Cursor, OpenCode, Antigravity, Copilot, Devin) has no session manager, so intake does the same clean-up for this one item: pass its read bundle to `planStaleLinkSweep` from `scripts/stale-blocker-sweep.mjs` (`max: 1`), perform the planned actions with `gh api -X DELETE <endpoint>` for a native dependency and a `lisa-tracker-write` body update for a `Blocked by` line, read the item back, and only then post the plan's comment through `lisa-tracker-write`. Its `[lisa-stale-blocker-link]` markers make a re-run post nothing new. An open, cross-project or unreadable blocker is never touched; an unreadable one is named in the summary. Items in `$BLOCKED` are not cleaned here: they belong to the containment check in `lisa-repair-intake`.
 
 #### 3b. Claim
 

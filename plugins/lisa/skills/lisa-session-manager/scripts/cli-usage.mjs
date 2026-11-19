@@ -312,6 +312,20 @@ Per cycle
       wrongly-escalated, hold and release evidence, a draft
       Planning (filing) rule); comment is the marker to post afterwards.
       --max caps captures per cycle (default 3); the rest are deferred.
+  stale-links-plan [--tracker <t>] [--input <file>] [--max <n>]
+                   [--github-repo <owner/repo>]
+      Plans this cycle's clean-up of "blocked by" links whose blocker is
+      finished (closed in the tracker, or in the configured terminal done
+      role) or cancelled; writes nothing. GitHub reads open issues, native
+      blocked_by dependencies and "Blocked by" body lines itself; Jira and
+      Linear take --input {complete:true,items:[raw issues with comments]}.
+      Open, cross-project and unreadable blockers are kept (unreadable ones
+      reported); items in the blocked role are left to the Blocked sweep.
+      stdout {tracker,doneRoles,plans:[{ref,actions,body,removed,comment,
+      remainingBlockers,becomesClaimable}],deferred,report,summary}. A
+      comment carries one [lisa-stale-blocker-link] blocker=<ref> marker per
+      removed link, so a re-run never comments twice. --max caps items per
+      cycle (default 10); the rest are deferred.
   orphan-plan [--input <file>] [--max <n>] [--stale-hours <n>]
                                                 STDIN (without --input): JSON
       {complete:true,items:[{ref,role,labels,body,comments,assignees,

@@ -39,6 +39,7 @@ import {
   validOrAbsent,
 } from "./cli-runtime.mjs";
 import { resolveHumanGatePolicy } from "../../../scripts/human-gate-act.mjs";
+import { terminalDoneRoles } from "../../../scripts/stale-blocker-edges.mjs";
 import { readJsonFile } from "./json-input.mjs";
 import { readLedger } from "./ledger.mjs";
 import { blockingGapRepo, listSetupGaps } from "./ledger-setup-gaps.mjs";
@@ -53,15 +54,19 @@ const NORMALIZERS = { jira: normalizeJiraIssue, linear: normalizeLinearIssue };
  * @param {unknown} envelope - `{complete, pages, items}`
  * @param {string} where - Where it came from, for messages
  * @param {"jira"|"linear"} tracker - Vendor
+ * @param {readonly string[]} doneRoles - Configured terminal done names, so
+ *   a blocker there counts as finished (#5065)
  * @returns {{ items: object[], pages: unknown }} Normalized items
  */
-function normalizeEnvelope(envelope, where, tracker) {
+function normalizeEnvelope(envelope, where, tracker, doneRoles) {
   asSetupError(() => assertPagedToCompletion(envelope));
   if (!Array.isArray(envelope.items)) {
     throw new CliError(`${where}: items must be an array.`, 2);
   }
   return {
-    items: envelope.items.map(NORMALIZERS[tracker]),
+    items: envelope.items.map(item =>
+      NORMALIZERS[tracker](item, { doneRoles })
+    ),
     pages: envelope.pages ?? null,
   };
 }
@@ -73,15 +78,21 @@ function normalizeEnvelope(envelope, where, tracker) {
  * @param {object} ctx - CLI context
  * @param {"jira"|"linear"} tracker - Vendor
  * @param {boolean} withBacklog - Whether the backlog tier is required
+ * @param {ReturnType<typeof loadProject>} project - Loaded project
  * @returns {{ items: object[], pages: unknown, backlog: { items: object[], pages: unknown } | null }} Normalized items
  */
-function readEnvelopeQueue(ctx, tracker, withBacklog) {
+function readEnvelopeQueue(ctx, tracker, withBacklog, project) {
   const file = ctx.values.input;
   if (!file) {
     throw new CliError(`queue --tracker ${tracker} needs --input <file>.`, 2);
   }
   const envelope = readJsonFile(file);
-  const ready = normalizeEnvelope(envelope, file, tracker);
+  const doneRoles = terminalDoneRoles({
+    tracker,
+    global: project.global,
+    local: project.local,
+  });
+  const ready = normalizeEnvelope(envelope, file, tracker, doneRoles);
   if (!withBacklog) return { ...ready, backlog: null };
   if (!envelope.backlog) {
     throw new CliError(
@@ -93,7 +104,12 @@ function readEnvelopeQueue(ctx, tracker, withBacklog) {
   }
   return {
     ...ready,
-    backlog: normalizeEnvelope(envelope.backlog, `${file} backlog`, tracker),
+    backlog: normalizeEnvelope(
+      envelope.backlog,
+      `${file} backlog`,
+      tracker,
+      doneRoles
+    ),
   };
 }
 
@@ -182,7 +198,7 @@ export async function queue(ctx) {
           ...fetchGithubQueue(ctx, project),
           backlog: backlogPickup ? fetchGithubBacklog(ctx, project) : null,
         }
-      : readEnvelopeQueue(ctx, tracker, backlogPickup);
+      : readEnvelopeQueue(ctx, tracker, backlogPickup, project);
   const ledger = await readLedger(ctx.root);
   const me = ctx.values.me ?? ledger.control.me ?? null;
   const operators = config?.operatorIds ?? [];
