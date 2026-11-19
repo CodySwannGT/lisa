@@ -51,6 +51,9 @@ interface Workflow {
         readonly if?: string;
         readonly "runs-on": string;
         readonly "timeout-minutes": number;
+        readonly strategy?: {
+          readonly matrix: Readonly<Record<string, readonly string[]>>;
+        };
         readonly steps: readonly Step[];
       }
     >
@@ -91,7 +94,9 @@ describe("the packed-host journey workflow", () => {
   });
 
   it("runs only in this repository, read-only, on the pinned image", () => {
-    expect(job.if).toBe("github.repository == 'CodySwannGT/lisa'");
+    expect(job.if).toBe(
+      "github.repository == 'CodySwannGT/lisa' && inputs.journey"
+    );
     expect(workflow.permissions).toEqual({ contents: "read" });
     expect(job["runs-on"]).toBe("ubuntu-24.04");
     expect(job["timeout-minutes"]).toBeGreaterThan(0);
@@ -151,15 +156,15 @@ describe("the packed-host journey workflow", () => {
   });
 });
 
-/** The gated fs-probe diagnostic the workflow can run first (#4636). */
+/** The gated fs-probe diagnostic the workflow can run (#4636, #5066). */
 const DIAGNOSTIC = "tests/integration/fs-probe-diagnostic.test.ts";
 
-describe("the fs-probe diagnostic route (CodySwannGT/lisa#4636)", () => {
+describe("the fs-probe diagnostic route (CodySwannGT/lisa#4636, #5066)", () => {
   const dispatch = workflow.on["workflow_dispatch"] as {
     inputs: Record<string, { default: unknown; type: string }>;
   };
-  const diagnostic = steps.findIndex(step => step.run?.includes(DIAGNOSTIC));
-  const journey = steps.findIndex(step => step.run?.includes(SCRIPT));
+  const diagnosticJob = workflow.jobs["fs_probe_diagnostic"]!;
+  const diagnosticSteps = diagnosticJob.steps;
 
   it("is a boolean dispatch input that is off unless asked for", () => {
     expect(dispatch.inputs["probe_diagnostic"]).toMatchObject({
@@ -168,29 +173,69 @@ describe("the fs-probe diagnostic route (CodySwannGT/lisa#4636)", () => {
     });
   });
 
-  it("runs the diagnostic with its flag set, only when asked, before the journey", () => {
-    const step = steps[diagnostic];
-    expect(diagnostic).toBeGreaterThanOrEqual(0);
-    expect(diagnostic).toBeLessThan(journey);
-    expect(step?.if).toBe("${{ inputs.probe_diagnostic }}");
+  it("can skip the journey, which runs unless told not to", () => {
+    expect(dispatch.inputs["journey"]).toMatchObject({
+      type: "boolean",
+      default: true,
+    });
+  });
+
+  it("runs only when asked, in its own job, on the journey's image and the unit shards' image", () => {
+    expect(diagnosticJob.if).toBe(
+      "github.repository == 'CodySwannGT/lisa' && inputs.probe_diagnostic"
+    );
+    expect(diagnosticJob["runs-on"]).toBe("${{ matrix.image }}");
+    expect(diagnosticJob.strategy?.matrix["image"]).toEqual([
+      job["runs-on"],
+      "ubuntu-latest",
+    ]);
+    expect(steps.some(step => step.run?.includes(DIAGNOSTIC))).toBe(false);
+  });
+
+  it("runs the diagnostic with its flag set", () => {
+    const step = diagnosticSteps.find(step => step.run?.includes(DIAGNOSTIC));
     expect(step?.env?.["LISA_FS_PROBE_DIAGNOSTIC"]).toBe("1");
     expect(step?.run).toContain(`bun run test ${DIAGNOSTIC}`);
   });
 
   it("proves the gated cases executed rather than skipped", () => {
-    const proof = steps.find(step =>
+    const proof = diagnosticSteps.find(step =>
       step.run?.includes("scripts/check-test-case-executed.mjs")
     );
-    expect(proof?.if).toBe("${{ inputs.probe_diagnostic }}");
     expect(proof?.run).toContain(
       '--name "fs probe diagnostic paired sample 8 of 8"'
     );
+    expect(proof?.run).toContain(
+      '--name "fs probe diagnostic decomposes a removal into fixed and per-entry cost, settled 1000ms"'
+    );
     const source = read(DIAGNOSTIC);
     expect(source).toContain('"paired sample %i of 8"');
+    expect(source).toContain(
+      '"decomposes a removal into fixed and per-entry cost, settled %ims"'
+    );
     expect(source).toContain('process.env["LISA_FS_PROBE_DIAGNOSTIC"] === "1"');
   });
 
-  it("records the runner and its root mount options on every dispatch", () => {
+  it("repeats the unit agreement case idle and under load, failing on any miss", () => {
+    const loop = diagnosticSteps.find(step =>
+      step.run?.includes("tests/unit/helpers/fs-latency-budget.test.ts")
+    );
+    expect(loop?.env?.["CASE"]).toBe(
+      "agrees with a real corpus deletion measured in the same window"
+    );
+    expect(loop?.run).toContain("repeat idle");
+    expect(loop?.run).toContain("repeat loaded");
+    expect(loop?.run).toContain('test ! -s "$OUT/agreement-failures.txt"');
+  });
+
+  it("records the runner and the mounts the probe writes to", () => {
+    const record = diagnosticSteps.find(step => step.run?.includes("findmnt"));
+    expect(record?.run).toContain("findmnt -no OPTIONS /");
+    expect(record?.run).toContain("findmnt -no SOURCE,FSTYPE,OPTIONS -T /tmp");
+  });
+
+  it("still records the journey's runner and root mount options on every dispatch", () => {
+    const journey = steps.findIndex(step => step.run?.includes(SCRIPT));
     const record = steps.find(step => step.run?.includes("findmnt"));
     expect(record?.if).toBeUndefined();
     expect(record?.run).toContain("findmnt -no OPTIONS /");
