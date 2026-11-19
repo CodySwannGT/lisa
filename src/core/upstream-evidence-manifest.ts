@@ -315,7 +315,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/work-item-estimate-actual.mjs":
       "0c081f8db35ebfa9e85c123f073e16634061efea88e9b5f4028e99908b7a70c0",
     "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs":
-      "0028f4289e25ba7cb119ed036192784657897b1258832adb42c7258e3994c6aa",
+      "24f6cd4f5c89bfeacb2f12be9243e6b2db7eb50b4e4c32680d14bea92e8b719f",
     "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs":
       "094da46c296984cd42d706e60a8fef7956c8c663950bb3d4def768f386b8a53c",
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.d.mts":
@@ -1945,7 +1945,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "8bbee6b63650115190991947a5ceed8f5a7654f8bf32b616a701c36e1b1cee93",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "7b34d2a69d6a6441256ae5c67c5e32f6f6077c08e3f9849ae0c3e8d9a42be040",
+      "b4fa9dcab542ae475ebc49e2870f5ca9df2e608ca90f9a96ac8681e08cedcce3",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "5e250f235e91a6f72a7ebee93560d6c6fd7c5c47aabefe341fba05c6b88c4b25",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
@@ -1977,7 +1977,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md":
       "d34e7b4951bc26caf15625e081e8273a11ee8ca1bde6137750f4b687fca7e8bf",
     "plugins/src/base/skills/lisa-usage-accounting/references/estimate.md":
-      "00427efe4c652cc6f127133ad1acec42bbe9d0e2ba29964fa628575005f05209",
+      "43aa9d4c33a999d14a3afe7fb196a392cecb681bc7382f23382e1c7a27484985",
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "9605cce9b30a5a4db04ce936b5dddcaaf05368ddcd91ce4067956071a481db63",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
@@ -14419,6 +14419,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/workers-name-roundtrip.test.ts": true,
     "tests/unit/session-manager/workers-setup-gap.test.ts": true,
     "tests/unit/session-manager/workers.test.ts": true,
+    "tests/unit/skills/lisa-track-estimate-contract.test.ts": true,
     "tests/unit/skills/missing-capability-tickets.test.ts": true,
     "tests/unit/skills/pull-request-executor-reference.test.ts": true,
     "tests/unit/skills/pushing-skills-run-lisa-check.test.ts": true,
@@ -18660,6 +18661,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "37380cf54911a8d7f21a602ab2eece5fa6de1e80": true,
     "3738876de5f399240ad94b17b7d33595c23b04c6": true,
     "37391181ef975ad63145520397b69d7ea6b5c3e6": true,
+    "373ac9b2d06664531e5604aa7e7a53b024761365": true,
     "37406134e4aefe0c02ddb72affc98fd57ae3b888": true,
     "37488994ac7108d0c21a7f5e03317261f14cd990": true,
     "374d6259ca29e68e0584f62c45089a05deba56cf": true,
@@ -25321,6 +25323,7 @@ export const UPSTREAM_PUBLIC_COMMITS: Readonly<Record<string, true>> =
     "9d79ddf79dbf618464ea55ddafde3e45a997c64c": true,
     "9d80d0b4999f0e14a0a4c953b28eef739961ed2c": true,
     "9d811a34a0f5823331e87bfb4922abc44d4928d3": true,
+    "9d81245c9c26818eb049101a4c1ed8206634cc9b": true,
     "9d854b911bd4244561a5a10d91740ad0f2f31e5d": true,
     "9d865b6aef1c91c496c4d17f5f12c5829170f8a9": true,
     "9d8fb78716dffd6994cd54503171b41b75450bf8": true,

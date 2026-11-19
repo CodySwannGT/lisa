@@ -67,6 +67,7 @@ const LOW = "--tokens-low";
 const HIGH = "--tokens-high";
 const CWD = "--cwd";
 const BODY_FILE = "--body-file";
+const HISTORY_FILE = "--history-file";
 
 const render = (
   root: string,
@@ -173,7 +174,7 @@ describe("lisa-estimate", () => {
       "1M",
       HIGH,
       "2M",
-      "--history-file",
+      HISTORY_FILE,
       history,
       CWD,
       root,
@@ -192,8 +193,42 @@ describe("lisa-estimate", () => {
     const base = ["calibrate", LOW, "1M", HIGH, "2M"];
     expect(run([...base, CWD, root]).err).toMatch(/needs --history-file/);
     expect(
-      run([...base, "--history-file", path.join(root, "absent.json")]).code
+      run([...base, HISTORY_FILE, path.join(root, "absent.json")]).code
     ).toBe(2);
+  });
+
+  it("exits 0 with N/A at claim time when the project turns the requirement off", () => {
+    const { root, body } = project({
+      workItem: { estimate: { required: false } },
+    });
+    expect(
+      run(["check", "--phase", "claim", BODY_FILE, body, CWD, root])
+    ).toMatchObject({
+      code: 0,
+      out: expect.stringMatching(/^S21 token estimate: N\/A/),
+    });
+  });
+
+  it("refuses calibrate on an inverted range with exit 2", () => {
+    const { root } = project({});
+    const history = path.join(root, "history.json");
+    writeFileSync(history, "[]");
+    expect(
+      run([
+        "calibrate",
+        LOW,
+        "2M",
+        HIGH,
+        "1M",
+        HISTORY_FILE,
+        history,
+        CWD,
+        root,
+      ])
+    ).toMatchObject({
+      code: 2,
+      err: expect.stringMatching(/low end \(2000000\) is above the high end/),
+    });
   });
 
   it("fails the claim-time check on a body without an estimate", () => {

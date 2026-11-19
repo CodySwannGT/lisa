@@ -8,11 +8,13 @@
  * complete actual, the ratio is the actual token total (read from the item's
  * `## Lisa Usage` ledger by the same reader the completion tally uses) over the
  * estimate's midpoint. The median ratio scales the new range. Items whose
- * actual is unknown (no ledger, `unavailable` telemetry, or a measured subset)
- * are skipped, never counted as zero. With no usable history the range is
+ * actual is unknown or partial (no ledger, or any run with `unavailable`
+ * telemetry or a measured subset) are skipped, never counted as zero or as the
+ * sum of only the known runs. With no usable history the range is
  * returned unchanged and the basis says so.
  * @module scripts/lib/work-item-estimate-calibration
  */
+import { EstimateConfigError } from "./work-item-estimate-config.mjs";
 import { parseEstimateSection } from "./work-item-estimate.mjs";
 import { ledgerActual } from "./work-item-estimate-tally.mjs";
 
@@ -61,6 +63,10 @@ function median(values) {
  * @returns {{comparable: number, ratio: number | null, tokensLow: number, tokensHigh: number, basis: string}} Calibrated range.
  */
 export function calibrateEstimate(proposed, bodies) {
+  if (proposed.tokensLow > proposed.tokensHigh)
+    throw new EstimateConfigError(
+      `The low end (${proposed.tokensLow}) is above the high end (${proposed.tokensHigh}).`
+    );
   const ratios = bodies.map(itemRatio).filter(ratio => ratio !== null);
   if (ratios.length === 0)
     return {
