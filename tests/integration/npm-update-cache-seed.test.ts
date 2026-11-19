@@ -98,6 +98,8 @@ describe("prepareUpdate cacheSeed", () => {
       [{ bun: real.bun }, "names only an npm folder"],
       [{ ...real, registry: "https://example.invalid/" }, "names only"],
       [{ npm: "relative/npm" }, "must be an absolute path"],
+      // A real folder another user owns: root's, on every supported host.
+      [{ npm: "/usr/bin" }, "not owned by the updater's user"],
       [{ npm: join(linked, "npm") }, "must not pass through a link"],
       [{ npm: file }, "must be a folder"],
       [{ npm: holdsLink.npm }, "not a plain file or folder"],
