@@ -12578,6 +12578,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/platform/process-tree-runner.test.mjs": true,
     "tests/platform/windows-missing-handles.ps1": true,
     "tests/platform/windows-process-fixture.mjs": true,
+    "tests/support/agent-event-handoff.ts": true,
     "tests/support/borrowed-node-modules.mjs": true,
     "tests/support/carrier-agents.ts": true,
     "tests/support/carrier-hook-owners.ts": true,
