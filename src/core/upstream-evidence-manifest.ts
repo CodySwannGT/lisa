@@ -13005,6 +13005,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/canary-removal.test.ts": true,
     "tests/unit/controls/canary-tree.test.ts": true,
     "tests/unit/controls/canonical-json.test.ts": true,
+    "tests/unit/controls/carrier-agent-command-history.test.ts": true,
     "tests/unit/controls/carrier-agent-settings-bytes.test.ts": true,
     "tests/unit/controls/carrier-agent-settings.test.ts": true,
     "tests/unit/controls/carrier-agent-surfaces.test.ts": true,

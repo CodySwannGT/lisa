@@ -91,6 +91,16 @@ function contextAgents(): readonly CodingAgent[] {
 }
 
 /**
+ * Read the event the agent handed the hook, and throw it away.
+ *
+ * The agent writes the whole event before it reads the answer, so a refusal
+ * reads it first: one that exits unread leaves that write failing with EPIPE
+ * whenever it loses the race to the exit, which load decides. A terminal is
+ * never waited on.
+ */
+const DRAIN_EVENT = "[ -t 0 ] || cat >/dev/null";
+
+/**
  * The carrier's entry: the whole content of its file.
  *
  * It asks for Node before anything else: without Node the write must be
@@ -117,6 +127,7 @@ export function agentCarrierEntry(): string {
     "# agent; the event it hands its hook arrives on standard input.",
     `# Written by "${INSTALL_CARRIERS_INVOCATION}". Run that again to change it.`,
     "if ! command -v node >/dev/null 2>&1; then",
+    `  ${DRAIN_EVENT}`,
     `  echo "${missing}" >&2`,
     ...(contextArms.length === 0
       ? []
@@ -130,14 +141,13 @@ export function agentCarrierEntry(): string {
 }
 
 /**
- * The command an agent's hook configuration runs after a file write.
- *
- * It refuses when the carrier is not in the repository, in the way the agent
- * reads, so a checkout that lost the file never reads as one that passed.
+ * The command an agent's hook configuration runs after a file write, with or
+ * without reading the event before refusing for a missing carrier.
  * @param agent - The agent; one that has a hook
+ * @param drains - Whether the refusal reads the event first
  * @returns The command, for a POSIX shell
  */
-export function agentHookCommand(agent: CodingAgent): string {
+function hookCommand(agent: CodingAgent, drains: boolean): string {
   const surface = AGENT_SURFACES[agent];
   const variable = ROOT_VARIABLE[agent];
   const root =
@@ -146,9 +156,36 @@ export function agentHookCommand(agent: CodingAgent): string {
   const inContext = contextAnswer(
     `${CARRIER_REFUSED} ${AGENT_CARRIER_PATH} is missing, so ${CARRIER_CHECKS} cannot run. ${fix}`
   );
-  const missing =
+  const answer =
     surface.refuses && answersWithContext(surface)
       ? `printf '%s\\n' '${inContext}'; exit 0`
       : `echo "${CARRIER_REFUSED} $f is missing, so ${CARRIER_CHECKS} cannot run. ${fix}" >&2; exit 2`;
+  const missing = drains ? `${DRAIN_EVENT}; ${answer}` : answer;
   return `f="${root}/${AGENT_CARRIER_PATH}"; [ -f "$f" ] || { ${missing}; }; exec sh "$f" ${agent}`;
+}
+
+/**
+ * The command an agent's hook configuration runs after a file write.
+ *
+ * It refuses when the carrier is not in the repository, in the way the agent
+ * reads, so a checkout that lost the file never reads as one that passed.
+ * @param agent - The agent; one that has a hook
+ * @returns The command, for a POSIX shell
+ */
+export function agentHookCommand(agent: CodingAgent): string {
+  return hookCommand(agent, true);
+}
+
+/**
+ * Every command Lisa has written into an agent's hook configuration, the one
+ * it writes now first. A run replaces an earlier one rather than adding a
+ * second hook beside it. Lisa 6.2.0 wrote the command whose refusal did not
+ * read the event.
+ * @param agent - The agent; one that has a hook
+ * @returns The commands, newest first
+ */
+export function agentHookCommandsWritten(
+  agent: CodingAgent
+): readonly [string, ...string[]] {
+  return [hookCommand(agent, true), hookCommand(agent, false)];
 }
