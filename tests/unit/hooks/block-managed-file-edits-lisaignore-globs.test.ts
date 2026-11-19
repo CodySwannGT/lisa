@@ -46,12 +46,17 @@ const REFUSED = 2;
 
 let project: string;
 
+/** Shipped templates whose names hold a space and a non-ASCII letter. */
+const SPACED = "scripts/with space.mjs";
+const ACCENTED = "scripts/café.mjs";
+
 /**
- * Run one guard copy against a Write of the managed template.
+ * Run one guard copy against a Write of a shipped template.
  * @param guard - Repository-relative path of the guard copy
+ * @param target - Template the tool would write
  * @returns Exit status; 2 means refused
  */
-function verdict(guard: string): number {
+function verdict(guard: string, target: string = MANAGED): number {
   try {
     boundedExecFileSync({
       label: path.basename(guard),
@@ -59,7 +64,7 @@ function verdict(guard: string): number {
       args: [path.join(REPO_ROOT, guard)],
       input: JSON.stringify({
         tool_name: "Write",
-        tool_input: { file_path: MANAGED },
+        tool_input: { file_path: target },
       }),
       env: { ...process.env, CLAUDE_PROJECT_DIR: project },
       stdio: "pipe",
@@ -78,6 +83,8 @@ beforeEach(() => {
   );
   mkdirSync(shipped, { recursive: true });
   writeFileSync(path.join(shipped, "classify-maestro-failures.mjs"), "x");
+  writeFileSync(path.join(shipped, path.basename(SPACED)), "s");
+  writeFileSync(path.join(shipped, path.basename(ACCENTED)), "a");
   const ledgerDir = path.join(
     project,
     "node_modules/@codyswann/lisa/dist/core"
@@ -126,8 +133,34 @@ describe.each(GUARDS)("%s matches .lisaignore globs", guard => {
     ["a leading caret", "^scripts/*", REFUSED],
     ["a trailing dollar", "scripts/*.mjs$", REFUSED],
     ["an interval", "scripts/c{1}lassify-*", REFUSED],
+    // The shell reads a second dash after a range as a literal, where an ERE
+    // would reject `x-z-c` outright; the `c` must still be a member.
+    ["a dash straight after a range", "scripts/[x-z-c]lassify-*", CLAIMED],
+    ["a range followed by more members", "scripts/[a-c-e]lassify-*", CLAIMED],
+    // An unterminated `[:` opens no class: the shell drops its `[` and keeps
+    // the rest, where an ERE would reject the bracket outright.
+    ["an unterminated class opener", "scripts/[[:c]lassify-*", CLAIMED],
+    ["an unterminated class opener alone", "scripts/[[:]lassify-*", REFUSED],
   ])("%s", (_label, line, expected) => {
     writeFileSync(path.join(project, ".lisaignore"), `${line}\n`, "utf8");
     expect(verdict(guard)).toBe(expected);
+  });
+
+  it.each([
+    ["a name with a space, exactly", SPACED, "scripts/with space.mjs", CLAIMED],
+    ["a name with a space, by glob", SPACED, "scripts/with *.mjs", CLAIMED],
+    ["a name with a space, by basename", SPACED, "with space.mjs", CLAIMED],
+    ["a space the name lacks", SPACED, "scripts/with  space.mjs", REFUSED],
+    ["a non-ASCII name, exactly", ACCENTED, "scripts/café.mjs", CLAIMED],
+    ["a non-ASCII name, by glob", ACCENTED, "scripts/caf*.mjs", CLAIMED],
+    [
+      "a non-ASCII letter the name lacks",
+      ACCENTED,
+      "scripts/cafe.mjs",
+      REFUSED,
+    ],
+  ])("%s", (_label, target, line, expected) => {
+    writeFileSync(path.join(project, ".lisaignore"), `${line}\n`, "utf8");
+    expect(verdict(guard, target)).toBe(expected);
   });
 });

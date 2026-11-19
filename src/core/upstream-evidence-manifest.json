@@ -361,7 +361,7 @@
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "968c8311b25177666b453b6fcdebf01e51476a7f6798ec2ecc98fcbe85b976b5",
+      "c74174b2a0893338dc63636ed2905bc2c9aff393f4bb3036acf512f62a41fbe1",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "a7950ce0b4bcf78eb46e9a17053aca62eacab00376dcf4cdfe85cdae07d11db3",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -1113,7 +1113,7 @@
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "5f64ac17c092bed4d62996a4effbd18ced214be90df9f50fd1928c0fa448c43d",
+      "ca36ffb0bb72269902b22a1a63cfcf837971d24a94f44fcf6920c7545fa41966",
     "plugins/src/base/hooks/block-masked-exit-status.sh":
       "6b28b592edf602c5c809decfb9d108aa5bc73df4dc748017b7a0547211aa9391",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
@@ -2243,7 +2243,7 @@
     "plugins/src/harper-fabric/generated-artifact-globs.txt":
       "583ca5a872ff5eeb04a21fec65430906e4250873299d2fd8bea6ad8bf795f3b6",
     "plugins/src/harper-fabric/hooks/block-generated-artifact-edits.sh":
-      "1eb1a63dd59c76e6fa3e3b2cb9e6b6e194c5039efc654a265d13b0e0e964cb11",
+      "d630715815b5b10cb14c57997f8d4a695e9e5b1577c30fdadff93ec5d743991b",
     "plugins/src/harper-fabric/hooks/enforce-config-extensions.mjs":
       "fcd59ce0a5a33cceaaaf93c09f725f3d18fba09031d0748572528b83e7761e8b",
     "plugins/src/harper-fabric/hooks/enforce-config-extensions.sh":
@@ -3089,7 +3089,7 @@
     "typescript/copy-contents/.husky/pre-commit":
       "114339331a2805477ca786acc058075fced0560dc2e72a1480aaf0c4679a9592",
     "typescript/copy-contents/.husky/pre-push":
-      "251b550eb6b7aa3b5ce6612cf8c6c230cf26761c29dfef202a454bbcdc5ecebe",
+      "69ed1c8d5ccbba16d23f0f0afb790db0383a77f4f4a403b2943e640d220cac45",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -13624,6 +13624,7 @@
     "tests/unit/hooks/pre-push-audit-transport-parity.test.ts": true,
     "tests/unit/hooks/pre-push-coverage-scope.test.ts": true,
     "tests/unit/hooks/pre-push-deletion-guard.test.ts": true,
+    "tests/unit/hooks/pre-push-extension-slot.test.ts": true,
     "tests/unit/hooks/pre-push-git-environment.test.ts": true,
     "tests/unit/hooks/pre-push-pushed-refs-file.test.ts": true,
     "tests/unit/hooks/pre-push-pushed-tree-scope.test.ts": true,
@@ -13633,6 +13634,7 @@
     "tests/unit/hooks/rails-hook-engine.test.ts": true,
     "tests/unit/hooks/remedy-conformance.test.ts": true,
     "tests/unit/hooks/secrets-preflight-hook.test.ts": true,
+    "tests/unit/hooks/shellcheck-clean.test.ts": true,
     "tests/unit/hooks/shellcheck-directives.test.ts": true,
     "tests/unit/hooks/shipped-hook-companions.test.ts": true,
     "tests/unit/hooks/sonar-hook-bounds.test.ts": true,

@@ -197,9 +197,12 @@ fi
 # nothing, and the shell's matcher then matches nothing either.
 #
 # A range compares code points, as bash 5 does by default (`globasciiranges`)
-# and as minimatch does. Measured against `case` over 3,127 pattern/path pairs
-# with no mismatch in the C locale; bash 3.2 under a UTF-8 locale orders a
-# range by collation instead, which only a range bracket can tell apart.
+# and as minimatch does. Measured against bash 3.2's `case` in the C locale:
+# no mismatch over 3,127 pattern/path pairs and over a second fuzz of 3,795.
+# Two differences remain, both in a bracket. Under a UTF-8 locale bash 3.2
+# orders a range by collation (`[]-a]`). And a bracket holding an unterminated
+# `[.` or `[=`, or an unterminated `[:` after other members (`[a[:]`), is read
+# by bash 3.2 with its earlier members dropped; this reads every member.
 #
 # No subshells: this runs on every agent edit, so each helper appends to a
 # variable instead of printing.
@@ -250,10 +253,11 @@ lisa_glob_ere_literal() {
 #
 # Set `lisa_glob_close` to the index of the `]` closing the bracket opened
 # at <open>, or return 1 when it is never closed. A `]` straight after the
-# opening (or after its `!`/`^`) is a member, `[:name:]` is a class, and a
-# backslash escapes the next character, as in the shell's own matcher.
+# opening (or after its `!`/`^`) is a member, `[:name:]`, `[.x.]` and `[=x=]`
+# are single members, and a backslash escapes the next character, as in the
+# shell's own matcher.
 lisa_glob_bracket_end() {
-  local glob="$1" rest name
+  local glob="$1" rest name mark
   local -i i=$(($2 + 1)) n=${#1} start
   case "${glob:i:1}" in "!" | "^") i+=1 ;; esac
   start=$i
@@ -267,15 +271,18 @@ lisa_glob_bracket_end() {
         ;;
       "\\") i+=1 ;;
       "[")
-        if [ "${glob:i+1:1}" = ":" ]; then
-          rest="${glob:i+2}"
-          case "$rest" in
-            *":]"*)
-              name="${rest%%":]"*}"
-              i+=$((${#name} + 3))
-              ;;
-          esac
-        fi
+        mark="${glob:i+1:1}"
+        case "$mark" in
+          ":" | "." | "=")
+            rest="${glob:i+2}"
+            case "$rest" in
+              *"$mark]"*)
+                name="${rest%%"$mark]"*}"
+                i+=$((${#name} + 3))
+                ;;
+            esac
+            ;;
+        esac
         ;;
     esac
     i+=1
@@ -286,12 +293,16 @@ lisa_glob_bracket_end() {
 # lisa_glob_bracket_ere <body>
 #
 # Append the ERE bracket expression for a glob bracket body to
-# `lisa_glob_ere_result`. An escaped member loses its backslash, and a literal `]`,
-# `^` or `-` is placed where an ERE bracket reads it literally: first, not
-# first, and last.
+# `lisa_glob_ere_result`. An escaped member loses its backslash, and a literal
+# `]`, `^` or `-` is placed where an ERE bracket reads it literally: first, not
+# first, and last. A `[:name:]`, `[.x.]` or `[=x=]` is copied whole; any other
+# `[` is a literal member, placed after the others so it never opens a class
+# the ERE would reject (`[[:]`). A `-` straight after a range is literal, as
+# the shell reads `[a-c-e]`, rather than a second range the ERE would reject.
 lisa_glob_bracket_ere() {
-  local body="$1" negate="" members="" close="" caret="" dash="" char
-  local -i i=0 n=${#1}
+  local body="$1" negate="" members="" close="" open="" caret="" dash=""
+  local char next rest
+  local -i i=0 n=${#1} after_range=0
   case "${body:0:1}" in "!" | "^") negate="^" i=1 ;; esac
   if [ "${body:i:1}" = "]" ]; then
     close="]"
@@ -299,27 +310,58 @@ lisa_glob_bracket_ere() {
   fi
   while [ "$i" -lt "$n" ]; do
     char="${body:i:1}"
+    next="${body:i+1:1}"
     if [ "$char" = "\\" ] && [ "$((i + 1))" -lt "$n" ]; then
       i+=1
-      char="${body:i:1}"
-      case "$char" in
+      case "$next" in
         "]") close="]" ;;
         "^") caret="^" ;;
         "-") dash="-" ;;
-        *) members+="$char" ;;
+        *) members+="$next" ;;
       esac
+      after_range=0
     elif [ "$char" = "^" ] && [ -z "$members$close" ]; then
       caret="^"
+      after_range=0
+    elif [ "$char" = "[" ]; then
+      rest="${body:i+2}"
+      case "$next" in
+        ":" | "." | "=")
+          case "$rest" in
+            *"$next]"*)
+              rest="${rest%%"$next]"*}"
+              members+="[${next}${rest}${next}]"
+              i+=$((${#rest} + 3))
+              ;;
+            # An unterminated `[:` opens nothing, and the shell drops its
+            # `[`; any other unterminated opener leaves a literal `[`.
+            *) if [ "$next" != ":" ]; then open="["; fi ;;
+          esac
+          ;;
+        *) open="[" ;;
+      esac
+      after_range=0
+    elif [ "$char" = "-" ] && [ "$after_range" -eq 1 ]; then
+      dash="-"
+      after_range=0
+    elif [ "$char" = "-" ] && [ -n "$members$close" ] && [ "$((i + 1))" -lt "$n" ]; then
+      members+="-${next}"
+      i+=1
+      after_range=1
+    elif [ "$char" = "-" ]; then
+      if [ -z "$members$close" ]; then members+="-"; else dash="-"; fi
+      after_range=0
     else
       members+="$char"
+      after_range=0
     fi
     i+=1
   done
-  if [ -z "$close$members$dash" ]; then
+  if [ -z "$close$members$open$dash" ]; then
     members="$caret"
     caret=""
   fi
-  lisa_glob_ere_result+="[${negate}${close}${members}${caret}${dash}]"
+  lisa_glob_ere_result+="[${negate}${close}${members}${open}${caret}${dash}]"
 }
 
 # Whether the project has claimed a path in `.lisaignore`.

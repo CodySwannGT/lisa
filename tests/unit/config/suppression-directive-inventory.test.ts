@@ -41,67 +41,127 @@ const EXCLUDED_TREES = [
 ] as const;
 
 /**
- * Files whose matching lines are data or prose, with the exact number of
- * matching lines each one holds and why none of them is a directive.
+ * Files whose matching lines are data or prose, with every matching line
+ * pinned as text and why none of them is a directive. Pinning the text, not a
+ * count, means a real directive cannot replace a prose line unseen. A `/` that
+ * opens a comment is written `\u002f`, so this file holds no directive-shaped
+ * comment of its own.
  */
-const DATA_AND_PROSE: Readonly<Record<string, { lines: number; why: string }>> =
-  {
-    ".claude-pr/.claude/rules/PROJECT_RULES.md": {
-      lines: 4,
-      why: "rule prose describing directives",
-    },
-    ".claude/hookify.block-suppression-directives.local.md": {
-      lines: 4,
-      why: "the hookify rule that blocks directives",
-    },
-    ".lisa/plan-1539.md": { lines: 1, why: "a recorded plan's prose" },
-    ".lisa/task-results/T14.json": {
-      lines: 1,
-      why: "a recorded task result's note",
-    },
-    "all/copy-overwrite/scripts/lisa-gates.mjs": {
-      lines: 2,
-      why: "the grep a gate runs to detect directives",
-    },
-    "eslint-plugin-component-structure/README.md": {
-      lines: 1,
-      why: "README prose",
-    },
-    "plugins/src/base/rules/reference/base-rules.md": {
-      lines: 1,
-      why: "rule prose",
-    },
-    "plugins/src/base/rules/reference/coding-philosophy.md": {
-      lines: 1,
-      why: "rule prose",
-    },
-    "plugins/src/base/skills/lisa-parity-code-review/SKILL.md": {
-      lines: 1,
-      why: "skill prose",
-    },
-    "plugins/src/typescript/hooks/block-suppress-directives.sh": {
-      lines: 5,
-      why: "the hook that detects directives: its pattern and message",
-    },
-    "projects/archive/2026-01-28-tagged-merge/tasks/15-type-safety-linting.md":
-      { lines: 1, why: "an archived task's prose" },
-    "src/codex/scripts/block-suppress-directives.sh": {
-      lines: 6,
-      why: "the Codex hook that detects directives: its pattern and message",
-    },
-    "src/configs/eslint/slow-expo.ts": {
-      lines: 3,
-      why: "doc comments explaining react-hooks/rule-suppression",
-    },
-    "src/configs/eslint/slow.ts": {
-      lines: 1,
-      why: "a comment explaining why inline directives are not reported",
-    },
-    "src/opencode/plugin-templates/lisa-block-suppress-directives.ts": {
-      lines: 6,
-      why: "the OpenCode plugin that detects directives: its pattern and message",
-    },
-  };
+const DATA_AND_PROSE: Readonly<
+  Record<string, { lines: readonly string[]; why: string }>
+> = {
+  ".claude-pr/.claude/rules/PROJECT_RULES.md": {
+    why: "rule prose describing directives",
+    lines: [
+      "All `eslint-disable` directives must include a description to satisfy the `eslint-comments/require-description` rule.",
+      "Format: `\u002f* eslint-disable rule-name -- description of why this exception is needed */`",
+      "\u002f* eslint-disable functional/no-let -- generator requires mutable pair to track consecutive Fibonacci values */",
+      "\u002f* eslint-enable functional/no-let -- re-enable after generator state declaration */",
+    ],
+  },
+  ".claude/hookify.block-suppression-directives.local.md": {
+    why: "the hookify rule that blocks directives",
+    lines: [
+      'pattern: "(\u002f\u002f|/\\\\*)\\\\s*(@ts-(ignore|nocheck)|eslint-disable|biome-ignore|prettier-ignore)"',
+      "You're adding a `@ts-ignore`, `@ts-nocheck`, or `eslint-disable` directive. These silence the type checker or linter instead of fixing the underlying problem, which is not allowed unless there is genuinely no other way around it.",
+      "- Prefer `@ts-expect-error` over `@ts-ignore` (it fails if the error ever goes away).",
+      "- Scope `eslint-disable` to a single line and a single rule (`eslint-disable-next-line <rule>`), never a whole file.",
+    ],
+  },
+  ".lisa/plan-1539.md": {
+    why: "a recorded plan's prose",
+    lines: [
+      '  "relevant_documentation": "src/cli/ui-status.ts (StatusProbe contract, runProbe, readStatusSnapshot); src/cli/ui-status-json.ts (ProbeResult tri-state); src/cli/ui-cmd.ts:298-336 (runUi, default probes [createGithubAuthProbe], /api/status handler); src/detection/index.ts:43-76 (detectAll, expandAndOrderTypes); src/cli/doctor.ts:136-149 (identical call chain — agreement AC holds by construction); ui/index.html:2006-2145 (DATA.sections.stacks catalog), 5613-5651 (buildStacks), 6000-6117 (live-status hydration + boot); tests/e2e/ui-live-status.spec.ts (existing probe-injection e2e pattern); PROJECT_RULES: enforce-statement-order, eslint-disable descriptions, plugins/src vs generated artifacts (ui/index.html is NOT a generated plugin artifact)",',
+    ],
+  },
+  ".lisa/task-results/T14.json": {
+    why: "a recorded task result's note",
+    lines: [
+      '      "note": "The block-suppress-directives hook rejects any eslint-disable, including one-line no-bitwise ones. Test permission bits with arithmetic: mode % 0o100 is the group and other bits.",',
+    ],
+  },
+  "all/copy-overwrite/scripts/lisa-gates.mjs": {
+    why: "the grep a gate runs to detect directives",
+    lines: [
+      "    \"grep -E '(\u002f\u002f|/\\\\*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <proposed-text>\"",
+      "    \"grep -E '(\u002f\u002f|/\\\\*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <added-lines>\"",
+    ],
+  },
+  "eslint-plugin-component-structure/README.md": {
+    why: "README prose",
+    lines: [
+      "\u002f* eslint-disable component-structure/single-component-per-file --",
+    ],
+  },
+  "plugins/src/base/rules/reference/base-rules.md": {
+    why: "rule prose",
+    lines: [
+      "- A lint, formatter, or type-check suppression (e.g. eslint-disable, biome-ignore, noqa, ts-expect-error, type: ignore) is a last resort. Use one only when the code is correct and the tool is wrong, scope it to the narrowest line or rule, and write the reason on the same line. Include matching re-enable comments where applicable.",
+    ],
+  },
+  "plugins/src/base/rules/reference/coding-philosophy.md": {
+    why: "rule prose",
+    lines: [
+      "- Never silence a check: no `@ts-ignore`, `eslint-disable`, `any`, loosened compiler or linter config, lowered coverage thresholds, or skipped tests to get green",
+    ],
+  },
+  "plugins/src/base/skills/lisa-parity-code-review/SKILL.md": {
+    why: "skill prose",
+    lines: [
+      "A suppression silences only the lint or type finding it names. It never hides a correctness or security defect in that code. A changed `eval(req.body.code)` under `eslint-disable no-eval` is still remote code execution, so report it as Critical.",
+    ],
+  },
+  "plugins/src/typescript/hooks/block-suppress-directives.sh": {
+    why: "the hook that detects directives: its pattern and message",
+    lines: [
+      "# suppression directive. @ts-expect-error is intentionally NOT matched — it is",
+      "DIRECTIVE_RE='(\u002f\u002f|/\\*)[[:space:]]*(@ts-(ignore|nocheck)|eslint-disable|biome-ignore|prettier-ignore)'",
+      "You are adding a @ts-ignore / @ts-nocheck / eslint-disable / biome-ignore /",
+      "prettier-ignore comment. These silence the type checker, linter, or formatter",
+      "  - Prefer @ts-expect-error over @ts-ignore (it fails once the error is gone).",
+    ],
+  },
+  "projects/archive/2026-01-28-tagged-merge/tasks/15-type-safety-linting.md": {
+    why: "an archived task's prose",
+    lines: ["5. Verify no ts-ignore or eslint-disable comments needed"],
+  },
+  "src/codex/scripts/block-suppress-directives.sh": {
+    why: "the Codex hook that detects directives: its pattern and message",
+    lines: [
+      "# Blocks adding error-suppression directives (@ts-ignore, @ts-nocheck,",
+      "# eslint-disable, biome-ignore, prettier-ignore) to JS/TS source. Suppressing",
+      "# @ts-expect-error is intentionally NOT matched — it is the safer alternative.",
+      "DIRECTIVE_RE='(\u002f\u002f|/\\*)[[:space:]]*(@ts-(ignore|nocheck)|eslint-disable|biome-ignore|prettier-ignore)'",
+      "@ts-ignore / @ts-nocheck / eslint-disable / biome-ignore / prettier-ignore",
+      "the user's approval first, prefer @ts-expect-error over @ts-ignore, scope the",
+    ],
+  },
+  "src/configs/eslint/slow-expo.ts": {
+    why: "doc comments explaining react-hooks/rule-suppression",
+    lines: [
+      " * - react-hooks/rule-suppression - eslint-disable of a React hooks rule",
+      " * `eslint-disable` of `react-hooks/exhaustive-deps` or",
+      " * Compiler options that make `react-hooks/rule-suppression` see eslint-disable",
+    ],
+  },
+  "src/configs/eslint/slow.ts": {
+    why: "a comment explaining why inline directives are not reported",
+    lines: [
+      "        \u002f\u002f Ignore inline eslint-disable comments since they reference rules",
+    ],
+  },
+  "src/opencode/plugin-templates/lisa-block-suppress-directives.ts": {
+    why: "the OpenCode plugin that detects directives: its pattern and message",
+    lines: [
+      " * Blocks adding error-suppression directives (@ts-ignore, @ts-nocheck,",
+      " * eslint-disable, biome-ignore, prettier-ignore) to JS/TS source. Suppressing",
+      " * underlying error. @ts-expect-error is intentionally NOT matched (it is the",
+      "    /(\\/\\/|\\/\\*)\\s*(@ts-(ignore|nocheck)|eslint-disable|biome-ignore|prettier-ignore).*/g;",
+      '        "@ts-ignore / @ts-nocheck / eslint-disable / biome-ignore / prettier-ignore",',
+      '        "the user\'s approval first, prefer @ts-expect-error over @ts-ignore, scope the",',
+    ],
+  },
+};
 
 /**
  * Lists the tracked files the inventory covers.
@@ -121,23 +181,23 @@ function inventoriedFiles(): readonly string[] {
 }
 
 /**
- * Counts the lines in each file that name a directive.
+ * Lists the lines in each file that name a directive.
  * @param files - Repository-relative paths
- * @returns Path to matching-line count, for files with at least one match
+ * @returns Path to matching lines, for files with at least one match
  */
-function directiveLineCounts(
+function directiveLines(
   files: readonly string[]
-): Readonly<Record<string, number>> {
+): Readonly<Record<string, readonly string[]>> {
   return Object.fromEntries(
     files
       .map(file => {
         const text = readFileSync(path.join(repoRoot, file), "utf8");
         return [
           file,
-          text.split("\n").filter(line => DIRECTIVE.test(line)).length,
+          text.split("\n").filter(line => DIRECTIVE.test(line)),
         ] as const;
       })
-      .filter(([, count]) => count > 0)
+      .filter(([, lines]) => lines.length > 0)
   );
 }
 
@@ -147,7 +207,7 @@ describe("the suppression-directive inventory", () => {
       Object.entries(DATA_AND_PROSE).map(([file, { lines }]) => [file, lines])
     );
 
-    expect(directiveLineCounts(inventoriedFiles())).toEqual(expected);
+    expect(directiveLines(inventoriedFiles())).toEqual(expected);
   });
 
   it("sees the shipped copy-overwrite scripts, which a bare directory pathspec missed", () => {
