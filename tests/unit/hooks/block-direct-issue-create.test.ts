@@ -127,6 +127,7 @@ describe("block-direct-issue-create.sh", () => {
         "account only a person holds",
         "hold the operator explicitly asked for",
         "file the project says only people write",
+        "own copy of an open-source library",
         "unless humanGate.mode is",
       ]) {
         expect(stderr).toContain(act);

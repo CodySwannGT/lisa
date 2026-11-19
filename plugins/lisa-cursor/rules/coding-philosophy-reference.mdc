@@ -186,6 +186,7 @@ Right: create the label. Stop only if the tracker refuses for lack of permission
 - **Signing a legal agreement** — a contract, BAA, DPA or license acceptance. A compliance *judgement* is not this gate: it is the agent's decision unless the project declares it human-only
 - **Declared human gates and operator holds** — a leaf filed with `human_gate`, a decision class in `humanGate.humanOnly`, a stricter `humanGate.mode`, an operator's hold label, or an option a project turned on such as `dependencies.humanSignOff`
 - **Human-authored-only surfaces** — `PROJECT_RULES.md`, and the human-gated tickets the learnings gardener files for promotions
+- **Approve maintaining our own copy of an open-source library** — a fork, patch or vendored copy: the last step of the `lisa-security-audit-handling` ladder, filed held as `own-dependency-copy` (`ready-role-filing`). It is maintenance taken on indefinitely, and copy-overwrite ships it to every host
 - **A product question with no reasonable default** that nothing in the item, wiki, code or standing decisions settles (`when-to-stop`), raised through the gate rather than mid-session
 - **`/lisa:agent-ready` gap questions** in `wiki/gaps.md`, which exist to collect what only a person knows
 - **An explicit request** — the operator asked for a person, or invoked an interactive setup skill (`/lisa:setup:*`) and is answering its prompts

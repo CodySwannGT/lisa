@@ -344,7 +344,9 @@ export function isStrictHumanGateMode(mode) {
  * reach, and a hold the operator explicitly asked for. One more entry is valid
  * in both modes without being an access gate: a change to a surface the
  * project declared human-authored, which the authorship rule keeps free of
- * automated writes.
+ * automated writes. Another is valid in both modes for the same reason: our
+ * own fork, patch or vendored copy of an open-source library, the last rung of
+ * the security-audit ladder, which a person approves.
  *
  * The patterns run over a normalized reason (lower case, hyphens and
  * underscores read as spaces) so a slug and its prose spelling match alike.
@@ -449,6 +451,28 @@ export const HUMAN_GATE_ACTS = Object.freeze([
       /\b(declared human authored|human authored (surfaces?|files?|rules?)|project rules( md)?|agents md|agents rules|claude rules)\b/u,
   }),
   Object.freeze({
+    act: "own-dependency-copy",
+    // Not missing access: the last rung of the security-audit ladder
+    // (CodySwannGT/lisa#5024). Our own fork, patch (patch-package, Bun or pnpm
+    // `patchedDependencies`, yarn patch) or vendored copy of an open-source
+    // library is maintenance taken on indefinitely, and copy-overwrite ships
+    // it to every host, so a person approves it in both modes. The pattern
+    // names the act of maintaining our OWN copy; depending on someone else's
+    // fork is a decision, and so is every earlier rung of the ladder. A patch
+    // must name a dependency target. After "to" or "for" that target is a
+    // library, dependency or package noun, because a bare word there is as
+    // often a verb ("a patch to fix the crash"). A bare package name counts
+    // only after "against", "on" or "of", and never a repository word, so
+    // "add a patch to the README" stays a decision. A package name is one
+    // word here: a prose reason is matched with scoped and hyphenated names
+    // (`@scope/name`, `eslint-plugin-react`) collapsed to a single token, so
+    // the target window stays one word wide.
+    label: "approve maintaining our own copy of an open-source library",
+    packageNames: true,
+    pattern:
+      /\b((maintain\w*|keep\w*|carry\w*|own\w*) (our|its) own (patched |vendored |forked )?(copy|copies|fork|forks|patch|patches) of|(apply\w*|carry\w*|maintain\w*|keep\w*|add\w*) (a |an |our |the )?(local )?(patch|patches) ((to|for|of|against|on) (the |a |an |our |this )?(open source |upstream |third party )?([a-z0-9]+ )?(library|libraries|dependency|dependencies|package|packages)|(against|on|of) (the |our )?(?!(readme|docs?|documentation|files?|changelog|code|config|scripts?|tests?|branch|workflow|the|our|a|an|this|it)\b)[a-z0-9]+)|(fork|forking|vendor|vendoring) (?!of\b)(a |an |our |the )?([a-z0-9]+ ){0,2}(library|libraries|dependency|dependencies|package|packages))\b/u,
+  }),
+  Object.freeze({
     act: "compliance-signoff",
     label: "give a compliance sign-off",
     strictOnly: true,
@@ -490,6 +514,8 @@ const KEYWORD_ACTS = new Set([
   "legal-signoff",
   "person-only-account",
   "human-authored-surface",
+  // "fork-library-selection" names a topic, not the approval (#5024).
+  "own-dependency-copy",
   "compliance-signoff",
   "accountable-person",
   "unreachable-system",
@@ -525,6 +551,23 @@ export function normalizeGateText(value) {
 }
 
 /**
+ * A prose reason normalized with each package name kept as one token, so a
+ * scoped or hyphenated name (`@scope/name`, `eslint-plugin-react`) reads as
+ * the single target it is rather than as several words.
+ * @param {unknown} value - A raw prose reason
+ * @returns {string} Normalized text with package names joined
+ */
+function collapsePackageNames(value) {
+  return normalizeGateText(
+    String(value ?? "")
+      .toLowerCase()
+      .replace(/@?[a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)?/gu, name =>
+        /[@/._-]/u.test(name) ? name.replace(/[^a-z0-9]/gu, "") : name
+      )
+  );
+}
+
+/**
  * The project's declared human-only decision classes, normalized.
  * @param {unknown} classes - `humanGate.humanOnly` from config
  * @returns {string[]} Non-empty normalized phrases
@@ -555,10 +598,11 @@ export function classifyHumanGateReason(reason, options = {}) {
     const slug = !/\s/u.test(String(reason ?? "").trim());
     const topicOnly = slug && TOPIC_WORDS.test(text) && !ACT_VERBS.test(text);
     const strict = isStrictHumanGateMode(options.mode);
+    const packageText = slug ? text : collapsePackageNames(reason);
     for (const entry of HUMAN_GATE_ACTS) {
       if (entry.strictOnly && !strict) continue;
       if (entry.slugOnly && !slug) continue;
-      const match = entry.pattern.exec(text);
+      const match = entry.pattern.exec(entry.packageNames ? packageText : text);
       // A secret is never a topic: the secret entry always wins. A login
       // word is a topic unless an act verb says otherwise, in prose too.
       const vetoed = entry.secret

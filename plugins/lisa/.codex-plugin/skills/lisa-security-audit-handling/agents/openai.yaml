@@ -1,4 +1,4 @@
 display_name: "Security Audit Handling"
-short_description: "What to do when a push or CI is…"
+short_description: "When the dependency security…"
 default_prompt:
-  - "Use $lisa-security-audit-handling: What to do when a push or CI is…."
+  - "Use $lisa-security-audit-handling: When the dependency security…."

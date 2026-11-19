@@ -1,6 +1,6 @@
 ---
 name: lisa-security-audit-handling
-description: "What to do when a push or CI is blocked by the dependency security audit, in order: refresh the lockfile, upgrade the direct dependency, add a targeted override, exclude an advisory that cannot reach the project with a stated reason, then replace or remove the dependency. Never bypasses the hook."
+description: "When the dependency security audit blocks a push or CI, in order: refresh, upgrade, override, exclude an unreachable advisory with a reason, replace or remove, fix upstream, and only last, behind a human gate, fork, patch or vendor the library. Never bypasses the hook."
 ---
 
 # Security Audit Handling
@@ -16,8 +16,12 @@ The remedy for a high/critical advisory is an ordered decision, not a question t
 3. **Add a targeted override** that pins the vulnerable **leaf** package to the fixed version.
 4. **Evaluate reachability, and exclude with a stated reason if unaffected** — before considering any code change. If the advisory cannot affect this project, add a scoped exclusion with a concrete reason to `audit.ignore.local.json`. No human is needed. Typical unreachable cases: the package is used only by dev or build tooling, or the vulnerable input is never untrusted (for example, globs or patterns written in the repository itself). The evaluation is this project's own: Lisa's template exclusions cannot vouch for a host's reachability, so a host the audit flags records its own entry in `audit.ignore.local.json`. **If reachability cannot be proven, treat the advisory as affecting the project** and continue at step 5.
 5. **Replace or remove the dependency** when it affects the project and no fixed version exists: a maintained alternative, a newer major of the parent that no longer pulls the package, or dropping it.
+6. **Contribute the fix upstream** — an issue or pull request on the library. This is fine to do in parallel with step 5.
+7. **Fork, patch or vendor the library — last, and only through a human gate.** Our own copy of an open-source library (a fork, a patch through patch-package, Bun or pnpm `patchedDependencies` or `yarn patch`, a `patches/` directory, or a vendored copy) is reached only when steps 1–6 cannot resolve the advisory. File the work held through `lisa-track` with `human_gate: "approve maintaining our own copy of <pkg>"` (the `own-dependency-copy` act in `ready-role-filing`), and write none of that code until a person releases the gate.
 
-If none of these works in this change, **file a build-ready ticket** in the configured tracker (through `lisa-tracker-write` with `build_ready: true`) carrying the evidence: the advisory, the dependency path that reaches the vulnerable copy, and what was tried at each of the five steps and why it failed. The factory then carries the replacement or removal as work. Stop only when the next act needs access you do not have, and then say exactly what is missing.
+**Why step 7 is a gate.** The no-assumed-human rule still holds: every other step is a decision you make and record yourself. A fork, patch or vendored copy is different. It is maintenance we take on indefinitely, and it travels with whatever the project distributes: in Lisa itself, copy-overwrite ships it to every host. So it is one of the explicitly declared human gates, not a decision.
+
+If steps 1–6 do not resolve it in this change, **file a build-ready ticket** in the configured tracker (through `lisa-tracker-write` with `build_ready: true`) carrying the evidence: the advisory, the dependency path that reaches the vulnerable copy, and what was tried at each step and why it failed. The factory then carries the replacement or removal as work. Stop only when the next act needs access you do not have, and then say exactly what is missing.
 
 ## Node.js Projects (GHSA advisories)
 
@@ -37,7 +41,9 @@ If none of these works in this change, **file a build-ready ticket** in the conf
      ```
      Then any other vulnerable copy — on an unlisted path or through an npm alias — still fails the audit and is named by its lockfile path. An empty `paths` array, an invalid range, or an unreadable lockfile fails the audit with a diagnostic; it never widens into an ID-wide exclusion. The pre-push hook, the gate registry, and CI use the same matcher. `lisa doctor` checks the scope fields and that the lockfile is readable, and reports any remaining exclusion without `versions` or `paths`, but it does not match advisories against lockfile copies — a valid-looking path that names the wrong copy can pass doctor and still be rejected by the audit. Doctor also does not reject an entry with no `id` or an exclusion file that does not parse; the audit does. Only the audit proves the exclusion files are accepted. In CI, the reusable workflow audits the manager its `package_manager` input names (default `npm`), so set that input to the project's manager. A scoped entry always wins over a wider entry for the same advisory and package. Full contract: https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md
 7. **Step 5 — replace or remove:** if the advisory affects the project, replace the dependency with a maintained alternative or remove it, prove behavior with the tests, commit, and retry.
-8. If none of these works in this change, file the build-ready ticket described above.
+8. **Step 6 — upstream:** open the upstream fix (an issue or pull request on the library), in parallel with step 5 if useful.
+9. If steps 1–6 do not resolve it in this change, file the build-ready ticket described above.
+10. **Step 7 — our own copy:** only when steps 1–6 cannot resolve it, file the held `human_gate` work item described above. Do not add `patchedDependencies`, patch-package, `yarn patch`, a `patches/` directory, a git fork in `package.json`, or a vendored copy before a person releases that gate. A fork or vendored copy also inherits the `dependency-internalization-kit` rule's evidence bar once the gate is released.
 
 
 ### Critical: Override the vulnerable package, not its parent
@@ -57,7 +63,8 @@ If any of these checks fail, the override is "not possible" for the purposes of 
 
 - Never add a blanket audit bypass or lower the configured audit level.
 - Never add an exclusion without an impact evaluation recorded in its `reason`, and never for an advisory you cannot show is unreachable.
-- Never file the ticket before genuinely attempting all five steps.
+- Never file the ticket before genuinely attempting steps 1–6.
+- Never patch, fork or vendor a library (step 7) before evaluating reachability (step 4), and never without a released human gate.
 - Never wait on a human the work does not need; stop only for missing access, and name it.
 
 ## Rails Projects (bundler-audit)
@@ -69,4 +76,4 @@ Same ladder, bundler mechanics:
 3. **Step 1 — update:** If a patched version exists:
    - **Direct dependency** (in Gemfile): update its version constraint, run `bundle update <gem>`, commit, retry.
    - **Transitive dependency** (only in Gemfile.lock): run `bundle update <gem>` to pull the patched version without changing the Gemfile, commit the lockfile change, retry.
-4. **No patch:** If no patched version exists, evaluate whether the advisory can affect the project. If it **cannot**, document the exception with the reason and retry. If it **does**, or you cannot show it does not, upgrade or replace the gem that pulls it, or remove it. If none of that works, file a build-ready ticket with the evidence, as above.
+4. **No patch:** If no patched version exists, evaluate whether the advisory can affect the project. If it **cannot**, document the exception with the reason and retry. If it **does**, or you cannot show it does not, upgrade or replace the gem that pulls it, or remove it, and contribute the fix upstream. If none of that works, file a build-ready ticket with the evidence, as above. Pointing the Gemfile at a git fork or vendoring the gem is step 7: file the human gate first.

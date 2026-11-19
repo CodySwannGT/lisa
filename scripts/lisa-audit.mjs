@@ -39,7 +39,7 @@ try {
   );
   if (!verdict.passed)
     console.log(
-      "   Next step: follow the lisa-security-audit-handling skill, in order: 1) refresh the lockfile within its current range; 2) upgrade the direct dependency that pulls it; 3) add a targeted override to the fixed version; 4) before any code change, evaluate reachability, and if the advisory cannot affect this project add a scoped exclusion with the reason to audit.ignore.local.json (for a dev-only copy, add its lockfile path to `paths`), no human needed; 5) replace or remove the dependency. Never bypass this hook. See https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md"
+      "   Next step: follow the lisa-security-audit-handling skill, in order: 1) refresh the lockfile within its current range; 2) upgrade the direct dependency that pulls it; 3) add a targeted override to the fixed version; 4) before any code change, evaluate reachability, and if the advisory cannot affect this project add a scoped exclusion with the reason to audit.ignore.local.json (for a dev-only copy, add its lockfile path to `paths`), no human needed; 5) replace or remove the dependency; 6) contribute the fix upstream; 7) last, fork, patch or vendor the library, only after a person releases a human gate filed for it. Never bypass this hook. See https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md"
     );
   process.exitCode = verdict.passed ? 0 : 1;
 } catch (error) {

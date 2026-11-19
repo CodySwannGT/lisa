@@ -87,6 +87,58 @@ describe("classifyHumanGateReason under each humanGate.mode", () => {
     }
   });
 
+  // Our own fork, patch or vendored copy of an open-source library is the
+  // last rung of the security-audit ladder and a declared gate in both modes
+  // (CodySwannGT/lisa#5024): it is maintenance taken on indefinitely, and
+  // copy-overwrite ships it to every host.
+  it.each([
+    "approve maintaining our own copy of picomatch",
+    "approve-maintaining-our-own-copy-of-picomatch",
+    "approve maintaining our own fork of left-pad",
+    "approve maintaining our own patched copy of minimatch",
+    "approve maintaining our own vendored copy of tar",
+    "approve applying a patch against picomatch",
+    "approve applying a patch to the @eslint-community/eslint-plugin-eslint-comments package",
+    "approve applying a patch to the eslint-plugin-react package",
+    "approve carrying a patch against @scope/some-lib",
+    "approve applying a patch against the picomatch",
+    "approve carrying a patch on minimatch",
+    "approve applying a patch to the picomatch dependency",
+    "approve carrying a local patch against minimatch",
+    "approve forking the picomatch library",
+    "approve vendoring the tar package",
+  ])("holds %j in both modes as our own dependency copy", reason => {
+    for (const options of [{}, STRICT]) {
+      const verdict = classifyHumanGateReason(reason, options);
+      expect(verdict.valid).toBe(true);
+      expect(verdict.act).toBe("own-dependency-copy");
+    }
+  });
+
+  it.each([
+    "dependency-copy-cleanup",
+    "fork-strategy",
+    "choose which fork of the library to depend on",
+    "patch-notes-layout",
+    "apply the upstream patch release",
+    "add a patch to the README",
+    "apply a patch to the docs",
+    "add a patch to readme",
+    "apply a patch to fix the crash",
+    "add a patch to handle empty input",
+    "apply a patch to support node 24",
+    "apply a patch for windows paths",
+    "approve applying a patch to the picomatch",
+    "approve applying a patch to picomatch",
+    "apply a patch against the README",
+    "apply a patch to fix the package build",
+    "fork-library-selection",
+    "vendor-package-choice",
+    "forking-dependency-decision",
+  ])("does not read %j as our own dependency copy", reason => {
+    expect(classifyHumanGateReason(reason).act).not.toBe("own-dependency-copy");
+  });
+
   it("does not read a slug about human-authored docs as the authorship hold", () => {
     expect(classifyHumanGateReason("human-authored-docs-layout").valid).toBe(
       false

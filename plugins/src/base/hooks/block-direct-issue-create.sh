@@ -465,8 +465,9 @@ FILE IT THE SANCTIONED WAY — one of these three, always explicit:
    open an external account, sign a legal agreement (contract, BAA, DPA,
    license), act from an account only a person holds (such as a protected
    deployment approval), act in a system the agent cannot reach, release a
-   hold the operator explicitly asked for, or edit a file the project says
-   only people write. A choice with a reasonable default is NOT that, and
+   hold the operator explicitly asked for, edit a file the project says
+   only people write, or approve maintaining our own copy of an open-source
+   library (a fork, patch or vendored copy). A choice with a reasonable default is NOT that, and
    neither is a compliance judgement or naming an owner (unless
    humanGate.mode is "strict"): decide it, record the decision on the item,
    and use 1. Otherwise route the same way but pass
