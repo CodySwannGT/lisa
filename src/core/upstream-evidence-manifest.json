@@ -1649,7 +1649,7 @@
     "plugins/src/base/skills/lisa-parity-code-review/SKILL.md":
       "305581d5ba13cd6fca55cea623b18b26606cc596b06ff009b57585820cfc0faa",
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
-      "c4a77fc827c1e9e592a1438677f06dbb8ac364b799a1af136c00b8ad9c333996",
+      "fc660e91f94c06a459a39dc7a3b4264ccc13a9c94f644948eec02251cf9f5546",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
       "36e118355bcf694924f9fe3e8f9189efd5b02268c6658ee83244a53cb12c127d",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
@@ -2639,7 +2639,7 @@
     "rails/merge/.claude/settings.json":
       "c4d52cf656f80ba166fdf327119251b239b9d74c010a8d74a060ebc3e031188a",
     "scripts/build-plugins.sh":
-      "bcd527d98010cc77e544a4e71933a9d559e2064bfa836bf00453eaad8d23e222",
+      "1cd42d608f6f6d50e49078307d07179343b6618ce15e5fc2d49143ef244cfe06",
     "scripts/build-unless-marked.mjs":
       "8514c8aa1908efca45b40076590e7c493fd39e9bfe3ae96a123253c20b1d5e0f",
     "scripts/check-control-command-parity.mjs":
@@ -2679,7 +2679,7 @@
     "scripts/check-pipeline-status-reads.mjs":
       "1fba15dfe50eb060bd229066a35a852679b23c11292981015b5746e1d639fb31",
     "scripts/check-plugins-sync.sh":
-      "be15811834fa1b85ba242a0ee114fe2c43459e50b3e02c726a9860014daa39d2",
+      "9ad76ef74b9ed42e0e4f5cd520d3f2ffe011e0e14ce16b829e80cf370cd5fced",
     "scripts/check-probe-absence-direction.mjs":
       "5dfb12c8ac9a23220219cc8748f1fea03f55bb42c0a9cf045bccfd04a4646652",
     "scripts/check-release-commit-listed.mjs":
@@ -2717,7 +2717,7 @@
     "scripts/check-workflow-load-failures.mjs":
       "31e8404316dc95527ff87ee2bcbc7d19bcf70f6cb54b608fd7235e9c767506a1",
     "scripts/check-workflow-package-paths.mjs":
-      "07ebf3f8a4504f6231c5ae492ecda7f95a80a0fa5f0424b9d3368544b1b612dd",
+      "6f0148fe804d4c36eddb137b6c16d4d49694e287303e38a95bfc82d49480954a",
     "scripts/classify-markdown-assertions.mjs":
       "4b5ec8747ade3767b7d4f5b8bccf3e5a46f8cc296ad4397dabd89e4768ac68cd",
     "scripts/classify-phrase-tests.mjs":
@@ -2892,6 +2892,10 @@
       "47a564e2f9d46c0a955defe8eb924f86d7a273098e6ccb118e10f9eeecf3950c",
     "scripts/lib/plugin-rule-citations.mjs":
       "c9f0ed57d6da16ce90eab0a67a73a7f6783e7065406a39eea039619a10e517b9",
+    "scripts/lib/publish-plugin-tree.d.mts":
+      "9cf6c2fa2fde77c9071d8a1b683b753706fffab14d5fb981dad5b29c642156e4",
+    "scripts/lib/publish-plugin-tree.mjs":
+      "2ff814b8d135e83c437dc410b7f90ffa4d97836fb3614f916aa8dfab2bfe3d12",
     "scripts/lib/rails-hooks-command.mjs":
       "dc695aa4920e83d9e757eaa2dcf3477ed2f5aa4df93814581e6254d5661c040e",
     "scripts/lib/rails-hooks-inspection.mjs":
@@ -10973,6 +10977,8 @@
     "scripts/lib/phrase-tests/runner.mjs": true,
     "scripts/lib/plugin-cache-resolution.mjs": true,
     "scripts/lib/plugin-rule-citations.mjs": true,
+    "scripts/lib/publish-plugin-tree.d.mts": true,
+    "scripts/lib/publish-plugin-tree.mjs": true,
     "scripts/lib/rails-hooks-command.mjs": true,
     "scripts/lib/rails-hooks-inspection.mjs": true,
     "scripts/lib/rails-hooks.d.mts": true,
@@ -12959,6 +12965,7 @@
     "tests/unit/config/packed-host-journey-wired.test.ts": true,
     "tests/unit/config/performance-budget-gate.test.ts": true,
     "tests/unit/config/phaser-template.test.ts": true,
+    "tests/unit/config/plugin-artifacts-job-push-parity.test.ts": true,
     "tests/unit/config/plugin-sync-push-gate-wired.test.ts": true,
     "tests/unit/config/postinstall-ci-guard.test.ts": true,
     "tests/unit/config/postinstall-cloud-session-guard.test.ts": true,
@@ -13069,6 +13076,7 @@
     "tests/unit/controls/canary-removal.test.ts": true,
     "tests/unit/controls/canary-tree.test.ts": true,
     "tests/unit/controls/canonical-json.test.ts": true,
+    "tests/unit/controls/carrier-agent-command-history.test.ts": true,
     "tests/unit/controls/carrier-agent-settings-bytes.test.ts": true,
     "tests/unit/controls/carrier-agent-settings.test.ts": true,
     "tests/unit/controls/carrier-agent-surfaces.test.ts": true,
@@ -14117,6 +14125,7 @@
     "tests/unit/scripts/pipeline-status-continuations.test.ts": true,
     "tests/unit/scripts/placeholder-expiry.test.ts": true,
     "tests/unit/scripts/plan-integration-shards.test.ts": true,
+    "tests/unit/scripts/plugin-build-guard-availability.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,
     "tests/unit/scripts/plugin-parity-drift.test.ts": true,
     "tests/unit/scripts/plugin-parity-orphaned-versions.test.ts": true,
@@ -15745,6 +15754,7 @@
     "0987fa78c9876d5bec821084c87c5a3586d7f1b4": true,
     "099008b9e83258eefe85705588b629b38900f733": true,
     "0993395ac2821412ecf2114e47ec863a67269dbc": true,
+    "09951570eddae7fa44d32ae9ad7121c68d6952e9": true,
     "099820a8dd906083d183f105dab749a2b00f121c": true,
     "09983bbf98d508e244c97a552b8b0e94e2d34e67": true,
     "0998cb3177d45eda3c04434884fce5b523680425": true,
@@ -15763,6 +15773,7 @@
     "09c13a33f9a16d7fac258943807a61918dc00717": true,
     "09c1ed6fea71bf3aa4b599425a735f9a8be5c3a5": true,
     "09c5f7b180abb2dec5649d5a37fd1e4ddba35bb1": true,
+    "09c6c2811591b1c87d3e84265f173087cfa703d6": true,
     "09c6e084c8fb2b635807d8a8b993c279b9e1aa8d": true,
     "09db375bfb642cbb4c8455abdbe2be7ad5082309": true,
     "09dd798a3d71493406ec30e295a8d46430d8b8e3": true,
@@ -16106,6 +16117,7 @@
     "0f0e1b93f3741abc1f8719fa7fed7d442c11b97d": true,
     "0f13fb1fb985d5ab89776b71cf9c889293feff9c": true,
     "0f1b1e9a08732b0534d614063d74a82167f3e933": true,
+    "0f25e2e59ac6e5ac8c20cc158978f65f6319ebc5": true,
     "0f265c21dedab30c66980bcb1f997c08917f328c": true,
     "0f29b922176e10f9d10b474bb0b928e508aa2663": true,
     "0f2ef99495fcf95721cfee18893d25c4665e3251": true,
@@ -17049,6 +17061,7 @@
     "1d13ca001823b4a35b9d5e955e33046624840345": true,
     "1d168b3a733f91823a2823fd07bbe8d0fa7e248e": true,
     "1d1710db44a60986c2d854ecc879eeb06e49298f": true,
+    "1d1ad5243787aeeed40bae2f271951574cfe8a60": true,
     "1d1c8ec2d2d992f454744b2029ccc702577d9120": true,
     "1d1ec63558bb450a10ad4bf3ca23f2b2fac58491": true,
     "1d1fa0512963f26cec60c0e319ff668d729a131b": true,
@@ -19630,6 +19643,7 @@
     "45ac989bf8fdde3b95b3dcfbafd8c4811ab8d8f6": true,
     "45af176e1435c2c0a6436c6410cf08c0cbff7cb9": true,
     "45b1510b1c1463bd9f8b3faa9123501fd70d08fc": true,
+    "45b440645d7b2606816eb4c3c01b5c7a901e98ce": true,
     "45b66c2bb131880b49a7097ea618b24a413db18d": true,
     "45bbc4ff5e65492cff3eafa1a16eefdd3119d888": true,
     "45bd84789308641ec0cfaa7cc413399e2ff61514": true,
@@ -21066,6 +21080,7 @@
     "5c0605d163a1981ad7854379c7d2b33f8d7f7520": true,
     "5c078d8e84fafdc92f3c60417066200ee3d0f016": true,
     "5c1291d793b5415fa87a308db1760c634421294c": true,
+    "5c13b64a10fdb5a49648f5e326e015b5a1222c92": true,
     "5c1778a99257c712d1ce7314a3e4fac988dd5332": true,
     "5c197bdea870d4e3a21da2156b8d2409dabf7554": true,
     "5c1fe273535308c4ce051cb78df015fe6a24f117": true,
@@ -21210,6 +21225,7 @@
     "5e4bfb76090af21ed17a7d181c15881a192cacbc": true,
     "5e543d6538ad4e78b9c7edb2c7bb3e4c427101cb": true,
     "5e56c7c05b53ca664106c47b6996ecea938810f3": true,
+    "5e5765fe0632f7c39a30d8080088b2ba5c292463": true,
     "5e585e9b0dd0edd091435e32dc548e0d2db3f0ed": true,
     "5e5f8c468cbd21136425dcd3f35343d6fca31d32": true,
     "5e6d47f265c41765595e8717acbb3bd1e67cc90b": true,
@@ -22529,6 +22545,7 @@
     "71c68737bed14de12f80900f97c8e314a4e52b6f": true,
     "71c6f10c3656e5efb14fcb0499cc4815c9aee17f": true,
     "71c9e44e6187905ea8add22b05ea10b06b3ea83b": true,
+    "71ccd195c17f4a0eba56ff3c388efd8a0ee3e041": true,
     "71cd31da090b24609ab3f4483cca2d1925712f8f": true,
     "71d12cb5b88f4bbb582e210105a564017d440f22": true,
     "71d6e95fd9e7a861cd880407fc204d3517be6b63": true,
@@ -27104,6 +27121,7 @@
     "b7d23a3eb44218cde8c05b027026b3cab671beb3": true,
     "b7d6ed6dff5a0b507bbb3d27ae159c4d0c84612b": true,
     "b7deba2c5e29dfc740332c8826dd9b9a2c6687a1": true,
+    "b7e0c4bea3a9fcc6ae65320429a5617531e3f73d": true,
     "b7e0fbc80f3abba97d6d2af00c2fc41816cd678b": true,
     "b7e3e5d4797d8a08f2d1c270bdaada9710ea6cdb": true,
     "b7e7e714fe9fd19910b4bbb1557f2319bd94f8ea": true,
@@ -31637,6 +31655,7 @@
     "fbb5540e3a2a9777e99900562869e4397f79c9f5": true,
     "fbb87fcd915214eff59524b3296b4d76622d832b": true,
     "fbb9aa90ffb9907eef2c2e6e0d477efab1a81304": true,
+    "fbbd6015f0a99173d4da8e6ec469b71f0e9ab9f6": true,
     "fbbffbadbccaad038d963f0e7e34818b8688f8fd": true,
     "fbc128526f3bd4b53fda2f652530bbb61573a60b": true,
     "fbc25dc402f64225503a9dc0822f57072625d525": true,
@@ -31846,6 +31865,7 @@
     "fed32fc873fd6225d0653a2b8b3e8dc2e13c7511": true,
     "fed4f89654f45ece901a595b37c7b8e3d8c8d6ae": true,
     "fedef01493890a5e979265660cb821d01ffb9a7d": true,
+    "fee110c5939399a566b732fffd5ef03bb158065f": true,
     "fee25803a652e9ca49594cc327d282fea4de6c7f": true,
     "fee6e1dd4e7fc5cd2dc75119ca32c4479abdd962": true,
     "feeb3ebeb131789a035b2ff3cfd2313d5e45520b": true,
