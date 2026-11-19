@@ -29,6 +29,7 @@
 
 import {
   blockerResolution,
+  isRemovable,
   githubBlockerEdges,
   isResolved,
   jiraBlockerEdges,
@@ -121,10 +122,11 @@ export function normalizeStaleLinkItem(tracker, raw) {
 /**
  * Sort one item's edges into what the sweep may remove and what it keeps.
  * @param {ReturnType<typeof normalizeStaleLinkItem>} item
- * @param {readonly string[]} doneRoles
- * @returns {{ stale: object[], real: object[], crossProject: object[], inaccessible: object[], keptByPerson: object[] }}
+ * @param {readonly string[]} doneRoles - Terminal done roles: a link to one is stale
+ * @param {readonly string[]} [landedRoles] - Intermediate done roles: holds nothing, link kept
+ * @returns {{ stale: object[], real: object[], crossProject: object[], inaccessible: object[], keptByPerson: object[], landed: object[] }}
  */
-export function sortEdges(item, doneRoles) {
+export function sortEdges(item, doneRoles, landedRoles = []) {
   const marked = markedBlockers(item.comments);
   const out = {
     stale: [],
@@ -132,14 +134,23 @@ export function sortEdges(item, doneRoles) {
     crossProject: [],
     inaccessible: [],
     keptByPerson: [],
+    landed: [],
   };
   for (const edge of item.edges) {
-    const verdict = blockerResolution(edge, doneRoles, item.project);
+    const verdict = blockerResolution(
+      edge,
+      doneRoles,
+      item.project,
+      landedRoles
+    );
     const judged = { ...edge, verdict };
     if (verdict === "inaccessible") out.inaccessible.push(judged);
     else if (edge.project.toLowerCase() !== item.project.toLowerCase())
       out.crossProject.push(judged);
     else if (!isResolved(verdict)) out.real.push(judged);
+    // Landed (an intermediate done rung): holds nothing, but the blocker is
+    // not finished, so its link stays.
+    else if (!isRemovable(verdict)) out.landed.push(judged);
     else if (marked.has(edge.blockerRef)) out.keptByPerson.push(judged);
     else out.stale.push(judged);
   }
@@ -247,6 +258,7 @@ export function itemRoles(item, roles) {
  *   tracker: "github" | "jira" | "linear",
  *   items: readonly Record<string, any>[],
  *   doneRoles: readonly string[],
+ *   landedRoles?: readonly string[],
  *   roles: { ready?: string, blocked?: string },
  *   max?: number,
  *   poster?: "session-manager" | "build-intake",
@@ -265,7 +277,7 @@ export function planStaleLinkSweep(input) {
     .map(item => ({
       item,
       ...itemRoles(item, input.roles),
-      sorted: sortEdges(item, input.doneRoles),
+      sorted: sortEdges(item, input.doneRoles, input.landedRoles),
     }));
   const candidates = judged
     .filter(

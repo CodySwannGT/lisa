@@ -21,6 +21,14 @@
  * Names are never hardcoded: a promotion workflow can type its done state
  * `started`, so the configured name is what says "finished" there.
  *
+ * A blocker in any OTHER configured done role (an intermediate rung of the
+ * env-aware `done` map, such as `status:on-dev` or `On Stg`) is LANDED: its
+ * code has merged to a non-production environment, and dependents are meant
+ * to proceed, so it holds nothing. Its link is not stale, though: the
+ * blocker is not finished, so the sweep never deletes that link
+ * ({@link REMOVABLE}). "Holds the item" and "safe to delete" are separate
+ * questions with separate answers.
+ *
  * A blocker that was CANCELLED (GitHub `not_planned` / `duplicate`, Linear
  * `canceled`) is resolved too: build intake already ignores it, the item can
  * never be unblocked by it, and the operator comment says it was cancelled.
@@ -40,6 +48,7 @@ import { resolveBuildLifecycleRoles } from "./queue-contract-resolution.mjs";
 /** Every verdict {@link blockerResolution} can return. */
 export const RESOLUTIONS = Object.freeze([
   "done",
+  "landed",
   "closed",
   "cancelled",
   "open",
@@ -47,7 +56,10 @@ export const RESOLUTIONS = Object.freeze([
 ]);
 
 /** Verdicts that mean the blocker can no longer hold anything up. */
-const RESOLVED = new Set(["done", "closed", "cancelled"]);
+const RESOLVED = new Set(["done", "landed", "closed", "cancelled"]);
+
+/** Verdicts whose link the sweep may delete: the blocker is finished. */
+const REMOVABLE = new Set(["done", "closed", "cancelled"]);
 
 /** GitHub closure reasons for work that will not be built. */
 const GITHUB_CANCELLED_REASONS = new Set(["not_planned", "duplicate"]);
@@ -108,19 +120,44 @@ const namesOf = list =>
  * @param {{ tracker: string, global?: object, local?: object }} input
  * @returns {string[]} Lower-case names
  */
-export function terminalDoneRoles({ tracker, global, local }) {
+export function terminalDoneRoles(input) {
+  const rungs = Object.entries(mergedDoneRungs(input));
+  if (rungs.length === 0) return [];
+  const production = rungs.find(([key]) => key === "production");
+  return [(production ?? rungs[rungs.length - 1])[1].toLowerCase()];
+}
+
+/**
+ * Every configured done role that is NOT terminal: the intermediate rungs of
+ * the env-aware `done` map (`status:on-dev`, `On Stg`), resolved per rung
+ * exactly as {@link terminalDoneRoles} resolves them. A blocker in one of
+ * these holds nothing, but its link is never deleted.
+ * @param {{ tracker: string, global?: object, local?: object }} input
+ * @returns {string[]} Lower-case names
+ */
+export function landedDoneRoles(input) {
+  const terminal = new Set(terminalDoneRoles(input));
+  return [
+    ...new Set(
+      Object.values(mergedDoneRungs(input)).map(name => name.toLowerCase())
+    ),
+  ].filter(name => !terminal.has(name));
+}
+
+/**
+ * The `done` rungs, each resolved local, then committed, then built-in.
+ * @param {{ tracker: string, global?: object, local?: object }} input
+ * @returns {Record<string, string>}
+ */
+function mergedDoneRungs({ tracker, global, local }) {
   // The built-in defaults come from the one resolver every surface shares;
   // it is asked with an empty config so a project's other roles can never
   // make this read fail.
-  const merged = {
+  return {
     ...doneRungs(resolveBuildLifecycleRoles({}, tracker).roles.done),
     ...doneRungs(rawDone(global ?? {}, tracker)),
     ...doneRungs(rawDone(local ?? {}, tracker)),
   };
-  const rungs = Object.entries(merged);
-  if (rungs.length === 0) return [];
-  const production = rungs.find(([key]) => key === "production");
-  return [(production ?? rungs[rungs.length - 1])[1].toLowerCase()];
 }
 
 /**
@@ -160,9 +197,10 @@ function rawDone(config, tracker) {
  * @param {{ accessible?: boolean, closed?: boolean, cancelled?: boolean, names?: readonly string[], project?: string }} edge
  * @param {readonly string[]} doneRoles - From {@link terminalDoneRoles}
  * @param {string} [scope] - The project or team that declares `doneRoles`
- * @returns {"done"|"closed"|"cancelled"|"open"|"inaccessible"} Verdict
+ * @param {readonly string[]} [landedRoles] - From {@link landedDoneRoles}
+ * @returns {"done"|"landed"|"closed"|"cancelled"|"open"|"inaccessible"} Verdict
  */
-export function blockerResolution(edge, doneRoles, scope) {
+export function blockerResolution(edge, doneRoles, scope, landedRoles = []) {
   if (!edge || edge.accessible === false) return "inaccessible";
   if (edge.cancelled === true) return "cancelled";
   const inScope =
@@ -174,7 +212,11 @@ export function blockerResolution(edge, doneRoles, scope) {
   ) {
     return "done";
   }
-  return edge.closed === true ? "closed" : "open";
+  if (edge.closed === true) return "closed";
+  const landed = new Set(landedRoles.map(name => name.toLowerCase()));
+  return inScope && (edge.names ?? []).some(name => landed.has(name))
+    ? "landed"
+    : "open";
 }
 
 /**
@@ -185,16 +227,25 @@ export function blockerResolution(edge, doneRoles, scope) {
 export const isResolved = verdict => RESOLVED.has(verdict);
 
 /**
+ * Whether a verdict means the blocker is finished, so its link may go.
+ * @param {string} verdict
+ * @returns {boolean}
+ */
+export const isRemovable = verdict => REMOVABLE.has(verdict);
+
+/**
  * How many edges still hold their item up: open, or unreadable (an unread
  * blocker is never assumed finished).
  * @param {readonly object[]} edges - Normalized edges
  * @param {readonly string[]} doneRoles - From {@link terminalDoneRoles}
  * @param {string} [scope] - The project or team that declares `doneRoles`
+ * @param {readonly string[]} [landedRoles] - From {@link landedDoneRoles}
  * @returns {number}
  */
-export const countUnresolvedBlockers = (edges, doneRoles, scope) =>
-  edges.filter(edge => !isResolved(blockerResolution(edge, doneRoles, scope)))
-    .length;
+export const countUnresolvedBlockers = (edges, doneRoles, scope, landedRoles) =>
+  edges.filter(
+    edge => !isResolved(blockerResolution(edge, doneRoles, scope, landedRoles))
+  ).length;
 
 /**
  * The project key of a Jira or Linear key (`ABC-12` → `ABC`).

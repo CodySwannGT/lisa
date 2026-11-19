@@ -47,6 +47,7 @@ import {
  *   plan: { ref: string, removed: readonly string[], render: Record<string, { blockerRef: string, verdict: string }[]> },
  *   after: Record<string, any>,
  *   doneRoles: readonly string[],
+ *   landedRoles?: readonly string[],
  *   roles: { ready?: string, blocked?: string },
  *   poster?: "session-manager" | "build-intake",
  *   posterName?: string,
@@ -78,7 +79,7 @@ export function verifyStaleLinkRemoval(input) {
           input.poster,
           input.posterName
         );
-  const sorted = sortEdges(item, input.doneRoles);
+  const sorted = sortEdges(item, input.doneRoles, input.landedRoles);
   return {
     ref: item.ref,
     confirmed,

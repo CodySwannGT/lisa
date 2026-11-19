@@ -187,17 +187,18 @@ export function adfText(node) {
  * `blocked_by` counts open native blockers only.
  * @param {Record<string, any>} issue - REST issue, optionally with blockers
  * @param {string} repo - `owner/repo`
- * @param {readonly string[] | undefined} doneRoles - Configured done labels
+ * @param {{ doneRoles?: readonly string[], landedRoles?: readonly string[] }} options - Configured terminal and non-terminal done labels
  * @returns {number}
  */
-function githubOpenBlockers(issue, repo, doneRoles) {
+function githubOpenBlockers(issue, repo, options) {
   if (!Array.isArray(issue.nativeBlockers) && !issue.bodyBlockers) {
     return count(issue.issue_dependencies_summary?.blocked_by);
   }
   return countUnresolvedBlockers(
     githubBlockerEdges({ ...issue, repo }),
-    doneRoles ?? [],
-    repo
+    options.doneRoles ?? [],
+    repo,
+    options.landedRoles
   );
 }
 
@@ -206,9 +207,10 @@ function githubOpenBlockers(issue, repo, doneRoles) {
  * which the issues endpoint returns alongside issues and which is never a
  * dispatchable leaf.
  * @param {Record<string, any>} issue - REST `issues` list row
- * @param {{ repo?: string, doneRoles?: readonly string[] }} [options] -
+ * @param {{ repo?: string, doneRoles?: readonly string[], landedRoles?: readonly string[] }} [options] -
  *   `owner/repo`, else read from repository_url; the configured terminal done
- *   labels (`terminalDoneRoles`) for the blocker rule
+ *   labels (`terminalDoneRoles`) for the blocker rule, and the intermediate
+ *   ones (`landedDoneRoles`), which hold nothing
  * @returns {ReturnType<typeof shape> | null}
  */
 export function normalizeGithubIssue(issue, options = {}) {
@@ -245,7 +247,7 @@ export function normalizeGithubIssue(issue, options = {}) {
     // `id:` like any author. No integration-only authorship exists here.
     authorIntegration: null,
     isContainer: Number(summary?.total ?? 0) > Number(summary?.completed ?? 0),
-    openBlockers: githubOpenBlockers(issue, repo, options.doneRoles),
+    openBlockers: githubOpenBlockers(issue, repo, options),
   });
 }
 
@@ -253,8 +255,9 @@ export function normalizeGithubIssue(issue, options = {}) {
  * Normalize one Jira REST/MCP issue. An epic (hierarchy level above 0) or an
  * issue with any subtask not yet in the done category is a container.
  * @param {Record<string, any>} issue - Issue with `key` and `fields`
- * @param {{ doneRoles?: readonly string[] }} [options] - Configured terminal
- *   done names (`terminalDoneRoles`), so a blocker there is finished
+ * @param {{ doneRoles?: readonly string[], landedRoles?: readonly string[] }} [options] - Configured terminal
+ *   done names (`terminalDoneRoles`), so a blocker there is finished, and
+ *   the intermediate ones (`landedDoneRoles`), so a blocker there holds nothing
  * @returns {ReturnType<typeof shape>}
  */
 export function normalizeJiraIssue(issue, options = {}) {
@@ -271,7 +274,8 @@ export function normalizeJiraIssue(issue, options = {}) {
   const openBlockers = countUnresolvedBlockers(
     jiraBlockerEdges(issue),
     options.doneRoles ?? [],
-    text(issue?.key).split("-")[0]
+    text(issue?.key).split("-")[0],
+    options.landedRoles
   );
 
   return shape({
@@ -333,8 +337,9 @@ function linearIntegrationAuthor(issue) {
  * Normalize one Linear GraphQL issue. An issue with any child not completed
  * or canceled is a container.
  * @param {Record<string, any>} issue - Issue node
- * @param {{ doneRoles?: readonly string[] }} [options] - Configured terminal
- *   done names (`terminalDoneRoles`), so a blocker there is finished
+ * @param {{ doneRoles?: readonly string[], landedRoles?: readonly string[] }} [options] - Configured terminal
+ *   done names (`terminalDoneRoles`), so a blocker there is finished, and
+ *   the intermediate ones (`landedDoneRoles`), so a blocker there holds nothing
  * @returns {ReturnType<typeof shape>}
  */
 export function normalizeLinearIssue(issue, options = {}) {
@@ -353,7 +358,8 @@ export function normalizeLinearIssue(issue, options = {}) {
   const openBlockers = countUnresolvedBlockers(
     linearBlockerEdges(issue),
     options.doneRoles ?? [],
-    text(issue?.team?.key) || text(issue?.identifier).split("-")[0]
+    text(issue?.team?.key) || text(issue?.identifier).split("-")[0],
+    options.landedRoles
   );
 
   return shape({

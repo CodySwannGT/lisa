@@ -23,6 +23,7 @@
  * @property {number} crossProject - Links to another project, left alone
  * @property {{ ref: string, blocker: string }[]} inaccessible - Blockers that could not be read
  * @property {{ ref: string, blocker: string }[]} keptByPerson - Links a person put back
+ * @property {number} [landed] - Links kept to work merged but not yet in production (they hold nothing)
  */
 
 /**
@@ -67,6 +68,7 @@ export function tallySweep(judged, plans, deferred) {
     crossProject: open.reduce((sum, e) => sum + size(e.sorted.crossProject), 0),
     inaccessible: open.flatMap(e => pairs(e.item.ref, e.sorted.inaccessible)),
     keptByPerson: open.flatMap(e => pairs(e.item.ref, e.sorted.keptByPerson)),
+    landed: open.reduce((sum, e) => sum + size(e.sorted.landed ?? []), 0),
   };
 }
 
@@ -99,6 +101,12 @@ function tail(report) {
       .map(pair => `${pair.blocker} (on ${pair.ref})`)
       .join(", ");
     parts.push(`could not open ${list}`);
+  }
+  const landed = report.landed ?? 0;
+  if (landed > 0) {
+    parts.push(
+      `kept ${plural(landed, "link", "links")} to work merged but not yet in production (not holding anything)`
+    );
   }
   const unknown = report.unknownStatus ?? [];
   if (unknown.length > 0) {

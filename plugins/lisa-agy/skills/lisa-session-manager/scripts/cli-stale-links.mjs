@@ -10,7 +10,10 @@
  */
 import { resolveRole } from "../../../scripts/resolve-lifecycle-role.mjs";
 import { confirmStaleLinkPlan } from "../../../scripts/stale-blocker-confirm.mjs";
-import { terminalDoneRoles } from "../../../scripts/stale-blocker-edges.mjs";
+import {
+  landedDoneRoles,
+  terminalDoneRoles,
+} from "../../../scripts/stale-blocker-edges.mjs";
 import {
   planStaleLinkSweep,
   summarizeStaleLinkSweep,
@@ -121,15 +124,14 @@ export function trackerOf(ctx, project) {
  * The configured roles and done names every sweep judges against.
  * @param {ReturnType<typeof loadProject>} project
  * @param {string} tracker
- * @returns {{ doneRoles: string[], roles: { ready: string, blocked: string }, posterName: string }}
+ * @returns {{ doneRoles: string[], landedRoles: string[], roles: { ready: string, blocked: string }, posterName: string }}
  */
 export function judgingContext(project, tracker) {
+  const config = { tracker, global: project.global, local: project.local };
   return {
-    doneRoles: terminalDoneRoles({
-      tracker,
-      global: project.global,
-      local: project.local,
-    }),
+    doneRoles: terminalDoneRoles(config),
+    // Intermediate done rungs hold nothing, but their links are never removed.
+    landedRoles: landedDoneRoles(config),
     roles: {
       ready: roleValue(project, tracker, "ready"),
       blocked: roleValue(project, tracker, "blocked"),

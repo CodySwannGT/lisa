@@ -11,7 +11,10 @@ import {
   normalizeGithubIssue,
 } from "../../../scripts/ready-queue-order.mjs";
 import { resolveRole } from "../../../scripts/resolve-lifecycle-role.mjs";
-import { terminalDoneRoles } from "../../../scripts/stale-blocker-edges.mjs";
+import {
+  landedDoneRoles,
+  terminalDoneRoles,
+} from "../../../scripts/stale-blocker-edges.mjs";
 import { CliError, mustRun } from "./cli-runtime.mjs";
 import { parseJson } from "./json-input.mjs";
 import {
@@ -56,18 +59,20 @@ function githubRepo(ctx, project) {
  * @returns {object[]} Normalized items
  */
 function normalizeRows(ctx, project, repo, rows, keep = () => true) {
-  const doneRoles = terminalDoneRoles({
+  const config = {
     tracker: "github",
     global: project.global,
     local: project.local,
-  });
+  };
+  const doneRoles = terminalDoneRoles(config);
+  const landedRoles = landedDoneRoles(config);
   const blocker = blockerReader(ctx);
   return rows
     .filter(row => !row.pull_request && keep(row))
     .map(row =>
       hasBlockers(row, repo) ? withBlockers(ctx, repo, row, blocker) : row
     )
-    .map(row => normalizeGithubIssue(row, { repo, doneRoles }))
+    .map(row => normalizeGithubIssue(row, { repo, doneRoles, landedRoles }))
     .filter(Boolean);
 }
 

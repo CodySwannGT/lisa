@@ -40,6 +40,8 @@ function skipReason(blockerRef, sorted) {
     ...sorted.crossProject,
     ...sorted.inaccessible,
     ...sorted.keptByPerson,
+    // Moved back to an intermediate done rung: not finished, link kept.
+    ...sorted.landed,
   ].some(edge => edge.blockerRef === blockerRef);
   return present ? "blocker-not-resolved" : "link-already-gone";
 }
@@ -51,6 +53,7 @@ function skipReason(blockerRef, sorted) {
  *   plan: { ref: string, removed: readonly string[] },
  *   fresh: Record<string, any>,
  *   doneRoles: readonly string[],
+ *   landedRoles?: readonly string[],
  *   roles: { ready?: string, blocked?: string },
  *   poster?: "session-manager" | "build-intake",
  *   posterName?: string,
@@ -73,7 +76,7 @@ export function confirmStaleLinkPlan(input) {
       skipped: [...planned].map(blocker => ({ blocker, reason })),
     };
   }
-  const sorted = sortEdges(item, input.doneRoles);
+  const sorted = sortEdges(item, input.doneRoles, input.landedRoles);
   const stale = sorted.stale.filter(edge => planned.has(edge.blockerRef));
   const kept = new Set(stale.map(edge => edge.blockerRef));
   const skipped = [...planned]

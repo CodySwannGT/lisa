@@ -112,11 +112,14 @@ describe(PLAN, () => {
       ],
       report: {
         cleared: 2,
-        realBlockers: 1,
+        // #21 sits in the dev rung: merged to a non-production environment,
+        // so it holds nothing, but it is not finished, so its link stays.
+        realBlockers: 0,
+        landed: 1,
         inaccessible: [{ ref: `${REPO}#1`, blocker: `${REPO}#11` }],
       },
       summary:
-        "stale links (plan): planned removal of 2 stale blocker links on 1 item; 1 real blocker remains on 1 item; could not open example-org/demo-repo#11 (on example-org/demo-repo#1).",
+        "stale links (plan): planned removal of 2 stale blocker links on 1 item; 0 real blockers remain on 0 items; could not open example-org/demo-repo#11 (on example-org/demo-repo#1); kept 1 link to work merged but not yet in production (not holding anything).",
     });
     // Reads only: no DELETE and no edit ever leaves the plan.
     const argv = result.calls.map(call => call.argv.join(" "));

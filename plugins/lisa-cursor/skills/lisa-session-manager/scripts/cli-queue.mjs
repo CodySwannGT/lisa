@@ -39,7 +39,10 @@ import {
   validOrAbsent,
 } from "./cli-runtime.mjs";
 import { resolveHumanGatePolicy } from "../../../scripts/human-gate-act.mjs";
-import { terminalDoneRoles } from "../../../scripts/stale-blocker-edges.mjs";
+import {
+  landedDoneRoles,
+  terminalDoneRoles,
+} from "../../../scripts/stale-blocker-edges.mjs";
 import { readJsonFile } from "./json-input.mjs";
 import { readLedger } from "./ledger.mjs";
 import { blockingGapRepo, listSetupGaps } from "./ledger-setup-gaps.mjs";
@@ -58,15 +61,13 @@ const NORMALIZERS = { jira: normalizeJiraIssue, linear: normalizeLinearIssue };
  *   a blocker there counts as finished (#5065)
  * @returns {{ items: object[], pages: unknown }} Normalized items
  */
-function normalizeEnvelope(envelope, where, tracker, doneRoles) {
+function normalizeEnvelope(envelope, where, tracker, judging) {
   asSetupError(() => assertPagedToCompletion(envelope));
   if (!Array.isArray(envelope.items)) {
     throw new CliError(`${where}: items must be an array.`, 2);
   }
   return {
-    items: envelope.items.map(item =>
-      NORMALIZERS[tracker](item, { doneRoles })
-    ),
+    items: envelope.items.map(item => NORMALIZERS[tracker](item, judging)),
     pages: envelope.pages ?? null,
   };
 }
@@ -87,12 +88,12 @@ function readEnvelopeQueue(ctx, tracker, withBacklog, project) {
     throw new CliError(`queue --tracker ${tracker} needs --input <file>.`, 2);
   }
   const envelope = readJsonFile(file);
-  const doneRoles = terminalDoneRoles({
-    tracker,
-    global: project.global,
-    local: project.local,
-  });
-  const ready = normalizeEnvelope(envelope, file, tracker, doneRoles);
+  const config = { tracker, global: project.global, local: project.local };
+  const judging = {
+    doneRoles: terminalDoneRoles(config),
+    landedRoles: landedDoneRoles(config),
+  };
+  const ready = normalizeEnvelope(envelope, file, tracker, judging);
   if (!withBacklog) return { ...ready, backlog: null };
   if (!envelope.backlog) {
     throw new CliError(
@@ -108,7 +109,7 @@ function readEnvelopeQueue(ctx, tracker, withBacklog, project) {
       envelope.backlog,
       `${file} backlog`,
       tracker,
-      doneRoles
+      judging
     ),
   };
 }

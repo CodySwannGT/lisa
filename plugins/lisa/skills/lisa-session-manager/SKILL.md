@@ -595,7 +595,10 @@ item held back only by them is claimable in this same cycle:
    `.lisa/session-manager/stale-links-input.json` and run
    `stale-links-plan --tracker jira|linear --input .lisa/session-manager/stale-links-input.json`.
    The plan writes nothing. A blocker is stale when it is closed in its tracker or sits in the
-   configured terminal done role (`.lisa.config.json`, never a hardcoded name). A cancelled
+   configured terminal done role (`.lisa.config.json`, never a hardcoded name). A blocker in an
+   intermediate done rung (`status:on-dev`, `On Stg`) has merged to a non-production environment:
+   it does not hold the item (the queue and intake treat it as cleared), but it is not finished,
+   so its link is never removed. A cancelled
    blocker (GitHub `not_planned` or `duplicate`, Linear `canceled`) is treated as resolved, because
    intake already ignores it, and the comment says it was cancelled. A blocker that is still open,
    in another project or repository, or could not be read is never touched; an unreadable one is
