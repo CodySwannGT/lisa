@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.0.1](https://github.com/CodySwannGT/lisa/compare/v8.0.0...v8.0.1) (2026-11-19)
+
+## [8.0.0](https://github.com/CodySwannGT/lisa/compare/v7.1.5...v8.0.0) (2026-11-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **eslint:** the TypeScript, NestJS, CDK and Expo ESLint configs now ban,
+alongside `process.env`, `import { env } from "node:process"` (and from
+"process", renamed or not), namespace imports and renamed default imports of
+that module, and `const { env } = process`. Migration: read configuration
+through your config module (ConfigService, getStandaloneConfig(), '@/lib/env',
+or a file matching `*config.*`, which stays exempt); a test helper that must
+build a child's environment belongs under a `support/` directory or a
+`*.test.ts` file.
+
+### Features
+
+* **eslint:** ban every route to the process environment, and stop moving suppressions into config ([74d1da3](https://github.com/CodySwannGT/lisa/commit/74d1da32776603948146b7a0b6b848eb642b3d8c)), closes [#4939](https://github.com/CodySwannGT/lisa/issues/4939) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+
+
+### Bug Fixes
+
+* drop the c8 markers main added and scope the env ban to application code ([11d8f7a](https://github.com/CodySwannGT/lisa/commit/11d8f7a579f57b37ace5c2f6739a9fee7cf3f1c5)), closes [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+* **eslint:** ban computed and globalThis routes to process.env, and model cmd.exe strictly ([6a23411](https://github.com/CodySwannGT/lisa/commit/6a23411b1ec30fad3724dc7e19a3692efd8287bb)), closes [#4939](https://github.com/CodySwannGT/lisa/issues/4939) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+* **export-surface:** read exports from the syntax tree, not line regexes ([38f10b5](https://github.com/CodySwannGT/lisa/commit/38f10b575a0b2027d17208954512a48af886902d)), closes [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+* **hooks:** close the review lows and make the pre-push copies shellcheck-clean ([b42bcb5](https://github.com/CodySwannGT/lisa/commit/b42bcb54f01d7cb84af0ce185d006fdb42543729)), closes [#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+* remove every suppression directive from Lisa's source and shipped scripts ([35f3b93](https://github.com/CodySwannGT/lisa/commit/35f3b936bc1ebccb66368444e97a08d233807ef4)), closes [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+* remove the directives a bare copy-overwrite pathspec hid ([8144f3f](https://github.com/CodySwannGT/lisa/commit/8144f3fd0f67ad3c1ad93974e0f590b5fc330435)), closes [#5026](https://github.com/CodySwannGT/lisa/issues/5026) [#5026](https://github.com/CodySwannGT/lisa/issues/5026) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+* resolve tools safely on every platform and close quiet lint workarounds ([620aa97](https://github.com/CodySwannGT/lisa/commit/620aa97e12059a31c002e78bcb618fa9b3b360fa)), closes [#4939](https://github.com/CodySwannGT/lisa/issues/4939) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+* **scripts:** clear the SC2015 findings CI's older ShellCheck reports ([904e821](https://github.com/CodySwannGT/lisa/commit/904e821380c2fcf5eeab755ea1ca3b13dd487a8f)), closes [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+* **scripts:** make every shipped shell script ShellCheck-clean ([a348505](https://github.com/CodySwannGT/lisa/commit/a34850500bff93089b683982be6b9097b59be8f7)), closes [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+* **shell:** name the real file behind every shellcheck source hint ([d2a5918](https://github.com/CodySwannGT/lisa/commit/d2a59187703a1695a8059cd3a1ef61c51ca53659)), closes [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+* **shell:** remove every shellcheck disable and fix the code it hid ([3fe84fe](https://github.com/CodySwannGT/lisa/commit/3fe84feae4ff6d9b3d43e423dccd160193ad7d8e)), closes [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+* strip terminal sequences with node:util, and mock ResizeObserver without a type escape ([ab5c4c9](https://github.com/CodySwannGT/lisa/commit/ab5c4c94a93f6c6bd28025f212befd93755b93cb)), closes [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929) [CodySwannGT/lisa#4929](https://github.com/CodySwannGT/lisa/issues/4929)
+
 ### [7.1.5](https://github.com/CodySwannGT/lisa/compare/v7.1.4...v7.1.5) (2026-11-19)
 
 
