@@ -10,7 +10,7 @@
 export const BLOCKED = "status:blocked";
 
 /** GitHub's in-flight lifecycle label. */
-export const IN_PROGRESS = "status:in-progress";
+const IN_PROGRESS = "status:in-progress";
 
 /** GitHub's terminal lifecycle label. */
 export const DONE = "status:done";

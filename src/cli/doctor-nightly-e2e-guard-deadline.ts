@@ -69,18 +69,6 @@ export function nightlyGuardTargetDeadlineReason(timeoutMs: number): string {
 }
 
 /**
- * Refuse work immediately once the shared deadline has elapsed.
- * @param deadline - Shared absolute deadline
- */
-export function assertNightlyGuardDeadline(
-  deadline: NightlyGuardDeadline
-): void {
-  if (nightlyGuardRemaining(deadline) <= 0) {
-    throw new NightlyGuardDeadlineError(deadline.reason);
-  }
-}
-
-/**
  * Enforce the remaining wall-clock budget even when an injected collaborator
  * never resolves. The abandoned operation is read-only and cannot alter the
  * inspected project after the refusal is returned.

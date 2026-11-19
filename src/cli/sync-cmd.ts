@@ -19,7 +19,7 @@ export interface SyncCmdOptions {
  * Print a sync report in human-readable form.
  * @param report - Report returned by the sync engine
  */
-export function printSyncReport(report: SyncReport): void {
+function printSyncReport(report: SyncReport): void {
   const prefix = report.dryRun ? "[dry-run] " : "";
   if (report.actions.length === 0) {
     console.log(`${prefix}Config is in sync — nothing to do.`);

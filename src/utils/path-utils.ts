@@ -13,43 +13,6 @@ export function toAbsolutePath(inputPath: string): string {
 }
 
 /**
- * Get the relative path from base to target
- * @param basePath Base path
- * @param targetPath Target path
- * @returns Relative path from base to target
- */
-export function getRelativePath(basePath: string, targetPath: string): string {
-  return path.relative(basePath, targetPath);
-}
-
-/**
- * Join path segments
- * @param segments Path segments to join
- * @returns Joined path
- */
-export function joinPaths(...segments: string[]): string {
-  return path.join(...segments);
-}
-
-/**
- * Get the directory name of a path
- * @param filePath Path to get directory name from
- * @returns Directory name
- */
-export function getDirname(filePath: string): string {
-  return path.dirname(filePath);
-}
-
-/**
- * Get the base name of a path
- * @param filePath Path to get base name from
- * @returns Base name
- */
-export function getBasename(filePath: string): string {
-  return path.basename(filePath);
-}
-
-/**
  * Whether one path is a root itself or lies beneath it, judged on a path
  * boundary rather than a string prefix.
  *

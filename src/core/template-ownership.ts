@@ -20,7 +20,7 @@ export interface TemplateOwnershipInput {
 }
 
 /** Stable reason why apply and health omit a template candidate. */
-export type TemplateSkipReason =
+type TemplateSkipReason =
   | "ignored"
   | "suppressed-learnings-seed"
   | "pending-deletion"

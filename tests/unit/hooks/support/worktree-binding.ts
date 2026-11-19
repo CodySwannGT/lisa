@@ -21,7 +21,7 @@ import { cleanGitEnv, resolveGit } from "../../../support/git-executable.js";
 const GUARD_PATH = path.resolve(
   "plugins/src/base/hooks/worktree-binding-guard.mjs"
 );
-export const GIT_PATH = resolveGit();
+const GIT_PATH = resolveGit();
 
 /** Claude's refusal code. Anything else lets the tool call through. */
 export const BLOCKED = 2;
@@ -60,7 +60,7 @@ export function stateKey(session: string, agent?: string): string {
 /** Git's quiet flag, named because the fixture repeats it. */
 export const QUIET = "-q";
 /** This guard's spawn label, named because every case spawns it. */
-export const GUARD_LABEL = "worktree-binding-guard";
+const GUARD_LABEL = "worktree-binding-guard";
 
 /**
  * Directories to remove after each case.

@@ -37,7 +37,7 @@ export const REPO_ROOT = path.resolve(HARNESS_DIR, "..", "..", "..");
 const REQUIRED_TOOLS = ["cat", "grep", "dirname", "node"];
 
 /** What one script run produced. */
-export interface RunResult {
+interface RunResult {
   /** The script's exit status. */
   readonly status: number;
   /** Everything it wrote to stderr. */
@@ -49,7 +49,7 @@ export interface RunResult {
 }
 
 /** Environment overrides one case needs to change. */
-export interface RunOptions {
+interface RunOptions {
   /** Replaces $PATH, which is how jq is made absent. */
   readonly path?: string;
   /** Exit status the declared-task stub returns. */

@@ -49,17 +49,17 @@ const HOW_TO_ANSWER =
 export const OPEN_QUESTIONS_TITLE = "Open questions";
 
 /** The heading of the open questions in the readable report. */
-export const OPEN_QUESTIONS_HEADING = `## ${OPEN_QUESTIONS_TITLE} (${HOW_TO_ANSWER})`;
+const OPEN_QUESTIONS_HEADING = `## ${OPEN_QUESTIONS_TITLE} (${HOW_TO_ANSWER})`;
 
 /** The heading of the answered questions in the readable report. */
-export const ANSWERED_QUESTIONS_HEADING =
+const ANSWERED_QUESTIONS_HEADING =
   "## Answered questions (to change an answer, edit its Answer line, then run the audit again)";
 
 /** The heading of the open questions in a wiki's gaps file. */
-export const GAPS_QUESTIONS_HEADING = `## ${OPEN_QUESTIONS_TITLE} from the audit (${HOW_TO_ANSWER})`;
+const GAPS_QUESTIONS_HEADING = `## ${OPEN_QUESTIONS_TITLE} from the audit (${HOW_TO_ANSWER})`;
 
 /** The heading in a wiki's gaps file when no question is open. */
-export const GAPS_NONE_OPEN_HEADING = `## ${OPEN_QUESTIONS_TITLE} from the audit (none open)`;
+const GAPS_NONE_OPEN_HEADING = `## ${OPEN_QUESTIONS_TITLE} from the audit (none open)`;
 
 /**
  * Put free text on one line.

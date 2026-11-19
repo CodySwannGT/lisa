@@ -26,10 +26,10 @@ import {
 } from "../../../helpers/control-register.js";
 
 /** The file the fixture's check reads. */
-export const LINTED_FILE = "src/fixture_none/linted.txt";
+const LINTED_FILE = "src/fixture_none/linted.txt";
 
 /** The fixture's check, from the repository root. */
-export const LINT_PROGRAM = "tools/lint.mjs";
+const LINT_PROGRAM = "tools/lint.mjs";
 
 /** What the check prints when it finds the rule broken. */
 export const LINT_FAILURE = "Found 1 error";

@@ -28,7 +28,7 @@ export const INSTALL_FLAGS = [IGNORE_SCRIPTS, "--no-audit", "--no-fund"];
  * @param env - Original sanitized candidate environment.
  * @returns A runner that accepts the listed exit codes.
  */
-export function bunIn(cwd: string, env: NodeJS.ProcessEnv) {
+function bunIn(cwd: string, env: NodeJS.ProcessEnv) {
   return (args: string[], allowed = [0]) =>
     runProcess("bun", args, { cwd, env, timeout: 120_000, allowed });
 }

@@ -41,8 +41,8 @@ interface UpstreamCatalogEntry {
 }
 
 /** The moments agent hooks fire at, before and after the write. */
-export const PRE_TOOL = "pre-tool";
-export const POST_TOOL = "post-tool";
+const PRE_TOOL = "pre-tool";
+const POST_TOOL = "post-tool";
 
 /**
  * Gates the registry permits declaring at either agent-edit moment.
@@ -85,9 +85,7 @@ export const PRE_TOOL_UNWIRED_REASON = "tool-moment-not-wired";
  * added here deliberately. A typo attributes nothing, which is the safe
  * direction: an unattributed finding stays in the project's view.
  */
-export const UPSTREAM_LIMITATIONS: Readonly<
-  Record<string, UpstreamCatalogEntry>
-> = {
+const UPSTREAM_LIMITATIONS: Readonly<Record<string, UpstreamCatalogEntry>> = {
   "determined-by-quality-yml": {
     ticket: "CodySwannGT/lisa#2830",
     headline:

@@ -58,7 +58,7 @@ export const byCodePoint = (left: string, right: string): number => {
 export const SUITE_SIZE = 41;
 
 /** Shape of a single step inside a workflow job's `steps:` list. */
-export interface WorkflowStep {
+interface WorkflowStep {
   id?: string;
   name?: string;
   run?: string;
@@ -90,10 +90,7 @@ export interface StepResult {
 }
 
 /** How the stubbed runner behaves once the suite has failed. */
-export type RetryMode =
-  | "retry-passes"
-  | "retry-fails"
-  | "retry-executes-nothing";
+type RetryMode = "retry-passes" | "retry-fails" | "retry-executes-nothing";
 
 /** Knobs for one suite-step execution. */
 export interface RunOptions {

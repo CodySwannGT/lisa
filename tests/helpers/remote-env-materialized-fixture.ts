@@ -25,7 +25,6 @@ import {
 } from "./remote-env-materialized-artifact.js";
 
 export { HOSTILE_VALUE } from "./remote-env-materialized-artifact.js";
-export type { MaterializedArtifactKind } from "./remote-env-materialized-artifact.js";
 /** Parameters for one isolated remote-session fixture. */
 export interface MaterializedFixtureOptions {
   /** Shape of the materialized values artifact. */
@@ -61,7 +60,7 @@ export interface MaterializedSessionResult {
 }
 
 /** Safe namespace used by the project and materializer sides. */
-export const MATERIALIZED_NAMESPACE = "lisa-remote-session-fixture";
+const MATERIALIZED_NAMESPACE = "lisa-remote-session-fixture";
 
 const SOURCE = path.resolve(
   "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh"

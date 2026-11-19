@@ -47,7 +47,7 @@ const HEALTH_CALLER =
   /^[ \t]*uses:\s*["']?CodySwannGT\/lisa\/\.github\/workflows\/nightly-e2e-health\.ya?ml@/m;
 
 /** One caller whose trigger list leaves the bypass gate half-armed. */
-export interface BypassArmingFinding {
+interface BypassArmingFinding {
   /** Workflow file inside the project, relative to the project root. */
   readonly file: string;
   /** Why the gate does not re-evaluate on a body change. */
@@ -103,7 +103,7 @@ function problemFor(gap: TriggerGap): string {
  * @param targetPath - Project root
  * @returns Every finding, in file order
  */
-export async function bypassArmingFindings(
+async function bypassArmingFindings(
   targetPath: string
 ): Promise<BypassArmingFinding[]> {
   const files = await workflowFiles(targetPath);

@@ -5,8 +5,6 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { sanitizeEnvForReconciliation } from "./pm-env.js";
 import {
-  type LockfileRegenPlan,
-  type PackageManager,
   LOCKFILE_REGEN_PLANS,
   detectPackageManagers,
   enginesForbiddenManagers,
@@ -50,12 +48,11 @@ const SETTLE_DELAY_MS = 250;
 // package-manager-detect.ts) so existing importers/tests can keep importing it
 // from this module.
 export {
-  LOCKFILE_REGEN_PLANS,
   detectPackageManagers,
   enginesForbiddenManagers,
   getLockfileRegenPlan,
 };
-export type { LockfileRegenPlan, PackageManager, TrampolineReporting };
+export type { TrampolineReporting };
 
 /**
  * Read an env var by name without widening the project-wide process.env ban.

@@ -81,7 +81,7 @@ export function buildLearningsMergeDriverCommand(invocation: string): string {
  * it is materialized into every plugin payload and has no way to resolve a
  * project's configuration from there. One path, known to both writers.
  */
-export const WITHDRAWN_RULINGS_LEDGER = ".lisa/WITHDRAWN.jsonl";
+const WITHDRAWN_RULINGS_LEDGER = ".lisa/WITHDRAWN.jsonl";
 
 /**
  * The short-lived operational-hazard ledger, on the same built-in union driver.
@@ -92,7 +92,7 @@ export const WITHDRAWN_RULINGS_LEDGER = ".lisa/WITHDRAWN.jsonl";
  * editing it — but until an entry expires it is written by exactly the same
  * concurrent per-branch writers, so it needs the same union merge.
  */
-export const OPERATIONAL_HAZARDS_LEDGER = ".lisa/HAZARDS.jsonl";
+const OPERATIONAL_HAZARDS_LEDGER = ".lisa/HAZARDS.jsonl";
 
 /**
  * Build the `.gitattributes` line binding one ledger path to the driver.

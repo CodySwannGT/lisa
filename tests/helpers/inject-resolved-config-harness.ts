@@ -19,7 +19,7 @@ import path from "node:path";
 import { boundedSpawnSync } from "./io-latency-budget.js";
 
 /** The shipped hook, as a harness invokes it. */
-export const HOOK = "plugins/src/base/hooks/inject-resolved-config.sh";
+const HOOK = "plugins/src/base/hooks/inject-resolved-config.sh";
 /** The renderer the hook delegates to. */
 export const RENDERER = "plugins/src/base/hooks/inject-resolved-config.mjs";
 /** Committed config filename. */
@@ -34,7 +34,7 @@ export const LOCAL_CONFIG = ".lisa.config.local.json";
 export const DEVELOPER_IDENTITY = "fixture-developer@example.invalid";
 
 /** The envelope a context-injection hook emits. */
-export type HookOutput = {
+type HookOutput = {
   hookSpecificOutput?: {
     hookEventName?: string;
     additionalContext?: string;
@@ -42,7 +42,7 @@ export type HookOutput = {
 };
 
 /** What one hook invocation produced. */
-export type HookRun = {
+type HookRun = {
   output: HookOutput;
   status: number | null;
   stdout: string;

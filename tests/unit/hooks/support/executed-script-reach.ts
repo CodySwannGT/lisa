@@ -30,10 +30,10 @@ export const EXIT_BLOCKED = 2;
 export const EXIT_ALLOWED = 0;
 
 /** Absolute interpreter path; resolving `bash` through PATH is not permitted. */
-export const BASH_PATH = "/bin/bash";
+const BASH_PATH = "/bin/bash";
 
 /** The first line of every script fixture. */
-export const SHEBANG = "#!/usr/bin/env bash";
+const SHEBANG = "#!/usr/bin/env bash";
 
 /**
  * Resolve a guard as it lives in the plugin SOURCE.

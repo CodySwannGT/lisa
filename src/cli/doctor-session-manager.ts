@@ -56,7 +56,7 @@ const NO_CHANNEL = "notifications: none";
 const PROVIDERS = ["none", "telegram"] as const;
 
 /** Managed settings outrank `--settings`, so they can undo the manager's. */
-export const DEFAULT_MANAGED_SETTINGS_PATHS: readonly string[] = [
+const DEFAULT_MANAGED_SETTINGS_PATHS: readonly string[] = [
   "/Library/Application Support/ClaudeCode/managed-settings.json",
   "/etc/claude-code/managed-settings.json",
 ];

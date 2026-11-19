@@ -8,12 +8,12 @@ import { fileURLToPath } from "node:url";
 
 // Derive the repo root from this test file's location so the test is
 // portable across worktrees and CI working directories.
-export const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(__dirname, "..", "..");
 export const GITHUB_WORKFLOWS_PARTS = [".github", "workflows"] as const;
 export const CREATE_ONLY_DIR = "create-only";
-export const WORKFLOWS_DIR = path.join(REPO_ROOT, ...GITHUB_WORKFLOWS_PARTS);
-export const DEPLOY_WORKFLOW_FILE = "deploy.yml";
+const WORKFLOWS_DIR = path.join(REPO_ROOT, ...GITHUB_WORKFLOWS_PARTS);
+const DEPLOY_WORKFLOW_FILE = "deploy.yml";
 export const QUALITY_WORKFLOW_FILE = "quality.yml";
 export const QUALITY_RAILS_WORKFLOW_FILE = "quality-rails.yml";
 export const PACKAGE_MANAGER_INPUT = "${{ inputs.package_manager }}";
@@ -63,7 +63,7 @@ export const CREATE_GITHUB_ISSUE_ON_FAILURE_YML = path.join(
 );
 
 /** Shape of a single `workflow_call` input declaration. */
-export interface WorkflowInput {
+interface WorkflowInput {
   description?: string;
   required?: boolean;
   default?: unknown;
@@ -71,7 +71,7 @@ export interface WorkflowInput {
 }
 
 /** Shape of a single step inside a workflow job's `steps:` list. */
-export interface WorkflowStep {
+interface WorkflowStep {
   id?: string;
   name?: string;
   run?: string;

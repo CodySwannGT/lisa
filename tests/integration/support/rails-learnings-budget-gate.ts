@@ -40,13 +40,13 @@ const WORKFLOW = path.join(
 );
 
 /** The step that runs whatever prover the project declared. */
-export const DECLARED_PROVER_STEP = "📚 Run the learnings-budget gate";
+const DECLARED_PROVER_STEP = "📚 Run the learnings-budget gate";
 
 /**
  * Every step of the job, in the order GitHub would consider them.
  * @returns The job's steps.
  */
-export function jobSteps(): readonly WorkflowStep[] {
+function jobSteps(): readonly WorkflowStep[] {
   return loadWorkflow(WORKFLOW).jobs["learnings_budget"]?.steps ?? [];
 }
 
@@ -56,9 +56,7 @@ export function jobSteps(): readonly WorkflowStep[] {
  * @returns The matching step.
  * @throws {Error} When the job carries no such step.
  */
-export function step(
-  match: (candidate: WorkflowStep) => boolean
-): WorkflowStep {
+function step(match: (candidate: WorkflowStep) => boolean): WorkflowStep {
   const hit = jobSteps().find(match);
   if (!hit) throw new Error("quality-rails.yml learnings_budget: step absent");
   return hit;
@@ -109,10 +107,10 @@ export function stepsThatRun(configured: string): readonly string[] {
 }
 
 /** How the stubbed `npm pack` should behave. */
-export type PackMode = "ok" | "fail" | "no-resolver";
+type PackMode = "ok" | "fail" | "no-resolver";
 
 /** How the workflow's exact temporary-root cleanup command should behave. */
-export type CleanupMode = "ok" | "fail";
+type CleanupMode = "ok" | "fail";
 
 /** A project the gate step is run against. */
 export interface Project {

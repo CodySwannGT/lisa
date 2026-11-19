@@ -147,10 +147,10 @@ export const FINDING_REASONS = {
 } as const;
 
 /** What a record's id uses between its parts. */
-export const EVIDENCE_ID_SEPARATOR = "/";
+const EVIDENCE_ID_SEPARATOR = "/";
 
 /** What starts the id of a record written from an audit finding. */
-export const FINDING_RECORD_PREFIX = "audit-finding";
+const FINDING_RECORD_PREFIX = "audit-finding";
 
 /** One thing the attest step recorded about one requirement. */
 export interface EvidenceRecord {

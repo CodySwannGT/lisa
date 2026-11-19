@@ -18,6 +18,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+import { core as zodCore } from "zod";
 
 import {
   collectFloors,
@@ -161,6 +162,24 @@ describe(`zod security floor (${ADVISORY})`, () => {
     const lowest = lowestPermitted(spec!);
     expect(lowest).not.toBeNull();
     expect(withinRange(lowest!, VULNERABLE), `zod ${spec}`).toBe(false);
+  });
+
+  it("hoists the patched zod, keeping the accepted zod 3 nested under its plugin", () => {
+    // Why the root devDependency exists at all. Without it the lockfile hoists
+    // the plugin's zod 3.25.76 to the top level (measured: `bun install` with
+    // the entry removed resolves key "zod" to 3.25.76), the audit exception —
+    // scoped to the nested `eslint-plugin-react-compiler/zod` path — no longer
+    // matches, and the pre-push audit refuses every push. A bare `zod` import
+    // resolves to exactly that hoisted copy, so this is the dependency's real
+    // use, and it fails the moment the anchor stops anchoring.
+    expect(zodCore.version.major).toBe(4);
+    expect(
+      withinRange(
+        [zodCore.version.major, zodCore.version.minor, zodCore.version.patch],
+        VULNERABLE
+      ),
+      `hoisted zod ${zodCore.version.major}.${zodCore.version.minor}.${zodCore.version.patch}`
+    ).toBe(false);
   });
 
   it("ships no zod floor that admits the advisory", () => {

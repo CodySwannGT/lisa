@@ -10,7 +10,7 @@
  */
 
 /** One vault row, as the adapter's `list` returns it. */
-export interface FakeRow {
+interface FakeRow {
   readonly key: string;
   readonly id: string;
   readonly value: string;

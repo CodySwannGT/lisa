@@ -34,38 +34,9 @@ import type {
 
 export type {
   Migration,
-  MigrationAction,
   MigrationContext,
   MigrationResult,
 } from "./migration.interface.js";
-export { CorrectLisaCoderabbitLabelingMigration } from "./correct-lisa-coderabbit-labeling.js";
-export { DelegateLegacyTestScriptsMigration } from "./delegate-legacy-test-scripts.js";
-export { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
-export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
-export { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
-export { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
-export { EnsureLighthouseCollectOptionsMigration } from "./ensure-lighthouse-collect-options.js";
-export { EnsureNightlyE2EWorkflowPinsMigration } from "./ensure-nightly-e2e-workflow-pins.js";
-export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
-export { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
-export { EnsurePinnedReusableWorkflowRefsMigration } from "./ensure-pinned-reusable-workflow-refs.js";
-export { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
-export { EnsurePushDefaultSafeMigration } from "./ensure-push-default-safe.js";
-export { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
-export { EnsureSeededGatesMigration } from "./ensure-seeded-gates.js";
-export { EnsureRequiredHistorySecretGateMigration } from "./ensure-required-history-secret-gate.js";
-export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
-export { EnsureThirdPartyActionPinsMigration } from "./ensure-third-party-action-pins.js";
-export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
-export { EnsureKnowledgeRoleMigration } from "./ensure-knowledge-role.js";
-export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
-export { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
-export { PruneRetiredClaudeStackPluginKeysMigration } from "./prune-retired-claude-stack-plugin-keys.js";
-export { PruneRetiredThirdPartyPluginsMigration } from "./prune-retired-third-party-plugins.js";
-export { PruneRetiredEntireHooksMigration } from "./prune-retired-entire-hooks.js";
-export { PreserveVerificationOptInsMigration } from "./preserve-verification-opt-ins.js";
-export { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
-export { UntrackCodexMarketplaceMigration } from "./untrack-codex-marketplace.js";
 
 /**
  * Registry that runs applicable migrations against a destination project

@@ -75,7 +75,7 @@ process.exit(argv.some(arg => arg.includes("failing")) ? 1 : 0);
 `;
 
 /** The full test command the push gate runs. */
-export const BASE_COMMAND: readonly string[] = [
+const BASE_COMMAND: readonly string[] = [
   "node",
   "fake/vitest",
   "run",
@@ -206,7 +206,7 @@ function writeProject(root: string, options: FixtureOptions): void {
  * @param root - Fixture root
  * @returns The base commit
  */
-export function branchOffMain(root: string): string {
+function branchOffMain(root: string): string {
   git(root, "init", "-q", "-b", "main");
   git(root, "config", "user.email", "test@example.com");
   git(root, "config", "user.name", "Test");
@@ -307,7 +307,7 @@ export function pushEnv(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
  * @param root - Fixture root
  * @returns Argument lists
  */
-export function calls(root: string): string[][] {
+function calls(root: string): string[][] {
   try {
     return readFileSync(path.join(root, ".vitest-calls"), "utf8")
       .trim()

@@ -187,12 +187,16 @@ describe("governed script composition points", () => {
       expect(unlisted).toEqual([]);
     });
 
-    it("backs every adopt entry with a default to adopt into", () => {
-      const orphaned = Object.keys(adopted).filter(
-        name => typeof defaulted[name] !== "string"
+    it("points every adopt entry at a script the template defaults or retires", () => {
+      // An adopt entry either hands a key to its default or, with no default,
+      // retires it: Lisa's old value is reclaimed and nothing replaces it
+      // (CodySwannGT/lisa#4932). An entry on a forced key does neither — the
+      // apply skips adoption for forced keys — so it is dead.
+      const dead = Object.keys(adopted).filter(
+        name => typeof defaulted[name] !== "string" && name in forced
       );
 
-      expect(orphaned).toEqual([]);
+      expect(dead).toEqual([]);
     });
   });
 

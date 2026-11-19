@@ -38,7 +38,7 @@ export const EXECUTOR_INVOCATION = `node ${CARRIER_RUNNER_PATH} ${MOMENT_ARGUMEN
  * @returns Whether a line that is not a comment names the runner and the
  *   pull-request moment
  */
-export function runsPullRequestGates(text: string): boolean {
+function runsPullRequestGates(text: string): boolean {
   return text
     .split("\n")
     .filter(line => !line.trimStart().startsWith("#"))

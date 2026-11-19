@@ -100,7 +100,7 @@ import { isPlainPath, ordinaryFiles } from "./proof-copy-files.js";
 import { PROOF_FOLDER } from "./proof-patch.js";
 
 /** The algorithm of every digest here. */
-export const CHECKS_DIGEST_ALGORITHM = "sha256";
+const CHECKS_DIGEST_ALGORITHM = "sha256";
 
 /** The key of the declaration the digest covers. */
 const GATES_KEY = "gates";

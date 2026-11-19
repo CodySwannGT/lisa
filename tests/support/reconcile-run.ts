@@ -41,7 +41,7 @@ import {
 export const LINT = ["ruff", "check", "."];
 
 /** The test run F-none declares at push. It is never started by a suite. */
-export const TESTS = ["python", "-m", "pytest", "-q"];
+const TESTS = ["python", "-m", "pytest", "-q"];
 
 /** The entry the linter is listed under in the register. */
 export const LINT_ENTRY = "code-style@.";
@@ -194,7 +194,7 @@ export async function wiredRepository(
  * only seeds a fixture is made with git pointed at no hooks folder.
  * @param root - The repository
  */
-export function commitSeed(root: string): void {
+function commitSeed(root: string): void {
   const added = operatorGit(root, ["add", "--all"]);
   const committed = operatorGit(root, [
     "-c",

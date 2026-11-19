@@ -90,7 +90,7 @@ import { levelSummary } from "./verdict-summary.js";
 import { VERDICT_PATH, type Verdict } from "./verdict-types.js";
 
 /** The name the check's summary lines carry. */
-export const ATTEST_CHECK_NAME = "attest --check";
+const ATTEST_CHECK_NAME = "attest --check";
 
 /** What the check's exit code says. */
 export const ATTEST_CHECK_EXIT = {

@@ -98,7 +98,7 @@ export const INACTIVE_MARKER = "secret scanning is inactive";
  * widen the shipped ten seconds, never tighten it, and on a quiet box it IS ten
  * seconds — a genuine hang still surfaces in about the time it always did.
  */
-export const RESOLVER_DEADLINE_S = Math.ceil(ioLatencyBudgetMs(10_000) / 1_000);
+const RESOLVER_DEADLINE_S = Math.ceil(ioLatencyBudgetMs(10_000) / 1_000);
 
 /**
  * Every ceiling the hook enforces on itself, scaled the same way.

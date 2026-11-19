@@ -166,7 +166,7 @@ export async function readProjectFile(
  * @param maximumBytes - Maximum permitted file size
  * @returns File bytes, or undefined when absent
  */
-export async function readProjectBytes(
+async function readProjectBytes(
   root: string,
   relativePath: string,
   maximumBytes = DEFAULT_MAX_BYTES

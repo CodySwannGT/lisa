@@ -40,7 +40,7 @@ export const UNENFORCEABLE_ON_KEY = "unenforceable_on";
  * @returns The agents in the order Lisa writes them; none when the gate names
  *   none there
  */
-export function declaredUnenforceableAgents(
+function declaredUnenforceableAgents(
   gate: DeclaredGate,
   moment: string
 ): readonly CodingAgent[] {

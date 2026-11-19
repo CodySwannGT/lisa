@@ -74,7 +74,7 @@ export function notCurrent(record: EvidenceRecord, now: Date): string {
  * @param minimum - The rung the requirement needs
  * @returns The sentence
  */
-export function tooWeak(
+function tooWeak(
   subject: string,
   rung: EvidenceRung,
   minimum: EvidenceRung

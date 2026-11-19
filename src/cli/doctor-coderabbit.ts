@@ -13,7 +13,7 @@ const CODERABBIT = "coderabbit";
 const CODERABBIT_API_KEY = "CODERABBIT_API_KEY";
 
 /** Outcome of one read-only CodeRabbit command. */
-export interface CodeRabbitCommandResult {
+interface CodeRabbitCommandResult {
   readonly ok: boolean;
   readonly stdout: string;
 }
@@ -39,7 +39,7 @@ export interface CodeRabbitDoctorDependencies {
  * @param args - Fixed CodeRabbit argument vector
  * @returns Whether the command exited zero
  */
-export const runCodeRabbitCommand: CodeRabbitCommandRunner = async args => {
+const runCodeRabbitCommand: CodeRabbitCommandRunner = async args => {
   try {
     const { stdout } = await execFileAsync(CODERABBIT, [...args], {
       timeout: 15_000,

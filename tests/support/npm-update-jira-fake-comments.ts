@@ -42,7 +42,7 @@ export function findIssue(store: JiraStore, key: string) {
  * @param comment - Stored comment.
  * @returns The comment JSON.
  */
-export function commentJson(comment: JiraComment) {
+function commentJson(comment: JiraComment) {
   return {
     id: comment.id,
     body: comment.body,

@@ -72,7 +72,7 @@ const REGISTER_WHY =
   "The register is the one list of what governs this repository. While it and what actually runs differ, nobody reading it knows what is really enforced.";
 
 /** The text of the two committed files a rule can be pointed at in. */
-export interface PointerSources {
+interface PointerSources {
   /** The committed register, or `null` when there is none. */
   readonly register: string | null;
   /** The declaration, or `null` when there is none. */

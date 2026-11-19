@@ -157,7 +157,7 @@ export function protect(outcome?: "wired" | "blocked"): HandedProtect {
   };
 }
 
-export const FILE_WIRED: PointVerdict = {
+const FILE_WIRED: PointVerdict = {
   state: "wired",
   reason: "The pipeline file runs the gate runner.",
   checked: PIPELINE_FILE,

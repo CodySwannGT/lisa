@@ -18,7 +18,7 @@ import { existsSync } from "node:fs";
 import * as path from "node:path";
 
 /** Relative path of Copilot's instruction file inside a host project. */
-export const COPILOT_INSTRUCTIONS_RELATIVE_PATH = path.join(
+const COPILOT_INSTRUCTIONS_RELATIVE_PATH = path.join(
   ".github",
   "copilot-instructions.md"
 );

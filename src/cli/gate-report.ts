@@ -141,7 +141,7 @@ async function readScripts(
  * @param gates - The gates block
  * @returns The axis, fixed moments first, then declared family moments sorted
  */
-export function momentAxis(
+function momentAxis(
   registry: GateRegistryModule,
   gates: Record<string, unknown>
 ): string[] {

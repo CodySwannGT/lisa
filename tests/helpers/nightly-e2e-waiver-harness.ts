@@ -14,13 +14,13 @@
 import type { BypassDecision } from "./nightly-e2e-gate-harness.js";
 
 /** The `Nightly-E2E-Bypass: <TICKET> <reason>` trailer, parsed. */
-export interface WaiverTrailer {
+interface WaiverTrailer {
   readonly ticket: string;
   readonly reason: string | null;
 }
 
 /** What `observeWaiver` saw on the live pull request. */
-export interface WaiverObservation {
+interface WaiverObservation {
   readonly bypass: BypassDecision | null;
   readonly trailer: WaiverTrailer | null;
   /** `null` means the pull request was unreadable — not "no label". */

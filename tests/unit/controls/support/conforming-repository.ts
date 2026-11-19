@@ -100,7 +100,7 @@ const FOUND: SampleFinding = {
  * finding cannot meet.
  * @returns The gates block
  */
-export function controlForEveryCheck(): GatesBlock {
+function controlForEveryCheck(): GatesBlock {
   const block = provedGates([{ command: checks(F_NONE_SOURCE) }], GATE);
   return {
     [GATE]: {

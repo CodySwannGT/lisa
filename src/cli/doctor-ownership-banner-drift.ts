@@ -88,7 +88,7 @@ async function workflowLane(
  * @param source - Full text of a workflow file
  * @returns The lane the header claims, or null
  */
-export function claimedOwnership(source: string): Claimed {
+function claimedOwnership(source: string): Claimed {
   const header = String(source).split("\n").slice(0, HEADER_LINES).join("\n");
   if (header.includes(LISA_MANAGED_MARKER)) return "managed";
   if (header.includes(LISA_SEEDED_MARKER)) return "seeded";

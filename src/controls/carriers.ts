@@ -70,7 +70,7 @@ import {
 import type { CodingAgent } from "./coding-agents.js";
 
 /** What a planner is told about the run beyond the repository. */
-export interface CarrierPlanContext {
+interface CarrierPlanContext {
   /** The coding agents the run carries; empty when it carries none. */
   readonly agents: readonly CodingAgent[];
 }
@@ -79,7 +79,7 @@ export interface CarrierPlanContext {
  * Plans every point of one kind of carrier, or answers `null` when the run
  * has no point of that kind.
  */
-export type CarrierPlanner = (
+type CarrierPlanner = (
   root: string,
   git: CarrierGit,
   context: CarrierPlanContext
@@ -103,7 +103,7 @@ function planAgentHookCarriers(
 }
 
 /** Every kind of carrier a run plans, in the order the result lists them. */
-export const CARRIER_PLANNERS: readonly CarrierPlanner[] = [
+const CARRIER_PLANNERS: readonly CarrierPlanner[] = [
   planGitHookCarriers,
   planAgentHookCarriers,
 ];

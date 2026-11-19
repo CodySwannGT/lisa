@@ -32,7 +32,7 @@ const SCRIPT_RELATIVE = path.join(
 );
 
 /** Injectable seams so the command is testable without provisioning anything. */
-export interface EnvironmentDeps {
+interface EnvironmentDeps {
   /** Resolve the installed package root. */
   readonly installPath?: () => string;
   /** Run the script. */
@@ -51,7 +51,7 @@ export interface EnvironmentDeps {
  * @returns Absolute path to the runner.
  * @throws {Error} When the package is incomplete.
  */
-export function resolveEnvironmentScript(
+function resolveEnvironmentScript(
   installPath: () => string = getCliInstallPath
 ): string {
   const script = path.join(installPath(), SCRIPT_RELATIVE);
@@ -70,7 +70,7 @@ export function resolveEnvironmentScript(
  * @param deps Injectable seams.
  * @returns The runner's exit code.
  */
-export function runEnvironment(
+function runEnvironment(
   args: readonly string[] = [],
   deps: EnvironmentDeps = {}
 ): number {

@@ -81,29 +81,6 @@ export class JsonMergeError extends LisaError {
 }
 
 /**
- * Error thrown when file operation fails
- */
-export class FileOperationError extends LisaError {
-  /**
-   * Thrown when a file operation (read/write/copy) fails
-   * @param operation - Name of the operation that failed
-   * @param filePath - Path to the file involved in the operation
-   * @param originalError - Underlying file system error
-   */
-  constructor(
-    public readonly operation: string,
-    public readonly filePath: string,
-    public readonly originalError: Error
-  ) {
-    super(
-      `File operation '${operation}' failed for: ${filePath}`,
-      "FILE_OP_ERROR"
-    );
-    this.name = "FileOperationError";
-  }
-}
-
-/**
  * Error thrown when backup/restore fails
  */
 export class BackupError extends LisaError {
@@ -136,23 +113,6 @@ export class RollbackError extends LisaError {
 }
 
 /**
- * Error thrown when a required dependency is missing
- */
-export class DependencyMissingError extends LisaError {
-  /**
-   * Thrown when required dependencies are not available
-   * @param dependencies - List of missing dependency names
-   */
-  constructor(public readonly dependencies: readonly string[]) {
-    super(
-      `Missing required dependencies: ${dependencies.join(", ")}`,
-      "DEP_MISSING"
-    );
-    this.name = "DependencyMissingError";
-  }
-}
-
-/**
  * Error thrown when user aborts the operation
  */
 export class UserAbortedError extends LisaError {
@@ -163,19 +123,5 @@ export class UserAbortedError extends LisaError {
   constructor(public readonly reason: string = "User aborted the operation") {
     super(reason, "USER_ABORTED");
     this.name = "UserAbortedError";
-  }
-}
-
-/**
- * Error thrown when git working directory has uncommitted changes
- */
-export class DirtyGitError extends LisaError {
-  /**
-   * Thrown when git status shows uncommitted changes
-   * @param status - Git status output showing the changes
-   */
-  constructor(public readonly status: string) {
-    super("Working directory has uncommitted changes", "DIRTY_GIT");
-    this.name = "DirtyGitError";
   }
 }

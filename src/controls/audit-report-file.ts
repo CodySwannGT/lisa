@@ -39,7 +39,7 @@ import { readConfiguredTracker } from "./tracker-config.js";
 export type PathKind = "missing" | "file" | "folder" | "other";
 
 /** The folder the report and its rendering live in. */
-export const AUDIT_FOLDER = path.dirname(AUDIT_REPORT_JSON_PATH);
+const AUDIT_FOLDER = path.dirname(AUDIT_REPORT_JSON_PATH);
 
 /**
  * Say what is at a path, without following a link in its last step.

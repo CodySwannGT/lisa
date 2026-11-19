@@ -4,7 +4,7 @@ import type { ILogger } from "../logging/index.js";
 /**
  * Action performed by a migration run
  */
-export type MigrationAction = "applied" | "skipped" | "noop";
+type MigrationAction = "applied" | "skipped" | "noop";
 
 /**
  * Context passed to migrations at runtime

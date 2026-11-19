@@ -41,7 +41,7 @@ export const CRITERION_ID_SOURCE = String.raw`AC[1-9]\d*\.[1-9]\d*|(?:SI|DP|UX)[
 export const CRITERION_ANSWERED = ["repository", "part"] as const;
 
 /** One of the two places a requirement is answered. */
-export type CriterionAnswered = (typeof CRITERION_ANSWERED)[number];
+type CriterionAnswered = (typeof CRITERION_ANSWERED)[number];
 
 /**
  * What a requirement's `not_applicable_when` holds when nothing makes it not
@@ -70,7 +70,7 @@ export interface InScopeCriterion {
 }
 
 /** A criterion the Level 1 verdict leaves out. */
-export interface ExcludedCriterion {
+interface ExcludedCriterion {
   readonly id: string;
   readonly title: string;
   readonly in_scope: false;

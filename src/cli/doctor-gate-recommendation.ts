@@ -59,7 +59,7 @@ interface RegistryGate {
 }
 
 /** The slice of the shipped registry this module reads. */
-export interface GateTaskRegistry {
+interface GateTaskRegistry {
   readonly REGISTRY: Record<string, RegistryGate | undefined>;
 }
 
@@ -163,10 +163,7 @@ export function withGate<T extends GateConfig>(
  * @param moment - The moment being declared
  * @returns The task name, or null when the registry names none
  */
-export function taskForMoment(
-  gate: RegistryGate,
-  moment: string
-): string | null {
+function taskForMoment(gate: RegistryGate, moment: string): string | null {
   return gate.taskAt?.[moment] ?? gate.task ?? null;
 }
 

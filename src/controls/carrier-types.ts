@@ -43,7 +43,7 @@ export const GIT_HOOK_LOCATION: EnforcementLocation = "local-checkout";
 export const AGENT_HOOK_LOCATION: EnforcementLocation = "coding-agent";
 
 /** The moment a coding agent's hook carries: after it wrote a file. */
-export type AgentCarrierMoment = typeof EDIT_TIME_MOMENT;
+type AgentCarrierMoment = typeof EDIT_TIME_MOMENT;
 
 /** The kinds of carrier this command installs. */
 export const CARRIER_KINDS = ["git-hook", "agent-hook"] as const;
@@ -75,7 +75,7 @@ export const CARRIER_RECORD_PATH = ".lisa/controls/carriers.json";
 export const INSTALL_CARRIERS_INVOCATION = "lisa controls install-carriers";
 
 /** What became of one enforcement point. */
-export const CARRIER_OUTCOMES = [
+const CARRIER_OUTCOMES = [
   "installed",
   "already-wired",
   "updated",
@@ -85,27 +85,15 @@ export const CARRIER_OUTCOMES = [
 /** The outcome of one enforcement point, or of the whole run. */
 export type CarrierOutcome = (typeof CARRIER_OUTCOMES)[number];
 
-/**
- * Who owns git hooks in a repository, in the order the evidence is weighed.
- *
- * - `hooks-path`: `core.hooksPath` names a folder of the repository's own.
- * - `husky`, `lefthook`, `pre-commit`: that hook manager is set up.
- * - `git-hooks`: hooks written by hand in git's own hooks folder.
- * - `lisa`: `core.hooksPath` already names Lisa's hook folder.
- * - `none`: nothing runs at any hook.
- */
-export const HOOK_OWNERS = [
-  "hooks-path",
-  "husky",
-  "lefthook",
-  "pre-commit",
-  "git-hooks",
-  "lisa",
-  "none",
-] as const;
-
 /** The owner of git hooks in one repository. */
-export type HookOwner = (typeof HOOK_OWNERS)[number];
+export type HookOwner =
+  | "hooks-path"
+  | "husky"
+  | "lefthook"
+  | "pre-commit"
+  | "git-hooks"
+  | "lisa"
+  | "none";
 
 /** A hook a Lisa project type ships, which already calls the runner. */
 export const STACK_HOOK = "lisa-stack-hook";
@@ -222,7 +210,7 @@ export interface CarrierRoster {
 }
 
 /** What became of the runner's files. */
-export type RunnerOutcome = CarrierOutcome | "not-needed";
+type RunnerOutcome = CarrierOutcome | "not-needed";
 
 /** The gate runner the carriers start. */
 export interface CarrierRunner {
@@ -301,7 +289,7 @@ export interface FileEdit {
 }
 
 /** A git setting to write in this checkout. */
-export interface SettingEdit {
+interface SettingEdit {
   readonly kind: "setting";
   /** The setting's name. */
   readonly path: string;

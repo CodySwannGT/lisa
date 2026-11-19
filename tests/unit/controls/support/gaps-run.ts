@@ -21,7 +21,7 @@ import { NOW } from "../audit-report-facts.js";
 import { keep, type Run } from "./report-check-run.js";
 
 /** The parts of F-mixed, the repository these suites run in. */
-export const MIXED_SCOPES = [".", "api", "web"] as const;
+const MIXED_SCOPES = [".", "api", "web"] as const;
 
 /**
  * A valid report on F-mixed in which only the named findings are missing.

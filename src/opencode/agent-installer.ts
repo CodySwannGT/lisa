@@ -49,7 +49,7 @@ export const LISA_AGENTS_SUBDIR = "agents";
 export const LISA_AGENT_FILE_PREFIX = "lisa-";
 
 /** Result of installing one agent */
-export interface InstalledAgent {
+interface InstalledAgent {
   /** Agent id (source filename basename, without the `lisa-` prefix) */
   readonly id: string;
   /** Path written, relative to the destination project's `.opencode/` directory */

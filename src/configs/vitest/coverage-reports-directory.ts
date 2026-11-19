@@ -85,7 +85,7 @@ export function runRootName(
  * @param name - Directory basename
  * @returns Parsed owner, or undefined for an unrelated name
  */
-export function parseRunRootName(
+function parseRunRootName(
   name: string
 ): { readonly pid: number; readonly startedAt: number } | undefined {
   const match = /^run-(\d+)-(\d+)-[^-]+$/.exec(name);
@@ -103,7 +103,7 @@ export function parseRunRootName(
  * @param owner - Process id to probe
  * @returns Whether it is alive
  */
-export const isProcessAlive = (owner: number): boolean => {
+const isProcessAlive = (owner: number): boolean => {
   try {
     process.kill(owner, 0);
     return true;

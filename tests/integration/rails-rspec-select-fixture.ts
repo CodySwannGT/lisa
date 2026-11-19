@@ -47,7 +47,7 @@ export { GH_HEAD_SHA, GH_REPO } from "./rails-rspec-select-stand-ins.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** This repository's root. */
-export const REPO_ROOT = path.resolve(__dirname, "..", "..");
+const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
 /** Files the fixture borrows from this repository, and where they land. */
 const BORROWED: ReadonlyArray<readonly [string, string]> = [
@@ -311,7 +311,7 @@ export function change(
  * @param extra - Additional variables
  * @returns Environment
  */
-export function pushEnv(
+function pushEnv(
   root: string,
   extra: Record<string, string> = {}
 ): NodeJS.ProcessEnv {

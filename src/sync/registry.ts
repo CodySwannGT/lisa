@@ -81,7 +81,7 @@ const WHEN_SOURCE_LINEAR = "source=linear";
 const WHEN_SOURCE_NOTION = "source=notion";
 
 /** One provider's exact setup scope contract. */
-export interface SetupProviderRequirement {
+interface SetupProviderRequirement {
   readonly allOf: readonly string[];
   readonly anyOf?: readonly string[];
   readonly setupHint: string;
@@ -91,7 +91,7 @@ export interface SetupProviderRequirement {
  * Authoritative tracker/PRD-source setup requirements. Config sync and
  * read-only readiness consumers share this map so provider lanes cannot drift.
  */
-export const SETUP_PROVIDER_REQUIREMENTS: Readonly<{
+const SETUP_PROVIDER_REQUIREMENTS: Readonly<{
   tracker: Readonly<Record<string, SetupProviderRequirement>>;
   source: Readonly<Record<string, SetupProviderRequirement>>;
 }> = {

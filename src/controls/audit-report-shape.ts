@@ -34,10 +34,10 @@ import {
 } from "./audit-report-types.js";
 
 /** The rule name every shape problem is reported under. */
-export const SHAPE_RULE = "shape";
+const SHAPE_RULE = "shape";
 
 /** What reading one section produced. */
-export interface AuditReportSectionResult {
+interface AuditReportSectionResult {
   /** The section's typed value. Only used when nothing at all was wrong. */
   readonly value: unknown;
   readonly violations: readonly AuditReportViolation[];

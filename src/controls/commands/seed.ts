@@ -60,7 +60,7 @@ const MANIFEST_PATH = "package.json";
 export const SEED_SCHEMA_VERSION = 1;
 
 /** One check the seeding declared. */
-export interface SeededGate {
+interface SeededGate {
   readonly gate: string;
   /** The moment it was declared at. */
   readonly moment: string;

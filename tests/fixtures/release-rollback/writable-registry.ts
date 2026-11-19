@@ -30,7 +30,7 @@ interface VersionEntry {
 }
 
 /** The in-memory packument. */
-export interface Packument {
+interface Packument {
   readonly name: string;
   readonly "dist-tags": Readonly<Record<string, string>>;
   readonly versions: Readonly<Record<string, VersionEntry>>;

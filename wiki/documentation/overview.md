@@ -536,16 +536,17 @@ Without local enforcement (hooks), agents waste cycles pushing artifacts that wi
 
 Lisa uses a two-file governance model to manage `package.json` in target projects:
 
-- **`package.lisa.json`** (source template) — Defines governance rules with `force`, `defaults`, and `merge` sections
+- **`package.lisa.json`** (source template) — Defines governance rules with `force`, `defaults`, `merge` and `minimums` sections
 - **`package.json`** (destination) — Remains clean with no governance markers
 
-### Three Semantic Behaviors
+### Four Semantic Behaviors
 
 | Behavior | What It Does | Use Case |
 |----------|--------------|----------|
 | **`force`** | Lisa's values completely replace project's values | Governance-critical configs (lint rules, mandatory dependencies, commit hooks) |
 | **`defaults`** | Project's values preserved; Lisa provides fallback | Helpful templates projects can override (Node.js version, TypeScript version) |
 | **`merge`** | Arrays are concatenated and deduplicated | Shared lists where both Lisa and project contribute (trusted dependencies) |
+| **`minimums`** | A direct range the project lists is raised inside its own major; nothing is added, a raise across a major is refused, and transitive copies and `peerDependencies` are never touched | Libraries Lisa no longer installs whose version line it keeps |
 
 ### Template Subdirectory Structure
 

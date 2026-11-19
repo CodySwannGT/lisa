@@ -13,14 +13,14 @@ export interface JiraComment {
 }
 
 /** One status change in a ticket's changelog. */
-export interface JiraStatusChange {
+interface JiraStatusChange {
   author: string;
   created: string;
   status: string;
 }
 
 /** Stored ticket fields, as Jira returns them. */
-export interface JiraFields {
+interface JiraFields {
   summary?: string;
   description?: unknown;
   labels: string[];
@@ -38,7 +38,7 @@ export interface JiraIssue {
 }
 
 /** One workflow transition the Task workflow offers. */
-export interface JiraTransition {
+interface JiraTransition {
   id: string;
   to: { name: string };
 }
@@ -71,7 +71,7 @@ export interface JiraBody {
 }
 
 /** Answers one routed request; undefined is 404 and null is 204. */
-export type Handler = (key: string, body: JiraBody, url: URL) => unknown;
+type Handler = (key: string, body: JiraBody, url: URL) => unknown;
 /** One REST route: method, path pattern and handler. */
 export type Route = readonly [method: string, path: RegExp, handler: Handler];
 

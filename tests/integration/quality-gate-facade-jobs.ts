@@ -58,7 +58,7 @@ export const GATES_SCRIPT = path.join(
  * own step list through a YAML anchor, so its steps are its parent's by
  * construction, which `quality-integration-test-shards.test.ts` pins.
  */
-export const SHARD_LEGS: Readonly<Record<string, string>> = Object.freeze({
+const SHARD_LEGS: Readonly<Record<string, string>> = Object.freeze({
   test_unit_shard: "test_unit",
   test_integration_shard: "test_integration",
 });

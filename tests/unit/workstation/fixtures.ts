@@ -35,10 +35,10 @@ export const SYSTEM_GIT = "/usr/bin/git";
 export const SYSTEM_NODE = "/usr/bin/node";
 
 /** The install method that opens an archive with `unzip`. */
-export const RELEASE_ZIP = "release-zip";
+const RELEASE_ZIP = "release-zip";
 
 /** The install method that opens an archive with `tar`. */
-export const RELEASE_TAR = "release-tar";
+const RELEASE_TAR = "release-tar";
 
 const BWS_RELEASE =
   "https://github.com/bitwarden/sdk-sm/releases/download/bws-v2.1.0";

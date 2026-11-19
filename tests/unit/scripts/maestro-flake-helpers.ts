@@ -27,14 +27,14 @@ export const SIGN_IN_PATH = "/m/subflows/sign-in.yaml";
 export const FLAKY_FLOW = "saved-insight-save-and-unsave.yaml";
 
 /** One `id:`/`text:` selector paired with the ceiling of its own gate. */
-export interface Gate {
+interface Gate {
   readonly kind: string;
   readonly selector: string;
   readonly timeoutMs: number | null;
 }
 
 /** A parsed `<testcase>` row. */
-export interface TestCaseRow {
+interface TestCaseRow {
   readonly file: string;
   readonly status: string;
   readonly durationSec: number;
@@ -49,13 +49,13 @@ export interface DebugArtifact {
 }
 
 /** The flow-name tokens a debug artifact may carry to belong to one flow. */
-export interface FlowKeys {
+interface FlowKeys {
   readonly flow: string;
   readonly keys: readonly string[];
 }
 
 /** Why a failure was attributed to the device rather than to the product. */
-export interface DeviceSignal {
+interface DeviceSignal {
   readonly signal: string;
   readonly marker: string;
   readonly count: number;
@@ -64,7 +64,7 @@ export interface DeviceSignal {
 }
 
 /** Measured-rate annotation attached to a failure of a registered flow. */
-export interface IntermittentAnnotation {
+interface IntermittentAnnotation {
   readonly ratePercent: number;
   readonly failures: number;
   readonly runs: number;
@@ -74,7 +74,7 @@ export interface IntermittentAnnotation {
 }
 
 /** One classified failure. */
-export interface Classification {
+interface Classification {
   readonly flow: string;
   readonly durationSec: number;
   readonly message: string;
@@ -88,13 +88,13 @@ export interface Classification {
 }
 
 /** One rejected registry entry and the reason it earned no annotation. */
-export interface RegistryDefect {
+interface RegistryDefect {
   readonly flow: string;
   readonly reason: string;
 }
 
 /** Outcome of validating the known-intermittent registry. */
-export interface RegistryVerdict {
+interface RegistryVerdict {
   readonly entries: readonly { readonly flow: string }[];
   readonly defects: readonly RegistryDefect[];
 }
@@ -103,7 +103,7 @@ export interface RegistryVerdict {
 export type Reader = (target: string) => string | null;
 
 /** Options `classify` accepts. */
-export interface ClassifyOptions {
+interface ClassifyOptions {
   readonly maestroRoot: string;
   readonly readFile: Reader;
   readonly projectRoot?: string;
@@ -116,14 +116,14 @@ export interface ClassifyOptions {
 }
 
 /** One device marker seen in the run but attributable to no single flow. */
-export interface RunDeviceEvidence {
+interface RunDeviceEvidence {
   readonly marker: string;
   readonly count: number;
   readonly artifact: string;
 }
 
 /** Everything one report's classification produced. */
-export interface RunClassification {
+interface RunClassification {
   readonly failures: Classification[];
   readonly deviceRunEvidence: RunDeviceEvidence[];
 }

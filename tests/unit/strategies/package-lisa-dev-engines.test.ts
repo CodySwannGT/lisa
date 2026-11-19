@@ -56,6 +56,7 @@ function template(): ResolvedPackageLisaTemplate {
     merge: {},
     remove: {},
     adopt: {},
+    minimums: {},
   };
 }
 

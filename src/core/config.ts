@@ -303,7 +303,7 @@ function stripTrailingSlashes(value: string): string {
 /**
  * Operation mode for Lisa execution
  */
-export type OperationMode = "apply" | "validate";
+type OperationMode = "apply" | "validate";
 
 /**
  * Result of a single file operation

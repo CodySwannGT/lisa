@@ -49,7 +49,7 @@ import { redactCredentials } from "../secret-scan.js";
 import { ABSORB_OPTION, runReportAbsorb } from "./report-absorb.js";
 
 /** The subcommand's name under `lisa controls`. */
-export const REPORT_CHECK_COMMAND = "report-check";
+const REPORT_CHECK_COMMAND = "report-check";
 
 /** What the check needs from outside, each replaceable in a test. */
 export interface ReportCheckDependencies {

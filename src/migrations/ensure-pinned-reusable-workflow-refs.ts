@@ -491,7 +491,7 @@ async function workflowFiles(root: string): Promise<readonly string[]> {
  * @param lanes - Universal lane plus the project's detected types
  * @returns Callee basenames, e.g. `quality.yml`
  */
-export async function vouchedCallees(
+async function vouchedCallees(
   lisaDir: string,
   lanes: readonly string[]
 ): Promise<ReadonlySet<string>> {

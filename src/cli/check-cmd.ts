@@ -53,7 +53,7 @@ export const CACHE_OFF_MESSAGE =
 export const DEFAULT_MAX_WAIT = "30m";
 
 /** The admission wait bound the gate runner reads (CodySwannGT/lisa#4596). */
-export const MAX_WAIT_ENV = "LISA_ADMISSION_MAX_WAIT";
+const MAX_WAIT_ENV = "LISA_ADMISSION_MAX_WAIT";
 
 /** Gate runner exit codes, mirrored from `lisa-run-gates.mjs` `EXIT`. */
 const RUNNER_EXIT = { PROVED: 0, BLOCKED: 1, NO_GATES: 78 } as const;

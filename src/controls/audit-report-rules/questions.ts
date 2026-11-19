@@ -42,7 +42,7 @@ import {
 } from "../question-ids.js";
 
 /** The name this rule's violations carry. */
-export const QUESTIONS_RULE = "questions";
+const QUESTIONS_RULE = "questions";
 
 /** The finding state that needs a person's answer. */
 const QUESTION_STATE = "question";

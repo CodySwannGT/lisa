@@ -24,7 +24,7 @@ const BLOCK_OPEN = "/*";
 export const NEXT_LINE_DISABLE = `${SLASH} ${"eslint"}-disable-next-line no-console -- reason`;
 
 /** A second, different scoped disable. */
-export const OTHER_DISABLE = `${SLASH} ${"eslint"}-disable-next-line no-alert -- reason`;
+const OTHER_DISABLE = `${SLASH} ${"eslint"}-disable-next-line no-alert -- reason`;
 
 /** The file-wide disable a scoped one must never silently widen into. */
 export const FILE_WIDE_DISABLE = `${BLOCK_OPEN} ${"eslint"}-disable */`;
@@ -40,7 +40,7 @@ export type Disk =
   | { readonly kind: "directory" };
 
 /** One Edit pair; `oldText` undefined means the payload omits `old_string`. */
-export interface EditPair {
+interface EditPair {
   readonly oldText: string | undefined;
   readonly newText: string;
 }

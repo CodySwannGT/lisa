@@ -6,9 +6,9 @@
  */
 import { planOrphanSweep } from "../../../../plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs";
 
-export const REPO = "example-org/demo-repo";
-export const NOW = "2026-11-13T12:00:00Z";
-export const OLD = "2026-11-10T12:00:00Z";
+const REPO = "example-org/demo-repo";
+const NOW = "2026-11-13T12:00:00Z";
+const OLD = "2026-11-10T12:00:00Z";
 export const RECENT = "2026-11-13T10:30:00Z";
 export const ME = "lisa-bot";
 export const OPERATOR = "op-login";
@@ -16,13 +16,7 @@ export const STRANGER = "someone-else";
 export const NEEDED = "human-needed";
 export const READY = "status:ready";
 export const CLAIMED = "status:in-progress";
-export const LIFECYCLE = [
-  READY,
-  CLAIMED,
-  "status:blocked",
-  "status:done",
-  NEEDED,
-];
+const LIFECYCLE = [READY, CLAIMED, "status:blocked", "status:done", NEEDED];
 export const MERGED_URL = `https://github.com/${REPO}/pull/9`;
 export const TOPIC = "tenancy-audit-triage";
 export const CREDENTIAL = "stripe-api-key";

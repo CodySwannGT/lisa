@@ -28,7 +28,7 @@ export interface Run {
 }
 
 /** One run the selection walk stepped over, with the evidence it lacked. */
-export interface SkippedRun {
+interface SkippedRun {
   readonly runId: number | null;
   readonly conclusion: string | null;
   readonly createdAt: string | null;
@@ -104,7 +104,7 @@ export interface SelectionModule {
 }
 
 /** The gate's default freshness window, in hours. */
-export const FRESHNESS_HOURS = 36;
+const FRESHNESS_HOURS = 36;
 
 /**
  * The evaluation context `observe` bounds its selection walk with.

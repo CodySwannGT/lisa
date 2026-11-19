@@ -51,10 +51,7 @@ export type {
   EnforceInputPaths,
   EnforceInputs,
   EnforceInputsRead,
-  HandedCarrierPoint,
-  HandedCarriers,
   HandedProtect,
-  HandedProtectEntry,
   HandedTicket,
 } from "./enforce-input-types.js";
 

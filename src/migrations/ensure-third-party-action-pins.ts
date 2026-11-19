@@ -59,7 +59,7 @@ interface ScannedFile {
  * @param ref - The mutable ref to resolve
  * @returns The 40-character commit SHA, or null when it cannot be resolved
  */
-export const resolveViaGitHub: ShaResolver = async (owner, repo, ref) => {
+const resolveViaGitHub: ShaResolver = async (owner, repo, ref) => {
   try {
     const response = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/commits/${encodeURIComponent(ref)}`,

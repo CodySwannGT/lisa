@@ -25,7 +25,7 @@ import {
 } from "./stryker-thresholds-ownership.js";
 
 /** What sync did (or would do, in dry-run) for one setting. */
-export type SyncActionKind =
+type SyncActionKind =
   | "absorbed-artifact"
   | "populated-default"
   | "filled-missing"

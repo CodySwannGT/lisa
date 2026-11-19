@@ -370,7 +370,7 @@ export function assertDocumentBudget(
  * @param content - Untrusted learnings document
  * @returns One-based line number of the first marker, or undefined when clean
  */
-export function findConflictMarkerLine(content: string): number | undefined {
+function findConflictMarkerLine(content: string): number | undefined {
   const index = content
     .split("\n")
     .findIndex(line => CONFLICT_MARKER.test(line));

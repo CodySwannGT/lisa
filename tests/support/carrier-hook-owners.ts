@@ -149,7 +149,7 @@ export function installHusky(root: string): void {
  * @param hook - The git hook
  * @returns The hook file's content
  */
-export function managerHookScript(
+function managerHookScript(
   manager: "lefthook" | "pre-commit",
   hook: string
 ): string {

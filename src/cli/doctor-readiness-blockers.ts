@@ -47,7 +47,7 @@ export const SHIP_BLOCKER_IDS = [
 ] as const;
 
 /** One of the seven closed-set ship blocker ids. */
-export type ShipBlockerId = (typeof SHIP_BLOCKER_IDS)[number];
+type ShipBlockerId = (typeof SHIP_BLOCKER_IDS)[number];
 
 /** The blocker-7 id, named once so the provability path stays legible. */
 const PROVABILITY_BLOCKER_ID: ShipBlockerId = "B7";

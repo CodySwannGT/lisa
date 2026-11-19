@@ -18,7 +18,7 @@
 import { QUOTED, TOKEN } from "./carrier-hook-words.js";
 
 /** One here-document that has been opened. */
-export interface HereDocument {
+interface HereDocument {
   /** The line that closes it. */
   readonly closer: string;
   /** Whether tabs in front of that line are ignored (`<<-`). */
