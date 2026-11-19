@@ -2713,7 +2713,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-workflow-load-failures.mjs":
       "31e8404316dc95527ff87ee2bcbc7d19bcf70f6cb54b608fd7235e9c767506a1",
     "scripts/check-workflow-package-paths.mjs":
-      "07ebf3f8a4504f6231c5ae492ecda7f95a80a0fa5f0424b9d3368544b1b612dd",
+      "6f0148fe804d4c36eddb137b6c16d4d49694e287303e38a95bfc82d49480954a",
     "scripts/classify-markdown-assertions.mjs":
       "4b5ec8747ade3767b7d4f5b8bccf3e5a46f8cc296ad4397dabd89e4768ac68cd",
     "scripts/classify-phrase-tests.mjs":
@@ -12895,6 +12895,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/packed-host-journey-wired.test.ts": true,
     "tests/unit/config/performance-budget-gate.test.ts": true,
     "tests/unit/config/phaser-template.test.ts": true,
+    "tests/unit/config/plugin-artifacts-job-push-parity.test.ts": true,
     "tests/unit/config/plugin-sync-push-gate-wired.test.ts": true,
     "tests/unit/config/postinstall-ci-guard.test.ts": true,
     "tests/unit/config/postinstall-cloud-session-guard.test.ts": true,
