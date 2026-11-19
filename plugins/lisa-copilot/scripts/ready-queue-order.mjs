@@ -55,6 +55,7 @@ import {
 import { entryMatches, parseIdEntries } from "./operator-id-kinds.mjs";
 import {
   countUnresolvedBlockers,
+  githubBlockerEdges,
   jiraBlockerEdges,
   linearBlockerEdges,
 } from "./stale-blocker-edges.mjs";
@@ -161,10 +162,11 @@ function repoLabelsOf(labels) {
 /**
  * Flatten an Atlassian Document Format node to plain text, one line per block.
  * A string description (the Markdown some access paths return) passes through.
+ * Also reads Jira comment bodies for the stale-link marker dedupe (#5065).
  * @param {unknown} node
  * @returns {string}
  */
-function adfText(node) {
+export function adfText(node) {
   if (typeof node === "string") return node;
   if (!node || typeof node !== "object") return "";
   if (node.type === "text") return text(node.text);
@@ -175,11 +177,37 @@ function adfText(node) {
 }
 
 /**
+ * How many blockers still hold a GitHub issue.
+ *
+ * When the fetch attached the blockers (`nativeBlockers`, `bodyBlockers`, as
+ * the session manager's queue does), the shared stale-link rule decides
+ * (#5065): native dependencies AND `Blocked by` body lines, a blocker in the
+ * configured terminal done label counting as finished, as intake judges it.
+ * A row fetched without them falls back to GitHub's own summary, whose
+ * `blocked_by` counts open native blockers only.
+ * @param {Record<string, any>} issue - REST issue, optionally with blockers
+ * @param {string} repo - `owner/repo`
+ * @param {readonly string[] | undefined} doneRoles - Configured done labels
+ * @returns {number}
+ */
+function githubOpenBlockers(issue, repo, doneRoles) {
+  if (!Array.isArray(issue.nativeBlockers) && !issue.bodyBlockers) {
+    return count(issue.issue_dependencies_summary?.blocked_by);
+  }
+  return countUnresolvedBlockers(
+    githubBlockerEdges({ ...issue, repo }),
+    doneRoles ?? []
+  );
+}
+
+/**
  * Normalize one GitHub REST issue row. Returns null for a pull-request row,
  * which the issues endpoint returns alongside issues and which is never a
  * dispatchable leaf.
  * @param {Record<string, any>} issue - REST `issues` list row
- * @param {{ repo?: string }} [options] - `owner/repo`, else read from repository_url
+ * @param {{ repo?: string, doneRoles?: readonly string[] }} [options] -
+ *   `owner/repo`, else read from repository_url; the configured terminal done
+ *   labels (`terminalDoneRoles`) for the blocker rule
  * @returns {ReturnType<typeof shape> | null}
  */
 export function normalizeGithubIssue(issue, options = {}) {
@@ -216,8 +244,7 @@ export function normalizeGithubIssue(issue, options = {}) {
     // `id:` like any author. No integration-only authorship exists here.
     authorIntegration: null,
     isContainer: Number(summary?.total ?? 0) > Number(summary?.completed ?? 0),
-    // `blocked_by` in the dependency summary counts only OPEN blockers.
-    openBlockers: count(issue.issue_dependencies_summary?.blocked_by),
+    openBlockers: githubOpenBlockers(issue, repo, options.doneRoles),
   });
 }
 

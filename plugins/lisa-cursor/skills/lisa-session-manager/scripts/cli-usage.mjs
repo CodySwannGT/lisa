@@ -333,6 +333,15 @@ Per cycle
       comment carries one [lisa-stale-blocker-link] blocker=<ref> marker per
       removed link, so a re-run never comments twice. --max caps items per
       cycle (default 10); the rest are deferred.
+  stale-links-confirm [--tracker <t>] --plan <file> [--input <file>]
+      Rebuilds one stale-links-plan entry from a fresh read, right before the
+      writes; writes nothing. GitHub re-reads the issue, each blocker and the
+      comments itself; Jira and Linear take the fresh raw item in --input.
+      Only links the plan removes that are still stale are kept; the body is
+      rebuilt from the fresh body, so a concurrent edit survives. stdout
+      {tracker,plan,skipped:[{blocker,reason}]}; reason is
+      blocker-not-resolved, link-already-gone or blocked-role; plan is null
+      when nothing is still safe to remove.
   orphan-plan [--input <file>] [--max <n>] [--stale-hours <n>]
                                                 STDIN (without --input): JSON
       {complete:true,items:[{ref,role,labels,body,comments,assignees,

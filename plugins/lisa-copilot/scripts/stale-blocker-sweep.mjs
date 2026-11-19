@@ -35,8 +35,18 @@ import {
   linearBlockerEdges,
   removeBlockedByRefs,
 } from "./stale-blocker-edges.mjs";
+import {
+  formatStaleLinkComment,
+  markedBlockers,
+} from "./stale-blocker-comment.mjs";
 import { tallySweep } from "./stale-blocker-summary.mjs";
 
+export {
+  STALE_LINK_MARKER,
+  STALE_LINK_POSTERS,
+  formatStaleLinkComment,
+  markerLine,
+} from "./stale-blocker-comment.mjs";
 export { summarizeStaleLinkSweep } from "./stale-blocker-summary.mjs";
 
 /**
@@ -47,12 +57,9 @@ export { summarizeStaleLinkSweep } from "./stale-blocker-summary.mjs";
  * @property {string | null} body - GitHub body with the stale refs taken out, or null
  * @property {string[]} removed - Blocker refs whose links go
  * @property {string} comment - The one operator comment, posted after read-back
- * @property {number} remainingBlockers - Links this sweep leaves in place
+ * @property {number} remainingBlockers - Links left that still hold the item (open or unreadable)
  * @property {boolean} becomesClaimable - A ready item with nothing left holding it
  */
-
-/** Visible marker, one per removed blocker, so a re-run never re-comments. */
-export const STALE_LINK_MARKER = "[lisa-stale-blocker-link]";
 
 /** Items cleaned per cycle by default; the rest wait for the next cycle. */
 export const DEFAULT_MAX_STALE_ITEMS = 10;
@@ -62,28 +69,6 @@ export const DEFAULT_MAX_STALE_ITEMS = 10;
  * @returns {string}
  */
 const text = value => (typeof value === "string" ? value : "");
-
-/**
- * The marker line for one blocker.
- * @param {string} blockerRef
- * @returns {string}
- */
-export const markerLine = blockerRef =>
-  `${STALE_LINK_MARKER} blocker=${blockerRef}`;
-
-/**
- * Blockers this item's comments already record as removed.
- * @param {readonly { body?: string }[] | undefined} comments
- * @returns {Set<string>}
- */
-function markedBlockers(comments) {
-  const pattern = /\[lisa-stale-blocker-link\] blocker=(\S+)/g;
-  return new Set(
-    (comments ?? []).flatMap(comment =>
-      [...text(comment?.body).matchAll(pattern)].map(match => match[1])
-    )
-  );
-}
 
 /**
  * One raw item in the shape the plan judges.
@@ -167,71 +152,28 @@ function removalAction(tracker, edge, item) {
 }
 
 /**
- * A plain-English list: "A", "A and B", "A, B and C".
- * @param {readonly string[]} refs
- * @returns {string}
+ * How many of an item's links still hold it up: an open blocker (in this
+ * project or another) or one that could not be read. A resolved link the
+ * sweep leaves in place, cross-project or put back by a person, holds
+ * nothing, exactly as `countUnresolvedBlockers` counts it for the queue.
+ * @param {ReturnType<typeof sortEdges>} sorted
+ * @returns {number}
  */
-const listOf = refs =>
-  refs.length < 2
-    ? refs.join("")
-    : `${refs.slice(0, -1).join(", ")} and ${refs[refs.length - 1]}`;
-
-/**
- * The one comment an operator reads for this item's clean-up.
- * @param {{ stale: object[], real: object[], inaccessible: object[] }} sorted
- * @returns {string}
- */
-export function formatStaleLinkComment(sorted) {
-  const unique = list => [...new Set(list.map(edge => edge.blockerRef))];
-  const finished = unique(sorted.stale.filter(e => e.verdict !== "cancelled"));
-  const cancelled = unique(sorted.stale.filter(e => e.verdict === "cancelled"));
-  const removed = unique(sorted.stale);
-  const lines = ["[lisa-session-manager] Cleared waiting-on links."];
-  if (finished.length > 0) {
-    const verb = finished.length === 1 ? "is" : "are";
-    lines.push(
-      `This was marked as waiting on ${listOf(finished)}, which ${verb} finished.`
-    );
-  }
-  if (cancelled.length > 0) {
-    lines.push(
-      `It was also marked as waiting on ${listOf(cancelled)}, which was cancelled and will not be built, so it cannot hold this up.`
-    );
-  }
-  lines.push(
-    `I removed ${removed.length === 1 ? "the link" : "those links"}. Nothing else changed.`
-  );
-  const real = unique(sorted.real);
-  if (real.length > 0) {
-    lines.push(
-      `It is still waiting on ${listOf(real)}, which is not finished yet.`
-    );
-  }
-  const unreadable = unique(sorted.inaccessible);
-  if (unreadable.length > 0) {
-    lines.push(
-      `I could not open ${listOf(unreadable)}, so I left that link alone.`
-    );
-  }
-  return [lines.join(" "), "", ...removed.map(markerLine)].join("\n");
-}
+export const unresolvedCount = sorted =>
+  sorted.real.length +
+  sorted.inaccessible.length +
+  sorted.crossProject.filter(edge => !isResolved(edge.verdict)).length;
 
 /**
  * The plan for one item with at least one stale edge.
- * @param {string} tracker
- * @param {ReturnType<typeof normalizeStaleLinkItem>} item
- * @param {ReturnType<typeof sortEdges>} sorted
- * @param {boolean} ready - Whether the item is in the ready role
+ * @param {{ tracker: string, item: ReturnType<typeof normalizeStaleLinkItem>, sorted: ReturnType<typeof sortEdges>, ready: boolean, poster?: string }} input
  * @returns {StaleLinkPlan}
  */
-function itemPlan(tracker, item, sorted, ready) {
+export function itemPlan({ tracker, item, sorted, ready, poster }) {
   const bodyRefs = sorted.stale
     .filter(edge => edge.source === "github-body")
     .map(edge => edge.blockerRef);
-  const holds =
-    sorted.real.length +
-    sorted.crossProject.length +
-    sorted.inaccessible.length;
+  const holds = unresolvedCount(sorted);
   return {
     ref: item.ref,
     actions: sorted.stale
@@ -242,9 +184,24 @@ function itemPlan(tracker, item, sorted, ready) {
         ? removeBlockedByRefs(item.body, bodyRefs, item.repo)
         : null,
     removed: [...new Set(sorted.stale.map(edge => edge.blockerRef))],
-    comment: formatStaleLinkComment(sorted),
-    remainingBlockers: holds + sorted.keptByPerson.length,
-    becomesClaimable: ready && holds + sorted.keptByPerson.length === 0,
+    comment: formatStaleLinkComment(sorted, poster),
+    remainingBlockers: holds,
+    becomesClaimable: ready && holds === 0,
+  };
+}
+
+/**
+ * Whether an item is in the ready role, and whether in the blocked role.
+ * @param {ReturnType<typeof normalizeStaleLinkItem>} item
+ * @param {{ ready?: string, blocked?: string } | undefined} roles
+ * @returns {{ ready: boolean, inBlocked: boolean }}
+ */
+export function itemRoles(item, roles) {
+  const ready = text(roles?.ready).toLowerCase();
+  const blocked = text(roles?.blocked).toLowerCase();
+  return {
+    ready: ready !== "" && item.names.includes(ready),
+    inBlocked: blocked !== "" && item.names.includes(blocked),
   };
 }
 
@@ -256,20 +213,17 @@ function itemPlan(tracker, item, sorted, ready) {
  *   doneRoles: readonly string[],
  *   roles: { ready?: string, blocked?: string },
  *   max?: number,
+ *   poster?: "session-manager" | "build-intake",
  * }} input
  * @returns {{ plans: StaleLinkPlan[], deferred: string[], report: import("./stale-blocker-summary.mjs").StaleLinkReport }}
  */
 export function planStaleLinkSweep(input) {
-  const roleName = value => text(value).toLowerCase();
-  const ready = roleName(input.roles?.ready);
-  const blocked = roleName(input.roles?.blocked);
   const max = input.max ?? DEFAULT_MAX_STALE_ITEMS;
   const judged = (input.items ?? [])
     .map(raw => normalizeStaleLinkItem(input.tracker, raw))
     .map(item => ({
       item,
-      inBlocked: blocked !== "" && item.names.includes(blocked),
-      ready: ready !== "" && item.names.includes(ready),
+      ...itemRoles(item, input.roles),
       sorted: sortEdges(item, input.doneRoles),
     }));
   const candidates = judged
@@ -281,7 +235,7 @@ export function planStaleLinkSweep(input) {
     );
   const taken = candidates.slice(0, Math.max(0, max));
   const plans = taken.map(entry =>
-    itemPlan(input.tracker, entry.item, entry.sorted, entry.ready)
+    itemPlan({ tracker: input.tracker, ...entry, poster: input.poster })
   );
   const deferred = candidates.slice(taken.length).map(entry => entry.item.ref);
   return { plans, deferred, report: tallySweep(judged, plans, deferred) };

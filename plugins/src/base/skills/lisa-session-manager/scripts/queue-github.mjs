@@ -8,8 +8,14 @@
  */
 import { normalizeGithubIssue } from "../../../scripts/ready-queue-order.mjs";
 import { resolveRole } from "../../../scripts/resolve-lifecycle-role.mjs";
+import { terminalDoneRoles } from "../../../scripts/stale-blocker-edges.mjs";
 import { CliError, mustRun } from "./cli-runtime.mjs";
 import { parseJson } from "./json-input.mjs";
+import {
+  blockerReader,
+  hasBlockers,
+  withBlockers,
+} from "./stale-links-github.mjs";
 import { scrubWorkerEnv } from "./workers.mjs";
 
 const OWNER_REPO = /^[\w.-]+\/[\w.-]+$/;
@@ -32,6 +38,32 @@ function githubRepo(ctx, project) {
     );
   }
   return repo;
+}
+
+/**
+ * Normalize REST rows with their blockers attached, so the queue judges a
+ * blocker by the same rule as intake and the stale-link sweep (#5065).
+ * Only rows that name a blocker cost any extra read.
+ * @param {object} ctx - CLI context
+ * @param {{global?: object, local?: object}} project - Loaded project
+ * @param {string} repo - `owner/repo`
+ * @param {object[]} rows - REST issues
+ * @returns {object[]} Normalized items
+ */
+function normalizeRows(ctx, project, repo, rows) {
+  const doneRoles = terminalDoneRoles({
+    tracker: "github",
+    global: project.global,
+    local: project.local,
+  });
+  const blocker = blockerReader(ctx);
+  return rows
+    .filter(row => !row.pull_request)
+    .map(row =>
+      hasBlockers(row, repo) ? withBlockers(ctx, repo, row, blocker) : row
+    )
+    .map(row => normalizeGithubIssue(row, { repo, doneRoles }))
+    .filter(Boolean);
 }
 
 /**
@@ -88,12 +120,9 @@ export function fetchGithubBacklog(ctx, project) {
   const pages = parseJson(stdout, "gh api output");
   const rows = Array.isArray(pages) ? pages.flat() : [];
   return {
-    items: rows
-      .map(row => normalizeGithubIssue(row, { repo }))
-      .filter(Boolean)
-      .filter(
-        item => !item.labels.some(label => lifecycle.has(label.toLowerCase()))
-      ),
+    items: normalizeRows(ctx, project, repo, rows).filter(
+      item => !item.labels.some(label => lifecycle.has(label.toLowerCase()))
+    ),
     pages: Array.isArray(pages) ? pages.length : 0,
   };
 }
@@ -124,7 +153,7 @@ export function fetchGithubQueue(ctx, project) {
   const pages = parseJson(stdout, "gh api output");
   const rows = Array.isArray(pages) ? pages.flat() : [];
   return {
-    items: rows.map(row => normalizeGithubIssue(row, { repo })).filter(Boolean),
+    items: normalizeRows(ctx, project, repo, rows),
     pages: Array.isArray(pages) ? pages.length : 0,
   };
 }

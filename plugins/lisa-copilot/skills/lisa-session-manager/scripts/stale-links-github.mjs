@@ -60,48 +60,108 @@ const hasNativeBlockers = row =>
   Number(row?.issue_dependencies_summary?.total_blocked_by ?? 0) > 0;
 
 /**
+ * A cached reader for blocker issues, so a blocker named by several items is
+ * read once per command.
+ * @param {object} ctx - CLI context
+ * @returns {(ref: string) => object | null}
+ */
+export function blockerReader(ctx) {
+  const cache = new Map();
+  return ref => {
+    if (!cache.has(ref)) cache.set(ref, readIssue(ctx, ref));
+    return cache.get(ref);
+  };
+}
+
+/**
+ * Whether a REST issue names any blocker, natively or in its body.
+ * @param {Record<string, any>} row - REST issue
+ * @param {string} repo - `owner/repo`
+ * @returns {boolean}
+ */
+export const hasBlockers = (row, repo) =>
+  hasNativeBlockers(row) ||
+  parseBlockedByRefs(row?.body, repo.toLowerCase()).length > 0;
+
+/**
+ * The REST issue with its blockers attached, in the shape the shared rule
+ * reads (`nativeBlockers`, `bodyBlockers`). An issue with no blocker gets
+ * empty ones without a single read.
+ * @param {object} ctx - CLI context
+ * @param {string} repo - `owner/repo`
+ * @param {Record<string, any>} row - REST issue
+ * @param {(ref: string) => object | null} blocker - From {@link blockerReader}
+ * @returns {Record<string, any>}
+ */
+export function withBlockers(ctx, repo, row, blocker) {
+  const own = repo.toLowerCase();
+  const nativeBlockers = hasNativeBlockers(row)
+    ? listAll(
+        ctx,
+        `repos/${repo}/issues/${row.number}/dependencies/blocked_by?per_page=100`
+      )
+    : [];
+  const bodyBlockers = Object.fromEntries(
+    parseBlockedByRefs(row.body, own).map(ref => [ref, blocker(ref)])
+  );
+  return { ...row, nativeBlockers, bodyBlockers };
+}
+
+/**
+ * One issue with its blockers and comments, as the plan reads it.
+ * @param {object} ctx - CLI context
+ * @param {string} repo - `owner/repo`
+ * @param {Record<string, any>} row - REST issue
+ * @param {(ref: string) => object | null} blocker - From {@link blockerReader}
+ * @returns {Record<string, any>}
+ */
+function staleLinkItem(ctx, repo, row, blocker) {
+  const enriched = withBlockers(ctx, repo, row, blocker);
+  return {
+    repo: repo.toLowerCase(),
+    number: row.number,
+    body: row.body ?? "",
+    labels: row.labels ?? [],
+    nativeBlockers: enriched.nativeBlockers,
+    bodyBlockers: enriched.bodyBlockers,
+    // Every candidate can hold a stale link, so its comments are read for
+    // the marker dedupe; issues with no blocker are never read.
+    comments: listAll(
+      ctx,
+      `repos/${repo}/issues/${row.number}/comments?per_page=100`
+    ),
+  };
+}
+
+/**
  * Read every open issue with a blocker, ready for `planStaleLinkSweep`.
  * @param {object} ctx - CLI context
  * @param {string} repo - `owner/repo`
  * @returns {{ items: object[] }}
  */
 export function collectGithubStaleLinkInput(ctx, repo) {
-  const own = repo.toLowerCase();
-  const rows = listAll(ctx, `repos/${repo}/issues?state=open&per_page=100`)
-    .filter(row => !row.pull_request)
-    .filter(
-      row => hasNativeBlockers(row) || parseBlockedByRefs(row.body, own).length
-    );
-  const cache = new Map();
-  const blocker = ref => {
-    if (!cache.has(ref)) cache.set(ref, readIssue(ctx, ref));
-    return cache.get(ref);
-  };
-  const items = rows.map(row => {
-    const number = row.number;
-    const nativeBlockers = hasNativeBlockers(row)
-      ? listAll(
-          ctx,
-          `repos/${repo}/issues/${number}/dependencies/blocked_by?per_page=100`
-        )
-      : [];
-    const bodyBlockers = Object.fromEntries(
-      parseBlockedByRefs(row.body, own).map(ref => [ref, blocker(ref)])
-    );
-    return {
-      repo: own,
-      number,
-      body: row.body ?? "",
-      labels: row.labels ?? [],
-      nativeBlockers,
-      bodyBlockers,
-      // Every candidate can hold a stale link, so its comments are read
-      // for the marker dedupe; issues with no blocker are never read.
-      comments: listAll(
-        ctx,
-        `repos/${repo}/issues/${number}/comments?per_page=100`
-      ),
-    };
-  });
+  const blocker = blockerReader(ctx);
+  const items = listAll(ctx, `repos/${repo}/issues?state=open&per_page=100`)
+    .filter(row => !row.pull_request && hasBlockers(row, repo))
+    .map(row => staleLinkItem(ctx, repo, row, blocker));
   return { items };
+}
+
+/**
+ * Re-read one issue, every blocker it names and its comments, right before
+ * the writes (`stale-links-confirm`).
+ * @param {object} ctx - CLI context
+ * @param {string} repo - `owner/repo`
+ * @param {number} number - Issue number
+ * @returns {Record<string, any>}
+ */
+export function readGithubStaleLinkItem(ctx, repo, number) {
+  const row = readIssue(ctx, `${repo}#${number}`);
+  if (!row) {
+    throw new CliError(
+      `Could not read ${repo}#${number} to confirm the plan.`,
+      1
+    );
+  }
+  return staleLinkItem(ctx, repo, row, blockerReader(ctx));
 }

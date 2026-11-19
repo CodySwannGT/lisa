@@ -75,7 +75,9 @@ describe("Jira", () => {
       ref: "ABC-1",
       actions: [{ op: "unlink", linkId: "10" }],
       removed: ["ABC-9"],
-      remainingBlockers: 3,
+      // ABC-8 is open and ABC-7 unreadable; XYZ-3 is finished, so it holds
+      // nothing even though it is another project's link and stays.
+      remainingBlockers: 2,
       becomesClaimable: false,
     });
   });
@@ -113,6 +115,38 @@ describe("Jira", () => {
     expect(result.plans[0]).toMatchObject({
       removed: ["ABC-5"],
       becomesClaimable: true,
+    });
+  });
+
+  it("reads the marker out of a Jira comment's ADF body", () => {
+    const adf = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Cleared waiting-on links." }],
+        },
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: `${STALE_LINK_MARKER} blocker=ABC-9` },
+          ],
+        },
+      ],
+    };
+    const result = planStaleLinkSweep({
+      tracker: "jira",
+      items: [
+        jiraIssue("ABC-6", [jiraLink("60", "ABC-9", DONE)], {
+          comments: [{ body: adf }],
+        }),
+      ],
+      doneRoles: ["done"],
+      roles: JIRA_ROLES,
+    });
+    expect(result.plans).toEqual([]);
+    expect(result.report).toMatchObject({
+      keptByPerson: [{ ref: "ABC-6", blocker: "ABC-9" }],
     });
   });
 

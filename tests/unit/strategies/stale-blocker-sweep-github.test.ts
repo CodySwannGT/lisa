@@ -13,6 +13,7 @@ import {
   normalizeJiraIssue,
   normalizeLinearIssue,
   orderBacklogQueue,
+  orderReadyQueue,
 } from "../../../plugins/src/base/scripts/ready-queue-order.mjs";
 import {
   parseBlockedByRefs,
@@ -123,11 +124,15 @@ describe("GitHub", () => {
 
 /**
  * A GitHub REST issue as the queue normalizes it; fails the test on null.
- * @param raw - REST issue
+ * @param raw - REST issue, optionally with its blockers attached
+ * @param doneRoles - Configured terminal done labels
  * @returns Normalized item
  */
-function normalized(raw: Record<string, unknown>) {
-  const item = normalizeGithubIssue(raw, { repo: REPO });
+function normalized(
+  raw: Record<string, unknown>,
+  doneRoles: readonly string[] = []
+) {
+  const item = normalizeGithubIssue(raw, { repo: REPO, doneRoles });
   if (!item) throw new Error("normalizeGithubIssue returned null");
   return item;
 }
@@ -209,37 +214,79 @@ describe("idempotency, cap and readiness", () => {
   });
 
   it("makes an item held back only by stale links claimable once they are gone", () => {
-    // GitHub's dependency summary counts the open blocker that carries the
-    // done label, so before the sweep the backlog tier holds the item.
-    const rest = (open: number) => ({
-      number: 5,
+    const ready = { ...stale, labels: [{ name: GH_ROLES.ready }] };
+    const queueRow = (item: Record<string, unknown>) => ({
+      ...item,
       title: "Item",
-      labels: [],
-      body: "",
       created_at: "2026-11-01T00:00:00Z",
       updated_at: "2026-11-01T00:00:00Z",
-      issue_dependencies_summary: { blocked_by: open },
     });
-    const before = orderBacklogQueue([normalized(rest(1))]);
-    expect(before.excluded).toEqual([
+    const order = (item: Record<string, unknown>) => {
+      const row = normalized(queueRow(item), GH_DONE);
+      return {
+        ready: orderReadyQueue([row]).ordered.map(entry => entry.ref),
+        backlog: orderBacklogQueue([row]),
+        openBlockers: row.openBlockers,
+      };
+    };
+    // GitHub's own summary counts the open blocker carrying the done label,
+    // which is what held the item before the queue used the shared rule.
+    const legacy = orderBacklogQueue([
+      normalized(
+        queueRow({ number: 5, issue_dependencies_summary: { blocked_by: 1 } })
+      ),
+    ]);
+    expect(legacy.excluded).toEqual([
       { ref: `${REPO}#5`, reason: "blocked-by-open-item" },
     ]);
+    // With its blockers attached the queue agrees with intake: both are done.
+    expect(order(ready).openBlockers).toBe(0);
 
     const plan = planStaleLinkSweep({
       tracker: "github",
-      items: [{ ...stale, labels: [{ name: "status:ready" }] }],
+      items: [ready],
       doneRoles: GH_DONE,
       roles: GH_ROLES,
     });
-    expect(plan.plans[0]).toMatchObject({ becomesClaimable: true });
-    const after = applyGithubPlan(stale, plan.plans[0]);
+    expect(plan.plans[0]).toMatchObject({
+      becomesClaimable: true,
+      remainingBlockers: 0,
+    });
+    // The next queue input is built from the item as the writes leave it.
+    const after = applyGithubPlan(ready, plan.plans[0]);
     expect(after.nativeBlockers).toEqual([]);
     expect(parseBlockedByRefs(after.body, REPO)).toEqual([]);
+    const next = order(after);
+    expect(next.ready).toEqual([`${REPO}#5`]);
+    expect(next.backlog.ordered.map(entry => entry.ref)).toEqual([`${REPO}#5`]);
+  });
 
-    const next = orderBacklogQueue([
-      normalized(rest(after.nativeBlockers.length)),
+  it("never calls an item with a real blocker left claimable", () => {
+    const held = {
+      ...stale,
+      labels: [{ name: GH_ROLES.ready }],
+      body: "Blocked by #9, #10",
+      bodyBlockers: {
+        [`${REPO}#9`]: { state: "closed", state_reason: "completed" },
+        [`${REPO}#10`]: { state: "open", labels: [] },
+      },
+    };
+    const plan = planStaleLinkSweep({
+      tracker: "github",
+      items: [held],
+      doneRoles: GH_DONE,
+      roles: GH_ROLES,
+    });
+    expect(plan.plans[0]).toMatchObject({
+      becomesClaimable: false,
+      remainingBlockers: 1,
+    });
+    const after = applyGithubPlan(held, plan.plans[0]);
+    const row = normalized({ ...after, title: "Item" }, GH_DONE);
+    expect(row.openBlockers).toBe(1);
+    expect(orderBacklogQueue([row]).excluded).toEqual([
+      { ref: `${REPO}#5`, reason: "blocked-by-open-item" },
     ]);
-    expect(next.ordered.map(entry => entry.ref)).toEqual([`${REPO}#5`]);
   });
 
   it("agrees with the queue on a blocker in the configured done state", () => {

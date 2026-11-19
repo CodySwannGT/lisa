@@ -52,7 +52,7 @@ import { orphanPlan } from "./cli-orphans.mjs";
 import { overruledPlan } from "./cli-overruled.mjs";
 import { repoDir, start, status, stop, validate } from "./cli-manager.mjs";
 import { queue } from "./cli-queue.mjs";
-import { staleLinksPlan } from "./cli-stale-links.mjs";
+import { staleLinksConfirm, staleLinksPlan } from "./cli-stale-links.mjs";
 import { CliError, EXIT } from "./cli-runtime.mjs";
 import {
   coexistence,
@@ -138,6 +138,11 @@ const COMMANDS = {
   "stale-links-plan": {
     run: staleLinksPlan,
     options: { tracker: text, input: text, max: text, "github-repo": text },
+    positionals: 0,
+  },
+  "stale-links-confirm": {
+    run: staleLinksConfirm,
+    options: { tracker: text, input: text, plan: text, "github-repo": text },
     positionals: 0,
   },
   "orphan-plan": {

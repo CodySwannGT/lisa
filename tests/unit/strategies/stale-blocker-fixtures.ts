@@ -10,7 +10,7 @@ import { terminalDoneRoles } from "../../../plugins/src/base/scripts/stale-block
 /** Status name and comments of a {@link jiraIssue}. */
 export interface JiraIssueOptions {
   readonly status?: string;
-  readonly comments?: { body: string }[];
+  readonly comments?: { body: unknown }[];
 }
 
 /** Body, labels, native and body blockers, and comments of a {@link githubItem}. */

@@ -19,6 +19,7 @@ afterEach(removeSandboxes);
 
 const REPO = "example-org/demo-repo";
 const PLAN = "stale-links-plan";
+const CONFIRM = "stale-links-confirm";
 const READY = "status:ready";
 const LIVE = "stage:live";
 
@@ -181,5 +182,52 @@ describe(PLAN, () => {
     expect(run(sandbox, [PLAN, "--input", input]).status).toBe(2);
     expect(run(sandbox, [PLAN, "--tracker", "trello"]).status).toBe(2);
     expect(run(sandbox, [PLAN, "--tracker", "linear"]).status).toBe(2);
+  });
+});
+
+describe(CONFIRM, () => {
+  it("re-reads GitHub and keeps a link whose blocker reopened", () => {
+    const sandbox = githubSandbox();
+    const routes = path.join(sandbox.root, "routes.json");
+    writeJson(routes, [
+      {
+        match: `repos/${REPO}/issues/1`,
+        body: {
+          number: 1,
+          body: "Edited by a person.\nBlocked by #9, #11",
+          labels: [{ name: READY }],
+          issue_dependencies_summary: { total_blocked_by: 0 },
+        },
+      },
+      { match: `repos/${REPO}/issues/9`, body: { state: "closed" } },
+      { match: `repos/${REPO}/issues/11`, body: { state: "open" } },
+      { match: `repos/${REPO}/issues/1/comments?per_page=100`, body: [[]] },
+    ]);
+    const planFile = path.join(sandbox.root, "entry.json");
+    writeJson(planFile, {
+      ref: `${REPO}#1`,
+      removed: [`${REPO}#9`, `${REPO}#11`],
+    });
+    const result = run(
+      sandbox,
+      [CONFIRM, "--tracker", "github", "--plan", planFile],
+      { env: { STUB_GH_ROUTES: routes } }
+    );
+    expect(result.status).toBe(0);
+    expect(result.json).toMatchObject({
+      plan: {
+        removed: [`${REPO}#9`],
+        body: "Edited by a person.\nBlocked by #11",
+      },
+      skipped: [{ blocker: `${REPO}#11`, reason: "blocker-not-resolved" }],
+    });
+  });
+
+  it("needs --plan, and --input for Jira", () => {
+    const sandbox = makeSandbox({ extraConfig: { tracker: "jira" } });
+    const planFile = path.join(sandbox.root, "entry.json");
+    writeJson(planFile, { ref: "ABC-1", removed: ["ABC-9"] });
+    expect(run(sandbox, [CONFIRM]).status).toBe(2);
+    expect(run(sandbox, [CONFIRM, "--plan", planFile]).status).toBe(2);
   });
 });

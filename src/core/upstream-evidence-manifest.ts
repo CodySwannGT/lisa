@@ -1417,7 +1417,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/ready-queue-order.mjs":
-      "b8ec3bb68b8f8919c76beec556d97be7d21c355a848d821367fbc01b1f522286",
+      "0622efa28b1ec8c0561b19d1d816e375036b5df8eaf5e9f3ed08e599e5480c7b",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "2a5b21f4fa3df268fb579976b4bc5f480d9176dbf6e3ae64fe3a869df287ca30",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
@@ -1428,12 +1428,16 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "f52e60b748770b3501534dcac5d533a4fc5bb978666a42747019171b0e221e7a",
     "plugins/src/base/scripts/scoping-label-audit.mjs":
       "033f6f36dc4287a61f6af67d003b6f49b061af9c0944586a14832c64621905dd",
+    "plugins/src/base/scripts/stale-blocker-comment.mjs":
+      "33190a8ee197dbe05861be54bf6bdf29685367b0479791797ee9a46ba76d5b93",
+    "plugins/src/base/scripts/stale-blocker-confirm.mjs":
+      "8d5cdb4c8be8dcc05471f237625d5c2dbc3cfabe799c53f6f9a698a391f6590a",
     "plugins/src/base/scripts/stale-blocker-edges.mjs":
-      "c3c168a4d402939b581642fa176e17abece5f56542b5a86dff8b4f8e595d2951",
+      "650030b68a712dff988fe33770822b4319bfe5ba0492c0f9d6231ee99efea7f3",
     "plugins/src/base/scripts/stale-blocker-summary.mjs":
       "6fded304cc5c618beda57e62b6398cdd5a51cab6d17cd662e60d12e6cb082e5e",
     "plugins/src/base/scripts/stale-blocker-sweep.mjs":
-      "8c943a59220dd49c78af859b2da99e9beb5f1df09a00263c96bf3bf970bb5d12",
+      "27d4415ff10236856bf9d8b5cd87aadb6de7e3bf701e185f47c3ccb89cdaa130",
     "plugins/src/base/skills/lisa-acceptance-criteria/SKILL.md":
       "ddcb4f10b092f27bbff67782cc4472c3a3c8b8fa08507ee67ca5d1ea4f0f1a20",
     "plugins/src/base/skills/lisa-agent-design-best-practices/SKILL.md":
@@ -1515,7 +1519,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "19dd3c3f0fe90f2cc84f0e06fceba015a08070da812e5aabdbd0d0370d7c7a24",
+      "08debbcc141242cd82f502286845e7d1ee63f86d06b8184e24ed9d9565d4ae7a",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1569,7 +1573,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
       "a00606cc7927f034e847f34d7e44e72fa7f3a14ddf6a469deb7eae1e06531fd7",
     "plugins/src/base/skills/lisa-jira-build-intake/SKILL.md":
-      "c859b064d854ee1974f58dd82723b4025eca201d4551b226f81a51b4e265a962",
+      "8f40cabbc27a0005563d0aaa4e1ed4e9a7a105670929496c0212a96aaa34751d",
     "plugins/src/base/skills/lisa-jira-claim/SKILL.md":
       "9c4935441a4e6b55df0949178f96e927184c4909bffff8929b39a304bc5ac00a",
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
@@ -1607,7 +1611,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "7efdd70b6f4a9bac3b702379aec91024a22de8ce8aaf8f999cb5b5d93ddce207",
+      "0eb7b88472a9b7f7a71d0fe902acaa2f6a822aef0640942d4ec7ad8c4366fd08",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -1765,7 +1769,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "cf7d9291783f50887bec2d0516f6292f168f3540aeb1727804c52d1d5753755d",
+      "bee35b5e5290824f4d35bbea8ffec8b815c9c914b711f76e683d315820c9aee0",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f8a63378cdeb2acc70b53fa5b7c9e4510b2806b98eb27004d94b97817172d6db",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1793,11 +1797,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
       "4b125971939f6e99863930a109315038520c1bc8e0543d1e34476c9987d30605",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-stale-links.mjs":
-      "d63780f4291b2388a5f34a5d2eac35c2f9e2fb82632c49fd27c2889f5080c9dc",
+      "4276068206df3c4236ece5e710a06af7951416334bc0a96e94ea6175c7429943",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "ef12721cde5bb34bd4780083b39d7d007b255cb36019f828a7d6f0bb27d7fec1",
+      "f7a501a271cec57a54a6947a5f3a9921797c617ead632881aa7652052a251580",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "c1f0329e5f3aeb58a91a5caceb54161cadcf9e5c12ad30d44a66026b0533b29f",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1841,17 +1845,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
       "332bebf7a73c1d95bafe0e82239c18838dd53df7ca043c5cf4c3bb1043497324",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
-      "9af014661873a2971fbc29946739088fc3e089deb8d94e78af651647450f2999",
+      "e2a4817dee6d20aa0ba942abda5bee146cc03f04cafb303bbfe5641102f5417a",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
       "adf56eb60769ffb8ace6a5aefe85e37107db1d73e4d73ab4cf29ab045ca8c76c",
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
       "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
-      "06a7d84d4a26d2a82509657e17e4013c5a27e42817059a7f1622e2546ef462dc",
+      "c9bf0ce12bfe09155abb43394fc02cd0950909f9336c4f376bace0895a78b828",
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-github.mjs":
-      "3ddaf09b8ac47948a38a50a338448a59d19714003d05e8c45ec81418769afe44",
+      "360446d8a556b1791d4d6bd980dda460d9881ba5db833cffe40e1b5843096455",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
       "e1c3f0386249afc187b9711b3631ed58b23467e1e88d22c628167b5d3af45318",
     "plugins/src/base/skills/lisa-session-manager/scripts/take-check.mjs":
@@ -5065,6 +5069,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa-agy/scripts/rollup-blocker-classification.mjs": true,
     "plugins/lisa-agy/scripts/scoping-label-audit.mjs": true,
+    "plugins/lisa-agy/scripts/stale-blocker-comment.mjs": true,
+    "plugins/lisa-agy/scripts/stale-blocker-confirm.mjs": true,
     "plugins/lisa-agy/scripts/stale-blocker-edges.mjs": true,
     "plugins/lisa-agy/scripts/stale-blocker-summary.mjs": true,
     "plugins/lisa-agy/scripts/stale-blocker-sweep.mjs": true,
@@ -5631,6 +5637,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa-copilot/scripts/rollup-blocker-classification.mjs": true,
     "plugins/lisa-copilot/scripts/scoping-label-audit.mjs": true,
+    "plugins/lisa-copilot/scripts/stale-blocker-comment.mjs": true,
+    "plugins/lisa-copilot/scripts/stale-blocker-confirm.mjs": true,
     "plugins/lisa-copilot/scripts/stale-blocker-edges.mjs": true,
     "plugins/lisa-copilot/scripts/stale-blocker-summary.mjs": true,
     "plugins/lisa-copilot/scripts/stale-blocker-sweep.mjs": true,
@@ -6181,6 +6189,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa-cursor/scripts/rollup-blocker-classification.mjs": true,
     "plugins/lisa-cursor/scripts/scoping-label-audit.mjs": true,
+    "plugins/lisa-cursor/scripts/stale-blocker-comment.mjs": true,
+    "plugins/lisa-cursor/scripts/stale-blocker-confirm.mjs": true,
     "plugins/lisa-cursor/scripts/stale-blocker-edges.mjs": true,
     "plugins/lisa-cursor/scripts/stale-blocker-summary.mjs": true,
     "plugins/lisa-cursor/scripts/stale-blocker-sweep.mjs": true,
@@ -6660,6 +6670,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa-devin/scripts/rollup-blocker-classification.mjs": true,
     "plugins/lisa-devin/scripts/scoping-label-audit.mjs": true,
+    "plugins/lisa-devin/scripts/stale-blocker-comment.mjs": true,
+    "plugins/lisa-devin/scripts/stale-blocker-confirm.mjs": true,
     "plugins/lisa-devin/scripts/stale-blocker-edges.mjs": true,
     "plugins/lisa-devin/scripts/stale-blocker-summary.mjs": true,
     "plugins/lisa-devin/scripts/stale-blocker-sweep.mjs": true,
@@ -8753,6 +8765,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/scripts/queue-contract-resolution.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/ready-queue-order.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/resolve-lifecycle-role.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/stale-blocker-comment.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/stale-blocker-confirm.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/stale-blocker-edges.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/stale-blocker-summary.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/stale-blocker-sweep.mjs": true,
@@ -9487,6 +9501,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa/scripts/rollup-blocker-classification.mjs": true,
     "plugins/lisa/scripts/scoping-label-audit.mjs": true,
+    "plugins/lisa/scripts/stale-blocker-comment.mjs": true,
+    "plugins/lisa/scripts/stale-blocker-confirm.mjs": true,
     "plugins/lisa/scripts/stale-blocker-edges.mjs": true,
     "plugins/lisa/scripts/stale-blocker-summary.mjs": true,
     "plugins/lisa/scripts/stale-blocker-sweep.mjs": true,
@@ -10219,6 +10235,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/src/base/scripts/rollup-blocker-classification.mjs": true,
     "plugins/src/base/scripts/scoping-label-audit.mjs": true,
+    "plugins/src/base/scripts/stale-blocker-comment.mjs": true,
+    "plugins/src/base/scripts/stale-blocker-confirm.mjs": true,
     "plugins/src/base/scripts/stale-blocker-edges.mjs": true,
     "plugins/src/base/scripts/stale-blocker-summary.mjs": true,
     "plugins/src/base/scripts/stale-blocker-sweep.mjs": true,
@@ -14730,6 +14748,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/shipped-prerequisite-check-text.test.ts": true,
     "tests/unit/strategies/shipped-prerequisite-check.test.ts": true,
     "tests/unit/strategies/skill-machine-read-names.test.ts": true,
+    "tests/unit/strategies/stale-blocker-confirm.test.ts": true,
     "tests/unit/strategies/stale-blocker-fixtures.ts": true,
     "tests/unit/strategies/stale-blocker-sweep-github.test.ts": true,
     "tests/unit/strategies/stale-blocker-sweep.test.ts": true,

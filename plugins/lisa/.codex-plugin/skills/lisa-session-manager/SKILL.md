@@ -602,15 +602,25 @@ item held back only by them is claimable in this same cycle:
    listed in `report.inaccessible`. Items in the `blocked` role are left to the Blocked sweep
    below, which decides by branch containment. `--max` caps the items per cycle (default 10); the
    rest are `deferred` to the next cycle.
-2. **Act** on each entry of `plans`. Re-read the item with `lisa-tracker-read` first and skip it
-   (one transcript line, no write) when its role changed or it gained a person's assignee since
-   the plan. Then perform each `actions` entry and nothing else:
+2. **Confirm, then act** on each entry of `plans`. The plan is a snapshot: a blocker can be
+   reopened, or a person can edit the item, before you write. So first re-read the item **and
+   every blocker it names**, then write that one entry to
+   `.lisa/session-manager/stale-links-entry.json` and run
+   `stale-links-confirm --tracker github --plan .lisa/session-manager/stale-links-entry.json`
+   (GitHub re-reads the issue, each blocker and the comments itself). For Jira and Linear, put the
+   fresh raw item, with each blocker's current status and the comments, in
+   `.lisa/session-manager/stale-links-fresh.json` and add `--input` with that path. Its `plan`
+   keeps only the links that are still stale: a reopened blocker is in `skipped` as
+   `blocker-not-resolved` and keeps its link, and the GitHub `body` is rebuilt from the fresh
+   body, so a concurrent edit survives. When `plan` is null, write nothing for that item. Also
+   skip it (one transcript line, no write) when it gained a person's assignee since the plan.
+   Then perform each of the confirmed plan's `actions` and nothing else:
    - `delete-dependency` (GitHub): `gh api -X DELETE <endpoint>`.
    - `body` (GitHub, when not null): write it as the issue body through `lisa-tracker-write`. It
-     differs from the current body only in the `Blocked by` refs it removes.
+     differs from the fresh body only in the `Blocked by` refs it removes.
    - `unlink` (Jira): `lisa-atlassian-access` `operation: unlink link-id:<linkId>`.
    - `delete-relation` (Linear): `lisa-linear-access` `operation: delete-relation id:<relationId>`.
-   Read the item back and confirm every ref in `removed` is gone. Only then post `comment` through
+   Read the item back and confirm every ref in the confirmed `removed` is gone. Only then post its `comment` through
    `lisa-tracker-write`: it is one plain-English comment carrying one
    `[lisa-stale-blocker-link] blocker=<ref>` marker per removed link, so a later cycle never comments
    twice. Post nothing when the read-back still shows a link; the next cycle retries it. A link

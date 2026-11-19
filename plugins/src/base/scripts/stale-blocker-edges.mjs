@@ -299,6 +299,27 @@ function githubEdge(ref, blocker, source) {
   };
 }
 
+/** Placeholder repo for a native blocker whose repository is not named. */
+export const UNKNOWN_REPO = "unknown-repo";
+
+/**
+ * The `owner/repo` a native blocker lives in. The dependencies API returns
+ * both `repository.full_name` and `repository_url`; either is read, as
+ * `normalizeGithubIssue` reads `repository_url`. A blocker that names
+ * neither is never assumed to be local: it gets {@link UNKNOWN_REPO}, which
+ * matches no item's repo, so the sweep treats it as cross-project and leaves
+ * it alone.
+ * @param {Record<string, any>} blocker - REST issue
+ * @returns {string}
+ */
+function blockerRepo(blocker) {
+  const named =
+    text(blocker?.repository?.full_name) ||
+    text(blocker?.repository_url).split("/repos/")[1] ||
+    "";
+  return named || UNKNOWN_REPO;
+}
+
 /**
  * "Blocked by" edges of one GitHub issue: native dependencies
  * (`nativeBlockers`, the REST `dependencies/blocked_by` list) and the body
@@ -309,7 +330,7 @@ function githubEdge(ref, blocker, source) {
 export function githubBlockerEdges(issue) {
   const repo = text(issue?.repo).toLowerCase();
   const native = nodesOf(issue?.nativeBlockers).map(blocker => {
-    const owner = text(blocker?.repository?.full_name) || repo;
+    const owner = blockerRepo(blocker);
     return githubEdge(
       `${owner.toLowerCase()}#${blocker.number}`,
       blocker,
