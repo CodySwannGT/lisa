@@ -1100,9 +1100,12 @@ describe("complete authenticated helper closure", () => {
     // tracker-wire) added for Jira/Linear work items in CodySwannGT/lisa#4859,
     // + the seven fast-push gate helpers (CodySwannGT/lisa#4582),
     // tracker-cancel for Jira/Linear cancellation in CodySwannGT/lisa#4873,
-    // and changed-paths, which tells the gate runner what a commit or push
-    // touches (CodySwannGT/lisa#4988).
-    expect(members.length).toBe(142);
+    // changed-paths, which tells the gate runner what a commit or push
+    // touches (CodySwannGT/lisa#4988), and the five work-item-estimate
+    // modules completion now imports for its done gate (CodySwannGT/lisa#4956),
+    // plus tracker-row-fold, the stored-row comparison key the usage and
+    // estimate projections share (CodySwannGT/lisa#4956).
+    expect(members.length).toBe(148);
     const completionMembers = [
       "lib/completion-authorization.mjs",
       "lib/completion-proof-adapters.mjs",
@@ -1122,6 +1125,11 @@ describe("complete authenticated helper closure", () => {
       "lib/usage-effectiveness.mjs",
       "lib/usage-ledger-integrity.mjs",
       USAGE_LEDGER_HELPER,
+      "lib/work-item-estimate.mjs",
+      "lib/work-item-estimate-actual.mjs",
+      "lib/work-item-estimate-check.mjs",
+      "lib/work-item-estimate-config.mjs",
+      "lib/work-item-estimate-tally.mjs",
     ];
     expect(members).toEqual(expect.arrayContaining(completionMembers));
     const completionClosure = managedClosure(manifest, bytes, [

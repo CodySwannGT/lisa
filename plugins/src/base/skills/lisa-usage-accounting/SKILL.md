@@ -195,7 +195,8 @@ failures into a generic "usage update failed."
 A work item's token estimate and recommended model live in their own managed `## Lisa Estimate`
 section, beside this ledger, never inside it. The contract, config (`workItem.estimate`) and
 pricing are in the [estimate reference](references/estimate.md); render and check the section
-with `node scripts/lisa-estimate.mjs`.
+with `node scripts/lisa-estimate.mjs`. At done, `lisa-estimate.mjs tally` copies this ledger's
+rollup total into that section as the actual; it reads the ledger and never writes to it.
 
 ## Rules
 

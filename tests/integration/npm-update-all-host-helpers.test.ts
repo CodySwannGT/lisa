@@ -169,8 +169,11 @@ describe("all-only npm host controller materialization", () => {
       // 131 -> 138: the fast-push gate helpers (CodySwannGT/lisa#4582);
       // 139: CodySwannGT/lisa#4873 adds npm-update-tracker-cancel;
       // 140: CodySwannGT/lisa#4988 adds lib/changed-paths, which the gate
-      // runner imports.
-      expect(managedTemplateMembers().size).toBe(140);
+      // runner imports;
+      // 145: CodySwannGT/lisa#4956 adds the five work-item-estimate modules
+      // completion imports for its done gate, and 146 the tracker-row-fold
+      // the usage and estimate projections share.
+      expect(managedTemplateMembers().size).toBe(146);
     },
     ioLatencyBudgetMs(30_000)
   );

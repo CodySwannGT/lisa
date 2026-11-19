@@ -13,6 +13,12 @@
  * @module scripts/lib/work-item-estimate
  */
 import {
+  formatTokens,
+  parseActualToken,
+  renderActual,
+} from "./work-item-estimate-actual.mjs";
+import { trackerRowKey } from "./tracker-row-fold.mjs";
+import {
   costCents,
   EstimateConfigError,
   priceFor,
@@ -39,19 +45,6 @@ const MANAGED_NOTE =
 const encode = value => (value === null ? "null" : encodeURIComponent(value));
 const decode = value => (value === "null" ? null : decodeURIComponent(value));
 const dollars = cents => (cents / 100).toFixed(2);
-
-/**
- * Human-readable token count: 2000000 -> "2M", 1500 -> "1.5k".
- * @param {number} tokens - Token count.
- * @returns {string} Short form.
- */
-export function formatTokens(tokens) {
-  const short = (value, unit) =>
-    `${Number(value.toFixed(2)).toString()}${unit}`;
-  if (tokens >= 1_000_000) return short(tokens / 1_000_000, "M");
-  if (tokens >= 1_000) return short(tokens / 1_000, "k");
-  return String(tokens);
-}
 
 /**
  * Parse a token count written as `2000000`, `2M`, `2.5m` or `500k`.
@@ -106,11 +99,18 @@ export function buildEstimate(input, settings) {
 }
 
 /**
- * Render the managed section for an estimate.
- * @param {Estimate} estimate - Result of {@link buildEstimate}.
- * @returns {string} Markdown section, ending in a newline.
+ * The estimate row and machine token, or a plain "none recorded" row when the
+ * item reached completion without one.
+ * @param {Estimate | null} estimate - Estimate, if any.
+ * @returns {{row: string, basis: string, token: string | null}} Rendered parts.
  */
-export function renderEstimateSection(estimate) {
+function estimateParts(estimate) {
+  if (!estimate)
+    return {
+      row: "| Estimate | none recorded | — | — |",
+      basis: "no estimate was recorded before work began",
+      token: null,
+    };
   const cost =
     estimate.costLow === null
       ? "unpriced"
@@ -126,6 +126,22 @@ export function renderEstimateSection(estimate) {
     `model=${encode(estimate.model)}`,
     `basis=${encode(estimate.basis)}`,
   ];
+  return {
+    row: `| Estimate | ${formatTokens(estimate.tokensLow)}–${formatTokens(estimate.tokensHigh)} | ${cost} | ${estimate.model} |`,
+    basis: estimate.basis,
+    token: `<!-- lisa:estimate ${fields.join(" ")} -->`,
+  };
+}
+
+/**
+ * Render the managed section for an estimate and, once the work is done, its
+ * actual (CodySwannGT/lisa#4956).
+ * @param {Estimate | null} estimate - Result of {@link buildEstimate}, or null when none was recorded.
+ * @param {{row: string, note: string, token: string} | null} [actual] - Rendered actual parts from the tally.
+ * @returns {string} Markdown section, ending in a newline.
+ */
+export function renderEstimateSection(estimate, actual = null) {
+  const parts = estimateParts(estimate);
   return [
     ESTIMATE_HEADING,
     "",
@@ -133,11 +149,14 @@ export function renderEstimateSection(estimate) {
     "",
     "| Row | Tokens | Cost | Model |",
     "|---|---:|---:|---|",
-    `| Estimate | ${formatTokens(estimate.tokensLow)}–${formatTokens(estimate.tokensHigh)} | ${cost} | ${estimate.model} |`,
+    parts.row,
+    ...(actual ? [actual.row] : []),
     "",
-    `Basis: ${estimate.basis}`,
+    `Basis: ${parts.basis}`,
+    ...(actual ? ["", actual.note] : []),
     "",
-    `<!-- lisa:estimate ${fields.join(" ")} -->`,
+    ...(parts.token ? [parts.token] : []),
+    ...(actual ? [actual.token] : []),
     "",
   ].join("\n");
 }
@@ -230,27 +249,35 @@ function parseTokenFields(section) {
 /**
  * Parse the item's estimate section.
  * @param {string} body - Item body.
- * @returns {{count: number, estimate: Estimate | null}} Section count and its parsed token.
+ * @returns {{count: number, estimate: Estimate | null, section: string | null}} Section count, its parsed estimate token, and its text.
  */
 export function parseEstimateSection(body) {
   const spans = estimateSpans(body);
-  if (spans.length !== 1) return { count: spans.length, estimate: null };
+  if (spans.length !== 1)
+    return { count: spans.length, estimate: null, section: null };
   const lines = body.split("\n").slice(spans[0].start, spans[0].end);
-  return { count: 1, estimate: parseToken(lines.join("\n")) };
+  const section = lines.join("\n");
+  return { count: 1, estimate: parseToken(section), section };
 }
 
 /**
  * The lines Lisa itself wrote in a section: exactly what rendering its own
- * token produces. Anything else in the section is a person's text. A section
- * with no parseable token has no Lisa-written lines but its heading.
+ * tokens produces, the estimate and any recorded actual. Anything else in the
+ * section is a person's text. A section with neither token parseable has no
+ * Lisa-written lines but its heading.
  * @param {string} section - Section text, heading first.
  * @returns {string[]} Trimmed, non-empty managed lines (a multiset).
  */
 export function managedEstimateLines(section) {
   const estimate = parseToken(section);
-  const rendered = estimate
-    ? renderEstimateSection(estimate)
-    : ESTIMATE_HEADING;
+  const actual = parseActualToken(section);
+  const rendered =
+    estimate || actual
+      ? renderEstimateSection(
+          estimate,
+          actual ? renderActual(actual, estimate) : null
+        )
+      : ESTIMATE_HEADING;
   return rendered
     .split("\n")
     .map(line => line.trim())
@@ -258,14 +285,16 @@ export function managedEstimateLines(section) {
 }
 
 /**
- * The lines of a section that Lisa did not write, in order.
+ * The lines of a section that Lisa did not write, in order. A line a tracker
+ * rewrote (an alignment row stored as `| -- | -- |`, escaped punctuation) is
+ * still Lisa's: lines compare by the same fold the usage rows use.
  * @param {string} section - Section text, heading first.
  * @returns {string[]} A person's lines, blank lines dropped.
  */
 export function humanLines(section) {
-  const managed = managedEstimateLines(section);
+  const managed = managedEstimateLines(section).map(trackerRowKey);
   return section.split("\n").filter(line => {
-    const at = managed.indexOf(line.trim());
+    const at = managed.indexOf(trackerRowKey(line));
     if (at !== -1) managed.splice(at, 1);
     return at === -1 && line.trim() !== "";
   });

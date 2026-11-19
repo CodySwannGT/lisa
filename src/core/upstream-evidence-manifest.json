@@ -43,9 +43,9 @@
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
       "bcf755d8c1905cddd84622c9a520f7bcc16b19379b9f933a8b5657bb6df9f391",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
-      "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
+      "f93221c4b8ddca27c7a78b6e6b7eceb4555ec1e2d5cd8fd128c1380cd310c81f",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
-      "0743d3ccb12a2dc4822170e7c299caa24576fc5a1862402adc4f6feb1bedd163",
+      "10e812829458c9b02f6cb012dc1714ad8b03388ced71a103130517150036f832",
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.d.mts":
       "9d951f9a095264b33f527dd65eb41c8d6617b3b1c572d13c22332773ac99dca5",
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.mjs":
@@ -61,13 +61,13 @@
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
       "8ff9efc772463c3fccf5d6e5a42c73df324babd2e02e66228f2d9a0b1896cbf4",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
-      "5745309b07bd12dda8f72a2f29681441c2ac4a404b87acb03ee29c1a7a724d05",
+      "88389681f5a19cf90d4edcdeda48ce0f60a8845fb71c37c9e34edaa9e1a777a0",
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
       "9554fff85ed510f75058614c9ad8535806d52293e1de012900bae7e14db61eb1",
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
-      "d3ce2a98706083bb95652000b30566b7356abceb2437f6eec1240e5bf533d9d0",
+      "2b7f18d07226a8acd09348cb535701a08c3b567b50e12a52225379893c91afed",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
       "7aa9673c7de21fa64e572043e7e76774e7cb57210a54f4603a72e88be97510a3",
     "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs":
@@ -165,7 +165,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "4bfa589aaeda81f29c800409e5e66fab6e6d735135c1a075213ee6d2e007773b",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "56e477a95051106728b042c4557cc5fe63cf4311edcf4e60c4083f98ba4f1426",
+      "9577f00418e2aa6458737297efb01fc06bf6e77a221f72d344d4f11775ea8fa8",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -288,6 +288,8 @@
       "32e9968d27b7edead16c232bb93bebb8118dd24d175a837f61c2e1ff324dc223",
     "all/copy-overwrite/scripts/lib/rspec-selection.mjs":
       "20304b4b4c8798005908f23df627103721f929c9995db1afb59f9ed00a1a8c36",
+    "all/copy-overwrite/scripts/lib/tracker-row-fold.mjs":
+      "b46c5a0d44c8505c68e0fccbbb1dea7f8253bbb6c202cdb967bf504d3efa34fd",
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts":
       "e093245f67362bd1dfefe328e9354f5465279f534ce569efee5d3cdadd00598b",
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs":
@@ -310,16 +312,20 @@
       "599628647c03ac22fe7cd5df22219a70b67e449cc893cc85564a93d658df2c2d",
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1":
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
+    "all/copy-overwrite/scripts/lib/work-item-estimate-actual.mjs":
+      "dd0b60608c9a4a765bf6474c863a185518bdf00ba8388efbd09b7472b66f16d4",
     "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs":
-      "1f8b96f438995da18a2e8cab7160c6dfc38c597550839ca4e1694b47e3314893",
+      "de92a1f8eee42e5947b6bbfdf32ec20e174b186bbcfb35132ce4e6aa53d15bd4",
     "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs":
-      "8335b3f9d15243dff3e6eb74a5352c9ef8e8f3c667cc81996452855274a9ca73",
+      "094da46c296984cd42d706e60a8fef7956c8c663950bb3d4def768f386b8a53c",
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.d.mts":
       "68ba3eba29ed10a0ca3488e35722882413a85eaa2105b0266f3edfa121d9bb86",
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs":
-      "dea9d7e5440646b8bd4122846bf587a2f7cfff95e720b43302dda98b91c58b5f",
+      "b803106384f35ed85bfa7541c994601cee1523b2010981075eb3244960fae7c5",
+    "all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs":
+      "d47e86213164c0d45fb5827281c539c0071e53173b63926e91e89e80da4b2d3a",
     "all/copy-overwrite/scripts/lib/work-item-estimate.mjs":
-      "d936f38602d428ef26d41a09458c61b896106763255b2f6d475a7b963b917079",
+      "ac27c325a912e54f5f92a02651495a28152987af4368aab95ef68f42dad17313",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
       "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
@@ -347,7 +353,7 @@
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "264dc09909dc6c2624d87fd3d342c4538bdc62654e7c804732cdee97218fbcd0",
     "all/copy-overwrite/scripts/lisa-estimate.mjs":
-      "205e859724157edd928095623de95f70fe7b7e5d192ab386282df8ba2644d1de",
+      "fa6032d9e655738dc88bddbcdf643ed7a2f08d3fd3f29bf5de7dfb83a2486b89",
     "all/copy-overwrite/scripts/lisa-evidence-prune.mjs":
       "878b2014be5a0bedc8b4899d0e961dfea5b1147ff0a694a9fac00f77121f035a",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -413,7 +419,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "e375093f125bad828bd4973a509d3308d798357790cf1cc7aa389e50fb5aa290",
+      "21bb0e98ed8040c5eded17384374fcf950a2ac36de073cc28aef35fae53ad184",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1353,7 +1359,7 @@
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
       "34afe0413fce11872ac99b87e6323c59a754db7992c5fb054a56845af0723785",
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
-      "9f9b9e42d437aafe82a153414dcf335a35a5ea30be88c427e5044fdc8d112935",
+      "0bdd043473a6dc7d99f639ed7e1fd9bb6a3ece2c789c7af83893e9db3cdaa7f2",
     "plugins/src/base/rules/reference/work-item-trailer-definition.md":
       "2997766dc8ab61bf63891781dc9e86339a47ca35eddd4ca387bd7cc0ce85f2a5",
     "plugins/src/base/scripts/automation-run-record.mjs":
@@ -1957,7 +1963,7 @@
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "e37b751782fe53c0cb6e8b682ca12e61b96635edf9fbe4d19990a22d897b88e3",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "1caf36b425f012f9e6a9501fa8dfb92cae65c8b650e28f25bab005010d78180f",
+      "bda6007451009e28a3ddc3ede691a7b29a475f4cf725a283438cbec10d50a805",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "c4656c11936ca8f2f05091ba5d4922cadca293cf822b644e5ee46cbf22103706",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
@@ -1975,11 +1981,11 @@
     "plugins/src/base/skills/lisa-tracker-write/SKILL.md":
       "ec546503c322ebf4b6283f3a265a61cff8c1b0f895aed73f75474bf4b2397abe",
     "plugins/src/base/skills/lisa-usage-accounting/SKILL.md":
-      "bad08b1e1c843d13bd6fc8abe7f697620f99e8f6d78c1409663bcb6ffef86fbc",
+      "6bb2df57757e3c2c5a48a8bea6ca593adeba84a9d12581e917b9b0331e9619df",
     "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md":
       "d34e7b4951bc26caf15625e081e8273a11ee8ca1bde6137750f4b687fca7e8bf",
     "plugins/src/base/skills/lisa-usage-accounting/references/estimate.md":
-      "11e9551b88b8449e6c19df16d2a2a70380ccd41b4241bb6a5d9664f2bed13c0f",
+      "164737e1249881ba583e2b8fc76b489685719685e93f6231f2af00b8767f3f0c",
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "9605cce9b30a5a4db04ce936b5dddcaaf05368ddcd91ce4067956071a481db63",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
@@ -3035,7 +3041,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "5340d136f333cd717f12c8e7d10fd44755829754ed702176c07c2276a94cad64",
+      "588b880644124841ea2985ad8eca8b4a52f9d2506e1138f4e4416f9020811755",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3105,7 +3111,7 @@
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "6dbea710f7ee2feecc84e714a8014ae928e5895d2d7fb01a3662702040b56996",
+      "c12fbdbf74dcec97fcdadbec4b30e4e9a5f944e253a48280e347504e6ce29680",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3527,6 +3533,7 @@
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.d.mts": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": true,
     "all/copy-overwrite/scripts/lib/rspec-selection.mjs": true,
+    "all/copy-overwrite/scripts/lib/tracker-row-fold.mjs": true,
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts": true,
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs": true,
     "all/copy-overwrite/scripts/lib/usage-effectiveness.d.mts": true,
@@ -3538,10 +3545,12 @@
     "all/copy-overwrite/scripts/lib/windows-process-job.cs": true,
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs": true,
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1": true,
+    "all/copy-overwrite/scripts/lib/work-item-estimate-actual.mjs": true,
     "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs": true,
     "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs": true,
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.d.mts": true,
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs": true,
+    "all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs": true,
     "all/copy-overwrite/scripts/lib/work-item-estimate.mjs": true,
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts": true,
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": true,
@@ -14295,6 +14304,9 @@
     "tests/unit/scripts/work-item-completion-authorization.test.ts": true,
     "tests/unit/scripts/work-item-contract-version.test.ts": true,
     "tests/unit/scripts/work-item-estimate-claim.test.ts": true,
+    "tests/unit/scripts/work-item-estimate-done.test.ts": true,
+    "tests/unit/scripts/work-item-estimate-ledgers.test.ts": true,
+    "tests/unit/scripts/work-item-estimate-tally.test.ts": true,
     "tests/unit/scripts/work-item-estimate.test.ts": true,
     "tests/unit/scripts/work-item-evidence-release-cli.test.ts": true,
     "tests/unit/scripts/work-item-gate-scope-advice.test.ts": true,

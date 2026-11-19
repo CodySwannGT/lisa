@@ -102,7 +102,13 @@ function resolveChildRollupParts(
         : sumNullable(deduped.map(entry => entry.totalTokens)),
       childTokensIncomplete,
       childCurrency,
-      childCost: childCurrency === MIXED_CURRENCY ? null : rawChildCost,
+      // A child run without a cost leaves the sum partial, so the child cost
+      // is unknown rather than the total of only the priced runs.
+      childCost:
+        childCurrency === MIXED_CURRENCY ||
+        deduped.some(entry => entry.cost === null)
+          ? null
+          : rawChildCost,
     };
   }
 

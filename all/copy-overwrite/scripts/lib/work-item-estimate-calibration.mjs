@@ -5,18 +5,20 @@
  * Calibrate a new token estimate against finished work (CodySwannGT/lisa#4955).
  *
  * For each comparable finished item that carries both an estimate and a
- * complete actual, the ratio is the actual token total (the item's
- * `## Lisa Usage` rollup, the same ledger the completion tally reads) over the
- * estimate's midpoint. The median ratio scales the new range. Items whose
+ * complete actual, the ratio is the actual token total over the estimate's
+ * midpoint. The actual is the item's recorded done tally, which counted every
+ * usage ledger it carried, comments included; an item finished before tallies
+ * were recorded falls back to its body's `## Lisa Usage` ledger. The median ratio scales the new range. Items whose
  * actual is unknown or partial (no ledger, or any run with `unavailable`
  * telemetry or a measured subset) are skipped, never counted as zero or as the
  * sum of only the known runs. With no usable history the range is
  * returned unchanged and the basis says so.
  * @module scripts/lib/work-item-estimate-calibration
  */
-import { parseLisaUsageSection } from "./usage-ledger.mjs";
 import { EstimateConfigError } from "./work-item-estimate-config.mjs";
+import { parseActualToken } from "./work-item-estimate-actual.mjs";
 import { parseEstimateSection } from "./work-item-estimate.mjs";
+import { ledgerActual } from "./work-item-estimate-tally.mjs";
 
 /**
  * Whether a parsed token count is a usable positive number (NaN is not).
@@ -26,46 +28,27 @@ import { parseEstimateSection } from "./work-item-estimate.mjs";
 const isPositive = value => Number.isFinite(value) && value > 0;
 
 /**
- * Whether a usage entry lacks a full token count: `unavailable` telemetry or
- * a measured subset of the run.
- * @param {{totalTokens: number | null, source: string, measuredSubsetTokens?: number | null}} entry - Parsed usage entry.
- * @returns {boolean} True when the run's tokens are unknown or partial.
- */
-const isPartialRun = entry =>
-  entry.totalTokens === null ||
-  entry.source === "measured-subset" ||
-  (entry.measuredSubsetTokens ?? null) !== null;
-
-/**
  * The actual-to-estimate ratio one finished item shows, if it shows one.
  * @param {string} body - Finished item body.
  * @returns {number | null} Ratio, or null when the item cannot calibrate.
  */
 export function itemRatio(body) {
-  const { estimate } = parseEstimateSection(body);
+  const { estimate, section } = parseEstimateSection(body);
   if (
     !estimate ||
     !isPositive(estimate.tokensLow) ||
     !isPositive(estimate.tokensHigh)
   )
     return null;
-  let ledger;
-  try {
-    ledger = parseLisaUsageSection(body);
-  } catch {
-    return null;
-  }
-  const { entries, rollup } = ledger;
-  const actual = rollup?.totalTokens;
-  // The rollup adds up only the runs it knows, so one run without a full
-  // token count makes its total a partial sum, not the actual.
-  if (
-    entries.some(isPartialRun) ||
-    rollup?.childTokensIncomplete ||
-    !Number.isFinite(actual) ||
-    actual <= 0
-  )
-    return null;
+  // The done tally already counted every ledger the item carried, comments
+  // included, which a history fetch of bodies never sees. Trust its recorded
+  // actual (an unknown one stays unknown); read the body's ledger only for an
+  // item finished before tallies were recorded.
+  const recorded = parseActualToken(section);
+  const actual = recorded
+    ? recorded.tokens
+    : (ledgerActual([body])?.tokens ?? null);
+  if (actual === null || !isPositive(actual)) return null;
   return actual / ((estimate.tokensLow + estimate.tokensHigh) / 2);
 }
 

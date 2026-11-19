@@ -103,6 +103,12 @@ describe("calibration", () => {
     );
     expect(itemRatio(finishedItem(1000, 3000, []))).toBe(null);
     expect(itemRatio(PLAIN_BODY)).toBe(null);
+    // A partial sum is not an actual: one known run beside an unknown one.
+    expect(
+      itemRatio(
+        finishedItem(1000, 3000, [usageEntry("k", 2000), usageEntry("u", null)])
+      )
+    ).toBe(null);
     expect(
       calibrateEstimate({ tokensLow: 5, tokensHigh: 6 }, [
         finishedItem(1000, 3000, [usageEntry("u", null)]),

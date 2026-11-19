@@ -34,8 +34,31 @@ import {
   validateDelivery,
 } from "./completion-proof-source.mjs";
 import { validateConformance } from "./completion-proof-conformance.mjs";
+import { checkEstimate } from "./work-item-estimate-check.mjs";
 
 const PENDING_PROOF = "pending-proof";
+
+/**
+ * The token-estimate done gate (CodySwannGT/lisa#4956): when
+ * `workItem.estimate.required` holds, the item needs a usage-ledger entry and
+ * an up-to-date actual tally beside its estimate before it may reach done.
+ * `completionContext` always resolves the settings; a hand-built context that
+ * carries none has made no claim about them, so there is nothing to check.
+ */
+function validateEstimateTally(body, documents, context) {
+  const settings = context.estimate;
+  if (!settings) return;
+  requireProof(
+    !settings.error,
+    `workItem.estimate in .lisa.config.json cannot be used: ${settings.error}`
+  );
+  const result = checkEstimate(body, settings, "done", documents);
+  requireProof(
+    result.verdict !== "FAIL",
+    `The token estimate is not tallied for done. ${result.lines.join(" ")}`,
+    PENDING_PROOF
+  );
+}
 
 /** Stable user-facing next action, without declaring merely pending delivery failed. */
 const NEXT =
@@ -243,6 +266,11 @@ export function authorizeCompletion(context) {
       [fresh.body, ...comments.map(row => row.body)],
       context.ref,
       chosen.record.obligations.usage.entry_ids,
+      context
+    );
+    validateEstimateTally(
+      fresh.body,
+      [fresh.body, ...comments.map(row => row.body)],
       context
     );
     requireProof(

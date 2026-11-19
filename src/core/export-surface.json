@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 333,
-  "$names": 2462,
+  "$modules": 336,
+  "$names": 2471,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -282,6 +282,7 @@
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs": [
       "canonicalCompletionBlock",
+      "estimateSpecRemainder",
       "usageSpecRemainder"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs": [
@@ -1115,6 +1116,9 @@
       "selectRailsSpecs",
       "taggedAlwaysRun"
     ],
+    "all/copy-overwrite/scripts/lib/tracker-row-fold.mjs": [
+      "trackerRowKey"
+    ],
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs": [
       "LINEAR_REQUIRED_FORM",
       "assertCanonicalArtifactRef",
@@ -1137,6 +1141,12 @@
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs": [
       "startWindowsProcessJob"
     ],
+    "all/copy-overwrite/scripts/lib/work-item-estimate-actual.mjs": [
+      "actualTokenFields",
+      "formatTokens",
+      "parseActualToken",
+      "renderActual"
+    ],
     "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs": [
       "calibrateEstimate",
       "historyBodies",
@@ -1154,12 +1164,17 @@
       "costCents",
       "priceFor",
       "resolveEstimateConfig",
+      "resolveEstimateGate",
       "validateEstimateConfig"
+    ],
+    "all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs": [
+      "doneProblems",
+      "ledgerActual",
+      "tallyEstimate"
     ],
     "all/copy-overwrite/scripts/lib/work-item-estimate.mjs": [
       "ESTIMATE_HEADING",
       "buildEstimate",
-      "formatTokens",
       "humanLines",
       "managedEstimateLines",
       "parseEstimateSection",

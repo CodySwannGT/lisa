@@ -11,6 +11,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../../../all/copy-overwrite/scripts/lisa-estimate.mjs";
+import { upsertLisaUsageSection } from "../../../src/utils/usage-accounting.js";
 import {
   finishedItem,
   usageEntry,
@@ -68,6 +69,7 @@ const HIGH = "--tokens-high";
 const CWD = "--cwd";
 const BODY_FILE = "--body-file";
 const HISTORY_FILE = "--history-file";
+const USAGE_FILE = "--usage-file";
 
 const render = (
   root: string,
@@ -231,10 +233,91 @@ describe("lisa-estimate", () => {
     });
   });
 
+  it("tallies and checks ledgers from several comments, each with its own --usage-file", () => {
+    const { root, body } = project({});
+    writeFileSync(
+      body,
+      finishedItem(1000, 2000, [usageEntry("implement", 1_000, 1)])
+    );
+    const commentFile = (id: string): string => {
+      const file = path.join(root, `${id}.md`);
+      writeFileSync(
+        file,
+        upsertLisaUsageSection("", { entries: [usageEntry(id, 1_000, 1)] })
+      );
+      return file;
+    };
+    const review = commentFile("review");
+    const usage = [USAGE_FILE, review, USAGE_FILE, commentFile("verify")];
+    const tallied = run(["tally", BODY_FILE, body, ...usage, CWD, root]);
+    expect(tallied.out).toContain("| Actual | 3k | $3.00 USD | — |");
+    writeFileSync(body, tallied.out);
+    const done = ["check", "--phase", "done", BODY_FILE, body, CWD, root];
+    expect(run([...done, ...usage])).toMatchObject({ code: 0 });
+    expect(run([...done, USAGE_FILE, review]).code).toBe(1);
+  });
+
+  it("refuses a flag given twice unless it may repeat", () => {
+    expect(run(["check", "--phase", "done", "--phase", "claim"])).toMatchObject(
+      {
+        code: 2,
+        err: expect.stringMatching(/--phase was given more than once/),
+      }
+    );
+  });
+
+  it("reports N/A at done time when the gate is off, even with unusable settings", () => {
+    const { root, body } = project({
+      workItem: { estimate: { required: false, models: "opus" } },
+    });
+    expect(
+      run(["check", "--phase", "done", BODY_FILE, body, CWD, root])
+    ).toMatchObject({
+      code: 0,
+      out: expect.stringMatching(/^S21 token estimate: N\/A/),
+    });
+    expect(run(["config", CWD, root]).code).toBe(2);
+  });
+
   it("fails the claim-time check on a body without an estimate", () => {
     const { root, body } = project({});
     expect(
       run(["check", "--phase", "claim", BODY_FILE, body, CWD, root])
     ).toMatchObject({ code: 1, out: expect.stringMatching(/FAIL/) });
+  });
+
+  it("tallies the actual into the body and passes the done check", () => {
+    const { root, body } = project({});
+    writeFileSync(
+      body,
+      finishedItem(1_000_000, 3_000_000, [usageEntry("a", 2_000_000, 4)])
+    );
+    const tallied = run(["tally", BODY_FILE, body, CWD, root]);
+    expect(tallied).toMatchObject({
+      code: 0,
+      out: expect.stringContaining("| Actual | 2M | $4.00 USD | — |"),
+    });
+    writeFileSync(body, tallied.out);
+    expect(
+      run(["check", "--phase", "done", BODY_FILE, body, CWD, root])
+    ).toMatchObject({ code: 0, out: expect.stringMatching(/PASS/) });
+  });
+
+  it("reads the ledger from --usage-file and refuses a tally without one", () => {
+    const { root, body } = project({});
+    expect(run(["tally", BODY_FILE, body, CWD, root])).toMatchObject({
+      code: 2,
+      err: expect.stringMatching(/No Lisa Usage entry/),
+    });
+    const usage = path.join(root, "usage.md");
+    writeFileSync(
+      usage,
+      finishedItem(1000, 2000, [usageEntry("a", 10)]).slice(
+        finishedItem(1000, 2000, [usageEntry("a", 10)]).indexOf("## Lisa Usage")
+      )
+    );
+    expect(
+      run(["tally", BODY_FILE, body, "--usage-file", usage, CWD, root]).out
+    ).toContain("| Actual | 10 |");
   });
 });
