@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   MEMINFO,
+  TAKEN,
   type Sandbox,
   makeSandbox,
   removeSandboxes,
@@ -44,7 +45,8 @@ function multiRepoWithApiGap(): Sandbox {
     cwd: path.join(sandbox.root, "projects/api"),
   });
   if (
-    runCli(sandbox, ["spawn", "API-1", "--repo", "api", ...MEM]).status !== 2
+    runCli(sandbox, ["spawn", "API-1", ...TAKEN, "--repo", "api", ...MEM])
+      .status !== 2
   ) {
     throw new Error("expected spawn to exit 2 on the planted setup gap");
   }
@@ -90,7 +92,7 @@ describe("a setup gap is remembered across cycles", () => {
   it("queue on a single-repo project leaves out every item while the root has a gap", () => {
     const sandbox = makeSandbox();
     plantTranscript(sandbox, UNKNOWN);
-    const first = runCli(sandbox, ["spawn", "DEMO-1", ...MEM]);
+    const first = runCli(sandbox, ["spawn", "DEMO-1", ...TAKEN, ...MEM]);
     expect(first.status).toBe(2);
     expect(first.json).toMatchObject({ repo: ".", setupGapStatus: "recorded" });
     const json = queue(sandbox, [
@@ -121,7 +123,14 @@ describe("a setup gap is remembered across cycles", () => {
 describe("spawn refuses a repo with a recorded gap", () => {
   it("exits 2 without launching a worker or recording an attempt, naming the reason and the clear command", () => {
     const sandbox = multiRepoWithApiGap();
-    const result = runCli(sandbox, ["spawn", "API-2", "--repo", "api", ...MEM]);
+    const result = runCli(sandbox, [
+      "spawn",
+      "API-2",
+      ...TAKEN,
+      "--repo",
+      "api",
+      ...MEM,
+    ]);
     expect(result.status).toBe(2);
     expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
     expect(result.stderr).toContain(UNKNOWN);
@@ -136,12 +145,12 @@ describe("spawn refuses a repo with a recorded gap", () => {
 
   it("refuses an untrusted-workspace gap the same way", () => {
     const sandbox = makeSandbox();
-    const first = runCli(sandbox, ["spawn", "DEMO-1", ...MEM], {
+    const first = runCli(sandbox, ["spawn", "DEMO-1", ...TAKEN, ...MEM], {
       env: { STUB_BG_EXIT: "1", STUB_BG_STDERR: "Workspace not trusted.\n" },
     });
     expect(first.status).toBe(2);
     expect(first.json.setupGapStatus).toBe("recorded");
-    const again = runCli(sandbox, ["spawn", "DEMO-2", ...MEM]);
+    const again = runCli(sandbox, ["spawn", "DEMO-2", ...TAKEN, ...MEM]);
     expect(again.status).toBe(2);
     expect(callsOf(again.calls, "claude", "--bg")).toEqual([]);
     expect(again.stderr).toContain("untrusted-workspace");
@@ -165,6 +174,7 @@ describe("clearing the gap resumes dispatch", () => {
     const spawned = runCli(sandbox, [
       "spawn",
       "API-1",
+      ...TAKEN,
       "--repo",
       "api",
       ...MEM,
@@ -198,7 +208,14 @@ describe("other repositories are unaffected", () => {
 
   it("spawn still launches a worker in another repo", () => {
     const sandbox = multiRepoWithApiGap();
-    const result = runCli(sandbox, ["spawn", "WEB-1", "--repo", "web", ...MEM]);
+    const result = runCli(sandbox, [
+      "spawn",
+      "WEB-1",
+      ...TAKEN,
+      "--repo",
+      "web",
+      ...MEM,
+    ]);
     expect(result.status).toBe(0);
     expect(callsOf(result.calls, "claude", "--bg")).toHaveLength(1);
     expect(readLedgerFile(sandbox).control.setupGaps.api).toBeDefined();

@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   MEMINFO,
+  TAKEN,
   type Sandbox,
   makeSandbox,
   removeSandboxes,
@@ -124,7 +125,7 @@ describe("spawn when the gap cannot be recorded", () => {
       plantTranscript(sandbox, UNKNOWN);
       chmodSync(lisaDir, 0o555);
       try {
-        const result = runCli(sandbox, ["spawn", REF, ...MEM]);
+        const result = runCli(sandbox, ["spawn", REF, ...TAKEN, ...MEM]);
         expect(result.status).toBe(2);
         expect(result.stderr).toContain(IMPLEMENT);
         expect(result.stderr).toMatch(/could not record the setup gap/i);
@@ -148,6 +149,7 @@ describe("a mixed-case repo key", () => {
     const spawned = runCli(sandbox, [
       "spawn",
       "API-1",
+      ...TAKEN,
       "--repo",
       "API",
       ...MEM,

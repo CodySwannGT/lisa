@@ -22,11 +22,11 @@
  * @module session-manager/orphan-sweep
  */
 import {
-  entryMatches,
   idComparableValues,
   parseIdEntries,
 } from "../../../scripts/operator-id-kinds.mjs";
 import { holdDigest, judgeHold } from "./orphan-holds.mjs";
+import { assigneeFields, isMeOrOperator } from "./take-check.mjs";
 import { FINISH_RETRY_HOURS, classifyOrphan } from "./orphan-buckets.mjs";
 
 export {
@@ -63,22 +63,6 @@ function idOrNull(value) {
 }
 
 /**
- * The fields one assignee is compared on, the way `queue` compares them: a
- * plain string is the tracker's normalized id (GitHub login, Jira accountId,
- * Linear user id); a `{login, id}` object adds the kind-keyed fields.
- * @param {unknown} assignee - One assignee as the tracker gave it
- * @returns {{plain: string|null, login: string|null, id: string|null}} Fields
- */
-function assigneeFields(assignee) {
-  if (assignee !== null && typeof assignee === "object") {
-    const login = idOrNull(assignee.login);
-    const id = idOrNull(assignee.id ?? assignee.accountId);
-    return { plain: login ?? id, login, id };
-  }
-  return { plain: idOrNull(assignee), login: null, id: null };
-}
-
-/**
  * Whether any assignee is neither "me" nor an operator.
  * @param {unknown} assignees - The item's assignees
  * @param {{me: string|null, operators: object[]}} who - Identities
@@ -87,9 +71,7 @@ function assigneeFields(assignee) {
 function heldBySomeoneElse(assignees, who) {
   return (Array.isArray(assignees) ? assignees : []).some(assignee => {
     const fields = assigneeFields(assignee);
-    if (fields.plain === null) return false;
-    if (who.me !== null && fields.plain === who.me) return false;
-    return !who.operators.some(entry => entryMatches(entry, fields));
+    return fields.plain !== null && !isMeOrOperator(fields, who);
   });
 }
 

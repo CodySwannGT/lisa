@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   MEMINFO,
+  TAKEN,
   makeSandbox,
   removeSandboxes,
   runCli,
@@ -36,7 +37,7 @@ const untrusted = (dir: string) =>
 describe("spawn in an untrusted workspace", () => {
   it("exits 2 naming the dir and the one-time trust step, recording only the repo's setup gap", () => {
     const sandbox = makeSandbox();
-    const result = runCli(sandbox, ["spawn", REF, ...MEM], {
+    const result = runCli(sandbox, ["spawn", REF, ...TAKEN, ...MEM], {
       env: { STUB_BG_EXIT: "1", STUB_BG_STDERR: untrusted(sandbox.root) },
     });
     expect(result.status).toBe(2);
@@ -54,16 +55,20 @@ describe("spawn in an untrusted workspace", () => {
   it("names the routed child repo dir, where the worker would start", () => {
     const sandbox = makeSandbox({ repos: ["api"] });
     const dir = path.join(sandbox.root, "projects/api");
-    const result = runCli(sandbox, ["spawn", REF, "--repo", "api", ...MEM], {
-      env: { STUB_BG_EXIT: "1", STUB_BG_STDERR: untrusted(dir) },
-    });
+    const result = runCli(
+      sandbox,
+      ["spawn", REF, ...TAKEN, "--repo", "api", ...MEM],
+      {
+        env: { STUB_BG_EXIT: "1", STUB_BG_STDERR: untrusted(dir) },
+      }
+    );
     expect(result.status).toBe(2);
     expect(result.stderr).toContain(dir);
   });
 
   it("still exits 1 for any other claude --bg failure", () => {
     const sandbox = makeSandbox();
-    const result = runCli(sandbox, ["spawn", REF, ...MEM], {
+    const result = runCli(sandbox, ["spawn", REF, ...TAKEN, ...MEM], {
       env: { STUB_BG_EXIT: "1", STUB_BG_STDERR: "something else broke\n" },
     });
     expect(result.status).toBe(1);
@@ -74,7 +79,7 @@ describe("spawn in an untrusted workspace", () => {
 describe("resume in an untrusted workspace", () => {
   it("exits 2 with the same trust step", () => {
     const sandbox = makeSandbox();
-    expect(runCli(sandbox, ["spawn", REF, ...MEM]).status).toBe(0);
+    expect(runCli(sandbox, ["spawn", REF, ...TAKEN, ...MEM]).status).toBe(0);
     const { worker } = readLedgerFile(sandbox).items[REF];
     const result = runCli(sandbox, ["resume", REF], {
       input: "yes",

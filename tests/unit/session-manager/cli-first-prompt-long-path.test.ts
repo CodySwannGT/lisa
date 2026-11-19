@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   MEMINFO,
+  TAKEN,
   type Sandbox,
   makeSandbox,
   removeSandboxes,
@@ -35,7 +36,15 @@ const WORKER = "wk-DEMO-12-1023-1417";
 const FULL_ID = "1a2b3c4d-0000-4000-8000-000000000001";
 /** A child repo key long enough that its checkout path exceeds the limit. */
 const LONG_REPO = `deep-${"r".repeat(200)}`;
-const SPAWN = ["spawn", REF, "--meminfo", MEMINFO, "--repo", LONG_REPO];
+const SPAWN = [
+  "spawn",
+  REF,
+  ...TAKEN,
+  "--meminfo",
+  MEMINFO,
+  "--repo",
+  LONG_REPO,
+];
 const FIXTURES = path.resolve(
   import.meta.dirname,
   "../../fixtures/session-manager/transcripts"

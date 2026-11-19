@@ -18,6 +18,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   MEMINFO,
+  TAKEN,
   type Sandbox,
   makeSandbox,
   removeSandboxes,
@@ -35,7 +36,7 @@ afterEach(removeSandboxes);
 
 const MEM = ["--meminfo", MEMINFO];
 const REF = "DEMO-12";
-const SPAWN = ["spawn", REF, ...MEM];
+const SPAWN = ["spawn", REF, ...TAKEN, ...MEM];
 const WORKER = "wk-DEMO-12-1023-1417";
 const UNKNOWN = "unknown-command";
 const FINISH_FAILED = ["ledger", "finish", REF, "--status", "FAILED"];
