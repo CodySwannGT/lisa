@@ -24,6 +24,7 @@ import {
   LINEAR_WORKFLOW_DEFAULTS,
   PRD_LABEL_DEFAULTS,
 } from "./lifecycle-defaults.js";
+import { WORK_ITEM_ESTIMATE_SYNCED_SETTING } from "./work-item-estimate-setting.js";
 
 /**
  * A project file that mirrors a synced setting. Artifact files are only ever
@@ -164,6 +165,7 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     validate: validateHealthSchedule,
     description: "Health-check schedule (off, daily, or weekly)",
   },
+  WORK_ITEM_ESTIMATE_SYNCED_SETTING,
   {
     key: "quality.testCoverage",
     defaultValue: COVERAGE_DEFAULTS,

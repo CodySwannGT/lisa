@@ -142,6 +142,7 @@ Per-type content requirements are defined once in the vendor-neutral `work-item-
 | S18 Stateless-pickup dry-run | `product-clarity` | true |
 | S19 Branch Plan derivation | `technical` | false |
 | S20 Named-control reachability | `acceptance-criteria` | true |
+| S21 Token estimate (ready time) | `technical` | false |
 | F1 Issue type label exists in repo | `structural` | false |
 | F2 Parent sub-issue exists and is the right type | `structural` | false |
 | F3 Linked issues exist | `structural` | false |
@@ -397,6 +398,20 @@ Remediation: `"Name the input or field that makes <test> reach the code this wor
 
 `product_relevant: true` — an unfalsifiable stopping rule is a specification defect, and whoever wrote the issue is who can repair it. `lisa-github-write-issue` renders the marker; `control-reachability` carries the implementer-side counterpart, which forbids acting on the stopping rule before the cause of an unmoved control is established.
 
+#### S21 — Token estimate (ready time)
+
+Enforces the token-estimate part of the vendor-neutral `work-item-definition-of-ready` rule. The contract (section shape, pricing, config) is in the `lisa-usage-accounting` skill's `references/estimate.md`.
+
+**When the gate applies.** On every build-ready leaf (the S15 classification) when `workItem.estimate.required` resolves to `true`, which it does when the key is absent. `N/A` for containers, for items that are not build-ready, and whenever the project sets `workItem.estimate.required: false`; then nothing about estimates blocks.
+
+**How to run it.** Write the item's body (or the proposed spec's body) to a file and run `node scripts/lisa-estimate.mjs check --body-file <file>`. Report its verdict line and reasons verbatim: exit 0 is PASS or N/A, exit 1 is FAIL, exit 2 means the config or the call is broken, which fails the gate with the error.
+
+**What it checks.** An item with **no** `## Lisa Estimate` section PASSes: an estimate is not required at creation or at ready, because deterministic sources (Sentry, New Relic, monitors) cannot produce one, and the claiming agent writes it before any work begins. A section that **is** present FAILs when its `<!-- lisa:estimate ... -->` token is missing or unparseable, the token range is inverted, the recommended model is not in `workItem.estimate.models`, or the dollar range disagrees with the price table the token names. There is never more than one section.
+
+Remediation: re-render the section with `node scripts/lisa-estimate.mjs render --tokens-low <n> --tokens-high <n> --model <allowed value> --body-file <file>` and write the result back. Never ask a person for the estimate.
+
+`product_relevant: false` — the estimate is produced by agents, not by whoever wrote the item.
+
 ### Feasibility Gates (require GitHub lookups; skip in `--spec-only`)
 
 #### F1 — Issue type label exists in repo
@@ -559,6 +574,7 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S18 Stateless-pickup dry-run — <one-line reason>
 - [PASS|FAIL|N/A] S19 Branch Plan derivation — <one-line reason>
 - [PASS|FAIL|N/A] S20 Named-control reachability — <one-line reason>
+- [PASS|FAIL|N/A] S21 Token estimate (ready time) — <one-line reason>
 
 ### Feasibility Gates  (omit this section when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type label exists in repo — <one-line reason>
@@ -585,7 +601,7 @@ The verdict is `PASS` if every applicable gate is `PASS`. Any `FAIL` makes the v
 
 Same shape and meaning as `lisa-jira-validate-ticket` so downstream PRD-intake skills (Notion, Confluence, Linear, GitHub) can format comments uniformly:
 
-- **gate**: the gate ID (`S1`–`S20`, `F1`–`F5`).
+- **gate**: the gate ID (`S1`–`S21`, `F1`–`F5`).
 - **category**: the gate's fixed category from the table.
 - **product_relevant**: matches the gate's table entry. `false` means the failure is an internal data-quality problem the caller should fix without bothering product.
 - **what**: plain-language, product-readable.

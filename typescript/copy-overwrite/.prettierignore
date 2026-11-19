@@ -92,6 +92,7 @@ scripts/lisa-cross-worktree-guard.mjs
 scripts/lisa-destructive-guard.mjs
 scripts/lisa-enforcement-freshness.mjs
 scripts/lisa-environment-prepare.mjs
+scripts/lisa-estimate.mjs
 scripts/lisa-evidence-prune.mjs
 scripts/lisa-floor-collisions.mjs
 scripts/lisa-gates.mjs
@@ -269,6 +270,9 @@ scripts/lib/usage-effectiveness.mjs
 scripts/lib/usage-ledger-integrity.mjs
 scripts/lib/usage-ledger.mjs
 scripts/lib/windows-process-job.mjs
+scripts/lib/work-item-estimate-check.mjs
+scripts/lib/work-item-estimate-config.mjs
+scripts/lib/work-item-estimate.mjs
 scripts/lib/worktree-dependencies.mjs
 scripts/lisa-hooks/worktree-binding-guard.mjs
 
