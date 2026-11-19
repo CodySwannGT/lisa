@@ -44,11 +44,6 @@ const CHECKOUT_ROOT = fs.realpathSync(
   path.resolve(import.meta.dirname, "..", "..")
 );
 
-/** This checkout's `node_modules`, resolved, which may itself be a link. */
-const CHECKOUT_MODULES = fs.existsSync(path.join(CHECKOUT_ROOT, "node_modules"))
-  ? fs.realpathSync(path.join(CHECKOUT_ROOT, "node_modules"))
-  : path.join(CHECKOUT_ROOT, "node_modules");
-
 /** The directory name a link may never stand for as a whole. */
 const NODE_MODULES = "node_modules";
 
@@ -179,19 +174,24 @@ export function borrowNodeModules(source, root, except = []) {
 /**
  * Link `root/node_modules` whole to another fixture's tree, for a case whose
  * subject is a linked `node_modules`.
- * @param {string} source - Another fixture's `node_modules`, never this
+ * @param {string} source - Another fixture's `node_modules`, never the
  *   checkout's
  * @param {string} root - Fixture project root that receives the link
+ * @param {string} [checkout] - The checkout the source must lie outside;
+ *   this one by default, a scratch stand-in for a case that proves the rule
  * @returns {string} The link's path
  */
-export function linkForeignNodeModules(source, root) {
-  // Resolve the source itself when it exists, so a link standing outside this
+export function linkForeignNodeModules(source, root, checkout = CHECKOUT_ROOT) {
+  // Resolve the source itself when it exists, so a link standing outside the
   // checkout that points back at its node_modules is still refused; a source
-  // not created yet resolves through its parent.
+  // not created yet resolves through its parent. The checkout's own
+  // node_modules is resolved too, since it may itself be a link elsewhere.
   const resolved = resolveExisting(path.resolve(source));
-  if (within(CHECKOUT_ROOT, resolved) || within(CHECKOUT_MODULES, resolved)) {
+  const home = resolveExisting(path.resolve(checkout));
+  const modules = resolveExisting(path.join(home, NODE_MODULES));
+  if (within(home, resolved) || within(modules, resolved)) {
     throw new Error(
-      `linkForeignNodeModules: ${source} is inside this checkout; borrow it with borrowNodeModules instead`
+      `linkForeignNodeModules: ${source} is inside the checkout ${home}; borrow it with borrowNodeModules instead`
     );
   }
   const target = path.join(root, NODE_MODULES);

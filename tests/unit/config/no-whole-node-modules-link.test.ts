@@ -21,10 +21,14 @@ import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
-import ts from "typescript";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import {
+  isShellScript,
+  SCRIPT_FILE,
+  scriptLinks,
+  shellLinks,
+} from "../../helpers/link-call-scan.js";
 import { checkoutFiles } from "../../helpers/tracked-files.js";
 import {
   createSymlink,
@@ -36,41 +40,6 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
 
 /** The one module under tests/ allowed to create links. */
 const ACCESSOR = "tests/support/borrowed-node-modules.mjs";
-
-/** Call names that create a link. */
-const LINK_CALLS = new Set(["symlink", "symlinkSync"]);
-
-/**
- * The called name of a call expression: `f(` or `object.f(`.
- * @param call - A call expression
- * @returns The name, or an empty string for any other callee
- */
-function calledName(call: ts.CallExpression): string {
-  const callee = call.expression;
-  if (ts.isIdentifier(callee)) return callee.text;
-  if (ts.isPropertyAccessExpression(callee)) return callee.name.text;
-  return "";
-}
-
-/**
- * Direct link calls in a file's syntax tree. Text inside strings and comments
- * is not a call, so a script embedded in a string is not counted.
- * @param file - Name used for the syntax tree
- * @param source - File text
- * @returns Each direct call's text, whitespace collapsed
- */
-function directLinks(file: string, source: string): readonly string[] {
-  const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
-  const found: string[] = [];
-  const visit = (node: ts.Node): void => {
-    if (ts.isCallExpression(node) && LINK_CALLS.has(calledName(node))) {
-      found.push(node.getText(tree).replaceAll(/\s+/gu, " "));
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(tree);
-  return found;
-}
 
 /**
  * The call name, spelled so the samples below are not themselves calls in
@@ -107,10 +76,26 @@ describe("no whole node_modules link in a test", () => {
       `await ${LINK.replace("Sync", "")}(\n    path.join(source, "node_modules"),\n    path.join(destination, "node_modules"),\n    "dir"\n  );`,
       `fs.${LINK}(path.join(source, entry), path.join(target, entry));`,
       `const source = path.join(REPO_ROOT, "node_modules");\nfs.${LINK}(source, target, "dir");`,
+      `import { ${LINK} as mk } from "node:fs";\nmk(source, target);`,
+      `const { ${LINK.replace("Sync", "")}: s } = fsp;\nawait s(source, target);`,
+      `fs["${LINK}"](source, target);`,
+      `execFileSync("ln", ["-s", source, target]);`,
+      `spawnSync("/bin/ln", ["-s", source, target]);`,
+      `boundedExecFileSync({ label: "x", command: "/bin/ln", args: ["-s", a, b] });`,
+      `execSync(\`ln -sf \${source} \${target}\`);`,
+      `exec("cd x && ln -s a b");`,
+      `spawn("sh", ["-c", "ln -fs a b"]);`,
+      `Bun.spawn(["ln", "-s", a, b]);`,
+      `await Bun.$\`ln -s \${a} \${b}\`;`,
     ];
     for (const sample of before) {
-      expect(directLinks("sample.ts", sample), sample).toHaveLength(1);
+      expect(scriptLinks("sample.ts", sample), sample).toHaveLength(1);
     }
+    expect(shellLinks('ln -s "$a" "$b"\nln -sf a b # relink\n')).toHaveLength(
+      2
+    );
+    expect(isShellScript("tools/stub", "#!/usr/bin/env bash\n")).toBe(true);
+    expect(isShellScript("tools/run.sh", "")).toBe(true);
   });
 
   it("does not count a call name inside a string or a comment", () => {
@@ -118,10 +103,13 @@ describe("no whole node_modules link in a test", () => {
       `const script = "${LINK}(a, b)";`,
       `// ${LINK}(a, b)`,
       `createSymlink(path.join(source, entry), path.join(target, entry));`,
+      `execFileSync("git", ["log", "--oneline"]);`,
+      `execSync("ls -s");`,
     ];
     for (const sample of allowed) {
-      expect(directLinks("sample.ts", sample), sample).toEqual([]);
+      expect(scriptLinks("sample.ts", sample), sample).toEqual([]);
     }
+    expect(shellLinks("# ln -s a b\nls -s\n")).toEqual([]);
   });
 
   it("refuses a variable-bound whole node_modules at runtime", () => {
@@ -170,7 +158,7 @@ describe("no whole node_modules link in a test", () => {
   it("refuses a foreign link whose source is inside this checkout", () => {
     expect(() =>
       linkForeignNodeModules(path.join(REPO_ROOT, "node_modules"), REPO_ROOT)
-    ).toThrow(/inside this checkout/u);
+    ).toThrow(/inside the checkout/u);
   });
 
   it("refuses a source in a checkout child whose name begins with ..", () => {
@@ -180,46 +168,44 @@ describe("no whole node_modules link in a test", () => {
     try {
       expect(() =>
         linkForeignNodeModules(path.join(child, "node_modules"), child)
-      ).toThrow(/inside this checkout/u);
+      ).toThrow(/inside the checkout/u);
       expect(fs.existsSync(path.join(child, "node_modules"))).toBe(false);
     } finally {
       fs.rmSync(child, { recursive: true, force: true });
     }
   });
 
-  it("refuses a link outside this checkout that points at its node_modules", () => {
-    // The link itself stands outside, so only resolving the source (not just
-    // its parent) shows it is this checkout's node_modules. Every helper here
-    // refuses to make such a link, which is the point, so the fixture makes
-    // it with `ln` rather than through a back door in the accessor.
-    const owner = scratch("lisa-foreign-alias-");
-    const alias = path.join(owner, "node_modules");
-    boundedExecFileSync({
-      label: "foreign node_modules alias",
-      command: "/bin/ln",
-      args: ["-s", path.join(REPO_ROOT, "node_modules"), alias],
-    });
+  it("refuses a link outside the checkout that points at its node_modules", () => {
+    // The alias stands outside the checkout, so only resolving the source
+    // (not just its parent) shows it is the checkout's node_modules. A scratch
+    // checkout stands in for this one, so the helper itself makes the alias.
+    const checkout = scratch("lisa-foreign-checkout-");
+    fs.mkdirSync(path.join(checkout, "node_modules"));
+    const alias = linkForeignNodeModules(
+      path.join(checkout, "node_modules"),
+      scratch("lisa-foreign-alias-")
+    );
     const root = scratch("lisa-foreign-host-");
-    expect(() => linkForeignNodeModules(alias, root)).toThrow(
-      /inside this checkout/u
+    expect(() => linkForeignNodeModules(alias, root, checkout)).toThrow(
+      /inside the checkout/u
     );
     expect(fs.existsSync(path.join(root, "node_modules"))).toBe(false);
   });
 
-  it("finds no direct link call in any tracked test, fixture or support file", () => {
+  it("finds no link made outside the helper in any tracked file under tests/", () => {
     const offenders = checkoutFiles(REPO_ROOT)
-      .filter(
-        file =>
-          file.startsWith("tests/") &&
-          file !== ACCESSOR &&
-          /\.[cm]?[jt]s$/u.test(file)
-      )
-      .flatMap(file =>
-        directLinks(
-          file,
-          fs.readFileSync(path.join(REPO_ROOT, file), "utf8")
-        ).map(call => `${file}: ${call}`)
-      );
+      .filter(file => file.startsWith("tests/") && file !== ACCESSOR)
+      .flatMap(file => {
+        const absolute = path.join(REPO_ROOT, file);
+        if (!fs.lstatSync(absolute).isFile()) return [];
+        const source = fs.readFileSync(absolute, "utf8");
+        const calls = SCRIPT_FILE.test(file)
+          ? scriptLinks(file, source)
+          : isShellScript(file, source)
+            ? shellLinks(source)
+            : [];
+        return calls.map(call => `${file}: ${call}`);
+      });
 
     expect(offenders).toEqual([]);
   });

@@ -12099,6 +12099,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/latest-review-identity-fixtures.ts": true,
     "tests/helpers/latest-review-reducer-harness.ts": true,
     "tests/helpers/learnings-overcap.ts": true,
+    "tests/helpers/link-call-scan.ts": true,
     "tests/helpers/lintstaged-globs.ts": true,
     "tests/helpers/lisa-test-run-process.ts": true,
     "tests/helpers/mutation-gate-arms.ts": true,
