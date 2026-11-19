@@ -81,4 +81,44 @@ describe("Expo library minimums", () => {
     expect(written.overrides?.["date-fns"]).toBeUndefined();
     expect(written.resolutions?.["react-hook-form"]).toBeUndefined();
   });
+  it("raises a tilde pin to a tilde at the minimum", async () => {
+    const written = await applyExpo({
+      devDependencies: { "date-fns": "~3.1.0" },
+      scripts: {},
+    });
+    expect(written.devDependencies?.["date-fns"]).toBe("~3.6.0");
+  });
+
+  it("refuses, and writes nothing, rather than move a host across a major", async () => {
+    const destPath = path.join(projectDir, PACKAGE_JSON);
+    await expect(
+      applyExpo({ dependencies: { "date-fns": "^2.30.0" }, scripts: {} })
+    ).rejects.toThrow(
+      /dependencies\.date-fns is "\^2\.30\.0", below Lisa's minimum ">=3\.6\.0", and raising it would cross a major/u
+    );
+    expect((await fs.readJson(destPath)).dependencies["date-fns"]).toBe(
+      "^2.30.0"
+    );
+  });
+
+  it("never reads or rewrites a peer range", async () => {
+    const written = await applyExpo({
+      peerDependencies: { "react-hook-form": "^7.0.0" },
+      scripts: {},
+    });
+    expect(written.peerDependencies?.["react-hook-form"]).toBe("^7.0.0");
+  });
+
+  it("keeps a floor the host wrote in its own overrides for a library Lisa no longer floors", async () => {
+    // Lisa never shipped these entries on main, so they are the host's: an
+    // apply removes only what Lisa owns.
+    const written = await applyExpo({
+      overrides: { "date-fns": ">=3.0.0", "usehooks-ts": "^3.1.0" },
+      resolutions: { "date-fns": ">=3.0.0" },
+      scripts: {},
+    });
+    expect(written.overrides?.["date-fns"]).toBe(">=3.0.0");
+    expect(written.overrides?.["usehooks-ts"]).toBe("^3.1.0");
+    expect(written.resolutions?.["date-fns"]).toBe(">=3.0.0");
+  });
 });

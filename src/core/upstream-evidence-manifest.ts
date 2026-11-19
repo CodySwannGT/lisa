@@ -691,7 +691,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "8e55b9ea051bb648b669174458b37607fcf8221e819083ea70b7c67a9e7630e8",
+      "a40ab5d15dba02fa706478b8a7825393b30c5144fcbcf69da0aa866e2972a150",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":

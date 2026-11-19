@@ -51,6 +51,15 @@ describe("applyDirectMinimums", () => {
     ]);
   });
 
+  it("raises a tilde pin in the same major to a tilde at the minimum", () => {
+    expect(
+      applyDirectMinimums(
+        { devDependencies: { "date-fns": "~3.1.0" } },
+        MINIMUMS
+      ).packageJson.devDependencies
+    ).toEqual({ "date-fns": "~3.6.0" });
+  });
+
   it("leaves a range already at or above the minimum, a later major included", () => {
     const pkg = {
       dependencies: { "date-fns": "^4.1.0" },

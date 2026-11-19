@@ -77,7 +77,6 @@
       "fast-xml-parser": "^5.10.1",
       "tar": ">=7.5.21",
       "websocket-driver": ">=0.7.5",
-      "baseline-browser-mapping": "^2.9.2",
       "zod": ">=4.6.6"
     },
     "overrides": {
@@ -87,7 +86,6 @@
       "zod-validation-error": "^4.0.0",
       "tar": ">=7.5.21",
       "websocket-driver": ">=0.7.5",
-      "baseline-browser-mapping": "^2.9.2",
       "zod": ">=4.6.6"
     }
   },
@@ -309,6 +307,7 @@
     "patch-package": ">=8.0.0",
     "react-hook-form": ">=7.70.0",
     "text-encoding-polyfill": ">=0.6.7",
-    "usehooks-ts": ">=3.1.1"
+    "usehooks-ts": ">=3.1.1",
+    "baseline-browser-mapping": ">=2.9.2"
   }
 }
