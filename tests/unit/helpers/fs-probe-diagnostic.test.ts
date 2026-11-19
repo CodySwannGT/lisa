@@ -12,15 +12,19 @@
  * @module tests/unit/helpers/fs-probe-diagnostic
  */
 import * as fs from "node:fs";
+import { tmpdir } from "node:os";
 
 import { describe, expect, it } from "vitest";
 
 import {
   DEVICE_FIELDS,
   discardDelta,
+  fitRemoval,
+  pairedAgreement,
   pairedSample,
   parseDeviceStat,
   parseMountInfo,
+  splitRemoval,
   timeRemovalUs,
 } from "../../helpers/fs-probe-diagnostic.js";
 import { fillProbeDirectory } from "../../helpers/fs-latency-budget.js";
@@ -146,5 +150,57 @@ describe("the sample kinds", () => {
     expect(sample.probeToReal).toBeCloseTo(sample.probeUs / sample.realUs, 2);
     expect(sample.entries).toEqual({ probe: 100, variant: 100, real: 40 });
     expect(sample.discards.real).toEqual({ immediate: null, settled: null });
+  });
+});
+
+describe("the removal decomposition (CodySwannGT/lisa#5066)", () => {
+  it("separates a once-per-removal cost from the per-entry cost", () => {
+    // 20 entries at 23.3ms and 1,000 at 122.4ms: 101us an entry, 21.3ms once.
+    const fit = fitRemoval(
+      { entries: 20, rmSyncMs: 23.3 },
+      { entries: 1000, rmSyncMs: 122.4 }
+    );
+
+    expect(fit.perEntryUs).toBeCloseTo(101.1, 1);
+    expect(fit.fixedMs).toBeCloseTo(21.28, 2);
+  });
+
+  it("reports no fixed cost for a removal that is purely per entry", () => {
+    const fit = fitRemoval(
+      { entries: 20, rmSyncMs: 2 },
+      { entries: 1000, rmSyncMs: 100 }
+    );
+
+    expect(fit.fixedMs).toBeCloseTo(0, 6);
+    expect(fit.perEntryUs).toBeCloseTo(100, 6);
+  });
+
+  it("times both halves of a split removal and leaves nothing behind", async () => {
+    const before = new Set(fs.readdirSync(tmpdir()));
+
+    const split = await splitRemoval(5, 0);
+
+    expect(split).toMatchObject({ entries: 5, settleMs: 0 });
+    expect(split.rmSyncMs).toBeGreaterThan(0);
+    expect(split.firstUnlinkMs).toBeGreaterThan(0);
+    expect(split.restUnlinkMs).toBeGreaterThan(0);
+    expect(split.rmdirMs).toBeGreaterThan(0);
+    const left = fs
+      .readdirSync(tmpdir())
+      .filter(name => name.startsWith("lisa-fs-probe-") && !before.has(name));
+    expect(left).toEqual([]);
+  });
+});
+
+describe("the agreement comparisons (CodySwannGT/lisa#5066)", () => {
+  it("pairs each probe cycle with a real removal and reports their median ratio", () => {
+    const agreement = pairedAgreement(3, 30);
+
+    expect(agreement.probeUs).toHaveLength(3);
+    expect(agreement.realUs).toHaveLength(3);
+    const ratios = agreement.probeUs
+      .map((probe, index) => probe / (agreement.realUs[index] ?? Number.NaN))
+      .sort((left, right) => left - right);
+    expect(agreement.ratio).toBe(ratios[1]);
   });
 });
