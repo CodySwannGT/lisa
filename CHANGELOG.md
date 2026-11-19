@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.0.8](https://github.com/CodySwannGT/lisa/compare/v6.0.7...v6.0.8) (2026-11-19)
+
+
+### Documentation
+
+* **philosophy:** add the no-assumed-human principle and drop human-in-the-loop advice ([664f308](https://github.com/CodySwannGT/lisa/commit/664f308eaa2ae07771189eea570201332e9c62ad)), closes [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934) [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934)
+* **philosophy:** fix six review findings on the no-assumed-human change ([2d755b7](https://github.com/CodySwannGT/lisa/commit/2d755b79c5baae99ae776a22cad68e48535fa5a6)), closes [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934) [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934)
+* **rules:** close the twelve CodeRabbit findings on the no-assumed-human sweep ([cdeba44](https://github.com/CodySwannGT/lisa/commit/cdeba44090ceb9a78ec20e4da7a2302c95bfe536)), closes [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934) [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934)
+
 ### [6.0.7](https://github.com/CodySwannGT/lisa/compare/v6.0.6...v6.0.7) (2026-11-18)
 
 
