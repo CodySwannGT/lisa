@@ -138,7 +138,7 @@ export function summarizeStaleLinkSweep(report) {
  * confirmed. Planned removals that did not happen and items deferred to the
  * next cycle are counted separately, never as cleared.
  * @param {StaleLinkReport} report - The plan's report
- * @param {readonly { confirmed: string[], stillPresent: string[], becameReady: boolean }[]} results - One per item acted on
+ * @param {readonly { confirmed: string[], stillPresent: string[], becameReady: boolean, restored?: readonly object[] }[]} results - One per item acted on
  * @param {{ planned?: number }} [counts] - Planned removals, when they differ
  *   from the report (a plan entry confirmed down to fewer links)
  * @returns {string}
@@ -147,12 +147,21 @@ export function summarizeVerifiedSweep(report, results, counts = {}) {
   const cleared = results.reduce((sum, r) => sum + r.confirmed.length, 0);
   const items = results.filter(r => r.confirmed.length > 0).length;
   const ready = results.filter(r => r.becameReady).length;
+  const putBack = results.reduce(
+    (sum, r) => sum + (r.restored?.length ?? 0),
+    0
+  );
   const planned = counts.planned ?? report.cleared;
-  const notDone = Math.max(0, planned - cleared);
+  const notDone = Math.max(0, planned - cleared - putBack);
   const parts = [
     `cleared ${plural(cleared, "stale blocker link", "stale blocker links")} on ${plural(items, "item", "items")}`,
   ];
   if (ready > 0) parts.push(`${ready} now ready to start`);
+  if (putBack > 0) {
+    parts.push(
+      `put back ${plural(putBack, "link", "links")} whose blocker reopened`
+    );
+  }
   if (notDone > 0) {
     parts.push(
       `${plural(notDone, "planned removal", "planned removals")} not done (retried next cycle)`

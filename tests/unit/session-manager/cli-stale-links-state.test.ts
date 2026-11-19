@@ -170,3 +170,65 @@ describe("the session-manager skill", () => {
     ).toEqual([]);
   });
 });
+
+describe("stale-links-verify reads each removed blocker again", () => {
+  it("puts back a GitHub link whose blocker reopened, with no marker", () => {
+    const sandbox = makeSandbox();
+    const routes = path.join(sandbox.root, "routes.json");
+    writeJson(routes, [
+      {
+        match: `repos/${REPO}/issues/1`,
+        body: row(1, {
+          body: "Context.",
+          labels: [{ name: "status:ready" }],
+          issue_dependencies_summary: { total_blocked_by: 0 },
+        }),
+      },
+      { match: `repos/${REPO}/issues/1/comments?per_page=100`, body: [[]] },
+      { match: `repos/${REPO}/issues/7`, body: { state: "open", labels: [] } },
+    ]);
+    const entry = path.join(sandbox.root, "entry.json");
+    writeJson(entry, {
+      ref: `${REPO}#1`,
+      removed: [`${REPO}#7`],
+      links: [{ blockerRef: `${REPO}#7`, source: "github-body", actionId: "" }],
+      render: { stale: [{ blockerRef: `${REPO}#7`, verdict: "closed" }] },
+    });
+    const result = run(
+      sandbox,
+      ["stale-links-verify", "--tracker", "github", "--plan", entry],
+      { env: { STUB_GH_ROUTES: routes } }
+    );
+    expect(result.status).toBe(0);
+    expect(result.calls.map(call => call.argv.at(-1))).toContain(
+      `repos/${REPO}/issues/7`
+    );
+    expect(result.json).toMatchObject({
+      confirmed: [],
+      restored: [{ blockerRef: `${REPO}#7`, verdict: "open" }],
+      restore: [{ op: "body", body: "Context.\n\nBlocked by #7" }],
+      comment: null,
+      pending: false,
+    });
+  });
+
+  it("refuses a Jira verify without --blockers", () => {
+    const sandbox = makeSandbox({ extraConfig: { tracker: "jira" } });
+    const entry = path.join(sandbox.root, "entry.json");
+    writeJson(entry, { ref: "ABC-1", removed: ["ABC-9"] });
+    const after = path.join(sandbox.root, "after.json");
+    writeJson(after, {
+      key: "ABC-1",
+      fields: { status: { name: "Ready" }, issuelinks: [] },
+    });
+    const result = run(sandbox, [
+      "stale-links-verify",
+      "--plan",
+      entry,
+      "--input",
+      after,
+    ]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--blockers");
+  });
+});

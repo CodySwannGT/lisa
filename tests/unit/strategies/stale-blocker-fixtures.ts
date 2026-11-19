@@ -57,6 +57,37 @@ export function jiraLink(
 }
 
 export const DONE = { name: "Done", category: "done" };
+
+/**
+ * Jira blockers as read again after the delete, each in the given status.
+ * @param refs - Blocker keys
+ * @param status - Their status now (default: finished)
+ * @param status.name - Status name
+ * @param status.category - Status category key
+ * @returns `blockersNow` map
+ */
+export function jiraNow(
+  refs: readonly string[],
+  status: { name: string; category: string } = {
+    name: "Done",
+    category: "done",
+  }
+) {
+  return Object.fromEntries(
+    refs.map(key => [
+      key,
+      {
+        key,
+        fields: {
+          status: {
+            name: status.name,
+            statusCategory: { key: status.category },
+          },
+        },
+      },
+    ])
+  );
+}
 export const IN_PROGRESS = { name: "In Progress", category: "indeterminate" };
 
 /**

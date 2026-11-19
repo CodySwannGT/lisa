@@ -23,6 +23,7 @@ operation: get-issue id:<ID>
 operation: save-issue payload:{...} [lifecycle_role:<ROLE>] [env:<KEY>]
 operation: list-workflow-states team:<ID>
 operation: delete-relation id:<ID>
+operation: create-relation issue:<IDENTIFIER> related:<IDENTIFIER> type:blocks
 operation: create-workflow-state payload:{...}
 operation: list-comments (issue_id:<ID> | project_id:<ID>)
 operation: save-comment (issue_id:<ID> | project_id:<ID>) body:"..."
@@ -311,6 +312,30 @@ Read the issue back and confirm the relation is gone before reporting success.
 The Linear MCP exposes no relation delete, so on an MCP-only substrate report
 `Error: delete-relation needs the LINEAR_API_KEY GraphQL path` and leave the
 relation in place.
+
+## `create-relation` — put back one `blocks` relation
+
+`create-relation issue:<blocker> related:<blocked> type:blocks` recreates the
+relation "`<blocker>` blocks `<blocked>`". The stale-blocker-link sweep uses it
+only to put back a relation it removed when the blocker reopened between its
+confirm and its delete (CodySwannGT/lisa#5065). Resolve both identifiers to
+issue ids first, and create it only after a read shows no relation between the
+two issues: `issueRelationCreate` converts an existing relation instead of
+adding a second one (CodySwannGT/lisa#3605), so it must never be used to edit.
+
+```graphql
+mutation($issueId:String!,$relatedIssueId:String!){
+  issueRelationCreate(input:{issueId:$issueId,relatedIssueId:$relatedIssueId,type:blocks}){
+    success issueRelation { id }
+  }
+}
+```
+
+Read the blocked issue back and confirm the `blocks` relation is in its
+`inverseRelations` before reporting success. The Linear MCP exposes no relation
+create with this guarantee, so on an MCP-only substrate report
+`Error: create-relation needs the LINEAR_API_KEY GraphQL path` and name the
+relation in the run's errors so a person can put it back.
 
 ## `save-comment` / `list-comments` — an Issue **or** a Project
 

@@ -345,10 +345,15 @@ Per cycle
       blocker-not-resolved, link-already-gone or blocked-role; plan is null
       when nothing is still safe to remove.
   stale-links-verify [--tracker <t>] --plan <file> [--input <file>]
-      Reads one item back after its stale-link writes. stdout {ref,confirmed,
-      stillPresent,comment,commentAdf,becameReady,pending}: comment covers
-      ONLY the confirmed removals (null when none) and is recorded as pending
-      in .lisa/session-manager/stale-links-pending.json until posted.
+                     [--blockers <file>]
+      Reads one item back after its stale-link writes, and each removed
+      blocker again (GitHub itself; Jira/Linear from --blockers, a
+      {ref: rawIssue} map). stdout {ref,confirmed,stillPresent,restored,
+      restore,comment,commentAdf,becameReady,pending}: a removed link whose
+      blocker reopened is in restored, with restore the actions that put it
+      back; comment covers ONLY the confirmed removals (null when none) and
+      is recorded as pending in .lisa/session-manager/stale-links-pending.json
+      until posted.
   stale-links-pending
       Lists the stale-link comments still owed (confirmed removals whose
       comment has not posted yet). stdout {pending:[...]}.

@@ -271,6 +271,8 @@ export function jiraBlockerEdges(issue) {
         project: keyProject(link.inwardIssue.key),
         source: "jira-link",
         actionId: text(link.id),
+        // The link type's name, so a link removed in error can be recreated.
+        linkType: text(link.type?.name) || "Blocks",
         accessible: Boolean(status),
         closed: status?.statusCategory?.key === "done",
         cancelled: false,

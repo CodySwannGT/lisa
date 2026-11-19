@@ -622,11 +622,10 @@ item held back only by them is claimable in this same cycle:
    and the GitHub `body` is rebuilt from the fresh
    body, so a concurrent edit survives. When `plan` is null, write nothing for that item. Also
    skip it (one transcript line, no write) when it gained a person's assignee since the plan.
-   Then perform each of the confirmed plan's `actions` and nothing else, straight away: no tracker
-   offers a conditional delete ("remove this link only if its blocker is still finished"), so the
-   seconds between this re-read and the write are the one window left in which a blocker reopened
-   by a person can lose its link. The comment then names what was true at the re-read, and a person
-   who puts the link back is never overruled (`report.keptByPerson`).
+   Then perform each of the confirmed plan's `actions` and nothing else, straight away. No tracker
+   offers a conditional delete ("remove this link only if its blocker is still finished"), so a
+   blocker can still reopen between this re-read and the write; verify below catches that and
+   puts the link back.
    - `delete-dependency` (GitHub): `gh api -X DELETE <endpoint>`.
    - `body` (GitHub, when not null): write it as the issue body through `lisa-tracker-write`. It
      differs from the fresh body only in the `Blocked by` refs it removes.
@@ -636,7 +635,17 @@ item held back only by them is claimable in this same cycle:
    run `stale-links-verify --tracker <t> --plan .lisa/session-manager/stale-links-entry.json --project-root "$ROOT"`
    (GitHub reads the item back itself; Jira and Linear take the item as read back now in
    `--input`; the read-back must carry the item's blocker relation list, or verify refuses it and
-   nothing is confirmed). Its `confirmed` lists the removals the read-back shows gone and `stillPresent` the
+   nothing is confirmed). It also reads every removed blocker again: GitHub itself; for Jira and
+   Linear, write `{"<ref>": <the blocker as read now, with its status / state and team>}` for
+   each planned removal to `.lisa/session-manager/stale-links-blockers.json` and add
+   `--blockers` with that path. A removed link whose blocker is no longer finished (reopened,
+   back in an intermediate done rung, or unreadable) is in `restored`, with no marker: perform its
+   `restore` actions straight away (`add-dependency`: `gh api -X POST <endpoint> -F
+   issue_id=<issueId>`; `body`: write it through `lisa-tracker-write`; `link` (Jira):
+   `lisa-atlassian-access` `operation: link from:<from> to:<to> type:<type>`; `create-relation`
+   (Linear): `lisa-linear-access` `operation: create-relation issue:<issue> related:<relatedIssue>
+   type:blocks`), read the item back to confirm each link is there again, and name it in the
+   cycle's transcript line. Its `confirmed` lists the removals the read-back shows gone and `stillPresent` the
    ones that did not happen. Its `comment` (Jira: `commentAdf`, the same text as an ADF document,
    because Jira Cloud's REST v3 comment body is ADF) covers ONLY the confirmed removals, so a
    `[lisa-stale-blocker-link] blocker=<ref>` marker is never posted for a link that is still there:

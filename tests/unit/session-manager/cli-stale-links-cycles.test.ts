@@ -21,6 +21,13 @@ afterEach(removeSandboxes);
 
 const REPO = "example-org/demo-repo";
 const DONE = { name: "Done", statusCategory: { key: "done" } };
+/** Every blocker these tests remove, as read again after the delete: still done. */
+const DONE_NOW = Object.fromEntries(
+  ["ABC-9", "ABC-8", "ABC-19", "ABC-29"].map(key => [
+    key,
+    { key, fields: { status: DONE } },
+  ])
+);
 const PLAN = "stale-links-plan";
 const CREATED = "2026-01-01T00:00:00Z";
 
@@ -78,6 +85,8 @@ describe("a removal that keeps failing", () => {
       file("entry.json", first.json.plans[0]),
       "--input",
       file("after.json", jira("ABC-1")),
+      "--blockers",
+      file("blockers.json", DONE_NOW),
     ]);
     expect(verify.json).toMatchObject({
       confirmed: [],
@@ -104,6 +113,8 @@ describe("a removal that keeps failing", () => {
       file("entry.json", first.json.plans[0]),
       "--input",
       file("after.json", jira("ABC-1", false)),
+      "--blockers",
+      file("blockers.json", DONE_NOW),
     ]);
     expect(JSON.parse(readFileSync(failures, "utf8"))).toEqual({});
   });

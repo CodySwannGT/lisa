@@ -26,6 +26,7 @@ import { verifyStaleLinkRemoval } from "../../../scripts/stale-blocker-verify.mj
 import { CliError, asSetupError, loadProject } from "./cli-runtime.mjs";
 import { freshItem, judgingContext, trackerOf } from "./cli-stale-links.mjs";
 import { readJsonFile } from "./json-input.mjs";
+import { blockerReader } from "./stale-links-github.mjs";
 import {
   readFailures,
   readPending,
@@ -33,6 +34,37 @@ import {
   writeFailures,
   writePending,
 } from "./stale-links-state.mjs";
+
+/**
+ * Each planned blocker as read NOW, after the delete. GitHub reads them
+ * itself; Jira and Linear take `--blockers <file>`, a `{ref: rawIssue}` map
+ * (a ref with no entry, or null, reads as unreadable and its link is put
+ * back).
+ * @param {object} ctx - CLI context
+ * @param {string} tracker
+ * @param {{ removed?: string[] }} plan
+ * @returns {Record<string, object | null>}
+ */
+function removedBlockersNow(ctx, tracker, plan) {
+  if (ctx.values.blockers) {
+    const map = readJsonFile(ctx.values.blockers);
+    if (!map || typeof map !== "object" || Array.isArray(map)) {
+      throw new CliError(
+        `${ctx.values.blockers}: expected {"<ref>": {...}}.`,
+        2
+      );
+    }
+    return map;
+  }
+  if (tracker !== "github") {
+    throw new CliError(
+      `stale-links-verify --tracker ${tracker} needs --blockers <file> with each removed blocker as read now.`,
+      2
+    );
+  }
+  const read = blockerReader(ctx);
+  return Object.fromEntries((plan.removed ?? []).map(ref => [ref, read(ref)]));
+}
 
 /**
  * `stale-links-verify --tracker <t> --plan <file> [--input <file>]`.
@@ -47,9 +79,10 @@ export async function staleLinksVerify(ctx) {
   }
   const plan = readJsonFile(ctx.values.plan);
   const after = freshItem(ctx, tracker, plan);
+  const blockersNow = removedBlockersNow(ctx, tracker, plan);
   const context = judgingContext(project, tracker);
   const result = asSetupError(() =>
-    verifyStaleLinkRemoval({ tracker, plan, after, ...context })
+    verifyStaleLinkRemoval({ tracker, plan, after, blockersNow, ...context })
   );
   const now = new Date().toISOString();
   await withStateLock(ctx.root, () => {

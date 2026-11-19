@@ -73,6 +73,7 @@ export {
  * @property {number} remainingBlockers - Links left that still hold the item (open or unreadable)
  * @property {boolean} becomesClaimable - A ready leaf item with nothing left holding it
  * @property {string[]} edges - The planned links by identity ({@link edgeIdentity})
+ * @property {{ blockerRef: string, source: string, actionId: string, linkType?: string }[]} links - The planned links, recreatable
  * @property {{ stale: {blockerRef: string, verdict: string}[], real: {blockerRef: string, verdict: string}[], crossProject: {blockerRef: string, verdict: string}[], inaccessible: {blockerRef: string, verdict: string}[] }} render - The judged links the comment describes
  */
 
@@ -309,6 +310,14 @@ export function itemPlan({ tracker, item, sorted, ready, poster, posterName }) {
     // The removals the confirm step may still make, by relationship, so a
     // link added since the plan to the same blocker is never swept up.
     edges: sorted.stale.map(edgeIdentity),
+    // Enough of each planned link to recreate it if its blocker reopens
+    // between the confirm and the delete (`stale-blocker-restore.mjs`).
+    links: sorted.stale.map(edge => ({
+      blockerRef: edge.blockerRef,
+      source: edge.source,
+      actionId: edge.actionId,
+      ...(edge.linkType ? { linkType: edge.linkType } : {}),
+    })),
     becomesClaimable: ready && holds === 0 && !item.container,
   };
 }

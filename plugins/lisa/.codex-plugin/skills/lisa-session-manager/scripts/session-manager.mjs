@@ -153,7 +153,13 @@ const COMMANDS = {
   },
   "stale-links-verify": {
     run: staleLinksVerify,
-    options: { tracker: text, input: text, plan: text, "github-repo": text },
+    options: {
+      tracker: text,
+      input: text,
+      plan: text,
+      blockers: text,
+      "github-repo": text,
+    },
     positionals: 0,
   },
   "stale-links-pending": {

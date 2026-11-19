@@ -43,7 +43,7 @@ const keyOf = entry =>
  * Record the comment owed for one verified result. A result with nothing
  * confirmed owes nothing; recording the same removals twice keeps one entry.
  * @param {readonly PendingComment[]} pending
- * @param {import("./stale-blocker-verify.mjs").StaleLinkResult} result
+ * @param {Pick<import("./stale-blocker-verify.mjs").StaleLinkResult, "ref" | "confirmed" | "comment"> & { commentAdf?: object | null }} result - A verify result
  * @param {string} now - ISO time
  * @returns {PendingComment[]}
  */

@@ -22,6 +22,7 @@ import {
   formatStaleLinkComment,
   staleLinkCommentAdf,
 } from "./stale-blocker-comment.mjs";
+import { splitReopened } from "./stale-blocker-restore.mjs";
 import {
   itemRoles,
   normalizeStaleLinkItem,
@@ -35,6 +36,8 @@ import {
  * @property {string} ref - The item
  * @property {string[]} confirmed - Planned removals the read-back shows gone
  * @property {string[]} stillPresent - Planned removals still on the item
+ * @property {{ blockerRef: string, verdict: string }[]} restored - Removed links whose blocker reopened (or could not be read) after the confirm: put back, no marker
+ * @property {object[]} restore - The vendor actions that put them back
  * @property {string | null} comment - The comment for the confirmed removals only, or null
  * @property {object | null} commentAdf - The same as ADF for Jira, else null
  * @property {boolean} becameReady - A ready leaf item that nothing holds any more
@@ -44,8 +47,9 @@ import {
  * Read one item back after its writes and say what is confirmed.
  * @param {{
  *   tracker: "github" | "jira" | "linear",
- *   plan: { ref: string, removed: readonly string[], render: Record<string, { blockerRef: string, verdict: string }[]> },
+ *   plan: { ref: string, removed: readonly string[], links?: readonly { blockerRef: string, source: string, actionId: string, linkType?: string }[], render: Record<string, { blockerRef: string, verdict: string }[]> },
  *   after: Record<string, any>,
+ *   blockersNow: Record<string, Record<string, any> | null>,
  *   doneRoles: readonly string[],
  *   landedRoles?: readonly string[],
  *   roles: { ready?: string, blocked?: string },
@@ -69,9 +73,25 @@ export function verifyStaleLinkRemoval(input) {
       `The read-back of ${item.ref} has no blocker relation list; read it with its links.`
     );
   }
+  if (!input.blockersNow || typeof input.blockersNow !== "object") {
+    // probe-direction: fail-closed — without each removed blocker read again
+    // after the delete, a blocker reopened in between cannot be told apart.
+    throw new Error(
+      `Verifying ${item.ref} needs each removed blocker as read after the delete (blockersNow).`
+    );
+  }
   const present = new Set(item.edges.map(edge => edge.blockerRef));
-  const confirmed = input.plan.removed.filter(ref => !present.has(ref));
+  const gone = input.plan.removed.filter(ref => !present.has(ref));
   const stillPresent = input.plan.removed.filter(ref => present.has(ref));
+  const { confirmed, restored, restore } = splitReopened({
+    tracker: input.tracker,
+    item,
+    gone,
+    links: input.plan.links ?? [],
+    blockersNow: input.blockersNow,
+    doneRoles: input.doneRoles,
+    landedRoles: input.landedRoles,
+  });
   const done = new Set(confirmed);
   const render = input.plan.render ?? {};
   // The removed links keep their planned reasons; everything still on the
@@ -95,6 +115,8 @@ export function verifyStaleLinkRemoval(input) {
     ref: item.ref,
     confirmed,
     stillPresent,
+    restored,
+    restore,
     comment,
     commentAdf:
       comment !== null && input.tracker === "jira"
@@ -104,6 +126,7 @@ export function verifyStaleLinkRemoval(input) {
       confirmed.length > 0 &&
       itemRoles(item, input.roles).ready &&
       !item.container &&
+      restored.length === 0 &&
       unresolvedCount(sorted) === 0,
   };
 }

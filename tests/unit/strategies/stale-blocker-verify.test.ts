@@ -32,6 +32,7 @@ import {
   JIRA_ROLES,
   jiraIssue,
   jiraLink,
+  jiraNow,
 } from "./stale-blocker-fixtures.js";
 
 const SHIPPED = { name: "Shipped", category: "indeterminate" };
@@ -152,6 +153,7 @@ describe("verifyStaleLinkRemoval", () => {
       tracker: "jira",
       plan: planned,
       after: after as Record<string, unknown>,
+      blockersNow: jiraNow(["ABC-9", "ABC-8"]),
       doneRoles: ["done"],
       roles: JIRA_ROLES,
     });

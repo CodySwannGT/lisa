@@ -19,6 +19,13 @@ afterEach(removeSandboxes);
 
 const POSTED = "stale-links-posted";
 const DONE = { name: "Done", statusCategory: { key: "done" } };
+/** Every blocker these tests remove, as read again after the delete: still done. */
+const DONE_NOW = Object.fromEntries(
+  ["ABC-9", "ABC-8", "ABC-19", "ABC-29"].map(key => [
+    key,
+    { key, fields: { status: DONE } },
+  ])
+);
 
 /**
  * A raw Jira item blocked by the given finished keys.
@@ -68,6 +75,8 @@ describe("stale-links-verify, pending, posted and report", () => {
       file("entry.json", entry),
       "--input",
       file("after.json", jira(["ABC-8"])),
+      "--blockers",
+      file("blockers.json", DONE_NOW),
     ]);
     expect(verify.status).toBe(0);
     expect(verify.json).toMatchObject({

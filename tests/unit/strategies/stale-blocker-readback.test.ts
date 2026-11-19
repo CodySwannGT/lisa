@@ -32,6 +32,7 @@ import {
   githubItem,
   jiraIssue,
   jiraLink,
+  jiraNow,
   linearRelation,
 } from "./stale-blocker-fixtures.js";
 
@@ -168,6 +169,7 @@ describe("ready to start follows the queue's container rule", () => {
         tracker: "jira",
         plan: entry,
         after,
+        blockersNow: jiraNow(["ABC-9"]),
         doneRoles: ["done"],
         roles: JIRA_ROLES,
       })
@@ -201,6 +203,13 @@ describe("verify", () => {
         tracker: "linear",
         plan: planned,
         after,
+        blockersNow: {
+          "ENG-9": {
+            identifier: "ENG-9",
+            state: { name: "Done", type: "completed" },
+            team: { key: "ENG" },
+          },
+        },
         doneRoles: ["done"],
         roles: JIRA_ROLES,
       });
@@ -229,6 +238,7 @@ describe("verify", () => {
       tracker: "jira",
       plan: planned,
       after: jiraIssue("ABC-1", [jiraLink("2", "ABC-8", DONE)]),
+      blockersNow: jiraNow(["ABC-7"]),
       doneRoles: ["done"],
       roles: JIRA_ROLES,
     });
