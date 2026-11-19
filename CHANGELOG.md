@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.1.3](https://github.com/CodySwannGT/lisa/compare/v7.1.2...v7.1.3) (2026-11-19)
+
+
+### Bug Fixes
+
+* **tests:** hand carrier hooks their event through a writer that exits ([a83aa98](https://github.com/CodySwannGT/lisa/commit/a83aa98b5b1a185ad7ad1695c315515282067dfe)), closes [pre-#5061](https://github.com/CodySwannGT/pre-/issues/5061) [CodySwannGT/lisa#5067](https://github.com/CodySwannGT/lisa/issues/5067) [CodySwannGT/lisa#5067](https://github.com/CodySwannGT/lisa/issues/5067)
+
 ### [7.1.2](https://github.com/CodySwannGT/lisa/compare/v7.1.1...v7.1.2) (2026-11-19)
 
 

@@ -287,7 +287,7 @@ echo "✓ Marketplace registers every built plugin."
 # materialize calls: this script also runs against isolated fixture
 # repositories that declare no control commands. That the record and the
 # program are both present in THIS repository is pinned by
-# tests/unit/plugins/control-command-parity-cli.test.ts, so removing either
+# tests/unit/controls/control-command-parity-cli.test.ts, so removing either
 # fails a test rather than quietly switching this off.
 if [ -f "$ROOT_DIR/parity/control-commands.json" ]; then
   node "$ROOT_DIR/scripts/check-control-command-parity.mjs" --root "$ROOT_DIR"

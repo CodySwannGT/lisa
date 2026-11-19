@@ -37,4 +37,4 @@ Only `15a99e0d1d` and `0349be78c7` wrote `wiki/log.md` entries; the other commit
 
 ## Assertions
 
-`tests/unit/docs/control-audit-docs.test.ts` holds the page, the README section and the specification page to the code: the Level 1 requirement count each states is the catalogue's own count, the page names only `lisa controls` subcommands and options the CLI registers, and the wiki index, log and documentation index lead to the page.
+`tests/unit/controls/control-audit-docs.test.ts` holds the page, the README section and the specification page to the code: the Level 1 requirement count each states is the catalogue's own count, the page names only `lisa controls` subcommands and options the CLI registers, and the wiki index, log and documentation index lead to the page.
