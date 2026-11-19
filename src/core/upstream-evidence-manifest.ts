@@ -1757,7 +1757,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "cefbd86e8edd63332f447a17fb930b5ab38bb14f40fee0e343d3acf245ac770c",
+      "91db1884eb828c158b22a87322a89bf10e309312178a490d52423b99ef0ed2b3",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f77f80a5e649c57b40d87aa789b0fb2dd62870b1dee84248bfa0eaa413966e1d",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1789,7 +1789,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
       "333a5cfa92e59c90fadd0f3109bfde33e7fe17c7a403755b528434b60d0d4fec",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
-      "a0934ffabf2e127f2b4d15baf428cd3c36a734b6a4e94951d53fa3405b4c8200",
+      "c1f0329e5f3aeb58a91a5caceb54161cadcf9e5c12ad30d44a66026b0533b29f",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
@@ -1843,7 +1843,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
       "e1c3f0386249afc187b9711b3631ed58b23467e1e88d22c628167b5d3af45318",
     "plugins/src/base/skills/lisa-session-manager/scripts/take-check.mjs":
-      "26c7cdb7f8c681be4f5b3de9117bb9b25a779b1db38504d16cff23a4e72b2727",
+      "dc2fa0dd478eee819640db121648b3725166af0d79d63b2c0a48551eff5a4f13",
     "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs":
       "af176e882c928ce16fc51352035e06b13fb3eecd3edb40b20f17fc22fe1049d5",
     "plugins/src/base/skills/lisa-session-manager/scripts/token-migrate.mjs":

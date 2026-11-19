@@ -328,7 +328,12 @@ function refuseUntaken(ctx, config, ledger, ref) {
     );
   }
   const me = ledger.control.me ?? null;
-  const verdict = judgeTake(assignees, { me, operatorIds: config.operatorIds });
+  const project = loadProject(ctx.root);
+  const verdict = judgeTake(assignees, {
+    me,
+    operatorIds: config.operatorIds,
+    tracker: project.local?.tracker ?? project.global?.tracker,
+  });
   if (verdict.ok) return;
   const message =
     verdict.reason === "unassigned"

@@ -125,4 +125,24 @@ describe("spawn and the assign-on-take rule", () => {
     const result = spawnWith(sandbox, [{ login: "octo", id: 583231 }]);
     expect(result.status).toBe(0);
   });
+
+  it("matches a plain Linear user id against an id: operator entry", () => {
+    const sandbox = makeSandbox({
+      extraConfig: { tracker: "linear" },
+      sessionManager: {
+        name: "demo-manager",
+        interval: "5m",
+        operatorIds: ["id:linear-user-1"],
+        capacity: {
+          maxWorkers: 6,
+          gbPerWorker: 1,
+          reserveGb: 0,
+          cpuFraction: 1,
+          maxLoadPerCore: 1000,
+        },
+        notify: { provider: "none" },
+      },
+    });
+    expect(spawnWith(sandbox, ["linear-user-1"]).status).toBe(0);
+  });
 });

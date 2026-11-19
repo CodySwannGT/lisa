@@ -50,6 +50,26 @@ export function assigneeFields(assignee) {
 }
 
 /**
+ * The fields `spawn` compares one read-back assignee on. A plain string means
+ * what the tracker's normalized id is: on GitHub a login (so `login:` entries
+ * match it and `id:` entries never do, since anyone can pick an all-digit
+ * login), and on Jira and Linear an account id (so `id:` entries match it).
+ * With no known tracker it keeps `assigneeFields`' plain-only reading.
+ * @param {unknown} assignee - One assignee as read back
+ * @param {string | undefined} tracker - `github`, `jira` or `linear`
+ * @returns {{plain: string|null, login: string|null, id: string|null}} Fields
+ */
+function takenFields(assignee, tracker) {
+  const fields = assigneeFields(assignee);
+  if (typeof assignee !== "string" || fields.plain === null) return fields;
+  if (tracker === "github") return { ...fields, login: fields.plain };
+  if (tracker === "jira" || tracker === "linear") {
+    return { ...fields, id: fields.plain };
+  }
+  return fields;
+}
+
+/**
  * Whether one assignee is "me" or an operator.
  * @param {{plain: string|null, login: string|null, id: string|null}} fields - Assignee fields
  * @param {{me: string|null, operators: object[]}} who - Identities
@@ -64,8 +84,9 @@ export function isMeOrOperator(fields, who) {
 /**
  * Judge whether an item may be dispatched under the assign-on-take rule.
  * @param {unknown} assignees - The item's live assignees, as read back
- * @param {{me?: string|null, operatorIds?: unknown}} identities - "Me"
- *   (`ledger control.me`) and `sessionManager.operatorIds`
+ * @param {{me?: string|null, operatorIds?: unknown, tracker?: string}} identities - "Me"
+ *   (`ledger control.me`), `sessionManager.operatorIds`, and the project's
+ *   tracker, which says what a plain assignee string is
  * @returns {{ok: true} | {ok: false, reason: "unassigned"|"foreign", foreign: string[]}}
  *   `unassigned`: nobody is named, so assign "me" and read it back first;
  *   `foreign`: someone other than "me" or an operator holds it, so leave it
@@ -76,7 +97,7 @@ export function judgeTake(assignees, identities) {
     operators: parseIdEntries(identities.operatorIds),
   };
   const named = (Array.isArray(assignees) ? assignees : [])
-    .map(assigneeFields)
+    .map(assignee => takenFields(assignee, identities.tracker))
     .filter(fields => fields.plain !== null);
   if (named.length === 0)
     return { ok: false, reason: "unassigned", foreign: [] };

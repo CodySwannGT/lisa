@@ -12,6 +12,8 @@ import { judgeTake } from "../../../plugins/src/base/skills/lisa-session-manager
 
 const ME = "agent-account";
 const OPERATOR = "the-operator";
+const OTHER = "someone-else";
+const JIRA_ID = "557058:abc";
 
 describe("judgeTake", () => {
   it("refuses an item nobody is assigned to, so the manager assigns it first", () => {
@@ -46,9 +48,9 @@ describe("judgeTake", () => {
   });
 
   it("refuses an item held by anyone else, naming them", () => {
-    expect(
-      judgeTake([ME, "someone-else"], { me: ME, operatorIds: [OPERATOR] })
-    ).toEqual({ ok: false, reason: "foreign", foreign: ["someone-else"] });
+    expect(judgeTake([ME, OTHER], { me: ME, operatorIds: [OPERATOR] })).toEqual(
+      { ok: false, reason: "foreign", foreign: [OTHER] }
+    );
   });
 
   it("refuses me-only matching when me was never recorded", () => {
@@ -73,8 +75,29 @@ describe("judgeTake", () => {
   });
 
   it("matches a Jira or Linear assignee object by its account id", () => {
+    expect(judgeTake([{ accountId: JIRA_ID }], { me: JIRA_ID })).toEqual({
+      ok: true,
+    });
+  });
+
+  it("matches a plain Jira or Linear account id against an id: entry", () => {
+    for (const tracker of ["jira", "linear"]) {
+      expect(
+        judgeTake([JIRA_ID], {
+          me: OTHER,
+          operatorIds: [`id:${JIRA_ID}`],
+          tracker,
+        })
+      ).toEqual({ ok: true });
+    }
+  });
+
+  it("never matches a plain GitHub login against an id: entry", () => {
     expect(
-      judgeTake([{ accountId: "557058:abc" }], { me: "557058:abc" })
+      judgeTake(["583231"], { operatorIds: ["id:583231"], tracker: "github" })
+    ).toMatchObject({ ok: false, reason: "foreign" });
+    expect(
+      judgeTake(["octo"], { operatorIds: ["login:octo"], tracker: "github" })
     ).toEqual({ ok: true });
   });
 });
