@@ -188,6 +188,7 @@ scripts/lib/npm-update-allocate.mjs
 scripts/lib/npm-update-authorization.mjs
 scripts/lib/npm-update-broker-client.mjs
 scripts/lib/npm-update-bun.mjs
+scripts/lib/npm-update-cache-seed.mjs
 scripts/lib/npm-update-cancel-origin.mjs
 scripts/lib/npm-update-cancellation-proof.mjs
 scripts/lib/npm-update-cancellation.mjs
