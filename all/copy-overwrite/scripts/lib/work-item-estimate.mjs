@@ -17,6 +17,7 @@ import {
   parseActualToken,
   renderActual,
 } from "./work-item-estimate-actual.mjs";
+import { trackerRowKey } from "./tracker-row-fold.mjs";
 import {
   costCents,
   EstimateConfigError,
@@ -284,14 +285,16 @@ export function managedEstimateLines(section) {
 }
 
 /**
- * The lines of a section that Lisa did not write, in order.
+ * The lines of a section that Lisa did not write, in order. A line a tracker
+ * rewrote (an alignment row stored as `| -- | -- |`, escaped punctuation) is
+ * still Lisa's: lines compare by the same fold the usage rows use.
  * @param {string} section - Section text, heading first.
  * @returns {string[]} A person's lines, blank lines dropped.
  */
 export function humanLines(section) {
-  const managed = managedEstimateLines(section);
+  const managed = managedEstimateLines(section).map(trackerRowKey);
   return section.split("\n").filter(line => {
-    const at = managed.indexOf(line.trim());
+    const at = managed.indexOf(trackerRowKey(line));
     if (at !== -1) managed.splice(at, 1);
     return at === -1 && line.trim() !== "";
   });

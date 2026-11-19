@@ -63,7 +63,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
       "8ff9efc772463c3fccf5d6e5a42c73df324babd2e02e66228f2d9a0b1896cbf4",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
-      "4fc15dff279a1bea95617b9763e637c21ed20477b8191b8270604847a53cabf3",
+      "88389681f5a19cf90d4edcdeda48ce0f60a8845fb71c37c9e34edaa9e1a777a0",
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
       "9554fff85ed510f75058614c9ad8535806d52293e1de012900bae7e14db61eb1",
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
@@ -167,7 +167,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "4bfa589aaeda81f29c800409e5e66fab6e6d735135c1a075213ee6d2e007773b",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "5c6291258de98b2d213b1d1892b0c1bad542b5ec0d02708ee819ea845c3f2e3e",
+      "9577f00418e2aa6458737297efb01fc06bf6e77a221f72d344d4f11775ea8fa8",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -290,6 +290,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "32e9968d27b7edead16c232bb93bebb8118dd24d175a837f61c2e1ff324dc223",
     "all/copy-overwrite/scripts/lib/rspec-selection.mjs":
       "20304b4b4c8798005908f23df627103721f929c9995db1afb59f9ed00a1a8c36",
+    "all/copy-overwrite/scripts/lib/tracker-row-fold.mjs":
+      "b46c5a0d44c8505c68e0fccbbb1dea7f8253bbb6c202cdb967bf504d3efa34fd",
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts":
       "e093245f67362bd1dfefe328e9354f5465279f534ce569efee5d3cdadd00598b",
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs":
@@ -313,7 +315,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1":
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
     "all/copy-overwrite/scripts/lib/work-item-estimate-actual.mjs":
-      "0c081f8db35ebfa9e85c123f073e16634061efea88e9b5f4028e99908b7a70c0",
+      "dd0b60608c9a4a765bf6474c863a185518bdf00ba8388efbd09b7472b66f16d4",
     "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs":
       "de92a1f8eee42e5947b6bbfdf32ec20e174b186bbcfb35132ce4e6aa53d15bd4",
     "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs":
@@ -323,9 +325,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs":
       "b803106384f35ed85bfa7541c994601cee1523b2010981075eb3244960fae7c5",
     "all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs":
-      "8d057a30722fb105b2a55567770cb27c65d53f00b44f5b72989e0c6f9f458950",
+      "807e9c3afec051b29affc371cd6eea8403ba53bd89d00129f5ec0235a19d89d0",
     "all/copy-overwrite/scripts/lib/work-item-estimate.mjs":
-      "8b466d9775b94e40725f808e80bfe6bdc9b71272492f227efd897832b97f4d54",
+      "ac27c325a912e54f5f92a02651495a28152987af4368aab95ef68f42dad17313",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
       "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
@@ -419,7 +421,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "36e2015f74183c0b5ccac0e08bba1cfd568e50283c880859a5d2b0d17909e3d1",
+      "e50f5b3130097612fc80e42ea0d9e8347ab675299efd729dd9bdfd75f5ddc45f",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -3033,7 +3035,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "468a4166c1cee9d3e73554852a6b3b08b50281c151daf5c94b247d452cf8b441",
+      "588b880644124841ea2985ad8eca8b4a52f9d2506e1138f4e4416f9020811755",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3103,7 +3105,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "a50143bfe0d16e71bcff4872f1e9279d2005858cef93f69db979e55f0a4dc348",
+      "c12fbdbf74dcec97fcdadbec4b30e4e9a5f944e253a48280e347504e6ce29680",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3523,6 +3525,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.d.mts": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": true,
     "all/copy-overwrite/scripts/lib/rspec-selection.mjs": true,
+    "all/copy-overwrite/scripts/lib/tracker-row-fold.mjs": true,
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts": true,
     "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs": true,
     "all/copy-overwrite/scripts/lib/usage-effectiveness.d.mts": true,

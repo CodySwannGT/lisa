@@ -68,7 +68,7 @@ export function renderActual(actual, estimate) {
     ratio === null ? "" : `; ${ratio}x the estimate's midpoint`;
   return {
     row: `| Actual | ${tokens} | ${cost} | — |`,
-    note: `Actual: the Lisa Usage ledger total over ${actual.entries} usage entr${actual.entries === 1 ? "y" : "ies"} (source: ${actual.sources.join(", ")})${comparison}.`,
+    note: `Actual: the Lisa Usage ledger total over ${actual.entries} usage entr${actual.entries === 1 ? "y" : "ies"} (source: ${actual.sources.join(", ") || "child work items only"})${comparison}.`,
     token: `<!-- lisa:estimate-actual ${fields.join(" ")} -->`,
   };
 }

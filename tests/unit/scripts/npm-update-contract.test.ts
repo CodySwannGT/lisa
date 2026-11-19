@@ -1102,8 +1102,10 @@ describe("complete authenticated helper closure", () => {
     // tracker-cancel for Jira/Linear cancellation in CodySwannGT/lisa#4873,
     // changed-paths, which tells the gate runner what a commit or push
     // touches (CodySwannGT/lisa#4988), and the five work-item-estimate
-    // modules completion now imports for its done gate (CodySwannGT/lisa#4956).
-    expect(members.length).toBe(147);
+    // modules completion now imports for its done gate (CodySwannGT/lisa#4956),
+    // plus tracker-row-fold, the stored-row comparison key the usage and
+    // estimate projections share (CodySwannGT/lisa#4956).
+    expect(members.length).toBe(148);
     const completionMembers = [
       "lib/completion-authorization.mjs",
       "lib/completion-proof-adapters.mjs",

@@ -33,7 +33,9 @@ const MIXED_CURRENCY = "mixed";
 const COST_SCALE = 12;
 
 /**
- * A document's usage ledger, when it has a readable one with entries.
+ * A document's usage ledger, when it has a readable one that records any run:
+ * a direct entry, or child work its rollup carries (a parent whose only spend
+ * is its children's has no direct entries of its own).
  * @param {unknown} document - Item body or comment.
  * @returns {{entries: object[], rollup: object} | null} The ledger, or null.
  */
@@ -42,7 +44,9 @@ function readLedger(document) {
     return null;
   try {
     const { entries, rollup } = parseLisaUsageSection(document);
-    return entries.length && rollup ? { entries, rollup } : null;
+    return rollup && (entries.length || rollup.childEntryIds.length)
+      ? { entries, rollup }
+      : null;
   } catch {
     return null;
   }
@@ -184,7 +188,7 @@ export function tallyEstimate(body, documents = [body]) {
 /**
  * The actual tally recorded in a section, as written.
  * @param {string | null} section - Estimate section text.
- * @returns {{tokens: string, cost: string, currency: string} | null} Raw recorded fields.
+ * @returns {{tokens: string, cost: string, currency: string, sources: string, entries: string} | null} Raw recorded fields.
  */
 function recordedActual(section) {
   const fields = actualTokenFields(section);
@@ -194,6 +198,8 @@ function recordedActual(section) {
       tokens: fields.tokens,
       cost: fields.cost,
       currency: decodeURIComponent(fields.currency ?? "null"),
+      sources: decodeURIComponent(fields.sources ?? ""),
+      entries: fields.entries ?? "null",
     };
   } catch (error) {
     if (error instanceof URIError) return null;
@@ -222,12 +228,14 @@ export function doneProblems(body, documents = [body]) {
     tokens: String(actual.tokens ?? "null"),
     cost: String(actual.cost ?? "null"),
     currency: actual.currency ?? "null",
+    sources: actual.sources.join(","),
+    entries: String(actual.entries),
   };
-  return recorded.tokens === current.tokens &&
-    recorded.cost === current.cost &&
-    recorded.currency === current.currency
+  // Every recorded field, not only the totals: two unavailable runs and one
+  // both total null, so only the entry count tells them apart.
+  return Object.keys(current).every(key => recorded[key] === current[key])
     ? []
     : [
-        `The actual tally is stale: it records ${recorded.tokens} tokens and ${recorded.cost} ${recorded.currency}, but the usage ledger now totals ${current.tokens} tokens and ${current.cost} ${current.currency}. Run lisa-estimate tally again.`,
+        `The actual tally is stale: it records ${recorded.tokens} tokens and ${recorded.cost} ${recorded.currency} over ${recorded.entries} usage entries, but the usage ledger now totals ${current.tokens} tokens and ${current.cost} ${current.currency} over ${current.entries}. Run lisa-estimate tally again.`,
       ];
 }

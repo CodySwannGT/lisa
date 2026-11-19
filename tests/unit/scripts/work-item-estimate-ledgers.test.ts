@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import { itemRatio } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs";
 import {
+  doneProblems,
   ledgerActual,
   tallyEstimate,
 } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs";
@@ -145,5 +146,51 @@ describe("calibration reads the recorded tally", () => {
     const body = finishedItem(1000, 2000, [usageEntry("implement", 1_500, 1)]);
     const evidence = comment([usageEntry("verify", null)]);
     expect(itemRatio(tallyEstimate(body, [body, evidence]))).toBe(null);
+  });
+});
+
+describe("a ledger whose only runs are its children's", () => {
+  const childOnly = upsertLisaUsageSection(finishedItem(1000, 2000, []), {
+    entries: [],
+    childArtifacts: [
+      { artifactRef: CHILD_REF, entries: [childRun("child-a", 300, 0.5)] },
+    ],
+  });
+
+  it("counts the child totals instead of reporting no ledger", () => {
+    expect(ledgerActual([childOnly])).toMatchObject({
+      tokens: 300,
+      cost: 0.5,
+      entries: 1,
+    });
+    expect(doneProblems(tallyEstimate(childOnly))).toEqual([]);
+  });
+
+  it("still reports no ledger when there are neither direct nor child runs", () => {
+    const empty = upsertLisaUsageSection(finishedItem(1000, 2000, []), {
+      entries: [],
+    });
+    expect(ledgerActual([empty])).toBeNull();
+    expect(doneProblems(empty)[0]).toMatch(/No Lisa Usage entry/);
+  });
+});
+
+describe("done-time staleness", () => {
+  const oneUnknown = finishedItem(1000, 2000, [usageEntry("implement", null)]);
+
+  it("fails a tally that records one unavailable run when there are now two", () => {
+    const later = comment([usageEntry("verify", null)]);
+    expect(
+      doneProblems(tallyEstimate(oneUnknown), [
+        tallyEstimate(oneUnknown),
+        later,
+      ])[0]
+    ).toMatch(/tally is stale.*over 1 usage entries.*over 2/);
+  });
+
+  it("passes when a comment repeats the same ledger", () => {
+    const tallied = tallyEstimate(oneUnknown);
+    const copy = tallied.slice(tallied.indexOf("## Lisa Usage"));
+    expect(doneProblems(tallied, [tallied, copy])).toEqual([]);
   });
 });

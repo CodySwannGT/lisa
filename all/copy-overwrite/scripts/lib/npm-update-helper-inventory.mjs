@@ -27,6 +27,7 @@ const COMMON = [
   "lib/completion-proof-shape.mjs",
   "lib/completion-proof-source.mjs",
   "lib/evidence-release-capacity.mjs",
+  "lib/tracker-row-fold.mjs",
   "lib/usage-artifact-ref.mjs",
   "lib/usage-effectiveness.mjs",
   "lib/usage-ledger-integrity.mjs",

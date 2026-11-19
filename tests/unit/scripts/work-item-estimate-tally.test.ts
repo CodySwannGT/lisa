@@ -205,6 +205,20 @@ describe("completion proof specification digest", () => {
     }
   });
 
+  it("keeps the digest when a tracker rewrote the estimate table's alignment row", () => {
+    const stored = finishedItem(2_000_000, 4_000_000, [
+      usageEntry("implement", 2_000_000, 8),
+    ]).replace("|---|---:|---:|---|", "| -- | -- | -- | -- |");
+    const tallied = tallyEstimate(stored);
+    expect(tallied.match(/^\| *-+/gm)).toHaveLength(2);
+    const reStored = tallied.replace(
+      "|---|---:|---:|---|",
+      "| -- | -- | -- | -- |"
+    );
+    expect(primarySpecProjection(reStored)).toBe(primarySpecProjection(stored));
+    expect(primarySpecProjection(tallied)).toBe(primarySpecProjection(stored));
+  });
+
   it("refuses duplicate estimate sections as ambiguous", () => {
     const one = finishedItem(1000, 2000, []);
     expect(() =>

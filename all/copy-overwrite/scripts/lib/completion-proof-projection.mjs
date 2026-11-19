@@ -5,51 +5,20 @@
 import { parseLisaUsageSection } from "./usage-ledger.mjs";
 import { isLisaUsageLedgerIntact } from "./usage-ledger-integrity.mjs";
 import { requireProof } from "./completion-proof-errors.mjs";
+import { trackerRowKey as comparisonKey } from "./tracker-row-fold.mjs";
 import { humanLines } from "./work-item-estimate.mjs";
-
-/** Stable presentation matching; this does not parse or authorize usage data. */
-const normalizedRow = line =>
-  line
-    .trim()
-    .split("|")
-    .map(part => part.trim())
-    .join("|");
-
-const CANONICAL_ALIGNMENT = "|---|---|---|---:|---:|";
-const ALIGNMENT_ROW = /^\|(?::?-+:?\|){5}$/;
-const LEADING_STAR_ITALIC = /^(\|?)\*([^*\r\n]+)\*(?=\||$)/;
-const ESCAPED_PUNCTUATION = /\\([!-/:-@[-`{-~])/g;
-
-/**
- * Fold Linear's storage normalization back to the canonical writer's form
- * (CodySwannGT/lisa#4690): Linear escapes Markdown punctuation one layer deep
- * (`\_`, `\.`), re-serializes `_…_` as `*…*`, and rewrites any table
- * alignment row as `| -- | … |`. Only the comparison key changes, and known
- * rows pass through the same fold, so a line is dropped solely when its key
- * equals a known canonical row; any other prose or row still reaches the
- * spec digest.
- *
- * Accepted limitation: any 5-cell alignment row folds to the canonical
- * separator, so an extra alignment row inserted into the section is
- * digest-invisible. Such a row carries only dashes and colons, so no
- * specification words can hide that way.
- */
-function comparisonKey(line) {
-  const row = normalizedRow(line.replace(ESCAPED_PUNCTUATION, "$1"));
-  return ALIGNMENT_ROW.test(row)
-    ? CANONICAL_ALIGNMENT
-    : row.replace(LEADING_STAR_ITALIC, "$1_$2_");
-}
 
 /** Match the canonical writer's visible table rows to the already parsed data. */
 function accountingRows(entries) {
-  const known = new Set([
-    "## Lisa Usage",
-    "_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._",
-    "|Flow|Source|Model|Tokens|Cost|",
-    CANONICAL_ALIGNMENT,
-    "|_No direct entries recorded_|||||",
-  ]);
+  const known = new Set(
+    [
+      "## Lisa Usage",
+      "_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._",
+      "|Flow|Source|Model|Tokens|Cost|",
+      "|---|---|---|---:|---:|",
+      "|_No direct entries recorded_|||||",
+    ].map(comparisonKey)
+  );
   for (const entry of entries) {
     const tokens =
       entry.totalTokens !== null
