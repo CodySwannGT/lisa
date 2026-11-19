@@ -3,7 +3,7 @@
  * @description Build actual immutable evidence, ancestor and selected archive graphs.
  * @module history-secrets-fixtures
  */
-import { rmSync, symlinkSync } from "node:fs";
+import { rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   addLegacyEvidence,
@@ -15,6 +15,7 @@ import {
 import { corruptImmutableManifest } from "./errors.mjs";
 import { immutableNarrativeCases, scanImmutableCase } from "./report-mode.mjs";
 import { budgetFixtures, runBudgetCase } from "./portable-evidence.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const UNFLAGGED_SIBLING = "unflagged-sibling";
 const REV_PARSE = "rev-parse";
@@ -116,7 +117,7 @@ const prepareImmutableCase = (harness, fixture) => {
   if (mode === "source-symlink") {
     write(cwd, ORDINARY_TARGET, bytes);
     rmSync(join(cwd, source));
-    symlinkSync("ordinary-target.rb", join(cwd, source));
+    createSymlink("ordinary-target.rb", join(cwd, source));
   }
   if (mode === "archive-outside") write(cwd, archive, bytes);
   state.before = commitFixture(harness, cwd);
@@ -193,7 +194,7 @@ const prepareImmutableCase = (harness, fixture) => {
       if (mode === "archive-symlink") {
         write(cwd, "evidence/archive/target.json", bytes);
         rmSync(join(cwd, archive));
-        symlinkSync("target.json", join(cwd, archive));
+        createSymlink("target.json", join(cwd, archive));
       }
       state.archiveCommit = commitFixture(harness, cwd);
     }
@@ -213,7 +214,7 @@ const prepareImmutableCase = (harness, fixture) => {
   if (mode === "sidecar-symlink") {
     write(cwd, ".lisa/coordinate-target.json", state.manifest);
     rmSync(join(cwd, sidecar));
-    symlinkSync("coordinate-target.json", join(cwd, sidecar));
+    createSymlink("coordinate-target.json", join(cwd, sidecar));
   }
   state.head = commitFixture(harness, cwd);
   if (mode === "archive-worktree") write(cwd, archive, bytes);

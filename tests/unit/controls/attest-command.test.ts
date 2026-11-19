@@ -10,7 +10,7 @@
  * `attest-report-only.test.ts` holds it to that.
  * @module tests/unit/controls/attest-command
  */
-import { mkdirSync, symlinkSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -34,6 +34,7 @@ import {
 import { attest, attestAndRecord } from "./support/attest-run.js";
 import { removeCopies, setting } from "./support/proof-run.js";
 import { keep, removeFixtures } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const WORKING = provedGates([{ command: checks(F_NONE_SOURCE) }]);
 const BROKEN = {
@@ -206,7 +207,7 @@ describe("lisa controls attest refuses to run a proof", () => {
   it("when the copy it is given is a link to the repository", async () => {
     const where = setting(WORKING);
     const link = path.join(where.workspace, "link-to-repository");
-    symlinkSync(where.repoPath, link);
+    createSymlink(where.repoPath, link);
 
     expectRefusal(
       await attest(where.repoPath, { workspace: link }),

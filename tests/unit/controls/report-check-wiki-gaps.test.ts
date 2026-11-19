@@ -7,7 +7,7 @@
  * before stays byte for byte, a wiki is never created, and an answer typed
  * there is as safe as one typed in the report (CodySwannGT/lisa#4980).
  */
-import { existsSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -37,6 +37,7 @@ import {
   writeFileOf,
 } from "./support/report-answers-run.js";
 import { check, keep, removeFixtures } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 afterEach(removeFixtures);
 
@@ -192,7 +193,7 @@ describe("a repository with a wiki", () => {
     const { repoPath } = keep(buildFNone());
     const elsewhere = path.join(keep(buildFNone()).repoPath, "shared-wiki");
     mkdirSync(elsewhere);
-    symlinkSync(elsewhere, path.join(repoPath, "wiki"));
+    createSymlink(elsewhere, path.join(repoPath, "wiki"));
     writeAuditReport(repoPath, TWO_QUESTIONS);
 
     const run = await check(repoPath);
@@ -205,7 +206,7 @@ describe("a repository with a wiki", () => {
     const { repoPath } = keep(withWiki()());
     const elsewhere = path.join(keep(buildFNone()).repoPath, "gaps.md");
     writeFileOf(path.dirname(elsewhere), "gaps.md", AGENT_READY_GAPS);
-    symlinkSync(elsewhere, path.join(repoPath, GAPS));
+    createSymlink(elsewhere, path.join(repoPath, GAPS));
     writeAuditReport(repoPath, TWO_QUESTIONS);
 
     const run = await check(repoPath);

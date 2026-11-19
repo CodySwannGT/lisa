@@ -11,14 +11,7 @@
  * wrapper, and the behaviour case executes both shims under `bash`.
  * @module tests/unit/sonar/sonar-shim-repoint
  */
-import {
-  chmod,
-  mkdir,
-  readFile,
-  stat,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { chmod, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -50,6 +43,7 @@ import {
   vendorShim,
   writeShim,
 } from "./support/sonar-shim-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 
@@ -237,7 +231,7 @@ describe("repointSonarShims", () => {
     await writeFile(target, body);
     const link = path.join(root, CLAUDE_PROMPT);
     await mkdir(path.dirname(link), { recursive: true });
-    await symlink(target, link);
+    createSymlink(target, link);
 
     const result = await repointSonarShims(root);
 

@@ -6,7 +6,7 @@
  * applied: no `.lisa.config.json`, no installed templates, and for F-none no
  * `package.json` either (CodySwannGT/lisa#4978).
  */
-import { existsSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -43,6 +43,7 @@ import {
   keep,
   removeFixtures,
 } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 afterEach(removeFixtures);
 
@@ -145,7 +146,7 @@ describe("a complete report passes", () => {
     const { repoPath } = keep(buildFNone());
     const link = `${repoPath}-link`;
     writeAuditReport(repoPath, completeAuditReport());
-    symlinkSync(repoPath, link);
+    createSymlink(repoPath, link);
 
     try {
       expect((await check(link)).code).toBe(0);

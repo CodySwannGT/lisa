@@ -11,7 +11,6 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
-  symlinkSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -54,6 +53,7 @@ import {
   runProcess,
   withPrivateRoot,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 const EXTERNALS = "externals";
@@ -489,7 +489,7 @@ describe("committed subdirectory baseline", () => {
         /unexpected Bun lock path/
       );
       unlinkSync(lock);
-      symlinkSync(join(root, "absent.lock"), lock);
+      createSymlink(join(root, "absent.lock"), lock);
       await expect(baseline(cwd, env, undefined, EXTERNALS)).rejects.toThrow(
         /unexpected Bun lock alias/
       );
@@ -500,7 +500,7 @@ describe("committed subdirectory baseline", () => {
     await withPrivateRoot(async (root, env) => {
       const cwd = await committed(root, env);
       renameSync(join(cwd, EXTERNALS), join(root, "foreign"));
-      symlinkSync(join(root, "foreign"), join(cwd, EXTERNALS));
+      createSymlink(join(root, "foreign"), join(cwd, EXTERNALS));
       await expect(baseline(cwd, env, undefined, EXTERNALS)).rejects.toThrow(
         /committed real npm project directory required/
       );

@@ -4,7 +4,6 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
-  symlinkSync,
   writeFileSync,
   chmodSync,
 } from "node:fs";
@@ -28,6 +27,7 @@ import {
   browser,
   browserControl,
 } from "../../fixtures/npm-update-hosted-runtime/components.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 const SUMMARY = "summary.json";
@@ -332,7 +332,8 @@ describe("closed runtime qualification diagnostics", () => {
           stage === CONTROL_STAGE
             ? join(root, "native-executable-alias")
             : process.execPath;
-        if (stage === CONTROL_STAGE) symlinkSync(process.execPath, executable);
+        if (stage === CONTROL_STAGE)
+          createSymlink(process.execPath, executable);
         await expect(
           native(stage, root, {}, executable, [
             "-e",
@@ -504,7 +505,7 @@ describe("closed runtime qualification diagnostics", () => {
       expect(() => privateResult(output)).toThrow();
       expect(readFileSync(output, "utf8")).toBe("foreign");
       const alias = join(root, "alias.json");
-      symlinkSync(output, alias);
+      createSymlink(output, alias);
       expect(() => privateResult(alias)).toThrow();
       expect(readFileSync(output, "utf8")).toBe("foreign");
     });
@@ -520,7 +521,7 @@ describe("closed runtime qualification diagnostics", () => {
       const output = privateResult(join(parent, SUMMARY));
       try {
         renameSync(parent, retained);
-        symlinkSync(foreign, parent);
+        createSymlink(foreign, parent);
         expect(() => output.write({ nativeSuccess: false })).toThrow(
           "qualification parent changed"
         );

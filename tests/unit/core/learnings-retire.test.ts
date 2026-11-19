@@ -22,6 +22,7 @@ import {
   type StaleSupersedeTarget,
 } from "../../../src/core/learnings.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const TARGET_ID = "learning-retire-target";
 const BYSTANDER_ID = "learning-retire-bystander";
@@ -280,7 +281,7 @@ describe("retireLearningEntry", () => {
   it("rejects a symlinked learnings file before reading it", async () => {
     const external = path.join(tempDir, "external.md");
     await fs.move(learningsPath, external);
-    await fs.symlink(external, learningsPath);
+    createSymlink(external, learningsPath);
     await expect(
       retireLearningEntry(tempDir, TARGET_ID, TARGET_FINGERPRINT)
     ).rejects.toThrow(/not a regular file/i);

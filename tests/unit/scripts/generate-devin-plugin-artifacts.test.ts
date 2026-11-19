@@ -24,6 +24,7 @@ import {
   PLUGIN_JSON,
   scaffoldSource,
 } from "./cursor-artifact-helpers.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const SHIM = "devin-tool-name-shim.sh";
 const ROOT = "${CLAUDE_PLUGIN_ROOT}/hooks/";
@@ -189,7 +190,7 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
       // carries jq, so /bin cannot stand for "no jq".
       const bin = path.join(tempDir, "nojq-bin");
       await fs.ensureDir(bin);
-      await fs.symlink("/bin/cat", path.join(bin, "cat"));
+      createSymlink("/bin/cat", path.join(bin, "cat"));
       const env = { PATH: bin };
 
       const toolEvent = boundedSpawnSync({

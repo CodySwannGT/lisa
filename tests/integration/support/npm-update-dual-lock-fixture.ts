@@ -5,7 +5,7 @@
  * nothing is synthesized.
  * @module tests/integration/support/npm-update-dual-lock-fixture
  */
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "vitest";
 import type { qualifiedBun } from "../../../all/copy-overwrite/scripts/lib/npm-update-bun.mjs";
@@ -13,6 +13,7 @@ import {
   runNpm,
   runProcess,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
+import { copyKeepingLinks } from "../../support/borrowed-node-modules.mjs";
 
 export const BUN_LOCK_FILE = "bun.lock";
 export const PACKAGE_FILE = "package.json";
@@ -101,7 +102,7 @@ export function copyCheckout(
   target: string,
   env: NodeJS.ProcessEnv
 ) {
-  cpSync(source, target, { recursive: true, verbatimSymlinks: true });
+  copyKeepingLinks(source, target);
   return { cwd: target, bun: bunIn(target, env) };
 }
 

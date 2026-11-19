@@ -27,7 +27,6 @@ import {
   mkdtempSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -45,6 +44,7 @@ import {
   type CarrierMoment,
 } from "../../../src/controls/carrier-types.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /** Every shell on this machine a repository's hook may be run by. */
 const SHELLS = ["/bin/sh", "/bin/dash", "/bin/bash", "/bin/zsh", "/bin/ksh"]
@@ -142,11 +142,11 @@ function driveFor(start: Start): {
   );
   // `C:/…` leads to the drive from the folder the shell is started in.
   mkdirSync(from);
-  symlinkSync("..", path.join(from, "C:"));
+  createSymlink("..", path.join(from, "C:"));
   if (first !== "C:") {
     // A hook git starts by its path from the top folder is in the checkout.
     mkdirSync(path.join(top, first));
-    symlinkSync(path.join(top, first), path.join(from, first));
+    createSymlink(path.join(top, first), path.join(from, first));
   }
   put(path.join(from, started), `#!/bin/sh\n${carrierCallBlock(moment)}\n`);
   return { from, tools };

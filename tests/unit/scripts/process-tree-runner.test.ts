@@ -5,7 +5,6 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -25,6 +24,7 @@ import {
   boundedSpawnSync as boundedTestSpawnSync,
   ioLatencyBudgetMs,
 } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const roots: string[] = [];
 const BLOCKING_CHILD_FILENAME = "blocking-child.mjs";
@@ -207,7 +207,7 @@ describe.skipIf(!["linux", "darwin"].includes(process.platform))(
       const marker = path.join(root, "shell-side-effect");
       const entry = path.join(root, "literal fixture.mjs");
       const executable = path.join(root, "real node with spaces");
-      symlinkSync(process.execPath, executable);
+      createSymlink(process.execPath, executable);
       const args = [
         "",
         "a'b",

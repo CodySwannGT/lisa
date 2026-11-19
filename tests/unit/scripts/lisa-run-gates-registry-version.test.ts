@@ -15,7 +15,6 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -25,6 +24,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { SCRIPT } from "./lisa-run-gates-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const PROJECT = process.cwd();
 const SCRIPTS = path.resolve("all/copy-overwrite/scripts");
@@ -77,7 +77,7 @@ describe("gate evidence registry version", () => {
     copySync(SCRIPTS, emittedScripts);
     const packageScope = path.join(root, "node_modules", "@codyswann");
     mkdirSync(packageScope, { recursive: true });
-    symlinkSync(PROJECT, path.join(packageScope, "lisa"), "dir");
+    createSymlink(PROJECT, path.join(packageScope, "lisa"), "dir");
 
     expect(
       recordedVersion(path.join(emittedScripts, "lisa-run-gates.mjs"), root)

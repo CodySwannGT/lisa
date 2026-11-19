@@ -6,7 +6,7 @@
  * record. The attest step writes those records; this is the reading half,
  * pinned so the writer has exact fields to produce (CodySwannGT/lisa#4991).
  */
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -23,6 +23,7 @@ import { buildFNone } from "../../helpers/control-audit-fixtures.js";
 import { writeEvidenceRecords } from "../../helpers/control-audit-report.js";
 import { bothHalves, proofRecord } from "./support/executor-fixtures.js";
 import { keep, removeFixtures } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const ENTRY = "code-style@api";
 const PULL_REQUEST = "pull-request";
@@ -205,7 +206,7 @@ describe("the evidence file of a repository", () => {
     writeEvidenceRecords(outside, bothHalves(ENTRY));
     const file = path.join(repoPath, EVIDENCE_PATH);
     mkdirSync(path.dirname(file), { recursive: true });
-    symlinkSync(path.join(outside, EVIDENCE_PATH), file);
+    createSymlink(path.join(outside, EVIDENCE_PATH), file);
 
     expect(readEvidenceDocument(repoPath)).toBeNull();
   });
@@ -215,7 +216,7 @@ describe("the evidence file of a repository", () => {
     const outside = keep(buildFNone()).repoPath;
     writeEvidenceRecords(outside, bothHalves(ENTRY));
     mkdirSync(path.join(repoPath, ".lisa"), { recursive: true });
-    symlinkSync(
+    createSymlink(
       path.join(outside, path.dirname(EVIDENCE_PATH)),
       path.join(repoPath, path.dirname(EVIDENCE_PATH))
     );

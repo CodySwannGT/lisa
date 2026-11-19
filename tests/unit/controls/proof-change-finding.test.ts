@@ -9,7 +9,7 @@
  * out of a commit, so the check would be shown a change without it while
  * its command finds it on disk.
  */
-import { rmSync, symlinkSync } from "node:fs";
+import { rmSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -37,6 +37,7 @@ import {
   write,
 } from "./support/change-rule-repository.js";
 import { removeFixtures } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const RULE: CheckFiles = {
   files: [DECLARATION, ".lisa/controls/carriers.json"],
@@ -143,7 +144,7 @@ describe("a change that puts something else where a folder was", () => {
       found(repo => {
         write(repo, "lib/app.txt", "one\n");
         rmSync(path.join(repo, "src"), { recursive: true });
-        symlinkSync("lib", path.join(repo, "src"));
+        createSymlink("lib", path.join(repo, "src"));
       })
     ).toBeNull();
   });

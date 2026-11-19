@@ -15,7 +15,6 @@ import {
   mkdirSync,
   readFileSync,
   realpathSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -29,6 +28,7 @@ import {
   type Sandbox,
 } from "./support/cli-harness.js";
 import { callsOf } from "./support/cli-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 afterEach(removeSandboxes);
 
@@ -125,7 +125,7 @@ describe("start against an existing tmux session", () => {
     const sandbox = makeSandbox();
     plantTokenFile(sandbox);
     const alias = path.join(path.dirname(sandbox.root), "alias");
-    symlinkSync(sandbox.root, alias);
+    createSymlink(sandbox.root, alias);
     const result = runCli(sandbox, ["start"], runningAt(alias));
     expect(result.status).toBe(0);
     expect(result.json.status).toBe("already-running");

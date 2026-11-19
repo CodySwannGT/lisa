@@ -7,7 +7,6 @@ import {
   writeFileSync,
   readFileSync,
   statSync,
-  symlinkSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,6 +14,7 @@ import {
   downloadRailsTool,
   extractRailsBrowser,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tool-downloads.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const RETAINED = "retained synthetic foreign bytes";
 
@@ -53,7 +53,7 @@ describe("closed fixed vendor downloads", () => {
           flag: "wx",
           mode: 0o600,
         });
-        if (alias) symlinkSync(foreign, target);
+        if (alias) createSymlink(foreign, target);
         else
           writeFileSync(target, "retained archive", {
             flag: "wx",
