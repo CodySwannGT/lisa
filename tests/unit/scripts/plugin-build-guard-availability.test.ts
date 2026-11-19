@@ -26,7 +26,12 @@ import {
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
-import { publishPluginTree } from "../../../scripts/lib/publish-plugin-tree.mjs";
+import {
+  clearStaleStages,
+  ownerGone,
+  publishPluginTree,
+  withPublishLock,
+} from "../../../scripts/lib/publish-plugin-tree.mjs";
 
 useIoLatencyBudget();
 
@@ -173,6 +178,231 @@ describe("publishPluginTree", () => {
     ).toThrow("no staged tree");
   });
 });
+
+/** The publish helper's CLI, as the builder calls it. */
+const PUBLISH_CLI = path.join(
+  REPO_ROOT,
+  SCRIPTS,
+  "lib",
+  "publish-plugin-tree.mjs"
+);
+/** The checkout-wide lock the helper holds while it publishes. */
+const LOCK_FILE = ".publish.lock";
+
+/**
+ * A liveness probe that answers from a table instead of the process table.
+ * @param codes Error code `process.kill(pid, 0)` would raise per pid; absent means alive.
+ * @returns A `process.kill`-shaped probe.
+ */
+function probeFrom(
+  codes: Readonly<Record<number, string>>
+): (pid: number, signal: number) => unknown {
+  return (pid: number) => {
+    const code = codes[pid];
+    if (code === undefined) return true;
+    throw Object.assign(new Error(code), { code });
+  };
+}
+
+/**
+ * The pid of a process that has already exited.
+ * @returns A pid with no process behind it.
+ */
+function exitedPid(): number {
+  const child = boundedSpawnSync({
+    label: "exited child",
+    command: process.execPath,
+    args: ["-e", ""],
+    cwd: REPO_ROOT,
+    env: childEnv(),
+  });
+  return child.pid as number;
+}
+
+describe("stale staging areas are cleared only when their owner is gone", () => {
+  let root: string;
+
+  beforeEach(async () => {
+    root = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(root);
+  });
+
+  it("treats only ESRCH as gone, never EPERM or another error", () => {
+    const probe = probeFrom({ 11: "ESRCH", 12: "EPERM", 13: "EINVAL" });
+    expect(ownerGone(11, probe)).toBe(true);
+    expect(ownerGone(12, probe)).toBe(false);
+    expect(ownerGone(13, probe)).toBe(false);
+    expect(ownerGone(14, probe)).toBe(false);
+    expect(ownerGone(0, probe)).toBe(false);
+    expect(ownerGone(Number.NaN, probe)).toBe(false);
+  });
+
+  it("reads the real process table: an exited pid is gone, this one is not", () => {
+    expect(ownerGone(exitedPid())).toBe(true);
+    expect(ownerGone(process.pid)).toBe(false);
+  });
+
+  it("removes a dead build's stage and keeps a running, foreign or unnamed one", async () => {
+    for (const name of [
+      ".build-staging-11",
+      ".build-staging-12",
+      ".build-staging-14",
+      ".build-staging-abc",
+      "lisa",
+    ]) {
+      await fs.ensureDir(path.join(root, name));
+    }
+    const probe = probeFrom({ 11: "ESRCH", 12: "EPERM" });
+
+    expect(clearStaleStages(root, probe)).toEqual([".build-staging-11"]);
+    expect(
+      sortedKeys(
+        Object.fromEntries((await fs.readdir(root)).map(name => [name, name]))
+      )
+    ).toEqual([
+      ".build-staging-12",
+      ".build-staging-14",
+      ".build-staging-abc",
+      "lisa",
+    ]);
+  });
+});
+
+describe("publication holds one checkout-wide lock", () => {
+  let root: string;
+
+  beforeEach(async () => {
+    root = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(root);
+  });
+
+  /**
+   * Run the publish CLI as the builder does.
+   * @param args CLI arguments.
+   * @param waitMs How long the child waits for the lock.
+   * @returns The completed child-process result.
+   */
+  function publishCli(args: readonly string[], waitMs: number) {
+    return boundedSpawnSync({
+      label: "publish-plugin-tree.mjs",
+      command: process.execPath,
+      args: [PUBLISH_CLI, ...args],
+      baseMs: 15_000,
+      cwd: root,
+      env: { ...childEnv(), LISA_PLUGIN_PUBLISH_LOCK_WAIT_MS: String(waitMs) },
+    });
+  }
+
+  it("makes a second publisher wait, then lets it through once released", async () => {
+    const plugins = path.join(root, PLUGINS);
+    const live = path.join(plugins, "lisa");
+    const staged = path.join(plugins, ".build-staging-1", "lisa");
+    await writeTree(live, { "hooks/guard.sh": "old" });
+    await writeTree(staged, {
+      "hooks/guard.sh": "new",
+      "hooks/helper.mjs": "helper",
+    });
+
+    const blocked = withPublishLock(plugins, () =>
+      publishCli([staged, live], 300)
+    );
+    expect(blocked.status).toBe(1);
+    expect(blocked.stderr).toContain("has held");
+    expect(await readTree(live)).toEqual({ "hooks/guard.sh": "old" });
+    expect(await fs.pathExists(path.join(plugins, LOCK_FILE))).toBe(false);
+
+    const released = publishCli([staged, live], 5_000);
+    expect(released.status, released.stderr).toBe(0);
+    expect(await readTree(live)).toEqual({
+      "hooks/guard.sh": "new",
+      "hooks/helper.mjs": "helper",
+    });
+  });
+
+  it("clears a lock whose owner is gone and keeps one whose owner may be running", async () => {
+    const plugins = path.join(root, PLUGINS);
+    await fs.ensureDir(plugins);
+    const lock = path.join(plugins, LOCK_FILE);
+
+    await fs.writeFile(lock, `${exitedPid()}\n`);
+    expect(withPublishLock(plugins, () => "ran")).toBe("ran");
+    expect(await fs.pathExists(lock)).toBe(false);
+
+    await fs.writeFile(lock, "12\n");
+    expect(() =>
+      withPublishLock(plugins, () => "ran", {
+        waitMs: 100,
+        probe: probeFrom({ 12: "EPERM" }),
+      })
+    ).toThrow("has held");
+    expect(await fs.readFile(lock, "utf8")).toBe("12\n");
+  });
+
+  it("releases the lock when the publication throws", async () => {
+    const plugins = path.join(root, PLUGINS);
+    expect(() =>
+      withPublishLock(plugins, () => {
+        throw new Error("publish failed");
+      })
+    ).toThrow("publish failed");
+    expect(await fs.pathExists(path.join(plugins, LOCK_FILE))).toBe(false);
+  });
+
+  it("leaves one complete build when two publish at once", async () => {
+    const plugins = path.join(root, PLUGINS);
+    const live = path.join(plugins, "lisa");
+    const treeA = {
+      "hooks/guard.sh": "a",
+      "hooks/main.mjs": "import './helper.mjs'",
+      "hooks/helper.mjs": "helper",
+    };
+    const treeB = { "hooks/guard.sh": "b", "hooks/main.mjs": "standalone" };
+    await writeTree(live, treeB);
+    const stagedA = path.join(plugins, ".build-staging-1", "lisa");
+    const stagedB = path.join(plugins, ".build-staging-2", "lisa");
+    await writeTree(stagedA, treeA);
+    await writeTree(stagedB, treeB);
+
+    const codes = await Promise.all(
+      [stagedA, stagedB].map(async staged => {
+        const child = spawn(process.execPath, [PUBLISH_CLI, staged, live], {
+          cwd: root,
+          env: childEnv(),
+          stdio: "ignore",
+        });
+        const [code] = (await once(child, "exit")) as [number | null];
+        return code;
+      })
+    );
+
+    expect(codes).toEqual([0, 0]);
+    const published = await readTree(live);
+    expect([treeA, treeB].map(tree => sortedKeys(tree))).toContainEqual(
+      sortedKeys(published)
+    );
+    expect(published).toEqual(
+      published["hooks/guard.sh"] === "a" ? treeA : treeB
+    );
+    expect(await fs.pathExists(path.join(plugins, LOCK_FILE))).toBe(false);
+  });
+});
+
+/**
+ * A record's keys, sorted, so trees compare by membership.
+ * @param tree Relative path to contents.
+ * @returns The sorted paths.
+ */
+function sortedKeys(tree: Readonly<Record<string, string>>): string[] {
+  const keys = Object.keys(tree);
+  keys.sort((a, b) => a.localeCompare(b));
+  return keys;
+}
 
 /**
  * Seed a fixture with the real builder and a base plugin that ships a guard.

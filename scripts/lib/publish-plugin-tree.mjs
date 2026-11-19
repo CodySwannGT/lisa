@@ -142,18 +142,262 @@ export function publishPluginTree(stagedDir, liveDir) {
   fs.rmSync(stagedDir, { force: true, recursive: true });
 }
 
+/** Prefix of a build's staging sibling; the suffix is the owning build's pid. */
+const STAGE_PREFIX = ".build-staging-";
+/** The checkout-wide publish lock, a sibling of the live trees. */
+const LOCK_NAME = ".publish.lock";
+/** How long a publish waits for another build's publish before giving up. */
+const DEFAULT_LOCK_WAIT_MS = 300_000;
+/** How often a waiting publish looks at the lock again. */
+const LOCK_POLL_MS = 50;
+
+/**
+ * Whether the process that owns a staging area or a lock is confirmed gone.
+ *
+ * Only `ESRCH` confirms that: `EPERM` means the process exists and belongs to
+ * another user, and anything else is not knowledge either way. Anything short
+ * of confirmation keeps the owner's files, because removing a running build's
+ * files breaks that build.
+ * @param {number} pid - owner process id
+ * @param {(pid: number, signal: number) => unknown} [probe] - `process.kill`
+ * @returns {boolean} true only when the owner does not exist
+ */
+export function ownerGone(pid, probe = process.kill) {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return false;
+  try {
+    probe(pid, 0);
+    return false;
+  } catch (error) {
+    return /** @type {NodeJS.ErrnoException} */ (error).code === "ESRCH";
+  }
+}
+
+/**
+ * Remove the staging areas of builds that were killed before their exit trap
+ * ran, and nothing whose owner might still be running.
+ * @param {string} pluginsDir - directory holding the live trees
+ * @param {(pid: number, signal: number) => unknown} [probe] - `process.kill`
+ * @returns {readonly string[]} names of the staging areas removed
+ */
+export function clearStaleStages(pluginsDir, probe = process.kill) {
+  const removed = [];
+  for (const entry of fs.readdirSync(pluginsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !entry.name.startsWith(STAGE_PREFIX)) continue;
+    const suffix = entry.name.slice(STAGE_PREFIX.length);
+    if (!/^\d+$/.test(suffix) || !ownerGone(Number(suffix), probe)) continue;
+    fs.rmSync(path.join(pluginsDir, entry.name), {
+      force: true,
+      recursive: true,
+    });
+    removed.push(entry.name);
+  }
+  return removed;
+}
+
+/**
+ * Block the calling thread without spinning.
+ * @param {number} ms - milliseconds to wait
+ * @returns {void}
+ */
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
+ * The pid recorded in a lock file, or null when it cannot be read.
+ * @param {string} file - lock file path
+ * @returns {number | null} the owner pid
+ */
+function lockOwner(file) {
+  try {
+    const pid = Number(fs.readFileSync(file, "utf8").trim());
+    return Number.isSafeInteger(pid) ? pid : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Take the checkout-wide publish lock, clearing one left by a dead build.
+ *
+ * The lock file is complete before it exists under its real name: the pid is
+ * written to a private file and hard-linked into place, and the link fails if
+ * a lock is already there. So no reader ever sees an empty lock and mistakes
+ * it for a stale one.
+ * @param {string} lockFile - lock file path
+ * @param {number} waitMs - how long to wait for another holder
+ * @param {(pid: number, signal: number) => unknown} probe - `process.kill`
+ * @returns {void}
+ */
+function acquireLock(lockFile, waitMs, probe) {
+  const mine = `${lockFile}.${process.pid}`;
+  fs.writeFileSync(mine, `${process.pid}\n`);
+  const deadline = Date.now() + waitMs;
+  try {
+    for (;;) {
+      try {
+        fs.linkSync(mine, lockFile);
+        return;
+      } catch (error) {
+        if (/** @type {NodeJS.ErrnoException} */ (error).code !== "EEXIST") {
+          throw error;
+        }
+      }
+      const owner = lockOwner(lockFile);
+      if (owner !== null && ownerGone(owner, probe)) {
+        clearDeadLock(lockFile, owner);
+        continue;
+      }
+      if (Date.now() >= deadline) {
+        throw new Error(
+          `publish-plugin-tree: another build (pid ${owner ?? "unknown"}) has held ${lockFile} for over ${waitMs} ms`
+        );
+      }
+      sleepSync(LOCK_POLL_MS);
+    }
+  } finally {
+    fs.rmSync(mine, { force: true });
+  }
+}
+
+/**
+ * Remove a lock whose owner is gone, without removing one a live build has
+ * taken since. The lock is first moved to a private name, so two builds
+ * clearing the same dead lock cannot both act on it; if what was moved turns
+ * out to belong to someone else, it is linked back.
+ * @param {string} lockFile - lock file path
+ * @param {number} deadOwner - the pid confirmed gone
+ * @returns {void}
+ */
+function clearDeadLock(lockFile, deadOwner) {
+  const claimed = `${lockFile}.stale.${process.pid}`;
+  try {
+    fs.renameSync(lockFile, claimed);
+  } catch {
+    return;
+  }
+  if (lockOwner(claimed) !== deadOwner) {
+    try {
+      fs.linkSync(claimed, lockFile);
+    } catch {
+      // A new holder already exists; the moved lock is not needed.
+    }
+  }
+  fs.rmSync(claimed, { force: true });
+}
+
+/**
+ * Run `work` while holding the checkout-wide publish lock.
+ *
+ * Two builds in one checkout must not publish at once: one build's retirement
+ * pass, decided from its own listing, would delete a file the other had just
+ * placed, leaving a changed file whose new import is missing. The lock covers
+ * listing, placement and retirement together, and is released on every exit
+ * path, including a thrown error and SIGINT or SIGTERM.
+ * @template T
+ * @param {string} pluginsDir - directory holding the live trees
+ * @param {() => T} work - the publication to perform
+ * @param {{ waitMs?: number, probe?: (pid: number, signal: number) => unknown }} [options] - lock wait and liveness probe
+ * @returns {T} what `work` returned
+ */
+export function withPublishLock(pluginsDir, work, options = {}) {
+  const lockFile = path.join(pluginsDir, LOCK_NAME);
+  const waitMs = options.waitMs ?? DEFAULT_LOCK_WAIT_MS;
+  fs.mkdirSync(pluginsDir, { recursive: true });
+  acquireLock(lockFile, waitMs, options.probe ?? process.kill);
+  const release = () => {
+    if (lockOwner(lockFile) === process.pid)
+      fs.rmSync(lockFile, { force: true });
+  };
+  const onSignal = (/** @type {NodeJS.Signals} */ signal) => {
+    release();
+    process.exit(signal === "SIGINT" ? 130 : 143);
+  };
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+  try {
+    return work();
+  } finally {
+    process.removeListener("SIGINT", onSignal);
+    process.removeListener("SIGTERM", onSignal);
+    release();
+  }
+}
+
+/**
+ * Parse the command line: staged/live pairs, `--retire <live>` entries, and
+ * `--clear-stale <plugins-dir>` as a mode of its own.
+ * @param {readonly string[]} args - arguments after the script path
+ * @returns {{ clearStale?: string, pairs: Array<[string, string]>, retire: string[] } | null} the plan, or null when malformed
+ */
+function parseArgs(args) {
+  if (args[0] === "--clear-stale") {
+    return args.length === 2
+      ? { clearStale: path.resolve(args[1]), pairs: [], retire: [] }
+      : null;
+  }
+  const pairs = [];
+  const retire = [];
+  const positional = [];
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] === "--retire") {
+      const target = args[index + 1];
+      if (!target) return null;
+      retire.push(path.resolve(target));
+      index += 1;
+    } else {
+      positional.push(path.resolve(args[index]));
+    }
+  }
+  if (positional.length % 2 !== 0) return null;
+  for (let index = 0; index < positional.length; index += 2) {
+    pairs.push([positional[index], positional[index + 1]]);
+  }
+  return pairs.length + retire.length > 0 ? { pairs, retire } : null;
+}
+
+/**
+ * Publish and retire every named tree under one lock. All live trees must
+ * share one parent, which is the checkout's plugins directory.
+ * @param {Array<[string, string]>} pairs - staged and live directories
+ * @param {string[]} retire - live trees whose source is gone
+ * @returns {void}
+ */
+function publishAll(pairs, retire) {
+  const parents = new Set([
+    ...pairs.map(([, live]) => path.dirname(live)),
+    ...retire.map(live => path.dirname(live)),
+  ]);
+  if (parents.size !== 1) {
+    throw new Error(
+      "publish-plugin-tree: every live tree must share one plugins directory"
+    );
+  }
+  const waitMs = Number(process.env.LISA_PLUGIN_PUBLISH_LOCK_WAIT_MS);
+  withPublishLock(
+    [...parents][0],
+    () => {
+      for (const [staged, live] of pairs) publishPluginTree(staged, live);
+      for (const live of retire) {
+        fs.rmSync(live, { force: true, recursive: true });
+      }
+    },
+    Number.isFinite(waitMs) && waitMs >= 0 ? { waitMs } : {}
+  );
+}
+
 if (invokedAsScript(import.meta.url)) {
-  const pairs = process.argv.slice(2);
-  if (pairs.length === 0 || pairs.length % 2 !== 0) {
+  const plan = parseArgs(process.argv.slice(2));
+  if (plan === null) {
     console.error(
-      "Usage: node scripts/lib/publish-plugin-tree.mjs <staged-dir> <live-dir> [<staged-dir> <live-dir>...]"
+      "Usage: node scripts/lib/publish-plugin-tree.mjs <staged-dir> <live-dir> [...] [--retire <live-dir>]...\n" +
+        "       node scripts/lib/publish-plugin-tree.mjs --clear-stale <plugins-dir>"
     );
     process.exit(2);
   }
-  for (let index = 0; index < pairs.length; index += 2) {
-    publishPluginTree(
-      path.resolve(pairs[index]),
-      path.resolve(pairs[index + 1])
-    );
+  if (plan.clearStale) {
+    clearStaleStages(plan.clearStale);
+  } else {
+    publishAll(plan.pairs, plan.retire);
   }
 }

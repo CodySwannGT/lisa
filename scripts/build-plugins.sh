@@ -99,11 +99,11 @@ finish_build() {
 trap 'finish_build $?' EXIT
 
 # A build killed outright cannot run its trap. Clear what such a build left,
-# but never the staging area of a build that is still running.
-for stale_stage in "$PLUGINS_DIR"/.build-staging-*; do
-  [ -d "$stale_stage" ] || continue
-  kill -0 "${stale_stage##*-}" 2>/dev/null || rm -rf "$stale_stage"
-done
+# but only where its owner is confirmed gone: `kill -0` here would also fail
+# for a build another user is running (EPERM), so the helper decides, and only
+# "no such process" (ESRCH) counts.
+mkdir -p "$PLUGINS_DIR"
+node "$ROOT_DIR/scripts/lib/publish-plugin-tree.mjs" --clear-stale "$PLUGINS_DIR"
 mkdir -p "$STAGE_DIR"
 
 # Live trees to publish from staging, and live trees whose source is gone.
@@ -395,15 +395,17 @@ done
 # Publish. Every tree is complete before any live tree is touched, and each
 # live file is replaced by a rename, so a session reading a hook during the
 # build sees the previous build's file or this one's, never neither.
-PUBLISH_PAIRS=()
+PUBLISH_ARGS=()
 # The `+` form, because bash 3.2 (macOS) treats an empty array as unbound
 # under `set -u`.
 for tree in ${PUBLISH_TREES[@]+"${PUBLISH_TREES[@]}"}; do
-  PUBLISH_PAIRS+=("$STAGE_DIR/$tree" "$PLUGINS_DIR/$tree")
+  PUBLISH_ARGS+=("$STAGE_DIR/$tree" "$PLUGINS_DIR/$tree")
 done
-if [ "${#PUBLISH_PAIRS[@]}" -gt 0 ]; then
-  node "$ROOT_DIR/scripts/lib/publish-plugin-tree.mjs" "${PUBLISH_PAIRS[@]}"
-fi
+# Retired trees go in the same call, so one checkout-wide lock covers every
+# write this build makes to the live trees.
 for tree in ${RETIRE_TREES[@]+"${RETIRE_TREES[@]}"}; do
-  rm -rf "${PLUGINS_DIR:?}/$tree"
+  PUBLISH_ARGS+=(--retire "$PLUGINS_DIR/$tree")
 done
+if [ "${#PUBLISH_ARGS[@]}" -gt 0 ]; then
+  node "$ROOT_DIR/scripts/lib/publish-plugin-tree.mjs" "${PUBLISH_ARGS[@]}"
+fi

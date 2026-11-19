@@ -326,3 +326,6 @@ reports/mutation/
 # Staging area of a plugin build that was killed before its exit trap ran;
 # the next build removes it (CodySwannGT/lisa#4583).
 /plugins/.build-staging-*/
+# The checkout-wide publish lock and its private temporaries.
+/plugins/.publish.lock
+/plugins/.publish.lock.*

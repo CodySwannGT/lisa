@@ -2635,7 +2635,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "c4d52cf656f80ba166fdf327119251b239b9d74c010a8d74a060ebc3e031188a",
     "scripts/build-plugins.sh":
-      "18172b78ef6117e5b2531b88560c889d6b890b56ef11f35df39a25fb39530c77",
+      "1cd42d608f6f6d50e49078307d07179343b6618ce15e5fc2d49143ef244cfe06",
     "scripts/build-unless-marked.mjs":
       "8514c8aa1908efca45b40076590e7c493fd39e9bfe3ae96a123253c20b1d5e0f",
     "scripts/check-control-command-parity.mjs":
@@ -2887,9 +2887,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/plugin-rule-citations.mjs":
       "c9f0ed57d6da16ce90eab0a67a73a7f6783e7065406a39eea039619a10e517b9",
     "scripts/lib/publish-plugin-tree.d.mts":
-      "19270c2e8a16d44338954644cb2377230e43e39fe81b43bf7515b55185a6d096",
+      "9cf6c2fa2fde77c9071d8a1b683b753706fffab14d5fb981dad5b29c642156e4",
     "scripts/lib/publish-plugin-tree.mjs":
-      "7ba931113b3e5b0e1bd71bfc4755599a57fcb31902b54eb64ee26c57149f42ec",
+      "2ff814b8d135e83c437dc410b7f90ffa4d97836fb3614f916aa8dfab2bfe3d12",
     "scripts/lib/rails-hooks-command.mjs":
       "dc695aa4920e83d9e757eaa2dcf3477ed2f5aa4df93814581e6254d5661c040e",
     "scripts/lib/rails-hooks-inspection.mjs":
