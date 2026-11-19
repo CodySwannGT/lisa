@@ -19,6 +19,10 @@ import { stripVTControlCharacters } from "node:util";
 
 import type { LisaConfig } from "../../src/core/config.js";
 import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
+import {
+  borrowNodeModules,
+  createSymlink,
+} from "../support/borrowed-node-modules.mjs";
 import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 import {
   enclosingAdmissionEnv,
@@ -117,7 +121,8 @@ function write(cwd: string, file: string, body: string): void {
 
 /**
  * This checkout's `node_modules`, except that `@codyswann/lisa` and the three
- * binaries the host calls are this branch's build.
+ * binaries the host calls are this branch's build, and tool state such as
+ * `.vitest-cache` is the host's own (CodySwannGT/lisa#5028).
  * @param cwd - Host root
  */
 function linkModules(cwd: string): void {
@@ -128,13 +133,10 @@ function linkModules(cwd: string): void {
     "lisa-test-run": path.join(REPO_ROOT, "dist", "cli", "lisa-test-run.js"),
     vitest: path.join(source, "vitest", "vitest.mjs"),
   };
+  borrowNodeModules(source, cwd, [".bin", SCOPE]);
   fs.mkdirSync(path.join(target, ".bin"), { recursive: true });
   fs.mkdirSync(path.join(target, SCOPE), { recursive: true });
-  for (const entry of fs.readdirSync(source)) {
-    if (entry === ".bin" || entry === SCOPE) continue;
-    fs.symlinkSync(path.join(source, entry), path.join(target, entry));
-  }
-  fs.symlinkSync(REPO_ROOT, path.join(target, SCOPE, "lisa"));
+  createSymlink(REPO_ROOT, path.join(target, SCOPE, "lisa"));
   for (const [name, script] of Object.entries(bins)) {
     const launcher = `#!/bin/sh\nexec "${process.execPath}" "${script}" "$@"\n`;
     fs.writeFileSync(path.join(target, ".bin", name), launcher, {

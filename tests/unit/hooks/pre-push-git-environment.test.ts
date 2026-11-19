@@ -7,7 +7,6 @@ import {
   readFile,
   realpath,
   rm,
-  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -17,6 +16,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { trackedHookCopies } from "../../helpers/hook-roster.js";
 import { resolveGit } from "../../support/git-executable.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const GIT = resolveGit();
 const ROOT_HOOK = path.resolve(".husky/pre-push");
@@ -237,7 +237,7 @@ async function createHookFixture(): Promise<{
     path.join(root, "scripts/lisa-audit.mjs")
   );
   await mkdir(path.join(root, "node_modules/@codyswann"), { recursive: true });
-  await symlink(
+  createSymlink(
     await realpath(process.cwd()),
     path.join(root, "node_modules/@codyswann/lisa"),
     "dir"
@@ -248,12 +248,12 @@ async function createHookFixture(): Promise<{
     args: ["init", "-q"],
     cwd: root,
   });
-  await symlink(GIT, path.join(bin, "git"));
+  createSymlink(GIT, path.join(bin, "git"));
   // The real jq, for the same reason node below is the real node: the hook
   // reads this fixture's `{}` package.json with it and must get the honest
   // answer that no optional script is configured. A stub would make the
   // fixture agree with whatever the hook did.
-  await symlink(resolveOnPath("jq"), path.join(bin, "jq"));
+  createSymlink(resolveOnPath("jq"), path.join(bin, "jq"));
   // The hook now also asks node whether package.json carries `test:cov:unit`
   // (#2827). That question has a real answer this fixture depends on — its
   // package.json is `{}`, so the honest answer is "no" and the hook must fall

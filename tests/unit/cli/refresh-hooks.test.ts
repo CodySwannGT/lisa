@@ -5,7 +5,6 @@ import {
   readFile,
   writeFile,
   rm,
-  symlink,
   chmod,
   rename,
   link,
@@ -28,6 +27,7 @@ import {
   CONFIG_TEXT,
   hookNames,
 } from "./refresh-hooks-fixture.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const observation = vi.hoisted(() => {
   const state: {
@@ -160,7 +160,7 @@ describe("supported scoped hook refresh", () => {
     const input = await fixture();
     const target = path.join(input.host, DEDUPE);
     await rm(target);
-    await symlink(path.join(input.host, "dirty.txt"), target);
+    createSymlink(path.join(input.host, "dirty.txt"), target);
     await expect(refreshHooks(input.host, input)).rejects.toThrow("regular");
     await writeFile(
       path.join(input.packageDir, "package.json"),
@@ -257,13 +257,13 @@ describe("supported scoped hook refresh", () => {
         if (kind !== "leaf" || filename !== target || fired) return;
         fired = true;
         await rm(target);
-        await symlink(path.join(foreign, GUARD_NAME), target);
+        createSymlink(path.join(foreign, GUARD_NAME), target);
       };
       observation.checked = async filename => {
         if (kind !== "source" || filename !== source || fired) return;
         fired = true;
         await rm(source);
-        await symlink(path.join(foreign, "source"), source);
+        createSymlink(path.join(foreign, "source"), source);
       };
       observation.after = async filename => {
         if (
@@ -276,7 +276,7 @@ describe("supported scoped hook refresh", () => {
         if (kind === "ancestor") {
           fired = true;
           await rename(hooks, saved);
-          await symlink(foreign, hooks);
+          createSymlink(foreign, hooks);
         } else if (kind === "mode") {
           fired = true;
           await chmod(path.join(hooks, DEDUPE_NAME), 0o444);

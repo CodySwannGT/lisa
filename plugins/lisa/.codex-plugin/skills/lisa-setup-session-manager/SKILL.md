@@ -107,9 +107,9 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    is exhausted and a worker slot is still free, the manager then looks at backlog items (open
    leaves in no lifecycle role) that nobody else is assigned to, that are not human-held and have
    no unfinished blocker. Each one that passes the full tracker validation, including the
-   stateless-pickup check, is assigned to the first `operatorIds` entry (its bare login or id,
-   without the `login:` / `id:` prefix), moved to Ready and
-   dispatched. Say plainly that this lets the manager start work nobody marked Ready, so it needs
+   stateless-pickup check, is moved to Ready and dispatched. One already assigned to an operator
+   keeps that assignee; an unassigned one is assigned to the manager's own tracker identity
+   ("me"), as every item the manager takes is. Say plainly that this lets the manager start work nobody marked Ready, so it needs
    `operatorIds` and should go with `trustedAuthorIds` on any tracker outsiders can write to.
 6. `node "$SM/session-manager.mjs" validate --project-root "$ROOT"` must print `valid: true`.
    Show the operator every entry of `warnings`, when there is one, in plain words, and offer to

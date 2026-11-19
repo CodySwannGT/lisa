@@ -22,13 +22,7 @@
  */
 
 import type { SpawnSyncReturns } from "node:child_process";
-import {
-  mkdtempSync,
-  realpathSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -39,6 +33,7 @@ import {
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const LANES = [
   "typescript/copy-overwrite/scripts",
@@ -75,7 +70,7 @@ function throughSymlink(
   const link = path.join(root, "scripts");
   const entry = path.join(link, script);
   temps.push(root);
-  symlinkSync(path.resolve(dir), link);
+  createSymlink(path.resolve(dir), link);
   return output(
     boundedSpawnSync({
       label: `${script} through a symlink`,

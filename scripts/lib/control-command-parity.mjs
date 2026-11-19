@@ -32,7 +32,7 @@
  *    installer's own policy file does not withhold the skill. That the
  *    installer then copies it to where the agent reads it is proved by
  *    running the installer, in
- *    `tests/unit/opencode/control-commands-install.test.ts`.
+ *    `tests/unit/controls/control-commands-install.test.ts`.
  * 4. The agent's own copy of the skill says, in its "Running it." paragraph,
  *    in a sentence that names the agent, the form that agent's operator types.
  * 5. Every difference the record lists for the agent and the skill is stated
@@ -44,7 +44,7 @@
  *
  * The enforcing surfaces are `bun run check:plugins`, which runs
  * `scripts/check-control-command-parity.mjs` at its end, and the vitest suites
- * `tests/unit/plugins/control-command-*.test.ts`, which break one thing at a
+ * `tests/unit/controls/control-command-*.test.ts`, which break one thing at a
  * time in a copy and assert the check says so.
  * @module scripts/lib/control-command-parity
  */
@@ -152,7 +152,7 @@ export const CONTROL_COMMANDS = Object.freeze([
 
 /**
  * The coding agents Lisa supports, as the `harness` setting names them.
- * `tests/unit/plugins/control-command-parity.test.ts` holds this equal to
+ * `tests/unit/controls/control-command-parity.test.ts` holds this equal to
  * `CODING_AGENTS` in `src/controls/coding-agents.ts`.
  */
 export const SUPPORTED_AGENTS = Object.freeze([

@@ -8,13 +8,7 @@
  * repository, to its remote or to the machine's settings.
  * @module tests/unit/controls/proof-copy
  */
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -47,6 +41,7 @@ import {
   scratchFolder,
 } from "./support/proof-copy-run.js";
 import { keep, removeFixtures } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const WORKING = provedGates([{ command: checks(F_NONE_SOURCE) }]);
 const COMMITTED_SOURCE = CONTROL_AUDIT_FIXTURE_FILES["F-none"][F_NONE_SOURCE];
@@ -225,7 +220,7 @@ describe("a disposable copy is refused", () => {
     const repoPath = repository();
     const elsewhere = path.dirname(scratchFolder());
     writeFileSync(path.join(elsewhere, "lisa-run-gates.mjs"), "// elsewhere\n");
-    symlinkSync(elsewhere, path.join(repoPath, "scripts"));
+    createSymlink(elsewhere, path.join(repoPath, "scripts"));
     writeFileSync(
       path.join(repoPath, ".lisa", "controls", "carriers.json"),
       JSON.stringify({ files: ["scripts/lisa-run-gates.mjs"] })

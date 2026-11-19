@@ -18,13 +18,14 @@
  * @module tests/unit/hooks/block-no-verify-missing-jq
  */
 
-import { existsSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /** The hook as it is installed into a project. */
 const HOOK = path.resolve(
@@ -67,7 +68,7 @@ const BASH = locate("bash") ?? "/bin/bash";
 
 for (const tool of SHIM_TOOLS) {
   const found = locate(tool);
-  if (found) symlinkSync(found, path.join(shim, tool));
+  if (found) createSymlink(found, path.join(shim, tool));
 }
 
 afterAll(() => rmSync(shim, { recursive: true, force: true }));

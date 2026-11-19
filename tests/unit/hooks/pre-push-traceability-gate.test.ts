@@ -33,7 +33,6 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -49,6 +48,7 @@ import {
   resolveMoment,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { BUILTIN_FLOOR } from "../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const ROOT = process.cwd();
 
@@ -176,7 +176,7 @@ function stageProject(
   dirs.push(root);
   mkdirSync(path.join(root, "scripts/lib"), { recursive: true });
   mkdirSync(bin);
-  symlinkSync(process.execPath, path.join(bin, "node"));
+  createSymlink(process.execPath, path.join(bin, "node"));
 
   if (options.registry !== false) {
     copyFileSync(GATES_SCRIPT, path.join(root, "scripts/lisa-gates.mjs"));

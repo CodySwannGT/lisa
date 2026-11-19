@@ -26,6 +26,7 @@ import {
   createMockLisaDir,
   createTempDir,
 } from "../helpers/test-utils.js";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 const WORKFLOW = ".github/workflows/lisa-update.yml";
 const SCRIPT = "scripts/lisa-self-update.mjs";
@@ -227,7 +228,7 @@ describe("retiring unedited Lisa seeds through deletions.json", () => {
     const target = path.join(destDir, "elsewhere.yml");
     await fs.writeFile(target, SEEDED);
     await fs.remove(path.join(destDir, WORKFLOW));
-    await fs.symlink(target, path.join(destDir, WORKFLOW));
+    createSymlink(target, path.join(destDir, WORKFLOW));
     await manifest({ [WORKFLOW]: [sha256(SEEDED)], [SCRIPT]: [] });
 
     await apply();

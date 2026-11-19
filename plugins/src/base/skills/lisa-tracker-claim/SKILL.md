@@ -33,3 +33,4 @@ Thin dispatcher. `$ARGUMENTS` must contain exactly one canonical work-item refer
 - A fresh claim uses the same idempotency lock as the three build-intake Phase 3b flows: move configured ready to configured claimed, or place an unlaned backlog leaf directly in claimed; assign to the authenticated user only when unassigned; never replace an existing owner.
 - Fail closed if the mutation or post-write read cannot prove the claimed-or-later state. A tracker outage is a blocker, not permission to work untracked.
 - This skill claims existing work only. It never creates a ticket and never writes the worktree binding.
+- A claim does not satisfy the token-estimate gate (S21). `lisa-track` step 4 runs the claim-phase check right after the claim and, when the item has no estimate, writes one before any work begins. Every dispatch path (direct `lisa-implement`, the build-intake flows, the session manager) reaches work through `lisa-track`, so that step is the single owner.

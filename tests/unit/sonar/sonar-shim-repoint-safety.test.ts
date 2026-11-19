@@ -8,7 +8,7 @@
  * hook must run before each replacement.
  * @module tests/unit/sonar/sonar-shim-repoint-safety
  */
-import { mkdir, readdir, readFile, symlink, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -30,6 +30,7 @@ import {
   vendorShim,
   writeShim,
 } from "./support/sonar-shim-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 
@@ -79,7 +80,7 @@ describe("repointSonarShims write safety", () => {
     await mkdir(target, { recursive: true });
     await writeFile(outsideShim, body);
     await mkdir(path.join(root, ".claude"), { recursive: true });
-    await symlink(outside, path.join(root, ".claude/hooks"));
+    createSymlink(outside, path.join(root, ".claude/hooks"));
 
     const result = await repointSonarShims(root);
 

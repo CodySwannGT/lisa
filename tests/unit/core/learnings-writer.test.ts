@@ -13,6 +13,7 @@ import {
 } from "../../../src/core/learnings-writer.js";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 // The fsync-heavy arm of CodySwannGT/lisa#2490 rather than the spawn arm: many
 // fsync-paired filesystem transactions, same unbounded latency, same fixed
@@ -314,7 +315,7 @@ describe("learnings writer", () => {
     const external = path.join(tempDir, "external.md");
     await fs.writeFile(external, renderLearningsFile([VALID_ENTRY]));
     await fs.ensureDir(path.dirname(learningsPath));
-    await fs.symlink(external, learningsPath);
+    createSymlink(external, learningsPath);
     await expect(persistLearningEntry(tempDir, VALID_ENTRY)).rejects.toThrow(
       /not a regular file/i
     );

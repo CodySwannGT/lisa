@@ -17,7 +17,6 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -32,6 +31,7 @@ import {
   PROJECT_DIR_LIMIT,
   claudeProjectDirName,
 } from "./support/claude-project-dir.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const FIXTURES = path.resolve(
   import.meta.dirname,
@@ -142,7 +142,7 @@ describe("findTranscript under a truncated project directory", () => {
     const configDir = tempDir();
     const real = longCwd();
     const link = path.join(tempDir(), "link");
-    symlinkSync(real, link);
+    createSymlink(real, link);
     const file = plantIn(configDir, claudeProjectDirName(real));
     expect(findTranscript({ configDir, cwd: link, sessionId: FULL_ID })).toBe(
       file

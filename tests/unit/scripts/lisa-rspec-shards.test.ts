@@ -30,6 +30,7 @@ import {
   verifyShards,
   weighFiles,
 } from "../../../rails/copy-overwrite/scripts/lisa-rspec-shards.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const A_SPEC = "spec/a_spec.rb";
 const B_SPEC = "spec/b_spec.rb";
@@ -149,7 +150,7 @@ describe("discovering the suite a bare rspec loads", () => {
     const root = scratch();
     put(root, "elsewhere/x_spec.rb");
     put(root, A_SPEC);
-    fs.symlinkSync(
+    createSymlink(
       path.join(root, "elsewhere"),
       path.join(root, "spec", "linked")
     );

@@ -25,7 +25,7 @@ import { pathToFileURL } from "node:url";
 
 import type { CarrierPoint } from "../../src/controls/carrier-types.js";
 import { evidenceAt, type GatesBlock } from "../helpers/control-register.js";
-import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import { handOffEvent } from "./agent-event-handoff.js";
 import {
   type CarrierCommandRun,
   CHECKED_FILE,
@@ -360,6 +360,9 @@ export function shellAgent(name: string): ShellAgent {
 /**
  * Do what an agent does after one of its tools ran: start every command the
  * repository registers for that hook, with the event on standard input.
+ * A hook that exits without reading the whole event fails the call, as it
+ * would fail the agent's write; see `./agent-event-handoff.ts` for why the
+ * event is not handed over through `spawnSync`'s `input`.
  * @param root - The repository
  * @param agent - The agent
  * @param event - The event the agent hands its hook
@@ -377,16 +380,15 @@ export function deliver(
   if (others.length > 0) {
     throw new Error(`${agent.file} registers more than one hook command`);
   }
-  return boundedSpawnSync({
+  return handOffEvent({
     label: `${agent.agent}'s hook after a file write`,
-    command: "/bin/sh",
-    args: ["-c", command],
+    command,
     cwd: root,
     env:
       agent.rootVariable === null
         ? env
         : { ...env, [agent.rootVariable]: root },
-    input: JSON.stringify(event),
+    event,
   });
 }
 
