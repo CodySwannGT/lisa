@@ -132,6 +132,9 @@ describe("classifyHumanGateReason under each humanGate.mode", () => {
     "approve applying a patch to picomatch",
     "apply a patch against the README",
     "apply a patch to fix the package build",
+    "fork-library-selection",
+    "vendor-package-choice",
+    "forking-dependency-decision",
   ])("does not read %j as our own dependency copy", reason => {
     expect(classifyHumanGateReason(reason).act).not.toBe("own-dependency-copy");
   });

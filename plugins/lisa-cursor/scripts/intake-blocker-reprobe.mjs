@@ -514,6 +514,8 @@ const KEYWORD_ACTS = new Set([
   "legal-signoff",
   "person-only-account",
   "human-authored-surface",
+  // "fork-library-selection" names a topic, not the approval (#5024).
+  "own-dependency-copy",
   "compliance-signoff",
   "accountable-person",
   "unreachable-system",
