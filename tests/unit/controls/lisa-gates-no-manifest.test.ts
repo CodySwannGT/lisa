@@ -11,7 +11,7 @@
  *
  * A gate with no parts still asks the old question, and still gets the old
  * answer. Nothing here changes what it resolves to.
- * @module tests/unit/scripts/lisa-gates-no-manifest
+ * @module tests/unit/controls/lisa-gates-no-manifest
  */
 import { existsSync } from "node:fs";
 import path from "node:path";

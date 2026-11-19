@@ -12,7 +12,7 @@
  *
  * The executors are injected, so nothing is started here. The real command
  * line on the real fixture is `tests/integration/controls-no-manifest-runner`.
- * @module tests/unit/scripts/lisa-run-gates-no-manifest
+ * @module tests/unit/controls/lisa-run-gates-no-manifest
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -26,8 +26,8 @@ import {
   type ControlAuditFixture,
   buildFNone,
 } from "../../helpers/control-audit-fixtures.js";
-import { type GateRun, sink } from "./lisa-run-gates-fixtures.js";
-import { type ArgvExecutor } from "../controls/support/lisa-run-gates-parts-fixtures.js";
+import { type GateRun, sink } from "../scripts/lisa-run-gates-fixtures.js";
+import { type ArgvExecutor } from "./support/lisa-run-gates-parts-fixtures.js";
 
 const COMMIT = "commit";
 const PUSH = "push";
@@ -51,7 +51,11 @@ const NPM_NO_MANIFEST = {
   output: "npm error enoent Could not read package.json\n",
 };
 
-/** A level written either way a project may write it. */
+/**
+ * A level written either way a project may write it.
+ * @param level - The level to spell
+ * @returns The level in that spelling
+ */
 const SPELLINGS: ReadonlyArray<
   readonly [string, (level: string) => string | { level: string }]
 > = [

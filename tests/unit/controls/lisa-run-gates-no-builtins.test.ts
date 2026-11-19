@@ -15,7 +15,7 @@
  *
  * Every case starts the real command line, because the contract is an exit
  * code between two processes.
- * @module tests/unit/scripts/lisa-run-gates-no-builtins
+ * @module tests/unit/controls/lisa-run-gates-no-builtins
  */
 import { type SpawnSyncReturns } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
