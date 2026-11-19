@@ -489,7 +489,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "ac3db7dc5b95d2c10985ac6b45c004d5a29fbee3d5d72df412240f2435901fc4",
+      "edfc36f179f79703f3cb2dc809fdbb708e270b3fc82cc6a73fdad9935bfa1561",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -821,7 +821,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "e1b32700f64efb91fdd20de863fd067de61b103c7365afc232b926ecb48e7a48",
+      "e2d5a9bffc558a4eebcd93764e5e9f741211665051271e5f0ba57c3d83de4613",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "0e9a3e950ea05616522d6f115118791fa08caa3d2c8ee421aa8cf856558a6e77",
     "npm-package/package-lisa/package.lisa.json":
@@ -11566,6 +11566,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/configured-learnings-path.ts": true,
     "src/core/deletion-basis.ts": true,
     "src/core/deploy-release-dependence.ts": true,
+    "src/core/direct-minimums.ts": true,
+    "src/core/direct-range-raise.ts": true,
     "src/core/downstream-names.ts": true,
     "src/core/downstream-references.ts": true,
     "src/core/effectiveness-store.ts": true,
@@ -13239,6 +13241,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/ci-runtime-deferral.test.ts": true,
     "tests/unit/core/deletion-basis.test.ts": true,
     "tests/unit/core/deploy-release-dependence.test.ts": true,
+    "tests/unit/core/direct-minimums.test.ts": true,
+    "tests/unit/core/direct-range-raise.test.ts": true,
     "tests/unit/core/effectiveness-store.test.ts": true,
     "tests/unit/core/enforcement-census-roster.test.ts": true,
     "tests/unit/core/enforcement-census.test.ts": true,
@@ -14560,6 +14564,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/package-lisa-integration.test.ts": true,
     "tests/unit/strategies/package-lisa-invoking-manager.test.ts": true,
     "tests/unit/strategies/package-lisa-lifecycle.test.ts": true,
+    "tests/unit/strategies/package-lisa-minimums.test.ts": true,
     "tests/unit/strategies/package-lisa-override-floor-remedy.test.ts": true,
     "tests/unit/strategies/package-lisa-real-templates.test.ts": true,
     "tests/unit/strategies/package-lisa-remove.test.ts": true,

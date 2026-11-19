@@ -16,6 +16,12 @@ import {
   readJsonOrNull,
 } from "../utils/json-utils.js";
 import { JsonMergeError } from "../errors/index.js";
+import { raiseDirectRangesToLisaFloors } from "../core/direct-range-raise.js";
+import {
+  applyDirectMinimums,
+  describeDirectMinimumConflict,
+  describeDirectMinimumRaise,
+} from "../core/direct-minimums.js";
 import {
   asRecord,
   auditSelfReferenceRewrites,
@@ -23,7 +29,6 @@ import {
   describeSelfReferenceRemedy,
   DIRECT_DEPENDENCY_SECTIONS,
   OVERRIDE_SECTIONS,
-  raiseDirectRangesToLisaFloors,
   type OverrideFloorAudit,
   type SelfReferenceCandidate,
   type SelfReferenceFloorConflict,
@@ -172,8 +177,14 @@ export class PackageLisaStrategy implements ICopyStrategy {
       )
     );
     const result = planSelfReferencingOverrideNormalization(
-      raiseDirectRangesToLisaFloors(forced.packageJson, effective.force)
-        .packageJson,
+      raiseDirectRangesToLisaFloors(
+        holdDirectMinimums(
+          forced.packageJson,
+          effective.minimums,
+          this.PACKAGE_JSON
+        ).packageJson,
+        effective.force
+      ).packageJson,
       this.PACKAGE_JSON
     );
     assertManifestIsInstallable(result.packageJson, this.PACKAGE_JSON);
@@ -246,8 +257,14 @@ export class PackageLisaStrategy implements ICopyStrategy {
       return {
         applyPath,
         audit: auditSelfReferenceRewrites(
-          raiseDirectRangesToLisaFloors(forced.packageJson, effective.force)
-            .packageJson
+          raiseDirectRangesToLisaFloors(
+            holdDirectMinimums(
+              forced.packageJson,
+              effective.minimums,
+              this.PACKAGE_JSON
+            ).packageJson,
+            effective.force
+          ).packageJson
         ),
         error: null,
       };
@@ -464,8 +481,13 @@ export class PackageLisaStrategy implements ICopyStrategy {
         declaredDependencies(projectJson)
       )
     );
-    const raised = raiseDirectRangesToLisaFloors(
+    const held = holdDirectMinimums(
       forced.packageJson,
+      effective.minimums,
+      this.PACKAGE_JSON
+    );
+    const raised = raiseDirectRangesToLisaFloors(
+      held.packageJson,
       effective.force
     );
     const plan = planSelfReferencingOverrideNormalization(
@@ -477,6 +499,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
       ...plan,
       notes: [
         ...forced.notes,
+        ...held.raises.map(describeDirectMinimumRaise),
         ...raised.raises.map(
           raise =>
             `Raised ${raise.section}.${raise.name} from ${JSON.stringify(raise.from)} to ` +
@@ -534,7 +557,16 @@ export class PackageLisaStrategy implements ICopyStrategy {
     // `adopt` reclaims a key so `defaults` can rewrite it, and `defaults` is
     // dropped here — carrying it alone would delete a host script and put
     // nothing back.
-    return { force, defaults: {}, merge: {}, remove, adopt: {} };
+    // A minimum is a library choice, not a security pin, so the postinstall
+    // path leaves it to the full apply.
+    return {
+      force,
+      defaults: {},
+      merge: {},
+      remove,
+      adopt: {},
+      minimums: {},
+    };
   }
 
   /**
@@ -761,6 +793,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
       merge: {},
       remove: {},
       adopt: {},
+      minimums: {},
     };
 
     // Expand types to include parents (e.g., expo includes typescript)
@@ -842,6 +875,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
         child.remove || {}
       ) as Record<string, string[]>,
       adopt: mergeAdoptSections(parent.adopt, child.adopt || {}),
+      minimums: { ...parent.minimums, ...child.minimums },
     };
   }
 
@@ -1801,6 +1835,28 @@ function rangeFloor(range: string): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Hold a host's direct ranges at or above Lisa's minimums, refusing a raise
+ * that would cross a major.
+ * @param pkg - Merged package.json about to be persisted
+ * @param minimums - The merged template's minimums
+ * @param fileName - Basename used in error messages
+ * @throws JsonMergeError naming the first range no same-major raise reaches
+ * @returns The manifest with raised ranges, and each raise made
+ */
+function holdDirectMinimums(
+  pkg: Record<string, unknown>,
+  minimums: Readonly<Record<string, string>>,
+  fileName: string
+): ReturnType<typeof applyDirectMinimums> {
+  const held = applyDirectMinimums(pkg, minimums);
+  const refused = held.conflicts[0];
+  if (refused !== undefined) {
+    throw new JsonMergeError(fileName, describeDirectMinimumConflict(refused));
+  }
+  return held;
 }
 
 /**

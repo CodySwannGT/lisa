@@ -80,6 +80,11 @@ interface AdoptSection {
  * - `remove`: Section keys Lisa deletes from the project (retired keys)
  * - `adopt`: Section keys whose Lisa-authored values are reclaimed so
  *   `defaults` can install the current one
+ * - `minimums`: Package name to the lowest version range a host that lists the
+ *   package directly may hold. Lisa raises a lower direct range inside its own
+ *   major and refuses a raise that would cross one. Nothing is installed in a
+ *   host that does not list the package, and nothing is written to `overrides`
+ *   or `resolutions`, so transitive copies are never moved.
  *
  * When multiple package.lisa.json files are loaded from the inheritance chain (all → typescript → specific),
  * they are merged with child types overriding parent types in each section.
@@ -127,6 +132,9 @@ export interface PackageLisaTemplate {
 
   /** Section keys whose Lisa-authored values are reclaimed before defaults */
   adopt?: AdoptSection;
+
+  /** Lowest range a host's own direct dependency on a package may hold */
+  minimums?: Record<string, string>;
 }
 
 /**
@@ -139,4 +147,5 @@ export interface ResolvedPackageLisaTemplate extends PackageLisaTemplate {
   merge: Record<string, unknown[]>;
   remove: Record<string, string[]>;
   adopt: Record<string, Record<string, string[]>>;
+  minimums: Record<string, string>;
 }

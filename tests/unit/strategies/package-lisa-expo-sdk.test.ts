@@ -81,6 +81,7 @@ describe("PackageLisaStrategy", () => {
         dependencies: Record<string, string>;
         devDependencies: Record<string, string>;
       };
+      minimums: Record<string, string>;
     } {
       return fs.readJsonSync(expoSource);
     }
@@ -127,8 +128,8 @@ describe("PackageLisaStrategy", () => {
       // imports (CodySwannGT/lisa#4932): a host's strict dead-code gate reported
       // each one unused until the host wrote code for it. The Apollo/Sentry
       // pair and the codegen toolchain go with them. Lisa never removes a runtime
-      // library from a host; a floor in `overrides` keeps the library line for
-      // any host that has it (runtime-dependency-ownership.test.ts).
+      // library from a host; a minimum keeps the library line for any host
+      // that lists it (runtime-dependency-ownership.test.ts).
       for (const pkg of [
         "@apollo/client",
         "apollo-link-sentry",
@@ -138,10 +139,11 @@ describe("PackageLisaStrategy", () => {
         expect(template.force.dependencies[pkg]).toBeUndefined();
         expect(template.defaults.dependencies[pkg]).toBeUndefined();
       }
-      // zod's version line is kept as a floor, which installs nothing in a
-      // new project that has not used it yet.
+      // zod's floor answers GHSA-mrhx-c7xc-m3w5, so it stays a security floor
+      // for every copy in the tree; it installs nothing in a new project.
       expect(template.force.dependencies["zod"]).toBeUndefined();
       expect(template.force.overrides["zod"]).toBe(">=4.6.6");
+      expect(template.minimums["zod"]).toBeUndefined();
       // tailwindcss must stay in defaults, NEVER force: the tailwind major is
       // coupled to the project's gluestack-ui generation (v3/v4 → tailwind ^3 +
       // nativewind 4; v5 → tailwind ^4.2 + nativewind 5 per

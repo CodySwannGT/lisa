@@ -11,12 +11,15 @@
  *   apply never takes one away. Only retired dev-tool keys are reclaimed, and
  *   only at the exact values Lisa once wrote.
  * - **The choice is kept without installing code.** Every library Lisa used to
- *   force carries a floor at its old minimum in both `overrides` and
- *   `resolutions`. A floor applies only when the package is in the tree, so a
- *   host that uses the library stays on Lisa's line and a host that never did
- *   installs nothing. No release history records a reason beyond "the stack's
- *   standard library" — every one arrived in the initial commit — so all of
- *   them keep the floor rather than a guess about which mattered.
+ *   force keeps its old minimum in the template's `minimums`. A minimum holds
+ *   only a range the host itself lists, so a host that uses the library stays
+ *   on Lisa's line and a host that never did installs nothing. It is never an
+ *   `overrides`/`resolutions` floor: those replace the range of every copy in
+ *   the tree and would move a transitive consumer of an older major onto a
+ *   newer one, which the forced dependency never did. No release history
+ *   records a reason beyond "the stack's standard library" — every one arrived
+ *   in the initial commit — so all of them keep the minimum rather than a
+ *   guess about which mattered.
  *
  * A fresh project must still install, build, lint and test, so no file Lisa
  * ships into a stack's hosts may import a library that stack is no longer
@@ -43,7 +46,12 @@ import {
 /** The one package every host is given whatever its stack. */
 const LISA_PACKAGE = "@codyswann/lisa";
 
-/** Runtime libraries each stack forced before #4932, with the floor kept. */
+/**
+ * Runtime libraries each stack forced before #4932, with the minimum kept.
+ * The security floors are absent on purpose, because an advisory reaches every
+ * copy in the tree, so each stays an `overrides`/`resolutions` floor:
+ * {@link SECURITY_FLOORS}.
+ */
 const DE_FORCED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   cdk: { "source-map-support": ">=0.5.21" },
   expo: {
@@ -58,15 +66,12 @@ const DE_FORCED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
     "i18n-js": ">=4.5.1",
     "patch-package": ">=8.0.0",
     "react-hook-form": ">=7.70.0",
-    tar: ">=7.5.21",
     "text-encoding-polyfill": ">=0.6.7",
     "usehooks-ts": ">=3.1.1",
-    zod: ">=4.6.6",
   },
   nestjs: {
     "@apollo/server": ">=5.4.0",
     "@as-integrations/express5": ">=1.1.2",
-    "@graphql-tools/utils": ">=12.0.2",
     "@aws-sdk/client-apigatewaymanagementapi": ">=3.967.0",
     "@aws-sdk/client-cognito-identity-provider": ">=3.969.0",
     "@aws-sdk/rds-signer": ">=3.968.0",
@@ -84,6 +89,18 @@ const DE_FORCED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
     "graphql-ws": ">=6.0.6",
     "typeorm-naming-strategies": ">=4.1.0",
   },
+};
+
+/**
+ * Libraries Lisa stopped forcing whose floor answers a security advisory, so it
+ * stays in `overrides`/`resolutions` for every copy: tar's predates #4932, zod
+ * answers GHSA-mrhx-c7xc-m3w5 and @graphql-tools/utils GHSA-c4qx-w738-7hr3.
+ */
+const SECURITY_FLOORS: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = {
+  expo: { tar: ">=7.5.21", zod: ">=4.6.6" },
+  nestjs: { "@graphql-tools/utils": ">=12.0.2" },
 };
 
 /**
@@ -117,6 +134,7 @@ function withdrawn(stack: string): ReadonlySet<string> {
     lineage(stack)
       .flatMap(layer => [
         ...Object.keys(DE_FORCED[layer] ?? {}),
+        ...Object.keys(SECURITY_FLOORS[layer] ?? {}),
         ...Object.keys(TEMPLATES.get(layer)?.adopt?.devDependencies ?? {}),
       ])
       .filter(name => !still.has(name))
@@ -137,19 +155,35 @@ describe("runtime libraries Lisa stopped forcing", () => {
   });
 
   it.each(Object.entries(DE_FORCED))(
-    "%s forces none of them and floors each in overrides and resolutions",
+    "%s forces none of them and keeps each one's minimum for direct ranges only",
     (stack, floors) => {
-      const force = TEMPLATES.get(stack)?.force ?? {};
+      const template = TEMPLATES.get(stack);
+      const force = template?.force ?? {};
       for (const [name, floor] of Object.entries(floors)) {
         expect(force.dependencies?.[name], `${stack} forces ${name}`).toBe(
           undefined
         );
-        expect(force.overrides?.[name], `${stack} overrides.${name}`).toBe(
+        expect(template?.minimums?.[name], `${stack} minimums.${name}`).toBe(
           floor
+        );
+        expect(force.overrides?.[name], `${stack} overrides.${name}`).toBe(
+          undefined
         );
         expect(force.resolutions?.[name], `${stack} resolutions.${name}`).toBe(
-          floor
+          undefined
         );
+      }
+    }
+  );
+
+  it.each(Object.entries(SECURITY_FLOORS))(
+    "%s keeps each security floor for every copy in the tree, not as a minimum",
+    (stack, floors) => {
+      const template = TEMPLATES.get(stack);
+      for (const [name, floor] of Object.entries(floors)) {
+        expect(template?.force?.overrides?.[name], name).toBe(floor);
+        expect(template?.force?.resolutions?.[name], name).toBe(floor);
+        expect(template?.minimums?.[name], name).toBeUndefined();
       }
     }
   );

@@ -38,16 +38,14 @@
       "esbuild": "$esbuild",
       "vite": "$vite",
       "qs": "^6.16.0",
-      "deepmerge-ts": "^8.0.1",
-      "source-map-support": ">=0.5.21"
+      "deepmerge-ts": "^8.0.1"
     },
     "resolutions": {
       "aws-cdk-lib": "$aws-cdk-lib",
       "esbuild": "$esbuild",
       "vite": "$vite",
       "qs": "^6.16.0",
-      "deepmerge-ts": "^8.0.1",
-      "source-map-support": ">=0.5.21"
+      "deepmerge-ts": "^8.0.1"
     },
     "devEngines": {
       "packageManager": {
@@ -128,5 +126,8 @@
         "lisa-test-run -- vitest"
       ]
     }
+  },
+  "minimums": {
+    "source-map-support": ">=0.5.21"
   }
 }

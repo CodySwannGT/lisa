@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "bin/*.ts",
-    "{lambda,lambdas,functions}/**/{index,handler}.ts"
+    "{lambda,lambdas,functions}/**/*.ts"
   ],
   "project": [
     "bin/**/*.ts",

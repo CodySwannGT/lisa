@@ -71,6 +71,20 @@ const ORDINARY_MODULE_PROBES = [
 ] as const;
 
 /**
+ * Files a stack's framework loads by a path string, so nothing imports them and
+ * only an entry keeps them from being reported unused. A CDK `NodejsFunction`
+ * names its handler file directly (`entry: "lambda/process-order.ts"`), under
+ * any name, and a copy-overwrite config leaves the host no way to add one.
+ */
+const FRAMEWORK_ENTRY_PROBES: Readonly<Record<string, readonly string[]>> = {
+  "cdk/copy-overwrite/knip.json": [
+    "lambda/process-order.ts",
+    "lambdas/orders/process-order.ts",
+    "functions/api/get-user.ts",
+  ],
+};
+
+/**
  * Test-file paths in every layout a stack uses. An `ignore` glob matching any
  * of them takes tests out of the analysis the issue requires them to be in.
  */
@@ -253,6 +267,20 @@ describe("knip configs Lisa runs and ships are strict", () => {
   it("makes only real starting points entries, never every module", () => {
     expect(CONFIGS.flatMap(blanketEntries)).toEqual([]);
   });
+
+  it.each(Object.entries(FRAMEWORK_ENTRY_PROBES))(
+    "%s makes every file its framework loads by path an entry",
+    (file, probes) => {
+      const patterns = readConfig(file).scopes.flatMap(scope =>
+        Array.isArray(scope.entry) ? (scope.entry as string[]) : []
+      );
+      const missed = probes.filter(
+        probe =>
+          !patterns.some(pattern => minimatch(probe, pattern, { dot: true }))
+      );
+      expect(missed).toEqual([]);
+    }
+  );
 
   it("keeps every test file in the analysis", () => {
     expect(CONFIGS.flatMap(testIgnores)).toEqual([]);

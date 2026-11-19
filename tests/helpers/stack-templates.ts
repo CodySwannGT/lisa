@@ -27,6 +27,7 @@ export interface Template {
   readonly adopt?: Readonly<
     Record<string, Readonly<Record<string, string>> | undefined>
   >;
+  readonly minimums?: Readonly<Record<string, string>>;
 }
 
 /** Template lanes whose files land in a host. */
