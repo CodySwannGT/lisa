@@ -322,3 +322,7 @@ reports/mutation/
 # a stale trace reports a guard as evidenced long after its driving test was
 # deleted, which is the false claim of CodySwannGT/lisa#3931 with a longer half-life.
 .lisa/shell-guard-trace.jsonl
+
+# Staging area of a plugin build that was killed before its exit trap ran;
+# the next build removes it (CodySwannGT/lisa#4583).
+/plugins/.build-staging-*/

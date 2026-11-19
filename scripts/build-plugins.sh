@@ -13,6 +13,21 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PLUGINS_DIR="$ROOT_DIR/plugins"
 SRC_DIR="$PLUGINS_DIR/src"
 
+# Every plugin tree is built here first and published over the live one only
+# once it is complete (CodySwannGT/lisa#4583).
+#
+# Running sessions read their hooks straight out of the live trees: the
+# enforcement dispatcher resolves its guards from plugins/lisa/hooks/ and
+# refuses every tool call when it finds none. Building in place — `rm -rf` the
+# tree, copy the source back, then stamp the guards several Node processes
+# later — left those guards absent or half-written on every rebuild, and every
+# session on the checkout was refused until the build finished.
+#
+# A sibling of the live trees, so publishing is a rename on one filesystem; the
+# pid keeps two builds in one checkout from sharing it. publish-plugin-tree.mjs
+# documents why files are renamed one by one rather than the directory swapped.
+STAGE_DIR="$PLUGINS_DIR/.build-staging-$$"
+
 # Read version from package.json so plugins stay in sync with Lisa releases
 VERSION=$(node -e "console.log(require('$ROOT_DIR/package.json').version)")
 
@@ -33,9 +48,13 @@ VERSION=$(node -e "console.log(require('$ROOT_DIR/package.json').version)")
 # maintains — a second list is precisely how those destinations went unchecked
 # for as long as they did (#3064), and a fix that restated them would be the
 # same defect with fresh paint.
+#
+# A destination inside the staging area is recorded at the live path it will be
+# published to, because that is the path the sync check compares.
 materialize() {
   node "$ROOT_DIR/scripts/materialize-copy-overwrite.mjs" "$1" "$2"
-  MATERIALIZED_PATHS="${MATERIALIZED_PATHS}${2#"$ROOT_DIR"/}
+  local recorded="${2/#"$STAGE_DIR"/$PLUGINS_DIR}"
+  MATERIALIZED_PATHS="${MATERIALIZED_PATHS}${recorded#"$ROOT_DIR"/}
 "
 }
 
@@ -68,7 +87,28 @@ write_materialized_manifest() {
   ' "$MATERIALIZED_MANIFEST"
 }
 
-trap 'write_materialized_manifest $?' EXIT
+# The staging area goes whatever the outcome: on success it has been published
+# and is empty, and on failure the live trees were never touched, which is the
+# point — a build that dies halfway leaves the last complete build in place.
+finish_build() {
+  local status="$1"
+  rm -rf "$STAGE_DIR"
+  write_materialized_manifest "$status"
+}
+
+trap 'finish_build $?' EXIT
+
+# A build killed outright cannot run its trap. Clear what such a build left,
+# but never the staging area of a build that is still running.
+for stale_stage in "$PLUGINS_DIR"/.build-staging-*; do
+  [ -d "$stale_stage" ] || continue
+  kill -0 "${stale_stage##*-}" 2>/dev/null || rm -rf "$stale_stage"
+done
+mkdir -p "$STAGE_DIR"
+
+# Live trees to publish from staging, and live trees whose source is gone.
+PUBLISH_TREES=()
+RETIRE_TREES=()
 
 inject_version() {
   local manifest="$1"
@@ -82,19 +122,20 @@ inject_version() {
   fi
 }
 
-# Build one plugin: copy plugins/src/<src_name> -> plugins/<out_name>, inject the
-# release version into its Claude manifest, then derive the Codex artifacts.
+# Build one plugin: copy plugins/src/<src_name> -> the staged plugins/<out_name>,
+# inject the release version into its Claude manifest, then derive the Codex
+# artifacts. Published over the live tree at the end of the build.
 build_plugin() {
   local src_name="$1"
   local out_name="$2"
   local src="$SRC_DIR/$src_name"
-  local out="$PLUGINS_DIR/$out_name"
+  local out="$STAGE_DIR/$out_name"
   if [ ! -d "$src" ]; then
-    rm -rf "$out"
+    RETIRE_TREES+=("$out_name")
     echo "Removed plugins/$out_name (no source at plugins/src/$src_name)"
     return 0
   fi
-  rm -rf "$out"
+  PUBLISH_TREES+=("$out_name")
   mkdir -p "$out"
   cp -r "$src/." "$out/"
   # Hook scripts are invoked by path from hooks.json, and the marketplace git
@@ -109,19 +150,20 @@ build_plugin() {
 }
 
 # Generate a Pattern B per-agent variant for a built plugin.
-# Variants are derived from a built Claude artifact at plugins/<src_name>/
-# and land at plugins/<out_name>/.
+# Variants are derived from the staged Claude artifact for plugins/<src_name>/
+# and land in the staged plugins/<out_name>/, published with the rest.
 build_per_agent_variant() {
   local agent="$1"
   local src_name="$2"
   local out_name="$3"
-  local src="$PLUGINS_DIR/$src_name"
-  local out="$PLUGINS_DIR/$out_name"
+  local src="$STAGE_DIR/$src_name"
+  local out="$STAGE_DIR/$out_name"
   if [ ! -d "$src" ]; then
-    rm -rf "$out"
+    RETIRE_TREES+=("$out_name")
     echo "Removed per-agent variant $out_name (no plugins/$src_name source)"
     return 0
   fi
+  PUBLISH_TREES+=("$out_name")
   node "$ROOT_DIR/scripts/generate-${agent}-plugin-artifacts.mjs" "$src" "$out" "$VERSION"
 }
 
@@ -133,10 +175,10 @@ build_plugin base lisa
 # scripts/lib directly and do not depend on a previous plugin build.
 if [ -f "$ROOT_DIR/scripts/lib/rails-hooks.mjs" ] && \
    [ -f "$ROOT_DIR/scripts/materialize-copy-overwrite.mjs" ]; then
-  mkdir -p "$PLUGINS_DIR/lisa/hooks"
+  mkdir -p "$STAGE_DIR/lisa/hooks"
   for rails_hook_asset in rails-hooks.mjs rails-hooks-inspection.mjs rails-hooks-command.mjs; do
     materialize "$ROOT_DIR/scripts/lib/$rails_hook_asset" \
-      "$PLUGINS_DIR/lisa/hooks/$rails_hook_asset"
+      "$STAGE_DIR/lisa/hooks/$rails_hook_asset"
   done
 fi
 
@@ -184,7 +226,7 @@ for guard in block-no-verify block-shell-json-parsing \
     materialize "$SRC_DIR/base/hooks/$guard.sh" "$HOST_GUARD_DIR/$guard.sh"
     # Both active channels must hash identical code, including the ownership
     # banner; fan-out below derives the other plugins from this same copy.
-    materialize "$SRC_DIR/base/hooks/$guard.sh" "$PLUGINS_DIR/lisa/hooks/$guard.sh"
+    materialize "$SRC_DIR/base/hooks/$guard.sh" "$STAGE_DIR/lisa/hooks/$guard.sh"
     chmod +x "$HOST_GUARD_DIR/$guard.sh"
   fi
 done
@@ -194,7 +236,7 @@ if [ -f "$SRC_DIR/base/hooks/discharge-work-item-gates.sh" ]; then
   materialize "$SRC_DIR/base/hooks/discharge-work-item-gates.sh" \
     "$HOST_GUARD_DIR/discharge-work-item-gates.sh"
   materialize "$SRC_DIR/base/hooks/discharge-work-item-gates.sh" \
-    "$PLUGINS_DIR/lisa/hooks/discharge-work-item-gates.sh"
+    "$STAGE_DIR/lisa/hooks/discharge-work-item-gates.sh"
 fi
 # Companions: files a guard resolves as a SIBLING OF ITSELF at run time.
 #
@@ -220,7 +262,7 @@ for companion in parity-safety-net-heredoc.py worktree-binding-guard.mjs \
   guard-dedupe.bash; do
   if [ -f "$SRC_DIR/base/hooks/$companion" ]; then
     materialize "$SRC_DIR/base/hooks/$companion" "$HOST_GUARD_DIR/$companion"
-    materialize "$SRC_DIR/base/hooks/$companion" "$PLUGINS_DIR/lisa/hooks/$companion"
+    materialize "$SRC_DIR/base/hooks/$companion" "$STAGE_DIR/lisa/hooks/$companion"
   fi
 done
 # The Sonar hook wrapper, which ships alongside the guards but is not one.
@@ -350,3 +392,18 @@ for agent in "${PER_AGENT_VARIANTS[@]}"; do
   done
 done
 
+# Publish. Every tree is complete before any live tree is touched, and each
+# live file is replaced by a rename, so a session reading a hook during the
+# build sees the previous build's file or this one's, never neither.
+PUBLISH_PAIRS=()
+# The `+` form, because bash 3.2 (macOS) treats an empty array as unbound
+# under `set -u`.
+for tree in ${PUBLISH_TREES[@]+"${PUBLISH_TREES[@]}"}; do
+  PUBLISH_PAIRS+=("$STAGE_DIR/$tree" "$PLUGINS_DIR/$tree")
+done
+if [ "${#PUBLISH_PAIRS[@]}" -gt 0 ]; then
+  node "$ROOT_DIR/scripts/lib/publish-plugin-tree.mjs" "${PUBLISH_PAIRS[@]}"
+fi
+for tree in ${RETIRE_TREES[@]+"${RETIRE_TREES[@]}"}; do
+  rm -rf "${PLUGINS_DIR:?}/$tree"
+done

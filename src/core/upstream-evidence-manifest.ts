@@ -2635,7 +2635,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "c4d52cf656f80ba166fdf327119251b239b9d74c010a8d74a060ebc3e031188a",
     "scripts/build-plugins.sh":
-      "bcd527d98010cc77e544a4e71933a9d559e2064bfa836bf00453eaad8d23e222",
+      "18172b78ef6117e5b2531b88560c889d6b890b56ef11f35df39a25fb39530c77",
     "scripts/build-unless-marked.mjs":
       "8514c8aa1908efca45b40076590e7c493fd39e9bfe3ae96a123253c20b1d5e0f",
     "scripts/check-control-command-parity.mjs":
@@ -2675,7 +2675,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-pipeline-status-reads.mjs":
       "1fba15dfe50eb060bd229066a35a852679b23c11292981015b5746e1d639fb31",
     "scripts/check-plugins-sync.sh":
-      "be15811834fa1b85ba242a0ee114fe2c43459e50b3e02c726a9860014daa39d2",
+      "9ad76ef74b9ed42e0e4f5cd520d3f2ffe011e0e14ce16b829e80cf370cd5fced",
     "scripts/check-probe-absence-direction.mjs":
       "5dfb12c8ac9a23220219cc8748f1fea03f55bb42c0a9cf045bccfd04a4646652",
     "scripts/check-release-commit-listed.mjs":
@@ -2886,6 +2886,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "47a564e2f9d46c0a955defe8eb924f86d7a273098e6ccb118e10f9eeecf3950c",
     "scripts/lib/plugin-rule-citations.mjs":
       "c9f0ed57d6da16ce90eab0a67a73a7f6783e7065406a39eea039619a10e517b9",
+    "scripts/lib/publish-plugin-tree.d.mts":
+      "19270c2e8a16d44338954644cb2377230e43e39fe81b43bf7515b55185a6d096",
+    "scripts/lib/publish-plugin-tree.mjs":
+      "7ba931113b3e5b0e1bd71bfc4755599a57fcb31902b54eb64ee26c57149f42ec",
     "scripts/lib/rails-hooks-command.mjs":
       "dc695aa4920e83d9e757eaa2dcf3477ed2f5aa4df93814581e6254d5661c040e",
     "scripts/lib/rails-hooks-inspection.mjs":
@@ -10961,6 +10965,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/phrase-tests/runner.mjs": true,
     "scripts/lib/plugin-cache-resolution.mjs": true,
     "scripts/lib/plugin-rule-citations.mjs": true,
+    "scripts/lib/publish-plugin-tree.d.mts": true,
+    "scripts/lib/publish-plugin-tree.mjs": true,
     "scripts/lib/rails-hooks-command.mjs": true,
     "scripts/lib/rails-hooks-inspection.mjs": true,
     "scripts/lib/rails-hooks.d.mts": true,
@@ -14049,6 +14055,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/pipeline-status-continuations.test.ts": true,
     "tests/unit/scripts/placeholder-expiry.test.ts": true,
     "tests/unit/scripts/plan-integration-shards.test.ts": true,
+    "tests/unit/scripts/plugin-build-guard-availability.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,
     "tests/unit/scripts/plugin-parity-drift.test.ts": true,
     "tests/unit/scripts/plugin-parity-orphaned-versions.test.ts": true,

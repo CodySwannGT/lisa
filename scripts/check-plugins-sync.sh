@@ -7,9 +7,10 @@
 # plugins/. Both halves are checked here now, by the same mechanism.
 #
 # The plugins/ half. This guards against editing the
-# build artifact directly: build-plugins.sh runs `rm -rf plugins/lisa && cp -r
-# plugins/src/base`, so any artifact-only edit is silently discarded on the next
-# build/release. Two real PRs (#471, #478) were wiped this way before this check
+# build artifact directly: build-plugins.sh rebuilds every plugins/lisa* tree
+# from plugins/src and publishes it over the live one, removing anything the
+# source does not produce, so any artifact-only edit is silently discarded on
+# the next build/release. Two real PRs (#471, #478) were wiped this way before this check
 # existed.
 #
 # The check is a reproducibility test: regenerate the artifacts from source and
