@@ -206,8 +206,19 @@ const getJsdocRules = () => ({
   "jsdoc/require-param-description": "error",
   "jsdoc/require-returns-description": "error",
   "jsdoc/require-property-description": "error",
-  // prettier-ignore
-  "jsdoc/check-tag-names": ["error", { definedTags: ["remarks", "precondition", "entity", "security", "jest-config-loader", "jest-config-loader-options"] }],
+  "jsdoc/check-tag-names": [
+    "error",
+    {
+      definedTags: [
+        "remarks",
+        "precondition",
+        "entity",
+        "security",
+        "jest-config-loader",
+        "jest-config-loader-options",
+      ],
+    },
+  ],
   "jsdoc/no-types": "off",
   "jsdoc/require-param-type": "off",
   "jsdoc/require-returns-type": "off",

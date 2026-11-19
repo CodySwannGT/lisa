@@ -42,6 +42,12 @@ export interface ExecutableSearchContext {
   readonly environment: NodeJS.ProcessEnv;
   /** The platform whose path rules apply. */
   readonly platform: NodeJS.Platform;
+  /**
+   * Whether a candidate path can be spawned. Defaults to this host's file
+   * system; a caller modelling another platform's file system (such as
+   * Windows' case-insensitive one) supplies its own.
+   */
+  readonly isExecutable?: (candidate: string) => boolean;
 }
 
 /** The outcome of a search: the absolute file, or the directories that lacked it. */
@@ -176,10 +182,15 @@ export function resolveExecutable(
 ): ExecutableResolution {
   const directories = absoluteSearchDirectories(context);
   const names = candidateNames(command, context);
-  // Joined with this host's separator: the result goes to this host's fs.
+  const pathApi = context.platform === "win32" ? path.win32 : path.posix;
+  const isExecutable =
+    context.isExecutable ??
+    ((candidate: string) => isExecutableFile(candidate, context));
+  // Joined with the target platform's separator, which is this host's own
+  // whenever the default file-system check is the one asked.
   const match = directories
-    .flatMap(directory => names.map(name => path.join(directory, name)))
-    .find(candidate => isExecutableFile(candidate, context));
+    .flatMap(directory => names.map(name => pathApi.join(directory, name)))
+    .find(candidate => isExecutable(candidate));
   return match === undefined
     ? { found: false, command, searched: directories }
     : { found: true, path: match };

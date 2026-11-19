@@ -151,8 +151,6 @@ export abstract class LisaMaintenance extends LisaAgentEmitExtra {
     }
   }
 
-  /* v8 ignore start -- calls external CLI, covered by integration tests */
-
   /**
    * Relocate a legacy `.claude/rules/PROJECT_LEARNINGS.md` ledger to the new
    * cold `.lisa/PROJECT_LEARNINGS.md` BEFORE the create-only strategy would

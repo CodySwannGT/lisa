@@ -136,6 +136,11 @@ const publicSurfaceMembers = [...new Set([...tracked, ...explicitlyIncluded])]
 const evidenceMembers = publicSurfaceMembers.filter(file =>
   packagedEvidencePrefixes.some(prefix => file.startsWith(prefix))
 );
+/** The checked-in manifest, or an empty string when there is none yet. */
+const existingOutput = existsSync(outputPath)
+  ? readFileSync(outputPath, "utf8")
+  : "";
+
 /**
  * The public commits the checked-in manifest already records.
  *
@@ -146,11 +151,9 @@ const evidenceMembers = publicSurfaceMembers.filter(file =>
  * @returns {string[]} Recorded full commit SHAs
  */
 function readExistingPublicCommits() {
-  if (!existsSync(outputPath)) return [];
+  if (existingOutput === "") return [];
   try {
-    const recorded = JSON.parse(
-      readFileSync(outputPath, "utf8")
-    ).UPSTREAM_PUBLIC_COMMITS;
+    const recorded = JSON.parse(existingOutput).UPSTREAM_PUBLIC_COMMITS;
     return Object.keys(recorded ?? {}).filter(commit =>
       /^[a-f0-9]{40}$/u.test(commit)
     );
@@ -220,10 +223,10 @@ if (publicCommits.length === 0) {
     "Refusing to generate an empty public origin commit manifest; rerun with --refresh-public-commits from a full canonical-origin clone"
   );
 }
-// The list is carried forward by matching the exact line shape written below.
-// If the recorded file ever stops matching it, the carry-forward comes back
-// short and the new list is simply smaller — no error, just lost commits. The
-// looser read in `droppedPublicCommits` is what notices.
+// The list is carried forward by parsing the recorded JSON. If the recorded
+// file ever stops parsing — a conflict marker, a hand edit — the carry-forward
+// comes back empty and the new list is simply smaller: no error, just lost
+// commits. The looser text read in `droppedPublicCommits` is what notices.
 const droppedCommits = droppedPublicCommits(existingOutput, publicCommits);
 if (droppedCommits.length > 0) {
   throw new Error(

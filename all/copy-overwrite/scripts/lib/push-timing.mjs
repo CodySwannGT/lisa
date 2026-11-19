@@ -105,9 +105,11 @@ export function formatDuration(ms) {
 /** The most failing test files one gate records (#4896). */
 export const MAX_FAILING_TEST_FILES = 200;
 
+/** The ESC byte that opens every terminal control sequence. */
+const ESCAPE = String.fromCharCode(0x1b);
+
 /** Terminal colour and cursor sequences, which Vitest wraps its FAIL badge in. */
-// eslint-disable-next-line no-control-regex -- matching the ESC byte is the point
-const ANSI_SEQUENCE = /\u001b\[[0-9;?]*[ -/]*[@-~]/gu;
+const ANSI_SEQUENCE = new RegExp(`${ESCAPE}\\[[0-9;?]*[ -/]*[@-~]`, "gu");
 
 /**
  * A runner's per-file failure header, at the start of a line:

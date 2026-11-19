@@ -104,7 +104,6 @@ export abstract class LisaPluginSync extends LisaDeletions {
       this.deps.logger.warn(`Could not record plugin sync marker: ${message}`);
     }
   }
-  /* v8 ignore stop */
 
   /** Remove only this project's marker so incomplete incremental syncs retry. */
   protected async invalidatePluginSyncMarker(): Promise<void> {

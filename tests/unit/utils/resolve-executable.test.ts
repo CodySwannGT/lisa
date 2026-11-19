@@ -57,6 +57,25 @@ function dirWith(names: readonly string[], mode = 0o755): string {
   return root;
 }
 
+/** The directory every Windows case searches; it never exists on this host. */
+const WINDOWS_ROOT = "C:\\tools";
+
+/**
+ * Models a Windows volume holding the named files in {@link WINDOWS_ROOT},
+ * matched case-insensitively as NTFS does; a case-sensitive host disk is not.
+ * @param names - File names present in the directory
+ * @returns The executable check the resolver consults
+ */
+function windowsVolume(
+  names: readonly string[]
+): (candidate: string) => boolean {
+  const present = new Set(
+    names.map(name => path.win32.join(WINDOWS_ROOT, name).toLowerCase())
+  );
+  return candidate =>
+    present.has(path.win32.normalize(candidate).toLowerCase());
+}
+
 afterEach(() => {
   for (const root of roots.splice(0))
     rmSync(root, { recursive: true, force: true });
@@ -109,32 +128,43 @@ describe("resolveExecutable", () => {
   it("never picks an extensionless file on Windows, even next to a .cmd", () => {
     // npm installs a POSIX script `claude` beside `claude.cmd`; only the
     // latter runs on Windows.
-    const root = dirWith([TOOL, `${TOOL}.CMD`]);
-    const environment = { Path: root, PATHEXT: ".EXE;.CMD" };
-    expect(resolveExecutable(TOOL, { environment, platform: WINDOWS })).toEqual(
-      {
-        found: true,
-        path: path.join(root, `${TOOL}.CMD`),
-      }
-    );
+    expect(
+      resolveExecutable(TOOL, {
+        environment: { Path: WINDOWS_ROOT, PATHEXT: ".EXE;.CMD" },
+        platform: WINDOWS,
+        isExecutable: windowsVolume([TOOL, `${TOOL}.CMD`]),
+      })
+    ).toEqual({ found: true, path: `${WINDOWS_ROOT}\\${TOOL}.CMD` });
+  });
+
+  it("matches a PATHEXT extension whatever the file's case, as NTFS does", () => {
+    expect(
+      resolveExecutable(TOOL, {
+        environment: { Path: WINDOWS_ROOT, PATHEXT: ".EXE;.CMD" },
+        platform: WINDOWS,
+        isExecutable: windowsVolume([`${TOOL}.cmd`]),
+      })
+    ).toEqual({ found: true, path: `${WINDOWS_ROOT}\\${TOOL}.CMD` });
   });
 
   it("reports an extensionless-only Windows install as not found", () => {
-    const root = dirWith([TOOL]);
-    const environment = { Path: root, PATHEXT: ".EXE;.CMD" };
     expect(
-      resolveExecutable(TOOL, { environment, platform: WINDOWS }).found
+      resolveExecutable(TOOL, {
+        environment: { Path: WINDOWS_ROOT, PATHEXT: ".EXE;.CMD" },
+        platform: WINDOWS,
+        isExecutable: windowsVolume([TOOL]),
+      }).found
     ).toBe(false);
   });
 
   it("uses the default Windows extensions when PATHEXT is unset", () => {
-    const root = dirWith([`${TOOL}.EXE`]);
     expect(
       resolveExecutable(TOOL, {
-        environment: { Path: root },
+        environment: { Path: WINDOWS_ROOT },
         platform: WINDOWS,
+        isExecutable: windowsVolume([`${TOOL}.EXE`]),
       })
-    ).toEqual({ found: true, path: path.join(root, `${TOOL}.EXE`) });
+    ).toEqual({ found: true, path: `${WINDOWS_ROOT}\\${TOOL}.EXE` });
   });
 });
 
@@ -200,27 +230,27 @@ describe("spawnTarget", () => {
   });
 
   it("runs a Windows .exe directly, without cmd.exe", () => {
-    const root = dirWith([`${TOOL}.EXE`]);
     const context = {
-      environment: { Path: root, PATHEXT: ".EXE;.CMD" },
+      environment: { Path: WINDOWS_ROOT, PATHEXT: ".EXE;.CMD" },
       platform: WINDOWS,
+      isExecutable: windowsVolume([`${TOOL}.EXE`]),
     } as const;
     expect(spawnTarget(TOOL, ["x"], context)).toEqual({
-      file: path.join(root, `${TOOL}.EXE`),
+      file: `${WINDOWS_ROOT}\\${TOOL}.EXE`,
       args: ["x"],
       windowsVerbatimArguments: false,
     });
   });
 
   it("runs a Windows .cmd through an absolute cmd.exe with escaped arguments", () => {
-    const root = dirWith([TOOL, `${TOOL}.cmd`]);
     const context = {
       environment: {
-        Path: root,
+        Path: WINDOWS_ROOT,
         PATHEXT: ".EXE;.CMD",
         ComSpec: "C:\\Windows\\System32\\cmd.exe",
       },
       platform: WINDOWS,
+      isExecutable: windowsVolume([TOOL, `${TOOL}.cmd`]),
     } as const;
     const target = spawnTarget(TOOL, ["plugin", "a&b"], context);
     expect(target.file).toBe("C:\\Windows\\System32\\cmd.exe");
@@ -232,10 +262,14 @@ describe("spawnTarget", () => {
   });
 
   it("falls back to SystemRoot's cmd.exe when ComSpec is not absolute", () => {
-    const root = dirWith([`${TOOL}.bat`]);
     const context = {
-      environment: { Path: root, ComSpec: "cmd.exe", SystemRoot: "D:\\Win" },
+      environment: {
+        Path: WINDOWS_ROOT,
+        ComSpec: "cmd.exe",
+        SystemRoot: "D:\\Win",
+      },
       platform: WINDOWS,
+      isExecutable: windowsVolume([`${TOOL}.bat`]),
     } as const;
     expect(spawnTarget(TOOL, [], context).file).toBe(
       "D:\\Win\\System32\\cmd.exe"

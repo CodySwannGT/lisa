@@ -275,6 +275,36 @@ ruleTester.run("enforce-statement-order", rule, {
   invalid: [
     // ===== BASIC VIOLATIONS =====
 
+    // The order is checked against the highest one seen, not the previous
+    // statement: a definition after the return does not reset the order, so a
+    // side effect after that definition is still out of place.
+    {
+      code: `
+        function example() {
+          const x = 1;
+          return x;
+          const y = 2;
+          doSomething(y);
+        }
+      `,
+      errors: [
+        {
+          messageId: "wrongOrder",
+          data: {
+            current: DEFINITIONS,
+            previous: RETURN_STATEMENT,
+          },
+        },
+        {
+          messageId: "wrongOrder",
+          data: {
+            current: SIDE_EFFECTS,
+            previous: RETURN_STATEMENT,
+          },
+        },
+      ],
+    },
+
     // Definition after side effect
     {
       code: `
