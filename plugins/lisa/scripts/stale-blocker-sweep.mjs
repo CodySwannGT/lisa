@@ -95,19 +95,26 @@ export function normalizeStaleLinkItem(tracker, raw) {
       body: text(raw?.body),
       repo,
       comments: commentsOf(raw),
+      // A GitHub item's labels are its status, and having none is a real
+      // answer ("not in any lane").
+      statusKnown: true,
     };
   }
   const ref = tracker === "jira" ? text(raw?.key) : text(raw?.identifier);
   const state = tracker === "jira" ? raw?.fields?.status : raw?.state;
+  const names = [text(state?.name).toLowerCase()].filter(Boolean);
   return {
     ref,
     project:
       text(raw?.team?.key).toUpperCase() || ref.split("-")[0].toUpperCase(),
-    names: [text(state?.name).toLowerCase()].filter(Boolean),
+    names,
     edges: tracker === "jira" ? jiraBlockerEdges(raw) : linearBlockerEdges(raw),
     body: "",
     repo: "",
     comments: commentsOf(raw),
+    // Without its own status the item might be Blocked, and a Blocked item's
+    // links belong to the Blocked sweep, so an unread status removes nothing.
+    statusKnown: names.length > 0,
   };
 }
 
@@ -244,11 +251,15 @@ export function itemRoles(item, roles) {
  *   max?: number,
  *   poster?: "session-manager" | "build-intake",
  *   posterName?: string,
- * }} input
+ *   failures?: Record<string, { attempts?: number }>,
+ * }} input - `failures` is the record of items whose planned removals did
+ *   not happen (`stale-blocker-pending.mjs`); they go after every other
+ *   candidate, so a removal that keeps failing cannot spend the cap
  * @returns {{ plans: StaleLinkPlan[], deferred: string[], report: import("./stale-blocker-summary.mjs").StaleLinkReport }}
  */
 export function planStaleLinkSweep(input) {
   const max = input.max ?? DEFAULT_MAX_STALE_ITEMS;
+  const failed = ref => Number(input.failures?.[ref]?.attempts ?? 0);
   const judged = (input.items ?? [])
     .map(raw => normalizeStaleLinkItem(input.tracker, raw))
     .map(item => ({
@@ -257,9 +268,15 @@ export function planStaleLinkSweep(input) {
       sorted: sortEdges(item, input.doneRoles),
     }));
   const candidates = judged
-    .filter(entry => !entry.inBlocked && entry.sorted.stale.length > 0)
+    .filter(
+      entry =>
+        entry.item.statusKnown &&
+        !entry.inBlocked &&
+        entry.sorted.stale.length > 0
+    )
     .sort(
       (a, b) =>
+        failed(a.item.ref) - failed(b.item.ref) ||
         Number(b.ready) - Number(a.ready) ||
         a.item.ref.localeCompare(b.item.ref)
     );

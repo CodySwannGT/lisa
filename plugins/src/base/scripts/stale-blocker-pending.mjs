@@ -10,6 +10,14 @@
  * and pending comments are retried on their own, separately from any new
  * plan. The record is plain JSON so any agent can keep it in its state
  * directory; the functions here are pure and do no I/O.
+ *
+ * The same directory keeps a second record: the items whose planned
+ * removals did NOT happen. Their links are still there, so every cycle plans
+ * them again; without the record, items that keep failing and sort first
+ * would spend the per-cycle cap every time and starve later items. The
+ * planner puts a recorded item after every other candidate
+ * (`planStaleLinkSweep({failures})`), and a removal that later succeeds
+ * clears its record, so it returns to the normal order.
  * @module stale-blocker-pending
  */
 
@@ -73,3 +81,33 @@ export const failedPending = (pending, ref) =>
   (Array.isArray(pending) ? pending : []).map(one =>
     one.ref === ref ? { ...one, attempts: Number(one.attempts ?? 0) + 1 } : one
   );
+
+/**
+ * Items whose planned removals did not happen, by ref.
+ * @typedef {Record<string, { attempts: number, since: string, stillPresent: string[] }>} RemovalFailures
+ */
+
+/**
+ * Update the failure record from one verified result: a planned removal
+ * still on the item counts one more failure; none left clears the record.
+ * @param {RemovalFailures | undefined} failures
+ * @param {{ ref: string, stillPresent: readonly string[] }} result
+ * @param {string} now - ISO time
+ * @returns {RemovalFailures}
+ */
+export function recordRemovalResult(failures, result, now) {
+  const current =
+    failures && typeof failures === "object" && !Array.isArray(failures)
+      ? failures
+      : {};
+  const { [result.ref]: previous, ...rest } = current;
+  if (result.stillPresent.length === 0) return rest;
+  return {
+    ...rest,
+    [result.ref]: {
+      attempts: Number(previous?.attempts ?? 0) + 1,
+      since: previous?.since ?? now,
+      stillPresent: [...result.stillPresent],
+    },
+  };
+}

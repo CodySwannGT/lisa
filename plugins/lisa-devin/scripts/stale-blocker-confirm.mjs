@@ -66,13 +66,11 @@ export function confirmStaleLinkPlan(input) {
   }
   const planned = new Set(input.plan.removed);
   const roles = itemRoles(item, input.roles);
-  if (roles.inBlocked) {
+  if (!item.statusKnown || roles.inBlocked) {
+    const reason = item.statusKnown ? "blocked-role" : "status-unknown";
     return {
       plan: null,
-      skipped: [...planned].map(blocker => ({
-        blocker,
-        reason: "blocked-role",
-      })),
+      skipped: [...planned].map(blocker => ({ blocker, reason })),
     };
   }
   const sorted = sortEdges(item, input.doneRoles);

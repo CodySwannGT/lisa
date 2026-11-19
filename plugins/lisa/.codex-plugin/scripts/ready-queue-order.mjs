@@ -136,7 +136,7 @@ function nodesOf(list) {
  * @param {unknown} labels
  * @returns {string[]}
  */
-function labelNames(labels) {
+export function labelNames(labels) {
   const list = Array.isArray(labels)
     ? labels
     : Array.isArray(labels?.nodes)

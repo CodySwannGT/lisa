@@ -13,6 +13,7 @@
  * @typedef {object} StaleLinkReport
  * @property {number} scanned - Items read
  * @property {number} skippedBlockedRole - Items left to the Blocked sweep
+ * @property {string[]} unknownStatus - Items left alone because their own status was not read
  * @property {number} cleared - Links planned for removal
  * @property {number} itemsCleared - Items with a planned removal
  * @property {string[]} claimable - Ready items nothing holds any more
@@ -41,16 +42,20 @@ const pairs = (ref, edges) =>
 
 /**
  * Tally the sweep over every judged item.
- * @param {readonly { item: { ref: string }, inBlocked: boolean, sorted: Record<string, object[]> }[]} judged
+ * @param {readonly { item: { ref: string, statusKnown?: boolean }, inBlocked: boolean, sorted: Record<string, object[]> }[]} judged
  * @param {readonly { removed: string[], becomesClaimable: boolean, ref: string }[]} plans
  * @param {readonly string[]} deferred
  * @returns {StaleLinkReport}
  */
 export function tallySweep(judged, plans, deferred) {
-  const open = judged.filter(entry => !entry.inBlocked);
+  const known = judged.filter(entry => entry.item.statusKnown !== false);
+  const open = known.filter(entry => !entry.inBlocked);
   return {
     scanned: judged.length,
-    skippedBlockedRole: judged.length - open.length,
+    skippedBlockedRole: known.length - open.length,
+    unknownStatus: judged
+      .filter(entry => entry.item.statusKnown === false)
+      .map(entry => entry.item.ref),
     cleared: plans.reduce((sum, plan) => sum + plan.removed.length, 0),
     itemsCleared: plans.length,
     claimable: plans
@@ -94,6 +99,12 @@ function tail(report) {
       .map(pair => `${pair.blocker} (on ${pair.ref})`)
       .join(", ");
     parts.push(`could not open ${list}`);
+  }
+  const unknown = report.unknownStatus ?? [];
+  if (unknown.length > 0) {
+    parts.push(
+      `left ${unknown.join(", ")} alone because ${unknown.length === 1 ? "its" : "their"} status could not be read`
+    );
   }
   return parts;
 }

@@ -1427,7 +1427,7 @@
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/ready-queue-order.mjs":
-      "0434a995cee9443d2000a1859b1f196631eb67127434e47e40e24d6a06ca2ed1",
+      "87d23cf2bf588492649a50832e7ceccb0e2e6050e102d4dd6480d3f4f8bc652f",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "7341831fa2dc52bdf792306196430548a7efec91993e1ad7f5c6b737a9def8a5",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
@@ -1441,15 +1441,15 @@
     "plugins/src/base/scripts/stale-blocker-comment.mjs":
       "df649bb1d385a3e0a920e5fdd4353d14970037db2d0da5be15dedfc74a3b15e3",
     "plugins/src/base/scripts/stale-blocker-confirm.mjs":
-      "72af6d9e23bf0e2bfc76db8106538075a8d7b493611ff988b57535d157f8afac",
+      "c84df4a6ed9c8f5c962ed4e8212b11cf7b2e15a1659183a64c42d0ef78471c20",
     "plugins/src/base/scripts/stale-blocker-edges.mjs":
-      "be6e1c90113ac143c3bae749cd8080a9322c979eccdd054aee64468587b81479",
+      "fbde3f3694e2452bafd2f72878d04ddd13a9f1d314c59e85c7ad092945d80f8e",
     "plugins/src/base/scripts/stale-blocker-pending.mjs":
-      "616c27a96c18f60355f251d93f50d032afb06353719445b23abf36b4c5e1f0eb",
+      "8d20b173dbac9dbd4174f2c4aed569b675580f86305eb6c023c13ec866ffdc2d",
     "plugins/src/base/scripts/stale-blocker-summary.mjs":
-      "3281526855fd374556d8171ee1e8a04fd974bbdf8a6003333d64a22efcd18014",
+      "659f1cb2f67c0b227df92170d4822b05da2e7eadee83ce29512e6c1c37c084c2",
     "plugins/src/base/scripts/stale-blocker-sweep.mjs":
-      "f6e70b2be524983b91f5b44d93d7eb320b51d9948e41bcedb1c25fed8cce0583",
+      "181242430505b508012222ea365a93208ed589596e536a036b593ce6865b77b6",
     "plugins/src/base/scripts/stale-blocker-verify.mjs":
       "8eda46cb1313559f2401175efe042d609517c4e675fd3f8f06ce9466bd7ffab6",
     "plugins/src/base/skills/lisa-acceptance-criteria/SKILL.md":
@@ -1533,7 +1533,7 @@
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "261b3bc9cb129d2dc034be0ac60892a9e2479ce671d57c448811e4fab666365d",
+      "9b814274a7e94562201139d61bf8c2e2059a9ba0e196a4452e2c0cef60a1965a",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1783,7 +1783,7 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "59b3d9ee57aeae781423be177aff7ca34ac1daacf0f5d867f3771082f802c324",
+      "7d97db5e5ea2f706bd2ca2f0818c3e6f22d77f346a84aab530403e4a80bb033b",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f8a63378cdeb2acc70b53fa5b7c9e4510b2806b98eb27004d94b97817172d6db",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1811,9 +1811,9 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
       "4b125971939f6e99863930a109315038520c1bc8e0543d1e34476c9987d30605",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-stale-links-results.mjs":
-      "b336ed4f0f2dc9830405dbf5f4c30f41227ec4610ff02ff43f076c7dfe812a89",
+      "0a69fc25faa539c55dfb29cd059e2de0f201deb3cf9e86bb0492ff60506fb4d1",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-stale-links.mjs":
-      "7f72351fbdfac61f5a3d40d7b053465d5e60d60e20c959c7a406f5983cf8d159",
+      "937d8bd51c0a409ed8f0a39988319945cde4c8222d07077bea169e6d28789f44",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
@@ -1861,7 +1861,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
       "332bebf7a73c1d95bafe0e82239c18838dd53df7ca043c5cf4c3bb1043497324",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
-      "e2a4817dee6d20aa0ba942abda5bee146cc03f04cafb303bbfe5641102f5417a",
+      "90f677fee4c34673f24e48d4a167918c6e535a0f9696bb895e0caff8555998ff",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
       "adf56eb60769ffb8ace6a5aefe85e37107db1d73e4d73ab4cf29ab045ca8c76c",
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
@@ -1872,6 +1872,8 @@
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-github.mjs":
       "360446d8a556b1791d4d6bd980dda460d9881ba5db833cffe40e1b5843096455",
+    "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-state.mjs":
+      "af1883616b2bca764c441063bca5270bdbbd71d2596ac393e5b1294ee660ad75",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
       "e1c3f0386249afc187b9711b3631ed58b23467e1e88d22c628167b5d3af45318",
     "plugins/src/base/skills/lisa-session-manager/scripts/take-check.mjs":
@@ -5311,6 +5313,7 @@
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/session-manager.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/stale-links-state.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
@@ -5882,6 +5885,7 @@
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/session-manager.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/stale-links-state.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
@@ -6437,6 +6441,7 @@
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/session-manager.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/stale-links-state.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
@@ -6921,6 +6926,7 @@
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/session-manager.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/stale-links-state.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
@@ -9148,6 +9154,7 @@
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/session-manager.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/stale-links-state.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
@@ -9887,6 +9894,7 @@
     "plugins/lisa/skills/lisa-session-manager/scripts/session-manager.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/stale-links-state.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
@@ -10496,6 +10504,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-github.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-state.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/take-check.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
@@ -14561,6 +14570,7 @@
     "tests/unit/session-manager/cli-setup.test.ts": true,
     "tests/unit/session-manager/cli-spawn-take.test.ts": true,
     "tests/unit/session-manager/cli-spawn-trust.test.ts": true,
+    "tests/unit/session-manager/cli-stale-links-cycles.test.ts": true,
     "tests/unit/session-manager/cli-stale-links-readiness.test.ts": true,
     "tests/unit/session-manager/cli-stale-links-results.test.ts": true,
     "tests/unit/session-manager/cli-stale-links.test.ts": true,
@@ -14863,6 +14873,7 @@
     "tests/unit/strategies/shipped-prerequisite-check.test.ts": true,
     "tests/unit/strategies/skill-machine-read-names.test.ts": true,
     "tests/unit/strategies/stale-blocker-confirm.test.ts": true,
+    "tests/unit/strategies/stale-blocker-cycles.test.ts": true,
     "tests/unit/strategies/stale-blocker-fixtures.ts": true,
     "tests/unit/strategies/stale-blocker-sweep-github.test.ts": true,
     "tests/unit/strategies/stale-blocker-sweep.test.ts": true,

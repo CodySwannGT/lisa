@@ -10,16 +10,15 @@
  * - `stale-links-report` builds the cycle's summary from the verified
  *   results, never from the plan.
  *
- * The pending record lives in the manager's state directory
- * (`.lisa/session-manager/stale-links-pending.json`).
+ * `stale-links-verify` also records each item whose planned removals did not
+ * happen, so the next plan puts it after every other candidate. Both records
+ * live in the manager's state directory (`stale-links-state.mjs`).
  * @module session-manager/cli-stale-links-results
  */
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import path from "node:path";
-
 import {
   addPending,
   failedPending,
+  recordRemovalResult,
   settlePending,
 } from "../../../scripts/stale-blocker-pending.mjs";
 import { summarizeVerifiedSweep } from "../../../scripts/stale-blocker-summary.mjs";
@@ -27,44 +26,12 @@ import { verifyStaleLinkRemoval } from "../../../scripts/stale-blocker-verify.mj
 import { CliError, asSetupError, loadProject } from "./cli-runtime.mjs";
 import { freshItem, judgingContext, trackerOf } from "./cli-stale-links.mjs";
 import { readJsonFile } from "./json-input.mjs";
-
-/**
- * @param {string} root - Project root
- * @returns {string} The pending-comments file
- */
-export const pendingPath = root =>
-  path.join(root, ".lisa", "session-manager", "stale-links-pending.json");
-
-/**
- * The pending comments, or none when the file does not exist yet.
- * @param {string} root
- * @returns {import("../../../scripts/stale-blocker-pending.mjs").PendingComment[]}
- */
-function readPending(root) {
-  try {
-    const parsed = JSON.parse(readFileSync(pendingPath(root), "utf8"));
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    // probe-direction: fail-closed — only a missing file reads as "nothing
-    // owed"; an unreadable or corrupt one throws, so no owed comment is lost.
-    if (error?.code === "ENOENT") return [];
-    throw new CliError(`${pendingPath(root)}: ${error.message}`, 1);
-  }
-}
-
-/**
- * Replace the pending file atomically.
- * @param {string} root
- * @param {readonly object[]} pending
- * @returns {void}
- */
-function writePending(root, pending) {
-  const file = pendingPath(root);
-  mkdirSync(path.dirname(file), { recursive: true });
-  const temp = `${file}.${process.pid}.tmp`;
-  writeFileSync(temp, `${JSON.stringify(pending, null, 2)}\n`);
-  renameSync(temp, file);
-}
+import {
+  readFailures,
+  readPending,
+  writeFailures,
+  writePending,
+} from "./stale-links-state.mjs";
 
 /**
  * `stale-links-verify --tracker <t> --plan <file> [--input <file>]`.
@@ -83,11 +50,12 @@ export function staleLinksVerify(ctx) {
   const result = asSetupError(() =>
     verifyStaleLinkRemoval({ tracker, plan, after, ...context })
   );
-  const pending = addPending(
-    readPending(ctx.root),
-    result,
-    new Date().toISOString()
+  const now = new Date().toISOString();
+  writeFailures(
+    ctx.root,
+    recordRemovalResult(readFailures(ctx.root), result, now)
   );
+  const pending = addPending(readPending(ctx.root), result, now);
   if (result.comment !== null) writePending(ctx.root, pending);
   return { json: { ...result, pending: result.comment !== null } };
 }

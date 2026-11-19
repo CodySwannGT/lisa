@@ -6,7 +6,10 @@
  * command fails, and both run gh with the scrubbed worker env.
  * @module session-manager/queue-github
  */
-import { normalizeGithubIssue } from "../../../scripts/ready-queue-order.mjs";
+import {
+  labelNames,
+  normalizeGithubIssue,
+} from "../../../scripts/ready-queue-order.mjs";
 import { resolveRole } from "../../../scripts/resolve-lifecycle-role.mjs";
 import { terminalDoneRoles } from "../../../scripts/stale-blocker-edges.mjs";
 import { CliError, mustRun } from "./cli-runtime.mjs";
@@ -43,14 +46,16 @@ function githubRepo(ctx, project) {
 /**
  * Normalize REST rows with their blockers attached, so the queue judges a
  * blocker by the same rule as intake and the stale-link sweep (#5065).
- * Only rows that name a blocker cost any extra read.
+ * Only rows that name a blocker, and that `keep` retains, cost any extra
+ * read: a row the caller will drop anyway is dropped before enrichment.
  * @param {object} ctx - CLI context
  * @param {{global?: object, local?: object}} project - Loaded project
  * @param {string} repo - `owner/repo`
  * @param {object[]} rows - REST issues
+ * @param {(row: object) => boolean} [keep] - Raw-row filter, applied first
  * @returns {object[]} Normalized items
  */
-function normalizeRows(ctx, project, repo, rows) {
+function normalizeRows(ctx, project, repo, rows, keep = () => true) {
   const doneRoles = terminalDoneRoles({
     tracker: "github",
     global: project.global,
@@ -58,7 +63,7 @@ function normalizeRows(ctx, project, repo, rows) {
   });
   const blocker = blockerReader(ctx);
   return rows
-    .filter(row => !row.pull_request)
+    .filter(row => !row.pull_request && keep(row))
     .map(row =>
       hasBlockers(row, repo) ? withBlockers(ctx, repo, row, blocker) : row
     )
@@ -119,10 +124,12 @@ export function fetchGithubBacklog(ctx, project) {
   );
   const pages = parseJson(stdout, "gh api output");
   const rows = Array.isArray(pages) ? pages.flat() : [];
+  // The lifecycle test reads labels exactly as `normalizeGithubIssue` does,
+  // and runs on the raw rows so an excluded issue costs no blocker read.
+  const unlabelled = row =>
+    !labelNames(row.labels).some(label => lifecycle.has(label.toLowerCase()));
   return {
-    items: normalizeRows(ctx, project, repo, rows).filter(
-      item => !item.labels.some(label => lifecycle.has(label.toLowerCase()))
-    ),
+    items: normalizeRows(ctx, project, repo, rows, unlabelled),
     pages: Array.isArray(pages) ? pages.length : 0,
   };
 }

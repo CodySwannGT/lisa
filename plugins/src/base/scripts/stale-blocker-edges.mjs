@@ -98,9 +98,13 @@ const namesOf = list =>
 /**
  * The project's terminal done role names for one tracker.
  *
- * Local config overrides the committed config, as everywhere else. An
- * env-keyed map yields its `production` rung, else its last rung: an
- * intermediate rung (`status:on-dev`) has not finished, so it never counts.
+ * Each rung resolves on its own, local before committed before the built-in
+ * default, exactly as `resolveRole` resolves one environment: a local map
+ * that overrides only `dev` never hides the committed `production` rung. A
+ * plain string is a single, non-staged done role, so it stands for the
+ * `production` rung. The terminal role is the `production` rung, else the
+ * last rung: an intermediate rung (`status:on-dev`) has not finished, so it
+ * never counts.
  * @param {{ tracker: string, global?: object, local?: object }} input
  * @returns {string[]} Lower-case names
  */
@@ -108,17 +112,30 @@ export function terminalDoneRoles({ tracker, global, local }) {
   // The built-in defaults come from the one resolver every surface shares;
   // it is asked with an empty config so a project's other roles can never
   // make this read fail.
-  const done =
-    rawDone(local ?? {}, tracker) ??
-    rawDone(global ?? {}, tracker) ??
-    resolveBuildLifecycleRoles({}, tracker).roles.done;
-  if (typeof done === "string") return done ? [done.toLowerCase()] : [];
-  const rungs = Object.entries(done ?? {}).filter(
-    ([, value]) => typeof value === "string" && value
-  );
+  const merged = {
+    ...doneRungs(resolveBuildLifecycleRoles({}, tracker).roles.done),
+    ...doneRungs(rawDone(global ?? {}, tracker)),
+    ...doneRungs(rawDone(local ?? {}, tracker)),
+  };
+  const rungs = Object.entries(merged);
   if (rungs.length === 0) return [];
   const production = rungs.find(([key]) => key === "production");
   return [(production ?? rungs[rungs.length - 1])[1].toLowerCase()];
+}
+
+/**
+ * One config's `done` value as its non-empty rungs.
+ * @param {unknown} done - A string, an env-keyed map, or nothing
+ * @returns {Record<string, string>}
+ */
+function doneRungs(done) {
+  if (typeof done === "string") return done ? { production: done } : {};
+  if (!done || typeof done !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(done).filter(
+      ([, value]) => typeof value === "string" && value
+    )
+  );
 }
 
 /**

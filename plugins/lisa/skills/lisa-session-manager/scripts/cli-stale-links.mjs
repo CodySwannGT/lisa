@@ -22,6 +22,7 @@ import {
   loadProject,
 } from "./cli-runtime.mjs";
 import { readJsonFile } from "./json-input.mjs";
+import { readFailures } from "./stale-links-state.mjs";
 import {
   collectGithubStaleLinkInput,
   readGithubStaleLinkItem,
@@ -148,6 +149,7 @@ export function staleLinksPlan(ctx) {
   const tracker = trackerOf(ctx, project);
   const max = intFlag(ctx.values.max, "--max");
   const items = rawItems(ctx, tracker, project);
+  const failures = readFailures(ctx.root);
   return {
     json: asSetupError(() => {
       const context = judgingContext(project, tracker);
@@ -155,6 +157,7 @@ export function staleLinksPlan(ctx) {
         tracker,
         items,
         ...context,
+        failures,
         ...(max === undefined ? {} : { max }),
       });
       return {

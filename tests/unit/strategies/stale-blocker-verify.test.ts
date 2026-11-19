@@ -215,6 +215,7 @@ describe("summaries", () => {
   const report = {
     scanned: 3,
     skippedBlockedRole: 0,
+    unknownStatus: [],
     cleared: 3,
     itemsCleared: 2,
     claimable: ["ABC-1"],

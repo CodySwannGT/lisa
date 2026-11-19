@@ -586,10 +586,12 @@ item held back only by them is claimable in this same cycle:
 1. **Plan.** GitHub: `node "$SM/session-manager.mjs" stale-links-plan --tracker github --project-root "$ROOT"`
    (it reads open issues, their native `blocked_by` dependencies and their `Blocked by` body lines
    through `gh`). Jira / Linear: fetch every open item that has a blocker through
-   `lisa-atlassian-access` (`issuelinks`, with each linked issue's status and status category) or
-   `lisa-linear-access` (`inverseRelations` with `id`, `type`, and the blocking issue's
-   `identifier`, `team.key` and `state { name type }`), with each item's comments, **paging until
-   the last page**. Write `{"complete":true,"items":[...]}` to
+   `lisa-atlassian-access` (the item's own `status`, plus `issuelinks` with each linked issue's
+   status and status category) or `lisa-linear-access` (the item's own `state { name }`, plus
+   `inverseRelations` with `id`, `type`, and the blocking issue's `identifier`, `team.key` and
+   `state { name type }`), with each item's comments, **paging until the last page**. The item's
+   own status is required: an item whose status is missing could be Blocked, so the plan leaves
+   all its links alone and lists it in `report.unknownStatus`. Write `{"complete":true,"items":[...]}` to
    `.lisa/session-manager/stale-links-input.json` and run
    `stale-links-plan --tracker jira|linear --input .lisa/session-manager/stale-links-input.json`.
    The plan writes nothing. A blocker is stale when it is closed in its tracker or sits in the
@@ -599,17 +601,20 @@ item held back only by them is claimable in this same cycle:
    in another project or repository, or could not be read is never touched; an unreadable one is
    listed in `report.inaccessible`. Items in the `blocked` role are left to the Blocked sweep
    below, which decides by branch containment. `--max` caps the items per cycle (default 10); the
-   rest are `deferred` to the next cycle.
+   rest are `deferred` to the next cycle. Items whose planned removals did not happen in an earlier
+   cycle (recorded by `stale-links-verify`) are planned after every other candidate, so removals
+   that keep failing cannot take every slot; a removal that later succeeds clears the record.
 2. **Confirm, then act** on each entry of `plans`. The plan is a snapshot: a blocker can be
    reopened, or a person can edit the item, before you write. So first re-read the item **and
    every blocker it names**, then write that one entry to
    `.lisa/session-manager/stale-links-entry.json` and run
    `stale-links-confirm --tracker github --plan .lisa/session-manager/stale-links-entry.json`
    (GitHub re-reads the issue, each blocker and the comments itself). For Jira and Linear, put the
-   fresh raw item, with each blocker's current status and the comments, in
+   fresh raw item, with its own status, each blocker's current status and the comments, in
    `.lisa/session-manager/stale-links-fresh.json` and add `--input` with that path. Its `plan`
    keeps only the links that are still stale: a reopened blocker is in `skipped` as
-   `blocker-not-resolved` and keeps its link, and the GitHub `body` is rebuilt from the fresh
+   `blocker-not-resolved` and keeps its link, a missing item status skips every link as
+   `status-unknown`, and the GitHub `body` is rebuilt from the fresh
    body, so a concurrent edit survives. When `plan` is null, write nothing for that item. Also
    skip it (one transcript line, no write) when it gained a person's assignee since the plan.
    Then perform each of the confirmed plan's `actions` and nothing else:
@@ -629,7 +634,8 @@ item held back only by them is claimable in this same cycle:
    next cycle plans it again. When `comment` is null, post nothing. Otherwise the CLI has already
    recorded it as pending; post it through `lisa-tracker-write`, then run
    `stale-links-posted --ref <ref>` (on a failed post, `stale-links-posted --ref <ref> --failed`;
-   it stays pending). Keep every verify output for step 3. A link that comes back after its marker
+   it stays pending). It also records any `stillPresent` removal for the next plan's ordering.
+   Keep every verify output for step 4. A link that comes back after its marker
    was posted was put back by a person; the plan reports it in `report.keptByPerson` and never
    removes it again.
 3. **Retry owed comments.** Run `stale-links-pending`. For each entry, post its `comment` (Jira:
