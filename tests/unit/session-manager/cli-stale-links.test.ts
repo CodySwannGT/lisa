@@ -116,7 +116,7 @@ describe(PLAN, () => {
         inaccessible: [{ ref: `${REPO}#1`, blocker: `${REPO}#11` }],
       },
       summary:
-        "stale links: cleared 2 stale blocker links on 1 item; 1 real blocker remains on 1 item; could not open example-org/demo-repo#11 (on example-org/demo-repo#1).",
+        "stale links (plan): planned removal of 2 stale blocker links on 1 item; 1 real blocker remains on 1 item; could not open example-org/demo-repo#11 (on example-org/demo-repo#1).",
     });
     // Reads only: no DELETE and no edit ever leaves the plan.
     const argv = result.calls.map(call => call.argv.join(" "));

@@ -36,6 +36,7 @@ import {
   removeBlockedByRefs,
 } from "./stale-blocker-edges.mjs";
 import {
+  commentsOf,
   formatStaleLinkComment,
   markedBlockers,
   staleLinkCommentAdf,
@@ -49,7 +50,10 @@ export {
   markerLine,
   staleLinkCommentAdf,
 } from "./stale-blocker-comment.mjs";
-export { summarizeStaleLinkSweep } from "./stale-blocker-summary.mjs";
+export {
+  summarizeStaleLinkSweep,
+  summarizeVerifiedSweep,
+} from "./stale-blocker-summary.mjs";
 
 /**
  * One item's planned clean-up.
@@ -62,6 +66,7 @@ export { summarizeStaleLinkSweep } from "./stale-blocker-summary.mjs";
  * @property {{ type: "doc", version: 1, content: object[] } | null} commentAdf - The same comment as ADF, for Jira; null elsewhere
  * @property {number} remainingBlockers - Links left that still hold the item (open or unreadable)
  * @property {boolean} becomesClaimable - A ready item with nothing left holding it
+ * @property {{ stale: {blockerRef: string, verdict: string}[], real: {blockerRef: string, verdict: string}[], crossProject: {blockerRef: string, verdict: string}[], inaccessible: {blockerRef: string, verdict: string}[] }} render - The judged links the comment describes
  */
 
 /** Items cleaned per cycle by default; the rest wait for the next cycle. */
@@ -89,7 +94,7 @@ export function normalizeStaleLinkItem(tracker, raw) {
       edges: githubBlockerEdges(raw),
       body: text(raw?.body),
       repo,
-      comments: raw?.comments ?? [],
+      comments: commentsOf(raw),
     };
   }
   const ref = tracker === "jira" ? text(raw?.key) : text(raw?.identifier);
@@ -102,7 +107,7 @@ export function normalizeStaleLinkItem(tracker, raw) {
     edges: tracker === "jira" ? jiraBlockerEdges(raw) : linearBlockerEdges(raw),
     body: "",
     repo: "",
-    comments: raw?.comments ?? [],
+    comments: commentsOf(raw),
   };
 }
 
@@ -122,7 +127,7 @@ export function sortEdges(item, doneRoles) {
     keptByPerson: [],
   };
   for (const edge of item.edges) {
-    const verdict = blockerResolution(edge, doneRoles);
+    const verdict = blockerResolution(edge, doneRoles, item.project);
     const judged = { ...edge, verdict };
     if (verdict === "inaccessible") out.inaccessible.push(judged);
     else if (edge.project.toLowerCase() !== item.project.toLowerCase())
@@ -153,6 +158,16 @@ function removalAction(tracker, edge, item) {
     endpoint: `repos/${item.repo}/issues/${number}/dependencies/blocked_by/${edge.actionId}`,
   };
 }
+
+/**
+ * The parts of a judged edge the comment needs.
+ * @param {{ blockerRef: string, verdict: string }} edge
+ * @returns {{ blockerRef: string, verdict: string }}
+ */
+const judgedRef = edge => ({
+  blockerRef: edge.blockerRef,
+  verdict: edge.verdict,
+});
 
 /**
  * How many of an item's links still hold it up: an open blocker (in this
@@ -192,6 +207,14 @@ export function itemPlan({ tracker, item, sorted, ready, poster, posterName }) {
     // Jira Cloud's REST v3 comment body is ADF; the other trackers take text.
     commentAdf: tracker === "jira" ? staleLinkCommentAdf(comment) : null,
     remainingBlockers: holds,
+    // What the comment describes, so a writer can re-render it for only the
+    // removals that read back as done (`stale-blocker-verify.mjs`).
+    render: {
+      stale: sorted.stale.map(edge => judgedRef(edge)),
+      real: sorted.real.map(edge => judgedRef(edge)),
+      crossProject: sorted.crossProject.map(edge => judgedRef(edge)),
+      inaccessible: sorted.inaccessible.map(edge => judgedRef(edge)),
+    },
     becomesClaimable: ready && holds === 0,
   };
 }

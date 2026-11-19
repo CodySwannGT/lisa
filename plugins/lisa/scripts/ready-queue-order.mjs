@@ -196,7 +196,8 @@ function githubOpenBlockers(issue, repo, doneRoles) {
   }
   return countUnresolvedBlockers(
     githubBlockerEdges({ ...issue, repo }),
-    doneRoles ?? []
+    doneRoles ?? [],
+    repo
   );
 }
 
@@ -265,10 +266,12 @@ export function normalizeJiraIssue(issue, options = {}) {
     .map(sub => sub?.fields?.status?.statusCategory?.key)
     .filter(category => category !== "done");
   // One rule with the stale-link sweep (#5065): a blocker in the configured
-  // done status is finished even where its status category is not `done`.
+  // done status is finished even where its status category is not `done`,
+  // but only in this item's own project, which is the one that declares it.
   const openBlockers = countUnresolvedBlockers(
     jiraBlockerEdges(issue),
-    options.doneRoles ?? []
+    options.doneRoles ?? [],
+    text(issue?.key).split("-")[0]
   );
 
   return shape({
@@ -346,10 +349,11 @@ export function normalizeLinearIssue(issue, options = {}) {
   // relation, read from B as an inverse
   // relation. One rule with the stale-link sweep (#5065): a promotion
   // workflow can type its configured done state `started`, so the configured
-  // name also counts as finished.
+  // name also counts as finished, in this item's own team only.
   const openBlockers = countUnresolvedBlockers(
     linearBlockerEdges(issue),
-    options.doneRoles ?? []
+    options.doneRoles ?? [],
+    text(issue?.team?.key) || text(issue?.identifier).split("-")[0]
   );
 
   return shape({

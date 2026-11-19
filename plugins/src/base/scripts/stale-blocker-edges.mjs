@@ -58,6 +58,13 @@ const JIRA_BLOCKED_BY = /blocked by/i;
 /** A `Blocked by` line as `lisa-github-write-issue` writes it. */
 const BLOCKED_BY_LINE = /^(\s*(?:[-*]\s+)?blocked by:?\s+)(.+?)\s*$/i;
 
+/**
+ * What separates refs on a `Blocked by` line: a comma, or the word "and"
+ * with whitespace on both sides, so an `and` inside a repository name
+ * (`org/and#10`) is never a separator.
+ */
+const REF_SEPARATOR = /\s*,\s*|\s+and\s+/i;
+
 /** One GitHub issue reference inside a `Blocked by` line. */
 const GITHUB_REF =
   /^(?:https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/issues\/(\d+)|(?:([\w.-]+\/[\w.-]+))?#(\d+))$/i;
@@ -127,15 +134,27 @@ function rawDone(config, tracker) {
 
 /**
  * Judge one normalized edge's blocker.
- * @param {{ accessible?: boolean, closed?: boolean, cancelled?: boolean, names?: readonly string[] }} edge
+ *
+ * The configured done names belong to the project that configures them, so a
+ * name match counts only for a blocker in that project (`scope`). A blocker
+ * in another Jira project or Linear team that happens to have a status of the
+ * same name is finished only when its own tracker says so (closed, done
+ * category, completed). With no scope, a name match counts anywhere.
+ * @param {{ accessible?: boolean, closed?: boolean, cancelled?: boolean, names?: readonly string[], project?: string }} edge
  * @param {readonly string[]} doneRoles - From {@link terminalDoneRoles}
+ * @param {string} [scope] - The project or team that declares `doneRoles`
  * @returns {"done"|"closed"|"cancelled"|"open"|"inaccessible"} Verdict
  */
-export function blockerResolution(edge, doneRoles) {
+export function blockerResolution(edge, doneRoles, scope) {
   if (!edge || edge.accessible === false) return "inaccessible";
   if (edge.cancelled === true) return "cancelled";
+  const inScope =
+    !scope || text(edge.project).toLowerCase() === scope.toLowerCase();
   const done = new Set(doneRoles.map(name => name.toLowerCase()));
-  if ((edge.names ?? []).some(name => done.has(name.toLowerCase()))) {
+  if (
+    inScope &&
+    (edge.names ?? []).some(name => done.has(name.toLowerCase()))
+  ) {
     return "done";
   }
   return edge.closed === true ? "closed" : "open";
@@ -153,10 +172,12 @@ export const isResolved = verdict => RESOLVED.has(verdict);
  * blocker is never assumed finished).
  * @param {readonly object[]} edges - Normalized edges
  * @param {readonly string[]} doneRoles - From {@link terminalDoneRoles}
+ * @param {string} [scope] - The project or team that declares `doneRoles`
  * @returns {number}
  */
-export const countUnresolvedBlockers = (edges, doneRoles) =>
-  edges.filter(edge => !isResolved(blockerResolution(edge, doneRoles))).length;
+export const countUnresolvedBlockers = (edges, doneRoles, scope) =>
+  edges.filter(edge => !isResolved(blockerResolution(edge, doneRoles, scope)))
+    .length;
 
 /**
  * The project key of a Jira or Linear key (`ABC-12` → `ABC`).
@@ -243,7 +264,7 @@ export function parseBlockedByRefs(body, repo) {
       const match = BLOCKED_BY_LINE.exec(line);
       if (!match) return [];
       return match[2]
-        .split(/\s*(?:,|\band\b)\s*/i)
+        .split(REF_SEPARATOR)
         .map(token => canonicalGithubRef(token, repo))
         .filter(Boolean);
     });
@@ -265,7 +286,7 @@ export function removeBlockedByRefs(body, refs, repo) {
     .flatMap(line => {
       const match = BLOCKED_BY_LINE.exec(line);
       if (!match) return [line];
-      const tokens = match[2].split(/\s*(?:,|\band\b)\s*/i);
+      const tokens = match[2].split(REF_SEPARATOR);
       const kept = tokens.filter(
         token => !drop.has(canonicalGithubRef(token, repo) ?? "")
       );

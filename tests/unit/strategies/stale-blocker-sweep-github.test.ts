@@ -209,7 +209,7 @@ describe("idempotency, cap and readiness", () => {
     ]);
     expect(result.deferred).toEqual([`${REPO}#7`]);
     expect(summarizeStaleLinkSweep(result.report)).toBe(
-      "stale links: cleared 2 stale blocker links on 2 items; 1 now ready to start; 1 item left for the next cycle; 0 real blockers remain on 0 items."
+      "stale links (plan): planned removal of 2 stale blocker links on 2 items; 1 would become ready to start; 1 item left for the next cycle; 0 real blockers remain on 0 items."
     );
   });
 

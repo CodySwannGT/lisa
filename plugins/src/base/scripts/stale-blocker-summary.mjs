@@ -74,17 +74,13 @@ export function tallySweep(judged, plans, deferred) {
 const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
 
 /**
- * One plain line for the cycle summary.
+ * The parts every summary line shares: what is left for the next cycle, the
+ * real blockers, and the blockers that could not be opened.
  * @param {StaleLinkReport} report
- * @returns {string}
+ * @returns {string[]}
  */
-export function summarizeStaleLinkSweep(report) {
-  const parts = [
-    `cleared ${plural(report.cleared, "stale blocker link", "stale blocker links")} on ${plural(report.itemsCleared, "item", "items")}`,
-  ];
-  if (report.claimable.length > 0) {
-    parts.push(`${report.claimable.length} now ready to start`);
-  }
+function tail(report) {
+  const parts = [];
   if (report.deferred.length > 0) {
     parts.push(
       `${plural(report.deferred.length, "item", "items")} left for the next cycle`
@@ -99,5 +95,49 @@ export function summarizeStaleLinkSweep(report) {
       .join(", ");
     parts.push(`could not open ${list}`);
   }
-  return `stale links: ${parts.join("; ")}.`;
+  return parts;
+}
+
+/**
+ * One plain line describing the PLAN. Nothing has been written yet, so it
+ * says "planned" and "would become ready", never "cleared".
+ * @param {StaleLinkReport} report
+ * @returns {string}
+ */
+export function summarizeStaleLinkSweep(report) {
+  const parts = [
+    `planned removal of ${plural(report.cleared, "stale blocker link", "stale blocker links")} on ${plural(report.itemsCleared, "item", "items")}`,
+  ];
+  if (report.claimable.length > 0) {
+    parts.push(`${report.claimable.length} would become ready to start`);
+  }
+  return `stale links (plan): ${[...parts, ...tail(report)].join("; ")}.`;
+}
+
+/**
+ * One plain line for the cycle summary, built from what the read-backs
+ * confirmed. Planned removals that did not happen and items deferred to the
+ * next cycle are counted separately, never as cleared.
+ * @param {StaleLinkReport} report - The plan's report
+ * @param {readonly { confirmed: string[], stillPresent: string[], becameReady: boolean }[]} results - One per item acted on
+ * @param {{ planned?: number }} [counts] - Planned removals, when they differ
+ *   from the report (a plan entry confirmed down to fewer links)
+ * @returns {string}
+ */
+export function summarizeVerifiedSweep(report, results, counts = {}) {
+  const cleared = results.reduce((sum, r) => sum + r.confirmed.length, 0);
+  const items = results.filter(r => r.confirmed.length > 0).length;
+  const ready = results.filter(r => r.becameReady).length;
+  const planned = counts.planned ?? report.cleared;
+  const notDone = Math.max(0, planned - cleared);
+  const parts = [
+    `cleared ${plural(cleared, "stale blocker link", "stale blocker links")} on ${plural(items, "item", "items")}`,
+  ];
+  if (ready > 0) parts.push(`${ready} now ready to start`);
+  if (notDone > 0) {
+    parts.push(
+      `${plural(notDone, "planned removal", "planned removals")} not done (retried next cycle)`
+    );
+  }
+  return `stale links: ${[...parts, ...tail(report)].join("; ")}.`;
 }

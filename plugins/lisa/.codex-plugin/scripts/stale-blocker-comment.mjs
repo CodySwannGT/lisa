@@ -31,6 +31,28 @@ export const markerLine = blockerRef =>
   `${STALE_LINK_MARKER} blocker=${blockerRef}`;
 
 /**
+ * An item's comments as one flat `{ body }` list, whatever envelope the
+ * vendor read used: a flat array (`comments: [{ body }]`), Linear's
+ * connection (`comments: { nodes: [...] }`), or Jira's issue field
+ * (`fields.comment.comments`). A comment given as a bare string is a body.
+ * Anything else is skipped, never thrown on, so a marker in any of these
+ * shapes is always found.
+ * @param {Record<string, any> | null | undefined} raw - The raw item
+ * @returns {{ body: unknown }[]}
+ */
+export function commentsOf(raw) {
+  const list = value => {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.nodes)) return value.nodes;
+    if (Array.isArray(value?.comments)) return value.comments;
+    return [];
+  };
+  return [...list(raw?.comments), ...list(raw?.fields?.comment)]
+    .map(comment => (typeof comment === "string" ? { body: comment } : comment))
+    .filter(comment => comment && typeof comment === "object");
+}
+
+/**
  * Blockers this item's comments already record as removed. A Jira comment
  * body is Atlassian Document Format, so it is flattened to text first.
  * @param {readonly { body?: unknown }[] | undefined} comments
@@ -39,7 +61,7 @@ export const markerLine = blockerRef =>
 export function markedBlockers(comments) {
   const pattern = /\[lisa-stale-blocker-link\] blocker=(\S+)/g;
   return new Set(
-    (comments ?? []).flatMap(comment =>
+    (Array.isArray(comments) ? comments : []).flatMap(comment =>
       [...adfText(comment?.body).matchAll(pattern)].map(match => match[1])
     )
   );

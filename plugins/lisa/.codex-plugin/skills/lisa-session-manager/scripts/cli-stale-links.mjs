@@ -107,7 +107,7 @@ function rawItems(ctx, tracker, project) {
  * @param {ReturnType<typeof loadProject>} project
  * @returns {"github" | "jira" | "linear"}
  */
-function trackerOf(ctx, project) {
+export function trackerOf(ctx, project) {
   const tracker =
     ctx.values.tracker ?? project.local?.tracker ?? project.global?.tracker;
   if (!TRACKERS.has(tracker ?? "")) {
@@ -122,7 +122,7 @@ function trackerOf(ctx, project) {
  * @param {string} tracker
  * @returns {{ doneRoles: string[], roles: { ready: string, blocked: string }, posterName: string }}
  */
-function judgingContext(project, tracker) {
+export function judgingContext(project, tracker) {
   return {
     doneRoles: terminalDoneRoles({
       tracker,
@@ -168,17 +168,18 @@ export function staleLinksPlan(ctx) {
 }
 
 /**
- * The item as it stands now: `--input`, or a fresh GitHub read.
+ * The item as it stands now: `--input`, or a fresh GitHub read. Used before
+ * the writes (`stale-links-confirm`) and after them (`stale-links-verify`).
  * @param {object} ctx - CLI context
  * @param {string} tracker
  * @param {{ ref?: string }} plan - The plan entry being confirmed
  * @returns {Record<string, any>}
  */
-function freshItem(ctx, tracker, plan) {
+export function freshItem(ctx, tracker, plan) {
   if (ctx.values.input) return readJsonFile(ctx.values.input);
   if (tracker !== "github") {
     throw new CliError(
-      `stale-links-confirm --tracker ${tracker} needs --input <file>.`,
+      `--tracker ${tracker} needs --input <file> with the item as read now.`,
       2
     );
   }

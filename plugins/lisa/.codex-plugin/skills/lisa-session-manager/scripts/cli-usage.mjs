@@ -329,7 +329,9 @@ Per cycle
       Open, cross-project and unreadable blockers are kept (unreadable ones
       reported); items in the blocked role are left to the Blocked sweep.
       stdout {tracker,doneRoles,plans:[{ref,actions,body,removed,comment,
-      remainingBlockers,becomesClaimable}],deferred,report,summary}. A
+      commentAdf,remainingBlockers,becomesClaimable,render}],deferred,report,
+      summary}; summary describes the plan ("planned", "would become
+      ready"), never a result. A
       comment carries one [lisa-stale-blocker-link] blocker=<ref> marker per
       removed link, so a re-run never comments twice. --max caps items per
       cycle (default 10); the rest are deferred.
@@ -342,6 +344,21 @@ Per cycle
       {tracker,plan,skipped:[{blocker,reason}]}; reason is
       blocker-not-resolved, link-already-gone or blocked-role; plan is null
       when nothing is still safe to remove.
+  stale-links-verify [--tracker <t>] --plan <file> [--input <file>]
+      Reads one item back after its stale-link writes. stdout {ref,confirmed,
+      stillPresent,comment,commentAdf,becameReady,pending}: comment covers
+      ONLY the confirmed removals (null when none) and is recorded as pending
+      in .lisa/session-manager/stale-links-pending.json until posted.
+  stale-links-pending
+      Lists the stale-link comments still owed (confirmed removals whose
+      comment has not posted yet). stdout {pending:[...]}.
+  stale-links-posted --ref <ref> [--failed]
+      Settles an item's pending comments after they post; --failed instead
+      counts one more failed try.
+  stale-links-report --input <file>
+      {report,results[,planned]} -> {summary}: the cycle's stale-link line,
+      built from verified results; planned-but-not-done and deferred items
+      are counted separately, never as cleared.
   orphan-plan [--input <file>] [--max <n>] [--stale-hours <n>]
                                                 STDIN (without --input): JSON
       {complete:true,items:[{ref,role,labels,body,comments,assignees,

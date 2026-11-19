@@ -53,6 +53,12 @@ import { overruledPlan } from "./cli-overruled.mjs";
 import { repoDir, start, status, stop, validate } from "./cli-manager.mjs";
 import { queue } from "./cli-queue.mjs";
 import { staleLinksConfirm, staleLinksPlan } from "./cli-stale-links.mjs";
+import {
+  staleLinksPending,
+  staleLinksPosted,
+  staleLinksReport,
+  staleLinksVerify,
+} from "./cli-stale-links-results.mjs";
 import { CliError, EXIT } from "./cli-runtime.mjs";
 import {
   coexistence,
@@ -143,6 +149,26 @@ const COMMANDS = {
   "stale-links-confirm": {
     run: staleLinksConfirm,
     options: { tracker: text, input: text, plan: text, "github-repo": text },
+    positionals: 0,
+  },
+  "stale-links-verify": {
+    run: staleLinksVerify,
+    options: { tracker: text, input: text, plan: text, "github-repo": text },
+    positionals: 0,
+  },
+  "stale-links-pending": {
+    run: staleLinksPending,
+    options: {},
+    positionals: 0,
+  },
+  "stale-links-posted": {
+    run: staleLinksPosted,
+    options: { ref: text, failed: flag },
+    positionals: 0,
+  },
+  "stale-links-report": {
+    run: staleLinksReport,
+    options: { input: text },
     positionals: 0,
   },
   "orphan-plan": {
