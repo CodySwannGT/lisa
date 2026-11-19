@@ -361,7 +361,7 @@
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "3ef6b8a15108d1a9800a356a477789f53ed3b55a532aad094c73e85cb79105ae",
+      "e7d3afd36a76b61470d0a6e710923323b1671ae3c2cd29e9699f35aaea512273",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "a7950ce0b4bcf78eb46e9a17053aca62eacab00376dcf4cdfe85cdae07d11db3",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -1113,7 +1113,7 @@
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "649efb8eb4130345292eca47ed4d254f501606e7168d6b8a258176dbfbd01b2b",
+      "66365944f8f0c9bcc14910c31d4d5d9ad9fbb48816728017acbad0d5409815ee",
     "plugins/src/base/hooks/block-masked-exit-status.sh":
       "6b28b592edf602c5c809decfb9d108aa5bc73df4dc748017b7a0547211aa9391",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
@@ -1893,7 +1893,7 @@
     "plugins/src/base/skills/lisa-setup-remote-env/assets/materialized-env-authority.mjs":
       "2844475d7b407c4dccce4e0f500a3aaf5412f9f315c9173dd0ca22dd24497049",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
-      "2b40873f39b38e00b50285ca2c4c705ea018285fa457c3e1a985adbeaad6c26b",
+      "ec7f1bf5dd58b0ec762839487d7eccd2be2fea13bca9ef08e51eb23ba43fe6ff",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "803ceee995da51503202458a24b4f5bd80ace8c779d0c782bf1197c36e1ebe91",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/environment.mjs":
@@ -2281,7 +2281,7 @@
     "plugins/src/nestjs/hooks/block-migration-edits.sh":
       "98cf09e93e6d798762f1d3fdda75276af19745015fac29790ccc1acaa620620d",
     "plugins/src/nestjs/hooks/lisa-edit-gate.sh":
-      "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
+      "ddb1b3d3a7a9605f389bde85a547d25ed6f7dc6dcf77733702d339642aa3a20e",
     "plugins/src/nestjs/skills/nestjs-graphql/SKILL.md":
       "30014c4ee2ead78c07756ccfde630cd1996cd1fee684a5b33a79ce959ce2eed4",
     "plugins/src/nestjs/skills/nestjs-graphql/references/advanced-features.md":
@@ -2383,7 +2383,7 @@
     "plugins/src/rails/hooks/inject-rules.sh":
       "96a512bafefb72a5e0f0c8e55ecb7b05a3512408688cf7b1129194b4dcbaebbc",
     "plugins/src/rails/hooks/lisa-edit-gate.sh":
-      "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
+      "ddb1b3d3a7a9605f389bde85a547d25ed6f7dc6dcf77733702d339642aa3a20e",
     "plugins/src/rails/hooks/rubocop-on-edit.sh":
       "3961329a204dfd5a23da61c908c0d9518b46ee7144d4f8dd42810f0cb175aba3",
     "plugins/src/rails/hooks/sg-scan-on-edit.sh":
@@ -2429,7 +2429,7 @@
     "plugins/src/typescript/hooks/lint-on-edit.sh":
       "7f913add754a9accdc99daf9ff50611e65c5cc363dd99dbc0668e9c928f4eeb4",
     "plugins/src/typescript/hooks/lisa-edit-gate.sh":
-      "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
+      "ddb1b3d3a7a9605f389bde85a547d25ed6f7dc6dcf77733702d339642aa3a20e",
     "plugins/src/typescript/hooks/sg-scan-on-edit.sh":
       "576d499d23d5d62cd8a5e148f11fe3f1411309385868f4fd1638b4acdc546724",
     "plugins/src/wiki/ci/lisa-wiki-validate.yml":
@@ -2975,7 +2975,7 @@
     "scripts/lisa-remote-env/materialized-env-authority.mjs":
       "2844475d7b407c4dccce4e0f500a3aaf5412f9f315c9173dd0ca22dd24497049",
     "scripts/lisa-remote-env/session-start.sh":
-      "2b40873f39b38e00b50285ca2c4c705ea018285fa457c3e1a985adbeaad6c26b",
+      "ec7f1bf5dd58b0ec762839487d7eccd2be2fea13bca9ef08e51eb23ba43fe6ff",
     "scripts/lisa-remote-env/setup.sh":
       "803ceee995da51503202458a24b4f5bd80ace8c779d0c782bf1197c36e1ebe91",
     "scripts/lisa-rollback-release.mjs":
@@ -13012,6 +13012,7 @@
     "tests/unit/config/sonar-coverage-handoff.test.ts": true,
     "tests/unit/config/stale-deploy-guard.test.ts": true,
     "tests/unit/config/stryker-sandbox-dist-configs.test.ts": true,
+    "tests/unit/config/suppression-directive-inventory.test.ts": true,
     "tests/unit/config/template-script-toolchain.test.ts": true,
     "tests/unit/config/template-security-floors.test.ts": true,
     "tests/unit/config/test-access-map-triggers.test.ts": true,
@@ -13535,6 +13536,7 @@
     "tests/unit/hooks/block-managed-file-edits-file-reach.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-host-stack.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-ledger-fallback.test.ts": true,
+    "tests/unit/hooks/block-managed-file-edits-lisaignore-globs.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-redirects.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits.test.ts": true,
     "tests/unit/hooks/block-masked-exit-status.test.ts": true,

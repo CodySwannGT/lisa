@@ -156,6 +156,18 @@ describe("shipped ShellCheck directives are parseable", () => {
     expect(malformed).toEqual([]);
   });
 
+  it("disables no check", () => {
+    // A `disable=` hides the finding it names instead of fixing the code, so
+    // none ships (#4929). `source=` and `shell=` declare facts ShellCheck
+    // cannot see; they stay.
+    const disabling = DIRECTIVES.filter(directive =>
+      directive.body.split(/\s+/u).some(token => token.startsWith("disable="))
+    ).map(
+      directive => `${directive.file}:${directive.line}  ${directive.text}`
+    );
+    expect(disabling).toEqual([]);
+  });
+
   it("uses only directive keys ShellCheck defines", () => {
     // A typo'd key fails the same way the trailing prose did, silently.
     const known = new Set([

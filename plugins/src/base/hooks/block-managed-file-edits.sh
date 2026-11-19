@@ -184,6 +184,144 @@ if [ -f "$project_root/package.json" ] &&
   exit 0
 fi
 
+# lisaignore_glob_ere <glob>
+#
+# Set `lisaignore_ere` to an anchored ERE that matches exactly the strings the
+# shell's `case` matches with <glob>, so `[[ $path =~ $lisaignore_ere ]]` can
+# stand in for an unquoted `case` pattern: `*` is any run of characters
+# (slashes included), `?` is one character, `[...]` is a bracket expression
+# (`!` or `^` negates it), a backslash makes the next character literal, and
+# an unterminated `[` is a literal `[`. Every other character is literal, so an
+# ERE metacharacter in a `.lisaignore` line is matched as itself rather than
+# obeyed. Returns 1, matching nothing, for a trailing backslash: it escapes
+# nothing, and the shell's matcher then matches nothing either.
+#
+# A range compares code points, as bash 5 does by default (`globasciiranges`)
+# and as minimatch does. Measured against `case` over 3,127 pattern/path pairs
+# with no mismatch in the C locale; bash 3.2 under a UTF-8 locale orders a
+# range by collation instead, which only a range bracket can tell apart.
+#
+# No subshells: this runs on every agent edit, so each helper appends to a
+# variable instead of printing.
+lisaignore_glob_ere() {
+  local glob="$1" char
+  local -i i=0 n=${#1}
+  lisaignore_ere=""
+  while [ "$i" -lt "$n" ]; do
+    char="${glob:i:1}"
+    case "$char" in
+      "*") lisaignore_ere+=".*" ;;
+      "?") lisaignore_ere+="." ;;
+      "\\")
+        [ "$((i + 1))" -lt "$n" ] || return 1
+        i+=1
+        lisaignore_ere_literal "${glob:i:1}"
+        ;;
+      "[")
+        if lisaignore_bracket_end "$glob" "$i"; then
+          lisaignore_bracket_ere "${glob:i+1:lisaignore_close-i-1}"
+          i=$lisaignore_close
+        else
+          lisaignore_ere_literal "["
+        fi
+        ;;
+      *) lisaignore_ere_literal "$char" ;;
+    esac
+    i+=1
+  done
+  lisaignore_ere="^${lisaignore_ere}\$"
+}
+
+# lisaignore_ere_literal <char>
+#
+# Append one character to `lisaignore_ere`, written so an ERE matches it
+# literally.
+lisaignore_ere_literal() {
+  case "$1" in
+    "^") lisaignore_ere+="\\^" ;;
+    "\\") lisaignore_ere+="[\\]" ;;
+    "[") lisaignore_ere+="[[]" ;;
+    "." | "+" | "(" | ")" | "{" | "}" | "|" | "$" | "*" | "?") lisaignore_ere+="[$1]" ;;
+    *) lisaignore_ere+="$1" ;;
+  esac
+}
+
+# lisaignore_bracket_end <glob> <open>
+#
+# Set `lisaignore_close` to the index of the `]` closing the bracket opened at
+# <open>, or return 1 when it is never closed. A `]` straight after the
+# opening (or after its `!`/`^`) is a member, `[:name:]` is a class, and a
+# backslash escapes the next character, as in the shell's own matcher.
+lisaignore_bracket_end() {
+  local glob="$1" rest name
+  local -i i=$(($2 + 1)) n=${#1} start
+  case "${glob:i:1}" in "!" | "^") i+=1 ;; esac
+  start=$i
+  while [ "$i" -lt "$n" ]; do
+    case "${glob:i:1}" in
+      "]")
+        if [ "$i" -gt "$start" ]; then
+          lisaignore_close=$i
+          return 0
+        fi
+        ;;
+      "\\") i+=1 ;;
+      "[")
+        if [ "${glob:i+1:1}" = ":" ]; then
+          rest="${glob:i+2}"
+          case "$rest" in
+            *":]"*)
+              name="${rest%%":]"*}"
+              i+=$((${#name} + 3))
+              ;;
+          esac
+        fi
+        ;;
+    esac
+    i+=1
+  done
+  return 1
+}
+
+# lisaignore_bracket_ere <body>
+#
+# Append the ERE bracket expression for a glob bracket body to
+# `lisaignore_ere`. An escaped member loses its backslash, and a literal `]`,
+# `^` or `-` is placed where an ERE bracket reads it literally: first, not
+# first, and last.
+lisaignore_bracket_ere() {
+  local body="$1" negate="" members="" close="" caret="" dash="" char
+  local -i i=0 n=${#1}
+  case "${body:0:1}" in "!" | "^") negate="^" i=1 ;; esac
+  if [ "${body:i:1}" = "]" ]; then
+    close="]"
+    i+=1
+  fi
+  while [ "$i" -lt "$n" ]; do
+    char="${body:i:1}"
+    if [ "$char" = "\\" ] && [ "$((i + 1))" -lt "$n" ]; then
+      i+=1
+      char="${body:i:1}"
+      case "$char" in
+        "]") close="]" ;;
+        "^") caret="^" ;;
+        "-") dash="-" ;;
+        *) members+="$char" ;;
+      esac
+    elif [ "$char" = "^" ] && [ -z "$members$close" ]; then
+      caret="^"
+    else
+      members+="$char"
+    fi
+    i+=1
+  done
+  if [ -z "$close$members$dash" ]; then
+    members="$caret"
+    caret=""
+  fi
+  lisaignore_ere+="[${negate}${close}${members}${caret}${dash}]"
+}
+
 # Whether the project has claimed a path in `.lisaignore`.
 #
 # THIS IS THE OWNERSHIP QUESTION, and it decides whether blocking is right at
@@ -228,32 +366,26 @@ lisaignored() {
       # `\!x` is a literal leading `!`, not a negation.
       \\!*) pattern="${pattern#\\}" ;;
     esac
-    local selected=1
+    local selected=1 pattern_ere=""
+    # A trailing backslash leaves no ERE, and such a pattern selects nothing.
+    if lisaignore_glob_ere "$pattern"; then pattern_ere="$lisaignore_ere"; fi
     case "$pattern" in
       */)
         case "$rel" in "${pattern%/}"/* | "${pattern%/}") selected=0 ;; esac
         ;;
     esac
-    if [ "$selected" -ne 0 ]; then
-      # The pattern is a glob on purpose, so it is deliberately unquoted.
-      #
-      # The reason sits on its own line because a shellcheck directive is
-      # `key=value` pairs and NOTHING else. Written as
-      # `disable=SC2254 -- <prose>`, the trailing words are read as more
-      # directive keys: the directive fails with SC1072/SC1073, shellcheck
-      # stops checking the rest of THIS FILE, and SC2254 is left unsuppressed
-      # as well. Measured with shellcheck 0.11.0. Do not rejoin these lines.
-      # shellcheck disable=SC2254
-      case "$rel" in $pattern) selected=0 ;; esac
+    # The pattern is a glob on purpose. It is matched through its ERE, which
+    # `lisaignore_glob_ere` builds to select exactly what an unquoted `case`
+    # pattern would, so no expansion is left unquoted.
+    if [ "$selected" -ne 0 ] && [ -n "$pattern_ere" ]; then
+      if [[ $rel =~ $pattern_ere ]]; then selected=0; fi
     fi
-    if [ "$selected" -ne 0 ]; then
+    if [ "$selected" -ne 0 ] && [ -n "$pattern_ere" ]; then
       case "$pattern" in
         */*) ;;
         *)
-          # Ditto, matched against the basename — and ditto about the reason
-          # living on its own line rather than after the directive.
-          # shellcheck disable=SC2254
-          case "${rel##*/}" in $pattern) selected=0 ;; esac
+          # Ditto, matched against the basename.
+          if [[ ${rel##*/} =~ $pattern_ere ]]; then selected=0; fi
           ;;
       esac
     fi
