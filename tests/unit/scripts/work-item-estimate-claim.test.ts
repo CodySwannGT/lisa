@@ -13,6 +13,7 @@ import {
   itemRatio,
 } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs";
 import { checkEstimate } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs";
+import { upsertLisaUsageSection } from "../../../src/utils/usage-accounting.js";
 import {
   ESTIMATE_ON,
   finishedItem,
@@ -23,6 +24,7 @@ import {
 const OFF = resolveEstimateConfig({
   workItem: { estimate: { required: false } },
 });
+const CHILD_REF = "github:acme/code#43";
 const doubled = (id: string): string =>
   finishedItem(1_000_000, 3_000_000, [usageEntry(id, 4_000_000)]);
 
@@ -122,6 +124,31 @@ describe("calibration", () => {
         doubled("a"),
       ])
     ).toMatchObject({ comparable: 1, ratio: 2 });
+  });
+
+  it("skips an item whose child work has a run with no token total", () => {
+    const item = upsertLisaUsageSection(
+      finishedItem(1_000_000, 3_000_000, []),
+      {
+        entries: [usageEntry("implement", 2_000_000)],
+        childArtifacts: [
+          {
+            artifactRef: CHILD_REF,
+            entries: [
+              {
+                ...usageEntry("child-known", 1_000_000),
+                artifactRef: CHILD_REF,
+              },
+              {
+                ...usageEntry("child-unavailable", null),
+                artifactRef: CHILD_REF,
+              },
+            ],
+          },
+        ],
+      }
+    );
+    expect(itemRatio(item)).toBe(null);
   });
 
   it("takes the mean of the middle two ratios for an even sample", () => {
