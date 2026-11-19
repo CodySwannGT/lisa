@@ -243,10 +243,13 @@ export function fillProbeDirectory(
 }
 
 /**
- * Time one create-then-recursively-delete cycle.
+ * Time one create-then-recursively-delete cycle: the probe's unit reading.
+ *
+ * Exported so the agreement check can take each probe reading back to back
+ * with a real removal (CodySwannGT/lisa#5066) rather than in a separate window.
  * @returns Per-entry unlink cost of one cycle, in microseconds
  */
-function timeOneUnlinkCycle(): number {
+export function timeOneUnlinkCycle(): number {
   const directory = fillProbeDirectory();
   const startedAt = performance.now();
   rmSync(directory, { force: true, recursive: true });
