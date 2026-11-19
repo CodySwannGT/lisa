@@ -3,7 +3,7 @@
  * managed-template, and installed-state inspectors.
  * @module tests/unit/health/deterministic-regressions.test
  */
-import { chmod, mkdtemp, realpath, rm, symlink } from "node:fs/promises";
+import { chmod, mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -25,6 +25,7 @@ import { mergeTemplateJson } from "../../../src/strategies/merge.js";
 import { TaggedMergeStrategy } from "../../../src/strategies/tagged-merge.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { write } from "./deterministic-regressions-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /** The project file the FIFO cases replace with a blocking special file. */
 const PACKAGE_JSON = "package.json";
@@ -119,7 +120,7 @@ describe("deterministic health safety regressions", () => {
         UNSAFE_PROJECT_FILE
       );
       await rm(internalFifo);
-      await symlink(externalFifo, internalFifo);
+      createSymlink(externalFifo, internalFifo);
       await expect(readProjectFile(root, PACKAGE_JSON)).rejects.toThrow(
         UNSAFE_PROJECT_FILE
       );

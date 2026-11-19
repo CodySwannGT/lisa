@@ -42,6 +42,7 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 
@@ -203,7 +204,7 @@ function hostRoot(prefix: string, runner: keyof typeof RUNNERS): string {
   fixtures.push(root);
   fs.mkdirSync(ambient, { recursive: true });
   for (const pkg of RUNNERS[runner].installs) {
-    fs.symlinkSync(
+    createSymlink(
       path.join(REPO_ROOT, "node_modules", pkg),
       path.join(root, "node_modules", pkg)
     );

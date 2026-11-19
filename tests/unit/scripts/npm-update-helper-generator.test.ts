@@ -6,7 +6,6 @@ import {
   readFileSync,
   writeFileSync,
   rmSync,
-  symlinkSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
@@ -18,6 +17,7 @@ import {
   managedTemplateMembers,
   classifierGraphMatches,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 describe("literal canonical classifier qualification", () => {
   const literal =
@@ -93,7 +93,7 @@ describe("reproducible updater helper graph", () => {
         target = join(root, "alias-target.mjs");
       writeFileSync(target, readFileSync(path));
       rmSync(path);
-      symlinkSync(target, path);
+      createSymlink(target, path);
       await expect(generatedHelperGraph(root)).rejects.toThrow(/aliased/);
       rmSync(path);
       await expect(generatedHelperGraph(root)).rejects.toThrow(/ENOENT/);

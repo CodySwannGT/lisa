@@ -10,7 +10,6 @@ import {
   mkdtempSync,
   rmSync,
   statSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -25,6 +24,7 @@ import {
   privateLockDirProblem,
   UNIX_SOCKET_PATH_LIMIT,
 } from "../../../src/core/admission-lock.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -103,7 +103,7 @@ describe("lock path ownership", () => {
       /belongs to another user/u
     );
     const link = join(dir, "link");
-    symlinkSync(loose, link);
+    createSymlink(loose, link);
     expect(privateLockDirProblem(link, SELF_UID)).toMatch(
       /is not a directory/u
     );

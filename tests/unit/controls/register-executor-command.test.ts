@@ -8,7 +8,7 @@
  * together, so the committed file is out of date exactly when one of the two
  * changed, and `--check` says which (CodySwannGT/lisa#4991).
  */
-import { rmSync, symlinkSync } from "node:fs";
+import { rmSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -34,6 +34,7 @@ import {
   register,
 } from "./support/register-run.js";
 import { keep, removeFixtures } from "./support/report-check-run.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const LINT_API = "code-style@api";
 const LINT_WEB = "code-style@web";
@@ -169,7 +170,7 @@ describe("evidence clears the status", () => {
     const repoPath = await generatedWithPipeline();
     const outside = keep(buildFNone()).repoPath;
     writeEvidenceRecords(outside, bothHalves(LINT_API));
-    symlinkSync(
+    createSymlink(
       path.join(outside, EVIDENCE_PATH),
       path.join(repoPath, EVIDENCE_PATH)
     );

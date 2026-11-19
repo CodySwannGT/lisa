@@ -5,7 +5,6 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -15,6 +14,7 @@ import { pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const FIXTURE_ROOT = "tests/runtime-upstream-attribution";
 const BODY_MODULE_PATH = "src/core/upstream-attribution-body.ts";
@@ -85,7 +85,7 @@ describe("upstream attribution file safety", () => {
       writeFileSync(path.join(fixtureDirectory, filename), contents);
     }
     writeFileSync(path.join(fixtureDirectory, "target.txt"), "target\n");
-    symlinkSync("target.txt", path.join(fixtureDirectory, "link.txt"));
+    createSymlink("target.txt", path.join(fixtureDirectory, "link.txt"));
     boundedExecFileSync({
       label: "mkfifo pipe.txt fixture",
       command: "/usr/bin/mkfifo",

@@ -31,6 +31,7 @@ import {
   PARITY_GHSA,
   PARITY_MANAGERS,
 } from "../helpers/audit-parity-managers.js";
+import { linkPackage } from "../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 const ROOT = process.cwd();
@@ -55,8 +56,7 @@ function host(lock: string): string {
   roots.push(root);
   fs.mkdirSync(path.join(root, "scripts"));
   fs.mkdirSync(path.join(root, "bin"));
-  fs.mkdirSync(path.join(root, "node_modules/@codyswann"), { recursive: true });
-  fs.symlinkSync(ROOT, path.join(root, "node_modules/@codyswann/lisa"), "dir");
+  linkPackage(ROOT, root, "@codyswann/lisa");
   fs.copyFileSync(
     "all/copy-overwrite/scripts/lisa-audit.mjs",
     path.join(root, "scripts/lisa-audit.mjs")

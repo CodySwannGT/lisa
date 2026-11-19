@@ -37,6 +37,7 @@ import {
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
 import { enclosingAdmissionEnv } from "../helpers/enclosing-admission.js";
+import { linkPackage } from "../support/borrowed-node-modules.mjs";
 
 // File-scoped budget (CodySwannGT/lisa#4582): every case here starts real
 // host processes, measured at about 0.8 s per host run and 4 s for the five-run case on a quiet box (1 vitest process). Both
@@ -126,11 +127,8 @@ function hostFiles(): Host {
     path.join(cwd, "vitest.config.local.ts")
   );
   fs.writeFileSync(path.join(cwd, "vitest.thresholds.json"), "{}\n");
-  fs.symlinkSync(REPO_ROOT, path.join(cwd, "node_modules/@codyswann/lisa"));
-  fs.symlinkSync(
-    path.join(REPO_ROOT, "node_modules/vitest"),
-    path.join(cwd, "node_modules/vitest")
-  );
+  linkPackage(REPO_ROOT, cwd, "@codyswann/lisa");
+  linkPackage(path.join(REPO_ROOT, "node_modules/vitest"), cwd, "vitest");
   fs.writeFileSync(
     path.join(cwd, "tests/sample.test.ts"),
     'import { expect, it } from "vitest";\n\nit("adds", () => {\n  expect(1 + 1).toBe(2);\n});\n'

@@ -8,13 +8,7 @@
  * part, blocks like any other unproved gate, and starts nothing.
  * @module tests/unit/scripts/lisa-run-gates-parts-scope
  */
-import {
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -36,6 +30,7 @@ import {
   WEB,
   WEB_ARGV,
 } from "./lisa-run-gates-parts-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /** A folder name the fixture repository never holds. */
 const GONE = "gone";
@@ -103,7 +98,7 @@ describe("the folder a part's command starts in", () => {
   });
 
   it("refuses a scope that is a link leading outside the repository", () => {
-    symlinkSync(outside, path.join(repository.root, LINKED), "dir");
+    createSymlink(outside, path.join(repository.root, LINKED), "dir");
 
     const run = runWith(LINKED);
 
@@ -119,7 +114,7 @@ describe("the folder a part's command starts in", () => {
 
   it("refuses a folder reached through a link that leaves the repository", () => {
     mkdirSync(path.join(outside, "nested"));
-    symlinkSync(outside, path.join(repository.root, LINKED), "dir");
+    createSymlink(outside, path.join(repository.root, LINKED), "dir");
 
     const run = runWith(`${LINKED}/nested`);
 
@@ -128,7 +123,7 @@ describe("the folder a part's command starts in", () => {
   });
 
   it("starts in the real folder when a link stays inside the repository", () => {
-    symlinkSync(
+    createSymlink(
       path.join(repository.root, API),
       path.join(repository.root, LINKED),
       "dir"

@@ -7,7 +7,6 @@ import {
   mkdirSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -17,6 +16,7 @@ import {
   readOptionalJson,
 } from "./controller-failure.mjs";
 import { resolveDockerCli } from "../../../scripts/lib/docker-cli.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const CAPTURE_LIMIT = 256 * 1024;
 const SCENARIO = "owned-post-run-symlink";
@@ -178,7 +178,7 @@ export async function qualifySymlinkChange(input) {
     assert.equal(before[link].present, true);
     assert.equal(before[other].present, true);
     rmSync(link);
-    symlinkSync(targetName, link);
+    createSymlink(targetName, link);
     writeFileSync(other, changed);
     const result = await closed;
     assert.equal(result.error, undefined);

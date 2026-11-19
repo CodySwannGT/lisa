@@ -90,8 +90,11 @@ function countForRecord(count: Count, directory: string): number | undefined {
 /**
  * Free the candidate's checkout once the tarball is packed and proven.
  *
- * The checkout's `node_modules` is a symbolic link to the repository's own, so
- * the link is unlinked first and the removal can never reach through it.
+ * The checkout borrows the repository's `node_modules` as a directory of
+ * per-entry links (CodySwannGT/lisa#5028), which a recursive removal unlinks
+ * without following. A checkout whose `node_modules` is itself one symbolic
+ * link has the link unlinked first, so the removal can never reach through
+ * it either way.
  * @param checkout - The candidate's checkout directory
  * @param remove - Removal; injected only by the regression
  */

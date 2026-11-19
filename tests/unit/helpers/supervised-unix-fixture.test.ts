@@ -6,7 +6,6 @@ import {
   mkdtempSync,
   realpathSync,
   rmSync,
-  symlinkSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -14,6 +13,7 @@ import { describe, expect, it } from "vitest";
 
 import { UNIX_SOCKET_PATH_LIMIT } from "../../../src/configs/vitest/socket-safe-temp-base.js";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const CONTROLLER_SOCKET = "controller.sock";
 
@@ -37,7 +37,7 @@ describe("native Unix fixtures", () => {
       const target = join(holder, "r");
       mkdirSync(target);
       const linked = join(holder, "l");
-      symlinkSync(target, linked, "dir");
+      createSymlink(target, linked, "dir");
       const fixture = createSupervisedUnixFixture(CONTROLLER_SOCKET, linked);
       try {
         expect(realpathSync(fixture.root)).toBe(fixture.root);

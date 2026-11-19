@@ -2,6 +2,7 @@
 import * as fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 const ACTION = ".github/actions/dependency-audit";
 const REQUIRE = createRequire(import.meta.url);
@@ -40,7 +41,7 @@ export function createAuditActionCheckout(root: string): string {
     );
     const destination = path.join(action, "node_modules", dependency);
     fs.mkdirSync(path.dirname(destination), { recursive: true });
-    fs.symlinkSync(installed, destination, "dir");
+    createSymlink(installed, destination, "dir");
   }
   return action;
 }

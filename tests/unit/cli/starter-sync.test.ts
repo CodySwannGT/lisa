@@ -1,4 +1,4 @@
-import { chmod, mkdir, readFile, rm, stat, symlink } from "node:fs/promises";
+import { chmod, mkdir, readFile, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { StarterTemplate } from "../../../src/core/project-config-starter.js";
@@ -19,6 +19,7 @@ import {
   sync,
   extendHistory,
 } from "./support/starter-sync-fixture.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 describe("starter synchronization against disposable Git history", () => {
   it("preserves an existing empty file when the starter adds the same governed path", async () => {
@@ -178,7 +179,7 @@ describe("starter synchronization against disposable Git history", () => {
     await mkdir(outside);
     await put(outside, "lib/invoked-as-script.mjs", OLD);
     await rm(path.join(fixture.project, "scripts"), { recursive: true });
-    await symlink(outside, path.join(fixture.project, "scripts"), "dir");
+    createSymlink(outside, path.join(fixture.project, "scripts"), "dir");
     expect((await sync())[0]?.state).toBe("failed");
     expect(
       await readFile(path.join(outside, "lib/invoked-as-script.mjs"), "utf8")
@@ -234,7 +235,7 @@ describe("starter synchronization against disposable Git history", () => {
 
   it("refuses to replace an owned regular file with a starter symlink", async () => {
     await rm(path.join(fixture.starter, OWNED));
-    await symlink("../../outside", path.join(fixture.starter, OWNED));
+    createSymlink("../../outside", path.join(fixture.starter, OWNED));
     git("add", ".");
     git("commit", "--quiet", "-m", "Unsupported source link");
     expect((await sync())[0]?.state).toBe("failed");

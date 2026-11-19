@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it } from "vitest";
 import { installHookCompatibility } from "../../../src/codex/hooks-installer.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 let host: string;
 beforeEach(async () => {
@@ -27,9 +28,9 @@ it.each(["source", "compiled"])(
     );
     await fs.copy(path.join(root, "src/codex/scripts", filename), source);
     await fs.ensureDir(path.dirname(installed));
-    await fs.symlink(store, installed);
+    createSymlink(store, installed);
     await fs.ensureDir(path.dirname(script));
-    await fs.symlink(source, script);
+    createSymlink(source, script);
     if (runtime === "source") {
       expect(await installHookCompatibility(root, host, [], [])).toContain(
         "hooks/lisa/block-no-verify.sh"

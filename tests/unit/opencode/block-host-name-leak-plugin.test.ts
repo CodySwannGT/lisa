@@ -10,6 +10,7 @@ import {
 } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 const ROOT = process.cwd();
@@ -80,7 +81,7 @@ describe("OpenCode installed host-name guard callback (#4540)", () => {
       }
     }
     await fs.ensureDir(path.join(project, "node_modules/@codyswann/lisa"));
-    await fs.symlink(
+    createSymlink(
       path.join(ROOT, "dist"),
       path.join(project, "node_modules/@codyswann/lisa/dist")
     );
