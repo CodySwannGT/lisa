@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.1.1](https://github.com/CodySwannGT/lisa/compare/v8.1.0...v8.1.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **npm-updater:** put Bun offline for any cache seed ([a2eaf24](https://github.com/CodySwannGT/lisa/commit/a2eaf24e1d96365b61acfcb6ad2046bfa92aaa48)), closes [CodySwannGT/lisa#5092](https://github.com/CodySwannGT/lisa/issues/5092) [CodySwannGT/lisa#5092](https://github.com/CodySwannGT/lisa/issues/5092)
+* **npm-updater:** run the dual-lock suite on recorded registry data ([a6375d1](https://github.com/CodySwannGT/lisa/commit/a6375d18d874fe7bae26d2007a6d1cfc08abeccf)), closes [CodySwannGT/lisa#5092](https://github.com/CodySwannGT/lisa/issues/5092) [CodySwannGT/lisa#5092](https://github.com/CodySwannGT/lisa/issues/5092)
+
 ## [8.1.0](https://github.com/CodySwannGT/lisa/compare/v8.0.1...v8.1.0) (2026-11-19)
 
 
