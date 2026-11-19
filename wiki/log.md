@@ -1,5 +1,15 @@
 # Lisa Wiki Log
 
+## 2026-11-19 - Control audit: the missing source note
+
+- Added `wiki/sources/repository/2026-11-17-control-audit-docs.md` for `CodySwannGT/lisa#5003`. The 2026-11-17 and 2026-11-18 control-audit ingestions wrote their pages without one, which the "Required Provenance" section of `wiki/schema/llm-wiki-contract.md` does not allow.
+- The note records:
+  - both ingestion dates;
+  - the scope read: `src/controls/`, the `lisa controls` command group, the four skills, the two design notes and the criterion catalogue;
+  - every commit that changed the page;
+  - the three pages synthesized.
+- Both earlier entries now link to the note in place of the sentence that said none was written. No wiki page changed, and `wiki/index.md` already links the Repository Sources folder.
+
 ## 2026-11-18 - Control audit: what the report check refuses, and how an answer counts
 
 - Updated `wiki/documentation/workflows/control-audit.md` for `CodySwannGT/lisa#4978`:
@@ -9,7 +19,7 @@
   - an answer is typed on its answer line only, a placeholder is not an answer, and the readable report has to be kept because an answer counts only while it stands on its line;
   - a check declared authoritative has to be required somewhere its author does not control;
   - `lisa controls seed` refuses a `package.json` it cannot read.
-- Provenance: a repository-sourced update, written from the code under `src/controls/` and the design notes under `docs/design/`. No separate source note was written.
+- Provenance: a repository-sourced update, written from the code under `src/controls/` and the design notes under `docs/design/`. Source note: [2026-11-17 control audit documentation](sources/repository/2026-11-17-control-audit-docs.md) (added on 2026-11-19).
 
 ## 2026-11-18 - package.lisa.json minimums
 
@@ -40,7 +50,7 @@
 - Added the four commands to the command table in `wiki/documentation/overview.md`, and the new page to `wiki/documentation/index.md`.
 - Indexed the new page under `## Documentation` in `wiki/index.md`, and extended the Concepts entry for the specification to point at the catalogue.
 - Added the matching section to `README.md` ("Checking the controls of any repository") and a pointer from `docs/design/paired-proof.md` to `docs/design/before-enforce.md`.
-- Provenance: a repository-sourced update, written from the merged code under `src/controls/`, the four skills under `plugins/src/base/skills/`, each command's `--help`, and the design notes under `docs/design/`. Those remain in the repository as the detailed source, so no separate source note was written. Asserted by `tests/unit/docs/control-audit-docs.test.ts`.
+- Provenance: a repository-sourced update, written from the merged code under `src/controls/`, the four skills under `plugins/src/base/skills/`, each command's `--help`, and the design notes under `docs/design/`. Those remain in the repository as the detailed source. Source note: [2026-11-17 control audit documentation](sources/repository/2026-11-17-control-audit-docs.md) (added on 2026-11-19). Asserted by `tests/unit/docs/control-audit-docs.test.ts`.
 
 ## 2026-11-13 - Dependency sign-off off by default
 
