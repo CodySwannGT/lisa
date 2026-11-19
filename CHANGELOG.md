@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.0.10](https://github.com/CodySwannGT/lisa/compare/v6.0.9...v6.0.10) (2026-11-19)
+
+
+### Bug Fixes
+
+* **hooks:** bound every wait in the sonar-secrets hook so an abandoned hook exits ([74e2cda](https://github.com/CodySwannGT/lisa/commit/74e2cda6dd2a31357a9fec20e48b6cfb1d6b65ce)), closes [#3308](https://github.com/CodySwannGT/lisa/issues/3308) [#2949](https://github.com/CodySwannGT/lisa/issues/2949) [CodySwannGT/lisa#5038](https://github.com/CodySwannGT/lisa/issues/5038) [CodySwannGT/lisa#5038](https://github.com/CodySwannGT/lisa/issues/5038)
+
 ### [6.0.9](https://github.com/CodySwannGT/lisa/compare/v6.0.8...v6.0.9) (2026-11-19)
 
 
