@@ -112,17 +112,76 @@ export function watchChild(child: ChildProcess): WatchedChild {
  * @param watched - The watched child
  * @param boundMs - Scaled bound, in milliseconds
  * @param signal - Aborts the timer once the close wins
+ * @param after - What the bound is counted from, for the failure message
  * @returns Never resolves; rejects when the bound expires
  */
 async function expireAfter(
   watched: WatchedChild,
   boundMs: number,
-  signal: AbortSignal
+  signal: AbortSignal,
+  after: string
 ): Promise<never> {
   await delay(boundMs, undefined, { signal });
   throw new Error(
-    `pid ${String(watched.child.pid)} did not close within ${boundMs.toLocaleString("en-US")}ms after SIGKILL to its group ${watched.describe()}`
+    `pid ${String(watched.child.pid)} did not close within ${boundMs.toLocaleString("en-US")}ms ${after} ${watched.describe()}`
   );
+}
+
+/**
+ * Race a child's close against a scaled bound.
+ * @param watched - The watched child
+ * @param baseMs - Quiet-box bound, scaled by this worker's measured slowdown
+ * @param after - What the bound is counted from, for the failure message
+ * @returns How the child ended
+ */
+async function raceClose(
+  watched: WatchedChild,
+  baseMs: number,
+  after: string
+): Promise<ChildClose> {
+  const timer = new AbortController();
+  try {
+    return await Promise.race([
+      watched.closed,
+      expireAfter(watched, ioLatencyBudgetMs(baseMs), timer.signal, after),
+    ]);
+  } finally {
+    timer.abort();
+  }
+}
+
+/**
+ * Wait a bounded time for a child to close on its own, without signalling it.
+ * @param watched - A child from {@link watchChild}
+ * @param baseMs - Quiet-box bound for the close to arrive
+ * @param after - What the bound is counted from, for the failure message
+ * @returns How the child ended
+ * @throws {Error} Naming the pid, exit, signal and output when no close arrives
+ */
+export async function awaitCloseWithin(
+  watched: WatchedChild,
+  baseMs: number,
+  after: string
+): Promise<ChildClose> {
+  return raceClose(watched, baseMs, after);
+}
+
+/**
+ * Whether any process is still a member of a process group.
+ *
+ * Signal 0 delivers nothing and only checks that the group exists, so this
+ * names a leaked child without disturbing it.
+ * @param pgid - The group's id, which is its leader's pid for a detached child
+ * @returns True while at least one member remains
+ */
+export function groupHasMembers(pgid: number): boolean {
+  try {
+    process.kill(-pgid, 0);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ESRCH") return false;
+    throw error;
+  }
 }
 
 /**
@@ -143,18 +202,10 @@ export async function killGroupAndAwaitClose(
   const { pid } = watched.child;
   if (watched.isClosed()) return watched.closed;
   if (pid === undefined) throw new Error("child has no PID");
-  const timer = new AbortController();
   try {
     process.kill(-pid, "SIGKILL");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
   }
-  try {
-    return await Promise.race([
-      watched.closed,
-      expireAfter(watched, ioLatencyBudgetMs(baseMs), timer.signal),
-    ]);
-  } finally {
-    timer.abort();
-  }
+  return raceClose(watched, baseMs, "after SIGKILL to its group");
 }

@@ -36,6 +36,7 @@ import { withoutOwnershipHeader } from "../../../scripts/materialize-copy-overwr
 import {
   BASH,
   FINDING,
+  HOOK_DEADLINE_ENV,
   HOOK_RUN_BUDGET_MS,
   KILL_CLOSE_BASE_MS,
   PROMPT_EVENT,
@@ -161,9 +162,16 @@ describe("the resolved value never reaches the filesystem", () => {
       .join("\n");
 
     expect(code).toContain("mkfifo");
-    expect(code).toContain('>"$fifo"');
+    // The command inherits the FIFO's write end at fork (CodySwannGT/lisa#5038),
+    // so its stdout is that pipe: the hook opens it read-write, hands it over as
+    // descriptor 3, and the resolver is one of the commands run that way.
+    expect(code).toContain('exec 3<>"$fifo"');
+    expect(code).toContain('"$@" >&3 3>&-');
+    expect(code).toMatch(
+      /capture_bounded .* resolver "" \\\n\s+node "\$1" get/u
+    );
     expect(code).toContain(
-      'mktemp -d "${TMPDIR:-/tmp}/lisa-sonar-resolver.XXXXXXXX"'
+      'mktemp -d "${TMPDIR:-/tmp}/lisa-sonar-${label}.XXXXXXXX"'
     );
     // A bare `mktemp` (no -d) is the regular-file capture this replaced.
     expect(code).not.toMatch(/mktemp(?!\s+-d)/u);
@@ -192,6 +200,7 @@ describe("the resolved value never reaches the filesystem", () => {
         ...process.env,
         PATH: [bin, process.env.PATH].join(path.delimiter),
         CLAUDE_PROJECT_DIR: slow,
+        ...HOOK_DEADLINE_ENV,
         LISA_SONAR_RESOLVER_TIMEOUT_S: "30",
       },
     });
@@ -251,7 +260,10 @@ describe("when the wrapper must stand aside", () => {
       args: [SOURCE, PROMPT_EVENT],
       baseMs: HOOK_RUN_BUDGET_MS,
       input: "x".repeat(1024 * 1024),
-      env: { PATH: mkdtempSync(path.join(tmpdir(), "lisa-empty-bin-")) },
+      env: {
+        PATH: mkdtempSync(path.join(tmpdir(), "lisa-empty-bin-")),
+        ...HOOK_DEADLINE_ENV,
+      },
     });
 
     expect(result.stdout).toBe("");
