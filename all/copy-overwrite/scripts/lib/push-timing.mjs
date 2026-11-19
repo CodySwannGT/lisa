@@ -24,6 +24,7 @@ import {
 } from "node:fs";
 import { availableParallelism, freemem, loadavg } from "node:os";
 import { join, sep } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
 
@@ -105,12 +106,6 @@ export function formatDuration(ms) {
 /** The most failing test files one gate records (#4896). */
 export const MAX_FAILING_TEST_FILES = 200;
 
-/** The ESC byte that opens every terminal control sequence. */
-const ESCAPE = String.fromCharCode(0x1b);
-
-/** Terminal colour and cursor sequences, which Vitest wraps its FAIL badge in. */
-const ANSI_SEQUENCE = new RegExp(`${ESCAPE}\\[[0-9;?]*[ -/]*[@-~]`, "gu");
-
 /**
  * A runner's per-file failure header, at the start of a line:
  * - Vitest: ` FAIL  |project| path/to/file.test.ts > suite > case`
@@ -189,8 +184,8 @@ export function failingTestFiles(
     if (typeof output !== "string") return { files: [], truncated: false };
     const unique = [
       ...new Set(
-        output
-          .replace(ANSI_SEQUENCE, "")
+        // Vitest wraps its FAIL badge in terminal colour sequences.
+        stripVTControlCharacters(output)
           .split(/\r?\n/u)
           .map(line => FAIL_HEADER.exec(line)?.[1])
           .filter(token => typeof token === "string")

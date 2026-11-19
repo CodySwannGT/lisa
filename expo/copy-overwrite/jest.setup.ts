@@ -64,23 +64,17 @@ afterEach(async () => {
   jest.clearAllMocks();
 });
 
-/**
- * Mock ResizeObserver for tests that use it. A plain constructor function
- * rather than a class: `new` on a function that returns an object yields that
- * object, so every observer gets its own no-op methods.
- * @returns An observer whose methods do nothing
- */
-function MockResizeObserver(): ResizeObserver {
-  return {
-    /** Starts observing an element — no-op for tests */
-    observe(): void {},
-    /** Stops observing an element — no-op for tests */
-    unobserve(): void {},
-    /** Disconnects observer — no-op for tests */
-    disconnect(): void {},
-  };
-}
-global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+// Mock ResizeObserver for tests that use it. A jest.fn constructor, like the
+// other mocks in this file: `new` on it returns the observer the
+// implementation builds, and its type already satisfies ResizeObserver's
+// constructor, so no class and no type assertion is needed.
+global.ResizeObserver = jest.fn(
+  (): ResizeObserver => ({
+    observe: jest.fn(),
+    unobserve: jest.fn(),
+    disconnect: jest.fn(),
+  })
+);
 
 // Mock expo-router for tests using navigation hooks
 jest.mock("expo-router", () => ({

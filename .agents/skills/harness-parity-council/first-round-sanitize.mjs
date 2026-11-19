@@ -2,10 +2,7 @@
  * Output hygiene for the harness parity council: normalize, redact, annotate
  * and parse what a consulted runtime printed before Claude synthesizes it.
  */
-
-const ANSI_ESCAPE_PATTERN =
-  // Strip common SGR color/style escape sequences without touching regular text.
-  new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "gu");
+import { stripVTControlCharacters } from "node:util";
 
 const SECRET_PATTERNS = Object.freeze([
   /github_pat_\w{20,}/gu,
@@ -32,9 +29,9 @@ const RISKY_SUGGESTION_PREFIX =
  * @returns {string} Normalized text capture.
  */
 export function normalizeCouncilOutput(value) {
-  return `${value ?? ""}`
+  // Terminal colour and style sequences carry no content for synthesis.
+  return stripVTControlCharacters(`${value ?? ""}`)
     .replaceAll("\r\n", "\n")
-    .replace(ANSI_ESCAPE_PATTERN, "")
     .split("\n")
     .map(line => line.trimEnd())
     .join("\n")

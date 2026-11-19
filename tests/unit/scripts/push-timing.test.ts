@@ -239,6 +239,15 @@ describe("failingTestFiles", () => {
     });
   });
 
+  it("strips the colour codes a runner wraps around the badge and the path", () => {
+    const coloured = `\u001b[1m\u001b[31m FAIL \u001b[39m\u001b[22m \u001b[2m${VITEST_A}\u001b[22m > a case`;
+
+    expect(failingTestFiles(coloured, { root: ROOT })).toEqual({
+      files: [VITEST_A],
+      truncated: false,
+    });
+  });
+
   it("caps the list and says it did", () => {
     const output = Array.from(
       { length: MAX_FAILING_TEST_FILES + 5 },
