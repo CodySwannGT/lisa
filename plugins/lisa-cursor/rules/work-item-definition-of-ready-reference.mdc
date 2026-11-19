@@ -180,6 +180,24 @@ ledger adds nothing, and a ledger it cannot read prints one warning naming the
 error. Neither fails the gate. A worker that stops anyway is the signal this gate missed something,
 and the loop turns that stop into the next item's question.
 
+## Token estimate (gate S21)
+
+When `workItem.estimate.required` is `true` (the default; an absent key means
+`true`, and a non-boolean value fails safe to `true`), every leaf carries one
+managed `## Lisa Estimate` section before work begins: a token range, the
+matching dollar range, and a recommended model, either an exact id or a family,
+from any vendor, taken from `workItem.estimate.models`. The model is recorded,
+not enforced for dispatch. The section shape, pricing and config live in the
+`lisa-usage-accounting` skill's `references/estimate.md`; the shipped
+`scripts/lisa-estimate.mjs` renders and checks it for every agent.
+
+The estimate is **not** a write-time or ready-time requirement. Deterministic
+sources (Sentry, New Relic, monitors) file items they cannot estimate, and a
+missing estimate never forces a human question, because the claiming agent
+writes one. So S21 at ready time refuses only an estimate that is present and
+wrong. It is `N/A` when the project turns the requirement off. Nobody is ever
+asked for an estimate.
+
 ## Relationship to the lifecycle
 
 - **Write time** — `*-write-*` runs the applicable pre-write gates; a spec
