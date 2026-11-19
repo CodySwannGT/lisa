@@ -38,6 +38,7 @@ import {
   fillProbeDirectory,
   FS_PROBE_ENTRIES,
   measureUnlinkLatencyUs,
+  timeOneUnlinkCycle,
 } from "./fs-latency-budget.js";
 
 /** Linux block-device counters, in the kernel's `stat` field order. */
@@ -422,5 +423,65 @@ export function fitRemoval(
   return {
     fixedMs: small.rmSyncMs - perEntryMs * small.entries,
     perEntryUs: perEntryMs * 1000,
+  };
+}
+
+/** What one agreement comparison read: its ratio and the figures behind it. */
+export interface Agreement {
+  /** Probe per-entry cost over real per-entry cost. */
+  readonly ratio: number;
+  readonly probeUs: readonly number[];
+  readonly realUs: readonly number[];
+}
+
+/**
+ * Median of a non-empty list.
+ * @param values - Readings
+ * @returns The middle reading after sorting
+ */
+const medianOf = (values: readonly number[]): number =>
+  [...values].sort((left, right) => left - right)[
+    Math.floor(values.length / 2)
+  ] ?? Number.NaN;
+
+/**
+ * The comparison the agreement case made before CodySwannGT/lisa#5066: the
+ * probe's median over its cycles, then — after writing a whole corpus — one
+ * real removal. The two readings sit in different windows, a few hundred
+ * milliseconds apart, so a stall that covers one and not the other reads as
+ * disagreement. Kept so the diagnostic can show that against the paired form.
+ * @param corpusEntries - Files in the one real corpus
+ * @returns The ratio and its readings
+ */
+export function sequentialAgreement(corpusEntries: number): Agreement {
+  const probeUs = measureUnlinkLatencyUs();
+  const corpus = fillProbeDirectory(corpusEntries);
+  const realUs = timeRemovalUs(corpus, corpusEntries);
+  return { ratio: probeUs / realUs, probeUs: [probeUs], realUs: [realUs] };
+}
+
+/**
+ * Compare the probe with real removal in the same window: each pair writes a
+ * real corpus first, then takes one probe cycle and the corpus's removal back
+ * to back, so both readings of a pair see the same machine. The verdict is the
+ * median of the per-pair ratios, as the probe itself is a median of cycles.
+ * @param pairs - Paired readings to take
+ * @param corpusEntries - Files in each real corpus
+ * @returns The median ratio and every reading
+ */
+export function pairedAgreement(
+  pairs: number,
+  corpusEntries: number
+): Agreement {
+  const readings = Array.from({ length: pairs }, () => {
+    const corpus = fillProbeDirectory(corpusEntries);
+    const probeUs = timeOneUnlinkCycle();
+    const realUs = timeRemovalUs(corpus, corpusEntries);
+    return { probeUs, realUs };
+  });
+  return {
+    ratio: medianOf(readings.map(({ probeUs, realUs }) => probeUs / realUs)),
+    probeUs: readings.map(reading => reading.probeUs),
+    realUs: readings.map(reading => reading.realUs),
   };
 }

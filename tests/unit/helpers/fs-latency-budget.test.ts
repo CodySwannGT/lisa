@@ -44,6 +44,7 @@ import {
   QUIET_UNLINK_LATENCY_US,
   workerFsSlowdown,
 } from "../../helpers/fs-latency-budget.js";
+import { pairedAgreement } from "../../helpers/fs-probe-diagnostic.js";
 import {
   slowdownFactorFrom,
   useIoLatencyBudget,
@@ -58,16 +59,23 @@ useIoLatencyBudget();
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
 /**
- * The corpus the empirical case deletes, in entries.
+ * The corpus each paired reading deletes, in entries.
  *
- * 1,000 rather than the 5,000 the recorded figures were taken against: it is
- * 50x the probe, which is enough for the fixed `mkdtemp`/`rmdir` ends to stop
- * mattering. Every entry is now written and `fsync`ed the way the probe writes
- * its own (CodySwannGT/lisa#4636), and a synced write costs far more than the
- * one-byte write it replaced on a hosted runner, so the corpus is half the old
- * 2,000 to keep the case near a second there.
+ * Ten times the probe. The hosted decomposition of CodySwannGT/lisa#5066 put
+ * the cost a removal pays once (its `mkdtemp`/`rmdir` ends) at 0.06-0.48ms on
+ * ubuntu-24.04 and ubuntu-26.04, against 122-127us per entry, so at 200
+ * entries the fixed ends are under 2% of the reading and the per-entry figure
+ * is the one a 100,000-entry teardown pays. Five pairs of 200 write about the
+ * 1,000 synced files the single corpus used to, keeping the case near a
+ * second on a hosted runner.
  */
-const REAL_CORPUS_ENTRIES = 1_000;
+const REAL_CORPUS_ENTRIES = 200;
+
+/**
+ * Paired readings the agreement case takes; the verdict is their median,
+ * as the probe's own figure is a median of five cycles.
+ */
+const AGREEMENT_PAIRS = 5;
 
 /**
  * How far the probe may sit from the operation it stands for.
@@ -100,18 +108,6 @@ const buildCorpus = (entries: number): string => {
   const directory = fillProbeDirectory(entries);
   temporaryDirectories.push(directory);
   return directory;
-};
-
-/**
- * Time only the recursive deletion of a prepared corpus.
- * @param entries - Number of files the corpus holds.
- * @returns Per-entry deletion cost in microseconds.
- */
-const timeRealDeletionUs = (entries: number): number => {
-  const directory = buildCorpus(entries);
-  const startedAt = performance.now();
-  rmSync(directory, { force: true, recursive: true });
-  return ((performance.now() - startedAt) / entries) * 1000;
 };
 
 describe("fsSlowdownFactorFrom", () => {
@@ -233,6 +229,18 @@ describe("the probe stands for the operation it is a proxy for", () => {
    * with the thing it stands for; measuring both in the same window is the
    * only way to check that, and a fixed expected value would be a property of
    * whichever box recorded it.
+   *
+   * "The same window" is taken literally (CodySwannGT/lisa#5066). This case
+   * once took the probe's five cycles, then wrote a 1,000-file corpus, then
+   * timed its removal: two windows a few hundred milliseconds apart. Unit
+   * shard 1/10 of run 44503175637 (ubuntu-26.04) read the probe at 1166us
+   * per entry and the real removal at 122us, a 9.5 ratio. The hosted
+   * diagnostic on that image puts the quiet probe at 126-140us and the real
+   * removal at 125-171us, with no fixed cost to speak of, so the real reading
+   * was the quiet one and the probe's had taken a stall of about 20ms in at
+   * least three of its five 2.6ms cycles. A stall that lands in one window and
+   * not the other is not disagreement between the probe and the operation.
+   * Each pair now times one probe cycle and one real removal back to back.
    */
   it("agrees with a real corpus deletion measured in the same window", () => {
     const machine = {
@@ -247,20 +255,19 @@ describe("the probe stands for the operation it is a proxy for", () => {
       tmpFilesystemType: statfsSync(tmpdir()).type,
       loadBefore: loadavg(),
     };
-    const probeUs = measureUnlinkLatencyUs();
-    const realUs = timeRealDeletionUs(REAL_CORPUS_ENTRIES);
-    const ratio = probeUs / realUs;
+    const agreement = pairedAgreement(AGREEMENT_PAIRS, REAL_CORPUS_ENTRIES);
     const observation = JSON.stringify({
-      probeUsPerEntry: probeUs,
-      realUsPerEntry: realUs,
-      ratio,
+      ...agreement,
       machine,
       loadAfter: loadavg(),
       completedAt: new Date().toISOString(),
     });
 
-    expect(ratio, observation).toBeGreaterThan(1 / AGREEMENT_TOLERANCE);
-    expect(ratio, observation).toBeLessThan(AGREEMENT_TOLERANCE);
+    expect(agreement.probeUs).toHaveLength(AGREEMENT_PAIRS);
+    expect(agreement.ratio, observation).toBeGreaterThan(
+      1 / AGREEMENT_TOLERANCE
+    );
+    expect(agreement.ratio, observation).toBeLessThan(AGREEMENT_TOLERANCE);
   });
 });
 

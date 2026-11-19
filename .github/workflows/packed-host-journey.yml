@@ -133,6 +133,8 @@ jobs:
           --name "fs probe diagnostic paired sample 8 of 8"
           --name "fs probe diagnostic decomposes a removal into fixed and per-entry cost, settled 0ms"
           --name "fs probe diagnostic decomposes a removal into fixed and per-entry cost, settled 1000ms"
+          --name "fs probe diagnostic compares the probe with real removal under a short burst, sequential"
+          --name "fs probe diagnostic compares the probe with real removal under a short burst, paired"
       # The unit agreement case, repeated on this image: idle, then with one
       # CPU hog per core and a synced-write IO hog beside it. A shard runs it
       # beside three other workers, so the loaded pass is the closer one.

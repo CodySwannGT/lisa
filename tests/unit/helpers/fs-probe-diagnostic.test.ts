@@ -20,9 +20,11 @@ import {
   DEVICE_FIELDS,
   discardDelta,
   fitRemoval,
+  pairedAgreement,
   pairedSample,
   parseDeviceStat,
   parseMountInfo,
+  sequentialAgreement,
   splitRemoval,
   timeRemovalUs,
 } from "../../helpers/fs-probe-diagnostic.js";
@@ -188,5 +190,28 @@ describe("the removal decomposition (CodySwannGT/lisa#5066)", () => {
       .readdirSync(tmpdir())
       .filter(name => name.startsWith("lisa-fs-probe-") && !before.has(name));
     expect(left).toEqual([]);
+  });
+});
+
+describe("the agreement comparisons (CodySwannGT/lisa#5066)", () => {
+  it("pairs each probe cycle with a real removal and reports their median ratio", () => {
+    const agreement = pairedAgreement(3, 30);
+
+    expect(agreement.probeUs).toHaveLength(3);
+    expect(agreement.realUs).toHaveLength(3);
+    const ratios = agreement.probeUs
+      .map((probe, index) => probe / (agreement.realUs[index] ?? Number.NaN))
+      .sort((left, right) => left - right);
+    expect(agreement.ratio).toBe(ratios[1]);
+  });
+
+  it("keeps the old sequential form as one probe median against one removal", () => {
+    const agreement = sequentialAgreement(30);
+
+    expect(agreement.probeUs).toHaveLength(1);
+    expect(agreement.realUs).toHaveLength(1);
+    expect(agreement.ratio).toBe(
+      (agreement.probeUs[0] ?? 0) / (agreement.realUs[0] ?? 1)
+    );
   });
 });
