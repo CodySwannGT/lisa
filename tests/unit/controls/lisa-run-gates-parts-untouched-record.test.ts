@@ -6,7 +6,7 @@
  * stands a built-in check down against the coverage file, whatever reads the
  * evidence envelope, and the pass cache. None of them may take "left out"
  * for "passed".
- * @module tests/unit/scripts/lisa-run-gates-parts-untouched-record
+ * @module tests/unit/controls/lisa-run-gates-parts-untouched-record
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -14,7 +14,7 @@ import {
   evidenceDocument,
   provenFloor,
 } from "../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
-import { COMMIT, RUNNER, STYLE } from "./lisa-run-gates-fixtures.js";
+import { COMMIT, RUNNER, STYLE } from "../scripts/lisa-run-gates-fixtures.js";
 import {
   API,
   API_ARGV,
@@ -23,13 +23,13 @@ import {
   partsRepository,
   WEB,
   WEB_ARGV,
-} from "../controls/support/lisa-run-gates-parts-fixtures.js";
+} from "./support/lisa-run-gates-parts-fixtures.js";
 import {
   lineFor,
   runWithChange,
   touching,
   type UntouchedRun,
-} from "./lisa-run-gates-untouched-fixtures.js";
+} from "./support/lisa-run-gates-untouched-fixtures.js";
 
 /** `code-style` is one of the checks the commit hook proves on its own. */
 const STYLE_PARTS = partGates(

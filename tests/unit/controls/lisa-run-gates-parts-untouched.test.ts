@@ -8,7 +8,7 @@
  * of what was proved. The opposite mistake is the dangerous one: a part left
  * out that the change did touch is a folder nothing checked. Every case where
  * the runner cannot be sure therefore runs the part.
- * @module tests/unit/scripts/lisa-run-gates-parts-untouched
+ * @module tests/unit/controls/lisa-run-gates-parts-untouched
  */
 import { mkdirSync } from "node:fs";
 import path from "node:path";
@@ -25,14 +25,14 @@ import {
   partsRepository,
   WEB,
   WEB_ARGV,
-} from "../controls/support/lisa-run-gates-parts-fixtures.js";
+} from "./support/lisa-run-gates-parts-fixtures.js";
 import {
   lineFor,
   NOT_KNOWN,
   rowFor,
   runWithChange,
   touching,
-} from "./lisa-run-gates-untouched-fixtures.js";
+} from "./support/lisa-run-gates-untouched-fixtures.js";
 import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const WHOLE = ".";

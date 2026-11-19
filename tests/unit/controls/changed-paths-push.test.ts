@@ -6,7 +6,7 @@
  * every ref on standard input, and the runner is handed that list. Wherever
  * the list is missing, or one end of a ref is not there to compare, the
  * answer is "not known" and every part runs.
- * @module tests/unit/scripts/changed-paths-push
+ * @module tests/unit/controls/changed-paths-push
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 

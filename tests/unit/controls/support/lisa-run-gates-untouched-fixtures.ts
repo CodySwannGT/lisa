@@ -5,16 +5,16 @@
  * The runner is told what the change touches through one injected function,
  * exactly as it is told how to start a command, so these cases state the
  * change instead of staging one in a repository.
- * @module tests/unit/scripts/lisa-run-gates-untouched-fixtures
+ * @module tests/unit/controls/support/lisa-run-gates-untouched-fixtures
  */
-import { runGates } from "../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
-import { COMMIT, RUNNER, sink } from "./lisa-run-gates-fixtures.js";
+import { runGates } from "../../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
+import { COMMIT, RUNNER, sink } from "../../scripts/lisa-run-gates-fixtures.js";
 import {
   type ArgvContext,
   type ArgvExecutor,
   type PartOutcome,
   type PartsGateRun,
-} from "../controls/support/lisa-run-gates-parts-fixtures.js";
+} from "./lisa-run-gates-parts-fixtures.js";
 
 /** What the runner is told about the change it was started for. */
 export interface StatedChange {

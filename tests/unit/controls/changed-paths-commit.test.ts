@@ -5,7 +5,7 @@
  * runs to that list, so the list has to be exactly what git will commit —
  * and whenever it cannot be read with certainty, the answer has to be "not
  * known", which runs every part.
- * @module tests/unit/scripts/changed-paths-commit
+ * @module tests/unit/controls/changed-paths-commit
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

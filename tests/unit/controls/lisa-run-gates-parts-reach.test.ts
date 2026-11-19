@@ -5,7 +5,7 @@
  * runner names for it, and it stands down for the whole commit. So a gate
  * with parts is named only when the parts that ran reached every path the
  * change touches. One changed path outside them is a path nothing checked.
- * @module tests/unit/scripts/lisa-run-gates-parts-reach
+ * @module tests/unit/controls/lisa-run-gates-parts-reach
  */
 import { mkdirSync } from "node:fs";
 import path from "node:path";
@@ -16,7 +16,7 @@ import {
   provenFloor,
   unreachedFloor,
 } from "../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
-import { COMMIT, STYLE } from "./lisa-run-gates-fixtures.js";
+import { COMMIT, STYLE } from "../scripts/lisa-run-gates-fixtures.js";
 import {
   API,
   API_ARGV,
@@ -26,14 +26,14 @@ import {
   partsRepository,
   WEB,
   WEB_ARGV,
-} from "../controls/support/lisa-run-gates-parts-fixtures.js";
+} from "./support/lisa-run-gates-parts-fixtures.js";
 import {
   NOT_KNOWN,
   runWithChange,
   type StatedChange,
   touching,
   type UntouchedRun,
-} from "./lisa-run-gates-untouched-fixtures.js";
+} from "./support/lisa-run-gates-untouched-fixtures.js";
 import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const WHOLE = ".";

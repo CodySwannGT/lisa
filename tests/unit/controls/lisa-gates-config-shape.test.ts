@@ -6,7 +6,7 @@
  * declares nothing: every reader then reports "no gates" for a file somebody
  * damaged. So the reader refuses it, in a sentence an operator can act on.
  * The same goes for a `gates` value that is not an object.
- * @module tests/unit/scripts/lisa-gates-config-shape
+ * @module tests/unit/controls/lisa-gates-config-shape
  */
 import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

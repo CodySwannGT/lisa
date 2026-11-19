@@ -5,7 +5,7 @@
  * in its folder. A comparison that answers "not inside" when the path is
  * inside leaves a folder unchecked, so every doubtful comparison here has to
  * come out as "inside".
- * @module tests/unit/scripts/changed-paths-folders
+ * @module tests/unit/controls/changed-paths-folders
  */
 import { describe, expect, it } from "vitest";
 
