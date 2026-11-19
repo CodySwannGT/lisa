@@ -1,16 +1,14 @@
 /**
  * The audit's failure message must name the `lisa-security-audit-handling`
  * skill (#4521), so an agent that hits a failing audit is pointed at the
- * ladder that teaches the scoped exclusion shape. Checked in the distributed
- * script and the repository's own copy.
+ * fix ladder (#4931: refresh, upgrade, override, reachability, replace).
+ * Checked in the distributed script and the repository's own copy.
  *
- * The ladder's order is pinned too (CodySwannGT/lisa#5024). `LADDER` below is
- * the order, and every surface that teaches it — the audit's failure message,
- * the skill, and its rule pointer, in every shipped copy — must list the
- * lettered rungs in that order: the reachability exclusion before any code
- * change, and our own fork, patch or vendored copy last and only through a
- * declared human gate the classifier accepts. Reordering the ladder means
- * editing this list on purpose.
+ * The ladder ends at our own fork, patch or vendored copy (CodySwannGT/lisa#5024):
+ * after the upstream fix, last, and only through a declared human gate the
+ * classifier accepts. Every shipped copy of the skill and its rule pointer
+ * must keep the steps in order, so the exclusion can never move behind a
+ * code change and the copy can never move ahead of the others.
  * @module tests/unit/strategies/security-audit-handling-scope
  */
 import { readFileSync } from "node:fs";
@@ -19,22 +17,51 @@ import { describe, expect, it } from "vitest";
 
 import { classifyHumanGateReason } from "../../../plugins/src/base/scripts/human-gate-act.mjs";
 
-/** The remediation ladder, in the order an agent works it. */
+/**
+ * The remediation order (CodySwannGT/lisa#4931 and #5024): how the skill,
+ * its rule pointer and the failure message write each step.
+ */
 const LADDER = [
-  { rung: "a", id: "upgrade" },
-  { rung: "b", id: "exclude-unreachable" },
-  { rung: "c", id: "replace-or-remove" },
-  { rung: "d", id: "fix-upstream" },
-  { rung: "e", id: "own-copy" },
+  {
+    skill: "**Refresh the lockfile within the current range.**",
+    rule: "1. Refresh the lockfile",
+    message: "refresh the lockfile within its current range",
+  },
+  {
+    skill: "**Upgrade the direct dependency**",
+    rule: "2. Upgrade the direct dependency",
+    message: "upgrade the direct dependency",
+  },
+  {
+    skill: "**Add a targeted override**",
+    rule: "3. Add a targeted override",
+    message: "add a targeted override to the fixed version",
+  },
+  {
+    skill:
+      "**Evaluate reachability, and exclude with a stated reason if unaffected**",
+    rule: "4. Evaluate reachability",
+    message: "evaluate reachability",
+  },
+  {
+    skill: "**Replace or remove the dependency**",
+    rule: "5. Replace or remove the dependency",
+    message: "replace or remove the dependency",
+  },
+  {
+    skill: "**Contribute the fix upstream**",
+    rule: "6. Contribute the fix upstream",
+    message: "contribute the fix upstream",
+  },
+  {
+    skill:
+      "**Fork, patch or vendor the library — last, and only through a human gate.**",
+    rule: "7. Last: fork, patch or vendor the library",
+    message: "last, fork, patch or vendor the library",
+  },
 ] as const;
 
-/** The last rung: our own copy, behind the human gate. */
-const OWN_COPY = { rung: "e", id: "own-copy" } as const;
-
-const SCRIPTS = [
-  "all/copy-overwrite/scripts/lisa-audit.mjs",
-  "scripts/lisa-audit.mjs",
-];
+const GATED = LADDER[6];
 
 /** Every shipped copy of the skill, source first. */
 const SKILLS = [
@@ -65,90 +92,131 @@ const KITS = [
   "plugins/lisa-devin/rules/reference/dependency-internalization-kit.md",
 ];
 
+/** The scripts whose failure message prints the full seven-step ladder. */
+const SCRIPTS = [
+  "all/copy-overwrite/scripts/lisa-audit.mjs",
+  "scripts/lisa-audit.mjs",
+];
+
 /**
- * Assert each label appears, and in ladder order.
+ * Assert every step appears, and in ladder order.
  * @param text - The surface under test
- * @param label - How the surface writes one rung
+ * @param steps - How that surface writes each step
+ * @param label - Names the surface in a failure
  */
 function expectInOrder(
   text: string,
-  label: (step: (typeof LADDER)[number]) => string
+  steps: readonly string[],
+  label: string
 ): void {
-  const found = LADDER.map(step => ({
-    id: step.id,
-    offset: text.indexOf(label(step)),
-  }));
-  const offsets = found.map(step => step.offset);
+  const offsets = steps.map(step => text.indexOf(step));
   expect(
-    found.filter(step => step.offset < 0).map(step => step.id),
-    "rungs missing"
+    steps.filter((_, index) => (offsets[index] ?? -1) < 0),
+    `${label}: steps missing`
   ).toEqual([]);
   expect(
-    [...offsets].sort((a, b) => a - b),
-    "rungs out of order"
+    [...offsets].sort((x, y) => x - y),
+    `${label}: steps out of order`
   ).toEqual(offsets);
 }
 
 /**
- * The audit's printed next step, read from the script source.
+ * The single `Next step:` line a script prints.
  * @param script - Repository-relative script path
- * @returns The `Next step:` line
+ * @returns The line
  */
 function nextStep(script: string): string {
-  const text = readFileSync(script, "utf8");
-  const start = text.indexOf("Next step:");
-  return start < 0 ? "" : text.slice(start, text.indexOf("\n", start));
+  const lines = readFileSync(script, "utf8")
+    .split("\n")
+    .filter(line => line.includes("Next step:"));
+  expect(lines, script).toHaveLength(1);
+  return lines[0] ?? "";
 }
 
 describe("security-audit-handling is named by the audit", () => {
-  it.each(SCRIPTS)("%s names the skill in its next step", script => {
-    expect(nextStep(script)).toContain("lisa-security-audit-handling");
+  it("is named by the audit's failure message", () => {
+    for (const script of SCRIPTS)
+      expect(readFileSync(script, "utf8"), script).toContain(
+        "lisa-security-audit-handling"
+      );
+  });
+
+  it.each(SKILLS)("%s teaches the steps in order", file => {
+    const skill = readFileSync(file, "utf8");
+    expectInOrder(
+      skill,
+      LADDER.map(step => step.skill),
+      file
+    );
+    expect(skill).toContain(
+      "add a scoped exclusion with a concrete reason to `audit.ignore.local.json`"
+    );
+  });
+
+  it.each(RULES)("%s lists the steps in order", file => {
+    expectInOrder(
+      readFileSync(file, "utf8"),
+      LADDER.map(step => step.rule),
+      file
+    );
+  });
+
+  it("files a build-ready ticket instead of assuming a human", () => {
+    const skill = readFileSync(SKILLS[0] ?? "", "utf8");
+    expect(skill).toContain("**file a build-ready ticket**");
+    expect(skill).toContain(
+      "the advisory, the dependency path that reaches the vulnerable copy, and what was tried at each step"
+    );
+    expect(skill).toContain(
+      "Stop only when the next act needs access you do not have, and then say exactly what is missing."
+    );
+    expect(skill).not.toMatch(/stop for a human/iu);
+  });
+
+  it("prints the first five steps in order in every failure message", () => {
+    for (const script of [
+      ...SCRIPTS,
+      ".github/actions/dependency-audit/run.mjs",
+    ]) {
+      const line = nextStep(script);
+      expectInOrder(
+        line,
+        LADDER.slice(0, 5).map(step => step.message),
+        script
+      );
+      expect(line, script).toContain("audit.ignore.local.json");
+    }
+  });
+
+  it.each(SCRIPTS)("%s prints all seven steps in order", script => {
+    expectInOrder(
+      nextStep(script),
+      LADDER.map(step => step.message),
+      script
+    );
   });
 });
 
-describe("the remediation ladder order (CodySwannGT/lisa#5024)", () => {
-  it("ends at the gated own-copy rung", () => {
-    expect(LADDER.at(-1)).toEqual(OWN_COPY);
+describe("our own copy of a library is gated and last (CodySwannGT/lisa#5024)", () => {
+  it.each(SKILLS)("%s gates the last step on a filable human gate", file => {
+    const text = readFileSync(file, "utf8");
+    const gated = text.slice(text.indexOf(GATED.skill));
+    const reason = gated.split('human_gate: "')[1]?.split('"')[0];
+    expect(reason, "the gated step declares a human_gate reason").toContain(
+      "<pkg>"
+    );
+    const verdict = classifyHumanGateReason(
+      reason?.replaceAll("<pkg>", "picomatch")
+    );
+    expect(verdict.valid).toBe(true);
+    expect(verdict.act).toBe("own-dependency-copy");
   });
-
-  it.each(SCRIPTS)("%s prints every rung in ladder order", script => {
-    expectInOrder(nextStep(script), ({ rung }) => `(${rung}) `);
-  });
-
-  it.each([...SKILLS, ...RULES])(
-    "%s lists every rung in ladder order",
-    file => {
-      expectInOrder(
-        readFileSync(file, "utf8"),
-        ({ rung, id }) => `(${rung}) \`${id}\``
-      );
-    }
-  );
-
-  it.each(SKILLS)(
-    "%s gates the own-copy rung on a filable human gate",
-    file => {
-      const text = readFileSync(file, "utf8");
-      const rung = text.slice(
-        text.indexOf(`(${OWN_COPY.rung}) \`${OWN_COPY.id}\``)
-      );
-      const reason = rung.split('human_gate: "')[1]?.split('"')[0];
-      expect(reason, "own-copy rung declares a human_gate reason").toContain(
-        "<pkg>"
-      );
-      const verdict = classifyHumanGateReason(
-        reason?.replaceAll("<pkg>", "picomatch")
-      );
-      expect(verdict.valid).toBe(true);
-      expect(verdict.act).toBe("own-dependency-copy");
-    }
-  );
 
   it.each(KITS)(
     "%s routes a fork or vendored copy through the one ladder",
     file => {
       const text = readFileSync(file, "utf8");
-      expect(text).toContain(`\`${OWN_COPY.id}\``);
+      expect(text).toContain("step 7");
       expect(text).toContain("lisa-security-audit-handling");
     }
   );

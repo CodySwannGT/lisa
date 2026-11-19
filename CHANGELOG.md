@@ -2,6 +2,62 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.0.10](https://github.com/CodySwannGT/lisa/compare/v6.0.9...v6.0.10) (2026-11-19)
+
+
+### Bug Fixes
+
+* **hooks:** bound every wait in the sonar-secrets hook so an abandoned hook exits ([74e2cda](https://github.com/CodySwannGT/lisa/commit/74e2cda6dd2a31357a9fec20e48b6cfb1d6b65ce)), closes [#3308](https://github.com/CodySwannGT/lisa/issues/3308) [#2949](https://github.com/CodySwannGT/lisa/issues/2949) [CodySwannGT/lisa#5038](https://github.com/CodySwannGT/lisa/issues/5038) [CodySwannGT/lisa#5038](https://github.com/CodySwannGT/lisa/issues/5038)
+
+### [6.0.9](https://github.com/CodySwannGT/lisa/compare/v6.0.8...v6.0.9) (2026-11-19)
+
+
+### Bug Fixes
+
+* **deps:** carry the zod floor in the root package.lisa.json template ([189cbdc](https://github.com/CodySwannGT/lisa/commit/189cbdc2b04b40f0c4d37cf405487abb12df0c5c)), closes [#4933](https://github.com/CodySwannGT/lisa/issues/4933) [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931) [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931)
+* **lint,deps:** restore the dropped React Compiler checks and purge zod 3 from hosts ([150e1c9](https://github.com/CodySwannGT/lisa/commit/150e1c95318c88d73bdd639f9ce8da1279049f1c)), closes [#4933](https://github.com/CodySwannGT/lisa/issues/4933) [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931) [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931)
+* **security:** fix the advisories behind Lisa's audit exclusions and empty the lists ([d5f1d85](https://github.com/CodySwannGT/lisa/commit/d5f1d854453e06d9ad941f49174c4b5e2c469411)), closes [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931) [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931)
+* **security:** point audit failures at fixes, not exclusions ([0c62073](https://github.com/CodySwannGT/lisa/commit/0c620730b6e086a22aba6b3c26cc7bd6d7dae341)), closes [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931) [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931)
+* **security:** restore the reachability step to the audit remedy order ([c08a3b4](https://github.com/CodySwannGT/lisa/commit/c08a3b4a71cc248bcdb7329135c85636ce6e80f8)), closes [#4933](https://github.com/CodySwannGT/lisa/issues/4933) [#5024](https://github.com/CodySwannGT/lisa/issues/5024) [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931) [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931)
+
+
+### Documentation
+
+* **security:** file a build-ready ticket instead of assuming a human ([e33b8b8](https://github.com/CodySwannGT/lisa/commit/e33b8b80635dde718ab6371f55e0ada289d99039)), closes [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931) [CodySwannGT/lisa#4931](https://github.com/CodySwannGT/lisa/issues/4931)
+
+### [6.0.8](https://github.com/CodySwannGT/lisa/compare/v6.0.7...v6.0.8) (2026-11-19)
+
+
+### Documentation
+
+* **philosophy:** add the no-assumed-human principle and drop human-in-the-loop advice ([664f308](https://github.com/CodySwannGT/lisa/commit/664f308eaa2ae07771189eea570201332e9c62ad)), closes [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934) [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934)
+* **philosophy:** fix six review findings on the no-assumed-human change ([2d755b7](https://github.com/CodySwannGT/lisa/commit/2d755b79c5baae99ae776a22cad68e48535fa5a6)), closes [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934) [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934)
+* **rules:** close the twelve CodeRabbit findings on the no-assumed-human sweep ([cdeba44](https://github.com/CodySwannGT/lisa/commit/cdeba44090ceb9a78ec20e4da7a2302c95bfe536)), closes [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934) [CodySwannGT/lisa#4934](https://github.com/CodySwannGT/lisa/issues/4934)
+
+### [6.0.7](https://github.com/CodySwannGT/lisa/compare/v6.0.6...v6.0.7) (2026-11-18)
+
+
+### Bug Fixes
+
+* **tests:** bound the Sonar kill case's close wait and watch the hook from spawn ([e46dd87](https://github.com/CodySwannGT/lisa/commit/e46dd87be6dfeb892bf0536c0930f879c35621c6)), closes [#4945](https://github.com/CodySwannGT/lisa/issues/4945) [CodySwannGT/lisa#5034](https://github.com/CodySwannGT/lisa/issues/5034) [CodySwannGT/lisa#5034](https://github.com/CodySwannGT/lisa/issues/5034)
+
+### [6.0.6](https://github.com/CodySwannGT/lisa/compare/v6.0.5...v6.0.6) (2026-11-18)
+
+### [6.0.5](https://github.com/CodySwannGT/lisa/compare/v6.0.4...v6.0.5) (2026-11-18)
+
+
+### Bug Fixes
+
+* **ci:** defer the sharded integration-test aggregate's registration ([a75cee7](https://github.com/CodySwannGT/lisa/commit/a75cee717721552d22104fa2999108bdf24982f6)), closes [#4675](https://github.com/CodySwannGT/lisa/issues/4675) [CodySwannGT/lisa#5031](https://github.com/CodySwannGT/lisa/issues/5031) [CodySwannGT/lisa#5031](https://github.com/CodySwannGT/lisa/issues/5031)
+
+### [6.0.4](https://github.com/CodySwannGT/lisa/compare/v6.0.3...v6.0.4) (2026-11-18)
+
+
+### Bug Fixes
+
+* **apply:** fit a fresh host's package-manager floor to the manager running apply ([5f62906](https://github.com/CodySwannGT/lisa/commit/5f62906914971b49358dad2ab29309a8be686ef2)), closes [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941) [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941)
+* **tests:** seed packed-journey hosts as the bun hosts they are ([45761c5](https://github.com/CodySwannGT/lisa/commit/45761c588cd4ff69f7ceb56854744cf956c450cc)), closes [#4848](https://github.com/CodySwannGT/lisa/issues/4848) [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941) [CodySwannGT/lisa#4941](https://github.com/CodySwannGT/lisa/issues/4941)
+
 ### [6.0.3](https://github.com/CodySwannGT/lisa/compare/v6.0.2...v6.0.3) (2026-11-18)
 
 

@@ -1,4 +1,3 @@
-/* eslint-disable code-organization/enforce-statement-order -- Assertions inspect real child outputs in chronological order. */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { expect } from "vitest";
@@ -15,11 +14,11 @@ export function assertGeneratedPolicy(host: string): void {
   const manifest = JSON.parse(
     fs.readFileSync(path.join(host, MANIFEST), "utf8")
   );
+  const workflows = path.join(host, ".github/workflows");
   expect(manifest.engines.node, "generated Node policy").toBe(NODE_VERSION);
   expect(fs.readFileSync(path.join(host, ".nvmrc"), "utf8").trim()).toBe(
     NODE_VERSION
   );
-  const workflows = path.join(host, ".github/workflows");
   expect(fs.readFileSync(path.join(workflows, "ci.yml"), "utf8")).toContain(
     `node_version: '${NODE_VERSION}'`
   );
@@ -121,12 +120,12 @@ export function installedVersions(
     ])
   );
   const lock = fs.readFileSync(path.join(host, "bun.lock"), "utf8");
+  const installed = path.join(host, "node_modules", "@codyswann", "lisa");
   Object.entries(majors).forEach(([name, major]) => {
     expect(Number(versions[name]!.split(".")[0]), name).toBe(major);
     expect(lock, name).toContain(`${name}@${versions[name]}`);
   });
   assertPatchedFloors(versions);
-  const installed = path.join(host, "node_modules", "@codyswann", "lisa");
   expect(
     JSON.parse(fs.readFileSync(path.join(installed, MANIFEST), "utf8")).version
   ).toBe(candidate.version);
@@ -159,11 +158,11 @@ export async function synth(
     path.join(host, "cdk.out", "RuntimeFixture.template.json")
   );
   const template = JSON.parse(bytes.toString());
-  expect(Object.keys(template.Resources)).toHaveLength(1);
   const bucket = Object.values(template.Resources)[0] as {
     Type: string;
     Properties: Record<string, unknown>;
   };
+  expect(Object.keys(template.Resources)).toHaveLength(1);
   expect(bucket.Type).toBe("AWS::S3::Bucket");
   expect(bucket.Properties["PublicAccessBlockConfiguration"]).toEqual({
     BlockPublicAcls: true,
@@ -183,5 +182,3 @@ export async function synth(
   ).toEqual([]);
   return bytes;
 }
-
-/* eslint-enable code-organization/enforce-statement-order -- End the chronological fixture harness. */

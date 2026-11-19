@@ -157,7 +157,7 @@ a parallel enum would make two reports disagree about what "ready" means.
 
 - **`READY`** — eight dimensions assessed, no blocker stands, no warnings material to unattended
   operation.
-- **`READY_WITH_WARNINGS`** — no blocker stands, but findings exist that a human should see.
+- **`READY_WITH_WARNINGS`** — no blocker stands, but findings exist that the report must name, each with its remedy, though none stops unattended operation.
 - **`NOT_READY`** — **at least one ship blocker stands.**
 
 **The narrowed claim is the net-new field.** When the verdict is `NOT_READY`, the report must also

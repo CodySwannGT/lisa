@@ -233,7 +233,7 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
    | `COMPLETE` | Done. Leave label as `$TICKETED`. End the cycle. |
    | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory comment on the PRD issue naming the scope-creep tickets. Leave label as `$TICKETED`. |
    | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a comment using the same product-facing template as Phase 3c.2 — anchored when `prd_anchor` is non-null. (b) Post one summary comment listing the tickets that *were* successfully created. (c) Transition labels from `$TICKETED` back to `$BLOCKED`. |
-   | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. Log as Error; leave label as `$TICKETED` with a flag comment. |
+   | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. Log as Error; leave label as `$TICKETED` with a flag comment. The comment carries `<!-- lisa:coverage-audit-failed -->`, so rollup re-audits the PRD (3f.1a) before it can ship. |
 
 3. The created tickets remain in the destination tracker regardless of the verdict. The audit only tells us whether *more* are needed.
 
@@ -250,6 +250,10 @@ There is no close/archive configuration at the shipped hop. Rollup sets `$SHIPPE
 ##### 3f.1 Idempotency guard (no-op if already shipped)
 
 Rollup is keyed by the PRD's current state. If the PRD already carries `$SHIPPED`, it is a **no-op** — do not re-transition, do not close, do not re-comment. Record it as `already shipped (no-op)` in the cycle summary and move on. This is what makes re-running intake safe.
+
+##### 3f.1a Coverage-audit guard (never ship an unaudited PRD)
+
+A PRD ships only after its coverage audit (Phase 3e) has succeeded. If the PRD's latest coverage-audit comment carries `<!-- lisa:coverage-audit-failed -->` with no later `<!-- lisa:coverage-audit-passed -->`, do not apply the terminal-state predicate yet. Re-run the audit first: invoke `lisa-prd-ticket-coverage` with the PRD URL and the generated top-level child set, read as 3f.2 describes. On `COMPLETE` or `COMPLETE_WITH_SCOPE_CREEP`, post a comment carrying `<!-- lisa:coverage-audit-passed -->` and continue to 3f.2. On `GAPS_FOUND`, handle it exactly as Phase 3e does. On `NO_TICKETS_FOUND` or an audit error, leave the PRD ticketed, add no new comment, and record `rollup held: coverage audit has not succeeded` in the cycle summary. All four intake skills share this guard.
 
 ##### 3f.2 Read the generated top-level child set
 

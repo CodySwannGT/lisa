@@ -149,6 +149,45 @@ Right: fix every failure, then turn the check on with nothing exempted
 - If the backlog is too large for one change, split the fix into parallel changes and land them together. The check still turns on strict, with nothing exempted
 - An existing exemption list is debt to pay off: fix its entries and delete the list and the code that reads it
 
+### 7. No Assumed Human
+
+**No one is inside the factory.** Lisa's factories run unattended, and humans stand only at the gates outside them (`factory-model`). Unless a person was explicitly asked for, requiring one is a failure: there is nobody to read "you'll want to review this", so the work either stalls or is silently dropped. Do the work, or turn it into work the factory picks up.
+
+Advice to an absent person is the same failure in a softer form. A report, PR or comment that ends in a to-do for "someone" hands the job to nobody.
+
+```text
+Wrong: "You'll want to manually check the migration on staging."
+Right: run the migration on staging, check it, and attach the evidence.
+
+Wrong: "Have someone confirm the Epic this belongs under."
+Right: pick the Epic the evidence fits best, or create one, and record why on the item.
+
+Wrong: "Consider reviewing the other call sites for the same bug."
+Right: fix the call sites this change touches, and file one build-ready ticket for the rest.
+
+Wrong: "Stop and ask the user to create the missing tracker label."
+Right: create the label. Stop only if the tracker refuses for lack of permission, and name that permission.
+```
+
+**When you would normally ask:**
+- A choice with a reasonable default is yours. Decide it and record it on the item as a `Decision:` line, where a person can reverse it later
+- Work outside this change's scope becomes one build-ready ticket through the tracker, not a suggestion in a report
+- A material question that the code, tracker, wiki, git history and standing decisions cannot answer, and that has no reasonable default, goes back through the gate: the flow's blocked exit with a specific clarifying comment and your recommended answer, not a mid-session question
+
+**The gates that legitimately wait for a person.** This list only restates two sources and must match them: [`when-to-stop`](../eager/when-to-stop.md) (when a flow stops) and [`ready-role-filing`, "What a human gate is"](ready-role-filing.md) (which acts a held item may wait on). Where this summary and those two differ, they win; fix this list. Name the gate when you stop at one:
+- **Missing access** — a repository, secret, API or tool stays out of reach after `lisa-secrets-access` and the matching `*-access` probe; a login or credential only a person holds; a system the agent cannot reach. Say exactly what is missing and stop (`when-to-stop`, `tool-access-gate`)
+- **A destructive, irreversible or protected operation** (`when-to-stop`), including protected deployments and other approvals only a person's account can give
+- **Spending money** — a paid plan, a purchase, an upgrade — and **opening an external account**
+- **Signing a legal agreement** — a contract, BAA, DPA or license acceptance. A compliance *judgement* is not this gate: it is the agent's decision unless the project declares it human-only
+- **Declared human gates and operator holds** — a leaf filed with `human_gate`, a decision class in `humanGate.humanOnly`, a stricter `humanGate.mode`, an operator's hold label, or an option a project turned on such as `dependencies.humanSignOff`
+- **Human-authored-only surfaces** — `PROJECT_RULES.md`, and the human-gated tickets the learnings gardener files for promotions
+- **Approve maintaining our own copy of an open-source library** — a fork, patch or vendored copy: the last step of the `lisa-security-audit-handling` ladder, filed held as `own-dependency-copy` (`ready-role-filing`). It is maintenance taken on indefinitely, and copy-overwrite ships it to every host
+- **A product question with no reasonable default** that nothing in the item, wiki, code or standing decisions settles (`when-to-stop`), raised through the gate rather than mid-session
+- **`/lisa:agent-ready` gap questions** in `wiki/gaps.md`, which exist to collect what only a person knows
+- **An explicit request** — the operator asked for a person, or invoked an interactive setup skill (`/lisa:setup:*`) and is answering its prompts
+
+This does not conflict with writing for a non-technical reader (`communication`). That rule is about who reads a report, not about giving them to-dos.
+
 ---
 
 ## Quick Reference

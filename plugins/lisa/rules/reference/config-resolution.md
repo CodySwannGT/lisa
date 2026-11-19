@@ -956,8 +956,8 @@ env from PR base branch) and the build flow (forward: base branch from env);
 Vocabulary maps are **optional** in `.lisa.config.json`. Missing keys inherit the defaults shown in the schema above. The setup skills probe the project's actual workflow / labels at setup time and either:
 
 - Confirm the default name exists → proceed silently.
-- Confirm a different name exists (e.g., `Resolved` instead of `Done`) → prompt the user to either rename in the tracker or override the key in config.
-- Find nothing matching → stop and ask the user to (a) create the missing status/label in the tracker, or (b) provide the actual name to write into config.
+- Confirm a different name exists (e.g., `Resolved` instead of `Done`) → map the role to that name in config. When several candidates fit, the interactive `/lisa:setup:*` run lets the operator pick.
+- Find nothing matching → create the missing label under the default name. A missing Linear workflow state is created only by `/lisa:setup:linear`, with an explicit name and type, because a state's type and board position are team configuration; unattended repair reports it instead. Stop only for missing access: a Jira workflow status needs a workflow edit that Lisa's Jira access layer does not perform, and any tracker can refuse for lack of permission. Then name the exact status/label to add and what access is missing. Only an operator running a setup or `/lisa:validate-tracker-mapping` interactively is offered existing near-matches instead. `lisa-validate-tracker-mapping` repairs a MISSING name by these same rules.
 
 ## Resolution algorithm
 

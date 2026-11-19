@@ -174,6 +174,7 @@ export async function browserDriverQualification(root, application, native) {
       application.env.CHROME_BINARY,
       application.env.CHROMEDRIVER,
       "qualification",
+      application.env.LISA_DRIVER_PROBE_DEADLINE_MS ?? "",
     ]
   );
   return driverQualification(state.result.stdout);
@@ -200,6 +201,8 @@ export async function browserDriverControl(root, application, native) {
         profile,
         application.env.CHROME_BINARY,
         application.env.CHROMEDRIVER,
+        "diagnostic",
+        application.env.LISA_DRIVER_PROBE_DEADLINE_MS ?? "",
       ]
     );
   } catch (error) {

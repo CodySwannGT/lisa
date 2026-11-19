@@ -125,14 +125,12 @@ describe("runBoundedBash", () => {
     // Control: the plain execFile path this helper replaces.
     const controlPidFile = path.join(root, "control.pid");
     const controlScript = await writeScript(root, body(controlPidFile));
-    /* eslint-disable sonarjs/no-os-command-from-path -- fixed executable, fixture-owned argv */
     execFile(
-      "bash",
+      "/bin/bash",
       [controlScript],
       { killSignal: "SIGKILL", timeout: 800 },
       () => {}
     );
-    /* eslint-enable sonarjs/no-os-command-from-path -- end control spawn scope */
 
     // Subject: the bounded runner, same script, same bound.
     const subjectRoot = await makeRoot();

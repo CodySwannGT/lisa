@@ -162,7 +162,8 @@
     "vite": "$vite",
     "ws": ">=8.21.0",
     "zod-validation-error": "^4.0.0",
-    "qs": "^6.16.0"
+    "qs": "^6.16.0",
+    "zod": "^4.6.7"
   },
   "overrides": {
     "smol-toml": "1.7.1",
@@ -186,10 +187,11 @@
     "vite": "$vite",
     "ws": ">=8.21.0",
     "zod-validation-error": "^4.0.0",
-    "qs": "^6.16.0"
+    "qs": "^6.16.0",
+    "zod": "^4.6.7"
   },
   "name": "@codyswann/lisa",
-  "version": "6.0.3",
+  "version": "6.0.10",
   "description": "Governance-as-code for AI coding agents: turns a repository into agent-operated software factories with guardrails, guidance and automated enforcement for Claude Code, Codex, Cursor, OpenCode, Antigravity, Copilot and Devin",
   "main": "dist/index.js",
   "exports": {
@@ -285,7 +287,6 @@
     "eslint-plugin-jsx-a11y": "^6.10.0",
     "eslint-plugin-prettier": "^5.5.0",
     "eslint-plugin-react": "^7.37.0",
-    "eslint-plugin-react-compiler": "^19.1.0-rc.2",
     "eslint-plugin-react-hooks": "^7.0.0",
     "eslint-plugin-react-perf": "^3.3.0",
     "eslint-plugin-sonarjs": "4.0.3",

@@ -1,4 +1,4 @@
-# History Audit — Before Removing or Changing Existing Behavior (load-bearing)
+# History Audit (load-bearing)
 
 Before you remove, gate, skip, or weaken existing behavior because it looks redundant, slow, or wrong to you, audit its history. Changes a ticket or spec requires can cite that requirement instead.
 

@@ -105,7 +105,9 @@ describe("the resolver deadline is enforced, not just declared", () => {
     // every copy-overwrite copy, so no consumer can receive a different number.
     const code = readFileSync(SOURCE, "utf8");
 
-    expect(code).toContain('-t "${LISA_SONAR_RESOLVER_TIMEOUT_S:-10}"');
+    expect(code).toContain('bound_s "${LISA_SONAR_RESOLVER_TIMEOUT_S:-10}"');
+    // An unparseable value falls back to the same shipped ten (#5038).
+    expect(code).toContain("printf '10'");
     expect(code).not.toMatch(/read -r -t 10\b/u);
   });
 });

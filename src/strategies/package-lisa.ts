@@ -141,6 +141,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @param securityPinsOnly - Restrict to postinstall-safe security pins
    * @param projectDir - Host directory, read for its lockfiles so a forced
    *   package-manager floor reaches only hosts using that manager (#4848)
+   * @param invokingPackageManager - Manager that launched the apply, used when
+   *   the host has no field or lockfile to say (#4941)
    * @returns Package document that apply would persist
    */
   async planPackageJson(
@@ -148,7 +150,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
     detectedTypes: readonly ProjectType[],
     lisaDir: string,
     securityPinsOnly = false,
-    projectDir?: string
+    projectDir?: string,
+    invokingPackageManager?: string
   ): Promise<Record<string, unknown>> {
     const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
     const restricted =
@@ -158,7 +161,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
       projectJson,
       effective,
       restricted,
-      projectDir
+      projectDir,
+      invokingPackageManager
     );
     const result = planSelfReferencingOverrideNormalization(
       forced.packageJson,
@@ -441,7 +445,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
       projectJson,
       effective,
       restricted,
-      projectDir
+      projectDir,
+      context.config.invokingPackageManager
     );
     const plan = planSelfReferencingOverrideNormalization(
       forced.packageJson,
@@ -842,6 +847,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @param template - Merged package.lisa.json template
    * @param restricted - True when the template was reduced to security pins
    * @param projectDir - Host directory, or undefined when no tree is available
+   * @param invokingPackageManager - Manager that launched this apply, if any
    * @returns Modified package.json plus operator-visible notes
    * @private
    */
@@ -849,11 +855,12 @@ export class PackageLisaStrategy implements ICopyStrategy {
     projectJson: Record<string, unknown>,
     template: ResolvedPackageLisaTemplate,
     restricted: boolean,
-    projectDir: string | undefined
+    projectDir: string | undefined,
+    invokingPackageManager: string | undefined
   ): PackageJsonPlan {
     const fitted = fitDevEnginesToHost(
       template,
-      detectHostPackageManager(projectDir, projectJson),
+      detectHostPackageManager(projectDir, projectJson, invokingPackageManager),
       projectJson
     );
     const applied = this.applyTemplate(

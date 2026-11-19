@@ -73,9 +73,11 @@ For `operation: setup`:
 
 1. Confirm the project is an Expo app by checking for `app.json`,
    `app.config.json`, `app.config.js`, or `app.config.ts`.
-2. Resolve or ask the operator to provide the Android package name. Prefer
-   `.lisa.config.json` `playStore.packageName`, then `expo.android.package` from
-   app config.
+2. Resolve the Android package name yourself: `.lisa.config.json`
+   `playStore.packageName` first, then `android.package` (or `expo.android.package`)
+   from `app.json` / `app.config.json` / `app.config.js` / `app.config.ts`. Ask for it
+   only when none of those sets it and an operator is running this setup
+   interactively; otherwise stop and name the missing key.
 3. In Google Cloud Console, create a service account dedicated to read-only Play
    release visibility and create a JSON key for it.
 4. In Play Console, open **Setup -> API access**, link the Google Cloud project if

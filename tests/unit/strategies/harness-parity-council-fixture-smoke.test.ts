@@ -7,7 +7,6 @@
  * CLIs being installed or authenticated.
  * @module tests/unit/strategies/harness-parity-council-fixture-smoke
  */
-/* eslint-disable jsdoc/require-jsdoc, @eslint-community/eslint-comments/disable-enable-pair -- Fixture-only local types/helpers are covered by the module-level contract. */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -26,6 +25,7 @@ const council = await import(firstRoundModuleUrl);
 
 const FIXTURE_ROOT = path.resolve("tests/fixtures/harness-parity-council");
 
+/** A recorded runtime-probe scenario and the availability verdict it must produce. */
 type ProbeFixture = {
   readonly runtime: "cursor" | "codex" | "copilot" | "antigravity";
   readonly env: Record<string, string>;
@@ -38,6 +38,7 @@ type ProbeFixture = {
   };
 };
 
+/** A recorded `spawnSync` result replayed by the fake runtime probe runner. */
 type SpawnResultFixture = {
   readonly status: number | null;
   readonly stdout: string;
@@ -48,6 +49,7 @@ type SpawnResultFixture = {
   };
 };
 
+/** A recorded first-round capture scenario and the council status it must produce. */
 type FirstRoundFixture = {
   readonly runtime: "cursor" | "codex" | "copilot" | "antigravity";
   readonly probe: {
@@ -91,6 +93,11 @@ const readJsonFixture = <T>(name: string): T =>
     readFileSync(path.join(FIXTURE_ROOT, `${name}.json`), "utf8")
   ) as T;
 
+/**
+ * Build a fake `spawnSync` that replays the fixture's help then version results.
+ * @param fixture - probe scenario whose recorded results are replayed in order
+ * @returns a runner that throws if the probe makes more calls than recorded
+ */
 function buildFixtureRunner(fixture: ProbeFixture) {
   const queue = [fixture.helpResult, fixture.versionResult];
 

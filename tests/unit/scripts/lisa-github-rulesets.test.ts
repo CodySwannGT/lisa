@@ -1,4 +1,3 @@
-/* eslint-disable sonarjs/no-duplicate-string, max-lines -- shell mock fixtures intentionally repeat gh argv fragments */
 import type { SpawnSyncReturns } from "node:child_process";
 import {
   copyFileSync,
@@ -20,6 +19,23 @@ import {
 } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
+
+const BASH_SHEBANG = "#!/usr/bin/env bash";
+const BASH_STRICT_MODE = "set -euo pipefail";
+const GH_AUTH_STATUS_BRANCH = 'if [[ "$1 $2" == "auth status" ]]; then';
+const GH_REPO_VIEW_BRANCH = 'if [[ "$1 $2" == "repo view" ]]; then';
+const GH_UNEXPECTED_INVOCATION = 'echo "unexpected gh invocation: $*" >&2';
+const GITHUB_RULESETS_DIR = "github-rulesets";
+const COPY_OVERWRITE_DIR = "copy-overwrite";
+const EXTRA_RULESET_FILE = "extra.json";
+const LISA_CONFIG_FILE = ".lisa.config.json";
+const QUALITY_CHECKS_FILE = "quality-checks.json";
+const STRUCTURAL_RULES_CONTEXT = "🔍 Quality Checks / 🔎 Structural Rules";
+const UPDATED_RULESET_FILE = "updated.json";
+const BYPASS_ACTOR_REMOVED_LINE =
+  "- bypass actor removed: RepositoryRole 5 (always)";
+const RETIRED_CONTEXTS_HEADING = "RETIRED REQUIRED CONTEXTS";
+const DEV_BRANCH_REF = "refs/heads/dev";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -64,12 +80,12 @@ function createMockGhBin(): string {
   writeFileSync(
     ghPath,
     [
-      "#!/usr/bin/env bash",
-      "set -euo pipefail",
-      'if [[ "$1 $2" == "auth status" ]]; then',
+      BASH_SHEBANG,
+      BASH_STRICT_MODE,
+      GH_AUTH_STATUS_BRANCH,
       "  exit 0",
       "fi",
-      'if [[ "$1 $2" == "repo view" ]]; then',
+      GH_REPO_VIEW_BRANCH,
       `  echo "${REPO_NAME}"`,
       "  exit 0",
       "fi",
@@ -77,7 +93,7 @@ function createMockGhBin(): string {
       '  echo "[]"',
       "  exit 0",
       "fi",
-      'echo "unexpected gh invocation: $*" >&2',
+      GH_UNEXPECTED_INVOCATION,
       "exit 1",
       "",
     ].join("\n"),
@@ -100,8 +116,8 @@ function createLisaInstall(): { scriptPath: string; root: string } {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-install-"));
   const scriptsDir = path.join(root, "scripts");
   const scriptPath = path.join(scriptsDir, SCRIPT_NAME);
-  const rulesetDir = path.join(root, "typescript", "github-rulesets");
-  const gatesDir = path.join(root, "all", "copy-overwrite", "scripts");
+  const rulesetDir = path.join(root, "typescript", GITHUB_RULESETS_DIR);
+  const gatesDir = path.join(root, "all", COPY_OVERWRITE_DIR, "scripts");
 
   mkdirSync(scriptsDir, { recursive: true });
   copyFileSync(SCRIPT_PATH, scriptPath);
@@ -115,7 +131,7 @@ function createLisaInstall(): { scriptPath: string; root: string } {
   );
   mkdirSync(path.join(gatesDir, "lib"), { recursive: true });
   copyFileSync(
-    path.join(REPO_ROOT, "all", "copy-overwrite", "scripts", GATES_NAME),
+    path.join(REPO_ROOT, "all", COPY_OVERWRITE_DIR, "scripts", GATES_NAME),
     path.join(gatesDir, GATES_NAME)
   );
   // Every shared module the registry reaches into `lib/` for, as a DIRECTORY.
@@ -123,13 +139,13 @@ function createLisaInstall(): { scriptPath: string; root: string } {
   // moment the registry imported a second sibling (CodySwannGT/lisa#2980).
   // CodySwannGT/lisa#3082.
   cpSync(
-    path.join(REPO_ROOT, "all", "copy-overwrite", "scripts", "lib"),
+    path.join(REPO_ROOT, "all", COPY_OVERWRITE_DIR, "scripts", "lib"),
     path.join(gatesDir, "lib"),
     { recursive: true }
   );
   mkdirSync(rulesetDir, { recursive: true });
   writeFileSync(
-    path.join(rulesetDir, "extra.json"),
+    path.join(rulesetDir, EXTRA_RULESET_FILE),
     JSON.stringify({ name: "extra", enforcement: ACTIVE_ENFORCEMENT })
   );
   return { scriptPath, root };
@@ -171,7 +187,7 @@ function runRulesetScript(
   ghBin: string
 ): SpawnSyncReturns<string> {
   return boundedSpawnSync({
-    label: "lisa-github-rulesets.sh",
+    label: SCRIPT_NAME,
     command: BASH_BIN,
     args: [scriptPath, ...args],
     cwd: REPO_ROOT,
@@ -193,12 +209,12 @@ function createCapturingGhBin(captureDir: string): string {
   writeFileSync(
     ghPath,
     [
-      "#!/usr/bin/env bash",
-      "set -euo pipefail",
-      'if [[ "$1 $2" == "auth status" ]]; then',
+      BASH_SHEBANG,
+      BASH_STRICT_MODE,
+      GH_AUTH_STATUS_BRANCH,
       "  exit 0",
       "fi",
-      'if [[ "$1 $2" == "repo view" ]]; then',
+      GH_REPO_VIEW_BRANCH,
       `  echo "${REPO_NAME}"`,
       "  exit 0",
       "fi",
@@ -212,7 +228,7 @@ function createCapturingGhBin(captureDir: string): string {
       '  echo "{}"',
       "  exit 0",
       "fi",
-      'echo "unexpected gh invocation: $*" >&2',
+      GH_UNEXPECTED_INVOCATION,
       "exit 1",
       "",
     ].join("\n"),
@@ -238,12 +254,12 @@ function createUpdatingGhBin(
   writeFileSync(
     ghPath,
     [
-      "#!/usr/bin/env bash",
-      "set -euo pipefail",
-      'if [[ "$1 $2" == "auth status" ]]; then',
+      BASH_SHEBANG,
+      BASH_STRICT_MODE,
+      GH_AUTH_STATUS_BRANCH,
       "  exit 0",
       "fi",
-      'if [[ "$1 $2" == "repo view" ]]; then',
+      GH_REPO_VIEW_BRANCH,
       `  echo "${REPO_NAME}"`,
       "  exit 0",
       "fi",
@@ -265,7 +281,7 @@ function createUpdatingGhBin(
       '  echo "{}"',
       "  exit 0",
       "fi",
-      'echo "unexpected gh invocation: $*" >&2',
+      GH_UNEXPECTED_INVOCATION,
       "exit 1",
       "",
     ].join("\n"),
@@ -274,7 +290,7 @@ function createUpdatingGhBin(
   return binDir;
 }
 
-describe("lisa-github-rulesets.sh", () => {
+describe(SCRIPT_NAME, () => {
   it("continues past the first successful template under set -e", () => {
     const projectDir = createProject();
     const ghBin = createMockGhBin();
@@ -286,7 +302,6 @@ describe("lisa-github-rulesets.sh", () => {
         command: BASH_BIN,
         args: [lisaInstall.scriptPath, "--dry-run", projectDir],
         cwd: REPO_ROOT,
-        // eslint-disable-next-line sonarjs/no-os-command-from-path -- Test-only PATH shim injects the mock gh executable.
         env: cleanGitEnv(process.env, {
           PATH: `${ghBin}:${process.env.PATH ?? ""}`,
         }),
@@ -339,7 +354,7 @@ describe("lisa-github-rulesets.sh", () => {
       });
       if (config !== undefined) {
         writeFileSync(
-          path.join(projectDir, ".lisa.config.json"),
+          path.join(projectDir, LISA_CONFIG_FILE),
           JSON.stringify(config)
         );
       }
@@ -348,8 +363,8 @@ describe("lisa-github-rulesets.sh", () => {
           path.join(
             lisaInstall.root,
             "typescript",
-            "github-rulesets",
-            "quality-checks.json"
+            GITHUB_RULESETS_DIR,
+            QUALITY_CHECKS_FILE
           ),
           JSON.stringify({
             name: QUALITY_RULESET,
@@ -458,9 +473,7 @@ describe("lisa-github-rulesets.sh", () => {
         payload => payload.name === QUALITY_RULESET
       );
 
-      expect(contextsOf(quality)).toContain(
-        "🔍 Quality Checks / 🔎 Structural Rules"
-      );
+      expect(contextsOf(quality)).toContain(STRUCTURAL_RULES_CONTEXT);
       expect(contextsOf(quality)).not.toContain(
         "🔍 Quality Checks / 🔎 AST Grep Scan"
       );
@@ -619,7 +632,7 @@ describe("lisa-github-rulesets.sh", () => {
         recursive: true,
       });
       writeFileSync(
-        path.join(projectDir, ".lisa.config.json"),
+        path.join(projectDir, LISA_CONFIG_FILE),
         JSON.stringify({
           gates: {
             "credential-leakage": {
@@ -641,7 +654,7 @@ describe("lisa-github-rulesets.sh", () => {
         );
         expect(result.status).toBe(0);
         const updated = JSON.parse(
-          readFileSync(path.join(captureDir, "updated.json"), "utf8")
+          readFileSync(path.join(captureDir, UPDATED_RULESET_FILE), "utf8")
         ) as RulesetPayload;
 
         // The declared await is added; the undeclared live context survives.
@@ -689,7 +702,7 @@ describe("lisa-github-rulesets.sh", () => {
         recursive: true,
       });
       writeFileSync(
-        path.join(projectDir, ".lisa.config.json"),
+        path.join(projectDir, LISA_CONFIG_FILE),
         JSON.stringify({
           github: {
             rulesets: { requiredChecks: { [QUALITY_RULESET]: [] } },
@@ -700,8 +713,8 @@ describe("lisa-github-rulesets.sh", () => {
         path.join(
           lisaInstall.root,
           "typescript",
-          "github-rulesets",
-          "quality-checks.json"
+          GITHUB_RULESETS_DIR,
+          QUALITY_CHECKS_FILE
         ),
         JSON.stringify({
           name: QUALITY_RULESET,
@@ -727,7 +740,7 @@ describe("lisa-github-rulesets.sh", () => {
         );
         expect(result.status).toBe(0);
         const updated = JSON.parse(
-          readFileSync(path.join(captureDir, "updated.json"), "utf8")
+          readFileSync(path.join(captureDir, UPDATED_RULESET_FILE), "utf8")
         ) as RulesetPayload;
 
         expect(contextsOf(updated)).toEqual([keptContext]);
@@ -777,8 +790,8 @@ describe("lisa-github-rulesets.sh", () => {
         path.join(
           lisaInstall.root,
           "typescript",
-          "github-rulesets",
-          "quality-checks.json"
+          GITHUB_RULESETS_DIR,
+          QUALITY_CHECKS_FILE
         ),
         JSON.stringify({
           name: QUALITY_RULESET,
@@ -804,7 +817,7 @@ describe("lisa-github-rulesets.sh", () => {
         );
         expect(result.status).toBe(0);
         const updated = JSON.parse(
-          readFileSync(path.join(captureDir, "updated.json"), "utf8")
+          readFileSync(path.join(captureDir, UPDATED_RULESET_FILE), "utf8")
         ) as RulesetPayload;
         expect(contextsOf(updated)).toEqual([shippedContext, hostContext]);
       } finally {
@@ -887,13 +900,13 @@ describe("lisa-github-rulesets.sh", () => {
       const rulesetDir = path.join(
         lisaInstall.root,
         "typescript",
-        "github-rulesets"
+        GITHUB_RULESETS_DIR
       );
 
       mkdirSync(path.join(projectDir, ".github", "workflows"), {
         recursive: true,
       });
-      rmSync(path.join(rulesetDir, "extra.json"));
+      rmSync(path.join(rulesetDir, EXTRA_RULESET_FILE));
       writeFileSync(
         path.join(rulesetDir, "nightly-e2e-health.json"),
         JSON.stringify({
@@ -906,7 +919,7 @@ describe("lisa-github-rulesets.sh", () => {
       );
       if (options.config !== undefined) {
         writeFileSync(
-          path.join(projectDir, ".lisa.config.json"),
+          path.join(projectDir, LISA_CONFIG_FILE),
           JSON.stringify(options.config)
         );
       }
@@ -920,9 +933,12 @@ describe("lisa-github-rulesets.sh", () => {
         expect(result.status).toBe(options.expectedStatus ?? 0);
         const captured = readdirSync(captureDir);
         return {
-          updated: captured.includes("updated.json")
+          updated: captured.includes(UPDATED_RULESET_FILE)
             ? (JSON.parse(
-                readFileSync(path.join(captureDir, "updated.json"), "utf8")
+                readFileSync(
+                  path.join(captureDir, UPDATED_RULESET_FILE),
+                  "utf8"
+                )
               ) as RulesetPayload)
             : undefined,
           stdout: result.stdout as string,
@@ -1033,9 +1049,7 @@ describe("lisa-github-rulesets.sh", () => {
       });
 
       expect(updated?.bypass_actors).toEqual([DEPLOY_KEY]);
-      expect(stdout).toContain(
-        "- bypass actor removed: RepositoryRole 5 (always)"
-      );
+      expect(stdout).toContain(BYPASS_ACTOR_REMOVED_LINE);
     });
 
     it("lets a declared list add a bypass actor the template does not ship", () => {
@@ -1143,9 +1157,7 @@ describe("lisa-github-rulesets.sh", () => {
 
       expect(updated?.bypass_actors).toEqual([DEPLOY_KEY]);
       expect(stdout).not.toContain("mode changed");
-      expect(stdout).toContain(
-        "- bypass actor removed: RepositoryRole 5 (always)"
-      );
+      expect(stdout).toContain(BYPASS_ACTOR_REMOVED_LINE);
     });
 
     it("names a bypass removal on a dry run and sends nothing", () => {
@@ -1160,9 +1172,7 @@ describe("lisa-github-rulesets.sh", () => {
 
       expect(updated).toBeUndefined();
       expect(stdout).toContain("- bypass actor removed: DeployKey (always)");
-      expect(stdout).toContain(
-        "- bypass actor removed: RepositoryRole 5 (always)"
-      );
+      expect(stdout).toContain(BYPASS_ACTOR_REMOVED_LINE);
     });
 
     it("keeps a live-only bypass actor on the generated base ruleset", () => {
@@ -1195,7 +1205,7 @@ describe("lisa-github-rulesets.sh", () => {
   // no-op rather than an indistinguishable write.
   describe("drift reporting", () => {
     const LINT_CONTEXT = "🔍 Quality Checks / 🧹 Lint";
-    const SG_CONTEXT = "🔍 Quality Checks / 🔎 Structural Rules";
+    const SG_CONTEXT = STRUCTURAL_RULES_CONTEXT;
     const ACTIONS_INTEGRATION_ID = 15_368;
 
     /**
@@ -1253,11 +1263,11 @@ describe("lisa-github-rulesets.sh", () => {
       const rulesetDir = path.join(
         lisaInstall.root,
         "typescript",
-        "github-rulesets"
+        GITHUB_RULESETS_DIR
       );
-      rmSync(path.join(rulesetDir, "extra.json"));
+      rmSync(path.join(rulesetDir, EXTRA_RULESET_FILE));
       writeFileSync(
-        path.join(rulesetDir, "quality-checks.json"),
+        path.join(rulesetDir, QUALITY_CHECKS_FILE),
         JSON.stringify(rulesetRequiring(templateContexts))
       );
 
@@ -1288,7 +1298,7 @@ describe("lisa-github-rulesets.sh", () => {
 
       expect(stdout).toContain(`+ now required: ${SG_CONTEXT}`);
       expect(stdout).not.toContain(`+ now required: ${LINT_CONTEXT}`);
-      expect(captured).toContain("updated.json");
+      expect(captured).toContain(UPDATED_RULESET_FILE);
     });
 
     it("reports nothing to do and sends no update when the live ruleset matches", () => {
@@ -1301,7 +1311,7 @@ describe("lisa-github-rulesets.sh", () => {
         `Ruleset '${QUALITY_RULESET}' already matches the template — nothing to do`
       );
       expect(stdout).not.toContain("+ now required:");
-      expect(captured).not.toContain("updated.json");
+      expect(captured).not.toContain(UPDATED_RULESET_FILE);
     });
 
     // GitHub fills in rule parameters no template names and echoes them back.
@@ -1323,11 +1333,11 @@ describe("lisa-github-rulesets.sh", () => {
       const rulesetDir = path.join(
         lisaInstall.root,
         "typescript",
-        "github-rulesets"
+        GITHUB_RULESETS_DIR
       );
-      rmSync(path.join(rulesetDir, "extra.json"));
+      rmSync(path.join(rulesetDir, EXTRA_RULESET_FILE));
       writeFileSync(
-        path.join(rulesetDir, "quality-checks.json"),
+        path.join(rulesetDir, QUALITY_CHECKS_FILE),
         JSON.stringify(rulesetRequiring([LINT_CONTEXT]))
       );
       writeFileSync(
@@ -1350,7 +1360,7 @@ describe("lisa-github-rulesets.sh", () => {
         expect(result.stdout).toContain(
           "refusing to silently replace required checks"
         );
-        expect(readdirSync(captureDir)).not.toContain("updated.json");
+        expect(readdirSync(captureDir)).not.toContain(UPDATED_RULESET_FILE);
       } finally {
         rmSync(projectDir, { recursive: true, force: true });
         rmSync(captureDir, { recursive: true, force: true });
@@ -1369,7 +1379,7 @@ describe("lisa-github-rulesets.sh", () => {
       );
 
       expect(stdout).toContain("nothing to do");
-      expect(captured).not.toContain("updated.json");
+      expect(captured).not.toContain(UPDATED_RULESET_FILE);
     });
   });
 
@@ -1381,7 +1391,7 @@ describe("lisa-github-rulesets.sh", () => {
     // for status to be reported" forever, with nothing naming the cause.
     const HAND_MADE = "enforce pr rules";
     const RETIRED = "🔍 Quality Checks / 🔎 AST Grep Scan";
-    const CURRENT = "🔍 Quality Checks / 🔎 Structural Rules";
+    const CURRENT = STRUCTURAL_RULES_CONTEXT;
 
     /**
      * Creates a mock gh whose repository holds one hand-made ruleset.
@@ -1412,8 +1422,8 @@ describe("lisa-github-rulesets.sh", () => {
       writeFileSync(
         path.join(binDir, "gh"),
         [
-          "#!/usr/bin/env bash",
-          "set -euo pipefail",
+          BASH_SHEBANG,
+          BASH_STRICT_MODE,
           'if [[ "$1 $2" == "auth status" ]]; then exit 0; fi',
           `if [[ "$1 $2" == "repo view" ]]; then echo "${REPO_NAME}"; exit 0; fi`,
           `if [[ "$1" == "api" && "$2" == "repos/${REPO_NAME}/rulesets" ]]; then`,
@@ -1427,7 +1437,7 @@ describe("lisa-github-rulesets.sh", () => {
           detailReadable ? "  exit 0" : "",
           "fi",
           'if [[ "$1" == "api" ]]; then echo "{}"; exit 0; fi',
-          'echo "unexpected gh invocation: $*" >&2',
+          GH_UNEXPECTED_INVOCATION,
           "exit 1",
           "",
         ].join("\n"),
@@ -1463,7 +1473,7 @@ describe("lisa-github-rulesets.sh", () => {
     it("names a retired context surviving in a ruleset it does not manage", () => {
       const stdout = sweep([RETIRED, CURRENT]);
 
-      expect(stdout).toContain("RETIRED REQUIRED CONTEXTS");
+      expect(stdout).toContain(RETIRED_CONTEXTS_HEADING);
       expect(stdout).toContain(RETIRED);
       expect(stdout).toContain(HAND_MADE);
       expect(stdout).toContain(CURRENT);
@@ -1481,7 +1491,7 @@ describe("lisa-github-rulesets.sh", () => {
     it("names a retired context required under a nested caller chain", () => {
       const stdout = sweep([`Release / ${RETIRED}`]);
 
-      expect(stdout).toContain("RETIRED REQUIRED CONTEXTS");
+      expect(stdout).toContain(RETIRED_CONTEXTS_HEADING);
       expect(stdout).toContain(`Release / ${RETIRED}`);
       expect(stdout).toContain(`Release / ${CURRENT}`);
     });
@@ -1499,7 +1509,7 @@ describe("lisa-github-rulesets.sh", () => {
     it("stays silent when every required context is still produced", () => {
       const stdout = sweep([CURRENT, "CodeRabbit"]);
 
-      expect(stdout).not.toContain("RETIRED REQUIRED CONTEXTS");
+      expect(stdout).not.toContain(RETIRED_CONTEXTS_HEADING);
     });
 
     it("says it could not check rather than reporting a ruleset clean", () => {
@@ -1508,7 +1518,7 @@ describe("lisa-github-rulesets.sh", () => {
       // run could not read must not read as "nothing retired in there".
       const stdout = sweep([RETIRED], false);
 
-      expect(stdout).not.toContain("RETIRED REQUIRED CONTEXTS");
+      expect(stdout).not.toContain(RETIRED_CONTEXTS_HEADING);
       expect(stdout).toContain("This is not a clean result");
     });
   });
@@ -1551,8 +1561,8 @@ describe("lisa-github-rulesets.sh", () => {
       writeFileSync(
         path.join(binDir, "gh"),
         [
-          "#!/usr/bin/env bash",
-          "set -euo pipefail",
+          BASH_SHEBANG,
+          BASH_STRICT_MODE,
           'if [[ "$1 $2" == "auth status" ]]; then exit 0; fi',
           `if [[ "$1 $2" == "repo view" ]]; then echo "${REPO_NAME}"; exit 0; fi`,
           'if [[ "$1 $2" == "api --paginate" ]]; then',
@@ -1570,7 +1580,7 @@ describe("lisa-github-rulesets.sh", () => {
           "  exit 0",
           "fi",
           'if [[ "$1" == "api" ]]; then echo "{}"; exit 0; fi',
-          'echo "unexpected gh invocation: $*" >&2',
+          GH_UNEXPECTED_INVOCATION,
           "exit 1",
           "",
         ].join("\n"),
@@ -1607,15 +1617,15 @@ describe("lisa-github-rulesets.sh", () => {
     }
 
     it("names a ruleset whose include patterns match no branch", () => {
-      const stdout = reachSweep(["refs/heads/dev"]);
+      const stdout = reachSweep([DEV_BRANCH_REF]);
 
       expect(stdout).toContain(REACH_HEADING);
       expect(stdout).toContain(DEAD_RULESET);
-      expect(stdout).toContain("refs/heads/dev");
+      expect(stdout).toContain(DEV_BRANCH_REF);
     });
 
     it("says it changed nothing, because both repairs would loosen a control", () => {
-      const stdout = reachSweep(["refs/heads/dev"]);
+      const stdout = reachSweep([DEV_BRANCH_REF]);
 
       expect(stdout).toContain("Lisa changed nothing above");
       expect(stdout).toContain("LOOSEN a control nobody asked to loosen");
@@ -1638,7 +1648,7 @@ describe("lisa-github-rulesets.sh", () => {
     // governing nothing, and reading the failure as silence would report the
     // repository clean on the strength of a read that never happened.
     it("says it could not check rather than reporting a ruleset clean", () => {
-      const stdout = reachSweep(["refs/heads/dev"], false);
+      const stdout = reachSweep([DEV_BRANCH_REF], false);
 
       expect(stdout).not.toContain(REACH_HEADING);
       expect(stdout).toContain(REACH_UNCHECKED);
@@ -1646,4 +1656,3 @@ describe("lisa-github-rulesets.sh", () => {
     });
   });
 });
-/* eslint-enable sonarjs/no-duplicate-string, max-lines -- restore repository defaults */

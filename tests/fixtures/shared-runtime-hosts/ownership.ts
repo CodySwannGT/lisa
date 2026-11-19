@@ -1,4 +1,3 @@
-/* eslint-disable code-organization/enforce-statement-order -- Real CLI operations and before/after observations must stay chronological. */
 /** Existing host choices remain intact through genuine packed CLI applies. */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -13,20 +12,30 @@ const PREVIOUS_NODE = "22.23.3";
 const PACKAGE_JSON = "package.json";
 const LISA_CONFIG = ".lisa.config.json";
 
+/** Distinct existing-host runtime ownership condition. */
+type OwnershipMode = "known" | "ignored" | "custom";
+
+const EXISTING_WORKFLOWS = [
+  "ci.yml",
+  "review-evidence.yml",
+  "third-party-review-evidence.yml",
+] as const;
+const WORKFLOW_BYTES =
+  "# Host-owned runtime override\nname: Host runtime\non: workflow_dispatch\njobs:\n  run:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/setup-node@v6\n        with:\n          node-version: ${{ vars.NODE_VERSION || '22.23.3' }}\n";
+
 /**
- * Seed a disposable existing host with explicit runtime ownership controls.
+ * Seed a disposable TypeScript host into a fresh repository and checkpoint it.
  * @param candidate - Exact packed artifact and environment
- * @param mode - Distinct existing-host ownership condition
- * @returns Seeded host paths and exact original ownership bytes
+ * @param host - Disposable host directory
+ * @param name - Evidence log prefix for this ownership condition
  */
-async function prepareOwnershipHost(
+async function seedOwnershipRepository(
   candidate: Candidate,
-  mode: "known" | "ignored" | "custom"
-) {
-  const name = `ownership-${mode}`;
-  const host = path.join(candidate.root, name);
-  seedHost(host, "typescript");
+  host: string,
+  name: string
+): Promise<void> {
   const git = resolveGit();
+  seedHost(host, "typescript");
   await run(
     git,
     ["init", "--initial-branch=main"],
@@ -52,55 +61,87 @@ async function prepareOwnershipHost(
     `${name}-email`
   );
   await checkpoint(candidate, host, `${name}-seed`);
-  // Bootstrap creates the existing Lisa config; the measured two applies
-  // below exercise adoption, rather than first-time gate onboarding.
-  await apply(candidate, host, name, "bootstrap");
+}
+
+/**
+ * Write the host-owned runtime choices that later applies must preserve.
+ * @param host - Bootstrapped host directory
+ * @param mode - Distinct existing-host ownership condition
+ * @returns Exact original `.nvmrc` bytes the host chose
+ */
+function writeExistingOwnership(host: string, mode: OwnershipMode): string {
   const manifest = JSON.parse(
     fs.readFileSync(path.join(host, PACKAGE_JSON), "utf8")
   );
+  const previous = mode === "custom" ? "24.999.0\n" : `${PREVIOUS_NODE}\n`;
   write(host, PACKAGE_JSON, {
     ...manifest,
     engines: { node: PREVIOUS_NODE },
   });
-  const previous = mode === "custom" ? "24.999.0\n" : `${PREVIOUS_NODE}\n`;
   write(host, ".nvmrc", previous);
   if (mode === "ignored") write(host, ".lisaignore", ".nvmrc\n");
-  const existingWorkflows = [
-    "ci.yml",
-    "review-evidence.yml",
-    "third-party-review-evidence.yml",
-  ];
-  const workflowBytes =
-    "# Host-owned runtime override\nname: Host runtime\non: workflow_dispatch\njobs:\n  run:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/setup-node@v6\n        with:\n          node-version: ${{ vars.NODE_VERSION || '22.23.3' }}\n";
-  for (const workflow of existingWorkflows)
-    write(host, `.github/workflows/${workflow}`, workflowBytes);
-  await checkpoint(candidate, host, `${name}-existing-ownership`);
-  return { name, host, previous, existingWorkflows, workflowBytes };
+  for (const workflow of EXISTING_WORKFLOWS)
+    write(host, `.github/workflows/${workflow}`, WORKFLOW_BYTES);
+  return previous;
 }
 
 /**
- * Exercise genuine CLI ownership boundaries with known, ignored and custom nvmrc.
+ * Seed a disposable existing host with explicit runtime ownership controls.
  * @param candidate - Exact packed artifact and environment
  * @param mode - Distinct existing-host ownership condition
+ * @returns Seeded host paths and exact original ownership bytes
  */
-export async function verifyRuntimeOwnership(
+async function prepareOwnershipHost(candidate: Candidate, mode: OwnershipMode) {
+  const name = `ownership-${mode}`;
+  const host = path.join(candidate.root, name);
+  await seedOwnershipRepository(candidate, host, name);
+  // Bootstrap creates the existing Lisa config; the measured two applies
+  // below exercise adoption, rather than first-time gate onboarding.
+  await apply(candidate, host, name, "bootstrap");
+  const previous = writeExistingOwnership(host, mode);
+  await checkpoint(candidate, host, `${name}-existing-ownership`);
+  return { name, host, previous };
+}
+
+/**
+ * Apply once and assert every host-owned runtime choice survived.
+ * @param candidate - Exact packed artifact and environment
+ * @param host - Host carrying existing ownership choices
+ * @param name - Evidence log prefix for this ownership condition
+ * @param expected - `.nvmrc` bytes the first apply must leave
+ */
+async function assertFirstApply(
   candidate: Candidate,
-  mode: "known" | "ignored" | "custom"
+  host: string,
+  name: string,
+  expected: string
 ): Promise<void> {
-  const { name, host, previous, existingWorkflows, workflowBytes } =
-    await prepareOwnershipHost(candidate, mode);
   await apply(candidate, host, name, "first");
   expect(
     JSON.parse(fs.readFileSync(path.join(host, PACKAGE_JSON), "utf8")).engines
       .node
   ).toBe(PREVIOUS_NODE);
-  const expected = mode === "known" ? "24.21.0\n" : previous;
   expect(fs.readFileSync(path.join(host, ".nvmrc"), "utf8")).toBe(expected);
-  for (const workflow of existingWorkflows)
+  for (const workflow of EXISTING_WORKFLOWS)
     expect(
       fs.readFileSync(path.join(host, ".github/workflows", workflow), "utf8")
-    ).toBe(workflowBytes);
+    ).toBe(WORKFLOW_BYTES);
   await checkpoint(candidate, host, `${name}-first`);
+}
+
+/**
+ * Apply again and assert the host is byte-identical to the first apply.
+ * @param candidate - Exact packed artifact and environment
+ * @param host - Host checkpointed after its first apply
+ * @param name - Evidence log prefix for this ownership condition
+ * @param mode - Distinct existing-host ownership condition
+ */
+async function assertSecondApplyIdentity(
+  candidate: Candidate,
+  host: string,
+  name: string,
+  mode: OwnershipMode
+): Promise<void> {
   const first = snapshot(host);
   const configBefore = fs.readFileSync(path.join(host, LISA_CONFIG), "utf8");
   await apply(candidate, host, name, "second");
@@ -112,6 +153,21 @@ export async function verifyRuntimeOwnership(
   expect(snapshot(host), "existing host second apply byte identity").toEqual(
     first
   );
+}
+
+/**
+ * Exercise genuine CLI ownership boundaries with known, ignored and custom nvmrc.
+ * @param candidate - Exact packed artifact and environment
+ * @param mode - Distinct existing-host ownership condition
+ */
+export async function verifyRuntimeOwnership(
+  candidate: Candidate,
+  mode: OwnershipMode
+): Promise<void> {
+  const { name, host, previous } = await prepareOwnershipHost(candidate, mode);
+  const expected = mode === "known" ? "24.21.0\n" : previous;
+  await assertFirstApply(candidate, host, name, expected);
+  await assertSecondApplyIdentity(candidate, host, name, mode);
   write(candidate.logs, `${name}-proof.json`, {
     sourceHead: candidate.sourceHead,
     indexTree: candidate.indexTree,
@@ -127,5 +183,3 @@ export async function verifyRuntimeOwnership(
     secondApplyDelta: [],
   });
 }
-
-/* eslint-enable code-organization/enforce-statement-order -- End the chronological owned-host observations. */

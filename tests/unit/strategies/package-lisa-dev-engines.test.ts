@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   detectHostPackageManager,
   fitDevEnginesToHost,
+  parseInvokingPackageManager,
   retireDevEnginesFloor,
 } from "../../../src/strategies/package-lisa-dev-engines.js";
 import { PackageLisaStrategy } from "../../../src/strategies/package-lisa.js";
@@ -95,6 +96,60 @@ describe("detectHostPackageManager", () => {
   it("is unknown with no project directory", () => {
     expect(detectHostPackageManager(undefined, {})).toBeUndefined();
   });
+
+  it("falls back to the invoking manager with no field and no lockfile", () => {
+    expect(detectHostPackageManager(project([]), {}, "bun")).toBe("bun");
+    expect(detectHostPackageManager(undefined, {}, "bun")).toBe("bun");
+  });
+
+  it("lets a lockfile outrank the invoking manager", () => {
+    expect(detectHostPackageManager(project([NPM_LOCKFILE]), {}, "bun")).toBe(
+      "npm"
+    );
+  });
+
+  it("lets the packageManager field outrank the invoking manager", () => {
+    expect(
+      detectHostPackageManager(
+        project([]),
+        { packageManager: "npm@11.6.0" },
+        "bun"
+      )
+    ).toBe("npm");
+  });
+});
+
+describe("parseInvokingPackageManager", () => {
+  it.each([
+    ["bun/1.4.4 npm/? node/v24.21.0 darwin arm64", "bun", "1.4.4"],
+    ["npm/11.6.2 node/v24.21.0 linux x64 workspaces/false", "npm", "11.6.2"],
+    ["pnpm/10.12.1 npm/? node/v24.21.0 linux x64", "pnpm", "10.12.1"],
+    ["yarn/4.9.2 npm/? node/v24.21.0 linux x64", "yarn", "4.9.2"],
+    ["yarn/1.22.22 npm/? node/v24.21.0 darwin arm64", "yarn", "1.22.22"],
+    [
+      "bun/1.5.0-canary.12+abc123 npm/? node/v24.21.0",
+      "bun",
+      "1.5.0-canary.12+abc123",
+    ],
+    ["  bun/1.4.4 npm/? node/v24.21.0  ", "bun", "1.4.4"],
+  ])("reads %s as %s %s", (userAgent, name, version) => {
+    expect(parseInvokingPackageManager(userAgent)).toEqual({ name, version });
+  });
+
+  it.each([
+    [undefined],
+    [""],
+    ["node/v24.21.0 darwin arm64"],
+    ["deno/2.4.0"],
+    ["bun"],
+    ["bun/"],
+    ["bun/? npm/1.0.0"],
+    ["bunny/1.4.4"],
+    ["npm 11.6.2"],
+    ["Bun/1.4.4"],
+  ])("names no manager for %j", userAgent => {
+    expect(parseInvokingPackageManager(userAgent)).toBeUndefined();
+  });
 });
 
 describe("fitDevEnginesToHost", () => {
@@ -169,18 +224,21 @@ describe("CDK template applied to hosts (#4848)", () => {
    * Plan a CDK host's package.json the way apply does.
    * @param dir - Host directory
    * @param manifest - Host package.json
+   * @param invoking - Manager that launched the apply, if any
    * @returns Planned package.json
    */
   function plan(
     dir: string,
-    manifest: Record<string, unknown>
+    manifest: Record<string, unknown>,
+    invoking?: string
   ): Promise<Record<string, unknown>> {
     return new PackageLisaStrategy().planPackageJson(
       manifest,
       ["typescript", "cdk"],
       REPO_ROOT,
       false,
-      dir
+      dir,
+      invoking
     );
   }
 
@@ -200,6 +258,36 @@ describe("CDK template applied to hosts (#4848)", () => {
       devEngines: { packageManager: NPM_FLOOR },
     });
     expect(planned.devEngines).toBeUndefined();
+  });
+
+  it("gives a host with no signal at all the npm floor", async () => {
+    const planned = await plan(project([]), { name: "h" });
+    expect(planned.devEngines).toEqual({ packageManager: NPM_FLOOR });
+  });
+
+  it("does not give a fresh host adopted through bun the npm floor", async () => {
+    const planned = await plan(project([]), { name: "h" }, "bun");
+    expect(planned.devEngines).toBeUndefined();
+  });
+
+  it("keeps one floor decision across two adoptions of a bun host (#4941)", async () => {
+    // First adoption: `bunx lisa apply .` on a host with no lockfile yet.
+    const dir = project([]);
+    const first = await plan(dir, { name: "h" }, "bun");
+    // `bun install` then writes bun.lock, and the next apply may be launched
+    // by anything, including a bare `lisa apply .` with no user agent.
+    writeFileSync(path.join(dir, BUN_LOCKFILE), "");
+    expect(await plan(dir, { ...first })).toEqual(first);
+    expect(await plan(dir, { ...first }, "bun")).toEqual(first);
+    expect(first.devEngines).toBeUndefined();
+  });
+
+  it("keeps one floor decision across two adoptions of an npm host", async () => {
+    const dir = project([]);
+    const first = await plan(dir, { name: "h" }, "npm");
+    writeFileSync(path.join(dir, NPM_LOCKFILE), "");
+    expect(await plan(dir, { ...first })).toEqual(first);
+    expect(first.devEngines).toEqual({ packageManager: NPM_FLOOR });
   });
 
   it("is stable when a bun host is applied twice", async () => {

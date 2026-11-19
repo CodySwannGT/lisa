@@ -84,7 +84,7 @@ invoking `maestro`, wires an MCP server whose CLI it also shells out to, and con
 Playwright thresholds, while `remoteEnv.tools` stays empty and each of those fails at the
 moment of use instead of at setup.
 
-The detector proposes and a human decides. It writes nothing, so a tool still only ever reaches
+The detector proposes and the dependency trust gate decides (see below). It writes nothing, so a tool still only ever reaches
 a machine from a reviewed, pinned, checksummed entry.
 
 ## What it will not do
@@ -93,5 +93,8 @@ a machine from a reviewed, pinned, checksummed entry.
   flow uses, and the same in-process checksum verification, which refuses before unpacking.
 - **No package-manager fallback.** Shelling out to Homebrew would give no version pin and no
   checksum, which is the property this design exists to enforce.
-- **No writes to the manifest.** Proposing entries belongs to `/lisa:detect-tooling`; deciding
-  belongs to a human reviewing a diff.
+- **No writes to the manifest.** Proposing entries belongs to `/lisa:detect-tooling`. Admitting
+  a pinned, checksummed tool is a supply-chain trust decision, so it goes through the dependency
+  trust gate (`dependency-trust-classes`): when `dependencies.humanSignOff` is on, a person
+  ratifies the entry; when it is off, the agent decides and records why in the reviewed PR that
+  commits the entry.
