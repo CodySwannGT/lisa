@@ -1,3 +1,5 @@
+# shellcheck shell=sh
+# Sourced by .husky/pre-push, so it runs in that hook's /bin/sh.
 # Leftover merge-conflict marker gate (issue #2552).
 #
 # PR #2548 pushed six generated parity SKILL.md files containing literal
@@ -72,7 +74,7 @@ elif [ "$PARITY_DRIFT_EXIT" -eq 1 ]; then
       try {
         report = JSON.parse(raw);
       } catch (error) {
-        console.log(`  - (unreadable drift report: ${error.message})`);
+        console.log("  - (unreadable drift report: " + error.message + ")");
         process.exitCode = 1;
         return;
       }
@@ -80,7 +82,8 @@ elif [ "$PARITY_DRIFT_EXIT" -eq 1 ]; then
       const rows = (report.results ?? []).filter(r => gate.has(r.status));
       for (const r of rows) {
         console.log(
-          `  - ${r.skillPath}: ${r.plugin} pinned ${r.pinnedVersion ?? "?"}, upstream ${r.currentVersion ?? "?"} (${r.status})`
+          "  - " + r.skillPath + ": " + r.plugin + " pinned " + (r.pinnedVersion ?? "?") +
+            ", upstream " + (r.currentVersion ?? "?") + " (" + r.status + ")"
         );
       }
       if (rows.length > 0) {

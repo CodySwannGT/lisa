@@ -341,7 +341,7 @@
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "034705bbaadc6dc1ed1c64f9672fdc489b74f786d46b8363b2e4e4998c0f4f36",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "38ce0cbc3bd1d3a1fd8ce6893b26473d503db6a3480f389e641b9a42b1877dd8",
+      "3d137ff030640bc51c76c46638ac24953f516e859bdbee34bf5fae6351fa5038",
     "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs":
       "5f303bc2c0427fbf686bc75fe2f481da9f70708165c6d2a51d0432aedfcd205d",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
@@ -679,7 +679,7 @@
     "expo/create-only/lighthouserc.js":
       "b8ff8f57b130bb65e512b8a372a9c85de4fb9b6d2d447459e457ab883310cc00",
     "expo/create-only/scripts/zap-baseline.sh":
-      "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
+      "091ce56c2f4b17b68160b2bf2b81ffca1ff388c80a395498bca4e51e45399bfd",
     "expo/create-only/stryker.conf.json":
       "bb2ba45f180d7172377c6ef0ed6d40e15e111c72ae7080edb81ca01faa916eb7",
     "expo/create-only/tsconfig.json":
@@ -729,7 +729,7 @@
     "harper-fabric/create-only/.zap/baseline.conf":
       "68aae4b1b9b5b7253b5aeb792d72b58f64e5eda1dcf8f3062bd9d77494a5a22f",
     "harper-fabric/create-only/scripts/zap-baseline.sh":
-      "00f5a2bdf6c9ecf0d7a1c74ec629364b09bab1f79c4ea71779826288702d76aa",
+      "af2398b2cc3300c6370bc2c92ab6d2419042883f58484dfca995de20dab641a3",
     "harper-fabric/deletions.json":
       "699c6e445c053bc95cdf4b7ef6a852e243d1073d21087ed7c08db69d1d29ac9c",
     "harper-fabric/merge/.claude/settings.json":
@@ -811,7 +811,7 @@
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":
-      "9d81fdb3419753ca4ec5509e37365543d7608c7a9924635ef1acb4734cb3bbd1",
+      "4a4b3f9a9857c91e0eb36dfd20a35cbf60493280d5653e9ae99b81ffc783cfe9",
     "nestjs/create-only/tsconfig.local.json":
       "0b720ddad0d18f52dadf33bdc4a0aec0eb65c506bc8ebb692f880bdf31d1011d",
     "nestjs/create-only/vitest.config.local.ts":
@@ -851,7 +851,7 @@
     "phaser/copy-overwrite/.github/workflows/ci.yml":
       "b7cc250ef736510d1d2d54ebe3fb5d1bc7578bce65263011f3342f0d7492c64e",
     "phaser/copy-overwrite/.husky/pre-push.verify":
-      "d03bc6d18e20c368d37abd4d1000589cbbfb67afab0ad58da4f18ed73ec65ee9",
+      "4b7c620c42c3473302b1db9d728bc30bfecdeaf0d33aabc02944342dafba46f2",
     "phaser/copy-overwrite/ast-grep/rule-tests/.gitkeep":
       "fd9b902271d9cbaca0ead2a1e659776db904c10b06ceed7e5bc43fa57b89aba1",
     "phaser/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml":
@@ -1117,9 +1117,9 @@
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "ca36ffb0bb72269902b22a1a63cfcf837971d24a94f44fcf6920c7545fa41966",
     "plugins/src/base/hooks/block-masked-exit-status.sh":
-      "6b28b592edf602c5c809decfb9d108aa5bc73df4dc748017b7a0547211aa9391",
+      "41116910e14f276f52dce6238d2213cc0eb47d5dfaa730938d75bc512138cd5a",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "e1a25e15e3cc7e4a427a95ce02290b0f93b95c11ab3c19b94ed36de2cee1113b",
+      "8570f5ab3fe28d1036a6d2ec544481b2c9bb6bc9b33e4363da05b7bb276048f4",
     "plugins/src/base/hooks/block-no-verify.sh":
       "77262dce7a9eef8fd92856a4ec1b90dfe654a78bd84fce8aebc4ab0e53093af3",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
@@ -1133,7 +1133,7 @@
     "plugins/src/base/hooks/discharge-work-item-gates.sh":
       "79e64379a06539584c27c9adc145a6fcf71c020040c3416234b317cb7c4649e3",
     "plugins/src/base/hooks/enforce-verification-gate.sh":
-      "708c1cdee780e0672a80cadae398fd6cb83c6d901c8f709000837da270608795",
+      "7ae84e4d4f7ffacc6830e0c617be9930145c3a78444effa638819841bbff6d44",
     "plugins/src/base/hooks/enforcement-vintage-npm.mjs":
       "3fb591805057524d95bd8a0d8f515489003dc700854aef8dda6c6606dfb1640d",
     "plugins/src/base/hooks/enforcement-vintage.mjs":
@@ -1185,9 +1185,9 @@
     "plugins/src/base/hooks/threshold-ratchet.sh":
       "b86f4d0b554e44fd119ad8a8920cd0ba6c9dbe779f7ee219d381cf0629453990",
     "plugins/src/base/hooks/ticket-sync-reminder.sh":
-      "212f80bcdfd9e3ec2254987c5a7186d1d2d38065b330ddcdc631f76df7c4a6c0",
+      "3007305c331be31840e69ffa9faa712da050fec8bd97faa472918a03d3879e43",
     "plugins/src/base/hooks/track-plan-sessions.sh":
-      "8bc47dcad3aed628df0c9efbe7b6f3df87635b94b0c54c71e0bd52eceace563a",
+      "7881d432b6fea378475910825261371e10476ec792ad5fe303330d207e591420",
     "plugins/src/base/hooks/withdrawn-rulings.mjs":
       "4e66fd547514f08f8293a9f8e337876679d928e3e9825eefb508f887f88e8d85",
     "plugins/src/base/hooks/withdrawn-rulings.sh":
@@ -1423,7 +1423,7 @@
     "plugins/src/base/scripts/ready-queue-order.mjs":
       "b7d7e3832a6e89f9f7d74cca104369c88db52d7a01c0762a0cfb23aa4b81180d",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
-      "2a5b21f4fa3df268fb579976b4bc5f480d9176dbf6e3ae64fe3a869df287ca30",
+      "7341831fa2dc52bdf792306196430548a7efec91993e1ad7f5c6b737a9def8a5",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
       "bed0f0b8a43146dbe222c657d6b58494c3962d1bb627bf0591d4b37102de972f",
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs":
@@ -2643,7 +2643,7 @@
     "rails/merge/.claude/settings.json":
       "c4d52cf656f80ba166fdf327119251b239b9d74c010a8d74a060ebc3e031188a",
     "scripts/build-plugins.sh":
-      "1cd42d608f6f6d50e49078307d07179343b6618ce15e5fc2d49143ef244cfe06",
+      "0762e0ea99a4d031aac78f4b62e7d532a9e7ac4663b222e5e274270153810c9f",
     "scripts/build-unless-marked.mjs":
       "8514c8aa1908efca45b40076590e7c493fd39e9bfe3ae96a123253c20b1d5e0f",
     "scripts/check-control-command-parity.mjs":
@@ -2727,11 +2727,11 @@
     "scripts/classify-phrase-tests.mjs":
       "a7a4a0516d79b756dce6271d2709758155bd2fdb935f193d3148c55151687520",
     "scripts/claude-remote-setup.sh":
-      "5947c48ee78f2efdf321f6a516e0aad427ac77345ce26d4e29d0eecc5cd5d307",
+      "9d0f92aa2c5c7ea31fff0af5299e2ded3468b13650d14ed3eed3c5fc174f2bac",
     "scripts/clean-dist.mjs":
       "04970d768464acbf96ebeb77c16a6a3b3da56c744eef0da64c573c6152ee0dc7",
     "scripts/cleanup-amplify-branches.sh":
-      "eb9db90b07818dd156dd48d04b6350a10b39be8ffe0267d72cc13705c8eb5350",
+      "b598d6dc997933321d929947d9a9c432cb0ecac3ff6fa5f62802f51645f27d14",
     "scripts/cleanup-github-branches.sh":
       "88d7442700c3277cbf96c0f3250b8169fdd43812d585ddac417843a65e2b548c",
     "scripts/cleanup-local-merged-branches.sh":
@@ -2783,9 +2783,9 @@
     "scripts/generate-upstream-evidence-manifest.mjs":
       "34bed77c64bc337951ddc29d7dcc743c20d4ec2ed1cdf26f2ce82093b081cec4",
     "scripts/github-status-check.sh":
-      "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
+      "5302dadecadc66f23ae7b5965b489d3b8cf99a0dd6de5ebdaa85400f71536f26",
     "scripts/install-claude-plugins.sh":
-      "e4340bb41d7cfab9a667c35877fdce357707b1937c16d7ba4e0e9810e64b67d0",
+      "612107eaa0dbf91a8d8ea5fc0cbe54c0d2af8be53c3e132a3a33da502cebedf2",
     "scripts/install-generated-artifact-merge-driver.mjs":
       "61e2b4fc532e8b356cb751b1ff42eb712376728eec76f8edf2c3dec19acf1bd4",
     "scripts/integration-shard-build.mjs":
@@ -2955,13 +2955,13 @@
     "scripts/lisa-ci-rework-route.mjs":
       "0234a31160f50f89d6b229d8412b19f14649fffd90a072476fdb2ea548857590",
     "scripts/lisa-commit-and-pr-local.sh":
-      "cc9f1be63bcd881125aa59aa35432c2ab1d41119b2a28e8de817536b0f302b01",
+      "5fa841490f4248ded6b16cbbeff111ce42532125a711b5b14a831e2ec52513de",
     "scripts/lisa-commit-msg-gates.mjs":
       "f961cb70a525e7b0a94b8ca7a76d1e2bb5b1929d5477417e159dbf58312ce0d8",
     "scripts/lisa-enforcement-census.mjs":
       "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "5971482c13ba1b31171d35b640cca5e4a5c8c2fb6c353f9b5b720f2ada5b175f",
+      "3ef8cfade68579587040487db5d381fc7368d3a9ad0c768bedf97b8cf8e5cb0d",
     "scripts/lisa-enforcement-freshness.mjs":
       "b3e91b689b7cb83957e46ecfae35765422b7c7343270cfb31007ef510ac05086",
     "scripts/lisa-estimate.mjs":
@@ -2971,9 +2971,9 @@
     "scripts/lisa-github-repo-settings.sh":
       "f32a058244c0035861577db2f4c1700f1b5f616e5bd78ecf808e41fa4292b9b4",
     "scripts/lisa-github-repo-setup.sh":
-      "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
+      "f19b63c157a8a2a0a9a4c338616d1506da83f88aad323d892c9ba3b139f0eab0",
     "scripts/lisa-github-rulesets.sh":
-      "183e3f80b09c3189c131e5b31b21d9349c17d1eded5d42742f49e91f058c75de",
+      "288d37227a30a52d083b46b683c37dd5bc359d7e22700922bba2928e411f6de3",
     "scripts/lisa-mutation.mjs":
       "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/materialized-env-authority.mjs":
@@ -2989,7 +2989,7 @@
     "scripts/lisa-ruleset-reach.mjs":
       "e2746df5a3be510872257242784962e1bc87697216418a25c6e45f5ece41176d",
     "scripts/lisa-update-local.sh":
-      "f346f96ba9ac7075a4256b0a55ae71dc62f840c219c146cdbd7df8b5c65e1de0",
+      "ebf5678a7ac927a31c9786fd4ddcdc8b102d26f9a9bb66f7db2f553ab00ae48f",
     "scripts/lisa-update-projects-plan.mjs":
       "eca5fac53b579a0e81216f91aa17317347ab7a34338d8f08deda714c231be78b",
     "scripts/lisa-work-item.mjs":
@@ -3085,17 +3085,17 @@
     "tsconfig/typescript.json":
       "8cf66a6535640e0a723e24bdf7a2d8e58a634c451f0754875c7880811381a914",
     "typescript/copy-contents/.husky/commit-msg":
-      "d5fd8e5e77e651a7b4b21ee0aee2ad4e7930d56e0d87d35b3ca36f7834c8600d",
+      "7a295807cd43872ddf9ba69e96e3cad56a73357dd884630598b741ac606a6b7a",
     "typescript/copy-contents/.husky/post-checkout":
-      "ddb4044e28100c36aa6cb6cda9298ee032d902e45a30b242c127ec8b57971f86",
+      "8da6a486fbaceba44945b56bdb5250386a4cd5429b9210cb4d2ce3c5a04b5637",
     "typescript/copy-contents/.husky/post-merge":
-      "8155564c7aed71d04bada189d66623e32a00d80598a8194782b6ecabec5134c0",
+      "8644e42681b49305a23949cfae04e8c0f056aac67c570a2def7b8f861f04b798",
     "typescript/copy-contents/.husky/pre-commit":
-      "114339331a2805477ca786acc058075fced0560dc2e72a1480aaf0c4679a9592",
+      "9d68539e3e5ed71a195712f9b171400dde108eaa3c65f9b0a3c64846ca4442de",
     "typescript/copy-contents/.husky/pre-push":
       "69ed1c8d5ccbba16d23f0f0afb790db0383a77f4f4a403b2943e640d220cac45",
     "typescript/copy-contents/.husky/prepare-commit-msg":
-      "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
+      "8255b6c69c3acc2eb3a1ff03f83598baf6dc218ea2375a712d6adae72c2624bc",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "888cfd16bd1ac04f9f8a835eae62f8bd2c956de654bce12ce9a6a52947b121ca",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":

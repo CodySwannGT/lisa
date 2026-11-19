@@ -261,7 +261,7 @@ expand_types_with_parents() {
     # Add in reverse order (parent first)
     for ((i=${#chain[@]}-1; i>=0; i--)); do
       local t="${chain[$i]}"
-      if [[ ! " $seen " =~ " $t " ]]; then
+      if [[ " $seen " != *" $t "* ]]; then
         expanded+=("$t")
         seen="$seen $t"
       fi
@@ -767,7 +767,7 @@ config_bypass_actors() {
     return 0
   fi
 
-  local filter='.github.rulesets.bypassActors[$name] // null'
+  local filter=".github.rulesets.bypassActors[\$name] // null"
   if [[ "$ruleset_name" == "base" ]]; then
     if jq -e '.github.rulesets.bypassActors.base != null' "$config" &> /dev/null; then
       log_warning "github.rulesets.bypassActors.base is ignored — declare base's bypass list as policy.ruleset.bypass_actors" >&2
@@ -802,7 +802,7 @@ bypass_declaration_error() {
   [[ -f "$config" ]] || return 0
 
   local key="github.rulesets.bypassActors[\"$ruleset_name\"]"
-  local filter='.github.rulesets.bypassActors[$name]?'
+  local filter=".github.rulesets.bypassActors[\$name]?"
   if [[ "$ruleset_name" == "base" ]]; then
     key="policy.ruleset.bypass_actors"
     filter='.policy.ruleset.bypass_actors?'
@@ -1079,15 +1079,15 @@ apply_with_integration_fallback() {
   app_ids=$(echo "$payload" | jq --argjson actions "$ACTIONS_INTEGRATION_ID" \
     '[.rules[]? | select(.type=="required_status_checks") | .parameters.required_status_checks[]?.integration_id | select(. != null and . != $actions)] | unique | .[]')
 
-  local drop_filter='
+  local drop_filter="
     .rules |= (
       map(
-        if .type == "required_status_checks" then
-          .parameters.required_status_checks |= map(select((.integration_id // -1) as $i | ($drop | index($i)) | not))
+        if .type == \"required_status_checks\" then
+          .parameters.required_status_checks |= map(select((.integration_id // -1) as \$i | (\$drop | index(\$i)) | not))
         else . end
       )
-      | map(select(.type != "required_status_checks" or (.parameters.required_status_checks | length) > 0))
-    )'
+      | map(select(.type != \"required_status_checks\" or (.parameters.required_status_checks | length) > 0))
+    )"
 
   # Each single app id first (keep the most checks), then all app ids.
   local candidates=()

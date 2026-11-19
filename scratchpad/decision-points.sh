@@ -139,7 +139,7 @@ echo "== DP9 locate: the operand of an interpreter =="
 CREATE_SH="$WORKDIR/create.sh"
 {
   printf '%s\n' '#!/usr/bin/env bash'
-  printf '%s\n' 'curl -X POST https://api.linear.app/graphql \'
+  printf '%s\n' "curl -X POST https://api.linear.app/graphql \\"
   printf '%s\n' '  -d "{\"query\":\"mutation{issueCreate(input:{}){success}}\"}"'
 } >"$CREATE_SH"
 
@@ -163,7 +163,7 @@ GATED_SH="$WORKDIR/gated.sh"
 {
   printf '%s\n' '#!/usr/bin/env bash'
   printf '%s\n' '# [lisa-human-gate] reason=pricing'
-  printf '%s\n' 'curl -X POST https://api.linear.app/graphql \'
+  printf '%s\n' "curl -X POST https://api.linear.app/graphql \\"
   printf '%s\n' '  -d "{\"query\":\"mutation{issueCreate(input:{}){success}}\"}"'
 } >"$GATED_SH"
 
@@ -175,7 +175,7 @@ printf '%s\n' '{"query":"mutation{issueCreate(input:{}){success}}"}' >"$PAYLOAD_
 PROSE_MD="$WORKDIR/notes.md"
 {
   printf '%s\n' '# Notes'
-  printf '%s\n' 'The guard refuses `gh issue create` and the GraphQL `issueCreate`.'
+  printf '%s\n' "The guard refuses \`gh issue create\` and the GraphQL \`issueCreate\`."
 } >"$PROSE_MD"
 
 for runner in bash sh zsh ksh dash /bin/bash "bash -x" "bash --norc" \

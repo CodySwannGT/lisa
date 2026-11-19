@@ -1,12 +1,21 @@
 /**
- * The shell scripts #4929 made ShellCheck-clean stay clean.
+ * Every shell script this repository ships stays ShellCheck-clean.
  *
  * shellcheck-directives.test.ts stops a script from hiding a finding with a
- * directive; this one runs ShellCheck itself over the scripts that were fixed,
- * following every sourced file, so a new finding fails here instead of
- * accumulating unseen. ShellCheck is a CI-provisioned tool: on a developer
- * machine without it the suite is deferred with the remedy named, and in CI a
- * missing binary fails.
+ * directive; this one runs ShellCheck itself, following every sourced file, so
+ * a new finding fails here instead of accumulating unseen. The scripts are
+ * discovered, not listed: every tracked `*.sh`, every file in a `.husky/`
+ * directory, and every extension-less file whose shebang names `sh` or `bash`.
+ * A script added tomorrow is checked tomorrow.
+ *
+ * Two kinds of tracked file are left out, both frozen on purpose: `evidence/`,
+ * which records what a past run saw, and the `*-pre-facade` fixtures, which are
+ * byte-for-byte snapshots of the scripts as they were before the façade so an
+ * equivalence test can compare against them. Editing either would destroy the
+ * thing it exists to preserve.
+ *
+ * ShellCheck is a CI-provisioned tool: on a developer machine without it the
+ * suite is deferred with the remedy named, and in CI a missing binary fails.
  *
  * Each script's `source=` hint names the sibling it sources at runtime. Two of
  * those siblings only exist once installed — the Codex installer places
@@ -15,6 +24,7 @@
  * templates — so the canonical file's directory joins the search path.
  * @module tests/unit/hooks/shellcheck-clean
  */
+import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,35 +45,79 @@ const SOURCE_PATH = [
   path.join(REPO_ROOT, ".husky"),
 ].join(":");
 
-/** The scripts that must report nothing. */
-const SCRIPTS = [
-  ".husky/pre-push",
-  ".claude-pr/.husky/pre-push",
-  "typescript/copy-contents/.husky/pre-push",
-  "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh",
-  "plugins/src/base/hooks/block-managed-file-edits.sh",
-  "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh",
-  "scripts/lisa-remote-env/session-start.sh",
-  "plugins/src/harper-fabric/hooks/block-generated-artifact-edits.sh",
-  "plugins/src/harper-fabric/hooks/enforce-config-extensions.sh",
-  "plugins/src/nestjs/hooks/block-migration-edits.sh",
-  "plugins/src/nestjs/hooks/lisa-edit-gate.sh",
-  "plugins/src/rails/hooks/lisa-edit-gate.sh",
-  "plugins/src/rails/hooks/rubocop-on-edit.sh",
-  "plugins/src/rails/hooks/sg-scan-on-edit.sh",
-  "plugins/src/typescript/hooks/block-suppress-directives.sh",
-  "plugins/src/typescript/hooks/format-on-edit.sh",
-  "plugins/src/typescript/hooks/lint-on-edit.sh",
-  "plugins/src/typescript/hooks/lisa-edit-gate.sh",
-  "plugins/src/typescript/hooks/sg-scan-on-edit.sh",
-  "src/codex/scripts/block-migration-edits.sh",
-  "src/codex/scripts/block-suppress-directives.sh",
-  "src/codex/scripts/format-on-edit.sh",
-  "src/codex/scripts/lint-on-edit.sh",
-  "src/codex/scripts/lisa-edit-gate.sh",
-  "src/codex/scripts/rubocop-on-edit.sh",
-  "src/codex/scripts/sg-scan-on-edit.sh",
-];
+/** Frozen records and snapshots, which must keep the bytes they captured. */
+const FROZEN = [/^evidence\//, /^tests\/fixtures\/[^/]+-pre-facade\//];
+
+/**
+ * Scripts whose interpreter is chosen by their host, not by the file.
+ * `workflow-contract-assertion.sh` is the `run:` body of every reusable
+ * workflow, kept byte-identical to them by check-workflow-contract-assertions,
+ * so it cannot carry a directive line of its own; its test runs it with sh.
+ */
+const HOST_SHELL: Readonly<Record<string, string>> = {
+  "scripts/workflow-contract-assertion.sh": "sh",
+};
+
+/**
+ * How many scripts one ShellCheck run covers. Measured on a quiet box: every
+ * script in one run took 22s, so a batch of 15 takes about a second, well
+ * inside the default bounded-child budget.
+ */
+const BATCH_SIZE = 15;
+
+/**
+ * Whether a tracked file is a shell script.
+ * @param file - Repository-relative path
+ * @returns True for `*.sh`, husky hooks, and sh/bash shebang files
+ */
+function isShellScript(file: string): boolean {
+  if (file.endsWith(".sh") || /(^|\/)\.husky\/[^/_][^/]*$/.test(file)) {
+    return true;
+  }
+  if (path.basename(file).includes(".")) {
+    return false;
+  }
+  const firstLine = readFileSync(path.join(REPO_ROOT, file), "utf8").split(
+    "\n",
+    1
+  )[0];
+  return /^#!.*\b(?:ba)?sh(?:\s|$)/.test(firstLine ?? "");
+}
+
+/**
+ * Every tracked shell script outside the frozen records.
+ * @returns Repository-relative paths, sorted
+ */
+function shippedScripts(): readonly string[] {
+  const listed = boundedSpawnSync({
+    label: "git ls-files",
+    command: "git",
+    args: ["ls-files", "-z"],
+    cwd: REPO_ROOT,
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return listed.stdout
+    .split("\0")
+    .filter(file => file.length > 0)
+    .filter(file => !FROZEN.some(pattern => pattern.test(file)))
+    .filter(file => existsSync(path.join(REPO_ROOT, file)))
+    .filter(isShellScript)
+    .sort((left, right) => left.localeCompare(right));
+}
+
+/**
+ * Split a list into consecutive batches.
+ * @param items - The list
+ * @param size - Largest batch
+ * @returns The batches, in order
+ */
+const batches = (
+  items: readonly string[],
+  size: number
+): readonly (readonly string[])[] =>
+  Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
+    items.slice(index * size, index * size + size)
+  );
 
 const deferred = suiteDeferral(
   () => probeSucceeds("shellcheck", ["--version"]),
@@ -71,18 +125,46 @@ const deferred = suiteDeferral(
   "Install it: brew install shellcheck, or apt-get install shellcheck."
 );
 
-describe.skipIf(deferred !== undefined)(
-  "the #4929 shell scripts pass ShellCheck",
-  () => {
-    it.each(SCRIPTS)("%s reports nothing", script => {
-      const result = boundedSpawnSync({
-        label: `shellcheck ${script}`,
-        command: "shellcheck",
-        args: ["-x", "-P", SOURCE_PATH, "-f", "gcc", script],
-        cwd: REPO_ROOT,
-      });
-      expect(result.stdout).toBe("");
-      expect(result.status).toBe(0);
-    });
-  }
-);
+const SCRIPTS = shippedScripts();
+const DEFAULT_SHELL = SCRIPTS.filter(script => !(script in HOST_SHELL));
+
+describe("every shipped shell script passes ShellCheck", () => {
+  it("finds the scripts it is meant to check", () => {
+    // A discovery that silently found nothing would pass every case below.
+    expect(SCRIPTS).toContain(".husky/pre-push");
+    expect(SCRIPTS).toContain("plugins/src/base/hooks/track-plan-sessions.sh");
+    expect(SCRIPTS).toContain("scripts/lisa-enforcement-fallback.sh");
+    expect(SCRIPTS.length).toBeGreaterThan(300);
+    expect(SCRIPTS.some(script => script.startsWith("evidence/"))).toBe(false);
+  });
+
+  describe.skipIf(deferred !== undefined)("ShellCheck reports nothing", () => {
+    it.each(batches(DEFAULT_SHELL, BATCH_SIZE).map(batch => [batch[0], batch]))(
+      "batch starting at %s",
+      (_first, batch) => {
+        const result = boundedSpawnSync({
+          label: `shellcheck ${batch.length} scripts`,
+          command: "shellcheck",
+          args: ["-x", "-P", SOURCE_PATH, "-f", "gcc", ...batch],
+          cwd: REPO_ROOT,
+        });
+        expect(result.stdout).toBe("");
+        expect(result.status).toBe(0);
+      }
+    );
+
+    it.each(Object.entries(HOST_SHELL))(
+      "%s under its host's %s",
+      (script, shell) => {
+        const result = boundedSpawnSync({
+          label: `shellcheck ${script}`,
+          command: "shellcheck",
+          args: ["-s", shell, "-f", "gcc", script],
+          cwd: REPO_ROOT,
+        });
+        expect(result.stdout).toBe("");
+        expect(result.status).toBe(0);
+      }
+    );
+  });
+});
