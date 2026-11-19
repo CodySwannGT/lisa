@@ -119,7 +119,9 @@ describe("UNPROVEN is its own state, never clean and never a drift report", () =
   it("preserves the failure text verbatim so the operator can act on it", () => {
     const { result } = run({ index: boom("HTTP 403: Upgrade to GitHub Team") });
     expect(result.unproven?.detail).toContain("Upgrade to GitHub Team");
-    expect(result.unproven?.command).toBe(`gh api repos/${REPO}/rulesets`);
+    expect(result.unproven?.command).toBe(
+      `gh api repos/${REPO}/rulesets?per_page=100`
+    );
   });
 
   it("is unproven when the index reads but a ruleset detail does not", () => {
@@ -130,6 +132,39 @@ describe("UNPROVEN is its own state, never clean and never a drift report", () =
       detail: boom("HTTP 500"),
     });
     expect(result.verdict).toBe(VERDICT.UNPROVEN);
+  });
+
+  it("asks for the largest page of rulesets, not the thirty GitHub lists by default", () => {
+    // Read without a page size, a repository's thirty-first ruleset was never
+    // listed, so whatever it required read as not required.
+    const { calls } = run({ rulesets: [baseRuleset([LINT, TYPES])] });
+    expect(at(calls, 0).args).toEqual([
+      "api",
+      `repos/${REPO}/rulesets?per_page=100`,
+    ]);
+  });
+
+  it("is unproven when the ruleset list comes back as a full page", () => {
+    // A full page cannot be told from a list that goes on, and half a list
+    // compared against a whole declaration reports drift that may not exist.
+    const page = Array.from({ length: 100 }, (_, index) =>
+      baseRuleset([LINT, TYPES], { id: index + 1, name: `ruleset-${index}` })
+    );
+    const { result, calls } = run({ rulesets: page });
+    expect(result.verdict).toBe(VERDICT.UNPROVEN);
+    expect(result.unproven?.reason).toBe(UNPROVEN.MALFORMED);
+    expect(result.unproven?.detail).toContain("full page of 100");
+    expect(result.contexts).toBeNull();
+    // No ruleset is read, and nothing is written, off a list that may be cut.
+    expect(calls).toHaveLength(1);
+  });
+
+  it("reads a list one short of a full page as the whole list", () => {
+    const page = Array.from({ length: 99 }, (_, index) =>
+      baseRuleset([LINT, TYPES], { id: index + 1, name: `ruleset-${index}` })
+    );
+    const { result } = run({ rulesets: page });
+    expect(result.verdict).not.toBe(VERDICT.UNPROVEN);
   });
 
   it("is unproven when the repository settings read fails", () => {

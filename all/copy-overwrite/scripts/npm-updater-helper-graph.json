@@ -20,7 +20,7 @@
   },
   "members": {
     "check-threshold-ratchet.mjs": {
-      "sha256": "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
+      "sha256": "6d352b56fd7974d0da50fec53b9e4f388ce3a460e3af642295f487cc632a8992",
       "staticImports": [
         "node:child_process",
         "node:fs",
@@ -92,6 +92,16 @@
         "node:crypto",
         "node:fs",
         "node:os",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/changed-paths.mjs": {
+      "sha256": "bcf755d8c1905cddd84622c9a520f7bcc16b19379b9f933a8b5657bb6df9f391",
+      "staticImports": [
+        "lib/bounded-spawn.mjs",
+        "node:fs",
         "node:path"
       ],
       "dynamicImports": [],
@@ -726,7 +736,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "f0b2de43412e6e34c321bf13012a1418bd00b0db11c5d45e074f278248c378c1",
+      "sha256": "56e477a95051106728b042c4557cc5fe63cf4311edcf4e60c4083f98ba4f1426",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1505,7 +1515,7 @@
       "children": []
     },
     "lisa-gates.mjs": {
-      "sha256": "73216a048fb468d2350857113aaa4d9bb661d98aeab3dbab481fb971b9d32c6e",
+      "sha256": "40e846e91e8f93a99424c81b98399e1fb73acbe59b5ab2a6467d8f1894ed250f",
       "staticImports": [
         "lib/gate-pass-cache.mjs",
         "lib/invoked-as-script.mjs",
@@ -1590,11 +1600,12 @@
       "children": []
     },
     "lisa-run-gates.mjs": {
-      "sha256": "d4043757ed79d62410c8962b631de774e41adc85c306083887f5c55c7423fb8f",
+      "sha256": "c8d581ffa7c7a34b1d4d5c7ac8618f47af9a705fe14cae6b8ce3bba158a1405a",
       "staticImports": [
         "lib/affected-tests.mjs",
         "lib/bounded-spawn.mjs",
         "lib/build-marker.mjs",
+        "lib/changed-paths.mjs",
         "lib/gate-failure-diagnosis.mjs",
         "lib/gate-pass-cache.mjs",
         "lib/invoked-as-script.mjs",
@@ -1608,6 +1619,7 @@
         "lisa-gates.mjs",
         "node:fs",
         "node:path",
+        "node:perf_hooks",
         "node:url"
       ],
       "dynamicImports": [],
@@ -1679,7 +1691,7 @@
       "children": []
     },
     "threshold-ratchet-compare.mjs": {
-      "sha256": "761a0f32ab4bc138b3ed216f0edc9ad28c36783ccd3b62fbd57ef1b7fdc32681",
+      "sha256": "35a4fb24f6f0eeec58a97254185e46810051fa73602ad29c37cdfd1d5d08c220",
       "staticImports": [
         "threshold-ratchet-families.mjs"
       ],
@@ -1687,7 +1699,7 @@
       "children": []
     },
     "threshold-ratchet-families.mjs": {
-      "sha256": "07d3dbd1230c29777d3ff5492431795aa62e64d1e77eb81d9487a350b4aa4b56",
+      "sha256": "844e85f820a8553fd0e66d5f5e3db4caf4d2a17267cb0e9cc89915a09b30566c",
       "staticImports": [],
       "dynamicImports": [],
       "children": []

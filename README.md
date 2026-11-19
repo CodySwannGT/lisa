@@ -450,6 +450,72 @@ A greenfield project is agent-ready by construction. An existing codebase carrie
 > **Prompt for your coding agent**
 > "Is this project agent-ready? Run the agent-ready onboarding: inventory every connected source, ingest it read-only with redaction, show me each source's coverage status and the open gaps only I can answer, and tell me exactly what happens after I answer them."
 
+## Checking the controls of any repository
+
+A **control** is a rule about your software plus the check that enforces it: "the code must be formatted", "the tests must pass", "nothing merges without review". Four commands tell you which controls a repository really has. They work on any repository, whatever it is written in, and the first one works where Lisa has never been set up. Together they:
+
+- **find** what already checks the repository, and what is missing;
+- **declare** the checks that govern it in one record a person can review;
+- **wire** those checks in, so that a bad change is actually stopped;
+- give a **verdict** that code computed, not a coding agent's opinion.
+
+Lisa's supported project types remain the repeatable road: there Lisa ships the checks and declares them with no questions asked. On anything else, your own coding agent supplies the knowledge of your tools, and Lisa's code checks the agent's work at every step.
+
+### The four commands, in order
+
+Run them in this order. Each one tells you in plain language what it found and what to run next. None of them commits anything: what they write stays in your working copy for you to review.
+
+1. **Audit** (`/lisa:audit`) reads the repository, part by part, and says for each requirement whether something is in place, missing, not applicable, or could not be checked. It runs none of your tools, and it never says a check works: that is attest's job. It needs no prior `lisa apply`, no configuration file and no supported project type. Where only a person knows the answer, it asks: you type each answer on its line in the report and run the audit again. It writes `.lisa/audit/report.json` (the checked record) and `.lisa/audit/report.md` (the version you read and answer in), and nothing else, except that a repository which already keeps a `wiki/` folder also gets the open questions listed in `wiki/gaps.md`.
+2. **Configure** (`/lisa:configure`) turns the findings and your answers into a declaration of which checks govern the repository, which folder each covers and when each runs. It asks you one decision at a time, and proposes every threshold at the value your repository measures today. It writes the `gates` block in `.lisa.config.json`, the control register at `.lisa/controls/register.json` (generated from that block, never edited by hand), and two small test changes per check under `.lisa/controls/proofs/`: one that breaks the rule and one that does not.
+3. **Enforce** (`/lisa:enforce`) makes the declared checks run: at commit, at push, and after a coding agent writes a file. It keeps every hook you already have. It files one ticket for each requirement the repository has nothing for, in your tracker when one is configured, and compares your merge protection with the register. It asks which coding agents your team uses when the repository does not say, and it asks before changing any merge setting. It writes the hook scripts and the program they run, a record of them at `.lisa/controls/carriers.json`, the tickets, and `.lisa/controls/merge-protection-change.md`, which tells an administrator exactly what to set.
+4. **Attest** (`/lisa:attest`) proves each check. In a temporary copy of your last commit it tries the change that breaks the rule and the change that does not, through a real commit or push. A check passes only when it refused the first, printing the failure text declared for it, and let the second through. It asks before opening pull requests on your hosting platform or running a proof that reaches outside the repository. It writes `.lisa/controls/evidence.json` (what happened) and `.lisa/controls/verdict.json` (the result), and brings the register up to date.
+
+Anyone can check a committed verdict later, without running a proof, with `lisa controls attest --check`. It also compares the content of everything that defines the checks (the `gates` declaration, the proof patches, the hook files and the program they run) with what the proofs ran against, and fails, naming the file, when one has changed. It reads the files and no version history, so you can commit in any order and check in any clone.
+
+### How to start a command
+
+Type it in your coding agent, inside the repository. Lisa's plugin for that agent supplies the commands.
+
+| Coding agent | Audit | Configure | Enforce | Attest |
+| --- | --- | --- | --- | --- |
+| Claude Code | `/lisa:audit` | `/lisa:configure` | `/lisa:enforce` | `/lisa:attest` |
+| Cursor | `/lisa:audit` | `/lisa:configure` | `/lisa:enforce` | `/lisa:attest` |
+| OpenCode | `/lisa:audit` | `/lisa:configure` | `/lisa:enforce` | `/lisa:attest` |
+| Antigravity | `/lisa:audit` | `/lisa:configure` | `/lisa:enforce` | `/lisa:attest` |
+| Copilot | `/lisa:audit` | `/lisa:configure` | `/lisa:enforce` | `/lisa:attest` |
+| Codex | `$lisa-audit` | `$lisa-configure` | `$lisa-enforce` | `$lisa-attest` |
+| Devin | `/lisa:lisa-audit` | `/lisa:lisa-configure` | `/lisa:lisa-enforce` | `/lisa:lisa-attest` |
+
+Codex and Devin have no command files, so there you start the skill by its name and say any options in your message.
+
+### What you need
+
+- **Node.js.** Lisa's package declares Node 24.21.0, the version it is built and tested on. The hooks need a `node` program on the PATH even in a repository that has no JavaScript in it, and they stop the commit or push with a sentence naming Node when it is missing.
+- **git.**
+- **macOS, Linux, or Windows with WSL.** The hooks are shell scripts. Windows without WSL is not supported.
+- **For the steps that read or change GitHub settings:** the GitHub CLI (`gh`), signed in.
+
+### What the verdict means
+
+The verdict measures the repository against Level 1 of the specification in [`spec/tasc-0.1-draft.md`](spec/tasc-0.1-draft.md): 77 requirements, each put to you as a plain question.
+
+- **Unknown is never a pass.** The result is "conforming" only when every requirement is met, or does not apply for a recorded reason.
+- **It says what each answer rests on.** A requirement is met by a check that was really exercised, by a document or platform setting that was observed, or by a person's recorded answer. The verdict names which, for every requirement.
+- **It goes out of date.** Evidence is good for 30 days. After that the requirement reads unknown until attest runs again.
+- **It is a local, unsigned check.** `lisa controls attest --check` shows that the verdict is what the register and the evidence give today, and that the files defining the checks hold what was proved. It does not see a change to a checked tool's own settings, and it cannot show that nobody rewrote all three files together. Version history, or running the proofs again, can.
+
+### Limits to know before you start
+
+- **Proofs run on a clone of your last commit.** Files git ignores, such as installed dependencies and built output, are not in it. A check that needs them cannot be proved there yet and reads unknown.
+- **Supported project types have no proofs yet.** This release writes no test changes for the checks Lisa ships, so those checks read unproved until a proof is declared for them.
+- **Hooks are wired per checkout.** Git does not copy the hook setting into a new clone. In each new checkout run `lisa controls install-carriers` once. `lisa controls reconcile` shows a checkout where it is missing.
+- **Pull-request checks can only be exercised on GitHub**, and only when you opt in. On another platform your agent writes the pipeline file and its checks stay marked unproved.
+
+The [control audit page](wiki/documentation/workflows/control-audit.md) in the wiki has the rest: every file, the vocabulary, the commands underneath, and the full list of limits.
+
+> **Prompt for your coding agent**
+> "Run `lisa controls --help` and each subcommand's `--help`, then tell me what each of audit, configure, enforce and attest would write in this repository, what it would ask me, and which of the documented limits apply here."
+
 ## The work lifecycle
 
 Lisa organizes a piece of work as a pipeline of specialized agent roles — the factories, seen from inside. Conceptually a work item moves through five stages:

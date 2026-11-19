@@ -62,6 +62,8 @@ export type GateRun = {
   killed: GateOutcome[];
   skipped: GateOutcome[];
   notRun: GateOutcome[];
+  /** The paths the run was told the change touches; null when not known. */
+  change?: { paths: string[] | null };
 };
 
 export const RUNNER = "bun run";

@@ -1,0 +1,4 @@
+display_name: "Configure"
+short_description: "Turn the audit's findings and…"
+default_prompt:
+  - "Use $lisa-configure: Turn the audit's findings and…."

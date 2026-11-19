@@ -88,6 +88,7 @@ const CERTIFICATE_TASK = "check:nightly-guard-certificate";
 const TWO_CHANNEL_TASK = "check:two-channel-couplings";
 const DELETION_BASIS_TASK = "check:deletion-basis";
 const EXPORT_SURFACE_TASK = "check:export-surface";
+const QUESTIONNAIRE_TASK = "check:readiness-questionnaire";
 const MERGE_COVERAGE_TASK = "check:merge-coverage";
 
 /** The runner the aggregate hands those names to. */
@@ -108,6 +109,7 @@ const ALL_RAN = [
   TWO_CHANNEL_TASK,
   DELETION_BASIS_TASK,
   EXPORT_SURFACE_TASK,
+  QUESTIONNAIRE_TASK,
   MERGE_COVERAGE_TASK,
 ];
 
@@ -299,6 +301,16 @@ describe("check:artifacts consolidates every derived-artifact check", () => {
     );
   });
 
+  it("includes the operator questionnaire's own check", () => {
+    expect(script(ARTIFACTS_TASK)).toContain(QUESTIONNAIRE_TASK);
+    expect(script(QUESTIONNAIRE_TASK)).toBe(
+      "node scripts/generate-readiness-questionnaire.mjs --check"
+    );
+    expect(script("build:readiness-questionnaire")).toBe(
+      "node scripts/generate-readiness-questionnaire.mjs"
+    );
+  });
+
   it("passes only when all checks pass", () => {
     const result = runComposition(0, 0, 0, 0);
     expect(result.code).toBe(0);
@@ -375,8 +387,10 @@ describe("check:artifacts states its verdict last", () => {
     // the two is what the script now runs. Hardcoded per the Test Isolation
     // house rule: deriving it from the script would make the assertion agree
     // with whatever the script happens to say. (An eighth, the retired
-    // safety-net manifest check, left with CodySwannGT/lisa#4803.)
-    expect(line).toContain("all 7 generated-artifact checks passed");
+    // safety-net manifest check, left with CodySwannGT/lisa#4803, and
+    // CodySwannGT/lisa#4977 made it eight again with
+    // `check:readiness-questionnaire`.)
+    expect(line).toContain("all 8 generated-artifact checks passed");
   });
 
   it("names the failing check last, where a reader is already looking", () => {

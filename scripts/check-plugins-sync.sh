@@ -266,3 +266,28 @@ if [ "$marketplace_fail" -ne 0 ]; then
 fi
 
 echo "✓ Marketplace registers every built plugin."
+
+# The four control commands on all seven coding agents (#5002). Everything
+# above proves the built plugins REPRODUCE from plugins/src. None of it proves a
+# command is THERE: a skill dropped from the source, withheld from one agent by
+# its generator's policy file, or missing from the folder OpenCode's installer
+# copies from regenerates just as faithfully as one that is present, and every
+# check above stays green. So the question is asked of the built files
+# directly: is each of audit, configure, enforce and attest in what each agent
+# is given, under the name its operator types, with that form stated in the
+# skill itself, and is every recorded thing an agent cannot do also stated
+# there. A failure names the agent and the skill; a pass lists all four skills
+# under each of the seven agents.
+#
+# Which commands and which agents are required is held by the program, not by
+# the record it reads, so neither can be dropped by editing a data file.
+#
+# Guarded on the record for the same reason build-plugins.sh guards its
+# materialize calls: this script also runs against isolated fixture
+# repositories that declare no control commands. That the record and the
+# program are both present in THIS repository is pinned by
+# tests/unit/plugins/control-command-parity-cli.test.ts, so removing either
+# fails a test rather than quietly switching this off.
+if [ -f "$ROOT_DIR/parity/control-commands.json" ]; then
+  node "$ROOT_DIR/scripts/check-control-command-parity.mjs" --root "$ROOT_DIR"
+fi

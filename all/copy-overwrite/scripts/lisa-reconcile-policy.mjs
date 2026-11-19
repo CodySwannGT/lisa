@@ -227,6 +227,7 @@ import {
  * @typedef {object} LivePolicy
  * @property {true} ok Discriminator: the read succeeded.
  * @property {Ruleset[]} rulesets Branch-target rulesets, in full.
+ * @property {number} [listed] How many rulesets the index listed, whatever each one targets. Every read `readLivePolicy` makes carries it; a policy built by hand for planning may leave it out, because planning never reads it.
  * @property {LiveContext[]} contexts Every required context they carry.
  * @property {Record<string, *>} settings Repository settings.
  * @property {Record<string, unknown>} signals Ruleset-surface policy: boolean signals plus the policy ruleset's shape fields.
@@ -261,6 +262,19 @@ export const UNPROVEN = Object.freeze({
   API_ERROR: "api-error",
   MALFORMED: "unreadable-response",
 });
+
+/**
+ * The largest page GitHub returns for a list. The ruleset index is read at
+ * this size, and an answer this long is treated as incomplete.
+ *
+ * This is the only bound on how many rulesets are read. Lisa's own ruleset
+ * reader (`src/health/ruleset-inspection.ts` in the Lisa package) reads the
+ * same list after `lisa controls protect` changes a repository, and it draws
+ * the line at this same length. When it stopped sooner, a repository with a
+ * list the first read took and the second refused had its change sent and
+ * then reported as not confirmed. Change one and the other must follow.
+ */
+const RULESET_PAGE_SIZE = 100;
 
 /** How to respond to measured drift. Mirrors `DRIFT_RESPONSES` in lisa-gates. */
 export const ON_DRIFT = Object.freeze(["repair", "report", "block"]);
@@ -605,19 +619,39 @@ export function liveContexts(rulesets) {
  * index that was readable while a detail fetch failed still leaves the required
  * list unknown, and half a list compared against a whole declaration reports
  * drift that may not exist.
+ *
+ * The same holds for the index itself. GitHub returns a list one page at a
+ * time, thirty entries unless the request asks for more. Read without a page
+ * size, the first thirty were taken for the whole list, so a repository's
+ * thirty-first ruleset required nothing as far as this script knew. The
+ * largest page is asked for, and a page that comes back full is UNPROVEN: a
+ * full page cannot be told from a list that goes on.
  * @param {object} options Read inputs.
  * @param {string} options.repo `OWNER/NAME`.
  * @param {Function} options.gh Injected `gh` runner.
  * @returns {LivePolicy|FailedRead} Live state, or why it could not be read.
  */
 export function readLivePolicy({ repo, gh }) {
-  const index = ghJson(gh, ["api", `repos/${repo}/rulesets`]);
+  const indexArgs = [
+    "api",
+    `repos/${repo}/rulesets?per_page=${RULESET_PAGE_SIZE}`,
+  ];
+  const index = ghJson(gh, indexArgs);
   if (!index.ok) return index;
   if (!Array.isArray(index.value)) {
     return unproven(
       UNPROVEN.MALFORMED,
       `expected an array of rulesets, got ${typeof index.value}`,
-      ["api", `repos/${repo}/rulesets`]
+      indexArgs
+    );
+  }
+  if (index.value.length >= RULESET_PAGE_SIZE) {
+    return unproven(
+      UNPROVEN.MALFORMED,
+      `the ruleset list came back as a full page of ${index.value.length}, ` +
+        `so there may be more rulesets than were read, and a partial list ` +
+        `is not compared`,
+      indexArgs
     );
   }
 
@@ -635,6 +669,10 @@ export function readLivePolicy({ repo, gh }) {
   return {
     ok: true,
     rulesets,
+    // Every ruleset the index held, the ones skipped above included. A caller
+    // about to create a ruleset needs it to know whether the list would then
+    // fill a page, which no later read could take for the whole list.
+    listed: index.value.length,
     contexts: liveContexts(rulesets),
     settings: settings.value ?? {},
     signals: rulesetSignals(rulesets),
