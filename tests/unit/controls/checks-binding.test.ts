@@ -205,6 +205,77 @@ describe("the digest of what defines the checks", () => {
   });
 });
 
+describe("a file the operating system drops into a covered folder", () => {
+  const LEFT_THERE = "left by the system\n";
+  const DROPPED = [
+    ".lisa/hooks/.DS_Store",
+    ".lisa/hooks/lib/.DS_Store",
+    ".lisa/controls/proofs/.DS_Store",
+    ".lisa/controls/proofs/Thumbs.db",
+    ".lisa/hooks/desktop.ini",
+  ];
+
+  it.each(DROPPED)("is not covered: %s", async file => {
+    const without = await bindChecks({ repository: definingFolder() });
+    const repository = definingFolder({ [file]: LEFT_THERE });
+
+    expect(await bindChecks({ repository })).toEqual(without);
+  });
+
+  it.each(DROPPED)(
+    "does not show when the repository gains %s after the proofs ran, or loses it",
+    async file => {
+      const copy = definingFolder();
+      const repository = definingFolder({ [file]: LEFT_THERE });
+
+      // In the repository and not in the copy, as a file git does not track.
+      const recorded = await bindChecks({ repository, copy });
+      const also = recorded.covered.map(each => each.path);
+
+      expect(also).not.toContain(file);
+      expect(
+        bindingDifferences(recorded, await bindChecks({ repository, also }))
+      ).toEqual(NO_CHANGE);
+      // In the copy and the repository when the proofs ran, gone in a clone.
+      const both = await bindChecks({ repository, copy: repository });
+      const clone = await bindChecks({
+        repository: definingFolder(),
+        also: both.covered.map(each => each.path),
+      });
+
+      expect(bindingDifferences(both, clone)).toEqual(NO_CHANGE);
+    }
+  );
+
+  it("is not covered when a list of what was covered before names it, or the carrier record does", async () => {
+    const [file = ""] = DROPPED;
+    const repository = definingFolder({
+      [file]: LEFT_THERE,
+      [RECORD]: recordOf([COMMIT_HOOK, file]),
+    });
+
+    const { covered } = await bindChecks({ repository, also: [file] });
+
+    expect(covered.map(each => each.path)).not.toContain(file);
+  });
+
+  it("is covered under any other name, in the same folders", async () => {
+    const repository = definingFolder({
+      ".lisa/hooks/.DS_Store.sh": "x\n",
+      ".lisa/controls/proofs/Thumbs.db.patch": "x\n",
+    });
+
+    const { covered } = await bindChecks({ repository });
+
+    expect(covered.map(each => each.path)).toEqual(
+      expect.arrayContaining([
+        ".lisa/hooks/.DS_Store.sh",
+        ".lisa/controls/proofs/Thumbs.db.patch",
+      ])
+    );
+  });
+});
+
 describe("a binding recorded in the copy the proofs ran in", () => {
   it("covers what the repository holds: a file only the copy has is the run's own equipment", async () => {
     const repository = emptyFolder();

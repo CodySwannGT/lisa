@@ -51,6 +51,7 @@ import {
 } from "../support/carrier-install.js";
 
 const HOOKS_PATH = "core.hooksPath";
+const COMMIT_HOOK = "pre-commit";
 const FOREIGN = "scripts/lisa-gates.mjs";
 const FOREIGN_CONTENT = "// The repository's own file of this name.\n";
 
@@ -135,7 +136,7 @@ describe("install-carriers and files it did not write", () => {
 
   it("leaves a hook that is not a shell script as it is, and says why", async () => {
     const built = declared();
-    const hook = path.join(gitHooksFolder(built.root), "pre-commit");
+    const hook = path.join(gitHooksFolder(built.root), COMMIT_HOOK);
     const program = "#!/usr/bin/env python3\nprint('host check')\n";
     writeExecutable(hook, program);
 
@@ -151,7 +152,7 @@ describe("install-carriers and files it did not write", () => {
 
   it("leaves a hook that hands over to another program as it is, and says why", async () => {
     const built = declared();
-    const hook = path.join(gitHooksFolder(built.root), "pre-commit");
+    const hook = path.join(gitHooksFolder(built.root), COMMIT_HOOK);
     const script = '#!/bin/sh\nexec some-other-program "$@"\n';
     writeExecutable(hook, script);
 
@@ -162,6 +163,38 @@ describe("install-carriers and files it did not write", () => {
     );
     expect(readFileSync(hook, "utf8")).toBe(script);
   });
+
+  it.each([
+    ["on one line", "check() { echo checked; return 0; }"],
+    ["over several lines", "check() {\n  echo checked\n  return\n}"],
+  ])(
+    "leaves a hook whose helper function returns, written %s, as it is, and does not say that return ends the hook",
+    async (_name, helper) => {
+      const built = declared();
+      const hook = path.join(gitHooksFolder(built.root), COMMIT_HOOK);
+      const script = `#!/bin/sh\n${helper}\ncheck\n`;
+      writeExecutable(hook, script);
+
+      const run = await installCarriers(built.root);
+      const reason = run.result?.enforcement_points[0]?.reason ?? "";
+
+      // Where a function starts and ends is not followed, so the hook is
+      // still refused. What is said has to be true of a function all the
+      // same: a `return` in one ends the function, not the hook.
+      expect(run.result?.enforcement_points[0]?.outcome).toBe("blocked");
+      expect(reason).toMatch(
+        /can leave at line \d before its end \(a "return" there/u
+      );
+      expect(reason).not.toMatch(/a "return" there ends a hook/u);
+      expect(reason).toContain(
+        "inside a function it ends only that function, but where a function starts and ends is not followed, so it is refused there as well"
+      );
+      expect(reason).toContain(
+        "outside every function it ends a hook that dash, ksh or zsh runs"
+      );
+      expect(readFileSync(hook, "utf8")).toBe(script);
+    }
+  );
 });
 
 describe("install-carriers and what it leaves in the repository", () => {

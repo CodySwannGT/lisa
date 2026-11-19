@@ -91,7 +91,12 @@ letters and dots from every word in it (a megabyte of `a.a.a.` took about a
 hundred seconds), and the private key, read to the end of the text from
 each first line that had no last line. The scheme is now at most 64
 characters, and a key's body stops at its own last line or at the first
-line of the next block. Both lists carry the change.
+line of the next block. Both lists carry the change. A scheme may start at
+any letter, not only at the start of a word: held to the start of a word,
+an address glued to 60 or more letters, digits or underscores (a digest
+printed straight before `https://user:password@host`) was never tried from
+near enough to reach its `://`, and its password stayed in. Each try still
+reads at most 64 characters, so the time stays in proportion.
 `tests/unit/controls/secret-scan-time.test.ts` holds every shape to it on a
 megabyte.
 

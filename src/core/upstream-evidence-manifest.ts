@@ -2865,7 +2865,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/phrase-tests/record.mjs":
       "95f65b50281127905cdef2d980f8c46a5e03e4b9b5a32f7a1f1eb8bffaa364f1",
     "scripts/lib/phrase-tests/redact.mjs":
-      "0a9dfec12c3b67a2f4e5503d2c7e7983efad1c9534ffd953a228db5addda00dd",
+      "e436a34f28661f85a2668d593228ec997419317d578142e382bd9e57c587c95d",
     "scripts/lib/phrase-tests/repo.mjs":
       "5a94612c509e17e175d2c18207ff0e205079c65a8a7c74e133162894670c99ea",
     "scripts/lib/phrase-tests/runner.mjs":
@@ -12164,6 +12164,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/controls-part-argv-runner.test.ts": true,
     "tests/integration/controls-part-scope-reach.test.ts": true,
     "tests/integration/controls-part-scope-skip.test.ts": true,
+    "tests/integration/controls-proof-change-rule-letter-case.test.ts": true,
     "tests/integration/controls-proof-change-rule.test.ts": true,
     "tests/integration/controls-proof-check-attest.test.ts": true,
     "tests/integration/controls-protect.test.ts": true,
@@ -12526,6 +12527,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/evidence-prune-harness.ts": true,
     "tests/support/git-executable.ts": true,
     "tests/support/host-name-guard-fixture.ts": true,
+    "tests/support/letter-case.ts": true,
     "tests/support/no-manifest-run.ts": true,
     "tests/support/npm-update-helper-owner.ts": true,
     "tests/support/npm-update-jira-fake-comments.ts": true,
@@ -12974,6 +12976,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/carrier-agent-settings-bytes.test.ts": true,
     "tests/unit/controls/carrier-agent-settings.test.ts": true,
     "tests/unit/controls/carrier-agent-surfaces.test.ts": true,
+    "tests/unit/controls/carrier-call-drive-letter.test.ts": true,
     "tests/unit/controls/carrier-hook-reach-forms.test.ts": true,
     "tests/unit/controls/carrier-hook-reach-leaves.test.ts": true,
     "tests/unit/controls/carrier-hook-reach.test.ts": true,
@@ -13034,6 +13037,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/controls/paved-road-resolution.snapshot.json": true,
     "tests/unit/controls/paved-road-snapshot.ts": true,
     "tests/unit/controls/proof-change-finding.test.ts": true,
+    "tests/unit/controls/proof-change-letter-case.test.ts": true,
     "tests/unit/controls/proof-change-rule.test.ts": true,
     "tests/unit/controls/proof-check-changes.test.ts": true,
     "tests/unit/controls/proof-check-declaration.test.ts": true,

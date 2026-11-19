@@ -9,7 +9,7 @@
  * out of a commit, so the check would be shown a change without it while
  * its command finds it on disk.
  */
-import { rmSync } from "node:fs";
+import { rmSync, symlinkSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -125,6 +125,37 @@ describe("a change that leaves the check alone", () => {
         scope: ".",
       })
     ).toBeNull();
+  });
+});
+
+describe("a change that puts something else where a folder was", () => {
+  it("is one that leaves the check alone when a file takes the folder's place: nothing is at the paths under it", () => {
+    expect(
+      found(repo => {
+        rmSync(path.join(repo, "src"), { recursive: true });
+        write(repo, "src", "now a file\n");
+      })
+    ).toBeNull();
+  });
+
+  it("is one that leaves the check alone when a link takes the folder's place, to a folder that holds a file of the same name", () => {
+    expect(
+      found(repo => {
+        write(repo, "lib/app.txt", "one\n");
+        rmSync(path.join(repo, "src"), { recursive: true });
+        symlinkSync("lib", path.join(repo, "src"));
+      })
+    ).toBeNull();
+  });
+
+  it("is still found to put a file at an ignored path beside the file that takes the folder's place", () => {
+    expect(
+      found(repo => {
+        rmSync(path.join(repo, "src"), { recursive: true });
+        write(repo, "src", "now a file\n");
+        write(repo, IGNORED_TOOL, "x\n");
+      })
+    ).toEqual({ kind: IGNORED, file: IGNORED_TOOL });
   });
 });
 

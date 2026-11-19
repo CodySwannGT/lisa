@@ -28,8 +28,13 @@
  * - a `return`, judged exactly as an `exit` is. Outside every function a
  *   `return` ends a script run by dash, ksh or zsh (bash reports it and
  *   carries on), so `[ -n "$RUN_ALL" ] || return 0` leaves such a hook with
- *   success. One inside a function is refused as well, as an `exit` there
- *   is: where a function starts and ends is not followed.
+ *   success. One inside a function ends only that function, and is
+ *   refused as well: where a function starts and ends is not followed, and
+ *   telling a function's body from a `case` branch that opens with `{`
+ *   takes more than the words of one command. An `exit` there is refused
+ *   for its own reason: calling the function ends the hook. What a person
+ *   is told about a refused `return` says both, since which of the two
+ *   places it stands in is not known.
  * - a `trap` that can turn a failure into success once the hook is over.
  *   What a trap on `EXIT` (or `0`) runs is run after the added lines have
  *   failed, and an `exit 0` in it is the status git sees. So such a trap is

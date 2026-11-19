@@ -73,9 +73,15 @@ export const CREDENTIAL_SHAPES: readonly CredentialShape[] = Object.freeze([
     // long run of letters, digits, dots and signs is tried as the start of a
     // scheme and read to the end of the run, so the time grows with the
     // square of the run's length: a megabyte of `a.a.a.` took about a
-    // hundred seconds. No scheme in use is that long, and an address whose
-    // scheme is longer is still found from a later word of it.
-    re: /\b([a-z][a-z0-9+.-]{0,63}:\/\/)[^\s/:@]+:[^\s/@]+@/giu,
+    // hundred seconds. No scheme in use is that long.
+    //
+    // A scheme may start at any letter, not only at the start of a word.
+    // Held to the start of a word, an address glued to 60 or more letters,
+    // digits or underscores (a digest printed straight before it) was never
+    // tried from a place near enough to reach its `://`, and its password
+    // stayed. From any letter, the last 64 characters before `://` are
+    // always tried, and each try reads at most 64 characters.
+    re: /([a-z][a-z0-9+.-]{0,63}:\/\/)[^\s/:@]+:[^\s/@]+@/giu,
     replace: "$1[REDACTED:URL_CREDENTIALS]@",
   },
   { kind: "API_KEY", re: /\b(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{8,}/gu },

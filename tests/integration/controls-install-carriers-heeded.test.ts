@@ -103,7 +103,7 @@ describe("a commit hook that holds the call and is not stopped by it", () => {
     expect(check.code).toBe(CARRIERS_BLOCKED_EXIT_CODE);
     expect(check.result?.enforcement_points[0]?.outcome).toBe("blocked");
     expect(check.result?.enforcement_points[0]?.reason).toMatch(
-      /can leave at line 2 before its end \(a "return" there ends a hook that dash, ksh or zsh runs.*above line 2 by hand/su
+      /can leave at line 2 before its end \(a "return" there is neither given.*outside every function it ends a hook that dash, ksh or zsh runs.*above line 2 by hand/su
     );
   });
 

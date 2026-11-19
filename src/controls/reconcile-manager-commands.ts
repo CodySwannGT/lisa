@@ -20,6 +20,13 @@
  * What it cannot see: a configuration that another file extends or
  * overrides (`extends`, `remotes`, `lefthook-local.yml`) is read as it is
  * written, without the other file.
+ *
+ * What it does not follow: a Lefthook job group that is one of its own
+ * jobs, which a YAML alias can write (`- &job` with `- *job` among the jobs
+ * of its group). Such a group has no end to read to, so the file is
+ * reported as one that could not be read, with the reason. An alias that
+ * names a job in several places, none of them inside the job itself, is
+ * read like the job written out each time.
  * @module controls/reconcile-manager-commands
  */
 import { isJsonObject, type JsonObject } from "../sync/json-path.js";
@@ -47,6 +54,10 @@ export type ManagerReader = (text: string) => ManagerRead;
 /** What is said of a configuration that does not parse. */
 const NOT_READABLE =
   "it is not a YAML or JSON file with settings at its top level, so the commands it configures could not be read";
+
+/** What is said of a Lefthook job group that is one of its own jobs. */
+const HOLDS_ITSELF =
+  "one of its job groups holds itself (a YAML alias inside the group names the group again), so the jobs it configures have no end and could not be read";
 
 /** The stage names the pre-commit framework uses for each moment. */
 const STAGES: Readonly<Record<CarrierMoment, readonly string[]>> = {
@@ -103,8 +114,30 @@ function lineOf(
 }
 
 /**
- * Everything one Lefthook job runs, through any group it holds.
+ * The jobs of the group one Lefthook job holds.
  * @param job - The parsed job
+ * @returns The group's jobs; none when the job holds no group
+ */
+function groupJobs(job: unknown): readonly unknown[] {
+  return listOf(mappingOf(mappingOf(job).group).jobs);
+}
+
+/**
+ * Tell whether a Lefthook job is reached again through its own group.
+ * @param job - The parsed job
+ * @param above - The jobs whose groups this one is in, the outermost first
+ * @returns Whether following its groups would never end
+ */
+function holdsItself(job: unknown, above: readonly unknown[] = []): boolean {
+  return (
+    above.includes(job) ||
+    groupJobs(job).some(inner => holdsItself(inner, [...above, job]))
+  );
+}
+
+/**
+ * Everything one Lefthook job runs, through any group it holds.
+ * @param job - The parsed job, which does not hold itself
  * @returns What it runs, in order
  */
 function jobRuns(job: unknown): readonly Configured[] {
@@ -116,7 +149,7 @@ function jobRuns(job: unknown): readonly Configured[] {
     ...(typeof settings.script === "string"
       ? [{ shell: false, text: settings.script }]
       : []),
-    ...listOf(mappingOf(settings.group).jobs).flatMap(inner => jobRuns(inner)),
+    ...groupJobs(job).flatMap(inner => jobRuns(inner)),
   ];
 }
 
@@ -198,6 +231,12 @@ function reported(
 export const lefthookCommands: ManagerReader = text => {
   const document = parseMapping(text);
   if (document === null) return { problem: NOT_READABLE };
+  const endless = CARRIER_MOMENTS.some(moment =>
+    listOf(mappingOf(document[CARRIER_HOOKS[moment]]).jobs).some(job =>
+      holdsItself(job)
+    )
+  );
+  if (endless) return { problem: HOLDS_ITSELF };
   const lines = text.split(/\r?\n/u);
   return together(
     CARRIER_MOMENTS.flatMap(moment => {

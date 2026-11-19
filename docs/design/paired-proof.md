@@ -194,11 +194,46 @@ to it or its removal is one git shows.
 **How the paths are found.** From the patch itself: git is asked to read
 the patch, not to apply it, and to list every path it names, forwards and
 backwards, so a renamed file is listed under both of its names and a
-deleted one under the name it had. What git staged is not asked, because
-git stages nothing at an ignored path, and that is the path this rule has
-to see. Both changes of a pair are looked at before either check is
+deleted one under the name it had. What git staged is not enough, because
+git stages nothing at an ignored path, and that is the path the last rule
+has to see. Both changes of a pair are looked at before either check is
 started: each is planted in the disposable copy, held to the rule, and
 taken back out.
+
+**One file under two names.** The names a patch writes are not always the
+names of the files it changes. On a file system that does not tell letter
+cases apart, which is the default on macOS and Windows, git applies a patch
+headed `.lisa.config.JSON` to `.lisa.config.json`. Held to the patch's
+names alone, the first three rules found no file they knew, the "violating
+change" swapped the check's command, and `attest` read a check that
+enforces nothing as proved while `proof-check` said `not-ready`. So:
+
+- The first three rules are held to the paths the patch names **and** to
+  the paths git reports as changed once the patch is planted, which are the
+  names the repository stores. A path the patch names that is one of those
+  files is taken for it, so a dependency added through `Package.json` is
+  still read as a change that leaves the scripts alone.
+- A name the rule knows (a check file, the hooks folder, the command's
+  program, `package.json` or a Makefile's name beside a changed file) is
+  compared with a changed path by asking the file system whether the two
+  are one file. That finds a new `src/Package.json` for a check run through
+  npm in `src`, and a program the command names as `./Scripts/lint.sh` when
+  the repository stores `scripts/lint.sh`. Letters are never folded by this
+  code: two names are one file exactly when the file system says so, so
+  nothing is refused on a file system that tells them apart.
+- The ignored-path rule keeps to the paths the patch names. Git reports
+  nothing at an ignored path.
+
+What that does not see: a file the change removes, when the check's command
+names it in another letter case than the repository stores. Nothing is left
+on disk to compare with.
+
+**A path under something that is no longer a folder.** A change can put a
+file, or a link, where a folder was. Nothing is then at the paths that were
+under it, whatever a link there leads to, and they are not asked about: the
+file system fails for a path under a file, and git will not say whether a
+path beyond a link is ignored. Either used to stop the whole run with exit
+2. Such a pair is now held to the rule like any other.
 
 This is one rule in one place (`src/controls/proof-change-rule.ts`, with the
 runners in `src/controls/proof-task-runners.ts`), and
@@ -829,6 +864,15 @@ two ways round that rule that were found afterwards: a check declared as
 `npm run lint` (and as `make lint`) whose "violating change" swaps the
 script, and a "violating change" that drops a file at an ignored path. Both
 commands refuse each, with `declaration-changed` and `ignored-path`.
+
+`tests/integration/controls-proof-change-rule-letter-case.test.ts` holds the
+two commands to the same refusal for a "violating change" that names the
+declaration as `.lisa.config.JSON`, and the manifest of a check run through
+npm as `Package.json`. It has something to run only where the temporary
+folder ignores letter case, and is skipped, saying so, anywhere else.
+`tests/unit/controls/proof-change-letter-case.test.ts` holds the rule
+itself on every machine, with a stand-in for git that reports what git
+reports on such a file system.
 
 The two differ on purpose in three places:
 

@@ -111,6 +111,16 @@ Not covered, and why:
   match nowhere else. `lisa controls install-carriers --check` and
   `lisa controls reconcile` say whether a checkout is wired.
 - **A file's permission to be started.** Only content is read.
+- **A file the operating system drops into a folder**: `.DS_Store`,
+  `Thumbs.db` and `desktop.ini`, by exactly those names, in any folder. A
+  file manager writes one into every folder a person opens, most machines
+  tell git to ignore them, and no clone has one. The check starts no git, so
+  it cannot ask what is ignored. Covered, a `.DS_Store` in `.lisa/hooks/`
+  failed `--check` straight after the run that recorded the digest, and one
+  beside the proofs passed where it was recorded and failed in every clone.
+  So none is covered, neither when a run records the digest nor when the
+  check takes it again. A file by any other name in those folders is covered
+  as before.
 
 ### The three rungs
 
@@ -558,8 +568,9 @@ check says the evidence predates the binding and exits 1. Running
 
 What this comparison does not see is what the digest does not cover: the
 checked tool's own configuration, a hook in git's own folder, the
-`core.hooksPath` setting, and a file's permission to be started. "What the
-records are bound to" says why for each.
+`core.hooksPath` setting, a file's permission to be started, and the files
+an operating system drops into a folder (`.DS_Store`, `Thumbs.db`,
+`desktop.ini`). "What the records are bound to" says why for each.
 
 ### What each kind of edit runs into
 

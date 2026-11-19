@@ -29,8 +29,10 @@ export const SECRET_SHAPES = Object.freeze([
     kind: "URL_CREDENTIALS",
     // The scheme is bounded: with `*`, a long run of letters, dots and signs
     // is read to its end from every word in it, and the time grows with the
-    // square of its length.
-    re: /\b([a-z][a-z0-9+.-]{0,63}:\/\/)[^\s/:@]+:[^\s/@]+@/giu,
+    // square of its length. It may start at any letter and not only at the
+    // start of a word, so an address glued to a long run of letters or
+    // digits is still reached from within 64 characters of its `://`.
+    re: /([a-z][a-z0-9+.-]{0,63}:\/\/)[^\s/:@]+:[^\s/@]+@/giu,
     replace: "$1[REDACTED:URL_CREDENTIALS]@",
   },
   { kind: "API_KEY", re: /\b(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{8,}/gu },

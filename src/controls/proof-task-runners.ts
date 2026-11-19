@@ -117,6 +117,17 @@ export interface ManifestSides {
   readonly after: string | null;
 }
 
+/** Says whether two paths, from the repository root, are one file. */
+export type SameFile = (one: string, other: string) => boolean;
+
+/**
+ * Take two paths for one file when they are written the same.
+ * @param one - A path
+ * @param other - Another
+ * @returns Whether they are written the same
+ */
+export const sameName: SameFile = (one, other) => one === other;
+
 /** A runner's file that a change edits. */
 export interface RunnerManifestChange {
   /** The file, from the repository root. */
@@ -320,22 +331,34 @@ function namedFiles(
 
 /**
  * Tell whether a path is a file one kind of runner reads what to run from.
+ *
+ * A runner opens its file by name, so a file is the runner's when that name
+ * leads to it: `Package.json` is `package.json` to npm where the file
+ * system ignores letter case. Whether it does is asked through `same`,
+ * with the file's own name respelled the way the runner writes it.
  * @param kind - The kind of runner
  * @param file - The path, from the repository root
  * @param named - The files the command names with the runner's file option
+ * @param same - Says whether two paths are one file
  * @returns Whether it is
  */
 function isManifest(
   kind: TaskRunnerKind,
   file: string,
-  named: readonly string[]
+  named: readonly string[],
+  same: SameFile
 ): boolean {
   const name = path.posix.basename(file);
-  if (kind === PACKAGE_SCRIPTS) return name === PACKAGE_MANIFEST;
-  if (named.includes(file)) return true;
+  const isNamed = (as: string): boolean =>
+    same(file, path.posix.join(path.posix.dirname(file), as));
+  const endsIn = (ending: string): boolean =>
+    name.length >= ending.length &&
+    isNamed(`${name.slice(0, name.length - ending.length)}${ending}`);
+  if (kind === PACKAGE_SCRIPTS) return isNamed(PACKAGE_MANIFEST);
+  if (named.some(other => same(other, file))) return true;
   return kind === "make"
-    ? MAKEFILE_NAMES.includes(name) || name.endsWith(".mk")
-    : JUSTFILE_NAMES.includes(name.toLowerCase()) || name.endsWith(".just");
+    ? MAKEFILE_NAMES.some(isNamed) || endsIn(".mk")
+    : JUSTFILE_NAMES.includes(name.toLowerCase()) || endsIn(".just");
 }
 
 /**
@@ -378,6 +401,8 @@ function changesWhatRuns(kind: TaskRunnerKind, sides: ManifestSides): boolean {
  * @param subject.scope - The folder the command is started in, from the root
  * @param subject.paths - The paths the change touches, from the root
  * @param subject.read - Reads one of those files before and after the change
+ * @param subject.same - Says whether two paths are one file; by how they
+ *   are written when left out
  * @returns The file and the kind of runner, or `null` when the command goes
  *   through no runner or the change leaves what it runs alone
  */
@@ -386,12 +411,13 @@ export function runnerManifestChange(subject: {
   readonly scope: string;
   readonly paths: readonly string[];
   readonly read: (file: string) => ManifestSides;
+  readonly same?: SameFile;
 }): RunnerManifestChange | null {
-  const { argv, scope, paths, read } = subject;
+  const { argv, scope, paths, read, same = sameName } = subject;
   const found = taskRunnersOf(argv).flatMap(runner => {
     const named = namedFiles(argv, runner, scope);
     return paths
-      .filter(file => isManifest(runner, file, named))
+      .filter(file => isManifest(runner, file, named, same))
       .filter(file => changesWhatRuns(runner, read(file)))
       .map(file => ({ file, runner }));
   });
