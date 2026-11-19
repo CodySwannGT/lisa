@@ -31,8 +31,9 @@ in the ledger and (when configured) items by untrusted authors are skipped. As m
 When `sessionManager.backlogPickup` is on and capacity remains after every Ready item, a lowest tier
 follows: backlog items (open leaves in no lifecycle role) in the same order, minus those with an
 unfinished blocker and those that already failed validation and have not changed since. Each one
-must pass the full tracker validation before it is assigned to the first operator, moved to Ready
-and dispatched like any other item.
+must pass the full tracker validation before it is moved to Ready and dispatched like any other
+item. An item that is already assigned keeps its assignee; an unassigned one is assigned to the
+manager's own tracker identity.
 
 ## Scope/bounds
 
