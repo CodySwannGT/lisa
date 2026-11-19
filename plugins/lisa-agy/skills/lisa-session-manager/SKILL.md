@@ -625,7 +625,10 @@ item held back only by them is claimable in this same cycle:
    Then perform each of the confirmed plan's `actions` and nothing else, straight away. No tracker
    offers a conditional delete ("remove this link only if its blocker is still finished"), so a
    blocker can still reopen between this re-read and the write; verify below catches that and
-   puts the link back.
+   puts the link back. A sub-second window remains between the delete and that re-read, during
+   which the link is briefly absent while its blocker is open. A queue read in that moment could
+   see the item as unblocked; the restore follows straight after, and that residual window is the
+   one gap no tracker API lets the sweep close.
    - `delete-dependency` (GitHub): `gh api -X DELETE <endpoint>`.
    - `body` (GitHub, when not null): write it as the issue body through `lisa-tracker-write`. It
      differs from the fresh body only in the `Blocked by` refs it removes.
