@@ -251,7 +251,8 @@
         "level": "required",
         "run": "check:plugins",
         "failure_shape": [
-          "✗ Generated plugin artifacts are out of sync with plugins/src."
+          "✗ Generated plugin artifacts are out of sync with plugins/src.",
+          "✗ The four control commands are not in place on every coding agent."
         ]
       }
     }

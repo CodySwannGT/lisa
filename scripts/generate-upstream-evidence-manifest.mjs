@@ -9,6 +9,11 @@ import {
   describeStaleManifest,
   diagnoseStaleManifest,
 } from "./lib/upstream-manifest-staleness.mjs";
+import {
+  droppedPublicCommits,
+  MANIFEST_PATH,
+  REFRESH_PUBLIC_COMMITS_COMMAND,
+} from "./lib/upstream-public-commits.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const outputPath = path.join(
@@ -133,13 +138,53 @@ const existingPublicCommits = [
   .map(match => match[1] ?? match[2] ?? "")
   .filter(Boolean);
 const refreshPublicCommits = process.argv.includes("--refresh-public-commits");
+
+/**
+ * Every commit reachable from a public origin ref, read from local history.
+ *
+ * The release hook runs this (`.versionrc` `postbump`), which makes the two
+ * ways the read can come back short a release defect rather than a developer's
+ * inconvenience (CodySwannGT/lisa#4960):
+ *
+ * - **A shallow clone holds only the commits above its cut-off**, and
+ *   `git rev-list` reports those without complaint. The result would still
+ *   contain the newest commit, so nothing downstream could tell it from a
+ *   complete list — while every commit merged since the previous release was
+ *   missing, which is the defect the release-time refresh exists to end. So a
+ *   shallow clone is refused outright. A linked worktree is not affected: it
+ *   shares its repository's refs and reads the same history.
+ * - **Node caps a child's output at one megabyte by default**, which this
+ *   command reaches at about 25,500 commits. Past that it throws `ENOBUFS` on
+ *   every run. The ceiling is therefore stated, far above any real history.
+ * @returns {string[]} Full SHAs, in the order git listed them.
+ */
+function discoverPublicCommits() {
+  const shallow = boundedExecFileSync(
+    "git",
+    ["rev-parse", "--is-shallow-repository"],
+    { cwd: repoRoot, encoding: "utf8" }
+  ).trim();
+  if (shallow !== "false") {
+    throw new Error(
+      "Refusing to refresh the public commit list from a shallow clone.\n" +
+        "A shallow clone holds only its most recent commits, so the list would\n" +
+        "silently omit every older commit that is not on it yet.\n" +
+        "Fetch the full history first (`git fetch --unshallow origin`, or\n" +
+        "`fetch-depth: 0` on the checkout step in CI), then rerun:\n" +
+        `  ${REFRESH_PUBLIC_COMMITS_COMMAND}`
+    );
+  }
+  return boundedExecFileSync("git", ["rev-list", "--remotes=origin"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    maxBuffer: 256 * 1024 * 1024,
+  })
+    .split("\n")
+    .filter(commit => /^[a-f0-9]{40}$/.test(commit));
+}
+
 const discoveredPublicCommits = refreshPublicCommits
-  ? boundedExecFileSync("git", ["rev-list", "--remotes=origin"], {
-      cwd: repoRoot,
-      encoding: "utf8",
-    })
-      .split("\n")
-      .filter(commit => /^[a-f0-9]{40}$/.test(commit))
+  ? discoverPublicCommits()
   : [];
 const publicCommits = [
   ...new Set([...existingPublicCommits, ...discoveredPublicCommits]),
@@ -151,6 +196,24 @@ if (publicSurfaceMembers.length === 0 || evidenceMembers.length === 0) {
 if (publicCommits.length === 0) {
   throw new Error(
     "Refusing to generate an empty public origin commit manifest; rerun with --refresh-public-commits from a full canonical-origin clone"
+  );
+}
+// The list is carried forward by matching the exact line shape written below.
+// If the recorded file ever stops matching it, the carry-forward comes back
+// short and the new list is simply smaller — no error, just lost commits. The
+// looser read in `droppedPublicCommits` is what notices.
+const droppedCommits = droppedPublicCommits(existingOutput, publicCommits);
+if (droppedCommits.length > 0) {
+  throw new Error(
+    `Refusing to write a public commit list that would drop ${droppedCommits.length} recorded commit(s):\n` +
+      `${droppedCommits
+        .slice(0, 10)
+        .map(commit => `  ${commit}`)
+        .join("\n")}\n` +
+      "The list only ever grows. The recorded file lists these commits in a\n" +
+      "form this generator does not read back, which usually means the\n" +
+      "generated file was reformatted or edited by hand. Restore\n" +
+      `${MANIFEST_PATH} from git and rerun.`
   );
 }
 

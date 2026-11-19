@@ -20,11 +20,19 @@
 export const SECRET_SHAPES = Object.freeze([
   {
     kind: "PRIVATE_KEY",
-    re: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----(?:[\s\S]*?-----END (?:[A-Z]+ )*PRIVATE KEY-----)?/gu,
+    // The body stops at its own last line or at the first line of another
+    // block, whichever comes first, so no first line is read from to the
+    // end of the text and the time stays in proportion to the length.
+    re: /-----BEGIN [A-Z ]*PRIVATE KEY-----(?:(?:(?!-----BEGIN )[\s\S])+?(?:-----END [A-Z ]*PRIVATE KEY-----|(?=-----BEGIN )))?/gu,
   },
   {
     kind: "URL_CREDENTIALS",
-    re: /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/:@]+:[^\s/@]+@/giu,
+    // The scheme is bounded: with `*`, a long run of letters, dots and signs
+    // is read to its end from every word in it, and the time grows with the
+    // square of its length. It may start at any letter and not only at the
+    // start of a word, so an address glued to a long run of letters or
+    // digits is still reached from within 64 characters of its `://`.
+    re: /([a-z][a-z0-9+.-]{0,63}:\/\/)[^\s/:@]+:[^\s/@]+@/giu,
     replace: "$1[REDACTED:URL_CREDENTIALS]@",
   },
   { kind: "API_KEY", re: /\b(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{8,}/gu },

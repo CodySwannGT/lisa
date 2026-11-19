@@ -270,6 +270,10 @@ verification. Only then should the automation fleet run unattended on a brownfie
   operator).
 - Idempotent: re-runs regenerate the open section in place and never lose or reword a human's
   inline answers.
+- A block of `wiki/gaps.md` between the lines `<!-- lisa:audit-questions:start -->` and
+  `<!-- lisa:audit-questions:end -->` belongs to `/lisa:audit`, which lists its own open questions
+  there. Leave it byte for byte: never answer, absorb, move, reword or regenerate anything inside
+  it, and never count its entries as gaps of this skill.
 - The wiki is the durable store; `wiki/gaps.md` is a queue. Every absorbed answer must land in a
   real wiki page with the gaps entry pointing at it.
 - `wiki/state/agent-ready/sources.json` is the durable coverage record. Source access is always

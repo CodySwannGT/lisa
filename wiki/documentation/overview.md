@@ -337,6 +337,12 @@ and the pointer block names it during the transition.
 | | `/lisa:review-implementation` | Compare against Lisa templates |
 | | `/lisa:review-project` | Compare templates against target project |
 | | `/lisa:integration-test` | Apply Lisa, verify project builds, fix upstream issues |
+| **Controls** | `/lisa:audit` | Report where each Level 1 requirement stands in a repository, on any stack; works where Lisa was never applied |
+| | `/lisa:configure` | Declare the checks that govern the repository and generate the control register |
+| | `/lisa:enforce` | Make the declared checks run, file a ticket for each missing capability, compare merge protection |
+| | `/lisa:attest` | Prove each check by trying to break it, and report the verdict that code computes |
+
+The four **Controls** commands are run in that order. On Codex they are started as `$lisa-audit` and so on, and on Devin as `/lisa:lisa-audit` and so on. See [Control Audit](workflows/control-audit.md).
 
 ---
 

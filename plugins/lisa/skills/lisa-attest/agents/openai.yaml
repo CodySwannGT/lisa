@@ -1,0 +1,4 @@
+display_name: "Attest"
+short_description: "Prove, by code, whether each declared check really stops a bad change, and report the Level 1 verdict that code computes"
+default_prompt:
+  - "Use $lisa-attest: Prove, by code, whether each declared check really stops a bad change, and report the Level 1 verdict that code computes."

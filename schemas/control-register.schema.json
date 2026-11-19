@@ -1,0 +1,336 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CodySwannGT/lisa/schemas/control-register.schema.json",
+  "title": "Control register",
+  "description": "One list of every rule that governs a repository: which requirements each rule serves, which folder it covers, where it is enforced, what measures it, how it is proved to work, and who answers for it. The file is generated from the `gates` block of `.lisa.config.json` by `lisa controls register` and is never edited by hand; `lisa controls register --check` fails when the two disagree.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "entries"],
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "description": "The version of this format. It changes only when a reader written for the previous version would misread the file."
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" },
+      "description": "One entry per rule and folder, ordered by gate and then by folder. Empty when the repository declares no gates."
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "gate",
+        "criteria",
+        "scope",
+        "tier",
+        "enforcement_points",
+        "measuring_mechanism",
+        "parameters",
+        "proof",
+        "accountable_party"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 3,
+          "description": "The entry's identifier: the gate, an `@`, and the scope, for example `code-style@api` or `code-style@.`. It depends on nothing but those two values, so it stays the same when other entries are added or removed. Evidence and verdicts refer to an entry by it."
+        },
+        "gate": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The gate in the `gates` block this entry was generated from."
+        },
+        "criteria": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/criterion_id" },
+          "description": "The requirement ids this rule serves, in the order the criterion catalogue lists them. They are the ones the gate declares; a gate that declares none gets the ones the catalogue maps to it. Empty when the rule serves no catalogued requirement."
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The folder the rule covers, written from the repository root, or `.` for the whole repository."
+        },
+        "tier": {
+          "enum": ["authoritative", "advisory"],
+          "description": "`authoritative` when the rule is enforced where the author of a change cannot get around it, `advisory` when the author can. It is the tier the gate declares. A gate that declares none is `authoritative` when it is required at an enforcement point outside the author's own machine and coding agent, and `advisory` otherwise."
+        },
+        "enforcement_points": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/enforcement_point" },
+          "description": "Every moment the rule is enforced at and where, in the order the moments happen. Empty when the rule is declared but enforced nowhere."
+        },
+        "measuring_mechanism": {
+          "$ref": "#/$defs/measuring_mechanism",
+          "description": "What measures the rule. An enforcement point that is measured differently says so itself."
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/parameter" },
+          "description": "The named settings of the check, for example a minimum coverage percentage. Empty when it has none."
+        },
+        "proof": {
+          "$ref": "#/$defs/proof",
+          "description": "The paired proof that the rule works."
+        },
+        "accountable_party": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "description": "The person or team that answers for the rule, or `null` when the gate names nobody."
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence",
+          "description": "What supports recording this rule. Present on every entry generated from one of a gate's `parts`: a part that names nothing is refused before the register is written. Absent on the entry of a gate with no parts, whose rule comes from the declarations Lisa ships for a supported project type."
+        },
+        "status": {
+          "enum": ["unproved"],
+          "description": "Present only while the entry is unproved: its pull-request check runs from a file Lisa did not write (see `executor` on the enforcement point), and the evidence file at `.lisa/controls/evidence.json` holds no record that both halves of the entry's proof held. Left off every other entry, so its absence is not a claim that the rule was proved."
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["locators", "questions"],
+      "properties": {
+        "locators": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/locator" },
+          "description": "The places the audit found the check, in the order the declaration lists them. Empty when the entry rests on answered questions alone."
+        },
+        "questions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "The ids of the audit questions a person answered, in the order the declaration lists them. Empty when the entry rests on what the audit found alone."
+        }
+      },
+      "description": "What supports an entry. At least one of the two lists is not empty."
+    },
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "line"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The file, written from the repository root."
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The line in that file, counted from 1."
+        }
+      },
+      "description": "A place the audit found a check: a file and a line, exactly as the audit report writes it."
+    },
+    "criterion_id": {
+      "type": "string",
+      "pattern": "^(?:AC[1-9]\\d*\\.[1-9]\\d*|(?:SI|DP|UX)[1-9]\\d*)$",
+      "description": "A requirement id as the specification writes it, for example `AC5.4` or `SI2`."
+    },
+    "enforcement_point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["moment", "level", "location"],
+      "properties": {
+        "moment": {
+          "type": "string",
+          "pattern": "^(?:session-start|pre-tool|post-tool|commit|push|pull-request|(?:pre-deploy|post-deploy|continuous):.+)$",
+          "description": "When the rule is enforced. The deployment and scheduled moments name their environment, for example `pre-deploy:production`."
+        },
+        "level": {
+          "enum": ["required", "optional"],
+          "description": "`required` when a failure stops the change at this moment, `optional` when it is reported and the change goes on."
+        },
+        "location": {
+          "enum": [
+            "coding-agent",
+            "local-checkout",
+            "hosting-platform",
+            "deployment-pipeline",
+            "scheduled-run"
+          ],
+          "description": "Where the rule is enforced at this moment: inside the coding agent's session, in the checkout the change is made in, on the platform that hosts the repository, in the deployment pipeline, or in a run on a schedule."
+        },
+        "measuring_mechanism": {
+          "$ref": "#/$defs/measuring_mechanism",
+          "description": "What measures the rule at this moment. Present only when it differs from the entry's own."
+        },
+        "executor": {
+          "$ref": "#/$defs/executor",
+          "description": "The file that runs the rule at this moment, when the `gates` block names one. Only a `pull-request` enforcement point has it."
+        },
+        "unenforceable_on": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "claude",
+              "codex",
+              "cursor",
+              "agy",
+              "copilot",
+              "opencode",
+              "devin"
+            ]
+          },
+          "description": "The coding agents the rule cannot be enforced on at this moment, because they have no hook that can refuse what they did, by the names the `harness` setting uses and in that setting's order. Only a `coding-agent` enforcement point has it, and only when the `gates` block names an agent. The rule is still enforced on every other agent, and at every later moment."
+        }
+      }
+    },
+    "executor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "path"],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "description": "The platform that hosts the repository, in lower-case letters and digits with hyphens between words. `github` is the one platform Lisa ships this file for; on any other the repository's own agent wrote it."
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The file the platform runs on a pull request, written from the repository root."
+        }
+      },
+      "description": "The file the hosting platform runs on a pull request, which in turn runs the gates."
+    },
+    "measuring_mechanism": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "argv"],
+          "properties": {
+            "kind": { "const": "command" },
+            "argv": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string" },
+              "description": "The command, one item per argument and the program first. It is started in the entry's scope, never through a shell."
+            }
+          },
+          "description": "A command the repository declares for this folder."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "task", "command"],
+          "properties": {
+            "kind": { "const": "task" },
+            "task": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The name of the task in the repository's task runner."
+            },
+            "command": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The task runner and the task together, as they are run."
+            }
+          },
+          "description": "A named task run through the repository's task runner."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "name", "posted_by"],
+          "properties": {
+            "kind": { "const": "external-check" },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The name the check reports under on the hosting platform."
+            },
+            "posted_by": {
+              "type": ["integer", "null"],
+              "minimum": 1,
+              "description": "The id of the one app allowed to report the check, or `null` when any source may."
+            }
+          },
+          "description": "A check another system reports on the pull request, which the rule waits for."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "interceptor" } },
+          "description": "A hook Lisa ships that stops the action before it happens. No command is run."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "built-in" } },
+          "description": "A job of the shipped pull-request workflow measures the rule itself. The repository names no task for it."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "none" } },
+          "description": "Nothing measures the rule."
+        }
+      ]
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value"],
+      "properties": {
+        "value": {
+          "type": ["number", "string", "boolean"],
+          "description": "The setting's value."
+        },
+        "direction": {
+          "enum": ["floor", "ceiling"],
+          "description": "Marks a number as a threshold: a `floor` may rise and never fall, a `ceiling` may fall and never rise."
+        }
+      }
+    },
+    "proof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "violation",
+        "clean",
+        "failure_shape",
+        "timeout_seconds",
+        "external_effects"
+      ],
+      "properties": {
+        "violation": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "description": "The patch file holding a change that breaks the rule, or `null` when none is declared."
+        },
+        "clean": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "description": "The patch file holding a change that does not break the rule, or `null` when none is declared."
+        },
+        "failure_shape": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Text the check prints when it measures the rule and finds it broken, or `null` when none is declared."
+        },
+        "timeout_seconds": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "How long one half of the proof may run, or `null` when no limit is declared."
+        },
+        "external_effects": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "What the proof does outside the repository, one sentence each. An empty list says it does nothing there; `null` says the declaration does not say."
+        }
+      }
+    }
+  }
+}

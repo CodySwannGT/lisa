@@ -139,7 +139,7 @@ export const gitHub = (state: GhState) => {
       if (joined.includes("-X PUT") || joined.includes("-X PATCH")) {
         return state.write ?? ok({});
       }
-      if (joined === `api repos/${REPO}/rulesets`) {
+      if (joined === `api repos/${REPO}/rulesets?per_page=100`) {
         return state.index ?? ok(rulesets.map(entry => ({ ...entry })));
       }
       if (detail) {
