@@ -1,5 +1,4 @@
 /** Safe local project/doctor-derived deterministic health probes. */
-/* eslint-disable jsdoc/require-param-description, jsdoc/require-returns -- typed doctor projections are self-describing */
 import path from "node:path";
 
 import { CLAUDE_MD_AGENTS_IMPORT } from "../claude/claude-md-installer.js";
@@ -30,9 +29,10 @@ export interface HealthConfigState {
 
 /**
  * Project and legacy overlay check derived from doctor without mutation.
- * @param projectRoot
- * @param configState
- * @param shape
+ * @param projectRoot - Canonical host project root
+ * @param configState - Whether `.lisa.config.json` is present, readable, and its contents
+ * @param shape - Detected project types and package.json
+ * @returns Pass, or warn naming legacy overlay paths still present
  */
 export async function projectStateFinding(
   projectRoot: string,
@@ -79,7 +79,8 @@ export async function projectStateFinding(
 
 /**
  * Local wiki contract check derived from doctor without network or writes.
- * @param projectRoot
+ * @param projectRoot - Canonical host project root
+ * @returns Pass, or fail naming the missing wiki contract files
  */
 export async function wikiFinding(projectRoot: string): Promise<HealthFinding> {
   const wiki = await projectPathKind(projectRoot, "wiki");
@@ -124,7 +125,10 @@ export async function wikiFinding(projectRoot: string): Promise<HealthFinding> {
       );
 }
 
-/** Offline representation of doctor's network-only starter check. */
+/**
+ * Offline representation of doctor's network-only starter check.
+ * @returns A warn finding: reachability cannot be checked offline
+ */
 export function starterFinding(): HealthFinding {
   return deterministicFinding(
     "starters.remote",
@@ -135,7 +139,8 @@ export function starterFinding(): HealthFinding {
 
 /**
  * Read-only canonical instruction check.
- * @param projectRoot
+ * @param projectRoot - Canonical host project root
+ * @returns Pass, or fail naming the drifted instruction files
  */
 export async function instructionFinding(
   projectRoot: string
@@ -169,7 +174,8 @@ export async function instructionFinding(
 
 /**
  * Convert one dry-run sync report into required-key and sync findings.
- * @param report
+ * @param report - Dry-run config sync report for the project
+ * @returns The required-keys finding followed by the config-sync finding
  */
 export function configFindings(
   report: SyncReport
@@ -201,4 +207,3 @@ export function configFindings(
         ),
   ];
 }
-/* eslint-enable jsdoc/require-param-description, jsdoc/require-returns -- restore repository documentation defaults */

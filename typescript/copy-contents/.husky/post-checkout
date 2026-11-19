@@ -1,3 +1,5 @@
+# shellcheck shell=sh
+# Git runs this hook with no shebang through /bin/sh, without -e.
 # BEGIN: AI GUARDRAILS
 
 # Worktree plugin bootstrap.

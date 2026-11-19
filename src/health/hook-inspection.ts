@@ -1,10 +1,10 @@
 /** Installed and executable Git-hook inspection without running hooks. */
-/* eslint-disable jsdoc/require-param-description, jsdoc/require-returns -- typed hook readers are self-describing */
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { inspectRailsHooks } from "../../scripts/lib/rails-hooks.mjs";
 
 import type { ProjectType } from "../core/config.js";
+import { spawnTarget } from "../utils/resolve-executable.js";
 import { readProjectFile } from "./read-only-fs.js";
 
 const GIT_TIMEOUT_MS = 10_000;
@@ -35,9 +35,10 @@ export type HookInstallationInspection =
 
 /**
  * Default fixed-argv local git-config reader.
- * @param projectRoot
- * @param timeoutMs
- * @param signal
+ * @param projectRoot - Canonical host project root
+ * @param timeoutMs - Bound for the external command, in milliseconds
+ * @param signal - Cancellation shared with the health deadline
+ * @returns The configured hooks path, or undefined when none is set
  */
 export const readCoreHooksPath: HooksPathReader = async (
   projectRoot,
@@ -45,11 +46,17 @@ export const readCoreHooksPath: HooksPathReader = async (
   signal
 ) =>
   new Promise((resolve, reject) => {
+    const target = spawnTarget("git", [
+      "config",
+      "--local",
+      "--get",
+      "core.hooksPath",
+    ]);
     execFile(
-      // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed git executable
-      "git",
-      ["config", "--local", "--get", "core.hooksPath"],
+      target.file,
+      [...target.args],
       {
+        windowsVerbatimArguments: target.windowsVerbatimArguments,
         cwd: projectRoot,
         encoding: "utf8",
         maxBuffer: MAX_GIT_OUTPUT_BYTES,
@@ -73,9 +80,10 @@ export const readCoreHooksPath: HooksPathReader = async (
 
 /**
  * Check executable regular files under one project-relative prefix.
- * @param projectRoot
- * @param prefix
- * @param names
+ * @param projectRoot - Canonical host project root
+ * @param prefix - Project-relative directory holding the hooks
+ * @param names - Hook file names expected under the prefix
+ * @returns Project-relative paths that are missing or not executable
  */
 async function executableDrift(
   projectRoot: string,
@@ -138,4 +146,3 @@ export async function inspectHookInstallation(
     ? { status: "pass", drift: [] }
     : { status: "fail", drift };
 }
-/* eslint-enable jsdoc/require-param-description, jsdoc/require-returns -- restore repository documentation defaults */

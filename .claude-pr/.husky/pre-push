@@ -1,3 +1,5 @@
+# shellcheck shell=sh
+# Git runs this hook with no shebang through /bin/sh, without -e.
 # BEGIN: AI GUARDRAILS
 
 # BEGIN: deletion-only push guard
@@ -55,7 +57,7 @@ if [ -n "$LISA_PUSHED_REFS" ]; then
   # The `||` keeps a final line with no trailing newline. A line whose second
   # field is empty — a blank or malformed line — counts as commit-carrying,
   # because a push this cannot read must never be classified as a deletion.
-  while read -r LISA_PUSHED_LOCAL_REF LISA_PUSHED_LOCAL_SHA LISA_PUSHED_TAIL || [ -n "$LISA_PUSHED_LOCAL_REF" ]; do
+  while read -r LISA_PUSHED_LOCAL_REF LISA_PUSHED_LOCAL_SHA _ || [ -n "$LISA_PUSHED_LOCAL_REF" ]; do
     LISA_PUSHED_REF_COUNT=$((LISA_PUSHED_REF_COUNT + 1))
     case "$LISA_PUSHED_LOCAL_SHA" in
       *[!0]* | "") LISA_PUSHED_COMMIT_COUNT=$((LISA_PUSHED_COMMIT_COUNT + 1)) ;;
@@ -73,7 +75,7 @@ if [ -n "$LISA_PUSHED_REFS" ]; then
   rm -f "$LISA_PUSHED_REFS"
 fi
 unset LISA_PUSHED_REFS LISA_PUSHED_REF_COUNT LISA_PUSHED_COMMIT_COUNT
-unset LISA_PUSHED_LOCAL_REF LISA_PUSHED_LOCAL_SHA LISA_PUSHED_TAIL
+unset LISA_PUSHED_LOCAL_REF LISA_PUSHED_LOCAL_SHA
 # END: deletion-only push guard
 
 # BEGIN: pushed refs file
@@ -312,7 +314,7 @@ process.stdin.on("data", chunk => { raw += chunk }).on("end", () => {
     const declared = JSON.parse(raw || "[]").some(gate => gate.id === "traceability");
     process.stdout.write(declared ? "declared" : "");
   } catch (error) {
-    process.stderr.write(`\u26a0\ufe0f  Could not read the gate registry: ${error.message}\n`);
+    process.stderr.write("\u26a0\ufe0f  Could not read the gate registry: " + error.message + "\n");
   }
 });
 ')
@@ -370,7 +372,7 @@ LISA_OUT_OF_TREE=""
 if [ -n "$LISA_PUSHED_REFS_FILE" ] && git rev-parse -q --verify HEAD >/dev/null 2>&1; then
   # The `||` keeps a final line with no trailing newline, exactly as the
   # deletion guard reads the same stream.
-  while read -r LISA_SCOPE_REF LISA_SCOPE_SHA LISA_SCOPE_TAIL || [ -n "$LISA_SCOPE_REF" ]; do
+  while read -r LISA_SCOPE_REF LISA_SCOPE_SHA _ || [ -n "$LISA_SCOPE_REF" ]; do
     case "$LISA_SCOPE_REF" in
       refs/heads/* | HEAD) ;;
       *) continue ;;
@@ -390,7 +392,7 @@ if [ -n "$LISA_PUSHED_REFS_FILE" ] && git rev-parse -q --verify HEAD >/dev/null 
     fi
   done < "$LISA_PUSHED_REFS_FILE"
 fi
-unset LISA_SCOPE_REF LISA_SCOPE_SHA LISA_SCOPE_TAIL
+unset LISA_SCOPE_REF LISA_SCOPE_SHA
 
 if [ -n "$LISA_OUT_OF_TREE" ]; then
   # The one gate that can answer correctly from here, run before the refusal so
@@ -485,6 +487,9 @@ case "$PACKAGE_MANAGER" in
   *) RUNNER="npm run"; EXECUTOR="npx" ;;
 esac
 # --- end lisa:pm-detect ---
+# RUNNER and EXECUTOR are handed on to the sourced extension files below
+# (.husky/pre-push.local, .husky/pre-push.verify) and the commands they run.
+export RUNNER EXECUTOR
 
 echo "📦 Using package manager: $PACKAGE_MANAGER"
 
@@ -593,7 +598,8 @@ if lisa_gate_covers type-correctness; then
 else
   echo "🔍 Running type check..."
   $RUNNER typecheck
-  if [ $? -ne 0 ]; then
+  STEP_STATUS=$?
+  if [ "$STEP_STATUS" -ne 0 ]; then
     echo "❌ Type check failed. Please fix TypeScript errors before pushing."
     exit 1
   fi
@@ -773,7 +779,8 @@ if lisa_gate_covers code-style-slow; then
 elif jq -e '.scripts["lint:slow"]' package.json >/dev/null 2>&1; then
   echo "🐢 Running slow lint rules..."
   $RUNNER lint:slow
-  if [ $? -ne 0 ]; then
+  STEP_STATUS=$?
+  if [ "$STEP_STATUS" -ne 0 ]; then
     echo "❌ Slow lint rules failed. Please fix linting issues before pushing."
     exit 1
   fi
@@ -798,7 +805,8 @@ if lisa_gate_covers dead-code; then
 elif [ -n "$KNIP_SCRIPT" ]; then
   echo "🗑️ Running dead code detection (knip)..."
   $RUNNER "$KNIP_SCRIPT"
-  if [ $? -ne 0 ]; then
+  STEP_STATUS=$?
+  if [ "$STEP_STATUS" -ne 0 ]; then
     echo "❌ Dead code detected. Please remove unused exports/dependencies before pushing."
     echo ""
     echo "To auto-fix some issues, run: $RUNNER knip:fix"
@@ -845,7 +853,7 @@ fi
 # measured, and the honest command for such a project is still `test:cov` —
 # slower, but answering to the floor that was configured for what it runs.
 COVERAGE_SCRIPT="test:cov"
-if node -e 'const s=require("./package.json").scripts||{};const preflight="node scripts/lib/worktree-dependencies.mjs && ";const resolve=(k,d)=>{const raw=s[k];const v=typeof raw==="string"&&raw.startsWith(preflight)?raw.slice(preflight.length):raw;const hop=/^\$npm_execpath\s+run\s+(\S+)$/.exec((v||"").trim());return hop&&d<4?resolve(hop[1],d+1):v;};const u=resolve("test:cov:unit",0);const marker=/^(?:env(?:\s+-\S+)*\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*LISA_COVERAGE_SCOPE=unit(?:\s|$)/;process.exit(typeof u==="string"&&marker.test(u.trim())?0:1)' >/dev/null 2>&1; then
+if node -e 'const s=require("./package.json").scripts||{};const preflight="node scripts/lib/worktree-dependencies.mjs && ";const resolve=(k,d)=>{const raw=s[k];const v=typeof raw==="string"&&raw.startsWith(preflight)?raw.slice(preflight.length):raw;const hop=/^[$]npm_execpath\s+run\s+(\S+)$/.exec((v||"").trim());return hop&&d<4?resolve(hop[1],d+1):v;};const u=resolve("test:cov:unit",0);const marker=/^(?:env(?:\s+-\S+)*\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*LISA_COVERAGE_SCOPE=unit(?:\s|$)/;process.exit(typeof u==="string"&&marker.test(u.trim())?0:1)' >/dev/null 2>&1; then
   COVERAGE_SCRIPT="test:cov:unit"
 fi
 
@@ -854,7 +862,8 @@ if lisa_gate_covers test-correctness coverage-adequacy; then
 else
   echo "🧪 Running unit tests with coverage ($COVERAGE_SCRIPT)..."
   $RUNNER "$COVERAGE_SCRIPT"
-  if [ $? -ne 0 ]; then
+  STEP_STATUS=$?
+  if [ "$STEP_STATUS" -ne 0 ]; then
     echo "❌ Unit tests or coverage thresholds failed. Please fix before pushing."
     exit 1
   fi
@@ -866,7 +875,8 @@ if lisa_gate_covers test-integration; then
 else
   echo "🧪 Running integration tests..."
   $RUNNER test:integration
-  if [ $? -ne 0 ]; then
+  STEP_STATUS=$?
+  if [ "$STEP_STATUS" -ne 0 ]; then
     echo "❌ Integration tests failed. Please fix failing tests before pushing."
     exit 1
   fi
@@ -882,7 +892,8 @@ if lisa_gate_covers test-meaningfulness; then
 elif jq -e '.scripts["test:mutation"]' package.json >/dev/null 2>&1; then
   echo "🧬 Running mutation-testing gate..."
   $RUNNER test:mutation
-  if [ $? -ne 0 ]; then
+  STEP_STATUS=$?
+  if [ "$STEP_STATUS" -ne 0 ]; then
     # Deliberately does NOT name a cause. This line used to say "mutation score
     # below threshold" for every nonzero exit, including a dry run killed by its
     # own timeout — a sentence that was false twice over, since no score was
@@ -972,9 +983,10 @@ fi
 # updates without editing the governance block above.
 if [ -f .husky/pre-push.local ]; then
   echo "🔌 Running project-specific pre-push checks (.husky/pre-push.local)..."
-  # shellcheck source=/dev/null
+  # shellcheck source=pre-push.local
   . .husky/pre-push.local
-  if [ $? -ne 0 ]; then
+  STEP_STATUS=$?
+  if [ "$STEP_STATUS" -ne 0 ]; then
     echo "❌ Project-specific pre-push checks failed."
     exit 1
   fi

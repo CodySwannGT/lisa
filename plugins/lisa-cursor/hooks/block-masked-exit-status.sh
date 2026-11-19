@@ -52,7 +52,7 @@ case "$command_str" in
   *) exit 0 ;;
 esac
 case "$command_str" in
-  *'$?'* | *'${?}'*) ;;
+  *\$\?* | *\$\{\?\}*) ;;
   *) exit 0 ;;
 esac
 

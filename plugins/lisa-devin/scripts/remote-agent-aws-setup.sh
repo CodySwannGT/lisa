@@ -424,6 +424,7 @@ is_observer_stage() {
 # is never claimed from either.
 assert_observer_reads() {
   local profile stage denied unreachable surface probe question output status
+  local probe_args
   profile="$1"
   stage="$2"
   denied=""
@@ -431,8 +432,9 @@ assert_observer_reads() {
 
   while IFS="$(printf '\t')" read -r surface probe question; do
     [ -n "$surface" ] || continue
+    read -r -a probe_args <<<"$probe"
     set +e
-    output="$(AWS_PAGER="" aws --profile "$profile" $probe 2>&1)"
+    output="$(AWS_PAGER="" aws --profile "$profile" "${probe_args[@]}" 2>&1)"
     status=$?
     set -e
     [ "$status" -eq 0 ] && continue

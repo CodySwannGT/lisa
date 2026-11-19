@@ -57,9 +57,9 @@ const GIT = resolveGit();
 const DRIVER = path.resolve("scripts/merge-generated-artifact.mjs");
 
 /** The real manifest path, which is what the resolution is scoped to. */
-const MANIFEST = "src/core/upstream-evidence-manifest.ts";
+const MANIFEST = "src/core/upstream-evidence-manifest.json";
 /** The real ledger path, deliberately NOT scoped to the resolution. */
-const LEDGER = "src/core/lisa-owned-hash-ledger.ts";
+const LEDGER = "src/core/lisa-owned-hash-ledger.json";
 /** A source file both branches edit, exactly as two agents would. */
 const SHARED = "all/copy-overwrite/scripts/lib/kill-marks.mjs";
 const BASE_HASH = "0000";
@@ -70,34 +70,26 @@ const CONFLICT_FENCE = "<<<<<<<";
 const UNMERGED = ["diff", "--name-only", "--diff-filter=U"] as const;
 
 /**
- * A manifest-shaped artifact: one block of `path: hash` entries.
+ * A manifest-shaped artifact: one record of `path: hash` entries, written the
+ * way the generator writes it.
  * @param hash - Hash recorded for the shared source file
- * @returns Artifact source
+ * @returns Artifact JSON
  */
 function manifest(hash: string): string {
-  return `/** Generated. Do not edit. */
-export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
-  Object.freeze({
-    ${JSON.stringify(SHARED)}:
-      "${hash}",
-  });
-`;
+  return `${JSON.stringify(
+    { UPSTREAM_EVIDENCE_MANIFEST: { [SHARED]: hash } },
+    null,
+    2
+  )}\n`;
 }
 
 /**
- * A ledger-shaped artifact: one block of append-only array entries.
+ * A ledger-shaped artifact: one record of append-only array entries.
  * @param hashes - Hashes recorded for the shared source file
- * @returns Artifact source
+ * @returns Artifact JSON
  */
 function ledger(hashes: readonly string[]): string {
-  const items = hashes.map(hash => `    "${hash}",`).join("\n");
-  return `/** Generated. Do not edit. */
-export const LEDGER: Readonly<Record<string, readonly string[]>> = Object.freeze({
-  ${JSON.stringify(SHARED)}: Object.freeze([
-${items}
-  ]),
-});
-`;
+  return `${JSON.stringify({ LEDGER: { [SHARED]: hashes } }, null, 2)}\n`;
 }
 
 /** Environment without the outer repository's git state. */
@@ -269,8 +261,8 @@ describe("manifest same-entry resolution", () => {
     // against the unfixed state.
     expect(git(root, ["merge", "lane-b", "-m", MERGE_MESSAGE]).status).toBe(0);
     const merged = read(root, MANIFEST);
-    expect(merged).toContain(`"${OUR_HASH}",`);
-    expect(merged).not.toContain(`"${THEIR_HASH}",`);
+    expect(merged).toContain(`"${OUR_HASH}"`);
+    expect(merged).not.toContain(`"${THEIR_HASH}"`);
     expect(
       merged.split("\n").filter(line => line.includes(SHARED))
     ).toHaveLength(1);
@@ -287,9 +279,9 @@ describe("manifest same-entry resolution", () => {
     const root = repo(true, APPENDING);
     git(root, ["merge", "lane-b", "-m", MERGE_MESSAGE]);
     const merged = read(root, LEDGER);
-    expect(merged).toContain(`"${BASE_HASH}",`);
-    expect(merged).toContain(`"${OUR_HASH}",`);
-    expect(merged).toContain(`"${THEIR_HASH}",`);
+    expect(merged).toContain(`"${BASE_HASH}"`);
+    expect(merged).toContain(`"${OUR_HASH}"`);
+    expect(merged).toContain(`"${THEIR_HASH}"`);
   });
 
   it("ledgerNonAppendStillConflicts: the resolution did not leak to the ledger", () => {
@@ -306,7 +298,7 @@ describe("which artifacts resolve a contested entry", () => {
     expect(resolvesDerivedEntries(MANIFEST)).toBe(true);
     expect(resolvesDerivedEntries(LEDGER)).toBe(false);
     expect([...DERIVED_ENTRY_RESOLUTION_PATHS]).toEqual([
-      "src/core/upstream-evidence-manifest.ts",
+      "src/core/upstream-evidence-manifest.json",
     ]);
   });
 
@@ -332,7 +324,7 @@ describe("which artifacts resolve a contested entry", () => {
       throw new Error(result.reason);
     }
     expect(result.resolved).toEqual([SHARED]);
-    expect(result.text).toContain(`"${OUR_HASH}",`);
+    expect(result.text).toContain(`"${OUR_HASH}"`);
   });
 
   it("tries the append-only union FIRST, even in a resolving artifact", () => {
@@ -351,8 +343,8 @@ describe("which artifacts resolve a contested entry", () => {
       throw new Error(result.reason);
     }
     expect(result.resolved).toEqual([]);
-    expect(result.text).toContain(`"${OUR_HASH}",`);
-    expect(result.text).toContain(`"${THEIR_HASH}",`);
+    expect(result.text).toContain(`"${OUR_HASH}"`);
+    expect(result.text).toContain(`"${THEIR_HASH}"`);
   });
 
   it("reports nothing when every entry merged on its own", () => {
@@ -373,13 +365,11 @@ describe("which artifacts resolve a contested entry", () => {
     const result = mergeGeneratedArtifact(
       manifest(BASE_HASH),
       manifest(OUR_HASH),
-      `/** Generated. Do not edit. */
-export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
-  Object.freeze({
-    "all/other.mjs":
-      "cccc",
-  });
-`,
+      `${JSON.stringify(
+        { UPSTREAM_EVIDENCE_MANIFEST: { "all/other.mjs": "cccc" } },
+        null,
+        2
+      )}\n`,
       MANIFEST
     );
     expect(result.ok).toBe(false);

@@ -25,11 +25,11 @@ import path from "node:path";
 import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { mergeGeneratedArtifact } from "../../../scripts/merge-generated-artifact.mjs";
 import {
-  mergeGeneratedArtifact,
-  parseArtifact,
-  renderArtifact,
-} from "../../../scripts/merge-generated-artifact.mjs";
+  parseJsonArtifact,
+  renderJsonArtifact,
+} from "../../../scripts/lib/merge-generated-json.mjs";
 import {
   boundedSpawnSync,
   useIoLatencyBudget,
@@ -408,14 +408,14 @@ describe("lisa-generated-artifact merge driver", () => {
 
   it("roundTripsTheRealArtifacts: parse then render is the identity on both checked-in files", () => {
     for (const file of [
-      "src/core/upstream-evidence-manifest.ts",
-      "src/core/lisa-owned-hash-ledger.ts",
+      "src/core/upstream-evidence-manifest.json",
+      "src/core/lisa-owned-hash-ledger.json",
     ]) {
       const text = readFileSync(path.resolve(file), "utf8");
-      const parsed = parseArtifact(text);
+      const parsed = parseJsonArtifact(text);
       expect(parsed.ok).toBe(true);
       if (!parsed.ok) throw new Error(parsed.reason);
-      expect(renderArtifact(parsed.chunks)).toBe(text);
+      expect(renderJsonArtifact(parsed.records)).toBe(text);
     }
   });
 

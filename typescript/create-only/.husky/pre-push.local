@@ -1,3 +1,5 @@
+# shellcheck shell=sh
+# Sourced by .husky/pre-push, so it runs in that hook's /bin/sh.
 # Project-specific pre-push checks
 #
 # This file is sourced by .husky/pre-push after Lisa's governance block.

@@ -1400,12 +1400,13 @@
       "children": []
     },
     "lib/push-timing.mjs": {
-      "sha256": "7f04b451325dfa5aea321ec5b5d1aa7f34e737c8395e3a8a2de7dcdbf7d22d3f",
+      "sha256": "486f67d83f1dd2a78cf3d63a5253a4d9a380833e201574d845bd9bb542ff1b78",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "node:fs",
         "node:os",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "dynamicImports": [],
       "children": []

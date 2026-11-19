@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 333,
-  "$names": 2463,
+  "$names": 2462,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -2156,6 +2156,7 @@
     ],
     "scripts/generate-export-surface.mjs": [
       "changelogSection",
+      "confirmedRemovals",
       "currentSurface",
       "exportedNames",
       "parseArtifact",
@@ -2165,7 +2166,6 @@
       "shippedScripts"
     ],
     "scripts/generate-lisa-owned-hash-ledger.mjs": [
-      "$",
       "DEFAULT_REPO_ROOT",
       "HISTORY_EXPORT",
       "LEDGER_EXPORT",
@@ -2184,8 +2184,6 @@
       "runLedgerCli"
     ],
     "scripts/generate-nightly-e2e-guard-certificate.mjs": [
-      "NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES",
-      "NIGHTLY_E2E_GUARD_CERTIFICATE_SCHEMA_VERSION",
       "RETAINED_RELEASES",
       "certifyNightlyGuardPackageArtifact",
       "generateNightlyGuardBehaviorCertificate",
@@ -2205,11 +2203,6 @@
       "inspectQuestionnaire",
       "renderQuestionnaire",
       "writeQuestionnaire"
-    ],
-    "scripts/generate-upstream-evidence-manifest.mjs": [
-      "UPSTREAM_EVIDENCE_MANIFEST",
-      "UPSTREAM_PUBLIC_COMMITS",
-      "UPSTREAM_SURFACE_MANIFEST"
     ],
     "scripts/install-generated-artifact-merge-driver.mjs": [
       "DRIVER_COMMAND",
@@ -2331,6 +2324,13 @@
       "MIN_TOKEN_LENGTH",
       "patternLiteral",
       "tokenCandidates"
+    ],
+    "scripts/lib/merge-generated-json.mjs": [
+      "formatGeneratedJson",
+      "isJsonArtifact",
+      "mergeJsonArtifact",
+      "parseJsonArtifact",
+      "renderJsonArtifact"
     ],
     "scripts/lib/mutation-performance-reporter.mjs": [
       "LisaMeasurementReporter",
@@ -2555,7 +2555,6 @@
       "withTestTimingsReporter"
     ],
     "scripts/lib/upstream-manifest-staleness.mjs": [
-      "blockFor",
       "describeStaleManifest",
       "diagnoseStaleManifest",
       "parseManifestInputs"

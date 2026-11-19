@@ -1,6 +1,6 @@
 /** Doctor check for a CodeRabbit CLI required by the project's gate policy. */
 import { execFile } from "node:child_process";
-import { env as processEnvironment } from "node:process";
+import { readEnv } from "../utils/process-environment.js";
 import { promisify } from "node:util";
 import { importGateRegistry } from "./gate-registry-source.js";
 import type { GateRegistryModule } from "./gate-report-registry.js";
@@ -81,7 +81,7 @@ function parseAuthenticationStatus(output: string): boolean | null {
  * @returns True when the standard CodeRabbit key variable is nonblank
  */
 function hasHeadlessApiKey(): boolean {
-  return (processEnvironment[CODERABBIT_API_KEY] ?? "").trim() !== "";
+  return (readEnv(CODERABBIT_API_KEY) ?? "").trim() !== "";
 }
 
 /**

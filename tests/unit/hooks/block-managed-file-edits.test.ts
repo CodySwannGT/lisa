@@ -105,8 +105,8 @@ beforeEach(() => {
   );
   mkdirSync(ledgerDir, { recursive: true });
   writeFileSync(
-    path.join(ledgerDir, "lisa-owned-hash-ledger.js"),
-    `const L={"scripts/classify-maestro-failures.mjs":true};\n`
+    path.join(ledgerDir, "lisa-owned-hash-ledger.json"),
+    `${JSON.stringify({ LISA_OWNED_HASH_LEDGER: { "scripts/classify-maestro-failures.mjs": [] } }, null, 2)}\n`
   );
   mkdirSync(
     path.join(

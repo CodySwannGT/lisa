@@ -1,3 +1,5 @@
+# shellcheck shell=sh
+# Git runs this hook with no shebang through /bin/sh, without -e.
 # BEGIN: AI GUARDRAILS 
 # --- lisa:pm-detect ---
 # Detect the package manager this project wants, honoring explicit opt-outs.
@@ -53,6 +55,9 @@ case "$PACKAGE_MANAGER" in
   *) RUNNER="npm run"; EXECUTOR="npx" ;;
 esac
 # --- end lisa:pm-detect ---
+# RUNNER and EXECUTOR are handed on to the commands this hook runs, as the
+# pre-push hook hands them to its extension files.
+export RUNNER EXECUTOR
 
 echo "📦 Using package manager: $PACKAGE_MANAGER"
 
@@ -236,7 +241,8 @@ if lisa_gate_covers credential-leakage; then
 elif command -v gitleaks >/dev/null 2>&1; then
   # Run gitleaks on staged files
   gitleaks protect --staged --redact -v
-  if [ $? -ne 0 ]; then
+  STEP_STATUS=$?
+  if [ "$STEP_STATUS" -ne 0 ]; then
     echo ""
     echo "❌ Secrets detected in staged files!"
     echo ""
@@ -297,7 +303,8 @@ if lisa_gate_covers artifact-freshness; then
 elif [ -f "scripts/check-derived-artifacts.mjs" ] && command -v node >/dev/null 2>&1; then
   echo "🧾 Checking generated artifacts..."
   node scripts/check-derived-artifacts.mjs --staged
-  if [ $? -ne 0 ]; then
+  STEP_STATUS=$?
+  if [ "$STEP_STATUS" -ne 0 ]; then
     exit 1
   fi
 fi

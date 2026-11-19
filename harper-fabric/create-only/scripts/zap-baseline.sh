@@ -103,7 +103,8 @@ if [ "$should_start_local" = true ]; then
 fi
 
 echo "==> Running OWASP ZAP baseline scan against $SCAN_TARGET_URL..."
-zap_args="-t $SCAN_TARGET_URL"
+zap_args=(-t "$SCAN_TARGET_URL")
+mount_rules=()
 
 if [ -f "$ZAP_RULES_FILE" ]; then
   echo "    Using rules file: $ZAP_RULES_FILE"
@@ -113,16 +114,13 @@ if [ -f "$ZAP_RULES_FILE" ]; then
       # The project root is already mounted at /zap/wrk — reference the rules
       # file inside it; a second mount on /zap/wrk collides
       # (docker: Duplicate mount point).
-      zap_args="$zap_args -c /zap/wrk/${rules_abs#"$PROJECT_ROOT"/}"
-      mount_rules=""
+      zap_args+=(-c "/zap/wrk/${rules_abs#"$PROJECT_ROOT"/}")
       ;;
     *)
-      zap_args="$zap_args -c /zap/rules/$(basename "$rules_abs")"
-      mount_rules="-v $(dirname "$rules_abs"):/zap/rules:ro"
+      zap_args+=(-c "/zap/rules/$(basename "$rules_abs")")
+      mount_rules=(-v "$(dirname "$rules_abs"):/zap/rules:ro")
       ;;
   esac
-else
-  mount_rules=""
 fi
 
 # The zaproxy image runs as the unprivileged `zap` user (uid 1000); CI
@@ -136,9 +134,9 @@ chmod o+w "$(pwd)"
 docker run --rm \
   --add-host=host.docker.internal:host-gateway \
   -v "$(pwd)":/zap/wrk/:rw \
-  $mount_rules \
+  ${mount_rules[@]+"${mount_rules[@]}"} \
   ghcr.io/zaproxy/zaproxy:stable \
-  zap-baseline.py $zap_args \
+  zap-baseline.py "${zap_args[@]}" \
   -r "$REPORT_FILE" \
   -J zap-report.json \
   -w zap-report.md \

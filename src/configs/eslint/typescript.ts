@@ -23,6 +23,7 @@ import {
   getTsFilesOverride,
   getTsTestFilesOverride,
 } from "./base.js";
+import { processEnvironmentBans } from "./process-environment-bans.js";
 
 // Re-export base utilities for stack-specific configs to use
 export {
@@ -99,12 +100,9 @@ export function getTypescriptConfig({
         // @see the host rules in .agents/rules/
         "no-restricted-syntax": [
           "error",
-          {
-            selector:
-              "MemberExpression[object.name='process'][property.name='env']",
-            message:
-              "Direct process.env access is forbidden. Use ConfigService (in NestJS context) or getStandaloneConfig() (in Lambda handlers). See the host rules in .agents/rules/.",
-          },
+          ...processEnvironmentBans(
+            "Direct process.env access is forbidden. Use ConfigService (in NestJS context) or getStandaloneConfig() (in Lambda handlers). See the host rules in .agents/rules/."
+          ),
         ],
 
         // Disabled: NestJS relies heavily on classes for modules, controllers, services, etc.

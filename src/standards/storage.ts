@@ -364,25 +364,23 @@ function assertSameFile(expected: FileMetadata, actual: FileMetadata): void {
  * Fill a fixed-size buffer from an opened descriptor.
  * @param handle - Open proof file handle
  * @param bytes - Destination buffer
+ * @param total - Bytes already read into the buffer
  * @returns Number of bytes read
  */
 async function readDescriptorBytes(
   handle: Awaited<ReturnType<typeof open>>,
-  bytes: Buffer
+  bytes: Buffer,
+  total = 0
 ): Promise<number> {
-  // eslint-disable-next-line functional/no-let -- fixed-size descriptor read advances one bounded offset
-  let total = 0;
-  while (total < bytes.byteLength) {
-    const chunk = await handle.read(
-      bytes,
-      total,
-      bytes.byteLength - total,
-      total
-    );
-    if (chunk.bytesRead === 0) break;
-    total += chunk.bytesRead;
-  }
-  return total;
+  if (total >= bytes.byteLength) return total;
+  const chunk = await handle.read(
+    bytes,
+    total,
+    bytes.byteLength - total,
+    total
+  );
+  if (chunk.bytesRead === 0) return total;
+  return await readDescriptorBytes(handle, bytes, total + chunk.bytesRead);
 }
 
 /**

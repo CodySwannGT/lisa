@@ -75,7 +75,7 @@ LISA_HOOK_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
 if [ -n "${CLAUDE_PROJECT_DIR:-}" ] &&
   [ -f "$LISA_HOOK_DIR/lisa-edit-gate.sh" ] &&
   cd "$CLAUDE_PROJECT_DIR" 2>/dev/null; then
-  # shellcheck source=/dev/null
+  # shellcheck source=lisa-edit-gate.sh
   . "$LISA_HOOK_DIR/lisa-edit-gate.sh"
   if LISA_GATE_COMMANDS="$(lisa_edit_gate_tasks pre-tool migration-provenance)"; then
     lisa_edit_gate_run "$FILE_PATH" "$LISA_GATE_COMMANDS"

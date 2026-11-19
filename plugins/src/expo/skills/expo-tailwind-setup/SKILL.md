@@ -256,16 +256,28 @@ import { useCssElement } from "react-native-css";
 import React from "react";
 import { StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
-import { Image as RNImage } from "expo-image";
+import {
+  Image as RNImage,
+  type ImageContentFit,
+  type ImageContentPosition,
+  type ImageStyle,
+} from "expo-image";
 
 const AnimatedExpoImage = Animated.createAnimatedComponent(RNImage);
 
 export type ImageProps = React.ComponentProps<typeof Image>;
 
+/** CSS image properties react-native-css emits that expo-image takes as props. */
+interface CssImageStyle {
+  objectFit?: ImageContentFit;
+  objectPosition?: ImageContentPosition;
+}
+
 function CSSImage(props: React.ComponentProps<typeof AnimatedExpoImage>) {
-  // @ts-expect-error: Remap objectFit style to contentFit property
-  const { objectFit, objectPosition, ...style } =
+  // Remap objectFit/objectPosition styles to the contentFit/contentPosition props.
+  const flattened: ImageStyle & CssImageStyle =
     StyleSheet.flatten(props.style) || {};
+  const { objectFit, objectPosition, ...style } = flattened;
 
   return (
     <AnimatedExpoImage
@@ -275,7 +287,6 @@ function CSSImage(props: React.ComponentProps<typeof AnimatedExpoImage>) {
       source={
         typeof props.source === "string" ? { uri: props.source } : props.source
       }
-      // @ts-expect-error: Style is remapped above
       style={style}
     />
   );

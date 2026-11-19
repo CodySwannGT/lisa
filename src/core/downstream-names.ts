@@ -38,6 +38,9 @@
  * @module core/downstream-names
  */
 import { createHash } from "node:crypto";
+import { currentEnvironment } from "../utils/process-environment.js";
+
+import { Memo } from "../utils/memo.js";
 
 /**
  * Domain separator mixed into every digest.
@@ -162,17 +165,16 @@ export interface NameMatcher {
 }
 
 /**
- * Read the process environment through one narrow, reviewable exception.
+ * Read the process environment.
  *
- * The ban exists so application code reaches configuration through a config
- * service. This is a repository scanner with no project config to reach, and
+ * Application code reaches configuration through a config service; this is a
+ * repository scanner with no project config to reach, and
  * the variable it reads is the escape hatch for a name too sensitive to commit
  * even as a digest.
  * @returns The current process environment.
  */
 function readProcessEnv(): NodeJS.ProcessEnv {
-  // eslint-disable-next-line no-restricted-syntax -- a repository scanner has no config service to read
-  return process.env;
+  return currentEnvironment();
 }
 
 /**
@@ -182,7 +184,7 @@ function readProcessEnv(): NodeJS.ProcessEnv {
  * per-matcher answer cache reachable across files; rebuilding per file would
  * leave every scan hashing from cold. In practice this holds one entry.
  */
-const built = new Map<string, NameMatcher>();
+const built = new Memo<string, NameMatcher>();
 
 /**
  * Assemble a matcher from the committed entries plus a raw environment value.
@@ -220,13 +222,7 @@ function buildMatcher(raw: string): NameMatcher {
 export function hostNameEntries(
   env: NodeJS.ProcessEnv = readProcessEnv()
 ): NameMatcher {
-  const raw = env[NAME_ENV_VAR] ?? "";
-  const existing = built.get(raw);
-  if (existing !== undefined) return existing;
-  const matcher = buildMatcher(raw);
-  // eslint-disable-next-line functional/immutable-data -- a pure memo of a pure function; it changes how long an answer takes, never the answer
-  built.set(raw, matcher);
-  return matcher;
+  return built.resolve(env[NAME_ENV_VAR] ?? "", buildMatcher);
 }
 
 /** Maximal runs of alphanumerics — the only thing a name can be made of. */
@@ -241,7 +237,7 @@ const WORD = /[A-Za-z0-9]+/gu;
  * loaded — one shared cache would let a matcher answer another matcher's
  * question, which is how a guard starts reporting a stale verdict.
  */
-const answered = new WeakMap<NameMatcher, Map<string, boolean>>();
+const answered = new Memo<NameMatcher, Memo<string, boolean>>();
 
 /**
  * Whether a candidate spelling is one of the known names.
@@ -250,14 +246,9 @@ const answered = new WeakMap<NameMatcher, Map<string, boolean>>();
  * @returns True when the candidate hashes to a known entry.
  */
 function isKnownName(candidate: string, matcher: NameMatcher): boolean {
-  const cache = answered.get(matcher) ?? new Map<string, boolean>();
-  if (!answered.has(matcher)) answered.set(matcher, cache);
-  const remembered = cache.get(candidate);
-  if (remembered !== undefined) return remembered;
-  const known = matcher.entries.has(nameEntry(candidate));
-  // eslint-disable-next-line functional/immutable-data -- same memo, same guarantee
-  cache.set(candidate, known);
-  return known;
+  return answered
+    .resolve(matcher, () => new Memo<string, boolean>())
+    .resolve(candidate, spelling => matcher.entries.has(nameEntry(spelling)));
 }
 
 /**
@@ -279,12 +270,68 @@ function continues(
   return next.index - gap === 1 && NAME_SEPARATORS.has(text[gap] ?? "");
 }
 
-/* eslint-disable functional/no-let, functional/immutable-data -- a scan this size cannot afford an allocation per word, and neither accumulator escapes the call */
+/** One scan window: the words a name may start at, and where the scan stops. */
+interface NameWindow {
+  /** The line being scanned. */
+  readonly text: string;
+  /** Every word on the line. */
+  readonly words: readonly RegExpExecArray[];
+  /** Index of the word the window starts at. */
+  readonly first: number;
+  /** Index one past the last word the window may reach. */
+  readonly end: number;
+  /** Prepared matcher. */
+  readonly matcher: NameMatcher;
+}
+
+/**
+ * Widen a window by one word at a time, collecting every prefix that spells a
+ * known name.
+ *
+ * Stops at the first word that does not continue the name, at the window's
+ * word limit, or once the candidate outgrows the longest known name, because
+ * adding a word can only make it longer still. Recursion carries the state, so
+ * a miss allocates nothing beyond the candidate string itself.
+ * @param window - The window being widened.
+ * @param index - Index of the word to add next.
+ * @param candidate - The alphanumerics joined so far.
+ * @param found - Spans matched so far.
+ * @returns Every matched source span, in order.
+ */
+function widenWindow(
+  window: NameWindow,
+  index: number,
+  candidate: string,
+  found: readonly string[]
+): readonly string[] {
+  const word = window.words[index];
+  const previous = window.words[index - 1];
+  if (index >= window.end || word === undefined) return found;
+  if (
+    index > window.first &&
+    previous !== undefined &&
+    !continues(window.text, previous, word)
+  ) {
+    return found;
+  }
+  const widened = candidate + word[0];
+  if (widened.length > window.matcher.maxLength) return found;
+  const start = window.words[window.first]?.index ?? 0;
+  const matched =
+    window.matcher.lengths.has(widened.length) &&
+    isKnownName(widened, window.matcher);
+  return widenWindow(
+    window,
+    index + 1,
+    widened,
+    matched
+      ? [...found, window.text.slice(start, word.index + word[0].length)]
+      : found
+  );
+}
+
 /**
  * Every span starting at one word that spells a known host name.
- *
- * The window stops widening as soon as it is longer than the longest known
- * name, because adding a word can only make it longer still.
  * @param text - The line being scanned.
  * @param words - Every word on the line.
  * @param first - Index of the word the window starts at.
@@ -297,25 +344,9 @@ function namesStartingAt(
   first: number,
   matcher: NameMatcher
 ): readonly string[] {
-  const start = words[first]?.index ?? 0;
-  const found: string[] = [];
-  let candidate = "";
-  let previous: RegExpExecArray | undefined;
-  for (const word of words.slice(first, first + MAX_NAME_WORDS)) {
-    if (previous !== undefined && !continues(text, previous, word)) break;
-    previous = word;
-    candidate += word[0];
-    if (candidate.length > matcher.maxLength) break;
-    if (
-      matcher.lengths.has(candidate.length) &&
-      isKnownName(candidate, matcher)
-    ) {
-      found.push(text.slice(start, word.index + word[0].length));
-    }
-  }
-  return found;
+  const window = { text, words, first, end: first + MAX_NAME_WORDS, matcher };
+  return widenWindow(window, first, "", []);
 }
-/* eslint-enable functional/no-let, functional/immutable-data -- back to repository defaults */
 
 /**
  * Every span of one line that spells a known host name.

@@ -102,7 +102,7 @@ describe("maestro-native flow_runner seam", () => {
     expect(script).not.toContain(FLOWS_DIR_EXPANSION);
     expect(driver?.run).not.toContain(FLOWS_DIR_EXPANSION);
     expect(driver?.run).toContain(
-      'bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" $MAESTRO_E2E_ARGS "$2"'
+      'bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" "${maestro_args[@]}" "$2"'
     );
     expect(driver?.run).toContain(
       'run_target maestro-android-report.xml "$FLOWS_DIR"'
@@ -111,7 +111,7 @@ describe("maestro-native flow_runner seam", () => {
     // invocation lives inside a function so the suite and each per-flow retry
     // can both call it.
     expect(driver?.run?.replace(/\n\s+/g, " ")).toContain(
-      'maestro test "$2" \\ $MAESTRO_E2E_ARGS'
+      'maestro test "$2" \\ "${maestro_args[@]}"'
     );
     expect(
       String(driver?.run ?? "")
@@ -140,7 +140,7 @@ describe("maestro-native flow_runner seam", () => {
     // thing to run last. The internal third parameter chooses a fresh debug
     // root for a selected retry; the original suite keeps maestro-debug.
     expect(iosRun?.run).toContain(
-      'bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" $MAESTRO_E2E_ARGS "$2"'
+      'bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" "${maestro_args[@]}" "$2"'
     );
     // …and the suite call still supplies exactly the pair the assertion above
     // used to spell out inline.
@@ -152,7 +152,7 @@ describe("maestro-native flow_runner seam", () => {
     // which shifts it two columns. What matters is that the target and the
     // assembled args still reach the same command, not how deep it sits.
     expect(iosRun?.run?.replace(/\n\s+/g, " ")).toContain(
-      'maestro test "$2" \\ $MAESTRO_E2E_ARGS'
+      'maestro test "$2" \\ "${maestro_args[@]}"'
     );
   });
 
