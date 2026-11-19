@@ -50,7 +50,7 @@
 - Added the four commands to the command table in `wiki/documentation/overview.md`, and the new page to `wiki/documentation/index.md`.
 - Indexed the new page under `## Documentation` in `wiki/index.md`, and extended the Concepts entry for the specification to point at the catalogue.
 - Added the matching section to `README.md` ("Checking the controls of any repository") and a pointer from `docs/design/paired-proof.md` to `docs/design/before-enforce.md`.
-- Provenance: a repository-sourced update, written from the merged code under `src/controls/`, the four skills under `plugins/src/base/skills/`, each command's `--help`, and the design notes under `docs/design/`. Those remain in the repository as the detailed source. Source note: [2026-11-17 control audit documentation](sources/repository/2026-11-17-control-audit-docs.md) (added on 2026-11-19). Asserted by `tests/unit/docs/control-audit-docs.test.ts`.
+- Provenance: a repository-sourced update, written from the merged code under `src/controls/`, the four skills under `plugins/src/base/skills/`, each command's `--help`, and the design notes under `docs/design/`. Those remain in the repository as the detailed source. Source note: [2026-11-17 control audit documentation](sources/repository/2026-11-17-control-audit-docs.md) (added on 2026-11-19). Asserted by `tests/unit/controls/control-audit-docs.test.ts` (under `tests/unit/docs/` until 2026-11-19).
 
 ## 2026-11-13 - Dependency sign-off off by default
 

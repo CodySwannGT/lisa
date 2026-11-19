@@ -739,18 +739,21 @@ Skip while `capacity` reports `paused`. Otherwise:
       grooming is not the operator's inbox.
    3. **Route the repo** as in step 2.2, but never ask: an ambiguous or multi-repo backlog item is
       skipped.
-   4. **Promote** in ONE `lisa-tracker-write` update: assignee = the first `operatorIds` entry
-      with any `login:` / `id:` prefix removed (the bare login or id; a GitHub assignee is set by
-      login, so on GitHub use a `login:` or plain first entry), move to the `ready` role, comment
-      `[lisa-session-manager] Promoted from backlog: validation passed; assigned to the operator.`
-      Read it back with `lisa-tracker-read` and continue only when the role is `ready` and the
-      assignee is that operator. Then `ledger validation-cleared <ref>`.
+   4. **Promote** in ONE `lisa-tracker-write` update that moves the item to the `ready` role and,
+      following "Taking an item", never replaces an assignee: an item that step 1 found assigned
+      to "me" or an operator keeps that assignee, and the update does not touch it; an
+      unassigned item is assigned to "me" (rule 3). Comment
+      `[lisa-session-manager] Promoted from backlog: validation passed; assigned to <who>.`, where
+      `<who>` is the assignee the item ends with ("me" or the operator it already had). Read it
+      back with `lisa-tracker-read` and continue only when the role is `ready` and the assignee
+      is exactly the one the update intended: the unchanged existing assignee, or "me" for an
+      item that was unassigned. Then `ledger validation-cleared <ref>`.
    5. Continue with steps 2.3 and 2.4 (claim in the child repo, re-read, spawn, handle the exit)
       exactly as for a Ready item, with one change: on exit 0, post
       `[<REF>] promoted from backlog and started in <repo> (<name>)` in place of the plain start
       notice. Every other exit keeps its step 2.4 handling.
    A promotion written and read back counts as a state change for the run outcome; a spawn that
-   then fails follows step 2.4's exits (the item stays in Ready, assigned to the operator).
+   then fails follows step 2.4's exits (the item stays in Ready with the assignee step 4 left on it).
 
 ### 3. Report and record
 
