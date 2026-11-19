@@ -441,10 +441,14 @@ function fetchReleases(chosen, cacheDir) {
       continue;
     }
     const staging = mkdtempSync(path.join(tmpdir(), "lisa-release-"));
+    // A download, not a local start, so it gets the same bound as the
+    // extraction below rather than the 30 s default for a child start.
+    // Measured 2026-11-18: one 18 MB release took 112 s on a working but
+    // slow link, so the default refused a run that would have succeeded.
     boundedExecFileSync(
       "npm",
       ["pack", `${PACKAGE_NAME}@${version}`, "--pack-destination", staging],
-      { stdio: ["ignore", "pipe", "pipe"] }
+      { stdio: ["ignore", "pipe", "pipe"], timeout: 300_000 }
     );
     const tarball = readdirSync(staging).find(entry => entry.endsWith(".tgz"));
     if (tarball === undefined) {
