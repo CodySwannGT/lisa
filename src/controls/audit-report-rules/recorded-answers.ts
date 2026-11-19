@@ -42,7 +42,7 @@ import {
 } from "../audit-report-types.js";
 
 /** The name this rule's violations carry. */
-export const RECORDED_ANSWERS_RULE = "recorded-answers";
+const RECORDED_ANSWERS_RULE = "recorded-answers";
 
 /** The command that brings the record in line with what was typed. */
 const ABSORB = "`lisa controls report-check --absorb`";

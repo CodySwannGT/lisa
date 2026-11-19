@@ -175,9 +175,7 @@ export function uncommittedNotes(
  *   from the last commit
  * @returns One sentence; none when no such file was taken
  */
-export function boundToContentNotes(
-  carried: readonly string[]
-): readonly string[] {
+function boundToContentNotes(carried: readonly string[]): readonly string[] {
   const one = carried.length === 1;
   return carried.length === 0
     ? []

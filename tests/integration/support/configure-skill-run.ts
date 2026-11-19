@@ -71,7 +71,7 @@ const PATCH_FILE = "patch file";
 const SUPPLIED_VALUE = /"<([a-z ]+)>"/gu;
 
 /** One value the stand-in measured, as the skill's command takes it. */
-export interface Measurement {
+interface Measurement {
   /** What the number is called on the check. */
   readonly name: string;
   /** The number as the repository's own tool reported it. */
@@ -81,7 +81,7 @@ export interface Measurement {
 }
 
 /** One test change the stand-in writes with the skill's own commands. */
-export interface TestChange {
+interface TestChange {
   /** The patch file the change is written to, from the repository root. */
   readonly file: string;
   /**
@@ -93,7 +93,7 @@ export interface TestChange {
 }
 
 /** What the stand-in does on the discovery road. */
-export interface ConfigureDecisions {
+interface ConfigureDecisions {
   /** The values it measured, one per threshold. None when left out. */
   readonly measurements?: readonly Measurement[];
   /**

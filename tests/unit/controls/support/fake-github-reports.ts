@@ -15,13 +15,13 @@
 export const ACTIONS_APP_ID = 15_368;
 
 /** The app the paved-road declaration says reports its awaited check. */
-export const REVIEW_APP_ID = 4242;
+const REVIEW_APP_ID = 4242;
 
 /** The awaited check of the paved-road declaration. */
 const REVIEW_CHECK = "Review Bot";
 
 /** The checks every protect fixture derives, reported unless a case says otherwise. */
-export const FIXTURE_CHECKS: readonly string[] = [
+const FIXTURE_CHECKS: readonly string[] = [
   "🔍 Quality Checks / 🧹 Lint",
   "🔍 Quality Checks / 🧪 Run Unit Tests",
   "🔍 Quality Checks / 🔒 Security Scan",
@@ -34,7 +34,7 @@ export const FIXTURE_CHECKS: readonly string[] = [
  * Actions for every other. `appId: null` is a run the platform names no app
  * for.
  */
-export type ReportedRun =
+type ReportedRun =
   | string
   | { readonly name: string; readonly appId: number | null };
 
@@ -85,7 +85,7 @@ export type ReportedAnswer =
  * @param index - The pull request's position, most recently updated first
  * @returns A commit id
  */
-export function pullHead(index: number): string {
+function pullHead(index: number): string {
   return `${String(index + 1).padStart(2, "0")}c0ffee`.padEnd(40, "0");
 }
 

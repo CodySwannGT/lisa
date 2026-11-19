@@ -35,7 +35,7 @@ import type { PlatformFacts, SentRequest } from "./protect-types.js";
 export const PULL_REQUEST_POINT_MOMENT = "pull-request";
 
 /** How the run was asked to learn about pull requests. */
-export type PullRequestMode = "observed" | "canaries";
+type PullRequestMode = "observed" | "canaries";
 
 /**
  * What the platform's settings say about an entry's checks.

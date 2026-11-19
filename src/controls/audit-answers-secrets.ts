@@ -26,7 +26,7 @@ import { describeCredentialKind } from "./secret-shapes.js";
  * @param entries - Every question entry read from the files people type in
  * @returns One line per answer and shape; empty when every answer is clean
  */
-export function answersHoldingCredentials(
+function answersHoldingCredentials(
   entries: readonly InlineEntry[]
 ): readonly string[] {
   return entries.flatMap(entry =>

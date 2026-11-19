@@ -49,20 +49,3 @@ export function isNeededBy(
       dependent.scope === finding.scope
   );
 }
-
-/**
- * The probes that stand between a finding and an answer: the ones the
- * finding depends on that did not get one.
- * @param report - A shape-checked report
- * @param finding - The finding, by criterion and scope
- * @returns Those probes, in the report's order; empty when the finding
- *   depends on no outside system, or every one it depends on answered
- */
-export function unreachedProbesOf(
-  report: AuditReport,
-  finding: AuditProbeDependent
-): readonly AuditProbe[] {
-  return report.probes.filter(
-    probe => !isReached(probe) && isNeededBy(probe, finding)
-  );
-}

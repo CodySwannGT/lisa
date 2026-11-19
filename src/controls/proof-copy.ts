@@ -87,7 +87,7 @@ const COPY_SETTINGS: readonly (readonly [string, string])[] = [
 ];
 
 /** What was read from the operator's repository, without changing it. */
-export interface ProofCopySource {
+interface ProofCopySource {
   /** The commit the operator is on. */
   readonly commit: string;
   /** The branch the operator is on; `null` on a detached `HEAD`. */
@@ -132,11 +132,8 @@ export type ProofCopyBuild =
   | { readonly problem: null; readonly copy: ProofCopy }
   | { readonly problem: string };
 
-/** Whether a copy gets Lisa's carriers: the two ways one can be built. */
-export const PROOF_COPY_CARRIERS = ["installed", "none"] as const;
-
 /** One of the two ways a copy can be built. */
-export type ProofCopyCarriers = (typeof PROOF_COPY_CARRIERS)[number];
+type ProofCopyCarriers = "installed" | "none";
 
 /** Why git runs no carrier in a copy that was built with none. */
 export const NO_CARRIERS_REASON =

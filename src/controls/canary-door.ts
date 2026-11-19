@@ -34,7 +34,7 @@ export type Answered =
   | { readonly ok: false; readonly reason: string };
 
 /** The methods a canary write may use. Accepting a pull request needs another. */
-export type WriteMethod = "POST" | "PATCH" | "DELETE";
+type WriteMethod = "POST" | "PATCH" | "DELETE";
 
 /** The requests a canary run can make. */
 export interface CanaryDoor {
@@ -135,11 +135,7 @@ const WRITE_RULES: readonly WriteRule[] = [
  * @param body - The request body
  * @returns Whether a rule allows it
  */
-export function isCanaryWrite(
-  method: string,
-  path: string,
-  body: unknown
-): boolean {
+function isCanaryWrite(method: string, path: string, body: unknown): boolean {
   return WRITE_RULES.some(
     rule =>
       rule.method === method &&

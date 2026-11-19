@@ -78,7 +78,7 @@ export const TASK_RUNNER_PROGRAMS: Readonly<
 };
 
 /** The shells whose `-c` script is read for a runner's name. */
-export const SCRIPT_SHELLS = ["sh", "bash", "dash", "zsh", "ksh", "ash"];
+const SCRIPT_SHELLS = ["sh", "bash", "dash", "zsh", "ksh", "ash"];
 
 /** The file every package manager reads its scripts from. */
 const PACKAGE_MANIFEST = "package.json";

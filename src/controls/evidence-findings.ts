@@ -85,7 +85,7 @@ const FOUND_STATE: AuditFindingState = "exists-not-enforced";
 const NAMED_LOCATORS = 5;
 
 /** What a finding in each state shows, or `null` when it gets no record. */
-export const FINDING_RESULTS: Readonly<
+const FINDING_RESULTS: Readonly<
   Record<AuditFindingState, EvidenceResult | null>
 > = {
   proved: null,

@@ -44,7 +44,7 @@ export interface LiveRuleset {
 }
 
 /** One required check a live ruleset carries. */
-export interface LiveContext {
+interface LiveContext {
   readonly context: string;
   readonly integration_id: number | null;
   readonly ruleset: string;
@@ -75,7 +75,7 @@ export interface RepairAction {
 }
 
 /** What became of one repair step. */
-export interface RepairOutcome {
+interface RepairOutcome {
   readonly action: RepairAction;
   readonly applied: boolean;
   readonly note: string | null;
@@ -96,7 +96,7 @@ export type LivePolicyRead =
     };
 
 /** The slice of `lisa-reconcile-policy.mjs` the command calls. */
-export interface ReconcileModule {
+interface ReconcileModule {
   readonly ghRunner: GhRunner;
   /** Why a read gave up, by the name the reconciler reports it under. */
   readonly UNPROVEN: {
@@ -148,7 +148,7 @@ export interface ReconcileModule {
 }
 
 /** The slice of `lisa-ruleset-payload.mjs` the command calls. */
-export interface PayloadModule {
+interface PayloadModule {
   readonly buildRulesetPayload: (input: {
     readonly gates: Readonly<Record<string, unknown>>;
     readonly policy: unknown;
@@ -156,7 +156,7 @@ export interface PayloadModule {
 }
 
 /** The slice of `lisa-ruleset-reach.mjs` the command calls. */
-export interface ReachModule {
+interface ReachModule {
   readonly rulesetReach: (input: {
     readonly ruleset: unknown;
     readonly branches: readonly string[];
@@ -173,7 +173,7 @@ export interface ReachModule {
 }
 
 /** The gate registry, with the two functions the register does not use. */
-export type ProtectGatesModule = Omit<GatesModule, "readGates"> & {
+type ProtectGatesModule = Omit<GatesModule, "readGates"> & {
   readonly contextsFor: (
     gates: unknown,
     options: { readonly moment: string }

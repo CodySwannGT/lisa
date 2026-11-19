@@ -34,7 +34,7 @@ import { describeScope, findingViolation } from "../audit-report-wording.js";
 import type { InScopeCriterion } from "../catalogue.js";
 
 /** The name this rule's violations carry. */
-export const COVERAGE_RULE = "coverage";
+const COVERAGE_RULE = "coverage";
 
 /**
  * The folders a report lists: its parts other than the whole repository.
@@ -52,7 +52,7 @@ function listedFolders(scopes: readonly string[]): readonly string[] {
  * @returns Every listed folder for a requirement answered per part, when the
  *   report lists any; otherwise the whole repository alone
  */
-export function answeringScopes(
+function answeringScopes(
   criterion: InScopeCriterion,
   scopes: readonly string[]
 ): readonly string[] {

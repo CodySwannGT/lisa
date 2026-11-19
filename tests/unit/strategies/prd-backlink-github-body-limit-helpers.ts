@@ -38,7 +38,7 @@ const SKILL_PATH = "skills/lisa-prd-backlink/SKILL.md";
 export const SOURCE_COPY = `plugins/src/base/${SKILL_PATH}`;
 
 /** One requirement from the PRD's register. */
-export interface Requirement {
+interface Requirement {
   readonly id: string;
   readonly heading: string;
   readonly text: string;

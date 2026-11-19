@@ -56,7 +56,7 @@ const INSTEAD: Readonly<Record<EnforcementLocation, string>> = {
 const AGAIN = `Then run "${RECONCILE_INVOCATION}" again.`;
 
 /** What to do about a command no entry declares. */
-export const UNDECLARED_NEXT = `If the team relies on this check, declare it in the "gates" block of ${GATES_DECLARATION_PATH} and run "lisa controls register" so that the register lists it. If it does not, nothing has to change: this command never removes anything.`;
+const UNDECLARED_NEXT = `If the team relies on this check, declare it in the "gates" block of ${GATES_DECLARATION_PATH} and run "lisa controls register" so that the register lists it. If it does not, nothing has to change: this command never removes anything.`;
 
 /**
  * Say what to do about a point that nothing runs.

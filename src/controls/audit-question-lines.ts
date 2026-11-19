@@ -117,7 +117,7 @@ function oneSpelling(markers: string): string {
  * @returns The line evenly spaced, its opening list markers in one spelling,
  *   and without any `\`, `*`, `_` or backtick
  */
-export function wordsOf(line: string): string {
+function wordsOf(line: string): string {
   return evenlySpaced(
     evenlySpaced(line)
       .replace(LEADING_LIST_MARKERS, oneSpelling)

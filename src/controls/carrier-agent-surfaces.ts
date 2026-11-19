@@ -110,7 +110,7 @@ export interface NoAgentHookSurface {
 export const AGENT_HOOK_TIMEOUT_SECONDS = 150;
 
 /** The Lisa-owned hooks file Copilot reads from the repository. */
-export const COPILOT_HOOKS_FILE = ".github/hooks/lisa-controls.json";
+const COPILOT_HOOKS_FILE = ".github/hooks/lisa-controls.json";
 
 /**
  * The Lisa-owned plugin OpenCode loads from the repository. It sits in the

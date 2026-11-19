@@ -70,7 +70,7 @@ export function point(
  * @param outcome - What the platform did with the change
  * @returns The half's result
  */
-export function canaryHalf(
+function canaryHalf(
   half: ProofHalfResult["half"],
   outcome: ProofHalfResult["outcome"]
 ): ProofHalfResult {

@@ -19,7 +19,7 @@ import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
 const SCRIPT_PATH = path.resolve(
   "plugins/src/base/hooks/block-direct-issue-create.sh"
 );
-const BASH_PATH = "/bin/bash";
+export const BASH_PATH = "/bin/bash";
 
 /** Claude's refusal code. Anything else lets the command through. */
 export const EXIT_BLOCKED = 2;

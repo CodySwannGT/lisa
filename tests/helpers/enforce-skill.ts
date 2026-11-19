@@ -19,7 +19,7 @@ import { fencedBlocks } from "./audit-skill.js";
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
 /** The skill, as authored. Every agent's copy is built from this file. */
-export const ENFORCE_SKILL_SOURCE = path.join(
+const ENFORCE_SKILL_SOURCE = path.join(
   "plugins",
   "src",
   "base",

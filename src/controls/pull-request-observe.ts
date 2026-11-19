@@ -40,7 +40,7 @@ import { platformNotReached } from "./pull-request-wording.js";
 import type { ControlRegister } from "./register-types.js";
 
 /** Why the settings say nothing about any entry. */
-export interface Unread {
+interface Unread {
   readonly reason: Extract<
     ProofEntryReason,
     "merge-protection-unread" | "platform-not-reached"

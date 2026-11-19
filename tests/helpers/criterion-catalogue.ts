@@ -76,7 +76,7 @@ export interface ExcludedCriterion {
 }
 
 /** Any catalogue entry. */
-export type Criterion = InScopeCriterion | ExcludedCriterion;
+type Criterion = InScopeCriterion | ExcludedCriterion;
 
 /** The catalogue file. */
 export interface Catalogue {

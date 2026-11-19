@@ -83,7 +83,7 @@ export interface CarrierRepository {
  * @param pushRan - The file the push check records in
  * @returns The `gates` block
  */
-export function carrierGates(commitRan: string, pushRan: string): GatesBlock {
+function carrierGates(commitRan: string, pushRan: string): GatesBlock {
   return {
     "code-style": {
       commit: "required",

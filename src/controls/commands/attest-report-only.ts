@@ -37,7 +37,7 @@ export interface ReportOnlyOutput {
  * @param run - The results
  * @returns The line, without the command's name in front
  */
-export function reportOnlyLine(run: ProofRun): string {
+function reportOnlyLine(run: ProofRun): string {
   const { passed, failed, unproved, unknown } = run.counts;
   return `REPORT ONLY. ${String(passed)} passed, ${String(failed)} failed, ${String(unproved)} unproved, ${String(unknown)} unknown. With --workspace each check's own command is started in the folder you named and no commit or push is made, so this shows whether a check works and not whether anything runs it. Nothing was written: no evidence, no register and no verdict, and no requirement counts as proved. Run "lisa controls attest" without --workspace to prove the controls.`;
 }

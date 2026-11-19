@@ -37,7 +37,7 @@ import {
   seedCommit,
 } from "./fake-git-objects.js";
 
-export type { FakeCanaryOptions, FakePull } from "./fake-canary-state.js";
+export type { FakeCanaryOptions } from "./fake-canary-state.js";
 
 /** The stand-in platform. */
 export interface FakeCanaryPlatform {
