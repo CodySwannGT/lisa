@@ -146,7 +146,7 @@ jobs:
               if bun run test tests/unit/helpers/fs-latency-budget.test.ts -t "$CASE" > "$OUT/agreement-$1-$i.log" 2>&1; then
                 echo "agreement $1 $i pass"
               else
-                echo "agreement $1 $i FAIL"; grep -o '{"probeUsPerEntry[^}]*' "$OUT/agreement-$1-$i.log" | head -1
+                echo "agreement $1 $i FAIL"; grep -m 1 -o '{"probeUsPerEntry[^}]*' "$OUT/agreement-$1-$i.log" || true
                 echo "$1 $i" >> "$OUT/agreement-failures.txt"
               fi
             done
