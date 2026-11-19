@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.1.0](https://github.com/CodySwannGT/lisa/compare/v7.0.4...v7.1.0) (2026-11-19)
+
+
+### Features
+
+* **session-manager:** assign every item it takes to itself, and refuse to spawn an unassigned one ([4634486](https://github.com/CodySwannGT/lisa/commit/4634486ce5e4d8c0ea68f5e3b12d4d36c07c51b4)), closes [CodySwannGT/lisa#5029](https://github.com/CodySwannGT/lisa/issues/5029) [CodySwannGT/lisa#5029](https://github.com/CodySwannGT/lisa/issues/5029)
+* **work-item:** estimate a claimed item before work, calibrated from past items ([eafe42e](https://github.com/CodySwannGT/lisa/commit/eafe42e01ddd73f3d2fc91a1223b28805a725792)), closes [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955) [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955)
+
+
+### Bug Fixes
+
+* **estimate:** skip partial actuals, never block claimed work on an estimate ([5966573](https://github.com/CodySwannGT/lisa/commit/5966573d0ceec675808cc0bba12885353827846d)), closes [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955) [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955)
+* **session-manager:** match plain tracker ids by tracker, and re-read before a retry spawn ([5fbe28f](https://github.com/CodySwannGT/lisa/commit/5fbe28fcedd291b272abfbb058217342bb146fcb)), closes [#5064](https://github.com/CodySwannGT/lisa/issues/5064) [CodySwannGT/lisa#5029](https://github.com/CodySwannGT/lisa/issues/5029) [CodySwannGT/lisa#5029](https://github.com/CodySwannGT/lisa/issues/5029)
+* **usage:** mark a child rollup incomplete when a child run has no total ([242a0a8](https://github.com/CodySwannGT/lisa/commit/242a0a836b98f7f2a8b5adea54fb08e84069c889)), closes [#5030](https://github.com/CodySwannGT/lisa/issues/5030) [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955) [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955)
+
+
+### Documentation
+
+* **estimate:** scope Jira and Linear calibration searches to this repo ([e5b4f3a](https://github.com/CodySwannGT/lisa/commit/e5b4f3a4187fd8386c3a51e0d79b474ab360be45)), closes [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955) [CodySwannGT/lisa#4955](https://github.com/CodySwannGT/lisa/issues/4955)
+
 ### [7.0.4](https://github.com/CodySwannGT/lisa/compare/v7.0.3...v7.0.4) (2026-11-19)
 
 
