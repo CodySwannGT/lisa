@@ -66,6 +66,16 @@
  * - **A file's permission to be started, and the target of a link.** Only
  *   content is read. A link where a file should be is covered as a link,
  *   whatever it points at.
+ * - **A file the operating system drops into a folder**: `.DS_Store`,
+ *   `Thumbs.db` and `desktop.ini`, by exactly those names, wherever they
+ *   are. A file manager writes one into any folder a person opens, git is
+ *   told to ignore them on most machines, and no clone has one; and since
+ *   nothing here starts git, it cannot be asked what is ignored. Covered,
+ *   one of them in `.lisa/hooks/` would fail the check straight after the
+ *   run that recorded the digest, and one beside the proofs would pass
+ *   where it was recorded and fail in every clone. So none is covered,
+ *   when a digest is recorded or when it is taken again. Nothing runs a
+ *   file by one of these names unless a covered file starts it.
  * @module controls/checks-binding
  */
 import { createHash } from "node:crypto";
@@ -100,6 +110,16 @@ const NOT_A_FILE = "lisa:not-an-ordinary-file";
 
 /** How many files a line names before it counts the rest. */
 const NAMED_FILES = 8;
+
+/**
+ * The names of the files an operating system drops into a folder: the
+ * Finder's on macOS, and Explorer's two on Windows. None is ever covered.
+ */
+const DROPPED_BY_SYSTEM: readonly string[] = [
+  ".DS_Store",
+  "Thumbs.db",
+  "desktop.ini",
+];
 
 /** What a binding is taken from. */
 export interface BindingSources {
@@ -262,6 +282,18 @@ async function definingPaths(root: string): Promise<readonly string[]> {
 }
 
 /**
+ * Tell whether a path is one a digest may cover: inside the repository,
+ * and not a file the operating system dropped there.
+ * @param file - The path, from the repository root
+ * @returns Whether it may be covered
+ */
+function isCoverable(file: string): boolean {
+  return (
+    isPlainPath(file) && !DROPPED_BY_SYSTEM.includes(path.posix.basename(file))
+  );
+}
+
+/**
  * Read the digest of each of some paths.
  * @param root - Real path of the folder they are read in
  * @param paths - The paths, from that folder
@@ -291,7 +323,7 @@ export async function bindChecks(
   const { repository, copy = repository, also = [] } = sources;
   const named = [
     ...new Set([...(await definingPaths(repository)), ...also]),
-  ].filter(file => isPlainPath(file));
+  ].filter(file => isCoverable(file));
   // Covered: what the repository itself holds. Read: where the proofs ran.
   const held = await digestsOf(repository, named);
   const fromCopy =

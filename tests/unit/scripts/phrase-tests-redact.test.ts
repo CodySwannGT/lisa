@@ -71,6 +71,21 @@ describe("redactText", () => {
     );
   });
 
+  it("drops the credentials of a URL that 64 hexadecimal digits run straight into", () => {
+    const digest = "0123456789abcdef".repeat(4);
+    const url = join(
+      "https://",
+      "admin",
+      ":",
+      "hunter2hunter2",
+      "@db.internal"
+    );
+
+    expect(redactText(join("sha256:", digest, url))).toBe(
+      join("sha256:", digest, "https://[REDACTED:URL_CREDENTIALS]@db.internal")
+    );
+  });
+
   it("leaves ordinary text and placeholders alone", () => {
     for (const text of [
       API_KEY_PLACEHOLDER,

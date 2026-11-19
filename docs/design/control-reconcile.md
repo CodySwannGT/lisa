@@ -172,6 +172,12 @@ it reads the lines itself (`src/controls/reconcile-hook-lines.ts`).
   `pre-commit` and `pre-push` are reported; for the pre-commit framework each
   hook at the stages it runs at, by its `entry` when it is local and by its
   `id` otherwise. A configuration another file extends is read as written.
+  A Lefthook job group that is one of its own jobs, which a YAML alias can
+  write, has no end to read to: the hooks are marked `could-not-read` with
+  a sentence that says so, as for any other hook file the reader cannot
+  follow. It used to end the run with "Maximum call stack size exceeded".
+  An alias that names a job in several places, none inside the job itself,
+  is read like the job written out each time.
 
 ### What the reader still does not follow
 

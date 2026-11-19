@@ -46,13 +46,38 @@
  *
  * From the patch itself ({@link patchPaths} in `./proof-patch.ts`): git
  * reads the patch and lists every path it names, a rename under both names
- * and a deleted file under the one it had. What git staged is not the
- * source, because git stages nothing at an ignored path, and that is
- * exactly the path this rule has to see. Whether a path is ignored is asked
- * once the change is planted, so an ignore rule the same patch adds counts.
+ * and a deleted file under the one it had. What git staged is not enough,
+ * because git stages nothing at an ignored path, and that is exactly the
+ * path rule 4 has to see. Whether a path is ignored is asked once the
+ * change is planted, so an ignore rule the same patch adds counts.
+ *
+ * ## One file under two names
+ *
+ * The names a patch writes are not always the names of the files it
+ * changes. On a file system that does not tell letter cases apart (the
+ * default on macOS and Windows), git applies a patch headed
+ * `.lisa.config.JSON` to `.lisa.config.json`. Held to the patch's names
+ * alone, rules 1 to 3 would find no file they know while the check was
+ * rewritten. So:
+ *
+ * - Rules 1 to 3 are held to the paths the patch names and to the paths git
+ *   reports as changed once the patch is planted ({@link stagedPaths}),
+ *   which are the names the repository stores. A path the patch names that
+ *   is one of those files is taken for it.
+ * - A name the rule knows (a check file, the hooks folder, the command's
+ *   program, `package.json` beside a changed file) is compared with a
+ *   changed path by asking the file system whether the two are one file
+ *   ({@link sameFileIn}). Letters are never folded here: two names are one
+ *   file exactly when the file system says they are.
+ * - Rule 4 keeps to the paths the patch names. Git reports nothing at an
+ *   ignored path.
+ *
+ * What that does not see: a file the change removes, when the check's
+ * command names it in another letter case than the repository stores.
+ * Nothing is left on disk to compare with.
  * @module controls/proof-change-rule
  */
-import { lstatSync } from "node:fs";
+import { lstatSync, type BigIntStats } from "node:fs";
 import path from "node:path";
 
 import { compareCodeUnits } from "./canonical-json.js";
@@ -68,8 +93,10 @@ import { gitSaid, type RunGit } from "./proof-copy-git.js";
 import { ignoredPaths, patchPaths } from "./proof-patch.js";
 import {
   runnerManifestChange,
+  sameName,
   startedProgram,
   type ManifestSides,
+  type SameFile,
   type TaskRunnerKind,
 } from "./proof-task-runners.js";
 
@@ -166,32 +193,48 @@ export async function checkFilesOf(
 }
 
 /**
+ * Name every folder a path is in.
+ * @param file - The path, from the repository root
+ * @returns The folders, from the repository root, the outermost first
+ */
+function foldersOf(file: string): readonly string[] {
+  const steps = file.split("/");
+  return steps
+    .slice(0, -1)
+    .map((_, index) => steps.slice(0, index + 1).join("/"));
+}
+
+/**
  * Find the first path of a change that says what the checks are, or runs
  * them.
  * @param paths - The paths a change touches, from the repository root
  * @param checkFiles - The files and folders that do
+ * @param same - Says whether two paths are one file; by how they are
+ *   written when left out
  * @returns The path, or `null` when the change touches none of them
  */
 export function changedCheckFile(
   paths: readonly string[],
-  checkFiles: CheckFiles
+  checkFiles: CheckFiles,
+  same: SameFile = sameName
 ): string | null {
   return (
     paths.find(
       changed =>
-        checkFiles.files.includes(changed) ||
-        checkFiles.folders.some(folder => changed.startsWith(`${folder}/`))
+        checkFiles.files.some(file => same(file, changed)) ||
+        checkFiles.folders.some(folder =>
+          foldersOf(changed).some(above => same(folder, above))
+        )
     ) ?? null
   );
 }
 
 /**
  * List the paths the change staged in a copy touches, as a commit or push
- * hook is shown them.
+ * hook is shown them, under the names the repository stores.
  *
- * This is what starts a check, not what a change is held to: a path the
- * repository ignores is never staged, so it is not in this list. The rule
- * reads the patch itself; see {@link changeFinding}.
+ * A path the repository ignores is never staged, so it is not in this
+ * list. {@link changeFinding} therefore reads the patch itself as well.
  * @param git - Git in the copy
  * @returns The paths, from the repository root, in git's order
  * @throws {Error} When git cannot list what is staged
@@ -235,16 +278,76 @@ function sidesOf(git: RunGit, file: string): ManifestSides {
 }
 
 /**
- * Tell whether anything is at a path, without following a link.
+ * Read what is at a path, without following a link anywhere on the way.
+ *
+ * Nothing is at a path under something that is not a folder: a file that
+ * took a folder's place, or a link that did, whatever the link leads to.
+ * Asked of the path alone, the file system fails for the first and answers
+ * for whatever the link leads to for the second, and git will not say
+ * whether a path beyond a link is ignored.
  * @param directory - Real path of the folder the path is in
  * @param file - The path, from that folder
- * @returns Whether a file, a folder or a link is there
+ * @returns What is there (a file, a folder or a link), or `undefined` when
+ *   nothing is
  */
-function isThere(directory: string, file: string): boolean {
-  return (
-    lstatSync(path.join(directory, file), { throwIfNoEntry: false }) !==
-    undefined
-  );
+function entryAt(directory: string, file: string): BigIntStats | undefined {
+  const at = (name: string): BigIntStats | undefined =>
+    lstatSync(path.join(directory, name), {
+      bigint: true,
+      throwIfNoEntry: false,
+    });
+  return foldersOf(file).every(folder => at(folder)?.isDirectory() === true)
+    ? at(file)
+    : undefined;
+}
+
+/**
+ * Ask the file system whether two paths are one file.
+ *
+ * Two paths written the same are. Two written differently are when
+ * something is at both and the file system gives both the same identity
+ * (the device and the number it keeps the file under), which is how
+ * `Package.json` and `package.json` come out as one file where letter case
+ * is ignored and as two where it is not.
+ * @param directory - Real path of the folder the paths are in
+ * @returns Says whether two paths, from that folder, are one file
+ */
+function sameFileIn(directory: string): SameFile {
+  // A file system that numbers no file answers 0 for every one of them,
+  // which says nothing about two paths being one file.
+  const identity = (file: string): string | null => {
+    const entry = entryAt(directory, file);
+    return entry === undefined || entry.ino === 0n
+      ? null
+      : `${String(entry.dev)}:${String(entry.ino)}`;
+  };
+  return (one, other) => {
+    if (one === other) return true;
+    const first = identity(one);
+    return first !== null && first === identity(other);
+  };
+}
+
+/**
+ * The paths a planted change is held to: the ones git reports as changed,
+ * and the ones the patch names.
+ * @param named - The paths the patch names
+ * @param staged - The paths git reports as changed, as the repository
+ *   stores them
+ * @param same - Says whether two paths are one file
+ * @returns Each path once, in order; a path the patch names that is a file
+ *   git reports under another name is listed under git's
+ */
+function heldPaths(
+  named: readonly string[],
+  staged: readonly string[],
+  same: SameFile
+): readonly string[] {
+  const stored = (file: string): string =>
+    staged.includes(file)
+      ? file
+      : (staged.find(other => same(file, other)) ?? file);
+  return [...new Set([...staged, ...named.map(stored)])].sort(compareCodeUnits);
 }
 
 /**
@@ -263,12 +366,13 @@ export function changeFinding(
   if (read.problem !== null) {
     return unanswered("what a change touches", read.problem);
   }
-  const { paths } = read;
-  const checkFile = changedCheckFile(paths, checkFiles);
+  const same = sameFileIn(directory);
+  const paths = heldPaths(read.paths, stagedPaths(git), same);
+  const checkFile = changedCheckFile(paths, checkFiles, same);
   if (checkFile !== null) return { kind: "check-file", file: checkFile };
   const program =
     command === null ? null : startedProgram(command.argv, command.scope);
-  if (program !== null && paths.includes(program)) {
+  if (program !== null && paths.some(changed => same(program, changed))) {
     return { kind: "program", file: program };
   }
   const manifest =
@@ -278,12 +382,14 @@ export function changeFinding(
           ...command,
           paths,
           read: file => sidesOf(git, file),
+          same,
         });
   if (manifest !== null) return { kind: "runner-manifest", ...manifest };
-  // Only what the change leaves on disk can be hidden from a commit.
+  // Only what the change leaves on disk can be hidden from a commit, and
+  // git reports nothing there: the patch's own paths are the ones asked.
   const ignored = ignoredPaths(
     directory,
-    paths.filter(file => isThere(directory, file))
+    read.paths.filter(file => entryAt(directory, file) !== undefined)
   );
   if (ignored.problem !== null) {
     return unanswered(

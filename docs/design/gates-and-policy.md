@@ -1766,8 +1766,11 @@ with success:
   `return` ends a script that dash, ksh or zsh runs (measured; bash reports
   it and carries on), and dash is `sh` on most Linux systems, so
   `[ -n "$RUN_ALL" ] || return 0` above the call ends such a hook with
-  success. A `return` inside a function is refused too, as an `exit` there
-  is: where a function starts and ends is not followed.
+  success. A `return` inside a function ends only that function, and is
+  refused too: where a function starts and ends is not followed. The reason
+  given says so, and does not claim that such a `return` ends the hook. An
+  `exit` inside a function is refused because calling the function ends the
+  hook.
 - a `trap` that can turn a failure into success. What a trap on `EXIT` (or
   `0`) runs is run after the added lines have failed, and an `exit 0` in it
   is the status git sees: the check runs, fails, and the commit goes through
@@ -1869,6 +1872,15 @@ repository it is about, in the way git told the hook:
 | In a linked working tree, or where `.git` is a file: `GIT_DIR` is set to the repository's git folder, absolute | `GIT_DIR` | git, started in that folder with nothing named, finds the same repository |
 | In a main working tree, by a path from the top folder: `.git/hooks/pre-commit`, `.githooks/pre-commit`, `.husky/pre-commit` (Husky 8.0.3 and 9.1.7) | the hook file | the hook file is in that folder under the path it was started by, and holds the marker line |
 | In a main working tree, by an absolute path (an absolute `core.hooksPath`) | the hook file | it is the file git would run as that hook in that folder (`git rev-parse --git-path`) |
+
+A path is absolute, in both rows that say so, when it begins with a slash
+or with a drive letter, a colon and a slash of either kind. Git for Windows
+hands a hook `GIT_DIR=C:/…` and starts one by `C:/…/pre-commit`; read as
+paths from the top folder, neither is ever found there, and every commit and
+push would stop. Nobody has run the lines on Windows: the drive-letter form
+is held by `tests/unit/controls/carrier-call-drive-letter.test.ts`, which
+runs the generated lines under each shell on the machine against a stand-in
+for git that answers with such paths.
 
 Git starts every hook in the top folder, whichever folder the operation was
 started from. With that established:

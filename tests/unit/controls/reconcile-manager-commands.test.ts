@@ -23,17 +23,20 @@ import {
 } from "../../../src/controls/reconcile-manager-commands.js";
 
 const LINT = "npm run lint";
+const AT_COMMIT = "pre-commit:";
+const JOBS = "  jobs:";
+const RUNS_LINT = `      run: ${LINT}`;
 
 const LEFTHOOK = [
-  "pre-commit:",
+  AT_COMMIT,
   "  parallel: true",
   "  commands:",
   "    lint:",
-  "      run: npm run lint",
+  RUNS_LINT,
   "    audit:",
   "      run: npm audit && npm run licences",
   "pre-push:",
-  "  jobs:",
+  JOBS,
   "    - run: npm test",
   "    - name: python",
   "      group:",
@@ -177,6 +180,100 @@ describe("the commands a Lefthook configuration runs", () => {
 
     expect(read.problem).toContain("characters long");
     expect(read).not.toHaveProperty("commands");
+  });
+
+  it.each([
+    [
+      "a job is one of its own group's jobs",
+      ["    - &again", "      group:", "        jobs:", "          - *again"],
+    ],
+    [
+      "a job's group is the group of a job inside it",
+      ["    - group: &group", "        jobs:", "          - group: *group"],
+    ],
+    [
+      "a list of jobs is the list of a group inside it",
+      [
+        "    - group:",
+        "        jobs: &jobs",
+        "          - group:",
+        "              jobs: *jobs",
+      ],
+    ],
+    [
+      "two jobs each hold the other",
+      [
+        "    - &one",
+        "      group:",
+        "        jobs:",
+        "          - group:",
+        "              jobs:",
+        "                - *one",
+      ],
+    ],
+    [
+      "a job that holds itself comes after one that runs something",
+      [
+        "    - run: npm test",
+        "    - &again",
+        RUNS_LINT,
+        "      group:",
+        "        jobs:",
+        "          - run: ruff check .",
+        "          - *again",
+      ],
+    ],
+  ])(
+    "says the configuration was not read, and does not throw, when %s",
+    (_name, jobs) => {
+      CARRIER_MOMENTS.forEach(moment => {
+        const hook = moment === "commit" ? "pre-commit" : "pre-push";
+        const read = lefthookCommands(
+          [`${hook}:`, JOBS, ...jobs, ""].join("\n")
+        );
+
+        expect(read.problem).toContain("holds itself");
+        expect(read).not.toHaveProperty("commands");
+      });
+    }
+  );
+
+  it("reads a job that an alias names more than once, which holds nothing of itself", () => {
+    const shared = [
+      AT_COMMIT,
+      JOBS,
+      "    - &lint",
+      RUNS_LINT,
+      "    - group:",
+      "        jobs:",
+      "          - *lint",
+      "          - group:",
+      "              jobs:",
+      "                - *lint",
+      "",
+    ].join("\n");
+
+    expect(
+      commandsOf(lefthookCommands(shared)).map(command => command.command)
+    ).toEqual([LINT, LINT, LINT]);
+  });
+
+  it("is not stopped by an alias that leads back to itself where no job group is", () => {
+    const elsewhere = [
+      AT_COMMIT,
+      "  commands: &commands",
+      "    lint:",
+      RUNS_LINT,
+      "    again: *commands",
+      "commit-msg: &hook",
+      JOBS,
+      "    - group: *hook",
+      "",
+    ].join("\n");
+
+    expect(
+      commandsOf(lefthookCommands(elsewhere)).map(command => command.command)
+    ).toEqual([LINT]);
   });
 });
 

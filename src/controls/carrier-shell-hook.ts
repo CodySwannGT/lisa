@@ -140,8 +140,10 @@ const LEAVES: Readonly<Record<Exclude<EarlyLeave["word"], "unread">, string>> =
   {
     exec: 'an "exec" there hands over to another program',
     exit: 'an "exit" there can leave without a failure: it is neither given a status written as a number other than 0 nor the last part of "|| exit"',
+    // True of both places a `return` can stand: which of the two it is in
+    // is not followed, so the sentence does not say it ends the hook.
     return:
-      'a "return" there ends a hook that dash, ksh or zsh runs, and can do so without a failure: it is neither given a status written as a number other than 0 nor the last part of "|| return"',
+      'a "return" there is neither given a status written as a number other than 0 nor the last part of "|| return": outside every function it ends a hook that dash, ksh or zsh runs, and can do so without a failure; inside a function it ends only that function, but where a function starts and ends is not followed, so it is refused there as well',
     trap: 'a "trap" there runs when the hook ends or a command fails, and what it runs can end the hook with success after a check has failed',
   };
 

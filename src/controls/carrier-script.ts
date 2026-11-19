@@ -257,6 +257,13 @@ export function carrierStartLine(moment: CarrierMoment): string {
  *   git would run for that folder.
  *
  * The first answer that counts and holds the carrier is used.
+ *
+ * A path is absolute when it begins with a slash or with a drive letter, a
+ * colon and a slash of either kind: Git for Windows hands a hook
+ * `GIT_DIR=C:/…` and starts one by `C:/…/pre-commit`. Taken for a path from
+ * the top folder, neither would ever be found there, and every commit and
+ * push would stop. That form has been run under `sh` against a stand-in
+ * for git only, not on Windows.
  * @param script - The carrier, from the top folder
  * @param begin - The marker line these lines stand under
  * @returns The lines, which leave the carrier's path in `lisa_carrier` or
@@ -267,6 +274,7 @@ function findCarrierLines(script: string, begin: string): readonly string[] {
   const asNamed = "git rev-parse --show-toplevel 2>/dev/null";
   const gitFolder = "git rev-parse --absolute-git-dir 2>/dev/null";
   const from = 'CDPATH= cd -- "$lisa_top" 2>/dev/null &&';
+  const absolute = String.raw`/*|[A-Za-z]:[\\/]*`;
   return [
     "# The carrier is looked for from the top folder of this checkout, wherever",
     "# the lines above left the shell: as git names that folder to this hook,",
@@ -277,7 +285,7 @@ function findCarrierLines(script: string, begin: string): readonly string[] {
     "lisa_ours=",
     "lisa_named=",
     'case "${GIT_DIR:-}" in',
-    `  /*) lisa_named=$(${gitFolder}) || lisa_named= ;;`,
+    `  ${absolute}) lisa_named=$(${gitFolder}) || lisa_named= ;;`,
     "esac",
     `for lisa_top in "$(${asNamed})" "$(unset GIT_DIR GIT_WORK_TREE; ${asNamed})"; do`,
     '  [ -n "$lisa_top" ] || continue',
@@ -285,7 +293,7 @@ function findCarrierLines(script: string, begin: string): readonly string[] {
     `    [ "$(unset GIT_DIR GIT_WORK_TREE; ${from} ${gitFolder})" = "$lisa_named" ] || continue`,
     "  else",
     '    case "$0" in',
-    `      /*) [ "$(${from} git rev-parse --git-path "hooks/\${0##*/}" 2>/dev/null)" = "$0" ] || continue ;;`,
+    `      ${absolute}) [ "$(${from} git rev-parse --git-path "hooks/\${0##*/}" 2>/dev/null)" = "$0" ] || continue ;;`,
     `      *) grep -qF -- "${begin}" "$lisa_top/$0" 2>/dev/null || continue ;;`,
     "    esac",
     "  fi",

@@ -161,6 +161,53 @@ describe("a password in a web address, with the scheme's length bounded", () => 
     expect(text).not.toContain(PASSWORD);
     expect(text).toContain("[REDACTED:URL_CREDENTIALS]");
   });
+
+  it("is taken out when a digest of 64 hexadecimal digits runs straight into the scheme", () => {
+    const digest = "0123456789abcdef".repeat(4);
+    const { text } = redactCredentials(
+      `sha256:${digest}${withPassword("https")}`
+    );
+
+    expect(text).toBe(
+      `sha256:${digest}https://[REDACTED:URL_CREDENTIALS]@host.invalid/x.git`
+    );
+  });
+
+  it.each([
+    ["59 letters", "k".repeat(59)],
+    ["60 letters", "k".repeat(60)],
+    ["63 letters", "k".repeat(63)],
+    ["64 letters", "k".repeat(64)],
+    ["65 letters", "k".repeat(65)],
+    ["1000 letters", "k".repeat(1000)],
+    ["200 digits", "7".repeat(200)],
+    ["a name that ends in an underscore", "MIRROR_URL_"],
+    ["80 underscores", "_".repeat(80)],
+  ])(
+    "is taken out when %s run straight into the scheme with nothing between",
+    (_name, run) => {
+      const { text, kinds } = redactCredentials(
+        `${run}${withPassword("https")}`
+      );
+
+      expect(kinds).toContain("URL_CREDENTIALS");
+      expect(text).not.toContain(PASSWORD);
+      expect(
+        text.endsWith("https://[REDACTED:URL_CREDENTIALS]@host.invalid/x.git")
+      ).toBe(true);
+    }
+  );
+
+  it("is taken out when a megabyte of letters runs straight into the scheme", () => {
+    const { text } = redactCredentials(
+      `${megabyteOf("a")}${withPassword("https")}`
+    );
+
+    expect(text).not.toContain(PASSWORD);
+    expect(
+      text.endsWith("://[REDACTED:URL_CREDENTIALS]@host.invalid/x.git")
+    ).toBe(true);
+  });
 });
 
 describe("a private key in text that holds more than one first line", () => {
