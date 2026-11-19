@@ -1353,7 +1353,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
       "34afe0413fce11872ac99b87e6323c59a754db7992c5fb054a56845af0723785",
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
-      "a6cb1e376900d2d7294dd6b68242eb34022790a7b95560fdc18408395e2ae971",
+      "0bdd043473a6dc7d99f639ed7e1fd9bb6a3ece2c789c7af83893e9db3cdaa7f2",
     "plugins/src/base/rules/reference/work-item-trailer-definition.md":
       "2997766dc8ab61bf63891781dc9e86339a47ca35eddd4ca387bd7cc0ce85f2a5",
     "plugins/src/base/scripts/automation-run-record.mjs":
@@ -14732,6 +14732,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/postinstall-trampoline.test.ts": true,
     "tests/unit/utils/usage-accounting-artifact-ref.test.ts": true,
     "tests/unit/utils/usage-accounting-backward-compatibility.test.ts": true,
+    "tests/unit/utils/usage-accounting-child-incomplete.test.ts": true,
     "tests/unit/utils/usage-accounting-child-rollups.test.ts": true,
     "tests/unit/utils/usage-accounting-fixtures.ts": true,
     "tests/unit/utils/usage-accounting-integrity.test.ts": true,
