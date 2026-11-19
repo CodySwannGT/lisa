@@ -48,6 +48,9 @@ const EXIT_TWO = ["claude", "codex", "copilot", "devin"];
 /** The agent told of a failed write in the context its hook prints. */
 const CONTEXT = "cursor";
 
+/** An event size no pipe buffer holds: Linux and macOS buffer 64 KiB at most. */
+const PAST_ANY_PIPE_BUFFER = 1024 * 1024;
+
 const cleanups: Array<() => void> = [];
 
 afterEach(() => {
@@ -270,6 +273,57 @@ describe("a carrier that cannot run the checks", () => {
       expect(hook?.status).toBe(name === CONTEXT ? 0 : 2);
       expect(said).toContain("Write refused: ");
       expect(said).toContain(`--agents=${name}`);
+      expect(editRuns(built.ran)).toEqual([]);
+    }
+  );
+
+  // The agent writes the whole event before it reads the answer. A refusal
+  // that exits without reading leaves that write racing the exit: a small
+  // event fits the pipe and usually wins, so the race shows only under load.
+  // An event larger than any pipe buffer cannot fit, so a refusal that skips
+  // its input fails here every time instead of now and then.
+  it.each(SHELL_AGENTS.map(agent => agent.agent))(
+    "reads %s's whole event before refusing for a missing carrier",
+    async name => {
+      const built = await carried([name]);
+      const agent = shellAgent(name);
+      const file = agentWrites(built.root, CLEAN_LINE);
+      rmSync(path.join(built.root, ".lisa/hooks"), { recursive: true });
+      const event = agent.writeEvent(built.root, file) as object;
+
+      const hook = deliver(built.root, agent, {
+        ...event,
+        padding: "x".repeat(PAST_ANY_PIPE_BUFFER),
+      });
+
+      expect(hook?.status).toBe(name === CONTEXT ? 0 : 2);
+      expect(
+        `${hook?.stderr ?? ""}${printedContext(hook?.stdout ?? "")}`
+      ).toContain("Write refused: ");
+    }
+  );
+
+  it.each(SHELL_AGENTS.map(agent => agent.agent))(
+    "reads %s's whole event before refusing for a missing Node",
+    async name => {
+      const built = await carried([name]);
+      const agent = shellAgent(name);
+      const file = agentWrites(built.root, CLEAN_LINE);
+      const nodeFree = withoutNode(operatorEnv());
+      cleanups.push(nodeFree.cleanup);
+      const event = agent.writeEvent(built.root, file) as object;
+
+      const hook = deliver(
+        built.root,
+        agent,
+        { ...event, padding: "x".repeat(PAST_ANY_PIPE_BUFFER) },
+        nodeFree.env
+      );
+
+      expect(hook?.status).toBe(name === CONTEXT ? 0 : 2);
+      expect(
+        `${hook?.stderr ?? ""}${printedContext(hook?.stdout ?? "")}`
+      ).toMatch(/Write refused: Node\.js is missing/u);
       expect(editRuns(built.ran)).toEqual([]);
     }
   );
