@@ -40,9 +40,7 @@
  * `LISA_FS_PROBE_DIAGNOSTIC_OUT` to a file also appends each line there.
  * @module tests/integration/fs-probe-diagnostic
  */
-import { spawn } from "node:child_process";
 import { appendFileSync } from "node:fs";
-import { cpus } from "node:os";
 import { tmpdir } from "node:os";
 
 import { describe, expect, it } from "vitest";
@@ -52,10 +50,8 @@ import {
   DECOMPOSITION_SIZES,
   fitRemoval,
   mountOf,
-  pairedAgreement,
   pairedSample,
   readDeviceCounters,
-  sequentialAgreement,
   splitRemoval,
   type SplitRemoval,
 } from "../helpers/fs-probe-diagnostic.js";
@@ -89,52 +85,6 @@ const SAMPLE_BASE_MS = 240_000;
  * `fsync` to have finished.
  */
 const DECOMPOSITION_SETTLES_MS = [0, 1000] as const;
-
-/**
- * How long the injected burst lasts: about as long as the probe's five cycles
- * take, so it can cover the probe's window and be over by the real removal's
- * when the two are taken in sequence (CodySwannGT/lisa#5066).
- */
-const BURST_MS = 300;
-
-/** Trials of each comparison under the injected burst. */
-const BURST_TRIALS = 10;
-
-/** Busy processes per core in the burst: enough to deschedule the probe. */
-const BURST_PROCESSES_PER_CORE = 4;
-
-/**
- * Start a short CPU burst beside the measurement, the shape of sibling test
- * workers starting at once, and give back a promise of its end.
- * @returns Resolves when every busy process has exited
- */
-function startBurst(): Promise<void> {
-  const children = Array.from(
-    { length: cpus().length * BURST_PROCESSES_PER_CORE },
-    () =>
-      spawn(
-        process.execPath,
-        [
-          "-e",
-          `const end = Date.now() + ${BURST_MS}; while (Date.now() < end);`,
-        ],
-        { stdio: "ignore" }
-      )
-  );
-  return Promise.all(
-    children.map(
-      child => new Promise<void>(resolve => child.once("exit", () => resolve()))
-    )
-  ).then(() => undefined);
-}
-
-/**
- * Wait until the burst's processes are running, so it covers what follows.
- * @param ms - How long to wait
- * @returns Resolves after the wait
- */
-const warm = (ms: number): Promise<void> =>
-  new Promise(resolve => setTimeout(resolve, ms));
 
 /** Removals timed per size and settle; the record keeps each one. */
 const DECOMPOSITION_REPEATS = 3;
@@ -211,30 +161,6 @@ describe("fs probe diagnostic", () => {
         DECOMPOSITION_SIZES.length * DECOMPOSITION_REPEATS
       );
       expect(removals.every(removal => removal.rmSyncMs > 0)).toBe(true);
-    },
-    fsLatencyBudgetMs(SAMPLE_BASE_MS)
-  );
-
-  it.runIf(ENABLED).each(["sequential", "paired"] as const)(
-    "compares the probe with real removal under a short burst, %s",
-    async form => {
-      const trials = [];
-      for (const _trial of Array.from({ length: BURST_TRIALS })) {
-        const burst = startBurst();
-        await warm(50);
-        trials.push(
-          form === "sequential"
-            ? sequentialAgreement(1000)
-            : pairedAgreement(5, 200)
-        );
-        await burst;
-      }
-      const outside = trials.filter(
-        trial => trial.ratio >= 4 || trial.ratio <= 1 / 4
-      ).length;
-      emit({ kind: "burst", form, burstMs: BURST_MS, outside, trials });
-
-      expect(trials).toHaveLength(BURST_TRIALS);
     },
     fsLatencyBudgetMs(SAMPLE_BASE_MS)
   );

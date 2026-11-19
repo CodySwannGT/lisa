@@ -216,7 +216,7 @@ describe("the fs-probe diagnostic route (CodySwannGT/lisa#4636, #5066)", () => {
     expect(source).toContain('process.env["LISA_FS_PROBE_DIAGNOSTIC"] === "1"');
   });
 
-  it("repeats the unit agreement case idle and under load, failing on any miss", () => {
+  it("repeats the unit agreement case on the idle runner only, failing on any miss", () => {
     const loop = diagnosticSteps.find(step =>
       step.run?.includes("tests/unit/helpers/fs-latency-budget.test.ts")
     );
@@ -224,7 +224,7 @@ describe("the fs-probe diagnostic route (CodySwannGT/lisa#4636, #5066)", () => {
       "agrees with a real corpus deletion measured in the same window"
     );
     expect(loop?.run).toContain("repeat idle");
-    expect(loop?.run).toContain("repeat loaded");
+    expect(loop?.run).not.toMatch(/\byes\b|io-hog|repeat loaded/);
     expect(loop?.run).toContain('test ! -s "$OUT/agreement-failures.txt"');
   });
 

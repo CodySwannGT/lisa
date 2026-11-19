@@ -445,22 +445,6 @@ const medianOf = (values: readonly number[]): number =>
   ] ?? Number.NaN;
 
 /**
- * The comparison the agreement case made before CodySwannGT/lisa#5066: the
- * probe's median over its cycles, then — after writing a whole corpus — one
- * real removal. The two readings sit in different windows, a few hundred
- * milliseconds apart, so a stall that covers one and not the other reads as
- * disagreement. Kept so the diagnostic can show that against the paired form.
- * @param corpusEntries - Files in the one real corpus
- * @returns The ratio and its readings
- */
-export function sequentialAgreement(corpusEntries: number): Agreement {
-  const probeUs = measureUnlinkLatencyUs();
-  const corpus = fillProbeDirectory(corpusEntries);
-  const realUs = timeRemovalUs(corpus, corpusEntries);
-  return { ratio: probeUs / realUs, probeUs: [probeUs], realUs: [realUs] };
-}
-
-/**
  * Compare the probe with real removal in the same window: each pair writes a
  * real corpus first, then takes one probe cycle and the corpus's removal back
  * to back, so both readings of a pair see the same machine. The verdict is the
