@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.1.2](https://github.com/CodySwannGT/lisa/compare/v7.1.1...v7.1.2) (2026-11-19)
+
+
+### Bug Fixes
+
+* **session-manager:** keep the assignee when promoting a backlog item ([84df5f9](https://github.com/CodySwannGT/lisa/commit/84df5f9fc325cae1709998a448bb798a16cb64fb)), closes [#5064](https://github.com/CodySwannGT/lisa/issues/5064) [CodySwannGT/lisa#5029](https://github.com/CodySwannGT/lisa/issues/5029) [CodySwannGT/lisa#5029](https://github.com/CodySwannGT/lisa/issues/5029)
+
 ### [7.1.1](https://github.com/CodySwannGT/lisa/compare/v7.1.0...v7.1.1) (2026-11-19)
 
 ## [7.1.0](https://github.com/CodySwannGT/lisa/compare/v7.0.4...v7.1.0) (2026-11-19)

@@ -147,6 +147,34 @@ describe("refreshing the public-commit list", () => {
     expect(readFileSync(path.join(root, MANIFEST_PATH), "utf8")).toBe(before);
   });
 
+  it("refuses to write an empty list", () => {
+    const { root, commits } = fixture();
+    // No recorded commits to carry forward and no public ref to read: the
+    // refresh would find nothing, and an empty list would refuse every
+    // commit reference `lisa file-upstream` is given.
+    const file = path.join(root, MANIFEST_PATH);
+    const recorded = readFileSync(file, "utf8");
+    const block = recorded.indexOf("export const UPSTREAM_PUBLIC_COMMITS");
+    writeFileSync(
+      file,
+      recorded.slice(0, block) +
+        recorded.slice(block).replace(/^ {4}"?[a-f0-9]{40}"?: true,\n/gmu, "")
+    );
+    git(root, "update-ref", "-d", "refs/remotes/origin/main");
+    expect(git(root, "rev-list", "--remotes=origin")).toBe("");
+    expect(listedCommits(root)).toEqual([]);
+    const before = readFileSync(file);
+
+    const refresh = runNode(root, GENERATOR, REFRESH_FLAG);
+
+    expect(refresh.status).not.toBe(0);
+    expect(refresh.stderr).toContain(
+      "Refusing to generate an empty public origin commit manifest"
+    );
+    expect(readFileSync(file).equals(before)).toBe(true);
+    expect(listedCommits(root)).not.toContain(commits.tip);
+  });
+
   it("lists a history longer than one megabyte of commit ids", () => {
     const { root, commits } = fixture();
     const stream = Array.from({ length: LONG_HISTORY }, (_, index) => {
