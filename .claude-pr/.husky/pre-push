@@ -972,7 +972,7 @@ fi
 # updates without editing the governance block above.
 if [ -f .husky/pre-push.local ]; then
   echo "🔌 Running project-specific pre-push checks (.husky/pre-push.local)..."
-  # shellcheck source=/dev/null
+  # shellcheck source=pre-push.local
   . .husky/pre-push.local
   if [ $? -ne 0 ]; then
     echo "❌ Project-specific pre-push checks failed."

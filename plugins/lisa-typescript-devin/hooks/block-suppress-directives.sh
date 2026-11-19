@@ -95,7 +95,7 @@ LISA_HOOK_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
 if [ -n "${CLAUDE_PROJECT_DIR:-}" ] &&
   [ -f "$LISA_HOOK_DIR/lisa-edit-gate.sh" ] &&
   cd "$CLAUDE_PROJECT_DIR" 2>/dev/null; then
-  # shellcheck source=/dev/null
+  # shellcheck source=lisa-edit-gate.sh
   . "$LISA_HOOK_DIR/lisa-edit-gate.sh"
   if LISA_GATE_COMMANDS="$(lisa_edit_gate_tasks pre-tool suppression-residue)"; then
     # The declared task's own exit status decides the write: non-zero refuses,
@@ -157,7 +157,7 @@ read_before() {
 }
 
 # The edit object $1: tool_input itself for Edit, edits[$1] for MultiEdit.
-EDIT_AT='.tool_input | (if (.edits // null) != null then .edits[$i] else . end)'
+EDIT_AT=".tool_input | (if (.edits // null) != null then .edits[\$i] else . end)"
 
 # One string field ($2) of edit $1, empty when absent.
 edit_field() {

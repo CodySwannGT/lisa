@@ -184,16 +184,16 @@ if [ -f "$project_root/package.json" ] &&
   exit 0
 fi
 
-# lisaignore_glob_ere <glob>
+# lisa_glob_ere <glob>
 #
-# Set `lisaignore_ere` to an anchored ERE that matches exactly the strings the
-# shell's `case` matches with <glob>, so `[[ $path =~ $lisaignore_ere ]]` can
-# stand in for an unquoted `case` pattern: `*` is any run of characters
-# (slashes included), `?` is one character, `[...]` is a bracket expression
-# (`!` or `^` negates it), a backslash makes the next character literal, and
-# an unterminated `[` is a literal `[`. Every other character is literal, so an
-# ERE metacharacter in a `.lisaignore` line is matched as itself rather than
-# obeyed. Returns 1, matching nothing, for a trailing backslash: it escapes
+# Set `lisa_glob_ere_result` to an anchored ERE that matches exactly the
+# strings the shell's `case` matches with <glob>, so
+# `[[ $path =~ $lisa_glob_ere_result ]]` can stand in for an unquoted `case`
+# pattern: `*` is any run of characters (slashes included), `?` is one
+# character, `[...]` is a bracket expression (`!` or `^` negates it), a
+# backslash makes the next character literal, and an unterminated `[` is a
+# literal `[`. Every other character is literal, so an ERE metacharacter in a
+# glob is matched as itself rather than obeyed. Returns 1, matching nothing, for a trailing backslash: it escapes
 # nothing, and the shell's matcher then matches nothing either.
 #
 # A range compares code points, as bash 5 does by default (`globasciiranges`)
@@ -203,56 +203,56 @@ fi
 #
 # No subshells: this runs on every agent edit, so each helper appends to a
 # variable instead of printing.
-lisaignore_glob_ere() {
+lisa_glob_ere() {
   local glob="$1" char
   local -i i=0 n=${#1}
-  lisaignore_ere=""
+  lisa_glob_ere_result=""
   while [ "$i" -lt "$n" ]; do
     char="${glob:i:1}"
     case "$char" in
-      "*") lisaignore_ere+=".*" ;;
-      "?") lisaignore_ere+="." ;;
+      "*") lisa_glob_ere_result+=".*" ;;
+      "?") lisa_glob_ere_result+="." ;;
       "\\")
         [ "$((i + 1))" -lt "$n" ] || return 1
         i+=1
-        lisaignore_ere_literal "${glob:i:1}"
+        lisa_glob_ere_literal "${glob:i:1}"
         ;;
       "[")
-        if lisaignore_bracket_end "$glob" "$i"; then
-          lisaignore_bracket_ere "${glob:i+1:lisaignore_close-i-1}"
-          i=$lisaignore_close
+        if lisa_glob_bracket_end "$glob" "$i"; then
+          lisa_glob_bracket_ere "${glob:i+1:lisa_glob_close-i-1}"
+          i=$lisa_glob_close
         else
-          lisaignore_ere_literal "["
+          lisa_glob_ere_literal "["
         fi
         ;;
-      *) lisaignore_ere_literal "$char" ;;
+      *) lisa_glob_ere_literal "$char" ;;
     esac
     i+=1
   done
-  lisaignore_ere="^${lisaignore_ere}\$"
+  lisa_glob_ere_result="^${lisa_glob_ere_result}\$"
 }
 
-# lisaignore_ere_literal <char>
+# lisa_glob_ere_literal <char>
 #
-# Append one character to `lisaignore_ere`, written so an ERE matches it
-# literally.
-lisaignore_ere_literal() {
+# Append one character to `lisa_glob_ere_result`, written so an ERE matches
+# it literally.
+lisa_glob_ere_literal() {
   case "$1" in
-    "^") lisaignore_ere+="\\^" ;;
-    "\\") lisaignore_ere+="[\\]" ;;
-    "[") lisaignore_ere+="[[]" ;;
-    "." | "+" | "(" | ")" | "{" | "}" | "|" | "$" | "*" | "?") lisaignore_ere+="[$1]" ;;
-    *) lisaignore_ere+="$1" ;;
+    "^") lisa_glob_ere_result+="\\^" ;;
+    "\\") lisa_glob_ere_result+="[\\]" ;;
+    "[") lisa_glob_ere_result+="[[]" ;;
+    "." | "+" | "(" | ")" | "{" | "}" | "|" | "$" | "*" | "?") lisa_glob_ere_result+="[$1]" ;;
+    *) lisa_glob_ere_result+="$1" ;;
   esac
 }
 
-# lisaignore_bracket_end <glob> <open>
+# lisa_glob_bracket_end <glob> <open>
 #
-# Set `lisaignore_close` to the index of the `]` closing the bracket opened at
-# <open>, or return 1 when it is never closed. A `]` straight after the
+# Set `lisa_glob_close` to the index of the `]` closing the bracket opened
+# at <open>, or return 1 when it is never closed. A `]` straight after the
 # opening (or after its `!`/`^`) is a member, `[:name:]` is a class, and a
 # backslash escapes the next character, as in the shell's own matcher.
-lisaignore_bracket_end() {
+lisa_glob_bracket_end() {
   local glob="$1" rest name
   local -i i=$(($2 + 1)) n=${#1} start
   case "${glob:i:1}" in "!" | "^") i+=1 ;; esac
@@ -261,7 +261,7 @@ lisaignore_bracket_end() {
     case "${glob:i:1}" in
       "]")
         if [ "$i" -gt "$start" ]; then
-          lisaignore_close=$i
+          lisa_glob_close=$i
           return 0
         fi
         ;;
@@ -283,13 +283,13 @@ lisaignore_bracket_end() {
   return 1
 }
 
-# lisaignore_bracket_ere <body>
+# lisa_glob_bracket_ere <body>
 #
 # Append the ERE bracket expression for a glob bracket body to
-# `lisaignore_ere`. An escaped member loses its backslash, and a literal `]`,
+# `lisa_glob_ere_result`. An escaped member loses its backslash, and a literal `]`,
 # `^` or `-` is placed where an ERE bracket reads it literally: first, not
 # first, and last.
-lisaignore_bracket_ere() {
+lisa_glob_bracket_ere() {
   local body="$1" negate="" members="" close="" caret="" dash="" char
   local -i i=0 n=${#1}
   case "${body:0:1}" in "!" | "^") negate="^" i=1 ;; esac
@@ -319,7 +319,7 @@ lisaignore_bracket_ere() {
     members="$caret"
     caret=""
   fi
-  lisaignore_ere+="[${negate}${close}${members}${caret}${dash}]"
+  lisa_glob_ere_result+="[${negate}${close}${members}${caret}${dash}]"
 }
 
 # Whether the project has claimed a path in `.lisaignore`.
@@ -368,14 +368,14 @@ lisaignored() {
     esac
     local selected=1 pattern_ere=""
     # A trailing backslash leaves no ERE, and such a pattern selects nothing.
-    if lisaignore_glob_ere "$pattern"; then pattern_ere="$lisaignore_ere"; fi
+    if lisa_glob_ere "$pattern"; then pattern_ere="$lisa_glob_ere_result"; fi
     case "$pattern" in
       */)
         case "$rel" in "${pattern%/}"/* | "${pattern%/}") selected=0 ;; esac
         ;;
     esac
     # The pattern is a glob on purpose. It is matched through its ERE, which
-    # `lisaignore_glob_ere` builds to select exactly what an unquoted `case`
+    # `lisa_glob_ere` builds to select exactly what an unquoted `case`
     # pattern would, so no expansion is left unquoted.
     if [ "$selected" -ne 0 ] && [ -n "$pattern_ere" ]; then
       if [[ $rel =~ $pattern_ere ]]; then selected=0; fi

@@ -59,7 +59,7 @@ cd "$CLAUDE_PROJECT_DIR" || exit 0
 # would silently stop proving the others.
 # ---------------------------------------------------------------------------
 if [ -f "$LISA_HOOK_DIR/lisa-edit-gate.sh" ]; then
-    # shellcheck source=/dev/null
+    # shellcheck source=lisa-edit-gate.sh
     . "$LISA_HOOK_DIR/lisa-edit-gate.sh"
     if LISA_GATE_COMMANDS="$(lisa_edit_gate_tasks post-tool format-conformance)"; then
         lisa_edit_gate_run "$FILE_PATH" "$LISA_GATE_COMMANDS"
@@ -91,7 +91,7 @@ echo "🎨 Running Prettier on: $FILE_PATH"
 $PRETTIER_CMD --write "$FILE_PATH" 2>&1 | grep -v "run v" | grep -v "Done in"
 
 # Check the exit status
-if [ ${PIPESTATUS[0]} -eq 0 ]; then
+if [ "${PIPESTATUS[0]}" -eq 0 ]; then
     echo "✓ Successfully formatted: $(basename "$FILE_PATH")"
 else
     echo "⚠ Prettier formatting failed for: $FILE_PATH" >&2
