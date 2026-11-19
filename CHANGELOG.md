@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [8.1.0](https://github.com/CodySwannGT/lisa/compare/v8.0.1...v8.1.0) (2026-11-19)
+
+
+### Features
+
+* **estimate:** tally actual tokens and cost beside the estimate at done ([33c38d4](https://github.com/CodySwannGT/lisa/commit/33c38d4ffa3a118a933e43e44028576c7b3687c2)), closes [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956) [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956)
+
+
+### Bug Fixes
+
+* **estimate:** count every usage ledger and never record a partial total ([77d2343](https://github.com/CodySwannGT/lisa/commit/77d23435c4a1b0ade1a372e3b67bdcfeecc7a648)), closes [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956) [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956)
+* **estimate:** count runs by identity, read every comment ledger, honour the off gate ([c3f997b](https://github.com/CodySwannGT/lisa/commit/c3f997bdf590051bd5b3fdd17f05504bad5dbfff)), closes [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956) [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956)
+* **estimate:** count the direct runs of a usage section without a rollup token ([5f20ab8](https://github.com/CodySwannGT/lisa/commit/5f20ab81779287ae2ed57f80cf850cbbb6dc689f)), closes [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956) [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956)
+* **estimate:** fold tracker-rewritten rows, read child-only ledgers, check tally entries ([7281dd5](https://github.com/CodySwannGT/lisa/commit/7281dd50e48a7509492dd0037a9b086802a22c4a)), closes [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956) [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956)
+* **estimate:** make the actual unknown when a usage section cannot be read in full ([5d16e96](https://github.com/CodySwannGT/lisa/commit/5d16e96b8cf167c26dddb419a140a6182db997c1)), closes [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956) [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956)
+* **estimate:** ship the actual-tally module in the managed-script ignore list ([16396da](https://github.com/CodySwannGT/lisa/commit/16396da980811f33208c294cf293975f71b6736b)), closes [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956) [CodySwannGT/lisa#4956](https://github.com/CodySwannGT/lisa/issues/4956)
+
 ### [8.0.1](https://github.com/CodySwannGT/lisa/compare/v8.0.0...v8.0.1) (2026-11-19)
 
 ## [8.0.0](https://github.com/CodySwannGT/lisa/compare/v7.1.5...v8.0.0) (2026-11-19)
