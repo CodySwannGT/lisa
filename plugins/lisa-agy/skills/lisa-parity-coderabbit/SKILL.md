@@ -26,7 +26,7 @@ git log "$BASE"..HEAD --oneline       # commit narrative
 git diff HEAD                         # uncommitted work
 ```
 
-**Honor the requested scope.** When the caller names a scope (committed changes only, uncommitted changes only, against a given base branch or commit, or one directory), review exactly that. Never quietly narrow it, for example because the diff is large. If you must leave anything out, say so (see Rules). Untracked files are outside the default scope; include them only when asked (`git status --porcelain --untracked-files=all` lists them), while staged new files are part of `git diff HEAD`.
+**Honor the requested scope.** When the caller names a scope (committed changes only, uncommitted changes only, against a given base branch or commit, or one directory), review exactly that. Never quietly narrow it, for example because the diff is large. If you must leave anything out, say so (see Rules). Untracked files are outside the default scope; include them only when asked (`git status --porcelain --untracked-files=all` lists them). For a staged scope, review `git diff --cached`, which is what the next commit records; for unstaged changes, review `git diff`. `git diff HEAD` alone can hide a staged version that a later working-tree edit changed.
 
 Read the commit messages and (if available) the PR/ticket description to understand **intent** — a review judges the change against what it was meant to do, not just what it does.
 

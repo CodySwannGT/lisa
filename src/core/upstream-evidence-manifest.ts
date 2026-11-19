@@ -1645,7 +1645,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-parity-code-review/SKILL.md":
       "305581d5ba13cd6fca55cea623b18b26606cc596b06ff009b57585820cfc0faa",
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
-      "9bc0fc64a7a8eb52986c0e03e5166f7a1c0f938b1e03b84aaa54f9fd269ffde6",
+      "fc660e91f94c06a459a39dc7a3b4264ccc13a9c94f644948eec02251cf9f5546",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
       "36e118355bcf694924f9fe3e8f9189efd5b02268c6658ee83244a53cb12c127d",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
