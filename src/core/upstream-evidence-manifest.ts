@@ -12883,6 +12883,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-test-files-override.test.ts": true,
     "tests/unit/config/eslint-typescript-worktree-scope.test.ts": true,
     "tests/unit/config/expo-design-value-arming.test.ts": true,
+    "tests/unit/config/expo-eslint-factory-retired.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
     "tests/unit/config/expo-jest-config-loader.test.ts": true,
     "tests/unit/config/expo-jsx-a11y-restore.test.ts": true,
