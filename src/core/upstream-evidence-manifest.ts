@@ -1941,7 +1941,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "8bbee6b63650115190991947a5ceed8f5a7654f8bf32b616a701c36e1b1cee93",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "b4fa9dcab542ae475ebc49e2870f5ca9df2e608ca90f9a96ac8681e08cedcce3",
+      "046bff24c56a53c7609b569364d49834ea0c42fd92491a08a74620fbb770ed4d",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "5e250f235e91a6f72a7ebee93560d6c6fd7c5c47aabefe341fba05c6b88c4b25",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
