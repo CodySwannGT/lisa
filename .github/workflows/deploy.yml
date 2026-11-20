@@ -283,7 +283,37 @@ jobs:
           gh release edit "$TAG" --draft
           echo "Converted the GitHub Release for $TAG to a draft: the registry has no such version."
 
+      # A `published` verdict means the version landed after the publish job's
+      # own check gave up: npm accepted it, then took longer to serve it than
+      # that check's window (CodySwannGT/lisa#5106: v8.2.4 was accepted at
+      # 13:33:04Z and first served about 55 minutes later). That is a landed
+      # release, so nothing below files an issue or refuses. The run still
+      # reads red, because the publish job really did fail its bounded check;
+      # this summary is what says the release is good and nothing needs doing.
+      - name: Report a release that landed after the publish check gave up
+        if: steps.landed.outputs.verdict == 'published'
+        env:
+          PACKAGE: ${{ steps.landed.outputs.package }}
+          VERSION: ${{ needs.release.outputs.version }}
+          TAG: ${{ needs.release.outputs.tag }}
+          PUBLISH_RESULT: ${{ needs.publish_npm.result }}
+        run: |
+          {
+            echo "### ✅ $PACKAGE@$VERSION is on npm — it arrived late"
+            echo ""
+            echo "The **Publish to npm** job finished as **$PUBLISH_RESULT** before it saw npm serve"
+            echo "\`$VERSION\`. npm can take longer to make a version available than that job waits."
+            echo "Asked again here, the registry now serves it: https://registry.npmjs.org/$PACKAGE/$VERSION"
+            echo ""
+            echo "**Nothing needs doing.** The release \`$TAG\` is installable, it was not retracted,"
+            echo "and no issue was filed. Do not re-run the publish job: npm refuses to publish a"
+            echo "version that already exists. This run stays red because the publish job did not"
+            echo "succeed; the release itself is good."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=$PACKAGE@$VERSION landed late::The publish job's check gave up before npm served $VERSION, but the registry serves it now. Nothing needs doing; do not re-run the publish."
+
       - name: File the skipped version so it outlives this run
+        if: steps.landed.outputs.verdict != 'published'
         uses: actions/github-script@v8
         env:
           PACKAGE: ${{ steps.landed.outputs.package }}
@@ -333,6 +363,7 @@ jobs:
             }
 
       - name: Refuse to end green
+        if: steps.landed.outputs.verdict != 'published'
         env:
           PACKAGE: ${{ steps.landed.outputs.package }}
           VERSION: ${{ needs.release.outputs.version }}

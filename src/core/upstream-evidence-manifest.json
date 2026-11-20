@@ -9,7 +9,7 @@
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "8a4b2cab9ac32a855e2adc1a7a3c6f7a9ac35dcb75cda2fac7eea144ced50098",
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
-      "316a3d09a7c28a1c9c90f144552d7be68b4fb8c65e191e29534ce1961fd2c3e3",
+      "a145f2f4c5c7d31a08c1f52c46c03177a10015dfa2244d6c4fb1126934b6becd",
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
       "1f450d2492ca0bcdba440f6b403c1deee0f35e749c54d2ed5c5ddc696d5ab896",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
@@ -13130,6 +13130,7 @@
     "tests/unit/config/push-gate-template-scripts.test.ts": true,
     "tests/unit/config/rails-template.test.ts": true,
     "tests/unit/config/rails-tooling-refresh.test.ts": true,
+    "tests/unit/config/reconcile-release-verdicts.test.ts": true,
     "tests/unit/config/refusal-announcement.test.ts": true,
     "tests/unit/config/release-package-identity-workflows.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,

@@ -249,10 +249,11 @@ describe("deploy.yml reconciles a release the registry never received", () => {
     expect(retract?.if).toBe("steps.landed.outputs.verdict == 'missing'");
   });
 
-  it("files an issue on every non-success, so the record outlives the run", async () => {
-    // Unconditional on purpose. The run's own conclusion is what the incident
-    // lost — a cancelled re-run erased the failure — so the durable record has
-    // to be written for `unprovable` as well as for `missing`.
+  it("files an issue on every verdict but `published`, so the record outlives the run", async () => {
+    // For `unprovable` as well as for `missing`: the run's own conclusion is
+    // what the incident lost — a cancelled re-run erased the failure — so the
+    // durable record has to be written for both. Never for `published`, which
+    // is a release that landed late (#5106); filing one then is a false alarm.
     const workflow = await readWorkflow(DEPLOY_WORKFLOW);
     const steps = workflow.jobs.reconcile_release?.steps ?? [];
     const file = steps.find(
@@ -260,15 +261,18 @@ describe("deploy.yml reconciles a release the registry never received", () => {
     );
 
     expect(file).toBeDefined();
-    expect(file?.if).toBeUndefined();
+    expect(file?.if).toBe("steps.landed.outputs.verdict != 'published'");
     expect(String(file?.with?.script)).toContain("issues.create");
   });
 
-  it("ends non-zero, so the reconciliation cannot report green", async () => {
+  it("ends non-zero unless the registry says published", async () => {
     const workflow = await readWorkflow(DEPLOY_WORKFLOW);
     const steps = workflow.jobs.reconcile_release?.steps ?? [];
 
     expect(steps.at(-1)?.run).toContain("exit 1");
+    expect(steps.at(-1)?.if).toBe(
+      "steps.landed.outputs.verdict != 'published'"
+    );
   });
 
   it("does not narrow the wait with its own --attempts override", async () => {
