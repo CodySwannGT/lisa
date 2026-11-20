@@ -20,7 +20,7 @@
   },
   "members": {
     "check-threshold-ratchet.mjs": {
-      "sha256": "6d352b56fd7974d0da50fec53b9e4f388ce3a460e3af642295f487cc632a8992",
+      "sha256": "62add29cbcca6ac6b2346120393d41e219267f74d7ea6c66dc1482c5dbdb118a",
       "staticImports": [
         "node:child_process",
         "node:fs",
@@ -1756,7 +1756,7 @@
       "children": []
     },
     "threshold-ratchet-compare.mjs": {
-      "sha256": "35a4fb24f6f0eeec58a97254185e46810051fa73602ad29c37cdfd1d5d08c220",
+      "sha256": "f837708fc5baf19b5e8e9adf88bcce810f8257d00075265775982b38063dc5d3",
       "staticImports": [
         "threshold-ratchet-families.mjs"
       ],
@@ -1764,7 +1764,7 @@
       "children": []
     },
     "threshold-ratchet-families.mjs": {
-      "sha256": "844e85f820a8553fd0e66d5f5e3db4caf4d2a17267cb0e9cc89915a09b30566c",
+      "sha256": "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
       "staticImports": [],
       "dynamicImports": [],
       "children": []

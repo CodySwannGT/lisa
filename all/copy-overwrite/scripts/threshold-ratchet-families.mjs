@@ -575,6 +575,80 @@ export function extractAllowEntries(config) {
   );
 }
 
+/** The `humanGate.mode` under which an agent records a risk acceptance. */
+export const HUMAN_GATE_ACCESS_ONLY = "access-only";
+/** The `humanGate.mode` under which a threshold exception stays a person's. */
+export const HUMAN_GATE_STRICT = "strict";
+
+/**
+ * The `humanGate.mode` a config declares, as the ratchet reads it.
+ *
+ * Same rule as `resolveHumanGateMode` in `scripts/human-gate-act.mjs`, written
+ * out here because this module ships inside a plugin payload and into host
+ * `scripts/` folders, and neither has that script beside it: only an absent
+ * mode is the default, `access-only`; a declared value is compared trimmed and
+ * lower-cased; and a value that is not a known mode fails safe, to `strict`,
+ * so a typo never loosens the gate.
+ *
+ * The caller passes the BASELINE config, the side the allow list is read from.
+ * A change therefore cannot relax the mode and add an exception in one step,
+ * and a personal `.lisa.config.local.json` — which no baseline holds — cannot
+ * relax it at all.
+ * @param {unknown} config Parsed `.lisa.config.json`, or nothing when the
+ *   baseline has none
+ * @returns {"access-only" | "strict"} The mode in force
+ */
+export function humanGateModeOf(config) {
+  if (!config || typeof config !== "object") return HUMAN_GATE_ACCESS_ONLY;
+  const block = config.humanGate;
+  if (block === undefined) return HUMAN_GATE_ACCESS_ONLY;
+  // A block that is present and is not an object declared something nobody
+  // can read. The other resolvers of this key fail safe on it, and so does
+  // this one: a malformed block must not read as "nothing declared".
+  if (block === null || typeof block !== "object" || Array.isArray(block)) {
+    return HUMAN_GATE_STRICT;
+  }
+  const declared = block.mode;
+  if (declared === undefined) return HUMAN_GATE_ACCESS_ONLY;
+  const mode =
+    typeof declared === "string" ? declared.trim().toLowerCase() : declared;
+  return mode === HUMAN_GATE_ACCESS_ONLY
+    ? HUMAN_GATE_ACCESS_ONLY
+    : HUMAN_GATE_STRICT;
+}
+
+/**
+ * The `humanGate.mode` of a `.lisa.config.json` given as text.
+ *
+ * Absent and unreadable are opposite cases and must not be conflated. A
+ * repository with no config at the baseline declared nothing, so the default
+ * applies. A config that is there and does not parse declared something
+ * nobody can read, and that fails safe like any other unreadable declaration.
+ * @param {string | null | undefined} text The file's text, or nothing when the
+ *   baseline has no such file
+ * @returns {"access-only" | "strict"} The mode in force
+ */
+export function humanGateModeOfText(text) {
+  if (text === null || text === undefined) return HUMAN_GATE_ACCESS_ONLY;
+  const config = parseJson(text);
+  const readable =
+    config !== null && typeof config === "object" && !Array.isArray(config);
+  return readable ? humanGateModeOf(config) : HUMAN_GATE_STRICT;
+}
+
+/**
+ * An allow entry's reason as one line of text.
+ *
+ * A reason is written by whoever records the entry and is printed into the
+ * check's own output. Left raw, a line break inside it starts a new line that
+ * reads as the check speaking, so every run of whitespace becomes one space.
+ * @param {unknown} reason The entry's `reason`
+ * @returns {string} The reason on one line; empty when there is none
+ */
+export function reasonInWords(reason) {
+  return typeof reason === "string" ? reason.replace(/\s+/gu, " ").trim() : "";
+}
+
 /**
  * The three states an allow entry's expiry condition can be in.
  *
@@ -670,10 +744,9 @@ export function describeAllowScope(entry) {
  */
 export function classifyAllowEntry(entry, now) {
   const scope = describeAllowScope(entry);
+  const reason = reasonInWords(entry.reason);
   const because =
-    typeof entry.reason === "string" && entry.reason.trim() !== ""
-      ? ` Reason on record: ${entry.reason.trim()}`
-      : " No reason is recorded.";
+    reason === "" ? " No reason is recorded." : ` Reason on record: ${reason}`;
   const expiresAt = allowEntryExpiry(entry.until);
   if (expiresAt === undefined) {
     const summary = `names no condition anything can evaluate (until = ${JSON.stringify(entry.until ?? null)})`;
@@ -691,7 +764,7 @@ export function classifyAllowEntry(entry, now) {
       state: ALLOW_STATE.EXPIRED,
       scope,
       summary,
-      detail: `${scope} ${summary} and no longer exempts anything. Delete it, or record a fresh human-approved entry naming the new condition.${because}`,
+      detail: `${scope} ${summary} and no longer exempts anything. Delete it, or record a fresh entry naming the new condition.${because}`,
     };
   }
   const summary = `is live until ${day}`;

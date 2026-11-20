@@ -8,6 +8,9 @@
  */
 import {
   ALLOW_STATE,
+  HUMAN_GATE_ACCESS_ONLY,
+  HUMAN_GATE_STRICT,
+  allowEntryExpiry,
   classifyAllowEntry,
   describeAllowScope,
   extractAllowEntries,
@@ -23,8 +26,13 @@ import {
   globRoot,
   isDeclaredDirection,
   parseJson,
+  reasonInWords,
 } from "./threshold-ratchet-families.mjs";
 
+/** The one config the allow list and the `humanGate.mode` are read from. */
+const ROOT_CONFIG = ".lisa.config.json";
+/** Finding type: the change adds a `thresholdRatchet.allow` entry. */
+const TYPE_ALLOW_ADDED = "allow-added";
 /** Finding type: a numeric bound or boolean gate moved the weakening way. */
 const TYPE_WEAKENED = "weakened";
 /** Finding type: a gate-shrinking exemption was added (Tier 3). */
@@ -41,6 +49,8 @@ const KIND_ALLOW_LIST = "allow-list";
  * @property {number|string} [base] Baseline value
  * @property {number|string} [current] Current value
  * @property {string} message Operator-readable explanation
+ * @property {{ file: string, key: string, reason?: unknown, until?: unknown }} [entry]
+ *   The allow entry an `allow-added` finding is about, as the change wrote it
  */
 
 /**
@@ -251,8 +261,12 @@ function compareK6(relPath, base, current) {
 }
 
 /**
- * Compare .lisa.config.json allow lists: report added exception entries so a
- * change can never grant itself an exception.
+ * Compare .lisa.config.json allow lists: report every added exception entry.
+ *
+ * The finding says only what was added, and carries the entry. Whether an
+ * added entry is accepted or refused is {@link settleAddedExceptions}' call,
+ * because that depends on the rest of the change and on the repository's
+ * `humanGate.mode`, neither of which this comparison can see.
  * @param {string} relPath Repo-relative path
  * @param {unknown} base Parsed baseline config
  * @param {unknown} current Parsed current config
@@ -268,12 +282,237 @@ function compareAllowList(relPath, base, current) {
       findings.push({
         file: relPath,
         key: `thresholdRatchet.allow ${entry.file}#${entry.key}`,
-        type: "allow-added",
-        message: `${relPath}: new threshold exception — ${describeAllowScope(entry)}. Exceptions are a human decision: land this entry in its own human-approved change first, then make the threshold change. It needs a reason saying what resolves it and an "until": "YYYY-MM-DD" naming the day it is reviewed, because an exemption that cannot end is a permanent reduction in what the ratchet covers.`,
+        type: TYPE_ALLOW_ADDED,
+        message: `${relPath}: new threshold exception — ${describeAllowScope(entry)}.`,
+        entry,
       });
     }
   }
   return findings;
+}
+
+/**
+ * What an added allow entry still lacks before it can be recorded.
+ *
+ * An entry needs a reason, so whoever meets it later knows what resolves it,
+ * and a day it ends, because an exemption that cannot end is a permanent
+ * reduction in what the ratchet covers (#3856). A day already past is refused
+ * too: such an entry would be dead on arrival and exempt nothing.
+ * @param {{ reason?: unknown, until?: unknown }} entry The entry as written
+ * @param {number} now Clock reading
+ * @returns {string[]} One clause per gap; empty when the entry is sound
+ */
+function addedExceptionGaps(entry, now) {
+  const gaps = [];
+  if (reasonInWords(entry.reason) === "") {
+    gaps.push("it needs a reason saying what resolves it");
+  }
+  const expiresAt = allowEntryExpiry(entry.until);
+  if (expiresAt === undefined) {
+    gaps.push(
+      'it needs an "until": "YYYY-MM-DD" day naming when it is reviewed'
+    );
+  } else if (now >= expiresAt) {
+    gaps.push(`its "until" day ${String(entry.until).trim()} has passed`);
+  }
+  return gaps;
+}
+
+/**
+ * How many threshold names a hint lists before it stops.
+ */
+const HINT_LIMIT = 5;
+
+/**
+ * The rule an allow entry is matched by, said once for every hint that needs it.
+ */
+const COVER_RULE =
+  'An entry covers a threshold only when its "file" is that threshold\'s file (the same path, or the name of a file of that name in a sub-folder) and its "key" is that threshold\'s key or "*".';
+
+/**
+ * Warn that an entry refused for arriving with a threshold change would not
+ * cover that change even once merged.
+ *
+ * The refusal tells the reader to merge the entry first and then make the
+ * threshold change. With a key that names none of the thresholds the change
+ * loosens, following that to the letter ends in a second refusal with no
+ * explanation, so the mismatch is said here, where the entry is still being
+ * written.
+ * @param {{ file: string, key: string }} entry The added entry
+ * @param {Finding[]} others The other findings in the change
+ * @returns {string} A sentence to append, or nothing when the entry covers one
+ */
+function keyMismatchNote(entry, others) {
+  if (others.some(finding => entryCovers(entry, finding))) return "";
+  const names = [...new Set(others.map(f => `${f.file} → ${f.key}`))];
+  const listed = names.slice(0, HINT_LIMIT).join("; ");
+  const more = names.length > HINT_LIMIT ? "; and more" : "";
+  return ` As written it would not cover what this change loosens either: it names ${entry.file} → ${entry.key}, and the thresholds changed here are ${listed}${more}. ${COVER_RULE}`;
+}
+
+/**
+ * The threshold names the ratchet finds in a file as the change has it.
+ *
+ * Taken from the comparison itself — every finding it reports when the file
+ * is emptied — so the names cannot differ from what an entry is matched
+ * against. `*` is left out: it is how an unreadable file reports itself, not
+ * a name anybody would write.
+ * @param {string} file Repo-relative path
+ * @param {string} text The file's text
+ * @returns {string[]} Names, in the order the comparison reports them
+ */
+function thresholdNamesIn(file, text) {
+  return [
+    ...new Set(compareFile(file, text, "{}").map(finding => finding.key)),
+  ].filter(name => name !== "*");
+}
+
+/**
+ * Point out a sound, entry-only exception whose key names no threshold the
+ * ratchet finds in its file today.
+ *
+ * An entry is matched by its file and its exact key, and nothing at record
+ * time says which threshold it is meant for. A key that is nearly right — the
+ * name in the config file instead of the name the ratchet gives the threshold
+ * — is recorded, merged, and then covers nothing, and the operator learns of
+ * it one merge later. So when the named file can be read, the notice says
+ * what the ratchet finds in it.
+ *
+ * It states an observation and never a prediction. An entry can be right and
+ * still name nothing today: a threshold that is added later, a mutation
+ * exclusion that does not exist yet, or a file of the same name in a
+ * sub-folder, which an entry with a bare file name also matches. Saying such
+ * an entry "will cover nothing" would be false.
+ *
+ * It can never change the verdict. The file name comes from the entry, so a
+ * path that leaves the repository is not read, and any failure while reading
+ * or comparing — a file too deep to walk, say — yields no note rather than an
+ * error from code whose only job is a hint.
+ * @param {{ file: string, key: string }} entry The entry being recorded
+ * @param {(file: string) => string | null | undefined} readFile Reads a
+ *   repository file as the change has it
+ * @returns {string} A sentence to append to the notice, or nothing
+ */
+function unmatchedKeyNote(entry, readFile) {
+  const leavesRepository =
+    entry.file.startsWith("/") || entry.file.split(/[\\/]/u).includes("..");
+  if (entry.key === "*" || leavesRepository || !familyFor(entry.file)) {
+    return "";
+  }
+  try {
+    const text = readFile(entry.file);
+    if (typeof text !== "string") return "";
+    const names = thresholdNamesIn(entry.file, text);
+    if (names.length === 0 || names.includes(entry.key)) return "";
+    const listed = names
+      .slice(0, HINT_LIMIT)
+      .map(name => `"${name}"`)
+      .join(", ");
+    const more = names.length > HINT_LIMIT ? ", and more" : "";
+    return ` Check the key: the ratchet finds no threshold named "${entry.key}" in ${entry.file} at the repository root today. The names it finds there are ${listed}${more}. If the entry is meant for one of them, its key must be that name exactly. A threshold added later, a new exclusion, or a file of the same name in a sub-folder is still matched by the entry as written.`;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Decide one added allow entry under the default policy.
+ * @param {Finding} finding The `allow-added` finding
+ * @param {Finding[]} others Every other ratchet finding in the change
+ * @param {number} now Clock reading
+ * @param {(file: string) => string | null | undefined} readFile Reads a
+ *   repository file as the change has it
+ * @returns {{ accepted: boolean, message: string }} The verdict and its text:
+ *   a notice when accepted, the refusal otherwise
+ */
+function judgeAddedException(finding, others, now, readFile) {
+  const entry = finding.entry ?? {};
+  const said = finding.message.replace(/\.$/u, "");
+  if (finding.file !== ROOT_CONFIG) {
+    return {
+      accepted: false,
+      message: `${said} — is written in ${finding.file}, and the ratchet reads exceptions from the repository's root ${ROOT_CONFIG} only, so it would never exempt anything. Record it in the root ${ROOT_CONFIG} instead.`,
+    };
+  }
+  const gaps = addedExceptionGaps(entry, now);
+  if (gaps.length > 0) {
+    return {
+      accepted: false,
+      message: `${said} — cannot be recorded yet: ${gaps.join(", and ")}. Complete the entry and try again.`,
+    };
+  }
+  if (others.length > 0) {
+    return {
+      accepted: false,
+      message: `${said} — arrives together with another threshold change, and an exception exempts nothing until it is merged. Merge this entry in a change of its own first, then make the threshold change.${keyMismatchNote(entry, others)}`,
+    };
+  }
+  return {
+    accepted: true,
+    message: `new exception recorded — ${describeAllowScope(entry)}. Reason on record: "${reasonInWords(entry.reason)}". It ends after ${String(entry.until).trim()}. It exempts nothing until this change is merged, so make the threshold change in a later change.${unmatchedKeyNote(entry, readFile)}`,
+  };
+}
+
+/**
+ * Settle the allow entries a change adds: which are recorded, which refused.
+ *
+ * The fence this keeps is that a change cannot grant itself an exception. The
+ * allow list is honoured from the baseline only, so an entry exempts nothing
+ * until it is merged — and that ordering does not depend on refusing the
+ * change that records the entry. Refusing it anyway left the exception route
+ * unusable: the refusal told the reader to land the entry in a change of its
+ * own, which was the change being refused (#5099).
+ *
+ * Under the default `access-only` policy an agent records a risk acceptance
+ * and a person can reverse it (#4687), so an added entry is ACCEPTED when it
+ * is sound — a reason and a day it ends that has not passed — and the change
+ * holds no other ratchet finding. An entry that arrives with any other
+ * finding is refused whether or not it would cover that finding: accepting it
+ * would be the self-grant, one step removed.
+ *
+ * Under `strict` an exception stays a person's decision, and nothing here can
+ * see that a person approved, so every added entry is refused as it always
+ * was.
+ * @param {Finding[]} findings Every finding from the change, promotion-carried
+ *   entries already taken out
+ * @param {string} mode The repository's `humanGate.mode`, from the baseline
+ * @param {number} [now] Clock reading, injected so the check is deterministic
+ * @param {(file: string) => string | null | undefined} [readFile] Reads a
+ *   repository file as the change has it, so a recorded entry can be checked
+ *   against the thresholds its file holds; reads nothing by default
+ * @returns {{
+ *   accepted: Array<{ finding: Finding, message: string }>,
+ *   refused: Finding[],
+ *   rest: Finding[],
+ * }} Entries recorded (with the notice to print), entries refused (with the
+ *   refusal as their message), and every finding that is not an added entry
+ */
+export function settleAddedExceptions(
+  findings,
+  mode,
+  now = Date.now(),
+  readFile = () => null
+) {
+  const added = findings.filter(f => f.type === TYPE_ALLOW_ADDED);
+  const rest = findings.filter(f => f.type !== TYPE_ALLOW_ADDED);
+  if (mode !== HUMAN_GATE_ACCESS_ONLY) {
+    return {
+      accepted: [],
+      refused: added.map(finding => ({
+        ...finding,
+        message: `${finding.message} Exceptions are a human decision: land this entry in its own human-approved change first, then make the threshold change. It needs a reason saying what resolves it and an "until": "YYYY-MM-DD" naming the day it is reviewed, because an exemption that cannot end is a permanent reduction in what the ratchet covers.`,
+      })),
+      rest,
+    };
+  }
+  const accepted = [];
+  const refused = [];
+  for (const finding of added) {
+    const verdict = judgeAddedException(finding, rest, now, readFile);
+    if (verdict.accepted) accepted.push({ finding, message: verdict.message });
+    else refused.push({ ...finding, message: verdict.message });
+  }
+  return { accepted, refused, rest };
 }
 
 /**
@@ -438,7 +677,7 @@ export function compareDeclaredThresholds(
       type: verdict.type,
       base: held.value,
       ...(verdict.current === undefined ? {} : { current: verdict.current }),
-      message: `${relPath}: the ${held.direction} "${held.name}" of the ${held.gate} gate, for ${folderInWords(held.scope)}, ${verdict.told} If a person decides this loosening is right, they record an exception under thresholdRatchet.allow with "file": "${relPath}" and "key": "${held.key}".`,
+      message: `${relPath}: the ${held.direction} "${held.name}" of the ${held.gate} gate, for ${folderInWords(held.scope)}, ${verdict.told} To loosen it on purpose, an exception under thresholdRatchet.allow with "file": "${relPath}" and "key": "${held.key}" has to be merged first.`,
     });
   }
   return findings;
@@ -512,6 +751,58 @@ function compareLighthouse(relPath, base, current) {
 }
 
 /**
+ * Whether a config's text literally declares `humanGate.mode: "strict"`.
+ * @param {string | null | undefined} text The config's text
+ * @returns {boolean} True only for a readable object whose mode, trimmed and
+ *   lower-cased, is the word `strict`
+ */
+function declaresStrict(text) {
+  const mode = parseJson(text)?.humanGate?.mode;
+  return (
+    typeof mode === "string" && mode.trim().toLowerCase() === HUMAN_GATE_STRICT
+  );
+}
+
+/**
+ * Report a root config whose `humanGate.mode` stops being `strict`.
+ *
+ * Under `strict` a threshold exception is a person's decision, and
+ * {@link settleAddedExceptions} refuses every added entry on that ground. The
+ * mode is read from the baseline, so a change cannot relax it for itself —
+ * but a change that ONLY relaxes it would, once merged, let the next change
+ * record an exception with no person involved. A strict repository could be
+ * walked down in three ordinary steps without this check ever objecting. So
+ * leaving `strict` is itself a loosening, and is reported like one.
+ * @param {string} relPath Repo-relative path
+ * @param {string} baselineText The config's text at the baseline
+ * @param {string | null | undefined} currentText Its text now; nothing when
+ *   the file was deleted
+ * @returns {Finding[]} One finding when the mode left `strict`, else none
+ */
+function compareHumanGateMode(relPath, baselineText, currentText) {
+  if (relPath !== ROOT_CONFIG) return [];
+  // Both sides are judged by whether the file literally DECLARES strict, not
+  // by the fail-safe reading used when exceptions are settled. A baseline
+  // that reads as strict only because nobody can read it — a misspelt mode, a
+  // block that is not an object, a file that does not parse — never said
+  // strict, and refusing the change that corrects it would wedge the
+  // repository on its own damage with no way through. The current side is
+  // held to the same literal reading, so respelling "strict" into something
+  // unreadable is reported here rather than slipping past as "still strict".
+  if (!declaresStrict(baselineText) || declaresStrict(currentText)) return [];
+  return [
+    {
+      file: relPath,
+      key: "humanGate.mode",
+      type: TYPE_WEAKENED,
+      base: HUMAN_GATE_STRICT,
+      current: HUMAN_GATE_ACCESS_ONLY,
+      message: `${relPath}: humanGate.mode stops being "strict". Under strict a threshold exception is a person's decision; with this change merged, the next one could be recorded with no person involved. This check cannot see that a person approved it.`,
+    },
+  ];
+}
+
+/**
  * Compare one watched file's baseline and current contents and report every
  * weakening. Pure: no filesystem or git access.
  * @param {string} relPath Repo-relative path (forward slashes)
@@ -527,12 +818,15 @@ export function compareFile(relPath, baselineText, currentText) {
     // Deleting an allow list grants nothing, so that half stays silent. The
     // thresholds the file declared are another matter: they go with it.
     if (family.kind === KIND_ALLOW_LIST) {
-      return compareDeclaredThresholds(
-        relPath,
-        parseJson(baselineText),
-        undefined,
-        true
-      );
+      return [
+        ...compareHumanGateMode(relPath, baselineText, currentText),
+        ...compareDeclaredThresholds(
+          relPath,
+          parseJson(baselineText),
+          undefined,
+          true
+        ),
+      ];
     }
     return [
       {
@@ -572,12 +866,15 @@ export function compareFile(relPath, baselineText, currentText) {
   // block every change touching the file without making anything safer.
   if (base === undefined) {
     return family.kind === KIND_ALLOW_LIST
-      ? []
+      ? compareHumanGateMode(relPath, baselineText, currentText)
       : [unparseableBaseline(relPath)];
   }
   if (current === undefined) {
     return family.kind === KIND_ALLOW_LIST
-      ? unreadableDeclaration(relPath, base)
+      ? [
+          ...compareHumanGateMode(relPath, baselineText, currentText),
+          ...unreadableDeclaration(relPath, base),
+        ]
       : [unparseable(relPath)];
   }
   switch (family.kind) {
@@ -595,6 +892,7 @@ export function compareFile(relPath, baselineText, currentText) {
       return compareLighthouse(relPath, base, current);
     case KIND_ALLOW_LIST:
       return [
+        ...compareHumanGateMode(relPath, baselineText, currentText),
         ...compareAllowList(relPath, base, current),
         ...compareDeclaredThresholds(relPath, base, current),
       ];
@@ -642,6 +940,102 @@ export function describeAllowList(allowEntries, now = Date.now()) {
 }
 
 /**
+ * One allow entry as a comparable string: its scope, reason and end.
+ * @param {{ file: string, key: string, reason?: unknown, until?: unknown }} entry An allow entry
+ * @returns {string} A string equal for two entries that say the same thing
+ */
+function entryIdentity(entry) {
+  return JSON.stringify([
+    entry.file,
+    entry.key,
+    entry.reason ?? null,
+    entry.until ?? null,
+  ]);
+}
+
+/**
+ * Split the allow entries on HEAD into those a protected branch already holds
+ * and those that exist only on this branch.
+ *
+ * At commit and at edit the baseline is HEAD, and HEAD is whatever this branch
+ * last committed. Once an entry-only change can be committed (#5099), reading
+ * the allow list from HEAD alone would let commit one record an exception and
+ * commit two use it, with nothing merged — the self-grant, split in two. So in
+ * those modes an entry counts only when it is also on a protected branch as
+ * the remote last reported it: the same "exempts nothing until it is merged"
+ * rule the pull-request check applies by comparing against the base.
+ *
+ * An entry is the same entry only when its scope, reason and end all match. A
+ * local edit to a merged entry — a later `until`, say — is not the merged one.
+ * @param {Array<{ file: string, key: string, reason?: unknown, until?: unknown }>} entries
+ *   The allow list at HEAD
+ * @param {Array<Array<{ file: string, key: string, reason?: unknown, until?: unknown }>>} mergedLists
+ *   The allow list of each protected branch that could be read
+ * @returns {{ merged: object[], unmerged: object[] }} Entries a protected
+ *   branch holds, and entries only this branch holds
+ */
+export function splitMergedEntries(entries, mergedLists) {
+  const known = new Set(mergedLists.flat().map(entryIdentity));
+  return {
+    merged: entries.filter(entry => known.has(entryIdentity(entry))),
+    unmerged: entries.filter(entry => !known.has(entryIdentity(entry))),
+  };
+}
+
+/**
+ * Say which refused findings an unmerged entry would have covered, so the
+ * reader is not left wondering why a recorded exception did nothing.
+ * @param {Finding[]} blocked Findings still refused
+ * @param {Array<{ file: string, key: string }>} unmerged Entries only this
+ *   branch holds
+ * @param {string[]} refs The protected branches that were consulted; empty
+ *   when the remote's default branch could not be named
+ * @returns {string[]} One line per unmerged entry that covers a refused finding
+ */
+export function describeUnmergedCover(blocked, unmerged, refs) {
+  const why =
+    refs.length === 0
+      ? `is recorded on this branch, and which branch of the remote named origin is its default could not be determined, so nothing shows the entry is merged and it exempts nothing yet. Run "git fetch origin" and then "git remote set-head origin --auto", and try again.`
+      : `is recorded on this branch but is not on ${refs.join(" or ")}, so it exempts nothing yet. Merge the change that records it first; if it is already merged, run "git fetch" and try again. Only the remote named origin is consulted, and "git remote set-head origin --auto" refreshes which of its branches is the default.`;
+  return unmerged
+    .filter(entry => blocked.some(finding => entryCovers(entry, finding)))
+    .map(entry => `${describeAllowScope(entry)} ${why}`);
+}
+
+/**
+ * Explain a refusal that an exception on record looks meant for and misses.
+ *
+ * An entry is matched by its file and its exact key. One written with a key
+ * that is nearly the threshold's — the name in the config file rather than
+ * the name the ratchet gives it, say — is recorded without complaint, because
+ * nothing at that moment says which threshold it is for. The first sign is
+ * the refusal of the threshold change, which without this line reads as if
+ * the exception had been ignored.
+ * @param {Finding[]} blocked Findings still refused
+ * @param {Array<{ file: string, key: string }>} entries Every allow entry on
+ *   record for this run, merged or not
+ * @returns {string[]} One line per refused finding that an entry for the same
+ *   file names with a different key
+ */
+export function describeNearMisses(blocked, entries) {
+  const lines = [];
+  for (const finding of blocked) {
+    if (finding.type === TYPE_ALLOW_ADDED) continue;
+    const near = entries.filter(
+      entry =>
+        !entryCovers(entry, finding) &&
+        entryCovers({ file: entry.file, key: "*" }, finding)
+    );
+    if (near.length === 0) continue;
+    const keys = [...new Set(near.map(entry => `"${entry.key}"`))].join(", ");
+    lines.push(
+      `${finding.file}: an exception on record for this file names ${keys}, which is not this threshold's key "${finding.key}", so it does not cover it. ${COVER_RULE}`
+    );
+  }
+  return lines;
+}
+
+/**
  * Drop findings covered by a LIVE baseline-side allow entry.
  *
  * Three ways a finding leaves here, and they are deliberately distinct:
@@ -682,7 +1076,7 @@ export function applyAllowList(findings, allowEntries, now = Date.now()) {
   const expired = [];
   for (const finding of findings) {
     const covering =
-      finding.type === "allow-added"
+      finding.type === TYPE_ALLOW_ADDED
         ? []
         : classified.filter(c => entryCovers(c.entry, finding));
     const live = covering.find(c => c.state !== ALLOW_STATE.EXPIRED);
@@ -708,11 +1102,33 @@ export function applyAllowList(findings, allowEntries, now = Date.now()) {
 
 /**
  * Render the operator-facing block message.
+ *
+ * The closing paragraph names the way to an exception, and it must name one
+ * the check accepts. Under the default policy that is an entry merged in a
+ * change of its own; under `strict` it stays a person's separate change.
  * @param {Finding[]} findings Blocked findings
+ * @param {string} [mode] The repository's `humanGate.mode`
  * @returns {string} Multi-line report explaining what weakened and the
- *   human-approved exception path
+ *   exception path
  */
-export function formatReport(findings) {
+export function formatReport(findings, mode = HUMAN_GATE_ACCESS_ONLY) {
+  const wayOut =
+    mode === HUMAN_GATE_ACCESS_ONLY
+      ? [
+          "gate. If the regression is justified, record an exception in",
+          ".lisa.config.json under thresholdRatchet.allow — with a reason saying",
+          'what resolves it, and an "until": "YYYY-MM-DD" naming the day it is',
+          "reviewed — and merge it in a change of its own first; this check honors",
+          "an exception only after it is merged, and only until its until date",
+          "passes.",
+        ]
+      : [
+          "gate. If a human decides an exception is genuinely correct, they record it",
+          "in .lisa.config.json under thresholdRatchet.allow — with a reason saying",
+          'what resolves it, and an "until": "YYYY-MM-DD" naming the day it is',
+          "reviewed — in a separate human-approved change; this check honors an",
+          "exception only after it is merged, and only until its until date passes.",
+        ];
   return [
     "⛔ Quality gate weakened — blocked by the threshold ratchet.",
     "",
@@ -720,10 +1136,6 @@ export function formatReport(findings) {
     "",
     "Quality thresholds are a one-way ratchet: they may tighten but never",
     "loosen. Fix the code so it meets the current gate instead of lowering the",
-    "gate. If a human decides an exception is genuinely correct, they record it",
-    "in .lisa.config.json under thresholdRatchet.allow — with a reason saying",
-    'what resolves it, and an "until": "YYYY-MM-DD" naming the day it is',
-    "reviewed — in a separate human-approved change; this check honors an",
-    "exception only after it is merged, and only until its until date passes.",
+    ...wayOut,
   ].join("\n");
 }

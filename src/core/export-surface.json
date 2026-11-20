@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 337,
-  "$names": 2478,
+  "$names": 2505,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1522,12 +1522,18 @@
       "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
-      "formatReport"
+      "describeNearMisses",
+      "describeUnmergedCover",
+      "formatReport",
+      "settleAddedExceptions",
+      "splitMergedEntries"
     ],
     "all/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
       "DECLARED_DIRECTIONS",
       "FAMILIES",
+      "HUMAN_GATE_ACCESS_ONLY",
+      "HUMAN_GATE_STRICT",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
@@ -1544,9 +1550,12 @@
       "familyFor",
       "findDeclaredParameter",
       "globRoot",
+      "humanGateModeOf",
+      "humanGateModeOfText",
       "isDeclaredDirection",
       "parseJson",
-      "parseK6Expression"
+      "parseK6Expression",
+      "reasonInWords"
     ],
     "expo/copy-overwrite/scripts/bdd-matrix.mjs": [
       "renderMatrix"
@@ -1792,12 +1801,18 @@
       "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
-      "formatReport"
+      "describeNearMisses",
+      "describeUnmergedCover",
+      "formatReport",
+      "settleAddedExceptions",
+      "splitMergedEntries"
     ],
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
       "DECLARED_DIRECTIONS",
       "FAMILIES",
+      "HUMAN_GATE_ACCESS_ONLY",
+      "HUMAN_GATE_STRICT",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
@@ -1814,9 +1829,12 @@
       "familyFor",
       "findDeclaredParameter",
       "globRoot",
+      "humanGateModeOf",
+      "humanGateModeOfText",
       "isDeclaredDirection",
       "parseJson",
-      "parseK6Expression"
+      "parseK6Expression",
+      "reasonInWords"
     ],
     "scripts/build-unless-marked.mjs": [
       "main"
@@ -3130,12 +3148,18 @@
       "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
-      "formatReport"
+      "describeNearMisses",
+      "describeUnmergedCover",
+      "formatReport",
+      "settleAddedExceptions",
+      "splitMergedEntries"
     ],
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
       "DECLARED_DIRECTIONS",
       "FAMILIES",
+      "HUMAN_GATE_ACCESS_ONLY",
+      "HUMAN_GATE_STRICT",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
@@ -3152,9 +3176,12 @@
       "familyFor",
       "findDeclaredParameter",
       "globRoot",
+      "humanGateModeOf",
+      "humanGateModeOfText",
       "isDeclaredDirection",
       "parseJson",
-      "parseK6Expression"
+      "parseK6Expression",
+      "reasonInWords"
     ]
   }
 }

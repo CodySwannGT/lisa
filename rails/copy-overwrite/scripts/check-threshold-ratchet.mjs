@@ -35,7 +35,21 @@
  * reason, only when the regression is justified; a person can reverse it by
  * removing the entry. Honored ONLY from the baseline side (HEAD /
  * merge-base), never from the change under review — an agent cannot grant
- * itself an exception in the same change that weakens a gate. `key: "*"`
+ * itself an exception in the same change that weakens a gate. So an exception
+ * takes two changes, and the first has to be able to land (#5099): a change
+ * whose only findings are added entries, each with a reason and an `until`
+ * day that has not passed, is ACCEPTED in every mode with a notice, and
+ * exempts nothing until it is merged. An entry that arrives with any other
+ * finding is refused. Under `humanGate.mode: "strict"` — read from the
+ * baseline, like the allow list — an added entry is refused as before: there
+ * an exception is a person's decision, and no layer of this check can see
+ * that a person approved. See `settleAddedExceptions`.
+ *
+ * "Merged" has to mean the same thing at commit as it does in a pull request.
+ * `--staged` and `--hook` baseline against HEAD, which is whatever the branch
+ * last committed, so there an entry counts only when a protected branch
+ * (the remote's default branch, or a `deploy.branches` branch) also holds it
+ * as the remote last reported it. See `protectedBranchRefs`. `key: "*"`
  * allows every key in the file, and reports as file-wide so it is not mistaken
  * for a key-scoped one. A declared threshold leaves by this same list and by
  * nothing else: `file` is `.lisa.config.json` and `key` is
@@ -67,13 +81,18 @@ import { fileURLToPath } from "node:url";
 import {
   extractAllowEntries,
   familyFor,
+  humanGateModeOfText,
   parseJson,
 } from "./threshold-ratchet-families.mjs";
 import {
   applyAllowList,
   compareFile,
   describeAllowList,
+  describeNearMisses,
+  describeUnmergedCover,
   formatReport,
+  settleAddedExceptions,
+  splitMergedEntries,
 } from "./threshold-ratchet-compare.mjs";
 
 /**
@@ -104,6 +123,9 @@ const GIT_LOCATIONS = [
   "/opt/homebrew/bin/git",
 ];
 const GIT = GIT_LOCATIONS.find(candidate => fs.existsSync(candidate)) ?? "git";
+
+/** Where the remote-tracking refs of `origin` live. */
+const REMOTE_REFS = "refs/remotes/origin/";
 
 /** Git flag shared by every changed-file listing. */
 const NAME_ONLY = "--name-only";
@@ -195,7 +217,16 @@ function resolvePlan(mode, root, baseRef, onlyFiles) {
     baselineRef: "HEAD",
     readCurrent: f => {
       try {
-        return fs.readFileSync(path.join(root, f), "utf-8");
+        // Inside the repository only, by REAL location: the name can come
+        // from an allow entry, and a `..` segment or a symlink must not make
+        // this read a file somewhere else and print what it holds.
+        const home = fs.realpathSync(root);
+        const target = fs.realpathSync(path.resolve(root, f));
+        if (!target.startsWith(home + path.sep)) return null;
+        // Regular files only. Reading a named pipe would block for ever, and
+        // a hook that hangs wedges the agent session it is advising.
+        if (!fs.statSync(target).isFile()) return null;
+        return fs.readFileSync(target, "utf-8");
       } catch {
         // probe-direction: fail-closed — an unreadable current file compares as
         // absent against the baseline, which is the strict side of the ratchet.
@@ -291,26 +322,42 @@ function isPromotion(root, baselineConfig, baseRef, headRef) {
  * @param {"hook"|"staged"|"base"} mode Comparison mode
  * @param {string | undefined} baseRef Base ref (base mode only)
  * @param {string | undefined} headRef Head ref (base mode only)
- * @returns {{ entries: object[], promotion: boolean, note: string | null }}
- *   Entries, whether this is a promotion, and an audit line to print when the
- *   entries came from anywhere but the baseline
+ * @returns {{ entries: object[], unmerged: object[], protectedRefs: string[], promotion: boolean, note: string | null, humanGateMode: string }}
+ *   Entries to honour, entries only this branch holds (local modes), the
+ *   protected refs consulted for that, whether this is a promotion, an audit
+ *   line to print when the entries came from anywhere but the baseline, and
+ *   the baseline's `humanGate.mode`
  */
 function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
-  const baselineConfig = parseJson(
-    git(["show", `${baselineRef}:.lisa.config.json`], root)
-  );
-  if (mode !== "base" || !isPromotion(root, baselineConfig, baseRef, headRef)) {
+  const baselineText = git(["show", `${baselineRef}:.lisa.config.json`], root);
+  const baselineConfig = parseJson(baselineText);
+  const humanGateMode = humanGateModeOfText(baselineText);
+  if (mode !== "base") {
     return {
-      entries: extractAllowEntries(baselineConfig),
+      ...localAllowList(root, baselineConfig),
       promotion: false,
       note: null,
+      humanGateMode,
+    };
+  }
+  if (!isPromotion(root, baselineConfig, baseRef, headRef)) {
+    return {
+      entries: extractAllowEntries(baselineConfig),
+      unmerged: [],
+      protectedRefs: [],
+      promotion: false,
+      note: null,
+      humanGateMode,
     };
   }
   return {
     entries: extractAllowEntries(
       parseJson(git(["show", "HEAD:.lisa.config.json"], root))
     ),
+    unmerged: [],
+    protectedRefs: [],
     promotion: true,
+    humanGateMode,
     note:
       `threshold-ratchet: promotion ${bareBranch(headRef)} → ` +
       `${bareBranch(baseRef)}; both are deploy-chain branches declared at ` +
@@ -321,18 +368,131 @@ function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
 }
 
 /**
+ * The remote-tracking refs of this repository's protected branches: the
+ * remote's default branch and every `deploy.branches` branch it declares.
+ *
+ * Which branches are protected is read from the remote's default branch and
+ * from nowhere else. HEAD's own `deploy.branches` is never consulted: a
+ * branch could name itself a deploy branch there, push, and count its own
+ * unmerged entry as merged.
+ *
+ * `origin` is the only remote consulted, the same assumption `bareBranch`
+ * makes.
+ *
+ * This is a local check and can be argued with: whoever owns `.git` owns
+ * these refs, and can repoint `origin/HEAD` or write a tracking ref by hand.
+ * The pull-request check, which compares against the base on the server's
+ * checkout, is the layer that cannot.
+ * @param {string} root Repo root
+ * @returns {string[]} Full ref names that resolve, e.g.
+ *   `refs/remotes/origin/main`, `refs/remotes/origin/dev`; empty when the
+ *   remote's default branch cannot be named
+ */
+function protectedBranchRefs(root) {
+  const resolves = ref =>
+    git(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], root) !== null;
+  // Full ref names throughout. A short `origin/main` resolves to a LOCAL
+  // branch of that name before the remote-tracking one, so one
+  // `git branch origin/main` would have made an unmerged entry count as merged.
+  const declared = git(
+    ["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"],
+    root
+  )?.trim();
+  // Only the symbolic default counts. `origin/HEAD` is missing in a
+  // repository that was fetched rather than cloned, or freshly pushed, and it
+  // is tempting to try `origin/main` there. But a branch called `main` is not
+  // protected because of its name: where the default is `trunk`, an entry on
+  // an unprotected `origin/main` would count as merged. With no symbolic
+  // default nothing is returned, and the caller refuses and names the remedy.
+  const defaultRef =
+    declared?.startsWith(REMOTE_REFS) && resolves(declared) ? declared : null;
+  if (!defaultRef) return [];
+  const chain = deployChain(
+    parseJson(git(["show", `${defaultRef}:.lisa.config.json`], root))
+  );
+  return [
+    ...new Set([defaultRef, ...chain.map(branch => `${REMOTE_REFS}${branch}`)]),
+  ].filter(resolves);
+}
+
+/**
+ * Whether `origin` has any remote-tracking ref at all.
+ *
+ * A probe that fails is not an answer. `git()` returns null for every
+ * failure, a timeout included, and reading that as "never fetched" would let
+ * a transient error switch the local fence off.
+ * @param {string} root Repo root
+ * @returns {boolean | null} True when something was ever fetched from
+ *   `origin`, false when the probe ran and found nothing, null when the probe
+ *   itself failed
+ */
+function originWasFetched(root) {
+  const first = git(
+    ["for-each-ref", "--count=1", "--format=%(refname)", REMOTE_REFS],
+    root
+  );
+  if (first === null) return null;
+  return first.trim() !== "";
+}
+
+/**
+ * The allow list for the local modes (`--staged`, `--hook`).
+ *
+ * HEAD's entries, minus those no protected branch holds yet. Two cases have
+ * no protected branch to ask, and they are opposite:
+ *
+ *   nothing was ever fetched from `origin` — there is no merge for an entry
+ *     to wait for, so every HEAD entry counts, as it always did. Refusing
+ *     would wedge a repository that has no pull requests at all.
+ *   `origin` was fetched, and its default branch cannot be named — there IS
+ *     a merge to wait for and nothing here can tell whether it happened, so
+ *     no HEAD entry counts. The refusal names the command that fixes it. A
+ *     probe that fails is read the same way.
+ * @param {string} root Repo root
+ * @param {unknown} headConfig `.lisa.config.json` at HEAD
+ * @returns {{ entries: object[], unmerged: object[], protectedRefs: string[] }}
+ *   Entries to honour, entries only this branch holds, and the refs consulted
+ */
+function localAllowList(root, headConfig) {
+  const entries = extractAllowEntries(headConfig);
+  const protectedRefs = protectedBranchRefs(root);
+  if (protectedRefs.length === 0) {
+    // Honour HEAD only on a positive "nothing was ever fetched". A probe that
+    // failed is treated like a fetched remote whose default is unknown.
+    return originWasFetched(root) === false
+      ? { entries, unmerged: [], protectedRefs }
+      : { entries: [], unmerged: entries, protectedRefs };
+  }
+  const { merged, unmerged } = splitMergedEntries(
+    entries,
+    protectedRefs.map(ref =>
+      extractAllowEntries(
+        parseJson(git(["show", `${ref}:.lisa.config.json`], root))
+      )
+    )
+  );
+  return { entries: merged, unmerged, protectedRefs };
+}
+
+/**
  * Split off the allow-entry additions a promotion is carrying forward.
  *
- * `applyAllowList` never drops an `allow-added` finding, from either side —
- * an exception must not approve its own creation. That is right for an
- * ordinary PR and wrong for a promotion, where the entry is not being created:
- * it already exists on the upstream branch, where its creation faced this same
- * unconditional block and needed a human to clear it. Without this the fix
- * would be cosmetic — a promotion carrying an approved exemption also carries
- * the `.lisa.config.json` diff that records it, so it would still be blocked
- * by the finding for the record of its own approval.
+ * An `allow-added` finding is never covered by an allow entry, from either
+ * side — an exception must not approve its own creation — and an entry that
+ * arrives with any other finding is refused (`settleAddedExceptions`). That is
+ * right for an ordinary PR and wrong for a promotion, where the entry is not
+ * being created: it already exists on the upstream branch, where it was
+ * recorded in a change of its own. Without this the fix would be cosmetic — a
+ * promotion carrying an approved exemption also carries the
+ * `.lisa.config.json` diff that records it, so it would still be blocked by
+ * the finding for the record of its own approval.
  *
- * Only `allow-added` is carried. An actual threshold weakening in the same
+ * A root config that stopped being `strict` is carried for the same reason:
+ * the change already landed on the upstream branch, and the downstream branch
+ * can only catch up by promotion, so refusing it here would refuse every
+ * promotion from then on, including ones carrying unrelated work.
+ *
+ * Nothing else is carried. An actual threshold weakening in the same
  * promotion still has to be covered by an allow entry.
  * @param {Array<{ type: string }>} findings All findings from the change
  * @param {boolean} promotion Whether the change is a recognised promotion
@@ -341,9 +501,12 @@ function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
  */
 function partitionCarriedEntries(findings, promotion) {
   if (!promotion) return { carried: [], rest: findings };
+  const isCarried = f =>
+    f.type === "allow-added" ||
+    (f.file === ".lisa.config.json" && f.key === "humanGate.mode");
   return {
-    carried: findings.filter(f => f.type === "allow-added"),
-    rest: findings.filter(f => f.type !== "allow-added"),
+    carried: findings.filter(isCarried),
+    rest: findings.filter(f => !isCarried(f)),
   };
 }
 
@@ -433,57 +596,128 @@ function run(mode, baseRef, onlyFiles, headRef) {
   // moment the condition passes, and reporting it only when something else has
   // already failed is how a list nobody reads stays a list nobody reads.
   if (findings.length === 0) {
-    reportAllowList(allow.entries, []);
+    reportAllowList(allow.entries);
     return 0;
   }
-  return reportFindings(findings, allow, mode);
+  return reportFindings(findings, allow, mode, plan.readCurrent);
 }
 
 /**
- * Print the allow entries a human has to act on, minus the ones a refusal is
- * about to name in full.
+ * The allow entries a human has to act on, minus the ones a refusal is about
+ * to name in full.
  * @param {object[]} entries The resolved allow list
  * @param {Array<{ message: string }>} expired Refusals already being printed
+ * @returns {string[]} One line per entry still to report
+ */
+function allowListLines(entries, expired) {
+  return describeAllowList(entries)
+    .filter(line => !expired.some(item => item.message.startsWith(line)))
+    .map(line => `threshold-ratchet: ${line}`);
+}
+
+/**
+ * Print the allow entries a human has to act on.
+ * @param {object[]} entries The resolved allow list
  * @returns {void}
  */
-function reportAllowList(entries, expired) {
-  for (const line of describeAllowList(entries)) {
-    if (expired.some(item => item.message.startsWith(line))) continue;
-    process.stdout.write(`threshold-ratchet: ${line}\n`);
+function reportAllowList(entries) {
+  for (const line of allowListLines(entries, [])) {
+    process.stdout.write(`${line}\n`);
   }
+}
+
+/**
+ * Write a passing run's lines where their reader will see them.
+ *
+ * At commit and in CI that is stdout. An agent-time hook that exits 0 is a
+ * different matter: the runtime shows the agent nothing from stdout unless it
+ * is the hook reply object, so a notice printed as plain text there reaches
+ * nobody. When the run recorded a new exception, hook mode therefore answers
+ * with the reply object and puts every line in `additionalContext`. Without a
+ * notice it prints plain lines exactly as it always has.
+ *
+ * Parity: the reply object is the Claude Code and Codex hook contract. A
+ * runtime that does not read it shows the JSON text or nothing; the commit and
+ * pull-request layers print the same notice in plain text there.
+ * @param {string[]} lines Lines to deliver
+ * @param {boolean} asHookReply Whether to wrap them in the hook reply object
+ * @returns {void}
+ */
+function deliver(lines, asHookReply) {
+  if (lines.length === 0) return;
+  if (!asHookReply) {
+    process.stdout.write(`${lines.join("\n")}\n`);
+    return;
+  }
+  process.stdout.write(
+    `${JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: lines.join("\n"),
+      },
+    })}\n`
+  );
 }
 
 /**
  * Print the verdict for a change that produced findings.
  * @param {object[]} findings Findings from every watched file
- * @param {{ entries: object[], promotion: boolean, note: string | null }} allow
- *   The resolved allow list and its provenance
+ * @param {{ entries: object[], unmerged: object[], protectedRefs: string[], promotion: boolean, note: string | null, humanGateMode: string }} allow
+ *   The resolved allow list, its provenance and the baseline's mode
  * @param {"hook"|"staged"|"base"} mode Comparison mode
+ * @param {(file: string) => string | null} readCurrent Reads a repository
+ *   file as the change has it
  * @returns {number} Process exit code (2 for hook mode, 1 otherwise; 0 clean)
  */
-function reportFindings(findings, allow, mode) {
+function reportFindings(findings, allow, mode, readCurrent) {
   const split = partitionCarriedEntries(findings, allow.promotion);
-  const { blocked, allowed, expired } = applyAllowList(
+  const settled = settleAddedExceptions(
     split.rest,
+    allow.humanGateMode,
+    Date.now(),
+    readCurrent
+  );
+  const { blocked, allowed, expired } = applyAllowList(
+    settled.rest,
     allow.entries
   );
-  if (allow.note) process.stdout.write(`${allow.note}\n`);
-  reportAllowList(allow.entries, expired);
-  for (const finding of split.carried) {
-    process.stdout.write(
-      `threshold-ratchet: carried forward by this promotion, approved upstream — ${finding.message}\n`
-    );
-  }
-  for (const item of allowed) {
-    process.stdout.write(
-      `threshold-ratchet: ${item.message} (.lisa.config.json exception)\n`
-    );
-  }
+  const refused = [...settled.refused, ...blocked];
+  const passed = refused.length === 0;
+  // A notice that an exception was recorded is only true of a change that
+  // lands. Printed beside a refusal it tells the reader to go on to the
+  // threshold change while the entry it speaks of was never committed.
+  const recorded = passed ? settled.accepted : [];
+  const lines = [
+    ...(allow.note ? [allow.note] : []),
+    ...allowListLines(allow.entries, expired),
+    ...split.carried.map(
+      finding =>
+        `threshold-ratchet: carried forward by this promotion, approved upstream — ${finding.message}`
+    ),
+    ...allowed.map(
+      item => `threshold-ratchet: ${item.message} (.lisa.config.json exception)`
+    ),
+    ...recorded.map(item => `threshold-ratchet: ${item.message}`),
+  ];
+  deliver(lines, mode === "hook" && recorded.length > 0);
   for (const item of expired) {
     process.stderr.write(`threshold-ratchet: refused — ${item.message}\n`);
   }
-  if (blocked.length === 0) return 0;
-  process.stderr.write(`${formatReport(blocked)}\n`);
+  for (const line of describeUnmergedCover(
+    blocked,
+    allow.unmerged,
+    allow.protectedRefs.map(ref => ref.replace(/^refs\/remotes\//u, ""))
+  )) {
+    process.stderr.write(`threshold-ratchet: refused — ${line}\n`);
+  }
+  for (const line of describeNearMisses(blocked, [
+    ...allow.entries,
+    ...allow.unmerged,
+  ])) {
+    process.stderr.write(`threshold-ratchet: refused — ${line}\n`);
+  }
+  if (passed) return 0;
+  process.stderr.write(`${formatReport(refused, allow.humanGateMode)}\n`);
   return mode === "hook" ? 2 : 1;
 }
 

@@ -58,6 +58,40 @@ This conflicts with shipped Lisa behavior. Lisa ships several ratchet families:
   file-wide, because an exemption covering one key and one covering all of them are
   different risks wearing the same shape.
 
+  *Amended 2026-11-20 (#5099):* the change that records an exception can now land.
+  The ratchet refused every change that added an allow entry, in all three layers,
+  and told the reader to land the entry "in its own human-approved change first",
+  which was the change it had just refused. The only way through was to skip the
+  local check and merge over the failing pull-request check, which no agent may do
+  and which the check could not tell from a person doing it. Since #4687 the default
+  policy is that an agent records a risk acceptance and a person can reverse it, so
+  under `humanGate.mode: "access-only"` a change whose only ratchet findings are
+  added entries is accepted in every layer, with a notice, when each entry has a
+  reason and an `until` day that has not passed. The fence is unchanged and does
+  not depend on that refusal: an entry exempts nothing until it is merged, and an
+  entry that arrives with any other ratchet finding is refused. "Merged" means the
+  same thing in every layer. The pull-request check reads the allow list from the
+  base. The commit and edit checks baseline against HEAD, which is whatever the
+  branch last committed, so there an entry counts only when a protected branch (the
+  remote's default branch or a `deploy.branches` branch, as last fetched) also
+  holds the identical entry; otherwise commit one could record an exception and
+  commit two could use it. Which branches are protected is read from the remote's
+  default branch, never from the branch's own config. A clone that has never fetched
+  from `origin` has no merge to wait for and honours HEAD as before; one that has
+  fetched but cannot name the remote's default branch honours no entry and names the
+  command that fixes it. Only the remote named `origin` is consulted. This
+  local rule can be argued with by whoever owns `.git` (the tracking refs are local
+  files); the pull-request check is the layer that cannot. The mode is read from the baseline too, so a
+  change cannot relax it for itself. Under `strict` an added entry is refused as
+  before, and a change that makes the root config stop being `strict` is now
+  reported as a loosening, because once merged it would let the next change record
+  an exception with no person involved. It is reported only when the baseline
+  literally declares `strict`, so a misspelt or unreadable mode can be corrected,
+  and a promotion carries it once it has landed upstream. It is an ordinary
+  loosening, so a merged allow entry for `.lisa.config.json` covers it, including a
+  file-wide one. A route for `strict` needs proof that a
+  person approved, which no layer of the check can see, and is not designed yet.
+
 Brownfield onboarding depends on ratchets: a red project adopts incrementally instead
 of being blocked until fully remediated.
 
