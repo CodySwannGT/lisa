@@ -143,17 +143,23 @@ const recordOf = value =>
   value && typeof value === "object" && !Array.isArray(value) ? value : {};
 
 /**
- * Record one confirmed plan entry as in flight (replacing an older one).
+ * Record one confirmed plan entry as in flight. An item that still has an
+ * unsettled entry is refused, never overwritten: that entry may hold links
+ * already removed whose read-back failed, and it is their only recovery
+ * record. Verify it first (`stale-links-pending` lists it as unverified).
  * @param {InFlight | undefined} inflight
  * @param {{ ref: string }} plan - The confirmed plan entry
  * @param {string} now - ISO time
  * @returns {InFlight}
  */
 export function recordInFlight(inflight, plan, now) {
-  return {
-    ...recordOf(inflight),
-    [plan.ref]: { plan, since: now, attempts: 0 },
-  };
+  const current = recordOf(inflight);
+  if (Object.hasOwn(current, plan.ref)) {
+    throw new Error(
+      `${plan.ref} still has an earlier stale-link plan whose read-back has not succeeded; verify that one first (stale-links-pending lists it under unverified), then plan again.`
+    );
+  }
+  return { ...current, [plan.ref]: { plan, since: now, attempts: 0 } };
 }
 
 /**

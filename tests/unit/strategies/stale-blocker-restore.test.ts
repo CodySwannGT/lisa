@@ -96,7 +96,7 @@ describe("a Jira blocker reopened before the delete", () => {
     ).toThrow(/blockersNow/u);
   });
 
-  it("is counted as put back, not as cleared", () => {
+  it("is counted as awaiting restoration, not as cleared or put back", () => {
     const result = verifyStaleLinkRemoval({
       tracker: "jira",
       plan: planned,
@@ -114,9 +114,13 @@ describe("a Jira blocker reopened before the delete", () => {
       doneRoles: ["done"],
       roles: JIRA_ROLES,
     }).report;
-    expect(summarizeVerifiedSweep(report, [result])).toMatch(
-      /^stale links: cleared 1 stale blocker link on 1 item; put back 1 link whose blocker reopened; 0 real blockers/u
+    // Verify only records the restore as owed; nothing has run it yet, so
+    // the line never claims the link is back.
+    const summary = summarizeVerifiedSweep(report, [result]);
+    expect(summary).toMatch(
+      /^stale links: cleared 1 stale blocker link on 1 item; 1 link awaiting restoration \(blocker reopened\); 0 real blockers/u
     );
+    expect(summary).not.toContain("put back");
   });
 });
 

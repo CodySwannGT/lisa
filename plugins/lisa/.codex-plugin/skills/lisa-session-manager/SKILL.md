@@ -625,8 +625,11 @@ item held back only by them is claimable in this same cycle:
    body, so a concurrent edit survives. When `plan` is null, write nothing for that item. Also
    skip it (one transcript line, no write) when it gained a person's assignee since the plan.
    A non-null `plan` is recorded in flight (`.lisa/session-manager/stale-links-inflight.json`)
-   before you write anything, and stays there until a verify reads the item back, so a read-back
-   that fails after the deletes is retried in step 3 instead of being lost.
+   before you write anything, and stays there until a verify reads the item back and every other
+   record is saved, so a read-back that fails after the deletes is retried in step 3 instead of
+   being lost. While it is in flight, `queue` holds the item (reason `removal-unverified`). Confirm
+   refuses an item that still has an unverified entry, so an earlier plan's removed links are
+   never overwritten: skip that item this cycle (one transcript line); step 3 verifies it.
    Then perform each of the confirmed plan's `actions` and nothing else, straight away. No tracker
    offers a conditional delete ("remove this link only if its blocker is still finished"), so a
    blocker can still reopen between this re-read and the write; verify below catches that and
@@ -694,8 +697,9 @@ item held back only by them is claimable in this same cycle:
 
 A failure anywhere in this sweep is one transcript line and never makes the cycle
 `recovery-required`. It holds dispatch for one item only: an item owed a restore (a blocker link
-put back, not yet read back present) is held with reason `restore-owed`, and an item whose blocker
-list could not be read with `blockers-unreadable`, until a later read clears it. A failed plan,
+put back, not yet read back present) is held with reason `restore-owed`, an item whose removals
+ran but were never read back with `removal-unverified`, and an item whose blocker list could not
+be read with `blockers-unreadable`, until a later read clears it. A failed plan,
 confirm, verify or comment holds nothing, and every other item still dispatches. Other runtimes have no session manager, so build intake runs the
 same shared rule on the item it is about to claim (each `lisa-*-build-intake` skill's "Stale blocker
 links" step); the rule itself lives in `scripts/stale-blocker-edges.mjs` and

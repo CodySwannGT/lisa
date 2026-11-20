@@ -104,7 +104,6 @@ export async function staleLinksVerify(ctx) {
   });
   const now = new Date().toISOString();
   await withStateLock(ctx.root, () => {
-    writeInFlight(ctx.root, settleInFlight(readInFlight(ctx.root), plan.ref));
     writeFailures(
       ctx.root,
       recordRemovalResult(readFailures(ctx.root), result, now)
@@ -116,6 +115,9 @@ export async function staleLinksVerify(ctx) {
     if (result.comment !== null) {
       writePending(ctx.root, addPending(readPending(ctx.root), result, now));
     }
+    // Last, and only once every record above is written: until then the
+    // in-flight plan is the removed links' only recovery record.
+    writeInFlight(ctx.root, settleInFlight(readInFlight(ctx.root), plan.ref));
   });
   return { json: { ...result, pending: result.comment !== null } };
 }

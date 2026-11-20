@@ -167,7 +167,10 @@ export function summarizeVerifiedSweep(report, results, counts = {}) {
   if (ready > 0) parts.push(`${ready} now ready to start`);
   if (putBack > 0) {
     parts.push(
-      `put back ${plural(putBack, "link", "links")} whose blocker reopened`
+      // Verify only records these as owed; nothing has put them back yet
+      // (`stale-links-restored` confirms that, and the item is held until
+      // then), so the line never claims a restore that may not have run.
+      `${plural(putBack, "link", "links")} awaiting restoration (blocker reopened)`
     );
   }
   if (notDone > 0) {

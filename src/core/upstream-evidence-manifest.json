@@ -1447,11 +1447,11 @@
     "plugins/src/base/scripts/stale-blocker-edges.mjs":
       "662e5c4750eb5103ce4519d522d2241824e5c488abebbb5f8abe2d6b6564154e",
     "plugins/src/base/scripts/stale-blocker-pending.mjs":
-      "eb5a01acd70408b61b5d77ccbf022b2177cf1a4bc713dc7b0221664ce9305ad8",
+      "7dee0b7c0809a3f6aed6bc3c77eb9de8d89f95b6fb5b178bf254257d9144cbeb",
     "plugins/src/base/scripts/stale-blocker-restore.mjs":
       "89ba35ebddb878f1f7f6089f4f51a9b368f410392bd903c1da35d0b8e220290d",
     "plugins/src/base/scripts/stale-blocker-summary.mjs":
-      "a2d0879f520e5261d300b3544b7b97627419b906aa454c808bc514f8d8c2acff",
+      "b87f34fbffd308ae027d3ce7464574e7c4c159c8f24f60d3559605590a9773ba",
     "plugins/src/base/scripts/stale-blocker-sweep.mjs":
       "c14a73382e8493c1e0dbb521a660fc9c4dd2172365eb03c3dd0b8ceb84206c95",
     "plugins/src/base/scripts/stale-blocker-verify.mjs":
@@ -1537,7 +1537,7 @@
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "35130c6adf1162637d46a0a714936be1ac059d5185190ab085e288ebdbcb0357",
+      "bdc58c3ca38ec396d0211490419d90ddf05045e1cc4013ce247056553898f53d",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1591,7 +1591,7 @@
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
       "a00606cc7927f034e847f34d7e44e72fa7f3a14ddf6a469deb7eae1e06531fd7",
     "plugins/src/base/skills/lisa-jira-build-intake/SKILL.md":
-      "1b11c0c0e09b3b6121c2135244b01a63051976dcbae6f86b51db74b92d5706c8",
+      "79f54c7526c70c7f8d4a136bdda2716e5bf443dd893259bd530fcbed0f29a064",
     "plugins/src/base/skills/lisa-jira-claim/SKILL.md":
       "9c4935441a4e6b55df0949178f96e927184c4909bffff8929b39a304bc5ac00a",
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
@@ -1629,7 +1629,7 @@
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "ed1d249e37d19258f13fc97eb23c7efa6b0960ade8faee2ed88327da6019350e",
+      "62b2aac1928d07e2f4987825db985cdcfff1aec9be4a49131bdc6a4f952d4cf7",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -1787,7 +1787,7 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "69a1dfe1dbd1cb2e5a1ff12bbf87c1246a3016bec110783271dbd2ee530f44b6",
+      "29dd5750c58573d24423cf60e33e416e7919ba6ddb19d5290f3b4643a99b281b",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f8a63378cdeb2acc70b53fa5b7c9e4510b2806b98eb27004d94b97817172d6db",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1809,19 +1809,19 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs":
       "cab60f2dfee7f33a8a5f16ec94cb1b2ab17cf384886ee5eb738fb015535d6567",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
-      "df03df5e09b38e533ecabf3cdc02ae0e2da4ec920da8eef1adee1c793de6e054",
+      "8faa0ee5a26cbfa7708e917a02cb814efe7e639007c8526ad3934dbc4f3f21fc",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
       "aab705023d16ae42d6994450da0c914230ccab92823babb81697941c3760e8a8",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
       "4b125971939f6e99863930a109315038520c1bc8e0543d1e34476c9987d30605",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-stale-links-results.mjs":
-      "bcc004c07f5f01d5758ec7b25ee957be5d4cce4a9141e238a54922cd151a22e1",
+      "9ab44f246a01d63c19c7383298f02604d852a74d94c6ac89089caade5caf2a19",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-stale-links.mjs":
-      "3a7a1215b4285a33cb408ebdf1c339f863716a1c06202b6627bbeaf8c9db0f93",
+      "ac8020656a3266a70e0b508a921fefdd6803f4f22f4b539635c389d46178e5c3",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "4f5b664a0e0fa13f70596850e5d5e2ab17e9823a70bac7c157f74bf7f9ca13ec",
+      "c64be7ba9cec34375787833d663e02751fcec56c7ed0d81846efde3f9c5b7c14",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "c1f0329e5f3aeb58a91a5caceb54161cadcf9e5c12ad30d44a66026b0533b29f",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -14588,6 +14588,7 @@
     "tests/unit/session-manager/cli-spawn-take.test.ts": true,
     "tests/unit/session-manager/cli-spawn-trust.test.ts": true,
     "tests/unit/session-manager/cli-stale-links-cycles.test.ts": true,
+    "tests/unit/session-manager/cli-stale-links-inflight.test.ts": true,
     "tests/unit/session-manager/cli-stale-links-owed.test.ts": true,
     "tests/unit/session-manager/cli-stale-links-readiness.test.ts": true,
     "tests/unit/session-manager/cli-stale-links-results.test.ts": true,

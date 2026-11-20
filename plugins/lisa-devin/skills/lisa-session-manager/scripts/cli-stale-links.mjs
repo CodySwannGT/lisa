@@ -233,7 +233,9 @@ export async function staleLinksConfirm(ctx) {
     await withStateLock(ctx.root, () =>
       writeInFlight(
         ctx.root,
-        recordInFlight(readInFlight(ctx.root), confirmed.plan, now)
+        asSetupError(() =>
+          recordInFlight(readInFlight(ctx.root), confirmed.plan, now)
+        )
       )
     );
   }

@@ -345,7 +345,9 @@ Per cycle
       blocker-not-resolved, link-already-gone or blocked-role; plan is null
       when nothing is still safe to remove. A non-null plan is recorded in
       .lisa/session-manager/stale-links-inflight.json BEFORE the writes, and
-      stays there until stale-links-verify reads the item back.
+      stays there until stale-links-verify reads the item back (queue holds
+      the item meanwhile: removal-unverified). An item that still has an
+      unverified entry is refused, never overwritten.
   stale-links-verify [--tracker <t>] --plan <file> [--input <file>]
                      [--blockers <file>]
       Reads one item back after its stale-link writes, and each removed
@@ -358,7 +360,8 @@ Per cycle
       until posted (never when its marker is already live). Links in
       restored are owed in stale-links-restores.json until
       stale-links-restored reads them back; queue holds those items with
-      reason restore-owed. A failed read-back leaves the in-flight entry.
+      reason restore-owed. The in-flight entry is settled last, after every
+      other record; a failed read-back or write leaves it.
   stale-links-pending
       Lists what earlier stale-link writes still owe. stdout {pending:[...],
       unverified:[{plan,since,attempts}],restores:{ref:{links,...}}}:
