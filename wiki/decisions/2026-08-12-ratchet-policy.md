@@ -58,6 +58,23 @@ This conflicts with shipped Lisa behavior. Lisa ships several ratchet families:
   file-wide, because an exemption covering one key and one covering all of them are
   different risks wearing the same shape.
 
+  *Amended 2026-11-20 (#5099):* the change that records an exception can now land.
+  The ratchet refused every change that added an allow entry, in all three layers,
+  and told the reader to land the entry "in its own human-approved change first",
+  which was the change it had just refused. The only way through was to skip the
+  local check and merge over the failing pull-request check, which no agent may do
+  and which the check could not tell from a person doing it. Since #4687 the default
+  policy is that an agent records a risk acceptance and a person can reverse it, so
+  under `humanGate.mode: "access-only"` a change whose only ratchet findings are
+  added entries is accepted in every layer, with a notice, when each entry has a
+  reason and an `until` day that has not passed. The fence is unchanged and does
+  not depend on that refusal: the allow list is still read from the baseline only,
+  so an entry exempts nothing until it is merged, and an entry that arrives with
+  any other ratchet finding is refused. The mode is read from the baseline too, so
+  a change cannot relax it for itself. Under `strict` an added entry is refused as
+  before; a route there needs proof that a person approved, which no layer of the
+  check can see, and is not designed yet.
+
 Brownfield onboarding depends on ratchets: a red project adopts incrementally instead
 of being blocked until fully remediated.
 

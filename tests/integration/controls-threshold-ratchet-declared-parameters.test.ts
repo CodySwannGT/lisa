@@ -283,14 +283,17 @@ describe("a deliberate loosening of a declared threshold", () => {
     expect(result.stderr).toContain("new threshold exception");
   });
 
-  it("is refused for adding the exception on its own, which a person clears", () => {
+  it("is accepted for adding the exception on its own, with a notice", () => {
     const repoPath = host(declaring(60));
     commit(repoPath, declaring(60, exception()));
 
     const result = check(repoPath, ["--base", "HEAD^"]);
 
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("new threshold exception");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("new exception recorded");
+    expect(result.stdout).toContain(
+      "exempts nothing until this change is merged"
+    );
     expect(result.stderr).not.toContain("was lowered");
   });
 });

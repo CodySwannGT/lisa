@@ -572,6 +572,40 @@ export function extractAllowEntries(config) {
   );
 }
 
+/** The `humanGate.mode` under which an agent records a risk acceptance. */
+export const HUMAN_GATE_ACCESS_ONLY = "access-only";
+/** The `humanGate.mode` under which a threshold exception stays a person's. */
+export const HUMAN_GATE_STRICT = "strict";
+
+/**
+ * The `humanGate.mode` a config declares, as the ratchet reads it.
+ *
+ * Same rule as `resolveHumanGateMode` in `scripts/human-gate-act.mjs`, written
+ * out here because this module ships inside a plugin payload and into host
+ * `scripts/` folders, and neither has that script beside it: only an absent
+ * mode is the default, `access-only`; a declared value is compared trimmed and
+ * lower-cased; and a value that is not a known mode fails safe, to `strict`,
+ * so a typo never loosens the gate.
+ *
+ * The caller passes the BASELINE config, the side the allow list is read from.
+ * A change therefore cannot relax the mode and add an exception in one step,
+ * and a personal `.lisa.config.local.json` — which no baseline holds — cannot
+ * relax it at all.
+ * @param {unknown} config Parsed `.lisa.config.json`, or nothing when the
+ *   baseline has none
+ * @returns {"access-only" | "strict"} The mode in force
+ */
+export function humanGateModeOf(config) {
+  const declared =
+    config && typeof config === "object" ? config.humanGate?.mode : undefined;
+  if (declared === undefined) return HUMAN_GATE_ACCESS_ONLY;
+  const mode =
+    typeof declared === "string" ? declared.trim().toLowerCase() : declared;
+  return mode === HUMAN_GATE_ACCESS_ONLY
+    ? HUMAN_GATE_ACCESS_ONLY
+    : HUMAN_GATE_STRICT;
+}
+
 /**
  * The three states an allow entry's expiry condition can be in.
  *
@@ -688,7 +722,7 @@ export function classifyAllowEntry(entry, now) {
       state: ALLOW_STATE.EXPIRED,
       scope,
       summary,
-      detail: `${scope} ${summary} and no longer exempts anything. Delete it, or record a fresh human-approved entry naming the new condition.${because}`,
+      detail: `${scope} ${summary} and no longer exempts anything. Delete it, or record a fresh entry naming the new condition.${because}`,
     };
   }
   const summary = `is live until ${day}`;

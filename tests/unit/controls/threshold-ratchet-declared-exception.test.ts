@@ -186,7 +186,7 @@ describe("what the operator is told", () => {
     expect(report).toContain("blocked by the threshold ratchet");
     expect(report).toContain(`  • ${loweredFloor()[0]?.message}`);
     expect(report).toContain("thresholdRatchet.allow");
-    expect(report).toContain("separate human-approved change");
+    expect(report).toContain("merge it in a change of its own first");
   });
 });
 

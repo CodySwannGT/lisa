@@ -32,7 +32,15 @@
  * reason, only when the regression is justified; a person can reverse it by
  * removing the entry. Honored ONLY from the baseline side (HEAD /
  * merge-base), never from the change under review — an agent cannot grant
- * itself an exception in the same change that weakens a gate. `key: "*"`
+ * itself an exception in the same change that weakens a gate. So an exception
+ * takes two changes, and the first has to be able to land (#5099): a change
+ * whose only findings are added entries, each with a reason and an `until`
+ * day that has not passed, is ACCEPTED in every mode with a notice, and
+ * exempts nothing until it is merged. An entry that arrives with any other
+ * finding is refused. Under `humanGate.mode: "strict"` — read from the
+ * baseline, like the allow list — an added entry is refused as before: there
+ * an exception is a person's decision, and no layer of this check can see
+ * that a person approved. See `settleAddedExceptions`. `key: "*"`
  * allows every key in the file, and reports as file-wide so it is not mistaken
  * for a key-scoped one. A declared threshold leaves by this same list and by
  * nothing else: `file` is `.lisa.config.json` and `key` is
@@ -64,6 +72,7 @@ import { fileURLToPath } from "node:url";
 import {
   extractAllowEntries,
   familyFor,
+  humanGateModeOf,
   parseJson,
 } from "./threshold-ratchet-families.mjs";
 import {
@@ -71,6 +80,7 @@ import {
   compareFile,
   describeAllowList,
   formatReport,
+  settleAddedExceptions,
 } from "./threshold-ratchet-compare.mjs";
 
 /**
@@ -288,9 +298,10 @@ function isPromotion(root, baselineConfig, baseRef, headRef) {
  * @param {"hook"|"staged"|"base"} mode Comparison mode
  * @param {string | undefined} baseRef Base ref (base mode only)
  * @param {string | undefined} headRef Head ref (base mode only)
- * @returns {{ entries: object[], promotion: boolean, note: string | null }}
- *   Entries, whether this is a promotion, and an audit line to print when the
- *   entries came from anywhere but the baseline
+ * @returns {{ entries: object[], promotion: boolean, note: string | null, humanGateMode: string }}
+ *   Entries, whether this is a promotion, an audit line to print when the
+ *   entries came from anywhere but the baseline, and the baseline's
+ *   `humanGate.mode`
  */
 function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
   const baselineConfig = parseJson(
@@ -301,6 +312,7 @@ function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
       entries: extractAllowEntries(baselineConfig),
       promotion: false,
       note: null,
+      humanGateMode: humanGateModeOf(baselineConfig),
     };
   }
   return {
@@ -308,6 +320,7 @@ function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
       parseJson(git(["show", "HEAD:.lisa.config.json"], root))
     ),
     promotion: true,
+    humanGateMode: humanGateModeOf(baselineConfig),
     note:
       `threshold-ratchet: promotion ${bareBranch(headRef)} → ` +
       `${bareBranch(baseRef)}; both are deploy-chain branches declared at ` +
@@ -320,14 +333,15 @@ function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
 /**
  * Split off the allow-entry additions a promotion is carrying forward.
  *
- * `applyAllowList` never drops an `allow-added` finding, from either side —
- * an exception must not approve its own creation. That is right for an
- * ordinary PR and wrong for a promotion, where the entry is not being created:
- * it already exists on the upstream branch, where its creation faced this same
- * unconditional block and needed a human to clear it. Without this the fix
- * would be cosmetic — a promotion carrying an approved exemption also carries
- * the `.lisa.config.json` diff that records it, so it would still be blocked
- * by the finding for the record of its own approval.
+ * An `allow-added` finding is never covered by an allow entry, from either
+ * side — an exception must not approve its own creation — and an entry that
+ * arrives with any other finding is refused (`settleAddedExceptions`). That is
+ * right for an ordinary PR and wrong for a promotion, where the entry is not
+ * being created: it already exists on the upstream branch, where it was
+ * recorded in a change of its own. Without this the fix would be cosmetic — a
+ * promotion carrying an approved exemption also carries the
+ * `.lisa.config.json` diff that records it, so it would still be blocked by
+ * the finding for the record of its own approval.
  *
  * Only `allow-added` is carried. An actual threshold weakening in the same
  * promotion still has to be covered by an allow entry.
@@ -430,57 +444,104 @@ function run(mode, baseRef, onlyFiles, headRef) {
   // moment the condition passes, and reporting it only when something else has
   // already failed is how a list nobody reads stays a list nobody reads.
   if (findings.length === 0) {
-    reportAllowList(allow.entries, []);
+    reportAllowList(allow.entries);
     return 0;
   }
   return reportFindings(findings, allow, mode);
 }
 
 /**
- * Print the allow entries a human has to act on, minus the ones a refusal is
- * about to name in full.
+ * The allow entries a human has to act on, minus the ones a refusal is about
+ * to name in full.
  * @param {object[]} entries The resolved allow list
  * @param {Array<{ message: string }>} expired Refusals already being printed
+ * @returns {string[]} One line per entry still to report
+ */
+function allowListLines(entries, expired) {
+  return describeAllowList(entries)
+    .filter(line => !expired.some(item => item.message.startsWith(line)))
+    .map(line => `threshold-ratchet: ${line}`);
+}
+
+/**
+ * Print the allow entries a human has to act on.
+ * @param {object[]} entries The resolved allow list
  * @returns {void}
  */
-function reportAllowList(entries, expired) {
-  for (const line of describeAllowList(entries)) {
-    if (expired.some(item => item.message.startsWith(line))) continue;
-    process.stdout.write(`threshold-ratchet: ${line}\n`);
+function reportAllowList(entries) {
+  for (const line of allowListLines(entries, [])) {
+    process.stdout.write(`${line}\n`);
   }
+}
+
+/**
+ * Write a passing run's lines where their reader will see them.
+ *
+ * At commit and in CI that is stdout. An agent-time hook that exits 0 is a
+ * different matter: the runtime shows the agent nothing from stdout unless it
+ * is the hook reply object, so a notice printed as plain text there reaches
+ * nobody. When the run recorded a new exception, hook mode therefore answers
+ * with the reply object and puts every line in `additionalContext`. Without a
+ * notice it prints plain lines exactly as it always has.
+ *
+ * Parity: the reply object is the Claude Code and Codex hook contract. A
+ * runtime that does not read it shows the JSON text or nothing; the commit and
+ * pull-request layers print the same notice in plain text there.
+ * @param {string[]} lines Lines to deliver
+ * @param {boolean} asHookReply Whether to wrap them in the hook reply object
+ * @returns {void}
+ */
+function deliver(lines, asHookReply) {
+  if (lines.length === 0) return;
+  if (!asHookReply) {
+    process.stdout.write(`${lines.join("\n")}\n`);
+    return;
+  }
+  process.stdout.write(
+    `${JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: lines.join("\n"),
+      },
+    })}\n`
+  );
 }
 
 /**
  * Print the verdict for a change that produced findings.
  * @param {object[]} findings Findings from every watched file
- * @param {{ entries: object[], promotion: boolean, note: string | null }} allow
- *   The resolved allow list and its provenance
+ * @param {{ entries: object[], promotion: boolean, note: string | null, humanGateMode: string }} allow
+ *   The resolved allow list, its provenance and the baseline's mode
  * @param {"hook"|"staged"|"base"} mode Comparison mode
  * @returns {number} Process exit code (2 for hook mode, 1 otherwise; 0 clean)
  */
 function reportFindings(findings, allow, mode) {
   const split = partitionCarriedEntries(findings, allow.promotion);
+  const settled = settleAddedExceptions(split.rest, allow.humanGateMode);
   const { blocked, allowed, expired } = applyAllowList(
-    split.rest,
+    settled.rest,
     allow.entries
   );
-  if (allow.note) process.stdout.write(`${allow.note}\n`);
-  reportAllowList(allow.entries, expired);
-  for (const finding of split.carried) {
-    process.stdout.write(
-      `threshold-ratchet: carried forward by this promotion, approved upstream — ${finding.message}\n`
-    );
-  }
-  for (const item of allowed) {
-    process.stdout.write(
-      `threshold-ratchet: ${item.message} (.lisa.config.json exception)\n`
-    );
-  }
+  const refused = [...settled.refused, ...blocked];
+  const lines = [
+    ...(allow.note ? [allow.note] : []),
+    ...allowListLines(allow.entries, expired),
+    ...split.carried.map(
+      finding =>
+        `threshold-ratchet: carried forward by this promotion, approved upstream — ${finding.message}`
+    ),
+    ...allowed.map(
+      item => `threshold-ratchet: ${item.message} (.lisa.config.json exception)`
+    ),
+    ...settled.accepted.map(item => `threshold-ratchet: ${item.message}`),
+  ];
+  const passed = refused.length === 0;
+  deliver(lines, passed && mode === "hook" && settled.accepted.length > 0);
   for (const item of expired) {
     process.stderr.write(`threshold-ratchet: refused — ${item.message}\n`);
   }
-  if (blocked.length === 0) return 0;
-  process.stderr.write(`${formatReport(blocked)}\n`);
+  if (passed) return 0;
+  process.stderr.write(`${formatReport(refused, allow.humanGateMode)}\n`);
   return mode === "hook" ? 2 : 1;
 }
 

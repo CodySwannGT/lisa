@@ -8,6 +8,8 @@
  */
 import {
   ALLOW_STATE,
+  HUMAN_GATE_ACCESS_ONLY,
+  allowEntryExpiry,
   classifyAllowEntry,
   describeAllowScope,
   extractAllowEntries,
@@ -25,6 +27,8 @@ import {
   parseJson,
 } from "./threshold-ratchet-families.mjs";
 
+/** Finding type: the change adds a `thresholdRatchet.allow` entry. */
+const TYPE_ALLOW_ADDED = "allow-added";
 /** Finding type: a numeric bound or boolean gate moved the weakening way. */
 const TYPE_WEAKENED = "weakened";
 /** Finding type: a gate-shrinking exemption was added (Tier 3). */
@@ -41,6 +45,8 @@ const KIND_ALLOW_LIST = "allow-list";
  * @property {number|string} [base] Baseline value
  * @property {number|string} [current] Current value
  * @property {string} message Operator-readable explanation
+ * @property {{ file: string, key: string, reason?: unknown, until?: unknown }} [entry]
+ *   The allow entry an `allow-added` finding is about, as the change wrote it
  */
 
 /**
@@ -251,8 +257,12 @@ function compareK6(relPath, base, current) {
 }
 
 /**
- * Compare .lisa.config.json allow lists: report added exception entries so a
- * change can never grant itself an exception.
+ * Compare .lisa.config.json allow lists: report every added exception entry.
+ *
+ * The finding says only what was added, and carries the entry. Whether an
+ * added entry is accepted or refused is {@link settleAddedExceptions}' call,
+ * because that depends on the rest of the change and on the repository's
+ * `humanGate.mode`, neither of which this comparison can see.
  * @param {string} relPath Repo-relative path
  * @param {unknown} base Parsed baseline config
  * @param {unknown} current Parsed current config
@@ -268,12 +278,124 @@ function compareAllowList(relPath, base, current) {
       findings.push({
         file: relPath,
         key: `thresholdRatchet.allow ${entry.file}#${entry.key}`,
-        type: "allow-added",
-        message: `${relPath}: new threshold exception — ${describeAllowScope(entry)}. Exceptions are a human decision: land this entry in its own human-approved change first, then make the threshold change. It needs a reason saying what resolves it and an "until": "YYYY-MM-DD" naming the day it is reviewed, because an exemption that cannot end is a permanent reduction in what the ratchet covers.`,
+        type: TYPE_ALLOW_ADDED,
+        message: `${relPath}: new threshold exception — ${describeAllowScope(entry)}.`,
+        entry,
       });
     }
   }
   return findings;
+}
+
+/**
+ * What an added allow entry still lacks before it can be recorded.
+ *
+ * An entry needs a reason, so whoever meets it later knows what resolves it,
+ * and a day it ends, because an exemption that cannot end is a permanent
+ * reduction in what the ratchet covers (#3856). A day already past is refused
+ * too: such an entry would be dead on arrival and exempt nothing.
+ * @param {{ reason?: unknown, until?: unknown }} entry The entry as written
+ * @param {number} now Clock reading
+ * @returns {string[]} One clause per gap; empty when the entry is sound
+ */
+function addedExceptionGaps(entry, now) {
+  const gaps = [];
+  if (typeof entry.reason !== "string" || entry.reason.trim() === "") {
+    gaps.push("it needs a reason saying what resolves it");
+  }
+  const expiresAt = allowEntryExpiry(entry.until);
+  if (expiresAt === undefined) {
+    gaps.push(
+      'it needs an "until": "YYYY-MM-DD" day naming when it is reviewed'
+    );
+  } else if (now >= expiresAt) {
+    gaps.push(`its "until" day ${String(entry.until).trim()} has passed`);
+  }
+  return gaps;
+}
+
+/**
+ * Decide one added allow entry under the default policy.
+ * @param {Finding} finding The `allow-added` finding
+ * @param {boolean} alone Whether the change holds no other ratchet finding
+ * @param {number} now Clock reading
+ * @returns {{ accepted: boolean, message: string }} The verdict and its text:
+ *   a notice when accepted, the refusal otherwise
+ */
+function judgeAddedException(finding, alone, now) {
+  const entry = finding.entry ?? {};
+  const said = finding.message.replace(/\.$/u, "");
+  const gaps = addedExceptionGaps(entry, now);
+  if (gaps.length > 0) {
+    return {
+      accepted: false,
+      message: `${said} — cannot be recorded yet: ${gaps.join(", and ")}. Complete the entry and try again.`,
+    };
+  }
+  if (!alone) {
+    return {
+      accepted: false,
+      message: `${said} — arrives together with another threshold change, and an exception exempts nothing until it is merged. Merge this entry in a change of its own first, then make the threshold change.`,
+    };
+  }
+  return {
+    accepted: true,
+    message: `new exception recorded — ${describeAllowScope(entry)}. Reason on record: "${entry.reason.trim()}". It ends after ${String(entry.until).trim()}. It exempts nothing until this change is merged, so make the threshold change in a later change.`,
+  };
+}
+
+/**
+ * Settle the allow entries a change adds: which are recorded, which refused.
+ *
+ * The fence this keeps is that a change cannot grant itself an exception. The
+ * allow list is honoured from the baseline only, so an entry exempts nothing
+ * until it is merged — and that ordering does not depend on refusing the
+ * change that records the entry. Refusing it anyway left the exception route
+ * unusable: the refusal told the reader to land the entry in a change of its
+ * own, which was the change being refused (#5099).
+ *
+ * Under the default `access-only` policy an agent records a risk acceptance
+ * and a person can reverse it (#4687), so an added entry is ACCEPTED when it
+ * is sound — a reason and a day it ends that has not passed — and the change
+ * holds no other ratchet finding. An entry that arrives with any other
+ * finding is refused whether or not it would cover that finding: accepting it
+ * would be the self-grant, one step removed.
+ *
+ * Under `strict` an exception stays a person's decision, and nothing here can
+ * see that a person approved, so every added entry is refused as it always
+ * was.
+ * @param {Finding[]} findings Every finding from the change, promotion-carried
+ *   entries already taken out
+ * @param {string} mode The repository's `humanGate.mode`, from the baseline
+ * @param {number} [now] Clock reading, injected so the check is deterministic
+ * @returns {{
+ *   accepted: Array<{ finding: Finding, message: string }>,
+ *   refused: Finding[],
+ *   rest: Finding[],
+ * }} Entries recorded (with the notice to print), entries refused (with the
+ *   refusal as their message), and every finding that is not an added entry
+ */
+export function settleAddedExceptions(findings, mode, now = Date.now()) {
+  const added = findings.filter(f => f.type === TYPE_ALLOW_ADDED);
+  const rest = findings.filter(f => f.type !== TYPE_ALLOW_ADDED);
+  if (mode !== HUMAN_GATE_ACCESS_ONLY) {
+    return {
+      accepted: [],
+      refused: added.map(finding => ({
+        ...finding,
+        message: `${finding.message} Exceptions are a human decision: land this entry in its own human-approved change first, then make the threshold change. It needs a reason saying what resolves it and an "until": "YYYY-MM-DD" naming the day it is reviewed, because an exemption that cannot end is a permanent reduction in what the ratchet covers.`,
+      })),
+      rest,
+    };
+  }
+  const accepted = [];
+  const refused = [];
+  for (const finding of added) {
+    const verdict = judgeAddedException(finding, rest.length === 0, now);
+    if (verdict.accepted) accepted.push({ finding, message: verdict.message });
+    else refused.push({ ...finding, message: verdict.message });
+  }
+  return { accepted, refused, rest };
 }
 
 /**
@@ -682,7 +804,7 @@ export function applyAllowList(findings, allowEntries, now = Date.now()) {
   const expired = [];
   for (const finding of findings) {
     const covering =
-      finding.type === "allow-added"
+      finding.type === TYPE_ALLOW_ADDED
         ? []
         : classified.filter(c => entryCovers(c.entry, finding));
     const live = covering.find(c => c.state !== ALLOW_STATE.EXPIRED);
@@ -708,11 +830,33 @@ export function applyAllowList(findings, allowEntries, now = Date.now()) {
 
 /**
  * Render the operator-facing block message.
+ *
+ * The closing paragraph names the way to an exception, and it must name one
+ * the check accepts. Under the default policy that is an entry merged in a
+ * change of its own; under `strict` it stays a person's separate change.
  * @param {Finding[]} findings Blocked findings
+ * @param {string} [mode] The repository's `humanGate.mode`
  * @returns {string} Multi-line report explaining what weakened and the
- *   human-approved exception path
+ *   exception path
  */
-export function formatReport(findings) {
+export function formatReport(findings, mode = HUMAN_GATE_ACCESS_ONLY) {
+  const wayOut =
+    mode === HUMAN_GATE_ACCESS_ONLY
+      ? [
+          "gate. If the regression is justified, record an exception in",
+          ".lisa.config.json under thresholdRatchet.allow — with a reason saying",
+          'what resolves it, and an "until": "YYYY-MM-DD" naming the day it is',
+          "reviewed — and merge it in a change of its own first; this check honors",
+          "an exception only after it is merged, and only until its until date",
+          "passes.",
+        ]
+      : [
+          "gate. If a human decides an exception is genuinely correct, they record it",
+          "in .lisa.config.json under thresholdRatchet.allow — with a reason saying",
+          'what resolves it, and an "until": "YYYY-MM-DD" naming the day it is',
+          "reviewed — in a separate human-approved change; this check honors an",
+          "exception only after it is merged, and only until its until date passes.",
+        ];
   return [
     "⛔ Quality gate weakened — blocked by the threshold ratchet.",
     "",
@@ -720,10 +864,6 @@ export function formatReport(findings) {
     "",
     "Quality thresholds are a one-way ratchet: they may tighten but never",
     "loosen. Fix the code so it meets the current gate instead of lowering the",
-    "gate. If a human decides an exception is genuinely correct, they record it",
-    "in .lisa.config.json under thresholdRatchet.allow — with a reason saying",
-    'what resolves it, and an "until": "YYYY-MM-DD" naming the day it is',
-    "reviewed — in a separate human-approved change; this check honors an",
-    "exception only after it is merged, and only until its until date passes.",
+    ...wayOut,
   ].join("\n");
 }
