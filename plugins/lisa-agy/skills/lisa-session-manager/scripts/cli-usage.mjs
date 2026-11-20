@@ -319,6 +319,66 @@ Per cycle
       wrongly-escalated, hold and release evidence, a draft
       Planning (filing) rule); comment is the marker to post afterwards.
       --max caps captures per cycle (default 3); the rest are deferred.
+  stale-links-plan [--tracker <t>] [--input <file>] [--max <n>]
+                   [--github-repo <owner/repo>]
+      Plans this cycle's clean-up of "blocked by" links whose blocker is
+      finished (closed in the tracker, or in the configured terminal done
+      role) or cancelled; writes nothing. GitHub reads open issues, native
+      blocked_by dependencies and "Blocked by" body lines itself; Jira and
+      Linear take --input {complete:true,items:[raw issues with comments]}.
+      Open, cross-project and unreadable blockers are kept (unreadable ones
+      reported); items in the blocked role are left to the Blocked sweep.
+      stdout {tracker,doneRoles,plans:[{ref,actions,body,removed,comment,
+      commentAdf,remainingBlockers,becomesClaimable,render}],deferred,report,
+      summary}; summary describes the plan ("planned", "would become
+      ready"), never a result. A
+      comment carries one [lisa-stale-blocker-link] blocker=<ref> marker per
+      removed link, so a re-run never comments twice. --max caps items per
+      cycle (default 10); the rest are deferred.
+  stale-links-confirm [--tracker <t>] --plan <file> [--input <file>]
+      Rebuilds one stale-links-plan entry from a fresh read, right before the
+      writes; writes nothing. GitHub re-reads the issue, each blocker and the
+      comments itself; Jira and Linear take the fresh raw item in --input.
+      Only links the plan removes that are still stale are kept; the body is
+      rebuilt from the fresh body, so a concurrent edit survives. stdout
+      {tracker,plan,skipped:[{blocker,reason}]}; reason is
+      blocker-not-resolved, link-already-gone or blocked-role; plan is null
+      when nothing is still safe to remove. A non-null plan is recorded in
+      .lisa/session-manager/stale-links-inflight.json BEFORE the writes, and
+      stays there until stale-links-verify reads the item back (queue holds
+      the item meanwhile: removal-unverified). An item that still has an
+      unverified entry is refused, never overwritten.
+  stale-links-verify [--tracker <t>] --plan <file> [--input <file>]
+                     [--blockers <file>]
+      Reads one item back after its stale-link writes, and each removed
+      blocker again (GitHub itself; Jira/Linear from --blockers, a
+      {ref: rawIssue} map). stdout {ref,confirmed,stillPresent,restored,
+      restore,comment,commentAdf,becameReady,pending}: a removed link whose
+      blocker reopened is in restored, with restore the actions that put it
+      back; comment covers ONLY the confirmed removals (null when none) and
+      is recorded as pending in .lisa/session-manager/stale-links-pending.json
+      until posted (never when its marker is already live). Links in
+      restored are owed in stale-links-restores.json until
+      stale-links-restored reads them back; queue holds those items with
+      reason restore-owed. The in-flight entry is settled last, after every
+      other record; a failed read-back or write leaves it.
+  stale-links-pending
+      Lists what earlier stale-link writes still owe. stdout {pending:[...],
+      unverified:[{plan,since,attempts}],restores:{ref:{links,...}}}:
+      comments not yet posted, confirmed plans to verify again, and links
+      owed back.
+  stale-links-restored --ref <ref> [--tracker <t>] [--input <file>]
+      Reads the item back after its restores (GitHub itself; Jira/Linear from
+      --input) and settles each owed link now present. stdout {ref,owed,
+      restore}: restore is the fresh actions for the links still missing.
+  stale-links-posted --ref <ref> --removed <blocker,...> [--failed]
+      Settles the ONE pending comment with that ref and removed set after it
+      posts (an item can owe more than one); --failed instead counts one more
+      failed try for that comment.
+  stale-links-report --input <file>
+      {report,results[,planned]} -> {summary}: the cycle's stale-link line,
+      built from verified results; planned-but-not-done and deferred items
+      are counted separately, never as cleared.
   orphan-plan [--input <file>] [--max <n>] [--stale-hours <n>]
                                                 STDIN (without --input): JSON
       {complete:true,items:[{ref,role,labels,body,comments,assignees,

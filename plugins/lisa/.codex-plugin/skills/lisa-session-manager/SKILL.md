@@ -580,6 +580,131 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
 A failure anywhere in this sweep is one transcript line: it never holds dispatch and never makes
 the cycle `recovery-required`.
 
+**Stale blocker links** (CodySwannGT/lisa#5065). A "blocked by" link to work that is already
+finished makes the item look stuck when it is not, and an operator who sees every item waiting on
+something cannot tell which ones really are. Clear those links every cycle, before Dispatch, so an
+item held back only by them is claimable in this same cycle:
+
+1. **Plan.** GitHub: `node "$SM/session-manager.mjs" stale-links-plan --tracker github --project-root "$ROOT"`
+   (it reads open issues, their native `blocked_by` dependencies and their `Blocked by` body lines
+   through `gh`). Jira / Linear: fetch every open item that has a blocker through
+   `lisa-atlassian-access` (the item's own `status`, plus `issuelinks` with each linked issue's
+   status and status category) or `lisa-linear-access` (the item's own `state { name }`, plus
+   `inverseRelations` with `id`, `type`, and the blocking issue's `identifier`, `team.key` and
+   `state { name type }`), with each item's comments, **paging until the last page**. The item's
+   own status is required: an item whose status is missing could be Blocked, so the plan leaves
+   all its links alone and lists it in `report.unknownStatus`. Write `{"complete":true,"items":[...]}` to
+   `.lisa/session-manager/stale-links-input.json` and run
+   `stale-links-plan --tracker jira|linear --input .lisa/session-manager/stale-links-input.json --project-root "$ROOT"`.
+   The plan writes nothing. A blocker is stale when it is closed in its tracker or sits in the
+   configured terminal done role (`.lisa.config.json`, never a hardcoded name). A blocker in an
+   intermediate done rung (`status:on-dev`, `On Stg`) has merged to a non-production environment:
+   it does not hold the item (the queue and intake treat it as cleared), but it is not finished,
+   so its link is never removed. A cancelled
+   blocker (GitHub `not_planned` or `duplicate`, Linear `canceled`) is treated as resolved, because
+   intake already ignores it, and the comment says it was cancelled. A blocker that is still open,
+   in another project or repository, or could not be read is never touched; an unreadable one is
+   listed in `report.inaccessible`. Items in the `blocked` role are left to the Blocked sweep
+   below, which decides by branch containment. `--max` caps the items per cycle (default 10); the
+   rest are `deferred` to the next cycle. Items whose planned removals did not happen in an earlier
+   cycle (recorded by `stale-links-verify`) are planned after every other candidate, so removals
+   that keep failing cannot take every slot; a removal that later succeeds clears the record.
+2. **Confirm, then act** on each entry of `plans`. The plan is a snapshot: a blocker can be
+   reopened, or a person can edit the item, before you write. So first re-read the item **and
+   every blocker it names**, then write that one entry to
+   `.lisa/session-manager/stale-links-entry.json` and run
+   `stale-links-confirm --tracker github --plan .lisa/session-manager/stale-links-entry.json --project-root "$ROOT"`
+   (GitHub re-reads the issue, each blocker and the comments itself). For Jira and Linear, put the
+   fresh raw item, with its own status, each blocker's current status and the comments, in
+   `.lisa/session-manager/stale-links-fresh.json` and add `--input` with that path. Its `plan`
+   keeps only the links that are still stale: a reopened blocker is in `skipped` as
+   `blocker-not-resolved` and keeps its link, a missing item status skips every link as
+   `status-unknown`, an item closed since the plan skips as `item-closed`, only the planned links
+   themselves are kept (a link added since the plan, even to the same blocker, is never removed),
+   and the GitHub `body` is rebuilt from the fresh
+   body, so a concurrent edit survives. When `plan` is null, write nothing for that item. Also
+   skip it (one transcript line, no write) when it gained a person's assignee since the plan.
+   A non-null `plan` is recorded in flight (`.lisa/session-manager/stale-links-inflight.json`)
+   before you write anything, and stays there until a verify reads the item back and every other
+   record is saved, so a read-back that fails after the deletes is retried in step 3 instead of
+   being lost. While it is in flight, `queue` holds the item (reason `removal-unverified`). Confirm
+   refuses an item that still has an unverified entry, so an earlier plan's removed links are
+   never overwritten: skip that item this cycle (one transcript line); step 3 verifies it.
+   Then perform each of the confirmed plan's `actions` and nothing else, straight away. No tracker
+   offers a conditional delete ("remove this link only if its blocker is still finished"), so a
+   blocker can still reopen between this re-read and the write; verify below catches that and
+   puts the link back. A sub-second window remains between the delete and that re-read, during
+   which the link is briefly absent while its blocker is open. A queue read in that moment could
+   see the item as unblocked; the restore follows straight after, and that residual window is the
+   one gap no tracker API lets the sweep close.
+   - `delete-dependency` (GitHub): `gh api -X DELETE <endpoint>`.
+   - `body` (GitHub, when not null): write it as the issue body through `lisa-tracker-write`. It
+     differs from the fresh body only in the `Blocked by` refs it removes.
+   - `unlink` (Jira): `lisa-atlassian-access` `operation: unlink link-id:<linkId>`.
+   - `delete-relation` (Linear): `lisa-linear-access` `operation: delete-relation id:<relationId>`.
+   Then **verify**: write the confirmed entry to `.lisa/session-manager/stale-links-entry.json` and
+   run `stale-links-verify --tracker <t> --plan .lisa/session-manager/stale-links-entry.json --project-root "$ROOT"`
+   (GitHub reads the item back itself; Jira and Linear take the item as read back now in
+   `--input`, with its blocker relation list and its comments; without the relation list verify
+   refuses it, nothing is confirmed, and the entry stays in flight for step 3). It also reads every removed blocker again: GitHub itself; for Jira and
+   Linear, write `{"<ref>": <the blocker as read now, with its status / state and team>}` for
+   each planned removal to `.lisa/session-manager/stale-links-blockers.json` and add
+   `--blockers` with that path. A removed link whose blocker is no longer finished (reopened,
+   back in an intermediate done rung, or unreadable) is in `restored`, with no marker: perform its
+   `restore` actions straight away (`add-dependency`: `gh api -X POST <endpoint> -F
+   issue_id=<issueId>`; `body`: write it through `lisa-tracker-write`; `link` (Jira):
+   `lisa-atlassian-access` `operation: link from:<from> to:<to> type:<type>`; `create-relation`
+   (Linear): `lisa-linear-access` `operation: create-relation issue:<issue> related:<relatedIssue>
+   type:blocks`), then read the item back with
+   `stale-links-restored --ref <ref> --tracker <t> --project-root "$ROOT"` (GitHub reads it itself;
+   Jira and Linear add `--input` with the item as read now). Verify recorded those links as owed in
+   `.lisa/session-manager/stale-links-restores.json`, and `queue` holds the item (reason
+   `restore-owed`) until this read-back shows every one present; its `restore` lists fresh actions
+   for any still missing. Name each restored link in the cycle's transcript line. Its `confirmed` lists the removals the read-back shows gone and `stillPresent` the
+   ones that did not happen. Its `comment` (Jira: `commentAdf`, the same text as an ADF document,
+   because Jira Cloud's REST v3 comment body is ADF) covers ONLY the confirmed removals, so a
+   `[lisa-stale-blocker-link] blocker=<ref>` marker is never posted for a link that is still there:
+   a failed or impossible deletion (for example an MCP-only substrate) leaves no marker, and the
+   next cycle plans it again. When `comment` is null, post nothing. Otherwise the CLI has already
+   recorded it as pending; post it through `lisa-tracker-write`, then run
+   `stale-links-posted --ref <ref> --removed <its confirmed, comma-separated> --project-root "$ROOT"` (on a failed post, add `--failed`;
+   it stays pending). It also records any `stillPresent` removal for the next plan's ordering.
+   Keep every verify output for step 4. A link that comes back after its marker
+   was posted was put back by a person; the plan reports it in `report.keptByPerson` and never
+   removes it again.
+3. **Retry what is owed.** Run `stale-links-pending --project-root "$ROOT"`, before Dispatch.
+   - For each `unverified` entry (a confirmed plan whose read-back failed), write its `plan` to
+     `.lisa/session-manager/stale-links-entry.json` and run the step 2 verify again (never the
+     deletes); a removal whose comment already posted is never owed twice.
+   - For each item in `restores`, run `stale-links-restored` as in step 2 and perform any
+     `restore` actions it returns, then run it again; the item stays held from Dispatch
+     (`restore-owed`) until it reports nothing owed. Every other item still dispatches.
+   - For each `pending` entry, post its `comment` (Jira:
+   `commentAdf`) on its `ref` through `lisa-tracker-write`, on its own, whatever the new plan
+   says, and settle that one entry with `stale-links-posted --ref <ref> --removed <its removed, comma-separated> --project-root "$ROOT"` (`--failed` when it fails again). An item can owe more than one comment; each settles on its own. Its
+   links are already gone, so no plan will ever see them again; this is the only place the
+   operator's explanation for them still comes from.
+4. **Report.** The plan's `summary` describes intentions only ("planned", "would become ready"),
+   so never report it as done. Write `{"report":<the plan's report>,"results":[<each verify
+   output>]}` to `.lisa/session-manager/stale-links-results.json` and run
+   `stale-links-report --input .lisa/session-manager/stale-links-results.json --project-root "$ROOT"`. Its `summary` is
+   built from the verified results, with planned-but-not-done removals and deferred items counted
+   separately, e.g. `stale links: cleared 12 stale blocker links on 7 items; 3 now ready to start;
+   2 planned removals not done (retried next cycle); 4 items left for the next cycle; 29 real
+   blockers remain on 18 items.` Put that in the cycle's transcript line and in the recorded run
+   summary. Send Telegram nothing for this sweep unless `report.inaccessible` is non-empty and its
+   list changed since the last cycle: then one line naming the blockers that could not be opened.
+
+A failure anywhere in this sweep is one transcript line and never makes the cycle
+`recovery-required`. It holds dispatch for one item only: an item owed a restore (a blocker link
+put back, not yet read back present) is held with reason `restore-owed`, an item whose removals
+ran but were never read back with `removal-unverified`, and an item whose blocker list could not
+be read with `blockers-unreadable`, until a later read clears it. A failed plan,
+confirm, verify or comment holds nothing, and every other item still dispatches. Other runtimes have no session manager, so build intake runs the
+same shared rule on the item it is about to claim (each `lisa-*-build-intake` skill's "Stale blocker
+links" step); the rule itself lives in `scripts/stale-blocker-edges.mjs` and
+`scripts/stale-blocker-sweep.mjs`, plain Node any agent can run.
+
 **Blocked.** List the items in the `blocked` role (paged to completion, same access paths as the
 queue below). For each:
 
@@ -760,7 +885,7 @@ Skip while `capacity` reports `paused`. Otherwise:
 ### 3. Report and record
 
 If anything changed, write one transcript line, e.g.
-`cycle: 2 running/4 cap, dispatched <TEAM>-124, released <TEAM>-125, 1 question pending`. Then record
+`cycle: 2 running/4 cap, dispatched <TEAM>-124, released <TEAM>-125, 1 question pending; stale links: cleared 2 stale blocker links on 1 item; 4 real blockers remain on 3 items` (the verified `stale-links-report` line). Then record
 the run outcome (next section).
 
 ## Run outcome
@@ -771,7 +896,7 @@ session `start` creates), every cycle ends in **exactly one** of the six outcome
 | This cycle | Run outcome |
 |---|---|
 | No dispatch, no state change, no question relayed or newly pending. The summary still states the denominator: "swept N ready, 0 dispatchable; R running/C cap". | `nothing-needed` |
-| At least one of: a worker spawned and seen live in `status`; a Blocked→Ready release written and read back; an orphan finished, returned or re-dispatched, or a hold lifted, written and read back; an answer delivered and its marker removed (`SendMessage` acknowledged, or `resume` returned a session id), or recorded on the item and read back before its marker was removed; a stalled or `blocked-on-prompt` item retried. | `change-proved` |
+| At least one of: a worker spawned and seen live in `status`; a Blocked→Ready release written and read back; a stale blocker link removed and confirmed by `stale-links-verify`; an orphan finished, returned or re-dispatched, or a hold lifted, written and read back; an answer delivered and its marker removed (`SendMessage` acknowledged, or `resume` returned a session id), or recorded on the item and read back before its marker was removed; a stalled or `blocked-on-prompt` item retried. | `change-proved` |
 | An item was marked human-needed ("Mark and move on": marker and question comment written and read back), in any of the four cases, including an `exhausted` item moved to the `blocked` role, or a marked item whose question comment was re-posted after `item-answer` reported `no-question-comment`; or a worker `FAILED` moved the item to the `blocked` role with its reason comment, both read back. The summary names each ref and where to answer it. | `candidate-proposed` |
 | No item was newly marked, but a pending question was re-sent on Telegram (`requestion`) and awaits the operator, and nothing else changed. | `approval-requested` |
 | The tracker, a configured Telegram or `claude` was unreachable; Telegram is configured but was unavailable or unpaired (a question stayed pending with no Telegram message id); a human-needed mark could not be written or read back, or no marker is configured; an answer for a finished worker, an `exhausted` item or a `decision` no worker has picked up could not be posted on the item or read back (its question stays pending); a worker `FAILED`'s move to the `blocked` role could not be written or read back; a spawn failed after the claim (the item went back to Ready); a worker classified `setup-gap` (the item went back to Ready); the capacity probe failed. | `recovery-required` |

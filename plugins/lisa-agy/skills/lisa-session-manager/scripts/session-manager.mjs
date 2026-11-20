@@ -52,6 +52,14 @@ import { orphanPlan } from "./cli-orphans.mjs";
 import { overruledPlan } from "./cli-overruled.mjs";
 import { repoDir, start, status, stop, validate } from "./cli-manager.mjs";
 import { queue } from "./cli-queue.mjs";
+import { staleLinksConfirm, staleLinksPlan } from "./cli-stale-links.mjs";
+import {
+  staleLinksPending,
+  staleLinksPosted,
+  staleLinksReport,
+  staleLinksRestored,
+  staleLinksVerify,
+} from "./cli-stale-links-results.mjs";
 import { CliError, EXIT } from "./cli-runtime.mjs";
 import {
   coexistence,
@@ -132,6 +140,47 @@ const COMMANDS = {
   "overruled-plan": {
     run: overruledPlan,
     options: { input: text, max: text },
+    positionals: 0,
+  },
+  "stale-links-plan": {
+    run: staleLinksPlan,
+    options: { tracker: text, input: text, max: text, "github-repo": text },
+    positionals: 0,
+  },
+  "stale-links-confirm": {
+    run: staleLinksConfirm,
+    options: { tracker: text, input: text, plan: text, "github-repo": text },
+    positionals: 0,
+  },
+  "stale-links-verify": {
+    run: staleLinksVerify,
+    options: {
+      tracker: text,
+      input: text,
+      plan: text,
+      blockers: text,
+      "github-repo": text,
+    },
+    positionals: 0,
+  },
+  "stale-links-pending": {
+    run: staleLinksPending,
+    options: {},
+    positionals: 0,
+  },
+  "stale-links-posted": {
+    run: staleLinksPosted,
+    options: { ref: text, removed: text, failed: flag },
+    positionals: 0,
+  },
+  "stale-links-restored": {
+    run: staleLinksRestored,
+    options: { tracker: text, input: text, ref: text, "github-repo": text },
+    positionals: 0,
+  },
+  "stale-links-report": {
+    run: staleLinksReport,
+    options: { input: text },
     positionals: 0,
   },
   "orphan-plan": {
