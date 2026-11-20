@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.2.8](https://github.com/CodySwannGT/lisa/compare/v8.2.7...v8.2.8) (2026-11-20)
+
+
+### Bug Fixes
+
+* **ci:** name a parse failure when stating the accepted time ([a27ce3e](https://github.com/CodySwannGT/lisa/commit/a27ce3e52891e36639b64047d4e63df38a6d22e5)), closes [CodySwannGT/lisa#5106](https://github.com/CodySwannGT/lisa/issues/5106) [CodySwannGT/lisa#5106](https://github.com/CodySwannGT/lisa/issues/5106)
+* **ci:** say when npm accepted a release that landed late ([e422abc](https://github.com/CodySwannGT/lisa/commit/e422abcd195ac09b199dc6bc9023ec2852376311)), closes [CodySwannGT/lisa#5106](https://github.com/CodySwannGT/lisa/issues/5106) [CodySwannGT/lisa#5106](https://github.com/CodySwannGT/lisa/issues/5106)
+
 ### [8.2.7](https://github.com/CodySwannGT/lisa/compare/v8.2.6...v8.2.7) (2026-11-20)
 
 ### [8.2.6](https://github.com/CodySwannGT/lisa/compare/v8.2.5...v8.2.6) (2026-11-20)
