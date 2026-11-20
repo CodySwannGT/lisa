@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.2.1](https://github.com/CodySwannGT/lisa/compare/v8.2.0...v8.2.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* **stale-links:** count open cross-project blockers as real blockers ([b0a751f](https://github.com/CodySwannGT/lisa/commit/b0a751f1d05ab8f90513898cb1750e174eb23ab7)), closes [#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+
 ## [8.2.0](https://github.com/CodySwannGT/lisa/compare/v8.1.1...v8.2.0) (2026-11-20)
 
 
