@@ -2983,7 +2983,7 @@
     "scripts/lisa-audit.mjs":
       "27c1e83e620cf7e6e841f28d80479b2184d144c639a894ba427392133b650a6e",
     "scripts/lisa-ci-failure-redispatch.mjs":
-      "6ebd9a3b70d47fa8706a1e2e94865537e41efc104b6a9ec185f65ab0a7f014ee",
+      "6c182d99448f4413fd55b5be8d12f8a39f542c83b43628611662bdaa638803ec",
     "scripts/lisa-ci-rework-route.mjs":
       "0234a31160f50f89d6b229d8412b19f14649fffd90a072476fdb2ea548857590",
     "scripts/lisa-commit-and-pr-local.sh":
@@ -14092,6 +14092,7 @@
     "tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch-stale-backlink.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts": true,
