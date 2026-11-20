@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.2.4](https://github.com/CodySwannGT/lisa/compare/v8.2.3...v8.2.4) (2026-11-20)
+
+
+### Bug Fixes
+
+* **self-pin:** bound each packument read and read the abbreviated document ([183e066](https://github.com/CodySwannGT/lisa/commit/183e0660af25fb65a803682ff81137b38cd95fbf)), closes [CodySwannGT/lisa#5094](https://github.com/CodySwannGT/lisa/issues/5094) [CodySwannGT/lisa#5094](https://github.com/CodySwannGT/lisa/issues/5094)
+* **self-pin:** cancel an unread error body so the CLI exits after its verdict ([0eeba57](https://github.com/CodySwannGT/lisa/commit/0eeba571453e28092bd2fb3fe03beb3793ec38bd)), closes [#5097](https://github.com/CodySwannGT/lisa/issues/5097) [CodySwannGT/lisa#5094](https://github.com/CodySwannGT/lisa/issues/5094) [CodySwannGT/lisa#5094](https://github.com/CodySwannGT/lisa/issues/5094)
+
 ### [8.2.3](https://github.com/CodySwannGT/lisa/compare/v8.2.2...v8.2.3) (2026-11-20)
 
 
