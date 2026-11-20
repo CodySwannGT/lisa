@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.2.9](https://github.com/CodySwannGT/lisa/compare/v8.2.8...v8.2.9) (2026-11-20)
+
+
+### Bug Fixes
+
+* **ci:** re-run a stale traceability failure instead of re-dispatching ([3749f6a](https://github.com/CodySwannGT/lisa/commit/3749f6a1608ccc366e58b8f60f91383b1927240b)), closes [CodySwannGT/lisa#5111](https://github.com/CodySwannGT/lisa/issues/5111) [CodySwannGT/lisa#5111](https://github.com/CodySwannGT/lisa/issues/5111)
+
 ### [8.2.8](https://github.com/CodySwannGT/lisa/compare/v8.2.7...v8.2.8) (2026-11-20)
 
 

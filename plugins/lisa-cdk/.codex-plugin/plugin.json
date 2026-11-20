@@ -1,6 +1,6 @@
 {
   "name": "lisa-cdk",
-  "version": "8.2.8",
+  "version": "8.2.9",
   "description": "AWS CDK-specific Lisa plugin.",
   "author": {
     "name": "Cody Swann"
