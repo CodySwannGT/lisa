@@ -80,7 +80,7 @@ function keptInSandbox(patterns: readonly string[], target: string): boolean {
     parts.slice(0, index + 1).join("/")
   );
   return prefixes.every(prefix => {
-    const deciding = patterns.findLast(pattern => {
+    const deciding = [...patterns].reverse().find(pattern => {
       const body = pattern.replace(/^!/u, "");
       return body.endsWith("/*")
         ? path.posix.dirname(prefix) === body.slice(0, -2)
