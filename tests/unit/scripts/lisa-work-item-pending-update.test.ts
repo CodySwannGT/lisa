@@ -11,13 +11,11 @@ import {
   chmodSync,
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -25,6 +23,10 @@ import { describe, expect, it } from "vitest";
 import { commitPendingLisaUpdate } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { createSymlink } from "../../support/borrowed-node-modules.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** The work item being bound. */
 const REF = "o/r#7";
@@ -92,7 +94,7 @@ function blobOf(root: string, file: string): string {
  * @returns Repository root
  */
 function repoWithPendingUpdate(branch: string): string {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-pending-update-"));
+  const root = ownedDir("lisa-pending-update-");
   git(root, ["init", "--quiet", "--initial-branch", "main"]);
   // Repository-local identity: the commit under test runs with the real
   // environment, and CI runners carry no global git identity.

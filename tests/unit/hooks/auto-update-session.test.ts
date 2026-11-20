@@ -7,14 +7,7 @@
  * pending rather than mixed into the next feature commit.
  * @module tests/unit/hooks/auto-update-session.test
  */
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -42,6 +35,10 @@ import {
   createSymlink,
   linkForeignNodeModules,
 } from "../../support/borrowed-node-modules.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * Whether any recorded command starts with a prefix.
@@ -202,7 +199,7 @@ describe("auto-update: a session start", () => {
 
   it("refuses to update through a node_modules link into another checkout", async () => {
     const other = project({});
-    const root = mkdtempSync(path.join(tmpdir(), "lisa-auto-update-linked-"));
+    const root = ownedDir("lisa-auto-update-linked-");
     mkdirSync(path.join(root, ".git"));
     writeFileSync(
       path.join(root, "package.json"),
