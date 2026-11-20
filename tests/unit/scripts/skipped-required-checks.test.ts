@@ -14,10 +14,13 @@
  * what is proven here is the coherence between them.
  */
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_REL =
@@ -288,7 +291,7 @@ describe("check-skipped-required-checks", () => {
     let root: string;
 
     beforeAll(() => {
-      root = fs.mkdtempSync(path.join(os.tmpdir(), "skipreq-"));
+      root = ownedDir("skipreq-");
       fs.mkdirSync(path.join(root, ".github", "workflows"), {
         recursive: true,
       });
@@ -302,7 +305,7 @@ describe("check-skipped-required-checks", () => {
       // `"test:e2e": true` reads as "declared" at the point of use, then yields
       // no suppressed contexts and therefore no violation — the guard becomes a
       // no-op for exactly the token someone was documenting.
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "skipreq-bad-"));
+      const dir = ownedDir("skipreq-bad-");
       fs.mkdirSync(path.join(dir, ".github"), { recursive: true });
       for (const bad of [
         true,

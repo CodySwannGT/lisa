@@ -181,6 +181,9 @@ describe("key derivation", () => {
         LISA_GATE_CACHE: "on",
         LISA_PUSHED_REFS_FILE: "pushed-refs.abc",
         LISA_CLEANUP_SWEPT: "123:456",
+        // Set by the gate runner's sweep at push and absent from `lisa check`
+        // (CodySwannGT/lisa#5095).
+        LISA_CLEANUP_SWEPT_ROOTS: "/var/folders/xy/T",
         // A Rails pre-push command's owner marker: a new pid every run
         // (CodySwannGT/lisa#4613).
         LISA_TEST_RUN_OWNER: "4242:0",

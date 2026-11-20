@@ -8,8 +8,10 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { isLisaOwnedTempName } from "../../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs";
 import {
   ownedTempDirs,
+  sweepablePrefix,
   useOwnedTempDirs,
 } from "../../helpers/owned-temp-dirs.js";
 
@@ -29,6 +31,20 @@ describe("ownedTempDirs", () => {
       expect(path.dirname(dir)).toBe(tmpdir());
       expect(path.basename(dir)).toMatch(/^lisa-owned-[A-Za-z0-9]{6}$/u);
       expect(existsSync(dir)).toBe(true);
+    } finally {
+      owned.removeAll();
+    }
+  });
+
+  it("spells every folder so the start-of-run sweep can reclaim a killed run's", () => {
+    const owned = ownedTempDirs();
+    const dir = owned.make("maestro-runid-");
+    try {
+      expect(path.basename(dir)).toMatch(
+        /^lisa-maestro-runid-[A-Za-z0-9]{6}$/u
+      );
+      expect(isLisaOwnedTempName(path.basename(dir))).toBe(true);
+      expect(sweepablePrefix(PREFIX)).toBe(PREFIX);
     } finally {
       owned.removeAll();
     }

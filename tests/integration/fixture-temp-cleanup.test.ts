@@ -1,20 +1,19 @@
 /**
- * Fixture suites remove the temp folders they create (CodySwannGT/lisa#5095).
+ * Fixture helpers remove the temp folders they create (CodySwannGT/lisa#5095).
  *
  * The suite's contract since CodySwannGT/lisa#4602 is that each test removes
- * what it creates; nothing global audits it. These fixtures broke it quietly.
+ * what it creates; nothing global audits it. Shared fixtures broke it quietly.
  * Each made a fresh `mkdtemp` folder per call and nothing removed it. On
  * 2026-11-20 one machine held 122,618 entries in `/private/tmp`, 13,701 of them
- * from one helper. One normal run of the 60 files that use these fixtures left
- * 887 folders behind before the fix and none after it.
+ * from one helper.
  *
- * This runs one suite per fixed fixture in a real child Vitest, with `TMPDIR`
- * pointed at a private folder, and fails if any per-call folder is still there
- * afterwards. "Per-call" is the `mkdtemp` shape: a name ending in six random
- * characters after a dash. Fixed-name caches a run reuses rather than mints,
- * such as Node's `node-compile-cache` and the hooks' per-user
- * `lisa-guard-memo-<uid>`, do not grow per run, and the shape leaves them out
- * without naming them.
+ * One case per fixed helper. Each runs one suite that uses the helper in a
+ * real child Vitest, with `TMPDIR` pointed at a private folder, and requires
+ * that folder to be EMPTY afterwards. Node's compile cache is switched off in
+ * the child so the only writers left are the suite and the code it drives.
+ * Every per-file fix routes through `useOwnedTempDirs`, so the case that runs
+ * that helper's own suite stands for all of them; the remaining cases cover
+ * the shared fixtures, whose callers are many files at once.
  * @module tests/integration/fixture-temp-cleanup
  */
 import * as fs from "node:fs";
@@ -30,61 +29,71 @@ import {
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
 
-/** One suite for each fixture or test file that used to leak. */
-const SUITES = [
-  "tests/unit/hooks/block-direct-issue-create.test.ts",
-  "tests/unit/hooks/auto-update.test.ts",
-  "tests/unit/hooks/auto-update-attention.test.ts",
-  "tests/unit/hooks/auto-update-session.test.ts",
-  "tests/unit/hooks/inject-resolved-config-completeness.test.ts",
-  "tests/integration/maestro-leg-order-wait.test.ts",
-  "tests/integration/maestro-native-flake-classification.test.ts",
-  "tests/integration/maestro-pre-suite-exports.test.ts",
-  "tests/integration/maestro-pre-suite-seam.test.ts",
-  "tests/integration/maestro-run-id.test.ts",
-  "tests/unit/hooks/block-host-name-launchers.test.ts",
-  "tests/unit/cli/gate-report-executors.test.ts",
-  "tests/unit/hooks/block-blind-automerge.test.ts",
-  "tests/unit/opencode/block-direct-issue-create-cross-repo-parity.test.ts",
-  "tests/unit/scripts/required-check-promotions.legs.test.ts",
-  "tests/unit/hooks/discharge-work-item-gates.test.ts",
-  "tests/unit/hooks/failure-signature-discrimination.test.ts",
-  "tests/unit/hooks/failure-signature-index.test.ts",
-  "tests/unit/scripts/lisa-work-item-pending-update.test.ts",
-  "tests/unit/scripts/skipped-required-checks-wiring.test.ts",
-  "tests/unit/scripts/skipped-required-outcomes.test.ts",
-  "tests/unit/scripts/state-classification.test.ts",
-  "tests/unit/scripts/vacuous-required-checks-wiring.test.ts",
+/**
+ * Each fixed helper, and one suite that drives its temp-folder path. Each
+ * suite was chosen because it leaves folders behind when the helper's cleanup
+ * is removed; a suite that never reaches the path would pass either way.
+ */
+const CASES = [
+  ["owned-temp-dirs", "tests/unit/helpers/owned-temp-dirs.test.ts"],
+  ["BackupService init", "tests/unit/transaction/backup.test.ts"],
+  ["direct-issue-create", "tests/unit/hooks/block-direct-issue-create.test.ts"],
+  ["auto-update-fixture", "tests/unit/hooks/auto-update.test.ts"],
+  [
+    "inject-resolved-config-harness",
+    "tests/unit/hooks/inject-resolved-config-completeness.test.ts",
+  ],
+  [
+    "maestro-leg-order-harness",
+    "tests/integration/maestro-leg-order-wait.test.ts",
+  ],
+  ["host-name-guard-fixture", "tests/unit/hooks/block-host-name-leak.test.ts"],
+  ["gate-report-fixtures", "tests/unit/cli/doctor-declared-contexts.test.ts"],
+  ["blind-automerge", "tests/unit/hooks/block-blind-automerge.test.ts"],
+  [
+    "filing-parity",
+    "tests/unit/opencode/block-direct-issue-create-cross-repo-parity.test.ts",
+  ],
+  [
+    "required-check-promotions-helpers",
+    "tests/unit/scripts/required-check-promotions.legs.test.ts",
+  ],
+  ["work-item-cli", "tests/unit/scripts/work-item-contract-version.test.ts"],
+  [
+    "executed-script-reach",
+    "tests/unit/hooks/block-managed-file-edits-host-stack.test.ts",
+  ],
+  [
+    "enforcement-vintage-harness",
+    "tests/unit/hooks/enforcement-vintage.test.ts",
+  ],
 ] as const;
 
-/** A folder `mkdtemp` minted: a prefix ending in a dash, then six characters. */
-const PER_CALL_FOLDER = /-[A-Za-z0-9]{6}$/u;
-
 /**
- * Quiet-box budget for the child run. Measured at 6.0-6.5 s for the case
+ * Quiet-box budget for one child run. The slowest case measured 6.5 s
  * (2026-11-20, `ps aux | grep -c '[v]itest'` = 2, 1-minute load 9.4 on 18
  * cores); 24 s leaves the child about four times that.
  */
 const CHILD_RUN_BASE_MS = 24_000;
 
-// The case must outlast the child at the 8x slowdown ceiling with 2.5x to
+// Each case must outlast its child at the 8x slowdown ceiling with 2.5x to
 // spare (24,000 x 8 x 2.5), so the bounded child always dies first and
 // reports by name.
 useIoLatencyBudget(480_000);
 
-describe("fixture suites and the temp root", () => {
-  it("leave no per-call temp folder behind after a normal run", () => {
+describe("fixture helpers and the temp root", () => {
+  it.each(CASES)("%s leaves the temp root empty (%s)", (_helper, suite) => {
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync(tmpdir()), "lisa-leakcheck-")
     );
     try {
       const result = boundedSpawnSync({
-        label: "fixture suites under a private TMPDIR",
+        label: `${suite} under a private TMPDIR`,
         command: process.execPath,
         args: [
           path.join(REPO_ROOT, "node_modules/vitest/vitest.mjs"),
           "run",
-          ...SUITES,
+          suite,
         ],
         cwd: REPO_ROOT,
         env: {
@@ -93,16 +102,12 @@ describe("fixture suites and the temp root", () => {
           TMP: root,
           TEMP: root,
           LISA_ADMISSION: "off",
+          NODE_DISABLE_COMPILE_CACHE: "1",
         },
         baseMs: CHILD_RUN_BASE_MS,
       });
-      const diagnostic = `${result.stdout}\n${result.stderr}`;
-      expect(result.status, diagnostic).toBe(0);
-
-      const leftovers = fs
-        .readdirSync(root)
-        .filter(name => PER_CALL_FOLDER.test(name));
-      expect(leftovers).toEqual([]);
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+      expect(fs.readdirSync(root)).toEqual([]);
     } finally {
       fs.rmSync(root, { force: true, maxRetries: 10, recursive: true });
     }

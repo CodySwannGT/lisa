@@ -7,8 +7,7 @@
  * typing anything, and every source it cannot reach is `warn`, never `pass`.
  * @module tests/unit/health/declared-checks
  */
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -21,6 +20,10 @@ import type {
   RulesetReader,
 } from "../../../src/health/ruleset-inspection.js";
 import { classifyDeclarationDrift } from "../../../src/core/gate-declaration-drift.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const WORKFLOW = "🔍 Quality Checks";
 const TYPE_CHECK = `${WORKFLOW} / 🔍 Type Check`;
@@ -33,7 +36,7 @@ const GITHUB = { github: { org: "example", repo: "project" } };
  * @returns Absolute project root
  */
 async function projectWith(gates: unknown): Promise<string> {
-  const root = await mkdtemp(path.join(tmpdir(), "lisa-declared-checks-"));
+  const root = ownedDir("lisa-declared-checks-");
   await writeFile(
     path.join(root, ".lisa.config.json"),
     JSON.stringify({ ...GITHUB, gates }, null, 2),
@@ -177,7 +180,7 @@ describe("declaredChecksDriftFinding", () => {
   });
 
   it("reports an unreadable gates block as unproven rather than as no declarations", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "lisa-declared-checks-"));
+    const root = ownedDir("lisa-declared-checks-");
     await writeFile(path.join(root, ".lisa.config.json"), "{ not json", "utf8");
 
     const finding = await run(root, liveRequiring([TYPE_CHECK]));

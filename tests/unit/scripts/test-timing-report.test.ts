@@ -232,6 +232,9 @@ describe("main", () => {
       stderr: () => undefined,
       download: (runId, into) => {
         calls.push(runId);
+        // Writing into the downloader's folder replaces `dir`; remove the one
+        // beforeEach made first, or nothing ever does (CodySwannGT/lisa#5095).
+        fs.rmSync(dir, { recursive: true, force: true });
         dir = into;
         writeArtifact("test-timings-41330364793-1-unit", "unit", [
           { name: A, seconds: 2 },

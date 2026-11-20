@@ -62,6 +62,9 @@
  * an entry point skips the sweep — saying so in one line — only while that
  * exact process is still alive. A stale or copied value cannot disable the
  * sweep for good. A nested `lisa-test-run` still sets its own owner marker.
+ * The temp half is once per ROOT: {@link SWEPT_ROOTS_ENV} lists the roots the
+ * live sweeper covered, and an entry point whose `TMPDIR` is not among them
+ * still sweeps that root's temp entries.
  * @module scripts/lib/lisa-cleanup-sweep
  */
 import { lstat, opendir, realpath, rm } from "node:fs/promises";
@@ -109,6 +112,17 @@ export const LISA_PROTECTED_TEMP_PREFIXES = Object.freeze([
  * skips the sweep while that process is still alive with that start time.
  */
 export const SWEPT_ENV = "LISA_CLEANUP_SWEPT";
+
+/**
+ * The temp roots the live {@link SWEPT_ENV} sweeper has already swept, joined
+ * with `path.delimiter`. The process half needs one sweep per run, but the
+ * temp half needs one per root: `lisa-test-run` moves a run whose `TMPDIR` is
+ * too long for Unix sockets to `/private/tmp`, after the gate runner already
+ * swept the platform temp directory, so a marker that ignored the root left
+ * the root the tests actually write to unswept on every push
+ * (CodySwannGT/lisa#5095).
+ */
+export const SWEPT_ROOTS_ENV = "LISA_CLEANUP_SWEPT_ROOTS";
 
 /** Default age, in hours, past which a Lisa temp entry is stale. */
 export const DEFAULT_MAX_AGE_HOURS = 24;
@@ -563,13 +577,55 @@ export function formatAlreadySwept(pid) {
 }
 
 /**
+ * The temp root a process with this environment writes to, as `os.tmpdir()`
+ * would resolve it there.
+ * @param {Record<string, string | undefined>} env - That process's environment.
+ * @returns {string} Absolute root, no trailing separator.
+ */
+export function tempRootOf(env) {
+  return path.resolve(env.TMPDIR || env.TMP || env.TEMP || tmpdir());
+}
+
+/**
+ * Decide what this entry point still has to sweep, and the marks it hands on.
+ *
+ * With no live sweeper it sweeps everything and owns the marks. With a live
+ * sweeper that already swept this root it sweeps nothing. With a live sweeper
+ * that swept other roots it sweeps this root's temp entries only — the
+ * sweeper already reaped orphans — and adds the root to the list.
+ * @param {Record<string, string | undefined>} env - Inherited environment.
+ * @param {string} root - Temp root this run writes to.
+ * @param {number | null} sweeper - Pid of the live sweeper, or null.
+ * @param {string} marker - This process's `<pid>:<start>`.
+ * @returns {{sweep: "all" | "temp" | "none", marks: Record<string, string>}} The plan.
+ */
+export function planStartOfRunSweep(env, root, sweeper, marker) {
+  if (sweeper === null) {
+    return {
+      sweep: "all",
+      marks: { [SWEPT_ENV]: marker, [SWEPT_ROOTS_ENV]: root },
+    };
+  }
+  const swept = String(env[SWEPT_ROOTS_ENV] ?? "")
+    .split(path.delimiter)
+    .filter(Boolean);
+  if (swept.includes(root)) return { sweep: "none", marks: {} };
+  return {
+    sweep: "temp",
+    marks: { [SWEPT_ROOTS_ENV]: [...swept, root].join(path.delimiter) },
+  };
+}
+
+/**
  * Sweep once from a synchronous caller (the gate runner), never failing it.
  *
  * Runs this file as a bounded child because the caller cannot await, forwards
  * its one summary line, and on any failure prints one line and returns. Skips,
- * with one line, when {@link SWEPT_ENV} names a sweeper that is still alive;
- * otherwise writes the CALLER's own `<pid>:<start>` there first, so everything
- * the caller starts afterwards skips for as long as the caller runs.
+ * with one line, when {@link SWEPT_ENV} names a sweeper that is still alive
+ * and {@link SWEPT_ROOTS_ENV} already lists this temp root; sweeps only this
+ * root's temp entries when the live sweeper swept other roots; otherwise
+ * writes the CALLER's own `<pid>:<start>` there first, so everything the
+ * caller starts afterwards skips for as long as the caller runs.
  * @param {object} [seams] - Test seams.
  * @param {Record<string, string | undefined>} [seams.env] - Environment, defaults to `process.env`.
  * @param {typeof boundedSpawnSync} [seams.spawn] - Child launcher.
@@ -587,12 +643,18 @@ export function runStartOfRunSweep(seams = {}) {
     liveSweeper: sweptBy = liveSweeper,
   } = seams;
   const sweeper = sweptBy(env[SWEPT_ENV]);
-  if (sweeper !== null) {
+  const plan = planStartOfRunSweep(
+    env,
+    tempRootOf(env),
+    sweeper,
+    sweeper === null ? ownerMarker() : ""
+  );
+  if (plan.sweep === "none") {
     log(formatAlreadySwept(sweeper));
     return;
   }
-  env[SWEPT_ENV] = ownerMarker();
-  launchSweep(spawn, env, log);
+  Object.assign(env, plan.marks);
+  launchSweep(spawn, env, log, plan.sweep === "temp" ? ["--no-processes"] : []);
 }
 
 /**
@@ -600,13 +662,14 @@ export function runStartOfRunSweep(seams = {}) {
  * @param {typeof boundedSpawnSync} spawn - Child launcher.
  * @param {Record<string, string | undefined>} env - Child environment.
  * @param {(line: string) => void} log - Output sink.
+ * @param {readonly string[]} flags - Extra CLI flags, e.g. `--no-processes`.
  * @returns {void}
  */
-function launchSweep(spawn, env, log) {
+function launchSweep(spawn, env, log, flags) {
   const didNotFinish = why =>
     log(`🧹 cleanup sweep did not finish (${why}); continuing`);
   try {
-    const child = spawn(process.execPath, [SELF], {
+    const child = spawn(process.execPath, [SELF, ...flags], {
       encoding: "utf8",
       env: { ...env },
       stdio: ["ignore", "pipe", "pipe"],

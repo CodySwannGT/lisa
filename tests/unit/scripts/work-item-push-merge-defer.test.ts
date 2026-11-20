@@ -40,8 +40,7 @@
  * A faithful replay needs `origin` and `refs/remotes/origin/HEAD` to exist.
  * @module tests/unit/scripts/work-item-push-merge-defer
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
@@ -56,6 +55,10 @@ import {
   githubConfig,
   REF,
 } from "../../support/work-item-cli.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT = path.join(
@@ -99,7 +102,7 @@ function commitFile(fixture: Fixture, file: string, message: string): string {
  */
 function replayMergeResolution(): Replay {
   const fixture = createFixture(githubConfig("trailer"));
-  const origin = mkdtempSync(path.join(tmpdir(), "lisa-3851-origin-"));
+  const origin = ownedDir("lisa-3851-origin-");
   const { env, root } = fixture;
 
   git(root, ["init", "--bare", "--initial-branch=main"], {

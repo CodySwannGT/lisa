@@ -52,6 +52,10 @@ import {
   waitForStubLinuxMktempRoot,
 } from "./support/sonar-secrets-fixtures.js";
 import { createSymlink } from "../../support/borrowed-node-modules.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 // Spawns `/bin/bash` against the real generated shim. Failed 4 of 12 full-suite
 // runs measured at load ~115 with 38 agent worktrees present, without being
@@ -261,7 +265,7 @@ describe("when the wrapper must stand aside", () => {
       baseMs: HOOK_RUN_BUDGET_MS,
       input: "x".repeat(1024 * 1024),
       env: {
-        PATH: mkdtempSync(path.join(tmpdir(), "lisa-empty-bin-")),
+        PATH: ownedDir("lisa-empty-bin-"),
         ...HOOK_DEADLINE_ENV,
       },
     });

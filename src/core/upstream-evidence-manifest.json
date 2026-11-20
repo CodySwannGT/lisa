@@ -85,7 +85,7 @@
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "16aa855e6eeaabb5d79db280a97d9a7ae60fbe849e66552b3bd74dd24dadfa34",
     "all/copy-overwrite/scripts/lib/gate-pass-cache.mjs":
-      "db7d75cfd8cb62fb24a2643aa015aa0fdb33a6de110c56b638b27a2b869ddcb8",
+      "d903661e976628151b6b1350314b85370ffc396f4f2416fd614f9160c70ed880",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
       "728dbf966535cf04d112c4b474357336c718c621da2bb247358d86672942dcf2",
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
@@ -113,9 +113,9 @@
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.mjs":
       "026d79cf54594e41cecd24d1f5df72dd2338b786dce485e69eeaa6b61dce1059",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.d.mts":
-      "46fbb6730747ddee90b9275797de67cacfceab26ca14436460c11da638fb604b",
+      "e901069099f23eb32232f60068b055137079754173d88624ac51c77e852a15f0",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs":
-      "08450444d7f03d5a0e560f023a4e30db74821209ea45df41959b46636f6191bd",
+      "329a6f2b549c829dec7fbc1f567427fc9f726082fb8bfda877f8e6366a23020b",
     "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs":
       "a40eae9a3253e556159a5f152fe5bf15daa0b29d18f67f6199f4567dde700380",
     "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs":
@@ -421,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "7aed270e8266d828900d58c2731fd66e5a1fa00ea6263e7853b684bcad8fe44a",
+      "58a038333dd6b90786d61b65d5782392bd2f0b056cba02f8eef5f9a5bea29d7e",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -517,7 +517,7 @@
     "eslint-plugin-component-structure/README.md":
       "7c4a6bddb07d36816bcecfa6213d5b55fc2df0169dc54b3370115e6d12c45234",
     "eslint-plugin-component-structure/__tests__/enforce-component-structure.test.js":
-      "f507216be4bf630563e28010a40cb99e6a5756c3b6f5b83647775fd1ab4f33ea",
+      "921c7951328ad8be593925412b704978e6a5bdbf1c6eeb2bbaa674d0473d1292",
     "eslint-plugin-component-structure/__tests__/no-hooks-in-view.test.js":
       "f9e955f91821be459c9670037d82abb030009a8fe243d5505a14c5b6d5ccae46",
     "eslint-plugin-component-structure/__tests__/no-return-in-view.test.js":
@@ -2729,7 +2729,7 @@
     "scripts/check-workflow-load-failures.mjs":
       "31e8404316dc95527ff87ee2bcbc7d19bcf70f6cb54b608fd7235e9c767506a1",
     "scripts/check-workflow-package-paths.mjs":
-      "6f0148fe804d4c36eddb137b6c16d4d49694e287303e38a95bfc82d49480954a",
+      "863b39f58644bc3bbf4f4f6d4870dd03e89deafd78f442bcbef2bce8a2c4b1f5",
     "scripts/classify-markdown-assertions.mjs":
       "4b5ec8747ade3767b7d4f5b8bccf3e5a46f8cc296ad4397dabd89e4768ac68cd",
     "scripts/classify-phrase-tests.mjs":

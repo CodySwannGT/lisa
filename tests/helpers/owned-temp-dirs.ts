@@ -9,6 +9,12 @@
  * the smallest correction at the owning component — a fixture records each
  * folder it makes, and the file that used the fixture removes them in
  * `afterAll`, success or failure.
+ *
+ * Every folder is spelled `lisa-…`, whatever prefix the caller passed. A run
+ * killed before `afterAll` still leaves its folders, and the start-of-run
+ * sweep (#4597) reclaims only top-level `lisa-` / `lisa.` names once they are
+ * a day old; a bare `maestro-runid-` or `vacuity-wiring-` folder was invisible
+ * to it for good.
  * @module tests/helpers/owned-temp-dirs
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -21,7 +27,8 @@ import { afterAll } from "vitest";
 export interface OwnedTempDirs {
   /**
    * Create a folder under the platform temp root and record it.
-   * @param prefix - The `mkdtemp` prefix, ending in `-`
+   * @param prefix - The `mkdtemp` prefix, ending in `-`; `lisa-` is
+   *   prepended when it is missing
    * @returns The new folder's path
    */
   readonly make: (prefix: string) => string;
@@ -34,6 +41,20 @@ export interface OwnedTempDirs {
  * reasoning as `cleanupTempDir` in `test-utils.ts`.
  */
 const REMOVAL_RETRIES = 10;
+
+/** The name prefix the start-of-run sweep recognises as Lisa's. */
+const SWEEPABLE_PREFIX = "lisa-";
+
+/**
+ * The prefix spelled so the start-of-run sweep can reclaim a killed run's folder.
+ * @param prefix - The caller's prefix
+ * @returns The prefix, starting with `lisa-`
+ */
+export function sweepablePrefix(prefix: string): string {
+  return prefix.startsWith(SWEEPABLE_PREFIX)
+    ? prefix
+    : `${SWEEPABLE_PREFIX}${prefix}`;
+}
 
 /**
  * A recorder of temp folders, with no test-runner wiring.
@@ -57,7 +78,7 @@ class TempDirRecorder {
    * @returns The new folder's path
    */
   make(prefix: string): string {
-    const dir = mkdtempSync(path.join(tmpdir(), prefix));
+    const dir = mkdtempSync(path.join(tmpdir(), sweepablePrefix(prefix)));
     this.created.add(dir);
     return dir;
   }
