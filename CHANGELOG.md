@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.2.5](https://github.com/CodySwannGT/lisa/compare/v8.2.4...v8.2.5) (2026-11-20)
+
+
+### Bug Fixes
+
+* **release:** treat a reconciled `published` verdict as a landed release ([88a992c](https://github.com/CodySwannGT/lisa/commit/88a992c3c1bc9a135fc0425e4a780cc207c46967)), closes [#5105](https://github.com/CodySwannGT/lisa/issues/5105) [CodySwannGT/lisa#5106](https://github.com/CodySwannGT/lisa/issues/5106) [CodySwannGT/lisa#5106](https://github.com/CodySwannGT/lisa/issues/5106)
+
 ### [8.2.4](https://github.com/CodySwannGT/lisa/compare/v8.2.3...v8.2.4) (2026-11-20)
 
 
