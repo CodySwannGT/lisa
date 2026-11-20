@@ -356,27 +356,26 @@ function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
 
 /**
  * The remote-tracking refs of this repository's protected branches: the
- * remote's default branch and every `deploy.branches` branch.
+ * remote's default branch and every `deploy.branches` branch it declares.
  *
- * Which branches are protected is read from the remote's default branch when
- * it can be, and from HEAD only when it cannot. Reading it from HEAD alone
- * would let a branch name itself a deploy branch, push, and count its own
+ * Which branches are protected is read from the remote's default branch and
+ * from nowhere else. HEAD's own `deploy.branches` is never consulted: a
+ * branch could name itself a deploy branch there, push, and count its own
  * unmerged entry as merged.
  *
  * `origin` is the only remote consulted, the same assumption `bareBranch`
- * makes. A clone with no `origin`, or one that has never fetched, yields no
- * refs, and the caller then has nothing to judge "merged" by.
+ * makes.
  *
  * This is a local check and can be argued with: whoever owns `.git` owns
  * these refs, and can repoint `origin/HEAD` or write a tracking ref by hand.
  * The pull-request check, which compares against the base on the server's
  * checkout, is the layer that cannot.
  * @param {string} root Repo root
- * @param {unknown} headConfig `.lisa.config.json` at HEAD
  * @returns {string[]} Full ref names that resolve, e.g.
- *   `refs/remotes/origin/main`, `refs/remotes/origin/dev`
+ *   `refs/remotes/origin/main`, `refs/remotes/origin/dev`; empty when the
+ *   remote's default branch cannot be named
  */
-function protectedBranchRefs(root, headConfig) {
+function protectedBranchRefs(root) {
   const resolves = ref =>
     git(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], root) !== null;
   // Full ref names throughout. A short `origin/main` resolves to a LOCAL
@@ -387,31 +386,46 @@ function protectedBranchRefs(root, headConfig) {
     root
   )?.trim();
   // `origin/HEAD` is missing in a repository that was fetched rather than
-  // cloned, or freshly pushed. Falling straight back to HEAD's own chain there
-  // would let the commit that records an entry also delete `deploy.branches`
-  // and switch this lookup off, so the conventional default names are tried
-  // first.
+  // cloned, or freshly pushed, so the conventional default names are tried
+  // after it.
   const defaultRef =
     [declared, `${REMOTE_REFS}main`, `${REMOTE_REFS}master`].find(
       ref => ref?.startsWith(REMOTE_REFS) && resolves(ref)
     ) ?? null;
-  const chainConfig = defaultRef
-    ? parseJson(git(["show", `${defaultRef}:.lisa.config.json`], root))
-    : headConfig;
-  const candidates = [
-    ...(defaultRef ? [defaultRef] : []),
-    ...deployChain(chainConfig).map(branch => `${REMOTE_REFS}${branch}`),
-  ];
-  return [...new Set(candidates)].filter(resolves);
+  if (!defaultRef) return [];
+  const chain = deployChain(
+    parseJson(git(["show", `${defaultRef}:.lisa.config.json`], root))
+  );
+  return [
+    ...new Set([defaultRef, ...chain.map(branch => `${REMOTE_REFS}${branch}`)]),
+  ].filter(resolves);
+}
+
+/**
+ * Whether `origin` has any remote-tracking ref at all.
+ * @param {string} root Repo root
+ * @returns {boolean} True when something was ever fetched from `origin`
+ */
+function originWasFetched(root) {
+  const first = git(
+    ["for-each-ref", "--count=1", "--format=%(refname)", REMOTE_REFS],
+    root
+  );
+  return typeof first === "string" && first.trim() !== "";
 }
 
 /**
  * The allow list for the local modes (`--staged`, `--hook`).
  *
- * HEAD's entries, minus those no protected branch holds yet. Without a
- * protected branch to ask — no remote, or nothing fetched — every HEAD entry
- * counts, as it always did: there is no merge for an entry to wait for, and
- * refusing would wedge a repository that has no pull requests at all.
+ * HEAD's entries, minus those no protected branch holds yet. Two cases have
+ * no protected branch to ask, and they are opposite:
+ *
+ *   nothing was ever fetched from `origin` — there is no merge for an entry
+ *     to wait for, so every HEAD entry counts, as it always did. Refusing
+ *     would wedge a repository that has no pull requests at all.
+ *   `origin` was fetched, and its default branch cannot be named — there IS
+ *     a merge to wait for and nothing here can tell whether it happened, so
+ *     no HEAD entry counts. The refusal names the command that fixes it.
  * @param {string} root Repo root
  * @param {unknown} headConfig `.lisa.config.json` at HEAD
  * @returns {{ entries: object[], unmerged: object[], protectedRefs: string[] }}
@@ -419,9 +433,11 @@ function protectedBranchRefs(root, headConfig) {
  */
 function localAllowList(root, headConfig) {
   const entries = extractAllowEntries(headConfig);
-  const protectedRefs = protectedBranchRefs(root, headConfig);
+  const protectedRefs = protectedBranchRefs(root);
   if (protectedRefs.length === 0) {
-    return { entries, unmerged: [], protectedRefs };
+    return originWasFetched(root)
+      ? { entries: [], unmerged: entries, protectedRefs }
+      : { entries, unmerged: [], protectedRefs };
   }
   const { merged, unmerged } = splitMergedEntries(
     entries,

@@ -75,8 +75,11 @@ This conflicts with shipped Lisa behavior. Lisa ships several ratchet families:
   branch last committed, so there an entry counts only when a protected branch (the
   remote's default branch or a `deploy.branches` branch, as last fetched) also
   holds the identical entry; otherwise commit one could record an exception and
-  commit two could use it. A clone with no such remote branch has no merge to wait
-  for and honours HEAD as before. Only the remote named `origin` is consulted. This
+  commit two could use it. Which branches are protected is read from the remote's
+  default branch, never from the branch's own config. A clone that has never fetched
+  from `origin` has no merge to wait for and honours HEAD as before; one that has
+  fetched but cannot name the remote's default branch honours no entry and names the
+  command that fixes it. Only the remote named `origin` is consulted. This
   local rule can be argued with by whoever owns `.git` (the tracking refs are local
   files); the pull-request check is the layer that cannot. The mode is read from the baseline too, so a
   change cannot relax it for itself. Under `strict` an added entry is refused as

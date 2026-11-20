@@ -881,16 +881,18 @@ export function splitMergedEntries(entries, mergedLists) {
  * @param {Finding[]} blocked Findings still refused
  * @param {Array<{ file: string, key: string }>} unmerged Entries only this
  *   branch holds
- * @param {string[]} refs The protected branches that were consulted
+ * @param {string[]} refs The protected branches that were consulted; empty
+ *   when the remote's default branch could not be named
  * @returns {string[]} One line per unmerged entry that covers a refused finding
  */
 export function describeUnmergedCover(blocked, unmerged, refs) {
+  const why =
+    refs.length === 0
+      ? `is recorded on this branch, and which branch of the remote named origin is its default could not be determined, so nothing shows the entry is merged and it exempts nothing yet. Run "git remote set-head origin --auto" and try again.`
+      : `is recorded on this branch but is not on ${refs.join(" or ")}, so it exempts nothing yet. Merge the change that records it first; if it is already merged, run "git fetch" and try again. Only the remote named origin is consulted, and "git remote set-head origin --auto" refreshes which of its branches is the default.`;
   return unmerged
     .filter(entry => blocked.some(finding => entryCovers(entry, finding)))
-    .map(
-      entry =>
-        `${describeAllowScope(entry)} is recorded on this branch but is not on ${refs.join(" or ")}, so it exempts nothing yet. Merge the change that records it first; if it is already merged, run "git fetch" and try again. Only the remote named origin is consulted, and "git remote set-head origin --auto" refreshes which of its branches is the default.`
-    );
+    .map(entry => `${describeAllowScope(entry)} ${why}`);
 }
 
 /**

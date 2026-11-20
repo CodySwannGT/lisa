@@ -59,9 +59,13 @@ const REASON =
 const RECORDED = "new exception recorded";
 const MERGE_FIRST = "Merge this entry in a change of its own first";
 const NOT_MERGED = "is recorded on this branch but is not on";
+const DEFAULT_UNKNOWN =
+  "which branch of the remote named origin is its default could not be determined";
+const SET_HEAD = '"git remote set-head origin --auto"';
 const LEGACY_REFUSAL = "Exceptions are a human decision";
 const SCOPE = `thresholdRatchet.allow entry ${ESLINT_FILE} → maxWarnings (key-scoped)`;
 const ORIGIN_MAIN = "refs/remotes/origin/main";
+const ORIGIN_DEV = "refs/remotes/origin/dev";
 const REMOTE_MAIN = "origin/main";
 const UPDATE_REF = "update-ref";
 const ORIGIN_HEAD = "refs/remotes/origin/HEAD";
@@ -297,7 +301,17 @@ describe("describeUnmergedCover (#5099)", () => {
     expect(lines[0]).toContain(`${NOT_MERGED} origin/main or origin/dev`);
     expect(lines[0]).toContain('run "git fetch" and try again');
     expect(lines[0]).toContain("Only the remote named origin is consulted");
-    expect(lines[0]).toContain('"git remote set-head origin --auto"');
+    expect(lines[0]).toContain(SET_HEAD);
+  });
+
+  it("says so when the remote's default branch could not be named", () => {
+    const lines = describeUnmergedCover(raisedCeiling(), [entry()], []);
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain(SCOPE);
+    expect(lines[0]).toContain(DEFAULT_UNKNOWN);
+    expect(lines[0]).toContain(`Run ${SET_HEAD} and try again`);
+    expect(lines[0]).not.toContain(NOT_MERGED);
   });
 
   it("speaks for a file-wide entry too", () => {
@@ -523,7 +537,7 @@ describe("an exception that is committed but not merged (#5099)", () => {
     const dir = baselineRepo(configText([], chain));
     remoteMainAt(dir, "HEAD");
     recordThenStageWeakening(dir, configText([liveEntry()], chain));
-    git(dir, UPDATE_REF, "refs/remotes/origin/dev", "HEAD");
+    git(dir, UPDATE_REF, ORIGIN_DEV, "HEAD");
 
     const result = ratchet(dir, ["--staged"]);
 
@@ -547,16 +561,22 @@ describe("an exception that is committed but not merged (#5099)", () => {
     expect(result.stderr).not.toContain("origin/topic");
   });
 
-  it("falls back to the chain at HEAD when the remote names no default", () => {
+  it("does not take the protected branches from HEAD when the remote's default is unknown", () => {
     const chain = { deploy: { branches: { dev: "dev" } } };
     const dir = baselineRepo(configText([], chain));
-    git(dir, UPDATE_REF, "refs/remotes/origin/dev", "HEAD");
+    git(dir, UPDATE_REF, ORIGIN_DEV, "HEAD");
     recordThenStageWeakening(dir, configText([liveEntry()], chain));
+    // The branch's own entry is on origin/dev, a branch only HEAD's config
+    // calls protected. It must not count as merged on that say-so.
+    git(dir, UPDATE_REF, ORIGIN_DEV, "HEAD");
 
     const result = ratchet(dir, ["--staged"]);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(`${NOT_MERGED} origin/dev`);
+    expect(result.stderr).toContain(SCOPE);
+    expect(result.stderr).toContain(DEFAULT_UNKNOWN);
+    expect(result.stderr).toContain(SET_HEAD);
+    expect(result.stdout).not.toContain("allowed by");
   });
 
   it("finds the default branch by name when the remote never said which it is", () => {
