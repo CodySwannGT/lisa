@@ -101,6 +101,30 @@ const VERDICT_PREFIX = "self-dependency-pin:";
  */
 const MAX_CANDIDATES = 5;
 
+/**
+ * Deadline for one packument read, body included.
+ *
+ * A packument read had none, and in a real pre-push one held an ESTABLISHED
+ * registry connection for about 74 minutes before failing "network:
+ * terminated" (CodySwannGT/lisa#5094). A read that runs out of time is a
+ * transport failure like any other: it is retried within the existing
+ * attempts and then reported. Sixty seconds clears the slowest whole read
+ * measured, 17.5s for the abbreviated document on 2026-11-19, by more than
+ * three times, and turns that 74-minute wait into at most three minutes.
+ */
+export const PACKUMENT_ATTEMPT_TIMEOUT_MS = 60_000;
+
+/**
+ * The packument shape this check reads: the abbreviated install document.
+ *
+ * The check reads only the keys of `versions`, and the abbreviated document
+ * lists exactly the same versions as the full one (2187 of 2187, compared on
+ * 2026-11-19) at a quarter of the size: 6.0 MB rather than 23.5 MB, 487 KB
+ * rather than 830 KB compressed. Each candidate it picks is still confirmed
+ * through the exact-version prover before it is used.
+ */
+const ABBREVIATED = "application/vnd.npm.install-v1+json";
+
 /** Specs naming a LOCATION rather than a registry version. */
 const NON_REGISTRY_SPEC =
   /^(?:file|link|portal|workspace|git|git\+[a-z]+|github|https?|npm):/i;
@@ -162,28 +186,66 @@ export function compareSpec(spec, newest) {
 }
 
 /**
- * One packument read.
+ * The deadline seams one packument read takes, with their defaults.
+ *
+ * The same shape `verifyPublish` takes in check-npm-publish-landed.mjs, so a
+ * test injects one controller factory and one timer for every read.
+ * @param {object} options - Any seams a caller passed.
+ * @returns {{attemptTimeoutMs: number, createAbortController: () => AbortController, setAttemptTimer: (callback: () => void, ms: number) => unknown, clearAttemptTimer: (timer: unknown) => void}} The seams.
+ */
+function deadlineSeams({
+  attemptTimeoutMs = PACKUMENT_ATTEMPT_TIMEOUT_MS,
+  createAbortController = () => new AbortController(),
+  setAttemptTimer = setTimeout,
+  clearAttemptTimer = clearTimeout,
+} = {}) {
+  return {
+    attemptTimeoutMs,
+    createAbortController,
+    setAttemptTimer,
+    clearAttemptTimer,
+  };
+}
+
+/**
+ * One packument read in one shape, bounded by a deadline that also covers the
+ * body: the timer is cleared only once `response.json()` has settled.
  * @param {string} url - The packument URL.
+ * @param {string} accept - The shape's media type.
  * @param {typeof fetch} fetchImpl - Injected for tests.
+ * @param {ReturnType<typeof deadlineSeams>} deadline - Per-attempt deadline seams.
  * @returns {Promise<{packument: object | null, detail: string}>} The outcome.
  */
-async function readPackumentOnce(url, fetchImpl) {
+async function readShapeOnce(url, accept, fetchImpl, deadline) {
+  const controller = deadline.createAbortController();
+  const timer = deadline.setAttemptTimer(
+    () => controller.abort(),
+    deadline.attemptTimeoutMs
+  );
   try {
     const response = await fetchImpl(url, {
-      headers: { accept: "application/json" },
+      headers: { accept },
+      signal: controller.signal,
     });
     if (!response.ok) {
       return { packument: null, detail: `HTTP ${response.status} from ${url}` };
     }
     return { packument: await response.json(), detail: "ok" };
   } catch (error) {
-    return { packument: null, detail: `network: ${error.message} (${url})` };
+    return {
+      packument: null,
+      detail: controller.signal.aborted
+        ? `network: attempt exceeded ${String(deadline.attemptTimeoutMs)}ms deadline (${url})`
+        : `network: ${error.message} (${url})`,
+    };
+  } finally {
+    deadline.clearAttemptTimer(timer);
   }
 }
 
 /**
  * Ask the registry for the packument, retrying transport failures.
- * @param {object} options - Registry, package, fetch seam and retry budget.
+ * @param {object} options - Registry, package, fetch seam, retry budget and per-attempt deadline seams.
  * @returns {Promise<{packument: object | null, detail: string}>} The document.
  */
 async function fetchPackument({
@@ -192,6 +254,7 @@ async function fetchPackument({
   fetchImpl,
   attempts,
   sleep,
+  deadline,
 }) {
   const url = `${registry}/${packageName}`;
   const tries = Array.from({ length: attempts }, (_unused, index) => index);
@@ -200,7 +263,7 @@ async function fetchPackument({
       const settled = await previous;
       if (settled.packument !== null) return settled;
       if (index > 0) await sleep();
-      return readPackumentOnce(url, fetchImpl);
+      return readShapeOnce(url, ABBREVIATED, fetchImpl, deadline);
     },
     Promise.resolve({ packument: null, detail: "no attempt was made" })
   );
@@ -275,6 +338,7 @@ export async function checkSelfPin({
   attempts = 3,
   sleep = () => new Promise(resolve => setTimeout(resolve, 2000)),
   injected = {},
+  ...seams
 }) {
   const declared = locateSelfPin(manifest);
   if (declared === null) {
@@ -291,6 +355,7 @@ export async function checkSelfPin({
     fetchImpl,
     attempts,
     sleep,
+    deadline: deadlineSeams(seams),
   });
   if (packument === null) {
     return { verdict: "unprovable", detail, newest: null, spec: declared.spec };
@@ -316,13 +381,14 @@ export async function checkSelfPin({
 }
 
 /**
- * The two packument shapes a registry serves. The full document is what this
- * check reads; the abbreviated install document is what Bun's resolver reads.
- * They are cached separately, so one can list a release the other does not.
+ * The two packument shapes a registry serves. The abbreviated install document
+ * is what this check and Bun's resolver read; the full document is what npm's
+ * own commands such as `npm view` read. They are cached separately, so one can
+ * list a release the other does not, and the raise waits for both.
  */
 const PACKUMENT_SHAPES = [
   { name: "full", accept: "application/json" },
-  { name: "abbreviated", accept: "application/vnd.npm.install-v1+json" },
+  { name: "abbreviated", accept: ABBREVIATED },
 ];
 
 /** How many times the packument is read before the release is given up on. */
@@ -332,37 +398,39 @@ const LISTED_POLLS = 40;
 const LISTED_POLL_DELAY_MS = 15_000;
 
 /**
- * Whether one packument shape lists a version.
+ * Whether one packument shape lists a version, within one read's deadline.
  * @param {string} url - The packument URL.
  * @param {string} accept - The shape's media type.
  * @param {string} version - The release to look for.
  * @param {typeof fetch} fetchImpl - Injected for tests.
+ * @param {ReturnType<typeof deadlineSeams>} deadline - Per-read deadline seams.
  * @returns {Promise<{listed: boolean, detail: string}>} The answer.
  */
-async function shapeLists(url, accept, version, fetchImpl) {
-  try {
-    const response = await fetchImpl(url, { headers: { accept } });
-    if (!response.ok) {
-      return { listed: false, detail: `HTTP ${response.status} from ${url}` };
-    }
-    const packument = await response.json();
-    return packument?.versions?.[version] === undefined
-      ? { listed: false, detail: `the packument does not list ${version} yet` }
-      : { listed: true, detail: `the packument lists ${version}` };
-  } catch (error) {
-    return { listed: false, detail: `network: ${error.message} (${url})` };
-  }
+async function shapeLists(url, accept, version, fetchImpl, deadline) {
+  const { packument, detail } = await readShapeOnce(
+    url,
+    accept,
+    fetchImpl,
+    deadline
+  );
+  if (packument === null) return { listed: false, detail };
+  return packument?.versions?.[version] === undefined
+    ? { listed: false, detail: `the packument does not list ${version} yet` }
+    : { listed: true, detail: `the packument lists ${version}` };
 }
 
 /**
  * Wait, with a bound, until both packument shapes list a release.
  *
  * The exact-version endpoint can serve a release before the packument lists
- * it. Both `check:self-pin` (newest listed version) and Bun's resolver (the
- * abbreviated packument) read the packument, so a raise proved before it lists
- * the release would compare `^7.0.0` against 6.x and fail for a reason that is
- * only propagation lag.
- * @param {object} options - Version, registry, fetch seam, poll budget and sleep seam.
+ * it. `check:self-pin` (newest listed version) and Bun's resolver read the
+ * abbreviated packument and npm reads the full one, so a raise proved before it
+ * lists the release would compare `^7.0.0` against 6.x and fail for a reason
+ * that is only propagation lag.
+ *
+ * Each read ends at the same per-attempt deadline as {@link checkSelfPin}'s, so
+ * the wait is bounded by its poll budget alone.
+ * @param {object} options - Version, registry, fetch seam, poll budget, sleep seam and per-read deadline seams.
  * @returns {Promise<{listed: boolean, detail: string}>} Whether both shapes list it.
  */
 export async function awaitListed({
@@ -372,12 +440,14 @@ export async function awaitListed({
   polls = LISTED_POLLS,
   sleep = () =>
     new Promise(resolve => setTimeout(resolve, LISTED_POLL_DELAY_MS)),
+  ...seams
 }) {
   const url = `${registry}/${SELF_PACKAGE}`;
+  const deadline = deadlineSeams(seams);
   const poll = async number => {
     const answers = await Promise.all(
       PACKUMENT_SHAPES.map(shape =>
-        shapeLists(url, shape.accept, version, fetchImpl)
+        shapeLists(url, shape.accept, version, fetchImpl, deadline)
       )
     );
     const missing = answers.flatMap((answer, index) =>
@@ -410,6 +480,7 @@ export async function newestInstallableVersion({
   attempts = 3,
   sleep = () => new Promise(resolve => setTimeout(resolve, 2000)),
   injected = {},
+  ...seams
 }) {
   const { packument, detail } = await fetchPackument({
     registry,
@@ -417,6 +488,7 @@ export async function newestInstallableVersion({
     fetchImpl,
     attempts,
     sleep,
+    deadline: deadlineSeams(seams),
   });
   if (packument === null) return { version: null, detail };
   const found = await newestInstallable({
