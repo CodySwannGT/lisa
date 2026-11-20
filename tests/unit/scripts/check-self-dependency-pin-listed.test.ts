@@ -3,8 +3,9 @@
  * target (CodySwannGT/lisa#4951).
  *
  * The exact-version endpoint can serve a release before the packument lists
- * it, and both `check:self-pin` and Bun's resolver read the packument — Bun
- * the abbreviated shape, the check the full one. `--await-listed` is the
+ * it, and both `check:self-pin` and Bun's resolver read the packument — both
+ * the abbreviated shape since #5094, and the full one is still awaited for
+ * every other client that reads it. `--await-listed` is the
  * bounded wait the raise runs before proving anything, so propagation lag is
  * waited out rather than reported as a stale pin. `--newest-installable` is
  * how the hourly run, which has no release behind it, decides what to raise
@@ -205,7 +206,7 @@ describe("the raise waits until npm lists the release (#4951)", () => {
 
 describe("the hourly raise finds its own target (#4951)", () => {
   it("names the newest release the registry will serve", async () => {
-    const registry = propagating({ [FULL]: [["5.14.3", "6.0.0"]] });
+    const registry = propagating({ [ABBREVIATED]: [["5.14.3", "6.0.0"]] });
 
     const found = await newestInstallableVersion({
       registry: REGISTRY,
@@ -220,7 +221,7 @@ describe("the hourly raise finds its own target (#4951)", () => {
   it("prints only the version for a step to capture, and fails when unprovable", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     const stderr = vi.spyOn(process.stderr, "write").mockReturnValue(true);
-    const registry = propagating({ [FULL]: [["5.14.3", "6.0.0"]] });
+    const registry = propagating({ [ABBREVIATED]: [["5.14.3", "6.0.0"]] });
     const down = (async () => {
       throw new Error("ECONNRESET");
     }) as unknown as typeof fetch;
