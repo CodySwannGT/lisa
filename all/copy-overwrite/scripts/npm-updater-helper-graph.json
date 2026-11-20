@@ -253,7 +253,7 @@
       "children": []
     },
     "lib/gate-pass-cache.mjs": {
-      "sha256": "db7d75cfd8cb62fb24a2643aa015aa0fdb33a6de110c56b638b27a2b869ddcb8",
+      "sha256": "d903661e976628151b6b1350314b85370ffc396f4f2416fd614f9160c70ed880",
       "staticImports": [
         "node:child_process",
         "node:crypto",
@@ -380,7 +380,7 @@
       "children": []
     },
     "lib/lisa-cleanup-sweep.mjs": {
-      "sha256": "08450444d7f03d5a0e560f023a4e30db74821209ea45df41959b46636f6191bd",
+      "sha256": "329a6f2b549c829dec7fbc1f567427fc9f726082fb8bfda877f8e6366a23020b",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "lib/invoked-as-script.mjs",

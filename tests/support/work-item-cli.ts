@@ -39,6 +39,10 @@ import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../helpers/test-utils.js";
 import { resolveGit } from "./git-executable.js";
 import { CURL_SCRIPT, GH_SCRIPT } from "./work-item-fake-transports.js";
+import { useOwnedTempDirs } from "../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** Canonical reference every fixture is built around. */
 export const REF = "acme/widgets#42";
@@ -84,7 +88,9 @@ const templates = new Map<string, string>();
  * Remove every fixture this harness made. Call from `afterEach`.
  *
  * Templates are deliberately NOT removed here — they are the thing being
- * reused. They live in the OS temp directory and go when the process does.
+ * reused. The owned-temp recorder removes them when the importing file
+ * finishes, whether or not it calls {@link cleanupTemplates}; files that never
+ * did used to leave one per config (CodySwannGT/lisa#5095).
  */
 export function cleanupFixtures(): void {
   for (const root of created.splice(0))
@@ -190,7 +196,7 @@ function template(config: object): string {
   const key = JSON.stringify(config);
   const cached = templates.get(key);
   if (cached !== undefined) return cached;
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-wi-template-"));
+  const root = ownedDir("lisa-wi-template-");
   const env = cleanGitEnv(process.env, IDENTITY);
   const bin = path.join(root, "fake-bin");
   mkdirSync(bin);

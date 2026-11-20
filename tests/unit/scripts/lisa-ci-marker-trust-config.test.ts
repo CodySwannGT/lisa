@@ -7,8 +7,7 @@
  * config must fail safe — trusting nobody extra — rather than crash a run.
  * @module tests/unit/scripts/lisa-ci-marker-trust-config
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -16,6 +15,10 @@ import {
   readTrustedAuthorIds,
   withTrustedAuthors,
 } from "../../../scripts/lisa-ci-failure-redispatch.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 describe("readTrustedAuthorIds", () => {
   /**
@@ -24,7 +27,7 @@ describe("readTrustedAuthorIds", () => {
    * @returns The root.
    */
   function root(files: Record<string, string>) {
-    const dir = mkdtempSync(join(tmpdir(), "lisa-ci-trust-"));
+    const dir = ownedDir("lisa-ci-trust-");
     for (const [name, text] of Object.entries(files))
       writeFileSync(join(dir, name), text);
     return dir;
@@ -86,7 +89,7 @@ describe("withTrustedAuthors", () => {
   });
 
   it("attaches the configured list otherwise", () => {
-    const dir = mkdtempSync(join(tmpdir(), "lisa-ci-trust-"));
+    const dir = ownedDir("lisa-ci-trust-");
     const config = { sessionManager: { trustedAuthorIds: ["id:9"] } };
     writeFileSync(join(dir, ".lisa.config.json"), JSON.stringify(config));
     expect(withTrustedAuthors({ provider: "github" }, dir)).toEqual({

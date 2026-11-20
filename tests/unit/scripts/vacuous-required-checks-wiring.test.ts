@@ -36,13 +36,16 @@
  * @module tests/unit/scripts/vacuous-required-checks-wiring
  */
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { loadWorkflow } from "../../helpers/workflow-test-utils.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_REL =
@@ -242,7 +245,7 @@ function readRepoJson(relative: string): Record<string, never> {
  * @returns The repository root
  */
 function repoDeclaring(declaration: Record<string, unknown>): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "vacuity-wiring-"));
+  const root = ownedDir("vacuity-wiring-");
   fs.mkdirSync(path.join(root, ".github", "workflows"), { recursive: true });
   fs.writeFileSync(
     path.join(root, CI_WORKFLOW.replace(/\//gu, path.sep)),
@@ -270,7 +273,7 @@ function repoDeclaring(declaration: Record<string, unknown>): string {
  * @returns A directory to prepend to PATH
  */
 function stubGh(rows: readonly CheckRow[] | null, laterPage = false): string {
-  const bin = fs.mkdtempSync(path.join(os.tmpdir(), "vacuity-bin-"));
+  const bin = ownedDir("vacuity-bin-");
   const payload = path.join(bin, "checks.json");
   fs.writeFileSync(
     payload,
@@ -509,10 +512,7 @@ describe("the vacuity arm, as something that actually runs", () => {
     });
 
     it("reads the `pull_request` payload Actions wrote for THIS run", () => {
-      const event = path.join(
-        fs.mkdtempSync(path.join(os.tmpdir(), "vacuity-event-")),
-        "event.json"
-      );
+      const event = path.join(ownedDir("vacuity-event-"), "event.json");
       fs.writeFileSync(event, JSON.stringify({ pull_request: { number: 42 } }));
       expect(
         mod.resolvePullRequestNumber(

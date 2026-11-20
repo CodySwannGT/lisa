@@ -16,8 +16,7 @@
  * @module tests/unit/secrets/preflight-hardening
  */
 
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
@@ -33,6 +32,10 @@ import {
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/routing-floor.mjs";
 import { readConfigRoot } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * Backstop for a probe that is NOT bounded, calibrated to this machine.
@@ -60,7 +63,7 @@ const dirs: string[] = [];
  * @returns The directory path
  */
 const projectDir = (contents?: string): string => {
-  const dir = mkdtempSync(path.join(tmpdir(), "lisa-preflight-"));
+  const dir = ownedDir("lisa-preflight-");
   dirs.push(dir);
   if (contents !== undefined) writeFileSync(path.join(dir, CONFIG), contents);
   return dir;

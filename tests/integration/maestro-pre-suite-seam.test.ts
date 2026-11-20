@@ -29,7 +29,6 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -43,6 +42,10 @@ import {
   type SimulatedJob,
   type SimulationResult,
 } from "../helpers/workflow-job-graph.js";
+import { useOwnedTempDirs } from "../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -113,7 +116,7 @@ const runPreflight = (
   const step = (workflowJob(workflow, "preflight").steps ?? []).find(
     candidate => candidate.id === "check"
   );
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-preflight-"));
+  const scratch = ownedDir("maestro-preflight-");
   const flowsDir = path.join(scratch, "flows");
   const outputFile = path.join(scratch, "github-output");
   if (!step?.run) throw new Error("preflight check step not found");

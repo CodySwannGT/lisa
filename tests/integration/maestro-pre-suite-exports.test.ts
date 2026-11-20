@@ -16,7 +16,6 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -26,6 +25,10 @@ import {
   jobOf,
   type SimulatedWorkflow,
 } from "../helpers/workflow-job-graph.js";
+import { useOwnedTempDirs } from "../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -70,7 +73,7 @@ describe("pre-suite exports cross the job boundary as a validated output", () =>
     const step = (jobOf(workflow, "pre_suite").steps ?? []).find(
       candidate => candidate.id === "capture"
     );
-    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-capture-"));
+    const scratch = ownedDir("maestro-capture-");
     const exportFile = path.join(scratch, "pre-suite-env");
     const outputFile = path.join(scratch, "github-output");
     const env = {
@@ -177,7 +180,7 @@ describe("each platform leg re-applies the exports to its own $GITHUB_ENV", () =
     const step = (jobOf(workflow, leg).steps ?? []).find(
       candidate => candidate.name === APPLY_STEP
     );
-    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-apply-"));
+    const scratch = ownedDir("maestro-apply-");
     const envFile = path.join(scratch, "github-env");
     if (!step?.run) throw new Error(`apply step not found in ${leg}`);
     fs.writeFileSync(envFile, "");

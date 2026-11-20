@@ -18,7 +18,6 @@
  */
 import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { cleanGitEnv, GIT_BIN } from "../../support/git-executable.js";
@@ -30,6 +29,10 @@ import {
   runCheck,
   validateIndex,
 } from "../../../plugins/src/base/hooks/failure-signature-index.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** Where an explanation already lives. */
 interface Record {
@@ -84,9 +87,7 @@ const HEALTHY: Entry = {
  * @returns Absolute path to the fixture root
  */
 function fixture(entries: readonly unknown[]): string {
-  const root = fs.realpathSync(
-    fs.mkdtempSync(path.join(os.tmpdir(), "failure-signatures-"))
-  );
+  const root = fs.realpathSync(ownedDir("failure-signatures-"));
   fs.writeFileSync(path.join(root, "NOTES.md"), NOTE);
   fs.writeFileSync(
     path.join(root, "failure-signatures.json"),
@@ -110,9 +111,7 @@ const DISCRIMINATING: Entry = {
  * @returns Absolute path to the repository root
  */
 function gitFixture(config: GitConfig): string {
-  const root = fs.realpathSync(
-    fs.mkdtempSync(path.join(os.tmpdir(), "failure-signatures-git-"))
-  );
+  const root = fs.realpathSync(ownedDir("failure-signatures-git-"));
   // An absolute git and a scrubbed environment: a fixture repository that
   // inherits `GIT_DIR` from the outer checkout stops being about itself, which
   // is precisely the confusion these rows exist to prevent.

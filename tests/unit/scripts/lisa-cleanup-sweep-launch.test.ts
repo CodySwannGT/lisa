@@ -7,11 +7,14 @@
  * temp directory or the real process table.
  * @module tests/unit/scripts/lisa-cleanup-sweep-launch
  */
+import path from "node:path";
+
 import { describe, expect, it, vi } from "vitest";
 
 import {
   runStartOfRunSweep,
   SWEPT_ENV,
+  SWEPT_ROOTS_ENV,
 } from "../../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs";
 
 const SUMMARY = "🧹 swept 2 stale temp dirs, 1 orphaned test process (40 ms)";
@@ -19,6 +22,8 @@ const SUMMARY = "🧹 swept 2 stale temp dirs, 1 orphaned test process (40 ms)";
 const SELF_MARKER = "77:7";
 /** A marker naming a sweeper that is still alive with the same start time. */
 const LIVE_SWEEPER = "4242:9";
+/** The short temp root `lisa-test-run` moves a socket-unsafe run to. */
+const ROOT = "/private/tmp";
 
 /**
  * Run the launcher with a fresh env and a recording log.
@@ -65,13 +70,26 @@ describe("start-of-run launcher", () => {
   it("skips, saying so, when a live sweeper already swept, and spawns nothing", () => {
     const { env, lines, spawnMock } = launch(
       () => ({ status: 0, stdout: "" }),
-      { [SWEPT_ENV]: LIVE_SWEEPER }
+      { [SWEPT_ENV]: LIVE_SWEEPER, [SWEPT_ROOTS_ENV]: ROOT, TMPDIR: ROOT }
     );
     expect(spawnMock).not.toHaveBeenCalled();
     expect(lines).toEqual([
       "🧹 cleanup sweep already ran (pid 4242); skipping",
     ]);
     expect(env[SWEPT_ENV]).toBe(LIVE_SWEEPER);
+  });
+
+  it("sweeps only this root's temp entries when the live sweeper covered another root", () => {
+    const other = "/var/folders/xy/T";
+    const { env, spawnMock } = launch(
+      () => ({ status: 0, stdout: `${SUMMARY}\n` }),
+      { [SWEPT_ENV]: LIVE_SWEEPER, [SWEPT_ROOTS_ENV]: other, TMPDIR: ROOT }
+    );
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const [, args] = spawnMock.mock.calls[0] as [string, string[]];
+    expect(args.slice(1)).toEqual(["--no-processes"]);
+    expect(env[SWEPT_ENV]).toBe(LIVE_SWEEPER);
+    expect(env[SWEPT_ROOTS_ENV]).toBe([other, ROOT].join(path.delimiter));
   });
 
   it("sweeps anyway, and takes over the mark, when the recorded sweeper is gone", () => {

@@ -9,8 +9,7 @@
  * and context asking the agent to raise it and offer to finish the update.
  * @module tests/unit/hooks/auto-update-attention
  */
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -25,6 +24,10 @@ import {
   sessionStart,
 } from "../../helpers/auto-update-fixture.js";
 import { linkForeignNodeModules } from "../../support/borrowed-node-modules.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** A release newer than the one a pending update holds. */
 const NEWER = "4.70.0";
@@ -76,7 +79,7 @@ describe("auto-update: telling the developer", () => {
   it("surfaces a node_modules link only when Lisa is behind", async () => {
     const linked = (installed: string) => {
       const other = project({ installed });
-      const root = mkdtempSync(path.join(tmpdir(), "lisa-auto-update-link-"));
+      const root = ownedDir("lisa-auto-update-link-");
       mkdirSync(path.join(root, ".git"));
       writeFileSync(
         path.join(root, "package.json"),

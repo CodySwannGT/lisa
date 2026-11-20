@@ -24,12 +24,15 @@
  *    CI nothing anywhere could say so.
  */
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_REL =
@@ -127,7 +130,7 @@ function requireDefined<T>(value: T | undefined, label: string): T {
  * @returns The repository root
  */
 function emptyRepo(prefix: string): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const root = ownedDir(prefix);
   fs.mkdirSync(path.join(root, ".github", "workflows"), { recursive: true });
   return root;
 }

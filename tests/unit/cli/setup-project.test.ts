@@ -1,18 +1,21 @@
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
-import * as os from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   runSetupProject,
   type SetupProjectDependencies,
 } from "../../../src/cli/setup-project.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * Create an isolated temporary directory for setup-project tests.
  * @returns Temporary directory path
  */
 async function createTempDir(): Promise<string> {
-  return await mkdtemp(path.join(os.tmpdir(), "lisa-setup-project-"));
+  return ownedDir("lisa-setup-project-");
 }
 
 /**

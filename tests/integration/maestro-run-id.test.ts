@@ -12,13 +12,16 @@
  */
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 import type { SimulatedWorkflow } from "../helpers/workflow-job-graph.js";
+import { useOwnedTempDirs } from "../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -138,7 +141,7 @@ describe("the run id reaches flows as MAESTRO_RUN_ID", () => {
   it.each(JOBS_WITH_ENV_APPLY)(
     "%s writes MAESTRO_RUN_ID into $GITHUB_ENV for later steps",
     job => {
-      const scratch = fs.mkdtempSync(path.join(os.tmpdir(), SCRATCH_PREFIX));
+      const scratch = ownedDir(SCRATCH_PREFIX);
       const envFile = path.join(scratch, ENV_FILE_NAME);
       fs.writeFileSync(envFile, "");
       const step = stepNamed(job, APPLY_STEP, workflow);
@@ -160,7 +163,7 @@ describe("the run id reaches flows as MAESTRO_RUN_ID", () => {
   );
 
   it("lets a caller's own MAESTRO_RUN_ID in maestro_env stand", () => {
-    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), SCRATCH_PREFIX));
+    const scratch = ownedDir(SCRATCH_PREFIX);
     const envFile = path.join(scratch, ENV_FILE_NAME);
     fs.writeFileSync(envFile, "");
     const step = stepNamed("android", APPLY_STEP, workflow);
@@ -186,7 +189,7 @@ describe("the run id reaches flows as MAESTRO_RUN_ID", () => {
   it.each(["android", "ios"])(
     "%s forwards it to flows through the assemble step's -e list",
     job => {
-      const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-asm-"));
+      const scratch = ownedDir("maestro-asm-");
       const envFile = path.join(scratch, ENV_FILE_NAME);
       fs.writeFileSync(envFile, "");
       const step = stepNamed(job, ASSEMBLE_STEP, workflow);
@@ -212,7 +215,7 @@ describe("the run id reaches flows as MAESTRO_RUN_ID", () => {
     const capture = ((workflow.jobs.pre_suite?.steps ?? []) as Step[]).find(
       candidate => candidate.id === "capture"
     );
-    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-capture-"));
+    const scratch = ownedDir("maestro-capture-");
     const exportFile = path.join(scratch, "pre-suite-env");
     const outputFile = path.join(scratch, "github-output");
     const envFile = path.join(scratch, ENV_FILE_NAME);

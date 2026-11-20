@@ -18,12 +18,15 @@
  *  3. The vestigial token arm cannot produce the pass on its own.
  */
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_REL =
@@ -186,7 +189,7 @@ function repoRequiring(
   required: readonly string[],
   options: RepoOptions = {}
 ): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "skipreq-outcomes-"));
+  const root = ownedDir("skipreq-outcomes-");
   fs.mkdirSync(path.join(root, ".github", "workflows"), { recursive: true });
   fs.writeFileSync(
     path.join(root, CI_WORKFLOW.replace(/\//gu, path.sep)),
