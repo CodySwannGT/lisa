@@ -12568,6 +12568,7 @@
     "tests/integration/ruby-runner-image-pin.test.ts": true,
     "tests/integration/security-floors-gate.test.ts": true,
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
+    "tests/integration/self-pin-cli-exits.test.ts": true,
     "tests/integration/self-pin-drift-gate-wiring.test.ts": true,
     "tests/integration/self-pin-raise-prepare-job.test.ts": true,
     "tests/integration/self-pin-raise-triggers.test.ts": true,
