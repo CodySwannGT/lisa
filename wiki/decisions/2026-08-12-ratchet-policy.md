@@ -76,11 +76,17 @@ This conflicts with shipped Lisa behavior. Lisa ships several ratchet families:
   remote's default branch or a `deploy.branches` branch, as last fetched) also
   holds the identical entry; otherwise commit one could record an exception and
   commit two could use it. A clone with no such remote branch has no merge to wait
-  for and honours HEAD as before. The mode is read from the baseline too, so a
+  for and honours HEAD as before. Only the remote named `origin` is consulted. This
+  local rule can be argued with by whoever owns `.git` (the tracking refs are local
+  files); the pull-request check is the layer that cannot. The mode is read from the baseline too, so a
   change cannot relax it for itself. Under `strict` an added entry is refused as
   before, and a change that makes the root config stop being `strict` is now
   reported as a loosening, because once merged it would let the next change record
-  an exception with no person involved. A route for `strict` needs proof that a
+  an exception with no person involved. It is reported only when the baseline
+  literally declares `strict`, so a misspelt or unreadable mode can be corrected,
+  and a promotion carries it once it has landed upstream. It is an ordinary
+  loosening, so a merged allow entry for `.lisa.config.json` covers it, including a
+  file-wide one. A route for `strict` needs proof that a
   person approved, which no layer of the check can see, and is not designed yet.
 
 Brownfield onboarding depends on ratchets: a red project adopts incrementally instead

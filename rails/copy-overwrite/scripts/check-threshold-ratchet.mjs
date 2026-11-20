@@ -123,6 +123,9 @@ const GIT_LOCATIONS = [
 ];
 const GIT = GIT_LOCATIONS.find(candidate => fs.existsSync(candidate)) ?? "git";
 
+/** Where the remote-tracking refs of `origin` live. */
+const REMOTE_REFS = "refs/remotes/origin/";
+
 /** Git flag shared by every changed-file listing. */
 const NAME_ONLY = "--name-only";
 /**
@@ -366,24 +369,41 @@ function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
  * `origin` is the only remote consulted, the same assumption `bareBranch`
  * makes. A clone with no `origin`, or one that has never fetched, yields no
  * refs, and the caller then has nothing to judge "merged" by.
+ *
+ * This is a local check and can be argued with: whoever owns `.git` owns
+ * these refs, and can repoint `origin/HEAD` or write a tracking ref by hand.
+ * The pull-request check, which compares against the base on the server's
+ * checkout, is the layer that cannot.
  * @param {string} root Repo root
  * @param {unknown} headConfig `.lisa.config.json` at HEAD
- * @returns {string[]} Refs that resolve, e.g. `origin/main`, `origin/dev`
+ * @returns {string[]} Full ref names that resolve, e.g.
+ *   `refs/remotes/origin/main`, `refs/remotes/origin/dev`
  */
 function protectedBranchRefs(root, headConfig) {
   const resolves = ref =>
     git(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], root) !== null;
-  const defaultRef = git(
-    ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
+  // Full ref names throughout. A short `origin/main` resolves to a LOCAL
+  // branch of that name before the remote-tracking one, so one
+  // `git branch origin/main` would have made an unmerged entry count as merged.
+  const declared = git(
+    ["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"],
     root
   )?.trim();
-  const defaultBranch = defaultRef && resolves(defaultRef) ? defaultRef : null;
-  const chainConfig = defaultBranch
-    ? parseJson(git(["show", `${defaultBranch}:.lisa.config.json`], root))
+  // `origin/HEAD` is missing in a repository that was fetched rather than
+  // cloned, or freshly pushed. Falling straight back to HEAD's own chain there
+  // would let the commit that records an entry also delete `deploy.branches`
+  // and switch this lookup off, so the conventional default names are tried
+  // first.
+  const defaultRef =
+    [declared, `${REMOTE_REFS}main`, `${REMOTE_REFS}master`].find(
+      ref => ref?.startsWith(REMOTE_REFS) && resolves(ref)
+    ) ?? null;
+  const chainConfig = defaultRef
+    ? parseJson(git(["show", `${defaultRef}:.lisa.config.json`], root))
     : headConfig;
   const candidates = [
-    ...(defaultBranch ? [defaultBranch] : []),
-    ...deployChain(chainConfig).map(branch => `origin/${branch}`),
+    ...(defaultRef ? [defaultRef] : []),
+    ...deployChain(chainConfig).map(branch => `${REMOTE_REFS}${branch}`),
   ];
   return [...new Set(candidates)].filter(resolves);
 }
@@ -430,7 +450,12 @@ function localAllowList(root, headConfig) {
  * `.lisa.config.json` diff that records it, so it would still be blocked by
  * the finding for the record of its own approval.
  *
- * Only `allow-added` is carried. An actual threshold weakening in the same
+ * A root config that stopped being `strict` is carried for the same reason:
+ * the change already landed on the upstream branch, and the downstream branch
+ * can only catch up by promotion, so refusing it here would refuse every
+ * promotion from then on, including ones carrying unrelated work.
+ *
+ * Nothing else is carried. An actual threshold weakening in the same
  * promotion still has to be covered by an allow entry.
  * @param {Array<{ type: string }>} findings All findings from the change
  * @param {boolean} promotion Whether the change is a recognised promotion
@@ -439,9 +464,12 @@ function localAllowList(root, headConfig) {
  */
 function partitionCarriedEntries(findings, promotion) {
   if (!promotion) return { carried: [], rest: findings };
+  const isCarried = f =>
+    f.type === "allow-added" ||
+    (f.file === ".lisa.config.json" && f.key === "humanGate.mode");
   return {
-    carried: findings.filter(f => f.type === "allow-added"),
-    rest: findings.filter(f => f.type !== "allow-added"),
+    carried: findings.filter(isCarried),
+    rest: findings.filter(f => !isCarried(f)),
   };
 }
 
@@ -634,7 +662,7 @@ function reportFindings(findings, allow, mode) {
   for (const line of describeUnmergedCover(
     blocked,
     allow.unmerged,
-    allow.protectedRefs
+    allow.protectedRefs.map(ref => ref.replace(/^refs\/remotes\//u, ""))
   )) {
     process.stderr.write(`threshold-ratchet: refused — ${line}\n`);
   }

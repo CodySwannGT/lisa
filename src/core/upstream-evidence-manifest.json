@@ -21,7 +21,7 @@
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
       "c144a8e5e58d573df8ba2195a42fe2cd30b0b85f619be4476aad18958473ecd3",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "0471c3e2078b725cc758bc87ae6ef220e6bc38f6be4775e764f7d2d936b33d2b",
+      "5d2bb197ad0ecd5156a429c7a8dc20c2841dfb36b2edcd191f5c371f0deebe40",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
       "54b0844dd7b9f461ccd533603439164ce7dccdd83422344d1b085ed5f5fdfad3",
     "all/copy-overwrite/scripts/fetch-test-access-map.d.mts":
@@ -421,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "6b4961520993c6ce82c9aa39dca9147f283d1af90834c779ed4cf1055a10b66b",
+      "2cfaa7d71600961438a92ae0fd54d49bf84c3332b512eb858e85f21dceca0aa5",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -429,7 +429,7 @@
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
       "6b7afe4ffeba8aaa53871d8855172f7eacde05953b1321145218ec638ff5c1c4",
     "all/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "e21cbeed4d1405f92a49691033838dcd69fb76f3e073cb181ea13a8fb14d2b30",
+      "15d59e378f337d1fc78b338a5e27bacaca5b36128db309a9c5f088f17d5e3cbb",
     "all/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "all/create-only/.agents/rules/README.md":
@@ -1185,11 +1185,11 @@
     "plugins/src/base/hooks/sonar-secrets.sh":
       "554fb65766d617c8b57411b0d53906b7358c219dd2031708370ffc91e97f7381",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
-      "ccfd17a697e25611196eb2655043f18f86a7820a786547d1b78894b5f5e922c2",
+      "2e7eda7bcd82d7bc50c490bff568b47ffb4ebc39dd1ba59831a3c1dde9ff0c69",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
       "e0aae600cc3187e832b5a959f60869c87a95b32ab8ee2ccbf9f959e41deacd3b",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
-      "b28cbb5c332921c79617fc7606bc3f0b668e5f0f33dc9d3fe252623cf6d32fbb",
+      "79bc64163ba2143389a9d004a5379162d4f1567f8e89151733f27ed3bf8af2b9",
     "plugins/src/base/hooks/threshold-ratchet.sh":
       "b86f4d0b554e44fd119ad8a8920cd0ba6c9dbe779f7ee219d381cf0629453990",
     "plugins/src/base/hooks/ticket-sync-reminder.sh":
@@ -2617,7 +2617,7 @@
     "rails/copy-overwrite/lefthook.yml":
       "2f50009b20768dc7017afa1fb2841050898c5b21aee087817d256a21c439459f",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "0471c3e2078b725cc758bc87ae6ef220e6bc38f6be4775e764f7d2d936b33d2b",
+      "5d2bb197ad0ecd5156a429c7a8dc20c2841dfb36b2edcd191f5c371f0deebe40",
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs":
       "2e5c231ac779fcfd3ef3380282268d5e163544dabe41fb6ee41eb5109320c6c3",
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
@@ -2631,7 +2631,7 @@
     "rails/copy-overwrite/scripts/lisa_simplecov_collate.rb":
       "e9a11edd45c0442c2ec8f59b0fa5d2492d4cfac99398aa3697e70947063a5cc7",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "e21cbeed4d1405f92a49691033838dcd69fb76f3e073cb181ea13a8fb14d2b30",
+      "15d59e378f337d1fc78b338a5e27bacaca5b36128db309a9c5f088f17d5e3cbb",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "rails/copy-overwrite/sgconfig.yml":
@@ -3179,7 +3179,7 @@
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "84a7dcd3501eb75c2bd90c2ebe31e6ad4ae4f2bd62b6862ecda91ab8609ad245",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "0471c3e2078b725cc758bc87ae6ef220e6bc38f6be4775e764f7d2d936b33d2b",
+      "5d2bb197ad0ecd5156a429c7a8dc20c2841dfb36b2edcd191f5c371f0deebe40",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
       "777e46c8e8147935f0b944dc21536f6238b26b5b7dca06c5fdb2d2898a9790dc",
     "typescript/copy-overwrite/scripts/lib/bounded-spawn.mjs":
@@ -3205,7 +3205,7 @@
     "typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking.mjs":
       "d061c7513acdf1e187cf916dca53432a06a78e43bd0068a0b315ad351a4b72db",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "e21cbeed4d1405f92a49691033838dcd69fb76f3e073cb181ea13a8fb14d2b30",
+      "15d59e378f337d1fc78b338a5e27bacaca5b36128db309a9c5f088f17d5e3cbb",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "typescript/copy-overwrite/sgconfig.yml":

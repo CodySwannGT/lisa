@@ -24,7 +24,6 @@ import {
   familyFor,
   findDeclaredParameter,
   globRoot,
-  humanGateModeOf,
   isDeclaredDirection,
   parseJson,
   reasonInWords,
@@ -645,6 +644,19 @@ function compareLighthouse(relPath, base, current) {
 }
 
 /**
+ * Whether a config's text literally declares `humanGate.mode: "strict"`.
+ * @param {string | null | undefined} text The config's text
+ * @returns {boolean} True only for a readable object whose mode, trimmed and
+ *   lower-cased, is the word `strict`
+ */
+function declaresStrict(text) {
+  const mode = parseJson(text)?.humanGate?.mode;
+  return (
+    typeof mode === "string" && mode.trim().toLowerCase() === HUMAN_GATE_STRICT
+  );
+}
+
+/**
  * Report a root config whose `humanGate.mode` stops being `strict`.
  *
  * Under `strict` a threshold exception is a person's decision, and
@@ -662,21 +674,15 @@ function compareLighthouse(relPath, base, current) {
  */
 function compareHumanGateMode(relPath, baselineText, currentText) {
   if (relPath !== ROOT_CONFIG) return [];
-  // The baseline must DECLARE strict. A baseline nobody can parse is treated
-  // as strict when exceptions are settled, but it is not reported here:
-  // refusing the change that repairs a broken config would wedge the
-  // repository on its own damage.
-  if (humanGateModeOf(parseJson(baselineText)) !== HUMAN_GATE_STRICT) return [];
-  // The current side must still be readable AS strict. Deleted or unparseable
-  // counts as having left it: otherwise breaking the file and then repairing
-  // it without the mode would be the same walk-down in two quieter steps.
-  const current = parseJson(currentText);
-  const stillStrict =
-    current !== null &&
-    typeof current === "object" &&
-    !Array.isArray(current) &&
-    humanGateModeOf(current) === HUMAN_GATE_STRICT;
-  if (stillStrict) return [];
+  // Both sides are judged by whether the file literally DECLARES strict, not
+  // by the fail-safe reading used when exceptions are settled. A baseline
+  // that reads as strict only because nobody can read it — a misspelt mode, a
+  // block that is not an object, a file that does not parse — never said
+  // strict, and refusing the change that corrects it would wedge the
+  // repository on its own damage with no way through. The current side is
+  // held to the same literal reading, so respelling "strict" into something
+  // unreadable is reported here rather than slipping past as "still strict".
+  if (!declaresStrict(baselineText) || declaresStrict(currentText)) return [];
   return [
     {
       file: relPath,
@@ -684,7 +690,7 @@ function compareHumanGateMode(relPath, baselineText, currentText) {
       type: TYPE_WEAKENED,
       base: HUMAN_GATE_STRICT,
       current: HUMAN_GATE_ACCESS_ONLY,
-      message: `${relPath}: humanGate.mode stops being "strict". Under strict a threshold exception is a person's decision; with this change merged, the next one could be recorded with no person involved. This check cannot see that a person approved, so it refuses the change.`,
+      message: `${relPath}: humanGate.mode stops being "strict". Under strict a threshold exception is a person's decision; with this change merged, the next one could be recorded with no person involved. This check cannot see that a person approved it.`,
     },
   ];
 }
@@ -883,7 +889,7 @@ export function describeUnmergedCover(blocked, unmerged, refs) {
     .filter(entry => blocked.some(finding => entryCovers(entry, finding)))
     .map(
       entry =>
-        `${describeAllowScope(entry)} is recorded on this branch but is not on ${refs.join(" or ")}, so it exempts nothing yet. Merge the change that records it first; if it is already merged, run "git fetch" and try again.`
+        `${describeAllowScope(entry)} is recorded on this branch but is not on ${refs.join(" or ")}, so it exempts nothing yet. Merge the change that records it first; if it is already merged, run "git fetch" and try again. Only the remote named origin is consulted, and "git remote set-head origin --auto" refreshes which of its branches is the default.`
     );
 }
 

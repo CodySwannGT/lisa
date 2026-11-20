@@ -53,6 +53,7 @@ const NESTED_CONFIG = "packages/a/.lisa.config.json";
 const ACCESS_ONLY = "access-only";
 const STRICT = "strict";
 const MODE_KEY = "humanGate.mode";
+const LEFT_STRICT = 'humanGate.mode stops being "strict"';
 const REASON =
   "Six bundled languages; resolved when translations load on demand.";
 const RECORDED = "new exception recorded";
@@ -177,15 +178,15 @@ describe("leaving strict (#5099)", () => {
     ],
     ["deleting the config", null],
     ["breaking the config", "{"],
+    ["respelling the mode", JSON.stringify({ humanGate: { mode: "strct" } })],
+    ["turning the block into a string", JSON.stringify({ humanGate: STRICT })],
   ])("is reported as a loosening when %s", (_name, current) => {
     const findings = compareFile(LISA_CONFIG, STRICT_CONFIG, current);
 
     expect(findings).toHaveLength(1);
     expect(findings[0]?.type).toBe("weakened");
     expect(findings[0]?.key).toBe(MODE_KEY);
-    expect(findings[0]?.message).toContain(
-      'humanGate.mode stops being "strict"'
-    );
+    expect(findings[0]?.message).toContain(LEFT_STRICT);
   });
 
   it.each([
@@ -193,6 +194,26 @@ describe("leaving strict (#5099)", () => {
     ["becoming strict", "{}", STRICT_CONFIG],
     ["staying access-only", "{}", "{}"],
     ["repairing a config that never parsed", "{", "{}"],
+    [
+      "respelling strict with spaces and capitals",
+      STRICT_CONFIG,
+      JSON.stringify({ humanGate: { mode: " STRICT " } }),
+    ],
+    [
+      "correcting a misspelt mode",
+      JSON.stringify({ humanGate: { mode: "acess-only" } }),
+      "{}",
+    ],
+    [
+      "removing a block that was null",
+      JSON.stringify({ humanGate: null }),
+      "{}",
+    ],
+    [
+      "repairing a block that was a list",
+      JSON.stringify({ humanGate: [] }),
+      JSON.stringify({ humanGate: {} }),
+    ],
   ])("is not reported for %s", (_name, base, current) => {
     expect(compareFile(LISA_CONFIG, base, current)).toEqual([]);
   });
@@ -275,6 +296,8 @@ describe("describeUnmergedCover (#5099)", () => {
     expect(lines[0]).toContain(SCOPE);
     expect(lines[0]).toContain(`${NOT_MERGED} origin/main or origin/dev`);
     expect(lines[0]).toContain('run "git fetch" and try again');
+    expect(lines[0]).toContain("Only the remote named origin is consulted");
+    expect(lines[0]).toContain('"git remote set-head origin --auto"');
   });
 
   it("speaks for a file-wide entry too", () => {
@@ -536,6 +559,33 @@ describe("an exception that is committed but not merged (#5099)", () => {
     expect(result.stderr).toContain(`${NOT_MERGED} origin/dev`);
   });
 
+  it("finds the default branch by name when the remote never said which it is", () => {
+    const dir = baselineRepo(
+      configText([], { deploy: { branches: { production: "main" } } })
+    );
+    git(dir, UPDATE_REF, ORIGIN_MAIN, "HEAD");
+    // The commit that records the entry also deletes deploy.branches. Read
+    // from HEAD, that would leave no protected branch and switch the fence off.
+    recordThenStageWeakening(dir, configText([liveEntry()]));
+
+    const result = ratchet(dir, ["--staged"]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`${NOT_MERGED} origin/main`);
+  });
+
+  it("is not fooled by a local branch named like a remote one", () => {
+    const dir = baselineRepo();
+    remoteMainAt(dir, "HEAD");
+    recordThenStageWeakening(dir, configText([liveEntry()]));
+    git(dir, "branch", "origin/main", "HEAD");
+
+    const result = ratchet(dir, ["--staged"]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`${NOT_MERGED} origin/main`);
+  });
+
   it("honours HEAD's entry where there is no remote to wait for", () => {
     const dir = baselineRepo();
     recordThenStageWeakening(dir, configText([liveEntry()]));
@@ -643,7 +693,24 @@ describe("a strict repository (#5099)", () => {
     const result = ratchet(dir, ["--staged"]);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('humanGate.mode stops being "strict"');
+    expect(result.stderr).toContain(LEFT_STRICT);
+  });
+
+  it("lets a promotion carry a mode change that already landed upstream", () => {
+    const chain = { deploy: { branches: { dev: "dev", production: "main" } } };
+    const dir = baselineRepo(configText([], { ...strict, ...chain }));
+    git(dir, "checkout", "-qb", "dev");
+    write(dir, LISA_CONFIG, configText([], chain));
+    git(dir, "commit", "-qam", "leave strict, approved on dev");
+
+    const promotion = ratchet(dir, ["--base", "main", "--head", "dev"]);
+    const ordinary = ratchet(dir, ["--base", "main"]);
+
+    expect(promotion.status).toBe(0);
+    expect(promotion.stdout).toContain("carried forward by this promotion");
+    expect(promotion.stdout).toContain(MODE_KEY);
+    expect(ordinary.status).toBe(1);
+    expect(ordinary.stderr).toContain(LEFT_STRICT);
   });
 
   it("reads the mode from the base in a pull request", () => {
