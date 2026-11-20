@@ -43,7 +43,13 @@
  * finding is refused. Under `humanGate.mode: "strict"` — read from the
  * baseline, like the allow list — an added entry is refused as before: there
  * an exception is a person's decision, and no layer of this check can see
- * that a person approved. See `settleAddedExceptions`. `key: "*"`
+ * that a person approved. See `settleAddedExceptions`.
+ *
+ * "Merged" has to mean the same thing at commit as it does in a pull request.
+ * `--staged` and `--hook` baseline against HEAD, which is whatever the branch
+ * last committed, so there an entry counts only when a protected branch
+ * (the remote's default branch, or a `deploy.branches` branch) also holds it
+ * as the remote last reported it. See `protectedBranchRefs`. `key: "*"`
  * allows every key in the file, and reports as file-wide so it is not mistaken
  * for a key-scoped one. A declared threshold leaves by this same list and by
  * nothing else: `file` is `.lisa.config.json` and `key` is
@@ -75,15 +81,17 @@ import { fileURLToPath } from "node:url";
 import {
   extractAllowEntries,
   familyFor,
-  humanGateModeOf,
+  humanGateModeOfText,
   parseJson,
 } from "./threshold-ratchet-families.mjs";
 import {
   applyAllowList,
   compareFile,
   describeAllowList,
+  describeUnmergedCover,
   formatReport,
   settleAddedExceptions,
+  splitMergedEntries,
 } from "./threshold-ratchet-compare.mjs";
 
 /**
@@ -301,29 +309,42 @@ function isPromotion(root, baselineConfig, baseRef, headRef) {
  * @param {"hook"|"staged"|"base"} mode Comparison mode
  * @param {string | undefined} baseRef Base ref (base mode only)
  * @param {string | undefined} headRef Head ref (base mode only)
- * @returns {{ entries: object[], promotion: boolean, note: string | null, humanGateMode: string }}
- *   Entries, whether this is a promotion, an audit line to print when the
- *   entries came from anywhere but the baseline, and the baseline's
- *   `humanGate.mode`
+ * @returns {{ entries: object[], unmerged: object[], protectedRefs: string[], promotion: boolean, note: string | null, humanGateMode: string }}
+ *   Entries to honour, entries only this branch holds (local modes), the
+ *   protected refs consulted for that, whether this is a promotion, an audit
+ *   line to print when the entries came from anywhere but the baseline, and
+ *   the baseline's `humanGate.mode`
  */
 function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
-  const baselineConfig = parseJson(
-    git(["show", `${baselineRef}:.lisa.config.json`], root)
-  );
-  if (mode !== "base" || !isPromotion(root, baselineConfig, baseRef, headRef)) {
+  const baselineText = git(["show", `${baselineRef}:.lisa.config.json`], root);
+  const baselineConfig = parseJson(baselineText);
+  const humanGateMode = humanGateModeOfText(baselineText);
+  if (mode !== "base") {
     return {
-      entries: extractAllowEntries(baselineConfig),
+      ...localAllowList(root, baselineConfig),
       promotion: false,
       note: null,
-      humanGateMode: humanGateModeOf(baselineConfig),
+      humanGateMode,
+    };
+  }
+  if (!isPromotion(root, baselineConfig, baseRef, headRef)) {
+    return {
+      entries: extractAllowEntries(baselineConfig),
+      unmerged: [],
+      protectedRefs: [],
+      promotion: false,
+      note: null,
+      humanGateMode,
     };
   }
   return {
     entries: extractAllowEntries(
       parseJson(git(["show", "HEAD:.lisa.config.json"], root))
     ),
+    unmerged: [],
+    protectedRefs: [],
     promotion: true,
-    humanGateMode: humanGateModeOf(baselineConfig),
+    humanGateMode,
     note:
       `threshold-ratchet: promotion ${bareBranch(headRef)} → ` +
       `${bareBranch(baseRef)}; both are deploy-chain branches declared at ` +
@@ -331,6 +352,69 @@ function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
       `is read from the head. Exemptions below were approved upstream, not by ` +
       `this change.`,
   };
+}
+
+/**
+ * The remote-tracking refs of this repository's protected branches: the
+ * remote's default branch and every `deploy.branches` branch.
+ *
+ * Which branches are protected is read from the remote's default branch when
+ * it can be, and from HEAD only when it cannot. Reading it from HEAD alone
+ * would let a branch name itself a deploy branch, push, and count its own
+ * unmerged entry as merged.
+ *
+ * `origin` is the only remote consulted, the same assumption `bareBranch`
+ * makes. A clone with no `origin`, or one that has never fetched, yields no
+ * refs, and the caller then has nothing to judge "merged" by.
+ * @param {string} root Repo root
+ * @param {unknown} headConfig `.lisa.config.json` at HEAD
+ * @returns {string[]} Refs that resolve, e.g. `origin/main`, `origin/dev`
+ */
+function protectedBranchRefs(root, headConfig) {
+  const resolves = ref =>
+    git(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], root) !== null;
+  const defaultRef = git(
+    ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
+    root
+  )?.trim();
+  const defaultBranch = defaultRef && resolves(defaultRef) ? defaultRef : null;
+  const chainConfig = defaultBranch
+    ? parseJson(git(["show", `${defaultBranch}:.lisa.config.json`], root))
+    : headConfig;
+  const candidates = [
+    ...(defaultBranch ? [defaultBranch] : []),
+    ...deployChain(chainConfig).map(branch => `origin/${branch}`),
+  ];
+  return [...new Set(candidates)].filter(resolves);
+}
+
+/**
+ * The allow list for the local modes (`--staged`, `--hook`).
+ *
+ * HEAD's entries, minus those no protected branch holds yet. Without a
+ * protected branch to ask — no remote, or nothing fetched — every HEAD entry
+ * counts, as it always did: there is no merge for an entry to wait for, and
+ * refusing would wedge a repository that has no pull requests at all.
+ * @param {string} root Repo root
+ * @param {unknown} headConfig `.lisa.config.json` at HEAD
+ * @returns {{ entries: object[], unmerged: object[], protectedRefs: string[] }}
+ *   Entries to honour, entries only this branch holds, and the refs consulted
+ */
+function localAllowList(root, headConfig) {
+  const entries = extractAllowEntries(headConfig);
+  const protectedRefs = protectedBranchRefs(root, headConfig);
+  if (protectedRefs.length === 0) {
+    return { entries, unmerged: [], protectedRefs };
+  }
+  const { merged, unmerged } = splitMergedEntries(
+    entries,
+    protectedRefs.map(ref =>
+      extractAllowEntries(
+        parseJson(git(["show", `${ref}:.lisa.config.json`], root))
+      )
+    )
+  );
+  return { entries: merged, unmerged, protectedRefs };
 }
 
 /**
@@ -513,7 +597,7 @@ function deliver(lines, asHookReply) {
 /**
  * Print the verdict for a change that produced findings.
  * @param {object[]} findings Findings from every watched file
- * @param {{ entries: object[], promotion: boolean, note: string | null, humanGateMode: string }} allow
+ * @param {{ entries: object[], unmerged: object[], protectedRefs: string[], promotion: boolean, note: string | null, humanGateMode: string }} allow
  *   The resolved allow list, its provenance and the baseline's mode
  * @param {"hook"|"staged"|"base"} mode Comparison mode
  * @returns {number} Process exit code (2 for hook mode, 1 otherwise; 0 clean)
@@ -526,6 +610,11 @@ function reportFindings(findings, allow, mode) {
     allow.entries
   );
   const refused = [...settled.refused, ...blocked];
+  const passed = refused.length === 0;
+  // A notice that an exception was recorded is only true of a change that
+  // lands. Printed beside a refusal it tells the reader to go on to the
+  // threshold change while the entry it speaks of was never committed.
+  const recorded = passed ? settled.accepted : [];
   const lines = [
     ...(allow.note ? [allow.note] : []),
     ...allowListLines(allow.entries, expired),
@@ -536,12 +625,18 @@ function reportFindings(findings, allow, mode) {
     ...allowed.map(
       item => `threshold-ratchet: ${item.message} (.lisa.config.json exception)`
     ),
-    ...settled.accepted.map(item => `threshold-ratchet: ${item.message}`),
+    ...recorded.map(item => `threshold-ratchet: ${item.message}`),
   ];
-  const passed = refused.length === 0;
-  deliver(lines, passed && mode === "hook" && settled.accepted.length > 0);
+  deliver(lines, mode === "hook" && recorded.length > 0);
   for (const item of expired) {
     process.stderr.write(`threshold-ratchet: refused — ${item.message}\n`);
+  }
+  for (const line of describeUnmergedCover(
+    blocked,
+    allow.unmerged,
+    allow.protectedRefs
+  )) {
+    process.stderr.write(`threshold-ratchet: refused — ${line}\n`);
   }
   if (passed) return 0;
   process.stderr.write(`${formatReport(refused, allow.humanGateMode)}\n`);

@@ -48,7 +48,7 @@ const REASON = "Coverage tool being replaced; resolved when the new one lands.";
  * @returns The sentence every refusal ends with
  */
 const exceptionFor = (key: string): string =>
-  ` If a person decides this loosening is right, they record an exception under thresholdRatchet.allow with "file": "${LISA_CONFIG_FILE}" and "key": "${key}".`;
+  ` To loosen it on purpose, an exception under thresholdRatchet.allow with "file": "${LISA_CONFIG_FILE}" and "key": "${key}" has to be merged first.`;
 
 /**
  * An exception entry for the coverage floor of the `api` folder.

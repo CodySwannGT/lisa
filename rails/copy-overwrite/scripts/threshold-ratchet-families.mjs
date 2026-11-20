@@ -599,14 +599,54 @@ export const HUMAN_GATE_STRICT = "strict";
  * @returns {"access-only" | "strict"} The mode in force
  */
 export function humanGateModeOf(config) {
-  const declared =
-    config && typeof config === "object" ? config.humanGate?.mode : undefined;
+  if (!config || typeof config !== "object") return HUMAN_GATE_ACCESS_ONLY;
+  const block = config.humanGate;
+  if (block === undefined) return HUMAN_GATE_ACCESS_ONLY;
+  // A block that is present and is not an object declared something nobody
+  // can read. The other resolvers of this key fail safe on it, and so does
+  // this one: a malformed block must not read as "nothing declared".
+  if (block === null || typeof block !== "object" || Array.isArray(block)) {
+    return HUMAN_GATE_STRICT;
+  }
+  const declared = block.mode;
   if (declared === undefined) return HUMAN_GATE_ACCESS_ONLY;
   const mode =
     typeof declared === "string" ? declared.trim().toLowerCase() : declared;
   return mode === HUMAN_GATE_ACCESS_ONLY
     ? HUMAN_GATE_ACCESS_ONLY
     : HUMAN_GATE_STRICT;
+}
+
+/**
+ * The `humanGate.mode` of a `.lisa.config.json` given as text.
+ *
+ * Absent and unreadable are opposite cases and must not be conflated. A
+ * repository with no config at the baseline declared nothing, so the default
+ * applies. A config that is there and does not parse declared something
+ * nobody can read, and that fails safe like any other unreadable declaration.
+ * @param {string | null | undefined} text The file's text, or nothing when the
+ *   baseline has no such file
+ * @returns {"access-only" | "strict"} The mode in force
+ */
+export function humanGateModeOfText(text) {
+  if (text === null || text === undefined) return HUMAN_GATE_ACCESS_ONLY;
+  const config = parseJson(text);
+  const readable =
+    config !== null && typeof config === "object" && !Array.isArray(config);
+  return readable ? humanGateModeOf(config) : HUMAN_GATE_STRICT;
+}
+
+/**
+ * An allow entry's reason as one line of text.
+ *
+ * A reason is written by whoever records the entry and is printed into the
+ * check's own output. Left raw, a line break inside it starts a new line that
+ * reads as the check speaking, so every run of whitespace becomes one space.
+ * @param {unknown} reason The entry's `reason`
+ * @returns {string} The reason on one line; empty when there is none
+ */
+export function reasonInWords(reason) {
+  return typeof reason === "string" ? reason.replace(/\s+/gu, " ").trim() : "";
 }
 
 /**
@@ -704,10 +744,9 @@ export function describeAllowScope(entry) {
  */
 export function classifyAllowEntry(entry, now) {
   const scope = describeAllowScope(entry);
+  const reason = reasonInWords(entry.reason);
   const because =
-    typeof entry.reason === "string" && entry.reason.trim() !== ""
-      ? ` Reason on record: ${entry.reason.trim()}`
-      : " No reason is recorded.";
+    reason === "" ? " No reason is recorded." : ` Reason on record: ${reason}`;
   const expiresAt = allowEntryExpiry(entry.until);
   if (expiresAt === undefined) {
     const summary = `names no condition anything can evaluate (until = ${JSON.stringify(entry.until ?? null)})`;

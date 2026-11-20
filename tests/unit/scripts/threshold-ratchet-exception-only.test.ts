@@ -497,6 +497,8 @@ describe("an exception-only change through the ratchet (#5099)", () => {
     expect(result.stdout).toContain(REASON);
     expect(result.stdout).toContain(aDayStillAhead());
     expect(result.stdout).toContain(INERT_UNTIL_MERGED);
+    expect(result.stdout.startsWith("threshold-ratchet: ")).toBe(true);
+    expect(result.stdout).not.toContain("hookSpecificOutput");
   });
 
   it("is accepted against a base, with the same notice", () => {

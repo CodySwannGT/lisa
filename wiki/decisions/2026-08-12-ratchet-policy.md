@@ -68,12 +68,20 @@ This conflicts with shipped Lisa behavior. Lisa ships several ratchet families:
   under `humanGate.mode: "access-only"` a change whose only ratchet findings are
   added entries is accepted in every layer, with a notice, when each entry has a
   reason and an `until` day that has not passed. The fence is unchanged and does
-  not depend on that refusal: the allow list is still read from the baseline only,
-  so an entry exempts nothing until it is merged, and an entry that arrives with
-  any other ratchet finding is refused. The mode is read from the baseline too, so
-  a change cannot relax it for itself. Under `strict` an added entry is refused as
-  before; a route there needs proof that a person approved, which no layer of the
-  check can see, and is not designed yet.
+  not depend on that refusal: an entry exempts nothing until it is merged, and an
+  entry that arrives with any other ratchet finding is refused. "Merged" means the
+  same thing in every layer. The pull-request check reads the allow list from the
+  base. The commit and edit checks baseline against HEAD, which is whatever the
+  branch last committed, so there an entry counts only when a protected branch (the
+  remote's default branch or a `deploy.branches` branch, as last fetched) also
+  holds the identical entry; otherwise commit one could record an exception and
+  commit two could use it. A clone with no such remote branch has no merge to wait
+  for and honours HEAD as before. The mode is read from the baseline too, so a
+  change cannot relax it for itself. Under `strict` an added entry is refused as
+  before, and a change that makes the root config stop being `strict` is now
+  reported as a loosening, because once merged it would let the next change record
+  an exception with no person involved. A route for `strict` needs proof that a
+  person approved, which no layer of the check can see, and is not designed yet.
 
 Brownfield onboarding depends on ratchets: a red project adopts incrementally instead
 of being blocked until fully remediated.

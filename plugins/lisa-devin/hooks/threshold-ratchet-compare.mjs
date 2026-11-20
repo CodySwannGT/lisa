@@ -9,6 +9,7 @@
 import {
   ALLOW_STATE,
   HUMAN_GATE_ACCESS_ONLY,
+  HUMAN_GATE_STRICT,
   allowEntryExpiry,
   classifyAllowEntry,
   describeAllowScope,
@@ -23,10 +24,14 @@ import {
   familyFor,
   findDeclaredParameter,
   globRoot,
+  humanGateModeOf,
   isDeclaredDirection,
   parseJson,
+  reasonInWords,
 } from "./threshold-ratchet-families.mjs";
 
+/** The one config the allow list and the `humanGate.mode` are read from. */
+const ROOT_CONFIG = ".lisa.config.json";
 /** Finding type: the change adds a `thresholdRatchet.allow` entry. */
 const TYPE_ALLOW_ADDED = "allow-added";
 /** Finding type: a numeric bound or boolean gate moved the weakening way. */
@@ -300,7 +305,7 @@ function compareAllowList(relPath, base, current) {
  */
 function addedExceptionGaps(entry, now) {
   const gaps = [];
-  if (typeof entry.reason !== "string" || entry.reason.trim() === "") {
+  if (reasonInWords(entry.reason) === "") {
     gaps.push("it needs a reason saying what resolves it");
   }
   const expiresAt = allowEntryExpiry(entry.until);
@@ -325,6 +330,12 @@ function addedExceptionGaps(entry, now) {
 function judgeAddedException(finding, alone, now) {
   const entry = finding.entry ?? {};
   const said = finding.message.replace(/\.$/u, "");
+  if (finding.file !== ROOT_CONFIG) {
+    return {
+      accepted: false,
+      message: `${said} — is written in ${finding.file}, and the ratchet reads exceptions from the repository's root ${ROOT_CONFIG} only, so it would never exempt anything. Record it in the root ${ROOT_CONFIG} instead.`,
+    };
+  }
   const gaps = addedExceptionGaps(entry, now);
   if (gaps.length > 0) {
     return {
@@ -340,7 +351,7 @@ function judgeAddedException(finding, alone, now) {
   }
   return {
     accepted: true,
-    message: `new exception recorded — ${describeAllowScope(entry)}. Reason on record: "${entry.reason.trim()}". It ends after ${String(entry.until).trim()}. It exempts nothing until this change is merged, so make the threshold change in a later change.`,
+    message: `new exception recorded — ${describeAllowScope(entry)}. Reason on record: "${reasonInWords(entry.reason)}". It ends after ${String(entry.until).trim()}. It exempts nothing until this change is merged, so make the threshold change in a later change.`,
   };
 }
 
@@ -560,7 +571,7 @@ export function compareDeclaredThresholds(
       type: verdict.type,
       base: held.value,
       ...(verdict.current === undefined ? {} : { current: verdict.current }),
-      message: `${relPath}: the ${held.direction} "${held.name}" of the ${held.gate} gate, for ${folderInWords(held.scope)}, ${verdict.told} If a person decides this loosening is right, they record an exception under thresholdRatchet.allow with "file": "${relPath}" and "key": "${held.key}".`,
+      message: `${relPath}: the ${held.direction} "${held.name}" of the ${held.gate} gate, for ${folderInWords(held.scope)}, ${verdict.told} To loosen it on purpose, an exception under thresholdRatchet.allow with "file": "${relPath}" and "key": "${held.key}" has to be merged first.`,
     });
   }
   return findings;
@@ -634,6 +645,51 @@ function compareLighthouse(relPath, base, current) {
 }
 
 /**
+ * Report a root config whose `humanGate.mode` stops being `strict`.
+ *
+ * Under `strict` a threshold exception is a person's decision, and
+ * {@link settleAddedExceptions} refuses every added entry on that ground. The
+ * mode is read from the baseline, so a change cannot relax it for itself —
+ * but a change that ONLY relaxes it would, once merged, let the next change
+ * record an exception with no person involved. A strict repository could be
+ * walked down in three ordinary steps without this check ever objecting. So
+ * leaving `strict` is itself a loosening, and is reported like one.
+ * @param {string} relPath Repo-relative path
+ * @param {string} baselineText The config's text at the baseline
+ * @param {string | null | undefined} currentText Its text now; nothing when
+ *   the file was deleted
+ * @returns {Finding[]} One finding when the mode left `strict`, else none
+ */
+function compareHumanGateMode(relPath, baselineText, currentText) {
+  if (relPath !== ROOT_CONFIG) return [];
+  // The baseline must DECLARE strict. A baseline nobody can parse is treated
+  // as strict when exceptions are settled, but it is not reported here:
+  // refusing the change that repairs a broken config would wedge the
+  // repository on its own damage.
+  if (humanGateModeOf(parseJson(baselineText)) !== HUMAN_GATE_STRICT) return [];
+  // The current side must still be readable AS strict. Deleted or unparseable
+  // counts as having left it: otherwise breaking the file and then repairing
+  // it without the mode would be the same walk-down in two quieter steps.
+  const current = parseJson(currentText);
+  const stillStrict =
+    current !== null &&
+    typeof current === "object" &&
+    !Array.isArray(current) &&
+    humanGateModeOf(current) === HUMAN_GATE_STRICT;
+  if (stillStrict) return [];
+  return [
+    {
+      file: relPath,
+      key: "humanGate.mode",
+      type: TYPE_WEAKENED,
+      base: HUMAN_GATE_STRICT,
+      current: HUMAN_GATE_ACCESS_ONLY,
+      message: `${relPath}: humanGate.mode stops being "strict". Under strict a threshold exception is a person's decision; with this change merged, the next one could be recorded with no person involved. This check cannot see that a person approved, so it refuses the change.`,
+    },
+  ];
+}
+
+/**
  * Compare one watched file's baseline and current contents and report every
  * weakening. Pure: no filesystem or git access.
  * @param {string} relPath Repo-relative path (forward slashes)
@@ -649,12 +705,15 @@ export function compareFile(relPath, baselineText, currentText) {
     // Deleting an allow list grants nothing, so that half stays silent. The
     // thresholds the file declared are another matter: they go with it.
     if (family.kind === KIND_ALLOW_LIST) {
-      return compareDeclaredThresholds(
-        relPath,
-        parseJson(baselineText),
-        undefined,
-        true
-      );
+      return [
+        ...compareHumanGateMode(relPath, baselineText, currentText),
+        ...compareDeclaredThresholds(
+          relPath,
+          parseJson(baselineText),
+          undefined,
+          true
+        ),
+      ];
     }
     return [
       {
@@ -694,12 +753,15 @@ export function compareFile(relPath, baselineText, currentText) {
   // block every change touching the file without making anything safer.
   if (base === undefined) {
     return family.kind === KIND_ALLOW_LIST
-      ? []
+      ? compareHumanGateMode(relPath, baselineText, currentText)
       : [unparseableBaseline(relPath)];
   }
   if (current === undefined) {
     return family.kind === KIND_ALLOW_LIST
-      ? unreadableDeclaration(relPath, base)
+      ? [
+          ...compareHumanGateMode(relPath, baselineText, currentText),
+          ...unreadableDeclaration(relPath, base),
+        ]
       : [unparseable(relPath)];
   }
   switch (family.kind) {
@@ -717,6 +779,7 @@ export function compareFile(relPath, baselineText, currentText) {
       return compareLighthouse(relPath, base, current);
     case KIND_ALLOW_LIST:
       return [
+        ...compareHumanGateMode(relPath, baselineText, currentText),
         ...compareAllowList(relPath, base, current),
         ...compareDeclaredThresholds(relPath, base, current),
       ];
@@ -761,6 +824,67 @@ export function describeAllowList(allowEntries, now = Date.now()) {
     if (state !== ALLOW_STATE.LIVE) lines.push(detail);
   }
   return lines;
+}
+
+/**
+ * One allow entry as a comparable string: its scope, reason and end.
+ * @param {{ file: string, key: string, reason?: unknown, until?: unknown }} entry An allow entry
+ * @returns {string} A string equal for two entries that say the same thing
+ */
+function entryIdentity(entry) {
+  return JSON.stringify([
+    entry.file,
+    entry.key,
+    entry.reason ?? null,
+    entry.until ?? null,
+  ]);
+}
+
+/**
+ * Split the allow entries on HEAD into those a protected branch already holds
+ * and those that exist only on this branch.
+ *
+ * At commit and at edit the baseline is HEAD, and HEAD is whatever this branch
+ * last committed. Once an entry-only change can be committed (#5099), reading
+ * the allow list from HEAD alone would let commit one record an exception and
+ * commit two use it, with nothing merged — the self-grant, split in two. So in
+ * those modes an entry counts only when it is also on a protected branch as
+ * the remote last reported it: the same "exempts nothing until it is merged"
+ * rule the pull-request check applies by comparing against the base.
+ *
+ * An entry is the same entry only when its scope, reason and end all match. A
+ * local edit to a merged entry — a later `until`, say — is not the merged one.
+ * @param {Array<{ file: string, key: string, reason?: unknown, until?: unknown }>} entries
+ *   The allow list at HEAD
+ * @param {Array<Array<{ file: string, key: string, reason?: unknown, until?: unknown }>>} mergedLists
+ *   The allow list of each protected branch that could be read
+ * @returns {{ merged: object[], unmerged: object[] }} Entries a protected
+ *   branch holds, and entries only this branch holds
+ */
+export function splitMergedEntries(entries, mergedLists) {
+  const known = new Set(mergedLists.flat().map(entryIdentity));
+  return {
+    merged: entries.filter(entry => known.has(entryIdentity(entry))),
+    unmerged: entries.filter(entry => !known.has(entryIdentity(entry))),
+  };
+}
+
+/**
+ * Say which refused findings an unmerged entry would have covered, so the
+ * reader is not left wondering why a recorded exception did nothing.
+ * @param {Finding[]} blocked Findings still refused
+ * @param {Array<{ file: string, key: string }>} unmerged Entries only this
+ *   branch holds
+ * @param {string[]} refs The protected branches that were consulted
+ * @returns {string[]} One line per unmerged entry that covers a refused finding
+ */
+export function describeUnmergedCover(blocked, unmerged, refs) {
+  return unmerged
+    .filter(entry => blocked.some(finding => entryCovers(entry, finding)))
+    .map(
+      entry =>
+        `${describeAllowScope(entry)} is recorded on this branch but is not on ${refs.join(" or ")}, so it exempts nothing yet. Merge the change that records it first; if it is already merged, run "git fetch" and try again.`
+    );
 }
 
 /**
