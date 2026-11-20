@@ -322,14 +322,84 @@ function addedExceptionGaps(entry, now) {
 }
 
 /**
+ * How many threshold names a hint lists before it stops.
+ */
+const HINT_LIMIT = 5;
+
+/**
+ * The rule an allow entry is matched by, said once for every hint that needs it.
+ */
+const COVER_RULE =
+  'An entry covers a threshold only when its "file" and "key" are that threshold\'s, or its key is "*".';
+
+/**
+ * Warn that an entry refused for arriving with a threshold change would not
+ * cover that change even once merged.
+ *
+ * The refusal tells the reader to merge the entry first and then make the
+ * threshold change. With a key that names none of the thresholds the change
+ * loosens, following that to the letter ends in a second refusal with no
+ * explanation, so the mismatch is said here, where the entry is still being
+ * written.
+ * @param {{ file: string, key: string }} entry The added entry
+ * @param {Finding[]} others The other findings in the change
+ * @returns {string} A sentence to append, or nothing when the entry covers one
+ */
+function keyMismatchNote(entry, others) {
+  if (others.some(finding => entryCovers(entry, finding))) return "";
+  const names = [...new Set(others.map(f => `${f.file} → ${f.key}`))];
+  const listed = names.slice(0, HINT_LIMIT).join("; ");
+  const more = names.length > HINT_LIMIT ? "; and more" : "";
+  return ` As written it would not cover what this change loosens either: it names ${entry.file} → ${entry.key}, and the thresholds changed here are ${listed}${more}. ${COVER_RULE}`;
+}
+
+/**
+ * Warn when a sound, entry-only exception names no threshold in its file.
+ *
+ * An entry is matched by its file and its exact key, and nothing at record
+ * time says which threshold it is meant for. A key that is nearly right — the
+ * name in the config file instead of the name the ratchet gives the threshold
+ * — is recorded, merged, and then covers nothing, and the operator learns of
+ * it one merge later. So when the named file can be read, the notice says
+ * whether the ratchet finds a threshold of that name in it.
+ *
+ * The names are taken from the comparison itself — every finding it reports
+ * when the file is emptied — so this cannot disagree with what an entry is
+ * later matched against. A warning and not a refusal: an entry may be written
+ * before its threshold exists, and a file whose names cannot be listed this
+ * way (nothing reported, or not readable at the path as written) says nothing.
+ * @param {{ file: string, key: string }} entry The entry being recorded
+ * @param {(file: string) => string | null | undefined} readFile Reads a
+ *   repository file as the change has it
+ * @returns {string} A sentence to append to the notice, or nothing
+ */
+function unmatchedKeyWarning(entry, readFile) {
+  if (entry.key === "*" || !familyFor(entry.file)) return "";
+  const text = readFile(entry.file);
+  if (typeof text !== "string") return "";
+  const names = [
+    ...new Set(compareFile(entry.file, text, "{}").map(f => f.key)),
+  ];
+  if (names.length === 0 || names.includes(entry.key)) return "";
+  const listed = names
+    .slice(0, HINT_LIMIT)
+    .map(name => `"${name}"`)
+    .join(", ");
+  const more = names.length > HINT_LIMIT ? ", and more" : "";
+  return ` Warning: the ratchet finds no threshold named "${entry.key}" in ${entry.file}, so as written this entry will cover nothing. The names it watches there are ${listed}${more}. ${COVER_RULE}`;
+}
+
+/**
  * Decide one added allow entry under the default policy.
  * @param {Finding} finding The `allow-added` finding
- * @param {boolean} alone Whether the change holds no other ratchet finding
+ * @param {Finding[]} others Every other ratchet finding in the change
  * @param {number} now Clock reading
+ * @param {(file: string) => string | null | undefined} readFile Reads a
+ *   repository file as the change has it
  * @returns {{ accepted: boolean, message: string }} The verdict and its text:
  *   a notice when accepted, the refusal otherwise
  */
-function judgeAddedException(finding, alone, now) {
+function judgeAddedException(finding, others, now, readFile) {
   const entry = finding.entry ?? {};
   const said = finding.message.replace(/\.$/u, "");
   if (finding.file !== ROOT_CONFIG) {
@@ -345,15 +415,15 @@ function judgeAddedException(finding, alone, now) {
       message: `${said} — cannot be recorded yet: ${gaps.join(", and ")}. Complete the entry and try again.`,
     };
   }
-  if (!alone) {
+  if (others.length > 0) {
     return {
       accepted: false,
-      message: `${said} — arrives together with another threshold change, and an exception exempts nothing until it is merged. Merge this entry in a change of its own first, then make the threshold change.`,
+      message: `${said} — arrives together with another threshold change, and an exception exempts nothing until it is merged. Merge this entry in a change of its own first, then make the threshold change.${keyMismatchNote(entry, others)}`,
     };
   }
   return {
     accepted: true,
-    message: `new exception recorded — ${describeAllowScope(entry)}. Reason on record: "${reasonInWords(entry.reason)}". It ends after ${String(entry.until).trim()}. It exempts nothing until this change is merged, so make the threshold change in a later change.`,
+    message: `new exception recorded — ${describeAllowScope(entry)}. Reason on record: "${reasonInWords(entry.reason)}". It ends after ${String(entry.until).trim()}. It exempts nothing until this change is merged, so make the threshold change in a later change.${unmatchedKeyWarning(entry, readFile)}`,
   };
 }
 
@@ -381,6 +451,9 @@ function judgeAddedException(finding, alone, now) {
  *   entries already taken out
  * @param {string} mode The repository's `humanGate.mode`, from the baseline
  * @param {number} [now] Clock reading, injected so the check is deterministic
+ * @param {(file: string) => string | null | undefined} [readFile] Reads a
+ *   repository file as the change has it, so a recorded entry can be checked
+ *   against the thresholds its file holds; reads nothing by default
  * @returns {{
  *   accepted: Array<{ finding: Finding, message: string }>,
  *   refused: Finding[],
@@ -388,7 +461,12 @@ function judgeAddedException(finding, alone, now) {
  * }} Entries recorded (with the notice to print), entries refused (with the
  *   refusal as their message), and every finding that is not an added entry
  */
-export function settleAddedExceptions(findings, mode, now = Date.now()) {
+export function settleAddedExceptions(
+  findings,
+  mode,
+  now = Date.now(),
+  readFile = () => null
+) {
   const added = findings.filter(f => f.type === TYPE_ALLOW_ADDED);
   const rest = findings.filter(f => f.type !== TYPE_ALLOW_ADDED);
   if (mode !== HUMAN_GATE_ACCESS_ONLY) {
@@ -404,7 +482,7 @@ export function settleAddedExceptions(findings, mode, now = Date.now()) {
   const accepted = [];
   const refused = [];
   for (const finding of added) {
-    const verdict = judgeAddedException(finding, rest.length === 0, now);
+    const verdict = judgeAddedException(finding, rest, now, readFile);
     if (verdict.accepted) accepted.push({ finding, message: verdict.message });
     else refused.push({ ...finding, message: verdict.message });
   }
@@ -896,6 +974,39 @@ export function describeUnmergedCover(blocked, unmerged, refs) {
   return unmerged
     .filter(entry => blocked.some(finding => entryCovers(entry, finding)))
     .map(entry => `${describeAllowScope(entry)} ${why}`);
+}
+
+/**
+ * Explain a refusal that an exception on record looks meant for and misses.
+ *
+ * An entry is matched by its file and its exact key. One written with a key
+ * that is nearly the threshold's — the name in the config file rather than
+ * the name the ratchet gives it, say — is recorded without complaint, because
+ * nothing at that moment says which threshold it is for. The first sign is
+ * the refusal of the threshold change, which without this line reads as if
+ * the exception had been ignored.
+ * @param {Finding[]} blocked Findings still refused
+ * @param {Array<{ file: string, key: string }>} entries Every allow entry on
+ *   record for this run, merged or not
+ * @returns {string[]} One line per refused finding that an entry for the same
+ *   file names with a different key
+ */
+export function describeNearMisses(blocked, entries) {
+  const lines = [];
+  for (const finding of blocked) {
+    if (finding.type === TYPE_ALLOW_ADDED) continue;
+    const near = entries.filter(
+      entry =>
+        !entryCovers(entry, finding) &&
+        entryCovers({ file: entry.file, key: "*" }, finding)
+    );
+    if (near.length === 0) continue;
+    const keys = [...new Set(near.map(entry => `"${entry.key}"`))].join(", ");
+    lines.push(
+      `${finding.file}: an exception on record for this file names ${keys}, which is not this threshold's key "${finding.key}", so it does not cover it. ${COVER_RULE}`
+    );
+  }
+  return lines;
 }
 
 /**

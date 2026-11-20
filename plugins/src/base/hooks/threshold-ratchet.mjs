@@ -85,6 +85,7 @@ import {
   applyAllowList,
   compareFile,
   describeAllowList,
+  describeNearMisses,
   describeUnmergedCover,
   formatReport,
   settleAddedExceptions,
@@ -575,7 +576,7 @@ function run(mode, baseRef, onlyFiles, headRef) {
     reportAllowList(allow.entries);
     return 0;
   }
-  return reportFindings(findings, allow, mode);
+  return reportFindings(findings, allow, mode, plan.readCurrent);
 }
 
 /**
@@ -641,11 +642,18 @@ function deliver(lines, asHookReply) {
  * @param {{ entries: object[], unmerged: object[], protectedRefs: string[], promotion: boolean, note: string | null, humanGateMode: string }} allow
  *   The resolved allow list, its provenance and the baseline's mode
  * @param {"hook"|"staged"|"base"} mode Comparison mode
+ * @param {(file: string) => string | null} readCurrent Reads a repository
+ *   file as the change has it
  * @returns {number} Process exit code (2 for hook mode, 1 otherwise; 0 clean)
  */
-function reportFindings(findings, allow, mode) {
+function reportFindings(findings, allow, mode, readCurrent) {
   const split = partitionCarriedEntries(findings, allow.promotion);
-  const settled = settleAddedExceptions(split.rest, allow.humanGateMode);
+  const settled = settleAddedExceptions(
+    split.rest,
+    allow.humanGateMode,
+    Date.now(),
+    readCurrent
+  );
   const { blocked, allowed, expired } = applyAllowList(
     settled.rest,
     allow.entries
@@ -677,6 +685,12 @@ function reportFindings(findings, allow, mode) {
     allow.unmerged,
     allow.protectedRefs.map(ref => ref.replace(/^refs\/remotes\//u, ""))
   )) {
+    process.stderr.write(`threshold-ratchet: refused — ${line}\n`);
+  }
+  for (const line of describeNearMisses(blocked, [
+    ...allow.entries,
+    ...allow.unmerged,
+  ])) {
     process.stderr.write(`threshold-ratchet: refused — ${line}\n`);
   }
   if (passed) return 0;

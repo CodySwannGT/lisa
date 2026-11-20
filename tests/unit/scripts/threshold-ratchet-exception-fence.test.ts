@@ -24,6 +24,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   compareFile,
+  describeNearMisses,
   describeUnmergedCover,
   settleAddedExceptions,
   splitMergedEntries,
@@ -48,6 +49,7 @@ const RATCHET_MODULES = [
   "threshold-ratchet-compare.mjs",
 ];
 const ESLINT_FILE = "eslint.thresholds.json";
+const VITEST_FILE = "vitest.thresholds.json";
 const LISA_CONFIG = ".lisa.config.json";
 const NESTED_CONFIG = "packages/a/.lisa.config.json";
 const ACCESS_ONLY = "access-only";
@@ -59,6 +61,12 @@ const REASON =
 const RECORDED = "new exception recorded";
 const MERGE_FIRST = "Merge this entry in a change of its own first";
 const NOT_MERGED = "is recorded on this branch but is not on";
+const WRONG_KEY = "max-warnings";
+const WOULD_NOT_COVER =
+  "As written it would not cover what this change loosens";
+const COVER_RULE =
+  'An entry covers a threshold only when its "file" and "key" are that threshold\'s, or its key is "*".';
+const NEAR_MISS = "an exception on record for this file names";
 const DEFAULT_UNKNOWN =
   "which branch of the remote named origin is its default could not be determined";
 const SET_HEAD = '"git remote set-head origin --auto"';
@@ -265,7 +273,7 @@ describe("splitMergedEntries (#5099)", () => {
     ["a later until", { until: "2099-01-01" }],
     ["a different reason", { reason: "Another reason." }],
     ["a wider key", { key: "*" }],
-    ["another file", { file: "vitest.thresholds.json" }],
+    ["another file", { file: VITEST_FILE }],
     ["no until where the merged one has one", { until: undefined }],
   ])(
     "does not take an entry with %s for the merged one",
@@ -333,6 +341,173 @@ describe("describeUnmergedCover (#5099)", () => {
       )
     ).toEqual([]);
     expect(describeUnmergedCover([], [entry()], [REMOTE_MAIN])).toEqual([]);
+  });
+});
+
+describe("an exception whose key misses the threshold (#5099)", () => {
+  /**
+   * The findings of a change that adds an entry and raises the ceiling.
+   * @param added - The entry the change adds
+   * @returns Both findings
+   */
+  function entryWithWeakening(
+    added: AllowEntry
+  ): ReturnType<typeof compareFile> {
+    return [
+      ...compareFile(
+        LISA_CONFIG,
+        "{}",
+        JSON.stringify({ thresholdRatchet: { allow: [added] } })
+      ),
+      ...raisedCeiling(),
+    ];
+  }
+
+  it("is told so where the entry is refused for arriving with the change", () => {
+    const settled = settleAddedExceptions(
+      entryWithWeakening(entry({ key: WRONG_KEY })),
+      ACCESS_ONLY,
+      NOW
+    );
+
+    const message = settled.refused[0]?.message ?? "";
+    expect(message).toContain(MERGE_FIRST);
+    expect(message).toContain(WOULD_NOT_COVER);
+    expect(message).toContain(`it names ${ESLINT_FILE} → ${WRONG_KEY}`);
+    expect(message).toContain(`${ESLINT_FILE} → maxWarnings`);
+    expect(message).toContain(COVER_RULE);
+  });
+
+  it.each([
+    ["the threshold's own key", {}],
+    ["a file-wide key", { key: "*" }],
+  ])("is not warned about when the entry has %s", (_name, overrides) => {
+    const settled = settleAddedExceptions(
+      entryWithWeakening(entry(overrides)),
+      ACCESS_ONLY,
+      NOW
+    );
+
+    expect(settled.refused[0]?.message).toContain(MERGE_FIRST);
+    expect(settled.refused[0]?.message).not.toContain(WOULD_NOT_COVER);
+  });
+
+  it("stops listing thresholds after five", () => {
+    const many = compareFile(
+      VITEST_FILE,
+      JSON.stringify({ global: { a: 9, b: 9, c: 9, d: 9, e: 9, f: 9 } }),
+      JSON.stringify({ global: { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1 } })
+    );
+    const settled = settleAddedExceptions(
+      [
+        ...compareFile(
+          LISA_CONFIG,
+          "{}",
+          JSON.stringify({ thresholdRatchet: { allow: [entry()] } })
+        ),
+        ...many,
+      ],
+      ACCESS_ONLY,
+      NOW
+    );
+
+    expect(many).toHaveLength(6);
+    expect(settled.refused[0]?.message).toContain("global.e; and more.");
+    expect(settled.refused[0]?.message).not.toContain("global.f");
+  });
+
+  /**
+   * Settle an entry-only change, with the eslint file readable.
+   * @param added - The entry the change adds
+   * @param text - Text of the eslint thresholds file, or nothing
+   * @returns The notice for the recorded entry
+   */
+  function noticeFor(added: AllowEntry, text: string | null): string {
+    const settled = settleAddedExceptions(
+      compareFile(
+        LISA_CONFIG,
+        "{}",
+        JSON.stringify({ thresholdRatchet: { allow: [added] } })
+      ),
+      ACCESS_ONLY,
+      NOW,
+      file => (file === ESLINT_FILE ? text : null)
+    );
+    return settled.accepted[0]?.message ?? "";
+  }
+
+  const eslintText = JSON.stringify({ maxWarnings: 10, maxComplexity: 20 });
+
+  it("is warned about when the entry is recorded", () => {
+    const notice = noticeFor(entry({ key: WRONG_KEY }), eslintText);
+
+    expect(notice).toContain(RECORDED);
+    expect(notice).toContain(
+      `Warning: the ratchet finds no threshold named "${WRONG_KEY}" in ${ESLINT_FILE}`
+    );
+    expect(notice).toContain(
+      'The names it watches there are "maxWarnings", "maxComplexity".'
+    );
+    expect(notice).toContain(COVER_RULE);
+  });
+
+  it.each([
+    ["names a threshold the file holds", entry(), eslintText],
+    ["is file-wide", entry({ key: "*" }), eslintText],
+    ["names a file that cannot be read", entry({ key: WRONG_KEY }), null],
+    ["names a file with no thresholds", entry({ key: WRONG_KEY }), "{}"],
+    [
+      "names a file the ratchet does not watch",
+      entry({ file: "README.md", key: WRONG_KEY }),
+      eslintText,
+    ],
+  ])("is not warned about when the entry %s", (_name, added, text) => {
+    const notice = noticeFor(added, text);
+
+    expect(notice).toContain(RECORDED);
+    expect(notice).not.toContain("Warning:");
+  });
+
+  it("stops listing a file's thresholds after five", () => {
+    const notice = noticeFor(
+      entry({ key: WRONG_KEY }),
+      JSON.stringify({ a: 1, b: 1, c: 1, d: 1, e: 1, f: 1 })
+    );
+
+    expect(notice).toContain('"e", and more.');
+    expect(notice).not.toContain('"f"');
+  });
+
+  it("is explained when a recorded entry misses the refused threshold", () => {
+    const lines = describeNearMisses(raisedCeiling(), [
+      entry({ key: WRONG_KEY }),
+      entry({ key: "maxwarnings" }),
+    ]);
+
+    expect(lines).toEqual([
+      `${ESLINT_FILE}: ${NEAR_MISS} "${WRONG_KEY}", "maxwarnings", which is not this threshold's key "maxWarnings", so it does not cover it. ${COVER_RULE}`,
+    ]);
+  });
+
+  it.each([
+    ["an entry that covers the threshold", entry()],
+    ["a file-wide entry", entry({ key: "*" })],
+    ["an entry for another file", entry({ file: VITEST_FILE })],
+  ])("says nothing about %s", (_name, recorded) => {
+    expect(describeNearMisses(raisedCeiling(), [recorded])).toEqual([]);
+  });
+
+  it("says nothing about a refused new entry or an empty record", () => {
+    const added = compareFile(
+      LISA_CONFIG,
+      "{}",
+      JSON.stringify({ thresholdRatchet: { allow: [entry()] } })
+    );
+
+    expect(
+      describeNearMisses(added, [{ file: LISA_CONFIG, key: WRONG_KEY }])
+    ).toEqual([]);
+    expect(describeNearMisses(raisedCeiling(), [])).toEqual([]);
   });
 });
 
@@ -681,6 +856,35 @@ describe("what the check says about a change it refuses (#5099)", () => {
     expect(result.stderr).toContain(
       `Record it in the root ${LISA_CONFIG} instead`
     );
+  });
+
+  it("warns at commit when the recorded key names no threshold", () => {
+    const dir = baselineRepo();
+    write(dir, LISA_CONFIG, configText([liveEntry({ key: WRONG_KEY })]));
+    git(dir, "add", "-A");
+
+    const result = ratchet(dir, ["--staged"]);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(RECORDED);
+    expect(result.stdout).toContain(
+      `Warning: the ratchet finds no threshold named "${WRONG_KEY}" in ${ESLINT_FILE}`
+    );
+    expect(result.stdout).toContain('"maxWarnings"');
+  });
+
+  it("explains a merged entry whose key misses the threshold", () => {
+    const dir = baselineRepo(configText([liveEntry({ key: WRONG_KEY })]));
+    ceiling(dir, 25);
+    git(dir, "add", "-A");
+
+    const result = ratchet(dir, ["--staged"]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      `${NEAR_MISS} "${WRONG_KEY}", which is not this threshold's key "maxWarnings"`
+    );
+    expect(result.stderr).toContain(COVER_RULE);
   });
 
   it("answers a passing edit in plain text when nothing was recorded", () => {
