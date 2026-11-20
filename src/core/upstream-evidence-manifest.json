@@ -9,7 +9,7 @@
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "8a4b2cab9ac32a855e2adc1a7a3c6f7a9ac35dcb75cda2fac7eea144ced50098",
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
-      "6b20fc72b48c51938bc6e2211821db625d5f908f6ace07b4bbc2f9488e079357",
+      "316a3d09a7c28a1c9c90f144552d7be68b4fb8c65e191e29534ce1961fd2c3e3",
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
       "1f450d2492ca0bcdba440f6b403c1deee0f35e749c54d2ed5c5ddc696d5ab896",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
@@ -2705,7 +2705,7 @@
     "scripts/check-security-floors.mjs":
       "a1abe6d2cbbef9243b9687c73d5c4497c069bc8d714e34be7375805fadbc4721",
     "scripts/check-self-dependency-pin.mjs":
-      "e111b72a3e121c2a59bc1cccd59236449c73b837d7bfa4d7d51cd36eeeceda81",
+      "9bbf569530956adb60b0503848a41b5012cb801914d805458a8e603fc5d1fa9b",
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "82bc9fbd7537cfc30d359d75e4ce86efbcea6455d4854c8d1273a445feae253c",
     "scripts/check-shipped-surface-removals.mjs":

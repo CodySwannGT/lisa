@@ -28,6 +28,9 @@ const SCRIPT = path.resolve("scripts/check-self-dependency-pin.mjs");
 /** The package the loopback registry serves. */
 const SELF = "@codyswann/lisa";
 
+/** The fixture manifest's file name. */
+const MANIFEST = "package.json";
+
 /** The one release the loopback registry publishes. */
 const RELEASE = "8.1.1";
 
@@ -50,29 +53,54 @@ interface CliRun {
   readonly lingeredMs: number;
 }
 
+/** A newer release whose exact-version endpoint answers 404 in one scenario. */
+const UNSERVED = "8.2.0";
+
+/** The scenario whose exact-version endpoint answers 404 with an open body. */
+const EXACT_404_OPEN = "exact-404-open";
+
 /**
- * A loopback registry serving the self package's packument and one release.
+ * How the loopback registry behaves: healthy, or answering an error status
+ * whose body it starts and never finishes, on the packument or on one exact
+ * version.
+ */
+type Scenario = "healthy" | "packument-500-open" | typeof EXACT_404_OPEN;
+
+/**
+ * A loopback registry serving the self package's packument and its releases.
+ * @param scenario - Reads the scenario in force for each request.
  * @returns The running server.
  */
-function loopbackRegistry(): Server {
+function loopbackRegistry(scenario: () => Scenario): Server {
   return createServer((request, response) => {
     const url = request.url ?? "";
+    const mode = scenario();
+    const headers = {
+      "content-type": "application/json",
+      connection: "keep-alive",
+    };
+    const openError =
+      (mode === "packument-500-open" && url === `/${SELF}`) ||
+      (mode === EXACT_404_OPEN && url === `/${SELF}/${UNSERVED}`);
+    if (openError) {
+      response.writeHead(url === `/${SELF}` ? 500 : 404, headers);
+      response.write('{"error":"');
+      return;
+    }
+    const listed = mode === EXACT_404_OPEN ? [RELEASE, UNSERVED] : [RELEASE];
     const body =
       url === `/${SELF}`
         ? {
             name: SELF,
             "dist-tags": { latest: RELEASE },
-            versions: {
-              [RELEASE]: { name: SELF, version: RELEASE },
-            },
+            versions: Object.fromEntries(
+              listed.map(version => [version, { name: SELF, version }])
+            ),
           }
         : url === `/${SELF}/${RELEASE}`
           ? { name: SELF, version: RELEASE }
           : undefined;
-    response.writeHead(body === undefined ? 404 : 200, {
-      "content-type": "application/json",
-      connection: "keep-alive",
-    });
+    response.writeHead(body === undefined ? 404 : 200, headers);
     response.end(JSON.stringify(body ?? {}));
   });
 }
@@ -105,19 +133,32 @@ function runCli(args: readonly string[]): Promise<CliRun> {
 }
 
 describe("the self-pin CLI exits once its verdict is printed (#5094)", () => {
-  const state: { server?: Server; registry: string; dir: string } = {
-    registry: "",
-    dir: "",
-  };
+  const state: {
+    server?: Server;
+    registry: string;
+    dir: string;
+    scenario: Scenario;
+  } = { registry: "", dir: "", scenario: "healthy" };
+
+  /**
+   * Arguments pointing the CLI at the loopback registry and the fixture manifest.
+   * @returns The arguments.
+   */
+  const target = (): string[] => [
+    "--registry",
+    state.registry,
+    "--manifest",
+    path.join(state.dir, MANIFEST),
+  ];
 
   beforeAll(async () => {
-    const server = loopbackRegistry();
+    const server = loopbackRegistry(() => state.scenario);
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
     state.server = server;
     state.registry = `http://127.0.0.1:${String((server.address() as AddressInfo).port)}`;
     state.dir = mkdtempSync(path.join(tmpdir(), "self-pin-exit-"));
     writeFileSync(
-      path.join(state.dir, "package.json"),
+      path.join(state.dir, MANIFEST),
       JSON.stringify({ devDependencies: { [SELF]: "^8.0.0" } })
     );
   });
@@ -133,15 +174,33 @@ describe("the self-pin CLI exits once its verdict is printed (#5094)", () => {
     ["the newest-installable lookup", ["--newest-installable"], `${RELEASE}\n`],
     ["the awaited-listed wait", ["--await-listed", RELEASE], "listed"],
   ])("%s", async (_name, mode, printed) => {
-    const run = await runCli([
-      "--registry",
-      state.registry,
-      "--manifest",
-      path.join(state.dir, "package.json"),
-      ...mode,
-    ]);
+    state.scenario = "healthy";
+    const run = await runCli([...target(), ...mode]);
 
     expect(run.code).toBe(0);
+    expect(run.stdout).toContain(printed);
+    expect(run.lingeredMs).toBeGreaterThanOrEqual(0);
+    expect(run.lingeredMs).toBeLessThan(EXIT_BOUND_MS);
+  });
+
+  it.each<readonly [string, Scenario, number, string]>([
+    [
+      "a packument error whose body never ends",
+      "packument-500-open",
+      1,
+      "self-dependency-pin: unprovable",
+    ],
+    [
+      "an exact-version 404 whose body never ends",
+      EXACT_404_OPEN,
+      0,
+      "self-dependency-pin: current",
+    ],
+  ])("%s", async (_name, scenario, code, printed) => {
+    state.scenario = scenario;
+    const run = await runCli([...target()]);
+
+    expect(run.code).toBe(code);
     expect(run.stdout).toContain(printed);
     expect(run.lingeredMs).toBeGreaterThanOrEqual(0);
     expect(run.lingeredMs).toBeLessThan(EXIT_BOUND_MS);

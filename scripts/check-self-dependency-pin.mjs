@@ -228,6 +228,9 @@ async function readShapeOnce(url, accept, fetchImpl, deadline) {
       signal: controller.signal,
     });
     if (!response.ok) {
+      // An unread body keeps its socket, and with it the process, alive after
+      // the verdict; the deadline is cleared below, so nothing else ends it.
+      await response.body?.cancel().catch(() => {});
       return { packument: null, detail: `HTTP ${response.status} from ${url}` };
     }
     return { packument: await response.json(), detail: "ok" };
