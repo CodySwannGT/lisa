@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.2.3](https://github.com/CodySwannGT/lisa/compare/v8.2.2...v8.2.3) (2026-11-20)
+
+
+### Bug Fixes
+
+* **controls:** start no background git maintenance in fixtures or Lisa's copies ([2a09ba7](https://github.com/CodySwannGT/lisa/commit/2a09ba7fb8e13da873ce483f5d2cfcce7dc9ac47)), closes [CodySwannGT/lisa#5100](https://github.com/CodySwannGT/lisa/issues/5100) [CodySwannGT/lisa#5100](https://github.com/CodySwannGT/lisa/issues/5100)
+
 ### [8.2.2](https://github.com/CodySwannGT/lisa/compare/v8.2.1...v8.2.2) (2026-11-20)
 
 
