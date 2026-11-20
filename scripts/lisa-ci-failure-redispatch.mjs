@@ -37,6 +37,15 @@
  * check run all end with no write and no further read. A passing gate runs the same pipeline; the
  * decision logic is shared. `--head-sha` re-evaluates a past head by hand.
  *
+ * A stale traceability failure (CodySwannGT/lisa#5111): the documented order
+ * opens the PR and THEN posts the `[lisa-pr-link]` backlink, but CI starts when
+ * the PR opens, so Work-Item Traceability can read the tracker first and fail
+ * gate 5. When that check is the ONLY failing required check and this PR's
+ * managed backlink was written after the check completed, the verdict is
+ * stale: the check is re-run instead of the item being bounced. The re-run
+ * reads the tracker live, so gate 5 stays the check's own decision; a missing
+ * or older backlink takes the ordinary path.
+ *
  * Writes need positive evidence. A run for a superseded head, a fork PR, a PR
  * with no or a foreign `Work-Item:`, a closed item, or an item outside the
  * claimed lane all end with no write.
@@ -60,6 +69,7 @@ import process from "node:process";
 
 import { invokedAsScript } from "../all/copy-overwrite/scripts/lib/invoked-as-script.mjs";
 import {
+  partitionBacklinks,
   soleWorkItem,
   trackerContract,
 } from "../all/copy-overwrite/scripts/lisa-work-item.mjs";
@@ -85,6 +95,17 @@ export const LISA_MARKER = /\[(?:lisa-[a-z0-9-]+|claude-build-intake)\]/u;
  */
 const CLAIM_MARKERS =
   /\[(?:lisa-tracker-claim|claude-build-intake|lisa-session-manager)\]/gu;
+/**
+ * The required check that proves work-item traceability, as `gh pr checks`
+ * names it: the `🔍 Quality Checks` caller job in ci.yml and the
+ * `work_item_traceability` job in quality.yml. A test pins both halves to the
+ * workflow files, so a rename fails CI instead of silently disabling the
+ * stale-backlink path.
+ */
+export const TRACEABILITY_CHECK =
+  "🔍 Quality Checks / 🔗 Work-Item Traceability";
+/** A check row's link to its Actions job: run id, then job id. */
+const JOB_LINK = /\/actions\/runs\/(\d+)\/job\/(\d+)(?:$|[/?#])/u;
 const NO_REQUIRED = /no (?:required )?checks reported/iu;
 /** Read every page of a REST list as one array of pages. */
 const PAGINATE = Object.freeze(["--paginate", "--slurp"]);
@@ -100,7 +121,9 @@ export const MARKER_AUTHORS = Object.freeze(["github-actions[bot]"]);
 /**
  * One write a plan would make.
  * @typedef {object} PlannedAction
- * @property {string} kind - `comment`, `relabel`, or `edit-comment`.
+ * @property {string} kind - `comment`, `relabel`, `edit-comment`, or `rerun-job`.
+ * @property {number} [runId] - Actions run id, for `rerun-job`.
+ * @property {number} [jobId] - Actions job id, for `rerun-job`.
  * @property {string} [item] - Canonical work item, for `comment` and `relabel`.
  * @property {string} [body] - Comment body, for `comment` and `edit-comment`.
  * @property {string} [remove] - Lane label to remove, for `relabel`.
@@ -121,11 +144,12 @@ export const MARKER_AUTHORS = Object.freeze(["github-actions[bot]"]);
  * @property {number} [runId] - Actions run id.
  */
 
-/** The three writes a plan can contain. */
+/** The writes a plan can contain. */
 const ACTION = Object.freeze({
   comment: "comment",
   relabel: "relabel",
   editComment: "edit-comment",
+  rerunJob: "rerun-job",
 });
 
 /**
@@ -646,6 +670,8 @@ function untouchedSince(ctx, marker) {
 function planFailure(ctx) {
   const { item, view, pr, sha, failing, lanes } = ctx;
   const known = { pr, sha, item };
+  const stale = planStaleTraceability(ctx);
+  if (stale) return stale;
   const relabel = {
     kind: ACTION.relabel,
     item,
@@ -691,6 +717,102 @@ function planFailure(ctx) {
     reason: "a required check failed",
     actions: [{ kind: ACTION.comment, item, body }, relabel],
   };
+}
+
+/**
+ * Plan a traceability failure that read the tracker before the backlink existed.
+ *
+ * Returns null — the ordinary failure path — unless ALL of these hold: the
+ * only failing required check is `TRACEABILITY_CHECK`; the item carries Lisa's
+ * managed backlink comment for exactly this PR; and that comment was created
+ * or last edited after the failing check completed. Then the failure answers a
+ * question about a tracker that no longer exists, and the remedy is to ask the
+ * check again, not to send the item back to the queue.
+ *
+ * The comment's author is deliberately not trusted or checked. Nothing here
+ * decides gate 5: a forged backlink earns one re-run, which reads the tracker
+ * itself, and that run's own completion is then newer than the comment, so a
+ * second failure takes the ordinary path. No loop is possible.
+ *
+ * A job in a run that has not finished cannot be re-run, and a third-party
+ * check can trigger this while CI is still running. That case writes nothing:
+ * the CI run's own `workflow_run` completion re-evaluates and re-runs then.
+ * @param {object} ctx - Resolved context.
+ * @returns {Plan|null} A re-run or wait plan, or null for the ordinary path.
+ */
+function planStaleTraceability(ctx) {
+  const { view, pr, sha, item, failing, repository, gh } = ctx;
+  if (failing.length !== 1 || failing[0] !== TRACEABILITY_CHECK) return null;
+  const prUrl = `https://github.com/${repository}/pull/${pr}`;
+  const { mine } = partitionBacklinks(view.comments, prUrl, c => c.body);
+  if (mine === undefined) return null;
+  const row = readCheckDetails(pr, repository, gh).find(
+    c => c.name === TRACEABILITY_CHECK && c.bucket === "fail"
+  );
+  if (row === undefined) return null;
+  const written = Date.parse(mine.updated_at ?? mine.created_at);
+  const completed = Date.parse(row.completedAt);
+  if (!Number.isFinite(written) || !Number.isFinite(completed))
+    throw new Error(
+      `cannot compare the backlink time (${mine.updated_at ?? mine.created_at}) with the check completion (${row.completedAt})`
+    );
+  if (written <= completed) return null;
+  const link = JOB_LINK.exec(String(row.link ?? ""));
+  if (link === null)
+    throw new Error(
+      `the ${TRACEABILITY_CHECK} row links to no Actions job: ${row.link}`
+    );
+  const runId = Number(link[1]);
+  const jobId = Number(link[2]);
+  const known = { pr, sha, item };
+  const run = readJson(gh, [
+    "api",
+    `repos/${repository}/actions/runs/${runId}`,
+  ]);
+  if (run.status !== "completed")
+    return stop(
+      "stale-traceability-pending",
+      `${TRACEABILITY_CHECK} failed before this PR's backlink was written, and run ${runId} has not finished; its completion re-evaluates`,
+      known
+    );
+  return {
+    ...known,
+    outcome: "rerun-stale-traceability",
+    reason: `${TRACEABILITY_CHECK} completed at ${row.completedAt}, before this PR's backlink was written at ${mine.updated_at ?? mine.created_at}; re-running it instead of re-dispatching`,
+    actions: [{ kind: ACTION.rerunJob, runId, jobId }],
+  };
+}
+
+/**
+ * Read completion time and job link for the PR's required checks.
+ *
+ * A separate read from `readRequiredChecks` so the common path keeps its
+ * recorded argv; only the stale-traceability path needs these two fields.
+ * @param {number} pr - PR number.
+ * @param {string} repo - Repository.
+ * @param {Function} gh - Runner.
+ * @returns {Array<{name: string, bucket: string, completedAt: string, link: string}>} Rows.
+ */
+function readCheckDetails(pr, repo, gh) {
+  const args = [
+    "pr",
+    "checks",
+    String(pr),
+    "--repo",
+    repo,
+    "--required",
+    "--json",
+    "name,bucket,completedAt,link",
+  ];
+  const result = gh(args);
+  // Non-zero exit with rows on stdout is normal while a check is failing.
+  try {
+    const rows = JSON.parse(result.stdout);
+    if (Array.isArray(rows)) return rows;
+  } catch {
+    // fall through
+  }
+  throw new Error(`gh ${args.join(" ")} failed: ${result.stderr}`);
 }
 
 /**
@@ -825,6 +947,8 @@ export function planRedispatch({ run, repository, contract, gh }) {
     failing,
     runId: run.id,
     lanes: contract.lifecycle,
+    repository: contract.repository,
+    gh,
     // Read lazily: only a lane repair or restore needs the label history.
     events: () => readEvents(view.number, contract.repository, gh),
     // The same supersession rule the route helper applies (#4707).
@@ -1015,6 +1139,15 @@ function writeCall(action, repo) {
       ],
       input: JSON.stringify({ body: action.body }),
     };
+  if (action.kind === ACTION.rerunJob)
+    return {
+      args: [
+        "api",
+        "-X",
+        "POST",
+        `repos/${repo}/actions/jobs/${action.jobId}/rerun`,
+      ],
+    };
   throw new Error(`unknown planned action: ${action.kind}`);
 }
 
@@ -1057,6 +1190,8 @@ function describePlan(plan, dryRun) {
       );
     if (action.kind === ACTION.editComment)
       lines.push(`${verb}: mark comment ${action.commentId} cleared`);
+    if (action.kind === ACTION.rerunJob)
+      lines.push(`${verb}: re-run job ${action.jobId} of run ${action.runId}`);
   }
   return lines;
 }
