@@ -13226,6 +13226,7 @@
     "tests/unit/controls/audit-skill-probes.test.ts": true,
     "tests/unit/controls/audit-skill-questions.test.ts": true,
     "tests/unit/controls/audit-skill.test.ts": true,
+    "tests/unit/controls/background-maintenance.test.ts": true,
     "tests/unit/controls/before-enforce-findings.test.ts": true,
     "tests/unit/controls/canary-eligibility-apps.test.ts": true,
     "tests/unit/controls/canary-eligibility.test.ts": true,

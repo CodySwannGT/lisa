@@ -170,13 +170,20 @@ function oneLine(text: string): string {
   return line.length > REASON_LIMIT ? `${line.slice(0, REASON_LIMIT)}…` : line;
 }
 
+/** The settings that keep git from leaving housekeeping running behind it. */
+const NO_HOUSEKEEPING: readonly (readonly [string, string])[] = [
+  ["maintenance.auto", "false"],
+  ["gc.auto", "0"],
+];
+
 /**
  * The start of a git command that works in one folder and nowhere else.
  *
  * The program and the arguments that come before git's own: the variables
  * that would point git at another repository are removed, git is told not to
- * look above the folder for one, and the machine's own git settings are left
- * out. Whatever is started with it must be started in that folder.
+ * look above the folder for one, the machine's own git settings are left out,
+ * and no background housekeeping is started. Whatever is started with it must
+ * be started in that folder.
  * @param directory - Real path of the folder the command will be started in
  * @returns The program, then every argument up to and including `git`
  */
@@ -187,6 +194,15 @@ export function isolatedGit(directory: string): readonly string[] {
     `GIT_CEILING_DIRECTORIES=${path.dirname(directory)}`,
     `GIT_CONFIG_GLOBAL=${devNull}`,
     "GIT_CONFIG_NOSYSTEM=1",
+    // `git commit` and `git fetch` would otherwise start `git maintenance run
+    // --auto --detach`, which keeps writing in `.git/objects` after the
+    // command has returned, while the copy is being reset or removed
+    // (CodySwannGT/lisa#5100).
+    `GIT_CONFIG_COUNT=${String(NO_HOUSEKEEPING.length)}`,
+    ...NO_HOUSEKEEPING.flatMap(([key, value], index) => [
+      `GIT_CONFIG_KEY_${String(index)}=${key}`,
+      `GIT_CONFIG_VALUE_${String(index)}=${value}`,
+    ]),
     "LC_ALL=C",
     "git",
   ];
