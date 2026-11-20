@@ -351,39 +351,68 @@ function keyMismatchNote(entry, others) {
 }
 
 /**
- * Warn when a sound, entry-only exception names no threshold in its file.
+ * The threshold names the ratchet finds in a file as the change has it.
+ *
+ * Taken from the comparison itself — every finding it reports when the file
+ * is emptied — so the names cannot differ from what an entry is matched
+ * against. `*` is left out: it is how an unreadable file reports itself, not
+ * a name anybody would write.
+ * @param {string} file Repo-relative path
+ * @param {string} text The file's text
+ * @returns {string[]} Names, in the order the comparison reports them
+ */
+function thresholdNamesIn(file, text) {
+  return [
+    ...new Set(compareFile(file, text, "{}").map(finding => finding.key)),
+  ].filter(name => name !== "*");
+}
+
+/**
+ * Point out a sound, entry-only exception whose key names no threshold the
+ * ratchet finds in its file today.
  *
  * An entry is matched by its file and its exact key, and nothing at record
  * time says which threshold it is meant for. A key that is nearly right — the
  * name in the config file instead of the name the ratchet gives the threshold
  * — is recorded, merged, and then covers nothing, and the operator learns of
  * it one merge later. So when the named file can be read, the notice says
- * whether the ratchet finds a threshold of that name in it.
+ * what the ratchet finds in it.
  *
- * The names are taken from the comparison itself — every finding it reports
- * when the file is emptied — so this cannot disagree with what an entry is
- * later matched against. A warning and not a refusal: an entry may be written
- * before its threshold exists, and a file whose names cannot be listed this
- * way (nothing reported, or not readable at the path as written) says nothing.
+ * It states an observation and never a prediction. An entry can be right and
+ * still name nothing today: a threshold that is added later, a mutation
+ * exclusion that does not exist yet, or a file of the same name in a
+ * sub-folder, which an entry with a bare file name also matches. Saying such
+ * an entry "will cover nothing" would be false.
+ *
+ * It can never change the verdict. The file name comes from the entry, so a
+ * path that leaves the repository is not read, and any failure while reading
+ * or comparing — a file too deep to walk, say — yields no note rather than an
+ * error from code whose only job is a hint.
  * @param {{ file: string, key: string }} entry The entry being recorded
  * @param {(file: string) => string | null | undefined} readFile Reads a
  *   repository file as the change has it
  * @returns {string} A sentence to append to the notice, or nothing
  */
-function unmatchedKeyWarning(entry, readFile) {
-  if (entry.key === "*" || !familyFor(entry.file)) return "";
-  const text = readFile(entry.file);
-  if (typeof text !== "string") return "";
-  const names = [
-    ...new Set(compareFile(entry.file, text, "{}").map(f => f.key)),
-  ];
-  if (names.length === 0 || names.includes(entry.key)) return "";
-  const listed = names
-    .slice(0, HINT_LIMIT)
-    .map(name => `"${name}"`)
-    .join(", ");
-  const more = names.length > HINT_LIMIT ? ", and more" : "";
-  return ` Warning: the ratchet finds no threshold named "${entry.key}" in ${entry.file}, so as written this entry will cover nothing. The names it watches there are ${listed}${more}. ${COVER_RULE}`;
+function unmatchedKeyNote(entry, readFile) {
+  const leavesRepository =
+    entry.file.startsWith("/") || entry.file.split(/[\\/]/u).includes("..");
+  if (entry.key === "*" || leavesRepository || !familyFor(entry.file)) {
+    return "";
+  }
+  try {
+    const text = readFile(entry.file);
+    if (typeof text !== "string") return "";
+    const names = thresholdNamesIn(entry.file, text);
+    if (names.length === 0 || names.includes(entry.key)) return "";
+    const listed = names
+      .slice(0, HINT_LIMIT)
+      .map(name => `"${name}"`)
+      .join(", ");
+    const more = names.length > HINT_LIMIT ? ", and more" : "";
+    return ` Check the key: the ratchet finds no threshold named "${entry.key}" in ${entry.file} at the repository root today. The names it finds there are ${listed}${more}. If the entry is meant for one of them, its key must be that name exactly. A threshold added later, a new exclusion, or a file of the same name in a sub-folder is still matched by the entry as written.`;
+  } catch {
+    return "";
+  }
 }
 
 /**
@@ -420,7 +449,7 @@ function judgeAddedException(finding, others, now, readFile) {
   }
   return {
     accepted: true,
-    message: `new exception recorded — ${describeAllowScope(entry)}. Reason on record: "${reasonInWords(entry.reason)}". It ends after ${String(entry.until).trim()}. It exempts nothing until this change is merged, so make the threshold change in a later change.${unmatchedKeyWarning(entry, readFile)}`,
+    message: `new exception recorded — ${describeAllowScope(entry)}. Reason on record: "${reasonInWords(entry.reason)}". It ends after ${String(entry.until).trim()}. It exempts nothing until this change is merged, so make the threshold change in a later change.${unmatchedKeyNote(entry, readFile)}`,
   };
 }
 

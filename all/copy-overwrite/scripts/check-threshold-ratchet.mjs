@@ -217,7 +217,11 @@ function resolvePlan(mode, root, baseRef, onlyFiles) {
     baselineRef: "HEAD",
     readCurrent: f => {
       try {
-        return fs.readFileSync(path.join(root, f), "utf-8");
+        const target = path.join(root, f);
+        // Regular files only. Reading a named pipe would block for ever, and
+        // a hook that hangs wedges the agent session it is advising.
+        if (!fs.statSync(target).isFile()) return null;
+        return fs.readFileSync(target, "utf-8");
       } catch {
         // probe-direction: fail-closed — an unreadable current file compares as
         // absent against the baseline, which is the strict side of the ratchet.

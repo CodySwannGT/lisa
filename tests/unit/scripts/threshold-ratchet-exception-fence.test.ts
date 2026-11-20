@@ -67,6 +67,7 @@ const WOULD_NOT_COVER =
 const COVER_RULE =
   'An entry covers a threshold only when its "file" and "key" are that threshold\'s, or its key is "*".';
 const NEAR_MISS = "an exception on record for this file names";
+const CHECK_KEY = "Check the key: the ratchet finds no threshold named";
 const DEFAULT_UNKNOWN =
   "which branch of the remote named origin is its default could not be determined";
 const SET_HEAD = '"git remote set-head origin --auto"';
@@ -443,12 +444,15 @@ describe("an exception whose key misses the threshold (#5099)", () => {
 
     expect(notice).toContain(RECORDED);
     expect(notice).toContain(
-      `Warning: the ratchet finds no threshold named "${WRONG_KEY}" in ${ESLINT_FILE}`
+      `${CHECK_KEY} "${WRONG_KEY}" in ${ESLINT_FILE} at the repository root today`
     );
     expect(notice).toContain(
-      'The names it watches there are "maxWarnings", "maxComplexity".'
+      'The names it finds there are "maxWarnings", "maxComplexity".'
     );
-    expect(notice).toContain(COVER_RULE);
+    expect(notice).toContain(
+      "A threshold added later, a new exclusion, or a file of the same name in a sub-folder is still matched"
+    );
+    expect(notice).not.toContain("will cover nothing");
   });
 
   it.each([
@@ -465,7 +469,63 @@ describe("an exception whose key misses the threshold (#5099)", () => {
     const notice = noticeFor(added, text);
 
     expect(notice).toContain(RECORDED);
-    expect(notice).not.toContain("Warning:");
+    expect(notice).not.toContain(CHECK_KEY);
+  });
+
+  it.each([
+    ["an absolute path", "/etc/eslint.thresholds.json"],
+    ["a path that climbs out", "../elsewhere/eslint.thresholds.json"],
+    ["a path that climbs out midway", "a/../../eslint.thresholds.json"],
+    ["a path that climbs out with backslashes", "..\\eslint.thresholds.json"],
+  ])("does not read %s", (_name, file) => {
+    const reads: string[] = [];
+    const settled = settleAddedExceptions(
+      compareFile(
+        LISA_CONFIG,
+        "{}",
+        JSON.stringify({
+          thresholdRatchet: { allow: [entry({ file, key: WRONG_KEY })] },
+        })
+      ),
+      ACCESS_ONLY,
+      NOW,
+      read => {
+        reads.push(read);
+        return eslintText;
+      }
+    );
+
+    expect(reads).toEqual([]);
+    expect(settled.accepted[0]?.message).toContain(RECORDED);
+    expect(settled.accepted[0]?.message).not.toContain(CHECK_KEY);
+  });
+
+  it("records the entry all the same when the file cannot be read or walked", () => {
+    const settled = settleAddedExceptions(
+      compareFile(
+        LISA_CONFIG,
+        "{}",
+        JSON.stringify({
+          thresholdRatchet: { allow: [entry({ key: WRONG_KEY })] },
+        })
+      ),
+      ACCESS_ONLY,
+      NOW,
+      () => {
+        throw new RangeError("Maximum call stack size exceeded");
+      }
+    );
+
+    expect(settled.refused).toEqual([]);
+    expect(settled.accepted[0]?.message).toContain(RECORDED);
+    expect(settled.accepted[0]?.message).not.toContain(CHECK_KEY);
+  });
+
+  it("does not offer * as a name when the file does not parse", () => {
+    const notice = noticeFor(entry({ key: WRONG_KEY }), "{");
+
+    expect(notice).toContain(RECORDED);
+    expect(notice).not.toContain(CHECK_KEY);
   });
 
   it("stops listing a file's thresholds after five", () => {
@@ -868,7 +928,7 @@ describe("what the check says about a change it refuses (#5099)", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain(RECORDED);
     expect(result.stdout).toContain(
-      `Warning: the ratchet finds no threshold named "${WRONG_KEY}" in ${ESLINT_FILE}`
+      `${CHECK_KEY} "${WRONG_KEY}" in ${ESLINT_FILE} at the repository root today`
     );
     expect(result.stdout).toContain('"maxWarnings"');
   });

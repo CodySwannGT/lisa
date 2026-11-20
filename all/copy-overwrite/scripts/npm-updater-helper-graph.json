@@ -20,7 +20,7 @@
   },
   "members": {
     "check-threshold-ratchet.mjs": {
-      "sha256": "4c36d4952874e45036ee16c64904d6598b6789dd814b7a9a9119ebb3321b7c04",
+      "sha256": "8fba20337a0f56e7d37ee6a8ea814878740e4de9d96457b3d4dc5712a3f0f7c0",
       "staticImports": [
         "node:child_process",
         "node:fs",
@@ -1756,7 +1756,7 @@
       "children": []
     },
     "threshold-ratchet-compare.mjs": {
-      "sha256": "03765e8be98e7781cc18e9aece014cca4556ea88e291ec3e82b9b4a80e24bdbd",
+      "sha256": "8425f6ffc4d2a095af4f463617adab089b79f0bd6bb27aa1eb9cbc04013e5b4b",
       "staticImports": [
         "threshold-ratchet-families.mjs"
       ],
