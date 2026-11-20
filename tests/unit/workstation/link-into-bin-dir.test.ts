@@ -15,14 +15,17 @@
  */
 
 import { existsSync, mkdirSync, readlinkSync, writeFileSync } from "node:fs";
-import { mkdtempSync, realpathSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { realpathSync } from "node:fs";
 import path from "node:path";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { linkIntoBinDir } from "../../../plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs";
 import { createSymlink } from "../../support/borrowed-node-modules.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** A catalogue entry shaped like the one that exposed this. */
 const SONAR = {
@@ -54,7 +57,7 @@ function place(relative: string): void {
 }
 
 beforeEach(() => {
-  home = realpathSync(mkdtempSync(path.join(tmpdir(), "lisa-link-")));
+  home = realpathSync(ownedDir("lisa-link-"));
 });
 
 describe("linkIntoBinDir", () => {

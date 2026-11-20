@@ -15,8 +15,7 @@
  *    format, so the pushed commit is a one-line manifest diff.
  * @module tests/unit/scripts/raise-self-dependency-pin
  */
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
@@ -29,6 +28,10 @@ import {
   main,
   raiseSelfPin,
 } from "../../../scripts/raise-self-dependency-pin.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** The floor 6.0.0 left behind. */
 const STALE_FLOOR = "^5.0.1";
@@ -59,7 +62,7 @@ const MANIFEST = {
  * @returns The manifest's path.
  */
 function writeManifest(manifest: Record<string, unknown>): string {
-  const dir = mkdtempSync(path.join(tmpdir(), "raise-self-pin-"));
+  const dir = ownedDir("raise-self-pin-");
   const file = path.join(dir, "package.json");
   writeFileSync(file, `${JSON.stringify(manifest, null, 2)}\n`);
   return file;

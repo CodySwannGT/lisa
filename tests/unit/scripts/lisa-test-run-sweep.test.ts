@@ -4,10 +4,13 @@
  *
  * The sweep itself is injected: what it removes and kills is covered by the
  * `lisa-cleanup-sweep*.test.ts` files. This file proves the start-up contract —
- * the owner marker every descendant inherits, the once-per-run skip, and that
+ * the owner marker every descendant inherits, the once-per-run-per-root skip
+ * (CodySwannGT/lisa#5095), and that
  * a sweep failure is printed and never fails the run.
  * @module tests/unit/scripts/lisa-test-run-sweep
  */
+import path from "node:path";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { startOfRunSweep } from "../../../src/cli/lisa-test-run-sweep.js";
@@ -15,6 +18,10 @@ import { startOfRunSweep } from "../../../src/cli/lisa-test-run-sweep.js";
 const MARKER = "4242:1794063600";
 /** A marker naming an enclosing sweeper that is still alive. */
 const LIVE_SWEEPER = "1111:5";
+/** The temp root the gate runner swept before moving the run elsewhere. */
+const PLATFORM_ROOT = "/var/folders/xy/T";
+/** The short root `lisa-test-run` moves a socket-unsafe run to. */
+const SOCKET_ROOT = "/private/tmp";
 const RESULT = {
   removed: ["/t/lisa-a"],
   killed: [],
@@ -31,7 +38,9 @@ const RESULT = {
  */
 async function start(
   inherited: Record<string, string | undefined>,
-  sweep: () => Promise<typeof RESULT> = async () => RESULT
+  sweep: (options: {
+    readonly orphans?: false;
+  }) => Promise<typeof RESULT> = async () => RESULT
 ) {
   const lines: string[] = [];
   const sweepMock = vi.fn(sweep);
@@ -59,13 +68,38 @@ describe("lisa-test-run start-of-run sweep", () => {
   it("skips the sweep, saying so, inside a live sweeper's run, but still marks itself", async () => {
     const { env, lines, sweepMock } = await start({
       LISA_CLEANUP_SWEPT: LIVE_SWEEPER,
+      LISA_CLEANUP_SWEPT_ROOTS: SOCKET_ROOT,
       LISA_TEST_RUN_OWNER: LIVE_SWEEPER,
+      TMPDIR: SOCKET_ROOT,
     });
     expect(sweepMock).not.toHaveBeenCalled();
     expect(lines).toEqual([
       "🧹 cleanup sweep already ran (pid 1111); skipping\n",
     ]);
     expect(env["LISA_TEST_RUN_OWNER"]).toBe(MARKER);
+  });
+
+  it("sweeps the temp root a live sweeper did not cover, without reaping orphans again", async () => {
+    const { env, sweepMock } = await start({
+      LISA_CLEANUP_SWEPT: LIVE_SWEEPER,
+      LISA_CLEANUP_SWEPT_ROOTS: PLATFORM_ROOT,
+      TMPDIR: `${SOCKET_ROOT}/`,
+    });
+    expect(sweepMock).toHaveBeenCalledTimes(1);
+    expect(sweepMock).toHaveBeenCalledWith({ orphans: false });
+    expect(env["LISA_CLEANUP_SWEPT_ROOTS"]).toBe(
+      [PLATFORM_ROOT, SOCKET_ROOT].join(path.delimiter)
+    );
+    expect(env["LISA_CLEANUP_SWEPT"]).toBe(MARKER);
+  });
+
+  it("records only its own root when it sweeps everything", async () => {
+    const { env, sweepMock } = await start({
+      LISA_CLEANUP_SWEPT_ROOTS: PLATFORM_ROOT,
+      TMPDIR: SOCKET_ROOT,
+    });
+    expect(sweepMock).toHaveBeenCalledWith({});
+    expect(env["LISA_CLEANUP_SWEPT_ROOTS"]).toBe(SOCKET_ROOT);
   });
 
   it("sweeps when the recorded sweeper is gone or the mark is malformed", async () => {

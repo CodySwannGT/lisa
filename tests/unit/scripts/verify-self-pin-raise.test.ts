@@ -9,8 +9,7 @@
  * job could try to smuggle a second change through.
  * @module tests/unit/scripts/verify-self-pin-raise
  */
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
@@ -25,6 +24,10 @@ import {
   verifySelfLockEntry,
   verifySelfPinRaise,
 } from "../../../scripts/verify-self-pin-raise.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** The package whose pin is raised. */
 const SELF = "@codyswann/lisa";
@@ -122,7 +125,7 @@ describe("the push job accepts only the self-pin line (#4951)", () => {
   });
 
   it("exits 0 only for a proven raise through the CLI", () => {
-    const dir = mkdtempSync(path.join(tmpdir(), "verify-self-pin-"));
+    const dir = ownedDir("verify-self-pin-");
     const base = path.join(dir, "base.json");
     const candidate = path.join(dir, "candidate.json");
     writeFileSync(base, text(BASE));
@@ -496,7 +499,7 @@ describe("the lockfile CLI exits 0 only when both checks pass (#4951)", () => {
     candidate: string,
     fetchImpl: typeof fetch
   ): Promise<number> {
-    const dir = mkdtempSync(path.join(tmpdir(), "verify-self-lock-"));
+    const dir = ownedDir("verify-self-lock-");
     const regenerated = path.join(dir, "regenerated.lock");
     const tested = path.join(dir, "tested.lock");
     writeFileSync(regenerated, LOCK);
@@ -674,7 +677,7 @@ describe("both jobs resolve exactly the published release (#4951)", () => {
   });
 
   it("switches the files in place through the CLI and exits 0 only on success", () => {
-    const dir = mkdtempSync(path.join(tmpdir(), "verify-self-spec-"));
+    const dir = ownedDir("verify-self-spec-");
     const manifest = path.join(dir, "package.json");
     const lockfile = path.join(dir, "bun.lock");
     writeFileSync(manifest, CARET_MANIFEST);

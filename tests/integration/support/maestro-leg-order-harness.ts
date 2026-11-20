@@ -20,11 +20,14 @@ import * as fs from "fs-extra";
 import { execFile } from "node:child_process";
 import * as http from "node:http";
 import type { AddressInfo } from "node:net";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import type { SimulatedWorkflow } from "../../helpers/workflow-job-graph.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * The iOS job's display name, read off the parsed YAML.
@@ -199,7 +202,7 @@ export const runWaitStep = (
 ): Promise<StepRun> => {
   const step = (workflow.jobs[job]?.steps ?? [])[0];
   if (!step?.run) throw new Error(`${job} wait step not found`);
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-leg-order-"));
+  const scratch = ownedDir("maestro-leg-order-");
   return new Promise<StepRun>(resolve => {
     execFile(
       BASH,
@@ -252,7 +255,7 @@ export const runPreflight = (
     candidate => candidate.id === "check"
   );
   if (!step?.run) throw new Error("preflight check step not found");
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-preflight-"));
+  const scratch = ownedDir("maestro-preflight-");
   const flowsDir = path.join(scratch, "flows");
   const outputFile = path.join(scratch, "github-output");
   fs.mkdirpSync(flowsDir);

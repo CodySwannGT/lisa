@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.2.1](https://github.com/CodySwannGT/lisa/compare/v8.2.0...v8.2.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* **stale-links:** count open cross-project blockers as real blockers ([b0a751f](https://github.com/CodySwannGT/lisa/commit/b0a751f1d05ab8f90513898cb1750e174eb23ab7)), closes [#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+
+## [8.2.0](https://github.com/CodySwannGT/lisa/compare/v8.1.1...v8.2.0) (2026-11-20)
+
+
+### Features
+
+* **session-manager:** clear stale blocker links so finished work stops holding the queue ([fdef8a5](https://github.com/CodySwannGT/lisa/commit/fdef8a5722dc51a4416dddc12800b7896ecbbf48)), closes [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+
+
+### Bug Fixes
+
+* **session-manager:** an intermediate done blocker holds nothing, and its link stays ([9df4c04](https://github.com/CodySwannGT/lisa/commit/9df4c0483bb0502d63cf093d3d5d3b7a5bf67c70)), closes [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+* **session-manager:** confirm by relationship, verify from the read-back, lock state ([aff9ccb](https://github.com/CodySwannGT/lisa/commit/aff9ccbd1f27afae57eb3493a17fe216e4e353f9)), closes [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+* **session-manager:** confirm stale-link removals against a fresh read ([2946730](https://github.com/CodySwannGT/lisa/commit/29467309bcfe8e730edded78d9f8919ca6648d43)), closes [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+* **session-manager:** post Jira stale-link comments as ADF and share one blocker rule ([49d9bbc](https://github.com/CodySwannGT/lisa/commit/49d9bbc37750f0756d9fca60aa39ec76ac045823)), closes [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+* **session-manager:** post stale-link markers only for confirmed removals, report verified results ([1e4cf9f](https://github.com/CodySwannGT/lisa/commit/1e4cf9fb87096b45dc8c45d5660f6f8d04662b41)), closes [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+* **session-manager:** put back a link whose blocker reopened before the delete ([643c738](https://github.com/CodySwannGT/lisa/commit/643c738578772458252eee18744eead7bebea230)), closes [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+* **session-manager:** record the probe direction of the stale-link blocker read ([d9ff946](https://github.com/CodySwannGT/lisa/commit/d9ff94618684101736e57fe66c9473bac8ec7044)), closes [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+* **session-manager:** resolve done rungs per env, skip unread status, demote failing removals ([fd08701](https://github.com/CodySwannGT/lisa/commit/fd08701351a74df18b21a65bb6f2ac62dbe46e8d)), closes [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+* **stale-links:** hold owed restores and unread blocker lists, retry read-backs ([d09d2a5](https://github.com/CodySwannGT/lisa/commit/d09d2a50d14c014372e98bae2115413386a0de18)), closes [#5077](https://github.com/CodySwannGT/lisa/issues/5077) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+* **stale-links:** keep in-flight removals recoverable and hold their items ([e32b9e6](https://github.com/CodySwannGT/lisa/commit/e32b9e6629d948569c0582a61e03f3885960d4ae)), closes [#5077](https://github.com/CodySwannGT/lisa/issues/5077) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+
+
+### Documentation
+
+* **session-manager:** name the sub-second window left after the stale-link restore ([6dbb32c](https://github.com/CodySwannGT/lisa/commit/6dbb32c839d15c10b461eee1ed8595078a64ab56)), closes [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065) [CodySwannGT/lisa#5065](https://github.com/CodySwannGT/lisa/issues/5065)
+
 ### [8.1.1](https://github.com/CodySwannGT/lisa/compare/v8.1.0...v8.1.1) (2026-11-19)
 
 

@@ -10,12 +10,15 @@
  * Not named `*.test.ts`, so vitest collects nothing from it.
  * @module tests/unit/hooks/support/blind-automerge
  */
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
 import { createSymlink } from "../../../support/borrowed-node-modules.mjs";
+import { useOwnedTempDirs } from "../../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this module makes for the importing file, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** The guard under test, as it lives in the plugin source. */
 const SCRIPT_PATH = path.resolve(
@@ -120,7 +123,7 @@ const FAKE_SHEBANG = "#!/usr/bin/env bash";
 export const fakeGh = (
   behavior: GhBehavior
 ): { bin: string; callLog: string } => {
-  const bin = mkdtempSync(path.join(tmpdir(), GH_BIN_PREFIX));
+  const bin = ownedDir(GH_BIN_PREFIX);
   const callLog = path.join(bin, CALL_LOG);
   const stdout =
     behavior.rawStdout ?? JSON.stringify(behavior.payload ?? READY_PR);
@@ -152,7 +155,7 @@ export const fakeGh = (
  * @returns A PATH value containing only those tools.
  */
 export const pathWith = (tools: readonly string[]): string => {
-  const bin = mkdtempSync(path.join(tmpdir(), "lisa-automerge-path-"));
+  const bin = ownedDir("lisa-automerge-path-");
   for (const tool of tools) {
     const resolved = boundedSpawnSync({
       label: `which ${tool}`,
@@ -313,7 +316,7 @@ export const routingGh = (answers: {
   readonly rules?: unknown;
   readonly rulesExitCode?: number;
 }): { bin: string; callLog: string } => {
-  const bin = mkdtempSync(path.join(tmpdir(), GH_BIN_PREFIX));
+  const bin = ownedDir(GH_BIN_PREFIX);
   const callLog = path.join(bin, CALL_LOG);
   const script = [
     FAKE_SHEBANG,
@@ -410,7 +413,7 @@ export const graphqlGh = (answers: {
   readonly pr?: unknown;
   readonly rules?: unknown;
 }): { bin: string; callLog: string } => {
-  const bin = mkdtempSync(path.join(tmpdir(), GH_BIN_PREFIX));
+  const bin = ownedDir(GH_BIN_PREFIX);
   const callLog = path.join(bin, CALL_LOG);
   const envelope = JSON.stringify({
     data: { node: answers.node ?? GRAPHQL_GREEN_NODE },

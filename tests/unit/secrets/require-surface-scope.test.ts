@@ -10,14 +10,17 @@
  * @module tests/unit/secrets/require-surface-scope
  */
 
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import { validateSecrets } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * Write a `.lisa.config.json` into a throwaway directory.
@@ -25,7 +28,7 @@ import { validateSecrets } from "../../../plugins/src/base/skills/lisa-secrets-a
  * @returns Absolute path to the directory containing it
  */
 function repoWith(config: unknown): string {
-  const dir = mkdtempSync(join(tmpdir(), "lisa-require-"));
+  const dir = ownedDir("lisa-require-");
   writeFileSync(join(dir, ".lisa.config.json"), JSON.stringify(config));
   return dir;
 }

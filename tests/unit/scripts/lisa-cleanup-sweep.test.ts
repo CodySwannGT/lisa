@@ -23,6 +23,7 @@ import {
   parseSweepArgs,
   sweep,
 } from "../../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs";
+import { canonicalEntry } from "../../helpers/canonical-entry.js";
 import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -112,7 +113,7 @@ describe("temp sweep selection", () => {
     const fresh = agedDir(root, "lisa-sweep-demo-new", 1);
     const foreign = agedDir(root, "other-sweep-demo-old", 25);
     const result = await sweepRoot(root);
-    expect(result.removed).toEqual([stale]);
+    expect(result.removed).toEqual([canonicalEntry(stale)]);
     expect(fs.existsSync(stale)).toBe(false);
     expect(fs.existsSync(fresh)).toBe(true);
     expect(fs.existsSync(foreign)).toBe(true);
@@ -123,7 +124,7 @@ describe("temp sweep selection", () => {
     const root = privateRoot();
     const twoHours = agedDir(root, "lisa-two-hours", 2);
     const result = await sweepRoot(root, { maxAgeHours: 1 });
-    expect(result.removed).toEqual([twoHours]);
+    expect(result.removed).toEqual([canonicalEntry(twoHours)]);
   });
 
   it("also removes stale Lisa-owned FILES left by mktemp without -d", async () => {
@@ -132,7 +133,7 @@ describe("temp sweep selection", () => {
     fs.writeFileSync(file, "refs");
     const when = new Date(NOW - 30 * HOUR_MS);
     fs.utimesSync(file, when, when);
-    expect((await sweepRoot(root)).removed).toEqual([file]);
+    expect((await sweepRoot(root)).removed).toEqual([canonicalEntry(file)]);
   });
 
   it("keeps protected state and preserved backups whatever their age", async () => {
@@ -181,7 +182,10 @@ describe("temp sweep selection", () => {
     const root = privateRoot();
     const stale = agedDir(root, "lisa-dry-old", 48);
     const result = await sweepRoot(root, { dryRun: true });
-    expect(result).toMatchObject({ dryRun: true, removed: [stale] });
+    expect(result).toMatchObject({
+      dryRun: true,
+      removed: [canonicalEntry(stale)],
+    });
     expect(fs.existsSync(stale)).toBe(true);
   });
 
@@ -271,7 +275,7 @@ describe("CLI", () => {
     expect(code).toBe(0);
     expect(lines).toHaveLength(1);
     expect(JSON.parse(lines[0] as string)).toMatchObject({
-      removed: [stale],
+      removed: [canonicalEntry(stale)],
       killed: [],
       errors: [],
       durationMs: expect.any(Number),

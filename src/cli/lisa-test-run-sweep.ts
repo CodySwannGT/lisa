@@ -22,9 +22,11 @@
 import {
   formatAlreadySwept,
   formatSummary,
+  planStartOfRunSweep,
   sweep as defaultSweep,
   SWEPT_ENV,
   type SweepResult,
+  tempRootOf,
 } from "../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs";
 import {
   formatOwnerMarker,
@@ -38,7 +40,9 @@ const SWEEP_DEADLINE_MS = 15_000;
 
 /** Seams for {@link startOfRunSweep}; production uses the defaults. */
 export interface StartOfRunSweepSeams {
-  readonly sweep?: () => Promise<SweepResult>;
+  readonly sweep?: (options: {
+    readonly orphans?: false;
+  }) => Promise<SweepResult>;
   readonly ownerMarker?: () => string;
   readonly write?: (line: string) => void;
   readonly timeoutMs?: number;
@@ -132,7 +136,7 @@ export async function startOfRunSweep(
   seams: StartOfRunSweepSeams = {}
 ): Promise<Readonly<Record<string, string>>> {
   const {
-    sweep = () => defaultSweep(),
+    sweep = options => defaultSweep(options),
     ownerMarker = () => ownerMarkerFor(process.pid),
     write = (line: string) => process.stderr.write(line),
     timeoutMs = SWEEP_DEADLINE_MS,
@@ -140,7 +144,16 @@ export async function startOfRunSweep(
   } = seams;
   const marker = markerOrFallback(ownerMarker, write);
   const sweeper = liveSweeper(environment[SWEPT_ENV]);
-  if (sweeper === null) await reportSweep(sweep, timeoutMs, write);
-  else write(`${formatAlreadySwept(sweeper)}\n`);
-  return { [OWNER_ENV]: marker, [SWEPT_ENV]: marker };
+  const plan = planStartOfRunSweep(
+    environment,
+    tempRootOf(environment),
+    sweeper,
+    marker
+  );
+  if (plan.sweep === "none") write(`${formatAlreadySwept(sweeper ?? 0)}\n`);
+  else {
+    const options = plan.sweep === "temp" ? { orphans: false as const } : {};
+    await reportSweep(() => sweep(options), timeoutMs, write);
+  }
+  return { ...plan.marks, [OWNER_ENV]: marker, [SWEPT_ENV]: marker };
 }

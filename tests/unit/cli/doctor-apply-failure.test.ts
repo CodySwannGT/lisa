@@ -8,8 +8,6 @@
  */
 
 import * as fs from "fs-extra";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -18,6 +16,10 @@ import {
   checkApplyFailure,
   summariseCause,
 } from "../../../src/cli/doctor-apply-failure.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * A project root, optionally carrying a recorded failure.
@@ -25,7 +27,7 @@ import {
  * @returns The project root.
  */
 async function project(contents?: string): Promise<string> {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-doctor-apply-"));
+  const root = ownedDir("lisa-doctor-apply-");
   if (contents !== undefined) {
     const file = path.join(root, APPLY_FAILURE_MARKER);
     await fs.ensureDir(path.dirname(file));

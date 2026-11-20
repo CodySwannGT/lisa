@@ -13,13 +13,16 @@
  * mutation case below is a rule nobody has shown to work.
  * @module tests/unit/scripts/cwd-resolution-corpus-adversarial
  */
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const CHECKER = path.resolve("scripts/check-cwd-resolution-corpus.mjs");
 const CORPUS = path.resolve(
@@ -52,7 +55,7 @@ interface Corpus {
  * @returns Exit status and everything the checker printed
  */
 function check(corpus: Corpus): { status: number | null; output: string } {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-corpus-check-"));
+  const root = ownedDir("lisa-corpus-check-");
   const target = path.join(root, "tests/unit/hooks/support");
   boundedSpawnSync({
     label: "mkdir",

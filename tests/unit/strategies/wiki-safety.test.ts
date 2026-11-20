@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import { readFileSync } from "node:fs";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
-import os from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -13,6 +12,10 @@ import {
   scanWikiGeneratedFiles,
   serializeWikiSafetyFindings,
 } from "../../../plugins/src/wiki/scripts/wiki-safety.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 describe("wiki safety sanitizer (#1169)", () => {
   const reportSourceId = "fixtures/report.md";
@@ -199,7 +202,7 @@ describe("wiki safety sanitizer (#1169)", () => {
   });
 
   it("blocks unredacted generated wiki secrets before commit", () => {
-    const root = mkdtempSync(path.join(os.tmpdir(), "wiki-safety-"));
+    const root = ownedDir("wiki-safety-");
     const wikiRoot = path.join(root, "wiki");
     const sourcePath = path.join(wikiRoot, "sources", "fixture.md");
     mkdirSync(path.dirname(sourcePath), { recursive: true });
@@ -236,7 +239,7 @@ describe("wiki safety sanitizer (#1169)", () => {
   });
 
   it("scopes generated wiki verification to wiki output paths", () => {
-    const root = mkdtempSync(path.join(os.tmpdir(), "wiki-safety-scope-"));
+    const root = ownedDir("wiki-safety-scope-");
     const wikiRoot = path.join(root, "wiki");
     const sourcePath = path.join(wikiRoot, "sources", "clean.md");
     const unrelatedPath = path.join(root, "notes", "dirty.md");

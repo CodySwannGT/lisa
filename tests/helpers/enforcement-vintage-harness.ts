@@ -18,11 +18,14 @@
  * `process.env`, a shared helper may not.
  * @module tests/helpers/enforcement-vintage-harness
  */
-import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { boundedSpawnSync } from "./io-latency-budget.js";
+import { useOwnedTempDirs } from "./owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** The shipped hook, as a harness invokes it. */
 const HOOK = "plugins/src/base/hooks/enforcement-vintage.sh";
@@ -80,7 +83,7 @@ export type HookRunner = {
  * @returns Absolute path to an empty directory
  */
 export function scratch(prefix: string): string {
-  return mkdtempSync(path.join(tmpdir(), `lisa-vintage-${prefix}-`));
+  return ownedDir(`lisa-vintage-${prefix}-`);
 }
 
 /**
