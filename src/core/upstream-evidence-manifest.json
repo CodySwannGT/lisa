@@ -1451,11 +1451,11 @@
     "plugins/src/base/scripts/stale-blocker-restore.mjs":
       "89ba35ebddb878f1f7f6089f4f51a9b368f410392bd903c1da35d0b8e220290d",
     "plugins/src/base/scripts/stale-blocker-summary.mjs":
-      "b87f34fbffd308ae027d3ce7464574e7c4c159c8f24f60d3559605590a9773ba",
+      "8ca9a6f7bd6c2df7326972042661b40cf93b80c57e284ac01220964688b74480",
     "plugins/src/base/scripts/stale-blocker-sweep.mjs":
-      "c14a73382e8493c1e0dbb521a660fc9c4dd2172365eb03c3dd0b8ceb84206c95",
+      "33a31ccd36ebc7fa4d1924f14902716065344bc71d8caa1932b6952090576d5e",
     "plugins/src/base/scripts/stale-blocker-verify.mjs":
-      "a79929b0fa4eed83da4e079c7bee162838dc870651c2e19c65bd1936463cb1f3",
+      "e2063d29a4fca67941e2a73ec91050669a5adce16e04c11bcf696de0c5f35132",
     "plugins/src/base/skills/lisa-acceptance-criteria/SKILL.md":
       "ddcb4f10b092f27bbff67782cc4472c3a3c8b8fa08507ee67ca5d1ea4f0f1a20",
     "plugins/src/base/skills/lisa-agent-design-best-practices/SKILL.md":
@@ -14893,6 +14893,7 @@
     "tests/unit/strategies/shipped-prerequisite-check.test.ts": true,
     "tests/unit/strategies/skill-machine-read-names.test.ts": true,
     "tests/unit/strategies/stale-blocker-confirm.test.ts": true,
+    "tests/unit/strategies/stale-blocker-cross-project.test.ts": true,
     "tests/unit/strategies/stale-blocker-cycles.test.ts": true,
     "tests/unit/strategies/stale-blocker-fixtures.ts": true,
     "tests/unit/strategies/stale-blocker-landed.test.ts": true,

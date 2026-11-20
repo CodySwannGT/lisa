@@ -8,6 +8,8 @@
  * @module stale-blocker-summary
  */
 
+import { isResolved } from "./stale-blocker-edges.mjs";
+
 /**
  * What one sweep found.
  * @typedef {object} StaleLinkReport
@@ -18,7 +20,8 @@
  * @property {number} itemsCleared - Items with a planned removal
  * @property {string[]} claimable - Ready items nothing holds any more
  * @property {string[]} deferred - Items left for the next cycle
- * @property {number} realBlockers - Open blockers in the same project
+ * @property {number} realBlockers - Links that still hold their item: an
+ *   open blocker in this project or in another one
  * @property {number} itemsWithRealBlockers - Items with one
  * @property {number} crossProject - Links to another project, left alone
  * @property {{ ref: string, blocker: string }[]} inaccessible - Blockers that could not be read
@@ -40,6 +43,19 @@ const size = list => list.length;
  */
 const pairs = (ref, edges) =>
   edges.map(edge => ({ ref, blocker: edge.blockerRef }));
+
+/**
+ * The links that hold an item as real blockers: every open one in this
+ * project, and every open one in another project. A cross-project link the
+ * sweep keeps because it cannot touch another project still holds the item
+ * while its blocker is open, so it is counted; a finished one holds nothing.
+ * @param {{ real?: readonly object[], crossProject?: readonly { verdict: string }[] }} groups
+ * @returns {object[]}
+ */
+export const holdingReal = groups => [
+  ...(groups.real ?? []),
+  ...(groups.crossProject ?? []).filter(edge => !isResolved(edge.verdict)),
+];
 
 /** How an item whose own blocker list could not be read is reported. */
 export const UNREAD_LIST = "its blocker list";
@@ -66,8 +82,9 @@ export function tallySweep(judged, plans, deferred) {
       .filter(plan => plan.becomesClaimable)
       .map(plan => plan.ref),
     deferred: [...deferred],
-    realBlockers: open.reduce((sum, e) => sum + size(e.sorted.real), 0),
-    itemsWithRealBlockers: open.filter(e => size(e.sorted.real) > 0).length,
+    realBlockers: open.reduce((sum, e) => sum + size(holdingReal(e.sorted)), 0),
+    itemsWithRealBlockers: open.filter(e => size(holdingReal(e.sorted)) > 0)
+      .length,
     crossProject: open.reduce((sum, e) => sum + size(e.sorted.crossProject), 0),
     inaccessible: [
       ...open
