@@ -12149,6 +12149,7 @@
     "tests/helpers/audit-skill.ts": true,
     "tests/helpers/auto-update-fixture.ts": true,
     "tests/helpers/bounded-bash.ts": true,
+    "tests/helpers/canonical-entry.ts": true,
     "tests/helpers/child-bound-scan.ts": true,
     "tests/helpers/child-output-tail.ts": true,
     "tests/helpers/cleanup-sweep-skip.ts": true,
