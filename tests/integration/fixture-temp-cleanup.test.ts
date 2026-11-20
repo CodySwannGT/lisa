@@ -23,7 +23,10 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
 
@@ -57,8 +60,17 @@ const SUITES = [
 /** A folder `mkdtemp` minted: a prefix ending in a dash, then six characters. */
 const PER_CALL_FOLDER = /-[A-Za-z0-9]{6}$/u;
 
-/** Quiet-box budget for the child run: about 11 s measured for 60 files. */
-const CHILD_RUN_BASE_MS = 120_000;
+/**
+ * Quiet-box budget for the child run. Measured at 6.0-6.5 s for the case
+ * (2026-11-20, `ps aux | grep -c '[v]itest'` = 2, 1-minute load 9.4 on 18
+ * cores); 24 s leaves the child about four times that.
+ */
+const CHILD_RUN_BASE_MS = 24_000;
+
+// The case must outlast the child at the 8x slowdown ceiling with 2.5x to
+// spare (24,000 x 8 x 2.5), so the bounded child always dies first and
+// reports by name.
+useIoLatencyBudget(480_000);
 
 describe("fixture suites and the temp root", () => {
   it("leave no per-call temp folder behind after a normal run", () => {
