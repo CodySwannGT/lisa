@@ -25,6 +25,7 @@ import {
 } from "./stale-blocker-comment.mjs";
 import { isResolved } from "./stale-blocker-edges.mjs";
 import { splitReopened, verdictNow } from "./stale-blocker-restore.mjs";
+import { holdingReal } from "./stale-blocker-summary.mjs";
 import {
   itemRoles,
   normalizeStaleLinkItem,
@@ -80,11 +81,11 @@ function withLaterVerdicts(sorted, later) {
 }
 
 /**
- * @param {{ real?: readonly object[], inaccessible?: readonly { blockerRef: string }[] }} groups
+ * @param {{ real?: readonly object[], crossProject?: readonly { verdict: string }[], inaccessible?: readonly { blockerRef: string }[] }} groups
  * @returns {{ real: number, inaccessible: string[] }}
  */
 const holding = groups => ({
-  real: (groups.real ?? []).length,
+  real: holdingReal(groups).length,
   inaccessible: (groups.inaccessible ?? []).map(edge => edge.blockerRef),
 });
 

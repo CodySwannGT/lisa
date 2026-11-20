@@ -370,6 +370,9 @@ export function planStaleLinkSweep(input) {
         // An item whose blocker list could not be read (a failed native
         // dependency read) plans nothing: it is reported, never touched.
         entry.item.relationsRead &&
+        // An item closed since it was listed is never cleaned (Out of
+        // Scope), so it never takes a cap slot either; confirm refuses it too.
+        !entry.item.closed &&
         entry.item.statusKnown &&
         !entry.inBlocked &&
         entry.sorted.stale.length > 0
