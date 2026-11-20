@@ -7,13 +7,14 @@
  * 2026-11-20 one machine held 122,618 entries in `/private/tmp`, 13,701 of them
  * from one helper.
  *
- * One case per fixed helper. Each runs one suite that uses the helper in a
- * real child Vitest, with `TMPDIR` pointed at a private folder, and requires
- * that folder to be EMPTY afterwards. Node's compile cache is switched off in
- * the child so the only writers left are the suite and the code it drives.
- * Every per-file fix routes through `useOwnedTempDirs`, so the case that runs
- * that helper's own suite stands for all of them; the remaining cases cover
- * the shared fixtures, whose callers are many files at once.
+ * One case per fixed helper, and one per traced test file that makes its own
+ * folders. Each runs one suite in a real child Vitest, with `TMPDIR` pointed
+ * at a private folder, and requires that folder to be EMPTY afterwards. Node's
+ * compile cache is switched off in the child so the only writers left are the
+ * suite and the code it drives. The helper's own suite proves
+ * `useOwnedTempDirs` cleans up; the per-file cases prove each traced file
+ * still routes through it, so putting a raw `mkdtemp` back in one of them
+ * fails its own case.
  * @module tests/integration/fixture-temp-cleanup
  */
 import * as fs from "node:fs";
@@ -30,9 +31,10 @@ import {
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
 
 /**
- * Each fixed helper, and one suite that drives its temp-folder path. Each
- * suite was chosen because it leaves folders behind when the helper's cleanup
- * is removed; a suite that never reaches the path would pass either way.
+ * Each fixed helper or traced file, and one suite that drives its temp-folder
+ * path. Each suite was chosen because it leaves folders behind when its
+ * cleanup is removed; a suite that never reaches the path would pass either
+ * way.
  */
 const CASES = [
   ["owned-temp-dirs", "tests/unit/helpers/owned-temp-dirs.test.ts"],
@@ -66,6 +68,24 @@ const CASES = [
   [
     "enforcement-vintage-harness",
     "tests/unit/hooks/enforcement-vintage.test.ts",
+  ],
+  // Traced test files that make their own folders through the helper.
+  ["state-classification", "tests/unit/scripts/state-classification.test.ts"],
+  [
+    "vacuous-required-checks-wiring",
+    "tests/unit/scripts/vacuous-required-checks-wiring.test.ts",
+  ],
+  [
+    "discharge-work-item-gates",
+    "tests/unit/hooks/discharge-work-item-gates.test.ts",
+  ],
+  [
+    "failure-signature-index",
+    "tests/unit/hooks/failure-signature-index.test.ts",
+  ],
+  [
+    "failure-signature-discrimination",
+    "tests/unit/hooks/failure-signature-discrimination.test.ts",
   ],
 ] as const;
 
