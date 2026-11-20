@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.2.6](https://github.com/CodySwannGT/lisa/compare/v8.2.5...v8.2.6) (2026-11-20)
+
+
+### Bug Fixes
+
+* **mutation:** keep the built file the vitest config imports in the Stryker sandbox ([7fef0cf](https://github.com/CodySwannGT/lisa/commit/7fef0cfea137b864b70a8846c944a704eaf5db8c)), closes [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099)
+* **mutation:** make the sandbox test type-check ([fc98ad9](https://github.com/CodySwannGT/lisa/commit/fc98ad9e1cf29c99163f1746877596356fe89554)), closes [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099)
+* **ratchet:** apply review feedback on the local fence and its hints ([4285532](https://github.com/CodySwannGT/lisa/commit/42855320a4a09ea04e5928016e5336681d3a0d5d)), closes [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099)
+* **ratchet:** close the gaps a second review found in the local fence ([887a09c](https://github.com/CodySwannGT/lisa/commit/887a09c231acc7e1937a124015c60ccd56b969d0)), closes [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099)
+* **ratchet:** keep the exception fence once an entry-only change can land ([392d55e](https://github.com/CodySwannGT/lisa/commit/392d55e40b40f6fc892aa24c10e28666e489bf40)), closes [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099)
+* **ratchet:** let an exception-only change pass the check it is written for ([b2ba124](https://github.com/CodySwannGT/lisa/commit/b2ba124d6fe938e165571611a9342fb1380a3532)), closes [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [#4687](https://github.com/CodySwannGT/lisa/issues/4687) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099)
+* **ratchet:** make the key note an observation that cannot change the verdict ([bf875cf](https://github.com/CodySwannGT/lisa/commit/bf875cfc2a24b02df626b0d62fb150a60cdd7d64)), closes [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099)
+* **ratchet:** never take the protected branches from the branch's own config ([febf84e](https://github.com/CodySwannGT/lisa/commit/febf84e090080018f7b7a28ac8b12e6b8bf71d0a)), closes [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099)
+* **ratchet:** say when an exception's key names no threshold ([85bf0cf](https://github.com/CodySwannGT/lisa/commit/85bf0cfff610082d3dd3e02a0fafbf1482f9e4f7)), closes [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099) [CodySwannGT/lisa#5099](https://github.com/CodySwannGT/lisa/issues/5099)
+
 ### [8.2.5](https://github.com/CodySwannGT/lisa/compare/v8.2.4...v8.2.5) (2026-11-20)
 
 
