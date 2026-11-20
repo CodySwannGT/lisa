@@ -290,6 +290,16 @@ describe("the late-landing report says when npm accepted the version (#5106)", (
     expect(output).toContain("::notice title=");
   });
 
+  it("says the record could not be parsed when it is not JSON", async () => {
+    const { summary, output } = await report("<html>not json</html>");
+
+    expect(summary).toContain(
+      "is not stated here: this run's job record could not be parsed."
+    );
+    expect(summary).toContain(NO_ACTION);
+    expect(output).toContain("::notice title=");
+  });
+
   it("reads the run record with a token allowed to read it", () => {
     const step = STEPS.find(candidate => candidate.name === LATE);
 

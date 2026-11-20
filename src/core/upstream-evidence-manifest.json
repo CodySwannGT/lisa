@@ -9,7 +9,7 @@
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "8a4b2cab9ac32a855e2adc1a7a3c6f7a9ac35dcb75cda2fac7eea144ced50098",
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
-      "6077197980f4f90a22f871813452c5acdef8eb507b66575bb9673b4e366df10f",
+      "58473074d6ecdba56b389bf8a0fe8594b80db76ef8114a1948c44219c040c57d",
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
       "1f450d2492ca0bcdba440f6b403c1deee0f35e749c54d2ed5c5ddc696d5ab896",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":

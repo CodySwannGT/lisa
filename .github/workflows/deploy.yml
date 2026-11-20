@@ -304,11 +304,10 @@ jobs:
       # when npm answered "+ <package>@<version>". Not npm's `time` field: for
       # 8.2.4 that read 14:28:26Z, 55 minutes after the publish step succeeded,
       # so it records something later than acceptance. When the record cannot
-      # be read, or that
-      # step did not succeed, the summary says the time is not known rather
-      # than guessing one. The job and step names below are bound to
-      # publish-to-npm.yml by a test, so a rename fails CI instead of blanking
-      # the time.
+      # be read or parsed, or that step did not succeed, the summary says the
+      # time is not stated and why, rather than guessing one. The job and step
+      # names below are bound to publish-to-npm.yml by a test, so a rename
+      # fails CI instead of blanking the time.
       - name: Report a release that landed after the publish check gave up
         if: steps.landed.outputs.verdict == 'published'
         env:
@@ -331,7 +330,10 @@ jobs:
                 .flatMap(job => job.steps ?? [])
                 .find(candidate => candidate.name === "Publish to npm with OIDC" && candidate.conclusion === "success");
               process.stdout.write(step?.completed_at ?? "");
-            ' "$jobs_file")" || accepted_at=""
+            ' "$jobs_file")" || {
+              accepted_at=""
+              unknown_because="this run's job record could not be parsed"
+            }
           else
             unknown_because="this run's job record could not be read"
             echo "::warning::Could not read this run's job record, so the time npm accepted $VERSION is not stated."
