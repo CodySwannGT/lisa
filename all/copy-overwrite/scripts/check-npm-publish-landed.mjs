@@ -159,10 +159,11 @@ export const DEFAULT_MAX_RUNTIME_MS =
  * to make a failing release green.
  *
  * OBSERVED LONGER, NOT YET RAISED. `@codyswann/lisa@8.2.4`, 2026-11-20 (Release
- * and Deploy run 44743107550): `npm publish` was accepted at 13:33:04Z, npm's
- * own `time` record for the version reads 14:28:26.191Z, and the reconcile
- * job's check first got a 200 at 14:28:43Z — 55m22s, longer than
- * {@link DEFAULT_WINDOW_MS}. The publish job's check gave up at 14:12:40Z. This
+ * and Deploy run 44743107550): `npm publish` was accepted at 13:33:04Z. npm's
+ * own `time` record for the version reads 14:28:26.191Z, 55m22s after that;
+ * the reconcile job's check first got a 200 at 14:28:43Z, 55m39s after it.
+ * Both are longer than {@link DEFAULT_WINDOW_MS}. The publish job's check gave
+ * up at 14:12:40Z. This
  * value is left at 18m03s for now (CodySwannGT/lisa#5106): raising it would
  * also force the window wider, and that is a separate decision. A landing that
  * late is not lost: the reconcile job in deploy.yml asks again, and treats

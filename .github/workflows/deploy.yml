@@ -235,6 +235,14 @@ jobs:
     timeout-minutes: 75
     needs: [determine_environment, release, publish_npm]
     if: ${{ always() && needs.release.result == 'success' && needs.release.outputs.tag != '' && (needs.publish_npm.result == 'failure' || needs.publish_npm.result == 'cancelled') }}
+    # A job-level block replaces the workflow's, so it names everything this job
+    # uses: `contents` to retract the GitHub Release, `issues` to file the
+    # skipped version, and `actions: read` for the late-landing report to read
+    # this run's own record of when the publish step succeeded.
+    permissions:
+      contents: write
+      issues: write
+      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -290,27 +298,67 @@ jobs:
       # release, so nothing below files an issue or refuses. The run still
       # reads red, because the publish job really did fail its bounded check;
       # this summary is what says the release is good and nothing needs doing.
+      #
+      # WHEN NPM ACCEPTED IT comes from this run's own job record: the moment
+      # the publish job's `npm publish` step finished with success, which is
+      # when npm answered "+ <package>@<version>". Not npm's `time` field: for
+      # 8.2.4 that read 14:28:26Z, 55 minutes after the publish step succeeded,
+      # so it records something later than acceptance. When the record cannot
+      # be read, or that
+      # step did not succeed, the summary says the time is not known rather
+      # than guessing one. The job and step names below are bound to
+      # publish-to-npm.yml by a test, so a rename fails CI instead of blanking
+      # the time.
       - name: Report a release that landed after the publish check gave up
         if: steps.landed.outputs.verdict == 'published'
         env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
           PACKAGE: ${{ steps.landed.outputs.package }}
           VERSION: ${{ needs.release.outputs.version }}
           TAG: ${{ needs.release.outputs.tag }}
           PUBLISH_RESULT: ${{ needs.publish_npm.result }}
         run: |
+          jobs_file="$RUNNER_TEMP/run-jobs.json"
+          accepted_at=""
+          unknown_because="this run's job record shows no successful \`npm publish\` step"
+          if gh api "repos/$REPO/actions/runs/$RUN_ID/jobs?per_page=100" > "$jobs_file"; then
+            accepted_at="$(node -e '
+              const { jobs = [] } = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+              const step = jobs
+                .filter(job => job.name === "Publish to npm / Publish to npm")
+                .flatMap(job => job.steps ?? [])
+                .find(candidate => candidate.name === "Publish to npm with OIDC" && candidate.conclusion === "success");
+              process.stdout.write(step?.completed_at ?? "");
+            ' "$jobs_file")" || accepted_at=""
+          else
+            unknown_because="this run's job record could not be read"
+            echo "::warning::Could not read this run's job record, so the time npm accepted $VERSION is not stated."
+          fi
+          if [ -n "$accepted_at" ]; then
+            accepted_line="npm accepted \`$VERSION\` at **$accepted_at**, when the publish job's \`npm publish\` step succeeded (this run's job record)."
+            accepted_notice=" npm accepted it at $accepted_at."
+          else
+            accepted_line="The time npm accepted \`$VERSION\` is not stated here: $unknown_because."
+            accepted_notice=""
+          fi
           {
             echo "### ✅ $PACKAGE@$VERSION is on npm — it arrived late"
             echo ""
-            echo "The **Publish to npm** job finished as **$PUBLISH_RESULT** before it saw npm serve"
-            echo "\`$VERSION\`. npm can take longer to make a version available than that job waits."
-            echo "Asked again here, the registry now serves it: https://registry.npmjs.org/$PACKAGE/$VERSION"
+            echo "$accepted_line"
+            echo ""
+            echo "The **Publish to npm** job finished as **$PUBLISH_RESULT** because its registry check"
+            echo "ran out of time before npm served \`$VERSION\`. npm can take longer to make a version"
+            echo "available than that check waits. Asked again here, the registry now serves it:"
+            echo "https://registry.npmjs.org/$PACKAGE/$VERSION"
             echo ""
             echo "**Nothing needs doing.** The release \`$TAG\` is installable, it was not retracted,"
             echo "and no issue was filed. Do not re-run the publish job: npm refuses to publish a"
             echo "version that already exists. This run stays red because the publish job did not"
             echo "succeed; the release itself is good."
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::notice title=$PACKAGE@$VERSION landed late::The publish job's check gave up before npm served $VERSION, but the registry serves it now. Nothing needs doing; do not re-run the publish."
+          echo "::notice title=$PACKAGE@$VERSION landed late::The publish job's check gave up before npm served $VERSION, but the registry serves it now.$accepted_notice Nothing needs doing; do not re-run the publish."
 
       - name: File the skipped version so it outlives this run
         if: steps.landed.outputs.verdict != 'published'
