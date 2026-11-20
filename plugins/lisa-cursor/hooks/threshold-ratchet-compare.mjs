@@ -327,7 +327,7 @@ const HINT_LIMIT = 5;
  * The rule an allow entry is matched by, said once for every hint that needs it.
  */
 const COVER_RULE =
-  'An entry covers a threshold only when its "file" and "key" are that threshold\'s, or its key is "*".';
+  'An entry covers a threshold only when its "file" is that threshold\'s file (the same path, or the name of a file of that name in a sub-folder) and its "key" is that threshold\'s key or "*".';
 
 /**
  * Warn that an entry refused for arriving with a threshold change would not
@@ -995,7 +995,7 @@ export function splitMergedEntries(entries, mergedLists) {
 export function describeUnmergedCover(blocked, unmerged, refs) {
   const why =
     refs.length === 0
-      ? `is recorded on this branch, and which branch of the remote named origin is its default could not be determined, so nothing shows the entry is merged and it exempts nothing yet. Run "git remote set-head origin --auto" and try again.`
+      ? `is recorded on this branch, and which branch of the remote named origin is its default could not be determined, so nothing shows the entry is merged and it exempts nothing yet. Run "git fetch origin" and then "git remote set-head origin --auto", and try again.`
       : `is recorded on this branch but is not on ${refs.join(" or ")}, so it exempts nothing yet. Merge the change that records it first; if it is already merged, run "git fetch" and try again. Only the remote named origin is consulted, and "git remote set-head origin --auto" refreshes which of its branches is the default.`;
   return unmerged
     .filter(entry => blocked.some(finding => entryCovers(entry, finding)))

@@ -36,6 +36,7 @@ import {
   reasonInWords,
 } from "../../../plugins/src/base/hooks/threshold-ratchet-families.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 import { resolveGit } from "../../support/git-executable.js";
 
 /** Absolute git path, so the fixture does not resolve a command off `PATH`. */
@@ -60,12 +61,13 @@ const REASON =
   "Six bundled languages; resolved when translations load on demand.";
 const RECORDED = "new exception recorded";
 const MERGE_FIRST = "Merge this entry in a change of its own first";
+const ALLOWED_BY = "allowed by";
 const NOT_MERGED = "is recorded on this branch but is not on";
 const WRONG_KEY = "max-warnings";
 const WOULD_NOT_COVER =
   "As written it would not cover what this change loosens";
 const COVER_RULE =
-  'An entry covers a threshold only when its "file" and "key" are that threshold\'s, or its key is "*".';
+  'An entry covers a threshold only when its "file" is that threshold\'s file (the same path, or the name of a file of that name in a sub-folder) and its "key" is that threshold\'s key or "*".';
 const NEAR_MISS = "an exception on record for this file names";
 const CHECK_KEY = "Check the key: the ratchet finds no threshold named";
 const DEFAULT_UNKNOWN =
@@ -319,7 +321,9 @@ describe("describeUnmergedCover (#5099)", () => {
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain(SCOPE);
     expect(lines[0]).toContain(DEFAULT_UNKNOWN);
-    expect(lines[0]).toContain(`Run ${SET_HEAD} and try again`);
+    expect(lines[0]).toContain(
+      `Run "git fetch origin" and then ${SET_HEAD}, and try again.`
+    );
     expect(lines[0]).not.toContain(NOT_MERGED);
   });
 
@@ -744,7 +748,7 @@ describe("an exception that is committed but not merged (#5099)", () => {
     expect(before.stderr).toContain(SCOPE);
     expect(before.stderr).toContain(`${NOT_MERGED} origin/main`);
     expect(before.stderr).toContain('run "git fetch" and try again');
-    expect(before.stdout).not.toContain("allowed by");
+    expect(before.stdout).not.toContain(ALLOWED_BY);
     expect(after.status).toBe(0);
     expect(after.stdout).toContain(`allowed by ${SCOPE}`);
   });
@@ -811,22 +815,23 @@ describe("an exception that is committed but not merged (#5099)", () => {
     expect(result.stderr).toContain(SCOPE);
     expect(result.stderr).toContain(DEFAULT_UNKNOWN);
     expect(result.stderr).toContain(SET_HEAD);
-    expect(result.stdout).not.toContain("allowed by");
+    expect(result.stdout).not.toContain(ALLOWED_BY);
   });
 
-  it("finds the default branch by name when the remote never said which it is", () => {
-    const dir = baselineRepo(
-      configText([], { deploy: { branches: { production: "main" } } })
-    );
+  it("does not guess the remote's default branch from its name", () => {
+    const dir = baselineRepo();
+    // origin/main exists, but the remote never said it is the default. A
+    // branch is not protected because it is called main.
     git(dir, UPDATE_REF, ORIGIN_MAIN, "HEAD");
-    // The commit that records the entry also deletes deploy.branches. Read
-    // from HEAD, that would leave no protected branch and switch the fence off.
     recordThenStageWeakening(dir, configText([liveEntry()]));
+    git(dir, UPDATE_REF, ORIGIN_MAIN, "HEAD");
 
     const result = ratchet(dir, ["--staged"]);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(`${NOT_MERGED} origin/main`);
+    expect(result.stderr).toContain(DEFAULT_UNKNOWN);
+    expect(result.stderr).toContain(SET_HEAD);
+    expect(result.stdout).not.toContain(ALLOWED_BY);
   });
 
   it("is not fooled by a local branch named like a remote one", () => {
@@ -916,6 +921,35 @@ describe("what the check says about a change it refuses (#5099)", () => {
     expect(result.stderr).toContain(
       `Record it in the root ${LISA_CONFIG} instead`
     );
+  });
+
+  it("does not read a file outside the repository through a link at edit", () => {
+    const dir = baselineRepo();
+    const outside = fs.realpathSync(
+      fs.mkdtempSync(path.join(os.tmpdir(), "lisa-ratchet-outside-"))
+    );
+    fixtures.push(outside);
+    write(outside, ESLINT_FILE, `${JSON.stringify({ secretName: 1 })}\n`);
+    createSymlink(outside, path.join(dir, "linked"));
+    write(
+      dir,
+      LISA_CONFIG,
+      configText([liveEntry({ file: `linked/${ESLINT_FILE}`, key: WRONG_KEY })])
+    );
+
+    const result = ratchet(
+      dir,
+      ["--hook"],
+      JSON.stringify({
+        tool_name: "Edit",
+        tool_input: { file_path: path.join(dir, LISA_CONFIG) },
+      })
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(RECORDED);
+    expect(result.stdout).not.toContain("secretName");
+    expect(result.stdout).not.toContain(CHECK_KEY);
   });
 
   it("warns at commit when the recorded key names no threshold", () => {

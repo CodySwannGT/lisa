@@ -214,7 +214,12 @@ function resolvePlan(mode, root, baseRef, onlyFiles) {
     baselineRef: "HEAD",
     readCurrent: f => {
       try {
-        const target = path.join(root, f);
+        // Inside the repository only, by REAL location: the name can come
+        // from an allow entry, and a `..` segment or a symlink must not make
+        // this read a file somewhere else and print what it holds.
+        const home = fs.realpathSync(root);
+        const target = fs.realpathSync(path.resolve(root, f));
+        if (!target.startsWith(home + path.sep)) return null;
         // Regular files only. Reading a named pipe would block for ever, and
         // a hook that hangs wedges the agent session it is advising.
         if (!fs.statSync(target).isFile()) return null;
@@ -390,13 +395,14 @@ function protectedBranchRefs(root) {
     ["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"],
     root
   )?.trim();
-  // `origin/HEAD` is missing in a repository that was fetched rather than
-  // cloned, or freshly pushed, so the conventional default names are tried
-  // after it.
+  // Only the symbolic default counts. `origin/HEAD` is missing in a
+  // repository that was fetched rather than cloned, or freshly pushed, and it
+  // is tempting to try `origin/main` there. But a branch called `main` is not
+  // protected because of its name: where the default is `trunk`, an entry on
+  // an unprotected `origin/main` would count as merged. With no symbolic
+  // default nothing is returned, and the caller refuses and names the remedy.
   const defaultRef =
-    [declared, `${REMOTE_REFS}main`, `${REMOTE_REFS}master`].find(
-      ref => ref?.startsWith(REMOTE_REFS) && resolves(ref)
-    ) ?? null;
+    declared?.startsWith(REMOTE_REFS) && resolves(declared) ? declared : null;
   if (!defaultRef) return [];
   const chain = deployChain(
     parseJson(git(["show", `${defaultRef}:.lisa.config.json`], root))
@@ -408,15 +414,22 @@ function protectedBranchRefs(root) {
 
 /**
  * Whether `origin` has any remote-tracking ref at all.
+ *
+ * A probe that fails is not an answer. `git()` returns null for every
+ * failure, a timeout included, and reading that as "never fetched" would let
+ * a transient error switch the local fence off.
  * @param {string} root Repo root
- * @returns {boolean} True when something was ever fetched from `origin`
+ * @returns {boolean | null} True when something was ever fetched from
+ *   `origin`, false when the probe ran and found nothing, null when the probe
+ *   itself failed
  */
 function originWasFetched(root) {
   const first = git(
     ["for-each-ref", "--count=1", "--format=%(refname)", REMOTE_REFS],
     root
   );
-  return typeof first === "string" && first.trim() !== "";
+  if (first === null) return null;
+  return first.trim() !== "";
 }
 
 /**
@@ -430,7 +443,8 @@ function originWasFetched(root) {
  *     would wedge a repository that has no pull requests at all.
  *   `origin` was fetched, and its default branch cannot be named — there IS
  *     a merge to wait for and nothing here can tell whether it happened, so
- *     no HEAD entry counts. The refusal names the command that fixes it.
+ *     no HEAD entry counts. The refusal names the command that fixes it. A
+ *     probe that fails is read the same way.
  * @param {string} root Repo root
  * @param {unknown} headConfig `.lisa.config.json` at HEAD
  * @returns {{ entries: object[], unmerged: object[], protectedRefs: string[] }}
@@ -440,9 +454,11 @@ function localAllowList(root, headConfig) {
   const entries = extractAllowEntries(headConfig);
   const protectedRefs = protectedBranchRefs(root);
   if (protectedRefs.length === 0) {
-    return originWasFetched(root)
-      ? { entries: [], unmerged: entries, protectedRefs }
-      : { entries, unmerged: [], protectedRefs };
+    // Honour HEAD only on a positive "nothing was ever fetched". A probe that
+    // failed is treated like a fetched remote whose default is unknown.
+    return originWasFetched(root) === false
+      ? { entries, unmerged: [], protectedRefs }
+      : { entries: [], unmerged: entries, protectedRefs };
   }
   const { merged, unmerged } = splitMergedEntries(
     entries,
