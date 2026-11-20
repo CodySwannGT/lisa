@@ -157,6 +157,16 @@ export const DEFAULT_MAX_RUNTIME_MS =
  * margin, and so a future reader can re-measure and contradict it rather than
  * trusting a bare number. Raise it when a longer propagation is OBSERVED, never
  * to make a failing release green.
+ *
+ * OBSERVED LONGER, NOT YET RAISED. `@codyswann/lisa@8.2.4`, 2026-11-20 (Release
+ * and Deploy run 44743107550): `npm publish` was accepted at 13:33:04Z, npm's
+ * own `time` record for the version reads 14:28:26.191Z, and the reconcile
+ * job's check first got a 200 at 14:28:43Z — 55m22s, longer than
+ * {@link DEFAULT_WINDOW_MS}. The publish job's check gave up at 14:12:40Z. This
+ * value is left at 18m03s for now (CodySwannGT/lisa#5106): raising it would
+ * also force the window wider, and that is a separate decision. A landing that
+ * late is not lost: the reconcile job in deploy.yml asks again, and treats
+ * `published` as a landed release.
  */
 export const MEASURED_PROPAGATION_MS = 1_083_000;
 
