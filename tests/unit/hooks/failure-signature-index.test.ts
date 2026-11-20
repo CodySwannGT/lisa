@@ -11,7 +11,6 @@
  */
 import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import {
@@ -24,6 +23,10 @@ import {
   runCheck,
   validateIndex,
 } from "../../../plugins/src/base/hooks/failure-signature-index.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** Where an explanation already lives. */
 interface Record {
@@ -65,9 +68,7 @@ const HEALTHY: Entry = {
  * @returns Absolute path to the fixture root
  */
 function fixture(entries: readonly unknown[], noteBody: string): string {
-  const root = fs.realpathSync(
-    fs.mkdtempSync(path.join(os.tmpdir(), "failure-signatures-"))
-  );
+  const root = fs.realpathSync(ownedDir("failure-signatures-"));
   fs.writeFileSync(path.join(root, "NOTES.md"), noteBody);
   fs.writeFileSync(
     path.join(root, "failure-signatures.json"),

@@ -116,6 +116,10 @@ export const VOLATILE_LISA_ENV = Object.freeze([
   CACHE_ENV,
   "LISA_PUSHED_REFS_FILE",
   "LISA_CLEANUP_SWEPT",
+  // The temp roots that sweeper already covered (CodySwannGT/lisa#5095): set
+  // by the gate runner on a push and absent from a `lisa check`, so keying on
+  // it would make every push miss the passes `lisa check` recorded.
+  "LISA_CLEANUP_SWEPT_ROOTS",
   // The test-run owner marker (`<pid>:0`) a Rails pre-push command exports
   // before its payload (CodySwannGT/lisa#4603, #4613): a new pid every run.
   "LISA_TEST_RUN_OWNER",

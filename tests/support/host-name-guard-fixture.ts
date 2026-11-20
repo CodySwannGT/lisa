@@ -1,6 +1,5 @@
 /** Shared actual-wrapper fixtures; inspected commands are never executed. */
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
   boundedExecFileSync,
@@ -8,6 +7,10 @@ import {
 } from "../helpers/io-latency-budget.js";
 import { resolveGit } from "./git-executable.js";
 import { createSymlink } from "./borrowed-node-modules.mjs";
+import { useOwnedTempDirs } from "../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** git, resolved to a fixed path rather than through a writeable PATH. */
 const GIT = resolveGit();
@@ -31,8 +34,7 @@ export const PROJECT_DIR = process.cwd();
  * A throwaway directory for body fixtures.
  * @returns The directory path.
  */
-export const scratch = (): string =>
-  mkdtempSync(path.join(tmpdir(), "lisa-hnl-"));
+export const scratch = (): string => ownedDir("lisa-hnl-");
 
 /**
  * Write a body file and return its path.

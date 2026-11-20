@@ -48,13 +48,16 @@
  * everything and would pass against an adapter that does nothing at all.
  * @module tests/unit/agy/block-direct-issue-create-structured-agy
  */
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const SCRIPT = path.join(
   process.cwd(),
@@ -66,7 +69,7 @@ const READY_ROLE = "status:ready";
 let host = "";
 
 beforeAll(() => {
-  host = mkdtempSync(path.join(tmpdir(), "lisa-agy-filing-"));
+  host = ownedDir("lisa-agy-filing-");
   writeFileSync(
     path.join(host, ".lisa.config.json"),
     JSON.stringify({

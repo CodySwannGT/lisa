@@ -18,8 +18,7 @@
  * @module tests/unit/cli/doctor-skip-jobs-moment-callers
  */
 
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 
 import { beforeEach, describe, expect, it } from "vitest";
@@ -28,6 +27,10 @@ import {
   checkSkipJobsMigration,
   qualityCalls,
 } from "../../../src/cli/doctor-skip-jobs-migration.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** The `jobs:` key every fixture opens its job map with. */
 const JOBS_KEY = "jobs:";
@@ -145,7 +148,7 @@ async function twoCallerClause(): Promise<string> {
 }
 
 beforeEach(async () => {
-  project = await mkdtemp(path.join(tmpdir(), "lisa-skip-jobs-moment-"));
+  project = ownedDir("lisa-skip-jobs-moment-");
 });
 
 describe("skip_jobs remediation with two callers on one moment", () => {

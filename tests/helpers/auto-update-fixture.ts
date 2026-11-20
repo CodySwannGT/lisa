@@ -8,17 +8,14 @@
  * disk — while nothing touches npm, a network or a real repository.
  * @module tests/helpers/auto-update-fixture
  */
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { autoUpdateResult } from "../../plugins/src/base/hooks/auto-update.mjs";
+import { useOwnedTempDirs } from "./owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** Installed version in the fixture. */
 export const OLD = "4.66.5";
@@ -98,7 +95,7 @@ export function project(options: {
   config?: Record<string, unknown>;
   self?: boolean;
 }): string {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-auto-update-"));
+  const root = ownedDir("lisa-auto-update-");
   const manifest = options.self
     ? {
         name: LISA,

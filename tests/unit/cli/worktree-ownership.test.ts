@@ -6,8 +6,7 @@
  * else — every one of which must resolve AGAINST deletion.
  * @module tests/unit/cli/worktree-ownership
  */
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -18,13 +17,17 @@ import {
   resolveCallerOwnerId,
   writeOwnerReceipt,
 } from "../../../src/cli/worktree-ownership.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * Create a throwaway admin directory.
  * @returns Absolute directory path
  */
 async function scratchAdminDirectory(): Promise<string> {
-  return mkdtemp(path.join(tmpdir(), "lisa-owner-"));
+  return ownedDir("lisa-owner-");
 }
 
 describe("judgeOwnership", () => {

@@ -12,11 +12,14 @@
  * file may reach for `process.env`, a shared helper may not.
  * @module tests/helpers/inject-resolved-config-harness
  */
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { boundedSpawnSync } from "./io-latency-budget.js";
+import { useOwnedTempDirs } from "./owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** The shipped hook, as a harness invokes it. */
 const HOOK = "plugins/src/base/hooks/inject-resolved-config.sh";
@@ -63,7 +66,7 @@ export type HookRunner = {
  * @returns Absolute path to an empty directory
  */
 export function project(): string {
-  return mkdtempSync(path.join(tmpdir(), "lisa-resolved-config-"));
+  return ownedDir("lisa-resolved-config-");
 }
 
 /**
@@ -94,7 +97,7 @@ export function writeJson(root: string, name: string, value: unknown): void {
  * @returns Absolute path to a plugin root with an empty `hooks/` directory
  */
 export function partialPluginRoot(): string {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-partial-plugin-"));
+  const root = ownedDir("lisa-partial-plugin-");
   mkdirSync(path.join(root, "hooks"), { recursive: true });
   return root;
 }

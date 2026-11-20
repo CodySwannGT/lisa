@@ -8,6 +8,10 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_REL = "expo/copy-overwrite/scripts/check-e2e-coverage.mjs";
@@ -254,7 +258,7 @@ describe("check-e2e-coverage", () => {
     });
 
     it("parses valid JSON thresholds", () => {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-coverage-test-"));
+      const dir = ownedDir("e2e-coverage-test-");
       const file = path.join(dir, THRESHOLDS_FILENAME);
       fs.writeFileSync(file, JSON.stringify({ maestro: { routes: 50 } }));
       expect(loadThresholdOverrides(file)).toEqual({
@@ -263,7 +267,7 @@ describe("check-e2e-coverage", () => {
     });
 
     it("throws a readable error instead of an uncaught SyntaxError on malformed JSON", () => {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-coverage-test-"));
+      const dir = ownedDir("e2e-coverage-test-");
       const file = path.join(dir, THRESHOLDS_FILENAME);
       fs.writeFileSync(file, "{ not valid json");
       expect(() => loadThresholdOverrides(file)).toThrow(

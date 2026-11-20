@@ -324,7 +324,8 @@ function fixtureFilePath(repoPath: string, relative: string): string {
 }
 
 /**
- * Record the fixture identity in the repository's own configuration.
+ * Record the fixture identity, and switch off background housekeeping, in the
+ * repository's own configuration.
  *
  * So a plain `git commit` inside the fixture — one made by the code under
  * test, with whatever environment it was given — has an author on a machine
@@ -345,6 +346,14 @@ function writeLocalIdentity(repoPath: string): void {
       `\temail = ${authorEmail}`,
       "[commit]",
       "\tgpgsign = false",
+      // `git commit` would otherwise start `git maintenance run --auto
+      // --detach`, which releases `.git/objects/maintenance.lock` after the
+      // commit has returned, while a suite may already be copying `.git`
+      // (CodySwannGT/lisa#5100). Every copy of the fixture inherits this.
+      "[maintenance]",
+      "\tauto = false",
+      "[gc]",
+      "\tauto = 0",
     ])
   );
 }

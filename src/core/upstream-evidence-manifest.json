@@ -9,7 +9,7 @@
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "8a4b2cab9ac32a855e2adc1a7a3c6f7a9ac35dcb75cda2fac7eea144ced50098",
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
-      "6b20fc72b48c51938bc6e2211821db625d5f908f6ace07b4bbc2f9488e079357",
+      "316a3d09a7c28a1c9c90f144552d7be68b4fb8c65e191e29534ce1961fd2c3e3",
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
       "1f450d2492ca0bcdba440f6b403c1deee0f35e749c54d2ed5c5ddc696d5ab896",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
@@ -85,7 +85,7 @@
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "16aa855e6eeaabb5d79db280a97d9a7ae60fbe849e66552b3bd74dd24dadfa34",
     "all/copy-overwrite/scripts/lib/gate-pass-cache.mjs":
-      "db7d75cfd8cb62fb24a2643aa015aa0fdb33a6de110c56b638b27a2b869ddcb8",
+      "d903661e976628151b6b1350314b85370ffc396f4f2416fd614f9160c70ed880",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
       "728dbf966535cf04d112c4b474357336c718c621da2bb247358d86672942dcf2",
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
@@ -113,9 +113,9 @@
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.mjs":
       "026d79cf54594e41cecd24d1f5df72dd2338b786dce485e69eeaa6b61dce1059",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.d.mts":
-      "46fbb6730747ddee90b9275797de67cacfceab26ca14436460c11da638fb604b",
+      "e901069099f23eb32232f60068b055137079754173d88624ac51c77e852a15f0",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs":
-      "08450444d7f03d5a0e560f023a4e30db74821209ea45df41959b46636f6191bd",
+      "329a6f2b549c829dec7fbc1f567427fc9f726082fb8bfda877f8e6366a23020b",
     "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs":
       "a40eae9a3253e556159a5f152fe5bf15daa0b29d18f67f6199f4567dde700380",
     "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs":
@@ -421,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "2f2e0f76f0f69427bf01ffca78945f03182e41310dfcf291d80cbaebfae75ceb",
+      "6b4961520993c6ce82c9aa39dca9147f283d1af90834c779ed4cf1055a10b66b",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -517,7 +517,7 @@
     "eslint-plugin-component-structure/README.md":
       "7c4a6bddb07d36816bcecfa6213d5b55fc2df0169dc54b3370115e6d12c45234",
     "eslint-plugin-component-structure/__tests__/enforce-component-structure.test.js":
-      "f507216be4bf630563e28010a40cb99e6a5756c3b6f5b83647775fd1ab4f33ea",
+      "921c7951328ad8be593925412b704978e6a5bdbf1c6eeb2bbaa674d0473d1292",
     "eslint-plugin-component-structure/__tests__/no-hooks-in-view.test.js":
       "f9e955f91821be459c9670037d82abb030009a8fe243d5505a14c5b6d5ccae46",
     "eslint-plugin-component-structure/__tests__/no-return-in-view.test.js":
@@ -2729,7 +2729,7 @@
     "scripts/check-security-floors.mjs":
       "a1abe6d2cbbef9243b9687c73d5c4497c069bc8d714e34be7375805fadbc4721",
     "scripts/check-self-dependency-pin.mjs":
-      "50cef9e3dd1c0d6b573e3692cf6ccff6dac6fe446cd15ae9225b0203ead826fb",
+      "9bbf569530956adb60b0503848a41b5012cb801914d805458a8e603fc5d1fa9b",
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "82bc9fbd7537cfc30d359d75e4ce86efbcea6455d4854c8d1273a445feae253c",
     "scripts/check-shipped-surface-removals.mjs":
@@ -2753,7 +2753,7 @@
     "scripts/check-workflow-load-failures.mjs":
       "31e8404316dc95527ff87ee2bcbc7d19bcf70f6cb54b608fd7235e9c767506a1",
     "scripts/check-workflow-package-paths.mjs":
-      "6f0148fe804d4c36eddb137b6c16d4d49694e287303e38a95bfc82d49480954a",
+      "863b39f58644bc3bbf4f4f6d4870dd03e89deafd78f442bcbef2bce8a2c4b1f5",
     "scripts/classify-markdown-assertions.mjs":
       "4b5ec8747ade3767b7d4f5b8bccf3e5a46f8cc296ad4397dabd89e4768ac68cd",
     "scripts/classify-phrase-tests.mjs":
@@ -12258,6 +12258,7 @@
     "tests/helpers/audit-skill.ts": true,
     "tests/helpers/auto-update-fixture.ts": true,
     "tests/helpers/bounded-bash.ts": true,
+    "tests/helpers/canonical-entry.ts": true,
     "tests/helpers/child-bound-scan.ts": true,
     "tests/helpers/child-output-tail.ts": true,
     "tests/helpers/cleanup-sweep-skip.ts": true,
@@ -12312,6 +12313,7 @@
     "tests/helpers/nightly-e2e-selection-harness.ts": true,
     "tests/helpers/nightly-e2e-tracking-harness.ts": true,
     "tests/helpers/nightly-e2e-waiver-harness.ts": true,
+    "tests/helpers/owned-temp-dirs.ts": true,
     "tests/helpers/package-lisa-apply-harness.ts": true,
     "tests/helpers/package-mention-fixture.ts": true,
     "tests/helpers/pinned-revision.ts": true,
@@ -12468,6 +12470,7 @@
     "tests/integration/expo-provider-workflow.test.ts": true,
     "tests/integration/facade-proof-not-step.test.ts": true,
     "tests/integration/failure-issue-workflows.test.ts": true,
+    "tests/integration/fixture-temp-cleanup.test.ts": true,
     "tests/integration/floor-collisions-gate-fail-closed.test.ts": true,
     "tests/integration/fs-probe-diagnostic.test.ts": true,
     "tests/integration/gate-config-validity-job.test.ts": true,
@@ -12677,6 +12680,7 @@
     "tests/integration/ruby-runner-image-pin.test.ts": true,
     "tests/integration/security-floors-gate.test.ts": true,
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
+    "tests/integration/self-pin-cli-exits.test.ts": true,
     "tests/integration/self-pin-drift-gate-wiring.test.ts": true,
     "tests/integration/self-pin-raise-prepare-job.test.ts": true,
     "tests/integration/self-pin-raise-triggers.test.ts": true,
@@ -13223,6 +13227,7 @@
     "tests/unit/controls/audit-skill-probes.test.ts": true,
     "tests/unit/controls/audit-skill-questions.test.ts": true,
     "tests/unit/controls/audit-skill.test.ts": true,
+    "tests/unit/controls/background-maintenance.test.ts": true,
     "tests/unit/controls/before-enforce-findings.test.ts": true,
     "tests/unit/controls/canary-eligibility-apps.test.ts": true,
     "tests/unit/controls/canary-eligibility.test.ts": true,
@@ -13691,6 +13696,7 @@
     "tests/unit/helpers/io-latency-budget.test.ts": true,
     "tests/unit/helpers/latch.test.ts": true,
     "tests/unit/helpers/mutation-kill-counts.test.ts": true,
+    "tests/unit/helpers/owned-temp-dirs.test.ts": true,
     "tests/unit/helpers/staged-dependency-conformance.test.ts": true,
     "tests/unit/helpers/stderr-sync.test.ts": true,
     "tests/unit/helpers/supervised-unix-fixture.test.ts": true,
@@ -13992,6 +13998,7 @@
     "tests/unit/scripts/check-pipeline-status-reads.test.ts": true,
     "tests/unit/scripts/check-probe-absence-direction.test.ts": true,
     "tests/unit/scripts/check-release-package-identity.test.ts": true,
+    "tests/unit/scripts/check-self-dependency-pin-deadline.test.ts": true,
     "tests/unit/scripts/check-self-dependency-pin-listed.test.ts": true,
     "tests/unit/scripts/check-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/check-shell-guard-refusal-coverage.test.ts": true,
@@ -18122,6 +18129,7 @@
     "29ff3dfc7784595508c5851a6f2211fcd04a9996": true,
     "2a0261b888417c615a50aece08939ab73ce18366": true,
     "2a04fa357bbfa4eb00277957884090680c6068ac": true,
+    "2a09ba7fb8e13da873ce483f5d2cfcce7dc9ac47": true,
     "2a0e9e2861b54fca16cc57c2da0792bcce8f6381": true,
     "2a1777df939df9183d0dbfdc1d9e801badaa309f": true,
     "2a1eb1a7f4348d49ea0b989f8ed53ed2a04cd281": true,
@@ -18621,6 +18629,7 @@
     "327b9821004547f4315f357f9d86daa8018b195c": true,
     "327c6d35dc9957549e785e7b9bb3d2a3c5a3d7a9": true,
     "32847d81dfcd287451b02c840061cdaf2f2f46f5": true,
+    "3284ddaee4f92cfb2cf3e04c2a8ddf97acd4db5f": true,
     "328a95bb845fa496499d702692e0599ece7ee75a": true,
     "328c5c35f54d1deb912468332ee2f3b5ca7335d0": true,
     "328f23d9daf306b7ca4841d1bbbb077f2e83a593": true,
@@ -20041,6 +20050,7 @@
     "47e8ae09406ad3a96650354628088b0bd7ce83f5": true,
     "47ec98f4db4712da174291372179c83f91c41e62": true,
     "47f0d15fe88bce3a4032d9672f5a750cdf61844b": true,
+    "47f7ed1386d59ad9d82061bf3be9236876f94ce9": true,
     "47fb6595ccff00e6894d7727d062d1cbe7da745d": true,
     "47ffa2abc17f51efd02acd15fc024c1ef0621ca9": true,
     "4808a4f213d7854a6d794486892605d9a5a5e277": true,
@@ -20536,6 +20546,7 @@
     "4f92e342eef186e89731cefadbe4ffd799dff741": true,
     "4f9408e30c7f1c5de291db2b2c6e016aba881dd9": true,
     "4f955e6fce377e6105195428e2e4dd6beb46ba13": true,
+    "4f96a4a4d15a06b70ce7b36b2559fda943da8791": true,
     "4f9a4033c4cce86e46a50e27c8613e90ba2a41c4": true,
     "4f9b5db7d581ee431c408530ff2e8d441bf607fc": true,
     "4f9cee3d282cee0fb6f4d9a541c74886c506361c": true,
@@ -23440,6 +23451,7 @@
     "7b3fcfb8402873ff3a6152f9201646a7b9c303be": true,
     "7b4850a47f81bfde6dbd4682494c87525e4bf4d7": true,
     "7b4a50cda73ad6fdcd99da522ce89ff778dfb7af": true,
+    "7b4c77d43c685dfa91ceeba5be15fc26df1a10ad": true,
     "7b538d9ac1927484ea86d7627367d9f5eab3877b": true,
     "7b57bae83e1fe0fbf32e2e3294a16fa4807de4bb": true,
     "7b5aaff888d997ceb85cdc719b35eac2cc460058": true,
@@ -26356,6 +26368,7 @@
     "a7be074dd82b351df2681f9885d8a60d205ceaba": true,
     "a7bf6aab214fbdd982f6d0b65f9fbe307c05cc78": true,
     "a7c163bd48cffb1fb9b2e9db3755021662a6bc2c": true,
+    "a7c1995327c8c6afd13cfb0164ee70780abc953b": true,
     "a7c24a601266246ad2f1619d376ceb6e63a020d1": true,
     "a7c8f29f1bc4d1f7b14bc655b26f8011b8f5e1c8": true,
     "a7cc38651c16f94b5c5327c7723696fba8176eb7": true,
@@ -31602,6 +31615,7 @@
     "f6707b160e219fd662248633712d07be2f942c85": true,
     "f67102ce88005a77243e08d59fa9867e90b18e06": true,
     "f6763d3a8c0101cc37d2051ece45c8dd116132fd": true,
+    "f678267ef0ab1065f24e39ec69b97be7ea45e473": true,
     "f67d8a1d28a77b7ebc2c961de03ea41984384157": true,
     "f67efa4c4aaa77bae76a8a077cf8b9b8623b1d09": true,
     "f68ee34182e707437046c1a6c67784b60f603044": true,

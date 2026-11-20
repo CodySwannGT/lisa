@@ -208,11 +208,13 @@ async function askOnce(url, fetchImpl, version, timeout) {
       headers: { accept: "application/json" },
       signal: controller.signal,
     });
-    if (response.status === 404) {
-      return { verdict: "missing", detail: "registry returned 404" };
-    }
     if (!response.ok) {
-      return { verdict: "unprovable", detail: `HTTP ${response.status}` };
+      // An unread body keeps its socket, and with it the process, alive after
+      // the verdict; the deadline is cleared below, so nothing else ends it.
+      await response.body?.cancel().catch(() => {});
+      return response.status === 404
+        ? { verdict: "missing", detail: "registry returned 404" }
+        : { verdict: "unprovable", detail: `HTTP ${response.status}` };
     }
     const manifest = await response.json();
     // A 200 that names a different version is not this version being present.

@@ -1,10 +1,13 @@
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * Read one keyed entry, failing the test when it is absent.
@@ -105,7 +108,7 @@ describe("changelog entry extraction (awk)", () => {
     }
     awkProgram = match[1];
 
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "changelog-entry-"));
+    const dir = ownedDir("changelog-entry-");
     fixturePath = path.join(dir, "CHANGELOG.md");
     await fs.writeFile(fixturePath, CHANGELOG);
   });

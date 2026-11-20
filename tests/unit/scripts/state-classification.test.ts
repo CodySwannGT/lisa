@@ -12,11 +12,14 @@
  * @module tests/unit/scripts/state-classification
  */
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { beforeAll, describe, expect, it } from "vitest";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_REL = "all/copy-overwrite/scripts/check-state-classification.mjs";
@@ -73,7 +76,7 @@ const readJson = (file: string): Record<string, unknown> =>
  * @returns The project root
  */
 const projectWithContract = (contents: string): string => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "state-contract-"));
+  const dir = ownedDir("state-contract-");
   fs.mkdirSync(path.join(dir, STATE_DIR));
   fs.writeFileSync(path.join(dir, STATE_DIR, CONTRACT_FILE), contents, UTF8);
   return dir;

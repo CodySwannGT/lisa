@@ -24,8 +24,7 @@
  *    examined is the recurring defect in this repository.
  * @module tests/unit/scripts/check-self-dependency-pin
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
@@ -38,6 +37,10 @@ import {
   publishedVersionsDescending,
   SELF_PACKAGE,
 } from "../../../scripts/check-self-dependency-pin.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const REGISTRY = "https://registry.example.test";
 
@@ -167,10 +170,7 @@ async function runCli(
   const stderr = vi
     .spyOn(process.stderr, "write")
     .mockImplementation(() => true);
-  const manifestPath = path.join(
-    mkdtempSync(path.join(tmpdir(), "lisa-self-pin-")),
-    "package.json"
-  );
+  const manifestPath = path.join(ownedDir("lisa-self-pin-"), "package.json");
   writeFileSync(
     manifestPath,
     JSON.stringify({

@@ -20,13 +20,16 @@
  * typo, which is the same defect as a gate that reports success without
  * measuring: a verdict nobody reached, delivered as one.
  */
-import { existsSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const SCRIPT_PATH = path.resolve(
   "plugins/src/base/hooks/discharge-work-item-gates.sh"
@@ -55,7 +58,7 @@ function project(
   probeOutput = output,
   probeExitCode = exitCode
 ): string {
-  const dir = mkdtempSync(path.join(tmpdir(), "lisa-discharge-hook-"));
+  const dir = ownedDir("lisa-discharge-hook-");
   boundedSpawnSync({
     args: ["init", "-q", "-b", "main"],
     command: "git",

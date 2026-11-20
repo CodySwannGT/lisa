@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.2.3](https://github.com/CodySwannGT/lisa/compare/v8.2.2...v8.2.3) (2026-11-20)
+
+
+### Bug Fixes
+
+* **controls:** start no background git maintenance in fixtures or Lisa's copies ([2a09ba7](https://github.com/CodySwannGT/lisa/commit/2a09ba7fb8e13da873ce483f5d2cfcce7dc9ac47)), closes [CodySwannGT/lisa#5100](https://github.com/CodySwannGT/lisa/issues/5100) [CodySwannGT/lisa#5100](https://github.com/CodySwannGT/lisa/issues/5100)
+
+### [8.2.2](https://github.com/CodySwannGT/lisa/compare/v8.2.1...v8.2.2) (2026-11-20)
+
+
+### Bug Fixes
+
+* **cleanup-sweep:** sweep the temp root tests use and stop every traced fixture leak ([ed882a4](https://github.com/CodySwannGT/lisa/commit/ed882a4aad6ee0387c4866e53bb8e41a398e150f)), closes [#4597](https://github.com/CodySwannGT/lisa/issues/4597) [CodySwannGT/lisa#5095](https://github.com/CodySwannGT/lisa/issues/5095) [CodySwannGT/lisa#5095](https://github.com/CodySwannGT/lisa/issues/5095)
+* **tests:** remove the temp folders test fixtures create ([079d7ae](https://github.com/CodySwannGT/lisa/commit/079d7aed843b03b36d7e274d531d0e7b1bc8b411)), closes [CodySwannGT/lisa#5095](https://github.com/CodySwannGT/lisa/issues/5095) [CodySwannGT/lisa#5095](https://github.com/CodySwannGT/lisa/issues/5095)
+
 ### [8.2.1](https://github.com/CodySwannGT/lisa/compare/v8.2.0...v8.2.1) (2026-11-20)
 
 

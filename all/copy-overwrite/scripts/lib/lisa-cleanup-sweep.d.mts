@@ -70,6 +70,23 @@ export function main(
   }
 ): Promise<number>;
 
+/** Env var listing the temp roots the live sweeper already swept. */
+export const SWEPT_ROOTS_ENV: "LISA_CLEANUP_SWEPT_ROOTS";
+
+/** The temp root a process with this environment writes to. */
+export function tempRootOf(env: Record<string, string | undefined>): string;
+
+/** What an entry point still has to sweep, and the marks it hands on. */
+export function planStartOfRunSweep(
+  env: Readonly<Record<string, string | undefined>>,
+  root: string,
+  sweeper: number | null,
+  marker: string
+): {
+  readonly sweep: "all" | "temp" | "none";
+  readonly marks: Readonly<Record<string, string>>;
+};
+
 /** Sweep once from a synchronous caller, never failing it. */
 export function runStartOfRunSweep(seams?: {
   env?: Record<string, string | undefined>;

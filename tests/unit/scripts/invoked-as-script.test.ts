@@ -28,6 +28,10 @@ import {
   ioLatencyBudgetMs,
 } from "../../helpers/io-latency-budget.js";
 import { createSymlink } from "../../support/borrowed-node-modules.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * Liveness bound for the case that runs the real gate twice, calibrated to
@@ -170,7 +174,7 @@ const shippedModules = (relativeDir: string): string[] => {
  * @returns The module's real path and the symlink to it.
  */
 const symlinkedModule = (): { real: string; link: string } => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "invoked-as-script-"));
+  const dir = ownedDir("invoked-as-script-");
   const real = path.join(dir, "real.mjs");
   const link = path.join(dir, "link.mjs");
   fs.writeFileSync(real, "export default 1;\n");
@@ -224,9 +228,7 @@ describe("invokedAsScript", () => {
     // Verified to bite: with the one-sided `realpathSync(argv1) ===
     // fileURLToPath(moduleUrl)`, the flagged run prints nothing and exits 0 —
     // a passing gate that checked nothing.
-    const dir = fs.realpathSync(
-      fs.mkdtempSync(path.join(os.tmpdir(), "invoked-as-script-cli-"))
-    );
+    const dir = fs.realpathSync(ownedDir("invoked-as-script-cli-"));
     const helper = path.join(REPO_ROOT, CANONICAL_REL);
     const script = path.join(dir, "gate.mjs");
     const link = path.join(dir, "gate-link.mjs");
@@ -348,9 +350,7 @@ describe("shared entry guard wiring", () => {
       //
       // Both verdicts are asserted to be the same, not merely that the symlinked
       // run exits 0 — exit 0 is exactly what the no-op produced.
-      const dir = fs.realpathSync(
-        fs.mkdtempSync(path.join(os.tmpdir(), "derived-artifacts-link-"))
-      );
+      const dir = fs.realpathSync(ownedDir("derived-artifacts-link-"));
       const gate = path.join(
         REPO_ROOT,
         "scripts",
