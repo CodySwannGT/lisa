@@ -104,11 +104,12 @@ the manager.
   `/lisa:implement <REF> managedBy=<manager-name>`; `lisa-implement` owns what `managedBy=` means.
   Never start a worker another way, and never reuse a worker for another item or a new attempt.
 - **Capacity** comes only from `capacity` (`can_spawn`, `free_slots`).
-- **Notification channel.** Read `notify` from `status` at the start of every cycle. `telegram`: the
+- **Notification channel.** Read `notify` from `status` at the start of every cycle. Read
+  `notifyLevel` from the same result. `telegram`: the
   project's own bot, which `start` attached. `none` (`sessionManager.notify.provider` is `"none"`,
   or there is no `notify` block): there is no channel, and `start` launched you without one.
   Having no channel is a normal configuration, never a failure. Every step below that posts to
-  Telegram applies only with `telegram`; "Questions and notifications" says what to do instead.
+  Telegram uses both fields as described in "Questions and notifications".
 - **Ledger.** `.lisa/session-manager/ledger.json` is the manager's memory across restarts; attempts
   live there, never in tracker comments. Read it with `ledger get`; change it only through the
   `ledger` subcommands.
@@ -172,9 +173,14 @@ the manager.
 - **Telegram configured** (`notify` is `telegram`):
   - Talk only to the paired, allowlisted chat. Every message starts with the ref in brackets, e.g.
     `[<TEAM>-123]`. Keep it phone-sized, with options on numbered lines.
-  - Post starts, questions, finishes, failures and tracker changes you made. No routine cycle
-    summaries.
-  - When you post a question, keep the Telegram message id the reply tool returns; the ledger needs
+  - `notifyLevel: all` sends both **Ask** and **FYI** messages. `notifyLevel: asks-only` sends **Ask**
+    messages and records **FYI** messages in the transcript. Both modes keep the usual ledger and
+    tracker writes. Routine cycle summaries belong in the transcript.
+  - Reply to an operator's Telegram `status` command in the paired chat at either notification level.
+  - **Ask** covers questions, requests for operator action, duplicate-manager warnings and the
+    hold digest. **FYI** covers worker starts and outcomes, tracker changes, routine retries and
+    answer acknowledgements.
+  - When you post an **Ask** question, keep the Telegram message id the reply tool returns; the ledger needs
     it.
   - **End every question with how to answer:** `Answer with: <label> <your answer>`. The label is
     the key for a Jira or Linear item (`<TEAM>-123`), and for a GitHub item `#12`, or `repo#12` when
@@ -186,7 +192,7 @@ the manager.
   with the rest of the cycle, and end it with outcome `recovery-required` and the summary
   `Telegram not paired: run tmux attach -t <name> and pair with /telegram:access pair <code>.`
   (`<name>` is `sessionManager.name`). Skip the other notices. The `/loop` keeps running, and the
-  next cycle sends whatever is still pending ("Unsent questions" below).
+  next cycle sends any pending **Ask** questions ("Unsent questions" below).
 
 ## Mark and move on
 
@@ -241,8 +247,8 @@ In this order, every time:
    It returns `marker` (the configured human-needed label, else the configured `blocked` role),
    `move` for an `exhausted` item, the `comment` to post, and `planningMiss`. It writes nothing. Exit 2 for text
    that looks like a credential: rewrite it without the secret and plan again. Exit 2 because no
-   marker is configured: record the question (step 2), carry on, and end the cycle
-   `recovery-required` with the CLI's message as the summary.
+   marker is configured: record the question (step 2), send the CLI's recovery message as an
+   **Ask**, carry on, and end the cycle `recovery-required` with that message as the summary.
 2. **Ledger first.** `ledger set-question <ref> --kind <kind>` with the same text on STDIN (add
    `--sender <sender>` for a worker's question). The ledger comes before the tracker so a crash
    leaves a pending question the next cycle finishes, never a marker nobody will remove.
@@ -275,14 +281,15 @@ In this order, every time:
    `signal` is `wrongly-escalated`, also post `planningMiss.overruledMarker.comment` on the item
    once the subagent has started, so the overruled-escalation sweep does not capture the same
    ruling again.
-7. **Continue the cycle.** With Telegram, also send the question there, ending with
+7. **Continue the cycle.** **Ask.** With Telegram, also send the question there, ending with
    `answerWith.channel`, and re-record it with `ledger set-question <ref> --telegram-message-id <id>`
    (same text, which keeps its `askedAt` and its mark). Without a channel there is nothing else to
    send. Then go on with the next item.
 
 If step 3 or 4 fails (the tracker is unreachable, or the read-back does not show the marker),
 leave the ledger as it is (`markedAt` stays null), carry on with the cycle and end it
-`recovery-required`; the next cycle's "Waiting on a human" step finishes the mark.
+`recovery-required`. **Ask** for any operator action that the recovery requires. The next cycle's
+"Waiting on a human" step finishes the mark.
 
 **Clearing**, once a human has answered (on the item, with `answer`, or on Telegram):
 
@@ -364,24 +371,25 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
   Telegram plugin (0.0.7) does not, so never guess one.
   - `answer`: follow "Clearing" in "Mark and move on" with `message` as the answer (`SendMessage`
     to a live worker, `resume <ref>` for one that was idle-stopped or is gone without finishing,
-    the `repo:<name>` stamp for a repo-routing question), then acknowledge on Telegram.
+    the `repo:<name>` stamp for a repo-routing question), then acknowledge it as **FYI**.
     **Only when no worker will receive it** — `ledger get <ref>` shows the worker reported `DONE`
     or `FAILED`, the question is `exhausted`, or no worker was started for it (a `decision`, say;
     never a repo-route) — first queue it in the ledger with `channel-answer <ref>` (`body` on
     STDIN, source `channel`), so "Record the answer on the item" can post it. A live or resumable
     worker gets its answer exactly as before, without `channel-answer`. Exit 2 from
     `channel-answer` delivers nothing and has two causes, told apart by its stderr: one that says
-    the answer looks like it holds a credential (reply on Telegram that it was refused and should
-    be sent again without the secret), or one that says the ref has no pending question or no
-    ledger item (reply that the question was already answered or nothing is pending for it).
+    the answer looks like it holds a credential (**Ask** the operator to send it again without
+    the secret), or one that says the ref has no pending question or no ledger item (as **FYI**,
+    reply that the question was already answered or nothing is pending for it).
     When the answer was recorded on the item, say so in the acknowledgement: it was posted on the
     item, where anyone who can read the item can see it.
-  - `ambiguous`: ask which ref it is for, listing `candidates`, each with the label to start the
+  - `ambiguous`: **Ask** which ref it is for, listing `candidates`, each with the label to start the
     answer with (`Answer with: #12 <your answer>`).
-  - `invalid-command`: a mistyped command (`cap 40`, `stop A B`). Deliver it to no worker. Reply on
-    Telegram with `reason`, and say that an answer meant for a worker starts with its label.
+  - `invalid-command`: a mistyped command (`cap 40`, `stop A B`). Deliver it to no worker. **Ask**
+    the operator to correct it with `reason` and explain how to label an answer meant for a worker.
   - `command`:
-    - `status`: summarize `status` (running, cap, pending questions, paused).
+    - `status`: reply directly in the paired Telegram chat with the running count, cap, pending
+      questions, and pause state. Send the reply at either notification level.
     - `pause` / `resume`: `ledger control --paused true|false`. Relaying and reconciling continue
       while paused; only dispatch stops.
     - `cap N`: `ledger control --max-workers N`. This may raise the limit above
@@ -391,8 +399,8 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
       `ledger finish <ref> --status FAILED` with reason "stopped by the operator". This is an explicit
       human instruction, which is why it may return a claimed item to Ready.
 - **`[<REF>] DONE: …` / `[<REF>] FAILED: …` from a worker:**
-  `ledger finish <ref> --status DONE|FAILED --sender <sender>` (reason on STDIN) and post one line
-  to Telegram. On `FAILED`, also move the item to the `blocked`
+  `ledger finish <ref> --status DONE|FAILED --sender <sender>` (reason on STDIN) and report one **FYI**
+  line. On `FAILED`, also move the item to the `blocked`
   role through `lisa-tracker-write` with a comment `[lisa-session-manager] Worker failed: <reason>`
   (assigning "me" in the same update when it is unassigned: "Taking an item"),
   and read both back with `lisa-tracker-read`. When the reason says a
@@ -413,7 +421,7 @@ session's own loops with `CronList`. When `manager.self` is true, this session *
 and its own `/loop` is the manager's loop: never report it as a second manager, and never recommend
 `CronDelete` or stopping it. When `manager.self` is true and `status` `manager.otherCyclers` is not
 empty, another session ran a cycle in this project within twice the interval, so two managers can
-hand out the same item: warn the operator (over Telegram too when `notify` is `telegram`), name each
+hand out the same item: warn the operator as an **Ask**, name each
 entry's `by` and `at`, and recommend stopping **that** session's loop, never this one. A `pid:` entry
 names the process that ran that one cycle, so a single other session can leave several `pid:`
 entries; report them as one or more other sessions, never as an exact count. When
@@ -421,7 +429,7 @@ entries; report them as one or more other sessions, never as an exact count. Whe
 `manager.self` is `null`, recommend stopping nothing, whatever `manager.otherCyclers` says; report
 that self-identification failed. When `manager.running` is true, `manager.self` is false, and this
 session runs its own `/lisa:session-manager cycle` loop, two managers can hand out the same item:
-warn the operator and recommend stopping **this** session's loop, never the tmux manager. The tmux
+warn the operator as an **Ask** and recommend stopping **this** session's loop, never the tmux manager. The tmux
 manager cannot see another session's loop, so it learns of one only from `manager.otherCyclers` and
 must not invent one from anything else. `manager.self` means running inside the manager's tmux
 session, so another Claude started in a second window of that same tmux session also reads true.
@@ -429,7 +437,7 @@ Never infer a second manager from the tmux session existing plus a loop being pr
 
 ### 1. Reconcile
 
-**Unsent questions** (only when `notify` is `telegram`). `ledger get` shows every pending question.
+**Unsent questions** (only when `notify` is `telegram`). **Ask.** `ledger get` shows every pending question.
 One with `telegramMessageId: null` never reached Telegram: it was recorded while Telegram was
 unavailable or unpaired, or before Telegram was configured. (Re)send each
 to Telegram now and re-record it with `ledger set-question <ref> --telegram-message-id <id>` (same
@@ -480,7 +488,7 @@ shows them.
   answers with the `answerCommand` from `status`. A reply that looks like it holds a credential is
   never queued: it is skipped and listed in `refused`, so a later reply is still read.
   Whenever `refused` is present (with `queued: true`, or `queued: false` and
-  `reason: "credential-refused"`), tell the operator in plain words, from `refusedExplanation`:
+  `reason: "credential-refused"`), send an **Ask** in plain words, from `refusedExplanation`:
   the secret is now on the item, so they should delete that comment, rotate the secret, and reply
   again without it. `refused` comes back every cycle until the comment is deleted, so say it once
   per refused comment `id` (note the ids you reported in the transcript). On `queued: true`, also
@@ -495,10 +503,10 @@ shows them.
 | Classification | Action |
 |---|---|
 | `working`, `waiting`, `finished` | Nothing. |
-| `requestion` | With Telegram: re-send the pending question once, then re-record it with `ledger set-question` (same text, new message id); that restarts the re-ping clock. With no channel: nothing to re-send; leave it pending. |
+| `requestion` | **Ask.** With Telegram, re-send the pending question once, then re-record it with `ledger set-question` (same text, new message id); that restarts the re-ping clock. With no channel, leave it pending. |
 | `stalled`, `dead` | Read the item. If it left the `claimed` role, a human moved it: do not retry or move it; `ledger finish <ref> --status FAILED` with reason "left the claimed role outside the manager". Otherwise check for a merged PR first (`gh pr list --state merged --search <ref>` in the item's repo dir). If merged, leave the state change to Lisa's lifecycle and `ledger finish <ref> --status DONE` with reason "PR merged". Otherwise `claude stop <worker>` if it is still listed, then re-read the item (after the stop, so a reassignment in the meantime is seen) and `spawn` a **fresh** attempt when capacity allows, with that re-read's `--assignees` ("Taking an item"; the CLI counts attempts). |
-| `setup-gap` | The worker's first prompt never ran: `setupGap.kind` is `unknown-command` (Lisa's plugin is not visible in that repo, so `/lisa:implement` is unknown there) or `prompt-blocked` (a `UserPromptSubmit` hook rejected the prompt; `setupGap.detail` is what the hook said). Retrying cannot fix it. `claude stop <worker>` if it is still listed, `ledger finish <ref> --status FAILED --setup-gap` with reason "setup gap: <kind>: <detail>" (the spawn is not counted as an attempt). Then read the item: If it left the `claimed` role, a human moved it: respect that and do not move it back to the `ready` role. Otherwise move the item back to the `ready` role. Either way post one plain-language line naming the repo and the fix to Telegram, do not respawn it, do not dispatch to that repo again until the operator fixes it, and end the cycle `recovery-required` with that line as the summary. `classify` has already recorded the repo's setup gap, so later cycles' `queue` leaves that repo out and `spawn` refuses it until the operator fixes the repo and runs `ledger clear-setup-gap <repo>` (`.` on a single-repo project); include that command in the line. |
-| `blocked-on-prompt` | The live worker is stuck on a prompt nobody attached can answer: its agent row reports `waitingFor` (e.g. "permission prompt") other than waiting on its own subagent. It will never proceed on its own, however its logs change. `claude stop <worker>` if it is still listed, then re-read the item and `spawn` a **fresh** attempt when capacity allows, with its `--assignees` ("Taking an item"; the CLI counts attempts; at `stall.maxAttempts` it classifies `exhausted` instead). Send the operator one plain-English line naming the item, the `waitingFor` text, and that the worker was stopped and a fresh attempt starts when capacity allows (Telegram when configured, else the cycle summary). This is once per occurrence: the fresh worker is not blocked, so the same occurrence never repeats. Not a `setup-gap`: the first prompt ran, so the attempt counts and the item stays claimed. |
+| `setup-gap` | The worker's first prompt never ran: `setupGap.kind` is `unknown-command` (Lisa's plugin is not visible in that repo, so `/lisa:implement` is unknown there) or `prompt-blocked` (a `UserPromptSubmit` hook rejected the prompt; `setupGap.detail` is what the hook said). Retrying cannot fix it. `claude stop <worker>` if it is still listed, `ledger finish <ref> --status FAILED --setup-gap` with reason "setup gap: <kind>: <detail>" (the spawn is not counted as an attempt). Then read the item: If it left the `claimed` role, a human moved it: respect that and do not move it back to the `ready` role. Otherwise move the item back to the `ready` role. Either way send one **Ask** naming the repo and what the operator needs to fix, do not respawn it, do not dispatch to that repo again until the operator fixes it, and end the cycle `recovery-required` with that line as the summary. `classify` has already recorded the repo's setup gap, so later cycles' `queue` leaves that repo out and `spawn` refuses it until the operator fixes the repo and runs `ledger clear-setup-gap <repo>` (`.` on a single-repo project); include that command in the line. |
+| `blocked-on-prompt` | The live worker is stuck on a prompt nobody attached can answer: its agent row reports `waitingFor` (e.g. "permission prompt") other than waiting on its own subagent. It will never proceed on its own, however its logs change. `claude stop <worker>` if it is still listed, then re-read the item and `spawn` a **fresh** attempt when capacity allows, with its `--assignees` ("Taking an item"; the CLI counts attempts; at `stall.maxAttempts` it classifies `exhausted` instead). Record one **FYI** line naming the item, the `waitingFor` text, and when a fresh attempt can start. This is once per occurrence: the fresh worker is not blocked, so the same occurrence never repeats. Not a `setup-gap`: the first prompt ran, so the attempt counts and the item stays claimed. |
 | `exhausted` | Attempts reached `stall.maxAttempts`. Stop the worker if listed, `ledger finish <ref> --status FAILED`, then follow "Mark and move on" with `--kind exhausted` and, as the reason, how many attempts failed and how each ended: it moves the item to the `blocked` role and marks it for a human. |
 
 Why a worker started with `--dangerously-skip-permissions` reaches a permission prompt at all is
@@ -571,7 +579,7 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
      already posted, which only re-lanes the item); a partial
      lift is also in `holds.keep` with the reasons still left for a person. Then remove
      the human-needed label and move it to the `ready` role as its `actions` say.
-   - `holds.keep`: when `holds.digest.changed` is true, send `holds.digest.text` to the operator
+   - `holds.keep`: when `holds.digest.changed` is true, send `holds.digest.text` as an **Ask**
      once (Telegram when configured, else the cycle summary; nothing when the text is empty), then
      record it with `ledger control --hold-digest <fingerprint>` (`none` when `fingerprint` is
      null). An unchanged list is never re-sent.
@@ -692,8 +700,8 @@ item held back only by them is claimable in this same cycle:
    separately, e.g. `stale links: cleared 12 stale blocker links on 7 items; 3 now ready to start;
    2 planned removals not done (retried next cycle); 4 items left for the next cycle; 29 real
    blockers remain on 18 items.` Put that in the cycle's transcript line and in the recorded run
-   summary. Send Telegram nothing for this sweep unless `report.inaccessible` is non-empty and its
-   list changed since the last cycle: then one line naming the blockers that could not be opened.
+   summary. When `report.inaccessible` is non-empty and its list changed since the last cycle,
+   report one **FYI** line naming the blockers that could not be opened.
 
 A failure anywhere in this sweep is one transcript line and never makes the cycle
 `recovery-required`. It holds dispatch for one item only: an item owed a restore (a blocker link
@@ -715,12 +723,12 @@ queue below). For each:
    - `release`: dissolve the edges and move the item to the `ready` role in one `lisa-tracker-write`
      update, with a comment `[lisa-session-manager] Released: <reason>`, setting the assignee to
      "me" in that same update when the item is unassigned ("Taking an item"); read it back with
-     `lisa-tracker-read` and confirm the role (and the assignee) changed before you claim it did. Notify Telegram.
+     `lisa-tracker-read` and confirm the role (and the assignee) changed before you claim it did. Report the release as **FYI**.
    - `decide` (access-only; a blocker was closed NOT PLANNED): relay nothing to the operator. Make
      the call from the item's and blocker's evidence: re-scope the item to build without the
      dependency (dissolve the edge and move it to the `ready` role), drop an edge that no longer applies, or
      close the item; a move of an unassigned item also assigns it to "me" ("Taking an item"). Post `[lisa-session-manager] Decision: <which> — <why>` in the same
-     `lisa-tracker-write` update, and read it back before you claim it landed. Notify Telegram.
+     `lisa-tracker-write` update, and read it back before you claim it landed. Report the decision as **FYI**.
    - `keep` with a manager question pending: "Waiting on a human" above handles it.
    - `keep`, `escalate`, `skip-human-gate`: leave it. Gate self-blocks and clarification blocks
      belong to `lisa-repair-intake` and humans.
@@ -825,7 +833,7 @@ Skip while `capacity` reports `paused`. Otherwise:
       Never spawn on the claim's word alone.
    4. **Spawn.** `spawn <ref> --assignees '<json>' [--repo <key>]`, with the assignees the step 3
       re-read showed ("Taking an item", rule 4).
-      - exit 0: post `[<REF>] started in <repo> (<name>)` to Telegram.
+      - exit 0: record `[<REF>] started in <repo> (<name>)` as **FYI**.
       - exit 3 (no capacity): move the item back to the `ready` role and stop dispatching.
       - exit 4 (a live worker holds it): if the ledger has no item for it, record it with
         `ledger record-spawn <ref> --worker <worker> --session-id <id> --repo <key>`; continue.
@@ -840,15 +848,15 @@ Skip while `capacity` reports `paused`. Otherwise:
         refuses the repo (exit 2, nothing launched) until the operator fixes it and runs
         `ledger clear-setup-gap <repo>` (`.` on a single-repo project). The exit-2 stdout's
         `setupGapStatus` says what to tell the operator:
-        - `recorded` (this spawn found the gap) or `not-recorded` (the ledger write failed): post
-          the CLI's one-line message to Telegram and end the cycle `recovery-required` with that
+        - `recorded` (this spawn found the gap) or `not-recorded` (the ledger write failed): send
+          the CLI's one-line message as an **Ask** and end the cycle `recovery-required` with that
           message as the summary.
         - `already-recorded` (the operator was told when it was recorded): post nothing and
           continue with the next item.
       - exit 5 (not taken; nothing launched): `reason` `unassigned` means assign the item to "me"
         through `lisa-tracker-write`, read it back, and spawn again with the new assignees;
         `foreign` means someone else holds it, so leave it where it is and continue.
-      - any other exit: move the item back to the `ready` role, notify Telegram, continue.
+      - any other exit: move the item back to the `ready` role, report the return as **FYI**, and continue.
 3. **Backlog tier, lowest priority.** Only when `backlogPickup` is on, every `ordered` item has been
    taken or skipped, and `capacity` still says `can_spawn`. Ready work always wins: never promote a
    backlog item while a dispatchable Ready item remains. For the next `backlogOrdered` item with no
@@ -876,9 +884,9 @@ Skip while `capacity` reports `paused`. Otherwise:
       is exactly the one the update intended: the unchanged existing assignee, or "me" for an
       item that was unassigned. Then `ledger validation-cleared <ref>`.
    5. Continue with steps 2.3 and 2.4 (claim in the child repo, re-read, spawn, handle the exit)
-      exactly as for a Ready item, with one change: on exit 0, post
-      `[<REF>] promoted from backlog and started in <repo> (<name>)` in place of the plain start
-      notice. Every other exit keeps its step 2.4 handling.
+      exactly as for a Ready item, with one change: on exit 0, use
+      `[<REF>] promoted from backlog and started in <repo> (<name>)` as the **FYI** start message.
+      Every other exit keeps its step 2.4 handling.
    A promotion written and read back counts as a state change for the run outcome; a spawn that
    then fails follows step 2.4's exits (the item stays in Ready with the assignee step 4 left on it).
 

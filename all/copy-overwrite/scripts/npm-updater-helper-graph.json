@@ -1705,7 +1705,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "46fb0606ccee999a75479ee479f92ac60f4fd62bbf5808e574380ff8df606e6f",
+      "sha256": "ddca51ff886326ba2bcaef21afa3f4d8fa418d52d997159579e4c0b3a8b30144",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-adapters.mjs",

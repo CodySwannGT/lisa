@@ -45,12 +45,12 @@
       "start:simulator:ios:staging": "cp .env.staging .env.local && STAGE=staging expo start --ios",
       "start:staging": "cp .env.staging .env.local && STAGE=staging expo start",
       "test:cov:lisa": "node scripts/lib/worktree-dependencies.mjs && NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage",
-      "test:cov:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+      "test:cov:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage",
       "test:integration:lisa": "node scripts/lib/worktree-dependencies.mjs && NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
       "test:lisa": "node scripts/lib/worktree-dependencies.mjs && NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest",
       "test:mutation": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile expo --adapter direct -- node scripts/lisa-mutation.mjs",
       "test:node:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile expo --adapter direct -- node scripts/lisa-test-node.mjs",
-      "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+      "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest",
       "test:watch:lisa": "node scripts/lib/worktree-dependencies.mjs && NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --watch"
     },
     "dependencies": {},
@@ -200,6 +200,9 @@
         "NODE_ENV=test lisa-test-run -- jest --coverage"
       ],
       "test:cov:unit": [
+        "LISA_COVERAGE_SCOPE=unit LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage",
+        "LISA_COVERAGE_SCOPE=unit LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo -- jest --coverage",
+        "LISA_COVERAGE_SCOPE=unit LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run -- jest --coverage",
         "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
         "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
         "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\""
@@ -212,6 +215,9 @@
         "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile expo --adapter direct -- node scripts/lisa-test-node.mjs"
       ],
       "test:unit": [
+        "LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest",
+        "LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo -- jest",
+        "LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run -- jest",
         "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
         "NODE_ENV=test lisa-test-run --profile expo -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
         "NODE_ENV=test lisa-test-run -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\""

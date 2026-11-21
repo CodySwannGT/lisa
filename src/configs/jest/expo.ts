@@ -35,6 +35,8 @@ import { createRequire } from "node:module";
 
 import type { Config } from "jest";
 
+import { readEnv } from "../../utils/process-environment.js";
+
 import {
   defaultCoverageExclusions,
   defaultThresholds,
@@ -158,6 +160,11 @@ export const getExpoJestConfig = ({
     "/node_modules/",
     "/dist/",
     "/.expo/",
+    // The CLI list option would consume positional paths that hosts append.
+    // Only the unit scripts set this scope, so integration keeps its tests.
+    ...(readEnv("LISA_EXPO_TEST_SCOPE") === "unit"
+      ? ["\\.integration[.-](test|spec)\\.(ts|tsx)$"]
+      : []),
     ...worktreeTestPathIgnorePatterns(),
   ],
   transformIgnorePatterns: [

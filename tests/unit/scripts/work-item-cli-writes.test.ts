@@ -40,7 +40,7 @@ const ISSUE_CLOSE = "issue close";
 const TERMINAL = "status:done";
 const CROSS_REFERENCED = "cross-referenced";
 const MERGED_AT = "2026-01-01T00:00:00Z";
-const DRIFT_42 = "DRIFT  acme/code#42";
+const PENDING_42 = "PENDING VERIFICATION  acme/code#42";
 const OTHER_PR_URL = "https://github.com/acme/code/pull/99";
 
 /**
@@ -663,7 +663,7 @@ describe("in-process CLI: sweep", () => {
     expect(invocations[0]).not.toContain("43");
   });
 
-  it("reports drift without changing anything", () => {
+  it("reports pending verification without changing anything", () => {
     const fixture = offlineFixture();
     const log = logPath(fixture);
     const sha = declareShipped(fixture, 42);
@@ -672,9 +672,9 @@ describe("in-process CLI: sweep", () => {
       FAKE_GH_LOG: log,
       FAKE_GH_TIMELINE_JSON: SWEPT_TIMELINE,
     });
-    expect(result.stdout).toContain(DRIFT_42);
+    expect(result.stdout).toContain(PENDING_42);
     expect(result.stdout).toContain(sha.slice(0, 9));
-    expect(result.stdout).toContain("Re-run with --apply");
+    expect(result.stdout).toContain("canonical Verify/evidence");
     expect(readFileSync(log, "utf8")).not.toContain(ISSUE_CLOSE);
   });
 
@@ -721,10 +721,8 @@ describe("in-process CLI: sweep", () => {
     expect(result.stdout).not.toContain("No drift");
   });
 
-  // Not fatal when SOME evidence was read — a clone that has only ever fetched
-  // `main` is an ordinary state and the sweep is still useful in it. What the
-  // report may not do is stay silent about the branch it could not open, which
-  // is what turns a narrower answer into a wrong one.
+  // Reading some branches is still useful, but cannot authorize a clean report
+  // across the whole configured scope.
   it("names the deploy branch it could not read in an otherwise clean report", () => {
     const fixture = createFixture({
       ...githubConfig("trailer"),
@@ -736,8 +734,8 @@ describe("in-process CLI: sweep", () => {
       FAKE_GH_LIST_JSON: JSON.stringify([{ number: 42, title: "a leaf" }]),
     });
 
-    expect(result.exitCode).toBeUndefined();
-    expect(result.stdout).toContain("No drift");
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).not.toContain("No drift");
     expect(result.stdout).toContain("NOT examined: release/never-fetched");
   });
 });
@@ -801,7 +799,7 @@ describe("sweep evidence and subject list (#3907)", () => {
       FAKE_GH_TIMELINE_JSON: MENTION_ONLY_TIMELINE,
     });
 
-    expect(result.stdout).toContain(DRIFT_42);
+    expect(result.stdout).toContain(PENDING_42);
     expect(result.stdout).toContain(sha.slice(0, 9));
   });
 
@@ -821,7 +819,7 @@ describe("sweep evidence and subject list (#3907)", () => {
       FAKE_GH_TIMELINE_JSON: MENTION_ONLY_TIMELINE,
     });
 
-    expect(result.stdout).toContain(DRIFT_42);
+    expect(result.stdout).toContain(PENDING_42);
     expect(result.stdout).toContain("status:ready");
   });
 
@@ -858,7 +856,7 @@ describe("sweep evidence and subject list (#3907)", () => {
       FAKE_GH_LIST_JSON: JSON.stringify([{ number: 42, title: "shipped" }]),
     });
 
-    expect(result.stdout).toContain(DRIFT_42);
+    expect(result.stdout).toContain(PENDING_42);
     expect(result.stdout).toContain(sha.slice(0, 9));
   });
 
