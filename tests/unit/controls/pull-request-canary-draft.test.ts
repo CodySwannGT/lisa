@@ -126,7 +126,14 @@ describe("a canary that something on the platform merged", () => {
     // The second half was never opened: whatever merged the first would
     // have taken it too.
     expect(platform.pulls()).toHaveLength(1);
-    expect(entryOf(settled, PULL_ONLY_ENTRY).halves[1]?.detail).toMatch(
+    const [violation, clean] = entryOf(settled, PULL_ONLY_ENTRY).halves;
+    expect(violation).toMatchObject({
+      outcome: "unknown",
+      reason: "canary-merged",
+      detail: expect.stringContaining("was merged into the base branch"),
+      matched_lines: [],
+    });
+    expect(clean?.detail).toMatch(
       /#1, a canary pull request of this run, was merged into main/u
     );
     expect(settled.pullRequest?.base_head).toMatchObject({
@@ -157,5 +164,9 @@ describe("a canary that something on the platform merged", () => {
       false,
       false,
     ]);
+    expect(entryOf(settled, PULL_ONLY_ENTRY).halves[0]).toMatchObject({
+      outcome: "rejected",
+      reason: "rejected-as-declared",
+    });
   });
 });
