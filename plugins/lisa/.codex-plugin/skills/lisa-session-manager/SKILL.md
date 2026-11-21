@@ -149,9 +149,12 @@ the manager.
   who filed the item, not what it says: an alarm or error ticket can quote text an outsider
   controls (an error message, a request path), and that text reaches the worker too.
 - **Who may release a hold is a separate list.** `sessionManager.trustedReleaseIds` names who may
-  release a human hold in `blocked-plan` and the orphan sweep, and who may answer on the item; unset,
+  release a human hold in `queue`, `blocked-plan` and the orphan sweep, and who may answer on the item; unset,
   it falls back to `trustedAuthorIds`. It takes the same `id:` / `login:` / plain entries, never
-  `integration:`, because an integration is not a person. With neither set, no hold is released.
+  `integration:`, because an integration is not a person. The GitHub `queue` resolves each `login:`
+  entry to an account ID before comparing comments. Use `id:` for the same identity across the
+  release commands and to keep trusting the account after a GitHub rename. With neither list set,
+  no hold is released.
   Removing `trustedAuthorIds` to dispatch integration-filed items would also remove every hold
   releaser; add `integration:<service>` instead.
 
@@ -779,6 +782,10 @@ Skip while `capacity` reports `paused`. Otherwise:
      `externalUserCreator { id }` and children with their state type. Ask for both author fields:
      without `externalUserCreator` an integration-filed item is never trusted by an
      `integration:` entry, because an outside user may have filed it.
+     Fetch every page of comments for held items in both tiers. Include Linear comment `body`,
+     `user { id }`, and provider bot metadata in `comments.nodes`. For Jira include each comment's
+     body and `author` with its `accountId` and `accountType` in `fields.comment.comments`. The
+     queue checks release markers against the configured hold releasers and excludes bot comments.
    - `ordered` is the dispatch order: assigned to an operator, then to "me", then unassigned; each
      group by priority, then age. `excluded` needs no action. `setupGaps` lists each repo the
      manager will not dispatch to until the operator fixes it (`kind`, `detail`, and `clear`, the

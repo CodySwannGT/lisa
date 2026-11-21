@@ -98,7 +98,7 @@
       "children": []
     },
     "lib/changed-paths.mjs": {
-      "sha256": "bcf755d8c1905cddd84622c9a520f7bcc16b19379b9f933a8b5657bb6df9f391",
+      "sha256": "1d721b51c529f0de8e4cecb81de484cd9e73cd401177ae40b8f8e03cc7eb5a52",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "node:fs",
@@ -148,11 +148,12 @@
       "children": []
     },
     "lib/completion-proof-content.mjs": {
-      "sha256": "98b1901e0912d72a639028f22837a8abecaeeef6fba0654990bca2285239ea08",
+      "sha256": "25d44e9eeed728d046a45e5662691c7112cb271b5decc48ea9fe0fe038812538",
       "staticImports": [
         "lib/completion-proof-shape.mjs",
         "lib/usage-ledger-integrity.mjs",
-        "lib/usage-ledger.mjs"
+        "lib/usage-ledger.mjs",
+        "node:util"
       ],
       "dynamicImports": [],
       "children": []
@@ -1580,7 +1581,7 @@
       "children": []
     },
     "lisa-gates.mjs": {
-      "sha256": "5c44bf2bb003249a62c443ef594509f7b6828be12157c9aa90f90d3acad13636",
+      "sha256": "127455fb477f95f43ded3c259e73e3261c0c6c4c600871429cb2bb6bae383bb7",
       "staticImports": [
         "lib/gate-pass-cache.mjs",
         "lib/invoked-as-script.mjs",
@@ -1665,7 +1666,7 @@
       "children": []
     },
     "lisa-run-gates.mjs": {
-      "sha256": "c8d581ffa7c7a34b1d4d5c7ac8618f47af9a705fe14cae6b8ce3bba158a1405a",
+      "sha256": "fe30e611c65737900492df31878bb0eb4c69474831577b110ee4be3b2579b59b",
       "staticImports": [
         "lib/affected-tests.mjs",
         "lib/bounded-spawn.mjs",
@@ -1756,7 +1757,7 @@
       "children": []
     },
     "threshold-ratchet-compare.mjs": {
-      "sha256": "f837708fc5baf19b5e8e9adf88bcce810f8257d00075265775982b38063dc5d3",
+      "sha256": "76cdcc3a28a04686e6ddc3cd1f54e3bb9c4fb28a8033692dc86e1ffb7adb0ced",
       "staticImports": [
         "threshold-ratchet-families.mjs"
       ],

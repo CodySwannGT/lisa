@@ -19,8 +19,7 @@ file in.
 
 Two things follow, and both are rules:
 
-- **Never work out a key or a marker yourself.** Copy them from the command's output. A key worked
-  out by an agent can differ between two runs, and then the second run files a duplicate.
+- **Copy each gap's key and marker exactly as printed.** A key worked out by an agent can differ between two runs, and then the second run files a duplicate.
 - **Never create a ticket any other way.** No direct tracker command, no vendor-specific writer.
   Every ticket goes through `lisa-tracker-write`.
 
@@ -124,7 +123,8 @@ the tickets with their descriptions and look through them for the key before dec
 **A ticket is this gap's ticket only when its description contains both `lisa-control-gap` and
 `key=<key>`.** Match on those two pieces of text and nothing else: never on the title, and never on
 `criterion=` or `scope=` alone. A tracker may show the brackets escaped, or change the spacing; the
-tag and the key come back unchanged.
+tag and the key come back unchanged. Skip a parent marker when matching a gap, even if the
+parent's description happens to mention the gap's key.
 
 If the search cannot be run (the tracker cannot be reached, or the credentials were refused), do
 not create anything for that entry. Its result is `blocked`, with a reason that says the tracker
@@ -151,10 +151,39 @@ first.
 **An existing ticket is never changed by this flow.** In particular, `build_ready=true` does not
 move a ticket that an earlier run filed on hold. It applies only to tickets this run creates.
 
+## Choose the parent
+
+Do this once, just before the first new gap ticket. If all gaps already have tickets, there is
+nothing to create. Use the canonical repository slug associated with the audit for
+`<owner>/<repo>`, even when a JIRA project or Linear team tracks several repositories.
+
+~~~text
+[lisa-control-gap-parent] repository=<owner>/<repo>
+~~~
+
+1. For Linear, use `lisa-linear-access operation: list-projects team:<team>` and read each open
+   Project with `get-project id:<ID>` to get its description and creation time. Use `list-issues`
+   only to match individual gap tickets in step 4. For GitHub and Jira, use the tracker read path
+   from step 4 to search open Epic containers for the parent marker. If the search finds none,
+   list open Epics and read their descriptions because the search index can lag. Match the full
+   marker with the repository slug. Use the oldest open match if there are several, and mention
+   the others in the summary. If the read fails, report the new gap tickets as blocked and file
+   nothing.
+2. When there is no match, call `lisa-tracker-write` once to create an Epic (a Project in Linear)
+   titled **Missing capabilities found by the audit**. Say that it groups work found by the audit
+   for this repository. Include the parent marker as its own visible line. Give the writer the
+   container declaration `None — container: state rolls up from children` for the Target Backend
+   Environment section and leave the parent out of the build-ready queue. Read back the parent
+   through `lisa-tracker-read` and confirm the marker is present before filing children. If the
+   writer cannot create or verify it, report the new gap tickets as blocked and file no children.
+3. For each new gap ticket in step 5, pass the same reference as `parent_ref`. Later runs reuse the
+   open parent. Count only the gap tickets in step 7. Keep the gap marker and gap keys out of the
+   parent description so searches for a gap cannot mistake the parent for the ticket.
+
 ## Step 5: create the ticket
 
-Call `lisa-tracker-write` once for each entry that needs a ticket, with the content below. The
-writer lays the description out in its own sections and checks it. If it asks for more, give it
+Call `lisa-tracker-write` once for each entry that needs a ticket, with the chosen `parent_ref` and the
+content below. The writer lays the description out in its own sections and checks it. If it asks for more, give it
 what it asks for and call it again. Never file by another path because the writer refused.
 
 **Issue type:** `Task`.

@@ -30,6 +30,7 @@
  * @module session-manager/cli-queue
  */
 import {
+  adfText,
   assertPagedToCompletion,
   normalizeJiraIssue,
   normalizeLinearIssue,
@@ -44,14 +45,22 @@ import {
   validOrAbsent,
 } from "./cli-runtime.mjs";
 import { resolveHumanGatePolicy } from "../../../scripts/human-gate-act.mjs";
+import { idComparableValues } from "../../../scripts/operator-id-kinds.mjs";
+import { commentsOf } from "../../../scripts/stale-blocker-comment.mjs";
 import {
   landedDoneRoles,
   terminalDoneRoles,
 } from "../../../scripts/stale-blocker-edges.mjs";
+import { trustedReleaseEntries } from "./config.mjs";
 import { readJsonFile } from "./json-input.mjs";
 import { readLedger } from "./ledger.mjs";
 import { blockingGapRepo, listSetupGaps } from "./ledger-setup-gaps.mjs";
-import { fetchGithubBacklog, fetchGithubQueue } from "./queue-github.mjs";
+import {
+  fetchGithubBacklog,
+  fetchGithubQueue,
+  githubReleaserIds,
+} from "./queue-github.mjs";
+import { readIssueComments } from "./stale-links-github.mjs";
 import { readInFlight, readRestores } from "./stale-links-state.mjs";
 
 export { parseJson, readJsonFile } from "./json-input.mjs";
@@ -65,17 +74,20 @@ const NORMALIZERS = { jira: normalizeJiraIssue, linear: normalizeLinearIssue };
  * @param {"jira"|"linear"} tracker - Vendor
  * @param {readonly string[]} doneRoles - Configured terminal done names, so
  *   a blocker there counts as finished (#5065)
- * @returns {{ items: object[], pages: unknown }} Normalized items
+ * @returns {{ items: object[], pages: unknown, rawByRef: Map<string, object> }} Normalized items
  */
 function normalizeEnvelope(envelope, where, tracker, judging) {
   asSetupError(() => assertPagedToCompletion(envelope));
   if (!Array.isArray(envelope.items)) {
     throw new CliError(`${where}: items must be an array.`, 2);
   }
-  return {
-    items: envelope.items.map(item => NORMALIZERS[tracker](item, judging)),
-    pages: envelope.pages ?? null,
-  };
+  const rawByRef = new Map();
+  const items = envelope.items.map(raw => {
+    const item = NORMALIZERS[tracker](raw, judging);
+    rawByRef.set(item.ref, raw);
+    return item;
+  });
+  return { items, pages: envelope.pages ?? null, rawByRef };
 }
 
 /**
@@ -86,7 +98,7 @@ function normalizeEnvelope(envelope, where, tracker, judging) {
  * @param {"jira"|"linear"} tracker - Vendor
  * @param {boolean} withBacklog - Whether the backlog tier is required
  * @param {ReturnType<typeof loadProject>} project - Loaded project
- * @returns {{ items: object[], pages: unknown, backlog: { items: object[], pages: unknown } | null }} Normalized items
+ * @returns {ReturnType<typeof normalizeEnvelope> & { backlog: ReturnType<typeof normalizeEnvelope> | null }} Normalized items
  */
 function readEnvelopeQueue(ctx, tracker, withBacklog, project) {
   const file = ctx.values.input;
@@ -239,7 +251,7 @@ export async function queue(ctx) {
   const project = loadProject(ctx.root);
   const config = validOrAbsent(project);
   const backlogPickup = config?.backlogPickup === true;
-  const { items, pages, backlog } =
+  const { items, pages, backlog, rawByRef } =
     tracker === "github"
       ? {
           ...fetchGithubQueue(ctx, project),
@@ -252,10 +264,22 @@ export async function queue(ctx) {
   // Resolved local-then-global like `human-gate-act.mjs policy`, so a hold
   // the project's mode keeps is never dispatched as Ready work (#4687).
   const gatePolicy = resolveHumanGatePolicy(project.local, project.global);
+  const releasers = trustedReleaseEntries(config);
   const policy = {
     me,
     operators,
     trustedAuthorIds: config?.trustedAuthorIds ?? undefined,
+    trustedHumanActorIds:
+      tracker === "github"
+        ? githubReleaserIds(ctx, releasers)
+        : idComparableValues(releasers),
+    commentsFor:
+      tracker === "github"
+        ? ref => readIssueComments(ctx, ref)
+        : ref =>
+            commentsOf(rawByRef?.get(ref) ?? backlog?.rawByRef?.get(ref)).map(
+              comment => ({ ...comment, body: adfText(comment.body) })
+            ),
     humanNeededLabel: humanNeededLabel(project, tracker),
     humanOnly: gatePolicy.humanOnly,
     humanGateMode: gatePolicy.mode,

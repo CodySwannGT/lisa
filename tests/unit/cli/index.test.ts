@@ -4,6 +4,7 @@ import { getPackageVersion } from "../../../src/cli/version.js";
 import { createTestProgram } from "./index-test-program.js";
 
 const DEST = "./sample-proj";
+const EXISTING_DESTINATION = ".";
 
 describe("createProgram", () => {
   it("names the program lisa and reports the package.json version (not the hardcoded 1.0.0)", () => {
@@ -54,13 +55,27 @@ describe("createProgram", () => {
 });
 
 describe("backwards-compatible invocation", () => {
+  it("refuses an unknown implicit destination before update checking", async () => {
+    const { program, runApply, runUpdateCheck } = createTestProgram();
+    program.exitOverride().configureOutput({ writeErr: () => undefined });
+
+    await expect(
+      program.parseAsync(["not-a-lisa-command", "--yes"], { from: "user" })
+    ).rejects.toMatchObject({
+      code: "commander.unknownCommand",
+      message: expect.stringContaining(getPackageVersion()),
+    });
+    expect(runUpdateCheck).not.toHaveBeenCalled();
+    expect(runApply).not.toHaveBeenCalled();
+  });
+
   it("routes the bare positional form `lisa <destination>` to runApply", async () => {
     const { program, runApply } = createTestProgram();
 
-    await program.parseAsync([DEST, "--yes"], { from: "user" });
+    await program.parseAsync([EXISTING_DESTINATION, "--yes"], { from: "user" });
 
     expect(runApply).toHaveBeenCalledTimes(1);
-    expect(runApply.mock.calls[0]?.[0]).toBe(DEST);
+    expect(runApply.mock.calls[0]?.[0]).toBe(EXISTING_DESTINATION);
     expect(runApply.mock.calls[0]?.[1]).toMatchObject({ yes: true });
   });
 
@@ -80,7 +95,14 @@ describe("backwards-compatible invocation", () => {
     const { program, runApply } = createTestProgram();
 
     await program.parseAsync(
-      [DEST, "--yes", "--dry-run", "--skip-git-check", "--harness", "codex"],
+      [
+        EXISTING_DESTINATION,
+        "--yes",
+        "--dry-run",
+        "--skip-git-check",
+        "--harness",
+        "codex",
+      ],
       { from: "user" }
     );
 
@@ -116,7 +138,7 @@ describe("update-check pre-action hook", () => {
   it("runs the update check once for the positional form too", async () => {
     const { program, runUpdateCheck } = createTestProgram();
 
-    await program.parseAsync([DEST, "--yes"], { from: "user" });
+    await program.parseAsync([EXISTING_DESTINATION, "--yes"], { from: "user" });
 
     expect(runUpdateCheck).toHaveBeenCalledTimes(1);
   });
