@@ -1395,7 +1395,7 @@
     "plugins/src/base/scripts/doctor-report.mjs":
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/human-gate-act.mjs":
-      "99edeb88fa54f5bde63f283e7ad3678fa7d319cd5c6407159ffb4b709c58c33e",
+      "1fb772b3cc921541e538ba9f0f5faac38776b9aa051d545adeddbe1e910b7de9",
     "plugins/src/base/scripts/human-gate-lift.mjs":
       "21424773e02a479bff83246b781eef64fdaa310e985916d4fbef15812c9c3880",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
@@ -14797,6 +14797,7 @@
     "tests/unit/strategies/human-gate-lift-battery.test.ts": true,
     "tests/unit/strategies/human-gate-lift-mode.test.ts": true,
     "tests/unit/strategies/human-gate-lift.test.ts": true,
+    "tests/unit/strategies/human-gate-malformed-block.test.ts": true,
     "tests/unit/strategies/human-gate-markdown-escaping.test.ts": true,
     "tests/unit/strategies/human-gate-release-authorization.test.ts": true,
     "tests/unit/strategies/human-gate-release-helpers.ts": true,
