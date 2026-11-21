@@ -1429,7 +1429,7 @@
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/ready-queue-order.mjs":
-      "dd41b11715511c6750944a917cfc159061a139ecbab324ee1731cd103ae3f16a",
+      "02d2216053cf89da887cbec541cd4b175fd39dfaa340e451293b3b7106a7d161",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "7341831fa2dc52bdf792306196430548a7efec91993e1ad7f5c6b737a9def8a5",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
@@ -1787,7 +1787,7 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "29dd5750c58573d24423cf60e33e416e7919ba6ddb19d5290f3b4643a99b281b",
+      "ca7a7a23b110bfe15c8a3eec789dd35783884f51e233f2c372830aa4a62a9489",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f8a63378cdeb2acc70b53fa5b7c9e4510b2806b98eb27004d94b97817172d6db",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1809,7 +1809,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs":
       "cab60f2dfee7f33a8a5f16ec94cb1b2ab17cf384886ee5eb738fb015535d6567",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
-      "8faa0ee5a26cbfa7708e917a02cb814efe7e639007c8526ad3934dbc4f3f21fc",
+      "3aae3cb7fd3d6d73c3837cd865ac46cff3a8304aea71be334b01bc5e7e7c8018",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
       "aab705023d16ae42d6994450da0c914230ccab92823babb81697941c3760e8a8",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
@@ -1875,7 +1875,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-github.mjs":
-      "73b0da0fc25973f3ac75a0f2a1bb2e3f25417eace4d13bc4399e52e920b60a63",
+      "238beff6631928d26c63ade30324682a8b984f59b5bf3087c8d5317058421186",
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-state.mjs":
       "058e1f2ffc9f0c36089c69b3bc75c5f215107b0c2669f73617cd33a374026ac2",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
@@ -14592,6 +14592,7 @@
     "tests/unit/session-manager/cli-overruled.test.ts": true,
     "tests/unit/session-manager/cli-queue-backlog.test.ts": true,
     "tests/unit/session-manager/cli-queue-operators.test.ts": true,
+    "tests/unit/session-manager/cli-queue-release-trust.test.ts": true,
     "tests/unit/session-manager/cli-release-trust.test.ts": true,
     "tests/unit/session-manager/cli-setup-gap-edges.test.ts": true,
     "tests/unit/session-manager/cli-setup-gap-persist.test.ts": true,

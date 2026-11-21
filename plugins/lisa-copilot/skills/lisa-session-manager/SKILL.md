@@ -777,6 +777,10 @@ Skip while `capacity` reports `paused`. Otherwise:
      `externalUserCreator { id }` and children with their state type. Ask for both author fields:
      without `externalUserCreator` an integration-filed item is never trusted by an
      `integration:` entry, because an outside user may have filed it.
+     Fetch every page of comments for held items in both tiers. Include Linear comment `body`,
+     `user { id }`, and provider bot metadata in `comments.nodes`. For Jira include each comment's
+     body and `author` with its `accountId` and `accountType` in `fields.comment.comments`. The
+     queue checks release markers against the configured hold releasers and excludes bot comments.
    - `ordered` is the dispatch order: assigned to an operator, then to "me", then unassigned; each
      group by priority, then age. `excluded` needs no action. `setupGaps` lists each repo the
      manager will not dispatch to until the operator fixes it (`kind`, `detail`, and `clear`, the
