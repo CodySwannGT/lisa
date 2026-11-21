@@ -497,7 +497,7 @@
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "edfc36f179f79703f3cb2dc809fdbb708e270b3fc82cc6a73fdad9935bfa1561",
+      "ceae37e51dde013b8c980b84ac07bf23f76b0ce07f9b681fd8dd36ae38a16847",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order-react-violations.test.js":
@@ -745,7 +745,7 @@
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
-      "ddb4f16f13ef30f40f4c1cb35d46d70558b5ccb41d9709348fbe9c258bc826cd",
+      "4b0ffa011ae217e44466bcaa4c4df446a7aa3200343d28e4f6ca2111ab17e581",
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
@@ -893,7 +893,7 @@
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "98a77d132897c33a3186716445a493eb9b52416f23c9553707fe5d7eea3ac935",
+      "67f68ac8652b3618dac5dc6aac43089d150879242c54e08c9d61b877d3c09c05",
     "plugins/src/base/agents/architecture-specialist.md":
       "b5834a1dc5b11dc2eb65cae6727350bbb7e91d4c2c530ec271bd95f88d878002",
     "plugins/src/base/agents/bug-fixer.md":
@@ -3071,7 +3071,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "861c7d644ed9d0cc99e9703897930650331bce3e71ae51e7a689e8b42760cc6d",
+      "d76bce7f0f67762524091bccfd3f46863ba4150b13b5cb7de4fe9f472ceaac93",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3141,7 +3141,7 @@
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "d2ccdac51cc0ef73d8073db7da01e099d2d770dd58fab86d8956a026a95eadc9",
+      "c04b04a363f2d0461d37d5de357659c04a1bc4366b03516d0464edc9848190a8",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3190,6 +3190,8 @@
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
       "9897bb65a2bcc35d5977908aacc4317fa282fae5fa7d4b17db626e7289d07253",
+    "typescript/copy-overwrite/scripts/lisa-typecheck.mjs":
+      "53b180dfb891c2167614d60a230ce5e9f64703a64a3a38f0da831aedaf65f6b9",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-action.mjs":
       "640b65e1caba4ba33e19e4a1ff49f869a99c15eb7d59a88498a5b2466acf438e",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-github-jira.mjs":
@@ -3255,7 +3257,7 @@
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "dbeb4edc86f340079663b4b514838518408b7369097218b99052f2d36b9755ff"
+      "fe6a11022a29cee55f1b226c6ede40c81289f90cac6e31d88d0215c977b6d165"
   },
   "UPSTREAM_SURFACE_MANIFEST": {
     ".agents/rules/never-name-downstream-projects.md": true,
@@ -12554,6 +12556,7 @@
     "tests/integration/maestro-pre-suite-exports.test.ts": true,
     "tests/integration/maestro-pre-suite-seam.test.ts": true,
     "tests/integration/maestro-run-id.test.ts": true,
+    "tests/integration/managed-host-typecheck.test.ts": true,
     "tests/integration/mjs-suite-runner-resolution.test.ts": true,
     "tests/integration/mutation-gate-bite.test.ts": true,
     "tests/integration/mutation-gate-diff-bite.test.ts": true,
@@ -15059,6 +15062,7 @@
     "typescript/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs": true,
+    "typescript/copy-overwrite/scripts/lisa-typecheck.mjs": true,
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-action.mjs": true,
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-github-jira.mjs": true,
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-linear-sentry.mjs": true,
