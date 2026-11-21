@@ -84,7 +84,17 @@ function runFixture(lend: (root: string) => void): void {
   const child = boundedSpawnSync({
     label: "fixture vitest run",
     command: process.execPath,
-    args: [path.join(root, "node_modules/vitest/vitest.mjs"), "run"],
+    args: [
+      path.join(REPO_ROOT, "dist/cli/lisa-test-run.js"),
+      "--profile",
+      "lisa",
+      "--adapter",
+      "vitest",
+      "--",
+      process.execPath,
+      path.join(root, "node_modules/vitest/vitest.mjs"),
+      "run",
+    ],
     cwd: root,
     env: { ...process.env, TMPDIR: root, TMP: root, TEMP: root },
   });
