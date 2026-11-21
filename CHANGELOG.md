@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.2.11](https://github.com/CodySwannGT/lisa/compare/v8.2.10...v8.2.11) (2026-11-21)
+
+
+### Bug Fixes
+
+* **gates:** recognize knowledge and work item configuration ([09e4b12](https://github.com/CodySwannGT/lisa/commit/09e4b1269ced94da90c0eeb113434b1f223d5fb3)), closes [CodySwannGT/lisa#5069](https://github.com/CodySwannGT/lisa/issues/5069)
+* **policy:** preserve app pins during ruleset reconciliation ([fe4edcc](https://github.com/CodySwannGT/lisa/commit/fe4edcc3b5e8d1a7638caeb5481f228f6432974d)), closes [CodySwannGT/lisa#5042](https://github.com/CodySwannGT/lisa/issues/5042)
+* **rulesets:** explain non-interactive confirmation failures ([ead10a2](https://github.com/CodySwannGT/lisa/commit/ead10a2ce4acbbdb1afb5d3153b75f05dd7859c9)), closes [CodySwannGT/lisa#5005](https://github.com/CodySwannGT/lisa/issues/5005)
+
 ### [8.2.10](https://github.com/CodySwannGT/lisa/compare/v8.2.9...v8.2.10) (2026-11-21)
 
 
