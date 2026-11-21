@@ -48,10 +48,15 @@
 import * as fse from "fs-extra";
 import * as path from "node:path";
 import { writeFileAtomically } from "../utils/atomic-file-write.js";
-import { type LearningEntry } from "./learnings-contract.js";
+import {
+  estimateLearningTokens,
+  type LearningEntry,
+} from "./learnings-contract.js";
 import {
   LearningsBudgetError,
+  type LearningsReadOptions,
   assertDocumentBudget,
+  isLedgerOverBudget,
   parseLearningsFile,
   renderLearningsFile,
 } from "./learnings-document.js";
@@ -92,6 +97,9 @@ async function resolveOverflowTarget(
   return resolveSafeLearningTarget(projectRoot, relative);
 }
 
+/** Inspection and removal can read a saturated overflow without growing it. */
+const DRAIN_READ_POLICY: LearningsReadOptions = { allowOverBudget: true };
+
 /** Overflow entries plus the exact bytes they were parsed from. */
 interface OverflowImage {
   /** Validated entries, empty when the file does not exist. */
@@ -104,12 +112,17 @@ interface OverflowImage {
  * Read the entries currently held in the overflow, retaining the read image so
  * a locked writer can prove nothing overwrote it before publishing.
  * @param target - Absolute overflow path
+ * @param options - Read policy for this operation
  * @returns Validated entries and the bytes they came from
  */
-async function readOverflowEntries(target: string): Promise<OverflowImage> {
-  const existing = await readExistingLearnings(target);
+async function readOverflowEntries(
+  target: string,
+  options: LearningsReadOptions = {}
+): Promise<OverflowImage> {
+  const existing = await readExistingLearnings(target, options);
   return {
-    entries: existing === undefined ? [] : parseLearningsFile(existing),
+    entries:
+      existing === undefined ? [] : parseLearningsFile(existing, options),
     image: existing,
   };
 }
@@ -120,6 +133,8 @@ export interface LearningsOverflowContents {
   readonly file: string;
   /** Validated entries awaiting drain. */
   readonly entries: readonly LearningEntry[];
+  /** Whether the overflow exceeds its byte or entry budget. */
+  readonly overBudget: boolean;
 }
 
 /**
@@ -134,8 +149,18 @@ export async function readLearningsOverflow(
   projectRoot: string
 ): Promise<LearningsOverflowContents> {
   const { target } = await resolveOverflowTarget(projectRoot);
-  const { entries } = await readOverflowEntries(target);
-  return { file: target, entries };
+  const { entries, image } = await readOverflowEntries(
+    target,
+    DRAIN_READ_POLICY
+  );
+  return {
+    file: target,
+    entries,
+    overBudget: isLedgerOverBudget(
+      estimateLearningTokens(image ?? ""),
+      entries.length
+    ),
+  };
 }
 
 /** Outcome of draining entries the gardener has finished with. */
@@ -148,6 +173,8 @@ export interface LearningsOverflowDrain {
   readonly absent: readonly string[];
   /** How many entries still await drain. */
   readonly remaining: number;
+  /** Whether the remaining overflow still exceeds its budget. */
+  readonly overBudget: boolean;
 }
 
 /**
@@ -178,49 +205,78 @@ export async function drainLearningsOverflow(
     // containment guarantee has to be re-established once the read is
     // actually about to happen. Same discipline as the ledger writer.
     await assertSafeLearningParents(root, path.dirname(target));
-    const { entries, image } = await readOverflowEntries(target);
+    const previous = await readOverflowEntries(target, DRAIN_READ_POLICY);
+    const { entries, image } = previous;
     const drained = entries
       .filter(entry => requested.has(entry.id))
       .map(entry => entry.id);
     const retained = entries.filter(entry => !requested.has(entry.id));
-    if (drained.length > 0) {
-      await publishOverflow(root, target, retained, image);
-    }
+    const overBudget =
+      drained.length > 0
+        ? await publishOverflow(
+            { root, target },
+            retained,
+            previous,
+            DRAIN_READ_POLICY
+          )
+        : isLedgerOverBudget(
+            estimateLearningTokens(image ?? ""),
+            entries.length
+          );
     return {
       file: target,
       drained,
       absent: [...requested].filter(id => !drained.includes(id)),
       remaining: retained.length,
+      overBudget,
     };
   });
 }
 
 /**
- * Render, budget-check, and atomically publish the overflow document.
- * @param root - Resolved project root
- * @param target - Absolute overflow path
+ * Render, validate, and atomically publish the overflow document.
+ * @param location - Resolved project root and overflow path
+ * @param location.root - Resolved project root
+ * @param location.target - Absolute overflow path
  * @param entries - Entries the overflow should now hold
- * @param preImage - Bytes this transaction read under the lock
+ * @param previous - Validated entries and bytes read under the lock
+ * @param options - Read policy, tolerant only for removing entries
+ * @returns Whether the published overflow still exceeds its budget
  */
 async function publishOverflow(
-  root: string,
-  target: string,
+  { root, target }: OverflowTarget,
   entries: readonly LearningEntry[],
-  preImage: string | undefined
-): Promise<void> {
+  previous: OverflowImage,
+  options: LearningsReadOptions = {}
+): Promise<boolean> {
   const rendered = renderLearningsFile(entries);
-  assertDocumentBudget(rendered, entries.length, "Learnings overflow");
-  // Budget checks alone do not prove identity uniqueness or exact schema.
-  // Reparse the COMPLETE candidate while the overflow lock is held, before a
-  // temporary file can be renamed over the last known-good document.
-  parseLearningsFile(rendered);
+  const beforeBytes = estimateLearningTokens(previous.image ?? "");
+  const afterBytes = estimateLearningTokens(rendered);
+  if (
+    options.allowOverBudget &&
+    isLedgerOverBudget(beforeBytes, previous.entries.length)
+  ) {
+    if (
+      afterBytes >= beforeBytes ||
+      entries.length >= previous.entries.length
+    ) {
+      throw new LearningsBudgetError(
+        "Refusing to drain the over-budget overflow because the rewrite would not make it smaller. Nothing was written."
+      );
+    }
+  } else {
+    assertDocumentBudget(rendered, entries.length, "Learnings overflow");
+  }
+  // The budget alone does not prove identity uniqueness or the entry schema.
+  parseLearningsFile(rendered, options);
   await fse.ensureDir(path.dirname(target));
   await writeFileAtomically(target, rendered, {
     beforeRename: async () => {
       await assertSafeLearningParents(root, path.dirname(target));
-      await assertLearningsUnchanged(target, preImage);
+      await assertLearningsUnchanged(target, previous.image, options);
     },
   });
+  return isLedgerOverBudget(afterBytes, entries.length);
 }
 
 /**
@@ -336,13 +392,13 @@ export async function preserveDroppedLearning(
   const preserved = await withFileTargetLock(target, async () => {
     // Re-establish containment after the lock wait; see drainLearningsOverflow.
     await assertSafeLearningParents(root, path.dirname(target));
-    const { entries, image } = await readOverflowEntries(target);
-    const next = resolveOverflowEntries(entries, entry);
+    const previous = await readOverflowEntries(target);
+    const next = resolveOverflowEntries(previous.entries, entry);
     if (next === undefined) {
       return true;
     }
     try {
-      await publishOverflow(root, target, next, image);
+      await publishOverflow({ root, target }, next, previous);
       return true;
     } catch (error) {
       if (error instanceof LearningsBudgetError) {

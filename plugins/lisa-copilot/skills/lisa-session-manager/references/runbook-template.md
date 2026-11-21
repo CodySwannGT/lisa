@@ -19,6 +19,10 @@ The configured tracker's lanes (the `ready`, `claimed` and `blocked` roles from 
 read through the tracker access layer; the manager's ledger in `.lisa/session-manager/`; the live
 session list from `claude agents`; and, when `sessionManager.notify.provider` is `telegram`, the
 project's own Telegram chat. Telegram is optional: with no channel, questions wait in the ledger.
+Read `notifyLevel` from `status` each cycle. `all` sends questions and routine notices to a paired
+chat. `asks-only` sends questions, requests for operator action, duplicate-manager warnings and the
+hold digest. Routine worker starts, outcomes, tracker changes and acknowledgements go to the
+transcript in that mode.
 
 ## Candidate selection
 

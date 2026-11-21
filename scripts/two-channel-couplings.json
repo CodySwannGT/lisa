@@ -66,6 +66,10 @@
       "decision": "warranted",
       "reason": "Verdict-bearing required gate: it compares committed thresholds against measured coverage and posts a red check. A copy predating a threshold-semantics change enforces the old comparison and its red is believed — the precise harm CodySwannGT/lisa#3477 measured on the work-item gate. The artifact exports no contract version yet, so closing this needs the artifact half authored first; recorded as an open obligation rather than exempted."
     },
+    "quality-rails.yml::scripts/lisa-rails-ast-grep.mjs": {
+      "decision": "not-needed",
+      "reason": "The workflow and pre-push hook use the exact ast-grep package pinned by this script in the same checkout. Reapplying Lisa advances both together. Hosts predating the script keep the existing CI pin."
+    },
     "quality-rails.yml::scripts/lisa-mutation.sh": {
       "decision": "not-needed",
       "reason": "A runner, not a judge. The gate's verdict is mutant's exit code, and what it runs is read from the project's own `mutation.gate.yml` and `.mutant.yml`; this script's own logic decides whether the gate is enabled and what ref to diff against, both of which come from configuration it does not own. A superseded copy runs the wrong subjects loudly rather than returning a wrong verdict quietly."
@@ -168,25 +172,25 @@
   "inspected": {
     "workflows": 27,
     "steps": 890,
-    "couplings": 50,
-    "inventory": 256
+    "couplings": 51,
+    "inventory": 257
   },
   "counts": {
     "package-backed": 11,
-    "apply-lagged": 29,
+    "apply-lagged": 30,
     "never-delivered": 0,
     "undelivered": 10
   },
   "detectionCounts": {
     "version-handshake": 4,
     "capability-probe": 0,
-    "existence-only": 7,
+    "existence-only": 8,
     "no-probe": 18,
     "unchecked": 10
   },
   "decisionCounts": {
     "handshake": 4,
-    "not-needed": 24,
+    "not-needed": 25,
     "warranted": 11
   },
   "couplings": [
@@ -603,6 +607,30 @@
         "all/copy-contents"
       ],
       "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-mutation.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-contents). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-zero` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
+    },
+    {
+      "key": "quality-rails.yml::scripts/lisa-rails-ast-grep.mjs",
+      "workflow": "quality-rails.yml",
+      "path": "scripts/lisa-rails-ast-grep.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": true,
+      "handling": [
+        "else-branch",
+        "exit-nonzero",
+        "error-annotation"
+      ],
+      "detection": "existence-only",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "not-needed",
+      "reason": "The workflow and pre-push hook use the exact ast-grep package pinned by this script in the same checkout. Reapplying Lisa advances both together. Hosts predating the script keep the existing CI pin.",
+      "lanes": [
+        "rails/copy-overwrite"
+      ],
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-rails-ast-grep.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality-rails.yml::scripts/lisa-rspec-select.mjs",

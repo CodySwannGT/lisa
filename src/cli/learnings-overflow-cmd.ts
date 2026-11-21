@@ -76,8 +76,8 @@ async function resolvePayload(
   drain: readonly string[] | undefined
 ): Promise<unknown> {
   if (drain === undefined || drain.length === 0) {
-    const { file, entries } = await readLearningsOverflow(cwd);
-    return { file, pending: entries.length, entries };
+    const { file, entries, overBudget } = await readLearningsOverflow(cwd);
+    return { file, pending: entries.length, entries, overBudget };
   }
   return drainLearningsOverflow(cwd, drain);
 }
