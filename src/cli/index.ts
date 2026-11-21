@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { addAdmitCommand } from "./admit-cmd.js";
 import { runApply } from "./apply.js";
+import { addApplyCommand } from "./apply-cmd.js";
 import { addCheckCommand } from "./check-cmd.js";
 import { runCheckLearningsBudget } from "./check-learnings-budget-cmd.js";
 import { addControlsCommand } from "./controls-cmd.js";
@@ -326,23 +327,9 @@ export function createProgram(
     .option("--no-update-check", "Skip the npm latest-version check")
     .addHelpText("after", APPLY_BOOTSTRAP_HELP);
 
-  addUpdateCheckHook(program, deps);
-
   addHookRefreshCommand(program, deps.refreshHooks);
-
-  // `apply` is both the explicit subcommand and the default command, so the
-  // historical positional form `lisa <destination>` routes here unchanged and
-  // produces the same result as `lisa apply <destination>`. Commander rejects a
-  // root-level positional `argument` once subcommands exist, so the default
-  // command is the supported way to keep the bare-positional invocation.
-  addSharedOptions(
-    program
-      .command("apply", { isDefault: true })
-      .description("Apply Lisa to an existing project (backwards-compatible)")
-      .argument("[destination]", "Path to the project directory")
-  ).action(async (destination: string | undefined, options: CLIOptions) => {
-    await deps.runApply(destination, options);
-  });
+  addApplyCommand(program, deps.runApply);
+  addUpdateCheckHook(program, deps);
 
   addSharedOptions(
     program

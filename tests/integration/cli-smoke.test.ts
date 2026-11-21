@@ -1,8 +1,11 @@
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
   boundedExecFileSync,
+  boundedSpawnSync,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
 
@@ -86,6 +89,52 @@ describe("built Lisa CLI smoke", () => {
       expect(help).toContain("installation");
     }
   );
+
+  it("refuses an unknown CLI word without writing to the working directory", () => {
+    const sandbox = mkdtempSync(path.join(tmpdir(), "lisa-cli-unknown-"));
+    const unknown = "not-a-lisa-command";
+    try {
+      const outcome = boundedSpawnSync({
+        label: "built unknown-command refusal",
+        command: process.execPath,
+        args: [DIST_CLI, unknown, "--yes"],
+        cwd: sandbox,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      expect(outcome.status).toBe(1);
+      expect(outcome.stderr).toContain(`Unknown command "${unknown}"`);
+      expect(readdirSync(sandbox)).toEqual([]);
+    } finally {
+      rmSync(sandbox, { recursive: true, force: true });
+    }
+  });
+
+  it("passes an existing positional folder to apply", () => {
+    const sandbox = mkdtempSync(path.join(tmpdir(), "lisa-cli-folder-"));
+    try {
+      const outcome = boundedSpawnSync({
+        label: "built positional apply",
+        command: process.execPath,
+        args: [
+          DIST_CLI,
+          sandbox,
+          "--yes",
+          "--dry-run",
+          "--skip-git-check",
+          "--no-update-check",
+        ],
+        cwd: sandbox,
+        env: { ...process.env, LISA_BOOTSTRAP: "1" },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      expect(outcome.status, `${outcome.stdout}\n${outcome.stderr}`).toBe(0);
+      expect(outcome.stdout).toMatch(/dry.run/iu);
+    } finally {
+      rmSync(sandbox, { recursive: true, force: true });
+    }
+  });
 
   it("documents setup-project types in the built command help", () => {
     const help = run("node", [DIST_CLI, "setup-project", "--help"]);
