@@ -71,7 +71,7 @@ Sections:
 
 Tasks: 7 ordered items.
 
-Next: implementation begins. Suggested state: **Ready**.
+Next: implementation begins. Suggested state: **<state resolved from linear.workflow.claimed>**.
 ```
 
 ## Phase 3 — Post Comment
