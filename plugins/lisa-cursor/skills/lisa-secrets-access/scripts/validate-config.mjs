@@ -694,6 +694,8 @@ const STALL_RULES = {
 
 /** Notification providers `sessionManager.notify.provider` accepts. */
 const NOTIFY_PROVIDERS = ["none", "telegram"];
+/** Notification levels `sessionManager.notify.level` accepts. */
+const NOTIFY_LEVELS = ["all", "asks-only"];
 
 /**
  * Validate `sessionManager.notify`.
@@ -718,6 +720,9 @@ function validateNotify(notify) {
       `sessionManager.notify.provider ${JSON.stringify(provider)} is not ` +
         `supported. Use "none" (no notification channel) or "telegram".`,
     ];
+  }
+  if (notify?.level !== undefined && !NOTIFY_LEVELS.includes(notify.level)) {
+    return ['sessionManager.notify.level must be "all" or "asks-only".'];
   }
   const hasStateDir = notify?.stateDir !== undefined;
   const stateDirOk =

@@ -23,6 +23,9 @@ case "\${1:-} \${2:-}" in
     # Stage successive answers so completion can verify a fresh tracker read.
     # Use the same counter convention as the curl fake.
     ISSUE_JSON=$FAKE_GH_ISSUE_JSON
+    if [ -n "\${FAKE_GH_ISSUES_JSON:-}" ]; then
+      ISSUE_JSON=$("${process.execPath}" -e 'const issues = JSON.parse(process.env.FAKE_GH_ISSUES_JSON); console.log(JSON.stringify(issues[process.argv[1]] ?? JSON.parse(process.env.FAKE_GH_ISSUE_JSON)));' "$3")
+    fi
     if [ -n "\${FAKE_GH_ISSUE_COUNT_FILE:-}" ]; then
       ISSUE_COUNT=0
       [ ! -f "$FAKE_GH_ISSUE_COUNT_FILE" ] || ISSUE_COUNT=$(cat "$FAKE_GH_ISSUE_COUNT_FILE")

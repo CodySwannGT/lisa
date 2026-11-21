@@ -79,6 +79,7 @@ scripts/lisa-push-timing-report.mjs
 scripts/lisa-affected-tests.mjs
 scripts/fetch-test-access-map.mjs
 scripts/lisa-rspec-select.mjs
+scripts/lisa-rails-ast-grep.mjs
 scripts/lisa-rails-gates.mjs
 scripts/lisa-typecheck.mjs
 scripts/review-evidence-event.mjs
