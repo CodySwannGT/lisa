@@ -1681,7 +1681,7 @@
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
       "351542c256e54940e6d672a70606b8414425c6435ae6f026841bcc02f9fce9c4",
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md":
-      "db679691a7d3ddad8615f72c2b80141fe9291c89497e4b6816b81b7103d69f76",
+      "f5cdb9237b6070558aba8eb1c91c8b5ef792923b2bcc14c2628b77033a9f71dc",
     "plugins/src/base/skills/lisa-plan/SKILL.md":
       "e617884ac011239ee2423d6d9c2e922e06620221bc36a29956d5b7c7876e2a27",
     "plugins/src/base/skills/lisa-plugin-sync-explain/SKILL.md":
@@ -1787,15 +1787,15 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "29dd5750c58573d24423cf60e33e416e7919ba6ddb19d5290f3b4643a99b281b",
+      "0432bf46754230cbb7fdf9e4f122ce5bc15a9bcd266edd0dc91a48322352ed5f",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f8a63378cdeb2acc70b53fa5b7c9e4510b2806b98eb27004d94b97817172d6db",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
-      "88982207f9134f63c0949ebed21d05a2bcffe1f5c774739935237d78786b1813",
+      "e3ee6d6af45d0c7067fcb9e42111857280589ba301ce4fc29799e7bd75d652c5",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
       "ad5acc6097e375868b51eaf01b1506662505e2404b7ac1b06528679718504091",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-answer-record.mjs":
-      "cd195249f028231358071f541a0f64599b545f2c87d30118c92aebd44c0a8498",
+      "71635c8f2e2c7bc100fda62e4798e56ff9d05f1fa9ae1a8e19aac10379724690",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
       "fc3418fdea403b97da57708aa60cc52430c3d726d78764f591503922adb70407",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":

@@ -13,12 +13,21 @@
  * repo-routing answer are left as they were. Pure: no I/O, no clock.
  * @module tests/unit/session-manager/answer-record-requeue
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { planAnswerRecord } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs";
+import { removeSandboxes } from "./support/cli-harness.js";
+import {
+  ask,
+  githubSandbox,
+  REF as SANDBOX_REF,
+  runStubOnly,
+} from "./support/human-sandbox.js";
 
 const REF = "o/r#7";
 const AT = "2026-11-08T12:00:00.000Z";
+
+afterEach(removeSandboxes);
 
 /**
  * A pending question with a queued answer.
@@ -56,6 +65,36 @@ describe("planAnswerRecord requeue", () => {
         pending: pending("cli", "decision"),
       })
     ).toMatchObject({ record: true, requeue: true });
+  });
+
+  it("leaves a human's move to blocked in place after the answer", () => {
+    const sandbox = githubSandbox();
+    runStubOnly(sandbox, [
+      "ledger",
+      "record-spawn",
+      SANDBOX_REF,
+      "--worker",
+      "wk-a",
+    ]);
+    ask(sandbox, "decision");
+    expect(
+      runStubOnly(
+        sandbox,
+        ["ledger", "finish", SANDBOX_REF, "--status", "FAILED"],
+        {
+          input: "left the claimed role outside the manager",
+        }
+      ).status
+    ).toBe(0);
+    expect(
+      runStubOnly(sandbox, ["answer", SANDBOX_REF], { input: "use v2" }).status
+    ).toBe(0);
+    expect(
+      runStubOnly(sandbox, ["answer-plan", SANDBOX_REF]).json
+    ).toMatchObject({
+      record: true,
+      requeue: false,
+    });
   });
 
   it.each([
