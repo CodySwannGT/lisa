@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [8.4.0](https://github.com/CodySwannGT/lisa/compare/v8.3.0...v8.4.0) (2026-11-21)
+
+
+### Features
+
+* **controls:** configure per-folder gates and reliable tracker reads ([#5151](https://github.com/CodySwannGT/lisa/issues/5151)) ([4cec70d](https://github.com/CodySwannGT/lisa/commit/4cec70d2f0fd7dbe73be4fa55f94e22c6b577acd)), closes [CodySwannGT/lisa#4940](https://github.com/CodySwannGT/lisa/issues/4940) [CodySwannGT/lisa#4736](https://github.com/CodySwannGT/lisa/issues/4736) [CodySwannGT/lisa#5074](https://github.com/CodySwannGT/lisa/issues/5074) [CodySwannGT/lisa#4950](https://github.com/CodySwannGT/lisa/issues/4950) [CodySwannGT/lisa#4949](https://github.com/CodySwannGT/lisa/issues/4949) [CodySwannGT/lisa#4563](https://github.com/CodySwannGT/lisa/issues/4563)
+* **controls:** seed shipped checks for supported folders [skip ci] ([1222def](https://github.com/CodySwannGT/lisa/commit/1222def6da559e5953a4cab78ff08028d974f72a)), closes [CodySwannGT/lisa#5074](https://github.com/CodySwannGT/lisa/issues/5074) [CodySwannGT/lisa#5074](https://github.com/CodySwannGT/lisa/issues/5074)
+
+
+### Bug Fixes
+
+* **apply:** keep the overlap of crossing dependency ranges ([756f332](https://github.com/CodySwannGT/lisa/commit/756f3329f9217f9beb2c67af53f96e9303d4735d)), closes [CodySwannGT/lisa#4950](https://github.com/CodySwannGT/lisa/issues/4950) [CodySwannGT/lisa#4950](https://github.com/CodySwannGT/lisa/issues/4950)
+* **github:** resolve issue Project metadata only when configured ([b61c00d](https://github.com/CodySwannGT/lisa/commit/b61c00dbc97fb1442c2066665c3fe756703cb6bf)), closes [CodySwannGT/lisa#4563](https://github.com/CodySwannGT/lisa/issues/4563) [CodySwannGT/lisa#4563](https://github.com/CodySwannGT/lisa/issues/4563)
+* **rails:** deliver the certified nightly guard ([107d780](https://github.com/CodySwannGT/lisa/commit/107d7808646886f82cf421f5fddab6d611a13efe)), closes [CodySwannGT/lisa#4940](https://github.com/CodySwannGT/lisa/issues/4940) [CodySwannGT/lisa#4940](https://github.com/CodySwannGT/lisa/issues/4940)
+* **skills:** recover answered work and dedupe planning retries [skip ci] ([77fe73c](https://github.com/CodySwannGT/lisa/commit/77fe73cc499a7ca599351660a314f5289fbb8a58)), closes [CodySwannGT/lisa#4736](https://github.com/CodySwannGT/lisa/issues/4736) [CodySwannGT/lisa#4736](https://github.com/CodySwannGT/lisa/issues/4736)
+* **typescript:** recognize the plain checker in script adoption ([485a037](https://github.com/CodySwannGT/lisa/commit/485a03775132e83446a1009df8fc4c4b7c44a159)), closes [CodySwannGT/lisa#4949](https://github.com/CodySwannGT/lisa/issues/4949) [CodySwannGT/lisa#4949](https://github.com/CodySwannGT/lisa/issues/4949)
+* **typescript:** separate plain checks from declaration diagnostics ([33d7af2](https://github.com/CodySwannGT/lisa/commit/33d7af219c76ba09f545154a465196f66b77dc7e)), closes [CodySwannGT/lisa#4949](https://github.com/CodySwannGT/lisa/issues/4949) [CodySwannGT/lisa#4949](https://github.com/CodySwannGT/lisa/issues/4949)
+
+
+### Documentation
+
+* **session-manager:** name the configured blocked role ([3d6aa52](https://github.com/CodySwannGT/lisa/commit/3d6aa529ce97ecc6249cf788423781dbcaa0464c)), closes [CodySwannGT/lisa#4736](https://github.com/CodySwannGT/lisa/issues/4736) [CodySwannGT/lisa#4736](https://github.com/CodySwannGT/lisa/issues/4736)
+
 ## [8.3.0](https://github.com/CodySwannGT/lisa/compare/v8.2.11...v8.3.0) (2026-11-21)
 
 
