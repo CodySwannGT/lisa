@@ -1427,6 +1427,12 @@
       "19412df978489b6e0dfb8fd008d91895af9181bc1e6a7c9df616d9137da3e429",
       "82191900c818a88208669a39563cfed8de1512de699a9ccf7155743e5eff859e"
     ],
+    "scripts/lib/private-key-redaction.d.mts": [
+      "089bf9ceda8a1e9e759a617c09f2e3479dfd425b59dfefc3e90dabd976169239"
+    ],
+    "scripts/lib/private-key-redaction.mjs": [
+      "d762b79a4827650d1fc324b7c2076ae24e41c96d1e9f2e734e4c73ec4baa27a2"
+    ],
     "scripts/lib/process-tree-runner.mjs": [
       "031fa18c5731b9001b09d1569d865718d61141e88e3762bd5b43f55eb9e2aae2",
       "07c78da8a8e40e28cc59a40c3d19e798ae291fae0a0d4cd13a2e5c047d8e5ac7",
@@ -4567,6 +4573,12 @@
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
       "19412df978489b6e0dfb8fd008d91895af9181bc1e6a7c9df616d9137da3e429",
       "82191900c818a88208669a39563cfed8de1512de699a9ccf7155743e5eff859e"
+    ],
+    "scripts/lib/private-key-redaction.d.mts": [
+      "089bf9ceda8a1e9e759a617c09f2e3479dfd425b59dfefc3e90dabd976169239"
+    ],
+    "scripts/lib/private-key-redaction.mjs": [
+      "d762b79a4827650d1fc324b7c2076ae24e41c96d1e9f2e734e4c73ec4baa27a2"
     ],
     "scripts/lib/process-tree-runner.mjs": [
       "031fa18c5731b9001b09d1569d865718d61141e88e3762bd5b43f55eb9e2aae2",

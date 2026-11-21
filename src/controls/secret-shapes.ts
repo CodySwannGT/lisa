@@ -5,7 +5,8 @@
  * ## One list, written twice
  *
  * The repository already ships a list of credential shapes:
- * `SECRET_SHAPES` in `scripts/lib/phrase-tests/redact.mjs`. It cannot be
+ * `SECRET_SHAPES` in `scripts/lib/phrase-tests/redact.mjs`. Private-key
+ * blocks use the shared boundary reader in both redactors. It cannot be
  * imported here. This module is compiled from `src/` into `dist/`, a script
  * outside `src/` is not part of that build, and loading it at run time would
  * be an asynchronous import where every caller (a report rule, a register
@@ -53,20 +54,10 @@ export const NAMED_SECRET_KIND = "SECRET";
 
 /**
  * Every provider-specific shape, in the order they are applied. Equal to
- * `SECRET_SHAPES` in `scripts/lib/phrase-tests/redact.mjs`.
+ * `SECRET_SHAPES` in `scripts/lib/phrase-tests/redact.mjs`. Private-key
+ * blocks use the shared boundary reader in both redactors.
  */
 export const CREDENTIAL_SHAPES: readonly CredentialShape[] = Object.freeze([
-  {
-    kind: PRIVATE_KEY_KIND,
-    // A key runs from its first line to its last line, or, when another
-    // block's first line comes before that, up to that line. The body never
-    // reads past the start of another block: read to the end of the text
-    // from each first line, a megabyte of first lines with no last line took
-    // ten seconds, and the time grew with the square of the length. A first
-    // line with nothing after it but another block, or with no last line
-    // anywhere after it, is taken out alone.
-    re: /-----BEGIN [A-Z ]*PRIVATE KEY-----(?:(?:(?!-----BEGIN )[\s\S])+?(?:-----END [A-Z ]*PRIVATE KEY-----|(?=-----BEGIN )))?/gu,
-  },
   {
     kind: URL_CREDENTIALS_KIND,
     // The scheme is at most 64 characters. Without a bound, every word in a
@@ -110,16 +101,14 @@ export const CREDENTIAL_SHAPES: readonly CredentialShape[] = Object.freeze([
 /**
  * The last line of a private key.
  *
- * {@link CREDENTIAL_SHAPES} finds a key by the line that starts it. Output a
+ * The shared boundary reader finds a key by the line that starts it. Output a
  * program printed can reach the scan with that line already gone, because
  * only the end of a long output is kept, and then the key's body and its
  * last line are all that is left. The scan finds those by this line; see
  * `./secret-scan.ts`.
  *
- * It is not in {@link CREDENTIAL_SHAPES}, which restates the repository's
- * shipped list entry for entry: text that starts part-way through a key is a
- * thing that happens to captured output, and the shipped list is used on
- * text that was never cut.
+ * Text beginning part-way through a key is a captured-output case, covered
+ * here in addition to complete blocks.
  */
 export const PRIVATE_KEY_LAST_LINE = /-----END (?:[A-Z]+ )*PRIVATE KEY-----/gu;
 

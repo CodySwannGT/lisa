@@ -17,6 +17,10 @@ import {
   CONTROL_REGISTER_PATH,
   type ControlRegister,
 } from "./register-types.js";
+import {
+  parseProblemWithoutExcerpt,
+  withoutCredentials,
+} from "./secret-scan-json.js";
 
 /** The key of the register that holds its entries. */
 const ENTRIES_KEY = "entries";
@@ -151,7 +155,7 @@ function parseCommitted(
   try {
     return { problem: null, document: JSON.parse(committedText) as unknown };
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
+    const detail = parseProblemWithoutExcerpt(error);
     return {
       problem: `${CONTROL_REGISTER_PATH} is not valid JSON, so it cannot be compared with the gates declaration. (${detail})`,
     };
@@ -171,7 +175,7 @@ export function controlRegisterDrift(
 ): readonly string[] {
   if (committedText === serializeControlRegister(expected)) return [];
   const parsed = parseCommitted(committedText);
-  if (parsed.problem !== null) return [parsed.problem];
+  if (parsed.problem !== null) return withoutCredentials([parsed.problem]);
   const { document } = parsed;
   if (!isJsonObject(document) || !Array.isArray(document[ENTRIES_KEY])) {
     return [
@@ -196,6 +200,6 @@ export function controlRegisterDrift(
         ]),
   ];
   return differences.length > 0
-    ? differences
+    ? withoutCredentials(differences)
     : [formDifference(committed, expected)];
 }

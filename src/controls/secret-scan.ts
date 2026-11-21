@@ -51,6 +51,7 @@
  * itself, so no caller can print it by accident.
  * @module controls/secret-scan
  */
+import { redactPrivateKeyBlocks } from "../../all/copy-overwrite/scripts/lib/private-key-redaction.mjs";
 import {
   AUTHORIZATION_KIND,
   CREDENTIAL_SHAPES,
@@ -359,10 +360,7 @@ function shapeDecision(shape: CredentialShape): Decide {
         : shape.replace.replace("$1", match[1] ?? "");
     // Already taken out, or a name that only starts like a token.
     const leave =
-      put === found ||
-      (shape.replace === undefined &&
-        shape.kind !== PRIVATE_KEY_KIND &&
-        readsAsName(found));
+      put === found || (shape.replace === undefined && readsAsName(found));
     return leave
       ? null
       : { start, end: start + found.length, kind: shape.kind, put };
@@ -469,9 +467,13 @@ export function redactCredentials(
   text: string,
   context: CredentialContext = {}
 ): RedactedText {
+  const withoutPrivateKeys = redactPrivateKeyBlocks(text);
   const shaped = [...CREDENTIAL_SHAPES, WEB_ADDRESS_USER].reduce<RedactedText>(
     (state, shape) => rewrite(state, shape.re, shapeDecision(shape)),
-    { text, kinds: [] }
+    {
+      text: withoutPrivateKeys,
+      kinds: withoutPrivateKeys === text ? [] : [PRIVATE_KEY_KIND],
+    }
   );
   // After the whole keys are gone: what is left of one whose first line was
   // cut off before the text got here.

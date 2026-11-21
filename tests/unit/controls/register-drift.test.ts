@@ -15,6 +15,7 @@ import {
   CONTROL_REGISTER_PATH,
   type ControlRegister,
 } from "../../../src/controls/register-types.js";
+import { fakeGithubToken } from "../../helpers/fake-credentials.js";
 import { BARE_ENTRY, ENTRY } from "./support/register-samples.js";
 
 const EXPECTED: ControlRegister = {
@@ -69,6 +70,18 @@ describe("comparing a committed register", () => {
     ).toEqual([
       `The entry "code-style@api" appears more than once in ${CONTROL_REGISTER_PATH}.`,
     ]);
+  });
+
+  it("names the mismatched entry without quoting credential-shaped identifiers", () => {
+    const token = fakeGithubToken();
+    const drift = driftOf({
+      ...EXPECTED,
+      entries: [...EXPECTED.entries, { ...ENTRY, id: `code-style@${token}` }],
+    }).join("\n");
+
+    expect(drift).toContain('The entry "code-style@[REDACTED:GITHUB_TOKEN]"');
+    expect(drift).toContain(CONTROL_REGISTER_PATH);
+    expect(drift).not.toContain(token);
   });
 
   it("names a field that was removed from an entry", () => {
