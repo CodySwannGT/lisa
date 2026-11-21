@@ -12734,6 +12734,7 @@
     "tests/integration/support/pre-tool-refusal-fixture.ts": true,
     "tests/integration/support/pre-tool-refusal-harness.ts": true,
     "tests/integration/support/protect-gh-stub.ts": true,
+    "tests/integration/support/rails-gate-cache-tools.ts": true,
     "tests/integration/support/rails-helper-fixture.ts": true,
     "tests/integration/support/rails-learnings-budget-gate.ts": true,
     "tests/integration/support/rails-partial-selector.ts": true,
