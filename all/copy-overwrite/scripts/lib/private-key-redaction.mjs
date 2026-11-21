@@ -16,7 +16,7 @@ const KEY_METADATA = /^(?:Proc-Type|DEK-Info):[ \t]*[\w,-]+$/u;
  * @returns {number} The end of the visible key material, or the given start.
  */
 function unterminatedKeyEnd(text, start) {
-  const rows = /(?:\r\n|\r|\n)([^\r\n]*)/gy;
+  const rows = /(?:\r\n|\r|\n)([^\r\n]*)/y;
   rows.lastIndex = start;
   let end = start;
   for (let row = rows.exec(text); row !== null; row = rows.exec(text)) {

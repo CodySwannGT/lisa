@@ -1432,6 +1432,7 @@
       "3c5005c1c6b8432c9bc097d6c82c1c6279cb84059d4acc1b1c9170328194f8ad"
     ],
     "scripts/lib/private-key-redaction.mjs": [
+      "a05049ed87950e78cc8e4ebf56173e05d49644c4d1fa04fc846a5def73c4b937",
       "d762b79a4827650d1fc324b7c2076ae24e41c96d1e9f2e734e4c73ec4baa27a2",
       "de4e31433be3ae1edcf59089f4ed912b525c1a8fc448a36fa278a5150b4c7026"
     ],
@@ -4582,6 +4583,7 @@
       "3c5005c1c6b8432c9bc097d6c82c1c6279cb84059d4acc1b1c9170328194f8ad"
     ],
     "scripts/lib/private-key-redaction.mjs": [
+      "a05049ed87950e78cc8e4ebf56173e05d49644c4d1fa04fc846a5def73c4b937",
       "d762b79a4827650d1fc324b7c2076ae24e41c96d1e9f2e734e4c73ec4baa27a2",
       "de4e31433be3ae1edcf59089f4ed912b525c1a8fc448a36fa278a5150b4c7026"
     ],
