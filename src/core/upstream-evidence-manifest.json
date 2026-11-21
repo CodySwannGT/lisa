@@ -693,7 +693,7 @@
     "expo/create-only/tsconfig.json":
       "fdb99e32d1588e75735755d7b5caab406ad8387c21a3d820cd3b40cb9218a191",
     "expo/create-only/tsconfig.local.json":
-      "dad4b4a00c890ce8c30db87ad3f8e92e2273e31c2c2a6436d0ab327b47f72758",
+      "dfaff3932fe73440e589998992eccd336a984b5984b31be91a05a20449dcdbc0",
     "expo/deletions.json":
       "d968e902b82b35202d22e7513b4647a4298ac76185872234bcbe13a1a9c2715f",
     "expo/github-rulesets/bdd-coverage.json":
@@ -14682,6 +14682,7 @@
     "tests/unit/standards/test-evidence.test.ts": true,
     "tests/unit/strategies/access-doc-adapters.test.ts": true,
     "tests/unit/strategies/agent-skill-layer-contract.test.ts": true,
+    "tests/unit/strategies/artifact-tsconfig-selection.test.ts": true,
     "tests/unit/strategies/automation-run-history-helpers.ts": true,
     "tests/unit/strategies/automation-run-record-cli.test.ts": true,
     "tests/unit/strategies/automation-run-record-preservation.test.ts": true,

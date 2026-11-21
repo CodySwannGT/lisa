@@ -18,7 +18,12 @@
     "node_modules",
     "dist",
     "web-build",
-    "components/ui"
+    "components/ui",
+    "evidence",
+    "test-results",
+    "playwright-report",
+    "blob-report",
+    "coverage"
   ],
   "files": []
 }
