@@ -12,6 +12,7 @@ import {
   MAX_RECORD_BYTES,
   sha256,
   primarySpecProjection,
+  matchesPrimarySpecDigest,
   requireProof,
   validateRecordShape,
   parseLocator,
@@ -365,7 +366,7 @@ function locateRecord(context, transport, published) {
     comments: context.readComments(),
   };
   requireProof(
-    sha256(primarySpecProjection(fresh.body)) === record.spec_sha256,
+    matchesPrimarySpecDigest(fresh.body, record.spec_sha256),
     "Requirements changed during proof publication; no locator was written.",
     "pending-proof"
   );

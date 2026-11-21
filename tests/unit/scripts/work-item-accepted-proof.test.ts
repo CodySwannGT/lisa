@@ -15,6 +15,8 @@ import {
   proofCli,
   proofCliSpawned,
   PROOF_REF,
+  SPEC,
+  digest,
   putAsset,
 } from "../../support/work-item-proof-fixture.js";
 
@@ -183,6 +185,39 @@ describe("accepted completion proof through actual CLI", () => {
     expect(result.stdout).toContain(COMPLETED);
     expect(observed(fixture).state.state).toBe("CLOSED");
     expect(observed(fixture).writes).toHaveLength(2);
+  });
+
+  it.each([
+    { ending: "the full separator", legacy: SPEC },
+    {
+      ending: "one newline before the first tally",
+      legacy: `${SPEC.trimEnd()}\n`,
+    },
+  ])("finishes with a legacy digest that kept $ending", ({ legacy }) => {
+    const fixture = proofFixture();
+    const legacyDigest = digest(legacy);
+    const report = JSON.parse(
+      readFileSync(
+        path.join(fixture.env.FAKE_GH_ASSET_DIRECTORY!, "3.bin"),
+        "utf8"
+      )
+    );
+    expect(fixture.record.spec_sha256).not.toBe(legacyDigest);
+    fixture.record.spec_sha256 = legacyDigest;
+    Object.assign(
+      fixture.record.obligations.conformance.report,
+      putAsset(fixture, 3, {
+        ...report,
+        spec_sha256: legacyDigest,
+      })
+    );
+    attachRecord(fixture);
+
+    const result = proofCli(fixture, ["complete", "--ref", PROOF_REF]);
+
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain(COMPLETED);
+    expect(observed(fixture).state.state).toBe("CLOSED");
   });
 
   it("publishes immutable proof, reads it back, and the resulting locator permits completion", () => {

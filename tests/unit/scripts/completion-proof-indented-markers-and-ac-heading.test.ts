@@ -78,7 +78,7 @@ describe("completion proof claims markers on list continuation lines (#4700)", (
   ])("claims $name", ({ body }) => {
     const text = [JOURNEY, "", ...body, ""].join("\n");
     expect(localMarkers(text)).toEqual(LOGIN);
-    expect(primarySpecProjection(text)).toBe(text);
+    expect(primarySpecProjection(text)).toBe(text.trimEnd());
   });
 
   it("claims every marker in a realistic indented journey", () => {

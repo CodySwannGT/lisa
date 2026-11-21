@@ -130,11 +130,11 @@ reached done with no estimate shows `none recorded` in the estimate row rather t
 range.
 
 `lisa-work-item complete` enforces it: when `required` is true, it refuses (as `pending-proof`) an
-item with no usage entry, with no tally, or with a tally that no longer matches the ledger. The
-estimate section is machine-owned metadata, so rewriting it does not change the specification
-digest the accepted completion proof is bound to. Only the exact lines `lisa-estimate` writes are
-left out; every other line a person adds inside it still counts, even one that starts with
-`Actual:` or `Basis:`.
+item with no usage entry, with no tally, or with a tally that no longer matches the ledger.
+The specification digest stays the same when Lisa first adds the estimate section or refreshes
+its tally. The digest includes prose a person adds inside that section, including lines starting
+with `Actual:` or `Basis:`. Existing proofs can still match the digest that Lisa calculated for
+their unchanged specification.
 
 ## When the config is off
 

@@ -6,7 +6,11 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { primarySpecProjection } from "../../../all/copy-overwrite/scripts/lib/completion-proof-shape.mjs";
+import {
+  matchesPrimarySpecDigest,
+  primarySpecProjection,
+  sha256,
+} from "../../../all/copy-overwrite/scripts/lib/completion-proof-shape.mjs";
 import { resolveEstimateConfig } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs";
 import { checkEstimate } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs";
 import {
@@ -174,13 +178,52 @@ describe("gate S21 at done time", () => {
 });
 
 describe("completion proof specification digest", () => {
+  it.each(["", "\n", "\n\n"])(
+    "keeps the specification when a first tally is appended after %j",
+    ending => {
+      const original = PLAIN_BODY.trimEnd() + ending;
+      const usage = upsertLisaUsageSection("", {
+        entries: [usageEntry("verify", 10)],
+      });
+      const tallied = tallyEstimate(original, [original, usage]);
+      expect(primarySpecProjection(tallied)).toBe(
+        primarySpecProjection(original)
+      );
+      expect(
+        primarySpecProjection(tallyEstimate(tallied, [tallied, usage]))
+      ).toBe(primarySpecProjection(original));
+    }
+  );
+
+  it("retains the specification when the first tally follows a usage section", () => {
+    const body = upsertLisaUsageSection(PLAIN_BODY, {
+      entries: [usageEntry("verify", 10)],
+    }).replace("## Lisa Usage\n", "## Lisa Usage\n\nKeep the operator's note.");
+    expect(primarySpecProjection(tallyEstimate(body))).toBe(
+      primarySpecProjection(body)
+    );
+    expect(primarySpecProjection(body)).toContain("Keep the operator's note.");
+  });
+
   it("ignores the machine-written estimate and tally", () => {
-    // The blank line that separated the spec from the section stays.
-    const spec = "## Context\n\nFix the thing.\n\n";
+    const spec = "## Context\n\nFix the thing.";
     expect(primarySpecProjection(tallyEstimate(spent))).toBe(
       primarySpecProjection(spent)
     );
     expect(primarySpecProjection(finishedItem(1000, 2000, []))).toBe(spec);
+  });
+
+  it("accepts the legacy digest only when its specification still matches", () => {
+    const body = finishedItem(1000, 2000, []);
+    const legacyDigest = sha256("## Context\n\nFix the thing.\n\n");
+    expect(sha256(primarySpecProjection(body))).not.toBe(legacyDigest);
+    expect(matchesPrimarySpecDigest(body, legacyDigest)).toBe(true);
+    expect(
+      matchesPrimarySpecDigest(
+        body.replace("the thing", "the admin screen"),
+        legacyDigest
+      )
+    ).toBe(false);
   });
 
   it("still counts prose a person adds inside the section", () => {

@@ -43,7 +43,7 @@
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
       "bcf755d8c1905cddd84622c9a520f7bcc16b19379b9f933a8b5657bb6df9f391",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
-      "f93221c4b8ddca27c7a78b6e6b7eceb4555ec1e2d5cd8fd128c1380cd310c81f",
+      "a9c3fa0ee9c3de9c610e009c6775088237c1e8ebd69ff4d9fd829de2db1c206a",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
       "10e812829458c9b02f6cb012dc1714ad8b03388ced71a103130517150036f832",
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.d.mts":
@@ -63,11 +63,11 @@
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
       "88389681f5a19cf90d4edcdeda48ce0f60a8845fb71c37c9e34edaa9e1a777a0",
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
-      "9554fff85ed510f75058614c9ad8535806d52293e1de012900bae7e14db61eb1",
+      "d004d53dc80b5b45bdea46b4c6c8168bf57a9f4d41abcda453ce3b20c1ab0954",
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
-      "2b7f18d07226a8acd09348cb535701a08c3b567b50e12a52225379893c91afed",
+      "0e9c70b59a53610a9fadc27cbb08af542ad673f9c26b963cdd7373a99218246e",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
       "7aa9673c7de21fa64e572043e7e76774e7cb57210a54f4603a72e88be97510a3",
     "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs":
@@ -421,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "a18db70b0ec7abcd81f17394655f5f60217c6a79272596826dd3c8b02118c994",
+      "5b6b2808bdae9b5735ebc7348a9e373ed73002a49b29a5ca2dd53b5646362985",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1395,7 +1395,7 @@
     "plugins/src/base/scripts/doctor-report.mjs":
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/human-gate-act.mjs":
-      "99edeb88fa54f5bde63f283e7ad3678fa7d319cd5c6407159ffb4b709c58c33e",
+      "1fb772b3cc921541e538ba9f0f5faac38776b9aa051d545adeddbe1e910b7de9",
     "plugins/src/base/scripts/human-gate-lift.mjs":
       "21424773e02a479bff83246b781eef64fdaa310e985916d4fbef15812c9c3880",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
@@ -2011,7 +2011,7 @@
     "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md":
       "d34e7b4951bc26caf15625e081e8273a11ee8ca1bde6137750f4b687fca7e8bf",
     "plugins/src/base/skills/lisa-usage-accounting/references/estimate.md":
-      "164737e1249881ba583e2b8fc76b489685719685e93f6231f2af00b8767f3f0c",
+      "42f8872d84ae874124a80f6cd48a7322a6423a6cce940e6eb90dfb96d54de8a8",
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "9605cce9b30a5a4db04ce936b5dddcaaf05368ddcd91ce4067956071a481db63",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
@@ -3363,6 +3363,7 @@
     ".github/workflows/environment-prepare.yml": true,
     ".github/workflows/gates.yml": true,
     ".github/workflows/history-secrets.yml": true,
+    ".github/workflows/k6-installation-regression.yml": true,
     ".github/workflows/lifecycle-drift-sweep.yml": true,
     ".github/workflows/lifecycle-terminal-transition.yml": true,
     ".github/workflows/lighthouse.yml": true,
@@ -12127,6 +12128,24 @@
     "tests/fixtures/harness-parity-council/probe-command-missing.json": true,
     "tests/fixtures/harness-parity-council/probe-success.json": true,
     "tests/fixtures/intake-prework-denominator/linear-team-lanes.json": true,
+    "tests/fixtures/k6-installation/baseline-oracles.json": true,
+    "tests/fixtures/k6-installation/binary-identity.sh": true,
+    "tests/fixtures/k6-installation/classify-baseline.mjs": true,
+    "tests/fixtures/k6-installation/execution.py": true,
+    "tests/fixtures/k6-installation/extract.mjs": true,
+    "tests/fixtures/k6-installation/fail-curl.sh": true,
+    "tests/fixtures/k6-installation/finish.mjs": true,
+    "tests/fixtures/k6-installation/inspect-after.sh": true,
+    "tests/fixtures/k6-installation/inspect-before.sh": true,
+    "tests/fixtures/k6-installation/keyring.py": true,
+    "tests/fixtures/k6-installation/loopback.js": true,
+    "tests/fixtures/k6-installation/metrics.mjs": true,
+    "tests/fixtures/k6-installation/prepare.mjs": true,
+    "tests/fixtures/k6-installation/prerequisites.sh": true,
+    "tests/fixtures/k6-installation/qualification-oracles.json": true,
+    "tests/fixtures/k6-installation/qualify.py": true,
+    "tests/fixtures/k6-installation/test-keyring.py": true,
+    "tests/fixtures/k6-installation/test-umask.py": true,
     "tests/fixtures/mutation-performance/jest/app.json": true,
     "tests/fixtures/mutation-performance/jest/jest.config.ts": true,
     "tests/fixtures/mutation-performance/jest/package.json": true,
@@ -14083,6 +14102,7 @@
     "tests/unit/scripts/jira-evidence-release.test.ts": true,
     "tests/unit/scripts/jira-evidence-upload-names.test.ts": true,
     "tests/unit/scripts/jira-server-origin.test.ts": true,
+    "tests/unit/scripts/k6-installation.test.ts": true,
     "tests/unit/scripts/kill-marks.test.ts": true,
     "tests/unit/scripts/learnings-projection.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
@@ -14777,6 +14797,7 @@
     "tests/unit/strategies/human-gate-lift-battery.test.ts": true,
     "tests/unit/strategies/human-gate-lift-mode.test.ts": true,
     "tests/unit/strategies/human-gate-lift.test.ts": true,
+    "tests/unit/strategies/human-gate-malformed-block.test.ts": true,
     "tests/unit/strategies/human-gate-markdown-escaping.test.ts": true,
     "tests/unit/strategies/human-gate-release-authorization.test.ts": true,
     "tests/unit/strategies/human-gate-release-helpers.ts": true,
