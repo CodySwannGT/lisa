@@ -623,7 +623,7 @@
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "5b45f4d37eb2faa40870f2ab75884d914d7a08bf1cbd7fb45929f91ede1e18e2",
+      "7a4d20dd130524161f0860fb2199782891bc91a906988b3aaec041ec4db178e2",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "99764b136eaa7bba3b7abf78f60bc6805f8c008a9cac59c78c5eadba35cecdc7",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
