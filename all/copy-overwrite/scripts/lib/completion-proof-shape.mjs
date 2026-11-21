@@ -152,13 +152,15 @@ export function primarySpecProjection(body) {
   return projectPrimarySpec(body).trimEnd();
 }
 
-/** Accept the previous, untrimmed digest of an otherwise unchanged body. */
+/** Accept legacy digests before and after the first managed estimate append. */
 export function matchesPrimarySpecDigest(body, digest) {
   const projection = projectPrimarySpec(body);
   const canonical = projection.trimEnd();
   return (
     digest === sha256(canonical) ||
-    (canonical !== projection && digest === sha256(projection))
+    (canonical !== projection && digest === sha256(projection)) ||
+    // The first append replaced a single final newline with this separator.
+    (projection === `${canonical}\n\n` && digest === sha256(`${canonical}\n`))
   );
 }
 
