@@ -4,7 +4,6 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -14,6 +13,7 @@ import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const TEMPLATE = path.join(ROOT, "expo/package-lisa/package.lisa.json");
@@ -53,7 +53,7 @@ function fixture(): string {
     })
   );
   mkdirSync(path.join(directory, "scripts"));
-  symlinkSync(
+  createSymlink(
     path.join(ROOT, "all/copy-overwrite/scripts/lib"),
     path.join(directory, "scripts/lib"),
     "junction"

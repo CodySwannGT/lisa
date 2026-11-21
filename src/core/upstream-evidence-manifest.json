@@ -1787,7 +1787,7 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "bdeb8b957a376e855e2935d5cfa07843051c6c941438efb53db04352951ceb0a",
+      "116453367f38b8afa7d4b90d8f885a3277d89adc0570b80264b3672072ad49d2",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f965b5d87e3d2e02d93fb252025ef6550b947bdd4d6922804b74e4f0558f2a6f",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1819,7 +1819,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-stale-links.mjs":
       "ac8020656a3266a70e0b508a921fefdd6803f4f22f4b539635c389d46178e5c3",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
-      "aa356bd7e90f2b72d980243b3c121214daf59d1791790eaa2bc1292c40280de8",
+      "4494482691f6fca5b852ae3346e8291be04e07276c0864c698734b6d48126ef1",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
       "c64be7ba9cec34375787833d663e02751fcec56c7ed0d81846efde3f9c5b7c14",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
@@ -1827,7 +1827,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
-      "6ae72fa8d32acb24d41d612a08d3c00b8be17d536a01e01a625957da5fcfce53",
+      "4efb5b72165f5ffa4c1ff641f01191fbf0f206bf97a671dea4bec2a386732590",
     "plugins/src/base/skills/lisa-session-manager/scripts/cyclers.mjs":
       "b2cc3c6eb940d8a880db179390de22c58df1131f5876b606a12ed694d9b6e18d",
     "plugins/src/base/skills/lisa-session-manager/scripts/escalation-overruled.mjs":
@@ -3141,7 +3141,7 @@
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "d2ccdac51cc0ef73d8073db7da01e099d2d770dd58fab86d8956a026a95eadc9",
+      "9a65cbe0327c51fabdc263ac6472d993de5403566f1f970a799cc3644c00618c",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":

@@ -9,7 +9,7 @@
 import path from "node:path";
 
 import { listAgents, requireConfig, run } from "./cli-runtime.mjs";
-import { notifyProvider } from "./config.mjs";
+import { DEFAULT_NOTIFY_LEVEL, notifyProvider } from "./config.mjs";
 import { callerSessionName, otherCyclers } from "./cyclers.mjs";
 import { buildHasSession } from "./launch.mjs";
 import { listPendingQuestions } from "./ledger-questions.mjs";
@@ -88,7 +88,7 @@ export async function status(ctx) {
         otherCyclers: otherCyclers(ledger, config, ctx.now()),
       },
       notify: notifyProvider(config),
-      notifyLevel: config.notify.level,
+      notifyLevel: config.notify.level ?? DEFAULT_NOTIFY_LEVEL,
       control: ledger.control,
       workers: Object.entries(ledger.items).map(([ref, item]) => ({
         ref,

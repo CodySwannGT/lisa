@@ -104,7 +104,8 @@ the manager.
   `/lisa:implement <REF> managedBy=<manager-name>`; `lisa-implement` owns what `managedBy=` means.
   Never start a worker another way, and never reuse a worker for another item or a new attempt.
 - **Capacity** comes only from `capacity` (`can_spawn`, `free_slots`).
-- **Notification channel.** Read `notify` and `notifyLevel` from `status` at the start of every cycle. `telegram`: the
+- **Notification channel.** Read `notify` from `status` at the start of every cycle. Read
+  `notifyLevel` from the same result. `telegram`: the
   project's own bot, which `start` attached. `none` (`sessionManager.notify.provider` is `"none"`,
   or there is no `notify` block): there is no channel, and `start` launched you without one.
   Having no channel is a normal configuration, never a failure. Every step below that posts to
@@ -279,7 +280,7 @@ In this order, every time:
    `signal` is `wrongly-escalated`, also post `planningMiss.overruledMarker.comment` on the item
    once the subagent has started, so the overruled-escalation sweep does not capture the same
    ruling again.
-7. **Continue the cycle. Ask.** With Telegram, also send the question there, ending with
+7. **Continue the cycle.** **Ask.** With Telegram, also send the question there, ending with
    `answerWith.channel`, and re-record it with `ledger set-question <ref> --telegram-message-id <id>`
    (same text, which keeps its `askedAt` and its mark). Without a channel there is nothing else to
    send. Then go on with the next item.
@@ -377,8 +378,8 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
     worker gets its answer exactly as before, without `channel-answer`. Exit 2 from
     `channel-answer` delivers nothing and has two causes, told apart by its stderr: one that says
     the answer looks like it holds a credential (**Ask** the operator to send it again without
-    the secret), or one that says the ref has no pending question or no ledger item (**FYI** that
-    the question was already answered or nothing is pending for it).
+    the secret), or one that says the ref has no pending question or no ledger item (as **FYI**,
+    reply that the question was already answered or nothing is pending for it).
     When the answer was recorded on the item, say so in the acknowledgement: it was posted on the
     item, where anyone who can read the item can see it.
   - `ambiguous`: **Ask** which ref it is for, listing `candidates`, each with the label to start the
@@ -434,7 +435,7 @@ Never infer a second manager from the tmux session existing plus a loop being pr
 
 ### 1. Reconcile
 
-**Unsent questions** (**Ask**, only when `notify` is `telegram`). `ledger get` shows every pending question.
+**Unsent questions** (only when `notify` is `telegram`). **Ask.** `ledger get` shows every pending question.
 One with `telegramMessageId: null` never reached Telegram: it was recorded while Telegram was
 unavailable or unpaired, or before Telegram was configured. (Re)send each
 to Telegram now and re-record it with `ledger set-question <ref> --telegram-message-id <id>` (same

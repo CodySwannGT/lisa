@@ -54,13 +54,13 @@ describe("SESSION_MANAGER_DEFAULTS", () => {
         requestionHours: 4,
         orphanHours: 2,
       },
-      notify: { provider: "none", level: "all" },
+      notify: { provider: "none" },
     });
   });
 
   it("resolves an absent notify block to no notification channel", () => {
     const resolved = mustResolve({ sessionManager: { name: NAME } });
-    expect(resolved.notify).toEqual({ provider: "none", level: "all" });
+    expect(resolved.notify).toEqual({ provider: "none" });
   });
 
   it("is frozen, so no caller can change another caller's defaults", () => {
@@ -98,7 +98,7 @@ describe("resolveSessionManagerConfig", () => {
         requestionHours: 4,
         orphanHours: 2,
       },
-      notify: { ...NOTIFY, level: "all" },
+      notify: NOTIFY,
       trustedAuthorIds: null,
       trustedReleaseIds: undefined,
     });
@@ -151,7 +151,6 @@ describe("resolveSessionManagerConfig", () => {
     expect(resolved.capacity.reserveGb).toBe(16);
     expect(resolved.notify).toEqual({
       provider: "telegram",
-      level: "all",
       stateDir: "~/.claude/channels/telegram-mine",
     });
   });
