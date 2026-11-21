@@ -745,7 +745,7 @@
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
-      "4b0ffa011ae217e44466bcaa4c4df446a7aa3200343d28e4f6ca2111ab17e581",
+      "33c0e62cba16d6c5d1b93097adf6f95ea821fba8e8b88a6fce20ae3aa7ee3d1f",
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
@@ -893,7 +893,7 @@
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "67f68ac8652b3618dac5dc6aac43089d150879242c54e08c9d61b877d3c09c05",
+      "4cc5fc93c2538a66862f33e4b89e00a1179e1bbb60f54ee7e29559d4c1c6eb61",
     "plugins/src/base/agents/architecture-specialist.md":
       "b5834a1dc5b11dc2eb65cae6727350bbb7e91d4c2c530ec271bd95f88d878002",
     "plugins/src/base/agents/bug-fixer.md":
@@ -3257,7 +3257,7 @@
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "fe6a11022a29cee55f1b226c6ede40c81289f90cac6e31d88d0215c977b6d165"
+      "b9eb08110e6b150f450957881477b68f9bd0102ed1dabf6e1ecc96996609cb17"
   },
   "UPSTREAM_SURFACE_MANIFEST": {
     ".agents/rules/never-name-downstream-projects.md": true,

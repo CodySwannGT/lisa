@@ -149,7 +149,8 @@
         "lisa-test-run -- vitest"
       ],
       "typecheck": [
-        "tsc --noEmit"
+        "tsc --noEmit",
+        "node scripts/lisa-typecheck.mjs"
       ]
     },
     "devDependencies": {
