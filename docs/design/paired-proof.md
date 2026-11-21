@@ -618,7 +618,14 @@ before the folder is created and is taken off again when the run ends. A
 signal that reaches only this process is acted on when the check that is
 running returns, which is no later than that half's time limit; Ctrl-C at a
 terminal reaches the check as well, so the folder goes at once. A process
-killed outright (`SIGKILL`) cannot remove anything.
+killed outright (`SIGKILL`) cannot remove anything. A later proof run checks
+for abandoned copies before creating its own. It removes a private, named run
+folder after two hours when the owner record identifies a process on this
+machine and the operating system confirms that process has exited. The report
+gives the cleanup counts and reasons for keeping folders. A cleanup failure
+does not stop the new proof. Earlier Lisa versions left folders with no owner
+record. After confirming their proof processes have ended, an operator can
+remove those older folders by hand.
 
 ### A folder the operator names (`--workspace`): a report, not a proof
 

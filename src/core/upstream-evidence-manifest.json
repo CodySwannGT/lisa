@@ -411,7 +411,7 @@
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "46fb0606ccee999a75479ee479f92ac60f4fd62bbf5808e574380ff8df606e6f",
+      "ddca51ff886326ba2bcaef21afa3f4d8fa418d52d997159579e4c0b3a8b30144",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -421,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "a18db70b0ec7abcd81f17394655f5f60217c6a79272596826dd3c8b02118c994",
+      "eeeab8a73d7294e13b1bf7608ed74dec772b21443a21d2c7293523674ae90ef9",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -705,7 +705,7 @@
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "ad6a4eab10a9870d6cfd607ea1d9bb948a933820c8637ca6394b4a77d7adb688",
+      "964f5e837e2925b18b4d27a2e5c6d4bb1a17e3d80a5e59328ee3f678c0d4eefe",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -1159,7 +1159,7 @@
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
-      "86cbab69cbe0827a0512b154bfb48c5646483203ae17b71000a6fc3f69be4e68",
+      "52a5056a0e7e203f65862a31c605cc3efc51b679c8494962c78f462e10ee9451",
     "plugins/src/base/hooks/inject-resolved-config.sh":
       "bc73e118afff35f455241647c24da6e23caaf30d189eb6d3a48814e9a8309613",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -1257,7 +1257,7 @@
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "6599c6dba02e1e3f58f466462f0b38b86b71373eb3a1d5b9a33913be7d0e98b8",
+      "5e75ef2b3865361e67fa5f7f25cb53ab617b92d69cdbc810e7bd355aab3720c8",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1643,7 +1643,7 @@
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
       "38b9d6e61fa553b51026ba56fb21a6167ef3626d7ab86b1190d4306f323928d8",
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
-      "30ef30a6f6dbf173437b25bb2bddca6d9adf63fa3db7ec499ae24d7510fa0e90",
+      "b790e782785b1314b970c6235d885f2348f24ad1e1654a904afabcb2280eef67",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "af8efdcd13d0e30f729938a8c70674be58fd7113f2ad723ab5ebad7ea42ac5ce",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
@@ -1777,7 +1777,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "6ab78776157345992224c5f74f1e6b82867d003961499faf2e51f1473c78dbb8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "cb3bf56adf9ec1dd66ae6da31c606e38740cbf454c3e410ec7145f5ee97a541d",
+      "9026700a003e3d37a6674ec13a5901f0b238fda6f9a87b52e54d76243c0009fa",
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md":
       "cc0fd59927cc13fc3cfa59eb07852b8c8373c9021b42e016229e632b8fbcc916",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
@@ -1787,9 +1787,9 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "29dd5750c58573d24423cf60e33e416e7919ba6ddb19d5290f3b4643a99b281b",
+      "116453367f38b8afa7d4b90d8f885a3277d89adc0570b80264b3672072ad49d2",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
-      "f8a63378cdeb2acc70b53fa5b7c9e4510b2806b98eb27004d94b97817172d6db",
+      "f965b5d87e3d2e02d93fb252025ef6550b947bdd4d6922804b74e4f0558f2a6f",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
       "88982207f9134f63c0949ebed21d05a2bcffe1f5c774739935237d78786b1813",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
@@ -1819,7 +1819,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-stale-links.mjs":
       "ac8020656a3266a70e0b508a921fefdd6803f4f22f4b539635c389d46178e5c3",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
-      "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
+      "4494482691f6fca5b852ae3346e8291be04e07276c0864c698734b6d48126ef1",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
       "c64be7ba9cec34375787833d663e02751fcec56c7ed0d81846efde3f9c5b7c14",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
@@ -1827,7 +1827,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
-      "52d02872fce8960a39711694ae27ffd98fbaf17efd32462d5264b744097002b7",
+      "4efb5b72165f5ffa4c1ff641f01191fbf0f206bf97a671dea4bec2a386732590",
     "plugins/src/base/skills/lisa-session-manager/scripts/cyclers.mjs":
       "b2cc3c6eb940d8a880db179390de22c58df1131f5876b606a12ed694d9b6e18d",
     "plugins/src/base/skills/lisa-session-manager/scripts/escalation-overruled.mjs":
@@ -2615,11 +2615,13 @@
     "rails/copy-overwrite/config/initializers/version.rb":
       "9304268500aada31d8bd158dca4274888d10db4e30f8dadd9bf23a01d67f2480",
     "rails/copy-overwrite/lefthook.yml":
-      "2f50009b20768dc7017afa1fb2841050898c5b21aee087817d256a21c439459f",
+      "5c423ac7c286503ae790d24ca7dc27fb515635fca1af8d78380aab0541b7ea17",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "62add29cbcca6ac6b2346120393d41e219267f74d7ea6c66dc1482c5dbdb118a",
+    "rails/copy-overwrite/scripts/lisa-rails-ast-grep.mjs":
+      "fdc5a658590ec91ab6f38ff417bd70056097099160d5a6c4255bad7bf487a5a1",
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs":
-      "2e5c231ac779fcfd3ef3380282268d5e163544dabe41fb6ee41eb5109320c6c3",
+      "7a8f883f06e80994b77f1116dd555da50526270b1561b4fba9b9bc422b88ac34",
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
       "00d504a0fee1f2a75d7328dc848cacabe6fd9360beacc5bf9632d0741388ade2",
     "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb":
@@ -3069,7 +3071,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "acbd0b9e5094f4b4d336a11446a8369b164643f0881ac08a2d672b45488d5034",
+      "9835d8147b04ce390709ddca05bb66f56866a4fb4a8c6df06b6e2a9a1a5e53ad",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3091,7 +3093,7 @@
     "scripts/verify-packaged-apply.mjs":
       "a01f0b503388d42010c22f2bf54c034f0f8eed027c1c9daf831e0345ce2e2e38",
     "scripts/verify-packed-learnings-contract.mjs":
-      "c1a02bd5c6b822044f4959aa969290b53967a9595184f53f9ea188cdac3dd129",
+      "13beb5d4ac515aa02a8832529ed65aebb75bc6ac38048f2233ac752fd4ba57e0",
     "scripts/verify-rails-tooling.rb":
       "5e7a52c1929c9eba873d2fc1f0baa1cc684e9913d4b27c5c42819bb1ac0539cf",
     "scripts/verify-self-pin-raise.mjs":
@@ -3139,7 +3141,7 @@
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "d2ccdac51cc0ef73d8073db7da01e099d2d770dd58fab86d8956a026a95eadc9",
+      "9a65cbe0327c51fabdc263ac6472d993de5403566f1f970a799cc3644c00618c",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -10959,6 +10961,7 @@
     "rails/copy-overwrite/config/initializers/version.rb": true,
     "rails/copy-overwrite/lefthook.yml": true,
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
+    "rails/copy-overwrite/scripts/lisa-rails-ast-grep.mjs": true,
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs": true,
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": true,
     "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb": true,
@@ -11623,6 +11626,7 @@
     "src/controls/proof-preflight.ts": true,
     "src/controls/proof-report.ts": true,
     "src/controls/proof-runner.ts": true,
+    "src/controls/proof-scratch.ts": true,
     "src/controls/proof-task-runners.ts": true,
     "src/controls/proof-tools.ts": true,
     "src/controls/proof-types.ts": true,
@@ -12466,6 +12470,7 @@
     "tests/integration/environment-prepare-workflow.test.ts": true,
     "tests/integration/expo-host-run-scripts-survive-apply.test.ts": true,
     "tests/integration/expo-independent-checks.test.ts": true,
+    "tests/integration/expo-jest-unit-target.test.ts": true,
     "tests/integration/expo-provider-token.test.ts": true,
     "tests/integration/expo-provider-workflow.test.ts": true,
     "tests/integration/facade-proof-not-step.test.ts": true,
@@ -12729,6 +12734,7 @@
     "tests/integration/support/pre-tool-refusal-fixture.ts": true,
     "tests/integration/support/pre-tool-refusal-harness.ts": true,
     "tests/integration/support/protect-gh-stub.ts": true,
+    "tests/integration/support/rails-gate-cache-tools.ts": true,
     "tests/integration/support/rails-helper-fixture.ts": true,
     "tests/integration/support/rails-learnings-budget-gate.ts": true,
     "tests/integration/support/rails-partial-selector.ts": true,
@@ -13369,6 +13375,7 @@
     "tests/unit/controls/proof-patch.test.ts": true,
     "tests/unit/controls/proof-runner-edges.test.ts": true,
     "tests/unit/controls/proof-runner.test.ts": true,
+    "tests/unit/controls/proof-scratch.test.ts": true,
     "tests/unit/controls/proof-task-runners.test.ts": true,
     "tests/unit/controls/proof-workspace-folder.test.ts": true,
     "tests/unit/controls/protect-apply.test.ts": true,
@@ -14343,6 +14350,7 @@
     "tests/unit/scripts/push-admission.test.ts": true,
     "tests/unit/scripts/push-gate-defaults.test.ts": true,
     "tests/unit/scripts/push-timing.test.ts": true,
+    "tests/unit/scripts/rails-ast-grep-hook.test.ts": true,
     "tests/unit/scripts/raise-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/ready-queue-order-backlog.test.ts": true,
     "tests/unit/scripts/ready-queue-order-human-gate-policy.test.ts": true,
@@ -14465,6 +14473,7 @@
     "tests/unit/scripts/work-item-push-promote-exemption.test.ts": true,
     "tests/unit/scripts/work-item-push-refs-file.test.ts": true,
     "tests/unit/scripts/work-item-push-success-attribution.test.ts": true,
+    "tests/unit/scripts/work-item-report-sweep-proof.test.ts": true,
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,
     "tests/unit/scripts/work-item-session-url.test.ts": true,
     "tests/unit/scripts/work-item-stacked-push.test.ts": true,
@@ -14585,6 +14594,7 @@
     "tests/unit/session-manager/cli-liveness.test.ts": true,
     "tests/unit/session-manager/cli-manager.test.ts": true,
     "tests/unit/session-manager/cli-messages.test.ts": true,
+    "tests/unit/session-manager/cli-notification-level.test.ts": true,
     "tests/unit/session-manager/cli-notify-none.test.ts": true,
     "tests/unit/session-manager/cli-operator-id-kinds.test.ts": true,
     "tests/unit/session-manager/cli-orphans-stale-hours.test.ts": true,
@@ -14927,6 +14937,7 @@
     "tests/unit/strategies/template-consent-routing.test.ts": true,
     "tests/unit/strategies/tracked-work-contract.test.ts": true,
     "tests/unit/strategies/tracker-neutral-stack-journey.test.ts": true,
+    "tests/unit/strategies/tracker-sync-plan-created.test.ts": true,
     "tests/unit/strategies/upstream-attribution-filing-contract.test.ts": true,
     "tests/unit/strategies/usage-accounting-contract.test.ts": true,
     "tests/unit/strategies/usage-accounting-skill.test.ts": true,

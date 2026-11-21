@@ -45,6 +45,7 @@
  * uses it to show what happens to a bad change before anything is installed;
  * see `./before-enforce-run.ts`.
  *
+ * Each private production folder records its owner before copying begins.
  * Whoever calls {@link buildProofCopy} names the folder and removes it on
  * every way out, whatever is returned or thrown.
  * @module controls/proof-copy
@@ -65,6 +66,7 @@ import {
   type GitExit,
 } from "./proof-copy-git.js";
 import { BASE_COMMIT_MESSAGE } from "./proof-copy-wording.js";
+import { recordProofScratchOwner } from "./proof-scratch.js";
 
 /** The branch a push proof pushes to when the operator is on no branch. */
 const DETACHED_PUSH_BRANCH = "lisa-proof";
@@ -431,6 +433,7 @@ export async function buildProofCopy(
     };
   }
   await mkdir(folder, { mode: PRIVATE_FOLDER_MODE });
+  await recordProofScratchOwner(folder);
   const home = await realpath(folder);
   const layout: Layout = {
     clone: path.join(home, "clone"),

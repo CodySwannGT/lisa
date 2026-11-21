@@ -66,6 +66,16 @@ describe.each(ALL_ROOTS)(
       );
     });
 
+    it("routes routine updates to the transcript at the asks-only level", () => {
+      expect(rules).toContain(
+        "`notifyLevel: all` sends both **Ask** and **FYI** messages"
+      );
+      expect(rules).toMatch(
+        /`notifyLevel: asks-only` sends \*\*Ask\*\*\s+messages and records \*\*FYI\*\* messages in the transcript/u
+      );
+      expect(rules).toContain("`Answer with: <label> <your answer>`");
+    });
+
     it("ends recovery-required only for a configured Telegram that is broken", () => {
       expect(rules).toContain("**Telegram configured but broken.**");
       expect(rules).toContain("end it with outcome `recovery-required`");
