@@ -22,7 +22,8 @@ project's own Telegram chat. Telegram is optional: with no channel, questions wa
 Read `notifyLevel` from `status` each cycle. `all` sends questions and routine notices to a paired
 chat. `asks-only` sends questions, requests for operator action, duplicate-manager warnings and the
 hold digest. Routine worker starts, outcomes, tracker changes and acknowledgements go to the
-transcript in that mode.
+transcript in that mode. Reply in the paired chat when the operator sends a `status` command
+at either notification level.
 
 ## Candidate selection
 

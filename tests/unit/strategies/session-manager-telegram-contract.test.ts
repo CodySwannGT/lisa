@@ -76,6 +76,19 @@ describe.each(ALL_ROOTS)(
       expect(rules).toContain("`Answer with: <label> <your answer>`");
     });
 
+    it("replies to a Telegram status command at either notification level", () => {
+      const runbook = read(`${root}/${MANAGER}/references/runbook-template.md`);
+      expect(rules).toContain(
+        "Reply to an operator's Telegram `status` command in the paired chat at either notification level."
+      );
+      expect(skill).toMatch(
+        /`status`: reply directly in the paired Telegram chat[\s\S]*?Send the reply at either notification level\./u
+      );
+      expect(runbook).toMatch(
+        /Reply in the paired chat when the operator sends a `status` command\s+at either notification level\./u
+      );
+    });
+
     it("ends recovery-required only for a configured Telegram that is broken", () => {
       expect(rules).toContain("**Telegram configured but broken.**");
       expect(rules).toContain("end it with outcome `recovery-required`");

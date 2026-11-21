@@ -174,6 +174,7 @@ the manager.
   - `notifyLevel: all` sends both **Ask** and **FYI** messages. `notifyLevel: asks-only` sends **Ask**
     messages and records **FYI** messages in the transcript. Both modes keep the usual ledger and
     tracker writes. Routine cycle summaries belong in the transcript.
+  - Reply to an operator's Telegram `status` command in the paired chat at either notification level.
   - **Ask** covers questions, requests for operator action, duplicate-manager warnings and the
     hold digest. **FYI** covers worker starts and outcomes, tracker changes, routine retries and
     answer acknowledgements.
@@ -385,7 +386,8 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
   - `invalid-command`: a mistyped command (`cap 40`, `stop A B`). Deliver it to no worker. **Ask**
     the operator to correct it with `reason` and explain how to label an answer meant for a worker.
   - `command`:
-    - `status`: summarize `status` (running, cap, pending questions, paused) as **FYI**.
+    - `status`: reply directly in the paired Telegram chat with the running count, cap, pending
+      questions, and pause state. Send the reply at either notification level.
     - `pause` / `resume`: `ledger control --paused true|false`. Relaying and reconciling continue
       while paused; only dispatch stops.
     - `cap N`: `ledger control --max-workers N`. This may raise the limit above

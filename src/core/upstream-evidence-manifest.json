@@ -1787,9 +1787,9 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "116453367f38b8afa7d4b90d8f885a3277d89adc0570b80264b3672072ad49d2",
+      "d5bfca30a3244f110fcf58915dd4ebca9d050e829132af6a16564716ff7edaed",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
-      "f965b5d87e3d2e02d93fb252025ef6550b947bdd4d6922804b74e4f0558f2a6f",
+      "7e59e966dca77962bb67a836a6e86f8a2ec20875de2c8ab06a649c18ffb84533",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
       "88982207f9134f63c0949ebed21d05a2bcffe1f5c774739935237d78786b1813",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
