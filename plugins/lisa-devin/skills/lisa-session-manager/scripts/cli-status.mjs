@@ -88,6 +88,7 @@ export async function status(ctx) {
         otherCyclers: otherCyclers(ledger, config, ctx.now()),
       },
       notify: notifyProvider(config),
+      notifyLevel: config.notify.level,
       control: ledger.control,
       workers: Object.entries(ledger.items).map(([ref, item]) => ({
         ref,
