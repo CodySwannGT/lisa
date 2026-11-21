@@ -107,6 +107,7 @@ export function requiresLedgerCheck(stagedPaths) {
 const NIGHTLY_GUARD_CERTIFICATE_INPUTS = Object.freeze([
   "package.json",
   "scripts/generate-nightly-e2e-guard-certificate.mjs",
+  "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs",
   "src/core/nightly-e2e-guard-behavior-certificate.ts",
   "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs",
   "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs",

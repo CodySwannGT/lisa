@@ -82,6 +82,7 @@ describe("derived-artifact staleness gate: which checks a commit owes", () => {
       "package.json",
       "scripts/generate-nightly-e2e-guard-certificate.mjs",
       "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs",
+      "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs",
       "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs",
     ]) {
       expect(requiresNightlyGuardCertificateCheck([source])).toBe(true);

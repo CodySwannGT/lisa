@@ -2616,6 +2616,8 @@
       "9304268500aada31d8bd158dca4274888d10db4e30f8dadd9bf23a01d67f2480",
     "rails/copy-overwrite/lefthook.yml":
       "2f50009b20768dc7017afa1fb2841050898c5b21aee087817d256a21c439459f",
+    "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
+      "df39aa29b19817f67726107fec45078ce639f14a682cf6d5587ba37617f31ac9",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "62add29cbcca6ac6b2346120393d41e219267f74d7ea6c66dc1482c5dbdb118a",
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs":
@@ -2687,7 +2689,7 @@
     "scripts/check-delivery-deletion-conflicts.mjs":
       "77eed58c9ff076c4438a5fe01c343f25c1a1c8f29a8f5861d1e1081b1739d300",
     "scripts/check-derived-artifacts.mjs":
-      "49ce1f00f016bf00540f477f03f8e8c349589d25ab0bf9efc198abddc50bb7e3",
+      "285912c2460c5ce695198da15a191e091c612797680d2df3aef2962d36f3519f",
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-eager-rule-budget.mjs":
@@ -2803,7 +2805,7 @@
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "b6709a0a2a7a0a3af3f8d753ae85aad289d187269217f826b95a1945c32f446f",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
-      "e1445ac512ef9597d91b13ac733e5bd0f17b6e8fbdc17d2973c802a50586cefc",
+      "bbd5a4f2f3b3e69dcc6466a7dcf96a024e2538bb3568c4b079e8c0d9d914e65e",
     "scripts/generate-npm-updater-helper-graph.mjs":
       "f128835f309f5a4b8d2015d57018da44fd558778efa4eed382747c6d6319260a",
     "scripts/generate-phrase-manifest.mjs":
@@ -3069,7 +3071,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "acbd0b9e5094f4b4d336a11446a8369b164643f0881ac08a2d672b45488d5034",
+      "861c7d644ed9d0cc99e9703897930650331bce3e71ae51e7a689e8b42760cc6d",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -10958,6 +10960,7 @@
     "rails/copy-overwrite/ast-grep/utils/.gitkeep": true,
     "rails/copy-overwrite/config/initializers/version.rb": true,
     "rails/copy-overwrite/lefthook.yml": true,
+    "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs": true,
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs": true,
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": true,
