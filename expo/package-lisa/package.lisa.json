@@ -202,7 +202,10 @@
       "test:cov:unit": [
         "LISA_COVERAGE_SCOPE=unit LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage",
         "LISA_COVERAGE_SCOPE=unit LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo -- jest --coverage",
-        "LISA_COVERAGE_SCOPE=unit LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run -- jest --coverage"
+        "LISA_COVERAGE_SCOPE=unit LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run -- jest --coverage",
+        "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+        "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+        "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\""
       ],
       "test:integration": [
         "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
@@ -214,7 +217,10 @@
       "test:unit": [
         "LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest",
         "LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo -- jest",
-        "LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run -- jest"
+        "LISA_EXPO_TEST_SCOPE=unit NODE_ENV=test lisa-test-run -- jest",
+        "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+        "NODE_ENV=test lisa-test-run --profile expo -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+        "NODE_ENV=test lisa-test-run -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\""
       ],
       "test:watch": [
         "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --watch",

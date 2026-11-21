@@ -37,6 +37,7 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+const UNIT_COVERAGE_SCRIPT = "test:cov:unit";
 
 /** Every shipped stack template that governs test scripts. */
 const TEMPLATES = [
@@ -60,7 +61,7 @@ const HOST_FACING = [
   "test",
   "test:unit",
   "test:cov",
-  "test:cov:unit",
+  UNIT_COVERAGE_SCRIPT,
   "test:watch",
   "test:integration",
   "test:node",
@@ -84,7 +85,7 @@ const CONVERTED = [
   "test",
   "test:unit",
   "test:cov",
-  "test:cov:unit",
+  UNIT_COVERAGE_SCRIPT,
   "test:watch",
   "test:node",
 ] as const;
@@ -135,6 +136,8 @@ const sectionsCarrying = (
 /** The push-only selector wrapper the forced unit scripts carry (#4611). */
 const AFFECTED_TESTS_WRAPPER =
   "node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- ";
+
+const LEGACY_EXPO_FILTER = String.raw`--testPathIgnorePatterns="\.integration[.\\-](test|spec)\.(ts|tsx)$"`;
 
 describe("host-facing test scripts are governed pairs, not forced values", () => {
   it.each(TEMPLATES)(
@@ -239,5 +242,23 @@ describe("host-facing test scripts are governed pairs, not forced values", () =>
     );
 
     expect(offenders).toEqual([]);
+  });
+
+  it.each([
+    ["test:unit", "", ""],
+    [UNIT_COVERAGE_SCRIPT, "LISA_COVERAGE_SCOPE=unit ", " --coverage"],
+  ])("Expo still adopts the published legacy %s paths", (key, env, flags) => {
+    const template = shippedTemplate("expo");
+    const legacy = [
+      " --profile expo --adapter direct",
+      " --profile expo",
+      "",
+    ].map(
+      profile =>
+        `${env}NODE_ENV=test lisa-test-run${profile} -- jest${flags} ${LEGACY_EXPO_FILTER}`
+    );
+    expect(template.adopt?.scripts?.[key]).toEqual(
+      expect.arrayContaining(legacy)
+    );
   });
 });
