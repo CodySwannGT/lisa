@@ -11,7 +11,12 @@ import { dirname, join, resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
+
+useIoLatencyBudget();
 
 const REPO = resolve(import.meta.dirname, "../../..");
 const ARTIFACT_DIRECTORIES = [
