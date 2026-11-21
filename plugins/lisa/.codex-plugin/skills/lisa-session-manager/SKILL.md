@@ -306,15 +306,14 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
    - `worker-question` or `decision` whose worker already reported `DONE` or `FAILED` (the
      question outlives the worker in the ledger, so its marker can still be removed): do not
      resume the finished worker. Record the answer on the item (below); the next attempt reads it
-     there. A worker's `FAILED` usually leaves the item in the `blocked` role (moved there on
-     `FAILED`, or held there for a `decision`), and nothing else returns a blocked item with no
-     dependency edges to Ready, so `answer-plan` returns `requeue: true` for it. First read the
-     item with `lisa-tracker-read`. Only when the read-back shows it **in the `blocked` role**,
-     also move it to the `ready` role in the step 2 update, as for `exhausted`, so the next
-     dispatch starts a fresh attempt that reads the answer on the item. When it is anywhere else
-     (a human moved it to the backlog or closed it, or `stop REF` already returned it to Ready),
-     leave it where it is: `requeue` never overrides a human's move. A `DONE` worker's item is
-     left where it is. `resume` refuses a finished
+     there. A worker's `FAILED` may leave the item in `claimed` with a human-needed label or
+     move it to the `blocked` role. First read the item with `lisa-tracker-read`. When `answer-plan`
+     returns `requeue: true` for an item in the `claimed` or `blocked` role, move it to the `ready`
+     role in the step 2 update, so the next dispatch starts a fresh attempt that reads
+     the answer. A `FAILED` attempt with the reason `left the claimed role outside the manager`
+     returns `requeue: false` to preserve the human's move into the `blocked` role.
+     Leave items in any other role where they are. A `DONE` worker's item is left where it is.
+     `resume` refuses a finished
      worker (exit 2), and `spawn` refuses a ref while its question is pending, so finish this
      clearing first.
 
@@ -339,7 +338,7 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
    `lisa-tracker-write`, with a short comment: `[lisa-session-manager] Answer delivered; removed the
    hold.` when a worker received the answer (`SendMessage` or `resume`), else
    `[lisa-session-manager] Answer recorded on the item; removed the hold.` When `answer-plan`
-   returned `requeue: true` and the read-back shows the item in the `blocked` role, the same
+   returned `requeue: true` and the read-back shows the item in the `claimed` or `blocked` role, the same
    update also moves it to the `ready` role; in any other role, leave the item where it is. Read
    it back with `lisa-tracker-read`.
 3. `ledger clear-question <ref>` (`--reset-attempts` for an `exhausted` item). After "Record the

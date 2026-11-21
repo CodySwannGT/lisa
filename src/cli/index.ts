@@ -12,6 +12,7 @@ import { runDoctor } from "./doctor.js";
 import { runFileUpstream } from "./file-upstream-cmd.js";
 import { runHealthCli, type HealthCliOptions } from "./health-cmd.js";
 import { addGateCommands } from "./gate-commands.js";
+import { addGitHubReadIssueCommand } from "./github-read-issue-cmd.js";
 import {
   runKaneCli,
   runKanePilotCli,
@@ -225,12 +226,11 @@ function addHealthCommand(program: Command, deps: ProgramDependencies): void {
  * Register CLI maintenance commands that do not run the root update warning.
  * @param program - Commander program to mutate
  * @param deps - Program dependencies
- * @returns The same Commander program
  */
 function addMaintenanceCommands(
   program: Command,
   deps: ProgramDependencies
-): Command {
+): void {
   program
     .command("version")
     .description("Print Lisa CLI version info")
@@ -259,6 +259,7 @@ function addMaintenanceCommands(
   addHealthCommand(program, deps);
   addStandardsProofCommand(program, deps);
   addControlsCommand(program);
+  addGitHubReadIssueCommand(program);
 
   program
     .command("sync")
@@ -293,8 +294,6 @@ function addMaintenanceCommands(
         await deps.runCrossPollinate(targetPath, options);
       }
     );
-
-  return program;
 }
 
 /**

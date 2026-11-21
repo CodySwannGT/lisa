@@ -9,9 +9,9 @@
  * audit did not report, rests on a question nobody answered, or serves a
  * requirement the audit still asks about (`../declaration-evidence.ts`).
  *
- * A declaration with no parts passes without a report: every one of its
- * rules comes from the declarations Lisa ships for a supported project type,
- * so there is nothing for the audit to support. The command writes nothing.
+ * A declaration made only of whole-repository gates or verified shipped
+ * folder checks passes without reading audit evidence. The command writes
+ * nothing.
  * @module controls/commands/declaration-check
  */
 import path from "node:path";
@@ -29,6 +29,7 @@ import {
   evidencedEntries,
 } from "../declaration-evidence.js";
 import { GATES_DECLARATION_PATH } from "../gates-declaration.js";
+import { WHOLE_REPOSITORY_SCOPE } from "../register-types.js";
 import {
   generateControlRegister,
   type ControlRegisterGeneration,
@@ -109,7 +110,11 @@ export async function runDeclarationCheck(
   const parts = evidencedEntries(generated.register).length;
   if (parts === 0) {
     stdout(
-      `${DECLARATION_CHECK_COMMAND}: PASS. No gate in ${GATES_DECLARATION_PATH} declares a part, so nothing in it needs the audit report's support`
+      generated.register.entries.some(
+        entry => entry.scope !== WHOLE_REPOSITORY_SCOPE
+      )
+        ? `${DECLARATION_CHECK_COMMAND}: PASS. Lisa's shipped checks support the declared folders`
+        : `${DECLARATION_CHECK_COMMAND}: PASS. No gate in ${GATES_DECLARATION_PATH} declares a part, so nothing in it needs the audit report's support`
     );
     return 0;
   }

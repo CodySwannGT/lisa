@@ -2539,6 +2539,9 @@
       "c2b0f436107de5de0f616090012b48752bbbb47dd0add20098662faac0f5f677",
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475"
     ],
+    "scripts/lisa-typecheck.mjs": [
+      "53b180dfb891c2167614d60a230ce5e9f64703a64a3a38f0da831aedaf65f6b9"
+    ],
     "scripts/lisa-work-item.mjs": [
       "04401ae05bf9464e6929180ffdfff80afc528a1df20733b032a0342252ca1d4a",
       "04f78df45465d01601c8b5711b74749b2a2c2b70b9c916d6790bd69e1c11865d",
@@ -5603,6 +5606,9 @@
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
       "c2b0f436107de5de0f616090012b48752bbbb47dd0add20098662faac0f5f677",
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475"
+    ],
+    "scripts/lisa-typecheck.mjs": [
+      "53b180dfb891c2167614d60a230ce5e9f64703a64a3a38f0da831aedaf65f6b9"
     ],
     "scripts/lisa-work-item.mjs": [
       "04401ae05bf9464e6929180ffdfff80afc528a1df20733b032a0342252ca1d4a",

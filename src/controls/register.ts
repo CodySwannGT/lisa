@@ -49,6 +49,7 @@ import {
   type ControlRegisterEntry,
 } from "./register-types.js";
 import { withoutCredentials } from "./secret-scan-json.js";
+import { confirmedShippedPartGates } from "./shipped-parts.js";
 import { withUnenforceableAgents } from "./unenforceable-agents.js";
 
 /** What a register is built from. */
@@ -59,6 +60,8 @@ export interface ControlRegisterInputs {
   readonly registry: GatesModule;
   /** The criterion catalogue. */
   readonly catalogue: CriterionCatalogue;
+  /** Scoped defaults reproduced from the shipped registry and local tasks. */
+  readonly shippedPartGates?: ReadonlySet<string>;
   /**
    * Reads the parsed evidence file. Called once, and only when an entry's
    * status depends on it; left out, there is no evidence.
@@ -115,9 +118,7 @@ export function buildControlRegister(
   inputs: ControlRegisterInputs
 ): ControlRegisterBuild {
   const { declaration, registry, catalogue } = inputs;
-  const refused = CONTROL_REGISTER_RULES.flatMap(rule =>
-    rule({ declaration, catalogue })
-  );
+  const refused = CONTROL_REGISTER_RULES.flatMap(rule => rule(inputs));
   if (refused.length > 0) return { problems: refused };
 
   const resolved = resolveEnforcementPoints(declaration, registry);
@@ -196,6 +197,11 @@ async function generated(
       declaration: read.declaration,
       registry,
       catalogue: (sources.loadCatalogue ?? loadCriterionCatalogue)(),
+      shippedPartGates: await confirmedShippedPartGates(
+        root,
+        read.declaration,
+        registry
+      ),
       evidenceDocument: () =>
         (sources.readEvidenceDocument ?? readEvidenceDocument)(root),
     });
