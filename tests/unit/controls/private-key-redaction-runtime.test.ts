@@ -54,4 +54,24 @@ describe("private-key redaction in local runners", () => {
       expect(result.stdout).toBe(expected);
     }
   );
+
+  it("removes the visible body of an unfinished block and preserves later prose", () => {
+    const opening = FAKE_CREDENTIALS.find(value => value.kind === "PRIVATE_KEY")
+      ?.make()
+      .split("\n")[0];
+    if (opening === undefined) throw new Error("Missing private-key fixture");
+    const data = Buffer.from("synthetic fixture bytes").toString("base64");
+    const result = boundedSpawnSync({
+      label: "redact a partial key while preserving prose",
+      command: process.execPath,
+      args: ["--input-type=module", "--eval", CODE],
+      input: `Fixture output\n${opening}\n${data}\nOther fixture output.\n`,
+    });
+
+    const expected = createHash("sha256")
+      .update("Fixture output\n[REDACTED:PRIVATE_KEY]\nOther fixture output.\n")
+      .digest("hex");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe(expected);
+  });
 });

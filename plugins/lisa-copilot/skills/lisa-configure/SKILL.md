@@ -468,10 +468,10 @@ declared part:
 Repeat until every part that declares a pair reads `ready`. Ground rule 9 holds throughout: you
 change the test changes, never the check.
 
-The temporary copy holds the last commit and nothing git ignores. A tool that only runs with files
-the working copy has and the commit does not (installed dependencies, built output) cannot run
-there, and reads as not started, or as failing on the clean change without its failure text. Do not
-install anything and do not commit anything to get around that.
+The temporary copy starts from the last commit. If a check needs dependencies or generated files,
+configure and obtain approval for `controls.proof_copy.prepare` as described above, then rerun
+`proof-check`. Without suitable preparation, the check may fail to start or fail on the clean
+change. Keep installed dependencies and generated output out of the commit.
 
 When a pair cannot be made ready honestly (the tool is not installed on this machine, it cannot run
 in a copy of the last commit, or the check does not catch what it was assumed to catch), delete its

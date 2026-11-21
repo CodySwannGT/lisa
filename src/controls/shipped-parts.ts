@@ -138,6 +138,29 @@ export async function readShippedFolder(
   };
 }
 
+/**
+ * Detect support at the scope where each declared control runs.
+ * @param root - The repository root
+ * @param scopes - The scopes in the control register
+ * @returns Scopes whose own project type provides shipped checks
+ */
+export async function supportedControlScopes(
+  root: string,
+  scopes: readonly string[]
+): Promise<ReadonlySet<string>> {
+  const supported = await Promise.all(
+    [...new Set(scopes)].map(async scope => {
+      if (scope === WHOLE_REPOSITORY_SCOPE)
+        return (await detectSupportedTypes(root)).length > 0 ? scope : null;
+      const folder = await readShippedFolder(root, scope);
+      return folder.problems === null && folder.value.types.length > 0
+        ? scope
+        : null;
+    })
+  );
+  return new Set(supported.filter(scope => scope !== null));
+}
+
 /** A shipped gate with one fixed argv for each covered folder. */
 interface ShippedGate {
   readonly declaration: Record<string, unknown>;

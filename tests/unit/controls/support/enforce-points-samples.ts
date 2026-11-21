@@ -190,7 +190,9 @@ export async function judge(
     {
       executorVerdict: () => Promise.resolve(sources.file ?? FILE_WIRED),
       gateCriteria: sources.gateCriteria ?? ["SI7"],
-      hasSupportedProjectType: sources.hasSupportedProjectType ?? true,
+      supportedProjectScopes: new Set(
+        sources.hasSupportedProjectType === false ? [] : [judged.scope]
+      ),
       installed: sources.carriers ?? carriers([carried("commit", IN_PLACE)]),
       protect: sources.protect ?? protect(),
     }

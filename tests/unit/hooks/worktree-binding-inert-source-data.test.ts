@@ -76,6 +76,24 @@ describe("worktree binding when an executed program reads source as data", () =>
     expect(result.stderr).not.toContain(fixture.main);
   });
 
+  it.each(["\r", "\r\n"])(
+    "reads bound source consistently with %j line endings",
+    ending => {
+      const fixture = buildFixture();
+      bindTo(fixture, fixture.a);
+      const source =
+        `# A fixture comment\n${comparison(fixture, fixture.a)}`.replaceAll(
+          "\n",
+          ending
+        );
+
+      const result = checkPython(fixture, source);
+
+      expect(result.status, result.stderr).toBe(ALLOWED);
+      expect(result.stderr).not.toContain(fixture.main);
+    }
+  );
+
   it("refuses a real foreign subprocess directory even when supplied as bytes", () => {
     const fixture = buildFixture();
     bindTo(fixture, fixture.a);

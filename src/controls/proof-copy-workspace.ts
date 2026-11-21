@@ -81,7 +81,11 @@ import {
   unattributedDetail,
   unwiredDetail,
 } from "./proof-copy-wording.js";
-import { applyProofPatch, isolatedGit } from "./proof-patch.js";
+import {
+  applyPreparedProofPatch,
+  applyProofPatch,
+  isolatedGit,
+} from "./proof-patch.js";
 import type { ProofTools } from "./proof-tools.js";
 import type {
   PatchOutcome,
@@ -404,11 +408,13 @@ export function proofCopyWorkspace(
     root: copy.clone,
     apply: async patch => {
       await turn();
-      const prepared = copy.preparation !== undefined;
-      const planted = applyProofPatch(copy.clone, patch, { index: prepared });
-      // Applying to the index stages exactly the patch. Prepared files exist
-      // for the check to use and must not be swept into its test commit.
-      if (planted.problem !== null || prepared) return planted;
+      if (copy.preparation !== undefined) {
+        return applyPreparedProofPatch(copy.clone, patch, () =>
+          reset(copy, inClone)
+        );
+      }
+      const planted = applyProofPatch(copy.clone, patch);
+      if (planted.problem !== null) return planted;
       const staged = inClone(["add", "--all"]);
       if (staged.code === 0) return { problem: null };
       const undone = reset(copy, inClone);

@@ -269,7 +269,7 @@
     "all/copy-overwrite/scripts/lib/private-key-redaction.d.mts":
       "3c5005c1c6b8432c9bc097d6c82c1c6279cb84059d4acc1b1c9170328194f8ad",
     "all/copy-overwrite/scripts/lib/private-key-redaction.mjs":
-      "d762b79a4827650d1fc324b7c2076ae24e41c96d1e9f2e734e4c73ec4baa27a2",
+      "de4e31433be3ae1edcf59089f4ed912b525c1a8fc448a36fa278a5150b4c7026",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
       "7034adad8d8348eeb669ead52cb7eaffa11b592c1f1b06bcd8474b6348360eae",
     "all/copy-overwrite/scripts/lib/push-admission.mjs":
@@ -389,7 +389,7 @@
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "18e1d963d4416ccd247158e6a4bfcf43234f47faeb3a4654b5a6c78001ab8ef5",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
-      "cdeb8d19c81ef1997f2b907b62a162a421af793a87f2d168b3e3bf4449e593c2",
+      "4f6cf61c49ee8206d227c3e87b16886ced824cdf994b2569656d983b6310d68a",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "2fe0a765030bd2b47122021ba3505fbbea1f60002c4e1ed9f0fc4f5b2f786253",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -1205,7 +1205,7 @@
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
-      "b4514be607ca9a2f998d1919f1cf20dc86d66aecfe817b0017107accdbafbd96",
+      "692cf26c627438dae1abca2f05232be3dda55159f1f15385f06bd43ec98a786d",
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "9ff49d44190075b773670e6bd038cb7cac1048a5680d37570b0e7397ed20253c",
     "plugins/src/base/rules/eager/00-rule-index.md":
@@ -1489,7 +1489,7 @@
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "f3fc962605220440584d510a9b8a05bb70364c5b27963720b631d8a34b115880",
+      "300f9aa2577ced3621a372965d68149a9f5d489abb531933c6170e12de211c82",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "a33349c0129da13955fea99206d49e6e65c8be9e649e5d387afab83f52820b81",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -13322,6 +13322,7 @@
     "tests/unit/controls/enforce-entry-outcome.test.ts": true,
     "tests/unit/controls/enforce-head-run.test.ts": true,
     "tests/unit/controls/enforce-points.test.ts": true,
+    "tests/unit/controls/enforce-project-scopes.test.ts": true,
     "tests/unit/controls/enforce-report-carriers.test.ts": true,
     "tests/unit/controls/enforce-report-refusals.test.ts": true,
     "tests/unit/controls/enforce-report.test.ts": true,

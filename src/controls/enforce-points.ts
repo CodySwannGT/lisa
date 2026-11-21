@@ -44,8 +44,8 @@ import {
 export interface EnforcedPointSources {
   /** The carriers of the checkout as a read made for this report found them. */
   readonly installed: readonly InstalledCarrier[];
-  /** Whether a supported project type supplies its usual checks. */
-  readonly hasSupportedProjectType: boolean;
+  /** Scopes where a supported project type supplies its usual checks. */
+  readonly supportedProjectScopes: ReadonlySet<string>;
   /** The comparison of merge protection with the register. */
   readonly protect: HandedProtect;
   /** Reads the pipeline file a register names and says whether it is wired. */
@@ -327,7 +327,7 @@ export async function enforcedEntries(
           entry,
           points,
           entry.criteria.some(id => sources.gateCriteria.includes(id)),
-          sources.hasSupportedProjectType
+          sources.supportedProjectScopes.has(entry.scope)
         ),
         points,
       };

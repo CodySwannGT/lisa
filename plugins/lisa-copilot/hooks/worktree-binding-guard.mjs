@@ -468,7 +468,7 @@ const PYTHON_LITERAL_GIT_CALL = new RegExp(
  */
 function pythonSourceForPathScan(text) {
   const lines = text
-    .split("\n")
+    .split(/\r\n?|\n/u)
     .map(line => line.trim())
     .filter(line => line !== "" && !line.startsWith("#"));
   const importsSubprocess = lines[0] === "import subprocess";

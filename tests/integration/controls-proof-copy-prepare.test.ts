@@ -28,6 +28,7 @@ useIoLatencyBudget();
 
 const CLI = path.resolve("dist/index.js");
 const CASE_DEPENDENCY = "fixture-proof-dependency";
+const PROOF_CHECK = "proof-check";
 const PREPARE = [process.execPath, "tools/prepare-proof.mjs"];
 const HUSKY = [
   process.execPath,
@@ -108,13 +109,13 @@ function run(root: string, ...command: readonly string[]) {
 
 describe("controls proof-copy preparation", () => {
   it("makes a dependency-backed check ready and keeps work and generated files isolated", () => {
-    const unprepared = run(repository(), "proof-check");
+    const unprepared = run(repository(), PROOF_CHECK);
     expect(unprepared.status).not.toBe(0);
 
     const root = repository([PREPARE]);
     withUncommittedWork(root, F_NONE_SOURCE);
     const before = repositoryState(root);
-    const checked = run(root, "proof-check");
+    const checked = run(root, PROOF_CHECK);
     expect(checked.status, checked.stderr + checked.stdout).toBe(0);
     expect(JSON.parse(checked.stdout).parts).toEqual([
       expect.objectContaining({ result: "ready" }),
@@ -159,6 +160,25 @@ describe("controls proof-copy preparation", () => {
       expect.objectContaining({ outcome: "passed" }),
     ]);
     expect(repositoryState(root, { except: ALL_RESULTS })).toEqual(before);
+  });
+
+  it("can patch a tracked file after preparation changes its mode", () => {
+    const root = repository([
+      PREPARE,
+      [
+        process.execPath,
+        "-e",
+        `require("node:fs").chmodSync(${JSON.stringify(F_NONE_SOURCE)}, 0o755)`,
+      ],
+    ]);
+    const before = repositoryState(root);
+    const checked = run(root, PROOF_CHECK);
+
+    expect(checked.status, checked.stderr + checked.stdout).toBe(0);
+    expect(JSON.parse(checked.stdout).parts).toEqual([
+      expect.objectContaining({ result: "ready" }),
+    ]);
+    expect(repositoryState(root)).toEqual(before);
   });
 
   it("reports failed preparation and writes no evidence", () => {
