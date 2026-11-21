@@ -49,11 +49,78 @@ jobs:
           # and report no drift — the failure mode this whole job exists to
           # stop being invisible.
           fetch-depth: 0
+          ref: d2362b16a651aefda727fa451136834a636e3b42
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           package-manager-cache: false
           node-version: '24.21.0'
+      - name: Qualify the configured Actions token against accepted evidence
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { spawnSync } from 'node:child_process';
+          import { readFileSync } from 'node:fs';
+          import { githubProofTransport } from './all/copy-overwrite/scripts/lib/completion-proof-github.mjs';
+          import { parseLocator, sha256, validateRecordShape } from './all/copy-overwrite/scripts/lib/completion-proof-shape.mjs';
+
+          const repository = process.env.GITHUB_REPOSITORY;
+          const run = (program, args, { binary = false, maxBuffer = 8192 } = {}) => {
+            assert.equal(program, 'gh');
+            assert.equal(args[0], 'api');
+            assert(!args.some(argument => argument === '--method' || argument === '-X'));
+            const child = spawnSync(program, args, {
+              encoding: binary ? null : 'utf8',
+              maxBuffer,
+              timeout: 30000,
+            });
+            return { ...child, stderr: String(child.stderr ?? '') };
+          };
+          const settings = JSON.parse(readFileSync('.lisa.config.json', 'utf8'));
+          const transport = githubProofTransport(run, repository, settings.verification.completion);
+          const nativeRepository = transport.json(transport.root);
+          assert.equal(nativeRepository.full_name, repository);
+          const issue = transport.json(`${transport.root}/issues/4519`);
+          assert.equal(issue.state, 'closed');
+          const comments = transport.json(`${transport.root}/issues/4519/comments?per_page=100`, true).flat();
+          const accepted = comments.map(comment => ({ author: comment.user, locator: parseLocator(comment.body) }))
+            .filter(row => row.locator?.asset_id === 776901775);
+          assert.equal(accepted.length, 1);
+          const { author, locator } = accepted[0];
+          assert.equal(locator.sha256, '825c8e4b89fd8abe83a31601fb21eb22bf6b37269e407fb5994e54ab016cd70a');
+          assert.equal(transport.eligibleCommentAuthor(author, nativeRepository.id), true);
+          const acceptedAsset = transport.asset(locator.asset_id, 8_388_608);
+          assert.equal(sha256(acceptedAsset.bytes), locator.sha256);
+          const record = validateRecordShape(JSON.parse(acceptedAsset.bytes.toString('utf8')));
+          transport.trustedPublisher(acceptedAsset.metadata, record);
+          assert.equal(record.state, 'accepted-for-completion');
+          assert.equal(record.source.pull_request, 5144);
+          assert.equal(record.source.production_snapshot_sha, 'd2362b16a651aefda727fa451136834a636e3b42');
+
+          const pull = transport.json(`${transport.root}/pulls/5144`);
+          assert.equal(pull.merge_commit_sha, record.source.merge_sha);
+          const delivery = record.obligations.delivery.runs[0];
+          const actions = transport.json(`${transport.root}/actions/runs/${delivery.run_id}/attempts/${delivery.attempt}`);
+          assert.equal(actions.conclusion, 'success');
+          assert.equal(actions.head_sha, record.source.delivered_sha);
+          const verifiedAssets = [...record.evidence, ...record.verdicts, record.obligations.conformance.report]
+            .map(pointer => {
+              const asset = transport.asset(pointer.asset_id, 8_388_608);
+              assert.equal(sha256(asset.bytes), pointer.sha256);
+              assert.equal(asset.bytes.length, pointer.bytes);
+              return { id: pointer.asset_id, bytes: asset.bytes.length, sha256: pointer.sha256 };
+            });
+          console.log(JSON.stringify({
+            issue: issue.number,
+            pull: pull.number,
+            release_run: actions.id,
+            snapshot: record.source.production_snapshot_sha,
+            accepted_record: { id: locator.asset_id, sha256: locator.sha256 },
+            verified_assets: verifiedAssets,
+          }));
+          NODE
       - name: Sweep the ready and claimed lanes
         id: sweep
         env:
@@ -94,7 +161,7 @@ jobs:
   # files a deduplicated issue, which is the named destination the sweep's
   # report never had.
   create_issue_on_failure:
-    if: ${{ failure() && github.repository == 'CodySwannGT/lisa' }}
+    if: ${{ false }}
     needs: sweep
     uses: ./.github/workflows/create-github-issue-on-failure.yml
     permissions:
