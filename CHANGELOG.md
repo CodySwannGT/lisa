@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.2.10](https://github.com/CodySwannGT/lisa/compare/v8.2.9...v8.2.10) (2026-11-21)
+
+
+### Bug Fixes
+
+* **controls:** report when a canary was merged ([5dcd9e8](https://github.com/CodySwannGT/lisa/commit/5dcd9e8861efcc08b18c2b7b1fbb0c1343319a08)), closes [CodySwannGT/lisa#5073](https://github.com/CodySwannGT/lisa/issues/5073)
+* **test:** restore the nightly test lane ([234b72e](https://github.com/CodySwannGT/lisa/commit/234b72ec7439598a053f1f2b6257e901113f9233)), closes [CodySwannGT/lisa#5113](https://github.com/CodySwannGT/lisa/issues/5113)
+
 ### [8.2.9](https://github.com/CodySwannGT/lisa/compare/v8.2.8...v8.2.9) (2026-11-20)
 
 
