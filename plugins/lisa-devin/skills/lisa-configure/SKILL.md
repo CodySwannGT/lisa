@@ -435,8 +435,8 @@ If a fresh clone needs dependencies, generated output or a hook manager, propose
 the argument lists for `controls.proof_copy.prepare` in `.lisa.config.json`. Use
 the repository's lockfile, declared package manager and hook configuration to
 identify the commands. For example, a Bun project with Lefthook may need
-`[["bun", "install", "--frozen-lockfile"], ["lefthook", "install"]]`. Record the
-approved commands in the committed config before trying the pairs.
+`[["bun", "install", "--frozen-lockfile"], ["./node_modules/.bin/lefthook", "install"]]`.
+Record the approved commands in the committed config before trying the pairs.
 
 Before the first run that uses those commands, show their exact arguments and
 ask the operator once. For example, “May I run these setup commands in the
