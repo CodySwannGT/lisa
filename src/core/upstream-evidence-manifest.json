@@ -367,7 +367,7 @@
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "c2fc91c3a1c40e54c084063aef9e787064f43551da66c0c14ff7b105590777c8",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "dbff5388adb86334ac779da05ab3de3d766810f7faa79f6898e2a660064c76a4",
+      "52de545390c4f37b0505db43cf74cc1efd22647eca98292d84ab660b79878529",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -1109,7 +1109,7 @@
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "6d79692c7ced993d843c390cfa552fc73f924d04280372e3e7d5eb9df6a89c6d",
+      "eeab0883ea9d032d7ca10bf4dd598ed864e66380260bd452db00e2eb05e51e59",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -13745,6 +13745,7 @@
     "tests/unit/hooks/block-direct-issue-create-mcp-substrate.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-noexec.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-non-shell-prose.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-prd-writer.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-reader-fence.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-refusal-inverse.test.ts": true,
