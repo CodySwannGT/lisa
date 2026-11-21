@@ -187,9 +187,15 @@ describe("accepted completion proof through actual CLI", () => {
     expect(observed(fixture).writes).toHaveLength(2);
   });
 
-  it("finishes with a previously published spec digest that kept the final separator", () => {
+  it.each([
+    { ending: "the full separator", legacy: SPEC },
+    {
+      ending: "one newline before the first tally",
+      legacy: `${SPEC.trimEnd()}\n`,
+    },
+  ])("finishes with a legacy digest that kept $ending", ({ legacy }) => {
     const fixture = proofFixture();
-    const legacyDigest = digest(SPEC);
+    const legacyDigest = digest(legacy);
     const report = JSON.parse(
       readFileSync(
         path.join(fixture.env.FAKE_GH_ASSET_DIRECTORY!, "3.bin"),

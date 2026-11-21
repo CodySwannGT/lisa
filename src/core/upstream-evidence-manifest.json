@@ -67,7 +67,7 @@
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
-      "909e407a90f967c2dd601149c2027914e5607ff0ed5b1bde965408853a130c8a",
+      "0e9c70b59a53610a9fadc27cbb08af542ad673f9c26b963cdd7373a99218246e",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
       "7aa9673c7de21fa64e572043e7e76774e7cb57210a54f4603a72e88be97510a3",
     "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs":
@@ -421,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "aeb97ef1ff5509b8855b160a7e9e4b08d81af15c29dc86d953e0e1d6134ebd15",
+      "5b6b2808bdae9b5735ebc7348a9e373ed73002a49b29a5ca2dd53b5646362985",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
