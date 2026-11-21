@@ -10,6 +10,10 @@
  * @module tests/unit/scripts/lisa-gates
  */
 
+import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import * as path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -20,6 +24,9 @@ import {
   validateGates,
   validatePolicy,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { SilentLogger } from "../../../src/logging/silent-logger.js";
+import { createMigrationRegistry } from "../../../src/migrations/index.js";
+import { readJsonOrNull, writeJson } from "../../../src/utils/json-utils.js";
 import {
   LOCAL_REVIEW,
   NATIVE_E2E_TASK,
@@ -560,8 +567,49 @@ describe("auditConfigKeys", () => {
         gates: {},
         policy: {},
         thresholdRatchet: { allow: [] },
+        knowledge: "llm-wiki",
+        workItem: { verify: "trailer" },
       })
     ).toEqual([]);
+  });
+
+  it("accepts the config keys written by migrations of a host checkout", async () => {
+    const projectDir = await mkdtemp(
+      path.join(tmpdir(), "lisa-gate-migrations-")
+    );
+    const configPath = path.join(projectDir, ".lisa.config.json");
+    const workflows = path.join(projectDir, ".github/workflows");
+    const lisaDir = path.resolve(import.meta.dirname, "../../..");
+    try {
+      await writeJson(configPath, {});
+      await mkdir(workflows, { recursive: true });
+      await copyFile(
+        path.join(lisaDir, "rails/create-only/.github/workflows/ci.yml"),
+        path.join(workflows, "ci.yml")
+      );
+      await createMigrationRegistry().runAll({
+        projectDir,
+        lisaDir,
+        detectedTypes: ["rails"],
+        dryRun: false,
+        logger: new SilentLogger(),
+      });
+
+      const config = await readJsonOrNull<Record<string, unknown>>(configPath);
+      if (config === null) throw new Error("Migrated config could not be read");
+      expect(config).toHaveProperty("knowledge", "llm-wiki");
+      expect(config).toHaveProperty("gates");
+      expect(auditConfigKeys(config)).toEqual([]);
+    } finally {
+      await rm(projectDir, { recursive: true, force: true });
+    }
+  });
+
+  it("ends the unknown-key sentence even when there is no suggestion", () => {
+    const [finding] = auditConfigKeys({ zzzzzz: true });
+    expect(finding?.message).toContain(
+      "zzzzzz is not a key Lisa reads. Nothing consumes it"
+    );
   });
 
   it("catches a typo that would otherwise look like configuration", () => {

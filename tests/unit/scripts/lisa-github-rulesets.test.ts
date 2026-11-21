@@ -191,6 +191,7 @@ function runRulesetScript(
     command: BASH_BIN,
     args: [scriptPath, ...args],
     cwd: REPO_ROOT,
+    stdio: ["ignore", "pipe", "pipe"],
     env: cleanGitEnv(process.env, {
       PATH: `${ghBin}:${process.env.PATH ?? ""}`,
     }),
@@ -291,6 +292,59 @@ function createUpdatingGhBin(
 }
 
 describe(SCRIPT_NAME, () => {
+  it.each([
+    {
+      mode: "without confirmation",
+      flags: [],
+      status: 1,
+      writes: false,
+      message:
+        "No rulesets were applied because this run cannot ask for confirmation. Use --yes to apply or --dry-run to preview.",
+    },
+    {
+      mode: "with --yes",
+      flags: ["--yes"],
+      status: 0,
+      writes: true,
+      message: "Creating ruleset",
+    },
+    {
+      mode: "with --dry-run",
+      flags: ["--dry-run"],
+      status: 0,
+      writes: false,
+      message: "[DRY RUN] Would create ruleset",
+    },
+  ])(
+    "handles closed standard input $mode",
+    ({ flags, status, writes, message }) => {
+      const projectDir = createProject();
+      const captureDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-payloads-"));
+      const ghBin = createCapturingGhBin(captureDir);
+      const lisaInstall = createLisaInstall();
+
+      try {
+        const result = runRulesetScript(
+          lisaInstall.scriptPath,
+          [...flags, projectDir],
+          ghBin
+        );
+        const output = `${result.stdout}
+${result.stderr}`;
+
+        expect(result.status, output).toBe(status);
+        expect(output).toContain(message);
+        expect(output).not.toContain("Apply rulesets to");
+        expect(readdirSync(captureDir).length > 0).toBe(writes);
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(captureDir, { recursive: true, force: true });
+        rmSync(ghBin, { recursive: true, force: true });
+        rmSync(lisaInstall.root, { recursive: true, force: true });
+      }
+    }
+  );
+
   it("continues past the first successful template under set -e", () => {
     const projectDir = createProject();
     const ghBin = createMockGhBin();
