@@ -431,13 +431,26 @@ is written, remove the scratch folder. Nothing of it is left in the repository.
 
 **4. Have the pairs tried.**
 
+If a fresh clone needs dependencies, generated output or a hook manager, propose
+the argument lists for `controls.proof_copy.prepare` in `.lisa.config.json`. Use
+the repository's lockfile, declared package manager and hook configuration to
+identify the commands. For example, a Bun project with Lefthook may need
+`[["bun", "install", "--frozen-lockfile"], ["lefthook", "install"]]`. Record the
+approved commands in the committed config before trying the pairs.
+
+Before the first run that uses those commands, show their exact arguments and
+ask the operator once. For example, “May I run these setup commands in the
+temporary copy? They can use this machine's network and credentials.” Carry
+the answer into the attest handoff for the same repository and command list.
+Ask again only if the command list changes.
+
 ```bash
 lisa controls proof-check
 ```
 
 It puts each change on the last commit in a temporary copy, runs the check's own command on it
-there, and removes the copy. It changes nothing in the repository, it installs nothing, and it
-works with uncommitted work in place. It prints one JSON document; read `parts`, one entry per
+there, and removes the copy. The configured preparation runs once in that copy before the
+checks. It works with uncommitted work in place and leaves the repository files alone. It prints one JSON document; read `parts`, one entry per
 declared part:
 
 | `result` | Meaning | What you do |

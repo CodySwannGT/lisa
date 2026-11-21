@@ -135,6 +135,30 @@ describe("the digest of what defines the checks", () => {
     });
   });
 
+  it("invalidates the previous binding for a changed preparation command", async () => {
+    const prepared = (prepare: readonly (readonly string[])[]) =>
+      definingFolder({
+        [DECLARATION]: JSON.stringify({
+          gates: GATES,
+          controls: { proof_copy: { prepare } },
+        }),
+      });
+    const current = await bindChecks({
+      repository: prepared([["bun", "install"]]),
+    });
+    const changed = await bindChecks({
+      repository: prepared([["bun", "run", "build"]]),
+    });
+    const empty = await bindChecks({ repository: prepared([]) });
+    const absent = await bindChecks({ repository: definingFolder() });
+
+    expect(bindingDifferences(current, changed)).toEqual({
+      ...NO_CHANGE,
+      changed: [DECLARATION],
+    });
+    expect(empty.digest).toBe(absent.digest);
+  });
+
   it.each([VIOLATION_PATCH, CLEAN_PATCH, RECORD, COMMIT_HOOK, RUNNER, PLACED])(
     "changes when one byte of %s changes",
     async file => {

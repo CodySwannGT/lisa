@@ -34,6 +34,26 @@ describe("a commit or push point", () => {
     );
   });
 
+  it.each(["commit", "push"] as const)(
+    "says a failure in an optional %s check does not stop the change",
+    async moment => {
+      const judged = await judge(
+        entry([{ ...COMMIT, moment, level: "optional" }]),
+        {
+          carriers: carriers([carried(moment, IN_PLACE)]),
+        }
+      );
+
+      expect(judged.outcome).toBe("wired");
+      expect(judged.reason).toContain(
+        `Git starts the declared checks at ${moment}`
+      );
+      expect(judged.reason).toContain(
+        `optional, so a failure does not stop the ${moment}`
+      );
+    }
+  );
+
   it("is blocked, for the reason the read of the checkout gives, when the carrier is not in place", async () => {
     const judged = await judge(entry([COMMIT]), {
       carriers: carriers([carried("commit", NOT_IN_PLACE)]),

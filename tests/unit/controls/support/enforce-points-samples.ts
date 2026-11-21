@@ -172,6 +172,7 @@ const FILE_WIRED: PointVerdict = {
  * @param sources.file - What reading the host's pipeline file says
  * @param sources.gateCriteria - The requirements a check can refuse a
  *   change for; the entry's own by default
+ * @param sources.hasSupportedProjectType - Whether Lisa ships checks for this project
  * @returns The judged entry
  */
 export async function judge(
@@ -181,6 +182,7 @@ export async function judge(
     readonly protect?: HandedProtect;
     readonly file?: PointVerdict;
     readonly gateCriteria?: readonly string[];
+    readonly hasSupportedProjectType?: boolean;
   } = {}
 ): Promise<EnforcedEntry> {
   const [result] = await enforcedEntries(
@@ -188,6 +190,7 @@ export async function judge(
     {
       executorVerdict: () => Promise.resolve(sources.file ?? FILE_WIRED),
       gateCriteria: sources.gateCriteria ?? ["SI7"],
+      hasSupportedProjectType: sources.hasSupportedProjectType ?? true,
       installed: sources.carriers ?? carriers([carried("commit", IN_PLACE)]),
       protect: sources.protect ?? protect(),
     }

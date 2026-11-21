@@ -129,6 +129,13 @@ For a before-enforce run, go from here to "The before-enforce run".
 **Needs:** the repository root. **Hands on:** one result for each declared check, and three
 written files.
 
+Read the committed `controls.proof_copy.prepare` in `.lisa.config.json` before
+running a proof. If commands are declared and the operator has yet to approve
+this repository and command list, show the exact arguments and ask once before
+the first run. Say that the commands run in the temporary copy and can use this
+machine's network and credentials. Reuse approval recorded by configure for the
+same list. Apply the same rule before a `--before-enforce` run.
+
 ```bash
 lisa controls attest --json
 ```
@@ -146,8 +153,11 @@ A proof is two test changes, kept as patch files: one that breaks the check's ru
 does not. At commit and at push a check is only started when the change touches the check's own
 folder. So each test change has to edit a file inside the check's own folder: one that edits a
 file anywhere else never starts the check, and that half reads `unknown` (not started), never a
-pass. When an entry is `unknown` for that reason, say so: the test change is in the wrong place,
-and the configure step (`/lisa:configure`) is where it is corrected.
+pass. When an entry is `unknown` for that reason, say so and send it back to
+`/lisa:configure` to correct the test change. If the reason is an unavailable
+dependency or hook, read the detail for what is still missing after any declared
+preparation. A preparation failure ends the command before it produces an
+entry verdict.
 
 An entry that is `unproved` because a test change is missing (`reason` is `half-missing`) has
 nothing wrong with its check: the two test changes were never written for it, or only one was. The

@@ -12,7 +12,7 @@
  * | Otherwise, at least one is `wired` | `wired` |
  * | None was checked, and at one of them the check is one Lisa itself ships | `nothing-to-enforce`: what Lisa ships runs it, and this step did not look |
  * | None was checked, none is one Lisa ships, and at one of them the check is a command the repository declares | `blocked`: nothing Lisa installs starts a command there |
- * | None was checked, the check is a task the repository declares under a gate of its own, one another system reports, or nothing measures it, and it serves a requirement a check can refuse a change for | `blocked`: nothing Lisa ships runs it and this step cannot see that anything does; the configure step has to choose when it must pass |
+ * | None was checked, the check is a task the repository declares and Lisa does not ship for this project type, one another system reports, or nothing measures it, and it serves a requirement a check can refuse a change for | `blocked`: the configure step has to choose when it must pass |
  * | None was checked, the same kinds of check, and it serves no such requirement | `nothing-to-enforce` |
  *
  * Every row about unchecked points goes by the check at each point, not by
@@ -21,13 +21,10 @@
  *
  * ## What counts as a check Lisa ships
  *
- * An interceptor, a built-in job of the shipped workflow, and a task under
- * one of the gate registry's own ids: a Lisa project type brings the plugin
- * and the pipelines that run those. A task under a gate the repository
- * invented (an id starting with {@link HOST_GATE_PREFIX}) is not one of
- * them. Any gate that names a task to run is recorded as a task, so going by
- * that alone would say of a host's own lint script, declared where this step
- * cannot look, that Lisa runs it, in a repository where nothing does.
+ * Interceptors and built-in workflow jobs carry shipped mechanisms. A
+ * registry task also counts where a supported project type supplies its
+ * plugin and pipelines. Project-defined gates (ids starting with
+ * {@link HOST_GATE_PREFIX}) require the project's own wiring.
  *
  * ## Why an entry with no moment makes no claim
  *
@@ -122,16 +119,20 @@ const MOMENTLESS_ENTRY: EntryOutcome = {
  * Tell whether a check is one Lisa itself ships and runs.
  * @param entry - The register entry
  * @param mechanism - What measures it at one point
+ * @param hasSupportedProjectType - Whether the project has a supported type
  * @returns Whether a Lisa project type brings what runs it
  */
 function isShipped(
   entry: ControlRegisterEntry,
-  mechanism: MeasuringMechanism
+  mechanism: MeasuringMechanism,
+  hasSupportedProjectType: boolean
 ): boolean {
   return (
     mechanism.kind === "interceptor" ||
     mechanism.kind === "built-in" ||
-    (mechanism.kind === "task" && !entry.gate.startsWith(HOST_GATE_PREFIX))
+    (mechanism.kind === "task" &&
+      hasSupportedProjectType &&
+      !entry.gate.startsWith(HOST_GATE_PREFIX))
   );
 }
 
@@ -143,7 +144,7 @@ function isShipped(
  */
 function describeUnshipped(mechanism: MeasuringMechanism): string {
   if (mechanism.kind === "task") {
-    return `This check is a task the repository declares itself ("${mechanism.command}"), under a gate of its own, and nothing Lisa ships runs it.`;
+    return `This check is a task the repository declares itself ("${mechanism.command}"), and nothing Lisa ships runs it.`;
   }
   return mechanism.kind === "external-check"
     ? "Another system reports this check, and nothing Lisa ships runs it."
@@ -168,12 +169,14 @@ function alsoUnchecked(rest: readonly UncheckedPoint[]): string {
  *   measures the check there
  * @param servesGate - Whether it serves a requirement a check can refuse a
  *   change for
+ * @param hasSupportedProjectType - Whether the project has a supported type
  * @returns The outcome and the reason
  */
 function uncheckedEntry(
   entry: ControlRegisterEntry,
   unchecked: readonly UncheckedPoint[],
-  servesGate: boolean
+  servesGate: boolean,
+  hasSupportedProjectType: boolean
 ): EntryOutcome {
   const split = (
     wanted: (each: UncheckedPoint) => boolean
@@ -181,7 +184,9 @@ function uncheckedEntry(
     unchecked.filter(wanted),
     unchecked.filter(each => !wanted(each)),
   ];
-  const [shipped, unshipped] = split(each => isShipped(entry, each.mechanism));
+  const [shipped, unshipped] = split(each =>
+    isShipped(entry, each.mechanism, hasSupportedProjectType)
+  );
   if (shipped.length > 0) {
     return {
       outcome: NOTHING_TO_ENFORCE,
@@ -211,12 +216,14 @@ function uncheckedEntry(
  *   the entry's own order
  * @param servesGate - Whether the entry serves a requirement a check can
  *   refuse a change for
+ * @param hasSupportedProjectType - Whether the project has a supported type
  * @returns The outcome and the reason
  */
 export function entryOutcome(
   entry: ControlRegisterEntry,
   points: readonly EnforcedPoint[],
-  servesGate: boolean
+  servesGate: boolean,
+  hasSupportedProjectType: boolean
 ): EntryOutcome {
   const having = (state: EnforcedPointState): readonly EnforcedPoint[] =>
     points.filter(point => point.state === state);
@@ -244,7 +251,8 @@ export function entryOutcome(
           point,
         };
       }),
-      servesGate
+      servesGate,
+      hasSupportedProjectType
     );
   }
   const unchecked = having(NOT_CHECKED);

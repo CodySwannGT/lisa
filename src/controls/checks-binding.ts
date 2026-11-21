@@ -15,9 +15,8 @@
  *
  * ## What defines the checks
  *
- * - The `gates` block of `.lisa.config.json`, in canonical form. The rest of
- *   that file is settings of other things, and a change to one of them is
- *   not a change to a check.
+ * - The `gates` block and the proof-copy preparation in `.lisa.config.json`,
+ *   in canonical form. Other settings do not change a check.
  * - Every file under `.lisa/controls/proofs/`: the changes the proofs plant.
  * - `.lisa/controls/carriers.json`, the record of the files Lisa placed,
  *   every file it lists, and every file under `.lisa/hooks/`.
@@ -174,7 +173,7 @@ export function digestOfCovered(covered: readonly CoveredCheckFile[]): string {
 }
 
 /**
- * The digest of the `gates` block of a declaration.
+ * The digest of the gates and disposable proof-copy preparation.
  * @param content - The declaration file's bytes
  * @returns The digest of the block in canonical form, so that neither a
  *   change to another key nor a change of layout shows; the digest of the
@@ -183,9 +182,18 @@ export function digestOfCovered(covered: readonly CoveredCheckFile[]): string {
 function gatesDigest(content: Buffer): string {
   try {
     const parsed = JSON.parse(content.toString("utf8")) as unknown;
-    return isJsonObject(parsed)
-      ? sha256(canonicalText({ [GATES_KEY]: parsed[GATES_KEY] ?? null }))
-      : sha256(content);
+    if (!isJsonObject(parsed)) return sha256(content);
+    const controls = parsed.controls;
+    const proofCopy = isJsonObject(controls) ? controls.proof_copy : undefined;
+    const prepare = isJsonObject(proofCopy) ? proofCopy.prepare : undefined;
+    const hasPreparation =
+      prepare !== undefined && (!Array.isArray(prepare) || prepare.length > 0);
+    return sha256(
+      canonicalText({
+        [GATES_KEY]: parsed[GATES_KEY] ?? null,
+        ...(hasPreparation ? { prepare } : {}),
+      })
+    );
   } catch {
     return sha256(content);
   }

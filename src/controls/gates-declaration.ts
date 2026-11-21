@@ -16,6 +16,7 @@
  * @module controls/gates-declaration
  */
 import { importGateRegistry } from "../cli/gate-registry-source.js";
+import { readProofPreparation } from "./proof-preparation-declaration.js";
 
 /** The file the declaration lives in, from the repository root. */
 export const GATES_DECLARATION_PATH = ".lisa.config.json";
@@ -112,7 +113,11 @@ export function readGatesDeclaration(
 ): GatesDeclarationRead {
   try {
     const { gates, runner } = registry.readGates(root);
-    const problems = registry.validateGates(gates);
+    const { problem } = readProofPreparation(root);
+    const problems = [
+      ...registry.validateGates(gates),
+      ...(problem === null ? [] : [problem]),
+    ];
     return problems.length > 0
       ? { problems }
       : {

@@ -57,7 +57,7 @@ import { isWithin, realPathOf } from "./carrier-owner.js";
 import type { CarrierMoment, CarrierResult } from "./carrier-types.js";
 import { installCarriers } from "./carriers.js";
 import { checkFilesOf, type CheckFiles } from "./proof-change-rule.js";
-import { carriedPaths, carryFiles } from "./proof-copy-files.js";
+import { carriedPaths } from "./proof-copy-files.js";
 import {
   copyCarrierGit,
   copyGit,
@@ -65,6 +65,11 @@ import {
   sourceGit,
   type GitExit,
 } from "./proof-copy-git.js";
+import {
+  carryProofInputs,
+  prepareProofCopy,
+} from "./proof-copy-preparation.js";
+import type { PreparedProofCopy } from "./proof-copy-prepared-state.js";
 import { BASE_COMMIT_MESSAGE } from "./proof-copy-wording.js";
 import { recordProofScratchOwner } from "./proof-scratch.js";
 
@@ -113,6 +118,8 @@ export interface ProofCopy {
   /** The branch of the stand-in remote a push proof pushes to. */
   readonly pushBranch: string;
   readonly source: ProofCopySource;
+  /** The generated files to restore before the next proof half, when configured. */
+  readonly preparation?: PreparedProofCopy;
   /** The files taken from the working copy that differ from the commit. */
   readonly carried: readonly string[];
   /**
@@ -151,10 +158,9 @@ export interface ProofCopyDependencies {
    * wired exactly as a fresh clone of the repository is.
    */
   readonly carriers?: ProofCopyCarriers;
+  /** Tell the operator before running configured preparation commands. */
+  readonly notice?: (line: string) => void;
 }
-
-/** Per moment, why git runs no carrier in a copy; `null` where it runs one. */
-type Unwired = ProofCopy["unwired"];
 
 /** One git command of the build, and what it is for. */
 interface Step {
@@ -362,7 +368,7 @@ function baseCommit(
  * @returns The installer's reason for each moment, or `null` where git runs
  *   one
  */
-function unwiredMoments(result: CarrierResult): Unwired {
+function unwiredMoments(result: CarrierResult): ProofCopy["unwired"] {
   const reasonAt = (moment: CarrierMoment): string | null => {
     const point = result.enforcement_points.find(
       candidate => candidate.moment === moment
@@ -385,7 +391,7 @@ async function wireCopy(
   clone: string,
   dependencies: ProofCopyDependencies
 ): Promise<
-  | { readonly problem: null; readonly unwired: Unwired }
+  | { readonly problem: null; readonly unwired: ProofCopy["unwired"] }
   | { readonly problem: string }
 > {
   if (dependencies.carriers === "none") {
@@ -445,22 +451,24 @@ export async function buildProofCopy(
   await mkdir(layout.noHooks);
   const cloned = firstFailure(cloneSteps(root, layout, read.source));
   if (cloned !== null) return { problem: cloned };
-  const carried = await carryFiles(root, layout.clone, paths.paths);
-  if (carried.problem !== null) return carried;
+  const input = await carryProofInputs(root, layout.clone, paths.paths);
+  if (input.problem !== null) return input;
   const wired = await wireCopy(layout.clone, dependencies);
   if (wired.problem !== null) return wired;
-  const checkFiles = await checkFilesOf(layout.clone);
+  // Record the Git baseline before preparing, so generated dependencies and
+  // any credential files they require never get into a proof commit.
   const based = baseCommit(layout);
   if (based.problem !== null) return based;
-  return {
-    problem: null,
-    copy: {
-      ...layout,
-      base: based.base,
-      carried: carried.carried,
-      checkFiles,
-      source: read.source,
-      unwired: wired.unwired,
-    },
+  const copy: ProofCopy = {
+    ...layout,
+    base: based.base,
+    carried: input.carried,
+    checkFiles: await checkFilesOf(layout.clone),
+    source: read.source,
+    unwired: wired.unwired,
   };
+  if (input.commands.length === 0) return { problem: null, copy };
+  return prepareProofCopy(copy, input.commands, dependencies.notice, () =>
+    wireCopy(copy.clone, dependencies)
+  );
 }

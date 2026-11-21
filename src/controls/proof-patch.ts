@@ -363,13 +363,14 @@ export function ignoredPaths(
  * @param patch - The content of the patch file
  * @param options - How to apply it
  * @param options.reverse - Take the change back out instead of planting it
+ * @param options.index - Apply and stage precisely the patch
  * @returns No problem when all of it was applied; otherwise git's reason,
  *   and nothing was changed
  */
 export function applyProofPatch(
   directory: string,
   patch: string,
-  options: { readonly reverse?: boolean } = {}
+  options: { readonly reverse?: boolean; readonly index?: boolean } = {}
 ): PatchOutcome {
   const [program = ENV_PROGRAM, ...git] = isolatedGit(directory);
   const child = spawnSync(
@@ -379,6 +380,7 @@ export function applyProofPatch(
       "apply",
       "--whitespace=nowarn",
       ...(options.reverse === true ? ["--reverse"] : []),
+      ...(options.index === true ? ["--index"] : []),
       "-",
     ],
     {
