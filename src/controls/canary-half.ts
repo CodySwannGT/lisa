@@ -41,6 +41,7 @@ import {
 import { buildCanaryCommit, type CanaryBase } from "./canary-tree.js";
 import type { HalfObservation } from "./proof-judgement.js";
 import type { ProofHalf, ProofHalfResult } from "./proof-types.js";
+import { halfDetail } from "./proof-wording.js";
 import {
   PULL_REQUEST_POINT_MOMENT,
   type CanaryRecord,
@@ -275,9 +276,10 @@ function observation(
  * @param opened - What opening the canary gave
  * @param answer - What the wait ended with, when there was one
  * @param branch - The canary's branch name
- * @param times - When the half began and when its answer was in
- * @param times.started_at - When it began, in UTC
- * @param times.completed_at - When its answer was in, in UTC
+ * @param finished - When the half ran and whether the canary merged
+ * @param finished.started_at - When it began, in UTC
+ * @param finished.completed_at - When its answer was in, in UTC
+ * @param finished.merged - Whether this pull request was merged
  * @returns The half's result
  */
 function halfResult(
@@ -285,9 +287,24 @@ function halfResult(
   opened: Opened,
   answer: EligibilityAnswer | null,
   branch: string,
-  times: { readonly started_at: string; readonly completed_at: string }
+  finished: {
+    readonly started_at: string;
+    readonly completed_at: string;
+    readonly merged: boolean;
+  }
 ): ProofHalfResult {
-  const shown = observation(opened, answer, request.timeLimitSeconds);
+  const { merged, ...times } = finished;
+  const shown: HalfObservation & { readonly detail: string } = merged
+    ? {
+        outcome: "unknown",
+        reason: "canary-merged",
+        detail: halfDetail("canary-merged", {
+          patch: request.patch.file,
+          shape: [],
+          limitSeconds: request.timeLimitSeconds,
+        }),
+      }
+    : observation(opened, answer, request.timeLimitSeconds);
   const eligibility = answer?.eligibility ?? null;
   const conclusions = conclusionsText(eligibility?.checks ?? []);
   return {
@@ -360,7 +377,12 @@ export async function runCanaryHalf(
     completed_at: clock().toISOString(),
   };
   return {
-    half: halfResult(request, opened, answer, branch, times),
+    half: halfResult(request, opened, answer, branch, {
+      ...times,
+      merged:
+        opened.pullRequest !== null &&
+        removal.mergedPullRequests.includes(opened.pullRequest),
+    }),
     canary: {
       entry_id: request.entryId,
       half: request.half,

@@ -111,6 +111,13 @@ describe("fixture helpers and the temp root", () => {
         label: `${suite} under a private TMPDIR`,
         command: process.execPath,
         args: [
+          path.join(REPO_ROOT, "dist/cli/lisa-test-run.js"),
+          "--profile",
+          "lisa",
+          "--adapter",
+          "vitest",
+          "--",
+          process.execPath,
           path.join(REPO_ROOT, "node_modules/vitest/vitest.mjs"),
           "run",
           suite,

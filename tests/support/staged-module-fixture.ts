@@ -3,6 +3,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
+import ts from "typescript";
+
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { createSymlink } from "./borrowed-node-modules.mjs";
 
@@ -19,6 +21,66 @@ export type StagedConfiguration = "root" | "emitted";
 export interface StagedModuleFixture {
   readonly directory: string;
   readonly env: NodeJS.ProcessEnv;
+}
+
+/** Module resolution used for the real ESLint config's relative imports. */
+const CONFIG_MODULE_OPTIONS: ts.CompilerOptions = {
+  allowJs: true,
+  module: ts.ModuleKind.ESNext,
+  moduleResolution: ts.ModuleResolutionKind.Bundler,
+  resolveJsonModule: true,
+};
+
+/**
+ * Resolve a local config import and ensure the fixture can preserve its path.
+ * @param importer - File declaring the import
+ * @param specifier - Relative module specifier
+ * @returns Resolved path relative to the repository
+ */
+function resolveConfigImport(importer: string, specifier: string): string {
+  const { resolvedModule } = ts.resolveModuleName(
+    specifier,
+    path.join(ROOT, importer),
+    CONFIG_MODULE_OPTIONS,
+    ts.sys
+  );
+  if (resolvedModule === undefined) {
+    throw new Error(
+      `Staged ESLint fixture cannot resolve ${specifier} from ${importer}`
+    );
+  }
+  const imported = resolvedModule.resolvedFileName;
+  const relative = path.relative(ROOT, imported);
+  if (relative.split(path.sep)[0] === ".." || path.isAbsolute(relative)) {
+    throw new Error(
+      `Staged ESLint fixture cannot copy ${specifier} from ${importer}: ${imported} is outside the checkout`
+    );
+  }
+  return relative;
+}
+
+/**
+ * Copy the root ESLint customizations' relative imports with their original paths.
+ * @param directory - Owned fixture root
+ */
+function copyRootEslintImports(directory: string): void {
+  const sources = new Set(["eslint.config.local.ts"]);
+  for (const source of sources) {
+    if (source.endsWith(".json")) continue;
+    const { importedFiles } = ts.preProcessFile(
+      fs.readFileSync(path.join(ROOT, source), "utf8"),
+      true,
+      true
+    );
+    for (const { fileName } of importedFiles) {
+      if (!fileName.startsWith("./") && !fileName.startsWith("../")) continue;
+      const relative = resolveConfigImport(source, fileName);
+      sources.add(relative);
+      fs.cpSync(path.join(ROOT, relative), path.join(directory, relative), {
+        force: false,
+      });
+    }
+  }
 }
 
 /**
@@ -59,6 +121,7 @@ function copyConfiguration(
       force: false,
     });
   }
+  if (configuration === "root") copyRootEslintImports(directory);
 }
 
 /**
