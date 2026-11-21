@@ -1797,7 +1797,18 @@ jobs:
         uses: actions/checkout@v6
 
       - name: 🔧 Install ast-grep
-        run: npm install -g @ast-grep/cli@0.40.4
+        run: |
+          if [ -f scripts/lisa-rails-ast-grep.mjs ]; then
+            PACKAGE=$(node scripts/lisa-rails-ast-grep.mjs --package)
+          else
+            # Keep the original pin for hosts whose templates predate the local structural gate.
+            PACKAGE='@ast-grep/cli@0.40.4'
+          fi
+          if ! [[ "$PACKAGE" =~ ^@ast-grep/cli@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo '::error::The Rails structural scan did not provide an exact ast-grep package version.'
+            exit 1
+          fi
+          npm install -g "$PACKAGE"
 
       - name: 🔍 Check for sgconfig.yml
         id: check_config

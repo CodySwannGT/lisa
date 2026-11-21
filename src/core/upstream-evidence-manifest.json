@@ -2615,11 +2615,13 @@
     "rails/copy-overwrite/config/initializers/version.rb":
       "9304268500aada31d8bd158dca4274888d10db4e30f8dadd9bf23a01d67f2480",
     "rails/copy-overwrite/lefthook.yml":
-      "2f50009b20768dc7017afa1fb2841050898c5b21aee087817d256a21c439459f",
+      "5c423ac7c286503ae790d24ca7dc27fb515635fca1af8d78380aab0541b7ea17",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "62add29cbcca6ac6b2346120393d41e219267f74d7ea6c66dc1482c5dbdb118a",
+    "rails/copy-overwrite/scripts/lisa-rails-ast-grep.mjs":
+      "fdc5a658590ec91ab6f38ff417bd70056097099160d5a6c4255bad7bf487a5a1",
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs":
-      "2e5c231ac779fcfd3ef3380282268d5e163544dabe41fb6ee41eb5109320c6c3",
+      "7a8f883f06e80994b77f1116dd555da50526270b1561b4fba9b9bc422b88ac34",
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
       "00d504a0fee1f2a75d7328dc848cacabe6fd9360beacc5bf9632d0741388ade2",
     "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb":
@@ -3069,7 +3071,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "acbd0b9e5094f4b4d336a11446a8369b164643f0881ac08a2d672b45488d5034",
+      "9835d8147b04ce390709ddca05bb66f56866a4fb4a8c6df06b6e2a9a1a5e53ad",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -10959,6 +10961,7 @@
     "rails/copy-overwrite/config/initializers/version.rb": true,
     "rails/copy-overwrite/lefthook.yml": true,
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
+    "rails/copy-overwrite/scripts/lisa-rails-ast-grep.mjs": true,
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs": true,
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": true,
     "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb": true,
@@ -14346,6 +14349,7 @@
     "tests/unit/scripts/push-admission.test.ts": true,
     "tests/unit/scripts/push-gate-defaults.test.ts": true,
     "tests/unit/scripts/push-timing.test.ts": true,
+    "tests/unit/scripts/rails-ast-grep-hook.test.ts": true,
     "tests/unit/scripts/raise-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/ready-queue-order-backlog.test.ts": true,
     "tests/unit/scripts/ready-queue-order-human-gate-policy.test.ts": true,

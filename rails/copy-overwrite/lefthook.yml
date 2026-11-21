@@ -64,6 +64,9 @@ pre-push:
       run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs flog; fi; exec bundle exec flog --all --group app/ lib/'
     flay:
       run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs flay; fi; exec bundle exec flay app/ lib/'
+    ast-grep:
+      # Scan the whole checkout, like CI. npm caches the pinned scanner.
+      run: sh scripts/lisa-clean-git-env.sh node scripts/lisa-rails-gates.mjs ast-grep
     mutation:
       # Opt-in, diff-only mutation gate. Self-skips instantly when disabled
       # (mutation.gate.yml: enabled: false), so it adds no cost until opted in.
