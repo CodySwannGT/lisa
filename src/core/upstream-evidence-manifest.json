@@ -53,7 +53,7 @@
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "0b323e9c53b6909eca61fa84bf2c85683a686e380760e2fe2fb52b09c6611026",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
-      "98b1901e0912d72a639028f22837a8abecaeeef6fba0654990bca2285239ea08",
+      "877bcedb2d3a566e27dcdda3021eb66545475af02b363a4075d146f0f89d7d07",
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
@@ -421,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "a18db70b0ec7abcd81f17394655f5f60217c6a79272596826dd3c8b02118c994",
+      "64caed26a348375552341b91998afe15f6bd531db3c533a2cfe613a653cf6924",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1991,7 +1991,7 @@
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
       "bda6007451009e28a3ddc3ede691a7b29a475f4cf725a283438cbec10d50a805",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
-      "c4656c11936ca8f2f05091ba5d4922cadca293cf822b644e5ee46cbf22103706",
+      "4b9dfd58c4ec5e7738910534188c245ff6f71ccffa1b0bfc9208c6a9492e38b4",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "4b95e256e0c9e7ce87fb5b827fcfc94496757e600247c639ecf50d06e4e910b3",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":

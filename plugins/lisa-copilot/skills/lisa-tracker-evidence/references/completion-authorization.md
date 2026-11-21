@@ -170,6 +170,10 @@ things somewhere in the file:
   `test_name`, `fullName`, or ` > ` (space, greater-than, space, as in
   `file > suite > test`).
 
+RSpec console logs can also provide a full summary line such as `38 examples, 0 failures, 9 pending`.
+The example count must be positive. Capture RSpec with a console formatter such as
+`--format documentation`.
+
 A log snippet needs a timestamp whose date is written `YYYY-MM-DD`, followed by
 `T` or a space and the time, for example `2026-11-13T08:00:01` or
 `2026-11-13 08:00:01`. Syslog-style dates (`Nov 13 08:00:01`) and epoch numbers
