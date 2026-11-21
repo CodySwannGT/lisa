@@ -11214,6 +11214,7 @@
     "src/claude/claude-md-installer.ts": true,
     "src/cli-load-diagnostic.ts": true,
     "src/cli/admit-cmd.ts": true,
+    "src/cli/apply-cmd.ts": true,
     "src/cli/apply.ts": true,
     "src/cli/check-cmd.ts": true,
     "src/cli/check-learnings-budget-cmd.ts": true,
