@@ -1865,7 +1865,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
       "332bebf7a73c1d95bafe0e82239c18838dd53df7ca043c5cf4c3bb1043497324",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
-      "21de606a7b286e637adcc6a39978113e4c0766be61b0bb937d00b912294b9857",
+      "95fec196f74ce761157f5fb4b8f9175e15db9b8d9b93b7a69371343e3b41fc5e",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
       "adf56eb60769ffb8ace6a5aefe85e37107db1d73e4d73ab4cf29ab045ca8c76c",
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":

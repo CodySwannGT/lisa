@@ -216,16 +216,22 @@ describe("queue release trust", () => {
 
   it.each([
     { account: { id: 42, login: "releaser", type: "User" }, dispatched: true },
+    {
+      account: { id: 42, login: "releaser_demo", type: "User" },
+      configured: "Releaser_Demo",
+      dispatched: true,
+    },
     { account: { id: 82, login: "releaser", type: "User" }, dispatched: false },
     { account: { id: 42, login: "another", type: "User" }, dispatched: false },
     { account: { id: 42, login: "releaser", type: "Bot" }, dispatched: false },
     { account: null, dispatched: false },
   ])(
     "compares a GitHub login releaser by the ID GitHub resolves ($account)",
-    ({ account, dispatched }) => {
+    ({ account, configured = "releaser", dispatched }) => {
+      const login = configured.toLowerCase();
       const sandbox = queueSandbox({
         trustedAuthorIds: ["123"],
-        trustedReleaseIds: ["login:releaser"],
+        trustedReleaseIds: [`login:${configured}`],
       });
       const routes = path.join(sandbox.root, "gh-routes.json");
       writeJson(routes, [
@@ -240,12 +246,12 @@ describe("queue release trust", () => {
             [
               {
                 body: RELEASE,
-                user: { id: 42, login: "releaser", type: "User" },
+                user: { id: 42, login, type: "User" },
               },
             ],
           ],
         },
-        ...(account ? [{ match: "users/releaser", body: account }] : []),
+        ...(account ? [{ match: `users/${login}`, body: account }] : []),
       ]);
       const outcome = runCli(
         sandbox,
@@ -258,7 +264,7 @@ describe("queue release trust", () => {
       expect(outcome.json.excluded).toHaveLength(dispatched ? 0 : 1);
       expect(outcome.calls.map(call => call.argv)).toContainEqual([
         "api",
-        "users/releaser",
+        `users/${login}`,
       ]);
     }
   );

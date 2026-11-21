@@ -41,7 +41,7 @@ export function githubReleaserIds(ctx, entries) {
   const logins = new Set(
     parseIdEntries(entries)
       .filter(
-        entry => entry.kind === "login" && /^[a-z\d-]+$/iu.test(entry.value)
+        entry => entry.kind === "login" && /^[A-Za-z0-9_-]+$/u.test(entry.value)
       )
       .map(entry => entry.value.toLowerCase())
   );

@@ -1,9 +1,10 @@
 /** Relative issue bodies are resolved against the filing command's folder. */
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 import {
   bash,
   EXIT_ALLOWED,
@@ -140,7 +141,7 @@ describe("the submitted issue body path", () => {
     const other = path.join(root, "other");
     const child = path.join(other, "child");
     mkdirSync(child, { recursive: true });
-    symlinkSync(child, path.join(root, "link"), "dir");
+    createSymlink(child, path.join(root, "link"), "dir");
     fixture(other, bodyFile, GATE_MARKER);
     fixture(root, bodyFile, ORDINARY_BODY);
     const check = () => runHook(bash(`cd link/.. && ${create}`), { cwd: root });
