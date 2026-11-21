@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [8.3.0](https://github.com/CodySwannGT/lisa/compare/v8.2.11...v8.3.0) (2026-11-21)
+
+
+### Features
+
+* **session-manager:** add asks-only notifications ([676907d](https://github.com/CodySwannGT/lisa/commit/676907d2f73e3f41b7e2d8f8d585f7bff058d02e)), closes [CodySwannGT/lisa#5008](https://github.com/CodySwannGT/lisa/issues/5008) [CodySwannGT/lisa#5008](https://github.com/CodySwannGT/lisa/issues/5008)
+
+
+### Bug Fixes
+
+* **controls:** retain proof ownership until cleanup finishes ([1d94e03](https://github.com/CodySwannGT/lisa/commit/1d94e03d999a114edd95f91cc444a14fafd1f65a)), closes [CodySwannGT/lisa#5080](https://github.com/CodySwannGT/lisa/issues/5080) [CodySwannGT/lisa#5080](https://github.com/CodySwannGT/lisa/issues/5080)
+* **controls:** sweep proof copies left by dead runs ([80e9570](https://github.com/CodySwannGT/lisa/commit/80e95703de02ce156543de44dd213b1f3d6e5bb8)), closes [CodySwannGT/lisa#5080](https://github.com/CodySwannGT/lisa/issues/5080) [CodySwannGT/lisa#5080](https://github.com/CodySwannGT/lisa/issues/5080)
+* **expo:** adopt published Jest unit commands ([123cbb4](https://github.com/CodySwannGT/lisa/commit/123cbb45a174a51af07ead084e17e2e2dda93b45)), closes [CodySwannGT/lisa#4519](https://github.com/CodySwannGT/lisa/issues/4519) [CodySwannGT/lisa#4519](https://github.com/CodySwannGT/lisa/issues/4519)
+* **expo:** preserve a supplied Jest unit test path ([2fb0381](https://github.com/CodySwannGT/lisa/commit/2fb0381104634e4c7a7a944b3e876951135a4a85)), closes [CodySwannGT/lisa#4519](https://github.com/CodySwannGT/lisa/issues/4519) [CodySwannGT/lisa#4519](https://github.com/CodySwannGT/lisa/issues/4519)
+* keep existing configuration and fixture contracts ([c6b396b](https://github.com/CodySwannGT/lisa/commit/c6b396b606cc276576ecf07f1082c40f91a63249)), closes [CodySwannGT/lisa#5008](https://github.com/CodySwannGT/lisa/issues/5008) [CodySwannGT/lisa#5008](https://github.com/CodySwannGT/lisa/issues/5008)
+* **learnings:** let the gardener drain a saturated overflow ([f2d8867](https://github.com/CodySwannGT/lisa/commit/f2d8867589a23f1b5890ab59335bd541977ab147)), closes [CodySwannGT/lisa#4518](https://github.com/CodySwannGT/lisa/issues/4518) [CodySwannGT/lisa#4518](https://github.com/CodySwannGT/lisa/issues/4518)
+* **lifecycle:** distinguish pending verification from drift ([756f383](https://github.com/CodySwannGT/lisa/commit/756f3837fcf7ee72841a13a69812980c88067f43)), closes [CodySwannGT/lisa#4554](https://github.com/CodySwannGT/lisa/issues/4554) [CodySwannGT/lisa#4554](https://github.com/CodySwannGT/lisa/issues/4554)
+* **linear:** keep the claimed role when a plan is posted ([0834e9b](https://github.com/CodySwannGT/lisa/commit/0834e9bf41d15116790abe536cb9390168cb1858)), closes [CodySwannGT/lisa#4664](https://github.com/CodySwannGT/lisa/issues/4664) [CodySwannGT/lisa#4664](https://github.com/CodySwannGT/lisa/issues/4664)
+* **rails:** run structural rules before push ([d6ebfc0](https://github.com/CodySwannGT/lisa/commit/d6ebfc09e1205c83d0236dcf8d1eeec9913c3352)), closes [CodySwannGT/lisa#4665](https://github.com/CodySwannGT/lisa/issues/4665) [CodySwannGT/lisa#4665](https://github.com/CodySwannGT/lisa/issues/4665)
+* **session-manager:** answer explicit Telegram status requests ([c24e6cd](https://github.com/CodySwannGT/lisa/commit/c24e6cda428c299673c38173b54c8b795199be05)), closes [CodySwannGT/lisa#5008](https://github.com/CodySwannGT/lisa/issues/5008) [CodySwannGT/lisa#5008](https://github.com/CodySwannGT/lisa/issues/5008)
+
+
+### Documentation
+
+* **linear:** show the configured claimed state in plan comments ([1d3d3b9](https://github.com/CodySwannGT/lisa/commit/1d3d3b94facc719a6ff3f155739bcb6603dff2d9)), closes [CodySwannGT/lisa#4664](https://github.com/CodySwannGT/lisa/issues/4664) [CodySwannGT/lisa#4664](https://github.com/CodySwannGT/lisa/issues/4664)
+
 ### [8.2.11](https://github.com/CodySwannGT/lisa/compare/v8.2.10...v8.2.11) (2026-11-21)
 
 
