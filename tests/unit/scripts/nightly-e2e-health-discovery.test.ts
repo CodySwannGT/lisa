@@ -16,6 +16,54 @@ const STALE_LIST = "[list_stale]";
 const DETAIL_FRESH = "GET /repos/o/r/actions/runs/101";
 
 describe("nightly gate discovery HTTP boundary", () => {
+  it.each([
+    {
+      workflowInWorkspace: true,
+      bootstrap: true,
+      code: 0,
+      reason: "workflow_not_registered",
+    },
+    {
+      workflowInWorkspace: true,
+      bootstrap: false,
+      code: 1,
+      reason: "workflow_not_registered",
+    },
+    {
+      workflowInWorkspace: false,
+      bootstrap: true,
+      code: 1,
+      reason: "workflow_not_found",
+    },
+    {
+      workflowInWorkspace: false,
+      bootstrap: false,
+      code: 1,
+      reason: "workflow_not_found",
+    },
+  ])(
+    "judges a workflow 404 with a local file=$workflowInWorkspace and bootstrap=$bootstrap",
+    async ({ workflowInWorkspace, bootstrap, code, reason }) => {
+      const bootstrapUntil = bootstrap
+        ? new Date(Date.now() + 60 * 60 * 1000).toISOString()
+        : undefined;
+      const result = await runDiscoveryCli({
+        lists: [],
+        details: {},
+        workflowRegistered: false,
+        workflowInWorkspace,
+        ...(bootstrapUntil === undefined ? {} : { bootstrapUntil }),
+      });
+      expect(result.code, `${result.stdout}\n${result.stderr}`).toBe(code);
+      expect(`${result.stdout}\n${result.stderr}`).toContain(
+        code === 0
+          ? "GitHub returned 404 for the workflow file in the checkout"
+          : `[${reason}]`
+      );
+      expect(result.output).toContain(`blocked=${code === 1}`);
+    }
+  );
+
   it("control: an unchanged fresh run passes the ordinary CLI", async () => {
     const fresh = discoveryRun(101);
     const result = await runDiscoveryCli({

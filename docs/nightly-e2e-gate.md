@@ -100,7 +100,7 @@ are not, which is why the blocking rows are not contiguous.
 | 8 | Conclusion `neutral`, `stale`, `null`, or any value not in `DECISIVE_CONCLUSIONS` | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 9 | No run at all in the repository's history | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 10 | Runs exist, but none inside the freshness window | non-blocking | **fail** | `bootstrap` / **`fail`** |
-| 11 | Workflow file renamed / deleted (API returns 404 for the declared file) | fail | fail | **`fail`** |
+| 11 | Workflow file absent from the checkout and GitHub returns 404 for it | fail | fail | **`fail`** |
 | 12 | Job renamed so `job` finds no job of that name in the newest run | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 13 | `job_pattern` matches **zero** jobs in the newest run | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 14 | `job_pattern` matches ≥1 job; **any** match is non-`success` | fail | fail | **`fail`** |
@@ -117,7 +117,7 @@ are not, which is why the blocking rows are not contiguous.
 | 25 | Bootstrap window active and evidence missing | non-blocking | — | **`bootstrap`**, summary states the UTC expiry timestamp |
 | 26 | `mode: "run"` and the run concluded `success`, but a job behind it did **not**: skipped, `cancelled`, `neutral`, or unreadable (empty job list) | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 26 | `mode: "run"` and the run concluded `success`, but a job behind it concluded `failure` / `timed_out` / `action_required` / `startup_failure` (a `continue-on-error` job) | fail | fail | **`fail`** |
-| 32 | A suite declaring `first_seen` inside its grace window, with **missing or unreadable** evidence (any row that resolves to `unknown`: 6–10, 12–13, 15–16, and the skipped-job half of 26) | non-blocking | non-blocking | **`bootstrap`**, the line states this suite's grace expiry — **every other suite stays armed** |
+| 32 | A suite declaring `first_seen` inside its grace window, with **missing or unreadable** evidence (any row that resolves to `unknown`: 6–10, 12–13, 15–16, 44, and the skipped-job half of 26) | non-blocking | non-blocking | **`bootstrap`**, the line states this suite's grace expiry — **every other suite stays armed** |
 | 33 | A suite inside its grace window with **evidence of failure** (rows 2–5, 11, 14, and the failed-job half of 26) | fail | fail | **`fail`** |
 | 34 | A suite whose grace window has **lapsed** (`first_seen + grace_days` is in the past) | as if no grace were declared | as if no grace were declared | the row's own verdict — a lapsed anchor is **inert**, never an error |
 | 35 | `first_seen` unparseable, `first_seen` **in the future**, `grace_days` outside `(0, 30]`, `grace_days` without `first_seen`, or `first_seen + grace_days` running beyond `bootstrap_max_days` from the run date | **fail** | **fail** | **`fail`** (invalid configuration) |
@@ -129,6 +129,7 @@ are not, which is why the blocking rows are not contiguous.
 | 41 | The newest completed run produced **no evidence** — an indecisive conclusion and not one job that reached a decisive one — and an older run **inside the freshness window** did | as that older run's row | as that older run's row | **that older run's row**, with the skip named in the report (§2.6) |
 | 42 | No run inside the freshness window produced evidence | as the newest run's row | as the newest run's row | **the newest run's row** — falls back and still blocks, with the fallback named in the report (§2.6) |
 | 43 | GitHub run lists remain old or conflict with independently read run details | **fail** | **fail** | **`fail`**, API reason `list_stale`; retry the platform read, without suite-failure or waiver advice (§2.7) |
+| 44 | GitHub returns 404 for a workflow file present in the checkout | non-blocking | **fail** | `bootstrap` / **`fail`**, reason `workflow_not_registered` |
 
 ### 2.1 Rows 17–19 in one sentence
 
@@ -668,11 +669,14 @@ window here is mandatory and bounded.
   `⚠️ bootstrap — not blocking; this window expires <timestamp> (in N days)`,
   in the job summary and in the job's `verdict` output. The expiry is always
   visible; there is no quiet bootstrap.
+- The pull request that introduces the suite can use this window. If its regular workflow file
+  is present in the checkout and GitHub has yet to register it, the gate treats the 404 as missing
+  evidence. The existing bootstrap and per-suite grace limits still apply.
 - **Genuinely red evidence still fails during bootstrap.** Rows 2–5, 11, 14,
   17–20 and the failed-job half of row 26 are red inside the window as well as
   outside it. Bootstrap forgives *absence of evidence*, never *evidence of
   failure*.
-- The moment the window lapses, rows 6–10, 12–13, 15–16 and the skipped-job half
+- The moment the window lapses, rows 6–10, 12–13, 15–16, 44 and the skipped-job half
   of row 26 flip to `fail` with no further action (row 23). Nothing needs to be
   turned on.
 
