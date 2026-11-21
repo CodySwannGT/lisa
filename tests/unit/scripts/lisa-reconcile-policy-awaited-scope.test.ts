@@ -22,9 +22,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   VERDICT,
+  liveContexts,
   planRepairs,
   reconcile,
   reconcileContexts,
+  rulesetPayload,
 } from "../../../all/copy-overwrite/scripts/lisa-reconcile-policy.mjs";
 import {
   ACTIONS_ID,
@@ -307,6 +309,63 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
 
     expect(checksIn(plan, RELEASE)).toEqual([
       { context: SONAR, integration_id: ACTIONS_ID },
+    ]);
+  });
+});
+
+describe.each([BASE, RELEASE])("a pre-existing app pin in %s", name => {
+  const pinned = { context: SONAR, integration_id: SONAR_APP };
+  const ruleset = baseRuleset([], {
+    name,
+    rules: [
+      {
+        type: "required_status_checks",
+        parameters: { required_status_checks: [pinned] },
+      },
+    ],
+  });
+
+  it("matches the awaited name without sending a repair", () => {
+    const gh = gitHub({ rulesets: [ruleset], settings: {} });
+
+    const result = reconcile({ repo: REPO, gates: AWAIT_GATES, gh });
+
+    expect(result.contexts?.matched).toEqual([SONAR]);
+    expect(result.contexts?.missing).toEqual([]);
+    expect(result.plan).toEqual([]);
+    expect(writes(recorded(gh.mock.calls))).toEqual([]);
+  });
+
+  it("survives a repair that adds a different check in the same ruleset", () => {
+    const additional = "External Build";
+    const awaited = [
+      { context: SONAR, ruleset: name },
+      { context: additional, ruleset: name },
+    ];
+    const contexts = reconcileContexts({
+      declared: [SONAR, additional],
+      live: liveContexts([ruleset]),
+      awaited,
+    });
+
+    const plan = planRepairs({
+      contexts,
+      settings: NO_SETTINGS,
+      live: liveWith([ruleset]),
+      prune: false,
+      rulesetName: null,
+      awaited,
+    });
+
+    expect(contexts.missing).toEqual([additional]);
+    expect(checksIn(plan, name)).toEqual([pinned, { context: additional }]);
+  });
+
+  it("retains a live pin if the writer receives an unpinned addition for its check", () => {
+    const payload = rulesetPayload(ruleset, { add: [SONAR], awaited: [SONAR] });
+
+    expect(payload.rules[0]?.parameters.required_status_checks).toEqual([
+      pinned,
     ]);
   });
 });
