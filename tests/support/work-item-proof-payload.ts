@@ -58,7 +58,7 @@ function identityFor(facts: ProofFacts) {
     repository: { name: repository, id: 881 },
     environment: "production",
     branch,
-    spec_sha256: digest(SPEC),
+    spec_sha256: digest(SPEC.trimEnd()),
   };
 }
 /**
@@ -166,7 +166,7 @@ export function makeProofRecord(fixture: Fixture, facts: ProofFacts) {
   ];
   const conformance = putAsset(fixture, 3, {
     verdict: "CONFORMS",
-    spec_sha256: digest(SPEC),
+    spec_sha256: digest(SPEC.trimEnd()),
     work_item: sourceRef,
     requirements: requirements.map(row => ({ ...row, status: "pass" })),
     scenario_names: ["Observed feature is verified"],
