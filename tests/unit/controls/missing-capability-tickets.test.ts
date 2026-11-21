@@ -185,6 +185,18 @@ describe("the missing-capability ticket flow", () => {
     expect(PROSE).toMatch(/open and\s+closed/u);
   });
 
+  it("looks up a marked open parent once, passes it to every new ticket, and counts the children", () => {
+    expect(PROSE).toContain(
+      "[lisa-control-gap-parent] repository=<owner>/<repo>"
+    );
+    expect(PROSE).toContain("Use the oldest open match");
+    expect(PROSE).toContain("Missing capabilities found by the audit");
+    expect(PROSE).toContain("None — container: state rolls up from children");
+    expect(PROSE).toContain("pass the same reference as `parent_ref`");
+    expect(PROSE).toContain("Skip a parent marker when matching a gap");
+    expect(PROSE).toContain("Count only the gap tickets");
+  });
+
   it("mentions a requirement's id only where the marker or the output carries it", () => {
     const withId = TEXT.split("\n").filter(line =>
       new RegExp(String.raw`\b(?:${CRITERION_ID_SOURCE})\b`, "u").test(line)
