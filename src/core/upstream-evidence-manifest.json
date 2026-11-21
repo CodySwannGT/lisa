@@ -1551,7 +1551,7 @@
     "plugins/src/base/skills/lisa-github-project-v2/SKILL.md":
       "484c0cdfeb22e8862015ba0a47b04c068c900c8dad123c4abd693991d5824137",
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md":
-      "8a3308b4b509089ed684797ded3fc523ae8cdf80d3aad70a8532ef04420d258c",
+      "dc17f16d314ca3be264e42110995475f350d5cbdffac1aad65b2cd78ad8fcd79",
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
       "3ecdd4bf91f1dd409cf2a8bd82b998cb7f9220e5e592195a0fa4040f4e53f6c6",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
@@ -11354,6 +11354,10 @@
     "src/cli/gate-report-upstream.ts": true,
     "src/cli/gate-report.ts": true,
     "src/cli/gh-cli.ts": true,
+    "src/cli/github-read-issue-cmd.ts": true,
+    "src/cli/github-reader-relationships.ts": true,
+    "src/cli/github-reader-target.ts": true,
+    "src/cli/github-reader-wire.ts": true,
     "src/cli/health-cmd.ts": true,
     "src/cli/hook-refresh-files.ts": true,
     "src/cli/index.ts": true,
@@ -12795,6 +12799,7 @@
     "tests/support/evidence-prune-fake-gh.ts": true,
     "tests/support/evidence-prune-harness.ts": true,
     "tests/support/git-executable.ts": true,
+    "tests/support/github-reader-fixture.ts": true,
     "tests/support/host-name-guard-fixture.ts": true,
     "tests/support/letter-case.ts": true,
     "tests/support/no-manifest-run.ts": true,
@@ -14669,6 +14674,7 @@
     "tests/unit/session-manager/workers-name-roundtrip.test.ts": true,
     "tests/unit/session-manager/workers-setup-gap.test.ts": true,
     "tests/unit/session-manager/workers.test.ts": true,
+    "tests/unit/skills/github-reader-projects-optional.test.ts": true,
     "tests/unit/skills/lisa-track-estimate-contract.test.ts": true,
     "tests/unit/skills/pushing-skills-run-lisa-check.test.ts": true,
     "tests/unit/skills/secrets-provider-timeout-message.test.ts": true,
