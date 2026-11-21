@@ -361,7 +361,7 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "40e846e91e8f93a99424c81b98399e1fb73acbe59b5ab2a6467d8f1894ed250f",
+      "5c44bf2bb003249a62c443ef594509f7b6828be12157c9aa90f90d3acad13636",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -421,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "227112c0d0d2f013920660e44fcde3aa09bc23342dd152584d69de4fe09616f8",
+      "a18db70b0ec7abcd81f17394655f5f60217c6a79272596826dd3c8b02118c994",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":

@@ -3456,10 +3456,14 @@ export const KNOWN_CONFIG_KEYS = Object.freeze([
   "automations",
   "usage",
   "wiki",
+  // Core knowledge-role selection and the sync registry read this backend.
+  "knowledge",
   "learnings",
   "health",
   "verification",
   "thresholdRatchet",
+  // The work-item traceability contract reads `workItem.verify`.
+  "workItem",
   // `pushGate.cache` switches on the push-gate pass cache; see
   // `lib/gate-pass-cache.mjs` (CodySwannGT/lisa#4594).
   "pushGate",
@@ -6082,8 +6086,8 @@ export function auditConfigKeys(config) {
     findings.push({
       key,
       level: "warn",
-      message: `${key} is not a key Lisa reads${
-        near ? `. Did you mean "${near}"?` : ""
+      message: `${key} is not a key Lisa reads.${
+        near ? ` Did you mean "${near}"?` : ""
       } Nothing consumes it, so whatever it was meant to configure is unset.`,
     });
   }
