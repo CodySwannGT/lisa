@@ -2348,7 +2348,7 @@ function programMissing(program) {
  * supervisor's own messages still reach this process's error output.
  * @param {readonly string[]} argv The program and its arguments.
  * @param {string} cwd The folder to start in.
- * @param {{capture: boolean, quiet: boolean, budgetMs: number, env: NodeJS.ProcessEnv}} how How to supervise and capture the command.
+ * @param {{capture: boolean, quiet: boolean, budgetMs: number, env?: NodeJS.ProcessEnv}} how How to supervise and capture the command.
  * @returns {import("node:child_process").SpawnSyncReturns<string>} Result.
  */
 function superviseArgv(argv, cwd, { capture, quiet, budgetMs, env }) {
@@ -2372,7 +2372,7 @@ function superviseArgv(argv, cwd, { capture, quiet, budgetMs, env }) {
       shell: false,
       stdio: capture ? [shown, shown, "inherit", "pipe"] : "inherit",
       timeout: budgetMs + PROCESS_TREE_REAP_BUDGET_MS,
-      env,
+      ...(env === undefined ? {} : { env }),
     }
   );
 }
@@ -2422,7 +2422,7 @@ function partBudget(timeoutMs) {
  * reads from nothing and what it prints is collected instead of shown.
  * @param {readonly string[]} argv The program and its arguments.
  * @param {string} cwd The folder to start in.
- * @param {{quiet: boolean, budgetMs: number, env: NodeJS.ProcessEnv}} how Whether to collect the
+ * @param {{quiet: boolean, budgetMs: number, env?: NodeJS.ProcessEnv}} how Whether to collect the
  *   output instead of showing it, and the deadline.
  * @returns {{code: number|null, output: string|null, signal?: string, notStarted?: string}}
  *   Exit code; null with `notStarted` when the program could not be started.
@@ -2435,7 +2435,7 @@ function startArgv(argv, cwd, { quiet, budgetMs, env }) {
     shell: false,
     stdio: quiet ? ["ignore", "pipe", "pipe"] : "inherit",
     timeout: budgetMs,
-    env,
+    ...(env === undefined ? {} : { env }),
     // Only a quiet start collects anything, and a check that prints a great
     // deal must still be read rather than cut off as if it could not start.
     ...(quiet ? { maxBuffer: QUIET_OUTPUT_BYTES } : {}),
@@ -2519,13 +2519,7 @@ function startArgv(argv, cwd, { quiet, budgetMs, env }) {
  */
 export function spawnArgv(
   argv,
-  {
-    cwd,
-    platform = process.platform,
-    timeoutMs,
-    quiet = false,
-    env = process.env,
-  } = {}
+  { cwd, platform = process.platform, timeoutMs, quiet = false, env } = {}
 ) {
   const problem = argvProblem(argv);
   if (problem !== null) {
@@ -2571,7 +2565,8 @@ export function spawnArgv(
       return atDeadline(killedOrRethrow(error));
     }
   }
-  const notStarted = programProblem(argv[0], cwd, env.PATH);
+  const searchPath = env === undefined ? process.env.PATH : env.PATH;
+  const notStarted = programProblem(argv[0], cwd, searchPath);
   if (notStarted !== null) return { code: null, output: null, notStarted };
   const capture = quiet || process.env.LISA_GATES_CAPTURE !== "0";
   try {

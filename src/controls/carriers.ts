@@ -43,6 +43,7 @@ import {
   notWritable,
 } from "./carrier-edits.js";
 import { AGENT_PLACED_PATHS, planAgentCarriers } from "./carrier-agents.js";
+import { credentialProblemIn, withoutCredentials } from "./secret-scan-json.js";
 import { createCarrierGit, type CarrierGit } from "./carrier-git.js";
 import { planGitHookCarriers } from "./carrier-git-hooks.js";
 import { planIgnore } from "./carrier-ignore.js";
@@ -162,10 +163,13 @@ async function planRecord(
     };
   }
   const absolute = path.join(root, CARRIER_RECORD_PATH);
+  const content = carrierRecordText(files);
+  const problem = credentialProblemIn(CARRIER_RECORD_PATH, content);
+  if (problem !== null) return { problem };
   const edit = fileEdit(
     {
       absolute,
-      content: carrierRecordText(files),
+      content,
       executable: false,
       path: CARRIER_RECORD_PATH,
     },
@@ -380,7 +384,7 @@ export async function installCarriers(
       schema_version: CARRIER_SCHEMA_VERSION,
       ...described,
       runner: {
-        files: runner.map(file => file.path),
+        files: withoutCredentials(runner.map(file => file.path)),
         path: CARRIER_RUNNER_PATH,
         ...described.runner,
       },
