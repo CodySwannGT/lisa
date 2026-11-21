@@ -705,7 +705,7 @@
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "ad6a4eab10a9870d6cfd607ea1d9bb948a933820c8637ca6394b4a77d7adb688",
+      "964f5e837e2925b18b4d27a2e5c6d4bb1a17e3d80a5e59328ee3f678c0d4eefe",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -12466,6 +12466,7 @@
     "tests/integration/environment-prepare-workflow.test.ts": true,
     "tests/integration/expo-host-run-scripts-survive-apply.test.ts": true,
     "tests/integration/expo-independent-checks.test.ts": true,
+    "tests/integration/expo-jest-unit-target.test.ts": true,
     "tests/integration/expo-provider-token.test.ts": true,
     "tests/integration/expo-provider-workflow.test.ts": true,
     "tests/integration/facade-proof-not-step.test.ts": true,
