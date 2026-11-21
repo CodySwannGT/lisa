@@ -83,6 +83,18 @@ describe("what an entry's points add up to", () => {
     expect(judged.reason).toContain(SHIPPED);
   });
 
+  it("blocks a registry task that has no supported project type to run it", async () => {
+    const judged = await judge(entry([{ ...MERGE, level: "optional" }], TASK), {
+      hasSupportedProjectType: false,
+    });
+
+    expect(judged.outcome).toBe("blocked");
+    expect(judged.reason).toContain("nothing Lisa ships runs it");
+    expect(judged.reason).toContain(
+      "run the configure step and choose when this check has to pass"
+    );
+  });
+
   it.each([[["SI7"]], [[]]])(
     "makes no claim of its own when the declaration gives it no moment to run at (requirements a check can refuse a change for: %j)",
     async gateCriteria => {
