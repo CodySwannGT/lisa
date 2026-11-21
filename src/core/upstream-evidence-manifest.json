@@ -41,7 +41,7 @@
     "all/copy-overwrite/scripts/lib/build-marker.mjs":
       "505519d9632ab86572cfdeca917d93599256cf8e798987ad593a82296a7d8175",
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
-      "9f05df13c5cfc070812803140a9d58bf8b86300278a58f809cb1159c8d6442ed",
+      "1d721b51c529f0de8e4cecb81de484cd9e73cd401177ae40b8f8e03cc7eb5a52",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
       "f93221c4b8ddca27c7a78b6e6b7eceb4555ec1e2d5cd8fd128c1380cd310c81f",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
@@ -53,7 +53,7 @@
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "0b323e9c53b6909eca61fa84bf2c85683a686e380760e2fe2fb52b09c6611026",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
-      "877bcedb2d3a566e27dcdda3021eb66545475af02b363a4075d146f0f89d7d07",
+      "25d44e9eeed728d046a45e5662691c7112cb271b5decc48ea9fe0fe038812538",
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
@@ -367,7 +367,7 @@
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "c2fc91c3a1c40e54c084063aef9e787064f43551da66c0c14ff7b105590777c8",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "52d896dbfd7152e1c11a0df6b802ab1451e0c379fd09159cf6eadf9749175a49",
+      "0b5f39cef976b5e2f1e49b0fcad682ce639c184d9be4b13edd1d5834a77320ec",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -405,7 +405,7 @@
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "89502b2f1feda98565a51745932b5cbd8f33387d2e1cd0f8234a77df56a298ae",
+      "fe30e611c65737900492df31878bb0eb4c69474831577b110ee4be3b2579b59b",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -421,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "245445ceaa875a67aad3e9afc9250a74dfb4bc62046280747937386659f559af",
+      "8324da6a89fd2d6203866c98eaacd921d8e49472a1e914226b11a046d894dbd5",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1109,7 +1109,7 @@
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "3ee351a1698cdeaf748390820239ab96a362dbfe236a0d3eaded87c1dc9b28a0",
+      "6d99d01d9625dd9ac5dc92eed49f99a474714924d8ca1c04c42f291803cd765d",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -1257,7 +1257,7 @@
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "6599c6dba02e1e3f58f466462f0b38b86b71373eb3a1d5b9a33913be7d0e98b8",
+      "018f33d8d1c39594ad085a404984f4bf0ebef4864e0950e69300dbe6c59f87f0",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1515,7 +1515,7 @@
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
       "1dda5441f57a3eb791d151d6356ce559646f346cde7bfe76fe54f8aa0f843d87",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
-      "2eda850c2bee32e59e0a4138859be0dc0206539805bcece50a059160d82548b2",
+      "898d432648142a87d5927e6c6158e1d7fb5ebc7e591c69c4d5b6ad24cc3d62f9",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
       "72c5878bf012b88af3eb5a20c5e60c551e7b96a653d5d79adc7a67d2e0337f90",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -1787,7 +1787,7 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "ca7a7a23b110bfe15c8a3eec789dd35783884f51e233f2c372830aa4a62a9489",
+      "37bebba086cef4512d716b1b8d442ea22e9da2e89b0b57993b79eb4deeebab8c",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "f8a63378cdeb2acc70b53fa5b7c9e4510b2806b98eb27004d94b97817172d6db",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1809,7 +1809,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs":
       "cab60f2dfee7f33a8a5f16ec94cb1b2ab17cf384886ee5eb738fb015535d6567",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
-      "3aae3cb7fd3d6d73c3837cd865ac46cff3a8304aea71be334b01bc5e7e7c8018",
+      "80593aff1ed42f3e65ed0049ba32f96dc001542fd2712cf4847d278bc1c433f5",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
       "aab705023d16ae42d6994450da0c914230ccab92823babb81697941c3760e8a8",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
@@ -1865,7 +1865,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
       "332bebf7a73c1d95bafe0e82239c18838dd53df7ca043c5cf4c3bb1043497324",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
-      "7dac63717d0d207904f8077f539512dc95e4cf6da5607042716282f1f6f35361",
+      "21de606a7b286e637adcc6a39978113e4c0766be61b0bb937d00b912294b9857",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
       "adf56eb60769ffb8ace6a5aefe85e37107db1d73e4d73ab4cf29ab045ca8c76c",
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":

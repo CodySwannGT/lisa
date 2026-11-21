@@ -225,10 +225,10 @@
       "PUSH_REFS_STDIN",
       "PUSH_REF_LIMIT",
       "changeAt",
+      "declarationProblemAt",
       "parsePushRefs",
       "pathsOutside",
       "readPushRefs",
-      "removesDeclarationAt",
       "touchesFolder"
     ],
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs": [

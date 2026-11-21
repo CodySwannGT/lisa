@@ -148,4 +148,32 @@ describe("removing the checks that would have checked the change", () => {
     expect(result.stdout).toContain("nothing was checked at push");
     expect(result.stderr).toBe("");
   });
+
+  it.each(["missing input", "malformed input", "missing remote commit"])(
+    "refuses a push when it cannot check for removal due to %s",
+    failure => {
+      const repo = keep(fNoneWithConfig("{}\n"));
+      const root = repo.fixture.repoPath;
+      const head = runControlAuditGit(root, ["rev-parse", "HEAD"]).trim();
+      const pushRefs = join(repo.scratch, "push-refs");
+      if (failure !== "missing input") {
+        const refs =
+          failure === "malformed input"
+            ? "not git push input\n"
+            : `refs/heads/main ${head} refs/heads/main ${"1".repeat(head.length)}\n`;
+        writeFileSync(pushRefs, refs);
+      }
+
+      const result = runShipped(repo, RUNNER_SCRIPT, [
+        PUSH_FLAG,
+        NO_BUILTINS,
+        `--push-refs=${pushRefs}`,
+      ]);
+      expect(result.status).toBe(EXIT.BLOCKED);
+      expect(result.stderr).toContain(
+        "Could not check whether this change removes"
+      );
+      expect(result.stdout).not.toContain(NO_CHECKS);
+    }
+  );
 });

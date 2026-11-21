@@ -51,13 +51,11 @@ function compileFixture(stack: string, source: string, invalidSource = false) {
       `export const ordinary: string = ${invalidSource ? "123" : '"ok"'};\n`
     );
     writeFileSync(join(root, "tsconfig.local.json"), actualTemplate);
-    // Extend the untouched local config like the host does. The explicit
-    // already-included file avoids TS18002 from a standalone `files: []`.
+    // The template's include globs decide whether to pick up ordinary source.
     writeFileSync(
       join(root, "tsconfig.json"),
       JSON.stringify({
         extends: "./tsconfig.local.json",
-        files: [source],
         compilerOptions: { jsx: "preserve", types: [] },
       })
     );

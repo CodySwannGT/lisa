@@ -213,4 +213,53 @@ describe("queue release trust", () => {
       }).excluded
     ).toEqual([{ ref: LINEAR, reason: HELD }]);
   });
+
+  it.each([
+    { account: { id: 42, login: "releaser", type: "User" }, dispatched: true },
+    { account: { id: 82, login: "releaser", type: "User" }, dispatched: false },
+    { account: { id: 42, login: "another", type: "User" }, dispatched: false },
+    { account: { id: 42, login: "releaser", type: "Bot" }, dispatched: false },
+    { account: null, dispatched: false },
+  ])(
+    "compares a GitHub login releaser by the ID GitHub resolves ($account)",
+    ({ account, dispatched }) => {
+      const sandbox = queueSandbox({
+        trustedAuthorIds: ["123"],
+        trustedReleaseIds: ["login:releaser"],
+      });
+      const routes = path.join(sandbox.root, "gh-routes.json");
+      writeJson(routes, [
+        {
+          match:
+            "repos/example-org/demo-repo/issues?state=open&labels=status%3Aready&per_page=100",
+          body: [[{ number: 1, title: "Held", body: HOLD, user: { id: 123 } }]],
+        },
+        {
+          match: "repos/example-org/demo-repo/issues/1/comments?per_page=100",
+          body: [
+            [
+              {
+                body: RELEASE,
+                user: { id: 42, login: "releaser", type: "User" },
+              },
+            ],
+          ],
+        },
+        ...(account ? [{ match: "users/releaser", body: account }] : []),
+      ]);
+      const outcome = runCli(
+        sandbox,
+        ["queue", "--tracker", "github", "--label", "status:ready"],
+        { env: { STUB_GH_ROUTES: routes } }
+      );
+
+      expect(outcome.status, outcome.stderr).toBe(0);
+      expect(outcome.json.ordered).toHaveLength(dispatched ? 1 : 0);
+      expect(outcome.json.excluded).toHaveLength(dispatched ? 0 : 1);
+      expect(outcome.calls.map(call => call.argv)).toContainEqual([
+        "api",
+        "users/releaser",
+      ]);
+    }
+  );
 });

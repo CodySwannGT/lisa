@@ -195,6 +195,10 @@ describe("the missing-capability ticket flow", () => {
     expect(PROSE).toContain("pass the same reference as `parent_ref`");
     expect(PROSE).toContain("Skip a parent marker when matching a gap");
     expect(PROSE).toContain("Count only the gap tickets");
+    expect(PROSE).toContain(
+      "lisa-linear-access operation: list-projects team:<team>"
+    );
+    expect(PROSE).toContain("get-project id:<ID>");
   });
 
   it("mentions a requirement's id only where the marker or the output carries it", () => {

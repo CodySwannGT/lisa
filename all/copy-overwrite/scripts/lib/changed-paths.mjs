@@ -514,25 +514,18 @@ function pushedChange({ root, git, env, source, read }) {
  * or a manual run with no push-hook input.
  * @param {string} head The commit being sent.
  * @param {AskGit} git How git is asked.
- * @returns {string|null} The comparison commit, when available locally.
+ * @returns {string|null|undefined} Comparison commit, no tracked baseline, or unknown ancestry.
  */
 function defaultBranchBase(head, git) {
-  const defaultRef = git([
-    "symbolic-ref",
-    "--quiet",
-    "refs/remotes/origin/HEAD",
-  ])?.trim();
-  return (
-    git([
-      "merge-base",
-      defaultRef || "refs/remotes/origin/main",
-      head,
-    ])?.trim() ?? null
-  );
+  const defaultRef =
+    git(["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"])?.trim() ||
+    "refs/remotes/origin/main";
+  if (git(["rev-parse", "--verify", defaultRef]) === null) return null;
+  return git(["merge-base", defaultRef, head])?.trim() || undefined;
 }
 
 /**
- * Whether a standalone hook is checking a change that removes its declaration.
+ * Compare a standalone hook's change with its previous gate declaration.
  * @param {object} options Inputs.
  * @param {string} options.moment The moment being run.
  * @param {string} options.root The repository root.
@@ -540,9 +533,9 @@ function defaultBranchBase(head, git) {
  * @param {string|null} [options.pushRefs] The source of the actual pushed refs.
  * @param {Record<string, string|undefined>} [options.env] The environment.
  * @param {(source: string) => (string|null)} [options.read] Reads the refs.
- * @returns {boolean} Whether an applicable comparison drops all gates.
+ * @returns {string|null} Why the change must be blocked, or null.
  */
-export function removesDeclarationAt({
+export function declarationProblemAt({
   moment,
   root,
   declares,
@@ -550,12 +543,20 @@ export function removesDeclarationAt({
   env = process.env,
   read = readPushRefs,
 }) {
-  if (moment !== "commit" && moment !== "push") return false;
+  if (moment !== "commit" && moment !== "push") return null;
+  const source = moment === "push" ? pushRefs || env[PUSH_REFS_ENV] : null;
+  const unreadable = detail =>
+    `Could not check whether this change removes the declared checks. ${detail}`;
+  const comparisonFailed = label =>
+    unreadable(
+      `Git could not compare ${label}. Fetch the comparison commit or repair the local checkout, then try again.`
+    );
   const git = gitIn(root, env);
-  if (gitProblem(root, git, env) !== null) return false;
+  const problem = gitProblem(root, git, env);
+  if (problem !== null) return source ? unreadable(problem) : null;
 
-  /** @type {(args: string[], base: string, head: string) => boolean} */
-  const removes = (args, base, head) => {
+  /** @type {(args: string[], base: string, head: string, label: string) => string|null} */
+  const compare = (args, base, head, label) => {
     const changed = git([
       "diff",
       ...args,
@@ -563,29 +564,76 @@ export function removesDeclarationAt({
       "--",
       DECLARATION_FILE,
     ]);
-    return (
-      Boolean(changed) &&
-      declares(git(["show", `${base}:${DECLARATION_FILE}`])) &&
-      !declares(git(["show", `${head}:${DECLARATION_FILE}`]))
-    );
+    if (changed === null) return comparisonFailed(label);
+    if (changed === "") return null;
+    const previous = declarationAt(base, git);
+    const current = declarationAt(head, git);
+    if (previous === undefined || current === undefined)
+      return comparisonFailed(label);
+    return declares(previous) && !declares(current)
+      ? "This change removes the declared checks, so they cannot check it. " +
+          "Restore them and use the project's human approval process for changes to its quality gates."
+      : null;
   };
-  if (moment === "commit") return removes(["--cached"], "HEAD", "");
-
-  const source = pushRefs || env[PUSH_REFS_ENV];
+  if (moment === "commit") {
+    if (git(["rev-parse", "--verify", "HEAD"]) === null) return null;
+    return compare(["--cached"], "HEAD", "", "the staged changes with HEAD");
+  }
   if (!source) {
     const upstream = git(["rev-parse", "--verify", "@{upstream}"])?.trim();
     const base = upstream || defaultBranchBase("HEAD", git);
-    return Boolean(base) && removes([base, "HEAD"], base, "HEAD");
+    const label = "HEAD with its baseline";
+    if (base === undefined) return comparisonFailed(label);
+    return base ? compare([base, "HEAD"], base, "HEAD", label) : null;
   }
-  const updates = parsePushRefs(read(source) ?? "");
-  return (updates ?? []).some(({ localOid, remoteOid, remoteRef }) => {
+  const text = read(source);
+  if (text === null) {
+    return unreadable(
+      "The list of pushed refs could not be read. Retry the push with Git's ref list available."
+    );
+  }
+  const updates = parsePushRefs(text);
+  if (updates === null) {
+    return unreadable(
+      "The list of pushed refs is malformed. Retry the push with Git's original ref list."
+    );
+  }
+  for (const { localOid, remoteOid, remoteRef } of updates) {
     if (!remoteRef.startsWith("refs/heads/") || NO_OBJECT.test(localOid))
-      return false;
+      continue;
     const base = NO_OBJECT.test(remoteOid)
       ? defaultBranchBase(localOid, git)
       : remoteOid;
-    return Boolean(base) && removes([base, localOid], base, localOid);
-  });
+    const label = `${JSON.stringify(remoteRef)} with its baseline`;
+    if (base === undefined) return comparisonFailed(label);
+    if (!base) continue;
+    const problem = compare([base, localOid], base, localOid, label);
+    if (problem !== null) return problem;
+  }
+  return null;
+}
+
+/**
+ * Read the declaration, distinguishing a missing path from an unreadable Git object.
+ * @param {string} ref The commit, or an empty string for the index.
+ * @param {AskGit} git How git is asked.
+ * @returns {string|null|undefined} Contents, absent file, or unknown contents.
+ */
+function declarationAt(ref, git) {
+  const listing = ref
+    ? git(["ls-tree", ref, "--", DECLARATION_FILE])
+    : git(["ls-files", "--stage", "--", DECLARATION_FILE]);
+  if (listing === null) return undefined;
+  const entry = listing
+    .trimEnd()
+    .split("\n")
+    .find(
+      line =>
+        line.endsWith(`\t${DECLARATION_FILE}`) && !line.startsWith("040000 ")
+    );
+  if (!entry) return null;
+  if (!/^100(?:644|755) /u.test(entry)) return undefined;
+  return git(["show", `${ref}:${DECLARATION_FILE}`]) ?? undefined;
 }
 
 /**

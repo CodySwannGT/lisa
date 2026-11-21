@@ -149,9 +149,12 @@ the manager.
   who filed the item, not what it says: an alarm or error ticket can quote text an outsider
   controls (an error message, a request path), and that text reaches the worker too.
 - **Who may release a hold is a separate list.** `sessionManager.trustedReleaseIds` names who may
-  release a human hold in `blocked-plan` and the orphan sweep, and who may answer on the item; unset,
+  release a human hold in `queue`, `blocked-plan` and the orphan sweep, and who may answer on the item; unset,
   it falls back to `trustedAuthorIds`. It takes the same `id:` / `login:` / plain entries, never
-  `integration:`, because an integration is not a person. With neither set, no hold is released.
+  `integration:`, because an integration is not a person. The GitHub `queue` resolves each `login:`
+  entry to an account ID before comparing comments. Use `id:` for the same identity across the
+  release commands and to keep trusting the account after a GitHub rename. With neither list set,
+  no hold is released.
   Removing `trustedAuthorIds` to dispatch integration-filed items would also remove every hold
   releaser; add `integration:<service>` instead.
 

@@ -147,7 +147,7 @@ import {
   pathsOutside,
   PUSH_REFS_STDIN,
   readPushRefs,
-  removesDeclarationAt,
+  declarationProblemAt,
   touchesFolder,
 } from "./lib/changed-paths.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
@@ -3061,28 +3061,25 @@ export function main(argv = process.argv.slice(2)) {
     return settle(EXIT.RUNNER_FAILED, EVIDENCE_VERDICT.RUNNER_FAILED);
   }
 
-  if (
-    standalone &&
-    removesDeclarationAt({
-      moment,
-      root: process.cwd(),
-      pushRefs: pushRefsFlag,
-      ...(stdinRefs === undefined ? {} : { read: () => stdinRefs }),
-      declares(text) {
-        if (text === null) return false;
-        try {
-          return Object.keys(parseGatesConfig(text).gates).length > 0;
-        } catch {
-          // A malformed declaration cannot supply checks for the change.
-          return false;
-        }
-      },
-    })
-  ) {
-    console.error(
-      "This change removes the declared checks, so they cannot check it. " +
-        "Restore them and use the project's human approval process for changes to its quality gates."
-    );
+  const declarationProblem = standalone
+    ? declarationProblemAt({
+        moment,
+        root: process.cwd(),
+        pushRefs: pushRefsFlag,
+        ...(stdinRefs === undefined ? {} : { read: () => stdinRefs }),
+        declares(text) {
+          if (text === null) return false;
+          try {
+            return Object.keys(parseGatesConfig(text).gates).length > 0;
+          } catch {
+            // A malformed declaration cannot supply checks for the change.
+            return false;
+          }
+        },
+      })
+    : null;
+  if (declarationProblem !== null) {
+    console.error(declarationProblem);
     return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.BLOCKED);
   }
 

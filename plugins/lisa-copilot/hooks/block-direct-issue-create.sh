@@ -756,7 +756,7 @@ UNPARSEABLE_CREATION = re.compile(
     re.IGNORECASE,
 )
 
-BODY_FILE_FLAGS = {"--body-file", "-F", "--input", "--data-binary"}
+BODY_FILE_FLAGS = {"--body-file"}
 LABEL_FLAGS = {"--label", "--labels", "--add-label", "--status", "--state"}
 
 # ---------------------------------------------------------------------------
@@ -1164,8 +1164,7 @@ def connected_segments(tokens):
     current = []
     for token in tokens:
         if token in SEGMENT_BOUNDARIES and not isinstance(token, LiteralToken):
-            if current:
-                yield current, token
+            yield current, token
             current = []
         else:
             current.append(token)
@@ -1173,14 +1172,12 @@ def connected_segments(tokens):
         yield current, ""
 
 
-def segment(tokens):
-    """Split a token stream into argv lists."""
-    return [argv for argv, _ in connected_segments(tokens)]
-
-
 def directory_after_cd(argv, cwd):
     """Resolve a single literal cd operand without evaluating shell syntax."""
     args = argv[1:]
+    physical = args[:1] == ["-P"]
+    if physical or args[:1] == ["-L"]:
+        args = args[1:]
     if args[:1] == ["--"]:
         args = args[1:]
     if len(args) != 1:
@@ -1188,7 +1185,29 @@ def directory_after_cd(argv, cwd):
     target = args[0]
     if not target or target.startswith("-") or re.search(r"[\x24\x60~*?\[\]{}\n\r]", target):
         return None
-    return os.path.join(cwd, target)
+    target = absolute_operand(target, cwd)
+    if target is None:
+        return None
+    return os.path.realpath(target) if physical else os.path.normpath(target)
+
+
+def segments_with_directory(tokens, cwd):
+    """Follow literal directory changes while success is required by &&."""
+    preceding = ""
+    changed = False
+    for argv, following in connected_segments(tokens):
+        if argv and argv[0] == "cd":
+            cwd = (
+                directory_after_cd(argv, cwd)
+                if following == "&&" and preceding in {"", "&&", ";", "(", "{"}
+                else None
+            )
+            changed = True
+        elif argv:
+            yield argv, cwd
+        if changed and following not in {"", "&&"}:
+            cwd = None
+        preceding = following
 
 
 def basename(token):
@@ -1358,7 +1377,14 @@ def endpoint_paths(args, pattern):
     return found
 
 
-def resolve_operand(token):
+def absolute_operand(path, cwd):
+    """A literal absolute operand or a path relative to a known directory."""
+    if os.path.isabs(path):
+        return path
+    return os.path.join(cwd, path) if cwd else None
+
+
+def resolve_operand(token, cwd):
     """A readable regular file named by one token, or None.
 
     Bounded on purpose. The size cap keeps a PreToolUse hook off a multi-
@@ -1367,32 +1393,20 @@ def resolve_operand(token):
     confident ALLOW about text it never saw.
 
     Args:
-        token: One argument, possibly quoted or `@`-prefixed for curl.
+        token: One decoded path argument.
+        cwd: The working directory, or None when it cannot be determined.
 
     Returns:
         An existing path, or None.
     """
-    text = token.strip().strip("'\"")
-    # `-d@payload.json` names a file just as plainly as `@payload.json` does.
-    attached = attached_value(text)
-    if attached is not None:
-        text = attached
-    if text.startswith("@"):
-        text = text[1:]
-    if not text or text in STDIN_PAYLOAD_TOKENS:
+    if not token or token in STDIN_PAYLOAD_TOKENS:
         return None
-    candidates = [text]
-    if project_dir and not os.path.isabs(text):
-        candidates.append(os.path.join(project_dir, text))
-    for candidate in candidates:
-        try:
-            if not os.path.isfile(candidate):
-                continue
-            if os.path.getsize(candidate) > FILE_OPERAND_MAX_BYTES:
-                continue
-        except OSError:
-            continue
-        return candidate
+    candidate = absolute_operand(token, cwd)
+    try:
+        if candidate and os.path.isfile(candidate) and os.path.getsize(candidate) <= FILE_OPERAND_MAX_BYTES:
+            return candidate
+    except (OSError, ValueError):
+        pass
     return None
 
 
@@ -1403,17 +1417,17 @@ def read_operand(path):
         path: A path from `resolve_operand`.
 
     Returns:
-        The contents, or an empty string when unreadable.
+        The contents, or None when unreadable.
     """
     try:
         with open(path, encoding="utf-8", errors="replace") as handle:
             return handle.read(FILE_OPERAND_MAX_BYTES)
-    except OSError:
-        return ""
+    except (OSError, TypeError):
+        return None
 
 
-def attached_value(token):
-    """A payload flag's value when it is GLUED to the flag.
+def attached_payload(token):
+    """A payload flag and its value when it is GLUED to the flag.
 
     `curl -d@payload.json` and `curl -d'{"query":…}'` are one token each, so a
     parser that only looks at `args[i + 1]` and at `flag=value` sees neither —
@@ -1429,7 +1443,7 @@ def attached_value(token):
         token: One argument.
 
     Returns:
-        The attached value, or None.
+        The flag and its attached value, or a pair of None values.
     """
     for flag in sorted(PAYLOAD_SOURCE_FLAGS, key=len, reverse=True):
         if not token.startswith(flag) or len(token) == len(flag):
@@ -1439,11 +1453,11 @@ def attached_value(token):
             rest = rest[1:]
         if not rest or rest.startswith("-"):
             continue
-        return rest
-    return None
+        return flag, rest
+    return None, None
 
 
-def payload_text(args, whole_command):
+def payload_text(args, whole_command, cwd):
     """The body this command will submit, wherever it is coming from.
 
     Three sources, because a request body has three places to live and the
@@ -1453,39 +1467,45 @@ def payload_text(args, whole_command):
 
     The stdin case takes the WHOLE command text rather than the segment,
     because `jq -n … | curl … --data-binary @-` is one logical command that
-    `segment` has already split in two — the payload literally is the other
+    the scanner has already split in two — the payload literally is the other
     half. That is the shape `lisa-linear-access` mandates, so it has to be
     readable rather than invisible.
 
     Args:
         args: A command's arguments.
         whole_command: The full intercepted command string.
+        cwd: The working directory, or None when it cannot be determined.
 
     Returns:
-        The payload text, possibly empty.
+        The payload text and paths of unreadable payload files.
     """
     parts = []
+    unreadable = []
+    args = before_end_of_options(args)
     for index, token in enumerate(args):
-        value = None
         if token in PAYLOAD_SOURCE_FLAGS and index + 1 < len(args):
+            flag = token
             value = args[index + 1]
-        elif "=" in token:
-            head, rhs = token.split("=", 1)
-            if head in PAYLOAD_SOURCE_FLAGS:
-                value = rhs
-        if value is None:
-            value = attached_value(token)
+        else:
+            flag, value = attached_payload(token)
         if value is None:
             continue
-        stripped = value.strip().strip("'\"")
-        if stripped in STDIN_PAYLOAD_TOKENS:
+        if flag == "--data-raw" or not (
+            value.startswith("@") or flag in {"--input", "--upload-file", "-T"}
+        ):
+            parts.append(value)
+            continue
+        if value in STDIN_PAYLOAD_TOKENS:
             parts.append(whole_command)
             continue
-        parts.append(stripped)
-        path = resolve_operand(stripped)
-        if path is not None:
-            parts.append(read_operand(path))
-    return "\n".join(parts)
+        operand = value[1:] if value.startswith("@") else value
+        path = resolve_operand(operand, cwd)
+        contents = read_operand(path) if path else None
+        if contents is None:
+            unreadable.append(operand)
+        else:
+            parts.append(contents)
+    return "\n".join(parts), unreadable
 
 
 def text_declares_readiness(text):
@@ -1553,13 +1573,14 @@ def scope_declaration(text, state_role_ok):
     return bool(state_role_ok and LIFECYCLE_ROLE_READY.search(text))
 
 
-def creation_signature(name, args, extra=""):
+def creation_signature(name, args, extra="", unreadable_payload=False):
     """Classify a tracker CLI invocation as a creation.
 
     Args:
         name: The CLI basename.
         args: Every token after it in this segment.
         extra: Payload text this command submits, from a file or stdin.
+        unreadable_payload: Whether a named request body could not be read.
 
     Returns:
         A short human-readable signature, or None.
@@ -1578,6 +1599,8 @@ def creation_signature(name, args, extra=""):
         if "api" in args:
             if GRAPHQL_CREATE.search(joined):
                 return "gh api graphql issue creation"
+            if unreadable_payload and "graphql" in args and is_write_request(args):
+                return "gh api graphql with an unreadable request body"
             if endpoint_paths(args, GITHUB_ISSUES_PATH) and is_write_request(args):
                 return "gh api POST .../issues"
         return None
@@ -1600,8 +1623,11 @@ def creation_signature(name, args, extra=""):
                 return "%s POST api.github.com/…/issues" % name
             if JIRA_ISSUE_URL.search(token):
                 return "%s POST …/rest/api/…/issue" % name
-            if "api.linear.app/graphql" in token and GRAPHQL_CREATE.search(joined):
-                return "%s POST api.linear.app/graphql issueCreate" % name
+            if "api.linear.app/graphql" in token:
+                if GRAPHQL_CREATE.search(joined):
+                    return "%s POST api.linear.app/graphql issueCreate" % name
+                if unreadable_payload:
+                    return "%s POST api.linear.app/graphql with an unreadable request body" % name
         return None
 
     return None
@@ -1646,8 +1672,6 @@ def body_file_paths(args):
             head, value = token.split("=", 1)
             if head in BODY_FILE_FLAGS:
                 paths.append(value)
-        if token.startswith("@") and len(token) > 1:
-            paths.append(token[1:])
     return paths
 
 
@@ -1658,15 +1682,12 @@ def read_body_files(args, cwd):
     for path in body_file_paths(args):
         if path in STDIN_PAYLOAD_TOKENS:
             continue
-        candidate = os.path.join(cwd, path)
-        try:
-            if os.path.isfile(candidate) and os.path.getsize(candidate) <= FILE_OPERAND_MAX_BYTES:
-                with open(candidate, encoding="utf-8", errors="replace") as handle:
-                    texts.append(handle.read(FILE_OPERAND_MAX_BYTES))
-                continue
-        except (OSError, ValueError):
-            pass
-        unreadable.append(path)
+        candidate = resolve_operand(path, cwd)
+        contents = read_operand(candidate) if candidate else None
+        if contents is None:
+            unreadable.append(path)
+        else:
+            texts.append(contents)
     return texts, unreadable
 
 
@@ -2170,7 +2191,7 @@ def unparseable_reads_only(text):
     return bool(words) and all(word in READ_ONLY_PROGRAMS for word in words)
 
 
-def executed_operand(argv):
+def executed_operand(argv, cwd):
     """The path this command EXECUTES, or None.
 
     THIS IS THE COMMAND-POSITION QUESTION, and declining to ask it is what
@@ -2202,6 +2223,7 @@ def executed_operand(argv):
 
     Args:
         argv: One command's tokens.
+        cwd: The working directory, or None when it cannot be determined.
 
     Returns:
         The operand token naming a program that will run, or None.
@@ -2216,7 +2238,7 @@ def executed_operand(argv):
         return args[0] if args else None
     # A command word that is ITSELF a readable file is being executed by its
     # shebang — `./create.sh` names no interpreter and runs all the same.
-    if program not in EXECUTING_INTERPRETERS and resolve_operand(token) is not None:
+    if program not in EXECUTING_INTERPRETERS and resolve_operand(token, cwd) is not None:
         return token
     # Reached by a known interpreter AND by a program this parser cannot name.
     # The unknown case is followed on purpose — see READ_ONLY_PROGRAMS.
@@ -2270,7 +2292,7 @@ def executed_operand(argv):
     return redirected
 
 
-def file_operands(argv):
+def file_operands(argv, cwd):
     """The file this command EXECUTES, if it executes one.
 
     Deciding WHICH programs execute their operands is the question this file
@@ -2280,16 +2302,17 @@ def file_operands(argv):
 
     Args:
         argv: One command's tokens.
+        cwd: The working directory, or None when it cannot be determined.
 
     Returns:
         Existing paths, deduplicated across the whole scan and capped.
     """
     paths = []
-    operand = executed_operand(argv)
+    operand = executed_operand(argv, cwd)
     for token in [operand] if operand is not None else []:
         if len(paths) >= FILE_OPERANDS_PER_SEGMENT:
             break
-        path = resolve_operand(token)
+        path = resolve_operand(token, cwd)
         if path is None:
             continue
         try:
@@ -2408,19 +2431,14 @@ def scan(text, depth, from_file=False, cwd=tool_cwd):
             )
         return None
 
-    for index, (argv, separator) in enumerate(connected_segments(tokens)):
-        if index == 0 and argv[0] == "cd" and separator == "&&":
-            # The next command only runs if cd succeeded. An unresolvable cd
-            # leaves the original tool folder as the available context.
-            cwd = directory_after_cd(argv, cwd) or cwd
-            continue
+    for argv, cwd in segments_with_directory(tokens, cwd):
         for index, token in enumerate(argv):
             name = basename(token)
             if name not in TRACKER_CLIS and name not in HTTP_CLIS:
                 continue
             args = argv[index + 1 :]
-            submitted = payload_text(args, text)
-            signature = creation_signature(name, args, submitted)
+            submitted, missing_payload = payload_text(args, text, cwd)
+            signature = creation_signature(name, args, submitted, bool(missing_payload))
             if signature is None:
                 continue
             # The ambient override is the human operator's. An inline
@@ -2451,7 +2469,7 @@ def scan(text, depth, from_file=False, cwd=tool_cwd):
             # A script declares once, for itself. See `scope_declaration`.
             if from_file and scope_declaration(text, state_role_ok):
                 continue
-            return signature, roles, target, next(iter(unreadable), None)
+            return signature, roles, target, next(iter([*missing_payload, *unreadable]), None)
 
         for operand in nested_operands(argv):
             if depth >= MAX_NESTING_DEPTH:
@@ -2481,7 +2499,7 @@ def scan(text, depth, from_file=False, cwd=tool_cwd):
         # review before it shipped.
         if ambient_override and not inline_override:
             continue
-        for path in file_operands(argv):
+        for path in file_operands(argv, cwd):
             contents = read_operand(path)
             if not contents:
                 continue

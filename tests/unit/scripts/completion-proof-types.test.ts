@@ -78,6 +78,8 @@ describe("typed completion attachment structure", () => {
     "63 examples, 0 failures",
     "38 examples, 0 failures, 9 pending",
     "1 example, 1 failure",
+    "1 example, 0 failures, 1 error occurred outside of examples",
+    "4 examples, 0 failures, 2 pending, 2 errors occurred outside of examples",
     "\u001b[32m2 examples, 0 failures\u001b[0m",
   ])("accepts a captured RSpec summary of %s", summary => {
     const bytes = Buffer.from(
@@ -90,6 +92,7 @@ describe("typed completion attachment structure", () => {
 
   it.each([
     "0 examples, 0 failures",
+    "0 examples, 0 failures, 1 error occurred outside of examples",
     "Finished in 0.01 seconds",
     "Expected RSpec to print 63 examples, 0 failures",
   ])("refuses text without an RSpec run summary: %s", text => {

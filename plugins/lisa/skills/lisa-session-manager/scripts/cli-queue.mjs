@@ -55,7 +55,11 @@ import { trustedReleaseEntries } from "./config.mjs";
 import { readJsonFile } from "./json-input.mjs";
 import { readLedger } from "./ledger.mjs";
 import { blockingGapRepo, listSetupGaps } from "./ledger-setup-gaps.mjs";
-import { fetchGithubBacklog, fetchGithubQueue } from "./queue-github.mjs";
+import {
+  fetchGithubBacklog,
+  fetchGithubQueue,
+  githubReleaserIds,
+} from "./queue-github.mjs";
 import { readIssueComments } from "./stale-links-github.mjs";
 import { readInFlight, readRestores } from "./stale-links-state.mjs";
 
@@ -260,11 +264,15 @@ export async function queue(ctx) {
   // Resolved local-then-global like `human-gate-act.mjs policy`, so a hold
   // the project's mode keeps is never dispatched as Ready work (#4687).
   const gatePolicy = resolveHumanGatePolicy(project.local, project.global);
+  const releasers = trustedReleaseEntries(config);
   const policy = {
     me,
     operators,
     trustedAuthorIds: config?.trustedAuthorIds ?? undefined,
-    trustedHumanActorIds: idComparableValues(trustedReleaseEntries(config)),
+    trustedHumanActorIds:
+      tracker === "github"
+        ? githubReleaserIds(ctx, releasers)
+        : idComparableValues(releasers),
     commentsFor:
       tracker === "github"
         ? ref => readIssueComments(ctx, ref)

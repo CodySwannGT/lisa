@@ -98,7 +98,7 @@
       "children": []
     },
     "lib/changed-paths.mjs": {
-      "sha256": "9f05df13c5cfc070812803140a9d58bf8b86300278a58f809cb1159c8d6442ed",
+      "sha256": "1d721b51c529f0de8e4cecb81de484cd9e73cd401177ae40b8f8e03cc7eb5a52",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "node:fs",
@@ -148,7 +148,7 @@
       "children": []
     },
     "lib/completion-proof-content.mjs": {
-      "sha256": "877bcedb2d3a566e27dcdda3021eb66545475af02b363a4075d146f0f89d7d07",
+      "sha256": "25d44e9eeed728d046a45e5662691c7112cb271b5decc48ea9fe0fe038812538",
       "staticImports": [
         "lib/completion-proof-shape.mjs",
         "lib/usage-ledger-integrity.mjs",
@@ -1666,7 +1666,7 @@
       "children": []
     },
     "lisa-run-gates.mjs": {
-      "sha256": "89502b2f1feda98565a51745932b5cbd8f33387d2e1cd0f8234a77df56a298ae",
+      "sha256": "fe30e611c65737900492df31878bb0eb4c69474831577b110ee4be3b2579b59b",
       "staticImports": [
         "lib/affected-tests.mjs",
         "lib/bounded-spawn.mjs",

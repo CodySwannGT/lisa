@@ -159,7 +159,7 @@ export function validateTypedBytes(kind, bytes, name) {
           )
       ),
     "test-run-log": () =>
-      /^[ \t]*[1-9]\d* examples?, \d+ failures?(?:, \d+ pending)?[ \t]*\r?$/m.test(
+      /^[ \t]*[1-9]\d* examples?, \d+ failures?(?:, \d+ pending)?(?:, [1-9]\d* errors? occurred outside of examples)?[ \t]*\r?$/m.test(
         stripVTControlCharacters(text)
       ) ||
       (testSummary(text) &&

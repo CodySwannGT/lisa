@@ -161,10 +161,12 @@ nothing to create. Use the canonical repository slug associated with the audit f
 [lisa-control-gap-parent] repository=<owner>/<repo>
 ~~~
 
-1. Use the tracker read path from step 4 to search open containers for the full parent marker,
-   including the repository slug. Read each candidate's description and creation time. When the
-   search finds none, also list open containers and read their descriptions because the search index can lag. Match both the parent tag and the exact
-   repository slug in the description. Use the oldest open match if there are several, and mention
+1. For Linear, use `lisa-linear-access operation: list-projects team:<team>` and read each open
+   Project with `get-project id:<ID>` to get its description and creation time. Use `list-issues`
+   only to match individual gap tickets in step 4. For GitHub and Jira, use the tracker read path
+   from step 4 to search open Epic containers for the parent marker. If the search finds none,
+   list open Epics and read their descriptions because the search index can lag. Match the full
+   marker with the repository slug. Use the oldest open match if there are several, and mention
    the others in the summary. If the read fails, report the new gap tickets as blocked and file
    nothing.
 2. When there is no match, call `lisa-tracker-write` once to create an Epic (a Project in Linear)
