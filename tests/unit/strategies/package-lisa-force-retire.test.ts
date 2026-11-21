@@ -289,25 +289,19 @@ describe("PackageLisaStrategy", () => {
       expect(outcome.written).toBe("^5.0.9");
     });
 
-    // NEGATIVE CONTROL. `>=5.0.9` is unbounded above and admits `6.x`, which
-    // `^5.0.1` forbids. Neither contains the other, so the refusal is the whole
-    // point of the guard and must survive untouched.
-    it("still refuses an unbounded host range and names both sides", async () => {
+    it("caps an unbounded host range and reports both original constraints", async () => {
       const outcome = await applyPinPair("^5.0.1", ">=5.0.9");
 
-      expect(outcome.error).not.toBeNull();
-      expect(outcome.error?.message).toContain(`overrides.${PKG}`);
-      expect(outcome.error?.message).toContain(">=5.0.9");
-      expect(outcome.error?.message).toContain("^5.0.1");
-      // Refusing means refusing: the host manifest is left as it was.
-      expect(outcome.written).toBe(">=5.0.9");
+      expect(outcome.error).toBeNull();
+      expect(outcome.note).toContain(`overrides.${PKG}`);
+      expect(outcome.note).toContain(">=5.0.9");
+      expect(outcome.note).toContain("^5.0.1");
+      expect(satisfies("5.0.8", outcome.written as string)).toBe(false);
+      expect(satisfies("5.0.9", outcome.written as string)).toBe(true);
+      expect(satisfies("6.0.0", outcome.written as string)).toBe(false);
     });
 
-    // The nearest neighbour to the fix, and the reason it is a `<` rewrite and
-    // not a `<=` one. `>=5.0.9 <=6.0.0` differs from the kept case by a single
-    // character and genuinely admits `6.0.0`, which `^5.0.1` forbids — a fix
-    // that widened "comparable" carelessly would swallow this one too.
-    it("still refuses an inclusive ceiling that admits the next major", async () => {
+    it("keeps the exclusive cap when the host ceiling includes the next major", async () => {
       const outcome = await applyPinPair(
         "^5.0.1",
         HOST_INCLUSIVE_CEILING_RANGE
@@ -315,9 +309,10 @@ describe("PackageLisaStrategy", () => {
 
       expect(satisfies("6.0.0", HOST_INCLUSIVE_CEILING_RANGE)).toBe(true);
       expect(satisfies("6.0.0", "^5.0.1")).toBe(false);
-      expect(outcome.error).not.toBeNull();
-      expect(outcome.error?.message).toContain("<=6.0.0");
-      expect(outcome.written).toBe(HOST_INCLUSIVE_CEILING_RANGE);
+      expect(outcome.error).toBeNull();
+      expect(outcome.note).toContain("<=6.0.0");
+      expect(satisfies("5.9.9", outcome.written as string)).toBe(true);
+      expect(satisfies("6.0.0", outcome.written as string)).toBe(false);
     });
 
     // A spec semver cannot parse at all is not a range question. It never

@@ -149,10 +149,11 @@ It prints one JSON document. Read these fields:
 | `seeded` | The checks it declared just now, each with the moment it runs at. |
 | `declared_gates` | How many checks the declaration holds now. |
 
-- **`paved`.** The whole repository is one piece of software on a project type Lisa ships checks
-  for. The command has already declared every one of those checks that the repository has a task
-  for, and it never changes a check that was already declared, so running it again changes
-  nothing. Nothing is discovered and nothing is asked on this road. **Go straight to step 7, and
+- **`paved`.** Lisa ships checks for the whole repository's project type or for every folder
+  the audit named. The command declares the available shipped checks using each project's own
+  tasks. A folder check runs in that folder with its task runner. Already declared gates keep
+  their settings, and running the command again leaves the declarations unchanged.
+  **Go straight to step 7, and
   skip step 8.** If
   `declared_gates` is `0`, nothing could be declared because the repository does not yet have the
   tasks those checks run: say so in your closing message, and that setting Lisa up for this
@@ -317,14 +318,14 @@ exist. Keep everything else in the file as it is.
 
 ### Step 7: Have the declaration checked against the audit
 
-**Needs:** the declaration. **Hands on:** a declaration every part of which the audit supports.
+**Needs:** the declaration. **Hands on:** a declaration supported by shipped checks or audit evidence.
 
 ```bash
 lisa controls declaration-check
 ```
 
-- **Exit 0.** Every declared part is supported. On the paved road it passes at once, because
-  nothing was declared from a finding.
+- **Exit 0.** Lisa reproduced the shipped folder checks from the local task manifests and
+  confirmed audit support for any parts declared from findings.
 - **Any other exit.** Each line printed is one problem, naming the gate and the part. A part that
   names a place the audit did not report, rests on a question nobody answered or on an answer
   about something else, or serves a requirement the audit still asks about is refused. Correct the

@@ -28,7 +28,7 @@
       "test:node:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-test-node.mjs",
       "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- lisa-test-run --profile typescript --adapter vitest -- vitest run --exclude='**/integration/**'",
       "test:watch:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile typescript --adapter vitest -- vitest",
-      "typecheck:lisa": "node scripts/lib/worktree-dependencies.mjs && tsc --noEmit",
+      "typecheck:lisa": "node scripts/lib/worktree-dependencies.mjs && node scripts/lisa-typecheck.mjs",
       "security:audit:lisa": "node scripts/lisa-audit.mjs"
     },
     "devDependencies": {

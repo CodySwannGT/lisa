@@ -239,10 +239,8 @@ export interface ControlRegisterEntry {
   /** Who answers for the rule, or `null` when the gate names nobody. */
   readonly accountable_party: string | null;
   /**
-   * What supports the entry. Present on every entry generated from one of a
-   * gate's `parts`. Absent on the entry of a gate with no parts: that rule
-   * comes from the declarations Lisa ships for a supported project type, and
-   * has no part to carry evidence.
+   * The audit location or answered question supporting a discovery part.
+   * Whole-repository rules and verified shipped folder checks omit this field.
    */
   readonly evidence?: ControlEvidence;
   /** Present only while the entry is {@link CONTROL_ENTRY_STATUSES unproved}. */

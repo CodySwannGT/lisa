@@ -60,10 +60,11 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Build package
         run: bun run build
-      - name: Execute and name GitHub evidence upload regression
+      - name: Execute and name GitHub evidence upload and issue reader regressions
         run: >-
           node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- ./node_modules/.bin/vitest run
-          tests/unit/strategies/github-evidence-upload.test.ts --reporter=verbose
+          tests/unit/strategies/github-evidence-upload.test.ts
+          tests/unit/skills/github-reader-projects-optional.test.ts --reporter=verbose
       - name: Execute and name current PR base regressions
         run: >-
           node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- ./node_modules/.bin/vitest run

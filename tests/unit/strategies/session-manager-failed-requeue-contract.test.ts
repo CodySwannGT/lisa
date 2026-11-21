@@ -37,14 +37,14 @@ describe.each(ALL_ROOTS)("FAILED worker answer requeue (%s)", root => {
     expect(bullet).toContain("A `DONE` worker's item is left where it is");
   });
 
-  it("moves it only from the blocked role, never over a human's move", () => {
+  it("requeues an answered FAILED decision held in claimed as well as blocked", () => {
     const finished = clearing.slice(
       clearing.indexOf("whose worker already reported `DONE` or `FAILED`")
     );
     const bullet = flat(finished.slice(0, finished.indexOf("\n\n")));
-    // A FAILED handled as `--kind decision` is held, not moved, on FAILED.
-    expect(bullet).not.toContain(
-      "A worker's `FAILED` moved the item to the `blocked` role"
+    expect(bullet).toContain("`claimed` or `blocked` role");
+    expect(flat(clearing)).toMatch(
+      /returned `requeue: true` and the read-back shows the item in the `claimed` or `blocked` role, the same update also moves it to the `ready` role/
     );
   });
 

@@ -14,19 +14,22 @@ Repository name for scoped comments and logs: `basename $(git rev-parse --show-t
 
 ## Phase 1 — Resolve Context
 
-1. Confirm `gh auth status` succeeds.
-2. Parse `$ARGUMENTS`. Accept either:
-   - `<org>/<repo>#<number>` token, OR
-   - `https://github.com/<org>/<repo>/issues/<number>` URL.
-
-   If `$ARGUMENTS` is just `#<number>` or `<number>`, resolve `<org>/<repo>` from `.lisa.config.json` (`github.org` / `github.repo`).
-3. If the input doesn't parse cleanly, stop and report. Do NOT guess.
+Pass the issue number, `<org>/<repo>#<number>`, or GitHub issue URL to the reader from the Lisa checkout. The reader resolves `.lisa.config.local.json` over `.lisa.config.json` before any GitHub request. A bare number uses `github.org` and `github.repo`. Configuration or syntax failure stops the read.
 
 ## Phase 2 — Fetch Primary Issue
 
 ```bash
-gh issue view <number> --repo <org>/<repo> --json number,title,body,state,stateReason,author,assignees,labels,milestone,createdAt,updatedAt,closedAt,url,comments,reactionGroups,projectItems
+lisa --no-update-check github-read-issue '<issue-ref>'
 ```
+
+Use `issue`, `comments`, `graph`, `timeline`, and `pullRequests` from the returned JSON. The reader checks the native GitHub session and requests repository data on its existing identity. A failed required read stops the operation. Report the exact diagnostic before work.
+
+`project` describes only the repository's configured coordination service:
+
+- `unconfigured` means repository reads ran without Projects requests or scope requirements.
+- `verified` supplies metadata for the one configured Project. It establishes the Project's identity, with issue membership still unknown.
+- `unverified` carries the exact warning for an unavailable best-effort Project. Preserve the warning and continue with verified repository data.
+- A failure of a required Project read exits with its exact diagnostic. Stop before claiming work or returning a complete context bundle.
 
 Extract and preserve:
 
@@ -63,46 +66,11 @@ Any other `##` section: capture under `extra_sections` so callers can see PRDs t
 
 ### Comments
 
-Fetch ALL comments, always through the paginated endpoint, flattened into one array: `gh api repos/<org>/<repo>/issues/<number>/comments --paginate --slurp | jq 'add // []'` (author, body, created_at for each). `--paginate` alone emits one JSON array per page, so reading or counting its raw output undercounts; `--slurp` plus `jq 'add'` flattens the pages first. The `comments` field of `gh issue view --json` is not the source of record — it can be capped. Do not truncate. The fetched count is the number of comments after flattening (`... | jq 'add // [] | length'`); compare it with the issue's `comments` total (`gh api repos/<org>/<repo>/issues/<number> --jq .comments`); if they differ or a page fails, set `comments_complete: false` and say so at the top of the Comments section. Flag comments that contain:
-- Credentials, reproduction steps
-- Status updates from stakeholders
-- Decisions
-- Triage headers like `[<repo>]`
-
-Pagination is unconditional — never skip `--paginate` because an issue looks short.
+Use every comment returned in `comments`, including author, body, and creation time. The reader flattens native pages and verifies the count against the issue before it returns a bundle. Flag reproduction details, status updates, decisions, and scoped triage headers. Handle credential-shaped text according to the existing privacy rules.
 
 ## Phase 3 — Fetch Sub-issue Graph (Parent + Children)
 
-GitHub native sub-issues are exposed via GraphQL:
-
-```graphql
-query($org:String!,$repo:String!,$number:Int!){
-  repository(owner:$org,name:$repo){
-    issue(number:$number){
-      id
-      parent { number title state url repository { nameWithOwner } }
-      subIssues(first: 100) {
-        nodes {
-          number title state url
-          repository { nameWithOwner }
-          labels(first: 50) { nodes { name } }
-          assignees(first: 5) { nodes { login } }
-        }
-      }
-    }
-  }
-}
-```
-
-```bash
-gh api graphql -f query='<above>' -F org=<org> -F repo=<repo> -F number=<number>
-```
-
-Capture:
-- **Parent sub-issue**: number, title, state, url, repo.
-- **Child sub-issues**: list with number, title, state, url, repo, labels (especially `type:` and `status:`), assignees.
-
-If the GraphQL `parent` / `subIssues` fields aren't available (older GHES), fall back to parsing `Parent: #<n>` text in the body and recording sub-issue text references — note "GraphQL sub-issues unavailable" in the bundle so callers know parent-link is text-based.
+Use `graph.parent` and every item in `graph.children`, with repository, number, title, state, URL, labels, and assignees where returned. When the GitHub Enterprise schema lacks native parent or sub-issue support, `graph.warning` preserves the provider message. In that case parse the body's `Parent: #<n>` and sub-issue text references and label them as text-based.
 
 ## Phase 4 — Parse Issue Links from Body
 
@@ -121,7 +89,7 @@ For each parsed reference, fetch the linked issue/PR:
 
 ```bash
 gh issue view <link-number> --repo <link-org>/<link-repo> --json number,title,state,labels,assignees,url
-gh pr view <link-number> --repo <link-org>/<link-repo> --json number,title,state,reviewDecision,merged,mergedAt,url,reviewRequests,reviews,comments
+gh pr view <link-number> --repo <link-org>/<link-repo> --json number,title,state,reviewDecision,mergedAt,url,reviewRequests,reviews,comments
 ```
 
 For each linked **issue**, capture: number, title, state, type (from labels), status (from labels), assignees, url.
@@ -134,72 +102,17 @@ For each linked **PR**, capture: number, title, state, mergedAt, reviewDecision,
 
 If the primary issue has a parent sub-issue (i.e., is a Story / Task / Sub-task / Improvement under an Epic):
 
-1. Fetch the parent Epic in full via Phase 2 logic — full body, all comments, Validation Journey if present.
-2. Fetch the parent Epic's other sub-issues (siblings) via the same GraphQL `subIssues` query against the parent. Filter out the primary issue itself.
+1. Read the parent Epic with the Phase 2 command for its native reference. Preserve the full body, all comments, and Validation Journey when present.
+2. Use `graph.children` from the parent's response to identify siblings. Filter out the primary issue itself.
 3. For each sibling, capture: number, title, type label, status label, assignee, url. Read the first paragraph of each sibling's body for context. If a sibling has `status:in-progress` with an assignee different from the primary issue's assignee, **flag prominently** so the caller can avoid duplicate work.
 
 If the primary issue IS an Epic, capture all children via Phase 3's `subIssues` traversal (already done).
 
 ## Phase 6 — Fetch Linked PRs and Label-Event History
 
-GitHub's native `closingIssuesReferences` and timeline give the canonical PR↔Issue relationship. The same timeline read also exposes label events, which are Lisa's GitHub-native transition history. Keep this as one GraphQL read path; do not add a second REST timeline fetch.
+Use the native `pullRequests` list from the Phase 2 command and deduplicate it against body references. Include each PR's actual base, head, review status, reviews, and unresolved threads. Surface any warning on a linked PR as incomplete access to that PR.
 
-```bash
-query='query($org:String!,$repo:String!,$number:Int!,$cursor:String){
-  repository(owner:$org,name:$repo){
-    issue(number:$number){
-      closedByPullRequestsReferences(first:50){
-        nodes{number title state merged mergedAt url repository{nameWithOwner}}
-      }
-      timelineItems(
-        first:100
-        after:$cursor
-        itemTypes:[CROSS_REFERENCED_EVENT,LABELED_EVENT,UNLABELED_EVENT]
-      ){
-        pageInfo{hasNextPage endCursor}
-        nodes{
-          ...on CrossReferencedEvent{
-            createdAt
-            actor{login}
-            source{...on PullRequest{number title state url repository{nameWithOwner}}}
-          }
-          ...on LabeledEvent{
-            createdAt
-            actor{login}
-            label{name}
-          }
-          ...on UnlabeledEvent{
-            createdAt
-            actor{login}
-            label{name}
-          }
-        }
-      }
-    }
-  }
-}'
-
-cursor=null
-while :; do
-  if [ "$cursor" = null ]; then
-    page=$(gh api graphql -f query="$query" -F org=<org> -F repo=<repo> -F number=<number>)
-  else
-    page=$(gh api graphql -f query="$query" -F org=<org> -F repo=<repo> -F number=<number> -f cursor="$cursor")
-  fi
-  printf '%s\n' "$page"
-  has_next=$(printf '%s\n' "$page" | jq -r '.data.repository.issue.timelineItems.pageInfo.hasNextPage')
-  cursor=$(printf '%s\n' "$page" | jq -r '.data.repository.issue.timelineItems.pageInfo.endCursor')
-  [ "$has_next" = true ] || break
-done
-```
-
-Capture:
-- **Linked PRs**: PR number, title, state, mergedAt, repo, url. Dedupe with PRs found in Phase 4. Preserve the existing `CrossReferencedEvent` behavior for PR linkage; widening the query must not change that consumer shape.
-- **Label-event history**: chronological `LabeledEvent` and `UnlabeledEvent` entries with event kind, label name, actor login, and `createdAt`. Preserve oldest→newest order across all pages. Status labels (`status:*`) are the GitHub transition history that downstream rejection detection consumes, but keep non-status label events too so callers can audit the full label stream.
-
-Pagination is mandatory. `timelineItems(first:100)` silently truncates busy issues unless `pageInfo.hasNextPage` / `endCursor` is followed. If a page fetch fails, record label-event history as `unknown` with the error and continue assembling the bundle; a history read failure must never block the build.
-
-For each PR, fetch unresolved review comments via `gh pr view <num> --repo <org>/<repo> --json reviews,reviewThreads`.
+Use `timeline.events` for the label-event history, preserving oldest-to-newest ordering and the label, actor, and time on each event. Status labels remain the transition history and other label events stay available for audit. If `timeline.warning` is present, record the history as unknown with the provider error. A missing history does not remove separately verified PR links or stop the build.
 
 ## Phase 7 — Assemble Context Bundle
 
@@ -278,6 +191,9 @@ Produce a single structured output that the caller can pass verbatim to downstre
 ### Body-referenced (`Resolves #<n>`)
 <per-PR block>
 
+## Project coordination
+<status and configured Project metadata or exact warning from the reader>
+
 ## Label-Event History
 - Status: <known|unknown>
 - Events:
@@ -298,7 +214,7 @@ Produce a single structured output that the caller can pass verbatim to downstre
 
 - Never summarize or truncate the primary issue's body or Validation Journey section.
 - Never skip a link type, even if it seems unrelated — the agent downstream decides relevance.
-- If a linked issue / PR returns an access error (private repo, deleted, etc.), capture the error and continue. Do not abort the read.
+- For an additional linked issue or PR read, capture any access error and carry it with that link. If the Phase 2 command stopped, report its diagnostic before proceeding with work.
 - Flag in-flight sibling work prominently so the caller can avoid duplicate implementation.
 - If the issue has no parent sub-issue, state this explicitly — do not silently skip Phase 5.
 - Output is pure context. This skill never modifies the issue.

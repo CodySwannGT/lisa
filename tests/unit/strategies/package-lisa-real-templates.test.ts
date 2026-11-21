@@ -145,20 +145,21 @@ describe("PackageLisaStrategy", () => {
       });
     });
 
-    // `^1.73.0` admits 1.86.0+, whose preset has not been reviewed against
-    // Lisa's lint policy, so it is neither "behind" (template raises it) nor a
-    // provable subset (host kept). `classifyHostPin` calls that incomparable
-    // and REFUSES, naming both sides — Lisa must neither silently admit an
-    // unreviewed preset nor silently downgrade the host.
-    it("refuses a host range that admits releases above the ceiling and names both sides", async () => {
-      const outcome = await applyRealOxlintPin("typescript", "^1.73.0");
+    it.each(["typescript", "expo"] as const)(
+      "applies the intersection of the host range and the %s cap",
+      async stack => {
+        const outcome = await applyRealOxlintPin(stack, "^1.73.0");
 
-      expect(outcome.error).not.toBeNull();
-      expect(outcome.error?.message).toContain("^1.73.0");
-      expect(outcome.error?.message).toContain(OXLINT_RANGE);
-      // Refusing means refusing: the host manifest is left as it was.
-      expect(outcome.written.oxlint).toBe("^1.73.0");
-    });
+        expect(outcome.error).toBeNull();
+        for (const name of OXLINT_PACKAGES) {
+          const selected = outcome.written[name] as string;
+          expect(satisfies("1.72.9", selected)).toBe(false);
+          expect(satisfies("1.73.0", selected)).toBe(true);
+          expect(satisfies("1.85.9", selected)).toBe(true);
+          expect(satisfies("1.86.0", selected)).toBe(false);
+        }
+      }
+    );
 
     it("raises a stale host floor to the bounded range", async () => {
       const outcome = await applyRealOxlintPin("typescript", "^1.0.0");

@@ -1,7 +1,7 @@
 {
   "force": {
     "scripts": {
-      "build": "node scripts/lib/worktree-dependencies.mjs && tsc --noEmit",
+      "build": "node scripts/lib/worktree-dependencies.mjs && node scripts/lisa-typecheck.mjs",
       "cdk": "cdk",
       "lint:fix": "node scripts/lib/worktree-dependencies.mjs && oxlint --fix && eslint . --fix",
       "lint:lisa": "node scripts/lib/worktree-dependencies.mjs && oxlint && eslint . --quiet",
