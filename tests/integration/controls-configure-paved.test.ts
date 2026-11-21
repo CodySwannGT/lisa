@@ -14,6 +14,10 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import {
+  completeAuditReport,
+  writeAuditReport,
+} from "../helpers/control-audit-report.js";
 import { registerSchemaErrors } from "../helpers/control-register.js";
 import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
 import {
@@ -42,6 +46,36 @@ const lisaFolder = useConfigureRepositories();
 const WITH_TASKS = { "package.json": PACKAGE_WITH_TASKS };
 
 describe("configure on F-paved, the paved road", () => {
+  it("writes the same valid register twice for two TypeScript folders", () => {
+    const repoPath = configureRepository("F-empty", {
+      "app-a/package.json": PACKAGE_WITH_TASKS,
+      "app-b/package.json": PACKAGE_WITH_TASKS,
+    });
+    writeAuditReport(repoPath, completeAuditReport([".", "app-a", "app-b"]));
+
+    const first = runConfigureSkillCommands(repoPath, lisaFolder());
+    expect(configureStep(first, SEED_BLOCK).stdout).toContain(
+      '"road": "paved"'
+    );
+    expect(first.filter(step => step.status !== 0)).toEqual([]);
+    const hashes = [hashOf(repoPath, REGISTER), hashOf(repoPath, CONFIG)];
+    const second = runConfigureSkillCommands(repoPath, lisaFolder());
+    expect(second.filter(step => step.status !== 0)).toEqual([]);
+    expect([hashOf(repoPath, REGISTER), hashOf(repoPath, CONFIG)]).toEqual(
+      hashes
+    );
+    const register = writtenRegister(repoPath);
+    expect(registerSchemaErrors(register)).toEqual([]);
+    expect(register.entries.map(entry => entry.id)).toEqual([
+      "build-integrity@app-a",
+      "build-integrity@app-b",
+      "code-style@app-a",
+      "code-style@app-b",
+      "type-correctness@app-a",
+      "type-correctness@app-b",
+    ]);
+  });
+
   it("produces byte-identical registers on two consecutive runs", () => {
     const repoPath = configureRepository("F-paved", WITH_TASKS);
 

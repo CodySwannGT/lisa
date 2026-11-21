@@ -37,6 +37,8 @@ interface ControlRegisterRuleContext {
   readonly declaration: GatesDeclaration;
   /** The criterion catalogue of the running Lisa package. */
   readonly catalogue: CriterionCatalogue;
+  /** Scoped declarations reproduced from shipped checks and local tasks. */
+  readonly shippedPartGates?: ReadonlySet<string>;
 }
 
 /** One reason to refuse a declaration; returns one line per problem. */

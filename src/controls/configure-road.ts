@@ -1,22 +1,14 @@
 /**
  * Which of two roads the configure step takes for a repository.
  *
- * - **paved**: the whole repository is one piece of software on a project
- *   type Lisa ships checks for. Its checks are declared from the ones Lisa
- *   ships, by code, so two runs give the same declaration and nobody has to
- *   discover anything.
+ * - **paved**: the whole repository or each folder part is on a project type
+ *   Lisa ships checks for. Lisa declares those checks by code, so two runs
+ *   give the same declaration.
  * - **discovery**: anything else. The checks are declared from what the audit
  *   found, one decision at a time, and every part names what supports it.
  *
- * The decision is made here, from two facts and nothing else, so an agent
- * never has to judge it: the project types detected at the repository root,
- * and the parts the audit report names, when there is a report.
- *
- * A repository with more than one part is always on the discovery road, even
- * when a part is itself a supported project type. The checks Lisa ships run
- * through the task runner at the repository root and cover the repository as
- * one piece; applying a project type to one folder of a mixed repository is
- * not something Lisa does.
+ * The decision uses the audit's folder list and the project types detected at
+ * the root and in each listed folder.
  * @module controls/configure-road
  */
 import { describeScope } from "./audit-report-wording.js";
@@ -34,6 +26,8 @@ export interface ConfigureRoadFacts {
   readonly projectTypes: readonly string[];
   /** The parts the audit report names, or `null` when there is no report. */
   readonly parts: readonly string[] | null;
+  /** The supported project types detected in each audited folder. */
+  readonly partTypes?: Readonly<Record<string, readonly string[]>>;
 }
 
 /** The road, and why, in words an operator can be told. */
@@ -50,8 +44,22 @@ export interface ConfigureRoadDecision {
 export function decideConfigureRoad(
   facts: ConfigureRoadFacts
 ): ConfigureRoadDecision {
-  const { projectTypes, parts } = facts;
+  const { projectTypes, parts, partTypes } = facts;
   const folders = (parts ?? []).filter(part => part !== WHOLE_REPOSITORY_SCOPE);
+  if (folders.length > 0 && partTypes !== undefined) {
+    const unknown = folders.filter(
+      folder => !Object.hasOwn(partTypes, folder) || !partTypes[folder]?.length
+    );
+    return unknown.length > 0
+      ? {
+          road: "discovery",
+          reason: `Lisa found no supported project type in ${unknown.map(describeScope).join(", ")}. The checks for this repository are declared from what the audit found.`,
+        }
+      : {
+          road: "paved",
+          reason: `Lisa ships checks for every audited part (${folders.map(folder => `${describeScope(folder)}: ${partTypes[folder]?.join(", ")}`).join("; ")}). Each part has its own declared tasks.`,
+        };
+  }
   if (folders.length > 0) {
     return {
       road: "discovery",

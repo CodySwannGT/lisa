@@ -1485,7 +1485,7 @@
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "ca594eecf7bb2ef5c3d2eab822b494efff4d61031381b70e3ca6f2df79c49cb2",
+      "a0bbe2e46c6c11cca336fd1fb3c52a99d0b6c6282575ab88008c622e616b226c",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "a33349c0129da13955fea99206d49e6e65c8be9e649e5d387afab83f52820b81",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -11686,6 +11686,7 @@
     "src/controls/secret-scan-json.ts": true,
     "src/controls/secret-scan.ts": true,
     "src/controls/secret-shapes.ts": true,
+    "src/controls/shipped-parts.ts": true,
     "src/controls/threshold-proposal.ts": true,
     "src/controls/tracker-config.ts": true,
     "src/controls/tracker-question.ts": true,
@@ -13440,6 +13441,7 @@
     "tests/unit/controls/secret-scan.test.ts": true,
     "tests/unit/controls/secret-shapes-parity.test.ts": true,
     "tests/unit/controls/seed-manifest.test.ts": true,
+    "tests/unit/controls/seed-parts.test.ts": true,
     "tests/unit/controls/seed.test.ts": true,
     "tests/unit/controls/skill-statements.test.ts": true,
     "tests/unit/controls/support/attest-pull-request-run.ts": true,
