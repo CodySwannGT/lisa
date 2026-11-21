@@ -98,7 +98,7 @@ function withoutEstimateMetadata(body) {
 }
 
 /** Remove only exact canonical machine-owned sections, retaining unknown prose. */
-export function primarySpecProjection(body) {
+function projectPrimarySpec(body) {
   requireProof(
     typeof body === "string",
     "The primary work-item description is unreadable."
@@ -142,6 +142,24 @@ export function primarySpecProjection(body) {
     result = result.slice(0, starts[0].start) + result.slice(ends[0].end);
   }
   return result;
+}
+
+/**
+ * The estimate writer trims the body before appending its managed section.
+ * Ignore the same trailing whitespace so that first write preserves the digest.
+ */
+export function primarySpecProjection(body) {
+  return projectPrimarySpec(body).trimEnd();
+}
+
+/** Accept the previous, untrimmed digest of an otherwise unchanged body. */
+export function matchesPrimarySpecDigest(body, digest) {
+  const projection = projectPrimarySpec(body);
+  const canonical = projection.trimEnd();
+  return (
+    digest === sha256(canonical) ||
+    (canonical !== projection && digest === sha256(projection))
+  );
 }
 
 /** Read the maximal code-fence run without letting its suffix repartition it. */

@@ -89,7 +89,7 @@ describe("linear completion grammar compatibility", () => {
   ])("preserves claiming text for $name", ({ body, expected }) => {
     // This tests the local claiming projection, not an external renderer.
     expect(localMarkers(body)).toEqual(expected);
-    expect(primarySpecProjection(body)).toBe(body);
+    expect(primarySpecProjection(body)).toBe(body.trimEnd());
   });
 
   it.each([
@@ -104,7 +104,7 @@ describe("linear completion grammar compatibility", () => {
   ])("does not claim example evidence in %j", example => {
     const body = `## Validation Journey\n${example}\n1. Capture real output. [EVIDENCE: cli-output: actual]\n`;
     expect(localMarkers(body)).toEqual([{ kind: CLI_OUTPUT, name: "actual" }]);
-    expect(primarySpecProjection(body)).toBe(body);
+    expect(primarySpecProjection(body)).toBe(body.trimEnd());
   });
 
   it("keeps visible evidence around inline comments and legacy screenshots", () => {
