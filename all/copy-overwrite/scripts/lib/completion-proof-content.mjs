@@ -2,6 +2,7 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Validate captured bytes and the canonical v2 claim/obligation conjunctions. */
+import { stripVTControlCharacters } from "node:util";
 import {
   BOUNDARIES,
   KINDS,
@@ -158,8 +159,11 @@ export function validateTypedBytes(kind, bytes, name) {
           )
       ),
     "test-run-log": () =>
-      testSummary(text) &&
-      /(?:✓|PASS|\bok\s+\d+|testName|test_name|fullName| > )/.test(text),
+      /^[ \t]*[1-9]\d* examples?, \d+ failures?(?:, \d+ pending)?[ \t]*\r?$/m.test(
+        stripVTControlCharacters(text)
+      ) ||
+      (testSummary(text) &&
+        /(?:✓|PASS|\bok\s+\d+|testName|test_name|fullName| > )/.test(text)),
     "deploy-log": () =>
       rows.some(
         row =>

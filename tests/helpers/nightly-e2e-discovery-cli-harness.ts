@@ -6,7 +6,7 @@
  */
 import { execFile } from "node:child_process";
 import { on } from "node:events";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import {
   createServer,
   type IncomingMessage,
@@ -53,6 +53,9 @@ interface DiscoveryOptions {
     Record<number, readonly { name: string; conclusion: string }[]>
   >;
   readonly scriptPath?: string;
+  readonly workflowRegistered?: boolean;
+  readonly workflowInWorkspace?: boolean;
+  readonly bootstrapUntil?: string;
 }
 
 /** The listener's trace: requests seen so far and the list-snapshot cursor. */
@@ -76,7 +79,7 @@ function discoveryResponse(
   const match = /\/actions\/runs\/(\d+)(\/jobs|\/artifacts)?$/u.exec(pathname);
   if (pathname.endsWith("/workflows/e2e.yml/runs"))
     return {
-      status: 200,
+      status: options.workflowRegistered === false ? 404 : 200,
       body: {
         workflow_runs:
           options.lists[Math.min(listIndex, options.lists.length - 1)] ?? [],
@@ -164,16 +167,25 @@ async function answerDiscoveryRequests(
 /**
  * Executes the ordinary guard without hiding its failure exit behind --json.
  * @param scriptPath - Source or released script
+ * @param directory - Isolated checkout
  * @param env - Isolated runner environment
  * @returns Process status and unmodified streams
  */
-async function executeDiscoveryCli(scriptPath: string, env: NodeJS.ProcessEnv) {
+async function executeDiscoveryCli(
+  scriptPath: string,
+  directory: string,
+  env: NodeJS.ProcessEnv
+) {
   try {
-    const result = await execute(process.execPath, [scriptPath], {
-      cwd: ROOT,
-      timeout: 20_000,
-      env,
-    });
+    const result = await execute(
+      process.execPath,
+      [path.resolve(ROOT, scriptPath)],
+      {
+        cwd: directory,
+        timeout: 20_000,
+        env,
+      }
+    );
     return { code: 0, stdout: result.stdout, stderr: result.stderr };
   } catch (error) {
     const failed = error as { code: number; stdout: string; stderr: string };
@@ -193,6 +205,11 @@ export async function runDiscoveryCli(options: DiscoveryOptions) {
   const output = path.join(directory, "output");
   const summary = path.join(directory, "summary");
   await Promise.all([writeFile(output, ""), writeFile(summary, "")]);
+  if (options.workflowInWorkspace === true) {
+    const workflows = path.join(directory, ".github", "workflows");
+    await mkdir(workflows, { recursive: true });
+    await writeFile(path.join(workflows, "e2e.yml"), "name: Fixture e2e\n");
+  }
   const server = createServer();
   const stop = new AbortController();
   const answered = answerDiscoveryRequests(
@@ -207,19 +224,24 @@ export async function runDiscoveryCli(options: DiscoveryOptions) {
   if (address === null || typeof address === "string")
     throw new Error("Missing listener port");
   try {
-    const result = await executeDiscoveryCli(options.scriptPath ?? GUARD_REL, {
-      GITHUB_API_URL: `http://127.0.0.1:${address.port}`,
-      GITHUB_REPOSITORY: "o/r",
-      GITHUB_TOKEN: "fixture-token",
-      GITHUB_OUTPUT: output,
-      GITHUB_STEP_SUMMARY: summary,
-      NIGHTLY_BRANCH: "main",
-      NIGHTLY_SUITES: JSON.stringify([
-        { label: "Web e2e", workflow: "e2e.yml", match: { mode: "run" } },
-      ]),
-      NIGHTLY_API_MAX_ATTEMPTS: "3",
-      NIGHTLY_API_RETRY_MAX_SECONDS: "0.001",
-    });
+    const result = await executeDiscoveryCli(
+      options.scriptPath ?? GUARD_REL,
+      directory,
+      {
+        GITHUB_API_URL: `http://127.0.0.1:${address.port}`,
+        GITHUB_REPOSITORY: "o/r",
+        GITHUB_TOKEN: "fixture-token",
+        GITHUB_OUTPUT: output,
+        GITHUB_STEP_SUMMARY: summary,
+        NIGHTLY_BRANCH: "main",
+        NIGHTLY_BOOTSTRAP_UNTIL: options.bootstrapUntil ?? "",
+        NIGHTLY_SUITES: JSON.stringify([
+          { label: "Web e2e", workflow: "e2e.yml", match: { mode: "run" } },
+        ]),
+        NIGHTLY_API_MAX_ATTEMPTS: "3",
+        NIGHTLY_API_RETRY_MAX_SECONDS: "0.001",
+      }
+    );
     stop.abort();
     return {
       ...result,

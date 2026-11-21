@@ -108,6 +108,19 @@ export function withBlockers(ctx, repo, row, blocker) {
 }
 
 /**
+ * Read all native issue comments with GitHub's author metadata.
+ * @param {object} ctx - CLI context
+ * @param {string} ref - GitHub issue reference
+ * @returns {object[] | null} Comments, or null when the read fails
+ */
+export function readIssueComments(ctx, ref) {
+  const [repo, number] = ref.split("#");
+  return readOrUnreadable(() =>
+    listAll(ctx, `repos/${repo}/issues/${number}/comments?per_page=100`)
+  );
+}
+
+/**
  * One issue with its blockers and comments, as the plan reads it.
  * @param {object} ctx - CLI context
  * @param {string} repo - `owner/repo`
@@ -119,9 +132,7 @@ function staleLinkItem(ctx, repo, row, blocker) {
   const enriched = readOrUnreadable(() =>
     withBlockers(ctx, repo, row, blocker)
   );
-  const comments = readOrUnreadable(() =>
-    listAll(ctx, `repos/${repo}/issues/${row.number}/comments?per_page=100`)
-  );
+  const comments = readIssueComments(ctx, `${repo}#${row.number}`);
   // probe-direction: fail-closed — a candidate whose dependency list or
   // comments could not be read gets `nativeBlockers: null`, which the plan
   // reads as "blocker list not read": it is reported and nothing of it is

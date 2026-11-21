@@ -264,7 +264,7 @@ function compareK6(relPath, base, current) {
 }
 
 /**
- * Compare .lisa.config.json allow lists: report every added exception entry.
+ * Compare .lisa.config.json allow lists: report new or edited exceptions.
  *
  * The finding says only what was added, and carries the entry. Whether an
  * added entry is accepted or refused is {@link settleAddedExceptions}' call,
@@ -273,15 +273,15 @@ function compareK6(relPath, base, current) {
  * @param {string} relPath Repo-relative path
  * @param {unknown} base Parsed baseline config
  * @param {unknown} current Parsed current config
- * @returns {Finding[]} One finding per newly added allow entry
+ * @returns {Finding[]} One finding per new or edited allow entry
  */
 function compareAllowList(relPath, base, current) {
-  const baseKeys = new Set(
-    extractAllowEntries(base).map(e => `${e.file} ${e.key}`)
-  );
+  const identity = ({ file, key, reason, until }) =>
+    JSON.stringify({ file, key, reason, until });
+  const previous = new Set(extractAllowEntries(base).map(identity));
   const findings = [];
   for (const entry of extractAllowEntries(current)) {
-    if (!baseKeys.has(`${entry.file} ${entry.key}`)) {
+    if (!previous.has(identity(entry))) {
       findings.push({
         file: relPath,
         key: `thresholdRatchet.allow ${entry.file}#${entry.key}`,
@@ -815,7 +815,12 @@ function compareHumanGateMode(relPath, baselineText, currentText) {
  */
 export function compareFile(relPath, baselineText, currentText) {
   const family = familyFor(relPath);
-  if (!family || baselineText === null || baselineText === undefined) return [];
+  if (!family) return [];
+  if (baselineText === null || baselineText === undefined) {
+    return family.kind === KIND_ALLOW_LIST
+      ? compareAllowList(relPath, undefined, parseJson(currentText))
+      : [];
+  }
 
   if (currentText === null || currentText === undefined) {
     // Deleting an allow list grants nothing, so that half stays silent. The
@@ -863,13 +868,14 @@ export function compareFile(relPath, baselineText, currentText) {
   // separates absent from present-but-unreadable with `cat-file -e` before
   // calling.
   //
-  // The allow-list carve-out is symmetric with the current side and holds for
-  // the same reason: an allow list nobody can read grants no exceptions, so an
-  // unreadable one on either side already fails closed. Reporting it would
-  // block every change touching the file without making anything safer.
+  // An unreadable baseline allow list grants no exceptions. A repaired config
+  // must record each current exception through the same check as a new entry.
   if (base === undefined) {
     return family.kind === KIND_ALLOW_LIST
-      ? compareHumanGateMode(relPath, baselineText, currentText)
+      ? [
+          ...compareHumanGateMode(relPath, baselineText, currentText),
+          ...compareAllowList(relPath, undefined, current),
+        ]
       : [unparseableBaseline(relPath)];
   }
   if (current === undefined) {

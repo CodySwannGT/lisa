@@ -1,4 +1,4 @@
-/** Neither canonical writer may migrate an unsupported input schema. */
+/** Refusals reported by the canonical BDD writers. */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -11,6 +11,17 @@ import { MAP_REL } from "./bdd/support.js";
 useIoLatencyBudget();
 
 describe("BDD canonical writer input admission", () => {
+  it("shows the merge-base command when the coverage writer has no base", () => {
+    const { root } = makeHistory(true);
+    const result = cli(root, "", "check-bdd-coverage.mjs", ["--write"]);
+
+    expect(result.status, result.stderr).toBe(1);
+    expect(result.stderr).toContain(
+      'BDD_BASE_SHA="$(git merge-base HEAD origin/HEAD)" bun run bdd:coverage:write'
+    );
+    expect(result.stderr).toContain("remote-tracking ref");
+  });
+
   it.each(["check-bdd-coverage.mjs", "bdd-matrix.mjs"])(
     "%s refuses an unsupported map schema before changing owned reports",
     script => {
