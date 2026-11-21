@@ -58,7 +58,33 @@ try {
   assert.deepEqual(learnings.resolveLearningsSettings(packedConfig), {
     learningsFile: packedLearningsFile,
     mergeDriverEnabled: false,
+    lowConfidence: "auto-merge",
   });
+  const humanTriageConfigs = [
+    { learnings: { lowConfidence: "human-triage" } },
+    { humanGate: { mode: "strict" } },
+  ];
+  for (const config of humanTriageConfigs) {
+    await writeFile(
+      path.join(configProject, packedConfigFile),
+      `${JSON.stringify(config)}\n`,
+      "utf8"
+    );
+    const resolved = await learnings.readProjectConfig(configProject);
+    assert.equal(
+      learnings.resolveLearningsSettings(resolved).lowConfidence,
+      "human-triage"
+    );
+  }
+  await writeFile(
+    path.join(configProject, packedConfigFile),
+    '{"learnings":{"lowConfidence":"unsupported"}}\n',
+    "utf8"
+  );
+  await assert.rejects(
+    learnings.readProjectConfig(configProject),
+    /learnings\.lowConfidence.*(?:auto-merge|human-triage)/iu
+  );
   await writeFile(
     path.join(configProject, packedConfigFile),
     '{"learnings":{"mergeDriver":"false"}}\n',
@@ -393,7 +419,7 @@ export const invalid: LearningsConfig = { mergeDriver: "false" };
   assert.equal(await readFile(overflow.file, "utf8"), beforeOverflowCollision);
 
   console.log(
-    "[EVIDENCE: packed-learnings-contract] config=validated merge-driver=opt-out types=closed v1=migratable legacy=bounded entries=hardened stamps=hardened race=9 stale=8 chain=stable collision=atomic overflow=fork merge=2 projection=bounded"
+    "[EVIDENCE: packed-learnings-contract] config=validated merge-driver=opt-out low-confidence=default-explicit-strict-invalid types=closed v1=migratable legacy=bounded entries=hardened stamps=hardened race=9 stale=8 chain=stable collision=atomic overflow=fork merge=2 projection=bounded"
   );
 } finally {
   await rm(temporary, { recursive: true, force: true });
