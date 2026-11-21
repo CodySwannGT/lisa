@@ -78,10 +78,11 @@ jobs:
           tests/unit/scripts/registration-deferred.test.ts
           tests/unit/scripts/review-evidence-wakeup.test.ts
           tests/integration/registration-deferred-cli.test.ts --reporter=verbose
-      - name: Exercise the filing guard with non-shell issue references
+      - name: Exercise filing and worktree binding with source references
         run: >-
           node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- ./node_modules/.bin/vitest run
-          tests/unit/hooks/block-direct-issue-create-non-shell-prose.test.ts --reporter=verbose
+          tests/unit/hooks/block-direct-issue-create-non-shell-prose.test.ts
+          tests/unit/hooks/worktree-binding-inert-source-data.test.ts --reporter=verbose
       - name: Verify built Lisa CLI
         env:
           LISA_SKIP_UPDATE_CHECK: '1'

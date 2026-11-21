@@ -439,6 +439,56 @@ function applyCd(current, target) {
   }
 }
 
+const PYTHON_STRING = String.raw`(?:"[^"\\]*"|'[^'\\]*')`;
+const PYTHON_BYTES = `b${PYTHON_STRING}`;
+const PYTHON_NAME = "[A-Za-z_][A-Za-z0-9_]*";
+const PYTHON_BYTES_ASSIGNMENT = new RegExp(
+  String.raw`^(${PYTHON_NAME})[ \t]*=[ \t]*${PYTHON_BYTES}$`,
+  "u"
+);
+const PYTHON_BYTES_COMPARISON = new RegExp(
+  String.raw`^assert[ \t]+(${PYTHON_NAME})\.replace\([ \t]*${PYTHON_BYTES}[ \t]*,[ \t]*${PYTHON_BYTES}[ \t]*\)[ \t]*==[ \t]*(${PYTHON_NAME})$`,
+  "u"
+);
+const PYTHON_LITERAL_GIT_CALL = new RegExp(
+  String.raw`^subprocess\.check_output\(\[[ \t]*(?:"git"|'git')(?:[ \t]*,[ \t]*${PYTHON_STRING})*[ \t]*\](?:[ \t]*,[ \t]*cwd[ \t]*=[ \t]*b?${PYTHON_STRING})?[ \t]*\)$`,
+  "u"
+);
+
+/**
+ * Ignore the literals of a bounded Python source-byte comparison. The script
+ * can assign two bytes values and compare one replacement with the other.
+ * Optional literal Git subprocess calls remain visible to the path scanner.
+ * Any additional Python statement keeps the full source under inspection.
+ * @param {string} text - The bounded source read from the script
+ * @returns {string} The source to inspect for directory paths
+ */
+function pythonSourceForPathScan(text) {
+  const lines = text
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => line !== "" && !line.startsWith("#"));
+  const importsSubprocess = lines[0] === "import subprocess";
+  const [first, second, assertion, ...calls] = lines.slice(
+    importsSubprocess ? 1 : 0
+  );
+  const before = PYTHON_BYTES_ASSIGNMENT.exec(first ?? "")?.[1];
+  const after = PYTHON_BYTES_ASSIGNMENT.exec(second ?? "")?.[1];
+  const compared = PYTHON_BYTES_COMPARISON.exec(assertion ?? "");
+  if (
+    before === undefined ||
+    after === undefined ||
+    before === after ||
+    compared?.[1] !== before ||
+    compared[2] !== after ||
+    (calls.length > 0 && !importsSubprocess) ||
+    !calls.every(line => PYTHON_LITERAL_GIT_CALL.test(line))
+  ) {
+    return text;
+  }
+  return calls.join("\n");
+}
+
 /**
  * The foreign worktree an executed script reaches, or null.
  *
@@ -529,7 +579,12 @@ function scriptReachingForeignTree(payload, bound) {
       // Not a readable file: nothing was executed that this can read.
       continue;
     }
-    const foreign = foreignTreeIn(text, bound, cwd);
+    const program = tokenise(segment)[0]?.split("/").at(-1);
+    const inspected =
+      program === "python" || program === "python3"
+        ? pythonSourceForPathScan(text)
+        : text;
+    const foreign = foreignTreeIn(inspected, bound, cwd);
     if (foreign) return { script: path, foreign };
   }
   return null;
