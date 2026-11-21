@@ -33,6 +33,7 @@ export { detectRepoLayout, detectRepos, draftHints } from "./repo-detect.mjs";
  *
  * `notify.provider` defaults to `"none"`: a notification channel is optional
  * (#4555), and an absent `notify` block means the manager runs without one.
+ * `notify.level` defaults to `"all"` for projects that use a channel.
  * `name` and `notify.stateDir` have no default: both are per-project, and a
  * shared default for either is how two projects end up fighting over one bot.
  * `buildDefaultBlock` derives them from the project slug at setup time.
@@ -52,7 +53,7 @@ export const SESSION_MANAGER_DEFAULTS = Object.freeze({
     requestionHours: 4,
     orphanHours: 2,
   }),
-  notify: Object.freeze({ provider: "none" }),
+  notify: Object.freeze({ provider: "none", level: "all" }),
 });
 
 /** The `notify` choices `buildDefaultBlock` (and `init-config --notify`) take. */
@@ -76,7 +77,7 @@ export function notifyProvider(config) {
  *   cpuFraction: number, maxLoadPerCore: number }} CapacityBlock
  * @typedef {{ noOutputMinutes: number, maxAttempts: number,
  *   requestionHours: number, orphanHours: number }} StallBlock
- * @typedef {{ provider: string, stateDir?: string }} NotifyBlock
+ * @typedef {{ provider: string, level: "all" | "asks-only", stateDir?: string }} NotifyBlock
  * @typedef {{
  *   name: string,
  *   interval: string,
