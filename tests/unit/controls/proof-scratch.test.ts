@@ -1,7 +1,14 @@
 /** Only timestamped, private folders owned by dead local proof runs can be removed. */
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { hostname, tmpdir } from "node:os";
 import path from "node:path";
 
@@ -98,17 +105,53 @@ describe("recovering abandoned proof copies", () => {
       expect(existsSync(folder)).toBe(true);
   });
 
-  it("reports the failed removal and leaves the directory available to retry", async () => {
+  it("retains the owner after a partial payload removal so a later sweep can retry", async () => {
     const folder = await runFolder(OLD, DEAD);
+    const ownerPath = path.join(folder, PROOF_SCRATCH_OWNER);
+    const original = await readFile(ownerPath, "utf8");
+    const removed: string[] = [];
+    for (const name of ["copy-entry-a", "copy-entry-b"])
+      await writeFile(path.join(folder, name), "payload\n");
 
     expect(
       await sweepProofScratch(scratch, {
         now: NOW,
-        remove: async () => {
-          throw new Error("fixture directory is busy");
+        remove: async entry => {
+          if (removed.length > 0) throw new Error("fixture entry is busy");
+          await rm(entry);
+          removed.push(entry);
         },
       })
     ).toMatchObject({ removed: 0, failed: 1, scanFailed: false });
-    expect(existsSync(folder)).toBe(true);
+    expect(removed).toHaveLength(1);
+    expect(await readFile(ownerPath, "utf8")).toBe(original);
+    expect(await readdir(folder)).toHaveLength(2);
+    expect(await sweepProofScratch(scratch, { now: NOW })).toMatchObject({
+      removed: 1,
+      failed: 0,
+    });
+    expect(existsSync(folder)).toBe(false);
+  });
+
+  it("restores the verified owner record if a late entry prevents final removal", async () => {
+    const folder = await runFolder(OLD, DEAD);
+    const ownerPath = path.join(folder, PROOF_SCRATCH_OWNER);
+    const original = await readFile(ownerPath, "utf8");
+    await writeFile(path.join(folder, "initial-entry"), "payload\n");
+
+    expect(
+      await sweepProofScratch(scratch, {
+        now: NOW,
+        remove: async entry => {
+          await writeFile(path.join(folder, "late-entry"), "payload\n");
+          await rm(entry);
+        },
+      })
+    ).toMatchObject({ removed: 0, failed: 1 });
+    expect(await readFile(ownerPath, "utf8")).toBe(original);
+    expect(await sweepProofScratch(scratch, { now: NOW })).toMatchObject({
+      removed: 1,
+      failed: 0,
+    });
   });
 });

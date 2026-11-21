@@ -621,8 +621,10 @@ terminal reaches the check as well, so the folder goes at once. A process
 killed outright (`SIGKILL`) cannot remove anything. A later proof run checks
 for abandoned copies before creating its own. It removes a private, named run
 folder after two hours when the owner record identifies a process on this
-machine and the operating system confirms that process has exited. The report
-gives the cleanup counts and reasons for keeping folders. A cleanup failure
+machine and the operating system confirms that process has exited. It keeps
+the owner record until the copy's contents are gone, so a later sweep can
+retry a partial removal. The report gives the cleanup counts and reasons for
+keeping folders. A cleanup failure
 does not stop the new proof. Earlier Lisa versions left folders with no owner
 record. After confirming their proof processes have ended, an operator can
 remove those older folders by hand.

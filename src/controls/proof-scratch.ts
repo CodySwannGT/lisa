@@ -1,6 +1,14 @@
 /** Recover only Lisa's private proof copies whose owning process has exited. */
 import { randomUUID } from "node:crypto";
-import { lstat, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import type { Stats } from "node:fs";
+import {
+  lstat,
+  readFile,
+  readdir,
+  rm,
+  rmdir,
+  writeFile,
+} from "node:fs/promises";
 import { hostname, tmpdir } from "node:os";
 import path from "node:path";
 
@@ -74,8 +82,8 @@ export type ProofScratchSweep = Record<Outcome, number> & {
 interface SweepOptions {
   /** Age reference used for deciding whether a directory is old enough. */
   readonly now?: number;
-  /** Removes a directory which has passed all ownership checks. */
-  readonly remove?: (folder: string) => Promise<void>;
+  /** Removes one payload entry in a directory that passed ownership checks. */
+  readonly remove?: (entry: string) => Promise<void>;
 }
 
 /**
@@ -83,13 +91,9 @@ interface SweepOptions {
  * @param file - Owner record path
  * @param name - Exact run folder name encoded in the record
  * @param uid - Owner of this process, when available
- * @returns An identified local owner, or undefined if it cannot be proved.
+ * @returns The verified process id and owner record, or undefined.
  */
-async function readOwnerPid(
-  file: string,
-  name: string,
-  uid: number | undefined
-): Promise<number | undefined> {
+async function readOwner(file: string, name: string, uid: number | undefined) {
   const stat = await lstat(file);
   if (
     !stat.isFile() ||
@@ -97,9 +101,8 @@ async function readOwnerPid(
     (uid !== undefined && (stat.uid !== uid || (stat.mode & 0o077) !== 0))
   )
     return undefined;
-  const record = JSON.parse(
-    await readFile(file, "utf8")
-  ) as Partial<OwnerRecord> | null;
+  const contents = await readFile(file, "utf8");
+  const record = JSON.parse(contents) as Partial<OwnerRecord> | null;
   if (
     record?.schema !== 1 ||
     record.folder !== name ||
@@ -110,7 +113,7 @@ async function readOwnerPid(
     record.pid > MAX_PID
   )
     return undefined;
-  return record.pid;
+  return { pid: record.pid, contents };
 }
 
 /**
@@ -129,14 +132,49 @@ function ownerHasExited(pid: number): boolean | undefined {
 }
 
 /**
+ * Delete a proof copy's payload before discarding the evidence of ownership.
+ * @param folder - Verified copy directory.
+ * @param original - Identity of the verified directory.
+ * @param contents - Verified owner record, saved for a failed final removal.
+ * @param remove - Remove one payload entry.
+ */
+async function removeVerifiedCopy(
+  folder: string,
+  original: Stats,
+  contents: string,
+  remove: (entry: string) => Promise<void>
+): Promise<void> {
+  const owner = path.join(folder, PROOF_SCRATCH_OWNER);
+  const entries = (await readdir(folder)).filter(
+    name => name !== PROOF_SCRATCH_OWNER
+  );
+  for (const entry of entries) await remove(path.join(folder, entry));
+  await rm(owner, { force: true });
+  try {
+    await rmdir(folder);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    const remaining = await lstat(folder).catch(() => undefined);
+    if (
+      remaining?.isDirectory() &&
+      remaining.dev === original.dev &&
+      remaining.ino === original.ino
+    ) {
+      await writeFile(owner, contents, { flag: "wx", mode: 0o600 });
+    }
+    throw error;
+  }
+}
+
+/**
  * Remove a single recognised old run only after verifying both ownership and exit.
  * @param folder - The candidate directory
- * @param remove - Removes a verified abandoned copy
+ * @param remove - Removes one entry of a verified abandoned copy
  * @returns Whether the copy could be removed and why it was kept otherwise.
  */
 async function removeOldCopy(
   folder: string,
-  remove: (folder: string) => Promise<void>
+  remove: (entry: string) => Promise<void>
 ): Promise<Outcome> {
   try {
     const uid = process.getuid?.();
@@ -146,13 +184,13 @@ async function removeOldCopy(
       (uid !== undefined && (before.uid !== uid || (before.mode & 0o077) !== 0))
     )
       return "unverified";
-    const owner = await readOwnerPid(
+    const owner = await readOwner(
       path.join(folder, PROOF_SCRATCH_OWNER),
       path.basename(folder),
       uid
     );
     if (owner === undefined) return "unverified";
-    const exited = ownerHasExited(owner);
+    const exited = ownerHasExited(owner.pid);
     if (exited === undefined) return "unverified";
     if (!exited) return "active";
     const after = await lstat(folder);
@@ -162,15 +200,13 @@ async function removeOldCopy(
       before.ino !== after.ino
     )
       return "unverified";
+    return await removeVerifiedCopy(folder, after, owner.contents, remove).then(
+      (): Outcome => "removed",
+      (): Outcome => "failed"
+    );
   } catch {
     // A peer may already have removed the folder. Unreadable records are left.
     return "unverified";
-  }
-  try {
-    await remove(folder);
-    return "removed";
-  } catch {
-    return "failed";
   }
 }
 
@@ -179,14 +215,14 @@ async function removeOldCopy(
  * @param root - Temporary root
  * @param options - Optional clock or removal override
  * @param options.now - Time used to decide whether a copy is old enough
- * @param options.remove - Removes a verified copy
+ * @param options.remove - Removes one entry in a verified copy
  * @returns Counts that explain what happened to each recognised run folder.
  */
 export async function sweepProofScratch(
   root: string,
   {
     now = Date.now(),
-    remove = folder => rm(folder, { recursive: true, force: true }),
+    remove = entry => rm(entry, { recursive: true, force: true }),
   }: SweepOptions = {}
 ): Promise<ProofScratchSweep> {
   const empty: ProofScratchSweep = {
