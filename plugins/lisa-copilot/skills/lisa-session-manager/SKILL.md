@@ -298,11 +298,11 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
      question outlives the worker in the ledger, so its marker can still be removed): do not
      resume the finished worker. Record the answer on the item (below); the next attempt reads it
      there. A worker's `FAILED` may leave the item in `claimed` with a human-needed label or
-     move it to `blocked`. First read the item with `lisa-tracker-read`. When `answer-plan`
-     returns `requeue: true` and the item is in the `claimed` or `blocked` role, move it to the
-     `ready` role in the step 2 update, so the next dispatch starts a fresh attempt that reads
+     move it to the `blocked` role. First read the item with `lisa-tracker-read`. When `answer-plan`
+     returns `requeue: true` for an item in the `claimed` or `blocked` role, move it to the `ready`
+     role in the step 2 update, so the next dispatch starts a fresh attempt that reads
      the answer. A `FAILED` attempt with the reason `left the claimed role outside the manager`
-     returns `requeue: false` to preserve the human's move, including a move to `blocked`.
+     returns `requeue: false` to preserve the human's move into the `blocked` role.
      Leave items in any other role where they are. A `DONE` worker's item is left where it is.
      `resume` refuses a finished
      worker (exit 2), and `spawn` refuses a ref while its question is pending, so finish this
