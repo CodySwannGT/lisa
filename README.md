@@ -226,6 +226,15 @@ the root `.nvmrc` to update current tracked runtime surfaces without rewriting
 historical plans or generic test fixtures. The npm updater has a separately
 qualified Node22.23.3 runtime, which this shared-default updater leaves alone.
 
+### Keeping generated artifacts out of Expo typechecking
+
+New Expo projects exclude the root `evidence`, `test-results`, `playwright-report`,
+`blob-report`, and `coverage` directories from ordinary TypeScript checks.
+Existing `tsconfig.local.json` files stay project-owned. To adopt these
+exclusions in an existing Expo project, append those five directory names to
+its `exclude` array and retain your existing entries. Run your project's usual
+typecheck after saving.
+
 ### Moving an existing host to Node24
 
 Review explicit `engines.node` and existing create-only workflow/EAS inputs;
