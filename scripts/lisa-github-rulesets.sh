@@ -1534,6 +1534,10 @@ main() {
 
   # Confirmation prompt
   if [[ "$DRY_RUN" == "false" ]] && [[ "$YES_MODE" == "false" ]]; then
+    if [[ ! -t 0 ]]; then
+      log_error "No rulesets were applied because this run cannot ask for confirmation. Use --yes to apply or --dry-run to preview."
+      exit 1
+    fi
     echo -n "Apply rulesets to $repo? [y/N] "
     read -r response
     if [[ ! "$response" =~ ^[Yy]$ ]]; then

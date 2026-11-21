@@ -809,9 +809,8 @@ export function reconcileContexts({
             awaitedRecord.ruleset === record.ruleset
         )
       ) {
-        return (
-          entry.integration_id === null || entry.integration_id === undefined
-        );
+        // Awaiting a check by name leaves any existing app restriction in place.
+        return true;
       }
       const expected = record.integration_id ?? ACTIONS_INTEGRATION_ID;
       return entry.integration_id === expected;
@@ -1177,16 +1176,23 @@ export function rulesetPayload(
     return payload;
   }
 
-  // An ADDITION REPLACES a same-named check in this ruleset rather than losing
-  // to it. Only a context the comparison reported unsatisfied HERE reaches
-  // `add`, so an existing check of that name in this ruleset is by construction
-  // the wrong shape — the unpinned form of a pinned declaration, or one pinned
-  // to an app the project did not name. Keeping it and de-duplicating the
-  // addition away wrote a PUT that preserved the wrong pin, so the repair
-  // reported success and converged on nothing: the next run found the same
-  // drift, planned the same repair, and reported the same success forever.
-  const added = new Map(additions.map(check => [check.context, check]));
-  const kept = (rule.parameters?.required_status_checks ?? []).filter(
+  const current = rule.parameters?.required_status_checks ?? [];
+  const pinned = new Map(
+    current
+      .filter(check => Number.isInteger(check?.integration_id))
+      .map(check => [check.context, check])
+  );
+  // A repair can replace an existing app restriction when the addition carries
+  // an app. An awaited check declared only by name keeps its live pin.
+  const added = new Map(
+    additions.map(check => [
+      check.context,
+      check.integration_id === undefined
+        ? (pinned.get(check.context) ?? check)
+        : check,
+    ])
+  );
+  const kept = current.filter(
     check => !remove.includes(check?.context) && !added.has(check?.context)
   );
   rule.parameters = {
