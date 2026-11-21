@@ -41,7 +41,7 @@
     "all/copy-overwrite/scripts/lib/build-marker.mjs":
       "505519d9632ab86572cfdeca917d93599256cf8e798987ad593a82296a7d8175",
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
-      "bcf755d8c1905cddd84622c9a520f7bcc16b19379b9f933a8b5657bb6df9f391",
+      "9f05df13c5cfc070812803140a9d58bf8b86300278a58f809cb1159c8d6442ed",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
       "f93221c4b8ddca27c7a78b6e6b7eceb4555ec1e2d5cd8fd128c1380cd310c81f",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
@@ -361,7 +361,7 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "5c44bf2bb003249a62c443ef594509f7b6828be12157c9aa90f90d3acad13636",
+      "127455fb477f95f43ded3c259e73e3261c0c6c4c600871429cb2bb6bae383bb7",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -405,7 +405,7 @@
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "c8d581ffa7c7a34b1d4d5c7ac8618f47af9a705fe14cae6b8ce3bba158a1405a",
+      "89502b2f1feda98565a51745932b5cbd8f33387d2e1cd0f8234a77df56a298ae",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -421,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "c280b6a8f075eb9cf5cdcc115ff0825155c20bd1d8164d9b919836a826e85e85",
+      "245445ceaa875a67aad3e9afc9250a74dfb4bc62046280747937386659f559af",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -13329,6 +13329,7 @@
     "tests/unit/controls/lisa-gates-parts-resolution.test.ts": true,
     "tests/unit/controls/lisa-gates-parts.test.ts": true,
     "tests/unit/controls/lisa-gates-unenforceable-on.test.ts": true,
+    "tests/unit/controls/lisa-run-gates-declaration-removal.test.ts": true,
     "tests/unit/controls/lisa-run-gates-no-builtins.test.ts": true,
     "tests/unit/controls/lisa-run-gates-no-manifest.test.ts": true,
     "tests/unit/controls/lisa-run-gates-parts-assertion.test.ts": true,

@@ -510,6 +510,85 @@ function pushedChange({ root, git, env, source, read }) {
 }
 
 /**
+ * The remote default branch's common ancestor with a commit, for a first push
+ * or a manual run with no push-hook input.
+ * @param {string} head The commit being sent.
+ * @param {AskGit} git How git is asked.
+ * @returns {string|null} The comparison commit, when available locally.
+ */
+function defaultBranchBase(head, git) {
+  const defaultRef = git([
+    "symbolic-ref",
+    "--quiet",
+    "refs/remotes/origin/HEAD",
+  ])?.trim();
+  return (
+    git([
+      "merge-base",
+      defaultRef || "refs/remotes/origin/main",
+      head,
+    ])?.trim() ?? null
+  );
+}
+
+/**
+ * Whether a standalone hook is checking a change that removes its declaration.
+ * @param {object} options Inputs.
+ * @param {string} options.moment The moment being run.
+ * @param {string} options.root The repository root.
+ * @param {(text: string|null) => boolean} options.declares Checks for gate declarations.
+ * @param {string|null} [options.pushRefs] The source of the actual pushed refs.
+ * @param {Record<string, string|undefined>} [options.env] The environment.
+ * @param {(source: string) => (string|null)} [options.read] Reads the refs.
+ * @returns {boolean} Whether an applicable comparison drops all gates.
+ */
+export function removesDeclarationAt({
+  moment,
+  root,
+  declares,
+  pushRefs = null,
+  env = process.env,
+  read = readPushRefs,
+}) {
+  if (moment !== "commit" && moment !== "push") return false;
+  const git = gitIn(root, env);
+  if (gitProblem(root, git, env) !== null) return false;
+
+  /** @type {(args: string[], base: string, head: string) => boolean} */
+  const removes = (args, base, head) => {
+    const changed = git([
+      "diff",
+      ...args,
+      ...NAMES_ONLY,
+      "--",
+      DECLARATION_FILE,
+    ]);
+    return (
+      Boolean(changed) &&
+      declares(git(["show", `${base}:${DECLARATION_FILE}`])) &&
+      !declares(git(["show", `${head}:${DECLARATION_FILE}`]))
+    );
+  };
+  if (moment === "commit") return removes(["--cached"], "HEAD", "");
+
+  const source = pushRefs || env[PUSH_REFS_ENV];
+  if (!source) {
+    const upstream = git(["rev-parse", "--verify", "@{upstream}"])?.trim();
+    const base = upstream || defaultBranchBase("HEAD", git);
+    return Boolean(base) && removes([base, "HEAD"], base, "HEAD");
+  }
+  const updates = parsePushRefs(read(source) ?? "");
+  return (updates ?? []).some(({ localOid, remoteOid, remoteRef }) => {
+    if (!remoteRef.startsWith("refs/heads/") || NO_OBJECT.test(localOid))
+      return false;
+    const base = NO_OBJECT.test(remoteOid)
+      ? defaultBranchBase(localOid, git)
+      : remoteOid;
+    return Boolean(base) && removes([base, localOid], base, localOid);
+  });
+}
+
+/**
  * What the change at one moment touches.
  * @param {object} options Inputs.
  * @param {string} options.moment The moment being run.
