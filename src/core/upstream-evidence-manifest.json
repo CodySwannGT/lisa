@@ -361,7 +361,7 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "5c44bf2bb003249a62c443ef594509f7b6828be12157c9aa90f90d3acad13636",
+      "302fb2a3035f52dc9915785327148243fadf2ec3c324be862a177550a02aa3ca",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -405,7 +405,7 @@
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "c8d581ffa7c7a34b1d4d5c7ac8618f47af9a705fe14cae6b8ce3bba158a1405a",
+      "93bf22f03e626df8efecd0765f3d4f0e9d5cb17ce703f26fa15dd4e091fa8d4f",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -1469,7 +1469,7 @@
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "d1af8712870dfffa0959417379d0be9b18ab1ee44bb13bd25bc293ae6cbda5eb",
+      "fae42f6cf669ecbc2b617a9fac81efbd4a1b0ea801cf2022a3868356274eb314",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
@@ -1485,7 +1485,7 @@
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "a0bbe2e46c6c11cca336fd1fb3c52a99d0b6c6282575ab88008c622e616b226c",
+      "f3fc962605220440584d510a9b8a05bb70364c5b27963720b631d8a34b115880",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "a33349c0129da13955fea99206d49e6e65c8be9e649e5d387afab83f52820b81",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -11624,6 +11624,8 @@
     "src/controls/proof-check-workspace.ts": true,
     "src/controls/proof-copy-files.ts": true,
     "src/controls/proof-copy-git.ts": true,
+    "src/controls/proof-copy-preparation.ts": true,
+    "src/controls/proof-copy-prepared-state.ts": true,
     "src/controls/proof-copy-wording.ts": true,
     "src/controls/proof-copy-workspace.ts": true,
     "src/controls/proof-copy.ts": true,
@@ -11633,6 +11635,7 @@
     "src/controls/proof-patch.ts": true,
     "src/controls/proof-plan.ts": true,
     "src/controls/proof-preflight.ts": true,
+    "src/controls/proof-preparation-declaration.ts": true,
     "src/controls/proof-report.ts": true,
     "src/controls/proof-runner.ts": true,
     "src/controls/proof-scratch.ts": true,
@@ -12437,6 +12440,7 @@
     "tests/integration/controls-proof-change-rule-letter-case.test.ts": true,
     "tests/integration/controls-proof-change-rule.test.ts": true,
     "tests/integration/controls-proof-check-attest.test.ts": true,
+    "tests/integration/controls-proof-copy-prepare.test.ts": true,
     "tests/integration/controls-protect.test.ts": true,
     "tests/integration/controls-push-carrier-refs.test.ts": true,
     "tests/integration/controls-push-carrier-update.test.ts": true,

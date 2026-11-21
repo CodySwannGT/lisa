@@ -190,7 +190,9 @@ export async function openProofCopy(
     }
   };
   try {
-    const built = await (choice.build ?? buildProofCopy)(root, folder);
+    const built = await (choice.build ?? buildProofCopy)(root, folder, {
+      notice,
+    });
     if (built.problem !== null) {
       await close();
       return built;
