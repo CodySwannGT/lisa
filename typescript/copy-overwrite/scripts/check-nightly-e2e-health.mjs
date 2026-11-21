@@ -160,6 +160,8 @@
  * @module scripts/check-nightly-e2e-health
  */
 
+import { lstatSync } from "node:fs";
+import { join } from "node:path";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /**
@@ -1225,7 +1227,7 @@ export function assessSuiteScope(suite, scope) {
  * anyone claiming the contract changed.
  *
  * @param {object} suite - A validated suite entry
- * @param {object} observation - `{ run, jobs, workflowMissing }`
+ * @param {object} observation - `{ run, jobs, workflowMissing, workflowUnregistered }`
  * @param {{branch: string, freshnessHours: number, now: Date}} context - Evaluation context
  * @returns {{label: string, state: string, reason: string, conclusion: string|null, url: string|null, createdAt: string|null, event: string|null}} The finding
  */
@@ -1329,6 +1331,15 @@ export function assessSuite(suite, observation, context) {
       ...blank,
       state: SUITE_STATES.fail,
       reason: "workflow_not_found",
+    };
+  }
+
+  if (observation.workflowUnregistered) {
+    return {
+      ...base,
+      ...blank,
+      state: SUITE_STATES.unknown,
+      reason: "workflow_not_registered",
     };
   }
 
@@ -2039,6 +2050,8 @@ const STATE_MARKERS = Object.freeze({
 const REASON_TEXT = Object.freeze({
   workflow_not_found:
     "the workflow file this gate watches does not exist any more. Someone renamed or deleted the suite out from under the gate — fix the `suites` table or restore the workflow.",
+  workflow_not_registered:
+    "GitHub returned 404 for the workflow file in the checkout. Run the suite once GitHub registers it.",
   no_run: "no completed run on this branch at all.",
   stale_run: "no completed run inside the freshness window.",
   wrong_branch: "the run this gate scored is on a different branch.",
@@ -3689,6 +3702,16 @@ async function selectScoredRun(
   };
 }
 
+/** Check for a regular workflow file in the checkout being evaluated. */
+function workflowInCheckout(workflow) {
+  return (
+    /^[^/\\]+\.ya?ml$/u.test(workflow) &&
+    lstatSync(join(".github", "workflows", workflow), {
+      throwIfNoEntry: false,
+    })?.isFile() === true
+  );
+}
+
 /**
  * Observes every suite.
  *
@@ -3712,7 +3735,10 @@ export async function observe(api, suites, branch, context, wait) {
         wait
       );
       if (missing) {
-        return { workflowMissing: true, run: null, jobs: [] };
+        const availability = workflowInCheckout(suite.workflow)
+          ? { workflowUnregistered: true }
+          : { workflowMissing: true };
+        return { ...availability, run: null, jobs: [] };
       }
       // Jobs are read for EVERY match mode, `run` included. A run-scoped suite
       // needs them to prove the run was complete (row 26) — a `success` run
