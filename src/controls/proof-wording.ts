@@ -87,6 +87,8 @@ const HALF_SENTENCES: Readonly<
     `The check turned this change away, but its output does not contain the failure text the entry declares (${quoted(facts.shape)}). It may have failed for another reason, such as a broken or missing tool.`,
   "no-failure-shape": () =>
     "The check turned this change away, but the entry declares no failure text (failure_shape), so a real rejection cannot be told apart from a broken tool. Add the text the check prints when it finds the rule broken.",
+  "canary-merged": () =>
+    "The canary pull request was merged into the base branch. Its required checks did not prevent the merge.",
   "workspace-not-restored": facts =>
     `This half was not run. An earlier change could not be taken back out of the workspace, so its files are no longer a clean copy. ${facts.problem ?? ""}`.trim(),
 };

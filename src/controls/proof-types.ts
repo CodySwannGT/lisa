@@ -74,6 +74,8 @@ export type ProofHalfReason =
   | "wrong-reason"
   /** The check said no and the entry declares no failure text to match. */
   | "no-failure-shape"
+  /** The platform merged the canary. */
+  | "canary-merged"
   /** An earlier change could not be undone, so this half was not run. */
   | "workspace-not-restored";
 

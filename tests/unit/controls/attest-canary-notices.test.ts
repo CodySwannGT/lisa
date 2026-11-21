@@ -30,6 +30,7 @@ import {
   attestIn,
   pullRequestSetting,
 } from "./support/attest-pull-request-run.js";
+import { evidenceIn } from "./support/attest-record-run.js";
 import { canaryPlatform, expectNoMerge } from "./support/canary-run.js";
 import type { FakeCanaryPlatform } from "./support/fake-canary-platform.js";
 import { removeCopies } from "./support/proof-run.js";
@@ -236,6 +237,26 @@ describe("a canary that was merged", () => {
       expectNoMerge(platform.log);
     }
   );
+
+  it("records unknown evidence for a violating canary the platform merged", async () => {
+    const platform = canaryPlatform({ mergedByTheHost: true });
+    const where = pullRequestSetting(PULL_ONLY_GATES);
+
+    const run = await attestIn(where, CANARIES, { gh: platform.gh });
+
+    expect(run.code).toBe(ATTEST_EXIT.NOT_PASSED);
+    expect(
+      evidenceIn(where.repoPath).records.filter(
+        record => record.half === "violation"
+      )
+    ).toEqual([
+      expect.objectContaining({
+        result: "unknown",
+        reason: "canary-merged",
+        detail: expect.stringContaining("was merged into the base branch"),
+      }),
+    ]);
+  });
 
   it("fails a run every proof of which passed", () => {
     const notices = canaryNotices(ran([canary({ merged: true })]));
