@@ -1585,7 +1585,7 @@
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "d12d8d6793cd1b1f8c558d14491b54f08cae213a1b56ad82500a810433b78b61",
+      "cdd65bcf6cc6ff8c56a03f9cdc3c3bac18773c50ce0c8a9e328b14ba34e83f47",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1641,13 +1641,15 @@
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
       "f737876ae27d4b2112e20c11c1cce32f19d5023beeed03bd89e8385580a7fbee",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
-      "50f23271fec961dd3d89e0f93db0d7e695a8f971bc4d8fecedd2cdd28af99597",
+      "95282fff1e795b572f6196f78dd8743a4858d05f8ce6878eb9d31a1934b5b302",
+    "plugins/src/base/skills/lisa-linear-access/scripts/linear-graphql.sh":
+      "5897452f3f931d1408bea41e39fe1af3769fccdef8238b2beb36f7ab727359c1",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
       "6952179c666d5d7304fd48f52e17da0ae8ebca260ac94add9e0d948a6e8cc2b5",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
-      "9d3e5390fc5d23d849c119425764a776cf5700437f87ef1f3a8e9014b4163b92",
+      "487b3d26cc9715fb4cf1e89b7f315a0ad09499c2942f5ecf46f17a36ace41363",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
       "68fb66f396ac99f63b94d55664e425de7191ba62c11ffe46cfae1c699959cc3b",
     "plugins/src/base/skills/lisa-linear-evidence/SKILL.md":
@@ -1657,7 +1659,7 @@
     "plugins/src/base/skills/lisa-linear-prd-intake/SKILL.md":
       "add3303cd5dbf250df622c7d5fed36bd7f27a2016505eeef4c610a40c2bceec1",
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
-      "38b9d6e61fa553b51026ba56fb21a6167ef3626d7ab86b1190d4306f323928d8",
+      "446d9be552933aa17abae217715ce047a6920f0f1575b45b0231fb4ffb6f8f8c",
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
       "96108cea578ca29d4a05d9d115e1b433b2f5e166a8da74878f760041d1e600cc",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
@@ -1667,7 +1669,7 @@
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "723f951c856774f03e19ef7400f4f1885b8ad35147a6948bdff5d58911315e0b",
+      "af4581d839e7e890bd3738ba4666f953b859ecebb69285e4712c22474cecbc3e",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "f6de212c8ac7a905e754b82e08b0696d8d03f81b8e6b281e02fb28e3a489552d",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
@@ -1967,7 +1969,7 @@
     "plugins/src/base/skills/lisa-setup-kane/SKILL.md":
       "2d48c0c4862f2773adf107bd926e9751b8d64b39d5f17eed792f12fd5a2193f3",
     "plugins/src/base/skills/lisa-setup-linear/SKILL.md":
-      "3df049a9fe18a792b00569e6595a00254ae23fcf2cd00f4bcfdcc82ef4c855a7",
+      "f93dd334c4752dc9459c01dc1173085ee2d0b868fcd7a4548873ceb20471aaa8",
     "plugins/src/base/skills/lisa-setup-local-env/SKILL.md":
       "2fc788c66a7dbd2b9c8c056e115e36440924b154d11afd366093db3db04e418e",
     "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs":
@@ -5267,6 +5269,7 @@
     "plugins/lisa-agy/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-agy/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-linear-claim/SKILL.md": true,
@@ -5862,6 +5865,7 @@
     "plugins/lisa-copilot/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-copilot/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-linear-claim/SKILL.md": true,
@@ -6441,6 +6445,7 @@
     "plugins/lisa-cursor/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-cursor/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-linear-claim/SKILL.md": true,
@@ -6949,6 +6954,7 @@
     "plugins/lisa-devin/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-devin/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-devin/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-linear-claim/SKILL.md": true,
@@ -9145,6 +9151,7 @@
     "plugins/lisa/.codex-plugin/skills/lisa-learnings-audit/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-access/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-access/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-add-journey/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-build-intake/SKILL.md": true,
@@ -9909,6 +9916,7 @@
     "plugins/lisa/skills/lisa-learnings-audit/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-linear-access/SKILL.md": true,
     "plugins/lisa/skills/lisa-linear-access/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa/skills/lisa-linear-add-journey/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-linear-build-intake/SKILL.md": true,
@@ -10595,6 +10603,7 @@
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/src/base/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/src/base/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md": true,
@@ -14395,6 +14404,7 @@
     "tests/unit/scripts/k6-installation.test.ts": true,
     "tests/unit/scripts/kill-marks.test.ts": true,
     "tests/unit/scripts/learnings-projection.test.ts": true,
+    "tests/unit/scripts/linear-graphql-script.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
     "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-absent.test.ts": true,

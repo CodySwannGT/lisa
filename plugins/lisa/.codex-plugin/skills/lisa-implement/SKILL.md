@@ -51,6 +51,8 @@ $ARGUMENTS is either a URL/key for an existing work item, a pointer to a file co
 
 Resolve the input before any other work. Invoke `lisa-track $ARGUMENTS` (with `managedBy=` already stripped); it owns the complete resolve -> claim -> bind transaction:
 
+When Linear uses token access, `lisa-linear-access` calls its shipped `scripts/linear-graphql.sh` by absolute path. The adapter resolves the key and checks which workspace it belongs to before sending the requested operation.
+
 **Forward a caller-supplied bundle by path only.** A build-intake or repair-intake dispatch has already written the bundle it read, verbatim, to the git-ignored `.lisa/work-item-context.md` and invokes this skill with `caller_bundle_path=<absolute path>`. Pass only `caller_bundle_path: <absolute path>` to `lisa-track`, next to `$ARGUMENTS`. Bundle text, and any credential value in it, never appears in a subagent prompt, task description, or Skill argument — only its path.
 
 - **Explicit ticket:** call `lisa-tracker-read` against the configured tracker and require a live open/unresolved current-project leaf. **Mismatch guard:** if the ticket format/project does not match the configured tracker (for example, a GitHub URL when `tracker` is `jira`), stop — never auto-translate vendors or trust pasted/stale ticket text. The read captures comments, graph, and metadata, not just the description.

@@ -18,6 +18,8 @@ Repository name for scoped comments and logs: `basename $(git rev-parse --show-t
 
 Reads `linear.workspace`, `linear.teamKey` from `.lisa.config.json` (with `.local` override).
 
+Every read below goes through `lisa-linear-access`. On the token tier, `lisa-linear-access` runs its bundled `scripts/linear-graphql.sh` by absolute path. Never capture `LINEAR_API_KEY` and curl Linear in one inline command: Claude Code stops that shape at an approval prompt even with permissions skipped, and a background worker stalls on it until a human attaches.
+
 ## Phase 1 — Resolve Context
 
 1. If `$ARGUMENTS` matches `<TEAM>-<n>` → Issue mode.
