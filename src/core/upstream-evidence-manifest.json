@@ -1497,7 +1497,7 @@
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "4d9921c8972e5caa0003c694ebaab9e0246a0aa1fe51c70760ec0e7bb76af38d",
+      "027b34e50e9c809aec0c029239a9e3398d648a7ff1d5e7895fa22229e3348147",
     "plugins/src/base/skills/lisa-configure/references/exercised-artifacts.md":
       "0f9caf8e704753069d20fa7b36ca3b687c7fa49601f62c37198e4f91781b893a",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
@@ -13761,6 +13761,7 @@
     "tests/unit/controls/seed-manifest.test.ts": true,
     "tests/unit/controls/seed-parts.test.ts": true,
     "tests/unit/controls/seed.test.ts": true,
+    "tests/unit/controls/shipped-task-proof-runners.test.ts": true,
     "tests/unit/controls/skill-statements.test.ts": true,
     "tests/unit/controls/support/attest-pull-request-run.ts": true,
     "tests/unit/controls/support/attest-record-run.ts": true,

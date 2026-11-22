@@ -12,6 +12,13 @@ const STAGED_LINT_TASK = {
   task: "lint:staged",
   script: "lint-staged --config .lintstagedrc.json",
 } as const;
+const UNIT_VITEST_TASK = {
+  moment: "push",
+  task: "test:cov:unit",
+  script: "$npm_execpath run test:cov:unit:lisa",
+  vitestScript: "test:cov:unit:lisa",
+} as const;
+const VITEST_RUN = /\s--adapter\s+vitest\s+--\s+vitest\s+run(?:\s|$)/u;
 
 /** Task inputs and failure text from the TypeScript template. */
 const TYPESCRIPT_PROOFS = [
@@ -47,9 +54,7 @@ const TYPESCRIPT_PROOFS = [
   },
   {
     gate: "coverage-adequacy",
-    moment: "push",
-    task: "test:cov:unit",
-    script: "$npm_execpath run test:cov:unit:lisa",
+    ...UNIT_VITEST_TASK,
     inputs: [CLI_PROOF_INPUT],
     failure: "does not meet global threshold",
   },
@@ -63,9 +68,7 @@ const TYPESCRIPT_PROOFS = [
   },
   {
     gate: "test-correctness",
-    moment: "push",
-    task: "test:cov:unit",
-    script: "$npm_execpath run test:cov:unit:lisa",
+    ...UNIT_VITEST_TASK,
     inputs: ["tests/unit/lisa-proof-test-correctness.test.ts"],
     failure: "AssertionError: expected",
   },
@@ -82,6 +85,7 @@ const TYPESCRIPT_PROOFS = [
     moment: "push",
     task: "test:integration",
     script: "$npm_execpath run test:integration:lisa",
+    vitestScript: "test:integration:lisa",
     inputs: ["tests/integration/lisa-proof.integration.test.ts"],
     failure: "AssertionError: expected",
   },
@@ -160,6 +164,22 @@ async function matchesShippedPatch(
   }
 }
 
+/** Vitest fixture imports must reach the Vitest command behind the task alias.
+ * @param definition - The shipped proof and its expected task.
+ * @param scripts - The effective scripts on this installation.
+ * @returns True when the task and any required test runner match.
+ */
+function matchesTask(
+  definition: (typeof TYPESCRIPT_PROOFS)[number],
+  scripts: Readonly<Record<string, string>>
+): boolean {
+  if (scripts[definition.task] !== definition.script) return false;
+  return (
+    !("vitestScript" in definition) ||
+    VITEST_RUN.test(scripts[definition.vitestScript] ?? "")
+  );
+}
+
 /**
  * Bind shipped proof bytes only to the task and templates they were written for.
  * @param projectDir - The installed host
@@ -177,9 +197,9 @@ export async function installedShippedTaskProofs(
   if (!projectTypes.includes("typescript")) return [];
   const proofs = await Promise.all(
     TYPESCRIPT_PROOFS.map(async definition => {
-      const { gate, moment, task, script, inputs, failure } = definition;
+      const { gate, moment, task, inputs, failure } = definition;
       if (
-        scripts[task] !== script ||
+        !matchesTask(definition, scripts) ||
         inputs.some(input => existsSync(path.join(projectDir, input))) ||
         ("applicable" in definition && !definition.applicable(projectDir))
       ) {

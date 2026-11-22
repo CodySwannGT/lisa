@@ -352,7 +352,7 @@ work.
 and task match the shipped template. The traceability pair uses the native push gate in a
 disposable copy. Its clean case reads the live work item from the baseline commit, so run that
 proof with `--acknowledge-external-effects` after confirming tracker read access. A check without
-an applicable pair reads unproved.
+an applicable pair reads unproved. The shipped test and coverage recipes require Vitest.
 
 The production dependency pair uses a Bun text lockfile. It changes the version of an existing
 transitive dependency to a version with a public advisory and a patched version in separate
