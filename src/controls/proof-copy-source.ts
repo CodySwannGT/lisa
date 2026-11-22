@@ -67,14 +67,13 @@ export async function readProofCopySource(
       problem: `The baseline commit's trailers could not be read, so no proof was run: ${gitSaid(trailers)}`,
     };
   }
+  const commitTrailers = trailers.stdout.trim();
   return {
     problem: null,
     source: {
       branch: head === "(detached)" ? null : head,
       commit,
-      ...(trailers.stdout.trim() === ""
-        ? {}
-        : { commitTrailers: trailers.stdout.trim() }),
+      ...(commitTrailers === "" ? {} : { commitTrailers }),
       dirty: lines.some(line => line !== "" && !line.startsWith("# ")),
     },
   };

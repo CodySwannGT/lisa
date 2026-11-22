@@ -17,6 +17,7 @@
  */
 import { CARRIER_HOOKS, type CarrierMoment } from "./carrier-types.js";
 import { EVIDENCE_PATH } from "./evidence.js";
+import type { ProofTrigger } from "./proof-types.js";
 import { CONTROL_REGISTER_PATH } from "./register-types.js";
 import { VERDICT_PATH } from "./verdict-types.js";
 
@@ -40,6 +41,28 @@ export function proofCommitMessage(entryId: string, trailers = ""): string {
   if (trailers === "") return `chore: control proof for ${entryId}`;
   const message = `chore: exercise the declared control\n\nControl entry ${JSON.stringify(entryId)}`;
   return `${message}\n\n${trailers}`;
+}
+
+/**
+ * The traceability violation changes the work item in its fixture commit.
+ * @param request - The installed proof's push trigger.
+ * @param trailers - Work item and attribution from the baseline commit.
+ * @returns The disposable commit message.
+ */
+export function proofPushCommitMessage(
+  request: Pick<ProofTrigger, "entry" | "omitFixtureWorkItem">,
+  trailers = ""
+): string {
+  const omitWorkItem =
+    request.entry.gate === "traceability" &&
+    request.omitFixtureWorkItem === true;
+  const selected = omitWorkItem
+    ? trailers
+        .split("\n")
+        .filter(line => !/^Work-Item:/iu.test(line))
+        .join("\n")
+    : trailers;
+  return proofCommitMessage(request.entry.id, selected);
 }
 
 /**

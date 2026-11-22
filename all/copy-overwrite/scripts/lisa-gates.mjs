@@ -581,7 +581,7 @@ export const PART_EVIDENCE_FIELDS = Object.freeze(["locators", "questions"]);
 export const PART_EVIDENCE_LOCATOR_FIELDS = Object.freeze(["path", "line"]);
 
 /**
- * The keys a part's `proof` may carry. All are optional.
+ * The keys a paired proof may carry. All are optional.
  *
  * - `violation` and `clean` — the two halves of the paired proof, each the
  *   path of a patch file under {@link PROOF_DIRECTORY}.
@@ -599,6 +599,11 @@ export const PROOF_FIELDS = Object.freeze([
   FAILURE_SHAPE_FIELD,
   "timeout_seconds",
   "external_effects",
+]);
+
+const TRACEABILITY_PROOF_FIELDS = Object.freeze([
+  ...PROOF_FIELDS,
+  "violation_commit",
 ]);
 
 /**
@@ -1193,6 +1198,7 @@ export const REGISTRY = Object.freeze({
     label: "🔗 Work-Item Traceability",
     summary: "Every change is bound to a live tracker item.",
     task: "check:work-item",
+    failureShape: ["No Work-Item trailer anywhere in the commit"],
     // Both provers are `lisa-work-item.mjs`, which imports `node:fs`,
     // `node:path`, Node's own process-spawning builtin, and one shipped
     // sibling. It shells out to `gh`, which the runner image carries.
@@ -5649,9 +5655,10 @@ function validateExternalEffects(where, effects) {
  * Validate a part's paired proof.
  * @param {string} where The key being validated.
  * @param {*} proof The declared value, if any.
+ * @param {boolean} [traceabilityPush] Whether this is the task-level traceability push proof.
  * @returns {string[]} Problems.
  */
-function validateProof(where, proof) {
+function validateProof(where, proof, traceabilityPush = false) {
   if (proof === undefined) return [];
   if (!isKeyed(proof)) {
     return [
@@ -5660,7 +5667,11 @@ function validateProof(where, proof) {
     ];
   }
   const problems = [
-    ...unknownKeyProblems(where, proof, PROOF_FIELDS),
+    ...unknownKeyProblems(
+      where,
+      proof,
+      traceabilityPush ? TRACEABILITY_PROOF_FIELDS : PROOF_FIELDS
+    ),
     ...validateProofFile(`${where}.violation`, proof.violation),
     ...validateProofFile(`${where}.clean`, proof.clean),
   ];
@@ -5669,6 +5680,15 @@ function validateProof(where, proof) {
       `${where}.clean is the same file as ${where}.violation. The two ` +
         `halves are different changes: one that breaks the rule and one ` +
         `that does not.`
+    );
+  }
+  if (
+    traceabilityPush &&
+    proof.violation_commit !== undefined &&
+    proof.violation_commit !== "omit-work-item"
+  ) {
+    problems.push(
+      `${where}.violation_commit accepts "omit-work-item" on the traceability push proof.`
     );
   }
   return [
@@ -5702,7 +5722,11 @@ function validateTaskProofs(id, gate) {
     if (gate.parts !== undefined) {
       return [`${where} belongs on each part when the gate declares parts.`];
     }
-    return validateProof(where, value.proof);
+    return validateProof(
+      where,
+      value.proof,
+      id === "traceability" && moment === PUSH
+    );
   });
 }
 
