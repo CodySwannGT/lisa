@@ -207,9 +207,8 @@ _linear_identity() {  # $1=key [$2=team key]
   local probe
   if [ -n "${2:-}" ]; then
     # GraphQL expands $team, using the separately encoded variables object.
-    # shellcheck disable=SC2016
     probe=$(_linear_post "$1" \
-      'query($team:String!){viewer{id name organization{urlKey name}} teams(filter:{key:{eq:$team}}){nodes{key}}}' \
+      "query(\$team:String!){viewer{id name organization{urlKey name}} teams(filter:{key:{eq:\$team}}){nodes{key}}}" \
       "$(jq -cn --arg team "$2" '{team:$team}')") || return 1
   else
     probe=$(_linear_post "$1" \
