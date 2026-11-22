@@ -2301,12 +2301,13 @@ function isRunnableFile(path) {
  * supervisor and blocks there. Neither is a pass.
  * @param {string} program The first item of a part's argument list.
  * @param {string} cwd The folder the command starts in.
+ * @param {string} [searchPath] The command environment’s executable search path.
  * @returns {string|null} Why the program cannot be started, finishing
  *   `NOTHING_RAN`, or null when a runnable file answers to that name.
  */
-function programProblem(program, cwd) {
+function programProblem(program, cwd, searchPath = DEFAULT_SEARCH_PATH) {
   if (!program.includes("/")) {
-    const found = (process.env.PATH ?? DEFAULT_SEARCH_PATH)
+    const found = searchPath
       .split(delimiter)
       .some(folder => isRunnableFile(resolve(cwd, folder, program)));
     return found ? null : programMissing(program);
@@ -2349,12 +2350,10 @@ function programMissing(program) {
  * supervisor's own messages still reach this process's error output.
  * @param {readonly string[]} argv The program and its arguments.
  * @param {string} cwd The folder to start in.
- * @param {{capture: boolean, quiet: boolean, budgetMs: number}} how Whether to
- *   keep a diagnostic tail of the output, whether to show nothing while the
- *   command runs, and the deadline.
+ * @param {{capture: boolean, quiet: boolean, budgetMs: number, env?: NodeJS.ProcessEnv}} how How to supervise and capture the command.
  * @returns {import("node:child_process").SpawnSyncReturns<string>} Result.
  */
-function superviseArgv(argv, cwd, { capture, quiet, budgetMs }) {
+function superviseArgv(argv, cwd, { capture, quiet, budgetMs, env }) {
   const watch = isWatchablePid(LAUNCH_PARENT_PID)
     ? [`--watch-pid=${LAUNCH_PARENT_PID}`]
     : [];
@@ -2375,6 +2374,7 @@ function superviseArgv(argv, cwd, { capture, quiet, budgetMs }) {
       shell: false,
       stdio: capture ? [shown, shown, "inherit", "pipe"] : "inherit",
       timeout: budgetMs + PROCESS_TREE_REAP_BUDGET_MS,
+      ...(env === undefined ? {} : { env }),
     }
   );
 }
@@ -2424,19 +2424,20 @@ function partBudget(timeoutMs) {
  * reads from nothing and what it prints is collected instead of shown.
  * @param {readonly string[]} argv The program and its arguments.
  * @param {string} cwd The folder to start in.
- * @param {{quiet: boolean, budgetMs: number}} how Whether to collect the
+ * @param {{quiet: boolean, budgetMs: number, env?: NodeJS.ProcessEnv}} how Whether to collect the
  *   output instead of showing it, and the deadline.
  * @returns {{code: number|null, output: string|null, signal?: string, notStarted?: string}}
  *   Exit code; null with `notStarted` when the program could not be started.
  * @throws {Error} When the program was killed at its deadline.
  */
-function startArgv(argv, cwd, { quiet, budgetMs }) {
+function startArgv(argv, cwd, { quiet, budgetMs, env }) {
   const [program, ...rest] = argv;
   const child = boundedSpawnSync(program, rest, {
     cwd,
     shell: false,
     stdio: quiet ? ["ignore", "pipe", "pipe"] : "inherit",
     timeout: budgetMs,
+    ...(env === undefined ? {} : { env }),
     // Only a quiet start collects anything, and a check that prints a great
     // deal must still be read rather than cut off as if it could not start.
     ...(quiet ? { maxBuffer: QUIET_OUTPUT_BYTES } : {}),
@@ -2472,8 +2473,8 @@ function startArgv(argv, cwd, { quiet, budgetMs }) {
  * It starts in `cwd` and nowhere else, so `cwd` is required: a part's command
  * must never run in whatever folder the runner happened to be started in.
  *
- * The program gets this process's environment unchanged, as every gate
- * command does.
+ * Gate commands inherit this process's environment. Proof preparation can
+ * supply a copy without repository-selection variables from Git hooks.
  *
  * ## What it refuses, and how
  *
@@ -2512,6 +2513,7 @@ function startArgv(argv, cwd, { quiet, budgetMs }) {
  *   from 1 to thirty minutes. Thirty minutes when left out.
  * @param {boolean} [options.quiet] Show nothing while the command runs, and
  *   always keep what it printed.
+ * @param {NodeJS.ProcessEnv} [options.env] Environment for this start.
  * @returns {{code: number|null, output: string|null, signal?: string, notStarted?: string, timedOut?: true}}
  *   OS status and diagnostic tail, or why nothing started.
  * @throws {TypeError} When `argv` is not a list of text naming a program,
@@ -2519,7 +2521,7 @@ function startArgv(argv, cwd, { quiet, budgetMs }) {
  */
 export function spawnArgv(
   argv,
-  { cwd, platform = process.platform, timeoutMs, quiet = false } = {}
+  { cwd, platform = process.platform, timeoutMs, quiet = false, env } = {}
 ) {
   const problem = argvProblem(argv);
   if (problem !== null) {
@@ -2557,7 +2559,7 @@ export function spawnArgv(
       : answer;
   if (platform === "win32") {
     try {
-      return startArgv(argv, cwd, { quiet, budgetMs });
+      return startArgv(argv, cwd, { quiet, budgetMs, env });
     } catch (error) {
       // A gate keeps what it always had here. Only a start that was given a
       // limit of its own is answered instead.
@@ -2565,11 +2567,12 @@ export function spawnArgv(
       return atDeadline(killedOrRethrow(error));
     }
   }
-  const notStarted = programProblem(argv[0], cwd);
+  const searchPath = env === undefined ? process.env.PATH : env.PATH;
+  const notStarted = programProblem(argv[0], cwd, searchPath);
   if (notStarted !== null) return { code: null, output: null, notStarted };
   const capture = quiet || process.env.LISA_GATES_CAPTURE !== "0";
   try {
-    const child = superviseArgv(argv, cwd, { capture, quiet, budgetMs });
+    const child = superviseArgv(argv, cwd, { capture, quiet, budgetMs, env });
     // A non-timeout `spawnSync` failure arrives on the result, and it means
     // the supervisor itself never ran: nothing checked this part.
     if (child.error) return { code: null, output: null };

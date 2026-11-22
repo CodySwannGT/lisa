@@ -223,7 +223,7 @@ describe("what the operator is told", () => {
     ]);
 
     expect(note).toBe(
-      `Something shaped like a credential was in what a check printed or was started with: the violation result for ${API} at commit (a GitHub token). Each value was taken out before anything was written and is not kept anywhere; a placeholder marks where it was. Find out why the check shows it, and replace the credential if it is a real one.`
+      `Something shaped like a credential was in what a check printed or was started with: the violation result for ${API} at commit (a GitHub token). Each value was taken out before anything was written and is not kept anywhere; a placeholder marks where it was. Find out why the check shows it, and replace the credential if it is a real one. ${PLACEHOLDER}`
     );
     expect(note).not.toContain(TOKEN);
   });

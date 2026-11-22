@@ -9,10 +9,9 @@
  * ## How it differs from a plain `attest`
  *
  * A plain run installs Lisa's commit and push carriers in its disposable
- * copy, so it proves the chain Lisa would install. This run installs
- * nothing. Its copy is a fresh clone of the last commit, wired exactly as a
- * fresh clone is, which in practice means not at all: git copies commits
- * into a clone and never the hook settings of the checkout it came from. For
+ * copy, so it proves the chain Lisa would install. This run installs no
+ * Lisa carriers. It uses any hooks switched on by the repository's declared
+ * preparation. A fresh clone otherwise inherits no hooks from its source. For
  * each entry that has both proof patches and is checked at commit or push,
  * it really commits or pushes the violating change there, then runs the
  * entry's own command on the same change. See `../before-enforce-run.ts`.
@@ -201,8 +200,8 @@ async function exerciseIn(
     ...dependencies.copy,
     // The whole point of this run: nothing of Lisa's is installed in the
     // clone, so it is wired exactly as a fresh clone of the repository is.
-    build: (repository, folder) =>
-      build(repository, folder, { carriers: "none" }),
+    build: (repository, folder, options) =>
+      build(repository, folder, { ...options, carriers: "none" }),
     notes: copy => beforeEnforceNotes(cloneWiring(copy)),
     notice: dependencies.stderr,
   });

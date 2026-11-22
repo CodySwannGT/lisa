@@ -363,13 +363,19 @@ export function ignoredPaths(
  * @param patch - The content of the patch file
  * @param options - How to apply it
  * @param options.reverse - Take the change back out instead of planting it
+ * @param options.cached - Apply the patch to the index alone
+ * @param options.check - Check if the patch can apply without writing
  * @returns No problem when all of it was applied; otherwise git's reason,
  *   and nothing was changed
  */
 export function applyProofPatch(
   directory: string,
   patch: string,
-  options: { readonly reverse?: boolean } = {}
+  options: {
+    readonly reverse?: boolean;
+    readonly cached?: boolean;
+    readonly check?: boolean;
+  } = {}
 ): PatchOutcome {
   const [program = ENV_PROGRAM, ...git] = isolatedGit(directory);
   const child = spawnSync(
@@ -379,6 +385,8 @@ export function applyProofPatch(
       "apply",
       "--whitespace=nowarn",
       ...(options.reverse === true ? ["--reverse"] : []),
+      ...(options.cached === true ? ["--cached"] : []),
+      ...(options.check === true ? ["--check"] : []),
       "-",
     ],
     {
@@ -399,5 +407,32 @@ export function applyProofPatch(
   const reason = said === "" ? `git exited ${String(child.status)}` : said;
   return {
     problem: `git did not apply the patch, so nothing was changed: ${reason}`,
+  };
+}
+
+/**
+ * Stage the proof against the baseline and apply it to the prepared files.
+ * @param directory - The disposable, prepared repository
+ * @param patch - The proof change
+ * @param restore - Restore the baseline index and prepared files after a partial failure
+ * @returns The patch outcome and any restoration problem
+ */
+export function applyPreparedProofPatch(
+  directory: string,
+  patch: string,
+  restore: () => PatchOutcome
+): PatchOutcome {
+  const checked = applyProofPatch(directory, patch, { check: true });
+  if (checked.problem !== null) return checked;
+  const staged = applyProofPatch(directory, patch, { cached: true });
+  if (staged.problem !== null) return staged;
+  const planted = applyProofPatch(directory, patch);
+  if (planted.problem === null) return planted;
+  const restored = restore();
+  return {
+    problem:
+      restored.problem === null
+        ? `${planted.problem} The staged proof was removed and preparation was restored.`
+        : `${planted.problem} ${restored.problem}`,
   };
 }

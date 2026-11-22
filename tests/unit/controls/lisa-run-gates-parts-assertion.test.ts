@@ -231,8 +231,9 @@ describe.skipIf(process.platform === "win32")(
       expect(args.slice(args.indexOf("--") + 1)).toEqual(argv);
       expect(options.shell).toBe(false);
       expect(options.cwd).toBe(api);
-      // The runner's own environment, as every other gate command gets.
-      expect(options.env).toBeUndefined();
+      // The gate inherits its environment. Keep any values out of the test
+      // output even if a regression passes an explicit environment.
+      expect(options.env === undefined).toBe(true);
       expect(typeof options.timeout).toBe("number");
     });
 

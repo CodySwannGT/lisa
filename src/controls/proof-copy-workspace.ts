@@ -71,6 +71,7 @@ import {
   type RunGit,
 } from "./proof-copy-git.js";
 import type { ProofCopy } from "./proof-copy.js";
+import { restorePreparedCopy } from "./proof-copy-prepared-state.js";
 import {
   contradictionDetail,
   notCommittedDetail,
@@ -80,7 +81,11 @@ import {
   unattributedDetail,
   unwiredDetail,
 } from "./proof-copy-wording.js";
-import { applyProofPatch, isolatedGit } from "./proof-patch.js";
+import {
+  applyPreparedProofPatch,
+  applyProofPatch,
+  isolatedGit,
+} from "./proof-patch.js";
 import type { ProofTools } from "./proof-tools.js";
 import type {
   PatchOutcome,
@@ -366,11 +371,22 @@ function reset(copy: ProofCopy, inClone: RunGit): PatchOutcome {
     const exit = run();
     return exit.code === 0 ? null : gitSaid(exit);
   }, null);
-  return failed === null
-    ? { problem: null }
-    : {
-        problem: `the disposable copy could not be put back to its starting commit: ${failed}`,
-      };
+  if (failed !== null) {
+    return {
+      problem: `the disposable copy could not be put back to its starting commit: ${failed}`,
+    };
+  }
+  const preparation = copy.preparation;
+  const restore =
+    preparation === undefined
+      ? null
+      : restorePreparedCopy(copy.clone, preparation);
+  return {
+    problem:
+      restore === null
+        ? null
+        : `the prepared files could not be restored: ${restore}`,
+  };
 }
 
 /**
@@ -392,6 +408,11 @@ export function proofCopyWorkspace(
     root: copy.clone,
     apply: async patch => {
       await turn();
+      if (copy.preparation !== undefined) {
+        return applyPreparedProofPatch(copy.clone, patch, () =>
+          reset(copy, inClone)
+        );
+      }
       const planted = applyProofPatch(copy.clone, patch);
       if (planted.problem !== null) return planted;
       const staged = inClone(["add", "--all"]);

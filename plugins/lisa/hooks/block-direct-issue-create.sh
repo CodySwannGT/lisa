@@ -729,11 +729,14 @@ HTTP_CLIS = {"curl", "http", "httpie", "wget"}
 # and permitting something we demonstrably cannot read. Deliberately narrower
 # than "mentions a tracker CLI" so an ordinary unparseable command
 # (`echo 'it's fine`) still passes.
+# The GitHub collection can create an issue. A complete numeric member path
+# identifies an existing issue. Keep the fallback for other route forms and
+# for independent creation signatures appearing alongside a member path.
 UNPARSEABLE_CREATION = re.compile(
     r"\b(?:gh|jira|linear)\b[^\n]*?\bissue\b[^\n]*?\bcreate\b"
     r"|\bacli\b[^\n]*?\b(?:workitem|issue)s?\b[^\n]*?\bcreate\b"
     r"|\bcreateIssue\b|\bissueCreate\b"
-    r"|repos/[^/\s]+/[^/\s]+/issues"
+    r"|repos/[^/\s]+/[^/\s]+/issues\b(?!/[0-9]+(?:$|[\s'\"`.,);?#]))"
     r"|atlassian\.net/rest/api/[^/\s]+/issue",
     re.IGNORECASE,
 )
