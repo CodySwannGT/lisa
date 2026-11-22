@@ -1910,6 +1910,13 @@ start the carrier, which goes to its own top folder and asks git nothing.
 `--coverage`, nothing is added.** A second call would run every gate twice.
 Those points are reported `already-wired`, through `lisa-stack-hook`.
 
+**Rails Lefthook coverage.** The managed commit and push jobs run declared gates first.
+RuboCop stands down when code style was proved, and RSpec stands down when both test
+correctness and coverage were proved. The other built-in jobs keep running. Run
+`lefthook install` after applying this version to refresh older installed Git hooks.
+The installed hook shares coverage in a per-run temporary directory. A direct
+`lefthook run` still runs both the registry and the built-in checks.
+
 **`core.hooksPath` is not committed.** A new clone has the files and not the
 setting, so git runs no carrier there until the command has run once in that
 checkout. `--check` exits 3 in such a clone and names the setting, which is

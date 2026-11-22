@@ -2386,6 +2386,12 @@
       "b0f27086d95978790d9d11ad3fc53b9260f379defc97ab15aa2528b384a962e8",
       "b963ce2647fd6daa95ceb5607691c5fb7d9f847a54d93a3d36718c5f7567905c"
     ],
+    "scripts/lisa-rails-registry-env.sh": [
+      "830c77e9833167084688e607fd284d0d54decdf60c28004f1e4a7a062a10d2d9"
+    ],
+    "scripts/lisa-rails-registry-gates.sh": [
+      "92f22b9d6cf19515c0ce3412bd329e9f4efbea44b70a1e833b4a1c73be059625"
+    ],
     "scripts/lisa-reconcile-policy.mjs": [
       "07542e977ed41f094d5a51cae512e4a3246fabe10d0f83676a176abc81d91624",
       "07ca88dcfb7caddd3ce1841c92a153067dcf7d4c52bbb66d21d4a7aad6eb18d1",
@@ -5468,6 +5474,12 @@
       "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
       "b0f27086d95978790d9d11ad3fc53b9260f379defc97ab15aa2528b384a962e8",
       "b963ce2647fd6daa95ceb5607691c5fb7d9f847a54d93a3d36718c5f7567905c"
+    ],
+    "scripts/lisa-rails-registry-env.sh": [
+      "830c77e9833167084688e607fd284d0d54decdf60c28004f1e4a7a062a10d2d9"
+    ],
+    "scripts/lisa-rails-registry-gates.sh": [
+      "92f22b9d6cf19515c0ce3412bd329e9f4efbea44b70a1e833b4a1c73be059625"
     ],
     "scripts/lisa-reconcile-policy.mjs": [
       "07ca88dcfb7caddd3ce1841c92a153067dcf7d4c52bbb66d21d4a7aad6eb18d1",
