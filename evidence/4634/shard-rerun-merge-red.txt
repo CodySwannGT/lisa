@@ -1,0 +1,303 @@
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4634-shard-rerun-merge
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/unit/scripts/shell-guard-shards.test.ts (71 tests | 16 failed) 33ms
+     × merges attempt-1 shards 1 and 2 with the attempt-2 re-run of shard 3 1ms
+     × refuses attempt-2 shard 3 alone, naming shards 1 and 2 and the recovery 1ms
+     × uses the complete attempt-2 shard 3 beside the failed attempt-1 shard 3 diagnostics 0ms
+     × refuses a bundle downloaded from a different run 0ms
+     × refuses a chosen bundle whose recorded runId differs from the current run 0ms
+     × refuses a chosen bundle whose recorded sourceSha differs from the current run 0ms
+     × refuses a chosen bundle whose recorded prHead differs from the current run 0ms
+     × refuses a chosen bundle whose recorded workflowRef differs from the current run 0ms
+     × refuses an incomplete newest bundle (no-manifest) rather than falling back to an older attempt 0ms
+     × refuses an incomplete newest bundle (incomplete-manifest) rather than falling back to an older attempt 0ms
+     × refuses an incomplete newest bundle (failed-child) rather than falling back to an older attempt 0ms
+     × refuses two directories claiming the same shard and attempt 0ms
+     × refuses a bundle whose recorded attempt differs from its directory name 0ms
+     × refuses a bundle from a later attempt than the merge job's own 0ms
+     × refuses a chosen older-attempt bundle built from a different runtime, asking for a full re-run 0ms
+     × refuses a directory that is not a shard bundle of this run 0ms
+ ❯ |lisa| tests/unit/core/qualified-runtime-ci.test.ts (4 tests | 1 failed) 96ms
+     × required shell judgment retains both runtimes and refuses incomplete native shard dependencies 5ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/core/qualified-runtime-ci.test.ts > qualified runtimes in required CI execution paths > required shell judgment retains both runtimes and refuses incomplete native shard dependencies
+AssertionError: expected 'lisa-shell-guard-${{ github.run_id }}…' to be 'lisa-shell-guard-${{ github.run_id }}…' // Object.is equality
+
+Expected: "lisa-shell-guard-${{ github.run_id }}-*-shard-*"
+Received: "lisa-shell-guard-${{ github.run_id }}-${{ github.run_attempt }}-shard-*"
+
+ ❯ tests/unit/core/qualified-runtime-ci.test.ts:165:7
+    163|       items.find(step => step.uses?.startsWith("actions/download-artif…
+    164|         ?.with?.["pattern"]
+    165|     ).toBe(
+       |       ^
+    166|       // #4634: every attempt of THIS run, so a failed-jobs re-run can…
+    167|       // the earlier attempt's complete shards; the merge picks the ne…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > merges attempt-1 shards 1 and 2 with the attempt-2 re-run of shard 3
+TypeError: mergeShardDirectories is not a function
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:524:20
+    522|   it("merges attempt-1 shards 1 and 2 with the attempt-2 re-run of sha…
+    523|     const { snapshot, bundles } = currentAt(2);
+    524|     const result = mergeShardDirectories(snapshot, [
+       |                    ^
+    525|       entry(1, atAttempt(bundles[0]!, 1)),
+    526|       entry(1, atAttempt(bundles[1]!, 1)),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses attempt-2 shard 3 alone, naming shards 1 and 2 and the recovery
+AssertionError: expected [Function] to throw error matching /shard 1, shard 2[\s\S]*Re-run failed…/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/shard 1, shard 2[\s\S]*Re-run failed jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:546:7
+    544|     expect(() =>
+    545|       mergeShardDirectories(snapshot, [entry(2, atAttempt(bundles[2]!,…
+    546|     ).toThrow(/shard 1, shard 2[\s\S]*Re-run failed jobs/u);
+       |       ^
+    547|   });
+    548|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > uses the complete attempt-2 shard 3 beside the failed attempt-1 shard 3 diagnostics
+TypeError: mergeShardDirectories is not a function
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:551:20
+    549|   it("uses the complete attempt-2 shard 3 beside the failed attempt-1 …
+    550|     const { snapshot, bundles } = currentAt(2);
+    551|     const result = mergeShardDirectories(snapshot, [
+       |                    ^
+    552|       entry(1, atAttempt(bundles[0]!, 1)),
+    553|       entry(1, atAttempt(bundles[1]!, 1)),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses a bundle downloaded from a different run
+AssertionError: expected [Function] to throw error matching /shard 3 attempt 2[\s\S]*run 999[\s\S…/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/shard 3 attempt 2[\s\S]*run 999[\s\S]*Re-run all jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:568:7
+    566|         entry(2, atAttempt(bundles[2]!, 2), "999"),
+    567|       ])
+    568|     ).toThrow(/shard 3 attempt 2[\s\S]*run 999[\s\S]*Re-run all jobs/u…
+       |       ^
+    569|   });
+    570|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses a chosen bundle whose recorded runId differs from the current run
+AssertionError: expected [Function] to throw error matching /shard 1 attempt 1[\s\S]*runId[\s\S]*…/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/shard 1 attempt 1[\s\S]*runId[\s\S]*Re-run all jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:588:9
+    586|           entry(2, atAttempt(bundles[2]!, 2)),
+    587|         ])
+    588|       ).toThrow(
+       |         ^
+    589|         new RegExp(
+    590|           `shard 1 attempt 1[\\s\\S]*${field}[\\s\\S]*Re-run all jobs`,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses a chosen bundle whose recorded sourceSha differs from the current run
+AssertionError: expected [Function] to throw error matching /shard 1 attempt 1[\s\S]*sourceSha[\s…/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/shard 1 attempt 1[\s\S]*sourceSha[\s\S]*Re-run all jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:588:9
+    586|           entry(2, atAttempt(bundles[2]!, 2)),
+    587|         ])
+    588|       ).toThrow(
+       |         ^
+    589|         new RegExp(
+    590|           `shard 1 attempt 1[\\s\\S]*${field}[\\s\\S]*Re-run all jobs`,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses a chosen bundle whose recorded prHead differs from the current run
+AssertionError: expected [Function] to throw error matching /shard 1 attempt 1[\s\S]*prHead[\s\S]…/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/shard 1 attempt 1[\s\S]*prHead[\s\S]*Re-run all jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:588:9
+    586|           entry(2, atAttempt(bundles[2]!, 2)),
+    587|         ])
+    588|       ).toThrow(
+       |         ^
+    589|         new RegExp(
+    590|           `shard 1 attempt 1[\\s\\S]*${field}[\\s\\S]*Re-run all jobs`,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses a chosen bundle whose recorded workflowRef differs from the current run
+AssertionError: expected [Function] to throw error matching /shard 1 attempt 1[\s\S]*workflowRef[…/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/shard 1 attempt 1[\s\S]*workflowRef[\s\S]*Re-run all jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:588:9
+    586|           entry(2, atAttempt(bundles[2]!, 2)),
+    587|         ])
+    588|       ).toThrow(
+       |         ^
+    589|         new RegExp(
+    590|           `shard 1 attempt 1[\\s\\S]*${field}[\\s\\S]*Re-run all jobs`,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses an incomplete newest bundle (no-manifest) rather than falling back to an older attempt
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses an incomplete newest bundle (incomplete-manifest) rather than falling back to an older attempt
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses an incomplete newest bundle (failed-child) rather than falling back to an older attempt
+AssertionError: expected [Function] to throw error matching /shard 3 attempt 2[\s\S]*Re-run faile…/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/shard 3 attempt 2[\s\S]*Re-run failed jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:611:9
+    609|           mode === "no-manifest" ? failedEntry(2, 3) : entry(2, newest…
+    610|         ])
+    611|       ).toThrow(/shard 3 attempt 2[\s\S]*Re-run failed jobs/u);
+       |         ^
+    612|     }
+    613|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses two directories claiming the same shard and attempt
+AssertionError: expected [Function] to throw error matching /duplicate[\s\S]*shard 3 attempt 1[\s…/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/duplicate[\s\S]*shard 3 attempt 1[\s\S]*Re-run all jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:624:7
+    622|         entry(1, bundles[2]!),
+    623|       ])
+    624|     ).toThrow(/duplicate[\s\S]*shard 3 attempt 1[\s\S]*Re-run all jobs…
+       |       ^
+    625|   });
+    626|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses a bundle whose recorded attempt differs from its directory name
+AssertionError: expected [Function] to throw error matching /shard 3 attempt 2[\s\S]*records atte…/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/shard 3 attempt 2[\s\S]*records attempt 1[\s\S]*Re-run all jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:635:7
+    633|         entry(2, atAttempt(bundles[2]!, 1)),
+    634|       ])
+    635|     ).toThrow(
+       |       ^
+    636|       /shard 3 attempt 2[\s\S]*records attempt 1[\s\S]*Re-run all jobs…
+    637|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses a bundle from a later attempt than the merge job's own
+AssertionError: expected [Function] to throw error matching /shard 3 attempt 2[\s\S]*Re-run all j…/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/shard 3 attempt 2[\s\S]*Re-run all jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:648:7
+    646|         entry(2, atAttempt(bundles[2]!, 2)),
+    647|       ])
+    648|     ).toThrow(/shard 3 attempt 2[\s\S]*Re-run all jobs/u);
+       |       ^
+    649|   });
+    650|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses a chosen older-attempt bundle built from a different runtime, asking for a full re-run
+AssertionError: expected [Function] to throw error matching /shard 1 attempt 1[\s\S]*Re-run all j…/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/shard 1 attempt 1[\s\S]*Re-run all jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:661:7
+    659|         entry(2, atAttempt(bundles[2]!, 2)),
+    660|       ])
+    661|     ).toThrow(/shard 1 attempt 1[\s\S]*Re-run all jobs/u);
+       |       ^
+    662|   });
+    663|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/shell-guard-shards.test.ts > shard bundles across Actions attempts (#4634) > refuses a directory that is not a shard bundle of this run
+AssertionError: expected [Function] to throw error matching /something-else[\s\S]*Re-run all jobs/u but got '(0 , __vite_ssr_import_1__.mergeShard…'
+
+- Expected:
+/something-else[\s\S]*Re-run all jobs/u
+
++ Received:
+"(0 , __vite_ssr_import_1__.mergeShardDirectories) is not a function"
+
+ ❯ tests/unit/scripts/shell-guard-shards.test.ts:673:7
+    671|         { name: "something-else", read: () => null },
+    672|       ])
+    673|     ).toThrow(/something-else[\s\S]*Re-run all jobs/u);
+       |       ^
+    674|   });
+    675| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/17]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  17 failed | 58 passed (75)
+   Start at  09:33:02
+   Duration  465ms (transform 178ms, setup 282ms, import 57ms, tests 130ms, environment 0ms)
+

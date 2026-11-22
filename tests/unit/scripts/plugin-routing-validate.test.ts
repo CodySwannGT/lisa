@@ -16,7 +16,10 @@ import {
   cacheMaxVersion,
   validateArtifact,
 } from "../../../scripts/plugin-routing-validate.mjs";
-import type { Artifact } from "./plugin-routing-validate-helpers";
+import type {
+  Artifact,
+  RoutingEntry,
+} from "./plugin-routing-validate-helpers.js";
 import {
   ABSENT_DIR,
   baseArtifact,
@@ -31,7 +34,7 @@ import {
   runValidate,
   summaryOf,
   VALID_DIR,
-} from "./plugin-routing-validate-helpers";
+} from "./plugin-routing-validate-helpers.js";
 
 /**
  * Validate a base artifact after applying `mutate`, returning the error list.
@@ -43,6 +46,21 @@ const errsWith = (mutate: (a: Artifact) => void): readonly string[] => {
   const artifact = baseArtifact();
   mutate(artifact);
   return validateArtifact(artifact, baseContext());
+};
+
+/**
+ * One agent's routing entry, which every base artifact declares.
+ *
+ * @param artifact - the artifact under mutation.
+ * @param agent - the agent key.
+ * @returns The entry.
+ */
+const route = (artifact: Artifact, agent: string): RoutingEntry => {
+  const entry = artifact.routing[agent];
+  if (entry === undefined) {
+    throw new Error(`base artifact has no routing.${agent}`);
+  }
+  return entry;
 };
 
 const has = (errors: readonly string[], substring: string): boolean =>
@@ -201,7 +219,7 @@ describe("validateArtifact routing gates", () => {
   it("flags an outcome outside the locked enum", () => {
     expect(
       has(
-        errsWith(a => (a.routing.codex.outcome = "frobnicate")),
+        errsWith(a => (route(a, "codex").outcome = "frobnicate")),
         "outcome invalid"
       )
     ).toBe(true);
@@ -209,8 +227,8 @@ describe("validateArtifact routing gates", () => {
 
   it("flags a non-array actions and an empty rationale", () => {
     const errors = errsWith(a => {
-      a.routing.cursor.actions = "nope";
-      a.routing.cursor.rationale = "";
+      route(a, "cursor").actions = "nope";
+      route(a, "cursor").rationale = "";
     });
     expect(has(errors, "actions must be an array")).toBe(true);
     expect(has(errors, "rationale must be a non-empty string")).toBe(true);
@@ -220,7 +238,7 @@ describe("validateArtifact routing gates", () => {
     expect(
       has(
         errsWith(
-          a => (a.routing.codex.actions = ["emit foo@unknown into codex"])
+          a => (route(a, "codex").actions = ["emit foo@unknown into codex"])
         ),
         "@unknown pin"
       )
@@ -231,7 +249,7 @@ describe("validateArtifact routing gates", () => {
     expect(
       has(
         errsWith(
-          a => (a.routing.agy.actions = ["component not addressed for agy"])
+          a => (route(a, "agy").actions = ["component not addressed for agy"])
         ),
         "not addressed"
       )
@@ -241,7 +259,7 @@ describe("validateArtifact routing gates", () => {
   it("flags a reimplement missing the synced-from stamp (semver upstream)", () => {
     expect(
       has(
-        errsWith(a => (a.routing.codex.actions = ["scaffold a skill"])),
+        errsWith(a => (route(a, "codex").actions = ["scaffold a skill"])),
         "must include the stamp"
       )
     ).toBe(true);
@@ -252,10 +270,12 @@ describe("validateArtifact routing gates", () => {
       (() => {
         const a = baseArtifact();
         a.upstreamVersion = "unknown";
-        a.routing.codex.actions = [
+        route(a, "codex").actions = [
           "scaffold a skill (no pin: upstream unknown)",
         ];
-        a.routing.agy.actions = ["scaffold a skill (no pin: upstream unknown)"];
+        route(a, "agy").actions = [
+          "scaffold a skill (no pin: upstream unknown)",
+        ];
         return a;
       })(),
       { ...baseContext(), cacheMax: null }
@@ -331,7 +351,7 @@ describe("cacheMaxVersion", () => {
 });
 
 describe("validateArtifact coverage gate (drop nothing)", () => {
-  const ctx = { cacheMax: null, filename: undefined, mdExists: true };
+  const ctx = { cacheMax: null, mdExists: true };
 
   it("flags an agent whose actions omit a component group (codex/agy cover both via keyword)", () => {
     const errors = validateArtifact(multiKind(["handle the mcp only"]), ctx);

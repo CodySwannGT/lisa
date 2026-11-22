@@ -95,7 +95,7 @@ describe("expected fleet runbook paths and opt-in gardener (#1796)", () => {
     ]);
   });
 
-  it("reports an un-opted-in gardener as unsupported, never missing", () => {
+  it("reports an unregistered gardener as unsupported, never missing", () => {
     const fleet = resolveExpectedAutomationFleet({
       config: {
         tracker: GITHUB,
@@ -114,7 +114,7 @@ describe("expected fleet runbook paths and opt-in gardener (#1796)", () => {
         group: OPT_IN_GROUP,
         expectedCadence: WEEKLY_CADENCE,
         expectedRRule: WEEKLY_RRULE,
-        reason: expect.stringMatching(/opt-in/i),
+        reason: expect.stringMatching(/not registered/i),
         runbookPath: runbook(LEARNINGS_AUDIT_ID),
       }),
     ]);

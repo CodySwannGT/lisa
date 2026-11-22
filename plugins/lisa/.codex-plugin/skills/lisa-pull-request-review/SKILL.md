@@ -1,16 +1,16 @@
 ---
 name: lisa-pull-request-review
-description: "address and resolve the code…"
+description: "Address every review comment on…"
 allowed-tools: ["Read", "Bash", "Edit", "Write", "Glob", "Grep", "Skill"]
 ---
-This skill should be used to address and resolve the code review feedback on a pull request — human and bot (CodeRabbit, etc.). It fetches every unresolved review thread with its resolution state via GraphQL and every non-dismissed review body not yet marked as answered (where CodeRabbit puts outside-diff and nitpick comments), triages each finding, implements valid feedback (commit + push), replies to invalid/not-applicable feedback explaining why, and resolves every handled thread via the GraphQL resolveReviewThread mutation so branch-protection thread-resolution gates clear. Composable and chainable — runnable standalone via /lisa:pull-request:review or invoked inline by other skills (drive-pr-to-merge, verify) via the Skill tool.
+Address every review comment on a pull request, human or bot — threads and review bodies: fix valid feedback, reply to the rest explaining why, and resolve each thread so merge gates clear. Runs standalone or from other skills.
 
 
 # Address & Resolve PR Review Comments
 
 Single source of truth for turning open review feedback into resolved threads.
 Handles human and bot reviewers identically. Runs **inline** (this agent does the
-fixes); it does not require an agent team, though a caller may fan code-fixes out
+fixes); it does not need subagents, though a caller may fan code-fixes out
 to one for a large backlog.
 
 ## Inputs (`$ARGUMENTS`)
@@ -53,15 +53,41 @@ A required review check can post `success` having reviewed nothing. Measured on
 PRs #2483 and #2484: `CodeRabbit` reported `success — "Review rate limited"`,
 zero reviews, and both merged on that green carrying security-relevant changes.
 
+The project's reviewers are the gates in `.lisa.config.json` whose
+`pull-request` entry sets `evidence.reviewer: true`. The check name is that
+entry's `await`, and the words that mean "it read the code" are its
+`evidence.proof` phrases. Read them from the config rather than assuming a
+vendor:
+
 ```bash
-gh pr checks <pr> --json name,state,bucket,description \
-  --jq '.[] | select(.name | test("(?i)coderabbit|review")) | "\(.name)\t\(.state)\t\(.description)"'
+reviewers=$(jq -r '.gates // {} | to_entries[] | .value["pull-request"] // empty
+  | select(.evidence.reviewer == true) | .await' .lisa.config.json) || {
+  echo "Cannot read the reviewer gates in .lisa.config.json." >&2
+  exit 1
+}
+printf '%s\n' "$reviewers" | while read -r reviewer; do
+  [ -n "$reviewer" ] || continue
+  gh pr checks <pr> --json name,state,bucket,description \
+    --jq ".[] | select(.name == \"$reviewer\") | \"\(.name)\t\(.state)\t\(.description)\""
+done
 ```
+
+If the config cannot be read, report the reviewer configuration as
+unreadable, never as "no reviewer". Only a config that reads cleanly and
+declares no reviewer gate means the project has no third-party reviewer; say
+so rather than reporting one as absent.
 
 **The state column passes whether the review was real or hollow — only the
 reviewer's words distinguish them.** For a commit status those words are the
-description: `Review approved` / `Review completed` is a real review;
-`Review rate limited`, `Review queued`, or a missing context is not. A reviewer
+description. A real review uses a declared proof phrase, such as CodeRabbit's
+`Review approved` / `Review completed`. A no-work phrase, such as CodeRabbit's
+`Review rate limited` or `Review queued`, or a missing context, is not a
+review. A reviewer whose gate sets `evidence.review_by` reports through its
+own pull-request review instead of a check, which the loop above cannot see.
+For that gate run `node scripts/check-third-party-review-evidence.mjs --sha
+<head-sha> --repo <owner>/<repo> --json` and report the reviewer as reviewed
+only when it reads `reviewed` at the head commit, whichever source it names (a
+check run, a status, or a review). A reviewer
 can also report through a **check run** instead, and then this command cannot
 tell you anything: the description column is empty for a check run, which
 reads `SUCCESS` when it reviewed and `NEUTRAL` — still passing a required
@@ -105,14 +131,15 @@ threads" on its own** — it is true of an unreviewed PR too. Say which you
 observed:
 
 - `unknown — PR discovery unreadable (the open pull requests could not be read); review verdict deferred until access is restored`
-- `reviewed — CodeRabbit "Review approved", 0 unresolved threads`
-- `NOT REVIEWED — CodeRabbit success but "Review rate limited" (vacuous); 0 threads means nobody looked`
+- `reviewed — <reviewer> "Review approved", 0 unresolved threads`
+- `NOT REVIEWED — <reviewer> success but "Review rate limited" (vacuous); 0 threads means nobody looked`
 - `NOT REVIEWED — no review check reported on this PR at all`
 
 ## Step 1c: Fetch every unanswered review-body finding
 
-Some findings have no thread. CodeRabbit puts its "outside diff range" and
-"nitpick" comments in the review **body**, and Step 1 never reads a body. Fetch
+Some findings have no thread. Reviewers often put findings in the review
+**body** (CodeRabbit, for example, puts its "outside diff range" and "nitpick"
+comments there), and Step 1 never reads a body. Fetch
 the reviews too (GitHub; CodySwannGT/lisa#4643), skipping each review that a PR
 comment already marks as handled:
 
@@ -132,8 +159,8 @@ Do not filter on the head commit. **A push does not answer a review body**, so a
 review from an earlier head stays in scope until a marker retires it. Split each
 body into its actionable items (a summary or walkthrough with nothing to change
 is not one) and triage them in Step 2. Expand and read every collapsed `<details>`
-section before you call a body summary-only: CodeRabbit puts its nitpick and
-outside-diff items there. A body with no actionable items still needs its marker
+section before you call a body summary-only: reviewers such as CodeRabbit put
+nitpick and outside-diff items there. A body with no actionable items still needs its marker
 (Step 2), or it is re-read on every run and step (e) of `drive-pr-to-merge` waits
 on it forever. For an older review, first decide whether each item still applies
 to the current code.

@@ -1,0 +1,77 @@
+# bite control: same journey against the pre-fix script (4a5c963922~1 copy of base post-evidence.sh, pre-fix)
+## refuse case
+=== script: ../../../../../.claude/jobs/682135cf/tmp/prefix-post-evidence.sh
+=== command: bash ../../../../../.claude/jobs/682135cf/tmp/prefix-post-evidence.sh TEST-1 <evidence-dir> 101 (gh stubbed)
+=== comment.md:
+![Shot](https://github.com/org/repo/releases/download/pr-assets-2026-11/pr-101-01-search-step-desktop.png)
+
+=== exit: 1
+=== stdout:
+Found 1 screenshots and 1 text evidence files to upload
+
+==> Uploading to GitHub release 'pr-assets'...
+  ↑ pr-101-01-search-step-desktop.png
+  ↑ pr-101-01-health-check.json
+  ✓ GitHub release assets uploaded
+
+=== stderr:
+ERROR: /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/lisa-jira-scoped-ELhy9R/evidence-101-/comment.md links https://github.com/org/repo/releases/download/pr-assets-2026-11/pr-101-01-search-step-desktop.png in release 'pr-assets-2026-11', but this run uploaded to release 'pr-assets'. Regenerate the templates with LISA_EVIDENCE_RELEASE=pr-assets and re-run this script with the same LISA_EVIDENCE_RELEASE=pr-assets.
+
+=== gh release upload calls (2):
+release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.iRpHwMD1Bn/pr-101-01-search-step-desktop.png --repo org/repo --clobber 
+release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.iRpHwMD1Bn/pr-101-01-health-check.json --repo org/repo --clobber 
+=== release assets: ["pr-101-01-health-check.json","pr-101-01-search-step-desktop.png"]
+=== posted PR body:
+<none posted>
+## allow case
+=== script: ../../../../../.claude/jobs/682135cf/tmp/prefix-post-evidence.sh
+=== command: bash ../../../../../.claude/jobs/682135cf/tmp/prefix-post-evidence.sh TEST-1 <evidence-dir> 101 (gh stubbed)
+=== comment.md:
+![Shot](https://github.com/org/repo/releases/download/pr-assets/pr-101-01-search-step-desktop.png)
+[before](https://github.com/org/repo/releases/download/pr-assets-2026-10/pr-55-01-before.txt)
+[baseline](https://github.com/org/repo/releases/download/pr-assets-2026-10/baseline.png)
+
+=== exit: 1
+=== stdout:
+Found 1 screenshots and 1 text evidence files to upload
+
+==> Uploading to GitHub release 'pr-assets'...
+  ↑ pr-101-01-search-step-desktop.png
+  ↑ pr-101-01-health-check.json
+  ✓ GitHub release assets uploaded
+
+=== stderr:
+ERROR: /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/lisa-jira-scoped-Lfp3vs/evidence-101-/comment.md links https://github.com/org/repo/releases/download/pr-assets-2026-10/pr-55-01-before.txt in release 'pr-assets-2026-10', but this run uploaded to release 'pr-assets'. Regenerate the templates with LISA_EVIDENCE_RELEASE=pr-assets and re-run this script with the same LISA_EVIDENCE_RELEASE=pr-assets.
+ERROR: /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/lisa-jira-scoped-Lfp3vs/evidence-101-/comment.md links https://github.com/org/repo/releases/download/pr-assets-2026-10/baseline.png in release 'pr-assets-2026-10', but this run uploaded to release 'pr-assets'. Regenerate the templates with LISA_EVIDENCE_RELEASE=pr-assets and re-run this script with the same LISA_EVIDENCE_RELEASE=pr-assets.
+
+=== gh release upload calls (2):
+release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.3VTz4JWQuD/pr-101-01-search-step-desktop.png --repo org/repo --clobber 
+release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.3VTz4JWQuD/pr-101-01-health-check.json --repo org/repo --clobber 
+=== release assets: ["pr-101-01-health-check.json","pr-101-01-search-step-desktop.png"]
+=== posted PR body:
+<none posted>
+## foreign-repo same-tag case against 9193a664 (before the repo-scoped post-upload match)
+=== script: ../../../../../.claude/jobs/682135cf/tmp/pre-hardening-post-evidence.sh
+=== command: bash ../../../../../.claude/jobs/682135cf/tmp/pre-hardening-post-evidence.sh TEST-1 <evidence-dir> 101 (gh stubbed)
+=== comment.md:
+![Shot](https://github.com/org/repo/releases/download/pr-assets/pr-101-01-search-step-desktop.png)
+[other repo](https://github.com/org/other/releases/download/pr-assets/pr-55-x.png)
+
+=== exit: 1
+=== stdout:
+Found 1 screenshots and 1 text evidence files to upload
+
+==> Uploading to GitHub release 'pr-assets'...
+  ↑ pr-101-01-search-step-desktop.png
+  ↑ pr-101-01-health-check.json
+  ✓ GitHub release assets uploaded
+
+=== stderr:
+ERROR: /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/lisa-jira-scoped-nBiBdf/evidence-101-/comment.md links https://github.com/org/other/releases/download/pr-assets/pr-55-x.png, which is not scoped to PR #101 (expected pr-101-<file>)
+
+=== gh release upload calls (2):
+release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.rptIRuUbCN/pr-101-01-search-step-desktop.png --repo org/repo --clobber 
+release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.rptIRuUbCN/pr-101-01-health-check.json --repo org/repo --clobber 
+=== release assets: ["pr-101-01-health-check.json","pr-101-01-search-step-desktop.png"]
+=== posted PR body:
+<none posted>

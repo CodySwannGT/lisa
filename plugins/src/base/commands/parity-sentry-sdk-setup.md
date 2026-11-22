@@ -1,5 +1,6 @@
 ---
-description: "Install and configure the Sentry SDK for a project — detect the framework, add the right @sentry/<framework> package, init the client, wire the DSN via env, enable error + performance monitoring, and set up source maps. One consolidated skill covering react, nextjs, node, nestjs, python, react-native, and more."
+disable-model-invocation: true
+description: "Install and configure the Sentry SDK for a project's framework: package, client init, DSN from env, error and performance monitoring, and source maps."
 argument-hint: "[framework override, e.g. nextjs | node | python] (auto-detected if omitted)"
 ---
 

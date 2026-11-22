@@ -34,6 +34,10 @@ import {
   workflowIn,
 } from "./quality-gate-facade-fixture.js";
 
+/** The shipped token map, read by an arbitrary token name. */
+const JOBS_BY_TOKEN: Readonly<Record<string, readonly string[]>> =
+  SKIP_JOB_TOKENS;
+
 /**
  * Every skip token a job's `if:` condition honours.
  *
@@ -161,7 +165,7 @@ describe("the shipped skip_jobs mapping matches quality.yml", () => {
       a.localeCompare(b)
     );
     const shipped = Object.keys(SKIP_JOB_TOKENS)
-      .filter(token => (SKIP_JOB_TOKENS[token] ?? []).length > 0)
+      .filter(token => (JOBS_BY_TOKEN[token] ?? []).length > 0)
       .sort((a, b) => a.localeCompare(b));
     expect(shipped).toEqual(honoured);
   });
@@ -186,7 +190,7 @@ describe("the shipped skip_jobs mapping matches quality.yml", () => {
     const honoured = new Set(Object.keys(derivedTokenJobs));
     const inert = documentedTokens().filter(token => !honoured.has(token));
     for (const token of inert) {
-      expect(SKIP_JOB_TOKENS[token]).toEqual([]);
+      expect(JOBS_BY_TOKEN[token]).toEqual([]);
     }
     // Not asserted as "none exist": one does today (`github_issue`), and the
     // point of the case is that doctor can say so rather than invent a gate.

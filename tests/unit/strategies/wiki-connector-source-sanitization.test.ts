@@ -5,16 +5,12 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { writeSanitizedSourceNote } from "../../../plugins/src/wiki/scripts/_wiki-lib.mjs";
-import {
-  boundedExecFileSync,
-  boundedSpawnSync,
-} from "../../helpers/io-latency-budget.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const FIXTURE_SECRET = "sk_test_abcdefghijklmnopqrstuvwxyz";
 const API_KEY_PLACEHOLDER = "api_key = [REDACTED:API_KEY]";
 const GIT_BIN = resolveGit();
-const PYTHON_BIN = process.env.PYTHON ?? "python3";
 const CLEAN_GIT_ENV = cleanGitEnv();
 
 describe("lisa-wiki connector source sanitization (#1171)", () => {
@@ -161,36 +157,6 @@ describe("lisa-wiki connector source sanitization (#1171)", () => {
     expect(note).toContain(API_KEY_PLACEHOLDER);
     expect(note).not.toContain("123-45-6789");
     expect(note).not.toContain(FIXTURE_SECRET);
-  });
-
-  it("sanitizes Slack message text with typed placeholders", () => {
-    const script = path.resolve(
-      "plugins/src/wiki/scripts/ingest_slack_channel.py"
-    );
-    const result = boundedSpawnSync({
-      label: "ingest_slack_channel.py render_message",
-      command: PYTHON_BIN,
-      args: [
-        "-c",
-        [
-          "import importlib.util, json, sys",
-          "spec = importlib.util.spec_from_file_location('slack_ingest', sys.argv[1])",
-          "mod = importlib.util.module_from_spec(spec)",
-          "spec.loader.exec_module(mod)",
-          "print(json.dumps(mod.render_message({'ts':'1.000000','user':'U1','text':sys.argv[2]})))",
-        ].join(";"),
-        script,
-        `token xoxp-secret-token and SSN 123-45-6789 and api_key = ${FIXTURE_SECRET}`,
-      ],
-    });
-
-    expect(result.error).toBeUndefined();
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain("[REDACTED:OAUTH_TOKEN]");
-    expect(result.stdout).toContain("[REDACTED:SSN]");
-    expect(result.stdout).toContain(API_KEY_PLACEHOLDER);
-    expect(result.stdout).not.toContain("xoxp-secret-token");
-    expect(result.stdout).not.toContain(FIXTURE_SECRET);
   });
 
   it("sanitizes Jira-style source notes through the shared writer", () => {

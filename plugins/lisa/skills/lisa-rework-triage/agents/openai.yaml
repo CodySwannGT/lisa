@@ -1,4 +1,4 @@
 display_name: "Rework Triage"
-short_description: "Rework detection and agent-failure classification"
+short_description: "Rework detection: when a claimed ticket was bounced back from QA or staging, classify why the previous attempt failed, post a triage…"
 default_prompt:
-  - "Use $lisa-rework-triage: Rework detection and agent-failure classification."
+  - "Use $lisa-rework-triage: Rework detection: when a claimed ticket was bounced back from QA or staging, classify why the previous attempt failed, post a triage…."

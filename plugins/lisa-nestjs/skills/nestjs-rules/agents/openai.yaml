@@ -1,4 +1,4 @@
 display_name: "Nestjs Rules"
-short_description: "Procedural rules and patterns for NestJS backend development"
+short_description: "Rules for NestJS backend development: generating components with the CLI, TDD, module structure, Lambda handlers, and configuration"
 default_prompt:
-  - "Use $nestjs-rules: Procedural rules and patterns for NestJS backend development."
+  - "Use $nestjs-rules: Rules for NestJS backend development: generating components with the CLI, TDD, module structure, Lambda handlers, and configuration."

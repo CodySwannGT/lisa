@@ -145,7 +145,7 @@ export function readHookSources(explicitPath) {
 /**
  * Which families any of these hook sources actually installs.
  * @param {string[]} sources - Hook sources.
- * @returns {object[]} Families present, in registry order.
+ * @returns {Array<(typeof FAMILIES)[number]>} Families present, in registry order.
  */
 export function detectFamilies(sources) {
   return FAMILIES.filter(family =>

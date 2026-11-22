@@ -1,0 +1,82 @@
+# PATHS-AND-PARITY: independent shell probe (not the vitest extractor) for criteria (d) and (e)
+# head: f33bd37a9699243a6d508f6c95c41c2bac661dbb
+# captured_at: 2026-11-12T15:38:28Z
+# probe: every backticked token -> keep Lisa-repo paths (scripts/ src/ plugins/ tests/ .claude/ .agents/ wiki/ all/ typescript/ rails/ .github/workflows/, CodySwannGT/lisa/ prefix stripped, @ref stripped, bare reusable workflow names mapped to .github/workflows/) -> test -e
+# excluded host-project paths: .claude/settings.json .claude/hooks/ scripts/check-third-party-review-evidence.mjs
+# classification: a bare .github/workflows/<file> token names the HOST project's workflow (printed as HOST, not checked); only a CodySwannGT/lisa/-prefixed caller or a bare reusable workflow name is a Lisa path.
+# (first probe run treated bare .github/workflows/ as Lisa and reported .github/workflows/claude-sync-down-branches.yml MISSING; skill line 67 shows it is a surviving HOST wrapper the agent must not edit, so the probe was corrected)
+# blind spot: only backticked tokens are seen; a Lisa path written in bare prose is not checked by this probe
+
+== (d) .claude/skills/lisa-update-projects/SKILL.md
+HOST    .github/workflows/
+HOST    .github/workflows/claude-sync-down-branches.yml
+OK      .github/workflows/
+OK      .github/workflows
+OK      .github/workflows/quality.yml
+OK      all/deletions.json
+OK      .github/workflows/quality-rails.yml
+OK      .github/workflows/quality.yml
+OK      rails/create-only/
+OK      rails/create-only/.github/workflows/ci.yml
+OK      rails/create-only/.github/workflows/deploy.yml
+OK      .github/workflows/release-rails.yml
+OK      scripts/detect-stale-workflow-inputs.mjs
+OK      typescript/create-only/.github/workflows/
+OK      typescript/create-only/.github/workflows/ci.yml
+OK      typescript/deletions.json
+-- checked=14 missing=0
+== (d) .agents/skills/lisa-update-projects/SKILL.md
+HOST    .github/workflows/
+HOST    .github/workflows/claude-sync-down-branches.yml
+OK      .github/workflows/
+OK      .github/workflows
+OK      .github/workflows/quality.yml
+OK      all/deletions.json
+OK      .github/workflows/quality-rails.yml
+OK      .github/workflows/quality.yml
+OK      rails/create-only/
+OK      rails/create-only/.github/workflows/ci.yml
+OK      rails/create-only/.github/workflows/deploy.yml
+OK      .github/workflows/release-rails.yml
+OK      scripts/detect-stale-workflow-inputs.mjs
+OK      typescript/create-only/.github/workflows/
+OK      typescript/create-only/.github/workflows/ci.yml
+OK      typescript/deletions.json
+-- checked=14 missing=0
+== (d) .claude-pr/.claude/skills/lisa-update-projects/SKILL.md
+HOST    .github/workflows/
+HOST    .github/workflows/claude-sync-down-branches.yml
+OK      .github/workflows/
+OK      .github/workflows
+OK      .github/workflows/quality.yml
+OK      all/deletions.json
+OK      .github/workflows/quality-rails.yml
+OK      .github/workflows/quality.yml
+OK      rails/create-only/
+OK      rails/create-only/.github/workflows/ci.yml
+OK      rails/create-only/.github/workflows/deploy.yml
+OK      .github/workflows/release-rails.yml
+OK      scripts/detect-stale-workflow-inputs.mjs
+OK      typescript/create-only/.github/workflows/
+OK      typescript/create-only/.github/workflows/ci.yml
+OK      typescript/deletions.json
+-- checked=14 missing=0
+
+== (d) bite control: same probe on the origin/main copy of .claude/skills/lisa-update-projects/SKILL.md (must report MISSING scripts/migrate-deploy-order.sh)
+MISSING .github/workflows/reusable-claude-ci-auto-fix.yml
+MISSING .github/workflows/reusable-claude-sync-down-branches.yml
+MISSING .github/workflows/reusable-claude.yml
+MISSING .github/workflows/reusable-claude.yml
+MISSING scripts/migrate-deploy-order.sh
+-- checked=18 missing=5
+
+== (e) byte parity
+8dee2d2bd022226724fac4c3a73bb1772656dacefaccfac531b1435bdfc6f057  .claude/skills/lisa-update-projects/SKILL.md
+8dee2d2bd022226724fac4c3a73bb1772656dacefaccfac531b1435bdfc6f057  .agents/skills/lisa-update-projects/SKILL.md
+8dee2d2bd022226724fac4c3a73bb1772656dacefaccfac531b1435bdfc6f057  .claude-pr/.claude/skills/lisa-update-projects/SKILL.md
+cmp .claude/skills/lisa-update-projects/SKILL.md .agents/skills/lisa-update-projects/SKILL.md: identical (exit 0)
+cmp .claude/skills/lisa-update-projects/SKILL.md .claude-pr/.claude/skills/lisa-update-projects/SKILL.md: identical (exit 0)
+
+== (e) bite control: cmp must detect a one-byte divergence
+.claude/skills/lisa-update-projects/SKILL.md /Users/codysai/.claude/jobs/210f256b/tmp/b-mutated.md differ: char 14303, line 64
+cmp exit: 1 (expected 1)

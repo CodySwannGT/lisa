@@ -160,8 +160,8 @@ export function classifyProbe({ verdict = null } = {}) {
  * registry outage exactly.
  * @param {object} options Inputs.
  * @param {readonly string[]} options.tags Every ref name in the repository.
- * @param {(version: string) => {status?: number|null, error?: string|null}} options.probe Registry probe.
- * @returns {{rows: object[], ignored: string[]}} Rows per release tag, and refs that were not release tags.
+ * @param {(version: string) => {verdict?: string|null}} options.probe Registry probe; its `verdict` is classified by `classifyProbe`.
+ * @returns {{rows: Array<{tag: string, version: string, verdict: string}>, ignored: string[]}} Rows per release tag, and refs that were not release tags.
  */
 export function reconcile({ tags, probe }) {
   const rows = [];
@@ -234,7 +234,7 @@ export async function probeVersion(
  * a proven failed release. Someone reading the report in a hurry must not be
  * able to take the number for an incident count, so the distinction is printed
  * rather than left in a doc comment nobody opens.
- * @param {{rows: object[], ignored: string[]}} result As returned by `reconcile`.
+ * @param {{rows: ReadonlyArray<{tag: string, version: string, verdict: string}>, ignored: readonly string[]}} result As returned by `reconcile`.
  * @returns {string} The report.
  */
 export function formatReport({ rows, ignored }) {

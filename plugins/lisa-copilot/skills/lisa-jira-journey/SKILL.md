@@ -79,7 +79,7 @@ Before starting the journey, verify each prerequisite:
 
 Execute each step sequentially. For each step, determine the verification approach based on the step text and change type:
 
-- **API endpoints** → Run curl commands, capture HTTP response to `evidence/NN-name.txt`
+- **API endpoints** → Run curl commands, save the request and response as `http-transcript` JSON to `evidence/NN-name.json`
 - **Database changes** → Run psql/migration commands, capture schema output to `evidence/NN-name.txt`
 - **Background jobs** → Trigger the job, check queue/state, capture logs to `evidence/NN-name.txt`
 - **Library/utility changes** → Run tests, capture output to `evidence/NN-name.txt`
@@ -88,13 +88,16 @@ Execute each step sequentially. For each step, determine the verification approa
 At each typed `[EVIDENCE: <artifact-type>: <name>]` marker, capture an artifact **of the declared type** — the type is the contract, not a suggestion:
 
 - `screenshot` / `recording` → an actual image/video file from the driven UI (Playwright, simulator), never a text description of what was seen
-- `http-transcript` → the exact request (curl command or client call) plus the full response
-- `cli-output` → the command plus stdout/stderr and exit code
+- `http-transcript` → a JSON file with `request.method`, `request.url`, `response.status` and `response.body` (plain curl text is refused)
+- `cli-output` → a JSON file with `command`, `stdout`, `stderr` and an integer `exit_code`
 - `log-snippet` → the correlated log lines pulled from the running system
-- `db-query-output` → the query plus returned rows
-- `perf-trace` → the benchmark/frame-timing/profiler output with methodology (device profile, dataset size)
+- `db-query-output` → a JSON file with the `query` text and a `rows` list (plain query output is refused)
+- `perf-trace` → a JSON file with `methodology` (device profile, dataset size) and `measurements` of `{metric, value, unit}`
 - `test-run-log` → reporter output naming the spec and showing it ran and passed
-- `deploy-log` / `state-dump` → the deployment/health-check output or observed-state JSON
+- `deploy-log` → a JSON finished pipeline run (`status` exactly `"completed"`, `conclusion`, and a whole-number `id` or a `workflow_path`), or a `cli-output` JSON whose `stdout` mentions the deploy or health check
+- `state-dump` → a JSON file with one of `state`/`data`/`response`/`records` plus one of `id`/`source`/`command`/`captured_at`
+
+The JSON field rules and a minimal example for every kind are in the "Typed capture shapes" section of `../lisa-tracker-evidence/references/completion-authorization.md` (relative to this skill directory). A wrapper JSON file may also carry the raw text capture and its provenance beside the typed object.
 
 A prose claim ("the error state rendered gracefully") satisfies no marker. Legacy untyped markers: infer the type from the step's action, capture accordingly, and note the inference. Write each artifact to a numbered file:
 
@@ -120,37 +123,40 @@ evidence/
 
 ### Step 4: Generate Evidence Templates
 
-After capturing all evidence, run the template generator:
+The GitHub links point at the evidence release. Resolve it once, before generating templates, so the links and the uploads in Step 5 name the same release even across a month boundary. `--ensure` creates the release when it is missing. If the release cannot be used (for example, a pinned release is full, every overflow release is full, the release name is too long to roll over, or the publisher cannot create releases), the step prints `Evidence release not usable; stop.` and fails: stop there and report it instead of continuing.
 
 ```bash
-python3 .claude/skills/jira-journey/scripts/generate-templates.py \
+unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; } &&
+export LISA_EVIDENCE_RELEASE && echo "Evidence release: $LISA_EVIDENCE_RELEASE"
+```
+
+Some agent runtimes start a new shell for every command, and a new shell forgets an exported value. So put the printed release name in front of every later command that reads it, as `LISA_EVIDENCE_RELEASE=<name>`; the commands below show where.
+
+After capturing all evidence, run the template generator with that release name:
+
+```bash
+LISA_EVIDENCE_RELEASE=<name> python3 .claude/skills/jira-journey/scripts/generate-templates.py \
   <TICKET_ID> \
   <PR_NUMBER> \
   <BRANCH_NAME> \
   ./evidence
 ```
 
-This generates `evidence/comment.txt` (JIRA wiki markup) and `evidence/comment.md` (GitHub markdown) with evidence formatted as code blocks.
+This generates `evidence/comment.txt` (JIRA wiki markup) and `evidence/comment.md` (GitHub markdown) with text evidence formatted as code blocks. `NN-<name>-<viewport>.png` screenshots are embedded as images, labelled and sized by the journey viewport their name ends in (capped at 700px in JIRA), and the journey's viewports are listed under Key Viewports. Stack-specific capture guidance — which markers, viewports and tools — comes from the stack's `journey-guidance` skill when one is installed.
 
-The GitHub links point at the evidence release. Resolve it once, before generating templates, and keep it exported for Step 5 so the links and the uploads name the same release even across a month boundary:
-
-```bash
-export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)
-```
-
-`--ensure` creates the release when it is missing and stops, in plain words, when it is nearly full. Both `generate-templates.py` and `post-evidence.sh` read `LISA_EVIDENCE_RELEASE`; `post-evidence.sh` still validates and capacity-checks it. Without it they resolve the configured release themselves (default `pr-assets`).
+Both `generate-templates.py` and `post-evidence.sh` read `LISA_EVIDENCE_RELEASE`; `post-evidence.sh` still validates and capacity-checks it. Without it they resolve the configured release themselves (default `pr-assets`).
 
 ### Step 5: Post Evidence
 
-Use the jira-evidence skill to post everything:
+Use the jira-evidence skill to post everything, with the same release name as Step 4:
 
 ```bash
-bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> ./evidence <PR_NUMBER>
+LISA_EVIDENCE_RELEASE=<name> bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> ./evidence <PR_NUMBER>
 ```
 
 ### Step 6: Verify
 
-Confirm evidence is posted to both the JIRA ticket and GitHub PR.
+Confirm evidence is posted to both the JIRA ticket and GitHub PR, and that any screenshots render inline at both.
 
 ## Verification Patterns Reference
 

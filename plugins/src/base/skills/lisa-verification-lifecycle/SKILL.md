@@ -1,6 +1,6 @@
 ---
 name: lisa-verification-lifecycle
-description: "Verification lifecycle: confirm quality gates, classify types, discover tools, fail fast, plan, execute, codify (turn each passing verification into a regression test), spec conformance (verify shipped work matches the spec), loop. Quality gates (tests/typecheck/lint) are prerequisites, NOT verification. Verification means running the actual system and observing results."
+description: "How to verify work: confirm quality gates, decide what kinds of verification apply, find the tools, run the real system and observe it, turn passing checks into regression tests, and check the result against the spec."
 ---
 
 # Verification Lifecycle
@@ -210,6 +210,8 @@ Verification surfaces include:
 - CDN headers and edge behavior
 - Artifact capture (video, screenshots, traces, diffs)
 
+**Telemetry arrives.** When the change adds or changes instrumentation — logs, metrics, traces, error reporting, analytics events — follow that instrumentation in the code to wherever it sends data: the SDK it initializes, the exporter or transport it configures, the environment variables it reads. Trigger the instrumented path in the target environment and confirm the signal arrived at that destination. Do not assume a vendor; a project may send to several, or to one Lisa has no access skill for. Use the destination's `*-access` skill when one exists, otherwise its CLI or API with credentials resolved through `lisa-secrets-access`. If the destination cannot be reached, that is a missing-access stop: name the destination and the credential, and never report the telemetry as verified.
+
 If a required surface is unavailable, agents must follow the Escalation Protocol.
 
 ---
@@ -314,7 +316,7 @@ Agents must follow this sequence unless explicitly instructed otherwise:
 3. **If verification fails**: Fix and re-run, don't mark complete
 4. **If verification blocked** (missing tools, services, etc.): Mark as blocked, not complete
 5. **Must not be dependent on CI/CD** if necessary, you may use local deploy methods found in the project manifest, but the verification methods must be listed in the pull request and therefore cannot be dependent on CI/CD completing
-6. **Evidence manifest satisfied (leaf work units)**: For a leaf work unit (Bug / Task / Sub-task / Improvement) whose ticket carries a Validation Journey, do not mark the ticket complete or transition it out of in-progress until every typed `[EVIDENCE: <artifact-type>: <name>]` marker declared on the ticket has a corresponding captured, non-empty artifact **of the declared type** attached to the ticket (an image for `screenshot`, request + response for `http-transcript`, measured output for `perf-trace`, …). A missing, empty, or wrong-type artifact for any declared marker blocks completion exactly like a failed verification — fix and re-capture, or escalate; never close with an unsatisfied manifest. Epics / Stories / Spikes are exempt (coordination containers, not work units).
+6. **Evidence manifest satisfied (leaf work units)**: For a leaf work unit (Bug / Task / Sub-task / Improvement) whose ticket carries a Validation Journey, do not mark the ticket complete or transition it out of in-progress until every typed `[EVIDENCE: <artifact-type>: <name>]` marker declared on the ticket has a corresponding captured, non-empty artifact **of the declared type** attached to the ticket (an image for `screenshot`, a JSON request/response capture for `http-transcript`, JSON measurements for `perf-trace`, …; the JSON kinds refuse plain text — see `../lisa-tracker-evidence/references/completion-authorization.md` ("Typed capture shapes")). A missing, empty, or wrong-type artifact for any declared marker blocks completion exactly like a failed verification — fix and re-capture, or escalate; never close with an unsatisfied manifest. Epics / Stories / Spikes are exempt (coordination containers, not work units).
    - Extract local obligations using the exact `[EVIDENCE:` prefix (plus legacy local `[SCREENSHOT:`). Both the canonical `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` and the Lisa 2.223.0 legacy alias `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` are non-claiming pointers to another work item: never capture either, match it to a local artifact, include it in duplicates, or count it toward S14. A reference-only runtime-changing leaf remains incomplete.
 7. **No artifact-only completion for required runtime verification**: If empirical verification is required and cannot run because credentials are missing, do not mark the item done on artifact-only evidence. Exhaust the credential lookup order first; if still blocked, post the blocker comment, move the item to the configured blocked state, and apply the configured `needs-human` / `human-review` label.
 

@@ -27,7 +27,7 @@ const OFFICIAL_REF = /^[^\s${}]+$/u;
 const LOCAL = /^\.\/\.github\/workflows\/([A-Za-z0-9._-]+\.ya?ml)$/u;
 
 /** Supported active target resolved from one job. */
-export interface NightlyGuardJobCaller {
+interface NightlyGuardJobCaller {
   /** Direct Node invocation or Lisa's exact official reusable endpoint. */
   readonly kind: "official-reusable" | "direct";
   /** Literal normalized target path. */

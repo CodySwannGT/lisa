@@ -119,7 +119,7 @@ const loadPushScript = (): string => {
   const workflow = yaml.load(
     fs.readFileSync(RELEASE_YML, "utf8")
   ) as ReleaseWorkflow;
-  const steps = workflow.jobs.version.steps ?? [];
+  const steps = workflow.jobs.version?.steps ?? [];
   const run = steps.find(s => s.name === "Push Changelog Changes")?.run ?? "";
   if (!run) {
     throw new Error("Push Changelog Changes step not found in release.yml");

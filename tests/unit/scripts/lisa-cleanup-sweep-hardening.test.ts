@@ -19,6 +19,7 @@ import {
   isLisaOwnedTempName,
   sweep,
 } from "../../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs";
+import { canonicalEntry } from "../../helpers/canonical-entry.js";
 
 const HOUR_MS = 60 * 60 * 1000;
 const NOW = Date.parse("2026-11-07T12:00:00Z");
@@ -114,7 +115,12 @@ describe.runIf(typeof process.getuid === "function")(
       const dir = staleDir(root, "lisa-private", 0o700);
       const file = staleFile(root, "lisa-readable.txt", 0o644);
       const result = await sweepRoot(root);
-      expect(result.removed).toEqual([dir, file]);
+      // The sweep reports entries in directory-listing order, which the file
+      // system does not fix, so compare them as a set (CodySwannGT/lisa#4905).
+      expect(result.removed).toHaveLength(2);
+      expect(result.removed).toEqual(
+        expect.arrayContaining([canonicalEntry(dir), canonicalEntry(file)])
+      );
       expect(result.skippedUnsafe).toBe(0);
     });
   }
@@ -146,7 +152,7 @@ describe("git checkouts one level down", () => {
     const plain = staleDir(root, "lisa-plain");
     fs.mkdirSync(path.join(plain, "child"));
     fs.utimesSync(plain, STALE, STALE);
-    expect((await sweepRoot(root)).removed).toEqual([plain]);
+    expect((await sweepRoot(root)).removed).toEqual([canonicalEntry(plain)]);
   });
 });
 
@@ -198,7 +204,7 @@ describe("root refusal", () => {
       cwd,
     });
     expect(result.errors).toEqual([]);
-    expect(result.removed).toEqual([other]);
+    expect(result.removed).toEqual([canonicalEntry(other)]);
     expect(fs.existsSync(holder)).toBe(true);
   });
 
@@ -209,6 +215,6 @@ describe("root refusal", () => {
       home: path.join(privateRoot(), "home"),
       cwd: path.join(privateRoot(), "repo"),
     });
-    expect(result.removed).toEqual([stale]);
+    expect(result.removed).toEqual([canonicalEntry(stale)]);
   });
 });

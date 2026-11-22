@@ -57,6 +57,20 @@ import {
 } from "./lisa-reconcile-policy-fixtures.js";
 import { buildRulesetPayload } from "../../../scripts/lisa-ruleset-payload.mjs";
 
+/**
+ * Read one element, failing the test when it is absent.
+ * @param items Items to index.
+ * @param index Position to read.
+ * @returns The element at that position.
+ */
+const at = <T>(items: readonly T[], index: number): T => {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}`);
+  }
+  return item;
+};
+
 const REPAIR = "repair";
 const MANUAL = "manual";
 
@@ -105,7 +119,9 @@ describe("UNPROVEN is its own state, never clean and never a drift report", () =
   it("preserves the failure text verbatim so the operator can act on it", () => {
     const { result } = run({ index: boom("HTTP 403: Upgrade to GitHub Team") });
     expect(result.unproven?.detail).toContain("Upgrade to GitHub Team");
-    expect(result.unproven?.command).toBe(`gh api repos/${REPO}/rulesets`);
+    expect(result.unproven?.command).toBe(
+      `gh api repos/${REPO}/rulesets?per_page=100`
+    );
   });
 
   it("is unproven when the index reads but a ruleset detail does not", () => {
@@ -116,6 +132,39 @@ describe("UNPROVEN is its own state, never clean and never a drift report", () =
       detail: boom("HTTP 500"),
     });
     expect(result.verdict).toBe(VERDICT.UNPROVEN);
+  });
+
+  it("asks for the largest page of rulesets, not the thirty GitHub lists by default", () => {
+    // Read without a page size, a repository's thirty-first ruleset was never
+    // listed, so whatever it required read as not required.
+    const { calls } = run({ rulesets: [baseRuleset([LINT, TYPES])] });
+    expect(at(calls, 0).args).toEqual([
+      "api",
+      `repos/${REPO}/rulesets?per_page=100`,
+    ]);
+  });
+
+  it("is unproven when the ruleset list comes back as a full page", () => {
+    // A full page cannot be told from a list that goes on, and half a list
+    // compared against a whole declaration reports drift that may not exist.
+    const page = Array.from({ length: 100 }, (_, index) =>
+      baseRuleset([LINT, TYPES], { id: index + 1, name: `ruleset-${index}` })
+    );
+    const { result, calls } = run({ rulesets: page });
+    expect(result.verdict).toBe(VERDICT.UNPROVEN);
+    expect(result.unproven?.reason).toBe(UNPROVEN.MALFORMED);
+    expect(result.unproven?.detail).toContain("full page of 100");
+    expect(result.contexts).toBeNull();
+    // No ruleset is read, and nothing is written, off a list that may be cut.
+    expect(calls).toHaveLength(1);
+  });
+
+  it("reads a list one short of a full page as the whole list", () => {
+    const page = Array.from({ length: 99 }, (_, index) =>
+      baseRuleset([LINT, TYPES], { id: index + 1, name: `ruleset-${index}` })
+    );
+    const { result } = run({ rulesets: page });
+    expect(result.verdict).not.toBe(VERDICT.UNPROVEN);
   });
 
   it("is unproven when the repository settings read fails", () => {
@@ -170,6 +219,7 @@ describe("reconcile", () => {
     expect(result.contexts?.missing).toEqual([TYPES]);
 
     const [write] = writes(calls);
+    if (write === undefined) throw new Error("expected one recorded write");
     expect(write.args).toEqual([
       "api",
       "-X",
@@ -193,6 +243,7 @@ describe("reconcile", () => {
       { policy: { repository: { has_wiki: false } } }
     );
     const [write] = writes(calls);
+    if (write === undefined) throw new Error("expected one recorded write");
     expect(write.args).toEqual([
       "api",
       "-X",
@@ -240,6 +291,7 @@ describe("an EXTRA context is reported, never removed by default", () => {
     ]);
     expect(writes(calls)).toEqual([]);
     const [action] = result.plan;
+    if (action === undefined) throw new Error("expected one planned action");
     expect(action.kind).toBe(MANUAL);
     expect(action.message).toContain(SONAR);
     expect(action.message).toContain("NOT removed");
@@ -248,7 +300,7 @@ describe("an EXTRA context is reported, never removed by default", () => {
 
   it("removes it only when --prune is passed explicitly", () => {
     const { calls } = run(withSonar, { prune: true });
-    expect(writtenContexts(writes(calls)[0].input)).toEqual([LINT, TYPES]);
+    expect(writtenContexts(at(writes(calls), 0).input)).toEqual([LINT, TYPES]);
   });
 
   it("still writes nothing under --prune when --dry-run is also set", () => {
@@ -736,7 +788,7 @@ describe("planContextRepairs, through planRepairs", () => {
         matched: [],
       },
       settings: { drift: [], matched: [], unknown: [] },
-      live: { rulesets },
+      live: { ok: true, rulesets, contexts: [], settings: {}, signals: {} },
       prune: false,
       rulesetName: null,
       awaited: [],
@@ -744,8 +796,8 @@ describe("planContextRepairs, through planRepairs", () => {
       homes: { [LINT]: RELEASE },
     });
 
-    const checksIn = name =>
-      plan.find(action => action.ruleset === name)?.payload.rules[0].parameters
+    const checksIn = (name: string): unknown =>
+      plan.find(action => action.ruleset === name)?.payload?.rules[0].parameters
         .required_status_checks;
 
     // `base` declared no pin, so it gets the default Actions writer — NOT 99.
@@ -816,13 +868,13 @@ describe("awaited ruleset overlaps", () => {
         ],
       },
       settings: { drift: [], matched: [], unknown: [] },
-      live: { rulesets },
+      live: { ok: true, rulesets, contexts: [], settings: {}, signals: {} },
       prune: false,
       rulesetName: null,
       awaited: [{ context: LINT, ruleset: BASE }],
     });
     const checksIn = (name: string): unknown =>
-      plan.find(action => action.ruleset === name)?.payload.rules[0].parameters
+      plan.find(action => action.ruleset === name)?.payload?.rules[0].parameters
         .required_status_checks;
 
     expect(checksIn(BASE)).toEqual([{ context: LINT }]);
@@ -903,6 +955,7 @@ describe("rulesetPayload", () => {
     const [rule] = live.rules as {
       parameters: { required_status_checks: object[] };
     }[];
+    if (rule === undefined) throw new Error("expected the live ruleset's rule");
     expect(rule.parameters.required_status_checks).toHaveLength(1);
     expect(live.id).toBe(7);
   });

@@ -24,8 +24,7 @@
  * fix that merely relaxed the gate fails it.
  * @module tests/unit/scripts/work-item-amended-merge-exemption
  */
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -41,6 +40,10 @@ import {
   offlineFixture,
   REF,
 } from "../../support/work-item-cli.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT = path.join(
@@ -100,7 +103,7 @@ function mergedBranch(): Merged {
   const { env, root } = fixture;
   bindTo(fixture, REF);
 
-  const origin = mkdtempSync(path.join(tmpdir(), "lisa-3875-origin-"));
+  const origin = ownedDir("lisa-3875-origin-");
   git(root, ["init", "--bare", "--initial-branch=main"], {
     ...env,
     GIT_DIR: origin,

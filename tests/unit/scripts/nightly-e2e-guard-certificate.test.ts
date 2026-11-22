@@ -23,6 +23,10 @@ const INVOKED_AS_SCRIPT = path.join(
   REPOSITORY_ROOT,
   "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs"
 );
+const RAILS_GUARD = path.join(
+  REPOSITORY_ROOT,
+  "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs"
+);
 const RETAINED_GUARD_DIGEST =
   "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd";
 
@@ -53,6 +57,27 @@ async function certify(source: string) {
 }
 
 describe("nightly guard behavior certificate generation", () => {
+  it("ships exactly the certified guard and its import to Rails hosts", async () => {
+    const guardBytes = await readFile(RAILS_GUARD);
+    const canonical = await readFile(GUARD);
+    const invokedAsScriptBytes = await readFile(
+      path.join(
+        REPOSITORY_ROOT,
+        "all/copy-overwrite/scripts/lib/invoked-as-script.mjs"
+      )
+    );
+    const entry = await certifyNightlyGuardPackageArtifact({
+      guardBytes,
+      invokedAsScriptBytes,
+      packageVersion: await readWorkspacePackageVersion(),
+      provenance: "Rails applied guard fixture",
+    });
+    expect(guardBytes).toEqual(canonical);
+    expect(entry.digest).toBe(
+      (await certify(canonical.toString("utf8"))).digest
+    );
+  });
+
   it("certifies the real packaged handler only after exercising bounded waivers", async () => {
     const source = await readFile(GUARD, "utf8");
     const packageVersion = await readWorkspacePackageVersion();
@@ -101,7 +126,7 @@ export function decide() {
       "NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES"
     );
     // One certificate per entry in RETAINED_RELEASES, plus one for the current
-    // workspace handler. It is 6 rather than 5 because this branch and `main`
+    // workspace handler. It counts every retained release, including v5.14.2 (#4923). It once rose from 5 to 6 because this branch and `main`
     // each retained a DIFFERENT release — `v4.50.3` here, `v4.26.0` upstream —
     // and both were kept: the list is append-only, and dropping either would
     // revoke a certificate for a release already installed somewhere, which is
@@ -111,7 +136,7 @@ export function decide() {
     // rather than derived: computing it from RETAINED_RELEASES.length would
     // make the assertion agree with any list, including one an accidental
     // regeneration had silently shortened.
-    expect(generated.certificates).toHaveLength(6);
+    expect(generated.certificates).toHaveLength(7);
     expect(generated.certificates).toContainEqual(
       expect.objectContaining({
         digest: RETAINED_GUARD_DIGEST,

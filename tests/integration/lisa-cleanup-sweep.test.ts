@@ -94,6 +94,10 @@ async function deadOwnerMarker(): Promise<string> {
   children.push(owner);
   owner.kill("SIGKILL");
   await exited;
+  // An unread start time would make this a different case from the one under
+  // test; say so instead of failing later as a missing kill.
+  if (marker.endsWith(":0"))
+    throw new Error(`dead owner's start time was unreadable: ${marker}`);
   return marker;
 }
 
@@ -110,6 +114,39 @@ async function ended(pid: number, deadlineMs = 5_000): Promise<boolean> {
     await new Promise(resolve => setTimeout(resolve, 50));
   }
   return !isAlive(pid);
+}
+
+/** One row of the real process listing. */
+type ProcessRow = ReturnType<typeof listProcesses>[number];
+
+/**
+ * Wait until every pid is listed with an owner marker, or fail at a deadline.
+ *
+ * Returns the listing that proved it, narrowed to those pids, so the sweep can
+ * decide on exactly what was verified. Re-listing inside the sweep would be a
+ * second, unchecked `ps` round trip: under load it can come back empty or
+ * unaligned, the sweep then (correctly) spares everything, and the test fails
+ * for a reason unrelated to the sweep's decision (CodySwannGT/lisa#5022).
+ * @param pids - Children the sweep must see
+ * @param deadlineMs - Longest wait
+ * @returns The verified rows, one per pid
+ */
+async function markersListed(
+  pids: ReadonlySet<number | undefined>,
+  deadlineMs = 10_000
+): Promise<readonly ProcessRow[]> {
+  const until = Date.now() + deadlineMs;
+  for (;;) {
+    const marked = listProcesses().filter(
+      row => pids.has(row.pid) && row.owner !== null
+    );
+    if (marked.length === pids.size) return marked;
+    if (Date.now() >= until)
+      throw new Error(
+        `only ${marked.length} of ${pids.size} children listed with a marker after ${deadlineMs} ms`
+      );
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
 }
 
 afterEach(() => {
@@ -151,13 +188,24 @@ describe("cleanup sweep, real filesystem and processes", () => {
   it.runIf(process.platform === "darwin" || process.platform === "linux")(
     "kills the orphan of a dead owner and leaves a live run's child running",
     async () => {
-      const orphan = markedChild(await deadOwnerMarker());
+      const deadOwner = await deadOwnerMarker();
+      const orphan = markedChild(deadOwner);
       const liveChild = markedChild(ownerMarkerFor(process.pid));
       const ours = new Set([orphan.pid, liveChild.pid]);
-      // Let both start so the listing shows their real environment.
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Wait until the real listing shows both children with their markers.
+      // A fixed sleep lost this race under full-suite load: a child not yet
+      // listed with its environment is (correctly) spared, so nothing died.
+      const verified = await markersListed(ours);
+      const ownerOf = (pid: number | undefined): string | undefined => {
+        const owner = verified.find(row => row.pid === pid)?.owner;
+        return owner ? `${owner.pid}:${owner.start}` : undefined;
+      };
+      expect(ownerOf(orphan.pid)).toBe(deadOwner);
+      expect(ownerOf(liveChild.pid)?.split(":")[0]).toBe(String(process.pid));
+      // The sweep decides on that verified listing, not on a second live one
+      // (#5022). Liveness, start times and signals are still the real ones.
       const result = await sweepOrphans({
-        listProcesses: () => listProcesses().filter(row => ours.has(row.pid)),
+        listProcesses: () => verified,
         graceMs: 200,
       });
       expect(result.errors).toEqual([]);

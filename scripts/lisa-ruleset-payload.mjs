@@ -307,7 +307,7 @@ function pullRequestRule(policy) {
  * @param {object} [options.gates] The gates block.
  * @param {object} [options.policy] The policy block.
  * @param {string} [options.moment] Moment to derive awaited checks for.
- * @returns {object} A create/update payload for the `base` ruleset.
+ * @returns {{name: string, target: string, enforcement: unknown, conditions: {ref_name: {exclude: unknown[], include: unknown[]}}, bypass_actors: unknown[], rules: Array<{type: string, parameters?: Record<string, unknown>}>}} A create/update payload for the `base` ruleset.
  */
 export function buildRulesetPayload({
   gates = {},

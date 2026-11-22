@@ -1,0 +1,44 @@
+# check: A4-queue-display-name-never-trusted
+$ cd /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-A4-queue-display-name-never-trusted/project && HOME=/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-A4-queue-display-name-never-trusted/home node /Users/codysai/workspace/lisa/.claude/worktrees/4895-trusted-author-split/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs queue --tracker linear --input /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/queue-a4-name-only.json --project-root /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-A4-queue-display-name-never-trusted/project
+# .lisa.config.json:
+{
+  "tracker": "github",
+  "github": {
+    "org": "example-org",
+    "repo": "demo-repo",
+    "labels": {
+      "build": {
+        "ready": "status:ready"
+      }
+    }
+  },
+  "sessionManager": {
+    "name": "demo-manager",
+    "interval": "5m",
+    "capacity": {
+      "maxWorkers": 6,
+      "gbPerWorker": 1,
+      "reserveGb": 0,
+      "cpuFraction": 1,
+      "maxLoadPerCore": 1000
+    },
+    "notify": {
+      "provider": "telegram",
+      "stateDir": "/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-A4-queue-display-name-never-trusted/home/.claude/channels/telegram-demo"
+    },
+    "trustedAuthorIds": [
+      "integration:sentry"
+    ]
+  }
+}
+# input file /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/queue-a4-name-only.json:
+{"complete":true,"pages":1,"items":[
+{"identifier":"OPS-30","title":"OAuth app whose display name is sentry, no subType, no id","priority":2,"createdAt":"2026-11-01T00:00:00Z","updatedAt":"2026-11-01T00:00:00Z","assignee":null,"labels":{"nodes":[]},"description":"","children":{"nodes":[]},"creator":null,"externalUserCreator":null,"botActor":{"type":"oauthClient","subType":null,"id":null,"name":"sentry"}}
+]}
+
+# --- stdout ---
+{"tracker":"linear","me":null,"operators":[],"total":1,"pages":1,"ordered":[],"excluded":[{"ref":"OPS-30","reason":"untrusted-author"}],"setupGaps":[],"backlogPickup":false}
+
+# --- stderr ---
+
+# exit: 0

@@ -14,7 +14,11 @@ import {
   boundedSpawnSync,
   ioLatencyBudgetMs,
 } from "../../helpers/io-latency-budget.js";
-import { GATE_DIR, SHARED_DIR, vendorGateWithoutSchemas } from "./bdd/sources";
+import {
+  GATE_DIR,
+  SHARED_DIR,
+  vendorGateWithoutSchemas,
+} from "./bdd/sources.js";
 import {
   HEALTHY_MAP,
   HOME_EVIDENCE,
@@ -33,7 +37,7 @@ import {
   makeProject,
   read,
   runGate,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 /**
  * Liveness bound for the vendored-gate case, calibrated to this machine.

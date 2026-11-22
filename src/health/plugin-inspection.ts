@@ -1,5 +1,4 @@
 /** Bounded actual plugin-installation inspection for deterministic health. */
-/* eslint-disable jsdoc/require-param-description, jsdoc/require-returns -- typed plugin readers are self-describing */
 import { execFile } from "node:child_process";
 import path from "node:path";
 
@@ -10,15 +9,19 @@ import {
   type ProjectType,
 } from "../core/config.js";
 import { selectProjectLisaPluginsFromState } from "../core/lisa-plugin-selection.js";
+import { PLUGIN_LIST_MAX_CAPTURE_BYTES } from "../core/plugin-command.js";
 import { getPackageVersion } from "../cli/version.js";
-import {
-  projectPathKind,
-  readProjectJsonObject,
-  readProjectText,
-} from "./read-only-fs.js";
+import { spawnTarget } from "../utils/resolve-executable.js";
+import { readProjectJsonObject, readProjectText } from "./read-only-fs.js";
 
-const MAX_PLUGIN_OUTPUT_BYTES = 256 * 1024;
-const MAX_INSTALLED_PLUGINS = 512;
+// `claude plugin list --json` lists every project-scope registration on the
+// machine, so a long-lived workstation's list runs to thousands of entries and
+// megabytes (measured: 3,338 entries, 1.6 MB). Lower caps made this reader
+// fail there, and every plugin check silently reported "unavailable" on the
+// machines it exists for (#4504). Share the apply path's capture cap (#4645)
+// and bound entries by what that many bytes can hold.
+const MAX_PLUGIN_OUTPUT_BYTES = PLUGIN_LIST_MAX_CAPTURE_BYTES;
+const MAX_INSTALLED_PLUGINS = 200_000;
 const PLUGIN_TIMEOUT_MS = 15_000;
 
 /**
@@ -40,9 +43,10 @@ export type PluginInspection =
 
 /**
  * Default fixed-argv Claude installed-plugin reader.
- * @param projectRoot
- * @param timeoutMs
- * @param signal
+ * @param projectRoot - Canonical host project root
+ * @param timeoutMs - Bound for the external command, in milliseconds
+ * @param signal - Cancellation shared with the health deadline
+ * @returns Sorted ids of the plugins installed for this project
  */
 export const readInstalledClaudePlugins: InstalledPluginReader = async (
   projectRoot,
@@ -50,11 +54,12 @@ export const readInstalledClaudePlugins: InstalledPluginReader = async (
   signal
 ) =>
   new Promise((resolve, reject) => {
+    const target = spawnTarget("claude", ["plugin", "list", "--json"]);
     execFile(
-      // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed Claude executable
-      "claude",
-      ["plugin", "list", "--json"],
+      target.file,
+      [...target.args],
       {
+        windowsVerbatimArguments: target.windowsVerbatimArguments,
         cwd: projectRoot,
         encoding: "utf8",
         maxBuffer: MAX_PLUGIN_OUTPUT_BYTES,
@@ -92,9 +97,10 @@ export const readInstalledClaudePlugins: InstalledPluginReader = async (
 
 /**
  * Resolve configured harness without accepting invalid strings.
- * @param config
+ * @param config - Parsed `.lisa.config.json` contents
+ * @returns The configured harness, or undefined when the value is not one Lisa supports
  */
-function configuredHarness(
+export function configuredHarness(
   config: Readonly<Record<string, unknown>>
 ): Harness | undefined {
   const harness = config.harness ?? DEFAULT_HARNESS;
@@ -150,14 +156,7 @@ export async function inspectPlugins(
   ) {
     return { status: "fail", drift: ["plugin settings"] };
   }
-  const hasWiki =
-    (await projectPathKind(
-      projectRoot,
-      path.join("wiki", "lisa-wiki.config.json")
-    )) === "file";
-  const expected = [
-    ...selectProjectLisaPluginsFromState(config, types, hasWiki),
-  ]
+  const expected = [...selectProjectLisaPluginsFromState(config, types)]
     .map(plugin => `${plugin}@lisa`)
     .sort((left, right) => left.localeCompare(right));
   const settingsDrift = expected.filter(
@@ -189,4 +188,3 @@ export async function inspectPlugins(
     ? { status: "pass", drift: [] }
     : { status: "fail", drift: missing };
 }
-/* eslint-enable jsdoc/require-param-description, jsdoc/require-returns -- restore repository documentation defaults */

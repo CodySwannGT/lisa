@@ -1,4 +1,4 @@
 display_name: "Linear Journey"
-short_description: "Parse a Linear Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database…"
+short_description: "Run a Linear issue's Validation Journey: perform the steps, capture evidence at each marker, and post it to Linear and the PR"
 default_prompt:
-  - "Use $lisa-linear-journey: Parse a Linear Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database…."
+  - "Use $lisa-linear-journey: Run a Linear issue's Validation Journey: perform the steps, capture evidence at each marker, and post it to Linear and the PR."

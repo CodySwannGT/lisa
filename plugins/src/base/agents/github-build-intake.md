@@ -1,6 +1,6 @@
 ---
 name: github-build-intake
-description: GitHub build-intake agent. Runs one build-intake cycle against a GitHub repository — claims issues carrying the configured `ready` build label, dispatches each to the github-agent build flow, relabels to the configured (env-aware) `done` label on success. Symmetric counterpart to jira-build-intake. Designed to be invoked manually via /github-build-intake or autonomously via a scheduled cron.
+description: "Runs one GitHub build-intake cycle: takes the first ready leaf issue, builds it through the github-agent flow, and labels it done. Manual or scheduled."
 skills:
   - github-build-intake
   - github-read-issue
@@ -29,13 +29,13 @@ Once you have a repo, RUN. Do not ask the caller whether to proceed, do not prev
 
 The invoking caller (a slash command or a future schedule wrapper) hands you a GitHub `org/repo` token, a full GitHub repo URL, or the literal token `github` (which falls back to `.lisa.config.json`). You do not pick the repo yourself.
 
-If no repo is provided, stop and ask. Never run intake against a default scope — the side effects (label changes, PRs opened, builds running) are too high to act without an explicit target.
+If no repo is provided and none is configured, first file the decision-ready escalation packet (`automation-runbook-contract`, "Escalation") through `lisa-tracker-write`, labeled `status:blocked` and `human-needed` with `human_gate` set, naming the missing input and the `/lisa:setup:*` skill that configures it; then exit `recovery-required` citing that item. If the tracker itself is unconfigured so nothing can be filed, put the same packet in the exit summary. Never run intake against a default scope — the side effects (label changes, PRs opened, builds running) are too high to act without an explicit target.
 
 ### 2. Run the intake skill
 
 Invoke the `github-build-intake` skill with the repo as `$ARGUMENTS`. The skill owns the cycle logic — query, claim, in-session lifecycle dispatch (the github-agent workflow culminating in the lisa-implement skill), relabel on success, summary. Do not duplicate that logic here.
 
-The skill runs the github-agent workflow in-session per issue — read full graph, verify, triage, then route to the flow by invoking its lifecycle skill (lisa-implement / lisa-plan) via the Skill tool, plus sync progress and post evidence. Never spawn github-agent (or the lifecycle flow) as a subagent — the lifecycle skill must run in the lead session so it can create its agent team.
+The skill runs the github-agent workflow in-session per issue — read full graph, verify, triage, then route to the flow by invoking its lifecycle skill (lisa-implement / lisa-plan) via the Skill tool, plus sync progress and post evidence. Never spawn github-agent (or the lifecycle flow) as a subagent — run the whole cycle in this session.
 
 ### 3. Surface the summary
 

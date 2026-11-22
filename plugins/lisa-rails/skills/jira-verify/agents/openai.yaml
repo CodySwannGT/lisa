@@ -1,4 +1,0 @@
-display_name: "Jira Verify"
-short_description: "verifying that a JIRA ticket meets organizational standards for epic relationships and description quality"
-default_prompt:
-  - "Use $jira-verify: verifying that a JIRA ticket meets organizational standards for epic relationships and description quality."

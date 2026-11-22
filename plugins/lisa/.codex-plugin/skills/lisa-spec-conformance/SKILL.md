@@ -1,9 +1,9 @@
 ---
 name: lisa-spec-conformance
-description: "Verifies that shipped work…"
+description: "Check that shipped work matches…"
 allowed-tools: ["Read", "Glob", "Grep", "Bash", "Skill"]
 ---
-Verifies that shipped work matches its spec section-by-section — acceptance criteria, Out of Scope, Technical Approach, Validation Journey assertions, and any explicit deliverables. Builds a coverage matrix mapping each requirement to evidence, flags scope creep separately from misses, and produces a verdict (CONFORMS / PARTIAL / DIVERGES). Runs during the verification phase alongside empirical system verification.
+Check that shipped work matches its spec section by section — acceptance criteria, Out of Scope, technical approach, journey, deliverables — with a coverage matrix and a CONFORMS / PARTIAL / DIVERGES verdict.
 
 
 # Spec Conformance: $ARGUMENTS
@@ -69,7 +69,7 @@ Gather evidence of what was actually shipped:
    ```bash
    git diff "${BASE_BRANCH}"...HEAD -- '**/*.test.*' '**/*.spec.*'
    ```
-4. **Empirical evidence** — output of `verification-specialist` if available (proof artifacts, API captures, UI screenshots, DB queries). If that report isn't in context, ask the caller for it before proceeding — do not substitute reading code for running the system.
+4. **Empirical evidence** — output of `verification-specialist` if available (proof artifacts, API captures, UI screenshots, DB queries). If that report isn't in context, ask the caller for it before proceeding and return no verdict until it arrives — do not substitute reading code for running the system. The caller recovers by running `verification-specialist` on the current head, then re-running this skill against that report.
 4a. **The machine-readable verdict** — `Read` `${CLAUDE_PROJECT_DIR:-.}/.lisa/verification-status.json`. Under **schema v2** it is the structured form of the evidence above, and it is what lets you check a claim's *reach* instead of taking "verified" at its word. Load `artifact` (`repository`, `head_sha`, `environment`), `claims[]` (`claim_id`, `statement`, `boundary`, `required_evidence_kinds`, `status`, `evidence_refs`, `not_established`), `evidence[]` (`evidence_id`, `kind`, `locator`, `sha256`, `captured_at`, `artifact_head_sha`), and the `not_established_reviewed` flag.
 5. **PR description** — `gh pr view --json title,body,files` if a PR exists.
 6. **Deployed state** — if the verification phase already hit a deployed environment, use those captures.
@@ -136,7 +136,9 @@ Separately from the matrix, scan the diff for work NOT traceable to any requirem
 - Summarize the change in one line
 - Classify as `UNTRACEABLE_CHANGE` (not necessarily wrong — refactors often land here — but MUST be surfaced)
 
-Untraceable changes are not automatic failures. They become findings the human reviews.
+Untraceable changes are not automatic failures. They become findings the implementer resolves. A refactor or test support that leaves behavior unchanged may be justified in the PR. A substantive change that materially alters behavior cannot be justified away, because it still makes the verdict `DIVERGES`: revert it, or move it to a ticket.
+
+**Ownership fixes are not scope creep.** A change that fixes a real defect in code this work touches or depends on, and is listed in the PR description as such, is expected under the bounded ownership rule: classify it `OWNERSHIP_FIX` in the untraceable list, never `SCOPE_CREEP_VIOLATION`, and never count it against the verdict. Two exceptions still count: the fix lands in something the spec's Out of Scope names explicitly, or the PR does not list it (an unlisted fix is an ordinary `UNTRACEABLE_CHANGE`). Work on code the change neither touches nor depends on belongs in a ticket, not this PR.
 
 ## Phase 5 — Verdict
 

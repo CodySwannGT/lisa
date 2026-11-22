@@ -1,4 +1,4 @@
 display_name: "Github Build Intake"
-short_description: "GitHub counterpart to lisa-jira-build-intake"
+short_description: "Run one cycle of the GitHub build queue: take the first ready leaf issue, build it with lisa-implement, and label it done"
 default_prompt:
-  - "Use $lisa-github-build-intake: GitHub counterpart to lisa-jira-build-intake."
+  - "Use $lisa-github-build-intake: Run one cycle of the GitHub build queue: take the first ready leaf issue, build it with lisa-implement, and label it done."

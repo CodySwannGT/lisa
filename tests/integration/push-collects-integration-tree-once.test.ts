@@ -74,7 +74,6 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -90,6 +89,10 @@ import {
 } from "../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../support/git-executable.js";
 import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
+import {
+  createSymlink,
+  isInstalledEntry,
+} from "../support/borrowed-node-modules.mjs";
 
 // The bounded children below are handed a base that only fits under a case
 // budget scaling with the same machine they do. Without this call the case
@@ -196,9 +199,12 @@ if (verb === "audit") {
   // LISA_COVERAGE_SCOPE=unit. They are kept in the listing so the run is the
   // same one, and skipped over when deciding this is a vitest invocation.
   // Managed templates insert the transparent lisa-test-run -- supervisor
-  // between those assignments and Vitest. The collection probe removes only
-  // that transport layer before converting run to list.
-  const VITEST = /^((?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)(?:lisa-test-run\s+--profile\s+[a-z][a-z0-9-]*\s+--adapter\s+vitest\s+--\s+)?vitest\s+run\b/;
+  // between those assignments and Vitest, and the unit scripts also pass
+  // through the push-only affected-test selector (CodySwannGT/lisa#4611),
+  // which runs the command unchanged outside the gate runner, as here. The
+  // collection probe removes only those transport layers before converting
+  // run to list.
+  const VITEST = /^((?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)(?:node\s+scripts\/lisa-affected-tests\.mjs\s+--push-only\s+--fetch\s+scripts\/fetch-test-access-map\.mjs\s+--\s+)?(?:lisa-test-run\s+--profile\s+[a-z][a-z0-9-]*\s+--adapter\s+vitest\s+--\s+)?vitest\s+run\b/;
   const match = command && VITEST.exec(command);
   if (match) {
     const listing = command.replace(VITEST, match[1] + "vitest list --filesOnly");
@@ -266,15 +272,16 @@ function stageNodeModules(root: string): void {
   const currentLisa = path.join(targetScope, SELF_PACKAGE);
   mkdirSync(targetScope, { recursive: true });
   for (const entry of readdirSync(source)) {
-    if (entry === SELF_SCOPE) continue;
-    symlinkSync(path.join(source, entry), path.join(target, entry), "dir");
+    // A tool's state (`.vitest-cache`) is never lent (CodySwannGT/lisa#5028).
+    if (entry === SELF_SCOPE || !isInstalledEntry(entry)) continue;
+    createSymlink(path.join(source, entry), path.join(target, entry), "dir");
   }
   // The scope survives; only the self-dependency inside it does not. The other
   // packages under it are ordinary workspace dependencies with no bearing on
   // which gate script the hook resolves.
   for (const entry of readdirSync(sourceScope)) {
     if (entry === SELF_PACKAGE) continue;
-    symlinkSync(
+    createSymlink(
       path.join(sourceScope, entry),
       path.join(targetScope, entry),
       "dir"
@@ -285,7 +292,7 @@ function stageNodeModules(root: string): void {
     path.join(ROOT, PACKAGE_MANIFEST),
     path.join(currentLisa, PACKAGE_MANIFEST)
   );
-  symlinkSync(path.join(ROOT, "dist"), path.join(currentLisa, "dist"), "dir");
+  createSymlink(path.join(ROOT, "dist"), path.join(currentLisa, "dist"), "dir");
 }
 
 /**

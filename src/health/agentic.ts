@@ -1,9 +1,36 @@
-/** Optional, read-only agentic Health composition over deterministic facts. */
-/* eslint-disable functional/immutable-data, functional/no-let, jsdoc/require-param, jsdoc/require-returns, max-lines -- one auditable hostile boundary stays cohesive */
-import { lstat, readdir, realpath } from "node:fs/promises";
+/**
+ * Optional, read-only agentic Health composition over deterministic facts.
+ * Evidence collection lives in agentic-evidence.ts and the evaluator contract
+ * in agentic-contract.ts; this module validates the evaluator's answer and
+ * composes it with the deterministic result.
+ * @module health/agentic
+ */
+import { lstat, realpath } from "node:fs/promises";
 import path from "node:path";
 import { isProxy } from "node:util/types";
 
+import type {
+  AgenticConfigProjection,
+  AgenticHealthArtifact,
+  AgenticHealthConfig,
+  AgenticHealthEvaluation,
+  AgenticHealthJudgment,
+  AgenticHealthRequest,
+} from "./agentic-contract.js";
+import {
+  collectAgenticArtifacts,
+  readAgenticConfig,
+} from "./agentic-evidence.js";
+import {
+  summarizeHealthFindings,
+  type HealthResult,
+  validateHealthResult,
+} from "./contract.js";
+import { HealthDeadline } from "./deadline.js";
+import {
+  runDeterministicHealth,
+  type DeterministicHealthOptions,
+} from "./deterministic.js";
 import {
   hasUnsafeTextCharacter,
   readStrictDenseArray,
@@ -12,381 +39,36 @@ import {
   requireClosedString,
   requireStrictRecord,
 } from "./strict-validation.js";
-import {
-  summarizeHealthFindings,
-  type HealthFinding,
-  type HealthResult,
-  validateHealthResult,
-} from "./contract.js";
-import {
-  runDeterministicHealth,
-  type DeterministicHealthOptions,
-} from "./deterministic.js";
-import { HealthDeadline } from "./deadline.js";
-import {
-  projectPathKind,
-  readProjectJsonObject,
-  readProjectText,
-  resolveProjectPath,
-} from "./read-only-fs.js";
-import { isJsonObject } from "../sync/json-path.js";
+
+export type {
+  AgenticArtifactKind,
+  AgenticHealthArtifact,
+  AgenticHealthConfig,
+  AgenticHealthEvaluation,
+  AgenticHealthEvaluator,
+  AgenticHealthJudgment,
+  AgenticHealthRequest,
+} from "./agentic-contract.js";
 
 const DEFAULT_AGENTIC_TIMEOUT_MS = 60_000;
-const MAX_AGENTIC_ARTIFACTS = 67;
-const MAX_WORKFLOW_FILES = 64;
-const MAX_ARTIFACT_BYTES = 128 * 1024;
-const MAX_TOTAL_ARTIFACT_BYTES = 512 * 1024;
 const MAX_JUDGMENTS = 50;
 const MAX_FINAL_FINDINGS = 200;
 const MAX_CHECK_BYTES = 128;
 const MAX_REASON_BYTES = 2_000;
 const RESERVED_CHECK = "agentic.review-completed";
-const WORKFLOW_DIRECTORY = path.join(".github", "workflows");
-const CONFIG_PATH = ".lisa.config.json";
-const LOCAL_CONFIG_PATH = ".lisa.config.local.json";
-const WORKFLOW_CONTROL =
-  /^\s*(?:skip_jobs|verify_enforced|mutation(?:_gate)?(?:_enabled)?)\s*:/u;
-const YAML_COMMENT = /^\s*#/u;
-const JOB_IDENTIFIER = /^ {2}[a-zA-Z0-9_-]+:\s*(?:#.*)?$/u;
-const OVERRIDE_PATHS = [
-  {
-    kind: "eslint-override",
-    path: "eslint.config.local.ts",
-  },
-  {
-    kind: "eslint-ignore-override",
-    path: "eslint.ignore.config.local.json",
-  },
-] as const;
-
-/** Read-only evidence kinds exposed to an injected evaluator. */
-export type AgenticArtifactKind =
-  | "eslint-override"
-  | "eslint-ignore-override"
-  | "managed-drift"
-  | "workflow";
-
-/**
- * One bounded, project-relative source artifact. Artifact content comes from
- * the host project and must be treated as untrusted prompt material.
- */
-export interface AgenticHealthArtifact {
-  readonly kind: AgenticArtifactKind;
-  readonly path: string;
-  readonly content: string;
-}
-
-/** Deeply frozen input passed to the evaluator without filesystem capability. */
-export interface AgenticHealthRequest {
-  readonly schemaVersion: 1;
-  readonly deterministicFindings: readonly HealthFinding[];
-  readonly config: {
-    readonly quality: {
-      readonly mutation: {
-        readonly gate: { readonly enabled: boolean | null };
-      };
-    };
-    /**
-     * Declared level of the work-item traceability gate, or null when the
-     * project never mentions it. Null is NOT off: an undeclared gate still runs
-     * its built-in check, so an evaluator told "null" must read that as
-     * "running on Lisa's default", never as "not enforced".
-     */
-    readonly gates: {
-      readonly traceability: { readonly level: string | null };
-    };
-  };
-  readonly artifacts: readonly AgenticHealthArtifact[];
-}
-
-/**
- * One optional warning proposed by an evaluator.
- *
- * At most 50 judgments are accepted. `check` must use the `agentic.` namespace,
- * cannot be the reserved `agentic.review-completed` id, and is limited to 128
- * UTF-8 bytes. `reason` must be trimmed, within 2,000 UTF-8 bytes, and contain
- * no control or bidirectional-formatting characters. Lisa, rather than the
- * evaluator, stamps every accepted judgment as agentic and warn.
- */
-export interface AgenticHealthJudgment {
-  readonly check: string;
-  readonly reason: string;
-}
-
-/** Closed evaluator response; unavailable and completed are the only states. */
-export type AgenticHealthEvaluation =
-  | {
-      readonly status: "completed";
-      readonly judgments: readonly AgenticHealthJudgment[];
-    }
-  | { readonly status: "unavailable" };
-
-/**
- * Injected harness-neutral judgment boundary.
- *
- * The callback is arbitrary JavaScript, not a security sandbox. Lisa supplies
- * no filesystem capability, but consumers must still trust their evaluator.
- * Evaluators must honor the AbortSignal and release their own timers, streams,
- * and other resources when it aborts. Runtime output remains hostile-validated.
- */
-export type AgenticHealthEvaluator = (
-  request: AgenticHealthRequest,
-  signal: AbortSignal
-) => Promise<AgenticHealthEvaluation>;
-
-/** Explicit optional agentic-pass configuration. */
-export interface AgenticHealthConfig {
-  readonly enabled: boolean;
-  readonly evaluator?: AgenticHealthEvaluator;
-  readonly timeoutMs?: number;
-}
 
 /** Deterministic options plus the optional agentic pass. */
 export interface HealthOptions extends DeterministicHealthOptions {
   readonly agentic?: AgenticHealthConfig;
 }
 
-/** The sole project-config value disclosed to an evaluator. */
-interface AgenticConfigProjection {
-  readonly quality: {
-    readonly mutation: { readonly gate: { readonly enabled: boolean | null } };
-  };
-  readonly gates: {
-    readonly traceability: { readonly level: string | null };
-  };
-}
-
-/** One path-specific config read, distinguishing absence from invalid values. */
-interface MutationGateRead {
-  readonly present: boolean;
-  readonly enabled: boolean | null;
-}
-
-/** Read one optional fixed-path override artifact. */
-async function readOptionalArtifact(
-  projectRoot: string,
-  descriptor: Readonly<{ kind: AgenticArtifactKind; path: string }>
-): Promise<AgenticHealthArtifact | undefined> {
-  const kind = await projectPathKind(projectRoot, descriptor.path);
-  if (kind === "missing") return undefined;
-  if (kind !== "file") throw new Error("Unsafe agentic evidence path");
-  const content = await readProjectText(
-    projectRoot,
-    descriptor.path,
-    MAX_ARTIFACT_BYTES
-  );
-  if (content === undefined) return undefined;
-  return Object.freeze({ ...descriptor, content });
-}
-
-/** Enumerate bounded regular workflow files without following special paths. */
-async function workflowPaths(projectRoot: string): Promise<readonly string[]> {
-  const kind = await projectPathKind(projectRoot, WORKFLOW_DIRECTORY);
-  if (kind === "missing") return [];
-  if (kind !== "directory") throw new Error("Unsafe workflow evidence path");
-  const directory = resolveProjectPath(projectRoot, WORKFLOW_DIRECTORY);
-  const entries = await readdir(directory, { withFileTypes: true });
-  const workflows = entries
-    .filter(entry => /\.ya?ml$/u.test(entry.name))
-    .map(entry => {
-      if (!entry.isFile()) throw new Error("Unsafe workflow evidence file");
-      return path.join(WORKFLOW_DIRECTORY, entry.name);
-    })
-    .sort((left, right) => left.localeCompare(right));
-  if (workflows.length > MAX_WORKFLOW_FILES) {
-    throw new Error("Agentic workflow evidence exceeds file limit");
-  }
-  return workflows;
-}
-
-/** Reduce workflow YAML in one pass to controls, job ids, and comment blocks. */
-function workflowExcerpt(source: string): string {
-  const lines = source.split(/\r?\n/u);
-  const selected = new Map<number, string>();
-  let currentJob: Readonly<{ index: number; line: string }> | undefined;
-  let pendingComments: Array<Readonly<{ index: number; line: string }>> = [];
-  let captureFollowingComments = false;
-  lines.forEach((line, index) => {
-    if (JOB_IDENTIFIER.test(line)) {
-      currentJob = Object.freeze({ index, line });
-      pendingComments = [];
-      captureFollowingComments = false;
-      return;
-    }
-    if (YAML_COMMENT.test(line)) {
-      const comment = Object.freeze({ index, line });
-      pendingComments.push(comment);
-      if (captureFollowingComments) selected.set(index, line);
-      return;
-    }
-    if (WORKFLOW_CONTROL.test(line)) {
-      if (currentJob !== undefined) {
-        selected.set(currentJob.index, currentJob.line);
-      }
-      pendingComments.forEach(comment =>
-        selected.set(comment.index, comment.line)
-      );
-      selected.set(index, line);
-      pendingComments = [];
-      captureFollowingComments = true;
-      return;
-    }
-    pendingComments = [];
-    captureFollowingComments = false;
-  });
-  return [...selected.entries()]
-    .map(([index, line]) => `${index + 1}: ${line}`)
-    .join("\n");
-}
-
-/** Read current managed ESLint content only when deterministic drift names it. */
-async function readManagedDriftArtifact(
-  projectRoot: string,
-  deterministic: HealthResult
-): Promise<AgenticHealthArtifact | undefined> {
-  const finding = deterministic.findings.find(
-    candidate =>
-      candidate.check === "templates.managed" &&
-      candidate.status === "fail" &&
-      /(?:^|[ :,])eslint\.config\.ts(?:$|[ ,])/u.test(candidate.reason)
-  );
-  if (finding === undefined) return undefined;
-  return readOptionalArtifact(projectRoot, {
-    kind: "managed-drift",
-    path: "eslint.config.ts",
-  });
-}
-
-/** Resolve the allowlisted path without retaining unrelated config values. */
-function mutationGateRead(
-  config: Readonly<Record<string, unknown>>
-): MutationGateRead {
-  let current: unknown = config;
-  for (const field of ["quality", "mutation", "gate", "enabled"] as const) {
-    if (
-      current === null ||
-      typeof current !== "object" ||
-      Array.isArray(current)
-    ) {
-      return Object.freeze({ present: true, enabled: null });
-    }
-    if (!Object.prototype.hasOwnProperty.call(current, field)) {
-      return Object.freeze({ present: false, enabled: null });
-    }
-    current = (current as Readonly<Record<string, unknown>>)[field];
-  }
-  return Object.freeze({
-    present: true,
-    enabled: typeof current === "boolean" ? current : null,
-  });
-}
-
-/** Read the effective mutation-gate boolean with local-config precedence. */
-async function readAgenticConfig(
-  projectRoot: string
-): Promise<AgenticConfigProjection> {
-  const [committed, local] = await Promise.all([
-    readProjectJsonObject(projectRoot, CONFIG_PATH),
-    readProjectJsonObject(projectRoot, LOCAL_CONFIG_PATH),
-  ]);
-  const localGate = mutationGateRead(local ?? {});
-  const committedGate = mutationGateRead(committed ?? {});
-  const enabled = localGate.present ? localGate.enabled : committedGate.enabled;
-  return Object.freeze({
-    quality: Object.freeze({
-      mutation: Object.freeze({
-        gate: Object.freeze({ enabled }),
-      }),
-    }),
-    gates: Object.freeze({
-      traceability: Object.freeze({
-        level: traceabilityLevel(local) ?? traceabilityLevel(committed),
-      }),
-    }),
-  });
-}
-
 /**
- * The declared pull-request level of the traceability gate, or null.
- *
- * Local config wins over committed, matching how the mutation gate above
- * resolves — a developer's local override is the effective answer, and
- * reporting the committed value while the local one governs would describe a
- * configuration nobody is running.
- * @param config - A parsed config object, or null when the file is absent
- * @returns The declared level, or null when this file does not declare it
+ * Create a detached deeply frozen evaluator request.
+ * @param deterministic - Completed deterministic result
+ * @param config - Allowlisted config projection disclosed to the evaluator
+ * @param artifacts - Confined, bounded project evidence
+ * @returns A frozen request the evaluator cannot mutate
  */
-function traceabilityLevel(
-  config: Readonly<Record<string, unknown>> | null | undefined
-): string | null {
-  const gates = config?.gates;
-  if (!isJsonObject(gates) || !isJsonObject(gates.traceability)) {
-    return null;
-  }
-  const declared = gates.traceability["pull-request"];
-  if (typeof declared === "string") return declared;
-  if (isJsonObject(declared) && typeof declared.level === "string") {
-    return declared.level;
-  }
-  return null;
-}
-
-/** Collect confined project evidence with hard per-file and aggregate bounds. */
-async function collectAgenticArtifacts(
-  projectRoot: string,
-  deterministic: HealthResult
-): Promise<readonly AgenticHealthArtifact[]> {
-  const [overrides, managedDrift] = await Promise.all([
-    Promise.all(
-      OVERRIDE_PATHS.map(descriptor =>
-        readOptionalArtifact(projectRoot, descriptor)
-      )
-    ),
-    readManagedDriftArtifact(projectRoot, deterministic),
-  ]);
-  const workflows = (
-    await Promise.all(
-      (await workflowPaths(projectRoot)).map(async relativePath => {
-        const content = await readProjectText(
-          projectRoot,
-          relativePath,
-          MAX_ARTIFACT_BYTES
-        );
-        if (content === undefined) {
-          throw new Error("Workflow evidence disappeared during collection");
-        }
-        const excerpt = workflowExcerpt(content);
-        if (excerpt.length === 0) return undefined;
-        if (Buffer.byteLength(excerpt, "utf8") > MAX_ARTIFACT_BYTES) {
-          throw new Error("Workflow excerpt exceeds artifact size limit");
-        }
-        return Object.freeze({
-          kind: "workflow" as const,
-          path: relativePath.split(path.sep).join("/"),
-          content: excerpt,
-        });
-      })
-    )
-  ).filter(item => item !== undefined);
-  const artifacts = [
-    ...overrides.filter(item => item !== undefined),
-    ...(managedDrift === undefined ? [] : [managedDrift]),
-    ...workflows,
-  ].sort((left, right) => left.path.localeCompare(right.path));
-  if (artifacts.length > MAX_AGENTIC_ARTIFACTS) {
-    throw new Error("Agentic evidence exceeds artifact limit");
-  }
-  const totalBytes = artifacts.reduce(
-    (total, artifact) => total + Buffer.byteLength(artifact.content, "utf8"),
-    0
-  );
-  if (totalBytes > MAX_TOTAL_ARTIFACT_BYTES) {
-    throw new Error("Agentic evidence exceeds aggregate size limit");
-  }
-  return Object.freeze(artifacts);
-}
-
-/** Create a detached deeply frozen evaluator request. */
 function evaluatorRequest(
   deterministic: HealthResult,
   config: AgenticConfigProjection,
@@ -405,7 +87,12 @@ function evaluatorRequest(
   });
 }
 
-/** Validate one evaluator-produced warning without accepting attribution fields. */
+/**
+ * Validate one evaluator-produced warning without accepting attribution fields.
+ * @param candidate - Untrusted judgment value
+ * @param index - Position in the judgments array, for error messages
+ * @returns The validated, frozen judgment
+ */
 function validateJudgment(
   candidate: unknown,
   index: number
@@ -436,7 +123,11 @@ function validateJudgment(
   return Object.freeze({ check, reason });
 }
 
-/** Validate the evaluator's exact closed result union atomically. */
+/**
+ * Validate the evaluator's exact closed result union atomically.
+ * @param candidate - Untrusted evaluator output
+ * @returns The validated, frozen evaluation
+ */
 export function validateAgenticHealthEvaluation(
   candidate: unknown
 ): AgenticHealthEvaluation {
@@ -481,7 +172,13 @@ export function validateAgenticHealthEvaluation(
   return Object.freeze({ status, judgments: Object.freeze(judgments) });
 }
 
-/** Compose completed, validated judgments without changing deterministic facts. */
+/**
+ * Compose completed, validated judgments without changing deterministic facts.
+ * @param deterministic - Completed deterministic result
+ * @param evaluation - Validated completed evaluation
+ * @param now - Clock used for the composed completion time
+ * @returns The validated full-mode health result
+ */
 function composeFullResult(
   deterministic: HealthResult,
   evaluation: Extract<
@@ -539,7 +236,11 @@ function composeFullResult(
   });
 }
 
-/** Resolve a canonical project directory for confined evidence collection. */
+/**
+ * Resolve a canonical project directory for confined evidence collection.
+ * @param projectPath - Project path as supplied by the caller
+ * @returns The real path of the project directory
+ */
 async function canonicalProjectRoot(projectPath: string): Promise<string> {
   const root = await realpath(path.resolve(projectPath));
   if (!(await lstat(root)).isDirectory()) {
@@ -551,6 +252,9 @@ async function canonicalProjectRoot(projectPath: string): Promise<string> {
 /**
  * Run deterministic health and, only when explicitly enabled and available,
  * compose one bounded optional agentic review. Collection never persists.
+ * @param projectPath - Host project to inspect
+ * @param options - Deterministic options plus the optional agentic pass
+ * @returns The deterministic result, or the composed full result
  */
 export async function runHealth(
   projectPath: string,
@@ -605,5 +309,3 @@ export async function runHealth(
     deadline.close();
   }
 }
-
-/* eslint-enable functional/immutable-data, functional/no-let, jsdoc/require-param, jsdoc/require-returns, max-lines -- restore repository defaults */

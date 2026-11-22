@@ -47,7 +47,7 @@ import {
   type GateModule,
   GREEN_JOB,
   loadGateModule,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /** The bypass label, matching the gate's default. */
 const LABEL = "nightly-e2e-bypass";

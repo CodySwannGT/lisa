@@ -8,7 +8,6 @@ import {
   mkdirSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -26,6 +25,7 @@ import {
   template,
 } from "../helpers/host-guard-freshness-fixtures.js";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 afterEach(cleanupScratchRoots);
 
@@ -102,7 +102,7 @@ describe("host content evidence edge cases", () => {
         rmSync(file);
         if (kind === "directory") mkdirSync(file);
         if (kind === "dangling-link")
-          symlinkSync(path.join(root, "absent-template"), file);
+          createSymlink(path.join(root, "absent-template"), file);
         if (kind === "fifo") {
           const made = boundedSpawnSync({
             label: "owned FIFO comparison evidence",

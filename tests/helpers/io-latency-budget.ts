@@ -3,6 +3,12 @@ import type { SpawnSyncOptions, SpawnSyncReturns } from "node:child_process";
 import { afterEach, beforeEach, vi } from "vitest";
 
 import localVitestConfig from "../../vitest.config.local.js";
+import {
+  type CapturedStream,
+  type ChildTiming,
+  describeChildOutput,
+  describeChildTiming,
+} from "./child-output-tail.js";
 
 /**
  * Budget for suites whose work has unbounded latency, expressed in units of
@@ -258,6 +264,14 @@ export interface ChildOutcome {
    * diagnostic, it is the measurement.
    */
   readonly status?: number | null;
+  /**
+   * What the child wrote to stdout. Reported, bounded, when the child was
+   * killed — the one fact that says whether it hung before or after its work
+   * (CodySwannGT/lisa#4896).
+   */
+  readonly stdout?: CapturedStream;
+  /** What the child wrote to stderr, reported alongside {@link stdout}. */
+  readonly stderr?: CapturedStream;
 }
 
 /**
@@ -327,8 +341,8 @@ function errnoCodeOf(error: Error): string | undefined {
  * **The child ran and exited first** (CodySwannGT/lisa#2949,
  * CodySwannGT/lisa#3122). It consumed no stdin on some exit path, and the
  * parent's write is racing that exit — so whether it surfaces is decided by the
- * box, and it is intermittent by construction. Measured: the shipped
- * `parity-safety-net.sh` run under `/bin/sh`, which on Linux is `dash`, dies on
+ * box, and it is intermittent by construction. Measured: a since-retired
+ * shipped guard run under `/bin/sh`, which on Linux is `dash`, dies on
  * `set -o pipefail` at line 84 — nine lines before its `input="$(cat)"` — so it
  * exits 2 having read nothing. One core, a 72-byte payload, 300 spawns per arm:
  * **0 EPIPE at rest, 3 under 4 CPU hogs, 31 under 16.** Same code, same
@@ -519,6 +533,12 @@ function isDeclaredEarlyExit(outcome: ChildOutcome): boolean {
  * come back for the case to assert on. Undeclared, EPIPE still fails, and an
  * absent command or a kill still fails even when it IS declared.
  *
+ * **What the child printed.** A kill diagnostic also carries the last
+ * few KB of both streams, and the elapsed time against the timeout when the
+ * caller measured them. Four CI kills of a 30-60ms `bun` child said only
+ * `ETIMEDOUT`, so nothing could tell a child that hung before its work from
+ * one that printed its verdict and then never exited (CodySwannGT/lisa#4896).
+ *
  * Call this immediately after every `spawnSync` whose timeout came from
  * {@link ioLatencyBudgetMs}.
  * @param outcome - Result returned by `spawnSync`
@@ -526,11 +546,13 @@ function isDeclaredEarlyExit(outcome: ChildOutcome): boolean {
  * @param tolerance - What the caller claims about the child's use of its stdin.
  * Defaults to `"child-must-consume-input"`, so tolerating a pipe error is
  * always an explicit act at the callsite.
+ * @param timing - Elapsed time and the timeout, when the caller measured them
  */
 export function assertChildCompleted(
   outcome: ChildOutcome,
   label: string,
-  tolerance: PipeErrorTolerance = "child-must-consume-input"
+  tolerance: PipeErrorTolerance = "child-must-consume-input",
+  timing?: ChildTiming
 ): void {
   if (outcome.error === undefined && (outcome.signal ?? null) === null) return;
   if (
@@ -548,11 +570,13 @@ export function assertChildCompleted(
     outcome.error === undefined
       ? `killed by signal ${String(outcome.signal)}`
       : outcome.error.message;
+  const output = describeChildOutput(outcome.stdout, outcome.stderr);
   throw new Error(
-    `${label} did not complete: ${cause}. Its budget was scaled by a measured ` +
+    `${label} did not complete: ${cause}${describeChildTiming(timing)}. Its ` +
+      `budget was scaled by a measured ` +
       `${WORKER_SPAWN_SLOWDOWN.toFixed(2)}x spawn slowdown, so this is a real ` +
       `hang or a machine past ${MAX_SPAWN_SLOWDOWN}x — not ordinary variance. ` +
-      `See tests/helpers/io-latency-budget.ts.`
+      `See tests/helpers/io-latency-budget.ts.${output}`
   );
 }
 
@@ -758,6 +782,8 @@ export interface BoundedSpawn {
  */
 export function boundedSpawnSync(spec: BoundedSpawn): SpawnSyncReturns<string> {
   const spawn = spec.spawn ?? spawnSync;
+  const timeoutMs = ioLatencyBudgetMs(spec.baseMs ?? BOUNDED_SPAWN_BASE_MS);
+  const started = Date.now();
   const outcome = spawn(spec.command, [...spec.args], {
     cwd: spec.cwd,
     encoding: "utf-8",
@@ -766,14 +792,15 @@ export function boundedSpawnSync(spec: BoundedSpawn): SpawnSyncReturns<string> {
     killSignal: "SIGKILL",
     maxBuffer: spec.maxBuffer,
     stdio: spec.stdio,
-    timeout: ioLatencyBudgetMs(spec.baseMs ?? BOUNDED_SPAWN_BASE_MS),
+    timeout: timeoutMs,
   });
   assertChildCompleted(
     outcome,
     spec.label,
     spec.childMayExitBeforeReading === true
       ? "child-may-exit-before-reading"
-      : "child-must-consume-input"
+      : "child-must-consume-input",
+    { timeoutMs, elapsedMs: Date.now() - started }
   );
   return outcome;
 }

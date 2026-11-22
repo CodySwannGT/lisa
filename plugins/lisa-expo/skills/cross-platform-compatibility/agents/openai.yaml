@@ -1,4 +1,4 @@
 display_name: "Cross Platform Compatibility"
-short_description: "This skill enforces cross-platform compatibility best practices for Expo apps targeting iOS, Android, and web"
+short_description: "Keep Expo features working on iOS, Android, and web: Platform.OS checks and platform-specific files"
 default_prompt:
-  - "Use $cross-platform-compatibility: This skill enforces cross-platform compatibility best practices for Expo apps targeting iOS, Android, and web."
+  - "Use $cross-platform-compatibility: Keep Expo features working on iOS, Android, and web: Platform.OS checks and platform-specific files."

@@ -6,7 +6,7 @@ import { readProjectConfig } from "./project-config.js";
 const execFileAsync = promisify(execFile);
 
 /** Outcome of a single read-only `sonar` CLI probe. */
-export interface SonarProbeResult {
+interface SonarProbeResult {
   /** True when the command exited zero. */
   readonly ok: boolean;
 }
@@ -27,7 +27,7 @@ export interface SonarReadiness {
  * @param args - Fixed argument vector
  * @returns Whether the command exited zero
  */
-export const runSonarCommand: SonarCommandRunner = async args => {
+const runSonarCommand: SonarCommandRunner = async args => {
   try {
     await execFileAsync("sonar", [...args], { timeout: 15_000 });
     return { ok: true };

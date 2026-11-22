@@ -1,7 +1,7 @@
 /** Validation contract for configurable nightly-E2E condition tracking. */
 
 /** Public destinations for the combined nightly-E2E condition tracker. */
-export type NightlyE2ETrackingDestination =
+type NightlyE2ETrackingDestination =
   | "github"
   | "sentry"
   | "jira"
@@ -9,7 +9,7 @@ export type NightlyE2ETrackingDestination =
   | "none";
 
 /** Provider selection for combined nightly-E2E condition tracking. */
-export interface NightlyE2ETrackingConfig {
+interface NightlyE2ETrackingConfig {
   /** Existing project destination adapter, or `none` to disable tracking. */
   readonly destination: NightlyE2ETrackingDestination;
 }

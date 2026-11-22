@@ -1,126 +1,223 @@
 /**
- * The agent-facing audit ladder must teach the scoped exclusion shape (#4521).
+ * The audit's failure message must name the `lisa-security-audit-handling`
+ * skill (#4521), so an agent that hits a failing audit is pointed at the
+ * fix ladder (#4931: refresh, upgrade, override, reachability, replace).
+ * Checked in the distributed script and the repository's own copy.
  *
- * An agent that reaches rung 5 writes whatever exclusion the rule shows it. If
- * the rule only shows `id`/`package`/`reason`, every agent-authored exception is
- * advisory-wide — it silences a later production copy as well as the reviewed
- * dev-only one. Both tiers must therefore name `versions` and `paths`, and the
- * reference tier must recommend path scope for a dev-only copy. Checked in the
- * source tree and the generated Claude plugin so a stale build cannot hide drift.
+ * The ladder ends at our own fork, patch or vendored copy (CodySwannGT/lisa#5024):
+ * after the upstream fix, last, and only through a declared human gate the
+ * classifier accepts. Every shipped copy of the skill and its rule pointer
+ * must keep the steps in order, so the exclusion can never move behind a
+ * code change and the copy can never move ahead of the others.
  * @module tests/unit/strategies/security-audit-handling-scope
  */
 import { readFileSync } from "node:fs";
-import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
-const RULE = "security-audit-handling.md";
-const DOC_URL =
-  "https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md";
+import { classifyHumanGateReason } from "../../../plugins/src/base/scripts/human-gate-act.mjs";
 
-const read = (root: string, tier: "eager" | "reference"): string =>
-  readFileSync(path.resolve(root, "rules", tier, RULE), "utf8");
+/**
+ * The remediation order (CodySwannGT/lisa#4931 and #5024): how the skill,
+ * its rule pointer and the failure message write each step.
+ */
+const LADDER = [
+  {
+    skill: "**Refresh the lockfile within the current range.**",
+    rule: "1. Refresh the lockfile",
+    message: "refresh the lockfile within its current range",
+  },
+  {
+    skill: "**Upgrade the direct dependency**",
+    rule: "2. Upgrade the direct dependency",
+    message: "upgrade the direct dependency",
+  },
+  {
+    skill: "**Add a targeted override**",
+    rule: "3. Add a targeted override",
+    message: "add a targeted override to the fixed version",
+  },
+  {
+    skill:
+      "**Evaluate reachability, and exclude with a stated reason if unaffected**",
+    rule: "4. Evaluate reachability",
+    message: "evaluate reachability",
+  },
+  {
+    skill: "**Replace or remove the dependency**",
+    rule: "5. Replace or remove the dependency",
+    message: "replace or remove the dependency",
+  },
+  {
+    skill: "**Contribute the fix upstream**",
+    rule: "6. Contribute the fix upstream",
+    message: "contribute the fix upstream",
+  },
+  {
+    skill:
+      "**Fork, patch or vendor the library — last, and only through a human gate.**",
+    rule: "7. Last: fork, patch or vendor the library",
+    message: "last, fork, patch or vendor the library",
+  },
+] as const;
 
-describe.each(ROOTS)("security-audit-handling scope guidance (%s)", root => {
-  it("the eager ladder names versions and paths for a dev-only copy", () => {
-    const eager = read(root, "eager");
-    expect(eager).toContain("`versions`");
-    expect(eager).toContain("`paths`");
-    expect(eager).toMatch(/dev-only/u);
+const GATED = LADDER[6];
+
+/** Every shipped copy of the skill, source first. */
+const SKILLS = [
+  "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md",
+  "plugins/lisa/skills/lisa-security-audit-handling/SKILL.md",
+  "plugins/lisa/.codex-plugin/skills/lisa-security-audit-handling/SKILL.md",
+  "plugins/lisa-agy/skills/lisa-security-audit-handling/SKILL.md",
+  "plugins/lisa-copilot/skills/lisa-security-audit-handling/SKILL.md",
+  "plugins/lisa-cursor/skills/lisa-security-audit-handling/SKILL.md",
+  "plugins/lisa-devin/skills/lisa-security-audit-handling/SKILL.md",
+];
+
+/** Every shipped copy of the always-reachable rule pointer, source first. */
+const RULES = [
+  "plugins/src/base/rules/reference/security-audit-handling.md",
+  "plugins/lisa/rules/reference/security-audit-handling.md",
+  "plugins/lisa-copilot/rules/reference/security-audit-handling.md",
+  "plugins/lisa-cursor/rules/security-audit-handling-reference.mdc",
+  "plugins/lisa-devin/rules/reference/security-audit-handling.md",
+];
+
+/** Every shipped copy of the internalization kit, source first. */
+const KITS = [
+  "plugins/src/base/rules/reference/dependency-internalization-kit.md",
+  "plugins/lisa/rules/reference/dependency-internalization-kit.md",
+  "plugins/lisa-copilot/rules/reference/dependency-internalization-kit.md",
+  "plugins/lisa-cursor/rules/dependency-internalization-kit-reference.mdc",
+  "plugins/lisa-devin/rules/reference/dependency-internalization-kit.md",
+];
+
+/** The scripts whose failure message prints the full seven-step ladder. */
+const SCRIPTS = [
+  "all/copy-overwrite/scripts/lisa-audit.mjs",
+  "scripts/lisa-audit.mjs",
+];
+
+/**
+ * Assert every step appears, and in ladder order.
+ * @param text - The surface under test
+ * @param steps - How that surface writes each step
+ * @param label - Names the surface in a failure
+ */
+function expectInOrder(
+  text: string,
+  steps: readonly string[],
+  label: string
+): void {
+  const offsets = steps.map(step => text.indexOf(step));
+  expect(
+    steps.filter((_, index) => (offsets[index] ?? -1) < 0),
+    `${label}: steps missing`
+  ).toEqual([]);
+  expect(
+    [...offsets].sort((x, y) => x - y),
+    `${label}: steps out of order`
+  ).toEqual(offsets);
+}
+
+/**
+ * The single `Next step:` line a script prints.
+ * @param script - Repository-relative script path
+ * @returns The line
+ */
+function nextStep(script: string): string {
+  const lines = readFileSync(script, "utf8")
+    .split("\n")
+    .filter(line => line.includes("Next step:"));
+  expect(lines, script).toHaveLength(1);
+  return lines[0] ?? "";
+}
+
+describe("security-audit-handling is named by the audit", () => {
+  it("is named by the audit's failure message", () => {
+    for (const script of SCRIPTS)
+      expect(readFileSync(script, "utf8"), script).toContain(
+        "lisa-security-audit-handling"
+      );
   });
 
-  it("the reference ladder documents both scope fields with lockfile keys", () => {
-    const reference = read(root, "reference");
-    expect(reference).toContain("`versions`");
-    expect(reference).toContain("`paths`");
-    expect(reference).toMatch(/lockfile key path/u);
-    expect(reference).toContain('"paths": ["lint-plugin/pkg"]');
-  });
-
-  it("both tiers link the exclusion guide by absolute URL (docs/ is not shipped)", () => {
-    for (const tier of ["eager", "reference"] as const)
-      expect(read(root, tier), tier).toContain(DOC_URL);
-  });
-
-  it("the reference ladder states the weaker isolation of Yarn and hoisted npm keys", () => {
-    const reference = read(root, "reference");
-    expect(reference).toMatch(/requested range, not a parent/u);
-    expect(reference).toMatch(/hoisted/u);
-  });
-
-  it("the reference ladder recommends paths over an ID-wide entry for dev-only copies", () => {
-    const reference = read(root, "reference");
-    expect(reference).toMatch(
-      /Whenever the vulnerable copy is dev-only[^\n]*add `versions` and `paths` rather than an ID-wide entry/u
+  it.each(SKILLS)("%s teaches the steps in order", file => {
+    const skill = readFileSync(file, "utf8");
+    expectInOrder(
+      skill,
+      LADDER.map(step => step.skill),
+      file
     );
-    expect(reference).toMatch(/never widens into an ID-wide exclusion/u);
+    expect(skill).toContain(
+      "add a scoped exclusion with a concrete reason to `audit.ignore.local.json`"
+    );
+  });
+
+  it.each(RULES)("%s lists the steps in order", file => {
+    expectInOrder(
+      readFileSync(file, "utf8"),
+      LADDER.map(step => step.rule),
+      file
+    );
+  });
+
+  it("files a build-ready ticket instead of assuming a human", () => {
+    const skill = readFileSync(SKILLS[0] ?? "", "utf8");
+    expect(skill).toContain("**file a build-ready ticket**");
+    expect(skill).toContain(
+      "the advisory, the dependency path that reaches the vulnerable copy, and what was tried at each step"
+    );
+    expect(skill).toContain(
+      "Stop only when the next act needs access you do not have, and then say exactly what is missing."
+    );
+    expect(skill).not.toMatch(/stop for a human/iu);
+  });
+
+  it("prints the first five steps in order in every failure message", () => {
+    for (const script of [
+      ...SCRIPTS,
+      ".github/actions/dependency-audit/run.mjs",
+    ]) {
+      const line = nextStep(script);
+      expectInOrder(
+        line,
+        LADDER.slice(0, 5).map(step => step.message),
+        script
+      );
+      expect(line, script).toContain("audit.ignore.local.json");
+    }
+  });
+
+  it.each(SCRIPTS)("%s prints all seven steps in order", script => {
+    expectInOrder(
+      nextStep(script),
+      LADDER.map(step => step.message),
+      script
+    );
   });
 });
 
-describe("the exclusion guide the rules link to (docs/dependency-audit-exclusions.md)", () => {
-  const guide = readFileSync(
-    path.resolve("docs", "dependency-audit-exclusions.md"),
-    "utf8"
+describe("our own copy of a library is gated and last (CodySwannGT/lisa#5024)", () => {
+  it.each(SKILLS)("%s gates the last step on a filable human gate", file => {
+    const text = readFileSync(file, "utf8");
+    const gated = text.slice(text.indexOf(GATED.skill));
+    const reason = gated.split('human_gate: "')[1]?.split('"')[0];
+    expect(reason, "the gated step declares a human_gate reason").toContain(
+      "<pkg>"
+    );
+    const verdict = classifyHumanGateReason(
+      reason?.replaceAll("<pkg>", "picomatch")
+    );
+    expect(verdict.valid).toBe(true);
+    expect(verdict.act).toBe("own-dependency-copy");
+  });
+
+  it.each(KITS)(
+    "%s routes a fork or vendored copy through the one ladder",
+    file => {
+      const text = readFileSync(file, "utf8");
+      expect(text).toContain("step 7");
+      expect(text).toContain("lisa-security-audit-handling");
+    }
   );
-
-  it("documents paths as exact lockfile keys", () => {
-    expect(guide).toContain('"paths": ["lint-tool/schema-lib"]');
-    expect(guide).toMatch(/Paths are exact keys, without glob expansion/u);
-  });
-
-  it("recommends path scope over an advisory-wide exception for dev-only copies", () => {
-    expect(guide).toMatch(
-      /Prefer `paths` over an advisory-wide exception whenever the\s+accepted vulnerable copy belongs only to a development tool/u
-    );
-  });
-
-  it("documents that a narrower entry is never widened by an advisory-wide one", () => {
-    expect(guide).toMatch(/A narrower entry always wins/u);
-    expect(guide).toMatch(/advisory-wide exclusion was not applied/u);
-  });
-
-  it("documents that a misspelled scope field fails closed and other keys are ignored", () => {
-    expect(guide).toMatch(
-      /nearly\s+matches one of the five scope fields fails the audit/u
-    );
-    expect(guide).toMatch(/is ignored by the audit as before/u);
-  });
-
-  it("names only genuinely unrecognized keys as ignored, and accepts advisory metadata", () => {
-    // `url` and `title` are known metadata fields, so doctor does not report them.
-    expect(guide).not.toMatch(/such as `url` or `title`, is ignored/u);
-    expect(guide).toMatch(/`cwe`,\s+`ghsa`,\s+`url`,\s+`title`,\s+`severity`/u);
-  });
-
-  it("says the CI fallback audits the manager its package_manager input names", () => {
-    // The reusable workflow's input defaults to npm; it does not run the
-    // hook's detection, so the guide must not claim one shared selection.
-    expect(guide).not.toMatch(/including its package-manager\s+selection/u);
-    expect(guide).toMatch(/`package_manager`\s+input/u);
-    expect(guide).toMatch(/defaults\s+to\s+`npm`/u);
-  });
-
-  it("states that a doctor pass does not guarantee the audit accepts the files", () => {
-    expect(guide).toMatch(/entry\s+with\s+no\s+`id`/u);
-    expect(guide).toMatch(/does\s+not\s+parse/u);
-    expect(guide).toMatch(/A\s+doctor\s+pass\s+is\s+not\s+proof/u);
-  });
-
-  it("does not claim doctor matches advisories against lockfile copies", () => {
-    expect(guide).not.toMatch(/CI audit job,\s+and doctor share/u);
-    expect(guide).toMatch(
-      /does not match\s+advisories against lockfile copies/u
-    );
-  });
-});
-
-describe("the reference rule separates doctor's checks from advisory matching", () => {
-  it.each(ROOTS)("%s", root => {
-    const reference = read(root, "reference");
-    expect(reference).not.toMatch(
-      /and `lisa doctor` all use the same matcher/u
-    );
-    expect(reference).toMatch(/`lisa doctor` checks the scope fields/u);
-  });
 });

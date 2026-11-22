@@ -1,12 +1,5 @@
 /** Native descriptor failure, permission and shared read-only cache contracts. */
-import {
-  chmod,
-  link,
-  readFile,
-  stat,
-  symlink,
-  realpath,
-} from "node:fs/promises";
+import { chmod, link, readFile, stat, realpath } from "node:fs/promises";
 import { constants } from "node:fs";
 import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
@@ -14,11 +7,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fixture,
   cleanupFixtures,
-  PARITY,
+  GUARD,
+  GUARD_NAME,
   DEDUPE,
   COPY_DIRECTORY,
-  OLD_DEDUPE,
+  OLD_GUARD,
 } from "./refresh-hooks-fixture.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const observation = vi.hoisted(() => {
   const state: {
@@ -84,7 +79,7 @@ describe("native scoped refresh descriptors", () => {
     const { HookFiles } =
       await import("../../../src/cli/hook-refresh-files.js");
     const input = await fixture();
-    const filename = path.join(input.host, PARITY);
+    const filename = path.join(input.host, GUARD);
     const pathname = 2n ** 53n;
     observation.identity = { filename, pathname, descriptor: pathname + 1n };
     expect(Number(pathname)).toBe(Number(pathname + 1n));
@@ -103,7 +98,7 @@ describe("native scoped refresh descriptors", () => {
     const input = await fixture();
     const parent = path.dirname(input.host);
     const alias = path.join(parent, "temporary-alias");
-    await symlink(parent, alias);
+    createSymlink(parent, alias);
     const nested = await fixture(alias);
     expect(nested.host).toBe(await realpath(nested.host));
     expect(nested.packageDir).toBe(await realpath(nested.packageDir));
@@ -113,10 +108,8 @@ describe("native scoped refresh descriptors", () => {
     const { refreshHooks } =
       await import("../../../src/cli/refresh-hooks-cmd.js");
     const input = await fixture();
-    const later = path.join(
-      input.host,
-      "scripts/lisa-hooks/parity-safety-net-heredoc.py"
-    );
+    // Name order writes the guard first, so the dedupe helper is the later one.
+    const later = path.join(input.host, DEDUPE);
     let closed = false;
     observation.before = async (filename, handle) => {
       if (filename !== later || closed) return;
@@ -132,8 +125,8 @@ describe("native scoped refresh descriptors", () => {
     expect(result.errors).toHaveLength(2);
     expect(result.errors[0].code).toBe("EBADF");
     expect(result.errors[1].code).toBe("EBADF");
-    expect(await readFile(path.join(input.host, DEDUPE), "utf8")).toBe(
-      OLD_DEDUPE
+    expect(await readFile(path.join(input.host, GUARD), "utf8")).toBe(
+      OLD_GUARD
     );
     expect(observation.handles.length).toBeGreaterThan(0);
     expect(observation.handles.every(handle => handle.fd === -1)).toBe(true);
@@ -143,18 +136,14 @@ describe("native scoped refresh descriptors", () => {
     const { refreshHooks } =
       await import("../../../src/cli/refresh-hooks-cmd.js");
     const input = await fixture();
-    const source = path.join(input.packageDir, COPY_DIRECTORY, PARITY);
+    const source = path.join(input.packageDir, COPY_DIRECTORY, GUARD);
     const alias = path.join(path.dirname(input.host), "cache-link");
     await chmod(source, 0o755);
     await link(source, alias);
     await refreshHooks(input.host, input);
-    expect(await readFile(alias, "utf8")).toBe(
-      "# current parity-safety-net.sh\n"
-    );
+    expect(await readFile(alias, "utf8")).toBe(`# current ${GUARD_NAME}\n`);
     expect((await stat(alias)).mode & 0o777).toBe(0o755);
-    expect((await stat(path.join(input.host, PARITY))).mode & 0o777).toBe(
-      0o755
-    );
+    expect((await stat(path.join(input.host, GUARD))).mode & 0o777).toBe(0o755);
     expect(observation.handles.every(handle => handle.fd === -1)).toBe(true);
   });
 });

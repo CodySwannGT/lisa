@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { lstat, mkdir, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { writeFileAtomically } from "../utils/atomic-file-write.js";
+import { requireExecutable } from "../utils/resolve-executable.js";
 import {
   invariantFingerprint,
   isEvidenceString,
@@ -16,7 +17,7 @@ import { assertSafeLearningParents } from "./learnings-file-safety.js";
 import { withFileTargetLock } from "./learnings-lock.js";
 
 export const RECURRENCE_LEDGER = ".lisa/RECURRENCES.jsonl";
-export const EFFECTIVENESS_REPORTS = ".lisa/effectiveness";
+const EFFECTIVENESS_REPORTS = ".lisa/effectiveness";
 
 /** One actual failure following a shipped learning or control. */
 export interface FailureRecurrence {
@@ -40,7 +41,7 @@ export interface EffectivenessRecord {
  * @param value - Untrusted recurrence input
  * @returns Normalized recurrence
  */
-export function parseRecurrence(value: unknown): FailureRecurrence {
+function parseRecurrence(value: unknown): FailureRecurrence {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     throw new Error("Invalid recurrence");
   const row = value as Record<string, unknown>;
@@ -75,7 +76,7 @@ export function parseRecurrence(value: unknown): FailureRecurrence {
  * @param row - Normalized recurrence
  * @returns Gardener marker key
  */
-export function recurrenceClass(row: FailureRecurrence): string {
+function recurrenceClass(row: FailureRecurrence): string {
   return `${row.surface}+${invariantFingerprint(row.invariant)}`;
 }
 
@@ -141,8 +142,7 @@ async function safeTarget(root: string, relative: string): Promise<string> {
  */
 function assertUnionMerge(root: string): void {
   const attribute = execFileSync(
-    // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed git executable
-    "git",
+    requireExecutable("git"),
     ["check-attr", "-z", "merge", "--", RECURRENCE_LEDGER],
     { cwd: root, encoding: "utf8" }
   );
@@ -192,7 +192,7 @@ export async function recordRecurrence(
  * @param value - Untrusted input
  * @returns Validated accounting mirror
  */
-export function parseEffectivenessRecord(value: unknown): EffectivenessRecord {
+function parseEffectivenessRecord(value: unknown): EffectivenessRecord {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     throw new Error("Invalid effectiveness record");
   const row = value as Record<string, unknown>;
@@ -224,8 +224,11 @@ export async function recordEffectiveness(
     .digest("hex");
   const relative = `${EFFECTIVENESS_REPORTS}/${filename}.json`;
   const target = await safeTarget(root, relative);
-  // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed git executable
-  execFileSync("git", ["check-ignore", "-q", "--", relative], { cwd: root });
+  execFileSync(
+    requireExecutable("git"),
+    ["check-ignore", "-q", "--", relative],
+    { cwd: root }
+  );
   await mkdir(path.dirname(target), { recursive: true });
   await withFileTargetLock(target, async () => {
     await readStored(target);
@@ -243,7 +246,7 @@ export async function recordEffectiveness(
  * @param records - Local observations reconstructed from accounting rows
  * @returns Sourced numerator and denominator without a throughput proxy
  */
-export function summarizeAttention(records: readonly EffectivenessRecord[]) {
+function summarizeAttention(records: readonly EffectivenessRecord[]) {
   const accepted = new Set(
     records
       .filter(row => row.effectiveness.acceptedAt !== null)

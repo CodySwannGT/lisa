@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- one feature, and each guard is only proved by pairing a positive case with the negative case that dies when the guard is removed; splitting the pairs apart is what makes such a suite unreadable */
 /**
  * Behavioral tests for per-flow retry, EXECUTED rather than asserted: both the
  * iOS suite step and the retry-budget gate are pulled verbatim out of the YAML
@@ -36,167 +35,34 @@
  * retry this one deliberately leaves alone.
  */
 import * as fs from "fs-extra";
-import yaml from "js-yaml";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const REUSABLE_YML = path.join(
-  REPO_ROOT,
-  ".github",
-  "workflows",
-  "maestro-native-e2e.yml"
-);
-
-/** `bash` by absolute path — never resolved through a writeable $PATH. */
-const BASH = "/bin/bash";
-
-/** The per-flow retry ledger the suite step writes and the gate reads. */
-const LEDGER_FILE = "maestro-ios-retries.txt";
-
-/**
- * Byte order, matching the `LC_ALL=C sort` the workflow uses.
- *
- * Deliberately NOT `localeCompare`: the ledger is sorted by a C-locale sort
- * on the runner, and a comparator that disagreed with it would make this
- * suite assert an order the artifact does not have.
- * @param left - First row
- * @param right - Second row
- * @returns Negative, zero, or positive per the usual sort contract
- */
-const byCodePoint = (left: string, right: string): number => {
-  if (left < right) return -1;
-  return left > right ? 1 : 0;
-};
-
-/** How many flows the fixture suite executes, matching the measured arm. */
-const SUITE_SIZE = 41;
-
-/** Shape of a single step inside a workflow job's `steps:` list. */
-interface WorkflowStep {
-  id?: string;
-  name?: string;
-  run?: string;
-  env?: Record<string, unknown>;
-}
-
-/** Root shape of the parsed reusable workflow. */
-interface ReusableWorkflow {
-  on: {
-    workflow_call?: {
-      inputs?: Record<string, { default?: unknown; type?: string }>;
-    };
-  };
-  jobs: Record<string, { steps?: WorkflowStep[] }>;
-}
-
-/** Outcome of executing a workflow step against a fixture. */
-interface StepResult {
-  status: number;
-  attempts: number;
-  output: string;
-  ledger: string | null;
-}
-
-/** How the stubbed runner behaves once the suite has failed. */
-type RetryMode = "retry-passes" | "retry-fails" | "retry-executes-nothing";
-
-/** Knobs for one suite-step execution. */
-interface RunOptions {
-  mode?: RetryMode;
-  /** Flow basenames the fixture report marks as failed. */
-  failing?: readonly string[];
-  /** Flow basenames whose file carries the retry tag. */
-  tagged?: readonly string[];
-  /** Value of the `ios_flow_retry_tag` input. */
-  tag?: string;
-  attempts?: string;
-  ratePercent?: string;
-  /** Emit the failing test cases last rather than first. */
-  reverseOrder?: boolean;
-  /** Emit every failing test case twice. */
-  repeatFailing?: boolean;
-  /** Make the first suite attempt succeed. */
-  suitePasses?: boolean;
-}
-
-/** Flow basenames the fixture project contains. */
-const FLOW_NAMES = Array.from(
-  { length: SUITE_SIZE },
-  (_unused, index) => `flow-${String(index).padStart(2, "0")}`
-);
-
-/**
- * A JUnit report in Maestro's shape.
- *
- * The passing cases are SELF-CLOSING and the failing ones are not, which is the
- * exact pairing that defeats a greedy `<testcase[^>]*>` match: it swallows the
- * self-closing slash and reports the passing flow's name against the next
- * failing flow's message.
- * @param failing - Basenames of the flows that failed
- * @param reverseOrder - Emit failing cases last rather than first
- * @param repeatFailing - Emit each failing case twice, as two suites can
- * @returns JUnit XML
- */
-const buildReport = (
-  failing: readonly string[],
-  reverseOrder = false,
-  repeatFailing = false
-): string => {
-  const ordered = reverseOrder ? [...FLOW_NAMES].reverse() : FLOW_NAMES;
-  const rows = ordered.flatMap(name => {
-    if (!failing.includes(name)) {
-      return [
-        `    <testcase name="${name}" file=".maestro/flows/${name}.yaml" status="SUCCESS" time="10"/>`,
-      ];
-    }
-    // The failure BODY carries a decoy `file="…"` and is otherwise the exact
-    // text one of the measured faults produced: `Unknown error`, with the real
-    // cause only in the debug bundle. Both halves are deliberate. The decoy
-    // proves the flow path is read from the open TAG rather than from anywhere
-    // in the record; `Unknown error` is why this retry may never be gated on
-    // matching an error string.
-    const failed =
-      `    <testcase name="${name}" file=".maestro/flows/${name}.yaml" status="ERROR" time="20">\n` +
-      `      <failure>Unknown error (see file="debug/decoy.yaml")</failure>\n    </testcase>`;
-    return repeatFailing ? [failed, failed] : [failed];
-  });
-  return [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    "<testsuites>",
-    `  <testsuite name="suite" tests="${SUITE_SIZE}" failures="${failing.length}">`,
-    ...rows,
-    "  </testsuite>",
-    "</testsuites>",
-    "",
-  ].join("\n");
-};
-
-/** A flow file carrying the retry tag in block form. */
-const TAGGED_FLOW =
-  "appId: ${MAESTRO_APP_ID}\ntags:\n  - retryable\n---\n- launchApp\n";
-
-/** The ledger row a flow-07 first-attempt loss produces once it recovers. */
-const FLOW_07_RECOVERED = "flow|.maestro/flows/flow-07.yaml|2|recovered";
-
-/** The same, for flow-01. */
-const FLOW_01_RECOVERED = "flow|.maestro/flows/flow-01.yaml|2|recovered";
-
-/** A flow file carrying no tags at all. */
-const PLAIN_FLOW = "appId: ${MAESTRO_APP_ID}\n---\n- launchApp\n";
+import {
+  BASH,
+  buildReport,
+  PLAIN_FLOW,
+  TAGGED_FLOW,
+  FLOW_NAMES,
+  type RunOptions,
+  type StepResult,
+  byCodePoint,
+  FLOW_01_RECOVERED,
+  FLOW_07_RECOVERED,
+  iosStepRun,
+  LEDGER_FILE,
+  loadWorkflow,
+  type ReusableWorkflow,
+  SUITE_SIZE,
+} from "./maestro-native-per-flow-retry-fixtures.js";
 
 describe("maestro-native-e2e per-flow retry (executed)", () => {
   let workflow: ReusableWorkflow;
 
   beforeAll(async () => {
-    workflow = yaml.load(
-      await fs.readFile(REUSABLE_YML, "utf-8")
-    ) as ReusableWorkflow;
+    workflow = await loadWorkflow();
   });
 
   /**
@@ -204,17 +70,7 @@ describe("maestro-native-e2e per-flow retry (executed)", () => {
    * @param namePart - Substring of the step's `name:`
    * @returns The step's shell script exactly as CI will run it
    */
-  const iosStep = (namePart: string): string => {
-    const step = (workflow.jobs.ios.steps ?? []).find(candidate =>
-      candidate.name?.includes(namePart)
-    );
-    if (!step?.run) throw new Error(`no iOS step matching "${namePart}"`);
-    // No `${{ }}` may survive into the script: an expansion is substituted into
-    // the script TEXT before bash parses it, and executing the step verbatim is
-    // only meaningful if nothing had to be rewritten to make it runnable.
-    expect(step.run).not.toContain("${{");
-    return step.run;
-  };
+  const iosStep = (namePart: string): string => iosStepRun(workflow, namePart);
 
   /**
    * Runs the real suite step against a fixture project.
@@ -553,180 +409,4 @@ describe("maestro-native-e2e per-flow retry (executed)", () => {
       expect(rows(result.ledger)).toEqual([FLOW_07_RECOVERED]);
     });
   });
-
-  describe("the retry-budget gate (both directions)", () => {
-    /**
-     * Executes the gate step against a hand-written ledger.
-     * @param ledger - Ledger contents, or null to omit the file
-     * @returns Exit status, step output, summary text, and step outputs
-     */
-    const gate = async (
-      ledger: string | null
-    ): Promise<{
-      status: number;
-      output: string;
-      summary: string;
-      outputs: string;
-    }> => {
-      const dir = await fs.mkdtemp(path.join(os.tmpdir(), "maestro-gate-"));
-      try {
-        if (ledger !== null) {
-          await fs.writeFile(path.join(dir, LEDGER_FILE), ledger);
-        }
-        const outputs = path.join(dir, "outputs");
-        const summary = path.join(dir, "summary");
-        await fs.writeFile(outputs, "");
-        await fs.writeFile(summary, "");
-        let status = 0;
-        let output = "";
-        try {
-          output = boundedExecFileSync({
-            label: "the per-flow retry budget step",
-            command: BASH,
-            args: [
-              "-eo",
-              "pipefail",
-              "-c",
-              iosStep("Enforce the per-flow retry budget"),
-            ],
-            cwd: dir,
-            env: {
-              ...process.env,
-              LEDGER: LEDGER_FILE,
-              GITHUB_OUTPUT: outputs,
-              GITHUB_STEP_SUMMARY: summary,
-            },
-          });
-        } catch (error) {
-          const failure = error as {
-            exitCode?: number | null;
-            stdout?: string;
-          };
-          status = failure.exitCode ?? -1;
-          output = failure.stdout ?? "";
-        }
-        return {
-          status,
-          output,
-          summary: await fs.readFile(summary, "utf-8"),
-          outputs: await fs.readFile(outputs, "utf-8"),
-        };
-      } finally {
-        await fs.remove(dir);
-      }
-    };
-
-    /**
-     * A ledger with the given readings over a healthy default.
-     * @param overrides - Readings to replace
-     * @param flowRows - Per-flow rows to append
-     * @returns Ledger contents
-     */
-    const ledgerOf = (
-      overrides: Record<string, string> = {},
-      flowRows: readonly string[] = []
-    ): string => {
-      const base: Record<string, string> = {
-        platform: "ios",
-        retry_enabled: "true",
-        retry_tag: "retryable",
-        retry_attempts_allowed: "1",
-        retry_rate_threshold_percent: "10",
-        executed: String(SUITE_SIZE),
-        failed_first_attempt: "1",
-        retried: "1",
-        recovered: "1",
-        unrecovered: "0",
-        not_eligible: "0",
-        retry_rate_percent: "2",
-        rate_breach: "false",
-        ...overrides,
-      };
-      return [
-        ...Object.entries(base).map(([key, value]) => `${key}=${value}`),
-        ...flowRows,
-      ].join("\n");
-    };
-
-    it("passes a within-budget ledger, loudly", async () => {
-      const result = await gate(ledgerOf({}, [FLOW_07_RECOVERED]));
-      expect(result.status).toBe(0);
-      expect(result.outputs).toContain("retried=1");
-      expect(result.output).toContain("iOS flows needed a retry");
-      expect(result.summary).toContain("per-flow retry ledger");
-      expect(result.summary).toContain("flow-07.yaml");
-      expect(result.summary).toContain("recovered");
-    });
-
-    it("fails a breached ledger", async () => {
-      const result = await gate(
-        ledgerOf({
-          failed_first_attempt: "5",
-          retried: "0",
-          recovered: "0",
-          retry_rate_percent: "12",
-          rate_breach: "true",
-          not_eligible: "5",
-        })
-      );
-      expect(result.status).toBe(1);
-      expect(result.output).toContain("retry budget exceeded");
-    });
-
-    it("fails when a flow failed again after its isolated re-run", async () => {
-      const result = await gate(ledgerOf({ recovered: "0", unrecovered: "1" }));
-      expect(result.status).toBe(1);
-      expect(result.output).toContain("failed after retry");
-    });
-
-    it("fails when a failed flow was never eligible to be re-run", async () => {
-      const result = await gate(
-        ledgerOf({ retried: "0", recovered: "0", not_eligible: "1" })
-      );
-      expect(result.status).toBe(1);
-      expect(result.output).toContain("were not retried");
-    });
-
-    it("stands down, reporting zero, when there is no ledger at all", async () => {
-      const result = await gate(null);
-      expect(result.status).toBe(0);
-      expect(result.outputs).toContain("retried=0");
-    });
-
-    it("renders the same table whatever ORDER the rows arrive in", async () => {
-      const flowRows = [
-        FLOW_01_RECOVERED,
-        "flow|.maestro/flows/flow-30.yaml|2|recovered",
-      ];
-      const forward = await gate(ledgerOf({ retried: "2" }, flowRows));
-      const reversed = await gate(
-        ledgerOf({ retried: "2" }, [...flowRows].reverse())
-      );
-      /**
-       * The table's data rows as a set.
-       * @param summary - Job-summary text
-       * @returns Sorted rows naming a flow
-       */
-      const tableRows = (summary: string): string[] =>
-        summary
-          .split("\n")
-          .filter(line => line.includes(".yaml"))
-          .sort(byCodePoint);
-      expect(tableRows(reversed.summary)).toEqual(tableRows(forward.summary));
-    });
-  });
-
-  describe("the policy inputs", () => {
-    it("ships inert, with conservative defaults", () => {
-      const inputs = workflow.on.workflow_call?.inputs ?? {};
-      // Empty tag = the feature is OFF. A reusable workflow is called by repos
-      // that never asked for this, and no repo's behaviour may change until it
-      // opts in — the same "default preserves prior behavior" rule the app-id
-      // lint and the prerequisites guard follow.
-      expect(inputs.ios_flow_retry_tag?.default).toBe("");
-      expect(inputs.ios_flow_retry_attempts?.default).toBe(1);
-      expect(inputs.ios_flow_retry_rate_percent?.default).toBe(10);
-    });
-  });
 });
-/* eslint-enable max-lines -- end of the paired-case suite */

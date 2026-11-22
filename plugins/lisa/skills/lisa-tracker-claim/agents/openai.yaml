@@ -1,4 +1,4 @@
 display_name: "Tracker Claim"
-short_description: "Vendor-neutral dispatcher for idempotently claiming one already live-validated leaf work item"
+short_description: "Claim one already-validated leaf ticket, safely and repeatably, in whichever tracker the project uses: move it from ready to claimed…"
 default_prompt:
-  - "Use $lisa-tracker-claim: Vendor-neutral dispatcher for idempotently claiming one already live-validated leaf work item."
+  - "Use $lisa-tracker-claim: Claim one already-validated leaf ticket, safely and repeatably, in whichever tracker the project uses: move it from ready to claimed…."

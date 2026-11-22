@@ -29,7 +29,6 @@ import {
   readdirSync,
   readlinkSync,
   realpathSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -51,6 +50,7 @@ import {
   scratchRoot,
 } from "../../helpers/enforcement-fallback-fixtures.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 afterEach(cleanupScratchRoots);
 
@@ -297,7 +297,7 @@ describe("the marker's ownership revalidation, under a squatted state dir", () =
       `lisa-enforcement-notice-${String(getuid?.() ?? 0)}`
     );
 
-    symlinkSync(target, link);
+    createSymlink(target, link);
     return { link, target };
   }
 

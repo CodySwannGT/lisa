@@ -5,11 +5,19 @@
  * must never hand-parse or hand-edit the file, and a command is the only way to
  * give an agent the contract's lock, safety, and atomic-write machinery.
  */
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runLearningsOverflow } from "../../../src/cli/learnings-overflow-cmd.js";
 import { LEARNINGS_CONTRACT } from "../../../src/core/learnings-contract.js";
-import { readLearningsOverflow } from "../../../src/core/learnings-overflow.js";
+import {
+  LearningsBudgetError,
+  renderLearningsFile,
+} from "../../../src/core/learnings-document.js";
+import {
+  preserveDroppedLearning,
+  readLearningsOverflow,
+} from "../../../src/core/learnings-overflow.js";
 import { persistLearningEntry } from "../../../src/core/learnings-writer.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
@@ -65,6 +73,98 @@ describe("lisa learnings-overflow", () => {
       await persistLearningEntry(tempDir, numberedEntry(index));
     }
   }
+
+  /**
+   * Seed three valid large entries so the first drain remains over budget.
+   * @returns The overflow path.
+   */
+  async function seedSaturatedOverflow(): Promise<string> {
+    const file = (await readLearningsOverflow(tempDir)).file;
+    await mkdir(path.dirname(file), { recursive: true });
+    const why = "x".repeat(Math.ceil(LEARNINGS_CONTRACT.maxTokens / 2));
+    await writeFile(
+      file,
+      renderLearningsFile(
+        [0, 1, 2].map(index => ({ ...numberedEntry(index), why }))
+      )
+    );
+    return file;
+  }
+
+  it("lists every validated entry and identifies an over-budget overflow", async () => {
+    await seedSaturatedOverflow();
+    const code = await runLearningsOverflow(
+      {},
+      { cwd: tempDir, log: message => out.push(message) }
+    );
+
+    expect(code).toBe(0);
+    expect(JSON.parse(out[0]!)).toMatchObject({ pending: 3, overBudget: true });
+    expect(JSON.parse(out[0]!).entries).toHaveLength(3);
+  });
+
+  it("publishes a smaller partial drain, then reports when the next drain is under budget", async () => {
+    const file = await seedSaturatedOverflow();
+    const original = await readFile(file, "utf8");
+    const dependencies = {
+      cwd: tempDir,
+      log: (message: string) => out.push(message),
+    };
+
+    expect(
+      await runLearningsOverflow({ drain: [numberedEntry(0).id] }, dependencies)
+    ).toBe(0);
+    const smaller = await readFile(file, "utf8");
+    expect(smaller.length).toBeLessThan(original.length);
+    expect(JSON.parse(out[0]!)).toMatchObject({
+      remaining: 2,
+      overBudget: true,
+    });
+
+    expect(
+      await runLearningsOverflow({ drain: [numberedEntry(1).id] }, dependencies)
+    ).toBe(0);
+    expect((await readFile(file, "utf8")).length).toBeLessThan(smaller.length);
+    expect(JSON.parse(out[1]!)).toMatchObject({
+      remaining: 1,
+      overBudget: false,
+    });
+    expect(
+      (await readLearningsOverflow(tempDir)).entries.map(entry => entry.id)
+    ).toEqual([numberedEntry(2).id]);
+  });
+
+  it("still refuses capture into an over-budget overflow without changing its bytes", async () => {
+    const file = await seedSaturatedOverflow();
+    const original = await readFile(file, "utf8");
+
+    await expect(
+      preserveDroppedLearning(
+        tempDir,
+        numberedEntry(3),
+        new LearningsBudgetError("ledger full")
+      )
+    ).rejects.toThrow("exceeds maxTokens");
+    expect(await readFile(file, "utf8")).toBe(original);
+  });
+
+  it("reports a conflict marker ahead of an over-budget diagnosis", async () => {
+    const file = await seedSaturatedOverflow();
+    const content = await readFile(file, "utf8");
+    await writeFile(
+      file,
+      content.replace("```jsonl\n", "```jsonl\n<<<<<<< HEAD\n")
+    );
+    const errors: string[] = [];
+    const code = await runLearningsOverflow(
+      {},
+      { cwd: tempDir, error: message => errors.push(message) }
+    );
+
+    expect(code).toBe(1);
+    expect(errors[0]).toMatch(/conflict marker/i);
+    expect(errors[0]).not.toContain("exceeds maxTokens");
+  });
 
   it("reports an empty overflow as a clean pass", async () => {
     const code = await runLearningsOverflow(

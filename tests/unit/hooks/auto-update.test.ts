@@ -4,8 +4,7 @@
  * `auto-update-session.test.ts`.
  * @module tests/unit/hooks/auto-update.test
  */
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -26,6 +25,10 @@ import {
   updateSubject,
 } from "../../../plugins/src/base/hooks/auto-update.mjs";
 import { FEATURE, LISA, NEW, OLD } from "../../helpers/auto-update-fixture.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** A bound work item. */
 const ITEM = "o/r#1";
@@ -39,7 +42,7 @@ const BUN_LOCK = "bun.lock";
  * @returns Absolute directory path
  */
 function lockDir(): string {
-  return mkdtempSync(path.join(tmpdir(), "lisa-auto-update-lock-"));
+  return ownedDir("lisa-auto-update-lock-");
 }
 
 describe("auto-update: decisions", () => {

@@ -1,4 +1,4 @@
 display_name: "SonarCloud Access"
-short_description: "Vendor-neutral access layer for SonarQube Cloud/Server"
+short_description: "The one way Lisa skills reach SonarQube Cloud or Server: the official SonarQube MCP authenticated from a token, falling back to the Sonar…"
 default_prompt:
-  - "Use $lisa-sonarcloud-access: Vendor-neutral access layer for SonarQube Cloud/Server."
+  - "Use $lisa-sonarcloud-access: The one way Lisa skills reach SonarQube Cloud or Server: the official SonarQube MCP authenticated from a token, falling back to the Sonar…."

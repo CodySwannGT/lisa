@@ -24,6 +24,11 @@ So the reproduction states, explicitly:
 - **Prerequisites**, listed as setup.
 - **Replacement scaffolding**, each item with the real behaviour it substitutes.
 - **Whether the failure survives with prerequisites in place and replacement scaffolding removed.** If it does not, this is a lead rather than a reproduction. Say so and keep going.
+- **That the entry point reaches the code the fix will change.** A reproduction
+  that mounts or calls the cited component or function directly, not through
+  the entry point, is replacement scaffolding. Show the path (importer trace, a
+  temporary `[DEBUG:<issue>]`-tagged `throw`, or route-scoped coverage) before treating the cited code
+  as the fix target.
 
 If the real path is unreachable — no credentials, no environment, no data — that is a blocked reproduction. Report the missing access instead of substituting scaffolding and calling the bug reproduced.
 

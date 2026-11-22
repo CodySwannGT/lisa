@@ -1,9 +1,9 @@
 /** Real shipped wrappers must consume local overrides while executing application tests. */
 import * as fs from "node:fs";
 import { createRequire } from "node:module";
+import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../src/configs/vitest/scratch-supervision.js";
 import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
 import { cleanupTempDir } from "../helpers/test-utils.js";
 import {
@@ -56,8 +56,8 @@ function prepareApplication(directory: string, stack: string) {
   const local = fs
     .readFileSync(path.join(ROOT, "typescript/create-only", LOCAL), "utf8")
     .replace(
-      "  test: {",
-      "  test: {\n    env: { LISA_FIXTURE_LOCAL_PROOF: 'local-config-loaded' },"
+      "const config: ViteUserConfig = {};",
+      "const config: ViteUserConfig = {\n  test: {\n    env: { LISA_FIXTURE_LOCAL_PROOF: 'local-config-loaded' },\n  },\n};"
     );
   const test =
     stack === "cdk"
@@ -146,15 +146,16 @@ describe.each([
         fixture.directory,
         stack
       );
-      // Keep the caller's supervisor lease and its owned temp root together.
-      // Each real Vitest worker validates that inherited scratch authority.
+      // Run the fixture under the caller's own temp root: os.tmpdir(), which
+      // is TMPDIR when set and the platform default (a Linux runner leaves it
+      // unset) otherwise. lisa-test-run no longer exports a private one
+      // (CodySwannGT/lisa#4603).
       const env: NodeJS.ProcessEnv = {
         ...fixture.env,
-        TMPDIR: process.env["TMPDIR"],
+        TMPDIR: os.tmpdir(),
         TMP: process.env["TMP"],
         TEMP: process.env["TEMP"],
       };
-      expect(Boolean(env[SCRATCH_SUPERVISION_LEASE_ENV])).toBe(true);
       expect(env.TMPDIR).toBeTruthy();
       delete env["LISA_FIXTURE_LOCAL_PROOF"];
       for (const negative of [false, true]) {

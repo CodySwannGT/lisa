@@ -33,16 +33,86 @@ const BOT_TOKEN_PROBLEM = "looks like a bot token";
 
 describe("Scenario: Malformed entries are refused", () => {
   it.each([
-    ["operatorIds", "user:583231", /unknown prefix "user:"/],
-    ["operatorIds", "login:", /empty value/],
-    ["trustedAuthorIds", "id:", /empty value/],
-    ["trustedAuthorIds", "gh:4242", /unknown prefix "gh:"/],
-  ])("refuses %s entry %j, naming it", (key, entry, why) => {
+    ["operatorIds", "user:583231", "user:", "583231"],
+    ["trustedAuthorIds", "gh:4242", "gh:", "4242"],
+  ])(
+    "refuses %s entry %j, naming its location and prefix only",
+    (key, entry, prefix, value) => {
+      const errors = validateSessionManager({ ...BLOCK, [key]: [entry] });
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toContain(`sessionManager.${key}[0]`);
+      expect(errors[0]).toContain(`unknown prefix ${JSON.stringify(prefix)}`);
+      // The refusal never repeats the value behind the prefix
+      // (CodySwannGT/lisa#4754).
+      expect(errors[0]).not.toContain(value);
+    }
+  );
+
+  it.each([
+    ["operatorIds", "login:"],
+    ["trustedAuthorIds", "id:"],
+  ])("refuses %s entry %j, naming its location", (key, entry) => {
     const errors = validateSessionManager({ ...BLOCK, [key]: [entry] });
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain(`sessionManager.${key}`);
-    expect(errors[0]).toContain(JSON.stringify(entry));
-    expect(errors[0]).toMatch(why);
+    expect(errors[0]).toContain(`sessionManager.${key}[0]`);
+    expect(errors[0]).toMatch(/empty value/);
+  });
+
+  it("names the index of the malformed entry, not the first", () => {
+    const errors = validateSessionManager({
+      ...BLOCK,
+      operatorIds: ["login:octocat", "user:583231"],
+    });
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("sessionManager.operatorIds[1]");
+    expect(errors[0]).not.toContain("583231");
+  });
+});
+
+describe("id-entry refusals never echo a credential (CodySwannGT/lisa#4754)", () => {
+  /** The token's secret half, which must appear in no problem. */
+  const TOKEN_TAIL = "A".repeat(35);
+
+  it.each([["ID:"], ["Login:"], ["foo:"]])(
+    "refuses an unknown-prefix %s token without echoing it",
+    prefix => {
+      const errors = validateSessionManager({
+        ...BLOCK,
+        operatorIds: [`${prefix}${BOT_TOKEN}`],
+      });
+      expect(errors.join("\n")).not.toContain(BOT_TOKEN);
+      expect(errors.join("\n")).not.toContain(TOKEN_TAIL);
+      expect(
+        errors.some(
+          e =>
+            e.includes("sessionManager.operatorIds[0]") &&
+            e.includes(JSON.stringify(prefix))
+        )
+      ).toBe(true);
+    }
+  );
+
+  it.each([["login:id:"], ["id:id:"], ["id:login:"]])(
+    "refuses a bot token behind the stacked prefixes %s",
+    prefixes => {
+      const errors = validateSessionManager({
+        ...BLOCK,
+        operatorIds: [`${prefixes}${BOT_TOKEN}`],
+      });
+      const tokenProblems = errors.filter(e => e.includes(BOT_TOKEN_PROBLEM));
+      expect(tokenProblems).toHaveLength(1);
+      expect(tokenProblems[0]).toContain("sessionManager.operatorIds[0]");
+      expect(errors.join("\n")).not.toContain(TOKEN_TAIL);
+    }
+  );
+
+  it("still accepts an id:-prefixed legacy Jira accountId", () => {
+    expect(
+      validateSessionManager({
+        ...BLOCK,
+        operatorIds: [`id:${LEGACY_ACCOUNT_ID}`],
+      })
+    ).toEqual([]);
   });
 });
 

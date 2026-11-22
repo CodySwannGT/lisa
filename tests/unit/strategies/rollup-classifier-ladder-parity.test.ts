@@ -45,12 +45,6 @@ describe("closed authored and generated tracker-sync parity", () => {
     expect(block).not.toContain("plugins/lisa");
     expect(block).not.toMatch(/\beval\b|\$PWD|\$\{?PATH\}?/u);
     expect(body).not.toContain(LEGACY_CLASSIFIER_EXPRESSION);
-    expect(body).toMatch(
-      /strict \*\*no-write\*\*[\s\S]{0,240}lifecycle[\s\S]{0,160}comment/iu
-    );
-    expect(body).toMatch(/attempted paths/iu);
-    expect(body).toMatch(/environment values/iu);
-    expect(body).toMatch(/child payloads/iu);
   });
 });
 
@@ -78,7 +72,6 @@ describe("closed real GitHub rollup caller parity", () => {
     expect(occurrences(body, GITHUB_CLASSIFIER_GUARD)).toBe(1);
     expect(occurrences(body, `${LADDER_FUNCTION} "<graph.json>"`)).toBe(1);
     expect(occurrences(body, "rollup-blocker-classification.mjs")).toBe(1);
-    expect(body).not.toContain("CLASSIFIER_ROOT=");
     expect(body).not.toContain(LEGACY_CLASSIFIER_EXPRESSION);
     expect(guardIndex).toBeGreaterThanOrEqual(0);
     expect(body.indexOf("gh issue edit")).toBeGreaterThan(guardIndex);

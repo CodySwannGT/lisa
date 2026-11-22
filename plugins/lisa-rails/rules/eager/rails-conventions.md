@@ -11,7 +11,8 @@ point live in the reference body.
 2. **Strong parameters always, `permit!` never.** Enumerate the permitted keys.
 3. **No N+1 queries.** Use `includes` / `preload` / `eager_load` on any
    association you iterate. Bullet is installed to catch the ones you miss.
-4. **Never edit `db/schema.rb` by hand.** Change it through a migration, honour
+4. **Never edit `db/schema.rb` by hand.** Change it through a migration (ordinary
+   code, not a compatibility shim), honour
    the `strong_migrations` constraints, and index every foreign key and
    commonly-queried column.
 5. **Scopes, not class methods,** for chainable queries. Prefer built-in

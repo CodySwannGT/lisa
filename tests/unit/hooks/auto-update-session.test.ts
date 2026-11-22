@@ -7,15 +7,7 @@
  * pending rather than mixed into the next feature commit.
  * @module tests/unit/hooks/auto-update-session.test
  */
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -39,6 +31,14 @@ import {
   seedPendingMarker,
   sessionStart,
 } from "../../helpers/auto-update-fixture.js";
+import {
+  createSymlink,
+  linkForeignNodeModules,
+} from "../../support/borrowed-node-modules.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * Whether any recorded command starts with a prefix.
@@ -141,7 +141,7 @@ describe("auto-update: a session start", () => {
 
   it("records a symlink by its target and an executable by its mode", async () => {
     const root = project({});
-    symlinkSync(MANIFEST_FILE, path.join(root, "link.json"));
+    createSymlink(MANIFEST_FILE, path.join(root, "link.json"));
     chmodSync(path.join(root, "bun.lock"), 0o755);
     const digests = await workingTreeDigests(async () => "b".repeat(40), root, [
       "link.json",
@@ -187,18 +187,25 @@ describe("auto-update: a session start", () => {
     expect(pendingMarker(root)).toBeNull();
   });
 
+  it("clears a committed pending marker even when unrelated files are dirty", async () => {
+    const root = project({ installed: NEW });
+    seedPendingMarker(root);
+    const { text } = await sessionStart(root, {
+      dirtyBefore: " M src/app.ts",
+    });
+    expect(text).not.toContain("still uncommitted");
+    expect(pendingMarker(root)).toBeNull();
+  });
+
   it("refuses to update through a node_modules link into another checkout", async () => {
     const other = project({});
-    const root = mkdtempSync(path.join(tmpdir(), "lisa-auto-update-linked-"));
+    const root = ownedDir("lisa-auto-update-linked-");
     mkdirSync(path.join(root, ".git"));
     writeFileSync(
       path.join(root, "package.json"),
       JSON.stringify({ name: "host", devDependencies: { [LISA]: OLD } })
     );
-    symlinkSync(
-      path.join(other, "node_modules"),
-      path.join(root, "node_modules")
-    );
+    linkForeignNodeModules(path.join(other, "node_modules"), root);
     const { text, seen } = await sessionStart(root);
     expect(ran(seen, BUMP)).toBe(false);
     expect(text).toContain("link to another checkout");

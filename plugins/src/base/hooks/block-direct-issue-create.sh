@@ -41,9 +41,9 @@
 # over stdin from the same pipeline), and the contents of any file the command
 # names. The last of those is what CodySwannGT/lisa#3484 was: the guard
 # inspected argv and nothing else, so `bash /path/create.sh` showed it two
-# tokens and the creation was one file away. Lisa's own `parity-safety-net.sh`
-# tells agents to write payloads to a file and execute the file, so complying
-# with Lisa's guidance produced the bypass.
+# tokens and the creation was one file away. Lisa's own guidance told agents to
+# write payloads to a file and execute the file, so complying with Lisa's
+# guidance produced the bypass.
 #
 # That is exactly the machine-checkable content of `ready-role-filing`, and it
 # lets `lisa-github-write-issue` / `lisa-jira-write-ticket` /
@@ -86,14 +86,13 @@
 # call, not only Bash. Measured on a developer machine at load ~8-26, 50
 # invocations per row:
 #
-#     16.7 ms   enforce-team-first.sh          already `matcher: ""` today
 #     17.5 ms   enforce-verification-gate.sh   already `matcher: ""` today
 #     11.5 ms   this guard, non-Bash payload   what the broad matcher adds
 #    112.3 ms   this guard, Bash payload       what Bash calls already paid
 #
-# So the broad registration was not novel — two hooks were already there, this
-# one is cheaper than either, and it raises an existing ~34 ms per-call baseline
-# by about a third.
+# So the broad registration was not novel — another hook was already there, this
+# one is cheaper than it, and it raises an existing ~17 ms per-call baseline
+# by about two thirds.
 #
 # THIS IS A THRESHOLD, NOT A PRECEDENT. The argument is about the TOTAL cost of
 # the broad set, so it does not transfer to the next guard: four more hooks
@@ -461,11 +460,17 @@ FILE IT THE SANCTIONED WAY — one of these three, always explicit:
    write, and claims it. Complete means the \`work-item-definition-of-ready\`
    bar — reproduction, observed-versus-expected, Gherkin acceptance criteria.
 
-2. A person must perform an act an agent cannot: supply a credential only
-   they hold, approve spend, open an external account, give a legal or
-   compliance sign-off, or act in a system the agent cannot reach. A choice
-   with a reasonable default is NOT that: decide it, record the decision on
-   the item, and use 1. Otherwise route the same way but pass
+2. A person must perform an act the agent lacks access to: complete an
+   interactive login or supply a credential only they hold, approve spend,
+   open an external account, sign a legal agreement (contract, BAA, DPA,
+   license), act from an account only a person holds (such as a protected
+   deployment approval), act in a system the agent cannot reach, release a
+   hold the operator explicitly asked for, edit a file the project says
+   only people write, or approve maintaining our own copy of an open-source
+   library (a fork, patch or vendored copy). A choice with a reasonable default is NOT that, and
+   neither is a compliance judgement or naming an owner (unless
+   humanGate.mode is "strict"): decide it, record the decision on the item,
+   and use 1. Otherwise route the same way but pass
    \`human_gate: "<the act a person must perform>"\` in place of
    \`build_ready: true\` — the two are mutually exclusive. The leaf is filed
    into the default backlog role, outside the lane build-intake claims from,
@@ -721,11 +726,14 @@ HTTP_CLIS = {"curl", "http", "httpie", "wget"}
 # and permitting something we demonstrably cannot read. Deliberately narrower
 # than "mentions a tracker CLI" so an ordinary unparseable command
 # (`echo 'it's fine`) still passes.
+# The GitHub collection can create an issue. A complete numeric member path
+# identifies an existing issue. Keep the fallback for other route forms and
+# for independent creation signatures appearing alongside a member path.
 UNPARSEABLE_CREATION = re.compile(
     r"\b(?:gh|jira|linear)\b[^\n]*?\bissue\b[^\n]*?\bcreate\b"
     r"|\bacli\b[^\n]*?\b(?:workitem|issue)s?\b[^\n]*?\bcreate\b"
     r"|\bcreateIssue\b|\bissueCreate\b"
-    r"|repos/[^/\s]+/[^/\s]+/issues"
+    r"|repos/[^/\s]+/[^/\s]+/issues\b(?!/[0-9]+(?:$|[\s'\"`.,);?#]))"
     r"|atlassian\.net/rest/api/[^/\s]+/issue",
     re.IGNORECASE,
 )
@@ -851,10 +859,10 @@ GRAPHQL_CREATE = re.compile(r"createIssue|issueCreate")
 # classifier two tokens, neither of which is a tracker CLI.
 #
 # It is not an oversight that an operator had to be clever to find. Lisa's OWN
-# guards instruct agents into this shape: `parity-safety-net.sh` refuses
-# heredocs and says "write the payload to a file with the Write tool, then
-# execute that file directly", and `block-shell-json-parsing.sh` pushes JSON
-# construction into `jq` scripts. An agent complying perfectly with Lisa's
+# guards instruct agents into this shape: a guard that refuses heredocs says
+# "write the payload to a file with the Write tool, then execute that file
+# directly", and `block-shell-json-parsing.sh` pushes JSON construction into
+# `jq` scripts. An agent complying perfectly with Lisa's
 # guidance lands in the uninspected path BY DEFAULT. The guards were
 # individually reasonable and jointly self-defeating.
 #
@@ -2135,12 +2143,11 @@ def executed_operand(argv):
     `wc -l`, a `git grep` PATHSPEC and a test run — every one of them read-only,
     and one of them blocked running the tests that would have proved a fix.
 
-    `parity-safety-net.sh` already states the rule this restores, and names the
-    opposite as the known-wrong fix (`origin/main`, lines 337-346 and 704-705):
-    "Only a COMMAND POSITION can execute something. A path anywhere else is an
-    argument, and an argument is data." `block-no-verify.sh:495-513`
-    (`strip_command_prefix`) implements the same split with a fail-closed third
-    state. Both live in this directory; this guard was the one that declined.
+    The rule this restores: "Only a COMMAND POSITION can execute something. A
+    path anywhere else is an argument, and an argument is data." Following
+    data is the known-wrong fix. `block-no-verify.sh` (`strip_command_prefix`)
+    implements the same split with a fail-closed third state, in this same
+    directory; this guard was the one that declined.
 
     NOT narrowed to shells, and NOT narrowed to an enumerated interpreter list.
     `file_creation` recognises a creation in any language, so `node wrapper.mjs`

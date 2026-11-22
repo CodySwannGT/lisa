@@ -270,6 +270,11 @@ fi
       "p95LatencyMs": 1000,
       "faultRatePct": 5
     }
+  },
+
+  "observability": {
+    "errorTracking": { "provider": "sentry" },
+    "analytics": { "provider": "posthog" }
   }
 }
 ```
@@ -282,12 +287,15 @@ fi
 | `source` | no | — | Default PRD source for batch skills (`/lisa:intake`) and arg-less single-PRD skills. One of `"notion"`, `"confluence"`, `"linear"`, `"github"`, `"jira"`. Explicit URLs/keys passed to a skill always win over `source`; this is a default, not a lock. |
 | ~~`projectRulesFile`~~ | — | — | **Retired.** Host-authored rules now live in the fixed, agent-neutral directory `.agents/rules/` — not a configurable file. An existing key is still parsed and preserved so installed projects keep applying, but nothing serves rules from it. See **Host rules** below. |
 | `learnings.file` | no | `.lisa/PROJECT_LEARNINGS.md` | Safe repo-relative Markdown path for the machine-managed learnings ledger, overriding the `.lisa/` default. Rejected if it resolves inside any auto-loaded rules tree (`.claude/rules`, `.cursor/rules`, `.github/instructions`, `.agents/rules`) — the ledger must stay out of eager context. |
-| `learnings.lowConfidence` | no | `human-triage` | How `lisa-persist-learning` submits a low-confidence learning PR. `human-triage` keeps auto-merge off and labels it `learning:needs-triage` for a human to merge or close. `auto-merge` submits it like a high-confidence PR, merging through the project's normal gates, labeled `learning:low-confidence`; `lisa-learnings-audit` then re-reviews those entries first. Any other value is rejected. |
+| `learnings.lowConfidence` | no | `auto-merge` (`human-triage` when `humanGate.mode` is `"strict"`) | How `lisa-persist-learning` submits a low-confidence learning PR. `human-triage` keeps auto-merge off and labels it `learning:needs-triage` for a human to merge or close. `auto-merge` submits it like a high-confidence PR, merging through the project's normal gates, labeled `learning:low-confidence`; `lisa-learnings-audit` then re-reviews those entries first. Any other value is rejected by `lisa apply`; the session's `lisa-resolved-config` block reports it as invalid and treats it as `human-triage`, the stricter option. |
 | `health.schedule` | no | `off` | Health cadence contract: `off`, `daily`, or `weekly`. `lisa sync` populates the default with `_lisaSync.populated` provenance and rejects values outside this closed vocabulary. Runtime results live only at the gitignored `.lisa/health/latest.json`, never in either config file. |
+| `workItem.estimate` | no | `{ "required": true, "models": [...] }` | Work-item token estimates. `required` (default `true`; a non-boolean value fails safe to `true`) makes every leaf carry a `## Lisa Estimate` section — token range, dollar range, recommended model — before work begins; `false` turns every estimate gate off. `models` lists the allowed recommended-model values, exact ids or families from any vendor (default: `claude-fable-5-2`, `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`, `fable`, `opus`, `sonnet`, `haiku`). Optional `tokenMix` (`input`, `cachedInput`, `output` shares adding up to 1; default `0.1` / `0.85` / `0.05`) converts a token range to dollars. `lisa sync` writes the default and rejects invalid values. Dollar ranges use `usage.pricing` when it prices the model, else the shipped Anthropic list-price table in `scripts/lib/work-item-estimate-config.mjs`. See the `lisa-usage-accounting` skill's `references/estimate.md`. |
 | `usage` | no | — | Optional token/cost pricing metadata consumed by the `usage-accounting` rule. Missing pricing never blocks a lifecycle flow; Lisa records token counts with `estimated_cost: null` when no trustworthy price source is configured. |
-| `dependencies.humanSignOff` | no | `"default"` | Whether dependency decisions wait on a person. `"default"` keeps every ratification requirement in `dependency-trust-classes`; `"none"` drops all of them — the trust class and its per-class evidence are still required, and credential, paid-account, and license approvals are unaffected. Any other value is reported as invalid (in `lisa apply` output and the session's `lisa-resolved-config` block) and treated as `"default"`. |
-| `humanGate.humanOnly` | no | `[]` | Decision classes this project reserves for a person, such as `["pricing"]`. A `human_gate` reason naming one (as a whole word) is accepted by the writers and never lifted by the sweeps. Absent, only acts an agent cannot perform qualify as a human gate. `.lisa.config.local.json` replaces the list when it sets one. Read by `scripts/human-gate-act.mjs`; see `ready-role-filing`, "What a human gate is". |
-| `wiki` | no | — | Wiki location for the `wiki-knowledge-source` rule. Omit for a local in-repo wiki (`wiki/`). See **Wiki source** below. |
+| `dependencies.humanSignOff` | no | `"none"` (`"default"` when `humanGate.mode` is `"strict"`) | Whether dependency decisions wait on a person. `"default"` keeps every ratification requirement in `dependency-trust-classes`; `"none"` has the agent ratify instead and record its reasoning in the dependency's entry — the trust class and its per-class evidence are still required, and credential, paid-account, and license approvals are unaffected. Any other value is reported as invalid (in `lisa apply` output and the session's `lisa-resolved-config` block) and treated as `"default"`, the stricter option. |
+| `humanGate.mode` | no | `"access-only"` | How wide the human gate is. `"access-only"`: an agent performs every act it has access to perform, and only an act it lacks access to (an interactive login, a credential it cannot create or reach, spending money, a legal signature, an action only a person's account can take, or a hold the operator asked for) is a human gate. `"strict"` restores the older, wider gate: a compliance sign-off, naming an accountable person, and the calls Lisa's policy used to reserve for a person (learnings promotion, harness interventions, automation retirement, exploratory-QA findings) count as human gates again, and the defaults of `dependencies.humanSignOff` and `learnings.lowConfidence` become `"default"` and `"human-triage"`. A value either key sets explicitly always wins over the mode. A value that is present but invalid fails safe: it is reported and treated as the stricter option (an invalid local value first falls back to a valid value in `.lisa.config.json`); an absent value gets the mode's default. An invalid `humanGate.mode` is therefore treated as `"strict"`. Read by `scripts/human-gate-act.mjs`; see `ready-role-filing`, "What a human gate is". |
+| `humanGate.humanOnly` | no | `[]` | Decision classes this project reserves for a person, such as `["pricing"]`, in either mode. A `human_gate` reason naming one (as a whole word) is accepted by the writers and never lifted by the sweeps. Absent, only the acts `humanGate.mode` names qualify as a human gate. `.lisa.config.local.json` replaces the list when it sets one. Read by `scripts/human-gate-act.mjs`; see `ready-role-filing`, "What a human gate is". |
+| `knowledge` | **yes** | `llm-wiki` | Knowledge backend. Closed vocabulary; `llm-wiki` (the git-native wiki each repo owns at `wiki/`) is the only value today. `lisa sync` writes the default with `_lisaSync.populated` provenance and rejects any other value. Selects the plugin that provides the backend (`llm-wiki` → `lisa-wiki`). See **Knowledge role** below. |
+| ~~`wiki`~~ | — | — | **Retired.** Pointed at a local path or a remote wiki repo to mirror. Every repo now owns its own wiki at `wiki/`, so the key has nothing left to say; the `ensure-knowledge-role` migration removes it and nothing reads it. |
 | `sessionManager` | no | — (opt-in) | Local session manager: polls the Ready queue, runs each item in a fresh background Claude Code session, and relays questions over a per-project Telegram bot when one is configured (optional). Absent means the manager is not used; `lisa sync` never populates it. Written by `/lisa:setup:session-manager`. See **Session manager (`sessionManager`)** below. |
 
 ### Host rules (`.agents/rules/`)
@@ -299,36 +307,13 @@ Host-authored operating rules live in `.agents/rules/` — **fixed, not configur
 - **Not the learnings ledger.** `.agents/rules` is reserved in the auto-loaded-tree blocklist, so a `learnings.file` override can never resolve inside it.
 - **Transition.** A project that still has the retired `.claude/rules/PROJECT_RULES.md` keeps it, untouched and authoritative. The pointer block names it so agents whose runtime does not auto-load `.claude/rules/` still find it. Moving that content is a human-gated decision, never an automated rewrite.
 
-### Wiki source (`wiki`)
+### Knowledge role (`knowledge`)
 
-Declares **where this repo's LLM Wiki lives** so the query/ingest skills can resolve and (for a remote wiki) mirror it. `wiki.source` has two shapes — **local** (`path`) and **remote** (`url`) — and the block belongs in the **consumer** repo's `.lisa.config.json`, not in `wiki/lisa-wiki.config.json` (which describes a wiki from the inside and is unavailable until a remote wiki is mirrored — chicken-and-egg). The whole `wiki` block is optional; omit it and the resolver falls back to the in-repo `wiki/` convention.
+**Required**, like `tracker`, but with a default: `lisa sync` writes `"knowledge": "llm-wiki"` when it is missing, so every project has a knowledge base and the `wiki-knowledge-source` rule always has a query skill to point at.
 
-```json
-// local: an explicit path (optional — equivalent to the default convention)
-"wiki": { "source": { "path": "wiki" } }
+Flows use the backend for exactly two things — **ask** (a question in, an answer with sources out) and **record** (something learned goes in). Everything else is the backend's own configuration: for `llm-wiki` that is `wiki/lisa-wiki.config.json` (categories, connectors, sensitivity, PR policy). A future backend, such as a context graph, is a new value that provides those two operations; no flow changes.
 
-// remote: mirror a separate wiki repo
-"wiki": {
-  "source": {
-    "url": "git@github.com:org/wiki.git",
-    "ref": "main",
-    "mirrorPath": ".lisa/wiki",
-    "subdir": "wiki"
-  },
-  "ttlSeconds": 300
-}
-```
-
-| Field | Required | Default | Notes |
-|-------|----------|---------|-------|
-| `wiki.source.path` | no | `wiki` (via convention) | **Local** wiki root, relative to the repo. The explicit form of the in-repo default. Mutually exclusive with `url`. |
-| `wiki.source.url` | no | — | Clone URL of a separate wiki repo. **Its presence selects REMOTE mode.** Mutually exclusive with `path`. |
-| `wiki.source.ref` | no | remote HEAD | Branch/ref to mirror (remote only). |
-| `wiki.source.mirrorPath` | no | `.lisa/wiki` | Where the gitignored mirror is materialized (remote only). `ensure-wiki` keeps this path gitignored automatically. |
-| `wiki.source.subdir` | no | auto | Wiki root within the cloned repo (remote only). Auto-detected as `wiki/` if present, else the repo root. |
-| `wiki.ttlSeconds` | no | `300` | Skip the refresh fetch if the mirror was synced more recently than this (remote only). |
-
-`scripts/ensure-wiki.mjs` is the single resolver (`node scripts/ensure-wiki.mjs --json` → `{mode, wikiRoot, …}`). **LOCAL** mode (no `url`) is a no-op that resolves the wiki root in precedence order `wiki.source.path` → `wikiRoot` in `wiki/lisa-wiki.config.json` → `wiki`; **REMOTE** mode (`url` set) clones-if-missing, fast-forwards when stale, and is offline-tolerant (proceeds with the existing mirror and warns rather than blocking). Callers (`lisa-wiki-query`, `lisa-wiki-ingest`) invoke it as step 0 and never hardcode `wiki/`; the freshness guarantee is the tool's, not the caller's.
+`llm-wiki` has one shape: `wiki/` at the root of the repository that owns it. There is no remote or mirrored wiki and no root override. A repo that is one of several lists the others as plain pointers under **Related repositories** on `wiki/start-here.md`; agents follow them with the access they already have. See `wiki-knowledge-source`.
 
 ### Env → base branch
 
@@ -599,7 +584,7 @@ A **marker** is an additive label applied *alongside* a lifecycle role, not a st
 
 | Marker | What it means | JIRA default | GitHub/Linear default |
 |---|---|---|---|
-| `human_needed` | Applied with `blocked` when — **after the agent has drafted every authorable missing section via the `pre-flight-autofill` procedure** — the block still requires a human to confirm the drafted assumptions or supply something no agent can invent: real missing credentials, access/permissions, or an irreducible product/scoping decision. | `Human Needed` (label) | `human-needed` (label) |
+| `human_needed` | Applied with `blocked` when — **after the agent has drafted every authorable missing section via the `pre-flight-autofill` procedure** — the block still needs an act the agent lacks access to (a credential it cannot reach, an interactive login, an access grant, spending money, a legal signature, an action only a person's account can take) or a hold the operator explicitly asked for. A product or scoping choice is not one: the agent decides it and records the decision. Under `humanGate.mode: "strict"` an irreducible product/scoping decision also qualifies. | `Human Needed` (label) | `human-needed` (label) |
 | `spec_defect` | Applied with `blocked` when the thing holding the item is the item's **own specification** — an acceptance criterion that cannot be satisfied as written, a field naming an environment or surface the project does not have, a validation journey demanding something the project cannot produce. **Human-applied only.** No agent sets it, because judging a criterion unbuildable is a product call, and the agent that wrote a bad criterion is the least likely to know it did. | `Spec Defect` (label) | `blocked:spec-defect` (label) |
 | `wrongly_escalated` | A **ruling** that an earlier escalation to a human was wrong: the hold asked a person for a decision an agent could have made. Applied by a human, or by an agent at an operator's direction — who applied it does not matter. It is a classification, not a release: it moves no lane and needs no release authorization. The session manager's overruled-escalation sweep captures each labeled item once as a `wrongly-escalated` learning candidate (CodySwannGT/lisa#4657). Resolved from `jira.labels.wrongly_escalated`, `github.labels.build.wrongly_escalated` or `linear.labels.build.wrongly_escalated`. | `wrongly-escalated-to-human` (label) | `wrongly-escalated-to-human` (label) |
 
@@ -612,9 +597,9 @@ Resolution keys:
 - Linear: `linear.labels.build.human_needed` (default `human-needed`). Applied as a Linear **label**, for the same reason as JIRA — an Issue holds exactly one workflow state but any number of labels, so an additive marker cannot be a state. The `blocked` **state** still drives the lifecycle; `human_needed` is the marker on top of it. This is the only build-lane key left in `linear.labels`.
 - `spec_defect` resolves the same way on each vendor — `jira.labels.spec_defect` (default `Spec Defect`), `github.labels.build.spec_defect` and `linear.labels.build.spec_defect` (default `blocked:spec-defect`).
 
-**When to apply it.** There are two application sites. The first is **at filing**: a leaf filed with a `human_gate` reason under `ready-role-filing` carries the `[lisa-human-gate]` body marker *and* this label, so the hold is legible to a path that reads bodies and to a path that reads labels alike. Such an item sits in no lifecycle role at all rather than in `blocked`, which is the one case where this marker stands beside no role — and it is deliberate: a hold recorded on only one surface is a half-armed gate, and the label-keyed sweeps promoted exactly that population into the build queue (#3805). The second site is a **block a human must clear**: apply `human_needed` only when a human must act before the item can move — the pre-flight gate failures that bounce a ticket back to its reporter are exactly this case, but **only after** the agent has run the `pre-flight-autofill` draft-then-block procedure (drafting the authorable gaps — acceptance criteria, validation journey, repository, relationship search, etc. — into the ticket as labeled assumptions). What then remains for the human is to **confirm those assumptions** or supply a genuinely human-only input (real missing credentials, an irreducible product/scoping decision). The marker means "a human must confirm or decide," not "a human must author from scratch."
+**When to apply it.** There are two application sites. The first is **at filing**: a leaf filed with a `human_gate` reason under `ready-role-filing` carries the `[lisa-human-gate]` body marker *and* this label, so the hold is legible to a path that reads bodies and to a path that reads labels alike. Such an item sits in no lifecycle role at all rather than in `blocked`, which is the one case where this marker stands beside no role — and it is deliberate: a hold recorded on only one surface is a half-armed gate, and the label-keyed sweeps promoted exactly that population into the build queue (#3805). The second site is a **block a human must clear**: apply `human_needed` only when a human must act before the item can move — the pre-flight gate failures that bounce a ticket back to its reporter are exactly this case, but **only after** the agent has run the `pre-flight-autofill` draft-then-block procedure (drafting the authorable gaps — acceptance criteria, validation journey, repository, relationship search, etc. — into the ticket as labeled assumptions). The agent adopts those drafted assumptions as its decisions and records them; what remains for a human is only an act the agent lacks access to (a real missing credential, a login, an access grant) or an operator's explicit hold. The marker means "a person must perform a named act," not "a human must author from scratch" — and not "a human must confirm the agent's choices".
 
-**Why `spec_defect` is separate from `human_needed`.** Both name a hold a person must clear, but they are different asks and the rollup must not merge them. `human_needed` waits on an input from *outside* the item — a credential, an access grant, a product decision — and the item's own text is fine. `spec_defect` waits on the item's text being *rewritten*, and no external event will ever supply that. An item carrying `spec_defect` will sit forever until somebody edits it; that is exactly the class that accumulated silently when the rollup rendered both as plain `blocked` (issue #3045: 32 identical hold comments over six weeks on one Epic). Where both markers are present, `spec_defect` wins — it is the more specific record, and the only one carrying a judgment nothing else can supply.
+**Why `spec_defect` is separate from `human_needed`.** Both name a hold a person must clear, but they are different asks and the rollup must not merge them. `human_needed` waits on an act from *outside* the item — a credential, an access grant, an operator's hold — and the item's own text is fine. `spec_defect` waits on the item's text being *rewritten*, and no external event will ever supply that. An item carrying `spec_defect` will sit forever until somebody edits it; that is exactly the class that accumulated silently when the rollup rendered both as plain `blocked` (issue #3045: 32 identical hold comments over six weeks on one Epic). Where both markers are present, `spec_defect` wins — it is the more specific record, and the only one carrying a judgment nothing else can supply.
 
 **Nothing infers `spec_defect`.** It is never derived from prose, a title, or a failed gate. A `blocked` item carrying neither marker and no open `is blocked by` link classifies as **`unknown`**, and the rollup says so and asks a person to decide — an honest `unknown` beats a confident wrong answer, and auto-reclassifying would turn a human product call into a guess.
 
@@ -673,6 +658,29 @@ Resolution order matches every other key: `$ARGUMENTS` override → `.lisa.confi
 rubric + `repo:<name>` single-repo leaves); it never fixes — the `intake` cron implements what it
 files.
 
+### Observability providers (`observability`)
+
+Names the project's error tracker and product-analytics provider, so stack guidance follows the
+project instead of assuming one. Both keys are **optional** and default to what Lisa assumed
+before they existed, so existing projects need no config change. `lisa-secrets-access`'s
+`validate-config.mjs` rejects any other value (local file merged over committed, as at runtime).
+
+| Key | Required | Default | Notes |
+|-----|----------|---------|-------|
+| `observability.errorTracking.provider` | no | `sentry` | `sentry` \| `none` \| `other`. `sentry`: the Sentry path (`lisa-sentry-access`, the Expo `ops-monitor-errors` Sentry commands). `none`: no error tracker — error-monitoring steps report "no error tracker configured" and skip; nothing calls Sentry. `other`: a tracker Lisa has no dedicated path for — guidance discovers what the project wires and queries that, never Sentry. |
+| `observability.analytics.provider` | no | `posthog` | `posthog` \| `none` \| `other`. `posthog`: product-analytics work goes through `lisa-posthog-access`. `none` / `other`: do not reach for PostHog; `other` discovers what the project wires. |
+
+**Known gap — tool enablement is not conditional.** These keys steer guidance, not installation.
+The base plugin still declares the Sentry MCP server (`plugins/src/base/.mcp.json`), and the Expo
+settings template still enables the `posthog@claude-plugins-official` plugin. Plugin MCP servers
+are static per plugin and the settings template is a static merge, and Lisa has no per-project
+conditional for either; building one would be new apply machinery for little gain. Both are inert
+when the configured provider is not theirs: guidance never calls them. To turn the Claude plugin
+off, set `sentry@claude-plugins-official` or `posthog@claude-plugins-official` to `false` under
+`enabledPlugins` in the project's `.claude/settings.json`; the merge keeps an explicit boolean
+for these two plugins instead of re-applying the template default.
+Tracked by CodySwannGT/lisa#4912.
+
 ### Intake assignee filter (`intake.assignee`)
 
 The optional intake assignee filter narrows **ready-item selection only**. It never assigns or
@@ -720,7 +728,7 @@ have a `.lisa.config.json` and their own `.git` (written as `"root": "."`).
     }
   },
   "capacity": { "maxWorkers": 6, "gbPerWorker": 3, "reserveGb": 8, "cpuFraction": 0.75, "maxLoadPerCore": 1.5 },
-  "stall": { "noOutputMinutes": 60, "maxAttempts": 3, "requestionHours": 4 },
+  "stall": { "noOutputMinutes": 60, "maxAttempts": 3, "requestionHours": 4, "orphanHours": 2 },
   "notify": { "provider": "telegram", "stateDir": "~/.claude/channels/telegram-<project>" }
 }
 ```
@@ -745,11 +753,14 @@ operator chooses Telegram (`init-config --notify telegram`).
 | `sessionManager.stall.noOutputMinutes` | no | `60` | A live worker with no new output for this long counts as stalled (zero or positive). |
 | `sessionManager.stall.maxAttempts` | no | `3` | Fresh sessions per item before it moves to the configured `blocked` role (a positive integer). |
 | `sessionManager.stall.requestionHours` | no | `4` | How long an unanswered worker question waits before the manager asks again (zero or positive). |
+| `sessionManager.stall.orphanHours` | no | `2` | An item in the `claimed` (or `review`) role with no live worker and no tracker update for this long is presumed abandoned, and the orphan sweep finishes, returns or re-dispatches it. Anything updated more recently is left alone, which protects someone running `/lisa:implement` by hand (zero or positive). |
 | `sessionManager.notify.provider` | no | `none` | `none` (no notification channel) or `telegram`. Absent, like an absent `notify` block, means `none`. Any other value fails validation. |
+| `sessionManager.notify.level` | no | `all` | `all` sends both action requests and routine notices with Telegram. `asks-only` sends human-needed questions, requests for operator action, duplicate-manager warnings and the hold digest. Routine notices go to the transcript. `status` reports `notifyLevel`, and the session-start config shows the resolved level. |
 | `sessionManager.notify.stateDir` | **yes** with `telegram`; must be absent otherwise | — | This project's own Telegram state dir. A `stateDir` without the `telegram` provider fails validation, because no bot would use it. Never the shared default `~/.claude/channels/telegram`, because one bot per state dir is how projects stay isolated. Setup writes `~/.claude/channels/telegram-<project>`. |
-| `sessionManager.trustedAuthorIds` | no | — | Optional list of **stable tracker user ids**, as strings: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira `accountId`, or the Linear user id. Not logins or display names: matching compares ids, so a plain login silently matches no one and excludes every item. An entry may name its kind: `id:<v>` is an id, `login:<v>` a GitHub login (matched by the queue and on-item answers; the hold-release check compares ids only and ignores it). A login GitHub frees (after a rename or a deleted account) can be re-registered by someone else, so prefer `id:` for trust. An unknown prefix or an empty value fails validation. When set, the manager takes only items authored by these people. |
+| `sessionManager.trustedAuthorIds` | no | — | Optional list of **stable tracker user ids**, as strings: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira `accountId`, or the Linear user id. Not logins or display names: matching compares ids, so a plain login silently matches no one and excludes every item. An entry may name its kind: `id:<v>` is an id, `login:<v>` a GitHub login (matched by the queue and on-item answers; the hold-release check compares ids only and ignores it). A login GitHub frees (after a rename or a deleted account) can be re-registered by someone else, so prefer `id:` for trust. `integration:<service>` trusts items an integration files with no person behind them (Linear's `botActor`, by `subType` such as `sentry`, else its bot `id`, never its self-chosen display name; never an item a person or an outside user filed; it trusts who filed the item, not text an outsider can get into it, such as a quoted error message); GitHub Apps and Jira automation file as an account, so trust them by `id:`. An unknown prefix or an empty value fails validation. When set, the manager takes only items authored by these people or integrations. It is also who may release a human hold, unless `trustedReleaseIds` is set — so removing it removes every hold releaser too. |
+| `sessionManager.trustedReleaseIds` | no | `trustedAuthorIds` | Optional, non-empty list of the **people** who may release a human hold (`blocked-plan`, the orphan sweep) and answer a question on the item. Same entry grammar as `trustedAuthorIds` minus `integration:`, which is refused: an integration is not a person. Unset, it falls back to `trustedAuthorIds`, so existing projects are unaffected; with neither set, no hold is released. |
 | `sessionManager.operatorIds` | no | — | Optional, non-empty list of the people the manager works for, as tracker user ids matched against the **assignee** the same way "me" is: the GitHub **login**, the Jira `accountId`, or the Linear user id, spelled exactly as the tracker API returns it (matching is case-sensitive, so look the OPERATOR up rather than typing from memory: `gh api users/<operator-login> --jq .login` returns the canonical GitHub spelling. Do not use `gh api user`, which returns whoever the credential belongs to — the agent account, when that is the case this key exists for). Dispatch order is assigned to an operator, then to "me" (the tracker credential's identity), then unassigned; items assigned to anyone else are skipped. Set it whenever the tracker credential is not the operator's own (an agent account), or the operator's Ready items are never dispatched. Prefer the kind-keyed form, which the queue, the claim and on-item answers all match the same way: `login:<GitHub login>` matches only a GitHub login, `id:<v>` only an account id (GitHub numeric id, Jira `accountId`, Linear user id). A plain entry keeps its meaning, but a plain all-digit entry is a login to the queue and the claim and a numeric id to on-item answers, so validation warns about it (without failing) and names both forms. An unknown prefix or an empty value fails validation. A Jira accountId holding a colon (`557058:…`, `qm:…`) is still plain. |
-| `sessionManager.backlogPickup` | no | `false` | Opt-in lowest dispatch tier. When the Ready queue is exhausted and capacity remains, the manager considers backlog items (open leaves in no lifecycle role) with the Ready exclusions plus any unfinished blocker; each one that passes the tracker validator (all gates, including the stateless-pickup dry-run) is assigned to the first `operatorIds` entry (without its `login:` / `id:` prefix), moved to Ready in one write, read back and dispatched. A failed validation is cached against the item's `updatedAt`, so it is re-judged only after the item changes. Requires `operatorIds`. |
+| `sessionManager.backlogPickup` | no | `false` | Opt-in lowest dispatch tier. When the Ready queue is exhausted and capacity remains, the manager considers backlog items (open leaves in no lifecycle role) with the Ready exclusions plus any unfinished blocker; each one that passes the tracker validator (all gates, including the stateless-pickup dry-run) is moved to Ready in one write that keeps any assignee it already has and assigns an unassigned one to the manager ("me"), then read back and dispatched. A failed validation is cached against the item's `updatedAt`, so it is re-judged only after the item changes. Requires `operatorIds`. |
 
 - **Non-secret only.** A credential-named field or a token-shaped value anywhere in this block is a
   validation error. With Telegram, where the bot token lives follows the project's `secrets` block
@@ -774,7 +785,7 @@ operator chooses Telegram (`init-config --notify telegram`).
   no label resolves, and moves an `exhausted` item to the `blocked` role; `mark-plan` resolves
   both, so neither name is ever hard-coded.
 - **Who may answer on the item.** A reply on a human-needed item is taken as the answer only from
-  `sessionManager.operatorIds` or `trustedAuthorIds`, matched on stable ids (GitHub login or
+  `sessionManager.operatorIds` or `trustedReleaseIds` (else `trustedAuthorIds`), matched on stable ids (GitHub login or
   numeric id, Jira `accountId`, Linear user id; never a display name or email; a plain all-digit
   entry is a numeric id only, `login:<v>` only a login, `id:<v>` only an id), and never from a
   machine comment, which is excluded first, whoever wrote it: one starting with a Lisa or Claude
@@ -952,8 +963,8 @@ env from PR base branch) and the build flow (forward: base branch from env);
 Vocabulary maps are **optional** in `.lisa.config.json`. Missing keys inherit the defaults shown in the schema above. The setup skills probe the project's actual workflow / labels at setup time and either:
 
 - Confirm the default name exists → proceed silently.
-- Confirm a different name exists (e.g., `Resolved` instead of `Done`) → prompt the user to either rename in the tracker or override the key in config.
-- Find nothing matching → stop and ask the user to (a) create the missing status/label in the tracker, or (b) provide the actual name to write into config.
+- Confirm a different name exists (e.g., `Resolved` instead of `Done`) → map the role to that name in config. When several candidates fit, the interactive `/lisa:setup:*` run lets the operator pick.
+- Find nothing matching → create the missing label under the default name. A missing Linear workflow state is created only by `/lisa:setup:linear`, with an explicit name and type, because a state's type and board position are team configuration; unattended repair reports it instead. Stop only for missing access: a Jira workflow status needs a workflow edit that Lisa's Jira access layer does not perform, and any tracker can refuse for lack of permission. Then name the exact status/label to add and what access is missing. Only an operator running a setup or `/lisa:validate-tracker-mapping` interactively is offered existing near-matches instead. `lisa-validate-tracker-mapping` repairs a MISSING name by these same rules.
 
 ## Resolution algorithm
 

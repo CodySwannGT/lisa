@@ -1,6 +1,6 @@
 ---
 name: lisa-agent-ready
-description: "Make a brownfield project agent-ready: build the initial knowledge wiki from read-only, redacted ingestion of every inventoried source (repository, git history, connected trackers, docs, observability), then write wiki/gaps.md — the questions only a human can answer before agents can operate the project autonomously. Iterative convergence: humans answer the gaps inline, a fresh session re-runs the skill, verified answers are absorbed into wiki pages, and the loop repeats until every source is complete, zero open gaps remain, and the project is declared agent-ready. This is the knowledge half of brownfield onboarding; standards adoption (applying Lisa's lint rules, guardrails, and thresholds, then refactoring to conform without changing behavior) follows it."
+description: "Make an existing project agent-ready: build its knowledge wiki from everything reachable, then list in wiki/gaps.md the questions only a human can answer. Re-run after humans answer until no gaps remain."
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch"]
 ---
 
@@ -35,9 +35,9 @@ that a later reader could have answered from the repository is a defect of this 
 
 ### Phase 0 — Preflight
 
-1. Ensure the knowledge wiki exists. If the project has no `wiki/`, install it first (delegate to
-   the wiki install/setup surface — `/lisa:wiki:install` / `lisa-wiki-setup`); do not hand-roll a
-   wiki layout.
+1. Ensure the knowledge wiki exists. Every project owns one at `wiki/` (the required `knowledge`
+   role, default `llm-wiki`). If `wiki/` is missing, scaffold it with `lisa-wiki-setup`; do not
+   hand-roll a wiki layout.
 2. Inventory every configured or discoverable source, including sources whose access probe fails:
    the repository and its full git history, the configured `tracker` and `source`, connected MCP
    servers and access layers (observability, docs, analytics), CI history, and deployed environments
@@ -134,6 +134,14 @@ Beyond raw ingestion, author the pages an unattended operator needs, deriving ev
 architecture and domain glossary, environment/deploy topology, who the users are (personas, if
 discoverable), business rules encoded in code and tests, operational runbooks (how to see logs,
 how to roll back), and the project's danger zones (migrations, money paths, irreversible jobs).
+
+Fill in **Related repositories** on `wiki/start-here.md`: every other repository this product is
+built from (frontend, backend, infrastructure, a wiki-only repo for product-wide knowledge), each as
+`org/repo` plus one line on what it owns. These are plain pointers that agents follow when they need
+something only that repo knows; do not copy or mirror the other repos' knowledge here. Derive them
+from what you can reach (remotes, CI, deploy config, package dependencies, tracker projects, docs).
+When you cannot tell whether related repositories exist, or which ones, add that as a gap.
+
 Update `wiki/index.md` and record the run in `wiki/log.md` per wiki conventions.
 
 ### Phase 3 — Absorb answered gaps (re-runs only)
@@ -260,6 +268,10 @@ verification. Only then should the automation fleet run unattended on a brownfie
   operator).
 - Idempotent: re-runs regenerate the open section in place and never lose or reword a human's
   inline answers.
+- A block of `wiki/gaps.md` between the lines `<!-- lisa:audit-questions:start -->` and
+  `<!-- lisa:audit-questions:end -->` belongs to `/lisa:audit`, which lists its own open questions
+  there. Leave it byte for byte: never answer, absorb, move, reword or regenerate anything inside
+  it, and never count its entries as gaps of this skill.
 - The wiki is the durable store; `wiki/gaps.md` is a queue. Every absorbed answer must land in a
   real wiki page with the gaps entry pointing at it.
 - `wiki/state/agent-ready/sources.json` is the durable coverage record. Source access is always

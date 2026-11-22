@@ -18,7 +18,6 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -33,7 +32,10 @@ import {
   LaunchError,
   resolveStateDir,
 } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs";
-import { buildWorkerResume } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs";
+import {
+  WORKER_PERMISSION_ARGS,
+  buildWorkerResume,
+} from "../../../plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs";
 import {
   makeSandbox,
   removeSandboxes,
@@ -42,6 +44,7 @@ import {
   type Sandbox,
 } from "./support/cli-harness.js";
 import { readLedgerFile } from "./support/cli-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const homes: string[] = [];
 afterEach(() => {
@@ -194,6 +197,7 @@ describe("resume argv", () => {
       "--bg",
       "--resume",
       "abc",
+      ...WORKER_PERMISSION_ARGS,
       "--",
       "--settings {}",
     ]);
@@ -215,13 +219,13 @@ describe("resolveStateDir through symlinks", () => {
   it("refuses a symlink that points at the shared default dir", () => {
     const homedir = home();
     const alias = path.join(homedir, "tg-alias");
-    symlinkSync(path.join(homedir, ".claude/channels/telegram"), alias);
+    createSymlink(path.join(homedir, ".claude/channels/telegram"), alias);
     expect(() => resolveStateDir(alias, { homedir })).toThrow(LaunchError);
   });
 
   it("refuses the shared dir reached through a symlinked parent", () => {
     const homedir = home();
-    symlinkSync(path.join(homedir, ".claude"), path.join(homedir, "dot"));
+    createSymlink(path.join(homedir, ".claude"), path.join(homedir, "dot"));
     expect(() =>
       resolveStateDir("~/dot/channels/telegram", { homedir })
     ).toThrow(/shared Telegram default/);

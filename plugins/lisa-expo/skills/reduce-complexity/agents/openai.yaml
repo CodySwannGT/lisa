@@ -1,4 +1,4 @@
 display_name: "Reduce Complexity"
-short_description: "This skill provides strategies and patterns for reducing cognitive complexity in React components"
+short_description: "Reduce cognitive complexity in React components using this project's Container/View pattern"
 default_prompt:
-  - "Use $reduce-complexity: This skill provides strategies and patterns for reducing cognitive complexity in React components."
+  - "Use $reduce-complexity: Reduce cognitive complexity in React components using this project's Container/View pattern."

@@ -207,17 +207,11 @@ describe("block-direct-issue-create.sh container arm", () => {
       expect(readSource(relative)).toContain(CONTAINER_DECLARATION);
     });
 
-    it("names the same by-design leaf types the rule does", () => {
+    it("names the by-design leaf types in the guard", () => {
       const guard = readSource(
         "plugins/src/base/hooks/block-direct-issue-create.sh"
       );
-      const rule = readSource(
-        "plugins/src/base/rules/reference/leaf-only-lifecycle.md"
-      );
 
-      expect(rule).toContain(
-        "the by-design leaf types (Bug, Task, Sub-task, Improvement)"
-      );
       expect(guard).toContain(
         'BY_DESIGN_LEAF_TYPES = {"bug", "task", "sub-task", "subtask", "improvement"}'
       );

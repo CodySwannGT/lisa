@@ -69,8 +69,8 @@ export async function loadPinnedInstaller() {
  * describes a project — so the seam is made explicit here rather than by giving
  * the catalogue a shape it does not otherwise need. `kind` becomes `install`;
  * everything else the manifest reads is already named the same.
- * @param {object} entry Catalogue entry.
- * @returns {object} A `remoteEnv.tools` style entry.
+ * @param {import("./catalogue.mjs").CatalogueEntry} entry Catalogue entry.
+ * @returns {Record<string, unknown> & {name: string, install: string}} A `remoteEnv.tools` style entry.
  */
 export function toManifestEntry(entry) {
   const { kind, label, binDir, note, selfUpdates, ...rest } = entry;

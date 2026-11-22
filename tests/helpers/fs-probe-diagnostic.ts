@@ -1,0 +1,471 @@
+/**
+ * Measurement pieces for the hosted fs-probe diagnostic (CodySwannGT/lisa#4636).
+ *
+ * `fs-latency-budget.ts` widens deletion budgets by a factor its 20-entry probe
+ * derives. On every sampled hosted run that factor read exactly 1.00 while
+ * real removal there cost 39-129us per freed inode, because the probe then
+ * timed one-byte files that were freed before they were given a block, so they
+ * sent the `discard`-mounted device nothing to discard. This module holds what
+ * it takes to measure that: the mount and the block device behind the probe's
+ * directory, the device's discard counters around each removal, and three
+ * sample kinds taken in the same instant — the probe, an allocated variant
+ * (4 KiB, `fsync`ed files) and a real 5,000-file allocated corpus.
+ *
+ * Hosted run 43251544381 answered it (the allocated variant read 0.94-1.12 of
+ * the real removal, the one-byte probe 0.25-0.28), and the probe now writes
+ * allocated files itself ({@link fillProbeDirectory}). So the probe and variant
+ * kinds now time the same allocated files, taken twice back to back; the
+ * one-byte probe survives only in the table recorded in `fs-latency-budget.ts`
+ * from that run.
+ *
+ * The mount-table and device-counter readers follow the design of the
+ * diagnostics PR #4626 used and later removed. They return nothing off Linux,
+ * so every sample still carries its timings there.
+ * @module tests/helpers/fs-probe-diagnostic
+ */
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmdirSync,
+  rmSync,
+  unlinkSync,
+} from "node:fs";
+import path from "node:path";
+
+import {
+  fillProbeDirectory,
+  FS_PROBE_ENTRIES,
+  measureUnlinkLatencyUs,
+  timeOneUnlinkCycle,
+} from "./fs-latency-budget.js";
+
+/** Linux block-device counters, in the kernel's `stat` field order. */
+export const DEVICE_FIELDS = [
+  "readIos",
+  "readMerges",
+  "readSectors",
+  "readMs",
+  "writeIos",
+  "writeMerges",
+  "writeSectors",
+  "writeMs",
+  "inFlight",
+  "ioMs",
+  "queueMs",
+  "discardIos",
+  "discardMerges",
+  "discardSectors",
+  "discardMs",
+  "flushIos",
+  "flushMs",
+] as const;
+
+/** Named block-device counters; a field the kernel did not report is absent. */
+export type DeviceCounters = Readonly<Record<string, number>>;
+
+/** The mount holding a path, read from the kernel's own table. */
+export interface MountRecord {
+  readonly device: string;
+  readonly mountPoint: string;
+  readonly fsType: string;
+  /** Per-mount options, then the superblock's, separated by `;`. */
+  readonly options: string;
+}
+
+/** Cycles the probe takes its median over, and the variant with it. */
+const PROBE_CYCLES = 5;
+
+/** Files in the real corpus each pair is read against. */
+const CORPUS_ENTRIES = 5000;
+
+/**
+ * Parse one mountinfo line into a record.
+ * @param line - A line holding the ` - ` separator
+ * @returns The mount record
+ */
+function mountRecord(line: string): MountRecord {
+  const [left = "", right = ""] = line.split(" - ");
+  const fields = left.split(" ");
+  const [fsType = "", , superOptions = ""] = right.split(" ");
+  return {
+    device: fields[2] ?? "",
+    mountPoint: fields[4] ?? "",
+    fsType,
+    options: `${fields[5] ?? ""};${superOptions}`,
+  };
+}
+
+/**
+ * Whether a mount point holds a path.
+ * @param mountPoint - The mount's mount point
+ * @param target - A resolved absolute path
+ * @returns True when the path is the mount point or lies beneath it
+ */
+function holds(mountPoint: string, target: string): boolean {
+  if (target === mountPoint) return true;
+  const prefix = mountPoint.endsWith("/") ? mountPoint : `${mountPoint}/`;
+  return target.startsWith(prefix);
+}
+
+/**
+ * Find the mount holding a path in a mountinfo table, by the longest mount
+ * point that holds it.
+ * @param table - Contents of `/proc/self/mountinfo`
+ * @param target - A resolved absolute path
+ * @returns The mount record, or undefined when no mount holds it
+ */
+export function parseMountInfo(
+  table: string,
+  target: string
+): MountRecord | undefined {
+  return table
+    .split("\n")
+    .filter(line => line.includes(" - "))
+    .map(mountRecord)
+    .filter(mount => holds(mount.mountPoint, target))
+    .reduce<MountRecord | undefined>(
+      (best, mount) =>
+        best === undefined || mount.mountPoint.length > best.mountPoint.length
+          ? mount
+          : best,
+      undefined
+    );
+}
+
+/**
+ * Find the mount holding an existing path on this machine.
+ * @param target - Existing path on the filesystem of interest
+ * @param table - Mount table to read; the kernel's own by default
+ * @returns The mount record, or undefined off Linux
+ */
+export function mountOf(
+  target: string,
+  table = "/proc/self/mountinfo"
+): MountRecord | undefined {
+  if (!existsSync(table)) return undefined;
+  return parseMountInfo(readFileSync(table, "utf8"), realpathSync(target));
+}
+
+/**
+ * Name the counters in one block-device `stat` line.
+ * @param text - Contents of `/sys/dev/block/<maj:min>/stat`
+ * @returns The counters the kernel reported, by name
+ */
+export function parseDeviceStat(text: string): DeviceCounters {
+  const values = text.trim().split(/\s+/).map(Number);
+  return Object.fromEntries(
+    DEVICE_FIELDS.slice(0, values.length).map((name, index) => [
+      name,
+      values[index] ?? 0,
+    ])
+  );
+}
+
+/**
+ * Read the counters of the block device behind a mount, when there is one.
+ * @param mount - Mount holding the directory being measured
+ * @returns The counters, or undefined when none are readable
+ */
+export function readDeviceCounters(
+  mount: MountRecord | undefined
+): DeviceCounters | undefined {
+  const file = mount && `/sys/dev/block/${mount.device}/stat`;
+  if (!file || !existsSync(file)) return undefined;
+  return parseDeviceStat(readFileSync(file, "utf8"));
+}
+
+/**
+ * What the device's discard counters moved by between two readings.
+ * @param before - Reading before the removal
+ * @param after - Reading after it
+ * @returns The discard deltas, or null when they cannot be read
+ */
+export function discardDelta(
+  before: DeviceCounters | undefined,
+  after: DeviceCounters | undefined
+): DeviceCounters | null {
+  if (before === undefined || after === undefined) return null;
+  const names = DEVICE_FIELDS.filter(
+    name => name.startsWith("discard") && name in before && name in after
+  );
+  if (names.length === 0) return null;
+  return Object.fromEntries(
+    names.map(name => [name, (after[name] ?? 0) - (before[name] ?? 0)])
+  );
+}
+
+/**
+ * Remove a directory recursively, timing only the removal.
+ * @param directory - Directory to remove
+ * @param entries - Files it holds, for the per-entry figure
+ * @returns Per-entry removal cost, in microseconds
+ */
+export function timeRemovalUs(directory: string, entries: number): number {
+  const startedAt = performance.now();
+  rmSync(directory, { force: true, recursive: true });
+  return ((performance.now() - startedAt) / entries) * 1000;
+}
+
+/** Discard deltas read straight after a removal and once more after a wait. */
+interface RemovalDiscards {
+  readonly immediate: DeviceCounters | null;
+  readonly settled: DeviceCounters | null;
+}
+
+/** One timed removal and the discards seen around it. */
+interface ObservedRemoval {
+  readonly perEntryUs: number;
+  readonly discards: RemovalDiscards;
+}
+
+/**
+ * Wait, so discards a journal commit issues after a removal are counted.
+ * @param ms - How long to wait
+ */
+async function settle(ms: number): Promise<void> {
+  if (ms > 0) await new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Time a removal and read the device's discard counters around it.
+ *
+ * Read twice afterwards: straight away, which is what the unlinking thread
+ * could have waited on, and after a settle, which also catches discards a
+ * journal commit issues later. The two answer whether discards are paid
+ * inside the timed window at all.
+ * @param mount - Mount holding the removed directories
+ * @param settleMs - Wait before the second reading
+ * @param timed - The removal; returns its per-entry cost
+ * @returns The per-entry cost and the discard deltas
+ */
+async function observeRemoval(
+  mount: MountRecord | undefined,
+  settleMs: number,
+  timed: () => number
+): Promise<ObservedRemoval> {
+  const before = readDeviceCounters(mount);
+  const perEntryUs = timed();
+  const immediate = readDeviceCounters(mount);
+  await settle(settleMs);
+  return {
+    perEntryUs,
+    discards: {
+      immediate: discardDelta(before, immediate),
+      settled: discardDelta(before, readDeviceCounters(mount)),
+    },
+  };
+}
+
+/** One paired sample: the three kinds, taken in that order, back to back. */
+export interface PairedSample {
+  readonly probeUs: number;
+  readonly variantUs: number;
+  readonly realUs: number;
+  readonly variantToReal: number;
+  readonly probeToReal: number;
+  readonly entries: Readonly<Record<"probe" | "variant" | "real", number>>;
+  readonly discards: Readonly<
+    Record<"probe" | "variant" | "real", RemovalDiscards>
+  >;
+}
+
+/** How one paired sample is taken. */
+export interface PairedSampleOptions {
+  readonly mount: MountRecord | undefined;
+  readonly settleMs: number;
+  /** Files in the real corpus; 5,000 unless a test shrinks it. */
+  readonly corpusEntries?: number;
+}
+
+/**
+ * Round a ratio for an operator-readable record.
+ * @param value - The ratio
+ * @returns It, to three decimal places
+ */
+const ratio = (value: number): number => Math.round(value * 1000) / 1000;
+
+/**
+ * Take one paired sample: the current probe, the allocated variant and a real
+ * allocated corpus, each with its discard deltas.
+ *
+ * The probe and the variant now take the same measurement, back to back. Both
+ * create their files inside the counted window, as the probe always has; creating files frees nothing, so it discards nothing.
+ * The corpus is written before its window opens.
+ * @param options - Mount, settle and corpus size
+ * @returns The sample, with the variant and probe each as a ratio of the real
+ */
+export async function pairedSample(
+  options: PairedSampleOptions
+): Promise<PairedSample> {
+  const { mount, settleMs, corpusEntries = CORPUS_ENTRIES } = options;
+  await settle(settleMs);
+  const probe = await observeRemoval(mount, settleMs, () =>
+    measureUnlinkLatencyUs(PROBE_CYCLES)
+  );
+  const variant = await observeRemoval(mount, settleMs, () =>
+    measureUnlinkLatencyUs(PROBE_CYCLES)
+  );
+  const corpus = fillProbeDirectory(corpusEntries);
+  const real = await observeRemoval(mount, settleMs, () =>
+    timeRemovalUs(corpus, corpusEntries)
+  );
+  return {
+    probeUs: probe.perEntryUs,
+    variantUs: variant.perEntryUs,
+    realUs: real.perEntryUs,
+    variantToReal: ratio(variant.perEntryUs / real.perEntryUs),
+    probeToReal: ratio(probe.perEntryUs / real.perEntryUs),
+    entries: {
+      probe: FS_PROBE_ENTRIES * PROBE_CYCLES,
+      variant: FS_PROBE_ENTRIES * PROBE_CYCLES,
+      real: corpusEntries,
+    },
+    discards: {
+      probe: probe.discards,
+      variant: variant.discards,
+      real: real.discards,
+    },
+  };
+}
+
+/**
+ * Corpus sizes the decomposition removes. Two sizes far apart are enough to
+ * separate a cost every removal pays once from the cost it pays per entry:
+ * the probe's own twenty, and fifty times that.
+ */
+export const DECOMPOSITION_SIZES = [FS_PROBE_ENTRIES, 1000] as const;
+
+/** One allocated removal, split into the operations `rmSync` performs. */
+export interface SplitRemoval {
+  readonly entries: number;
+  readonly settleMs: number;
+  /** The whole `rmSync`, as the probe and the agreement case time it. */
+  readonly rmSyncMs: number;
+  /** The same files removed by hand: the first unlink on its own. */
+  readonly firstUnlinkMs: number;
+  /** Every later unlink, together. */
+  readonly restUnlinkMs: number;
+  /** The emptied directory's own removal. */
+  readonly rmdirMs: number;
+}
+
+/**
+ * Time a callback in milliseconds.
+ * @param run - The timed operation
+ * @returns Its wall time
+ */
+function elapsedMs(run: () => void): number {
+  const startedAt = performance.now();
+  run();
+  return performance.now() - startedAt;
+}
+
+/**
+ * Remove one freshly written allocated corpus twice over — once by `rmSync`,
+ * once by hand — so a cost the removal pays once can be told apart from what
+ * it pays per entry, and placed inside it.
+ *
+ * Each half fills its own directory and then waits `settleMs` before its
+ * timed window opens. A cost that vanishes with the wait is one the removal
+ * pays for the fill that ran just before it, not for the removal itself.
+ * @param entries - Files in each corpus
+ * @param settleMs - Wait between the fill and the timed removal
+ * @returns The split timings
+ */
+export async function splitRemoval(
+  entries: number,
+  settleMs: number
+): Promise<SplitRemoval> {
+  const whole = fillProbeDirectory(entries);
+  await settle(settleMs);
+  const rmSyncMs = elapsedMs(() =>
+    rmSync(whole, { force: true, recursive: true })
+  );
+  const byHand = fillProbeDirectory(entries);
+  await settle(settleMs);
+  const [first = "", ...rest] = readdirSync(byHand);
+  const firstUnlinkMs = elapsedMs(() => unlinkSync(path.join(byHand, first)));
+  const restUnlinkMs = elapsedMs(() =>
+    rest.forEach(name => unlinkSync(path.join(byHand, name)))
+  );
+  const rmdirMs = elapsedMs(() => rmdirSync(byHand));
+  return {
+    entries,
+    settleMs,
+    rmSyncMs,
+    firstUnlinkMs,
+    restUnlinkMs,
+    rmdirMs,
+  };
+}
+
+/** A removal's cost as one fixed part plus a part per entry. */
+export interface RemovalFit {
+  readonly fixedMs: number;
+  readonly perEntryUs: number;
+}
+
+/**
+ * Fit `cost = fixed + perEntry * entries` through two removals of different
+ * sizes.
+ * @param small - The smaller removal: entries and its `rmSync` wall time
+ * @param large - The larger removal
+ * @returns The fixed and per-entry parts
+ */
+export function fitRemoval(
+  small: Readonly<{ entries: number; rmSyncMs: number }>,
+  large: Readonly<{ entries: number; rmSyncMs: number }>
+): RemovalFit {
+  const perEntryMs =
+    (large.rmSyncMs - small.rmSyncMs) / (large.entries - small.entries);
+  return {
+    fixedMs: small.rmSyncMs - perEntryMs * small.entries,
+    perEntryUs: perEntryMs * 1000,
+  };
+}
+
+/** What one agreement comparison read: its ratio and the figures behind it. */
+export interface Agreement {
+  /** Probe per-entry cost over real per-entry cost. */
+  readonly ratio: number;
+  readonly probeUs: readonly number[];
+  readonly realUs: readonly number[];
+}
+
+/**
+ * Median of a non-empty list.
+ * @param values - Readings
+ * @returns The middle reading after sorting
+ */
+const medianOf = (values: readonly number[]): number =>
+  [...values].sort((left, right) => left - right)[
+    Math.floor(values.length / 2)
+  ] ?? Number.NaN;
+
+/**
+ * Compare the probe with real removal in the same window: each pair writes a
+ * real corpus first, then takes one probe cycle and the corpus's removal back
+ * to back, so both readings of a pair see the same machine. The verdict is the
+ * median of the per-pair ratios, as the probe itself is a median of cycles.
+ * @param pairs - Paired readings to take
+ * @param corpusEntries - Files in each real corpus
+ * @returns The median ratio and every reading
+ */
+export function pairedAgreement(
+  pairs: number,
+  corpusEntries: number
+): Agreement {
+  const readings = Array.from({ length: pairs }, () => {
+    const corpus = fillProbeDirectory(corpusEntries);
+    const probeUs = timeOneUnlinkCycle();
+    const realUs = timeRemovalUs(corpus, corpusEntries);
+    return { probeUs, realUs };
+  });
+  return {
+    ratio: medianOf(readings.map(({ probeUs, realUs }) => probeUs / realUs)),
+    probeUs: readings.map(reading => reading.probeUs),
+    realUs: readings.map(reading => reading.realUs),
+  };
+}

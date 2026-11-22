@@ -27,8 +27,7 @@ describe("per-agent-hook-filter — devin", () => {
     expect(shouldShipScript("secrets-preflight.sh", "devin")).toBe(true);
   });
 
-  it("strips Claude-team and subagent-only scripts", () => {
-    expect(shouldShipScript("enforce-team-first.sh", "devin")).toBe(false);
+  it("strips subagent-only scripts", () => {
     expect(shouldShipScript("inject-flow-context.sh", "devin")).toBe(false);
     expect(shouldShipScript("block-no-verify.agy.sh", "devin")).toBe(false);
   });

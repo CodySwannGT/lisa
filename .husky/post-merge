@@ -1,3 +1,5 @@
+# shellcheck shell=sh
+# Git runs this hook with no shebang through /bin/sh, without -e.
 # Report generated-artifact staleness the moment a MERGE creates it.
 #
 # WHY THIS HOOK EXISTS AT ALL

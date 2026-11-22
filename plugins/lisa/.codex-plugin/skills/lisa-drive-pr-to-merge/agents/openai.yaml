@@ -1,4 +1,4 @@
 display_name: "Drive PR To Merge"
-short_description: "drive a pull request all the…"
+short_description: "Get a pull request merged…"
 default_prompt:
-  - "Use $lisa-drive-pr-to-merge: drive a pull request all the…."
+  - "Use $lisa-drive-pr-to-merge: Get a pull request merged…."

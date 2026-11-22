@@ -157,6 +157,17 @@ export const DEFAULT_MAX_RUNTIME_MS =
  * margin, and so a future reader can re-measure and contradict it rather than
  * trusting a bare number. Raise it when a longer propagation is OBSERVED, never
  * to make a failing release green.
+ *
+ * OBSERVED LONGER, NOT YET RAISED. `@codyswann/lisa@8.2.4`, 2026-11-20 (Release
+ * and Deploy run 44743107550): `npm publish` was accepted at 13:33:04Z. npm's
+ * own `time` record for the version reads 14:28:26.191Z, 55m22s after that;
+ * the reconcile job's check first got a 200 at 14:28:43Z, 55m39s after it.
+ * Both are longer than {@link DEFAULT_WINDOW_MS}. The publish job's check gave
+ * up at 14:12:40Z. This value is left at 18m03s for now
+ * (CodySwannGT/lisa#5106): raising it would also force the window wider, and
+ * that is a separate decision. A landing that
+ * late is not lost: the reconcile job in deploy.yml asks again, and treats
+ * `published` as a landed release.
  */
 export const MEASURED_PROPAGATION_MS = 1_083_000;
 
@@ -193,8 +204,8 @@ export function exactVersionUrl(registry, name, version) {
  * @param {object} timeout - Per-attempt deadline dependencies.
  * @param {number} timeout.attemptTimeoutMs - Deadline in milliseconds.
  * @param {() => AbortController} timeout.createAbortController - Controller factory.
- * @param {typeof setTimeout} timeout.setAttemptTimer - Timer scheduler.
- * @param {typeof clearTimeout} timeout.clearAttemptTimer - Timer clearer.
+ * @param {(callback: () => void, ms: number) => unknown} timeout.setAttemptTimer - Timer scheduler; returns a handle.
+ * @param {(timer: unknown) => void} timeout.clearAttemptTimer - Clears a handle the scheduler returned.
  * @returns {Promise<{verdict: string, detail: string}>} One attempt's outcome.
  */
 async function askOnce(url, fetchImpl, version, timeout) {
@@ -208,11 +219,13 @@ async function askOnce(url, fetchImpl, version, timeout) {
       headers: { accept: "application/json" },
       signal: controller.signal,
     });
-    if (response.status === 404) {
-      return { verdict: "missing", detail: "registry returned 404" };
-    }
     if (!response.ok) {
-      return { verdict: "unprovable", detail: `HTTP ${response.status}` };
+      // An unread body keeps its socket, and with it the process, alive after
+      // the verdict; the deadline is cleared below, so nothing else ends it.
+      await response.body?.cancel().catch(() => {});
+      return response.status === 404
+        ? { verdict: "missing", detail: "registry returned 404" }
+        : { verdict: "unprovable", detail: `HTTP ${response.status}` };
     }
     const manifest = await response.json();
     // A 200 that names a different version is not this version being present.
@@ -262,6 +275,9 @@ const worthRetrying = verdict => verdict !== "published";
  * @param {number} [options.attemptTimeoutMs] - Deadline for each attempt.
  * @param {typeof fetch} [options.fetchImpl] - Injected for tests.
  * @param {(ms: number) => Promise<void>} [options.sleep] - Injected for tests.
+ * @param {() => AbortController} [options.createAbortController] - Per-attempt controller factory; injected for tests.
+ * @param {(callback: () => void, ms: number) => unknown} [options.setAttemptTimer] - Arms each attempt's deadline and returns a handle; defaults to `setTimeout`.
+ * @param {(timer: unknown) => void} [options.clearAttemptTimer] - Clears a handle `setAttemptTimer` returned; defaults to `clearTimeout`.
  * @returns {Promise<{verdict: string, detail: string, urls: string[]}>} Outcome.
  */
 export async function verifyPublish({
@@ -360,7 +376,6 @@ export async function main(argv, injected = {}) {
   return 1;
 }
 
-/* c8 ignore start -- CLI wiring, exercised through main() in tests */
 if (invokedAsScript(import.meta.url)) {
   main(process.argv.slice(2))
     .then(code => {
@@ -371,4 +386,3 @@ if (invokedAsScript(import.meta.url)) {
       process.exitCode = 1;
     });
 }
-/* c8 ignore stop */

@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   MEMINFO,
+  TAKEN,
   makeSandbox,
   removeSandboxes,
   runCli,
@@ -43,7 +44,7 @@ const idleAlive = (name: string) => ({ ...IDLE_ALIVE_ROW, name });
  * @returns The spawned worker's name
  */
 function spawnOnce(sandbox: Sandbox): string {
-  const spawned = runCli(sandbox, ["spawn", REF, ...MEM]);
+  const spawned = runCli(sandbox, ["spawn", REF, ...TAKEN, ...MEM]);
   expect(spawned.status).toBe(0);
   return spawned.json.name as string;
 }
@@ -65,7 +66,7 @@ describe("an idle but alive worker (state done, pid set)", () => {
   it("makes spawn exit 4 instead of starting a duplicate worker", () => {
     const sandbox = makeSandbox();
     const name = spawnOnce(sandbox);
-    const result = runCli(sandbox, ["spawn", REF, ...MEM], {
+    const result = runCli(sandbox, ["spawn", REF, ...TAKEN, ...MEM], {
       agents: [idleAlive(name)],
     });
     expect(result.status).toBe(4);
@@ -112,7 +113,7 @@ describe("a truly completed worker (--all, no pid or status)", () => {
     expect(classify.json).toEqual([
       expect.objectContaining({ classification: "dead" }),
     ]);
-    const respawn = runCli(sandbox, ["spawn", REF, ...MEM], {
+    const respawn = runCli(sandbox, ["spawn", REF, ...TAKEN, ...MEM], {
       agents: [finished],
     });
     expect(respawn.status).toBe(0);

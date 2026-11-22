@@ -1,4 +1,4 @@
 display_name: "Tracker Write"
-short_description: "Vendor-neutral wrapper for…"
+short_description: "Create or update a ticket in…"
 default_prompt:
-  - "Use $lisa-tracker-write: Vendor-neutral wrapper for…."
+  - "Use $lisa-tracker-write: Create or update a ticket in…."

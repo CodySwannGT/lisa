@@ -24,6 +24,7 @@ import {
   installedConfigShadowings,
   type InstalledConfigShadowing,
 } from "../core/config-shadowing.js";
+import { errnoCode, isDefinitiveAbsence } from "../utils/fs-absence.js";
 
 /** Name of the config-precedence check as doctor reports it. */
 export const CONFIG_SHADOWING_CHECK_NAME = "Config precedence clean?";
@@ -33,27 +34,6 @@ interface ShadowingCheckResult {
   name: string;
   status: "ok" | "warn" | "fail";
   detail: string;
-}
-
-/**
- * Errno codes that answer the question rather than refusing it: the path is
- * genuinely not there. Anything else — a permission denial, an I/O error, a
- * symlink loop — means the probe could not look, which is not the same answer
- * and must not be spelled the same way.
- */
-const ABSENT_CODES = new Set(["ENOENT", "ENOTDIR", "ENAMETOOLONG"]);
-
-/**
- * The errno code of a rejected filesystem call, when it carries one.
- * @param error - Value thrown by a filesystem call
- * @returns The errno code, or undefined when the value carries none
- */
-function errnoCode(error: unknown): string | undefined {
-  const code: unknown =
-    typeof error === "object" && error !== null
-      ? (error as { code?: unknown }).code
-      : undefined;
-  return typeof code === "string" ? code : undefined;
 }
 
 /**
@@ -76,8 +56,8 @@ async function probeExists(
     await stat(path.join(projectRoot, relativePath));
     return true;
   } catch (error) {
+    if (isDefinitiveAbsence(error)) return false;
     const code = errnoCode(error);
-    if (code !== undefined && ABSENT_CODES.has(code)) return false;
     throw new Error(
       `could not read ${relativePath}: ${code ?? String(error)}`,
       { cause: error }

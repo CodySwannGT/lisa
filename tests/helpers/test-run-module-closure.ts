@@ -9,7 +9,7 @@ import {
 } from "./test-run-child-process-bindings.js";
 
 /** Executable source extensions admitted to the closure. */
-export const EXECUTABLE_MODULE_EXTENSIONS = [
+const EXECUTABLE_MODULE_EXTENSIONS = [
   ".ts",
   ".mts",
   ".cts",
@@ -19,13 +19,13 @@ export const EXECUTABLE_MODULE_EXTENSIONS = [
 ] as const;
 
 /** One unresolved relative dependency that invalidates the proof. */
-export interface UnresolvedModuleEdge {
+interface UnresolvedModuleEdge {
   readonly importer: string;
   readonly specifier: string;
 }
 
 /** One source-level closure gap tied to its executable module. */
-export interface ExecutableModuleFinding {
+interface ExecutableModuleFinding {
   readonly file: string;
   readonly message: string;
 }
@@ -234,21 +234,19 @@ export function executableModuleGraph(
       ),
     };
   });
+  const findings = rows.flatMap(value => value.findings);
+  const unresolved = rows.flatMap(value => value.unresolved);
   return {
-    findings: rows
-      .flatMap(value => value.findings)
-      .toSorted((left, right) =>
-        `${left.file}:${left.message}`.localeCompare(
-          `${right.file}:${right.message}`
-        )
-      ),
+    findings: [...findings].sort((left, right) =>
+      `${left.file}:${left.message}`.localeCompare(
+        `${right.file}:${right.message}`
+      )
+    ),
     graph: new Map(rows.map(value => value.graphEntry)),
-    unresolved: rows
-      .flatMap(value => value.unresolved)
-      .toSorted((left, right) =>
-        `${left.importer}:${left.specifier}`.localeCompare(
-          `${right.importer}:${right.specifier}`
-        )
-      ),
+    unresolved: [...unresolved].sort((left, right) =>
+      `${left.importer}:${left.specifier}`.localeCompare(
+        `${right.importer}:${right.specifier}`
+      )
+    ),
   };
 }

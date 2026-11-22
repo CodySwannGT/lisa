@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Run an OWASP ZAP baseline security scan locally using Docker"
 allowed-tools: ["Skill"]
 ---

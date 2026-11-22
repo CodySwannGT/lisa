@@ -81,7 +81,6 @@ const BYPASS = "git commit --no-verify -m x";
 // the reviewed one, so a guard missing from this list is an unreviewed guard.
 const GUARDS = [
   "block-no-verify",
-  "parity-safety-net",
   "block-shell-json-parsing",
   "block-instruction-file-edits",
   "block-direct-issue-create",

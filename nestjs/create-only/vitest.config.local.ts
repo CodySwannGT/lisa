@@ -27,12 +27,6 @@
  */
 import type { ViteUserConfig } from "vitest/config";
 
-const config: ViteUserConfig = {
-  test: {
-    // Scratch redirection must install before the leak guard, and the guard's
-    // afterAll must run after project hooks so cleanup is attributed correctly.
-    sequence: { setupFiles: "list", hooks: "stack" },
-  },
-};
+const config: ViteUserConfig = {};
 
 export default config;

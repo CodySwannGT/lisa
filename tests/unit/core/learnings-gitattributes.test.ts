@@ -80,10 +80,10 @@ describe("shipped .gitattributes", () => {
     const managed = renderLearningsGitattributesBlock(DEFAULT_LEDGER);
     const beyond = contents.slice(managed.length);
     expect(beyond).toContain(
-      "src/core/upstream-evidence-manifest.ts merge=lisa-generated-artifact"
+      "src/core/upstream-evidence-manifest.json merge=lisa-generated-artifact"
     );
     expect(beyond).toContain(
-      "src/core/lisa-owned-hash-ledger.ts merge=lisa-generated-artifact"
+      "src/core/lisa-owned-hash-ledger.json merge=lisa-generated-artifact"
     );
     // The template must not inherit it: these two paths exist only here.
     expect(await shipped(TEMPLATE)).not.toContain("lisa-generated-artifact");

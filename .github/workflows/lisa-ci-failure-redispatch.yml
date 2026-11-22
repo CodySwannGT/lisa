@@ -34,6 +34,15 @@ name: 🔁 CI Failure Re-dispatch
 # count only when `github-actions[bot]` (this job's GITHUB_TOKEN identity)
 # authored them, so a forged marker comment is ignored.
 #
+# Stale traceability (CodySwannGT/lisa#5111): the documented order opens the
+# PR and only then posts the `[lisa-pr-link]` backlink, so Work-Item
+# Traceability can fail gate 5 against a tracker that changed seconds later.
+# When that is the only failing required check and the backlink is newer than
+# the check, the script re-runs that one job rather than bouncing the item —
+# the reason for `actions: write`. A re-run executes the PR's job under that
+# workflow's own event and permissions, never this job's token, and nothing
+# from the PR runs here.
+#
 # Dedupe: a third-party context and a CI workflow can complete for the same
 # head at nearly the same moment, so runs serialise per head SHA. The
 # per-PR-and-SHA marker stays the idempotency guarantee: a replayed or
@@ -103,7 +112,8 @@ jobs:
       issues: write
       pull-requests: read
       checks: read
-      actions: read
+      # write only to re-run a stale Work-Item Traceability job (#5111).
+      actions: write
     steps:
       - uses: actions/checkout@v6
         with:

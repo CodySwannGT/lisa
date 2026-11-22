@@ -33,7 +33,6 @@ plugins/
   lisa-rails/
   lisa-harper-fabric/
   lisa-wiki/
-  lisa-openclaw/
 
   # NEW Pattern B per-agent variants:
   lisa-cursor/                   # Cursor variant

@@ -12,7 +12,7 @@ import {
   section,
 } from "./completion-proof-shape.mjs";
 import { parseLisaUsageSection } from "./usage-ledger.mjs";
-import { verifyLisaUsageSectionIntegrity } from "./usage-ledger-integrity.mjs";
+import { isLisaUsageLedgerIntact } from "./usage-ledger-integrity.mjs";
 
 /** Find captured structured records without evaluating their contents. */
 function records(value, depth = 0, budget = { remaining: 100000 }) {
@@ -433,7 +433,7 @@ export function validateVerifyUsage(documents, ref, expectedIds, context) {
       continue;
     }
     if (!parsed.range) continue;
-    if (!verifyLisaUsageSectionIntegrity(canonical).ok) {
+    if (!isLisaUsageLedgerIntact(canonical)) {
       requireProof(
         index > 0,
         "The work-item body's canonical usage ledger failed its stored-surface integrity check."

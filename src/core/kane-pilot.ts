@@ -2,10 +2,7 @@
 import { appendFile, readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { runKane, type KaneOutcome, type KaneRunResult } from "./kane-cli.js";
-import {
-  buildKanePilotReport,
-  DEFAULT_KANE_PILOT_THRESHOLDS,
-} from "./kane-pilot-report.js";
+import { buildKanePilotReport } from "./kane-pilot-report.js";
 import type {
   KanePilotApplication,
   KanePilotCase,
@@ -15,15 +12,11 @@ import type {
   KanePilotReport,
 } from "./kane-pilot-types.js";
 
-export { buildKanePilotReport, DEFAULT_KANE_PILOT_THRESHOLDS };
+export { buildKanePilotReport };
 export type {
-  KanePilotApplication,
-  KanePilotCase,
   KanePilotManifest,
-  KanePilotPolicyReview,
   KanePilotRecord,
   KanePilotReport,
-  KanePilotVerdict,
 } from "./kane-pilot-types.js";
 
 /**

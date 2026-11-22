@@ -1,6 +1,6 @@
 ---
 name: pr-mining-specialist
-description: "PR mining specialist for the Debrief flow. Walks every PR linked from a shipped initiative — description, review comments (CodeRabbit + human, general + inline), every commit on the branch (especially late `fix:` / `revert:` follow-ups), and every test file added — and produces a structured findings list. Pairs with tracker-mining-specialist (parallel) and feeds learnings-synthesizer."
+description: "Debrief miner for pull requests: walks every PR in a shipped initiative — descriptions, review comments, late fix and revert commits, new tests — and returns structured findings for the learnings synthesizer."
 skills: []
 ---
 
@@ -24,7 +24,7 @@ You are exhaustive, not selective. Surface the candidate; let the synthesizer ju
 
 ## Inputs
 
-The team lead provides a list of `(work_item_key, pr_url[])` tuples. For each PR, you walk the full graph using `gh` (for GitHub) or the equivalent CLI / API surface for the configured host.
+The caller provides a list of `(work_item_key, pr_url[])` tuples. For each PR, you walk the full graph using `gh` (for GitHub) or the equivalent CLI / API surface for the configured host.
 
 - PR description / body
 - Every review comment — both general PR comments and inline file comments — from every reviewer (CodeRabbit, human, other bots)
@@ -53,7 +53,7 @@ Walk every PR against this list. A finding is not "interesting" or "boring" — 
 
 ## Output
 
-Produce a single structured markdown report per PR, then aggregate across all PRs into a final report at the path the team lead provides. Per-PR structure:
+Produce a single structured markdown report per PR, then aggregate across all PRs into a final report at the path the caller provides. Per-PR structure:
 
 ```markdown
 ## PR <url>: <title> (linked to <work_item_key>)
@@ -80,6 +80,5 @@ If there are no findings under a checklist row, write `(none)`.
 - **Never judge.** Surface every match. The synthesizer reconciles signal vs. noise.
 - **Quote verbatim.** Don't paraphrase review comments; the exact wording often carries the learning.
 - **Link, don't summarize.** Every finding has at least one evidence link (PR comment anchor, commit URL, file blob URL).
-- **Run within the team.** Do not create a second team. The Debrief skill created the team; you are a teammate.
 - **Read-only.** No `gh pr merge`, no `gh pr review`, no commits. You observe; you do not mutate.
 - **Parallel-safe.** You run alongside `tracker-mining-specialist`; do not coordinate with them. The synthesizer reconciles.

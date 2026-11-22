@@ -1,9 +1,9 @@
 ---
 name: lisa-track
-description: "Resolves exactly one live…"
+description: "Find or create exactly one live…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
-Resolves exactly one live configured-tracker leaf for durable project work, claims it idempotently, and persists its canonical reference in worktree-local state. Accepts an existing Jira/GitHub/Linear ref, a spec file, or plain text. Also accepts human_gate: <the act a person must perform>, which files the leaf held — outside the build-ready lane, never claimed — instead of build-ready. Use directly to mention/create the related ticket, and as lisa-implement's mandatory input gate.
+Find or create exactly one live tracker ticket for durable project work, claim it, and remember it for this worktree. Takes a ticket ref, a spec file, or plain text. lisa-implement's first step; also use it directly to file related work.
 
 
 # Track Work: $ARGUMENTS
@@ -49,7 +49,7 @@ For an existing incidental item, read its discussion, linked PRs and dependencie
    - an explicit reference matching the configured tracker (`KEY-123`, `org/repo#123` or issue URL, Linear team identifier);
    - an existing file path containing a specification (read the entire file, without offset/limit);
    - plain-text work description.
-3. Detect the caller's readiness declaration, which is orthogonal to the classification above. Absent any declaration this is the default build-ready path. A caller deliberately holding the work because it needs an act an agent cannot perform (a credential only a person holds, spend, an external account, a legal or compliance sign-off, an accountable person, a system the agent cannot reach, or a project-declared human-only class) passes `human_gate: "<the act a person must perform>"`. A choice with a reasonable default is not a gate: decide it, record the decision on the item, and take the build-ready path (`ready-role-filing`, "What a human gate is"). The writer refuses a topic-only reason with exit 1 from `scripts/human-gate-act.mjs check`; the two declarations are mutually exclusive and a `human_gate` present but empty is a blocking error, because an unexplained hold is indistinguishable from an accident.
+3. Detect the caller's readiness declaration, which is orthogonal to the classification above. Absent any declaration this is the default build-ready path. A caller deliberately holding the work because it needs an act an agent cannot perform (an access act: `credential` (complete a login or supply a credential only a person holds), `spend`, `external-account`, `legal-signoff` (sign a legal agreement on the company's behalf), `person-only-account` (a protected deployment, a required reviewer, an account only a person holds), `unreachable-system`, or `operator-hold` (a hold the operator explicitly asked for); `human-authored-surface` (an edit to a surface declared human-authored, which no agent writes: an authorship rule, valid in both modes); `own-dependency-copy` (approve maintaining our own fork, patch or vendored copy of an open-source library, the last rung of the `lisa-security-audit-handling` ladder, valid in both modes); or a decision class the project declared human-only (`humanGate.humanOnly`). Under `humanGate.mode: "strict"` the strict-only acts `compliance-signoff`, `accountable-person` and `lisa-policy` also count) passes `human_gate: "<the act a person must perform>"`. A choice with a reasonable default is not a gate: decide it, record the decision on the item, and take the build-ready path (`ready-role-filing`, "What a human gate is"). The writer refuses a topic-only reason with exit 1 from `scripts/human-gate-act.mjs check`; the two declarations are mutually exclusive and a `human_gate` present but empty is a blocking error, because an unexplained hold is indistinguishable from an accident.
 4. Preserve the full resolved specification for the caller. Do not treat a ticket-like token for a different provider/project as plain text; report the mismatch.
 
 ## Phase 2 — Resolve one live work item
@@ -99,7 +99,7 @@ Skip this step silently and return `route: implement` when the tracker is Jira o
 ### Hold check and claim
 
 The work item is **held** when the caller declared a `human_gate`, independently of any item history,
-or `classifyReadyCandidate({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly })` from the shipped
+or `classifyReadyCandidate({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode })` from the shipped
 `scripts/intake-blocker-reprobe.mjs` returns `claimable: false`. Pass the complete live comment
 history so a matching `[lisa-human-gate-release]` discharges the historical body marker. Never
 reimplement heldness as a substring test or as the negation of `planHumanGateRelease().released`:
@@ -112,7 +112,7 @@ A held item stops the flow here, whatever roles or labels it carries. Do not inv
 and carry its reason verbatim in `gate_reason` (null for a keyless hold), then stop.
 
 For a discharged item, call
-`planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
+`planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, readyLabel, lifecycleLabels, alreadyNotified })`
 and apply only the returned actions before claiming. Keep the body marker as history; a release
 never overrides a new caller-declared hold or another eligibility check.
 
@@ -127,7 +127,15 @@ Otherwise:
 
 3. Read the binding back through `node scripts/lisa-work-item.mjs current` and require it to equal the canonical reference. If binding fails, stop before durable project work.
    - A detached-HEAD worktree is valid at this stage: the binding records `branch: null` as a pending state. Create the feature branch only after the gate succeeds, then run `node scripts/lisa-work-item.mjs attach-branch`. Commit preparation and validation fail closed until that attachment succeeds.
-4. **Ignore guard before any write.** A host can receive these skills before its shipped `.gitignore` entry, so prove the path is ignored first, from the worktree root: `git check-ignore -q .lisa/work-item-context.md || printf '%s\n' '.lisa/work-item-context.md' >> "$(git rev-parse --git-common-dir)/info/exclude"`, then re-run `git check-ignore -q .lisa/work-item-context.md`. If it is still not ignored, stop and report — do not write the bundle. If an `.easignore` exists and `grep -qxF '.lisa/work-item-context.md' .easignore` fails, stop and report instead of writing: EAS uploads read `.easignore`, which is derived from `.gitignore`, not from `info/exclude`. Then write the full resolved work-item context — the live vendor read bundle, unedited, every comment included — to the worktree-local, git-ignored `<worktree root>/.lisa/work-item-context.md`, then return this structured result (the file is the context; a summary in the reply never substitutes for it). When a `caller_bundle_path` was forwarded for this work item and the file already exists, do not overwrite it — it holds the caller's bundle (or a previous run's) and is left for the resolver step. Otherwise this is the first write; when `lisa-implement` forwarded a `caller_bundle_path`, its resolver step then keeps the bundle at that path as the base and appends only what this live read adds, and in every case finishes it with the `## Comment inventory` section:
+4. **Token estimate before any work** (`work-item-definition-of-ready`, gate S21; contract in the `lisa-usage-accounting` skill's `references/estimate.md`). Write the item's live body to a scratch file and run `node scripts/lisa-estimate.mjs check --phase claim --body-file <file>`. Exit 0 (`PASS`, or `N/A` because `workItem.estimate.required` is `false`) → continue. Exit 1 because the estimate is missing → estimate it now, yourself; never ask a person and never stop for one:
+   1. Pick a first token range and a recommended model from `workItem.estimate.models` (`node scripts/lisa-estimate.mjs config` prints them) by reading the item: scope, files it touches, type, how much verification it needs.
+   2. Calibrate it. Fetch the bodies of up to 20 comparable finished items in this repository — same type, closed or done, carrying a `## Lisa Estimate` section — as a JSON array (GitHub: `gh issue list --repo <org>/<repo> --state closed --label <type label> --search '"Lisa Estimate" in:body' --limit 20 --json body`. Jira and Linear projects can serve several repositories, so scope those searches to this one by its `repo:<name>` label (the repo marker in the `config-resolution` rule; `<name>` is this repository's short name). Jira: through `lisa-atlassian-access`, `operation: search-issues jql:"project = <KEY> AND labels = \"repo:<name>\" AND issuetype = <type> AND statusCategory = Done AND text ~ \"Lisa Estimate\" ORDER BY resolved DESC"`, the first 20. Linear: through `lisa-linear-access`, `operation: list-issues team:<ID> label:repo:<name> state_type:["completed"]`. A listing may not carry full descriptions and has no body search, so read each candidate with `lisa-linear-access` `operation: get-issue id:<ID>` and keep the first 20 that carry the item's type label and a `## Lisa Estimate` section in that full description. Save each item's description as markdown text in `[{"body": "..."}]`). Run `node scripts/lisa-estimate.mjs calibrate --tokens-low <n> --tokens-high <n> --history-file <file>` and use the range and `basis` it prints. With no history it says so; keep your range.
+   3. Render and write it: `node scripts/lisa-estimate.mjs render --tokens-low <n> --tokens-high <n> --model <id> --basis "<basis>" --body-file <file>` prints the whole body with the section in place. Write that body back through `lisa-tracker-write` (update), read the item back, and rerun the claim-phase check on the stored body; it must exit 0.
+
+   Exit 1 because a present estimate is malformed → re-render it the same way.
+
+   An estimate failure never blocks the work. The item is already claimed, and stopping here would strand it in the claimed state with no trace of why. When a check exits 2, calibration or rendering fails, or the written body does not read back with a passing claim-phase check, continue to step 5 with `estimate_outcome: failed` and `estimate_failure: <reason>`, and post one comment on the item through `lisa-tracker-write` that a non-technical reader can follow, for example: "Lisa could not record a cost estimate for this item before starting work, because the project's estimate settings could not be read. The work is going ahead without one. What it actually cost will still be recorded when it is done." Name the real reason in plain words, not an exit code. Record `estimate_outcome: present|written|failed|n/a` in the result.
+5. **Ignore guard before any write.** A host can receive these skills before its shipped `.gitignore` entry, so prove the path is ignored first, from the worktree root: `git check-ignore -q .lisa/work-item-context.md || printf '%s\n' '.lisa/work-item-context.md' >> "$(git rev-parse --git-common-dir)/info/exclude"`, then re-run `git check-ignore -q .lisa/work-item-context.md`. If it is still not ignored, stop and report — do not write the bundle. If an `.easignore` exists and `grep -qxF '.lisa/work-item-context.md' .easignore` fails, stop and report instead of writing: EAS uploads read `.easignore`, which is derived from `.gitignore`, not from `info/exclude`. Then write the full resolved work-item context — the live vendor read bundle, unedited, every comment included — to the worktree-local, git-ignored `<worktree root>/.lisa/work-item-context.md`, then return this structured result (the file is the context; a summary in the reply never substitutes for it). When a `caller_bundle_path` was forwarded for this work item and the file already exists, do not overwrite it — it holds the caller's bundle (or a previous run's) and is left for the resolver step. Otherwise this is the first write; when `lisa-implement` forwarded a `caller_bundle_path`, its resolver step then keeps the bundle at that path as the base and appends only what this live read adds, and in every case finishes it with the `## Comment inventory` section:
 
    ```text
    tracker_provider: jira|github|linear
@@ -138,6 +146,8 @@ Otherwise:
    gate_reason: <the act a person must perform>|null
    claim_outcome: claimed|reused|held-by-gate|blocked-ci-loop
    binding_outcome: verified|skipped-human-gate|skipped-ci-loop
+   estimate_outcome: present|written|failed|n/a
+   estimate_failure: <plain-English reason>|null
    route: implement|ci-rework pr=<n>|blocked pr=<n>
    failing_checks: <comma-separated check names from the marker comment>|none
    head_ref: <the pull request's head branch>|null

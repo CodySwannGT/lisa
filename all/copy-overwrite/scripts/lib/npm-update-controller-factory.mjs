@@ -5,13 +5,14 @@
 import { mkdirSync, realpathSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
-import { required, OBJECT } from "./npm-update-contract.mjs";
+import { required, OBJECT, policyTarget } from "./npm-update-contract.mjs";
 import { leafRoles } from "./npm-update-leaf-contract.mjs";
 import { qualifiedControllerGraph } from "./npm-update-helper.mjs";
 import { withPrivateRoot, writeJson } from "./npm-update-process.mjs";
 import { assertPinnedVerifier } from "./github-attestation-verifier.mjs";
 import { binaryDigest } from "./npm-update-isolation.mjs";
 import { createGhRequests } from "./npm-update-gh-requests.mjs";
+import { targetField } from "./automation-provenance-contract.mjs";
 import { startControllerBroker } from "./npm-update-controller-broker.mjs";
 import { invokeControllerRecipe } from "./npm-update-broker-client.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
@@ -31,12 +32,22 @@ export function controllerDeadline(context, now = Date.now()) {
 export function controllerSubject(context, phase, pr, proofs = []) {
   const { config, policy, proposal, allocation } = context;
   const descriptor = context.descriptor ?? context.preview?.descriptor;
-  leafRoles(config, policy.repository);
+  leafRoles(config, policy.repository, policyTarget(policy));
+  const vendor = config.tracker === "jira" || config.tracker === "linear";
+  const prefix = vendor
+    ? `${String(
+        config.tracker === "jira"
+          ? config.jira?.project
+          : config.linear?.teamKey
+      )
+        .trim()
+        .toUpperCase()}-`
+    : `${policy.repository}#`;
   required(
     proposal.repository === policy.repository &&
       Number.isSafeInteger(allocation.number) &&
       allocation.number > 0 &&
-      allocation.workItem === `${policy.repository}#${allocation.number}` &&
+      allocation.workItem === `${prefix}${allocation.number}` &&
       descriptor?.parent === proposal.parent &&
       descriptor.workItem === allocation.workItem &&
       descriptor.claimCommentId === allocation.claimCommentId,
@@ -70,6 +81,9 @@ export function controllerSubject(context, phase, pr, proofs = []) {
     maintainer: policy.maintainer,
     pr: pr === null ? null : { number: String(pr.number), url: pr.html_url },
     proofs,
+    ...targetField(proposal),
+    // Only a Jira/Linear subject names its key, so a GitHub subject keeps its exact shape (#4873).
+    ...(vendor ? { workItem: allocation.workItem } : {}),
   };
   createGhRequests(subject);
   return subject;
@@ -209,6 +223,12 @@ function canonicalRecipe(context, authority) {
       GH_HOST: "github.com",
       GITHUB_REPOSITORY: context.policy.repository,
       GIT_TERMINAL_PROMPT: "0",
+      // A Jira/Linear item is bound offline: this broker holds no tracker
+      // credential by design, and the claim is proved by the adapter at
+      // checkpoint and again before publication (#4873).
+      ...(["jira", "linear"].includes(context.config.tracker)
+        ? { LISA_WORK_ITEM_VERIFY: "trailer" }
+        : {}),
     },
   };
 }

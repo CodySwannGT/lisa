@@ -44,6 +44,8 @@ const AUDITED_TREES = [
   "plugins",
   "scripts",
   "src",
+  ".husky",
+  ".claude-pr",
 ];
 
 /** Directories never worth walking. */
@@ -92,7 +94,10 @@ function shellScripts(dir: string): string[] {
     if (SKIP.has(name)) return [];
     const absolute = path.join(dir, name);
     if (statSync(absolute).isDirectory()) return shellScripts(absolute);
-    return name.endsWith(".sh") ? [absolute] : [];
+    // Git hooks carry no extension: every file directly in a `.husky`
+    // directory is a shell script husky runs.
+    const isGitHook = path.basename(dir) === ".husky";
+    return name.endsWith(".sh") || isGitHook ? [absolute] : [];
   });
 }
 
@@ -156,6 +161,23 @@ describe("shipped ShellCheck directives are parseable", () => {
     expect(malformed).toEqual([]);
   });
 
+  it("disables no check", () => {
+    // A `disable=` hides the finding it names instead of fixing the code, and
+    // `source=/dev/null` hides the sourced file from ShellCheck altogether, so
+    // neither ships (#4929). A `source=` naming the real file, and `shell=`,
+    // declare facts ShellCheck cannot see; they stay.
+    const disabling = DIRECTIVES.filter(directive =>
+      directive.body
+        .split(/\s+/u)
+        .some(
+          token => token.startsWith("disable=") || token === "source=/dev/null"
+        )
+    ).map(
+      directive => `${directive.file}:${directive.line}  ${directive.text}`
+    );
+    expect(disabling).toEqual([]);
+  });
+
   it("uses only directive keys ShellCheck defines", () => {
     // A typo'd key fails the same way the trailing prose did, silently.
     const known = new Set([
@@ -170,7 +192,7 @@ describe("shipped ShellCheck directives are parseable", () => {
       directive.body
         .split(/\s+/u)
         .filter(token => PAIR.test(token))
-        .map(token => token.split("=")[0])
+        .map(token => token.slice(0, token.indexOf("=")))
         .filter(key => !known.has(key))
         .map(key => `${directive.file}:${directive.line}  ${key}`)
     );

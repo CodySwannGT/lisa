@@ -1,3 +1,5 @@
+# shellcheck shell=sh
+# Git runs this hook with no shebang through /bin/sh, without -e.
 # BEGIN: AI GUARDRAILS
 
 WORK_ITEM_SCRIPT="node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-work-item.mjs"

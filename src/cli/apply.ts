@@ -1,5 +1,6 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { currentEnvironment } from "../utils/process-environment.js";
 import type { Harness, LisaConfig, RefreshTemplates } from "../core/config.js";
 import {
   type ApplyModeInputs,
@@ -11,7 +12,6 @@ import { recordSuccessfulApply } from "../core/apply-receipt.js";
 import { getBootstrapApplySkip } from "../core/bootstrap-environment.js";
 import { ACCEPTED_HARNESS_INPUTS } from "../core/config.js";
 import { Lisa } from "../core/lisa.js";
-import { retireNativeSafetyNet } from "../core/native-safety-net-retirement.js";
 import {
   detectLegacyHarnessMigration,
   projectConfigExists,
@@ -21,6 +21,7 @@ import {
   writeProjectConfig,
 } from "../core/project-config.js";
 import { ConsoleLogger } from "../logging/index.js";
+import { parseInvokingPackageManager } from "../strategies/package-lisa-dev-engines.js";
 import { toAbsolutePath } from "../utils/path-utils.js";
 import { nudgeCrossPollinate } from "./cross-pollinate-nudge.js";
 import {
@@ -179,6 +180,7 @@ async function migrateLegacyHarnessIfNeeded(
  * @param parts.skipGitCheck - Whether the dirty-tree prompt is skipped
  * @param parts.postinstall - Whether this apply declared a postinstall context
  * @param parts.fullApply - Whether to force the full apply anyway
+ * @param parts.invokingPackageManager - Manager that launched this apply, if any
  * @param parts.refreshTemplates - Opted-in managed files, if any
  * @param parts.harness - Target harness for emitted artifacts
  * @returns The config to hand to Lisa
@@ -191,13 +193,15 @@ function buildApplyConfig(parts: {
   skipGitCheck: boolean;
   postinstall: boolean;
   fullApply: boolean;
+  invokingPackageManager: string | undefined;
   refreshTemplates: RefreshTemplates | undefined;
   harness: Harness;
 }): LisaConfig {
-  const { refreshTemplates, ...rest } = parts;
+  const { refreshTemplates, invokingPackageManager, ...rest } = parts;
   return {
     lisaDir: getLisaDir(),
     ...rest,
+    ...(invokingPackageManager === undefined ? {} : { invokingPackageManager }),
     ...(refreshTemplates === undefined ? {} : { refreshTemplates }),
   };
 }
@@ -317,21 +321,33 @@ export function getRetiredSkipGitCheckNotice(
 }
 
 /**
- * Read this process's postinstall declaration.
+ * Read the environment this apply was launched with.
  *
- * The environment spelling is not optional here: the declaration originates in
- * the hook text inside a consumer's own `package.json`, and a shell command
- * prefix is the only way that text can reach the process it launches.
+ * The environment spelling is not optional here: the postinstall declaration
+ * originates in the hook text inside a consumer's own `package.json`, and a
+ * shell command prefix is the only way that text can reach the process it
+ * launches. The invoking package manager likewise reaches Lisa only as the
+ * `npm_config_user_agent` its launcher sets.
+ * @returns The process environment.
+ */
+function readInvocationEnvironment(): NodeJS.ProcessEnv {
+  // Lisa's CLI is not a Nest service or a Lambda handler; it must introspect
+  // the environment its launcher hands it, and routing these reads through a
+  // config service would add indirection rather than type-safety.
+  return currentEnvironment();
+}
+
+/**
+ * Read this process's postinstall declaration.
  * @param options - Parsed CLI options for this invocation.
+ * @param env - The environment this apply was launched with.
  * @returns True when this apply declared itself a package-manager install.
  */
-function readPostinstallDeclaration(options: CLIOptions): boolean {
-  // Lisa's CLI is not a Nest service or a Lambda handler; it must introspect
-  // the environment its own postinstall hook hands it, and routing this one
-  // presence check through a config service would add indirection rather than
-  // type-safety.
-  // eslint-disable-next-line no-restricted-syntax -- see above
-  return resolvePostinstallDeclaration(options.postinstallSafe, process.env);
+function readPostinstallDeclaration(
+  options: CLIOptions,
+  env: NodeJS.ProcessEnv
+): boolean {
+  return resolvePostinstallDeclaration(options.postinstallSafe, env);
 }
 
 /**
@@ -370,14 +386,15 @@ export async function runApply(
   const destDir = resolveDestinationOrExit(destination);
   const logger = new ConsoleLogger();
 
-  const postinstall = readPostinstallDeclaration(options);
+  const env = readInvocationEnvironment();
+  const postinstall = readPostinstallDeclaration(options, env);
   const skip = getBootstrapApplySkip({
     validateOnly,
     postinstall,
     fullApply: options.fullApply ?? false,
   });
   if (skip !== undefined) {
-    await finishSkippedApply(skip, destDir, dryRun);
+    console.log(skip.notice);
     return;
   }
 
@@ -394,6 +411,9 @@ export async function runApply(
     skipGitCheck: options.skipGitCheck ?? false,
     postinstall,
     fullApply: options.fullApply ?? false,
+    invokingPackageManager: parseInvokingPackageManager(
+      env.npm_config_user_agent
+    )?.name,
     refreshTemplates,
     harness,
   });
@@ -441,34 +461,4 @@ export async function runApply(
     logger.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
-}
-
-/**
- * Perform only the retirement explicitly owed by an install lifecycle.
- * @param skip - Typed bootstrap disposition
- * @param skip.kind - Install cleanup or noninteractive stand-down
- * @param skip.notice - Operator-facing explanation
- * @param destination - Project root
- * @param dryRun - Preview without changes
- */
-async function finishSkippedApply(
-  skip: { readonly kind: "install" | "environment"; readonly notice: string },
-  destination: string,
-  dryRun: boolean
-): Promise<void> {
-  const decisions =
-    skip.kind === "install"
-      ? await retireNativeSafetyNet(destination, dryRun)
-      : [];
-  for (const decision of decisions) {
-    if (decision.status === "would-retire")
-      console.log(
-        `lisa: would disable the retired safety net: ${decision.path}`
-      );
-    if (decision.status.startsWith("preserved"))
-      console.warn(
-        `lisa: kept your customized safety-net file: ${decision.path}`
-      );
-  }
-  console.log(skip.notice);
 }

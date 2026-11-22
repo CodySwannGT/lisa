@@ -5,10 +5,11 @@
  * Owner decision 4 of CodySwannGT/lisa#4587 took
  * `tests/integration/shared-runtime-packed-hosts.test.ts` off every pull
  * request. That trade is only safe while a maintainer can still run it on
- * demand, so the dispatch-only workflow, the package script it runs, and the
- * runbook that says when to use it are checked against each other here. The
- * silent failure this guards against is a workflow that still exists but runs
- * the wrong command, under a Node the journey defers on, or on every PR again.
+ * demand, so the dispatch-only workflow and the package script it runs are
+ * checked against each other here. The silent failure this guards against is
+ * a workflow that still exists but runs the wrong command, under a Node the
+ * journey defers on, or on every PR again. The runbook prose
+ * (`docs/packed-host-journey.md`) is not pinned (#4867).
  * @module tests/unit/config/packed-host-journey-wired
  */
 import { readFileSync } from "node:fs";
@@ -27,14 +28,12 @@ const JOURNEY = "tests/integration/shared-runtime-packed-hosts.test.ts";
 /** The dispatch-only workflow that runs it. */
 const WORKFLOW = ".github/workflows/packed-host-journey.yml";
 
-/** The runbook a maintainer reads to decide whether to run it. */
-const RUNBOOK = "docs/packed-host-journey.md";
-
 /** The package script both the workflow and the local command use. */
 const SCRIPT = "test:integration:packed-hosts";
 
 /** One workflow step, as far as this file reads it. */
 interface Step {
+  readonly if?: string;
   readonly uses?: string;
   readonly run?: string;
   readonly env?: Readonly<Record<string, string>>;
@@ -52,6 +51,9 @@ interface Workflow {
         readonly if?: string;
         readonly "runs-on": string;
         readonly "timeout-minutes": number;
+        readonly strategy?: {
+          readonly matrix: Readonly<Record<string, readonly string[]>>;
+        };
         readonly steps: readonly Step[];
       }
     >
@@ -92,7 +94,9 @@ describe("the packed-host journey workflow", () => {
   });
 
   it("runs only in this repository, read-only, on the pinned image", () => {
-    expect(job.if).toBe("github.repository == 'CodySwannGT/lisa'");
+    expect(job.if).toBe(
+      "github.repository == 'CodySwannGT/lisa' && inputs.journey"
+    );
     expect(workflow.permissions).toEqual({ contents: "read" });
     expect(job["runs-on"]).toBe("ubuntu-24.04");
     expect(job["timeout-minutes"]).toBeGreaterThan(0);
@@ -152,33 +156,89 @@ describe("the packed-host journey workflow", () => {
   });
 });
 
-describe("the packed-host journey runbook", () => {
-  const runbook = read(RUNBOOK);
+/** The gated fs-probe diagnostic the workflow can run (#4636, #5066). */
+const DIAGNOSTIC = "tests/integration/fs-probe-diagnostic.test.ts";
 
-  it("names both ways to run it", () => {
-    expect(runbook).toContain(
-      "gh workflow run packed-host-journey.yml -f ref=main"
+describe("the fs-probe diagnostic route (CodySwannGT/lisa#4636, #5066)", () => {
+  const dispatch = workflow.on["workflow_dispatch"] as {
+    inputs: Record<string, { default: unknown; type: string }>;
+  };
+  const diagnosticJob = workflow.jobs["fs_probe_diagnostic"]!;
+  const diagnosticSteps = diagnosticJob.steps;
+
+  it("is a boolean dispatch input that is off unless asked for", () => {
+    expect(dispatch.inputs["probe_diagnostic"]).toMatchObject({
+      type: "boolean",
+      default: false,
+    });
+  });
+
+  it("can skip the journey, which runs unless told not to", () => {
+    expect(dispatch.inputs["journey"]).toMatchObject({
+      type: "boolean",
+      default: true,
+    });
+  });
+
+  it("runs only when asked, in its own job, on the journey's image and the unit shards' image", () => {
+    expect(diagnosticJob.if).toBe(
+      "github.repository == 'CodySwannGT/lisa' && inputs.probe_diagnostic"
     );
-    expect(runbook).toContain(`mise exec node@24.21.0 -- bun run ${SCRIPT}`);
+    expect(diagnosticJob["runs-on"]).toBe("${{ matrix.image }}");
+    expect(diagnosticJob.strategy?.matrix["image"]).toEqual([
+      job["runs-on"],
+      "ubuntu-latest",
+    ]);
+    expect(steps.some(step => step.run?.includes(DIAGNOSTIC))).toBe(false);
   });
 
-  it("names the packaging changes that require a run", () => {
-    for (const trigger of [
-      "`files`",
-      "`exports`",
-      "`bin`",
-      "scripts/build-plugins.sh",
-      "scripts/clean-dist.mjs",
-      "tsconfig*.json",
-      "tests/fixtures/shared-runtime-hosts/",
-    ]) {
-      expect(runbook, trigger).toContain(trigger);
-    }
+  it("runs the diagnostic with its flag set", () => {
+    const step = diagnosticSteps.find(step => step.run?.includes(DIAGNOSTIC));
+    expect(step?.env?.["LISA_FS_PROBE_DIAGNOSTIC"]).toBe("1");
+    expect(step?.run).toContain(`bun run test ${DIAGNOSTIC}`);
   });
 
-  it("names the protection that replaced the pull-request run", () => {
-    expect(runbook).toContain("#4604");
-    expect(runbook).toContain("#4605");
-    expect(runbook).toContain("bun run release:rollback");
+  it("proves the gated cases executed rather than skipped", () => {
+    const proof = diagnosticSteps.find(step =>
+      step.run?.includes("scripts/check-test-case-executed.mjs")
+    );
+    expect(proof?.run).toContain(
+      '--name "fs probe diagnostic paired sample 8 of 8"'
+    );
+    expect(proof?.run).toContain(
+      '--name "fs probe diagnostic decomposes a removal into fixed and per-entry cost, settled 1000ms"'
+    );
+    const source = read(DIAGNOSTIC);
+    expect(source).toContain('"paired sample %i of 8"');
+    expect(source).toContain(
+      '"decomposes a removal into fixed and per-entry cost, settled %ims"'
+    );
+    expect(source).toContain('process.env["LISA_FS_PROBE_DIAGNOSTIC"] === "1"');
+  });
+
+  it("repeats the unit agreement case on the idle runner only, failing on any miss", () => {
+    const loop = diagnosticSteps.find(step =>
+      step.run?.includes("tests/unit/helpers/fs-latency-budget.test.ts")
+    );
+    expect(loop?.env?.["CASE"]).toBe(
+      "agrees with a real corpus deletion measured in the same window"
+    );
+    expect(loop?.run).toContain("repeat idle");
+    expect(loop?.run).not.toMatch(/\byes\b|io-hog|repeat loaded/);
+    expect(loop?.run).toContain('test ! -s "$OUT/agreement-failures.txt"');
+  });
+
+  it("records the runner and the mounts the probe writes to", () => {
+    const record = diagnosticSteps.find(step => step.run?.includes("findmnt"));
+    expect(record?.run).toContain("findmnt -no OPTIONS /");
+    expect(record?.run).toContain("findmnt -no SOURCE,FSTYPE,OPTIONS -T /tmp");
+  });
+
+  it("still records the journey's runner and root mount options on every dispatch", () => {
+    const journey = steps.findIndex(step => step.run?.includes(SCRIPT));
+    const record = steps.find(step => step.run?.includes("findmnt"));
+    expect(record?.if).toBeUndefined();
+    expect(record?.run).toContain("findmnt -no OPTIONS /");
+    expect(steps.indexOf(record!)).toBeLessThan(journey);
   });
 });

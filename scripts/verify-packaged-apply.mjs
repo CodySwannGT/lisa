@@ -15,6 +15,7 @@ import {
   refuseHostApply,
   snapshotFiles,
 } from "./lib/packaged-apply-isolation.mjs";
+import { resolveDockerCli } from "./lib/docker-cli.mjs";
 
 const execute = promisify(execFile);
 const packageRoot = path.resolve(import.meta.dirname, "..");
@@ -32,16 +33,37 @@ const harnesses = [
 /**
  * Bounded native command; no shell interpolation or operator credentials passed
  * to the container. Docker itself retains its normal local daemon access.
+ * @param {string} cli - Absolute Docker CLI path, resolved once per run.
  * @param {string[]} args - Literal Docker arguments.
  * @returns {Promise<string>} Native stdout.
  */
-async function docker(args) {
-  const result = await execute("docker", args, {
+async function docker(cli, args) {
+  const result = await execute(cli, args, {
     encoding: "utf8",
     timeout: 25 * 60_000,
     maxBuffer: 32 * 1024 * 1024,
   });
   return result.stdout;
+}
+
+/**
+ * `docker start --attach` failing says nothing about why; carry the driver's
+ * own recorded assertion so every caller sees it (CodySwannGT/lisa#4822).
+ * @param {Error} error - Container start failure.
+ * @param {string} directory - Run output holding native-proof.json.
+ * @returns {Promise<Error>} The same error, its message extended when known.
+ */
+async function withNativeFailure(error, directory) {
+  try {
+    const { failure } = JSON.parse(
+      await readFile(path.join(directory, "native-proof.json"), "utf8")
+    );
+    if (failure)
+      error.message += `\nNative driver failure: ${failure.stack ?? failure.message}`;
+  } catch {
+    // An unreadable proof must not replace the original failure.
+  }
+  return error;
 }
 
 /**
@@ -72,12 +94,13 @@ async function main() {
       output: { type: "string" },
       preserve: { type: "string", multiple: true, default: [] },
       "failure-control": { type: "boolean", default: false },
+      docker: { type: "string" },
       help: { type: "boolean", default: false },
     },
   });
   if (values.help) {
     console.log(
-      "Usage: node scripts/verify-packaged-apply.mjs --backend docker --archive FILE --image IMAGE --output NEW_DIRECTORY [--harness codex|fleet|claude|cursor|opencode|agy|copilot|devin] [--preserve FILE ...] [--failure-control]"
+      "Usage: node scripts/verify-packaged-apply.mjs --backend docker --archive FILE --image IMAGE --output NEW_DIRECTORY [--docker ABSOLUTE_CLI] [--harness codex|fleet|claude|cursor|opencode|agy|copilot|devin] [--preserve FILE ...] [--failure-control]"
     );
     console.log(
       "Default host preflight refuses without spawning apply. Build scripts/fixtures/packaged-apply/Dockerfile first. No host mounts or operator environment are forwarded."
@@ -105,6 +128,12 @@ async function main() {
       "Docker verification requires --archive FILE --image IMAGE --output NEW_DIRECTORY"
     );
   }
+  // One absolute CLI for every Docker call in this run, so the binary that
+  // starts the container is the one that removes it. A caller that also cleans
+  // up passes the path it resolved; otherwise resolve it here, the same way.
+  const dockerCli = values.docker ?? resolveDockerCli();
+  if (!path.isAbsolute(dockerCli))
+    throw new Error("--docker must be an absolute path to the Docker CLI");
   const archive = path.resolve(values.archive);
   const archiveBytes = await readFile(archive);
   const output = path.resolve(values.output);
@@ -137,7 +166,9 @@ async function main() {
   ];
   const before = await snapshotFiles(files, path.join(output, "before-images"));
   await record(output, "before.json", before);
-  const image = JSON.parse(await docker(["image", "inspect", values.image]))[0];
+  const image = JSON.parse(
+    await docker(dockerCli, ["image", "inspect", values.image])
+  )[0];
   if (!/^sha256:[a-f0-9]{64}$/u.test(image?.Id ?? ""))
     throw new Error("Unresolved Docker image identity");
   let id;
@@ -146,7 +177,7 @@ async function main() {
   let preservation = false;
   try {
     id = (
-      await docker([
+      await docker(dockerCli, [
         "create",
         "--name",
         `lisa-verify-${randomUUID()}`,
@@ -182,7 +213,7 @@ async function main() {
         ...(values["failure-control"] ? ["failure-control"] : []),
       ])
     ).trim();
-    const inspected = JSON.parse(await docker(["inspect", id]))[0];
+    const inspected = JSON.parse(await docker(dockerCli, ["inspect", id]))[0];
     assertDisposableContainer(inspected, id);
     await record(output, "preflight.json", {
       container_id: id,
@@ -221,13 +252,17 @@ async function main() {
       operator_credentials_forwarded: false,
       host_destinations: files,
     });
-    await docker(["cp", ownedArchive, `${id}:/lisa-input.tgz`]);
-    await docker(["cp", driverCopy, `${id}:/lisa-verify-driver.mjs`]);
-    await docker(["cp", casesCopy, `${id}:/lisa-guard-cases.json`]);
+    await docker(dockerCli, ["cp", ownedArchive, `${id}:/lisa-input.tgz`]);
+    await docker(dockerCli, [
+      "cp",
+      driverCopy,
+      `${id}:/lisa-verify-driver.mjs`,
+    ]);
+    await docker(dockerCli, ["cp", casesCopy, `${id}:/lisa-guard-cases.json`]);
     let stdout = "";
     let childFailure;
     try {
-      stdout = await docker(["start", "--attach", id]);
+      stdout = await docker(dockerCli, ["start", "--attach", id]);
     } catch (error) {
       stdout = error.stdout ?? "";
       childFailure = error;
@@ -236,14 +271,14 @@ async function main() {
       mode: 0o600,
       flag: "wx",
     });
-    const terminal = JSON.parse(await docker(["inspect", id]))[0];
+    const terminal = JSON.parse(await docker(dockerCli, ["inspect", id]))[0];
     await record(output, "terminal.json", terminal.State);
-    await docker([
+    await docker(dockerCli, [
       "cp",
       `${id}:/lisa-proof.json`,
       path.join(output, "native-proof.json"),
     ]);
-    if (childFailure) throw childFailure;
+    if (childFailure) throw await withNativeFailure(childFailure, output);
     if (terminal.State.Status !== "exited" || terminal.State.ExitCode !== 0) {
       throw new Error(
         `Native verification child exited ${terminal.State.ExitCode}`
@@ -259,7 +294,7 @@ async function main() {
   } finally {
     // Stop every process in the owned namespace before examining host state.
     try {
-      if (id) await docker(["rm", "--force", "--volumes", id]);
+      if (id) await docker(dockerCli, ["rm", "--force", "--volumes", id]);
     } catch (error) {
       cleanupError = error;
     }

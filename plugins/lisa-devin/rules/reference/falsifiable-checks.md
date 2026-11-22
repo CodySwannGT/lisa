@@ -157,19 +157,43 @@ A clean result is a statement about what the check can perceive, not about the c
 ## How to apply
 
 1. Author the check.
-2. Deliberately break the guarded property — specifically, introduce **the exact regression the guard exists to prevent**, not a nearby or convenient break.
+2. On a scratch copy, never in a worktree another agent is editing, deliberately break the guarded property — specifically, introduce **the exact regression the guard exists to prevent**, not a nearby or convenient break.
 3. Confirm the check **fails and names the right file/line**, then read the failure count and the failing test *names* per the yardstick below.
-4. Restore, and confirm green again.
+4. Restore by discarding the scratch copy. The green baseline you took in the copy before the break is the green-again evidence; the shared tree was never changed, so there is nothing to restore there.
 5. Report the falsification alongside the result.
+
+### Break on a scratch copy, never in a shared worktree
+
+A worktree has one working tree. When a builder or another agent is editing it, an in-place mutation is a write into their files: the break and its revert race their concurrent edits, and a revert that lands after their next save can clobber their work or sweep it into a commit. Restore must not depend on the shared tree's state.
+
+So every falsification break (steps 2 to 4 above, and the mutation proof below) runs on a scratch copy, made from the repository root:
+
+```sh
+tmp=$(mktemp -d)
+git worktree add --detach "$tmp" HEAD
+git diff --binary HEAD | git -C "$tmp" apply --allow-empty   # tracked changes, binaries included
+git ls-files --others --exclude-standard -z |
+  rsync -a --from0 --files-from=- ./ "$tmp"/                 # untracked new files
+ln -s "$PWD/node_modules" "$tmp/node_modules"                # dependencies (or run the project's install in "$tmp")
+# 1. baseline: run the check in "$tmp" BEFORE breaking anything; it must be green
+# 2. break the property in "$tmp", run the check there, read the failure
+git worktree remove --force "$tmp"                           # discarding the copy is the restore
+```
+
+The copy must be complete before the break means anything. `git diff` carries only tracked changes, so new files need the explicit untracked copy, and a fresh worktree has no installed dependencies, so link them (never install into the linked directory from the copy) or install them there. **In a workspace monorepo, install in the copy instead of linking:** a linked `node_modules` resolves each workspace package back to the original checkout, so a break reached through a workspace package name never runs, the check stays green, and the guard is wrongly reported inert. Then take the **baseline**: run the check in the copy before breaking anything and confirm it is green. A red baseline means the copy is incomplete (a missing new file, missing dependencies), not that the guard bites; fix the copy first. That green baseline is also the green-again evidence for the restore, because discarding the copy is the restore and the shared tree was never touched.
+
+Make the scratch copy with a plain `git worktree add --detach` at a temp path and address it by absolute path. Never use a harness tool that switches the session's working directory into it (for example Claude Code's `EnterWorktree`): that moves every agent sharing the session out of the tree it is working in.
+
+A temp copy of only the touched files is acceptable when the check can run against them in isolation; it needs the same baseline. Either way, the shared tree is never written to.
 
 ### The failure count is part of the evidence
 
 Step 3's cardinality is not pedantry; each deviation names a distinct defect. Run it as four steps, in this order:
 
-1. **Neuter the protection in production code** — delete the branch, drop the token from the enum, remove the check. Editing a *test* proves nothing about the guard; it only proves the test file is loaded.
+1. **Neuter the protection in production code, on a scratch copy** (never in a worktree another agent is editing; see above) — delete the branch, drop the token from the enum, remove the check. Editing a *test* proves nothing about the guard; it only proves the test file is loaded.
 2. **Run the whole suite.** Never a single test file, and never a path filter.
 3. **Count the failures and read their names.** The count alone is ambiguous; the names are what separate "several failures of one regression" from "several unrelated failures."
-4. **Revert, and confirm green again.**
+4. **Restore by discarding the scratch copy.** The green baseline taken in the copy before the break is the green-again evidence.
 
 Then read the result:
 
@@ -273,3 +297,22 @@ Concretely:
 - **`empirical-inquiry`** — settles an uncertain fact with the cheapest probe. A probe is a check, so it inherits the falsification requirement, including deliberate bite controls (cases that MUST report a problem) when the probe's job is to detect problems.
 - **`claim-evidence-mapping`** — an unfalsified gate cannot back a claim.
 - **`stale-state-claims`** — the sibling failure from the opposite direction: an assertion of state that *could* fail but is never re-evaluated, because nothing re-runs prose. Binding a temporal claim to a check is the recommended fix there, which puts that check under this rule.
+
+## Summary of obligations (formerly the always-loaded head)
+
+A check that cannot fail is not evidence.
+
+A passing test, a clean lint run, a zero-hit sweep, a green ratchet: each is evidence **only if that check is known to be capable of failing.** Otherwise it is a checkbox, and a green suite that protects nothing is worse than none — it suppresses the search for the defect.
+
+**Before reporting any clean, zero, or passing result from a check you authored or modified, prove it fails on known-bad input.** Break the thing being guarded on a scratch copy, never in a worktree another agent is editing, confirm the check fails *and names the right location*, then discard the copy. That falsification is part of the deliverable, not an optional extra.
+
+- **Falsify before reporting.** No clean result is reportable until the check has been shown to fail on a deliberate break. **"Mentally reverting" does not count** — reasoning that the assertion *would* fail is precisely the step that lets a non-functional guard ship, because the author already believes it is load-bearing. Run the break.
+- **Mutation-prove the guard, then read the cardinality.** Neuter the protection **in production code**, on a scratch copy, run the **whole suite** there, count the failures and **read their names**, then discard the copy. **Zero** ⇒ the guard is inert (one pinning a single field shipped with all 50 tests green while the regression walked through). **Many, unrelated** ⇒ over-broad; its next failure will not name the cause. **Exactly one, or several all named for the same regression** ⇒ load-bearing and correctly scoped. A **zero is robust to contention** — load only ever adds failures — so only the non-zero counts need a quiet machine.
+- **The automated mutation gate is language-scoped; the manual probe above is not.** Stryker instruments the JavaScript and TypeScript family plus Vue, HTML and Svelte — there is **no shell parser**, so a guard whose logic lives in `.sh` yields no mutants under **any** `mutate` list. Adding one aborts the whole run (`No parser registered for .sh!` — measured, not inferred), taking every other guard's score with it. A mutation gate grey or green on a shell-guard change **measured nothing about that guard**; reading it as coverage is the fifth failure mode above wearing a config file. Shell guards are covered by **driving tests only**: execute the script against a payload table and assert the blocked/allowed verdict, with a control on **both** sides — a refusal case *and* an allowed case. A shell guard nothing executes has no bite evidence at all, whatever the gate printed.
+- **Never scope the probe by filename, and never infer absent coverage from a grep.** Suites split at the line cap, so a protection's tests often sit in a sibling file: a filename-scoped probe reported cardinality 0 on a live security fix that a whole-suite run showed failing 4 tests, every one named for it.
+- **Assert that no copy is wrong, not that some copy is right.** An existential assertion over duplicated content is satisfied by the correct copy and cannot see the broken one — rewriting one suite's assertions to universal negatives took the same mutation from **0 to 18** failures. Enumerate the property (*every* marker uses an em-dash), never the one known-bad spelling.
+- **Reconstruct a red state; never narrate one you did not run.** Evidence describing a failing or dirty state must come from a run you actually observed — an evidence file once claimed "working tree clean" while listing two untracked scripts in the same file. To observe a state that no longer exists, check that commit out in a **throwaway detached-HEAD worktree** and run it there. Writing down what the output would have said is fabrication, however confident the reasoning.
+- **Say how it was falsified.** "0 findings" alone is not a result; state what you broke and that the check caught it. A gate whose falsification is untested must be reported as *unvalidated*, not as passing.
+- **Prefer structural over textual checks.** Parse the AST/structure instead of matching source text: text matching cannot distinguish a field from a comment, an alias, or a nested occurrence, and it produces false positives that mask the real ones.
+- **A negative result is scoped to what the check can see.** State the blind spot. A presence check cannot see a wrong value; a per-file check cannot see a cross-file interaction; fixing one instance of a class is not fixing the class — sweep the class.
+- **When revert-to-verify is unreliable** (generated artifacts, schema-validated inputs, caches), unit-test the checker directly against synthetic known-bad input instead.

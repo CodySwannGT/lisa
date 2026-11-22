@@ -21,23 +21,24 @@
       "sg:scan:lisa": "node scripts/lib/worktree-dependencies.mjs && ast-grep scan",
       "sg:test": "node scripts/lib/worktree-dependencies.mjs && ast-grep test",
       "test:cov:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile typescript --adapter vitest -- vitest run --coverage",
-      "test:cov:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit lisa-test-run --profile typescript --adapter vitest -- vitest run --coverage --exclude='**/integration/**'",
+      "test:cov:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- lisa-test-run --profile typescript --adapter vitest -- vitest run --coverage --exclude='**/integration/**'",
       "test:integration:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile typescript --adapter vitest -- vitest run '.integration.' 'integration/'",
       "test:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile typescript --adapter vitest -- vitest run",
-      "test:mutation": "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-mutation.mjs",
-      "test:node:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-test-node.mjs",
-      "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile typescript --adapter vitest -- vitest run --exclude='**/integration/**'",
+      "test:mutation": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-mutation.mjs",
+      "test:node:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-test-node.mjs",
+      "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- lisa-test-run --profile typescript --adapter vitest -- vitest run --exclude='**/integration/**'",
       "test:watch:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile typescript --adapter vitest -- vitest",
-      "typecheck:lisa": "node scripts/lib/worktree-dependencies.mjs && tsc --noEmit",
+      "typecheck:lisa": "node scripts/lib/worktree-dependencies.mjs && node scripts/lisa-typecheck.mjs",
       "security:audit:lisa": "node scripts/lisa-audit.mjs"
     },
     "devDependencies": {
-      "eslint-plugin-oxlint": "1.62.0",
-      "oxlint": "1.62.0",
+      "eslint-plugin-oxlint": ">=1.62.0 <1.86.0",
+      "oxlint": ">=1.62.0 <1.86.0",
       "oxlint-tsgolint": "^0.24.0",
-      "@stryker-mutator/core": "^9.0.0",
-      "@stryker-mutator/vitest-runner": "^9.0.0",
-      "fast-check": "^4.9.0"
+      "@stryker-mutator/core": "^10.1.1",
+      "@stryker-mutator/vitest-runner": "^10.1.1",
+      "fast-check": "^4.9.0",
+      "knip": "6.44.1"
     },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",
@@ -73,12 +74,12 @@
   "defaults": {
     "devDependencies": {
       "@ast-grep/cli": "^0.40.4",
-      "@vitest/coverage-v8": "^4.1.11",
+      "@vitest/coverage-v8": "^5.1.0",
       "eslint": "^9.39.5",
       "husky": "^8.0.0",
       "prettier": "3.8.0",
       "typescript": "^6.0.3",
-      "vitest": "^4.1.11"
+      "vitest": "^5.1.0"
     },
     "scripts": {
       "build": "node scripts/lib/worktree-dependencies.mjs && tsc",
@@ -187,7 +188,82 @@
         "lisa-test-run -- vitest"
       ],
       "typecheck": [
-        "tsc --noEmit"
+        "tsc --noEmit",
+        "node scripts/lisa-typecheck.mjs"
+      ]
+    },
+    "devDependencies": {
+      "@commitlint/cli": [
+        "^20.3.1"
+      ],
+      "@commitlint/config-conventional": [
+        "^20.3.1"
+      ],
+      "@eslint-community/eslint-plugin-eslint-comments": [
+        "^4.5.0"
+      ],
+      "@eslint/eslintrc": [
+        "^3.2.0"
+      ],
+      "@eslint/js": [
+        "^9.39.0"
+      ],
+      "@jest/globals": [
+        "^30.0.0"
+      ],
+      "@jest/test-sequencer": [
+        "^30.2.0"
+      ],
+      "@types/fs-extra": [
+        "^11.0.0"
+      ],
+      "@types/jest": [
+        "^30.0.0"
+      ],
+      "@types/lodash.merge": [
+        "^4.6.0"
+      ],
+      "esbuild-register": [
+        "^3.6.0"
+      ],
+      "eslint-config-prettier": [
+        "^10.0.0"
+      ],
+      "eslint-plugin-functional": [
+        "^9.0.0"
+      ],
+      "eslint-plugin-jsdoc": [
+        "^61.5.0"
+      ],
+      "eslint-plugin-prettier": [
+        "^5.5.0"
+      ],
+      "eslint-plugin-sonarjs": [
+        "^3.0.0"
+      ],
+      "jest": [
+        "^30.0.0"
+      ],
+      "jscodeshift": [
+        "0.15.2"
+      ],
+      "lint-staged": [
+        "^16.2.7"
+      ],
+      "standard-version": [
+        "^9.5.0"
+      ],
+      "ts-jest": [
+        "^29.4.6"
+      ],
+      "ts-morph": [
+        "^27.0.2"
+      ],
+      "ts-node": [
+        "^10.9.2"
+      ],
+      "typescript-eslint": [
+        "^8.0.0"
       ]
     }
   }

@@ -207,7 +207,7 @@ describe("diagnoseFailure: when it cannot tell", () => {
     // parenthesised `(line,col)` position, so it is a sentence ABOUT a type
     // error rather than a compiler reporting one. Recognising it would be the
     // module treating talk as measurement. A transcript with the real
-    // position, or the quarantine wrapper's own file list, classifies as
+    // position, or the type-check wrapper's own file list, classifies as
     // `type-errors` instead — see "a type checker that ran and found errors" below.
     const verdict: Diagnosis = diagnoseFailure(
       "tsc: error TS2307: Cannot find module './missing'\n\n"
@@ -685,34 +685,35 @@ describe("diagnoseFailure: a cleanup that lost a race is not a code failure", ()
  *    exactly what #2961 and CodySwannGT/lisa#3911 exist to prevent — so the
  *    precedence cases below are not decoration.
  *
- * Fixtures are the real emitted strings, read off `scripts/check-typecheck-tests.mjs`
- * and off the transcript quoted in #3946, rather than invented shapes. A
+ * Fixtures are the real emitted strings, read off `scripts/check-typecheck-tests.mjs`,
+ * rather than invented shapes. A
  * classifier tested against text nobody emits proves nothing about the text
  * everybody sees.
  */
 /**
- * The transcript from #3946, verbatim.
+ * A failing run of the test type-check wrapper, as it prints.
  *
- * Including the trailing advice prose and BOTH task-runner exit lines on
- * purpose: those are what the three-line tail quoted instead of the file name,
- * so a fixture without them cannot reproduce the defect.
+ * The defect in #3946 was a run like this one whose three-line tail quoted two
+ * task-runner exit lines and the advice sentence instead of the file name, so
+ * the trailing advice prose and BOTH task-runner exit lines are included on
+ * purpose: a fixture without them cannot reproduce the defect.
  */
-const QUARANTINE_OFFENDERS = `type-correctness (tests): 371 file(s) with 1568 error(s); 370 quarantined.
+const WRAPPER_OFFENDERS = `type-correctness (tests): 1 file(s) with 1 error(s).
 
-❌ 1 file(s) outside the quarantine have type errors:
+❌ 1 file(s) have type errors:
    tests/unit/config/coverage-scratch-isolation.test.ts (1)
 
-Fix them. Do NOT add them to typecheck-quarantine.json — that list
-only shrinks, and the threshold-ratchet flags additions to it.
+Fix each at its cause. There is no exemption list: every file in the
+test program is type-checked, and one error fails it.
 error: script "typecheck:tests" exited with code 1
 error: script "typecheck" exited with code 1`;
 
-/** The wrapper's other exit-1 branch, which is the same defect one fix away. */
-const QUARANTINE_STALE = `❌ 2 quarantined file(s) now type-check and must leave the list:
-   tests/a.test.ts
-   tests/b.test.ts
+/** The wrapper naming more than one file under its header. */
+const WRAPPER_SEVERAL = `❌ 2 file(s) have type errors:
+   tests/a.test.ts (3)
+   tests/b.test.ts (1)
 
-Remove them from typecheck-quarantine.json.
+Fix each at its cause.
 error: script "typecheck" exited with code 1`;
 
 /** `tsc --noEmit`'s own diagnostic form, with the parenthesised position. */
@@ -726,8 +727,8 @@ const diagnose = (output: string, code?: number): Diagnosis =>
   diagnoseFailure(output, code, null) as Diagnosis;
 
 describe("a type checker that ran and found errors", () => {
-  it("classifies the transcript from #3946 as a measured type failure", () => {
-    const verdict = diagnose(QUARANTINE_OFFENDERS, 1);
+  it("classifies a failing wrapper run as a measured type failure", () => {
+    const verdict = diagnose(WRAPPER_OFFENDERS, 1);
 
     expect(verdict.kind).toBe(DIAGNOSIS.TYPE_ERRORS);
     expect(verdict.kind).not.toBe(DIAGNOSIS.UNDIAGNOSED);
@@ -736,11 +737,11 @@ describe("a type checker that ran and found errors", () => {
   it("attributes it to type-correctness rather than to nobody", () => {
     // `proves: null` is what routes a verdict into the residual bucket. The
     // attribution is the half that says WHOSE property failed.
-    expect(diagnose(QUARANTINE_OFFENDERS, 1).proves).toBe("type-correctness");
+    expect(diagnose(WRAPPER_OFFENDERS, 1).proves).toBe("type-correctness");
   });
 
   it("names the offending file instead of the task runner's exit lines", () => {
-    const { evidence } = diagnose(QUARANTINE_OFFENDERS, 1);
+    const { evidence } = diagnose(WRAPPER_OFFENDERS, 1);
 
     expect(evidence).toContain(
       "tests/unit/config/coverage-scratch-isolation.test.ts"
@@ -749,7 +750,7 @@ describe("a type checker that ran and found errors", () => {
     // runner-chain exits and a fragment of the advice sentence, while the
     // naming line sat six lines above.
     expect(evidence.join("\n")).not.toContain("exited with code");
-    expect(evidence.join("\n")).not.toContain("only shrinks");
+    expect(evidence.join("\n")).not.toContain("exemption list");
   });
 
   it("reads tsc's own diagnostic lines, naming each distinct file once", () => {
@@ -776,10 +777,8 @@ describe("a type checker that ran and found errors", () => {
     expect(verdict.summary).toContain("1 file(s)");
   });
 
-  it("recognises the stale-quarantine branch too", () => {
-    // Not in #3946, and the identical defect one fix away: repair a
-    // quarantined file and this branch exits 1 with a named file list.
-    const verdict = diagnose(QUARANTINE_STALE, 1);
+  it("names every file the wrapper lists under its header", () => {
+    const verdict = diagnose(WRAPPER_SEVERAL, 1);
 
     expect(verdict.kind).toBe(DIAGNOSIS.TYPE_ERRORS);
     expect(verdict.evidence).toEqual(["tests/a.test.ts", "tests/b.test.ts"]);
@@ -794,7 +793,7 @@ describe("a type checker that ran and found errors", () => {
     // suite prints its fixtures.
     const verdict = diagnose(
       [
-        "❌ 1 file(s) outside the quarantine have type errors: (as printed by the wrapper)",
+        "❌ 1 file(s) have type errors: (as printed by the wrapper)",
         "   tests/some-fixture.test.ts (1)",
       ].join("\n"),
       1
@@ -826,18 +825,18 @@ describe("every non-measurement guard still outranks a type transcript", () => {
   it("a terminated run stays killed, whatever its transcript said", () => {
     // 137 is SIGKILL. A command the machine took away measured nothing, so
     // the type errors it printed on the way out are not a verdict.
-    const verdict = diagnose(QUARANTINE_OFFENDERS, 137);
+    const verdict = diagnose(WRAPPER_OFFENDERS, 137);
 
     expect(verdict.kind).toBe(DIAGNOSIS.KILLED);
     expect(verdict.proves).toBeNull();
   });
 
   it("a SIGTERM stays killed", () => {
-    expect(diagnose(QUARANTINE_OFFENDERS, 143).kind).toBe(DIAGNOSIS.KILLED);
+    expect(diagnose(WRAPPER_OFFENDERS, 143).kind).toBe(DIAGNOSIS.KILLED);
   });
 
   it("an OS resource refusal outranks it", () => {
-    const verdict = diagnose(`${REFUSAL}\n${QUARANTINE_OFFENDERS}`, 1);
+    const verdict = diagnose(`${REFUSAL}\n${WRAPPER_OFFENDERS}`, 1);
 
     expect(verdict.kind).toBe(DIAGNOSIS.RESOURCE_REFUSED);
     expect(verdict.proves).toBeNull();
@@ -846,16 +845,16 @@ describe("every non-measurement guard still outranks a type transcript", () => {
   it("a fork refusal outranks it", () => {
     expect(
       diagnose(
-        `fork: Resource temporarily unavailable\n${QUARANTINE_OFFENDERS}`,
+        `fork: Resource temporarily unavailable\n${WRAPPER_OFFENDERS}`,
         1
       ).kind
     ).toBe(DIAGNOSIS.RESOURCE_REFUSED);
   });
 
   it("a run that executed zero test files outranks it", () => {
-    expect(
-      diagnose(`No test files found\n${QUARANTINE_OFFENDERS}`, 1).kind
-    ).toBe(DIAGNOSIS.NO_TESTS_RAN);
+    expect(diagnose(`No test files found\n${WRAPPER_OFFENDERS}`, 1).kind).toBe(
+      DIAGNOSIS.NO_TESTS_RAN
+    );
   });
 
   it("an empty or absent transcript is still uncaptured", () => {

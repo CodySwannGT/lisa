@@ -64,6 +64,7 @@ describe("readEvidenceSeed", () => {
       declaresPermissions: true,
       writesChecks: false,
       publishesVerdict: false,
+      acceptsDispatchContext: false,
     });
     expect(isCurrentEvidenceSeed(reading)).toBe(false);
   });

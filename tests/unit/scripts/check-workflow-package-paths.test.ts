@@ -483,7 +483,9 @@ describe("workflow package paths must exist in the released package (#2960)", ()
       );
 
       expect(withPaths).toHaveLength(1);
-      expect(extractPackagePaths(withPaths[0].text)).toEqual([
+      const [withPath] = withPaths;
+      if (!withPath) throw new Error("expected one step with package paths");
+      expect(extractPackagePaths(withPath.text)).toEqual([
         NEW_LOCATION,
         OLD_LOCATION,
       ]);

@@ -1,5 +1,5 @@
 ---
-description: "Remove the recurring Lisa automations /setup-automations created for this project (the lisa-auto-<project>-* set) using the runtime's native scheduler (Codex automations / Claude /schedule). A declarative spec — it states which automations to remove; the runtime's native mechanism does the removing. Removes only this project's Lisa automations, never others."
+description: "Remove this project's recurring Lisa automations using the runtime's native scheduler. Never touches other projects' or non-Lisa automations."
 argument-hint: ""
 ---
 

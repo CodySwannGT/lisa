@@ -1,4 +1,4 @@
 display_name: "Analyze Claude Remote"
-short_description: "Audit whether the current repository can run as a Claude Code remote routine (cloud session)"
+short_description: "Check whether this repo can run as a Claude Code remote routine: CLIs, environment variables and secrets, startup hooks, MCP servers, and…"
 default_prompt:
-  - "Use $lisa-analyze-claude-remote: Audit whether the current repository can run as a Claude Code remote routine (cloud session)."
+  - "Use $lisa-analyze-claude-remote: Check whether this repo can run as a Claude Code remote routine: CLIs, environment variables and secrets, startup hooks, MCP servers, and…."

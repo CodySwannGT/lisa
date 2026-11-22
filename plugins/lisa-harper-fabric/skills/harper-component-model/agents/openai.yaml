@@ -1,4 +1,4 @@
 display_name: "Harper Component Model"
-short_description: "reasoning about how a Harper (formerly HarperDB) Fabric application is structured — what a component, application, extension, or plugin is…"
+short_description: "Explain how a Harper (HarperDB) Fabric app is structured — components, applications, extensions, plugins — and where code belongs"
 default_prompt:
-  - "Use $harper-component-model: reasoning about how a Harper (formerly HarperDB) Fabric application is structured — what a component, application, extension, or plugin is…."
+  - "Use $harper-component-model: Explain how a Harper (HarperDB) Fabric app is structured — components, applications, extensions, plugins — and where code belongs."

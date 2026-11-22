@@ -106,13 +106,13 @@ describe("permissions", () => {
     expect(workflow.permissions).toEqual({ contents: "read" });
   });
 
-  it("grants the job exactly the metadata scopes it needs", () => {
+  it("grants the job exactly the scopes it needs, with actions write only to re-run a stale traceability job", () => {
     expect(job.permissions).toEqual({
       contents: "read",
       issues: "write",
       "pull-requests": "read",
       checks: "read",
-      actions: "read",
+      actions: "write",
     });
   });
 

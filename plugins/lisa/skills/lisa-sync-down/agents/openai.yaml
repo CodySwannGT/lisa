@@ -1,4 +1,4 @@
 display_name: "Sync Down"
-short_description: "run a back-sync of an environment branch DOWN the deploy chain on demand — propagating merges (e.g"
+short_description: "Back-sync an environment branch down the deploy chain, e.g"
 default_prompt:
-  - "Use $lisa-sync-down: run a back-sync of an environment branch DOWN the deploy chain on demand — propagating merges (e.g."
+  - "Use $lisa-sync-down: Back-sync an environment branch down the deploy chain, e.g."

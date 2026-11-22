@@ -3,7 +3,7 @@ name: lisa-project-ideation
 description: "Generate practical, verifiable…"
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep", "WebFetch", "WebSearch"]
 ---
-Generate practical, verifiable product ideas for the current host project FROM EVIDENCE-DERIVED PERSONAS, then turn the selected build-ready ideas into real PRDs via lisa-research. First derives the personas the project actually serves by mining its docs, code, data model, and releases (never invented — each persona cites its evidence), then ideates per persona. Every build-ready idea must pass a practicality gate (an obtainable data/source path) and an empirical verification gate (a user-observable outcome the agent can verify). Selected ideas are handed to lisa-research, which creates each PRD in the configured source (Notion / Confluence / GitHub / Linear) — in the draft state by default, or prd-ready (auto-picked-up by lisa-intake) when prd_ready=true. Defaults to creating one PRD (the top-ranked idea); max_prds widens the batch. Invoke for 'generate feature ideas for this project', 'what should we build next for <persona>?', 'looking at <external product>, what should we add here?'.
+Generate practical, verifiable product ideas from personas backed by evidence in the project, then turn the top ideas into PRDs through lisa-research. Use for 'what should we build next?'.
 
 
 # Project Ideation
@@ -358,9 +358,14 @@ marker-deduped teardown proposal through `lisa-tracker-write` (per `tracked-work
   **Completed** means the prior approved action happened, so a later recurrence may be re-filed.
   When an existing proposal suppresses filing, **the run still records `policy-obsolete` and files
   nothing** — the outcome describes this run, while the ticket is filed exactly once.
-- **Labels** `status:blocked` + `human-needed`, carrying the contract's decision-ready packet. The
-  `human-needed` label marks the proposal human-owned: `lisa-repair-intake` recognizes it and never
-  re-dispatches it as stalled work.
+- **Labels** follow `humanGate.mode`. Under the default `access-only` the loop makes the call
+  itself: it picks one response from the evidence below (tear down, or re-cadence to a named longer
+  cadence), states it with its reasoning, and files the proposal build-ready (`status:ready`), so the
+  factory run that claims it performs that response with the matching command. If that run cannot
+  reach the scheduler, it holds the item naming that access. Under `strict`: `status:blocked` +
+  `human-needed`, carrying the contract's decision-ready packet. The `human-needed` label marks the
+  proposal human-owned: `lisa-repair-intake` recognizes it and never re-dispatches it as stalled
+  work.
 - **Evidence** the date-filtered search result, this run's summary, **the loop's current cadence**
   (the baseline an operator needs to choose a longer one), and a one-line summary of recent runs
   read from `.lisa/automations/runs/exploratory-prds.jsonl`. Fill the rest of the packet the same
@@ -375,7 +380,8 @@ marker-deduped teardown proposal through `lisa-tracker-write` (per `tracked-work
 - **Operator footer**, verbatim, as on every loop-filed proposal (`rejection-detection`):
   > To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
 
-The loop **keeps running at its normal cadence** until a human acts, and never deletes its own
+The loop **keeps running at its normal cadence** until the proposal is acted on (by the factory run
+that claims it under `access-only`, by a human under `strict`), and never deletes its own
 registration.
 
 ## Out of scope (hard rules)

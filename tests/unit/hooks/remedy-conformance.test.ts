@@ -66,9 +66,8 @@ const GIT_APPLY_PATCH = 'git apply "$patch"';
 describe("remedy conformance (#3825)", () => {
   describe("permission alone is not the check", () => {
     it("flags the shared stash even though the guard chain permits it", () => {
-      // The founding instance. `git stash push` exits 0 through
-      // parity-safety-net — guard 7 refuses only drop/clear — so a
-      // permission-only mechanism would have passed the very advice that
+      // The founding instance. `git stash push` exits 0 through the guard
+      // chain — only drop/clear are refused — so a permission-only mechanism would have passed the very advice that
       // motivated the ticket.
       expect(
         classifyRemedy(`${STASH_PUSH} -m preserve`, PERMITS)

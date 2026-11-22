@@ -38,7 +38,7 @@ export interface AgentSource {
 }
 
 /** Result of installing one agent */
-export interface InstalledAgent {
+interface InstalledAgent {
   /** Agent id (filename basename) */
   readonly id: string;
   /** Path written, relative to the destination project's `.codex/` directory */

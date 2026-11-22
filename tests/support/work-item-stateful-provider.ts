@@ -23,6 +23,10 @@ export function installStatefulProvider(
     executable
   );
   copyFileSync(
+    path.join(process.cwd(), "tests/support/work-item-stateful-gh-core.mjs"),
+    path.join(fixture.root, "fake-bin/work-item-stateful-gh-core.mjs")
+  );
+  copyFileSync(
     path.join(process.cwd(), "tests/support/work-item-provider-api.mjs"),
     path.join(fixture.root, "fake-bin/work-item-provider-api.mjs")
   );

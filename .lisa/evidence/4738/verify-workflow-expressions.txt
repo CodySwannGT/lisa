@@ -1,0 +1,181 @@
+# AC-2 / workflow expressions. Source: clean archive export of 20a8ac97e2 at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head.
+$ grep -nE 'workflow_dispatch|inputs:|  sha:|  context:|EVIDENCE_CONTEXT:|  group:' <both workflow copies>
+.github/workflows/third-party-review-evidence.yml:118:  workflow_dispatch:
+.github/workflows/third-party-review-evidence.yml:119:    inputs:
+.github/workflows/third-party-review-evidence.yml:120:      sha:
+.github/workflows/third-party-review-evidence.yml:124:      context:
+.github/workflows/third-party-review-evidence.yml:145:  group: third-party-review-evidence-${{ github.event_name }}-${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}-${{ github.event.check_run.name || github.event.context || inputs.context }}
+.github/workflows/third-party-review-evidence.yml:168:      EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context || inputs.context }}
+.github/workflows/third-party-review-evidence.yml:205:          if [ -n "${EVIDENCE_CONTEXT:-}" ]; then
+.github/workflows/third-party-review-evidence.yml:228:          node "$PROVER" --publish="$VERDICT" --prover-exit="$PROVER_EXIT" --sha="$EVIDENCE_SHA" --context="${EVIDENCE_CONTEXT:-}"
+typescript/create-only/.github/workflows/third-party-review-evidence.yml:106:  workflow_dispatch:
+typescript/create-only/.github/workflows/third-party-review-evidence.yml:107:    inputs:
+typescript/create-only/.github/workflows/third-party-review-evidence.yml:108:      sha:
+typescript/create-only/.github/workflows/third-party-review-evidence.yml:112:      context:
+typescript/create-only/.github/workflows/third-party-review-evidence.yml:133:  group: third-party-review-evidence-${{ github.event_name }}-${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}-${{ github.event.check_run.name || github.event.context || inputs.context }}
+typescript/create-only/.github/workflows/third-party-review-evidence.yml:156:      EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context || inputs.context }}
+typescript/create-only/.github/workflows/third-party-review-evidence.yml:188:          if [ -n "${EVIDENCE_CONTEXT:-}" ]; then
+typescript/create-only/.github/workflows/third-party-review-evidence.yml:211:          node "$PROVER" --publish="$VERDICT" --prover-exit="$PROVER_EXIT" --sha="$EVIDENCE_SHA" --context="${EVIDENCE_CONTEXT:-}"
+$ bun run test -- tests/integration/third-party-review-evidence-workflow.test.ts tests/integration/third-party-review-evidence-workflow-executed.test.ts --reporter=verbose
+$ bun run build
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.101.7)
+Built plugins/lisa-typescript (v4.101.7)
+Built plugins/lisa-expo (v4.101.7)
+Built plugins/lisa-nestjs (v4.101.7)
+Built plugins/lisa-cdk (v4.101.7)
+Built plugins/lisa-harper-fabric (v4.101.7)
+Built plugins/lisa-phaser (v4.101.7)
+Built plugins/lisa-rails (v4.101.7)
+Built plugins/lisa-wiki (v4.101.7)
+Built plugins/lisa-openclaw (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-typescript-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-expo-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-nestjs-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-cdk-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-harper-fabric-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-phaser-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-rails-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-wiki-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-openclaw-cursor (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-typescript-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-expo-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-nestjs-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-cdk-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-harper-fabric-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-phaser-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-rails-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-wiki-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-openclaw-agy (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-typescript-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-expo-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-nestjs-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-cdk-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-harper-fabric-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-phaser-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-rails-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-wiki-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-openclaw-copilot (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-typescript-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-expo-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-nestjs-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-cdk-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-harper-fabric-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-phaser-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-rails-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-wiki-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-openclaw-devin (v4.101.7)
+$ node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration/third-party-review-evidence-workflow.test.ts tests/integration/third-party-review-evidence-workflow-executed.test.ts "--reporter=verbose"
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/integration/third-party-review-evidence-workflow.test.ts tests/integration/third-party-review-evidence-workflow-executed.test.ts "--reporter=verbose"
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.101.7)
+Built plugins/lisa-typescript (v4.101.7)
+Built plugins/lisa-expo (v4.101.7)
+Built plugins/lisa-nestjs (v4.101.7)
+Built plugins/lisa-cdk (v4.101.7)
+Built plugins/lisa-harper-fabric (v4.101.7)
+Built plugins/lisa-phaser (v4.101.7)
+Built plugins/lisa-rails (v4.101.7)
+Built plugins/lisa-wiki (v4.101.7)
+Built plugins/lisa-openclaw (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-typescript-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-expo-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-nestjs-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-cdk-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-harper-fabric-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-phaser-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-rails-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-wiki-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-openclaw-cursor (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-typescript-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-expo-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-nestjs-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-cdk-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-harper-fabric-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-phaser-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-rails-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-wiki-agy (v4.101.7)
+Generated agy variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-openclaw-agy (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-typescript-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-expo-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-nestjs-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-cdk-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-harper-fabric-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-phaser-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-rails-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-wiki-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-openclaw-copilot (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-typescript-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-expo-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-nestjs-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-cdk-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-harper-fabric-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-phaser-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-rails-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-wiki-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/plugins/lisa-openclaw-devin (v4.101.7)
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (77 ms); kept 19 entries not private to this user
+
+ RUN  v4.1.11 /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head
+
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > wakes on a completed check run, and still on statuses and by hand 1ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > grants checks: write, to publish the verdict, beside the reads it already had 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > captures the prover's verdict as JSON and hands it to a publish step on the same head 1ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > reads as current to the check lisa doctor runs on a seeded copy 1ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > checks out the default branch, never the head of the event that woke it 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > runs on the reviewer's check run with its head SHA and its name 1ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > keeps a status event's commit and context, and its pending deferral 1ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > keeps the manual path judging every reviewer at the given commit 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > takes an optional reviewer on the manual path, beside the commit 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > hands a manual run's reviewer to the prover and keys its concurrency on it 1ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > keys concurrency per event, head and reviewer, so nothing else cancels the reviewer's run 1ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > wakes on a completed check run, and still on statuses and by hand 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > grants checks: write, to publish the verdict, beside the reads it already had 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > captures the prover's verdict as JSON and hands it to a publish step on the same head 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > reads as current to the check lisa doctor runs on a seeded copy 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > checks out the default branch, never the head of the event that woke it 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > runs on the reviewer's check run with its head SHA and its name 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > keeps a status event's commit and context, and its pending deferral 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > keeps the manual path judging every reviewer at the given commit 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > takes an optional reviewer on the manual path, beside the commit 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > hands a manual run's reviewer to the prover and keys its concurrency on it 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > keys concurrency per event, head and reviewer, so nothing else cancels the reviewer's run 0ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > .github/workflows/third-party-review-evidence.yml, executed > publishes the reviewer's completed review on the head it judged 347ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > .github/workflows/third-party-review-evidence.yml, executed > publishes a failure on the head, and concludes success, for the reviewer's rate-limited run 344ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > .github/workflows/third-party-review-evidence.yml, executed > publishes a writer's substitute as a success whose title says it was substituted 342ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > .github/workflows/third-party-review-evidence.yml, executed > names the manual path's check run without a reviewer, and updates every declared reviewer's 357ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > .github/workflows/third-party-review-evidence.yml, executed > overwrites a stale reviewer check with a writer's substitute when dispatched with that reviewer 352ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > .github/workflows/third-party-review-evidence.yml, executed > stays an explicit no-op that publishes nothing for a check run from an app nobody declared 79ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > .github/workflows/third-party-review-evidence.yml, executed > publishes nothing, and says why, for a commit that heads no open pull request 275ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > .github/workflows/third-party-review-evidence.yml, executed > fails the job and shows the refusal when GitHub refuses the check run 315ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > .github/workflows/third-party-review-evidence.yml, executed > fails the job, publishing nothing, when the prover gives no verdict 78ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml, executed > publishes the reviewer's completed review on the head it judged 311ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml, executed > publishes a failure on the head, and concludes success, for the reviewer's rate-limited run 316ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml, executed > publishes a writer's substitute as a success whose title says it was substituted 351ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml, executed > names the manual path's check run without a reviewer, and updates every declared reviewer's 358ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml, executed > overwrites a stale reviewer check with a writer's substitute when dispatched with that reviewer 378ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml, executed > stays an explicit no-op that publishes nothing for a check run from an app nobody declared 77ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml, executed > publishes nothing, and says why, for a commit that heads no open pull request 240ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml, executed > fails the job and shows the refusal when GitHub refuses the check run 307ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml, executed > fails the job, publishing nothing, when the prover gives no verdict 78ms
+ ✓ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > this repository's own copy, executed as its checkout runs it > falls back to the in-repo template when no installed prover exists 339ms
+
+ Test Files  2 passed (2)
+      Tests  41 passed (41)
+   Start at  07:22:05
+   Duration  5.71s (transform 184ms, setup 254ms, import 186ms, tests 5.26s, environment 0ms)
+
+exit=0

@@ -216,8 +216,6 @@ describe("tool presence probe", () => {
 describe("emitted Claude configuration", () => {
   const emitted = emitClaudeWeb({
     bootstrapKey: "BWS_ACCESS_TOKEN",
-    install: "bun install",
-    repoDir: "lisa",
   });
 
   it("states that emit is the only tier for this surface", () => {
@@ -295,8 +293,6 @@ describe("emitted Claude configuration", () => {
     // The actionable version names the flag that resolves it.
     const missing = emitClaudeWeb({
       bootstrapKey: null,
-      install: "npm ci",
-      repoDir: "lisa",
     });
 
     expect(missing).toMatch(/Re-run with --tenant=/);
@@ -313,22 +309,22 @@ describe("proxy read-back", () => {
       { GITHUB_TOKEN: "proxy-injected" },
       report
     );
-    expect(findings[0].ok).toBe(false);
-    expect(findings[0].detail).toMatch(/substituted at egress/i);
+    expect(findings[0]?.ok).toBe(false);
+    expect(findings[0]?.detail).toMatch(/substituted at egress/i);
   });
 
   it("passes a real credential without printing it", () => {
     const { findings, report } = collect();
     verifyNotProxied(["API_KEY"], { API_KEY: "sk-live-do-not-print" }, report);
-    expect(findings[0].ok).toBe(true);
+    expect(findings[0]?.ok).toBe(true);
     expect(JSON.stringify(findings)).not.toContain("sk-live-do-not-print");
   });
 
   it("fails a declared credential that is absent", () => {
     const { findings, report } = collect();
     verifyNotProxied(["MISSING"], {}, report);
-    expect(findings[0].ok).toBe(false);
-    expect(findings[0].detail).toMatch(/not present/i);
+    expect(findings[0]?.ok).toBe(false);
+    expect(findings[0]?.detail).toMatch(/not present/i);
   });
 });
 

@@ -1,0 +1,10 @@
+# Source under test: clean archive export of commit 20a8ac97e2 at /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head. Command: bun run typecheck
+$ node scripts/lib/worktree-dependencies.mjs && tsgo --noEmit && bun run typecheck:tests && bun run typecheck:engine-floor
+$ node scripts/check-typecheck-tests.mjs
+type-correctness (tests): 350 file(s) with 1527 error(s); 350 quarantined.
+✅ No type errors outside the quarantine, and no stale quarantine entries.
+$ node scripts/check-engine-floor.mjs
+type-correctness (engine floor): engines.node "24.21.0" → Node 24 → --lib es2025. 22986 diagnostic(s) at that library, of which 0 are attributable to the floor.
+Measured backlog (NOT gated): 22986 diagnostic(s) survive at --lib esnext and are unrelated to the engine floor.
+✅ Nothing in the shipped JavaScript outruns Node 24.
+exit=0

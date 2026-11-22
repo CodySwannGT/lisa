@@ -29,6 +29,20 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { installUserSessionHook } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
 
+/**
+ * Read one element, failing the test when it is absent.
+ * @param items Items to index.
+ * @param index Position to read.
+ * @returns The element at that position.
+ */
+const at = <T>(items: readonly T[], index: number): T => {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}`);
+  }
+  return item;
+};
+
 /** Scratch roots to remove after each test. */
 const roots: string[] = [];
 
@@ -86,11 +100,13 @@ describe("installUserSessionHook", () => {
         SessionStart: { matcher: string; hooks: { command: string }[] }[];
       };
     };
-    const entry = written.hooks.SessionStart[0];
+    const entry = at(written.hooks.SessionStart, 0);
     expect(entry.matcher).toBe(DEFAULT_MATCHER);
     // An ABSOLUTE path: the hook fires from whatever directory the session
     // opens in, which is the entire reason this exists.
-    expect(entry.hooks[0].command).toBe(`bash '${path.join(repo, RUNNER)}'`);
+    expect(at(entry.hooks, 0).command).toBe(
+      `bash '${path.join(repo, RUNNER)}'`
+    );
   });
 
   it("single-quotes shell metacharacters in the persisted command", () => {
@@ -105,7 +121,7 @@ describe("installUserSessionHook", () => {
     const written = settingsIn(home) as never as {
       hooks: { SessionStart: { hooks: { command: string }[] }[] };
     };
-    expect(written.hooks.SessionStart[0].hooks[0].command).toBe(
+    expect(at(at(written.hooks.SessionStart, 0).hooks, 0).command).toBe(
       `bash '${path.join(hostileRepo, RUNNER).replaceAll("'", `'\\''`)}'`
     );
   });
@@ -149,7 +165,7 @@ describe("installUserSessionHook", () => {
       hooks: { SessionStart: { hooks: { command: string }[] }[] };
     };
     expect(written.hooks.SessionStart).toHaveLength(1);
-    expect(written.hooks.SessionStart[0].hooks).toEqual([
+    expect(at(written.hooks.SessionStart, 0).hooks).toEqual([
       { type: "command", command: `bash '${script}'` },
     ]);
   });
@@ -253,7 +269,9 @@ describe("installUserSessionHook", () => {
     expect(written.model).toBe("opus");
     expect(written.hooks.PreToolUse).toHaveLength(1);
     expect(written.hooks.SessionStart).toHaveLength(2);
-    expect(written.hooks.SessionStart[0].hooks[0].command).toBe("other.sh");
+    expect(at(at(written.hooks.SessionStart, 0).hooks, 0).command).toBe(
+      "other.sh"
+    );
   });
 
   it("refuses to overwrite settings that do not parse", () => {

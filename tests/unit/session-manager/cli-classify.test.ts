@@ -63,3 +63,48 @@ describe("classify with a worker-less ledger item", () => {
     expect(readLedgerFile(sandbox).items["DEMO-9"].logsHash).toBeNull();
   });
 });
+
+describe("classify with a worker blocked on a permission prompt", () => {
+  it("reports blocked-on-prompt and the waitingFor text", () => {
+    const sandbox = makeSandbox();
+    const dir = path.join(sandbox.root, ".lisa/session-manager");
+    mkdirSync(dir, { recursive: true });
+    const worker = "wk-DEMO-12-1024-1707";
+    writeJson(path.join(dir, "ledger.json"), {
+      version: 1,
+      items: {
+        "DEMO-12": {
+          repo: null,
+          worker,
+          sessionId: null,
+          status: "running",
+          startedAt: null,
+          lastProgressAt: null,
+          logsHash: null,
+          pendingQuestion: null,
+          attempts: 1,
+          history: [],
+        },
+      },
+    });
+    const result = runCli(sandbox, ["classify", "DEMO-12"], {
+      agents: [
+        {
+          ...activeAgent(worker),
+          status: "waiting",
+          state: "blocked",
+          waitingFor: "permission prompt",
+        },
+      ],
+    });
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(result.json).toEqual([
+      expect.objectContaining({
+        ref: "DEMO-12",
+        classification: "blocked-on-prompt",
+        waitingFor: "permission prompt",
+      }),
+    ]);
+  });
+});

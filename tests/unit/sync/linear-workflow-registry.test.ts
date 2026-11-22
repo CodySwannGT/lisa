@@ -20,7 +20,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { SYNC_REGISTRY } from "../../../src/sync/registry";
+import { SYNC_REGISTRY } from "../../../src/sync/registry.js";
 
 const LINEAR_WORKFLOW = "linear.workflow";
 const JIRA_WORKFLOW = "jira.workflow";

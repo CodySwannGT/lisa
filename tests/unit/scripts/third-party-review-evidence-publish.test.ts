@@ -65,6 +65,10 @@ function publish({
       "--repo=acme/code",
     ],
     {
+      // No declared reviewer, so these cases see only the waking context;
+      // publishing under every declared reviewer is pinned in
+      // third-party-review-evidence-publish-contexts.test.ts.
+      gates: {},
       readFile: (file: string) => {
         if (file !== VERDICT_FILE) throw new Error(`unexpected read ${file}`);
         return verdict;

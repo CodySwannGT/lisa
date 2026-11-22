@@ -60,8 +60,8 @@ describe("backwards-compatible invocation", () => {
     await program.parseAsync([DEST, "--yes"], { from: "user" });
 
     expect(runApply).toHaveBeenCalledTimes(1);
-    expect(runApply.mock.calls[0][0]).toBe(DEST);
-    expect(runApply.mock.calls[0][1]).toMatchObject({ yes: true });
+    expect(runApply.mock.calls[0]?.[0]).toBe(DEST);
+    expect(runApply.mock.calls[0]?.[1]).toMatchObject({ yes: true });
   });
 
   it("routes `lisa apply <destination>` to the same runApply with the same options", async () => {
@@ -72,8 +72,8 @@ describe("backwards-compatible invocation", () => {
     });
 
     expect(runApply).toHaveBeenCalledTimes(1);
-    expect(runApply.mock.calls[0][0]).toBe(DEST);
-    expect(runApply.mock.calls[0][1]).toMatchObject({ yes: true });
+    expect(runApply.mock.calls[0]?.[0]).toBe(DEST);
+    expect(runApply.mock.calls[0]?.[1]).toMatchObject({ yes: true });
   });
 
   it("forwards every shared flag through the positional form", async () => {
@@ -84,7 +84,7 @@ describe("backwards-compatible invocation", () => {
       { from: "user" }
     );
 
-    expect(runApply.mock.calls[0][1]).toMatchObject({
+    expect(runApply.mock.calls[0]?.[1]).toMatchObject({
       yes: true,
       dryRun: true,
       skipGitCheck: true,
@@ -105,9 +105,12 @@ describe("update-check pre-action hook", () => {
     expect(runUpdateCheck).toHaveBeenCalledTimes(1);
     expect(printUpdateWarning).toHaveBeenCalledTimes(1);
     expect(runApply).toHaveBeenCalledTimes(1);
-    expect(runUpdateCheck.mock.invocationCallOrder[0]).toBeLessThan(
-      runApply.mock.invocationCallOrder[0]
-    );
+    const [checkOrder] = runUpdateCheck.mock.invocationCallOrder;
+    const [applyOrder] = runApply.mock.invocationCallOrder;
+    if (checkOrder === undefined || applyOrder === undefined) {
+      throw new Error("update check and apply must both have been invoked");
+    }
+    expect(checkOrder).toBeLessThan(applyOrder);
   });
 
   it("runs the update check once for the positional form too", async () => {

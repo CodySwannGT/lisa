@@ -1,4 +1,4 @@
 display_name: "Linear Read Issue"
-short_description: "Fetches the full scope of a Linear work item — Issue or Project — including metadata, description, acceptance criteria, all comments…"
+short_description: "Fetch a Linear issue or project with everything related — comments, attachments, relations, parent, siblings, sub-issues — so work is never…"
 default_prompt:
-  - "Use $lisa-linear-read-issue: Fetches the full scope of a Linear work item — Issue or Project — including metadata, description, acceptance criteria, all comments…."
+  - "Use $lisa-linear-read-issue: Fetch a Linear issue or project with everything related — comments, attachments, relations, parent, siblings, sub-issues — so work is never…."

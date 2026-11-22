@@ -227,6 +227,15 @@ export interface LisaConfig {
   readonly fullApply?: boolean;
 
   /**
+   * The package manager that invoked this apply, read from
+   * `npm_config_user_agent` (`bunx lisa apply .` gives `bun`). A host with no
+   * `packageManager` field and no lockfile has nothing else to say which
+   * manager it uses, and the forced package-manager floor depends on it
+   * (CodySwannGT/lisa#4941). Undefined when no manager invoked Lisa.
+   */
+  readonly invokingPackageManager?: string;
+
+  /**
    * Opt-in permission for a non-interactive apply to replace managed files it
    * would otherwise only report as `stale`.
    *
@@ -294,7 +303,7 @@ function stripTrailingSlashes(value: string): string {
 /**
  * Operation mode for Lisa execution
  */
-export type OperationMode = "apply" | "validate";
+type OperationMode = "apply" | "validate";
 
 /**
  * Result of a single file operation

@@ -20,7 +20,6 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -31,11 +30,14 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
+import { killGroupAndAwaitClose, watchChild } from "./support/process-group.js";
 import { withoutOwnershipHeader } from "../../../scripts/materialize-copy-overwrite.mjs";
 import {
   BASH,
   FINDING,
+  HOOK_DEADLINE_ENV,
   HOOK_RUN_BUDGET_MS,
+  KILL_CLOSE_BASE_MS,
   PROMPT_EVENT,
   SHIPPED,
   SOURCE,
@@ -49,6 +51,11 @@ import {
   stubSonar,
   waitForStubLinuxMktempRoot,
 } from "./support/sonar-secrets-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 // Spawns `/bin/bash` against the real generated shim. Failed 4 of 12 full-suite
 // runs measured at load ~115 with 38 agent worktrees present, without being
@@ -137,7 +144,7 @@ describe("the resolved value never reaches the filesystem", () => {
       mkdirSync(path.join(root, "nested"));
       writeFileSync(path.join(root, "nested", "token.txt"), "nested-token");
       writeFileSync(path.join(outside, "token.txt"), "outside-token");
-      symlinkSync(outside, path.join(root, "ignored-link"));
+      createSymlink(outside, path.join(root, "ignored-link"));
 
       expect(resolverRootContainsToken(root, "nested-token")).toBe(true);
       expect(resolverRootContainsToken(root, "outside-token")).toBe(false);
@@ -159,9 +166,16 @@ describe("the resolved value never reaches the filesystem", () => {
       .join("\n");
 
     expect(code).toContain("mkfifo");
-    expect(code).toContain('>"$fifo"');
+    // The command inherits the FIFO's write end at fork (CodySwannGT/lisa#5038),
+    // so its stdout is that pipe: the hook opens it read-write, hands it over as
+    // descriptor 3, and the resolver is one of the commands run that way.
+    expect(code).toContain('exec 3<>"$fifo"');
+    expect(code).toContain('"$@" >&3 3>&-');
+    expect(code).toMatch(
+      /capture_bounded .* resolver "" \\\n\s+node "\$1" get/u
+    );
     expect(code).toContain(
-      'mktemp -d "${TMPDIR:-/tmp}/lisa-sonar-resolver.XXXXXXXX"'
+      'mktemp -d "${TMPDIR:-/tmp}/lisa-sonar-${label}.XXXXXXXX"'
     );
     // A bare `mktemp` (no -d) is the regular-file capture this replaced.
     expect(code).not.toMatch(/mktemp(?!\s+-d)/u);
@@ -190,9 +204,13 @@ describe("the resolved value never reaches the filesystem", () => {
         ...process.env,
         PATH: [bin, process.env.PATH].join(path.delimiter),
         CLAUDE_PROJECT_DIR: slow,
+        ...HOOK_DEADLINE_ENV,
         LISA_SONAR_RESOLVER_TIMEOUT_S: "30",
       },
     });
+    // Watched from spawn, before any await, so an early exit or close can never
+    // be emitted unobserved (CodySwannGT/lisa#5034).
+    const hook = watchChild(child);
 
     let roots: readonly string[] = [];
     try {
@@ -206,15 +224,17 @@ describe("the resolved value never reaches the filesystem", () => {
         new RegExp(`${path.sep}lisa-sonar-resolver\\.[A-Za-z0-9]{8}$`, "u")
       );
       expect(roots.every(root => existsSync(root))).toBe(true);
-      if (child.pid === undefined) throw new Error("Sonar hook has no PID");
-      const closed = new Promise<void>(resolve =>
-        child.once("close", () => resolve())
-      );
+      if (hook.isClosed()) {
+        throw new Error(
+          `the Sonar hook exited on its own before it could be killed mid-resolve, so the kill this case exists to test never happened ${hook.describe()}`
+        );
+      }
       // The Linux failure occurred when the suite supervisor drained the whole
       // descendant group. Killing only the outer shell lets its command-
       // substitution child finish normally and hides the interrupted root.
-      process.kill(-child.pid, "SIGKILL");
-      await closed;
+      // Bounded: a close that never arrives fails naming the hook's exit,
+      // signal and output, not as an anonymous case timeout.
+      await killGroupAndAwaitClose(hook, KILL_CLOSE_BASE_MS);
 
       const leaked = roots.filter(root =>
         resolverRootContainsToken(root, "killed-run-token")
@@ -223,17 +243,8 @@ describe("the resolved value never reaches the filesystem", () => {
       expect(leaked).toEqual([]);
       expect(roots.every(root => existsSync(root))).toBe(true);
     } finally {
-      if (
-        child.pid !== undefined &&
-        child.exitCode === null &&
-        child.signalCode === null
-      ) {
-        try {
-          process.kill(-child.pid, "SIGKILL");
-        } catch (error) {
-          expect((error as NodeJS.ErrnoException).code).toBe("ESRCH");
-        }
-      }
+      if (!hook.isClosed())
+        await killGroupAndAwaitClose(hook, KILL_CLOSE_BASE_MS);
       roots = allocatedRoots();
       removeStubLinuxMktempRoots(roots);
     }
@@ -253,7 +264,10 @@ describe("when the wrapper must stand aside", () => {
       args: [SOURCE, PROMPT_EVENT],
       baseMs: HOOK_RUN_BUDGET_MS,
       input: "x".repeat(1024 * 1024),
-      env: { PATH: mkdtempSync(path.join(tmpdir(), "lisa-empty-bin-")) },
+      env: {
+        PATH: ownedDir("lisa-empty-bin-"),
+        ...HOOK_DEADLINE_ENV,
+      },
     });
 
     expect(result.stdout).toBe("");

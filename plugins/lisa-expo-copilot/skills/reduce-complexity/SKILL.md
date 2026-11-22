@@ -1,6 +1,6 @@
 ---
 name: reduce-complexity
-description: This skill provides strategies and patterns for reducing cognitive complexity in React components. It should be used when ESLint reports sonarjs/cognitive-complexity violations, when refactoring complex View components, or when planning how to break down large components. The skill enforces this project's Container/View pattern requirements when extracting components.
+description: "Reduce cognitive complexity in React components using this project's Container/View pattern. Use when ESLint reports cognitive-complexity violations or a component is too large."
 ---
 
 # Reduce Complexity

@@ -37,9 +37,6 @@ export const HAND_MADE = "enforce pr rules";
 export const LIVE_SOURCE = "the repository’s live rulesets";
 export const NOT_LISA_OWNED = "enforced-not-lisa-owned";
 export const AWAITED_ELSEWHERE = "enforced-awaited-elsewhere";
-export const LINT_LABEL = "🧹 Lint";
-export const REVIEW_LABEL = "🤖 Code Review";
-export const PULL_REQUEST = "pull-request";
 
 /**
  * An owner for the retired half of a rename, at a given declaration.

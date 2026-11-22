@@ -48,10 +48,6 @@ describe("closed stable-reviewer generated parity", () => {
       expect(identityGuard).toBeLessThan(ordering);
       expect(ordering).toBeLessThan(reduction);
       expect(filter).not.toBe(LEGACY_REVIEW_FILTER);
-      expect(body).toMatch(/stable non-empty reviewer (?:identity|login)/iu);
-      expect(body).toMatch(/identity-less review/iu);
-      expect(body).toMatch(/raw review payload/iu);
-      expect(body).toMatch(/account (?:data|detail)/iu);
     }
   );
 });

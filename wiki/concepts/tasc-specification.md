@@ -88,11 +88,48 @@ Three deliberately decoupled layers: (1) the TASC spec — open, vendor-neutral;
 stack against it; (3) Lisa — open source, one conforming reference
 implementation and the fastest path to green. No layer requires another; see
 the [three-layer trust play decision](../decisions/2026-07-25-three-layer-trust-play.md).
-The Lisa console's readiness questionnaire is the working self-assessment
-instrument referenced by the spec's Annex B — 122 questions across 16 groups.
-Conversational operator questions are the default view; the formal criterion,
-requirement, and expected evidence expand from the same canonical question model,
-so there is no second questionnaire to drift.
+The spec's Annex B self-assessment instrument lived in the Lisa console as a
+122-question readiness questionnaire. It was removed with the console on
+2026-11-12 (CodySwannGT/lisa#4804); those questions remain in this
+repository's git history. The operator questionnaire Lisa keeps today is the
+generated one described in the next section.
+
+## The Criterion Catalogue
+
+The requirements are also held as data, in
+[`spec/tasc-criteria.json`](../../spec/tasc-criteria.json) (format:
+[`spec/tasc-criteria.schema.json`](../../spec/tasc-criteria.schema.json)).
+Every criterion id in the draft appears there exactly once, either in scope for
+Level 1 or excluded with a stated reason. Level 1 comes to 77 requirements.
+
+Each in-scope entry carries:
+
+- the plain-language **question** it puts to an operator;
+- its **kind**: a check (`gate`), a record that must exist (`artifact`), or
+  something only a person can vouch for (`human-attested`);
+- the weakest evidence it accepts (`asserted`, `observed` or `exercised`);
+- when it does not apply;
+- whether it is answered once for the repository or once per part of it;
+- for a check, which of Lisa's gates can satisfy it, or that none does.
+
+The catalogue is the single source for everything that asks or judges a
+requirement:
+
+- **The operator questionnaire is generated from it.**
+  [`docs/agentic-readiness-questionnaire.md`](../../docs/agentic-readiness-questionnaire.md)
+  is rendered from each in-scope entry's question, under the specification's
+  own section titles, by `bun run build:readiness-questionnaire`. It is never
+  edited by hand: to change a question, edit the catalogue and regenerate.
+  `bun run check:readiness-questionnaire` fails when the two disagree. The
+  hand-written version it replaced had drifted to 122 questions, far more than
+  there are requirements.
+- **The four control commands read it.** Audit, configure, enforce and attest
+  measure a repository against these 77 requirements and compute a Level 1
+  verdict from them. See
+  [Control Audit](../documentation/workflows/control-audit.md).
+
+The catalogue ships in the Lisa package, so those commands work in a
+repository that has no `spec/` folder of its own.
 
 ## Revision 0.7.0 — operator copy and outcome proof
 
@@ -107,8 +144,8 @@ bounded repair, rerun, independent-verification, and escalation loop.
 
 The presentation contract also changed. Each canonical item carries a plain-language
 question plus its formal criteria, requirement, expected evidence, outcome choices,
-and implementing mechanism. The console leads with the question and keeps control
-detail expandable. Annex B explicitly rejects separately maintained formal and
+and implementing mechanism. The console (removed in CodySwannGT/lisa#4804) led with
+the question and kept control detail expandable. Annex B explicitly rejects separately maintained formal and
 informal questionnaires because their mappings can drift.
 
 Normatively, 0.7.0 strengthens AC5.2 at repository boundaries, AC7.1–AC7.2 for

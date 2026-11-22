@@ -1,16 +1,13 @@
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BOOTSTRAP_SKIP_NOTICE } from "../../../src/core/bootstrap-environment.js";
 import { runApply } from "../../../src/cli/apply.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const PROJECT_CONFIG = ".lisa.config.json";
 
@@ -24,41 +21,6 @@ describe("runApply bootstrap guard", () => {
       delete process.env.CI;
     } else {
       process.env.CI = originalCi;
-    }
-  });
-
-  it("previews and retires an old handler without applying or reading invalid project config", async () => {
-    const projectDir = await mkdtemp(
-      join(tmpdir(), "lisa-install-retirement-")
-    );
-    const hook = join(
-      projectDir,
-      "scripts/lisa-hooks/parity-safety-net.agy.sh"
-    );
-    const original = await readFile(
-      "tests/fixtures/retired-native-safety-net/parity-safety-net.agy.sh",
-      "utf8"
-    );
-    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    try {
-      await mkdir(join(projectDir, "scripts/lisa-hooks"), { recursive: true });
-      await writeFile(hook, original);
-      await writeFile(join(projectDir, PROJECT_CONFIG), "{not-json");
-      await runApply(projectDir, { postinstallSafe: true, dryRun: true });
-      expect(await readFile(hook, "utf8")).toBe(original);
-      expect(log).toHaveBeenCalledWith(
-        expect.stringContaining("would disable the retired safety net")
-      );
-      await runApply(projectDir, { postinstallSafe: true });
-      expect(await readFile(hook, "utf8")).not.toBe(original);
-      expect(await readFile(join(projectDir, PROJECT_CONFIG), "utf8")).toBe(
-        "{not-json"
-      );
-      await expect(
-        readFile(join(projectDir, ".lisa/apply-receipt.json"))
-      ).rejects.toThrow();
-    } finally {
-      await rm(projectDir, { recursive: true, force: true });
     }
   });
 
@@ -98,7 +60,7 @@ describe("runApply bootstrap guard", () => {
 
   it("exits successfully without writing in a build context", async () => {
     process.env.CI = "1";
-    const projectDir = await mkdtemp(join(tmpdir(), "lisa-apply-guard-"));
+    const projectDir = ownedDir("lisa-apply-guard-");
     const packageJson = join(projectDir, "package.json");
     await writeFile(packageJson, '{"name":"guard-fixture"}\n', "utf8");
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -116,7 +78,7 @@ describe("runApply bootstrap guard", () => {
 
   it("skips before parsing project config in a build context", async () => {
     process.env.CI = "1";
-    const projectDir = await mkdtemp(join(tmpdir(), "lisa-apply-guard-"));
+    const projectDir = ownedDir("lisa-apply-guard-");
     const configPath = join(projectDir, PROJECT_CONFIG);
     await writeFile(configPath, "{not-json", "utf8");
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);

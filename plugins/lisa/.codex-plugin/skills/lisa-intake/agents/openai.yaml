@@ -1,4 +1,4 @@
 display_name: "Intake"
-short_description: "Vendor-agnostic scanner for…"
+short_description: "Run one intake cycle over a…"
 default_prompt:
-  - "Use $lisa-intake: Vendor-agnostic scanner for…."
+  - "Use $lisa-intake: Run one intake cycle over a…."

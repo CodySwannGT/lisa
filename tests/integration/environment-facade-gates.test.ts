@@ -93,6 +93,7 @@ describe("the gate's task is the verify, never the reset", () => {
         moment: "pull-request",
         runner: "npm run",
       });
+      if (resolved === undefined) throw new Error(`${gate} resolved nothing`);
       expect(resolved.task).toBe(task);
       expect(resolved.command).toBe(`npm run ${task}`);
     }
@@ -180,9 +181,11 @@ describe("Lisa ships no implementation behind the facade", () => {
       // because the whole point is that one level is exempted. A literal
       // `true`, or anything that also exempts `required`, is the defect this
       // rule exists to stop, pointed the other way.
-      const definition = workflow.jobs[job] as Record<string, unknown>;
+      const declared = workflow.jobs[job];
+      if (declared === undefined) throw new Error(`${job} is not a job`);
+      const definition = declared as Record<string, unknown>;
       expect(definition["continue-on-error"]).toBeUndefined();
-      for (const step of workflow.jobs[job].steps ?? []) {
+      for (const step of declared.steps ?? []) {
         const carried = (step as Record<string, unknown>)["continue-on-error"];
         expect(
           carried,

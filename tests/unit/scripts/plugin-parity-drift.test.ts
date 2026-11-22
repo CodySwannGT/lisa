@@ -49,7 +49,7 @@ import {
   UNRESOLVED_PLUGIN,
   findResult,
   runDrift,
-} from "./plugin-parity-drift-helpers";
+} from "./plugin-parity-drift-helpers.js";
 
 describe("plugin-parity-drift end-to-end (Scenario 3)", () => {
   it("exits 1 and reports code-simplifier stale 1.0.0 -> 2.0.0 (max-semver resolution)", () => {

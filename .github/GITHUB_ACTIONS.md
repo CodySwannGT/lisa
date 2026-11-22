@@ -65,7 +65,7 @@ Runs on every pull request to validate code quality:
 **Configuration**:
 ```yaml
 # In ci.yml, modify these inputs:
-node_version: '22.23.3'
+node_version: '24.21.0'
 package_manager: 'bun'
 skip_jobs: 'test:e2e,playwright_e2e'  # Exact comma-separated job ids
 ```
@@ -205,6 +205,11 @@ Performance load testing using k6:
 - Scenarios: `smoke`, `load`, `stress`, `spike`, `soak`
 - Configurable thresholds
 - Result artifact uploads
+- Fails closed: a missing runner or script, a script error or any other k6 error fails the job; `fail_on_threshold: false` suppresses only a threshold breach (k6 exit 99)
+- With `test_script` left at its default, runs `./scripts/k6-run.sh` if the repository provides one (it must be executable), else `k6 run .github/k6/scenarios/<test_scenario>.js`
+- A repository-provided `./scripts/k6-run.sh` must exit with k6's own status (99 for a threshold breach) for `fail_on_threshold` to apply; any other nonzero exit fails the job
+- `cloud_run: true` runs `k6 cloud run <script>`; a `thresholds_config` that does not exist fails the job
+- Outputs `test_passed` and `exit_code` (0 passed, 99 thresholds breached, anything else: the test did not run)
 
 ## Secrets Configuration
 
@@ -543,7 +548,8 @@ with:
 
 **Note**: quality.yml's `approval_gate` job only records an audit artifact; it
 does not pause the run. Do not pass `require_approval` or `approval_environment`
-to this quality.yml example. For an enforced human gate, pass those inputs to
+to this quality.yml example. For an approval that must come from a person's
+account (a protected-environment required reviewer), pass those inputs to
 release.yml and create the environment in **Settings** > **Environments** first
 (or declare it under `github.environments` in `.lisa.config.json` and run
 `/lisa:setup:github-repo`).
@@ -553,7 +559,7 @@ release.yml and create the environment in **Settings** > **Environments** first
 ```yaml
 uses: ./.github/workflows/quality.yml
 with:
-  node_version: '22.23.3'
+  node_version: '24.21.0'
   package_manager: 'bun'  # or npm, yarn
 ```
 

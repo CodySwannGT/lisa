@@ -2,16 +2,15 @@
  * Reader for a Claude plugin marketplace manifest
  * (`<marketplace>/.claude-plugin/marketplace.json`).
  *
- * Shared by the console's enabled-plugins probe and by `lisa apply`, which
- * skips enabled `<name>@lisa` keys the Lisa manifest does not list
- * (CodySwannGT/lisa#4645). Callers need to tell "unreadable" apart from
+ * Used by `lisa apply`, which skips enabled `<name>@lisa` keys the Lisa
+ * manifest does not list (CodySwannGT/lisa#4645). Callers need to tell "unreadable" apart from
  * "lists nothing", so an unreadable or malformed file is `null`.
  * @module utils/marketplace-manifest
  */
 import { readFile } from "node:fs/promises";
 
 /** One plugin entry from a marketplace catalog. */
-export interface MarketplaceCatalogPlugin {
+interface MarketplaceCatalogPlugin {
   readonly name: string;
   readonly description: string;
 }

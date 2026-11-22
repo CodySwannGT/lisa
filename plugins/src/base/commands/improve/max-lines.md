@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Reduce max file lines threshold and fix violations"
 allowed-tools: ["Skill"]
 argument-hint: "<max-lines-value>"

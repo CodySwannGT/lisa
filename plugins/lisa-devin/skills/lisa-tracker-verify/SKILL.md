@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-verify
-description: "Vendor-neutral wrapper for the post-write verification gate. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-verify, lisa-github-verify, or lisa-linear-verify. Fetches the live ticket/issue and runs the validator gates against the stored state — catches anything dropped or reformatted on write. Read-only."
+description: "Check a ticket after it was written, in whichever tracker the project uses, by fetching it live and running the quality gates against what was stored. Read-only."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 

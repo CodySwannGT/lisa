@@ -33,7 +33,7 @@ import {
   annotated,
   changed,
   unannotated,
-} from "./design-source-gate-fixtures";
+} from "./design-source-gate-fixtures.js";
 
 describe("design-source gate — UI surface detection", () => {
   it.each([

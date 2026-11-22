@@ -12,11 +12,14 @@
  * @module tests/unit/scripts/state-classification
  */
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { beforeAll, describe, expect, it } from "vitest";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_REL = "all/copy-overwrite/scripts/check-state-classification.mjs";
@@ -73,7 +76,7 @@ const readJson = (file: string): Record<string, unknown> =>
  * @returns The project root
  */
 const projectWithContract = (contents: string): string => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "state-contract-"));
+  const dir = ownedDir("state-contract-");
   fs.mkdirSync(path.join(dir, STATE_DIR));
   fs.writeFileSync(path.join(dir, STATE_DIR, CONTRACT_FILE), contents, UTF8);
   return dir;
@@ -166,14 +169,14 @@ describe("check-state-classification", () => {
       const result = checkFixture("leaked-notes");
       expect(result.envelope.status).toBe(FAILED);
       expect(codes(result)).toContain("unclassified-entity");
-      expect(result.findings[0].subject).toBe("public.notes");
+      expect(result.findings[0]?.subject).toBe("public.notes");
     });
 
     it("fails a fixture-owned entity that nothing sweeps — the leak itself", () => {
       const result = checkFixture("unswept-fixture");
       expect(result.envelope.status).toBe(FAILED);
       expect(codes(result)).toEqual(["policy-obligation-unmet"]);
-      expect(result.findings[0].message).toContain("sweptBy");
+      expect(result.findings[0]?.message).toContain("sweptBy");
     });
 
     it("fails a classification whose entity no longer exists", () => {
@@ -186,7 +189,7 @@ describe("check-state-classification", () => {
       const result = checkFixture(INCOMPLETE_FIXTURE);
       expect(result.envelope.status).toBe(FAILED);
       expect(codes(result)).toEqual([INCOMPLETE_FIXTURE]);
-      expect(result.findings[0].subject).toBe("saved_searches");
+      expect(result.findings[0]?.subject).toBe("saved_searches");
     });
   });
 
@@ -284,7 +287,7 @@ describe("check-state-classification", () => {
       const result = checkInventory(JSON.stringify({ entities: [null] }));
       expect(result.envelope.status).toBe(INVALID);
       expect(codes(result)).toEqual([INVALID_INVENTORY]);
-      expect(result.findings[0].message).toContain("entities[0]");
+      expect(result.findings[0]?.message).toContain("entities[0]");
     });
 
     it("BITE: an entry with no usable id is invalid, not a finding about `undefined`", () => {
@@ -324,7 +327,7 @@ describe("check-state-classification", () => {
           entities: [{ id: "public.a" }, { id: "public.b" }, null],
         })
       );
-      expect(result.findings[0].message).toContain("entities[2]");
+      expect(result.findings[0]?.message).toContain("entities[2]");
     });
 
     it("still accepts a well-formed inventory", () => {

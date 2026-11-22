@@ -12,8 +12,11 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
   required,
   keys,
-  validatePolicy,
+  selectPolicy,
   validateProposal,
+  policyTarget,
+  validBranchName,
+  DEFAULT_TARGET,
 } from "./lib/npm-update-contract.mjs";
 import { publicFailure, withStage } from "./lib/npm-update-invariants.mjs";
 import {
@@ -23,7 +26,11 @@ import {
   phaseDirectory,
 } from "./lib/npm-update-process.mjs";
 import { prepareUpdate } from "./lib/npm-update-prepare.mjs";
-import { GitHub } from "./lib/npm-update-github.mjs";
+import { GitHub, missingTarget } from "./lib/npm-update-github.mjs";
+import {
+  createTracker,
+  verifySignedWorkItem,
+} from "./lib/npm-update-tracker.mjs";
 import { allocateLeaf } from "./lib/npm-update-allocate.mjs";
 import { publishProposal } from "./lib/npm-update-publish.mjs";
 import {
@@ -73,7 +80,8 @@ export function cancellationRequest(env = process.env) {
 
 /** Cancellation stays inside the same trusted issuer job and never consumes ordinary publication slots. */
 async function cancellationPhase(cwd, output, proposal, config, phase) {
-  const api = new GitHub(config.automationProvenance, process.env.GH_TOKEN);
+  // Jira/Linear attach their adapter; a missing credential refuses before any write.
+  const api = updaterApi(config);
   const context = {
     api,
     cwd,
@@ -90,8 +98,51 @@ async function cancellationPhase(cwd, output, proposal, config, phase) {
   );
 }
 
-/** Only committed policy grants authority; ignored/local config cannot activate Actions. */
-async function configuration(cwd) {
+/**
+ * The workflow's target_branch input gates which ref the jobs run on; it must
+ * name the committed policy's target, so neither side can redirect the other.
+ * An absent input is main, matching callers seeded before the input existed.
+ */
+export function assertWorkflowTarget(policy, input) {
+  const requested =
+    input === undefined || input === "" ? DEFAULT_TARGET : input;
+  required(
+    validBranchName(requested) && requested === policyTarget(policy),
+    "workflow target_branch differs from the committed npmUpdater target"
+  );
+}
+
+/**
+ * A non-main target must exist on the remote before anything is prepared. The
+ * checkout fetches every branch, so its remote-tracking ref is the evidence;
+ * main keeps its historical path, where the provider read proves the base.
+ */
+export async function assertTargetBranchExists(cwd, policy) {
+  const target = policyTarget(policy);
+  if (target === DEFAULT_TARGET) return;
+  const result = await runProcess(
+    "git",
+    [
+      "rev-parse",
+      "--verify",
+      "--quiet",
+      `refs/remotes/origin/${target}^{commit}`,
+    ],
+    {
+      cwd,
+      env: { PATH: process.env.PATH, HOME: "/nonexistent" },
+      allowed: [0, 1],
+      maximum: 4096,
+    }
+  );
+  if (result.code !== 0) throw missingTarget(target);
+}
+
+/**
+ * Only committed policy grants authority; ignored/local config cannot activate Actions.
+ * LISA_NPM_DIRECTORY only selects among committed entries ("." by default); it never adds one.
+ */
+async function configuration(cwd, directory = process.env.LISA_NPM_DIRECTORY) {
   const result = await runProcess("git", ["show", "HEAD:.lisa.config.json"], {
     cwd,
     env: { PATH: process.env.PATH, HOME: "/nonexistent" },
@@ -102,7 +153,8 @@ async function configuration(cwd) {
     config.automationProvenance?.enabled === true,
     "automation provenance must be explicitly configured on committed main"
   );
-  const policy = validatePolicy(config.npmUpdater, config);
+  const policy = selectPolicy(config, directory ?? ".");
+  assertWorkflowTarget(policy, process.env.LISA_NPM_TARGET_BRANCH);
   required(
     config.automationProvenance.repository === policy.repository,
     "committed authority repository differs"
@@ -110,9 +162,17 @@ async function configuration(cwd) {
   return { config, policy };
 }
 
+/** A Jira/Linear credential gap fails before the code host or tracker sees any request. */
+function updaterApi(config) {
+  const tracker = createTracker(config, process.env);
+  const api = new GitHub(config.automationProvenance, process.env.GH_TOKEN);
+  if (tracker) api.tracker = tracker;
+  return api;
+}
+
 /** Allocation creates its canonical leaf before previewing any attributed commit. */
 async function allocatePhase(cwd, output, proposal, policy, config) {
-  const api = new GitHub(config.automationProvenance, process.env.GH_TOKEN);
+  const api = updaterApi(config);
   const allocation = await allocateLeaf({
     api,
     proposal,
@@ -153,7 +213,8 @@ async function publishPhase(
     typeof gated.raw === "string" && gated.raw.length <= 90_000,
     "bounded raw commit envelope required"
   );
-  const api = new GitHub(config.automationProvenance, process.env.GH_TOKEN);
+  // Jira/Linear attach their adapter; a missing credential refuses before any write.
+  const api = updaterApi(config);
   const result = await publishProposal({
     api,
     cwd,
@@ -215,6 +276,7 @@ export async function main(argv = process.argv.slice(2)) {
   );
   phaseDirectory(output);
   if (phase === "prepare") {
+    await assertTargetBranchExists(cwd, policy);
     const result = await prepareUpdate({ cwd, policy, config });
     writeJson(join(output, "prepare.json"), result);
     if (result.status === "prepared")
@@ -238,8 +300,11 @@ export async function main(argv = process.argv.slice(2)) {
     sha256(preview.message) === preview.descriptor.messageSha256,
     "preview final message differs"
   );
+  // The gate and publisher re-check the one exact Jira/Linear reference they carry.
+  if (config.tracker !== "github" && (phase === "gate" || phase === "publish"))
+    verifySignedWorkItem(config, allocation, preview);
   if (phase === "checkpoint") {
-    const api = new GitHub(config.automationProvenance, process.env.GH_TOKEN);
+    const api = updaterApi(config);
     const result = await finalizeAuthorization({
       api,
       output,

@@ -24,7 +24,7 @@ import type { WorkflowStep } from "../helpers/workflow-test-utils.js";
 const BASH = "/bin/bash";
 
 /** What a step reports once it has run, skipped, or been continued over. */
-export type Outcome = "success" | "failure" | "skipped";
+type Outcome = "success" | "failure" | "skipped";
 
 /** The two contexts the façade's conditions read. */
 export interface StepContext {
@@ -139,7 +139,11 @@ export function evaluateExpression(
             "has stopped mirroring the workflow."
         );
       }
-      return operand(match[1], match[2], context) === match[3];
+      const [, step, field, expected] = match;
+      if (step === undefined || field === undefined || expected === undefined) {
+        throw new Error(`condition term matched without its operands: ${term}`);
+      }
+      return operand(step, field, context) === expected;
     });
 }
 

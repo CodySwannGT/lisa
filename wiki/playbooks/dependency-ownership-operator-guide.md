@@ -82,9 +82,10 @@ the answer was bad:
 
 Scrutiny is set by blast radius, not by how famous a package is. Every material
 dependency is put in exactly one class, and the class tells you what evidence to
-demand and whether a human has to sign off.
+demand and, when the project asks for human sign-off, whether a human has to
+sign off.
 
-| Trust class | What it means | Human sign-off? |
+| Trust class | What it means | Human sign-off? (only when sign-off is on) |
 |-------------|---------------|-----------------|
 | mature ecosystem primitive | Widely used, slow-moving, boring on purpose | Not required |
 | fast-moving standard implementation | Implements a standard, but ships often | Required at major upgrades |
@@ -93,17 +94,24 @@ demand and whether a human has to sign off.
 | thin wrapper suitable for in-house ownership | Small enough that we could own the code ourselves | Required to keep it rather than internalize |
 | temporary/experimental dependency | Deliberately time-boxed, with an expiry date | **Required to extend past the expiry date** or to promote it |
 
-**Turning sign-off off.** A project whose owner has decided no dependency
-should ever wait on a person's approval sets
-`"dependencies": { "humanSignOff": "none" }` in `.lisa.config.json`. Every
-"Human sign-off?" entry in the table above then reads "Not required", and each
-class's human-review trigger becomes a decision the agent makes and records in
-the dependency's entry. The trust class and the evidence it demands are still
-required, and approvals for new credentials, paid accounts, or licenses are not
-affected. Leaving the key out (or setting `"default"`) keeps the table exactly
-as written; any other value is reported as invalid and treated as `"default"`.
-Agents see the effective value as `dependencies.humanSignOff` in their session's
-resolved-config block.
+**Sign-off is off by default.** Unless the project asks for it, no dependency
+waits on a person's approval: `dependencies.humanSignOff` resolves to `"none"`,
+so every "Human sign-off?" entry in the table above reads "Not required". The
+agent makes each ratification call itself, and each class's human-review trigger
+becomes a decision the agent makes, and records with its reasoning in the
+dependency's entry. You can reverse any of those decisions by editing the entry.
+The trust class and the evidence it demands are still required, and approvals
+the agent has no access to give (a new credential it cannot create, a paid
+account, a license signature) are not affected.
+
+**Turning sign-off on.** A project that wants a person to sign off sets
+`"dependencies": { "humanSignOff": "default" }` or
+`"humanGate": { "mode": "strict" }` in `.lisa.config.json`; the table then
+applies exactly as written. A value the project sets explicitly always wins over
+the mode. Any other value is reported as invalid and treated as `"default"`, so
+a mistyped setting fails safe to sign-off on; only leaving the key out gives the
+mode's default. Agents see the effective value as `dependencies.humanSignOff` in their
+session's resolved-config block.
 
 Two rules worth memorizing:
 
@@ -220,7 +228,7 @@ naming which line below it failed — that is the record the next reader sees, a
 it is what turns "no" into a specific thing to fix. Then move the item back out
 of the ready-for-build queue so nothing picks it up in the meantime. Whenever a
 sign-off is required (the table above says which class needs one and at which
-moment; none does when `dependencies.humanSignOff` is `"none"`), the person who signs off is the named accountable owner in the record's
+moment; none does when `dependencies.humanSignOff` is `"none"`, the default), the person who signs off is the named accountable owner in the record's
 *owner / review cadence* field; if the record does not name one yet, that missing
 name is itself the first thing to send back. This mirrors the escalation
 instruction the shipped record file gives every project: raise it to an owner
@@ -238,8 +246,9 @@ Accept it when all of these are true:
   person, a stated update cadence, a named check that would catch a bad update,
   and a real replacement-cost estimate.
 - If the class is **runtime-critical service client**, a human has signed off
-  before the work starts — unless the project sets `dependencies.humanSignOff`
-  to `"none"`. That is the only class needing sign-off to be added.
+  before the work starts — but only when sign-off is on (`humanSignOff:
+  "default"` or `humanGate.mode: "strict"`); by default the agent ratifies it and
+  records why in the entry. That is the only class needing sign-off to be added.
 - If the class is **temporary/experimental dependency**, no sign-off is needed to
   add it — moving fast is the point of the class — but it carries a written
   expiry date no more than one quarter out and a named exit (replace, in-house,
@@ -340,7 +349,8 @@ The same dependency, a newer version, same trust class, ownership unchanged.
   it here is over-application and it teaches everyone to route around the rule.
 - Do demand whatever the existing trust class already asks at an upgrade — for a
   fast-moving standard implementation or a runtime-critical service client, that
-  includes human sign-off at a major version.
+  includes sign-off at a major version (by the agent by default, by a person
+  when sign-off is on).
 - Do check that the bump touched the manifest and the lockfile (the generated
   file recording exact installed versions), and not a scattering of copied
   literals.

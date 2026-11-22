@@ -16,6 +16,8 @@ import type { ViteUserConfig } from "vitest/config";
 type UserConfig = ViteUserConfig;
 
 import {
+  accessMapPlugins,
+  accessMapSetupFiles,
   coverageGlobalSetup,
   coverageReportsDirectory,
   defaultCoverageExclusions,
@@ -93,8 +95,9 @@ const nestjsCoverageExclusions: readonly string[] = [
 export const getNestjsVitestConfig = ({
   thresholds = defaultThresholds,
 }: NestjsVitestOptions = {}): UserConfig => ({
+  plugins: [...accessMapPlugins()],
   test: {
-    setupFiles: [...scratchSetupFiles()],
+    setupFiles: [...scratchSetupFiles(), ...accessMapSetupFiles()],
     globalSetup: [...scratchGlobalSetup(), ...coverageGlobalSetup()],
     sequence: { setupFiles: "list", hooks: "stack" },
     // Bounded so k concurrent runs do not claim k x cores. See resolveMaxWorkers.

@@ -21,13 +21,16 @@
  */
 
 import yaml from "js-yaml";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -65,7 +68,11 @@ function workflow(): {
  * @returns The step list.
  */
 function steps() {
-  return workflow().jobs.prepare.steps;
+  const job = workflow().jobs.prepare;
+  if (job === undefined) {
+    throw new Error("the workflow declares no prepare job");
+  }
+  return job.steps;
 }
 
 /**
@@ -78,7 +85,7 @@ function steps() {
  * @returns The exit status and combined output.
  */
 function runResolution(present: boolean): { status: number; output: string } {
-  const dir = mkdtempSync(path.join(tmpdir(), "lisa-prepare-"));
+  const dir = ownedDir("lisa-prepare-");
   if (present) {
     const nested = path.join(dir, "scripts");
     mkdirSync(nested, { recursive: true });

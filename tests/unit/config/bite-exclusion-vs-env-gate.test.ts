@@ -12,6 +12,7 @@ import {
   readGates,
   resolveMoment,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { NIGHTLY_SLOW_SUITES } from "../../../scripts/lib/nightly-slow-suites.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -53,18 +54,23 @@ describe("mutation control scheduling", () => {
     const task = taskAt("push");
     expect(task).toBe("test:integration:push");
     const command = script(task as string);
-    expect(command).toContain("--exclude='**/mutation-gate-bite.test.ts'");
+    // `mutation-gate-bite` is on the nightly-only list, which the shared
+    // Vitest config excludes from every run (CodySwannGT/lisa#4896).
+    expect(NIGHTLY_SLOW_SUITES).toContain(
+      "tests/integration/mutation-gate-bite.test.ts"
+    );
     expect(command).toContain("--exclude='**/mutation-gate-diff-bite.test.ts'");
   });
 
   it("collects the integration controls in pull-request CI", () => {
     const task = taskAt("pull-request");
     expect(task).toBe("test:integration");
-    // Every mutation control still runs on the pull request; the one exclusion
-    // is the packed-host journey, which owner decision 4 of
-    // CodySwannGT/lisa#4587 took off the PR path (CodySwannGT/lisa#4606).
+    // The script's one exclusion is the packed-host journey, which owner
+    // decision 4 of CodySwannGT/lisa#4587 took off the PR path
+    // (CodySwannGT/lisa#4606). `mutation-gate-bite` is excluded from every run
+    // by the shared Vitest config and runs nightly (CodySwannGT/lisa#4896).
     expect(script(task as string)).toBe(
-      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'"
+      "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_TIMINGS_SCOPE=integration $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'"
     );
   });
 });

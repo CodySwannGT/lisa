@@ -1,6 +1,6 @@
 ---
 name: github-prd-intake
-description: PRD intake agent for GitHub Issues hosted PRDs. Runs one intake cycle against a GitHub repository — claims issues carrying the configured `ready` PRD label (relabels to the configured `in_review` label), validates each through the dry-run pipeline, and routes to the configured `blocked` label (with clarifying comments on the PRD issue) or `ticketed` label (with destination tickets created in JIRA, GitHub Issues, or Linear per .lisa.config.json). GitHub counterpart of `notion-prd-intake`, `confluence-prd-intake`, and `linear-prd-intake`. Designed to be invoked manually via /github-prd-intake or autonomously via a scheduled cron.
+description: "Runs one GitHub PRD intake cycle: takes the first ready PRD issue, validates it, and either creates its tickets and marks it ticketed or posts clarifying questions and marks it blocked. Manual or scheduled."
 skills:
   - github-prd-intake
   - github-to-tracker
@@ -29,7 +29,7 @@ Once you have a repo, RUN. Do not ask the caller whether to proceed, do not prev
 
 The invoking caller (a slash command, a scheduled cron, or a parent agent) hands you a GitHub `org/repo` token, a full GitHub repo URL, or the literal token `github` (which falls back to `.lisa.config.json`). You do not pick the repo yourself.
 
-If no repo is provided, stop and ask. Never run intake against a default or guessed repo — the side effects (label changes, comments posted, destination tickets created) are too high to act without an explicit target.
+If no repo is provided and none is configured, first file the decision-ready escalation packet (`automation-runbook-contract`, "Escalation") through `lisa-tracker-write`, labeled `status:blocked` and `human-needed` with `human_gate` set, naming the missing input and the `/lisa:setup:*` skill that configures it; then exit `recovery-required` citing that item. If the tracker itself is unconfigured so nothing can be filed, put the same packet in the exit summary. Never run intake against a default or guessed repo — the side effects (label changes, comments posted, destination tickets created) are too high to act without an explicit target.
 
 ### 2. Run the intake skill
 

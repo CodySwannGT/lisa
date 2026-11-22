@@ -15,7 +15,6 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -33,6 +32,7 @@ import {
   type ReadyPreparation,
 } from "../helpers/history-scanner-preparation.js";
 import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 const root = resolve(import.meta.dirname, "../..");
@@ -79,13 +79,13 @@ const FAULTS = {
     ),
   "symlink-executable": ({ executable, source }: Crafted) => {
     rmSync(executable);
-    symlinkSync(source.executable, executable);
+    createSymlink(source.executable, executable);
   },
   "missing-record": ({ record }: Crafted) => rmSync(record),
   "corrupt-record": ({ record }: Crafted) => writeFileSync(record, "not-json"),
   "symlink-record": ({ record, source }: Crafted) => {
     rmSync(record);
-    symlinkSync(join(source.scope, PREPARATION_RECORD), record);
+    createSymlink(join(source.scope, PREPARATION_RECORD), record);
   },
   "unknown-provenance": ({ record }: Crafted) =>
     writeFileSync(
@@ -97,7 +97,7 @@ const FAULTS = {
     ),
   "shared-scope": ({ scope }: Crafted) => chmodSync(scope, 0o755),
   "symlink-scope": ({ owner, scope }: Crafted) =>
-    symlinkSync(scope, join(owner, "linked-scope")),
+    createSymlink(scope, join(owner, "linked-scope")),
 } as const;
 
 /**

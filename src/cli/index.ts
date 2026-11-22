@@ -1,6 +1,9 @@
 import { Command } from "commander";
+import { addAdmitCommand } from "./admit-cmd.js";
 import { runApply } from "./apply.js";
+import { addCheckCommand } from "./check-cmd.js";
 import { runCheckLearningsBudget } from "./check-learnings-budget-cmd.js";
+import { addControlsCommand } from "./controls-cmd.js";
 import {
   type CrossPollinateOptions,
   runCrossPollinate,
@@ -9,6 +12,7 @@ import { runDoctor } from "./doctor.js";
 import { runFileUpstream } from "./file-upstream-cmd.js";
 import { runHealthCli, type HealthCliOptions } from "./health-cmd.js";
 import { addGateCommands } from "./gate-commands.js";
+import { addGitHubReadIssueCommand } from "./github-read-issue-cmd.js";
 import {
   runKaneCli,
   runKanePilotCli,
@@ -33,8 +37,8 @@ import {
   addStandardsProofCommand,
   runStandardsProofCli,
 } from "./standards-proof-cmd.js";
+import { addRemovedUiCommand } from "./removed-ui-cmd.js";
 import { runSync, type SyncCmdOptions } from "./sync-cmd.js";
-import { runUi, addUiCommand } from "./ui-cmd.js";
 import { runUpdate } from "./update-cmd.js";
 import { runUpdateCheck } from "./update-check.js";
 import { addUpdateCheckHook } from "./update-check-hook.js";
@@ -70,8 +74,6 @@ export interface ProgramDependencies {
   runCrossPollinate: typeof runCrossPollinate;
   /** Populates and syncs `.lisa.config.json` with its mirrored artifacts. */
   runSync: typeof runSync;
-  /** Serves the Lisa settings console (after a config sync). */
-  runUi: typeof runUi;
   /** Checks the project learnings file against its hard budget. */
   runCheckLearningsBudget: typeof runCheckLearningsBudget;
   /** Projects a public upstream filing body from allowlisted fields. */
@@ -102,7 +104,6 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runDoctor,
   runCrossPollinate,
   runSync,
-  runUi,
   runCheckLearningsBudget,
   runFileUpstream,
   runHealthCli,
@@ -225,12 +226,11 @@ function addHealthCommand(program: Command, deps: ProgramDependencies): void {
  * Register CLI maintenance commands that do not run the root update warning.
  * @param program - Commander program to mutate
  * @param deps - Program dependencies
- * @returns The same Commander program
  */
 function addMaintenanceCommands(
   program: Command,
   deps: ProgramDependencies
-): Command {
+): void {
   program
     .command("version")
     .description("Print Lisa CLI version info")
@@ -246,18 +246,20 @@ function addMaintenanceCommands(
     .option("--yes", "Execute the update command after printing it")
     .action(async (options: { yes?: boolean }) => {
       const code = await deps.runUpdate(options);
-      if (code !== 0) {
-        process.exitCode = code;
-      }
+      if (code !== 0) process.exitCode = code;
     });
 
   addWorkstationCommand(program);
+  addCheckCommand(program);
+  addAdmitCommand(program);
   addEffectivenessCommand(program);
   addRemoteEnvCommand(program);
   addEnvironmentCommand(program);
   addDoctorCommand(program, deps);
   addHealthCommand(program, deps);
   addStandardsProofCommand(program, deps);
+  addControlsCommand(program);
+  addGitHubReadIssueCommand(program);
 
   program
     .command("sync")
@@ -269,13 +271,10 @@ function addMaintenanceCommands(
     .option("--json", "Emit the report as JSON")
     .action(async (targetPath: string | undefined, options: SyncCmdOptions) => {
       const code = await deps.runSync(targetPath, options);
-      if (code !== 0) {
-        process.exitCode = code;
-      }
+      if (code !== 0) process.exitCode = code;
     });
 
-  addUiCommand(program, deps.runUi);
-
+  addRemovedUiCommand(program);
   addGateCommands(program, deps);
   addKaneCommands(program, deps);
   addPruneCommands(program);
@@ -295,8 +294,6 @@ function addMaintenanceCommands(
         await deps.runCrossPollinate(targetPath, options);
       }
     );
-
-  return program;
 }
 
 /**

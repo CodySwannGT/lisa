@@ -121,6 +121,7 @@ describe.each(COPIES)("%s", copy => {
       declaresPermissions: true,
       writesChecks: true,
       publishesVerdict: true,
+      acceptsDispatchContext: true,
     });
     expect(isCurrentEvidenceSeed(reading)).toBe(true);
   });
@@ -174,6 +175,44 @@ describe.each(COPIES)("%s", copy => {
         contexts("workflow_dispatch", { inputs: { sha: HEAD } }, { sha: HEAD })
       )
     ).toMatchObject({ runs: true, sha: HEAD, context: "" });
+  });
+
+  it("takes an optional reviewer on the manual path, beside the commit", () => {
+    // A stale `(<context>)` check run can only be overwritten by a run that
+    // publishes under the same name (CodySwannGT/lisa#4738).
+    const dispatch = workflow.on.workflow_dispatch as {
+      inputs: Record<string, Record<string, unknown>>;
+    };
+
+    expect(dispatch.inputs.sha).toMatchObject({ required: true });
+    expect(dispatch.inputs.context).toEqual({
+      description: expect.any(String),
+      required: false,
+      type: "string",
+    });
+  });
+
+  it("hands a manual run's reviewer to the prover and keys its concurrency on it", () => {
+    const named = contexts(
+      "workflow_dispatch",
+      { inputs: { sha: HEAD, context: REVIEWER } },
+      { sha: HEAD, context: REVIEWER }
+    );
+    const bare = contexts(
+      "workflow_dispatch",
+      { inputs: { sha: HEAD } },
+      { sha: HEAD }
+    );
+
+    expect(resolve(workflow, named)).toEqual({
+      runs: true,
+      sha: HEAD,
+      context: REVIEWER,
+      group: `third-party-review-evidence-workflow_dispatch-${HEAD}-${REVIEWER}`,
+    });
+    expect(resolve(workflow, bare).group).not.toBe(
+      resolve(workflow, named).group
+    );
   });
 
   it("keys concurrency per event, head and reviewer, so nothing else cancels the reviewer's run", () => {

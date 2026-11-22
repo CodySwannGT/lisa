@@ -47,6 +47,15 @@ inherits all seven criteria unless it explicitly justifies why the dependency is
 
 ---
 
+**Forking, patching or vendoring is never the first move.** Taking our own
+copy of an open-source library (a fork, a patch through patch-package, Bun or
+pnpm `patchedDependencies` or `yarn patch`, or a vendored copy) is the last
+step, step 7, of the one remediation ladder in the
+`lisa-security-audit-handling` skill, and it is a declared human gate
+(`own-dependency-copy` in `ready-role-filing`). This kit does not restate or
+reorder that ladder. It sets the evidence bar a fork or vendored copy owes
+**after** a person releases the gate.
+
 Taking a dependency is a decision about trust: we believe someone else's code
 works. Dropping one reverses that decision without reversing the obligation —
 the capability still has to work, and now it is ours. The risk does not
@@ -179,6 +188,10 @@ The distinction the kit turns on is **whether ownership moves in-house**.
 Each of those lands the capability in the
 `thin wrapper suitable for in-house ownership` trust class or removes it from
 the dependency set entirely, and either way we now own the behavior.
+
+Vendoring and forking, and any patch we carry against the library, are step 7
+of the `lisa-security-audit-handling` ladder: they wait for a released
+human gate before any code is written, and inherit this kit once it is.
 
 **Does not inherit the kit** — ownership does not move:
 

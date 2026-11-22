@@ -1,0 +1,430 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
+/**
+ * @file npm-update-tracker-jira.mjs
+ * @description Jira REST v3 tracker adapter for the npm updater (CodySwannGT/lisa#4859).
+ * Tickets are normalized into the GitHub-issue record the claim, hold, quality and
+ * checkpoint checks already read; managed text is stored as one ADF code block.
+ * @module npm-updater
+ */
+import { required } from "./npm-update-invariants.mjs";
+import { sha256 } from "./github-attestation-verifier.mjs";
+import { trackerContract } from "../lisa-work-item.mjs";
+import {
+  trackerCredentials,
+  jsonCall,
+  adfCodeBlock,
+  adfText,
+  adfProse,
+  lifecycleName,
+  vocabularyRefusal,
+  withinJiraLimit,
+  strandedRefusal,
+  vendorLabels,
+  declaredActor,
+  assertDeclaredActor,
+  assertClaimAuthor,
+} from "./npm-update-tracker-wire.mjs";
+import {
+  canceledName,
+  isoTime,
+  jiraCancel,
+  jiraAssertCancelled,
+} from "./npm-update-tracker-cancel.mjs";
+
+const API = "/rest/api/3";
+const CLAIM_DIFFERS = "current tracker claim differs";
+const FIELDS =
+  "summary,description,status,issuetype,priority,labels,assignee,subtasks,issuelinks";
+
+/** Done-category statuses are closed history, never claimable. */
+function stateOf(status) {
+  return status?.statusCategory?.key === "done" ? "closed" : "open";
+}
+
+/** Issue type and priority surface as the label names the shared checks require. */
+function typeLabels(fields) {
+  const type = fields.issuetype ?? {};
+  return [
+    type.subtask ? "type:Sub-task" : `type:${type.name}`,
+    ...(fields.priority?.name === "Medium" ? ["priority:medium"] : []),
+  ];
+}
+
+/** An account's comment is managed only when it is the API credential's own account. */
+function commentRecord(comment) {
+  return {
+    id: String(comment.id),
+    body: adfText(comment.body),
+    prose: adfProse(comment.body),
+    user: {
+      id: comment.author?.accountId,
+      type: comment.author?.accountType === "app" ? "Bot" : "User",
+    },
+    // Origin transport chronology reads these, as it reads GitHub's (#4873).
+    created_at: isoTime(comment.created),
+    updated_at: isoTime(comment.updated),
+  };
+}
+
+export class JiraTracker {
+  constructor(config, env, transport = globalThis.fetch) {
+    const credentials = trackerCredentials(config, env);
+    this.actor = declaredActor(config);
+    this.provider = "jira";
+    this.key = config.jira.project.trim().toUpperCase();
+    this.lifecycle = trackerContract(config).lifecycle;
+    this.canceled = canceledName(config);
+    this.baseUrl = credentials.baseUrl;
+    this.authorization = credentials.authorization;
+    this.transport = transport;
+  }
+  call(path, purpose, method = "GET", body, missing = false) {
+    return jsonCall(
+      this.transport,
+      `${this.baseUrl}${API}${path}`,
+      { method, body, missing, authorization: this.authorization },
+      purpose
+    );
+  }
+  ref(number) {
+    return `${this.key}-${number}`;
+  }
+  /** The decimal ticket number of an exact key in the configured project. */
+  numberOf(key) {
+    const match = new RegExp(`^${this.key}-([1-9]\\d*)$`).exec(String(key));
+    required(match, "tracker search reply differs");
+    return Number(match[1]);
+  }
+  /** The credential's own account, which must be the declared automation identity. */
+  async myself() {
+    if (this.accountId) return this.accountId;
+    const id = (await this.call("/myself", "unclassified"))?.accountId;
+    required(typeof id === "string", "tracker identity unavailable");
+    this.accountId = assertDeclaredActor("jira", id, this.actor);
+    return this.accountId;
+  }
+  async issue(number) {
+    required(
+      Number.isSafeInteger(number) && number > 0,
+      "invalid live issue number"
+    );
+    const ticket = await this.call(
+      `/issue/${this.ref(number)}?fields=${FIELDS}`,
+      "issue"
+    );
+    required(ticket?.key === this.ref(number), "live issue scope differs");
+    const fields = ticket.fields ?? {};
+    return {
+      number,
+      title: fields.summary,
+      body: adfText(fields.description),
+      state: stateOf(fields.status),
+      // Only the configured canceled status is an explicit cancellation (#4873).
+      state_reason:
+        stateOf(fields.status) === "closed"
+          ? fields.status?.name?.toLowerCase() === this.canceled.toLowerCase()
+            ? "not_planned"
+            : "completed"
+          : null,
+      labels: [
+        lifecycleName(this.lifecycle, fields.status?.name),
+        ...typeLabels(fields),
+        ...vendorLabels(this.lifecycle, fields.labels),
+      ].map(name => ({ name })),
+      assignees: fields.assignee
+        ? [
+            {
+              login: fields.assignee.accountId,
+              type:
+                fields.assignee.accountType === "atlassian" ? "User" : "App",
+            },
+          ]
+        : [],
+      comments: await this.comments(number),
+      children: fields.subtasks ?? [],
+      blockers: (fields.issuelinks ?? [])
+        .filter(
+          link => link.type?.inward === "is blocked by" && link.inwardIssue
+        )
+        .map(link => ({ state: stateOf(link.inwardIssue.fields?.status) })),
+    };
+  }
+  async comments(number) {
+    const entries = [];
+    for (let page = 0; page < 20; page++) {
+      const reply = await this.call(
+        `/issue/${this.ref(number)}/comment?startAt=${entries.length}&maxResults=100`,
+        "issue-comments"
+      );
+      required(Array.isArray(reply?.comments), "provider page is not an array");
+      entries.push(...reply.comments.map(commentRecord));
+      if (!reply.comments.length || entries.length >= reply.total)
+        return entries;
+    }
+    throw new Error("npm updater: provider pagination exceeded bound");
+  }
+  async search(jql, reconcileIssues) {
+    const reply = await this.call("/search/jql", "issue-search", "POST", {
+      jql,
+      fields: ["status"],
+      maxResults: 100,
+      ...(reconcileIssues ? { reconcileIssues } : {}),
+    });
+    required(Array.isArray(reply?.issues), "tracker search reply differs");
+    return {
+      incomplete_results: reply.isLast !== true,
+      total_count: reply.issues.length,
+      items: reply.issues.map(item => ({
+        number: this.numberOf(item.key),
+        state: stateOf(item.fields?.status),
+      })),
+    };
+  }
+  /**
+   * The automation account's own user property for one selection. Jira entity
+   * properties read back consistently, unlike the search index, and the calling
+   * account may write its own without an admin permission.
+   */
+  async rememberedPath(proposal) {
+    const account = encodeURIComponent(await this.myself());
+    return `/user/properties/lisa-npm-${proposal.selectionKey}?accountId=${account}`;
+  }
+  /**
+   * The ticket this automation last created for the selection, or undefined.
+   * Best effort by design: an unreadable record leaves search exactly as it
+   * was before #4873, where a duplicate still stops safely for a person.
+   */
+  async remembered(proposal) {
+    // Identity is proved first and never swallowed: a credential that signs in
+    // as another account must stop the run before anything is created.
+    const path = await this.rememberedPath(proposal);
+    try {
+      const record = await this.call(
+        path,
+        "unclassified",
+        "GET",
+        undefined,
+        true
+      );
+      const id = Number(record?.value?.id);
+      return Number.isSafeInteger(id) && id > 0 ? [id] : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  /**
+   * The exact selection label, not full-text ranking, finds a prior proposal.
+   * Jira's search index can miss a ticket created moments ago, so the ticket
+   * this automation remembered creating is reconciled into the result (#4873).
+   */
+  async searchPrior(proposal) {
+    const jql = `project = "${this.key}" AND labels = "lisa-npm-${proposal.selectionKey}"`;
+    const remembered = await this.remembered(proposal);
+    if (!remembered) return this.search(jql);
+    try {
+      return await this.search(jql, remembered);
+    } catch {
+      return this.searchWithout(jql, remembered[0], proposal);
+    }
+  }
+  /**
+   * A refused reconcile must neither block allocation nor lose the remembered
+   * ticket to a still-lagging index (#4873 review): the ticket is read directly
+   * and kept in the result while it exists with this selection's label. Only a
+   * 404, a deleted ticket, lets the plain search stand alone; any other failed
+   * read throws, so nothing is created on an unknown answer.
+   */
+  async searchWithout(jql, id, proposal) {
+    const ticket = await this.call(
+      `/issue/${id}?fields=status,labels`,
+      "issue",
+      "GET",
+      undefined,
+      true
+    );
+    const found = await this.search(jql);
+    const label = `lisa-npm-${proposal.selectionKey}`;
+    if (ticket === null || !(ticket.fields?.labels ?? []).includes(label))
+      return found;
+    const number = this.numberOf(ticket.key);
+    if (found.items.some(item => item.number === number)) return found;
+    return {
+      ...found,
+      total_count: found.total_count + 1,
+      items: [
+        ...found.items,
+        { number, state: stateOf(ticket.fields?.status) },
+      ],
+    };
+  }
+  async relationships() {
+    const query = `project = "${this.key}" AND (summary ~ "npm" OR description ~ "npm")`;
+    return { ...(await this.search(query)), query };
+  }
+  async vocabulary() {
+    const types = await this.call(
+      `/project/${this.key}/statuses`,
+      "unclassified"
+    );
+    const task = (Array.isArray(types) ? types : []).find(
+      type => type.name === "Task"
+    );
+    const priorities = await this.call("/priority", "unclassified");
+    return [
+      ...(task ? ["type:Task"] : []),
+      ...((Array.isArray(priorities) ? priorities : []).some(
+        priority => priority.name === "Medium"
+      )
+        ? ["priority:medium"]
+        : []),
+      ...(task?.statuses ?? []).map(status =>
+        lifecycleName(this.lifecycle, status.name)
+      ),
+    ];
+  }
+  async ensureRole() {
+    throw vocabularyRefusal("Jira");
+  }
+  async createLeaf(draft, proposal) {
+    // The declared automation identity is proved before the create, never after it.
+    const remember = await this.rememberedPath(proposal);
+    const fields = {
+      project: { key: this.key },
+      issuetype: { name: "Task" },
+      summary: draft.title,
+      description: adfCodeBlock(withinJiraLimit(draft.body)),
+      labels: [`lisa-npm-${proposal.selectionKey}`],
+      priority: { name: "Medium" },
+      assignee: { accountId: draft.assignees[0] },
+    };
+    const created = await this.call("/issue", "issue", "POST", { fields });
+    const number = this.numberOf(created?.key);
+    // Remembered first, so a retry inside the index window finds this ticket.
+    // Best effort, like the read: a refused write must not strand the ticket.
+    await this.call(remember, "unclassified", "PUT", {
+      id: String(created.id),
+      key: created.key,
+    }).catch(() => undefined);
+    try {
+      await this.moveTo(number, this.lifecycle.ready);
+    } catch {
+      throw strandedRefusal(this.ref(number), this.lifecycle.ready);
+    }
+    return { number };
+  }
+  /** Exactly one workflow transition must reach the named status; none is ever guessed. */
+  async moveTo(number, name) {
+    await this.myself();
+    const current = await this.call(
+      `/issue/${this.ref(number)}?fields=status`,
+      "issue"
+    );
+    if (current?.fields?.status?.name?.toLowerCase() === name.toLowerCase())
+      return;
+    const path = `/issue/${this.ref(number)}/transitions`;
+    const options = (await this.call(path, "issue"))?.transitions ?? [];
+    const matches = options.filter(
+      option => option.to?.name?.toLowerCase() === name.toLowerCase()
+    );
+    if (matches.length !== 1) throw vocabularyRefusal("Jira");
+    await this.call(path, "issue", "POST", {
+      transition: { id: matches[0].id },
+    });
+  }
+  async assignable(accountId) {
+    const users = await this.call(
+      `/user/assignable/search?project=${encodeURIComponent(this.key)}&accountId=${encodeURIComponent(accountId)}`,
+      "unclassified"
+    );
+    required(
+      Array.isArray(users) &&
+        users.length === 1 &&
+        users[0].accountId === accountId &&
+        users[0].active === true,
+      "trusted maintainer is not currently assignable"
+    );
+  }
+  async assign(number, accountId) {
+    // Every write proves the declared automation identity first (#4873 review).
+    await this.myself();
+    await this.call(`/issue/${this.ref(number)}/assignee`, "issue", "PUT", {
+      accountId,
+    });
+  }
+  async transition(issue, roles) {
+    await this.moveTo(issue.number, roles.claimed);
+  }
+  /** Managed records are one ADF code block; a backlink is the plain paragraph the PR check reads. */
+  async comment(number, text, document = adfCodeBlock(withinJiraLimit(text))) {
+    await this.myself();
+    const created = await this.call(
+      `/issue/${this.ref(number)}/comment`,
+      "issue-comments",
+      "POST",
+      { body: document }
+    );
+    required(
+      /^[1-9]\d*$/.test(String(created?.id)) && adfText(created.body) === text,
+      "checkpoint write readback differs"
+    );
+    return created;
+  }
+  backlinkComment(number, text) {
+    return this.comment(number, text, {
+      type: "doc",
+      version: 1,
+      content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+    });
+  }
+  /** The issue-scoped comment path is itself the scope proof: Jira answers 404 elsewhere. */
+  async durableComment(number, text) {
+    const created = await this.comment(number, text);
+    const read = await this.call(
+      `/issue/${this.ref(number)}/comment/${created.id}`,
+      "issue-comment"
+    );
+    required(
+      String(read?.id) === String(created.id) && adfText(read.body) === text,
+      "checkpoint immediate readback differs"
+    );
+  }
+  /** The declared automation account the credential signs in as. */
+  actorId() {
+    return this.myself();
+  }
+  cancel(number) {
+    return jiraCancel(this, number);
+  }
+  assertCancelled(number) {
+    return jiraAssertCancelled(this, number);
+  }
+  /** The credential's own account, whether a person or an app/service account. */
+  async isManagedActor(user) {
+    return typeof user?.id === "string" && user.id === (await this.myself());
+  }
+  async proveClaim(descriptor) {
+    const number = this.numberOf(descriptor.workItem);
+    required(
+      /^[1-9]\d*$/.test(String(descriptor.claimCommentId)),
+      CLAIM_DIFFERS
+    );
+    const comment = await this.call(
+      `/issue/${this.ref(number)}/comment/${descriptor.claimCommentId}`,
+      "issue-comment"
+    );
+    required(String(comment?.id) === descriptor.claimCommentId, CLAIM_DIFFERS);
+    assertClaimAuthor(
+      "jira",
+      descriptor.workItem,
+      comment.author?.accountId,
+      await this.myself()
+    );
+    required(
+      sha256(adfText(comment.body)) === descriptor.claimSha256,
+      CLAIM_DIFFERS
+    );
+    return { created_at: isoTime(comment.created) };
+  }
+}

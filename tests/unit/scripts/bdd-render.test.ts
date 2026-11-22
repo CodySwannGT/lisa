@@ -17,7 +17,7 @@ import {
   featureSource,
   makeProject,
   runGateWrite,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 describe("author text cannot break the generated tables", () => {
   it("escapes a pipe in a waiver reason", () => {

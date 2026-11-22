@@ -1,9 +1,9 @@
 ---
 name: lisa-linear-create
-description: "Creates Linear Projects…"
+description: "Create Linear projects, issues…"
 allowed-tools: ["Read", "Glob", "LS", "Skill"]
 ---
-Creates Linear Projects (Epic-equivalent), Issues (Story / Task / Bug / Spike), and sub-Issues (Sub-task) from code files or descriptions. Analyzes the input, determines the appropriate hierarchy, and creates items with comprehensive quality requirements including test-first development and Validation Journey. The Linear counterpart of lisa-jira-create — delegates every write to lisa-linear-write-issue.
+Create Linear projects, issues, and sub-issues from code files or a description, choosing the hierarchy and writing each through lisa-linear-write-issue.
 
 
 # Create Linear Work Items from $ARGUMENTS

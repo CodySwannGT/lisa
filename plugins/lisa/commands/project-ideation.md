@@ -1,5 +1,5 @@
 ---
-description: "Generate persona-grounded, verifiable product ideas for the host project, then create PRDs for the selected build-ready ideas via lisa-research. First derives the personas the project actually serves (from its docs, code, data model, and releases — never invented), ideates per persona, and gates each idea on an obtainable data/source path and an empirical verification plan. Creates one PRD by default (top-ranked idea); max_prds widens the batch. prd_ready=true creates them prd-ready for auto-pickup by lisa-intake; default is draft for human review."
+description: "Generate verifiable product ideas from evidence-backed personas, then create PRDs for the best ones (one by default; max_prds for more). Draft by default; prd_ready=true makes them ready for intake."
 argument-hint: "[target path | external product] [prd_ready=true|false] [max_prds=<n>|all]"
 ---
 

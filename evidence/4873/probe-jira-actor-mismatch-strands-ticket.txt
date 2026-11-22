@@ -1,0 +1,49 @@
+vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
+ [38;5;240m   │[0m        ─────────────────┬─────────────────  
+ [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
+[38;5;246m────╯[0m
+
+
+ RUN  v5.1.0 /private/tmp/v4873-mut
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+stdout | tests/unit/scripts/zz-verifier-actor-probe.test.ts > verifier probe > mismatched credential account
+PROBE mismatched: creates=1 outcome=refused:npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=unknown)
+The JIRA_API_TOKEN 
+
+ ❯ |lisa| tests/unit/scripts/zz-verifier-actor-probe.test.ts (2 tests | 1 failed) 1056ms
+   ❯ verifier probe (2)
+     × mismatched credential account 470ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/scripts/zz-verifier-actor-probe.test.ts > verifier probe > mismatched credential account
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ tests/unit/scripts/zz-verifier-actor-probe.test.ts:47:45
+     45|       );
+     46|       console.log(`PROBE ${_label}: creates=${jira.creates()} outcome=…
+     47|       if (accountId) expect(jira.creates()).toBe(0);
+       |                                             ^
+     48|       else expect(jira.creates()).toBe(1);
+     49|     });
+ ❯ withPrivateRoot all/copy-overwrite/scripts/lib/npm-update-process-core.mjs:65:12
+ ❯ tests/unit/scripts/zz-verifier-actor-probe.test.ts:32:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  07:17:12
+   Duration  1.35s (tests 85%, transform 7%, import 4%, setup 4%)
+

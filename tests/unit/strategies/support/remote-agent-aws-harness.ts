@@ -50,7 +50,7 @@ export function removeTemporaryDirectories(): void {
  * @param overrides - Variables this particular case supplies
  * @returns A minimal, machine-independent environment
  */
-export function scriptEnvironment(
+function scriptEnvironment(
   overrides: Readonly<Record<string, string>>
 ): Record<string, string> {
   // Nothing is inherited. Every caller supplies PATH explicitly, because the

@@ -11,7 +11,7 @@
  * Specification: `docs/nightly-e2e-gate.md` §2 rows 41-42 and §2.6.
  * @module tests/helpers/nightly-e2e-selection-harness
  */
-import type { Job } from "./nightly-e2e-gate-harness";
+import type { Job } from "./nightly-e2e-gate-harness.js";
 
 /** Actions run identity shared by discovery, direct reads and selection. */
 export interface Run {
@@ -28,7 +28,7 @@ export interface Run {
 }
 
 /** One run the selection walk stepped over, with the evidence it lacked. */
-export interface SkippedRun {
+interface SkippedRun {
   readonly runId: number | null;
   readonly conclusion: string | null;
   readonly createdAt: string | null;
@@ -104,7 +104,7 @@ export interface SelectionModule {
 }
 
 /** The gate's default freshness window, in hours. */
-export const FRESHNESS_HOURS = 36;
+const FRESHNESS_HOURS = 36;
 
 /**
  * The evaluation context `observe` bounds its selection walk with.

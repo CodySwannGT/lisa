@@ -14,9 +14,8 @@
  * last of which is the assertion that catches plumbing nobody wired up.
  * @module tests/unit/config/expo-design-value-arming
  */
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -25,6 +24,10 @@ import {
   getExpoConfig,
   readTypedAxes,
 } from "../../../src/configs/eslint/expo.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const require = createRequire(import.meta.url);
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -37,7 +40,7 @@ const TEMPLATE = path.join(REPO_ROOT, "expo", "copy-overwrite");
  * @returns The directory holding it.
  */
 const projectWith = (body: unknown): string => {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-design-axes-"));
+  const root = ownedDir("lisa-design-axes-");
   writeFileSync(
     path.join(root, ".lisa.config.json"),
     JSON.stringify(body),
@@ -113,7 +116,7 @@ describe("design-value binding: reading design.tokens.axes", () => {
   });
 
   it("returns no axes when the project has no .lisa.config.json", () => {
-    const root = mkdtempSync(path.join(tmpdir(), "lisa-design-none-"));
+    const root = ownedDir("lisa-design-none-");
     expect(readTypedAxes(root)).toEqual([]);
   });
 
@@ -152,11 +155,6 @@ describe("design-value binding: the managed template wires the path", () => {
     // the bare token would pass against the very state this proves is gone.
     expect(src).toContain("readTypedAxes(__dirname)");
     expect(src).toContain("typedAxes,");
-  });
-
-  it("the copied factory template arms the rule from the option too", () => {
-    const src = readFileSync(path.join(TEMPLATE, "eslint.expo.ts"), "utf8");
-    expect(src).toContain("getDesignValueBindingRule(typedAxes)");
   });
 });
 

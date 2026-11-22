@@ -97,8 +97,9 @@ describe("ledger", () => {
     expect(await readLedger(root)).toEqual({
       version: 1,
       items: {},
-      control: { paused: false, maxWorkers: null, me: null },
+      control: { paused: false, maxWorkers: null, me: null, setupGaps: {} },
       validationFailures: {},
+      cyclers: {},
     });
   });
 
@@ -282,6 +283,7 @@ describe("ledger", () => {
       paused: true,
       maxWorkers: 2,
       me: "operator-id",
+      setupGaps: {},
     });
     await setControl(root, { maxWorkers: null, paused: false });
     expect((await readLedger(root)).control).toMatchObject({

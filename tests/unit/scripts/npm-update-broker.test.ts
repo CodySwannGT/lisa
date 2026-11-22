@@ -12,7 +12,6 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { canonicalJson } from "../../../all/copy-overwrite/scripts/lisa-automation-provenance.mjs";
 import { invokeControllerRecipe } from "../../../all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 
 const CANONICAL_ENTRY = resolve(
   "all/copy-overwrite/scripts/lisa-work-item.mjs"
@@ -44,10 +43,7 @@ async function withBroker(
   changes: object,
   operation: (broker: any, recipe: any) => Promise<void>
 ) {
-  const scratch = createSupervisedUnixFixture(
-    CONTROLLER_SOCKET,
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const scratch = createSupervisedUnixFixture(CONTROLLER_SOCKET);
   const root = scratch.root;
   expect(lstatSync(root).mode & 0o077).toBe(0);
   const entry = CANONICAL_ENTRY;
@@ -83,10 +79,7 @@ async function withBroker(
 describe("closed native controller broker", () => {
   it("runs the genuine canonical helper through its exact non-null instrumented recipe without serializing its credential", async () => {
     // Local graph/token/native-GH fixture tests bootstrap fidelity, not released graph or GitHub authority.
-    const scratch = createSupervisedUnixFixture(
-      CONTROLLER_SOCKET,
-      process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-    );
+    const scratch = createSupervisedUnixFixture(CONTROLLER_SOCKET);
     const root = scratch.root;
     const entry = CANONICAL_ENTRY;
     const adapter = resolve(
@@ -214,10 +207,7 @@ describe("closed native controller broker", () => {
     });
   });
   it("preserves genuine helper results through the closed client transport", async () => {
-    const scratch = createSupervisedUnixFixture(
-      CONTROLLER_SOCKET,
-      process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-    );
+    const scratch = createSupervisedUnixFixture(CONTROLLER_SOCKET);
     const root = scratch.root;
     const entry = CANONICAL_ENTRY;
     const node = realpathSync(process.execPath);
@@ -255,10 +245,7 @@ describe("closed native controller broker", () => {
     }
   });
   it("runs the genuine canonical contract probe and rejects worker-supplied commands", async () => {
-    const scratch = createSupervisedUnixFixture(
-      CONTROLLER_SOCKET,
-      process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-    );
+    const scratch = createSupervisedUnixFixture(CONTROLLER_SOCKET);
     const root = scratch.root;
     const entry = CANONICAL_ENTRY;
     const node = realpathSync(process.execPath);
@@ -311,5 +298,53 @@ describe("closed native controller broker", () => {
       await broker?.close();
       scratch.close();
     }
+  });
+});
+
+describe("broker graph bound (CodySwannGT/lisa#4582)", () => {
+  it("admits a graph up to 256 entries, like the helper graph, and refuses one more", async () => {
+    const graphOf = (root: string, count: number): Record<string, string> => {
+      const graph: Record<string, string> = {
+        [CANONICAL_ENTRY]: sha256(readFileSync(CANONICAL_ENTRY)),
+      };
+      for (let index = 1; index < count; index += 1) {
+        const filler = resolve(root, `bound-filler-${index}.mjs`);
+        writeFileSync(filler, `export const n = ${index};\n`);
+        graph[filler] = sha256(readFileSync(filler));
+      }
+      return graph;
+    };
+    const start = async (count: number) => {
+      const scratch = createSupervisedUnixFixture(CONTROLLER_SOCKET);
+      const node = realpathSync(process.execPath);
+      try {
+        const broker = await startControllerBroker({
+          root: scratch.root,
+          deadline: Date.now() + 10_000,
+          graph: graphOf(scratch.root, count),
+          node: { path: node, sha256: binaryDigest(node) },
+          recipes: [
+            {
+              id: CONTRACT_PROBE,
+              command: node,
+              args: [CANONICAL_ENTRY, CONTRACT_VERSION],
+              cwd: scratch.root,
+              input: Buffer.alloc(0),
+              env: { PATH: SYSTEM_PATH, HOME: scratch.root },
+              allowed: [0],
+              timeout: 5000,
+              maximum: 65536,
+            },
+          ],
+        });
+        await broker.close();
+      } finally {
+        scratch.close();
+      }
+    };
+    await expect(start(256)).resolves.toBeUndefined();
+    await expect(start(257)).rejects.toThrow(
+      "broker graph is absent or unbounded"
+    );
   });
 });

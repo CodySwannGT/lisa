@@ -74,7 +74,7 @@ function writeGuards(
  * @param spec - What to build
  * @returns The checkout path
  */
-export function buildCheckout(root: string, spec: CheckoutSpec): string {
+function buildCheckout(root: string, spec: CheckoutSpec): string {
   const checkout = path.join(root, spec.name);
   mkdirSync(checkout, { recursive: true });
   writeGuards(

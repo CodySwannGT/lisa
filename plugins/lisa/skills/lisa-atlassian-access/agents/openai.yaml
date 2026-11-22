@@ -1,4 +1,4 @@
 display_name: "Atlassian Access"
-short_description: "Vendor-neutral access layer for Atlassian (JIRA + Confluence)"
+short_description: "The one way Lisa skills reach JIRA and Confluence: a token-authenticated REST path matched to the configured site, then acli, then the…"
 default_prompt:
-  - "Use $lisa-atlassian-access: Vendor-neutral access layer for Atlassian (JIRA + Confluence)."
+  - "Use $lisa-atlassian-access: The one way Lisa skills reach JIRA and Confluence: a token-authenticated REST path matched to the configured site, then acli, then the…."

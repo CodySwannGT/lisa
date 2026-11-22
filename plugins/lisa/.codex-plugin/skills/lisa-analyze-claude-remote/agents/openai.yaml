@@ -1,4 +1,4 @@
 display_name: "Analyze Claude Remote"
-short_description: "Audit whether the current…"
+short_description: "Check whether this repo can run…"
 default_prompt:
-  - "Use $lisa-analyze-claude-remote: Audit whether the current…."
+  - "Use $lisa-analyze-claude-remote: Check whether this repo can run…."

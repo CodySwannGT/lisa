@@ -1,16 +1,11 @@
-/* eslint-disable jsdoc/require-jsdoc, sonarjs/no-duplicate-string, max-lines -- security and parity fixtures stay colocated */
-import {
-  chmod,
-  mkdir,
-  mkdtemp,
-  realpath,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+/**
+ * Deterministic Health regressions: subprocess/FIFO safety and the workflow,
+ * managed-template, and installed-state inspectors.
+ * @module tests/unit/health/deterministic-regressions.test
+ */
+import { chmod, mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -23,26 +18,34 @@ import {
 } from "../../../src/health/plugin-inspection.js";
 import { readProjectFile } from "../../../src/health/read-only-fs.js";
 import {
-  compareRulesets,
-  expectedRulesets,
-  rulesetFinding,
-  type HealthRuleset,
-} from "../../../src/health/ruleset-inspection.js";
-import {
   inspectManagedTemplates,
   inspectWorkflowInputs,
 } from "../../../src/health/template-inspection.js";
 import { mergeTemplateJson } from "../../../src/strategies/merge.js";
 import { TaggedMergeStrategy } from "../../../src/strategies/tagged-merge.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { write } from "./deterministic-regressions-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
-const temporaryRoots: string[] = [];
-const REPO_ROOT = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  ".."
-);
+/** The project file the FIFO cases replace with a blocking special file. */
+const PACKAGE_JSON = "package.json";
+/** Error every unsafe project-file read must raise. */
+const UNSAFE_PROJECT_FILE = "Unsafe health project file";
+/** Lisa-side create-only caller path for the workflow-input cases. */
+const CREATE_ONLY_CALLER =
+  "typescript/create-only/.github/workflows/caller.yml";
+/** Host-side caller path for the workflow-input cases. */
+const HOST_CALLER = ".github/workflows/caller.yml";
+/** Lisa-side reusable workflow the callers invoke. */
+const REUSABLE_WORKFLOW = ".github/workflows/reusable.yml";
+/** Reusable workflow contract declaring a single current boolean input. */
+const REUSABLE_CONTRACT =
+  "on:\n  workflow_call:\n    inputs:\n      current_input:\n        type: boolean\n";
+/** Host file the copy-contents managed-block case manages. */
+const GITIGNORE = ".gitignore";
+/** Host file the merge/tagged-merge composition case manages. */
+const SETTINGS_JSON = "settings.json";
+/** Every Husky hook Lisa installs for a TypeScript project. */
 const HUSKY_HOOKS = [
   "commit-msg",
   "post-checkout",
@@ -51,20 +54,17 @@ const HUSKY_HOOKS = [
   "prepare-commit-msg",
 ] as const;
 
+const temporaryRoots: string[] = [];
+
+/**
+ * Create a canonical temporary root that the suite removes after each test.
+ * @param prefix - Directory name prefix
+ * @returns Canonical (symlink-resolved) temporary root
+ */
 async function temporaryRoot(prefix: string): Promise<string> {
   const root = await realpath(await mkdtemp(path.join(tmpdir(), prefix)));
   temporaryRoots.push(root);
   return root;
-}
-
-async function write(
-  relativeRoot: string,
-  relativePath: string,
-  content: string
-) {
-  const destination = path.join(relativeRoot, relativePath);
-  await mkdir(path.dirname(destination), { recursive: true });
-  await writeFile(destination, content);
 }
 
 afterEach(async () => {
@@ -102,7 +102,7 @@ describe("deterministic health safety regressions", () => {
     async () => {
       const root = await temporaryRoot("lisa-health-fifo-");
       const external = await temporaryRoot("lisa-health-external-fifo-");
-      const internalFifo = path.join(root, "package.json");
+      const internalFifo = path.join(root, PACKAGE_JSON);
       const externalFifo = path.join(external, "outside.json");
       boundedExecFileSync({
         label: "mkfifo internal fixture",
@@ -116,13 +116,13 @@ describe("deterministic health safety regressions", () => {
       });
 
       const started = Date.now();
-      await expect(readProjectFile(root, "package.json")).rejects.toThrow(
-        "Unsafe health project file"
+      await expect(readProjectFile(root, PACKAGE_JSON)).rejects.toThrow(
+        UNSAFE_PROJECT_FILE
       );
       await rm(internalFifo);
-      await symlink(externalFifo, internalFifo);
-      await expect(readProjectFile(root, "package.json")).rejects.toThrow(
-        "Unsafe health project file"
+      createSymlink(externalFifo, internalFifo);
+      await expect(readProjectFile(root, PACKAGE_JSON)).rejects.toThrow(
+        UNSAFE_PROJECT_FILE
       );
       expect(Date.now() - started).toBeLessThan(1_000);
     }
@@ -140,7 +140,7 @@ describe("deterministic health safety regressions", () => {
       boundedExecFileSync({
         label: "mkfifo package.json fixture",
         command: "mkfifo",
-        args: [path.join(root, "package.json")],
+        args: [path.join(root, PACKAGE_JSON)],
       });
       const started = Date.now();
       const result = await runDeterministicHealth(root, {
@@ -164,17 +164,9 @@ describe("deterministic health governance regressions", () => {
     const lisaRoot = await temporaryRoot("lisa-health-workflow-source-");
     const projectRoot = await temporaryRoot("lisa-health-workflow-host-");
     const caller = `jobs:\n  verify:\n    uses: CodySwannGT/lisa/.github/workflows/reusable.yml@main\n    with:\n      stale_input: true\n`;
-    await write(
-      lisaRoot,
-      "typescript/create-only/.github/workflows/caller.yml",
-      caller
-    );
-    await write(
-      lisaRoot,
-      ".github/workflows/reusable.yml",
-      "on:\n  workflow_call:\n    inputs:\n      current_input:\n        type: boolean\n"
-    );
-    await write(projectRoot, ".github/workflows/caller.yml", caller);
+    await write(lisaRoot, CREATE_ONLY_CALLER, caller);
+    await write(lisaRoot, REUSABLE_WORKFLOW, REUSABLE_CONTRACT);
+    await write(projectRoot, HOST_CALLER, caller);
 
     await expect(
       inspectWorkflowInputs(lisaRoot, projectRoot, ["typescript"])
@@ -188,17 +180,9 @@ describe("deterministic health governance regressions", () => {
     const lisaRoot = await temporaryRoot("lisa-health-third-party-source-");
     const projectRoot = await temporaryRoot("lisa-health-third-party-host-");
     const caller = `jobs:\n  verify:\n    uses: vendor/other/.github/workflows/reusable.yml@v1\n    with:\n      stale_input: true\n`;
-    await write(
-      lisaRoot,
-      "typescript/create-only/.github/workflows/caller.yml",
-      caller
-    );
-    await write(
-      lisaRoot,
-      ".github/workflows/reusable.yml",
-      "on:\n  workflow_call:\n    inputs:\n      current_input:\n        type: boolean\n"
-    );
-    await write(projectRoot, ".github/workflows/caller.yml", caller);
+    await write(lisaRoot, CREATE_ONLY_CALLER, caller);
+    await write(lisaRoot, REUSABLE_WORKFLOW, REUSABLE_CONTRACT);
+    await write(projectRoot, HOST_CALLER, caller);
 
     await expect(
       inspectWorkflowInputs(lisaRoot, projectRoot, ["typescript"])
@@ -234,19 +218,19 @@ describe("deterministic health governance regressions", () => {
     const projectRoot = await temporaryRoot("lisa-health-block-host-");
     const block = "# BEGIN: AI GUARDRAILS\nbuild/\n# END: AI GUARDRAILS\n";
     await write(lisaRoot, "all/copy-contents/gitignore", block);
-    await write(projectRoot, ".gitignore", `custom/\n${block}`);
+    await write(projectRoot, GITIGNORE, `custom/\n${block}`);
     await expect(
       inspectManagedTemplates(lisaRoot, projectRoot, [], "managed")
     ).resolves.toEqual([]);
 
     await write(
       projectRoot,
-      ".gitignore",
+      GITIGNORE,
       "custom/\n# BEGIN: AI GUARDRAILS\nstale/\n# END: AI GUARDRAILS\n"
     );
     await expect(
       inspectManagedTemplates(lisaRoot, projectRoot, [], "managed")
-    ).resolves.toEqual([".gitignore"]);
+    ).resolves.toEqual([GITIGNORE]);
   });
 
   it("composes parent overwrite and child content management before comparing", async () => {
@@ -294,7 +278,7 @@ describe("deterministic health governance regressions", () => {
       "typescript/tagged-merge/settings.json",
       JSON.stringify(child)
     );
-    await write(projectRoot, "settings.json", JSON.stringify(expected));
+    await write(projectRoot, SETTINGS_JSON, JSON.stringify(expected));
 
     await expect(
       inspectManagedTemplates(lisaRoot, projectRoot, ["typescript"], "managed")
@@ -302,12 +286,12 @@ describe("deterministic health governance regressions", () => {
 
     await write(
       projectRoot,
-      "settings.json",
+      SETTINGS_JSON,
       JSON.stringify({ ...expected, governed: { enabled: false } })
     );
     await expect(
       inspectManagedTemplates(lisaRoot, projectRoot, ["typescript"], "managed")
-    ).resolves.toEqual(["settings.json"]);
+    ).resolves.toEqual([SETTINGS_JSON]);
   });
 
   it("requires executable Husky hooks and installed plugin state", async () => {
@@ -330,7 +314,7 @@ describe("deterministic health governance regressions", () => {
     await write(
       root,
       ".claude/settings.json",
-      '{"enabledPlugins":{"lisa@lisa":true}}\n'
+      '{"enabledPlugins":{"lisa@lisa":true,"lisa-wiki@lisa":true}}\n'
     );
     await write(
       root,
@@ -346,326 +330,9 @@ describe("deterministic health governance regressions", () => {
         1_000,
         new AbortController().signal
       )
-    ).resolves.toEqual({ status: "fail", drift: ["lisa@lisa"] });
-  });
-
-  it("compares material ruleset state and normalizes dropped checks", async () => {
-    const base: HealthRuleset = {
-      name: "base",
-      target: "branch",
-      enforcement: "active",
-      conditions: { ref_name: { include: ["~DEFAULT_BRANCH"], exclude: [] } },
-      rules: [{ type: "deletion" }],
-    };
-    expect(
-      compareRulesets([base], [{ ...base, enforcement: "disabled" }])
-    ).toEqual({ missing: [], drifted: ["base"] });
-    expect(
-      compareRulesets(
-        [base],
-        [{ ...base, conditions: { ref_name: { include: ["main"] } } }]
-      )
-    ).toEqual({ missing: [], drifted: ["base"] });
-
-    const reviewRule: HealthRuleset = {
-      ...base,
-      rules: [
-        {
-          type: "pull_request",
-          parameters: { required_approving_review_count: 1 },
-        },
-      ],
-    };
-    expect(
-      compareRulesets(
-        [reviewRule],
-        [
-          {
-            ...reviewRule,
-            rules: [
-              {
-                type: "pull_request",
-                parameters: {
-                  required_approving_review_count: 1,
-                  required_reviewers: [],
-                },
-              },
-            ],
-          },
-        ]
-      )
-    ).toEqual({ missing: [], drifted: [] });
-    expect(
-      compareRulesets(
-        [reviewRule],
-        [
-          {
-            ...reviewRule,
-            rules: [
-              {
-                type: "pull_request",
-                parameters: {
-                  required_approving_review_count: 1,
-                  required_reviewers: [{ type: "Team", id: 7 }],
-                },
-              },
-            ],
-          },
-        ]
-      )
-    ).toEqual({ missing: [], drifted: ["base"] });
-
-    const lisaRoot = await temporaryRoot("lisa-health-ruleset-source-");
-    const projectRoot = await temporaryRoot("lisa-health-ruleset-host-");
-    await write(
-      lisaRoot,
-      "all/github-rulesets/base.json",
-      `${JSON.stringify({
-        ...base,
-        rules: [
-          { type: "deletion" },
-          {
-            type: "required_status_checks",
-            parameters: {
-              required_status_checks: [
-                { context: "CI", integration_id: 15_368 },
-                { context: "Optional", integration_id: 1 },
-              ],
-            },
-          },
-        ],
-      })}\n`
-    );
-    const [normalized] = await expectedRulesets(lisaRoot, projectRoot, [], {
-      github: { rulesets: { dropRequiredChecks: ["Optional"] } },
+    ).resolves.toEqual({
+      status: "fail",
+      drift: ["lisa-wiki@lisa", "lisa@lisa"],
     });
-    expect(normalized?.rules).toEqual([{ type: "deletion" }]);
-  });
-
-  // #2485: a repository-specific required check is declared per repo rather
-  // than in a shared template. The health inspector has to honor the same
-  // opt-in the applier does, or it reports the ruleset it just wrote as
-  // "drifted" — a false red that teaches operators to ignore the check.
-  it("expects per-repo addRequiredChecks the way the applier writes them", async () => {
-    const lisaRoot = await temporaryRoot("lisa-health-ruleset-add-source-");
-    const projectRoot = await temporaryRoot("lisa-health-ruleset-add-host-");
-    await write(
-      lisaRoot,
-      "all/github-rulesets/base.json",
-      `${JSON.stringify({
-        name: "base",
-        target: "branch",
-        enforcement: "active",
-        rules: [
-          {
-            type: "required_status_checks",
-            parameters: {
-              required_status_checks: [
-                { context: "CI", integration_id: 15_368 },
-              ],
-            },
-          },
-        ],
-      })}\n`
-    );
-    await write(projectRoot, ".github/workflows/ci.yml", "on: push\n");
-
-    const [withAddition] = await expectedRulesets(lisaRoot, projectRoot, [], {
-      github: {
-        rulesets: {
-          addRequiredChecks: {
-            base: [{ context: "🧩 Repo Only", integration_id: 15_368 }],
-          },
-        },
-      },
-    });
-    expect(
-      withAddition?.rules?.[0]?.parameters?.required_status_checks
-    ).toEqual([
-      { context: "CI", integration_id: 15_368 },
-      { context: "🧩 Repo Only", integration_id: 15_368 },
-    ]);
-
-    // Named for a different ruleset, it must not leak into this one.
-    const [unrelated] = await expectedRulesets(lisaRoot, projectRoot, [], {
-      github: {
-        rulesets: {
-          addRequiredChecks: {
-            "quality checks": [{ context: "🧩 Elsewhere" }],
-          },
-        },
-      },
-    });
-    expect(unrelated?.rules?.[0]?.parameters?.required_status_checks).toEqual([
-      { context: "CI", integration_id: 15_368 },
-    ]);
-  });
-
-  it("expects required run gates in the quality ruleset", async () => {
-    const projectRoot = await temporaryRoot("lisa-health-run-gates-host-");
-    await write(projectRoot, ".github/workflows/ci.yml", "on: push\n");
-
-    const rulesets = await expectedRulesets(
-      REPO_ROOT,
-      projectRoot,
-      ["typescript"],
-      {
-        gates: {
-          "environment-reset": { "pull-request": "required" },
-          "environment-reseed": { "pull-request": "required" },
-          "credential-leakage": {
-            "pull-request": {
-              level: "required",
-              await: "Vendor Security",
-              posted_by: 123,
-            },
-          },
-        },
-      }
-    );
-    const quality = rulesets.find(item => item.name === "quality checks");
-    const base = rulesets.find(item => item.name === "base");
-    const contexts = (ruleset: HealthRuleset | undefined) =>
-      (ruleset?.rules ?? []).flatMap(rule =>
-        rule.type === "required_status_checks"
-          ? (
-              (rule.parameters?.required_status_checks ?? []) as {
-                context: string;
-              }[]
-            ).map(check => check.context)
-          : []
-      );
-
-    expect(contexts(quality)).toEqual(
-      expect.arrayContaining([
-        "🔍 Quality Checks / ♻️ Environment Reset Guard",
-        "🔍 Quality Checks / 🌱 Environment Reseed Guard",
-      ])
-    );
-    expect(contexts(quality)).not.toContain("Vendor Security");
-    expect(contexts(base)).toContain("Vendor Security");
-  });
-
-  it("names unenforced required checks and tolerates host-added checks", async () => {
-    const expected: HealthRuleset = {
-      name: "quality checks",
-      target: "branch",
-      enforcement: "active",
-      conditions: { ref_name: { include: ["~DEFAULT_BRANCH"], exclude: [] } },
-      rules: [
-        {
-          type: "required_status_checks",
-          parameters: {
-            required_status_checks: [
-              {
-                context: "🔍 Quality Checks / 🧹 Lint",
-                integration_id: 15_368,
-              },
-              {
-                context: "🔍 Quality Checks / 🔗 Work-Item Traceability",
-                integration_id: 15_368,
-              },
-            ],
-          },
-        },
-      ],
-    };
-    const actualWithHostAddition: HealthRuleset = {
-      ...expected,
-      rules: [
-        {
-          type: "required_status_checks",
-          parameters: {
-            required_status_checks: [
-              {
-                context: "🔍 Quality Checks / 🧹 Lint",
-                integration_id: 15_368,
-              },
-              {
-                context: "🧭 E2E Route Coverage",
-                integration_id: 15_368,
-              },
-            ],
-          },
-        },
-      ],
-    };
-
-    expect(compareRulesets([expected], [actualWithHostAddition])).toEqual({
-      missing: [],
-      drifted: ["quality checks"],
-    });
-
-    const lisaRoot = await temporaryRoot("lisa-health-ruleset-names-source-");
-    const projectRoot = await temporaryRoot("lisa-health-ruleset-names-host-");
-    await write(
-      lisaRoot,
-      "typescript/github-rulesets/quality-checks.json",
-      `${JSON.stringify(expected)}\n`
-    );
-    await write(projectRoot, ".github/workflows/ci.yml", "on: push\n");
-
-    const finding = await rulesetFinding(
-      lisaRoot,
-      projectRoot,
-      ["typescript"],
-      { github: { org: "acme", repo: "app" } },
-      async () => [actualWithHostAddition],
-      1_000,
-      new AbortController().signal
-    );
-    expect(finding.status).toBe("fail");
-    expect(finding.reason).toContain("quality checks drifted");
-    expect(finding.reason).toContain("runs without blocking");
-    expect(finding.reason).toContain(
-      "🔍 Quality Checks / 🔗 Work-Item Traceability"
-    );
-    expect(finding.reason).not.toContain("🧭 E2E Route Coverage");
-  });
-
-  it("reports missing rulesets with their unenforced required checks", async () => {
-    const lisaRoot = await temporaryRoot("lisa-health-ruleset-missing-source-");
-    const projectRoot = await temporaryRoot(
-      "lisa-health-ruleset-missing-host-"
-    );
-    await write(
-      lisaRoot,
-      "expo/github-rulesets/nightly-e2e-health.json",
-      `${JSON.stringify({
-        name: "nightly e2e health",
-        target: "branch",
-        enforcement: "active",
-        rules: [
-          {
-            type: "required_status_checks",
-            parameters: {
-              required_status_checks: [
-                {
-                  context: "🌙 Nightly E2E Health / 🌙 Gate",
-                  integration_id: 15_368,
-                },
-              ],
-            },
-          },
-        ],
-      })}\n`
-    );
-    await write(projectRoot, ".github/workflows/ci.yml", "on: push\n");
-
-    const finding = await rulesetFinding(
-      lisaRoot,
-      projectRoot,
-      ["expo"],
-      { github: { org: "acme", repo: "app" } },
-      async () => [],
-      1_000,
-      new AbortController().signal
-    );
-
-    expect(finding.status).toBe("fail");
-    expect(finding.reason).toContain("nightly e2e health missing");
-    expect(finding.reason).toContain("🌙 Nightly E2E Health / 🌙 Gate");
-    expect(finding.reason).toContain("runs without blocking");
   });
 });
-/* eslint-enable jsdoc/require-jsdoc, sonarjs/no-duplicate-string, max-lines -- restore repository test defaults */

@@ -23,7 +23,7 @@ const VIEW_FILES = ["**/*View.tsx", "**/*View.jsx"];
  * (`component-structure/no-hooks-in-view`) matches by shape precisely because a
  * project-local custom hook can never appear on a list like this one.
  */
-export const REACT_HOOK_IMPORT_NAMES = [
+const REACT_HOOK_IMPORT_NAMES = [
   "useActionState",
   "useCallback",
   "useContext",
@@ -45,7 +45,7 @@ export const REACT_HOOK_IMPORT_NAMES = [
 ];
 
 /** What a developer is told when a View reaches for a hook. */
-export const VIEW_HOOK_IMPORT_MESSAGE =
+const VIEW_HOOK_IMPORT_MESSAGE =
   "View components must not use hooks. Move the hook into the corresponding Container and pass its result down as a prop.";
 
 /**

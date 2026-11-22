@@ -5,6 +5,7 @@
  * @module tests/helpers/nightly-e2e-discovery-cli-harness
  */
 import { execFile } from "node:child_process";
+import { on } from "node:events";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import {
   createServer,
@@ -42,7 +43,7 @@ export function discoveryRun(id: number, ageHours = 1) {
 }
 
 /** Independent Actions run fixture. */
-export type DiscoveryRun = ReturnType<typeof discoveryRun>;
+type DiscoveryRun = ReturnType<typeof discoveryRun>;
 
 /** HTTP snapshot and independent-detail inputs. */
 interface DiscoveryOptions {
@@ -54,54 +55,110 @@ interface DiscoveryOptions {
   readonly scriptPath?: string;
 }
 
+/** The listener's trace: requests seen so far and the list-snapshot cursor. */
+interface DiscoveryTrace {
+  readonly requests: readonly string[];
+  readonly listIndex: number;
+}
+
+/**
+ * Resolves the mapped fixture body for one request path.
+ * @param options - Snapshots and independent detail records
+ * @param pathname - Request path
+ * @param listIndex - Snapshot cursor for list requests
+ * @returns HTTP status and JSON body
+ */
+function discoveryResponse(
+  options: DiscoveryOptions,
+  pathname: string,
+  listIndex: number
+): { readonly status: number; readonly body: unknown } {
+  const match = /\/actions\/runs\/(\d+)(\/jobs|\/artifacts)?$/u.exec(pathname);
+  if (pathname.endsWith("/workflows/e2e.yml/runs"))
+    return {
+      status: 200,
+      body: {
+        workflow_runs:
+          options.lists[Math.min(listIndex, options.lists.length - 1)] ?? [],
+      },
+    };
+  if (match === null)
+    return { status: 404, body: { message: "Unmapped HTTP fixture" } };
+  const id = Number(match[1]);
+  if (match[2] === "/jobs")
+    return {
+      status: 200,
+      body: {
+        jobs: options.jobs?.[id] ?? [{ name: "e2e", conclusion: "success" }],
+      },
+    };
+  if (match[2] === "/artifacts")
+    return { status: 200, body: { artifacts: [{ name: "scope-full-web" }] } };
+  const detail = options.details[id];
+  return { status: detail == null ? 404 : 200, body: detail };
+}
+
 /**
  * Serializes one mapped HTTP fixture, recording the request at the boundary.
  * @param options - Snapshots and independent detail records
  * @param request - Native request
  * @param response - Native response
- * @param state - Per-listener request trace and snapshot cursor
- * @param state.requests - Requests observed at the HTTP boundary
- * @param state.listIndex - Snapshot cursor for list requests
+ * @param trace - Requests observed before this one, and the list cursor
+ * @returns The trace including this request
  */
 function respondToDiscoveryRequest(
   options: DiscoveryOptions,
   request: IncomingMessage,
   response: ServerResponse,
-  state: { requests: string[]; listIndex: number }
-): void {
-  /* eslint-disable functional/no-let, functional/immutable-data -- native HTTP response and per-listener request trace require bounded mutation */
+  trace: DiscoveryTrace
+): DiscoveryTrace {
   const url = new URL(request.url ?? "/", "http://localhost");
-  let body: unknown;
-  const match = /\/actions\/runs\/(\d+)(\/jobs|\/artifacts)?$/u.exec(
-    url.pathname
+  const { status, body } = discoveryResponse(
+    options,
+    url.pathname,
+    trace.listIndex
   );
-  state.requests.push(`${request.method} ${url.pathname}${url.search}`);
-  if (url.pathname.endsWith("/workflows/e2e.yml/runs")) {
-    body = {
-      workflow_runs:
-        options.lists[Math.min(state.listIndex, options.lists.length - 1)] ??
-        [],
-    };
-    state.listIndex += 1;
-  } else if (match !== null) {
-    const id = Number(match[1]);
-    if (match[2] === "/jobs")
-      body = {
-        jobs: options.jobs?.[id] ?? [{ name: "e2e", conclusion: "success" }],
-      };
-    else if (match[2] === "/artifacts")
-      body = { artifacts: [{ name: "scope-full-web" }] };
-    else {
-      body = options.details[id];
-      if (body == null) response.statusCode = 404;
-    }
-  } else {
-    response.statusCode = 404;
-    body = { message: "Unmapped HTTP fixture" };
-  }
-  response.setHeader("content-type", "application/json");
+  response.writeHead(status, { "content-type": "application/json" });
   response.end(JSON.stringify(body ?? {}));
-  /* eslint-enable functional/no-let, functional/immutable-data -- remaining harness logic uses immutable records */
+  return {
+    requests: [
+      ...trace.requests,
+      `${request.method} ${url.pathname}${url.search}`,
+    ],
+    listIndex:
+      trace.listIndex +
+      (url.pathname.endsWith("/workflows/e2e.yml/runs") ? 1 : 0),
+  };
+}
+
+/** One request the listener received, with its response. */
+type DiscoveryExchange = [IncomingMessage, ServerResponse];
+
+/**
+ * Answer the listener's requests in arrival order until it is told to stop,
+ * handing each request's trace to the next.
+ * @param options - Snapshots and independent detail records
+ * @param requests - The listener's requests, ended by aborting their signal
+ * @param trace - Requests observed so far and the list cursor
+ * @returns The complete trace once the requests stop
+ */
+async function answerDiscoveryRequests(
+  options: DiscoveryOptions,
+  requests: AsyncIterator<DiscoveryExchange>,
+  trace: DiscoveryTrace
+): Promise<DiscoveryTrace> {
+  const next = await requests.next().catch((error: unknown) => {
+    if (error instanceof Error && error.name === "AbortError")
+      return { done: true, value: undefined } as const;
+    throw error;
+  });
+  if (next.done === true) return trace;
+  const [request, response] = next.value;
+  return answerDiscoveryRequests(
+    options,
+    requests,
+    respondToDiscoveryRequest(options, request, response, trace)
+  );
 }
 
 /**
@@ -136,9 +193,14 @@ export async function runDiscoveryCli(options: DiscoveryOptions) {
   const output = path.join(directory, "output");
   const summary = path.join(directory, "summary");
   await Promise.all([writeFile(output, ""), writeFile(summary, "")]);
-  const state = { requests: [] as string[], listIndex: 0 };
-  const server = createServer((request, response) =>
-    respondToDiscoveryRequest(options, request, response, state)
+  const server = createServer();
+  const stop = new AbortController();
+  const answered = answerDiscoveryRequests(
+    options,
+    on(server, "request", {
+      signal: stop.signal,
+    }) as AsyncIterableIterator<DiscoveryExchange>,
+    { requests: [], listIndex: 0 }
   );
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
@@ -158,13 +220,15 @@ export async function runDiscoveryCli(options: DiscoveryOptions) {
       NIGHTLY_API_MAX_ATTEMPTS: "3",
       NIGHTLY_API_RETRY_MAX_SECONDS: "0.001",
     });
+    stop.abort();
     return {
       ...result,
-      requests: state.requests,
+      requests: (await answered).requests,
       output: await readFile(output, "utf8"),
       summary: await readFile(summary, "utf8"),
     };
   } finally {
+    stop.abort();
     await new Promise<void>((resolve, reject) =>
       server.close(error => (error ? reject(error) : resolve()))
     );

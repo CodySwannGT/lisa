@@ -13,11 +13,22 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 import { mergeJestShards } from "../../src/cli/lisa-test-run-jest-merge.js";
 import { readShardReceipts } from "../../src/cli/lisa-test-run-shard.js";
-import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
+import {
+  ioLatencyBudgetMs,
+  useIoLatencyBudget,
+} from "../helpers/io-latency-budget.js";
 import {
   coverageFile,
   jestArgv,
@@ -52,6 +63,14 @@ const TEXT: CoverageReporter = ["text", { file: TEXT_FILE, maxCols: 120 }];
 
 const directories: string[] = [];
 
+/**
+ * Fixtures several cases read, removed once the suite is done. Each case used
+ * to build its own whole run and merged pair, which is three Jest runs; cases
+ * whose project is the same now share one (CodySwannGT/lisa#4616, audit
+ * integration row 5).
+ */
+const sharedDirectories: string[] = [];
+
 /** `process.stdout.columns` as the suite found it, restored after each case. */
 const stdoutColumns = Object.getOwnPropertyDescriptor(
   process.stdout,
@@ -84,6 +103,14 @@ afterEach(() => {
     fs.rmSync(directory, { recursive: true, force: true });
 });
 
+afterAll(() => {
+  for (const directory of sharedDirectories.splice(0))
+    fs.rmSync(directory, { recursive: true, force: true });
+});
+
+/** How long a hook that runs up to three Jest children may take. */
+const SHARED_FIXTURE_MS = ioLatencyBudgetMs(25_000);
+
 /**
  * A source path long enough that the text table only fits it uncut when the
  * reporter is given Jest's `maxCols`, not istanbul's 80-column fallback.
@@ -94,11 +121,13 @@ const LONG_NAME = `${"a-deliberately-long-directory-name/".repeat(3)}f.js`;
  * Run one project whole and the same project as two merged shards.
  * @param reporters - The projects' `coverageReporters`
  * @param overrides - Anything else the projects differ from the default in
+ * @param keep - Where the roots are registered for removal
  * @returns Both roots, and the merge's exit code
  */
 function wholeAndMerged(
   reporters: readonly CoverageReporter[],
-  overrides: ProjectOptions = {}
+  overrides: ProjectOptions = {},
+  keep: string[] = directories
 ) {
   const options = {
     sources: CLOVER_BREAKER,
@@ -106,7 +135,7 @@ function wholeAndMerged(
     reporters,
     ...overrides,
   };
-  const register = (directory: string) => directories.push(directory);
+  const register = (directory: string) => keep.push(directory);
   const whole = project(register, options);
   const wholeStatus = run(whole, jestArgv(whole));
   const merged = project(register, options);
@@ -205,12 +234,25 @@ function watermarkClasses(root: string): string[] {
 }
 
 describe("Jest shard merge reports", () => {
+  // The four cases on the default project read one whole run and one merged
+  // pair carrying every reporter any of them reads. Each reporter writes its
+  // own file from the same coverage map and summarizer, so one more reporter
+  // in the list changes no other reporter's output.
+  const reports = new Map<"default", ReturnType<typeof wholeAndMerged>>();
+  const defaults = () => reports.get("default")!;
+  beforeAll(() => {
+    reports.set(
+      "default",
+      wholeAndMerged(
+        ["json", "lcov", "clover", TEXT, "html"],
+        {},
+        sharedDirectories
+      )
+    );
+  }, SHARED_FIXTURE_MS);
+
   it("writes a complete clover report on a tree nested deep enough to break it", () => {
-    const { whole, merged, status } = wholeAndMerged([
-      "json",
-      "lcov",
-      "clover",
-    ]);
+    const { whole, merged, status } = defaults();
 
     expect(status).toBe(0);
     expect(clover(merged)).toBe(clover(whole));
@@ -221,7 +263,7 @@ describe("Jest shard merge reports", () => {
     // Control: per-file coverage does not depend on the summarizer, so it
     // matched before the fix as well. It pins that the fix changed only how
     // the files are grouped and ordered.
-    const { whole, merged, status } = wholeAndMerged(["json", "lcov"]);
+    const { whole, merged, status } = defaults();
 
     expect(status).toBe(0);
     expect(jsonCoverage(merged)).toEqual(jsonCoverage(whole));
@@ -231,7 +273,7 @@ describe("Jest shard merge reports", () => {
   });
 
   it("summarises like Jest, by package, when the project names no summarizer", () => {
-    const { whole, merged, status } = wholeAndMerged([TEXT, "lcov"]);
+    const { whole, merged, status } = defaults();
 
     expect(status).toBe(0);
     // lcov writes its records in summarizer-tree order.
@@ -267,54 +309,83 @@ describe("Jest shard merge reports", () => {
     // istanbul checks the low bound first, so files under 50% stay "low" and
     // only the "medium" band disappears: the 66.67% files read "high" here
     // but "medium" under istanbul's [50, 80].
-    const { whole, merged, status } = wholeAndMerged(["html"]);
+    const { whole, merged, status } = defaults();
 
     expect(status).toBe(0);
     expect(watermarkClasses(merged)).toEqual(watermarkClasses(whole));
   });
 
-  it.each([
-    // Jest 30.5 gives the table a numeric COLUMNS first, else 80 when CI or
-    // GITHUB_ACTIONS is exactly "true", else no limit. Every arm runs on every
-    // machine, so a merge that matches Jest in only one environment fails here
-    // rather than first in CI. One arm per branch: 100 columns differs from
-    // both 80 and none, GitHub Actions alone is still CI, and CI=1 is not.
-    // The terminal-width branch needs a real TTY on both sides, which a piped
-    // fixture cannot give it, and the merge never runs inside a Jest worker.
-    ["on CI", { CI: "true", GITHUB_ACTIONS: "true", COLUMNS: "" }],
-    ["off CI", { CI: "", GITHUB_ACTIONS: "", COLUMNS: "" }],
-    [
-      "with COLUMNS=100 on CI",
-      { CI: "true", GITHUB_ACTIONS: "true", COLUMNS: "100" },
-    ],
-    [
-      "on GitHub Actions alone",
-      { CI: undefined, GITHUB_ACTIONS: "true", COLUMNS: "" },
-    ],
-    ["with CI=1", { CI: "1", GITHUB_ACTIONS: "", COLUMNS: "" }],
-  ] as const)(
-    "hands the reporters Jest's watermarks and column limit %s",
-    (_where, environment) => {
-      // A floor of 50 turns the 66.67% files "high" instead of "medium", and the
-      // long path shows whether the table was cut, and where.
-      for (const [name, value] of Object.entries(environment))
-        vi.stubEnv(name, value);
-      stubStdoutColumns(undefined);
-      const { whole, merged, status } = wholeAndMerged(
-        ["html", ["text", { file: TEXT_FILE }]],
-        {
-          floor: 50,
-          sources: [...CLOVER_BREAKER, LONG_NAME],
-          tested: [...CLOVER_BREAKER.slice(0, 4), LONG_NAME],
-        }
-      );
+  describe("in each environment Jest reads", () => {
+    // Only the whole run and the merge read the environment: the shards
+    // collect coverage, and the merge builds every report from it. So one
+    // merged pair, sharded outside any stub, serves every environment, and
+    // each case runs only the whole Jest run it is compared with.
+    const environmentReporters: readonly CoverageReporter[] = [
+      "html",
+      ["text", { file: TEXT_FILE }],
+    ];
+    const environmentProject: ProjectOptions = {
+      floor: 50,
+      sources: [...CLOVER_BREAKER, LONG_NAME],
+      tested: [...CLOVER_BREAKER.slice(0, 4), LONG_NAME],
+    };
+    const sharded = new Map<
+      "merged",
+      { root: string; receipts: ReturnType<typeof readShardReceipts> }
+    >();
+    beforeAll(() => {
+      const root = project(directory => sharedDirectories.push(directory), {
+        ...environmentProject,
+        reporters: environmentReporters,
+      });
+      sharded.set("merged", {
+        root,
+        receipts: readShardReceipts(shardTwice(root), 2),
+      });
+    }, SHARED_FIXTURE_MS);
 
-      expect(status).toBe(0);
-      expect(watermarkClasses(merged)).toEqual(watermarkClasses(whole));
-      expect(watermarkClasses(merged)).toContain("high");
-      expect(coverageFile(merged, TEXT_FILE)).toBe(
-        coverageFile(whole, TEXT_FILE)
-      );
-    }
-  );
+    it.each([
+      // Jest 30.5 gives the table a numeric COLUMNS first, else 80 when CI or
+      // GITHUB_ACTIONS is exactly "true", else no limit. Every arm runs on every
+      // machine, so a merge that matches Jest in only one environment fails here
+      // rather than first in CI. One arm per branch: 100 columns differs from
+      // both 80 and none, GitHub Actions alone is still CI, and CI=1 is not.
+      // The terminal-width branch needs a real TTY on both sides, which a piped
+      // fixture cannot give it, and the merge never runs inside a Jest worker.
+      ["on CI", { CI: "true", GITHUB_ACTIONS: "true", COLUMNS: "" }],
+      ["off CI", { CI: "", GITHUB_ACTIONS: "", COLUMNS: "" }],
+      [
+        "with COLUMNS=100 on CI",
+        { CI: "true", GITHUB_ACTIONS: "true", COLUMNS: "100" },
+      ],
+      [
+        "on GitHub Actions alone",
+        { CI: undefined, GITHUB_ACTIONS: "true", COLUMNS: "" },
+      ],
+      ["with CI=1", { CI: "1", GITHUB_ACTIONS: "", COLUMNS: "" }],
+    ] as const)(
+      "hands the reporters Jest's watermarks and column limit %s",
+      (_where, environment) => {
+        // A floor of 50 turns the 66.67% files "high" instead of "medium", and the
+        // long path shows whether the table was cut, and where.
+        for (const [name, value] of Object.entries(environment))
+          vi.stubEnv(name, value);
+        stubStdoutColumns(undefined);
+        const whole = project(directory => directories.push(directory), {
+          ...environmentProject,
+          reporters: environmentReporters,
+        });
+        expect(run(whole, jestArgv(whole))).toBe(0);
+        const { root: merged, receipts } = sharded.get("merged")!;
+        const status = mergeJestShards(jestArgv(merged), receipts, merged);
+
+        expect(status).toBe(0);
+        expect(watermarkClasses(merged)).toEqual(watermarkClasses(whole));
+        expect(watermarkClasses(merged)).toContain("high");
+        expect(coverageFile(merged, TEXT_FILE)).toBe(
+          coverageFile(whole, TEXT_FILE)
+        );
+      }
+    );
+  });
 });

@@ -1,4 +1,4 @@
 display_name: "Repair Intake"
-short_description: "Vendor-agnostic repair scanner — the recovery counterpart to lisa-intake"
+short_description: "Find and fix work stuck in the intake queues: blocked items whose blockers cleared, stalled builds and reviews, items closed in label but…"
 default_prompt:
-  - "Use $lisa-repair-intake: Vendor-agnostic repair scanner — the recovery counterpart to lisa-intake."
+  - "Use $lisa-repair-intake: Find and fix work stuck in the intake queues: blocked items whose blockers cleared, stalled builds and reviews, items closed in label but…."

@@ -330,7 +330,7 @@ describe("collectFloors", () => {
 
     expect(found.has("nanoid")).toBe(true);
     expect(
-      found.get("nanoid").some(site => site.file === "package.lisa.json")
+      found.get("nanoid")?.some(site => site.file === "package.lisa.json")
     ).toBe(true);
   });
 
@@ -424,10 +424,9 @@ describe("globSync option choice", () => {
 
   it("silently discards `ignore`, the glob-package spelling", () => {
     const bare = globSync(PATTERN, { cwd: CWD }).sort(byName);
-    const ignored = globSync(PATTERN, {
-      cwd: CWD,
-      ignore: PRUNE_ALL,
-    } as Parameters<typeof globSync>[1]).sort(byName);
+    // `ignore` is deliberately not a node:fs glob option; it is passed as data.
+    const withIgnore = { cwd: CWD, ignore: PRUNE_ALL };
+    const ignored = globSync(PATTERN, withIgnore).sort(byName);
 
     // Not merely "similar" — node:fs drops the unknown key, so the walk is
     // the same walk. An empty result on either side would make this vacuous.

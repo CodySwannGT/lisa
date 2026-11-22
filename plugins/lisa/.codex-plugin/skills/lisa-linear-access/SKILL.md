@@ -1,9 +1,9 @@
 ---
 name: lisa-linear-access
-description: "Vendor-neutral access layer for…"
+description: "The one way Lisa skills reach…"
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
-Vendor-neutral access layer for Linear. Linear skills MUST delegate through this skill rather than calling Linear MCP tools or Linear GraphQL directly. Per the credential-substrate-precedence contract, resolves LINEAR_API_KEY + Linear GraphQL first — ahead of the Linear MCP — whenever the key is present and identity-matches the configured workspace/team, and falls back to the Linear MCP when the token path is unavailable. Identity-match is mandatory on both substrates.
+The one way Lisa skills reach Linear: LINEAR_API_KEY GraphQL first, ahead of the Linear MCP, when the key matches the configured workspace and team; the MCP is the fallback. Linear skills must go through it.
 
 
 # Linear Access: $ARGUMENTS
@@ -24,6 +24,8 @@ operation: list-issues [team:<ID>] [project:<ID>] [label:<NAME>] [state:<NAME>] 
 operation: get-issue id:<ID>
 operation: save-issue payload:{...} [lifecycle_role:<ROLE>] [env:<KEY>]
 operation: list-workflow-states team:<ID>
+operation: delete-relation id:<ID>
+operation: create-relation issue:<IDENTIFIER> related:<IDENTIFIER> type:blocks
 operation: create-workflow-state payload:{...}
 operation: list-comments (issue_id:<ID> | project_id:<ID>)
 operation: save-comment (issue_id:<ID> | project_id:<ID>) body:"..."
@@ -294,6 +296,48 @@ Set `isTeamDefault` per node by comparing `node.id` against
 `team.defaultIssueState.id`. On the MCP substrate, which exposes states without
 the team's default, resolve the default through the team record and join on `id`
 the same way.
+
+## `delete-relation` — remove one relation by its own id
+
+`delete-relation id:<ID>` deletes one issue relation by the relation's `id` (the
+`inverseRelations` / `relations` node id, never an issue id). The session
+manager's stale-blocker-link sweep uses it to drop a `blocks` relation whose
+blocker is already finished (CodySwannGT/lisa#5065). Delete by relation id
+only: never "update" a relation to remove it, because `issueRelationCreate`
+converts an existing relation instead of adding one (CodySwannGT/lisa#3605).
+
+```graphql
+mutation($id:String!){ issueRelationDelete(id:$id){ success } }
+```
+
+Read the issue back and confirm the relation is gone before reporting success.
+The Linear MCP exposes no relation delete, so on an MCP-only substrate report
+`Error: delete-relation needs the LINEAR_API_KEY GraphQL path` and leave the
+relation in place.
+
+## `create-relation` — put back one `blocks` relation
+
+`create-relation issue:<blocker> related:<blocked> type:blocks` recreates the
+relation "`<blocker>` blocks `<blocked>`". The stale-blocker-link sweep uses it
+only to put back a relation it removed when the blocker reopened between its
+confirm and its delete (CodySwannGT/lisa#5065). Resolve both identifiers to
+issue ids first, and create it only after a read shows no relation between the
+two issues: `issueRelationCreate` converts an existing relation instead of
+adding a second one (CodySwannGT/lisa#3605), so it must never be used to edit.
+
+```graphql
+mutation($issueId:String!,$relatedIssueId:String!){
+  issueRelationCreate(input:{issueId:$issueId,relatedIssueId:$relatedIssueId,type:blocks}){
+    success issueRelation { id }
+  }
+}
+```
+
+Read the blocked issue back and confirm the `blocks` relation is in its
+`inverseRelations` before reporting success. The Linear MCP exposes no relation
+create with this guarantee, so on an MCP-only substrate report
+`Error: create-relation needs the LINEAR_API_KEY GraphQL path` and name the
+relation in the run's errors so a person can put it back.
 
 ## `save-comment` / `list-comments` — an Issue **or** a Project
 

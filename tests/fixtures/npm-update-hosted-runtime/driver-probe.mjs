@@ -39,6 +39,26 @@ function profileIdentity(profile) {
   return { dev: st.dev, ino: st.ino };
 }
 
+/** Inner diagnostic deadline the probe grants a driver, in milliseconds. */
+const PROBE_DEADLINE_MS = 8000;
+
+/**
+ * The inner deadline for this run. The environment may shorten it, never
+ * lengthen or disable it, so a suite can prove a driver that never becomes
+ * ready is abandoned without sitting out the full eight seconds
+ * (CodySwannGT/lisa#4616).
+ * @param {Readonly<Record<string, string | undefined>>} env Process environment.
+ * @returns {number} Deadline in milliseconds.
+ */
+export function probeDeadlineMs(env) {
+  const requested = Number(env.LISA_DRIVER_PROBE_DEADLINE_MS);
+  return Number.isSafeInteger(requested) &&
+    requested > 0 &&
+    requested < PROBE_DEADLINE_MS
+    ? requested
+    : PROBE_DEADLINE_MS;
+}
+
 /**
  * The live child publishes its ephemeral port before this fixture makes requests.
  * @param {object} child Still-owned native driver handle.
@@ -139,18 +159,20 @@ async function closeDriver(child, closed) {
  * @param {object} tools Original qualified browser and driver paths.
  * @param {function(object):void} publish Closed diagnostic progress writer.
  * @param {string} purpose Source-owned diagnostic or qualification request.
+ * @param {number} deadlineMs Inner deadline, already bounded by {@link probeDeadlineMs}.
  * @returns {Promise<object>} Closed native facts with the declared purpose.
  */
 export async function probeDriver(
   profile,
   tools,
   publish = () => {},
-  purpose = "diagnostic"
+  purpose = "diagnostic",
+  deadlineMs = PROBE_DEADLINE_MS
 ) {
   if (!["diagnostic", "qualification"].includes(purpose))
     throw new Error(REFUSAL);
   const identity = profileIdentity(profile);
-  const deadline = Date.now() + 8000;
+  const deadline = Date.now() + deadlineMs;
   const state = { stage: DRIVER_START, session: null, endpoint: null };
   const phase = stage => {
     state.stage = stage;
@@ -282,7 +304,10 @@ if (invokedAsScript(import.meta.url)) {
         driver: process.argv[4],
       },
       publish,
-      process.argv[5]
+      process.argv[5],
+      // The supervisor forwards its requested deadline as an argument, so the
+      // probe's whole configuration arrives on one explicit channel.
+      probeDeadlineMs({ LISA_DRIVER_PROBE_DEADLINE_MS: process.argv[6] })
     );
     publish({ result: report });
     if (report.failureStage) process.exitCode = 1;

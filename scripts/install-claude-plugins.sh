@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
-# Explicit setup helper. Installation reconciles only the retired safety net.
+# Explicit setup helper.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 
-# Target-only retirement also runs for legacy direct setup callers. It never
-# invokes full apply or changes unrelated templates, checks or plugin choices.
-node "$SCRIPT_DIR/retire-native-safety-net.mjs" --install
-
 # Inspect the lifecycle before sanitizing the package manager's environment.
 # Older host postinstall commands are also handled by the CLI bootstrap guard.
 if [[ "${npm_lifecycle_event:-}" = "postinstall" ||
       ( -z "${npm_lifecycle_event:-}" && "${npm_config_user_agent:-}" = bun/* ) ]]; then
-  echo 'lisa: installation leaves unrelated project templates unchanged. Run `lisa apply .` to apply updates, or `lisa doctor` to check freshness.'
+  # Say plainly that no Claude Code plugin was registered (#4504): install is
+  # hands-off by design (#4135), so a fresh clone has no Lisa commands until
+  # an explicit `lisa apply .` registers them for this folder.
+  echo "lisa: installation leaves unrelated project templates unchanged, and Claude Code plugins are not registered by dependency install. Run \`lisa apply .\` in this project to register them and apply updates, or \`lisa doctor\` to check freshness."
   exit 0
 fi
 
@@ -72,7 +71,9 @@ detect_lisa_stack() {
 CODEX_RETIRE_MARKER="$HOME/.codex/.lisa-legacy-plugins-retired"
 
 write_codex_retire_marker() {
-  mkdir -p "$HOME/.codex" 2>/dev/null && touch "$CODEX_RETIRE_MARKER" 2>/dev/null || true
+  if mkdir -p "$HOME/.codex" 2>/dev/null; then
+    touch "$CODEX_RETIRE_MARKER" 2>/dev/null || true
+  fi
 }
 
 remove_user_wide_codex_lisa_plugins() {
@@ -123,8 +124,7 @@ remove_user_wide_codex_lisa_plugins() {
     lisa-harper-fabric \
     lisa-phaser \
     lisa-rails \
-    lisa-wiki \
-    lisa-openclaw; do
+    lisa-wiki; do
     codex plugin remove "${plugin}@lisa" </dev/null >/dev/null 2>&1 || true
   done
   codex plugin marketplace remove lisa </dev/null >/dev/null 2>&1 || true
@@ -298,8 +298,8 @@ fi
 # unattended/scheduled run there is no human to intervene.
 #
 # 1.0.1 runs fine on its built-in rules with no config file, and Lisa's own
-# block-no-verify.sh + parity-safety-net.sh hooks already enforce --no-verify and
-# destructive-command guards across every agent, so the file is now dead weight.
+# block-no-verify.sh hook already enforces --no-verify across every agent, so the
+# file is now dead weight.
 # Lisa no longer ships it (removed from all/copy-overwrite/), but copy-overwrite
 # never deletes, so already-provisioned projects keep a stale copy. Remove it
 # here — but ONLY the Lisa-shipped file (identified by its marker rule name), so a
@@ -407,9 +407,9 @@ fi
 # own marker is recorded so repeat installs (and health's root-confined
 # marker probe) see the settled state without reaching outside the project.
 if [ "$IS_LINKED_WORKTREE" = "true" ] && [ "$FORCE_PLUGIN_SYNC" != "true" ]; then
-  mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null \
-    && printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null \
-    || true
+  if mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null; then
+    printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null || true
+  fi
   echo "Lisa plugins already in sync for ${LISA_VERSION} (primary checkout: ${PRIMARY_ROOT}); deferring worktree plugin registration to the coding agent's startup."
   exit 0
 fi
@@ -574,10 +574,7 @@ done
 # Install third-party plugins required by all Lisa stacks
 for plugin in \
   "typescript-lsp@claude-plugins-official" \
-  "code-simplifier@claude-plugins-official" \
-  "code-review@claude-plugins-official" \
   "coderabbit@claude-plugins-official" \
-  "skill-creator@claude-plugins-official" \
   "atlassian@claude-plugins-official"; do
   install_plugin_if_missing "$plugin"
 done
@@ -586,14 +583,32 @@ done
 # bundles the Sentry MCP server (plugins/src/base/.mcp.json) for every agent
 # runtime. The official Claude plugin remains disabled by default to avoid
 # duplicate registration (#1955), but an explicit host choice enables its own
-# maintained skills and must survive sync (#4318). Likewise, the Lisa-native
-# parity-safety-net.sh hook screens every Bash command, so the upstream
-# safety-net plugin double-screened each command; its material guards were
-# absorbed into the Lisa hook (issue #1960). Remove unchosen retired installs.
+# maintained skills and must survive sync (#4318). Likewise, the upstream
+# safety-net plugin double-screened every Bash command alongside a Lisa-native
+# hook that absorbed its material guards (issue #1960); that hook was itself
+# retired in #4672 and removed in #4803. Remove unchosen retired installs.
+#
+# The upstream plugin's real name is `cc-safety-net`. #1960 retired
+# `safety-net@cc-marketplace`, which names no plugin, so the real one stayed
+# installed and enabled wherever a project had turned it on (#4799). Both
+# spellings are listed: the real one does the work, and the old one is a no-op
+# kept for anything that once recorded it. `impeccable@impeccable` (an unpinned
+# third-party design plugin) is retired by the same issue, and so are
+# `code-review` (superseded by Claude Code's built-in /code-review) and
+# `code-simplifier` (replaced by an instruction in Lisa's coding-philosophy
+# rule) and `skill-creator` (retired by the owner).
+#
 # Version-gated like the other one-time heals so same-version runs don't spawn
 # the CLI.
 if [ "$FORCE_PLUGIN_SYNC" = "true" ]; then
-  for retired_plugin in "sentry@claude-plugins-official" "safety-net@cc-marketplace"; do
+  for retired_plugin in \
+    "sentry@claude-plugins-official" \
+    "cc-safety-net@cc-marketplace" \
+    "safety-net@cc-marketplace" \
+    "impeccable@impeccable" \
+    "code-review@claude-plugins-official" \
+    "code-simplifier@claude-plugins-official" \
+    "skill-creator@claude-plugins-official"; do
     if [ "$retired_plugin" = "sentry@claude-plugins-official" ] &&
        node -e 'try { const s = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")); process.exit(s.enabledPlugins?.["sentry@claude-plugins-official"] === true ? 0 : 1); } catch { process.exit(1); }' "$SETTINGS_FILE"; then
       continue
@@ -619,9 +634,9 @@ fi
 # the primary checkout would let the primary skip the forced reinstall it
 # still needs after a version bump.
 if [ -n "$LISA_VERSION" ]; then
-  mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null \
-    && printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null \
-    || true
+  if mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null; then
+    printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null || true
+  fi
 fi
 
 # A failed template apply fails this lifecycle script (CodySwannGT/lisa#3466).

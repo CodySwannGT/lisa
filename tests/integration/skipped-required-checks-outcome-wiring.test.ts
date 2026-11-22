@@ -91,6 +91,69 @@ function handedNames(): Record<string, string> {
   >;
 }
 
+/** The one comparison that makes a job pull-request-only. */
+const PULL_REQUEST_ONLY_CONJUNCT = "github.event_name == 'pull_request'";
+
+/**
+ * A job condition split at one operator at parenthesis depth zero, `${{ }}`
+ * stripped. An operator nested inside a parenthesised operand stays inside it.
+ *
+ * @param condition - A job's `if:`
+ * @param operator - `&&` or `||`
+ * @returns Each top-level operand, trimmed
+ */
+function splitTopLevel(condition: string, operator: "&&" | "||"): string[] {
+  const body = condition
+    .trim()
+    .replace(/^\$\{\{/u, "")
+    .replace(/\}\}$/u, "")
+    .trim();
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < body.length; index += 1) {
+    const char = body[index];
+    if (char === "(") depth += 1;
+    if (char === ")") depth -= 1;
+    if (depth === 0 && body.startsWith(operator, index)) {
+      parts.push(body.slice(start, index).trim());
+      start = index + operator.length;
+    }
+  }
+  parts.push(body.slice(start).trim());
+  return parts;
+}
+
+/** An event mention this test cannot classify without a deliberate decision. */
+const UNDECIDED = "undecided";
+
+/** A condition that requires `pull_request`. */
+const PULL_REQUEST_ONLY = "pull-request-only";
+
+/**
+ * How a job's condition treats the event, decided strictly.
+ *
+ * `pull-request-only` only when the condition REQUIRES `pull_request`: the
+ * condition has no top-level `||` (which binds looser than `&&`, so
+ * `A && B || C` could run without A), the comparison is a top-level `&&`
+ * conjunct, and it is the condition's only mention of `github.event_name`.
+ * Any other mention is `undecided`, so the test asks for a deliberate
+ * decision instead of guessing.
+ *
+ * @param condition - A job's `if:`, or empty
+ * @returns The classification
+ */
+function eventShape(
+  condition: string
+): "none" | typeof PULL_REQUEST_ONLY | typeof UNDECIDED {
+  const mentions = condition.split("github.event_name").length - 1;
+  if (mentions === 0) return "none";
+  const required =
+    splitTopLevel(condition, "||").length === 1 &&
+    splitTopLevel(condition, "&&").includes(PULL_REQUEST_ONLY_CONJUNCT);
+  return mentions === 1 && required ? PULL_REQUEST_ONLY : UNDECIDED;
+}
+
 describe("🔒 Skipped Required Checks sees every outcome it judges", () => {
   it("exists, with a step that runs the prover", () => {
     expect(guard).toBeDefined();
@@ -158,9 +221,67 @@ describe("🔒 Skipped Required Checks sees every outcome it judges", () => {
     }
   });
 
-  it("passes results, names and moment through env, never into run", () => {
+  it("names every needed job that runs only on pull requests — and only those (#4620)", () => {
+    // A manual, push or scheduled run skips these jobs by their own `if:`, and
+    // the prover excuses exactly the jobs listed here on those events. A job
+    // that gains the condition without being listed reddens every manual run;
+    // a job listed without the condition would have its skip excused while it
+    // could have run. Derived from the conditions, so both directions fail.
+    const byName = (left: string, right: string): number =>
+      left.localeCompare(right);
+    const listed = JSON.parse(
+      String(guardStep?.env?.LISA_PULL_REQUEST_ONLY_JOBS ?? "")
+    ) as string[];
+    const shapes = needsOf(guard).map(
+      id => [id, eventShape(String(jobs[id]?.if ?? ""))] as const
+    );
+    for (const [id, shape] of shapes) {
+      expect(
+        shape,
+        `job \`${id}\` mentions github.event_name in a shape other than a required top-level \`&& ${PULL_REQUEST_ONLY_CONJUNCT}\`. Decide deliberately whether its skip may be excused on workflow_dispatch/push/schedule, then list it in LISA_PULL_REQUEST_ONLY_JOBS (and teach this test the shape) or leave it judged.`
+      ).not.toBe(UNDECIDED);
+    }
+    const derived = shapes
+      .filter(([, shape]) => shape === PULL_REQUEST_ONLY)
+      .map(([id]) => id);
+    expect(derived.length).toBeGreaterThan(0);
+    expect([...listed].sort(byName)).toEqual([...derived].sort(byName));
+  });
+
+  it("counts a job as pull-request-only only when its condition REQUIRES pull_request", () => {
+    expect(eventShape("always()")).toBe("none");
+    expect(
+      eventShape(
+        "${{ always() && github.event_name == 'pull_request' && (a || b) }}"
+      )
+    ).toBe(PULL_REQUEST_ONLY);
+    expect(
+      eventShape("${{ github.event_name == 'pull_request' || inputs.force }}")
+    ).toBe(UNDECIDED);
+    expect(
+      eventShape(
+        "${{ github.event_name == 'pull_request' && x || inputs.force }}"
+      )
+    ).toBe(UNDECIDED);
+    expect(
+      eventShape(
+        "${{ (github.event_name == 'pull_request' || github.event_name == 'push') && x }}"
+      )
+    ).toBe(UNDECIDED);
+    expect(
+      eventShape(
+        "${{ github.event_name == 'pull_request' && github.event_name != 'merge_group' }}"
+      )
+    ).toBe(UNDECIDED);
+    expect(eventShape("${{ github.event_name != 'schedule' }}")).toBe(
+      UNDECIDED
+    );
+  });
+
+  it("passes results, names, moment and event through env, never into run", () => {
     expect(guardStep?.env?.LISA_JOB_RESULTS).toBe("${{ toJSON(needs) }}");
     expect(guardStep?.env?.LISA_GATE_MOMENT).toBe("${{ inputs.moment }}");
+    expect(guardStep?.env?.LISA_EVENT_NAME).toBe("${{ github.event_name }}");
     expect(guardStep?.run).toContain("--outcomes");
     expect(guardStep?.run).not.toContain("${{");
   });

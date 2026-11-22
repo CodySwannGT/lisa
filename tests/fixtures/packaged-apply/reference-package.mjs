@@ -7,11 +7,14 @@ import path from "node:path";
 assert.equal(process.argv.length, 3, "Supply one fresh output directory");
 const output = path.resolve(process.argv[2]);
 mkdirSync(output, { mode: 0o700 });
-const version = "4.90.1";
-const head = "7b2fcb857cfdfaffe9781c261c9f1d3cfcfde7e3";
-const url = "https://registry.npmjs.org/@codyswann/lisa/-/lisa-4.90.1.tgz";
+// The pin must be a release the candidate driver's assertions hold for: 4.90.1
+// still shipped parity-safety-net.sh, which the driver now asserts is absent
+// (CodySwannGT/lisa#4803), so the job failed on every PR (#4822).
+const version = "4.106.2";
+const head = "86346999701eb99f26e42136a47074abcc1fe94e";
+const url = "https://registry.npmjs.org/@codyswann/lisa/-/lisa-4.106.2.tgz";
 const metadataResponse = await fetch(
-  "https://registry.npmjs.org/@codyswann%2Flisa/4.90.1",
+  `https://registry.npmjs.org/@codyswann%2Flisa/${version}`,
   { signal: AbortSignal.timeout(60_000) }
 );
 assert.equal(metadataResponse.status, 200);
@@ -26,7 +29,7 @@ const bytes = Buffer.from(await response.arrayBuffer());
 const sha256 = createHash("sha256").update(bytes).digest("hex");
 assert.equal(
   sha256,
-  "5d54076a3f25ab5193577b3555b40cbd6d1e047b6c799585c7c0289f0cdf404c"
+  "9e194848834a715055e15ee082f00f3f97cdb7287d4e9be78d5124683b59b4a7"
 );
 const integrity = `sha512-${createHash("sha512").update(bytes).digest("base64")}`;
 assert.equal(integrity, metadata.dist.integrity);

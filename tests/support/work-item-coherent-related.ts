@@ -8,7 +8,7 @@ import {
   setCompare,
   PUBLISHER,
   SPEC,
-  proofUsage,
+  proofLedger,
 } from "./work-item-proof-fixture.js";
 import { git, commit } from "./work-item-cli.js";
 const REPO = "repos/acme/code";
@@ -84,7 +84,7 @@ function ownState(fixture: ProofFixture, now: string) {
     id: "I_fixture42",
     number: 42,
     url: "https://github.com/acme/code/issues/42",
-    body: `${SPEC}\nRelated work only: https://github.com/acme/code/pull/7\n${proofUsage(OWN_REF)}`,
+    body: `${SPEC}\nRelated work only: https://github.com/acme/code/pull/7\n${proofLedger(OWN_REF)}`,
     comments: [
       {
         id: 42,

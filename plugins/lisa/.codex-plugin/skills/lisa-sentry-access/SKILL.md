@@ -1,9 +1,9 @@
 ---
 name: lisa-sentry-access
-description: "Vendor-neutral access layer for…"
+description: "The one way Lisa skills reach…"
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
-Vendor-neutral access layer for Sentry. Sentry-oriented skills MUST delegate through this skill rather than calling Sentry MCP tools, sentry-cli, or REST directly. Per the credential-substrate-precedence contract, resolves SENTRY_AUTH_TOKEN (REST, or sentry-cli authenticated from the same token) first when present and identity-matched to the configured org/project, then falls back to the Sentry MCP.
+The one way Lisa skills reach Sentry: a token-authenticated REST or sentry-cli path matched to the configured org and project, falling back to the Sentry MCP. Sentry skills must go through it.
 
 
 # Sentry Access: $ARGUMENTS

@@ -15,6 +15,7 @@ import {
   type Candidate,
 } from "../fixtures/shared-runtime-hosts/artifact.js";
 import { verifyHost } from "../fixtures/shared-runtime-hosts/journey.js";
+import { installTool } from "../fixtures/shared-runtime-hosts/tool-install.js";
 import { verifyRuntimeOwnership } from "../fixtures/shared-runtime-hosts/ownership.js";
 import { verifyInheritedHost } from "../fixtures/shared-runtime-hosts/inherited-journey.js";
 import { assertPackedRuntimePolicy } from "../fixtures/shared-runtime-hosts/assertions.js";
@@ -189,7 +190,9 @@ function topLevelNames(): readonly string[] | "unreadable" {
 
 /**
  * Read the owned root's state at the teardown boundary, cheaply: the names it
- * still holds and the shared cache's state, never a corpus walk.
+ * still holds and the shared cache's state, never a corpus walk. The cache's
+ * entry count was taken by its last installer, before it freed the cache
+ * (CodySwannGT/lisa#4636); null when no installer freed it.
  * @returns Owned-resource state for the phase record
  */
 function ownedRootState(): Record<string, unknown> {
@@ -198,6 +201,7 @@ function ownedRootState(): Record<string, unknown> {
     fullRun: fullRun(),
     installersFinished: sharedCache?.allFinished() ?? false,
     sharedCacheFreed: sharedCache?.freed() ?? false,
+    sharedCacheEntries: sharedCache?.entriesAtFree() ?? null,
   };
 }
 
@@ -226,8 +230,11 @@ beforeAll(async () => {
     path.resolve(import.meta.dirname, "../.."),
     root
   );
-  assertPackedRuntimePolicy(candidate);
+  // The registry starts before the tool installs, so the tool installs Lisa
+  // through it exactly as the hosts do (CodySwannGT/lisa#4636).
   registry = await startRegistry(candidate);
+  await installTool(candidate, registry.url);
+  assertPackedRuntimePolicy(candidate);
   const cache = candidate.env["BUN_INSTALL_CACHE_DIR"];
   expect(cache, "the candidate's shared install cache").toBeDefined();
   sharedCache = sharedInstallCache(cache!, INSTALLERS);

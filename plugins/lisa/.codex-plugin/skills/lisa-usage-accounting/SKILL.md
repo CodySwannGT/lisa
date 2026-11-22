@@ -1,9 +1,9 @@
 ---
 name: lisa-usage-accounting
-description: "Shared usage-ledger utility for…"
+description: "Record token usage and refresh…"
 allowed-tools: ["Skill", "Read", "Bash"]
 ---
-Shared usage-ledger utility for Lisa lifecycle flows and artifact writers. Delegates all direct-entry recording and rollup refreshes through one vendor-neutral contract so PRDs, tickets, evidence comments, PRs, and markdown artifacts preserve the canonical `## Lisa Usage` section instead of inventing per-flow formats.
+Record token usage and refresh the canonical '## Lisa Usage' section on PRDs, tickets, evidence comments, PRs, and documents through one shared contract. Use from any flow that writes those artifacts.
 
 
 # Usage Accounting: $ARGUMENTS
@@ -45,7 +45,11 @@ child_refs:
 Required arguments:
 
 - `operation`: one of `record`, `rollup`, or `record_and_rollup`.
-- `artifact_ref`: canonical artifact identifier for the target being updated.
+- `artifact_ref`: canonical artifact identifier for the target being updated, in the per-provider
+  grammar from the `usage-accounting` rule: `github:<owner>/<repo>#<N>`,
+  `linear:<workspace>/<KEY-N>` (workspace from `linear.workspace` in `.lisa.config.json`), or a bare
+  Jira `<KEY-N>`. The writer refuses a short `linear:<KEY-N>`: the completion proof would never
+  recognise it.
 - `artifact_kind`: the writable host surface (`github-issue`, `github-pr-comment`, `jira-ticket`,
   `linear-issue`, `notion-page`, `confluence-page`, `markdown-file`, or another caller-defined
   host string with a matching read/write adapter).
@@ -187,6 +191,14 @@ token parsing or markdown rendering in each caller.
 
 If the host write fails, preserve the exact error text in `error.message`. Do not collapse write
 failures into a generic "usage update failed."
+
+## Work-item estimates
+
+A work item's token estimate and recommended model live in their own managed `## Lisa Estimate`
+section, beside this ledger, never inside it. The contract, config (`workItem.estimate`) and
+pricing are in the [estimate reference](references/estimate.md); render and check the section
+with `node scripts/lisa-estimate.mjs`. At done, `lisa-estimate.mjs tally` copies this ledger's
+rollup total into that section as the actual; it reads the ledger and never writes to it.
 
 ## Rules
 

@@ -358,6 +358,71 @@ function verdictForEnforced(owner: ContextOwner | undefined): DriftVerdict {
   return ENFORCED_UNDECLARED;
 }
 
+/** The values a verdict's sentence is written from. */
+interface DetailContext {
+  /** The enforcing surface, as operators know it. */
+  readonly surface: string;
+  /** Where the requirement was read from, already parenthesised, or empty. */
+  readonly where: string;
+  /** The owning gate, rendered as text. */
+  readonly gateId: string;
+  /** The signal the declaration awaits instead, rendered as text. */
+  readonly awaited: string;
+}
+
+/**
+ * The sentence for a context the registry records as renamed away.
+ * @param context - Shared sentence inputs
+ * @param retired - The rename this context is the losing half of
+ * @param rulesets - The rulesets requiring it, sorted
+ * @returns One operator-readable sentence
+ */
+function retiredDetail(
+  context: DetailContext,
+  retired: RetiredRename,
+  rulesets: readonly string[]
+): string {
+  const { surface, where, gateId } = context;
+  const noun = rulesets.length === 1 ? "ruleset" : "rulesets";
+  const quoted = rulesets.map(name => `"${name}"`).join(", ");
+  const named =
+    rulesets.length === 0
+      ? " The ruleset holding it was not named by the reader."
+      : ` The requirement lives in ${noun} ${quoted}, which Lisa may not manage — reported here, never edited automatically.`;
+  return `NOTHING WILL EVER POST THIS. Lisa's registry records that the gate "${gateId}" was renamed from "${retired.label}", and ${surface} still requires the old name${where}. This is not a failing check — GitHub holds a required context that never reports at "Expected — Waiting for status to be reported" indefinitely, so every pull request in this repository is blocked with no red tick and no log to open. The gate posts "${retired.replacement}" now.${named} Remove the old context first, then require the new one: requiring the new one before the job posts it creates the same permanent wait in the other direction.`;
+}
+
+/**
+ * The sentence for each verdict that needs no more than the shared inputs.
+ * One entry per verdict keeps every wording in one auditable table.
+ */
+const VERDICT_DETAILS: Readonly<
+  Partial<Record<DriftVerdict, (context: DetailContext) => string>>
+> = {
+  [ENFORCED_AWAITED_ELSEWHERE]: ({ surface, where, gateId, awaited }) =>
+    `${surface} requires this context${where}, but the settings file declares "${gateId}" at ${MERGE_MOMENT} with await: "${awaited}" — so the declaration promises "${awaited}" as the merge condition and never asked for this string. An awaited gate gets no job of its own, so unless a job this project hand-wrote posts this exact name, the requirement waits forever at "Expected — Waiting for status to be reported". Name which surface wins: require "${awaited}" instead, or declare the gate with a run: so a job posts this name.`,
+  [MATCHED]: ({ surface, where }) =>
+    `Declared required, and ${surface} requires it${where}. The two surfaces agree; that is not evidence the check proves its property.`,
+  [DECLARED_NOT_ENFORCED]: ({ surface, gateId }) =>
+    `The settings file declares "${gateId}" required at ${MERGE_MOMENT}, but ${surface} does not require this context, so the declaration blocks nothing.`,
+  [ENFORCED_DECLARED_OPTIONAL]: ({ surface, where, gateId }) =>
+    `${surface} requires this context${where}, while the settings file declares "${gateId}" optional at ${MERGE_MOMENT}. Two surfaces, two answers — name which one wins.`,
+  [ENFORCED_DECLARED_OFF]: ({ surface, where, gateId }) =>
+    `The settings file declares "${gateId}" off at ${MERGE_MOMENT} — an explicit decision not to prove it here — yet ${surface} requires this context${where}. That is a contradiction, not a gap.`,
+  [ENFORCED_UNDECLARED]: ({ surface, where, gateId }) =>
+    `${surface} requires this context${where}, and it is produced by the gate "${gateId}", which the settings file never declares at any moment. Undeclared is silence, not permission to stop requiring it.`,
+};
+
+/**
+ * The sentence for a required context no Lisa gate produces.
+ * @param context - Shared sentence inputs
+ * @returns One operator-readable sentence
+ */
+function unownedDetail(context: DetailContext): string {
+  const { surface, where } = context;
+  return `${surface} requires this context${where}, and no gate in Lisa's registry produces it — it comes from a third-party app or from a job this project's own CI defines. Matching is on the exact context string, never on a job name that merely resembles it: a third-party app status and a Lisa job with a similar name are different things, and treating them as one produces a false drift report, or worse a false clean one. Reported so it can be told apart from a Lisa gate that fell out of the settings file, never so it can be removed.`;
+}
+
 /**
  * The sentence one verdict is explained with.
  * @param options - Inputs
@@ -370,7 +435,6 @@ function verdictForEnforced(owner: ContextOwner | undefined): DriftVerdict {
  * @param options.awaited - The signal its declaration awaits instead, or null
  * @returns One operator-readable sentence
  */
-// eslint-disable-next-line sonarjs/cognitive-complexity -- one branch per verdict keeps the wording auditable
 function detailFor(options: {
   verdict: DriftVerdict;
   surface: DriftSurface;
@@ -380,35 +444,17 @@ function detailFor(options: {
   retired: RetiredRename | null;
   awaited: string | null;
 }): string {
-  const { verdict, gateId, sources, rulesets, retired, awaited } = options;
-  const surface = SURFACE_NAMES[options.surface];
-  const where = sources.length === 0 ? "" : ` (${sources.join(", ")})`;
+  const { verdict, sources, retired } = options;
+  const context: DetailContext = {
+    surface: SURFACE_NAMES[options.surface],
+    where: sources.length === 0 ? "" : ` (${sources.join(", ")})`,
+    gateId: String(options.gateId),
+    awaited: String(options.awaited),
+  };
   if (verdict === ENFORCED_CONTEXT_RETIRED && retired !== null) {
-    const named =
-      rulesets.length === 0
-        ? " The ruleset holding it was not named by the reader."
-        : ` The requirement lives in ${rulesets.length === 1 ? "ruleset" : "rulesets"} ${rulesets.map(name => `"${name}"`).join(", ")}, which Lisa may not manage — reported here, never edited automatically.`;
-    return `NOTHING WILL EVER POST THIS. Lisa's registry records that the gate "${String(gateId)}" was renamed from "${retired.label}", and ${surface} still requires the old name${where}. This is not a failing check — GitHub holds a required context that never reports at "Expected — Waiting for status to be reported" indefinitely, so every pull request in this repository is blocked with no red tick and no log to open. The gate posts "${retired.replacement}" now.${named} Remove the old context first, then require the new one: requiring the new one before the job posts it creates the same permanent wait in the other direction.`;
+    return retiredDetail(context, retired, options.rulesets);
   }
-  if (verdict === ENFORCED_AWAITED_ELSEWHERE) {
-    return `${surface} requires this context${where}, but the settings file declares "${String(gateId)}" at ${MERGE_MOMENT} with await: "${String(awaited)}" — so the declaration promises "${String(awaited)}" as the merge condition and never asked for this string. An awaited gate gets no job of its own, so unless a job this project hand-wrote posts this exact name, the requirement waits forever at "Expected — Waiting for status to be reported". Name which surface wins: require "${String(awaited)}" instead, or declare the gate with a run: so a job posts this name.`;
-  }
-  if (verdict === MATCHED) {
-    return `Declared required, and ${surface} requires it${where}. The two surfaces agree; that is not evidence the check proves its property.`;
-  }
-  if (verdict === DECLARED_NOT_ENFORCED) {
-    return `The settings file declares "${String(gateId)}" required at ${MERGE_MOMENT}, but ${surface} does not require this context, so the declaration blocks nothing.`;
-  }
-  if (verdict === ENFORCED_DECLARED_OPTIONAL) {
-    return `${surface} requires this context${where}, while the settings file declares "${String(gateId)}" optional at ${MERGE_MOMENT}. Two surfaces, two answers — name which one wins.`;
-  }
-  if (verdict === ENFORCED_DECLARED_OFF) {
-    return `The settings file declares "${String(gateId)}" off at ${MERGE_MOMENT} — an explicit decision not to prove it here — yet ${surface} requires this context${where}. That is a contradiction, not a gap.`;
-  }
-  if (verdict === ENFORCED_UNDECLARED) {
-    return `${surface} requires this context${where}, and it is produced by the gate "${String(gateId)}", which the settings file never declares at any moment. Undeclared is silence, not permission to stop requiring it.`;
-  }
-  return `${surface} requires this context${where}, and no gate in Lisa's registry produces it — it comes from a third-party app or from a job this project's own CI defines. Matching is on the exact context string, never on a job name that merely resembles it: a third-party app status and a Lisa job with a similar name are different things, and treating them as one produces a false drift report, or worse a false clean one. Reported so it can be told apart from a Lisa gate that fell out of the settings file, never so it can be removed.`;
+  return (VERDICT_DETAILS[verdict] ?? unownedDetail)(context);
 }
 
 /**

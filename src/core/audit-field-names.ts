@@ -113,7 +113,7 @@ function nearScopeField(key: string): string | undefined {
 }
 
 /** One unrecognized key that nearly matches a scope field. */
-export interface MisspelledScopeField {
+interface MisspelledScopeField {
   readonly key: string;
   readonly meant: string;
 }

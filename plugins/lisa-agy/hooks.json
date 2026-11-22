@@ -12,19 +12,6 @@
       }
     ]
   },
-  "lisa-parity-safety-net": {
-    "PreToolUse": [
-      {
-        "matcher": "run_command",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$HOME/.gemini/config/plugins/lisa/hooks/parity-safety-net.agy.sh\""
-          }
-        ]
-      }
-    ]
-  },
   "lisa-block-shell-json-parsing": {
     "PreToolUse": [
       {

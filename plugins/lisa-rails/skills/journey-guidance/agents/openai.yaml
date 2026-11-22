@@ -1,0 +1,4 @@
+display_name: "Journey Guidance"
+short_description: "Rails stack guidance for Validation Journeys on any tracker: picking the check for UI, API and background-job changes, reusing partials and…"
+default_prompt:
+  - "Use $journey-guidance: Rails stack guidance for Validation Journeys on any tracker: picking the check for UI, API and background-job changes, reusing partials and…."

@@ -12,12 +12,12 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { load } from "js-yaml";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const args = process.argv.slice(2);
 const nativeRequested = args.includes("--lefthook");
@@ -115,9 +115,9 @@ try {
   const scannerEnvironment = () => {
     const tools = join(cwd, "tools");
     mkdirSync(tools, { mode: 0o700 });
-    symlinkSync(process.execPath, join(tools, "node"));
+    createSymlink(process.execPath, join(tools, "node"));
     for (const tool of ["git", "bash", "sh"])
-      symlinkSync(execute("which", [tool]).stdout.trim(), join(tools, tool));
+      createSymlink(execute("which", [tool]).stdout.trim(), join(tools, tool));
     // Real managed scanner must refuse an unavailable required vendor, offline.
     return { PATH: tools };
   };

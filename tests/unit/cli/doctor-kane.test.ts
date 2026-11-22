@@ -3,6 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { runDoctor } from "../../../src/cli/doctor.js";
+import type { KaneReadiness } from "../../../src/core/kane-cli-types.js";
 
 const KANE_CHECK = "Kane browser provider ready?";
 const tempDirectories: string[] = [];
@@ -34,10 +35,12 @@ describe("Kane doctor check", () => {
       {
         runUpdateCheck: vi.fn(),
         write: vi.fn(),
-        probeKaneReadiness: vi.fn(async () => ({
-          status: "disabled",
-          detail: "Kane CLI provider is not enabled",
-        })),
+        probeKaneReadiness: vi.fn(
+          async (): Promise<KaneReadiness> => ({
+            status: "disabled",
+            detail: "Kane CLI provider is not enabled",
+          })
+        ),
       }
     );
 
@@ -57,10 +60,12 @@ describe("Kane doctor check", () => {
         runUpdateCheck: vi.fn(),
         write: vi.fn(),
         setExitCode,
-        probeKaneReadiness: vi.fn(async () => ({
-          status: "fail",
-          detail: "Kane CLI authentication failed",
-        })),
+        probeKaneReadiness: vi.fn(
+          async (): Promise<KaneReadiness> => ({
+            status: "fail",
+            detail: "Kane CLI authentication failed",
+          })
+        ),
       }
     );
 

@@ -1,4 +1,4 @@
 display_name: "Tracker Sync"
-short_description: "Vendor-neutral wrapper for posting milestone updates to the linked ticket/issue"
+short_description: "Post milestone updates (plan created, in progress, PR ready, PR merged) to the linked ticket in whichever tracker the project uses"
 default_prompt:
-  - "Use $lisa-tracker-sync: Vendor-neutral wrapper for posting milestone updates to the linked ticket/issue."
+  - "Use $lisa-tracker-sync: Post milestone updates (plan created, in progress, PR ready, PR merged) to the linked ticket in whichever tracker the project uses."

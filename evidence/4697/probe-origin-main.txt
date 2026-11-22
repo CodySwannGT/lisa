@@ -1,0 +1,269 @@
+===== PROBE origin-main root=/Users/codysai/.claude/jobs/ae54e104/tmp/main-tree =====
+
+----- case at-EOF: BEFORE -----
+# Owned artifact
+
+Keep this description.
+
+## Lisa Usage
+
+_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._
+
+| Flow | Source | Model | Tokens | Cost |
+| --- | --- | --- | ---: | ---: |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+
+<!-- lisa:usage-entry entry_id=first flow=lisa-implement run_id=run-first provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=first measured_subset_tokens=null -->
+
+<!-- lisa:usage-rollup direct_entry_ids=first child_entry_ids= child_refs= direct_tokens=15 child_tokens=null total_tokens=15 direct_cost=null child_cost=null total_cost=null currency=null child_currency=null -->
+
+<details><summary>Evidence</summary>
+
+```text
+proof output line
+```
+
+</details>
+
+A closing paragraph that is not a heading.
+----- case at-EOF: AFTER -----
+# Owned artifact
+
+Keep this description.
+
+## Lisa Usage
+
+_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._
+
+| Flow | Source | Model | Tokens | Cost |
+| --- | --- | --- | ---: | ---: |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+
+<!-- lisa:usage-entry entry_id=first flow=lisa-implement run_id=run-first provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=first measured_subset_tokens=null -->
+<!-- lisa:usage-entry entry_id=second flow=lisa-implement run_id=run-second provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=second measured_subset_tokens=null -->
+
+<!-- lisa:usage-rollup direct_entry_ids=first,second child_entry_ids= child_refs= direct_tokens=30 child_tokens=null total_tokens=30 direct_cost=null child_cost=null total_cost=null currency=null child_currency=null -->
+----- end -----
+ASSERT FAIL [origin-main] at-EOF: Evidence <details> + paragraph present byte-identical
+ASSERT FAIL [origin-main] at-EOF: document ends with Evidence block
+ASSERT PASS [origin-main] at-EOF: preamble preserved
+ASSERT PASS [origin-main] at-EOF: exactly one ## Lisa Usage heading -- count=1
+ASSERT PASS [origin-main] at-EOF: parsed entry ids -- ["first","second"]
+ASSERT PASS [origin-main] at-EOF: verifyLisaUsageSectionIntegrity(result,{entryIds:["second"]}).ok -- {"ok":true,"issues":[]}
+
+----- case before-##-Notes: BEFORE -----
+# Owned artifact
+
+Keep this description.
+
+## Lisa Usage
+
+_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._
+
+| Flow | Source | Model | Tokens | Cost |
+| --- | --- | --- | ---: | ---: |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+
+<!-- lisa:usage-entry entry_id=first flow=lisa-implement run_id=run-first provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=first measured_subset_tokens=null -->
+
+<!-- lisa:usage-rollup direct_entry_ids=first child_entry_ids= child_refs= direct_tokens=15 child_tokens=null total_tokens=15 direct_cost=null child_cost=null total_cost=null currency=null child_currency=null -->
+
+<details><summary>Evidence</summary>
+
+```text
+proof output line
+```
+
+</details>
+
+A closing paragraph that is not a heading.
+
+## Notes
+
+Keep this later section too.
+----- case before-##-Notes: AFTER -----
+# Owned artifact
+
+Keep this description.
+
+## Lisa Usage
+
+_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._
+
+| Flow | Source | Model | Tokens | Cost |
+| --- | --- | --- | ---: | ---: |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+
+<!-- lisa:usage-entry entry_id=first flow=lisa-implement run_id=run-first provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=first measured_subset_tokens=null -->
+<!-- lisa:usage-entry entry_id=second flow=lisa-implement run_id=run-second provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=second measured_subset_tokens=null -->
+
+<!-- lisa:usage-rollup direct_entry_ids=first,second child_entry_ids= child_refs= direct_tokens=30 child_tokens=null total_tokens=30 direct_cost=null child_cost=null total_cost=null currency=null child_currency=null -->
+
+## Notes
+
+Keep this later section too.
+----- end -----
+ASSERT FAIL [origin-main] before-##-Notes: Evidence <details> + paragraph present byte-identical
+ASSERT FAIL [origin-main] before-##-Notes: Evidence block + ## Notes kept byte-identical in order
+ASSERT PASS [origin-main] before-##-Notes: preamble preserved
+ASSERT PASS [origin-main] before-##-Notes: exactly one ## Lisa Usage heading -- count=1
+ASSERT PASS [origin-main] before-##-Notes: parsed entry ids -- ["first","second"]
+ASSERT PASS [origin-main] before-##-Notes: verifyLisaUsageSectionIntegrity(result,{entryIds:["second"]}).ok -- {"ok":true,"issues":[]}
+LAYOUT [origin-main] standard: entries=["a","b"] rollup=["a","b"]
+LAYOUT [origin-main] standard+NotesAfter: entries=["a","b"] rollup=["a","b"]
+LAYOUT [origin-main] legacy(tokens trail rows): entries=["a","b"] rollup=["a","b"]
+LAYOUT [origin-main] legacy-no-rollup: entries=["a","b"] rollup=null
+LAYOUT-UPSERT [origin-main] legacy: entries=["a","b","c"] headings=1 evidenceKept=false integrityOk=true
+LAYOUT-UPSERT [origin-main] legacy-no-rollup: entries=["a","b","c"] headings=1 evidenceKept=false integrityOk=true
+LAYOUT-UPSERT [origin-main] legacy+Evidence: entries=["a","b","c"] headings=1 evidenceKept=false integrityOk=true
+
+----- case R1-inline-rollup-prose: BEFORE -----
+# Owned artifact
+
+Keep this description.
+
+## Lisa Usage
+
+<!-- lisa:usage-entry entry_id=a flow=lisa-implement run_id=run-a provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=a measured_subset_tokens=null -->
+
+We used to keep a `<!-- lisa:usage-rollup direct_entry_ids=x -->` token here, see the runbook.
+----- case R1-inline-rollup-prose: AFTER -----
+# Owned artifact
+
+Keep this description.
+
+## Lisa Usage
+
+_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._
+
+| Flow | Source | Model | Tokens | Cost |
+| --- | --- | --- | ---: | ---: |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+
+<!-- lisa:usage-entry entry_id=a flow=lisa-implement run_id=run-a provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=a measured_subset_tokens=null -->
+<!-- lisa:usage-entry entry_id=b flow=lisa-implement run_id=run-b provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=b measured_subset_tokens=null -->
+
+<!-- lisa:usage-rollup direct_entry_ids=a,b child_entry_ids= child_refs= direct_tokens=30 child_tokens=null total_tokens=30 direct_cost=null child_cost=null total_cost=null currency=null child_currency=null -->
+----- end -----
+ASSERT FAIL [origin-main] R1: inline-rollup prose survives byte-identical
+ASSERT PASS [origin-main] R1: exactly one ## Lisa Usage heading -- count=1
+ASSERT PASS [origin-main] R1: entries [a,b] -- ["a","b"]
+ASSERT PASS [origin-main] R1: integrity ok -- {"ok":true,"issues":[]}
+
+----- case R2-direct-usage-layout: BEFORE -----
+# Owned artifact
+
+Keep this description.
+
+## Lisa Usage
+
+_Managed by Lisa. Regenerated on each usage update; do not edit by hand._
+
+### Direct Usage
+
+| Flow | Model | Source | Tokens | Cost |
+|---|---|---|---:|---:|
+| lisa-implement | anthropic/model-a | session | 15 | null |
+
+<!-- lisa:usage-entry entry_id=old flow=lisa-implement run_id=run-old provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=old measured_subset_tokens=null -->
+
+<details><summary>Evidence</summary>
+
+```text
+proof output line
+```
+
+</details>
+
+A closing paragraph that is not a heading.
+----- case R2-direct-usage-layout: AFTER -----
+# Owned artifact
+
+Keep this description.
+
+## Lisa Usage
+
+_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._
+
+| Flow | Source | Model | Tokens | Cost |
+| --- | --- | --- | ---: | ---: |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+
+<!-- lisa:usage-entry entry_id=old flow=lisa-implement run_id=run-old provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=old measured_subset_tokens=null -->
+<!-- lisa:usage-entry entry_id=new flow=lisa-implement run_id=run-new provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=new measured_subset_tokens=null -->
+
+<!-- lisa:usage-rollup direct_entry_ids=old,new child_entry_ids= child_refs= direct_tokens=30 child_tokens=null total_tokens=30 direct_cost=null child_cost=null total_cost=null currency=null child_currency=null -->
+----- end -----
+ASSERT PASS [origin-main] R2: entry old parsed before upsert -- ["old"]
+ASSERT PASS [origin-main] R2: entry old survives upsert (entries [old,new]) -- ["old","new"]
+ASSERT PASS [origin-main] R2: exactly one ## Lisa Usage heading -- count=1
+ASSERT PASS [origin-main] R2: integrity ok with old+new -- {"ok":true,"issues":[]}
+INFO [origin-main] R2: trailing Evidence kept=false
+
+----- case R3-user-table-after-legacy: BEFORE -----
+# Owned artifact
+
+Keep this description.
+
+## Lisa Usage
+
+_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._
+
+| Flow | Source | Model | Tokens | Cost |
+| --- | --- | --- | ---: | ---: |
+| lisa-implement | session | anthropic/model-a | 15 | null | <!-- lisa:usage-entry entry_id=a flow=lisa-implement run_id=run-a provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=a measured_subset_tokens=null -->
+| lisa-implement | session | anthropic/model-a | 15 | null | <!-- lisa:usage-entry entry_id=b flow=lisa-implement run_id=run-b provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=b measured_subset_tokens=null -->
+
+
+
+| My column | Value |
+| --- | --- |
+| keep | me |
+----- case R3-user-table-after-legacy: AFTER -----
+# Owned artifact
+
+Keep this description.
+
+## Lisa Usage
+
+_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._
+
+| Flow | Source | Model | Tokens | Cost |
+| --- | --- | --- | ---: | ---: |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+| lisa-implement | session | anthropic/model-a | 15 | null |
+
+<!-- lisa:usage-entry entry_id=a flow=lisa-implement run_id=run-a provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=a measured_subset_tokens=null -->
+<!-- lisa:usage-entry entry_id=b flow=lisa-implement run_id=run-b provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=b measured_subset_tokens=null -->
+<!-- lisa:usage-entry entry_id=c flow=lisa-implement run_id=run-c provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=c measured_subset_tokens=null -->
+
+<!-- lisa:usage-rollup direct_entry_ids=a,b,c child_entry_ids= child_refs= direct_tokens=45 child_tokens=null total_tokens=45 direct_cost=null child_cost=null total_cost=null currency=null child_currency=null -->
+----- end -----
+ASSERT FAIL [origin-main] R3: user table survives byte-identical
+ASSERT PASS [origin-main] R3: exactly one ## Lisa Usage heading -- count=1
+ASSERT PASS [origin-main] R3: entries [a,b,c] -- ["a","b","c"]
+ASSERT PASS [origin-main] R3: integrity ok -- {"ok":true,"issues":[]}
+
+----- legacy layout sample -----
+# Owned artifact
+
+Keep this description.
+
+## Lisa Usage
+
+_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._
+
+| Flow | Source | Model | Tokens | Cost |
+| --- | --- | --- | ---: | ---: |
+| lisa-implement | session | anthropic/model-a | 15 | null | <!-- lisa:usage-entry entry_id=a flow=lisa-implement run_id=run-a provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=a measured_subset_tokens=null -->
+| lisa-implement | session | anthropic/model-a | 15 | null | <!-- lisa:usage-entry entry_id=b flow=lisa-implement run_id=run-b provider=anthropic model=model-a source=session input_tokens=10 cached_input_tokens=0 output_tokens=5 reasoning_tokens=0 total_tokens=15 cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3Aexample%2Fproject%231 parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=b measured_subset_tokens=null -->
+
+
+<!-- lisa:usage-rollup direct_entry_ids=a,b child_entry_ids= child_refs= direct_tokens=30 child_tokens=null total_tokens=30 direct_cost=null child_cost=null total_cost=null currency=null child_currency=null -->
+----- end -----
+SUMMARY [origin-main] failures=6

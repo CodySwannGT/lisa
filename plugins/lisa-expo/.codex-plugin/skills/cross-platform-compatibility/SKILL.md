@@ -1,8 +1,8 @@
 ---
 name: cross-platform-compatibility
-description: "This skill enforces…"
+description: "Keep Expo features working on…"
 ---
-This skill enforces cross-platform compatibility best practices for Expo apps targeting iOS, Android, and web. It should be used when creating new features, components, or screens to ensure they work correctly on all platforms. Use this skill when writing platform-specific code, using Platform.OS checks, creating platform-specific files (.web.tsx, .native.tsx, .ios.tsx, .android.tsx), or reviewing code for cross-platform issues.
+Keep Expo features working on iOS, Android, and web: Platform.OS checks and platform-specific files. Use when creating features, components, or screens, writing platform-specific code, or reviewing for cross-platform issues.
 
 
 # Cross-Platform Compatibility
@@ -124,6 +124,13 @@ To use platform-specific components in routes:
 // app/about.tsx
 export { default } from "../components/about";
 ```
+
+### Dead-code gate
+
+Knip 6 does not resolve `./DatePickerView` to `DatePickerView.web.tsx` on its
+own and reports it as an unresolved import. The fix is a `knip.ts` that
+spreads Lisa's `expoKnipResolution()`; the `knip-platform-files` skill has
+the steps and a worked example. Never silence the report with an ignore list.
 
 ## Common Cross-Platform Issues
 

@@ -1,16 +1,18 @@
 ---
 name: lisa-github-project-v2
-description: "Shared GitHub ProjectV2…"
+description: "Add issues and pull requests to…"
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
-Shared GitHub ProjectV2 coordination utility. Every GitHub writer or linked pull request flow that needs Project membership MUST delegate through this skill instead of inlining GraphQL. Resolves the configured ProjectV2 id from `github.projects.v2`, validates namespace + access, adds Issue or Pull Request node ids to the Project, optionally updates Project field values, and returns exact failures with best-effort vs required-mode branching.
+Add issues and pull requests to the configured GitHub Project and set its fields. Every GitHub writer that needs Project membership must use it instead of inline GraphQL.
 
 
 # GitHub ProjectV2: $ARGUMENTS
 
 Single chokepoint for GitHub ProjectV2 coordination. Caller skills (`github-write-prd`,
 `github-write-issue`, `git-submit-pr`, later linked-PR flows, later doctor/setup checks) MUST go through
-this skill rather than duplicating `gh api graphql` calls.
+this skill rather than duplicating `gh api graphql` calls. It resolves the configured ProjectV2 id,
+validates namespace and access, adds Issue or Pull Request node ids to the Project, and optionally
+sets Project field values.
 
 The utility never invents policy. It applies the config + validation contract already defined in
 `config-resolution`:

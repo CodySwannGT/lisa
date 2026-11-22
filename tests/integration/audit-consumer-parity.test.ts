@@ -24,6 +24,7 @@ import {
   PARITY_GHSA,
   PARITY_MANAGERS,
 } from "../helpers/audit-parity-managers.js";
+import { linkPackage } from "../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 const ROOT = process.cwd();
@@ -37,6 +38,10 @@ const CLEAN = "No high or critical";
 const VERSION_MISMATCH = "version-mismatch";
 const MISSING_LOCK = "missing-lock";
 const MALFORMED_LOCK = "malformed-lock";
+/** #4509: a package+versions scope with no `paths`, on the zod 3.x copy. */
+const VERSIONS_ONLY = "versions-only";
+/** #4509: the same versions-only scope, but that copy is zod 4.5.0. */
+const ZOD4_VERSIONS_ONLY = "zod4-versions-only";
 const roots: string[] = [];
 
 const SCRIPT = "node scripts/lisa-audit.mjs";
@@ -63,7 +68,7 @@ const END = HOOK.findIndex(
 );
 const HOOK_BODY = HOOK.slice(DISPATCH, END + 4).join("\n");
 /** The operator next step printed whenever a real finding fails the audit. */
-const NEXT_STEP = "add its lockfile path to `paths` in audit.ignore.local.json";
+const NEXT_STEP = "3) add a targeted override to the fixed version; 4)";
 /** The precise fail-closed diagnostic for a scoped entry without bun.lock. */
 const NO_BUN_LOCK = "Cannot evaluate scoped audit exclusions from bun.lock";
 /** The real npm, so a stubbed `npm` can still run the registry's `npm run`. */
@@ -96,6 +101,10 @@ function fixtureEntry(kind: string, devPath: string) {
     return { id: GHSA, reason: "Controlled legacy decision" };
   if (kind === "empty-paths") return { ...scoped, paths: [] };
   if (kind === VERSION_MISMATCH) return { ...scoped, versions: "4.x" };
+  if (kind === VERSIONS_ONLY || kind === ZOD4_VERSIONS_ONLY) {
+    const { paths: _paths, ...versionsOnly } = scoped;
+    return versionsOnly;
+  }
   if (kind === PACKAGE_MISMATCH_KIND)
     return { ...scoped, package: OTHER_PACKAGE };
   return scoped;
@@ -132,8 +141,7 @@ function fixture(kind: string, manager: AuditManager = "bun"): string {
   );
   fs.mkdirSync(path.join(root, "scripts"));
   fs.mkdirSync(path.join(root, "bin"));
-  fs.mkdirSync(path.join(root, "node_modules/@codyswann"), { recursive: true });
-  fs.symlinkSync(ROOT, path.join(root, "node_modules/@codyswann/lisa"), "dir");
+  linkPackage(ROOT, root, "@codyswann/lisa");
   fs.copyFileSync(
     "all/copy-overwrite/scripts/lisa-audit.mjs",
     path.join(root, "scripts/lisa-audit.mjs")
@@ -266,8 +274,13 @@ function expectParity(
       body === registry ? registryMessage : message
     );
     // A real finding (not a fail-closed input) always says what to do next.
-    if (status === 1 && !helper.threw)
+    if (status === 1 && !helper.threw) {
       expect(result.output).toContain(NEXT_STEP);
+      // Reachability comes after the fixes and before replacing the package.
+      expect(result.output).toMatch(
+        /override to the fixed version; 4\) before any code change, evaluate reachability[^\n]*audit\.ignore\.local\.json[^\n]*5\) replace or remove the dependency/u
+      );
+    }
   }
 }
 
@@ -288,6 +301,9 @@ describe("audit-consumer parity on the identical tree", () => {
     [VERSION_MISMATCH, 1, bun.devPath],
     // Same advisory, same listed path, but zod 4.5.0 is outside the 3.x scope.
     ["zod4-on-listed-path", 1, `${bun.devPath} (zod@4.5.0)`],
+    // #4509: package+versions with no paths accepts zod 3.x, rejects zod 4.5.0.
+    [VERSIONS_ONLY, 0, `excluded ${GHSA} for ${bun.devPath}`],
+    [ZOD4_VERSIONS_ONLY, 1, `${bun.devPath} (zod@4.5.0)`],
   ] as const)(
     "%s: hook, registry and CI agree and name the measured result",
     (kind, status, message, registryMessage?: string) => {
@@ -310,6 +326,8 @@ describe.each(["npm", "yarn"] as const)(
       [MISSING_LOCK, 1, unreadable, "No supported audit lockfile found"],
       [MALFORMED_LOCK, 1, unreadable],
       [VERSION_MISMATCH, 1, shape.devPath],
+      [VERSIONS_ONLY, 0, `excluded ${GHSA} for ${shape.devPath}`],
+      [ZOD4_VERSIONS_ONLY, 1, `${shape.devPath} (zod@4.5.0)`],
     ] as const)(
       "%s: hook, registry and CI agree and name the measured result",
       (kind, status, message, registryMessage?: string) => {

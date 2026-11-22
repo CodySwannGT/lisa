@@ -1,0 +1,62 @@
+# check: C1-blocked-plan-release-list
+$ cd /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-C1-blocked-plan-release-list/project && HOME=/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-C1-blocked-plan-release-list/home node /Users/codysai/workspace/lisa/.claude/worktrees/4895-trusted-author-split/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs blocked-plan --project-root /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-C1-blocked-plan-release-list/project < /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/held-item.json
+# .lisa.config.json:
+{
+  "tracker": "github",
+  "github": {
+    "org": "example-org",
+    "repo": "demo-repo",
+    "labels": {
+      "build": {
+        "ready": "status:ready"
+      }
+    }
+  },
+  "sessionManager": {
+    "name": "demo-manager",
+    "interval": "5m",
+    "capacity": {
+      "maxWorkers": 6,
+      "gbPerWorker": 1,
+      "reserveGb": 0,
+      "cpuFraction": 1,
+      "maxLoadPerCore": 1000
+    },
+    "notify": {
+      "provider": "telegram",
+      "stateDir": "/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-C1-blocked-plan-release-list/home/.claude/channels/telegram-demo"
+    },
+    "trustedAuthorIds": [
+      "integration:sentry"
+    ],
+    "trustedReleaseIds": [
+      "id:4242"
+    ]
+  }
+}
+# stdin (/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/held-item.json):
+{
+  "labels": [],
+  "body": "Waiting on design.\n<!-- [lisa-human-gate] reason=design-call -->",
+  "comments": [
+    {
+      "authorId": "4242",
+      "authorType": "User",
+      "body": "[lisa-human-gate-release] reason=design-call\n\n**The hold on this item is lifted.**\n\n- What was being asked: design-call\n- What was decided: go\n- What happens next: this item goes back into the queue that agents build from."
+    }
+  ],
+  "edges": [
+    {
+      "ref": "<TEAM>-1",
+      "contained": true,
+      "blockerState": "closed",
+      "blockerReason": "completed"
+    }
+  ]
+}
+# --- stdout ---
+{"action":"release","reason":"every blocker's code is on the branch this item builds from, so each edge dissolves.","edges":[{"ref":"<TEAM>-1","contained":true,"blockerState":"closed","blockerReason":"completed","action":"dissolve","reason":"the blocker's merged code is present on the branch this item builds from, so the development dependency is satisfied. Remove the edge in the same write that records the ruling, and read it back — a state move plus a comment is a claim about a clearance, not a clearance, and the next reader parses relations rather than prose."}],"gate":{"held":false,"reason":"hold-released","outstanding":[],"declared":1,"released":["design-call"],"lifted":[],"labelPresent":false}}
+
+# --- stderr ---
+
+# exit: 0

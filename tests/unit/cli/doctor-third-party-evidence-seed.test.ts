@@ -20,6 +20,7 @@ import {
   CHECKS_WRITE_LINE,
   checkThirdPartyEvidenceSeed,
   CONCURRENCY_GROUP_LINE,
+  DISPATCH_CONTEXT_INPUT_LINES,
   EVIDENCE_STEPS_LINES,
   PERMISSIONS_BLOCK_LINES,
   RUN_IDENTITY_LINES,
@@ -136,6 +137,7 @@ describe("doctor third-party evidence seed check", () => {
         ...RUN_IDENTITY_LINES,
         CONCURRENCY_GROUP_LINE,
         ...EVIDENCE_STEPS_LINES,
+        ...DISPATCH_CONTEXT_INPUT_LINES,
       ])
     );
     expect(check.detail).toContain(NO_PUBLISH);
@@ -178,6 +180,10 @@ describe("doctor third-party evidence seed check", () => {
         },
         { anchor: /^ *ref: .*\n/mu, replacement: "" },
         REPLACE_PROVER_STEP,
+        {
+          anchor: "        type: string\n",
+          replacement: `        type: string\n${DISPATCH_CONTEXT_INPUT_LINES.join("\n")}\n`,
+        },
         {
           anchor: "    timeout-minutes: 5\n",
           replacement: `    timeout-minutes: 5\n${RUN_IDENTITY_LINES.join("\n")}\n`,

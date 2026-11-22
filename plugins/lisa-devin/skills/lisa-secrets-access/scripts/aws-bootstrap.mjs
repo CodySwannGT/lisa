@@ -150,7 +150,7 @@ export function readProfiles(bundle) {
  * tenant, and the removal of the only distinguishing feature across two.
  * Prefixing makes the wrong resolution impossible rather than merely
  * detectable, and it is the same scheme the remote-agent writer emits.
- * @param {object} bundle Parsed bootstrap bundle.
+ * @param {object | null | undefined} bundle Parsed bootstrap bundle.
  * @param {string} owner Tenant these profiles belong to.
  * @returns {{credentials: string, config: string, profiles: string[], sourceProfile: string}|null}
  *   Rendered file contents, the profile names and the source profile; or null
@@ -285,7 +285,7 @@ function assertDeclaredAccount(stage, entry, roleArn) {
  * secret in the run is still valid and still needed, and a session with most of
  * its credentials beats a session with none.
  * @param {string} raw Bundle contents.
- * @returns {object|null} Parsed bundle, or null.
+ * @returns {Record<string, unknown>|null} Parsed bundle, or null.
  */
 export function parseBootstrap(raw) {
   if (typeof raw !== "string" || raw.trim() === "") return null;

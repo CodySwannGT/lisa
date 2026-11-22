@@ -70,7 +70,7 @@ function commandTool(context, command) {
 }
 
 /** Private instrumentation may be inherited only by authenticated canonical Node children. */
-function childEnvironment(options, contextFile, canonical) {
+export function childEnvironment(options, contextFile, canonical) {
   const env = { ...(options.env ?? process.env) };
   required(
     !env.NODE_OPTIONS && !env.NODE_PATH,
@@ -79,6 +79,9 @@ function childEnvironment(options, contextFile, canonical) {
   delete env.LISA_NPM_DISPATCH_CONTEXT;
   delete env.GH_TOKEN;
   delete env.GITHUB_TOKEN;
+  // Tracker credentials (CodySwannGT/lisa#4859) never reach a nested tool either.
+  for (const name of Object.keys(env))
+    if (/^(?:JIRA_|ATLASSIAN_|LINEAR_API_KEY)/.test(name)) delete env[name];
   if (canonical) env.LISA_NPM_DISPATCH_CONTEXT = contextFile;
   return env;
 }

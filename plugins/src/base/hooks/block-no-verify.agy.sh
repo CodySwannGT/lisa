@@ -37,7 +37,7 @@ allow() {
 }
 
 deny() {
-  printf '%s\n' '{"decision":"deny","reason":"This command bypasses Lisa pre-commit/pre-push quality gates (--no-verify or its short form -n, HUSKY=0, or core.hooksPath disabling). `git commit -n` and a cluster such as `-nm \"msg\"` skip pre-commit exactly as completely as the long flag. Fix the underlying issue (security audit, lint, typecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the user to make the risk-acceptance decision and add a specific documented ignore; never bypass the hook."}'
+  printf '%s\n' "{\"decision\":\"deny\",\"reason\":\"This command bypasses Lisa pre-commit/pre-push quality gates (--no-verify or its short form -n, HUSKY=0, or core.hooksPath disabling). \`git commit -n\` and a cluster such as \`-nm \\\"msg\\\"\` skip pre-commit exactly as completely as the long flag. Fix the underlying issue (security audit, lint, typecheck, tests, formatting) instead. If a fix is genuinely impossible, make the risk-acceptance decision yourself: add a specific documented ignore with its reason and an expiry (under humanGate.mode strict, ask the user to make that decision instead); never bypass the hook.\"}"
   exit 0
 }
 
@@ -703,11 +703,10 @@ def nested_shell_payload(tokens, index):
 # file away ALLOW — on bash, sh, zsh, `source`, `.`, an absolute interpreter
 # path, and behind every wrapper.
 #
-# THE RULE IS TAKEN FROM parity-safety-net.sh RATHER THAN INVENTED HERE: a path
-# is followed ONLY when the command EXECUTES it. `grep -n x nv.sh`,
-# `git commit -F msg.txt` and `gh pr create --body-file body.md` name a file as
-# DATA, and following those is the known-wrong fix that guard names by number —
-# it refuses ordinary reads and attributes a file's capability to a command that
+# THE RULE: a path is followed ONLY when the command EXECUTES it.
+# `grep -n x nv.sh`, `git commit -F msg.txt` and `gh pr create --body-file
+# body.md` name a file as DATA, and following those is a known-wrong fix — it
+# refuses ordinary reads and attributes a file's capability to a command that
 # merely mentions it. So COMMAND POSITION decides, never the presence of a path.
 #
 # Non-shell interpreters (`python3 x.py`, `node x.mjs`) are deliberately NOT

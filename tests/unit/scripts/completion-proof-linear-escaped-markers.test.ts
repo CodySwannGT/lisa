@@ -155,9 +155,9 @@ describe("completion proof reads Linear-escaped evidence markers (#4670)", () =>
     expect(localMarkers(body)).toEqual([]);
   });
 
-  it("keeps inline code bytes, so an escaped example there is never decoded into a claim", () => {
+  it("never decodes an escaped example in inline code into a claim (#4689)", () => {
     const body = `Example \`${String.raw`\[EVIDENCE: cli-output: inline\]`}\` text.\n`;
-    expect(() => localMarkers(body)).toThrow(MALFORMED);
+    expect(localMarkers(body)).toEqual([]);
   });
 
   it("decodes only one escape layer so a literal backslash cannot invent a marker", () => {
@@ -285,5 +285,125 @@ describe("validateVerifyUsage keeps the work-item body fail-closed (#4570)", () 
 
   it("still accepts an intact usage section in the body", () => {
     expect(refusal([genuine])).toBeNull();
+  });
+});
+
+/**
+ * Regression for CodySwannGT/lisa#4689 (incomplete fix of #4670).
+ *
+ * A marker quoted inside an inline code span of any backtick-run length is an
+ * example, like fenced and indented code: it is neither a declaration nor a
+ * malformed one, in Linear's escaped form or in the plain form.
+ */
+describe("inline code spans never claim evidence (#4689)", () => {
+  const ESCAPED = String.raw`\[EVIDENCE: cli-output: x\]`;
+  const PLAIN = "[EVIDENCE: cli-output: x]";
+  const X = [{ kind: CLI_OUTPUT, name: "x" }];
+  const TOP = [{ kind: CLI_OUTPUT, name: "top" }];
+  const code = (inner: string, ticks = 1): string =>
+    `${"`".repeat(ticks)}${inner}${"`".repeat(ticks)}`;
+
+  it.each([
+    ["single backticks, escaped", code(ESCAPED)],
+    ["single backticks, plain", code(PLAIN)],
+    ["double backticks, escaped", code(ESCAPED, 2)],
+    ["double backticks, plain", code(PLAIN, 2)],
+    ["triple backticks inline, plain", code(PLAIN, 3)],
+    ["double backticks holding a single one", code(` a \` ${PLAIN} `, 2)],
+    ["placeholder, escaped", code(String.raw`\[EVIDENCE: …\]`)],
+    ["placeholder, plain", code("[EVIDENCE: …]")],
+    ["legacy screenshot, escaped", code(String.raw`\[SCREENSHOT: home\]`)],
+    ["legacy screenshot, plain", code("[SCREENSHOT: home]")],
+    ["unsupported type", code("[EVIDENCE: video: demo]")],
+  ])("returns [] for a marker only in inline code (%s)", (_label, span) => {
+    expect(localMarkers(`Body mentions ${span} here.\n`)).toEqual([]);
+  });
+
+  it.each([
+    ["escaped", String.raw`\[EVIDENCE: cli-output: top\]`, ESCAPED],
+    ["plain", "[EVIDENCE: cli-output: top]", PLAIN],
+  ])(
+    "keeps exactly the top-level marker beside a quoted one (%s)",
+    (_label, top, quoted) => {
+      expect(
+        localMarkers(`Step. ${top}\nThe ${code(quoted)} form is an example.\n`)
+      ).toEqual(TOP);
+      expect(
+        localMarkers(`Same line ${code(quoted, 2)} then ${top}\n`)
+      ).toEqual(TOP);
+    }
+  );
+
+  it("does not let a quoted duplicate name collide with the real marker", () => {
+    expect(
+      localMarkers(
+        `[EVIDENCE: cli-output: top] and ${code("[EVIDENCE: cli-output: top]")}`
+      )
+    ).toEqual(TOP);
+  });
+
+  it("treats an unclosed backtick run as literal text, not a span", () => {
+    expect(localMarkers(`Stray \` then ${ESCAPED}\n`)).toEqual(X);
+    expect(localMarkers(`Stray \`\` then ${code(PLAIN)} end\n`)).toEqual([]);
+    expect(() => localMarkers("Stray ` then [EVIDENCE: bad]\n")).toThrow(
+      MALFORMED
+    );
+  });
+
+  it("closes a span only on a run of exactly the opening length", () => {
+    expect(localMarkers(`\`\`a\` ${PLAIN}\`\` b\n`)).toEqual([]);
+    expect(localMarkers(`\`a\`\` ${PLAIN}\n`)).toEqual(X);
+  });
+
+  it("does not let an inline span cross a line break", () => {
+    expect(localMarkers(`Open \`\n${PLAIN}\nclose \`\n`)).toEqual(X);
+  });
+
+  it("does not open a span on a backslash-escaped backtick", () => {
+    const escapedTick = "\\`";
+    expect(localMarkers(`${escapedTick} ${PLAIN} ${escapedTick}\n`)).toEqual(X);
+  });
+
+  it("does not splice the text around a span into a new marker", () => {
+    expect(() =>
+      localMarkers(`[EVIDENCE: cli-output:${code("x")} y]\n`)
+    ).toThrow(MALFORMED);
+  });
+
+  it("closes a single-backtick span on a lone backtick, not inside a longer run", () => {
+    expect(localMarkers(`\`a\`\` ${PLAIN} \``)).toEqual([]);
+  });
+
+  it("does not close a double-backtick span on the start of a longer run", () => {
+    expect(localMarkers(`\`\` a \`\`\` ${PLAIN} \``)).toEqual(X);
+  });
+
+  it("resumes scanning after a closed span, so its closing run never reopens", () => {
+    expect(localMarkers(`\`a\` ${PLAIN} \`b\``)).toEqual(X);
+  });
+
+  it.each([
+    ["autolinks", `<https://x/\`> ${PLAIN} <https://y/\`>`],
+    ["raw HTML tags", `<span title='\`'>x</span> ${PLAIN} <b title='\`'>`],
+  ])(
+    "lets %s outrank code spans so a real marker is never dropped",
+    (_label, line) => {
+      expect(localMarkers(line)).toEqual(X);
+    }
+  );
+
+  it.each([
+    ["plain", `a < b \`${PLAIN}\` c > d`],
+    ["escaped", `a < b \`${ESCAPED}\` c > d`],
+  ])(
+    "does not read prose angle brackets as a tag around a %s code-span example",
+    (_label, line) => {
+      expect(localMarkers(line)).toEqual([]);
+    }
+  );
+
+  it("still reads the #4670 escaped top-level marker as the plain form", () => {
+    expect(localMarkers(`Body\n${ESCAPED}`)).toEqual(X);
+    expect(localMarkers(`Body\n${PLAIN}`)).toEqual(X);
   });
 });

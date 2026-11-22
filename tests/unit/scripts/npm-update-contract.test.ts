@@ -2,7 +2,7 @@ import { qualifiedUpdaterNode } from "../../support/qualified-updater-node.js";
 /** Closed proposal controls keep candidate data out of privileged execution. */
 import { describe, expect, it, vi } from "vitest";
 import { downloadRuntimeArchive } from "../../../all/copy-overwrite/scripts/lib/npm-update-runtime-transport.mjs";
-import { writeFileSync, linkSync, symlinkSync } from "node:fs";
+import { writeFileSync, linkSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
@@ -50,6 +50,7 @@ import {
   nativeHooksEnabled,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-owner.mjs";
 import { boundedSpawnSync as boundedTestSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const NODE_TOOL = "/opt/node/bin/node";
 const HELPER_GRAPH_FILE =
@@ -229,12 +230,47 @@ const result = await runProcess(process.execPath, process.argv.slice(2), {
 }); process.stdout.write(result.stdout); process.stderr.write(result.stderr);
 process.exitCode = result.code;`
   );
+  // The trusted graph is the closure the dispatched chain can reach, as the
+  // real controller selects it, rather than every managed helper. The whole
+  // inventory still fits the bound; see "keeps the trusted-graph bound clear".
+  const manifest = JSON.parse(
+    readFileSync(resolve(HELPER_GRAPH_FILE), "utf8")
+  ) as {
+    members: Record<
+      string,
+      {
+        staticImports: string[];
+        dynamicImports: string[];
+        children: string[];
+      }
+    >;
+  };
+  const reachable = new Set<string>();
+  const visit = (name: string): void => {
+    const record = manifest.members[name];
+    if (record === undefined || reachable.has(name)) return;
+    reachable.add(name);
+    for (const next of [
+      ...record.staticImports,
+      ...record.dynamicImports,
+      ...record.children,
+    ])
+      visit(next);
+  };
+  for (const name of [
+    "lib/npm-update-process-core.mjs",
+    "lib/npm-update-execution-adapter.mjs",
+    "lib/npm-update-tool-launcher.mjs",
+  ])
+    visit(name);
+  const members = managedTemplateMembers();
   const graph: Record<string, string> = {};
-  for (const path of managedTemplateMembers().values())
-    if (path.endsWith(".mjs")) {
-      const absolute = realpathSync(path);
-      graph[absolute] = sha256(readFileSync(absolute));
-    }
+  for (const name of reachable) {
+    const path = members.get(name);
+    if (path === undefined || !path.endsWith(".mjs")) continue;
+    const absolute = realpathSync(path);
+    graph[absolute] = sha256(readFileSync(absolute));
+  }
   for (const path of [entry, caller]) graph[path] = sha256(readFileSync(path));
   const identity = qualifiedUpdaterNode();
   const context = {
@@ -272,6 +308,48 @@ describe.skipIf(!["linux", "darwin"].includes(process.platform))(
         expect(launcherContext(fixture.file)).toEqual(fixture.context);
         replaceJson(fixture.file, context);
         expect(launcherContext(fixture.file)).toEqual(context);
+      });
+    });
+
+    it("keeps the trusted-graph bound clear of the whole managed inventory", async () => {
+      // The bound is 256, like the helper graph's own (CodySwannGT/lisa#4582):
+      // at 128 the inventory sat within a few files of it, so the next managed
+      // helper would have refused every npm-update push.
+      const { launcherContext } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+      const { replaceJson } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs");
+      const { managedTemplateMembers } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs");
+      const { readFileSync, realpathSync } = await import("node:fs");
+      await withPrivateRoot(async root => {
+        const fixture = await directBootstrapFixture(root);
+        const graph: Record<string, string> = { ...fixture.context.graph };
+        for (const path of managedTemplateMembers().values()) {
+          if (!path.endsWith(".mjs")) continue;
+          const absolute = realpathSync(path);
+          graph[absolute] = sha256(readFileSync(absolute));
+        }
+        // Measured at the 128 cap itself when the cap was raised.
+        expect(Object.keys(graph).length).toBeGreaterThanOrEqual(128);
+        const filler = (count: number): Record<string, string> => ({
+          ...graph,
+          ...Object.fromEntries(
+            Array.from(
+              { length: Math.max(0, count - Object.keys(graph).length) },
+              (_, index) => [`/lisa-bound-filler/${index}.mjs`, "c".repeat(64)]
+            )
+          ),
+        });
+        const atBound = { ...fixture.context, graph: filler(256) };
+        replaceJson(fixture.file, atBound);
+        expect(Object.keys(launcherContext(fixture.file).graph)).toHaveLength(
+          256
+        );
+        replaceJson(fixture.file, { ...fixture.context, graph: filler(257) });
+        expect(() => launcherContext(fixture.file)).toThrow(
+          "unbounded trusted import graph"
+        );
       });
     });
 
@@ -580,7 +658,7 @@ describe.skipIf(!["linux", "darwin"].includes(process.platform))(
           dispatch([join(root, "unknown-caller.mjs")])
         ).rejects.toThrow(/unmatched candidate workspace mapping/);
         const alias = join(root, "aliased-helper.mjs");
-        symlinkSync(fixture.entry, alias);
+        createSymlink(fixture.entry, alias);
         await expect(
           dispatchTool(
             {
@@ -1018,10 +1096,21 @@ describe("complete authenticated helper closure", () => {
     const bytes = new Map<string, Buffer>();
     for (const member of members)
       bytes.set(member, await helperAuditSource(member));
-    expect(members.length).toBe(126);
+    // 129 + the four tracker modules (tracker, tracker-jira, tracker-linear,
+    // tracker-wire) added for Jira/Linear work items in CodySwannGT/lisa#4859,
+    // + the seven fast-push gate helpers (CodySwannGT/lisa#4582),
+    // tracker-cancel for Jira/Linear cancellation in CodySwannGT/lisa#4873,
+    // changed-paths, which tells the gate runner what a commit or push
+    // touches (CodySwannGT/lisa#4988), and the five work-item-estimate
+    // modules completion now imports for its done gate (CodySwannGT/lisa#4956),
+    // plus tracker-row-fold, the stored-row comparison key the usage and
+    // estimate projections share (CodySwannGT/lisa#4956), and cache-seed,
+    // prepare's explicit recorded-registry option (CodySwannGT/lisa#5092).
+    expect(members.length).toBe(149);
     const completionMembers = [
       "lib/completion-authorization.mjs",
       "lib/completion-proof-adapters.mjs",
+      "lib/completion-proof-codepipeline.mjs",
       "lib/completion-proof-conformance.mjs",
       "lib/completion-proof-content.mjs",
       "lib/completion-proof-errors.mjs",
@@ -1032,9 +1121,16 @@ describe("complete authenticated helper closure", () => {
       "lib/completion-proof-reader.mjs",
       "lib/completion-proof-shape.mjs",
       "lib/completion-proof-source.mjs",
+      "lib/evidence-release-capacity.mjs",
+      "lib/usage-artifact-ref.mjs",
       "lib/usage-effectiveness.mjs",
       "lib/usage-ledger-integrity.mjs",
       USAGE_LEDGER_HELPER,
+      "lib/work-item-estimate.mjs",
+      "lib/work-item-estimate-actual.mjs",
+      "lib/work-item-estimate-check.mjs",
+      "lib/work-item-estimate-config.mjs",
+      "lib/work-item-estimate-tally.mjs",
     ];
     expect(members).toEqual(expect.arrayContaining(completionMembers));
     const completionClosure = managedClosure(manifest, bytes, [
@@ -1166,7 +1262,7 @@ describe("complete authenticated helper closure", () => {
         `sha512-${createHash("sha512").update(bytes).digest("base64")}`
       );
       const alias = join(root, "alias.tgz");
-      symlinkSync(file, alias);
+      createSymlink(file, alias);
       expect(() => archiveIntegrity(alias)).toThrow();
       const linked = join(root, "linked.tgz");
       linkSync(file, linked);
@@ -1358,7 +1454,7 @@ describe("closed npm proposal", () => {
       expect(() => readBytes(file, Infinity)).toThrow(/bound/);
       expect(() => readBytes(file, 2)).toThrow();
       const alias = join(root, "alias");
-      symlinkSync(file, alias);
+      createSymlink(file, alias);
       expect(() => readBytes(alias)).toThrow();
       linkSync(file, join(root, "hard-link"));
       expect(() => readBytes(file)).toThrow(/private/);

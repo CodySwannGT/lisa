@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "about": "Where each supported coding agent gets the four control commands (audit, configure, enforce, attest), how an operator starts one there, and what an agent cannot do the way the skill describes. Read by scripts/lib/control-command-parity.mjs, which `bun run check:plugins` runs. Which commands and which agents are required is held by that script, not by this file, so neither can be dropped by editing it.",
+  "agents": [
+    {
+      "id": "claude",
+      "name": "Claude Code",
+      "delivery": "built",
+      "source": "plugins/lisa",
+      "skill": "skills/lisa-{command}/SKILL.md",
+      "command": "commands/{command}.md",
+      "invocation": "/lisa:{command}"
+    },
+    {
+      "id": "codex",
+      "name": "Codex",
+      "delivery": "built",
+      "source": "plugins/lisa/.codex-plugin",
+      "skill": "skills/lisa-{command}/SKILL.md",
+      "command": null,
+      "invocation": "$lisa-{command}"
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "delivery": "built",
+      "source": "plugins/lisa-cursor",
+      "skill": "skills/lisa-{command}/SKILL.md",
+      "command": "commands/lisa/{command}.md",
+      "invocation": "/lisa:{command}"
+    },
+    {
+      "id": "agy",
+      "name": "Antigravity",
+      "delivery": "built",
+      "source": "plugins/lisa-agy",
+      "skill": "skills/lisa-{command}/SKILL.md",
+      "command": "commands/lisa/{command}.md",
+      "invocation": "/lisa:{command}"
+    },
+    {
+      "id": "copilot",
+      "name": "Copilot",
+      "delivery": "built",
+      "source": "plugins/lisa-copilot",
+      "skill": "skills/lisa-{command}/SKILL.md",
+      "command": "commands/lisa/{command}.md",
+      "invocation": "/lisa:{command}"
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode",
+      "delivery": "installed",
+      "source": "plugins/lisa",
+      "skill": "skills/lisa-{command}/SKILL.md",
+      "command": "commands/{command}.md",
+      "invocation": "/lisa:{command}",
+      "installed": {
+        "by": [
+          "src/opencode/skills-installer.ts",
+          "src/opencode/command-installer.ts"
+        ],
+        "withheld_by": "scripts/internal-opencode-skill-policy.json",
+        "skill": ".opencode/skills/lisa/lisa-{command}/SKILL.md",
+        "command": ".opencode/commands/lisa:{command}.md"
+      }
+    },
+    {
+      "id": "devin",
+      "name": "Devin",
+      "delivery": "built",
+      "source": "plugins/lisa-devin",
+      "skill": "skills/lisa-{command}/SKILL.md",
+      "command": null,
+      "invocation": "/lisa:lisa-{command}"
+    }
+  ],
+  "differences": [
+    {
+      "id": "arguments-not-passed",
+      "skills": ["lisa-audit", "lisa-configure", "lisa-enforce", "lisa-attest"],
+      "agents": ["codex", "devin"],
+      "step": "Reading the folder and options the operator named when starting the command.",
+      "difference": "These agents start the skill directly: no command file runs in front of it to pass the operator's arguments through. Wherever the skill says `$ARGUMENTS`, the agent reads what the operator wrote when they started it.",
+      "stated_as": "`$ARGUMENTS`"
+    },
+    {
+      "id": "access-skill-loading",
+      "skills": ["lisa-audit"],
+      "agents": ["codex", "cursor", "agy", "copilot", "opencode", "devin"],
+      "step": "Trying one read of each outside system through the Lisa skill that owns access to it.",
+      "difference": "`Skill` in the skill's `allowed-tools` is Claude Code's name for the tool that loads another skill. Every other agent loads the access skill the way it loads any skill. Where it cannot be loaded, the read is recorded as `not-attempted` and the requirement that depends on it stays `unknown`.",
+      "stated_as": "`Skill`"
+    },
+    {
+      "id": "ticket-skill-loading",
+      "skills": ["lisa-enforce"],
+      "agents": ["codex", "cursor", "agy", "copilot", "opencode", "devin"],
+      "step": "Filing one ticket for each missing capability through `lisa-tracker-write`.",
+      "difference": "`Skill` in the skill's `allowed-tools` is Claude Code's name for the tool that loads another skill. Every other agent loads the ticket skills the way it loads any skill. Where they cannot be loaded, no ticket is filed any other way and each missing requirement is returned as `blocked` with that reason.",
+      "stated_as": "`Skill`"
+    },
+    {
+      "id": "edit-time-no-refusal",
+      "skills": ["lisa-enforce"],
+      "agents": ["agy"],
+      "step": "Installing what runs the declared checks after a coding agent writes a file.",
+      "difference": "Antigravity has no hook that can refuse a file write, so nothing is installed for it. Each check declared after an edit records the agent as `unenforceable_on`, and the control register carries that on the enforcement point.",
+      "stated_as": "cannot refuse a file write"
+    },
+    {
+      "id": "edit-time-refusal-assumed",
+      "skills": ["lisa-enforce"],
+      "agents": ["copilot", "devin"],
+      "step": "Installing what runs the declared checks after a coding agent writes a file.",
+      "difference": "The hook is installed, but that a failed check stops the agent after an edit is assumed from how Lisa's other hooks for these agents behave. Nobody has measured it.",
+      "stated_as": "assumed, not measured"
+    },
+    {
+      "id": "edit-time-needs-approval",
+      "skills": ["lisa-enforce"],
+      "agents": ["codex"],
+      "step": "Installing what runs the declared checks after a coding agent writes a file.",
+      "difference": "Codex runs a repository's hooks only after each person has approved them once with `/hooks`, so the installed hook does nothing for a person who has not.",
+      "stated_as": "`/hooks`"
+    },
+    {
+      "id": "edit-time-told-not-refused",
+      "skills": ["lisa-enforce"],
+      "agents": ["cursor"],
+      "step": "Installing what runs the declared checks after a coding agent writes a file.",
+      "difference": "Cursor does not pass a failed hook back as a failed write. The hook answers with a message the agent is shown (`additional_context`), so the agent is told rather than refused.",
+      "stated_as": "`additional_context`"
+    },
+    {
+      "id": "edit-time-lisa-owned-file",
+      "skills": ["lisa-enforce"],
+      "agents": ["copilot", "opencode"],
+      "step": "Installing what runs the declared checks after a coding agent writes a file.",
+      "difference": "There is no entry added to a settings file the repository shares with the agent. The hook is a whole file that Lisa places and owns: `.github/hooks/lisa-controls.json` for Copilot and `.opencode/plugin/lisa-controls-carrier.js` for OpenCode.",
+      "stated_as": "a whole file that Lisa owns"
+    }
+  ]
+}

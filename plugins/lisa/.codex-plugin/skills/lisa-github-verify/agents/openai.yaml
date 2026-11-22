@@ -1,4 +1,4 @@
 display_name: "Github Verify"
-short_description: "verifying that a GitHub Issue…"
+short_description: "Check that a GitHub issue meets…"
 default_prompt:
-  - "Use $lisa-github-verify: verifying that a GitHub Issue…."
+  - "Use $lisa-github-verify: Check that a GitHub issue meets…."

@@ -1,4 +1,4 @@
 display_name: "Sentry Access"
-short_description: "Vendor-neutral access layer for…"
+short_description: "The one way Lisa skills reach…"
 default_prompt:
-  - "Use $lisa-sentry-access: Vendor-neutral access layer for…."
+  - "Use $lisa-sentry-access: The one way Lisa skills reach…."

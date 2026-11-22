@@ -23,6 +23,7 @@ const ROTATING = "pr-assets-{YYYY-MM}";
 const NOVEMBER = new Date("2026-11-08T12:00:00Z");
 const REPOSITORY = "acme/code";
 const NOVEMBER_TAG = "pr-assets-2026-11";
+const FIXED_NAME = "lisa-evidence";
 const INVALID_PROOF = "invalid-proof";
 const ASSET_BYTES = Buffer.from('{"fixture":true}\n');
 
@@ -74,8 +75,8 @@ describe("resolveEvidenceRelease", () => {
 
   it("returns a fixed name unchanged", () => {
     expect(
-      resolveEvidenceRelease({ evidenceRelease: "lisa-evidence" }, NOVEMBER)
-    ).toBe("lisa-evidence");
+      resolveEvidenceRelease({ evidenceRelease: FIXED_NAME }, NOVEMBER)
+    ).toBe(FIXED_NAME);
   });
 
   it.each([
@@ -120,6 +121,35 @@ describe("isAcceptedEvidenceRelease", () => {
     expect(isAcceptedEvidenceRelease(policy, "pr-assets-2026-1")).toBe(false);
     expect(isAcceptedEvidenceRelease(policy, "pr-assets-2026-11x")).toBe(false);
     expect(isAcceptedEvidenceRelease(policy, "xpr-assets-2026-11")).toBe(false);
+  });
+
+  it("accepts the -2 … -99 overflow releases of every accepted name (#4838)", () => {
+    const policy = { evidenceRelease: ROTATING };
+    expect(isAcceptedEvidenceRelease(policy, `${NOVEMBER_TAG}-2`)).toBe(true);
+    expect(isAcceptedEvidenceRelease(policy, `${NOVEMBER_TAG}-10`)).toBe(true);
+    expect(isAcceptedEvidenceRelease(policy, `${NOVEMBER_TAG}-99`)).toBe(true);
+    expect(isAcceptedEvidenceRelease(policy, "pr-assets-2")).toBe(true);
+    expect(
+      isAcceptedEvidenceRelease(
+        { evidenceRelease: FIXED_NAME },
+        `${FIXED_NAME}-3`
+      )
+    ).toBe(true);
+  });
+
+  it.each([
+    `${NOVEMBER_TAG}-0`,
+    `${NOVEMBER_TAG}-1`,
+    `${NOVEMBER_TAG}-02`,
+    `${NOVEMBER_TAG}-100`,
+    `${NOVEMBER_TAG}-2-2`,
+    `${NOVEMBER_TAG}-2x`,
+    "pr-assets-2026",
+    "pr-assets-1",
+  ])("refuses %s, which is not an overflow release", tag => {
+    expect(isAcceptedEvidenceRelease({ evidenceRelease: ROTATING }, tag)).toBe(
+      false
+    );
   });
 
   it("treats template punctuation literally", () => {
@@ -172,6 +202,23 @@ describe("the completion-proof validator's release check", () => {
     );
     expect(outcome.error).toBeUndefined();
     expect(outcome.asset?.bytes.equals(ASSET_BYTES)).toBe(true);
+  });
+
+  it("accepts an asset in an overflow release (#4838)", () => {
+    const outcome = readAsset(
+      `https://github.com/${REPOSITORY}/releases/download/${NOVEMBER_TAG}-2/record.json`,
+      { evidenceRelease: ROTATING }
+    );
+    expect(outcome.error).toBeUndefined();
+    expect(outcome.asset?.bytes.equals(ASSET_BYTES)).toBe(true);
+  });
+
+  it("still accepts proof in an earlier month's overflow release", () => {
+    const outcome = readAsset(
+      `https://github.com/${REPOSITORY}/releases/download/pr-assets-2026-10-3/record.json`,
+      { evidenceRelease: ROTATING }
+    );
+    expect(outcome.error).toBeUndefined();
   });
 
   it("still accepts a legacy pr-assets asset after rotation", () => {

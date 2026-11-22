@@ -1,8 +1,8 @@
 ---
 name: phaser-asset-pipeline
-description: "setting up or changing the…"
+description: "Set up the build-time asset…"
 ---
-This skill should be used when setting up or changing the build-time asset pipeline of a Phaser 4 game — packing raw art in assets/src into public/assets (free-tex-packer-core texture atlases, audiosprite audio sprites, BMFont bitmap fonts) and the codegen step that emits typed keys to src/assets.ts so a missing or renamed key is a compile error. Use it when adding source art, wiring packing into the build, regenerating typed keys, or eliminating raw string asset keys. Assumes the raw art already exists — get it first via phaser-asset-sourcing (CC0 sourcing + license gate). Pairs with phaser-asset-sourcing, the official loading-assets skill, phaser-build-deploy, and phaser-services.
+Set up the build-time asset pipeline of a Phaser 4 game: texture atlases, audio sprites, bitmap fonts, and generated typed asset keys. Use when adding source art or wiring packing into the build. Assumes the art already exists.
 
 
 # Phaser 4 Asset Pipeline
@@ -46,7 +46,9 @@ official `loading-assets` skill covers loading those keys at runtime).
 ## Step 1: texture atlases with free-tex-packer-core
 
 `free-tex-packer-core` packs many PNGs into atlas pages plus a JSON manifest, in
-a Node script (no GUI, runs in CI):
+a Node script (no GUI, runs in CI). Lisa does not preinstall it, so a game that
+never packs atlases carries no package its dead-code gate reports as unused: add
+it with `bun add -d free-tex-packer-core` in the change that adds the script.
 
 ```js
 // scripts/pack-assets.mjs (excerpt)
@@ -92,7 +94,9 @@ deterministic and can be committed + `git diff --exit-code`-checked in CI.
 ## Step 2: audio sprites with audiosprite
 
 `audiosprite` concatenates short SFX into one file (in multiple codecs) plus a
-JSON map of `{ start, end }` per clip — one request, one decode, instead of dozens:
+JSON map of `{ start, end }` per clip — one request, one decode, instead of dozens.
+Add it with `bun add -d audiosprite` in the change that adds the script; Lisa
+does not preinstall it:
 
 ```jsonc
 // package.json script

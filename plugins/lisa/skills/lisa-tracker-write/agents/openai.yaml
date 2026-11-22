@@ -1,4 +1,4 @@
 display_name: "Tracker Write"
-short_description: "Vendor-neutral wrapper for ticket creation and updates"
+short_description: "Create or update a ticket in whichever tracker the project uses (JIRA, GitHub Issues, or Linear)"
 default_prompt:
-  - "Use $lisa-tracker-write: Vendor-neutral wrapper for ticket creation and updates."
+  - "Use $lisa-tracker-write: Create or update a ticket in whichever tracker the project uses (JIRA, GitHub Issues, or Linear)."

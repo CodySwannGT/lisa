@@ -5,38 +5,27 @@ alwaysApply: false
 
 # Wiki as Knowledge Source
 
-If this project has an LLM Wiki, treat it as the canonical source of durable project knowledge. The wiki is curated and current; ad-hoc scraping of code, tickets, chat history, or stale READMEs is not.
+Every Lisa project has a knowledge base, chosen by the required `knowledge` role in `.lisa.config.json`. Its only value today is `llm-wiki`: a git-native markdown wiki that **each repository owns at `wiki/`**. `lisa sync` writes the default when the role is missing, so the wiki plugin is always installed and the query and ingest skills are always present.
 
-A project has a wiki in one of two shapes:
+**Each repo documents itself.** There is no shared upstream wiki and no synced copy of another repo's wiki. A wiki updates in the same pull request as the code it describes, which is what keeps it current. Knowledge about code lives in the repo that owns that code.
 
-- **Local** — a `wiki/` directory with an `index.md` lives in this repo (`wikiRoot` in `wiki/lisa-wiki.config.json`, default `wiki`).
-- **Remote** — `.lisa.config.json` declares a `wiki.source` pointer (`url`, optional `ref` / `mirrorPath` / `subdir`) at the canonical wiki repo. The wiki is **not** committed into this repo; instead the query/ingest skills maintain a gitignored mirror of it. This is the model for an organization whose documentation rolls up into one shared wiki that every repo reads: each repo carries only inline code comments locally, and the full cross-repo knowledge is the mirrored wiki.
+## Related repositories are pointers
 
-Either way, freshness is not your concern. The query and ingest skills run `scripts/ensure-wiki.mjs` as their own first step, which resolves the wiki root and — for a remote wiki — clones the mirror if missing and fast-forwards it when stale (subject to a short TTL, and tolerant of being offline: it proceeds with the existing mirror and warns rather than blocking). The freshness guarantee lives in the tool, not in the caller's discipline. Do **not** add a separate "make sure the wiki is current" step to your own workflow — calling the skill already does it.
+A repo that is one of several (frontend, backend, infrastructure, a wiki-only "wrapper" repo for product-wide knowledge) lists the others under **Related repositories** on `wiki/start-here.md`: `org/repo` and one line on what it owns. Those are plain links. When you need something only a related repo knows, follow the pointer with whatever access you already have — `gh`, or a local checkout. If you cannot reach it, that is the ordinary missing-access stop. `/lisa:agent-ready` fills the section in, and lists any related repo it cannot identify as a question in `wiki/gaps.md`.
 
 ## Load posture: on demand, not at session start
 
-The wiki is **not** read during session bootstrap, and no flow may add a "load the wiki" step to its startup. This is a deliberate reversal of the rule's earlier "consult the wiki first" posture, recorded in `wiki/decisions/2026-08-12-agent-neutral-host-rules-path.md` section 6 (decision D3). The reasoning is context budget: the wiki is deep declarative knowledge, which is the WIKI rung of the learnings ladder precisely *because* it should be paid for only when routed to. Loading it unconditionally converts an on-demand rung into an eager one and charges every session — including the large majority that never ask a knowledge question — for knowledge they do not use.
+The wiki is **not** read during session bootstrap, and no flow may add a "load the wiki" step to its startup. It is deep knowledge, and paying for it on every session is exactly the cost the on-demand rungs of the learnings ladder exist to avoid. Know it is there; go get it when you need depth. This reverses the earlier "consult the wiki first" posture (decision D3 in `wiki/decisions/2026-08-12-agent-neutral-host-rules-path.md`).
 
-What survives the softening is discoverability. An agent must **know the wiki exists and know how to query it**, so that a question needing depth goes to the curated answer instead of a fresh scrape of the codebase. What is dropped is the obligation to consult it before every piece of research, and the framing of the wiki as the authority that outranks primary sources.
+When you need project depth:
 
-When you do need project depth:
+1. Ask the wiki (`/lisa-wiki-query`, or the runtime's equivalent). It answers with sources. You may also start from `wiki/index.md` and follow links.
+2. Prefer what the wiki says over re-deriving the same answer from raw sources.
+3. Fall back to primary sources (code, tickets, history, external docs) when the wiki is silent, ambiguous, or contradicted by what you observe.
+4. When the wiki is wrong, stale, or missing something that belongs there, record the correction with `/lisa-wiki-ingest` rather than leaving it only in this session.
 
-1. Call the wiki query skill (`/lisa-wiki-query`, or the runtime's equivalent), which resolves the wiki root for you. For a local wiki you may also start from `wiki/index.md` and follow links.
-2. Prefer what the wiki says over re-deriving the same answer from raw sources — that is what it is curated for.
-3. Fall back to primary sources (code, tickets, commit history, external docs) when the wiki is silent, ambiguous, or contradicted by what you observe in the code.
-4. If you find the wiki is wrong, stale, or missing knowledge that belongs there, surface the gap — and where the project's workflow supports it, capture the correction back into the wiki via its ingestion path (`/lisa-wiki-ingest` or equivalent) rather than leaving the knowledge only in this session.
+The wiki documents knowledge; it does not override executable behavior. When wiki and running code disagree about what the system does, trust the code and treat the wiki as out of date. See `documentation-source-paths` for how source-material directories relate to the wiki.
 
-The wiki documents knowledge; it does not override executable behavior. When the wiki and the running code disagree about what the system actually does, trust the code and treat the wiki as out of date. See the `documentation-source-paths` rule for how source-material directories relate to the wiki.
+## The contract with a knowledge backend
 
-## Applicability is the plugin gate, not just the wiki content
-
-This rule ships in the **base** plugin, but the skill it directs you to (`lisa-wiki-query`) ships in the **wiki** plugin. Those are gated differently, and for a period a base-only project received this rule pointing at a skill it did not have — a rule with a dangling instruction, which teaches an agent to distrust its rules.
-
-The applicability condition is therefore stated as the *installation* gate rather than as "does a `wiki/` folder exist". The `lisa-wiki` plugin is selected when `wiki/lisa-wiki.config.json` exists **or** `.lisa.config.json` declares a top-level `wiki` key (`src/core/lisa-plugin-selection.ts`); on Claude Code it is additionally gated by `enabledPlugins["lisa-wiki@lisa"]` in `.claude/settings.json`. When that gate is not satisfied:
-
-- This rule does not apply. There is no wiki to query and no query skill to call.
-- The recovery path is `/lisa-wiki-install`, the bootstrap skill that **base** ships precisely so a project that never enabled the wiki plugin can still discover it. Naming a base-shipped skill is what keeps the instruction reachable in every install.
-- **Never block on the absent skill.** Degrade to primary sources and continue, per the same degrade-never-block posture `readiness-rubric` and `rejection-detection` use for surfaces that may not be installed.
-
-A remote-only wiki declared through `wiki.source` is covered by the `wiki` config key, so the pointer form satisfies the same gate.
+Flows use the knowledge backend for exactly two things: **ask** (a question in, an answer with sources out) and **record** (something learned goes in). Everything else — ingest connectors, lint, page types, categories — is the backend's own configuration (`wiki/lisa-wiki.config.json` for `llm-wiki`). A future backend, such as a context graph, is a new `knowledge` value that provides those two operations; no flow changes.

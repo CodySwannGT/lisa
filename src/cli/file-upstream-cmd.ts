@@ -9,6 +9,8 @@
 import { closeSync, constants, fstatSync, openSync, readSync } from "node:fs";
 import path from "node:path";
 
+import { readBoundedBytes } from "../utils/bounded-stream.js";
+
 import {
   buildUpstreamAttributionIssueBody,
   type UpstreamAttributionBodyInput,
@@ -76,25 +78,32 @@ const readAllStdin = async (): Promise<string> => {
 export async function readBoundedInputStream(
   stream: AsyncIterable<Buffer | string>
 ): Promise<string> {
-  const chunks: Buffer[] = [];
-  // eslint-disable-next-line functional/no-let -- bounded stream accounting requires iterative state
-  let totalBytes = 0;
-  // eslint-disable-next-line functional/no-let -- bounded stream accounting requires iterative state
-  let chunkCount = 0;
-  for await (const rawChunk of stream) {
-    chunkCount += 1;
-    if (chunkCount > MAX_INPUT_CHUNKS) {
-      throw new Error("input contains too many chunks");
-    }
-    const chunk = Buffer.from(rawChunk);
-    totalBytes += chunk.byteLength;
-    if (totalBytes > MAX_INPUT_BYTES) {
-      throw new Error("input exceeds limit");
-    }
-    // eslint-disable-next-line functional/immutable-data -- bounded local accumulator avoids recursive copying
-    chunks.push(chunk);
+  return decodeUtf8(
+    await readBoundedBytes(stream, {
+      maxChunks: MAX_INPUT_CHUNKS,
+      maxBytes: MAX_INPUT_BYTES,
+      tooManyChunksMessage: "input contains too many chunks",
+      tooLargeMessage: "input exceeds limit",
+    })
+  );
+}
+
+/**
+ * Open an input file read-only without following a final symlink.
+ * @param filePath - Candidate JSON input path
+ * @returns The open descriptor
+ * @throws {Error} When the path cannot be opened as a regular file
+ */
+function openInputFile(filePath: string): number {
+  const noFollow = constants.O_NOFOLLOW ?? 0;
+  try {
+    return openSync(
+      filePath,
+      constants.O_RDONLY | constants.O_NONBLOCK | noFollow
+    );
+  } catch {
+    throw new Error("input is not a readable regular file");
   }
-  return decodeUtf8(Buffer.concat(chunks, totalBytes));
 }
 
 /**
@@ -103,17 +112,7 @@ export async function readBoundedInputStream(
  * @returns Strictly decoded UTF-8 payload
  */
 function readInputFile(filePath: string): string {
-  const noFollow = constants.O_NOFOLLOW ?? 0;
-  // eslint-disable-next-line functional/no-let -- acquired descriptor must be closed in finally
-  let descriptor: number;
-  try {
-    descriptor = openSync(
-      filePath,
-      constants.O_RDONLY | constants.O_NONBLOCK | noFollow
-    );
-  } catch {
-    throw new Error("input is not a readable regular file");
-  }
+  const descriptor = openInputFile(filePath);
   try {
     const before = fstatSync(descriptor);
     if (!before.isFile() || before.size > MAX_INPUT_BYTES) {

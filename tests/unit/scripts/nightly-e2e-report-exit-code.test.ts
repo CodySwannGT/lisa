@@ -30,7 +30,7 @@ import {
   BRANCH,
   fakeResponse,
   loadGateModule,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /** The verdict heading, which must appear whatever publishing did. */
 const VERDICT_HEADING = "Nightly E2E verdict";

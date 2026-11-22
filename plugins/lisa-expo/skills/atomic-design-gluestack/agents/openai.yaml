@@ -1,4 +1,4 @@
 display_name: "Atomic Design Gluestack"
-short_description: "|"
+short_description: "Atomic design (atoms, molecules, organisms, templates, pages) with Gluestack UI in React Native/Expo"
 default_prompt:
-  - "Use $atomic-design-gluestack: |."
+  - "Use $atomic-design-gluestack: Atomic design (atoms, molecules, organisms, templates, pages) with Gluestack UI in React Native/Expo."

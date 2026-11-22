@@ -1,4 +1,4 @@
 display_name: "Eas Update Insights"
-short_description: "Check the health of published…"
+short_description: "Check how published EAS Updates…"
 default_prompt:
-  - "Use $eas-update-insights: Check the health of published…."
+  - "Use $eas-update-insights: Check how published EAS Updates…."

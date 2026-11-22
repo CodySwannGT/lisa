@@ -2,12 +2,123 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Fixed npm policy validation shares the optional signed runtime contract without cycles. */
-import { keys, required } from "./npm-update-invariants.mjs";
+import { keys, operatorRefusal, required } from "./npm-update-invariants.mjs";
 import { railsRuntime } from "./npm-update-rails-runtime-contract.mjs";
+import { validDirectory } from "./automation-provenance-contract.mjs";
+import {
+  DEFAULT_TARGET,
+  validBranchName,
+} from "./github-attestation-verifier.mjs";
 
 export const NAME = /^(?:@[a-z0-9][a-z0-9_.-]*\/)?[a-z0-9][a-z0-9_.-]*$/;
 export const VERSION =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[A-Za-z0-9.-]+)?$/;
+
+/** Each tracker names its maintainer by its own identifier: GitHub login, Jira accountId, Linear user id. */
+const MAINTAINER = {
+  github: /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/,
+  jira: /^[A-Za-z0-9][A-Za-z0-9:-]{0,127}$/,
+  linear: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+};
+const KEY = /^[A-Z][A-Z0-9]{1,9}$/;
+const VENDORS = new Set(["jira", "linear"]);
+
+/**
+ * Who may cancel or supersede an update (#4873). A cancel is a manual GitHub
+ * workflow run, so it is authorized by a GitHub login with write or admin on the
+ * repository. GitHub hosts keep the maintainer's own login; a Jira/Linear
+ * maintainer is a tracker id, so those hosts name a GitHub `cancelOperator`.
+ * Absent, every cancel refuses with the key to set; nothing falls back to a
+ * wider group of repository writers.
+ * @param {object} config - Committed Lisa config.
+ * @param {object} policy - The validated npmUpdater entry.
+ * @returns {string} The GitHub login whose dispatch and permission authorize a cancel.
+ */
+export function cancelOperatorOf(config, policy) {
+  if (!VENDORS.has(config.tracker)) return policy.maintainer;
+  if (typeof policy.cancelOperator !== "string")
+    throw operatorRefusal(
+      "npm updater cancel operator is not declared",
+      `npmUpdater.cancelOperator is not set in .lisa.config.json, so nobody is authorized to cancel or replace a ${config.tracker === "jira" ? "Jira" : "Linear"}-tracked npm update. Set it to the GitHub login of the person who may run the cancel workflow (they need write or admin on the repository). Nothing was changed.`
+    );
+  return policy.cancelOperator;
+}
+
+/** Only a Jira/Linear entry may name a cancel operator, and only as a GitHub login. */
+function validateCancelOperator(value, config) {
+  if (!Object.hasOwn(value, "cancelOperator")) return;
+  required(
+    VENDORS.has(config.tracker),
+    "npmUpdater.cancelOperator applies only to Jira and Linear trackers"
+  );
+  required(
+    typeof value.cancelOperator === "string" &&
+      MAINTAINER.github.test(value.cancelOperator),
+    "npmUpdater.cancelOperator must be a GitHub login"
+  );
+}
+
+/**
+ * GitHub keeps its exact original check. Jira and Linear hosts still publish to
+ * the configured GitHub code host, so a configured GitHub repository must match;
+ * their own work items live in the configured project or team.
+ */
+function trackerScope(value, config) {
+  if (config.tracker !== "jira" && config.tracker !== "linear") {
+    required(
+      config.tracker === "github" &&
+        value.repository === `${config.github?.org}/${config.github?.repo}`,
+      "configured repository/tracker differs"
+    );
+    return;
+  }
+  const key =
+    config.tracker === "jira" ? config.jira?.project : config.linear?.teamKey;
+  required(
+    typeof key === "string" &&
+      KEY.test(key.trim().toUpperCase()) &&
+      (config.tracker === "jira" ||
+        (typeof config.linear?.workspace === "string" &&
+          config.linear.workspace.trim().length > 0)),
+    "configured tracker lacks its project, team or workspace"
+  );
+  required(
+    !config.github?.org ||
+      value.repository === `${config.github.org}/${config.github.repo}`,
+    "configured repository/tracker differs"
+  );
+}
+
+export { DEFAULT_TARGET, validBranchName };
+
+/**
+ * The branch every updater step reads, compares and opens its pull request
+ * against. An omitted target keeps main, so an existing policy's digest never moves.
+ */
+export function policyTarget(policy) {
+  return Object.hasOwn(policy ?? {}, "target") ? policy.target : DEFAULT_TARGET;
+}
+
+/**
+ * A non-main target must be a configured deploy branch: without that mapping the
+ * leaf's Target Backend Environment and Branch Plan cannot be derived. main keeps
+ * its historical check, which the leaf contract applies when it derives the env.
+ */
+function validateTarget(value, config) {
+  const target = policyTarget(value);
+  if (target === DEFAULT_TARGET) return;
+  required(validBranchName(target), "invalid npm updater target branch");
+  const allowed = [
+    ...new Set(
+      Object.values(config.deploy?.branches ?? {}).filter(validBranchName)
+    ),
+  ];
+  if (!allowed.includes(target))
+    throw operatorRefusal(
+      "npm updater target is not a configured deploy branch",
+      `npmUpdater target "${target}" is not a .lisa.config.json deploy.branches value; allowed branches: ${allowed.join(", ") || "(none configured)"}.`
+    );
+}
 
 /** Configured tracking and an explicit owner are prerequisites, never inferred. */
 export function validatePolicy(value, config) {
@@ -15,29 +126,35 @@ export function validatePolicy(value, config) {
     "version",
     "repository",
     "directory",
-    "target",
+    ...(Object.hasOwn(value ?? {}, "target") ? ["target"] : []),
     "maintainer",
     "packages",
     "lisaOwner",
     ...(Object.hasOwn(value ?? {}, "runtime") ? ["runtime"] : []),
+    ...(Object.hasOwn(value ?? {}, "cancelOperator") ? ["cancelOperator"] : []),
   ]);
+  validateCancelOperator(value, config);
   railsRuntime(value);
   required(
-    value.version === 1 && value.directory === "." && value.target === "main",
-    "only root npm on main is supported"
+    value.version === 1 &&
+      validDirectory(value.directory) &&
+      typeof policyTarget(value) === "string",
+    "only a committed npm directory on a configured target branch is supported"
   );
+  validateTarget(value, config);
   required(
-    config.tracker === "github" &&
-      value.repository === `${config.github?.org}/${config.github?.repo}`,
-    "configured repository/tracker differs"
+    value.directory === "." ||
+      (value.lisaOwner === "absent" && !Object.hasOwn(value, "runtime")),
+    "a subdirectory npm project has no Lisa owner or runtime profile"
   );
+  trackerScope(value, config);
   required(
     /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(value.repository),
     "invalid repository"
   );
   required(
     typeof value.maintainer === "string" &&
-      /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/.test(value.maintainer),
+      MAINTAINER[config.tracker].test(value.maintainer),
     "explicit assignable maintainer required"
   );
   required(
@@ -70,4 +187,29 @@ export function validatePolicy(value, config) {
     names.add(selection.name);
   }
   return structuredClone(value);
+}
+
+/**
+ * One run updates one committed directory. The legacy single object is a
+ * one-entry list, so a root-only policy keeps its exact digest; every entry is
+ * validated even when another directory is selected, and directories are unique.
+ */
+export function selectPolicy(config, directory) {
+  const raw = config.npmUpdater;
+  const list = Array.isArray(raw) ? raw : [raw];
+  required(
+    list.length >= 1 && list.length <= 8 && !list.some(Array.isArray),
+    "invalid npm updater directory list"
+  );
+  const policies = list.map(entry => validatePolicy(entry, config));
+  required(
+    new Set(policies.map(policy => policy.directory)).size === policies.length,
+    "duplicate npm updater directory"
+  );
+  const matches = policies.filter(policy => policy.directory === directory);
+  required(
+    matches.length === 1,
+    "directory is not a committed npm updater selection"
+  );
+  return matches[0];
 }

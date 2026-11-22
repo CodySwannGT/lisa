@@ -1,14 +1,14 @@
 /**
- * The six checks that ask what Lisa SEEDED into this repository, and whether
+ * The seven checks that ask what Lisa SEEDED into this repository, and whether
  * what it seeded still says what it meant.
  *
- * They are grouped because they are one operator question asked six ways, and
+ * They are grouped because they are one operator question asked seven ways, and
  * because each of them exists for the same structural reason: the write path
  * that could have prevented the defect is reached exactly once, before the file
  * exists. A repository that received the template earlier therefore has no
  * signal of any kind — the seeding postinstall is skipped under CI, the file is
  * untracked, and the tool the file disables reports only that it found nothing.
- * A fix on the write path reaches the NEXT adoption; these six are how an
+ * A fix on the write path reaches the NEXT adoption; these seven are how an
  * existing one finds itself.
  *
  * `doctor-lisa-owned-artifacts` is the inverse and deliberately stays where it
@@ -19,6 +19,7 @@
  * package still backs.
  * @module cli/doctor-seeded-artifacts
  */
+import { checkCdkDeliveryProof } from "./doctor-cdk-delivery-proof.js";
 import { checkCdkPresetAdoption } from "./doctor-cdk-preset-adoption.js";
 import { checkCoderabbitLabeling } from "./doctor-coderabbit-labeling.js";
 import { checkConfigShadowing } from "./doctor-config-shadowing.js";
@@ -62,6 +63,10 @@ export async function checkSeededArtifacts(
     // qualified for it. The detection fix reaches the next decision only, and
     // the dead-code gate it skewed reports SUCCESS (CodySwannGT/lisa#3711).
     await checkCdkPresetAdoption(targetPath),
+    // Whether a CDK host declares how its delivery is proven. The seed's
+    // workflow releases but does not deploy, so without a declaration every
+    // lifecycle completion stops at pending-proof (CodySwannGT/lisa#4646).
+    await checkCdkDeliveryProof(targetPath),
     // Which "Lisa manages this file" banners the installed package still
     // backs. A proposal to remove one such orphaned workflow was declined on
     // the strength of the false banner (CodySwannGT/lisa#3703).

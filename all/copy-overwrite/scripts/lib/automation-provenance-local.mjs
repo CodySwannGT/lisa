@@ -12,6 +12,7 @@ import { requireProof, sha256 } from "./github-attestation-verifier.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
 import {
   canonicalJson,
+  directoryBunAbsent,
   exactKeys,
   proposalFileNames,
   signedProposalFields,
@@ -50,6 +51,8 @@ function stagedFiles(descriptor) {
 
 /** Bind optional lock presence to HEAD and refuse aliased working-tree counterparts. */
 function originalBun(descriptor) {
+  if (directoryBunAbsent(descriptor, git, path => fileAbsent(resolve(path))))
+    return;
   const original = git(["ls-tree", "HEAD", "--", "bun.lock"]);
   if (!Object.hasOwn(descriptor, "bunLockSha256")) {
     requireProof(original === "", "original Bun lock omitted from descriptor");
@@ -90,7 +93,13 @@ function originalBun(descriptor) {
 }
 
 /** Match complete message and Git metadata before any network/proof acceptance. */
-export function localDescriptor(descriptor, messageBytes, reference, policy) {
+export function localDescriptor(
+  descriptor,
+  messageBytes,
+  reference,
+  policy,
+  tracker = "github"
+) {
   // Parsing never supplies the signed digest. Reject malformed UTF8 only on
   // this present-proof path; preserve any BOM as part of the actual message.
   const message = new TextDecoder("utf-8", {
@@ -117,9 +126,15 @@ export function localDescriptor(descriptor, messageBytes, reference, policy) {
     ].every(value => typeof value === "string" && HEX.test(value)),
     "invalid descriptor digest"
   );
+  // A Jira/Linear claim id is an opaque tracker comment id (the adapter proves the
+  // comment itself); only an explicit Jira/Linear tracker relaxes GitHub's decimal grammar. The committed tracker,
+  // read from HEAD, decides which grammar applies (#4873).
   requireProof(
     typeof descriptor.claimCommentId === "string" &&
-      /^[1-9]\d*$/.test(descriptor.claimCommentId),
+      (["jira", "linear"].includes(tracker)
+        ? /^[A-Za-z0-9-]{1,64}$/
+        : /^[1-9]\d*$/
+      ).test(descriptor.claimCommentId),
     "invalid claim reference"
   );
   requireProof(
@@ -205,15 +220,48 @@ export function proofSnapshot() {
   return { paths, optional, bytes, bundleBytes, descriptor };
 }
 
+/** Ceiling on one canonical tracker read, whatever deadline is inherited. */
+const RESOLVER_TIMEOUT_MS = 30_000;
+
+/**
+ * The canonical resolver's per-read deadline. It deliberately ignores the
+ * inherited `LISA_WORK_ITEM_TIMEOUT_MS`, so a zero or a huge value there cannot
+ * unbound it. `LISA_PROVENANCE_RESOLVER_TIMEOUT_MS` may only shorten it (a
+ * shorter deadline can only refuse sooner), which lets a suite prove a hung
+ * resolver is refused without sitting out thirty seconds.
+ * @param {Readonly<Record<string, string | undefined>>} env Process environment.
+ * @returns {number} Deadline in milliseconds.
+ */
+export function resolverTimeoutMs(env = process.env) {
+  const requested = Number(env.LISA_PROVENANCE_RESOLVER_TIMEOUT_MS);
+  return Number.isSafeInteger(requested) &&
+    requested > 0 &&
+    requested < RESOLVER_TIMEOUT_MS
+    ? requested
+    : RESOLVER_TIMEOUT_MS;
+}
+
 /** Reuse the shipped resolver and retain current canonical lifecycle requirements. */
 export function canonicalContext(message, config, policy, descriptor) {
+  // A Jira/Linear item is bound offline here: the hooks hold no tracker credential,
+  // and the publisher proves the live claim through its adapter (#4873).
+  if (["jira", "linear"].includes(config.tracker)) {
+    const vendor = resolveWorkItemContext(message, { config });
+    requireProof(
+      vendor.provider === config.tracker &&
+        vendor.ref === descriptor.workItem &&
+        descriptor.queue === policy.repository,
+      "canonical tracker scope differs"
+    );
+    return vendor;
+  }
   const context = resolveWorkItemContext(message, {
     config,
     requireLive: true,
     execute: (command, args, options) =>
       run(command === "gh" ? policy.ghExecutable : command, args, {
         ...options,
-        timeout: 30_000,
+        timeout: resolverTimeoutMs(),
         maxBuffer: 1_048_576,
         env: { ...process.env, GH_HOST: "github.com" },
       }),

@@ -53,7 +53,7 @@
  */
 
 /** The repository whose reusable workflows this module governs. */
-export const LISA_REUSABLE_PREFIX = "CodySwannGT/lisa/.github/workflows/";
+const LISA_REUSABLE_PREFIX = "CodySwannGT/lisa/.github/workflows/";
 
 /** The only ref shape a caller may carry: a full-length commit SHA. */
 export const FULL_COMMIT_SHA = /^[0-9a-f]{40}$/u;

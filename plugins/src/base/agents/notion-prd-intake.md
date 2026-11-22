@@ -1,6 +1,6 @@
 ---
 name: notion-prd-intake
-description: PRD intake agent. Runs one intake cycle against a Notion PRD database — claims PRDs in the configured `ready` status, validates each through the dry-run pipeline, and routes to the `blocked` status (with clarifying comments) or the `ticketed` status (with destination tickets created). Designed to be invoked manually via /notion-prd-intake or autonomously via a scheduled cron.
+description: "Runs one Notion PRD intake cycle: takes the first ready PRD, validates it, and either creates its tickets and marks it ticketed or posts clarifying questions and marks it blocked. Manual or scheduled."
 skills:
   - notion-prd-intake
   - notion-to-tracker
@@ -27,7 +27,7 @@ Once you have a database URL, RUN. Do not ask the caller whether to proceed, do 
 
 The invoking caller (a slash command, a scheduled cron, or a parent agent) hands you a Notion database URL or bare ID. You do not pick the database yourself.
 
-If no URL is provided, stop and ask. Never run intake against a default or guessed database — the side effects (Notion status changes, JIRA tickets created) are too high to act without an explicit target.
+If no URL is provided and none is configured, first file the decision-ready escalation packet (`automation-runbook-contract`, "Escalation") through `lisa-tracker-write`, labeled `status:blocked` and `human-needed` with `human_gate` set, naming the missing input and the `/lisa:setup:*` skill that configures it; then exit `recovery-required` citing that item. If the tracker itself is unconfigured so nothing can be filed, put the same packet in the exit summary. Never run intake against a default or guessed database — the side effects (Notion status changes, JIRA tickets created) are too high to act without an explicit target.
 
 ### 2. Run the intake skill
 

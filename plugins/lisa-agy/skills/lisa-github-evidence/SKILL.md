@@ -1,6 +1,6 @@
 ---
 name: lisa-github-evidence
-description: "Upload text evidence to the configured GitHub evidence release (default `pr-assets`), update PR description, and post a GitHub Issue comment with code blocks. Reusable by any skill that captures evidence and generates evidence/comment.md (and optionally evidence/comment.txt). The GitHub counterpart of lisa-jira-evidence."
+description: "Post text evidence for a GitHub issue: upload it to the GitHub evidence release, update the PR description, and comment on the issue."
 allowed-tools: ["Bash"]
 ---
 
@@ -53,8 +53,12 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
    RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || exit 1
    ```
 
-   `--ensure` creates the release when it is absent and stops with a plain
-   message when it is nearly full. Do not upload when it fails. A project
+   `--ensure` creates the release when it is absent, rolls over to the next
+   overflow release (`<release>-2`, `-3`, …) when it is nearly full, and prints
+   the release that has room. It stops with a plain message only when a pinned
+   `LISA_EVIDENCE_RELEASE` is full, every overflow release is, or the release
+   name is too long to roll over. Do not upload
+   when it fails. A project
    without `scripts/lisa-work-item.mjs` uses `RELEASE=pr-assets`.
 
 3. **Upload each evidence file**
@@ -169,7 +173,7 @@ Asset names in the release are prefixed with `pr-<number>-` so multiple PRs' evi
 Check:
 - `gh auth status` succeeds.
 - The PR / issue refs are correct.
-- `node scripts/lisa-work-item.mjs evidence-release --ensure` succeeds in the implementation repo (it creates a missing release and names a full one).
+- `node scripts/lisa-work-item.mjs evidence-release --ensure` succeeds in the implementation repo (it creates a missing release, rolls over past a full one, and names a full pinned one).
 
 ### `gh issue edit` returns 404
 

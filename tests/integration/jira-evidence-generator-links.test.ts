@@ -4,9 +4,10 @@
  * `post-evidence.sh` stores each file in the shared `pr-assets` release as
  * `pr-<number>-<file>` (CodySwannGT/lisa#4639). A description that still links
  * the bare `<file>` would show whatever pull request last uploaded that name,
- * so both `generate-templates.py` copies are run here and their GitHub links
- * asserted. The Jira wiki markup keeps the bare `!file!` form: those images are
- * ticket attachments, already per ticket.
+ * so the base `generate-templates.py` (the one generator every stack uses since
+ * the Expo copy was retired in CodySwannGT/lisa#4921) is run here and its GitHub
+ * links asserted. The Jira wiki markup keeps the bare `!file!` form: those
+ * images are ticket attachments, already per ticket.
  * @module tests/integration/jira-evidence-generator-links
  */
 import {
@@ -30,7 +31,6 @@ import {
 
 const GENERATORS = [
   "plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py",
-  "plugins/src/expo/skills/jira-journey/scripts/generate-templates.py",
 ];
 const SHOT = "01-search-step-desktop.png";
 const RELEASE = "https://github.com/org/repo/releases/download/pr-assets";
@@ -39,6 +39,8 @@ const JOURNEY = {
   steps: [{ number: 1, text: "Search [SCREENSHOT: search-step]" }],
   viewports: [{ name: "desktop", width: 1440, height: 900 }],
 };
+const FULL_MONTH = "pr-assets-2026-11";
+const OVERFLOW = `${FULL_MONTH}-2`;
 const roots: string[] = [];
 
 afterEach(() => {
@@ -51,10 +53,18 @@ afterEach(() => {
  * @param generator - Generator path relative to the checkout.
  * @param pr - Pull request number argument.
  * @param extra - Additional evidence file names to stage beside the screenshot.
+ * @param resolver - Stage a project resolver whose stub `node` answers.
+ * @param journey - Parsed journey JSON the generator reads.
  * @returns The generated GitHub markdown and Jira wiki markup.
  */
-function generate(generator: string, pr: string, extra: string[] = []) {
-  const { root, evidence, bin } = stageInputs(extra);
+function generate(
+  generator: string,
+  pr: string,
+  extra: string[] = [],
+  resolver = false,
+  journey: object = JOURNEY
+) {
+  const { root, evidence, bin } = stageInputs(extra, resolver, journey);
   const result = boundedSpawnSync({
     label: `${generator} for PR ${pr}`,
     command: "python3",
@@ -80,25 +90,38 @@ function generate(generator: string, pr: string, extra: string[] = []) {
 /**
  * Stage one screenshot, a journey, a jira-cli config and a `gh` stub.
  * @param extra - Additional evidence file names to stage.
+ * @param resolver - Also stage `scripts/lisa-work-item.mjs` and a `node` stub
+ *   that models a full current release: plain `evidence-release` prints the
+ *   period's first release, `--ensure` the overflow release with room.
+ * @param journey - Parsed journey JSON the generator reads.
  * @returns The scratch root, evidence directory and stub PATH entry.
  */
-function stageInputs(extra: string[]) {
+function stageInputs(extra: string[], resolver: boolean, journey: object) {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-jira-links-"));
   const evidence = path.join(root, "evidence");
   const bin = path.join(root, "bin");
   roots.push(root);
   mkdirSync(evidence);
   mkdirSync(path.join(root, ".config", ".jira"), { recursive: true });
-  // The Expo generator refuses to run without a jira-cli config to read the
-  // server from; the base one degrades to a bare ticket key.
+  // The generator degrades to a bare ticket key without a jira-cli config;
+  // staging one keeps the ticket link path exercised too.
   writeFileSync(
     path.join(root, ".config", ".jira", ".config.yml"),
     "server: https://jira.invalid\n"
   );
   for (const name of [SHOT, ...extra])
     writeFileSync(path.join(evidence, name), "image");
-  writeFileSync(path.join(root, "journey.json"), JSON.stringify(JOURNEY));
+  writeFileSync(path.join(root, "journey.json"), JSON.stringify(journey));
   writeStub(bin, "gh", "printf 'org/repo\\n'\n");
+  if (resolver) {
+    mkdirSync(path.join(root, "scripts"));
+    writeFileSync(path.join(root, "scripts", "lisa-work-item.mjs"), "");
+    writeStub(
+      bin,
+      "node",
+      `case "$*" in *--ensure*) printf '${OVERFLOW}\\n' ;; *) printf '${FULL_MONTH}\\n' ;; esac\n`
+    );
+  }
   return { root, evidence, bin };
 }
 
@@ -116,6 +139,16 @@ describe.each(GENERATORS)("generated evidence links: %s", generator => {
     );
   });
 
+  it("links the release post-evidence.sh uploads to when the current one is full (#4838)", () => {
+    // Without a pin both scripts must ask `evidence-release --ensure`: plain
+    // `evidence-release` names the full release, while the upload rolls over.
+    const { markdown } = generate(generator, "101", [], true);
+    const overflow = `https://github.com/org/repo/releases/download/${OVERFLOW}`;
+
+    expect(markdown).toContain(`(${overflow}/pr-101-${SHOT})`);
+    expect(markdown).not.toContain(`/${FULL_MONTH}/`);
+  });
+
   it("keeps the Jira attachment reference bare", () => {
     expect(generate(generator, "101").wiki).toContain(`!${SHOT}|`);
   });
@@ -129,5 +162,94 @@ describe.each(GENERATORS)("generated evidence links: %s", generator => {
     expect(markdown).toContain(`(${RELEASE}/pr-101-${SHOT})`);
     expect(markdown).not.toContain(jpg);
     expect(wiki).not.toContain(jpg);
+  });
+});
+
+/**
+ * Screenshot journeys run once per viewport and name each capture
+ * `NN-<marker>-<viewport>.png`. The retired Expo generator rendered each one at
+ * its viewport's width and listed the viewports; the base generator keeps that
+ * so every stack's screenshot evidence reads the same (CodySwannGT/lisa#4921).
+ */
+describe.each(GENERATORS)("viewport-aware screenshots: %s", generator => {
+  const MOBILE_SHOT = "02-search-step-mobile.png";
+  const VIEWPORT_JOURNEY = {
+    ...JOURNEY,
+    viewports: [
+      { name: "Desktop", width: 1440, height: 900 },
+      { name: "Mobile", width: 375, height: 812 },
+    ],
+  };
+
+  it("sizes each Jira screenshot to its viewport, capped at 700", () => {
+    const { wiki } = generate(
+      generator,
+      "101",
+      [MOBILE_SHOT],
+      false,
+      VIEWPORT_JOURNEY
+    );
+
+    expect(wiki).toContain(`!${SHOT}|width=700!`);
+    expect(wiki).toContain(`!${MOBILE_SHOT}|width=375!`);
+  });
+
+  it("labels a screenshot by marker and viewport", () => {
+    const { markdown, wiki } = generate(
+      generator,
+      "101",
+      [MOBILE_SHOT],
+      false,
+      VIEWPORT_JOURNEY
+    );
+
+    expect(markdown).toContain("**Search Step (Mobile 375x812):**");
+    expect(wiki).toContain("*Search Step (Desktop 1440x900):*");
+  });
+
+  it("lists the journey viewports", () => {
+    const { markdown, wiki } = generate(
+      generator,
+      "101",
+      [],
+      false,
+      VIEWPORT_JOURNEY
+    );
+
+    expect(wiki).toContain(
+      "||Viewport||Resolution||\n|Desktop|1440x900|\n|Mobile|375x812|"
+    );
+    expect(markdown).toContain("| Viewport | Resolution |");
+    expect(markdown).toContain("| Mobile | 375x812 |");
+  });
+
+  it("matches a hyphenated viewport name, preferring the longest match", () => {
+    const LANDSCAPE_SHOT = "03-search-step-mobile-landscape.png";
+    const { markdown, wiki } = generate(
+      generator,
+      "101",
+      [LANDSCAPE_SHOT],
+      false,
+      {
+        ...JOURNEY,
+        viewports: [
+          { name: "Landscape", width: 1024, height: 768 },
+          { name: "Mobile-Landscape", width: 667, height: 375 },
+        ],
+      }
+    );
+
+    expect(wiki).toContain(`!${LANDSCAPE_SHOT}|width=667!`);
+    expect(markdown).toContain("**Search Step (Mobile-Landscape 667x375):**");
+  });
+
+  it("keeps the plain label when the suffix names no journey viewport", () => {
+    const { markdown } = generate(generator, "101", [], false, {
+      ...JOURNEY,
+      viewports: [],
+    });
+
+    expect(markdown).toContain("**Search Step Desktop:**");
+    expect(markdown).not.toContain("| Viewport |");
   });
 });

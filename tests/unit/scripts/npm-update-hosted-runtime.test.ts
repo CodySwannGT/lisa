@@ -98,17 +98,13 @@ vi.mock(
 
 import { prepareRailsApplication } from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 async function fixture(
   operation: (root: string, context: any) => Promise<void>
 ) {
-  const scratch = createSupervisedUnixFixture(
-    "hook-reader.sock",
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const scratch = createSupervisedUnixFixture("hook-reader.sock");
   try {
     for (const name of [
       "package.json",

@@ -33,7 +33,7 @@ export const WRITER_OWNED_LABEL_PREFIXES: readonly string[] = [
 ];
 
 /** Every prefix a bot must never apply. */
-export const PROTECTED_LABEL_PREFIXES: readonly string[] = [
+const PROTECTED_LABEL_PREFIXES: readonly string[] = [
   LIFECYCLE_LABEL_PREFIX,
   ...WRITER_OWNED_LABEL_PREFIXES,
 ];
@@ -76,7 +76,7 @@ export type CoderabbitLabelingVerdict =
  * @param humanOnly - Exact labels reserved for humans
  * @returns True when the label is protected
  */
-export function isProtectedLabel(
+function isProtectedLabel(
   label: string,
   humanOnly: readonly string[] = DEFAULT_HUMAN_ONLY_LABELS
 ): boolean {

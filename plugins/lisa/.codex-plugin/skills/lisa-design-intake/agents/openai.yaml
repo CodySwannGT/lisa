@@ -1,4 +1,4 @@
 display_name: "Design Intake"
-short_description: "Design-handoff gate for a work…"
+short_description: "Check whether a UI work item…"
 default_prompt:
-  - "Use $lisa-design-intake: Design-handoff gate for a work…."
+  - "Use $lisa-design-intake: Check whether a UI work item…."

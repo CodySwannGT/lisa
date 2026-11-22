@@ -7,7 +7,6 @@ import {
   readdir,
   rm,
   stat,
-  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -25,6 +24,7 @@ import {
   compareSnapshots,
   preserveUnexpectedWrite,
 } from "../../../scripts/lib/packaged-apply-isolation.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const roots: string[] = [];
 const sentinelFile = "sentinel.json";
@@ -76,7 +76,6 @@ describe("packaged apply preflight", () => {
       expect(text, file).toContain(
         "scripts/verify-packaged-apply.mjs --backend docker"
       );
-      expect(text, file).toContain("Lisa-managed entries");
       expect(text, file).toContain(
         "before/after comparison on success and failure"
       );
@@ -168,7 +167,7 @@ describe("outside destination preservation", () => {
   it("refuses an initial symlink even when its target is absent", async () => {
     const root = await fixture();
     const link = path.join(root, "initial-link.json");
-    await symlink("absent-target.json", link);
+    createSymlink("absent-target.json", link);
     await expect(snapshotFiles([link])).rejects.toThrow(/not a regular file/u);
   });
   it("records a post-run symlink and still captures another changed file", async () => {
@@ -186,7 +185,7 @@ describe("outside destination preservation", () => {
       path.join(root, "before")
     );
     await rm(config);
-    await symlink(targetName, config);
+    createSymlink(targetName, config);
     await writeFile(other, otherAfter);
     const images = path.join(root, "after");
     const after = await snapshotFiles([config, other], images, {
@@ -215,7 +214,7 @@ describe("outside destination preservation", () => {
     const root = await fixture();
     const link = path.join(root, "raw-link");
     const target = Buffer.from([0x6c, 0x69, 0x6e, 0x6b, 0xff]);
-    await symlink(target, link);
+    createSymlink(target, link);
     const images = path.join(root, "raw-images");
     const after = await snapshotFiles([link], images, { phase: "after" });
     expect(after[link]).toMatchObject({

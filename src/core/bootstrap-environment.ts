@@ -1,4 +1,6 @@
-export const LISA_BOOTSTRAP_ENV = "LISA_BOOTSTRAP";
+import { currentEnvironment } from "../utils/process-environment.js";
+
+const LISA_BOOTSTRAP_ENV = "LISA_BOOTSTRAP";
 
 export const BUILD_ENV_FINGERPRINTS: readonly string[] = [
   "CI",
@@ -15,14 +17,18 @@ export const BUILD_ENV_FINGERPRINTS: readonly string[] = [
 export const BOOTSTRAP_SKIP_NOTICE =
   "lisa: skipped (non-interactive environment; set LISA_BOOTSTRAP=1 to force)";
 
+// Names the missing Claude Code plugin registration outright (#4504): install
+// is hands-off by design, so a fresh clone has no Lisa commands until an
+// explicit `lisa apply .` registers them for that folder.
 const INSTALL_SKIP_NOTICE =
-  "lisa: installation leaves unrelated project templates unchanged. Run `lisa apply .` " +
-  "to apply updates, or `lisa doctor` to check freshness.";
+  "lisa: installation leaves unrelated project templates unchanged, and Claude Code " +
+  "plugins are not registered by dependency install. Run `lisa apply .` in this " +
+  "project to register them and apply updates, or `lisa doctor` to check freshness.";
 
 /**
  * Runtime state used by the bootstrap guard.
  */
-export interface BootstrapEnvironment {
+interface BootstrapEnvironment {
   /** Environment variables visible to the current process. */
   readonly env: NodeJS.ProcessEnv;
   /** Whether stdin is attached to an interactive TTY. */
@@ -44,14 +50,16 @@ export interface BootstrapGuardOptions {
 }
 
 /**
- * Read process.env through one explicit, reviewable exception to the app-template
- * config access ban. Lisa's CLI bootstrap guard must inspect externally supplied
- * build-system fingerprints before any project config is available.
+ * Read the process environment. Lisa's CLI bootstrap guard must inspect
+ * externally supplied build-system fingerprints before any project config is
+ * available.
+ * The binding comes from `utils/process-environment`, the one sanctioned
+ * accessor, so the dependency is declared at the top of the module rather than
+ * reached for mid-function.
  * @returns The current process environment
  */
 function readProcessEnv(): NodeJS.ProcessEnv {
-  // eslint-disable-next-line no-restricted-syntax -- CLI bootstrap guard must read externally supplied build env vars once
-  return process.env;
+  return currentEnvironment();
 }
 
 /**

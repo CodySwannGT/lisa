@@ -48,7 +48,7 @@ import {
   loadGateModule,
   noWait,
   runWith,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /** The iOS arm asserting it ran the WHOLE suite — the recorded-inputs signal. */
 const IOS_SCOPE_FULL = Object.freeze({ name: "maestro-ios-scope-full" });

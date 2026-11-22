@@ -71,7 +71,9 @@ describe("build predicates are unconditional (#3778)", () => {
       // The rejection control for the assertion above. Deleting the build
       // entirely would satisfy "no presence-guarded build" while removing the
       // thing that makes `dist` correct, so both halves are pinned.
-      expect(scripts()[name] ?? "").toMatch(/bun run build|tsc/);
+      expect(scripts()[name] ?? "").toMatch(
+        /bun run build|tsc|build-unless-marked\.mjs/
+      );
     });
   });
 

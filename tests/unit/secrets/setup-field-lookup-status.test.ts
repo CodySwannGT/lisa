@@ -14,14 +14,17 @@
  * @module tests/unit/secrets/setup-field-lookup-status
  */
 
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { SETUP_FIELD } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** The `npx`-free part of the field: everything the lookup itself does. */
 const LOOKUP = [
@@ -40,7 +43,7 @@ const LOOKUP = [
  * @returns Combined stdout and stderr.
  */
 function runLookup(stub: string): string {
-  const dir = mkdtempSync(path.join(tmpdir(), "lisa-lookup-"));
+  const dir = ownedDir("lisa-lookup-");
   const script = path.join(dir, "run.sh");
   // `exec 2>&1` because the diagnostic is deliberately on stderr — that is what
   // the vendor surfaces — and asserting only stdout would pass with it removed.

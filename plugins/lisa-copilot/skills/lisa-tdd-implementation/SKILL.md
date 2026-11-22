@@ -28,11 +28,11 @@ Each task you work on must have the following in its metadata:
 }
 ```
 
-All fields are mandatory — empty arrays are ok. If any are missing, ask the agent team to fill them in and wait to get a response.
+All fields are mandatory — empty arrays are ok. If any are missing, fill them in from the work item before starting.
 
 ## Workflow
 
-1. **Verify task metadata** — All fields are mandatory. If any are missing, ask the agent team to fill them in and wait to get a response.
+1. **Verify task metadata** — All fields are mandatory. If any are missing, fill them in from the work item before starting.
 2. **Load skills** — Load the skills in the `skills` property of the task metadata.
 3. **Read before writing** — Read existing code before modifying it. Understand acceptance criteria, verification, and relevant research.
 4. **Follow existing patterns** — Match the style, naming, and structure of surrounding code.
@@ -63,7 +63,7 @@ TDD Cycle:
 - The test must fail before you write any production code
 - If the imported module doesn't exist, Jest reports 0 tests found (not N failed) — this is expected RED behavior
 - For a Fix task, or a Build task that changes user-visible behavior, include a regression test at the highest practical observation level for the reported surface. If the project has a browser, device, or end-to-end harness for that platform (for example Playwright, Maestro, Detox, Cypress, or an equivalent runtime), the RED test plan must include a deterministic spec against the reported surface, using mocked or seeded data where needed.
-- The team lead may not waive, defer, or mark that user-visible regression spec as optional, "if cheap", or equivalent. The only exits are a recorded absence of an end-to-end harness for the affected platform, or a genuine technical blocker with a linked build-ready follow-up ticket created before merge and referenced from the PR and source work item.
+- Do not waive, defer, or mark that user-visible regression spec as optional, "if cheap", or equivalent. The only exits are a recorded absence of an end-to-end harness for the affected platform, or a genuine technical blocker with a linked build-ready follow-up ticket created before merge and referenced from the PR and source work item.
 - For frontend work, the `bdd-e2e-coverage` rule governs what that spec is sealing: before writing it, add or update the Gherkin scenario with its stable ID in the project's behavior contract, then write aligned automation in the project's configured runner for each platform the scenario requires. The scenario is the specification the RED test encodes — write the scenario first, in the same PR.
 - A regression spec is not complete merely because it exists. Completion evidence must prove the spec actually ran and passed in PR CI with a named log line, reporter output, or equivalent execution record. Guard against `test.skip`, suite-level environment gates, shard filters, and "0 tests" passes.
 - When the work item **prescribes an existing test as the control** — "that test must go red; if it still passes the fix did nothing" — the `control-reachability` rule governs what a green control means. It is two facts, not one: the change had no effect (revisit the change), or the fixture never reached the changed path (fix or extend the control — do **not** revert). They demand opposite actions, and the cheaper reading wins by default when nothing forces the distinction. **Establish which holds before acting on the stopping rule, and prove reachability by execution, never by reading the fixture** — a temporary `throw` at the top of the changed block run under that one test, or coverage scoped to that test alone. Never revert on an unexplained green; an unexplained control is a blocked observation, not a verdict. If the item carries a `[CONTROL: <test> | reaches: <input>]` marker, that marker is the claim you are checking.
@@ -88,4 +88,4 @@ TDD Cycle:
 - Re-read the task description and acceptance criteria
 - Check relevant research for reusable code references
 - Search the codebase for similar implementations
-- Ask the team lead if the task is ambiguous — do not guess
+- If the task is ambiguous, resolve it from the work item and codebase; if it stays ambiguous, stop as a product-ambiguity blocker — do not guess

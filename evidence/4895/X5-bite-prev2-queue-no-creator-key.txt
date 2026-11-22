@@ -1,0 +1,44 @@
+# check: X5-bite-prev2-queue-no-creator-key
+$ cd /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X5-bite-prev2-queue-no-creator-key/project && HOME=/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X5-bite-prev2-queue-no-creator-key/home node /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/prev2/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs queue --tracker linear --input /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/queue-a6-no-creator-key.json --project-root /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X5-bite-prev2-queue-no-creator-key/project
+# .lisa.config.json:
+{
+  "tracker": "github",
+  "github": {
+    "org": "example-org",
+    "repo": "demo-repo",
+    "labels": {
+      "build": {
+        "ready": "status:ready"
+      }
+    }
+  },
+  "sessionManager": {
+    "name": "demo-manager",
+    "interval": "5m",
+    "capacity": {
+      "maxWorkers": 6,
+      "gbPerWorker": 1,
+      "reserveGb": 0,
+      "cpuFraction": 1,
+      "maxLoadPerCore": 1000
+    },
+    "notify": {
+      "provider": "telegram",
+      "stateDir": "/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-X5-bite-prev2-queue-no-creator-key/home/.claude/channels/telegram-demo"
+    },
+    "trustedAuthorIds": [
+      "integration:sentry"
+    ]
+  }
+}
+# input file /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/queue-a6-no-creator-key.json:
+{"complete":true,"pages":1,"items":[
+{"identifier":"OPS-40","title":"Sentry bot, node lacks the creator key","priority":2,"createdAt":"2026-11-01T00:00:00Z","updatedAt":"2026-11-01T00:00:00Z","assignee":null,"labels":{"nodes":[]},"description":"","children":{"nodes":[]},"externalUserCreator":null,"botActor":{"type":"integration","subType":"sentry","name":"Sentry"}}
+]}
+
+# --- stdout ---
+{"tracker":"linear","me":null,"operators":[],"total":1,"pages":1,"ordered":[{"ref":"OPS-40","title":"Sentry bot, node lacks the creator key","assigneeId":null,"assigneeLogin":null,"assigneeAccountId":null,"priorityRank":1,"createdAt":"2026-11-01T00:00:00Z","updatedAt":"2026-11-01T00:00:00Z","labels":[],"body":"","authorId":null,"authorLogin":null,"authorIntegration":"sentry","isContainer":false,"openBlockers":0,"repoLabels":[]}],"excluded":[],"setupGaps":[],"backlogPickup":false}
+
+# --- stderr ---
+
+# exit: 0

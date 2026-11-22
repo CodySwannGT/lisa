@@ -1,0 +1,15 @@
+# HEAD: ad95e8e32844e4ee0c193529f1d3ddc58426995b
+$ bunx vitest run tests/unit/utils/usage-ledger-artifact-ref-integrity.test.ts tests/unit/utils/usage-accounting-integrity.test.ts tests/unit/utils/usage-accounting-artifact-ref.test.ts
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4846-usage-artifact-ref-integrity
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+
+ Test Files  3 passed (3)
+      Tests  49 passed (49)
+   Start at  09:03:49
+   Duration  516ms (transform 242ms, setup 330ms, import 109ms, tests 22ms, environment 0ms)
+
+exit=0

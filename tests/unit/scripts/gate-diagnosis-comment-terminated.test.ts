@@ -126,7 +126,9 @@ function diagnose(
     // `hasOwnProperty.call` rather than `Object.hasOwn`, which is ES2022. The
     // call site is what moves; raising the shipped `lib` target so one line
     // compiles would change the compilation target for every consumer.
-    Object.prototype.hasOwnProperty.call(files, path) ? files[path] : null
+    Object.prototype.hasOwnProperty.call(files, path)
+      ? (files[path] ?? null)
+      : null
   ) as Diagnosis;
 }
 

@@ -212,7 +212,7 @@ function collectEvidence({ body, comments }) {
  */
 function draftRule(holdReasons) {
   const named = holdReasons.length > 0 ? ` (seen: ${holdReasons[0]})` : "";
-  const rule = `Planning (filing): file human_gate only for an act no agent can perform, such as a credential, spend, an external account or a legal sign-off; make an open decision yourself${named}.`;
+  const rule = `Planning (filing): file human_gate only for an act no agent can perform, such as a login or credential, spend, an external account, a legal signature, an account only a person holds; make an open decision yourself${named}.`;
   return rule.length > 240 ? `${rule.slice(0, 238)}.` : rule;
 }
 

@@ -1,0 +1,24 @@
+# Independent verifier probe (not builder-authored) - AC2 Linear / AC3 Jira allocation, with bite control
+# HEAD d03e84394bb017ee17509c0bf9ede43fa3eab318
+# Real allocateLeaf + createTracker against the in-memory Linear GraphQL / Jira REST fakes in tests/support/.
+# Bite control: after the two runs, the stored item is deleted from the fake and a third run MUST create again.
+# Fake Linear state ids: state-ready = Ready. Fake Jira transition ids: 12 = Ready, 13 = In Progress.
+$ bun <job-tmp>/probe.ts
+=== linear: configured team ENG
+selection key: 7aa77eec7852…(sha256, truncated)
+run 1: workItem=ENG-1 creates=1
+run 2: workItem=ENG-1 creates=1
+create payload: teamId=team-1 stateId=state-ready priority=3 assigneeId=0f3c2a1b-4d5e-4f60-8a7b-9c0d1e2f3a4b
+item 1 now: state labels=["In Progress","type:Task","priority:medium"] assignees=[{"login":"0f3c2a1b-4d5e-4f60-8a7b-9c0d1e2f3a4b","type":"User"}]
+item 1 managed comments: 2; first lines: "[lisa-tracker-claim] Claimed by Lisa. Starting implementation." | "[widgets] Fresh dependency Task ENG-1 is assigned to 0f3c2a1b-4d5e-4f60-8a7b-9c0d1e2f3a4b. Proposal key: 6a5ed41a1834…(sha256, truncated). Pre/post writer quality gates completed; ordinary gates and runtime evidence remain required."
+BITE CONTROL (stored item deleted, run 3): workItem=ENG-1 creates=2 (MUST be 2)
+=== jira: configured project PROJ
+selection key: 5d8e61fdb88e…(sha256, truncated)
+run 1: workItem=PROJ-1 creates=1
+run 2: workItem=PROJ-1 creates=1
+create payload: project=PROJ issuetype=Task labels=["lisa-npm-5d8e61fdb88ed9d642a3608a76f069ca8d471a832925cb9dcab57c4d22267c3a"] priority=Medium assignee=557058:f58131cb-b67d-43c7-b30d-6b58d40bd077
+transition POSTs (ids): 12,13
+item 1 now: state labels=["In Progress","type:Task","priority:medium","lisa-npm-5d8e61fdb88ed9d642a3608a76f069ca8d471a832925cb9dcab57c4d22267c3a"] assignees=[{"login":"557058:f58131cb-b67d-43c7-b30d-6b58d40bd077","type":"User"}]
+item 1 managed comments: 2; first lines: "[lisa-tracker-claim] Claimed by Lisa. Starting implementation." | "[widgets] Fresh dependency Task PROJ-1 is assigned to 557058:f58131cb-b67d-43c7-b30d-6b58d40bd077. Proposal key: 9353374d2199…(sha256, truncated). Pre/post writer quality gates completed; ordinary gates and runtime evidence remain required."
+BITE CONTROL (stored item deleted, run 3): workItem=PROJ-1 creates=2 (MUST be 2)
+exit=0

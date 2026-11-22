@@ -4,7 +4,9 @@
 /** Fixed historical-origin and fresh-recovery roles preserve ordinary v1 authority. */
 import {
   verifyHistoricalProvider,
+  verifyHistoricalRun,
   verifyRecoveryProvider,
+  verifyRecoveryDestination,
   verifyAssignable,
 } from "./github-attestation-provider.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
@@ -16,6 +18,8 @@ import {
   officialResult,
   PROPOSAL_PREDICATE,
   RECOVERY_PREDICATE,
+  DEFAULT_TARGET,
+  targetBranch,
 } from "./github-attestation-verifier.mjs";
 
 /** An active run's update is not completion; invalid provider chronology has no usable bounds. */
@@ -51,9 +55,11 @@ export function assertHistoricalAttestation(
     "descriptor.json"
   );
   const chronology = observedRunChronology(run, now);
-  const claimed = Date.parse(claim.created_at);
+  // Only a Jira/Linear hook passes null: its claim time is proved by the adapter
+  // in the credentialed checkpoint and publish phases instead (#4873).
+  const claimed = claim === null ? -Infinity : Date.parse(claim.created_at);
   requireProof(
-    chronology && Number.isFinite(claimed),
+    chronology && (claim === null || Number.isFinite(claimed)),
     "missing/invalid historical provider chronology"
   );
   const { start, end } = chronology;
@@ -112,10 +118,19 @@ export function validateRecovery(value, origin, digest, policy) {
       typeof value === "object" &&
       !Array.isArray(value) &&
       Object.keys(value).sort().join("\n") ===
-        [...RECOVERY_KEYS].sort().join("\n"),
+        [
+          ...RECOVERY_KEYS,
+          // Only a non-main origin target is carried, so main recoveries keep their bytes.
+          ...(targetBranch(origin) === DEFAULT_TARGET ? [] : ["target"]),
+        ]
+          .sort()
+          .join("\n"),
     "recovery fields differ"
   );
   const expected = {
+    ...(targetBranch(origin) === DEFAULT_TARGET
+      ? {}
+      : { target: targetBranch(origin) }),
     version: 1,
     purpose: "resume-identical-npm-proposal",
     repository: policy.repository,
@@ -270,8 +285,16 @@ export function verifyRecoveryOrigin(
       "recovery replayed into different current invocation"
     );
   });
+  // Jira/Linear (`scope.tracker`): the code host proves repository, runs and
+  // destination; the adapter proves claim, leaf body and owner (#4873).
+  const vendor = scope.tracker === true;
   const origin = withProvenancePhase("historical-provider", () =>
-    verifyHistoricalProvider(policy, descriptor, execute)
+    vendor
+      ? {
+          run: verifyHistoricalRun(policy, descriptor, execute),
+          claim: scope.claim ?? null,
+        }
+      : verifyHistoricalProvider(policy, descriptor, execute)
   );
   withProvenancePhase("historical-signature", () =>
     verifyHistoricalDescriptor(
@@ -294,14 +317,17 @@ export function verifyRecoveryOrigin(
     )
   );
   withProvenancePhase("recovery-provider", () =>
-    verifyRecoveryProvider(
-      policy,
-      descriptor,
-      recovery,
-      scope.maintainer,
-      execute
-    )
+    vendor
+      ? verifyRecoveryDestination(policy, descriptor, recovery, execute)
+      : verifyRecoveryProvider(
+          policy,
+          descriptor,
+          recovery,
+          scope.maintainer,
+          execute
+        )
   );
+  if (vendor) return;
   withProvenancePhase("assignable", () =>
     verifyAssignable(policy, scope.maintainer, execute)
   );

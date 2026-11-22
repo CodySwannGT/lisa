@@ -11,13 +11,22 @@ import {
 } from "../utils/json-utils.js";
 import { JsonMergeError } from "../errors/index.js";
 
-const OFFICIAL_SENTRY_PLUGIN = "sentry@claude-plugins-official";
+/**
+ * Optional third-party plugins whose explicit host choice survives a merge.
+ * Each is a vendor default, not a Lisa enforcement surface: a project on
+ * another error tracker or analytics provider (`observability.*.provider`)
+ * turns its plugin off, and re-applying Lisa must not turn it back on.
+ */
+const HOST_CHOICE_PLUGINS = [
+  "sentry@claude-plugins-official",
+  "posthog@claude-plugins-official",
+] as const;
 
 /**
  * Produce the exact JSON merge result without filesystem access.
  * @param source - Lisa template object
  * @param destination - Existing host object
- * @returns Merged object with Lisa governance and explicit Sentry choice preserved
+ * @returns Merged object with Lisa governance and explicit Sentry/PostHog choices preserved
  */
 export function mergeTemplateJson(
   source: Record<string, unknown>,
@@ -35,14 +44,19 @@ export function mergeTemplateJson(
     Array.isArray(plugins)
   )
     return merged;
-  const choice = (existing as Record<string, unknown>)[OFFICIAL_SENTRY_PLUGIN];
-  if (typeof choice !== "boolean") return merged;
-  // The official Claude plugin is optional, not a Lisa enforcement surface.
-  // Other runtimes keep their native Sentry integrations; this preference only
-  // names Claude's plugin. Missing choices still receive the template default.
+  const host = existing as Record<string, unknown>;
+  const choices = Object.fromEntries(
+    HOST_CHOICE_PLUGINS.filter(key => typeof host[key] === "boolean").map(
+      key => [key, host[key]]
+    )
+  );
+  if (Object.keys(choices).length === 0) return merged;
+  // These official Claude plugins are optional, not Lisa enforcement surfaces.
+  // Other runtimes keep their native integrations; this preference only names
+  // Claude's plugins. Missing choices still receive the template default.
   return {
     ...merged,
-    enabledPlugins: { ...plugins, [OFFICIAL_SENTRY_PLUGIN]: choice },
+    enabledPlugins: { ...plugins, ...choices },
   };
 }
 

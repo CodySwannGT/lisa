@@ -10,7 +10,21 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { REPO_ROOT, RATIFIED, WEB } from "./bdd/support";
+import { REPO_ROOT, RATIFIED, WEB } from "./bdd/support.js";
+
+/**
+ * Read one element, failing the test when it is absent.
+ * @param items Items to index.
+ * @param index Position to read.
+ * @returns The element at that position.
+ */
+const at = <T>(items: readonly T[], index: number): T => {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}`);
+  }
+  return item;
+};
 
 /** Parsed tracker reference. */
 type Reference = Record<string, unknown>;
@@ -122,6 +136,7 @@ describe("gherkin parser", () => {
       "bdd/features/a.feature",
       new Set([WEB, "ios"])
     );
+    if (scenario === undefined) throw new Error("expected one parsed scenario");
     expect(scenario).toMatchObject({
       id: "BDD-AUTH-001",
       feature: "Sign in",
@@ -155,7 +170,7 @@ describe("gherkin parser", () => {
       "  @BDD-A-002 @web @ratified-x\n  Scenario: Two\n    Given a\n    When b\n    Then c\n";
     const scenarios = parseFeatureSource(source, "f.feature", new Set([WEB]));
     expect(scenarios.map(item => item.id)).toEqual(["BDD-A-001", "BDD-A-002"]);
-    expect(scenarios[1].tags).toEqual(["BDD-A-002", WEB, "ratified-x"]);
+    expect(at(scenarios, 1).tags).toEqual(["BDD-A-002", WEB, "ratified-x"]);
   });
 
   it("only treats a tag as a platform when the project declared it", () => {
@@ -167,8 +182,8 @@ describe("gherkin parser", () => {
       "f.feature",
       new Set([WEB, "tv"])
     );
-    expect(declared[0].platforms).toEqual([WEB, "tv"]);
+    expect(at(declared, 0).platforms).toEqual([WEB, "tv"]);
     const undeclared = parseFeatureSource(source, "f.feature", new Set([WEB]));
-    expect(undeclared[0].platforms).toEqual([WEB]);
+    expect(at(undeclared, 0).platforms).toEqual([WEB]);
   });
 });

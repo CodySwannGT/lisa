@@ -22,6 +22,17 @@ import { fileURLToPath } from "node:url";
 import { load as loadYaml } from "js-yaml";
 import { describe, expect, it } from "vitest";
 
+import {
+  checkouts,
+  DEPLOY_KEY,
+  raiseJob,
+  PREPARE_JOB,
+  PUSH_JOB,
+  runs,
+  secretReferences,
+  stepIndex,
+} from "./support/self-pin-raise-jobs.js";
+
 /** Repository root, resolved from this file rather than the process cwd. */
 const ROOT = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -120,5 +131,79 @@ describe("the self-pin drift check is wired where it blocks (#3768)", () => {
 
     expect(invocation).not.toContain("--registry");
     expect(invocation).not.toContain("--manifest");
+  });
+});
+
+describe("the release pushes only the raise it proved (#4951)", () => {
+  it("pushes from a job whose only package-manager call reads manifests", () => {
+    const commands = runs(PUSH_JOB)
+      .flatMap(run => run.split("\n"))
+      .map(line => line.trim())
+      // A package-manager COMMAND, not the word inside `bun.lock`.
+      .filter(line => /(?:^|[\s;&|(])(?:bun|npm|npx|yarn|pnpm)\s/.test(line));
+
+    expect(raiseJob(PUSH_JOB).needs).toContain(PREPARE_JOB);
+    expect(commands).toEqual([
+      "timeout 300 bun install --lockfile-only --ignore-scripts",
+    ]);
+    checkouts(PUSH_JOB).forEach(step => {
+      expect(step.with?.["persist-credentials"]).toBe(false);
+      expect(step.with?.["ssh-key"]).toBeUndefined();
+    });
+  });
+
+  it("never pushes the prepare job's lockfile, only one it regenerated and matched", () => {
+    const pushRuns = runs(PUSH_JOB);
+    const regenerate = stepIndex(PUSH_JOB, "bun install --lockfile-only");
+    const step = raiseJob(PUSH_JOB).steps?.[regenerate];
+    const proof = pushRuns[regenerate] ?? "";
+    const manifestProof = stepIndex(
+      PUSH_JOB,
+      "--base package.json --candidate"
+    );
+
+    expect(regenerate).toBeGreaterThanOrEqual(0);
+    expect(manifestProof).toBeGreaterThanOrEqual(0);
+    expect(pushRuns.join("\n")).not.toContain('"$RAISED/bun.lock" bun.lock');
+    expect(proof.indexOf("bun install --lockfile-only")).toBeLessThan(
+      proof.indexOf(
+        'verify-self-pin-raise.mjs lockfile --regenerated bun.lock --candidate "$RAISED/bun.lock" --version "$VERSION"'
+      )
+    );
+    expect(
+      proof.indexOf("verify-self-pin-raise.mjs lockfile")
+    ).toBeGreaterThanOrEqual(0);
+    expect(step?.env?.BUN_INSTALL_CACHE_DIR).toContain("runner.temp");
+    expect(manifestProof).toBeLessThan(regenerate);
+    // The regenerated manifest must be the verified one, byte for byte.
+    expect(proof).toContain('cmp package.json "$RAISED/package.json"');
+  });
+
+  it("pushes only onto the proved commit, through the tested push script", () => {
+    const push = runs(PUSH_JOB).at(-1) ?? "";
+    const checkout = checkouts(PUSH_JOB)[0];
+
+    // tests/integration/push-self-pin-raise.test.ts runs this script against
+    // a moved main, a flaky push and a flaky fetch.
+    expect(push).toContain(
+      'bash scripts/push-self-pin-raise.sh "git@github.com:${REPOSITORY}.git" "$BASE_SHA" "$VERSION"'
+    );
+    expect(runs(PUSH_JOB).join("\n")).not.toContain("rebase");
+    expect(checkout?.with?.ref).toBe(
+      "${{ needs.prepare_self_pin_raise.outputs.base_sha }}"
+    );
+  });
+
+  it("loads the deploy key only in the final push step, after the proofs", () => {
+    const steps = raiseJob(PUSH_JOB).steps ?? [];
+    const last = steps.length - 1;
+    const lockProof = stepIndex(PUSH_JOB, "verify-self-pin-raise.mjs lockfile");
+
+    expect(secretReferences(PUSH_JOB)).toEqual([`${last}`]);
+    expect(steps[last]?.env?.DEPLOY_KEY).toBe(DEPLOY_KEY);
+    expect(steps[last]?.run).toContain("scripts/push-self-pin-raise.sh");
+    expect(lockProof).toBeGreaterThanOrEqual(0);
+    expect(lockProof).toBeLessThan(last);
+    expect(runs(PUSH_JOB)[lockProof]).toContain("git status --porcelain");
   });
 });

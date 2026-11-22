@@ -151,8 +151,10 @@ describe("a token that only STARTS like a key", () => {
 
     expect(expired).toEqual([]);
     expect(unchecked).toHaveLength(1);
-    expect(unchecked[0].key.length).toBeGreaterThan(64);
-    expect(isWellFormedKey(unchecked[0].key)).toBe(false);
+    const [only] = unchecked;
+    if (only === undefined) throw new Error("expected one unchecked marker");
+    expect(only.key.length).toBeGreaterThan(64);
+    expect(isWellFormedKey(only.key)).toBe(false);
   });
 
   it("still reads a well-formed key ending at whitespace or end of line", () => {

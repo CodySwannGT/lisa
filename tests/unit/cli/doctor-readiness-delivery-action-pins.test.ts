@@ -26,6 +26,17 @@ import {
   writeWorkflow,
 } from "../../helpers/readiness-workflow-fixtures.js";
 
+/**
+ * The first element of a list, failing the test loudly when the list is empty.
+ * @param items - The list under test
+ * @returns Its first element
+ */
+function first<T>(items: readonly T[]): T {
+  const [head] = items;
+  if (head === undefined) throw new Error("expected a non-empty list");
+  return head;
+}
+
 const RUN_NPM_TEST = "      - run: npm test";
 const ID_TOKEN_WRITE = "      id-token: write";
 const RUN_NPM_PUBLISH = "      - run: npm publish --provenance";
@@ -81,10 +92,10 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
-    const evidence = String(asFindings(record.findings)[0].evidence);
+    const evidence = String(first(asFindings(record.findings)).evidence);
 
     expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(first(assessReadiness([record]).blockers).id).toBe("B2");
     expect(evidence).toContain("actions/download-artifact@v4");
     expect(evidence).toContain("softprops/action-gh-release@main");
     expect(evidence).toContain("full commit SHA");
@@ -144,10 +155,10 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
-    const evidence = String(asFindings(record.findings)[0].evidence);
+    const evidence = String(first(asFindings(record.findings)).evidence);
 
     expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(first(assessReadiness([record]).blockers).id).toBe("B2");
     expect(evidence).toContain(CHECKOUT_V4_REF);
     expect(evidence).toContain("validating ancestor");
   });
@@ -184,10 +195,10 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
-    const evidence = String(asFindings(record.findings)[0].evidence);
+    const evidence = String(first(asFindings(record.findings)).evidence);
 
     expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(first(assessReadiness([record]).blockers).id).toBe("B2");
     expect(evidence).toContain(CHECKOUT_V4_REF);
     expect(evidence).toContain("local caller ancestor");
   });
@@ -211,10 +222,10 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
-    const evidence = String(asFindings(record.findings)[0].evidence);
+    const evidence = String(first(asFindings(record.findings)).evidence);
 
     expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(first(assessReadiness([record]).blockers).id).toBe("B2");
     expect(evidence).toContain("docker://ghcr.io/acme/releaser:v1");
   });
 
@@ -241,7 +252,7 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
 
     expect(record.status).toBe("SKIP");
     expect(assessReadiness([record]).blockers).toEqual([]);
-    expect(String(asFindings(record.findings)[0].reason)).toContain(
+    expect(String(first(asFindings(record.findings)).reason)).toContain(
       "cannot be tied to anything that was validated"
     );
   });

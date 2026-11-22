@@ -3,7 +3,7 @@
  *
  * `@codyswann/lisa/eslint/slow` is what every stack's lint:slow imports. When
  * it also defined the Expo factory, importing it loaded
- * eslint-plugin-react-hooks and eslint-plugin-react-compiler for typescript,
+ * eslint-plugin-react-hooks (and, until #4931, eslint-plugin-react-compiler) for typescript,
  * nestjs and cdk projects too. In a consumer installed with bun's isolated
  * linker (bun 1.3.11), react-hooks 7.1.1 is given zod-validation-error 3.5.4,
  * which both plugins' ranges accept, but react-hooks imports
@@ -83,13 +83,10 @@ describe("the shared slow config loads no React plugin", () => {
     );
   });
 
-  it("the Expo factory, and only it, loads both React plugins", () => {
+  it("the Expo factory, and only it, loads the React hooks plugin", () => {
     const loaded = packagesLoadedBy("src/configs/eslint/slow-expo.ts");
     expect(loaded).toEqual(
-      expect.arrayContaining([
-        "eslint-plugin-react-compiler",
-        "eslint-plugin-react-hooks",
-      ])
+      expect.arrayContaining(["eslint-plugin-react-hooks"])
     );
   });
 });

@@ -26,7 +26,6 @@ const PLUGIN_HOOKS = "plugins/lisa/hooks";
 const MEMO_LIBRARY = "guard-dedupe.bash";
 const SHARED_FILES = [
   "block-no-verify.sh",
-  "parity-safety-net.sh",
   "block-shell-json-parsing.sh",
   "block-instruction-file-edits.sh",
   "block-direct-issue-create.sh",

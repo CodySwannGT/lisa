@@ -1,0 +1,4 @@
+display_name: "Security Audit Handling"
+short_description: "When the dependency security audit blocks a push or CI, in order: refresh, upgrade, override, exclude an unreachable advisory with a…"
+default_prompt:
+  - "Use $lisa-security-audit-handling: When the dependency security audit blocks a push or CI, in order: refresh, upgrade, override, exclude an unreachable advisory with a…."

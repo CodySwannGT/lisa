@@ -7,8 +7,7 @@
  * in a test and be unavailable in the field.
  * @module tests/unit/cli/gate-report-fixtures
  */
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 
 import type { EnforcedContext } from "../../../src/core/gate-declaration-drift.js";
@@ -18,6 +17,10 @@ import type {
   GateReport,
   GateReportRow,
 } from "../../../src/cli/gate-report-types.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this module makes for the importing file, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** Moments named often enough that a typo would be invisible. */
 export const PUSH = "push";
@@ -85,7 +88,7 @@ export interface ReportOverrides {
  * @returns Absolute path to the project root
  */
 export async function makeProject(spec: FixtureSpec = {}): Promise<string> {
-  const root = await mkdtemp(path.join(tmpdir(), "lisa-gate-report-"));
+  const root = ownedDir("lisa-gate-report-");
   await writeFile(
     path.join(root, "package.json"),
     JSON.stringify({ name: "fixture", scripts: spec.scripts ?? {} }, null, 2),

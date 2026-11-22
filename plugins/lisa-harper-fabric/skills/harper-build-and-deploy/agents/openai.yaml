@@ -1,4 +1,4 @@
 display_name: "Harper Build And Deploy"
-short_description: "building, running locally, or deploying a Harper (HarperDB/Fabric) component — running harper dev/run, producing the generated resources.js…"
+short_description: "Build, run locally, or deploy a Harper (HarperDB/Fabric) component, including the TypeScript build, packaging, Fabric deploys, and…"
 default_prompt:
-  - "Use $harper-build-and-deploy: building, running locally, or deploying a Harper (HarperDB/Fabric) component — running harper dev/run, producing the generated resources.js…."
+  - "Use $harper-build-and-deploy: Build, run locally, or deploy a Harper (HarperDB/Fabric) component, including the TypeScript build, packaging, Fabric deploys, and…."

@@ -48,9 +48,8 @@
  * deliberately carries that text is exposed, and only to the same user's
  * sweep; Linux reads whole environ entries and has no such ambiguity.
  *
- * Deliberately independent of `src/configs/vitest/scratch-*.ts`, which the
- * per-test policing this sweep replaces (C2) will retire. The start-time
- * reading mirrors `scratch-owner.ts` rather than importing it.
+ * Self-contained: the per-test scratch policing this sweep replaced was
+ * retired (CodySwannGT/lisa#4602), so nothing here depends on it.
  * @module scripts/lib/lisa-cleanup-sweep-processes
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -73,7 +72,7 @@ const PS_TIMEOUT_MS = 5_000;
 /** `ps -E` prints every environment; leave room for a busy desktop. */
 const PS_MAX_BUFFER = 64 * 1024 * 1024;
 
-/** Pids per `ps -p` call, matching the batching `scratch-owner.ts` uses. */
+/** Pids per `ps -p` call, so one argument list stays well under `ARG_MAX`. */
 const PS_BATCH = 256;
 
 /** Locale-independent `ps` output, so `lstart` parses the same everywhere. */

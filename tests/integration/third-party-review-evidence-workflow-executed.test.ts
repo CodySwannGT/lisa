@@ -122,7 +122,7 @@ describe.each(COPIES)("%s, executed", copy => {
     ]);
   });
 
-  it("names the manual path's check run without a reviewer", () => {
+  it("names the manual path's check run without a reviewer, and updates every declared reviewer's", () => {
     const result = execute(
       copy,
       contexts("workflow_dispatch", { inputs: { sha: HEAD } }, { sha: HEAD }),
@@ -132,6 +132,31 @@ describe.each(COPIES)("%s, executed", copy => {
     expect(result.status).toBe(0);
     expect(publishedRuns(result).map(run => run.name)).toEqual([
       "🕵️ Third-party review evidence",
+      PUBLISHED_NAME,
+    ]);
+  });
+
+  it("overwrites a stale reviewer check with a writer's substitute when dispatched with that reviewer", () => {
+    // Scenario A of CodySwannGT/lisa#4738: the reviewer was rate limited, a
+    // writer posted a substitute, and nothing ran again. A manual run naming
+    // the reviewer publishes under that reviewer's name, so the red check clears.
+    const result = execute(
+      copy,
+      contexts(
+        "workflow_dispatch",
+        { inputs: { sha: HEAD, context: REVIEWER } },
+        { sha: HEAD, context: REVIEWER }
+      ),
+      { ...RATE_LIMITED_ONLY, comments: [substituteComment(REVIEWER, HEAD)] }
+    );
+
+    expect(result.status).toBe(0);
+    expect(publishedRuns(result)).toEqual([
+      expect.objectContaining({
+        name: PUBLISHED_NAME,
+        head_sha: HEAD,
+        conclusion: "success",
+      }),
     ]);
   });
 

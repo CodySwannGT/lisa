@@ -19,8 +19,6 @@ const SUPPORT_FILES = [
   "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",
-  "parity-safety-net.sh",
-  "parity-safety-net-heredoc.py",
   "guard-dedupe.bash",
 ];
 const HOST_NAME_FILES = [

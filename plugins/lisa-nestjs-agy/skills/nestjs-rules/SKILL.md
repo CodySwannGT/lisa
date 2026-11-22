@@ -1,6 +1,6 @@
 ---
 name: nestjs-rules
-description: Procedural rules and patterns for NestJS backend development. This skill should be used when creating new NestJS modules, services, resolvers, or controllers. It covers component generation with NestJS CLI, TDD patterns, module structure conventions, Lambda handler patterns, and configuration standards. Use this skill alongside nestjs-graphql for GraphQL-specific patterns.
+description: "Rules for NestJS backend development: generating components with the CLI, TDD, module structure, Lambda handlers, and configuration. Use when creating modules, services, resolvers, or controllers."
 ---
 
 # NestJS Development Rules
@@ -190,36 +190,49 @@ import { AppModule } from "./app.module";
 type ServerlessHandler = ReturnType<typeof serverlessExpress>;
 
 /**
- * Creates a lazy-initialized server getter using closure pattern
- * @description Encapsulates mutable cache state for Lambda warm starts
- * @returns Async function that returns the cached or newly created server
+ * Bootstraps the Nest application and wraps it for API Gateway
+ * @returns The serverless-express handler for this container
  */
-const createServerGetter = (): (() => Promise<ServerlessHandler>) => {
-  // eslint-disable-next-line functional/no-let -- Required for Lambda warm start caching
-  let cachedServer: ServerlessHandler | null = null;
+const createServer = async (): Promise<ServerlessHandler> => {
+  const nestApp = await NestFactory.create(AppModule, {
+    cors: {
+      origin: "*",
+      methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+      preflightContinue: false,
+      optionsSuccessStatus: 204,
+    },
+  });
 
-  return async (): Promise<ServerlessHandler> => {
-    if (cachedServer) {
-      return cachedServer;
-    }
-
-    const nestApp = await NestFactory.create(AppModule, {
-      cors: {
-        origin: "*",
-        methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-        preflightContinue: false,
-        optionsSuccessStatus: 204,
-      },
-    });
-
-    await nestApp.init();
-    const app = nestApp.getHttpAdapter().getInstance();
-    cachedServer = serverlessExpress({ app });
-    return cachedServer;
-  };
+  await nestApp.init();
+  const app = nestApp.getHttpAdapter().getInstance();
+  return serverlessExpress({ app });
 };
 
-const getServer = createServerGetter();
+/**
+ * Caches the server across Lambda warm starts
+ * @description The cache is the one piece of mutable state, so it lives on a
+ * class instead of a module-level `let`. Caching the promise (not the result)
+ * means concurrent cold-start invocations share one bootstrap; a failed
+ * bootstrap is dropped so the next invocation retries it.
+ */
+class ServerCache {
+  private server: Promise<ServerlessHandler> | undefined;
+
+  /**
+   * Returns the cached server, bootstrapping it on first use
+   * @returns The serverless-express handler
+   */
+  get(): Promise<ServerlessHandler> {
+    this.server ??= createServer().catch((error: unknown) => {
+      this.server = undefined;
+      throw error;
+    });
+    return this.server;
+  }
+}
+
+const serverCache = new ServerCache();
+const getServer = (): Promise<ServerlessHandler> => serverCache.get();
 
 /**
  * Lambda handler function

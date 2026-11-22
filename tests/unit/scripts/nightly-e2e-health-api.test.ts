@@ -16,7 +16,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   type GateModule,
   loadGateModule,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /** API coordinates with a tiny retry budget so the suite stays instant. */
 const API = Object.freeze({

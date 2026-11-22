@@ -35,7 +35,6 @@ const FIXTURE_PATH =
  * @returns The writable stream and an accessor for what has been written.
  */
 function captureStream(): { stream: Writable; text: () => string } {
-  // eslint-disable-next-line functional/no-let -- the sink accumulates until read
   let text = "";
   const stream = new Writable({
     write(chunk, _encoding, callback): void {
@@ -241,13 +240,11 @@ describe("the gate bites on a real planted orphan", () => {
     // own report: cleanup must not depend on the component under test, or a
     // broken guard leaks the very process the test plants.
     const pidFile = path.join(root, "orphan.pid");
-    /* eslint-disable sonarjs/no-os-command-from-path -- fixed executable, fixture-owned argv */
     const outer = spawn(
       "bash",
       ["-c", `bash ${scriptPath} & echo $! > ${pidFile}; exit 0`],
       { detached: true, stdio: "ignore" }
     );
-    /* eslint-enable sonarjs/no-os-command-from-path -- end fixture spawn scope */
     outer.unref();
     await new Promise(resolve => setTimeout(resolve, 1500));
     plantedPids.push(Number((await readFile(pidFile, "utf8")).trim()));

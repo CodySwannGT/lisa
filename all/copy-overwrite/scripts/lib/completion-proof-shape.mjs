@@ -9,6 +9,7 @@ import {
 } from "./completion-proof-markdown.mjs";
 import {
   canonicalCompletionBlock,
+  estimateSpecRemainder,
   usageSpecRemainder,
 } from "./completion-proof-projection.mjs";
 import {
@@ -75,6 +76,27 @@ export const isTime = value =>
   /(?:Z|\+00:00)$/.test(value) &&
   Number.isFinite(Date.parse(value));
 
+/**
+ * Drop the machine-written lines of the `## Lisa Estimate` section
+ * (CodySwannGT/lisa#4956), keeping any prose a person added there.
+ */
+function withoutEstimateMetadata(body) {
+  const headings = topLevelLines(body).filter(row => row.heading);
+  const estimate = headings.filter(row => row.text === "## Lisa Estimate");
+  requireProof(
+    estimate.length <= 1,
+    "Duplicate token-estimate sections make the primary specification ambiguous."
+  );
+  if (!estimate.length) return body;
+  const start = estimate[0].start;
+  const end = headings.find(row => row.start > start)?.start ?? body.length;
+  return (
+    body.slice(0, start) +
+    estimateSpecRemainder(body.slice(start, end)) +
+    body.slice(end)
+  );
+}
+
 /** Remove only exact canonical machine-owned sections, retaining unknown prose. */
 export function primarySpecProjection(body) {
   requireProof(
@@ -96,6 +118,7 @@ export function primarySpecProjection(body) {
       usageSpecRemainder(body.slice(start, end)) +
       body.slice(end);
   }
+  result = withoutEstimateMetadata(result);
   for (const name of ["authorization", "postcondition"]) {
     const start = `<!-- lisa:completion-${name}:start -->`;
     const end = `<!-- lisa:completion-${name}:end -->`;
@@ -152,32 +175,202 @@ function withoutClaimingComments(line, state) {
   return visible;
 }
 
+/**
+ * Measure leading whitespace in columns, a tab advancing to the next multiple
+ * of four as CommonMark specifies.
+ * @param {string} line - Text to measure
+ * @param {number} [start] - Column the text begins at
+ * @returns {{ columns: number, rest: string }} Column after the whitespace,
+ *   and the text from the first non-whitespace character
+ */
+function leadingColumns(line, start = 0) {
+  let columns = start;
+  let offset = 0;
+  for (; offset < line.length; offset += 1) {
+    if (line[offset] === " ") columns += 1;
+    else if (line[offset] === "\t") columns += 4 - (columns % 4);
+    else break;
+  }
+  return { columns, rest: line.slice(offset) };
+}
+
+/**
+ * The list item a line opens when its marker starts at `indent`, or null when
+ * it opens none. Following CommonMark, one to four spaces after the marker set
+ * the content column; five or more mean the content is indented code one
+ * space past the marker; an empty item behaves as one space.
+ * @param {number} indent - Column of the first non-whitespace character
+ * @param {string} rest - Line text from that character
+ * @returns {{ column: number, text: string | null } | null} The column the
+ *   item's continuation lines align to, and the marker line's own content
+ *   when it begins at that column (null when the item is empty or that
+ *   content is indented code)
+ */
+function listItem(indent, rest) {
+  const opener = /^(?:[-+*]|\d{1,9}[.)])/.exec(rest);
+  if (!opener) return null;
+  const markerEnd = indent + opener[0].length;
+  const gap = leadingColumns(rest.slice(opener[0].length), markerEnd);
+  const width = gap.columns - markerEnd;
+  if (!gap.rest) return { column: markerEnd + 1, text: null };
+  if (width === 0) return null;
+  return width > 4
+    ? { column: markerEnd + 1, text: null }
+    : { column: gap.columns, text: gap.rest };
+}
+
+/**
+ * Open a list item, then read the marker line's own content as the item's
+ * first block: `- ```` opens a fence inside the item, based at its content
+ * column, and `- - x` opens a nested item (#4700 review 3). That content
+ * starts a new block, so no paragraph is open before it.
+ * @param {{ column: number, text: string | null }} item - The opened item
+ * @param {{ fence: object | null, items: number[], paragraph: boolean }} state
+ *   - Mutable block state carried between lines
+ * @returns {boolean} True when the marker line is visible claiming text
+ */
+function openListItem(item, state) {
+  state.items.push(item.column);
+  state.paragraph = false;
+  if (!item.text) {
+    state.paragraph = true;
+    return true;
+  }
+  return claimingShallowBlock(item.column, item.text, 0, state);
+}
+
+/** A fence may only open where indented code would not, relative to its container. */
+function openingFence(relative, rest) {
+  const marker = claimingFence(" ".repeat(relative) + rest);
+  return marker && !(marker.character === "`" && marker.suffix.includes("`"))
+    ? marker
+    : null;
+}
+
+/**
+ * Track list-item containers so indentation is judged against the item that
+ * holds a line, not the page margin (CodySwannGT/lisa#4700). A line is
+ * indented code only when it sits four or more columns past its container's
+ * content column and no paragraph is open; a paragraph continuation (lazy or
+ * not) stays prose however deeply it is indented. A blank line closes the
+ * paragraph but not the list item, and a less-indented line closes every item
+ * whose content column it falls short of.
+ * @param {string} line - One line with no comment open at its start
+ * @param {{ fence: object | null, items: number[], paragraph: boolean }} state
+ *   - Mutable block state carried between lines
+ * @returns {boolean} True when the line is visible claiming text
+ */
+function claimingBlock(line, state) {
+  const { columns, rest } = leadingColumns(line);
+  if (!rest) {
+    state.paragraph = false;
+    return true;
+  }
+  if (!state.paragraph) closeItemsBefore(state, columns);
+  // Measure from the deepest item the line reaches: a line short of an item's
+  // content column can only be a lazy continuation of it or a block that
+  // closes it, and either way it is code only past the enclosing container.
+  const base = state.items.findLast(content => content <= columns) ?? 0;
+  const relative = columns - base;
+  if (relative >= 4) return state.paragraph;
+  return claimingShallowBlock(columns, rest, relative, state);
+}
+
+/** Close every list item whose content column a line falls short of. */
+function closeItemsBefore(state, columns) {
+  while (state.items.length && state.items.at(-1) > columns) state.items.pop();
+}
+
+/**
+ * A thematic break (`---`, `***`, `___`, `* * *`), or a setext underline
+ * after an open paragraph, ends the paragraph and opens no list item, so a
+ * line indented after it is code again. A break outranks a list item, which
+ * is why `* * *` and `- - -` are read here before `listItem`.
+ * @param {string} rest - Line text from its first non-whitespace character
+ * @param {boolean} paragraph - Whether a paragraph is open before the line
+ * @returns {boolean} True when the line is a break or a setext underline
+ */
+function breaksParagraph(rest, paragraph) {
+  if (/^(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(rest))
+    return true;
+  return paragraph && /^(?:=+|-+)[ \t]*$/.test(rest);
+}
+
+/**
+ * Read a line that starts less than four columns past its container: it may
+ * open a fence, a heading, a thematic break, an HTML comment block or a list
+ * item at `columns`, or continue the open paragraph.
+ *
+ * Any of those block starts, unlike a lazy paragraph line, never continues a
+ * list item's paragraph, so it first closes every item whose content column
+ * the line falls short of. A fence at the margin under `- a` is therefore a
+ * top-level fence that ends with its own closing marker, not one the item's
+ * end would cut short (#4700 review). None of them is a paragraph, so a line
+ * indented after one is code again.
+ * @param {number} columns - Column of the line's first non-whitespace character
+ * @param {string} rest - Line text from that character
+ * @param {number} relative - Columns past the container's content column
+ * @param {{ fence: object | null, items: number[], paragraph: boolean }} state
+ *   - Mutable block state carried between lines
+ * @returns {boolean} True when the line is visible claiming text
+ */
+function claimingShallowBlock(columns, rest, relative, state) {
+  const fence = openingFence(relative, rest);
+  const blockStart = Boolean(
+    fence ||
+    breaksParagraph(rest, state.paragraph) ||
+    /^(?:#{1,6}(?:[ \t]|$)|<!--)/.test(rest)
+  );
+  const item = blockStart ? null : listItem(columns, rest);
+  if (blockStart || item) closeItemsBefore(state, columns);
+  if (item) return openListItem(item, state);
+  if (fence) state.fence = { ...fence, base: state.items.at(-1) ?? 0 };
+  state.paragraph = !blockStart;
+  return !fence;
+}
+
+/** A fence closes on a bare marker no deeper than its container allows. */
+function closesFence(line, fence) {
+  const { columns, rest } = leadingColumns(line);
+  const relative = columns - Math.min(columns, fence.base);
+  if (relative >= 4) return false;
+  const marker = claimingFence(" ".repeat(relative) + rest);
+  return Boolean(
+    marker &&
+    marker.character === fence.character &&
+    marker.length >= fence.length &&
+    !marker.suffix.trim()
+  );
+}
+
+/**
+ * A fenced block cannot outlive the list item that holds it: a non-blank line
+ * indented less than the item's content column ends the item and the fence
+ * with it, so that line is read as ordinary Markdown. Lazy continuation never
+ * applies inside a fence.
+ */
+function endsFenceContainer(line, fence) {
+  const { columns, rest } = leadingColumns(line);
+  return Boolean(rest) && columns < fence.base;
+}
+
 /** Fence and comment contents cannot change the other construct's state. */
 function claimingLine(line, state) {
-  const marker = claimingFence(line);
+  if (state.fence && endsFenceContainer(line, state.fence)) {
+    state.fence = null;
+    state.paragraph = false;
+  }
   if (state.fence) {
-    if (
-      marker &&
-      marker.character === state.fence.character &&
-      marker.length >= state.fence.length &&
-      !marker.suffix.trim()
-    )
-      state.fence = null;
+    if (closesFence(line, state.fence)) state.fence = null;
     return "";
   }
-  if (!state.comment) {
-    if (/^ {4}|^\t/.test(line)) return "";
-    if (marker && !(marker.character === "`" && marker.suffix.includes("`"))) {
-      state.fence = marker;
-      return "";
-    }
-  }
+  if (!state.comment && !claimingBlock(line, state)) return "";
   return withoutClaimingComments(line, state);
 }
 
 /** Claim discovery keeps closing-line suffixes; full-spec projection is separate. */
 function claimingText(body) {
-  const state = { comment: false, fence: null };
+  const state = { comment: false, fence: null, items: [], paragraph: false };
   return body
     .split("\n")
     .map(raw =>
@@ -186,29 +379,67 @@ function claimingText(body) {
     .join("\n");
 }
 
+/** Decode one Markdown escape layer of ASCII punctuation (#4341). */
+function unescapedProse(text) {
+  return text.replace(
+    /\\([\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e])/gu,
+    "$1"
+  );
+}
+
 /**
- * Decode one stored Markdown escape layer outside inline code spans.
+ * Split one line into prose and inline code spans, CommonMark style: an
+ * opening run of N backticks closes at the next run of exactly N, a
+ * backslash-escaped backtick never opens a span, and an unclosed run is
+ * literal text. An autolink or raw HTML tag (`<` then a letter, `/`, `!` or
+ * `?`, closed by `>` on the same line) outranks a code span, so a backtick
+ * inside one never opens a span that would hide a real marker; a prose `<`
+ * followed by a space, as in `a < b`, is not a tag. A span is only recognised within one line: one that wraps
+ * across a soft line break is read as prose. That is a known gap and it fails
+ * safe, because prose can only refuse or over-require evidence, never drop an
+ * obligation; it also keeps a stray backtick from swallowing a later line.
+ * @param {string} line - One claiming line
+ * @returns {string[]} Prose at even indexes, an empty placeholder at each odd
+ *   index where an inline code span was removed
+ */
+function inlineCodeParts(line) {
+  const parts = [];
+  const token = /\\[\s\S]|<[A-Za-z/!?][^>\n]*>|`+/gu;
+  let prose = 0;
+  for (let open = token.exec(line); open; open = token.exec(line)) {
+    if (!open[0].startsWith("`")) continue;
+    const close = new RegExp(`(?<!\`)${open[0]}(?!\`)`, "gu");
+    close.lastIndex = token.lastIndex;
+    if (!close.exec(line)) continue;
+    parts.push(line.slice(prose, open.index), "");
+    prose = close.lastIndex;
+    token.lastIndex = prose;
+  }
+  return [...parts, line.slice(prose)];
+}
+
+/**
+ * Decode one stored Markdown escape layer and mask inline code spans.
  * Linear stores `[EVIDENCE: kind: name]` as `\[EVIDENCE: kind: name\]`; the
  * same one-pass ASCII-punctuation projection the human-gate parser uses
  * (`normalizeProviderMarkdown`, CodySwannGT/lisa#4341) makes the stored and
- * written forms parse identically. Fences, indented code and comments are
- * already removed by `claimingText`; inline code spans keep their bytes so an
- * escaped example inside one cannot become a declaration (#4670).
+ * written forms parse identically (#4670). Fences, indented code and comments
+ * are already removed by `claimingText`. An inline code span of any
+ * backtick-run length is an example too, so it is neither a declaration nor a
+ * malformed one (#4689). Each span becomes a lone backtick, which no marker
+ * grammar accepts, so the prose on either side cannot splice into a marker.
  * @param {string} text - Claiming text with fences and comments removed
- * @returns {string} Text with one escape layer decoded outside code spans
+ * @returns {string} Prose with one escape layer decoded and code spans masked
  */
 function decodedMarkdown(text) {
   return text
-    .split(/(`[^`\n]*`)/u)
-    .map((part, index) =>
-      index % 2
-        ? part
-        : part.replace(
-            /\\([\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e])/gu,
-            "$1"
-          )
+    .split("\n")
+    .map(line =>
+      inlineCodeParts(line)
+        .map((part, index) => (index % 2 ? "`" : unescapedProse(part)))
+        .join("")
     )
-    .join("");
+    .join("\n");
 }
 
 /**
@@ -241,9 +472,9 @@ export function localMarkers(body) {
   return markers;
 }
 
-/** Read an exact markdown section without discarding unknown source sections. */
-export function section(body, heading) {
-  return markdownSection(body, heading);
+/** Read a markdown section without discarding unknown source sections. */
+export function section(body, heading, options) {
+  return markdownSection(body, heading, options);
 }
 
 /** Preserve the first whitespace-delimited environment suffix in linear work. */

@@ -10,24 +10,28 @@
  * Not named `*.test.ts`, so vitest collects nothing from it.
  * @module tests/unit/hooks/support/blind-automerge
  */
-import { chmodSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../../support/borrowed-node-modules.mjs";
+import { useOwnedTempDirs } from "../../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this module makes for the importing file, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** The guard under test, as it lives in the plugin source. */
-export const SCRIPT_PATH = path.resolve(
+const SCRIPT_PATH = path.resolve(
   "plugins/src/base/hooks/block-blind-automerge.sh"
 );
-export const BASH_PATH = "/bin/bash";
+const BASH_PATH = "/bin/bash";
 
 /** Claude's refusal code. Anything else lets the command through. */
 export const EXIT_BLOCKED = 2;
 export const EXIT_ALLOWED = 0;
 
 /** The PR every fixture below describes, as GitHub names it. */
-export const PR_URL = "https://github.com/o/r/pull/3720";
+const PR_URL = "https://github.com/o/r/pull/3720";
 
 /** The arming command every caller in the fleet runs. */
 export const ARM = "gh pr merge 3720 --auto --merge";
@@ -119,7 +123,7 @@ const FAKE_SHEBANG = "#!/usr/bin/env bash";
 export const fakeGh = (
   behavior: GhBehavior
 ): { bin: string; callLog: string } => {
-  const bin = mkdtempSync(path.join(tmpdir(), GH_BIN_PREFIX));
+  const bin = ownedDir(GH_BIN_PREFIX);
   const callLog = path.join(bin, CALL_LOG);
   const stdout =
     behavior.rawStdout ?? JSON.stringify(behavior.payload ?? READY_PR);
@@ -151,14 +155,14 @@ export const fakeGh = (
  * @returns A PATH value containing only those tools.
  */
 export const pathWith = (tools: readonly string[]): string => {
-  const bin = mkdtempSync(path.join(tmpdir(), "lisa-automerge-path-"));
+  const bin = ownedDir("lisa-automerge-path-");
   for (const tool of tools) {
     const resolved = boundedSpawnSync({
       label: `which ${tool}`,
       command: "/usr/bin/env",
       args: ["which", tool],
     }).stdout.trim();
-    if (resolved) symlinkSync(resolved, path.join(bin, tool));
+    if (resolved) createSymlink(resolved, path.join(bin, tool));
   }
   return bin;
 };
@@ -312,7 +316,7 @@ export const routingGh = (answers: {
   readonly rules?: unknown;
   readonly rulesExitCode?: number;
 }): { bin: string; callLog: string } => {
-  const bin = mkdtempSync(path.join(tmpdir(), GH_BIN_PREFIX));
+  const bin = ownedDir(GH_BIN_PREFIX);
   const callLog = path.join(bin, CALL_LOG);
   const script = [
     FAKE_SHEBANG,
@@ -409,7 +413,7 @@ export const graphqlGh = (answers: {
   readonly pr?: unknown;
   readonly rules?: unknown;
 }): { bin: string; callLog: string } => {
-  const bin = mkdtempSync(path.join(tmpdir(), GH_BIN_PREFIX));
+  const bin = ownedDir(GH_BIN_PREFIX);
   const callLog = path.join(bin, CALL_LOG);
   const envelope = JSON.stringify({
     data: { node: answers.node ?? GRAPHQL_GREEN_NODE },

@@ -1,4 +1,4 @@
 display_name: "Improve Max Lines"
-short_description: "reducing the maximum…"
+short_description: "Lower the maximum class/module…"
 default_prompt:
-  - "Use $improve-max-lines: reducing the maximum…."
+  - "Use $improve-max-lines: Lower the maximum class/module…."

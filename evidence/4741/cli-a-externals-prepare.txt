@@ -1,0 +1,41 @@
+HEAD under test: 2a1777df939df9183d0dbfdc1d9e801badaa309f
+$ node -v => v22.23.3; npm -v => 10.9.9
+$ which npm => /tmp/v4741-verify/work/shim/npm
+$ (cd /tmp/v4741-verify/work/a/host && LISA_NPM_DIRECTORY='externals' node /Users/codysai/workspace/lisa/.claude/worktrees/4741-npm-updater-dirs/all/copy-overwrite/scripts/lisa-npm-updater.mjs prepare /tmp/v4741-verify/work/a/host /tmp/v4741-verify/work/a/phase)
+prepared
+exit=0
+phase dir exists: yes
+npm invocations logged by shim: 7
+  npm --version
+  npm config get engine-strict --json
+  npm ci --ignore-scripts --no-audit --no-fund
+  npm outdated --json --long
+  npm view is-number@7.0.0 --json
+  npm install is-number@7.0.0 --save-exact --package-lock-only --save-prod --ignore-scripts --no-audit --no-fund
+  npm ci --ignore-scripts --no-audit --no-fund
+== proposal summary
+{
+ "directory": "externals",
+ "files": [
+  "externals/package-lock.json",
+  "externals/package.json"
+ ],
+ "hasBunLockSha256": false,
+ "updates": [
+  {
+   "from": "6.0.0",
+   "name": "is-number",
+   "section": "dependencies",
+   "to": "7.0.0"
+  }
+ ],
+ "externalsName": "fixture-externals",
+ "lockIsNumber": "7.0.0"
+}
+summary-check exit=0
+== root bun.lock: working tree sha256 vs HEAD blob sha256
+e24fe03c575c99007a5d18aab05154fc0f13802717e700f557f4b77e42519c10  bun.lock
+e24fe03c575c99007a5d18aab05154fc0f13802717e700f557f4b77e42519c10  -
+bun.lock byte-identical: yes
+== git status --porcelain (empty = untouched)
+[end status]

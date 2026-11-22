@@ -174,6 +174,18 @@ describe("evidence-release in-process", () => {
     expect(ghCalls()).not.toContain("releases/tags/pr-assets");
   });
 
+  it("--ensure refuses a malformed acceptedEvidenceReleases before any gh call (#4838)", () => {
+    writeConfig({
+      verification: {
+        completion: { acceptedEvidenceReleases: "pr-assets-old" },
+      },
+    });
+    const result = cli([COMMAND, ENSURE]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("acceptedEvidenceReleases");
+    expect(ghCalls()).toBe("");
+  });
+
   it("--ensure refuses plainly when the repository cannot be found", () => {
     vi.stubEnv("GITHUB_REPOSITORY", "");
     const result = cli([COMMAND, ENSURE]);

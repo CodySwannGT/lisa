@@ -1,0 +1,19 @@
+=== control: base-24d0d26b34
+MISMATCH postgres test-postgres-shard: postgres:${{ inputs.database_version || '16' }}
+MISMATCH postgres test-postgres: postgres:${{ inputs.database_version || '16' }}
+MISMATCH postgres mutation: postgres:${{ inputs.database_version || '16' }}
+MISMATCH database_image declaration
+RESULT: FAIL (4 problems)
+exit=1
+=== control: mutation-reverted
+MISMATCH postgres mutation: postgres:${{ inputs.database_version || '16' }}
+RESULT: FAIL (1 problems)
+exit=1
+=== control: mysql-leak
+MISMATCH mysql test-mysql-shard references database_image: ${{ inputs.database_image || format('mysql:{0}', inputs.database_version || '8.0') }}
+RESULT: FAIL (1 problems)
+exit=1
+=== control: default-nonempty
+MISMATCH database_image declaration
+RESULT: FAIL (1 problems)
+exit=1

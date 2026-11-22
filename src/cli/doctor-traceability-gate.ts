@@ -63,10 +63,10 @@ const LAYER_TWO_NOTE =
 export const GATE_ID = "traceability";
 
 /** The moment the registry permits for this gate. */
-export const GATE_MOMENT = "pull-request";
+const GATE_MOMENT = "pull-request";
 
 /** What an undeclared project is repaired to. */
-export const GATE_LEVEL = "required";
+const GATE_LEVEL = "required";
 
 /**
  * Whether a config declares the traceability gate at all.

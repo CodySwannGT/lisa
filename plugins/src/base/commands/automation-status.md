@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Inspect the current project's Lisa automation fleet and report whether the expected recurring jobs exist, match Lisa's setup contract, and show healthy recent activity. Read-only by default."
 ---
 

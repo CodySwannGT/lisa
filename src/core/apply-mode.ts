@@ -69,7 +69,7 @@ import type { ApplyMode } from "./apply-receipt.js";
 export const LISA_POSTINSTALL_ENV = "LISA_POSTINSTALL";
 
 /** The value {@link LISA_POSTINSTALL_ENV} must hold to count as declared. */
-export const LISA_POSTINSTALL_ENV_VALUE = "1";
+const LISA_POSTINSTALL_ENV_VALUE = "1";
 
 /** The subset of config this decision reads. */
 export interface ApplyModeInputs {

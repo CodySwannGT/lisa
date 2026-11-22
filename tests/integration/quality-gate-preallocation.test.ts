@@ -86,6 +86,17 @@ const plannedJobs = Object.keys(EXPECTED_JOB_GATES).filter(job =>
 );
 
 /**
+ * Reads one job from the parsed workflow, failing loudly when it is absent.
+ * @param jobId - The job id
+ * @returns The job
+ */
+function workflowJob(jobId: string): PlannedWorkflowJob {
+  const job = workflow.jobs[jobId];
+  if (!job) throw new Error(`quality.yml has no job "${jobId}"`);
+  return job;
+}
+
+/**
  * Normalise either legal `needs:` shape.
  * @param job The workflow job to inspect.
  * @returns Every declared dependency as an array.
@@ -191,15 +202,16 @@ describe("quality gate preallocation", () => {
     ).toBe(false);
 
     const planStep = planner?.steps?.find(step => step.id === "plan");
-    expect(planStep?.env?.EXPECTED_PLAN_KEYS?.split(",")).toEqual(
-      Object.keys(EXPECTED_JOB_GATES)
-    );
+    const planKeys = planStep?.env?.EXPECTED_PLAN_KEYS;
+    expect(
+      typeof planKeys === "string" ? planKeys.split(",") : planKeys
+    ).toEqual(Object.keys(EXPECTED_JOB_GATES));
 
     expect(new Set(plannedJobs)).toEqual(new Set(facadeJobs));
     // 29 until #3052 moved five onto declared gate legs.
     expect(plannedJobs).toHaveLength(24);
     for (const jobId of plannedJobs) {
-      const job = workflow.jobs[jobId];
+      const job = workflowJob(jobId);
       expect(needsOf(job), `${jobId} must wait for gate_plan`).toContain(
         "gate_plan"
       );
@@ -223,7 +235,7 @@ describe("quality gate preallocation", () => {
     expect(planStep?.run).toContain("running every existing quality job");
 
     for (const jobId of plannedJobs) {
-      const condition = workflow.jobs[jobId].if ?? "";
+      const condition = workflowJob(jobId).if ?? "";
       expect(condition).toContain("always()");
       expect(condition).toContain("!cancelled()");
       expect(condition).toContain(

@@ -45,7 +45,9 @@ const SHAPE_KEYS = [
   "assigneeId",
   "assigneeLogin",
   "authorId",
+  "authorIntegration",
   "authorLogin",
+  "blockersUnreadable",
   "body",
   "createdAt",
   "isContainer",
@@ -159,8 +161,10 @@ describe("normalizeGithubIssue", () => {
       body: "Body",
       authorId: "100",
       authorLogin: "author",
+      authorIntegration: null,
       isContainer: false,
       openBlockers: 0,
+      blockersUnreadable: false,
       repoLabels: ["repo:api"],
     });
   });
@@ -245,8 +249,10 @@ describe("normalizeJiraIssue", () => {
       body: "Body",
       authorId: "author",
       authorLogin: null,
+      authorIntegration: null,
       isContainer: false,
       openBlockers: 0,
+      blockersUnreadable: false,
       repoLabels: ["repo:web"],
     });
   });
@@ -350,8 +356,10 @@ describe("normalizeLinearIssue", () => {
       body: "Body",
       authorId: "author",
       authorLogin: null,
+      authorIntegration: null,
       isContainer: false,
       openBlockers: 0,
+      blockersUnreadable: false,
       repoLabels: ["repo:api"],
     });
   });

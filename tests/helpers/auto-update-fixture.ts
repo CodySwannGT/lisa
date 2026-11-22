@@ -8,17 +8,14 @@
  * disk — while nothing touches npm, a network or a real repository.
  * @module tests/helpers/auto-update-fixture
  */
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { autoUpdate } from "../../plugins/src/base/hooks/auto-update.mjs";
+import { autoUpdateResult } from "../../plugins/src/base/hooks/auto-update.mjs";
+import { useOwnedTempDirs } from "./owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** Installed version in the fixture. */
 export const OLD = "4.66.5";
@@ -50,6 +47,8 @@ const CHANGED = [
 
 /** How the fake environment answers. */
 export interface World {
+  /** What npm reports as latest (default NEW). */
+  readonly latest?: string;
   /** `git status --porcelain` before the update. */
   readonly dirtyBefore?: string;
   /** Current branch. */
@@ -96,7 +95,7 @@ export function project(options: {
   config?: Record<string, unknown>;
   self?: boolean;
 }): string {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-auto-update-"));
+  const root = ownedDir("lisa-auto-update-");
   const manifest = options.self
     ? {
         name: LISA,
@@ -157,13 +156,13 @@ export function pendingMarker(
 function applySideEffects(root: string, world: World, argv: string[]): boolean {
   if (argv[0] === "bun" && argv[1] === "add") {
     if (world.bumpWorks !== false) {
-      writeJson(installedManifest(root), { version: NEW });
+      writeJson(installedManifest(root), { version: world.latest ?? NEW });
     }
     return true;
   }
   if (argv.join(" ").startsWith(APPLY)) {
     writeJson(path.join(root, ".lisa", "apply-receipt.json"), {
-      lisa_version: NEW,
+      lisa_version: world.latest ?? NEW,
       apply_mode: "full",
     });
   }
@@ -187,6 +186,20 @@ export function fakeRunner(
     [
       line => line === "git status --porcelain",
       () => (updated.current ? CHANGED.join("\n") : (world.dirtyBefore ?? "")),
+    ],
+    [
+      // Scoped to the pending marker's files: only those dirty lines count.
+      line => line.startsWith("git status --porcelain -- "),
+      () => {
+        const files = log.current
+          .at(-1)!
+          .slice("git status --porcelain -- ".length)
+          .split(" ");
+        return (world.dirtyBefore ?? "")
+          .split("\n")
+          .filter(entry => files.includes(entry.slice(3)))
+          .join("\n");
+      },
     ],
     [
       line => line.startsWith("git status --porcelain=v1 -z"),
@@ -241,20 +254,20 @@ export function fakeRunner(
  * @param root - Project root
  * @param world - How the environment answers
  * @param env - Process environment
- * @returns The context text and the commands run
+ * @returns The context text, the developer notice and the commands run
  */
 export async function sessionStart(
   root: string,
   world: World = {},
   env: NodeJS.ProcessEnv = {}
-): Promise<{ text: string; seen: string[] }> {
+): Promise<{ text: string; notice: string | null; seen: string[] }> {
   const runner = fakeRunner(root, world);
-  const text = await autoUpdate({
+  const { text, notice } = await autoUpdateResult({
     projectDir: root,
     env,
     nowMs: Date.parse("2026-10-03T12:00:00Z"),
     run: runner.run,
-    refresh: async () => NEW,
+    refresh: async () => world.latest ?? NEW,
   });
-  return { text, seen: runner.seen };
+  return { text, notice, seen: runner.seen };
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Validate the `secrets`, `remoteEnv`, `automations`, and `sessionManager`
- * blocks.
+ * Validate the `secrets`, `remoteEnv`, `automations`, `sessionManager`, and
+ * `observability` blocks.
  *
  * These blocks are read by shell, by Node, and by generated workflows, so a
  * malformed one surfaces late and somewhere unhelpful — a container that fails
@@ -28,6 +28,15 @@ const IMPLEMENTED_PROVIDERS = new Set(["bitwarden", "doppler", "env"]);
 
 /** Providers named in the dispatch table but not yet implemented. */
 const DECLARED_PROVIDERS = new Set(["1password", "aws", "vault"]);
+
+/**
+ * Every provider name the secrets contract recognises, implemented or declared.
+ * Exported so a caller that prints the name into shell can refuse anything else.
+ */
+export const KNOWN_SECRETS_PROVIDERS = Object.freeze([
+  ...IMPLEMENTED_PROVIDERS,
+  ...DECLARED_PROVIDERS,
+]);
 
 /**
  * Surfaces the resolver knows.
@@ -520,7 +529,7 @@ const TOKEN_VALUE = /^\d{5,}:[A-Za-z0-9_-]{30,}$/;
  * A legacy Jira Cloud accountId (`557058:<uuid>`), which `TOKEN_VALUE` also
  * matches (CodySwannGT/lisa#4719).
  *
- * Exempted only for `operatorIds` / `trustedAuthorIds` entries, where a Jira
+ * Exempted only for `operatorIds` / `trustedAuthorIds` / `trustedReleaseIds` entries, where a Jira
  * project puts exactly this id. A Telegram token's secret half is never in
  * canonical UUID form, so the exemption lets no token through.
  */
@@ -528,7 +537,11 @@ const JIRA_LEGACY_ACCOUNT_ID =
   /^\d+:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The block's id lists, whose entries the credential scan reads by kind. */
-const ID_LIST_KEYS = new Set(["operatorIds", "trustedAuthorIds"]);
+const ID_LIST_KEYS = new Set([
+  "operatorIds",
+  "trustedAuthorIds",
+  "trustedReleaseIds",
+]);
 
 /** Key names that only ever hold a credential. */
 const CREDENTIAL_KEY = /token|secret|password|passwd|api[-_]?key|credential/i;
@@ -676,10 +689,13 @@ const STALL_RULES = {
   noOutputMinutes: [n => n >= 0, "zero or a positive number"],
   maxAttempts: [n => Number.isInteger(n) && n > 0, "a positive integer"],
   requestionHours: [n => n >= 0, "zero or a positive number"],
+  orphanHours: [n => n >= 0, "zero or a positive number"],
 };
 
 /** Notification providers `sessionManager.notify.provider` accepts. */
 const NOTIFY_PROVIDERS = ["none", "telegram"];
+/** Notification levels `sessionManager.notify.level` accepts. */
+const NOTIFY_LEVELS = ["all", "asks-only"];
 
 /**
  * Validate `sessionManager.notify`.
@@ -704,6 +720,9 @@ function validateNotify(notify) {
       `sessionManager.notify.provider ${JSON.stringify(provider)} is not ` +
         `supported. Use "none" (no notification channel) or "telegram".`,
     ];
+  }
+  if (notify?.level !== undefined && !NOTIFY_LEVELS.includes(notify.level)) {
+    return ['sessionManager.notify.level must be "all" or "asks-only".'];
   }
   const hasStateDir = notify?.stateDir !== undefined;
   const stateDirOk =
@@ -803,7 +822,14 @@ function findCredentials(value, path, segments = []) {
 const ID_ENTRY_PREFIX = /^([A-Za-z]+):/;
 
 /** The kinds an id entry's prefix may name. */
-const ID_ENTRY_KINDS = new Set(["login", "id"]);
+const ID_ENTRY_KINDS = new Set(["login", "id", "integration"]);
+
+/**
+ * The one list an `integration:` entry belongs in (CodySwannGT/lisa#4895): an
+ * integration may author dispatched work, but it is not a person, so it can
+ * never be an operator or release a human hold.
+ */
+const INTEGRATION_LIST_KEYS = new Set(["trustedAuthorIds"]);
 
 /** Letters-and-colon starts of real tracker ids (JSM customers' `qm:`). */
 const PLAIN_ID_STARTS = new Set(["qm"]);
@@ -817,10 +843,11 @@ const ALL_DIGIT_ENTRY = /^\d+$/;
  * A local copy of the grammar in `scripts/operator-id-kinds.mjs`, because
  * plugin payload scripts ship standalone; `operator-id-kinds.test.ts` pins
  * the two together. `login:<v>` is a GitHub login, `id:<v>` an account id,
- * and an entry with no letters-only prefix is plain (a Jira accountId such as
+ * `integration:<service>` an integration that files items no person authored
+ * (CodySwannGT/lisa#4895), and an entry with no letters-only prefix is plain (a Jira accountId such as
  * `557058:<uuid>` or `qm:<id>` included).
  * @param {string} entry One entry.
- * @returns {"login" | "id" | "plain" | "unknown-prefix" | "empty-value"} Kind.
+ * @returns {"login" | "id" | "integration" | "plain" | "unknown-prefix" | "empty-value"} Kind.
  */
 export function classifyIdEntry(entry) {
   const prefix = ID_ENTRY_PREFIX.exec(entry)?.[1];
@@ -844,53 +871,75 @@ function botTokenProblem(path) {
 }
 
 /**
- * Scan one `operatorIds` / `trustedAuthorIds` entry for a bot token
+ * Strip every leading `login:` / `id:` / `integration:` prefix from an entry, so a value
+ * stacked behind several (`login:id:<v>`) is reached (CodySwannGT/lisa#4754).
+ * @param {string} entry One entry, already trimmed.
+ * @returns {string} The value after the last known prefix, trimmed.
+ */
+function stripIdEntryPrefixes(entry) {
+  const prefix = ID_ENTRY_PREFIX.exec(entry)?.[1];
+  return prefix !== undefined && ID_ENTRY_KINDS.has(prefix)
+    ? stripIdEntryPrefixes(entry.slice(prefix.length + 1).trim())
+    : entry;
+}
+
+/**
+ * Scan one `operatorIds` / `trustedAuthorIds` / `trustedReleaseIds` entry for a bot token
  * (CodySwannGT/lisa#4719).
  *
- * The value after a `login:` / `id:` prefix is what gets tested, since a
- * token pasted behind a prefix is as leaked as a bare one. A legacy Jira
- * accountId (`557058:<uuid>`) is token-shaped but is a real id, so it passes.
+ * The value after one or more `login:` / `id:` / `integration:` prefixes is what gets tested,
+ * since a token pasted behind a prefix (or a stack of them, such as
+ * `login:id:<token>`; CodySwannGT/lisa#4754) is as leaked as a bare one. A
+ * legacy Jira accountId (`557058:<uuid>`) is token-shaped but is a real id,
+ * so it passes.
  * @param {string} entry One entry.
  * @param {string} path Where the entry sits.
  * @returns {string[]} Problems found.
  */
 function idEntryCredentials(entry, path) {
-  const trimmed = entry.trim();
-  const prefix = ID_ENTRY_PREFIX.exec(trimmed)?.[1];
-  const value =
-    prefix !== undefined && ID_ENTRY_KINDS.has(prefix)
-      ? trimmed.slice(prefix.length + 1).trim()
-      : trimmed;
+  const value = stripIdEntryPrefixes(entry.trim());
   return TOKEN_VALUE.test(value) && !JIRA_LEGACY_ACCOUNT_ID.test(value)
     ? botTokenProblem(path)
     : [];
 }
 
 /**
- * Refuse each malformed kind-keyed entry, naming it. A reader matches such an
- * entry against nobody, so accepting it would silently drop a person.
- * @param {string} key `operatorIds` or `trustedAuthorIds`.
+ * Refuse each malformed kind-keyed entry, naming its location and prefix. A
+ * reader matches such an entry against nobody, so accepting it would silently
+ * drop a person. The refusal never repeats the entry's value: a token pasted
+ * behind an unknown prefix (`ID:<token>`) would otherwise land in terminals,
+ * CI logs and transcripts (CodySwannGT/lisa#4754).
+ * @param {string} key `operatorIds`, `trustedAuthorIds` or `trustedReleaseIds`.
  * @param {readonly string[]} ids Entries, already known to be strings.
  * @returns {string[]} Problems found.
  */
 function idEntryProblems(key, ids) {
   const prefixOf = entry => `${ID_ENTRY_PREFIX.exec(entry)[1]}:`;
-  return ids.flatMap(entry => {
+  return ids.flatMap((entry, i) => {
     const kind = classifyIdEntry(entry);
+    const path = `sessionManager.${key}[${i}]`;
     if (kind === "unknown-prefix") {
       const prefix = prefixOf(entry);
       return [
-        `sessionManager.${key} entry ${JSON.stringify(entry)} has an ` +
+        `${path} has an ` +
           `unknown prefix ${JSON.stringify(prefix)}. Use login:<GitHub ` +
-          `login>, id:<numeric or tracker account id>, or a plain id; write ` +
-          `a tracker id that itself starts with letters and a colon as ` +
-          `id:<that id>.`,
+          `login>, id:<numeric or tracker account id>, ` +
+          `integration:<service> (trustedAuthorIds only), or a plain id; ` +
+          `write a tracker id that itself starts with letters and a colon ` +
+          `as id:<that id>.`,
+      ];
+    }
+    if (kind === "integration" && !INTEGRATION_LIST_KEYS.has(key)) {
+      return [
+        `${path} is an integration: entry, which belongs only in ` +
+          `sessionManager.trustedAuthorIds. An integration can author ` +
+          `dispatched work but is not a person, so it can never be an ` +
+          `operator, answer a question, or release a human hold.`,
       ];
     }
     return kind === "empty-value"
       ? [
-          `sessionManager.${key} entry ${JSON.stringify(entry)} has an ` +
-            `empty value after ${JSON.stringify(prefixOf(entry))}: name the ` +
+          `${path} has an empty value after ${JSON.stringify(prefixOf(entry))}: name the ` +
             `login or id after the prefix.`,
         ]
       : [];
@@ -968,6 +1017,31 @@ function validateOperatorIds(ids) {
 }
 
 /**
+ * Validate one trust list: `trustedAuthorIds` (whose items may be dispatched)
+ * or `trustedReleaseIds` (who may release a human hold; CodySwannGT/lisa#4895).
+ * Both take stable ids, never logins or display names, and both refuse an
+ * empty list, which reads as set while trusting no one or everyone.
+ * @param {"trustedAuthorIds" | "trustedReleaseIds"} key The list's key.
+ * @param {unknown} ids The value, if present.
+ * @param {string} emptyProblem The refusal for an empty list.
+ * @returns {string[]} Problems found.
+ */
+function validateTrustList(key, ids, emptyProblem) {
+  if (ids === undefined) return [];
+  if (
+    !Array.isArray(ids) ||
+    !ids.every(id => typeof id === "string" && id !== "")
+  ) {
+    return [
+      `sessionManager.${key} must be an array of stable ` +
+        `tracker user ids (GitHub numeric user id, Jira accountId, ` +
+        `Linear user id), not logins or display names.`,
+    ];
+  }
+  return ids.length === 0 ? [emptyProblem] : idEntryProblems(key, ids);
+}
+
+/**
  * Validate the opt-in `sessionManager` block.
  *
  * Structure only, like the rest of this file: whether the bot answers or tmux
@@ -985,11 +1059,6 @@ export function validateSessionManager(block) {
     typeof block.name === "string" && SESSION_MANAGER_NAME.test(block.name);
   const intervalOk =
     block.interval === undefined || parseLoopInterval(block.interval) !== null;
-  const trustedOk =
-    block.trustedAuthorIds === undefined ||
-    (Array.isArray(block.trustedAuthorIds) &&
-      block.trustedAuthorIds.every(id => typeof id === "string" && id !== ""));
-
   return [
     ...(nameOk
       ? []
@@ -1008,27 +1077,23 @@ export function validateSessionManager(block) {
     ...validateNumberBlock("capacity", block.capacity, CAPACITY_RULES),
     ...validateNumberBlock("stall", block.stall, STALL_RULES),
     ...validateNotify(block.notify),
-    ...(trustedOk
-      ? []
-      : [
-          `sessionManager.trustedAuthorIds must be an array of stable ` +
-            `tracker user ids (GitHub numeric user id, Jira accountId, ` +
-            `Linear user id), not logins or display names.`,
-        ]),
-    ...(trustedOk && Array.isArray(block.trustedAuthorIds)
-      ? idEntryProblems("trustedAuthorIds", block.trustedAuthorIds)
-      : []),
-    // An empty list reads as "set" but filters no author at all, so on a
-    // public repo it would dispatch anyone's item while looking configured.
-    ...(trustedOk &&
-    Array.isArray(block.trustedAuthorIds) &&
-    block.trustedAuthorIds.length === 0
-      ? [
-          `sessionManager.trustedAuthorIds must name at least one author id. ` +
-            `An empty list filters no author at all; remove the key instead ` +
-            `if every author's item may be dispatched.`,
-        ]
-      : []),
+    ...validateTrustList(
+      "trustedAuthorIds",
+      block.trustedAuthorIds,
+      `sessionManager.trustedAuthorIds must name at least one author id. ` +
+        `An empty list filters no author at all; remove the key instead ` +
+        `if every author's item may be dispatched. Removing it also ` +
+        `removes who may release a human hold, unless ` +
+        `sessionManager.trustedReleaseIds names them; to dispatch items an ` +
+        `integration files, add integration:<service> instead.`
+    ),
+    ...validateTrustList(
+      "trustedReleaseIds",
+      block.trustedReleaseIds,
+      `sessionManager.trustedReleaseIds must name at least one person. ` +
+        `An empty list releases no hold at all; remove the key instead to ` +
+        `fall back to trustedAuthorIds.`
+    ),
     ...validateOperatorIds(block.operatorIds),
     ...validateBacklogPickup(block.backlogPickup, block.operatorIds),
     ...findCredentials(block, "sessionManager"),
@@ -1037,9 +1102,11 @@ export function validateSessionManager(block) {
 
 /**
  * Validate `sessionManager.backlogPickup`: opt-in promotion of validated
- * backlog items to Ready, assigned to `operatorIds[0]`. Without an operator
- * there is nobody to assign the promoted item to, so it is refused rather
- * than promoting work into the agent's own name.
+ * backlog items to Ready. A promoted item keeps any assignee it has; an
+ * unassigned one is assigned to the manager ("me"), as every item it takes is
+ * (CodySwannGT/lisa#5029). The pickup still needs an operator: it starts work
+ * nobody marked Ready, so it stays off until the config names the people the
+ * manager works for.
  * @param {unknown} value The value, if present.
  * @param {unknown} operatorIds `sessionManager.operatorIds`, if present.
  * @returns {string[]} Problems found.
@@ -1056,10 +1123,49 @@ function validateBacklogPickup(value, operatorIds) {
     operatorIds.some(id => typeof id === "string" && id.trim() !== "");
   return value && !hasOperator
     ? [
-        `sessionManager.backlogPickup needs sessionManager.operatorIds: a ` +
-          `promoted backlog item is assigned to the first operator.`,
+        `sessionManager.backlogPickup needs sessionManager.operatorIds: it ` +
+          `starts work nobody marked Ready, so it needs the people the ` +
+          `manager works for.`,
       ]
     : [];
+}
+
+/**
+ * Providers each `observability` role may name. The first entry is the
+ * built-in default an absent key resolves to, which is what Lisa assumed
+ * before the key existed, so an existing project changes nothing. `other`
+ * means "a provider Lisa has no dedicated path for": guidance discovers what
+ * the project wires instead of reaching for Sentry or PostHog.
+ */
+export const OBSERVABILITY_PROVIDERS = {
+  errorTracking: ["sentry", "none", "other"],
+  analytics: ["posthog", "none", "other"],
+};
+
+/**
+ * Validate the `observability` block.
+ *
+ * A closed vocabulary because a typo must not silently resolve to the default
+ * and send an agent to a tool the project does not have.
+ * @param {unknown} block The `observability` block, possibly absent.
+ * @returns {string[]} Problems found.
+ */
+export function validateObservability(block) {
+  if (block === undefined) return [];
+  if (!isPlainObject(block)) return ["observability must be an object"];
+  return Object.entries(OBSERVABILITY_PROVIDERS).flatMap(([role, allowed]) => {
+    const entry = block[role];
+    if (entry === undefined) return [];
+    if (!isPlainObject(entry)) {
+      return [`observability.${role} must be an object`];
+    }
+    const provider = entry.provider;
+    if (provider === undefined || allowed.includes(provider)) return [];
+    return [
+      `observability.${role}.provider is ${JSON.stringify(provider)}; ` +
+        `expected one of ${allowed.map(v => `"${v}"`).join(" | ")}`,
+    ];
+  });
 }
 
 /**
@@ -1073,6 +1179,7 @@ export function validateConfig(cfg) {
     ...validateRemoteEnv(cfg.remoteEnv),
     ...validateAutomations(cfg.automations, cfg.remoteEnv),
     ...validateSessionManager(cfg.sessionManager),
+    ...validateObservability(cfg.observability),
   ];
 }
 
@@ -1122,13 +1229,17 @@ function readJsonIfPresent(file) {
   return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : undefined;
 }
 
+/** Blocks the runtime reads local over committed, so validation must too. */
+const LOCAL_MERGED_BLOCKS = ["sessionManager", "observability"];
+
 /**
  * Read the config this CLI validates from a project root.
  *
- * `sessionManager` is merged local over committed (deep, per key), because
- * that is how the runtime resolves it and a bad local override must fail here,
- * not at runtime. Every other block is read from `.lisa.config.json` alone,
- * exactly as before, so their validation is unchanged.
+ * `sessionManager` and `observability` are merged local over committed (deep,
+ * per key), because that is how the runtime resolves them and a bad local
+ * override must fail here, not at runtime. Every other block is read from
+ * `.lisa.config.json` alone, exactly as before, so their validation is
+ * unchanged.
  * @param {string} root Project root.
  * @returns {Record<string, unknown> | null} Config to validate, or null when
  *   neither file exists.
@@ -1138,11 +1249,13 @@ export function readValidationConfig(root) {
   const local = readJsonIfPresent(join(root, ".lisa.config.local.json"));
   if (committed === undefined && local === undefined) return null;
   const base = isPlainObject(committed) ? committed : {};
-  const blocks = [base.sessionManager, local?.sessionManager].filter(
-    isPlainObject
+  const merged = Object.fromEntries(
+    LOCAL_MERGED_BLOCKS.flatMap(name => {
+      const blocks = [base[name], local?.[name]].filter(isPlainObject);
+      return blocks.length === 0 ? [] : [[name, mergeConfigLayers(...blocks)]];
+    })
   );
-  if (blocks.length === 0) return base;
-  return { ...base, sessionManager: mergeConfigLayers(...blocks) };
+  return { ...base, ...merged };
 }
 
 function main() {
@@ -1158,7 +1271,7 @@ function main() {
   }
   if (!problems.length) {
     console.log(
-      "config: secrets, remoteEnv, automations and sessionManager blocks are well-formed"
+      "config: secrets, remoteEnv, automations, sessionManager and observability blocks are well-formed"
     );
     return;
   }

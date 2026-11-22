@@ -1,4 +1,4 @@
 display_name: "Tracker Verify"
-short_description: "Vendor-neutral wrapper for the post-write verification gate"
+short_description: "Check a ticket after it was written, in whichever tracker the project uses, by fetching it live and running the quality gates against what…"
 default_prompt:
-  - "Use $lisa-tracker-verify: Vendor-neutral wrapper for the post-write verification gate."
+  - "Use $lisa-tracker-verify: Check a ticket after it was written, in whichever tracker the project uses, by fetching it live and running the quality gates against what…."

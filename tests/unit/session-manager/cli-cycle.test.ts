@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   MEMINFO,
+  TAKEN,
   makeSandbox,
   removeSandboxes,
   runCli,
@@ -254,7 +255,12 @@ describe("ledger", () => {
       "--me",
       "me",
     ]);
-    expect(control.json).toEqual({ paused: true, maxWorkers: 0, me: "me" });
+    expect(control.json).toEqual({
+      paused: true,
+      maxWorkers: 0,
+      me: "me",
+      setupGaps: {},
+    });
     const capacity = runCli(sandbox, ["capacity", "--meminfo", MEMINFO]);
     expect(capacity.json).toMatchObject({
       cap: 0,
@@ -295,7 +301,13 @@ describe("ledger", () => {
 describe("classify", () => {
   it("hashes claude logs by worker name and classifies live and dead workers", () => {
     const sandbox = makeSandbox();
-    const spawned = runCli(sandbox, ["spawn", "DEMO-5", "--meminfo", MEMINFO]);
+    const spawned = runCli(sandbox, [
+      "spawn",
+      "DEMO-5",
+      ...TAKEN,
+      "--meminfo",
+      MEMINFO,
+    ]);
     const live = runCli(sandbox, ["classify", "DEMO-5"], {
       agents: [activeAgent(spawned.json.name)],
     });

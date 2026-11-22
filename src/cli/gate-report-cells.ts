@@ -42,7 +42,7 @@ export interface MomentContext {
   /** The moment, `:environment` suffix included. */
   readonly moment: string;
   /** `resolveMoment(..., includeOff: true)` keyed by gate id, or null. */
-  readonly resolved: ReadonlyMap<string, ResolvedGate> | null;
+  readonly resolved: ReadonlyMap<string, readonly ResolvedGate[]> | null;
   /** Why `resolved` is null, when it is. */
   readonly failure: string | null;
 }
@@ -117,7 +117,7 @@ function rawEntry(
  * @param id - Gate id
  * @returns The task, or null
  */
-export function gateLevelRun(
+function gateLevelRun(
   gates: Record<string, unknown>,
   id: string
 ): string | null {
@@ -151,7 +151,7 @@ export function gateLevelRun(
  *   manifest cannot establish that the concern-named script is absent.
  * @returns The winning source and its task
  */
-export function resolveProvenance(options: {
+function resolveProvenance(options: {
   entry: Record<string, unknown> | null;
   gateRun: string | null;
   definition: RegistryGate | undefined;
@@ -210,7 +210,7 @@ function shippedAsTask(
  * @param task - The resolved task
  * @returns A three-state finding, never a defaulted pass
  */
-export function commandExistsFinding(
+function commandExistsFinding(
   scripts: Readonly<Record<string, string>> | null,
   task: string | null
 ): Finding<boolean> {
@@ -249,7 +249,7 @@ export function commandExistsFinding(
  * @param options.facadeKnown - Whether this run could read the CI workflows
  * @returns A bucket, or an explicit refusal
  */
-export function classifyBucket(options: {
+function classifyBucket(options: {
   active: boolean;
   mode: ProofMode | null;
   commandExists: Finding<boolean>;
@@ -363,20 +363,22 @@ export function buildCell(
   const family = registry.momentFamily(moment);
   const legal = definition?.moments.includes(family) === true;
   const entry = rawEntry(gates, id, moment);
-  const gateRun = gateLevelRun(gates, id);
   const { task, provenance } = resolveProvenance({
     entry,
-    gateRun,
+    gateRun: gateLevelRun(gates, id),
     definition,
     family,
     scripts,
   });
-  const hit = resolved?.get(id);
+  const hit = resolved?.get(id)?.[0];
   const declaration = declarationOf(entry, resolved, failure, id);
   const active = ACTIVE_LEVELS.has(declaration);
   const mode = modeOf(declaration, hit);
   const awaits = hit?.awaits ?? null;
-  const cellTask = mode === "await" || mode === "intercept" ? null : task;
+  const cellTask =
+    mode === "await" || mode === "intercept" || hit?.scope !== undefined
+      ? null
+      : task;
   const commandExists = commandExistsFinding(scripts, cellTask);
   const executors = executorsFor(hooks, {
     moment,
@@ -435,11 +437,11 @@ export function buildCell(
  */
 function declarationOf(
   entry: Record<string, unknown> | null,
-  resolved: ReadonlyMap<string, ResolvedGate> | null,
+  resolved: ReadonlyMap<string, readonly ResolvedGate[]> | null,
   failure: string | null,
   id: string
 ): DeclarationState {
-  if (resolved !== null) return asDeclaration(resolved.get(id)?.level);
+  if (resolved !== null) return asDeclaration(resolved.get(id)?.[0]?.level);
   if (failure !== null && entry !== null) return asDeclaration(entry.level);
   return UNDECLARED;
 }

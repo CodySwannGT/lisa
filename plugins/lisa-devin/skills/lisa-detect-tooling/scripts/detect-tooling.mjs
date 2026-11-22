@@ -452,7 +452,7 @@ export function satisfiedByNpm(pkg, tool) {
 /**
  * Collect every signal and subtract what the manifest already covers.
  * @param {string} [cwd] Project root.
- * @returns {Array<{name: string, why: string, evidence: string[]}>} Proposals.
+ * @returns {Array<{name: string, why: string, evidence: string[], source: "curated" | "discovered"}>} Proposals; `source` says which vocabulary the `why` came from.
  */
 export function detectTooling(cwd = process.cwd()) {
   const config = readJson(join(cwd, ".lisa.config.json"));
@@ -529,8 +529,8 @@ export function discoveredWhy(name, fromHook) {
  * keeping a Linux binary off a laptop meant excluding the tool from laptops
  * altogether — which is how `bws` and `gh` came to be required on a developer
  * machine and installable only in a container.
- * @param {{name: string}} proposal One detected tool.
- * @returns {{install: object[], require: object[]}} Manifest skeletons.
+ * @param {{name: string, why?: string, evidence?: string[], source?: string}} proposal One detected tool; only `name` is read.
+ * @returns {{install: object[], require: object[], question?: string}} Manifest skeletons, plus the question to ask when the tool has no pinnable CLI.
  */
 export function proposedEntries(proposal) {
   // Whether a binary can be proposed is a fact about the TOOL, not about how it

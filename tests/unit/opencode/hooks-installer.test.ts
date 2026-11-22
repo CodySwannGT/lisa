@@ -22,7 +22,6 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 /** Plugin template basenames (de-duplicated for sonarjs/no-duplicate-string). */
 const SESS = "lisa-session-bootstrap.ts";
-const PARITY = "lisa-parity-safety-net.ts";
 const LINT = "lisa-lint-on-edit.ts";
 const SUPPR = "lisa-block-suppress-directives.ts";
 const SGSCAN = "lisa-sg-scan-on-edit.ts";
@@ -42,8 +41,8 @@ const UNIVERSAL = [ISSUE, INSTR, MANAGED, NO_VERIFY, HOST_NAME, DISCHARGE];
 /** The tail every roster shares. */
 const TAIL = [SESS, SGSCAN];
 const byName = (a: string, b: string): number => a.localeCompare(b);
-const TS_PLUGINS = [...UNIVERSAL, SUPPR, LINT, PARITY, ...TAIL].sort(byName);
-const RAILS_PLUGINS = [...UNIVERSAL, PARITY, RUBOCOP, ...TAIL].sort(byName);
+const TS_PLUGINS = [...UNIVERSAL, SUPPR, LINT, ...TAIL].sort(byName);
+const RAILS_PLUGINS = [...UNIVERSAL, RUBOCOP, ...TAIL].sort(byName);
 
 describe("opencode/hooks-installer", () => {
   let tempDir: string;

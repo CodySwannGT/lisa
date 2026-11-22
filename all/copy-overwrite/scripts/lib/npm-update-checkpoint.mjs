@@ -9,6 +9,7 @@
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { keys, required } from "./npm-update-contract.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
+import { trackerOf, trackerFor } from "./npm-update-tracker.mjs";
 import {
   checkpointPayloadBytes,
   encodeCheckpointBytes,
@@ -216,12 +217,14 @@ export async function persistCheckpoint(
   number,
   payload,
   digest,
-  authorize
+  authorize,
+  config
 ) {
-  const endpoint = `repos/${api.policy.repository}/issues/${number}/comments`;
-  const issueUrl = `https://api.github.com/repos/${api.policy.repository}/issues/${number}`;
+  // GitHub keeps its original endpoint, scope check and readback inside the adapter.
+  // A caller holding the committed config proves the adapter is the configured one.
+  const tracker = config ? trackerFor(api, api.policy, config) : trackerOf(api);
   await authorize();
-  let existing = await api.list(endpoint);
+  let existing = await tracker.comments(number);
   const bodies = writeBodies(payload, digest, existing);
   for (const body of bodies) {
     const selected = relevant(existing, digest);
@@ -236,7 +239,7 @@ export async function persistCheckpoint(
     // Existing exact bodies require no mutation. Missing bodies always renew live authority
     // and inventory first, including when completion is the sole remaining legacy write.
     await authorize();
-    existing = await api.list(endpoint);
+    existing = await tracker.comments(number);
     const refreshed = relevant(existing, digest);
     required(
       new Set(refreshed).size === refreshed.length &&
@@ -253,32 +256,9 @@ export async function persistCheckpoint(
         "checkpoint chunks must read back before completion"
       );
     }
-    if (!matches.length) {
-      const created = await api.request(endpoint, "POST", { body });
-      required(
-        created.issue_url === issueUrl,
-        "checkpoint write scope differs"
-      );
-      required(
-        created.body === body &&
-          Number.isSafeInteger(created.id) &&
-          created.id > 0,
-        "checkpoint write readback differs"
-      );
-      const read = await api.request(
-        `repos/${api.policy.repository}/issues/comments/${created.id}`
-      );
-      required(
-        read.issue_url === issueUrl,
-        "checkpoint immediate readback scope differs"
-      );
-      required(
-        read.id === created.id && read.body === body,
-        "checkpoint immediate readback differs"
-      );
-    }
+    if (!matches.length) await tracker.durableComment(number, body);
   }
-  const restored = decodeCheckpoint(await api.list(endpoint), digest);
+  const restored = decodeCheckpoint(await tracker.comments(number), digest);
   required(
     canonicalJson(restored) === canonicalJson(payload),
     "durable complete checkpoint differs"

@@ -1,4 +1,4 @@
 display_name: "Verify PRD"
-short_description: "Initiative-level PRD acceptance gate"
+short_description: "Accept or reject a whole PRD once all its child work is done: check every child is finished, verify the shipped product against the PRD…"
 default_prompt:
-  - "Use $lisa-verify-prd: Initiative-level PRD acceptance gate."
+  - "Use $lisa-verify-prd: Accept or reject a whole PRD once all its child work is done: check every child is finished, verify the shipped product against the PRD…."

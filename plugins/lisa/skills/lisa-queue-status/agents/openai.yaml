@@ -1,4 +1,4 @@
 display_name: "Queue Status"
-short_description: "Read-only operator surface for the current project's PRD and build backlog health"
+short_description: "Read-only health view of this project's PRD and build queues: counts per lifecycle state, whether a queue is idle or misconfigured, and the…"
 default_prompt:
-  - "Use $lisa-queue-status: Read-only operator surface for the current project's PRD and build backlog health."
+  - "Use $lisa-queue-status: Read-only health view of this project's PRD and build queues: counts per lifecycle state, whether a queue is idle or misconfigured, and the…."

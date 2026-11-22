@@ -37,7 +37,7 @@ function recipesFor(authority) {
     "broker controller Node identity differs"
   );
   required(
-    graph && Object.keys(graph).length > 0 && Object.keys(graph).length <= 128,
+    graph && Object.keys(graph).length > 0 && Object.keys(graph).length <= 256,
     "broker graph is absent or unbounded"
   );
   required(

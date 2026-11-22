@@ -1,0 +1,67 @@
+=== bite control: mutation-reverted
+     × mutation postgres service reads database_image 3ms
+     × AC-1: no inputs keeps postgres:16 0ms
+     × AC-2: database_version still selects the tag 0ms
+     × AC-3: database_image passes through exactly, digest included 0ms
+     × an empty database_image falls back like an omitted one 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > mutation postgres service reads database_image
+AssertionError: expected 'postgres:${{ inputs.database_version …' to be '${{ inputs.database_image || format(\…' // Object.is equality
+Expected: "${{ inputs.database_image || format('postgres:{0}', inputs.database_version || '16') }}"
+Received: "postgres:${{ inputs.database_version || '16' }}"
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > AC-1: no inputs keeps postgres:16
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > AC-2: database_version still selects the tag
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > AC-3: database_image passes through exactly, digest included
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > an empty database_image falls back like an omitted one
+      Tests  5 failed | 5 passed (10)
+exit=1
+
+=== bite control: mysql-leak
+     × AC-4: test-mysql-shard mysql service is untouched 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > AC-4: test-mysql-shard mysql service is untouched
+AssertionError: expected '${{ inputs.database_image || format(\…' to be 'mysql:${{ inputs.database_version || …' // Object.is equality
+Expected: "mysql:${{ inputs.database_version || '8.0' }}"
+Received: "${{ inputs.database_image || format('mysql:{0}', inputs.database_version || '8.0') }}"
+      Tests  1 failed | 9 passed (10)
+exit=1
+
+=== bite control: default-nonempty
+     × declares an optional string input with an empty default 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > declares an optional string input with an empty default
+AssertionError: expected { …(4) } to match object { type: 'string', …(2) }
+- Expected
++ Received
+      Tests  1 failed | 9 passed (10)
+exit=1
+
+=== bite control: base-24d0d26b34
+     × declares an optional string input with an empty default 3ms
+     × test-postgres-shard postgres service reads database_image 1ms
+     × test-postgres postgres service reads database_image 0ms
+     × mutation postgres service reads database_image 0ms
+     × AC-1: no inputs keeps postgres:16 0ms
+     × AC-2: database_version still selects the tag 0ms
+     × AC-3: database_image passes through exactly, digest included 0ms
+     × an empty database_image falls back like an omitted one 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > declares an optional string input with an empty default
+AssertionError: expected undefined to match object { type: 'string', …(2) }
+- Expected:
++ Received:
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > test-postgres-shard postgres service reads database_image
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > test-postgres postgres service reads database_image
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > mutation postgres service reads database_image
+AssertionError: expected 'postgres:${{ inputs.database_version …' to be '${{ inputs.database_image || format(\…' // Object.is equality
+Expected: "${{ inputs.database_image || format('postgres:{0}', inputs.database_version || '16') }}"
+Received: "postgres:${{ inputs.database_version || '16' }}"
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > AC-1: no inputs keeps postgres:16
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > AC-2: database_version still selects the tag
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > AC-3: database_image passes through exactly, digest included
+ FAIL  |lisa| tests/integration/quality-rails-database-image.test.ts > quality-rails.yml database_image input (#4671) > an empty database_image falls back like an omitted one
+      Tests  8 failed | 2 passed (10)
+exit=1
+
+restored; sha256 of restored workflow:
+c0d0408ad51c138d30800e9416d299e3294018b2036d412cffae78a2d0a92cab  .github/workflows/quality-rails.yml

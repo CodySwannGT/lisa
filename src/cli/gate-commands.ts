@@ -8,6 +8,10 @@ import {
   type LearningsOverflowOptions,
 } from "./learnings-overflow-cmd.js";
 import {
+  runLearningsRetire,
+  type LearningsRetireOptions,
+} from "./learnings-retire-cmd.js";
+import {
   runMergeLearnings,
   type MergeLearningsOptions,
 } from "./merge-learnings-cmd.js";
@@ -16,15 +20,16 @@ import {
  * Gate runners kept structural to avoid importing the whole CLI dependency
  * record.
  *
- * `merge-learnings`, `install-merge-driver`, and `learnings-overflow` are
- * deliberately NOT members. They are invoked by git, by an operator repairing a
- * repository, or by the gardener draining its buffer — never substituted by the
- * root CLI — and all three mutate real state: the merge driver overwrites the
- * file git hands it, the installer writes local git config, and the drain
- * removes entries from the only durable copy of a dropped capture. An optional,
- * defaulted field would be the worst shape here: a caller that
- * believed it had stubbed every gate command would silently run the real driver
- * against real files. Leaving them off the record makes non-injectability
+ * `merge-learnings`, `install-merge-driver`, `learnings-overflow`, and
+ * `learnings-retire` are deliberately NOT members. They are invoked by git, by
+ * an operator repairing a repository, or by the gardener draining its buffer
+ * or retiring a ledger entry — never substituted by the root CLI — and all
+ * four mutate real state: the merge driver overwrites the file git hands it,
+ * the installer writes local git config, the drain removes entries from the
+ * only durable copy of a dropped capture, and the retire removes a ledger
+ * entry. An optional, defaulted field would be the worst shape here: a caller
+ * that believed it had stubbed every gate command would silently run the real
+ * driver against real files. Leaving them off the record makes non-injectability
  * explicit; they are covered directly by unit tests and by end-to-end tests
  * that drive real `git merge`.
  */
@@ -47,6 +52,7 @@ export const GATE_COMMAND_NAMES = [
   "check-learnings-budget",
   "file-upstream",
   "learnings-overflow",
+  "learnings-retire",
   "merge-learnings",
   "install-merge-driver",
 ] as const;
@@ -131,6 +137,34 @@ function addLearningsOverflowCommand(program: Command): void {
 }
 
 /**
+ * Register the fingerprint-guarded ledger retire the gardener uses.
+ *
+ * Not injectable, for the same reason as the overflow drain: it removes a
+ * ledger entry, so a caller must never be able to stub it away.
+ * @param program - Commander program
+ */
+function addLearningsRetireCommand(program: Command): void {
+  program
+    .command("learnings-retire")
+    .description(
+      "Remove one fingerprint-stamped entry from the learnings ledger (JSON output)"
+    )
+    .requiredOption("--id <id>", "Stable id of the entry to retire")
+    .requiredOption(
+      "--fingerprint <fingerprint>",
+      "Fingerprint observed at that id; a mismatch refuses and writes nothing"
+    )
+    .requiredOption(
+      "--reason <text>",
+      "Why the entry is retired (echoed into the JSON proof record)"
+    )
+    .action(async (options: LearningsRetireOptions) => {
+      const code = await runLearningsRetire(options);
+      if (code !== 0) process.exitCode = code;
+    });
+}
+
+/**
  * Register the project-learnings union merge driver.
  *
  * Invoked by git, not by humans: the argument names map to git's `%O %A %B %P`
@@ -186,6 +220,7 @@ export function addGateCommands(
   addCheckLearningsBudgetCommand(program, dependencies);
   addFileUpstreamCommand(program, dependencies);
   addLearningsOverflowCommand(program);
+  addLearningsRetireCommand(program);
   addMergeLearningsCommand(program);
   addInstallMergeDriverCommand(program);
 }

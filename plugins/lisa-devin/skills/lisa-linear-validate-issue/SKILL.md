@@ -1,6 +1,6 @@
 ---
 name: lisa-linear-validate-issue
-description: "Validates a proposed Linear work item spec (Project, Issue, or sub-Issue) — or an existing Linear item — against the organizational quality gates without writing anything. Returns a structured PASS/FAIL report per gate with concrete remediation. Single source of truth for what makes a valid Linear item — both the write path (linear-write-issue runs it pre-write) and the dry-run path (linear-to-tracker runs it during PRD intake) call this skill so the bar can never drift."
+description: "Check a proposed or existing Linear item against the organization's quality gates and return PASS/FAIL per gate with fixes. Read-only; shared by the write path and PRD intake dry runs."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -123,6 +123,7 @@ Per-type content requirements are defined once in the vendor-neutral `work-item-
 | S18 Stateless-pickup dry-run | `product-clarity` | true |
 | S19 Branch Plan derivation | `technical` | false |
 | S20 Named-control reachability | `acceptance-criteria` | true |
+| S21 Token estimate (ready time) | `technical` | false |
 | F1 Issue type valid in team | `structural` | false |
 | F2 Project parent exists and is in same team | `structural` | false |
 | F3 Linked items exist | `structural` | false |
@@ -247,6 +248,8 @@ The item must EITHER have at least one entry in `relations`, OR the description 
 
 An item with zero relations and no documented search: FAIL.
 
+**Shipped-prerequisite check.** For every prerequisite the description calls already shipped, existing, or delivered (a symbol, resolver, mutation, file, migration…; for a route, its handler symbol or file), verify it is present on `origin/<default>` by running the command block in `lisa-task-decomposition` step 4. Exit 0 means present and 1 means absent; anything else means the check failed — S13 cannot pass, so report FAIL naming the error (fix the default-branch lookup or access and re-run), never read it as absent. An absent prerequisite with no `blocked by` relation to the issue that owns delivering it: FAIL. Remediation: add a `blocked by` relation to the owning issue, or file one build-ready and relate it, or correct the description so it no longer claims the prerequisite shipped.
+
 #### S14 — Evidence manifest binding (leaf work units)
 
 When `issue_type ∈ {Bug, Task, Sub-task, Improvement}` AND `runtime_behavior_change = true`, the `## Validation Journey` must declare at least one **typed** `[EVIDENCE: <artifact-type>: <name>]` marker. These markers are the work unit's **evidence manifest** — the exact, enumerated set of artifacts that must be captured and attached before the item may be closed (see the "Per-Work-Unit Evidence Contract" section of the `verification` rule, the Definition of Done in `verification-lifecycle`, and the evidence-manifest gate in `tracker-evidence`).
@@ -260,7 +263,7 @@ Each marker must satisfy ALL of:
 
 FAIL when the Validation Journey is present but declares zero binding `[EVIDENCE: ...]` markers, when any binding marker is untyped or uses a type outside the taxonomy, or when any binding name is empty, duplicated, or not kebab-case. A behavior-changing work unit SHOULD declare both a success marker and an error/edge marker; a journey with only one binding marker passes but the remediation should recommend adding the error/edge case.
 
-Parse claiming markers by the exact `[EVIDENCE:` prefix. A cross-work-item pointer in the canonical form `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` is non-claiming. The Lisa 2.223.0 form `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` is also accepted as a legacy non-claiming alias; parse it from the right so the final two fields are type/name and a tracker URL may contain `:`. Exclude both forms from the manifest, S14's minimum-marker count, local marker type/name validation, and duplicate-name checks. Independently validate every `EVIDENCE-REF`: the native work-item reference must be non-empty and unambiguous, the artifact type must use the fixed taxonomy, and the name must be non-empty kebab-case. A malformed reference FAILs S14 as an invalid pointer but never becomes a local evidence obligation. A valid canonical or legacy reference may point to a sibling's artifact, but it never satisfies S14 for this item. Therefore a runtime-changing leaf whose journey contains only `EVIDENCE-REF` entries FAILs S14 for zero local claiming markers, not because a valid legacy reference is malformed. Quoting or code-formatting another item's `[EVIDENCE: ...]` marker does not make it a reference; writers must convert it to the canonical pipe form. Linear returns stored Markdown with brackets escaped (`\[EVIDENCE: cli-output: name\]`, `\[EVIDENCE-REF: ...\]`): decode one Markdown escape layer outside code fences, indented code and inline code spans before matching, as `localMarkers` in `completion-proof-shape.mjs` does, so an escaped and an unescaped marker are the same declaration and a malformed one still FAILs.
+Parse claiming markers by the exact `[EVIDENCE:` prefix. A cross-work-item pointer in the canonical form `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` is non-claiming. The Lisa 2.223.0 form `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` is also accepted as a legacy non-claiming alias; parse it from the right so the final two fields are type/name and a tracker URL may contain `:`. Exclude both forms from the manifest, S14's minimum-marker count, local marker type/name validation, and duplicate-name checks. Independently validate every `EVIDENCE-REF`: the native work-item reference must be non-empty and unambiguous, the artifact type must use the fixed taxonomy, and the name must be non-empty kebab-case. A malformed reference FAILs S14 as an invalid pointer but never becomes a local evidence obligation. A valid canonical or legacy reference may point to a sibling's artifact, but it never satisfies S14 for this item. Therefore a runtime-changing leaf whose journey contains only `EVIDENCE-REF` entries FAILs S14 for zero local claiming markers, not because a valid legacy reference is malformed. Quoting or code-formatting another item's `[EVIDENCE: ...]` marker does not make it a reference; writers must convert it to the canonical pipe form. Linear returns stored Markdown with brackets escaped (`\[EVIDENCE: cli-output: name\]`, `\[EVIDENCE-REF: ...\]`): decode one Markdown escape layer outside code fences, indented code and inline code spans before matching, as `localMarkers` in `completion-proof-shape.mjs` does, so an escaped and an unescaped marker are the same declaration and a malformed one still FAILs. A marker inside an inline code span on a single line (any backtick-run length) is an example, like one in a fence: it never counts toward S14 and is never refused as malformed. Indented code means four or more columns past the content column of the list item that holds the line (or past the margin outside a list), after a blank line or heading: a marker on a list item's continuation line, at any indentation that still continues the item's paragraph, is claiming.
 
 This gate depends on S11. It is `N/A` for containers — a **Project** (the Epic equivalent), or any item with open child work (coordination containers, not work units) — and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only / test-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa-linear-add-journey`. It is likewise `N/A` with a repair note when `runtime_behavior_change` is **underivable** under S8 — reading an absent declaration as `false` is exactly the silent assumption that made this gate unauditable on a live Issue.
 
@@ -382,6 +385,22 @@ Remediation: `"Name the input or field that makes <test> reach the code this wor
 
 `product_relevant: true` — an unfalsifiable stopping rule is a specification defect, and whoever wrote the Issue is who can repair it. `lisa-linear-write-issue` renders the marker; `control-reachability` carries the implementer-side counterpart, which forbids acting on the stopping rule before the cause of an unmoved control is established.
 
+#### S21 — Token estimate (ready time)
+
+Enforces the token-estimate part of the vendor-neutral `work-item-definition-of-ready` rule. The contract (section shape, pricing, config) is in the `lisa-usage-accounting` skill's `references/estimate.md`.
+
+**When the gate applies.** On every build-ready leaf (the S15 classification) when `workItem.estimate.required` resolves to `true`, which it does when the key is absent. `N/A` for containers, for items that are not build-ready, and whenever the project sets `workItem.estimate.required: false`; then nothing about estimates blocks.
+
+**How to run it.** Write the item's body (or the proposed spec's body) to a file and run `node scripts/lisa-estimate.mjs check --body-file <file>`. Report its verdict line and reasons verbatim: exit 0 is PASS or N/A, exit 1 is FAIL, exit 2 means the config or the call is broken, which fails the gate with the error.
+
+**What it checks.** An item with **no** `## Lisa Estimate` section PASSes: an estimate is not required at creation or at ready, because deterministic sources (Sentry, New Relic, monitors) cannot produce one, and the claiming agent writes it before any work begins. A section that **is** present FAILs when its `<!-- lisa:estimate ... -->` token is missing or unparseable, the token range is inverted, the recommended model is not in `workItem.estimate.models`, or the dollar range disagrees with the price table the token names. There is never more than one section.
+
+At claim time `lisa-track` reruns the same check with `--phase claim`, where a missing estimate fails and the claiming agent writes one before any work; this validator runs the ready-time form.
+
+Remediation: re-render the section with `node scripts/lisa-estimate.mjs render --tokens-low <n> --tokens-high <n> --model <allowed value> --body-file <file>` and write the result back. Never ask a person for the estimate.
+
+`product_relevant: false` — the estimate is produced by agents, not by whoever wrote the item.
+
 ### Feasibility Gates (require Linear lookups; skip in dry-run if requested)
 
 #### F1 — Issue type valid in team
@@ -475,6 +494,7 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S18 Stateless-pickup dry-run — <one-line reason>
 - [PASS|FAIL|N/A] S19 Branch Plan derivation — <one-line reason>
 - [PASS|FAIL|N/A] S20 Named-control reachability — <one-line reason>
+- [PASS|FAIL|N/A] S21 Token estimate (ready time) — <one-line reason>
 
 ### Feasibility Gates  (omit when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type valid in team — <one-line reason>

@@ -1,4 +1,4 @@
 display_name: "Playwright CI Debugging"
-short_description: "Debug Playwright E2E tests that pass locally but fail in CI (or vice versa) in Expo web projects"
+short_description: "Debug Playwright E2E tests that pass locally but fail in CI (or the reverse) in Expo web projects: reproduce, intercept network, check the…"
 default_prompt:
-  - "Use $playwright-ci-debugging: Debug Playwright E2E tests that pass locally but fail in CI (or vice versa) in Expo web projects."
+  - "Use $playwright-ci-debugging: Debug Playwright E2E tests that pass locally but fail in CI (or the reverse) in Expo web projects: reproduce, intercept network, check the…."

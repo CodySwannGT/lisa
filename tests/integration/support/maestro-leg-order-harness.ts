@@ -20,11 +20,28 @@ import * as fs from "fs-extra";
 import { execFile } from "node:child_process";
 import * as http from "node:http";
 import type { AddressInfo } from "node:net";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
-import type { SimulatedWorkflow } from "../../helpers/workflow-job-graph";
+import type { SimulatedWorkflow } from "../../helpers/workflow-job-graph.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
+
+/**
+ * The iOS job's display name, read off the parsed YAML.
+ *
+ * `SimulatedJob` models only what the job-graph simulator reads, and `name`
+ * is not part of that, so it is narrowed here rather than cast.
+ *
+ * @param workflow The parsed workflow.
+ * @returns The declared name, or undefined when the job declares none.
+ */
+const iosJobName = (workflow: SimulatedWorkflow): unknown => {
+  const ios = workflow.jobs.ios;
+  return ios !== undefined && "name" in ios ? ios.name : undefined;
+};
 
 /** `bash` by absolute path — never resolved through a writeable $PATH. */
 const BASH = "/bin/bash";
@@ -102,10 +119,14 @@ const publish = async (server: http.Server): Promise<FakeApi> => {
  * @returns The base URL and a shutdown hook.
  */
 export const startFakeApi = (script: ApiJob[][]): Promise<FakeApi> => {
+  const last = script.at(-1);
+  if (last === undefined) {
+    throw new Error("startFakeApi needs at least one scripted job list");
+  }
   const remaining = script[Symbol.iterator]();
   const nextJobs = (): ApiJob[] => {
     const step = remaining.next();
-    return step.done === true ? script[script.length - 1] : step.value;
+    return step.done === true ? last : step.value;
   };
   return publish(
     http.createServer((_request, response) => {
@@ -179,9 +200,9 @@ export const runWaitStep = (
   api: FakeApi,
   overrides: Record<string, string> = {}
 ): Promise<StepRun> => {
-  const step = (workflow.jobs[job].steps ?? [])[0];
+  const step = (workflow.jobs[job]?.steps ?? [])[0];
   if (!step?.run) throw new Error(`${job} wait step not found`);
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-leg-order-"));
+  const scratch = ownedDir("maestro-leg-order-");
   return new Promise<StepRun>(resolve => {
     execFile(
       BASH,
@@ -197,7 +218,7 @@ export const runWaitStep = (
           REPOSITORY: "acme/app",
           RUN_ID: "1",
           RUN_ATTEMPT: "1",
-          IOS_JOB_NAME: String(workflow.jobs.ios.name),
+          IOS_JOB_NAME: String(iosJobName(workflow)),
           POLL_SECONDS: "0.05",
           PRE_SUITE_TIMEOUT_MINUTES: "1",
           DISCOVERY_SLACK_MINUTES: "1",
@@ -230,11 +251,11 @@ export const runPreflight = (
   workflow: SimulatedWorkflow,
   platform: string
 ): Record<string, string> => {
-  const step = (workflow.jobs.preflight.steps ?? []).find(
+  const step = (workflow.jobs.preflight?.steps ?? []).find(
     candidate => candidate.id === "check"
   );
   if (!step?.run) throw new Error("preflight check step not found");
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-preflight-"));
+  const scratch = ownedDir("maestro-preflight-");
   const flowsDir = path.join(scratch, "flows");
   const outputFile = path.join(scratch, "github-output");
   fs.mkdirpSync(flowsDir);
@@ -273,6 +294,6 @@ export const runPreflight = (
  * @returns The dependency job names.
  */
 export const needsOf = (workflow: SimulatedWorkflow, job: string): string[] => {
-  const declared = workflow.jobs[job].needs;
+  const declared = workflow.jobs[job]?.needs;
   return typeof declared === "string" ? [declared] : (declared ?? []);
 };

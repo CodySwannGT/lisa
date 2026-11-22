@@ -86,7 +86,7 @@ const runner = [
 ].join("\n");
 
 // Count the workflow invocation before forwarding unchanged arguments to the
-// actual supervisor. Scratch ownership and cleanup are never mocked.
+// actual runner. The runner itself is never mocked.
 const wrapper = [
   'const { appendFileSync } = require("node:fs");',
   'const { spawnSync } = require("node:child_process");',
@@ -97,7 +97,7 @@ const wrapper = [
 
 describe("quality .mjs fallback supervision", () => {
   it.each([packagedRunner, appliedRunner])(
-    "supervises %s once and reclaims its scratch",
+    "runs %s once through lisa-test-run, under the caller's temp root",
     selected => {
       const root = fixture({
         ...modern,
@@ -112,12 +112,13 @@ describe("quality .mjs fallback supervision", () => {
       expect(fs.readFileSync(path.join(root, supervisorLog), "utf8")).toBe(
         `${JSON.stringify(["--profile", "node", "--adapter", "direct", "--", "node", selected])}\n`
       );
-      const owned = fs.readFileSync(
-        path.join(root, "scratch-path.txt"),
-        "utf8"
+      // The direct adapter's private per-run temp root was retired with the
+      // per-test scratch policing (CodySwannGT/lisa#4602): the payload now
+      // inherits the caller's TMPDIR, and stale entries are the start-of-run
+      // sweep's to clear (CodySwannGT/lisa#4597).
+      expect(fs.readFileSync(path.join(root, "scratch-path.txt"), "utf8")).toBe(
+        path.join(root, "scratch")
       );
-      expect(owned).not.toBe(path.join(root, "scratch"));
-      expect(fs.existsSync(owned)).toBe(false);
     }
   );
 
@@ -134,11 +135,6 @@ describe("quality .mjs fallback supervision", () => {
     expect(
       fs.readFileSync(path.join(root, supervisorLog), "utf8").trim().split("\n")
     ).toHaveLength(1);
-    expect(
-      fs.existsSync(
-        fs.readFileSync(path.join(root, "scratch-path.txt"), "utf8")
-      )
-    ).toBe(false);
   });
 
   it.each(["3.42.0", "4.37.3", "4.56.0", undefined])(

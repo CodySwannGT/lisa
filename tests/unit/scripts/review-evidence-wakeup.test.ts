@@ -36,6 +36,7 @@ interface Scenario {
   conclusion?: string;
   eventName?: string;
   legacyState?: string;
+  evidenceBearing?: Record<string, unknown>;
 }
 
 /** Run the shipped executable; gh alone is the explicit external unit boundary. */
@@ -51,7 +52,9 @@ function runEvent(scenario: Scenario = {}, workflowStep?: string) {
     );
     fs.writeFileSync(
       path.join(folder, ".github/required-checks.json"),
-      JSON.stringify({ evidence_bearing_checks: { [REVIEWER]: {} } })
+      JSON.stringify({
+        evidence_bearing_checks: scenario.evidenceBearing ?? { [REVIEWER]: {} },
+      })
     );
     fs.writeFileSync(
       path.join(folder, ".lisa.config.json"),
@@ -175,6 +178,17 @@ describe.each(WORKFLOWS)("late reviewer wake-up in %s", workflow => {
 });
 
 describe("shipped late reviewer wake-up CLI", () => {
+  it("wakes for a reviewer declared only in the gates config (#4914)", () => {
+    const result = runEvent({ evidenceBearing: {} });
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.dispatches).toHaveLength(1);
+  });
+  it("still ignores a check no declaration names (#4914)", () => {
+    const result = runEvent({ evidenceBearing: {}, name: "Some Other Check" });
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.dispatches).toEqual([]);
+    expect(result.stdout).toContain("declared evidence-bearing check");
+  });
   it("dispatches the canonical default-branch gate for the current matching PR", () => {
     const result = runEvent();
     expect(result.status, result.stderr).toBe(0);

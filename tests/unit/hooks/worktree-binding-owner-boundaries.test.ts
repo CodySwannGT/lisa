@@ -10,6 +10,7 @@ import {
   buildFixture,
   runGuard,
   stateKey,
+  WRITE_COMMAND,
 } from "./support/worktree-binding.js";
 
 const BINDING_DIR = "worktree-binding";
@@ -33,7 +34,7 @@ describe("damaged binding records cannot authorize a new baseline", () => {
       // succeeding would not exercise the guard's unavailable-I/O contract.
       expect(() => readFileSync(file, "utf8")).toThrow(/EACCES/u);
       for (const input of [
-        { command: "echo hello" },
+        { command: WRITE_COMMAND },
         { command: `echo 'lisa-worktree-binding: accept ${fixture.b}'` },
       ]) {
         const result = runGuard({ ...call, cwd: fixture.b, input });

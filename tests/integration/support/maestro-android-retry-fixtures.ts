@@ -23,7 +23,7 @@ export const LEDGER_FILE = "maestro-android-retries.txt";
 export const SUITE_SIZE = 39;
 
 /** Flow basenames the fixture project contains. */
-export const FLOW_NAMES = Array.from(
+const FLOW_NAMES = Array.from(
   { length: SUITE_SIZE },
   (_unused, index) => `flow-${String(index).padStart(2, "0")}`
 );
@@ -36,10 +36,7 @@ export interface FixtureShape {
   repeatFailing: boolean;
 }
 
-export {
-  commandEvidence,
-  type CommandEvidence,
-} from "./maestro-command-evidence.js";
+export type { CommandEvidence } from "./maestro-command-evidence.js";
 
 /**
  * Byte order, matching the `LC_ALL=C sort` the workflow uses. Deliberately not

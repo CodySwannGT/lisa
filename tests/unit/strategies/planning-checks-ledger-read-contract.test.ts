@@ -5,11 +5,13 @@
  * `lisa-task-decomposition` step 0 — and the validators' S18 dry-run, which
  * loads the checks the same way — used to turn every read error into "no
  * ledger" and to project over the whole ledger before keeping only planning
- * checks, so a planning check the budget dropped was never named. The
- * corrected command treats only `ENOENT` as "no ledger", warns once naming any
- * other error, projects over the planning checks alone, and names the ones it
- * omitted. These tests pin the text in every copy and run the source command
- * against a missing, an unreadable and a valid ledger.
+ * checks, so a planning check the budget dropped was never named. Step 0 now
+ * runs the shipped `scripts/learnings-projection.mjs` with a planning-check
+ * `--match`: it treats only `ENOENT` as "no ledger", warns once naming any
+ * other error, projects over the matched entries alone, and names the ones it
+ * omitted. These tests pin the step 0 command line in every copy and run the
+ * source script against a missing, an unreadable and a valid ledger. The
+ * surrounding guidance prose is not pinned (#4867).
  * @module tests/unit/strategies/planning-checks-ledger-read-contract
  */
 import {
@@ -44,25 +46,6 @@ const SKILL_ROOTS = [
   "plugins/lisa/.codex-plugin/skills",
 ] as const;
 
-const VALIDATORS = [
-  "lisa-jira-validate-ticket",
-  "lisa-github-validate-issue",
-  "lisa-linear-validate-issue",
-] as const;
-
-/** Every checked-in copy of the definition-of-ready rule. */
-const READY_RULES = [
-  "plugins/src/base/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa-copilot/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa-devin/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa-cursor/rules/work-item-definition-of-ready-reference.mdc",
-] as const;
-
-const UNREADABLE =
-  "a ledger it cannot read prints one warning naming the error";
-const OMITTED = "names each planning check the projection omitted, by id";
-
 /**
  * Read a repo-relative file.
  * @param relativePath - Path from the repository root
@@ -71,77 +54,25 @@ const OMITTED = "names each planning check the projection omitted, by id";
 const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
 
-/**
- * The step 0 `node -e` program from a decomposition skill copy.
- * @param skill - The skill text
- * @returns The JavaScript passed to `node -e`
- */
-const stepZeroProgram = (skill: string): string =>
-  /node -e '([\s\S]*?)' \|\| true/.exec(skill)?.[1] ?? "";
+const PLANNING_MATCH = "^Planning \\((prd|decomposition|ready-gate|filing)\\):";
+/** Path-agnostic: each runtime projection rewrites the plugin-root variable. */
+const STEP_ZERO_COMMAND = `/scripts/learnings-projection.mjs" --match '${PLANNING_MATCH}'`;
+const SCRIPT = path.resolve(
+  "plugins/src/base/scripts/learnings-projection.mjs"
+);
 
 describe.each(SKILL_ROOTS)("learned planning checks load (%s)", root => {
   const skill = (name: string): string => read(`${root}/${name}/SKILL.md`);
   const decomposition = skill("lisa-task-decomposition");
-  const program = stepZeroProgram(decomposition);
 
-  it("treats only ENOENT as no ledger", () => {
-    expect(program).toContain('error.code === "ENOENT"');
-    expect(program).not.toContain(".catch(() => null)");
-  });
-
-  it("projects over the planning checks alone and names the omitted ones", () => {
-    const filter = program.indexOf(
-      ".filter(e => /^Planning \\((prd|decomposition|ready-gate|filing)\\):/.test(e.rule))"
-    );
-    expect(filter).toBeGreaterThan(-1);
-    expect(filter).toBeLessThan(program.indexOf("m.projectLearnings("));
-    expect(program).toContain("JSON.stringify({ checks, omitted })");
-    expect(program).not.toContain("omittedCount");
-  });
-
-  it("explains the three outcomes in the step 0 prose", () => {
-    expect(decomposition).toContain(
-      "No output means there is no ledger yet (`ENOENT`): carry on."
-    );
-    expect(decomposition).toContain(
-      "A ledger that exists but cannot be read, or is malformed, prints one warning naming the error and yields nothing: carry on without it."
-    );
-    expect(decomposition).toContain("`omitted` lists, by id,");
-    expect(decomposition).not.toContain(
-      "No output means there is no ledger yet: carry on."
-    );
-  });
-
-  it.each(VALIDATORS)("%s S18 uses the corrected command", validator => {
-    const s18 = skill(validator).split("S18 — Stateless-pickup dry-run")[1];
-    expect(s18).toContain(UNREADABLE);
-    expect(s18).toContain(OMITTED);
-  });
-});
-
-describe.each(READY_RULES)("definition of ready S18 (%s)", rulePath => {
-  it("points at the corrected step 0 command", () => {
-    const rule = read(rulePath).replace(/\s+/g, " ");
-    expect(rule).toContain(UNREADABLE);
-    expect(rule).toContain(OMITTED);
+  it("loads the planning checks through the shipped projection script", () => {
+    expect(decomposition).toContain(STEP_ZERO_COMMAND);
+    expect(decomposition).not.toMatch(/cat [^\n]*PROJECT_LEARNINGS/);
   });
 });
 
 describe("the step 0 command, executed (source)", () => {
-  const source = stepZeroProgram(
-    read("plugins/src/base/skills/lisa-task-decomposition/SKILL.md")
-  );
-  /**
-   * The step 0 program bound to a given learnings module.
-   * @param modulePath - Absolute path of the module to import
-   * @returns The runnable program
-   */
-  const bindTo = (modulePath: string): string =>
-    source.replace(
-      'import("@codyswann/lisa/learnings")',
-      `import(${JSON.stringify(modulePath)})`
-    );
-  const program = bindTo(path.resolve("src/core/learnings.ts"));
+  const realModule = path.resolve("src/core/learnings.ts");
   const dirs: string[] = [];
 
   afterEach(() => {
@@ -166,26 +97,28 @@ describe("the step 0 command, executed (source)", () => {
   };
 
   /**
-   * Run the program from a project root, as step 0 says to.
+   * Run the script from a project root, as step 0 says to.
    * @param cwd - Project root
-   * @param code - The program to run; defaults to the real-module binding
+   * @param modulePath - Learnings module to load; defaults to the source module
    * @returns Captured stdout and stderr
    */
   const run = (
     cwd: string,
-    code: string = program
+    modulePath: string = realModule
   ): { stdout: string; stderr: string } => {
     const outFile = path.join(cwd, "out.txt");
     const errFile = path.join(cwd, "err.txt");
     boundedExecFileSync({
       label: "task-decomposition step 0 ledger read",
       command: "/bin/bash",
-      args: ["-c", 'bun --eval "$PROGRAM" > "$OUT" 2> "$ERR"'],
+      args: ["-c", 'bun "$SCRIPT" --match "$MATCH" > "$OUT" 2> "$ERR"'],
       cwd,
       env: {
         PATH: process.env.PATH ?? "/usr/bin:/bin",
         HOME: process.env.HOME ?? cwd,
-        PROGRAM: code,
+        SCRIPT,
+        MATCH: PLANNING_MATCH,
+        LISA_LEARNINGS_MODULE: modulePath,
         OUT: outFile,
         ERR: errFile,
       },
@@ -220,7 +153,6 @@ describe("the step 0 command, executed (source)", () => {
   };
 
   it("is silent when there is no ledger", () => {
-    expect(program).not.toBe("");
     expect(run(project())).toEqual({ stdout: "", stderr: "" });
   });
 
@@ -231,7 +163,7 @@ describe("the step 0 command, executed (source)", () => {
       chmodSync(path.join(dir, ".lisa/PROJECT_LEARNINGS.md"), 0o000);
       const { stdout, stderr } = run(dir);
       expect(stdout).toBe("");
-      expect(stderr).toContain("learned planning checks unavailable");
+      expect(stderr).toContain("project learnings unavailable");
       expect(stderr).toContain("EACCES");
     }
   );
@@ -246,7 +178,9 @@ describe("the step 0 command, executed (source)", () => {
     );
     expect(stderr).toBe("");
     expect(JSON.parse(stdout)).toEqual({
-      checks: [{ id: planning.id, rule: planning.rule, confidence: "low" }],
+      entries: [
+        { id: planning.id, rule: planning.rule, why: "w", confidence: "low" },
+      ],
       omitted: [],
     });
   });
@@ -262,7 +196,7 @@ describe("the step 0 command, executed (source)", () => {
       project(`# Project Learnings\n\n\`\`\`jsonl\n${over}\n\`\`\`\n`)
     );
     expect(stdout).toBe("");
-    expect(stderr).toContain("learned planning checks unavailable");
+    expect(stderr).toContain("project learnings unavailable");
   });
 
   it("names the dropped planning checks, and other learnings never displace one", () => {
@@ -293,19 +227,19 @@ describe("the step 0 command, executed (source)", () => {
         '  raw.split("\\n").filter(line => line.startsWith("{")).map(line => JSON.parse(line));',
       ].join("\n")
     );
-    const { stdout, stderr } = run(dir, bindTo(wrapper));
+    const { stdout, stderr } = run(dir, wrapper);
     expect(stderr).toBe("");
     const result = JSON.parse(stdout) as {
-      checks: { id: string; rule: string }[];
+      entries: { id: string; rule: string }[];
       omitted: string[];
     };
     expect(result.omitted).toHaveLength(extra);
     expect(new Set(result.omitted)).toEqual(new Set(dropped.map(e => e.id)));
-    expect(result.checks).toHaveLength(kept.length);
-    expect(new Set(result.checks.map(c => c.id))).toEqual(
+    expect(result.entries).toHaveLength(kept.length);
+    expect(new Set(result.entries.map(c => c.id))).toEqual(
       new Set(kept.map(e => e.id))
     );
-    expect(result.checks.every(c => c.rule.startsWith("Planning ("))).toBe(
+    expect(result.entries.every(c => c.rule.startsWith("Planning ("))).toBe(
       true
     );
   });

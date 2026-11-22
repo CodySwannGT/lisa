@@ -67,7 +67,13 @@ export function resolveReviewEvidenceEvent({
     return no("event belongs to another repository");
   if (!/^[a-f0-9]{40}$/iu.test(signal.head ?? ""))
     throw new Error("Reviewer event has no concrete commit SHA");
-  if (!Object.hasOwn(declaration.evidence_bearing_checks ?? {}, signal.name))
+  // A reviewer is declared by the gates config or by `evidence_bearing_checks`;
+  // either one is enough to wake the gate, so a project that names its reviewer
+  // only in `.lisa.config.json` is not left waiting (CodySwannGT/lisa#4914).
+  const declared =
+    Object.hasOwn(declaration.evidence_bearing_checks ?? {}, signal.name) ||
+    reviewers.some(reviewer => reviewer.context === signal.name);
+  if (!declared)
     return no("event does not name a declared evidence-bearing check");
   const pins = reviewers.filter(
     reviewer =>

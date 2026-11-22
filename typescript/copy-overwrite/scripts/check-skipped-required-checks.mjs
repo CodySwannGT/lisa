@@ -15,7 +15,7 @@
  *   node scripts/check-skipped-required-checks.mjs [rootDir] [--json]
  *   node scripts/check-skipped-required-checks.mjs --vacuity [--fail-on-vacuous]
  *   node scripts/check-skipped-required-checks.mjs --pr=1234 [--repo=OWNER/NAME]
- *   node scripts/check-skipped-required-checks.mjs --outcomes   (reads LISA_JOB_RESULTS, LISA_JOB_NAMES, LISA_GATE_MOMENT)
+ *   node scripts/check-skipped-required-checks.mjs --outcomes   (reads LISA_JOB_RESULTS, LISA_JOB_NAMES, LISA_GATE_MOMENT, LISA_EVENT_NAME, LISA_PULL_REQUEST_ONLY_JOBS)
  *
  * `--outcomes` is the arm the `🔒 Skipped Required Checks` job rests its verdict
  * on. Without it, this reports only the vestigial `skip_jobs` token arm, which
@@ -92,6 +92,14 @@
  *    prefix is reported NOT EXAMINED. See {@link owningPrefix}.
  *  - **Only at `pull-request`.** Other moments skip most jobs by design and gate
  *    no merge; see {@link MERGE_GATE_MOMENT}.
+ *  - **Except a pull-request-only job on an event that gates no merge.** When
+ *    `workflow_dispatch`, `push` or `schedule` started the run, a required
+ *    context whose job is listed in `LISA_PULL_REQUEST_ONLY_JOBS` (its `if:`
+ *    requires `github.event_name == 'pull_request'`) and concluded `skipped` is
+ *    reported NOT JUDGED instead of refused. Every other skip, every other
+ *    result, every other event, and a missing or unreadable `LISA_EVENT_NAME`
+ *    or `LISA_PULL_REQUEST_ONLY_JOBS` is judged exactly as before; see
+ *    {@link pullRequestOnlyExemption} (#4620).
  *  - **Only what this run posts.** An external app, another workflow, or a
  *    matrix leg named at runtime posts a context no job here can speak for. It
  *    is listed as NOT EXAMINED, never silently counted — GitHub records that
@@ -100,14 +108,19 @@
  *    untranscribed snapshot, or results that cannot be read each fail. "Examined
  *    nothing" must never render like "found nothing" (see `OUTCOME_REFUSALS`).
  *
- * The job checks this prover out from the WORKFLOW's own repository at the
- * workflow's own commit (`job.workflow_repository@job.workflow_sha`), never
- * from the caller's `scripts/`. `quality.yml` is consumed at `@main`; `scripts/`
- * arrives by `lisa apply` at whatever version the caller pinned. A caller's copy
- * predating this arm ignores `--outcomes` and prints the vestigial token line as
- * though it were a verdict — the false green this arm replaces. The workflow
- * defines the arguments, so the code reading them must come from the same
- * revision.
+ * The job never runs the caller's `scripts/` copy. Where the repository ships
+ * this prover at its template path (Lisa itself), it runs that workspace copy,
+ * so a change here is proved by the pull request that makes it. Everywhere
+ * else it checks the prover out from Lisa's `main`. `quality.yml` is consumed
+ * at `@main`; `scripts/` arrives by `lisa apply` at whatever version the caller
+ * pinned, and a caller's copy predating this arm ignores `--outcomes` and
+ * prints the vestigial token line as though it were a verdict — the false green
+ * this arm replaces. Pinning the checkout to the workflow's own commit is not
+ * possible: GitHub rejects the whole workflow file when it references the
+ * `job.workflow_*` context fields — see Note 17 in
+ * `docs/quality-workflow-notes.md`. Because hosts run `main`'s prover whatever
+ * `quality.yml` ref they call, every new input this prover reads must be
+ * optional and fail closed when absent.
  *
  * ## Where this runs
  *
@@ -1026,7 +1039,10 @@ export function loadDeclaration(rootDir) {
       `check-skipped-required-checks: ${DECLARATION_PATH} does not exist. This guard rests on two REVIEWED SNAPSHOTS that cannot be derived from the repository — the ruleset's required contexts, and what each \`skip_jobs\` token silences. Create it (Lisa ships a seed) rather than deleting the guard.`
     );
   }
-  const declaration = JSON.parse(readFileSync(path, "utf8"));
+  const declaration = withGateReviewers(
+    JSON.parse(readFileSync(path, "utf8")),
+    gateReviewers(rootDir)
+  );
   assertRequiredDeclarationKeys(declaration);
   assertDeclarationCollections(declaration);
   assertRequiredContextsByBranch(declaration);
@@ -1037,6 +1053,226 @@ export function loadDeclaration(rootDir) {
     contexts: declaration.required_contexts,
   });
   return declaration;
+}
+
+/** Repo-relative path of the project's Lisa config, which holds the gates. */
+const LISA_CONFIG_PATH = ".lisa.config.json";
+
+/**
+ * @typedef {Record<string, {proof?: string[], no_work?: string[]}>} GateVocabularies
+ * Description vocabulary per reviewer context, as read from the gates config.
+ */
+
+/**
+ * The third-party reviewers `.lisa.config.json` declares, as description
+ * vocabularies keyed by the awaited context (CodySwannGT/lisa#4914).
+ *
+ * A reviewer is a gate whose pull-request entry awaits a context and marks it
+ * `evidence.reviewer: true` — the same reading as `configuredReviewers` in
+ * `check-third-party-review-evidence.mjs`. That script ships from the `all/`
+ * template and this one from `typescript/`, so a host can carry either without
+ * the other; the reading is repeated here rather than imported, and a unit test
+ * holds the two to the same answer.
+ *
+ * Reviewers come back in two sets. `checks` must post a check, so they are
+ * evidence-bearing. `reviewBy` are proven by `evidence.review_by`: the prover
+ * reads their `await` check first and falls back to their submitted review only
+ * when they posted none, so a check they DO post is still examined for a hollow
+ * green — but one that never posted is not a finding, because a review is
+ * that reviewer's evidence.
+ *
+ * No config means no reviewers. A config that does not parse, or a reviewer
+ * gate whose phrases are malformed, is refused: this guard would otherwise
+ * examine fewer reviewers, or other words, than the project declared and say
+ * nothing.
+ * @param {string} rootDir - Repository root
+ * @returns {{checks: GateVocabularies, reviewBy: GateVocabularies}} Vocabulary per reviewer context
+ * @throws {Error} When `.lisa.config.json` does not parse or a reviewer gate's phrases are malformed
+ */
+function gateReviewers(rootDir) {
+  const path = resolveWithinRoot(rootDir, LISA_CONFIG_PATH, "the Lisa config");
+  /** @type {{checks: GateVocabularies, reviewBy: GateVocabularies}} */
+  const reviewers = { checks: {}, reviewBy: {} };
+  if (!existsSync(path)) return reviewers;
+  let config;
+  try {
+    config = JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    throw new Error(
+      `check-skipped-required-checks: ${LISA_CONFIG_PATH} is not readable (${/** @type {Error} */ (error).message}). Its gates declare the third-party reviewers this guard examines, so it refuses rather than examining none of them.`
+    );
+  }
+  for (const [gateId, gate] of Object.entries(config?.gates ?? {})) {
+    if (!isPlainObject(gate)) continue;
+    const entry = gate["pull-request"];
+    if (!isPlainObject(entry)) continue;
+    const evidence = entry.evidence;
+    if (evidence?.reviewer !== true) continue;
+    if (typeof entry.await !== "string" || entry.await.trim() === "") continue;
+    const vocabulary = {};
+    for (const list of ["proof", "no_work"]) {
+      if (evidence[list] === undefined) continue;
+      assertGatePhrases(gateId, list, evidence[list]);
+      vocabulary[list] = evidence[list];
+    }
+    // A gate pinned by `posted_by` never takes the review route (#4916), so it
+    // must post its check: evidence-bearing, as the prover reads it.
+    const set =
+      entry.posted_by === undefined &&
+      typeof evidence.review_by === "string" &&
+      evidence.review_by.trim() !== ""
+        ? reviewers.reviewBy
+        : reviewers.checks;
+    set[entry.await] = mergeVocabulary(set[entry.await] ?? {}, vocabulary);
+  }
+  // A context another gate requires to post a check is evidence-bearing, and
+  // judging it twice would report one hollow green as two. It is judged once,
+  // reading both gates' phrases.
+  for (const name of Object.keys(reviewers.checks)) {
+    if (!Object.hasOwn(reviewers.reviewBy, name)) continue;
+    reviewers.checks[name] = mergeVocabulary(
+      reviewers.checks[name],
+      reviewers.reviewBy[name]
+    );
+    delete reviewers.reviewBy[name];
+  }
+  return reviewers;
+}
+
+/**
+ * Whether a value is a non-null, non-array object.
+ * @param {unknown} value - Any value
+ * @returns {boolean} True for a plain object
+ */
+function isPlainObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Refuses a reviewer gate's phrase list unless it is an array of non-blank
+ * strings, naming the gate it came from so the fix lands in the right file.
+ * @param {string} gateId - The gate's id in `.lisa.config.json`
+ * @param {string} list - `proof` or `no_work`
+ * @param {unknown} phrases - The declared value
+ * @returns {void}
+ * @throws {Error} When the list is malformed
+ */
+function assertGatePhrases(gateId, list, phrases) {
+  if (
+    !Array.isArray(phrases) ||
+    phrases.some(
+      phrase =>
+        typeof phrase !== "string" || normalizeDescription(phrase) === ""
+    )
+  ) {
+    throw new Error(
+      `check-skipped-required-checks: ${LISA_CONFIG_PATH} \`gates.${gateId}.pull-request.evidence.${list}\` must be an array of non-empty description strings.`
+    );
+  }
+}
+
+/**
+ * Two vocabularies for one check, as one: each phrase list is the union of
+ * both, in order, without repeats. Phrases only ever ADD to the shipped
+ * defaults, so a union is the reading that keeps both declarations' meaning.
+ *
+ * A list `left` holds that is not an array is kept as it is, so
+ * `assertEvidenceBearingChecks` still refuses it rather than seeing the other
+ * declaration's valid list in its place.
+ * @param {Record<string, unknown>} left - One vocabulary
+ * @param {Record<string, unknown>} right - The other
+ * @returns {Record<string, unknown>} The combined vocabulary
+ */
+function mergeVocabulary(left, right) {
+  const merged = { ...left };
+  for (const list of ["proof", "no_work"]) {
+    if (right[list] === undefined) continue;
+    if (left[list] === undefined) merged[list] = right[list];
+    else if (Array.isArray(left[list]) && Array.isArray(right[list]))
+      merged[list] = [...new Set([...left[list], ...right[list]])];
+  }
+  return merged;
+}
+
+/**
+ * The phrases each check run is decoded with: the evidence-bearing checks'
+ * and the review_by checks', unioned per name (#4914). A review_by run decoded
+ * without its gate's phrases would miss a declared no-work title and read as
+ * proved.
+ * @param {object} declaration - The loaded declaration.
+ * @returns {Record<string, object>} Phrases by check name.
+ */
+export function decodingVocabulary(declaration) {
+  const evidence =
+    /** @type {{evidence_bearing_checks?: Record<string, object>|null, review_by_checks?: Record<string, object>|null}} */ (
+      declaration
+    );
+  const merged = { ...evidence.evidence_bearing_checks };
+  for (const [name, vocabulary] of Object.entries(
+    evidence.review_by_checks ?? {}
+  )) {
+    const existing = merged[name];
+    merged[name] =
+      existing && typeof existing === "object"
+        ? mergeVocabulary(existing, vocabulary ?? {})
+        : (vocabulary ?? {});
+  }
+  return merged;
+}
+
+/**
+ * The declaration with the gates config's reviewers added
+ * (CodySwannGT/lisa#4914).
+ *
+ * The gates config is where a project names its reviewer; a project switching
+ * vendors edits it and this guard follows. Reviewers that must post a check
+ * join `evidence_bearing_checks`; names already there keep working, and a name
+ * declared in both reads both vocabularies. Reviewers proven by
+ * `evidence.review_by` go to `review_by_checks`, which only the vacuity arm
+ * reads and only for a check they actually posted — see
+ * {@link evaluateVacuousChecks}. With no reviewer gate the declaration is
+ * returned as is.
+ * @param {object} declaration - Parsed `.github/required-checks.json`
+ * @param {{checks: GateVocabularies, reviewBy: GateVocabularies}} reviewers - From {@link gateReviewers}
+ * @returns {object} The declaration to validate and judge
+ */
+function withGateReviewers(declaration, reviewers) {
+  const declared = declaration.evidence_bearing_checks;
+  // A malformed declared value is left for `assertEvidenceBearingChecks` to
+  // refuse, instead of being papered over by the gates' entries.
+  if (declared !== undefined && declared !== null && !isPlainObject(declared))
+    return declaration;
+  const checks = { ...declared };
+  for (const [name, vocabulary] of Object.entries(reviewers.checks)) {
+    if (!Object.hasOwn(checks, name)) checks[name] = vocabulary;
+    // Likewise a malformed declared entry, `null` included, stays as written.
+    else if (isPlainObject(checks[name]))
+      checks[name] = mergeVocabulary(checks[name], vocabulary);
+  }
+  /** @type {GateVocabularies} */
+  const reviewBy = {};
+  for (const [name, vocabulary] of Object.entries(reviewers.reviewBy)) {
+    // A name `evidence_bearing_checks` declares must post a check; it is
+    // judged there, reading the review_by gate's phrases too.
+    if (!Object.hasOwn(checks, name)) reviewBy[name] = vocabulary;
+    else if (isPlainObject(checks[name]))
+      checks[name] = mergeVocabulary(checks[name], vocabulary);
+  }
+  // `review_by_checks` is derived from the gates and nowhere else, so a copy
+  // written into the declaration by hand is not read.
+  const base = Object.fromEntries(
+    Object.entries(declaration).filter(([key]) => key !== "review_by_checks")
+  );
+  return {
+    ...base,
+    ...((declared === undefined || declared === null) &&
+    Object.keys(checks).length === 0
+      ? {}
+      : { evidence_bearing_checks: checks }),
+    ...(Object.keys(reviewBy).length === 0
+      ? {}
+      : { review_by_checks: reviewBy }),
+  };
 }
 
 /**
@@ -1599,7 +1835,11 @@ function findOrphanedExemptions(declarations, skipped) {
  * @returns {string} One of `DESCRIPTION_VERDICTS`
  */
 export function classifyCheckDescription(description, vocabulary = {}) {
-  const text = (description ?? "").trim().toLowerCase();
+  // Whitespace-collapsed, as the review-evidence prover's normalizeDescription
+  // reads a description, so the two checkers give the same answer.
+  const fold = (/** @type {string} */ value) =>
+    value.trim().replace(/\s+/gu, " ").toLowerCase();
+  const text = fold(description ?? "");
   if (text === "") return DESCRIPTION_VERDICTS.unproven;
 
   // No-work is tested FIRST. The lists are asserted non-overlapping in the
@@ -1610,7 +1850,7 @@ export function classifyCheckDescription(description, vocabulary = {}) {
     ...REVIEW_DESCRIPTION_DEFAULTS.no_work,
     ...(vocabulary.no_work ?? []),
   ];
-  if (noWork.some(phrase => text.includes(phrase.trim().toLowerCase()))) {
+  if (noWork.some(phrase => text.includes(fold(phrase)))) {
     return DESCRIPTION_VERDICTS.noWork;
   }
 
@@ -1618,7 +1858,7 @@ export function classifyCheckDescription(description, vocabulary = {}) {
     ...REVIEW_DESCRIPTION_DEFAULTS.proof,
     ...(vocabulary.proof ?? []),
   ];
-  if (proof.some(phrase => text === phrase.trim().toLowerCase())) {
+  if (proof.some(phrase => text === fold(phrase))) {
     return DESCRIPTION_VERDICTS.proved;
   }
   return DESCRIPTION_VERDICTS.unproven;
@@ -1681,8 +1921,20 @@ export function evaluateVacuousChecks(declaration, checks, options = {}) {
     });
     if (violation !== null) violations.push(violation);
   }
+  // A reviewer proven by its submitted review (`evidence.review_by`, #4914) is
+  // judged only on a check it actually posted: a hollow green from it is as
+  // hollow as anyone's, but posting nothing is how that reviewer works.
+  const reviewedBy = reportedReviewByChecks(declaration, checks);
+  for (const [name, entry] of reviewedBy) {
+    const violation = evaluateEvidenceBearingCheck(name, entry, checks, {
+      at,
+      required,
+      trustRequired,
+    });
+    if (violation !== null) violations.push(violation);
+  }
 
-  return { violations, checked: entries.length };
+  return { violations, checked: entries.length + reviewedBy.length };
 }
 
 /**
@@ -4307,6 +4559,25 @@ export function fetchChecksForCommit(sha, repo, evidenceChecks = {}) {
 }
 
 /**
+ * The phrase a structured success line names, or null.
+ *
+ * Reads `Result: Success - <phrase>` with any spacing around the words, by
+ * plain string steps rather than a regular expression, so no input can make it
+ * backtrack.
+ * @param {string} line - A first summary line.
+ * @returns {string|null} The trimmed phrase, or null when the line has another shape.
+ */
+function structuredSuccessPhrase(line) {
+  if (!line.startsWith("Result:")) return null;
+  const outcome = line.slice("Result:".length).trimStart();
+  if (!outcome.startsWith("Success")) return null;
+  const rest = outcome.slice("Success".length).trimStart();
+  if (!rest.startsWith("-")) return null;
+  const phrase = rest.slice(1).trim();
+  return phrase === "" ? null : phrase;
+}
+
+/**
  * Decode a selected check run without changing legacy commit-status policy.
  *
  * The first physical line owns structured results. Only the supported positive
@@ -4339,12 +4610,18 @@ function checkRunReviewDescription(row, vocabulary) {
   ) {
     return firstLine;
   }
-  if (
-    row.status === "completed" &&
-    row.conclusion === "success" &&
-    firstLine === "Result: Success - Review completed"
-  ) {
-    return "Review completed";
+  const succeeded = row.status === "completed" && row.conclusion === "success";
+  const proves = (/** @type {string} */ phrase) =>
+    classifyCheckDescription(phrase, vocabulary) ===
+    DESCRIPTION_VERDICTS.proved;
+  // `Result: Success - <phrase>` stands for `<phrase>` when the phrase is
+  // declared proof — CodeRabbit's `Result: Success - Review completed` is one
+  // instance, not the rule (#4909). The same pattern is in
+  // `check-third-party-review-evidence.mjs`, and the parity tests hold the two
+  // provers to the same answers.
+  const structured = structuredSuccessPhrase(firstLine);
+  if (succeeded && structured !== null && proves(structured)) {
+    return structured;
   }
   const resultLooking =
     /^[\s>#|]*Result\b/iu.test(firstLine) ||
@@ -4352,6 +4629,9 @@ function checkRunReviewDescription(row, vocabulary) {
   if (resultLooking) {
     return firstLine;
   }
+  // A reviewer that writes its verdict as a plain first summary line is read
+  // by its own declared proof phrases (#4909).
+  if (succeeded && proves(firstLine)) return firstLine;
   return title;
 }
 
@@ -4455,8 +4735,28 @@ export function declaredEvidenceChecks(declaration) {
  * @returns {boolean} True when nothing declared is still in flight
  */
 export function checksSettled(declaration, checks) {
-  return declaredEvidenceChecks(declaration).every(name =>
-    checkSettled(checks.find(check => check.name === name))
+  return (
+    declaredEvidenceChecks(declaration).every(name =>
+      checkSettled(checks.find(check => check.name === name))
+    ) &&
+    reportedReviewByChecks(declaration, checks).every(([name]) =>
+      checkSettled(checks.find(check => check.name === name))
+    )
+  );
+}
+
+/**
+ * The `review_by_checks` entries whose context posted a row (#4914). One that
+ * posted nothing is neither a finding nor still in flight: that reviewer's
+ * evidence is its submitted review, which the review-evidence prover reads.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{name: string}>} checks - Rows
+ * @returns {Array<[string, object]>} Name and vocabulary of each reported one
+ */
+function reportedReviewByChecks(declaration, checks) {
+  return Object.entries(declaration.review_by_checks ?? {}).filter(([name]) =>
+    checks.some(check => check.name === name)
   );
 }
 
@@ -4520,8 +4820,7 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
       return fetchChecksForCommit(
         headSha,
         slug,
-        /** @type {{evidence_bearing_checks?: ReviewEvidenceChecks|null}} */
-        (declaration).evidence_bearing_checks ?? {}
+        decodingVocabulary(declaration)
       );
     });
   const resolveHead = options.headSha ?? resolveHeadSha;
@@ -4542,6 +4841,9 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
     );
   // A substitute is useful only at the head it was actually read for. Pending
   // rows still wait, and a missing required reviewer still needs a real row.
+  // A review_by reviewer's check that posted is waited for like any other
+  // (#4914); one that posted nothing is not in flight — see
+  // {@link reportedReviewByChecks}.
   const evidenceReady = observed =>
     declaredEvidenceChecks(declaration).every(name => {
       const found = observed.checks.find(check => check.name === name);
@@ -4551,7 +4853,10 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
           observed.headSha === options.substituteHead &&
           options.substitutes?.has(name))
       );
-    });
+    }) &&
+    reportedReviewByChecks(declaration, observed.checks).every(([name]) =>
+      checkSettled(observed.checks.find(check => check.name === name))
+    );
 
   // Bracket checks with coherent head/base observations. The early substitute
   // read can supply the first observation without another metadata request.
@@ -4783,10 +5088,13 @@ export function vacuityRefusal(input) {
       reason: `PR #${pr} reported ZERO checks of any kind. A pull request with no checks and a pull request whose checks are all honest produce the same silence from this arm, so it refuses rather than picking one. Confirm the token can read checks (\`actions: read\` for the \`gh pr checks\` rollup, or \`checks: read\` + \`statuses: read\` for the fallback) before believing this.`,
     };
   }
-  if (declaredEvidenceChecks(declaration).length === 0) {
+  if (
+    declaredEvidenceChecks(declaration).length === 0 &&
+    Object.keys(declaration.review_by_checks ?? {}).length === 0
+  ) {
     return {
       kind: VACUITY_REFUSALS.noneDeclared,
-      reason: `\`evidence_bearing_checks\` in ${DECLARATION_PATH} is empty, so this repository has declared that NO check's green means anything reviewed the code — and the vacuity arm examined nothing on PR #${pr}. If that is true, say so by removing the arm from your workflow. If it is not, name the checks: \`"evidence_bearing_checks": { "CodeRabbit": {} }\`.`,
+      reason: `\`evidence_bearing_checks\` in ${DECLARATION_PATH} is empty, so this repository has declared that NO check's green means anything reviewed the code — and the vacuity arm examined nothing on PR #${pr}. If that is true, say so by removing the arm from your workflow. If it is not, name the checks by their exact check names: \`"evidence_bearing_checks": { "<reviewer check name>": {} }\`.`,
     };
   }
   return null;
@@ -5120,12 +5428,63 @@ export const OUTCOMES_FLAG = "--outcomes";
  *  - `results` — `toJSON(needs)`: each sibling job's final `result`.
  *  - `names` — job id → the display name GitHub composes into the context.
  *  - `moment` — the workflow's `moment` input.
+ *  - `event` — `github.event_name`, the event that started the run.
+ *  - `pullRequestOnly` — JSON array of the job ids whose `if:` requires
+ *    `github.event_name == 'pull_request'`. See {@link pullRequestOnlyExemption}.
  */
 export const OUTCOME_ENV = Object.freeze({
   results: "LISA_JOB_RESULTS",
   names: "LISA_JOB_NAMES",
   moment: "LISA_GATE_MOMENT",
+  event: "LISA_EVENT_NAME",
+  pullRequestOnly: "LISA_PULL_REQUEST_ONLY_JOBS",
 });
+
+/**
+ * Events whose run can gate no merge, so a pull-request-only job's skip there
+ * proves nothing either way (#4620).
+ *
+ * A caller such as `ci.yml` runs on `pull_request` AND `workflow_dispatch`
+ * without passing a `moment`, so a manual run is judged at `pull-request` — and
+ * the jobs whose own `if:` admits only `pull_request` skip by construction. A
+ * guard that reddens every manual run over that gets ignored, and this guard is
+ * what stops a merge on a required check that never ran.
+ *
+ * Deliberately a closed list. `pull_request_target` and `merge_group` CAN gate a
+ * merge, and an event this list does not know is judged exactly as before.
+ */
+export const NON_MERGE_EVENTS = Object.freeze([
+  "workflow_dispatch",
+  "push",
+  "schedule",
+]);
+
+/**
+ * Which skipped jobs this run may excuse, or null to judge every skip.
+ *
+ * FAIL-CLOSED on every input it cannot read: an event outside
+ * {@link NON_MERGE_EVENTS}, an absent or empty event, or a pull-request-only
+ * list that is absent, not JSON, or not an array of job ids all return null, so
+ * the run is judged exactly as before. That keeps a caller on an older
+ * `quality.yml` — which sets neither variable — safe while hosts run `main`'s
+ * prover.
+ *
+ * @param {Record<string, string|undefined>} env - Environment
+ * @returns {{event: string, jobs: ReadonlyArray<string>}|null} The excusable jobs and the event that excuses them
+ */
+export function pullRequestOnlyExemption(env) {
+  const event = String(env[OUTCOME_ENV.event] ?? "").trim();
+  if (!NON_MERGE_EVENTS.includes(event)) return null;
+  let jobs;
+  try {
+    jobs = JSON.parse(String(env[OUTCOME_ENV.pullRequestOnly] ?? ""));
+  } catch {
+    return null;
+  }
+  const readable =
+    Array.isArray(jobs) && jobs.every(job => typeof job === "string");
+  return readable ? { event, jobs } : null;
+}
 
 /**
  * The one moment whose run is the merge gate a ruleset's required checks read.
@@ -5263,9 +5622,15 @@ export function owningPrefix(declaration, matches) {
  * @param {object} declaration - The per-repo declaration
  * @param {Record<string, {result?: string}>} results - `toJSON(needs)`, parsed
  * @param {Record<string, string>} names - Job id → display name
- * @returns {{examined: {context: string, job: string, result: string}[], notExamined: string[], violations: object[], prefix: {prefix: string|null, source: string}}} What was judged, what could not be seen, the findings, and whose contexts it judged
+ * @param {{event: string, jobs: ReadonlyArray<string>}|null} [exemption] - Pull-request-only jobs whose skip this run's event excuses; see {@link pullRequestOnlyExemption}
+ * @returns {{examined: {context: string, job: string, result: string}[], notExamined: string[], notJudged: {context: string, job: string, result: string, reason: string}[], violations: object[], prefix: {prefix: string|null, source: string}}} What was judged, what could not be seen, what was excused, the findings, and whose contexts it judged
  */
-export function evaluateRequiredOutcomes(declaration, results, names) {
+export function evaluateRequiredOutcomes(
+  declaration,
+  results,
+  names,
+  exemption = null
+) {
   const required = Array.isArray(declaration.required_contexts)
     ? declaration.required_contexts
     : [];
@@ -5288,6 +5653,7 @@ export function evaluateRequiredOutcomes(declaration, results, names) {
 
   const examined = [];
   const notExamined = [];
+  const notJudged = [];
   const violations = [];
   for (const context of required) {
     const jobs = owned.get(context) ?? [];
@@ -5306,10 +5672,39 @@ export function evaluateRequiredOutcomes(declaration, results, names) {
     }
     const [job] = jobs;
     const result = String(results[job]?.result ?? "");
+    const excused = excusedSkip(context, job, result, exemption);
+    if (excused !== null) {
+      notJudged.push(excused);
+      continue;
+    }
     examined.push({ context, job, result });
     violations.push(...outcomeViolations(context, job, result));
   }
-  return { examined, notExamined, violations, prefix };
+  return { examined, notExamined, notJudged, violations, prefix };
+}
+
+/**
+ * The not-judged entry for a skip this run's event excuses, or null.
+ *
+ * Only `skipped`, and only for a job the workflow declares pull-request-only:
+ * a `failure`, a `cancelled` or an unreadable result is judged as ever, and so
+ * is every other job's skip.
+ *
+ * @param {string} context - Required context
+ * @param {string} job - The job that posts it
+ * @param {string} result - That job's result in this run
+ * @param {{event: string, jobs: ReadonlyArray<string>}|null} exemption - See {@link pullRequestOnlyExemption}
+ * @returns {{context: string, job: string, result: string, reason: string}|null} The excused entry
+ */
+function excusedSkip(context, job, result, exemption) {
+  if (exemption === null || result !== "skipped") return null;
+  if (!exemption.jobs.includes(job)) return null;
+  return {
+    context,
+    job,
+    result,
+    reason: `this run was started by \`${exemption.event}\`, which gates no merge, and the job runs only on pull requests`,
+  };
 }
 
 /**
@@ -5382,7 +5777,7 @@ function readOutcomeEnv(env) {
  * @param {ReadonlyArray<string>} argv - CLI arguments
  * @param {object} declaration - The per-repo declaration
  * @param {{env?: Record<string, string|undefined>, trust?: {trusted: boolean, reason: string}}} [options] - Environment and snapshot trust
- * @returns {{moment: string, applicable: boolean, examined: object[], notExamined: string[], violations: object[], refusal: {kind: string, reason: string}|null}|undefined} The inspection, or undefined when `--outcomes` was not passed
+ * @returns {{moment: string, applicable: boolean, examined: object[], notExamined: string[], notJudged: object[], violations: object[], refusal: {kind: string, reason: string}|null}|undefined} The inspection, or undefined when `--outcomes` was not passed
  */
 export function inspectOutcomes(argv, declaration, options = {}) {
   if (!argv.includes(OUTCOMES_FLAG)) return undefined;
@@ -5393,6 +5788,7 @@ export function inspectOutcomes(argv, declaration, options = {}) {
     applicable: true,
     examined: [],
     notExamined: [],
+    notJudged: [],
     violations: [],
     refusal: null,
   };
@@ -5424,10 +5820,13 @@ export function inspectOutcomes(argv, declaration, options = {}) {
   const evaluated = evaluateRequiredOutcomes(
     declaration,
     read.results,
-    read.names
+    read.names,
+    pullRequestOnlyExemption(env)
   );
+  // An excused context was matched and owned, so the snapshot is not the defect
+  // this refusal exists for: it was seen and excused, not unseen.
   const refusal =
-    evaluated.examined.length > 0
+    evaluated.examined.length + evaluated.notJudged.length > 0
       ? null
       : {
           kind: OUTCOME_REFUSALS.examinedNothing,
@@ -5930,7 +6329,31 @@ function appendOutcomeReport(lines, outcomes) {
   }
   appendOutcomeRefusal(lines, outcomes.refusal);
   appendExaminedOutcomes(lines, outcomes);
+  appendNotJudgedContexts(lines, outcomes.notJudged ?? []);
   appendUnexaminedContexts(lines, outcomes.notExamined);
+}
+
+/**
+ * Appends the required contexts excused because their pull-request-only job
+ * could not run on the event that started this run (#4620).
+ *
+ * Listed rather than dropped, so a reader sees what was set aside and why.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {ReadonlyArray<{context: string, job: string, result: string, reason: string}>} notJudged - Excused contexts
+ * @returns {void}
+ */
+function appendNotJudgedContexts(lines, notJudged) {
+  if (notJudged.length === 0) return;
+  lines.push(
+    `Not judged — ${notJudged.length} required context(s) whose job skipped on an event that gates no merge. Each one is still judged on every pull request run.`,
+    "",
+    ...notJudged.map(
+      ({ context, job, result, reason }) =>
+        `- \`${context}\` ← job \`${job}\`: \`${result}\` — ${reason}.`
+    ),
+    ""
+  );
 }
 
 /**

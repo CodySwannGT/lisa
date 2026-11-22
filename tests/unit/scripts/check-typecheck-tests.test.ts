@@ -1,35 +1,24 @@
 /**
- * Unit tests for scripts/check-typecheck-tests.mjs (CodySwannGT/lisa#3913).
+ * Unit tests for scripts/check-typecheck-tests.mjs (CodySwannGT/lisa#3811,
+ * #3913, #4923, #4927).
  *
- * The defect these exist for is not a wrong comparison — it is a correct
- * comparison run against inputs that never resolved. With an empty
- * `node_modules` the gate spawns `node node_modules/@typescript/native-preview/bin/tsgo`, the
- * SPAWN succeeds (node starts; node is what cannot find the module), nothing is
- * compiled, no diagnostic matches the gate's pattern, and every quarantined file
- * therefore satisfies "has no errors". The gate reported all 370 entries as
- * fixed and instructed their deletion.
+ * The gate is strict: one type error in any file of the test program fails it,
+ * and there is no exemption list to consult (#4923 deleted the quarantine that
+ * used to hold known-failing files).
  *
- * ## The two controls, and why both are required
- *
- * `an unresolvable dependency tree` is the control that must FAIL against the
- * unfixed gate. Measured against `origin/main`'s copy on the fixture below, the
- * unfixed gate names `src/broken.ts` — a file with a real, deliberate type
- * error — as one that "now type-checks". That is the destructive claim in
- * miniature and it is what these assertions refuse.
- *
- * `a genuine stale entry` is the control that must PASS in BOTH states. A fix
- * that bought safety by refusing to report would be worse than the defect,
- * because the quarantine only ratchets shut if a fixed file is actually called
- * out. Measured: the unfixed and fixed gates produce byte-identical output for
- * this case.
+ * The other defect these exist for is not a wrong verdict — it is a verdict
+ * reached from inputs that never resolved (#3913). With an empty
+ * `node_modules` the gate spawns `node node_modules/@typescript/native-preview/bin/tsgo`,
+ * the SPAWN succeeds (node starts; node is what cannot find the module),
+ * nothing is compiled and no diagnostic matches the gate's pattern. Read
+ * naively that is a clean run. The gate must refuse instead, and say so.
  *
  * ## Fixture notes
  *
  * The root is REALPATH'd. tsc reports diagnostic paths relative to its resolved
  * working directory, and on macOS the per-user temp root reached through the
  * unresolved spelling is a symlink, so an un-normalized root yields diagnostic
- * paths that climb out through a chain of `..` segments — and the quarantine,
- * which holds repo-relative paths, then matches nothing. That is a property of
+ * paths that climb out through a chain of `..` segments. That is a property of
  * the fixture, not of the gate.
  *
  * `@typescript/native-preview` (the compiler the gate spawns) is symlinked
@@ -42,9 +31,9 @@
 import {
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -53,6 +42,7 @@ import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const SCRIPT = path.resolve("scripts/check-typecheck-tests.mjs");
 /** The compiler the gate spawns: the TypeScript native compiler (`tsgo`). */
@@ -72,22 +62,22 @@ const TSCONFIG = {
   include: ["src/**/*"],
 };
 
-/** A file that genuinely does not compile — legitimately quarantined. */
+/** A file that genuinely does not compile. */
 const BROKEN_PATH = "src/broken.ts";
 
-/** A file that compiles. Quarantining it is what a stale entry looks like. */
+/** A file that compiles. */
 const CLEAN_PATH = "src/clean.ts";
-
-/** The destructive finding's headline, in the gate's own words. */
-const MUST_LEAVE = "must leave the list";
 
 /** The distinct outcome word a refusal must lead with. */
 const CANNOT_MEASURE = "CANNOT MEASURE";
 
+/** The failure header, in the gate's own words. */
+const HAS_ERRORS = "file(s) have type errors:";
+
 /** Assigning a string to a `number` is TS2322 — a diagnostic tsc always emits. */
 const BROKEN = 'export const n: number = "not a number";\n';
 
-/** No diagnostic. Quarantining this is what a genuine stale entry looks like. */
+/** No diagnostic. */
 const CLEAN = "export const ok: number = 1;\n";
 
 const roots: string[] = [];
@@ -99,34 +89,30 @@ afterEach(() => {
 
 /**
  * Build a fixture repository.
- * @param options - Whether dependencies resolve, and what is quarantined.
+ * @param options - Whether dependencies resolve, and whether a broken file exists.
  * @returns The realpath'd fixture root.
  */
 function fixture({
   installed,
-  quarantined,
+  broken,
 }: {
   readonly installed: boolean;
-  readonly quarantined: readonly string[];
+  readonly broken: boolean;
 }): string {
   const root = realpathSync(mkdtempSync(path.join(tmpdir(), "lisa-3913-")));
   roots.push(root);
   mkdirSync(path.join(root, "src"));
-  writeFileSync(path.join(root, BROKEN_PATH), BROKEN);
+  if (broken) writeFileSync(path.join(root, BROKEN_PATH), BROKEN);
   writeFileSync(path.join(root, CLEAN_PATH), CLEAN);
   writeFileSync(
     path.join(root, "tsconfig.tests.json"),
     JSON.stringify(TSCONFIG)
   );
-  writeFileSync(
-    path.join(root, "typecheck-quarantine.json"),
-    JSON.stringify({ files: quarantined, reason: "fixture" })
-  );
   if (installed) {
     mkdirSync(path.join(root, "node_modules/@typescript"), {
       recursive: true,
     });
-    symlinkSync(
+    createSymlink(
       TYPESCRIPT,
       path.join(root, "node_modules/@typescript/native-preview")
     );
@@ -134,14 +120,21 @@ function fixture({
   return root;
 }
 
+/** The program ESLint's type-aware rules read their types from. */
+const ESLINT_PROJECT = "tsconfig.eslint.json";
+
 /**
  * Run the gate against a fixture.
  * @param root - The fixture root.
+ * @param extraArgs - Further arguments, e.g. `--project`.
  * @returns The exit status and combined output.
  */
-function runGate(root: string): { status: number; output: string } {
+function runGate(
+  root: string,
+  extraArgs: readonly string[] = []
+): { status: number; output: string } {
   const result = boundedSpawnSync({
-    args: [SCRIPT, "--root", root],
+    args: [SCRIPT, "--root", root, ...extraArgs],
     command: process.execPath,
     label: "check-typecheck-tests.mjs",
   });
@@ -152,14 +145,55 @@ function runGate(root: string): { status: number; output: string } {
 }
 
 describe("check-typecheck-tests", () => {
+  describe("a type error in any test file", () => {
+    it("fails the check and names the file", () => {
+      const { output, status } = runGate(
+        fixture({ installed: true, broken: true })
+      );
+
+      expect(status).toBe(1);
+      expect(output).toContain(
+        "type-correctness (tests): 1 file(s) with 1 error(s)."
+      );
+      expect(output).toContain(`1 ${HAS_ERRORS}`);
+      expect(output).toContain(`${BROKEN_PATH} (1)`);
+      expect(output).not.toContain(CANNOT_MEASURE);
+    });
+
+    it("fails even when a leftover exemption list names the file", () => {
+      // There is no quarantine to consult. A stale `typecheck-quarantine.json`
+      // left in a checkout must change nothing: the error still fails the gate.
+      const root = fixture({ installed: true, broken: true });
+      writeFileSync(
+        path.join(root, "typecheck-quarantine.json"),
+        JSON.stringify({ files: [BROKEN_PATH], reason: "fixture" })
+      );
+
+      const { output, status } = runGate(root);
+
+      expect(status).toBe(1);
+      expect(output).toContain(`${BROKEN_PATH} (1)`);
+    });
+  });
+
+  describe("a clean tree", () => {
+    it("passes when no file has a type error", () => {
+      const { output, status } = runGate(
+        fixture({ installed: true, broken: false })
+      );
+
+      expect(output).toContain(
+        "type-correctness (tests): 0 file(s) with 0 error(s)."
+      );
+      expect(output).toContain("✅ The test program type-checks");
+      expect(output).not.toContain(HAS_ERRORS);
+      expect(status).toBe(0);
+    });
+  });
+
   describe("an unresolvable dependency tree", () => {
     it("reports that it could not measure, naming the missing compiler", () => {
-      const { output } = runGate(
-        fixture({
-          installed: false,
-          quarantined: [BROKEN_PATH, CLEAN_PATH],
-        })
-      );
+      const { output } = runGate(fixture({ installed: false, broken: true }));
 
       expect(output).toContain(CANNOT_MEASURE);
       expect(output).toContain(
@@ -168,50 +202,27 @@ describe("check-typecheck-tests", () => {
     });
 
     it("denies the inference a reader would otherwise draw", () => {
-      const { output } = runGate(
-        fixture({
-          installed: false,
-          quarantined: [BROKEN_PATH, CLEAN_PATH],
-        })
-      );
+      const { output } = runGate(fixture({ installed: false, broken: false }));
 
-      // The whole point. Silence about errors reads as "there were none", and
-      // the gate's own cleared-entry message turns that into a deletion.
-      expect(output).toContain("is NOT reporting");
-      expect(output).toContain("now type-check");
+      // Silence about errors reads as "there were none". Nothing was compiled,
+      // so the refusal has to say that is NOT what it found.
+      expect(output).toContain(
+        "is NOT reporting that the test program type-checks"
+      );
+      expect(output).not.toContain("✅");
     });
 
-    it("names no quarantined file", () => {
-      const { output } = runGate(
-        fixture({
-          installed: false,
-          quarantined: [BROKEN_PATH, CLEAN_PATH],
-        })
-      );
+    it("names no file", () => {
+      const { output } = runGate(fixture({ installed: false, broken: true }));
 
-      // A refusal that still printed the paths would be followed exactly as
-      // often as the finding it replaces. `src/broken.ts` is the sharpest
-      // case: the unfixed gate calls this file, which does NOT compile, fixed.
+      // Nothing was compiled, so nothing is known about any file.
       expect(output).not.toContain(BROKEN_PATH);
       expect(output).not.toContain(CLEAN_PATH);
-      expect(output).not.toContain(MUST_LEAVE);
-    });
-
-    it("instructs nobody to edit the quarantine", () => {
-      const { output } = runGate(
-        fixture({ installed: false, quarantined: [CLEAN_PATH] })
-      );
-
-      expect(output).not.toContain(
-        "Remove them from typecheck-quarantine.json"
-      );
-      expect(output).toContain("Do NOT edit typecheck-quarantine.json");
+      expect(output).not.toContain(HAS_ERRORS);
     });
 
     it("fails closed rather than passing", () => {
-      const { status } = runGate(
-        fixture({ installed: false, quarantined: [CLEAN_PATH] })
-      );
+      const { status } = runGate(fixture({ installed: false, broken: false }));
 
       // Exit code is the gate's only surface, so there is no third code to
       // emit. Resolving an unestablished subject to success would be a fresh
@@ -222,7 +233,7 @@ describe("check-typecheck-tests", () => {
 
   describe("a vacuous run with the compiler present", () => {
     it("refuses when tsc fails without one parseable diagnostic", () => {
-      const root = fixture({ installed: true, quarantined: [CLEAN_PATH] });
+      const root = fixture({ installed: true, broken: false });
       // A config selecting no inputs: tsc exits non-zero emitting TS18003,
       // which carries no `file(line,col)` prefix and so parses to nothing —
       // the same empty subject set, reached without touching node_modules.
@@ -238,53 +249,82 @@ describe("check-typecheck-tests", () => {
 
       expect(output).toContain(CANNOT_MEASURE);
       expect(output).toContain("had no subject");
-      expect(output).not.toContain(MUST_LEAVE);
+      expect(output).not.toContain("✅");
       expect(status).toBe(1);
     });
   });
 
-  describe("a genuine stale entry", () => {
-    // MUST PASS AGAINST BOTH THE FIXED AND UNFIXED GATE. This is the control
-    // that catches an over-broad fix — one that stopped reporting in order to
-    // stop reporting wrongly.
-    it("is still reported by name, with the removal instruction", () => {
-      const { output, status } = runGate(
-        fixture({
-          installed: true,
-          quarantined: [BROKEN_PATH, CLEAN_PATH],
-        })
+  describe("--project tsconfig.eslint.json (CodySwannGT/lisa#4927)", () => {
+    /**
+     * A fixture whose ESLint program differs from its test program, so a pass
+     * or a failure can only come from the project the flag named.
+     * @param broken - Whether the ESLint program holds a type error.
+     * @returns The fixture root.
+     */
+    function eslintFixture(broken: boolean): string {
+      const root = fixture({ installed: true, broken: false });
+      mkdirSync(path.join(root, "configs"));
+      writeFileSync(
+        path.join(root, "configs/lint-only.ts"),
+        broken ? BROKEN : CLEAN
       );
+      writeFileSync(
+        path.join(root, ESLINT_PROJECT),
+        JSON.stringify({ ...TSCONFIG, include: ["src/**/*", "configs/**/*"] })
+      );
+      return root;
+    }
 
-      expect(output).toContain("1 quarantined file(s) now type-check");
-      expect(output).toContain(CLEAN_PATH);
-      expect(output).toContain("Remove them from typecheck-quarantine.json");
-      expect(output).not.toContain(CANNOT_MEASURE);
-      expect(status).toBe(1);
+    it("fails on an error in a file only the ESLint program compiles", () => {
+      const root = eslintFixture(true);
+
+      const eslint = runGate(root, ["--project", ESLINT_PROJECT]);
+      expect(eslint.status).toBe(1);
+      expect(eslint.output).toContain(
+        "type-correctness (eslint program): 1 file(s) with 1 error(s)."
+      );
+      expect(eslint.output).toContain(`1 ${HAS_ERRORS}`);
+      expect(eslint.output).toContain("configs/lint-only.ts (1)");
+
+      // The same tree under the default project is clean: the verdict above
+      // came from the program the flag named, not from the test program.
+      expect(runGate(root).status).toBe(0);
     });
 
-    it("leaves a still-failing quarantined file quarantined", () => {
-      const { output } = runGate(
-        fixture({
-          installed: true,
-          quarantined: [BROKEN_PATH, CLEAN_PATH],
-        })
-      );
+    it("passes when the ESLint program is clean", () => {
+      const { output, status } = runGate(eslintFixture(false), [
+        "--project",
+        ESLINT_PROJECT,
+      ]);
 
-      expect(output).toContain(
-        "type-correctness (tests): 1 file(s) with 1 error(s); 2 quarantined."
-      );
-      expect(output).not.toContain("outside the quarantine have type errors");
-    });
-  });
-
-  describe("a clean tree", () => {
-    it("passes when every quarantined file still fails and nothing else does", () => {
-      const { output, status } = runGate(
-        fixture({ installed: true, quarantined: [BROKEN_PATH] })
-      );
-
-      expect(output).toContain("✅ No type errors outside the quarantine");
+      expect(output).toContain("✅ The ESLint program type-checks");
       expect(status).toBe(0);
+    });
+
+    it("refuses, naming the ESLint program, when the compiler is absent", () => {
+      const root = fixture({ installed: false, broken: false });
+      writeFileSync(path.join(root, ESLINT_PROJECT), JSON.stringify(TSCONFIG));
+
+      const { output, status } = runGate(root, ["--project", ESLINT_PROJECT]);
+
+      expect(output).toContain(CANNOT_MEASURE);
+      expect(output).toContain(
+        "is NOT reporting that the ESLint program type-checks"
+      );
+      expect(status).toBe(1);
+    });
+
+    it("is part of `bun run typecheck`", () => {
+      const scripts = (
+        JSON.parse(readFileSync("package.json", "utf8")) as {
+          readonly scripts: Readonly<Record<string, string>>;
+        }
+      ).scripts;
+
+      expect(scripts["typecheck:eslint"]).toBe(
+        "node scripts/check-typecheck-tests.mjs --project tsconfig.eslint.json"
+      );
+      expect(scripts["typecheck"]).toContain("bun run typecheck:eslint");
     });
   });
 });

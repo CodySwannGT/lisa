@@ -12,10 +12,12 @@ export { UpdaterError, required, keys } from "./npm-update-invariants.mjs";
 import { canonicalJson } from "./automation-provenance-contract.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import {
+  npmPath,
   optionalLockFields,
   optionalRuntimeFields,
   proposalFileNames,
   signedProposalFields,
+  targetField,
 } from "./automation-provenance-contract.mjs";
 export { proposalFileNames } from "./automation-provenance-contract.mjs";
 import { runtimeBinding } from "./npm-update-rails-runtime-contract.mjs";
@@ -28,8 +30,16 @@ export const SECTIONS = [
 ];
 export const CLAIM =
   "[lisa-tracker-claim] Claimed by Lisa. Starting implementation.";
-export { NAME, VERSION, validatePolicy } from "./npm-update-policy.mjs";
-import { VERSION } from "./npm-update-policy.mjs";
+export {
+  NAME,
+  VERSION,
+  validatePolicy,
+  selectPolicy,
+  policyTarget,
+  validBranchName,
+  DEFAULT_TARGET,
+} from "./npm-update-policy.mjs";
+import { VERSION, policyTarget } from "./npm-update-policy.mjs";
 export const OBJECT = /^[a-f0-9]{40}$/;
 
 /** Host declarations are checked before npm or lifecycle execution. */
@@ -166,9 +176,9 @@ export function selectionKey(policy, updates) {
   return sha256(
     canonicalJson({
       repository: policy.repository,
-      target: "main",
+      target: policyTarget(policy),
       ecosystem: "npm",
-      directory: ".",
+      directory: policy.directory,
       policySha256: sha256(canonicalJson(policy)),
       versions: updates
         .map(({ name, to }) => ({ name, version: to }))
@@ -190,6 +200,9 @@ export function proposalFrom(
   const optional = {
     ...(bunLockSha256 === undefined ? {} : { bunLockSha256 }),
     ...runtimeBinding(policy),
+    ...(policy.directory === "." ? {} : { directory: policy.directory }),
+    // Only a non-main target is signed into the binding and descriptor.
+    ...targetField(policy),
   };
   const names = proposalFileNames({ files, ...optional });
   for (const value of Object.values(files))
@@ -197,16 +210,16 @@ export function proposalFrom(
       typeof value === "string" && Buffer.byteLength(value) <= 1_048_576,
       "oversize proposal file"
     );
-  const after = JSON.parse(files["package.json"]);
-  const lock = JSON.parse(files["package-lock.json"]);
+  const after = JSON.parse(files[npmPath(optional, "package.json")]);
+  const lock = JSON.parse(files[npmPath(optional, "package-lock.json")]);
   validateManifest(before, after, updates, policy);
   validateLock(lock, after, updates);
   const ordered = [...updates].sort((a, b) => a.name.localeCompare(b.name));
   const identity = {
     repository: policy.repository,
-    target: policy.target,
+    target: policyTarget(policy),
     ecosystem: "npm",
-    directory: ".",
+    directory: policy.directory,
     parent,
     policySha256: sha256(canonicalJson(policy)),
     updates: ordered,

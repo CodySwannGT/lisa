@@ -1,4 +1,4 @@
 display_name: "Jsdoc Best Practices"
-short_description: "Enforces JSDoc documentation…"
+short_description: "JSDoc standards for this…"
 default_prompt:
-  - "Use $lisa-jsdoc-best-practices: Enforces JSDoc documentation…."
+  - "Use $lisa-jsdoc-best-practices: JSDoc standards for this…."

@@ -17,8 +17,7 @@ it does not repair (use `/ingest`, `/setup`, or `/migrate` to fix).
 - **Links**: no broken internal links; no orphan pages (unreferenced and unlinked).
 - **State ordering**: no state cursor advanced without its source notes + synthesis + index + log.
 - **Structure**: files conform to `schema/wiki-structure.schema.json` (canonical locations).
-- **Safety**: secret patterns, tenant/contamination terms, stray binaries, child-repo contents
-  staged in wrapper mode.
+- **Safety**: secret patterns, tenant/contamination terms, stray binaries.
 
 ## What it checks (LLM-assisted)
 - **Contradictions** between claims; **stale** claims (older than the configured staleness window);

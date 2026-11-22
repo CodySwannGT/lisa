@@ -39,9 +39,15 @@
  *                  collect one complete native Actions shard without judging
  *                  its individual trace. All canonical candidates are supplied.
  *   --merge-traces DIRECTORY --trace-out FILE
- *                  validate all three current run/attempt shard receipts, then
- *                  apply the original judge once to their combined trace.
- *                  A new Actions attempt must reproduce all three shards.
+ *                  validate one complete receipt per shard from the current
+ *                  run, then apply the original judge once to their combined
+ *                  trace. DIRECTORY holds every attempt of the run; for each
+ *                  shard the newest attempt wins, so "Re-run failed jobs"
+ *                  recovers a failed shard (#4634). That newest bundle must be
+ *                  complete — an older attempt is never used in its place —
+ *                  and must match the current run, source, PR head, workflow,
+ *                  runtime and roster. Each refusal names the shard, the
+ *                  attempt and the re-run that recovers it.
  *
  * Exit codes (mirroring the sibling check-* scripts):
  *   0 — the judgment passed, or --collect-only retained a complete eligible
@@ -60,6 +66,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import { NIGHTLY_SLOW_SUITES } from "./lib/nightly-slow-suites.mjs";
 import {
   formatReport,
   guardPopulation,
@@ -108,9 +115,18 @@ const CHILD_STARTS = Object.freeze([
  *   Sync run 42505996595 collected it in shard 3, and none of that shard's 350
  *   trace records originated from it, so leaving it out narrows no guard's
  *   observed refusals.
+ * - `NIGHTLY_SLOW_SUITES` — the six slow suites CodySwannGT/lisa#4896 moved to
+ *   `.github/workflows/nightly-slow-tests.yml`. `vitest.config.local.ts`
+ *   excludes them from every per-PR Vitest run, so the native collection this
+ *   check compares against cannot contain them. Only
+ *   `tests/integration/vitest-nodenext-local-config.test.ts` was ever a
+ *   candidate, and it drove no guard: Plugins Sync run 43325166549 on main
+ *   passed it in shard 3, and none of that shard's 394 trace records
+ *   originated from it.
  */
 export const HAND_RUN_SUITES = Object.freeze([
   "tests/integration/shared-runtime-packed-hosts.test.ts",
+  ...NIGHTLY_SLOW_SUITES,
 ]);
 
 /**

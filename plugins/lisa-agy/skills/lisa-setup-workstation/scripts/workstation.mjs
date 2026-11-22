@@ -119,10 +119,25 @@ export function provenance(path) {
 }
 
 /**
+ * What the workstation installer will do about one entry, and why.
+ * @typedef {object} PlanRow
+ * @property {string} name Executable name.
+ * @property {string} label Human name.
+ * @property {string} kind How it would be installed.
+ * @property {string|null} path Where it is already installed, or null.
+ * @property {string|null} version Its installed version, when present.
+ * @property {string} from Provenance of an existing install.
+ * @property {boolean} checksummed Whether an install is checksum-verified.
+ * @property {string} action `present`, `install`, `manual` or `blocked`.
+ * @property {string} reason Plain-language reason for the action.
+ * @property {string} [group] `agent`, `provider` or `tool`, once planned.
+ */
+
+/**
  * Decide what to do about one catalogue entry.
- * @param {object} entry Catalogue entry.
+ * @param {{name: string, label: string, kind: string, note?: string}} entry Catalogue entry.
  * @param {object} [deps] Injected probes, for tests.
- * @returns {object} A plan row.
+ * @returns {PlanRow} A plan row.
  */
 export function planEntry(entry, deps = {}) {
   const find = deps.locate ?? locate;
@@ -169,7 +184,7 @@ export function planEntry(entry, deps = {}) {
 /**
  * Build the full plan across agents and tools.
  * @param {object} [options] Selection and injected probes.
- * @returns {object[]} Plan rows.
+ * @returns {PlanRow[]} Plan rows, each with its `group`.
  */
 export function planWorkstation(options = {}) {
   const wanted = options.agents ?? null;
@@ -210,7 +225,7 @@ export function planWorkstation(options = {}) {
  * typo that quietly provisions the wrong credential manager is worse than one
  * that stops.
  * @param {string|null|undefined} name Requested provider.
- * @returns {object|null} Entry, or null when none was requested.
+ * @returns {import("./catalogue.mjs").CatalogueEntry|null} Entry, or null when none was requested.
  */
 export function resolveProvider(name) {
   if (name === null || name === undefined) return null;
@@ -226,9 +241,9 @@ export function resolveProvider(name) {
 
 /**
  * Plan the selected credential manager.
- * @param {object} provider Catalogue entry.
+ * @param {import("./catalogue.mjs").CatalogueEntry} provider Catalogue entry.
  * @param {object} [deps] Injected probes, for tests.
- * @returns {object} A plan row.
+ * @returns {PlanRow} A plan row.
  */
 export function planProvider(provider, deps = {}) {
   if (provider.kind === "none") {
@@ -251,7 +266,7 @@ export function planProvider(provider, deps = {}) {
 
 /**
  * Render the plan for a human.
- * @param {object[]} plan Plan rows.
+ * @param {readonly PlanRow[]} plan Plan rows.
  * @returns {string} Report text.
  */
 export function renderPlan(plan) {

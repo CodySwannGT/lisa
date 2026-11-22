@@ -29,10 +29,10 @@ on:
         type: string
         default: ''
       run_quality_checks:
-        description: 'Run quality checks again during release. Set false when protected PR CI already enforces them; deployment and release checks still run.'
+        description: 'Opt in to re-running the full quality suite during release. Off by default because branch protection already required it to pass on the pull request. Set true when the deploy branch accepts unreviewed pushes or when merged trees must be re-proved (branches need not be up to date before merge). Gates declared at pre-deploy run through deploy.yml either way.'
         required: false
         type: boolean
-        default: true
+        default: false
       moment:
         # Release checks use the deployment environment's gate set. PR-only
         # jobs intentionally skip on push and cannot satisfy PR contexts here.

@@ -1,6 +1,6 @@
 ---
 name: lisa-linear-build-intake
-description: "Symmetric counterpart to lisa-jira-build-intake on the Linear side. Scans a Linear team for Issues in the configured `ready` workflow state, claims the first eligible Issue by transitioning it to the configured `claimed` state, runs the implementation/build flow via the linear-agent workflow in-session (culminating in lisa-implement), transitions to the configured `done` state on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic) that still sits in the build-ready state is skipped or safe-blocked with a lifecycle-repair comment, never claimed. The `ready` state is the human-flipped signal that an Issue is truly ready for development — mirroring how Notion PRDs work Draft → Ready → (us) In Review → Blocked|Ticketed."
+description: "Run one cycle of the Linear build queue: claim the first ready leaf issue, build it with lisa-implement, and mark it done. Containers with open children are skipped, not claimed."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -212,14 +212,14 @@ A blocker is a **claim with a timestamp, not a fact**. It is written once and go
 For each pre-work candidate that is **not** in `$READY`:
 
 1. **Read release comments before applying the human gate.** Pass all item comments, labels,
-   body, `trustedHumanActorIds` and configured `humanNeededLabel` to `classifyReadyCandidate(...)`. For a discharged hold,
-   call `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
+   body, `trustedHumanActorIds`, configured `humanNeededLabel`, `humanOnly` and `humanGateMode` to `classifyReadyCandidate(...)`. For a discharged hold,
+   call `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, readyLabel, lifecycleLabels, alreadyNotified })`
    and retain its plan. Apply human-marker cleanup only as planned; defer any ready-role restoration
    until steps 2–5 have cleared the remaining blockers (map the role to the vendor's state or label).
    A still-active hold is never auto-selected, whatever any probe says. An absent or unreadable
    comment history cannot discharge a hold. A release removes only the human hold: continue the
    remaining blocker checks below before selecting the item.
-   Lift invalid holds first: call `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })` from `scripts/human-gate-lift.mjs`. Post its `comments` and apply only
+   Lift invalid holds first: call `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, readyLabel, lifecycleLabels })` from `scripts/human-gate-lift.mjs`. Post its `comments` and apply only
    `removeHumanNeededLabel` here; defer `addReadyLabel` until the remaining blocker checks below
    clear, exactly as for a release. A hold that names no act an agent cannot perform then never
    blocks selection, and an item with a real blocker never skips the re-probe. A hold that is
@@ -229,11 +229,11 @@ For each pre-work candidate that is **not** in `$READY`:
    step 2's probe. Keep probing any independent blocker the item states.
 
 2. **Extract the stated discharge condition** from the description or the most recent blocking comment — the sentence naming what has to become true.
-3. **Probe it.** Machine-testable conditions are the ones that rot fastest and are cheapest to check: a version on trunk (`git show origin/<trunk>:<manifest>`), a published package, a run history (`gh run list`), an advisory's patched status. A condition that is a human decision is not machine-testable — leave it and move on.
+3. **Probe it.** Machine-testable conditions are the ones that rot fastest and are cheapest to check: a version on trunk (`git show origin/<trunk>:<manifest>`), a published package, a run history (`gh run list`), an advisory's patched status. A condition that is a decision rather than a fact is not machine-testable, but it is not a reason to wait: when the evidence supports a call, make it, record a `Decision:` line on the item (what was chosen and why) as the discharging evidence, and treat the condition as discharged. Leave the item only when the condition needs access the agent lacks (name it) or is a hold the operator explicitly asked for. Under `humanGate.mode: "strict"`, leave every decision for a person.
 4. **Classify with the shared helper** so the ordering and the evidence requirement cannot drift per vendor:
 
 ```text
-classifyPreWorkCandidate({ laneType, labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, statedBlocker, probe })
+classifyPreWorkCandidate({ laneType, labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, statedBlocker, probe })
   → { selectable, reason, humanGated, evidence }
 ```
 
@@ -258,8 +258,8 @@ other gate's verdict — however conclusive — may promote an item a person par
 
 **Lift invalid holds before classifying.** A hold filed under the old "human product call"
 wording that names no act an agent cannot perform is not a hold (`ready-role-filing`, "What a human
-gate is"), and no person should have to comment to end it. Call `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })` from `scripts/human-gate-lift.mjs`, with `humanOnly` read
-from `humanGate.humanOnly` in config. Post each string in its `comments` once (each begins
+gate is"), and no person should have to comment to end it. Call `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, readyLabel, lifecycleLabels })` from `scripts/human-gate-lift.mjs`, with `humanOnly` read
+from `humanGate.humanOnly` and `humanGateMode` from `humanGate.mode` in config (one call: `node scripts/human-gate-act.mjs policy` prints both; a reader that omits the mode judges under access-only, so a strict project must pass it). Post each string in its `comments` once (each begins
 `[lisa-human-gate-lifted] reason=<slug>` and explains why), apply its `actions` (remove the
 human-needed marker, add the ready role back), then classify below with those comments included. A
 valid hold (credential, spend, sign-off, and the rest) plans nothing and stays held; so does a
@@ -282,7 +282,7 @@ printed even at zero.
    and re-rejected every cycle forever and seen by nothing — `lisa-repair-intake` sweeps items that
    are **not** in the ready role and excludes gated ones outright, so a ready-and-gated item falls
    outside its filter twice over. Call
-   `planHumanGateReconciliation({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, alreadyNotified })`
+   `planHumanGateReconciliation({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, readyLabel, alreadyNotified })`
    and apply exactly the actions it returns: remove `$READY`, add the configured human-needed
    marker, and post `formatHumanGateNote()` once. The planner is idempotent by state, so an item
    already out of the lane and already marked yields no second mutation and no second comment. This
@@ -292,7 +292,7 @@ printed even at zero.
    This ready-lane candidate can retain a historical body marker and a human-needed label.
    This step reconciles only candidates still in the ready lane; released holds outside it are
    recovered by `lisa-repair-intake` step 2b (or Phase 2.5 when included in this cycle). Call
-   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
+   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, readyLabel, lifecycleLabels, alreadyNotified })`
    and apply exactly the actions it returns: remove the configured human-needed marker, add the
    configured ready role back, and post `formatHumanGateReleaseNote()` once. It is the exact inverse
    of step 3's planner and it refuses in both directions — an item still held plans nothing, and an
@@ -375,6 +375,8 @@ Post via `lisa-linear-access operation: save-comment` with:
 
 This gate never blocks a legitimate flat Task/Bug: those have no open children and a leaf `type:`, so they fall straight through to the claim in 3b.
 
+**Stale blocker links** (CodySwannGT/lisa#5065). Still before the claim, judge each "blocked by" edge of this item with the shared rule in `scripts/stale-blocker-edges.mjs` (`blockerResolution` against `terminalDoneRoles`, which reads the configured terminal done role from `.lisa.config.json`; never a hardcoded name). A blocker closed in the tracker, in that done role, or cancelled never holds the claim, and only those links are removed. A blocker in any other configured done state (an intermediate env rung such as `On Dev` or `On Stg`, from `landedDoneRoles`) has merged to a non-production environment: it does not hold the claim, but it is not finished, so its link is never removed. On a runtime with the session manager running, its Reconcile step removes those links every cycle. Every other runtime (Codex, Cursor, OpenCode, Antigravity, Copilot, Devin) has no session manager, so intake does the same clean-up for this one item: pass its read bundle to `planStaleLinkSweep` from `scripts/stale-blocker-sweep.mjs` (`max: 1`, `poster: "build-intake"`, so the comment carries this skill's `[claude-build-intake]` prefix). Right before writing, re-read the item and each blocker it names and pass that fresh read to `confirmStaleLinkPlan` from `scripts/stale-blocker-confirm.mjs`, which keeps only links that are still stale and rebuilds a GitHub body from the fresh body; write nothing when its `plan` is null. Before any write, record the confirmed plan with `recordInFlight` from `scripts/stale-blocker-pending.mjs` in `.lisa/stale-links-inflight.json` (it refuses an item that still has an unverified entry, so an earlier plan's removed links are never overwritten: do not claim or clean that item until the entry is verified), and settle it with `settleInFlight` only once `verifyStaleLinkRemoval` has read the item back and every other record (pending comment, owed restores) is saved; an item with an in-flight entry is not claimed; when the read-back fails, count it with `failedInFlight` and leave the entry, and at the start of the next run verify each entry still there again (never repeat its deletes) before anything else. Perform the confirmed plan's actions through `lisa-linear-access` (`delete-relation id:<id>`), then read the item back, and each removed blocker again, and pass both to `verifyStaleLinkRemoval` from `scripts/stale-blocker-verify.mjs` (`blockersNow`: `{<ref>: <the blocker as read now>}`). A removed link whose blocker reopened in between (or can no longer be read) comes back in `restored` with no marker: perform its `restore` actions straight away (`create-relation` through `lisa-linear-access` `operation: create-relation issue:<issue> related:<relatedIssue> type:blocks`), record those links as owed with `recordRestores(owed, result, plan.links, now)` in `.lisa/stale-links-restores.json`, read the item back, and settle the links it shows present with `settleRestores(owed, ref, presentRefs)`; name each in the summary. While an item still owes a restore it is not claimed (it would look unblocked while its blocker is open): at the start of the next run re-read it, perform `restoreActions` for the links still missing, and settle again. Only that item waits; every other ready item is still claimed, and a failed plan, verify or comment holds nothing. Post a comment only for the removals it confirms: its `comment` covers only links the read-back shows gone, so no marker is ever posted for a link whose deletion failed, and that link is simply planned again next run. A confirmed removal whose comment fails to post is owed: record it with `addPending` from `scripts/stale-blocker-pending.mjs` in `.lisa/stale-links-pending.json`, retry each owed comment on its own at the start of the next run (settling that one entry with `settlePending(pending, ref, removed)` after it posts, or counting a failure with `failedPending(pending, ref, removed)`; an item can owe more than one comment, and each settles on its own), and list any still owed under "Errors" in the summary. On a runtime whose workspace does not survive between runs, that file is lost with it; the summary's Errors entry, which quotes the comment, is then the only record, and the gap is stated there. Report the stale-link line from `summarizeVerifiedSweep` (scripts/stale-blocker-summary.mjs) over the verified results, never the plan's summary. Its `[lisa-stale-blocker-link]` markers make a re-run post nothing new. An open, cross-project or unreadable blocker is never touched; an unreadable one is named in the summary. Items in `$BLOCKED` are not cleaned here: they belong to the containment check in `lisa-repair-intake`.
+
 #### 3b. Claim
 
 Before the claim mutation, apply `claim-time-guards` — **Value before claim**, or **Worth doing** in `lisa-track` on runtimes without the rule tree (Antigravity). A ready label establishes neither value nor permission to expand scope. Respect the preceding human-hold gate; a declined incidental item consumes this cycle's one processed disposition.
@@ -405,31 +407,15 @@ If the transition fails (permission, race), record under "Errors" and skip. **Do
 
 #### 3c. Run the per-Issue lifecycle in-session (never as a subagent)
 
-After the claim succeeds, run the per-Issue lifecycle defined by the `linear-agent` workflow **in the current session** — never by spawning `linear-agent` (or any named worker) via the `Agent` tool. The lifecycle culminates in a team-first flow (`lisa-implement`), and that flow can only create its agent team from the lead session: a spawned teammate cannot add named teammates (Claude teams are flat), so dispatching the build into a subagent strands `lisa-implement` without its team and collapses the build into a single inline worker. Concretely:
+After the claim succeeds, run the per-Issue lifecycle defined by the `linear-agent` workflow **in the current session** — never by spawning `linear-agent` (or any named worker) via the `Agent` tool. Running it here keeps the whole cycle in one fresh session per item and keeps the lifecycle skills able to reach the same tools. Concretely:
 
 1. **Run the gates in-session** via their skills, exactly as `linear-agent.md` defines them and with all of its gating behaviors intact:
    - `lisa-linear-read-issue` — the full Issue graph (mandatory; never ad-hoc reads)
    - `lisa-linear-verify` — pre-flight quality gate, including the draft-then-block procedure on FAIL
    - `lisa-ticket-triage` — analytical triage gate (a `BLOCKED` verdict stops the cycle with findings posted)
    - Intent determination from the type label
-2. **Dispatch the flow in-session:** when the gates pass, invoke the lifecycle skill via the Skill tool — `lisa-implement <ISSUE-ID>` for Build / Fix / Improve / Investigate-Only (or `lisa-plan` for an Epic-equivalent) — passing the full context bundle from the read step. Hand that bundle over by file, not by text: before invoking `lisa-implement`, run the ignore guard below, then write the bundle verbatim to persist it at the git-ignored `.lisa/work-item-context.md` of this worktree — always overwriting the file with this cycle's bundle, never reusing one an earlier item left behind — and pass only `caller_bundle_path=<absolute path>` in the invocation. `lisa-implement`'s input-resolver keeps that file as the base instead of re-summarizing it, so every comment reaches the agents doing the work. Bundle text, and any credential value in it, never appears in a spawn prompt, task description, or Skill argument — only its path. **Ignore guard before any write.** A host can receive these skills before its shipped `.gitignore` entry, so prove the path is ignored first, from the worktree root: `git check-ignore -q .lisa/work-item-context.md || printf '%s\n' '.lisa/work-item-context.md' >> "$(git rev-parse --git-common-dir)/info/exclude"`, then re-run `git check-ignore -q .lisa/work-item-context.md`. If it is still not ignored, stop and report — do not write the bundle. If an `.easignore` exists and `grep -qxF '.lisa/work-item-context.md' .easignore` fails, stop and report instead of writing: EAS uploads read `.easignore`, which is derived from `.gitignore`, not from `info/exclude`. **When 3b classified this Issue `rejection-reclaim`, the context bundle passed to `lisa-implement` MUST include the rejection evidence summary** (what was rejected, the defect the QA comment named, the approach named as wrong) — reuse the evidence already read in 3b, do not fetch it twice — so the plan can address it per `rejection-detection`; absence of evidence never blocks. `lisa-implement`'s own orchestration preamble then creates the per-item agent team (input-resolver, Roster Decision, specialist fanout) exactly as a direct invocation would.
+2. **Dispatch the flow in-session:** when the gates pass, invoke the lifecycle skill via the Skill tool — `lisa-implement <ISSUE-ID>` for Build / Fix / Improve / Investigate-Only (or `lisa-plan` for an Epic-equivalent) — passing the full context bundle from the read step. Hand that bundle over by file, not by text: before invoking `lisa-implement`, run the ignore guard below, then write the bundle verbatim to persist it at the git-ignored `.lisa/work-item-context.md` of this worktree — always overwriting the file with this cycle's bundle, never reusing one an earlier item left behind — and pass only `caller_bundle_path=<absolute path>` in the invocation. `lisa-implement` keeps that file as the base instead of re-summarizing it, so every comment reaches the agents doing the work. Bundle text, and any credential value in it, never appears in a subagent prompt, task description, or Skill argument — only its path. **Ignore guard before any write.** A host can receive these skills before its shipped `.gitignore` entry, so prove the path is ignored first, from the worktree root: `git check-ignore -q .lisa/work-item-context.md || printf '%s\n' '.lisa/work-item-context.md' >> "$(git rev-parse --git-common-dir)/info/exclude"`, then re-run `git check-ignore -q .lisa/work-item-context.md`. If it is still not ignored, stop and report — do not write the bundle. If an `.easignore` exists and `grep -qxF '.lisa/work-item-context.md' .easignore` fails, stop and report instead of writing: EAS uploads read `.easignore`, which is derived from `.gitignore`, not from `info/exclude`. **When 3b classified this Issue `rejection-reclaim`, the context bundle passed to `lisa-implement` MUST include the rejection evidence summary** (what was rejected, the defect the QA comment named, the approach named as wrong) — reuse the evidence already read in 3b, do not fetch it twice — so the plan can address it per `rejection-detection`; absence of evidence never blocks.
 3. **Milestone sync and evidence** (`lisa-linear-sync`, `lisa-linear-evidence`) happen at the milestones the `linear-agent` workflow defines, within the dispatched flow.
-
-If you are somehow running this skill as a spawned teammate inside an existing team (nested misrouting — Intake keeps this chain in the lead session), do NOT run the lifecycle inline and do NOT spawn named peers. Return this payload to the lead so the lead session can run this Phase 3c in-session:
-
-```json
-{
-  "type": "delegation-request",
-  "phase": "linear-build-intake 3c",
-  "workItem": "<ISSUE-ID>",
-  "context": {
-    "claimedLabel": "$CLAIMED",
-    "doneResolution": "Resolve $DONE from the PR base branch per this skill's Workflow resolution section"
-  },
-  "onSuccess": "Confirm the returned PR is merged, then apply Phase 3d and Phase 3d.1",
-  "onBlockedOrError": "Leave the Issue where the lifecycle left it and record the surfaced outcome"
-}
-```
 
 The lifecycle run returns one of the following outcomes; resume this scanner with it:
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the Issue to a `done` env status.
@@ -558,7 +544,7 @@ If the team hasn't adopted these states, the first run exits with an adoption hi
 
 - **Claim leaves only.** Per the `leaf-only-lifecycle` rule, never claim a container — an Issue with open child work, or a childless Epic — even if it sits in the build-ready state. Skip or safe-block it (Phase 3a); never silently implement a container.
 - Never transition an Issue the cycle didn't claim. The `$CLAIMED` transition is the signature of cycle ownership.
-- Never do build work directly from this scanner — the per-Issue lifecycle (the `linear-agent` workflow culminating in `lisa-implement`) owns it. And never spawn that lifecycle as a subagent; run it in-session per Phase 3c so `lisa-implement` can create its agent team.
+- Never do build work directly from this scanner — the per-Issue lifecycle (the `linear-agent` workflow culminating in `lisa-implement`) owns it. Run that lifecycle in-session per Phase 3c.
 - Never auto-transition past `$DONE`. Downstream states are owned by QA / product / a future verification-intake skill.
 - Never use a `completed`-typed state for an intermediate env rung. `On Dev` / `On Stg` (or configured equivalents) must be typed `started`; completion happens only at the terminal `done` value.
 - If the Issue has no Validation Journey or no sign-in credentials in its description, the pre-flight verify gate will catch it and transition it to `$BLOCKED` — don't try to fix the Issue from here.

@@ -44,8 +44,9 @@ each one:
   APIs (validator gate **F5 — Required external access provable**). An input the factory cannot
   execute never enters the factory.
 - **Discover-first duty**: intake tries to resolve gaps itself (alternate substrates, configured
-  access layers, searching for the missing context). What it genuinely cannot resolve it rejects —
-  `blocked` plus a human-needed marker, with clarifying questions or the exact missing access named.
+  access layers, searching for the missing context). A choice with a reasonable default it decides
+  and records on the item. What it genuinely cannot resolve — an act it lacks access to — it rejects:
+  `blocked` plus a human-needed marker, with the exact missing access named.
 
 ## The loops
 
@@ -65,12 +66,19 @@ quality control. Projects opt into human triage by passing `false`.
 
 ## Where humans stand
 
-Humans act only at explicit exterior gates:
+An agent performs every act it has access to perform. Humans act only at explicit exterior gates:
 
 - flipping a draft they chose to hold back to `prd-ready` / `status:ready`,
-- approving protected deployments (`github.environments.require_approval`),
-- reviewing low-confidence learning PRs (auto-merge off, unless the project sets `learnings.lowConfidence: "auto-merge"`),
-- answering what intake rejected and raised.
+- approving protected deployments (`github.environments.require_approval`), because the required
+  reviewer must be a person's account,
+- performing an act the agent lacks access to: an interactive login, creating a credential it cannot
+  reach, spending money, a legal signature, or an action only a person's account can take — the
+  gate names that access (`ready-role-filing`, "What a human gate is"),
+- reviewing low-confidence learning PRs, only when the project sets `learnings.lowConfidence:
+  "human-triage"` or `humanGate.mode: "strict"` (otherwise they merge through the normal gates).
+
+Everything else the agent decides, records on the work item, and leaves for a person to reverse.
+`humanGate.mode: "strict"` restores the wider gate for a project that wants it.
 
 Inside a flow, never pause to ask a human whether to proceed — the invocation was the authorization.
 Headless discipline follows: no interactive prompts, idempotent re-runs, clean exits on empty
@@ -104,8 +112,9 @@ the unattended guessing the gates exist to prevent.
 
 Everything else Lisa installs — skills, hooks, quality checks, guardrails, CI gates, rulesets —
 exists to enforce enterprise-grade quality and verification standards that keep the software
-maintainable. Never weaken a gate to get work through it; fix the work, or raise the
-risk-acceptance decision to a human.
+maintainable. Never weaken a gate to get work through it; fix the work, or accept the
+risk yourself with the reasoning and an expiry recorded on the work item, so a person can reverse
+it (`humanGate.mode: "strict"` hands risk acceptance to a human).
 
 Every supported coding agent is a first-class factory operator: Claude Code, Codex, Cursor,
 OpenCode, Antigravity (agy), Copilot. Behavior stays in parity across them, and anything persisted

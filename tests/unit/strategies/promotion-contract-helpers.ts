@@ -11,18 +11,16 @@
  */
 
 /** Opening delimiter of the AC-template snippet in the reference rule. */
-export const AC_TEMPLATE_START =
-  "<!-- promotion-contract-ac-template:start -->";
+const AC_TEMPLATE_START = "<!-- promotion-contract-ac-template:start -->";
 
 /** Closing delimiter of the AC-template snippet in the reference rule. */
-export const AC_TEMPLATE_END = "<!-- promotion-contract-ac-template:end -->";
+const AC_TEMPLATE_END = "<!-- promotion-contract-ac-template:end -->";
 
 /** Opening delimiter of the gardener's CONFIRM/RETIRE batch-ticket template. */
-export const BATCH_TEMPLATE_START =
-  "<!-- gardener-batch-ticket-template:start -->";
+const BATCH_TEMPLATE_START = "<!-- gardener-batch-ticket-template:start -->";
 
 /** Closing delimiter of the gardener's CONFIRM/RETIRE batch-ticket template. */
-export const BATCH_TEMPLATE_END = "<!-- gardener-batch-ticket-template:end -->";
+const BATCH_TEMPLATE_END = "<!-- gardener-batch-ticket-template:end -->";
 
 /**
  * Extracts a delimited snippet (markers inclusive) from a markdown body so

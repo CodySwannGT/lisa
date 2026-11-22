@@ -2,12 +2,12 @@
 name: lisa-review-implementation
 description: "comparing a project's…"
 ---
-This skill should be used when comparing a project's Lisa-managed files against Lisa's source templates to identify drift. It reads the project manifest, locates source templates, generates diffs for drifted files, and offers to upstream improvements back to Lisa.
+This skill should be used when comparing a project's Lisa-managed files against Lisa's source templates to identify drift. It reads the project manifest, locates source templates, generates diffs for drifted files, and upstreams the improvements back to Lisa.
 
 
 # Lisa Implementation Review
 
-This skill compares the current project's Lisa-managed files against Lisa's source templates to identify drift and offer to upstream improvements back to Lisa.
+This skill compares the current project's Lisa-managed files against Lisa's source templates to identify drift and upstream the improvements back to Lisa.
 
 ## Prerequisites
 
@@ -138,32 +138,34 @@ These files are in the manifest but their source templates couldn't be located:
 </details>
 ```
 
-### Step 6: Offer to Upstream Changes
+### Step 6: Upstream the Improvements
 
-After presenting the report, ask the user which drifted files they want to copy back to Lisa.
+Decide yourself which drifted files to upstream; do not hand the choice back. For each drifted file, classify it with a one-line reason drawn from its diff:
 
-For each file the user wants to upstream:
+- **Upstream** — an improvement every host of that stack should get: a fix, a hardening, or a pattern that is not specific to this project.
+- **Host-specific** — a customization that only makes sense here. Leave it in the project.
 
-1. Confirm the target path in Lisa (e.g., `typescript/copy-overwrite/.github/workflows/ci.yml`)
-2. Use the Write tool to copy the project's version to Lisa
-3. Report success
+For each file classified **Upstream**, go through Lisa's normal path. Never Write the host's file straight into the Lisa checkout, which is a public repository:
 
-Example prompt:
+1. **Scrub it first.** Remove every host identifier from the content you carry over: org, product and repository names, account numbers, bundle identifiers, internal domains, and local paths that embed them (`never-name-a-downstream-project`). Remove every credential and other sensitive value too: tokens, API keys, passwords, private keys, connection strings, and secret-bearing URLs or environment values, replacing each with a placeholder or a `lisa-secrets-access` lookup. A secret is not a host name, so the identifier scrub alone can miss it. `block-host-name-leak` checks only a curated list and only Bash calls, so read the result yourself; it is not a substitute for the scrub.
+2. **Open a branch and a PR on Lisa.** In a Lisa worktree, branch off its default branch, apply the scrubbed change to the matching template path (e.g., `typescript/copy-overwrite/.github/workflows/ci.yml`), and submit it through `lisa-git-submit-pr` so it passes Lisa's own hooks, CI and review gates. When no Lisa checkout is writable, file one upstream ticket instead (`upstream-to-lisa`), scrubbed the same way.
+3. Report the PR or ticket URL for each file.
+
+Example report:
 ```
 I found X files that have drifted from Lisa's templates.
 
-Which files would you like to copy back to Lisa?
-1. .github/workflows/ci.yml - [brief description of changes]
-2. .claude/settings.json - [brief description of changes]
-3. All of the above
-4. None - just show me the report
+Upstreamed through a scrubbed Lisa PR (2):
+1. .github/workflows/ci.yml - adds a timeout every host's CI needs - <PR URL>
+2. .claude/settings.json - fixes a hook path that is wrong for every host - <PR URL>
 
-Select an option (or list specific numbers):
+Kept as host-specific (1):
+3. .github/workflows/deploy.yml - names this project's own environments
 ```
 
 ### Important Notes
 
-- **Never auto-upstream without confirmation** - always ask the user first
+- **Upstream only what you classified as a cross-host improvement, scrubbed, through a Lisa PR** - record the reason for each file, kept or upstreamed, and never write into the Lisa checkout without a branch and PR
 - **Preserve the most specific type directory** - if a file exists in both `typescript/` and `all/`, upstream to where it currently exists
 - **Handle binary files gracefully** - skip comparison for non-text files
 - **Respect .gitignore patterns** - some generated files shouldn't be compared

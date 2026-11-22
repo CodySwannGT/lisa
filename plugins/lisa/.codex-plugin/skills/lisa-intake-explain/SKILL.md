@@ -1,9 +1,9 @@
 ---
 name: lisa-intake-explain
-description: "Read-only operator surface for…"
+description: "Read-only diagnosis of one PRD…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
-Read-only operator surface for diagnosing one repo-scoped PRD or build item against Lisa's current intake and repair contracts. Resolves the item's queue family, lifecycle role, ownership boundary, and gate outcomes using the same source/tracker detection, lifecycle naming, leaf-only, dependency, staleness, and backoff semantics the write-side intake and repair flows already enforce.
+Read-only diagnosis of one PRD or build item against Lisa's intake and repair rules: which queue it's in, its lifecycle state, who owns it, and which gates pass or fail — explaining why it is or isn't being picked up.
 
 
 # Intake Explain: $ARGUMENTS

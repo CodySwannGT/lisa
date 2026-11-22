@@ -9,6 +9,8 @@
  */
 import type { ViteUserConfig } from "vitest/config";
 import {
+  accessMapPlugins,
+  accessMapSetupFiles,
   coverageGlobalSetup,
   coverageReportsDirectory,
   defaultCoverageExclusions,
@@ -56,8 +58,9 @@ interface PhaserVitestOptions {
 export const getPhaserVitestConfig = ({
   thresholds,
 }: PhaserVitestOptions = {}): ViteUserConfig => ({
+  plugins: [...accessMapPlugins()],
   test: {
-    setupFiles: [...scratchSetupFiles()],
+    setupFiles: [...scratchSetupFiles(), ...accessMapSetupFiles()],
     globalSetup: [...scratchGlobalSetup(), ...coverageGlobalSetup()],
     sequence: { setupFiles: "list", hooks: "stack" },
     // Bounded so k concurrent runs do not claim k x cores. See resolveMaxWorkers.

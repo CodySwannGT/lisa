@@ -53,7 +53,7 @@ export const BODY_CHANGE_ACTIVITY_TYPE = "edited";
  * this list explicitly alongside `edited` is behaviour-preserving — it states
  * what GitHub was already doing and adds the missing one.
  */
-export const IMPLICIT_PULL_REQUEST_TYPES: readonly string[] = [
+const IMPLICIT_PULL_REQUEST_TYPES: readonly string[] = [
   "opened",
   "synchronize",
   "reopened",

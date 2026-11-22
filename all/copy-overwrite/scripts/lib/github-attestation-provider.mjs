@@ -8,6 +8,8 @@ import {
   requireProof,
   sha256,
   assertPinnedVerifier,
+  DEFAULT_TARGET,
+  targetBranch,
 } from "./github-attestation-verifier.mjs";
 
 const API = "api";
@@ -15,20 +17,22 @@ const HOST_FLAG = "--hostname";
 const PUBLIC_HOST = "github.com";
 
 /** Provider identity never treats unavailable state as an absent scope. */
-function repositoryState(read, policy, parent) {
+function repositoryState(read, policy, parent, target) {
   const repo = read(`repos/${policy.repository}`);
   requireProof(
     String(repo.id) === policy.repositoryId &&
       String(repo.owner?.id) === policy.ownerId,
     "provider repository identity differs"
   );
+  // A non-main target need not be the repository default; its ref read proves it exists.
   requireProof(
-    repo.full_name === policy.repository && repo.default_branch === "main",
+    repo.full_name === policy.repository &&
+      (target !== DEFAULT_TARGET || repo.default_branch === DEFAULT_TARGET),
     "provider main scope differs"
   );
-  const main = read(`repos/${policy.repository}/git/ref/heads/main`);
+  const main = read(`repos/${policy.repository}/git/ref/heads/${target}`);
   requireProof(
-    main.ref === "refs/heads/main" && main.object?.sha === parent,
+    main.ref === `refs/heads/${target}` && main.object?.sha === parent,
     "provider main base differs"
   );
 }
@@ -45,7 +49,7 @@ function runState(read, policy, descriptor, historical) {
   );
   requireProof(
     run.head_sha === descriptor.parent &&
-      run.head_branch === "main" &&
+      run.head_branch === targetBranch(descriptor) &&
       (historical
         ? ["in_progress", "completed"].includes(run.status)
         : run.status === "in_progress"),
@@ -99,11 +103,26 @@ function claimState(read, policy, descriptor) {
 function providerOrigin(policy, descriptor, historical, execute) {
   const read = endpoint =>
     ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
-  repositoryState(read, policy, descriptor.parent);
+  repositoryState(read, policy, descriptor.parent, targetBranch(descriptor));
   return {
     run: runState(read, policy, descriptor, historical),
     claim: claimState(read, policy, descriptor),
   };
+}
+
+/**
+ * Historical origin without the GitHub claim read: a Jira/Linear claim is proved
+ * by its tracker adapter, which supplies the claim time separately (#4873).
+ */
+export function verifyHistoricalRun(
+  policy,
+  descriptor,
+  execute = boundedSpawnSync
+) {
+  const read = endpoint =>
+    ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
+  repositoryState(read, policy, descriptor.parent, targetBranch(descriptor));
+  return runState(read, policy, descriptor, true);
 }
 
 /** Prove the trusted human remains assignable using the actual documented status. */
@@ -154,6 +173,21 @@ export function verifyCurrentProvider(
   return providerOrigin(policy, descriptor, false, execute);
 }
 
+/**
+ * The repository and live-run half of current authority, for a Jira or Linear
+ * host whose claim is proved by its own tracker adapter rather than GitHub.
+ */
+export function verifyCurrentRun(
+  policy,
+  descriptor,
+  execute = boundedSpawnSync
+) {
+  const read = endpoint =>
+    ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
+  repositoryState(read, policy, descriptor.parent, targetBranch(descriptor));
+  return runState(read, policy, descriptor, false);
+}
+
 /** Historical origin returns qualified provider chronology, never current authority. */
 export function verifyHistoricalProvider(
   policy,
@@ -178,11 +212,33 @@ export function verifyStaleOriginProvider(
   );
   const read = endpoint =>
     ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
-  repositoryState(read, policy, currentParent);
+  repositoryState(read, policy, currentParent, targetBranch(descriptor));
   return {
     run: runState(read, policy, descriptor, true),
     claim: claimState(read, policy, descriptor),
   };
+}
+
+/**
+ * The repository and historical-run half of stale-origin authority, for a Jira
+ * or Linear host whose claim is proved by its own tracker adapter (#4873).
+ */
+export function verifyStaleOriginRun(
+  policy,
+  descriptor,
+  currentParent,
+  execute = boundedSpawnSync
+) {
+  requireProof(
+    typeof currentParent === "string" &&
+      /^[a-f0-9]{40}$/.test(currentParent) &&
+      currentParent !== descriptor.parent,
+    "cancellation requires a distinct current parent"
+  );
+  const read = endpoint =>
+    ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
+  repositoryState(read, policy, currentParent, targetBranch(descriptor));
+  return runState(read, policy, descriptor, true);
 }
 
 /** Fresh permission checks its own invocation and the exact observed destination. */
@@ -200,6 +256,33 @@ export function verifyRecoveryProvider(
   );
   const read = endpoint =>
     ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
+  recoveryLeaf(read, policy, descriptor, recovery, maintainer);
+  recoveryDestination(read, policy, descriptor, recovery);
+}
+
+/**
+ * The code-host half of fresh recovery for a Jira/Linear host: its own live run
+ * and the exact observed destination. The leaf body, owner and claim live on the
+ * tracker and are proved by the adapter (#4873).
+ */
+export function verifyRecoveryDestination(
+  policy,
+  descriptor,
+  recovery,
+  execute = boundedSpawnSync
+) {
+  verifyCurrentRun(
+    policy,
+    { ...descriptor, runId: recovery.runId, runAttempt: recovery.runAttempt },
+    execute
+  );
+  const read = endpoint =>
+    ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
+  recoveryDestination(read, policy, descriptor, recovery);
+}
+
+/** The GitHub leaf is unchanged and owned by the one trusted maintainer. */
+function recoveryLeaf(read, policy, descriptor, recovery, maintainer) {
   const number = descriptor.workItem.slice(
     descriptor.workItem.lastIndexOf("#") + 1
   );
@@ -214,6 +297,10 @@ export function verifyRecoveryProvider(
       issue.assignees[0].type === "User",
     "current recovery leaf or owner differs"
   );
+}
+
+/** The recovery branch and PR are exactly the observed ones, or absent. */
+function recoveryDestination(read, policy, descriptor, recovery) {
   const refs = read(
     `repos/${policy.repository}/git/matching-refs/heads/${recovery.branch}`
   );
@@ -256,7 +343,7 @@ export function verifyRecoveryProvider(
         pulls[0].head?.sha === recovery.expectedPrHead &&
         pulls[0].head?.ref === recovery.branch &&
         pulls[0].head?.repo?.full_name === policy.repository &&
-        pulls[0].base?.ref === "main" &&
+        pulls[0].base?.ref === targetBranch(descriptor) &&
         pulls[0].base?.repo?.full_name === policy.repository,
       "foreign/closed/changed recovery PR"
     );

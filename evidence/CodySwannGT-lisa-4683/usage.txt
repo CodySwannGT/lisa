@@ -1,0 +1,8 @@
+
+❌ Work-item tracking blocked this operation: Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|publish-completion-proof|evidence-release [--ensure]|finish|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates
+(`bind` is accepted as an alias for `link`, and `complete` is accepted as an alias for `finish`, but some agent harnesses refuse the tokens `bind` and `complete` in a command line.)
+
+Mention the ticket this work relates to, or ask Lisa to create one:
+  Work-Item: <configured-project-ticket>
+
+exit=1

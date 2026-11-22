@@ -1,4 +1,4 @@
 display_name: "Github Write Issue"
-short_description: "Creates or updates a GitHub Issue following the same organizational best practices as lisa-jira-write-ticket — three-audience description…"
+short_description: "Create or update a GitHub issue to the organization's standards: description, Gherkin criteria, parent sub-issue, relations, labels…"
 default_prompt:
-  - "Use $lisa-github-write-issue: Creates or updates a GitHub Issue following the same organizational best practices as lisa-jira-write-ticket — three-audience description…."
+  - "Use $lisa-github-write-issue: Create or update a GitHub issue to the organization's standards: description, Gherkin criteria, parent sub-issue, relations, labels…."

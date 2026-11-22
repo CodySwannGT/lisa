@@ -1,0 +1,52 @@
+# Breakage probe b: rename a skill that another skill references - CodySwannGT/lisa#4867
+HEAD: 1f7375d9d56c275e0c5ef77286c67de90fba2e84 + staged changes
+Edit: mv plugins/src/base/skills/lisa-prd-backlink -> lisa-prd-backlink-renamed and set its frontmatter name to lisa-prd-backlink-renamed (4 sites in other skills say 'invoke the `lisa-prd-backlink` skill')
+Command: npx vitest run tests/unit/core/skill-frontmatter-contract.test.ts tests/unit/plugins/description-length-budget.test.ts tests/unit/strategies/agent-skill-layer-contract.test.ts
+Exit: 1
+
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4867-cull-markdown-wording
+
+ ❯ |lisa| tests/unit/strategies/agent-skill-layer-contract.test.ts (70 tests | 1 failed) 45ms
+       × resolves every skill a skill invokes 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/strategies/agent-skill-layer-contract.test.ts > agent/skill layer contract > a skill only invokes skills that exist > resolves every skill a skill invokes
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "lisa-prd-backlink (from lisa-notion-to-tracker)",
++ ]
+
+ ❯ tests/unit/strategies/agent-skill-layer-contract.test.ts:277:24
+    275|         .filter(([name]) => !known.has(name))
+    276|         .map(([name, from]) => `${name} (from ${from})`);
+    277|       expect(dangling).toEqual([]);
+       |                        ^
+    278|     });
+    279|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 75 passed (76)
+   Start at  17:36:12
+   Duration  919ms (transform 166ms, setup 380ms, import 178ms, tests 532ms, environment 0ms)
+
+[...]
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 75 passed (76)
+   Start at  17:36:12
+   Duration  919ms (transform 166ms, setup 380ms, import 178ms, tests 532ms, environment 0ms)
+
+
+Revert: directory moved back and SKILL.md restored from a byte copy; plugins/ status clean; agent-skill-layer-contract.test.ts re-run passes
+Re-run after revert:
+ Test Files  1 passed (1)
+      Tests  70 passed (70)

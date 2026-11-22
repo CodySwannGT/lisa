@@ -1,10 +1,10 @@
 /** Doctor check for a CodeRabbit CLI required by the project's gate policy. */
 import { execFile } from "node:child_process";
-import { env as processEnvironment } from "node:process";
+import { readEnv } from "../utils/process-environment.js";
 import { promisify } from "node:util";
 import { importGateRegistry } from "./gate-registry-source.js";
 import type { GateRegistryModule } from "./gate-report-registry.js";
-import { readConfinedMergedConfig } from "./ui-confined-project-read.js";
+import { readConfinedMergedConfig } from "./confined-project-read.js";
 import { isJsonObject, type JsonObject } from "../sync/json-path.js";
 import type { DoctorCheck } from "./doctor.js";
 
@@ -13,7 +13,7 @@ const CODERABBIT = "coderabbit";
 const CODERABBIT_API_KEY = "CODERABBIT_API_KEY";
 
 /** Outcome of one read-only CodeRabbit command. */
-export interface CodeRabbitCommandResult {
+interface CodeRabbitCommandResult {
   readonly ok: boolean;
   readonly stdout: string;
 }
@@ -39,7 +39,7 @@ export interface CodeRabbitDoctorDependencies {
  * @param args - Fixed CodeRabbit argument vector
  * @returns Whether the command exited zero
  */
-export const runCodeRabbitCommand: CodeRabbitCommandRunner = async args => {
+const runCodeRabbitCommand: CodeRabbitCommandRunner = async args => {
   try {
     const { stdout } = await execFileAsync(CODERABBIT, [...args], {
       timeout: 15_000,
@@ -81,7 +81,7 @@ function parseAuthenticationStatus(output: string): boolean | null {
  * @returns True when the standard CodeRabbit key variable is nonblank
  */
 function hasHeadlessApiKey(): boolean {
-  return (processEnvironment[CODERABBIT_API_KEY] ?? "").trim() !== "";
+  return (readEnv(CODERABBIT_API_KEY) ?? "").trim() !== "";
 }
 
 /**

@@ -4,14 +4,7 @@
  * @module tests/unit/cli/doctor-nightly-e2e-guard-proof.test
  */
 import { createHash } from "node:crypto";
-import {
-  chmod,
-  mkdir,
-  mkdtemp,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 
@@ -19,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { probeNightlyE2eGuardTarget } from "../../../src/cli/doctor-nightly-e2e-guard.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const TARGET = "scripts/check-nightly-e2e-health.mjs";
 const TARGET_NAME = "check-nightly-e2e-health.mjs";
@@ -153,7 +147,7 @@ describe("static nightly guard no-follow file proof", () => {
       path.join(projectRoot, "scripts", "real.mjs"),
       source("1.7.0")
     );
-    await symlink("real.mjs", path.join(projectRoot, TARGET));
+    createSymlink("real.mjs", path.join(projectRoot, TARGET));
     const result = await probeNightlyE2eGuardTarget(projectRoot, TARGET);
     expect(result.state).toBe("failure");
     expect(result.state === "failure" ? result.reason : "").toMatch(/symlink/u);
@@ -166,7 +160,7 @@ describe("static nightly guard no-follow file proof", () => {
       source("1.7.0")
     );
     await rm(path.join(projectRoot, "scripts"), { recursive: true });
-    await symlink(REAL_SCRIPTS, path.join(projectRoot, "scripts"));
+    createSymlink(REAL_SCRIPTS, path.join(projectRoot, "scripts"));
     const result = await probeNightlyE2eGuardTarget(projectRoot, TARGET);
     expect(result.state).toBe("failure");
     expect(result.state === "failure" ? result.reason : "").toMatch(/symlink/u);
@@ -178,7 +172,7 @@ describe("static nightly guard no-follow file proof", () => {
     );
     await writeFile(path.join(external, TARGET_NAME), source("1.7.0"));
     await rm(path.join(projectRoot, "scripts"), { recursive: true });
-    await symlink(external, path.join(projectRoot, "scripts"));
+    createSymlink(external, path.join(projectRoot, "scripts"));
     const result = await probeNightlyE2eGuardTarget(projectRoot, TARGET);
     await rm(external, { force: true, recursive: true });
     expect(result.state).toBe("failure");

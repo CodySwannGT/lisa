@@ -1,0 +1,42 @@
+# Independent verifier CLI run (not builder-authored) - AC7 missing credential + #4873 refusals
+# HEAD d03e84394bb017ee17509c0bf9ede43fa3eab318
+# Host: a committed Linear-tracked checkout with a valid proposal (built by evidence/4859/allocate-evidence.ts prepare-missing).
+# Every run: env -i (empty environment), PATH = only node + git, fetch replaced by a preload that prints NETWORK-ATTEMPT and throws.
+# Command shape: node all/copy-overwrite/scripts/lisa-npm-updater.mjs <phase> <linear-host> <phase-dir>
+# PATH for every run below contains only node and git (no gh, no curl); fetch is replaced by a preload that prints NETWORK-ATTEMPT and throws.
+## A. allocate, Linear config, LINEAR_API_KEY unset (AC7)
+npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=unknown)
+LINEAR_API_KEY is not set, so the npm updater cannot create Linear work items. Add it as a repository secret and pass it to the npm updater workflow. Nothing was created.
+exit=1
+phase directory contents after the run: proposal.json 
+
+## B. BITE CONTROL: same allocate with LINEAR_API_KEY=fixture-key set (must NOT print the LINEAR_API_KEY sentence; it proceeds to a provider call)
+npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=unknown)
+exit=1
+phase directory contents after the run: proposal.json 
+
+## C. gate phase, Linear config (#4873 refusal)
+npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=unknown)
+The npm updater can file and claim Jira and Linear work items, but it cannot yet check their claims, publish the pull request or cancel them. That support is tracked in CodySwannGT/lisa#4873. Projects that track work in GitHub are fully supported today.
+exit=1
+phase directory contents after the run: proposal.json 
+
+## C. publish phase, Linear config (#4873 refusal)
+npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=unknown)
+The npm updater can file and claim Jira and Linear work items, but it cannot yet check their claims, publish the pull request or cancel them. That support is tracked in CodySwannGT/lisa#4873. Projects that track work in GitHub are fully supported today.
+exit=1
+phase directory contents after the run: proposal.json 
+
+## C. cancel-prepare phase, Linear config (#4873 refusal)
+npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=unknown)
+The npm updater can file and claim Jira and Linear work items, but it cannot yet check their claims, publish the pull request or cancel them. That support is tracked in CodySwannGT/lisa#4873. Projects that track work in GitHub are fully supported today.
+exit=1
+phase directory contents after the run: proposal.json 
+
+## C. cancel-checkpoint phase, Linear config (#4873 refusal)
+npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=unknown)
+The npm updater can file and claim Jira and Linear work items, but it cannot yet check their claims, publish the pull request or cancel them. That support is tracked in CodySwannGT/lisa#4873. Projects that track work in GitHub are fully supported today.
+exit=1
+phase directory contents after the run: proposal.json 
+
+host checkout: 0 changed paths

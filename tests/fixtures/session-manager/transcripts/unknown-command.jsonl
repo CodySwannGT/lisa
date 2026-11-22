@@ -1,0 +1,9 @@
+{"type":"custom-title","customTitle":"wk-DEMO-12-1023-1417","sessionId":"00000000-0000-4000-8000-0000000000a1"}
+{"type":"agent-name","agentName":"wk-DEMO-12-1023-1417","sessionId":"00000000-0000-4000-8000-0000000000a1"}
+{"type":"mode","mode":"normal","sessionId":"00000000-0000-4000-8000-0000000000a1"}
+{"type":"permission-mode","permissionMode":"bypassPermissions","sessionId":"00000000-0000-4000-8000-0000000000a1"}
+{"type":"file-history-snapshot","messageId":"00000000-0000-4000-8000-0000000000b1","snapshot":{"messageId":"00000000-0000-4000-8000-0000000000b1","trackedFileBackups":{},"timestamp":"2026-10-23T14:17:02.000Z"},"isSnapshotUpdate":false}
+{"type":"attachment","sessionId":"00000000-0000-4000-8000-0000000000a1"}
+{"parentUuid":"00000000-0000-4000-8000-0000000000c1","isSidechain":false,"type":"system","subtype":"informational","content":"Unknown command: /lisa:implement","isMeta":false,"timestamp":"2026-10-23T14:17:03.000Z","uuid":"00000000-0000-4000-8000-0000000000c2","level":"warning","sessionKind":"bg","userType":"external","entrypoint":"cli","cwd":"/work/demo","sessionId":"00000000-0000-4000-8000-0000000000a1","version":"2.1.319","gitBranch":"main"}
+{"parentUuid":"00000000-0000-4000-8000-0000000000c2","isSidechain":false,"type":"system","subtype":"informational","content":"Args from unknown skill: DEMO-12 managedBy=demo-manager","isMeta":false,"timestamp":"2026-10-23T14:17:03.001Z","uuid":"00000000-0000-4000-8000-0000000000c3","level":"warning","sessionKind":"bg","userType":"external","entrypoint":"cli","cwd":"/work/demo","sessionId":"00000000-0000-4000-8000-0000000000a1","version":"2.1.319","gitBranch":"main"}
+{"type":"last-prompt","leafUuid":"00000000-0000-4000-8000-0000000000c3","sessionId":"00000000-0000-4000-8000-0000000000a1"}

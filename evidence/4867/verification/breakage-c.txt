@@ -1,0 +1,57 @@
+# Breakage probe c: remove [lisa-human-gate] from a document that must carry it - CodySwannGT/lisa#4867
+HEAD: 1f7375d9d56c275e0c5ef77286c67de90fba2e84 + staged changes
+Edit: replaced all 11 occurrences of [lisa-human-gate] with [human-gate] in plugins/src/base/rules/reference/ready-role-filing.md (the doc ready-role-filing-contract.test.ts requires to carry the marker block-direct-issue-create.sh parses)
+Command: npx vitest run tests/unit/strategies/ready-role-filing-contract.test.ts tests/unit/hooks/block-direct-issue-create-container.test.ts
+Exit: 1
+
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4867-cull-markdown-wording
+
+ ❯ |lisa| tests/unit/strategies/ready-role-filing-contract.test.ts (8 tests | 1 failed) 10ms
+       × carries the human-gate marker the filing guard parses 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/strategies/ready-role-filing-contract.test.ts > ready-role-filing rule contract > plugins/src/base > carries the human-gate marker the filing guard parses
+AssertionError: expected '# Ready-Role Filing\n\n> Demoted from…' to contain '[lisa-human-gate]'
+
+- Expected
++ Received
+
+- [lisa-human-gate]
++ # Ready-Role Filing
++
++ > Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
++ > section below is the former eager head, preserved verbatim; the full
++ > contract follows it. Reachable on demand via [the rule index](../eager/00-rule-index.md).
++
++ ## Ready-Role Filing (load-bearing)
++
++ Filing a work item without the ready role is an **incomplete handoff** — build-intake scans the ready lane and nothing else, so the item is never picked up. A correct write plus a missing role still loses the work.
++
++ ## Value precedes readiness
++
++ Apply `do-it-now`'s **Worth doing** guidance before deciding to file. A declined observation produces no ticket and needs no `human_gate`; it is not an incomplete handoff. Build-ready means both worthwhile and complete enough to build. Do not invent work merely to satisfy this filing contract.
++
++ ## Omitted means NOT ready — on every tracker
++
++ **An omitted `build_ready` is NOT build-ready on JIRA, GitHub, and Linear alike.** Ready is an explicit claim, never an accident of which tracker a project configured. This is a **breaking change** for GitHub and Linear callers, which previously treated omission as ready; `lisa-github-validate-issue` F4's compensating omitted → `true` normalization is removed with it.
++
++ ## Every filing declares one of three things
++
++ - **`build_ready: true`** — complete enough to build; enters the ready lane for auto-pickup. Required for an accepted worthwhile defect found during other work, so it is claimable next cycle with no human flipping status.
++ - **`human_gate: "<the act a person must perform>"`** — deliberately held outside the queue because the item needs an **act an agent cannot perform** (see "What a human gate is" below). The writer checks the reason first, refuses one that names only a topic, then stamps a visible line naming the act plus `<!-- [human-gate] reason=<short-slug> -->` so the hold is auditable.
++ - **The container declaration** — `None — container: state rolls up from children`, the canonical line `derived-branch-plan` defines and every writer stamps in place of a Target Backend Environment. A container is never build-ready (`leaf-only-lifecycle`) and needs no gate, so it declares the third thing instead. Deliberately **not** keyed on `--label type:Epic`: a declared type is a claim that costs a leaf nothing and leaves it looking buildable, where the container line costs the item the environment and Branch Plan a leaf needs to be built. It is refused alongside a by-design leaf type (`type:Bug` / `type:Task` / `type:Sub-task` / `type:Improvement`) — an item cannot be a container and a leaf at once.
++
++ **A decision is not a gate.** A choice between options with a reasonable default — what to name a role, how to classify existing state, when to dispatch a follow-up, which policy to adopt — is the agent's to make. **Decide and record:** pick the default, write the decision on the item, and file it `build_ready: true`.
+[...]
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 23 passed (24)
+   Start at  17:36:44
+   Duration  1.57s (transform 174ms, setup 295ms, import 133ms, tests 1.13s, environment 0ms)
+
+
+Revert: original file restored from a byte copy (cp); ready-role-filing-contract.test.ts re-run passes. Note: block-direct-issue-create-container.test.ts asserts the hook's stderr, not the doc, so it passed under this probe; the doc guard is ready-role-filing-contract.test.ts.
+Re-run after revert:
+ Test Files  1 passed (1)
+      Tests  8 passed (8)

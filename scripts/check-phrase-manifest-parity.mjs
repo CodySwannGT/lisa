@@ -24,7 +24,10 @@
  *
  * Usage:
  *   node scripts/check-phrase-manifest-parity.mjs --base <ref> [--head <ref>] [--exact]
- * `bun run check:phrase-manifest-parity` pins the fold commit as the range.
+ * The fold's own range was `--base 02b59a6297 --head 5207036771 --exact`. It
+ * is no longer a package script: CodySwannGT/lisa#4867 pruned the manifest to
+ * its load-bearing entries, so the fold's wording pins are gone from it by
+ * design, and the check is a record of how the fold was proven, not a gate.
  * @module scripts/check-phrase-manifest-parity
  */
 import { readFileSync } from "node:fs";
@@ -48,8 +51,8 @@ import {
 const argv = process.argv.slice(2);
 
 /**
- * The value of the last occurrence of a flag, so a flag appended to
- * `bun run check:phrase-manifest-parity` overrides the package script's.
+ * The value of the last occurrence of a flag, so a flag given later on the
+ * command line overrides an earlier one.
  * @param {string} name - Flag name, e.g. `--base`.
  * @returns {string | undefined} Its value, or undefined when absent.
  */

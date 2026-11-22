@@ -240,7 +240,6 @@ and the pointer block names it during the transition.
 | Skill | Purpose |
 |-------|---------|
 | `jsdoc-best-practices` | Documentation standards ("why" over "what"), JSDoc ESLint rules |
-| `skill-creator` | Guide for creating effective new skills |
 
 **Workflow skills (31 total, organized by category):**
 
@@ -261,9 +260,6 @@ and the pointer block names it during the transition.
 ```
 .claude/skills/
 ├── jsdoc-best-practices/       # Foundational (auto-applied)
-│   ├── SKILL.md
-│   └── references/
-├── skill-creator/              # Foundational (auto-applied)
 │   ├── SKILL.md
 │   └── references/
 ├── plan-add-test-coverage/     # Workflow (invoked by /plan:add-test-coverage)
@@ -341,6 +337,12 @@ and the pointer block names it during the transition.
 | | `/lisa:review-implementation` | Compare against Lisa templates |
 | | `/lisa:review-project` | Compare templates against target project |
 | | `/lisa:integration-test` | Apply Lisa, verify project builds, fix upstream issues |
+| **Controls** | `/lisa:audit` | Report where each Level 1 requirement stands in a repository, on any stack; works where Lisa was never applied |
+| | `/lisa:configure` | Declare the checks that govern the repository and generate the control register |
+| | `/lisa:enforce` | Make the declared checks run, file a ticket for each missing capability, compare merge protection |
+| | `/lisa:attest` | Prove each check by trying to break it, and report the verdict that code computes |
+
+The four **Controls** commands are run in that order. On Codex they are started as `$lisa-audit` and so on, and on Devin as `/lisa:lisa-audit` and so on. See [Control Audit](workflows/control-audit.md).
 
 ---
 
@@ -534,16 +536,17 @@ Without local enforcement (hooks), agents waste cycles pushing artifacts that wi
 
 Lisa uses a two-file governance model to manage `package.json` in target projects:
 
-- **`package.lisa.json`** (source template) — Defines governance rules with `force`, `defaults`, and `merge` sections
+- **`package.lisa.json`** (source template) — Defines governance rules with `force`, `defaults`, `merge` and `minimums` sections
 - **`package.json`** (destination) — Remains clean with no governance markers
 
-### Three Semantic Behaviors
+### Four Semantic Behaviors
 
 | Behavior | What It Does | Use Case |
 |----------|--------------|----------|
 | **`force`** | Lisa's values completely replace project's values | Governance-critical configs (lint rules, mandatory dependencies, commit hooks) |
 | **`defaults`** | Project's values preserved; Lisa provides fallback | Helpful templates projects can override (Node.js version, TypeScript version) |
 | **`merge`** | Arrays are concatenated and deduplicated | Shared lists where both Lisa and project contribute (trusted dependencies) |
+| **`minimums`** | A direct range the project lists is raised inside its own major; nothing is added, a raise across a major is refused, and transitive copies and `peerDependencies` are never touched | Libraries Lisa no longer installs whose version line it keeps |
 
 ### Template Subdirectory Structure
 
@@ -798,11 +801,11 @@ Lisa enables several official and marketplace plugins:
 
 | Plugin | Purpose |
 |--------|---------|
-| **safety-net** | Block dangerous git commands |
 | **typescript-lsp** | TypeScript language server integration |
-| **code-simplifier** | Automated code refactoring and simplification |
-| **code-review** | AI-powered code review |
+| **coderabbit** | CodeRabbit AI code review |
 | **playwright** | Browser automation for E2E testing |
+
+Lisa no longer enables `code-review` (Claude Code's built-in `/code-review` replaces it), `code-simplifier` (replaced by the "Simplify before you finish" instruction in the coding-philosophy rule), `skill-creator`, the upstream safety-net plugin (Lisa's own hook covers it) or `impeccable` (CodySwannGT/lisa#4799).
 
 ### Push Notifications (ntfy.sh) — retired
 

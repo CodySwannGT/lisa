@@ -26,8 +26,8 @@
  *            for the next run's plan.
  *
  * Node-only and dependency-free on purpose: it runs on the bare runner, in
- * jobs that never install the project's gems, and never inside the scratch
- * supervisor's payload.
+ * jobs that never install the project's gems, and never as part of the RSpec
+ * payload itself.
  *
  * Usage:
  *   node scripts/lisa-rspec-shards.mjs plan --shards N --out plan.json [--timings t.json] [--root .]

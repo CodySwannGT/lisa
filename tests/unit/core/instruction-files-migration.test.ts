@@ -20,6 +20,7 @@ import {
   stripBakedAgyRulesBlock,
 } from "../../../src/core/instruction-files-migration.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const CONFIG_PATH = ".lisa.config.json";
 const CUSTOM_RULES_PATH = "rules/CUSTOM_RULES.md";
@@ -226,6 +227,7 @@ describe("core/instruction-files-migration", () => {
       renderLearningsFile([
         {
           id: "relocate-1",
+          fingerprint: "relocate-1",
           rule: "Keep the ledger out of eager context.",
           why: "Raw injection bypasses the contract.",
           provenance: ["https://github.com/CodySwannGT/lisa/issues/1730"],
@@ -284,7 +286,7 @@ describe("core/instruction-files-migration", () => {
       // Guards doctor's direct path (no apply-phase pre-check): a symlinked
       // .lisa/ pointing outside the project must throw before any write.
       const external = await createTempDir();
-      await fs.symlink(external, path.join(dir, ".lisa"), "dir");
+      createSymlink(external, path.join(dir, ".lisa"), "dir");
       await fs.outputFile(legacyPath(), ledger());
 
       await expect(relocateProjectLearningsLedger(dir)).rejects.toThrow(

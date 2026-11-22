@@ -64,7 +64,7 @@ import {
   liveDeclaredScopes,
   missingScopes,
   type ScopeMap,
-} from "./support/reusable-workflow-scopes";
+} from "./support/reusable-workflow-scopes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -167,6 +167,13 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
   "quality.yml": { contents: "read" },
   "release-rails.yml": { contents: "write" },
   "release.yml": { contents: "write", "pull-requests": "read" },
+  // A NEW workflow, added together with its only caller (#4951): Lisa's own
+  // deploy.yml `self_pin_raise` job, which runs on a grant of `contents: write`
+  // and narrows it to `contents: read`. No installed caller can predate it, and
+  // its prepare job runs only in this repository, so a host that called it
+  // would raise nothing. `contents: read` is the checkout floor. Frozen from
+  // here.
+  "self-pin-raise.yml": { contents: "read" },
   "sentry-deploy.yml": { contents: "read" },
   // `reusable-auto-update-pr-branches.yml` and its `-dispatch` counterpart were
   // removed with the whole subsystem (CodySwannGT/lisa#3590). Their entries go
@@ -216,10 +223,12 @@ describe("reusable workflows never gain a declared permission scope", () => {
       actions: "read",
       packages: "write",
     });
-    expect(regressed).not.toEqual(BASELINE["maestro-native-e2e.yml"]);
-    expect(
-      missingScopes(BASELINE["maestro-native-e2e.yml"], regressed)
-    ).toEqual(["packages:write"]);
+    const baseline = BASELINE["maestro-native-e2e.yml"];
+    if (baseline === undefined) {
+      throw new Error("the baseline has no maestro-native-e2e.yml entry");
+    }
+    expect(regressed).not.toEqual(baseline);
+    expect(missingScopes(baseline, regressed)).toEqual(["packages:write"]);
   });
 
   it("counts a raised level as a gain, not only a brand-new scope", () => {

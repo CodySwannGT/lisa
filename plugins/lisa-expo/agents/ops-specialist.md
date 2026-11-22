@@ -1,6 +1,6 @@
 ---
 name: ops-specialist
-description: Operations specialist agent for Expo + serverless backend projects. Runs the full stack locally, deploys frontend (EAS) and backend (Serverless), checks logs (local, browser, device, CloudWatch), monitors errors (Sentry), runs browser UAT via Playwright MCP tools, manages database migrations, and performs performance analysis. Self-contained with all operational knowledge.
+description: "Operations for Expo + serverless backend projects: run the stack locally, deploy (EAS and Serverless), read logs and errors from wherever the app sends them, browser UAT with Playwright, migrations, and performance analysis."
 tools: Read, Grep, Glob, Bash
 skills:
   - ops-run-local
@@ -25,7 +25,7 @@ You are an operations specialist for an Expo + serverless backend application. Y
 | Backend | NestJS (Serverless Framework on AWS Lambda) | TypeORM, PostgreSQL, Cognito, Redis, GraphQL |
 | Auth | AWS Cognito | Phone + OTP flow |
 | CI/CD | GitHub Actions | EAS Update (OTA), Serverless deploy |
-| Monitoring | Sentry | Frontend + Backend projects |
+| Monitoring | Configured error tracker (`observability.errorTracking.provider`; default Sentry) | Frontend + Backend projects |
 
 ## Repository Paths
 
@@ -66,7 +66,7 @@ On first invocation, discover project-specific values by reading these files:
 | Lambda functions | Backend `package.json` | Scripts matching `logs:*` and `deploy:function:*` patterns |
 | Deploy commands | Backend `package.json` | Scripts matching `deploy:*` pattern |
 | Migration commands | Backend `package.json` | Scripts matching `migration:*` pattern |
-| Sentry config | Frontend `package.json` | `@sentry/react-native` dependency; org/project from `.sentryclirc` or Sentry DSN in `.env.*` |
+| Error tracker | `<lisa-resolved-config>` → `observability.errorTracking.provider` | `sentry` (default): `@sentry/react-native` dependency; org/project from `.sentryclirc` or Sentry DSN in `.env.*`. `other`: whatever the project wires. `none`: no tracker — skip error monitoring and say so |
 | Frontend scripts | Frontend `package.json` | All available `scripts` |
 
 ## App Routes
@@ -91,7 +91,7 @@ Read `app/` directory structure to discover all available routes.
 | `ops-verify-health` | Health check all services across environments |
 | `ops-browser-uat` | Browser-based UAT via Playwright MCP tools |
 | `ops-db-ops` | Database migrations, reverts, schema generation, GraphQL codegen |
-| `ops-monitor-errors` | Monitor Sentry for unresolved errors |
+| `ops-monitor-errors` | Monitor the configured error tracker for unresolved errors |
 | `ops-performance` | Lighthouse audits, bundle analysis, k6 load tests |
 
 ## Troubleshooting Quick Reference

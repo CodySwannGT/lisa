@@ -1,0 +1,33 @@
+HEAD under test: 2a1777df939df9183d0dbfdc1d9e801badaa309f
+bash: /bin/bash => 3.2.57(1)-release
+---- extracted run script ----
+set -eu
+segment='[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}'
+if [ "$LISA_NPM_DIRECTORY" = "." ]; then
+  suffix=root
+elif [ "${#LISA_NPM_DIRECTORY}" -le 200 ] &&
+  [[ "$LISA_NPM_DIRECTORY" =~ ^${segment}(/${segment}){0,7}$ ]] &&
+  [[ "/$LISA_NPM_DIRECTORY/" != */node_modules/* ]]; then
+  # "+" is outside the directory grammar, so this "/" mapping is injective.
+  suffix="dir-${LISA_NPM_DIRECTORY//\//+}"
+else
+  echo "::error title=Invalid npm directory::directory must be '.' or a committed relative npm project path"
+  exit 1
+fi
+echo "PHASE=$RUNNER_TEMP/lisa-npm-phase" >> "$GITHUB_ENV"
+echo "NPM_ARTIFACT_SUFFIX=$suffix" >> "$GITHUB_ENV"
+---- end ----
+"."        exit=0 NPM_ARTIFACT_SUFFIX=[root] stdout=""
+"externals" exit=0 NPM_ARTIFACT_SUFFIX=[dir-externals] stdout=""
+"a/b"      exit=0 NPM_ARTIFACT_SUFFIX=[dir-a+b] stdout=""
+"a_/b"     exit=0 NPM_ARTIFACT_SUFFIX=[dir-a_+b] stdout=""
+"a/_b"     exit=0 NPM_ARTIFACT_SUFFIX=[dir-a+_b] stdout=""
+"../x"     exit=1 NPM_ARTIFACT_SUFFIX=[] stdout="::error title=Invalid npm directory::directory must be '.' or a committed relative npm project path"
+"x/"       exit=1 NPM_ARTIFACT_SUFFIX=[] stdout="::error title=Invalid npm directory::directory must be '.' or a committed relative npm project path"
+"a\nB=1"   exit=1 NPM_ARTIFACT_SUFFIX=[] stdout="::error title=Invalid npm directory::directory must be '.' or a committed relative npm project path"
+== distinctness of a_/b vs a/_b
+a_/b -> dir-a_+b ; a/_b -> dir-a+_b ; distinct=yes
+== bite control: the prior '__' mapping on the same two inputs
+a_/b -> dir-a___b ; a/_b -> dir-a___b (collide under the old mapping)
+== concurrency group line
+44:  group: lisa-npm-${{ github.repository }}${{ inputs.directory != '.' && format('-{0}', inputs.directory) || '' }}

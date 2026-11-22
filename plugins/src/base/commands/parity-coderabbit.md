@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Thorough PR-style review of the full diff — bugs, security, performance, and maintainability — with concrete fixes and a structured summary. An independent Lisa-native review (does NOT call CodeRabbit's service); vendor-neutral cross-agent equivalent of the upstream coderabbit plugin."
 argument-hint: "[optional: PR number, path, or scope hint]"
 ---

@@ -8,7 +8,6 @@ import {
   existsSync,
   mkdtempSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,6 +21,7 @@ import {
   ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 useIoLatencyBudget();
 vi.mock("node:crypto", async importOriginal => ({
   ...(await importOriginal<typeof import("node:crypto")>()),
@@ -253,7 +253,7 @@ describe("safe report predicate observation before assertions", () => {
         matchedValuesAbsent: null,
       });
       const link = join(lease, "link");
-      symlinkSync(lease, link);
+      createSymlink(lease, link);
       expect(observe(link, [])).toMatchObject({
         regular: false,
         readable: false,

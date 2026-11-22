@@ -48,7 +48,7 @@ const SH = "/bin/sh";
  * by `source` from every on-edit hook and never appears as a child process.
  * That is exactly why it had no refusal case: it is invisible to a control that
  * watches what gets executed. Sourcing it from a one-line driver puts its own
- * refusal path — `$_lisa_command || exit 2` inside `lisa_edit_gate_run` — under
+ * refusal path — `"${_lisa_words[@]}" || exit 2` inside `lisa_edit_gate_run` — under
  * a status assertion, and puts the copy on the argv so the run is attributable.
  */
 const EDIT_GATE_DRIVER = '. "$1"; lisa_edit_gate_run edited.ts "$2"';

@@ -1,4 +1,4 @@
 display_name: "Wiki Setup Automations"
-short_description: "Set up the recurring LLM Wiki ingest automation on the local workstation using the CURRENT runtime's native scheduler — Codex automations…"
+short_description: "Schedule the recurring daily wiki ingest for this project using the current runtime's native scheduler (Codex automations or Claude…"
 default_prompt:
-  - "Use $lisa-wiki-setup-automations: Set up the recurring LLM Wiki ingest automation on the local workstation using the CURRENT runtime's native scheduler — Codex automations…."
+  - "Use $lisa-wiki-setup-automations: Schedule the recurring daily wiki ingest for this project using the current runtime's native scheduler (Codex automations or Claude…."

@@ -154,7 +154,7 @@ describe("harness parity council guardrails", () => {
         writeMode: policyInput.writeMode,
         cwd: policyInput.cwd,
         env: policyInput.env,
-        probeRuntime: runtime => ({
+        probeRuntime: (runtime: string) => ({
           runtime,
           available: false,
           authMissing: false,

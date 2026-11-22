@@ -1,6 +1,9 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * Builders for synthetic repository roots used by the
@@ -116,7 +119,7 @@ type RootSpec = {
  * @returns absolute path to the created root.
  */
 export function makeRoot(spec: RootSpec): string {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-promotions-"));
+  const root = ownedDir("lisa-promotions-");
   if (spec.required) {
     const dir = path.join(root, "typescript", "github-rulesets");
     mkdirSync(dir, { recursive: true });
