@@ -8,7 +8,7 @@ import { submittedReview } from "./native-evidence.mjs";
 export const agentMarker = head =>
   `<!-- lisa:review provider="agent" head="${head}" -->`;
 
-/** Parse a substantive, independently authored agent review packet. */
+/** Parse a writer's substantive attestation of a separate agent review. */
 export function agentPacket(review, head) {
   const [first, ...rest] = String(review.body ?? "").split("\n");
   if (first.replace(/\r$/, "") !== agentMarker(head)) return null;

@@ -225,14 +225,14 @@ export function readPolicyReview({
       local.reasons.some(reason =>
         /^(?:required-provider:|review-count:)/u.test(reason)
       ) && policy.providers.some(usesStatuses);
-    const external = needsExternal
-      ? readExternalEvidence({
-          policy,
-          repo,
-          head,
-          read: (endpoint, property) => pages(api, endpoint, property),
-        })
-      : {};
+    const readProviderEvidence = () =>
+      readExternalEvidence({
+        policy,
+        repo,
+        head,
+        read: (endpoint, property) => pages(api, endpoint, property),
+      });
+    const external = needsExternal ? readProviderEvidence() : {};
     const verdict = needsExternal
       ? evaluateReviewPolicy({
           policy,
@@ -250,7 +250,9 @@ export function readPolicyReview({
       const recentActivity = activityAtHead(api, repo, pr);
       if (
         JSON.stringify(recentReviews) !== JSON.stringify(reviews) ||
-        JSON.stringify(recentActivity) !== JSON.stringify(activity)
+        JSON.stringify(recentActivity) !== JSON.stringify(activity) ||
+        (needsExternal &&
+          JSON.stringify(readProviderEvidence()) !== JSON.stringify(external))
       ) {
         return {
           ...verdict,

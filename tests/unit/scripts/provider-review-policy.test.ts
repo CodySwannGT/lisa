@@ -23,7 +23,7 @@ const PULL = {
   state: "open",
   draft: false,
   user: AUTHOR,
-  head: { sha: HEAD },
+  head: { sha: HEAD, ref: "feat/change", repo: { id: 500 } },
   base: { ref: "main", repo: { id: 500 } },
   labels: [],
 };
@@ -257,6 +257,38 @@ describe("provider-neutral hosted review policy", () => {
     expect(reviews).toHaveBeenCalledTimes(2);
   });
 
+  it.each([
+    { description: "Review completed", conclusion: "success" },
+    { description: "Review rate limited", conclusion: "failure" },
+  ])(
+    "rereads the required provider when its latest status is $description",
+    ({ description, conclusion }) => {
+      const fixture = hostedFixture({ providers: ["coderabbit"] }, []);
+      const original = fixture.api.getMockImplementation()!;
+      const status = {
+        id: 15,
+        context: "CodeRabbit",
+        created_at: TIME,
+        creator: { id: 136622811, type: "Bot" },
+        state: "success",
+        description: "Review completed",
+      };
+      const statuses = vi
+        .fn(() => [[{ ...status, description }]])
+        .mockReturnValueOnce([[status]]);
+      fixture.api.mockImplementation((args, payload) =>
+        args[0] === STATUS_ROUTE ? statuses() : original(args, payload)
+      );
+      const result = runReviewPolicyEvent({
+        ...fixture,
+        env: EVENT_ENV,
+        event: EVENT,
+      });
+      expect(result.checks[0]?.conclusion).toBe(conclusion);
+      expect(statuses).toHaveBeenCalledTimes(2);
+    }
+  );
+
   it.each([{ draft: true }, { labels: [{ name: "lisa:hold" }] }])(
     "honors a late hold in the final pull request read (%j)",
     change => {
@@ -350,7 +382,7 @@ describe("provider-neutral hosted review policy", () => {
   it("publishes nothing for a replaced pull request head", () => {
     const fixture = hostedFixture({ providers: ["agent"] }, [REVIEW], {
       ...PULL,
-      head: { sha: SOURCE },
+      head: { ...PULL.head, sha: SOURCE },
     });
     const result = runReviewPolicyEvent({
       ...fixture,
@@ -551,5 +583,48 @@ describe("proof of native workflow authorization", () => {
     expect(() => verifyReviewPolicyRun(verify, api)).toThrow(
       "newer or unreadable policy verdict"
     );
+  });
+
+  it.each([
+    { source: "500:feat/change", relevant: true },
+    { source: "901:feat/change", relevant: false },
+    { source: "500:feat/other", relevant: false },
+  ])(
+    "checks whether pending review activity matches source $source",
+    ({ source, relevant }) => {
+      const latest = {
+        ...run,
+        id: 1002,
+        display_title: `Lisa review policy PR activity:${source}`,
+        event: "workflow_run",
+        status: "queued",
+        conclusion: null,
+        pull_requests: [],
+      };
+      const api = nativeFixture({
+        [runsPath]: [{ total_count: 2, workflow_runs: [latest, run] }],
+      });
+      if (relevant) {
+        expect(() => verifyReviewPolicyRun(verify, api)).toThrow(
+          "review-policy run needs to settle"
+        );
+      } else {
+        expect(verifyReviewPolicyRun(verify, api).verified).toBe(true);
+      }
+    }
+  );
+
+  it("accepts a completed activity receipt with matching source and native verdict", () => {
+    const activityRun = {
+      ...run,
+      display_title: "Lisa review policy PR activity:500:feat/change",
+      event: "workflow_run",
+      pull_requests: [],
+    };
+    const api = nativeFixture({
+      [runPath]: activityRun,
+      [runsPath]: [{ total_count: 1, workflow_runs: [activityRun] }],
+    });
+    expect(verifyReviewPolicyRun(verify, api).verified).toBe(true);
   });
 });

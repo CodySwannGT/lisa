@@ -43,11 +43,11 @@ Run the last two commands from the trusted default-branch checkout. The first ch
 
 ## Provider details
 
-- The agent adapter verifies a submitted review of the exact head from a separate review session. A repository writer can post that review through the same GitHub account used to author the pull request.
+- The agent adapter verifies an authenticated repository writer's review of the exact head, the reported session identifiers, and the submitted review text's digest. The writer attests that a separate agent session performed the review and can post it through the same GitHub account used to author the pull request.
 - CodeRabbit uses its native check run first and falls back to its authenticated commit status where applicable. Projects can require it through `requiredProviders: ["coderabbit"]`. `review.adapters.coderabbit` can declare an alternate `context`, an explicit `appId` or `actorId`, and accepted `proof` and `no_work` phrases.
 - Greptile uses the exact-head GitHub review from the native bot ID set in `review.adapters.greptile.actorId`. A native approval qualifies. A commented review must match a configured `proof` phrase after trimming the leading and trailing whitespace on both sides.
 
-The activity workflow signals submitted, edited, and dismissed reviews. The default-branch workflow resolves the signal to the live pull request and evaluates its current head. If GitHub holds the activity run for fork approval, a repository writer can dispatch the default-branch workflow directly.
+The activity workflow signals submitted, edited, and dismissed reviews. The default-branch workflow resolves the signal to the live pull request and evaluates its current head. Receipt verification waits for newer policy runs for the same pull request or its source branch. GitHub's required check reflects the last published evaluation until a refresh finishes. Lisa's merge path also checks the live review evidence before merging. If GitHub holds the activity run for fork approval, a repository writer can dispatch the default-branch workflow directly.
 
 ## Issue labels
 

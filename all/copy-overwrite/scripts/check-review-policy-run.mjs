@@ -60,9 +60,14 @@ export function verifyReviewPolicyRun(
   const run = api([`${root}/actions/runs/${runId}`]);
   const attempt = nativeNumber(run.run_attempt);
   const title = `Lisa review policy PR ${pr}`;
+  const pullPath = `${root}/pulls/${pr}`;
+  const source = api([pullPath]).head;
+  const sourceRepo = nativeNumber(source?.repo?.id);
+  if (sourceRepo === null || typeof source?.ref !== "string" || !source.ref)
+    throw new Error("The pull request source branch could not be established");
+  const activityTitle = `Lisa review policy PR activity:${sourceRepo}:${source.ref}`;
   const activityRun =
-    run.event === "workflow_run" &&
-    run.display_title === "Lisa review policy PR activity";
+    run.event === "workflow_run" && run.display_title === activityTitle;
   if (
     nativeNumber(repository.id) === null ||
     repository.full_name?.toLowerCase() !== repo.toLowerCase() ||
@@ -74,7 +79,9 @@ export function verifyReviewPolicyRun(
     run.id !== runId ||
     run.workflow_id !== workflow.id ||
     run.head_branch !== branch ||
-    (run.display_title !== title && !activityRun) ||
+    (run.event === "workflow_run"
+      ? !activityRun
+      : run.display_title !== title) ||
     run.repository?.id !== repository.id ||
     run.head_repository?.id !== repository.id ||
     ![
@@ -164,7 +171,9 @@ export function verifyReviewPolicyRun(
     "workflow_runs"
   );
   const recent = branchRuns.filter(
-    row => row.display_title === title || row.id === runId
+    row =>
+      row.display_title === title ||
+      (row.event === "workflow_run" && row.display_title === activityTitle)
   );
   if (
     !recent.some(row => row.id === runId && row.run_attempt === attempt) ||
@@ -173,13 +182,15 @@ export function verifyReviewPolicyRun(
     throw new Error(
       "A newer or indeterminate review-policy run needs to settle"
     );
-  const pull = api([`${root}/pulls/${pr}`]);
+  const pull = api([pullPath]);
   const headPulls = reviewHeadPulls(repo, head, api);
   if (
     pull.number !== pr ||
     pull.state !== "open" ||
     pull.draft !== false ||
     pull.head?.sha !== head ||
+    pull.head.repo?.id !== sourceRepo ||
+    pull.head.ref !== source.ref ||
     pull.base?.repo?.id !== repository.id ||
     pull.base.ref !== branch ||
     headPulls.length !== 1 ||
