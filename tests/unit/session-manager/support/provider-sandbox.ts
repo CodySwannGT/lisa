@@ -10,6 +10,7 @@
  * file in the sandbox and prove the token was written nowhere else.
  * @module tests/unit/session-manager/support/provider-sandbox
  */
+import { once } from "node:events";
 import {
   mkdtempSync,
   readdirSync,
@@ -21,6 +22,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { Worker } from "node:worker_threads";
 
 import {
   makeSandbox,
@@ -41,7 +43,7 @@ export const SENTINEL = [
 export const SECRET = "TELEGRAM_BOT_TOKEN_DEMO_MANAGER";
 
 /** The vault project the test config narrows to. */
-export const VAULT_PROJECT = "proj-demo";
+export const VAULT_PROJECT = "cf887990-02aa-4d45-9378-161caafce462";
 
 /** One fake vault row. */
 export interface VaultRow {
@@ -141,6 +143,60 @@ export function runWithProvider(
       ...options.env,
     },
   });
+}
+
+/**
+ * Run the CLI with a loopback Bitwarden write service and the usual read stub.
+ * @param sandbox - Isolated project, vault and request log locations
+ * @param args - Session manager command and options
+ * @param readbackStatus - HTTP status after the write has persisted
+ * @returns The CLI result and the requests recorded by the service
+ */
+export async function runWithBitwardenWriteService(
+  sandbox: ProviderSandbox,
+  args: readonly string[],
+  readbackStatus = 200
+): Promise<RunResult & { requests: { method: string; url: string }[] }> {
+  const requests = path.join(sandbox.base, "bitwarden-requests.jsonl");
+  const account = "0ae8599f-6016-47d9-ba64-314edafd63fc";
+  const credential = "synthetic-account-credential";
+  const seed = Buffer.alloc(16, 7).toString("base64");
+  const service = new Worker(
+    new URL(
+      "../../../fixtures/session-manager/bitwarden-write-service.mjs",
+      import.meta.url
+    ),
+    {
+      workerData: {
+        vault: sandbox.vault,
+        requests,
+        projectId: VAULT_PROJECT,
+        account,
+        credential,
+        seed,
+        readbackStatus,
+      },
+    }
+  );
+  try {
+    const [port] = await once(service, "message", {
+      signal: AbortSignal.timeout(3000),
+    });
+    const address = `http://127.0.0.1:${String(port)}`;
+    const result = runWithProvider(sandbox, args, {
+      env: {
+        BWS_SERVER_URL: address,
+        BWS_ACCESS_TOKEN_DEMO: `0.${account}.${credential}:${seed}`,
+        // The fixture serves origin requests only, so proxying CONNECT would fail.
+        http_proxy: address,
+        no_proxy: "fixture.invalid",
+      },
+    });
+    const calls = readFileSync(requests, "utf8").trim().split("\n");
+    return { ...result, requests: calls.map(line => JSON.parse(line)) };
+  } finally {
+    await service.terminate();
+  }
 }
 
 /**

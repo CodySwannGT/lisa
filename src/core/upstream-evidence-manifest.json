@@ -1755,9 +1755,17 @@
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "72e13a433912f4743896cdfb8af220b44a1c9d61ede2ee981bdd1acefae5f5dc",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "c9a473c02a2d1d721c0000949de83ac3728e2799042748541f0152d810fdbd62",
+      "787e8073940785737b8aa877173b98034bfc22c918f20acb61b9e234ce0b2320",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "ef8f20962e098697ed68e5dc6e7ec3fc16a305f1296c6266720a26c9c6577aa5",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-encryption.mjs":
+      "cf117afd4d92ad9c19ba7ed719330a01108f8a3fd1cf34587957d854a5f42c24",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-endpoints.mjs":
+      "9dbce3227926f75369948803525c9324091f7877c0e07706bb3324adf3db000e",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-profiles.mjs":
+      "ee19403eb40c7cb8d89caf1431950ca68e8a6431148e34f7472113c8f6a2bebd",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-write.mjs":
+      "d97b958b2481d63388ce3ce24bebf7e050d5d78e6e5abcb740839814dd64fe46",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
       "35169ea70810f7b7291d75c93ec326e0ac04407bf335949b0742e74e69850ec4",
     "plugins/src/base/skills/lisa-secrets-access/scripts/config-files.mjs":
@@ -1781,7 +1789,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "cff2018a0298b833e51efe8626b51b20409e84f4fb3c6cbe4b4e13da33121a95",
+      "06f57430f7ca6417b7f06d511ab6eb02c79936d348f7eaa2ae06dc2653de00e0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
       "2ab1e70fe8b8f6ccf7b5e589ea80031be755ddce8c30009ead71790542c68e2b",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
@@ -1943,11 +1951,11 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/token-migrate.mjs":
       "44f5ce14dddc9619d1e521c31bc2398c7441d9733724c41504258c5ce9fb2d32",
     "plugins/src/base/skills/lisa-session-manager/scripts/token-provider.mjs":
-      "aac2b87a07db8bced5cf8d21f19ae89460a543d8cff4c6551bc08528e7983f7d",
+      "1196259d908e95c4c24505a3fdb1e504ded2e70c067a5d190934d4ba2e4cf484",
     "plugins/src/base/skills/lisa-session-manager/scripts/token-read.mjs":
       "7c604dcb226549c993ebd53e1e8c8f5d063551c68786fcd9b9de4667ef6733de",
     "plugins/src/base/skills/lisa-session-manager/scripts/token-store.mjs":
-      "2a3ae8399b99a346ac7b42a92ebb5c65466466f71b82390e1769fdc98769c72d",
+      "245ba433ff69ebab0fc6631c2b541a054100d3a49d4e719e585f6661a4c1e72c",
     "plugins/src/base/skills/lisa-session-manager/scripts/token.mjs":
       "ff62512a701d90234095ac0345b91185a24cd43d773d4e12eb06fef063e76359",
     "plugins/src/base/skills/lisa-session-manager/scripts/worker-launch.mjs":
@@ -5328,6 +5336,10 @@
     "plugins/lisa-agy/skills/lisa-root-cause-analysis/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/bitwarden-encryption.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/bitwarden-endpoints.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/bitwarden-profiles.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/bitwarden-write.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/config-files.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
@@ -5925,6 +5937,10 @@
     "plugins/lisa-copilot/skills/lisa-root-cause-analysis/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/bitwarden-encryption.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/bitwarden-endpoints.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/bitwarden-profiles.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/bitwarden-write.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/config-files.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
@@ -6506,6 +6522,10 @@
     "plugins/lisa-cursor/skills/lisa-root-cause-analysis/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/bitwarden-encryption.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/bitwarden-endpoints.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/bitwarden-profiles.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/bitwarden-write.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/config-files.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
@@ -7016,6 +7036,10 @@
     "plugins/lisa-devin/skills/lisa-root-cause-analysis/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/bitwarden-encryption.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/bitwarden-endpoints.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/bitwarden-profiles.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/bitwarden-write.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/config-files.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
@@ -9262,6 +9286,10 @@
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/bitwarden-encryption.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/bitwarden-endpoints.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/bitwarden-profiles.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/bitwarden-write.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/config-files.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
@@ -10028,6 +10056,10 @@
     "plugins/lisa/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa/skills/lisa-secrets-access/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/bitwarden-encryption.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/bitwarden-endpoints.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/bitwarden-profiles.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/bitwarden-write.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/config-files.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
@@ -10669,6 +10701,10 @@
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md": true,
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-encryption.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-endpoints.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-profiles.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-write.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/config-files.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
@@ -12465,6 +12501,7 @@
     "tests/fixtures/rails-helper-test-isolation/spec/spec_helper.rb": true,
     "tests/fixtures/release-rollback/writable-registry.ts": true,
     "tests/fixtures/review-terminal-gh.cjs": true,
+    "tests/fixtures/session-manager/bitwarden-write-service.mjs": true,
     "tests/fixtures/session-manager/meminfo.txt": true,
     "tests/fixtures/session-manager/stub-bin/bws": true,
     "tests/fixtures/session-manager/stub-bin/claude": true,
@@ -14836,6 +14873,7 @@
     "tests/unit/secrets/aws-profiles-install.test.ts": true,
     "tests/unit/secrets/aws-profiles-permissions.test.ts": true,
     "tests/unit/secrets/aws-profiles.test.ts": true,
+    "tests/unit/secrets/bitwarden-write-configuration.test.ts": true,
     "tests/unit/secrets/bootstrap-defaults.test.ts": true,
     "tests/unit/secrets/bootstrap-file-listing.test.ts": true,
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,

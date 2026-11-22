@@ -1,7 +1,8 @@
 /**
  * CLI tests for the Telegram bot token held in the secrets provider
  * (CodySwannGT/lisa#4555, part 2), run as a real child process against the
- * stub `bws` (a fake vault file), stub `tmux` and stub `security`.
+ * stub `bws` and loopback write service (a fake vault file), stub `tmux`
+ * and stub `security`.
  *
  * Every test plants a sentinel token and proves it never reaches stdout,
  * stderr, the stub call log (argv is recorded with values redacted) or any
@@ -26,6 +27,7 @@ import {
   providerSandbox,
   readVault,
   removeVaults,
+  runWithBitwardenWriteService,
   runWithProvider,
   SECRET,
   SENTINEL,
@@ -93,10 +95,10 @@ function expectNoLeak(
 }
 
 describe("store-token with a secrets provider", () => {
-  it("migrates a plaintext .env into the provider, verifies it, and deletes the file", () => {
+  it("migrates a plaintext .env into the provider, verifies it, and deletes the file", async () => {
     const sandbox = providerSandbox();
     const file = plantEnvFile(sandbox);
-    const result = runWithProvider(sandbox, [STORE_TOKEN]);
+    const result = await runWithBitwardenWriteService(sandbox, [STORE_TOKEN]);
     expect(result.status).toBe(0);
     expect(result.json).toEqual({
       stored: true,
@@ -110,12 +112,36 @@ describe("store-token with a secrets provider", () => {
     expect(existsSync(file)).toBe(false);
     const row = readVault(sandbox).find(entry => entry.key === SECRET);
     expect(row).toMatchObject({ value: SENTINEL, projectId: VAULT_PROJECT });
-    const create = readCalls(sandbox).find(call =>
-      call.argv.includes("create")
-    );
-    expect(create?.argv).toContain("<redacted>");
-    expect(create?.envKeys).toContain("BWS_ACCESS_TOKEN");
+    expect(result.requests).toEqual([
+      { method: "POST", url: "/identity/connect/token" },
+      {
+        method: "POST",
+        url: expect.stringMatching(/^\/api\/organizations\/[^/]+\/secrets$/u),
+      },
+      { method: "GET", url: expect.stringMatching(/^\/api\/secrets\/[^/]+$/u) },
+    ]);
+    expect(result.calls.some(call => call.argv.includes("create"))).toBe(false);
     expectNoLeak(sandbox, result);
+  });
+
+  it("keeps the token file and reports an unverified write after Bitwarden readback fails", async () => {
+    const sandbox = providerSandbox();
+    const file = plantEnvFile(sandbox);
+    const result = await runWithBitwardenWriteService(
+      sandbox,
+      [STORE_TOKEN],
+      503
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("could not be verified");
+    expect(result.stderr).toContain("Check the provider before retrying");
+    expect(result.stderr).not.toContain("Nothing was stored");
+    expect(result.stderr).not.toContain(SENTINEL);
+    expect(readFileSync(file, "utf8")).toBe(`TELEGRAM_BOT_TOKEN=${SENTINEL}\n`);
+    expect(readVault(sandbox).find(entry => entry.key === SECRET)?.value).toBe(
+      SENTINEL
+    );
+    expect(result.requests.at(-1)?.method).toBe("GET");
   });
 
   it("with no .env and no TTY prints the commands and writes nothing", () => {

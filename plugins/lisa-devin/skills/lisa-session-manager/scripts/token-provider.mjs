@@ -5,9 +5,7 @@
  * all, and turning a provider error into fixed operator text.
  *
  * Split from token-store.mjs, which keeps the store and resolve flows. The
- * adapter is injectable so tests run against a fake vault. A provider's raw
- * error is matched, never repeated: a failed write's error can quote its
- * argv, which holds the value.
+ * adapter is injectable so tests run against a fake vault. The adapter classifies provider failures and returns fixed operator text.
  * @module session-manager/token-provider
  */
 import { TokenStoreError, setupError } from "./token-migrate.mjs";
