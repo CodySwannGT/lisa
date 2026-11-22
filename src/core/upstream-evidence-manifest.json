@@ -275,7 +275,7 @@
     "all/copy-overwrite/scripts/lib/push-gate-defaults.mjs":
       "3d6c68c6a9840007f9996dd3c018a8f6d41e663b2fdbc9efa599ea55c03eef1d",
     "all/copy-overwrite/scripts/lib/push-timing.mjs":
-      "486f67d83f1dd2a78cf3d63a5253a4d9a380833e201574d845bd9bb542ff1b78",
+      "14df8a7b9ebd0d69e72ee0b02e4801ff72b9b3000e80a6a23324e556efbbcdbb",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -361,7 +361,7 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "5c44bf2bb003249a62c443ef594509f7b6828be12157c9aa90f90d3acad13636",
+      "f5dd3d065be6c731ad4af88b31540de0e0a457b56e9114f1abb6157dbcafb2af",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -405,7 +405,7 @@
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "c8d581ffa7c7a34b1d4d5c7ac8618f47af9a705fe14cae6b8ce3bba158a1405a",
+      "082e5734982dfe8d955f675d9d589bda718fb0d0bf438c3aa77e77f4a7f9e5e9",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -421,7 +421,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "eeeab8a73d7294e13b1bf7608ed74dec772b21443a21d2c7293523674ae90ef9",
+      "cb681d51540227824d153fe7b6935aa19842cbb7e2d414dd54820f8a11ff5fd7",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1513,11 +1513,11 @@
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
-      "1dda5441f57a3eb791d151d6356ce559646f346cde7bfe76fe54f8aa0f843d87",
+      "a34ed0e80a87b2d24211876711cb571eb0922d96b6ab08f2bd826416b977feed",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
-      "72c5878bf012b88af3eb5a20c5e60c551e7b96a653d5d79adc7a67d2e0337f90",
+      "68bed205d59f4d8ded09fd16294ac0dc503ca6f39249593599348c2a8501c2f4",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "f7b6886b1acf79f04cf9ef0bd2d4bf086d8ec1ded7c45cbfb979919e5bacb831",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -12419,6 +12419,7 @@
     "tests/integration/controls-configure.test.ts": true,
     "tests/integration/controls-enforce.test.ts": true,
     "tests/integration/controls-gaps.test.ts": true,
+    "tests/integration/controls-github-host-workflow.test.ts": true,
     "tests/integration/controls-install-carriers-agents-record.test.ts": true,
     "tests/integration/controls-install-carriers-agents-settings.test.ts": true,
     "tests/integration/controls-install-carriers-agents.test.ts": true,

@@ -40,6 +40,7 @@ const REPORT_NAME = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z(?:-\d+)?\.json$/u;
 /**
  * @typedef {object} GateTiming
  * @property {string} id Gate id.
+ * @property {string} [scope] Folder when this record is for a declared part.
  * @property {string|null} level Declared level.
  * @property {string|null} command Command that proved it.
  * @property {string} state PASSED, CACHED, FAILED, UNPROVABLE, KILLED, SKIPPED or NOT_RUN.
@@ -236,6 +237,7 @@ function gateRecord(entry) {
           .replaceAll("-", "_");
   return {
     id: entry.id,
+    ...(typeof entry.scope === "string" ? { scope: entry.scope } : {}),
     level: entry.level ?? null,
     command: entry.command ?? null,
     state,

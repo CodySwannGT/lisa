@@ -1527,6 +1527,7 @@ function verdictFor(
  *   True by default, which is every hook a stack template ships. False for a
  *   caller with none (`--builtins=none`): a gate resolved to `builtin` is then
  *   reported as not proved, because nothing is left to prove it.
+ * @param {boolean} [options.completeParts] Keep running costly parts after a required part fails.
  * @param {() => ({paths: string[]|null, note: string|null})} [options.change]
  *   Says which paths the change touches (CodySwannGT/lisa#4988), as
  *   `changeAt` in `lib/changed-paths` answers it. `paths: null` means "not
@@ -1551,6 +1552,7 @@ export function runGates({
   cache = null,
   selection = null,
   builtins = true,
+  completeParts = false,
   change = () => ({ paths: null, note: null }),
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
@@ -1645,7 +1647,7 @@ export function runGates({
     const start = isPart(gate) ? partStart(gate, root) : null;
     const verdict = verdictFor(gate, {
       proved,
-      blockedBy: blocker,
+      blockedBy: completeParts && isPart(gate) ? null : blocker,
       exec,
       execArgv,
       start,
@@ -2793,7 +2795,10 @@ function readFlag(argv, name) {
 /** How the command line is written. */
 const USAGE =
   "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>] " +
-  "[--evidence=<file>] [--builtins=none] [--push-refs=<file>|-] [--parts=all]";
+  "[--evidence=<file>] [--builtins=none] [--push-refs=<file>|-] [--parts=all] [--gate=<id>]";
+
+/** The gate id a standalone pull-request job is responsible for. */
+const GATE_FLAG = "gate";
 
 /**
  * The flag a push hook uses to hand over what git told it is being pushed.
@@ -2974,16 +2979,25 @@ export function main(argv = process.argv.slice(2)) {
   const partsFlag = argv.includes(`--${PARTS_FLAG}`)
     ? ""
     : readFlag(argv, PARTS_FLAG);
+  const onlyGate = argv.includes(`--${GATE_FLAG}`)
+    ? ""
+    : readFlag(argv, GATE_FLAG);
+  const standalone = builtinsFlag === NO_BUILTINS;
+  const gateFlagProblem =
+    onlyGate !== null &&
+    (onlyGate === "" || !standalone || moment !== "pull-request")
+      ? "Use --gate=<id> with --moment=pull-request and --builtins=none."
+      : null;
   const flagProblem =
     builtinsFlagProblem(builtinsFlag, coveragePath) ??
-    partsFlagProblem(partsFlag);
+    partsFlagProblem(partsFlag) ??
+    gateFlagProblem;
   if (flagProblem) {
     console.error(`⚠️  ${flagProblem}`);
     console.error(USAGE);
     console.error("   Nothing ran, so nothing was proved. This is NOT a pass.");
     return EXIT.RUNNER_FAILED;
   }
-  const standalone = builtinsFlag === NO_BUILTINS;
   // Standard input is read NOW, before anything else is started. Every gate
   // command inherits it, and git writes the pushed refs there exactly once:
   // read lazily, whichever of the runner and a gate got there first would
@@ -3063,6 +3077,14 @@ export function main(argv = process.argv.slice(2)) {
   // has not adopted the registry, so the caller must run its hardcoded steps.
   if (!config.gates || Object.keys(config.gates).length === 0) {
     if (coveragePath) writeCoverage(coveragePath, []);
+    if (onlyGate !== null) {
+      reportRefusal(
+        moment,
+        [`No gate ${JSON.stringify(onlyGate)} is declared.`],
+        line => console.error(line)
+      );
+      return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED);
+    }
     // A caller with no built-in checks has no hardcoded steps to run instead,
     // so 78 would be an instruction it cannot follow. What is true is that
     // nothing is declared and so nothing was checked: the same answer a gates
@@ -3126,6 +3148,31 @@ export function main(argv = process.argv.slice(2)) {
         `They will be refused where they DO apply — run \`${validateCommand()}\` ` +
         `to see them.`
     );
+  }
+  const gatesToRun =
+    onlyGate === null ? config.gates : { [onlyGate]: config.gates[onlyGate] };
+  if (
+    onlyGate !== null &&
+    (!Object.hasOwn(config.gates, onlyGate) ||
+      !resolveMoment({
+        gates: gatesToRun,
+        moment,
+        runner: config.runner,
+        scripts,
+      }).some(gate => gate.mode === "run"))
+  ) {
+    reportRefusal(
+      moment,
+      [
+        `Gate ${JSON.stringify(onlyGate)} has no runnable declaration at this moment.`,
+      ],
+      line => console.error(line)
+    );
+    return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED, {
+      gates: config.gates,
+      runner: config.runner,
+      scripts,
+    });
   }
 
   // The stack's push-gate defaults (CodySwannGT/lisa#4611): a TypeScript host
@@ -3272,7 +3319,7 @@ export function main(argv = process.argv.slice(2)) {
   // (CodySwannGT/lisa#4600) and says so through this channel.
   const selection = moment === "push" ? openSelectionReports() : null;
   const result = runGates({
-    gates: config.gates,
+    gates: gatesToRun,
     moment,
     runner: config.runner,
     // Selection reporting wraps the admission-aware `exec`, so a narrowed
@@ -3286,6 +3333,7 @@ export function main(argv = process.argv.slice(2)) {
     cache,
     selection,
     builtins: !standalone,
+    completeParts: onlyGate !== null,
     // What the change touches is read HERE and handed down, for the reason
     // the manifest is: `runGates` stays a function of its inputs. It is asked
     // only if this moment has a part for a folder, so a gates block with no
@@ -3378,7 +3426,7 @@ export function main(argv = process.argv.slice(2)) {
   return settle(
     result.blocked ? EXIT.BLOCKED : EXIT.PROVED,
     result.blocked ? EVIDENCE_VERDICT.BLOCKED : EVIDENCE_VERDICT.PROVED,
-    { gates: config.gates, result, runner: config.runner, scripts }
+    { gates: gatesToRun, result, runner: config.runner, scripts }
   );
 }
 

@@ -1,12 +1,11 @@
-# The pull-request executor on a platform other than GitHub
+# Writing a repository's pull-request executor
 
-Part of the enforce step. Follow this when the repository is hosted somewhere other than GitHub and
-its gates declaration checks anything at the pull-request moment.
+Part of the enforce step. Follow this when the gates declaration checks something at the
+pull-request moment and the repository needs a workflow to run it.
 
 The pull-request executor is the file the hosting platform runs when someone proposes a change. It
-runs the gates, and a failing gate stops the change from being merged. For a repository on GitHub,
-Lisa ships that file. For a repository anywhere else, nothing ships: you write it, to the contract
-below.
+runs the gates and reports a failure to the platform when a required gate fails. Lisa's supported
+GitHub stacks ship a pull-request caller. A repository without that workflow can supply its own.
 
 Lisa did not write the file you produce and has never seen it refuse a change. So the control
 register marks every rule that file runs as **unproved**, and keeps it that way until the attest
@@ -37,8 +36,10 @@ Work out which platform hosts the repository from where it is pushed to and wher
 requests are opened. If you cannot tell, do not guess: write nothing, and return `blocked` with the
 question "Which platform hosts this repository's pull requests?".
 
-- **GitHub:** stop. Nothing here applies. Lisa's own workflows are the executor, and this flow never
-  adds, edits or removes a file under `.github/workflows/`.
+- **GitHub:** read the pull-request workflow and check whether Lisa's workflow already runs these
+  declared gates. If it does, leave it in place. When the repository needs a workflow, use an
+  existing host-owned workflow or add `.github/workflows/lisa-declared-controls.yml`. Use the
+  GitHub instructions in step 2 and record `platform: "github"` on the declarations.
 - **Any other platform:** carry on.
 
 ## Step 1: find the executor the register names
@@ -68,7 +69,7 @@ A gate says where its pull-request executor is on its `pull-request` entry in th
 
 | Key | Meaning |
 | --- | --- |
-| `platform` | The hosting platform's name in lower-case letters and digits, with hyphens between words: `gitlab`, `bitbucket`, `azure-devops`. `github` is the one platform Lisa ships the file for. Anything else is a platform Lisa did not write the executor for. |
+| `platform` | The hosting platform's name in lower-case letters and digits, with hyphens between words, such as `github`, `gitlab`, `bitbucket` or `azure-devops`. |
 | `path` | The file, written from the repository root with `/` between folders. One spelling only: no leading `./`, no trailing `/`, no `..`, no absolute path. |
 
 `executor` is accepted on the `pull-request` entry only, and only in the entry's long form (an
@@ -155,7 +156,76 @@ how the file is spelled.
    result which of them you could confirm and which you could not; never report this requirement
    as met on the strength of the file alone.
 
-### Examples
+### GitHub repositories with their own workflow
+
+In each declaration the workflow runs, name its exact repository path in `executor` and set
+`caller_chain` to a stable label such as `["Declared Controls"]`. Use the planner's `context`
+as the GitHub job name. It comes from the same declaration that `lisa controls protect` reads,
+so the reported check and the required check have the same name. Install the project's toolchain
+and dependencies in the check job before running the gate.
+
+This example uses `.github/workflows/lisa-declared-controls.yml` and protects `main`. Use the
+repository's real workflow path and protected branch.
+
+```yaml
+name: Run declared controls
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      legs: ${{ steps.plan.outputs.legs }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Plan declared pull-request checks
+        id: plan
+        shell: bash
+        run: |
+          legs=$(node scripts/lisa-gates.mjs legs --moment=pull-request --host-workflow=.github/workflows/lisa-declared-controls.yml --json)
+          printf 'legs=%s\n' "$legs" >> "$GITHUB_OUTPUT"
+  check:
+    needs: plan
+    if: needs.plan.outputs.legs != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.legs) }}
+    name: ${{ matrix.context }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Run this gate's declared parts
+        if: matrix.action == 'run'
+        env:
+          GATE_ID: ${{ matrix.gate }}
+        run: node scripts/lisa-run-gates.mjs --moment=pull-request --builtins=none --parts=all --gate="$GATE_ID"
+      - name: Fail when the declaration has no prover
+        if: matrix.action == 'unproved'
+        run: exit 1
+```
+
+Each required gate gets one job, including when it has several folder-scoped parts. All of its
+parts are eligible to run and a failed required part fails that job. After GitHub reports the
+jobs, verify their names against `lisa controls protect` before changing merge settings.
+
+### Other platform examples
 
 These show the shape of a job that meets requirements 1 and 2 and is triggered as requirement 3
 asks. They are **examples only**. They are not complete pipelines, they are not the contract, and
@@ -208,8 +278,8 @@ register again without the mark.
 
 The register is generated from the declaration and the evidence file together. So after either one
 changes, `lisa controls register --check` fails until the register is written again, and it says
-when the status is what differs. An entry whose executor is on GitHub never carries the mark, and
-an entry with no mark is not thereby proved: the verdict says what was proved.
+when the status is what differs. The mark applies to host-written workflows on GitHub as well.
+Use the verdict to see what was proved.
 
 ## Step 4: return the result
 
@@ -228,7 +298,7 @@ file refuse a bad change and accept a good one. Name any requirement you could n
 
 ## What this flow never does
 
-- It never runs for a repository hosted on GitHub, and never touches `.github/workflows/`.
+- It leaves the Lisa-shipped GitHub caller in place.
 - It never says a rule is proved, and never writes or edits evidence or the register by hand.
 - It never weakens the contract to get a pipeline to pass.
 - It never guesses the hosting platform.

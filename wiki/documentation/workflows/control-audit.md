@@ -248,7 +248,7 @@ Each of these is something an operator will meet. They are stated here so that a
 
 **On another hosting platform, the pipeline file is yours.** Lisa ships the pull-request pipeline for GitHub only, as part of its supported project types. Elsewhere the operator's agent writes the file to a stated contract, and every check it runs stays marked unproved in the register. Nothing in this release can exercise a check there, so that mark does not clear.
 
-**On GitHub, enforce does not write a workflow.** The carriers it installs are for commit, push and coding-agent edits. A check declared for pull requests in a repository with no `.github/workflows` folder has nothing to report it, and `lisa controls protect` holds it back as not ready, because requiring a check that never reports would leave every pull request waiting.
+**GitHub repositories can supply their own pull-request workflow.** When Lisa's shipped workflow already runs the checks, enforce leaves it in place. A repository without that workflow can declare its own executor and report one check per gate. The gate's job runs its declared folder checks together. The register keeps the entries `unproved` until attest records both proof halves. Merge protection waits for the required check names to be reported.
 
 **Merge protection is changed only when asked, and only with permission.** `lisa controls protect` reads and writes a handover for an administrator. It changes a setting only with `--apply`, only on GitHub, and only after a read confirms the signed-in account administers the repository. The enforce step never adds `--apply` on its own.
 

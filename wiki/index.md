@@ -25,7 +25,8 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 - [Workflow Documentation](documentation/workflows/)
   - [Wiki Ingestion Safety](documentation/workflows/wiki-ingestion-safety.md)
   - [Control Audit: Audit, Configure, Enforce, Attest](documentation/workflows/control-audit.md)
-    - Find, declare, wire and prove repository controls across seven coding agents. Includes the control register, the Level 1 verdict and how reconcile checks recorded edit-time registrations for missing hooks and undeclared commands.
+    - Find, declare, wire and prove repository controls across seven coding agents. Includes the control register, the Level 1 verdict and checks for missing edit-time registrations and undeclared hook commands.
+    - Run declared checks through a host-owned GitHub pull-request workflow when the repository has no Lisa stack workflow.
 - [Specifications](documentation/specs/)
 
 ## Architecture

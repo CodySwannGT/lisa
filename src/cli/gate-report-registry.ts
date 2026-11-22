@@ -57,6 +57,9 @@ export interface ResolvedGate {
   readonly task: string | null;
   readonly command: string | null;
   readonly label: string;
+  /** Folder and argument vector of a declared part, when the gate has parts. */
+  readonly scope?: string;
+  readonly argv?: readonly string[] | null;
   /**
    * The `shippedAs` substitution that produced `task`, or null.
    *
