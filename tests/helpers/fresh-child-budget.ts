@@ -43,6 +43,8 @@ export interface ChildBudgetObservation extends ChildBudgetPolicy {
   readonly captureToAdmissionMs: number;
   readonly effectiveParentDeadlineMs: number;
   readonly remainingAtSelectionMs: number;
+  readonly dispatchGapMs?: number;
+  readonly remainingAtDispatchMs?: number;
   readonly referenceAgeAtCompletionMs?: number;
   readonly operationElapsedMs?: number;
 }
@@ -224,7 +226,7 @@ export function describeChildBudget(reading: ChildBudgetObservation): string {
     `base=${reading.baseMs}ms, clamp=${reading.maxSlowdown}, child bound=${reading.timeoutMs}ms; ` +
     `calibration=${reading.calibrationMs.toFixed(2)}ms inside fixed operation window=${reading.operationLimitMs}ms; ` +
     `observed operation=${reading.operationElapsedMs?.toFixed(2) ?? "unavailable"}ms; ` +
-    `capture-to-admission=${reading.captureToAdmissionMs.toFixed(2)}ms, original effective deadline=${reading.effectiveParentDeadlineMs}ms on ${reading.parentWindow.clockDomain}, selection remaining=${reading.remainingAtSelectionMs.toFixed(2)}ms; ` +
+    `capture-to-admission=${reading.captureToAdmissionMs.toFixed(2)}ms, original effective deadline=${reading.effectiveParentDeadlineMs}ms on ${reading.parentWindow.clockDomain}, selection remaining=${reading.remainingAtSelectionMs.toFixed(2)}ms, selection-to-dispatch=${reading.dispatchGapMs?.toFixed(2) ?? "unavailable"}ms; ` +
     `parent=${reading.parentScope}, elapsed=${reading.parentElapsedMs ?? "unavailable"}ms.`
   );
 }

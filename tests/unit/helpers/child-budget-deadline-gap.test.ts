@@ -7,7 +7,11 @@ import {
   it,
   vi,
 } from "vitest";
-import type { spawnSync, SpawnSyncReturns } from "node:child_process";
+import type {
+  spawnSync,
+  SpawnSyncOptions,
+  SpawnSyncReturns,
+} from "node:child_process";
 import {
   containingChildWindow,
   runBoundedChild,
@@ -147,3 +151,67 @@ describe.each([false, true])(
     );
   }
 );
+
+describe("scaled deadline at target dispatch", () => {
+  it.each([
+    [40, 22],
+    [62, undefined],
+  ])("charges a %sms delay after selection", (delay, expectedTimeout) => {
+    profile.now = 0;
+    profile.references = 0;
+    let ticks = 0;
+    const now = () => {
+      if (++ticks === 5) profile.now += delay;
+      return profile.now;
+    };
+    const policy = {
+      baseMs: 80,
+      quietReferenceMs: 18,
+      maxSlowdown: 8,
+      referenceDeadlineMs: 100,
+      parentBudgetMs: 160,
+      parentElapsedMs: 0,
+      parentShare: 0.5,
+      parentTotalMargin: true,
+      parentScope: "controlled parent window",
+      parentWindow: {
+        startedAtMs: 0,
+        deadlineMs: 160,
+        capturedAtMs: 0,
+        nativeStartedAtMs: 0,
+        nativeDeadlineMs: 160,
+        clockDomain: "performance" as const,
+        now,
+      },
+    };
+    const spawn = vi.fn(
+      (_command: string, _args: string[], options: SpawnSyncOptions) => ({
+        pid: 0,
+        output: [null, String(options.timeout), ""],
+        stdout: String(options.timeout),
+        stderr: "",
+        status: 0,
+        signal: null,
+      })
+    );
+    const run = () =>
+      runBoundedChild(
+        {
+          label: "dispatch gap",
+          command: process.execPath,
+          args: [],
+          spawn: spawn as unknown as typeof spawnSync,
+        },
+        policy,
+        helper.assertChildCompleted
+      );
+
+    if (expectedTimeout === undefined) {
+      expect(run).toThrow(/no child was dispatched/);
+      expect(spawn).not.toHaveBeenCalled();
+    } else {
+      expect(run().stdout).toBe(String(expectedTimeout));
+    }
+    expect(profile.references).toBe(1);
+  });
+});

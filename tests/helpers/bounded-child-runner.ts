@@ -77,6 +77,29 @@ function dispatchBudget(policy: ChildBudgetPolicy | number) {
   return { budget, now: policy.parentWindow.now, timeoutMs: budget.timeoutMs };
 }
 
+/** Charge time between choosing a bound and starting the child.
+ * @param selected - Bound and original deadline chosen after calibration.
+ * @param dispatchStarted - Time immediately before the spawn call.
+ * @returns The time still available for the child.
+ */
+function budgetAtDispatch(
+  selected: ChildBudgetObservation,
+  dispatchStarted: number
+): ChildBudgetObservation {
+  const remainingAtDispatchMs =
+    selected.effectiveParentDeadlineMs - dispatchStarted;
+  const share = selected.parentTotalMargin ? 1 : selected.parentShare;
+  return {
+    ...selected,
+    timeoutMs: Math.max(
+      0,
+      Math.min(selected.timeoutMs, Math.floor(remainingAtDispatchMs * share))
+    ),
+    dispatchGapMs: dispatchStarted - selected.selectedAtMs,
+    remainingAtDispatchMs,
+  };
+}
+
 /**
  * Run once under a fixed budget and preserve the owning helper's error rules.
  * @param spec - Child transport and declared input relationship
@@ -95,11 +118,23 @@ export function runBoundedChild(
     budget?: ChildBudgetObservation
   ) => void
 ): SpawnSyncReturns<string> {
-  const { budget, now, timeoutMs } = dispatchBudget(policy);
+  const {
+    budget: selected,
+    now,
+    timeoutMs: selectedTimeoutMs,
+  } = dispatchBudget(policy);
   const spawn = spec.spawn ?? spawnSync;
+  const args = [...spec.args];
+  const dispatchStarted = now();
+  const budget = selected && budgetAtDispatch(selected, dispatchStarted);
+  const timeoutMs = budget?.timeoutMs ?? selectedTimeoutMs;
   try {
-    const dispatchStarted = now();
-    const outcome = spawn(spec.command, [...spec.args], {
+    if (budget && timeoutMs <= 0) {
+      throw new Error(
+        "Child admission refused: the fixed operation window elapsed before dispatch; no child was dispatched."
+      );
+    }
+    const outcome = spawn(spec.command, args, {
       cwd: spec.cwd,
       encoding: "utf-8",
       env: spec.env,
