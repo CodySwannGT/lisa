@@ -101,36 +101,46 @@ describe("removing the checks that would have checked the change", () => {
     expect(result.stderr).toContain(REFUSAL);
   });
 
-  it("refuses a push of a new branch that removes the declaration inherited from main", () => {
-    const repo = keep(declaredFNone(DECLARED));
-    const root = repo.fixture.repoPath;
-    runControlAuditGit(root, [
-      "update-ref",
-      "refs/remotes/origin/main",
-      "HEAD",
-    ]);
-    runControlAuditGit(root, ["switch", "--create", "remove"]);
-    runControlAuditGit(root, ["rm", CONFIG]);
-    runControlAuditGit(root, ["commit", "-m", "Remove declarations"]);
-    const head = runControlAuditGit(root, ["rev-parse", "HEAD"]).trim();
-    const pushRefs = join(repo.scratch, "push-refs");
-    writeFileSync(
-      pushRefs,
-      `refs/heads/remove ${head} refs/heads/remove ${"0".repeat(head.length)}\n`
-    );
+  it.each(["main", "master", null])(
+    "refuses removal from a new branch with default branch %s",
+    defaultBranch => {
+      const repo = keep(declaredFNone(DECLARED));
+      const root = repo.fixture.repoPath;
+      const trackedRef = `refs/remotes/origin/${defaultBranch ?? "master"}`;
+      runControlAuditGit(root, ["update-ref", trackedRef, "HEAD"]);
+      if (defaultBranch) {
+        runControlAuditGit(root, [
+          "symbolic-ref",
+          "refs/remotes/origin/HEAD",
+          trackedRef,
+        ]);
+      }
+      runControlAuditGit(root, ["switch", "--create", "remove"]);
+      runControlAuditGit(root, ["rm", CONFIG]);
+      runControlAuditGit(root, ["commit", "-m", "Remove declarations"]);
+      const head = runControlAuditGit(root, ["rev-parse", "HEAD"]).trim();
+      const pushRefs = join(repo.scratch, "push-refs");
+      writeFileSync(
+        pushRefs,
+        `refs/heads/remove ${head} refs/heads/remove ${"0".repeat(head.length)}\n`
+      );
+      const expected = defaultBranch
+        ? REFUSAL
+        : "Fetch origin's default branch";
 
-    const result = runShipped(repo, RUNNER_SCRIPT, [
-      PUSH_FLAG,
-      NO_BUILTINS,
-      `--push-refs=${pushRefs}`,
-    ]);
-    expect(result.status).toBe(EXIT.BLOCKED);
-    expect(result.stderr).toContain(REFUSAL);
-    expect(result.stdout).not.toContain(NO_CHECKS);
-    const manual = runShipped(repo, RUNNER_SCRIPT, [PUSH_FLAG, NO_BUILTINS]);
-    expect(manual.status).toBe(EXIT.BLOCKED);
-    expect(manual.stderr).toContain(REFUSAL);
-  });
+      const result = runShipped(repo, RUNNER_SCRIPT, [
+        PUSH_FLAG,
+        NO_BUILTINS,
+        `--push-refs=${pushRefs}`,
+      ]);
+      expect(result.status).toBe(EXIT.BLOCKED);
+      expect(result.stderr).toContain(expected);
+      expect(result.stdout).not.toContain(NO_CHECKS);
+      const manual = runShipped(repo, RUNNER_SCRIPT, [PUSH_FLAG, NO_BUILTINS]);
+      expect(manual.status).toBe(EXIT.BLOCKED);
+      expect(manual.stderr).toContain(expected);
+    }
+  );
 
   it("still reports no checks when the pushed baseline never declared any", () => {
     const repo = keep(fNoneWithConfig("{}\n"));
@@ -139,6 +149,11 @@ describe("removing the checks that would have checked the change", () => {
       "update-ref",
       "refs/remotes/origin/main",
       "HEAD",
+    ]);
+    runControlAuditGit(root, [
+      "symbolic-ref",
+      "refs/remotes/origin/HEAD",
+      "refs/remotes/origin/main",
     ]);
     runControlAuditGit(root, ["rm", CONFIG]);
     runControlAuditGit(root, ["commit", "-m", "Remove empty settings"]);

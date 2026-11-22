@@ -65,6 +65,29 @@ describe("the submitted issue body path", () => {
     }
   );
 
+  it("reads a held issue declaration from the GitHub CLI short body flag", () => {
+    const root = projectWithTracker();
+    fixture(root, bodyFile, GATE_MARKER);
+    const command = create.replace("--body-file", "-F");
+
+    expect(runHook(bash(command), { cwd: root }).status).toBe(EXIT_ALLOWED);
+  });
+
+  it("requires an inspectable script path when the working directory is unknown", () => {
+    const root = projectWithTracker();
+    const script = "fixture.sh";
+    const absolute = fixture(root, script, "printf 'fixture'\n");
+    const run = (operand: string) =>
+      runHook(bash(`cd "$FIXTURE_DIR" && bash ${operand}`), { cwd: root });
+
+    const relative = run(script);
+    expect(relative.status).toBe(EXIT_BLOCKED);
+    expect(relative.stderr).toContain(
+      "could not determine the working directory"
+    );
+    expect(run(JSON.stringify(absolute)).status).toBe(EXIT_ALLOWED);
+  });
+
   it("reads a container declaration through the same relative path", () => {
     const root = projectWithTracker();
     const drafts = path.join(root, folder);

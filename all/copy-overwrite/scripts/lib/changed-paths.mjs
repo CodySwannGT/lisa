@@ -514,13 +514,15 @@ function pushedChange({ root, git, env, source, read }) {
  * or a manual run with no push-hook input.
  * @param {string} head The commit being sent.
  * @param {AskGit} git How git is asked.
- * @returns {string|null|undefined} Comparison commit, no tracked baseline, or unknown ancestry.
+ * @returns {string|undefined} Comparison commit, or unknown ancestry.
  */
 function defaultBranchBase(head, git) {
-  const defaultRef =
-    git(["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"])?.trim() ||
-    "refs/remotes/origin/main";
-  if (git(["rev-parse", "--verify", defaultRef]) === null) return null;
+  const defaultRef = git([
+    "symbolic-ref",
+    "--quiet",
+    "refs/remotes/origin/HEAD",
+  ])?.trim();
+  if (!defaultRef) return undefined;
   return git(["merge-base", defaultRef, head])?.trim() || undefined;
 }
 
@@ -579,12 +581,25 @@ export function declarationProblemAt({
     if (git(["rev-parse", "--verify", "HEAD"]) === null) return null;
     return compare(["--cached"], "HEAD", "", "the staged changes with HEAD");
   }
+  const defaultComparisonFailed = label =>
+    unreadable(
+      `Git could not compare ${label}. Fetch origin's default branch and run git remote set-head origin --auto, then try again.`
+    );
   if (!source) {
     const upstream = git(["rev-parse", "--verify", "@{upstream}"])?.trim();
     const base = upstream || defaultBranchBase("HEAD", git);
     const label = "HEAD with its baseline";
-    if (base === undefined) return comparisonFailed(label);
-    return base ? compare([base, "HEAD"], base, "HEAD", label) : null;
+    if (base !== undefined) return compare([base, "HEAD"], base, "HEAD", label);
+    if (declares(declarationAt("HEAD", git) ?? null)) return null;
+    const tracked = git([
+      "for-each-ref",
+      "--count=1",
+      "--format=%(refname)",
+      "refs/remotes/",
+    ]);
+    return tracked === "" && git(["remote"]) === ""
+      ? null
+      : defaultComparisonFailed(label);
   }
   const text = read(source);
   if (text === null) {
@@ -605,8 +620,12 @@ export function declarationProblemAt({
       ? defaultBranchBase(localOid, git)
       : remoteOid;
     const label = `${JSON.stringify(remoteRef)} with its baseline`;
-    if (base === undefined) return comparisonFailed(label);
-    if (!base) continue;
+    if (base === undefined) {
+      // An inspected new branch with checks still has them, even if the
+      // remote default is not tracked locally yet.
+      if (declares(declarationAt(localOid, git) ?? null)) continue;
+      return defaultComparisonFailed(label);
+    }
     const problem = compare([base, localOid], base, localOid, label);
     if (problem !== null) return problem;
   }

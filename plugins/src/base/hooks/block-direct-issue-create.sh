@@ -451,6 +451,10 @@ refuse() {
   local target="$3"
   local remedy="${4:-}"
   local body_file="${5:-}"
+  if [ "$remedy" = "unresolved-script" ]; then
+    printf '%s\n' 'BLOCKED: Lisa could not determine the working directory of a script this command runs. Use an absolute script path or a literal directory change joined with &&.' >&2
+    exit 2
+  fi
   if [ -n "$target" ]; then
     refuse_cross_repo "$signature" "$roles" "$target" "$body_file"
   fi
@@ -898,7 +902,6 @@ GRAPHQL_CREATE = re.compile(r"createIssue|issueCreate")
 # documented direction of failure: an operator who hits a false refusal says
 # so, an agent who hits a false allow says nothing.
 FILE_OPERAND_MAX_BYTES = 262144
-FILE_OPERANDS_PER_SEGMENT = 8
 # Payload sources. A creation's mutation text may arrive inline, from a file,
 # or over stdin from an earlier stage of the same pipeline.
 PAYLOAD_SOURCE_FLAGS = {
@@ -1655,31 +1658,33 @@ def before_end_of_options(args):
     return args[: args.index("--")] if "--" in args else args
 
 
-def body_file_paths(args):
+def body_file_paths(args, flags):
     """Paths the command will submit as the item body.
 
     Args:
         args: A command's arguments.
+        flags: Accepted body-file options for this command.
 
     Returns:
         Candidate file paths, unverified.
     """
     paths = []
     for index, token in enumerate(args):
-        if token in BODY_FILE_FLAGS and index + 1 < len(args):
+        if token in flags and index + 1 < len(args):
             paths.append(args[index + 1])
         if "=" in token:
             head, value = token.split("=", 1)
-            if head in BODY_FILE_FLAGS:
+            if head in flags:
                 paths.append(value)
     return paths
 
 
-def read_body_files(args, cwd):
+def read_body_files(args, cwd, signature):
     """Read the body files actually named in this command's working folder."""
+    flags = BODY_FILE_FLAGS | {"-F"} if signature == "gh issue create" else BODY_FILE_FLAGS
     texts = []
     unreadable = []
-    for path in body_file_paths(args):
+    for path in body_file_paths(args, flags):
         if path in STDIN_PAYLOAD_TOKENS:
             continue
         candidate = resolve_operand(path, cwd)
@@ -2238,7 +2243,10 @@ def executed_operand(argv, cwd):
         return args[0] if args else None
     # A command word that is ITSELF a readable file is being executed by its
     # shebang — `./create.sh` names no interpreter and runs all the same.
-    if program not in EXECUTING_INTERPRETERS and resolve_operand(token, cwd) is not None:
+    if program not in EXECUTING_INTERPRETERS and (
+        resolve_operand(token, cwd) is not None
+        or (cwd is None and not os.path.isabs(token) and "/" in token)
+    ):
         return token
     # Reached by a known interpreter AND by a program this parser cannot name.
     # The unknown case is followed on purpose — see READ_ONLY_PROGRAMS.
@@ -2292,38 +2300,26 @@ def executed_operand(argv, cwd):
     return redirected
 
 
-def file_operands(argv, cwd):
-    """The file this command EXECUTES, if it executes one.
-
-    Deciding WHICH programs execute their operands is the question this file
-    used to refuse to ask, and refusing it is what made the guard read a path
-    quoted as prose inside a `--body-file` markdown and attribute its contents
-    to the command. It is answered in `executed_operand` now.
-
-    Args:
-        argv: One command's tokens.
-        cwd: The working directory, or None when it cannot be determined.
-
-    Returns:
-        Existing paths, deduplicated across the whole scan and capped.
-    """
-    paths = []
-    operand = executed_operand(argv, cwd)
-    for token in [operand] if operand is not None else []:
-        if len(paths) >= FILE_OPERANDS_PER_SEGMENT:
-            break
-        path = resolve_operand(token, cwd)
-        if path is None:
-            continue
-        try:
-            key = os.path.realpath(path)
-        except OSError:
-            key = path
-        if key in inspected_files:
-            continue
-        inspected_files.add(key)
-        paths.append(path)
-    return paths
+def file_operand(argv, cwd):
+    """Find the executable file and distinguish an indeterminate relative path."""
+    token = executed_operand(argv, cwd)
+    if token is None:
+        return None, False
+    path = resolve_operand(token, cwd)
+    if path is None:
+        command, program, _ = executing_command(argv)
+        script_operand = program in EXECUTING_INTERPRETERS or program in SOURCE_BUILTINS
+        explicit_path = token == command or "/" in token
+        unresolved = cwd is None and not os.path.isabs(token) and (script_operand or explicit_path)
+        return None, unresolved
+    try:
+        key = os.path.realpath(path)
+    except OSError:
+        key = path
+    if key in inspected_files:
+        return None, False
+    inspected_files.add(key)
+    return path, False
 
 
 def file_creation(text, depth, cwd):
@@ -2448,7 +2444,7 @@ def scan(text, depth, from_file=False, cwd=tool_cwd):
                 continue
             roles, target = roles_for(target_repository(args))
             state_role_ok = tracker in STATE_ROLE_TRACKERS and target is None
-            body_texts, unreadable = read_body_files(before_end_of_options(args), cwd)
+            body_texts, unreadable = read_body_files(before_end_of_options(args), cwd, signature)
             if declares_readiness(args, roles, body_texts, submitted, state_role_ok):
                 continue
             # The container arm. Checked after readiness, so it adds a
@@ -2499,25 +2495,29 @@ def scan(text, depth, from_file=False, cwd=tool_cwd):
         # review before it shipped.
         if ambient_override and not inline_override:
             continue
-        for path in file_operands(argv, cwd):
-            contents = read_operand(path)
-            if not contents:
-                continue
-            if depth >= MAX_NESTING_DEPTH:
-                if GRAPHQL_CREATE.search(contents) or UNPARSEABLE_CREATION.search(
-                    contents
-                ):
-                    return (
-                        "a tracker creation inside %s, nested past the "
-                        "inspection depth" % path,
-                        [ready_role],
-                        None,
-                        None,
-                    )
-                continue
-            found = file_creation(contents, depth, cwd)
-            if found is not None:
-                return ("%s inside %s" % (found[0], path), *found[1:])
+        path, unresolved = file_operand(argv, cwd)
+        if unresolved:
+            return "a script whose working directory could not be determined", [], None, None
+        if path is None:
+            continue
+        contents = read_operand(path)
+        if not contents:
+            continue
+        if depth >= MAX_NESTING_DEPTH:
+            if GRAPHQL_CREATE.search(contents) or UNPARSEABLE_CREATION.search(
+                contents
+            ):
+                return (
+                    "a tracker creation inside %s, nested past the "
+                    "inspection depth" % path,
+                    [ready_role],
+                    None,
+                    None,
+                )
+            continue
+        found = file_creation(contents, depth, cwd)
+        if found is not None:
+            return ("%s inside %s" % (found[0], path), *found[1:])
     return None
 
 
@@ -2546,6 +2546,8 @@ def remedy_for(signature):
     Returns:
         A key the shell half maps to a paragraph, or an empty string.
     """
+    if signature.startswith("a script whose working directory"):
+        return "unresolved-script"
     if signature.startswith("an unparseable command"):
         return "unparseable"
     if " inside " in signature:

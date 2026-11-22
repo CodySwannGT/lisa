@@ -41,7 +41,7 @@
     "all/copy-overwrite/scripts/lib/build-marker.mjs":
       "505519d9632ab86572cfdeca917d93599256cf8e798987ad593a82296a7d8175",
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
-      "1d721b51c529f0de8e4cecb81de484cd9e73cd401177ae40b8f8e03cc7eb5a52",
+      "f9089dfab2a892e2512abc4ad4ee336fedc46253c8fe5b8c257c76dad1ac72a3",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
       "a9c3fa0ee9c3de9c610e009c6775088237c1e8ebd69ff4d9fd829de2db1c206a",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
@@ -371,7 +371,7 @@
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "c2fc91c3a1c40e54c084063aef9e787064f43551da66c0c14ff7b105590777c8",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "74f2341a7bf43cb54b236a273bd46bcfaa2e42a0216d90b6b1c4d12a47c35c06",
+      "6f90fddb51a09f3dc63adcbd0ddd7175b9bb00dbbe9cc04c030e70e8672040a1",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -1113,7 +1113,7 @@
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "3c0a4a829cc9dc0b3a3c98f65ce3ecab3d56504cb8e84fc3477578c90bac7539",
+      "90697da6890abe5c4533b799d11c349f37bac95ff92ff483c1b546ac20f14036",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -1521,7 +1521,7 @@
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
       "a34ed0e80a87b2d24211876711cb571eb0922d96b6ab08f2bd826416b977feed",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
-      "898d432648142a87d5927e6c6158e1d7fb5ebc7e591c69c4d5b6ad24cc3d62f9",
+      "408d94c1a0e03ff9a722b793ef7f19689d0fb5e08fd11202bef3438ec8182c03",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
       "7b926efa4ec1a7c68af9fd1443bf9dd9dd4688efc121c18b688b46a51afada2c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -1657,7 +1657,7 @@
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "723f951c856774f03e19ef7400f4f1885b8ad35147a6948bdff5d58911315e0b",
+      "ba0576e617850360e1e800612301d841570e3ce452fa621cb99cb0b8d607e4d9",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "f6de212c8ac7a905e754b82e08b0696d8d03f81b8e6b281e02fb28e3a489552d",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
