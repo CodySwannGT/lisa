@@ -12492,6 +12492,7 @@
     "tests/fixtures/rails-helper-test-isolation/spec/spec_helper.rb": true,
     "tests/fixtures/release-rollback/writable-registry.ts": true,
     "tests/fixtures/review-terminal-gh.cjs": true,
+    "tests/fixtures/session-manager/bitwarden-write-service.mjs": true,
     "tests/fixtures/session-manager/meminfo.txt": true,
     "tests/fixtures/session-manager/stub-bin/bws": true,
     "tests/fixtures/session-manager/stub-bin/claude": true,
