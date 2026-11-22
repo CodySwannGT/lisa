@@ -164,8 +164,9 @@ as the GitHub job name. It comes from the same declaration that `lisa controls p
 so the reported check and the required check have the same name. Install the project's toolchain
 and dependencies in the check job before running the gate.
 
-This example uses `.github/workflows/lisa-declared-controls.yml` and protects `main`. Use the
-repository's real workflow path and protected branch.
+Use the repository's real workflow path and protected branch.
+
+Example only, using `.github/workflows/lisa-declared-controls.yml` to protect `main`.
 
 ```yaml
 name: Run declared controls

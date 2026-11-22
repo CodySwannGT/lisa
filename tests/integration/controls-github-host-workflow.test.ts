@@ -7,8 +7,13 @@ import { afterEach, describe, expect, it } from "vitest";
 import { buildGateReport } from "../../src/cli/gate-report.js";
 import { generateControlRegister } from "../../src/controls/register.js";
 import { buildControlAuditFixture } from "../helpers/control-audit-fixtures.js";
-import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../helpers/io-latency-budget.js";
 import { installCarriers, operatorEnv } from "../support/carrier-install.js";
+
+useIoLatencyBudget();
 
 const WORKFLOW = ".github/workflows/lisa-declared-controls.yml";
 const MOMENT = "pull-request";
