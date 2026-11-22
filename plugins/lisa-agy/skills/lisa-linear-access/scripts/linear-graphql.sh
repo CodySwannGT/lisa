@@ -195,11 +195,23 @@ _linear_key() {  # $1=workspace slug -> the key on stdout, for capture only
   }
 }
 
-# Sourced use: identity-match once for this shell before any linear_graphql.
-# Workspace and team come from $WORKSPACE / $TEAM_KEY, else the project config.
-linear_require_identity() {
-  { set +x; } 2>/dev/null
-  local ws="${WORKSPACE:-}" team="${TEAM_KEY:-}" key rc
+# Keep only a fingerprint of the verified key and scope in the calling shell.
+# When neither hash tool is installed the caller proves identity on each read.
+_linear_identity_fingerprint() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf '%s\0' "$@" | sha256sum
+  elif command -v shasum >/dev/null 2>&1; then
+    printf '%s\0' "$@" | shasum -a 256
+  else
+    return 1
+  fi
+}
+
+# With no query this refreshes identity for subsequent calls in the same shell.
+# Resolve the credential once so the identity probe and request always agree.
+_linear_sourced_request() {
+  local ws="${WORKSPACE:-}" team="${TEAM_KEY:-}" key fingerprint
+  [ "$#" -ne 0 ] || unset _LINEAR_IDENTITY_OK
   [ -n "$ws" ] || ws=$(_linear_config_value '.linear.workspace')
   [ -n "$team" ] || team=$(_linear_config_value '.linear.teamKey')
   if [ -z "$ws" ]; then
@@ -207,14 +219,24 @@ linear_require_identity() {
     return 4
   fi
   key=$(_linear_key "$ws") || return 3
-  linear_identity_check "$key" "$ws" "$team"; rc=$?
-  [ $rc -eq 0 ] && _LINEAR_IDENTITY_OK="$ws"
-  return $rc
+  fingerprint=$(_linear_identity_fingerprint "$ws" "$team" "$key") || fingerprint=""
+  if [ -z "$fingerprint" ] || [ "${_LINEAR_IDENTITY_OK:-}" != "$fingerprint" ]; then
+    unset _LINEAR_IDENTITY_OK
+    linear_identity_check "$key" "$ws" "$team" || return $?
+    _LINEAR_IDENTITY_OK="$fingerprint"
+  fi
+  [ "$#" -gt 0 ] || return 0
+  _linear_request "$key" "$1" "$2"
 }
 
-# Sourced use: one request. Identity-matches first unless this shell already
-# passed linear_require_identity (a call inside `$(...)` cannot record that,
-# so call linear_require_identity once up front to avoid a probe per call).
+# Sourced use: prove the current credential, workspace, and team up front.
+linear_require_identity() {
+  { set +x; } 2>/dev/null
+  _linear_sourced_request
+}
+
+# Sourced use: one request. An identity proven in the parent shell can be reused
+# by command substitutions while the credential, workspace, and team agree.
 linear_graphql() {  # $1=query [$2=variables JSON, default {}]
   { set +x; } 2>/dev/null
   local query="$1"
@@ -222,12 +244,7 @@ linear_graphql() {  # $1=query [$2=variables JSON, default {}]
   # `}` to every variables object a caller passes, and jq rejects the result.
   local variables="${2:-}"
   [ -n "$variables" ] || variables='{}'
-  local key
-  if [ -z "${_LINEAR_IDENTITY_OK:-}" ]; then
-    linear_require_identity || return $?
-  fi
-  key=$(_linear_key "${_LINEAR_IDENTITY_OK:-${WORKSPACE:-}}") || return 3
-  _linear_request "$key" "$query" "$variables"
+  _linear_sourced_request "$query" "$variables"
 }
 
 # The identity probe. Prints `{viewer, organization, teamVisible}` as JSON.

@@ -713,6 +713,54 @@ describe("linear-graphql.sh as a sourced library", () => {
     expect(readLines(path.join(tree.stubDir, BODIES_LOG))).toHaveLength(3);
     expect(result.stdout).not.toContain(SENTINEL);
   });
+
+  it("refuses a rotated credential until that credential matches the workspace", () => {
+    const tree = buildTree();
+    const rotated = `${SENTINEL}_rotated`;
+    const result = sourced(
+      tree,
+      `linear_require_identity && LINEAR_API_KEY="$STUB_ROTATED" STUB_ORG="$STUB_OTHER" linear_graphql 'mutation{a}'`,
+      { STUB_TEAMS: "ENG", STUB_ROTATED: rotated, STUB_OTHER: OTHER_ORG }
+    );
+
+    expect(result.status).toBe(4);
+    expect(readLines(path.join(tree.stubDir, BODIES_LOG))).toHaveLength(2);
+    expect(readLines(path.join(tree.stubDir, "auth.log"))).toEqual([
+      `Authorization: ${SENTINEL}`,
+      `Authorization: ${rotated}`,
+    ]);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).not.toContain(SENTINEL);
+    expect(
+      readFileSync(path.join(tree.stubDir, "argv.log"), "utf8")
+    ).not.toContain(SENTINEL);
+  });
+
+  it.each([
+    ["team", `TEAM_KEY=OPS linear_graphql 'query{a}'`, 2],
+    ["workspace", `WORKSPACE=other linear_graphql 'query{a}'`, 2],
+    [
+      "failed refresh",
+      `STUB_ORG="$STUB_OTHER" linear_require_identity || :; STUB_ORG="$STUB_OTHER" linear_graphql 'query{a}'`,
+      3,
+    ],
+  ])(
+    "does not reuse a sourced identity after a changed %s",
+    (_case, next, calls) => {
+      const tree = buildTree();
+      const result = sourced(tree, `linear_require_identity && ${next}`, {
+        STUB_TEAMS: "ENG",
+        STUB_OTHER: OTHER_ORG,
+      });
+
+      expect(result.status).toBe(4);
+      expect(readLines(path.join(tree.stubDir, BODIES_LOG))).toHaveLength(
+        calls
+      );
+      expect(result.stdout).toBe("");
+      expect(result.stderr).not.toContain(SENTINEL);
+    }
+  );
 });
 
 /**
