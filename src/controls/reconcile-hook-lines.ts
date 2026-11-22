@@ -197,9 +197,13 @@ function commandsOf(
 /**
  * Read a hook within the bounds this reader keeps to.
  * @param text - The hook file's content
+ * @param ownedLines - Exact generated lines to leave out of command checks
  * @returns The commands with their lines, or why the file was not read
  */
-function readWithinBounds(text: string): ShellHookRead {
+function readWithinBounds(
+  text: string,
+  ownedLines: ReadonlySet<string>
+): ShellHookRead {
   if (text.length > MAX_HOOK_CHARACTERS) {
     return {
       problem: `it holds ${text.length} characters, and this command reads hooks of up to ${MAX_HOOK_CHARACTERS}`,
@@ -220,7 +224,9 @@ function readWithinBounds(text: string): ShellHookRead {
   const isMarker = (index: number): boolean =>
     blocks.ranges.some(range => index === range.start || index === range.end);
   const read = commandsOf(
-    lines.map((line, index) => (inBlock(index) ? "" : line))
+    lines.map((line, index) =>
+      inBlock(index) || ownedLines.has(line.trim()) ? "" : line
+    )
   );
   return read.problem === null
     ? {
@@ -236,13 +242,17 @@ function readWithinBounds(text: string): ShellHookRead {
 /**
  * Read the commands a shell hook runs, leaving out what Lisa wrote in it.
  * @param text - The hook file's content
+ * @param ownedLines - Exact lines of the generated edit-time carrier, when read
  * @returns The commands with their lines; or why the file was not read: its
  *   markers cannot be trusted to say which lines are Lisa's, or it is more
  *   than this reader takes on. Never throws
  */
-export function readShellHook(text: string): ShellHookRead {
+export function readShellHook(
+  text: string,
+  ownedLines: ReadonlySet<string> = new Set()
+): ShellHookRead {
   try {
-    return readWithinBounds(text);
+    return readWithinBounds(text, ownedLines);
   } catch (error) {
     return {
       problem: `it could not be read as shell (${error instanceof Error ? error.message : String(error)})`,

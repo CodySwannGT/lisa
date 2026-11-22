@@ -1469,7 +1469,7 @@
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "d1af8712870dfffa0959417379d0be9b18ab1ee44bb13bd25bc293ae6cbda5eb",
+      "1c3af426ff46839822e8ef562015e683a261ea284b0823d14c3c93f0ba444dec",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
@@ -11666,6 +11666,7 @@
     "src/controls/pull-request-types.ts": true,
     "src/controls/pull-request-wording.ts": true,
     "src/controls/question-ids.ts": true,
+    "src/controls/reconcile-agent-hooks.ts": true,
     "src/controls/reconcile-audit-findings.ts": true,
     "src/controls/reconcile-carrier-points.ts": true,
     "src/controls/reconcile-declared.ts": true,
@@ -13419,6 +13420,7 @@
     "tests/unit/controls/question-ids.test.ts": true,
     "tests/unit/controls/reconcile-carrier-points.test.ts": true,
     "tests/unit/controls/reconcile-declared.test.ts": true,
+    "tests/unit/controls/reconcile-edit-time.test.ts": true,
     "tests/unit/controls/reconcile-hook-bounds.test.ts": true,
     "tests/unit/controls/reconcile-hook-lines.test.ts": true,
     "tests/unit/controls/reconcile-manager-commands.test.ts": true,

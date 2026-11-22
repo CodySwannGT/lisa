@@ -25,7 +25,7 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 - [Workflow Documentation](documentation/workflows/)
   - [Wiki Ingestion Safety](documentation/workflows/wiki-ingestion-safety.md)
   - [Control Audit: Audit, Configure, Enforce, Attest](documentation/workflows/control-audit.md)
-    - The four commands that find, declare, wire and prove the controls of any repository, whatever its stack: what each asks and writes, how to start one on each of the seven coding agents, the control register and the other files under `.lisa/`, the vocabulary, what the Level 1 verdict means and does not, and the limits an operator will meet.
+    - Find, declare, wire and prove repository controls across seven coding agents. Includes the control register, the Level 1 verdict and how reconcile checks recorded edit-time registrations for missing hooks and undeclared commands.
 - [Specifications](documentation/specs/)
 
 ## Architecture

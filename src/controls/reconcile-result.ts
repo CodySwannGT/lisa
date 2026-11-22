@@ -144,10 +144,16 @@ export function describeReconcile(
   surfaces: readonly SurfaceRead[]
 ): { readonly outcome: ReconcileOutcome; readonly reason: string } {
   const unread = surfaces.filter(surface => surface.state === COULD_NOT_READ);
-  const missing = findings.filter(
-    finding => finding.kind === "enforcement-point-not-wired"
+  const missing = new Set(
+    findings.flatMap(finding =>
+      finding.kind === "enforcement-point-not-wired"
+        ? [JSON.stringify([finding.entry_id, finding.location, finding.moment])]
+        : []
+    )
+  ).size;
+  const undeclared = findings.filter(
+    finding => finding.kind === "undeclared-command"
   ).length;
-  const undeclared = findings.length - missing;
   const parts = [
     ...(missing === 0
       ? []

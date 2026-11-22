@@ -34,7 +34,15 @@
  * the caller reports the entry to add by hand.
  * @module controls/carrier-agent-settings
  */
-import { parse, type JSONPath, type ParseError } from "jsonc-parser";
+import {
+  findNodeAtLocation,
+  getNodeValue,
+  parse,
+  parseTree,
+  type JSONPath,
+  type Node,
+  type ParseError,
+} from "jsonc-parser";
 
 import {
   isJsonObject,
@@ -217,16 +225,16 @@ interface HookList {
   readonly inTheWay: string | null;
 }
 
+/** The path and shape of an edit-time settings list. */
+type SettingsList = Pick<MergedRegistration, "file" | "path" | "shape">;
+
 /**
  * Read the list of hooks for the event out of a parsed settings file.
  * @param document - The parsed file
  * @param registration - Where the list is
  * @returns The list, that it is not there yet, or the key that is in the way
  */
-function hookList(
-  document: JsonObject,
-  registration: MergedRegistration
-): HookList {
+function hookList(document: JsonObject, registration: SettingsList): HookList {
   const walked = registration.path.reduce<{
     readonly at: unknown;
     readonly trail: readonly string[];
@@ -247,6 +255,126 @@ function hookList(
   return Array.isArray(walked.at)
     ? { entries: walked.at, inTheWay: null }
     : { entries: null, inTheWay: registration.path.join(".") };
+}
+
+/** The parsed settings and the event list used by install and reconcile. */
+type ReadSettings =
+  | { readonly problem: string }
+  | {
+      readonly problem: null;
+      readonly document: JsonObject;
+      readonly entries: readonly unknown[];
+      readonly tree: Node;
+    };
+
+/**
+ * Read and validate the hook list using the same semantics for both commands.
+ * @param text - The settings file's text
+ * @param registration - Where the hook list lives
+ * @returns The list and its source tree, or why it could not be read
+ */
+function readSettings(text: string, registration: SettingsList): ReadSettings {
+  const errors: ParseError[] = [];
+  const tree = parseTree(text, errors, { allowTrailingComma: true });
+  const document: unknown = tree === undefined ? undefined : getNodeValue(tree);
+  if (errors.length > 0 || tree === undefined || !isJsonObject(document)) {
+    return {
+      problem: `${registration.file} could not be read as a JSON object, so it was left untouched.`,
+    };
+  }
+  const list = hookList(document, registration);
+  return list.inTheWay === null
+    ? { document, entries: list.entries ?? [], problem: null, tree }
+    : {
+        problem: `${registration.file} holds something other than a list of hooks at "${list.inTheWay}", so it was left untouched.`,
+      };
+}
+
+/** An edit-time command and the line of the settings file where it is written. */
+interface RegisteredCommand {
+  readonly command: string;
+  readonly line: number;
+  readonly matcher: unknown;
+}
+
+/**
+ * Count the newlines before an offset using the source's sorted newline positions.
+ * @param breaks - Absolute offsets of newline characters
+ * @param offset - Offset of the command value
+ * @param start - Start of the search range
+ * @param end - Exclusive end of the search range
+ * @returns The command's one-based line number
+ */
+function lineFor(
+  breaks: readonly number[],
+  offset: number,
+  start = 0,
+  end = breaks.length
+): number {
+  if (start >= end) return start + 1;
+  const mid = Math.floor((start + end) / 2);
+  return (breaks[mid] ?? end) < offset
+    ? lineFor(breaks, offset, mid + 1, end)
+    : lineFor(breaks, offset, start, mid);
+}
+
+/**
+ * Read the shell commands an agent registers at edit time.
+ * @param text - The settings file, after the caller checked its size
+ * @param registration - Where and how the event is registered
+ * @param keys - The fields that hold shell commands for this agent
+ * @returns The commands or the same settings problem the installer would report
+ */
+export function registeredHookCommands(
+  text: string,
+  registration: SettingsList,
+  keys: readonly string[] = ["command"]
+): {
+  readonly problem: string | null;
+  readonly commands: readonly RegisteredCommand[];
+} {
+  const read = readSettings(text, registration);
+  if (read.problem !== null) return { commands: [], problem: read.problem };
+  const copilot = keys.includes("bash");
+  if (copilot && read.document.disableAllHooks === true) {
+    return { commands: [], problem: null };
+  }
+  const commands = read.entries.flatMap((entry, index) => {
+    if (!isJsonObject(entry)) return [];
+    const nested = registration.shape === "nested";
+    const handlers =
+      nested && Array.isArray(entry.hooks) ? entry.hooks : [entry];
+    return handlers.flatMap((handler, position) => {
+      if (
+        !isJsonObject(handler) ||
+        ((nested || copilot) && handler.type !== "command")
+      )
+        return [];
+      const base = [
+        ...registration.path,
+        index,
+        ...(nested ? ["hooks", position] : []),
+      ];
+      return keys.flatMap(key => {
+        const command = handler[key];
+        if (typeof command !== "string") return [];
+        const offset =
+          findNodeAtLocation(read.tree, [...base, key])?.offset ?? 0;
+        return [{ command, matcher: entry.matcher, offset }];
+      });
+    });
+  });
+  const breaks = Array.from(text.matchAll(/\n/gu), match => match.index);
+  const ordered = [...commands].sort(
+    (left, right) => left.offset - right.offset
+  );
+  return {
+    commands: ordered.map(({ offset, ...command }) => ({
+      ...command,
+      line: lineFor(breaks, offset),
+    })),
+    problem: null,
+  };
 }
 
 /**
@@ -270,20 +398,9 @@ export function mergeHookEntry(
       text: freshFile(registration, command),
     };
   }
-  const errors: ParseError[] = [];
-  const document: unknown = parse(text, errors, { allowTrailingComma: true });
-  if (errors.length > 0 || !isJsonObject(document)) {
-    return {
-      problem: `${registration.file} could not be read as a JSON object, so it was left untouched.`,
-    };
-  }
-  const list = hookList(document, registration);
-  if (list.inTheWay !== null) {
-    return {
-      problem: `${registration.file} holds something other than a list of hooks at "${list.inTheWay}", so it was left untouched.`,
-    };
-  }
-  const entries = list.entries ?? [];
+  const read = readSettings(text, registration);
+  if (read.problem !== null) return { problem: read.problem };
+  const { document, entries } = read;
   const wanted = hookEntry(registration, command);
   const found = lisaHandlers(entries, registration.shape, owned);
   const [only] = found;
