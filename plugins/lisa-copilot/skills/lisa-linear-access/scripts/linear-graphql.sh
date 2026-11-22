@@ -123,18 +123,46 @@ _linear_post() {  # $1=key $2=query $3=variables JSON
   # to every user on the machine). Bounded timeouts: an unattended worker has
   # nobody to notice a hung connection, and a hang is the stall this file
   # exists to prevent. A timeout is a failed request (exit 1 from the CLI).
-  local response
+  local response http_status
   response=$(jq -cn --arg query "$2" --argjson variables "$3" \
     '{query:$query, variables:$variables}' |
     curl -q -sS --connect-timeout 10 --max-time 60 -X POST "https://api.linear.app/graphql" \
       -H "Content-Type: application/json" \
       -H @<(printf 'Authorization: %s\n' "$1") \
-      --data-binary @-) || return 1
+      --write-out '\n%{http_code}' --data-binary @-) || return 1
+  # Curl appends the transport result after the body, even when the HTTP
+  # exchange succeeds but its status means the request failed.
+  http_status="${response##*$'\n'}"
+  response="${response%$'\n'*}"
   if [[ "$response" == *"$1"* ]]; then
     echo "Error: Linear returned request authentication in its response. Output discarded." >&2
     return 1
   fi
   printf '%s\n' "$response"
+  case "$http_status" in
+    2[0-9][0-9]) return 0 ;;
+    [1-5][0-9][0-9]) echo "Error: Linear returned HTTP ${http_status}." >&2 ;;
+    *) echo "Error: Linear did not return a valid HTTP status." >&2 ;;
+  esac
+  return 1
+}
+
+# Both public request paths print the reply and agree on what counts as success.
+_linear_request() {  # $1=key $2=query $3=variables JSON
+  local response
+  response=$(_linear_post "$@") || {
+    if [ -n "$response" ]; then printf '%s\n' "$response"; fi
+    echo "Error: the Linear request failed." >&2
+    return 1
+  }
+  printf '%s\n' "$response"
+  printf '%s' "$response" | jq -es '
+    length == 1 and
+    (.[0] | type == "object" and (.data | type == "object") and (.errors == null or .errors == []))
+  ' >/dev/null 2>&1 || {
+    echo "Error: Linear returned errors or no GraphQL data. See stdout for the response." >&2
+    return 1
+  }
 }
 
 # The plugin copy this file ships in also holds the resolver. Offer it as the
@@ -199,7 +227,7 @@ linear_graphql() {  # $1=query [$2=variables JSON, default {}]
     linear_require_identity || return $?
   fi
   key=$(_linear_key "${_LINEAR_IDENTITY_OK:-${WORKSPACE:-}}") || return 3
-  _linear_post "$key" "$query" "$variables"
+  _linear_request "$key" "$query" "$variables"
 }
 
 # The identity probe. Prints `{viewer, organization, teamVisible}` as JSON.
@@ -373,17 +401,7 @@ _linear_main() {
   linear_identity_check "$key" "$ws" "$team"; rc=$?
   [ $rc -eq 0 ] || return $rc
 
-  local response
-  response=$(_linear_post "$key" "$query" "$vars") || {
-    echo "Error: the Linear request failed." >&2
-    return 1
-  }
-  printf '%s\n' "$response"
-  printf '%s' "$response" | jq -e 'type == "object" and (.data | type == "object") and (.errors == null or .errors == [])' >/dev/null 2>&1 || {
-    echo "Error: Linear returned errors or no GraphQL data. See stdout for the response." >&2
-    return 1
-  }
-  return 0
+  _linear_request "$key" "$query" "$vars"
 }
 
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then

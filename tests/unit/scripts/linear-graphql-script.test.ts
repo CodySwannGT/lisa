@@ -55,21 +55,24 @@ const RESOLVER_REL =
  * A stand-in `curl`. It records its argv and request body, records the
  * Authorization header it was handed through `-H @file`, and answers the
  * identity probe from STUB_ORG / STUB_TEAMS and every other request from
- * STUB_RESPONSE.
+ * STUB_RESPONSE and STUB_HTTP_STATUS.
  */
 const STUB_CURL = `#!/usr/bin/env bash
 printf '%s\\n' "$*" >> "$STUB_DIR/argv.log"
 header=""
+write_out=""
 prev=""
 for arg in "$@"; do
   if [ "$prev" = "-H" ]; then
     case "$arg" in @*) header=$(cat "\${arg#@}") ;; esac
   fi
+  if [ "$prev" = "--write-out" ]; then write_out="$arg"; fi
   prev="$arg"
 done
 printf '%s\\n' "$header" >> "$STUB_DIR/auth.log"
 body=$(cat)
 printf '%s\\n' "$body" >> "$STUB_DIR/bodies.log"
+http_status=200
 case "$body" in
   *'viewer{id name organization'*)
     teams=$(jq -cn --arg t "\${STUB_TEAMS:-}" '$t | split(",") | map(select(. != "") | {key: .})')
@@ -77,11 +80,15 @@ case "$body" in
       '{data:{viewer:{id:"u1",name:"Agent",organization:{urlKey:$org,name:"Acme"}},teams:{nodes:$teams}}}'
     ;;
   *)
+    http_status="\${STUB_HTTP_STATUS:-200}"
     resp="\${STUB_RESPONSE:-}"
     [ -n "$resp" ] || resp='{"data":{"ok":true}}'
     printf '%s' "$resp"
     ;;
 esac
+if [ "$write_out" = '\\n%{http_code}' ]; then
+  printf '\\n%s' "$http_status"
+fi
 `;
 
 interface Tree {
@@ -241,6 +248,8 @@ const writeQuery = (tree: Tree, text: string): string => {
 };
 
 const QUERY = "query($id:String!){ issue(id:$id){ identifier title } }";
+const SOURCED_QUERY_COMMAND = "linear_graphql 'query{x}'";
+const MISSING_DATA_MESSAGE = "no GraphQL data";
 
 /** Flags and fixture names the cases share. */
 const QUERY_FLAG = "--query-file";
@@ -347,7 +356,7 @@ describe("linear-graphql.sh sends a request without exposing the key", () => {
       });
 
       expect(result.status).toBe(1);
-      expect(result.stderr).toContain("no GraphQL data");
+      expect(result.stderr).toContain(MISSING_DATA_MESSAGE);
       expectKeyNeverPrinted(result);
     }
   );
@@ -597,7 +606,7 @@ describe("linear-graphql.sh as a sourced library", () => {
 
   it("refuses a sourced linear_graphql for a different organization", () => {
     const tree = buildTree();
-    const result = sourced(tree, "linear_graphql 'query{x}'", {
+    const result = sourced(tree, SOURCED_QUERY_COMMAND, {
       STUB_ORG: OTHER_ORG,
     });
 
@@ -606,9 +615,49 @@ describe("linear-graphql.sh as a sourced library", () => {
     expect(result.stderr).not.toContain(SENTINEL);
   });
 
+  it.each([
+    [
+      "HTTP 200 without data",
+      "200",
+      '{"message":"Forbidden"}',
+      MISSING_DATA_MESSAGE,
+    ],
+    [
+      "HTTP 200 with several JSON documents",
+      "200",
+      '{"message":"Forbidden"}\n{"data":{"ok":true}}',
+      MISSING_DATA_MESSAGE,
+    ],
+    ["HTTP 302", "302", '{"data":{"ok":true}}', "HTTP 302"],
+    ["HTTP 403", "403", '{"data":{"ok":true}}', "HTTP 403"],
+  ])(
+    "rejects an unsuccessful response in both entry points (%s)",
+    (_case, status, response, diagnostic) => {
+      const environment = {
+        STUB_TEAMS: "ENG",
+        STUB_HTTP_STATUS: status,
+        STUB_RESPONSE: response,
+      };
+      const cliTree = buildTree();
+      const cli = run(cliTree, [QUERY_FLAG, writeQuery(cliTree, QUERY)], {
+        env: { ...environment, LINEAR_API_KEY: SENTINEL },
+      });
+      const library = sourced(buildTree(), SOURCED_QUERY_COMMAND, environment);
+
+      expect([cli.status, library.status]).toEqual([1, 1]);
+      for (const result of [cli, library]) {
+        expect(result.stdout.trim()).toBe(response);
+        expect(result.stderr).toContain(diagnostic);
+        expect(result.stdout).not.toContain(SENTINEL);
+        expect(result.stderr).not.toContain(SENTINEL);
+      }
+      expectKeyNeverPrinted(cli);
+    }
+  );
+
   it("defaults linear_graphql variables to an empty object", () => {
     const tree = buildTree();
-    const result = sourced(tree, "linear_graphql 'query{x}'", {
+    const result = sourced(tree, SOURCED_QUERY_COMMAND, {
       STUB_TEAMS: "ENG",
     });
 
