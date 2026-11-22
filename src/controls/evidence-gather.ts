@@ -53,6 +53,7 @@ import {
   mergedEvidence,
   type EvidenceStamp,
 } from "./evidence-write.js";
+import { verifiedExerciseRecords } from "./exercise-records.js";
 import { PULL_REQUEST_MOMENT } from "./pull-request-executor.js";
 import type { ControlRegister } from "./register-types.js";
 import { createRepositoryReader } from "./repository-reader.js";
@@ -80,6 +81,7 @@ export type GatheredEvidence =
   | {
       readonly problems: null;
       readonly evidence: EvidenceDocument;
+      readonly verifiedExercises: ReadonlySet<string>;
       /** What to tell the operator about what was left out. */
       readonly notes: readonly string[];
       /**
@@ -218,7 +220,13 @@ export async function gatherEvidence(
   };
   const earlier = await earlierEvidence(root);
   if ("problem" in earlier) return { problems: [earlier.problem] };
-  const built = batchRecords(batches, register, stamp);
+  const exercises = await verifiedExerciseRecords(
+    root,
+    register,
+    checks,
+    request.now
+  );
+  const built = batchRecords([...batches, exercises.batch], register, stamp);
   if (built.problems !== null) return { problems: built.problems };
   const findings = await auditFindings(request, stamp);
   const parts = {
@@ -239,9 +247,12 @@ export async function gatherEvidence(
   return {
     problems: null,
     evidence,
+    verifiedExercises: new Set(
+      exercises.batch.exercises?.map(record => record.id)
+    ),
     notes: [earlier.note, findings.note, echoedCredentialNote(batches)].flatMap(
       note => (note === null ? [] : [note])
     ),
-    warnings: dropped === null ? [] : [dropped],
+    warnings: [...exercises.notes, ...(dropped === null ? [] : [dropped])],
   };
 }

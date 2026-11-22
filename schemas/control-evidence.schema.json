@@ -94,10 +94,48 @@
           "$ref": "#/$defs/observed_record"
         },
         {
+          "$ref": "#/$defs/artifact_exercise_record"
+        },
+        {
           "$ref": "#/$defs/finding_record"
         }
       ],
-      "description": "One of three kinds of record, told apart by `rung`."
+      "description": "One record from a gate proof, a platform setting, an audit finding, or an independently verified artifact exercise."
+    },
+    "artifact_exercise_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A current result for a typed exercise and its independently signed proof statement.",
+      "required": ["checks_digest", "command", "commit", "completed_at", "criterion", "detail", "entry_id", "exercise", "exit_status", "freshness_seconds", "id", "moment", "output_excerpt", "output_truncated", "reason", "result", "rung", "scope", "started_at"],
+      "properties": {
+        "checks_digest": { "$ref": "#/$defs/sha256" },
+        "command": { "const": null },
+        "commit": { "const": null },
+        "completed_at": { "$ref": "#/$defs/utc_time" },
+        "criterion": { "enum": ["AC5.5", "AC6.4", "AC7.2", "AC8.9"] },
+        "detail": { "type": "string", "minLength": 1 },
+        "entry_id": { "const": null },
+        "exercise": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target", "statement_sha256"],
+          "properties": {
+            "target": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,79}$" },
+            "statement_sha256": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "exit_status": { "const": null },
+        "freshness_seconds": { "$ref": "#/$defs/exercised_record/properties/freshness_seconds" },
+        "id": { "type": "string", "pattern": "^artifact-exercise/[a-zA-Z0-9][a-zA-Z0-9._-]{0,79}/AC(?:5\\.5|6\\.4|7\\.2|8\\.9)$" },
+        "moment": { "const": null },
+        "output_excerpt": { "const": "" },
+        "output_truncated": { "const": false },
+        "reason": { "const": "artifact-exercised" },
+        "result": { "const": "held" },
+        "rung": { "const": "exercised" },
+        "scope": { "type": "string", "minLength": 1 },
+        "started_at": { "$ref": "#/$defs/utc_time" }
+      }
     },
     "exercised_record": {
       "type": "object",

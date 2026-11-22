@@ -56,6 +56,7 @@
 import { isEvidenceFresh } from "./evidence.js";
 import { standingProblem } from "./evidence-standing.js";
 import {
+  ARTIFACT_EXERCISED,
   ARTIFACT_KIND,
   EVIDENCE_RUNGS,
   FINDING_REASONS,
@@ -329,7 +330,11 @@ function heldFinding(
     ? {
         ...base,
         verdict: "conforming",
-        reason: attested ? "person-attested" : "artifact-located",
+        reason: attested
+          ? "person-attested"
+          : record.exercise === undefined
+            ? "artifact-located"
+            : ARTIFACT_EXERCISED,
         detail: "",
         rung: record.rung,
         fact: null,

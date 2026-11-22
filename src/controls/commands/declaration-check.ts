@@ -28,8 +28,15 @@ import {
   declarationEvidenceProblems,
   evidencedEntries,
 } from "../declaration-evidence.js";
+import {
+  EXERCISE_DECLARATION_PATH,
+  readExerciseDeclaration,
+} from "../exercise-declaration.js";
 import { GATES_DECLARATION_PATH } from "../gates-declaration.js";
-import { WHOLE_REPOSITORY_SCOPE } from "../register-types.js";
+import {
+  WHOLE_REPOSITORY_SCOPE,
+  type ControlRegister,
+} from "../register-types.js";
 import {
   generateControlRegister,
   type ControlRegisterGeneration,
@@ -62,6 +69,17 @@ export interface DeclarationCheckDependencies {
  */
 function counted(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+/**
+ * Explain a declaration whose gates need no audit findings.
+ * @param register - The validated gate declaration's register
+ * @returns Why the gate declaration passed
+ */
+function supportWithoutAudit(register: ControlRegister): string {
+  return register.entries.some(entry => entry.scope !== WHOLE_REPOSITORY_SCOPE)
+    ? `${DECLARATION_CHECK_COMMAND}: PASS. Lisa's shipped checks support the declared folders`
+    : `${DECLARATION_CHECK_COMMAND}: PASS. No gate in ${GATES_DECLARATION_PATH} declares a part, so nothing in it needs the audit report's support`;
 }
 
 /**
@@ -98,6 +116,13 @@ export async function runDeclarationCheck(
       "Give the path of the repository whose declaration to check"
     );
   }
+  const exercises = await readExerciseDeclaration(root);
+  if (exercises.problems !== null) {
+    return fail(
+      exercises.problems,
+      `Fix the exercise plan in ${EXERCISE_DECLARATION_PATH}, then run this again`
+    );
+  }
   const generated = await (dependencies.generate ?? generateControlRegister)(
     root
   );
@@ -109,13 +134,7 @@ export async function runDeclarationCheck(
   }
   const parts = evidencedEntries(generated.register).length;
   if (parts === 0) {
-    stdout(
-      generated.register.entries.some(
-        entry => entry.scope !== WHOLE_REPOSITORY_SCOPE
-      )
-        ? `${DECLARATION_CHECK_COMMAND}: PASS. Lisa's shipped checks support the declared folders`
-        : `${DECLARATION_CHECK_COMMAND}: PASS. No gate in ${GATES_DECLARATION_PATH} declares a part, so nothing in it needs the audit report's support`
-    );
+    stdout(supportWithoutAudit(generated.register));
     return 0;
   }
   const loaded = await (dependencies.loadReport ?? loadAuditReport)(
@@ -139,8 +158,9 @@ export async function runDeclarationCheck(
       `${counted(problems.length, "problem")} between ${GATES_DECLARATION_PATH} and ${AUDIT_REPORT_JSON_PATH}. A part is declared only where the audit found its check or a person answered a question about it`
     );
   }
+  const supported = parts === 1 ? "the 1 part" : `each of the ${parts} parts`;
   stdout(
-    `${DECLARATION_CHECK_COMMAND}: PASS. ${AUDIT_REPORT_JSON_PATH} supports ${parts === 1 ? "the 1 part" : `each of the ${parts} parts`} declared in ${GATES_DECLARATION_PATH}`
+    `${DECLARATION_CHECK_COMMAND}: PASS. ${AUDIT_REPORT_JSON_PATH} supports ${supported} declared in ${GATES_DECLARATION_PATH}`
   );
   return 0;
 }
