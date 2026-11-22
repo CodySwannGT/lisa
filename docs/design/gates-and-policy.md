@@ -1452,6 +1452,14 @@ key in the schema and in `src/controls/register-types.ts` together;
 `tests/unit/controls/register-schema.test.ts` fails when one has a key or a
 value the other does not.
 
+When the criterion catalogue has no registered gate and an applicable requirement
+still lacks evidence, the audit report and the attest command's table output
+explain the gap and name the required evidence rung. A verified failure or a
+cited reason that the requirement does not apply keeps its own disposition.
+`lisa controls attest --check` still recomputes the verdict from the stored
+register and evidence. The [Level 1 evidence decision](../../wiki/decisions/2026-11-21-level-1-proof-reachability.md)
+describes the authoritative surfaces that can supply each observation or exercise.
+
 ## A pull-request executor Lisa did not write
 
 Lisa ships the file that runs the gates on a pull request for one hosting

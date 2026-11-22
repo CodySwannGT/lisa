@@ -11709,6 +11709,7 @@
     "src/controls/tracker-config.ts": true,
     "src/controls/tracker-question.ts": true,
     "src/controls/unenforceable-agents.ts": true,
+    "src/controls/unmapped-gate-evidence.ts": true,
     "src/controls/verdict-answers.ts": true,
     "src/controls/verdict-digest.ts": true,
     "src/controls/verdict-drift.ts": true,

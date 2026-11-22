@@ -33,6 +33,7 @@ import {
 } from "./audit-report-types.js";
 import type { InScopeCriterion } from "./catalogue.js";
 import { requirementQuestionId } from "./question-ids.js";
+import { unmappedGateEvidence } from "./unmapped-gate-evidence.js";
 
 /** One part of the rendered document. */
 export type AuditReportMarkdownSection = (
@@ -137,6 +138,10 @@ function findingLines(
   criterion: InScopeCriterion,
   report: AuditReport
 ): readonly string[] {
+  const evidenceGap =
+    finding.state === "proved" || finding.state === "not-applicable"
+      ? null
+      : unmappedGateEvidence(criterion);
   return [
     `### ${criterion.question}`,
     "",
@@ -145,6 +150,9 @@ function findingLines(
     `- **What was found:** ${oneLine(finding.what)}`,
     `- **Why it matters:** ${oneLine(finding.why)}`,
     `- **What to do next:** ${oneLine(finding.next)}`,
+    ...(evidenceGap === null
+      ? []
+      : [`- **Evidence still needed:** ${oneLine(evidenceGap)}`]),
     ...finding.mechanisms.map(mechanism => whereLine(mechanism)),
     ...(finding.evidence_id === undefined
       ? []
