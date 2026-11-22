@@ -1443,7 +1443,7 @@
     "plugins/src/base/scripts/ready-queue-order.mjs":
       "02d2216053cf89da887cbec541cd4b175fd39dfaa340e451293b3b7106a7d161",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
-      "d8c7edc4b2f848c52d253621915c79430d432cf15cc61efc24bcd7f039ae594f",
+      "eb7846bfd3406edd87a440939cef48eb557b25fcc01ef004f7bbd5ff303e320a",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
       "bed0f0b8a43146dbe222c657d6b58494c3962d1bb627bf0591d4b37102de972f",
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs":
@@ -1771,7 +1771,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs":
       "d2841042eda0f0c50f995ccc34e09e25aced0abbf3a96bce52a9f604e4009520",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "3fc86544b568317656972d86e930496f20b3b52d51cfb5d30fcab7532a16c096",
+      "97ef5c3b3482680514cebc764d085875038fa1eb346f46eb9a7e7f828e95e746",
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs":

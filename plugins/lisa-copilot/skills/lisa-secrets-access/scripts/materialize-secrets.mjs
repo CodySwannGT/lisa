@@ -795,7 +795,8 @@ function adoptRemoteAgentSections(text, kind, { owner, names }) {
  * @returns {string} The text without them.
  */
 function dropSections(text, selects) {
-  const lines = text.split("\n");
+  // Keep each retained line terminator even when the next section is removed.
+  const lines = text.match(/[^\n]*\n|[^\n]+$/gu) ?? [];
   const kept = [];
   let index = 0;
   while (index < lines.length) {
@@ -811,7 +812,7 @@ function dropSections(text, selects) {
     if (!selects(header[1], body)) kept.push(...lines.slice(index, end));
     index = end;
   }
-  return kept.join("\n");
+  return kept.join("");
 }
 
 /**

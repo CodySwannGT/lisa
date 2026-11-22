@@ -55,7 +55,7 @@ function readSections(file) {
     const header = /^\[([^\]]*)\]\s*$/.exec(line);
     if (header) {
       sections.push({ name: header[1].trim(), settings: [] });
-    } else if (sections.length > 0 && line.includes("=")) {
+    } else if (sections.length > 0 && !/^\s*[#;]/.test(line) && line.includes("=")) {
       const index = line.indexOf("=");
       sections[sections.length - 1].settings.push([
         line.slice(0, index).trim(),
@@ -66,18 +66,31 @@ function readSections(file) {
   return sections;
 }
 
-function renderSection(section) {
-  const body = section.settings
-    .map(function (pair) {
-      return pair[0] + " = " + pair[1] + "\n";
-    })
-    .join("");
-  return "[" + section.name + "]\n" + body;
-}
-
-function writeSections(file, sections) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, sections.map(renderSection).join("\n"));
+function writeSetting(file, name, setting, value) {
+  // Like configure set, leave comments and unrelated sections in place.
+  const contents = fs.readFileSync(file, "utf8");
+  const lines = contents.match(/[^\n]*\n|[^\n]+$/g) || [];
+  const start = lines.findIndex(function (line) {
+    return line.trim() === "[" + name + "]";
+  });
+  const row = setting + " = " + value + "\n";
+  if (start === -1) {
+    const separator = contents && !contents.endsWith("\n") ? "\n" : "";
+    fs.appendFileSync(file, separator + "[" + name + "]\n" + row);
+    return;
+  }
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^\s*\[/.test(lines[index])) break;
+    const match = /^\s*([^#;=\s]+)\s*=/.exec(lines[index]);
+    if (match && match[1] === setting) {
+      lines[index] = row;
+      fs.writeFileSync(file, lines.join(""));
+      return;
+    }
+  }
+  if (!lines[start].endsWith("\n")) lines[start] += "\n";
+  lines.splice(start + 1, 0, row);
+  fs.writeFileSync(file, lines.join(""));
 }
 
 function optionValue(name, fallback) {
@@ -115,21 +128,10 @@ if (args[0] === "configure" && args[1] === "set") {
   const profile = optionValue("--profile", "default");
   const file = CREDENTIAL_SETTINGS.has(setting) ? credentialsFile : configFile;
   const name = sectionNameFor(profile, file);
-  const sections = readSections(file);
-  let section = findSection(sections, name);
-  if (!section) {
-    section = { name: name, settings: [] };
-    sections.push(section);
-  }
-  const existing = section.settings.find(function (pair) {
-    return pair[0] === setting;
-  });
-  if (existing) existing[1] = value;
-  else section.settings.push([setting, value]);
   fs.mkdirSync(awsDirectory, { recursive: true });
   if (!fs.existsSync(credentialsFile)) fs.writeFileSync(credentialsFile, "");
   if (!fs.existsSync(configFile)) fs.writeFileSync(configFile, "");
-  writeSections(file, sections);
+  writeSetting(file, name, setting, value);
   process.exit(0);
 }
 

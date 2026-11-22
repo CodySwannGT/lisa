@@ -147,6 +147,38 @@ describe("the remote-agent writer", () => {
     expect(result.stderr).toContain("must name distinct stages");
   });
 
+  it("keeps a doubled stage until it writes that stage's replacement", () => {
+    const dormant =
+      "[profile acme-agent-agent-staging]\nsource_profile = acme-agent-bootstrap\n";
+    const retired =
+      "[profile acme-agent-agent-dev]\nsource_profile = acme-agent-bootstrap\n";
+    const { home, result } = remote(["dev"], dormant + retired);
+    const config = readFileSync(path.join(home, CONFIG), "utf8");
+
+    expect(result.status).toBe(0);
+    expect(config).toContain(dormant);
+    expect(config).toContain(`[${ACME_DEV_SECTION}]`);
+    expect(config).not.toContain(retired);
+  });
+
+  it("preserves the complete adjacent managed block while removing an unmanaged section", () => {
+    const retired =
+      "[profile acme-agent-agent-dev]\nsource_profile = acme-agent-bootstrap\n";
+    const foreign = [
+      "# >>> managed by lisa-secrets-access (profiles v2 owner=globex) >>>",
+      "[profile acme-agent-agent-dev]",
+      "source_profile = globex-agent-bootstrap",
+      "# <<< managed by lisa-secrets-access (profiles v2 owner=globex) <<<",
+      "",
+    ].join("\n");
+    const { home, result } = remote(["dev"], retired + foreign);
+    const config = readFileSync(path.join(home, CONFIG), "utf8");
+
+    expect(result.status).toBe(0);
+    expect(config).toContain(foreign);
+    expect(config).not.toContain(retired);
+  });
+
   it("removes its own doubled names and keeps other tenants' sections", () => {
     const seed = [
       "[profile acme-agent-agent-dev]",
