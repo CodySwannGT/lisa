@@ -10,12 +10,16 @@ import {
   labelNames,
   normalizeGithubIssue,
 } from "../../../scripts/ready-queue-order.mjs";
+import {
+  idComparableValues,
+  parseIdEntries,
+} from "../../../scripts/operator-id-kinds.mjs";
 import { resolveRole } from "../../../scripts/resolve-lifecycle-role.mjs";
 import {
   landedDoneRoles,
   terminalDoneRoles,
 } from "../../../scripts/stale-blocker-edges.mjs";
-import { CliError, mustRun } from "./cli-runtime.mjs";
+import { CliError, mustRun, run } from "./cli-runtime.mjs";
 import { parseJson } from "./json-input.mjs";
 import {
   blockerReader,
@@ -25,6 +29,45 @@ import {
 import { scrubWorkerEnv } from "./workers.mjs";
 
 const OWNER_REPO = /^[\w.-]+\/[\w.-]+$/;
+
+/**
+ * Resolve configured GitHub logins to provider account IDs for hold releases.
+ * A failed or mismatched lookup authorizes nobody for that entry.
+ * @param {object} ctx - CLI context
+ * @param {unknown} entries - Configured release identities
+ * @returns {string[]} Account IDs to compare with native comment authorship
+ */
+export function githubReleaserIds(ctx, entries) {
+  const logins = new Set(
+    parseIdEntries(entries)
+      .filter(
+        entry => entry.kind === "login" && /^[A-Za-z0-9_-]+$/u.test(entry.value)
+      )
+      .map(entry => entry.value.toLowerCase())
+  );
+  const ids = idComparableValues(entries);
+  const env = scrubWorkerEnv(ctx.env);
+  for (const login of logins) {
+    const endpoint = `users/${login}`;
+    const result = run("gh", ["api", endpoint], { env });
+    if (result.status !== 0) continue;
+    try {
+      const account = parseJson(result.stdout, endpoint);
+      if (
+        account?.type === "User" &&
+        typeof account.login === "string" &&
+        account.login.toLowerCase() === login &&
+        Number.isSafeInteger(account.id) &&
+        account.id > 0
+      ) {
+        ids.push(String(account.id));
+      }
+    } catch {
+      // An unreadable account does not authorize a release.
+    }
+  }
+  return ids;
+}
 
 /**
  * The GitHub repo to read: `--github-repo`, else github.org/github.repo.

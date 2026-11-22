@@ -205,7 +205,12 @@ If the item is **not an Epic** and **not a top-level Bug/Spike**, it MUST have a
 - **Story / Task / Improvement** → must have a `projectId` (the Epic Project) set.
 - **Sub-task** → must have a `parentId` (the Story Issue) set.
 
-If the parent is explicitly provided, use it. Otherwise:
+For a Story, Task, Bug, Spike or Improvement, a caller's `parent_ref` names the
+explicit Linear Project. Resolve it through `get-project` and pass the returned
+ID as `projectId` to `save-issue`. If that Project cannot be resolved, stop
+before saving. For a Sub-task, `parent_ref` names the parent Issue instead.
+
+When there is no explicit parent, discover it:
 
 1. Search active Projects in the team:
    ```text

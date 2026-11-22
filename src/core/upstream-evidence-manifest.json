@@ -41,7 +41,7 @@
     "all/copy-overwrite/scripts/lib/build-marker.mjs":
       "505519d9632ab86572cfdeca917d93599256cf8e798987ad593a82296a7d8175",
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
-      "bcf755d8c1905cddd84622c9a520f7bcc16b19379b9f933a8b5657bb6df9f391",
+      "f9089dfab2a892e2512abc4ad4ee336fedc46253c8fe5b8c257c76dad1ac72a3",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
       "a9c3fa0ee9c3de9c610e009c6775088237c1e8ebd69ff4d9fd829de2db1c206a",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
@@ -53,7 +53,7 @@
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "0b323e9c53b6909eca61fa84bf2c85683a686e380760e2fe2fb52b09c6611026",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
-      "98b1901e0912d72a639028f22837a8abecaeeef6fba0654990bca2285239ea08",
+      "25d44e9eeed728d046a45e5662691c7112cb271b5decc48ea9fe0fe038812538",
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
@@ -365,13 +365,13 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "36c505b6932f41f3f9192e67273fe483e3d260c6ab91cac1420a53d04a198903",
+      "d0fc329cfce25b5f72a6a005d26d5455ca520662c47031c8bcf1af10fadb320d",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "c2fc91c3a1c40e54c084063aef9e787064f43551da66c0c14ff7b105590777c8",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "52de545390c4f37b0505db43cf74cc1efd22647eca98292d84ab660b79878529",
+      "b8b44650434695019718576752a1735ee0adcaab2fe8f4eb30cb9c4150fb136c",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -411,7 +411,7 @@
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "32d9ba926ee0c7f8a5f4ab80c9377b6693d01438990667e85be2e33997af42e6",
+      "d124e35b28292948ee4cf94c99b81bb346eb5fa40f8d826877acaedcbd1ec69b",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -427,7 +427,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "1d875be37e502fe4ec0971a031680e2583c56b303668eefaf4c23bfae582c96f",
+      "340609c32c02a908d01bc385db7f8f19fffad6daddb117142ffa13f31b5f6e6b",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -435,7 +435,7 @@
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
       "6b7afe4ffeba8aaa53871d8855172f7eacde05953b1321145218ec638ff5c1c4",
     "all/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "f837708fc5baf19b5e8e9adf88bcce810f8257d00075265775982b38063dc5d3",
+      "76cdcc3a28a04686e6ddc3cd1f54e3bb9c4fb28a8033692dc86e1ffb7adb0ced",
     "all/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "all/create-only/.agents/rules/README.md":
@@ -629,7 +629,7 @@
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "5b45f4d37eb2faa40870f2ab75884d914d7a08bf1cbd7fb45929f91ede1e18e2",
+      "7a4d20dd130524161f0860fb2199782891bc91a906988b3aaec041ec4db178e2",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "99764b136eaa7bba3b7abf78f60bc6805f8c008a9cac59c78c5eadba35cecdc7",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
@@ -699,7 +699,7 @@
     "expo/create-only/tsconfig.json":
       "fdb99e32d1588e75735755d7b5caab406ad8387c21a3d820cd3b40cb9218a191",
     "expo/create-only/tsconfig.local.json":
-      "dad4b4a00c890ce8c30db87ad3f8e92e2273e31c2c2a6436d0ab327b47f72758",
+      "dfaff3932fe73440e589998992eccd336a984b5984b31be91a05a20449dcdbc0",
     "expo/deletions.json":
       "d968e902b82b35202d22e7513b4647a4298ac76185872234bcbe13a1a9c2715f",
     "expo/github-rulesets/bdd-coverage.json":
@@ -1115,7 +1115,7 @@
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "eeab0883ea9d032d7ca10bf4dd598ed864e66380260bd452db00e2eb05e51e59",
+      "7355609a407cbcbbfc59b1aed95057459f80a195f89541aae409906d6b955ef0",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -1197,7 +1197,7 @@
     "plugins/src/base/hooks/task-readiness-guard.sh":
       "46254d444580947df927293a7b65d49f865022089bb0ff33403dca5189cbd056",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
-      "1e250e09de777c2507861652b6eb810bf5fcc25e498c211b949c185fd2d744bd",
+      "335426213e2a0daa37389da12932fbf87b4cab6e2ee2c2318ef624548e370dac",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
       "e0aae600cc3187e832b5a959f60869c87a95b32ab8ee2ccbf9f959e41deacd3b",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
@@ -1269,7 +1269,7 @@
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "5e75ef2b3865361e67fa5f7f25cb53ab617b92d69cdbc810e7bd355aab3720c8",
+      "3db169298b6e233b274e8662a9ab040e1605080bbce10b94349686184896053e",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1441,7 +1441,7 @@
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/ready-queue-order.mjs":
-      "dd41b11715511c6750944a917cfc159061a139ecbab324ee1731cd103ae3f16a",
+      "02d2216053cf89da887cbec541cd4b175fd39dfaa340e451293b3b7106a7d161",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "d8c7edc4b2f848c52d253621915c79430d432cf15cc61efc24bcd7f039ae594f",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
@@ -1529,7 +1529,7 @@
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
       "a34ed0e80a87b2d24211876711cb571eb0922d96b6ab08f2bd826416b977feed",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
-      "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
+      "3bb11b4e18bb724dea9b98620fdb8a7fa2debb7aeb58abf64d5fc0cf54428b02",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
       "7b926efa4ec1a7c68af9fd1443bf9dd9dd4688efc121c18b688b46a51afada2c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -1669,7 +1669,7 @@
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "af4581d839e7e890bd3738ba4666f953b859ecebb69285e4712c22474cecbc3e",
+      "bb4143f5c805da2ce40f4023a4303dc1878a08b5cbb5c450ff5feb143048f358",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "f6de212c8ac7a905e754b82e08b0696d8d03f81b8e6b281e02fb28e3a489552d",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
@@ -1841,7 +1841,7 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "4933d038cfe8299d28828652f9d800fb64ba23ad5f5dc05ef0de09938ad2d567",
+      "dde744d8d44308d0e803a975ac6cd9613ea0734a9c5d6be02ec22bddc4106fc0",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "7e59e966dca77962bb67a836a6e86f8a2ec20875de2c8ab06a649c18ffb84533",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1863,7 +1863,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs":
       "cab60f2dfee7f33a8a5f16ec94cb1b2ab17cf384886ee5eb738fb015535d6567",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
-      "8faa0ee5a26cbfa7708e917a02cb814efe7e639007c8526ad3934dbc4f3f21fc",
+      "80593aff1ed42f3e65ed0049ba32f96dc001542fd2712cf4847d278bc1c433f5",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
       "aab705023d16ae42d6994450da0c914230ccab92823babb81697941c3760e8a8",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
@@ -1919,7 +1919,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
       "332bebf7a73c1d95bafe0e82239c18838dd53df7ca043c5cf4c3bb1043497324",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
-      "7dac63717d0d207904f8077f539512dc95e4cf6da5607042716282f1f6f35361",
+      "95fec196f74ce761157f5fb4b8f9175e15db9b8d9b93b7a69371343e3b41fc5e",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
       "adf56eb60769ffb8ace6a5aefe85e37107db1d73e4d73ab4cf29ab045ca8c76c",
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
@@ -1929,7 +1929,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-github.mjs":
-      "73b0da0fc25973f3ac75a0f2a1bb2e3f25417eace4d13bc4399e52e920b60a63",
+      "238beff6631928d26c63ade30324682a8b984f59b5bf3087c8d5317058421186",
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-state.mjs":
       "058e1f2ffc9f0c36089c69b3bc75c5f215107b0c2669f73617cd33a374026ac2",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
@@ -2045,7 +2045,7 @@
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
       "bda6007451009e28a3ddc3ede691a7b29a475f4cf725a283438cbec10d50a805",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
-      "c4656c11936ca8f2f05091ba5d4922cadca293cf822b644e5ee46cbf22103706",
+      "4b9dfd58c4ec5e7738910534188c245ff6f71ccffa1b0bfc9208c6a9492e38b4",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "4b95e256e0c9e7ce87fb5b827fcfc94496757e600247c639ecf50d06e4e910b3",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":
@@ -2671,7 +2671,7 @@
     "rails/copy-overwrite/lefthook.yml":
       "239999bd4abd06a9aec7e3309275b37a722ca2a53879f18643360cf5e909b74e",
     "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "df39aa29b19817f67726107fec45078ce639f14a682cf6d5587ba37617f31ac9",
+      "4679c1e7cc92f960bad81854b9ce68a14aa0e404f2264cca0c2d6186008a17eb",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "62add29cbcca6ac6b2346120393d41e219267f74d7ea6c66dc1482c5dbdb118a",
     "rails/copy-overwrite/scripts/lisa-rails-ast-grep.mjs":
@@ -2693,7 +2693,7 @@
     "rails/copy-overwrite/scripts/lisa_simplecov_collate.rb":
       "e9a11edd45c0442c2ec8f59b0fa5d2492d4cfac99398aa3697e70947063a5cc7",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "f837708fc5baf19b5e8e9adf88bcce810f8257d00075265775982b38063dc5d3",
+      "76cdcc3a28a04686e6ddc3cd1f54e3bb9c4fb28a8033692dc86e1ffb7adb0ced",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "rails/copy-overwrite/sgconfig.yml":
@@ -3237,7 +3237,7 @@
     "typescript/copy-overwrite/knip.json":
       "7157e57bfe01b8e750bb789a5ec15713dacdfa29c1f913b5d2d09416f2359b46",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "df39aa29b19817f67726107fec45078ce639f14a682cf6d5587ba37617f31ac9",
+      "4679c1e7cc92f960bad81854b9ce68a14aa0e404f2264cca0c2d6186008a17eb",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "84a7dcd3501eb75c2bd90c2ebe31e6ad4ae4f2bd62b6862ecda91ab8609ad245",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -3269,7 +3269,7 @@
     "typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking.mjs":
       "d061c7513acdf1e187cf916dca53432a06a78e43bd0068a0b315ad351a4b72db",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "f837708fc5baf19b5e8e9adf88bcce810f8257d00075265775982b38063dc5d3",
+      "76cdcc3a28a04686e6ddc3cd1f54e3bb9c4fb28a8033692dc86e1ffb7adb0ced",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "typescript/copy-overwrite/sgconfig.yml":
@@ -11447,6 +11447,7 @@
     "src/claude/claude-md-installer.ts": true,
     "src/cli-load-diagnostic.ts": true,
     "src/cli/admit-cmd.ts": true,
+    "src/cli/apply-cmd.ts": true,
     "src/cli/apply.ts": true,
     "src/cli/check-cmd.ts": true,
     "src/cli/check-learnings-budget-cmd.ts": true,
@@ -13645,6 +13646,7 @@
     "tests/unit/controls/lisa-gates-parts-resolution.test.ts": true,
     "tests/unit/controls/lisa-gates-parts.test.ts": true,
     "tests/unit/controls/lisa-gates-unenforceable-on.test.ts": true,
+    "tests/unit/controls/lisa-run-gates-declaration-removal.test.ts": true,
     "tests/unit/controls/lisa-run-gates-no-builtins.test.ts": true,
     "tests/unit/controls/lisa-run-gates-no-manifest.test.ts": true,
     "tests/unit/controls/lisa-run-gates-parts-assertion.test.ts": true,
@@ -14034,6 +14036,7 @@
     "tests/unit/hooks/auto-update.test.ts": true,
     "tests/unit/hooks/block-blind-automerge-uncovered-base.test.ts": true,
     "tests/unit/hooks/block-blind-automerge.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-body-file.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-bypasses.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-comment-lex.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-container.test.ts": true,
@@ -14731,6 +14734,7 @@
     "tests/unit/scripts/third-party-review-substitute-authors.test.ts": true,
     "tests/unit/scripts/third-party-review-vendor-config.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
+    "tests/unit/scripts/threshold-ratchet-edited-exceptions.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-exception-fence.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-exception-only.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-exemption-expiry.test.ts": true,
@@ -14951,6 +14955,7 @@
     "tests/unit/session-manager/cli-overruled.test.ts": true,
     "tests/unit/session-manager/cli-queue-backlog.test.ts": true,
     "tests/unit/session-manager/cli-queue-operators.test.ts": true,
+    "tests/unit/session-manager/cli-queue-release-trust.test.ts": true,
     "tests/unit/session-manager/cli-release-trust.test.ts": true,
     "tests/unit/session-manager/cli-setup-gap-edges.test.ts": true,
     "tests/unit/session-manager/cli-setup-gap-persist.test.ts": true,
@@ -15040,6 +15045,7 @@
     "tests/unit/standards/test-evidence.test.ts": true,
     "tests/unit/strategies/access-doc-adapters.test.ts": true,
     "tests/unit/strategies/agent-skill-layer-contract.test.ts": true,
+    "tests/unit/strategies/artifact-tsconfig-selection.test.ts": true,
     "tests/unit/strategies/automation-run-history-helpers.ts": true,
     "tests/unit/strategies/automation-run-record-cli.test.ts": true,
     "tests/unit/strategies/automation-run-record-preservation.test.ts": true,
@@ -15906,6 +15912,7 @@
     "02e1cd62d0a45645b5cab701f1ea83c2350e77f7": true,
     "02e679266857581154f8508aedf7192ebdd4677b": true,
     "02e8cef9cac25e0d9a85aa64197c86236f442f53": true,
+    "02eecbff1ba79d7762d6c081e3e7024c365d30a8": true,
     "02f1d9352fc5d8f9e27b4e8c90926902cec264ef": true,
     "02f55f481cd8dbc46fbfd3e4fa7e155d412cfc46": true,
     "02fa8c29ff0f2e41dafed0b30dc5579db7a957f7": true,
@@ -17372,6 +17379,7 @@
     "187564d238ab6f0e7a9d8e28d420d2b870854f08": true,
     "18784e9d39ade002694ad9e6ac39aab198bd5c2b": true,
     "18887b2645596c66b083458835ec2c652e1437ee": true,
+    "1889689b337dceb5279a631069959c218af28503": true,
     "1896734beb8ef3b41034950748b467491977e5bb": true,
     "1896d872bee2c38e4df221b352c973e36055713b": true,
     "189927db10ed8e753592ba65a48e693539d176f6": true,
@@ -18026,6 +18034,7 @@
     "22492cb6059674e8be4b3370f25b523349237b1a": true,
     "224a9a3d4772ad3d189ef516e4d082ad3722e488": true,
     "224b86d570da5dfd1b7ff0c0519529268adde18e": true,
+    "224f6660d7f38f4d02f6f02a9531ffda21fcb9cb": true,
     "2252ceba743e6a3e75a948bd675aed4f988ffb85": true,
     "22581d76ad34b53c419d5b252cf605bb5f8c91b1": true,
     "225fd34a62e6edd8db7ae5e3056c16dc2de0d925": true,
@@ -18063,6 +18072,7 @@
     "22cee0c42297b9c31e34b7c1b25baa930d8c91f3": true,
     "22d0f9d07fc4691522cef57e70a3ed89056db014": true,
     "22d1d3ae1025f0ddd26e9ce1f0fd8562a1eaf1e7": true,
+    "22d6db1e3501c94301b7ee1857b9e0de3df516e5": true,
     "22d7a0a6bb0eff7f2d1812f93e9e0cc2cfd8dc8d": true,
     "22d86d8544b5b91a5eb3522c39b127e2da66823f": true,
     "22d8a3d2b369d95f193dc89c149fed857aaf7ceb": true,
@@ -18429,6 +18439,7 @@
     "2883be83e744f63f25e59d4efb04303d810dcde2": true,
     "28879dad1e365e6a5e1b8618f3aea08d5b7846ea": true,
     "288a09b0e059ace39fd8b1de7787efeee1b92253": true,
+    "288bdbe0d1cd1d1545dbefe5f67f36cff1cb6d1b": true,
     "288e3261b85f8e1b414fa4fc656ea293aecf7fb1": true,
     "289257b93ae51c9a9888ac371cb4ede332a0b41d": true,
     "28a96c6aa69b3e6175222384ffd2482c59d8da72": true,
@@ -18794,6 +18805,7 @@
     "2e8de94148bd035ccedb425f976e8bef1d8d38a7": true,
     "2e8f76e4e358becef4dcf4f00f4b3e9bd7b69cd7": true,
     "2ea006ca03fff1e1cf7028b8651b9623050982cc": true,
+    "2ea073d71fc76fcda67e6b42a0382e7249a9df8c": true,
     "2ea6637b26ba972209f047c1af953e61cda5a351": true,
     "2ea6fa1f7c5b8465b78edfd7706672a05579e9f8": true,
     "2eaae68e841dd36417b30055e38ffd3b691a0151": true,
@@ -18922,6 +18934,7 @@
     "30cb957dbc0ab682746665791f1de6b206ebf2fc": true,
     "30d33ea70c74dd72e0255c6149b3997cd020a6ab": true,
     "30d416cdfb6703d1806922fc6fecc70628fd34a4": true,
+    "30d74f7cf2e1659b94783fdac6ee7ce0b30dc1b7": true,
     "30dab8585100b50b8469853dc065a48479600295": true,
     "30e3375bae36316729656ed89d38c26394249516": true,
     "30ed6f80f234a96b8178e8701cb76bd4031464e2": true,
@@ -19041,6 +19054,7 @@
     "32adf9fb8714733d2594d2fbf6cd2a59f9f5cb96": true,
     "32b0ced565b99f029cf47cb2001d1dba0fa45b55": true,
     "32b545b8e83153bc0746de4cdce8c292cb2c5d59": true,
+    "32b601d4e2fd445a44eec3f64d84db91aa38bc42": true,
     "32b7745722c73645b3e73bce4cb48cc0f5c5ac2e": true,
     "32bfb2e8d7e1a1ec7bc333a1298257f269c188a5": true,
     "32c5eda43357651febbfd566e33d17eb856d84f4": true,
@@ -19788,6 +19802,7 @@
     "3d9b9ebae3400714783915b921c8890c72522fdd": true,
     "3d9e60a3077a50c1be90edbd6b195563e2266d26": true,
     "3da4bd89aa38acd800692a0cebac472fe0dc5bb8": true,
+    "3da72d01195accc47c8443a142bcdb9de571cf09": true,
     "3da82e9d193a009a91e5caf0ee2b74abab2c097e": true,
     "3da946a6704bf5f9fe1e6b8694a8b691763b95f0": true,
     "3db49ee957b901e4edef295f2d65afad2e07df98": true,
@@ -20100,6 +20115,7 @@
     "4290f5298d0be3c9cf97caa12b8b42739352faff": true,
     "429171d4ad2ccc9904507281b917397aa53f3efc": true,
     "429196681c5bed6ced259f553930643fd66e51e8": true,
+    "4294587e47a97822fc908775380fbf5a1178a9f8": true,
     "429be1cdef699aef598389ed9174d8d446d73b61": true,
     "429fb86c07752a451d35675abbc16042c946ee85": true,
     "42a765221a26a17cddb928979b57d0a85c821402": true,
@@ -20412,6 +20428,7 @@
     "4721c44e28f175875def639b9c5658b31447e36b": true,
     "47238299ca913b790734e2a5113172a9b06fc517": true,
     "47256cbf76828aaa3ff8b98dbbde88219590cf21": true,
+    "472c1489b69213b8a5ed864e132455bbcfbe8ae3": true,
     "4734f0c675ea3440bcba8be469eedee7b997e462": true,
     "47392774b7b83bba2e9b08b5292d7c61e73eff5c": true,
     "473b6bc9511c89c768af474ed0f420db8c59aafd": true,
@@ -21168,6 +21185,7 @@
     "52c3f1440054a1c2970c82b2b45e5470e199a84e": true,
     "52ce398d587173526526c23ea82bacd2c7c5c72f": true,
     "52d8edf5c272f8da56f025c16714b1214c69574d": true,
+    "52de0beb395e211afd692b9cda48c29c3db2513d": true,
     "52e338b8655c15184ee01dcbfad1bc74ae321ac7": true,
     "52eeadf4236f264aa981106f3cd3cd7b0e33bde9": true,
     "52ef40b21aac47da8e0f1ed2d29f7ee2d41240b0": true,
@@ -21291,6 +21309,7 @@
     "549e263a17fc2c9657912b35ad9d9f9c140357d5": true,
     "54a1636b108ac784cfbe78896f3f8d3f572b9c3f": true,
     "54b5ac2e548a119b95906710ecfb422d305cc4eb": true,
+    "54c3c3a698051922725d7ce85a4bfc34da7f4f13": true,
     "54c455a86a80fa815651b23cc2c5aeee4bfe77ff": true,
     "54cd539fe1e77e224fe6f293d319a6e51744983a": true,
     "54cf4c69ad2f864d1f0d8f71095f6d8a7d2c4f05": true,
@@ -22244,6 +22263,7 @@
     "631eef8fb12a84c028b8898ee00555adfb24bf16": true,
     "63253c59afa30e6080111ef1c47b4e5b391c20dc": true,
     "632baf6b17d425843428716f97bcf2574859899c": true,
+    "63309fbb144b0e5b0cbb8b53e2e46c9976f89a94": true,
     "63344988757273d87ec41b52c477caf141acd393": true,
     "63375bf1185306c50c4af4f5d22a4b356353ee33": true,
     "6337c3a865f28d4a5bf88055a3ed71a0ef323e10": true,
@@ -23129,6 +23149,7 @@
     "6ffd7c6c554b4f443aa44830319a77db1456b8fb": true,
     "70008bdf6aa096f1cfee0cf043afc4268aaf6c8b": true,
     "70074c5cacfe3a5be0cb870005f181c6ace3d580": true,
+    "700adaaf98dc8f99f60832c6eac504f7876bb80c": true,
     "700e4f6c406849f1e02ff055dfb2aae9f2905368": true,
     "701a86f52fc1673559bef9ac512ac30adb46ca58": true,
     "701cef6d3653f3b0b36ce4c50fe1ad1f0f6e0b19": true,
@@ -23540,6 +23561,7 @@
     "75b51c16ac52648ea510a2ca4a64af93050cb948": true,
     "75b69a2696070eec82d4048f8692d8b103e64edc": true,
     "75bb54bbec657b1070b6bab23c8f8467f2a186f8": true,
+    "75bd09f7cdcaf2f530edd964049e6878d1210562": true,
     "75cc4f9622787e388a11f4c2c9f7788a6439f1b4": true,
     "75cd9ba1e1f83b40df4ea26cc7c7ed460e486e51": true,
     "75d739727b3e3d7fcb13d55c2b7c70fb498416e0": true,
@@ -24381,6 +24403,7 @@
     "82b73b2798ef9facc0a13773e6ba791d9845bbd4": true,
     "82bcb1fb70c64b24e3f3429d72da7d07ba872a4e": true,
     "82c2a23b066bead9e78ad21d222f761ed10db44c": true,
+    "82c4d56207ef154c49f1ffe4ffa0a719ed4272ce": true,
     "82c8a97c50360f1e803334c707f8520db859d24b": true,
     "82ca17746535e136593a5272dd4eaf7b95c461eb": true,
     "82cc2e9fcce73841887c07c50f934878be85e1ec": true,
@@ -25073,6 +25096,7 @@
     "8d75d55b6afb1c348f2804e303f938f877763982": true,
     "8d7651e8cbd8ffe6d3d801e6e48b05397780f8b8": true,
     "8d787ebcb2e0d9b23b549ede356c63ea3b232ef0": true,
+    "8d7a6fe690703c61ae2129dc6fff92219f321e7a": true,
     "8d886e8e674183d60c6d7b7ee7483dcd0baee69a": true,
     "8d91752076b191f4537a5231d89cea2a5696dad3": true,
     "8d92a29d799d15d4e04fb27c244695782d45f638": true,
@@ -25307,6 +25331,7 @@
     "9137cd44f7e3eceab6569471f27b9d7914fa0965": true,
     "913a4ce7ee77f0c87a1029bb45d7e88c2d2ac267": true,
     "913d3292eaa7393f2d4f809f65e3dbdb3405b725": true,
+    "913e7fb0ca049b7ae79c49cc3bc210c948464834": true,
     "913f54654fb1c6612b156382fcfa8bb2e23dd3ec": true,
     "9141346939946ae7609be84a4bdf1604ebc22219": true,
     "91418ca89d1543c319e9d62f2e53210544242e3f": true,
@@ -25470,6 +25495,7 @@
     "93e2b5cd1aebb4a518054089a1070465c998feca": true,
     "93ea1c0da18349a945cc19af881b14cea05da1b8": true,
     "93f5be0fe81d7d513714d36508bec994e4983c12": true,
+    "93f76ff99272822bbb92ade8ac1025f8a1f41278": true,
     "93fa5ef28a43e7b33b0b33c7d2574d3fcfe9654c": true,
     "93fb46d54f569b71da4897c68b5e6b2b385fdb13": true,
     "93fff679af201a73f627bfd388e06a5f701cce73": true,
@@ -26087,6 +26113,7 @@
     "9d7192fd40ba536b3f3271fc688e5fb37f013d20": true,
     "9d73597872a94a08f069d48c01b5538be4557418": true,
     "9d78111f48ebc7be8ab3a3a9ac450c81b51a6ba2": true,
+    "9d78b6bab22ca16ebba9babd1822edaeca554e11": true,
     "9d79ddf79dbf618464ea55ddafde3e45a997c64c": true,
     "9d80d0b4999f0e14a0a4c953b28eef739961ed2c": true,
     "9d811a34a0f5823331e87bfb4922abc44d4928d3": true,
@@ -26271,6 +26298,7 @@
     "a0563d53d9213da9ec2af2f4f333816cf7224436": true,
     "a057343959bec3fd77f66d24364dfa5d26df93ed": true,
     "a0573be869e26022ea959b19fef65f290a282f88": true,
+    "a067c97ca48c5b5c90c723eb579ec6991d26498e": true,
     "a06e9bd671db656ce06ee4e482f817097a6be69c": true,
     "a06f9b9907f544b7650895e342c553ebff8b1cc1": true,
     "a07052b04e1da5f5cec5fe33a6013c373de144e3": true,
@@ -27080,6 +27108,7 @@
     "ab733ac6b0b9f302f8f60c864862787a7badcb16": true,
     "ab7370502183e6662ef59768522386ff3dd5d840": true,
     "ab740c2510df327c0c6e58758a8c88d0f15c374b": true,
+    "ab77d994bf902caa55347041fc5f461fbd68f8cb": true,
     "ab7f1b91ac9b302e3759b006faf76695591073ed": true,
     "ab82c4c24e57a1ebde6cb824c253a736365a133d": true,
     "ab836dc085fc534c24532cfb092fadb044035979": true,
@@ -27167,6 +27196,7 @@
     "acb891f5c9c61af9c96695556f218bfda3156653": true,
     "acbb263eab99894a74115365824e9ca7af54d4e4": true,
     "acbf5d8dbc407adefc86ce7b3a0ff78d1ffba1a5": true,
+    "acbf8f809398c4df380c2f03fef177d7092d5a1b": true,
     "acc46f818ab4d5e8103e0464b5d8c8c38119666e": true,
     "acc65909157a963b156397cea260f40a57b176e2": true,
     "acce97ed8d8e56a4a06dc5d2258ee01fd129c742": true,
@@ -27424,6 +27454,7 @@
     "b0947a3f7427ae5ac4d3ee597d550ba11ff5393b": true,
     "b099605b2713e512028d3d2771377e158c22e167": true,
     "b09afc71176e20468db8200ff12a6e83ebebcec6": true,
+    "b0a41eb6e697d2c2ac0dd095bfcfebfb54cf9434": true,
     "b0a5d0781ed1e9df6f67ec99c5c488d0830c083c": true,
     "b0a751f1d05ab8f90513898cb1750e174eb23ab7": true,
     "b0af2e8f641f9d9e162dafb2a1bc0bb600f141b0": true,
@@ -28414,6 +28445,7 @@
     "bf7dcf2937f8c177a7f8724aa8d5961384d3a55e": true,
     "bf7fdb1e7e512d9fbe892fd4c42f6b58cf1b8488": true,
     "bf875cfc2a24b02df626b0d62fb150a60cdd7d64": true,
+    "bf8bd25cd5b2f4de8c4f3a08a8b797550d55e4d8": true,
     "bf8e0ca071657ee99edbd21720910fdd04af22c7": true,
     "bf8e63eed6b1cc9035efe138e5b0a1794fe60b20": true,
     "bf9452b287b6ee6540fcdda6b1bc05a2e72dda76": true,
@@ -28893,6 +28925,7 @@
     "c65f09e7eaf757f12b99687fbc74f51863c91af4": true,
     "c662a5611a392ec5a7d7331d484c29245ada3cb4": true,
     "c66b6cdea0899d013c24b859dd344df4e3ad2e5c": true,
+    "c67650bc7ed5ff512b6271c9b855902c3cc938ae": true,
     "c6775b16a20b760d79550767fd276e1e073551e6": true,
     "c67941f5011685cb291819a265fb44094c8b5150": true,
     "c68291b0b032a12935a3be2af30a1adc461fc376": true,
@@ -29711,6 +29744,7 @@
     "d1e0f7bab1ce04394e0f77830662035cdf22187f": true,
     "d1e3eb64413ce57ebe35d60fa13f97c929d26ade": true,
     "d1eb0648b99bae6898041cc7d259a94984fce98d": true,
+    "d1edee70c80ed1bfee52af640c5f7bbb2e2126c1": true,
     "d1f0bfdc21ca5a32c7e047008797d4cba5b91deb": true,
     "d1fe5f82af3d74db688809632e4c8b36765214a9": true,
     "d205ad0455da6af78ff73ab9ded8ed3421c8575a": true,
@@ -30657,6 +30691,7 @@
     "e01ec6ad7d10e2f097c3cb8034b7903fbf66534d": true,
     "e0224bd6e128cb066757831fd7be382734521a42": true,
     "e022923744905b832370ed28af88d9e15dd4c540": true,
+    "e025d343f3264c21d892eb7794699cb92a05f946": true,
     "e027752a95abe1b7c6f5c8a26f4fd5cf85766db4": true,
     "e028aebd689fe2ffb4a20f567e8b95d81a82368b": true,
     "e034b7e06df1c1ab67a7ff1e4005862a0035e696": true,
@@ -30711,10 +30746,12 @@
     "e10f11486b2efc984ae07d8a807f83b1c611fe78": true,
     "e111b20aa9b2dfd84cdc028b365f313b90e78e07": true,
     "e117a2b788ac8a93346716a753932e2fa10b0bb1": true,
+    "e11b3f43096c750199fa609b0e0ee92125174d45": true,
     "e11dc355a4130dbc5d3d61545ba7ea5abb12f332": true,
     "e11e1263d28d2cc80c4aa7d9ec4b5671290624ff": true,
     "e11f4bc6adf4fe020eebf1a676b7ce499d62f602": true,
     "e12f07ea098cf42501524ca068e9ddbced6ff2ce": true,
+    "e138ad347d5f5acd9eaa810a3e65ca7a5a5a7291": true,
     "e13924954880fa43667e98f2f3b90125190d403a": true,
     "e13a2b7d60cbb4861a6abc0654f1b305fa4ec4e6": true,
     "e143c55a2f21397d118bb7259fbba8682c1fb3c0": true,
@@ -31582,6 +31619,7 @@
     "eebdda2902c438c97bef42cfd55185cbf9f7a401": true,
     "eebf96cfe775556cb3330dbf1553fbea28c51355": true,
     "eec4e059a2f2b9c195e05f2661d94380c08613ae": true,
+    "eec8e651a5b2b56264502011bb5a2813159dd220": true,
     "eecd0e2531795f8972cd93393fe999ef0996c781": true,
     "eecd0f12e3ea107948d698243e7ea86f54cddeee": true,
     "eed704bbcdc79f48a6dc8659e7ea272772e1f5ed": true,
@@ -31736,6 +31774,7 @@
     "f0dd11486e4b61b8340b85943d3c468c9b19b61d": true,
     "f0df78fa9767dcf1001780fb4aa274cb659655f9": true,
     "f0e2e936b88dc8ebbe147f1f38b3246566fb15a1": true,
+    "f0e2f595029c69c8775178ce069bc6b53fffeceb": true,
     "f0e30c5d0728672cc21c787c0d0590f630515514": true,
     "f0f4d70a1e343884a840ff4a1f5670f9a8ac160f": true,
     "f0f75af3ba1b0b66c02a84fcd574e25598e5cf00": true,
@@ -32239,6 +32278,7 @@
     "f81d048f06ddf24d7a31ccddb20c355e1d50a002": true,
     "f81fc3a2cad45cf00e6ad6496ff8f30acf02ae1a": true,
     "f81ff18b18dd381b82ce7b98c5be4dd770ce0971": true,
+    "f8266dbb11ebf173477f7848463e834b27414220": true,
     "f828d410ad74b023d3c9a19a72b535be090c945a": true,
     "f8295302244e83107ee98c14fee227b4ed6da257": true,
     "f82c99df781849a4694d02e4b4c7b826fb600e61": true,
@@ -32711,6 +32751,7 @@
     "fe574d0149553662aee2aadc5cdeb9d71aa45d96": true,
     "fe57f39877c749d757b1e29cfb81fa2a7d593251": true,
     "fe589d747efc474cf9dc5e73c397b2df2ca129a8": true,
+    "fe62c6b0daf4d50ccbf14bebee84d726994694a0": true,
     "fe641243f919cd5757e0474969dbc33bb66da129": true,
     "fe6c63bdd7e1a4cfa909c1cc273fdfbe2c41380c": true,
     "fe6c8a9c7caf9030e15430c8f2d2cb046f7ffff6": true,

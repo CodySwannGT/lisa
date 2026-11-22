@@ -3712,9 +3712,24 @@ export function readGates(cwd = process.cwd()) {
       config: {},
     };
   }
+  let text;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch (err) {
+    throw new Error(`${CONFIG_FILE} is not readable: ${err.message}`);
+  }
+  return parseGatesConfig(text);
+}
+
+/**
+ * Read declarations from the config contents, including a staged or committed copy.
+ * @param {string} text The JSON document.
+ * @returns {{runner: string, unproven: string, gates: object, policy: object, config: object}} Parsed config.
+ */
+export function parseGatesConfig(text) {
   let config;
   try {
-    config = JSON.parse(readFileSync(path, "utf8"));
+    config = JSON.parse(text);
   } catch (err) {
     throw new Error(`${CONFIG_FILE} is not readable: ${err.message}`);
   }

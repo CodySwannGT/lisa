@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.7.1](https://github.com/CodySwannGT/lisa/compare/v8.7.0...v8.7.1) (2026-11-22)
+
+
+### Bug Fixes
+
+* address the integration stack review ([f725a48](https://github.com/CodySwannGT/lisa/commit/f725a48fd62bd3d955936c34b27487da19b6defb)), closes [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070) [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070)
+* **bdd:** tell operators how to supply the coverage base ([b3f5e05](https://github.com/CodySwannGT/lisa/commit/b3f5e050a63bc950d2fb17e402730293144ce0af)), closes [CodySwannGT/lisa#4520](https://github.com/CodySwannGT/lisa/issues/4520) [CodySwannGT/lisa#4520](https://github.com/CodySwannGT/lisa/issues/4520)
+* **cli:** refuse unknown commands before applying ([9f83757](https://github.com/CodySwannGT/lisa/commit/9f837572174fc79aef0ecd656cb9bdc2a936690e)), closes [CodySwannGT/lisa#5017](https://github.com/CodySwannGT/lisa/issues/5017)
+* **evidence:** accept RSpec console test logs ([a877520](https://github.com/CodySwannGT/lisa/commit/a877520aacb6e8766ffe30cb000031d7a8284a6d)), closes [CodySwannGT/lisa#4874](https://github.com/CodySwannGT/lisa/issues/4874)
+* **expo:** exclude generated artifacts from typechecking ([627fd66](https://github.com/CodySwannGT/lisa/commit/627fd66af2b04f16215716269198f7bac2da8b60)), closes [CodySwannGT/lisa#4499](https://github.com/CodySwannGT/lisa/issues/4499)
+* **gates:** refuse removing the standalone check declaration ([e0810a7](https://github.com/CodySwannGT/lisa/commit/e0810a785b9024731ec309ebfda906cadc0a5dde)), closes [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070) [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070)
+* **hooks:** distinguish issue text from GitHub options ([f0e2f59](https://github.com/CodySwannGT/lisa/commit/f0e2f595029c69c8775178ce069bc6b53fffeceb)), closes [CodySwannGT/lisa#5085](https://github.com/CodySwannGT/lisa/issues/5085)
+* **hooks:** inspect the effective issue body on each invocation ([1889689](https://github.com/CodySwannGT/lisa/commit/1889689b337dceb5279a631069959c218af28503)), closes [CodySwannGT/lisa#5085](https://github.com/CodySwannGT/lisa/issues/5085)
+* **nightly:** honor bootstrap for newly added suite workflows ([fd71c20](https://github.com/CodySwannGT/lisa/commit/fd71c20974b619768d4897d3dc99a2ad991f7761)), closes [CodySwannGT/lisa#5006](https://github.com/CodySwannGT/lisa/issues/5006)
+* preserve gate and tracker checks at ambiguous inputs ([9d78b6b](https://github.com/CodySwannGT/lisa/commit/9d78b6bab22ca16ebba9babd1822edaeca554e11)), closes [#5085](https://github.com/CodySwannGT/lisa/issues/5085) [#5086](https://github.com/CodySwannGT/lisa/issues/5086) [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070)
+* **ratchet:** judge edited and first-time threshold exceptions ([b09afc7](https://github.com/CodySwannGT/lisa/commit/b09afc71176e20468db8200ff12a6e83ebebcec6)), closes [CodySwannGT/lisa#5102](https://github.com/CodySwannGT/lisa/issues/5102)
+* **session-manager:** accept managed GitHub login entries ([1b0fe37](https://github.com/CodySwannGT/lisa/commit/1b0fe37ddf22232ae3ec0d058638484a7ca5f66b)), closes [CodySwannGT/lisa#5090](https://github.com/CodySwannGT/lisa/issues/5090) [CodySwannGT/lisa#5090](https://github.com/CodySwannGT/lisa/issues/5090)
+* **session-manager:** dispatch holds released by trusted people ([d3b5474](https://github.com/CodySwannGT/lisa/commit/d3b5474c778c487002b4f1b2009440686526c53c)), closes [CodySwannGT/lisa#5090](https://github.com/CodySwannGT/lisa/issues/5090)
+* **tracker:** inspect issue bodies from the command working folder ([d167c50](https://github.com/CodySwannGT/lisa/commit/d167c508346a1be632e4939321cfa1b01a635a7e)), closes [CodySwannGT/lisa#5085](https://github.com/CodySwannGT/lisa/issues/5085) [CodySwannGT/lisa#5085](https://github.com/CodySwannGT/lisa/issues/5085)
+* **updater:** refresh authenticated gate helper graph ([a067c97](https://github.com/CodySwannGT/lisa/commit/a067c97ca48c5b5c90c723eb579ec6991d26498e)), closes [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070)
+
+
+### Documentation
+
+* **controls:** choose one parent for missing capabilities ([d5fdc0b](https://github.com/CodySwannGT/lisa/commit/d5fdc0bd6a02b4bac3fe5269d3d537d86aaad5c4)), closes [CodySwannGT/lisa#5086](https://github.com/CodySwannGT/lisa/issues/5086) [CodySwannGT/lisa#5086](https://github.com/CodySwannGT/lisa/issues/5086)
+* **controls:** verify every open Epic page before filing gaps ([32b601d](https://github.com/CodySwannGT/lisa/commit/32b601d4e2fd445a44eec3f64d84db91aa38bc42)), closes [CodySwannGT/lisa#5086](https://github.com/CodySwannGT/lisa/issues/5086)
+
 ## [8.7.0](https://github.com/CodySwannGT/lisa/compare/v8.6.1...v8.7.0) (2026-11-22)
 
 
