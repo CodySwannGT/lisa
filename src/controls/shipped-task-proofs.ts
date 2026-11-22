@@ -5,23 +5,59 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PROOF_DIRECTORY = ".lisa/controls/proofs";
+const CLI_PROOF_INPUT = "src/cli.ts";
+const STAGED_LINT_TASK = {
+  moment: "commit",
+  task: "lint:staged",
+  script: "lint-staged --config .lintstagedrc.json",
+} as const;
 
 /** Task inputs and failure text from the TypeScript template. */
 const TYPESCRIPT_PROOFS = [
   {
     gate: "code-style",
-    moment: "commit",
-    task: "lint:staged",
-    script: "lint-staged --config .lintstagedrc.json",
+    ...STAGED_LINT_TASK,
     inputs: ["src/lisa-proof-code-style.ts"],
     failure: "@typescript-eslint/no-explicit-any",
+  },
+  {
+    gate: "format-conformance",
+    ...STAGED_LINT_TASK,
+    inputs: ["tests/fixtures/lisa-proof-format.css"],
+    failure: "CssSyntaxError: Unclosed block",
+  },
+  {
+    gate: "structural-rules",
+    ...STAGED_LINT_TASK,
+    inputs: ["src/components/LisaProofView.tsx"],
+    failure: "no-inline-component-in-view",
+  },
+  {
+    gate: "code-style-slow",
+    moment: "push",
+    task: "lint:slow",
+    script: "$npm_execpath run lint:slow:lisa",
+    inputs: [
+      "tests/helpers/lisa-proof-slow-a.ts",
+      "tests/helpers/lisa-proof-slow-b.ts",
+      "tests/unit/lisa-proof-slow.test.ts",
+    ],
+    failure: "import/no-cycle",
+  },
+  {
+    gate: "coverage-adequacy",
+    moment: "push",
+    task: "test:cov:unit",
+    script: "$npm_execpath run test:cov:unit:lisa",
+    inputs: [CLI_PROOF_INPUT],
+    failure: "does not meet global threshold",
   },
   {
     gate: "type-correctness",
     moment: "push",
     task: "typecheck",
     script: "$npm_execpath run typecheck:lisa",
-    inputs: ["src/cli.ts"],
+    inputs: [CLI_PROOF_INPUT],
     failure: "TS2344",
   },
   {
@@ -37,7 +73,7 @@ const TYPESCRIPT_PROOFS = [
     moment: "push",
     task: "knip:check",
     script: "$npm_execpath run knip:check:lisa",
-    inputs: ["src/cli.ts", "src/lisa-proof-unused.ts"],
+    inputs: [CLI_PROOF_INPUT, "src/lisa-proof-unused.ts"],
     failure: "Unused files",
   },
   {

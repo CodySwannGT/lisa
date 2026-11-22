@@ -441,8 +441,9 @@ identify the commands. For example, a Bun project with Lefthook may need
 `[["bun", "install", "--frozen-lockfile"], ["./node_modules/.bin/lefthook", "install"]]`.
 Record the approved commands in the committed config before trying the pairs.
 
-The whole-repository TypeScript setup includes pairs for staged lint, type checking, dead code,
-unit tests, and integration tests when the installed tasks and patch files match the template.
+The whole-repository TypeScript setup includes pairs for staged lint, formatting, structural rules,
+slow lint, type checking, dead code, unit tests, integration tests, and coverage when the installed
+tasks and patch files match the template. The formatting pair starts with CSS the formatter cannot parse.
 Add a proof for each remaining required control. Commit the current work item and attribution
 trailers with the proof setup. The temporary commit uses those trailers so the installed Git hooks
 can validate it through their usual path.

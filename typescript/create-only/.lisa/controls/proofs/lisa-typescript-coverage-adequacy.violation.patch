@@ -1,0 +1,7 @@
+diff --git a/src/cli.ts b/src/cli.ts
+new file mode 100644
+--- /dev/null
++++ b/src/cli.ts
+@@ -0,0 +1,2 @@
++export const uncoveredProofAmount = (enabled: boolean): number =>
++  enabled ? 4 : 2;
