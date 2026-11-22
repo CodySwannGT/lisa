@@ -353,7 +353,7 @@ verdict.
 
 | `rung` | Say it as |
 | --- | --- |
-| `exercised` | Proved: a bad change was really tried, and the check stopped it. |
+| `exercised` | Proved by a real exercise. A check rejected a controlled violation, or a verified artifact exercise recorded its result. |
 | `observed` | Observed: a document was found where it should be, or a platform setting was read. Nothing was tried. |
 | `asserted` | A person's answer: someone answered the audit's question. Nothing was checked by code. |
 
