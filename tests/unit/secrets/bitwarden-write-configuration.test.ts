@@ -1,8 +1,9 @@
 /** Bitwarden-compatible key derivation, authenticated formats, and profile routing. */
 import {
-  copyFileSync,
   cpSync,
+  mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -56,10 +57,41 @@ describe("Bitwarden encryption", () => {
 describe("Bitwarden bws profiles", () => {
   let folder: string;
   let config: string;
+  let executablePath: string;
+
+  /**
+   * Build a provider environment with a canary that the CLI must never inherit.
+   * @param profile - Profile to select explicitly, when supplied
+   * @returns Environment for endpoint resolution
+   */
+  function options(profile?: string) {
+    return {
+      PATH: executablePath,
+      BWS_ACCESS_TOKEN: "test-canary",
+      BWS_CONFIG_FILE: config,
+      BWS_PROFILE: profile,
+    };
+  }
 
   beforeEach(() => {
     folder = mkdtempSync(join(tmpdir(), "bws-profile-"));
     config = join(folder, "config");
+    executablePath = join(folder, "bin");
+    mkdirSync(executablePath);
+    writeFileSync(
+      join(executablePath, "bws"),
+      [
+        `#!${process.execPath}`,
+        "const fs = require('node:fs');",
+        "const [command, key, value, profileFlag, profile, configFlag, config] = process.argv.slice(2);",
+        "if (command !== 'config' || key !== 'state-opt-out' || value !== 'true') process.exit(2);",
+        "if (profileFlag !== '--profile' || !profile.startsWith('lisa-read-') || configFlag !== '--config-file') process.exit(3);",
+        "if (process.env.BWS_ACCESS_TOKEN || (fs.statSync(config).mode & 0o777) !== 0o600) process.exit(4);",
+        "if (fs.readFileSync(config, 'utf8') === 'invalid') process.exit(5);",
+        "fs.appendFileSync(config, '\\n\\n[profiles.' + profile + ']\\nstate_opt_out = \"true\"\\n');",
+      ].join("\n"),
+      { mode: 0o700 }
+    );
     writeFileSync(
       config,
       [
@@ -90,40 +122,41 @@ describe("Bitwarden bws profiles", () => {
   });
 
   it("matches an explicit profile, then the machine account and default profiles", () => {
-    expect(
-      bitwardenEndpoints(ACCOUNT, {
-        BWS_CONFIG_FILE: config,
-        BWS_PROFILE: "work",
-      })
-    ).toEqual({
+    const original = readFileSync(config, "utf8");
+    expect(bitwardenEndpoints(ACCOUNT, options("work"))).toEqual({
       api: "https://api.work.example/bw",
       identity: "https://identity.work.example/bw",
     });
-    expect(bitwardenEndpoints(ACCOUNT, { BWS_CONFIG_FILE: config })).toEqual({
+    expect(bitwardenEndpoints(ACCOUNT, options())).toEqual({
       api: "https://tenant.example/secrets/api",
       identity: "https://tenant.example/secrets/identity",
     });
-    expect(
-      bitwardenEndpoints("other-account", { BWS_CONFIG_FILE: config })
-    ).toEqual({
+    expect(bitwardenEndpoints("other-account", options())).toEqual({
       api: "https://vault.bitwarden.eu/api",
       identity: "https://vault.bitwarden.eu/identity",
     });
+    expect(readFileSync(config, "utf8")).toBe(original);
   });
 
   it("reads a named profile from a standalone plugin without installed Lisa dependencies", () => {
     const source = new URL(
-      "../../../plugins/src/base/skills/lisa-secrets-access/scripts/",
+      "../../../plugins/src/base/skills/",
       import.meta.url
     );
-    const owner = join(folder, "bitwarden-endpoints.mjs");
-    copyFileSync(new URL("bitwarden-endpoints.mjs", source), owner);
-    cpSync(new URL("vendor/", source), join(folder, "vendor"), {
-      recursive: true,
-    });
+    const skill = "lisa-secrets-access/scripts";
+    const boundedChild = "lisa-setup-workstation/scripts/bounded-child.mjs";
+    const owner = join(folder, skill, "bitwarden-endpoints.mjs");
+    cpSync(new URL(skill, source), join(folder, skill), { recursive: true });
+    cpSync(new URL(boundedChild, source), join(folder, boundedChild));
     writeFileSync(
       config,
-      "[profiles]\n\"work.team\" = { server_base = 'https://work.example/vault/' }\n"
+      [
+        '[profiles."work.team"]',
+        "state_dir = '''",
+        "[profiles.ignored]",
+        "'''",
+        "server_base = 'https://work.example/vault/'",
+      ].join("\n")
     );
 
     const result = boundedSpawnSync({
@@ -133,13 +166,10 @@ describe("Bitwarden bws profiles", () => {
         "--input-type=module",
         "-e",
         [
-          "import {createRequire} from 'node:module';",
           "import {pathToFileURL} from 'node:url';",
           "const owner = pathToFileURL(process.argv[1]);",
-          "try {createRequire(owner).resolve('smol-toml'); process.exit(9)}",
-          "catch (error) {if (error.code !== 'MODULE_NOT_FOUND') throw error}",
           "const {bitwardenEndpoints} = await import(owner);",
-          "const options = {BWS_CONFIG_FILE:process.argv[2], BWS_PROFILE:'work.team'};",
+          "const options = {...process.env, BWS_CONFIG_FILE:process.argv[2], BWS_PROFILE:'work.team'};",
           "console.log(JSON.stringify(bitwardenEndpoints(process.argv[3], options)));",
         ].join("\n"),
         owner,
@@ -147,7 +177,7 @@ describe("Bitwarden bws profiles", () => {
         ACCOUNT,
       ],
       cwd: folder,
-      env: {},
+      env: { PATH: executablePath },
     });
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout ?? "")).toEqual({
@@ -157,12 +187,9 @@ describe("Bitwarden bws profiles", () => {
   });
 
   it("rejects invalid or missing explicit configuration before sending credentials", () => {
-    expect(() =>
-      bitwardenEndpoints(ACCOUNT, {
-        BWS_CONFIG_FILE: config,
-        BWS_PROFILE: "missing",
-      })
-    ).toThrow(/profile is missing/u);
+    expect(() => bitwardenEndpoints(ACCOUNT, options("missing"))).toThrow(
+      /profile is missing/u
+    );
     expect(() =>
       bitwardenEndpoints(ACCOUNT, { BWS_CONFIG_FILE: join(folder, "missing") })
     ).toThrow();
@@ -172,4 +199,47 @@ describe("Bitwarden bws profiles", () => {
       })
     ).toThrow(/invalid Bitwarden endpoint/u);
   });
+
+  it("rejects a configuration the CLI cannot validate and preserves its bytes", () => {
+    writeFileSync(config, "invalid");
+    expect(() => bitwardenEndpoints(ACCOUNT, options())).toThrow();
+    expect(readFileSync(config, "utf8")).toBe("invalid");
+  });
+
+  it("validates a profile base only for endpoints that use it", () => {
+    const base = '[profiles.work]\nserver_base = "http://remote.example"\n';
+    const api = 'server_api = "https://api.work.example"\n';
+    writeFileSync(
+      config,
+      `${base}${api}server_identity = "https://id.work.example"`
+    );
+    expect(bitwardenEndpoints(ACCOUNT, options("work"))).toEqual({
+      api: "https://api.work.example",
+      identity: "https://id.work.example",
+    });
+    writeFileSync(config, base + api);
+    expect(() => bitwardenEndpoints(ACCOUNT, options("work"))).toThrow(
+      /invalid Bitwarden endpoint/u
+    );
+  });
+
+  it.each(["http://remote.example", "http://localhost:8000", "http://127.1"])(
+    "rejects nonliteral loopback or remote HTTP URL %s",
+    server => {
+      expect(() =>
+        bitwardenEndpoints(ACCOUNT, { BWS_SERVER_URL: server })
+      ).toThrow(/invalid Bitwarden endpoint/u);
+    }
+  );
+
+  it.each(["127.0.0.1", "[::1]"])(
+    "allows literal HTTP loopback URL %s",
+    host => {
+      const server = `http://${host}:8000`;
+      expect(bitwardenEndpoints(ACCOUNT, { BWS_SERVER_URL: server })).toEqual({
+        api: `${server}/api`,
+        identity: `${server}/identity`,
+      });
+    }
+  );
 });

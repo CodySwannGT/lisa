@@ -736,6 +736,7 @@ const BITWARDEN_WRITE_ENV = [
   "BWS_SERVER_URL",
   "HOME",
   "USERPROFILE",
+  "PATH",
   "SystemRoot",
   "HTTPS_PROXY",
   "HTTP_PROXY",
