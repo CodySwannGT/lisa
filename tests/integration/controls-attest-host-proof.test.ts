@@ -25,6 +25,7 @@ import { HOST_PROOF_RECEIPTS_PATH } from "../../src/controls/host-proof-receipt.
 import { signHostProof } from "../../src/controls/host-proof-signature.js";
 import { HOST_PROOF_TRUST_FILE } from "../../src/controls/host-proof-trust.js";
 import { CONTROL_REGISTER_PATH } from "../../src/controls/register-types.js";
+import { isJsonObject } from "../../src/sync/json-path.js";
 import {
   controlAuditGitEnv,
   runControlAuditGit,
@@ -51,9 +52,12 @@ const INPUT = "proof.json";
 
 describe("published controls attest with an external trust file", () => {
   it("writes and verifies a receipt for the bound pair and distrusts it after the pipeline changes", async () => {
+    const gate = F_NONE_GATES["code-style"];
+    if (!isJsonObject(gate))
+      throw new TypeError("Expected a declared fixture gate.");
     const gates = {
       ...F_NONE_GATES,
-      "code-style": { ...F_NONE_GATES["code-style"], criteria: ["SI7", "SI2"] },
+      "code-style": { ...gate, criteria: ["SI7", "SI2"] },
     };
     const fixture = buildDeclaredFixture("F-none", withExecutor(gates));
     const outside = mkdtempSync(path.join(tmpdir(), "lisa-host-proof-"));

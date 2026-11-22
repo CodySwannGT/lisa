@@ -15,7 +15,6 @@ export const EXERCISE_RESULTS_PATH = ".lisa/controls/exercise-results.json";
 export const EXERCISE_CRITERIA = ["AC5.5", "AC6.4", "AC7.2", "AC8.9"] as const;
 
 /** The requirements supported by this proof route. */
-export type ExerciseCriterion = (typeof EXERCISE_CRITERIA)[number];
 
 /** A target records the accountable producer and its independent reviewer. */
 interface ExerciseTargetBase {
@@ -47,7 +46,7 @@ export type ExerciseTarget = ExerciseTargetBase &
   );
 
 /** The expected exercises for a single declared environment. */
-export interface ExerciseDeclaration {
+interface ExerciseDeclaration {
   readonly schema_version: 1;
   readonly environment: string;
   readonly targets: readonly ExerciseTarget[];

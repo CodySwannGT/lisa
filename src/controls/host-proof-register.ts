@@ -42,7 +42,7 @@ interface HostProofStatus {
  * @param root - Real checkout path
  * @returns The proposed receipts, or null when the file cannot be used
  */
-export async function readHostProofReceipts(
+async function readHostProofReceipts(
   root: string
 ): Promise<readonly unknown[] | null> {
   const file = await readControlFile(root, HOST_PROOF_RECEIPTS_PATH);
