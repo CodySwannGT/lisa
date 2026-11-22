@@ -1,7 +1,7 @@
 /** Read the configured Linear or Jira issue before a readiness header exists. */
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { AccessFailure } from "./config-layers.mjs";
+import { AccessFailure, plainObject } from "./config-layers.mjs";
 import { readTaskConfig } from "./surfaces.mjs";
 import { taskBinding } from "./task-requirements.mjs";
 import { candidate, failure } from "./task-readiness.mjs";
@@ -16,6 +16,66 @@ const linearAdapter = fileURLToPath(
 const linearFields = "id identifier team{key}";
 const linearIssue = `query($id:String!){issue(id:$id){${linearFields} title description url priority estimate dueDate createdAt updatedAt completedAt state{name type} assignee{id name} creator{id name} project{id name url} parent{id identifier title} children(first:100){pageInfo{hasNextPage endCursor} nodes{id identifier title}} labels(first:100){pageInfo{hasNextPage endCursor} nodes{name}} attachments(first:100){pageInfo{hasNextPage endCursor} nodes{id title url}} relations(first:100){pageInfo{hasNextPage endCursor} nodes{type relatedIssue{id identifier title}}} inverseRelations(first:100){pageInfo{hasNextPage endCursor} nodes{type issue{id identifier title}}}}}`;
 const linearComments = `query($id:String!,$after:String){issue(id:$id){${linearFields} comments(first:${pageSize},after:$after){pageInfo{hasNextPage endCursor} nodes{id body createdAt url parent{id} user{id name} botActor{__typename}}}}}`;
+const nativeLinearTool =
+  /^mcp__(linear-server|linear)__(list_teams|get_issue|list_comments)$/u;
+const uuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu;
+
+/** Admit the documented Linear owner's read-only fallback. Calling it proves no work access. */
+export function linearIntakeRead(event, cfg) {
+  const { tracker, linear } = cfg.effective ?? {};
+  const tool = nativeLinearTool.exec(event.tool_name);
+  const args = event.tool_input;
+  if (
+    tracker !== "linear" ||
+    !linear?.workspace ||
+    !linear?.teamKey ||
+    !tool ||
+    !plainObject(args) ||
+    (event.mcp_server !== undefined && event.mcp_server?.name !== tool[1])
+  )
+    return false;
+  const configuredIssue = value =>
+    typeof value === "string" && issueKey.exec(value)?.[1] === linear.teamKey;
+  if (tool[2] === "get_issue") {
+    return (
+      configuredIssue(args.id) &&
+      Object.keys(args).every(key =>
+        ["id", "includeRelations"].includes(key)
+      ) &&
+      (args.includeRelations === undefined ||
+        typeof args.includeRelations === "boolean")
+    );
+  }
+  if (
+    (args.limit !== undefined &&
+      (!Number.isInteger(args.limit) ||
+        args.limit < 1 ||
+        args.limit > pageSize)) ||
+    (args.cursor !== undefined &&
+      (typeof args.cursor !== "string" ||
+        args.cursor.length === 0 ||
+        args.cursor.length > 512)) ||
+    (args.orderBy !== undefined &&
+      !["createdAt", "updatedAt"].includes(args.orderBy))
+  )
+    return false;
+  if (tool[2] === "list_teams") {
+    return (
+      args.query === linear.teamKey &&
+      Object.keys(args).every(key =>
+        ["query", "limit", "cursor", "orderBy"].includes(key)
+      )
+    );
+  }
+  // The native API can use the issue UUID returned by its configured team read.
+  return (
+    (configuredIssue(args.issueId) ||
+      (typeof args.issueId === "string" && uuid.test(args.issueId))) &&
+    Object.keys(args).every(key =>
+      ["issueId", "limit", "cursor", "orderBy"].includes(key)
+    )
+  );
+}
 
 /** Parse only fixed read operations on an issue in the configured project. */
 export function trackerIntakeRequest(args, cfg) {
@@ -120,17 +180,30 @@ function readLinear(cfg, { ref, project, operation }) {
   throw new AccessFailure("capability-unreachable");
 }
 
-function readJira(cfg, { ref, project, operation }) {
-  const { cloudId, email } = cfg.effective.atlassian ?? {};
+function readJira(cfg, request) {
+  const { ref, project, operation } = request;
+  const { cloudId, email, site } = cfg.effective.atlassian ?? {};
   if (
     typeof cloudId !== "string" ||
     !/^[A-Za-z0-9-]+$/u.test(cloudId) ||
     typeof email !== "string" ||
     !/^[^\s:@]+@[^\s:@]+$/u.test(email)
-  )
+  ) {
+    if (site) return readJiraWithAcli(cfg, request);
     throw new AccessFailure("config-invalid");
-  const credential = candidate(cfg, "ATLASSIAN_API_TOKEN");
-  if (!credential.available) throw new AccessFailure(credential.code);
+  }
+  const key = `ATLASSIAN_API_TOKEN_${email.toLowerCase().replaceAll(/[.@]/gu, "_")}`;
+  const env = process.env.ATLASSIAN_API_TOKEN?.trim()
+    ? process.env
+    : {
+        ...process.env,
+        ATLASSIAN_API_TOKEN: process.env[key],
+      };
+  const credential = jiraCredential(cfg, env);
+  if (!credential.available) {
+    if (!site) throw new AccessFailure(credential.code);
+    return readJiraWithAcli(cfg, request);
+  }
   const encoded = Buffer.from(`${email}:${credential.value}`).toString(
     "base64"
   );
@@ -164,8 +237,12 @@ function readJira(cfg, { ref, project, operation }) {
   const issue = get(`${endpoint}?fields=*all`);
   if (issue?.key !== ref || issue.fields?.project?.key !== project)
     throw new AccessFailure("identity-mismatch");
-  if (operation === "issue")
-    return { issue, remoteLinks: get(`${endpoint}/remotelink`) };
+  if (operation === "issue") {
+    const remoteLinks = get(`${endpoint}/remotelink`);
+    if (!Array.isArray(remoteLinks))
+      throw new AccessFailure("capability-unreachable");
+    return { issue, remoteLinks };
+  }
   const comments = [];
   let total;
   for (let page = 0; page < maxPages; page++) {
@@ -187,6 +264,67 @@ function readJira(cfg, { ref, project, operation }) {
     if (comments.length > total || comments.length === size) break;
   }
   throw new AccessFailure("capability-unreachable");
+}
+
+function jiraCredential(cfg, env) {
+  try {
+    return candidate(cfg, "ATLASSIAN_API_TOKEN", { env });
+  } catch (error) {
+    if (
+      !(error instanceof AccessFailure) ||
+      !["bootstrap-missing", "provider-unreachable"].includes(error.code)
+    )
+      throw error;
+    return { available: false, code: error.code };
+  }
+}
+
+function jiraSite(value) {
+  if (typeof value !== "string" || !value) return null;
+  try {
+    const url = new URL(value.includes("://") ? value : `https://${value}`);
+    return url.protocol === "https:" && !url.username && !url.password
+      ? url.origin
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function readJiraWithAcli(cfg, { ref, project, operation }) {
+  const site = jiraSite(cfg.effective.atlassian.site);
+  if (!site) throw new AccessFailure("config-invalid");
+  const call = transportFor(cfg);
+  const confirmSite = () => {
+    const status = call("acli", ["jira", "auth", "status"], "");
+    const sites = [...status.matchAll(/^\s*Site:\s+(\S+)\s*$/gmu)];
+    if (sites.length !== 1 || jiraSite(sites[0][1]) !== site)
+      throw new AccessFailure("identity-mismatch");
+  };
+  confirmSite();
+  const issue = response(
+    call(
+      "acli",
+      ["jira", "workitem", "view", ref, "--fields", "*all", "--json"],
+      ""
+    )
+  );
+  confirmSite();
+  if (
+    issue?.key !== ref ||
+    issue.fields?.project?.key !== project ||
+    jiraSite(issue.self) !== site
+  )
+    throw new AccessFailure("identity-mismatch");
+  if (operation === "issue") return { issue, remoteLinks: null };
+  const page = issue.fields.comment;
+  if (
+    page?.startAt !== 0 ||
+    !Array.isArray(page.comments) ||
+    page.total !== page.comments.length
+  )
+    throw new AccessFailure("capability-unreachable");
+  return page.comments;
 }
 
 /** No results or partial comments are printed after a failed scoped read. */

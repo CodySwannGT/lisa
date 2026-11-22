@@ -1443,7 +1443,7 @@
     "plugins/src/base/scripts/ready-queue-order.mjs":
       "02d2216053cf89da887cbec541cd4b175fd39dfaa340e451293b3b7106a7d161",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
-      "59cc2ab4f19740f0fa5eae05283ff876e5c33cb72ae01ad6c10f8917b94e3701",
+      "11d9187c9b451aeb3cebf8370bca848b63d96f6bbc47c5e7b4146a44d0ac05e2",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
       "bed0f0b8a43146dbe222c657d6b58494c3962d1bb627bf0591d4b37102de972f",
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs":
@@ -1623,7 +1623,7 @@
     "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py":
       "a96fda5de44cd6d65fcc7ecf36aa365766707b77ad68b198062124d31a9238b9",
     "plugins/src/base/skills/lisa-jira-read-ticket/SKILL.md":
-      "6b54279ac77f75ac122c9b03ba3f614663e007108fe147d1dbaea04489769f81",
+      "14b3950f6cf4d16d9ca3bf73d59b0b7a4f240b3b357fb5a8399949d4ecc97651",
     "plugins/src/base/skills/lisa-jira-read-ticket/scripts/download-attachment.sh":
       "f50f532ee0142b61b4d16c4c61f49ee06fdf78c5edd870fbcfbc13b41f8ab519",
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
@@ -1659,7 +1659,7 @@
     "plugins/src/base/skills/lisa-linear-prd-intake/SKILL.md":
       "add3303cd5dbf250df622c7d5fed36bd7f27a2016505eeef4c610a40c2bceec1",
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
-      "b4ebe7095624581d16e677cb2ebc842c9250f5a5d0615cc70909240403d74e6d",
+      "f500cb40b157b456a25de8ef9e175764db1686306a548f210615a216aae457d6",
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
       "96108cea578ca29d4a05d9d115e1b433b2f5e166a8da74878f760041d1e600cc",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
@@ -1757,7 +1757,7 @@
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
       "c9a473c02a2d1d721c0000949de83ac3728e2799042748541f0152d810fdbd62",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
-      "c299d146f542eb81d9328a8009ec86866450947c897afd5dfc422e0d0ab6cfc6",
+      "ef8f20962e098697ed68e5dc6e7ec3fc16a305f1296c6266720a26c9c6577aa5",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
       "35169ea70810f7b7291d75c93ec326e0ac04407bf335949b0742e74e69850ec4",
     "plugins/src/base/skills/lisa-secrets-access/scripts/config-files.mjs":
@@ -1771,7 +1771,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs":
       "d2841042eda0f0c50f995ccc34e09e25aced0abbf3a96bce52a9f604e4009520",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "97bca98346bfde5ae81c3238cdf56e2ee26487ec59755249ed19dcee355d8ac0",
+      "91b443b7c54272f7b94fe3a592eeddd9f45b00901301bf769297a87b01cf18f1",
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs":
@@ -1813,7 +1813,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake-read.mjs":
       "4e8c488efce1681203a83d62f61014cb4729555b8bd011f1bde4898dbe92624e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake.mjs":
-      "6d08eab34a32e1b1cecc365dc3741e4c2e4f13e154e0ad5dcd559e3ab1da33d4",
+      "52a04b4b9a6d48bc8ebd4a3093d027dd6ccf04d352149c6d398156d1d305ef7d",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-context.mjs":
       "0d91e2d565cab388e25b5d0dfa64443ee6f29b28bdf429e6c86ac1e57734a61c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-contract.mjs":
@@ -1829,7 +1829,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs":
       "e184ed7fb4eacb448553cca5a1c440707449066ef9edddb81f6eeba8b79e879d",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs":
-      "6107fa86a6556ef511755a9fee682d6fb8768dc3d83681315df2a4507c6a23dd",
+      "6a0775933f67ace7c1c8f4666f3e21fd62e21e3247dee6060bdfae3e4972febe",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "6ab78776157345992224c5f74f1e6b82867d003961499faf2e51f1473c78dbb8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":

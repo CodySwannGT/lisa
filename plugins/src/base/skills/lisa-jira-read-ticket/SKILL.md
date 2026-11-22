@@ -19,7 +19,7 @@ node /absolute/lisa-secrets-access/scripts/preflight-secrets.mjs --tracker-intak
 node /absolute/lisa-secrets-access/scripts/preflight-secrets.mjs --tracker-intake-read --ref PROJ-123 --read comments
 ```
 
-The issue command returns the full issue and remote links. The comments command returns all pages in order or fails. If the token route is unavailable, use the Atlassian access owner's native Jira issue and remote-link reads against the configured cloud and issue key. Check the embedded comment total before treating native context as complete.
+The token route returns the full issue and remote links, and the comments command reads all pages in order. If the token is unavailable, the command can read the issue through an already authenticated `acli` session on the configured site. That route reports `remoteLinks: null` and returns comments only when the embedded page is complete. Use the Atlassian access owner's native Jira issue and remote-link reads against the configured cloud and issue key to fill missing data. Check the embedded comment total before treating native context as complete.
 
 ## Phase 1 — Resolve Context
 

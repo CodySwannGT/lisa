@@ -11,7 +11,10 @@ import {
 } from "../../lisa-github-read-issue/read-contract.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { trackerIntakeRequest } from "./task-tracker-intake.mjs";
+import {
+  linearIntakeRead,
+  trackerIntakeRequest,
+} from "./task-tracker-intake.mjs";
 import { atlassianIssueRead } from "./task-atlassian-native.mjs";
 const owner = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -63,6 +66,8 @@ function loadOwner(input, cfg) {
     "lisa-secrets-access",
     `lisa-${tracker}-read-${tracker === "jira" ? "ticket" : "issue"}`,
   ]);
+  if (tracker === "linear") fixed.add("lisa-linear-access");
+  if (tracker === "jira") fixed.add("lisa-atlassian-access");
   for (const [role, route] of Object.entries(cfg.routing ?? {})) {
     if (["notion", "atlassian", "linear", "sentry"].includes(route))
       fixed.add(`lisa-${route}-access`);
@@ -153,6 +158,7 @@ export function intakeRead(input, cfg) {
   return (
     (input.tool_name === "Skill" && loadOwner(input, cfg)) ||
     (input.tool_name === "Agent" && delegate(input, cfg)) ||
+    linearIntakeRead(input, cfg) ||
     atlassianIssueRead(input, cfg) ||
     trackerRead(input, cfg) ||
     intakeOwner(input, cfg)

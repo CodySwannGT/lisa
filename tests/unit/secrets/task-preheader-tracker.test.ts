@@ -79,7 +79,7 @@ function fixture(tracker: "linear" | "jira") {
       tracker,
       linear: { workspace: "fixture", teamKey: "ENG" },
       jira: { project: "ENG" },
-      atlassian: { cloudId, email },
+      atlassian: { cloudId, email, site: "jira-fixture.atlassian.net" },
       secrets: { provider: "env" },
     })
   );
@@ -134,26 +134,116 @@ describe.each(["linear", "jira"] as const)("fresh %s intake", tracker => {
   });
 });
 
+/** Run the actual guard for an intake tool selected by the host.
+ * @param f - The isolated tracker and hook.
+ * @param tool - The host's exact tool name.
+ * @param args - Native tool arguments.
+ * @param server - Connection identity when the runtime supplies it.
+ * @param server.name - The configured native connection name.
+ * @param server.source - How the runtime loaded the connection.
+ * @returns The observed guard decision.
+ */
+function nativeMcp(
+  f: ReturnType<typeof fixture>,
+  tool: string,
+  args: Record<string, unknown>,
+  server?: { name: string; source: string }
+) {
+  return boundedSpawnSync({
+    label: "native tracker intake read",
+    command: "/bin/bash",
+    args: [path.join(f.plugin, "hooks/secrets-preflight.sh"), "--task-hook"],
+    cwd: f.root,
+    env: f.env,
+    input: JSON.stringify({
+      hook_event_name: "PreToolUse",
+      cwd: f.root,
+      tool_name: tool,
+      tool_input: args,
+      ...(server ? { mcp_server: server } : {}),
+    }),
+  });
+}
+
 it("admits the native Jira issue read for the configured cloud and project only", () => {
   const f = fixture("jira");
   const issue = { cloudId, issueIdOrKey: ref, fields: ["*all"] };
   const call = (args: Record<string, unknown>, tool = "getJiraIssue") =>
-    boundedSpawnSync({
-      label: "native Jira intake read",
-      command: "/bin/bash",
-      args: [path.join(f.plugin, "hooks/secrets-preflight.sh"), "--task-hook"],
-      cwd: f.root,
-      env: f.env,
-      input: JSON.stringify({
-        hook_event_name: "PreToolUse",
-        cwd: f.root,
-        tool_name: `mcp__plugin_atlassian_atlassian__${tool}`,
-        tool_input: args,
-        mcp_server: { name: "plugin:atlassian:atlassian", source: "plugin" },
-      }),
+    nativeMcp(f, `mcp__plugin_atlassian_atlassian__${tool}`, args, {
+      name: "plugin:atlassian:atlassian",
+      source: "plugin",
     });
   expect(call(issue).status).toBe(0);
   expect(call({ ...issue, cloudId: "other" }).status).toBe(2);
   expect(call({ ...issue, issueIdOrKey: "OPS-123" }).status).toBe(2);
   expect(call(issue, "editJiraIssue").status).toBe(2);
+});
+
+it("lets the configured Linear owner use its read-only native fallback without an API key", () => {
+  const f = fixture("linear");
+  const call = (tool: string, args: Record<string, unknown>) =>
+    nativeMcp(f, `mcp__linear-server__${tool}`, args, {
+      name: "linear-server",
+      source: "user",
+    });
+  delete f.env.LINEAR_API_KEY;
+
+  expect(f.read("issue").tool?.stderr).toContain("credential-missing");
+  expect(nativeMcp(f, "Skill", { skill: "lisa:linear-access" }).status).toBe(0);
+  expect(call("list_teams", { query: "ENG", limit: 10 }).status).toBe(0);
+  expect(call("get_issue", { id: ref, includeRelations: true }).status).toBe(0);
+  expect(
+    call("list_comments", {
+      issueId: "834d0721-7da6-4f28-9ffd-b67e9d2c4a07",
+      cursor: "next-page",
+      limit: 100,
+    }).status
+  ).toBe(0);
+  expect(call("get_issue", { id: "OPS-123" }).status).toBe(2);
+  expect(call("list_teams", { query: "OPS" }).status).toBe(2);
+  expect(call("list_comments", { issueId: ref, limit: 101 }).status).toBe(2);
+  expect(call("save_issue", { id: ref }).status).toBe(2);
+  expect(existsSync(path.join(f.root, contextFile))).toBe(false);
+});
+
+it("uses Jira's account-specific token when the shared environment key is absent", () => {
+  const f = fixture("jira");
+  delete f.env.ATLASSIAN_API_TOKEN;
+  f.env.ATLASSIAN_API_TOKEN_fixture_example_invalid = token;
+  const result = f.read("issue");
+
+  expect(result.tool?.status, String(result.tool?.stderr)).toBe(0);
+  expect(JSON.parse(String(result.tool?.stdout)).issue.key).toBe(ref);
+});
+
+it("reads the already authenticated Jira CLI only on the configured site and with complete comments", () => {
+  const f = fixture("jira");
+  delete f.env.ATLASSIAN_API_TOKEN;
+  writeFileSync(
+    path.join(f.env.PATH, "acli"),
+    `#!${process.execPath}
+const args = JSON.stringify(process.argv.slice(2));
+if (args === JSON.stringify(['jira','auth','status'])) {
+  console.log('  Site: ' + (process.env.FIXTURE_SITE || 'jira-fixture.atlassian.net'));
+} else if (args === JSON.stringify(['jira','workitem','view','ENG-123','--fields','*all','--json'])) {
+  console.log(JSON.stringify({key:'ENG-123',self:'https://jira-fixture.atlassian.net/rest/api/3/issue/42',fields:{project:{key:'ENG'},description:'complete body',comment:{startAt:0,total:process.env.FIXTURE_PARTIAL ? 2 : 1,comments:[{id:'one',body:'first comment'}]}}}));
+} else process.exit(64);
+`,
+    { mode: 0o755 }
+  );
+  expect(JSON.parse(String(f.read("issue").tool?.stdout))).toMatchObject({
+    issue: { key: ref },
+    remoteLinks: null,
+  });
+  expect(JSON.parse(String(f.read("comments").tool?.stdout))).toEqual([
+    { id: "one", body: "first comment" },
+  ]);
+  f.env.FIXTURE_PARTIAL = "1";
+  const partial = f.read("comments");
+  expect(partial.tool?.status).toBe(2);
+  expect(partial.tool?.stdout).toBe("");
+  f.env.FIXTURE_SITE = "other.atlassian.net";
+  const wrong = f.read("issue");
+  expect(wrong.tool?.status).toBe(2);
+  expect(wrong.tool?.stderr).toContain("identity-mismatch");
 });
