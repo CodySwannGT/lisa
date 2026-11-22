@@ -124,6 +124,26 @@ describe("store-token with a secrets provider", () => {
     expectNoLeak(sandbox, result);
   });
 
+  it("keeps the token file and reports an unverified write after Bitwarden readback fails", async () => {
+    const sandbox = providerSandbox();
+    const file = plantEnvFile(sandbox);
+    const result = await runWithBitwardenWriteService(
+      sandbox,
+      [STORE_TOKEN],
+      503
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("could not be verified");
+    expect(result.stderr).toContain("Check the provider before retrying");
+    expect(result.stderr).not.toContain("Nothing was stored");
+    expect(result.stderr).not.toContain(SENTINEL);
+    expect(readFileSync(file, "utf8")).toBe(`TELEGRAM_BOT_TOKEN=${SENTINEL}\n`);
+    expect(readVault(sandbox).find(entry => entry.key === SECRET)?.value).toBe(
+      SENTINEL
+    );
+    expect(result.requests.at(-1)?.method).toBe("GET");
+  });
+
   it("with no .env and no TTY prints the commands and writes nothing", () => {
     const sandbox = providerSandbox();
     const result = runWithProvider(sandbox, [STORE_TOKEN]);

@@ -14,7 +14,15 @@ import {
   encrypt,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-encryption.mjs";
 
-const { vault, requests, account, credential, seed, projectId } = workerData;
+const {
+  vault,
+  requests,
+  account,
+  credential,
+  seed,
+  projectId,
+  readbackStatus,
+} = workerData;
 const organizationId = "27e93d92-6fd3-4f74-9aa3-7a27728c99e1";
 const id = "a91b5044-64cb-471a-8784-4c1d0d008483";
 const claims = Buffer.from(JSON.stringify({ organization: organizationId }));
@@ -95,6 +103,7 @@ const server = createServer(async (request, response) => {
       return send(response, 200, record);
     }
     if (method === "GET" && url === readPath && existsSync(stored)) {
+      if (readbackStatus !== 200) return send(response, readbackStatus, {});
       return send(response, 200, JSON.parse(readFileSync(stored, "utf8")));
     }
     return send(response, 404, {});

@@ -160,6 +160,12 @@ export async function storeTokenInProvider(input) {
     : await input.readToken();
   if (read.token === undefined) return read;
   const projectId = existing ? undefined : chooseProject(cfg, rows, input);
+  const verifyWrite = {
+    ...where,
+    retry:
+      `Storage of the Telegram bot token in ${cfg.provider} could not be verified (<reason>). ` +
+      `Any plaintext token file was kept. Check the provider before retrying store-token.`,
+  };
   await guarded(
     () =>
       existing
@@ -170,16 +176,16 @@ export async function storeTokenInProvider(input) {
             projectId,
             note: NOTE,
           }),
-    where
+    verifyWrite
   );
-  const after = (await guarded(() => adapter.list(cfg), where)).find(
+  const after = (await guarded(() => adapter.list(cfg), verifyWrite)).find(
     row => row.key === name
   );
   if (after === undefined || digest(after.value) !== digest(read.token)) {
     throw new TokenStoreError(
       `Reading ${name} back from ${cfg.provider} did not return what was ` +
         `written, so the token is not proven stored. Any plaintext token ` +
-        `file was kept. Run store-token again.`,
+        `file was kept. Check the provider before retrying store-token.`,
       1
     );
   }

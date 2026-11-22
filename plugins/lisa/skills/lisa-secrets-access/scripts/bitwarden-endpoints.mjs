@@ -33,12 +33,10 @@ function loadProfiles(path) {
     ({ parse } = local("smol-toml"));
   } catch (error) {
     if (error.code !== "MODULE_NOT_FOUND") throw error;
-    // A standalone marketplace copy can run outside the host's npm tree.
-    // Resolve the existing TOML dependency of the project's installed Lisa.
-    const fromHost = createRequire(join(process.cwd(), "package.json"));
-    ({ parse } = createRequire(fromHost.resolve("@codyswann/lisa"))(
-      "smol-toml"
-    ));
+    // Standalone marketplaces may have no host dependencies. This is the
+    // smol-toml 1.7.1 parser source with local .mts imports and a plain object
+    // in place of its const enum, so Node can run it with built-in type stripping.
+    ({ parse } = local("./vendor/smol-toml-1.7.1/parse.mts"));
   }
   const { profiles } = parse(config);
   if (!profiles || typeof profiles !== "object" || Array.isArray(profiles)) {

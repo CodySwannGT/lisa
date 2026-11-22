@@ -1,5 +1,11 @@
 /** Bitwarden-compatible key derivation, authenticated formats, and profile routing. */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  cpSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -11,6 +17,7 @@ import {
   encrypt,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-encryption.mjs";
 import { bitwardenEndpoints } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-endpoints.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const ACCOUNT = "b0fb3722-95ae-46ad-a6d1-209e1f7af2c4";
 const testKey = Buffer.alloc(64, 0x12);
@@ -101,6 +108,51 @@ describe("Bitwarden bws profiles", () => {
     ).toEqual({
       api: "https://vault.bitwarden.eu/api",
       identity: "https://vault.bitwarden.eu/identity",
+    });
+  });
+
+  it("reads a named profile from a standalone plugin without installed Lisa dependencies", () => {
+    const source = new URL(
+      "../../../plugins/src/base/skills/lisa-secrets-access/scripts/",
+      import.meta.url
+    );
+    const owner = join(folder, "bitwarden-endpoints.mjs");
+    copyFileSync(new URL("bitwarden-endpoints.mjs", source), owner);
+    cpSync(new URL("vendor/", source), join(folder, "vendor"), {
+      recursive: true,
+    });
+    writeFileSync(
+      config,
+      "[profiles]\n\"work.team\" = { server_base = 'https://work.example/vault/' }\n"
+    );
+
+    const result = boundedSpawnSync({
+      label: "standalone Bitwarden profile",
+      command: process.execPath,
+      args: [
+        "--input-type=module",
+        "-e",
+        [
+          "import {createRequire} from 'node:module';",
+          "import {pathToFileURL} from 'node:url';",
+          "const owner = pathToFileURL(process.argv[1]);",
+          "try {createRequire(owner).resolve('smol-toml'); process.exit(9)}",
+          "catch (error) {if (error.code !== 'MODULE_NOT_FOUND') throw error}",
+          "const {bitwardenEndpoints} = await import(owner);",
+          "const options = {BWS_CONFIG_FILE:process.argv[2], BWS_PROFILE:'work.team'};",
+          "console.log(JSON.stringify(bitwardenEndpoints(process.argv[3], options)));",
+        ].join("\n"),
+        owner,
+        config,
+        ACCOUNT,
+      ],
+      cwd: folder,
+      env: {},
+    });
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout ?? "")).toEqual({
+      api: "https://work.example/vault/api",
+      identity: "https://work.example/vault/identity",
     });
   });
 

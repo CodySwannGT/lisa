@@ -149,11 +149,13 @@ export function runWithProvider(
  * Run the CLI with a loopback Bitwarden write service and the usual read stub.
  * @param sandbox - Isolated project, vault and request log locations
  * @param args - Session manager command and options
+ * @param readbackStatus - HTTP status after the write has persisted
  * @returns The CLI result and the requests recorded by the service
  */
 export async function runWithBitwardenWriteService(
   sandbox: ProviderSandbox,
-  args: readonly string[]
+  args: readonly string[],
+  readbackStatus = 200
 ): Promise<RunResult & { requests: { method: string; url: string }[] }> {
   const requests = path.join(sandbox.base, "bitwarden-requests.jsonl");
   const account = "0ae8599f-6016-47d9-ba64-314edafd63fc";
@@ -172,6 +174,7 @@ export async function runWithBitwardenWriteService(
         account,
         credential,
         seed,
+        readbackStatus,
       },
     }
   );
